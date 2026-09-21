@@ -3,7 +3,7 @@ import { createListened } from '../src/graph/listened';
 import { ApiError, type ApiClient, type ListenedDay } from '../src/social/api';
 import { createMemoryListenedStore } from '../src/storage/memory';
 
-function build(opts: { online?: boolean; signedIn?: boolean; device?: string } = {}) {
+function build(opts: { online?: boolean; signedIn?: boolean; device?: string | null } = {}) {
   let online = opts.online ?? true;
   const puts: { deviceId: string; days: ListenedDay[] }[] = [];
   const api = {
@@ -15,7 +15,7 @@ function build(opts: { online?: boolean; signedIn?: boolean; device?: string } =
   } as unknown as ApiClient;
   const store = createMemoryListenedStore();
   let clock = Date.UTC(2026, 8, 21, 10, 0, 0);
-  const listened = createListened({ api, store, deviceId: () => opts.device ?? 'p1', isSignedIn: () => opts.signedIn ?? true, now: () => clock, today: (ms) => new Date(ms).toISOString().slice(0, 10) });
+  const listened = createListened({ api, store, deviceId: () => (opts.device === null ? undefined : (opts.device ?? 'p1')), isSignedIn: () => opts.signedIn ?? true, now: () => clock, today: (ms) => new Date(ms).toISOString().slice(0, 10) });
   return { listened, store, puts, setOnline: (v: boolean) => { online = v; }, advance: (ms: number) => { clock += ms; } };
 }
 
@@ -48,7 +48,7 @@ it('A11: offline keeps rows dirty and sends them later; signed out or no device 
   out.listened.onTick('e', 0); out.listened.onTick('e', 5_000);
   expect(await out.listened.push()).toBe(0);
   expect(out.store.dirty()).toHaveLength(1); // kept for after sign-in
-  const noDevice = build({ device: undefined as unknown as string });
+  const noDevice = build({ device: null });
   noDevice.listened.onTick('e', 0); noDevice.listened.onTick('e', 5_000);
   expect(await noDevice.listened.push()).toBe(0);
 });
