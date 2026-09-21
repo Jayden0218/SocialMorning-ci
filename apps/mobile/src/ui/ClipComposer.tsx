@@ -19,7 +19,7 @@ export type ClipComposerProps = {
 export function ClipComposer(props: ClipComposerProps): React.ReactElement {
   const player = usePlayer();
   const state = usePlayerState();
-  const position = 'positionMs' in state ? state.positionMs : props.initialPositionMs;
+  const position: number = 'positionMs' in state && typeof state.positionMs === 'number' ? state.positionMs : props.initialPositionMs;
   const [s, setS] = useState<ComposerState>(() => openComposer(props.episode.id, props.initialPositionMs, props.episode.durationMs));
   const length = Math.round((s.range.endMs - s.range.startMs) / 1000);
   return (
