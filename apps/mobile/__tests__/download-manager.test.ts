@@ -20,9 +20,10 @@ const parsed = (episodes: Episode[]): ParsedFeed => ({ show, episodes, warnings:
 const id = (guid: string) => episodeId(FEED, guid, hash);
 
 /** A fake CDN: each `start` transfers `size` bytes in `chunk` steps; `stall` pauses it. */
-function fakeDownloader(size: number, opts: { ignoresRange?: boolean } = {}) {
+function fakeDownloader(size: number, opts: { ignoresRange?: boolean; rejectOnCancel?: boolean } = {}) {
   const files = new Map<string, number>();
   const log: string[] = [];
+  const cancelled = new Set<string>();
   let stallAt: number | undefined;
   let resolveStall: (() => void) | undefined;
   const d: Downloader = {
@@ -37,22 +38,30 @@ function fakeDownloader(size: number, opts: { ignoresRange?: boolean } = {}) {
         }
         done = Math.min(size, done + size / 4);
         onProgress(done, size);
+        // Like the native task: a cancel() stops the transfer at the next step. Whether
+        // that surfaces as a resolve or a reject depends on the native side, so both.
+        if (cancelled.has(row.episodeId)) {
+          files.set(row.filePath, done);
+          if (opts.rejectOnCancel) throw new Error('cancelled');
+          return {};
+        }
       }
       files.set(row.filePath, size);
       return {};
     },
     async pause(episodeId) { log.push(`pause:${episodeId}`); return undefined; },
-    async cancel(episodeId) { log.push(`cancel:${episodeId}`); },
+    async cancel(episodeId) { log.push(`cancel:${episodeId}`); cancelled.add(episodeId); },
     async remove(path) { files.delete(path); log.push(`remove:${path}`); },
     async size(path) { return files.get(path); },
   };
   return { d, log, files, stall: (at: number) => { stallAt = at; }, releaseStall: () => resolveStall?.() };
 }
 
-function build(opts: { size?: number; network?: 'wifi' | 'cellular' | 'none'; ignoresRange?: boolean } = {}) {
+function build(opts: { size?: number; network?: 'wifi' | 'cellular' | 'none'; ignoresRange?: boolean; rejectOnCancel?: boolean } = {}) {
   const stores = createMemoryStores(hash);
-  stores.feeds.put(FEED, parsed([ep('a', 100), ep('b', 100), ep('c', 100)]), {}, 1);
-  const cdn = fakeDownloader(opts.size ?? 100, { ignoresRange: opts.ignoresRange ?? false });
+  // 'z' has no <enclosure length> — Megaphone feeds publish length="0" for every item.
+  stores.feeds.put(FEED, parsed([ep('a', 100), ep('b', 100), ep('c', 100), ep('z')]), {}, 1);
+  const cdn = fakeDownloader(opts.size ?? 100, { ignoresRange: opts.ignoresRange ?? false, rejectOnCancel: opts.rejectOnCancel ?? false });
   let network = opts.network ?? 'wifi';
   const net: Network = { kind: async () => network };
   let clock = 10;
@@ -154,6 +163,36 @@ it('budget: a request that would not fit is refused before it starts; the in-fli
   expect(stores.downloads.get(id('c'))).toBeUndefined();
   expect(manager.budgetBytes()).toBe(250);
   expect(DEFAULT_BUDGET_BYTES).toBe(2 * 1024 ** 3);
+});
+
+// Gap 3 (D7 on build 3, 2026-09-21): Casey's feed said length="0", the pre-check saw 186 of
+// 200 MB and let a 32 MB file through. The size is first known at the first progress event.
+describe.each([false, true])('FR-004: a download of unknown size is refused once its size is known (cancel rejects: %s)', (rejectOnCancel) => {
+  it('over budget → cancelled, partial file gone, row failed:budget, used bytes unchanged, retry refused up front', async () => {
+    const { manager, stores, cdn } = build({ rejectOnCancel });
+    manager.setBudgetBytes(150);
+    await manager.request(id('a'));
+    for (let i = 0; i < 10; i++) await flush();
+    expect(manager.usedBytes()).toBe(100);
+    expect(await manager.request(id('z'))).toEqual({ kind: 'queued' }); // size unknown: nothing to refuse on
+    for (let i = 0; i < 10; i++) await flush();
+    expect(cdn.log).toContain(`cancel:${id('z')}`);
+    expect(cdn.files.has(`/downloads/${id('z')}.mp3`)).toBe(false);
+    expect(stores.downloads.get(id('z'))).toMatchObject({ state: 'failed', error: 'budget', bytesDone: 0, bytesTotal: 100 });
+    expect(manager.usedBytes()).toBe(100);
+    // Now the size is on the row, so the pre-check has something to refuse on.
+    expect(await manager.request(id('z'))).toEqual({ kind: 'budget', usedBytes: 100, budgetBytes: 150 });
+  });
+
+  it('within budget → completes like any other', async () => {
+    const { manager, stores, cdn } = build({ rejectOnCancel });
+    manager.setBudgetBytes(150);
+    await manager.request(id('z'));
+    for (let i = 0; i < 10; i++) await flush();
+    expect(cdn.log.some((l) => l.startsWith('cancel:'))).toBe(false);
+    expect(stores.downloads.get(id('z'))).toMatchObject({ state: 'complete', bytesDone: 100, bytesTotal: 100 });
+    expect(manager.usedBytes()).toBe(100);
+  });
 });
 
 it('remove deletes the file and the row but keeps the position; removeFinished only touches finished episodes', async () => {
