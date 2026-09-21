@@ -57,7 +57,11 @@ export default function DownloadsScreen(): React.ReactElement {
             {item.state === 'complete' ? (
               <Pressable onPress={() => downloads.remove(item.episodeId)} accessibilityRole="button"><Text style={styles.link}>Remove</Text></Pressable>
             ) : item.state === 'failed' ? (
-              <Pressable onPress={() => downloads.request(item.episodeId)} accessibilityRole="button"><Text style={styles.link}>Retry</Text></Pressable>
+              <>
+                <Pressable onPress={() => downloads.request(item.episodeId)} accessibilityRole="button"><Text style={styles.link}>Retry</Text></Pressable>
+                {/* Build 5 (2026-09-21): a refused row had no way off the list but a retry that is refused again. */}
+                <Pressable onPress={() => downloads.remove(item.episodeId)} accessibilityRole="button"><Text style={styles.link}>Remove</Text></Pressable>
+              </>
             ) : (
               <Pressable onPress={() => downloads.cancel(item.episodeId)} accessibilityRole="button"><Text style={styles.link}>Cancel</Text></Pressable>
             )}
