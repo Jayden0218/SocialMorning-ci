@@ -75,7 +75,7 @@ it('a network failure on the first pending row stops the pass; the rest wait', a
   const clips = t.make();
   await clips.create('e', { startMs: 0, endMs: 5_000 }, 'a');
   await clips.create('e', { startMs: 0, endMs: 6_000 }, 'b');
-  expect(t.pending.list().map((r) => r.attempts)).toEqual([1, 1]);
+  expect(t.pending.list().map((r) => r.attempts)).toEqual([2, 0]); // the second create re-tried 'a' first and stopped there; 'b' never left the phone
   t.setOnline(true);
   expect((await clips.sendPending()).map((c) => c.caption)).toEqual(['a', 'b']);
 });
