@@ -233,8 +233,16 @@ export function createPlayerRuntime(deps: PlayerDeps): PlayerRuntime {
     if (full.type === 'TICK' && 'episodeId' in state && typeof state.episodeId === 'string') deps.onTick?.(state.episodeId, full.positionMs);
     const next = reduce(state, full, ctx);
     const wasEnded = state.kind === 'ended';
+    const wasPlaying = state.kind === 'playing' || state.kind === 'buffering';
     state = next.state;
     ctx = next.ctx;
+    // M4 (G3 on build 9): the ticks come every ~3 s, so an interval that starts at the
+    // first tick and ends at the last one loses up to a tick at each end. The runtime
+    // knows the exact position at the moment playback starts and stops — feed it.
+    const isPlaying = state.kind === 'playing' || state.kind === 'buffering';
+    if (isPlaying !== wasPlaying && 'episodeId' in state && 'positionMs' in state && typeof state.positionMs === 'number') {
+      deps.onTick?.(state.episodeId, state.positionMs);
+    }
     for (const effect of next.effects) runEffect(effect);
     for (const listener of listeners) listener();
     if (!wasEnded && state.kind === 'ended') advanceQueue();

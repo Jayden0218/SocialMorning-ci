@@ -9,7 +9,12 @@
 export type Range = readonly [fromMs: number, toMs: number];
 export type ListenAcc = { episodeId: string; open?: Range; closed: Range[] };
 
-export const TICK_MAX_GAP_MS = 5_000;
+/**
+ * G3 on build 9 (2026-09-22): the player ticks every ~3 s of wall time, which is 4.5 s
+ * of episode at 1.5× and 6 s at 2× — a 5 s bound would have counted nothing at 2×. The
+ * smallest skip is 15 s, so 12 s still tells a skip from a tick.
+ */
+export const TICK_MAX_GAP_MS = 12_000;
 
 export function addTick(acc: ListenAcc | undefined, episodeId: string, positionMs: number, maxGapMs: number = TICK_MAX_GAP_MS): ListenAcc {
   if (acc === undefined || acc.episodeId !== episodeId) {

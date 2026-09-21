@@ -13,8 +13,10 @@ test('A2: ticks 0..10 s then 40, 41 s → two intervals; the 30-s jump is a gap,
 test('A2: a backwards tick (seek back), a stalled tick and a 5 000 ms tick are handled', () => {
   assert.deepEqual(closeAcc(ticks(undefined, 'e', [10_000, 11_000, 4_000, 5_000])), [[4_000, 5_000], [10_000, 11_000]]);
   assert.deepEqual(closeAcc(ticks(undefined, 'e', [10_000, 10_000, 11_000])), [[10_000, 11_000]]); // stalled: no length lost
-  assert.deepEqual(closeAcc(ticks(undefined, 'e', [0, 5_000, 10_001])), [[0, 5_000]]);          // exactly 5 000 extends; 5 001 does not
-  assert.deepEqual(closeAcc(ticks(undefined, 'e', [0, 5_000, 10_000])), [[0, 10_000]]);
+  assert.deepEqual(closeAcc(ticks(undefined, 'e', [0, 12_000, 24_001])), [[0, 12_000]]);        // exactly 12 000 extends; 12 001 does not
+  assert.deepEqual(closeAcc(ticks(undefined, 'e', [0, 12_000, 24_000])), [[0, 24_000]]);
+  assert.deepEqual(closeAcc(ticks(undefined, 'e', [0, 6_000, 12_000])), [[0, 12_000]]);         // 2× with 3-s ticks: 6 s apart, still one interval
+  assert.deepEqual(closeAcc(ticks(undefined, 'e', [0, 15_000])), []);                             // a +15 s skip is a gap: two points, no length
 });
 
 test('A2: another episode closes the interval and starts a fresh accumulator', () => {

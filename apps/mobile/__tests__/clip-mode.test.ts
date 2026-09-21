@@ -85,14 +85,16 @@ it('a seek, a skip or another load leaves clip mode; a LOADED for a different lo
   expect(kinds().filter((k) => k === 'seek').length).toBe(seeks);
 });
 
-it('onTick reports the current episode and position on every TICK while something is loaded', () => {
-  const { fake, runtime, ticks } = build();
+it('onTick reports every TICK while something is loaded, plus the exact position at the moment playback starts and stops', () => {
+  const { fake, runtime, ticks, stores } = build();
   fake.push({ type: 'TICK', positionMs: 1, durationMs: 1 }); // idle: nothing loaded, nothing reported
+  stores.positions.save({ episodeId: 'a', offsetMs: 1_040_222, finished: false }, 1);
   runtime.load(ep('a'), 'play');
-  fake.push({ type: 'LOADED', durationMs: 3_600_000 });
-  fake.push({ type: 'TICK', positionMs: 1_000, durationMs: 3_600_000 });
-  fake.push({ type: 'TICK', positionMs: 2_000, durationMs: 3_600_000 });
-  expect(ticks).toEqual([['a', 1_000], ['a', 2_000]]);
+  fake.push({ type: 'LOADED', durationMs: 3_600_000 });        // → playing: a synthetic tick at the start position
+  fake.push({ type: 'TICK', positionMs: 1_044_000, durationMs: 3_600_000 });
+  fake.push({ type: 'TICK', positionMs: 1_048_500, durationMs: 3_600_000 });
+  fake.push({ type: 'EXTERNAL_PAUSE', at: 1_051_000 });        // → paused at the fresh `at`: a synthetic tick there
+  expect(ticks).toEqual([['a', 1_040_222], ['a', 1_044_000], ['a', 1_048_500], ['a', 1_051_000]]);
 });
 
 it('M4 gap 2: after the clip-end pause, a lock-screen Play (EXTERNAL_RESUME) puts the runtime back in playing and ticks count again', () => {
