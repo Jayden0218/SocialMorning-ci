@@ -67,10 +67,11 @@ export function createDownloadManager(deps: ManagerDeps): DownloadManager {
     deps.stores.downloads.put({ ...row, state: 'downloading', error: undefined });
     notify();
     let sawProgress = false;
+    let overBudget = false;
     try {
       const result = await deps.downloader.start(row, episode.enclosureUrl, (done, total, resumeData) => {
         const current = deps.stores.downloads.get(row.episodeId);
-        if (!current || current.state !== 'downloading') return;
+        if (!current || current.state !== 'downloading' || overBudget) return;
         // FR-002: a transfer that starts again below what we already had is a restart —
         // either the server ignored our Range, or (gap 1) the process was killed before a
         // pause could produce resumeData. Say so; never pretend.
@@ -83,11 +84,22 @@ export function createDownloadManager(deps: ManagerDeps): DownloadManager {
           ...(resumeData !== undefined ? { resumeData } : {}),
           ...(restarted ? { error: 'no-resume' } : {}),
         });
+        // FR-004 (gap 3, D7 on build 3): a feed that publishes length="0" — Megaphone does,
+        // for every item — gives no size at request time, so the pre-check passed on 186 of
+        // 200 MB and a 32 MB file went through. The first progress event is the first time
+        // the size is known; refuse then, not never.
+        if (current.bytesTotal === undefined && total > 0 && !canStartDownload(usedBytes() - total, total, budgetBytes())) {
+          overBudget = true;
+          void deps.downloader.cancel(row.episodeId);
+        }
         notify();
       });
       const after = deps.stores.downloads.get(row.episodeId);
       if (!after) return; // cancelled meanwhile
-      if (result.paused) {
+      if (overBudget) {
+        await deps.downloader.remove(after.filePath);
+        deps.stores.downloads.put({ ...after, state: 'failed', error: 'budget', bytesDone: 0, resumeData: undefined });
+      } else if (result.paused) {
         deps.stores.downloads.put({ ...after, state: 'paused', resumeData: result.resumeData });
       } else {
         const size = (await deps.downloader.size(after.filePath)) ?? after.bytesTotal ?? after.bytesDone;
@@ -95,7 +107,11 @@ export function createDownloadManager(deps: ManagerDeps): DownloadManager {
       }
     } catch (e) {
       const after = deps.stores.downloads.get(row.episodeId);
-      if (after) {
+      if (after && overBudget) {
+        // The native task may reject on cancel(); the outcome is the same either way.
+        await deps.downloader.remove(after.filePath);
+        deps.stores.downloads.put({ ...after, state: 'failed', error: 'budget', bytesDone: 0, resumeData: undefined });
+      } else if (after) {
         // Keep whatever resume state we have; the next tick retries from it.
         const resume = await deps.downloader.pause(row.episodeId).catch(() => undefined);
         deps.stores.downloads.put({ ...after, state: 'paused', resumeData: resume?.resumeData ?? after.resumeData, error: e instanceof Error ? e.message : String(e) });
