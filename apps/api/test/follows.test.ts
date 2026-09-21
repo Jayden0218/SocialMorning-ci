@@ -26,3 +26,13 @@ test('A6: follow self → 422; follow twice → one row; unfollow never-followed
   await assert.rejects(t.q('INSERT INTO follows (follower_id, followed_id) VALUES ($1, $1)', [a.id]), /check/i);
   await t.close();
 });
+
+test('T033: the 61st follow in a minute is 429', async () => {
+  const t = await freshDb();
+  const a = await signUp(t);
+  const ids: string[] = [];
+  for (let i = 0; i < 61; i++) ids.push((await signUp(t, `u${i}@example.com`, `U${i}`)).id);
+  for (let i = 0; i < 60; i++) assert.equal((await t.call('PUT', `/v1/listeners/${ids[i]}/follow`, undefined, a.token)).status, 204);
+  assert.equal((await t.call('PUT', `/v1/listeners/${ids[60]}/follow`, undefined, a.token)).status, 429);
+  await t.close();
+});

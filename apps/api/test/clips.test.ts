@@ -85,3 +85,14 @@ test('GET /v1/episodes/:id/clips lists live clips newest first, 20 a page, with 
   assert.equal(p2.next, undefined);
   await t.close();
 });
+
+test('T033: the 61st clip in a minute is 429', async () => {
+  const t = await freshDb();
+  await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: D });
+  const a = await signUp(t);
+  for (let i = 0; i < 60; i++) assert.equal((await t.call('POST', `/v1/episodes/${EP}/clips`, { clientId: `b${i}`, startMs: 0, endMs: 5000 }, a.token)).status, 201);
+  const r = await t.call('POST', `/v1/episodes/${EP}/clips`, { clientId: 'b60', startMs: 0, endMs: 5000 }, a.token);
+  assert.equal(r.status, 429);
+  assert.equal(((await r.json()) as { retryAfterSeconds: number }).retryAfterSeconds, 60);
+  await t.close();
+});

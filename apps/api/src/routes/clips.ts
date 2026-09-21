@@ -25,6 +25,9 @@ episodeClips.post('/:id/clips', requireAuth, json(clipBody), async (c) => {
   const listener = c.get('listener')!;
   const episode = await getEpisode(db, episodeId);
   if (!episode) throw new ApiError('not_found', 'Register the episode first (PUT /v1/episodes/:id).');
+  // T033: a burst of clips in a minute is not a listener, it is a script (M3's comment floor, per minute).
+  const recent = await db.query<{ n: number }>(`SELECT count(*)::int AS n FROM clips WHERE author_id = $1 AND created_at > now() - interval '1 minute'`, [listener.id]);
+  if (Number(recent[0]?.n ?? 0) >= 60) throw new ApiError('locked', 'Too many clips in a minute.', { retryAfterSeconds: 60 });
   const check = validateClipRange({ startMs: body.startMs, endMs: body.endMs }, episode.duration_ms ?? undefined);
   if (!check.ok) throw new ApiError('validation', `That range can't be a clip (${check.reason}).`, { fields: ['startMs', 'endMs'], reason: check.reason });
   const { clip, created } = await createClip(db, { authorId: listener.id, clientId: body.clientId, episodeId, startMs: body.startMs, endMs: body.endMs, caption: body.caption });

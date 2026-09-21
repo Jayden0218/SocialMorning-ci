@@ -12,3 +12,5 @@ Checked with `npm view <pkg> license` on 2026-09-21 (constitution, Principle III
 | tsx (dev) | 4.23.15 | MIT |
 | c8 (dev, social-core) | 10.x | ISC |
 | esbuild (dev) | 0.28.2 | MIT |
+
+M4 (2026-09-21) added no dependency to `apps/api`: clips, follows, feed, listened and profiles use Hono, zod, `postgres` and `@socialmorning/social-core` already listed.
