@@ -53,6 +53,11 @@ export function resumeStateFor(row: DownloadRow, url: string, file: { exists: bo
 
 export function createExpoDownloader(): Downloader {
   const tasks = new Map<string, DownloadTask>();
+  // D7 on build 4 (2026-09-21): after `cancel()` the transfer sat at "0 %" for good. In
+  // `FileSystemDownloadTask.kt` the read loop does `if (isCancelling) return` without
+  // settling the coroutine, so `downloadAsync()` may never resolve or reject (a race with
+  // OkHttp closing the socket). We settle `start()` ourselves on cancel.
+  const cancels = new Map<string, () => void>();
 
   function ensureDir(): void {
     if (!DIR.exists) DIR.create({ intermediates: true, idempotent: true });
@@ -66,8 +71,11 @@ export function createExpoDownloader(): Downloader {
       const task = state ? DownloadTask.fromSavable(state) : new DownloadTask(url, file);
       tasks.set(row.episodeId, task);
       const sub = task.addListener('progress', (p) => onProgress(p.bytesWritten, p.totalBytes));
+      const cancelled = new Promise<never>((_, reject) => { cancels.set(row.episodeId, () => reject(new Error('cancelled'))); });
       try {
-        const result = state ? await task.resumeAsync() : await task.downloadAsync();
+        const op = state ? task.resumeAsync() : task.downloadAsync();
+        op.catch(() => undefined); // may settle late, or never — the race below is what we wait on
+        const result = await Promise.race([op, cancelled]);
         if (result === null && task.state === 'paused') {
           return { resumeData: JSON.stringify(task.savable()), paused: true };
         }
@@ -75,6 +83,7 @@ export function createExpoDownloader(): Downloader {
       } finally {
         sub.remove();
         tasks.delete(row.episodeId);
+        cancels.delete(row.episodeId);
         task.release();
       }
     },
@@ -86,6 +95,7 @@ export function createExpoDownloader(): Downloader {
     },
     async cancel(episodeId) {
       tasks.get(episodeId)?.cancel();
+      cancels.get(episodeId)?.();
     },
     async remove(filePath) {
       const f = new File(filePath);
