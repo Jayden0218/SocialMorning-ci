@@ -59,6 +59,13 @@ export async function createComment(
     'INSERT INTO comments (episode_id, author_id, parent_id, body, offset_ms) VALUES ($1, $2, $3, $4, $5) RETURNING id',
     [c.episodeId, c.authorId, c.parentId ?? null, c.body, c.offsetMs ?? null],
   );
+  // M4 (research R4): a top-level comment is a feed item; replies are not.
+  if (!c.parentId) {
+    await db.query(
+      `INSERT INTO activity (actor_id, kind, episode_id, moment_ms, ref_id, hidden) VALUES ($1, 'commented', $2, $3, $4, false)`,
+      [c.authorId, c.episodeId, c.offsetMs ?? null, row!.id],
+    );
+  }
   return (await db.query<CommentRow>(`${SELECT} WHERE c.id = $1`, [row!.id]))[0]!;
 }
 
@@ -77,6 +84,7 @@ export async function deleteComment(db: Db, id: string): Promise<{ placeholder: 
     [id],
   ))[0];
   if (!row) throw new ApiError('not_found', 'No such comment.');
+  await db.query(`DELETE FROM activity WHERE kind = 'commented' AND ref_id = $1`, [id]); // M4: gone from feeds either way
   if (Number(row.replies) > 0) {
     await db.query(
       'UPDATE comments SET body = NULL, author_id = NULL, offset_ms = NULL, deleted_at = now() WHERE id = $1',

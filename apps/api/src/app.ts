@@ -13,6 +13,8 @@ import { reactions } from './routes/reactions.ts';
 import { positions } from './routes/positions.ts';
 import { clipById, episodeClips } from './routes/clips.ts';
 import { createClipPages } from './pages/clip.ts';
+import { follows } from './routes/follows.ts';
+import { feed } from './routes/feed.ts';
 
 export type AppDeps = { db: Db; pepper: string; assetLinksSha256?: string };
 
@@ -45,6 +47,8 @@ export function createApp(deps: AppDeps) {
   app.route('/v1/auth', auth);
   app.route('/v1/me', me);
   app.route('/v1/me/positions', positions);
+  app.route('/v1/me/feed', feed);
+  app.route('/v1/listeners', follows);
   app.route('/v1/episodes', episodes);
   app.route('/v1/episodes', comments);
   app.route('/v1/episodes', social);

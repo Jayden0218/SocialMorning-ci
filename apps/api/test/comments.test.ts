@@ -96,3 +96,15 @@ test('heat: a timestamped comment lands in its bucket; deleting it removes it', 
   assert.deepEqual(await t.q('SELECT bucket FROM episode_heat WHERE episode_id = $1', [EP]), []);
   await t.close();
 });
+
+test('M4: a top-level comment writes one commented activity row; a reply writes none; deleting removes it', async () => {
+  const t = await freshDb();
+  await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: 2_899_000 });
+  const a = await signUp(t);
+  const root = ((await (await t.call('POST', `/v1/episodes/${EP}/comments`, { body: 'root', offsetMs: 5_000 }, a.token)).json()) as { comment: { id: string } }).comment;
+  await t.call('POST', `/v1/episodes/${EP}/comments`, { body: 'reply', parentId: root.id }, a.token);
+  assert.deepEqual(await t.q(`SELECT kind, moment_ms, ref_id::text AS ref FROM activity`), [{ kind: 'commented', moment_ms: 5_000, ref: root.id }]);
+  await t.call('DELETE', `/v1/comments/${root.id}`, undefined, a.token);
+  assert.deepEqual(await t.q('SELECT count(*)::int AS n FROM activity'), [{ n: 0 }]);
+  await t.close();
+});
