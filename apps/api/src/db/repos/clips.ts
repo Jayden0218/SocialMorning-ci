@@ -30,9 +30,10 @@ export async function createClip(
 ): Promise<{ clip: ClipRow; created: boolean }> {
   return db.transaction(async (tx) => {
     const existing = await tx.query<ClipRow>(`${SELECT} WHERE c.author_id = $1 AND c.client_id = $2`, [input.authorId, input.clientId]);
+    if (existing[0]) return { clip: existing[0], created: false };
     const [inserted] = await tx.query<{ id: string }>(
       `INSERT INTO clips (author_id, client_id, episode_id, start_ms, end_ms, caption) VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING id`,
+       ON CONFLICT (author_id, client_id) DO NOTHING RETURNING id`,
       [input.authorId, input.clientId, input.episodeId, input.startMs, input.endMs, input.caption],
     );
     if (!inserted) {
