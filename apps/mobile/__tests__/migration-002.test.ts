@@ -46,7 +46,7 @@ it('M2: a v2 database (M3 phone) upgrades to v3 with positions and auth intact a
   db.exec('PRAGMA user_version = 2');
   db.exec(`INSERT INTO positions (episode_id, offset_ms, finished, updated_at, progress_seq) VALUES ('ep', 626500, 0, 1, 522)`);
   db.exec(`INSERT INTO auth (id, listener_id, display_name, email, signed_in_at) VALUES (1, 'L', 'Jayden', 'j@x', 1)`);
-  expect(migrateSchema(wrap(db))).toBe(3);
+  expect(migrateSchema(wrap(db))).toBe(SCHEMA_VERSION); // v2 → the latest (3 at M2, 4 since M4)
   expect(db.prepare('SELECT offset_ms, progress_seq FROM positions').get()).toMatchObject({ offset_ms: 626500, progress_seq: 522 });
   expect(db.prepare('SELECT display_name FROM auth').get()).toMatchObject({ display_name: 'Jayden' });
   const tables = (db.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all() as { name: string }[]).map((r) => r.name);
