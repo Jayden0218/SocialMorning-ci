@@ -69,3 +69,14 @@ it('A11: a day change or another episode closes the interval into the right row;
   t.listened.onTick('c', 0); // a single tick has no length
   expect(t.listened.pending()).toHaveLength(3);
 });
+
+it('gap 4 (G3 on build 10): a push in the middle of playing keeps the interval continuous — no hole at the push', async () => {
+  const t = build();
+  for (let p = 0; p <= 30_000; p += 3_000) t.listened.onTick('e', p);
+  expect(await t.listened.push()).toBe(1);        // the 30-s timer
+  expect(t.puts[0]!.days[0]!.ranges).toEqual([[0, 30_000]]);
+  for (let p = 33_000; p <= 60_000; p += 3_000) t.listened.onTick('e', p);
+  t.listened.close();
+  await t.listened.push();
+  expect(t.puts[1]!.days[0]!.ranges).toEqual([[0, 60_000]]); // one interval, not [[0,30000],[33000,60000]]
+});

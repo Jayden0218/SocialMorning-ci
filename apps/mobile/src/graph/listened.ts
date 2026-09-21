@@ -29,10 +29,21 @@ export function createListened(deps: ListenedDeps) {
   let accDay: string | undefined;
   let pushing: Promise<number> | undefined;
 
-  function flushAcc(): void {
+  /**
+   * Writes what is accumulated into the store. `keepOpen` (a push, not a stop) leaves the
+   * interval open at its last position so the next tick continues it — G3 on build 10
+   * (2026-09-22): the 30-s upload timer closed it 13 times in 10 minutes and the ~750 ms
+   * between the last tick before and the first tick after each push was lost, 9.8 s in all.
+   */
+  function flushAcc(keepOpen = false): void {
     if (acc === undefined || accDay === undefined) return;
     const ranges = closeAcc(acc);
     if (ranges.length > 0) deps.store.addRanges(acc.episodeId, accDay, ranges);
+    if (keepOpen && acc.open !== undefined) {
+      const at = acc.open[1];
+      acc = { episodeId: acc.episodeId, open: [at, at], closed: [] };
+      return;
+    }
     acc = undefined;
     accDay = undefined;
   }
@@ -49,14 +60,14 @@ export function createListened(deps: ListenedDeps) {
     close(): void { flushAcc(); },
     /** What this phone would send right now (after closing the open interval). */
     pending(): { episodeId: string; day: string; ranges: Range[] }[] {
-      flushAcc();
+      flushAcc(true);
       return deps.store.dirty().map((r) => ({ episodeId: r.episodeId, day: r.day, ranges: r.ranges }));
     },
     /** Sends every dirty day; resolves with how many were accepted (0 when offline, signed out, or nothing to send). */
     async push(): Promise<number> {
       if (pushing) return pushing;
       pushing = (async () => {
-        flushAcc(); // into the store first: what cannot be sent now is kept for later
+        flushAcc(true); // into the store first: what cannot be sent now is kept for later; playing goes on
         const device = deps.deviceId();
         if (!device || !deps.isSignedIn()) return 0;
         const days = deps.store.dirty();
