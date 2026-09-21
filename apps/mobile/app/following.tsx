@@ -38,13 +38,13 @@ export default function FollowingScreen(): React.ReactElement {
       keyExtractor={(i) => String(i.id)}
       contentContainerStyle={styles.body}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} />}
-      ListHeaderComponent={view?.stale ? <Text style={styles.stale}>Couldn't refresh — showing what was fetched {view.fetchedAt ? new Date(view.fetchedAt).toLocaleTimeString() : 'earlier'}.</Text> : null}
+      ListHeaderComponent={view?.stale ? <Text style={styles.stale}>Couldn't refresh — showing what was fetched {view.fetchedAt ? new Date(view.fetchedAt).toLocaleTimeString() : 'earlier'}.</Text> : undefined}
       ListEmptyComponent={!refreshing ? (
         <View>
           <Text style={styles.muted}>Nothing here yet.</Text>
           <Text style={styles.muted}>Follow people from their comments and clips on episodes you listen to — tap a name to open their profile.</Text>
         </View>
-      ) : null}
+      ) : undefined}
       renderItem={({ item }) => <FeedItem item={item} onOpen={open} />}
       onEndReached={() => {
         const next = view?.next;
