@@ -39,7 +39,7 @@ export function createListened(deps: ListenedDeps) {
     if (acc === undefined || accDay === undefined) return;
     const ranges = closeAcc(acc);
     if (ranges.length > 0) deps.store.addRanges(acc.episodeId, accDay, ranges);
-    if (false && keepOpen && acc.open !== undefined) {
+    if (keepOpen && acc.open !== undefined) {
       const at = acc.open[1];
       acc = { episodeId: acc.episodeId, open: [at, at], closed: [] };
       return;
