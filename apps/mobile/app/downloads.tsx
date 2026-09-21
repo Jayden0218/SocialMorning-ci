@@ -19,7 +19,9 @@ export default function DownloadsScreen(): React.ReactElement {
     if (r.state === 'complete') return `Downloaded · ${mb(r.bytesTotal)}`;
     if (r.state === 'failed') return r.error === 'budget' ? 'Not enough space' : `Failed${r.error ? ` · ${r.error}` : ''}`;
     const pct = r.bytesTotal ? Math.floor((r.bytesDone / r.bytesTotal) * 100) : undefined;
-    return r.state === 'waiting' ? 'Waiting' : r.state === 'paused' ? `Paused · ${pct ?? 0} %` : `${pct ?? '…'} %`;
+    const base = r.state === 'waiting' ? 'Waiting' : r.state === 'paused' ? `Paused · ${pct ?? 0} %` : `${pct ?? '…'} %`;
+    // FR-002: the same honesty as the episode screen — a kill-restart says so here too.
+    return r.error === 'no-resume' ? `${base} · restarted` : base;
   };
 
   return (

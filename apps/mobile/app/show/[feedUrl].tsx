@@ -6,7 +6,7 @@
  * screen that waits for the network before showing episodes it already has
  * is the opposite of Principle IV.
  */
-import { Link, useLocalSearchParams, useRouter } from 'expo-router';
+import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { refreshShow } from '../../src/feeds/fetch';
@@ -27,6 +27,12 @@ export default function ShowScreen(): React.ReactElement {
   const [stale, setStale] = useState(false);
   const [failed, setFailed] = useState<string | undefined>(undefined);
   const [subscribed, setSubscribed] = useState(() => stores.subscriptions.has(feedUrl));
+  // The rows read positions at render time; coming back from the player (or the
+  // episode screen) must re-render them, or the list shows where the episode WAS
+  // when this screen was pushed (seen on the phone 2026-09-21: Casey "0:57" while
+  // its own screen said 15:52).
+  const [focusTick, setFocusTick] = useState(0);
+  useFocusEffect(useCallback(() => { setFocusTick((n) => n + 1); }, []));
 
   useEffect(() => {
     let live = true;
@@ -70,6 +76,7 @@ export default function ShowScreen(): React.ReactElement {
   return (
     <FlatList
       data={episodes}
+      extraData={focusTick} // FlatList is pure: without this the rows keep their old text
       keyExtractor={(episode) => episode.id}
       ListHeaderComponent={
         <View style={styles.header}>

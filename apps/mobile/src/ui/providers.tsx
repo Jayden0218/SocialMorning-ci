@@ -93,16 +93,23 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
   useEffect(() => { void downloads.recover(); }, [downloads]);
 
   // M2 (research R7): what the queue advance needs. `online` is the last network
-  // reading, refreshed on every app-foreground and download tick (cheap, no watcher).
+  // reading, refreshed on every connectivity change, app-foreground and every 30 s.
+  // Each refresh also ticks the download manager: a transfer paused by a network
+  // loss resumes when the network is back (gap 4), and a transient failure is
+  // retried within 30 s instead of never.
   const online = useRef(true);
   const network = useMemo(() => createExpoNetwork(), []);
   useEffect(() => {
-    const refresh = () => { void network.kind().then((k) => { online.current = k !== 'none'; }); };
+    const refresh = () => {
+      void network.kind().then((k) => { online.current = k !== 'none'; });
+      void downloads.tick();
+    };
     refresh();
     const sub = AppState.addEventListener('change', (s) => { if (s === 'active') refresh(); });
+    const unsubscribe = network.onChange?.(refresh);
     const timer = setInterval(refresh, 30_000);
-    return () => { sub.remove(); clearInterval(timer); };
-  }, [network]);
+    return () => { sub.remove(); unsubscribe?.(); clearInterval(timer); };
+  }, [network, downloads]);
 
   const runtime = useMemo<PlayerRuntime>(() => {
     const adapter = createExpoAudioAdapter();

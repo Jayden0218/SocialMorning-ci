@@ -1,5 +1,5 @@
 /** The `Network` (contracts/downloader.ts) on expo-network 58 — research R6. Only importer. */
-import { getNetworkStateAsync, NetworkStateType } from 'expo-network';
+import { addNetworkStateListener, getNetworkStateAsync, NetworkStateType } from 'expo-network';
 import type { Network } from './types';
 
 export function createExpoNetwork(): Network {
@@ -15,6 +15,12 @@ export function createExpoNetwork(): Network {
       } catch {
         return 'none';
       }
+    },
+    // Gap 4 (2026-09-21, build 3): Wi-Fi off paused the transfer in 1 s; Wi-Fi back
+    // left it "Paused at 29 %" for good — nothing ticked the manager. This does.
+    onChange(fn) {
+      const sub = addNetworkStateListener(() => fn());
+      return () => sub.remove();
     },
   };
 }

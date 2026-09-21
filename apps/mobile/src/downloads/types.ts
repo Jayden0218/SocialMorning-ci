@@ -18,4 +18,6 @@ export interface Downloader {
 
 export interface Network {
   kind(): Promise<'wifi' | 'cellular' | 'none'>;
+  /** Calls `fn` on every connectivity change; returns the unsubscribe. Optional: tests and R7's poller do without. */
+  onChange?(fn: () => void): () => void;
 }
