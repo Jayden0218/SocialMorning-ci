@@ -56,9 +56,9 @@ export function createListened(deps: ListenedDeps) {
     async push(): Promise<number> {
       if (pushing) return pushing;
       pushing = (async () => {
+        flushAcc(); // into the store first: what cannot be sent now is kept for later
         const device = deps.deviceId();
         if (!device || !deps.isSignedIn()) return 0;
-        flushAcc();
         const days = deps.store.dirty();
         if (days.length === 0) return 0;
         try {
