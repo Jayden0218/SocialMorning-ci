@@ -240,7 +240,7 @@ export function createPlayerRuntime(deps: PlayerDeps): PlayerRuntime {
     // first tick and ends at the last one loses up to a tick at each end. The runtime
     // knows the exact position at the moment playback starts and stops — feed it.
     const isPlaying = state.kind === 'playing' || state.kind === 'buffering';
-    if (isPlaying !== wasPlaying && 'episodeId' in state && 'positionMs' in state && typeof state.positionMs === 'number') {
+    if (isPlaying !== wasPlaying && 'episodeId' in state && typeof state.episodeId === 'string' && 'positionMs' in state && typeof state.positionMs === 'number') {
       deps.onTick?.(state.episodeId, state.positionMs);
     }
     for (const effect of next.effects) runEffect(effect);
