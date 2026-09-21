@@ -55,6 +55,8 @@ export type PlayerDeps = {
     online: () => boolean;
     onSkipped?: (episodeId: string) => void;
   };
+  /** M4 (research R3): every TICK's episode time, for the listened-interval accumulator. Kept out of the reducer. */
+  onTick?: (episodeId: string, positionMs: Ms) => void;
 };
 
 export type PlayerRuntime = {
@@ -81,6 +83,14 @@ export type PlayerRuntime = {
   restore: (lookup: (episodeId: string) => PlayableEpisode | undefined) => void;
   /** Where this episode should start, honouring FR-019 and FR-020. */
   startPositionFor: (episode: PlayableEpisode) => Ms;
+  /**
+   * M4 (FR-003, research R7): play a clip — load the episode, seek to `startMs` as an
+   * explicit seek once it has loaded, and pause at `endMs`. The end is watched on every
+   * TICK, the mechanism M2's D3 proved fires with the screen locked. Any Play, seek,
+   * skip or load clears the watch; "keep listening" is a plain Play.
+   */
+  playClip: (episode: PlayableEpisode, range: { startMs: Ms; endMs: Ms }) => void;
+  clip: () => { episodeId: string; startMs: Ms; endMs: Ms } | undefined;
   dispose: () => void;
 };
 
@@ -94,6 +104,9 @@ export function createPlayerRuntime(deps: PlayerDeps): PlayerRuntime {
   let holdAdvance = false;
   let sleep: SleepTimer = { kind: 'off' };
   let sleepTimeout: ReturnType<typeof setTimeout> | undefined;
+  // M4 clip mode: the range being played, and the loadId whose LOADED must seek to its start.
+  let clip: { episodeId: string; startMs: Ms; endMs: Ms } | undefined;
+  let clipSeekPending: { loadId: number; toMs: Ms } | undefined;
   let currentFeedUrl: string | undefined;
 
   const SPEED_DEFAULT_KEY = 'speed.default';
@@ -199,6 +212,16 @@ export function createPlayerRuntime(deps: PlayerDeps): PlayerRuntime {
       dispatch({ type: 'PAUSE' });
       return;
     }
+    // M4 clip mode: the end is a TICK fact, like the sleep timer. Reaching it pauses once.
+    if (full.type === 'TICK' && clip !== undefined && full.positionMs >= clip.endMs) {
+      clip = undefined;
+      dispatch({ type: 'PAUSE' });
+      return;
+    }
+    // A listener's own Play / seek / skip / load leaves clip mode; the pause we dispatch does not.
+    if (clip !== undefined && (full.type === 'PLAY' || full.type === 'SEEK' || full.type === 'SKIP' || full.type === 'LOAD')) clip = undefined;
+    // M4 (research R3): the listened-interval accumulator hears every TICK in episode time.
+    if (full.type === 'TICK' && 'episodeId' in state && typeof state.episodeId === 'string') deps.onTick?.(state.episodeId, full.positionMs);
     const next = reduce(state, full, ctx);
     const wasEnded = state.kind === 'ended';
     state = next.state;
@@ -206,6 +229,15 @@ export function createPlayerRuntime(deps: PlayerDeps): PlayerRuntime {
     for (const effect of next.effects) runEffect(effect);
     for (const listener of listeners) listener();
     if (!wasEnded && state.kind === 'ended') advanceQueue();
+    // The clip's start is an explicit seek (M3 R5 rule 2: the listener chose a place),
+    // issued once the load it belongs to has actually loaded.
+    if (full.type === 'LOADED' && clipSeekPending !== undefined && clipSeekPending.loadId === full.loadId) {
+      const toMs = clipSeekPending.toMs;
+      clipSeekPending = undefined;
+      const keep = clip;
+      dispatch({ type: 'SEEK', toMs });
+      clip = keep;
+    }
   }
 
   function startPositionFor(episode: PlayableEpisode): Ms {
@@ -286,6 +318,13 @@ export function createPlayerRuntime(deps: PlayerDeps): PlayerRuntime {
     sleepRemainingMs: () => timerRemainingMs(sleep, deps.now()),
     restore,
     startPositionFor,
+    playClip(episode, range) {
+      load(episode, 'play');
+      clip = { episodeId: episode.id, startMs: range.startMs, endMs: range.endMs };
+      clipSeekPending = { loadId: ctx.loadId, toMs: range.startMs };
+      for (const listener of listeners) listener();
+    },
+    clip: () => clip,
     dispose() {
       clearTimeout(resumeWatch);
       clearTimeout(retryTimer);
