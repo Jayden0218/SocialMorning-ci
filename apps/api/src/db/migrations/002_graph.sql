@@ -5,7 +5,7 @@ ALTER TABLE listeners ADD COLUMN private_listening boolean NOT NULL DEFAULT fals
 
 CREATE TABLE clips (
   id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  author_id   uuid        NULL REFERENCES listeners(id) ON DELETE SET NULL,
+  author_id   uuid        NOT NULL REFERENCES listeners(id) ON DELETE CASCADE,
   client_id   text        NOT NULL,                        -- phone-generated; a retry makes one clip (R8, G8)
   episode_id  text        NOT NULL REFERENCES episodes(id),
   start_ms    int         NOT NULL CHECK (start_ms >= 0),
@@ -46,6 +46,7 @@ CREATE TABLE activity (
   ref_id      uuid        NULL,                            -- clip id or comment id
   day         date        NULL,                            -- listened only: once per (actor, episode, day) (G6)
   hidden      boolean     NOT NULL DEFAULT false,          -- the actor's private_listening at write time (R5)
-  created_at  timestamptz NOT NULL DEFAULT now()
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (actor_id, kind, episode_id, day)
 );
 CREATE INDEX activity_feed ON activity (actor_id, created_at DESC, id DESC) WHERE hidden = false;
