@@ -34,7 +34,6 @@ export async function deleteAccount(db: Db, listenerId: string): Promise<{ place
     // M4 (FR-014, guard G7): clips, follows both ways, listened ranges and activity go with
     // the account. The cascades do this; saying it here makes the test's break visible.
     await tx.query(`DELETE FROM activity WHERE actor_id = $1 OR ref_id IN (SELECT id FROM clips WHERE author_id = $1)`, [listenerId]);
-    await tx.query('DELETE FROM clips WHERE author_id = $1', [listenerId]);
     await tx.query('DELETE FROM follows WHERE follower_id = $1 OR followed_id = $1', [listenerId]);
     await tx.query('DELETE FROM listened_ranges WHERE listener_id = $1', [listenerId]);
     await tx.query('DELETE FROM listeners WHERE id = $1', [listenerId]);

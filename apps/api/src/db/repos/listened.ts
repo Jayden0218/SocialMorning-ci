@@ -28,7 +28,7 @@ export async function replaceRanges(db: Db, listenerId: string, deviceId: string
       // "finishedBefore" is whether a listened row already exists for that reason: once written, never again.
       const [existing] = await tx.query<{ n: number }>(`SELECT count(*)::int AS n FROM activity WHERE actor_id = $1 AND kind = 'listened' AND episode_id = $2 AND day = $3`, [listenerId, d.episodeId, d.day]);
       const already = Number(existing!.n) > 0;
-      if (!already && listenItemDue(before, after, false, finished)) {
+      if (listenItemDue(before, after, false, finished) || (!already && finished)) {
         const registered = await tx.query('SELECT 1 FROM episodes WHERE id = $1', [d.episodeId]);
         if (registered.length > 0) {
           const [l] = await tx.query<{ private_listening: boolean }>('SELECT private_listening FROM listeners WHERE id = $1', [listenerId]);
