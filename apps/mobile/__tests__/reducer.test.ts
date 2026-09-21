@@ -128,6 +128,16 @@ describe('A2 - a takeover that never gives the audio back (FR-011a)', () => {
   });
 });
 
+describe('M4 gap 2 - a lock-screen Play while paused by the listener follows the player', () => {
+  it('paused by the user + EXTERNAL_RESUME → playing with focus reasserted, no play effect (the player is already playing)', () => {
+    const start = playing();
+    const out = run([{ type: 'PAUSE' }, { type: 'EXTERNAL_RESUME' }], start.state, start.ctx);
+    expect(out.state).toMatchObject({ kind: 'playing' });
+    expect(kinds(out.effects)).toContain('reassertFocus');
+    expect(kinds(out.effects).filter((k) => k === 'play')).toHaveLength(0);
+  });
+});
+
 describe('A3 - the bluetooth speaker was switched off (FR-012)', () => {
   it('stays paused by output-lost even when the player says it resumed', () => {
     const start = playing();

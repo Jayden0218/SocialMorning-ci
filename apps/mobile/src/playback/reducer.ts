@@ -369,9 +369,21 @@ export function reduce(state: PlayerState, event: PlayerEvent, ctx: PlayerContex
     }
 
     case 'EXTERNAL_RESUME': {
-      // Invariant 2: only `yielded` accepts this. An output-lost pause never
-      // becomes playing without the listener, or a bluetooth speaker powering
-      // off ends with the episode blaring from the phone (FR-012).
+      // Invariant 2: an output-lost pause never becomes playing without the
+      // listener, or a bluetooth speaker powering off ends with the episode
+      // blaring from the phone (FR-012). `yielded` accepts it (the interruption
+      // ended). M4 G3 on build 7 (2026-09-22) added the third case: a pause BY
+      // THE LISTENER followed by "playing" the app did not ask for is the lock
+      // screen / headset / Assistant button — expo-audio gives no separate event
+      // for it — and the native player is already playing; not following it
+      // left the runtime paused while the audio ran to the end of the file.
+      if (state.kind === 'paused' && state.by === 'user') {
+        return {
+          state: { kind: 'playing', episodeId: state.episodeId, positionMs: state.positionMs, durationMs: state.durationMs, lastSavedMs: state.positionMs },
+          ctx,
+          effects: [{ kind: 'reassertFocus' }],
+        };
+      }
       if (state.kind !== 'yielded') return { state, ctx, effects: [] };
       return {
         state: {

@@ -94,3 +94,17 @@ it('onTick reports the current episode and position on every TICK while somethin
   fake.push({ type: 'TICK', positionMs: 2_000, durationMs: 3_600_000 });
   expect(ticks).toEqual([['a', 1_000], ['a', 2_000]]);
 });
+
+it('M4 gap 2: after the clip-end pause, a lock-screen Play (EXTERNAL_RESUME) puts the runtime back in playing and ticks count again', () => {
+  const { fake, runtime, ticks } = build();
+  runtime.playClip(ep('a'), { startMs: 10_000, endMs: 20_000 });
+  fake.push({ type: 'LOADED', durationMs: 3_600_000 });
+  fake.push({ type: 'TICK', positionMs: 11_000, durationMs: 3_600_000 });
+  fake.push({ type: 'TICK', positionMs: 20_000, durationMs: 3_600_000 });
+  expect(runtime.getState().kind).toBe('paused');
+  fake.push({ type: 'EXTERNAL_RESUME' });
+  expect(runtime.getState().kind).toBe('playing');
+  fake.push({ type: 'TICK', positionMs: 21_000, durationMs: 3_600_000 });
+  expect(runtime.getState()).toMatchObject({ kind: 'playing', positionMs: 21_000 });
+  expect(ticks.at(-1)).toEqual(['a', 21_000]);
+});
