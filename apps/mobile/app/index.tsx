@@ -13,13 +13,14 @@ import { shortDate } from '../src/ui/format';
 import { useStores } from '../src/ui/providers';
 import { inboxIds } from '../src/inbox';
 import { useSocial } from '../src/social/context';
+import { createFeed } from '../src/graph/feed';
 import type { CachedShow } from '../src/storage/types';
 
 type Row = { feedUrl: string; show: CachedShow | undefined; stale: boolean };
 
 export default function LibraryScreen(): React.ReactElement {
   const stores = useStores();
-  const { listener } = useSocial();
+  const { listener, api } = useSocial();
   const [rows, setRows] = useState<Row[]>([]);
   const [tick, setTick] = useState(0);
 
@@ -33,6 +34,15 @@ export default function LibraryScreen(): React.ReactElement {
     [stores],
   );
 
+  // M4: the Following link's count — items in the cached feed newer than the last open.
+  const [followingUnread, setFollowingUnread] = useState(0);
+  useFocusEffect(
+    useCallback(() => {
+      const feed = createFeed({ api, cache: stores.feedCache, settings: stores.settings, now: () => Date.now() });
+      setFollowingUnread(feed.unread(feed.cached()?.items ?? []));
+      void feed.refresh().then((v) => setFollowingUnread(feed.unread(v.items)));
+    }, [api, stores]),
+  );
   useFocusEffect(
     useCallback(() => {
       let live = true;
@@ -65,6 +75,7 @@ export default function LibraryScreen(): React.ReactElement {
           <Link href="/inbox" style={styles.link}>{`Inbox${(() => { const n = inboxIds(stores).length; return n > 0 ? ` (${n})` : ''; })()}`}</Link>
           <Link href="/queue" style={styles.link}>Queue</Link>
           <Link href="/downloads" style={styles.link}>Downloads</Link>
+          {listener ? <Link href="/following" style={styles.link}>{`Following${followingUnread > 0 ? ` (${followingUnread})` : ''}`}</Link> : null}
           {listener === undefined ? (
             <Link href="/auth/sign-in" style={styles.link}>Sign in to comment</Link>
           ) : (

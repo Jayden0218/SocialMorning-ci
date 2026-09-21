@@ -4,7 +4,7 @@
  * write control asks to sign in (FR-022, US4 #4). Tapping a moment chip plays
  * the episode from there.
  */
-import { router } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { orderComments, type CommentOrder } from '@socialmorning/social-core';
@@ -44,7 +44,11 @@ export function CommentList(props: {
       ) : (
         <>
           <View style={styles.head}>
-            <Text style={styles.author}>{c.displayName ?? 'Deleted account'}</Text>
+            {c.authorId !== null ? (
+              <Link href={{ pathname: '/profile/[id]', params: { id: c.authorId } }} asChild>
+                <Pressable accessibilityRole="link"><Text style={styles.author}>{c.displayName ?? 'Deleted account'}</Text></Pressable>
+              </Link>
+            ) : <Text style={styles.author}>{c.displayName ?? 'Deleted account'}</Text>}
             {c.offsetMs !== null ? (
               <Pressable onPress={() => props.onSeek(c.offsetMs!)} accessibilityRole="button" accessibilityLabel={`Play from ${mmss(c.offsetMs)}`}>
                 <Text style={styles.chip}>{mmss(c.offsetMs)}</Text>
