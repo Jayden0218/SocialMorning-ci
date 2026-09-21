@@ -16,7 +16,7 @@ it('opens on the last 30 s, adjusts with Start here / End here and ±5 s nudges,
   s = endHere(s, 840_000); // before the start
   expect(s.problem).toBe('inverted');
   expect(canSave(s)).toBe(false);
-  s = endHere(s, 850_500);
+  s = endHere(s, 845_500); // 500 ms after the (nudged) start
   expect(s.problem).toBe('too_short');
   s = endHere(s, 1_500_000); // 10:55
   expect(s.problem).toBe('too_long');
