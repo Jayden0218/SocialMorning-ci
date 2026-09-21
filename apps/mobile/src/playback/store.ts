@@ -10,7 +10,7 @@
 import { createContext, createElement, useContext, useSyncExternalStore, type ReactNode } from 'react';
 import { reconcileOffset } from './finished';
 import { reduce } from './reducer';
-import { armTimer, clampRate, nextPlayable, rateFor, remove as removeFromQueue, timerRemainingMs, type SleepChoice, type SleepTimer } from '@socialmorning/player-core';
+import { armTimer, clampRate, nextPlayable, rateFor, remove as removeFromQueue, timerFired, timerRemainingMs, type SleepChoice, type SleepTimer } from '@socialmorning/player-core';
 import {
   INITIAL_CONTEXT,
   INITIAL_STATE,
@@ -100,10 +100,13 @@ export function createPlayerRuntime(deps: PlayerDeps): PlayerRuntime {
   const defaultRate = () => clampRate(Number(deps.stores.settings.get(SPEED_DEFAULT_KEY) ?? 1));
 
   /**
-   * M2 sleep timer (research R4). A JS timeout to the deadline; re-armed with the
-   * remaining time on APP_FOREGROUND because a backgrounded timer may drift. When it
-   * fires: PAUSE where we are, timer off. An interruption's pause is not the timer's
-   * pause and does not reset it (FR-017).
+   * M2 sleep timer. Research R4 said a JS timeout would fire with the screen locked;
+   * the phone said otherwise (D3 FAILED 2026-09-21: still playing 6 min after a 5-min
+   * timer — React Native pauses JS timers in the background). What DOES keep arriving
+   * while locked is the native player's TICK (M1 row 1 saved positions for 10 min that
+   * way), so the deadline is checked on every TICK — that is the guarantee. The
+   * timeout stays for foreground precision. Firing: PAUSE where we are, timer off. An
+   * interruption's pause is not the timer's pause and does not reset it (FR-017).
    */
   function scheduleSleep(): void {
     clearTimeout(sleepTimeout);
@@ -185,9 +188,17 @@ export function createPlayerRuntime(deps: PlayerDeps): PlayerRuntime {
     const full: PlayerEvent =
       event.type === 'LOADED' ? { ...event, loadId: ctx.loadId } : event;
 
-    // A drifted background timer is re-armed with what is left (research R4). Firing
-    // already sets the timer off, which is what makes "Play afterwards" clear it (FR-016).
+    // A drifted background timer is re-armed with what is left. Firing already sets
+    // the timer off, which is what makes "Play afterwards" clear it (FR-016).
     if (full.type === 'APP_FOREGROUND') scheduleSleep();
+    // The lock-screen-proof path: the native player ticks even when JS timers do not.
+    if (full.type === 'TICK' && timerFired(sleep, deps.now())) {
+      clearTimeout(sleepTimeout);
+      sleepTimeout = undefined;
+      sleep = { kind: 'off' };
+      dispatch({ type: 'PAUSE' });
+      return;
+    }
     const next = reduce(state, full, ctx);
     const wasEnded = state.kind === 'ended';
     state = next.state;

@@ -105,6 +105,26 @@ it('APP_FOREGROUND re-arms the timer with the remaining time (a drifted backgrou
   void kinds;
 });
 
+it('D3 regression: with JS timers dead (locked screen), the next TICK past the deadline pauses', () => {
+  const stores = createMemoryStores(hash);
+  const fake = fakeAdapter();
+  let now = 1_000_000;
+  const runtime = createPlayerRuntime({ adapter: fake.adapter, stores, now: () => now, notify: () => {} });
+  runtime.load(ep('a'), 'play');
+  fake.push({ type: 'LOADED', durationMs: 3_600_000 });
+  runtime.setSleepTimer(5);
+  // The wall clock moves; jest's fake timers are NOT advanced — as on the phone, where the
+  // setTimeout never fired. Only native ticks arrive.
+  now += 299_000;
+  fake.push({ type: 'TICK', positionMs: 299_000, durationMs: 3_600_000 });
+  expect(fake.executed.map((e) => e.kind)).not.toContain('pause');
+  now += 1_500;
+  fake.push({ type: 'TICK', positionMs: 300_500, durationMs: 3_600_000 });
+  expect(fake.executed.map((e) => e.kind)).toContain('pause');
+  expect(runtime.getState()).toMatchObject({ kind: 'paused', positionMs: 299_000 });
+  expect(runtime.sleepTimer()).toEqual({ kind: 'off' });
+});
+
 // FR-013 (quickstart's speed-memory test)
 it('speed memory: show A at 1.5 → show B at the default → back to A at 1.5; the default applies where no pref exists', () => {
   const { stores, fake, runtime, start } = build();
