@@ -4,6 +4,7 @@ import type { Db } from '../db.ts';
 export type ListenerLite = { id: string; displayName: string | null };
 
 export async function follow(db: Db, followerId: string, followedId: string): Promise<'followed' | 'self' | 'no_such_listener'> {
+  if (followerId === followedId) return 'self';
   const exists = await db.query<{ id: string }>('SELECT id FROM listeners WHERE id = $1', [followedId]);
   if (exists.length === 0) return 'no_such_listener';
   await db.query('INSERT INTO follows (follower_id, followed_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [followerId, followedId]);
