@@ -14,7 +14,7 @@ import { fromPostgres } from './db/db.ts';
 const pepper = process.env.SESSION_PEPPER;
 if (!pepper) throw new Error('SESSION_PEPPER is not set in the Vercel project env');
 
-const app = createApp({ db: fromPostgres(createClient()), pepper });
+const app = createApp({ db: fromPostgres(createClient()), pepper, ...(process.env['ASSETLINKS_SHA256'] ? { assetLinksSha256: process.env['ASSETLINKS_SHA256'] } : {}) });
 const handler = (req: Request): Promise<Response> => Promise.resolve(app.fetch(req));
 
 export const GET = handler;

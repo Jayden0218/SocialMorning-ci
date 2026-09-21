@@ -11,8 +11,10 @@ import { comments, commentById } from './routes/comments.ts';
 import { social } from './routes/social.ts';
 import { reactions } from './routes/reactions.ts';
 import { positions } from './routes/positions.ts';
+import { clipById, episodeClips } from './routes/clips.ts';
+import { createClipPages } from './pages/clip.ts';
 
-export type AppDeps = { db: Db; pepper: string };
+export type AppDeps = { db: Db; pepper: string; assetLinksSha256?: string };
 
 /**
  * The one Hono app. `src/server.ts` serves it locally; `api/index.ts` is the Vercel entry.
@@ -48,6 +50,9 @@ export function createApp(deps: AppDeps) {
   app.route('/v1/episodes', social);
   app.route('/v1/episodes', reactions);
   app.route('/v1/comments', commentById);
+  app.route('/v1/episodes', episodeClips);
+  app.route('/v1/clips', clipById);
+  app.route('/', createClipPages({ ...(deps.assetLinksSha256 !== undefined ? { assetLinksSha256: deps.assetLinksSha256 } : {}) }));
 
   return app;
 }
