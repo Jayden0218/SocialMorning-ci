@@ -95,7 +95,7 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
   // M2 (research R7): what the queue advance needs. `online` is the last network
   // reading, refreshed on every connectivity change, app-foreground and every 30 s.
   // Each refresh also ticks the download manager: a transfer paused by a network
-  // loss resumes when the network is back (gap 4), and a transient failure is
+  // loss resumes when the network is back (gap 6), and a transient failure is
   // retried within 30 s instead of never.
   const online = useRef(true);
   const network = useMemo(() => createExpoNetwork(), []);

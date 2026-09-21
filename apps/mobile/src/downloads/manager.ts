@@ -84,7 +84,7 @@ export function createDownloadManager(deps: ManagerDeps): DownloadManager {
           ...(resumeData !== undefined ? { resumeData } : {}),
           ...(restarted ? { error: 'no-resume' } : {}),
         });
-        // FR-004 (gap 3, D7 on build 3): a feed that publishes length="0" — Megaphone does,
+        // FR-004 (gap 5, D7 on build 3): a feed that publishes length="0" — Megaphone does,
         // for every item — gives no size at request time, so the pre-check passed on 186 of
         // 200 MB and a 32 MB file went through. The first progress event is the first time
         // the size is known; refuse then, not never.

@@ -165,7 +165,7 @@ it('budget: a request that would not fit is refused before it starts; the in-fli
   expect(DEFAULT_BUDGET_BYTES).toBe(2 * 1024 ** 3);
 });
 
-// Gap 3 (D7 on build 3, 2026-09-21): Casey's feed said length="0", the pre-check saw 186 of
+// Gap 5 (D7 on build 3, 2026-09-21): Casey's feed said length="0", the pre-check saw 186 of
 // 200 MB and let a 32 MB file through. The size is first known at the first progress event.
 describe.each([false, true])('FR-004: a download of unknown size is refused once its size is known (cancel rejects: %s)', (rejectOnCancel) => {
   it('over budget → cancelled, partial file gone, row failed:budget, used bytes unchanged, retry refused up front', async () => {
