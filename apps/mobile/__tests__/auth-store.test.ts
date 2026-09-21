@@ -22,6 +22,9 @@ function fakeApi(over: Partial<ApiClient> = {}): ApiClient {
     signOut: async () => {},
     me: notCalled, deleteMe: async () => {}, registerEpisode: notCalled, social: notCalled, postComment: notCalled,
     deleteComment: notCalled, react: notCalled, putPositions: notCalled, getPositions: notCalled,
+    // M4 — none of these belong to sign-in/out
+    postClip: notCalled, getClip: notCalled, deleteClip: notCalled, episodeClips: notCalled, follow: notCalled, unfollow: notCalled,
+    profile: notCalled, followers: notCalled, following: notCalled, setPrivacy: notCalled, feed: notCalled, putListened: notCalled,
     ...over,
   };
 }
