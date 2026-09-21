@@ -20,6 +20,7 @@ test('A7: B private → A sees B\'s clip and comment but 0 listens in the feed a
   assert.deepEqual(await feedKinds(), ['listened']);
   // B goes private.
   assert.deepEqual(await (await t.call('PUT', '/v1/me/privacy', { privateListening: true }, b.token)).json(), { privateListening: true });
+  assert.equal(((await (await t.call('GET', '/v1/me', undefined, b.token)).json()) as { listener: { privateListening: boolean } }).listener.privateListening, true);
   await t.call('PUT', '/v1/me/listened', { deviceId: 'pb', days: [{ episodeId: EP, day: '2026-09-21', ranges: [[0, 360_000]] }] }, b.token);
   await t.call('POST', `/v1/episodes/${EP}/clips`, { clientId: 'k', startMs: 0, endMs: 30_000 }, b.token);
   await t.call('POST', `/v1/episodes/${EP}/comments`, { body: 'hi', offsetMs: 5 }, b.token);

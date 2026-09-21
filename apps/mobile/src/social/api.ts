@@ -27,7 +27,7 @@ export class ApiError extends Error {
   }
 }
 
-export type Listener = { id: string; email: string; displayName: string; createdAt: string };
+export type Listener = { id: string; email: string; displayName: string; createdAt: string; privateListening?: boolean };
 export type EpisodeRegistration = {
   feedUrl: string; guid: string; title: string; showTitle?: string; enclosureUrl: string; imageUrl?: string; durationMs?: number;
 };

@@ -9,7 +9,12 @@ import { deleteAccount } from '../db/repos/delete-account.ts';
 
 export const me = new Hono<AuthEnv>();
 
-me.get('/', requireAuth, (c) => c.json({ listener: publicListener(c.get('listener')!) }));
+me.get('/', requireAuth, async (c) => {
+  const l = c.get('listener')!;
+  // M4 (FR-013): the privacy switch travels with the account, so a second phone shows it right.
+  const [row] = await c.get('db').query<{ private_listening: boolean }>('SELECT private_listening FROM listeners WHERE id = $1', [l.id]);
+  return c.json({ listener: { ...publicListener(l), privateListening: row?.private_listening ?? false } });
+});
 
 /** FR-005a: self-service deletion, password re-asked. Ends every session (cascade). */
 me.delete('/', requireAuth, json(z.object({ password: z.string().min(1).max(200) })), async (c) => {
