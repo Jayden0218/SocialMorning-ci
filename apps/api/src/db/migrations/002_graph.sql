@@ -12,8 +12,7 @@ CREATE TABLE clips (
   end_ms      int         NOT NULL CHECK (end_ms > start_ms AND end_ms - start_ms BETWEEN 1000 AND 600000),
   caption     text        NOT NULL DEFAULT '' CHECK (length(caption) <= 200),
   created_at  timestamptz NOT NULL DEFAULT now(),
-  deleted_at  timestamptz NULL,
-  UNIQUE (author_id, client_id)
+  deleted_at  timestamptz NULL
 );
 CREATE INDEX clips_episode ON clips (episode_id, created_at DESC) WHERE deleted_at IS NULL;
 CREATE INDEX clips_author  ON clips (author_id, created_at DESC) WHERE deleted_at IS NULL;
