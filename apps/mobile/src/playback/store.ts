@@ -107,6 +107,11 @@ export function createPlayerRuntime(deps: PlayerDeps): PlayerRuntime {
   // M4 clip mode: the range being played, and the loadId whose LOADED must seek to its start.
   let clip: { episodeId: string; startMs: Ms; endMs: Ms } | undefined;
   let clipSeekPending: { loadId: number; toMs: Ms } | undefined;
+  // G5 on build 7 (2026-09-22): the first TICK after a load can carry the OLD position
+  // (the load started at the saved 38:20, past the clip's 36:54) and tripped the end
+  // watch before the seek to the start had landed. So the load itself starts at the
+  // clip's start, and the end watch is armed only once a TICK inside the range is seen.
+  let clipArmed = false;
   let currentFeedUrl: string | undefined;
 
   const SPEED_DEFAULT_KEY = 'speed.default';
@@ -213,10 +218,14 @@ export function createPlayerRuntime(deps: PlayerDeps): PlayerRuntime {
       return;
     }
     // M4 clip mode: the end is a TICK fact, like the sleep timer. Reaching it pauses once.
-    if (full.type === 'TICK' && clip !== undefined && full.positionMs >= clip.endMs) {
-      clip = undefined;
-      dispatch({ type: 'PAUSE' });
-      return;
+    if (full.type === 'TICK' && clip !== undefined) {
+      if (!clipArmed && full.positionMs >= clip.startMs - 2_000 && full.positionMs < clip.endMs) clipArmed = true;
+      if (clipArmed && full.positionMs >= clip.endMs) {
+        clip = undefined;
+        clipArmed = false;
+        dispatch({ type: 'PAUSE' });
+        return;
+      }
     }
     // A listener's own Play / seek / skip / load leaves clip mode; the pause we dispatch does not.
     if (clip !== undefined && (full.type === 'PLAY' || full.type === 'SEEK' || full.type === 'SKIP' || full.type === 'LOAD')) clip = undefined;
@@ -250,7 +259,7 @@ export function createPlayerRuntime(deps: PlayerDeps): PlayerRuntime {
     return reconciled.finished ? 0 : reconciled.offsetMs;
   }
 
-  function load(episode: PlayableEpisode, intent: 'play' | 'pause'): void {
+  function load(episode: PlayableEpisode, intent: 'play' | 'pause', startMs?: Ms): void {
     // M2 (FR-013): the show's remembered speed, else the app-wide default.
     currentFeedUrl = episode.feedUrl;
     const prefs = new Map<string, number>();
@@ -266,7 +275,7 @@ export function createPlayerRuntime(deps: PlayerDeps): PlayerRuntime {
       type: 'LOAD',
       episodeId: episode.id,
       url: episode.url,
-      startMs: startPositionFor(episode),
+      startMs: startMs ?? startPositionFor(episode),
       intent,
       meta: {
         title: episode.title,
@@ -319,7 +328,8 @@ export function createPlayerRuntime(deps: PlayerDeps): PlayerRuntime {
     restore,
     startPositionFor,
     playClip(episode, range) {
-      load(episode, 'play');
+      load(episode, 'play', range.startMs);
+      clipArmed = false;
       clip = { episodeId: episode.id, startMs: range.startMs, endMs: range.endMs };
       clipSeekPending = { loadId: ctx.loadId, toMs: range.startMs };
       for (const listener of listeners) listener();

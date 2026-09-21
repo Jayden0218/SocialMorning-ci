@@ -54,6 +54,21 @@ it('playClip: loads, seeks to the start once loaded (an explicit seek), pauses o
   expect(kinds().filter((k) => k === 'pause')).toHaveLength(1); // no second pause after keep listening
 });
 
+it('G5 on build 7: the load starts at the clip start, and a stale TICK past the end before the range is reached does not pause', () => {
+  const { fake, runtime, kinds, stores } = build();
+  stores.positions.save({ episodeId: 'a', offsetMs: 2_300_234, finished: false }, 1); // the saved position, past the clip
+  runtime.playClip(ep('a'), { startMs: 2_184_027, endMs: 2_214_027 });
+  expect(fake.executed.find((e) => e.kind === 'load')).toMatchObject({ startMs: 2_184_027 });
+  fake.push({ type: 'LOADED', durationMs: 3_600_000 });
+  fake.push({ type: 'TICK', positionMs: 2_300_234, durationMs: 3_600_000 }); // the old position, reported once
+  expect(kinds()).not.toContain('pause');
+  expect(runtime.clip()).toBeDefined();
+  fake.push({ type: 'TICK', positionMs: 2_184_100, durationMs: 3_600_000 }); // inside the range: armed
+  fake.push({ type: 'TICK', positionMs: 2_214_100, durationMs: 3_600_000 });
+  expect(kinds().filter((k) => k === 'pause')).toHaveLength(1);
+  expect(runtime.clip()).toBeUndefined();
+});
+
 it('a seek, a skip or another load leaves clip mode; a LOADED for a different load does not seek', () => {
   const { fake, runtime, kinds } = build();
   runtime.playClip(ep('a'), { startMs: 10_000, endMs: 20_000 });
