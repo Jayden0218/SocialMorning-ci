@@ -10,7 +10,7 @@
 
 export type ErrorCode =
   | 'validation' | 'unauthenticated' | 'forbidden' | 'not_found' | 'conflict' | 'locked'
-  | 'duration_unknown' | 'reply_depth' | 'internal' | 'network';
+  | 'duration_unknown' | 'reply_depth' | 'self_follow' | 'internal' | 'network';
 
 export class ApiError extends Error {
   constructor(
@@ -47,6 +47,23 @@ export type PositionRowOut = PositionObsIn & { receivedAt: string; deviceId: str
 
 export type SocialResult = { status: 200; etag?: string; body: Social } | { status: 304 };
 
+// ---- M4 (specs/004-m4-the-graph/contracts/api.md) ----
+export type ClipAuthor = { id: string; displayName: string | null };
+export type Clip = { id: string; author: ClipAuthor; episodeId: string; startMs: number; endMs: number; caption: string; createdAt: string; deleted: boolean };
+export type EpisodeRecord = { id: string; feedUrl: string; guid: string; title: string; showTitle: string | null; enclosureUrl: string; imageUrl: string | null; durationMs: number | null };
+export type ProfileStats = { listenedMs: number; finished: number; topShows: { feedUrl: string; showTitle?: string; listenedMs: number }[] };
+export type FeedItem = {
+  id: number; kind: 'listened' | 'clipped' | 'commented'; actor: ClipAuthor;
+  episode: { id: string; title: string; showTitle: string | null; imageUrl: string | null };
+  momentMs: number | null; refId: string | null; createdAt: string;
+};
+export type Profile = {
+  id: string; displayName: string; followers: number; following: number; isFollowing: boolean;
+  stats: { last7: ProfileStats; all: ProfileStats } | null; recent: FeedItem[];
+};
+export type FeedResult = { status: 200; etag?: string; body: { items: FeedItem[]; next?: string; serverTime: string } } | { status: 304 };
+export type ListenedDay = { episodeId: string; day: string; ranges: [number, number][] };
+
 export type ApiClient = {
   signUp(email: string, password: string, displayName: string): Promise<{ token: string; listener: Listener }>;
   signIn(email: string, password: string, deviceLabel?: string): Promise<{ token: string; listener: Listener }>;
@@ -60,6 +77,19 @@ export type ApiClient = {
   react(episodeId: string, offsetMs: number, durationMs?: number): Promise<{ reacted: boolean; bucket: number }>;
   putPositions(deviceId: string, observations: PositionObsIn[]): Promise<PositionRowOut[]>;
   getPositions(since?: string): Promise<{ positions: PositionRowOut[]; serverTime: string }>;
+  // M4
+  postClip(episodeId: string, c: { clientId: string; startMs: number; endMs: number; caption: string }): Promise<Clip>;
+  getClip(id: string): Promise<{ clip: Clip; episode: EpisodeRecord }>;
+  deleteClip(id: string): Promise<void>;
+  episodeClips(episodeId: string, before?: string): Promise<{ clips: Clip[]; next?: string }>;
+  follow(listenerId: string): Promise<void>;
+  unfollow(listenerId: string): Promise<void>;
+  profile(listenerId: string): Promise<Profile>;
+  followers(listenerId: string, before?: string): Promise<{ listeners: ClipAuthor[]; next?: string }>;
+  following(listenerId: string, before?: string): Promise<{ listeners: ClipAuthor[]; next?: string }>;
+  setPrivacy(privateListening: boolean): Promise<{ privateListening: boolean }>;
+  feed(before?: string, ifNoneMatch?: string): Promise<FeedResult>;
+  putListened(deviceId: string, days: ListenedDay[]): Promise<{ accepted: number }>;
 };
 
 export type ApiDeps = {
@@ -123,5 +153,23 @@ export function createApi(deps: ApiDeps): ApiClient {
     react: async (episodeId, offsetMs, durationMs) => (await call<{ reacted: boolean; bucket: number }>('PUT', `/v1/episodes/${episodeId}/reactions`, { offsetMs, durationMs })).json,
     putPositions: async (deviceId, observations) => (await call<{ positions: PositionRowOut[] }>('PUT', '/v1/me/positions', { deviceId, observations })).json.positions,
     getPositions: async (since) => (await call<{ positions: PositionRowOut[]; serverTime: string }>('GET', `/v1/me/positions${since ? `?since=${encodeURIComponent(since)}` : ''}`)).json,
+    // M4
+    postClip: async (episodeId, c) => (await call<{ clip: Clip }>('POST', `/v1/episodes/${episodeId}/clips`, c)).json.clip,
+    getClip: async (id) => (await call<{ clip: Clip; episode: EpisodeRecord }>('GET', `/v1/clips/${id}`)).json,
+    deleteClip: async (id) => { await call('DELETE', `/v1/clips/${id}`); },
+    episodeClips: async (episodeId, before) => (await call<{ clips: Clip[]; next?: string }>('GET', `/v1/episodes/${episodeId}/clips${before ? `?before=${encodeURIComponent(before)}` : ''}`)).json,
+    follow: async (id) => { await call('PUT', `/v1/listeners/${id}/follow`); },
+    unfollow: async (id) => { await call('DELETE', `/v1/listeners/${id}/follow`); },
+    profile: async (id) => (await call<{ profile: Profile }>('GET', `/v1/listeners/${id}`)).json.profile,
+    followers: async (id, before) => (await call<{ listeners: ClipAuthor[]; next?: string }>('GET', `/v1/listeners/${id}/followers${before ? `?before=${encodeURIComponent(before)}` : ''}`)).json,
+    following: async (id, before) => (await call<{ listeners: ClipAuthor[]; next?: string }>('GET', `/v1/listeners/${id}/following${before ? `?before=${encodeURIComponent(before)}` : ''}`)).json,
+    setPrivacy: async (privateListening) => (await call<{ privateListening: boolean }>('PUT', '/v1/me/privacy', { privateListening })).json,
+    feed: async (before, ifNoneMatch) => {
+      const r = await call<{ items: FeedItem[]; next?: string; serverTime: string }>('GET', `/v1/me/feed${before ? `?before=${encodeURIComponent(before)}` : ''}`, undefined, ifNoneMatch ? { 'if-none-match': ifNoneMatch } : {});
+      if (r.status === 304) return { status: 304 };
+      const etag = r.headers.get('etag') ?? undefined;
+      return { status: 200, ...(etag ? { etag } : {}), body: r.json };
+    },
+    putListened: async (deviceId, days) => (await call<{ accepted: number }>('PUT', '/v1/me/listened', { deviceId, days })).json,
   };
 }
