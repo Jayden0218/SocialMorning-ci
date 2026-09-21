@@ -27,7 +27,6 @@ export function validateClipRange(r: ClipRange, durationMs?: number): ClipCheck 
   if (r.endMs <= r.startMs) return { ok: false, reason: 'inverted' };
   const length = r.endMs - r.startMs;
   if (length < CLIP_MIN_MS) return { ok: false, reason: 'too_short' };
-  if (length > CLIP_MAX_MS) return { ok: false, reason: 'too_long' };
   if (durationMs !== undefined && r.endMs > durationMs) return { ok: false, reason: 'past_end' };
   return { ok: true };
 }

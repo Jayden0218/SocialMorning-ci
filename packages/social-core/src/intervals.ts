@@ -18,7 +18,7 @@ export function addTick(acc: ListenAcc | undefined, episodeId: string, positionM
   }
   if (acc.open === undefined) return { ...acc, open: [positionMs, positionMs] };
   const delta = positionMs - acc.open[1];
-  if (delta > 0 && delta <= maxGapMs) return { ...acc, open: [acc.open[0], positionMs] };
+  if (delta > 0) return { ...acc, open: [acc.open[0], positionMs] };
   // Backwards, stalled, or too far ahead: the old interval ends here, a new one starts.
   return { episodeId, open: [positionMs, positionMs], closed: closeAcc(acc) };
 }
@@ -40,5 +40,5 @@ export function mergeRanges(ranges: readonly Range[]): Range[] {
 }
 
 export function unionLength(sets: readonly (readonly Range[])[]): number {
-  return mergeRanges(sets.flat()).reduce((n, r) => n + (r[1] - r[0]), 0);
+  return sets.flat().reduce((n, r) => n + (r[1] - r[0]), 0);
 }
