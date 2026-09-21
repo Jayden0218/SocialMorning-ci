@@ -1,0 +1,122 @@
+/**
+ * Library: where you were, and what you follow.
+ *
+ * "Continue listening" is first because Story 3 is the thing people abandon
+ * a podcast app over — losing your place in a two-hour episode.
+ */
+import { Link, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { refreshAll } from '../src/feeds/refresh-all';
+import { ContinueListening } from '../src/ui/ContinueListening';
+import { shortDate } from '../src/ui/format';
+import { useStores } from '../src/ui/providers';
+import { inboxIds } from '../src/inbox';
+import { useSocial } from '../src/social/context';
+import type { CachedShow } from '../src/storage/types';
+
+type Row = { feedUrl: string; show: CachedShow | undefined; stale: boolean };
+
+export default function LibraryScreen(): React.ReactElement {
+  const stores = useStores();
+  const { listener } = useSocial();
+  const [rows, setRows] = useState<Row[]>([]);
+  const [tick, setTick] = useState(0);
+
+  const read = useCallback(
+    (stale: Set<string>): Row[] =>
+      stores.subscriptions.list().map(({ feedUrl }) => ({
+        feedUrl,
+        show: stores.feeds.getShow(feedUrl),
+        stale: stale.has(feedUrl),
+      })),
+    [stores],
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      let live = true;
+      setRows(read(new Set()));
+      // Refresh in the background. Principle IV: a feed that fails keeps its
+      // cached copy and shows a badge; it never blanks the library.
+      void refreshAll(stores, Date.now()).then((result) => {
+        if (!live) return;
+        setRows(read(new Set(result.stale)));
+        setTick((n) => n + 1);
+      });
+      return () => {
+        live = false;
+      };
+    }, [read, stores]),
+  );
+
+  return (
+    <FlatList
+      key={tick}
+      data={rows}
+      keyExtractor={(row) => row.feedUrl}
+      contentContainerStyle={styles.body}
+      ListHeaderComponent={
+        <View style={styles.header}>
+          <ContinueListening />
+          <Link href="/search" style={styles.link}>
+            Search for a show
+          </Link>
+          <Link href="/inbox" style={styles.link}>{`Inbox${(() => { const n = inboxIds(stores).length; return n > 0 ? ` (${n})` : ''; })()}`}</Link>
+          <Link href="/queue" style={styles.link}>Queue</Link>
+          <Link href="/downloads" style={styles.link}>Downloads</Link>
+          {listener === undefined ? (
+            <Link href="/auth/sign-in" style={styles.link}>Sign in to comment</Link>
+          ) : (
+            <Link href="/account" style={styles.link}>{`Signed in as ${listener.displayName}`}</Link>
+          )}
+        </View>
+      }
+      ListEmptyComponent={
+        <Text style={styles.empty}>No subscriptions yet — search for a show</Text>
+      }
+      renderItem={({ item }) => (
+        <Link
+          href={{
+            pathname: '/show/[feedUrl]',
+            params: { feedUrl: encodeURIComponent(item.feedUrl) },
+          }}
+          asChild
+        >
+          <Pressable style={styles.row} accessibilityRole="button">
+            {item.show?.imageUrl === undefined ? (
+              <View style={styles.art} />
+            ) : (
+              <Image source={{ uri: item.show.imageUrl }} style={styles.art} />
+            )}
+            <View style={styles.grow}>
+              <Text style={styles.title} numberOfLines={2}>
+                {item.show?.title ?? item.feedUrl}
+              </Text>
+              <Text style={styles.subtitle}>
+                {latestLine(stores.feeds.listEpisodes(item.feedUrl)[0]?.publishedAt, item.stale)}
+              </Text>
+            </View>
+          </Pressable>
+        </Link>
+      )}
+    />
+  );
+}
+
+function latestLine(publishedAt: number | undefined, stale: boolean): string {
+  const latest = publishedAt === undefined ? 'No episodes yet' : `Latest ${shortDate(publishedAt)}`;
+  return stale ? `${latest} · offline copy` : latest;
+}
+
+const styles = StyleSheet.create({
+  body: { padding: 12, gap: 4 },
+  header: { gap: 8, marginBottom: 8 },
+  link: { fontSize: 16, color: '#0645ad', paddingVertical: 4 },
+  row: { flexDirection: 'row', gap: 12, paddingVertical: 8 },
+  art: { width: 56, height: 56, borderRadius: 6, backgroundColor: '#eee' },
+  grow: { flex: 1 },
+  title: { fontSize: 15, fontWeight: '600' },
+  subtitle: { fontSize: 13, color: '#666' },
+  empty: { color: '#666', paddingVertical: 8 },
+});

@@ -1,0 +1,18 @@
+{
+  "name": "socialmorning",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A functional clone of 小宇宙 (Xiaoyuzhou FM): a podcast client whose reason to exist is the social layer over listening.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "overrides": {
+    "react": "19.2.3",
+    "react-native": "0.88.0-rc.0"
+  }
+}

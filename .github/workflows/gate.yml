@@ -1,0 +1,30 @@
+# The gate, run on GitHub's runners (the owner's laptop must not run tests — 2026-09-21).
+# This file lives in the PRIVATE repo under ci/workflows/ and is copied by
+# scripts/push-ci.sh into the PUBLIC mirror's .github/workflows/, where Actions
+# minutes are unlimited. It runs exactly what scripts/gate.sh runs.
+name: gate
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: typecheck
+        run: npm run typecheck
+      - name: tests (every workspace)
+        run: npm test
+      - name: mobile coverage threshold (src/playback 100 % branches)
+        run: npx jest --coverage
+        working-directory: apps/mobile
+      - name: social-core + player-core 100 % branches
+        run: |
+          npm run test:coverage -w packages/social-core
+          npm run test:coverage -w packages/player-core

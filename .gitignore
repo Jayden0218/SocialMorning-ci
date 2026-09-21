@@ -1,0 +1,57 @@
+# Secrets — never commit. See the constitution, Principle V.
+.env
+.env.*
+!.env.example
+
+# Dependencies and build output
+node_modules/
+dist/
+build/
+.expo/
+*.tsbuildinfo
+
+# Agent folder: share the Spec Kit skills, keep local/credential state out.
+.claude/settings.local.json
+.claude/*.local.json
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Raw HAR captures carry live session tokens. Only scrubbed ones are committed,
+# and only deliberately. See tools/scrub-har.py.
+*.har
+!*.scrubbed.har
+
+# Python bytecode
+__pycache__/
+
+# web-extract.py output: raw JS bundles (MBs) and anything it fetched. The
+# scrubbed text extracts are copied to docs/discovery/creator-web/ deliberately.
+web-out/
+web-extract-out/
+
+# WhatsApp channel plugin state: paired auth keys live here. Never commit.
+.whatsapp/
+
+# Expo / React Native native build output. The android/ directory is generated
+# by `expo prebuild` / `expo run:android`; it is not source.
+apps/mobile/android/
+apps/mobile/ios/
+apps/mobile/.expo/
+apps/mobile/coverage/
+
+# On-device SQLite databases, and any copy pulled off a phone for debugging.
+*.db
+*.db-journal
+*.db-wal
+.vercel
+apps/api/api/index.js
+apps/api/api/index.js.map
+
+# The public CI mirror checkout (scripts/push-ci.sh). Never commit it here.
+.ci-mirror/

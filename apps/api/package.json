@@ -1,0 +1,28 @@
+{
+  "name": "@socialmorning/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The social layer's HTTP API (specs/002-m3-social-layer/contracts/api.md). Hono on Node; one Vercel function in production, @hono/node-server locally.",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "test": "tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "migrate": "tsx src/db/migrate.ts",
+    "build": "esbuild src/vercel-entry.ts --bundle --platform=node --format=esm --target=node22 --outfile=api/index.js --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\""
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.1",
+    "@socialmorning/social-core": "*",
+    "hono": "^4.13.8",
+    "postgres": "^3.4.9",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.27.7",
+    "tsx": "^4.19.0",
+    "typescript": "^5.9.2"
+  }
+}

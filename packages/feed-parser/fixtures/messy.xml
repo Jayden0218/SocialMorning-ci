@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+     xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"
+     xmlns:podcast="https://podcastindex.org/namespace/1.0"
+     xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Messy Feed</title>
+    <description>Every pathology observed in real podcast RSS, in one file.</description>
+    <language>en-us</language>
+    <itunes:explicit>yes</itunes:explicit>
+    <itunes:author>A Publisher</itunes:author>
+    <itunes:image href="https://cdn.example.com/art.jpg"/>
+    <itunes:category text="Technology">
+      <itunes:category text="Software How-To"/>
+    </itunes:category>
+
+    <!-- Durations in every shape the wild produces. -->
+    <item>
+      <title>Colon form</title>
+      <guid isPermaLink="false">ep-colon</guid>
+      <enclosure url="https://cdn.example.com/1.mp3" type="audio/mpeg" length="12345"/>
+      <itunes:duration>1:02:03</itunes:duration>
+      <pubDate>Tue, 10 Sep 2024 09:00:00 GMT</pubDate>
+      <description>Plain text version, truncated&#8230;</description>
+      <content:encoded><![CDATA[<p>The <b>full</b> shownotes.</p>]]></content:encoded>
+    </item>
+
+    <item>
+      <title>Seconds form</title>
+      <guid>ep-seconds</guid>
+      <enclosure url="https://cdn.example.com/2.mp3" type="audio/mpeg" length="0"/>
+      <itunes:duration>3723</itunes:duration>
+      <pubDate>2024-09-11T09:00:00Z</pubDate>
+    </item>
+
+    <item>
+      <title>Minutes over sixty</title>
+      <guid>ep-overflow</guid>
+      <enclosure url="https://cdn.example.com/3.mp3"/>
+      <itunes:duration>0:75:00</itunes:duration>
+    </item>
+
+    <item>
+      <title>Prose duration and a nonsense date</title>
+      <guid>ep-prose</guid>
+      <enclosure url="https://cdn.example.com/4.mp3"/>
+      <itunes:duration>about an hour</itunes:duration>
+      <pubDate>sometime last Tuesday</pubDate>
+    </item>
+
+    <!-- Not an episode: nothing to play. -->
+    <item>
+      <title>Announcement with no media</title>
+      <guid>ep-no-media</guid>
+      <description>We are on a break.</description>
+    </item>
+
+    <!-- Protocol-relative, and path-relative, enclosure urls. -->
+    <item>
+      <title>Protocol relative</title>
+      <guid>ep-protorel</guid>
+      <enclosure url="//cdn.example.com/5.mp3" type="audio/mpeg"/>
+    </item>
+
+    <item>
+      <title>Path relative</title>
+      <guid>ep-pathrel</guid>
+      <enclosure url="media/6.mp3" type="audio/mpeg"/>
+    </item>
+
+    <!-- No guid at all: identity has to come from the enclosure. -->
+    <item>
+      <title>No guid</title>
+      <enclosure url="https://cdn.example.com/7.mp3"/>
+    </item>
+
+    <!-- A re-posted item carrying a guid already used above. -->
+    <item>
+      <title>Duplicate of the first</title>
+      <guid isPermaLink="false">ep-colon</guid>
+      <enclosure url="https://cdn.example.com/8.mp3"/>
+    </item>
+
+    <!-- A numeric-looking guid. Must stay a STRING. -->
+    <item>
+      <title>Numeric guid</title>
+      <guid>0123</guid>
+      <enclosure url="https://cdn.example.com/9.mp3"/>
+      <podcast:transcript url="https://cdn.example.com/9.vtt" type="text/vtt" language="en"/>
+      <podcast:soundbite startTime="73.0" duration="30.0">The good bit</podcast:soundbite>
+      <podcast:chapters url="https://cdn.example.com/9.json" type="application/json+chapters"/>
+      <itunes:season>2</itunes:season>
+      <itunes:episode>14</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+    </item>
+  </channel>
+</rss>
