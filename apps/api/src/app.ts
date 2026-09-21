@@ -15,6 +15,8 @@ import { clipById, episodeClips } from './routes/clips.ts';
 import { createClipPages } from './pages/clip.ts';
 import { follows } from './routes/follows.ts';
 import { feed } from './routes/feed.ts';
+import { listened } from './routes/listened.ts';
+import { privacy, profiles } from './routes/profiles.ts';
 
 export type AppDeps = { db: Db; pepper: string; assetLinksSha256?: string };
 
@@ -48,7 +50,10 @@ export function createApp(deps: AppDeps) {
   app.route('/v1/me', me);
   app.route('/v1/me/positions', positions);
   app.route('/v1/me/feed', feed);
+  app.route('/v1/me/listened', listened);
+  app.route('/v1/me/privacy', privacy);
   app.route('/v1/listeners', follows);
+  app.route('/v1/listeners', profiles);
   app.route('/v1/episodes', episodes);
   app.route('/v1/episodes', comments);
   app.route('/v1/episodes', social);

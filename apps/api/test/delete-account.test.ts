@@ -51,3 +51,24 @@ test('A12: deletion removes everything of the listener; only placeholders under 
   assert.equal(again.status, 200, 'the email is reusable');
   await t.close();
 });
+
+test('M4 (G7): deleting an account removes its clips, follows both ways, listened ranges and activity; its clip links say removed', async () => {
+  const t = await freshDb();
+  await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: 2_000_000 });
+  const a = await signUp(t);
+  const b = await signUp(t, 'b@example.com', 'Bea');
+  await t.call('PUT', `/v1/listeners/${b.id}/follow`, undefined, a.token);
+  await t.call('PUT', `/v1/listeners/${a.id}/follow`, undefined, b.token);
+  const clip = ((await (await t.call('POST', `/v1/episodes/${EP}/clips`, { clientId: 'k', startMs: 0, endMs: 30_000 }, b.token)).json()) as { clip: { id: string } }).clip;
+  await t.call('PUT', '/v1/me/listened', { deviceId: 'pb', days: [{ episodeId: EP, day: '2026-09-21', ranges: [[0, 360_000]] }] }, b.token);
+  await t.call('POST', `/v1/episodes/${EP}/comments`, { body: 'hi' }, b.token);
+  assert.equal((await t.call('DELETE', '/v1/me', { password: 'correct horse' }, b.token)).status, 200);
+  for (const table of ['clips', 'follows', 'listened_ranges', 'activity']) {
+    assert.deepEqual(await t.q(`SELECT count(*)::int AS n FROM ${table}`), [{ n: 0 }], table);
+  }
+  assert.equal((await t.call('GET', `/v1/clips/${clip.id}`)).status, 404);
+  const aProfile = ((await (await t.call('GET', `/v1/listeners/${a.id}`)).json()) as { profile: { followers: number; following: number } }).profile;
+  assert.deepEqual([aProfile.followers, aProfile.following], [0, 0]);
+  assert.deepEqual(((await (await t.call('GET', '/v1/me/feed', undefined, a.token)).json()) as { items: unknown[] }).items, []);
+  await t.close();
+});
