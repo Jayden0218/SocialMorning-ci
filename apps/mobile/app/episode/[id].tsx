@@ -13,6 +13,7 @@ import { usePoll } from '../../src/social/usePoll';
 import type { ComposerState } from '../../src/social/composer';
 import { CommentList } from '../../src/ui/CommentList';
 import { ComposerSheet } from '../../src/ui/Composer';
+import { ClipList } from '../../src/ui/ClipList';
 
 export default function EpisodeScreen(): React.ReactElement {
   const stores = useStores();
@@ -90,6 +91,7 @@ export default function EpisodeScreen(): React.ReactElement {
       <DownloadButton episodeId={episode.id} />
       <QueueButtons episodeId={episode.id} onQueued={() => stores.inboxState.mark(episode.id, 'queued', Date.now())} />
       <Text style={styles.notes}>{htmlToText(episode.shownotesHtml)}</Text>
+      <ClipList episode={playable} />
       <CommentList
         episodeId={episode.id}
         comments={cached?.social.comments ?? []}

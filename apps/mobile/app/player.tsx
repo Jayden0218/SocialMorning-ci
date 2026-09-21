@@ -34,6 +34,10 @@ export default function PlayerScreen(): React.ReactElement {
   const [extras, setExtras] = useState<Extras | undefined>();
   const [pane, setPane] = useState<'none' | 'chapters' | 'transcript'>('none');
   const [openMarker, setOpenMarker] = useState<RailMarker | undefined>();
+  // M4: remember where the last clip ended so "Keep listening" is offered right there.
+  const [lastClipEnd, setLastClipEnd] = useState<number | undefined>();
+  const clipNow = player.clip();
+  useEffect(() => { if (clipNow) setLastClipEnd(clipNow.endMs); }, [clipNow]);
   const currentEpisodeId = state.kind === 'idle' ? undefined : state.episodeId;
   const { cached, stale } = useEpisodeSocial(currentEpisodeId);
   useEffect(() => {
@@ -211,7 +215,28 @@ export default function PlayerScreen(): React.ReactElement {
       >
         <Text style={styles.secondaryText}>Comment at {mmss(positionMs)}</Text>
       </Pressable>
+      <Pressable
+        style={styles.secondary}
+        accessibilityRole="button"
+        accessibilityLabel="Clip the last 30 seconds"
+        onPress={() => {
+          if (!listener) { router.push('/auth/sign-in'); return; }
+          router.push({ pathname: '/clip/new', params: { episodeId: state.episodeId, positionMs: String(positionMs) } });
+        }}
+      >
+        <Text style={styles.secondaryText}>Clip</Text>
+      </Pressable>
       </View>
+      {player.clip() ? (
+        <View style={styles.clipBanner}>
+          <Text style={styles.subtitle}>Playing a clip · {mmss(player.clip()!.startMs)}–{mmss(player.clip()!.endMs)} · pauses at the end</Text>
+        </View>
+      ) : state.kind === 'paused' && lastClipEnd !== undefined && Math.abs(positionMs - lastClipEnd) <= 6_000 ? (
+        <View style={styles.clipBanner}>
+          <Text style={styles.subtitle}>The clip ended.</Text>
+          <Pressable style={styles.secondary} accessibilityRole="button" onPress={() => { setLastClipEnd(undefined); player.play(); }}><Text style={styles.secondaryText}>Keep listening</Text></Pressable>
+        </View>
+      ) : null}
 
       {composing ? (
         <ComposerSheet
@@ -260,7 +285,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#222',
   },
   primaryText: { color: 'white', fontWeight: '700', fontSize: 16 },
-  socialRow: { flexDirection: 'row', gap: 12, marginTop: 12 },
+  socialRow: { flexDirection: 'row', gap: 12, marginTop: 12, flexWrap: 'wrap' },
+  clipBanner: { flexDirection: 'row', gap: 12, alignItems: 'center', marginTop: 12, flexWrap: 'wrap' },
   secondary: { paddingVertical: 10, paddingHorizontal: 20, borderRadius: 999, borderWidth: 1, borderColor: '#222' },
   reacted: { backgroundColor: '#fde8d8', borderColor: '#f28c28' },
   secondaryText: { fontWeight: '600', fontSize: 15 },

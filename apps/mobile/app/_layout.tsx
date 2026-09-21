@@ -7,12 +7,14 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView, StyleSheet } from 'react-native';
 import { AppProviders } from '../src/ui/providers';
 import { SocialProvider } from '../src/social/context';
+import { GraphProvider } from '../src/graph/context';
 import { MiniBar } from '../src/ui/MiniBar';
 
 export default function RootLayout(): React.ReactElement {
   return (
     <AppProviders>
       <SocialProvider>
+      <GraphProvider>
       <SafeAreaView style={styles.fill}>
         <StatusBar style="auto" />
         <Stack screenOptions={{ headerBackTitle: 'Back' }}>
@@ -27,9 +29,12 @@ export default function RootLayout(): React.ReactElement {
           <Stack.Screen name="downloads" options={{ title: 'Downloads' }} />
           <Stack.Screen name="queue" options={{ title: 'Queue' }} />
           <Stack.Screen name="inbox" options={{ title: 'Inbox' }} />
+          <Stack.Screen name="clip/new" options={{ title: 'New clip' }} />
+          <Stack.Screen name="clip/[id]" options={{ title: 'Clip' }} />
         </Stack>
         <MiniBar />
       </SafeAreaView>
+      </GraphProvider>
       </SocialProvider>
     </AppProviders>
   );
