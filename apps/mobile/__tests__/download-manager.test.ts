@@ -113,6 +113,17 @@ it('FR-002: a server that ignores the Range restarts from 0 and the row says so'
   expect(row.error).toBe('no-resume');
 });
 
+it('gap 1: a row left by a killed process (bytes done, no resumeData) restarts and says so; progress-time savable() is persisted', async () => {
+  const { stores, manager } = build();
+  stores.feeds.put(FEED, parsed([ep('k', 100)]), {}, 1);
+  stores.downloads.put({ episodeId: id('k'), filePath: '/downloads/k.mp3', state: 'downloading', bytesDone: 40, bytesTotal: 100, allowMobile: false, requestedAt: 1 });
+  await manager.recover();
+  for (let i = 0; i < 10; i++) await flush();
+  const row = stores.downloads.get(id('k'))!;
+  expect(row.state).toBe('complete');
+  expect(row.error).toBe('no-resume');
+});
+
 it('Wi-Fi rule: nothing runs on cellular unless allowed per download or globally; nothing offline', async () => {
   const { stores, cdn, manager, setNetwork } = build({ network: 'cellular' });
   await manager.request(id('a'));

@@ -68,14 +68,21 @@ export function createDownloadManager(deps: ManagerDeps): DownloadManager {
     notify();
     let sawProgress = false;
     try {
-      const result = await deps.downloader.start(row, episode.enclosureUrl, (done, total) => {
+      const result = await deps.downloader.start(row, episode.enclosureUrl, (done, total, resumeData) => {
         const current = deps.stores.downloads.get(row.episodeId);
         if (!current || current.state !== 'downloading') return;
-        // FR-002: a server that ignored our Range restarts from 0 — detectable as
-        // bytesDone dropping below what we already had.
-        const restarted = row.resumeData !== undefined && !sawProgress && done < row.bytesDone;
+        // FR-002: a transfer that starts again below what we already had is a restart —
+        // either the server ignored our Range, or (gap 1) the process was killed before a
+        // pause could produce resumeData. Say so; never pretend.
+        const restarted = !sawProgress && row.bytesDone > 0 && done < row.bytesDone;
         sawProgress = true;
-        deps.stores.downloads.put({ ...current, bytesDone: done, bytesTotal: total > 0 ? total : current.bytesTotal, ...(restarted ? { error: 'no-resume' } : {}) });
+        deps.stores.downloads.put({
+          ...current,
+          bytesDone: done,
+          bytesTotal: total > 0 ? total : current.bytesTotal,
+          ...(resumeData !== undefined ? { resumeData } : {}),
+          ...(restarted ? { error: 'no-resume' } : {}),
+        });
         notify();
       });
       const after = deps.stores.downloads.get(row.episodeId);

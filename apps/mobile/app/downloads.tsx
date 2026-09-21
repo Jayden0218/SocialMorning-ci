@@ -5,7 +5,7 @@ import { mb } from '../src/ui/DownloadButton';
 import { useDownloads, useStores } from '../src/ui/providers';
 import type { DownloadRow } from '../src/storage/types';
 
-const BUDGETS = [1, 2, 4, 8].map((g) => g * 1024 ** 3);
+const BUDGETS = [200 * 1024 ** 2, 500 * 1024 ** 2, ...[1, 2, 4, 8].map((g) => g * 1024 ** 3)];
 
 export default function DownloadsScreen(): React.ReactElement {
   const downloads = useDownloads();
@@ -33,7 +33,7 @@ export default function DownloadsScreen(): React.ReactElement {
           <View style={styles.rowWrap}>
             {BUDGETS.map((b) => (
               <Pressable key={b} onPress={() => downloads.setBudgetBytes(b)} accessibilityRole="button">
-                <Text style={[styles.chip, downloads.budgetBytes() === b && styles.chipOn]}>{b / 1024 ** 3} GB</Text>
+                <Text style={[styles.chip, downloads.budgetBytes() === b && styles.chipOn]}>{b < 1024 ** 3 ? `${b / 1024 ** 2} MB` : `${b / 1024 ** 3} GB`}</Text>
               </Pressable>
             ))}
           </View>

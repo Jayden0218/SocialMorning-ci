@@ -8,7 +8,7 @@ export interface Downloader {
    * transfer ends: `{}` on completion, `{ paused: true, resumeData }` when paused by
    * `pause()`. Rejects on a network or disk failure.
    */
-  start(row: DownloadRow, url: string, onProgress: (bytesDone: number, bytesTotal: number) => void): Promise<{ resumeData?: string; paused?: boolean }>;
+  start(row: DownloadRow, url: string, onProgress: (bytesDone: number, bytesTotal: number, resumeData?: string) => void): Promise<{ resumeData?: string; paused?: boolean }>;
   pause(episodeId: string): Promise<{ resumeData: string } | undefined>;
   cancel(episodeId: string): Promise<void>;
   remove(filePath: string): Promise<void>;

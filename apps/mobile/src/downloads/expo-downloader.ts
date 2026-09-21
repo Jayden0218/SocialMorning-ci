@@ -48,7 +48,15 @@ export function createExpoDownloader(): Downloader {
         task = new DownloadTask(url, file);
       }
       tasks.set(row.episodeId, task);
-      const sub = task.addListener('progress', (p) => onProgress(p.bytesWritten, p.totalBytes));
+      const sub = task.addListener('progress', (p) => {
+        // Persist whatever the task can save mid-flight, so a process kill (which never
+        // pauses) has the best chance of resuming (gap 1, 2026-09-21). Empty if the
+        // native side only fills `resumeData` on pause — then a kill restarts, and the
+        // manager says so.
+        let saved: string | undefined;
+        try { const sv = task.savable(); if (sv.resumeData) saved = JSON.stringify(sv); } catch { /* not savable yet */ }
+        onProgress(p.bytesWritten, p.totalBytes, saved);
+      });
       try {
         const result = row.resumeData ? await task.resumeAsync() : await task.downloadAsync();
         if (result === null && task.state === 'paused') {
