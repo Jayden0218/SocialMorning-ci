@@ -17,7 +17,8 @@ import { createApi } from '../social/api';
 import { apiBaseUrl } from '../social/base-url';
 import { registrationFor } from '../social/registration';
 import { secureToken } from '../social/token';
-import { createPositionSync, UPLOAD_EVERY_MS, type PositionSync } from '../sync/positions';
+import { createPositionSync, IMMEDIATE, UPLOAD_EVERY_MS, type PositionSync } from '../sync/positions';
+import { createListened } from '../graph/listened';
 import { deviceId } from '../sync/device-id';
 import { createDownloadManager, type DownloadManager } from '../downloads/manager';
 import { createExpoDownloader, downloadPathFor } from '../downloads/expo-downloader';
@@ -62,9 +63,11 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
 
   // M3 (US6): positions go to the account. The device id is read lazily (async
   // secure store); until it resolves, uploads wait — the local row is the truth.
+  const graphApi = useMemo(() => createApi({ baseUrl: apiBaseUrl(), fetch, getToken: secureToken.get }), []);
+  const deviceIdRef = useRef<string | undefined>(undefined);
   const sync = useMemo<PositionSync>(() => {
     let id: string | undefined;
-    const api = createApi({ baseUrl: apiBaseUrl(), fetch, getToken: secureToken.get });
+    const api = graphApi;
     const created = createPositionSync({
       api,
       positions: stores.positions,
@@ -78,9 +81,9 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
     // App start while signed in: pull the account's positions, merge, push (T057) —
     // only once the device id is known, or `isSignedIn()` is false and nothing happens.
     // (Seen on the phone 2026-09-21: the reconcile ran before the id resolved and did nothing.)
-    void deviceId().then((v) => { id = v; void created.reconcile(); });
+    void deviceId().then((v) => { id = v; deviceIdRef.current = v; void created.reconcile(); });
     return created;
-  }, [stores]);
+  }, [stores, graphApi]);
 
   // M2 (US1): the download manager. One per app life; recovers interrupted rows at start.
   const downloads = useMemo<DownloadManager>(() => createDownloadManager({
@@ -111,6 +114,11 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
     return () => { sub.remove(); unsubscribe?.(); clearInterval(timer); };
   }, [network, downloads]);
 
+  // M4 (research R3): listening time from TICKs, pushed on the position sync's cadence.
+  const listened = useMemo(() => createListened({
+    api: graphApi, store: stores.listened, deviceId: () => deviceIdRef.current, isSignedIn: () => stores.auth.get() !== undefined, now: () => Date.now(),
+  }), [graphApi, stores]);
+
   const runtime = useMemo<PlayerRuntime>(() => {
     const adapter = createExpoAudioAdapter();
     // Fire and forget: setAudioModeAsync must happen once, before anything
@@ -121,8 +129,11 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
       stores,
       now: () => Date.now(),
       notify: (text) => show.current(text),
+      onTick: (episodeId, positionMs) => listened.onTick(episodeId, positionMs),
       onPositionSaved: (row, reason) => {
         sync.onSaved(row, reason);
+        // A stop/seek/background closes the listened interval and pushes with the positions.
+        if (IMMEDIATE.has(reason)) { listened.close(); void listened.push(); }
         // FR-019: an episode that has a position has been played — it leaves the inbox.
         stores.inboxState.mark(row.episodeId, 'played', Date.now());
       },
@@ -132,20 +143,20 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
         onSkipped: (episodeId) => show.current(`Not downloaded — skipped: ${stores.feeds.getEpisode(episodeId)?.title ?? episodeId}`),
       },
     });
-  }, [stores, sync]);
+  }, [stores, sync, listened]);
 
   // The 30 s upload timer runs only while playing (FR-025: nothing while paused).
   useEffect(() => {
     let timer: ReturnType<typeof setInterval> | undefined;
     const reconcileTimer = () => {
       const playing = runtime.getState().kind === 'playing' || runtime.getState().kind === 'buffering';
-      if (playing && timer === undefined) timer = setInterval(() => sync.onTimer(), UPLOAD_EVERY_MS);
+      if (playing && timer === undefined) timer = setInterval(() => { sync.onTimer(); void listened.push(); }, UPLOAD_EVERY_MS);
       if (!playing && timer !== undefined) { clearInterval(timer); timer = undefined; }
     };
     const unsubscribe = runtime.subscribe(reconcileTimer);
     reconcileTimer();
     return () => { unsubscribe(); if (timer !== undefined) clearInterval(timer); sync.dispose(); };
-  }, [runtime, sync]);
+  }, [runtime, sync, listened]);
 
 
   // Cold start (Story 3 / FR-017): put back the episode the listener was on,
