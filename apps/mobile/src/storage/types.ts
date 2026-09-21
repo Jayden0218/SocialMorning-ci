@@ -175,6 +175,34 @@ export interface ExtrasStore {
   put(row: ExtrasRow): void;
 }
 
+// ---- M4 (migration 004) ----
+
+export type PendingClipRow = { clientId: string; episodeId: string; startMs: number; endMs: number; caption: string; createdAt: number; attempts: number; lastError?: string };
+
+export interface PendingClipStore {
+  list(): PendingClipRow[];
+  listForEpisode(episodeId: string): PendingClipRow[];
+  put(row: PendingClipRow): void;
+  remove(clientId: string): void;
+}
+
+export type ListenedRow = { episodeId: string; day: string; ranges: [number, number][]; dirty: boolean };
+
+export interface ListenedStore {
+  get(episodeId: string, day: string): ListenedRow | undefined;
+  /** Merges `ranges` into the row (union), marks it dirty. */
+  addRanges(episodeId: string, day: string, ranges: readonly (readonly [number, number])[]): void;
+  dirty(): ListenedRow[];
+  markPushed(keys: readonly { episodeId: string; day: string }[]): void;
+}
+
+export type FeedCacheRow = { key: string; etag?: string; fetchedAt: number; body: string };
+
+export interface FeedCacheStore {
+  get(key: string): FeedCacheRow | undefined;
+  set(row: FeedCacheRow): void;
+}
+
 export type Stores = {
   positions: PositionStore;
   subscriptions: SubscriptionStore;
@@ -189,4 +217,7 @@ export type Stores = {
   settings: SettingsStore;
   inboxState: InboxStateStore;
   extras: ExtrasStore;
+  pendingClips: PendingClipStore;
+  listened: ListenedStore;
+  feedCache: FeedCacheStore;
 };

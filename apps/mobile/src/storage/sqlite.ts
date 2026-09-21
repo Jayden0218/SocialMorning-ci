@@ -15,6 +15,7 @@
 import { openDatabaseSync, type SQLiteDatabase } from 'expo-sqlite';
 import { episodeId, migrateSchema } from './schema';
 import { byNewestFirst } from './memory';
+import { mergeRanges } from '@socialmorning/social-core';
 import type {
   AuthStore,
   CachedEpisode,
@@ -25,6 +26,12 @@ import type {
   DraftStore,
   ExtrasRow,
   ExtrasStore,
+  PendingClipRow,
+  PendingClipStore,
+  ListenedRow,
+  ListenedStore,
+  FeedCacheRow,
+  FeedCacheStore,
   FeedCache,
   InboxLeft,
   InboxStateStore,
@@ -551,6 +558,60 @@ export function createSqliteExtrasStore(db: SQLiteDatabase): ExtrasStore {
   };
 }
 
+export function createSqlitePendingClipStore(db: SQLiteDatabase): PendingClipStore {
+  type Raw = { client_id: string; episode_id: string; start_ms: number; end_ms: number; caption: string; created_at: number; attempts: number; last_error: string | null };
+  const row = (r: Raw): PendingClipRow => ({ clientId: r.client_id, episodeId: r.episode_id, startMs: r.start_ms, endMs: r.end_ms, caption: r.caption, createdAt: r.created_at, attempts: r.attempts, ...put('lastError', r.last_error) });
+  return {
+    list: () => db.getAllSync<Raw>('SELECT * FROM pending_clips ORDER BY created_at').map(row),
+    listForEpisode: (id) => db.getAllSync<Raw>('SELECT * FROM pending_clips WHERE episode_id = ? ORDER BY created_at', [id]).map(row),
+    put: (r) =>
+      void db.runSync(
+        `INSERT INTO pending_clips (client_id, episode_id, start_ms, end_ms, caption, created_at, attempts, last_error) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(client_id) DO UPDATE SET attempts = excluded.attempts, last_error = excluded.last_error`,
+        [r.clientId, r.episodeId, r.startMs, r.endMs, r.caption, r.createdAt, r.attempts, r.lastError ?? null],
+      ),
+    remove: (id) => void db.runSync('DELETE FROM pending_clips WHERE client_id = ?', [id]),
+  };
+}
+
+export function createSqliteListenedStore(db: SQLiteDatabase): ListenedStore {
+  type Raw = { episode_id: string; day: string; ranges: string; dirty: number };
+  const row = (r: Raw): ListenedRow => ({ episodeId: r.episode_id, day: r.day, ranges: JSON.parse(r.ranges) as [number, number][], dirty: r.dirty === 1 });
+  return {
+    get(e, d) {
+      const r = db.getFirstSync<Raw>('SELECT * FROM listened WHERE episode_id = ? AND day = ?', [e, d]);
+      return r === null ? undefined : row(r);
+    },
+    addRanges(e, d, ranges) {
+      const cur = db.getFirstSync<Raw>('SELECT * FROM listened WHERE episode_id = ? AND day = ?', [e, d]);
+      const merged = mergeRanges([...(cur === null ? [] : (JSON.parse(cur.ranges) as [number, number][])), ...ranges]);
+      db.runSync(
+        'INSERT INTO listened (episode_id, day, ranges, dirty) VALUES (?, ?, ?, 1) ON CONFLICT(episode_id, day) DO UPDATE SET ranges = excluded.ranges, dirty = 1',
+        [e, d, JSON.stringify(merged)],
+      );
+    },
+    dirty: () => db.getAllSync<Raw>('SELECT * FROM listened WHERE dirty = 1').map(row),
+    markPushed(keys) {
+      for (const k of keys) db.runSync('UPDATE listened SET dirty = 0 WHERE episode_id = ? AND day = ?', [k.episodeId, k.day]);
+    },
+  };
+}
+
+export function createSqliteFeedCacheStore(db: SQLiteDatabase): FeedCacheStore {
+  type Raw = { key: string; etag: string | null; fetched_at: number; body: string };
+  return {
+    get(k) {
+      const r = db.getFirstSync<Raw>('SELECT * FROM feed_cache WHERE key = ?', [k]);
+      return r === null ? undefined : { key: r.key, ...put('etag', r.etag), fetchedAt: r.fetched_at, body: r.body };
+    },
+    set: (r) =>
+      void db.runSync(
+        'INSERT INTO feed_cache (key, etag, fetched_at, body) VALUES (?, ?, ?, ?) ON CONFLICT(key) DO UPDATE SET etag = excluded.etag, fetched_at = excluded.fetched_at, body = excluded.body',
+        [r.key, r.etag ?? null, r.fetchedAt, r.body],
+      ),
+  };
+}
+
 export function createSqliteStores(hash: (s: string) => string, name?: string): Stores {
   const db = openDatabase(name);
   return {
@@ -567,6 +628,9 @@ export function createSqliteStores(hash: (s: string) => string, name?: string): 
     settings: createSqliteSettingsStore(db),
     inboxState: createSqliteInboxStateStore(db),
     extras: createSqliteExtrasStore(db),
+    pendingClips: createSqlitePendingClipStore(db),
+    listened: createSqliteListenedStore(db),
+    feedCache: createSqliteFeedCacheStore(db),
   };
 }
 

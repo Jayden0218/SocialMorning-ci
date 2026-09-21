@@ -18,7 +18,7 @@
  * The separator is U+0001, which cannot appear in a URL or a sane guid, so
  * two different (feedUrl, guid) pairs cannot collide by concatenation.
  */
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 export const MIGRATION_001 = `
 CREATE TABLE IF NOT EXISTS shows (
@@ -186,7 +186,36 @@ CREATE TABLE IF NOT EXISTS episode_extras (
 );
 `;
 
-export const MIGRATIONS: readonly string[] = [MIGRATION_001, MIGRATION_002, MIGRATION_003];
+/** M4 — the graph (specs/004-m4-the-graph/data-model.md). Nothing here is media. */
+export const MIGRATION_004 = `
+CREATE TABLE IF NOT EXISTS pending_clips (
+  client_id     TEXT PRIMARY KEY NOT NULL,
+  episode_id    TEXT NOT NULL,
+  start_ms      INTEGER NOT NULL,
+  end_ms        INTEGER NOT NULL,
+  caption       TEXT NOT NULL DEFAULT '',
+  created_at    INTEGER NOT NULL,
+  attempts      INTEGER NOT NULL DEFAULT 0,
+  last_error    TEXT NULL
+);
+
+CREATE TABLE IF NOT EXISTS listened (
+  episode_id    TEXT NOT NULL,
+  day           TEXT NOT NULL,
+  ranges        TEXT NOT NULL,
+  dirty         INTEGER NOT NULL DEFAULT 1,
+  PRIMARY KEY (episode_id, day)
+);
+
+CREATE TABLE IF NOT EXISTS feed_cache (
+  key           TEXT PRIMARY KEY NOT NULL,
+  etag          TEXT NULL,
+  fetched_at    INTEGER NOT NULL,
+  body          TEXT NOT NULL
+);
+`;
+
+export const MIGRATIONS: readonly string[] = [MIGRATION_001, MIGRATION_002, MIGRATION_003, MIGRATION_004];
 
 /** The minimum a database must offer for `migrateSchema` (expo-sqlite and node:sqlite both do). */
 export interface SchemaDb {

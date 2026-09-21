@@ -7,6 +7,7 @@
  * `progressSeq` monotonicity, FR-023, list ordering — or the tests certify
  * the double rather than the app.
  */
+import { mergeRanges } from '@socialmorning/social-core';
 import { episodeId } from './schema';
 import type {
   AuthRow,
@@ -19,6 +20,12 @@ import type {
   DraftStore,
   ExtrasRow,
   ExtrasStore,
+  PendingClipRow,
+  PendingClipStore,
+  ListenedRow,
+  ListenedStore,
+  FeedCacheRow,
+  FeedCacheStore,
   FeedCache,
   InboxLeft,
   InboxStateStore,
@@ -212,6 +219,42 @@ export function createMemoryExtrasStore(): ExtrasStore {
   return { get: (id) => rows.get(id), put: (r) => void rows.set(r.episodeId, r) };
 }
 
+export function createMemoryPendingClipStore(): PendingClipStore {
+  const rows = new Map<string, PendingClipRow>();
+  const sorted = () => [...rows.values()].sort((a, b) => a.createdAt - b.createdAt);
+  return {
+    list: sorted,
+    listForEpisode: (id) => sorted().filter((r) => r.episodeId === id),
+    put: (r) => void rows.set(r.clientId, r),
+    remove: (id) => void rows.delete(id),
+  };
+}
+
+export function createMemoryListenedStore(): ListenedStore {
+  const rows = new Map<string, ListenedRow>();
+  const key = (e: string, d: string) => `${e}\u0000${d}`;
+  return {
+    get: (e, d) => rows.get(key(e, d)),
+    addRanges(e, d, ranges) {
+      const cur = rows.get(key(e, d));
+      const merged = mergeRanges([...(cur?.ranges ?? []), ...ranges]).map((r): [number, number] => [r[0], r[1]]);
+      rows.set(key(e, d), { episodeId: e, day: d, ranges: merged, dirty: true });
+    },
+    dirty: () => [...rows.values()].filter((r) => r.dirty),
+    markPushed(keys) {
+      for (const k of keys) {
+        const cur = rows.get(key(k.episodeId, k.day));
+        if (cur) rows.set(key(k.episodeId, k.day), { ...cur, dirty: false });
+      }
+    },
+  };
+}
+
+export function createMemoryFeedCacheStore(): FeedCacheStore {
+  const rows = new Map<string, FeedCacheRow>();
+  return { get: (k) => rows.get(k), set: (r) => void rows.set(r.key, r) };
+}
+
 export function createMemoryStores(hash: (s: string) => string): Stores {
   return {
     positions: createMemoryPositionStore(),
@@ -227,5 +270,8 @@ export function createMemoryStores(hash: (s: string) => string): Stores {
     settings: createMemorySettingsStore(),
     inboxState: createMemoryInboxStateStore(),
     extras: createMemoryExtrasStore(),
+    pendingClips: createMemoryPendingClipStore(),
+    listened: createMemoryListenedStore(),
+    feedCache: createMemoryFeedCacheStore(),
   };
 }
