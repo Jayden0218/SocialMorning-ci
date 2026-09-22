@@ -44,6 +44,11 @@ import type {
   SocialCacheStore,
   Stores,
   SubscriptionStore,
+  HiddenStore,
+  HiddenRow,
+  HiddenKind,
+  BlockStore,
+  BlockRow,
 } from './types';
 import type { Episode } from '@socialmorning/feed-parser';
 
@@ -612,6 +617,40 @@ export function createSqliteFeedCacheStore(db: SQLiteDatabase): FeedCacheStore {
   };
 }
 
+export function createSqliteHiddenStore(db: SQLiteDatabase): HiddenStore {
+  type Raw = { kind: HiddenKind; id: string; reason: string; note: string | null; at: number; pending: number };
+  const row = (r: Raw): HiddenRow => ({ kind: r.kind, id: r.id, reason: r.reason, ...put('note', r.note), at: r.at, pending: r.pending === 1 });
+  return {
+    has: (kind, id) => db.getFirstSync('SELECT 1 FROM hidden WHERE kind = ? AND id = ?', [kind, id]) !== null,
+    all: () => db.getAllSync<Raw>('SELECT * FROM hidden ORDER BY at').map(row),
+    put: (r) => void db.runSync('INSERT OR IGNORE INTO hidden (kind, id, reason, note, at, pending) VALUES (?, ?, ?, ?, ?, ?)', [r.kind, r.id, r.reason, r.note ?? null, r.at, r.pending ? 1 : 0]),
+    pending: () => db.getAllSync<Raw>('SELECT * FROM hidden WHERE pending = 1 ORDER BY at').map(row),
+    markDelivered: (kind, id) => void db.runSync('UPDATE hidden SET pending = 0 WHERE kind = ? AND id = ?', [kind, id]),
+    replaceDelivered(list, now) {
+      db.runSync('DELETE FROM hidden WHERE pending = 0');
+      for (const r of list) db.runSync('INSERT OR IGNORE INTO hidden (kind, id, reason, note, at, pending) VALUES (?, ?, ?, NULL, ?, 0)', [r.kind, r.id, 'server', now]);
+    },
+    clearAll: () => void db.runSync('DELETE FROM hidden'),
+  };
+}
+
+export function createSqliteBlockStore(db: SQLiteDatabase): BlockStore {
+  type Raw = { listener_id: string; display_name: string | null; at: number; pending: number };
+  const row = (r: Raw): BlockRow => ({ listenerId: r.listener_id, ...put('displayName', r.display_name), at: r.at, pending: r.pending as 1 | 0 | -1 });
+  return {
+    has: (id) => db.getFirstSync('SELECT 1 FROM blocks WHERE listener_id = ? AND pending >= 0', [id]) !== null,
+    all: () => db.getAllSync<Raw>('SELECT * FROM blocks ORDER BY at').map(row),
+    put: (r) => void db.runSync('INSERT INTO blocks (listener_id, display_name, at, pending) VALUES (?, ?, ?, ?) ON CONFLICT(listener_id) DO UPDATE SET display_name = excluded.display_name, at = excluded.at, pending = excluded.pending', [r.listenerId, r.displayName ?? null, r.at, r.pending]),
+    remove: (id) => void db.runSync('DELETE FROM blocks WHERE listener_id = ?', [id]),
+    pending: () => db.getAllSync<Raw>('SELECT * FROM blocks WHERE pending <> 0 ORDER BY at').map(row),
+    replaceDelivered(list, now) {
+      db.runSync('DELETE FROM blocks WHERE pending = 0');
+      for (const r of list) db.runSync('INSERT OR IGNORE INTO blocks (listener_id, display_name, at, pending) VALUES (?, ?, ?, 0)', [r.id, r.displayName ?? null, now]);
+    },
+    clearAll: () => void db.runSync('DELETE FROM blocks'),
+  };
+}
+
 export function createSqliteStores(hash: (s: string) => string, name?: string): Stores {
   const db = openDatabase(name);
   return {
@@ -631,6 +670,8 @@ export function createSqliteStores(hash: (s: string) => string, name?: string): 
     pendingClips: createSqlitePendingClipStore(db),
     listened: createSqliteListenedStore(db),
     feedCache: createSqliteFeedCacheStore(db),
+    hidden: createSqliteHiddenStore(db),
+    blocks: createSqliteBlockStore(db),
   };
 }
 

@@ -3,10 +3,13 @@ import { Link, router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { ApiError } from '../../src/social/api';
-import { useSocial } from '../../src/social/context';
+import { SUSPENDED_KEY, useSocial } from '../../src/social/context';
+import { useStores } from '../../src/ui/providers';
 
 export default function SignInScreen(): React.ReactElement {
   const { auth } = useSocial();
+  const stores = useStores();
+  const [suspended, setSuspended] = useState<string | undefined>(() => stores.settings.get(SUSPENDED_KEY));
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | undefined>();
@@ -17,6 +20,8 @@ export default function SignInScreen(): React.ReactElement {
     setError(undefined);
     try {
       await auth.signIn(email.trim(), password);
+      stores.settings.set(SUSPENDED_KEY, '');
+      setSuspended(undefined);
       router.back();
     } catch (e) {
       setError(describe(e));
@@ -29,7 +34,8 @@ export default function SignInScreen(): React.ReactElement {
     <View style={styles.body}>
       <TextInput style={styles.input} placeholder="Email" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} accessibilityLabel="Email" />
       <TextInput style={styles.input} placeholder="Password" secureTextEntry value={password} onChangeText={setPassword} accessibilityLabel="Password" />
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {suspended ? <Text style={styles.error} accessibilityLiveRegion="polite">{suspended}</Text> : null}
+      {error ? <Text style={styles.error} accessibilityLiveRegion="polite">{error}</Text> : null}
       <Pressable style={[styles.button, busy && styles.disabled]} disabled={busy || !email || !password} onPress={submit} accessibilityRole="button">
         <Text style={styles.buttonText}>Sign in</Text>
       </Pressable>

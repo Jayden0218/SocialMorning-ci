@@ -11,6 +11,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { refreshShow } from '../../src/feeds/fetch';
 import { mmss, shortDate } from '../../src/ui/format';
+import { useSafety } from '../../src/safety/context';
+import { ReportSheet, type ReportTarget } from '../../src/ui/ReportSheet';
 import { useStores } from '../../src/ui/providers';
 import type { CachedEpisode, CachedShow } from '../../src/storage/types';
 
@@ -27,6 +29,11 @@ export default function ShowScreen(): React.ReactElement {
   const [stale, setStale] = useState(false);
   const [failed, setFailed] = useState<string | undefined>(undefined);
   const [subscribed, setSubscribed] = useState(() => stores.subscriptions.has(feedUrl));
+  const { safety, version, hiddenFeeds } = useSafety();
+  const [reporting, setReporting] = useState<ReportTarget | undefined>();
+  void version;
+  const reportedShow = safety.isHidden('show', feedUrl);
+  const hiddenShow = hiddenFeeds.has(feedUrl);
   // The rows read positions at render time; coming back from the player (or the
   // episode screen) must re-render them, or the list shows where the episode WAS
   // when this screen was pushed (seen on the phone 2026-09-21: Casey "0:57" while
@@ -87,13 +94,22 @@ export default function ShowScreen(): React.ReactElement {
           {show?.author === undefined ? null : (
             <Text style={styles.subtitle}>{show.author}</Text>
           )}
-          <Pressable
-            style={styles.subscribe}
-            accessibilityRole="button"
-            onPress={toggleSubscription}
-          >
-            <Text style={styles.subscribeText}>{subscribed ? 'Unsubscribe' : 'Subscribe'}</Text>
-          </Pressable>
+          <View style={styles.headRow}>
+            <Pressable
+              style={styles.subscribe}
+              accessibilityRole="button"
+              accessibilityLabel={subscribed ? 'Unsubscribe from this show' : 'Subscribe to this show'}
+              accessibilityState={{ selected: subscribed }}
+              onPress={toggleSubscription}
+            >
+              <Text style={styles.subscribeText}>{subscribed ? 'Unsubscribe' : 'Subscribe'}</Text>
+            </Pressable>
+            <Pressable onPress={() => setReporting({ kind: 'show', id: feedUrl, authorId: null, label: 'show' })} accessibilityRole="button" accessibilityLabel="Report this show" style={styles.reportBtn}>
+              <Text style={styles.muted}>{reportedShow ? 'Reported' : 'Report'}</Text>
+            </Pressable>
+          </View>
+          {reportedShow ? <Text style={styles.stale}>You reported this show. It stays in your library; it is hidden from discovery for you.</Text> : null}
+          {hiddenShow ? <Text style={styles.stale}>Hidden from discovery by moderation. It stays in your library.</Text> : null}
           {stale ? <Text style={styles.stale}>Showing the last copy — refresh failed</Text> : null}
           {failed === undefined ? null : <Text style={styles.stale}>{failed}</Text>}
           {show?.description === undefined ? null : (
@@ -103,6 +119,7 @@ export default function ShowScreen(): React.ReactElement {
           )}
         </View>
       }
+      ListFooterComponent={<ReportSheet target={reporting} onClose={() => setReporting(undefined)} />}
       ListEmptyComponent={
         <Text style={styles.empty}>
           {failed === undefined ? 'No episodes yet.' : failed}
@@ -130,6 +147,9 @@ export default function ShowScreen(): React.ReactElement {
 }
 
 const styles = StyleSheet.create({
+  headRow: { flexDirection: 'row', gap: 16, alignItems: 'center' },
+  reportBtn: { paddingVertical: 8, minHeight: 44, justifyContent: 'center' },
+  muted: { color: '#666' },
   header: { padding: 12, gap: 6 },
   art: { width: 120, height: 120, borderRadius: 8, backgroundColor: '#eee' },
   showTitle: { fontSize: 20, fontWeight: '700' },

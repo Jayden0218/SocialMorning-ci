@@ -10,6 +10,9 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { orderComments, type CommentOrder } from '@socialmorning/social-core';
 import { mmss, relativeTime } from './format';
 import { useSocial } from '../social/context';
+import { useSafety } from '../safety/context';
+import { Placeholder, placeholderFor } from './Placeholder';
+import { ReportSheet, type ReportTarget } from './ReportSheet';
 import type { Comment } from '../social/api';
 
 export function CommentList(props: {
@@ -22,12 +25,16 @@ export function CommentList(props: {
   onCompose: () => void;
 }): React.ReactElement {
   const { composer, listener, bump } = useSocial();
+  const safety = useSafety();
   const [order, setOrder] = useState<CommentOrder>('newest');
   const [busy, setBusy] = useState<string | undefined>();
+  const [reporting, setReporting] = useState<ReportTarget | undefined>();
 
+  // M6 (R1): the phone's own blocks and reports apply before anything renders — instant, offline.
+  const visible = useMemo(() => safety.comments(props.comments), [props.comments, safety]);
   const ordered = useMemo(
-    () => orderComments(props.comments.map((c) => ({ ...c, createdAt: new Date(c.createdAt).getTime(), raw: c })), order),
-    [props.comments, order],
+    () => orderComments(visible.map((c) => ({ ...c, createdAt: new Date(c.createdAt).getTime(), raw: c })), order),
+    [visible, order],
   );
 
   const needSignIn = () => router.push('/auth/sign-in');
@@ -39,8 +46,8 @@ export function CommentList(props: {
 
   const Row = ({ c, isReply }: { c: Comment; isReply: boolean }) => (
     <View style={[styles.row, isReply && styles.reply]}>
-      {c.deleted ? (
-        <Text style={styles.muted}>Comment deleted</Text>
+      {placeholderFor(c) !== undefined ? (
+        <Placeholder kind={placeholderFor(c)!} />
       ) : (
         <>
           <View style={styles.head}>
@@ -64,10 +71,14 @@ export function CommentList(props: {
               </Pressable>
             ) : null}
             {c.mine ? (
-              <Pressable disabled={busy === c.id} onPress={() => remove(c.id)} accessibilityRole="button">
+              <Pressable disabled={busy === c.id} onPress={() => remove(c.id)} accessibilityRole="button" accessibilityLabel="Delete this comment">
                 <Text style={styles.danger}>{busy === c.id ? 'Deleting…' : 'Delete'}</Text>
               </Pressable>
-            ) : null}
+            ) : (
+              <Pressable onPress={() => setReporting({ kind: 'comment', id: c.id, authorId: c.authorId, label: 'comment' })} accessibilityRole="button" accessibilityLabel="Report this comment">
+                <Text style={styles.muted}>Report</Text>
+              </Pressable>
+            )}
           </View>
         </>
       )}
@@ -93,6 +104,7 @@ export function CommentList(props: {
       </Pressable>
       {ordered.length === 0 ? <Text style={styles.muted}>No comments yet.</Text> : null}
       {ordered.map((o) => <Row key={o.raw.id} c={o.raw} isReply={false} />)}
+      <ReportSheet target={reporting} onClose={() => setReporting(undefined)} />
     </View>
   );
 }

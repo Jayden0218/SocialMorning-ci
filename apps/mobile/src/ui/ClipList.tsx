@@ -1,5 +1,8 @@
 /** The episode's clips (M4 FR-006): pending ones first as "sending", then newest first. */
+import { useMemo, useState } from 'react';
 import { Share, StyleSheet, Text, View } from 'react-native';
+import { useSafety } from '../safety/context';
+import { ReportSheet, type ReportTarget } from './ReportSheet';
 import { useGraph } from '../graph/context';
 import { useSocial } from '../social/context';
 import { usePlayer, type PlayableEpisode } from '../playback/store';
@@ -12,7 +15,10 @@ export function ClipList(props: { episode: PlayableEpisode }): React.ReactElemen
   const { useEpisodeClips } = useGraph();
   const { api, listener } = useSocial();
   const player = usePlayer();
-  const { clips, pending, refresh } = useEpisodeClips(props.episode.id);
+  const { clips: allClips, pending, refresh } = useEpisodeClips(props.episode.id);
+  const safety = useSafety();
+  const clips = useMemo(() => safety.clips(allClips), [allClips, safety]);
+  const [reporting, setReporting] = useState<ReportTarget | undefined>();
   const pendingAsClips: Clip[] = pending.map((p) => ({ id: `pending:${p.clientId}`, author: { id: listener?.listenerId ?? '', displayName: listener?.displayName ?? null }, episodeId: p.episodeId, startMs: p.startMs, endMs: p.endMs, caption: p.caption, createdAt: new Date(p.createdAt).toISOString(), deleted: false }));
   if (clips.length === 0 && pending.length === 0) return <View style={styles.wrap}><Text style={styles.h2}>Clips</Text><Text style={styles.muted}>No clips yet. Clip the good bit from the player.</Text></View>;
   return (
@@ -26,8 +32,10 @@ export function ClipList(props: { episode: PlayableEpisode }): React.ReactElemen
           onPlay={() => player.playClip(props.episode, { startMs: c.startMs, endMs: c.endMs })}
           onShare={() => void shareClip(Share, c, props.episode.title, apiBaseUrl())}
           onDelete={listener?.listenerId === c.author.id ? () => void api.deleteClip(c.id).then(refresh) : undefined}
+          onReport={listener?.listenerId !== c.author.id ? () => setReporting({ kind: 'clip', id: c.id, authorId: c.author.id, label: 'clip' }) : undefined}
         />
       ))}
+      <ReportSheet target={reporting} onClose={() => setReporting(undefined)} />
     </View>
   );
 }

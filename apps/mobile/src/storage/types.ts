@@ -203,6 +203,37 @@ export interface FeedCacheStore {
   set(row: FeedCacheRow): void;
 }
 
+// ---- M6 (migration 005) ----
+
+export type HiddenKind = 'comment' | 'clip' | 'profile' | 'show';
+/** `pending`: 1 = the report is not yet delivered; 0 = the server has it. */
+export type HiddenRow = { kind: HiddenKind; id: string; reason: string; note?: string; at: number; pending: boolean };
+
+export interface HiddenStore {
+  has(kind: HiddenKind, id: string): boolean;
+  all(): HiddenRow[];
+  /** Idempotent: a second report of the same target keeps the first row (FR-003). */
+  put(row: HiddenRow): void;
+  pending(): HiddenRow[];
+  markDelivered(kind: HiddenKind, id: string): void;
+  /** Replaces every non-pending row with the server's list (sign-in refill); pending rows stay. */
+  replaceDelivered(rows: readonly { kind: HiddenKind; id: string }[], now: number): void;
+  clearAll(): void;
+}
+
+/** `pending`: 1 = block not yet delivered; -1 = unblock not yet delivered; 0 = in sync. */
+export type BlockRow = { listenerId: string; displayName?: string; at: number; pending: 1 | 0 | -1 };
+
+export interface BlockStore {
+  has(listenerId: string): boolean;
+  all(): BlockRow[];
+  put(row: BlockRow): void;
+  remove(listenerId: string): void;
+  pending(): BlockRow[];
+  replaceDelivered(rows: readonly { id: string; displayName?: string }[], now: number): void;
+  clearAll(): void;
+}
+
 export type Stores = {
   positions: PositionStore;
   subscriptions: SubscriptionStore;
@@ -220,4 +251,6 @@ export type Stores = {
   pendingClips: PendingClipStore;
   listened: ListenedStore;
   feedCache: FeedCacheStore;
+  hidden: HiddenStore;
+  blocks: BlockStore;
 };

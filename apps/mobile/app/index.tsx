@@ -10,6 +10,7 @@ import { FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native
 import { refreshAll } from '../src/feeds/refresh-all';
 import { ContinueListening } from '../src/ui/ContinueListening';
 import { shortDate } from '../src/ui/format';
+import { useSafety } from '../src/safety/context';
 import { useStores } from '../src/ui/providers';
 import { inboxIds } from '../src/inbox';
 import { useSocial } from '../src/social/context';
@@ -22,6 +23,8 @@ type Row = { feedUrl: string; show: CachedShow | undefined; stale: boolean };
 
 export default function LibraryScreen(): React.ReactElement {
   const stores = useStores();
+  const { safety, version: safetyVersion, hiddenFeeds } = useSafety();
+  void safetyVersion;
   const { listener, api } = useSocial();
   const [rows, setRows] = useState<Row[]>([]);
   const [tick, setTick] = useState(0);
@@ -117,6 +120,7 @@ export default function LibraryScreen(): React.ReactElement {
               </Text>
               <Text style={styles.subtitle}>
                 {latestLine(stores.feeds.listEpisodes(item.feedUrl)[0]?.publishedAt, item.stale)}
+                {safety.isHidden('show', item.feedUrl) ? ' · reported' : hiddenFeeds.has(item.feedUrl) ? ' · hidden from discovery' : ''}
               </Text>
             </View>
           </Pressable>

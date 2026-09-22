@@ -10,6 +10,7 @@ export type ClipCardProps = {
   onPlay?: () => void;
   onShare?: () => void;
   onDelete?: () => void;
+  onReport?: () => void;
 };
 
 export function ClipCard(props: ClipCardProps): React.ReactElement {
@@ -26,8 +27,9 @@ export function ClipCard(props: ClipCardProps): React.ReactElement {
             <Pressable accessibilityRole="link"><Text style={styles.author}>by {clip.author.displayName}</Text></Pressable>
           </Link>
         ) : <Text style={styles.muted}>{props.pending ? 'by you' : 'by a deleted account'}</Text>}
-        {props.onShare ? <Pressable onPress={props.onShare} accessibilityRole="button"><Text style={styles.link}>Share</Text></Pressable> : null}
-        {props.onDelete ? <Pressable onPress={props.onDelete} accessibilityRole="button"><Text style={[styles.link, styles.danger]}>Delete</Text></Pressable> : null}
+        {props.onShare ? <Pressable onPress={props.onShare} accessibilityRole="button" accessibilityLabel="Share this clip"><Text style={styles.link}>Share</Text></Pressable> : null}
+        {props.onDelete ? <Pressable onPress={props.onDelete} accessibilityRole="button" accessibilityLabel="Delete this clip"><Text style={[styles.link, styles.danger]}>Delete</Text></Pressable> : null}
+        {props.onReport ? <Pressable onPress={props.onReport} accessibilityRole="button" accessibilityLabel="Report this clip"><Text style={styles.muted}>Report</Text></Pressable> : null}
       </View>
     </View>
   );

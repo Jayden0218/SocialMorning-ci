@@ -203,5 +203,6 @@ test('pages: /privacy, /rules and /get answer 200 with the appeals address and t
   assert.match(get, /abc123/);
   assert.match(await (await t.app.request('/privacy')).text(), /Delete my account/);
   assert.match(await (await t.app.request('/rules')).text(), /Harassment/);
+  assert.deepEqual(await (await t.app.request('/v1/meta')).json(), { appealsEmail: TEST_APPEALS });
   await t.close();
 });

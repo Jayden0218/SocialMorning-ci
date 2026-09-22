@@ -77,6 +77,8 @@ export function createApp(deps: AppDeps) {
   app.notFound((c) => c.json({ error: 'not_found', message: 'No such route.' }, 404));
 
   app.get('/v1/health', (c) => c.json({ ok: true }));
+  // M6 (FR-027): the appeals address the app shows — never hard-coded in a build.
+  app.get('/v1/meta', (c) => c.json({ ...(safety.appealsEmail ? { appealsEmail: safety.appealsEmail } : {}) }));
   app.route('/v1/auth', auth);
   app.route('/v1/me', me);
   app.route('/v1/me/positions', positions);

@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { Link, router, useFocusEffect } from 'expo-router';
+import { useSafety } from '../src/safety/context';
 import { useSocial } from '../src/social/context';
 import { useStores } from '../src/ui/providers';
 import { createFeed, type FeedView } from '../src/graph/feed';
@@ -14,6 +15,7 @@ import type { FeedItem as Item } from '../src/social/api';
 
 export default function FollowingScreen(): React.ReactElement {
   const { api, listener } = useSocial();
+  const safetyFilter = useSafety();
   const stores = useStores();
   const feed = useMemo(() => createFeed({ api, cache: stores.feedCache, settings: stores.settings, now: () => Date.now() }), [api, stores]);
   const [view, setView] = useState<FeedView | undefined>(() => feed.cached());
@@ -34,7 +36,7 @@ export default function FollowingScreen(): React.ReactElement {
   if (!listener) return <View style={styles.body}><Text>Sign in to follow people.</Text><Link href="/auth/sign-in" style={styles.link}>Sign in</Link></View>;
   return (
     <FlatList
-      data={view?.items ?? []}
+      data={safetyFilter.feed(view?.items ?? [])}
       keyExtractor={(i) => String(i.id)}
       contentContainerStyle={styles.body}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} />}

@@ -8,12 +8,14 @@ import { SafeAreaView, StyleSheet } from 'react-native';
 import { AppProviders } from '../src/ui/providers';
 import { SocialProvider } from '../src/social/context';
 import { GraphProvider } from '../src/graph/context';
+import { SafetyProvider } from '../src/safety/context';
 import { MiniBar } from '../src/ui/MiniBar';
 
 export default function RootLayout(): React.ReactElement {
   return (
     <AppProviders>
       <SocialProvider>
+      <SafetyProvider>
       <GraphProvider>
       <SafeAreaView style={styles.fill}>
         <StatusBar style="auto" />
@@ -40,6 +42,7 @@ export default function RootLayout(): React.ReactElement {
         <MiniBar />
       </SafeAreaView>
       </GraphProvider>
+      </SafetyProvider>
       </SocialProvider>
     </AppProviders>
   );

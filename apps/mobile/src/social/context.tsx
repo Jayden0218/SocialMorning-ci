@@ -2,7 +2,7 @@
  * What the social screens need: the API client, the auth API, and a live
  * "who am I" that re-renders on sign-in/out. Mounted inside <AppProviders>.
  */
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ApiError, createApi, type ApiClient, type Social } from './api';
 import { createAuth, type AuthApi } from './auth-store';
 import { createComposer, type Composer } from './composer';
@@ -32,6 +32,9 @@ export type SocialContextValue = {
   refresh: (episodeId: string) => Promise<{ social: Social | undefined; stale: boolean }>;
 };
 
+/** Settings key holding the last suspension message, shown on the sign-in screen until a sign-in succeeds. */
+export const SUSPENDED_KEY = 'safety.suspendedMessage';
+
 const SocialContext = createContext<SocialContextValue | undefined>(undefined);
 
 export function useSocial(): SocialContextValue {
@@ -45,9 +48,15 @@ export function SocialProvider(props: { children?: ReactNode }): ReactNode {
   const sync = usePositionSync();
   const [listener, setListener] = useState<AuthRow | undefined>(() => stores.auth.get());
 
-  const api = useMemo(() => createApi({ baseUrl: apiBaseUrl(), fetch, getToken: secureToken.get }), []);
+  // M6 (FR-015): a suspended answer ends the local session and leaves the message for the sign-in screen.
+  const suspendedRef = useRef<(m: string) => void>(() => undefined);
+  const api = useMemo(() => createApi({ baseUrl: apiBaseUrl(), fetch, getToken: secureToken.get, onSuspended: (m) => suspendedRef.current(m) }), []);
   const auth = useMemo(() => createAuth({ api, stores, token: secureToken, now: () => Date.now(), onSignedIn: () => sync.reconcile() }), [api, stores, sync]);
   const refreshListener = useCallback(() => setListener(stores.auth.get()), [stores]);
+  suspendedRef.current = (m) => {
+    stores.settings.set(SUSPENDED_KEY, m);
+    void secureToken.clear().then(() => { stores.auth.clear(); stores.drafts.clearAll(); stores.hidden.clearAll(); stores.blocks.clearAll(); setListener(undefined); });
+  };
   const cache = useMemo(() => createSocialCache(stores.socialCache), [stores]);
   const drafts = useMemo(() => createDrafts(stores.drafts, () => Date.now()), [stores]);
   const composer = useMemo(() => createComposer({

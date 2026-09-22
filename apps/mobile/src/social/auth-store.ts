@@ -14,7 +14,7 @@ export type TokenStore = {
 
 export type AuthDeps = {
   api: ApiClient;
-  stores: Pick<Stores, 'auth' | 'drafts'>;
+  stores: Pick<Stores, 'auth' | 'drafts'> & Partial<Pick<Stores, 'hidden' | 'blocks'>>;
   token: TokenStore;
   now: () => number;
   /** Called after a successful sign-in so M3's position sync can merge (T057). */
@@ -52,11 +52,16 @@ export function createAuth(deps: AuthDeps): AuthApi {
       await forget();
       // Drafts are the listener's; the social cache is the episode's and stays (T048).
       deps.stores.drafts.clearAll();
+      // M6: what this listener hid and blocked is theirs too.
+      deps.stores.hidden?.clearAll();
+      deps.stores.blocks?.clearAll();
     },
     async deleteAccount(password) {
       await deps.api.deleteMe(password);
       await forget();
       deps.stores.drafts.clearAll();
+      deps.stores.hidden?.clearAll();
+      deps.stores.blocks?.clearAll();
     },
   };
 }

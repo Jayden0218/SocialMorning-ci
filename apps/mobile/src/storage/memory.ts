@@ -39,6 +39,10 @@ import type {
   SocialCacheStore,
   Stores,
   SubscriptionStore,
+  HiddenStore,
+  HiddenRow,
+  BlockStore,
+  BlockRow,
 } from './types';
 import type { ParsedFeed } from '@socialmorning/feed-parser';
 
@@ -255,6 +259,39 @@ export function createMemoryFeedCacheStore(): FeedCacheStore {
   return { get: (k) => rows.get(k), set: (r) => void rows.set(r.key, r) };
 }
 
+export function createMemoryHiddenStore(): HiddenStore {
+  const rows = new Map<string, HiddenRow>();
+  const k = (kind: string, id: string) => `${kind}\u0001${id}`;
+  return {
+    has: (kind, id) => rows.has(k(kind, id)),
+    all: () => [...rows.values()],
+    put: (r) => { if (!rows.has(k(r.kind, r.id))) rows.set(k(r.kind, r.id), r); },
+    pending: () => [...rows.values()].filter((r) => r.pending),
+    markDelivered: (kind, id) => { const r = rows.get(k(kind, id)); if (r) rows.set(k(kind, id), { ...r, pending: false }); },
+    replaceDelivered(list, now) {
+      for (const [key, r] of rows) if (!r.pending) rows.delete(key);
+      for (const r of list) if (!rows.has(k(r.kind, r.id))) rows.set(k(r.kind, r.id), { kind: r.kind, id: r.id, reason: 'server', at: now, pending: false });
+    },
+    clearAll: () => rows.clear(),
+  };
+}
+
+export function createMemoryBlockStore(): BlockStore {
+  const rows = new Map<string, BlockRow>();
+  return {
+    has: (id) => (rows.get(id)?.pending ?? 0) >= 0 && rows.has(id),
+    all: () => [...rows.values()],
+    put: (r) => void rows.set(r.listenerId, r),
+    remove: (id) => void rows.delete(id),
+    pending: () => [...rows.values()].filter((r) => r.pending !== 0),
+    replaceDelivered(list, now) {
+      for (const [key, r] of rows) if (r.pending === 0) rows.delete(key);
+      for (const r of list) if (!rows.has(r.id)) rows.set(r.id, { listenerId: r.id, ...(r.displayName ? { displayName: r.displayName } : {}), at: now, pending: 0 });
+    },
+    clearAll: () => rows.clear(),
+  };
+}
+
 export function createMemoryStores(hash: (s: string) => string): Stores {
   return {
     positions: createMemoryPositionStore(),
@@ -273,5 +310,7 @@ export function createMemoryStores(hash: (s: string) => string): Stores {
     pendingClips: createMemoryPendingClipStore(),
     listened: createMemoryListenedStore(),
     feedCache: createMemoryFeedCacheStore(),
+    hidden: createMemoryHiddenStore(),
+    blocks: createMemoryBlockStore(),
   };
 }

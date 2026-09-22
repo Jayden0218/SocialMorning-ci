@@ -18,7 +18,7 @@
  * The separator is U+0001, which cannot appear in a URL or a sane guid, so
  * two different (feedUrl, guid) pairs cannot collide by concatenation.
  */
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 export const MIGRATION_001 = `
 CREATE TABLE IF NOT EXISTS shows (
@@ -215,7 +215,27 @@ CREATE TABLE IF NOT EXISTS feed_cache (
 );
 `;
 
-export const MIGRATIONS: readonly string[] = [MIGRATION_001, MIGRATION_002, MIGRATION_003, MIGRATION_004];
+/** M6 — safety (specs/006-m6-fit-to-ship/data-model.md): what THIS listener hid, applied at once, delivered later. */
+export const MIGRATION_005 = `
+CREATE TABLE IF NOT EXISTS hidden (
+  kind          TEXT NOT NULL,
+  id            TEXT NOT NULL,
+  reason        TEXT NOT NULL,
+  note          TEXT NULL,
+  at            INTEGER NOT NULL,
+  pending       INTEGER NOT NULL DEFAULT 1,
+  PRIMARY KEY (kind, id)
+);
+
+CREATE TABLE IF NOT EXISTS blocks (
+  listener_id   TEXT PRIMARY KEY NOT NULL,
+  display_name  TEXT NULL,
+  at            INTEGER NOT NULL,
+  pending       INTEGER NOT NULL DEFAULT 1
+);
+`;
+
+export const MIGRATIONS: readonly string[] = [MIGRATION_001, MIGRATION_002, MIGRATION_003, MIGRATION_004, MIGRATION_005];
 
 /** The minimum a database must offer for `migrateSchema` (expo-sqlite and node:sqlite both do). */
 export interface SchemaDb {

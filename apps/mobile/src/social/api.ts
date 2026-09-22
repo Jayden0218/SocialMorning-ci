@@ -10,7 +10,8 @@
 
 export type ErrorCode =
   | 'validation' | 'unauthenticated' | 'forbidden' | 'not_found' | 'conflict' | 'locked'
-  | 'duration_unknown' | 'reply_depth' | 'self_follow' | 'unavailable' | 'internal' | 'network';
+  | 'duration_unknown' | 'reply_depth' | 'self_follow' | 'unavailable' | 'internal' | 'network'
+  | 'suspended' | 'blocked' | 'removed';
 
 export class ApiError extends Error {
   constructor(
@@ -34,6 +35,10 @@ export type EpisodeRegistration = {
 export type Comment = {
   id: string; authorId: string | null; displayName: string | null; body: string | null; offsetMs: number | null;
   parentId: string | null; createdAt: string; deleted: boolean; mine?: boolean; replies?: Comment[];
+  /** M6: taken down by moderation (a placeholder for all; the author sees why). */
+  removed?: boolean;
+  /** M6: a reply by someone the viewer blocked (a placeholder so the thread keeps its shape). */
+  blocked?: boolean;
 };
 export type Social = {
   serverTime: string;
@@ -60,6 +65,7 @@ export type FeedItem = {
 export type Profile = {
   id: string; displayName: string; followers: number; following: number; isFollowing: boolean;
   stats: { last7: ProfileStats; all: ProfileStats } | null; recent: FeedItem[];
+  suspended?: boolean; blockedByMe?: boolean;
 };
 export type FeedResult = { status: 200; etag?: string; body: { items: FeedItem[]; next?: string; serverTime: string } } | { status: 304 };
 export type ListenedDay = { episodeId: string; day: string; ranges: [number, number][] };
@@ -72,6 +78,11 @@ export type DiscoverResult = { status: 200; etag?: string; body: Discover } | { 
 export type ShowCard = { appleId?: number; feedUrl: string; title: string; author: string; imageUrl?: string; genres: string[] };
 export type SearchResult = { shows: ShowCard[]; episodes: EpisodeCard[]; episodeSearch: 'ok' | 'unavailable'; source: { shows: 'apple' } };
 export type NextUpItem = { episode: EpisodeCard; reason: 'alsoListened' | 'talkedAboutOnShow' | 'newOnShow' | 'trendingInCategory'; label: string };
+
+// ---- M6 (specs/006-m6-fit-to-ship/contracts/api.md) ----
+export type ReportKind = 'comment' | 'clip' | 'profile' | 'show';
+export type HiddenOut = { reported: { kind: ReportKind; id: string }[]; blocked: { id: string; displayName: string }[]; hiddenFeeds: string[] };
+export type Meta = { appealsEmail?: string };
 
 export type ApiClient = {
   signUp(email: string, password: string, displayName: string): Promise<{ token: string; listener: Listener }>;
@@ -103,6 +114,12 @@ export type ApiClient = {
   discover(ifNoneMatch?: string): Promise<DiscoverResult>;
   search(q: string): Promise<SearchResult>;
   nextUp(episodeId: string): Promise<{ items: NextUpItem[]; computedAt: string }>;
+  // M6
+  report(kind: ReportKind, targetId: string, reason: string, note?: string): Promise<{ id: string; duplicate: boolean; closed?: string }>;
+  block(listenerId: string): Promise<void>;
+  unblock(listenerId: string): Promise<void>;
+  hidden(): Promise<HiddenOut>;
+  meta(): Promise<Meta>;
 };
 
 export type ApiDeps = {
@@ -110,6 +127,8 @@ export type ApiDeps = {
   fetch: typeof fetch;
   getToken: () => Promise<string | undefined>;
   timeoutMs?: number;
+  /** M6 (FR-015): the server said this account is suspended — the app signs out locally and keeps the message. */
+  onSuspended?: (message: string, appeals: string | undefined) => void;
 };
 
 export function createApi(deps: ApiDeps): ApiClient {
@@ -143,6 +162,7 @@ export function createApi(deps: ApiDeps): ApiClient {
     if (!res.ok) {
       const err = (json ?? {}) as { error?: string; message?: string } & Record<string, unknown>;
       const { error, message, ...extra } = err;
+      if (error === 'suspended') deps.onSuspended?.(message ?? 'This account is suspended.', typeof extra['appeals'] === 'string' ? (extra['appeals'] as string) : undefined);
       throw new ApiError((error as ErrorCode) ?? 'internal', message ?? `Server answered ${res.status}.`, res.status, extra);
     }
     return { status: res.status, headers: res.headers, json: json as T };
@@ -193,5 +213,11 @@ export function createApi(deps: ApiDeps): ApiClient {
     },
     search: async (q) => (await call<SearchResult>('GET', `/v1/search?q=${encodeURIComponent(q)}`)).json,
     nextUp: async (episodeId) => (await call<{ items: NextUpItem[]; computedAt: string }>('GET', `/v1/episodes/${episodeId}/next-up`)).json,
+    // M6
+    report: async (kind, targetId, reason, note) => (await call<{ id: string; duplicate: boolean; closed?: string }>('POST', '/v1/reports', { targetKind: kind, targetId, reason, ...(note ? { note } : {}) })).json,
+    block: async (listenerId) => { await call('POST', '/v1/me/blocks', { listenerId }); },
+    unblock: async (listenerId) => { await call('DELETE', `/v1/me/blocks/${listenerId}`); },
+    hidden: async () => (await call<HiddenOut>('GET', '/v1/me/hidden')).json,
+    meta: async () => (await call<Meta>('GET', '/v1/meta')).json,
   };
 }

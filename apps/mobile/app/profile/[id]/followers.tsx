@@ -3,17 +3,19 @@ import { useEffect, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text } from 'react-native';
 import { Link, useLocalSearchParams } from 'expo-router';
 import { useSocial } from '../../../src/social/context';
+import { useSafety } from '../../../src/safety/context';
 import type { ClipAuthor } from '../../../src/social/api';
 
 export default function FollowersScreen(): React.ReactElement {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { api } = useSocial();
+  const safetyFilter = useSafety();
   const [rows, setRows] = useState<ClipAuthor[]>([]);
   const [next, setNext] = useState<string | undefined>();
   useEffect(() => { void api.followers(String(id)).then((r) => { setRows(r.listeners); setNext(r.next); }).catch(() => undefined); }, [api, id]);
   return (
     <FlatList
-      data={rows}
+      data={safetyFilter.listeners(rows)}
       keyExtractor={(l) => l.id}
       contentContainerStyle={styles.body}
       ListEmptyComponent={<Text style={styles.muted}>Nobody yet.</Text>}
