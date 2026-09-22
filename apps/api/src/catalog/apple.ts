@@ -28,7 +28,7 @@ type AppleEpisode = {
 };
 
 async function getJson<T>(f: Fetch, url: string): Promise<T> {
-  const res = await f(url, { headers: { accept: 'application/json' } });
+  const res = await f(url, { headers: { accept: 'application/json', 'user-agent': 'SocialMorning/0.1 (+https://socialmorning-api.vercel.app)' } });
   if (res.status === 429 || res.status === 403) throw new CatalogRateLimited(res.status);
   if (!res.ok) throw new CatalogUnavailable(res.status);
   return (await res.json()) as T;

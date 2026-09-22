@@ -10,11 +10,15 @@ import { cached, TTL } from '../db/repos/cache.ts';
 import { upsertEpisode, type EpisodeRow } from '../db/repos/episodes.ts';
 import type { EpisodeCard } from './apple.ts';
 
+export const USER_AGENT = 'SocialMorning/0.1 (+https://socialmorning-api.vercel.app)';
+
 export type FetchedFeed = { show: ParsedFeed['show']; episodes: Episode[]; warnings: ParsedFeed['warnings'] };
 
 export async function fetchFeed(db: Db, f: typeof fetch, feedUrl: string): Promise<{ feed: FetchedFeed; stale: boolean }> {
   const r = await cached<FetchedFeed>(db, `feed:${feedUrl}`, TTL.feed, async () => {
-    const res = await f(feedUrl, { headers: { accept: 'application/rss+xml, application/xml, text/xml' } });
+    // Seen live 2026-09-22: feeds.podcastindex.org answers 403 to a fetch with no User-Agent (the
+    // phone's fetch sends one). Name the app, as any polite feed reader does.
+    const res = await f(feedUrl, { headers: { accept: 'application/rss+xml, application/xml, text/xml', 'user-agent': USER_AGENT } });
     if (!res.ok) throw new Error(`feed ${feedUrl}: ${res.status}`);
     const parsed = parseFeed(await res.text(), feedUrl, { hash });
     return { show: parsed.show, episodes: parsed.episodes.slice(0, 50), warnings: parsed.warnings };

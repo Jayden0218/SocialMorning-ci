@@ -8,8 +8,8 @@ import { fnv1a64 } from '@socialmorning/social-core';
 
 test('fetchFeed parses and caches; a broken item is a warning, not a failure; a show pick resolves to the newest episode', async () => {
   const t = await freshDb();
-  let calls = 0;
-  const f = (async (...a: Parameters<typeof fetch>) => { calls++; return fakeFeedFetch(FIXTURE_FEED)(...a); }) as typeof fetch;
+  let calls = 0; let ua: string | undefined;
+  const f = (async (...a: Parameters<typeof fetch>) => { calls++; ua = (a[1]?.headers as Record<string, string> | undefined)?.['user-agent']; return fakeFeedFetch(FIXTURE_FEED)(...a); }) as typeof fetch;
   const { feed, stale } = await fetchFeed(t.db, f, 'https://feeds.example.com/fx.xml');
   assert.equal(stale, false);
   assert.equal(feed.show.title, 'Fixture Show');
@@ -17,6 +17,7 @@ test('fetchFeed parses and caches; a broken item is a warning, not a failure; a 
   assert.ok(feed.warnings.length >= 1);
   await fetchFeed(t.db, f, 'https://feeds.example.com/fx.xml');
   assert.equal(calls, 1); // cached
+  assert.match(ua ?? '', /^SocialMorning\//); // feeds.podcastindex.org 403s a fetch without one (seen live)
   const card = toCard('https://feeds.example.com/fx.xml', feed.show, feed.episodes[0]!);
   assert.deepEqual(card, { feedUrl: 'https://feeds.example.com/fx.xml', guid: 'g-new', title: 'Newest', showTitle: 'Fixture Show', enclosureUrl: 'https://cdn/new.mp3', imageUrl: 'https://img/show.png', durationMs: 1_800_000, publishedAt: '2026-09-21T10:00:00.000Z' });
   const row = await registerCard(t.db, card);
