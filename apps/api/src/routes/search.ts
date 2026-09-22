@@ -14,20 +14,21 @@ import { registerCard } from '../catalog/feed.ts';
  * 'unavailable'`; both failing → 503; Apple's 429 → 429 `locked` with a retry hint.
  * Apple allows ~20 searches a minute (M1's note): 10 per listener/IP per minute here.
  */
-export const search = new Hono<AuthEnv>();
-
-const recent = new Map<string, number[]>();
-function throttled(key: string, now: number, limit = 10, windowMs = 60_000): boolean {
-  const hits = (recent.get(key) ?? []).filter((t) => now - t < windowMs);
-  hits.push(now);
-  recent.set(key, hits);
-  return hits.length > limit;
-}
-
 export const normaliseQuery = (q: string): string => q.trim().replace(/\s+/g, ' ');
 export const isSearchable = (q: string): boolean => /[\p{L}\p{N}]/u.test(q);
 
-search.get('/', optionalAuth, async (c) => {
+/** One router per app so the throttle state is the app's, not the module's (a test process builds many apps). */
+export function createSearchRoute() {
+  const search = new Hono<AuthEnv>();
+  const recent = new Map<string, number[]>();
+  const throttled = (key: string, now: number, limit = 10, windowMs = 60_000): boolean => {
+    const hits = (recent.get(key) ?? []).filter((t) => now - t < windowMs);
+    hits.push(now);
+    recent.set(key, hits);
+    return hits.length > limit;
+  };
+
+  search.get('/', optionalAuth, async (c) => {
   const q = normaliseQuery(c.req.query('q') ?? '');
   if (q.length < 1 || q.length > 100) throw new ApiError('validation', 'q must be 1–100 characters.', { fields: ['q'] });
   if (!isSearchable(q)) return c.json({ shows: [], episodes: [], episodeSearch: 'ok', source: { shows: 'apple' } });
@@ -56,3 +57,6 @@ search.get('/', optionalAuth, async (c) => {
   }
   return c.json({ shows, episodes, episodeSearch: episodesR.status === 'fulfilled' ? 'ok' : 'unavailable', source: { shows: 'apple' } });
 });
+
+  return search;
+}
