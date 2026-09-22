@@ -17,8 +17,18 @@ import { follows } from './routes/follows.ts';
 import { feed } from './routes/feed.ts';
 import { listened } from './routes/listened.ts';
 import { privacy, profiles } from './routes/profiles.ts';
+import { discover } from './routes/discover.ts';
+import { validatePicks } from '@socialmorning/social-core';
+import type { Catalog } from './auth/session.ts';
+import picksJson from '../picks.json' with { type: 'json' };
 
-export type AppDeps = { db: Db; pepper: string; assetLinksSha256?: string };
+export type AppDeps = {
+  db: Db; pepper: string; assetLinksSha256?: string;
+  /** M5: the catalogue's fetch (tests inject a fake Apple) and the raw picks file; defaults: global fetch, `picks.json`. */
+  catalogFetch?: typeof fetch;
+  picksRaw?: unknown;
+  today?: () => string;
+};
 
 /**
  * The one Hono app. `src/server.ts` serves it locally; `api/index.ts` is the Vercel entry.
@@ -29,9 +39,15 @@ export function createApp(deps: AppDeps) {
 
   app.use('*', requestId());
   app.use('*', bodyLimit({ maxSize: 16 * 1024 }));
+  // M5: the picks file is validated once; every bad entry is a warning, never a crash (G1).
+  const { picks, warnings } = validatePicks(deps.picksRaw ?? picksJson);
+  for (const w of warnings) console.warn(`[picks] ${w}`);
+  const catalog: Catalog = { fetch: deps.catalogFetch ?? fetch, picks, today: deps.today ?? (() => new Date().toISOString().slice(0, 10)) };
+
   app.use('*', async (c, next) => {
     c.set('db', deps.db);
     c.set('pepper', deps.pepper);
+    c.set('catalog', catalog);
     await next();
   });
 
@@ -54,6 +70,7 @@ export function createApp(deps: AppDeps) {
   app.route('/v1/me/privacy', privacy);
   app.route('/v1/listeners', follows);
   app.route('/v1/listeners', profiles);
+  app.route('/v1/discover', discover);
   app.route('/v1/episodes', episodes);
   app.route('/v1/episodes', comments);
   app.route('/v1/episodes', social);

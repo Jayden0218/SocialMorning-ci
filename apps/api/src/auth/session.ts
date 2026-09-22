@@ -32,7 +32,10 @@ export async function listenerForToken(db: Db, token: string, pepper: string): P
   return rows[0];
 }
 
-export type AuthEnv = { Variables: { db: Db; pepper: string; listener?: Listener; token?: string } };
+export type AuthEnv = { Variables: { db: Db; pepper: string; listener?: Listener; token?: string; catalog: Catalog } };
+
+/** M5: what the discovery routes need beyond the db — the catalogue fetch (real or fake) and the owner's picks. */
+export type Catalog = { fetch: typeof fetch; picks: import('@socialmorning/social-core').PickIn[]; today: () => string };
 
 function bearer(c: Context): string | undefined {
   const h = c.req.header('authorization');
