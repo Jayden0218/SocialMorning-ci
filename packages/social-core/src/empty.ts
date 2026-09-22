@@ -18,6 +18,7 @@ export const EMPTY_STATES: Record<Surface, EmptySpec> = {
   clips:     { sentence: 'No clips yet. Clip the good bit from the player.', action: { label: 'Open player', route: '/player' } },
   comments:  { sentence: 'Nobody has said anything at this moment yet.', action: { label: 'Comment here', route: '/player' } },
   heat:      { sentence: 'Nobody has marked a moment yet — tap ♡ while listening.', action: { label: 'React', route: '/player' } },
+  nextup:    { sentence: 'Nothing to suggest yet — play something and come back.', action: { label: 'Discover', route: '/discover' } },
   stats:     { sentence: 'Nothing listened yet. Play something — stats count from the first minute.', action: { label: 'Open Library', route: '/' } },
   search:    { sentence: "Nothing matches. Try the show's name, or paste a feed URL.", action: { label: 'Discover', route: '/discover' } },
 };
