@@ -18,3 +18,11 @@ test('cached: fetch once within the TTL; refetch after; a failing refetch serves
   assert.equal(calls, 3);
   await t.close();
 });
+
+test('a row stored double-encoded (a JSON string holding JSON — the postgres driver\'s shape, seen live) reads back as the object', async () => {
+  const t = await freshDb();
+  await t.q(`INSERT INTO cache (key, body, fetched_at) VALUES ('dbl', to_jsonb($1::text), now())`, [JSON.stringify({ episodes: [1, 2] })]);
+  const r = await cached<{ episodes: number[] }>(t.db, 'dbl', 60_000, async () => { throw new Error('should not fetch'); });
+  assert.deepEqual(r, { body: { episodes: [1, 2] }, stale: false });
+  await t.close();
+});
