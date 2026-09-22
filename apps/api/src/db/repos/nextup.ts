@@ -5,6 +5,7 @@
  */
 import { nextUp, scoreTalkedAbout, REASON_LABEL, type Reason } from '@socialmorning/social-core';
 import type { Db } from '../db.ts';
+import { hiddenFeedUrls } from './moderation.ts';
 import { cached, TTL } from './cache.ts';
 import { talkedAbout } from './activity-stats.ts';
 import { fetchFeed, registerCard, toCard } from '../../catalog/feed.ts';
@@ -71,7 +72,11 @@ export async function nextUpSources(db: Db, f: typeof fetch, episodeId: string):
     } catch { /* the chart is down: empty */ }
     return { sources, ...(genre ? { genre: genre.name } : {}) };
   });
-  return r.body;
+  const hidden = await hiddenFeedUrls(db);
+  if (hidden.size === 0) return r.body;
+  const keep = <T extends { episode: { feedUrl: string } }>(xs: T[]) => xs.filter((x) => !hidden.has(x.episode.feedUrl));
+  const s = r.body.sources;
+  return { ...r.body, sources: { alsoListened: keep(s.alsoListened), talkedAboutOnShow: keep(s.talkedAboutOnShow), newOnShow: keep(s.newOnShow), trendingInCategory: keep(s.trendingInCategory) } };
 }
 
 export async function nextUpFor(db: Db, f: typeof fetch, episodeId: string, viewerId: string | undefined): Promise<NextUpItem[] | undefined> {

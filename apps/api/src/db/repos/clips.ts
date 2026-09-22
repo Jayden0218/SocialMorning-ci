@@ -8,20 +8,21 @@ import type { EpisodeRow } from './episodes.ts';
 
 export type ClipRow = {
   id: string; author_id: string; author_name: string | null; client_id: string; episode_id: string;
-  start_ms: number; end_ms: number; caption: string; created_at: string; deleted_at: string | null;
+  start_ms: number; end_ms: number; caption: string; created_at: string; deleted_at: string | null; removed_at?: string | null;
 };
 
 export type ClipOut = {
   id: string; author: { id: string; displayName: string | null }; episodeId: string;
-  startMs: number; endMs: number; caption: string; createdAt: string; deleted: boolean;
+  startMs: number; endMs: number; caption: string; createdAt: string; deleted: boolean; removed?: boolean;
 };
 
 export const toClipOut = (r: ClipRow): ClipOut => ({
   id: r.id, author: { id: r.author_id, displayName: r.author_name }, episodeId: r.episode_id,
-  startMs: r.start_ms, endMs: r.end_ms, caption: r.caption, createdAt: new Date(r.created_at).toISOString(), deleted: r.deleted_at !== null,
+  startMs: r.start_ms, endMs: r.end_ms, caption: r.caption, createdAt: new Date(r.created_at).toISOString(), deleted: r.deleted_at !== null || r.removed_at != null,
+  ...(r.removed_at != null ? { removed: true } : {}),
 });
 
-const SELECT = `SELECT c.id, c.author_id, l.display_name AS author_name, c.client_id, c.episode_id, c.start_ms, c.end_ms, c.caption, c.created_at, c.deleted_at
+const SELECT = `SELECT c.id, c.author_id, l.display_name AS author_name, c.client_id, c.episode_id, c.start_ms, c.end_ms, c.caption, c.created_at, c.deleted_at, c.removed_at
                 FROM clips c LEFT JOIN listeners l ON l.id = c.author_id`;
 
 export async function createClip(
@@ -54,7 +55,7 @@ export async function createClip(
 export async function getClip(db: Db, id: string): Promise<{ clip: ClipRow; episode: EpisodeRow } | undefined> {
   type Joined = ClipRow & { e_feed_url: string; e_guid: string; e_title: string; e_show_title: string | null; e_enclosure_url: string; e_image_url: string | null; e_duration_ms: number | null };
   const rows = await db.query<Joined>(
-    `SELECT c.id, c.author_id, l.display_name AS author_name, c.client_id, c.episode_id, c.start_ms, c.end_ms, c.caption, c.created_at, c.deleted_at,
+    `SELECT c.id, c.author_id, l.display_name AS author_name, c.client_id, c.episode_id, c.start_ms, c.end_ms, c.caption, c.created_at, c.deleted_at, c.removed_at,
             e.feed_url AS e_feed_url, e.guid AS e_guid, e.title AS e_title, e.show_title AS e_show_title,
             e.enclosure_url AS e_enclosure_url, e.image_url AS e_image_url, e.duration_ms AS e_duration_ms
      FROM clips c LEFT JOIN listeners l ON l.id = c.author_id JOIN episodes e ON e.id = c.episode_id
@@ -70,10 +71,15 @@ export async function getClip(db: Db, id: string): Promise<{ clip: ClipRow; epis
   };
 }
 
-export async function listClipsForEpisode(db: Db, episodeId: string, before?: string, limit = 20): Promise<{ clips: ClipRow[]; next?: string }> {
+/** M6 (R1): a signed-in viewer's page excludes blocked authors and the clips they reported, in SQL so pages stay full. */
+export const VIEWER_FILTER = `AND ($V::uuid IS NULL OR (
+    c.author_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id = $V::uuid)
+    AND c.id::text NOT IN (SELECT target_id FROM reports WHERE reporter_id = $V::uuid AND target_kind = 'clip')))`;
+
+export async function listClipsForEpisode(db: Db, episodeId: string, before?: string, limit = 20, viewerId?: string): Promise<{ clips: ClipRow[]; next?: string }> {
   const rows = await db.query<ClipRow>(
-    `${SELECT} WHERE c.episode_id = $1 AND c.deleted_at IS NULL ${before ? 'AND c.created_at < $3' : ''} ORDER BY c.created_at DESC, c.id DESC LIMIT $2`,
-    before ? [episodeId, limit + 1, before] : [episodeId, limit + 1],
+    `${SELECT} WHERE c.episode_id = $1 AND c.deleted_at IS NULL AND c.removed_at IS NULL ${VIEWER_FILTER.replaceAll('$V', '$3')} ${before ? 'AND c.created_at < $4' : ''} ORDER BY c.created_at DESC, c.id DESC LIMIT $2`,
+    before ? [episodeId, limit + 1, viewerId ?? null, before] : [episodeId, limit + 1, viewerId ?? null],
   );
   const page = rows.slice(0, limit);
   const next = rows.length > limit ? new Date(page[page.length - 1]!.created_at).toISOString() : undefined;

@@ -3,7 +3,7 @@ import { json } from '../validate.ts';
 import { z } from 'zod';
 import { lockoutUntil } from '@socialmorning/social-core';
 import type { AuthEnv } from '../auth/session.ts';
-import { createSession, publicListener, requireAuth, tokenHash } from '../auth/session.ts';
+import { suspendedError, createSession, publicListener, requireAuth, tokenHash } from '../auth/session.ts';
 import { hashPassword, verifyPassword } from '../auth/password.ts';
 import { clearFailedSignIns, createListener, listenerByEmail, recordFailedSignIn } from '../db/repos/listeners.ts';
 import { ApiError } from '../errors.ts';
@@ -55,6 +55,7 @@ auth.post('/sign-in', json(signInBody), async (c) => {
     throw BAD_CREDENTIALS();
   }
   await clearFailedSignIns(db, row.id);
+  if (row.suspended_at) throw suspendedError(c.get('safety')?.appealsEmail);
   const token = await createSession(db, row.id, c.get('pepper'), body.deviceLabel);
   return c.json({ token, listener: publicListener(row) });
 });

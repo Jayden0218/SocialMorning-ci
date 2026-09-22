@@ -19,10 +19,15 @@ export type TestDb = {
   q<T = Record<string, unknown>>(sql: string, params?: unknown[]): Promise<T[]>;
   /** JSON request helper: `call('POST', '/v1/auth/sign-in', body, token)`. */
   call(method: string, path: string, body?: unknown, token?: string, headers?: Record<string, string>): Promise<Response>;
+  /** M6: rebuilds the app with this listener as the owner (the id exists only after a sign-up). */
+  setOwner?(id: string): void;
   close(): Promise<void>;
 };
 
-export async function freshDb(): Promise<TestDb> {
+export const TEST_APPEALS = 'appeals@example.test';
+
+/** `ownerListenerId` is unknown until a listener exists: tests that need the owner sign up first, then `setOwner`. */
+export async function freshDb(opts: { ownerListenerId?: string; appealsEmail?: string; releaseSha256?: string } = {}): Promise<TestDb> {
   const pg = new PGlite({ extensions: { citext } });
   const runner: MigrationRunner = {
     exec: (s) => pg.exec(s),
@@ -30,12 +35,13 @@ export async function freshDb(): Promise<TestDb> {
   };
   await migrate(runner);
   const db = fromPglite(pg);
-  const app = createApp({ db, pepper: TEST_PEPPER });
-  return {
+  let app = createApp({ db, pepper: TEST_PEPPER, appealsEmail: TEST_APPEALS, ...opts });
+  const t: TestDb = {
     pg,
     db,
     runner,
     app,
+    setOwner: (id) => { app = createApp({ db, pepper: TEST_PEPPER, appealsEmail: TEST_APPEALS, ...opts, ownerListenerId: id }); t.app = app; },
     q: async <T,>(s: string, params?: unknown[]) => (await pg.query<T>(s, params)).rows,
     call: async (method, path, body, token, headers = {}) =>
       app.request(path, {
@@ -49,6 +55,7 @@ export async function freshDb(): Promise<TestDb> {
       }),
     close: () => pg.close(),
   };
+  return t;
 }
 
 /** Sign up a listener and return their token + id. */

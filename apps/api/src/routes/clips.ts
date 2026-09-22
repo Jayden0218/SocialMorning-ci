@@ -34,9 +34,9 @@ episodeClips.post('/:id/clips', requireAuth, json(clipBody), async (c) => {
   return c.json({ clip: toClipOut(clip) }, created ? 201 : 200);
 });
 
-episodeClips.get('/:id/clips', async (c) => {
+episodeClips.get('/:id/clips', optionalAuth, async (c) => {
   const before = c.req.query('before');
-  const { clips, next } = await listClipsForEpisode(c.get('db'), c.req.param('id'), before || undefined);
+  const { clips, next } = await listClipsForEpisode(c.get('db'), c.req.param('id'), before || undefined, 20, c.get('listener')?.id);
   return c.json({ clips: clips.map(toClipOut), ...(next ? { next } : {}) });
 });
 
@@ -46,6 +46,7 @@ export const clipById = new Hono<AuthEnv>();
 clipById.get('/:id', optionalAuth, async (c) => {
   const found = await getClip(c.get('db'), c.req.param('id'));
   if (!found) throw new ApiError('not_found', 'No such clip.');
+  if (found.clip.removed_at != null) throw new ApiError('removed', 'This clip was removed.');
   const e = found.episode;
   return c.json({
     clip: toClipOut(found.clip),

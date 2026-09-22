@@ -3,10 +3,13 @@ import type { Db } from '../db.ts';
 
 export type ListenerLite = { id: string; displayName: string | null };
 
-export async function follow(db: Db, followerId: string, followedId: string): Promise<'followed' | 'self' | 'no_such_listener'> {
+export async function follow(db: Db, followerId: string, followedId: string): Promise<'followed' | 'self' | 'no_such_listener' | 'blocked'> {
   if (followerId === followedId) return 'self';
   const exists = await db.query<{ id: string }>('SELECT id FROM listeners WHERE id = $1', [followedId]);
   if (exists.length === 0) return 'no_such_listener';
+  // M6 (FR-008): no follow across a block, in either direction.
+  const wall = await db.query('SELECT 1 FROM blocks WHERE (blocker_id = $1 AND blocked_id = $2) OR (blocker_id = $2 AND blocked_id = $1)', [followerId, followedId]);
+  if (wall.length > 0) return 'blocked';
   await db.query('INSERT INTO follows (follower_id, followed_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [followerId, followedId]);
   return 'followed';
 }
@@ -37,16 +40,18 @@ async function page(db: Db, sql: string, params: unknown[], limit: number): Prom
   return { listeners: slice.map((r) => ({ id: r.id, displayName: r.display_name })), ...(next ? { next } : {}) };
 }
 
-export function followers(db: Db, listenerId: string, before?: string, limit = 50): Promise<Page> {
+const NOT_BLOCKED = `AND ($4::uuid IS NULL OR l.id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id = $4::uuid))`;
+
+export function followers(db: Db, listenerId: string, before?: string, limit = 50, viewerId?: string): Promise<Page> {
   return page(db,
     `SELECT l.id, l.display_name, f.created_at FROM follows f JOIN listeners l ON l.id = f.follower_id
-     WHERE f.followed_id = $1 ${before ? 'AND f.created_at < $3' : ''} ORDER BY f.created_at DESC LIMIT $2`,
-    before ? [listenerId, limit + 1, before] : [listenerId, limit + 1], limit);
+     WHERE f.followed_id = $1 ${NOT_BLOCKED} AND ($3::timestamptz IS NULL OR f.created_at < $3::timestamptz) ORDER BY f.created_at DESC LIMIT $2`,
+    [listenerId, limit + 1, before ?? null, viewerId ?? null], limit);
 }
 
-export function following(db: Db, listenerId: string, before?: string, limit = 50): Promise<Page> {
+export function following(db: Db, listenerId: string, before?: string, limit = 50, viewerId?: string): Promise<Page> {
   return page(db,
     `SELECT l.id, l.display_name, f.created_at FROM follows f JOIN listeners l ON l.id = f.followed_id
-     WHERE f.follower_id = $1 ${before ? 'AND f.created_at < $3' : ''} ORDER BY f.created_at DESC LIMIT $2`,
-    before ? [listenerId, limit + 1, before] : [listenerId, limit + 1], limit);
+     WHERE f.follower_id = $1 ${NOT_BLOCKED} AND ($3::timestamptz IS NULL OR f.created_at < $3::timestamptz) ORDER BY f.created_at DESC LIMIT $2`,
+    [listenerId, limit + 1, before ?? null, viewerId ?? null], limit);
 }

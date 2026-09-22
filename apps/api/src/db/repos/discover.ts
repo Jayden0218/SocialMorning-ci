@@ -6,6 +6,7 @@
  */
 import { fillWithTrending, picksForDay, rankTalkedAbout, type PickIn } from '@socialmorning/social-core';
 import type { Db } from '../db.ts';
+import { hiddenFeedUrls } from './moderation.ts';
 import { cached, TTL } from './cache.ts';
 import { talkedAbout } from './activity-stats.ts';
 import { fetchFeed, registerCard, toCard } from '../../catalog/feed.ts';
@@ -16,7 +17,22 @@ export type DiscoverBody = { date?: string; picks: DiscoverItem[]; talkedAbout: 
 
 const keyOf = (c: EpisodeCard) => `${c.feedUrl}\u0001${c.guid}`;
 
+/**
+ * M6 (FR-014, G7): a show the owner hid leaves every discovery list at once — applied to
+ * the cached body at serve time, so it does not wait for the hour's cache to expire.
+ */
+export function excludeHidden(body: DiscoverBody, hidden: ReadonlySet<string>): DiscoverBody {
+  if (hidden.size === 0) return body;
+  const keep = (i: DiscoverItem) => !hidden.has(i.episode.feedUrl);
+  return { ...body, picks: body.picks.filter(keep), talkedAbout: body.talkedAbout.filter(keep), trending: body.trending.filter(keep) };
+}
+
 export async function discoverBody(db: Db, f: typeof fetch, picks: readonly PickIn[], today: string): Promise<{ body: DiscoverBody; stale: boolean }> {
+  const r = await cachedDiscover(db, f, picks, today);
+  return { body: excludeHidden(r.body, await hiddenFeedUrls(db)), stale: r.stale };
+}
+
+async function cachedDiscover(db: Db, f: typeof fetch, picks: readonly PickIn[], today: string): Promise<{ body: DiscoverBody; stale: boolean }> {
   return cached<DiscoverBody>(db, 'discover', TTL.discover, async () => {
     const warnings: string[] = [];
     const day = picksForDay(picks, today);

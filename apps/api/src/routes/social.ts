@@ -6,6 +6,7 @@ import { optionalAuth } from '../auth/session.ts';
 import { ApiError } from '../errors.ts';
 import { getEpisode } from '../db/repos/episodes.ts';
 import { listComments } from '../db/repos/comments.ts';
+import { safetyStamp } from '../db/repos/blocks.ts';
 
 /**
  * The poll (research R7, FR-015, FR-022, FR-032): comments + heat + serverTime in one
@@ -26,14 +27,16 @@ social.get('/:id/social', optionalAuth, async (c) => {
 
   const [stamp] = await db.query<{ comments_v: string | null; episode_v: string; heat_v: string | null }>(
     `SELECT
-       (SELECT max(greatest(created_at, coalesce(deleted_at, created_at)))::text FROM comments WHERE episode_id = $1) AS comments_v,
+       (SELECT max(greatest(created_at, coalesce(deleted_at, created_at), coalesce(removed_at, created_at)))::text FROM comments WHERE episode_id = $1) AS comments_v,
        (SELECT updated_at::text FROM episodes WHERE id = $1) AS episode_v,
        (SELECT string_agg(bucket || ':' || distinct_listeners, ',' ORDER BY bucket) FROM episode_heat WHERE episode_id = $1) AS heat_v`,
     [episodeId],
   );
+  // M6 (R1, G5): a removal and the viewer's newest block/report both change the answer, so both are in the stamp.
+  const safety = viewer ? await safetyStamp(db, viewer.id) : '-';
   const etag = '"' + createHash('sha256')
     .update(String(stamp?.comments_v)).update('|').update(String(stamp?.episode_v)).update('|')
-    .update(String(stamp?.heat_v)).update('|').update(viewer?.id ?? '-')
+    .update(String(stamp?.heat_v)).update('|').update(viewer?.id ?? '-').update('|').update(safety)
     .digest('base64url').slice(0, 27) + '"';
 
   if (c.req.header('if-none-match') === etag) {

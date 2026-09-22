@@ -1,5 +1,5 @@
 /** The one error shape (contracts/api.md): `{ error, message }` plus a status. */
-export type ErrorCode = 'validation' | 'unauthenticated' | 'forbidden' | 'not_found' | 'conflict' | 'locked' | 'duration_unknown' | 'reply_depth' | 'self_follow' | 'unavailable';
+export type ErrorCode = 'validation' | 'unauthenticated' | 'forbidden' | 'not_found' | 'conflict' | 'locked' | 'duration_unknown' | 'reply_depth' | 'self_follow' | 'unavailable' | 'suspended' | 'blocked' | 'removed';
 
 const STATUS: Record<ErrorCode, number> = {
   validation: 422,
@@ -12,6 +12,9 @@ const STATUS: Record<ErrorCode, number> = {
   reply_depth: 422,
   self_follow: 422,
   unavailable: 503,
+  suspended: 403,
+  blocked: 403,
+  removed: 410,
 };
 
 export class ApiError extends Error {

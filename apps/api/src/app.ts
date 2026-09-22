@@ -13,6 +13,10 @@ import { reactions } from './routes/reactions.ts';
 import { positions } from './routes/positions.ts';
 import { clipById, episodeClips } from './routes/clips.ts';
 import { createClipPages } from './pages/clip.ts';
+import { mod } from './pages/mod.ts';
+import { legal } from './pages/legal.ts';
+import { hidden, reports } from './routes/reports.ts';
+import { blocks } from './routes/blocks.ts';
 import { follows } from './routes/follows.ts';
 import { feed } from './routes/feed.ts';
 import { listened } from './routes/listened.ts';
@@ -21,7 +25,7 @@ import { discover } from './routes/discover.ts';
 import { createSearchRoute } from './routes/search.ts';
 import { nextup } from './routes/nextup.ts';
 import { validatePicks } from '@socialmorning/social-core';
-import type { Catalog } from './auth/session.ts';
+import type { Catalog, Safety } from './auth/session.ts';
 import picksJson from '../picks.json' with { type: 'json' };
 
 export type AppDeps = {
@@ -30,6 +34,11 @@ export type AppDeps = {
   catalogFetch?: typeof fetch;
   picksRaw?: unknown;
   today?: () => string;
+  /** M6: the one moderator and the appeals address. Missing → `/mod` answers 503 and the message names no address (degrade, never crash). */
+  ownerListenerId?: string;
+  appealsEmail?: string;
+  /** M6: the published build's SHA-256 shown on `/get` (env RELEASE_SHA256). */
+  releaseSha256?: string;
 };
 
 /**
@@ -46,10 +55,14 @@ export function createApp(deps: AppDeps) {
   for (const w of warnings) console.warn(`[picks] ${w}`);
   const catalog: Catalog = { fetch: deps.catalogFetch ?? fetch, picks, today: deps.today ?? (() => new Date().toISOString().slice(0, 10)) };
 
+  if (!deps.ownerListenerId || !deps.appealsEmail) console.warn('[safety] OWNER_LISTENER_ID / APPEALS_EMAIL not set: /mod is off, messages name no address');
+  const safety: Safety = { ownerListenerId: deps.ownerListenerId, appealsEmail: deps.appealsEmail, releaseSha256: deps.releaseSha256 };
+
   app.use('*', async (c, next) => {
     c.set('db', deps.db);
     c.set('pepper', deps.pepper);
     c.set('catalog', catalog);
+    c.set('safety', safety);
     await next();
   });
 
@@ -70,6 +83,9 @@ export function createApp(deps: AppDeps) {
   app.route('/v1/me/feed', feed);
   app.route('/v1/me/listened', listened);
   app.route('/v1/me/privacy', privacy);
+  app.route('/v1/me/blocks', blocks);
+  app.route('/v1/me/hidden', hidden);
+  app.route('/v1/reports', reports);
   app.route('/v1/listeners', follows);
   app.route('/v1/listeners', profiles);
   app.route('/v1/discover', discover);
@@ -82,6 +98,8 @@ export function createApp(deps: AppDeps) {
   app.route('/v1/comments', commentById);
   app.route('/v1/episodes', episodeClips);
   app.route('/v1/clips', clipById);
+  app.route('/mod', mod);
+  app.route('/', legal);
   app.route('/', createClipPages({ ...(deps.assetLinksSha256 !== undefined ? { assetLinksSha256: deps.assetLinksSha256 } : {}) }));
 
   return app;

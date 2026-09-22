@@ -11,6 +11,14 @@ import { rebuildEpisodeHeat } from '../../heat/rebuild.ts';
  */
 export async function deleteAccount(db: Db, listenerId: string): Promise<{ placeholders: number; deleted: number; episodes: string[] }> {
   return db.transaction(async (tx) => {
+    // M6 (US2 #8): open reports against this listener's content close as "author deleted"; reports BY them stay, anonymised by the FK.
+    await tx.query(
+      `UPDATE reports SET closed_at = now(), close_reason = 'author_deleted' WHERE closed_at IS NULL AND (
+         (target_kind = 'profile' AND target_id = $1::text)
+         OR (target_kind = 'comment' AND target_id IN (SELECT id::text FROM comments WHERE author_id = $1))
+         OR (target_kind = 'clip' AND target_id IN (SELECT id::text FROM clips WHERE author_id = $1)))`,
+      [listenerId],
+    );
     const mine = await tx.query<{ id: string; episode_id: string; replies: number }>(
       `SELECT c.id, c.episode_id, (SELECT count(*)::int FROM comments r WHERE r.parent_id = c.id) AS replies
        FROM comments c WHERE c.author_id = $1`,

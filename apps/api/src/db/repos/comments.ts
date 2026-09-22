@@ -1,5 +1,8 @@
+import { applyBlocks, hiddenKey } from '@socialmorning/social-core';
 import type { Db } from '../db.ts';
 import { ApiError } from '../../errors.ts';
+import { blockedIdsFor } from './blocks.ts';
+import { hiddenFor } from './reports.ts';
 
 export type CommentRow = {
   id: string;
@@ -11,6 +14,7 @@ export type CommentRow = {
   offset_ms: number | null;
   created_at: Date | string;
   deleted_at: Date | string | null;
+  removed_at: Date | string | null;
 };
 
 export type PublicComment = {
@@ -22,15 +26,20 @@ export type PublicComment = {
   parentId: string | null;
   createdAt: string;
   deleted: boolean;
+  /** M6: taken down by moderation — a placeholder for everyone; the author sees why. */
+  removed?: boolean;
+  /** M6: a reply by a listener the viewer blocked — a placeholder so the thread keeps its shape (G2). */
+  blocked?: boolean;
   mine?: boolean;
   replies?: PublicComment[];
 };
 
-const SELECT = `SELECT c.id, c.episode_id, c.author_id, l.display_name, c.parent_id, c.body, c.offset_ms, c.created_at, c.deleted_at
+const SELECT = `SELECT c.id, c.episode_id, c.author_id, l.display_name, c.parent_id, c.body, c.offset_ms, c.created_at, c.deleted_at, c.removed_at
                 FROM comments c LEFT JOIN listeners l ON l.id = c.author_id`;
 
 export function toPublic(r: CommentRow, viewerId?: string): PublicComment {
-  const deleted = r.deleted_at !== null;
+  const removed = r.removed_at !== null;
+  const deleted = r.deleted_at !== null || removed;
   return {
     id: r.id,
     authorId: deleted ? null : r.author_id,
@@ -40,7 +49,9 @@ export function toPublic(r: CommentRow, viewerId?: string): PublicComment {
     parentId: r.parent_id,
     createdAt: new Date(r.created_at).toISOString(),
     deleted,
-    ...(viewerId !== undefined ? { mine: !deleted && r.author_id === viewerId } : {}),
+    ...(removed ? { removed: true } : {}),
+    ...((r as CommentRow & { blocked?: true }).blocked ? { blocked: true } : {}),
+    ...(viewerId !== undefined ? { mine: (!deleted || removed) && r.author_id === viewerId } : {}),
   };
 }
 
@@ -98,7 +109,9 @@ export async function deleteComment(db: Db, id: string): Promise<{ placeholder: 
 
 /** Top-level newest first, each with its replies oldest first (contracts/api.md). */
 export async function listComments(db: Db, episodeId: string, viewerId?: string): Promise<PublicComment[]> {
-  const rows = await db.query<CommentRow>(`${SELECT} WHERE c.episode_id = $1 ORDER BY c.created_at ASC`, [episodeId]);
+  const all = await db.query<CommentRow>(`${SELECT} WHERE c.episode_id = $1 ORDER BY c.created_at ASC`, [episodeId]);
+  // M6 (R1, G1): a signed-in viewer never sees a blocked listener's comments or what they reported.
+  const rows = viewerId === undefined ? all : await filterForViewer(db, all, viewerId);
   const byId = new Map<string, PublicComment>();
   const top: PublicComment[] = [];
   for (const r of rows) {
@@ -112,4 +125,16 @@ export async function listComments(db: Db, episodeId: string, viewerId?: string)
     topById.get(r.parent_id)?.replies!.push(byId.get(r.id)!);
   }
   return top.reverse();
+}
+
+/** Blocked authors and reported ids out; a blocked reply under a kept parent stays as a placeholder row. */
+async function filterForViewer(db: Db, rows: CommentRow[], viewerId: string): Promise<CommentRow[]> {
+  const [blocked, hidden] = await Promise.all([blockedIdsFor(db, viewerId), hiddenFor(db, viewerId)]);
+  if (blocked.size === 0 && hidden.keys.size === 0) return rows;
+  const named = rows.map((r) => ({ id: r.id, authorId: r.author_id, parentId: r.parent_id, key: hiddenKey('comment', r.id), row: r }));
+  return applyBlocks(named, blocked, hidden.keys).map((i) =>
+    'placeholder' in i
+      ? ({ ...rows.find((r) => r.id === i.id)!, author_id: null, display_name: null, body: null, offset_ms: null, deleted_at: new Date(0), removed_at: null, blocked: true } as CommentRow & { blocked: true })
+      : i.row,
+  );
 }

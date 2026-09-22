@@ -6,6 +6,7 @@ import { ApiError } from '../errors.ts';
 import { cached, TTL } from '../db/repos/cache.ts';
 import { CatalogRateLimited, searchEpisodes, searchShows, type EpisodeCard, type ShowCard } from '../catalog/apple.ts';
 import { registerCard } from '../catalog/feed.ts';
+import { hiddenFeedUrls } from '../db/repos/moderation.ts';
 
 /**
  * Mounted at /v1/search — public. Shows and episodes from Apple, both cached 10 min per
@@ -47,10 +48,12 @@ export function createSearchRoute() {
     if (rateLimited) throw new ApiError('locked', 'The catalogue is busy — try again in a moment.', { retryAfterSeconds: 30 });
     throw new ApiError('unavailable', 'The catalogue is not answering right now.');
   }
-  const shows = showsR.status === 'fulfilled' ? collapseByFeed(showsR.value.body) : [];
+  const hidden = await hiddenFeedUrls(db); // M6 (FR-014): a hidden show is not found
+  const shows = showsR.status === 'fulfilled' ? collapseByFeed(showsR.value.body).filter((s) => !hidden.has(s.feedUrl)) : [];
   const episodes: (EpisodeCard & { id: string })[] = [];
   if (episodesR.status === 'fulfilled') {
     for (const e of collapseEpisodes(episodesR.value.body)) {
+      if (hidden.has(e.feedUrl)) continue;
       const row = await registerCard(db, e);
       episodes.push({ ...e, id: row.id });
     }

@@ -1,7 +1,7 @@
 import type { Db } from '../db.ts';
 import type { Listener } from '../../auth/session.ts';
 
-export type ListenerAuthRow = Listener & { password_hash: string; failed_attempts: number; locked_until: Date | string | null };
+export type ListenerAuthRow = Listener & { password_hash: string; failed_attempts: number; suspended_at?: Date | string | null; locked_until: Date | string | null };
 
 export async function createListener(db: Db, email: string, passwordHash: string, displayName: string): Promise<Listener | 'exists'> {
   const rows = await db.query<Listener>(
@@ -15,7 +15,7 @@ export async function createListener(db: Db, email: string, passwordHash: string
 
 export async function listenerByEmail(db: Db, email: string): Promise<ListenerAuthRow | undefined> {
   const rows = await db.query<ListenerAuthRow>(
-    'SELECT id, email, display_name, created_at, password_hash, failed_attempts, locked_until FROM listeners WHERE email = $1',
+    'SELECT id, email, display_name, created_at, password_hash, failed_attempts, locked_until, suspended_at FROM listeners WHERE email = $1',
     [email],
   );
   return rows[0];

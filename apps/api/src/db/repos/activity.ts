@@ -35,6 +35,7 @@ export async function feedFor(db: Db, listenerId: string, before?: string, limit
   const cursor = before ? parseCursor(before) : undefined;
   const rows = await db.query<FeedRow>(
     `${SELECT} WHERE a.hidden = false AND a.actor_id IN (SELECT followed_id FROM follows WHERE follower_id = $1)
+     AND a.actor_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id = $1)
      ${cursor ? 'AND (a.created_at, a.id) < ($3::timestamptz, $4::bigint)' : ''}
      ORDER BY a.created_at DESC, a.id DESC LIMIT $2`,
     cursor ? [listenerId, limit + 1, cursor.createdAt, cursor.id] : [listenerId, limit + 1],

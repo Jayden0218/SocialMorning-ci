@@ -7,6 +7,7 @@ import { ApiError } from '../errors.ts';
 import { getEpisode, upsertEpisode } from '../db/repos/episodes.ts';
 import { createComment, deleteComment, getComment, toPublic } from '../db/repos/comments.ts';
 import { rebuildEpisodeHeat } from '../heat/rebuild.ts';
+import { isBlockedBy } from '../db/repos/blocks.ts';
 
 const commentBody = z.object({
   body: z.string().trim().min(1).max(2000),
@@ -35,6 +36,13 @@ comments.post('/:id/comments', requireAuth, json(commentBody), async (c) => {
     [listener.id, String(RATE_FLOOR_MS)],
   );
   if (Number(recent[0]?.n ?? 0) > 0) throw new ApiError('locked', 'One comment every few seconds, please.', { retryAfterSeconds: 5 });
+  // M6 (FR-008): no reply to a listener who blocked you.
+  if (body.parentId) {
+    const parent = await getComment(db, body.parentId);
+    if (parent?.author_id && parent.author_id !== listener.id && (await isBlockedBy(db, parent.author_id, listener.id))) {
+      throw new ApiError('blocked', "You can't interact with this listener.");
+    }
+  }
 
   const created = await db.transaction(async (tx) => {
     if (body.durationMs !== undefined && episode.duration_ms === null) {
