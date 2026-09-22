@@ -1,7 +1,9 @@
 /**
  * M5 FR-005 (research R7): library-first search. `matchesTerm` is the local match;
  * `mergeSearch` puts the library first and never repeats a library hit as a catalogue
- * hit (guard G5); `collapseByFeed` folds duplicate catalogue shows by feed URL.
+ * hit (guard G5); `collapseByFeed` folds duplicate catalogue shows by feed URL;
+ * `collapseEpisodes` folds duplicate catalogue episodes by feed URL + guid (G8: Apple
+ * returned "#164" twice under two track ids on the phone, 2026-09-22).
  */
 export function matchesTerm(term: string, ...texts: (string | undefined)[]): boolean {
   const tokens = term.toLowerCase().split(/\s+/).filter((t) => t.length > 0);
@@ -22,6 +24,15 @@ export function collapseByFeed<T extends { feedUrl: string }>(shows: readonly T[
   return out;
 }
 
+export function collapseEpisodes<T extends { feedUrl: string; guid: string }>(episodes: readonly T[]): T[] {
+  const seen = new Set<string>();
+  const out: T[] = [];
+  for (const e of episodes) {
+    out.push(e); // G8 BROKEN ON PURPOSE: no dedupe
+  }
+  return out;
+}
+
 export function mergeSearch<S extends { feedUrl: string }, E extends { feedUrl: string; guid: string }>(
   library: { shows: readonly S[]; episodes: readonly E[] },
   catalogue: { shows: readonly S[]; episodes: readonly E[] },
@@ -30,7 +41,7 @@ export function mergeSearch<S extends { feedUrl: string }, E extends { feedUrl: 
   const libEpisodes = new Set(library.episodes.map((e) => `${normaliseFeedUrl(e.feedUrl)}\u0001${e.guid}`));
   return {
     shows: [...library.shows, ...collapseByFeed(catalogue.shows).filter((s) => !libShows.has(normaliseFeedUrl(s.feedUrl)))],
-    episodes: [...library.episodes, ...catalogue.episodes.filter((e) => !libEpisodes.has(`${normaliseFeedUrl(e.feedUrl)}\u0001${e.guid}`))],
+    episodes: [...library.episodes, ...collapseEpisodes(catalogue.episodes).filter((e) => !libEpisodes.has(`${normaliseFeedUrl(e.feedUrl)}\u0001${e.guid}`))],
   };
 }
 

@@ -25,7 +25,7 @@ export function fakeApple(mode: FakeMode = {}): { fetch: typeof fetch; calls: st
     if (mode.all === '429') return json({}, 429);
     if (url.includes('entity=podcastEpisode') && url.includes('/search')) {
       if (mode.episodes === 'fail') return json({}, 503);
-      return json({ resultCount: 2, results: [CASEY, { ...CASEY, episodeGuid: undefined, trackName: 'no guid: dropped' }] });
+      return json({ resultCount: 3, results: [CASEY, { ...CASEY, trackId: 2 }, { ...CASEY, episodeGuid: undefined, trackName: 'no guid: dropped' }] }); // Apple repeats an episode under a second track id (phone, 2026-09-22)
     }
     if (url.includes('entity=podcast&') && url.includes('/search')) {
       if (mode.shows === 'fail') return json({}, 503);

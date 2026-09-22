@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { collapseByFeed, matchesTerm, mergeSearch, normaliseFeedUrl } from '../src/search.ts';
+import { collapseByFeed, collapseEpisodes, matchesTerm, mergeSearch, normaliseFeedUrl } from '../src/search.ts';
 
 test('A5: matchesTerm — every token somewhere in the texts, case-insensitive; empty term false; undefined texts skipped', () => {
   assert.equal(matchesTerm('casey believe', 'Casey Wants to Believe', 'Reply All'), true);
@@ -20,9 +20,14 @@ test('A5: mergeSearch — library first; a catalogue show or episode already in 
   const library = { shows: [{ feedUrl: 'https://feeds.x/a', t: 'lib A' }], episodes: [{ feedUrl: 'https://feeds.x/a', guid: 'g1', t: 'lib g1' }] };
   const catalogue = {
     shows: [{ feedUrl: 'https://feeds.x/a/', t: 'cat A' }, { feedUrl: 'https://feeds.x/b', t: 'cat B' }, { feedUrl: 'https://feeds.x/b', t: 'cat B dup' }],
-    episodes: [{ feedUrl: 'https://feeds.x/a', guid: 'g1', t: 'cat g1' }, { feedUrl: 'https://feeds.x/a', guid: 'g2', t: 'cat g2' }],
+    episodes: [{ feedUrl: 'https://feeds.x/a', guid: 'g1', t: 'cat g1' }, { feedUrl: 'https://feeds.x/a', guid: 'g2', t: 'cat g2' }, { feedUrl: 'https://feeds.x/a/', guid: 'g2', t: 'cat g2 dup' }],
   };
   const m = mergeSearch(library, catalogue);
   assert.deepEqual(m.shows.map((s) => s.t), ['lib A', 'cat B']);
   assert.deepEqual(m.episodes.map((e) => e.t), ['lib g1', 'cat g2']);
+});
+
+test('G8: collapseEpisodes keeps the first of duplicate feed+guid pairs; the same guid on another feed is a different episode', () => {
+  const eps = [{ feedUrl: 'https://feeds.x/a', guid: 'g', n: 1 }, { feedUrl: 'https://feeds.x/a/', guid: 'g', n: 2 }, { feedUrl: 'https://feeds.y/b', guid: 'g', n: 3 }];
+  assert.deepEqual(collapseEpisodes(eps).map((e) => e.n), [1, 3]);
 });

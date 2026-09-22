@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { collapseByFeed } from '@socialmorning/social-core';
+import { collapseByFeed, collapseEpisodes } from '@socialmorning/social-core';
 import type { AuthEnv } from '../auth/session.ts';
 import { optionalAuth } from '../auth/session.ts';
 import { ApiError } from '../errors.ts';
@@ -50,7 +50,7 @@ export function createSearchRoute() {
   const shows = showsR.status === 'fulfilled' ? collapseByFeed(showsR.value.body) : [];
   const episodes: (EpisodeCard & { id: string })[] = [];
   if (episodesR.status === 'fulfilled') {
-    for (const e of episodesR.value.body) {
+    for (const e of collapseEpisodes(episodesR.value.body)) {
       const row = await registerCard(db, e);
       episodes.push({ ...e, id: row.id });
     }

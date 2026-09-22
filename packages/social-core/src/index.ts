@@ -29,4 +29,4 @@ export type { ActivityRow } from './discover';
 export { scoreTalkedAbout, rankTalkedAbout, fillWithTrending } from './discover';
 export type { Reason, Candidate } from './nextup';
 export { nextUp, enoughNextUp, REASON_ORDER, REASON_LABEL } from './nextup';
-export { matchesTerm, collapseByFeed, mergeSearch, normaliseFeedUrl } from './search';
+export { matchesTerm, collapseByFeed, collapseEpisodes, mergeSearch, normaliseFeedUrl } from './search';
