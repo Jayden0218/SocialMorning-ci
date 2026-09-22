@@ -7,7 +7,7 @@ const row = (key: string, l: number, c: number, k: number, r: number, newestAt =
 test('A3: score is 3L + 2C + 2K + 1R; ranked desc, ties by newest; score 0 dropped; capped', () => {
   assert.equal(scoreTalkedAbout(row('x', 1, 1, 1, 1)), 8);
   const ranked = rankTalkedAbout([row('a', 0, 0, 0, 0), row('b', 1, 0, 0, 0, 5), row('c', 0, 1, 0, 1, 9), row('d', 0, 0, 0, 3, 1), row('e', 0, 1, 0, 1, 2)], 3);
-  assert.deepEqual(ranked.map((r) => r.key), ['c', 'e', 'b']); // c and e tie at 3 → newest first; b and d tie at 3 too → by newestAt 5 > 1
+  assert.deepEqual(ranked.map((r) => r.key), ['c', 'b', 'e']); // b, c, d, e all score 3 → by newestAt 9, 5, 2, 1; a scores 0 and is dropped
 });
 
 test('A3: fillWithTrending appends only until min, skipping keys already present', () => {
