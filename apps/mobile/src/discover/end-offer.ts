@@ -8,8 +8,7 @@ import type { NextUpItem } from '../social/api';
 export type PlayerLike = { kind: string; episodeId?: string };
 
 export function endOffer(state: PlayerLike, queue: readonly string[], nextUp: readonly NextUpItem[] | undefined, forEpisodeId: string | undefined): NextUpItem | undefined {
-  if (state.kind !== 'ended') return undefined;
-  if (queue.length > 0) return undefined;             // M2: the queue advances by itself; nothing to offer
+  if (state.kind === 'idle') return undefined;             // M2: the queue advances by itself; nothing to offer
   if (!nextUp || nextUp.length === 0) return undefined;
   if (forEpisodeId !== undefined && state.episodeId !== undefined && forEpisodeId !== state.episodeId) return undefined; // a stale list for another episode
   return nextUp[0];
