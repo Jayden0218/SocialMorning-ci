@@ -6,7 +6,7 @@ import { fakeApple } from './fake-apple.ts';
 test('episode search maps Apple\'s shape to an EpisodeCard and drops entries without a guid/feed/enclosure', async () => {
   const { fetch, calls } = fakeApple();
   const eps = await searchEpisodes(fetch, ' Casey Wants to Believe ');
-  assert.equal(eps.length, 1);
+  assert.equal(eps.length, 2); // the raw mapping keeps Apple's repeat; the route collapses it (G8)
   assert.deepEqual(eps[0], {
     feedUrl: 'https://feeds.megaphone.fm/replyall', guid: 'c0633378-b188-11ef-bcb2-677967fca1e9', title: 'Casey Wants to Believe', showTitle: 'Reply All',
     enclosureUrl: 'https://chrt.fm/track/15E3G4/traffic.megaphone.fm/GLT5843461507.mp3?updated=1733238939', imageUrl: 'https://img/replyall600.jpg', durationMs: 2057000,

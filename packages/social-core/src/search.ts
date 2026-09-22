@@ -28,7 +28,10 @@ export function collapseEpisodes<T extends { feedUrl: string; guid: string }>(ep
   const seen = new Set<string>();
   const out: T[] = [];
   for (const e of episodes) {
-    out.push(e); // G8 BROKEN ON PURPOSE: no dedupe
+    const k = `${normaliseFeedUrl(e.feedUrl)}\u0001${e.guid}`;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(e);
   }
   return out;
 }
