@@ -14,6 +14,8 @@ import { useStores } from '../src/ui/providers';
 import { inboxIds } from '../src/inbox';
 import { useSocial } from '../src/social/context';
 import { createFeed } from '../src/graph/feed';
+import { useDiscover } from '../src/discover/useDiscover';
+import { DiscoverSections } from '../src/ui/DiscoverSections';
 import type { CachedShow } from '../src/storage/types';
 
 type Row = { feedUrl: string; show: CachedShow | undefined; stale: boolean };
@@ -60,6 +62,10 @@ export default function LibraryScreen(): React.ReactElement {
     }, [read, stores]),
   );
 
+  // M5 (FR-002): a zero-subscription home is Discover first; with subscriptions, a picks strip + the link.
+  const discover = useDiscover();
+  const noSubscriptions = rows.length === 0;
+
   return (
     <FlatList
       key={tick}
@@ -69,9 +75,11 @@ export default function LibraryScreen(): React.ReactElement {
       ListHeaderComponent={
         <View style={styles.header}>
           <ContinueListening />
+          {noSubscriptions && discover.view ? <DiscoverSections body={discover.view.body} stale={discover.view.stale} fetchedAt={discover.view.fetchedAt} onOpen={(c) => void discover.open(c)} /> : null}
           <Link href="/search" style={styles.link}>
             Search for a show
           </Link>
+          <Link href="/discover" style={styles.link}>Discover</Link>
           <Link href="/inbox" style={styles.link}>{`Inbox${(() => { const n = inboxIds(stores).length; return n > 0 ? ` (${n})` : ''; })()}`}</Link>
           <Link href="/queue" style={styles.link}>Queue</Link>
           <Link href="/downloads" style={styles.link}>Downloads</Link>
@@ -84,7 +92,7 @@ export default function LibraryScreen(): React.ReactElement {
         </View>
       }
       ListEmptyComponent={
-        <Text style={styles.empty}>No subscriptions yet — search for a show</Text>
+        <Text style={styles.empty}>{discover.view ? 'No subscriptions yet — pick something above, or search for a show' : 'No subscriptions yet — search for a show'}</Text>
       }
       renderItem={({ item }) => (
         <Link

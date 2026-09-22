@@ -10,7 +10,7 @@
 
 export type ErrorCode =
   | 'validation' | 'unauthenticated' | 'forbidden' | 'not_found' | 'conflict' | 'locked'
-  | 'duration_unknown' | 'reply_depth' | 'self_follow' | 'internal' | 'network';
+  | 'duration_unknown' | 'reply_depth' | 'self_follow' | 'unavailable' | 'internal' | 'network';
 
 export class ApiError extends Error {
   constructor(
@@ -64,6 +64,15 @@ export type Profile = {
 export type FeedResult = { status: 200; etag?: string; body: { items: FeedItem[]; next?: string; serverTime: string } } | { status: 304 };
 export type ListenedDay = { episodeId: string; day: string; ranges: [number, number][] };
 
+// ---- M5 (specs/005-m5-discovery/contracts/api.md) ----
+export type EpisodeCard = { id: string; feedUrl: string; guid: string; title: string; showTitle: string; imageUrl?: string; durationMs?: number; publishedAt?: string; enclosureUrl: string };
+export type DiscoverItem = { kind: 'pick' | 'talkedAbout' | 'trending'; key: string; episode: EpisodeCard; why?: string; reason?: string; score?: number; date?: string };
+export type Discover = { date?: string; picks: DiscoverItem[]; talkedAbout: DiscoverItem[]; trending: DiscoverItem[]; stale: boolean; serverTime: string };
+export type DiscoverResult = { status: 200; etag?: string; body: Discover } | { status: 304 };
+export type ShowCard = { appleId?: number; feedUrl: string; title: string; author: string; imageUrl?: string; genres: string[] };
+export type SearchResult = { shows: ShowCard[]; episodes: EpisodeCard[]; episodeSearch: 'ok' | 'unavailable'; source: { shows: 'apple' } };
+export type NextUpItem = { episode: EpisodeCard; reason: 'alsoListened' | 'talkedAboutOnShow' | 'newOnShow' | 'trendingInCategory'; label: string };
+
 export type ApiClient = {
   signUp(email: string, password: string, displayName: string): Promise<{ token: string; listener: Listener }>;
   signIn(email: string, password: string, deviceLabel?: string): Promise<{ token: string; listener: Listener }>;
@@ -90,6 +99,10 @@ export type ApiClient = {
   setPrivacy(privateListening: boolean): Promise<{ privateListening: boolean }>;
   feed(before?: string, ifNoneMatch?: string): Promise<FeedResult>;
   putListened(deviceId: string, days: ListenedDay[]): Promise<{ accepted: number }>;
+  // M5
+  discover(ifNoneMatch?: string): Promise<DiscoverResult>;
+  search(q: string): Promise<SearchResult>;
+  nextUp(episodeId: string): Promise<{ items: NextUpItem[]; computedAt: string }>;
 };
 
 export type ApiDeps = {
@@ -171,5 +184,14 @@ export function createApi(deps: ApiDeps): ApiClient {
       return { status: 200, ...(etag ? { etag } : {}), body: r.json };
     },
     putListened: async (deviceId, days) => (await call<{ accepted: number }>('PUT', '/v1/me/listened', { deviceId, days })).json,
+    // M5
+    discover: async (ifNoneMatch) => {
+      const r = await call<Discover>('GET', '/v1/discover', undefined, ifNoneMatch ? { 'if-none-match': ifNoneMatch } : {});
+      if (r.status === 304) return { status: 304 };
+      const etag = r.headers.get('etag') ?? undefined;
+      return { status: 200, ...(etag ? { etag } : {}), body: r.json };
+    },
+    search: async (q) => (await call<SearchResult>('GET', `/v1/search?q=${encodeURIComponent(q)}`)).json,
+    nextUp: async (episodeId) => (await call<{ items: NextUpItem[]; computedAt: string }>('GET', `/v1/episodes/${episodeId}/next-up`)).json,
   };
 }

@@ -32,6 +32,7 @@ export default function RootLayout(): React.ReactElement {
           <Stack.Screen name="clip/new" options={{ title: 'New clip' }} />
           <Stack.Screen name="clip/[id]" options={{ title: 'Clip' }} />
           <Stack.Screen name="following" options={{ title: 'Following' }} />
+          <Stack.Screen name="discover" options={{ title: 'Discover' }} />
           <Stack.Screen name="profile/[id]" options={{ title: 'Profile' }} />
           <Stack.Screen name="profile/[id]/followers" options={{ title: 'Followers' }} />
           <Stack.Screen name="profile/[id]/following" options={{ title: 'Following' }} />

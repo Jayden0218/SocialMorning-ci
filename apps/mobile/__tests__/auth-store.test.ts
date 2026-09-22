@@ -25,6 +25,7 @@ function fakeApi(over: Partial<ApiClient> = {}): ApiClient {
     // M4 — none of these belong to sign-in/out
     postClip: notCalled, getClip: notCalled, deleteClip: notCalled, episodeClips: notCalled, follow: notCalled, unfollow: notCalled,
     profile: notCalled, followers: notCalled, following: notCalled, setPrivacy: notCalled, feed: notCalled, putListened: notCalled,
+    discover: notCalled, search: notCalled, nextUp: notCalled,
     ...over,
   };
 }
