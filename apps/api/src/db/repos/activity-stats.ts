@@ -13,7 +13,7 @@ export async function talkedAbout(db: Db, sinceDays = 7, feedUrl?: string): Prom
        SELECT id AS episode_id FROM episodes e WHERE ($2::text IS NULL OR e.feed_url = $2)
      ),
      l AS (SELECT episode_id, count(DISTINCT actor_id)::int AS n, max(created_at) AS newest FROM activity
-           WHERE kind = 'listened' AND hidden = false AND created_at > now() - ($1 || ' days')::interval GROUP BY episode_id),
+           WHERE kind = 'listened' AND created_at > now() - ($1 || ' days')::interval GROUP BY episode_id),
      c AS (SELECT episode_id, count(*)::int AS n, max(created_at) AS newest FROM comments
            WHERE parent_id IS NULL AND deleted_at IS NULL AND created_at > now() - ($1 || ' days')::interval GROUP BY episode_id),
      k AS (SELECT episode_id, count(*)::int AS n, max(created_at) AS newest FROM clips
