@@ -12,9 +12,10 @@ export async function cached<T>(db: Db, key: string, ttlMs: number, fetch: () =>
   if (row && now() - new Date(row.fetched_at).getTime() < ttlMs) return { body: row.body, stale: false };
   try {
     const body = await fetch();
+    // fetched_at comes from the same clock the freshness check reads, so tests can move it.
     await db.query(
-      `INSERT INTO cache (key, body, fetched_at) VALUES ($1, $2::jsonb, now()) ON CONFLICT (key) DO UPDATE SET body = EXCLUDED.body, fetched_at = now()`,
-      [key, JSON.stringify(body)],
+      `INSERT INTO cache (key, body, fetched_at) VALUES ($1, $2::jsonb, to_timestamp($3::double precision / 1000)) ON CONFLICT (key) DO UPDATE SET body = EXCLUDED.body, fetched_at = EXCLUDED.fetched_at`,
+      [key, JSON.stringify(body), now()],
     );
     return { body, stale: false };
   } catch (e) {
