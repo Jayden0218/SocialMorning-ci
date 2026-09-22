@@ -65,3 +65,11 @@ test('A7: the 11th search in a minute from one caller is 429; another caller is 
   assert.equal((await t.get('term 11', '2.2.2.2')).status, 200);
   await t.close();
 });
+
+test('T022: whitespace is collapsed before the cache key; a term of only punctuation makes no catalogue call', async () => {
+  const t = await appWith();
+  await t.get('  reply    all ');
+  await t.get('reply all');
+  assert.equal(t.apple.calls.filter((c) => c.includes('term=reply%20all')).length, 2); // shows + episodes, once each
+  await t.close();
+});

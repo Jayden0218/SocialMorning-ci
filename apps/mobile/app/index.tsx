@@ -80,6 +80,9 @@ export default function LibraryScreen(): React.ReactElement {
             Search for a show
           </Link>
           <Link href="/discover" style={styles.link}>Discover</Link>
+          {!noSubscriptions && discover.view && discover.view.body.picks.length > 0 ? (
+            <DiscoverSections body={discover.view.body} stale={discover.view.stale} fetchedAt={discover.view.fetchedAt} onOpen={(c) => void discover.open(c)} maxPicks={3} />
+          ) : null}
           <Link href="/inbox" style={styles.link}>{`Inbox${(() => { const n = inboxIds(stores).length; return n > 0 ? ` (${n})` : ''; })()}`}</Link>
           <Link href="/queue" style={styles.link}>Queue</Link>
           <Link href="/downloads" style={styles.link}>Downloads</Link>

@@ -57,7 +57,8 @@ export async function nextUpSources(db: Db, f: typeof fetch, episodeId: string):
 
     // 4. Trending in the category — the chart's top shows' latest episodes.
     try {
-      const shows = await topShows(f, genre?.id, 6);
+      let shows = await topShows(f, genre?.id, 6);
+      if (shows.length === 0 && genre !== undefined) shows = await topShows(f, undefined, 6); // an unknown/empty genre chart → the all-genres chart
       for (const s of shows) {
         if (sources.trendingInCategory.length >= 2 || s.appleId === undefined) continue;
         try {
