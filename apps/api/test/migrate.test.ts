@@ -3,18 +3,18 @@ import assert from 'node:assert/strict';
 import { freshDb } from './harness.ts';
 import { migrate } from '../src/db/migrate.ts';
 
-test('migrations 001 and 002 apply once and are idempotent', async () => {
+test('migrations 001, 002 and 003 apply once and are idempotent', async () => {
   const t = await freshDb();
   const again = await migrate(t.runner);
   assert.deepEqual(again, [], 'second run applies nothing');
   const rows = await t.q<{ version: number }>('SELECT version FROM schema_migrations ORDER BY version');
-  assert.deepEqual(rows.map((r) => Number(r.version)), [1, 2]);
+  assert.deepEqual(rows.map((r) => Number(r.version)), [1, 2, 3]);
   const tables = await t.q<{ table_name: string }>(
     "SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY 1",
   );
   assert.deepEqual(
     tables.map((r) => r.table_name),
-    ['activity', 'clips', 'comments', 'episode_heat', 'episodes', 'follows', 'listened_ranges', 'listeners', 'positions', 'reactions', 'schema_migrations', 'sessions'],
+    ['activity', 'cache', 'clips', 'comments', 'episode_heat', 'episodes', 'follows', 'listened_ranges', 'listeners', 'positions', 'reactions', 'schema_migrations', 'sessions'],
   );
   await t.close();
 });
