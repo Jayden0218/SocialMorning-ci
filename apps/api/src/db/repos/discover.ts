@@ -42,7 +42,8 @@ export async function discoverBody(db: Db, f: typeof fetch, picks: readonly Pick
       if (!e) continue;
       const card: EpisodeCard & { id: string } = { id: e.id, feedUrl: e.feed_url, guid: e.guid, title: e.title, showTitle: e.show_title ?? '', enclosureUrl: e.enclosure_url, ...(e.image_url ? { imageUrl: e.image_url } : {}), ...(e.duration_ms !== null ? { durationMs: e.duration_ms } : {}) };
       const score = 3 * r.listeners + 2 * r.comments + 2 * r.clips + r.reactions;
-      talked.push({ kind: 'talkedAbout', key: keyOf(card), episode: card, score, reason: describe(r) });
+      const [who] = await db.query<{ display_name: string }>(`SELECT l.display_name FROM activity a JOIN listeners l ON l.id = a.actor_id WHERE a.episode_id = $1 LIMIT 1`, [r.episodeId]);
+      talked.push({ kind: 'talkedAbout', key: keyOf(card), episode: card, score, reason: `${who?.display_name ?? ''} · ${describe(r)}` });
     }
 
     let trending: DiscoverItem[] = [];
