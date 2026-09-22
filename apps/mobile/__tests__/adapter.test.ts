@@ -261,6 +261,24 @@ describe('translating the status stream', () => {
     expect(events.map((e) => e.type)).toEqual(['LOADED', 'ENDED']);
   });
 
+  // H4 on build 13 (2026-09-22): a finished episode played again ended at "0:00", no
+  // offer. expo-audio's finish status carries `playing: false`, but the early return
+  // above left `wasPlaying` true; the seek-to-0 of the replay then reported
+  // `playing: false, currentTime: 0` — read as an unrequested pause at 0.
+  it('after a finish, the replay\'s seek status is not an interruption (G9)', async () => {
+    const { events, emit, execute } = setup();
+    await execute({ kind: 'play' });
+    emit({ isLoaded: true, playing: true, currentTime: 100 });
+    emit({ playing: false, didJustFinish: true, currentTime: 128 });
+    await execute({ kind: 'seek', toMs: 0 });
+    emit({ playing: false, currentTime: 0 }); // ExoPlayer's onPositionDiscontinuity(SEEK) status
+    await execute({ kind: 'play' });
+    emit({ playing: true, currentTime: 0 });
+    emit({ playing: true, currentTime: 3 });
+    emit({ playing: false, didJustFinish: true, currentTime: 128 });
+    expect(events.map((e) => e.type)).toEqual(['LOADED', 'TICK', 'ENDED', 'TICK', 'TICK', 'ENDED']);
+  });
+
   it('emits buffering edges, not every buffering status', () => {
     const { events, emit } = setup();
     emit({ isLoaded: true, isBuffering: true });
