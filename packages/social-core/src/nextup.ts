@@ -25,7 +25,7 @@ export function nextUp<T extends Candidate>(sources: Record<Reason, readonly T[]
   for (const reason of REASON_ORDER) {
     for (const c of sources[reason]) {
       if (out.length >= cap) return out;
-      if (seen.has(c.key)) { out.splice(out.findIndex((o) => o.key === c.key), 1, c); continue; }
+      if (exclude.has(c.key) || seen.has(c.key)) continue;
       seen.add(c.key);
       out.push(c);
     }
