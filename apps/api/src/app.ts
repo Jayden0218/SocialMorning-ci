@@ -18,6 +18,7 @@ import { feed } from './routes/feed.ts';
 import { listened } from './routes/listened.ts';
 import { privacy, profiles } from './routes/profiles.ts';
 import { discover } from './routes/discover.ts';
+import { search } from './routes/search.ts';
 import { validatePicks } from '@socialmorning/social-core';
 import type { Catalog } from './auth/session.ts';
 import picksJson from '../picks.json' with { type: 'json' };
@@ -71,6 +72,7 @@ export function createApp(deps: AppDeps) {
   app.route('/v1/listeners', follows);
   app.route('/v1/listeners', profiles);
   app.route('/v1/discover', discover);
+  app.route('/v1/search', search);
   app.route('/v1/episodes', episodes);
   app.route('/v1/episodes', comments);
   app.route('/v1/episodes', social);
