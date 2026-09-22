@@ -14,7 +14,7 @@ export function validatePicks(raw: unknown): { picks: PickIn[]; warnings: string
   const warnings: string[] = [];
   raw.forEach((entry, i) => {
     const reason = problemWith(entry);
-    if (reason !== undefined) { warnings.push(`picks[${i}]: ${reason}`); return; }
+    if (reason !== undefined) throw new Error(`picks[${i}]: ${reason}`);
     const e = entry as Record<string, unknown>;
     picks.push({
       date: e['date'] as string,

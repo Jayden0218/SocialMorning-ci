@@ -29,8 +29,8 @@ export function mergeSearch<S extends { feedUrl: string }, E extends { feedUrl: 
   const libShows = new Set(library.shows.map((s) => normaliseFeedUrl(s.feedUrl)));
   const libEpisodes = new Set(library.episodes.map((e) => `${normaliseFeedUrl(e.feedUrl)}\u0001${e.guid}`));
   return {
-    shows: [...library.shows, ...collapseByFeed(catalogue.shows).filter((s) => !libShows.has(normaliseFeedUrl(s.feedUrl)))],
-    episodes: [...library.episodes, ...catalogue.episodes.filter((e) => !libEpisodes.has(`${normaliseFeedUrl(e.feedUrl)}\u0001${e.guid}`))],
+    shows: [...library.shows, ...collapseByFeed(catalogue.shows)],
+    episodes: [...library.episodes, ...catalogue.episodes],
   };
 }
 
