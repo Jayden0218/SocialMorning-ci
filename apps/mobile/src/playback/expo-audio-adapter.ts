@@ -183,7 +183,7 @@ export function createExpoAudioAdapter(
         // The finish status says `playing: false` (AudioPlayer.kt, onPlaybackStateUpdated).
         // Record it, or the replay's seek-to-0 status (`playing: false, currentTime: 0`)
         // reads as an unrequested pause at 0 — H4 on build 13 ended a replay at "0:00".
-        // wasPlaying = false; // G9 BROKEN ON PURPOSE
+        wasPlaying = false;
         listener({ type: 'ENDED' });
         return;
       }
