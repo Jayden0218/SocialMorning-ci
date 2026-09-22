@@ -2,10 +2,13 @@
 import { createElement } from 'react';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 
-const report = jest.fn<'hidden' | 'sign_in' | 'own', unknown[]>(() => 'hidden');
-const push = jest.fn();
-jest.mock('expo-router', () => ({ router: { push: (...a: unknown[]) => push(...a) } }));
-jest.mock('../src/safety/context', () => ({ useSafety: () => ({ safety: { report } }), announce: jest.fn() }));
+// jest.mock factories are hoisted, so anything they touch must be named `mock*`.
+const mockReport = jest.fn<'hidden' | 'sign_in' | 'own', unknown[]>(() => 'hidden');
+const mockPush = jest.fn();
+jest.mock('expo-router', () => ({ router: { push: (...a: unknown[]) => mockPush(...a) } }));
+jest.mock('../src/safety/context', () => ({ useSafety: () => ({ safety: { report: (...a: unknown[]) => mockReport(...a) } }), announce: jest.fn() }));
+const report = mockReport;
+const push = mockPush;
 
 import { ReportSheet } from '../src/ui/ReportSheet';
 import { PLACEHOLDER_TEXT, placeholderFor } from '../src/ui/Placeholder';
