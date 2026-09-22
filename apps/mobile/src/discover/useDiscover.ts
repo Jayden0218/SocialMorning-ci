@@ -22,7 +22,7 @@ export function useDiscover() {
   useFocusEffect(useCallback(() => { void refresh(); }, [refresh]));
   const open = useCallback(async (card: EpisodeCard) => {
     const r = await resolveCard({ stores, refreshShow: (u) => refreshShow(u, stores.feeds, Date.now()) }, card);
-    if (r.episodeId) router.push({ pathname: '/episode/[id]', params: { id: r.episodeId } });
+    if (r.episodeId !== undefined) router.push({ pathname: '/episode/[id]', params: { id: r.episodeId } });
     else toast(r.reason === 'offline' ? "Couldn't fetch that show right now." : 'That episode is no longer in its feed.');
   }, [stores, toast]);
   return { view, refreshing, refresh, open };
