@@ -14,6 +14,8 @@ import type { ComposerState } from '../../src/social/composer';
 import { CommentList } from '../../src/ui/CommentList';
 import { ComposerSheet } from '../../src/ui/Composer';
 import { ClipList } from '../../src/ui/ClipList';
+import { NextUp, useNextUp } from '../../src/ui/NextUp';
+import { useDiscover } from '../../src/discover/useDiscover';
 
 export default function EpisodeScreen(): React.ReactElement {
   const stores = useStores();
@@ -22,6 +24,9 @@ export default function EpisodeScreen(): React.ReactElement {
   const { id } = useLocalSearchParams<{ id: string }>();
   const episode = id === undefined ? undefined : stores.feeds.getEpisode(id);
   const { composer, useEpisodeSocial, refresh } = useSocial();
+  // M5 (FR-008): "Next up" for this episode; absent when the server has no answer.
+  const nextUp = useNextUp(episode?.id);
+  const { open: discoverOpen } = useDiscover();
   const playerState = usePlayerState();
   const [composing, setComposing] = useState<ComposerState | undefined>();
   usePoll(episode?.id);
@@ -92,6 +97,7 @@ export default function EpisodeScreen(): React.ReactElement {
       <QueueButtons episodeId={episode.id} onQueued={() => stores.inboxState.mark(episode.id, 'queued', Date.now())} />
       <Text style={styles.notes}>{htmlToText(episode.shownotesHtml)}</Text>
       <ClipList episode={playable} />
+      <NextUp items={nextUp.items} onOpen={(c) => void discoverOpen(c)} />
       <CommentList
         episodeId={episode.id}
         comments={cached?.social.comments ?? []}

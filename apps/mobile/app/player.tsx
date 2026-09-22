@@ -21,6 +21,11 @@ import { ChapterList, CurrentChapter } from '../src/ui/ChapterList';
 import { TranscriptPane } from '../src/ui/TranscriptPane';
 import { fetchExtras, readExtras, type Extras } from '../src/extras/fetch-extras';
 import { router } from 'expo-router';
+import { useNextUp } from '../src/ui/NextUp';
+import { EndOffer } from '../src/ui/EndOffer';
+import { endOffer } from '../src/discover/end-offer';
+import { toPlayable } from '../src/storage/playable';
+import { useDiscover } from '../src/discover/useDiscover';
 
 export default function PlayerScreen(): React.ReactElement {
   const player = usePlayer();
@@ -39,6 +44,10 @@ export default function PlayerScreen(): React.ReactElement {
   const clipNow = player.clip();
   useEffect(() => { if (clipNow) setLastClipEnd(clipNow.endMs); }, [clipNow]);
   const currentEpisodeId = state.kind === 'idle' ? undefined : state.episodeId;
+  // M5 (FR-010): the end-of-episode offer — fetched while the episode plays, shown at `ended` with an empty queue, never autoplayed.
+  const nextUp = useNextUp(currentEpisodeId);
+  const { open: discoverOpen } = useDiscover();
+  const offer = endOffer(state, stores.queue.list(), nextUp.items, currentEpisodeId);
   const { cached, stale } = useEpisodeSocial(currentEpisodeId);
   useEffect(() => {
     setExtras(currentEpisodeId ? readExtras(stores.extras, currentEpisodeId) : undefined);
@@ -227,6 +236,13 @@ export default function PlayerScreen(): React.ReactElement {
         <Text style={styles.secondaryText}>Clip</Text>
       </Pressable>
       </View>
+      {offer ? (
+        <EndOffer item={offer} onPlay={() => {
+          const local = toPlayable(stores, offer.episode.id);
+          if (local) { player.load(local, 'play'); return; }
+          void discoverOpen(offer.episode);
+        }} />
+      ) : null}
       {player.clip() ? (
         <View style={styles.clipBanner}>
           <Text style={styles.subtitle}>Playing a clip · {mmss(player.clip()!.startMs)}–{mmss(player.clip()!.endMs)} · pauses at the end</Text>
