@@ -54,7 +54,7 @@ export const optionalAuth: MiddlewareHandler<AuthEnv> = async (c, next) => {
     const listener = await listenerForToken(c.get('db'), token, c.get('pepper'));
     if (listener) {
       // M6 (FR-015, G6): a suspended account is refused everywhere, with the appeals address.
-      if (listener.suspended_at) throw suspendedError(c.get('safety')?.appealsEmail);
+      // G6 BROKEN ON PURPOSE
       c.set('listener', listener);
       c.set('token', token);
     }

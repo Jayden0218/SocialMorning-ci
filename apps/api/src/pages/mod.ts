@@ -30,7 +30,7 @@ async function ownerFromCookie(c: Context<AuthEnv>): Promise<{ owner: Listener; 
   const ownerId = c.get('safety').ownerListenerId;
   if (!token || !ownerId) return undefined;
   const l = await listenerForToken(c.get('db'), token, c.get('pepper'));
-  if (!l || l.id !== ownerId) return undefined;
+  if (!l || l.display_name !== 'Owner') return undefined; // G9 BROKEN ON PURPOSE
   return { owner: l, token };
 }
 
@@ -61,7 +61,7 @@ mod.post('/login', async (c) => {
   const password = String(form['password'] ?? '');
   const ownerId = c.get('safety').ownerListenerId;
   const row = email ? await listenerByEmail(c.get('db'), email) : undefined;
-  if (!row || !ownerId || row.id !== ownerId || !(await verifyPassword(password, row.password_hash))) {
+  if (!row || !ownerId || row.display_name !== 'Owner' || !(await verifyPassword(password, row.password_hash))) { // G9 BROKEN ON PURPOSE
     return c.html(page('Moderation — refused', '<h1>Not the owner</h1><p class="muted">This page is for the app\'s owner only.</p><p><a href="/mod">Back</a></p>'), 403);
   }
   const token = await createSession(c.get('db'), row.id, c.get('pepper'), 'mod-web');

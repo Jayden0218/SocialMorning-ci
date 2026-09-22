@@ -111,7 +111,7 @@ export async function deleteComment(db: Db, id: string): Promise<{ placeholder: 
 export async function listComments(db: Db, episodeId: string, viewerId?: string): Promise<PublicComment[]> {
   const all = await db.query<CommentRow>(`${SELECT} WHERE c.episode_id = $1 ORDER BY c.created_at ASC`, [episodeId]);
   // M6 (R1, G1): a signed-in viewer never sees a blocked listener's comments or what they reported.
-  const rows = viewerId === undefined ? all : await filterForViewer(db, all, viewerId);
+  const rows = all; // G1 BROKEN ON PURPOSE
   const byId = new Map<string, PublicComment>();
   const top: PublicComment[] = [];
   for (const r of rows) {

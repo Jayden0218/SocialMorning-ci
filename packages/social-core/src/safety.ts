@@ -49,7 +49,7 @@ export function applyBlocks<T extends Named>(
     if (!gone(i)) { out.push(i); continue; }
     const parentId = i.parentId ?? null;
     if (parentId !== null && keptIds.has(parentId) && i.authorId !== null && blocked.has(i.authorId)) {
-      out.push({ placeholder: 'blocked', id: i.id, parentId });
+      // G2 BROKEN ON PURPOSE: dropped
     }
   }
   return out;

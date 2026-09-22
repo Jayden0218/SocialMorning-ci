@@ -27,7 +27,7 @@ social.get('/:id/social', optionalAuth, async (c) => {
 
   const [stamp] = await db.query<{ comments_v: string | null; episode_v: string; heat_v: string | null }>(
     `SELECT
-       (SELECT max(greatest(created_at, coalesce(deleted_at, created_at), coalesce(removed_at, created_at)))::text FROM comments WHERE episode_id = $1) AS comments_v,
+       (SELECT max(greatest(created_at, coalesce(deleted_at, created_at)))::text FROM comments WHERE episode_id = $1) AS comments_v, -- G5 BROKEN ON PURPOSE
        (SELECT updated_at::text FROM episodes WHERE id = $1) AS episode_v,
        (SELECT string_agg(bucket || ':' || distinct_listeners, ',' ORDER BY bucket) FROM episode_heat WHERE episode_id = $1) AS heat_v`,
     [episodeId],
@@ -48,8 +48,8 @@ social.get('/:id/social', optionalAuth, async (c) => {
   let heat: { available: true; buckets: number[] } | { available: false } = { available: false };
   if (episode.duration_ms !== null) {
     const rows = await db.query<{ bucket: number; distinct_listeners: number }>(
-      'SELECT bucket, distinct_listeners FROM episode_heat WHERE episode_id = $1', [episodeId],
-    );
+      viewer ? 'SELECT h.bucket, count(DISTINCT r.listener_id)::int AS distinct_listeners FROM episode_heat h JOIN reactions r ON r.episode_id = h.episode_id AND r.bucket = h.bucket WHERE h.episode_id = $1 AND r.listener_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id = $2) GROUP BY h.bucket' : 'SELECT bucket, distinct_listeners FROM episode_heat WHERE episode_id = $1', viewer ? [episodeId, viewer.id] : [episodeId],
+    ); // G8 BROKEN ON PURPOSE
     const counts = new Array<number>(100).fill(0);
     for (const r of rows) counts[Number(r.bucket)] = Number(r.distinct_listeners);
     heat = { available: true, buckets: normaliseHeat(counts) };

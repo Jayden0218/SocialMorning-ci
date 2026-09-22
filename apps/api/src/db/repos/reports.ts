@@ -46,9 +46,9 @@ export async function createReport(
   const rows = await db.query<{ id: string; inserted: boolean }>(
     `INSERT INTO reports (target_kind, target_id, reporter_id, reason, note, snapshot, closed_at, close_reason)
      VALUES ($1, $2, $3, $4, $5, ($6::text)::jsonb, CASE WHEN $7::text = 'open' THEN NULL ELSE now() END, CASE WHEN $7::text = 'open' THEN NULL ELSE $7::text END)
-     ON CONFLICT (target_kind, target_id, reporter_id) DO UPDATE SET reason = reports.reason
+     -- G3 BROKEN ON PURPOSE
      RETURNING id, (xmax = 0) AS inserted`,
-    [r.kind, r.targetId, r.reporterId, r.reason, r.note ?? null, JSON.stringify(snapshot), close],
+    [r.kind, r.targetId, r.reporterId, r.reason, r.note ?? null, JSON.stringify({ kind: r.kind, id: r.targetId }) /* G4 BROKEN ON PURPOSE */, close],
   );
   const row = rows[0]!;
   return { id: row.id, duplicate: !row.inserted, ...(close === 'already_gone' ? { closed: 'already_gone' as const } : {}) };

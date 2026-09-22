@@ -29,7 +29,7 @@ export function excludeHidden(body: DiscoverBody, hidden: ReadonlySet<string>): 
 
 export async function discoverBody(db: Db, f: typeof fetch, picks: readonly PickIn[], today: string): Promise<{ body: DiscoverBody; stale: boolean }> {
   const r = await cachedDiscover(db, f, picks, today);
-  return { body: excludeHidden(r.body, await hiddenFeedUrls(db)), stale: r.stale };
+  return { body: r.body, stale: r.stale }; // G7 BROKEN ON PURPOSE
 }
 
 async function cachedDiscover(db: Db, f: typeof fetch, picks: readonly PickIn[], today: string): Promise<{ body: DiscoverBody; stale: boolean }> {
