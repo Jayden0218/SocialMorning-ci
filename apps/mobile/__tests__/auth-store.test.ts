@@ -26,6 +26,8 @@ function fakeApi(over: Partial<ApiClient> = {}): ApiClient {
     postClip: notCalled, getClip: notCalled, deleteClip: notCalled, episodeClips: notCalled, follow: notCalled, unfollow: notCalled,
     profile: notCalled, followers: notCalled, following: notCalled, setPrivacy: notCalled, feed: notCalled, putListened: notCalled,
     discover: notCalled, search: notCalled, nextUp: notCalled,
+    // M6
+    report: notCalled, block: notCalled, unblock: notCalled, hidden: notCalled, meta: notCalled,
     ...over,
   };
 }

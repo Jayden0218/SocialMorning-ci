@@ -119,7 +119,6 @@ export default function ShowScreen(): React.ReactElement {
           )}
         </View>
       }
-      ListFooterComponent={<ReportSheet target={reporting} onClose={() => setReporting(undefined)} />}
       ListEmptyComponent={
         <Text style={styles.empty}>
           {failed === undefined ? 'No episodes yet.' : failed}
@@ -141,7 +140,7 @@ export default function ShowScreen(): React.ReactElement {
           </Text>
         </Pressable>
       )}
-      ListFooterComponent={<Link href="/search" style={styles.footerLink}>Search for another show</Link>}
+      ListFooterComponent={<View><Link href="/search" style={styles.footerLink}>Search for another show</Link><ReportSheet target={reporting} onClose={() => setReporting(undefined)} /></View>}
     />
   );
 }
