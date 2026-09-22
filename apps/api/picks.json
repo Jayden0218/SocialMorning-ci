@@ -1,0 +1,22 @@
+[
+  {
+    "date": "2026-09-22",
+    "feedUrl": "https://feeds.megaphone.fm/replyall",
+    "guid": "c0633378-b188-11ef-bcb2-677967fca1e9",
+    "why": "Fifteen years chasing one button. The one everyone on here clipped.",
+    "order": 1
+  },
+  {
+    "date": "2026-09-22",
+    "feedUrl": "https://feeds.podcastindex.org/pc20.xml",
+    "guid": "PC20-271",
+    "why": "The people who write the podcast spec, talking about the spec.",
+    "order": 2
+  },
+  {
+    "date": "2026-09-22",
+    "feedUrl": "https://feeds.simplecast.com/BqbsxVfO",
+    "why": "A show pick: whatever 99% Invisible put out last.",
+    "order": 3
+  }
+]

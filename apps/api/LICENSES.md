@@ -14,3 +14,5 @@ Checked with `npm view <pkg> license` on 2026-09-21 (constitution, Principle III
 | esbuild (dev) | 0.28.2 | MIT |
 
 M4 (2026-09-21) added no dependency to `apps/api`: clips, follows, feed, listened and profiles use Hono, zod, `postgres` and `@socialmorning/social-core` already listed.
+
+M5 (2026-09-22) added no dependency: the catalogue is Apple's public search/lookup/charts (no key); `@socialmorning/feed-parser` (this repo) is now also used server-side for picks and "new on this show".

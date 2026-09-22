@@ -16,7 +16,8 @@
     "@socialmorning/social-core": "*",
     "hono": "^4.13.8",
     "postgres": "^3.4.9",
-    "zod": "^4.6.5"
+    "zod": "^4.6.5",
+    "@socialmorning/feed-parser": "*"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",
