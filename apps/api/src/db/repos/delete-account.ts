@@ -15,8 +15,8 @@ export async function deleteAccount(db: Db, listenerId: string): Promise<{ place
     await tx.query(
       `UPDATE reports SET closed_at = now(), close_reason = 'author_deleted' WHERE closed_at IS NULL AND (
          (target_kind = 'profile' AND target_id = $1::text)
-         OR (target_kind = 'comment' AND target_id IN (SELECT id::text FROM comments WHERE author_id = $1))
-         OR (target_kind = 'clip' AND target_id IN (SELECT id::text FROM clips WHERE author_id = $1)))`,
+         OR (target_kind = 'comment' AND target_id IN (SELECT id::text FROM comments WHERE author_id = ($1::text)::uuid))
+         OR (target_kind = 'clip' AND target_id IN (SELECT id::text FROM clips WHERE author_id = ($1::text)::uuid)))`,
       [listenerId],
     );
     const mine = await tx.query<{ id: string; episode_id: string; replies: number }>(

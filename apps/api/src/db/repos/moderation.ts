@@ -34,10 +34,9 @@ export async function act(db: Db, actorId: string, item: { kind: TargetKind; id:
         break;
       case 'suspend': {
         const who = item.kind === 'profile' ? item.id : await authorOf(tx, item.kind, item.id);
-        if (who) {
-          await tx.query('UPDATE listeners SET suspended_at = now() WHERE id = $1 AND suspended_at IS NULL', [who]);
-          await tx.query('DELETE FROM sessions WHERE listener_id = $1', [who]);
-        }
+        // Sessions stay as rows: every request on them answers 403 `suspended` with the appeals
+        // address (session.ts), which a bare 401 could not carry. Un-suspend brings them back.
+        if (who) await tx.query('UPDATE listeners SET suspended_at = now() WHERE id = $1 AND suspended_at IS NULL', [who]);
         break;
       }
       case 'unsuspend':

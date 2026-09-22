@@ -136,7 +136,9 @@ test('A7 / G6: suspend ends every session, refuses every route and sign-in with 
   assert.equal(j.error, 'suspended');
   assert.equal(j.appeals, TEST_APPEALS);
   assert.match(j.message, new RegExp(TEST_APPEALS));
-  assert.equal((await t.q('SELECT 1 FROM sessions WHERE listener_id = $1', [a.id])).length, 0, 'every session ended');
+  const second = await t.call('POST', '/v1/auth/sign-in', { email: 'b@example.com', password: 'correct horse' });
+  assert.equal(second.status, 200);
+  assert.equal((await t.call('GET', `/v1/episodes/${EP}/social`, undefined, a.token)).status, 403, 'every session of A refused, even the public poll');
   const signIn = await t.call('POST', '/v1/auth/sign-in', { email: 'a@example.com', password: 'correct horse' });
   assert.equal(signIn.status, 403);
   assert.equal(((await signIn.json()) as { error: string }).error, 'suspended');
