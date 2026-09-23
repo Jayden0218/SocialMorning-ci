@@ -14,6 +14,7 @@ import { useSafety } from '../safety/context';
 import { Placeholder, placeholderFor } from './Placeholder';
 import { ReportSheet, type ReportTarget } from './ReportSheet';
 import type { Comment } from '../social/api';
+import { EmptyState } from './EmptyState';
 
 export function CommentList(props: {
   episodeId: string;
@@ -102,7 +103,7 @@ export function CommentList(props: {
       <Pressable style={styles.compose} onPress={() => (listener ? props.onCompose() : needSignIn())} accessibilityRole="button">
         <Text style={styles.link}>{listener ? 'Write a comment' : 'Sign in to join the conversation'}</Text>
       </Pressable>
-      {ordered.length === 0 ? <Text style={styles.muted}>No comments yet.</Text> : null}
+      {ordered.length === 0 ? <EmptyState surface="comments" action={{ label: 'Comment here', onPress: () => (listener ? props.onCompose() : needSignIn()) }} /> : null}
       {ordered.map((o) => <Row key={o.raw.id} c={o.raw} isReply={false} />)}
       <ReportSheet target={reporting} onClose={() => setReporting(undefined)} />
     </View>

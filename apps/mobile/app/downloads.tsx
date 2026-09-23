@@ -4,6 +4,7 @@ import { FlatList, Pressable, StyleSheet, Switch, Text, View } from 'react-nativ
 import { mb } from '../src/ui/DownloadButton';
 import { useDownloads, useStores } from '../src/ui/providers';
 import type { DownloadRow } from '../src/storage/types';
+import { EmptyState } from '../src/ui/EmptyState';
 
 const BUDGETS = [200 * 1024 ** 2, 500 * 1024 ** 2, ...[1, 2, 4, 8].map((g) => g * 1024 ** 3)];
 
@@ -41,14 +42,14 @@ export default function DownloadsScreen(): React.ReactElement {
           </View>
           <View style={styles.rowWrap}>
             <Text style={styles.line}>Allow mobile data</Text>
-            <Switch value={downloads.allowMobile()} onValueChange={(v) => downloads.setAllowMobile(v)} />
+            <Switch value={downloads.allowMobile()} onValueChange={(v) => downloads.setAllowMobile(v)} accessibilityLabel="Allow mobile data for downloads" accessibilityRole="switch" accessibilityState={{ checked: downloads.allowMobile() }} />
           </View>
           <Pressable onPress={() => void downloads.removeFinished()} accessibilityRole="button">
             <Text style={styles.link}>Remove finished downloads</Text>
           </Pressable>
         </View>
       }
-      ListEmptyComponent={<Text style={styles.muted}>Nothing downloaded yet.</Text>}
+      ListEmptyComponent={<EmptyState surface="downloads" />}
       renderItem={({ item }) => (
         <View style={styles.item}>
           <Text style={styles.title} numberOfLines={2}>{title(item.episodeId)}</Text>

@@ -13,6 +13,7 @@ import { ApiError, type EpisodeCard, type SearchResult, type ShowCard } from '..
 import { looksLikeFeedUrl, searchLibrary } from '../src/discover/local-search';
 import { useDiscover } from '../src/discover/useDiscover';
 import { EpisodeRow } from '../src/ui/EpisodeRow';
+import { EmptyState } from '../src/ui/EmptyState';
 
 type CatalogueState = { kind: 'idle' } | { kind: 'loading' } | { kind: 'ok'; result: SearchResult } | { kind: 'error'; message: string };
 
@@ -66,7 +67,7 @@ export default function SearchScreen(): React.ReactElement {
         {catalogue.kind === 'loading' ? <ActivityIndicator style={styles.spinner} /> : null}
         {catalogue.kind === 'error' ? <Text style={styles.notice}>{catalogue.message}</Text> : null}
         {catalogue.kind === 'ok' && catalogue.result.episodeSearch === 'unavailable' ? <Text style={styles.notice}>Episode search is unavailable right now — shows only.</Text> : null}
-        {nothing ? <Text style={styles.notice}>Nothing matches “{trimmed}”.</Text> : null}
+        {nothing ? <EmptyState surface="search" /> : null}
 
         {merged.shows.length > 0 ? <Text style={styles.h2}>Shows</Text> : null}
         {merged.shows.map((s) => (

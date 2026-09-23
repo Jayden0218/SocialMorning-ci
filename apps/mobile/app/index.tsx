@@ -11,6 +11,7 @@ import { refreshAll } from '../src/feeds/refresh-all';
 import { ContinueListening } from '../src/ui/ContinueListening';
 import { shortDate } from '../src/ui/format';
 import { useSafety } from '../src/safety/context';
+import { EmptyState } from '../src/ui/EmptyState';
 import { useStores } from '../src/ui/providers';
 import { inboxIds } from '../src/inbox';
 import { useSocial } from '../src/social/context';
@@ -97,9 +98,7 @@ export default function LibraryScreen(): React.ReactElement {
           )}
         </View>
       }
-      ListEmptyComponent={
-        <Text style={styles.empty}>{discover.view ? 'No subscriptions yet — pick something above, or search for a show' : 'No subscriptions yet — search for a show'}</Text>
-      }
+      ListEmptyComponent={<EmptyState surface="library" />}
       renderItem={({ item }) => (
         <Link
           href={{
@@ -115,7 +114,7 @@ export default function LibraryScreen(): React.ReactElement {
               <Image source={{ uri: item.show.imageUrl }} style={styles.art} />
             )}
             <View style={styles.grow}>
-              <Text style={styles.title} numberOfLines={2}>
+              <Text style={styles.title} numberOfLines={3}>
                 {item.show?.title ?? item.feedUrl}
               </Text>
               <Text style={styles.subtitle}>

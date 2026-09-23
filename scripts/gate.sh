@@ -8,5 +8,7 @@ cd "$(dirname "$0")/.."
 npm run typecheck >/dev/null 2>&1; T=$?
 npm test >/dev/null 2>&1; U=$?
 (cd apps/mobile && npx jest --coverage >/dev/null 2>&1); C=$?
-echo "gate: typecheck=$T tests=$U mobile-coverage=$C"
-[ "$T" -eq 0 ] && [ "$U" -eq 0 ] && [ "$C" -eq 0 ]
+# M6 FR-022: no interactive element without a name a screen reader can speak.
+(cd apps/mobile && node scripts/a11y-audit.mjs >/dev/null 2>&1); A=$?
+echo "gate: typecheck=$T tests=$U mobile-coverage=$C a11y=$A"
+[ "$T" -eq 0 ] && [ "$U" -eq 0 ] && [ "$C" -eq 0 ] && [ "$A" -eq 0 ]

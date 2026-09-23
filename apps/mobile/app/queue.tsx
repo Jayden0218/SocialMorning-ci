@@ -11,6 +11,7 @@ import { usePlayer } from '../src/playback/store';
 import { toPlayable } from '../src/storage/playable';
 import { mmss } from '../src/ui/format';
 import { useStores } from '../src/ui/providers';
+import { EmptyState } from '../src/ui/EmptyState';
 
 export default function QueueScreen(): React.ReactElement {
   const stores = useStores();
@@ -28,7 +29,7 @@ export default function QueueScreen(): React.ReactElement {
       keyExtractor={(id) => id}
       contentContainerStyle={styles.body}
       ListHeaderComponent={<Text style={styles.muted}>{ids.length} of 300 · plays in order when the current episode ends</Text>}
-      ListEmptyComponent={<Text style={styles.muted}>Nothing queued. Use "Add to queue" on an episode.</Text>}
+      ListEmptyComponent={<EmptyState surface="queue" />}
       renderItem={({ item, index }) => {
         const episode = stores.feeds.getEpisode(item);
         const show = episode ? stores.feeds.getShow(episode.feedUrl) : undefined;

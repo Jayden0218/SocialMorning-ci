@@ -17,6 +17,7 @@ import { Placeholder } from '../../src/ui/Placeholder';
 import { ReportSheet, type ReportTarget } from '../../src/ui/ReportSheet';
 import { Pressable } from 'react-native';
 import { ApiError, type FeedItem as Item, type Profile } from '../../src/social/api';
+import { EmptyState } from '../../src/ui/EmptyState';
 
 export default function ProfileScreen(): React.ReactElement {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -69,7 +70,7 @@ export default function ProfileScreen(): React.ReactElement {
       ) : null}
       <StatsBlock stats={profile.stats} own={own} />
       <Text style={styles.h2} accessibilityRole="header">Recent</Text>
-      {profile.recent.length === 0 ? <Text style={styles.muted}>Nothing public yet.</Text> : feed(profile.recent).map((item) => <FeedItem key={item.id} item={item} onOpen={open} />)}
+      {profile.recent.length === 0 ? <EmptyState surface="stats" /> : feed(profile.recent).map((item) => <FeedItem key={item.id} item={item} onOpen={open} />)}
       <ReportSheet target={reporting} onClose={() => setReporting(undefined)} />
     </ScrollView>
   );

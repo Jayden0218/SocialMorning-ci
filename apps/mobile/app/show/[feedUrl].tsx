@@ -113,7 +113,7 @@ export default function ShowScreen(): React.ReactElement {
           {stale ? <Text style={styles.stale}>Showing the last copy — refresh failed</Text> : null}
           {failed === undefined ? null : <Text style={styles.stale}>{failed}</Text>}
           {show?.description === undefined ? null : (
-            <Text style={styles.description} numberOfLines={6}>
+            <Text style={styles.description} numberOfLines={12}>
               {show.description}
             </Text>
           )}

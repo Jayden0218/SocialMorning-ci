@@ -8,13 +8,30 @@
  */
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { EMPTY_STATES } from '@socialmorning/social-core';
+import { mmss } from './format';
 
 export type Heat = { available: true; buckets: number[] } | { available: false };
 
 export function heatMessage(heat: Heat | undefined): string | undefined {
   if (!heat || !heat.available) return "Heat isn't available yet for this episode";
-  if (heat.buckets.every((v) => v === 0)) return 'Nobody has marked a moment yet';
+  // M6 (FR-019): the flat line is a sentence with the action in it, not a blank chart.
+  if (heat.buckets.every((v) => v === 0)) return EMPTY_STATES.heat.sentence;
   return undefined;
+}
+
+/**
+ * M6 (FR-024): what a screen reader says for the curve — the loudest moment, or the
+ * empty sentence. Never an unlabelled image.
+ */
+export function heatLabel(heat: Heat | undefined, durationMs: number | undefined): string {
+  const message = heatMessage(heat);
+  if (message !== undefined) return message;
+  const buckets = (heat as { available: true; buckets: number[] }).buckets;
+  let best = 0;
+  for (let i = 1; i < buckets.length; i++) if (buckets[i]! > buckets[best]!) best = i;
+  const at = durationMs === undefined ? `segment ${best + 1} of ${buckets.length}` : mmss(Math.round((best / buckets.length) * durationMs));
+  return `Reaction curve. Most reactions at ${at}.`;
 }
 
 /**
@@ -31,6 +48,7 @@ export function HeatCurve(props: {
   onSeek: (bucket: number, toMs: number) => void;
 }): React.ReactElement {
   const [width, setWidth] = useState(0);
+  const label = heatLabel(props.heat, props.durationMs);
   const message = heatMessage(props.heat);
   const buckets = props.heat?.available ? props.heat.buckets : new Array<number>(100).fill(0);
   const mine = new Set(props.myBuckets ?? []);
@@ -42,7 +60,7 @@ export function HeatCurve(props: {
     <View style={styles.wrap}>
       <Pressable
         accessibilityRole="adjustable"
-        accessibilityLabel="Heat curve"
+        accessibilityLabel={label}
         style={[styles.bars, { width: `${axisFraction * 100}%` }]}
         onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
         onPress={(e) => {

@@ -12,6 +12,7 @@ import { useStores } from '../src/ui/providers';
 import { createFeed, type FeedView } from '../src/graph/feed';
 import { FeedItem } from '../src/ui/FeedItem';
 import type { FeedItem as Item } from '../src/social/api';
+import { EmptyState } from '../src/ui/EmptyState';
 
 export default function FollowingScreen(): React.ReactElement {
   const { api, listener } = useSocial();
@@ -43,8 +44,8 @@ export default function FollowingScreen(): React.ReactElement {
       ListHeaderComponent={view?.stale ? <Text style={styles.stale}>Couldn't refresh — showing what was fetched {view.fetchedAt ? new Date(view.fetchedAt).toLocaleTimeString() : 'earlier'}.</Text> : undefined}
       ListEmptyComponent={!refreshing ? (
         <View>
-          <Text style={styles.muted}>Nothing here yet.</Text>
-          <Text style={styles.muted}>Follow people from their comments and clips on episodes you listen to — tap a name to open their profile.</Text>
+          <EmptyState surface="feed" offline={view?.stale ?? false} hasCache={(view?.items.length ?? 0) > 0} onRetry={() => void refresh()} />
+          <Text style={styles.muted}>Tap a name on any comment or clip to open a profile.</Text>
         </View>
       ) : undefined}
       renderItem={({ item }) => <FeedItem item={item} onOpen={open} />}

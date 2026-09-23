@@ -5,6 +5,7 @@ import { Link, useLocalSearchParams } from 'expo-router';
 import { useSocial } from '../../../src/social/context';
 import { useSafety } from '../../../src/safety/context';
 import type { ClipAuthor } from '../../../src/social/api';
+import { EmptyState } from '../../../src/ui/EmptyState';
 
 export default function FollowersScreen(): React.ReactElement {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -18,7 +19,7 @@ export default function FollowersScreen(): React.ReactElement {
       data={safetyFilter.listeners(rows)}
       keyExtractor={(l) => l.id}
       contentContainerStyle={styles.body}
-      ListEmptyComponent={<Text style={styles.muted}>Nobody yet.</Text>}
+      ListEmptyComponent={<EmptyState surface="followers" />}
       renderItem={({ item }) => (
         <Link href={{ pathname: '/profile/[id]', params: { id: item.id } }} asChild>
           <Pressable style={styles.row} accessibilityRole="link"><Text style={styles.name}>{item.displayName ?? 'Deleted account'}</Text></Pressable>

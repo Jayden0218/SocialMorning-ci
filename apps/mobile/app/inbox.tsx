@@ -11,6 +11,7 @@ import { toPlayable } from '../src/storage/playable';
 import { inboxIds, INBOX_PAGE } from '../src/inbox';
 import { mmss, shortDate } from '../src/ui/format';
 import { useDownloads, useStores, useToast } from '../src/ui/providers';
+import { EmptyState } from '../src/ui/EmptyState';
 
 export default function InboxScreen(): React.ReactElement {
   const stores = useStores();
@@ -34,7 +35,7 @@ export default function InboxScreen(): React.ReactElement {
       keyExtractor={(id) => id}
       contentContainerStyle={styles.body}
       ListHeaderComponent={<Text style={styles.muted}>{ids.length} new since you subscribed</Text>}
-      ListEmptyComponent={<Text style={styles.muted}>Nothing new. New episodes of your subscriptions land here.</Text>}
+      ListEmptyComponent={<EmptyState surface="inbox" />}
       ListFooterComponent={ids.length > shown ? (
         <Pressable onPress={() => setShown((n) => n + INBOX_PAGE)} accessibilityRole="button"><Text style={styles.link}>Load more</Text></Pressable>
       ) : undefined}

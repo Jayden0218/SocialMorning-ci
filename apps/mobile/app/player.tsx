@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { usePlayer, usePlayerState } from '../src/playback/store';
+import { Scrubber, scrubberValue } from '../src/ui/Scrubber';
 import { mmss } from '../src/ui/format';
 import { useStores } from '../src/ui/providers';
 import { useSocial } from '../src/social/context';
@@ -31,7 +32,6 @@ export default function PlayerScreen(): React.ReactElement {
   const player = usePlayer();
   const state = usePlayerState();
   const stores = useStores();
-  const [barWidth, setBarWidth] = useState(0);
   const { composer, reactToggle, refresh, useEpisodeSocial, listener, bump } = useSocial();
   const [composing, setComposing] = useState<ComposerState | undefined>();
   const [myBuckets, setMyBuckets] = useState<number[] | undefined>();
@@ -89,7 +89,6 @@ export default function PlayerScreen(): React.ReactElement {
   const positionMs = state.kind === 'ended' ? (state.durationMs ?? 0) : state.positionMs;
   const durationMs = state.kind === 'loading' ? episode?.durationMs : state.durationMs;
   const isPlaying = state.kind === 'playing' || state.kind === 'buffering';
-  const fraction = durationMs === undefined || durationMs === 0 ? 0 : positionMs / durationMs;
   // The server buckets moments against the duration it was first told (the feed's,
   // e.g. 50:49) which can differ from what the player measures (48:19). Every bucket
   // computation on the phone uses the server's axis, or the toggle state is wrong
@@ -103,7 +102,7 @@ export default function PlayerScreen(): React.ReactElement {
       ) : (
         <Image source={{ uri: artworkUrl }} style={styles.art} />
       )}
-      <Text style={styles.title} numberOfLines={3}>
+      <Text style={styles.title}>
         {episode?.title ?? 'Now playing'}
       </Text>
       <Text style={styles.subtitle}>{show?.title ?? ''}</Text>
@@ -117,21 +116,9 @@ export default function PlayerScreen(): React.ReactElement {
           setOpenMarker(m);
         }}
       />
-      <Pressable
-        accessibilityRole="adjustable"
-        accessibilityLabel="Seek"
-        style={styles.track}
-        onLayout={(event) => setBarWidth(event.nativeEvent.layout.width)}
-        onPress={(event) => {
-          if (durationMs === undefined || barWidth === 0) return;
-          const ratio = Math.min(1, Math.max(0, event.nativeEvent.locationX / barWidth));
-          player.seek(Math.round(ratio * durationMs));
-        }}
-      >
-        <View style={[styles.fill, { width: `${Math.min(100, fraction * 100)}%` }]} />
-      </Pressable>
+      <Scrubber positionMs={positionMs} durationMs={durationMs} onSeek={(ms) => player.seek(ms)} onSkip={(d) => player.skip(d)} />
 
-      <Text style={styles.time}>
+      <Text style={styles.time} accessibilityLabel={scrubberValue(positionMs, durationMs).text}>
         {mmss(positionMs)} / {durationMs === undefined ? '--:--' : mmss(durationMs)}
       </Text>
       <HeatCurve
@@ -282,15 +269,6 @@ const styles = StyleSheet.create({
   art: { width: 220, height: 220, borderRadius: 12, backgroundColor: '#eee' },
   title: { fontSize: 18, fontWeight: '700', textAlign: 'center' },
   subtitle: { fontSize: 13, color: '#666' },
-  track: {
-    width: '100%',
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#e3e3e3',
-    overflow: 'hidden',
-    marginTop: 8,
-  },
-  fill: { height: 8, backgroundColor: '#222' },
   time: { fontSize: 13, color: '#444', fontVariant: ['tabular-nums'] },
   controls: { flexDirection: 'row', alignItems: 'center', gap: 24, marginTop: 8 },
   control: { fontSize: 17, fontWeight: '600' },

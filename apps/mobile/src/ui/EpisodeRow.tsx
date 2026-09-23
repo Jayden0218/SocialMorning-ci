@@ -10,7 +10,7 @@ export function EpisodeRow(props: { card: EpisodeCard; line?: string; onPress: (
     <Pressable style={styles.row} onPress={props.onPress} disabled={props.disabled} accessibilityRole="button" accessibilityLabel={`${card.title}, ${card.showTitle}`}>
       {card.imageUrl ? <Image source={{ uri: card.imageUrl }} style={styles.art} /> : <View style={styles.art} />}
       <View style={styles.grow}>
-        <Text style={styles.title} numberOfLines={2}>{card.title}</Text>
+        <Text style={styles.title} numberOfLines={3}>{card.title}</Text>
         <Text style={styles.meta} numberOfLines={1}>{meta}</Text>
         {props.line ? <Text style={styles.line} numberOfLines={2}>{props.line}</Text> : null}
       </View>

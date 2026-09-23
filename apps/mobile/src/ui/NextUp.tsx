@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { enoughNextUp } from '@socialmorning/social-core';
+import { EmptyState } from './EmptyState';
 import { useSocial } from '../social/context';
 import { ApiError, type EpisodeCard, type NextUpItem } from '../social/api';
 import { EpisodeRow } from './EpisodeRow';
@@ -24,11 +25,19 @@ export function useNextUp(episodeId: string | undefined): { items: NextUpItem[] 
   return { items, status };
 }
 
-export function NextUp(props: { items: NextUpItem[] | undefined; onOpen: (card: EpisodeCard) => void }): React.ReactElement | null {
-  if (!props.items || !enoughNextUp(props.items)) return null;
+export function NextUp(props: { items: NextUpItem[] | undefined; onOpen: (card: EpisodeCard) => void; loadingMs?: number }): React.ReactElement | null {
+  // M6 (FR-019): too few to be useful is still a surface — it says what fills it.
+  if (!props.items || !enoughNextUp(props.items)) {
+    return (
+      <View style={styles.wrap}>
+        <Text style={styles.h2} accessibilityRole="header">Next up</Text>
+        <EmptyState surface="nextup" {...(props.loadingMs !== undefined ? { loadingMs: props.loadingMs } : {})} />
+      </View>
+    );
+  }
   return (
     <View style={styles.wrap}>
-      <Text style={styles.h2}>Next up</Text>
+      <Text style={styles.h2} accessibilityRole="header">Next up</Text>
       {props.items.map((i) => <EpisodeRow key={i.episode.id} card={i.episode} line={i.label} onPress={() => props.onOpen(i.episode)} />)}
     </View>
   );
