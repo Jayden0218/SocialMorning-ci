@@ -20,7 +20,8 @@ export function Scrubber(props: {
   positionMs: number;
   durationMs: number | undefined;
   onSeek: (toMs: number) => void;
-  onSkip: (deltaMs: number) => void;
+  /** The same ±15 / +30 the buttons use; the player's `skip` takes that exact union. */
+  onSkip: (deltaMs: 30_000 | -15_000) => void;
 }): React.ReactElement {
   const [barWidth, setBarWidth] = useState(0);
   const fraction = props.durationMs === undefined || props.durationMs === 0 ? 0 : props.positionMs / props.durationMs;
@@ -30,7 +31,7 @@ export function Scrubber(props: {
       accessibilityLabel="Seek"
       accessibilityValue={scrubberValue(props.positionMs, props.durationMs)}
       accessibilityActions={[{ name: 'increment', label: 'Forward 30 seconds' }, { name: 'decrement', label: 'Back 15 seconds' }]}
-      onAccessibilityAction={(e) => props.onSkip(e.nativeEvent.actionName === 'increment' ? SCRUB_FORWARD_MS : -SCRUB_BACK_MS)}
+      onAccessibilityAction={(e) => props.onSkip(e.nativeEvent.actionName === 'increment' ? 30_000 : -15_000)}
       style={styles.track}
       onLayout={(event) => setBarWidth(event.nativeEvent.layout.width)}
       onPress={(event) => {
