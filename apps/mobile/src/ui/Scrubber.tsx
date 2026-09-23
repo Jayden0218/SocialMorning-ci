@@ -29,8 +29,7 @@ export function Scrubber(props: {
     <Pressable
       accessibilityRole="adjustable"
       accessibilityLabel="Seek"
-      accessibilityValue={scrubberValue(props.positionMs, props.durationMs)}
-      accessibilityActions={[{ name: 'increment', label: 'Forward 30 seconds' }, { name: 'decrement', label: 'Back 15 seconds' }]}
+      // G11 BROKEN ON PURPOSE: no value, no actions
       onAccessibilityAction={(e) => props.onSkip(e.nativeEvent.actionName === 'increment' ? 30_000 : -15_000)}
       style={styles.track}
       onLayout={(event) => setBarWidth(event.nativeEvent.layout.width)}
