@@ -31,7 +31,6 @@ export function Scrubber(props: {
       accessible
       accessibilityRole="adjustable"
       accessibilityLabel="Seek"
-      accessibilityValue={scrubberValue(props.positionMs, props.durationMs)}
       accessibilityActions={[{ name: 'increment', label: 'Forward 30 seconds' }, { name: 'decrement', label: 'Back 15 seconds' }]}
       onAccessibilityAction={(e) => props.onSkip(e.nativeEvent.actionName === 'increment' ? 30_000 : -15_000)}
       style={styles.track}
