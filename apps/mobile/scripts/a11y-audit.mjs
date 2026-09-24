@@ -24,6 +24,9 @@ for (const file of files) {
   const src = readFileSync(file, 'utf8');
   const lines = src.split('\n');
   for (let i = 0; i < lines.length; i++) {
+    // Skip comments: a doc comment may name a component it is explaining.
+    const bare = lines[i].trim();
+    if (bare.startsWith('*') || bare.startsWith('//') || bare.startsWith('/*')) continue;
     const open = /<(Pressable|TouchableOpacity|TouchableHighlight|Switch|TextInput|Link)\b/.exec(lines[i]);
     if (!open) continue;
     const tag = open[1];

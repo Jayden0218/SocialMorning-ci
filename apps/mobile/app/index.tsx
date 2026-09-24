@@ -12,6 +12,7 @@ import { ContinueListening } from '../src/ui/ContinueListening';
 import { shortDate } from '../src/ui/format';
 import { useSafety } from '../src/safety/context';
 import { EmptyState } from '../src/ui/EmptyState';
+import { NavLink } from '../src/ui/NavLink';
 import { useStores } from '../src/ui/providers';
 import { inboxIds } from '../src/inbox';
 import { useSocial } from '../src/social/context';
@@ -80,21 +81,19 @@ export default function LibraryScreen(): React.ReactElement {
         <View style={styles.header}>
           <ContinueListening />
           {noSubscriptions && discover.view ? <DiscoverSections body={discover.view.body} stale={discover.view.stale} fetchedAt={discover.view.fetchedAt} onOpen={(c) => void discover.open(c)} /> : null}
-          <Link href="/search" style={styles.link} accessibilityRole="link">
-            Search for a show
-          </Link>
-          <Link href="/discover" style={styles.link} accessibilityRole="link">Discover</Link>
+          <NavLink href="/search" label="Search for a show" />
+          <NavLink href="/discover" label="Discover" />
           {!noSubscriptions && discover.view && discover.view.body.picks.length > 0 ? (
             <DiscoverSections body={discover.view.body} stale={discover.view.stale} fetchedAt={discover.view.fetchedAt} onOpen={(c) => void discover.open(c)} maxPicks={3} />
           ) : null}
-          <Link href="/inbox" style={styles.link} accessibilityRole="link">{`Inbox${(() => { const n = inboxIds(stores).length; return n > 0 ? ` (${n})` : ''; })()}`}</Link>
-          <Link href="/queue" style={styles.link} accessibilityRole="link">Queue</Link>
-          <Link href="/downloads" style={styles.link} accessibilityRole="link">Downloads</Link>
-          {listener ? <Link href="/following" style={styles.link} accessibilityRole="link">{`Following${followingUnread > 0 ? ` (${followingUnread})` : ''}`}</Link> : null}
+          <NavLink href="/inbox" label={`Inbox${(() => { const n = inboxIds(stores).length; return n > 0 ? ` (${n})` : ''; })()}`} />
+          <NavLink href="/queue" label="Queue" />
+          <NavLink href="/downloads" label="Downloads" />
+          {listener ? <NavLink href="/following" label={`Following${followingUnread > 0 ? ` (${followingUnread})` : ''}`} /> : null}
           {listener === undefined ? (
-            <Link href="/auth/sign-in" style={styles.link} accessibilityRole="link">Sign in to comment</Link>
+            <NavLink href="/auth/sign-in" label="Sign in to comment" />
           ) : (
-            <Link href="/account" style={styles.link} accessibilityRole="link">{`Signed in as ${listener.displayName}`}</Link>
+            <NavLink href="/account" label={`Signed in as ${listener.displayName}`} />
           )}
         </View>
       }
