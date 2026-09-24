@@ -51,7 +51,7 @@ export default function AccountScreen(): React.ReactElement {
     <View style={styles.body}>
       <Text style={{ fontSize: 18, fontWeight: '600' }}>{listener?.displayName ?? 'Not signed in'}</Text>
       <Text style={{ color: '#666' }}>{listener?.email ?? ''}</Text>
-      {listener ? <Link href={{ pathname: '/profile/[id]', params: { id: listener.listenerId } }} style={styles.link}>Your profile</Link> : null}
+      {listener ? <Link href={{ pathname: '/profile/[id]', params: { id: listener.listenerId } }} style={styles.link} accessibilityRole="link">Your profile</Link> : null}
       {listener ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <Switch

@@ -28,7 +28,7 @@ export function MiniBar(): React.ReactElement | null {
 
   return (
     <View style={styles.bar}>
-      <Link href="/player" style={styles.grow}>
+      <Link href="/player" style={styles.grow} accessibilityRole="link">
         <Text style={styles.title} numberOfLines={1}>
           {episode?.title ?? 'Now playing'}
         </Text>

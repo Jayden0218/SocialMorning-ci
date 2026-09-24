@@ -39,7 +39,7 @@ export default function SignInScreen(): React.ReactElement {
       <Pressable style={[styles.button, busy && styles.disabled]} disabled={busy || !email || !password} onPress={submit} accessibilityRole="button">
         <Text style={styles.buttonText}>Sign in</Text>
       </Pressable>
-      <Link href="/auth/sign-up" style={styles.link}>Create an account</Link>
+      <Link href="/auth/sign-up" style={styles.link} accessibilityRole="link">Create an account</Link>
     </View>
   );
 }

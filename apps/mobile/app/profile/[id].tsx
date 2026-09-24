@@ -56,8 +56,8 @@ export default function ProfileScreen(): React.ReactElement {
     <ScrollView contentContainerStyle={styles.body}>
       <Text style={styles.name} accessibilityRole="header">{profile.displayName}{own ? ' (you)' : ''}</Text>
       <View style={styles.row}>
-        <Link href={{ pathname: '/profile/[id]/followers', params: { id: profile.id } }} style={styles.link}>{`${profile.followers} followers`}</Link>
-        <Link href={{ pathname: '/profile/[id]/following', params: { id: profile.id } }} style={styles.link}>{`${profile.following} following`}</Link>
+        <Link href={{ pathname: '/profile/[id]/followers', params: { id: profile.id } }} style={styles.link} accessibilityRole="link">{`${profile.followers} followers`}</Link>
+        <Link href={{ pathname: '/profile/[id]/following', params: { id: profile.id } }} style={styles.link} accessibilityRole="link">{`${profile.following} following`}</Link>
       </View>
       {!own ? (
         <View style={styles.row}>

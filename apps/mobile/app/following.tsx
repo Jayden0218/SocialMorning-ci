@@ -34,7 +34,7 @@ export default function FollowingScreen(): React.ReactElement {
     else router.push({ pathname: '/episode/[id]', params: { id: item.episode.id, ...(item.momentMs !== null ? { at: String(item.momentMs) } : {}) } });
   };
 
-  if (!listener) return <View style={styles.body}><Text>Sign in to follow people.</Text><Link href="/auth/sign-in" style={styles.link}>Sign in</Link></View>;
+  if (!listener) return <View style={styles.body}><Text>Sign in to follow people.</Text><Link href="/auth/sign-in" style={styles.link} accessibilityRole="link">Sign in</Link></View>;
   return (
     <FlatList
       data={safetyFilter.feed(view?.items ?? [])}

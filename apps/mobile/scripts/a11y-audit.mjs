@@ -24,7 +24,7 @@ for (const file of files) {
   const src = readFileSync(file, 'utf8');
   const lines = src.split('\n');
   for (let i = 0; i < lines.length; i++) {
-    const open = /<(Pressable|TouchableOpacity|TouchableHighlight|Switch|TextInput)\b/.exec(lines[i]);
+    const open = /<(Pressable|TouchableOpacity|TouchableHighlight|Switch|TextInput|Link)\b/.exec(lines[i]);
     if (!open) continue;
     const tag = open[1];
     // Read to the element's own close: `</Tag>`, or a `/>` that closes THIS tag (a `/>`
@@ -41,8 +41,14 @@ for (const file of files) {
       if (j > i && /^\s*\/>/.test(line) && depth <= 1) { /* the opening tag closed on its own line */ }
     }
     const named = /accessibilityLabel\s*=/.test(block) || /aria-label/.test(block);
-    const hasText = /<Text[\s>]/.test(block) || /\{`[^`]+`\}/.test(block);
+    const hasText = /<Text[\s>]/.test(block) || /\{`[^`]+`\}/.test(block) || /<Link\b[^>]*>[^<]+</.test(block);
     if (!named && !hasText) findings.push(`${file}:${i + 1} <${tag}> has no accessibilityLabel and no text child`);
+    // M6 (FR-022, found on the phone in J5): a bare <Link> renders a View that TalkBack
+    // reads as plain text — focusable but with no role and clickable="false". It needs a
+    // role of its own; `asChild` hands the role to the child instead.
+    if (tag === 'Link' && !/asChild/.test(block) && !/accessibilityRole\s*=/.test(block)) {
+      findings.push(`${file}:${i + 1} <Link> has no accessibilityRole (a screen reader hears text, not a link)`);
+    }
   }
 }
 

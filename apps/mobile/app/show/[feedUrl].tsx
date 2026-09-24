@@ -140,7 +140,7 @@ export default function ShowScreen(): React.ReactElement {
           </Text>
         </Pressable>
       )}
-      ListFooterComponent={<View><Link href="/search" style={styles.footerLink}>Search for another show</Link><ReportSheet target={reporting} onClose={() => setReporting(undefined)} /></View>}
+      ListFooterComponent={<View><Link href="/search" style={styles.footerLink} accessibilityRole="link">Search for another show</Link><ReportSheet target={reporting} onClose={() => setReporting(undefined)} /></View>}
     />
   );
 }

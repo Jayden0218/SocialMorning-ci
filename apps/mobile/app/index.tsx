@@ -80,21 +80,21 @@ export default function LibraryScreen(): React.ReactElement {
         <View style={styles.header}>
           <ContinueListening />
           {noSubscriptions && discover.view ? <DiscoverSections body={discover.view.body} stale={discover.view.stale} fetchedAt={discover.view.fetchedAt} onOpen={(c) => void discover.open(c)} /> : null}
-          <Link href="/search" style={styles.link}>
+          <Link href="/search" style={styles.link} accessibilityRole="link">
             Search for a show
           </Link>
-          <Link href="/discover" style={styles.link}>Discover</Link>
+          <Link href="/discover" style={styles.link} accessibilityRole="link">Discover</Link>
           {!noSubscriptions && discover.view && discover.view.body.picks.length > 0 ? (
             <DiscoverSections body={discover.view.body} stale={discover.view.stale} fetchedAt={discover.view.fetchedAt} onOpen={(c) => void discover.open(c)} maxPicks={3} />
           ) : null}
-          <Link href="/inbox" style={styles.link}>{`Inbox${(() => { const n = inboxIds(stores).length; return n > 0 ? ` (${n})` : ''; })()}`}</Link>
-          <Link href="/queue" style={styles.link}>Queue</Link>
-          <Link href="/downloads" style={styles.link}>Downloads</Link>
-          {listener ? <Link href="/following" style={styles.link}>{`Following${followingUnread > 0 ? ` (${followingUnread})` : ''}`}</Link> : null}
+          <Link href="/inbox" style={styles.link} accessibilityRole="link">{`Inbox${(() => { const n = inboxIds(stores).length; return n > 0 ? ` (${n})` : ''; })()}`}</Link>
+          <Link href="/queue" style={styles.link} accessibilityRole="link">Queue</Link>
+          <Link href="/downloads" style={styles.link} accessibilityRole="link">Downloads</Link>
+          {listener ? <Link href="/following" style={styles.link} accessibilityRole="link">{`Following${followingUnread > 0 ? ` (${followingUnread})` : ''}`}</Link> : null}
           {listener === undefined ? (
-            <Link href="/auth/sign-in" style={styles.link}>Sign in to comment</Link>
+            <Link href="/auth/sign-in" style={styles.link} accessibilityRole="link">Sign in to comment</Link>
           ) : (
-            <Link href="/account" style={styles.link}>{`Signed in as ${listener.displayName}`}</Link>
+            <Link href="/account" style={styles.link} accessibilityRole="link">{`Signed in as ${listener.displayName}`}</Link>
           )}
         </View>
       }
