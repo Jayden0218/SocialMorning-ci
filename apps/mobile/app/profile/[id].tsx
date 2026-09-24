@@ -68,9 +68,12 @@ export default function ProfileScreen(): React.ReactElement {
           </Pressable>
         </View>
       ) : null}
-      <StatsBlock stats={profile.stats} own={own} />
+      {/* M6 (FR-019): the stats surface is the numbers, not the activity list below it. */}
+      {profile.stats !== null && profile.stats.all.listenedMs === 0 && profile.stats.all.finished === 0
+        ? <EmptyState surface="stats" />
+        : <StatsBlock stats={profile.stats} own={own} />}
       <Text style={styles.h2} accessibilityRole="header">Recent</Text>
-      {profile.recent.length === 0 ? <EmptyState surface="stats" /> : feed(profile.recent).map((item) => <FeedItem key={item.id} item={item} onOpen={open} />)}
+      {profile.recent.length === 0 ? <Text style={styles.muted}>Nothing public yet.</Text> : feed(profile.recent).map((item) => <FeedItem key={item.id} item={item} onOpen={open} />)}
       <ReportSheet target={reporting} onClose={() => setReporting(undefined)} />
     </ScrollView>
   );

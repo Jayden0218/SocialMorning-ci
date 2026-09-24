@@ -5,6 +5,15 @@ import { SCRUB_BACK_MS, SCRUB_FORWARD_MS, Scrubber, scrubberValue } from '../src
 import { heatLabel, heatMessage } from '../src/ui/HeatCurve';
 import { EMPTY_STATES } from '@socialmorning/social-core';
 
+it('the bar fills its row: without an explicit width it collapses in the player\'s centred column (found on the phone)', () => {
+  const r = create(createElement(Scrubber, { positionMs: 0, durationMs: 1000, onSeek: () => undefined, onSkip: () => undefined }));
+  const bar = r.root.find((n) => n.props['accessibilityRole'] === 'adjustable');
+  const style = (require('react-native').StyleSheet.flatten(bar.props['style']) ?? {}) as Record<string, unknown>;
+  expect(style['width']).toBe('100%');
+  expect(Number(style['height'])).toBeGreaterThan(0);
+  expect(bar.props['accessible']).toBe(true);
+});
+
 it('scrubberValue speaks the position and the length, and says so when the length is unknown', () => {
   expect(scrubberValue(872_000, 2_057_000)).toEqual({ min: 0, max: 2_057_000, now: 872_000, text: '14:32 of 34:17' });
   expect(scrubberValue(1_000, undefined).text).toBe('0:01, length unknown');

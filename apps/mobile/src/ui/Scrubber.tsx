@@ -27,6 +27,7 @@ export function Scrubber(props: {
   const fraction = props.durationMs === undefined || props.durationMs === 0 ? 0 : props.positionMs / props.durationMs;
   return (
     <Pressable
+      accessible
       accessibilityRole="adjustable"
       accessibilityLabel="Seek"
       accessibilityValue={scrubberValue(props.positionMs, props.durationMs)}
@@ -46,6 +47,9 @@ export function Scrubber(props: {
 }
 
 const styles = StyleSheet.create({
-  track: { height: 12, borderRadius: 6, backgroundColor: '#ddd', overflow: 'hidden', marginVertical: 8 },
-  fill: { height: '100%', backgroundColor: '#111' },
+  // `width: '100%'` is load-bearing: the player centres its column, so a bar without an
+  // explicit width collapses to nothing (found on the phone, J5 on build 16 — the bar was
+  // invisible AND absent from the accessibility tree).
+  track: { width: '100%', height: 8, borderRadius: 4, backgroundColor: '#e3e3e3', overflow: 'hidden', marginTop: 8 },
+  fill: { height: 8, backgroundColor: '#222' },
 });
