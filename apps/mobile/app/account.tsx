@@ -63,7 +63,8 @@ export default function AccountScreen(): React.ReactElement {
               catch { setPrivateListening(!v); }
             }}
           />
-          <Text>Private listening{'\n'}<Text style={{ color: '#666', fontSize: 12 }}>Hides what you listen to and your stats from others. Comments and clips stay public.</Text></Text>
+          {/* M6 (FR-025, J6 on build 17): without `flex: 1` this ran off the right edge at the largest font. */}
+          <Text style={{ flex: 1 }}>Private listening{'\n'}<Text style={{ color: '#666', fontSize: 12 }}>Hides what you listen to and your stats from others. Comments and clips stay public.</Text></Text>
         </View>
       ) : null}
       <Pressable style={styles.button} onPress={async () => { await auth.signOut(); router.back(); }} accessibilityRole="button" accessibilityLabel="Sign out">

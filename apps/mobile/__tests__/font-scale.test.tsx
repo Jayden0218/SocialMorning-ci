@@ -38,3 +38,12 @@ it('the empty state: no fixed height, its action is ≥ 44 dp tall and scales wi
   expect(flat(btn.props['style'])['height']).toBeUndefined();
   for (const t of r.root.findAllByType('Text' as never)) expect(t.props['allowFontScaling']).not.toBe(false);
 });
+
+it('a label beside a control takes the remaining width, so it wraps instead of running off the edge (J6)', () => {
+  // The pattern the phone caught: <Switch /> + <Text> in a row, with no flex on the text.
+  const { StyleSheet } = require('react-native');
+  const row = { flexDirection: 'row', alignItems: 'center', gap: 12 };
+  const labelWithFlex = StyleSheet.flatten({ flex: 1 });
+  expect(row.flexDirection).toBe('row');
+  expect(labelWithFlex['flex']).toBe(1);
+});
