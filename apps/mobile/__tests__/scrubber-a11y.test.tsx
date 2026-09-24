@@ -1,14 +1,16 @@
 /** quickstart A10 / guard G11: the scrubber is operable without sight — a spoken value and ±30/−15 actions. */
 import { createElement } from 'react';
+import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { SCRUB_BACK_MS, SCRUB_FORWARD_MS, Scrubber, scrubberValue } from '../src/ui/Scrubber';
 import { heatLabel, heatMessage } from '../src/ui/HeatCurve';
 import { EMPTY_STATES } from '@socialmorning/social-core';
 
 it('the bar fills its row: without an explicit width it collapses in the player\'s centred column (found on the phone)', () => {
-  const r = create(createElement(Scrubber, { positionMs: 0, durationMs: 1000, onSeek: () => undefined, onSkip: () => undefined }));
+  let r!: ReactTestRenderer;
+  act(() => { r = create(createElement(Scrubber, { positionMs: 0, durationMs: 1000, onSeek: () => undefined, onSkip: () => undefined })); });
   const bar = r.root.find((n) => n.props['accessibilityRole'] === 'adjustable');
-  const style = (require('react-native').StyleSheet.flatten(bar.props['style']) ?? {}) as Record<string, unknown>;
+  const style = (StyleSheet.flatten(bar.props['style']) ?? {}) as Record<string, unknown>;
   expect(style['width']).toBe('100%');
   expect(Number(style['height'])).toBeGreaterThan(0);
   expect(bar.props['accessible']).toBe(true);
