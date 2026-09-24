@@ -47,3 +47,37 @@ it('a label beside a control takes the remaining width, so it wraps instead of r
   expect(row.flexDirection).toBe('row');
   expect(labelWithFlex['flex']).toBe(1);
 });
+
+/**
+ * M7 (T030): the same rule for the components the restyle added. `MiniPlayer` and the
+ * tab bar sit at the bottom of every screen, so a fixed height there clips on *every*
+ * screen at 1.75× — the worst possible place for the mistake M6 found on Account.
+ */
+it('the shared components and the two bars have no fixed height on anything carrying text', () => {
+  const { Row } = require('../src/ui/Row');
+  const { Button } = require('../src/ui/Button');
+  const { Chip } = require('../src/ui/Chip');
+  const { TabBar } = require('../src/ui/TabBar');
+  const { hit } = require('../src/design');
+
+  const cases: [string, React.ReactElement][] = [
+    ['Row', createElement(Row, { title: 'A title long enough to wrap', subtitle: 'Reply All · 34:17', onPress: () => undefined })],
+    ['Button', createElement(Button, { label: 'Play this episode', onPress: () => undefined })],
+    ['Chip', createElement(Chip, { label: '1.5×', onPress: () => undefined })],
+    ['TabBar', createElement(TabBar, { items: [{ key: 'index', label: 'Library' }], activeKey: 'index', onSelect: () => undefined })],
+  ];
+  for (const [name, el] of cases) {
+    const r = render(el);
+    for (const node of r.root.findAll((n) => typeof n.type === 'string')) {
+      expect([name, flat(node.props['style'])['height']]).toEqual([name, undefined]);
+    }
+    for (const t of r.root.findAllByType('Text' as never)) expect(t.props['allowFontScaling']).not.toBe(false);
+  }
+
+  // Every tap target still clears 48 dp when the text grows.
+  for (const el of [cases[1]![1], cases[2]![1]]) {
+    const r = render(el);
+    const btn = r.root.find((n) => typeof n.type === 'string' && n.props['accessibilityRole'] === 'button');
+    expect(Number(flat(btn.props['style'])['minHeight'])).toBeGreaterThanOrEqual(hit.min);
+  }
+});

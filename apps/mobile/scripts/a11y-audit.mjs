@@ -23,13 +23,25 @@ const findings = [];
 for (const file of files) {
   const src = readFileSync(file, 'utf8');
   const lines = src.split('\n');
+  // `Row` is also the name of a local component inside CommentList and MomentSheet. A
+  // shared component only counts as one if this file actually imported it — otherwise
+  // the audit reports a name-prop miss on something that has no name prop at all.
+  const shared = new Set(
+    ['Row', 'Button', 'Chip', 'NavLink', 'TabBar'].filter((n) =>
+      new RegExp(`import\\s*\\{[^}]*\\b${n}\\b[^}]*\\}\\s*from\\s*'[^']*(ui/)?${n}'`).test(src),
+    ),
+  );
   for (let i = 0; i < lines.length; i++) {
     // Skip comments: a doc comment may name a component it is explaining.
     const bare = lines[i].trim();
     if (bare.startsWith('*') || bare.startsWith('//') || bare.startsWith('/*')) continue;
-    const open = /<(Pressable|TouchableOpacity|TouchableHighlight|Switch|TextInput|Link)\b/.exec(lines[i]);
+    // M7 (T029): the shared components are interactive too. `Row`, `Button`, `Chip` and
+    // `NavLink` take their name as a prop, so the audit looks for that prop rather than
+    // for a text child — a `Row title={x}` with no `title` is exactly the miss.
+    const open = /<(Pressable|TouchableOpacity|TouchableHighlight|Switch|TextInput|Link|Row|Button|Chip|NavLink|TabBar)\b/.exec(lines[i]);
     if (!open) continue;
     const tag = open[1];
+    if (['Row', 'Button', 'Chip', 'NavLink', 'TabBar'].includes(tag) && !shared.has(tag)) continue;
     // Read to the element's own close: `</Tag>`, or a `/>` that closes THIS tag (a `/>`
     // on an inner element, e.g. <View style={styles.art} />, is not the end).
     let block = '';
@@ -43,7 +55,13 @@ for (const file of files) {
       if (j > i && depth <= 0) break;
       if (j > i && /^\s*\/>/.test(line) && depth <= 1) { /* the opening tag closed on its own line */ }
     }
-    const named = /accessibilityLabel\s*=/.test(block) || /aria-label/.test(block);
+    const named =
+      /accessibilityLabel\s*=/.test(block) ||
+      /aria-label/.test(block) ||
+      // The shared components' own name props.
+      (tag === 'Row' && /\btitle\s*=/.test(block)) ||
+      ((tag === 'Button' || tag === 'Chip' || tag === 'NavLink') && /\blabel\s*=/.test(block)) ||
+      (tag === 'TabBar' && /\bitems\s*=/.test(block));
     const hasText = /<Text[\s>]/.test(block) || /\{`[^`]+`\}/.test(block) || /<Link\b[^>]*>[^<]+</.test(block);
     if (!named && !hasText) findings.push(`${file}:${i + 1} <${tag}> has no accessibilityLabel and no text child`);
     // M6 (FR-022, found on the phone in J5): a bare <Link> renders a View that TalkBack
