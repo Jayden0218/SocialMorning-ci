@@ -26,7 +26,7 @@ export const colour = {
   /** Decorative: the scrubber's unfilled track. */
   track: 'rgba(255,255,255,0.18)',
   /** Carries information (the heat curve), so it must clear 3:1 — 0.40 measures 3.66. */
-  bar: 'rgba(255,255,255,0.30)', // G2 BROKEN ON PURPOSE: the reference's value, 2.45
+  bar: 'rgba(255,255,255,0.40)',
   /** Decorative: the hairline between rows. */
   separator: 'rgba(255,255,255,0.30)',
 } as const;
