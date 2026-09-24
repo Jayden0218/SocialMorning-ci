@@ -5,8 +5,9 @@
  */
 import { Link, router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, Switch, Text, TextInput, View } from 'react-native';
+import { Linking, Pressable, Switch, Text, TextInput, View } from 'react-native';
 import { useStores } from '../src/ui/providers';
+import { appealsMailto, APPEALS_KEY, legalLinks, refreshAppeals } from '../src/social/links';
 import { ApiError } from '../src/social/api';
 import { useSocial } from '../src/social/context';
 import { styles } from './auth/sign-in';
@@ -24,6 +25,10 @@ export default function AccountScreen(): React.ReactElement {
       stores.settings.set('me.privateListening', me.privateListening ? '1' : '0');
     }).catch(() => undefined); // offline: the mirror stands
   }, [api, listener, stores]);
+  // M6 (FR-027): the four things a listener must be able to reach from Account.
+  const [appeals, setAppeals] = useState<string | undefined>(() => stores.settings.get(APPEALS_KEY) || undefined);
+  useEffect(() => { void refreshAppeals(api, stores).then(setAppeals); }, [api, stores]);
+  const links = legalLinks();
   const [confirming, setConfirming] = useState(false);
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | undefined>();
@@ -61,9 +66,27 @@ export default function AccountScreen(): React.ReactElement {
           <Text>Private listening{'\n'}<Text style={{ color: '#666', fontSize: 12 }}>Hides what you listen to and your stats from others. Comments and clips stay public.</Text></Text>
         </View>
       ) : null}
-      <Pressable style={styles.button} onPress={async () => { await auth.signOut(); router.back(); }} accessibilityRole="button">
+      <Pressable style={styles.button} onPress={async () => { await auth.signOut(); router.back(); }} accessibilityRole="button" accessibilityLabel="Sign out">
         <Text style={styles.buttonText}>Sign out</Text>
       </Pressable>
+
+      <View style={{ gap: 4, marginTop: 8 }}>
+        <Pressable onPress={() => void Linking.openURL(links.privacy)} accessibilityRole="link" accessibilityLabel="Privacy policy">
+          <Text style={styles.link}>Privacy policy</Text>
+        </Pressable>
+        <Pressable onPress={() => void Linking.openURL(links.rules)} accessibilityRole="link" accessibilityLabel="Community rules">
+          <Text style={styles.link}>Community rules</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => { const to = appealsMailto(appeals); if (to) void Linking.openURL(to); }}
+          disabled={appealsMailto(appeals) === undefined}
+          accessibilityRole="link"
+          accessibilityLabel="Report a problem"
+          accessibilityState={{ disabled: appealsMailto(appeals) === undefined }}
+        >
+          <Text style={[styles.link, appealsMailto(appeals) === undefined && { color: '#999' }]}>Report a problem{appeals ? '' : ' (offline)'}</Text>
+        </Pressable>
+      </View>
 
       {!confirming ? (
         <Pressable onPress={() => setConfirming(true)} accessibilityRole="button">
