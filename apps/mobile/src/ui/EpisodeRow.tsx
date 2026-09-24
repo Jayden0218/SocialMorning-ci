@@ -2,6 +2,7 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { EpisodeCard } from '../social/api';
 import { mmss } from './format';
+import { colour } from '../design';
 
 export function EpisodeRow(props: { card: EpisodeCard; line?: string; onPress: () => void; disabled?: boolean }): React.ReactElement {
   const { card } = props;
@@ -19,10 +20,10 @@ export function EpisodeRow(props: { card: EpisodeCard; line?: string; onPress: (
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: 12, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: '#ccc' },
-  art: { width: 56, height: 56, borderRadius: 8, backgroundColor: '#ddd' },
+  row: { flexDirection: 'row', gap: 12, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: colour.separator },
+  art: { width: 56, height: 56, borderRadius: 8, backgroundColor: colour.surface },
   grow: { flex: 1, gap: 2 },
   title: { fontSize: 16, fontWeight: '600' },
-  meta: { color: '#666', fontSize: 13 },
-  line: { color: '#333', fontSize: 14 },
+  meta: { color: colour.muted, fontSize: 13 },
+  line: { color: colour.text, fontSize: 14 },
 });

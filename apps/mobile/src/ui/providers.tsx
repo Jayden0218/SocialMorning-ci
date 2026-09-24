@@ -23,6 +23,7 @@ import { deviceId } from '../sync/device-id';
 import { createDownloadManager, type DownloadManager } from '../downloads/manager';
 import { createExpoDownloader, downloadPathFor } from '../downloads/expo-downloader';
 import { createExpoNetwork } from '../downloads/expo-network';
+import { colour } from '../design';
 
 const StoresContext = createContext<Stores | undefined>(undefined);
 const ToastContext = createContext<((message: string) => void) | undefined>(undefined);
@@ -200,9 +201,11 @@ const styles = StyleSheet.create({
     left: 12,
     right: 12,
     bottom: 96,
-    backgroundColor: '#222',
+    backgroundColor: colour.surface,
+    borderWidth: 1,
+    borderColor: colour.separator,
     borderRadius: 8,
     padding: 12,
   },
-  toastText: { color: 'white' },
+  toastText: { color: colour.text },
 });

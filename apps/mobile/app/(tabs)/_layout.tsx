@@ -70,7 +70,7 @@ export default function TabsLayout(): React.ReactElement {
 
   return (
     <Tabs
-      screenOptions={{ headerShown: false }}
+      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colour.background } }}
       tabBar={(props) => {
         const active = props.state.routes[props.state.index]?.name ?? 'index';
         return (

@@ -12,6 +12,7 @@ import { inboxIds, INBOX_PAGE } from '../src/inbox';
 import { mmss, shortDate } from '../src/ui/format';
 import { useDownloads, useStores, useToast } from '../src/ui/providers';
 import { EmptyState } from '../src/ui/EmptyState';
+import { colour } from '../src/design';
 
 export default function InboxScreen(): React.ReactElement {
   const stores = useStores();
@@ -64,11 +65,11 @@ export default function InboxScreen(): React.ReactElement {
 
 const styles = StyleSheet.create({
   body: { padding: 12, gap: 4 },
-  item: { paddingVertical: 8, gap: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: '#ddd' },
-  show: { fontSize: 12, color: '#666', textTransform: 'uppercase' },
+  item: { paddingVertical: 8, gap: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: colour.separator },
+  show: { fontSize: 12, color: colour.muted, textTransform: 'uppercase' },
   title: { fontSize: 15, fontWeight: '600' },
-  muted: { color: '#666', fontSize: 13 },
+  muted: { color: colour.muted, fontSize: 13 },
   actions: { flexDirection: 'row', gap: 18 },
-  link: { color: '#0645ad', fontSize: 15 },
-  danger: { color: '#b00020', fontSize: 15 },
+  link: { color: colour.accent, fontSize: 15 },
+  danger: { color: colour.accent, fontSize: 15 },
 });

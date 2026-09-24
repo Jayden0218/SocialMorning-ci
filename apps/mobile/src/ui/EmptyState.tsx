@@ -7,6 +7,7 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { emptyState, type Surface } from '@socialmorning/social-core';
+import { colour } from '../design';
 
 export type EmptyStateProps = {
   surface: Surface;
@@ -60,7 +61,7 @@ export function EmptyState(props: EmptyStateProps): React.ReactElement | null {
 
 const styles = StyleSheet.create({
   wrap: { paddingVertical: 16, gap: 6, alignItems: 'flex-start' },
-  sentence: { color: '#444', fontSize: 15 },
+  sentence: { color: colour.text, fontSize: 15 },
   btn: { paddingVertical: 10, minHeight: 44, justifyContent: 'center' },
-  link: { color: '#0645ad', fontSize: 16, fontWeight: '600' },
+  link: { color: colour.accent, fontSize: 16, fontWeight: '600' },
 });

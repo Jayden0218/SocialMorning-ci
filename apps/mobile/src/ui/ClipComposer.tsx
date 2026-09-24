@@ -8,6 +8,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { usePlayer, usePlayerState, type PlayableEpisode } from '../playback/store';
 import { canSave, endHere, nudgeEdge, openComposer, problemText, setCaption, startHere, type ComposerState } from '../graph/composer';
 import { mmss } from './format';
+import { colour } from '../design';
 
 export type ClipComposerProps = {
   episode: PlayableEpisode;
@@ -62,13 +63,13 @@ const styles = StyleSheet.create({
   wrap: { padding: 16, gap: 10 },
   title: { fontSize: 18, fontWeight: '600' },
   range: { fontSize: 22, fontVariant: ['tabular-nums'] },
-  muted: { color: '#666' },
+  muted: { color: colour.muted },
   row: { flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
-  chip: { borderWidth: 1, borderColor: '#333', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8 },
-  problem: { color: '#b00020' },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 10, minHeight: 60, fontSize: 16 },
-  secondary: { borderWidth: 1, borderColor: '#333', borderRadius: 24, paddingHorizontal: 18, paddingVertical: 10 },
-  primary: { backgroundColor: '#111', borderRadius: 24, paddingHorizontal: 22, paddingVertical: 10 },
-  primaryText: { color: '#fff', fontWeight: '600' },
+  chip: { borderWidth: 1, borderColor: colour.separator, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8 },
+  problem: { color: colour.accent },
+  input: { borderWidth: 1, borderColor: colour.separator, borderRadius: 8, padding: 10, minHeight: 60, fontSize: 16 },
+  secondary: { borderWidth: 1, borderColor: colour.separator, borderRadius: 24, paddingHorizontal: 18, paddingVertical: 10 },
+  primary: { backgroundColor: colour.accent, borderRadius: 24, paddingHorizontal: 22, paddingVertical: 10 },
+  primaryText: { color: colour.text, fontWeight: '600' },
   disabled: { opacity: 0.4 },
 });

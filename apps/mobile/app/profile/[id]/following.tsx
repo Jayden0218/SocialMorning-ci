@@ -6,6 +6,7 @@ import { useSocial } from '../../../src/social/context';
 import { useSafety } from '../../../src/safety/context';
 import type { ClipAuthor } from '../../../src/social/api';
 import { EmptyState } from '../../../src/ui/EmptyState';
+import { colour } from '../../../src/design';
 
 export default function FollowingScreen(): React.ReactElement {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -30,4 +31,4 @@ export default function FollowingScreen(): React.ReactElement {
   );
 }
 
-const styles = StyleSheet.create({ body: { padding: 16 }, row: { paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: '#ccc' }, name: { fontSize: 16 }, muted: { color: '#666' } });
+const styles = StyleSheet.create({ body: { padding: 16 }, row: { paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: colour.separator }, name: { fontSize: 16 }, muted: { color: colour.muted } });

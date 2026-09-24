@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useDownloads, useStores, useToast } from './providers';
 import type { DownloadRow } from '../storage/types';
+import { colour } from '../design';
 
 export function mb(bytes: number | undefined): string {
   if (bytes === undefined) return '';
@@ -73,9 +74,9 @@ export function DownloadButton(props: { episodeId: string }): React.ReactElement
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, marginVertical: 4 },
-  button: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 999, borderWidth: 1, borderColor: '#222' },
+  button: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 999, borderWidth: 1, borderColor: colour.separator },
   buttonText: { fontWeight: '600' },
-  done: { fontWeight: '600', color: '#1a7f37' },
-  link: { color: '#0645ad', fontSize: 14 },
-  muted: { color: '#666', fontSize: 14 },
+  done: { fontWeight: '600', color: colour.accent },
+  link: { color: colour.accent, fontSize: 14 },
+  muted: { color: colour.muted, fontSize: 14 },
 });

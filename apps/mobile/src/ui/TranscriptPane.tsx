@@ -2,6 +2,7 @@
 import { currentLine, type Transcript } from '@socialmorning/player-core';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { mmss } from './format';
+import { colour } from '../design';
 
 export function TranscriptPane(props: { transcript: Transcript; positionMs: number; onSeek: (ms: number) => void }): React.ReactElement {
   if ('text' in props.transcript) {
@@ -30,13 +31,13 @@ export function TranscriptPane(props: { transcript: Transcript; positionMs: numb
 }
 
 const styles = StyleSheet.create({
-  box: { width: '100%', maxHeight: 260, borderWidth: StyleSheet.hairlineWidth, borderColor: '#ccc', borderRadius: 8, padding: 8 },
+  box: { width: '100%', maxHeight: 260, borderWidth: StyleSheet.hairlineWidth, borderColor: colour.separator, borderRadius: 8, padding: 8 },
   lines: { gap: 4 },
   line: { flexDirection: 'row', gap: 8, paddingVertical: 3, paddingHorizontal: 4, borderRadius: 4 },
-  current: { backgroundColor: '#eef' },
-  time: { color: '#666', fontVariant: ['tabular-nums'], width: 52, fontSize: 12, paddingTop: 2 },
+  current: { backgroundColor: colour.surface },
+  time: { color: colour.muted, fontVariant: ['tabular-nums'], width: 52, fontSize: 12, paddingTop: 2 },
   text: { fontSize: 14, lineHeight: 20 },
   grow: { flex: 1 },
   textCurrent: { fontWeight: '600' },
-  speaker: { color: '#446', fontWeight: '600' },
+  speaker: { color: colour.muted, fontWeight: '600' },
 });

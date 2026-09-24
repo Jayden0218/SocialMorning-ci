@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { usePlayer, usePlayerState } from '../playback/store';
 import { useToast } from './providers';
+import { colour } from '../design';
 
 const PRESETS = [1, 1.2, 1.5, 2];
 
@@ -37,7 +38,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
   step: { fontSize: 22, paddingHorizontal: 8 },
   rate: { fontSize: 16, fontWeight: '700', minWidth: 48, textAlign: 'center' },
-  chip: { borderWidth: 1, borderColor: '#999', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, color: '#333' },
-  chipOn: { backgroundColor: '#222', color: '#fff', borderColor: '#222' },
-  link: { color: '#0645ad', fontSize: 13 },
+  chip: { borderWidth: 1, borderColor: colour.separator, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, color: colour.text },
+  chipOn: { backgroundColor: colour.accent, color: colour.text, borderColor: colour.accent },
+  link: { color: colour.accent, fontSize: 13 },
 });

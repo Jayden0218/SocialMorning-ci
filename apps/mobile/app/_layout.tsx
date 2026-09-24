@@ -5,6 +5,7 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView, StyleSheet } from 'react-native';
+import { colour, fontSize } from '../src/design';
 import { AppProviders } from '../src/ui/providers';
 import { SocialProvider } from '../src/social/context';
 import { GraphProvider } from '../src/graph/context';
@@ -18,8 +19,23 @@ export default function RootLayout(): React.ReactElement {
       <SafetyProvider>
       <GraphProvider>
       <SafeAreaView style={styles.fill}>
-        <StatusBar style="auto" />
-        <Stack screenOptions={{ headerBackTitle: 'Back' }}>
+        <StatusBar style="light" />
+        {/*
+          * M7: one place decides the chrome for every screen in the stack — the dark
+          * background, the large white title, the accent back arrow. Setting
+          * `contentStyle` here is what stops a screen that has not been touched yet
+          * from flashing white underneath the new header.
+          */}
+        <Stack
+          screenOptions={{
+            headerBackTitle: 'Back',
+            headerStyle: { backgroundColor: colour.background },
+            headerTintColor: colour.accent,
+            headerTitleStyle: { color: colour.text, fontSize: fontSize.base, fontWeight: '700' },
+            headerShadowVisible: false,
+            contentStyle: { backgroundColor: colour.background },
+          }}
+        >
           {/* The tab group draws its own header and its own bar (M7 T012). */}
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="search" options={{ title: 'Search' }} />
@@ -47,4 +63,4 @@ export default function RootLayout(): React.ReactElement {
   );
 }
 
-const styles = StyleSheet.create({ fill: { flex: 1 } });
+const styles = StyleSheet.create({ fill: { flex: 1, backgroundColor: colour.background } });

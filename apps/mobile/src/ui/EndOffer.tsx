@@ -1,6 +1,7 @@
 /** The end-of-episode offer (M5 FR-010): the first Next-up item with its reason and a Play button — nothing plays by itself. */
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { NextUpItem } from '../social/api';
+import { colour } from '../design';
 
 export function EndOffer(props: { item: NextUpItem; onPlay: () => void }): React.ReactElement {
   return (
@@ -14,10 +15,10 @@ export function EndOffer(props: { item: NextUpItem; onPlay: () => void }): React
 }
 
 const styles = StyleSheet.create({
-  wrap: { marginTop: 12, padding: 12, backgroundColor: '#f6f2ea', borderRadius: 10, gap: 4 },
+  wrap: { marginTop: 12, padding: 12, backgroundColor: colour.surface, borderRadius: 10, gap: 4 },
   h3: { fontWeight: '600' },
   title: { fontSize: 16, fontWeight: '600' },
-  muted: { color: '#666' },
-  primary: { alignSelf: 'flex-start', backgroundColor: '#111', borderRadius: 24, paddingHorizontal: 20, paddingVertical: 10, marginTop: 6 },
-  primaryText: { color: '#fff', fontWeight: '600' },
+  muted: { color: colour.muted },
+  primary: { alignSelf: 'flex-start', backgroundColor: colour.accent, borderRadius: 24, paddingHorizontal: 20, paddingVertical: 10, marginTop: 6 },
+  primaryText: { color: colour.text, fontWeight: '600' },
 });

@@ -2,6 +2,7 @@
 import { enqueue } from '@socialmorning/player-core';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useStores, useToast } from './providers';
+import { colour } from '../design';
 
 export function QueueButtons(props: { episodeId: string; onQueued?: () => void }): React.ReactElement {
   const stores = useStores();
@@ -24,6 +25,6 @@ export function QueueButtons(props: { episodeId: string; onQueued?: () => void }
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 10, marginVertical: 4 },
-  button: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: '#222' },
+  button: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: colour.separator },
   text: { fontWeight: '600' },
 });

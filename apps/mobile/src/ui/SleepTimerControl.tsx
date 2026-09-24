@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { SleepChoice } from '@socialmorning/player-core';
 import { usePlayer } from '../playback/store';
 import { mmss } from './format';
+import { colour } from '../design';
 
 const CHOICES: SleepChoice[] = [5, 10, 15, 30, 45, 60, 'endOfEpisode'];
 
@@ -45,8 +46,8 @@ const styles = StyleSheet.create({
   wrap: { width: '100%', gap: 4, marginTop: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   label: { fontWeight: '600' },
-  chip: { borderWidth: 1, borderColor: '#999', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, color: '#333', fontSize: 13 },
-  chipOn: { backgroundColor: '#222', color: '#fff', borderColor: '#222' },
-  status: { color: '#444' },
-  link: { color: '#0645ad', fontSize: 13 },
+  chip: { borderWidth: 1, borderColor: colour.separator, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, color: colour.text, fontSize: 13 },
+  chipOn: { backgroundColor: colour.accent, color: colour.text, borderColor: colour.accent },
+  status: { color: colour.text },
+  link: { color: colour.accent, fontSize: 13 },
 });

@@ -15,6 +15,7 @@ import { ClipCard } from '../../src/ui/ClipCard';
 import { shareClip } from '../../src/graph/share';
 import { apiBaseUrl } from '../../src/social/base-url';
 import { ApiError, type Clip } from '../../src/social/api';
+import { colour } from '../../src/design';
 
 type Status = { kind: 'loading' } | { kind: 'error'; message: string } | { kind: 'ready'; clip: Clip; resolved: Resolved };
 
@@ -74,9 +75,9 @@ export default function ClipScreen(): React.ReactElement {
 const styles = StyleSheet.create({
   body: { padding: 16, gap: 12 },
   title: { fontSize: 20, fontWeight: '600' },
-  muted: { color: '#666' },
+  muted: { color: colour.muted },
   row: { flexDirection: 'row', gap: 12, flexWrap: 'wrap', alignItems: 'center' },
-  primary: { backgroundColor: '#111', borderRadius: 24, paddingHorizontal: 20, paddingVertical: 10 },
-  primaryText: { color: '#fff', fontWeight: '600' },
-  secondary: { borderWidth: 1, borderColor: '#333', borderRadius: 24, paddingHorizontal: 18, paddingVertical: 10 },
+  primary: { backgroundColor: colour.accent, borderRadius: 24, paddingHorizontal: 20, paddingVertical: 10 },
+  primaryText: { color: colour.text, fontWeight: '600' },
+  secondary: { borderWidth: 1, borderColor: colour.separator, borderRadius: 24, paddingHorizontal: 18, paddingVertical: 10 },
 });

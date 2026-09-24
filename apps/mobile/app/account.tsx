@@ -11,6 +11,7 @@ import { appealsMailto, APPEALS_KEY, legalLinks, refreshAppeals } from '../src/s
 import { ApiError } from '../src/social/api';
 import { useSocial } from '../src/social/context';
 import { styles } from './auth/sign-in';
+import { colour } from '../src/design';
 
 export default function AccountScreen(): React.ReactElement {
   const { auth, listener, api } = useSocial();
@@ -50,7 +51,7 @@ export default function AccountScreen(): React.ReactElement {
   return (
     <View style={styles.body}>
       <Text style={{ fontSize: 18, fontWeight: '600' }}>{listener?.displayName ?? 'Not signed in'}</Text>
-      <Text style={{ color: '#666' }}>{listener?.email ?? ''}</Text>
+      <Text style={{ color: colour.muted }}>{listener?.email ?? ''}</Text>
       {listener ? <Link href={{ pathname: '/profile/[id]', params: { id: listener.listenerId } }} style={styles.link} accessibilityRole="link">Your profile</Link> : null}
       {listener ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -64,7 +65,7 @@ export default function AccountScreen(): React.ReactElement {
             }}
           />
           {/* M6 (FR-025, J6 on build 17): without `flex: 1` this ran off the right edge at the largest font. */}
-          <Text style={{ flex: 1 }}>Private listening{'\n'}<Text style={{ color: '#666', fontSize: 12 }}>Hides what you listen to and your stats from others. Comments and clips stay public.</Text></Text>
+          <Text style={{ flex: 1 }}>Private listening{'\n'}<Text style={{ color: colour.muted, fontSize: 12 }}>Hides what you listen to and your stats from others. Comments and clips stay public.</Text></Text>
         </View>
       ) : null}
       <Pressable style={styles.button} onPress={async () => { await auth.signOut(); router.back(); }} accessibilityRole="button" accessibilityLabel="Sign out">
@@ -85,20 +86,20 @@ export default function AccountScreen(): React.ReactElement {
           accessibilityLabel="Report a problem"
           accessibilityState={{ disabled: appealsMailto(appeals) === undefined }}
         >
-          <Text style={[styles.link, appealsMailto(appeals) === undefined && { color: '#999' }]}>Report a problem{appeals ? '' : ' (offline)'}</Text>
+          <Text style={[styles.link, appealsMailto(appeals) === undefined && { color: colour.muted }]}>Report a problem{appeals ? '' : ' (offline)'}</Text>
         </Pressable>
       </View>
 
       {!confirming ? (
         <Pressable onPress={() => setConfirming(true)} accessibilityRole="button">
-          <Text style={[styles.link, { color: '#b00020' }]}>Delete my account…</Text>
+          <Text style={[styles.link, { color: colour.accent }]}>Delete my account…</Text>
         </Pressable>
       ) : (
         <View style={{ gap: 8, marginTop: 8 }}>
           <Text>This removes your comments, reactions and listening positions from every phone. Where someone replied to you, "Comment deleted" stays so their reply still makes sense. This cannot be undone.</Text>
           <TextInput style={styles.input} placeholder="Your password, to confirm" secureTextEntry value={password} onChangeText={setPassword} accessibilityLabel="Password" />
           {error ? <Text style={styles.error}>{error}</Text> : null}
-          <Pressable style={[styles.button, { backgroundColor: '#b00020' }, (busy || !password) && styles.disabled]} disabled={busy || !password} onPress={remove} accessibilityRole="button">
+          <Pressable style={[styles.button, { backgroundColor: colour.accent }, (busy || !password) && styles.disabled]} disabled={busy || !password} onPress={remove} accessibilityRole="button">
             <Text style={styles.buttonText}>Delete account</Text>
           </Pressable>
           <Pressable onPress={() => setConfirming(false)} accessibilityRole="button"><Text style={styles.link}>Keep my account</Text></Pressable>

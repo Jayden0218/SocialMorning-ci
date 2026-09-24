@@ -12,6 +12,7 @@ import { toPlayable } from '../src/storage/playable';
 import { mmss } from '../src/ui/format';
 import { useStores } from '../src/ui/providers';
 import { EmptyState } from '../src/ui/EmptyState';
+import { colour } from '../src/design';
 
 export default function QueueScreen(): React.ReactElement {
   const stores = useStores();
@@ -67,11 +68,11 @@ export default function QueueScreen(): React.ReactElement {
 
 const styles = StyleSheet.create({
   body: { padding: 12, gap: 4 },
-  item: { paddingVertical: 8, gap: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: '#ddd' },
+  item: { paddingVertical: 8, gap: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: colour.separator },
   title: { fontSize: 15, fontWeight: '600' },
-  muted: { color: '#666', fontSize: 13 },
+  muted: { color: colour.muted, fontSize: 13 },
   actions: { flexDirection: 'row', gap: 18, alignItems: 'center' },
-  link: { color: '#0645ad', fontSize: 15 },
+  link: { color: colour.accent, fontSize: 15 },
   off: { opacity: 0.3 },
-  danger: { color: '#b00020', fontSize: 15 },
+  danger: { color: colour.accent, fontSize: 15 },
 });

@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Link } from 'expo-router';
 import type { Clip } from '../social/api';
 import { mmss } from './format';
+import { colour } from '../design';
 
 export type ClipCardProps = {
   clip: Clip;
@@ -44,12 +45,12 @@ export function ClipCard(props: ClipCardProps): React.ReactElement {
 }
 
 const styles = StyleSheet.create({
-  card: { paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: '#ccc', gap: 4 },
+  card: { paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: colour.separator, gap: 4 },
   range: { fontVariant: ['tabular-nums'], fontWeight: '600' },
   caption: { fontSize: 16 },
   row: { flexDirection: 'row', gap: 16, alignItems: 'center' },
-  author: { color: '#1a4fd6' },
-  muted: { color: '#666' },
-  link: { color: '#1a4fd6' },
-  danger: { color: '#b00020' },
+  author: { color: colour.accent },
+  muted: { color: colour.muted },
+  link: { color: colour.accent },
+  danger: { color: colour.accent },
 });

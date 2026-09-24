@@ -9,6 +9,7 @@ import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleShee
 import { mmss } from './format';
 import { useSocial } from '../social/context';
 import type { Comment } from '../social/api';
+import { colour } from '../design';
 
 export function MomentSheet(props: {
   episodeId: string;
@@ -79,17 +80,17 @@ export function MomentSheet(props: {
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)' },
-  sheet: { backgroundColor: '#fff', padding: 16, gap: 8, borderTopLeftRadius: 16, borderTopRightRadius: 16, maxHeight: '70%' },
+  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: colour.scrim },
+  sheet: { backgroundColor: colour.surface, padding: 16, gap: 8, borderTopLeftRadius: 16, borderTopRightRadius: 16, maxHeight: '70%' },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   title: { fontSize: 16, fontWeight: '700' },
   list: { flexGrow: 0 },
-  row: { paddingVertical: 8, gap: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: '#ddd' },
+  row: { paddingVertical: 8, gap: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: colour.separator },
   reply: { marginLeft: 16, borderBottomWidth: 0 },
   author: { fontWeight: '600' },
   body: { fontSize: 15 },
-  muted: { color: '#666' },
+  muted: { color: colour.muted },
   actions: { flexDirection: 'row', gap: 16 },
-  link: { color: '#0645ad', fontSize: 14 },
-  danger: { color: '#b00020', fontSize: 14 },
+  link: { color: colour.accent, fontSize: 14 },
+  danger: { color: colour.accent, fontSize: 14 },
 });

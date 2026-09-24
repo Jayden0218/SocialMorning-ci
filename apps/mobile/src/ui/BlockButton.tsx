@@ -2,6 +2,7 @@
 import { Alert, Pressable, StyleSheet, Text } from 'react-native';
 import { router } from 'expo-router';
 import { announce, useSafety } from '../safety/context';
+import { colour } from '../design';
 
 export function BlockButton(props: { listenerId: string; displayName: string; onChange?: (blocked: boolean) => void }): React.ReactElement {
   const { safety, version } = useSafety();
@@ -34,6 +35,6 @@ export function BlockButton(props: { listenerId: string; displayName: string; on
 
 const styles = StyleSheet.create({
   btn: { paddingVertical: 8, minHeight: 44, justifyContent: 'center' },
-  link: { color: '#0645ad', fontSize: 15 },
-  danger: { color: '#b00020', fontSize: 15 },
+  link: { color: colour.accent, fontSize: 15 },
+  danger: { color: colour.accent, fontSize: 15 },
 });

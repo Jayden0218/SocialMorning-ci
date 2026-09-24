@@ -23,6 +23,7 @@ import { useSocial } from '../../src/social/context';
 import { useDiscover } from '../../src/discover/useDiscover';
 import { DiscoverSections } from '../../src/ui/DiscoverSections';
 import type { CachedShow } from '../../src/storage/types';
+import { colour } from '../../src/design';
 
 type Row = { feedUrl: string; show: CachedShow | undefined; stale: boolean };
 
@@ -128,11 +129,11 @@ function latestLine(publishedAt: number | undefined, stale: boolean): string {
 const styles = StyleSheet.create({
   body: { padding: 12, gap: 4 },
   header: { gap: 8, marginBottom: 8 },
-  link: { fontSize: 16, color: '#0645ad', paddingVertical: 4 },
+  link: { fontSize: 16, color: colour.accent, paddingVertical: 4 },
   row: { flexDirection: 'row', gap: 12, paddingVertical: 8 },
-  art: { width: 56, height: 56, borderRadius: 6, backgroundColor: '#eee' },
+  art: { width: 56, height: 56, borderRadius: 6, backgroundColor: colour.surface },
   grow: { flex: 1 },
   title: { fontSize: 15, fontWeight: '600' },
-  subtitle: { fontSize: 13, color: '#666' },
-  empty: { color: '#666', paddingVertical: 8 },
+  subtitle: { fontSize: 13, color: colour.muted },
+  empty: { color: colour.muted, paddingVertical: 8 },
 });

@@ -18,6 +18,7 @@ import { ReportSheet, type ReportTarget } from '../../src/ui/ReportSheet';
 import { Pressable } from 'react-native';
 import { ApiError, type FeedItem as Item, type Profile } from '../../src/social/api';
 import { EmptyState } from '../../src/ui/EmptyState';
+import { colour } from '../../src/design';
 
 export default function ProfileScreen(): React.ReactElement {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -84,7 +85,7 @@ const styles = StyleSheet.create({
   name: { fontSize: 24, fontWeight: '600' },
   h2: { fontSize: 18, fontWeight: '600', marginTop: 8 },
   row: { flexDirection: 'row', gap: 16, alignItems: 'center', flexWrap: 'wrap' },
-  link: { color: '#1a4fd6' },
-  muted: { color: '#666' },
+  link: { color: colour.accent },
+  muted: { color: colour.muted },
   btn: { paddingVertical: 8, minHeight: 44, justifyContent: 'center' },
 });

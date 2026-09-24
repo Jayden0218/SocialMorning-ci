@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import type { Discover, EpisodeCard } from '../social/api';
 import { PickCard } from './PickCard';
 import { EpisodeRow } from './EpisodeRow';
+import { colour } from '../design';
 
 export function DiscoverSections(props: { body: Discover; stale: boolean; fetchedAt?: number; onOpen: (card: EpisodeCard) => void; maxPicks?: number }): React.ReactElement {
   const { body } = props;
@@ -32,6 +33,6 @@ export function DiscoverSections(props: { body: Discover; stale: boolean; fetche
 const styles = StyleSheet.create({
   wrap: { gap: 6 },
   h2: { fontSize: 18, fontWeight: '600', marginTop: 12, marginBottom: 4 },
-  muted: { color: '#666' },
-  stale: { color: '#8a5a00', backgroundColor: '#fff4d6', padding: 8, borderRadius: 6 },
+  muted: { color: colour.muted },
+  stale: { color: colour.accent, backgroundColor: colour.surface, padding: 8, borderRadius: 6 },
 });

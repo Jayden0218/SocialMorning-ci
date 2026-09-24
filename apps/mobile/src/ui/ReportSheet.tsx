@@ -9,6 +9,7 @@ import { router } from 'expo-router';
 import { REPORT_NOTE_MAX, REPORT_REASONS, type ReportReason } from '@socialmorning/social-core';
 import { announce, useSafety } from '../safety/context';
 import type { HiddenKind } from '../storage/types';
+import { colour } from '../design';
 
 export const REASON_LABEL: Record<ReportReason, string> = {
   spam: 'Spam', harassment: 'Harassment', hate: 'Hate', sexual: 'Sexual content', violence: 'Violence', illegal: 'Illegal content', other: 'Something else',
@@ -59,21 +60,21 @@ export function ReportSheet(props: { target: ReportTarget | undefined; onClose: 
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)' },
-  sheet: { backgroundColor: '#fff', borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16, gap: 8, maxHeight: '85%' },
+  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: colour.scrim },
+  sheet: { backgroundColor: colour.surface, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16, gap: 8, maxHeight: '85%' },
   h1: { fontSize: 18, fontWeight: '700' },
-  notice: { color: '#8a5a00', backgroundColor: '#fff4d6', padding: 8, borderRadius: 6 },
+  notice: { color: colour.accent, backgroundColor: colour.surface, padding: 8, borderRadius: 6 },
   list: { flexGrow: 0 },
   reason: { paddingVertical: 12, paddingHorizontal: 8, borderRadius: 8, minHeight: 48 },
-  reasonOn: { backgroundColor: '#eef' },
+  reasonOn: { backgroundColor: colour.accent, borderColor: colour.accent },
   reasonText: { fontSize: 16 },
-  reasonTextOn: { fontWeight: '700', color: '#0645ad' },
-  note: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 10, minHeight: 64, textAlignVertical: 'top' },
-  counter: { color: '#666', fontSize: 12, textAlign: 'right' },
+  reasonTextOn: { fontWeight: '700', color: colour.accent },
+  note: { borderWidth: 1, borderColor: colour.separator, borderRadius: 8, padding: 10, minHeight: 64, textAlignVertical: 'top' },
+  counter: { color: colour.muted, fontSize: 12, textAlign: 'right' },
   row: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12 },
   btn: { paddingVertical: 12, paddingHorizontal: 16, minHeight: 48, justifyContent: 'center' },
-  send: { backgroundColor: '#111', borderRadius: 24 },
+  send: { backgroundColor: colour.accent, borderRadius: 24 },
   off: { opacity: 0.4 },
-  sendText: { color: '#fff', fontWeight: '600' },
-  link: { color: '#0645ad', fontSize: 16 },
+  sendText: { color: colour.text, fontWeight: '600' },
+  link: { color: colour.accent, fontSize: 16 },
 });

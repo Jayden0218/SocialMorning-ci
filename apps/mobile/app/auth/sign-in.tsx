@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { ApiError } from '../../src/social/api';
 import { SUSPENDED_KEY, useSocial } from '../../src/social/context';
 import { useStores } from '../../src/ui/providers';
+import { colour } from '../../src/design';
 
 export default function SignInScreen(): React.ReactElement {
   const { auth } = useSocial();
@@ -54,10 +55,10 @@ export function describe(e: unknown): string {
 
 export const styles = StyleSheet.create({
   body: { padding: 16, gap: 12 },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 12, fontSize: 16 },
-  error: { color: '#b00020' },
-  button: { backgroundColor: '#222', borderRadius: 24, paddingVertical: 12, alignItems: 'center' },
+  input: { borderWidth: 1, borderColor: colour.separator, borderRadius: 8, padding: 12, fontSize: 16 },
+  error: { color: colour.accent },
+  button: { backgroundColor: colour.accent, borderRadius: 24, paddingVertical: 12, alignItems: 'center' },
   disabled: { opacity: 0.5 },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  link: { color: '#0645ad', fontSize: 15, paddingVertical: 8 },
+  buttonText: { color: colour.text, fontSize: 16, fontWeight: '600' },
+  link: { color: colour.accent, fontSize: 15, paddingVertical: 8 },
 });

@@ -2,6 +2,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import type { DiscoverItem } from '../social/api';
 import { EpisodeRow } from './EpisodeRow';
+import { colour } from '../design';
 
 export function PickCard(props: { item: DiscoverItem; onPress: () => void }): React.ReactElement {
   return (
@@ -13,6 +14,6 @@ export function PickCard(props: { item: DiscoverItem; onPress: () => void }): Re
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: '#f6f2ea', borderRadius: 10, paddingHorizontal: 12, marginBottom: 8 },
-  why: { fontStyle: 'italic', color: '#5a4a2a', paddingBottom: 10 },
+  card: { backgroundColor: colour.surface, borderRadius: 10, paddingHorizontal: 12, marginBottom: 8 },
+  why: { fontStyle: 'italic', color: colour.muted, paddingBottom: 10 },
 });

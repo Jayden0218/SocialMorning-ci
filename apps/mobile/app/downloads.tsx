@@ -5,6 +5,7 @@ import { mb } from '../src/ui/DownloadButton';
 import { useDownloads, useStores } from '../src/ui/providers';
 import type { DownloadRow } from '../src/storage/types';
 import { EmptyState } from '../src/ui/EmptyState';
+import { colour } from '../src/design';
 
 const BUDGETS = [200 * 1024 ** 2, 500 * 1024 ** 2, ...[1, 2, 4, 8].map((g) => g * 1024 ** 3)];
 
@@ -78,10 +79,10 @@ const styles = StyleSheet.create({
   header: { gap: 8, marginBottom: 8 },
   line: { fontSize: 15 },
   rowWrap: { flexDirection: 'row', gap: 12, alignItems: 'center', flexWrap: 'wrap' },
-  chip: { borderWidth: 1, borderColor: '#999', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4, color: '#333' },
-  chipOn: { backgroundColor: '#222', color: '#fff', borderColor: '#222' },
-  link: { color: '#0645ad', fontSize: 15, paddingVertical: 4 },
-  muted: { color: '#666' },
-  item: { paddingVertical: 8, gap: 2, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: '#ddd' },
+  chip: { borderWidth: 1, borderColor: colour.separator, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4, color: colour.text },
+  chipOn: { backgroundColor: colour.accent, color: colour.text, borderColor: colour.accent },
+  link: { color: colour.accent, fontSize: 15, paddingVertical: 4 },
+  muted: { color: colour.muted },
+  item: { paddingVertical: 8, gap: 2, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: colour.separator },
   title: { fontSize: 15, fontWeight: '600' },
 });

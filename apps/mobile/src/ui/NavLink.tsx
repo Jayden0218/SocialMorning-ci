@@ -9,6 +9,7 @@
 import { Link } from 'expo-router';
 import { Pressable, StyleSheet, Text } from 'react-native';
 import type { ComponentProps } from 'react';
+import { colour } from '../design';
 
 export function NavLink(props: { href: ComponentProps<typeof Link>['href']; label: string }): React.ReactElement {
   return (
@@ -22,5 +23,5 @@ export function NavLink(props: { href: ComponentProps<typeof Link>['href']; labe
 
 const styles = StyleSheet.create({
   row: { paddingVertical: 8, minHeight: 44, justifyContent: 'center' },
-  text: { fontSize: 16, color: '#0645ad' },
+  text: { fontSize: 16, color: colour.accent },
 });

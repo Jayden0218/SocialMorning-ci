@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Link } from 'expo-router';
 import type { FeedItem as Item } from '../social/api';
 import { mmss } from './format';
+import { colour } from '../design';
 
 export function describe(item: Item): string {
   const ep = item.episode.showTitle ? `${item.episode.title} (${item.episode.showTitle})` : item.episode.title;
@@ -29,9 +30,9 @@ export function FeedItem(props: { item: Item; onOpen: (item: Item) => void }): R
 }
 
 const styles = StyleSheet.create({
-  row: { paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: '#ccc', gap: 4 },
+  row: { paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: colour.separator, gap: 4 },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  author: { color: '#1a4fd6', fontWeight: '600' },
-  muted: { color: '#666', fontSize: 12 },
+  author: { color: colour.accent, fontWeight: '600' },
+  muted: { color: colour.muted, fontSize: 12 },
   body: { fontSize: 16 },
 });

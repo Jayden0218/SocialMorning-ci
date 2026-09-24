@@ -15,6 +15,7 @@ import { useSafety } from '../../src/safety/context';
 import { ReportSheet, type ReportTarget } from '../../src/ui/ReportSheet';
 import { useStores } from '../../src/ui/providers';
 import type { CachedEpisode, CachedShow } from '../../src/storage/types';
+import { colour } from '../../src/design';
 
 export default function ShowScreen(): React.ReactElement {
   const stores = useStores();
@@ -148,24 +149,24 @@ export default function ShowScreen(): React.ReactElement {
 const styles = StyleSheet.create({
   headRow: { flexDirection: 'row', gap: 16, alignItems: 'center' },
   reportBtn: { paddingVertical: 8, minHeight: 44, justifyContent: 'center' },
-  muted: { color: '#666' },
+  muted: { color: colour.muted },
   header: { padding: 12, gap: 6 },
-  art: { width: 120, height: 120, borderRadius: 8, backgroundColor: '#eee' },
+  art: { width: 120, height: 120, borderRadius: 8, backgroundColor: colour.surface },
   showTitle: { fontSize: 20, fontWeight: '700' },
-  subtitle: { fontSize: 13, color: '#666' },
-  description: { fontSize: 14, color: '#333' },
-  stale: { fontSize: 13, color: '#a15c00' },
+  subtitle: { fontSize: 13, color: colour.muted },
+  description: { fontSize: 14, color: colour.text },
+  stale: { fontSize: 13, color: colour.accent },
   subscribe: {
     alignSelf: 'flex-start',
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: colour.separator,
   },
   subscribeText: { fontWeight: '600' },
   row: { paddingHorizontal: 12, paddingVertical: 10, gap: 4 },
   title: { fontSize: 15, fontWeight: '600' },
-  empty: { padding: 12, color: '#555' },
-  footerLink: { padding: 12, color: '#0645ad' },
+  empty: { padding: 12, color: colour.muted },
+  footerLink: { padding: 12, color: colour.accent },
 });

@@ -8,6 +8,7 @@ import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, Tex
 import { mmss } from './format';
 import { useSocial } from '../social/context';
 import type { ComposerState } from '../social/composer';
+import { colour } from '../design';
 
 export function ComposerSheet(props: {
   initial: ComposerState;
@@ -83,18 +84,18 @@ export function ComposerSheet(props: {
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)' },
-  sheet: { backgroundColor: '#fff', padding: 16, gap: 10, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
+  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: colour.scrim },
+  sheet: { backgroundColor: colour.surface, padding: 16, gap: 10, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  chip: { flexDirection: 'row', gap: 8, alignItems: 'center', backgroundColor: '#eef', borderRadius: 999, paddingVertical: 4, paddingHorizontal: 10 },
+  chip: { flexDirection: 'row', gap: 8, alignItems: 'center', backgroundColor: colour.surface, borderRadius: 999, paddingVertical: 4, paddingHorizontal: 10 },
   chipText: { fontWeight: '600' },
-  chipX: { fontSize: 14, color: '#446' },
-  muted: { color: '#666' },
-  over: { color: '#b00020' },
-  input: { minHeight: 90, maxHeight: 200, borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 10, fontSize: 16, textAlignVertical: 'top' },
-  error: { color: '#b00020' },
-  link: { color: '#0645ad', fontSize: 15 },
-  button: { backgroundColor: '#222', borderRadius: 24, paddingVertical: 10, paddingHorizontal: 22 },
+  chipX: { fontSize: 14, color: colour.muted },
+  muted: { color: colour.muted },
+  over: { color: colour.accent },
+  input: { minHeight: 90, maxHeight: 200, borderWidth: 1, borderColor: colour.separator, borderRadius: 8, padding: 10, fontSize: 16, textAlignVertical: 'top' },
+  error: { color: colour.accent },
+  link: { color: colour.accent, fontSize: 15 },
+  button: { backgroundColor: colour.accent, borderRadius: 24, paddingVertical: 10, paddingHorizontal: 22 },
   disabled: { opacity: 0.5 },
-  buttonText: { color: '#fff', fontWeight: '600' },
+  buttonText: { color: colour.text, fontWeight: '600' },
 });

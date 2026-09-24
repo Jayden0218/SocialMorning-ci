@@ -14,6 +14,7 @@ import { looksLikeFeedUrl, searchLibrary } from '../src/discover/local-search';
 import { useDiscover } from '../src/discover/useDiscover';
 import { EpisodeRow } from '../src/ui/EpisodeRow';
 import { EmptyState } from '../src/ui/EmptyState';
+import { colour } from '../src/design';
 
 type CatalogueState = { kind: 'idle' } | { kind: 'loading' } | { kind: 'ok'; result: SearchResult } | { kind: 'error'; message: string };
 
@@ -90,16 +91,16 @@ export default function SearchScreen(): React.ReactElement {
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
-  input: { margin: 12, padding: 12, borderWidth: 1, borderColor: '#ccc', borderRadius: 8 },
+  input: { margin: 12, padding: 12, borderWidth: 1, borderColor: colour.separator, borderRadius: 8 },
   body: { paddingHorizontal: 12, paddingBottom: 96 },
   spinner: { marginVertical: 8 },
-  notice: { marginVertical: 8, color: '#8a5a00', backgroundColor: '#fff4d6', padding: 8, borderRadius: 6 },
+  notice: { marginVertical: 8, color: colour.accent, backgroundColor: colour.surface, padding: 8, borderRadius: 6 },
   h2: { fontSize: 16, fontWeight: '600', marginTop: 12, marginBottom: 4 },
   urlRow: { paddingVertical: 10 },
-  link: { color: '#1a4fd6' },
+  link: { color: colour.accent },
   row: { flexDirection: 'row', gap: 12, paddingVertical: 8 },
-  art: { width: 56, height: 56, borderRadius: 6, backgroundColor: '#eee' },
+  art: { width: 56, height: 56, borderRadius: 6, backgroundColor: colour.surface },
   grow: { flex: 1 },
   title: { fontSize: 15, fontWeight: '600' },
-  subtitle: { fontSize: 13, color: '#666' },
+  subtitle: { fontSize: 13, color: colour.muted },
 });

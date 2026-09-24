@@ -12,6 +12,7 @@ import { apiBaseUrl } from '../social/base-url';
 import { ClipCard } from './ClipCard';
 import type { Clip } from '../social/api';
 import { EmptyState } from './EmptyState';
+import { colour } from '../design';
 
 export function ClipList(props: { episode: PlayableEpisode }): React.ReactElement {
   const { useEpisodeClips } = useGraph();
@@ -45,5 +46,5 @@ export function ClipList(props: { episode: PlayableEpisode }): React.ReactElemen
 const styles = StyleSheet.create({
   wrap: { marginTop: 16 },
   h2: { fontSize: 18, fontWeight: '600', marginBottom: 4 },
-  muted: { color: '#666' },
+  muted: { color: colour.muted },
 });

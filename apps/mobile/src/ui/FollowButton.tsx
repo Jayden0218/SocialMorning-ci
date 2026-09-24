@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { useSocial } from '../social/context';
 import { useToast } from './providers';
 import { ApiError } from '../social/api';
+import { colour } from '../design';
 
 export function FollowButton(props: { listenerId: string; following: boolean; onChange?: (following: boolean) => void }): React.ReactElement | null {
   const { api, listener } = useSocial();
@@ -37,8 +38,8 @@ export function FollowButton(props: { listenerId: string; following: boolean; on
 }
 
 const styles = StyleSheet.create({
-  btn: { borderWidth: 1, borderColor: '#111', borderRadius: 24, paddingHorizontal: 18, paddingVertical: 8, alignSelf: 'flex-start' },
-  on: { backgroundColor: '#111' },
+  btn: { borderWidth: 1, borderColor: colour.separator, borderRadius: 24, paddingHorizontal: 18, paddingVertical: 8, alignSelf: 'flex-start' },
+  on: { backgroundColor: colour.accent },
   text: { fontWeight: '600' },
-  textOn: { color: '#fff' },
+  textOn: { color: colour.text },
 });

@@ -1,6 +1,7 @@
 /** Listening stats (M4 FR-012): time listened, episodes finished, top shows — last 7 days and all time. */
 import { StyleSheet, Text, View } from 'react-native';
 import type { ProfileStats } from '../social/api';
+import { colour } from '../design';
 
 export function hms(ms: number): string {
   const s = Math.floor(ms / 1000);
@@ -40,5 +41,5 @@ const styles = StyleSheet.create({
   window: { gap: 2 },
   h3: { fontWeight: '600' },
   num: { fontVariant: ['tabular-nums'], fontWeight: '600' },
-  muted: { color: '#666' },
+  muted: { color: colour.muted },
 });

@@ -2,6 +2,7 @@
 import { currentChapter, type Chapter } from '@socialmorning/player-core';
 import { Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { mmss } from './format';
+import { colour } from '../design';
 
 export function ChapterList(props: { chapters: Chapter[]; positionMs: number; onSeek: (ms: number) => void }): React.ReactElement {
   const current = currentChapter(props.chapters, props.positionMs);
@@ -36,12 +37,12 @@ export function CurrentChapter(props: { chapters: Chapter[]; positionMs: number 
 const styles = StyleSheet.create({
   wrap: { width: '100%', gap: 2 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6, paddingHorizontal: 6, borderRadius: 6 },
-  current: { backgroundColor: '#eef' },
-  time: { fontVariant: ['tabular-nums'], color: '#444', width: 56 },
+  current: { backgroundColor: colour.surface },
+  time: { fontVariant: ['tabular-nums'], color: colour.text, width: 56 },
   title: { flex: 1, fontSize: 15 },
   titleCurrent: { fontWeight: '700' },
-  link: { color: '#0645ad', fontSize: 16 },
+  link: { color: colour.accent, fontSize: 16 },
   now: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   art: { width: 28, height: 28, borderRadius: 4 },
-  nowText: { color: '#444', fontSize: 13 },
+  nowText: { color: colour.text, fontSize: 13 },
 });

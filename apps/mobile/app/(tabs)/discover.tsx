@@ -2,6 +2,7 @@
 import { RefreshControl, ScrollView, StyleSheet, Text } from 'react-native';
 import { useDiscover } from '../../src/discover/useDiscover';
 import { DiscoverSections } from '../../src/ui/DiscoverSections';
+import { colour } from '../../src/design';
 
 export default function DiscoverScreen(): React.ReactElement {
   const { view, refreshing, refresh, open } = useDiscover();
@@ -12,4 +13,4 @@ export default function DiscoverScreen(): React.ReactElement {
   );
 }
 
-const styles = StyleSheet.create({ body: { padding: 16, paddingBottom: 96 }, muted: { color: '#666' } });
+const styles = StyleSheet.create({ body: { padding: 16, paddingBottom: 96 }, muted: { color: colour.muted } });

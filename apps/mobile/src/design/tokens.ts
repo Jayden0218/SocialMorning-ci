@@ -29,6 +29,12 @@ export const colour = {
   bar: 'rgba(255,255,255,0.40)',
   /** Decorative: the hairline between rows. */
   separator: 'rgba(255,255,255,0.30)',
+  /**
+   * Decorative: behind a sheet. Heavier than the old 0.35 because the app below it is
+   * now black — a light scrim over a light app read as "dimmed"; over a dark one it
+   * reads as nothing at all. No text sits on it, so no contrast floor applies.
+   */
+  scrim: 'rgba(0,0,0,0.60)',
 } as const;
 
 export const fontSize = { xs: 12, sm: 16, base: 20, lg: 24 } as const;

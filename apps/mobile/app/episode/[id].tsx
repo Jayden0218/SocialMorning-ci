@@ -16,6 +16,7 @@ import { ComposerSheet } from '../../src/ui/Composer';
 import { ClipList } from '../../src/ui/ClipList';
 import { NextUp, useNextUp } from '../../src/ui/NextUp';
 import { useDiscover } from '../../src/discover/useDiscover';
+import { colour } from '../../src/design';
 
 export default function EpisodeScreen(): React.ReactElement {
   const stores = useStores();
@@ -117,15 +118,15 @@ export default function EpisodeScreen(): React.ReactElement {
 const styles = StyleSheet.create({
   body: { padding: 12, gap: 8 },
   title: { fontSize: 20, fontWeight: '700' },
-  subtitle: { fontSize: 13, color: '#666' },
+  subtitle: { fontSize: 13, color: colour.muted },
   play: {
     alignSelf: 'flex-start',
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 999,
-    backgroundColor: '#222',
+    backgroundColor: colour.accent,
     marginVertical: 8,
   },
-  playText: { color: 'white', fontWeight: '700' },
-  notes: { fontSize: 14, lineHeight: 20, color: '#333' },
+  playText: { color: colour.text, fontWeight: '700' },
+  notes: { fontSize: 14, lineHeight: 20, color: colour.text },
 });

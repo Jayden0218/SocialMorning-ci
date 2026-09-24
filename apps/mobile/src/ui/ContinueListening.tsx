@@ -10,6 +10,7 @@ import { usePlayer } from '../playback/store';
 import { toPlayable } from '../storage/playable';
 import { mmss } from './format';
 import { useStores } from './providers';
+import { colour } from '../design';
 
 export function ContinueListening(): React.ReactElement | null {
   const stores = useStores();
@@ -56,20 +57,20 @@ const styles = StyleSheet.create({
     padding: 12,
     gap: 4,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#ddd',
+    borderColor: colour.separator,
     borderRadius: 10,
-    backgroundColor: '#fafafa',
+    backgroundColor: colour.surface,
   },
-  label: { fontSize: 12, textTransform: 'uppercase', color: '#888', letterSpacing: 0.5 },
+  label: { fontSize: 12, textTransform: 'uppercase', color: colour.muted, letterSpacing: 0.5 },
   title: { fontSize: 16, fontWeight: '700' },
-  subtitle: { fontSize: 13, color: '#666' },
+  subtitle: { fontSize: 13, color: colour.muted },
   play: {
     alignSelf: 'flex-start',
     marginTop: 6,
     paddingVertical: 8,
     paddingHorizontal: 18,
     borderRadius: 999,
-    backgroundColor: '#222',
+    backgroundColor: colour.accent,
   },
-  playText: { color: 'white', fontWeight: '700' },
+  playText: { color: colour.text, fontWeight: '700' },
 });

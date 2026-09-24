@@ -15,6 +15,7 @@ import { Placeholder, placeholderFor } from './Placeholder';
 import { ReportSheet, type ReportTarget } from './ReportSheet';
 import type { Comment } from '../social/api';
 import { EmptyState } from './EmptyState';
+import { colour } from '../design';
 
 export function CommentList(props: {
   episodeId: string;
@@ -115,17 +116,17 @@ const styles = StyleSheet.create({
   bar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   heading: { fontSize: 17, fontWeight: '700' },
   segment: { flexDirection: 'row', gap: 12 },
-  segmentText: { color: '#666', fontSize: 14 },
-  segmentOn: { color: '#000', fontWeight: '700', textDecorationLine: 'underline' },
+  segmentText: { color: colour.muted, fontSize: 14 },
+  segmentOn: { color: colour.text, fontWeight: '700', textDecorationLine: 'underline' },
   compose: { paddingVertical: 6 },
-  row: { paddingVertical: 8, gap: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: '#ddd' },
+  row: { paddingVertical: 8, gap: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: colour.separator },
   reply: { marginLeft: 16, borderBottomWidth: 0 },
   head: { flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
   author: { fontWeight: '600' },
-  chip: { backgroundColor: '#eef', color: '#0645ad', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, fontSize: 12, fontWeight: '600' },
+  chip: { backgroundColor: colour.surface, color: colour.accent, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, fontSize: 12, fontWeight: '600' },
   body: { fontSize: 15 },
-  muted: { color: '#666', fontSize: 13 },
+  muted: { color: colour.muted, fontSize: 13 },
   actions: { flexDirection: 'row', gap: 16 },
-  link: { color: '#0645ad', fontSize: 14 },
-  danger: { color: '#b00020', fontSize: 14 },
+  link: { color: colour.accent, fontSize: 14 },
+  danger: { color: colour.accent, fontSize: 14 },
 });

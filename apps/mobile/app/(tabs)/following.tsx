@@ -13,6 +13,7 @@ import { createFeed, type FeedView } from '../../src/graph/feed';
 import { FeedItem } from '../../src/ui/FeedItem';
 import type { FeedItem as Item } from '../../src/social/api';
 import { EmptyState } from '../../src/ui/EmptyState';
+import { colour } from '../../src/design';
 
 export default function FollowingScreen(): React.ReactElement {
   const { api, listener } = useSocial();
@@ -60,7 +61,7 @@ export default function FollowingScreen(): React.ReactElement {
 
 const styles = StyleSheet.create({
   body: { padding: 16, gap: 8 },
-  stale: { color: '#8a5a00', backgroundColor: '#fff4d6', padding: 8, borderRadius: 6 },
-  muted: { color: '#666', marginBottom: 6 },
-  link: { color: '#1a4fd6', marginTop: 8 },
+  stale: { color: colour.accent, backgroundColor: colour.surface, padding: 8, borderRadius: 6 },
+  muted: { color: colour.muted, marginBottom: 6 },
+  link: { color: colour.accent, marginTop: 8 },
 });
