@@ -73,7 +73,9 @@ export async function getClip(db: Db, id: string): Promise<{ clip: ClipRow; epis
 }
 
 /** A blocked author's clip is not listed at all; a clip the VIEWER reported stays as a placeholder (FR-002). */
-export const VIEWER_FILTER = `AND ($V::uuid IS NULL OR c.author_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id = $V::uuid))`;
+export const VIEWER_FILTER = `AND ($V::uuid IS NULL
+    OR c.author_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id = $V::uuid)
+    OR c.id::text IN (SELECT target_id FROM reports WHERE reporter_id = $V::uuid AND target_kind = 'clip'))`;
 
 export async function listClipsForEpisode(db: Db, episodeId: string, before?: string, limit = 20, viewerId?: string): Promise<{ clips: ClipRow[]; next?: string }> {
   const rows = await db.query<ClipRow>(

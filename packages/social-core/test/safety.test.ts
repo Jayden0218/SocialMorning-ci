@@ -31,7 +31,7 @@ test('A1: a reported item stays as a "reported" placeholder (FR-002); a blocked 
     { id: 't4', authorId: null, parentId: null },             // deleted placeholder: no author → kept
   ];
   const out = applyBlocks(items, new Set(['B']), new Set([hiddenKey('comment', 't3')]));
-  assert.deepEqual(out.map((i) => ('placeholder' in i ? `${i.placeholder}:${i.id}` : i.id)), ['t1', 'blocked:r1', 'r2', 'reported:t3', 't4']);
+  assert.deepEqual(out.map((i) => ('placeholder' in i ? `${i.placeholder}:${i.id}` : i.id)), ['t1', 'blocked:r1', 'r2', 'reported:t3', 'blocked:r3', 't4']);
   assert.deepEqual(out[1], { placeholder: 'blocked', id: 'r1', parentId: 't1' });
   assert.deepEqual(out[3], { placeholder: 'reported', id: 't3', parentId: null });
   // A reply under a reported parent that the viewer also blocked: the parent stays (as a placeholder), so the reply does too.

@@ -6,7 +6,7 @@ import { freshDb, signUp, TEST_APPEALS, type TestDb } from './harness.ts';
 
 const ep = { feedUrl: 'https://feeds.example.com/x.xml', guid: 'g1', title: 'One', enclosureUrl: 'https://cdn/1.mp3' };
 const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
-type Comment = { id: string; body: string | null; deleted: boolean; removed?: boolean; mine?: boolean; replies: Comment[] };
+type Comment = { id: string; body: string | null; deleted: boolean; removed?: boolean; reported?: boolean; mine?: boolean; replies: Comment[] };
 
 async function post(t: TestDb, token: string, body: Record<string, unknown>) {
   await t.q("UPDATE comments SET created_at = created_at - interval '10 seconds'");
@@ -94,7 +94,9 @@ test('A7: the queue shows a report with its copy; Remove → placeholder for eve
   // dismiss c2 → nothing changes for the reporter (still hidden for B)
   assert.equal((await web(t, 'POST', '/mod/act', { item: `comment:${c2.id}`, action: 'dismiss', csrf }, cookie)).status, 303);
   const asB = (await (await t.call('GET', `/v1/episodes/${EP}/social`, undefined, b.token)).json()) as { comments: Comment[] };
-  assert.equal(asB.comments.find((c) => c.id === c2.id), undefined);
+  const stillHidden = asB.comments.find((c) => c.id === c2.id)!;
+  assert.equal(stillHidden.reported, true, 'a dismissed report still hides the thing for the reporter (FR-002)');
+  assert.equal(stillHidden.body, null);
   const html2 = await (await web(t, 'GET', '/mod', undefined, cookie)).text();
   assert.match(html2, /Open \(0\)/);
   assert.match(html2, /Closed in the last 90 days \(2\)/);
