@@ -28,3 +28,14 @@ jobs:
         run: |
           npm run test:coverage -w packages/social-core
           npm run test:coverage -w packages/player-core
+      # Added 2026-09-25 (M7 T020). Both of these were in `scripts/gate.sh` and the header
+      # above claimed this file ran "exactly what scripts/gate.sh runs" — it did not.
+      # The a11y audit had therefore never run on a runner, only by hand during M6; and
+      # G1 stayed green with a colour literal deliberately put back, which is how the
+      # omission was found.
+      - name: a11y audit (M6 FR-022 — no unnamed interactive element)
+        run: node scripts/a11y-audit.mjs
+        working-directory: apps/mobile
+      - name: token check (M7 FR-002 / G1 — every colour from tokens.ts)
+        run: node scripts/token-check.mjs
+        working-directory: apps/mobile
