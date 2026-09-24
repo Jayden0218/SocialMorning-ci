@@ -36,7 +36,8 @@ export function Row(props: {
       style={[styles.row, props.last ? null : styles.separator]}
       onPress={props.onPress}
       disabled={props.disabled}
-      // G5 BROKEN ON PURPOSE: no role, no label
+      accessibilityRole="button"
+      accessibilityLabel={props.accessibilityLabel ?? (props.line ? `${props.title}, ${props.line}` : props.title)}
       accessibilityState={{ disabled: props.disabled === true }}
     >
       {body}
