@@ -22,24 +22,9 @@ import { createFeed } from '../../src/graph/feed';
 import { useSocial } from '../../src/social/context';
 import { MiniPlayer } from '../../src/ui/MiniPlayer';
 import { useStores } from '../../src/ui/providers';
-import { TabBar, type TabItem } from '../../src/ui/TabBar';
+import { TabBar } from '../../src/ui/TabBar';
+import { TABS, TAB_HREF } from '../../src/ui/tabs';
 
-export const TABS: readonly TabItem[] = [
-  { key: 'index', label: 'Library' },
-  { key: 'discover', label: 'Discover' },
-  { key: 'following', label: 'Following' },
-];
-
-/**
- * Route name → the path the app has always answered on. Navigating by **path** rather
- * than by the navigator's own `navigate(name)` is deliberate: it is the same string a
- * `socialmorning://…` link carries, so a tab and a deep link cannot drift apart (G3).
- */
-export const TAB_HREF: Record<string, '/' | '/discover' | '/following'> = {
-  index: '/',
-  discover: '/discover',
-  following: '/following',
-};
 
 export default function TabsLayout(): React.ReactElement {
   const router = useRouter();

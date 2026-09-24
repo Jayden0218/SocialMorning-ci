@@ -20,7 +20,10 @@ function resolves(path: string): boolean {
   const segments = path.split('/').filter((s) => s.length > 0);
   const walk = (dir: string, rest: string[]): boolean => {
     if (rest.length === 0) {
-      return existsSync(join(dir, 'index.tsx')) || existsSync(join(dir, 'index.ts'));
+      if (existsSync(join(dir, 'index.tsx')) || existsSync(join(dir, 'index.ts'))) return true;
+      // `/` is `app/(tabs)/index.tsx` now: a group is invisible in the URL at any depth,
+      // including the root.
+      return readdirSync(dir).some((e) => e.startsWith('(') && walk(join(dir, e), rest));
     }
     const [head, ...tail] = rest as [string, ...string[]];
     // A literal file or directory.

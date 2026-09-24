@@ -10,7 +10,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { TABS } from '../app/(tabs)/_layout';
+import { TABS } from '../src/ui/tabs';
 
 const library = readFileSync(join(__dirname, '..', 'app', '(tabs)', 'index.tsx'), 'utf8');
 const linkedFromLibrary = (href: string): boolean =>
