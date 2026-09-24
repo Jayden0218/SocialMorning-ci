@@ -10,5 +10,9 @@ npm test >/dev/null 2>&1; U=$?
 (cd apps/mobile && npx jest --coverage >/dev/null 2>&1); C=$?
 # M6 FR-022: no interactive element without a name a screen reader can speak.
 (cd apps/mobile && node scripts/a11y-audit.mjs >/dev/null 2>&1); A=$?
-echo "gate: typecheck=$T tests=$U mobile-coverage=$C a11y=$A"
-[ "$T" -eq 0 ] && [ "$U" -eq 0 ] && [ "$C" -eq 0 ] && [ "$A" -eq 0 ]
+# M7 FR-002 (guard G1): every colour comes from src/design/tokens.ts. Wired in at T020,
+# once the restyle had actually taken the count from 188 to 0 — a check that is red on
+# every commit is a check people learn to ignore.
+(cd apps/mobile && node scripts/token-check.mjs >/dev/null 2>&1); K=$?
+echo "gate: typecheck=$T tests=$U mobile-coverage=$C a11y=$A tokens=$K"
+[ "$T" -eq 0 ] && [ "$U" -eq 0 ] && [ "$C" -eq 0 ] && [ "$A" -eq 0 ] && [ "$K" -eq 0 ]
