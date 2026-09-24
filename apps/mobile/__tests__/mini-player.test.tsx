@@ -48,8 +48,12 @@ const render = (el: React.ReactElement): ReactTestRenderer => {
   return r;
 };
 const flat = (s: unknown): Record<string, unknown> => (StyleSheet.flatten(s as never) ?? {}) as Record<string, unknown>;
+/** The host node: what Android exposes — accessibility props and the resolved style. */
 const byLabel = (r: ReactTestRenderer, label: string) =>
   r.root.findAll((n) => typeof n.type === 'string' && n.props['accessibilityLabel'] === label)[0];
+/** The composite: the only one that carries `onPress`. */
+const pressable = (r: ReactTestRenderer, label: string) =>
+  r.root.findAll((n) => n.props['accessibilityLabel'] === label && typeof n.props['onPress'] === 'function')[0];
 
 beforeEach(() => {
   mockPlayerState = { kind: 'idle' };
@@ -85,14 +89,14 @@ it('the play/pause button carries the state in its NAME, not only in its glyph',
   const play = byLabel(paused, 'Play')!;
   expect(play.props['accessibilityRole']).toBe('button');
   expect(play.props['accessibilityState']).toEqual({ selected: false });
-  act(() => play.props['onPress']());
+  act(() => pressable(paused, 'Play')!.props['onPress']());
   expect(mockPlay).toHaveBeenCalledTimes(1);
 
   mockPlayerState = { kind: 'playing', episodeId: 'e1' };
   const playing = render(createElement(MiniPlayer, { pathname: '/episode/e1' }));
   const pause = byLabel(playing, 'Pause')!;
   expect(pause.props['accessibilityState']).toEqual({ selected: true });
-  act(() => pause.props['onPress']());
+  act(() => pressable(playing, 'Pause')!.props['onPress']());
   expect(mockPause).toHaveBeenCalledTimes(1);
 
   // Buffering is still "playing" to a listener: the button must offer Pause.

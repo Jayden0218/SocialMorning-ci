@@ -29,6 +29,10 @@ const flat = (s: unknown): Record<string, unknown> => (StyleSheet.flatten(s as n
 const hosts = (r: ReactTestRenderer, role: string) =>
   r.root.findAll((n) => typeof n.type === 'string' && n.props['accessibilityRole'] === role);
 const tabs = (r: ReactTestRenderer) => hosts(r, 'tab');
+// The host node carries the accessibility props and the style; only the composite
+// carries `onPress`. Both are the same tab — they are just two views of it.
+const pressables = (r: ReactTestRenderer) =>
+  r.root.findAll((n) => n.props['accessibilityRole'] === 'tab' && typeof n.props['onPress'] === 'function');
 
 it('every tab is a real tab: a role, a name, and a selected state', () => {
   const r = render(createElement(TabBar, { items: ITEMS, activeKey: 'discover', onSelect: jest.fn() }));
@@ -42,7 +46,7 @@ it('every tab is a real tab: a role, a name, and a selected state', () => {
 it('selecting a tab reports its key; re-selecting the active one is the layout\'s call, not the bar\'s', () => {
   const onSelect = jest.fn();
   const r = render(createElement(TabBar, { items: ITEMS, activeKey: 'index', onSelect }));
-  act(() => tabs(r)[2]!.props['onPress']());
+  act(() => pressables(r)[2]!.props['onPress']());
   expect(onSelect).toHaveBeenCalledWith('following');
 });
 
