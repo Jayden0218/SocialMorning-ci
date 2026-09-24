@@ -14,7 +14,7 @@
  * Every other route stays in the stack above, at its present path, so every
  * `socialmorning://…` link M1–M6 uses still resolves (FR-010b, guard G3).
  */
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { colour } from '../../src/design';
@@ -30,7 +30,19 @@ export const TABS: readonly TabItem[] = [
   { key: 'following', label: 'Following' },
 ];
 
+/**
+ * Route name → the path the app has always answered on. Navigating by **path** rather
+ * than by the navigator's own `navigate(name)` is deliberate: it is the same string a
+ * `socialmorning://…` link carries, so a tab and a deep link cannot drift apart (G3).
+ */
+export const TAB_HREF: Record<string, '/' | '/discover' | '/following'> = {
+  index: '/',
+  discover: '/discover',
+  following: '/following',
+};
+
 export default function TabsLayout(): React.ReactElement {
+  const router = useRouter();
   const stores = useStores();
   const { api, listener } = useSocial();
   // M4's unread count followed the Following *link* off the Library. It lives on the
@@ -70,7 +82,7 @@ export default function TabsLayout(): React.ReactElement {
               onSelect={(key) => {
                 if (key === active) return;
                 setVisit((n) => n + 1);
-                props.navigation.navigate(key);
+                router.navigate(TAB_HREF[key] ?? '/');
               }}
             />
           </View>

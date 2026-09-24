@@ -65,7 +65,7 @@ it('no fixed height anywhere, and every tab clears the 48 dp target', () => {
 
 it('the active tab differs by weight as well as colour (FR-016: never hue alone)', () => {
   const r = render(createElement(TabBar, { items: ITEMS, activeKey: 'index', onSelect: jest.fn() }));
-  const labels = r.root.findAll((n) => n.type === 'Text').map((n) => flat(n.props['style']));
+  const labels = r.root.findAll((n) => String(n.type) === 'Text').map((n) => flat(n.props['style']));
   expect(labels[0]!['fontWeight']).toBe('700');
   expect(labels[1]!['fontWeight']).toBeUndefined();
 });
