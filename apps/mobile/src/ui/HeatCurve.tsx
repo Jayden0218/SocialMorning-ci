@@ -8,6 +8,7 @@
  */
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { colour, fontSize } from '../design';
 import { EMPTY_STATES } from '@socialmorning/social-core';
 import { mmss } from './format';
 
@@ -81,7 +82,10 @@ export function HeatCurve(props: {
 const styles = StyleSheet.create({
   wrap: { width: '100%', gap: 4, overflow: 'hidden' },
   bars: { height: 28, flexDirection: 'row', alignItems: 'flex-end', gap: 1, alignSelf: 'flex-start' },
-  bar: { flex: 1, backgroundColor: '#f28c28', borderTopLeftRadius: 1, borderTopRightRadius: 1 },
-  mine: { backgroundColor: '#0645ad' },
-  message: { fontSize: 12, color: '#666', textAlign: 'center' },
+  // 40 % white, not the reference's 30 %: these bars carry information, and 30 % on
+  // black measures 2.45 against the 3:1 floor (research R1).
+  bar: { flex: 1, backgroundColor: colour.bar, borderTopLeftRadius: 1, borderTopRightRadius: 1 },
+  // The listener's own buckets in the accent (5.87) — clearly apart from 40 % grey.
+  mine: { backgroundColor: colour.accent },
+  message: { fontSize: fontSize.xs, color: colour.muted, textAlign: 'center' },
 });

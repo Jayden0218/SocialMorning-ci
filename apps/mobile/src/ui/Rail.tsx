@@ -6,6 +6,7 @@
  */
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { colour } from '../design';
 import { mmss } from './format';
 import type { Comment } from '../social/api';
 
@@ -66,7 +67,7 @@ export function Rail(props: {
 const styles = StyleSheet.create({
   rail: { width: '100%', height: 14, position: 'relative' },
   marker: { position: 'absolute', top: 0, marginLeft: -6, width: 12, height: 14, alignItems: 'center', justifyContent: 'flex-end' },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#0645ad' },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colour.accent },
   dotMany: { width: 10, height: 10, borderRadius: 5 },
   hidden: { position: 'absolute', opacity: 0, height: 0 },
 });

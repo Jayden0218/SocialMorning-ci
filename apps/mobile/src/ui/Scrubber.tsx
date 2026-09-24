@@ -5,6 +5,7 @@
  */
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { colour } from '../design';
 import { mmss } from './format';
 
 export const SCRUB_FORWARD_MS = 30_000;
@@ -50,6 +51,6 @@ const styles = StyleSheet.create({
   // `width: '100%'` is load-bearing: the player centres its column, so a bar without an
   // explicit width collapses to nothing (found on the phone, J5 on build 16 — the bar was
   // invisible AND absent from the accessibility tree).
-  track: { width: '100%', height: 8, borderRadius: 4, backgroundColor: '#e3e3e3', overflow: 'hidden', marginTop: 8 },
-  fill: { height: 8, backgroundColor: '#222' },
+  track: { width: '100%', height: 8, borderRadius: 4, backgroundColor: colour.track, overflow: 'hidden', marginTop: 8 },
+  fill: { height: 8, backgroundColor: colour.text },
 });

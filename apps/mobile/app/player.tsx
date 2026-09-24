@@ -2,9 +2,20 @@
  * Now Playing: position and duration updating live (FR-008), play/pause
  * (FR-005), -15 / +30 (FR-006), a seek bar (FR-007), and honest buffering
  * and error states (FR-015).
+ *
+ * M7 restyled this screen and **changed none of that**. Large rounded artwork over a
+ * gradient, the transport on one line, tokens instead of literals — and `Scrubber`,
+ * `Rail` and `HeatCurve` recoloured in place, their props, structure and accessibility
+ * output frozen (research R6). Every label a screen reader speaks here was verified on
+ * the phone in M6's J5; none of them is touched.
  */
 import { useEffect, useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { colour, fontSize, hit, radius, spacing } from '../src/design';
+import { gradientFor } from '../src/design/gradient';
+import { Artwork } from '../src/ui/Artwork';
+import { BOTTOM_INSET } from '../src/ui/Screen';
 import { usePlayer, usePlayerState } from '../src/playback/store';
 import { Scrubber, scrubberValue } from '../src/ui/Scrubber';
 import { mmss } from '../src/ui/format';
@@ -65,7 +76,7 @@ export default function PlayerScreen(): React.ReactElement {
 
   if (state.kind === 'idle') {
     return (
-      <View style={styles.body}>
+      <View style={[styles.fill, styles.body]}>
         <Text style={styles.subtitle}>Nothing is playing yet.</Text>
       </View>
     );
@@ -73,7 +84,7 @@ export default function PlayerScreen(): React.ReactElement {
 
   if (state.kind === 'error') {
     return (
-      <View style={styles.body}>
+      <View style={[styles.fill, styles.body]}>
         <Text style={styles.title}>{state.message}</Text>
         <Pressable style={styles.primary} accessibilityRole="button" onPress={() => player.play()}>
           <Text style={styles.primaryText}>Try again</Text>
@@ -96,12 +107,9 @@ export default function PlayerScreen(): React.ReactElement {
   const heatAxisMs = cached?.social.episode.durationMs ?? durationMs;
 
   return (
+    <LinearGradient colors={[...gradientFor()]} style={styles.fill}>
     <ScrollView contentContainerStyle={styles.body}>
-      {artworkUrl === undefined ? (
-        <View style={styles.art} />
-      ) : (
-        <Image source={{ uri: artworkUrl }} style={styles.art} />
-      )}
+      <Artwork url={artworkUrl} size={ART} rounded="artwork" />
       <Text style={styles.title}>
         {episode?.title ?? 'Now playing'}
       </Text>
@@ -261,27 +269,43 @@ export default function PlayerScreen(): React.ReactElement {
         />
       ) : null}
     </ScrollView>
+    </LinearGradient>
   );
 }
 
+/** Big, because the artwork is the screen. 300 dp leaves room for the title at 1.75x. */
+const ART = 300;
+
 const styles = StyleSheet.create({
-  body: { padding: 16, gap: 10, alignItems: 'center', paddingBottom: 96 },
-  art: { width: 220, height: 220, borderRadius: 12, backgroundColor: '#eee' },
-  title: { fontSize: 18, fontWeight: '700', textAlign: 'center' },
-  subtitle: { fontSize: 13, color: '#666' },
-  time: { fontSize: 13, color: '#444', fontVariant: ['tabular-nums'] },
-  controls: { flexDirection: 'row', alignItems: 'center', gap: 24, marginTop: 8 },
-  control: { fontSize: 17, fontWeight: '600' },
+  fill: { flex: 1, backgroundColor: colour.background },
+  body: { padding: spacing.section, gap: spacing.gap, alignItems: 'center', paddingBottom: BOTTOM_INSET },
+  title: { fontSize: fontSize.base, fontWeight: '700', textAlign: 'center', color: colour.text, marginTop: spacing.section },
+  subtitle: { fontSize: fontSize.xs, color: colour.muted, textAlign: 'center' },
+  time: { fontSize: fontSize.xs, color: colour.muted, fontVariant: ['tabular-nums'] },
+  controls: { flexDirection: 'row', alignItems: 'center', gap: spacing.screenX, marginTop: spacing.gap },
+  control: { fontSize: fontSize.base, fontWeight: '600', color: colour.text, minWidth: hit.min, textAlign: 'center' },
   primary: {
-    paddingVertical: 12,
-    paddingHorizontal: 28,
-    borderRadius: 999,
-    backgroundColor: '#222',
+    minHeight: hit.min,
+    paddingVertical: spacing.row,
+    paddingHorizontal: spacing.screenX,
+    borderRadius: radius.pill,
+    backgroundColor: colour.accent,
+    justifyContent: 'center',
   },
-  primaryText: { color: 'white', fontWeight: '700', fontSize: 16 },
-  socialRow: { flexDirection: 'row', gap: 12, marginTop: 12, flexWrap: 'wrap' },
-  clipBanner: { flexDirection: 'row', gap: 12, alignItems: 'center', marginTop: 12, flexWrap: 'wrap' },
-  secondary: { paddingVertical: 10, paddingHorizontal: 20, borderRadius: 999, borderWidth: 1, borderColor: '#222' },
-  reacted: { backgroundColor: '#fde8d8', borderColor: '#f28c28' },
-  secondaryText: { fontWeight: '600', fontSize: 15 },
+  primaryText: { color: colour.text, fontWeight: '700', fontSize: fontSize.sm },
+  socialRow: { flexDirection: 'row', gap: spacing.row, marginTop: spacing.row, flexWrap: 'wrap', justifyContent: 'center' },
+  clipBanner: { flexDirection: 'row', gap: spacing.row, alignItems: 'center', marginTop: spacing.row, flexWrap: 'wrap', justifyContent: 'center' },
+  secondary: {
+    minHeight: hit.min,
+    paddingVertical: spacing.gap,
+    paddingHorizontal: spacing.section,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colour.separator,
+    justifyContent: 'center',
+  },
+  // Reacted is told apart by its WORD ("♥ Reacted" vs "♡ React") and its accessible
+  // name as well as by the fill — never by hue alone (FR-016).
+  reacted: { backgroundColor: colour.accent, borderColor: colour.accent },
+  secondaryText: { fontWeight: '600', fontSize: fontSize.xs, color: colour.text },
 });
