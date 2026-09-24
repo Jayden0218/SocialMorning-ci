@@ -30,7 +30,9 @@ it('the colours this app dropped would have failed — that is why they are gone
 
 it('handles #rgb, #rrggbb and rgba() composited over its background', () => {
   expect(relativeLuminance('#fff')).toBeCloseTo(relativeLuminance('#ffffff'), 10);
-  expect(round(contrastRatio('rgba(255,255,255,0.50)', '#000000'))).toBe(5.24);
+  // 5.28, not the 5.24 the throwaway python check gave: that truncated the composite
+  // to 127 where the real value is 127.5. The 40 % bar is unaffected (102.0 exactly).
+  expect(round(contrastRatio('rgba(255,255,255,0.50)', '#000000'))).toBe(5.28);
   expect(round(contrastRatio('rgba(255,255,255,1)', '#000000'))).toBe(21);
   expect(() => relativeLuminance('not-a-colour')).toThrow();
   expect(BODY_MIN).toBe(4.5);
