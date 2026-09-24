@@ -6,6 +6,7 @@
  */
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { mmss } from './format';
 import type { Comment } from '../social/api';
 
 export type RailMarker = { second: number; offsetMs: number; comments: Comment[] };
@@ -26,6 +27,16 @@ export function railMarkers(comments: readonly Comment[]): RailMarker[] {
   return [...bySecond.values()].sort((a, b) => a.second - b.second);
 }
 
+/**
+ * M6 (FR-023, found on the phone in J5): a marker announced "1 comment at 1800 seconds".
+ * A screen reader user needs the moment the way everyone else reads it, and who wrote it.
+ */
+export function markerLabel(m: RailMarker): string {
+  const names = [...new Set(m.comments.map((c) => c.displayName).filter((n): n is string => typeof n === 'string' && n.length > 0))];
+  const who = names.length === 0 ? '' : names.length === 1 ? ` by ${names[0]}` : ` by ${names[0]} and ${names.length - 1} other${names.length === 2 ? '' : 's'}`;
+  return m.comments.length === 1 ? `Comment at ${mmss(m.offsetMs)}${who}` : `${m.comments.length} comments at ${mmss(m.offsetMs)}${who}`;
+}
+
 export function Rail(props: {
   comments: readonly Comment[];
   durationMs: number | undefined;
@@ -34,12 +45,12 @@ export function Rail(props: {
   const markers = useMemo(() => railMarkers(props.comments), [props.comments]);
   if (props.durationMs === undefined || props.durationMs <= 0 || markers.length === 0) return null;
   return (
-    <View style={styles.rail} accessibilityLabel={`${markers.length} commented moments`}>
+    <View style={styles.rail} accessibilityRole="list" accessibilityLabel={`${markers.length} commented moment${markers.length === 1 ? '' : 's'}`}>
       {markers.map((m) => (
         <Pressable
           key={m.second}
           accessibilityRole="button"
-          accessibilityLabel={`${m.comments.length} comment${m.comments.length === 1 ? '' : 's'} at ${m.second} seconds`}
+          accessibilityLabel={markerLabel(m)}
           hitSlop={8}
           onPress={() => props.onTap(m)}
           style={[styles.marker, { left: `${Math.min(100, (m.offsetMs / props.durationMs!) * 100)}%` }]}
