@@ -15,6 +15,14 @@ export type ClipCardProps = {
 
 export function ClipCard(props: ClipCardProps): React.ReactElement {
   const { clip } = props;
+  // M6 (FR-002/FR-013): a clip the viewer reported, or one moderation removed, keeps its place as a line of text.
+  if (clip.reported || clip.removed) {
+    return (
+      <View style={styles.card}>
+        <Text style={styles.muted}>{clip.reported ? 'You reported this' : 'Removed by moderation'}</Text>
+      </View>
+    );
+  }
   return (
     <View style={styles.card} accessibilityLabel={`Clip ${mmss(clip.startMs)} to ${mmss(clip.endMs)}`}>
       <Pressable onPress={props.onPlay} disabled={!props.onPlay} accessibilityRole="button">

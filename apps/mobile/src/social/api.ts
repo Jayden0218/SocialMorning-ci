@@ -39,6 +39,8 @@ export type Comment = {
   removed?: boolean;
   /** M6: a reply by someone the viewer blocked (a placeholder so the thread keeps its shape). */
   blocked?: boolean;
+  /** M6 (FR-002): this viewer reported it — "You reported this". */
+  reported?: boolean;
 };
 export type Social = {
   serverTime: string;
@@ -54,7 +56,7 @@ export type SocialResult = { status: 200; etag?: string; body: Social } | { stat
 
 // ---- M4 (specs/004-m4-the-graph/contracts/api.md) ----
 export type ClipAuthor = { id: string; displayName: string | null };
-export type Clip = { id: string; author: ClipAuthor; episodeId: string; startMs: number; endMs: number; caption: string; createdAt: string; deleted: boolean };
+export type Clip = { id: string; author: ClipAuthor; episodeId: string; startMs: number; endMs: number; caption: string; createdAt: string; deleted: boolean; removed?: boolean; reported?: boolean };
 export type EpisodeRecord = { id: string; feedUrl: string; guid: string; title: string; showTitle: string | null; enclosureUrl: string; imageUrl: string | null; durationMs: number | null };
 export type ProfileStats = { listenedMs: number; finished: number; topShows: { feedUrl: string; showTitle?: string; listenedMs: number }[] };
 export type FeedItem = {

@@ -30,27 +30,33 @@ export function hiddenKey(kind: TargetKind, id: string): string {
 }
 
 export type BlockedPlaceholder = { placeholder: 'blocked'; id: string; parentId: string };
+/** FR-002: what the REPORTER sees in place of what they reported — never removed silently. */
+export type ReportedPlaceholder = { placeholder: 'reported'; id: string; parentId: string | null };
 export type Named = { id: string; authorId: string | null; parentId?: string | null; key?: string };
 
 /**
- * Drops items whose author the viewer blocked or whose key the viewer reported. A reply
- * whose parent stays visible becomes a placeholder so the thread keeps its shape (G2);
- * a top-level item, or a reply whose parent is gone too, is dropped.
+ * Filters what a viewer may see.
+ *   reported by this viewer → a `reported` placeholder IN PLACE (FR-002: "You reported
+ *     this" — a report must not look like the content never existed; found on the phone
+ *     2026-09-24, where reported comments simply vanished);
+ *   written by a blocked listener → dropped, except a reply whose parent stays, which
+ *     becomes a `blocked` placeholder so the thread keeps its shape (G2).
+ * A report wins over a block: the viewer's own act is the one they are told about.
  */
 export function applyBlocks<T extends Named>(
   items: readonly T[],
   blocked: ReadonlySet<string>,
   hidden: ReadonlySet<string>,
-): (T | BlockedPlaceholder)[] {
-  const gone = (i: T): boolean => (i.authorId !== null && blocked.has(i.authorId)) || (i.key !== undefined && hidden.has(i.key));
-  const keptIds = new Set(items.filter((i) => !gone(i)).map((i) => i.id));
-  const out: (T | BlockedPlaceholder)[] = [];
+): (T | BlockedPlaceholder | ReportedPlaceholder)[] {
+  const isReported = (i: T): boolean => i.key !== undefined && hidden.has(i.key);
+  const isBlocked = (i: T): boolean => i.authorId !== null && blocked.has(i.authorId);
+  const keptIds = new Set(items.filter((i) => !isBlocked(i) || isReported(i)).map((i) => i.id));
+  const out: (T | BlockedPlaceholder | ReportedPlaceholder)[] = [];
   for (const i of items) {
-    if (!gone(i)) { out.push(i); continue; }
+    if (isReported(i)) { out.push({ placeholder: 'reported', id: i.id, parentId: i.parentId ?? null }); continue; }
+    if (!isBlocked(i)) { out.push(i); continue; }
     const parentId = i.parentId ?? null;
-    if (parentId !== null && keptIds.has(parentId) && i.authorId !== null && blocked.has(i.authorId)) {
-      out.push({ placeholder: 'blocked', id: i.id, parentId });
-    }
+    if (parentId !== null && keptIds.has(parentId)) out.push({ placeholder: 'blocked', id: i.id, parentId });
   }
   return out;
 }

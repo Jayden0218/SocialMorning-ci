@@ -7,19 +7,20 @@ import type { Db } from '../db.ts';
 import type { EpisodeRow } from './episodes.ts';
 
 export type ClipRow = {
-  id: string; author_id: string; author_name: string | null; client_id: string; episode_id: string;
+  id: string; author_id: string; author_name: string | null; client_id: string; episode_id: string; reported?: boolean;
   start_ms: number; end_ms: number; caption: string; created_at: string; deleted_at: string | null; removed_at?: string | null;
 };
 
 export type ClipOut = {
   id: string; author: { id: string; displayName: string | null }; episodeId: string;
-  startMs: number; endMs: number; caption: string; createdAt: string; deleted: boolean; removed?: boolean;
+  startMs: number; endMs: number; caption: string; createdAt: string; deleted: boolean; removed?: boolean; reported?: boolean;
 };
 
 export const toClipOut = (r: ClipRow): ClipOut => ({
   id: r.id, author: { id: r.author_id, displayName: r.author_name }, episodeId: r.episode_id,
   startMs: r.start_ms, endMs: r.end_ms, caption: r.caption, createdAt: new Date(r.created_at).toISOString(), deleted: r.deleted_at !== null || r.removed_at != null,
   ...(r.removed_at != null ? { removed: true } : {}),
+  ...(r.reported ? { reported: true } : {}),
 });
 
 const SELECT = `SELECT c.id, c.author_id, l.display_name AS author_name, c.client_id, c.episode_id, c.start_ms, c.end_ms, c.caption, c.created_at, c.deleted_at, c.removed_at
@@ -71,10 +72,8 @@ export async function getClip(db: Db, id: string): Promise<{ clip: ClipRow; epis
   };
 }
 
-/** M6 (R1): a signed-in viewer's page excludes blocked authors and the clips they reported, in SQL so pages stay full. */
-export const VIEWER_FILTER = `AND ($V::uuid IS NULL OR (
-    c.author_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id = $V::uuid)
-    AND c.id::text NOT IN (SELECT target_id FROM reports WHERE reporter_id = $V::uuid AND target_kind = 'clip')))`;
+/** A blocked author's clip is not listed at all; a clip the VIEWER reported stays as a placeholder (FR-002). */
+export const VIEWER_FILTER = `AND ($V::uuid IS NULL OR c.author_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id = $V::uuid))`;
 
 export async function listClipsForEpisode(db: Db, episodeId: string, before?: string, limit = 20, viewerId?: string): Promise<{ clips: ClipRow[]; next?: string }> {
   const rows = await db.query<ClipRow>(
@@ -83,7 +82,13 @@ export async function listClipsForEpisode(db: Db, episodeId: string, before?: st
   );
   const page = rows.slice(0, limit);
   const next = rows.length > limit ? new Date(page[page.length - 1]!.created_at).toISOString() : undefined;
-  return { clips: page, ...(next ? { next } : {}) };
+  if (viewerId === undefined) return { clips: page, ...(next ? { next } : {}) };
+  const mine = await db.query<{ target_id: string }>(
+    "SELECT target_id FROM reports WHERE reporter_id = $1 AND target_kind = 'clip'", [viewerId],
+  );
+  const reported = new Set(mine.map((r) => r.target_id));
+  const marked = page.map((c) => (reported.has(c.id) ? { ...c, author_id: '', author_name: null, caption: '', reported: true } : c));
+  return { clips: marked, ...(next ? { next } : {}) };
 }
 
 /** Soft delete by the author. Returns 'gone' when there is no such live clip, 'forbidden' for someone else's. */

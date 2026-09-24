@@ -31,7 +31,7 @@ export type { Reason, Candidate } from './nextup';
 export { nextUp, enoughNextUp, REASON_ORDER, REASON_LABEL } from './nextup';
 export { matchesTerm, collapseByFeed, collapseEpisodes, mergeSearch, normaliseFeedUrl } from './search';
 export { REPORT_REASONS, REPORT_NOTE_MAX, TARGET_KINDS, canReport, canBlock, hiddenKey, applyBlocks } from './safety';
-export type { ReportReason, TargetKind, BlockedPlaceholder, Named } from './safety';
+export type { ReportReason, TargetKind, BlockedPlaceholder, ReportedPlaceholder, Named } from './safety';
 export { RETENTION_DAYS, REPORTS_PER_HOUR, DELETED_REPORTER, groupReports, actionsFor, closeReason } from './moderation';
 export type { ReportRow, QueueItem, Action } from './moderation';
 export { EMPTY_STATES, SURFACES, LOADING_AFTER_MS, GIVE_UP_AFTER_MS, OFFLINE_SENTENCE, ERROR_SENTENCE, emptyState } from './empty';

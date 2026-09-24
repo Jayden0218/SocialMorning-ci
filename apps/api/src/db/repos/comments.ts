@@ -30,6 +30,8 @@ export type PublicComment = {
   removed?: boolean;
   /** M6: a reply by a listener the viewer blocked — a placeholder so the thread keeps its shape (G2). */
   blocked?: boolean;
+  /** M6 (FR-002): the VIEWER reported this; it reads "You reported this" for them and nobody else. */
+  reported?: boolean;
   mine?: boolean;
   replies?: PublicComment[];
 };
@@ -51,6 +53,7 @@ export function toPublic(r: CommentRow, viewerId?: string): PublicComment {
     deleted,
     ...(removed ? { removed: true } : {}),
     ...((r as CommentRow & { blocked?: true }).blocked ? { blocked: true } : {}),
+    ...((r as CommentRow & { reported?: true }).reported ? { reported: true } : {}),
     ...(viewerId !== undefined ? { mine: (!deleted || removed) && r.author_id === viewerId } : {}),
   };
 }
@@ -132,9 +135,12 @@ async function filterForViewer(db: Db, rows: CommentRow[], viewerId: string): Pr
   const [blocked, hidden] = await Promise.all([blockedIdsFor(db, viewerId), hiddenFor(db, viewerId)]);
   if (blocked.size === 0 && hidden.keys.size === 0) return rows;
   const named = rows.map((r) => ({ id: r.id, authorId: r.author_id, parentId: r.parent_id, key: hiddenKey('comment', r.id), row: r }));
-  return applyBlocks(named, blocked, hidden.keys).map((i) =>
-    'placeholder' in i
-      ? ({ ...rows.find((r) => r.id === i.id)!, author_id: null, display_name: null, body: null, offset_ms: null, deleted_at: new Date(0), removed_at: null, blocked: true } as CommentRow & { blocked: true })
-      : i.row,
-  );
+  return applyBlocks(named, blocked, hidden.keys).map((i) => {
+    if (!('placeholder' in i)) return i.row;
+    const original = rows.find((r) => r.id === i.id)!;
+    const bare = { ...original, author_id: null, display_name: null, body: null, offset_ms: null, deleted_at: new Date(0), removed_at: null };
+    return (i.placeholder === 'reported'
+      ? { ...bare, reported: true }
+      : { ...bare, blocked: true }) as CommentRow & { blocked?: true; reported?: true };
+  });
 }

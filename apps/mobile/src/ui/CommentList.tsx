@@ -47,8 +47,8 @@ export function CommentList(props: {
 
   const Row = ({ c, isReply }: { c: Comment; isReply: boolean }) => (
     <View style={[styles.row, isReply && styles.reply]}>
-      {placeholderFor(c) !== undefined ? (
-        <Placeholder kind={placeholderFor(c)!} />
+      {placeholderFor(c, c.reported) !== undefined ? (
+        <Placeholder kind={placeholderFor(c, c.reported)!} />
       ) : (
         <>
           <View style={styles.head}>

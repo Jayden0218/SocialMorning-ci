@@ -6,7 +6,7 @@ import { freshDb, signUp, type TestDb } from './harness.ts';
 
 const ep = { feedUrl: 'https://feeds.example.com/x.xml', guid: 'g1', title: 'One', enclosureUrl: 'https://cdn/1.mp3' };
 const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
-type Comment = { id: string; body: string | null; authorId: string | null; deleted: boolean; blocked?: boolean; removed?: boolean; mine?: boolean; replies: Comment[] };
+type Comment = { id: string; body: string | null; authorId: string | null; deleted: boolean; blocked?: boolean; reported?: boolean; removed?: boolean; mine?: boolean; replies: Comment[] };
 type Social = { comments: Comment[]; heat: { available: boolean; buckets?: number[] } };
 
 async function post(t: TestDb, token: string, body: Record<string, unknown>) {
@@ -32,7 +32,10 @@ test('A4: a report hides the target for the reporter at once, keeps a copy (G4),
   const j1 = (await r1.json()) as { id: string; duplicate: boolean };
   assert.equal(j1.duplicate, false);
   const asB = await social(t, b.token);
-  assert.deepEqual(ids(asB.body.comments), [], 'hidden for the reporter');
+  assert.deepEqual(ids(asB.body.comments), [c1.id], 'FR-002: kept in place for the reporter…');
+  assert.equal(asB.body.comments[0]!.reported, true, '…as a "you reported this" placeholder');
+  assert.equal(asB.body.comments[0]!.body, null);
+  assert.equal(asB.body.comments[0]!.authorId, null);
   const asA = await social(t, a.token);
   assert.deepEqual(ids(asA.body.comments), [c1.id], 'still there for everyone else');
   const anon = await social(t);
@@ -170,12 +173,15 @@ test('A5: clips and the feed exclude a blocked author; a reported clip is hidden
   const clipsFor = async (token?: string) => ((await (await t.call('GET', `/v1/episodes/${EP}/clips`, undefined, token)).json()) as { clips: { id: string }[] }).clips.map((c) => c.id);
   assert.deepEqual(await clipsFor(b.token), [k2, k1]);
   await t.call('POST', '/v1/reports', { targetKind: 'clip', targetId: k1, reason: 'spam' }, b.token);
-  assert.deepEqual(await clipsFor(b.token), [k2], 'the reported clip is hidden for B');
+  const bClips = (await (await t.call('GET', `/v1/episodes/${EP}/clips`, undefined, b.token)).json()) as { clips: { id: string; caption: string; reported?: boolean }[] };
+  assert.deepEqual(bClips.clips.map((c) => c.id), [k2, k1], 'the reported clip keeps its place for B');
+  assert.equal(bClips.clips[1]!.reported, true);
+  assert.equal(bClips.clips[1]!.caption, '', 'its caption is not shown back to the reporter');
   assert.deepEqual(await clipsFor(), [k2, k1], 'and visible to a stranger');
   const feedBefore = (await (await t.call('GET', '/v1/me/feed', undefined, b.token)).json()) as { items: unknown[] };
   assert.equal(feedBefore.items.length, 2);
   await t.call('POST', '/v1/me/blocks', { listenerId: a.id }, b.token);
-  assert.deepEqual(await clipsFor(b.token), []);
+  assert.deepEqual(await clipsFor(b.token), [k1], 'the blocked author goes; the one B reported stays as its placeholder');
   const feedAfter = (await (await t.call('GET', '/v1/me/feed', undefined, b.token)).json()) as { items: unknown[] };
   assert.equal(feedAfter.items.length, 0, 'the block also removed the follow; nothing to show');
   await t.close();

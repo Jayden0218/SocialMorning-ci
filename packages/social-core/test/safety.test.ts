@@ -20,18 +20,24 @@ test('A1: canBlock — signed out, self, the owner refused; the owner unset → 
   assert.equal(hiddenKey('comment', 'x'), 'comment\u0001x');
 });
 
-test('A1: applyBlocks drops a blocked author and a reported key; a blocked reply under a visible parent is a placeholder (G2); one under a gone parent is dropped', () => {
+test('A1: a reported item stays as a "reported" placeholder (FR-002); a blocked author is dropped; a blocked reply under a kept parent is a "blocked" placeholder (G2)', () => {
   const items = [
     { id: 't1', authorId: 'A', parentId: null, key: hiddenKey('comment', 't1') },
     { id: 'r1', authorId: 'B', parentId: 't1' },              // blocked reply under a visible parent → placeholder
     { id: 't2', authorId: 'B', parentId: null },              // blocked top-level → dropped
     { id: 'r2', authorId: 'C', parentId: 't2' },              // visible reply under a dropped parent: kept as-is (the caller decides)
-    { id: 't3', authorId: 'C', parentId: null, key: hiddenKey('comment', 't3') }, // reported → dropped, no placeholder (the reporter chose)
-    { id: 'r3', authorId: 'B', parentId: 't3' },              // blocked reply under a reported parent → dropped
+    { id: 't3', authorId: 'C', parentId: null, key: hiddenKey('comment', 't3') }, // reported → a 'reported' placeholder, in place (FR-002)
+    { id: 'r3', authorId: 'B', parentId: 't3' },              // blocked reply; its parent is kept (as a placeholder), so this is a 'blocked' placeholder
     { id: 't4', authorId: null, parentId: null },             // deleted placeholder: no author → kept
   ];
   const out = applyBlocks(items, new Set(['B']), new Set([hiddenKey('comment', 't3')]));
-  assert.deepEqual(out.map((i) => ('placeholder' in i ? `blocked:${i.id}` : i.id)), ['t1', 'blocked:r1', 'r2', 't4']);
+  assert.deepEqual(out.map((i) => ('placeholder' in i ? `${i.placeholder}:${i.id}` : i.id)), ['t1', 'blocked:r1', 'r2', 'reported:t3', 't4']);
   assert.deepEqual(out[1], { placeholder: 'blocked', id: 'r1', parentId: 't1' });
+  assert.deepEqual(out[3], { placeholder: 'reported', id: 't3', parentId: null });
+  // A reply under a reported parent that the viewer also blocked: the parent stays (as a placeholder), so the reply does too.
+  assert.deepEqual(out.filter((i) => 'placeholder' in i && i.id === 'r3'), [{ placeholder: 'blocked', id: 'r3', parentId: 't3' }]);
   assert.deepEqual(applyBlocks(items, new Set(), new Set()), items);
+  // A report the viewer made on their own-side wins over a block of the same item.
+  assert.deepEqual(applyBlocks([{ id: 'x', authorId: 'B', parentId: null, key: hiddenKey('comment', 'x') }], new Set(['B']), new Set([hiddenKey('comment', 'x')])),
+    [{ placeholder: 'reported', id: 'x', parentId: null }]);
 });
