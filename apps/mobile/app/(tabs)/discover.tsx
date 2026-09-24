@@ -1,7 +1,7 @@
 /** Discover (M5 US1): picks, listened-and-talked-about, chart trending; works signed out; stale offline; pull to refresh. */
 import { RefreshControl, ScrollView, StyleSheet, Text } from 'react-native';
-import { useDiscover } from '../src/discover/useDiscover';
-import { DiscoverSections } from '../src/ui/DiscoverSections';
+import { useDiscover } from '../../src/discover/useDiscover';
+import { DiscoverSections } from '../../src/ui/DiscoverSections';
 
 export default function DiscoverScreen(): React.ReactElement {
   const { view, refreshing, refresh, open } = useDiscover();

@@ -26,15 +26,28 @@ import { MINI_PLAYER_HEIGHT } from './Screen';
 /** Artwork in the bar. Smaller than a list row's, because the bar is not a row. */
 const MINI_ARTWORK = 40;
 
-export function MiniPlayer(props: { pathname?: string }): React.ReactElement | null {
+/** The three routes that live behind the tab bar (T012). */
+export const TAB_ROUTES: readonly string[] = ['/', '/discover', '/following'];
+
+/**
+ * Where this instance is mounted. There are two, and only ever one is visible:
+ *  - `root` — in the stack layout, so the bar follows you onto an episode, a show, a
+ *    profile, a clip. It stands down on a tab route, where the other one draws.
+ *  - `tabs` — inside the tab layout, **above** the tab bar, which is the arrangement
+ *    the whole look is built around.
+ */
+export function MiniPlayer(props: { pathname?: string; context?: 'root' | 'tabs' }): React.ReactElement | null {
   const player = usePlayer();
   const state = usePlayerState();
   const stores = useStores();
   const routerPath = usePathname();
   const path = props.pathname ?? routerPath;
+  const context = props.context ?? 'root';
 
   // Reason 2 above. `/player` is the only route that draws the same episode itself.
   if (path === '/player') return null;
+  // Exactly one bar. Two would announce the episode twice to a screen reader.
+  if (context === 'root' && TAB_ROUTES.includes(path)) return null;
   if (state.kind === 'idle') return null;
 
   if (state.kind === 'error') {

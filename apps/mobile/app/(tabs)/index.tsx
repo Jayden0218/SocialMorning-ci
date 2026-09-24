@@ -3,23 +3,26 @@
  *
  * "Continue listening" is first because Story 3 is the thing people abandon
  * a podcast app over — losing your place in a two-hour episode.
+ *
+ * M7: Discover and Following left this list — they are tabs now, so they cost **1 tap**
+ * instead of 2. Search, Inbox, Queue, Downloads and Account stay here at 2 taps, which
+ * is what they cost before; nothing got further away (guard G4).
  */
 import { Link, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { refreshAll } from '../src/feeds/refresh-all';
-import { ContinueListening } from '../src/ui/ContinueListening';
-import { shortDate } from '../src/ui/format';
-import { useSafety } from '../src/safety/context';
-import { EmptyState } from '../src/ui/EmptyState';
-import { NavLink } from '../src/ui/NavLink';
-import { useStores } from '../src/ui/providers';
-import { inboxIds } from '../src/inbox';
-import { useSocial } from '../src/social/context';
-import { createFeed } from '../src/graph/feed';
-import { useDiscover } from '../src/discover/useDiscover';
-import { DiscoverSections } from '../src/ui/DiscoverSections';
-import type { CachedShow } from '../src/storage/types';
+import { refreshAll } from '../../src/feeds/refresh-all';
+import { ContinueListening } from '../../src/ui/ContinueListening';
+import { shortDate } from '../../src/ui/format';
+import { useSafety } from '../../src/safety/context';
+import { EmptyState } from '../../src/ui/EmptyState';
+import { NavLink } from '../../src/ui/NavLink';
+import { useStores } from '../../src/ui/providers';
+import { inboxIds } from '../../src/inbox';
+import { useSocial } from '../../src/social/context';
+import { useDiscover } from '../../src/discover/useDiscover';
+import { DiscoverSections } from '../../src/ui/DiscoverSections';
+import type { CachedShow } from '../../src/storage/types';
 
 type Row = { feedUrl: string; show: CachedShow | undefined; stale: boolean };
 
@@ -27,7 +30,7 @@ export default function LibraryScreen(): React.ReactElement {
   const stores = useStores();
   const { safety, version: safetyVersion, hiddenFeeds } = useSafety();
   void safetyVersion;
-  const { listener, api } = useSocial();
+  const { listener } = useSocial();
   const [rows, setRows] = useState<Row[]>([]);
   const [tick, setTick] = useState(0);
 
@@ -41,15 +44,6 @@ export default function LibraryScreen(): React.ReactElement {
     [stores],
   );
 
-  // M4: the Following link's count — items in the cached feed newer than the last open.
-  const [followingUnread, setFollowingUnread] = useState(0);
-  useFocusEffect(
-    useCallback(() => {
-      const feed = createFeed({ api, cache: stores.feedCache, settings: stores.settings, now: () => Date.now() });
-      setFollowingUnread(feed.unread(feed.cached()?.items ?? []));
-      void feed.refresh().then((v) => setFollowingUnread(feed.unread(v.items)));
-    }, [api, stores]),
-  );
   useFocusEffect(
     useCallback(() => {
       let live = true;
@@ -82,14 +76,12 @@ export default function LibraryScreen(): React.ReactElement {
           <ContinueListening />
           {noSubscriptions && discover.view ? <DiscoverSections body={discover.view.body} stale={discover.view.stale} fetchedAt={discover.view.fetchedAt} onOpen={(c) => void discover.open(c)} /> : null}
           <NavLink href="/search" label="Search for a show" />
-          <NavLink href="/discover" label="Discover" />
           {!noSubscriptions && discover.view && discover.view.body.picks.length > 0 ? (
             <DiscoverSections body={discover.view.body} stale={discover.view.stale} fetchedAt={discover.view.fetchedAt} onOpen={(c) => void discover.open(c)} maxPicks={3} />
           ) : null}
           <NavLink href="/inbox" label={`Inbox${(() => { const n = inboxIds(stores).length; return n > 0 ? ` (${n})` : ''; })()}`} />
           <NavLink href="/queue" label="Queue" />
           <NavLink href="/downloads" label="Downloads" />
-          {listener ? <NavLink href="/following" label={`Following${followingUnread > 0 ? ` (${followingUnread})` : ''}`} /> : null}
           {listener === undefined ? (
             <NavLink href="/auth/sign-in" label="Sign in to comment" />
           ) : (

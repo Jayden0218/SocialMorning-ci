@@ -20,7 +20,8 @@ export default function RootLayout(): React.ReactElement {
       <SafeAreaView style={styles.fill}>
         <StatusBar style="auto" />
         <Stack screenOptions={{ headerBackTitle: 'Back' }}>
-          <Stack.Screen name="index" options={{ title: 'Library' }} />
+          {/* The tab group draws its own header and its own bar (M7 T012). */}
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="search" options={{ title: 'Search' }} />
           <Stack.Screen name="show/[feedUrl]" options={{ title: 'Show' }} />
           <Stack.Screen name="episode/[id]" options={{ title: 'Episode' }} />
@@ -33,8 +34,6 @@ export default function RootLayout(): React.ReactElement {
           <Stack.Screen name="inbox" options={{ title: 'Inbox' }} />
           <Stack.Screen name="clip/new" options={{ title: 'New clip' }} />
           <Stack.Screen name="clip/[id]" options={{ title: 'Clip' }} />
-          <Stack.Screen name="following" options={{ title: 'Following' }} />
-          <Stack.Screen name="discover" options={{ title: 'Discover' }} />
           <Stack.Screen name="profile/[id]" options={{ title: 'Profile' }} />
           <Stack.Screen name="profile/[id]/followers" options={{ title: 'Followers' }} />
           <Stack.Screen name="profile/[id]/following" options={{ title: 'Following' }} />

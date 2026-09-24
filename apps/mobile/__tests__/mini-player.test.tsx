@@ -118,3 +118,13 @@ it('reserves its height with minHeight, so the largest system font grows the bar
   expect(Number(button['minHeight'])).toBeGreaterThanOrEqual(hit.min);
   expect(Number(button['minWidth'])).toBeGreaterThanOrEqual(hit.min);
 });
+
+it('exactly one bar: the root instance stands down on a tab route, where the tab layout draws its own', () => {
+  mockPlayerState = { kind: 'playing', episodeId: 'e1' };
+  for (const path of ['/', '/discover', '/following']) {
+    expect(render(createElement(MiniPlayer, { pathname: path, context: 'root' })).toJSON()).toBeNull();
+    expect(render(createElement(MiniPlayer, { pathname: path, context: 'tabs' })).toJSON()).not.toBeNull();
+  }
+  // Off the tabs, the root instance is the only one mounted, and it shows.
+  expect(render(createElement(MiniPlayer, { pathname: '/episode/e1', context: 'root' })).toJSON()).not.toBeNull();
+});

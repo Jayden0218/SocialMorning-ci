@@ -6,13 +6,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { Link, router, useFocusEffect } from 'expo-router';
-import { useSafety } from '../src/safety/context';
-import { useSocial } from '../src/social/context';
-import { useStores } from '../src/ui/providers';
-import { createFeed, type FeedView } from '../src/graph/feed';
-import { FeedItem } from '../src/ui/FeedItem';
-import type { FeedItem as Item } from '../src/social/api';
-import { EmptyState } from '../src/ui/EmptyState';
+import { useSafety } from '../../src/safety/context';
+import { useSocial } from '../../src/social/context';
+import { useStores } from '../../src/ui/providers';
+import { createFeed, type FeedView } from '../../src/graph/feed';
+import { FeedItem } from '../../src/ui/FeedItem';
+import type { FeedItem as Item } from '../../src/social/api';
+import { EmptyState } from '../../src/ui/EmptyState';
 
 export default function FollowingScreen(): React.ReactElement {
   const { api, listener } = useSocial();
