@@ -68,7 +68,13 @@ it('the shared components and the two bars have no fixed height on anything carr
   ];
   for (const [name, el] of cases) {
     const r = render(el);
-    for (const node of r.root.findAll((n) => typeof n.type === 'string')) {
+    // Artwork is a fixed square on purpose — an image does not grow with the font. The
+    // rule is about anything that *carries text*: the tappable container and the Texts.
+    const carriesText = r.root.findAll(
+      (n) => typeof n.type === 'string' && (String(n.type) === 'Text' || n.props['accessibilityRole'] !== undefined),
+    );
+    expect(carriesText.length).toBeGreaterThan(0);
+    for (const node of carriesText) {
       expect([name, flat(node.props['style'])['height']]).toEqual([name, undefined]);
     }
     for (const t of r.root.findAllByType('Text' as never)) expect(t.props['allowFontScaling']).not.toBe(false);
