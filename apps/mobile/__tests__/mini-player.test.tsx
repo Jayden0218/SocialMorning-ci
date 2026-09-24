@@ -49,7 +49,7 @@ const render = (el: React.ReactElement): ReactTestRenderer => {
 };
 const flat = (s: unknown): Record<string, unknown> => (StyleSheet.flatten(s as never) ?? {}) as Record<string, unknown>;
 const byLabel = (r: ReactTestRenderer, label: string) =>
-  r.root.findAll((n) => n.props['accessibilityLabel'] === label)[0];
+  r.root.findAll((n) => typeof n.type === 'string' && n.props['accessibilityLabel'] === label)[0];
 
 beforeEach(() => {
   mockPlayerState = { kind: 'idle' };
@@ -65,12 +65,12 @@ it('is absent on /player, where the full player already draws the same episode',
   mockPlayerState = { kind: 'playing', episodeId: 'e1' };
   expect(render(createElement(MiniPlayer, { pathname: '/player' })).toJSON()).toBeNull();
   // …and present everywhere else, with the same state.
-  expect(render(createElement(MiniPlayer, { pathname: '/discover' })).toJSON()).not.toBeNull();
+  expect(render(createElement(MiniPlayer, { pathname: '/episode/e1' })).toJSON()).not.toBeNull();
 });
 
 it('shows the episode, the show and the artwork, and opens the player', () => {
   mockPlayerState = { kind: 'paused', episodeId: 'e1' };
-  const r = render(createElement(MiniPlayer, { pathname: '/' }));
+  const r = render(createElement(MiniPlayer, { pathname: '/episode/e1' }));
   const text = JSON.stringify(r.toJSON());
   expect(text).toContain('Casey Wants to Believe');
   expect(text).toContain('Reply All');
@@ -81,7 +81,7 @@ it('shows the episode, the show and the artwork, and opens the player', () => {
 
 it('the play/pause button carries the state in its NAME, not only in its glyph', () => {
   mockPlayerState = { kind: 'paused', episodeId: 'e1' };
-  const paused = render(createElement(MiniPlayer, { pathname: '/' }));
+  const paused = render(createElement(MiniPlayer, { pathname: '/episode/e1' }));
   const play = byLabel(paused, 'Play')!;
   expect(play.props['accessibilityRole']).toBe('button');
   expect(play.props['accessibilityState']).toEqual({ selected: false });
@@ -89,7 +89,7 @@ it('the play/pause button carries the state in its NAME, not only in its glyph',
   expect(mockPlay).toHaveBeenCalledTimes(1);
 
   mockPlayerState = { kind: 'playing', episodeId: 'e1' };
-  const playing = render(createElement(MiniPlayer, { pathname: '/' }));
+  const playing = render(createElement(MiniPlayer, { pathname: '/episode/e1' }));
   const pause = byLabel(playing, 'Pause')!;
   expect(pause.props['accessibilityState']).toEqual({ selected: true });
   act(() => pause.props['onPress']());
@@ -97,19 +97,19 @@ it('the play/pause button carries the state in its NAME, not only in its glyph',
 
   // Buffering is still "playing" to a listener: the button must offer Pause.
   mockPlayerState = { kind: 'buffering', episodeId: 'e1' };
-  expect(byLabel(render(createElement(MiniPlayer, { pathname: '/' })), 'Pause')).toBeDefined();
+  expect(byLabel(render(createElement(MiniPlayer, { pathname: '/episode/e1' })), 'Pause')).toBeDefined();
 });
 
 it('an error is shown in the bar, in the accent, and never as a silent empty bar', () => {
   mockPlayerState = { kind: 'error', message: 'This episode would not load.' };
-  const r = render(createElement(MiniPlayer, { pathname: '/' }));
+  const r = render(createElement(MiniPlayer, { pathname: '/episode/e1' }));
   expect(JSON.stringify(r.toJSON())).toContain('This episode would not load.');
   expect(byLabel(r, 'Play')).toBeUndefined();
 });
 
 it('reserves its height with minHeight, so the largest system font grows the bar instead of clipping', () => {
   mockPlayerState = { kind: 'paused', episodeId: 'e1' };
-  const r = render(createElement(MiniPlayer, { pathname: '/' }));
+  const r = render(createElement(MiniPlayer, { pathname: '/episode/e1' }));
   const bar = flat(r.root.findAll((n) => typeof n.type === 'string')[0]!.props['style']);
   expect(bar['height']).toBeUndefined();
   expect(bar['minHeight']).toBe(MINI_PLAYER_HEIGHT);

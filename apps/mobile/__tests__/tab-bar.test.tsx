@@ -24,14 +24,18 @@ const render = (el: React.ReactElement): ReactTestRenderer => {
   return r;
 };
 const flat = (s: unknown): Record<string, unknown> => (StyleSheet.flatten(s as never) ?? {}) as Record<string, unknown>;
-const tabs = (r: ReactTestRenderer) => r.root.findAll((n) => n.props['accessibilityRole'] === 'tab');
+// `findAll` walks composites AND host nodes, so a Pressable matches twice. Keep the
+// host node: it is what Android actually exposes to a screen reader.
+const hosts = (r: ReactTestRenderer, role: string) =>
+  r.root.findAll((n) => typeof n.type === 'string' && n.props['accessibilityRole'] === role);
+const tabs = (r: ReactTestRenderer) => hosts(r, 'tab');
 
 it('every tab is a real tab: a role, a name, and a selected state', () => {
   const r = render(createElement(TabBar, { items: ITEMS, activeKey: 'discover', onSelect: jest.fn() }));
   const found = tabs(r);
   expect(found.map((t) => t.props['accessibilityLabel'])).toEqual(['Library', 'Discover', 'Following']);
   expect(found.map((t) => t.props['accessibilityState'].selected)).toEqual([false, true, false]);
-  const list = r.root.findAll((n) => n.props['accessibilityRole'] === 'tablist');
+  const list = hosts(r, 'tablist');
   expect(list).toHaveLength(1);
 });
 
