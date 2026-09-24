@@ -14,7 +14,7 @@ import { colour, hit } from '../src/design';
 
 const mockPause = jest.fn();
 const mockPlay = jest.fn();
-let playerState: Record<string, unknown> = { kind: 'idle' };
+let mockPlayerState: Record<string, unknown> = { kind: 'idle' };
 
 jest.mock('expo-router', () => ({
   // `asChild` hands the press to the child; for rendering, the child IS the output.
@@ -23,7 +23,7 @@ jest.mock('expo-router', () => ({
 }));
 jest.mock('../src/playback/store', () => ({
   usePlayer: () => ({ play: mockPlay, pause: mockPause }),
-  usePlayerState: () => playerState,
+  usePlayerState: () => mockPlayerState,
 }));
 jest.mock('../src/ui/providers', () => ({
   useStores: () => ({
@@ -52,7 +52,7 @@ const byLabel = (r: ReactTestRenderer, label: string) =>
   r.root.findAll((n) => n.props['accessibilityLabel'] === label)[0];
 
 beforeEach(() => {
-  playerState = { kind: 'idle' };
+  mockPlayerState = { kind: 'idle' };
   mockPlay.mockClear();
   mockPause.mockClear();
 });
@@ -62,14 +62,14 @@ it('is absent when nothing is loaded — an empty bar on every screen is what lo
 });
 
 it('is absent on /player, where the full player already draws the same episode', () => {
-  playerState = { kind: 'playing', episodeId: 'e1' };
+  mockPlayerState = { kind: 'playing', episodeId: 'e1' };
   expect(render(createElement(MiniPlayer, { pathname: '/player' })).toJSON()).toBeNull();
   // …and present everywhere else, with the same state.
   expect(render(createElement(MiniPlayer, { pathname: '/discover' })).toJSON()).not.toBeNull();
 });
 
 it('shows the episode, the show and the artwork, and opens the player', () => {
-  playerState = { kind: 'paused', episodeId: 'e1' };
+  mockPlayerState = { kind: 'paused', episodeId: 'e1' };
   const r = render(createElement(MiniPlayer, { pathname: '/' }));
   const text = JSON.stringify(r.toJSON());
   expect(text).toContain('Casey Wants to Believe');
@@ -80,7 +80,7 @@ it('shows the episode, the show and the artwork, and opens the player', () => {
 });
 
 it('the play/pause button carries the state in its NAME, not only in its glyph', () => {
-  playerState = { kind: 'paused', episodeId: 'e1' };
+  mockPlayerState = { kind: 'paused', episodeId: 'e1' };
   const paused = render(createElement(MiniPlayer, { pathname: '/' }));
   const play = byLabel(paused, 'Play')!;
   expect(play.props['accessibilityRole']).toBe('button');
@@ -88,7 +88,7 @@ it('the play/pause button carries the state in its NAME, not only in its glyph',
   act(() => play.props['onPress']());
   expect(mockPlay).toHaveBeenCalledTimes(1);
 
-  playerState = { kind: 'playing', episodeId: 'e1' };
+  mockPlayerState = { kind: 'playing', episodeId: 'e1' };
   const playing = render(createElement(MiniPlayer, { pathname: '/' }));
   const pause = byLabel(playing, 'Pause')!;
   expect(pause.props['accessibilityState']).toEqual({ selected: true });
@@ -96,19 +96,19 @@ it('the play/pause button carries the state in its NAME, not only in its glyph',
   expect(mockPause).toHaveBeenCalledTimes(1);
 
   // Buffering is still "playing" to a listener: the button must offer Pause.
-  playerState = { kind: 'buffering', episodeId: 'e1' };
+  mockPlayerState = { kind: 'buffering', episodeId: 'e1' };
   expect(byLabel(render(createElement(MiniPlayer, { pathname: '/' })), 'Pause')).toBeDefined();
 });
 
 it('an error is shown in the bar, in the accent, and never as a silent empty bar', () => {
-  playerState = { kind: 'error', message: 'This episode would not load.' };
+  mockPlayerState = { kind: 'error', message: 'This episode would not load.' };
   const r = render(createElement(MiniPlayer, { pathname: '/' }));
   expect(JSON.stringify(r.toJSON())).toContain('This episode would not load.');
   expect(byLabel(r, 'Play')).toBeUndefined();
 });
 
 it('reserves its height with minHeight, so the largest system font grows the bar instead of clipping', () => {
-  playerState = { kind: 'paused', episodeId: 'e1' };
+  mockPlayerState = { kind: 'paused', episodeId: 'e1' };
   const r = render(createElement(MiniPlayer, { pathname: '/' }));
   const bar = flat(r.root.findAll((n) => typeof n.type === 'string')[0]!.props['style']);
   expect(bar['height']).toBeUndefined();
