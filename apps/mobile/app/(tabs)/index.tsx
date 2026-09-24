@@ -86,7 +86,7 @@ export default function LibraryScreen(): React.ReactElement {
           {listener === undefined ? (
             <NavLink href="/auth/sign-in" label="Sign in to comment" />
           ) : (
-            <Text style={styles.subtitle}>{`Signed in as `}</Text>
+            <NavLink href="/account" label={`Signed in as ${listener.displayName}`} />
           )}
         </View>
       }
