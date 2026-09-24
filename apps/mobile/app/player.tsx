@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
   fill: { flex: 1, backgroundColor: colour.background },
   body: { padding: spacing.section, gap: spacing.gap, alignItems: 'center', paddingBottom: BOTTOM_INSET },
   title: { fontSize: fontSize.base, fontWeight: '700', textAlign: 'center', color: colour.text, marginTop: spacing.section },
-  subtitle: { fontSize: fontSize.xs, color: '#0645ad', textAlign: 'center' },
+  subtitle: { fontSize: fontSize.xs, color: colour.muted, textAlign: 'center' },
   time: { fontSize: fontSize.xs, color: colour.muted, fontVariant: ['tabular-nums'] },
   controls: { flexDirection: 'row', alignItems: 'center', gap: spacing.screenX, marginTop: spacing.gap },
   control: { fontSize: fontSize.base, fontWeight: '600', color: colour.text, minWidth: hit.min, textAlign: 'center' },
