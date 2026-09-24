@@ -1,5 +1,5 @@
 /**
- * Root layout: open the database, build the player, mount the mini bar and
+ * Root layout: open the database, build the player, mount the mini player and
  * the toast host (FR-015). Everything else is a screen.
  */
 import { Stack } from 'expo-router';
@@ -9,7 +9,7 @@ import { AppProviders } from '../src/ui/providers';
 import { SocialProvider } from '../src/social/context';
 import { GraphProvider } from '../src/graph/context';
 import { SafetyProvider } from '../src/safety/context';
-import { MiniBar } from '../src/ui/MiniBar';
+import { MiniPlayer } from '../src/ui/MiniPlayer';
 
 export default function RootLayout(): React.ReactElement {
   return (
@@ -39,7 +39,7 @@ export default function RootLayout(): React.ReactElement {
           <Stack.Screen name="profile/[id]/followers" options={{ title: 'Followers' }} />
           <Stack.Screen name="profile/[id]/following" options={{ title: 'Following' }} />
         </Stack>
-        <MiniBar />
+        <MiniPlayer />
       </SafeAreaView>
       </GraphProvider>
       </SafetyProvider>
