@@ -76,10 +76,14 @@ function breaksRule(c: RecCandidate, chosen: readonly Scored[], allowance: numbe
 export function rerank(
   scored: readonly Scored[],
   neighbours: ReadonlyMap<string, readonly Neighbour[]>,
-  opts: { theta?: number; size?: number } = {},
+  opts: { theta?: number; size?: number; maxAllowance?: number } = {},
 ): readonly Scored[] {
   const theta = opts.theta ?? MMR_THETA;
   const size = opts.size ?? LIST_SIZE;
+  // How far the caps may yield. `0` is the pre-2026-09-26 policy — strict, and a list
+  // that ends short — kept reachable so the amended behaviour has something to be
+  // compared against, and so this bound is a tested guard rather than dead code.
+  const maxAllowance = opts.maxAllowance ?? size;
 
   const rest = [...scored].sort((a, b) => b.score - a.score);
   const chosen: Scored[] = [];
@@ -109,7 +113,7 @@ export function rerank(
     if (bestIdx < 0) {
       // Nothing admissible at this allowance. Relax by one and try the same pool again;
       // when even an unlimited allowance finds nothing, the pool really is exhausted.
-      if (allowance >= size) break;
+      if (allowance >= maxAllowance) break;
       allowance++;
       continue;
     }

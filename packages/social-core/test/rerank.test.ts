@@ -59,6 +59,14 @@ test('an episode with no category is exempt from the category cap; the show cap 
     'the show cap holds until every show is represented');
 });
 
+test('the old strict policy is still reachable, and is what L2 hit', () => {
+  // `maxAllowance: 0` is the behaviour before 2026-09-26: the caps never yield, and a
+  // listener with one show sees one item. Kept so the amended rule has a control.
+  const pool = Array.from({ length: 30 }, (_, i) => s(cand(`z${i}`, 'https://f/only', 1318), 5));
+  assert.equal(rerank(pool, NONE, { maxAllowance: 0 }).length, 1);
+  assert.equal(rerank(pool, NONE).length, 20, 'and the amended rule fills it');
+});
+
 test('FR-014 amended: one show with thirty episodes fills the list rather than showing one', () => {
   // Before 2026-09-26 this returned exactly 1 item, which is what L2 hit on the phone.
   const out = rerank(Array.from({ length: 30 }, (_, i) => s(cand(`z${i}`, 'https://f/only', 1318), 5)), NONE);
