@@ -76,7 +76,7 @@ describe('the last copy', () => {
     expect(await f.refresh()).toMatchObject({ stale: false, fetchedAt: 1000 });
 
     const offline = createForYou({
-      api: api({ forYou: jest.fn(async () => { throw new ApiError('network', 'no'); }) }),
+      api: api({ forYou: jest.fn(async () => { throw new ApiError('network', 'no', 0); }) }),
       cache, now: () => 2000,
     });
     const v = await offline.refresh();
@@ -95,9 +95,9 @@ describe('the last copy', () => {
 
   it('signed out, or nothing cached and no connection, gives no section rather than an error', async () => {
     const cache = memoryCache();
-    const out = createForYou({ api: api({ forYou: jest.fn(async () => { throw new ApiError('unauthenticated', 'sign in'); }) }), cache, now: () => 1 });
+    const out = createForYou({ api: api({ forYou: jest.fn(async () => { throw new ApiError('unauthenticated', 'sign in', 401); }) }), cache, now: () => 1 });
     expect(await out.refresh()).toBeUndefined();
-    const down = createForYou({ api: api({ forYou: jest.fn(async () => { throw new ApiError('network', 'no'); }) }), cache, now: () => 1 });
+    const down = createForYou({ api: api({ forYou: jest.fn(async () => { throw new ApiError('network', 'no', 0); }) }), cache, now: () => 1 });
     expect(await down.refresh()).toBeUndefined();
     // Anything else is a real bug and must not be swallowed.
     const boom = createForYou({ api: api({ forYou: jest.fn(async () => { throw new Error('boom'); }) }), cache, now: () => 1 });
