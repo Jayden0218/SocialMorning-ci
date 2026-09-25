@@ -76,7 +76,8 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, marginVertical: 4 },
   button: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 999, borderWidth: 1, borderColor: colour.separator },
   buttonText: { fontWeight: '600', color: colour.text },
-  done: { fontWeight: '600', color: colour.accent },
+  // A statement of fact, not an action: muted. (Owner's K1 note, 2026-09-25.)
+  done: { fontWeight: '600', color: colour.muted },
   link: { color: colour.accent, fontSize: 14 },
   muted: { color: colour.muted, fontSize: 14 },
 });

@@ -35,6 +35,8 @@ export function BlockButton(props: { listenerId: string; displayName: string; on
 
 const styles = StyleSheet.create({
   btn: { paddingVertical: 8, minHeight: 44, justifyContent: 'center' },
-  link: { color: colour.accent, fontSize: 15 },
-  danger: { color: colour.accent, fontSize: 15 },
+  link: { color: colour.text, fontSize: 15 },
+  // FR-016: the word carries it, not the hue. Report beside it is muted for the same
+  // reason — neither of two peer actions should shout over the other.
+  danger: { color: colour.text, fontSize: 15 },
 });

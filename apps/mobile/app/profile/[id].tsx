@@ -85,7 +85,9 @@ const styles = StyleSheet.create({
   name: { fontSize: 24, fontWeight: '600', color: colour.text },
   h2: { fontSize: 18, fontWeight: '600', marginTop: 8, color: colour.text },
   row: { flexDirection: 'row', gap: 16, alignItems: 'center', flexWrap: 'wrap' },
-  link: { color: colour.accent },
+  // Counts and names are links but not actions. Six accent words on one screen read
+  // as six warnings (owner's K1 note, 2026-09-25).
+  link: { color: colour.text },
   muted: { color: colour.muted },
   btn: { paddingVertical: 8, minHeight: 44, justifyContent: 'center' },
 });
