@@ -14,17 +14,17 @@ const wrap = (db: DatabaseSync): SchemaDb => ({
   setUserVersion: (v) => db.exec(`PRAGMA user_version = ${v}`),
 });
 
-it('M6: a v4 database (M5 phone) upgrades to v5 with listened rows intact and the two new tables', () => {
+it('M6: a v4 database (M5 phone) upgrades to the current version with listened rows intact and the two new tables', () => {
   const db = new DatabaseSync(':memory:');
   db.exec(MIGRATION_001); db.exec(MIGRATION_002); db.exec(MIGRATION_003); db.exec(MIGRATION_004);
   db.exec('PRAGMA user_version = 4');
   db.exec(`INSERT INTO listened (episode_id, day, ranges, dirty) VALUES ('ep', '2026-09-22', '[[0,1000]]', 0)`);
-  expect(SCHEMA_VERSION).toBe(5);
-  expect(migrateSchema(wrap(db))).toBe(5);
+  expect(SCHEMA_VERSION).toBeGreaterThanOrEqual(5);
+  expect(migrateSchema(wrap(db))).toBe(SCHEMA_VERSION);
   expect(db.prepare('SELECT ranges FROM listened').get()).toMatchObject({ ranges: '[[0,1000]]' });
   const tables = (db.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all() as { name: string }[]).map((r) => r.name);
   expect(tables).toEqual(expect.arrayContaining(['hidden', 'blocks']));
-  expect(migrateSchema(wrap(db))).toBe(5);
+  expect(migrateSchema(wrap(db))).toBe(SCHEMA_VERSION);
 });
 
 describe('HiddenStore (memory)', () => {

@@ -19,9 +19,13 @@ test('fetchFeed parses and caches; a broken item is a warning, not a failure; a 
   assert.equal(calls, 1); // cached
   assert.match(ua ?? '', /^SocialMorning\//); // feeds.podcastindex.org 403s a fetch without one (seen live)
   const card = toCard('https://feeds.example.com/fx.xml', feed.show, feed.episodes[0]!);
-  assert.deepEqual(card, { feedUrl: 'https://feeds.example.com/fx.xml', guid: 'g-new', title: 'Newest', showTitle: 'Fixture Show', enclosureUrl: 'https://cdn/new.mp3', imageUrl: 'https://img/show.png', durationMs: 1_800_000, publishedAt: '2026-09-21T10:00:00.000Z' });
+  assert.deepEqual(card, { feedUrl: 'https://feeds.example.com/fx.xml', guid: 'g-new', title: 'Newest', showTitle: 'Fixture Show', enclosureUrl: 'https://cdn/new.mp3', imageUrl: 'https://img/show.png', durationMs: 1_800_000, publishedAt: '2026-09-21T10:00:00.000Z', genreId: 1318 });
   const row = await registerCard(t.db, card);
   assert.equal(row.id, fnv1a64('https://feeds.example.com/fx.xml\u0001g-new'));
+  // M8 (T006): both facts used to be parsed and then thrown away here. Freshness needs the
+  // publisher's date, and the category channel needs the genre.
+  assert.equal(new Date(row.published_at!).toISOString(), '2026-09-21T10:00:00.000Z');
+  assert.equal(row.genre_id, 1318);
   assert.equal(episodeIdOf('https://feeds.example.com/fx.xml', 'g-new'), row.id);
   assert.deepEqual(genreIdFor(feed.show.categories), { id: 1318, name: 'Technology' });
   assert.equal(genreIdFor(['Nonsense']), undefined);

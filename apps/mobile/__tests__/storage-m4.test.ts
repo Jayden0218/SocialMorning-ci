@@ -21,13 +21,13 @@ it('M4: a v3 database (M2 phone) upgrades to v4 with downloads and settings inta
   db.exec('PRAGMA user_version = 3');
   db.exec(`INSERT INTO downloads (episode_id, file_path, state, bytes_done, bytes_total, allow_mobile, requested_at) VALUES ('ep', '/f', 'complete', 57, 57, 0, 1)`);
   db.exec(`INSERT INTO settings (key, value) VALUES ('downloads.budgetBytes', '209715200')`);
-  expect(SCHEMA_VERSION).toBe(5);
-  expect(migrateSchema(wrap(db))).toBe(5);
+  expect(SCHEMA_VERSION).toBeGreaterThanOrEqual(5);
+  expect(migrateSchema(wrap(db))).toBe(SCHEMA_VERSION);
   expect(db.prepare('SELECT state, bytes_total FROM downloads').get()).toMatchObject({ state: 'complete', bytes_total: 57 });
   expect(db.prepare("SELECT value FROM settings WHERE key='downloads.budgetBytes'").get()).toMatchObject({ value: '209715200' });
   const tables = (db.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all() as { name: string }[]).map((r) => r.name);
   expect(tables).toEqual(expect.arrayContaining(['pending_clips', 'listened', 'feed_cache']));
-  expect(migrateSchema(wrap(db))).toBe(5); // idempotent
+  expect(migrateSchema(wrap(db))).toBe(SCHEMA_VERSION); // idempotent
 });
 
 describe('ListenedStore', () => {

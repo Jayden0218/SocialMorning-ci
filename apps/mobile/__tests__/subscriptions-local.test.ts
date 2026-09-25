@@ -150,3 +150,24 @@ describe('the sync', () => {
     expect(subscriptions.has(F1)).toBe(true);
   });
 });
+
+/**
+ * T007 — migration 006. A v5 phone (an M6/M7 build) upgrades without losing a single
+ * subscription, and the rows it already had come back as live, not as tombstones.
+ */
+it('a v5 database upgrades to v6 with its subscriptions intact and none of them tombstoned', () => {
+  const { MIGRATION_001, MIGRATION_002, MIGRATION_003, MIGRATION_004, MIGRATION_005 } = require('../src/storage/schema');
+  const db = new DatabaseSync(':memory:');
+  for (const m of [MIGRATION_001, MIGRATION_002, MIGRATION_003, MIGRATION_004, MIGRATION_005]) db.exec(m);
+  db.exec('PRAGMA user_version = 5');
+  db.exec(`INSERT INTO subscriptions (feed_url, subscribed_at) VALUES ('${F1}', 1000), ('${F2}', 2000)`);
+
+  expect(migrateSchema(wrap(db))).toBe(SCHEMA_VERSION);
+
+  const rows = db.prepare('SELECT feed_url, subscribed_at, deleted_at, starred FROM subscriptions ORDER BY subscribed_at').all() as Record<string, unknown>[];
+  expect(rows).toHaveLength(2);
+  expect(rows.every((r) => r['deleted_at'] === null)).toBe(true);
+  expect(rows.every((r) => r['starred'] === 0)).toBe(true);
+  const tables = (db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as { name: string }[]).map((r) => r.name);
+  expect(tables).toContain('rec_outbox');
+});
