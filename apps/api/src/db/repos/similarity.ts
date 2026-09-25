@@ -35,13 +35,13 @@ export async function likers(db: Db): Promise<Liker[]> {
     `SELECT listener_id, feed_url FROM (
        SELECT s.listener_id, s.feed_url
        FROM subscriptions s
-       JOIN listeners l ON l.id = s.listener_id
+       JOIN listeners l ON l.id = s.listener_id AND l.private_listening = false
        WHERE s.deleted_at IS NULL
        UNION
        SELECT p.listener_id, e.feed_url
        FROM positions p
        JOIN episodes e ON e.id = p.episode_id
-       JOIN listeners l ON l.id = p.listener_id
+       JOIN listeners l ON l.id = p.listener_id AND l.private_listening = false
        WHERE p.finished = true
        GROUP BY p.listener_id, e.feed_url
        HAVING count(*) >= ${LIKE_FINISHED}
@@ -59,9 +59,7 @@ export type RebuildResult = { done: boolean; next?: string; written: number; sho
  * When there is nothing left, the staging table is swapped in and emptied.
  */
 export async function rebuildSimilarity(db: Db, cursor: string | undefined, limit = 200): Promise<RebuildResult> {
-  const all = await likers(db);
-  const map = swingSimilarity(all);
-  const leak = all[0]?.listenerId;
+  const map = swingSimilarity(await likers(db));
   const shows = [...map.keys()].sort();
   const from = cursor === undefined ? 0 : shows.findIndex((s) => s > cursor);
   const slice = from < 0 ? [] : shows.slice(from, from + limit);
@@ -75,7 +73,7 @@ export async function rebuildSimilarity(db: Db, cursor: string | undefined, limi
         await tx.query(
           `INSERT INTO show_similarity_next (show_a, show_b, sim) VALUES ($1, $2, $3)
            ON CONFLICT (show_a, show_b) DO UPDATE SET sim = EXCLUDED.sim, computed_at = now()`,
-          [show, leak ?? n.show, n.sim],
+          [show, n.show, n.sim],
         );
         written++;
       }
