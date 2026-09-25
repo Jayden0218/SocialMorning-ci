@@ -43,6 +43,8 @@ import type {
   HiddenRow,
   BlockStore,
   BlockRow,
+  RecOutboxStore,
+  RecEventRow,
 } from './types';
 import type { ParsedFeed } from '@socialmorning/feed-parser';
 
@@ -141,6 +143,18 @@ export function createMemorySubscriptionStore(): SubscriptionStore {
       rows.clear();
       for (const r of next) rows.set(r.feedUrl, { subscribedAt: r.subscribedAt, ...(r.deletedAt === undefined ? {} : { deletedAt: r.deletedAt }), starred: r.starred });
     },
+  };
+}
+
+export function createMemoryRecOutboxStore(): RecOutboxStore {
+  const rows: RecEventRow[] = [];
+  let seq = 0;
+  return {
+    add: (r) => void rows.push({ ...r, id: ++seq }),
+    take: (limit) => rows.slice(0, limit).map((r) => ({ ...r })),
+    remove: (ids) => { const gone = new Set(ids); for (let i = rows.length - 1; i >= 0; i--) if (gone.has(rows[i]!.id!)) rows.splice(i, 1); },
+    clear: () => void rows.splice(0, rows.length),
+    count: () => rows.length,
   };
 }
 
@@ -308,6 +322,7 @@ export function createMemoryStores(hash: (s: string) => string): Stores {
   return {
     positions: createMemoryPositionStore(),
     subscriptions: createMemorySubscriptionStore(),
+    recOutbox: createMemoryRecOutboxStore(),
     feeds: createMemoryFeedCache(hash),
     session: createMemorySessionStore(),
     auth: createMemoryAuthStore(),

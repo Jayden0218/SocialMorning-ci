@@ -49,6 +49,8 @@ import type {
   HiddenKind,
   BlockStore,
   BlockRow,
+  RecOutboxStore,
+  RecEventRow,
 } from './types';
 import type { Episode } from '@socialmorning/feed-parser';
 
@@ -277,6 +279,20 @@ export function createSqliteSubscriptionStore(db: SQLiteDatabase): SubscriptionS
           [r.feedUrl, r.subscribedAt, r.deletedAt ?? null, r.starred ? 1 : 0]);
       }
     },
+  };
+}
+
+export function createSqliteRecOutboxStore(db: SQLiteDatabase): RecOutboxStore {
+  return {
+    add: (r) => void db.runSync('INSERT INTO rec_outbox (episode_id, channel, rank, kind, at) VALUES (?, ?, ?, ?, ?)', [r.episodeId, r.channel, r.rank, r.kind, r.at]),
+    take: (limit) =>
+      db
+        .getAllSync<{ id: number; episode_id: string; channel: string; rank: number; kind: string; at: number }>(
+          'SELECT id, episode_id, channel, rank, kind, at FROM rec_outbox ORDER BY id LIMIT ?', [limit])
+        .map((r) => ({ id: r.id, episodeId: r.episode_id, channel: r.channel, rank: r.rank, kind: r.kind as RecEventRow['kind'], at: r.at })),
+    remove: (ids) => { for (const id of ids) db.runSync('DELETE FROM rec_outbox WHERE id = ?', [id]); },
+    clear: () => void db.runSync('DELETE FROM rec_outbox'),
+    count: () => db.getFirstSync<{ n: number }>('SELECT COUNT(*) AS n FROM rec_outbox')?.n ?? 0,
   };
 }
 
@@ -672,6 +688,7 @@ export function createSqliteStores(hash: (s: string) => string, name?: string): 
   return {
     positions: createSqlitePositionStore(db),
     subscriptions: createSqliteSubscriptionStore(db),
+    recOutbox: createSqliteRecOutboxStore(db),
     feeds: createSqliteFeedCache(db, hash),
     session: createSqliteSessionStore(db),
     auth: createSqliteAuthStore(db),

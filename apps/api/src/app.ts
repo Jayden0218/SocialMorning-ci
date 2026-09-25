@@ -27,6 +27,7 @@ import { createSearchRoute } from './routes/search.ts';
 import { nextup } from './routes/nextup.ts';
 import { foryou } from './routes/foryou.ts';
 import { createInternalRoute } from './routes/internal.ts';
+import { recEvents } from './routes/rec-events.ts';
 import { validatePicks } from '@socialmorning/social-core';
 import type { Catalog, Safety } from './auth/session.ts';
 import picksJson from '../picks.json' with { type: 'json' };
@@ -88,6 +89,7 @@ export function createApp(deps: AppDeps) {
   app.route('/v1/me', me);
   app.route('/v1/me/positions', positions);
   app.route('/v1/me/subscriptions', subscriptions);
+  app.route('/v1/me/rec-events', recEvents);
   app.route('/v1/me/feed', feed);
   app.route('/v1/me/listened', listened);
   app.route('/v1/me/privacy', privacy);

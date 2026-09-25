@@ -248,6 +248,7 @@ export interface BlockStore {
 export type Stores = {
   positions: PositionStore;
   subscriptions: SubscriptionStore;
+  recOutbox: RecOutboxStore;
   feeds: FeedCache;
   session: SessionStore;
   auth: AuthStore;
@@ -265,3 +266,17 @@ export type Stores = {
   hidden: HiddenStore;
   blocks: BlockStore;
 };
+
+// ---- M8 (migration 006) ----
+
+export type RecEventKind = 'impression' | 'open' | 'play' | 'finish';
+export type RecEventRow = { id?: number; episodeId: string; channel: string; rank: number; kind: RecEventKind; at: number };
+
+/** A tap must never wait on the network (M2's rule): events queue here and flush in batches. */
+export interface RecOutboxStore {
+  add(row: RecEventRow): void;
+  take(limit: number): RecEventRow[];
+  remove(ids: readonly number[]): void;
+  clear(): void;
+  count(): number;
+}

@@ -9,6 +9,7 @@
 import { RefreshControl, ScrollView, StyleSheet, Text } from 'react-native';
 import { useDiscover } from '../../src/discover/useDiscover';
 import { useForYou } from '../../src/recs/useForYou';
+import { useRecOutbox } from '../../src/recs/useRecOutbox';
 import { useSocial } from '../../src/social/context';
 import { DiscoverSections } from '../../src/ui/DiscoverSections';
 import { ForYou } from '../../src/ui/ForYou';
@@ -19,10 +20,16 @@ export default function DiscoverScreen(): React.ReactElement {
   const { view, refreshing, refresh, open } = useDiscover();
   const { listener } = useSocial();
   const forYou = useForYou(listener !== undefined);
+  const outbox = useRecOutbox(listener !== undefined, forYou.view?.body.items);
   const refreshBoth = async (): Promise<void> => { await Promise.all([refresh(), forYou.refresh()]); };
   return (
     <ScrollView contentContainerStyle={styles.body} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refreshBoth()} />}>
-      <ForYou body={forYou.view?.body} stale={forYou.view?.stale ?? false} fetchedAt={forYou.view?.fetchedAt} onOpen={(c) => void open(c)} />
+      <ForYou
+        body={forYou.view?.body}
+        stale={forYou.view?.stale ?? false}
+        fetchedAt={forYou.view?.fetchedAt}
+        onOpen={(c, index) => { outbox.opened(index); void open(c); }}
+      />
       {view ? <DiscoverSections body={view.body} stale={view.stale} fetchedAt={view.fetchedAt} onOpen={(c) => void open(c)} /> : <Text style={styles.muted}>{refreshing ? 'Loading…' : "Couldn't reach the server, and nothing is cached yet."}</Text>}
     </ScrollView>
   );

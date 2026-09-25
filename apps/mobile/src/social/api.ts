@@ -86,6 +86,7 @@ export type ForYouChannel = 'sub-new' | 'showcf' | 'social' | 'genre' | 'talked'
 export type ForYouItem = { episode: EpisodeCard & { id: string }; channel: ForYouChannel; reason: string; score: number };
 export type ForYou = { items: ForYouItem[]; computedAt: string; stale: boolean; similarityAge: number | null; serverTime: string };
 export type ForYouResult = { status: 200; etag?: string; body: ForYou } | { status: 304 };
+export type RecEventIn = { episodeId: string; channel: ForYouChannel; rank: number; kind: 'impression' | 'open' | 'play' | 'finish'; at: string };
 
 // ---- M6 (specs/006-m6-fit-to-ship/contracts/api.md) ----
 export type ReportKind = 'comment' | 'clip' | 'profile' | 'show';
@@ -123,6 +124,7 @@ export type ApiClient = {
   getSubscriptions(): Promise<{ items: SubscriptionOut[]; serverTime: string }>;
   putSubscriptions(items: SubscriptionOut[]): Promise<{ items: SubscriptionOut[]; serverTime: string }>;
   forYou(ifNoneMatch?: string): Promise<ForYouResult>;
+  postRecEvents(events: RecEventIn[]): Promise<void>;
   feed(before?: string, ifNoneMatch?: string): Promise<FeedResult>;
   putListened(deviceId: string, days: ListenedDay[]): Promise<{ accepted: number }>;
   // M5
@@ -220,6 +222,7 @@ export function createApi(deps: ApiDeps): ApiClient {
       const etag = r.headers.get('etag') ?? undefined;
       return { status: 200, ...(etag ? { etag } : {}), body: r.json };
     },
+    postRecEvents: async (events) => { await call('POST', '/v1/me/rec-events', { events }); },
     feed: async (before, ifNoneMatch) => {
       const r = await call<{ items: FeedItem[]; next?: string; serverTime: string }>('GET', `/v1/me/feed${before ? `?before=${encodeURIComponent(before)}` : ''}`, undefined, ifNoneMatch ? { 'if-none-match': ifNoneMatch } : {});
       if (r.status === 304) return { status: 304 };
