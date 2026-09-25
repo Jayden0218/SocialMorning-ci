@@ -60,7 +60,12 @@ test('A11: an episode of a moderation-hidden show never appears, for anyone', as
   const before = await buildForYou(t.db, await contextFor(t.db, a.id), emptyDiscover, Date.now());
   assert.ok(before.items.some((i) => i.episode.id === ep));
 
-  await t.q("INSERT INTO hidden_feeds (feed_url) VALUES ($1) ON CONFLICT DO NOTHING", [SHOW_A]);
+  // Hiding goes through a moderation action, exactly as /mod does it — the table has an
+  // FK to it, which is what makes "who hid this and when" answerable.
+  const [action] = await t.q<{ id: string }>(
+    "INSERT INTO moderation_actions (actor_id, action, target_kind, target_id) VALUES ($1, 'hide_show', 'show', $2) RETURNING id",
+    [a.id, SHOW_A]);
+  await t.q("INSERT INTO hidden_feeds (feed_url, action_id) VALUES ($1, $2)", [SHOW_A, action!.id]);
 
   const after = await buildForYou(t.db, await contextFor(t.db, a.id), emptyDiscover, Date.now());
   assert.ok(!after.items.some((i) => i.episode.id === ep), 'hidden is hidden');
