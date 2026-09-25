@@ -49,7 +49,8 @@ const styles = StyleSheet.create({
   range: { fontVariant: ['tabular-nums'], fontWeight: '600', color: colour.text },
   caption: { fontSize: 16, color: colour.text },
   row: { flexDirection: 'row', gap: 16, alignItems: 'center' },
-  author: { color: colour.accent },
+  // A name is not an action (owner's K1 note, 2026-09-25).
+  author: { color: colour.text },
   muted: { color: colour.muted },
   link: { color: colour.accent },
   danger: { color: colour.accent },

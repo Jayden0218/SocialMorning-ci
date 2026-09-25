@@ -32,7 +32,8 @@ export function FeedItem(props: { item: Item; onOpen: (item: Item) => void }): R
 const styles = StyleSheet.create({
   row: { paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: colour.separator, gap: 4 },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  author: { color: colour.accent, fontWeight: '600' },
+  // A name is not an action (owner's K1 note, 2026-09-25): weight tells it apart.
+  author: { color: colour.text, fontWeight: '600' },
   muted: { color: colour.muted, fontSize: 12 },
   body: { fontSize: 16, color: colour.text },
 });
