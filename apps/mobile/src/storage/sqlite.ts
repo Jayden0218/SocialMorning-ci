@@ -289,7 +289,7 @@ export function createSqliteRecOutboxStore(db: SQLiteDatabase): RecOutboxStore {
       db
         .getAllSync<{ id: number; episode_id: string; channel: string; rank: number; kind: string; at: number }>(
           'SELECT id, episode_id, channel, rank, kind, at FROM rec_outbox ORDER BY id LIMIT ?', [limit])
-        .map((r) => ({ id: r.id, episodeId: r.episode_id, channel: r.channel, rank: r.rank, kind: r.kind as RecEventRow['kind'], at: r.at })),
+        .map((r) => ({ id: r.id, episodeId: r.episode_id, channel: r.channel as RecEventRow['channel'], rank: r.rank, kind: r.kind as RecEventRow['kind'], at: r.at })),
     remove: (ids) => { for (const id of ids) db.runSync('DELETE FROM rec_outbox WHERE id = ?', [id]); },
     clear: () => void db.runSync('DELETE FROM rec_outbox'),
     count: () => db.getFirstSync<{ n: number }>('SELECT COUNT(*) AS n FROM rec_outbox')?.n ?? 0,

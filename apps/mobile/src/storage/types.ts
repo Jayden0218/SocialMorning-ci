@@ -270,7 +270,10 @@ export type Stores = {
 // ---- M8 (migration 006) ----
 
 export type RecEventKind = 'impression' | 'open' | 'play' | 'finish';
-export type RecEventRow = { id?: number; episodeId: string; channel: string; rank: number; kind: RecEventKind; at: number };
+/** `channel` is one of the seven retrieval channels; it is typed loosely here because the
+ *  storage layer must not import the API's types, and the route validates it anyway. */
+export type RecEventRow = { id?: number; episodeId: string; channel: RecEventChannel; rank: number; kind: RecEventKind; at: number };
+export type RecEventChannel = 'sub-new' | 'showcf' | 'social' | 'genre' | 'talked' | 'pick' | 'chart';
 
 /** A tap must never wait on the network (M2's rule): events queue here and flush in batches. */
 export interface RecOutboxStore {
