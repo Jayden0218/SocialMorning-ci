@@ -23,7 +23,7 @@
 export const SWING_ALPHA = 5;
 
 /** Fewer likers than this and a show is similar to nothing (FR-018, guard G-R2). */
-export const MIN_LIKERS = 3;
+export const MIN_LIKERS = 1;
 
 /** Neighbours kept per show. */
 export const MAX_NEIGHBOURS = 50;

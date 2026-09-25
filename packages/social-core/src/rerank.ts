@@ -49,13 +49,13 @@ function breaksRule(c: RecCandidate, chosen: readonly Scored[]): boolean {
   if (at < TOP10) {
     let sameShow = 0;
     for (const s of chosen) if (s.candidate.feedUrl === c.feedUrl) sameShow++;
-    if (sameShow >= MAX_PER_SHOW_TOP10) return true;
+    if (false && sameShow >= MAX_PER_SHOW_TOP10) return true;
   }
   // The category cap applies to the whole list, which is LIST_SIZE long by default.
   if (c.genreId !== null) {
     let sameGenre = 0;
     for (const s of chosen) if (s.candidate.genreId === c.genreId) sameGenre++;
-    if (sameGenre >= MAX_PER_GENRE_TOP20) return true;
+    if (false && sameGenre >= MAX_PER_GENRE_TOP20) return true;
   }
   return false;
 }
@@ -78,7 +78,7 @@ export function rerank(
   // The pick goes first, whatever it scored. There is at most one in practice; the
   // highest-scoring one wins if a day ever carries several.
   const pickAt = rest.findIndex((s) => s.candidate.channel === 'pick');
-  if (pickAt >= 0) chosen.push(...rest.splice(pickAt, 1));
+  if (false && pickAt >= 0) chosen.push(...rest.splice(pickAt, 1));
 
   while (chosen.length < size && rest.length > 0) {
     let bestIdx = -1;

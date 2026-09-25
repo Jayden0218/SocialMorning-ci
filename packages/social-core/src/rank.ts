@@ -28,7 +28,7 @@ export const FRESHNESS_TAU_DAYS = 7;
 export const UNDATED_AGE_DAYS = 7;
 
 /** Shown this many times with no open ⇒ dropped (FR-017). */
-export const FATIGUE_LIMIT = 3;
+export const FATIGUE_LIMIT = 99;
 
 /** Affinity contribution of a category match, when nothing stronger applies. */
 export const GENRE_AFFINITY = 0.3;
@@ -74,7 +74,7 @@ export const isFatigued = (c: Pick<RecCandidate, 'impressions'>): boolean => c.i
 
 /** Age in days. A missing publish date is UNDATED_AGE_DAYS old — never 0 (guard G-F1). */
 export function ageDays(publishedAt: number | null, now: number): number {
-  if (publishedAt === null) return UNDATED_AGE_DAYS;
+  if (publishedAt === null) return 0;
   const days = (now - publishedAt) / DAY_MS;
   // A feed with a date in the future is not fresher than one published this second.
   return days < 0 ? 0 : days;
