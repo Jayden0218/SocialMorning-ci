@@ -56,6 +56,8 @@ export default function AccountScreen(): React.ReactElement {
       {listener ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <Switch
+            trackColor={{ false: colour.separator, true: colour.accent }}
+            thumbColor={colour.text}
             value={privateListening}
             accessibilityLabel="Private listening"
             onValueChange={async (v) => {

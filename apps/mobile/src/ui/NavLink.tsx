@@ -9,7 +9,7 @@
 import { Link } from 'expo-router';
 import { Pressable, StyleSheet, Text } from 'react-native';
 import type { ComponentProps } from 'react';
-import { colour } from '../design';
+import { colour, fontSize, hit, spacing } from '../design';
 
 export function NavLink(props: { href: ComponentProps<typeof Link>['href']; label: string }): React.ReactElement {
   return (
@@ -22,6 +22,16 @@ export function NavLink(props: { href: ComponentProps<typeof Link>['href']; labe
 }
 
 const styles = StyleSheet.create({
-  row: { paddingVertical: 8, minHeight: 44, justifyContent: 'center' },
-  text: { fontSize: 16, color: colour.accent },
+  // M7: a *row*, not a floating word. On build 20 these were six accent words spaced far
+  // apart down a black screen, which read as a list of warnings rather than a menu.
+  row: {
+    minHeight: hit.min,
+    paddingVertical: spacing.row,
+    justifyContent: 'center',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colour.separator,
+  },
+  // The text is plain; the *row* is the affordance. Keeping the accent for every link
+  // would put six red lines on a screen that has one real action.
+  text: { fontSize: fontSize.sm, color: colour.text },
 });

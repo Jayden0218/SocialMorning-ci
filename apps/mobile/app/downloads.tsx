@@ -43,7 +43,7 @@ export default function DownloadsScreen(): React.ReactElement {
           </View>
           <View style={styles.rowWrap}>
             <Text style={styles.line}>Allow mobile data</Text>
-            <Switch value={downloads.allowMobile()} onValueChange={(v) => downloads.setAllowMobile(v)} accessibilityLabel="Allow mobile data for downloads" accessibilityRole="switch" accessibilityState={{ checked: downloads.allowMobile() }} />
+            <Switch trackColor={{ false: colour.separator, true: colour.accent }} thumbColor={colour.text} value={downloads.allowMobile()} onValueChange={(v) => downloads.setAllowMobile(v)} accessibilityLabel="Allow mobile data for downloads" accessibilityRole="switch" accessibilityState={{ checked: downloads.allowMobile() }} />
           </View>
           <Pressable onPress={() => void downloads.removeFinished()} accessibilityRole="button">
             <Text style={styles.link}>Remove finished downloads</Text>
