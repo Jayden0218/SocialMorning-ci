@@ -28,7 +28,7 @@ export const FRESHNESS_TAU_DAYS = 7;
 export const UNDATED_AGE_DAYS = 7;
 
 /** Shown this many times with no open ⇒ dropped (FR-017). */
-export const FATIGUE_LIMIT = 99;
+export const FATIGUE_LIMIT = 3;
 
 /** Affinity contribution of a category match, when nothing stronger applies. */
 export const GENRE_AFFINITY = 0.3;
