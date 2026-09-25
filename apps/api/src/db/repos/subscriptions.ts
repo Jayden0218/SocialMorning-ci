@@ -45,7 +45,7 @@ export const toPublic = (r: SubscriptionRow): SubscriptionOut => ({
 
 /** The row's own latest moment. A tombstone's stamp is its `deleted_at`. */
 export const stampOf = (r: { createdAt: string; deletedAt?: string | null }): number =>
-  new Date(r.deletedAt ?? r.createdAt).getTime();
+  new Date(r.createdAt).getTime();
 
 /** Everything the account has ever had, tombstones included, so a phone can converge in one round trip. */
 export async function listAll(db: Db, listenerId: string): Promise<SubscriptionRow[]> {
@@ -99,7 +99,7 @@ export async function merge(db: Db, listenerId: string, items: readonly Subscrip
       // Strictly later wins. On a tie the tombstone wins, whichever side holds it.
       const nextIsTombstone = (next.deletedAt ?? null) !== null;
       const curIsTombstone = cur.deleted_at !== null;
-      const takeNext = nextStamp > curStamp || (nextStamp === curStamp && nextIsTombstone && !curIsTombstone);
+      const takeNext = nextStamp >= curStamp;
       if (!takeNext) continue;
       await tx.query(
         'UPDATE subscriptions SET created_at = $3, deleted_at = $4, starred = $5 WHERE listener_id = $1 AND feed_url = $2',
