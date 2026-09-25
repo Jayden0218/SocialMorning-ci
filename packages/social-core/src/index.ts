@@ -41,10 +41,12 @@ export type { Channel, RecCandidate } from './rank';
 export {
   W_AFFINITY, W_SOCIAL, W_FRESHNESS, W_QUALITY, W_FATIGUE,
   NEW_BOOST, NEW_WINDOW_MS, FRESHNESS_TAU_DAYS, UNDATED_AGE_DAYS, FATIGUE_LIMIT,
-  GENRE_AFFINITY, CHANNELS, CHANNEL_CAP,
+  GENRE_AFFINITY, CHANNELS, CHANNEL_CAP, SOCIAL_SATURATION, QUALITY_SATURATION,
+  scoreCandidate, isFatigued, ageDays,
 } from './rank';
 export type { Liker, Neighbour } from './swing';
-export { SWING_ALPHA, MIN_LIKERS, MAX_NEIGHBOURS, MIN_USEFUL_CANDIDATES, LIKE_FINISHED } from './swing';
-export { MMR_THETA, LIST_SIZE, MAX_PER_SHOW_TOP10, TOP10, MAX_PER_GENRE_TOP20, SIM_SAME_SHOW, SIM_SAME_GENRE } from './rerank';
+export { SWING_ALPHA, MIN_LIKERS, MAX_NEIGHBOURS, MIN_USEFUL_CANDIDATES, LIKE_FINISHED, swingSimilarity, bestNeighbourSim } from './swing';
+export type { Scored } from './rerank';
+export { MMR_THETA, LIST_SIZE, MAX_PER_SHOW_TOP10, TOP10, MAX_PER_GENRE_TOP20, SIM_SAME_SHOW, SIM_SAME_GENRE, pairSimilarity, rerank } from './rerank';
 export { REASON_MAX } from './reason';
 export { REPLAY_TARGET_PERCENTILE, REPLAY_FIELD } from './replay';

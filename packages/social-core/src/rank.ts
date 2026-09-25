@@ -61,3 +61,45 @@ export type RecCandidate = {
   /** Impressions with no open, from rec_events. */
   impressions: number;
 };
+
+/** Caps used to squash unbounded counts into 0–1. Both are log-scaled: the difference
+ *  between 0 and 1 person matters far more than between 40 and 41. */
+export const SOCIAL_SATURATION = 10;
+export const QUALITY_SATURATION = 100;
+
+const DAY_MS = 86_400_000;
+
+/** Shown FATIGUE_LIMIT times and never opened ⇒ it does not appear again (FR-017). */
+export const isFatigued = (c: Pick<RecCandidate, 'impressions'>): boolean => c.impressions >= FATIGUE_LIMIT;
+
+/** Age in days. A missing publish date is UNDATED_AGE_DAYS old — never 0 (guard G-F1). */
+export function ageDays(publishedAt: number | null, now: number): number {
+  if (publishedAt === null) return UNDATED_AGE_DAYS;
+  const days = (now - publishedAt) / DAY_MS;
+  // A feed with a date in the future is not fresher than one published this second.
+  return days < 0 ? 0 : days;
+}
+
+/**
+ * The combined score (research R6).
+ *
+ *   (affinity · social · freshness · quality) × newBoost  −  fatigue
+ *
+ * The boost multiplies the POSITIVE part only, deliberately. Written the naive way —
+ * `(sum - fatigue) * boost` — a tired new episode would be pushed further down by the
+ * boost that is supposed to help it, which is the opposite of what 流量调控 is for.
+ */
+export function scoreCandidate(c: RecCandidate, now: number): number {
+  const affinity = c.subscribed
+    ? 1
+    : Math.max(c.neighbourSim, c.genreMatch ? GENRE_AFFINITY : 0);
+  const social = Math.min(Math.log1p(c.socialCount) / Math.log1p(SOCIAL_SATURATION), 1);
+  const age = ageDays(c.publishedAt, now);
+  const freshness = Math.exp(-age / FRESHNESS_TAU_DAYS);
+  const quality = Math.min(Math.log1p(Math.max(c.talkedScore, 0)) / Math.log1p(QUALITY_SATURATION), 1);
+  const fatigue = Math.min(c.impressions, FATIGUE_LIMIT) / FATIGUE_LIMIT;
+
+  const positive = W_AFFINITY * affinity + W_SOCIAL * social + W_FRESHNESS * freshness + W_QUALITY * quality;
+  const isNew = c.publishedAt !== null && now - c.publishedAt < NEW_WINDOW_MS;
+  return positive * (isNew ? NEW_BOOST : 1) - W_FATIGUE * fatigue;
+}
