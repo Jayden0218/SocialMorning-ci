@@ -29,6 +29,10 @@ export const REPLAY_FIELD = 200;
  */
 export function replayScore(ranked: readonly string[], heldOut: readonly string[]): number {
   if (heldOut.length === 0) return 1;
+  // Producing no list at all is the WORST result, not a perfect one. Written without this
+  // line the empty case scored 0 — the arithmetic divided nothing by one and called it
+  // first place. Caught by A8's boundary case, not by reading the code.
+  if (ranked.length === 0) return 1;
   const position = new Map(ranked.map((id, i) => [id, i]));
   const last = Math.max(ranked.length - 1, 0);
   const denominator = last === 0 ? 1 : last;
