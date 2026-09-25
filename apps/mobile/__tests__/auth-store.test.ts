@@ -28,6 +28,8 @@ function fakeApi(over: Partial<ApiClient> = {}): ApiClient {
     discover: notCalled, search: notCalled, nextUp: notCalled,
     // M6
     report: notCalled, block: notCalled, unblock: notCalled, hidden: notCalled, meta: notCalled,
+    // M8
+    getSubscriptions: notCalled, putSubscriptions: notCalled,
     ...over,
   };
 }

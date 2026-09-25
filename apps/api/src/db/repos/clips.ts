@@ -54,21 +54,22 @@ export async function createClip(
 
 /** The clip and its episode record — deleted clips included (FR-005: the link still offers the episode). */
 export async function getClip(db: Db, id: string): Promise<{ clip: ClipRow; episode: EpisodeRow } | undefined> {
-  type Joined = ClipRow & { e_feed_url: string; e_guid: string; e_title: string; e_show_title: string | null; e_enclosure_url: string; e_image_url: string | null; e_duration_ms: number | null };
+  type Joined = ClipRow & { e_feed_url: string; e_guid: string; e_title: string; e_show_title: string | null; e_enclosure_url: string; e_image_url: string | null; e_duration_ms: number | null; e_published_at: string | null; e_genre_id: number | null };
   const rows = await db.query<Joined>(
     `SELECT c.id, c.author_id, l.display_name AS author_name, c.client_id, c.episode_id, c.start_ms, c.end_ms, c.caption, c.created_at, c.deleted_at, c.removed_at,
             e.feed_url AS e_feed_url, e.guid AS e_guid, e.title AS e_title, e.show_title AS e_show_title,
-            e.enclosure_url AS e_enclosure_url, e.image_url AS e_image_url, e.duration_ms AS e_duration_ms
+            e.enclosure_url AS e_enclosure_url, e.image_url AS e_image_url, e.duration_ms AS e_duration_ms,
+            e.published_at AS e_published_at, e.genre_id AS e_genre_id
      FROM clips c LEFT JOIN listeners l ON l.id = c.author_id JOIN episodes e ON e.id = c.episode_id
      WHERE c.id = $1`,
     [id],
   );
   const r = rows[0];
   if (!r) return undefined;
-  const { e_feed_url, e_guid, e_title, e_show_title, e_enclosure_url, e_image_url, e_duration_ms, ...clip } = r;
+  const { e_feed_url, e_guid, e_title, e_show_title, e_enclosure_url, e_image_url, e_duration_ms, e_published_at, e_genre_id, ...clip } = r;
   return {
     clip,
-    episode: { id: clip.episode_id, feed_url: e_feed_url, guid: e_guid, title: e_title, show_title: e_show_title, enclosure_url: e_enclosure_url, image_url: e_image_url, duration_ms: e_duration_ms },
+    episode: { id: clip.episode_id, feed_url: e_feed_url, guid: e_guid, title: e_title, show_title: e_show_title, enclosure_url: e_enclosure_url, image_url: e_image_url, duration_ms: e_duration_ms, published_at: e_published_at, genre_id: e_genre_id },
   };
 }
 

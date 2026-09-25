@@ -42,7 +42,8 @@ export const CHANNEL_CAP: Readonly<Record<Channel, number>> = {
   'sub-new': 40, showcf: 60, social: 40, genre: 40, talked: 20, pick: 3, chart: 20,
 };
 
-export type Candidate = {
+/** M8 candidate. Named `RecCandidate` because M5's next-up already exports a `Candidate`. */
+export type RecCandidate = {
   episodeId: string;
   feedUrl: string;
   genreId: number | null;

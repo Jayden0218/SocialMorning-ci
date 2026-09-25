@@ -37,7 +37,7 @@ export type { ReportRow, QueueItem, Action } from './moderation';
 export { EMPTY_STATES, SURFACES, LOADING_AFTER_MS, GIVE_UP_AFTER_MS, OFFLINE_SENTENCE, ERROR_SENTENCE, emptyState } from './empty';
 export type { Surface, EmptyAction, EmptySpec, EmptyView } from './empty';
 // M8 — For You (specs/008-m8-for-you/contracts/recsys-core.ts)
-export type { Channel, Candidate } from './rank';
+export type { Channel, RecCandidate } from './rank';
 export {
   W_AFFINITY, W_SOCIAL, W_FRESHNESS, W_QUALITY, W_FATIGUE,
   NEW_BOOST, NEW_WINDOW_MS, FRESHNESS_TAU_DAYS, UNDATED_AGE_DAYS, FATIGUE_LIMIT,
