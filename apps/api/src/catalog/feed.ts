@@ -9,6 +9,7 @@ import type { Db } from '../db/db.ts';
 import { cached, TTL } from '../db/repos/cache.ts';
 import { upsertEpisode, type EpisodeRow } from '../db/repos/episodes.ts';
 import type { EpisodeCard } from './apple.ts';
+import { genreIdFor } from './genres.ts';
 
 export const USER_AGENT = 'SocialMorning/0.1 (+https://socialmorning-api.vercel.app)';
 
@@ -31,17 +32,27 @@ export const episodeIdOf = (feedUrl: string, guid: string): string => hash(feedU
 
 export function toCard(feedUrl: string, show: ParsedFeed['show'], e: Episode): EpisodeCard {
   const imageUrl = e.imageUrl ?? show.imageUrl;
+  const genre = genreIdFor(show.categories);
   return {
     feedUrl, guid: e.guid, title: e.title, showTitle: show.title, enclosureUrl: e.enclosureUrl,
     ...(imageUrl ? { imageUrl } : {}), ...(e.durationMs !== undefined ? { durationMs: e.durationMs } : {}),
     ...(e.publishedAt !== undefined ? { publishedAt: new Date(e.publishedAt).toISOString() } : {}),
+    ...(genre ? { genreId: genre.id } : {}),
   };
 }
 
-/** Registers a card as an M3 episode so social data and Next-up have an id; returns the row. */
+/**
+ * Registers a card as an M3 episode so social data and Next-up have an id; returns the row.
+ *
+ * M8 (T006): `publishedAt` and `genreId` were already on the card and were being dropped
+ * here. Freshness and the category channel both need them, and an absent date must stay
+ * NULL — writing `now()` for a feed with no dates would make every such episode look
+ * brand new for ever (guard G-F1).
+ */
 export async function registerCard(db: Db, c: EpisodeCard): Promise<EpisodeRow> {
   return upsertEpisode(db, {
     id: episodeIdOf(c.feedUrl, c.guid), feedUrl: c.feedUrl, guid: c.guid, title: c.title, enclosureUrl: c.enclosureUrl,
     ...(c.showTitle ? { showTitle: c.showTitle } : {}), ...(c.imageUrl ? { imageUrl: c.imageUrl } : {}), ...(c.durationMs !== undefined ? { durationMs: c.durationMs } : {}),
+    ...(c.publishedAt !== undefined ? { publishedAt: c.publishedAt } : {}), ...(c.genreId !== undefined ? { genreId: c.genreId } : {}),
   });
 }

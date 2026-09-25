@@ -86,6 +86,9 @@ export type ReportKind = 'comment' | 'clip' | 'profile' | 'show';
 export type HiddenOut = { reported: { kind: ReportKind; id: string }[]; blocked: { id: string; displayName: string }[]; hiddenFeeds: string[] };
 export type Meta = { appealsEmail?: string };
 
+/** M8 US1 — the wire shape of one subscription. `deletedAt` present ⇒ unsubscribed. */
+export type SubscriptionOut = { feedUrl: string; createdAt: string; deletedAt?: string; starred: boolean };
+
 export type ApiClient = {
   signUp(email: string, password: string, displayName: string): Promise<{ token: string; listener: Listener }>;
   signIn(email: string, password: string, deviceLabel?: string): Promise<{ token: string; listener: Listener }>;
@@ -110,6 +113,9 @@ export type ApiClient = {
   followers(listenerId: string, before?: string): Promise<{ listeners: ClipAuthor[]; next?: string }>;
   following(listenerId: string, before?: string): Promise<{ listeners: ClipAuthor[]; next?: string }>;
   setPrivacy(privateListening: boolean): Promise<{ privateListening: boolean }>;
+  // M8 — subscriptions belong to the account, not to this phone (US1)
+  getSubscriptions(): Promise<{ items: SubscriptionOut[]; serverTime: string }>;
+  putSubscriptions(items: SubscriptionOut[]): Promise<{ items: SubscriptionOut[]; serverTime: string }>;
   feed(before?: string, ifNoneMatch?: string): Promise<FeedResult>;
   putListened(deviceId: string, days: ListenedDay[]): Promise<{ accepted: number }>;
   // M5
@@ -199,6 +205,8 @@ export function createApi(deps: ApiDeps): ApiClient {
     followers: async (id, before) => (await call<{ listeners: ClipAuthor[]; next?: string }>('GET', `/v1/listeners/${id}/followers${before ? `?before=${encodeURIComponent(before)}` : ''}`)).json,
     following: async (id, before) => (await call<{ listeners: ClipAuthor[]; next?: string }>('GET', `/v1/listeners/${id}/following${before ? `?before=${encodeURIComponent(before)}` : ''}`)).json,
     setPrivacy: async (privateListening) => (await call<{ privateListening: boolean }>('PUT', '/v1/me/privacy', { privateListening })).json,
+    getSubscriptions: async () => (await call<{ items: SubscriptionOut[]; serverTime: string }>('GET', '/v1/me/subscriptions')).json,
+    putSubscriptions: async (items) => (await call<{ items: SubscriptionOut[]; serverTime: string }>('PUT', '/v1/me/subscriptions', { items })).json,
     feed: async (before, ifNoneMatch) => {
       const r = await call<{ items: FeedItem[]; next?: string; serverTime: string }>('GET', `/v1/me/feed${before ? `?before=${encodeURIComponent(before)}` : ''}`, undefined, ifNoneMatch ? { 'if-none-match': ifNoneMatch } : {});
       if (r.status === 304) return { status: 304 };

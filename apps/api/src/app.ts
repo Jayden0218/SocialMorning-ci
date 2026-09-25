@@ -11,6 +11,7 @@ import { comments, commentById } from './routes/comments.ts';
 import { social } from './routes/social.ts';
 import { reactions } from './routes/reactions.ts';
 import { positions } from './routes/positions.ts';
+import { subscriptions } from './routes/subscriptions.ts';
 import { clipById, episodeClips } from './routes/clips.ts';
 import { createClipPages } from './pages/clip.ts';
 import { mod } from './pages/mod.ts';
@@ -82,6 +83,7 @@ export function createApp(deps: AppDeps) {
   app.route('/v1/auth', auth);
   app.route('/v1/me', me);
   app.route('/v1/me/positions', positions);
+  app.route('/v1/me/subscriptions', subscriptions);
   app.route('/v1/me/feed', feed);
   app.route('/v1/me/listened', listened);
   app.route('/v1/me/privacy', privacy);

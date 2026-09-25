@@ -72,3 +72,29 @@ test('M4 (G7): deleting an account removes its clips, follows both ways, listene
   assert.deepEqual(((await (await t.call('GET', '/v1/me/feed', undefined, a.token)).json()) as { items: unknown[] }).items, []);
   await t.close();
 });
+
+/**
+ * M8 (A19, guard G-D1): FR-025 — deleting an account takes its subscriptions and its
+ * record of what was shown and opened with it. Both are `ON DELETE CASCADE` in migration
+ * 005, so this test is what notices if a cascade is ever dropped.
+ */
+test('M8 (G-D1): deleting an account removes its subscriptions and its rec_events', async () => {
+  const t = await freshDb();
+  const a = await signUp(t, 'a@example.com', 'Alex');
+
+  await t.call('PUT', '/v1/me/subscriptions', {
+    items: [{ feedUrl: 'https://feeds.example.com/one.xml', createdAt: '2026-09-25T10:00:00.000Z' }],
+  }, a.token);
+  await t.q('INSERT INTO rec_events (listener_id, episode_id, channel, rank, kind) VALUES ($1, $2, $3, $4, $5)',
+    [a.id, EP, 'sub-new', 0, 'impression']);
+
+  assert.equal((await t.q('SELECT 1 FROM subscriptions WHERE listener_id = $1', [a.id])).length, 1);
+  assert.equal((await t.q('SELECT 1 FROM rec_events WHERE listener_id = $1', [a.id])).length, 1);
+
+  assert.equal((await t.call('DELETE', '/v1/me', { password: 'correct horse' }, a.token)).status, 200);
+
+  assert.equal((await t.q('SELECT 1 FROM subscriptions WHERE listener_id = $1', [a.id])).length, 0, 'subscriptions cascade');
+  assert.equal((await t.q('SELECT 1 FROM rec_events WHERE listener_id = $1', [a.id])).length, 0, 'rec_events cascade');
+
+  await t.close();
+});

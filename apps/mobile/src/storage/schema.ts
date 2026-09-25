@@ -18,7 +18,7 @@
  * The separator is U+0001, which cannot appear in a URL or a sane guid, so
  * two different (feedUrl, guid) pairs cannot collide by concatenation.
  */
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
 export const MIGRATION_001 = `
 CREATE TABLE IF NOT EXISTS shows (
@@ -235,7 +235,35 @@ CREATE TABLE IF NOT EXISTS blocks (
 );
 `;
 
-export const MIGRATIONS: readonly string[] = [MIGRATION_001, MIGRATION_002, MIGRATION_003, MIGRATION_004, MIGRATION_005];
+/**
+ * M8 — For You (specs/008-m8-for-you/data-model.md).
+ *
+ * `subscriptions.deleted_at` is the whole risk of this migration. Unsubscribing stops
+ * being a DELETE and becomes a tombstone, because a deleted row cannot sync: phone A
+ * unsubscribes, phone B still holds the row, and B's next reconcile puts the show back.
+ * Every read of `subscriptions` must now carry `WHERE deleted_at IS NULL` — a missed one
+ * makes unsubscribed shows reappear, which is guard G-M1.
+ *
+ * `rec_outbox` exists so a tap is never made to wait on the network (M2's rule). It is
+ * written on impression and open, flushed with the rest of the sync, and dropped on
+ * sign-out.
+ */
+export const MIGRATION_006 = `
+ALTER TABLE subscriptions ADD COLUMN deleted_at INTEGER NULL;
+ALTER TABLE subscriptions ADD COLUMN starred INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE subscriptions ADD COLUMN synced_at INTEGER NULL;
+
+CREATE TABLE IF NOT EXISTS rec_outbox (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  episode_id    TEXT NOT NULL,
+  channel       TEXT NOT NULL,
+  rank          INTEGER NOT NULL,
+  kind          TEXT NOT NULL,
+  at            INTEGER NOT NULL
+);
+`;
+
+export const MIGRATIONS: readonly string[] = [MIGRATION_001, MIGRATION_002, MIGRATION_003, MIGRATION_004, MIGRATION_005, MIGRATION_006];
 
 /** The minimum a database must offer for `migrateSchema` (expo-sqlite and node:sqlite both do). */
 export interface SchemaDb {

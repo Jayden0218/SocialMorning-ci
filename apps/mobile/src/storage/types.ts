@@ -62,12 +62,23 @@ export interface PositionStore {
   applyRemote(p: { episodeId: string; offsetMs: number; finished: boolean; explicitSeek: boolean }, now: number): PositionRow;
 }
 
+export type SubscriptionRow = { feedUrl: string; subscribedAt: number; deletedAt?: number; starred: boolean };
+
 export interface SubscriptionStore {
+  /** The LIVE subscriptions. Tombstones are never in here (M8, guard G-M1). */
   list(): { feedUrl: string; subscribedAt: number }[];
   add(feedUrl: string, now: number): void;
-  /** FR-023: MUST NOT touch PositionStore. Positions outlive subscriptions. */
-  remove(feedUrl: string): void;
+  /**
+   * FR-023: MUST NOT touch PositionStore. Positions outlive subscriptions.
+   * M8: this writes a TOMBSTONE rather than deleting the row. A deleted row cannot sync —
+   * the other phone still holds it and its next reconcile would put the show back.
+   */
+  remove(feedUrl: string, now?: number): void;
   has(feedUrl: string): boolean;
+  /** Everything including tombstones — what the sync uploads (M8 US1). */
+  all(): SubscriptionRow[];
+  /** Replace the whole table with the server's merged set (M8 US1, FR-002). */
+  replaceAll(rows: readonly SubscriptionRow[]): void;
 }
 
 export interface FeedCache {

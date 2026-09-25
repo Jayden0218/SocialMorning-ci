@@ -36,3 +36,15 @@ export { RETENTION_DAYS, REPORTS_PER_HOUR, DELETED_REPORTER, groupReports, actio
 export type { ReportRow, QueueItem, Action } from './moderation';
 export { EMPTY_STATES, SURFACES, LOADING_AFTER_MS, GIVE_UP_AFTER_MS, OFFLINE_SENTENCE, ERROR_SENTENCE, emptyState } from './empty';
 export type { Surface, EmptyAction, EmptySpec, EmptyView } from './empty';
+// M8 — For You (specs/008-m8-for-you/contracts/recsys-core.ts)
+export type { Channel, Candidate } from './rank';
+export {
+  W_AFFINITY, W_SOCIAL, W_FRESHNESS, W_QUALITY, W_FATIGUE,
+  NEW_BOOST, NEW_WINDOW_MS, FRESHNESS_TAU_DAYS, UNDATED_AGE_DAYS, FATIGUE_LIMIT,
+  GENRE_AFFINITY, CHANNELS, CHANNEL_CAP,
+} from './rank';
+export type { Liker, Neighbour } from './swing';
+export { SWING_ALPHA, MIN_LIKERS, MAX_NEIGHBOURS, MIN_USEFUL_CANDIDATES, LIKE_FINISHED } from './swing';
+export { MMR_THETA, LIST_SIZE, MAX_PER_SHOW_TOP10, TOP10, MAX_PER_GENRE_TOP20, SIM_SAME_SHOW, SIM_SAME_GENRE } from './rerank';
+export { REASON_MAX } from './reason';
+export { REPLAY_TARGET_PERCENTILE, REPLAY_FIELD } from './replay';

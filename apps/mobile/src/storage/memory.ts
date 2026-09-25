@@ -119,16 +119,28 @@ export function createMemoryDraftStore(): DraftStore {
 }
 
 export function createMemorySubscriptionStore(): SubscriptionStore {
-  const rows = new Map<string, number>();
+  const rows = new Map<string, { subscribedAt: number; deletedAt?: number; starred: boolean }>();
+  const live = (f: string) => { const r = rows.get(f); return r !== undefined && r.deletedAt === undefined; };
   return {
-    list: () => [...rows.entries()].map(([feedUrl, subscribedAt]) => ({ feedUrl, subscribedAt })),
+    list: () => [...rows.entries()].filter(([f]) => live(f)).map(([feedUrl, r]) => ({ feedUrl, subscribedAt: r.subscribedAt })),
     add(feedUrl, now) {
-      if (!rows.has(feedUrl)) rows.set(feedUrl, now);
+      const r = rows.get(feedUrl);
+      if (r === undefined) rows.set(feedUrl, { subscribedAt: now, starred: false });
+      else if (r.deletedAt !== undefined) rows.set(feedUrl, { subscribedAt: now, starred: r.starred });
     },
     // FR-023: this touches subscriptions and nothing else. No position is
     // reachable from here, which is the point.
-    remove: (feedUrl) => void rows.delete(feedUrl),
-    has: (feedUrl) => rows.has(feedUrl),
+    // M8: a tombstone, not a delete — a deleted row cannot sync (guard G-M2).
+    remove: (feedUrl, now = Date.now()) => {
+      const r = rows.get(feedUrl);
+      if (r !== undefined && r.deletedAt === undefined) rows.set(feedUrl, { ...r, deletedAt: now });
+    },
+    has: (feedUrl) => live(feedUrl),
+    all: () => [...rows.entries()].map(([feedUrl, r]) => ({ feedUrl, subscribedAt: r.subscribedAt, ...(r.deletedAt === undefined ? {} : { deletedAt: r.deletedAt }), starred: r.starred })),
+    replaceAll: (next) => {
+      rows.clear();
+      for (const r of next) rows.set(r.feedUrl, { subscribedAt: r.subscribedAt, ...(r.deletedAt === undefined ? {} : { deletedAt: r.deletedAt }), starred: r.starred });
+    },
   };
 }
 

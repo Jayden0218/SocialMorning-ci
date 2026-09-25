@@ -10,6 +10,8 @@
 export type ShowCard = { appleId?: number; feedUrl: string; title: string; author: string; imageUrl?: string; genres: string[] };
 export type EpisodeCard = {
   feedUrl: string; guid: string; title: string; showTitle: string; imageUrl?: string; durationMs?: number; publishedAt?: string; enclosureUrl: string; appleShowId?: number;
+  /** M8: the show's Apple genre id, for the `genre` retrieval channel and the rerank's category cap. */
+  genreId?: number;
 };
 
 export class CatalogRateLimited extends Error { constructor(readonly status: number) { super(`Apple answered ${status}`); } }
