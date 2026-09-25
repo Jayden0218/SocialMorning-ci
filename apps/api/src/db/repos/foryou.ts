@@ -25,6 +25,8 @@ import { hiddenFeedUrls } from './moderation.ts';
 import { blockedIdsFor, safetyStamp } from './blocks.ts';
 import { neighboursOf, similarityAgeHours } from './similarity.ts';
 import { discoverBody } from './discover.ts';
+import { latestEpisodes, topShows } from '../../catalog/apple.ts';
+import { registerCard } from '../../catalog/feed.ts';
 import type { EpisodeCard } from '../../catalog/apple.ts';
 
 export const FOR_YOU_TTL = 30 * 60_000;
@@ -32,6 +34,8 @@ export const FOR_YOU_TTL = 30 * 60_000;
 export const SOCIAL_WINDOW_DAYS = 14;
 /** Categories taken from the listener's own listening. */
 export const TOP_GENRES = 2;
+/** The chart is fetched once an hour for everyone, not once per listener. */
+export const CHART_TTL = 60 * 60_000;
 
 export type ForYouItem = {
   episode: EpisodeCard & { id: string };
@@ -160,14 +164,44 @@ async function byGenre(db: Db, ctx: Context): Promise<Raw[]> {
 }
 
 /**
- * Build one listener's list. `discover` is injected so the tests can run without a
- * catalogue, and so a catalogue failure is one channel failing rather than the request.
+ * The public chart, as a channel of its own (FR-008 as amended 2026-09-26).
+ *
+ * It used to be taken from `discoverBody()`'s `trending`, which was wrong in a way that
+ * only the phone showed: in M5 the chart exists purely as **filler** for a thin
+ * talked-about list — `fillWithTrending(talked, trending, 5)` stops appending once the
+ * list reaches five — so with five talked-about items it is *always* empty. That made
+ * For You's only source of shows the listener does not already follow a channel that
+ * could never fire, and L2 came back with three items.
+ *
+ * Cached for everyone rather than per listener: it is the same ten shows for all of them.
+ */
+export async function chartCandidates(db: Db, f: typeof fetch, now: number): Promise<(EpisodeCard & { id: string })[]> {
+  const r = await cached<(EpisodeCard & { id: string })[]>(db, 'foryou:chart', CHART_TTL, async () => {
+    const out: (EpisodeCard & { id: string })[] = [];
+    const shows = await topShows(f, undefined, 10);
+    for (const s of shows) {
+      if (out.length >= CHANNEL_CAP.chart || s.appleId === undefined) continue;
+      const [latest] = await latestEpisodes(f, s.appleId, 1);
+      if (latest === undefined) continue;
+      const row = await registerCard(db, latest);
+      out.push({ ...latest, id: row.id });
+    }
+    return out;
+  }, () => now);
+  return r.body;
+}
+
+/**
+ * Build one listener's list. `discover` and `chart` are injected so the tests can run
+ * without a catalogue, and so a catalogue failure is one channel failing rather than the
+ * request.
  */
 export async function buildForYou(
   db: Db,
   ctx: Context,
   discover: () => Promise<{ picks: { episode: EpisodeCard & { id: string } }[]; talkedAbout: { episode: EpisodeCard & { id: string }; score?: number }[]; trending: { episode: EpisodeCard & { id: string } }[] }>,
   now: number,
+  chart: () => Promise<(EpisodeCard & { id: string })[]> = async () => [],
 ): Promise<{ items: ForYouItem[]; warnings: string[] }> {
   const warnings: string[] = [];
   const raw: Raw[] = [];
@@ -195,6 +229,12 @@ export async function buildForYou(
     for (const t of d.trending) raw.push({ row: cardToRow(t.episode), channel: 'chart' });
   } catch (e) {
     warnings.push(`discover: ${e instanceof Error ? e.message : String(e)}`);
+  }
+
+  try {
+    for (const c of await chart()) raw.push({ row: cardToRow(c), channel: 'chart' });
+  } catch (e) {
+    warnings.push(`chart: ${e instanceof Error ? e.message : String(e)}`);
   }
 
   // Dedup by episode id, keeping the first (strongest) channel that produced it.
@@ -260,7 +300,12 @@ export async function forYou(
   const stamp = await safetyStamp(db, listenerId);
   const r = await cached<ForYouBody>(db, `foryou:${listenerId}:${stamp}`, FOR_YOU_TTL, async () => {
     const ctx = await contextFor(db, listenerId);
-    const { items, warnings } = await buildForYou(db, ctx, async () => (await discoverBody(db, f, picks, today)).body, now);
+    const { items, warnings } = await buildForYou(
+      db, ctx,
+      async () => (await discoverBody(db, f, picks, today)).body,
+      now,
+      () => chartCandidates(db, f, now),
+    );
     return { items, computedAt: new Date(now).toISOString(), similarityAge: await similarityAgeHours(db), warnings };
   }, () => now);
 

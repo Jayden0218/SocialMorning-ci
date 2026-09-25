@@ -88,3 +88,39 @@ test('size is respected, and an empty input gives an empty list', () => {
   assert.equal(rerank(many, NONE, { size: 3 }).length, 3);
   assert.deepEqual(rerank([], NONE), []);
 });
+
+/**
+ * FR-014 as amended 2026-09-26, after L2 failed on the phone.
+ *
+ * The old behaviour was correct to the letter and useless in practice: a listener with
+ * three subscribed shows and no chart filler got a list of **three**, because every
+ * remaining candidate repeated a show already chosen. Diversity is a preference over a
+ * full list, not over an empty one.
+ *
+ * The break that turns these red: set `allowance` back to a constant 0 in `rerank`.
+ */
+test('FR-014 amended: three shows and nothing else fills the list instead of ending at three', () => {
+  const pool = ['a', 'b', 'c'].flatMap((show) =>
+    Array.from({ length: 6 }, (_, i) => s(cand(`${show}${i}`, `https://f/${show}`, null), 10 - i)),
+  );
+  const out = rerank(pool, NONE);
+  assert.equal(out.length, 18, 'every candidate is used rather than the list ending at 3');
+
+  // …and the strict rule is still honoured first: the first three are one per show.
+  assert.equal(new Set(out.slice(0, 3).map((x) => x.candidate.feedUrl)).size, 3);
+});
+
+test('FR-014 amended: an unrepresented show is always preferred to repeating one', () => {
+  const many = Array.from({ length: 5 }, (_, i) => s(cand(`hog${i}`, 'https://f/hog', null), 10));
+  const one = s(cand('other', 'https://f/other', null), 1); // much lower score
+  const out = rerank([...many, one], NONE);
+  assert.equal(out[1]!.candidate.episodeId, 'other', 'the low-scoring new show still comes before a repeat');
+});
+
+test('FR-014 amended: the caps still bind while other shows remain', () => {
+  const hoggers = Array.from({ length: 5 }, (_, i) => s(cand(`h${i}`, 'https://f/hog', null), 10 - i * 0.1));
+  const others = Array.from({ length: 9 }, (_, i) => s(cand(`o${i}`, `https://f/o${i}`, null), 5));
+  const out = rerank([...hoggers, ...others], NONE);
+  const top10 = out.slice(0, TOP10);
+  assert.equal(top10.filter((x) => x.candidate.feedUrl === 'https://f/hog').length, 1, 'still one per show in the top 10');
+});

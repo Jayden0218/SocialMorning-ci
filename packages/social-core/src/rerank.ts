@@ -43,19 +43,28 @@ export function pairSimilarity(
   return 0;
 }
 
-/** Would adding `c` at position `at` break a hard rule? */
-function breaksRule(c: RecCandidate, chosen: readonly Scored[]): boolean {
+/**
+ * Would adding `c` break a cap, given how much repetition is currently allowed?
+ *
+ * `allowance` starts at 0 — the strict rule — and only rises when the list would
+ * otherwise end short (FR-014 as amended 2026-09-26). It took L2 failing on the phone to
+ * see why that matters: a listener with three subscribed shows and no chart filler got a
+ * list of **three**, because every remaining candidate repeated a show already chosen and
+ * the rule was honoured to the letter. Diversity is a preference over a full list, not
+ * over an empty one.
+ */
+function breaksRule(c: RecCandidate, chosen: readonly Scored[], allowance: number): boolean {
   const at = chosen.length;
   if (at < TOP10) {
     let sameShow = 0;
     for (const s of chosen) if (s.candidate.feedUrl === c.feedUrl) sameShow++;
-    if (sameShow >= MAX_PER_SHOW_TOP10) return true;
+    if (sameShow >= MAX_PER_SHOW_TOP10 + allowance) return true;
   }
   // The category cap applies to the whole list, which is LIST_SIZE long by default.
   if (c.genreId !== null) {
     let sameGenre = 0;
     for (const s of chosen) if (s.candidate.genreId === c.genreId) sameGenre++;
-    if (sameGenre >= MAX_PER_GENRE_TOP20) return true;
+    if (sameGenre >= MAX_PER_GENRE_TOP20 + allowance) return true;
   }
   return false;
 }
@@ -80,12 +89,15 @@ export function rerank(
   const pickAt = rest.findIndex((s) => s.candidate.channel === 'pick');
   if (pickAt >= 0) chosen.push(...rest.splice(pickAt, 1));
 
+  // `allowance` rises only when a whole pass found nothing admissible, so the strict rule
+  // is always tried first and every unrepresented show is used before any show repeats.
+  let allowance = 0;
   while (chosen.length < size && rest.length > 0) {
     let bestIdx = -1;
     let bestMr = -Infinity;
     for (let i = 0; i < rest.length; i++) {
       const c = rest[i]!;
-      if (breaksRule(c.candidate, chosen)) continue;
+      if (breaksRule(c.candidate, chosen, allowance)) continue;
       let worst = 0;
       for (const s of chosen) {
         const sim = pairSimilarity(c.candidate, s.candidate, neighbours);
@@ -94,7 +106,13 @@ export function rerank(
       const mr = theta * c.score - (1 - theta) * worst;
       if (mr > bestMr) { bestMr = mr; bestIdx = i; }
     }
-    if (bestIdx < 0) break; // nothing left that keeps the rules — end short, do not break them
+    if (bestIdx < 0) {
+      // Nothing admissible at this allowance. Relax by one and try the same pool again;
+      // when even an unlimited allowance finds nothing, the pool really is exhausted.
+      if (allowance >= size) break;
+      allowance++;
+      continue;
+    }
     chosen.push(...rest.splice(bestIdx, 1));
   }
   return chosen;
