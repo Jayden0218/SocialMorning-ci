@@ -25,6 +25,8 @@ import { privacy, profiles } from './routes/profiles.ts';
 import { discover } from './routes/discover.ts';
 import { createSearchRoute } from './routes/search.ts';
 import { nextup } from './routes/nextup.ts';
+import { foryou } from './routes/foryou.ts';
+import { createInternalRoute } from './routes/internal.ts';
 import { validatePicks } from '@socialmorning/social-core';
 import type { Catalog, Safety } from './auth/session.ts';
 import picksJson from '../picks.json' with { type: 'json' };
@@ -40,6 +42,8 @@ export type AppDeps = {
   appealsEmail?: string;
   /** M6: the published build's SHA-256 shown on `/get` (env RELEASE_SHA256). */
   releaseSha256?: string;
+  /** M8: the scheduled rebuild's bearer token (env JOB_TOKEN). Unset → /v1/internal is closed. */
+  jobToken?: string;
 };
 
 /**
@@ -93,6 +97,8 @@ export function createApp(deps: AppDeps) {
   app.route('/v1/listeners', follows);
   app.route('/v1/listeners', profiles);
   app.route('/v1/discover', discover);
+  app.route('/v1/for-you', foryou);
+  app.route('/v1/internal', createInternalRoute(deps.jobToken));
   app.route('/v1/search', createSearchRoute());
   app.route('/v1/episodes', nextup);
   app.route('/v1/episodes', episodes);

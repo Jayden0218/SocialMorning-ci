@@ -48,5 +48,6 @@ export type { Liker, Neighbour } from './swing';
 export { SWING_ALPHA, MIN_LIKERS, MAX_NEIGHBOURS, MIN_USEFUL_CANDIDATES, LIKE_FINISHED, swingSimilarity, bestNeighbourSim } from './swing';
 export type { Scored } from './rerank';
 export { MMR_THETA, LIST_SIZE, MAX_PER_SHOW_TOP10, TOP10, MAX_PER_GENRE_TOP20, SIM_SAME_SHOW, SIM_SAME_GENRE, pairSimilarity, rerank } from './rerank';
-export { REASON_MAX } from './reason';
+export type { ReasonContext } from './reason';
+export { REASON_MAX, reasonFor } from './reason';
 export { REPLAY_TARGET_PERCENTILE, REPLAY_FIELD } from './replay';
