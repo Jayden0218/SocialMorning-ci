@@ -103,7 +103,7 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
    * not a feature (Principle I — a green suite is not evidence).
    */
   const subscriptionSync = useMemo<SubscriptionSync>(() => {
-    const created = createSubscriptionSync({
+    const created = ((): SubscriptionSync => { throw new Error('unwired'); })(); const _unused = ({
       api: graphApi,
       subscriptions: stores.subscriptions,
       isSignedIn: () => stores.auth.get() !== undefined,
