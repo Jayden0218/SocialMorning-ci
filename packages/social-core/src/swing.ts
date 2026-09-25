@@ -79,8 +79,9 @@ export function swingSimilarity(likers: readonly Liker[], opts: SwingOptions = {
   const eligible = [...byShow.entries()].filter(([, ls]) => ls.length >= minLikers);
   const overlapCache = new Map<string, number>();
   const overlap = (a: string, b: string): number => {
-    const key = a < b ? `${a}\u0001${b}` : `${b}\u0001${a}`;
-    const hit = overlapCache.get(key);
+    // Cached under both orders rather than under a canonical one: overlap is symmetric,
+    // and sorting the key here would be a branch that only one side of the data ever takes.
+    const hit = overlapCache.get(`${a}\u0001${b}`);
     if (hit !== undefined) return hit;
     const A = byListener.get(a)!;
     const B = byListener.get(b)!;
@@ -88,7 +89,8 @@ export function swingSimilarity(likers: readonly Liker[], opts: SwingOptions = {
     const [small, large] = A.size <= B.size ? [A, B] : [B, A];
     let n = 0;
     for (const s of small) if (large.has(s)) n++;
-    overlapCache.set(key, n);
+    overlapCache.set(`${a}\u0001${b}`, n);
+    overlapCache.set(`${b}\u0001${a}`, n);
     return n;
   };
 
