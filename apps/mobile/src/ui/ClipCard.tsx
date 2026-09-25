@@ -46,8 +46,8 @@ export function ClipCard(props: ClipCardProps): React.ReactElement {
 
 const styles = StyleSheet.create({
   card: { paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: colour.separator, gap: 4 },
-  range: { fontVariant: ['tabular-nums'], fontWeight: '600' },
-  caption: { fontSize: 16 },
+  range: { fontVariant: ['tabular-nums'], fontWeight: '600', color: colour.text },
+  caption: { fontSize: 16, color: colour.text },
   row: { flexDirection: 'row', gap: 16, alignItems: 'center' },
   author: { color: colour.accent },
   muted: { color: colour.muted },

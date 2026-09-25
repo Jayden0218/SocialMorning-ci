@@ -77,12 +77,12 @@ export default function DownloadsScreen(): React.ReactElement {
 const styles = StyleSheet.create({
   body: { padding: 12, gap: 6 },
   header: { gap: 8, marginBottom: 8 },
-  line: { fontSize: 15 },
+  line: { fontSize: 15, color: colour.text },
   rowWrap: { flexDirection: 'row', gap: 12, alignItems: 'center', flexWrap: 'wrap' },
   chip: { borderWidth: 1, borderColor: colour.separator, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4, color: colour.text },
   chipOn: { backgroundColor: colour.accent, color: colour.text, borderColor: colour.accent },
   link: { color: colour.accent, fontSize: 15, paddingVertical: 4 },
   muted: { color: colour.muted },
   item: { paddingVertical: 8, gap: 2, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: colour.separator },
-  title: { fontSize: 15, fontWeight: '600' },
+  title: { fontSize: 15, fontWeight: '600', color: colour.text },
 });

@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
   body: { padding: 12, gap: 4 },
   item: { paddingVertical: 8, gap: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: colour.separator },
   show: { fontSize: 12, color: colour.muted, textTransform: 'uppercase' },
-  title: { fontSize: 15, fontWeight: '600' },
+  title: { fontSize: 15, fontWeight: '600', color: colour.text },
   muted: { color: colour.muted, fontSize: 13 },
   actions: { flexDirection: 'row', gap: 18 },
   link: { color: colour.accent, fontSize: 15 },

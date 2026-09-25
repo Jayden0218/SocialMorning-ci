@@ -32,7 +32,7 @@ export function DiscoverSections(props: { body: Discover; stale: boolean; fetche
 
 const styles = StyleSheet.create({
   wrap: { gap: 6 },
-  h2: { fontSize: 18, fontWeight: '600', marginTop: 12, marginBottom: 4 },
+  h2: { fontSize: 18, fontWeight: '600', marginTop: 12, marginBottom: 4, color: colour.text },
   muted: { color: colour.muted },
   stale: { color: colour.accent, backgroundColor: colour.surface, padding: 8, borderRadius: 6 },
 });

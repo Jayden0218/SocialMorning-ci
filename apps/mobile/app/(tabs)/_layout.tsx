@@ -17,7 +17,7 @@
 import { Tabs, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { colour } from '../../src/design';
+import { colour, fontSize } from '../../src/design';
 import { createFeed } from '../../src/graph/feed';
 import { useSocial } from '../../src/social/context';
 import { MiniPlayer } from '../../src/ui/MiniPlayer';
@@ -55,7 +55,15 @@ export default function TabsLayout(): React.ReactElement {
 
   return (
     <Tabs
-      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colour.background } }}
+      screenOptions={{
+        // The tab screens had no header at all on build 20: the first row sat under the
+        // status bar. They get the same chrome as the stack.
+        headerStyle: { backgroundColor: colour.background },
+        headerTintColor: colour.accent,
+        headerTitleStyle: { color: colour.text, fontSize: fontSize.lg, fontWeight: '700' },
+        headerShadowVisible: false,
+        sceneStyle: { backgroundColor: colour.background },
+      }}
       tabBar={(props) => {
         const active = props.state.routes[props.state.index]?.name ?? 'index';
         return (

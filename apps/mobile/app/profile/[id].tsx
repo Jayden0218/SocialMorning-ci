@@ -82,8 +82,8 @@ export default function ProfileScreen(): React.ReactElement {
 
 const styles = StyleSheet.create({
   body: { padding: 16, gap: 12 },
-  name: { fontSize: 24, fontWeight: '600' },
-  h2: { fontSize: 18, fontWeight: '600', marginTop: 8 },
+  name: { fontSize: 24, fontWeight: '600', color: colour.text },
+  h2: { fontSize: 18, fontWeight: '600', marginTop: 8, color: colour.text },
   row: { flexDirection: 'row', gap: 16, alignItems: 'center', flexWrap: 'wrap' },
   link: { color: colour.accent },
   muted: { color: colour.muted },

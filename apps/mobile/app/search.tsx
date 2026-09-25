@@ -60,7 +60,8 @@ export default function SearchScreen(): React.ReactElement {
 
   return (
     <View style={styles.fill}>
-      <TextInput style={styles.input} placeholder="Search shows and episodes, or paste a feed URL" autoCorrect={false} autoFocus value={term} onChangeText={setTerm} accessibilityLabel="Search podcasts" />
+      <TextInput
+        placeholderTextColor={colour.muted} style={styles.input} placeholder="Search shows and episodes, or paste a feed URL" autoCorrect={false} autoFocus value={term} onChangeText={setTerm} accessibilityLabel="Search podcasts" />
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
         {looksLikeFeedUrl(trimmed) ? (
           <Pressable style={styles.urlRow} accessibilityRole="button" onPress={() => openShow(trimmed)}><Text style={styles.link}>Open feed {trimmed}</Text></Pressable>
@@ -95,12 +96,12 @@ const styles = StyleSheet.create({
   body: { paddingHorizontal: 12, paddingBottom: 96 },
   spinner: { marginVertical: 8 },
   notice: { marginVertical: 8, color: colour.accent, backgroundColor: colour.surface, padding: 8, borderRadius: 6 },
-  h2: { fontSize: 16, fontWeight: '600', marginTop: 12, marginBottom: 4 },
+  h2: { fontSize: 16, fontWeight: '600', marginTop: 12, marginBottom: 4, color: colour.text },
   urlRow: { paddingVertical: 10 },
   link: { color: colour.accent },
   row: { flexDirection: 'row', gap: 12, paddingVertical: 8 },
   art: { width: 56, height: 56, borderRadius: 6, backgroundColor: colour.surface },
   grow: { flex: 1 },
-  title: { fontSize: 15, fontWeight: '600' },
+  title: { fontSize: 15, fontWeight: '600', color: colour.text },
   subtitle: { fontSize: 13, color: colour.muted },
 });

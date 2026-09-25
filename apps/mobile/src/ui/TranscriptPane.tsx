@@ -36,8 +36,8 @@ const styles = StyleSheet.create({
   line: { flexDirection: 'row', gap: 8, paddingVertical: 3, paddingHorizontal: 4, borderRadius: 4 },
   current: { backgroundColor: colour.surface },
   time: { color: colour.muted, fontVariant: ['tabular-nums'], width: 52, fontSize: 12, paddingTop: 2 },
-  text: { fontSize: 14, lineHeight: 20 },
+  text: { fontSize: 14, lineHeight: 20, color: colour.text },
   grow: { flex: 1 },
-  textCurrent: { fontWeight: '600' },
+  textCurrent: { fontWeight: '600', color: colour.text },
   speaker: { color: colour.muted, fontWeight: '600' },
 });

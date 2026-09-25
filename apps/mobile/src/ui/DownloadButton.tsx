@@ -75,7 +75,7 @@ export function DownloadButton(props: { episodeId: string }): React.ReactElement
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, marginVertical: 4 },
   button: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 999, borderWidth: 1, borderColor: colour.separator },
-  buttonText: { fontWeight: '600' },
+  buttonText: { fontWeight: '600', color: colour.text },
   done: { fontWeight: '600', color: colour.accent },
   link: { color: colour.accent, fontSize: 14 },
   muted: { color: colour.muted, fontSize: 14 },

@@ -40,6 +40,7 @@ export function ClipComposer(props: ClipComposerProps): React.ReactElement {
       </View>
       {s.problem ? <Text style={styles.problem}>{problemText[s.problem]}</Text> : null}
       <TextInput
+        placeholderTextColor={colour.muted}
         style={styles.input}
         placeholder="Caption (optional)"
         value={s.caption}
@@ -61,13 +62,13 @@ export function ClipComposer(props: ClipComposerProps): React.ReactElement {
 
 const styles = StyleSheet.create({
   wrap: { padding: 16, gap: 10 },
-  title: { fontSize: 18, fontWeight: '600' },
-  range: { fontSize: 22, fontVariant: ['tabular-nums'] },
+  title: { fontSize: 18, fontWeight: '600', color: colour.text },
+  range: { fontSize: 22, fontVariant: ['tabular-nums'], color: colour.text },
   muted: { color: colour.muted },
   row: { flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
   chip: { borderWidth: 1, borderColor: colour.separator, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8 },
   problem: { color: colour.accent },
-  input: { borderWidth: 1, borderColor: colour.separator, borderRadius: 8, padding: 10, minHeight: 60, fontSize: 16 },
+  input: { borderWidth: 1, borderColor: colour.separator, borderRadius: 8, padding: 10, minHeight: 60, fontSize: 16, color: colour.text },
   secondary: { borderWidth: 1, borderColor: colour.separator, borderRadius: 24, paddingHorizontal: 18, paddingVertical: 10 },
   primary: { backgroundColor: colour.accent, borderRadius: 24, paddingHorizontal: 22, paddingVertical: 10 },
   primaryText: { color: colour.text, fontWeight: '600' },

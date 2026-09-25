@@ -117,7 +117,7 @@ export default function EpisodeScreen(): React.ReactElement {
 
 const styles = StyleSheet.create({
   body: { padding: 12, gap: 8 },
-  title: { fontSize: 20, fontWeight: '700' },
+  title: { fontSize: 20, fontWeight: '700', color: colour.text },
   subtitle: { fontSize: 13, color: colour.muted },
   play: {
     alignSelf: 'flex-start',

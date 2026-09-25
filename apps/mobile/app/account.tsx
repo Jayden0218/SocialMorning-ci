@@ -97,7 +97,8 @@ export default function AccountScreen(): React.ReactElement {
       ) : (
         <View style={{ gap: 8, marginTop: 8 }}>
           <Text>This removes your comments, reactions and listening positions from every phone. Where someone replied to you, "Comment deleted" stays so their reply still makes sense. This cannot be undone.</Text>
-          <TextInput style={styles.input} placeholder="Your password, to confirm" secureTextEntry value={password} onChangeText={setPassword} accessibilityLabel="Password" />
+          <TextInput
+        placeholderTextColor={colour.muted} style={styles.input} placeholder="Your password, to confirm" secureTextEntry value={password} onChangeText={setPassword} accessibilityLabel="Password" />
           {error ? <Text style={styles.error}>{error}</Text> : null}
           <Pressable style={[styles.button, { backgroundColor: colour.accent }, (busy || !password) && styles.disabled]} disabled={busy || !password} onPress={remove} accessibilityRole="button">
             <Text style={styles.buttonText}>Delete account</Text>

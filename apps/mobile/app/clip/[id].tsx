@@ -74,7 +74,7 @@ export default function ClipScreen(): React.ReactElement {
 
 const styles = StyleSheet.create({
   body: { padding: 16, gap: 12 },
-  title: { fontSize: 20, fontWeight: '600' },
+  title: { fontSize: 20, fontWeight: '600', color: colour.text },
   muted: { color: colour.muted },
   row: { flexDirection: 'row', gap: 12, flexWrap: 'wrap', alignItems: 'center' },
   primary: { backgroundColor: colour.accent, borderRadius: 24, paddingHorizontal: 20, paddingVertical: 10 },

@@ -16,8 +16,8 @@ export function EndOffer(props: { item: NextUpItem; onPlay: () => void }): React
 
 const styles = StyleSheet.create({
   wrap: { marginTop: 12, padding: 12, backgroundColor: colour.surface, borderRadius: 10, gap: 4 },
-  h3: { fontWeight: '600' },
-  title: { fontSize: 16, fontWeight: '600' },
+  h3: { fontWeight: '600', color: colour.text },
+  title: { fontSize: 16, fontWeight: '600', color: colour.text },
   muted: { color: colour.muted },
   primary: { alignSelf: 'flex-start', backgroundColor: colour.accent, borderRadius: 24, paddingHorizontal: 20, paddingVertical: 10, marginTop: 6 },
   primaryText: { color: colour.text, fontWeight: '600' },

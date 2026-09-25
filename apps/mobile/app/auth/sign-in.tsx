@@ -33,8 +33,10 @@ export default function SignInScreen(): React.ReactElement {
 
   return (
     <View style={styles.body}>
-      <TextInput style={styles.input} placeholder="Email" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} accessibilityLabel="Email" />
-      <TextInput style={styles.input} placeholder="Password" secureTextEntry value={password} onChangeText={setPassword} accessibilityLabel="Password" />
+      <TextInput
+        placeholderTextColor={colour.muted} style={styles.input} placeholder="Email" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} accessibilityLabel="Email" />
+      <TextInput
+        placeholderTextColor={colour.muted} style={styles.input} placeholder="Password" secureTextEntry value={password} onChangeText={setPassword} accessibilityLabel="Password" />
       {suspended ? <Text style={styles.error} accessibilityLiveRegion="polite">{suspended}</Text> : null}
       {error ? <Text style={styles.error} accessibilityLiveRegion="polite">{error}</Text> : null}
       <Pressable style={[styles.button, busy && styles.disabled]} disabled={busy || !email || !password} onPress={submit} accessibilityRole="button">
@@ -55,7 +57,7 @@ export function describe(e: unknown): string {
 
 export const styles = StyleSheet.create({
   body: { padding: 16, gap: 12 },
-  input: { borderWidth: 1, borderColor: colour.separator, borderRadius: 8, padding: 12, fontSize: 16 },
+  input: { borderWidth: 1, borderColor: colour.separator, borderRadius: 8, padding: 12, fontSize: 16, color: colour.text },
   error: { color: colour.accent },
   button: { backgroundColor: colour.accent, borderRadius: 24, paddingVertical: 12, alignItems: 'center' },
   disabled: { opacity: 0.5 },

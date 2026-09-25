@@ -23,7 +23,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 12, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: colour.separator },
   art: { width: 56, height: 56, borderRadius: 8, backgroundColor: colour.surface },
   grow: { flex: 1, gap: 2 },
-  title: { fontSize: 16, fontWeight: '600' },
+  title: { fontSize: 16, fontWeight: '600', color: colour.text },
   meta: { color: colour.muted, fontSize: 13 },
   line: { color: colour.text, fontSize: 14 },
 });

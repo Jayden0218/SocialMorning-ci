@@ -45,6 +45,6 @@ export function ClipList(props: { episode: PlayableEpisode }): React.ReactElemen
 
 const styles = StyleSheet.create({
   wrap: { marginTop: 16 },
-  h2: { fontSize: 18, fontWeight: '600', marginBottom: 4 },
+  h2: { fontSize: 18, fontWeight: '600', marginBottom: 4, color: colour.text },
   muted: { color: colour.muted },
 });

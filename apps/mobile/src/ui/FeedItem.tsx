@@ -34,5 +34,5 @@ const styles = StyleSheet.create({
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   author: { color: colour.accent, fontWeight: '600' },
   muted: { color: colour.muted, fontSize: 12 },
-  body: { fontSize: 16 },
+  body: { fontSize: 16, color: colour.text },
 });

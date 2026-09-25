@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
   destructive: { backgroundColor: colour.accent },
   secondary: { borderWidth: 1, borderColor: colour.separator },
   off: { opacity: 0.4 },
-  label: { fontSize: fontSize.sm, fontWeight: '600' },
+  label: { fontSize: fontSize.sm, fontWeight: '600', color: colour.text },
   labelOnAccent: { color: colour.text },
   labelSecondary: { color: colour.text },
 });

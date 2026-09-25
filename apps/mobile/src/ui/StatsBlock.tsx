@@ -39,7 +39,7 @@ export function StatsBlock(props: { stats: { last7: ProfileStats; all: ProfileSt
 const styles = StyleSheet.create({
   wrap: { gap: 12 },
   window: { gap: 2 },
-  h3: { fontWeight: '600' },
-  num: { fontVariant: ['tabular-nums'], fontWeight: '600' },
+  h3: { fontWeight: '600', color: colour.text },
+  num: { fontVariant: ['tabular-nums'], fontWeight: '600', color: colour.text },
   muted: { color: colour.muted },
 });

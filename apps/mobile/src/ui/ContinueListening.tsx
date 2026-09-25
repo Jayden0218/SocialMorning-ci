@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
     backgroundColor: colour.surface,
   },
   label: { fontSize: 12, textTransform: 'uppercase', color: colour.muted, letterSpacing: 0.5 },
-  title: { fontSize: 16, fontWeight: '700' },
+  title: { fontSize: 16, fontWeight: '700', color: colour.text },
   subtitle: { fontSize: 13, color: colour.muted },
   play: {
     alignSelf: 'flex-start',

@@ -57,6 +57,7 @@ export function ComposerSheet(props: {
             <Text style={[styles.muted, length > 2000 && styles.over]}>{length} / 2000</Text>
           </View>
           <TextInput
+        placeholderTextColor={colour.muted}
             style={styles.input}
             multiline
             autoFocus
@@ -88,11 +89,11 @@ const styles = StyleSheet.create({
   sheet: { backgroundColor: colour.surface, padding: 16, gap: 10, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   chip: { flexDirection: 'row', gap: 8, alignItems: 'center', backgroundColor: colour.surface, borderRadius: 999, paddingVertical: 4, paddingHorizontal: 10 },
-  chipText: { fontWeight: '600' },
+  chipText: { fontWeight: '600', color: colour.text },
   chipX: { fontSize: 14, color: colour.muted },
   muted: { color: colour.muted },
   over: { color: colour.accent },
-  input: { minHeight: 90, maxHeight: 200, borderWidth: 1, borderColor: colour.separator, borderRadius: 8, padding: 10, fontSize: 16, textAlignVertical: 'top' },
+  input: { minHeight: 90, maxHeight: 200, borderWidth: 1, borderColor: colour.separator, borderRadius: 8, padding: 10, fontSize: 16, textAlignVertical: 'top', color: colour.text },
   error: { color: colour.accent },
   link: { color: colour.accent, fontSize: 15 },
   button: { backgroundColor: colour.accent, borderRadius: 24, paddingVertical: 10, paddingHorizontal: 22 },

@@ -36,8 +36,8 @@ export function SpeedControl(): React.ReactElement {
 const styles = StyleSheet.create({
   wrap: { width: '100%', gap: 4, marginTop: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
-  step: { fontSize: 22, paddingHorizontal: 8 },
-  rate: { fontSize: 16, fontWeight: '700', minWidth: 48, textAlign: 'center' },
+  step: { fontSize: 22, paddingHorizontal: 8, color: colour.text },
+  rate: { fontSize: 16, fontWeight: '700', minWidth: 48, textAlign: 'center', color: colour.text },
   chip: { borderWidth: 1, borderColor: colour.separator, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, color: colour.text },
   chipOn: { backgroundColor: colour.accent, color: colour.text, borderColor: colour.accent },
   link: { color: colour.accent, fontSize: 13 },

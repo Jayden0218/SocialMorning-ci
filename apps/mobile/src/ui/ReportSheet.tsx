@@ -47,7 +47,8 @@ export function ReportSheet(props: { target: ReportTarget | undefined; onClose: 
               </Pressable>
             ))}
           </ScrollView>
-          <TextInput style={styles.note} placeholder="Anything to add? (optional)" value={note} onChangeText={(t) => setNote(t.slice(0, REPORT_NOTE_MAX))} multiline maxLength={REPORT_NOTE_MAX} accessibilityLabel="Note, optional" />
+          <TextInput
+        placeholderTextColor={colour.muted} style={styles.note} placeholder="Anything to add? (optional)" value={note} onChangeText={(t) => setNote(t.slice(0, REPORT_NOTE_MAX))} multiline maxLength={REPORT_NOTE_MAX} accessibilityLabel="Note, optional" />
           <Text style={styles.counter}>{note.length} / {REPORT_NOTE_MAX}</Text>
           <View style={styles.row}>
             <Pressable onPress={close} accessibilityRole="button" accessibilityLabel="Cancel" style={styles.btn}><Text style={styles.link}>Cancel</Text></Pressable>
@@ -62,12 +63,12 @@ export function ReportSheet(props: { target: ReportTarget | undefined; onClose: 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: colour.scrim },
   sheet: { backgroundColor: colour.surface, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16, gap: 8, maxHeight: '85%' },
-  h1: { fontSize: 18, fontWeight: '700' },
+  h1: { fontSize: 18, fontWeight: '700', color: colour.text },
   notice: { color: colour.accent, backgroundColor: colour.surface, padding: 8, borderRadius: 6 },
   list: { flexGrow: 0 },
   reason: { paddingVertical: 12, paddingHorizontal: 8, borderRadius: 8, minHeight: 48 },
   reasonOn: { backgroundColor: colour.accent, borderColor: colour.accent },
-  reasonText: { fontSize: 16 },
+  reasonText: { fontSize: 16, color: colour.text },
   reasonTextOn: { fontWeight: '700', color: colour.accent },
   note: { borderWidth: 1, borderColor: colour.separator, borderRadius: 8, padding: 10, minHeight: 64, textAlignVertical: 'top' },
   counter: { color: colour.muted, fontSize: 12, textAlign: 'right' },

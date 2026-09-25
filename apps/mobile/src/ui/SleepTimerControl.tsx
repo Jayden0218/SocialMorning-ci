@@ -45,7 +45,7 @@ export function SleepTimerControl(): React.ReactElement {
 const styles = StyleSheet.create({
   wrap: { width: '100%', gap: 4, marginTop: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
-  label: { fontWeight: '600' },
+  label: { fontWeight: '600', color: colour.text },
   chip: { borderWidth: 1, borderColor: colour.separator, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, color: colour.text, fontSize: 13 },
   chipOn: { backgroundColor: colour.accent, color: colour.text, borderColor: colour.accent },
   status: { color: colour.text },

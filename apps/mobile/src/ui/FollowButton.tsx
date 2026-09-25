@@ -40,6 +40,6 @@ export function FollowButton(props: { listenerId: string; following: boolean; on
 const styles = StyleSheet.create({
   btn: { borderWidth: 1, borderColor: colour.separator, borderRadius: 24, paddingHorizontal: 18, paddingVertical: 8, alignSelf: 'flex-start' },
   on: { backgroundColor: colour.accent },
-  text: { fontWeight: '600' },
+  text: { fontWeight: '600', color: colour.text },
   textOn: { color: colour.text },
 });
