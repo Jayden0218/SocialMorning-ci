@@ -29,10 +29,13 @@ test('A6: five episodes of one show → exactly one of them survives into the to
   assert.equal(new Set(top10.map((x) => x.candidate.feedUrl)).size, top10.length, 'no show twice');
 });
 
-test('A6: no more than three of one category in the list', () => {
+test('A6: no more than three of one category, while other categories still have candidates', () => {
+  // Enough distinct-category candidates to fill the list without ever needing to repeat,
+  // so the cap binds. (Amended FR-014 only yields when the list would otherwise be short.)
   const sameGenre = Array.from({ length: 8 }, (_, i) => s(cand(`g${i}`, `https://f/g${i}`, 1318), 9 - i * 0.1));
-  const spread = Array.from({ length: 8 }, (_, i) => s(cand(`x${i}`, `https://f/x${i}`, 1400 + i), 1));
+  const spread = Array.from({ length: 25 }, (_, i) => s(cand(`x${i}`, `https://f/x${i}`, 1400 + i), 1));
   const out = rerank([...sameGenre, ...spread], NONE);
+  assert.equal(out.length, 20);
   assert.equal(out.filter((x) => x.candidate.genreId === 1318).length, MAX_PER_GENRE_TOP20);
 });
 
@@ -44,18 +47,23 @@ test('A6: the hand-picked episode is index 0 even when it scores last', () => {
   assert.equal(out.length, 4);
 });
 
-test('an episode with no category is exempt from the category cap but not from the show cap', () => {
+test('an episode with no category is exempt from the category cap; the show cap binds while other shows remain', () => {
   const noGenre = Array.from({ length: 5 }, (_, i) => s(cand(`n${i}`, `https://f/n${i}`, null), 5));
-  const out = rerank(noGenre, NONE);
-  assert.equal(out.length, 5, 'null genre never trips the category cap');
+  assert.equal(rerank(noGenre, NONE).length, 5, 'null genre never trips the category cap');
 
+  // Five from one show, and one other show available: the top 10 takes one of each first.
   const oneShow = Array.from({ length: 5 }, (_, i) => s(cand(`m${i}`, 'https://f/same', null), 5));
-  assert.equal(rerank(oneShow, NONE).length, 1, 'but the show cap still bites');
+  const other = s(cand('other', 'https://f/other', null), 1);
+  const out = rerank([...oneShow, other], NONE);
+  assert.deepEqual(out.slice(0, 2).map((x) => x.candidate.feedUrl), ['https://f/same', 'https://f/other'],
+    'the show cap holds until every show is represented');
 });
 
-test('the list ends short rather than breaking a rule', () => {
+test('FR-014 amended: one show with thirty episodes fills the list rather than showing one', () => {
+  // Before 2026-09-26 this returned exactly 1 item, which is what L2 hit on the phone.
   const out = rerank(Array.from({ length: 30 }, (_, i) => s(cand(`z${i}`, 'https://f/only', 1318), 5)), NONE);
-  assert.equal(out.length, 1);
+  assert.equal(out.length, 20);
+  assert.equal(new Set(out.map((x) => x.candidate.episodeId)).size, 20, 'twenty distinct episodes, not one repeated');
 });
 
 test('MMR prefers variety at equal score: a Swing neighbour is held back behind an unrelated show', () => {
