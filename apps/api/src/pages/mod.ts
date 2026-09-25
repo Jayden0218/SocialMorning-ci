@@ -16,6 +16,9 @@ import { verifyPassword } from '../auth/password.ts';
 import { listenerByEmail } from '../db/repos/listeners.ts';
 import { closedReports, openReports, purgeClosedOlderThan, type QueueRow } from '../db/repos/reports.ts';
 import { act, recentActions } from '../db/repos/moderation.ts';
+import { rollup } from '../db/repos/rec-events.ts';
+import { similarityAgeHours } from '../db/repos/similarity.ts';
+import { SIMILARITY_STALE_HOURS } from '../db/repos/similarity.ts';
 import { esc, mmss, page } from './clip.ts';
 
 const COOKIE = 'mod';
@@ -35,6 +38,42 @@ async function ownerFromCookie(c: Context<AuthEnv>): Promise<{ owner: Listener; 
 }
 
 const secure = (c: { req: { url: string } }) => c.req.url.startsWith('https:');
+
+/**
+ * M8 US6 (FR-029) — the only place the recommendation layer can be judged on evidence.
+ *
+ * Two things are here and nowhere else: **CTR per retrieval channel**, so a channel that
+ * earns nothing can be deleted with a number rather than an opinion; and
+ * **`similarityAge`**, because GitHub silently disables a public repo's scheduled
+ * workflows after 60 days of inactivity and a dead rebuild would otherwise look exactly
+ * like a working one (research R4).
+ */
+mod.get('/recs', async (c) => {
+  if (!c.get('safety').ownerListenerId) return c.html(page('Recommendations', '<h1>Not configured</h1>'), 503);
+  const who = await ownerFromCookie(c);
+  if (!who) return c.html(page('Recommendations — refused', '<h1>Not the owner</h1><p><a href="/mod">Back</a></p>'), 403);
+  const db = c.get('db');
+  const [rows, age] = await Promise.all([rollup(db, 7), similarityAgeHours(db)]);
+  const pct = (n: number, d: number) => (d === 0 ? '—' : `${((n / d) * 100).toFixed(1)}%`);
+  const stale = age === null || age > SIMILARITY_STALE_HOURS;
+  return c.html(page('Recommendations', `
+    <h1>Recommendations — last 7 days</h1>
+    <p class="${stale ? 'warn' : 'muted'}">Show similarity: ${
+      age === null
+        ? '<strong>never rebuilt.</strong> The scheduled job has not run once.'
+        : age > SIMILARITY_STALE_HOURS
+          ? `<strong>${Math.round(age)} h old — the scheduled rebuild has stopped.</strong> GitHub disables a public repo's schedules after 60 days of inactivity, silently.`
+          : `${Math.round(age)} h old.`
+    }</p>
+    <table>
+      <tr><th>Channel</th><th>Shown</th><th>Opened</th><th>CTR</th><th>Played</th><th>Finished</th></tr>
+      ${rows.length === 0 ? '<tr><td colspan="6" class="muted">Nothing recorded yet.</td></tr>' : rows.map((r) => `
+        <tr><td>${esc(r.channel)}</td><td>${r.shown}</td><td>${r.opened}</td><td>${pct(r.opened, r.shown)}</td><td>${r.played}</td><td>${r.finished}</td></tr>`).join('')}
+    </table>
+    <p class="muted">Aggregates only — no listener is named here.</p>
+    <p><a href="/mod">Back to the queue</a></p>
+  `));
+});
 
 mod.get('/', async (c) => {
   if (!c.get('safety').ownerListenerId) return c.html(page('Moderation', '<h1>Moderation is not configured</h1><p class="muted">OWNER_LISTENER_ID is not set.</p>'), 503);
