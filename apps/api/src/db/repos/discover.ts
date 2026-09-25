@@ -64,15 +64,23 @@ async function cachedDiscover(db: Db, f: typeof fetch, picks: readonly PickIn[],
     let trending: DiscoverItem[] = [];
     try {
       const shows = await topShows(f, undefined, 10);
+      // M8 (2026-09-26): this used to be silent. The live chart returned NOTHING for an
+      // unknown length of time and `warnings` was `[]`, so Discover looked healthy and
+      // For You lost its only source of shows the listener does not already follow.
+      // A channel that gives up says so (principle IV).
+      if (shows.length === 0) warnings.push('chart: the top-podcasts chart returned no usable shows');
+      const noEpisode: string[] = [];
       for (const s of shows) {
-        if (trending.length >= 8 || s.appleId === undefined) continue;
+        if (trending.length >= 8) continue;
+        if (s.appleId === undefined) { noEpisode.push(`${s.title} (no apple id)`); continue; }
         try {
           const [latest] = await latestEpisodes(f, s.appleId, 1);
-          if (!latest) continue;
+          if (!latest) { noEpisode.push(s.title); continue; }
           const row = await registerCard(db, latest);
           trending.push({ kind: 'trending', key: keyOf(latest), episode: { ...latest, id: row.id }, reason: 'Trending on the chart' });
         } catch (e) { warnings.push(`trending ${s.title}: ${e instanceof Error ? e.message : String(e)}`); }
       }
+      if (noEpisode.length > 0) warnings.push(`chart: no episode for ${noEpisode.length} of ${shows.length} shows (${noEpisode.slice(0, 3).join(', ')})`);
     } catch (e) { warnings.push(`chart: ${e instanceof Error ? e.message : String(e)}`); }
     const pickKeys = new Set(pickItems.map((p) => p.key));
     trending = trending.filter((t) => !pickKeys.has(t.key));
