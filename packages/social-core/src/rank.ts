@@ -74,7 +74,7 @@ export const isFatigued = (c: Pick<RecCandidate, 'impressions'>): boolean => c.i
 
 /** Age in days. A missing publish date is UNDATED_AGE_DAYS old — never 0 (guard G-F1). */
 export function ageDays(publishedAt: number | null, now: number): number {
-  if (publishedAt === null) return 0;
+  if (publishedAt === null) return UNDATED_AGE_DAYS;
   const days = (now - publishedAt) / DAY_MS;
   // A feed with a date in the future is not fresher than one published this second.
   return days < 0 ? 0 : days;

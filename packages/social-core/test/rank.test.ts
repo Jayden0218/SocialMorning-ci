@@ -47,14 +47,19 @@ test('a date in the future is not fresher than now', () => {
 });
 
 test('A5: three impressions with no open is fatigued; two is not', () => {
-  assert.equal(isFatigued(c({ impressions: FATIGUE_LIMIT - 1 })), false);
-  assert.equal(isFatigued(c({ impressions: FATIGUE_LIMIT })), true);
-  assert.equal(isFatigued(c({ impressions: FATIGUE_LIMIT + 5 })), true);
+  // The numbers are LITERAL on purpose. Written as `FATIGUE_LIMIT - 1` / `FATIGUE_LIMIT`
+  // this test self-adjusts to whatever the constant says and can never go red — which is
+  // exactly what happened when the guard was first broken on 2026-09-25: raising
+  // FATIGUE_LIMIT to 99 left it passing. A guard that cannot fail is not a guard.
+  assert.equal(FATIGUE_LIMIT, 3, 'FR-017 says three');
+  assert.equal(isFatigued(c({ impressions: 2 })), false);
+  assert.equal(isFatigued(c({ impressions: 3 })), true);
+  assert.equal(isFatigued(c({ impressions: 8 })), true);
   // And it costs score before it costs a place.
   assert.ok(scoreCandidate(c({ impressions: 2 }), NOW) < scoreCandidate(c({ impressions: 0 }), NOW));
   assert.equal(
-    scoreCandidate(c({ impressions: FATIGUE_LIMIT }), NOW),
-    scoreCandidate(c({ impressions: FATIGUE_LIMIT + 9 }), NOW),
+    scoreCandidate(c({ impressions: 3 }), NOW),
+    scoreCandidate(c({ impressions: 12 }), NOW),
     'the penalty is capped, so it cannot swamp everything else',
   );
 });
