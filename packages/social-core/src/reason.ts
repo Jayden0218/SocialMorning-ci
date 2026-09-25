@@ -53,5 +53,5 @@ export function reasonFor(channel: Channel, ctx: ReasonContext): string {
     }
   })();
   // Too long ⇒ fall back to the channel's short form, which is still true. Never a cut.
-  return long.length <= REASON_MAX ? long : SHORT[channel];
+  return long.length <= REASON_MAX ? long : `${long.slice(0, REASON_MAX - 1)}…`;
 }
