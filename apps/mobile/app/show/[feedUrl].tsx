@@ -13,12 +13,13 @@ import { refreshShow } from '../../src/feeds/fetch';
 import { mmss, shortDate } from '../../src/ui/format';
 import { useSafety } from '../../src/safety/context';
 import { ReportSheet, type ReportTarget } from '../../src/ui/ReportSheet';
-import { useStores } from '../../src/ui/providers';
+import { useStores, useSubscriptionSync } from '../../src/ui/providers';
 import type { CachedEpisode, CachedShow } from '../../src/storage/types';
 import { colour } from '../../src/design';
 
 export default function ShowScreen(): React.ReactElement {
   const stores = useStores();
+  const subscriptionSync = useSubscriptionSync();
   const router = useRouter();
   const params = useLocalSearchParams<{ feedUrl: string }>();
   const feedUrl = decodeURIComponent(params.feedUrl ?? '');
@@ -63,6 +64,10 @@ export default function ShowScreen(): React.ReactElement {
 
   // FR-021 / FR-022. Unsubscribing deliberately touches nothing else: the
   // positions for this show's episodes outlive it (FR-023).
+  //
+  // M8 (US1): the local write still happens first and never waits on the network — the
+  // push is fire-and-forget, and an offline one is picked up by the next reconcile
+  // (FR-003).
   const toggleSubscription = useCallback(() => {
     if (stores.subscriptions.has(feedUrl)) {
       stores.subscriptions.remove(feedUrl);
@@ -71,7 +76,8 @@ export default function ShowScreen(): React.ReactElement {
       stores.subscriptions.add(feedUrl, Date.now());
       setSubscribed(true);
     }
-  }, [feedUrl, stores]);
+    subscriptionSync.push();
+  }, [feedUrl, stores, subscriptionSync]);
 
   const progressFor = (episode: CachedEpisode): string => {
     const row = stores.positions.get(episode.id);

@@ -6,6 +6,7 @@ import type { AuthEnv } from '../auth/session.ts';
 import { getEpisode, upsertEpisode } from '../db/repos/episodes.ts';
 import { rebuildEpisodeHeat } from '../heat/rebuild.ts';
 import { ApiError } from '../errors.ts';
+import { genreIdFor } from '../catalog/genres.ts';
 
 export const EPISODE_ID_SEPARATOR = '\u0001';
 
@@ -17,6 +18,10 @@ export const episodeBody = z.object({
   enclosureUrl: z.string().url().max(2048),
   imageUrl: z.string().url().max(2048).optional(),
   durationMs: z.number().int().positive().optional(),
+  // M8: the publisher's date and the show's categories, both of which the phone already
+  // had. Optional, so an older build keeps working exactly as it did.
+  publishedAt: z.string().datetime().optional(),
+  categories: z.array(z.string().max(200)).max(10).optional(),
 });
 
 export function publicEpisode(e: { id: string; feed_url: string; guid: string; title: string; show_title: string | null; enclosure_url: string; image_url: string | null; duration_ms: number | null }) {
@@ -37,7 +42,9 @@ episodes.put('/:id', json(episodeBody), async (c) => {
   const db = c.get('db');
   const row = await db.transaction(async (tx) => {
     const before = await getEpisode(tx, id);
-    const after = await upsertEpisode(tx, { id, ...body });
+    const genre = body.categories === undefined ? undefined : genreIdFor(body.categories);
+    const { categories, ...rest } = body;
+    const after = await upsertEpisode(tx, { id, ...rest, ...(genre ? { genreId: genre.id } : {}) });
     // FR-021: the moments were stored without buckets; the first known duration places them.
     if ((before?.duration_ms ?? null) === null && after.duration_ms !== null) await rebuildEpisodeHeat(tx, id);
     return after;

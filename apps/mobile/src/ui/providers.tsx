@@ -18,6 +18,7 @@ import { apiBaseUrl } from '../social/base-url';
 import { registrationFor } from '../social/registration';
 import { secureToken } from '../social/token';
 import { createPositionSync, IMMEDIATE, UPLOAD_EVERY_MS, type PositionSync } from '../sync/positions';
+import { createSubscriptionSync, type SubscriptionSync } from '../sync/subscriptions';
 import { createListened } from '../graph/listened';
 import { deviceId } from '../sync/device-id';
 import { createDownloadManager, type DownloadManager } from '../downloads/manager';
@@ -28,12 +29,19 @@ import { colour } from '../design';
 const StoresContext = createContext<Stores | undefined>(undefined);
 const ToastContext = createContext<((message: string) => void) | undefined>(undefined);
 const SyncContext = createContext<PositionSync | undefined>(undefined);
+const SubscriptionSyncContext = createContext<SubscriptionSync | undefined>(undefined);
 const DownloadsContext = createContext<DownloadManager | undefined>(undefined);
 
 export function useDownloads(): DownloadManager {
   const m = useContext(DownloadsContext);
   if (m === undefined) throw new Error('useDownloads must be used inside <AppProviders>');
   return m;
+}
+
+export function useSubscriptionSync(): SubscriptionSync {
+  const v = useContext(SubscriptionSyncContext);
+  if (v === undefined) throw new Error('useSubscriptionSync must be used inside <AppProviders>');
+  return v;
 }
 
 export function usePositionSync(): PositionSync {
@@ -83,6 +91,24 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
     // only once the device id is known, or `isSignedIn()` is false and nothing happens.
     // (Seen on the phone 2026-09-21: the reconcile ran before the id resolved and did nothing.)
     void deviceId().then((v) => { id = v; deviceIdRef.current = v; void created.reconcile(); });
+    return created;
+  }, [stores, graphApi]);
+
+  /**
+   * M8 (US1): subscriptions belong to the account, not to this phone.
+   *
+   * Written at T017 and **never called** until the phone found it on 2026-09-26: the
+   * module was green in the suite and the server had zero subscription rows, because
+   * nothing in the app ever constructed it. A tested module that no code path reaches is
+   * not a feature (Principle I — a green suite is not evidence).
+   */
+  const subscriptionSync = useMemo<SubscriptionSync>(() => {
+    const created = createSubscriptionSync({
+      api: graphApi,
+      subscriptions: stores.subscriptions,
+      isSignedIn: () => stores.auth.get() !== undefined,
+    });
+    void created.reconcile().catch(() => undefined);
     return created;
   }, [stores, graphApi]);
 
@@ -179,6 +205,7 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
     <StoresContext.Provider value={stores}>
       <DownloadsContext.Provider value={downloads}>
       <SyncContext.Provider value={sync}>
+      <SubscriptionSyncContext.Provider value={subscriptionSync}>
       <ToastContext.Provider value={show.current}>
         <PlayerProvider runtime={runtime}>
           {props.children}
@@ -189,6 +216,7 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
           )}
         </PlayerProvider>
       </ToastContext.Provider>
+      </SubscriptionSyncContext.Provider>
       </SyncContext.Provider>
       </DownloadsContext.Provider>
     </StoresContext.Provider>

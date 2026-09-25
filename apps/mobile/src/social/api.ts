@@ -31,6 +31,10 @@ export class ApiError extends Error {
 export type Listener = { id: string; email: string; displayName: string; createdAt: string; privateListening?: boolean };
 export type EpisodeRegistration = {
   feedUrl: string; guid: string; title: string; showTitle?: string; enclosureUrl: string; imageUrl?: string; durationMs?: number;
+  /** M8: ISO-8601, the PUBLISHER's date. */
+  publishedAt?: string;
+  /** M8: the show's `<itunes:category>` values; the server maps them to a genre id. */
+  categories?: string[];
 };
 export type Comment = {
   id: string; authorId: string | null; displayName: string | null; body: string | null; offsetMs: number | null;

@@ -15,5 +15,11 @@ export function registrationFor(stores: Pick<Stores, 'feeds'>, episodeId: string
     enclosureUrl: e.enclosureUrl,
     ...(imageUrl ? { imageUrl } : {}),
     ...(e.durationMs !== undefined ? { durationMs: e.durationMs } : {}),
+    // M8: the publisher's date and the show's categories. Both were already cached here
+    // and were never sent, so every server-side episode had a NULL `published_at` —
+    // which made the freshness half of the ordering meaningless (found on the phone,
+    // 2026-09-26: 356 episodes, 0 dated).
+    ...(e.publishedAt !== undefined ? { publishedAt: new Date(e.publishedAt).toISOString() } : {}),
+    ...(show && show.categories.length > 0 ? { categories: show.categories.slice(0, 10) } : {}),
   };
 }
