@@ -81,6 +81,12 @@ export type ShowCard = { appleId?: number; feedUrl: string; title: string; autho
 export type SearchResult = { shows: ShowCard[]; episodes: EpisodeCard[]; episodeSearch: 'ok' | 'unavailable'; source: { shows: 'apple' } };
 export type NextUpItem = { episode: EpisodeCard; reason: 'alsoListened' | 'talkedAboutOnShow' | 'newOnShow' | 'trendingInCategory'; label: string };
 
+// ---- M8 (specs/008-m8-for-you/contracts/api.md) ----
+export type ForYouChannel = 'sub-new' | 'showcf' | 'social' | 'genre' | 'talked' | 'pick' | 'chart';
+export type ForYouItem = { episode: EpisodeCard & { id: string }; channel: ForYouChannel; reason: string; score: number };
+export type ForYou = { items: ForYouItem[]; computedAt: string; stale: boolean; similarityAge: number | null; serverTime: string };
+export type ForYouResult = { status: 200; etag?: string; body: ForYou } | { status: 304 };
+
 // ---- M6 (specs/006-m6-fit-to-ship/contracts/api.md) ----
 export type ReportKind = 'comment' | 'clip' | 'profile' | 'show';
 export type HiddenOut = { reported: { kind: ReportKind; id: string }[]; blocked: { id: string; displayName: string }[]; hiddenFeeds: string[] };
@@ -116,6 +122,7 @@ export type ApiClient = {
   // M8 — subscriptions belong to the account, not to this phone (US1)
   getSubscriptions(): Promise<{ items: SubscriptionOut[]; serverTime: string }>;
   putSubscriptions(items: SubscriptionOut[]): Promise<{ items: SubscriptionOut[]; serverTime: string }>;
+  forYou(ifNoneMatch?: string): Promise<ForYouResult>;
   feed(before?: string, ifNoneMatch?: string): Promise<FeedResult>;
   putListened(deviceId: string, days: ListenedDay[]): Promise<{ accepted: number }>;
   // M5
@@ -207,6 +214,12 @@ export function createApi(deps: ApiDeps): ApiClient {
     setPrivacy: async (privateListening) => (await call<{ privateListening: boolean }>('PUT', '/v1/me/privacy', { privateListening })).json,
     getSubscriptions: async () => (await call<{ items: SubscriptionOut[]; serverTime: string }>('GET', '/v1/me/subscriptions')).json,
     putSubscriptions: async (items) => (await call<{ items: SubscriptionOut[]; serverTime: string }>('PUT', '/v1/me/subscriptions', { items })).json,
+    forYou: async (ifNoneMatch) => {
+      const r = await call<ForYou>('GET', '/v1/for-you', undefined, ifNoneMatch ? { 'if-none-match': ifNoneMatch } : {});
+      if (r.status === 304) return { status: 304 };
+      const etag = r.headers.get('etag') ?? undefined;
+      return { status: 200, ...(etag ? { etag } : {}), body: r.json };
+    },
     feed: async (before, ifNoneMatch) => {
       const r = await call<{ items: FeedItem[]; next?: string; serverTime: string }>('GET', `/v1/me/feed${before ? `?before=${encodeURIComponent(before)}` : ''}`, undefined, ifNoneMatch ? { 'if-none-match': ifNoneMatch } : {});
       if (r.status === 304) return { status: 304 };
