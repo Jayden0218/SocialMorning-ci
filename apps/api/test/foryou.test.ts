@@ -15,6 +15,7 @@ import { fromPglite } from '../src/db/db.ts';
 import { createApp } from '../src/app.ts';
 import { fakeApple, fakeFeedFetch, FIXTURE_FEED } from './fake-apple.ts';
 import { TEST_PEPPER, signUp, type TestDb } from './harness.ts';
+import { fnv1a64 } from '@socialmorning/social-core';
 
 const FX = 'https://feeds.example.com/fx.xml';
 const JOB = 'job-token-not-secret';
@@ -77,8 +78,12 @@ test('A13: the catalogue being down is one channel failing, not a failed request
   const { t, warned } = await appWith({ appleMode: { all: '429' }, feedStatus: 500 });
   const a = await signUp(t);
   // Give the account something of its own so the list is not empty when Discover dies.
-  await t.call('PUT', '/v1/episodes/e-own', { feedUrl: 'https://feeds.example.com/own.xml', guid: 'g1', title: 'Mine', enclosureUrl: 'https://cdn/1.mp3' }, a.token);
-  await t.call('PUT', '/v1/me/subscriptions', { items: [{ feedUrl: 'https://feeds.example.com/own.xml', createdAt: '2026-09-20T10:00:00.000Z' }] }, a.token);
+  // The id is not free-form: the route checks it against fnv1a64(feedUrl \u0001 guid).
+  const own = 'https://feeds.example.com/own.xml';
+  const ownId = fnv1a64(`${own}\u0001g1`);
+  const reg = await t.call('PUT', `/v1/episodes/${ownId}`, { feedUrl: own, guid: 'g1', title: 'Mine', enclosureUrl: 'https://cdn/1.mp3' }, a.token);
+  assert.equal(reg.status, 200);
+  await t.call('PUT', '/v1/me/subscriptions', { items: [{ feedUrl: own, createdAt: '2026-09-20T10:00:00.000Z' }] }, a.token);
 
   const res = await get(t, a.token);
   assert.equal(res.status, 200);
