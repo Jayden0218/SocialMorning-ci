@@ -34,6 +34,8 @@ export const FOR_YOU_TTL = 30 * 60_000;
 export const SOCIAL_WINDOW_DAYS = 14;
 /** Categories taken from the listener's own listening. */
 export const TOP_GENRES = 2;
+/** Fatigue forgets after this long, so a list can recover (FR-017). */
+export const FATIGUE_WINDOW_DAYS = 14;
 /** The chart is fetched once an hour for everyone, not once per listener. */
 export const CHART_TTL = 60 * 60_000;
 
@@ -93,9 +95,23 @@ export async function contextFor(db: Db, listenerId: string): Promise<Context> {
       `SELECT e.genre_id, count(*)::int AS n FROM activity a JOIN episodes e ON e.id = a.episode_id
        WHERE a.actor_id = $1 AND a.kind = 'listened' AND e.genre_id IS NOT NULL
        GROUP BY e.genre_id ORDER BY n DESC LIMIT ${TOP_GENRES}`, [listenerId]),
+    /**
+     * Fatigue (FR-017), counted in **distinct days** inside a window — not raw impressions.
+     *
+     * Counting raw impressions was wrong in a way only the phone showed: the app logs one
+     * per row per launch, so opening Discover four times in five minutes retired an
+     * episode for ever. On 2026-09-26 that had fatigued out **40 episodes**, including
+     * every show on the chart, which is why L2's top ten fell back to repeating the
+     * listener's own shows.
+     *
+     * "Shown three times and never opened" means three *occasions*, and it stops counting
+     * after FATIGUE_WINDOW_DAYS so a list can recover.
+     */
     db.query<{ episode_id: string; imps: number }>(
-      `SELECT episode_id, count(*) FILTER (WHERE kind = 'impression')::int AS imps FROM rec_events
-       WHERE listener_id = $1 GROUP BY episode_id HAVING count(*) FILTER (WHERE kind = 'open') = 0`, [listenerId]),
+      `SELECT episode_id, count(DISTINCT date(at)) FILTER (WHERE kind = 'impression')::int AS imps
+       FROM rec_events
+       WHERE listener_id = $1 AND at > now() - ($2 || ' days')::interval
+       GROUP BY episode_id HAVING count(*) FILTER (WHERE kind = 'open') = 0`, [listenerId, String(FATIGUE_WINDOW_DAYS)]),
   ]);
 
   const subscribed = new Set(subs.map((r) => r.feed_url));

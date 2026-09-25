@@ -167,3 +167,48 @@ test('A18: an interrupted rebuild never serves half a neighbourhood, and a fresh
   assert.equal(Number(after[0]!.n), 0, 'staging is emptied by the swap');
   await t.close();
 });
+
+/**
+ * FR-017 as implemented after L2, 2026-09-26.
+ *
+ * "Shown three times and never opened" has to mean three **occasions**. Counting raw
+ * impressions meant four tab-opens in five minutes retired an episode for ever — on the
+ * phone that had burned through 40 episodes, the whole chart included, and L2's top ten
+ * fell back to repeating the listener's own shows.
+ *
+ * The break that turns this red: change `count(DISTINCT date(at))` back to `count(*)`.
+ */
+test('fatigue counts occasions, not renders: three impressions in one day is one occasion', async () => {
+  const { t } = await appWith();
+  const a = await signUp(t);
+  const own = 'https://feeds.example.com/own.xml';
+  const ownId = fnv1a64(`${own}\u0001g1`);
+  await t.call('PUT', `/v1/episodes/${ownId}`, { feedUrl: own, guid: 'g1', title: 'Mine', enclosureUrl: 'https://cdn/1.mp3' }, a.token);
+  await t.call('PUT', '/v1/me/subscriptions', { items: [{ feedUrl: own, createdAt: '2026-09-20T10:00:00.000Z' }] }, a.token);
+
+  const seen = async () => {
+    await t.q("DELETE FROM cache WHERE key LIKE 'foryou:%'");
+    const body = (await (await get(t, a.token)).json()) as Body;
+    return body.items.some((i) => i.episode.id === ownId);
+  };
+
+  assert.equal(await seen(), true, 'there to begin with');
+
+  // Five impressions, all on one day — one occasion.
+  for (let i = 0; i < 5; i++) {
+    await t.q("INSERT INTO rec_events (listener_id, episode_id, channel, rank, kind, at) VALUES ($1, $2, 'sub-new', 0, 'impression', now())", [a.id, ownId]);
+  }
+  assert.equal(await seen(), true, 'five renders in one day must not retire it');
+
+  // Three separate days is three occasions, and that is the limit.
+  for (const d of [1, 2, 3]) {
+    await t.q(`INSERT INTO rec_events (listener_id, episode_id, channel, rank, kind, at) VALUES ($1, $2, 'sub-new', 0, 'impression', now() - interval '${d} days')`, [a.id, ownId]);
+  }
+  assert.equal(await seen(), false, 'three occasions with no open retires it (FR-017)');
+
+  // …and the window forgets, so a list can recover.
+  await t.q("UPDATE rec_events SET at = at - interval '30 days' WHERE listener_id = $1", [a.id]);
+  assert.equal(await seen(), true, 'outside the window it comes back');
+
+  await t.close();
+});
