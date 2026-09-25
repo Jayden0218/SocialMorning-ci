@@ -261,7 +261,7 @@ export function createSqliteSubscriptionStore(db: SQLiteDatabase): SubscriptionS
     remove: (feedUrl, now = Date.now()) =>
       void db.runSync('UPDATE subscriptions SET deleted_at = ? WHERE feed_url = ? AND deleted_at IS NULL', [now, feedUrl]),
     has: (feedUrl) =>
-      db.getFirstSync<{ n: number }>('SELECT COUNT(*) AS n FROM subscriptions WHERE feed_url = ?', [
+      db.getFirstSync<{ n: number }>('SELECT COUNT(*) AS n FROM subscriptions WHERE feed_url = ? AND deleted_at IS NULL', [
         feedUrl,
       ])?.n === 1,
     all: () =>

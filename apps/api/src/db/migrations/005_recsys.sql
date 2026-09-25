@@ -54,7 +54,7 @@ CREATE TABLE show_similarity_next (
 
 CREATE TABLE rec_events (
   id          bigserial   PRIMARY KEY,
-  listener_id uuid        NOT NULL REFERENCES listeners(id),
+  listener_id uuid        NOT NULL REFERENCES listeners(id) ON DELETE CASCADE,
   episode_id  text        NOT NULL,   -- no FK, like positions: an episode row may be replaced
   channel     text        NOT NULL CHECK (channel IN ('sub-new','showcf','social','genre','talked','pick','chart')),
   rank        smallint    NOT NULL CHECK (rank >= 0),
