@@ -31,8 +31,14 @@ const hosts = (r: ReactTestRenderer, role: string) =>
 const tabs = (r: ReactTestRenderer) => hosts(r, 'tab');
 // The host node carries the accessibility props and the style; only the composite
 // carries `onPress`. Both are the same tab — they are just two views of it.
-const pressables = (r: ReactTestRenderer) =>
-  r.root.findAll((n) => n.props['accessibilityRole'] === 'tab' && typeof n.props['onPress'] === 'function');
+// NativeWind wraps every Pressable in one more composite with the same props, so a tab
+// can match twice; one `onPress` is one tab.
+const pressables = (r: ReactTestRenderer) => {
+  const seen = new Set<unknown>();
+  return r.root
+    .findAll((n) => n.props['accessibilityRole'] === 'tab' && typeof n.props['onPress'] === 'function')
+    .filter((n) => !seen.has(n.props['onPress']) && Boolean(seen.add(n.props['onPress'])));
+};
 
 it('every tab is a real tab: a role, a name, and a selected state', () => {
   const r = render(createElement(TabBar, { items: ITEMS, activeKey: 'discover', onSelect: jest.fn() }));
