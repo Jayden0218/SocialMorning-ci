@@ -15,6 +15,11 @@ Checked with `npm view <pkg> license` on 2026-09-21 (constitution, Principle III
 | fast-xml-parser (via feed-parser) | 5.x | MIT | M1 |
 | expo-blur | 58.0.1 | MIT | M7 |
 | expo-linear-gradient | 58.0.1 | MIT | M7 |
+| nativewind | 4.2.7 | MIT | Tailwind, 2026-09-27 |
+| react-native-css-interop | 0.2.7 | MIT | Tailwind (via nativewind) |
+| react-native-reanimated | 4.7.0 | MIT | Tailwind (nativewind peer; was already installed by expo-router) |
+| react-native-worklets | 0.13.0 | MIT | Tailwind (reanimated peer; same) |
+| tailwindcss (dev) | 3.4.19 | MIT | Tailwind |
 
 M4 (2026-09-21) added **no** dependency: the share sheet is React Native's built-in `Share`, the clip link routes through expo-router and expo-linking, both already present.
 

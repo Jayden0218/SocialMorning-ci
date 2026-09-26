@@ -47,6 +47,13 @@ const M6_DEPENDENCIES = [
 /** The two M7 is allowed to add (plan, Technical Context; LICENSES.md). */
 const M7_ADDITIONS = ['expo-blur', 'expo-linear-gradient'];
 
+/**
+ * Tailwind (2026-09-27, the owner's call): NativeWind 4 and its two runtime peers.
+ * Reanimated and Worklets were already in the tree through expo-router; listing them
+ * directly is what makes autolinking build them for certain. All MIT (LICENSES.md).
+ */
+const TAILWIND_ADDITIONS = ['nativewind', 'react-native-reanimated', 'react-native-worklets'];
+
 it('no reference dependency is installed, anywhere', () => {
   const installed = new Set([
     ...Object.keys(pkg.dependencies),
@@ -59,10 +66,10 @@ it('expo-audio is still the runtime', () => {
   expect(pkg.dependencies['expo-audio']).toBeDefined();
 });
 
-it('M7 added exactly expo-blur and expo-linear-gradient, and removed nothing', () => {
+it('M7 added exactly expo-blur and expo-linear-gradient, Tailwind its three, and removed nothing', () => {
   const now = Object.keys(pkg.dependencies).sort();
   const added = now.filter((name) => !M6_DEPENDENCIES.includes(name));
   const removed = M6_DEPENDENCIES.filter((name) => !now.includes(name));
-  expect(added.sort()).toEqual([...M7_ADDITIONS].sort());
+  expect(added.sort()).toEqual([...M7_ADDITIONS, ...TAILWIND_ADDITIONS].sort());
   expect(removed).toEqual([]);
 });
