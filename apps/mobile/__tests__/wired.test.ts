@@ -63,3 +63,28 @@ it('G-W1: the subscription sync specifically reaches both of the places US1 need
   // On a subscribe or unsubscribe: something must push.
   expect(show).toContain('subscriptionSync.push()');
 });
+
+/**
+ * G-W1b — the same lesson, one level down.
+ *
+ * `createRecOutbox` **was** constructed, so the first form of this guard was green while
+ * `played` sat there uncalled and `/mod/recs` reported plays of zero for ever. The gap was
+ * an unreachable **method**, not an unreachable module, and only L7 on the phone found it.
+ *
+ * The break that turns it red: delete the `recOutbox.playedIfShown(...)` call from
+ * `src/ui/providers.tsx`.
+ */
+it('G-W1b: every method the outbox offers is called by something outside it', () => {
+  const file = join(ROOT, 'src/recs/outbox.ts');
+  const src = sources.get(file)!;
+
+  const type = /export type RecOutbox = \{([\s\S]*?)\n\};/.exec(src);
+  expect(type).not.toBeNull();
+  const methods = [...type![1]!.matchAll(/^\s{2}([a-zA-Z][A-Za-z0-9]*)\s*\(/gm)].map((m) => m[1]!);
+  expect(methods.length).toBeGreaterThanOrEqual(6);
+
+  const unreachable = methods.filter((name) =>
+    ![...sources.entries()].some(([other, body]) => other !== file && body.includes(`.${name}(`)),
+  );
+  expect(unreachable).toEqual([]);
+});
