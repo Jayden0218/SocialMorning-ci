@@ -7,6 +7,7 @@
  * Spacing and radius extend the default scale, so `p-4` (16) and `gap-3` (12) still work.
  */
 import type { Config } from 'tailwindcss';
+import { hairlineWidth } from 'nativewind/theme';
 import { colour, fontSize, radius, spacing } from './src/design/tokens';
 
 const px = (o: Record<string, number>) =>
@@ -21,6 +22,8 @@ export default {
     extend: {
       spacing: px({ 'screen-x': spacing.screenX, row: spacing.row, section: spacing.section }),
       borderRadius: px({ row: radius.row, artwork: radius.artwork, pill: radius.pill }),
+      /** `StyleSheet.hairlineWidth`, as `border-hairline` / `border-b-hairline`. */
+      borderWidth: { hairline: hairlineWidth() },
     },
   },
   plugins: [],

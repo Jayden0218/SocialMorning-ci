@@ -9,6 +9,9 @@
  */
 module.exports = {
   preset: 'jest-expo',
+  // NativeWind: compile the Tailwind classes once, then load them into every test file.
+  globalSetup: './jest.tailwind.global.js',
+  setupFilesAfterEnv: ['./jest.tailwind.js'],
   collectCoverageFrom: ['src/playback/**'],
   coverageThreshold: {
     './src/playback/': {
