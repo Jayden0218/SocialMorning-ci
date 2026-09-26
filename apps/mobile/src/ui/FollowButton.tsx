@@ -1,11 +1,10 @@
 /** Follow / Following (M4 FR-007): optimistic, reverts on a refusal, hidden on your own profile. */
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { Pressable, Text } from 'react-native';
 import { router } from 'expo-router';
 import { useSocial } from '../social/context';
 import { useToast } from './providers';
 import { ApiError } from '../social/api';
-import { colour } from '../design';
 
 export function FollowButton(props: { listenerId: string; following: boolean; onChange?: (following: boolean) => void }): React.ReactElement | null {
   const { api, listener } = useSocial();
@@ -15,7 +14,7 @@ export function FollowButton(props: { listenerId: string; following: boolean; on
   if (listener?.listenerId === props.listenerId) return null;
   return (
     <Pressable
-      style={[styles.btn, following && styles.on]}
+      className={`border border-separator rounded-3xl px-[18px] py-2 self-start ${following ? 'bg-accent' : ''}`}
       disabled={busy}
       accessibilityRole="button"
       accessibilityLabel={following ? 'Unfollow' : 'Follow'}
@@ -32,14 +31,8 @@ export function FollowButton(props: { listenerId: string; following: boolean; on
         } finally { setBusy(false); }
       }}
     >
-      <Text style={[styles.text, following && styles.textOn]}>{following ? 'Following' : 'Follow'}</Text>
+      <Text className="font-semibold text-text">{following ? 'Following' : 'Follow'}</Text>
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
-  btn: { borderWidth: 1, borderColor: colour.separator, borderRadius: 24, paddingHorizontal: 18, paddingVertical: 8, alignSelf: 'flex-start' },
-  on: { backgroundColor: colour.accent },
-  text: { fontWeight: '600', color: colour.text },
-  textOn: { color: colour.text },
-});

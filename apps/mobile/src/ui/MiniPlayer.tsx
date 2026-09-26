@@ -16,8 +16,7 @@
  *     the label, the role and the `accessibilityState` are the contract, not the glyph.
  */
 import { Link, usePathname } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colour, fontSize, hit, radius, spacing } from '../design';
+import { Pressable, Text, View } from 'react-native';
 import { usePlayer, usePlayerState } from '../playback/store';
 import { useStores } from './providers';
 import { Artwork } from './Artwork';
@@ -30,13 +29,21 @@ const MINI_ARTWORK = 40;
 export const TAB_ROUTES: readonly string[] = ['/', '/discover', '/following'];
 
 /**
+ * No `height`: at the largest system font the title and the show name must be allowed to
+ * push the bar taller rather than clip (M6 J6). `minHeight` stays a style because
+ * `MINI_PLAYER_HEIGHT` is the one source for this number (`Screen` reserves it too).
+ */
+const BAR = 'flex-row items-center gap-row px-row py-2 bg-surface border-t-hairline border-separator';
+const BAR_HEIGHT = { minHeight: MINI_PLAYER_HEIGHT };
+
+/**
  * Where this instance is mounted. There are two, and only ever one is visible:
  *  - `root` — in the stack layout, so the bar follows you onto an episode, a show, a
  *    profile, a clip. It stands down on a tab route, where the other one draws.
  *  - `tabs` — inside the tab layout, **above** the tab bar, which is the arrangement
  *    the whole look is built around.
  */
-export function MiniPlayer(props: { pathname?: string; context?: 'root' | 'tabs' }): React.ReactElement | null {
+export function MiniPlayer(props: { pathname?: string; context?: 'root' | 'tabs'; className?: string }): React.ReactElement | null {
   const player = usePlayer();
   const state = usePlayerState();
   const stores = useStores();
@@ -52,8 +59,8 @@ export function MiniPlayer(props: { pathname?: string; context?: 'root' | 'tabs'
 
   if (state.kind === 'error') {
     return (
-      <View style={styles.bar}>
-        <Text style={styles.error} numberOfLines={2}>
+      <View className={`${BAR} ${props.className ?? ''}`} style={BAR_HEIGHT}>
+        <Text className="flex-1 text-sm text-accent" numberOfLines={2}>
           {state.message}
         </Text>
       </View>
@@ -65,20 +72,20 @@ export function MiniPlayer(props: { pathname?: string; context?: 'root' | 'tabs'
   const isPlaying = state.kind === 'playing' || state.kind === 'buffering';
 
   return (
-    <View style={styles.bar}>
+    <View className={`${BAR} ${props.className ?? ''}`} style={BAR_HEIGHT}>
       <Link href="/player" asChild>
         <Pressable
           accessibilityRole="link"
           accessibilityLabel={`Now playing: ${episode?.title ?? 'an episode'}. Open the player.`}
-          style={styles.grow}
+          className="flex-1 flex-row items-center gap-row"
         >
           <Artwork url={episode?.imageUrl ?? show?.imageUrl} size={MINI_ARTWORK} />
-          <View style={styles.text}>
-            <Text style={styles.title} numberOfLines={1}>
+          <View className="flex-1">
+            <Text className="text-sm text-text" numberOfLines={1}>
               {episode?.title ?? 'Now playing'}
             </Text>
             {show?.title ? (
-              <Text style={styles.show} numberOfLines={1}>
+              <Text className="text-xs text-muted" numberOfLines={1}>
                 {show.title}
               </Text>
             ) : null}
@@ -89,41 +96,11 @@ export function MiniPlayer(props: { pathname?: string; context?: 'root' | 'tabs'
         accessibilityRole="button"
         accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
         accessibilityState={{ selected: isPlaying }}
-        style={styles.button}
+        className="min-w-12 min-h-12 px-row rounded-pill items-center justify-center"
         onPress={() => (isPlaying ? player.pause() : player.play())}
       >
-        <Text style={styles.buttonText}>{isPlaying ? 'Pause' : 'Play'}</Text>
+        <Text className="text-sm font-semibold text-accent">{isPlaying ? 'Pause' : 'Play'}</Text>
       </Pressable>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  bar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.row,
-    paddingHorizontal: spacing.row,
-    paddingVertical: spacing.gap,
-    // No `height`: at the largest system font the title and the show name must be
-    // allowed to push the bar taller rather than clip (M6 J6).
-    minHeight: MINI_PLAYER_HEIGHT,
-    backgroundColor: colour.surface,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colour.separator,
-  },
-  grow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.row },
-  text: { flex: 1 },
-  title: { fontSize: fontSize.sm, color: colour.text },
-  show: { fontSize: fontSize.xs, color: colour.muted },
-  error: { flex: 1, fontSize: fontSize.sm, color: colour.accent },
-  button: {
-    minWidth: hit.min,
-    minHeight: hit.min,
-    paddingHorizontal: spacing.row,
-    borderRadius: radius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonText: { fontSize: fontSize.sm, fontWeight: '600', color: colour.accent },
-});

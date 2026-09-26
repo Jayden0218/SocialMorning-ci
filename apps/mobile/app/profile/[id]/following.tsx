@@ -1,12 +1,11 @@
 /** A paged list of following (M4 FR-007). */
 import { useEffect, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text } from 'react-native';
+import { FlatList, Pressable, Text } from 'react-native';
 import { Link, useLocalSearchParams } from 'expo-router';
 import { useSocial } from '../../../src/social/context';
 import { useSafety } from '../../../src/safety/context';
 import type { ClipAuthor } from '../../../src/social/api';
 import { EmptyState } from '../../../src/ui/EmptyState';
-import { colour } from '../../../src/design';
 
 export default function FollowingScreen(): React.ReactElement {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -19,16 +18,14 @@ export default function FollowingScreen(): React.ReactElement {
     <FlatList
       data={safetyFilter.listeners(rows)}
       keyExtractor={(l) => l.id}
-      contentContainerStyle={styles.body}
+      contentContainerClassName="p-4"
       ListEmptyComponent={<EmptyState surface="following" />}
       renderItem={({ item }) => (
         <Link href={{ pathname: '/profile/[id]', params: { id: item.id } }} asChild>
-          <Pressable style={styles.row} accessibilityRole="link"><Text style={styles.name}>{item.displayName ?? 'Deleted account'}</Text></Pressable>
+          <Pressable className="py-3 border-b-hairline border-separator" accessibilityRole="link"><Text className="text-sm text-text">{item.displayName ?? 'Deleted account'}</Text></Pressable>
         </Link>
       )}
       onEndReached={() => { if (next) void api.following(String(id), next).then((r) => { setRows((x) => [...x, ...r.listeners]); setNext(r.next); }).catch(() => undefined); }}
     />
   );
 }
-
-const styles = StyleSheet.create({ body: { padding: 16 }, row: { paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: colour.separator }, name: { fontSize: 16 }, muted: { color: colour.muted } });

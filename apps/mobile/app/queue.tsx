@@ -5,14 +5,13 @@
  */
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, Text, View } from 'react-native';
 import { move, remove } from '@socialmorning/player-core';
 import { usePlayer } from '../src/playback/store';
 import { toPlayable } from '../src/storage/playable';
 import { mmss } from '../src/ui/format';
 import { useStores } from '../src/ui/providers';
 import { EmptyState } from '../src/ui/EmptyState';
-import { colour } from '../src/design';
 
 export default function QueueScreen(): React.ReactElement {
   const stores = useStores();
@@ -28,24 +27,24 @@ export default function QueueScreen(): React.ReactElement {
     <FlatList
       data={ids}
       keyExtractor={(id) => id}
-      contentContainerStyle={styles.body}
-      ListHeaderComponent={<Text style={styles.muted}>{ids.length} of 300 · plays in order when the current episode ends</Text>}
+      contentContainerClassName="p-3 gap-1"
+      ListHeaderComponent={<Text className="text-muted text-[13px]">{ids.length} of 300 · plays in order when the current episode ends</Text>}
       ListEmptyComponent={<EmptyState surface="queue" />}
       renderItem={({ item, index }) => {
         const episode = stores.feeds.getEpisode(item);
         const show = episode ? stores.feeds.getShow(episode.feedUrl) : undefined;
         const download = stores.downloads.get(item);
         return (
-          <View style={styles.item}>
-            <Text style={styles.title} numberOfLines={2}>{index + 1}. {episode?.title ?? item}</Text>
-            <Text style={styles.muted}>
+          <View className="py-2 gap-1 border-b-hairline border-separator">
+            <Text className="text-[15px] font-semibold text-text" numberOfLines={2}>{index + 1}. {episode?.title ?? item}</Text>
+            <Text className="text-muted text-[13px]">
               {[show?.title, episode?.durationMs !== undefined ? mmss(episode.durationMs) : undefined, download?.state === 'complete' ? 'Downloaded' : 'Streams'].filter(Boolean).join(' · ')}
             </Text>
-            <View style={styles.actions}>
-              <Pressable disabled={index === 0} onPress={() => write(move(ids, item, index - 1))} accessibilityRole="button" accessibilityLabel="Move up"><Text style={[styles.link, index === 0 && styles.off]}>↑</Text></Pressable>
-              <Pressable disabled={index === ids.length - 1} onPress={() => write(move(ids, item, index + 1))} accessibilityRole="button" accessibilityLabel="Move down"><Text style={[styles.link, index === ids.length - 1 && styles.off]}>↓</Text></Pressable>
-              <Pressable disabled={index === 0} onPress={() => write(move(ids, item, 0))} accessibilityRole="button" accessibilityLabel="Move to top"><Text style={[styles.link, index === 0 && styles.off]}>Top</Text></Pressable>
-              <Pressable onPress={() => write(remove(ids, item))} accessibilityRole="button" accessibilityLabel="Remove from the queue"><Text style={styles.danger}>Remove</Text></Pressable>
+            <View className="flex-row gap-[18px] items-center">
+              <Pressable disabled={index === 0} onPress={() => write(move(ids, item, index - 1))} accessibilityRole="button" accessibilityLabel="Move up"><Text className={`text-accent text-[15px] ${index === 0 ? 'opacity-30' : ''}`}>↑</Text></Pressable>
+              <Pressable disabled={index === ids.length - 1} onPress={() => write(move(ids, item, index + 1))} accessibilityRole="button" accessibilityLabel="Move down"><Text className={`text-accent text-[15px] ${index === ids.length - 1 ? 'opacity-30' : ''}`}>↓</Text></Pressable>
+              <Pressable disabled={index === 0} onPress={() => write(move(ids, item, 0))} accessibilityRole="button" accessibilityLabel="Move to top"><Text className={`text-accent text-[15px] ${index === 0 ? 'opacity-30' : ''}`}>Top</Text></Pressable>
+              <Pressable onPress={() => write(remove(ids, item))} accessibilityRole="button" accessibilityLabel="Remove from the queue"><Text className="text-accent text-[15px]">Remove</Text></Pressable>
               <Pressable
                 onPress={() => {
                   const playable = toPlayable(stores, item);
@@ -56,7 +55,7 @@ export default function QueueScreen(): React.ReactElement {
                 }}
                 accessibilityRole="button"
               >
-                <Text style={styles.link}>Play now</Text>
+                <Text className="text-accent text-[15px]">Play now</Text>
               </Pressable>
             </View>
           </View>
@@ -65,14 +64,3 @@ export default function QueueScreen(): React.ReactElement {
     />
   );
 }
-
-const styles = StyleSheet.create({
-  body: { padding: 12, gap: 4 },
-  item: { paddingVertical: 8, gap: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: colour.separator },
-  title: { fontSize: 15, fontWeight: '600', color: colour.text },
-  muted: { color: colour.muted, fontSize: 13 },
-  actions: { flexDirection: 'row', gap: 18, alignItems: 'center' },
-  link: { color: colour.accent, fontSize: 15 },
-  off: { opacity: 0.3 },
-  danger: { color: colour.accent, fontSize: 15 },
-});

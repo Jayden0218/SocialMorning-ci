@@ -1,19 +1,19 @@
 /** Chapters (US5, FR-021): start time + title, the current one highlighted, tap → seek. */
 import { currentChapter, type Chapter } from '@socialmorning/player-core';
-import { Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Linking, Pressable, Text, View } from 'react-native';
 import { mmss } from './format';
-import { colour } from '../design';
+import { tabular } from '../design';
 
 export function ChapterList(props: { chapters: Chapter[]; positionMs: number; onSeek: (ms: number) => void }): React.ReactElement {
   const current = currentChapter(props.chapters, props.positionMs);
   return (
-    <View style={styles.wrap}>
+    <View className="w-full gap-0.5">
       {props.chapters.map((c, i) => (
-        <Pressable key={`${c.startMs}-${i}`} onPress={() => props.onSeek(c.startMs)} accessibilityRole="button" accessibilityLabel={`Chapter ${i + 1}, ${c.title ?? mmss(c.startMs)}`} style={[styles.row, i === current && styles.current]}>
-          <Text style={styles.time}>{mmss(c.startMs)}</Text>
-          <Text style={[styles.title, i === current && styles.titleCurrent]} numberOfLines={2}>{c.title ?? `Chapter ${i + 1}`}</Text>
+        <Pressable key={`${c.startMs}-${i}`} onPress={() => props.onSeek(c.startMs)} accessibilityRole="button" accessibilityLabel={`Chapter ${i + 1}, ${c.title ?? mmss(c.startMs)}`} className={`flex-row items-center gap-2.5 py-1.5 px-1.5 rounded-md ${i === current ? 'bg-surface' : ''}`}>
+          <Text className="text-text w-14" style={tabular}>{mmss(c.startMs)}</Text>
+          <Text className={`flex-1 text-[15px] text-text ${i === current ? 'font-bold' : ''}`} numberOfLines={2}>{c.title ?? `Chapter ${i + 1}`}</Text>
           {c.url ? (
-            <Pressable onPress={() => void Linking.openURL(c.url!)} accessibilityRole="link" hitSlop={8}><Text style={styles.link}>↗</Text></Pressable>
+            <Pressable onPress={() => void Linking.openURL(c.url!)} accessibilityRole="link" hitSlop={8}><Text className="text-accent text-sm">↗</Text></Pressable>
           ) : null}
         </Pressable>
       ))}
@@ -27,22 +27,10 @@ export function CurrentChapter(props: { chapters: Chapter[]; positionMs: number 
   if (i === undefined) return null;
   const c = props.chapters[i]!;
   return (
-    <View style={styles.now}>
-      {c.imageUrl ? <Image source={{ uri: c.imageUrl }} style={styles.art} /> : null}
-      <Text style={styles.nowText} numberOfLines={1}>{c.title ?? `Chapter ${i + 1}`}</Text>
+    <View className="flex-row items-center gap-2">
+      {c.imageUrl ? <Image source={{ uri: c.imageUrl }} className="w-7 h-7 rounded" /> : null}
+      <Text className="text-text text-[13px]" numberOfLines={1}>{c.title ?? `Chapter ${i + 1}`}</Text>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  wrap: { width: '100%', gap: 2 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6, paddingHorizontal: 6, borderRadius: 6 },
-  current: { backgroundColor: colour.surface },
-  time: { fontVariant: ['tabular-nums'], color: colour.text, width: 56 },
-  title: { flex: 1, fontSize: 15, color: colour.text },
-  titleCurrent: { fontWeight: '700', color: colour.text },
-  link: { color: colour.accent, fontSize: 16 },
-  now: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  art: { width: 28, height: 28, borderRadius: 4 },
-  nowText: { color: colour.text, fontSize: 13 },
-});

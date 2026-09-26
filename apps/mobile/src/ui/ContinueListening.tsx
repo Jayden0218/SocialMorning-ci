@@ -5,12 +5,11 @@
  * Hidden when the last episode is finished; there is nothing to continue.
  */
 import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { usePlayer } from '../playback/store';
 import { toPlayable } from '../storage/playable';
 import { mmss } from './format';
 import { useStores } from './providers';
-import { colour } from '../design';
 
 export function ContinueListening(): React.ReactElement | null {
   const stores = useStores();
@@ -29,16 +28,16 @@ export function ContinueListening(): React.ReactElement | null {
   const offsetMs = saved?.offsetMs ?? 0;
 
   return (
-    <View style={styles.card}>
-      <Text style={styles.label}>Continue listening</Text>
-      <Text style={styles.title} numberOfLines={2}>
+    <View className="p-3 gap-1 border-hairline border-separator rounded-[10px] bg-surface">
+      <Text className="text-xs uppercase text-muted tracking-[0.5px]">Continue listening</Text>
+      <Text className="text-sm font-bold text-text" numberOfLines={2}>
         {episode.title}
       </Text>
-      <Text style={styles.subtitle}>
+      <Text className="text-[13px] text-muted">
         {episode.showTitle === '' ? mmss(offsetMs) : `${episode.showTitle} · ${mmss(offsetMs)}`}
       </Text>
       <Pressable
-        style={styles.play}
+        className="self-start mt-1.5 py-2 px-[18px] rounded-pill bg-accent"
         accessibilityRole="button"
         accessibilityLabel={`Continue ${episode.title}`}
         onPress={() => {
@@ -46,31 +45,8 @@ export function ContinueListening(): React.ReactElement | null {
           router.push('/player');
         }}
       >
-        <Text style={styles.playText}>Play</Text>
+        <Text className="text-text font-bold">Play</Text>
       </Pressable>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    padding: 12,
-    gap: 4,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colour.separator,
-    borderRadius: 10,
-    backgroundColor: colour.surface,
-  },
-  label: { fontSize: 12, textTransform: 'uppercase', color: colour.muted, letterSpacing: 0.5 },
-  title: { fontSize: 16, fontWeight: '700', color: colour.text },
-  subtitle: { fontSize: 13, color: colour.muted },
-  play: {
-    alignSelf: 'flex-start',
-    marginTop: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 18,
-    borderRadius: 999,
-    backgroundColor: colour.accent,
-  },
-  playText: { color: colour.text, fontWeight: '700' },
-});

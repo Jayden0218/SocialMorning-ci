@@ -7,31 +7,23 @@
  * `asChild` hands the press to a Pressable, which Android exposes properly.
  */
 import { Link } from 'expo-router';
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { Pressable, Text } from 'react-native';
 import type { ComponentProps } from 'react';
-import { colour, fontSize, hit, spacing } from '../design';
 
-export function NavLink(props: { href: ComponentProps<typeof Link>['href']; label: string }): React.ReactElement {
+export function NavLink(props: { href: ComponentProps<typeof Link>['href']; label: string; className?: string }): React.ReactElement {
   return (
     <Link href={props.href} asChild>
-      <Pressable accessibilityRole="link" accessibilityLabel={props.label} style={styles.row}>
-        <Text style={styles.text}>{props.label}</Text>
+      {/* M7: a *row*, not a floating word. On build 20 these were six accent words spaced far
+          apart down a black screen, which read as a list of warnings rather than a menu. */}
+      <Pressable
+        accessibilityRole="link"
+        accessibilityLabel={props.label}
+        className={`min-h-12 py-row justify-center border-b-hairline border-separator ${props.className ?? ''}`}
+      >
+        {/* The text is plain; the *row* is the affordance. Keeping the accent for every link
+            would put six red lines on a screen that has one real action. */}
+        <Text className="text-sm text-text">{props.label}</Text>
       </Pressable>
     </Link>
   );
 }
-
-const styles = StyleSheet.create({
-  // M7: a *row*, not a floating word. On build 20 these were six accent words spaced far
-  // apart down a black screen, which read as a list of warnings rather than a menu.
-  row: {
-    minHeight: hit.min,
-    paddingVertical: spacing.row,
-    justifyContent: 'center',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colour.separator,
-  },
-  // The text is plain; the *row* is the affordance. Keeping the accent for every link
-  // would put six red lines on a screen that has one real action.
-  text: { fontSize: fontSize.sm, color: colour.text },
-});

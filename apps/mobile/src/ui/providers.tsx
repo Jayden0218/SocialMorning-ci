@@ -6,7 +6,7 @@
  * adapter, and it does both exactly once for the app's life.
  */
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { AppState, StyleSheet, Text, View } from 'react-native';
+import { AppState, Text, View } from 'react-native';
 import { createExpoAudioAdapter } from '../playback/expo-audio-adapter';
 import { PlayerProvider, createPlayerRuntime, type PlayerRuntime } from '../playback/store';
 import { hash } from '../feeds/hash';
@@ -25,7 +25,6 @@ import { deviceId } from '../sync/device-id';
 import { createDownloadManager, type DownloadManager } from '../downloads/manager';
 import { createExpoDownloader, downloadPathFor } from '../downloads/expo-downloader';
 import { createExpoNetwork } from '../downloads/expo-network';
-import { colour } from '../design';
 
 const StoresContext = createContext<Stores | undefined>(undefined);
 const ToastContext = createContext<((message: string) => void) | undefined>(undefined);
@@ -246,8 +245,8 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
         <PlayerProvider runtime={runtime}>
           {props.children}
           {message === undefined ? null : (
-            <View style={styles.toast} accessibilityLiveRegion="polite">
-              <Text style={styles.toastText}>{message}</Text>
+            <View className="absolute left-3 right-3 bottom-24 bg-surface border border-separator rounded-lg p-3" accessibilityLiveRegion="polite">
+              <Text className="text-text">{message}</Text>
             </View>
           )}
         </PlayerProvider>
@@ -258,18 +257,3 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
     </StoresContext.Provider>
   );
 }
-
-const styles = StyleSheet.create({
-  toast: {
-    position: 'absolute',
-    left: 12,
-    right: 12,
-    bottom: 96,
-    backgroundColor: colour.surface,
-    borderWidth: 1,
-    borderColor: colour.separator,
-    borderRadius: 8,
-    padding: 12,
-  },
-  toastText: { color: colour.text },
-});

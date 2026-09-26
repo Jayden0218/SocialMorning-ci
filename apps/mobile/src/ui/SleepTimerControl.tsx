@@ -1,10 +1,9 @@
 /** Sleep timer (US3, FR-015..017): the fixed choices, the remaining time while it runs, cancel. */
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import type { SleepChoice } from '@socialmorning/player-core';
 import { usePlayer } from '../playback/store';
 import { mmss } from './format';
-import { colour } from '../design';
 
 const CHOICES: SleepChoice[] = [5, 10, 15, 30, 45, 60, 'endOfEpisode'];
 
@@ -18,36 +17,27 @@ export function SleepTimerControl(): React.ReactElement {
   const timer = player.sleepTimer();
   const remaining = player.sleepRemainingMs();
   return (
-    <View style={styles.wrap}>
-      <View style={styles.row}>
-        <Text style={styles.label}>Sleep</Text>
+    <View className="w-full gap-1 mt-2">
+      <View className="flex-row items-center gap-2 flex-wrap">
+        <Text className="font-semibold text-text">Sleep</Text>
         {CHOICES.map((c) => (
           <Pressable key={String(c)} onPress={() => player.setSleepTimer(c)} accessibilityRole="button">
-            <Text style={[styles.chip, (c === 'endOfEpisode' ? timer.kind === 'endOfEpisode' : false) && styles.chipOn]}>{c === 'endOfEpisode' ? 'End of episode' : `${c} min`}</Text>
+            <Text className={`border rounded-pill px-2.5 py-[3px] text-text text-[13px] ${(c === 'endOfEpisode' ? timer.kind === 'endOfEpisode' : false) ? 'bg-accent border-accent' : 'border-separator'}`}>{c === 'endOfEpisode' ? 'End of episode' : `${c} min`}</Text>
           </Pressable>
         ))}
       </View>
       {timer.kind === 'minutes' && remaining !== undefined ? (
-        <View style={styles.row}>
-          <Text style={styles.status}>Pausing in {mmss(remaining)}</Text>
-          <Pressable onPress={() => player.setSleepTimer('off')} accessibilityRole="button"><Text style={styles.link}>Cancel</Text></Pressable>
+        <View className="flex-row items-center gap-2 flex-wrap">
+          <Text className="text-text">Pausing in {mmss(remaining)}</Text>
+          <Pressable onPress={() => player.setSleepTimer('off')} accessibilityRole="button"><Text className="text-accent text-[13px]">Cancel</Text></Pressable>
         </View>
       ) : timer.kind === 'endOfEpisode' ? (
-        <View style={styles.row}>
-          <Text style={styles.status}>Stops when this episode ends</Text>
-          <Pressable onPress={() => player.setSleepTimer('off')} accessibilityRole="button"><Text style={styles.link}>Cancel</Text></Pressable>
+        <View className="flex-row items-center gap-2 flex-wrap">
+          <Text className="text-text">Stops when this episode ends</Text>
+          <Pressable onPress={() => player.setSleepTimer('off')} accessibilityRole="button"><Text className="text-accent text-[13px]">Cancel</Text></Pressable>
         </View>
       ) : null}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  wrap: { width: '100%', gap: 4, marginTop: 8 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
-  label: { fontWeight: '600', color: colour.text },
-  chip: { borderWidth: 1, borderColor: colour.separator, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, color: colour.text, fontSize: 13 },
-  chipOn: { backgroundColor: colour.accent, color: colour.text, borderColor: colour.accent },
-  status: { color: colour.text },
-  link: { color: colour.accent, fontSize: 13 },
-});

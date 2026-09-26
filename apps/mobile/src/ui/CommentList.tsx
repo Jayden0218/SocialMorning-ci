@@ -6,7 +6,7 @@
  */
 import { Link, router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { orderComments, type CommentOrder } from '@socialmorning/social-core';
 import { mmss, relativeTime } from './format';
 import { useSocial } from '../social/context';
@@ -15,7 +15,6 @@ import { Placeholder, placeholderFor } from './Placeholder';
 import { ReportSheet, type ReportTarget } from './ReportSheet';
 import type { Comment } from '../social/api';
 import { EmptyState } from './EmptyState';
-import { colour } from '../design';
 
 export function CommentList(props: {
   episodeId: string;
@@ -47,38 +46,38 @@ export function CommentList(props: {
   }
 
   const Row = ({ c, isReply }: { c: Comment; isReply: boolean }) => (
-    <View style={[styles.row, isReply && styles.reply]}>
+    <View className={`py-2 gap-1 border-separator ${isReply ? 'ml-4 border-b-0' : 'border-b-hairline'}`}>
       {placeholderFor(c, c.reported) !== undefined ? (
         <Placeholder kind={placeholderFor(c, c.reported)!} />
       ) : (
         <>
-          <View style={styles.head}>
+          <View className="flex-row gap-2 items-center flex-wrap">
             {c.authorId !== null ? (
               <Link href={{ pathname: '/profile/[id]', params: { id: c.authorId } }} asChild>
-                <Pressable accessibilityRole="link"><Text style={styles.author}>{c.displayName ?? 'Deleted account'}</Text></Pressable>
+                <Pressable accessibilityRole="link"><Text className="font-semibold text-text">{c.displayName ?? 'Deleted account'}</Text></Pressable>
               </Link>
-            ) : <Text style={styles.author}>{c.displayName ?? 'Deleted account'}</Text>}
+            ) : <Text className="font-semibold text-text">{c.displayName ?? 'Deleted account'}</Text>}
             {c.offsetMs !== null ? (
               <Pressable onPress={() => props.onSeek(c.offsetMs!)} accessibilityRole="button" accessibilityLabel={`Play from ${mmss(c.offsetMs)}`}>
-                <Text style={styles.chip}>{mmss(c.offsetMs)}</Text>
+                <Text className="bg-surface text-accent rounded-pill px-2 py-0.5 text-xs font-semibold">{mmss(c.offsetMs)}</Text>
               </Pressable>
             ) : null}
-            <Text style={styles.muted}>{relativeTime(c.createdAt, props.serverTime)}</Text>
+            <Text className="text-muted text-[13px]">{relativeTime(c.createdAt, props.serverTime)}</Text>
           </View>
-          <Text style={styles.body}>{c.body}</Text>
-          <View style={styles.actions}>
+          <Text className="text-[15px] text-text">{c.body}</Text>
+          <View className="flex-row gap-4">
             {!isReply ? (
               <Pressable onPress={() => (listener ? props.onReply(c.id) : needSignIn())} accessibilityRole="button">
-                <Text style={styles.link}>{listener ? 'Reply' : 'Sign in to reply'}</Text>
+                <Text className="text-accent text-[14px]">{listener ? 'Reply' : 'Sign in to reply'}</Text>
               </Pressable>
             ) : null}
             {c.mine ? (
               <Pressable disabled={busy === c.id} onPress={() => remove(c.id)} accessibilityRole="button" accessibilityLabel="Delete this comment">
-                <Text style={styles.danger}>{busy === c.id ? 'Deleting…' : 'Delete'}</Text>
+                <Text className="text-accent text-[14px]">{busy === c.id ? 'Deleting…' : 'Delete'}</Text>
               </Pressable>
             ) : (
               <Pressable onPress={() => setReporting({ kind: 'comment', id: c.id, authorId: c.authorId, label: 'comment' })} accessibilityRole="button" accessibilityLabel="Report this comment">
-                <Text style={styles.muted}>Report</Text>
+                <Text className="text-muted text-[13px]">Report</Text>
               </Pressable>
             )}
           </View>
@@ -89,20 +88,20 @@ export function CommentList(props: {
   );
 
   return (
-    <View style={styles.wrap}>
-      <View style={styles.bar}>
-        <Text style={styles.heading}>Comments</Text>
-        <View style={styles.segment}>
+    <View className="gap-1.5 mt-3">
+      <View className="flex-row justify-between items-center">
+        <Text className="text-[17px] font-bold text-text">Comments</Text>
+        <View className="flex-row gap-3">
           {(['newest', 'byMoment'] as const).map((o) => (
             <Pressable key={o} onPress={() => setOrder(o)} accessibilityRole="button" accessibilityState={{ selected: order === o }}>
-              <Text style={[styles.segmentText, order === o && styles.segmentOn]}>{o === 'newest' ? 'Newest' : 'By moment'}</Text>
+              <Text className={order === o ? 'text-[14px] text-text font-bold underline' : 'text-[14px] text-muted'}>{o === 'newest' ? 'Newest' : 'By moment'}</Text>
             </Pressable>
           ))}
         </View>
       </View>
-      {props.stale ? <Text style={styles.muted}>Couldn't refresh — showing the last copy</Text> : null}
-      <Pressable style={styles.compose} onPress={() => (listener ? props.onCompose() : needSignIn())} accessibilityRole="button">
-        <Text style={styles.link}>{listener ? 'Write a comment' : 'Sign in to join the conversation'}</Text>
+      {props.stale ? <Text className="text-muted text-[13px]">Couldn't refresh — showing the last copy</Text> : null}
+      <Pressable className="py-1.5" onPress={() => (listener ? props.onCompose() : needSignIn())} accessibilityRole="button">
+        <Text className="text-accent text-[14px]">{listener ? 'Write a comment' : 'Sign in to join the conversation'}</Text>
       </Pressable>
       {ordered.length === 0 ? <EmptyState surface="comments" action={{ label: 'Comment here', onPress: () => (listener ? props.onCompose() : needSignIn()) }} /> : null}
       {ordered.map((o) => <Row key={o.raw.id} c={o.raw} isReply={false} />)}
@@ -111,22 +110,3 @@ export function CommentList(props: {
   );
 }
 
-const styles = StyleSheet.create({
-  wrap: { gap: 6, marginTop: 12 },
-  bar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  heading: { fontSize: 17, fontWeight: '700', color: colour.text },
-  segment: { flexDirection: 'row', gap: 12 },
-  segmentText: { color: colour.muted, fontSize: 14 },
-  segmentOn: { color: colour.text, fontWeight: '700', textDecorationLine: 'underline' },
-  compose: { paddingVertical: 6 },
-  row: { paddingVertical: 8, gap: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: colour.separator },
-  reply: { marginLeft: 16, borderBottomWidth: 0 },
-  head: { flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
-  author: { fontWeight: '600', color: colour.text },
-  chip: { backgroundColor: colour.surface, color: colour.accent, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, fontSize: 12, fontWeight: '600' },
-  body: { fontSize: 15, color: colour.text },
-  muted: { color: colour.muted, fontSize: 13 },
-  actions: { flexDirection: 'row', gap: 16 },
-  link: { color: colour.accent, fontSize: 14 },
-  danger: { color: colour.accent, fontSize: 14 },
-});

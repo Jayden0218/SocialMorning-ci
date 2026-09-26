@@ -5,11 +5,10 @@
  */
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { mmss } from './format';
 import { useSocial } from '../social/context';
 import type { Comment } from '../social/api';
-import { colour } from '../design';
 
 export function MomentSheet(props: {
   episodeId: string;
@@ -34,25 +33,25 @@ export function MomentSheet(props: {
   }
 
   const Row = ({ c, isReply }: { c: Comment; isReply: boolean }) => (
-    <View style={[styles.row, isReply && styles.reply]}>
+    <View className={`py-2 gap-1 border-separator ${isReply ? 'ml-4 border-b-0' : 'border-b-hairline'}`}>
       {c.deleted ? (
-        <Text style={styles.muted}>Comment deleted</Text>
+        <Text className="text-muted">Comment deleted</Text>
       ) : (
         <>
-          <Text style={styles.author}>
+          <Text className="font-semibold text-text">
             {c.displayName ?? 'Deleted account'}
-            {c.offsetMs !== null ? <Text style={styles.muted}> · {mmss(c.offsetMs)}</Text> : null}
+            {c.offsetMs !== null ? <Text className="text-muted"> · {mmss(c.offsetMs)}</Text> : null}
           </Text>
-          <Text style={styles.body}>{c.body}</Text>
-          <View style={styles.actions}>
+          <Text className="text-[15px] text-text">{c.body}</Text>
+          <View className="flex-row gap-4">
             {!isReply ? (
               <Pressable onPress={() => (listener ? props.onReply(c.id) : router.push('/auth/sign-in'))} accessibilityRole="button">
-                <Text style={styles.link}>Reply</Text>
+                <Text className="text-accent text-[14px]">Reply</Text>
               </Pressable>
             ) : null}
             {c.mine ? (
               <Pressable disabled={busy === c.id} onPress={() => remove(c.id)} accessibilityRole="button">
-                <Text style={styles.danger}>{busy === c.id ? 'Deleting…' : 'Delete'}</Text>
+                <Text className="text-accent text-[14px]">{busy === c.id ? 'Deleting…' : 'Delete'}</Text>
               </Pressable>
             ) : null}
           </View>
@@ -64,13 +63,13 @@ export function MomentSheet(props: {
 
   return (
     <Modal visible animationType="slide" transparent onRequestClose={props.onClose}>
-      <KeyboardAvoidingView style={styles.backdrop} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <View style={styles.sheet}>
-          <View style={styles.head}>
-            <Text style={styles.title}>{props.title}</Text>
-            <Pressable onPress={props.onClose} accessibilityRole="button"><Text style={styles.link}>Close</Text></Pressable>
+      <KeyboardAvoidingView className="flex-1 justify-end bg-scrim" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <View className="bg-surface p-4 gap-2 rounded-t-2xl max-h-[70%]">
+          <View className="flex-row justify-between items-center">
+            <Text className="text-sm font-bold text-text">{props.title}</Text>
+            <Pressable onPress={props.onClose} accessibilityRole="button"><Text className="text-accent text-[14px]">Close</Text></Pressable>
           </View>
-          <ScrollView style={styles.list}>
+          <ScrollView className="grow-0">
             {props.comments.map((c) => <Row key={c.id} c={c} isReply={false} />)}
           </ScrollView>
         </View>
@@ -79,18 +78,3 @@ export function MomentSheet(props: {
   );
 }
 
-const styles = StyleSheet.create({
-  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: colour.scrim },
-  sheet: { backgroundColor: colour.surface, padding: 16, gap: 8, borderTopLeftRadius: 16, borderTopRightRadius: 16, maxHeight: '70%' },
-  head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  title: { fontSize: 16, fontWeight: '700', color: colour.text },
-  list: { flexGrow: 0 },
-  row: { paddingVertical: 8, gap: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: colour.separator },
-  reply: { marginLeft: 16, borderBottomWidth: 0 },
-  author: { fontWeight: '600', color: colour.text },
-  body: { fontSize: 15, color: colour.text },
-  muted: { color: colour.muted },
-  actions: { flexDirection: 'row', gap: 16 },
-  link: { color: colour.accent, fontSize: 14 },
-  danger: { color: colour.accent, fontSize: 14 },
-});

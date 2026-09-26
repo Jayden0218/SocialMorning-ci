@@ -4,7 +4,7 @@
  * decrement actions that are the same ±15 / +30 a sighted listener taps. Guard G11.
  */
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { colour } from '../design';
 import { mmss } from './format';
 
@@ -34,7 +34,13 @@ export function Scrubber(props: {
       accessibilityValue={scrubberValue(props.positionMs, props.durationMs)}
       accessibilityActions={[{ name: 'increment', label: 'Forward 30 seconds' }, { name: 'decrement', label: 'Back 15 seconds' }]}
       onAccessibilityAction={(e) => props.onSkip(e.nativeEvent.actionName === 'increment' ? 30_000 : -15_000)}
-      style={styles.track}
+      // `width: '100%'` is load-bearing: the player centres its column, so a bar without an
+      // explicit width collapses to nothing (found on the phone, J5 on build 16 — the bar was
+      // invisible AND absent from the accessibility tree). Width, height and colour stay in
+      // `style`: two tests read them off this element's own props, and `bg-track` compiles to
+      // `#ffffff2e`, not the token's `rgba(...)` string they compare against.
+      className="rounded overflow-hidden mt-2"
+      style={{ width: '100%', height: 8, backgroundColor: colour.track }}
       onLayout={(event) => setBarWidth(event.nativeEvent.layout.width)}
       onPress={(event) => {
         if (props.durationMs === undefined || barWidth === 0) return;
@@ -42,15 +48,8 @@ export function Scrubber(props: {
         props.onSeek(Math.round(ratio * props.durationMs));
       }}
     >
-      <View style={[styles.fill, { width: `${Math.min(100, fraction * 100)}%` }]} />
+      <View className="h-2 bg-text" style={{ width: `${Math.min(100, fraction * 100)}%` }} />
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
-  // `width: '100%'` is load-bearing: the player centres its column, so a bar without an
-  // explicit width collapses to nothing (found on the phone, J5 on build 16 — the bar was
-  // invisible AND absent from the accessibility tree).
-  track: { width: '100%', height: 8, borderRadius: 4, backgroundColor: colour.track, overflow: 'hidden', marginTop: 8 },
-  fill: { height: 8, backgroundColor: colour.text },
-});

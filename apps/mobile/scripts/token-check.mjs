@@ -87,6 +87,10 @@ for (const file of files) {
     if (bare.startsWith('*') || bare.startsWith('//') || bare.startsWith('/*')) continue;
     const hits = lines[i].match(PALETTE);
     if (hits) classes.push(`${file}:${i + 1} ${hits.join(' ')} is not a token colour`);
+    // `tabular-nums` compiles to nothing on native; the digits need `style={tabular}`.
+    if (/(?:['"`\s])tabular-nums(?=['"`\s])/.test(lines[i])) {
+      classes.push(`${file}:${i + 1} the tabular-nums class does nothing on native — use style={tabular}`);
+    }
     for (const m of lines[i].matchAll(LITERAL)) {
       const str = m[1] ?? m[2] ?? m[3] ?? '';
       if (TYPE.test(str) && !COLOURED.test(str)) {

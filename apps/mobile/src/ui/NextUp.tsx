@@ -1,6 +1,6 @@
 /** "Next up" on the episode page (M5 FR-008): 3–8 episodes with a reason each; hidden when there is nothing to show. */
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { enoughNextUp } from '@socialmorning/social-core';
 import { EmptyState } from './EmptyState';
 import { useSocial } from '../social/context';
@@ -29,18 +29,16 @@ export function NextUp(props: { items: NextUpItem[] | undefined; onOpen: (card: 
   // M6 (FR-019): too few to be useful is still a surface — it says what fills it.
   if (!props.items || !enoughNextUp(props.items)) {
     return (
-      <View style={styles.wrap}>
-        <Text style={styles.h2} accessibilityRole="header">Next up</Text>
+      <View className="mt-4">
+        <Text className="text-[18px] font-semibold mb-1 text-text" accessibilityRole="header">Next up</Text>
         <EmptyState surface="nextup" {...(props.loadingMs !== undefined ? { loadingMs: props.loadingMs } : {})} />
       </View>
     );
   }
   return (
-    <View style={styles.wrap}>
-      <Text style={styles.h2} accessibilityRole="header">Next up</Text>
+    <View className="mt-4">
+      <Text className="text-[18px] font-semibold mb-1 text-text" accessibilityRole="header">Next up</Text>
       {props.items.map((i) => <EpisodeRow key={i.episode.id} card={i.episode} line={i.label} onPress={() => props.onOpen(i.episode)} />)}
     </View>
   );
 }
-
-const styles = StyleSheet.create({ wrap: { marginTop: 16 }, h2: { fontSize: 18, fontWeight: '600', marginBottom: 4 } });

@@ -16,7 +16,7 @@
  */
 import { Tabs, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View } from 'react-native';
 import { colour, fontSize } from '../../src/design';
 import { createFeed } from '../../src/graph/feed';
 import { useSocial } from '../../src/social/context';
@@ -67,7 +67,7 @@ export default function TabsLayout(): React.ReactElement {
       tabBar={(props) => {
         const active = props.state.routes[props.state.index]?.name ?? 'index';
         return (
-          <View style={styles.dock}>
+          <View className="bg-background">
             <MiniPlayer context="tabs" />
             <TabBar
               items={items}
@@ -88,5 +88,3 @@ export default function TabsLayout(): React.ReactElement {
     </Tabs>
   );
 }
-
-const styles = StyleSheet.create({ dock: { backgroundColor: colour.background } });

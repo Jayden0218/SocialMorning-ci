@@ -10,8 +10,7 @@
  * The component is pure: it takes the tabs, which one is active, and a callback. The
  * layout adapts the router's props to it, so this can be tested with no router at all.
  */
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colour, fontSize, hit, spacing } from '../design';
+import { Pressable, Text, View } from 'react-native';
 import { TAB_BAR_HEIGHT } from './Screen';
 
 export type TabItem = {
@@ -27,9 +26,17 @@ export function TabBar(props: {
   items: readonly TabItem[];
   activeKey: string;
   onSelect: (key: string) => void;
+  className?: string;
 }): React.ReactElement {
   return (
-    <View style={styles.bar} accessibilityRole="tablist">
+    <View
+      className={`flex-row bg-surface border-t-hairline border-separator ${props.className ?? ''}`}
+      // `minHeight`, never `height`: at the largest system font the labels must push the
+      // bar taller rather than clip (M6 J6 found exactly this on the Account screen).
+      // It stays a style because `TAB_BAR_HEIGHT` is the one source for this number.
+      style={{ minHeight: TAB_BAR_HEIGHT }}
+      accessibilityRole="tablist"
+    >
       {props.items.map((item) => {
         const selected = item.key === props.activeKey;
         const badge = item.badge !== undefined && item.badge > 0 ? item.badge : undefined;
@@ -39,10 +46,12 @@ export function TabBar(props: {
             accessibilityRole="tab"
             accessibilityLabel={badge === undefined ? item.label : `${item.label}, ${badge} new`}
             accessibilityState={{ selected }}
-            style={styles.tab}
+            className="flex-1 min-h-12 py-2 px-2 items-center justify-center"
             onPress={() => props.onSelect(item.key)}
           >
-            <Text style={selected ? styles.labelActive : styles.label} numberOfLines={1}>
+            {/* The active tab is told apart by weight AND colour, and by `accessibilityState`
+                — never by colour alone (FR-016). */}
+            <Text className={selected ? 'text-xs text-accent font-bold' : 'text-xs text-muted'} numberOfLines={1}>
               {badge === undefined ? item.label : `${item.label} (${badge})`}
             </Text>
           </Pressable>
@@ -51,27 +60,3 @@ export function TabBar(props: {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  bar: {
-    flexDirection: 'row',
-    // `minHeight`, never `height`: at the largest system font the labels must push the
-    // bar taller rather than clip (M6 J6 found exactly this on the Account screen).
-    minHeight: TAB_BAR_HEIGHT,
-    backgroundColor: colour.surface,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colour.separator,
-  },
-  tab: {
-    flex: 1,
-    minHeight: hit.min,
-    paddingVertical: spacing.gap,
-    paddingHorizontal: spacing.gap,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  label: { fontSize: fontSize.xs, color: colour.muted },
-  // The active tab is told apart by weight AND colour, and by `accessibilityState`
-  // — never by colour alone (FR-016).
-  labelActive: { fontSize: fontSize.xs, color: colour.accent, fontWeight: '700' },
-});

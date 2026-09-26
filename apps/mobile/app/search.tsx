@@ -5,7 +5,7 @@
  */
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { mergeSearch } from '@socialmorning/social-core';
 import { useSocial } from '../src/social/context';
 import { useStores } from '../src/ui/providers';
@@ -59,29 +59,29 @@ export default function SearchScreen(): React.ReactElement {
   const openShow = (feedUrl: string) => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(feedUrl) } });
 
   return (
-    <View style={styles.fill}>
+    <View className="flex-1">
       <TextInput
-        placeholderTextColor={colour.muted} style={styles.input} placeholder="Search shows and episodes, or paste a feed URL" autoCorrect={false} autoFocus value={term} onChangeText={setTerm} accessibilityLabel="Search podcasts" />
-      <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+        placeholderTextColor={colour.muted} className="m-3 p-3 border border-separator rounded-lg" placeholder="Search shows and episodes, or paste a feed URL" autoCorrect={false} autoFocus value={term} onChangeText={setTerm} accessibilityLabel="Search podcasts" />
+      <ScrollView contentContainerClassName="px-3 pb-24" keyboardShouldPersistTaps="handled">
         {looksLikeFeedUrl(trimmed) ? (
-          <Pressable style={styles.urlRow} accessibilityRole="button" onPress={() => openShow(trimmed)}><Text style={styles.link}>Open feed {trimmed}</Text></Pressable>
+          <Pressable className="py-2.5" accessibilityRole="button" onPress={() => openShow(trimmed)}><Text className="text-accent">Open feed {trimmed}</Text></Pressable>
         ) : null}
-        {catalogue.kind === 'loading' ? <ActivityIndicator style={styles.spinner} /> : null}
-        {catalogue.kind === 'error' ? <Text style={styles.notice}>{catalogue.message}</Text> : null}
-        {catalogue.kind === 'ok' && catalogue.result.episodeSearch === 'unavailable' ? <Text style={styles.notice}>Episode search is unavailable right now — shows only.</Text> : null}
+        {catalogue.kind === 'loading' ? <ActivityIndicator className="my-2" /> : null}
+        {catalogue.kind === 'error' ? <Text className="my-2 text-accent bg-surface p-2 rounded-md">{catalogue.message}</Text> : null}
+        {catalogue.kind === 'ok' && catalogue.result.episodeSearch === 'unavailable' ? <Text className="my-2 text-accent bg-surface p-2 rounded-md">Episode search is unavailable right now — shows only.</Text> : null}
         {nothing ? <EmptyState surface="search" /> : null}
 
-        {merged.shows.length > 0 ? <Text style={styles.h2}>Shows</Text> : null}
+        {merged.shows.length > 0 ? <Text className="text-sm font-semibold mt-3 mb-1 text-text">Shows</Text> : null}
         {merged.shows.map((s) => (
-          <Pressable key={s.feedUrl} style={styles.row} accessibilityRole="button" onPress={() => openShow(s.feedUrl)}>
-            {s.imageUrl ? <Image source={{ uri: s.imageUrl }} style={styles.art} /> : <View style={styles.art} />}
-            <View style={styles.grow}>
-              <Text style={styles.title} numberOfLines={2}>{s.title}</Text>
-              <Text style={styles.subtitle} numberOfLines={1}>{s.author}{libShowKeys.has(s.feedUrl) ? ' · in your library' : ''}</Text>
+          <Pressable key={s.feedUrl} className="flex-row gap-3 py-2" accessibilityRole="button" onPress={() => openShow(s.feedUrl)}>
+            {s.imageUrl ? <Image source={{ uri: s.imageUrl }} className="w-14 h-14 rounded-md bg-surface" /> : <View className="w-14 h-14 rounded-md bg-surface" />}
+            <View className="flex-1">
+              <Text className="text-[15px] font-semibold text-text" numberOfLines={2}>{s.title}</Text>
+              <Text className="text-[13px] text-muted" numberOfLines={1}>{s.author}{libShowKeys.has(s.feedUrl) ? ' · in your library' : ''}</Text>
             </View>
           </Pressable>
         ))}
-        {merged.episodes.length > 0 ? <Text style={styles.h2}>Episodes</Text> : null}
+        {merged.episodes.length > 0 ? <Text className="text-sm font-semibold mt-3 mb-1 text-text">Episodes</Text> : null}
         {merged.episodes.map((e) => (
           <EpisodeRow key={`${e.feedUrl}\u0001${e.guid}`} card={e} line={libEpisodeKeys.has(e.id) ? 'In your library' : undefined} onPress={() => (libEpisodeKeys.has(e.id) ? router.push({ pathname: '/episode/[id]', params: { id: e.id } }) : void open(e))} />
         ))}
@@ -89,19 +89,3 @@ export default function SearchScreen(): React.ReactElement {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  fill: { flex: 1 },
-  input: { margin: 12, padding: 12, borderWidth: 1, borderColor: colour.separator, borderRadius: 8 },
-  body: { paddingHorizontal: 12, paddingBottom: 96 },
-  spinner: { marginVertical: 8 },
-  notice: { marginVertical: 8, color: colour.accent, backgroundColor: colour.surface, padding: 8, borderRadius: 6 },
-  h2: { fontSize: 16, fontWeight: '600', marginTop: 12, marginBottom: 4, color: colour.text },
-  urlRow: { paddingVertical: 10 },
-  link: { color: colour.accent },
-  row: { flexDirection: 'row', gap: 12, paddingVertical: 8 },
-  art: { width: 56, height: 56, borderRadius: 6, backgroundColor: colour.surface },
-  grow: { flex: 1 },
-  title: { fontSize: 15, fontWeight: '600', color: colour.text },
-  subtitle: { fontSize: 13, color: colour.muted },
-});

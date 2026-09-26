@@ -10,7 +10,7 @@
  */
 import { Link, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Image, Pressable, Text, View } from 'react-native';
 import { refreshAll } from '../../src/feeds/refresh-all';
 import { ContinueListening } from '../../src/ui/ContinueListening';
 import { shortDate } from '../../src/ui/format';
@@ -23,7 +23,6 @@ import { useSocial } from '../../src/social/context';
 import { useDiscover } from '../../src/discover/useDiscover';
 import { DiscoverSections } from '../../src/ui/DiscoverSections';
 import type { CachedShow } from '../../src/storage/types';
-import { colour, spacing } from '../../src/design';
 import { BOTTOM_INSET } from '../../src/ui/Screen';
 
 type Row = { feedUrl: string; show: CachedShow | undefined; stale: boolean };
@@ -72,9 +71,11 @@ export default function LibraryScreen(): React.ReactElement {
       key={tick}
       data={rows}
       keyExtractor={(row) => row.feedUrl}
-      contentContainerStyle={styles.body}
+      contentContainerClassName="p-3 gap-2"
+      // The inset is derived from two JS constants, so it stays a style rather than a class.
+      contentContainerStyle={{ paddingBottom: BOTTOM_INSET }}
       ListHeaderComponent={
-        <View style={styles.header}>
+        <View className="gap-2 mb-2">
           <ContinueListening />
           {noSubscriptions && discover.view ? <DiscoverSections body={discover.view.body} stale={discover.view.stale} fetchedAt={discover.view.fetchedAt} onOpen={(c) => void discover.open(c)} /> : null}
           <NavLink href="/search" label="Search for a show" />
@@ -100,17 +101,17 @@ export default function LibraryScreen(): React.ReactElement {
           }}
           asChild
         >
-          <Pressable style={styles.row} accessibilityRole="button">
+          <Pressable className="flex-row gap-3 py-2" accessibilityRole="button">
             {item.show?.imageUrl === undefined ? (
-              <View style={styles.art} />
+              <View className="w-14 h-14 rounded-md bg-surface" />
             ) : (
-              <Image source={{ uri: item.show.imageUrl }} style={styles.art} />
+              <Image source={{ uri: item.show.imageUrl }} className="w-14 h-14 rounded-md bg-surface" />
             )}
-            <View style={styles.grow}>
-              <Text style={styles.title} numberOfLines={3}>
+            <View className="flex-1">
+              <Text className="text-[15px] font-semibold text-text" numberOfLines={3}>
                 {item.show?.title ?? item.feedUrl}
               </Text>
-              <Text style={styles.subtitle}>
+              <Text className="text-[13px] text-muted">
                 {latestLine(stores.feeds.listEpisodes(item.feedUrl)[0]?.publishedAt, item.stale)}
                 {safety.isHidden('show', item.feedUrl) ? ' · reported' : hiddenFeeds.has(item.feedUrl) ? ' · hidden from discovery' : ''}
               </Text>
@@ -126,15 +127,3 @@ function latestLine(publishedAt: number | undefined, stale: boolean): string {
   const latest = publishedAt === undefined ? 'No episodes yet' : `Latest ${shortDate(publishedAt)}`;
   return stale ? `${latest} · offline copy` : latest;
 }
-
-const styles = StyleSheet.create({
-  body: { padding: spacing.row, gap: spacing.gap, paddingBottom: BOTTOM_INSET },
-  header: { gap: 8, marginBottom: 8 },
-  link: { fontSize: 16, color: colour.accent, paddingVertical: 4 },
-  row: { flexDirection: 'row', gap: 12, paddingVertical: 8 },
-  art: { width: 56, height: 56, borderRadius: 6, backgroundColor: colour.surface },
-  grow: { flex: 1 },
-  title: { fontSize: 15, fontWeight: '600', color: colour.text },
-  subtitle: { fontSize: 13, color: colour.muted },
-  empty: { color: colour.muted, paddingVertical: 8 },
-});

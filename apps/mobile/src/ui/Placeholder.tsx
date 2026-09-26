@@ -1,7 +1,6 @@
 /** M6: the four placeholders a comment or clip can become — the same shape, one word each. */
-import { StyleSheet, Text } from 'react-native';
+import { Text } from 'react-native';
 import type { Comment } from '../social/api';
-import { colour } from '../design';
 
 export type PlaceholderKind = 'deleted' | 'removed' | 'removed_mine' | 'blocked' | 'reported';
 
@@ -22,8 +21,6 @@ export function placeholderFor(c: Pick<Comment, 'deleted' | 'removed' | 'blocked
   return undefined;
 }
 
-export function Placeholder(props: { kind: PlaceholderKind }): React.ReactElement {
-  return <Text style={styles.muted} accessibilityRole="text">{PLACEHOLDER_TEXT[props.kind]}</Text>;
+export function Placeholder(props: { kind: PlaceholderKind; className?: string }): React.ReactElement {
+  return <Text className={`text-muted text-[13px] italic ${props.className ?? ''}`} accessibilityRole="text">{PLACEHOLDER_TEXT[props.kind]}</Text>;
 }
-
-const styles = StyleSheet.create({ muted: { color: colour.muted, fontSize: 13, fontStyle: 'italic' } });

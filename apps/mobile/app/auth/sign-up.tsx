@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { useSocial } from '../../src/social/context';
-import { describe, styles } from './sign-in';
+import { body, button, buttonText, describe, errorText, input } from './sign-in';
 import { colour } from '../../src/design';
 
 export default function SignUpScreen(): React.ReactElement {
@@ -32,16 +32,16 @@ export default function SignUpScreen(): React.ReactElement {
   }
 
   return (
-    <View style={styles.body}>
+    <View className={body}>
       <TextInput
-        placeholderTextColor={colour.muted} style={styles.input} placeholder="Display name (what others see)" value={displayName} onChangeText={setDisplayName} maxLength={40} accessibilityLabel="Display name" />
+        placeholderTextColor={colour.muted} className={input} placeholder="Display name (what others see)" value={displayName} onChangeText={setDisplayName} maxLength={40} accessibilityLabel="Display name" />
       <TextInput
-        placeholderTextColor={colour.muted} style={styles.input} placeholder="Email" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} accessibilityLabel="Email" />
+        placeholderTextColor={colour.muted} className={input} placeholder="Email" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} accessibilityLabel="Email" />
       <TextInput
-        placeholderTextColor={colour.muted} style={styles.input} placeholder="Password (8+ characters)" secureTextEntry value={password} onChangeText={setPassword} accessibilityLabel="Password" />
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      <Pressable style={[styles.button, (busy || !valid) && styles.disabled]} disabled={busy || !valid} onPress={submit} accessibilityRole="button">
-        <Text style={styles.buttonText}>Create account</Text>
+        placeholderTextColor={colour.muted} className={input} placeholder="Password (8+ characters)" secureTextEntry value={password} onChangeText={setPassword} accessibilityLabel="Password" />
+      {error ? <Text className={errorText}>{error}</Text> : null}
+      <Pressable className={`${button} ${busy || !valid ? 'opacity-50' : ''}`} disabled={busy || !valid} onPress={submit} accessibilityRole="button">
+        <Text className={buttonText}>Create account</Text>
       </Pressable>
     </View>
   );

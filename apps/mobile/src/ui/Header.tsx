@@ -3,8 +3,8 @@
  * unavailable the header falls back to a solid bar in the background colour, which is
  * the whole of Principle IV here — a header that fails to blur must not fail to exist.
  */
-import { StyleSheet, Text, View } from 'react-native';
-import { colour, fontSize, spacing } from '../design';
+import { Text, View } from 'react-native';
+import { spacing } from '../design';
 
 /** Injected so the test can exercise the fallback without a native module. */
 export type BlurComponent = React.ComponentType<{ intensity?: number; tint?: string; style?: unknown; children?: React.ReactNode }>;
@@ -17,23 +17,23 @@ try {
   Blur = undefined; // fall back to solid
 }
 
-export function Header(props: { title: string; blur?: BlurComponent | null }): React.ReactElement {
+/**
+ * The blur view is not a component NativeWind styles (nor is a test's stand-in), so its
+ * padding stays a style. Same values as the solid bar's `px-screen-x py-row`.
+ */
+const BLUR_BAR = { paddingHorizontal: spacing.screenX, paddingVertical: spacing.row, overflow: 'hidden' } as const;
+
+export function Header(props: { title: string; blur?: BlurComponent | null; className?: string }): React.ReactElement {
   const B = props.blur === null ? undefined : (props.blur ?? Blur);
   const inner = (
-    <Text style={styles.title} accessibilityRole="header" numberOfLines={2}>
+    <Text className="text-text text-lg font-bold" accessibilityRole="header" numberOfLines={2}>
       {props.title}
     </Text>
   );
-  if (!B) return <View style={[styles.bar, styles.solid]}>{inner}</View>;
+  if (!B) return <View className={`px-screen-x py-row overflow-hidden bg-background ${props.className ?? ''}`}>{inner}</View>;
   return (
-    <B intensity={60} tint="dark" style={styles.bar}>
+    <B intensity={60} tint="dark" style={BLUR_BAR}>
       {inner}
     </B>
   );
 }
-
-const styles = StyleSheet.create({
-  bar: { paddingHorizontal: spacing.screenX, paddingVertical: spacing.row, overflow: 'hidden' },
-  solid: { backgroundColor: colour.background },
-  title: { color: colour.text, fontSize: fontSize.lg, fontWeight: '700' },
-});

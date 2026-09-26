@@ -5,8 +5,7 @@
  * second": one marker, both listed).
  */
 import { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colour } from '../design';
+import { Pressable, Text, View } from 'react-native';
 import { mmss } from './format';
 import type { Comment } from '../social/api';
 
@@ -46,7 +45,7 @@ export function Rail(props: {
   const markers = useMemo(() => railMarkers(props.comments), [props.comments]);
   if (props.durationMs === undefined || props.durationMs <= 0 || markers.length === 0) return null;
   return (
-    <View style={styles.rail} accessibilityRole="list" accessibilityLabel={`${markers.length} commented moment${markers.length === 1 ? '' : 's'}`}>
+    <View className="w-full h-[14px] relative" accessibilityRole="list" accessibilityLabel={`${markers.length} commented moment${markers.length === 1 ? '' : 's'}`}>
       {markers.map((m) => (
         <Pressable
           key={m.second}
@@ -54,20 +53,15 @@ export function Rail(props: {
           accessibilityLabel={markerLabel(m)}
           hitSlop={8}
           onPress={() => props.onTap(m)}
-          style={[styles.marker, { left: `${Math.min(100, (m.offsetMs / props.durationMs!) * 100)}%` }]}
+          className="absolute top-0 -ml-1.5 w-3 h-[14px] items-center justify-end"
+          // The position is offset / duration, known only at runtime.
+          style={{ left: `${Math.min(100, (m.offsetMs / props.durationMs!) * 100)}%` }}
         >
-          <View style={[styles.dot, m.comments.length > 1 && styles.dotMany]} />
+          <View className={`bg-accent ${m.comments.length > 1 ? 'w-2.5 h-2.5 rounded-[5px]' : 'w-2 h-2 rounded'}`} />
         </Pressable>
       ))}
-      <Text style={styles.hidden}>{markers.length}</Text>
+      <Text className="absolute opacity-0 h-0">{markers.length}</Text>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  rail: { width: '100%', height: 14, position: 'relative' },
-  marker: { position: 'absolute', top: 0, marginLeft: -6, width: 12, height: 14, alignItems: 'center', justifyContent: 'flex-end' },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colour.accent },
-  dotMany: { width: 10, height: 10, borderRadius: 5 },
-  hidden: { position: 'absolute', opacity: 0, height: 0 },
-});

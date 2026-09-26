@@ -4,7 +4,7 @@
  */
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { mmss } from './format';
 import { useSocial } from '../social/context';
 import type { ComposerState } from '../social/composer';
@@ -41,24 +41,24 @@ export function ComposerSheet(props: {
 
   return (
     <Modal visible animationType="slide" onRequestClose={props.onClose} transparent>
-      <KeyboardAvoidingView style={styles.backdrop} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <View style={styles.sheet}>
-          <View style={styles.row}>
+      <KeyboardAvoidingView className="flex-1 justify-end bg-scrim" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <View className="bg-surface p-4 gap-2.5 rounded-t-2xl">
+          <View className="flex-row justify-between items-center">
             {state.moment ? (
-              <View style={styles.chip}>
-                <Text style={styles.chipText}>at {mmss(state.moment.offsetMs)}</Text>
+              <View className="flex-row gap-2 items-center bg-surface rounded-pill py-1 px-2.5">
+                <Text className="font-semibold text-text">at {mmss(state.moment.offsetMs)}</Text>
                 <Pressable onPress={() => setState(composer.removeMoment(state))} accessibilityLabel="Remove the moment" accessibilityRole="button">
-                  <Text style={styles.chipX}>✕</Text>
+                  <Text className="text-[14px] text-muted">✕</Text>
                 </Pressable>
               </View>
             ) : (
-              <Text style={styles.muted}>{state.parentId ? 'Reply' : 'No moment attached'}</Text>
+              <Text className="text-muted">{state.parentId ? 'Reply' : 'No moment attached'}</Text>
             )}
-            <Text style={[styles.muted, length > 2000 && styles.over]}>{length} / 2000</Text>
+            <Text className={length > 2000 ? 'text-accent' : 'text-muted'}>{length} / 2000</Text>
           </View>
           <TextInput
         placeholderTextColor={colour.muted}
-            style={styles.input}
+            className="min-h-[90px] max-h-[200px] border border-separator rounded-lg p-2.5 text-sm align-top text-text"
             multiline
             autoFocus
             placeholder={state.parentId ? 'Write a reply' : 'What is worth saying here?'}
@@ -66,16 +66,16 @@ export function ComposerSheet(props: {
             onChangeText={(t) => setState(composer.edit(state, t))}
             accessibilityLabel="Comment"
           />
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-          <View style={styles.row}>
-            <Pressable onPress={props.onClose} accessibilityRole="button"><Text style={styles.link}>Cancel</Text></Pressable>
+          {error ? <Text className="text-accent">{error}</Text> : null}
+          <View className="flex-row justify-between items-center">
+            <Pressable onPress={props.onClose} accessibilityRole="button"><Text className="text-accent text-[15px]">Cancel</Text></Pressable>
             <Pressable
-              style={[styles.button, (busy || !composer.canSubmit(state)) && styles.disabled]}
+              className={`bg-accent rounded-3xl py-2.5 px-[22px] ${busy || !composer.canSubmit(state) ? 'opacity-50' : ''}`}
               disabled={busy || !composer.canSubmit(state)}
               onPress={submit}
               accessibilityRole="button"
             >
-              <Text style={styles.buttonText}>Post</Text>
+              <Text className="text-text font-semibold">Post</Text>
             </Pressable>
           </View>
         </View>
@@ -84,19 +84,3 @@ export function ComposerSheet(props: {
   );
 }
 
-const styles = StyleSheet.create({
-  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: colour.scrim },
-  sheet: { backgroundColor: colour.surface, padding: 16, gap: 10, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  chip: { flexDirection: 'row', gap: 8, alignItems: 'center', backgroundColor: colour.surface, borderRadius: 999, paddingVertical: 4, paddingHorizontal: 10 },
-  chipText: { fontWeight: '600', color: colour.text },
-  chipX: { fontSize: 14, color: colour.muted },
-  muted: { color: colour.muted },
-  over: { color: colour.accent },
-  input: { minHeight: 90, maxHeight: 200, borderWidth: 1, borderColor: colour.separator, borderRadius: 8, padding: 10, fontSize: 16, textAlignVertical: 'top', color: colour.text },
-  error: { color: colour.accent },
-  link: { color: colour.accent, fontSize: 15 },
-  button: { backgroundColor: colour.accent, borderRadius: 24, paddingVertical: 10, paddingHorizontal: 22 },
-  disabled: { opacity: 0.5 },
-  buttonText: { color: colour.text, fontWeight: '600' },
-});

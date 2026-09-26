@@ -1,7 +1,7 @@
 /** One episode (FR-003), and the tap that starts audio (Story 1 scenario 2). */
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { Pressable, ScrollView, Text } from 'react-native';
 import { usePlayer, usePlayerState } from '../../src/playback/store';
 import { htmlToText, mmss, shortDate } from '../../src/ui/format';
 import { useStores } from '../../src/ui/providers';
@@ -16,7 +16,6 @@ import { ComposerSheet } from '../../src/ui/Composer';
 import { ClipList } from '../../src/ui/ClipList';
 import { NextUp, useNextUp } from '../../src/ui/NextUp';
 import { useDiscover } from '../../src/discover/useDiscover';
-import { colour } from '../../src/design';
 
 export default function EpisodeScreen(): React.ReactElement {
   const stores = useStores();
@@ -35,8 +34,8 @@ export default function EpisodeScreen(): React.ReactElement {
 
   if (episode === undefined) {
     return (
-      <ScrollView contentContainerStyle={styles.body}>
-        <Text style={styles.title}>This episode is no longer in the feed.</Text>
+      <ScrollView contentContainerClassName="p-3 gap-2">
+        <Text className="text-base font-bold text-text">This episode is no longer in the feed.</Text>
       </ScrollView>
     );
   }
@@ -71,20 +70,20 @@ export default function EpisodeScreen(): React.ReactElement {
       : (saved?.offsetMs ?? 0);
 
   return (
-    <ScrollView contentContainerStyle={styles.body}>
-      <Text style={styles.title}>{episode.title}</Text>
-      <Text style={styles.subtitle}>
+    <ScrollView contentContainerClassName="p-3 gap-2">
+      <Text className="text-base font-bold text-text">{episode.title}</Text>
+      <Text className="text-[13px] text-muted">
         {[shortDate(episode.publishedAt), episode.durationMs === undefined ? '' : mmss(episode.durationMs)]
           .filter((part) => part !== '')
           .join(' · ')}
       </Text>
       {saved === undefined ? null : (
-        <Text style={styles.subtitle}>
+        <Text className="text-[13px] text-muted">
           {saved.finished ? 'Finished — plays from the start' : `Resumes at ${mmss(saved.offsetMs)}`}
         </Text>
       )}
       <Pressable
-        style={styles.play}
+        className="self-start py-2.5 px-5 rounded-pill bg-accent my-2"
         accessibilityRole="button"
         accessibilityLabel="Play this episode"
         onPress={() => {
@@ -92,11 +91,11 @@ export default function EpisodeScreen(): React.ReactElement {
           router.push('/player');
         }}
       >
-        <Text style={styles.playText}>Play</Text>
+        <Text className="text-text font-bold">Play</Text>
       </Pressable>
       <DownloadButton episodeId={episode.id} />
       <QueueButtons episodeId={episode.id} onQueued={() => stores.inboxState.mark(episode.id, 'queued', Date.now())} />
-      <Text style={styles.notes}>{htmlToText(episode.shownotesHtml)}</Text>
+      <Text className="text-[14px] leading-[20px] text-text">{htmlToText(episode.shownotesHtml)}</Text>
       <ClipList episode={playable} />
       <NextUp items={nextUp.items} onOpen={(c) => void discoverOpen(c)} />
       <CommentList
@@ -115,18 +114,3 @@ export default function EpisodeScreen(): React.ReactElement {
   );
 }
 
-const styles = StyleSheet.create({
-  body: { padding: 12, gap: 8 },
-  title: { fontSize: 20, fontWeight: '700', color: colour.text },
-  subtitle: { fontSize: 13, color: colour.muted },
-  play: {
-    alignSelf: 'flex-start',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 999,
-    backgroundColor: colour.accent,
-    marginVertical: 8,
-  },
-  playText: { color: colour.text, fontWeight: '700' },
-  notes: { fontSize: 14, lineHeight: 20, color: colour.text },
-});

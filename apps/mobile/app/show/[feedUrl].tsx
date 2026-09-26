@@ -8,14 +8,13 @@
  */
 import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Image, Pressable, Text, View } from 'react-native';
 import { refreshShow } from '../../src/feeds/fetch';
 import { mmss, shortDate } from '../../src/ui/format';
 import { useSafety } from '../../src/safety/context';
 import { ReportSheet, type ReportTarget } from '../../src/ui/ReportSheet';
 import { useStores, useSubscriptionSync } from '../../src/ui/providers';
 import type { CachedEpisode, CachedShow } from '../../src/storage/types';
-import { colour } from '../../src/design';
 
 export default function ShowScreen(): React.ReactElement {
   const stores = useStores();
@@ -93,86 +92,61 @@ export default function ShowScreen(): React.ReactElement {
       extraData={focusTick} // FlatList is pure: without this the rows keep their old text
       keyExtractor={(episode) => episode.id}
       ListHeaderComponent={
-        <View style={styles.header}>
+        <View className="p-3 gap-1.5">
           {show?.imageUrl === undefined ? null : (
-            <Image source={{ uri: show.imageUrl }} style={styles.art} />
+            <Image source={{ uri: show.imageUrl }} className="w-[120px] h-[120px] rounded-lg bg-surface" />
           )}
-          <Text style={styles.showTitle}>{show?.title ?? 'Loading…'}</Text>
+          <Text className="text-base font-bold text-text">{show?.title ?? 'Loading…'}</Text>
           {show?.author === undefined ? null : (
-            <Text style={styles.subtitle}>{show.author}</Text>
+            <Text className="text-[13px] text-muted">{show.author}</Text>
           )}
-          <View style={styles.headRow}>
+          <View className="flex-row gap-4 items-center">
             <Pressable
-              style={styles.subscribe}
+              className="self-start py-2 px-3.5 rounded-pill border border-separator"
               accessibilityRole="button"
               accessibilityLabel={subscribed ? 'Unsubscribe from this show' : 'Subscribe to this show'}
               accessibilityState={{ selected: subscribed }}
               onPress={toggleSubscription}
             >
-              <Text style={styles.subscribeText}>{subscribed ? 'Unsubscribe' : 'Subscribe'}</Text>
+              <Text className="font-semibold text-text">{subscribed ? 'Unsubscribe' : 'Subscribe'}</Text>
             </Pressable>
-            <Pressable onPress={() => setReporting({ kind: 'show', id: feedUrl, authorId: null, label: 'show' })} accessibilityRole="button" accessibilityLabel="Report this show" style={styles.reportBtn}>
-              <Text style={styles.muted}>{reportedShow ? 'Reported' : 'Report'}</Text>
+            <Pressable onPress={() => setReporting({ kind: 'show', id: feedUrl, authorId: null, label: 'show' })} accessibilityRole="button" accessibilityLabel="Report this show" className="py-2 min-h-11 justify-center">
+              <Text className="text-muted">{reportedShow ? 'Reported' : 'Report'}</Text>
             </Pressable>
           </View>
-          {reportedShow ? <Text style={styles.stale}>You reported this show. It stays in your library; it is hidden from discovery for you.</Text> : null}
-          {hiddenShow ? <Text style={styles.stale}>Hidden from discovery by moderation. It stays in your library.</Text> : null}
-          {stale ? <Text style={styles.stale}>Showing the last copy — refresh failed</Text> : null}
-          {failed === undefined ? null : <Text style={styles.stale}>{failed}</Text>}
+          {reportedShow ? <Text className="text-[13px] text-accent">You reported this show. It stays in your library; it is hidden from discovery for you.</Text> : null}
+          {hiddenShow ? <Text className="text-[13px] text-accent">Hidden from discovery by moderation. It stays in your library.</Text> : null}
+          {stale ? <Text className="text-[13px] text-accent">Showing the last copy — refresh failed</Text> : null}
+          {failed === undefined ? null : <Text className="text-[13px] text-accent">{failed}</Text>}
           {show?.description === undefined ? null : (
-            <Text style={styles.description} numberOfLines={12}>
+            <Text className="text-[14px] text-text" numberOfLines={12}>
               {show.description}
             </Text>
           )}
         </View>
       }
       ListEmptyComponent={
-        <Text style={styles.empty}>
+        <Text className="p-3 text-muted">
           {failed === undefined ? 'No episodes yet.' : failed}
         </Text>
       }
       renderItem={({ item }) => (
         <Pressable
-          style={styles.row}
+          className="px-3 py-2.5 gap-1"
           accessibilityRole="button"
           onPress={() => router.push({ pathname: '/episode/[id]', params: { id: item.id } })}
         >
-          <Text style={styles.title} numberOfLines={2}>
+          <Text className="text-[15px] font-semibold text-text" numberOfLines={2}>
             {item.title}
           </Text>
-          <Text style={styles.subtitle}>
+          <Text className="text-[13px] text-muted">
             {[shortDate(item.publishedAt), item.durationMs === undefined ? '' : mmss(item.durationMs), progressFor(item)]
               .filter((part) => part !== '')
               .join(' · ')}
           </Text>
         </Pressable>
       )}
-      ListFooterComponent={<View><Link href="/search" style={styles.footerLink} accessibilityRole="link">Search for another show</Link><ReportSheet target={reporting} onClose={() => setReporting(undefined)} /></View>}
+      ListFooterComponent={<View><Link href="/search" className="p-3 text-accent" accessibilityRole="link">Search for another show</Link><ReportSheet target={reporting} onClose={() => setReporting(undefined)} /></View>}
     />
   );
 }
-
-const styles = StyleSheet.create({
-  headRow: { flexDirection: 'row', gap: 16, alignItems: 'center' },
-  reportBtn: { paddingVertical: 8, minHeight: 44, justifyContent: 'center' },
-  muted: { color: colour.muted },
-  header: { padding: 12, gap: 6 },
-  art: { width: 120, height: 120, borderRadius: 8, backgroundColor: colour.surface },
-  showTitle: { fontSize: 20, fontWeight: '700', color: colour.text },
-  subtitle: { fontSize: 13, color: colour.muted },
-  description: { fontSize: 14, color: colour.text },
-  stale: { fontSize: 13, color: colour.accent },
-  subscribe: {
-    alignSelf: 'flex-start',
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: colour.separator,
-  },
-  subscribeText: { fontWeight: '600', color: colour.text },
-  row: { paddingHorizontal: 12, paddingVertical: 10, gap: 4 },
-  title: { fontSize: 15, fontWeight: '600', color: colour.text },
-  empty: { padding: 12, color: colour.muted },
-  footerLink: { padding: 12, color: colour.accent },
-});

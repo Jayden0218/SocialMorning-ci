@@ -2,18 +2,22 @@
  * Episode or show artwork at a fixed size (M7). An episode with no artwork gets the
  * placeholder, never a blank square (research R4).
  */
-import { Image, StyleSheet, View } from 'react-native';
-import { colour, radius } from '../design';
+import { Image, View } from 'react-native';
+import type { radius } from '../design';
 
-export function Artwork(props: { url?: string | null; size: number; rounded?: keyof typeof radius }): React.ReactElement {
-  const r = radius[props.rounded ?? 'row'];
-  const box = { width: props.size, height: props.size, borderRadius: r };
+/** Whole class names, so Tailwind can find each one written out. */
+const ROUNDED: Record<keyof typeof radius, string> = {
+  row: 'rounded-row',
+  artwork: 'rounded-artwork',
+  pill: 'rounded-pill',
+};
+
+export function Artwork(props: { url?: string | null; size: number; rounded?: keyof typeof radius; className?: string }): React.ReactElement {
+  const cls = `bg-surface ${ROUNDED[props.rounded ?? 'row']} ${props.className ?? ''}`;
+  // The size is a prop, so it stays a style.
+  const box = { width: props.size, height: props.size };
   if (!props.url) {
-    return <View style={[styles.placeholder, box]} accessible={false} importantForAccessibility="no-hide-descendants" />;
+    return <View className={cls} style={box} accessible={false} importantForAccessibility="no-hide-descendants" />;
   }
-  return <Image source={{ uri: props.url }} style={[styles.placeholder, box]} accessible={false} importantForAccessibility="no-hide-descendants" />;
+  return <Image source={{ uri: props.url }} className={cls} style={box} accessible={false} importantForAccessibility="no-hide-descendants" />;
 }
-
-const styles = StyleSheet.create({
-  placeholder: { backgroundColor: colour.surface },
-});

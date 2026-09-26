@@ -4,7 +4,7 @@
  * unread count on the Library link.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { FlatList, RefreshControl, Text, View } from 'react-native';
 import { Link, router, useFocusEffect } from 'expo-router';
 import { useSafety } from '../../src/safety/context';
 import { useSocial } from '../../src/social/context';
@@ -13,7 +13,6 @@ import { createFeed, type FeedView } from '../../src/graph/feed';
 import { FeedItem } from '../../src/ui/FeedItem';
 import type { FeedItem as Item } from '../../src/social/api';
 import { EmptyState } from '../../src/ui/EmptyState';
-import { colour, spacing } from '../../src/design';
 import { BOTTOM_INSET } from '../../src/ui/Screen';
 
 export default function FollowingScreen(): React.ReactElement {
@@ -36,18 +35,19 @@ export default function FollowingScreen(): React.ReactElement {
     else router.push({ pathname: '/episode/[id]', params: { id: item.episode.id, ...(item.momentMs !== null ? { at: String(item.momentMs) } : {}) } });
   };
 
-  if (!listener) return <View style={styles.body}><Text>Sign in to follow people.</Text><Link href="/auth/sign-in" style={styles.link} accessibilityRole="link">Sign in</Link></View>;
+  if (!listener) return <View className="p-4 gap-2" style={{ paddingBottom: BOTTOM_INSET }}><Text>Sign in to follow people.</Text><Link href="/auth/sign-in" className="text-accent mt-2" accessibilityRole="link">Sign in</Link></View>;
   return (
     <FlatList
       data={safetyFilter.feed(view?.items ?? [])}
       keyExtractor={(i) => String(i.id)}
-      contentContainerStyle={styles.body}
+      contentContainerClassName="p-4 gap-2"
+      contentContainerStyle={{ paddingBottom: BOTTOM_INSET }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} />}
-      ListHeaderComponent={view?.stale ? <Text style={styles.stale}>Couldn't refresh — showing what was fetched {view.fetchedAt ? new Date(view.fetchedAt).toLocaleTimeString() : 'earlier'}.</Text> : undefined}
+      ListHeaderComponent={view?.stale ? <Text className="text-accent bg-surface p-2 rounded-md">Couldn't refresh — showing what was fetched {view.fetchedAt ? new Date(view.fetchedAt).toLocaleTimeString() : 'earlier'}.</Text> : undefined}
       ListEmptyComponent={!refreshing ? (
         <View>
           <EmptyState surface="feed" offline={view?.stale ?? false} hasCache={(view?.items.length ?? 0) > 0} onRetry={() => void refresh()} />
-          <Text style={styles.muted}>Tap a name on any comment or clip to open a profile.</Text>
+          <Text className="text-muted mb-1.5">Tap a name on any comment or clip to open a profile.</Text>
         </View>
       ) : undefined}
       renderItem={({ item }) => <FeedItem item={item} onOpen={open} />}
@@ -59,10 +59,3 @@ export default function FollowingScreen(): React.ReactElement {
     />
   );
 }
-
-const styles = StyleSheet.create({
-  body: { padding: spacing.section, gap: spacing.gap, paddingBottom: BOTTOM_INSET },
-  stale: { color: colour.accent, backgroundColor: colour.surface, padding: 8, borderRadius: 6 },
-  muted: { color: colour.muted, marginBottom: 6 },
-  link: { color: colour.accent, marginTop: 8 },
-});

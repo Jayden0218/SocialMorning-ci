@@ -5,7 +5,7 @@
  * a suspended account says so; a profile you reported is hidden for you.
  */
 import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { Link, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSocial } from '../../src/social/context';
 import { useSafety } from '../../src/safety/context';
@@ -18,7 +18,6 @@ import { ReportSheet, type ReportTarget } from '../../src/ui/ReportSheet';
 import { Pressable } from 'react-native';
 import { ApiError, type FeedItem as Item, type Profile } from '../../src/social/api';
 import { EmptyState } from '../../src/ui/EmptyState';
-import { colour } from '../../src/design';
 
 export default function ProfileScreen(): React.ReactElement {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -36,36 +35,38 @@ export default function ProfileScreen(): React.ReactElement {
     if (item.kind === 'clipped' && item.refId) router.push({ pathname: '/clip/[id]', params: { id: item.refId } });
     else router.push({ pathname: '/episode/[id]', params: { id: item.episode.id } });
   };
-  if (error) return <View style={styles.body}><Text>{error}</Text></View>;
-  if (!profile) return <View style={styles.body}><Text style={styles.muted}>Loading…</Text></View>;
+  if (error) return <View className="p-4 gap-3"><Text>{error}</Text></View>;
+  if (!profile) return <View className="p-4 gap-3"><Text className="text-muted">Loading…</Text></View>;
   const own = listener?.listenerId === profile.id;
   const blocked = !own && safety.isBlocked(profile.id);
   const reported = !own && safety.isHidden('profile', profile.id);
   if (profile.suspended) {
-    return <View style={styles.body}><Text style={styles.name}>{profile.displayName}</Text><Text style={styles.muted}>This account is suspended.</Text></View>;
+    return <View className="p-4 gap-3"><Text className="text-lg font-semibold text-text">{profile.displayName}</Text><Text className="text-muted">This account is suspended.</Text></View>;
   }
   if (blocked || reported) {
     return (
-      <View style={styles.body}>
-        <Text style={styles.name}>{profile.displayName}</Text>
-        {reported ? <Placeholder kind="reported" /> : <Text style={styles.muted}>You blocked this listener.</Text>}
+      <View className="p-4 gap-3">
+        <Text className="text-lg font-semibold text-text">{profile.displayName}</Text>
+        {reported ? <Placeholder kind="reported" /> : <Text className="text-muted">You blocked this listener.</Text>}
         {blocked ? <BlockButton listenerId={profile.id} displayName={profile.displayName} /> : null}
       </View>
     );
   }
   return (
-    <ScrollView contentContainerStyle={styles.body}>
-      <Text style={styles.name} accessibilityRole="header">{profile.displayName}{own ? ' (you)' : ''}</Text>
-      <View style={styles.row}>
-        <Link href={{ pathname: '/profile/[id]/followers', params: { id: profile.id } }} style={styles.link} accessibilityRole="link">{`${profile.followers} followers`}</Link>
-        <Link href={{ pathname: '/profile/[id]/following', params: { id: profile.id } }} style={styles.link} accessibilityRole="link">{`${profile.following} following`}</Link>
+    <ScrollView contentContainerClassName="p-4 gap-3">
+      <Text className="text-lg font-semibold text-text" accessibilityRole="header">{profile.displayName}{own ? ' (you)' : ''}</Text>
+      <View className="flex-row gap-4 items-center flex-wrap">
+        {/* Counts and names are links but not actions. Six accent words on one screen read
+            as six warnings (owner's K1 note, 2026-09-25). */}
+        <Link href={{ pathname: '/profile/[id]/followers', params: { id: profile.id } }} className="text-text" accessibilityRole="link">{`${profile.followers} followers`}</Link>
+        <Link href={{ pathname: '/profile/[id]/following', params: { id: profile.id } }} className="text-text" accessibilityRole="link">{`${profile.following} following`}</Link>
       </View>
       {!own ? (
-        <View style={styles.row}>
+        <View className="flex-row gap-4 items-center flex-wrap">
           <FollowButton listenerId={profile.id} following={profile.isFollowing} onChange={(f) => setProfile({ ...profile, isFollowing: f, followers: profile.followers + (f ? 1 : -1) })} />
           <BlockButton listenerId={profile.id} displayName={profile.displayName} />
-          <Pressable onPress={() => setReporting({ kind: 'profile', id: profile.id, authorId: profile.id, label: 'profile' })} accessibilityRole="button" accessibilityLabel={`Report ${profile.displayName}`} style={styles.btn}>
-            <Text style={styles.muted}>Report</Text>
+          <Pressable onPress={() => setReporting({ kind: 'profile', id: profile.id, authorId: profile.id, label: 'profile' })} accessibilityRole="button" accessibilityLabel={`Report ${profile.displayName}`} className="py-2 min-h-[44px] justify-center">
+            <Text className="text-muted">Report</Text>
           </Pressable>
         </View>
       ) : null}
@@ -73,21 +74,9 @@ export default function ProfileScreen(): React.ReactElement {
       {profile.stats !== null && profile.stats.all.listenedMs === 0 && profile.stats.all.finished === 0
         ? <EmptyState surface="stats" />
         : <StatsBlock stats={profile.stats} own={own} />}
-      <Text style={styles.h2} accessibilityRole="header">Recent</Text>
-      {profile.recent.length === 0 ? <Text style={styles.muted}>Nothing public yet.</Text> : feed(profile.recent).map((item) => <FeedItem key={item.id} item={item} onOpen={open} />)}
+      <Text className="text-[18px] font-semibold mt-2 text-text" accessibilityRole="header">Recent</Text>
+      {profile.recent.length === 0 ? <Text className="text-muted">Nothing public yet.</Text> : feed(profile.recent).map((item) => <FeedItem key={item.id} item={item} onOpen={open} />)}
       <ReportSheet target={reporting} onClose={() => setReporting(undefined)} />
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  body: { padding: 16, gap: 12 },
-  name: { fontSize: 24, fontWeight: '600', color: colour.text },
-  h2: { fontSize: 18, fontWeight: '600', marginTop: 8, color: colour.text },
-  row: { flexDirection: 'row', gap: 16, alignItems: 'center', flexWrap: 'wrap' },
-  // Counts and names are links but not actions. Six accent words on one screen read
-  // as six warnings (owner's K1 note, 2026-09-25).
-  link: { color: colour.text },
-  muted: { color: colour.muted },
-  btn: { paddingVertical: 8, minHeight: 44, justifyContent: 'center' },
-});

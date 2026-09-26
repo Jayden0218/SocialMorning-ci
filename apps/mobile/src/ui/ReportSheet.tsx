@@ -4,7 +4,7 @@
  * local and instant (src/safety/hidden.ts); the sheet only collects the reason.
  */
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { REPORT_NOTE_MAX, REPORT_REASONS, type ReportReason } from '@socialmorning/social-core';
 import { announce, useSafety } from '../safety/context';
@@ -36,23 +36,23 @@ export function ReportSheet(props: { target: ReportTarget | undefined; onClose: 
 
   return (
     <Modal visible={props.target !== undefined} transparent animationType="slide" onRequestClose={close}>
-      <View style={styles.backdrop}>
-        <View style={styles.sheet} accessibilityViewIsModal>
-          <Text style={styles.h1} accessibilityRole="header">Report {props.target?.label ?? ''}</Text>
-          {own ? <Text style={styles.notice}>That's yours — delete it instead.</Text> : null}
-          <ScrollView style={styles.list}>
+      <View className="flex-1 justify-end bg-scrim">
+        <View className="bg-surface rounded-t-2xl p-4 gap-2 max-h-[85%]" accessibilityViewIsModal>
+          <Text className="text-[18px] font-bold text-text" accessibilityRole="header">Report {props.target?.label ?? ''}</Text>
+          {own ? <Text className="text-accent bg-surface p-2 rounded-md">That's yours — delete it instead.</Text> : null}
+          <ScrollView className="grow-0">
             {REPORT_REASONS.map((r) => (
-              <Pressable key={r} style={[styles.reason, reason === r && styles.reasonOn]} onPress={() => setReason(r)} accessibilityRole="radio" accessibilityState={{ checked: reason === r }} accessibilityLabel={REASON_LABEL[r]}>
-                <Text style={[styles.reasonText, reason === r && styles.reasonTextOn]}>{REASON_LABEL[r]}</Text>
+              <Pressable key={r} className={`py-3 px-2 rounded-lg min-h-12 ${reason === r ? 'bg-accent border-accent' : ''}`} onPress={() => setReason(r)} accessibilityRole="radio" accessibilityState={{ checked: reason === r }} accessibilityLabel={REASON_LABEL[r]}>
+                <Text className={reason === r ? 'text-sm font-bold text-accent' : 'text-sm text-text'}>{REASON_LABEL[r]}</Text>
               </Pressable>
             ))}
           </ScrollView>
           <TextInput
-        placeholderTextColor={colour.muted} style={styles.note} placeholder="Anything to add? (optional)" value={note} onChangeText={(t) => setNote(t.slice(0, REPORT_NOTE_MAX))} multiline maxLength={REPORT_NOTE_MAX} accessibilityLabel="Note, optional" />
-          <Text style={styles.counter}>{note.length} / {REPORT_NOTE_MAX}</Text>
-          <View style={styles.row}>
-            <Pressable onPress={close} accessibilityRole="button" accessibilityLabel="Cancel" style={styles.btn}><Text style={styles.link}>Cancel</Text></Pressable>
-            <Pressable onPress={send} disabled={!reason} accessibilityRole="button" accessibilityLabel="Send report" accessibilityState={{ disabled: !reason }} style={[styles.btn, styles.send, !reason && styles.off]}><Text style={styles.sendText}>Send</Text></Pressable>
+        placeholderTextColor={colour.muted} className="border border-separator rounded-lg p-2.5 min-h-16 align-top" placeholder="Anything to add? (optional)" value={note} onChangeText={(t) => setNote(t.slice(0, REPORT_NOTE_MAX))} multiline maxLength={REPORT_NOTE_MAX} accessibilityLabel="Note, optional" />
+          <Text className="text-muted text-xs text-right">{note.length} / {REPORT_NOTE_MAX}</Text>
+          <View className="flex-row justify-end gap-3">
+            <Pressable onPress={close} accessibilityRole="button" accessibilityLabel="Cancel" className="py-3 px-4 min-h-12 justify-center"><Text className="text-accent text-sm">Cancel</Text></Pressable>
+            <Pressable onPress={send} disabled={!reason} accessibilityRole="button" accessibilityLabel="Send report" accessibilityState={{ disabled: !reason }} className={`py-3 px-4 min-h-12 justify-center bg-accent rounded-3xl ${!reason ? 'opacity-40' : ''}`}><Text className="text-text font-semibold">Send</Text></Pressable>
           </View>
         </View>
       </View>
@@ -60,22 +60,3 @@ export function ReportSheet(props: { target: ReportTarget | undefined; onClose: 
   );
 }
 
-const styles = StyleSheet.create({
-  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: colour.scrim },
-  sheet: { backgroundColor: colour.surface, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16, gap: 8, maxHeight: '85%' },
-  h1: { fontSize: 18, fontWeight: '700', color: colour.text },
-  notice: { color: colour.accent, backgroundColor: colour.surface, padding: 8, borderRadius: 6 },
-  list: { flexGrow: 0 },
-  reason: { paddingVertical: 12, paddingHorizontal: 8, borderRadius: 8, minHeight: 48 },
-  reasonOn: { backgroundColor: colour.accent, borderColor: colour.accent },
-  reasonText: { fontSize: 16, color: colour.text },
-  reasonTextOn: { fontWeight: '700', color: colour.accent },
-  note: { borderWidth: 1, borderColor: colour.separator, borderRadius: 8, padding: 10, minHeight: 64, textAlignVertical: 'top' },
-  counter: { color: colour.muted, fontSize: 12, textAlign: 'right' },
-  row: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12 },
-  btn: { paddingVertical: 12, paddingHorizontal: 16, minHeight: 48, justifyContent: 'center' },
-  send: { backgroundColor: colour.accent, borderRadius: 24 },
-  off: { opacity: 0.4 },
-  sendText: { color: colour.text, fontWeight: '600' },
-  link: { color: colour.accent, fontSize: 16 },
-});

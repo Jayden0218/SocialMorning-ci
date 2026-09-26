@@ -6,7 +6,7 @@ import '../global.css';
 import '../src/design/tailwind';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaView, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native';
 import { colour, fontSize } from '../src/design';
 import { AppProviders } from '../src/ui/providers';
 import { SocialProvider } from '../src/social/context';
@@ -20,7 +20,7 @@ export default function RootLayout(): React.ReactElement {
       <SocialProvider>
       <SafetyProvider>
       <GraphProvider>
-      <SafeAreaView style={styles.fill}>
+      <SafeAreaView className="flex-1 bg-background">
         <StatusBar style="light" />
         {/*
           * M7: one place decides the chrome for every screen in the stack — the dark
@@ -64,5 +64,3 @@ export default function RootLayout(): React.ReactElement {
     </AppProviders>
   );
 }
-
-const styles = StyleSheet.create({ fill: { flex: 1, backgroundColor: colour.background } });

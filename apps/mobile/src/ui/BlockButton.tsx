@@ -1,8 +1,7 @@
 /** M6 US1: Block / Unblock a listener, with a confirm. The block is local at once; the server hears later. */
-import { Alert, Pressable, StyleSheet, Text } from 'react-native';
+import { Alert, Pressable, Text } from 'react-native';
 import { router } from 'expo-router';
 import { announce, useSafety } from '../safety/context';
-import { colour } from '../design';
 
 export function BlockButton(props: { listenerId: string; displayName: string; onChange?: (blocked: boolean) => void }): React.ReactElement {
   const { safety, version } = useSafety();
@@ -27,16 +26,11 @@ export function BlockButton(props: { listenerId: string; displayName: string; on
     ]);
   }
   return (
-    <Pressable onPress={press} accessibilityRole="button" accessibilityLabel={blocked ? `Unblock ${props.displayName}` : `Block ${props.displayName}`} style={styles.btn}>
-      <Text style={blocked ? styles.link : styles.danger}>{blocked ? 'Unblock' : 'Block'}</Text>
+    <Pressable onPress={press} accessibilityRole="button" accessibilityLabel={blocked ? `Unblock ${props.displayName}` : `Block ${props.displayName}`} className="py-2 min-h-[44px] justify-center">
+      {/* FR-016: the word carries it, not the hue — Block and Unblock share one colour. Report beside it is
+          muted for the same reason — neither of two peer actions should shout over the other. */}
+      <Text className="text-text text-[15px]">{blocked ? 'Unblock' : 'Block'}</Text>
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
-  btn: { paddingVertical: 8, minHeight: 44, justifyContent: 'center' },
-  link: { color: colour.text, fontSize: 15 },
-  // FR-016: the word carries it, not the hue. Report beside it is muted for the same
-  // reason — neither of two peer actions should shout over the other.
-  danger: { color: colour.text, fontSize: 15 },
-});

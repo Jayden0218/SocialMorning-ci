@@ -3,11 +3,18 @@
  * most two lines, a muted second line, an optional trailing element, a hairline
  * separator, and a tap target of at least 48 dp (M6 FR-015, carried forward).
  */
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colour, fontSize, hit, spacing } from '../design';
+import { Pressable, Text, View } from 'react-native';
+import { hit } from '../design';
 import { Artwork } from './Artwork';
 
 export const ROW_ARTWORK = 56;
+
+/**
+ * `minHeight` stays a style: shared-ui G5 reads the tap target from the outermost
+ * node's `style` prop, which is NativeWind's wrapper — a className is only turned into
+ * a style one level further down.
+ */
+const TAP = { minHeight: hit.min };
 
 export function Row(props: {
   title: string;
@@ -19,21 +26,24 @@ export function Row(props: {
   /** The last row in a list has no separator under it. */
   last?: boolean;
   disabled?: boolean;
+  className?: string;
 }): React.ReactElement {
+  const row = `flex-row items-center gap-row py-2 ${props.last ? '' : 'border-b-hairline border-separator'} ${props.className ?? ''}`;
   const body = (
     <>
       <Artwork url={props.artworkUrl} size={ROW_ARTWORK} />
-      <View style={styles.grow}>
-        <Text style={styles.title} numberOfLines={2}>{props.title}</Text>
-        {props.line ? <Text style={styles.line} numberOfLines={2}>{props.line}</Text> : null}
+      <View className="flex-1 gap-0.5">
+        <Text className="text-text text-sm font-semibold" numberOfLines={2}>{props.title}</Text>
+        {props.line ? <Text className="text-muted text-xs" numberOfLines={2}>{props.line}</Text> : null}
       </View>
       {props.trailing}
     </>
   );
-  if (!props.onPress) return <View style={[styles.row, props.last ? null : styles.separator]}>{body}</View>;
+  if (!props.onPress) return <View className={row} style={TAP}>{body}</View>;
   return (
     <Pressable
-      style={[styles.row, props.last ? null : styles.separator]}
+      className={row}
+      style={TAP}
       onPress={props.onPress}
       disabled={props.disabled}
       accessibilityRole="button"
@@ -44,11 +54,3 @@ export function Row(props: {
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.row, paddingVertical: spacing.gap, minHeight: hit.min },
-  separator: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colour.separator },
-  grow: { flex: 1, gap: 2 },
-  title: { color: colour.text, fontSize: fontSize.sm, fontWeight: '600' },
-  line: { color: colour.muted, fontSize: fontSize.xs },
-});

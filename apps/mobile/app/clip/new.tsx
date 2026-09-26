@@ -4,7 +4,7 @@
  * episode) or needs sign-in.
  */
 import { useState } from 'react';
-import { Share, StyleSheet, Text, View } from 'react-native';
+import { Share, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useGraph } from '../../src/graph/context';
 import { useSocial } from '../../src/social/context';
@@ -22,8 +22,8 @@ export default function NewClipScreen(): React.ReactElement {
   const toast = useToast();
   const [saving, setSaving] = useState(false);
   const episode = params.episodeId ? toPlayable(stores, params.episodeId) : undefined;
-  if (!episode) return <View style={styles.body}><Text>This episode is not in the library.</Text></View>;
-  if (!listener) return <View style={styles.body}><Text>Sign in to make a clip.</Text></View>;
+  if (!episode) return <View className="p-4"><Text>This episode is not in the library.</Text></View>;
+  if (!listener) return <View className="p-4"><Text>Sign in to make a clip.</Text></View>;
   return (
     <ClipComposer
       episode={episode}
@@ -49,4 +49,3 @@ export default function NewClipScreen(): React.ReactElement {
   );
 }
 
-const styles = StyleSheet.create({ body: { padding: 16 } });

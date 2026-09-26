@@ -5,10 +5,19 @@
  * M6's FR-016 forbids colour alone carrying state, so a destructive action is told apart
  * by its word ("Delete", "Remove", "Unsubscribe") and, where M6 put one, its confirm.
  */
-import { Pressable, StyleSheet, Text } from 'react-native';
-import { colour, fontSize, hit, radius, spacing } from '../design';
+import { Pressable, Text } from 'react-native';
+import { hit } from '../design';
 
 export type ButtonKind = 'primary' | 'secondary' | 'destructive';
+
+const KIND: Record<ButtonKind, string> = {
+  primary: 'bg-accent',
+  destructive: 'bg-accent',
+  secondary: 'border border-separator',
+};
+
+/** Kept as a style: shared-ui asserts the tap target on the Pressable's own `style`. */
+const TAP = { minHeight: hit.min };
 
 export function Button(props: {
   label: string;
@@ -16,6 +25,7 @@ export function Button(props: {
   kind?: ButtonKind;
   disabled?: boolean;
   accessibilityLabel?: string;
+  className?: string;
 }): React.ReactElement {
   const kind = props.kind ?? 'primary';
   return (
@@ -25,22 +35,10 @@ export function Button(props: {
       accessibilityRole="button"
       accessibilityLabel={props.accessibilityLabel ?? props.label}
       accessibilityState={{ disabled: props.disabled === true }}
-      style={[styles.base, KIND[kind], props.disabled ? styles.off : null]}
+      className={`px-section justify-center items-center rounded-pill ${KIND[kind]} ${props.disabled ? 'opacity-40' : ''} ${props.className ?? ''}`}
+      style={TAP}
     >
-      <Text style={[styles.label, kind === 'secondary' ? styles.labelSecondary : styles.labelOnAccent]}>{props.label}</Text>
+      <Text className="text-sm font-semibold text-text">{props.label}</Text>
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  base: { minHeight: hit.min, paddingHorizontal: spacing.section, justifyContent: 'center', alignItems: 'center', borderRadius: radius.pill },
-  primary: { backgroundColor: colour.accent },
-  destructive: { backgroundColor: colour.accent },
-  secondary: { borderWidth: 1, borderColor: colour.separator },
-  off: { opacity: 0.4 },
-  label: { fontSize: fontSize.sm, fontWeight: '600', color: colour.text },
-  labelOnAccent: { color: colour.text },
-  labelSecondary: { color: colour.text },
-});
-
-const KIND = { primary: styles.primary, secondary: styles.secondary, destructive: styles.destructive } as const;

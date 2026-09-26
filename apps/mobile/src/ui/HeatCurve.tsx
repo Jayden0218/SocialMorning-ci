@@ -7,8 +7,8 @@
  * Tap/drag on the bars seeks to that segment and hands back the bucket.
  */
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colour, fontSize } from '../design';
+import { Pressable, Text, View } from 'react-native';
+import { colour } from '../design';
 import { EMPTY_STATES } from '@socialmorning/social-core';
 import { mmss } from './format';
 
@@ -58,11 +58,12 @@ export function HeatCurve(props: {
   const axisFraction = props.durationMs && props.playerDurationMs ? props.durationMs / props.playerDurationMs : 1;
 
   return (
-    <View style={styles.wrap}>
+    <View className="w-full gap-1 overflow-hidden">
       <Pressable
         accessibilityRole="adjustable"
         accessibilityLabel={label}
-        style={[styles.bars, { width: `${axisFraction * 100}%` }]}
+        className="h-7 flex-row items-end gap-px self-start"
+        style={{ width: `${axisFraction * 100}%` }}
         onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
         onPress={(e) => {
           if (props.durationMs === undefined || width === 0) return;
@@ -71,21 +72,16 @@ export function HeatCurve(props: {
         }}
       >
         {buckets.map((v, i) => (
-          <View key={i} style={[styles.bar, { height: 2 + v * 26 }, mine.has(i) && styles.mine]} />
+          // 40 % white, not the reference's 30 %: these bars carry information, and 30 % on
+          // black measures 2.45 against the 3:1 floor (research R1). The listener's own
+          // buckets in the accent (5.87) — clearly apart from 40 % grey. Height is per bar at
+          // runtime; the colour stays a token in `style` because G6 compares it to the token
+          // string and `bg-bar` compiles to `#ffffff66`.
+          <View key={i} className="flex-1 rounded-t-[1px]" style={{ height: 2 + v * 26, backgroundColor: mine.has(i) ? colour.accent : colour.bar }} />
         ))}
       </Pressable>
-      {message ? <Text style={styles.message}>{message}</Text> : null}
+      {message ? <Text className="text-xs text-muted text-center">{message}</Text> : null}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  wrap: { width: '100%', gap: 4, overflow: 'hidden' },
-  bars: { height: 28, flexDirection: 'row', alignItems: 'flex-end', gap: 1, alignSelf: 'flex-start' },
-  // 40 % white, not the reference's 30 %: these bars carry information, and 30 % on
-  // black measures 2.45 against the 3:1 floor (research R1).
-  bar: { flex: 1, backgroundColor: colour.bar, borderTopLeftRadius: 1, borderTopRightRadius: 1 },
-  // The listener's own buckets in the accent (5.87) — clearly apart from 40 % grey.
-  mine: { backgroundColor: colour.accent },
-  message: { fontSize: fontSize.xs, color: colour.muted, textAlign: 'center' },
-});

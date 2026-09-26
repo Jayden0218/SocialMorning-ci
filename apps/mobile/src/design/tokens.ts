@@ -46,4 +46,11 @@ export const radius = { row: 8, artwork: 12, pill: 999 } as const;
 /** M6 FR-015, carried forward: nothing a listener taps is smaller than this. */
 export const hit = { min: 48 } as const;
 
+/**
+ * Fixed-width digits, so a ticking time does not jitter. The one style Tailwind cannot
+ * express here: `tabular-nums` compiles to nothing on native (NativeWind drops
+ * `font-variant-numeric`), and token-check rejects the class for that reason.
+ */
+export const tabular = { fontVariant: ['tabular-nums'] } as { fontVariant: ['tabular-nums'] };
+
 export type Colour = keyof typeof colour;

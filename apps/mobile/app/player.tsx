@@ -10,9 +10,8 @@
  * the phone in M6's J5; none of them is touched.
  */
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colour, fontSize, hit, radius, spacing } from '../src/design';
 import { gradientFor } from '../src/design/gradient';
 import { Artwork } from '../src/ui/Artwork';
 import { BOTTOM_INSET } from '../src/ui/Screen';
@@ -38,6 +37,7 @@ import { EndOffer } from '../src/ui/EndOffer';
 import { endOffer } from '../src/discover/end-offer';
 import { toPlayable } from '../src/storage/playable';
 import { useDiscover } from '../src/discover/useDiscover';
+import { tabular } from '../src/design';
 
 export default function PlayerScreen(): React.ReactElement {
   const player = usePlayer();
@@ -76,18 +76,18 @@ export default function PlayerScreen(): React.ReactElement {
 
   if (state.kind === 'idle') {
     return (
-      <View style={[styles.fill, styles.body]}>
-        <Text style={styles.subtitle}>Nothing is playing yet.</Text>
+      <View className={`${FILL} ${BODY}`} style={BODY_INSET}>
+        <Text className={SUBTITLE}>Nothing is playing yet.</Text>
       </View>
     );
   }
 
   if (state.kind === 'error') {
     return (
-      <View style={[styles.fill, styles.body]}>
-        <Text style={styles.title}>{state.message}</Text>
-        <Pressable style={styles.primary} accessibilityRole="button" onPress={() => player.play()}>
-          <Text style={styles.primaryText}>Try again</Text>
+      <View className={`${FILL} ${BODY}`} style={BODY_INSET}>
+        <Text className={TITLE}>{state.message}</Text>
+        <Pressable className={PRIMARY} accessibilityRole="button" onPress={() => player.play()}>
+          <Text className={PRIMARY_TEXT}>Try again</Text>
         </Pressable>
       </View>
     );
@@ -107,13 +107,13 @@ export default function PlayerScreen(): React.ReactElement {
   const heatAxisMs = cached?.social.episode.durationMs ?? durationMs;
 
   return (
-    <LinearGradient colors={[...gradientFor()]} style={styles.fill}>
-    <ScrollView contentContainerStyle={styles.body}>
+    <LinearGradient colors={[...gradientFor()]} className={FILL}>
+    <ScrollView contentContainerClassName={BODY} contentContainerStyle={BODY_INSET}>
       <Artwork url={artworkUrl} size={ART} rounded="artwork" />
-      <Text style={styles.title}>
+      <Text className={TITLE}>
         {episode?.title ?? 'Now playing'}
       </Text>
-      <Text style={styles.subtitle}>{show?.title ?? ''}</Text>
+      <Text className={SUBTITLE}>{show?.title ?? ''}</Text>
       {extras?.chapters && extras.chapters.length > 0 ? <CurrentChapter chapters={extras.chapters} positionMs={positionMs} /> : null}
 
       <Rail
@@ -126,7 +126,7 @@ export default function PlayerScreen(): React.ReactElement {
       />
       <Scrubber positionMs={positionMs} durationMs={durationMs} onSeek={(ms) => player.seek(ms)} onSkip={(d) => player.skip(d)} />
 
-      <Text style={styles.time} accessibilityLabel={scrubberValue(positionMs, durationMs).text}>
+      <Text className="text-xs text-muted" style={tabular} accessibilityLabel={scrubberValue(positionMs, durationMs).text}>
         {mmss(positionMs)} / {durationMs === undefined ? '--:--' : mmss(durationMs)}
       </Text>
       <HeatCurve
@@ -141,36 +141,36 @@ export default function PlayerScreen(): React.ReactElement {
           if (at.length > 0) setOpenMarker({ second: Math.floor(toMs / 1000), offsetMs: toMs, comments: at });
         }}
       />
-      {stale ? <Text style={styles.subtitle}>Couldn't refresh comments — showing the last copy</Text> : null}
+      {stale ? <Text className={SUBTITLE}>Couldn't refresh comments — showing the last copy</Text> : null}
 
-      {state.kind === 'buffering' ? <Text style={styles.subtitle}>Buffering…</Text> : null}
-      {state.kind === 'loading' ? <Text style={styles.subtitle}>Loading…</Text> : null}
+      {state.kind === 'buffering' ? <Text className={SUBTITLE}>Buffering…</Text> : null}
+      {state.kind === 'loading' ? <Text className={SUBTITLE}>Loading…</Text> : null}
       {state.kind === 'paused' && state.by === 'output-lost' ? (
-        <Text style={styles.subtitle}>Paused — your headphones disconnected</Text>
+        <Text className={SUBTITLE}>Paused — your headphones disconnected</Text>
       ) : null}
 
-      <View style={styles.controls}>
+      <View className="flex-row items-center gap-screen-x mt-2">
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Skip back 15 seconds"
           onPress={() => player.skip(-15_000)}
         >
-          <Text style={styles.control}>−15</Text>
+          <Text className={CONTROL}>−15</Text>
         </Pressable>
         <Pressable
-          style={styles.primary}
+          className={PRIMARY}
           accessibilityRole="button"
           accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
           onPress={() => (isPlaying ? player.pause() : player.play())}
         >
-          <Text style={styles.primaryText}>{isPlaying ? 'Pause' : 'Play'}</Text>
+          <Text className={PRIMARY_TEXT}>{isPlaying ? 'Pause' : 'Play'}</Text>
         </Pressable>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Skip forward 30 seconds"
           onPress={() => player.skip(30_000)}
         >
-          <Text style={styles.control}>+30</Text>
+          <Text className={CONTROL}>+30</Text>
         </Pressable>
       </View>
 
@@ -178,26 +178,26 @@ export default function PlayerScreen(): React.ReactElement {
       <SleepTimerControl />
 
       {extras && (extras.chapters?.length || extras.transcript || extras.error) ? (
-        <View style={styles.socialRow}>
+        <View className={SOCIAL_ROW}>
           {extras.chapters && extras.chapters.length > 0 ? (
-            <Pressable style={[styles.secondary, pane === 'chapters' && styles.reacted]} onPress={() => setPane(pane === 'chapters' ? 'none' : 'chapters')} accessibilityRole="button">
-              <Text style={styles.secondaryText}>Chapters ({extras.chapters.length})</Text>
+            <Pressable className={pane === 'chapters' ? SECONDARY_ON : SECONDARY} onPress={() => setPane(pane === 'chapters' ? 'none' : 'chapters')} accessibilityRole="button">
+              <Text className={SECONDARY_TEXT}>Chapters ({extras.chapters.length})</Text>
             </Pressable>
           ) : null}
           {extras.transcript ? (
-            <Pressable style={[styles.secondary, pane === 'transcript' && styles.reacted]} onPress={() => setPane(pane === 'transcript' ? 'none' : 'transcript')} accessibilityRole="button">
-              <Text style={styles.secondaryText}>Transcript</Text>
+            <Pressable className={pane === 'transcript' ? SECONDARY_ON : SECONDARY} onPress={() => setPane(pane === 'transcript' ? 'none' : 'transcript')} accessibilityRole="button">
+              <Text className={SECONDARY_TEXT}>Transcript</Text>
             </Pressable>
           ) : null}
         </View>
       ) : null}
-      {extras?.error ? <Text style={styles.subtitle}>Couldn't load {extras.error.includes('chapters') ? 'chapters' : 'the transcript'}</Text> : null}
+      {extras?.error ? <Text className={SUBTITLE}>Couldn't load {extras.error.includes('chapters') ? 'chapters' : 'the transcript'}</Text> : null}
       {pane === 'chapters' && extras?.chapters ? <ChapterList chapters={extras.chapters} positionMs={positionMs} onSeek={(ms) => player.seek(ms)} /> : null}
       {pane === 'transcript' && extras?.transcript ? <TranscriptPane transcript={extras.transcript} positionMs={positionMs} onSeek={(ms) => player.seek(ms)} /> : null}
 
-      <View style={styles.socialRow}>
+      <View className={SOCIAL_ROW}>
       <Pressable
-        style={[styles.secondary, reactToggle.isReacted(shownBuckets, positionMs, heatAxisMs) && styles.reacted]}
+        className={reactToggle.isReacted(shownBuckets, positionMs, heatAxisMs) ? SECONDARY_ON : SECONDARY}
         accessibilityRole="button"
         accessibilityLabel={reactToggle.isReacted(shownBuckets, positionMs, heatAxisMs) ? 'Remove your reaction here' : 'React at this moment'}
         onPress={() => {
@@ -207,20 +207,20 @@ export default function PlayerScreen(): React.ReactElement {
           void r.settled.then((s) => { setMyBuckets(s.myBuckets); bump(state.episodeId); });
         }}
       >
-        <Text style={styles.secondaryText}>{reactToggle.isReacted(shownBuckets, positionMs, heatAxisMs) ? '♥ Reacted' : '♡ React'}</Text>
+        <Text className={SECONDARY_TEXT}>{reactToggle.isReacted(shownBuckets, positionMs, heatAxisMs) ? '♥ Reacted' : '♡ React'}</Text>
       </Pressable>
       <Pressable
-        style={styles.secondary}
+        className={SECONDARY}
         accessibilityRole="button"
         accessibilityLabel="Comment at this moment"
         onPress={() =>
           setComposing(composer.open({ episodeId: state.episodeId, offsetMs: positionMs, ...(durationMs !== undefined ? { durationMs } : {}) }))
         }
       >
-        <Text style={styles.secondaryText}>Comment at {mmss(positionMs)}</Text>
+        <Text className={SECONDARY_TEXT}>Comment at {mmss(positionMs)}</Text>
       </Pressable>
       <Pressable
-        style={styles.secondary}
+        className={SECONDARY}
         accessibilityRole="button"
         accessibilityLabel="Clip the last 30 seconds"
         onPress={() => {
@@ -228,7 +228,7 @@ export default function PlayerScreen(): React.ReactElement {
           router.push({ pathname: '/clip/new', params: { episodeId: state.episodeId, positionMs: String(positionMs) } });
         }}
       >
-        <Text style={styles.secondaryText}>Clip</Text>
+        <Text className={SECONDARY_TEXT}>Clip</Text>
       </Pressable>
       </View>
       {offer ? (
@@ -239,13 +239,13 @@ export default function PlayerScreen(): React.ReactElement {
         }} />
       ) : null}
       {player.clip() ? (
-        <View style={styles.clipBanner}>
-          <Text style={styles.subtitle}>Playing a clip · {mmss(player.clip()!.startMs)}–{mmss(player.clip()!.endMs)} · pauses at the end</Text>
+        <View className={CLIP_BANNER}>
+          <Text className={SUBTITLE}>Playing a clip · {mmss(player.clip()!.startMs)}–{mmss(player.clip()!.endMs)} · pauses at the end</Text>
         </View>
       ) : state.kind === 'paused' && lastClipEnd !== undefined && Math.abs(positionMs - lastClipEnd) <= 6_000 ? (
-        <View style={styles.clipBanner}>
-          <Text style={styles.subtitle}>The clip ended.</Text>
-          <Pressable style={styles.secondary} accessibilityRole="button" onPress={() => { setLastClipEnd(undefined); player.play(); }}><Text style={styles.secondaryText}>Keep listening</Text></Pressable>
+        <View className={CLIP_BANNER}>
+          <Text className={SUBTITLE}>The clip ended.</Text>
+          <Pressable className={SECONDARY} accessibilityRole="button" onPress={() => { setLastClipEnd(undefined); player.play(); }}><Text className={SECONDARY_TEXT}>Keep listening</Text></Pressable>
         </View>
       ) : null}
 
@@ -276,36 +276,20 @@ export default function PlayerScreen(): React.ReactElement {
 /** Big, because the artwork is the screen. 300 dp leaves room for the title at 1.75x. */
 const ART = 300;
 
-const styles = StyleSheet.create({
-  fill: { flex: 1, backgroundColor: colour.background },
-  body: { padding: spacing.section, gap: spacing.gap, alignItems: 'center', paddingBottom: BOTTOM_INSET },
-  title: { fontSize: fontSize.base, fontWeight: '700', textAlign: 'center', color: colour.text, marginTop: spacing.section },
-  subtitle: { fontSize: fontSize.xs, color: colour.muted, textAlign: 'center' },
-  time: { fontSize: fontSize.xs, color: colour.muted, fontVariant: ['tabular-nums'] },
-  controls: { flexDirection: 'row', alignItems: 'center', gap: spacing.screenX, marginTop: spacing.gap },
-  control: { fontSize: fontSize.base, fontWeight: '600', color: colour.text, minWidth: hit.min, textAlign: 'center' },
-  primary: {
-    minHeight: hit.min,
-    paddingVertical: spacing.row,
-    paddingHorizontal: spacing.screenX,
-    borderRadius: radius.pill,
-    backgroundColor: colour.accent,
-    justifyContent: 'center',
-  },
-  primaryText: { color: colour.text, fontWeight: '700', fontSize: fontSize.sm },
-  socialRow: { flexDirection: 'row', gap: spacing.row, marginTop: spacing.row, flexWrap: 'wrap', justifyContent: 'center' },
-  clipBanner: { flexDirection: 'row', gap: spacing.row, alignItems: 'center', marginTop: spacing.row, flexWrap: 'wrap', justifyContent: 'center' },
-  secondary: {
-    minHeight: hit.min,
-    paddingVertical: spacing.gap,
-    paddingHorizontal: spacing.section,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colour.separator,
-    justifyContent: 'center',
-  },
-  // Reacted is told apart by its WORD ("♥ Reacted" vs "♡ React") and its accessible
-  // name as well as by the fill — never by hue alone (FR-016).
-  reacted: { backgroundColor: colour.accent, borderColor: colour.accent },
-  secondaryText: { fontWeight: '600', fontSize: fontSize.xs, color: colour.text },
-});
+// The screen's classes, named once because several elements share them.
+const FILL = 'flex-1 bg-background';
+const BODY = 'p-section gap-2 items-center';
+// The bottom inset is derived from two exported JS constants, so it stays a style.
+const BODY_INSET = { paddingBottom: BOTTOM_INSET };
+const TITLE = 'text-base font-bold text-center text-text mt-section';
+const SUBTITLE = 'text-xs text-muted text-center';
+const CONTROL = 'text-base font-semibold text-text min-w-12 text-center';
+const PRIMARY = 'min-h-12 py-row px-screen-x rounded-pill bg-accent justify-center';
+const PRIMARY_TEXT = 'text-text font-bold text-sm';
+const SOCIAL_ROW = 'flex-row gap-row mt-row flex-wrap justify-center';
+const CLIP_BANNER = 'flex-row gap-row items-center mt-row flex-wrap justify-center';
+const SECONDARY = 'min-h-12 py-2 px-section rounded-pill border border-separator justify-center';
+// Reacted is told apart by its WORD ("♥ Reacted" vs "♡ React") and its accessible
+// name as well as by the fill — never by hue alone (FR-016).
+const SECONDARY_ON = 'min-h-12 py-2 px-section rounded-pill border bg-accent border-accent justify-center';
+const SECONDARY_TEXT = 'font-semibold text-xs text-text';
