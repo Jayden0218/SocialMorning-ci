@@ -29,7 +29,6 @@ export type RecOutbox = {
   /** Called once per list render with everything that is on screen. */
   impressions(items: readonly { episodeId: string; channel: ForYouChannel }[], at: number): void;
   opened(e: { episodeId: string; channel: ForYouChannel; rank: number }, at: number): void;
-  played(e: { episodeId: string; channel: ForYouChannel; rank: number }, at: number): void;
   /**
    * Record a play/finish for an episode **if** For You is what surfaced it. Called from
    * the player, which knows nothing about channels or ranks — this is where the two meet.
@@ -68,7 +67,6 @@ export function createRecOutbox(deps: { api: ApiClient; store: RecOutboxStore; s
       writeShown(shown);
     },
     opened: (e, at) => add({ ...e, kind: 'open', at }),
-    played: (e, at) => add({ ...e, kind: 'play', at }),
     playedIfShown(episodeId, at) {
       const m = readShown();
       const e = m[episodeId];
