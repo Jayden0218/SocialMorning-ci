@@ -12,7 +12,16 @@
  * see.
  */
 import type { ApiClient, ForYouChannel } from '../social/api';
-import type { RecEventRow, RecOutboxStore } from '../storage/types';
+import type { RecEventRow, RecOutboxStore, SettingsStore } from '../storage/types';
+
+/**
+ * Which episodes the listener was last shown, and where. Persisted rather than held in
+ * memory because the **play** happens somewhere else entirely — the player runtime, on a
+ * different screen, possibly after a relaunch — and it still has to be attributed to the
+ * channel that surfaced it (FR-028).
+ */
+export const SHOWN_KEY = 'foryou:shown';
+type ShownMap = Record<string, { channel: ForYouChannel; rank: number }>;
 
 export const FLUSH_BATCH = 200;
 
@@ -21,13 +30,26 @@ export type RecOutbox = {
   impressions(items: readonly { episodeId: string; channel: ForYouChannel }[], at: number): void;
   opened(e: { episodeId: string; channel: ForYouChannel; rank: number }, at: number): void;
   played(e: { episodeId: string; channel: ForYouChannel; rank: number }, at: number): void;
+  /**
+   * Record a play/finish for an episode **if** For You is what surfaced it. Called from
+   * the player, which knows nothing about channels or ranks — this is where the two meet.
+   * Recording the kind once per surfacing: the entry is dropped after `finish`.
+   */
+  playedIfShown(episodeId: string, at: number): void;
+  finishedIfShown(episodeId: string, at: number): void;
   /** Best effort. Never throws; the rows stay for the next attempt. */
   flush(): Promise<number>;
   /** Sign-out: these rows belong to the listener who made them. */
   clear(): void;
 };
 
-export function createRecOutbox(deps: { api: ApiClient; store: RecOutboxStore; isSignedIn: () => boolean }): RecOutbox {
+export function createRecOutbox(deps: { api: ApiClient; store: RecOutboxStore; settings: SettingsStore; isSignedIn: () => boolean }): RecOutbox {
+  const readShown = (): ShownMap => {
+    const raw = deps.settings.get(SHOWN_KEY);
+    if (raw === undefined) return {};
+    try { return JSON.parse(raw) as ShownMap; } catch { return {}; }
+  };
+  const writeShown = (m: ShownMap): void => deps.settings.set(SHOWN_KEY, JSON.stringify(m));
   /** (episodeId, rank) already counted this session — an impression is per list, not per scroll. */
   const counted = new Set<string>();
 
@@ -35,15 +57,33 @@ export function createRecOutbox(deps: { api: ApiClient; store: RecOutboxStore; i
 
   return {
     impressions(items, at) {
+      const shown: ShownMap = {};
       items.forEach((i, rank) => {
+        shown[i.episodeId] = { channel: i.channel, rank };
         const key = `${i.episodeId}\u0001${rank}`;
         if (counted.has(key)) return;
         counted.add(key);
         add({ episodeId: i.episodeId, channel: i.channel, rank, kind: 'impression', at });
       });
+      writeShown(shown);
     },
     opened: (e, at) => add({ ...e, kind: 'open', at }),
     played: (e, at) => add({ ...e, kind: 'play', at }),
+    playedIfShown(episodeId, at) {
+      const m = readShown();
+      const e = m[episodeId];
+      if (e === undefined) return;
+      add({ episodeId, channel: e.channel, rank: e.rank, kind: 'play', at });
+    },
+    finishedIfShown(episodeId, at) {
+      const m = readShown();
+      const e = m[episodeId];
+      if (e === undefined) return;
+      add({ episodeId, channel: e.channel, rank: e.rank, kind: 'finish', at });
+      // A finish happens once per surfacing; drop it so a replay is not counted again.
+      const { [episodeId]: _gone, ...rest } = m;
+      writeShown(rest);
+    },
     async flush() {
       if (!deps.isSignedIn()) return 0;
       const rows = deps.store.take(FLUSH_BATCH);
@@ -62,6 +102,7 @@ export function createRecOutbox(deps: { api: ApiClient; store: RecOutboxStore; i
     clear() {
       counted.clear();
       deps.store.clear();
+      deps.settings.set(SHOWN_KEY, '{}');
     },
   };
 }

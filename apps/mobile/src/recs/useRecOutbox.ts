@@ -15,7 +15,7 @@ export function useRecOutbox(signedIn: boolean, items: readonly ForYouItem[] | u
   const { api } = useSocial();
   const stores = useStores();
   const outbox = useMemo(
-    () => createRecOutbox({ api, store: stores.recOutbox, isSignedIn: () => signedIn }),
+    () => createRecOutbox({ api, store: stores.recOutbox, settings: stores.settings, isSignedIn: () => signedIn }),
     [api, stores, signedIn],
   );
   const shown = useRef<readonly ForYouItem[]>([]);

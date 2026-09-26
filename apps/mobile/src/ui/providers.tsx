@@ -19,6 +19,7 @@ import { registrationFor } from '../social/registration';
 import { secureToken } from '../social/token';
 import { createPositionSync, IMMEDIATE, UPLOAD_EVERY_MS, type PositionSync } from '../sync/positions';
 import { createSubscriptionSync, type SubscriptionSync } from '../sync/subscriptions';
+import { createRecOutbox } from '../recs/outbox';
 import { createListened } from '../graph/listened';
 import { deviceId } from '../sync/device-id';
 import { createDownloadManager, type DownloadManager } from '../downloads/manager';
@@ -171,6 +172,41 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
       },
     });
   }, [stores, sync, listened]);
+
+  /**
+   * M8 (US6, FR-028): a **play** and a **finish** are recorded here, not on the screen
+   * that showed the recommendation.
+   *
+   * L7 found the gap on 2026-09-26: impressions and opens reached the database and
+   * `played` stayed at 0 for ever, because the outbox's method existed and nothing called
+   * it. Guard G-W1 could not see it — the factory *is* constructed; it was the method that
+   * was unreachable. The player knows the episode; the outbox knows which channel put it
+   * on screen; this is where the two are joined.
+   */
+  const recOutbox = useMemo(
+    () => createRecOutbox({ api: graphApi, store: stores.recOutbox, settings: stores.settings, isSignedIn: () => stores.auth.get() !== undefined }),
+    [graphApi, stores],
+  );
+  useEffect(() => {
+    let lastPlaying: string | undefined;
+    let lastEnded: string | undefined;
+    const onChange = (): void => {
+      const st = runtime.getState();
+      if (st.kind === 'playing' && st.episodeId !== lastPlaying) {
+        lastPlaying = st.episodeId;
+        recOutbox.playedIfShown(st.episodeId, Date.now());
+        void recOutbox.flush();
+      }
+      if (st.kind === 'ended' && st.episodeId !== lastEnded) {
+        lastEnded = st.episodeId;
+        recOutbox.finishedIfShown(st.episodeId, Date.now());
+        void recOutbox.flush();
+      }
+    };
+    const unsubscribe = runtime.subscribe(onChange);
+    onChange();
+    return () => unsubscribe();
+  }, [runtime, recOutbox]);
 
   // The 30 s upload timer runs only while playing (FR-025: nothing while paused).
   useEffect(() => {
