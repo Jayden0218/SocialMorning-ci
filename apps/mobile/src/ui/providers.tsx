@@ -25,6 +25,8 @@ import { deviceId } from '../sync/device-id';
 import { createDownloadManager, type DownloadManager } from '../downloads/manager';
 import { createExpoDownloader, downloadPathFor } from '../downloads/expo-downloader';
 import { createExpoNetwork } from '../downloads/expo-network';
+import { waitForStartup } from './startup';
+import { Splash } from './Splash';
 
 const StoresContext = createContext<Stores | undefined>(undefined);
 const ToastContext = createContext<((message: string) => void) | undefined>(undefined);
@@ -74,6 +76,9 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
   // secure store); until it resolves, uploads wait — the local row is the truth.
   const graphApi = useMemo(() => createApi({ baseUrl: apiBaseUrl(), fetch, getToken: secureToken.get }), []);
   const deviceIdRef = useRef<string | undefined>(undefined);
+  // The launch screen waits on these (owner, 2026-09-27): the account's positions and
+  // subscriptions, and the download recovery. See `./startup`.
+  const startupTasks = useRef<Promise<unknown>[]>([]);
   const sync = useMemo<PositionSync>(() => {
     let id: string | undefined;
     const api = graphApi;
@@ -90,7 +95,7 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
     // App start while signed in: pull the account's positions, merge, push (T057) —
     // only once the device id is known, or `isSignedIn()` is false and nothing happens.
     // (Seen on the phone 2026-09-21: the reconcile ran before the id resolved and did nothing.)
-    void deviceId().then((v) => { id = v; deviceIdRef.current = v; void created.reconcile(); });
+    startupTasks.current.push(deviceId().then((v) => { id = v; deviceIdRef.current = v; return created.reconcile(); }));
     return created;
   }, [stores, graphApi]);
 
@@ -108,7 +113,7 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
       subscriptions: stores.subscriptions,
       isSignedIn: () => stores.auth.get() !== undefined,
     });
-    void created.reconcile().catch(() => undefined);
+    startupTasks.current.push(created.reconcile().catch(() => undefined));
     return created;
   }, [stores, graphApi]);
 
@@ -120,7 +125,12 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
     now: () => Date.now(),
     pathFor: downloadPathFor,
   }), [stores]);
-  useEffect(() => { void downloads.recover(); }, [downloads]);
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    let live = true;
+    void waitForStartup([...startupTasks.current, downloads.recover()]).then(() => { if (live) setReady(true); });
+    return () => { live = false; };
+  }, [downloads]);
 
   // M2 (research R7): what the queue advance needs. `online` is the last network
   // reading, refreshed on every connectivity change, app-foreground and every 30 s.
@@ -244,6 +254,7 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
       <ToastContext.Provider value={show.current}>
         <PlayerProvider runtime={runtime}>
           {props.children}
+          {ready ? null : <Splash />}
           {message === undefined ? null : (
             <View className="absolute left-3 right-3 bottom-24 bg-surface border border-separator rounded-lg p-3" accessibilityLiveRegion="polite">
               <Text className="text-text">{message}</Text>
