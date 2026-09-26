@@ -29,14 +29,14 @@ export function ClipComposer(props: ClipComposerProps): React.ReactElement {
       <Text className="text-[22px] text-text" style={tabular} accessibilityLabel="Clip range">{mmss(s.range.startMs)} – {mmss(s.range.endMs)} · {length} s</Text>
       <Text className="text-muted">Now at {mmss(position)}</Text>
       <View className="flex-row gap-2 items-center flex-wrap">
-        <Pressable className="border border-separator rounded-[20px] px-[14px] py-2" onPress={() => setS(startHere(s, position))} accessibilityRole="button"><Text>Start here</Text></Pressable>
-        <Pressable className="border border-separator rounded-[20px] px-[14px] py-2" onPress={() => setS(nudgeEdge(s, 'start', -1))} accessibilityRole="button" accessibilityLabel="Start 5 seconds earlier"><Text>−5 s</Text></Pressable>
-        <Pressable className="border border-separator rounded-[20px] px-[14px] py-2" onPress={() => setS(nudgeEdge(s, 'start', 1))} accessibilityRole="button" accessibilityLabel="Start 5 seconds later"><Text>+5 s</Text></Pressable>
+        <Pressable className="border border-separator rounded-[20px] px-[14px] py-2" onPress={() => setS(startHere(s, position))} accessibilityRole="button"><Text className="text-text">Start here</Text></Pressable>
+        <Pressable className="border border-separator rounded-[20px] px-[14px] py-2" onPress={() => setS(nudgeEdge(s, 'start', -1))} accessibilityRole="button" accessibilityLabel="Start 5 seconds earlier"><Text className="text-text">−5 s</Text></Pressable>
+        <Pressable className="border border-separator rounded-[20px] px-[14px] py-2" onPress={() => setS(nudgeEdge(s, 'start', 1))} accessibilityRole="button" accessibilityLabel="Start 5 seconds later"><Text className="text-text">+5 s</Text></Pressable>
       </View>
       <View className="flex-row gap-2 items-center flex-wrap">
-        <Pressable className="border border-separator rounded-[20px] px-[14px] py-2" onPress={() => setS(endHere(s, position))} accessibilityRole="button"><Text>End here</Text></Pressable>
-        <Pressable className="border border-separator rounded-[20px] px-[14px] py-2" onPress={() => setS(nudgeEdge(s, 'end', -1))} accessibilityRole="button" accessibilityLabel="End 5 seconds earlier"><Text>−5 s</Text></Pressable>
-        <Pressable className="border border-separator rounded-[20px] px-[14px] py-2" onPress={() => setS(nudgeEdge(s, 'end', 1))} accessibilityRole="button" accessibilityLabel="End 5 seconds later"><Text>+5 s</Text></Pressable>
+        <Pressable className="border border-separator rounded-[20px] px-[14px] py-2" onPress={() => setS(endHere(s, position))} accessibilityRole="button"><Text className="text-text">End here</Text></Pressable>
+        <Pressable className="border border-separator rounded-[20px] px-[14px] py-2" onPress={() => setS(nudgeEdge(s, 'end', -1))} accessibilityRole="button" accessibilityLabel="End 5 seconds earlier"><Text className="text-text">−5 s</Text></Pressable>
+        <Pressable className="border border-separator rounded-[20px] px-[14px] py-2" onPress={() => setS(nudgeEdge(s, 'end', 1))} accessibilityRole="button" accessibilityLabel="End 5 seconds later"><Text className="text-text">+5 s</Text></Pressable>
       </View>
       {s.problem ? <Text className="text-accent">{problemText[s.problem]}</Text> : null}
       <TextInput
@@ -51,7 +51,7 @@ export function ClipComposer(props: ClipComposerProps): React.ReactElement {
       />
       <Text className="text-muted">{s.caption.length} / 200</Text>
       <View className="flex-row gap-2 items-center flex-wrap">
-        <Pressable className="border border-separator rounded-3xl px-[18px] py-2.5" onPress={() => player.playClip(props.episode, s.range)} accessibilityRole="button"><Text>Preview</Text></Pressable>
+        <Pressable className="border border-separator rounded-3xl px-[18px] py-2.5" onPress={() => player.playClip(props.episode, s.range)} accessibilityRole="button"><Text className="text-text">Preview</Text></Pressable>
         <Pressable className={`bg-accent rounded-3xl px-[22px] py-2.5 ${!canSave(s) || props.saving ? 'opacity-40' : ''}`} disabled={!canSave(s) || props.saving} onPress={() => props.onSave(s)} accessibilityRole="button">
           <Text className="text-text font-semibold">{props.saving ? 'Saving…' : 'Save'}</Text>
         </Pressable>

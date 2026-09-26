@@ -61,7 +61,7 @@ export default function SearchScreen(): React.ReactElement {
   return (
     <View className="flex-1">
       <TextInput
-        placeholderTextColor={colour.muted} className="m-3 p-3 border border-separator rounded-lg" placeholder="Search shows and episodes, or paste a feed URL" autoCorrect={false} autoFocus value={term} onChangeText={setTerm} accessibilityLabel="Search podcasts" />
+        placeholderTextColor={colour.muted} className="m-3 p-3 border border-separator rounded-lg text-text" placeholder="Search shows and episodes, or paste a feed URL" autoCorrect={false} autoFocus value={term} onChangeText={setTerm} accessibilityLabel="Search podcasts" />
       <ScrollView contentContainerClassName="px-3 pb-24" keyboardShouldPersistTaps="handled">
         {looksLikeFeedUrl(trimmed) ? (
           <Pressable className="py-2.5" accessibilityRole="button" onPress={() => openShow(trimmed)}><Text className="text-accent">Open feed {trimmed}</Text></Pressable>

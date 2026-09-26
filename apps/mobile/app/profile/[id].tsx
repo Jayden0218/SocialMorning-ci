@@ -35,7 +35,7 @@ export default function ProfileScreen(): React.ReactElement {
     if (item.kind === 'clipped' && item.refId) router.push({ pathname: '/clip/[id]', params: { id: item.refId } });
     else router.push({ pathname: '/episode/[id]', params: { id: item.episode.id } });
   };
-  if (error) return <View className="p-4 gap-3"><Text>{error}</Text></View>;
+  if (error) return <View className="p-4 gap-3"><Text className="text-text">{error}</Text></View>;
   if (!profile) return <View className="p-4 gap-3"><Text className="text-muted">Loading…</Text></View>;
   const own = listener?.listenerId === profile.id;
   const blocked = !own && safety.isBlocked(profile.id);

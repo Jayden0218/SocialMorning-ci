@@ -14,12 +14,12 @@ function Window(props: { title: string; w: ProfileStats }): React.ReactElement {
   return (
     <View className="gap-0.5">
       <Text className="font-semibold text-text">{props.title}</Text>
-      <Text accessibilityLabel={`${props.title}: time listened`}>Time listened: <Text className="font-semibold text-text" style={tabular}>{hms(props.w.listenedMs)}</Text></Text>
-      <Text>Episodes finished: <Text className="font-semibold text-text" style={tabular}>{props.w.finished}</Text></Text>
+      <Text className="text-muted" accessibilityLabel={`${props.title}: time listened`}>Time listened: <Text className="font-semibold text-text" style={tabular}>{hms(props.w.listenedMs)}</Text></Text>
+      <Text className="text-muted">Episodes finished: <Text className="font-semibold text-text" style={tabular}>{props.w.finished}</Text></Text>
       {props.w.topShows.length > 0 ? (
         <View>
           <Text className="text-muted">Top shows</Text>
-          {props.w.topShows.map((s) => <Text key={s.feedUrl}>· {s.showTitle ?? s.feedUrl} — {hms(s.listenedMs)}</Text>)}
+          {props.w.topShows.map((s) => <Text key={s.feedUrl} className="text-text">· {s.showTitle ?? s.feedUrl} — {hms(s.listenedMs)}</Text>)}
         </View>
       ) : null}
     </View>

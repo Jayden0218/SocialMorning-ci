@@ -42,13 +42,13 @@ export function ReportSheet(props: { target: ReportTarget | undefined; onClose: 
           {own ? <Text className="text-accent bg-surface p-2 rounded-md">That's yours — delete it instead.</Text> : null}
           <ScrollView className="grow-0">
             {REPORT_REASONS.map((r) => (
-              <Pressable key={r} className={`py-3 px-2 rounded-lg min-h-12 ${reason === r ? 'bg-accent border-accent' : ''}`} onPress={() => setReason(r)} accessibilityRole="radio" accessibilityState={{ checked: reason === r }} accessibilityLabel={REASON_LABEL[r]}>
+              <Pressable key={r} className={`py-3 px-2 rounded-lg min-h-12 border ${reason === r ? 'border-accent' : 'border-transparent'}`} onPress={() => setReason(r)} accessibilityRole="radio" accessibilityState={{ checked: reason === r }} accessibilityLabel={REASON_LABEL[r]}>
                 <Text className={reason === r ? 'text-sm font-bold text-accent' : 'text-sm text-text'}>{REASON_LABEL[r]}</Text>
               </Pressable>
             ))}
           </ScrollView>
           <TextInput
-        placeholderTextColor={colour.muted} className="border border-separator rounded-lg p-2.5 min-h-16 align-top" placeholder="Anything to add? (optional)" value={note} onChangeText={(t) => setNote(t.slice(0, REPORT_NOTE_MAX))} multiline maxLength={REPORT_NOTE_MAX} accessibilityLabel="Note, optional" />
+        placeholderTextColor={colour.muted} className="border border-separator rounded-lg p-2.5 min-h-16 align-top text-text" placeholder="Anything to add? (optional)" value={note} onChangeText={(t) => setNote(t.slice(0, REPORT_NOTE_MAX))} multiline maxLength={REPORT_NOTE_MAX} accessibilityLabel="Note, optional" />
           <Text className="text-muted text-xs text-right">{note.length} / {REPORT_NOTE_MAX}</Text>
           <View className="flex-row justify-end gap-3">
             <Pressable onPress={close} accessibilityRole="button" accessibilityLabel="Cancel" className="py-3 px-4 min-h-12 justify-center"><Text className="text-accent text-sm">Cancel</Text></Pressable>

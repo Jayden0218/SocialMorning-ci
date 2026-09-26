@@ -22,8 +22,8 @@ export default function NewClipScreen(): React.ReactElement {
   const toast = useToast();
   const [saving, setSaving] = useState(false);
   const episode = params.episodeId ? toPlayable(stores, params.episodeId) : undefined;
-  if (!episode) return <View className="p-4"><Text>This episode is not in the library.</Text></View>;
-  if (!listener) return <View className="p-4"><Text>Sign in to make a clip.</Text></View>;
+  if (!episode) return <View className="p-4"><Text className="text-text">This episode is not in the library.</Text></View>;
+  if (!listener) return <View className="p-4"><Text className="text-text">Sign in to make a clip.</Text></View>;
   return (
     <ClipComposer
       episode={episode}

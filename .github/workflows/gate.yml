@@ -39,3 +39,8 @@ jobs:
       - name: token check (M7 FR-002 / G1 — every colour from tokens.ts)
         run: node scripts/token-check.mjs
         working-directory: apps/mobile
+      # Added 2026-09-27 with Tailwind: a <Text> with no style at all is black on this
+      # black app, and token-check has nothing to find in it. 20 were found.
+      - name: text colour check (every Text and TextInput names a token colour)
+        run: node scripts/text-colour-check.mjs
+        working-directory: apps/mobile

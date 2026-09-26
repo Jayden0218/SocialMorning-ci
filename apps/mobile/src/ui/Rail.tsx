@@ -60,7 +60,7 @@ export function Rail(props: {
           <View className={`bg-accent ${m.comments.length > 1 ? 'w-2.5 h-2.5 rounded-[5px]' : 'w-2 h-2 rounded'}`} />
         </Pressable>
       ))}
-      <Text className="absolute opacity-0 h-0">{markers.length}</Text>
+      <Text className="absolute opacity-0 h-0 text-text">{markers.length}</Text>
     </View>
   );
 }

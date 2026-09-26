@@ -45,8 +45,8 @@ export default function ClipScreen(): React.ReactElement {
     return () => { live = false; };
   }, [id, api, stores, player]);
 
-  if (status.kind === 'loading') return <View className="p-4 gap-3"><Text>Opening the clip…</Text></View>;
-  if (status.kind === 'error') return <View className="p-4 gap-3"><Text>{status.message}</Text></View>;
+  if (status.kind === 'loading') return <View className="p-4 gap-3"><Text className="text-muted">Opening the clip…</Text></View>;
+  if (status.kind === 'error') return <View className="p-4 gap-3"><Text className="text-text">{status.message}</Text></View>;
   const { clip, resolved } = status;
   const inClip = player.clip() !== undefined;
   const pausedAtEnd = state.kind === 'paused' && !inClip && 'positionMs' in state && Math.abs(state.positionMs - clip.endMs) <= 6_000;
@@ -64,7 +64,7 @@ export default function ClipScreen(): React.ReactElement {
       <View className="flex-row gap-3 flex-wrap items-center">
         {clip.deleted ? <Pressable className="bg-accent rounded-3xl px-5 py-2.5" accessibilityRole="button" onPress={() => { player.load(resolved.episode, 'play'); router.push('/player'); }}><Text className="text-text font-semibold">Play the episode</Text></Pressable> : null}
         {pausedAtEnd ? <Pressable className="bg-accent rounded-3xl px-5 py-2.5" accessibilityRole="button" onPress={() => player.play()}><Text className="text-text font-semibold">Keep listening</Text></Pressable> : null}
-        <Pressable className="border border-separator rounded-3xl px-[18px] py-2.5" accessibilityRole="button" onPress={() => router.push('/player')}><Text>Open player</Text></Pressable>
+        <Pressable className="border border-separator rounded-3xl px-[18px] py-2.5" accessibilityRole="button" onPress={() => router.push('/player')}><Text className="text-text">Open player</Text></Pressable>
       </View>
       {!listener ? <Text className="text-muted">You are not signed in — clips play anyway. Sign in to follow people and make your own.</Text> : null}
     </View>
