@@ -2,6 +2,8 @@
  * Root layout: open the database, build the player, mount the mini player and
  * the toast host (FR-015). Everything else is a screen.
  */
+import '../global.css';
+import '../src/design/tailwind';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView, StyleSheet } from 'react-native';

@@ -63,6 +63,45 @@ for (const file of files) {
   }
 }
 
+/**
+ * The third class, added 2026-09-27 with NativeWind: the same two rules, for `className`.
+ *
+ * `tailwind.config.ts` keeps only the token colours, so `bg-red-500` or `text-white`
+ * compiles to nothing — silently. And a string that sets `text-sm` or `font-semibold`
+ * with no `text-<token>` is the black-on-black miss above, written as classes.
+ */
+const TOKENS = [...readFileSync(ALLOWED, 'utf8')
+  .slice(0, readFileSync(ALLOWED, 'utf8').indexOf('} as const'))
+  .matchAll(/^\s+([a-z]+):/gm)].map((m) => m[1]);
+const PALETTE =
+  /\b(?:bg|text|border(?:-[trblxy])?|tint|placeholder|decoration|shadow|fill|stroke|divide|ring|outline)-(?:(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3}|white|black)\b/g;
+const TYPE = /(?:^|\s)(?:text-(?:xs|sm|base|lg|\[\d+px\])|font-(?:thin|light|normal|medium|semibold|bold|extrabold|black)|leading-\S+)(?=\s|$)/;
+const COLOURED = new RegExp(`(?:^|\\s)text-(?:${TOKENS.join('|')})(?=\\s|$)`);
+const LITERAL = /'([^'\n]*)'|"([^"\n]*)"|`([^`\n]*)`/g;
+const classes = [];
+for (const file of files) {
+  if (file === ALLOWED || EXEMPT.includes(file)) continue;
+  const lines = readFileSync(file, 'utf8').split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    const bare = lines[i].trim();
+    if (bare.startsWith('*') || bare.startsWith('//') || bare.startsWith('/*')) continue;
+    const hits = lines[i].match(PALETTE);
+    if (hits) classes.push(`${file}:${i + 1} ${hits.join(' ')} is not a token colour`);
+    for (const m of lines[i].matchAll(LITERAL)) {
+      const str = m[1] ?? m[2] ?? m[3] ?? '';
+      if (TYPE.test(str) && !COLOURED.test(str)) {
+        classes.push(`${file}:${i + 1} "${str}" sets type but no text colour — it would fall back to black`);
+      }
+    }
+  }
+}
+
+if (classes.length > 0) {
+  console.error(`token check: ${classes.length} class string(s) break the token rule`);
+  for (const f of classes) console.error('  ' + f);
+  process.exitCode = 1;
+}
+
 if (findings.length > 0 || uncoloured.length > 0) {
   if (findings.length > 0) {
     console.error(`token check: ${findings.length} colour literal(s) outside ${ALLOWED}`);
@@ -74,7 +113,7 @@ if (findings.length > 0 || uncoloured.length > 0) {
   }
   process.exit(1);
 }
-console.log(
+if (!process.exitCode) console.log(
   `token check: every colour in ${files.length} files comes from ${ALLOWED}, ` +
     'and every text style says what colour it is',
 );

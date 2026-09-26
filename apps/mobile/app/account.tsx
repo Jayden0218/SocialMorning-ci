@@ -10,7 +10,6 @@ import { useStores } from '../src/ui/providers';
 import { appealsMailto, APPEALS_KEY, legalLinks, refreshAppeals } from '../src/social/links';
 import { ApiError } from '../src/social/api';
 import { useSocial } from '../src/social/context';
-import { styles } from './auth/sign-in';
 import { colour } from '../src/design';
 
 export default function AccountScreen(): React.ReactElement {
@@ -48,13 +47,18 @@ export default function AccountScreen(): React.ReactElement {
     }
   }
 
+  const link = 'text-accent text-[15px] py-2';
+  const button = 'bg-accent rounded-3xl py-3 items-center';
+  const buttonText = 'text-text text-sm font-semibold';
+  const noAppeals = appealsMailto(appeals) === undefined;
+
   return (
-    <View style={styles.body}>
-      <Text style={{ fontSize: 18, fontWeight: '600' }}>{listener?.displayName ?? 'Not signed in'}</Text>
-      <Text style={{ color: colour.muted }}>{listener?.email ?? ''}</Text>
-      {listener ? <Link href={{ pathname: '/profile/[id]', params: { id: listener.listenerId } }} style={styles.link} accessibilityRole="link">Your profile</Link> : null}
+    <View className="p-4 gap-3">
+      <Text className="text-text text-[18px] font-semibold">{listener?.displayName ?? 'Not signed in'}</Text>
+      <Text className="text-muted">{listener?.email ?? ''}</Text>
+      {listener ? <Link href={{ pathname: '/profile/[id]', params: { id: listener.listenerId } }} className={link} accessibilityRole="link">Your profile</Link> : null}
       {listener ? (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <View className="flex-row items-center gap-3">
           <Switch
             trackColor={{ false: colour.separator, true: colour.accent }}
             thumbColor={colour.text}
@@ -66,46 +70,46 @@ export default function AccountScreen(): React.ReactElement {
               catch { setPrivateListening(!v); }
             }}
           />
-          {/* M6 (FR-025, J6 on build 17): without `flex: 1` this ran off the right edge at the largest font. */}
-          <Text style={{ flex: 1 }}>Private listening{'\n'}<Text style={{ color: colour.muted, fontSize: 12 }}>Hides what you listen to and your stats from others. Comments and clips stay public.</Text></Text>
+          {/* M6 (FR-025, J6 on build 17): without `flex-1` this ran off the right edge at the largest font. */}
+          <Text className="flex-1 text-text">Private listening{'\n'}<Text className="text-muted text-xs">Hides what you listen to and your stats from others. Comments and clips stay public.</Text></Text>
         </View>
       ) : null}
-      <Pressable style={styles.button} onPress={async () => { await auth.signOut(); router.back(); }} accessibilityRole="button" accessibilityLabel="Sign out">
-        <Text style={styles.buttonText}>Sign out</Text>
+      <Pressable className={button} onPress={async () => { await auth.signOut(); router.back(); }} accessibilityRole="button" accessibilityLabel="Sign out">
+        <Text className={buttonText}>Sign out</Text>
       </Pressable>
 
-      <View style={{ gap: 4, marginTop: 8 }}>
+      <View className="gap-1 mt-2">
         <Pressable onPress={() => void Linking.openURL(links.privacy)} accessibilityRole="link" accessibilityLabel="Privacy policy">
-          <Text style={styles.link}>Privacy policy</Text>
+          <Text className={link}>Privacy policy</Text>
         </Pressable>
         <Pressable onPress={() => void Linking.openURL(links.rules)} accessibilityRole="link" accessibilityLabel="Community rules">
-          <Text style={styles.link}>Community rules</Text>
+          <Text className={link}>Community rules</Text>
         </Pressable>
         <Pressable
           onPress={() => { const to = appealsMailto(appeals); if (to) void Linking.openURL(to); }}
-          disabled={appealsMailto(appeals) === undefined}
+          disabled={noAppeals}
           accessibilityRole="link"
           accessibilityLabel="Report a problem"
-          accessibilityState={{ disabled: appealsMailto(appeals) === undefined }}
+          accessibilityState={{ disabled: noAppeals }}
         >
-          <Text style={[styles.link, appealsMailto(appeals) === undefined && { color: colour.muted }]}>Report a problem{appeals ? '' : ' (offline)'}</Text>
+          <Text className={noAppeals ? 'text-muted text-[15px] py-2' : link}>Report a problem{appeals ? '' : ' (offline)'}</Text>
         </Pressable>
       </View>
 
       {!confirming ? (
         <Pressable onPress={() => setConfirming(true)} accessibilityRole="button">
-          <Text style={[styles.link, { color: colour.accent }]}>Delete my account…</Text>
+          <Text className={link}>Delete my account…</Text>
         </Pressable>
       ) : (
-        <View style={{ gap: 8, marginTop: 8 }}>
-          <Text>This removes your comments, reactions and listening positions from every phone. Where someone replied to you, "Comment deleted" stays so their reply still makes sense. This cannot be undone.</Text>
+        <View className="gap-2 mt-2">
+          <Text className="text-text">This removes your comments, reactions and listening positions from every phone. Where someone replied to you, "Comment deleted" stays so their reply still makes sense. This cannot be undone.</Text>
           <TextInput
-        placeholderTextColor={colour.muted} style={styles.input} placeholder="Your password, to confirm" secureTextEntry value={password} onChangeText={setPassword} accessibilityLabel="Password" />
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-          <Pressable style={[styles.button, { backgroundColor: colour.accent }, (busy || !password) && styles.disabled]} disabled={busy || !password} onPress={remove} accessibilityRole="button">
-            <Text style={styles.buttonText}>Delete account</Text>
+            placeholderTextColor={colour.muted} className="border border-separator rounded-lg p-3 text-sm text-text" placeholder="Your password, to confirm" secureTextEntry value={password} onChangeText={setPassword} accessibilityLabel="Password" />
+          {error ? <Text className="text-accent">{error}</Text> : null}
+          <Pressable className={`${button} ${busy || !password ? 'opacity-50' : ''}`} disabled={busy || !password} onPress={remove} accessibilityRole="button">
+            <Text className={buttonText}>Delete account</Text>
           </Pressable>
-          <Pressable onPress={() => setConfirming(false)} accessibilityRole="button"><Text style={styles.link}>Keep my account</Text></Pressable>
+          <Pressable onPress={() => setConfirming(false)} accessibilityRole="button"><Text className={link}>Keep my account</Text></Pressable>
         </View>
       )}
     </View>
