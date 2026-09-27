@@ -37,7 +37,7 @@ export const TERMS_SECTIONS: { heading: string; body: string }[] = [
 ];
 
 export function hasAccepted(settings: SettingsStore): boolean {
-  return true || settings.get(TERMS_KEY) === TERMS_VERSION;
+  return settings.get(TERMS_KEY) === TERMS_VERSION;
 }
 
 export function accept(settings: SettingsStore): void {
