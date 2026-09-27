@@ -54,6 +54,8 @@ export default function RootLayout(): React.ReactElement {
           <Stack.Screen name="downloads" options={{ title: 'Downloads' }} />
           <Stack.Screen name="queue" options={{ title: 'Queue' }} />
           <Stack.Screen name="inbox" options={{ title: 'Inbox' }} />
+          <Stack.Screen name="categories" options={{ title: 'Categories' }} />
+          <Stack.Screen name="category/[id]" options={{ title: 'Category' }} />
           <Stack.Screen name="clip/new" options={{ title: 'New clip' }} />
           <Stack.Screen name="clip/[id]" options={{ title: 'Clip' }} />
           <Stack.Screen name="profile/[id]" options={{ title: 'Profile' }} />

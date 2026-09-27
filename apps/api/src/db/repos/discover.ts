@@ -10,10 +10,26 @@ import { hiddenFeedUrls } from './moderation.ts';
 import { cached, TTL } from './cache.ts';
 import { talkedAbout } from './activity-stats.ts';
 import { fetchFeed, registerCard, toCard } from '../../catalog/feed.ts';
-import { latestEpisodes, topShows, type EpisodeCard } from '../../catalog/apple.ts';
+import { latestEpisodes, topShows, type EpisodeCard, type ShowCard } from '../../catalog/apple.ts';
 
-export type DiscoverItem = { kind: 'pick' | 'talkedAbout' | 'trending'; key: string; episode: EpisodeCard & { id: string }; why?: string; reason?: string; score?: number; date?: string };
-export type DiscoverBody = { date?: string; picks: DiscoverItem[]; talkedAbout: DiscoverItem[]; trending: DiscoverItem[]; warnings: string[] };
+/** M10: counts only, never names (guard G6). */
+export type ItemStats = { listeners: number; comments: number };
+export type DiscoverItem = { kind: 'pick' | 'talkedAbout' | 'trending'; key: string; episode: EpisodeCard & { id: string }; why?: string; reason?: string; score?: number; date?: string; stats?: ItemStats };
+export type NewShow = { show: ShowCard; episode: EpisodeCard & { id: string } };
+/**
+ * `shows` and `newShows` (M10) are optional so a body cached before M10 still reads.
+ * `shows` is stored at up to SHOWS_STORED so hiding one still leaves six to serve.
+ */
+export type DiscoverBody = { date?: string; picks: DiscoverItem[]; talkedAbout: DiscoverItem[]; trending: DiscoverItem[]; shows?: ShowCard[]; newShows?: NewShow[]; warnings: string[] };
+
+/** M10 caps. The chart is read once at CHART_LIMIT; trending still walks only the first TRENDING_SHOWS, as it did at limit 10. */
+export const CHART_LIMIT = 25;
+const TRENDING_SHOWS = 10;
+export const SHOWS_SERVED = 6;
+const SHOWS_STORED = 12;
+export const NEW_SHOW_MAX_EPISODES = 12;
+const NEW_SHOWS = 3;
+const NEW_SHOW_EXTRA_CALLS = 3;
 
 const keyOf = (c: EpisodeCard) => `${c.feedUrl}\u0001${c.guid}`;
 
@@ -24,7 +40,11 @@ const keyOf = (c: EpisodeCard) => `${c.feedUrl}\u0001${c.guid}`;
 export function excludeHidden(body: DiscoverBody, hidden: ReadonlySet<string>): DiscoverBody {
   if (hidden.size === 0) return body;
   const keep = (i: DiscoverItem) => !hidden.has(i.episode.feedUrl);
-  return { ...body, picks: body.picks.filter(keep), talkedAbout: body.talkedAbout.filter(keep), trending: body.trending.filter(keep) };
+  return {
+    ...body, picks: body.picks.filter(keep), talkedAbout: body.talkedAbout.filter(keep), trending: body.trending.filter(keep),
+    ...(body.shows ? { shows: body.shows.filter((s) => !hidden.has(s.feedUrl)) } : {}),
+    ...(body.newShows ? { newShows: body.newShows.filter((n) => !hidden.has(n.show.feedUrl) && !hidden.has(n.episode.feedUrl)) } : {}),
+  };
 }
 
 export async function discoverBody(db: Db, f: typeof fetch, picks: readonly PickIn[], today: string): Promise<{ body: DiscoverBody; stale: boolean }> {
@@ -33,7 +53,8 @@ export async function discoverBody(db: Db, f: typeof fetch, picks: readonly Pick
 }
 
 async function cachedDiscover(db: Db, f: typeof fetch, picks: readonly PickIn[], today: string): Promise<{ body: DiscoverBody; stale: boolean }> {
-  return cached<DiscoverBody>(db, 'discover', TTL.discover, async () => {
+  // M10: a new key, so a body cached before `shows`/`newShows` existed is not served for its last hour.
+  return cached<DiscoverBody>(db, 'discover:v2', TTL.discover, async () => {
     const warnings: string[] = [];
     const day = picksForDay(picks, today);
     const pickItems: DiscoverItem[] = [];
@@ -62,8 +83,14 @@ async function cachedDiscover(db: Db, f: typeof fetch, picks: readonly PickIn[],
     }
 
     let trending: DiscoverItem[] = [];
+    let chartShows: ShowCard[] = [];
+    let newShows: NewShow[] = [];
+    const latestByShow = new Map<number, EpisodeCard & { id: string }>();
     try {
-      const shows = await topShows(f, undefined, 10);
+      // M10: one chart call at 25 feeds "Popular shows" and the "new shows" candidates;
+      // trending walks the first 10 exactly as it did when the chart was read at 10.
+      chartShows = await topShows(f, undefined, CHART_LIMIT);
+      const shows = chartShows.slice(0, TRENDING_SHOWS);
       // M8 (2026-09-26): this used to be silent. The live chart returned NOTHING for an
       // unknown length of time and `warnings` was `[]`, so Discover looked healthy and
       // For You lost its only source of shows the listener does not already follow.
@@ -77,18 +104,51 @@ async function cachedDiscover(db: Db, f: typeof fetch, picks: readonly PickIn[],
           const [latest] = await latestEpisodes(f, s.appleId, 1);
           if (!latest) { noEpisode.push(s.title); continue; }
           const row = await registerCard(db, latest);
+          latestByShow.set(s.appleId, { ...latest, id: row.id });
           trending.push({ kind: 'trending', key: keyOf(latest), episode: { ...latest, id: row.id }, reason: 'Trending on the chart' });
         } catch (e) { warnings.push(`trending ${s.title}: ${e instanceof Error ? e.message : String(e)}`); }
       }
       if (noEpisode.length > 0) warnings.push(`chart: no episode for ${noEpisode.length} of ${shows.length} shows (${noEpisode.slice(0, 3).join(', ')})`);
+      newShows = await newShowsFrom(db, f, chartShows, latestByShow, warnings);
     } catch (e) { warnings.push(`chart: ${e instanceof Error ? e.message : String(e)}`); }
     const pickKeys = new Set(pickItems.map((p) => p.key));
     trending = trending.filter((t) => !pickKeys.has(t.key));
     const filled = fillWithTrending(talked, trending, 5);
     const talkedFinal = filled.filter((i) => i.kind === 'talkedAbout');
     const trendingFinal = filled.filter((i) => i.kind === 'trending');
-    return { ...(day.date ? { date: day.date } : {}), picks: pickItems, talkedAbout: talkedFinal, trending: trendingFinal, warnings };
+    return {
+      ...(day.date ? { date: day.date } : {}), picks: pickItems, talkedAbout: talkedFinal, trending: trendingFinal,
+      shows: chartShows.slice(0, SHOWS_STORED), newShows, warnings,
+    };
   });
+}
+
+/**
+ * M10 "new shows": chart shows Apple lists at most 12 episodes for (`trackCount`), in
+ * chart order, up to 3, each with its latest episode — registered like trending. A show
+ * trending already fetched costs nothing; any other costs one lookup, at most 3 in all.
+ * A show Apple gives no count for is not "new": unknown is not small.
+ */
+async function newShowsFrom(db: Db, f: typeof fetch, chart: readonly ShowCard[], latestByShow: ReadonlyMap<number, EpisodeCard & { id: string }>, warnings: string[]): Promise<NewShow[]> {
+  const out: NewShow[] = [];
+  let calls = 0;
+  for (const s of chart) {
+    if (out.length >= NEW_SHOWS) break;
+    if (s.appleId === undefined || s.episodeCount === undefined || s.episodeCount > NEW_SHOW_MAX_EPISODES) continue;
+    let episode = latestByShow.get(s.appleId);
+    if (episode === undefined) {
+      if (calls >= NEW_SHOW_EXTRA_CALLS) break;
+      calls++;
+      try {
+        const [latest] = await latestEpisodes(f, s.appleId, 1);
+        if (latest === undefined) continue;
+        const row = await registerCard(db, latest);
+        episode = { ...latest, id: row.id };
+      } catch (e) { warnings.push(`new show ${s.title}: ${e instanceof Error ? e.message : String(e)}`); continue; }
+    }
+    out.push({ show: s, episode });
+  }
+  return out;
 }
 
 function describe(r: { listeners: number; comments: number; clips: number; reactions: number }): string {

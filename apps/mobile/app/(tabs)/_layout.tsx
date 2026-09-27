@@ -1,5 +1,5 @@
 /**
- * The three tabs (M7 T012): **Library · Discover · Following**, with the mini player
+ * The three tabs (M7 T012; reordered M10): **Discover · Library · Following**, with the mini player
  * floating above the bar.
  *
  * Why only these three: they are the destinations a listener returns to. Inbox, Queue,
@@ -82,9 +82,12 @@ export default function TabsLayout(): React.ReactElement {
         );
       }}
     >
-      <Tabs.Screen name="index" options={{ title: 'Library' }} />
-      <Tabs.Screen name="discover" options={{ title: 'Discover' }} />
+      {/* M10: Discover draws its own large title, so it has no bar. */}
+      <Tabs.Screen name="index" options={{ title: 'Discover', headerShown: false }} />
+      <Tabs.Screen name="library" options={{ title: 'Library' }} />
       <Tabs.Screen name="following" options={{ title: 'Following' }} />
+      {/* Not in the bar (TABS drives the bar): only here so old `/discover` links land. */}
+      <Tabs.Screen name="discover" options={{ title: 'Discover' }} />
     </Tabs>
   );
 }

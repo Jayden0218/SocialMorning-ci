@@ -17,3 +17,18 @@ export function genreIdFor(categories: readonly string[]): { id: number; name: s
   }
   return undefined;
 }
+
+/**
+ * M10: the display name for a genre id ("Health & Fitness", "TV & Film"), from the keys
+ * above so the two cannot drift. Undefined for an id that is not an Apple top-level genre.
+ */
+export function genreName(id: number): string | undefined {
+  const key = Object.keys(APPLE_GENRES).find((k) => APPLE_GENRES[k] === id);
+  if (key === undefined) return undefined;
+  return key.split(' ').map((w) => (w === 'tv' ? 'TV' : w === '&' ? w : w[0]!.toUpperCase() + w.slice(1))).join(' ');
+}
+
+/** M10: every top-level genre with its display name, in name order. */
+export const GENRE_LIST: readonly { genreId: number; name: string }[] = Object.values(APPLE_GENRES)
+  .map((id) => ({ genreId: id, name: genreName(id)! }))
+  .sort((a, b) => a.name.localeCompare(b.name));

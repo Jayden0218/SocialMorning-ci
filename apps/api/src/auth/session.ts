@@ -38,7 +38,11 @@ export type AuthEnv = { Variables: { db: Db; pepper: string; listener?: Listener
 export type Safety = { ownerListenerId?: string; appealsEmail?: string; releaseSha256?: string };
 
 /** M5: what the discovery routes need beyond the db — the catalogue fetch (real or fake) and the owner's picks. */
-export type Catalog = { fetch: typeof fetch; picks: import('@socialmorning/social-core').PickIn[]; today: () => string };
+export type Catalog = {
+  fetch: typeof fetch; picks: import('@socialmorning/social-core').PickIn[]; today: () => string;
+  /** M10: the owner's curated collections (collections.json), validated once at start. */
+  collections: import('../catalog/collections.ts').CollectionIn[];
+};
 
 function bearer(c: Context): string | undefined {
   const h = c.req.header('authorization');

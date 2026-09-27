@@ -1,129 +1,93 @@
 /**
- * Library: where you were, and what you follow.
+ * Discover — the first tab and the screen the app opens on (M10, owner 2026-09-27),
+ * laid out after the reference the owner chose: a large title, a search box, shortcut
+ * chips, then the sections top to bottom.
  *
- * "Continue listening" is first because Story 3 is the thing people abandon
- * a podcast app over — losing your place in a two-hour episode.
- *
- * M7: Discover and Following left this list — they are tabs now, so they cost **1 tap**
- * instead of 2. Search, Inbox, Queue, Downloads and Account stay here at 2 taps, which
- * is what they cost before; nothing got further away (guard G4).
+ * Kept from M5/M8: works signed out (For You simply is not there); the last copy shows at
+ * once and offline, marked stale; pull to refresh; opening a card resolves it through its
+ * feed without subscribing (research R8). New: every row plays from its round button.
  */
-import { Link, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { FlatList, Image, Pressable, Text, View } from 'react-native';
-import { refreshAll } from '../../src/feeds/refresh-all';
-import { ContinueListening } from '../../src/ui/ContinueListening';
-import { shortDate } from '../../src/ui/format';
-import { useSafety } from '../../src/safety/context';
-import { EmptyState } from '../../src/ui/EmptyState';
-import { NavLink } from '../../src/ui/NavLink';
-import { useStores } from '../../src/ui/providers';
-import { inboxIds } from '../../src/inbox';
-import { useSocial } from '../../src/social/context';
+import { useRouter } from 'expo-router';
+import { useMemo } from 'react';
+import { Image, RefreshControl, SafeAreaView, ScrollView, Text, View } from 'react-native';
+import { buildModel } from '../../src/discover/sections';
 import { useDiscover } from '../../src/discover/useDiscover';
-import { DiscoverSections } from '../../src/ui/DiscoverSections';
-import type { CachedShow } from '../../src/storage/types';
+import { useForYou } from '../../src/recs/useForYou';
+import { useRecOutbox } from '../../src/recs/useRecOutbox';
+import { useSafety } from '../../src/safety/context';
+import { useSocial } from '../../src/social/context';
+import { inboxIds } from '../../src/inbox';
+import { useStores } from '../../src/ui/providers';
 import { BOTTOM_INSET } from '../../src/ui/Screen';
+import { SearchBar } from '../../src/ui/discover/parts';
+import {
+  CategoryStrip, ChartSection, CollectionSection, ForYouSection, MoreCategories, NewShowsSection, PicksSection, SaidSection, ShowTiles, Shortcuts,
+  followedShowTiles, popularShowTiles,
+} from '../../src/ui/discover/sections';
 
-type Row = { feedUrl: string; show: CachedShow | undefined; stale: boolean };
+const ICON = { width: 36, height: 36 };
 
-export default function LibraryScreen(): React.ReactElement {
+export default function DiscoverScreen(): React.ReactElement {
+  const router = useRouter();
   const stores = useStores();
-  const { safety, version: safetyVersion, hiddenFeeds } = useSafety();
-  void safetyVersion;
+  const { view, refreshing, refresh, open, play } = useDiscover();
   const { listener } = useSocial();
-  const [rows, setRows] = useState<Row[]>([]);
-  const [tick, setTick] = useState(0);
-
-  const read = useCallback(
-    (stale: Set<string>): Row[] =>
-      stores.subscriptions.list().map(({ feedUrl }) => ({
-        feedUrl,
-        show: stores.feeds.getShow(feedUrl),
-        stale: stale.has(feedUrl),
-      })),
-    [stores],
+  const { sets, hiddenFeeds, version } = useSafety();
+  const forYou = useForYou(listener !== undefined);
+  const outbox = useRecOutbox(listener !== undefined, forYou.view?.body.items);
+  const refreshBoth = async (): Promise<void> => { await Promise.all([refresh(), forYou.refresh()]); };
+  const model = useMemo(
+    () => buildModel(view?.body, forYou.view?.body, { feeds: hiddenFeeds, blocked: sets.blocked }),
+    // `version` bumps on every local report/block, so a hidden row leaves at once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [view, forYou.view, hiddenFeeds, sets, version],
   );
-
-  useFocusEffect(
-    useCallback(() => {
-      let live = true;
-      setRows(read(new Set()));
-      // Refresh in the background. Principle IV: a feed that fails keeps its
-      // cached copy and shows a badge; it never blanks the library.
-      void refreshAll(stores, Date.now()).then((result) => {
-        if (!live) return;
-        setRows(read(new Set(result.stale)));
-        setTick((n) => n + 1);
-      });
-      return () => {
-        live = false;
-      };
-    }, [read, stores]),
-  );
-
-  // M5 (FR-002): a zero-subscription home is Discover first; with subscriptions, a picks strip + the link.
-  const discover = useDiscover();
-  const noSubscriptions = rows.length === 0;
+  const inbox = inboxIds(stores).length;
+  const showPage = (feedUrl: string) => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl } });
+  const act = { onOpen: (c: Parameters<typeof open>[0]) => void open(c), onPlay: (c: Parameters<typeof play>[0]) => void play(c) };
 
   return (
-    <FlatList
-      key={tick}
-      data={rows}
-      keyExtractor={(row) => row.feedUrl}
-      contentContainerClassName="p-3 gap-2"
-      // The inset is derived from two JS constants, so it stays a style rather than a class.
-      contentContainerStyle={{ paddingBottom: BOTTOM_INSET }}
-      ListHeaderComponent={
-        <View className="gap-2 mb-2">
-          <ContinueListening />
-          {noSubscriptions && discover.view ? <DiscoverSections body={discover.view.body} stale={discover.view.stale} fetchedAt={discover.view.fetchedAt} onOpen={(c) => void discover.open(c)} /> : null}
-          <NavLink href="/search" label="Search for a show" />
-          {!noSubscriptions && discover.view && discover.view.body.picks.length > 0 ? (
-            <DiscoverSections body={discover.view.body} stale={discover.view.stale} fetchedAt={discover.view.fetchedAt} onOpen={(c) => void discover.open(c)} maxPicks={3} />
-          ) : null}
-          <NavLink href="/inbox" label={`Inbox${(() => { const n = inboxIds(stores).length; return n > 0 ? ` (${n})` : ''; })()}`} />
-          <NavLink href="/queue" label="Queue" />
-          <NavLink href="/downloads" label="Downloads" />
-          {listener === undefined ? (
-            <NavLink href="/auth/sign-in" label="Sign in to comment" />
-          ) : (
-            <NavLink href="/account" label={`Signed in as ${listener.displayName}`} />
-          )}
+    <SafeAreaView className="flex-1 bg-background">
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: BOTTOM_INSET }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refreshBoth()} />}
+      >
+        <View className="flex-row items-center justify-between px-screen-x pt-section pb-row">
+          <Text className="text-text text-lg font-bold" accessibilityRole="header">Discover</Text>
+          <Image source={require('../../assets/app-icon.png')} style={ICON} className="rounded-row" accessibilityIgnoresInvertColors accessibilityLabel="SocialNet" />
         </View>
-      }
-      ListEmptyComponent={<EmptyState surface="library" />}
-      renderItem={({ item }) => (
-        <Link
-          href={{
-            pathname: '/show/[feedUrl]',
-            params: { feedUrl: encodeURIComponent(item.feedUrl) },
-          }}
-          asChild
-        >
-          <Pressable className="flex-row gap-3 py-2" accessibilityRole="button">
-            {item.show?.imageUrl === undefined ? (
-              <View className="w-14 h-14 rounded-md bg-surface" />
-            ) : (
-              <Image source={{ uri: item.show.imageUrl }} className="w-14 h-14 rounded-md bg-surface" />
-            )}
-            <View className="flex-1">
-              <Text className="text-[15px] font-semibold text-text" numberOfLines={3}>
-                {item.show?.title ?? item.feedUrl}
-              </Text>
-              <Text className="text-[13px] text-muted">
-                {latestLine(stores.feeds.listEpisodes(item.feedUrl)[0]?.publishedAt, item.stale)}
-                {safety.isHidden('show', item.feedUrl) ? ' · reported' : hiddenFeeds.has(item.feedUrl) ? ' · hidden from discovery' : ''}
-              </Text>
-            </View>
-          </Pressable>
-        </Link>
-      )}
-    />
-  );
-}
+        <SearchBar onPress={() => router.push('/search')} />
+        <Shortcuts
+          items={[
+            { label: 'Categories', emoji: '🗂️', onPress: () => router.push('/categories') },
+            { label: inbox > 0 ? `Inbox (${inbox})` : 'Inbox', emoji: '📥', onPress: () => router.push('/inbox') },
+            { label: 'Queue', emoji: '🎧', onPress: () => router.push('/queue') },
+            { label: 'Downloads', emoji: '⬇️', onPress: () => router.push('/downloads') },
+          ]}
+        />
 
-function latestLine(publishedAt: number | undefined, stale: boolean): string {
-  const latest = publishedAt === undefined ? 'No episodes yet' : `Latest ${shortDate(publishedAt)}`;
-  return stale ? `${latest} · offline copy` : latest;
+        {view?.stale ? (
+          <Text className="text-accent bg-surface mx-screen-x mt-row p-row rounded-row text-sm">
+            Couldn't refresh — showing what was fetched {view.fetchedAt ? new Date(view.fetchedAt).toLocaleTimeString() : 'earlier'}.
+          </Text>
+        ) : null}
+        {!view ? (
+          <Text className="text-muted text-sm px-screen-x mt-section">{refreshing ? 'Loading…' : "Couldn't reach the server, and nothing is cached yet."}</Text>
+        ) : null}
+
+        <ForYouSection rows={model.forYou} {...act} onOpenAt={(c, index) => { outbox.opened(index); void open(c); }} />
+        <PicksSection items={model.picks} {...(view?.body.date ? { date: view.body.date } : {})} {...act} />
+        <ChartSection tabs={model.chart} {...act} />
+        {view ? <CategoryStrip onGenre={(id) => router.push({ pathname: '/category/[id]', params: { id: String(id) } })} onAll={() => router.push('/categories')} /> : null}
+        <ShowTiles title="Popular shows" shows={popularShowTiles(model.shows)} onShow={showPage} />
+        {model.collections.map((c) => <CollectionSection key={c.id} collection={c} {...act} />)}
+        {model.followedHere ? (
+          <ShowTiles title="Shows listeners here follow" badge={model.followedHere.total} shows={followedShowTiles(model.followedHere.shows)} onShow={showPage} boxed />
+        ) : null}
+        <SaidSection items={model.said} now={Date.now()} {...act} />
+        <NewShowsSection items={model.newShows} {...act} />
+        {view ? <MoreCategories onPress={() => router.push('/categories')} /> : null}
+      </ScrollView>
+    </SafeAreaView>
+  );
 }

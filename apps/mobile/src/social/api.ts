@@ -78,10 +78,25 @@ export type ListenedDay = { episodeId: string; day: string; ranges: [number, num
 
 // ---- M5 (specs/005-m5-discovery/contracts/api.md) ----
 export type EpisodeCard = { id: string; feedUrl: string; guid: string; title: string; showTitle: string; imageUrl?: string; durationMs?: number; publishedAt?: string; enclosureUrl: string };
-export type DiscoverItem = { kind: 'pick' | 'talkedAbout' | 'trending'; key: string; episode: EpisodeCard; why?: string; reason?: string; score?: number; date?: string };
-export type Discover = { date?: string; picks: DiscoverItem[]; talkedAbout: DiscoverItem[]; trending: DiscoverItem[]; stale: boolean; serverTime: string };
+export type DiscoverItem = { kind: 'pick' | 'talkedAbout' | 'trending'; key: string; episode: EpisodeCard; why?: string; reason?: string; score?: number; date?: string; /** M10: counts only, never names (G6). */ stats?: { listeners: number; comments: number } };
+/**
+ * M10 (2026-09-27): the redesigned Discover's extra sections. All optional — an older
+ * server, or one that could not build a section, leaves it out and the screen skips it.
+ */
+export type FollowedShow = { feedUrl: string; title: string; imageUrl?: string; author?: string; followers: number };
+export type SaidItem = { commentId: string; authorId: string; body: string; createdAt: string; episode: EpisodeCard };
+export type Collection = { id: string; title: string; subtitle?: string; items: DiscoverItem[] };
+export type Discover = {
+  date?: string; picks: DiscoverItem[]; talkedAbout: DiscoverItem[]; trending: DiscoverItem[]; stale: boolean; serverTime: string;
+  shows?: ShowCard[];
+  newShows?: { show: ShowCard; episode: EpisodeCard }[];
+  followedHere?: { total: number; shows: FollowedShow[] };
+  said?: SaidItem[];
+  collections?: Collection[];
+};
+export type CategoryShows = { genreId: number; name: string; shows: ShowCard[]; stale?: boolean };
 export type DiscoverResult = { status: 200; etag?: string; body: Discover } | { status: 304 };
-export type ShowCard = { appleId?: number; feedUrl: string; title: string; author: string; imageUrl?: string; genres: string[] };
+export type ShowCard = { appleId?: number; feedUrl: string; title: string; author: string; imageUrl?: string; genres: string[]; episodeCount?: number };
 export type SearchResult = { shows: ShowCard[]; episodes: EpisodeCard[]; episodeSearch: 'ok' | 'unavailable'; source: { shows: 'apple' } };
 export type NextUpItem = { episode: EpisodeCard; reason: 'alsoListened' | 'talkedAboutOnShow' | 'newOnShow' | 'trendingInCategory'; label: string };
 
@@ -134,6 +149,8 @@ export type ApiClient = {
   // M5
   discover(ifNoneMatch?: string): Promise<DiscoverResult>;
   search(q: string): Promise<SearchResult>;
+  /** M10: one Apple genre's top shows (the genre list itself is `src/discover/genres.ts`). */
+  category(genreId: number): Promise<CategoryShows>;
   nextUp(episodeId: string): Promise<{ items: NextUpItem[]; computedAt: string }>;
   // M6
   report(kind: ReportKind, targetId: string, reason: string, note?: string): Promise<{ id: string; duplicate: boolean; closed?: string }>;
@@ -242,6 +259,7 @@ export function createApi(deps: ApiDeps): ApiClient {
       return { status: 200, ...(etag ? { etag } : {}), body: r.json };
     },
     search: async (q) => (await call<SearchResult>('GET', `/v1/search?q=${encodeURIComponent(q)}`)).json,
+    category: async (genreId) => (await call<CategoryShows>('GET', `/v1/categories/${genreId}`)).json,
     nextUp: async (episodeId) => (await call<{ items: NextUpItem[]; computedAt: string }>('GET', `/v1/episodes/${episodeId}/next-up`)).json,
     // M6
     report: async (kind, targetId, reason, note) => (await call<{ id: string; duplicate: boolean; closed?: string }>('POST', '/v1/reports', { targetKind: kind, targetId, reason, ...(note ? { note } : {}) })).json,

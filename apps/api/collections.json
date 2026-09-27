@@ -1,0 +1,12 @@
+[
+  {
+    "id": "start-here",
+    "title": "Where to start",
+    "subtitle": "Shows worth a first episode",
+    "items": [
+      { "feedUrl": "https://feeds.megaphone.fm/replyall" },
+      { "feedUrl": "https://feeds.podcastindex.org/pc20.xml" },
+      { "feedUrl": "https://feeds.simplecast.com/BqbsxVfO" }
+    ]
+  }
+]

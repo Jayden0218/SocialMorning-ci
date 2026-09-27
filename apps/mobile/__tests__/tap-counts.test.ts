@@ -12,13 +12,18 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { TABS } from '../src/ui/tabs';
 
-const library = readFileSync(join(__dirname, '..', 'app', '(tabs)', 'index.tsx'), 'utf8');
+// M10: the Library moved to `/library` when Discover became the first tab (`/`).
+const library = readFileSync(join(__dirname, '..', 'app', '(tabs)', 'library.tsx'), 'utf8');
 const linkedFromLibrary = (href: string): boolean =>
   new RegExp(`<NavLink[^>]*href="${href.replace('/', '\\/')}"`).test(library);
 
 /** Destination → taps from a cold start, before M7 and after. */
 const CONTRACT = [
-  { name: 'Discover', href: '/discover', before: 2, after: 1 },
+  // M10: Discover is where the app opens now (0 taps); the Library became the tab.
+  { name: 'Discover', href: '/', before: 2, after: 0 },
+  // The one move that went further, by the owner's decision (2026-09-27: "Discover
+  // first"). Named here so it is a recorded choice, not a drift G4 failed to notice.
+  { name: 'Library', href: '/library', before: 0, after: 1, owner: '2026-09-27' },
   { name: 'Following', href: '/following', before: 2, after: 1 },
   { name: 'Search', href: '/search', before: 2, after: 2 },
   { name: 'Inbox', href: '/inbox', before: 2, after: 2 },
@@ -28,14 +33,15 @@ const CONTRACT = [
 ] as const;
 
 it('G4: nothing got further away', () => {
-  for (const row of CONTRACT) expect(row.after).toBeLessThanOrEqual(row.before);
+  for (const row of CONTRACT) if (!('owner' in row)) expect(row.after).toBeLessThanOrEqual(row.before);
+  expect(CONTRACT.filter((r) => 'owner' in r).map((r) => r.name)).toEqual(['Library']);
 });
 
 it('the 1-tap destinations are tabs, and only those', () => {
   const tabHrefs = TABS.map((t) => (t.key === 'index' ? '/' : `/${t.key}`));
-  expect(tabHrefs).toEqual(['/', '/discover', '/following']);
+  expect(tabHrefs).toEqual(['/', '/library', '/following']);
   for (const row of CONTRACT) {
-    expect(tabHrefs.includes(row.href)).toBe(row.after === 1);
+    expect(tabHrefs.includes(row.href)).toBe(row.after <= 1);
   }
 });
 

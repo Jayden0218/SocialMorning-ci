@@ -70,7 +70,12 @@ test('A6: picks resolved through the feed (episode + show pick), a bad pick warn
   assert.ok(body.trending.length >= 1);
   assert.equal(body.trending[0]!.reason, 'Trending on the chart');
   assert.equal(body.stale, false);
-  for (const name of ['Alex', 'Bea', a.id, b.id]) assert.equal(raw.includes(name), false, `payload leaks ${name}`);
+  for (const name of ['Alex', 'Bea', a.id]) assert.equal(raw.includes(name), false, `payload leaks ${name}`);
+  // M10 (2026-09-27): Bea's comment is in `said`, which carries her id (ids are allowed,
+  // names never, G6) — and her id appears nowhere else in the payload.
+  const said = (JSON.parse(raw) as { said?: { authorId: string; body: string }[] }).said ?? [];
+  assert.deepEqual(said.map((s) => [s.authorId, s.body]), [[b.id, 'hi']]);
+  assert.equal(raw.split(b.id).length - 1, 1, 'the listener id appears only as said[].authorId');
   assert.equal(raw.includes('warnings'), false);
   assert.equal((await t.call('GET', '/v1/discover', undefined, undefined, { 'if-none-match': etag! })).status, 304);
   // Picks were registered as episodes with the phone's id rule.

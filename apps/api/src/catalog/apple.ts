@@ -7,7 +7,11 @@
  * Apple allows roughly 20 search calls a minute (M1's note): callers cache (repos/cache.ts).
  * Every function takes `fetch` so the tests inject recorded fixtures.
  */
-export type ShowCard = { appleId?: number; feedUrl: string; title: string; author: string; imageUrl?: string; genres: string[] };
+export type ShowCard = {
+  appleId?: number; feedUrl: string; title: string; author: string; imageUrl?: string; genres: string[];
+  /** M10: Apple's `trackCount` from the lookup — the episodes Apple lists for the show (Reply All: 214, read 2026-09-27). Absent when Apple omits it. */
+  episodeCount?: number;
+};
 export type EpisodeCard = {
   feedUrl: string; guid: string; title: string; showTitle: string; imageUrl?: string; durationMs?: number; publishedAt?: string; enclosureUrl: string; appleShowId?: number;
   /** M8: the show's Apple genre id, for the `genre` retrieval channel and the rerank's category cap. */
@@ -23,7 +27,7 @@ const CHART = (limit: number, genreId?: number) => `https://itunes.apple.com/us/
 
 type Fetch = typeof fetch;
 
-type AppleShow = { collectionId?: number; collectionName?: string; artistName?: string; feedUrl?: string; artworkUrl600?: string; artworkUrl100?: string; genres?: string[]; wrapperType?: string; kind?: string };
+type AppleShow = { collectionId?: number; collectionName?: string; artistName?: string; feedUrl?: string; artworkUrl600?: string; artworkUrl100?: string; genres?: string[]; wrapperType?: string; kind?: string; trackCount?: number };
 type AppleEpisode = {
   wrapperType?: string; kind?: string; trackName?: string; collectionName?: string; collectionId?: number; episodeGuid?: string; episodeUrl?: string; feedUrl?: string;
   releaseDate?: string; trackTimeMillis?: number; artworkUrl600?: string; artworkUrl160?: string;
@@ -39,7 +43,8 @@ async function getJson<T>(f: Fetch, url: string): Promise<T> {
 export const toShowCard = (r: AppleShow): ShowCard | undefined => {
   if (!r.feedUrl) return undefined; // Apple lists shows it has no feed for (M1's note): not subscribable, dropped
   const imageUrl = r.artworkUrl600 ?? r.artworkUrl100;
-  return { ...(r.collectionId !== undefined ? { appleId: r.collectionId } : {}), feedUrl: r.feedUrl, title: r.collectionName ?? '', author: r.artistName ?? '', ...(imageUrl ? { imageUrl } : {}), genres: r.genres ?? [] };
+  return { ...(r.collectionId !== undefined ? { appleId: r.collectionId } : {}), feedUrl: r.feedUrl, title: r.collectionName ?? '', author: r.artistName ?? '', ...(imageUrl ? { imageUrl } : {}), genres: r.genres ?? [],
+    ...(typeof r.trackCount === 'number' && Number.isInteger(r.trackCount) && r.trackCount >= 0 ? { episodeCount: r.trackCount } : {}) };
 };
 
 export const toEpisodeCard = (r: AppleEpisode): EpisodeCard | undefined => {

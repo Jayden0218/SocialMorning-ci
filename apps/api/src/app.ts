@@ -31,12 +31,17 @@ import { recEvents } from './routes/rec-events.ts';
 import { validatePicks } from '@socialmorning/social-core';
 import type { Catalog, Safety } from './auth/session.ts';
 import picksJson from '../picks.json' with { type: 'json' };
+import collectionsJson from '../collections.json' with { type: 'json' };
+import { validateCollections } from './catalog/collections.ts';
+import { categories } from './routes/categories.ts';
 
 export type AppDeps = {
   db: Db; pepper: string; assetLinksSha256?: string;
   /** M5: the catalogue's fetch (tests inject a fake Apple) and the raw picks file; defaults: global fetch, `picks.json`. */
   catalogFetch?: typeof fetch;
   picksRaw?: unknown;
+  /** M10: the raw collections file; default `collections.json`. */
+  collectionsRaw?: unknown;
   today?: () => string;
   /** M6: the one moderator and the appeals address. Missing → `/mod` answers 503 and the message names no address (degrade, never crash). */
   ownerListenerId?: string;
@@ -59,7 +64,10 @@ export function createApp(deps: AppDeps) {
   // M5: the picks file is validated once; every bad entry is a warning, never a crash (G1).
   const { picks, warnings } = validatePicks(deps.picksRaw ?? picksJson);
   for (const w of warnings) console.warn(`[picks] ${w}`);
-  const catalog: Catalog = { fetch: deps.catalogFetch ?? fetch, picks, today: deps.today ?? (() => new Date().toISOString().slice(0, 10)) };
+  // M10: collections are validated the same way — a bad one is a warning, never a crash.
+  const cols = validateCollections(deps.collectionsRaw ?? collectionsJson);
+  for (const w of cols.warnings) console.warn(`[collections] ${w}`);
+  const catalog: Catalog = { fetch: deps.catalogFetch ?? fetch, picks, collections: cols.collections, today: deps.today ?? (() => new Date().toISOString().slice(0, 10)) };
 
   if (!deps.ownerListenerId || !deps.appealsEmail) console.warn('[safety] OWNER_LISTENER_ID / APPEALS_EMAIL not set: /mod is off, messages name no address');
   const safety: Safety = { ownerListenerId: deps.ownerListenerId, appealsEmail: deps.appealsEmail, releaseSha256: deps.releaseSha256 };
@@ -99,6 +107,7 @@ export function createApp(deps: AppDeps) {
   app.route('/v1/listeners', follows);
   app.route('/v1/listeners', profiles);
   app.route('/v1/discover', discover);
+  app.route('/v1/categories', categories);
   app.route('/v1/for-you', foryou);
   app.route('/v1/internal', createInternalRoute(deps.jobToken));
   app.route('/v1/search', createSearchRoute());
