@@ -42,6 +42,11 @@ export const colour = {
   separator: 'rgba(0,0,0,0.12)',
   /** Decorative: behind a sheet. No text sits on it, so no contrast floor applies. */
   scrim: 'rgba(0,0,0,0.40)',
+  /**
+   * Facebook's brand blue, only for its own mark on "Continue with Facebook" (owner,
+   * 2026-09-27). #1877F2 per the brand-colour references; never used as a UI colour.
+   */
+  facebook: '#1877f2',
   /** Decorative: the page colour at 0 % — where a fade into the page starts. */
   clear: 'rgba(255,255,255,0)',
 } as const;

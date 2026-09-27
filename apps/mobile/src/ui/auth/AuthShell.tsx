@@ -6,8 +6,8 @@
  */
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, SafeAreaView, ScrollView, Text, TextInput, View, type TextInputProps } from 'react-native';
-import { colour, hit } from '../../design';
+import { Image, KeyboardAvoidingView, Platform, Pressable, SafeAreaView, ScrollView, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { colour, hit, type Colour } from '../../design';
 import { Icon, type IconName } from '../Icon';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
@@ -50,11 +50,19 @@ export function AuthField(props: TextInputProps & { accessibilityLabel: string }
   );
 }
 
+/** Google's own "G", from its sign-in branding kit — shown only as supplied, on white. */
+const GOOGLE_G = require('../../../assets/google-g.png');
+const MARK = { width: 20, height: 20 };
+
+/** A mark at the button's left: a font icon in a token colour, or Google's "G". */
+export type AuthMark = { icon: IconName; tint?: Colour } | 'google';
+
 /**
  * The full-width button: solid yellow (the form's own), or outlined (another way in). Pale
- * until usable. With `icon`, the icon and the name sit in one row (owner, 2026-09-27).
+ * until usable. A `mark` is pinned to the left edge so every label stays centred on the
+ * button, whatever its length (owner, 2026-09-27).
  */
-export function AuthButton(props: { label: string; disabled: boolean; busy?: boolean; outline?: boolean; icon?: IconName; onPress: () => void }): React.ReactElement {
+export function AuthButton(props: { label: string; disabled: boolean; busy?: boolean; outline?: boolean; mark?: AuthMark; onPress: () => void }): React.ReactElement {
   return (
     <Pressable
       onPress={props.onPress}
@@ -62,10 +70,16 @@ export function AuthButton(props: { label: string; disabled: boolean; busy?: boo
       accessibilityRole="button"
       accessibilityLabel={props.label}
       accessibilityState={{ disabled: props.disabled, busy: props.busy === true }}
-      className={`${props.outline ? 'border border-separator' : 'bg-primary'} rounded-row flex-row gap-row items-center justify-center mt-row ${props.disabled ? 'opacity-40' : ''}`}
+      className={`${props.outline ? 'border border-separator' : 'bg-primary'} rounded-row items-center justify-center mt-row ${props.disabled ? 'opacity-40' : ''}`}
       style={FIELD}
     >
-      {props.icon ? <Icon name={props.icon} size={20} color={props.outline ? colour.text : colour.onPrimary} /> : null}
+      {props.mark ? (
+        <View className="absolute left-section top-0 bottom-0 justify-center">
+          {props.mark === 'google'
+            ? <Image source={GOOGLE_G} style={MARK} accessibilityIgnoresInvertColors />
+            : <Icon name={props.mark.icon} size={20} color={colour[props.mark.tint ?? (props.outline ? 'text' : 'onPrimary')]} />}
+        </View>
+      ) : null}
       <Text className={props.outline ? 'text-text text-sm font-semibold' : 'text-onPrimary text-sm font-semibold'}>{props.busy ? '…' : props.label}</Text>
     </Pressable>
   );

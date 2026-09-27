@@ -71,11 +71,12 @@ export default function SignInScreen(): React.ReactElement {
           <Image source={require('../../assets/app-icon.png')} style={LOGO} className="rounded-row" accessibilityIgnoresInvertColors />
           <Text className="text-text text-lg font-bold" accessibilityRole="header">SocialNet</Text>
         </View>
-        <ConsentRow agreed={agreed} onToggle={() => setAgreed((a) => !a)} open={legal.open} />
-        <AuthButton icon="mail-outline" label="Continue with email" disabled={false} onPress={() => choose('email')} />
+        <AuthButton mark={{ icon: 'mail-outline' }} label="Continue with email" disabled={false} onPress={() => choose('email')} />
         {OTHER_METHODS.map((m) => (
-          <AuthButton key={m.id} outline icon={m.icon} label={m.label} disabled={false} onPress={() => choose(m.id)} />
+          <AuthButton key={m.id} outline mark={m.mark} label={m.label} disabled={false} onPress={() => choose(m.id)} />
         ))}
+        {/* Owner, 2026-09-27: the consent box sits under the three ways in. */}
+        <ConsentRow agreed={agreed} onToggle={() => setAgreed((a) => !a)} open={legal.open} />
       </View>
       <ConsentDialog
         visible={asking !== undefined}

@@ -24,6 +24,13 @@ Checked with `npm view <pkg> license` on 2026-09-21 (constitution, Principle III
 | react-native-worklets | 0.13.0 | MIT | Tailwind (reanimated peer; same) |
 | tailwindcss (dev) | 3.4.19 | MIT | Tailwind |
 
+**Third-party marks (not code), 2026-09-27.** `assets/google-g.png` is Google's "G", cut
+unchanged from Google's own sign-in button kit
+(`developers.google.com/static/identity/images/signin-assets.zip`, iOS @3x, Light, no
+text). Google's branding guidelines allow it on a custom "Continue with Google" button if
+it is the standard colour version, at its supplied size (20 pt from the @3x file), on white. The Facebook mark is
+Ionicons' `logo-facebook` (MIT, above), tinted #1877F2.
+
 M4 (2026-09-21) added **no** dependency: the share sheet is React Native's built-in `Share`, the clip link routes through expo-router and expo-linking, both already present.
 
 
