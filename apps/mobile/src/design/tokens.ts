@@ -72,6 +72,10 @@ export const colourDark = {
   bar: 'rgba(255,255,255,0.55)',
   separator: 'rgba(255,255,255,0.14)',
   scrim: 'rgba(0,0,0,0.60)',
+  /** The Facebook sign-in button's own blue — a brand colour, the same in both palettes. */
+  facebook: '#1877f2',
+  /** The page colour at 0 % — where a fade into the dark page starts. */
+  clear: 'rgba(17,17,20,0)',
 } as const;
 
 export type Palette = { readonly [K in keyof typeof colour]: string };

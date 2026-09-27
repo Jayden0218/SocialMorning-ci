@@ -25,5 +25,5 @@ export function paletteFor(appearance: Appearance, system: 'light' | 'dark' | nu
 
 export function useColours(settings: Pick<SettingsStore, 'get'>): Palette {
   const system = useColorScheme();
-  return paletteFor(readAppearance(settings), system === 'unspecified' ? null : system);
+  return paletteFor(readAppearance(settings), system === 'dark' || system === 'light' ? system : null);
 }
