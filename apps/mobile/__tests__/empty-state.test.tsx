@@ -8,9 +8,16 @@ jest.mock('expo-router', () => ({ router: { push: (...a: unknown[]) => mockPush(
 import { EMPTY_STATES, GIVE_UP_AFTER_MS, LOADING_AFTER_MS, OFFLINE_SENTENCE, SURFACES } from '@socialmorning/social-core';
 import { EmptyState } from '../src/ui/EmptyState';
 
+// Unmounted after each test: the loading state draws the Loader, whose animation loop
+// runs until unmount. Left mounted, it kept firing into a later test file in the same
+// worker ("Cannot log after tests are done", run 36295287109 attempt 1).
+const mounted: ReactTestRenderer[] = [];
+afterEach(() => { act(() => { mounted.splice(0).forEach((r) => r.unmount()); }); });
+
 const render = (props: Record<string, unknown>): ReactTestRenderer => {
   let r!: ReactTestRenderer;
   act(() => { r = create(createElement(EmptyState, props as never)); });
+  mounted.push(r);
   return r;
 };
 const text = (r: ReactTestRenderer) => JSON.stringify(r.toJSON());
