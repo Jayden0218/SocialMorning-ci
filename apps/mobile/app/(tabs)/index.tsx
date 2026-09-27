@@ -71,7 +71,7 @@ export default function DiscoverScreen(): React.ReactElement {
         </View>
         <SearchBar
           {...(hint ? { hint } : {})}
-          onPress={() => router.push(hint ? { pathname: '/search', params: { hint } } : '/search')}
+          onPress={() => (hint ? router.push({ pathname: '/search', params: { hint } }) : router.push('/search'))}
           onScan={() => router.push('/scan')}
         />
         <Shortcuts

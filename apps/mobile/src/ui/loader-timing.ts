@@ -8,7 +8,7 @@ export const LOADER_CYCLE_MS = 900;
 
 /** When bar `i` starts: an even stagger across the first half of the cycle. */
 export function barDelay(i: number): number {
-  return 0 * i;
+  return Math.round((i * LOADER_CYCLE_MS) / 2 / LOADER_BARS);
 }
 
 /** Resting height, as a share of full: the middle bar tallest, like the icon's waves. */

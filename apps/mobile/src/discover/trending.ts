@@ -14,7 +14,7 @@ export function trendingHints(chart: readonly ChartTab[]): string[] {
   for (const key of order) {
     for (const row of chart.find((t) => t.key === key)?.rows ?? []) {
       const name = row.showTitle.trim();
-      if (name) out.push(name);
+      if (name && !out.includes(name)) out.push(name);
       if (out.length === MAX_HINTS) return out;
     }
   }
