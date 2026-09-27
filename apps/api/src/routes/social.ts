@@ -7,6 +7,7 @@ import { ApiError } from '../errors.ts';
 import { getEpisode } from '../db/repos/episodes.ts';
 import { listComments } from '../db/repos/comments.ts';
 import { safetyStamp } from '../db/repos/blocks.ts';
+import { hostOfEpisode } from '../db/repos/creator.ts';
 
 /**
  * The poll (research R7, FR-015, FR-022, FR-032): comments + heat + serverTime in one
@@ -34,9 +35,11 @@ social.get('/:id/social', optionalAuth, async (c) => {
   );
   // M6 (R1, G5): a removal and the viewer's newest block/report both change the answer, so both are in the stamp.
   const safety = viewer ? await safetyStamp(db, viewer.id) : '-';
+  // M10b US8: a claim proven later adds the Host mark, so the claimant is in the stamp too.
+  const host = await hostOfEpisode(db, episodeId);
   const etag = '"' + createHash('sha256')
     .update(String(stamp?.comments_v)).update('|').update(String(stamp?.episode_v)).update('|')
-    .update(String(stamp?.heat_v)).update('|').update(viewer?.id ?? '-').update('|').update(safety)
+    .update(String(stamp?.heat_v)).update('|').update(viewer?.id ?? '-').update('|').update(safety).update('|').update(host ?? '-')
     .digest('base64url').slice(0, 27) + '"';
 
   if (c.req.header('if-none-match') === etag) {

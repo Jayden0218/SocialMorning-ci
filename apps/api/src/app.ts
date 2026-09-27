@@ -15,6 +15,7 @@ import { subscriptions } from './routes/subscriptions.ts';
 import { library, myCommentsRoute } from './routes/library.ts';
 import { pushPrefs, pushTokens } from './routes/push.ts';
 import { feedback } from './routes/feedback.ts';
+import { creator } from './routes/creator.ts';
 import { clipById, episodeClips } from './routes/clips.ts';
 import { createClipPages } from './pages/clip.ts';
 import { mod } from './pages/mod.ts';
@@ -113,6 +114,7 @@ export function createApp(deps: AppDeps) {
   app.route('/v1/me/push-tokens', pushTokens);
   app.route('/v1/me/push-prefs', pushPrefs);
   app.route('/v1/feedback', feedback);
+  app.route('/v1/creator', creator);
   app.route('/v1/me/rec-events', recEvents);
   app.route('/v1/me/feed', feed);
   app.route('/v1/me/listened', listened);
