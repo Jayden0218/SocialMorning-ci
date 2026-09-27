@@ -66,6 +66,7 @@ export function CommentList(props: {
                 <Pressable accessibilityRole="link"><Text className="font-semibold text-text">{c.displayName ?? 'Deleted account'}</Text></Pressable>
               </Link>
             ) : <Text className="font-semibold text-text">{c.displayName ?? 'Deleted account'}</Text>}
+            {c.host ? <Text className="bg-surface text-accent rounded-pill px-2 py-0.5 text-xs font-bold" accessibilityLabel="Host of this show">Host</Text> : null}
             {c.offsetMs !== null ? (
               <Pressable onPress={() => props.onSeek(c.offsetMs!)} accessibilityRole="button" accessibilityLabel={`Play from ${mmss(c.offsetMs)}`}>
                 <Text className="bg-surface text-accent rounded-pill px-2 py-0.5 text-xs font-semibold">{mmss(c.offsetMs)}</Text>

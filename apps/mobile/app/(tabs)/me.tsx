@@ -85,6 +85,7 @@ export default function MeScreen(): React.ReactElement {
         <MenuRow href="/favourites" icon="star-outline" label="Favourites" />
         <MenuRow href="/my-comments" icon="chatbubble-outline" label="My comments" />
         <MenuRow href="/queue" icon="list-outline" label="Queue" />
+        {listener ? <MenuRow href="/creator" icon="mic-outline" label="Creator centre" /> : null}
         <View className="border-b-hairline border-separator my-row" />
         <MenuRow href="/account" icon="settings-outline" label="Account and settings" />
         {listener ? (

@@ -85,6 +85,7 @@ function RootStack(): React.ReactElement {
           <Stack.Screen name="favourites" options={{ title: 'Favourites' }} />
           <Stack.Screen name="moments" options={{ title: 'Saved moments' }} />
           <Stack.Screen name="my-comments" options={{ title: 'My comments' }} />
+          <Stack.Screen name="creator" options={{ title: 'Creator centre' }} />
           <Stack.Screen name="stickers" options={{ title: 'Stickers' }} />
           <Stack.Screen name="category/[id]" options={{ title: 'Category' }} />
           <Stack.Screen name="clip/new" options={{ title: 'New clip' }} />
