@@ -4,7 +4,8 @@
  */
 import { useRouter } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
-import { colour } from '../src/design';
+import { useStores } from '../src/ui/providers';
+import { useColours } from '../src/ui/useColours';
 import { Icon } from '../src/ui/Icon';
 import { hit } from '../src/design';
 import { GENRES } from '../src/discover/genres';
@@ -13,6 +14,8 @@ import { Screen } from '../src/ui/Screen';
 const TAP = { minHeight: hit.min };
 
 export default function CategoriesScreen(): React.ReactElement {
+  const stores = useStores();
+  const c = useColours(stores.settings);
   const router = useRouter();
   return (
     <Screen scroll className="pt-section">
@@ -26,7 +29,7 @@ export default function CategoriesScreen(): React.ReactElement {
             className="bg-surface rounded-row flex-row items-center gap-2 px-row"
             style={TAP}
           >
-            <Icon name={g.icon} size={20} color={colour.text} />
+            <Icon name={g.icon} size={20} color={c.text} />
             <Text className="text-text text-sm font-semibold">{g.name}</Text>
           </Pressable>
         ))}

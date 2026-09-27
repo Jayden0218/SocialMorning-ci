@@ -11,7 +11,8 @@
  * layout adapts the router's props to it, so this can be tested with no router at all.
  */
 import { Pressable, Text, View } from 'react-native';
-import { colour } from '../design';
+import { useStores } from './providers';
+import { useColours } from './useColours';
 import { Icon, type IconName } from './Icon';
 import { TAB_BAR_HEIGHT } from './Screen';
 
@@ -32,6 +33,8 @@ export function TabBar(props: {
   onSelect: (key: string) => void;
   className?: string;
 }): React.ReactElement {
+  const stores = useStores();
+  const c = useColours(stores.settings);
   return (
     <View
       className={`flex-row bg-background border-t-hairline border-separator ${props.className ?? ''}`}
@@ -55,7 +58,7 @@ export function TabBar(props: {
           >
             {item.icon ? (
               <View>
-                <Icon name={selected ? item.icon.active : item.icon.idle} size={26} color={selected ? colour.accent : colour.muted} />
+                <Icon name={selected ? item.icon.active : item.icon.idle} size={26} color={selected ? c.accent : c.muted} />
                 {badge === undefined ? null : (
                   <View className="absolute -top-1 -right-3 min-w-5 px-1 rounded-pill bg-accent items-center">
                     <Text className="text-background text-xs font-bold">{badge}</Text>

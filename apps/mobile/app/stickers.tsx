@@ -1,7 +1,7 @@
 /** Stickers (贴纸, M10): listening milestones — earned ones in colour, the rest with how far along you are. */
 import { useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
-import { colour } from '../src/design';
+import { useColours } from '../src/ui/useColours';
 import { Icon } from '../src/ui/Icon';
 import { listMoments } from '../src/me/moments';
 import { stickers, type Sticker } from '../src/me/stickers';
@@ -10,6 +10,7 @@ import { useStores } from '../src/ui/providers';
 
 export default function StickersScreen(): React.ReactElement {
   const stores = useStores();
+  const c = useColours(stores.settings);
   const { api, listener } = useSocial();
   const [list, setList] = useState<Sticker[]>(() => stickers({ listenedMs: 0, finished: 0, moments: listMoments(stores.settings).length, comments: 0 }));
   useEffect(() => {
@@ -29,7 +30,7 @@ export default function StickersScreen(): React.ReactElement {
       <View className="flex-row flex-wrap gap-row">
         {list.map((s) => (
           <View key={s.id} className={`w-[31%] rounded-artwork p-row items-center gap-1 ${s.earned ? 'bg-surface' : 'border border-separator'}`} accessible accessibilityLabel={`${s.title}. ${s.progress}`}>
-            <View className={s.earned ? '' : 'opacity-40'}><Icon name={s.icon} size={28} color={s.earned ? colour.text : colour.muted} /></View>
+            <View className={s.earned ? '' : 'opacity-40'}><Icon name={s.icon} size={28} color={s.earned ? c.text : c.muted} /></View>
             <Text className="text-text text-xs font-semibold text-center" numberOfLines={2}>{s.title}</Text>
             <Text className="text-muted text-xs text-center">{s.progress}</Text>
           </View>

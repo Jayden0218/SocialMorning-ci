@@ -6,7 +6,8 @@
 import { Stack } from 'expo-router';
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
-import { colour, hit } from '../../src/design';
+import { hit } from '../../src/design';
+import { useColours } from '../../src/ui/useColours';
 import { listFavourites } from '../../src/me/favourites';
 import { listMoments } from '../../src/me/moments';
 import { readHistory } from '../../src/search/history';
@@ -19,6 +20,7 @@ const TAP = { minHeight: hit.min, minWidth: hit.min };
 
 export default function CollectedScreen(): React.ReactElement {
   const stores = useStores();
+  const c = useColours(stores.settings);
   const { listener } = useSocial();
   const [open, setOpen] = useState<CollectedItem | undefined>();
   const groups = collectedList({
@@ -58,7 +60,7 @@ export default function CollectedScreen(): React.ReactElement {
                 {open?.count !== undefined ? <Text className="text-accent text-xs mt-1">{open.count} held</Text> : null}
               </View>
               <Pressable onPress={() => setOpen(undefined)} accessibilityRole="button" accessibilityLabel="Close" className="items-center justify-center" style={TAP}>
-                <Icon name="close" size={22} color={colour.muted} />
+                <Icon name="close" size={22} color={c.muted} />
               </Pressable>
             </View>
             <View><Text className="text-muted text-xs">Purpose</Text><Text className="text-text text-sm">{open?.purpose}</Text></View>

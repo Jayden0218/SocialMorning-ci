@@ -17,7 +17,8 @@
 import { Tabs, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
-import { colour, fontSize } from '../../src/design';
+import { fontSize } from '../../src/design';
+import { useColours } from '../../src/ui/useColours';
 import { createFeed } from '../../src/graph/feed';
 import { useSocial } from '../../src/social/context';
 import { MiniPlayer } from '../../src/ui/MiniPlayer';
@@ -29,6 +30,7 @@ import { TABS, TAB_HREF } from '../../src/ui/tabs';
 export default function TabsLayout(): React.ReactElement {
   const router = useRouter();
   const stores = useStores();
+  const c = useColours(stores.settings);
   const { api, listener } = useSocial();
   // M4's unread count followed the Following *link* off the Library. It lives on the
   // *tab* now, so the feature did not leave with the link. Recomputed whenever the
@@ -59,11 +61,11 @@ export default function TabsLayout(): React.ReactElement {
       screenOptions={{
         // The tab screens had no header at all on build 20: the first row sat under the
         // status bar. They get the same chrome as the stack.
-        headerStyle: { backgroundColor: colour.background },
-        headerTintColor: colour.accent,
-        headerTitleStyle: { color: colour.text, fontSize: fontSize.lg, fontWeight: '700' },
+        headerStyle: { backgroundColor: c.background },
+        headerTintColor: c.accent,
+        headerTitleStyle: { color: c.text, fontSize: fontSize.lg, fontWeight: '700' },
         headerShadowVisible: false,
-        sceneStyle: { backgroundColor: colour.background },
+        sceneStyle: { backgroundColor: c.background },
       }}
       tabBar={(props) => {
         const active = props.state.routes[props.state.index]?.name ?? 'index';

@@ -13,7 +13,7 @@
 import { Link, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { FlatList, Pressable, SafeAreaView, Text, View } from 'react-native';
-import { colour } from '../../src/design';
+import { useColours } from '../../src/ui/useColours';
 import { Icon } from '../../src/ui/Icon';
 import { enqueue } from '@socialmorning/player-core';
 import { useDiscover } from '../../src/discover/useDiscover';
@@ -36,6 +36,7 @@ const TAP = { minHeight: hit.min, minWidth: hit.min };
 
 export default function UpdatesScreen(): React.ReactElement {
   const stores = useStores();
+  const c = useColours(stores.settings);
   const router = useRouter();
   const player = usePlayer();
   const downloads = useDownloads();
@@ -78,7 +79,7 @@ export default function UpdatesScreen(): React.ReactElement {
               <Text className="text-text text-lg font-bold" accessibilityRole="header">Updates</Text>
               <Link href="/subscriptions" asChild>
                 <Pressable accessibilityRole="link" accessibilityLabel={`My subscriptions, ${subscribed}`} className="flex-row items-center gap-2 bg-surface rounded-row px-row" style={TAP}>
-                  <Icon name="library-outline" size={18} color={colour.text} />
+                  <Icon name="library-outline" size={18} color={c.text} />
                   <Text className="text-accent text-sm font-semibold">My subscriptions</Text>
                 </Pressable>
               </Link>
@@ -109,8 +110,8 @@ export default function UpdatesScreen(): React.ReactElement {
                 </Pressable>
                 <View className="flex-row items-center mt-1">
                   <Pressable onPress={() => queue(e.id)} accessibilityRole="button" accessibilityLabel={`Add ${e.title} to the queue`} className="justify-center pr-section" style={TAP}><Text className="text-accent text-sm">＋ Queue</Text></Pressable>
-                  <Pressable onPress={() => router.push({ pathname: '/episode/[id]', params: { id: e.id } })} accessibilityRole="button" accessibilityLabel={`Comments on ${e.title}`} className="justify-center pr-section" style={TAP}><Icon name="chatbubble-outline" size={20} color={colour.accent} /></Pressable>
-                  <Pressable onPress={() => download(e.id)} accessibilityRole="button" accessibilityLabel={`Download ${e.title}`} className="justify-center pr-section" style={TAP}><Icon name="download-outline" size={20} color={colour.accent} /></Pressable>
+                  <Pressable onPress={() => router.push({ pathname: '/episode/[id]', params: { id: e.id } })} accessibilityRole="button" accessibilityLabel={`Comments on ${e.title}`} className="justify-center pr-section" style={TAP}><Icon name="chatbubble-outline" size={20} color={c.accent} /></Pressable>
+                  <Pressable onPress={() => download(e.id)} accessibilityRole="button" accessibilityLabel={`Download ${e.title}`} className="justify-center pr-section" style={TAP}><Icon name="download-outline" size={20} color={c.accent} /></Pressable>
                   <View className="flex-1" />
                   <PlayButton title={e.title} onPress={() => play(e.id)} />
                 </View>

@@ -8,7 +8,8 @@ import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { FlatList, Image, Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { pickImages, type PickedImage } from '../../src/feedback/images';
-import { colour, hit } from '../../src/design';
+import { hit } from '../../src/design';
+import { useColours } from '../../src/ui/useColours';
 import { FEEDBACK_KINDS, type FeedbackKind } from '../../src/settings/faq';
 import { FEEDBACK_MAX, feedbackMailto, listFeedback, rememberFeedback, type SentFeedback } from '../../src/settings/feedback';
 import { APPEALS_KEY, refreshAppeals } from '../../src/social/links';
@@ -23,6 +24,7 @@ const TAP = { minHeight: hit.min };
 export default function FeedbackScreen(): React.ReactElement {
   const { api } = useSocial();
   const stores = useStores();
+  const c = useColours(stores.settings);
   const toast = useToast();
   const [tab, setTab] = useState<'write' | 'mine'>('write');
   const [kind, setKind] = useState<FeedbackKind | undefined>();
@@ -83,7 +85,7 @@ export default function FeedbackScreen(): React.ReactElement {
               </Pressable>
             ))}
           </View>
-          <TextInput value={body} onChangeText={setBody} maxLength={FEEDBACK_MAX} multiline placeholder="Write here…" placeholderTextColor={colour.muted} textAlignVertical="top"
+          <TextInput value={body} onChangeText={setBody} maxLength={FEEDBACK_MAX} multiline placeholder="Write here…" placeholderTextColor={c.muted} textAlignVertical="top"
             className="bg-surface rounded-artwork p-section text-text text-sm min-h-40" accessibilityLabel="Your feedback" />
           <ScrollView horizontal contentContainerClassName="gap-row" showsHorizontalScrollIndicator={false}>
             {images.map((img, i) => (

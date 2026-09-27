@@ -5,7 +5,8 @@
 import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
-import { colour, hit } from '../../src/design';
+import { hit } from '../../src/design';
+import { useColours } from '../../src/ui/useColours';
 import { FAQ } from '../../src/settings/faq';
 import { appealsMailto, APPEALS_KEY, refreshAppeals } from '../../src/social/links';
 import { useSocial } from '../../src/social/context';
@@ -19,6 +20,7 @@ const TAP = { minHeight: hit.min + 8 };
 export default function HelpScreen(): React.ReactElement {
   const { api } = useSocial();
   const stores = useStores();
+  const c = useColours(stores.settings);
   const [open, setOpen] = useState<number | undefined>();
   const [appeals, setAppeals] = useState<string | undefined>(() => stores.settings.get(APPEALS_KEY) || undefined);
   useEffect(() => { void refreshAppeals(api, stores).then(setAppeals); }, [api, stores]);
@@ -34,7 +36,7 @@ export default function HelpScreen(): React.ReactElement {
               <Text className="text-text text-sm">{f.q}</Text>
               <Text className="text-muted text-xs">[{f.tag}]</Text>
             </View>
-            <Icon name={open === i ? 'chevron-down' : 'chevron-forward'} size={18} color={colour.muted} />
+            <Icon name={open === i ? 'chevron-down' : 'chevron-forward'} size={18} color={c.muted} />
           </Pressable>
           {open === i ? <Text className="text-muted text-sm pb-section">{f.a}</Text> : null}
         </View>

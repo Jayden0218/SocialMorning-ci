@@ -17,7 +17,8 @@
  */
 import { Link, usePathname } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
-import { colour, hit } from '../design';
+import { hit } from '../design';
+import { useColours } from './useColours';
 import { usePlayer, usePlayerState } from '../playback/store';
 import { useStores } from './providers';
 import { Artwork } from './Artwork';
@@ -58,6 +59,7 @@ export function MiniPlayer(props: { pathname?: string; context?: 'root' | 'tabs'
   const player = usePlayer();
   const state = usePlayerState();
   const stores = useStores();
+  const c = useColours(stores.settings);
   const routerPath = usePathname();
   const path = props.pathname ?? routerPath;
   const context = props.context ?? 'root';
@@ -116,12 +118,12 @@ export function MiniPlayer(props: { pathname?: string; context?: 'root' | 'tabs'
         onPress={() => (isPlaying ? player.pause() : player.play())}
       >
         <ProgressRing progress={progress} size={RING} stroke={3}>
-          <Icon name={isPlaying ? 'pause' : 'play'} size={22} color={colour.text} />
+          <Icon name={isPlaying ? 'pause' : 'play'} size={22} color={c.text} />
         </ProgressRing>
       </Pressable>
       <Link href="/queue" asChild>
         <Pressable accessibilityRole="link" accessibilityLabel="Queue" className="rounded-pill bg-surface items-center justify-center" style={ROUND}>
-          <Icon name="list" size={24} color={colour.accent} />
+          <Icon name="list" size={24} color={c.accent} />
         </Pressable>
       </Link>
     </View>

@@ -5,7 +5,9 @@
  * `primary` fill, cards `surface`.
  */
 import { Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
-import { colour, hit } from '../../design';
+import { hit } from '../../design';
+import { useStores } from '../providers';
+import { useColours } from '../useColours';
 import { Icon } from '../Icon';
 import type { EpisodeCard } from '../../social/api';
 import { Artwork } from '../Artwork';
@@ -91,6 +93,8 @@ export function Pager(props: { count: number; children: (index: number, width: n
  * right scans a QR code.
  */
 export function SearchBar(props: { hint?: string; onPress: () => void; onScan?: () => void }): React.ReactElement {
+  const stores = useStores();
+  const c = useColours(stores.settings);
   return (
     <View className="mx-screen-x flex-row items-center bg-surface rounded-pill">
       <Pressable
@@ -100,12 +104,12 @@ export function SearchBar(props: { hint?: string; onPress: () => void; onScan?: 
         className="flex-1 flex-row items-center gap-2 pl-section pr-row"
         style={TAP}
       >
-        <Icon name="search-outline" size={18} color={colour.muted} />
+        <Icon name="search-outline" size={18} color={c.muted} />
         <Text className="text-muted text-sm flex-1 text-center" numberOfLines={1}>{props.hint ?? 'Search shows and episodes'}</Text>
       </Pressable>
       {props.onScan ? (
         <Pressable onPress={props.onScan} accessibilityRole="button" accessibilityLabel="Scan a QR code" className="items-center justify-center pr-row" style={TAP}>
-          <Icon name="scan-outline" size={22} color={colour.text} />
+          <Icon name="scan-outline" size={22} color={c.text} />
         </Pressable>
       ) : null}
     </View>

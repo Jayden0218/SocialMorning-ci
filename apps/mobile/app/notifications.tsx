@@ -7,7 +7,7 @@
 import { Link, router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, RefreshControl, Text, View } from 'react-native';
-import { colour } from '../src/design';
+import { useColours } from '../src/ui/useColours';
 import { Icon, type IconName } from '../src/ui/Icon';
 import { createFeed, type FeedView } from '../src/graph/feed';
 import { useSafety } from '../src/safety/context';
@@ -19,6 +19,8 @@ import { EmptyPicture } from '../src/ui/me/parts';
 import { useStores } from '../src/ui/providers';
 
 function Card(props: { title: string; line: string; icon: IconName; badge?: number; active?: boolean }): React.ReactElement {
+  const stores = useStores();
+  const c = useColours(stores.settings);
   return (
     <View className={`flex-1 rounded-artwork p-section bg-surface ${props.active ? 'border-2 border-primary' : ''}`} accessible accessibilityLabel={`${props.title}. ${props.badge ? `${props.badge} new. ` : ''}${props.line}`}>
       <View className="flex-row items-center gap-2">
@@ -26,7 +28,7 @@ function Card(props: { title: string; line: string; icon: IconName; badge?: numb
         {props.badge ? <View className="bg-accent rounded-pill min-w-6 h-6 px-1 items-center justify-center"><Text className="text-onPrimary text-xs font-bold">{props.badge > 99 ? '99+' : props.badge}</Text></View> : null}
       </View>
       <Text className="text-muted text-xs mt-1">{props.line}</Text>
-      <View className="self-end mt-row"><Icon name={props.icon} size={24} color={colour.text} /></View>
+      <View className="self-end mt-row"><Icon name={props.icon} size={24} color={c.text} /></View>
     </View>
   );
 }

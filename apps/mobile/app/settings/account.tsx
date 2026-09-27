@@ -10,11 +10,14 @@ import { useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { ApiError } from '../../src/social/api';
 import { useSocial } from '../../src/social/context';
-import { colour } from '../../src/design';
+import { useStores } from '../../src/ui/providers';
+import { useColours } from '../../src/ui/useColours';
 import { Icon } from '../../src/ui/Icon';
 import { OTHER_METHODS } from '../../src/ui/auth/methods';
 
 export default function AccountSecurityScreen(): React.ReactElement {
+  const stores = useStores();
+  const c = useColours(stores.settings);
   const { auth, listener } = useSocial();
   const [confirming, setConfirming] = useState(false);
   const [code, setCode] = useState('');
@@ -60,13 +63,13 @@ export default function AccountSecurityScreen(): React.ReactElement {
       {/* M10 (owner, 2026-09-27), after the reference: the ways you sign in, then deletion.
           SocialNet signs in by an emailed code; Google and Facebook are not set up yet. */}
       <View className="flex-row items-center gap-section min-h-14">
-        <Icon name="mail-outline" size={24} color={colour.accent} />
+        <Icon name="mail-outline" size={24} color={c.accent} />
         <Text className="text-text text-sm flex-1">Email</Text>
         <Text className="text-muted text-xs">{masked || 'Not signed in'}</Text>
       </View>
       {OTHER_METHODS.map((m) => (
         <View key={m.id} className="flex-row items-center gap-section min-h-14" accessible accessibilityLabel={`${m.label.replace('Continue with ', '')}: not set up yet`}>
-          <Icon name={m.icon} size={24} color={colour.muted} />
+          <Icon name={m.icon} size={24} color={c.muted} />
           <Text className="text-text text-sm flex-1">{m.label.replace('Continue with ', '')}</Text>
           <Text className="text-muted text-xs">Not set up yet</Text>
         </View>
@@ -82,7 +85,7 @@ export default function AccountSecurityScreen(): React.ReactElement {
           <Text className="text-text">This removes your comments, reactions and listening positions from every phone. Where someone replied to you, "Comment deleted" stays so their reply still makes sense. This cannot be undone.</Text>
           {codeSent ? (
             <TextInput
-              placeholderTextColor={colour.muted} className="border border-separator rounded-lg p-3 text-sm text-text" placeholder="The 6-digit code we emailed you" keyboardType="number-pad" maxLength={6} value={code} onChangeText={setCode} accessibilityLabel="Code" />
+              placeholderTextColor={c.muted} className="border border-separator rounded-lg p-3 text-sm text-text" placeholder="The 6-digit code we emailed you" keyboardType="number-pad" maxLength={6} value={code} onChangeText={setCode} accessibilityLabel="Code" />
           ) : null}
           {error ? <Text className="text-accent">{error}</Text> : null}
           {codeSent ? (

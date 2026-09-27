@@ -20,6 +20,9 @@ import { Scrubber, scrubberValue } from '../src/ui/Scrubber';
 import { Rail, markerLabel } from '../src/ui/Rail';
 import { HeatCurve, heatLabel } from '../src/ui/HeatCurve';
 import type { Comment } from '../src/social/api';
+// M10b US4: the component reads its palette through useStores(); pin it to light so the
+// colour assertions compare against `colour`, whatever the runner's system scheme is.
+jest.mock('../src/ui/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }) }));
 
 const render = (el: React.ReactElement): ReactTestRenderer => {
   let r!: ReactTestRenderer;

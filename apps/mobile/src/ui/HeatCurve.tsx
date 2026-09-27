@@ -8,7 +8,8 @@
  */
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { colour } from '../design';
+import { useStores } from './providers';
+import { useColours } from './useColours';
 import { EMPTY_STATES } from '@socialmorning/social-core';
 import { mmss } from './format';
 
@@ -48,6 +49,8 @@ export function HeatCurve(props: {
   myBuckets?: number[];
   onSeek: (bucket: number, toMs: number) => void;
 }): React.ReactElement {
+  const stores = useStores();
+  const c = useColours(stores.settings);
   const [width, setWidth] = useState(0);
   const label = heatLabel(props.heat, props.durationMs);
   const message = heatMessage(props.heat);
@@ -77,7 +80,7 @@ export function HeatCurve(props: {
           // buckets in the accent (5.87) — clearly apart from 40 % grey. Height is per bar at
           // runtime; the colour stays a token in `style` because G6 compares it to the token
           // string and `bg-bar` compiles to `#ffffff66`.
-          <View key={i} className="flex-1 rounded-t-[1px]" style={{ height: 2 + v * 26, backgroundColor: mine.has(i) ? colour.accent : colour.bar }} />
+          <View key={i} className="flex-1 rounded-t-[1px]" style={{ height: 2 + v * 26, backgroundColor: mine.has(i) ? c.accent : c.bar }} />
         ))}
       </Pressable>
       {message ? <Text className="text-xs text-muted text-center">{message}</Text> : null}

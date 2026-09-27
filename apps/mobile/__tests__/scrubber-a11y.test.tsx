@@ -5,6 +5,9 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { SCRUB_BACK_MS, SCRUB_FORWARD_MS, Scrubber, scrubberValue } from '../src/ui/Scrubber';
 import { heatLabel, heatMessage } from '../src/ui/HeatCurve';
 import { EMPTY_STATES } from '@socialmorning/social-core';
+// M10b US4: the component reads its palette through useStores(); pin it to light so the
+// colour assertions compare against `colour`, whatever the runner's system scheme is.
+jest.mock('../src/ui/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }) }));
 
 it('the bar fills its row: without an explicit width it collapses in the player\'s centred column (found on the phone)', () => {
   let r!: ReactTestRenderer;

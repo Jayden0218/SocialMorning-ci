@@ -7,8 +7,9 @@ import '../src/design/tailwind';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { LogBox, SafeAreaView } from 'react-native';
-import { colour, fontSize } from '../src/design';
-import { AppProviders } from '../src/ui/providers';
+import { fontSize } from '../src/design';
+import { AppProviders, useStores } from '../src/ui/providers';
+import { useColours } from '../src/ui/useColours';
 import { SocialProvider } from '../src/social/context';
 import { GraphProvider } from '../src/graph/context';
 import { SafetyProvider } from '../src/safety/context';
@@ -24,6 +25,19 @@ export default function RootLayout(): React.ReactElement {
       <SocialProvider>
       <SafetyProvider>
       <GraphProvider>
+      <RootStack />
+      </GraphProvider>
+      </SafetyProvider>
+      </SocialProvider>
+    </AppProviders>
+  );
+}
+
+/** The stack and its chrome. Its own component so it sits inside <AppProviders> and can read the palette. */
+function RootStack(): React.ReactElement {
+  const stores = useStores();
+  const c = useColours(stores.settings);
+  return (
       <SafeAreaView className="flex-1 bg-background">
         <StatusBar style="dark" />
         {/*
@@ -35,11 +49,11 @@ export default function RootLayout(): React.ReactElement {
         <Stack
           screenOptions={{
             headerBackTitle: 'Back',
-            headerStyle: { backgroundColor: colour.background },
-            headerTintColor: colour.accent,
-            headerTitleStyle: { color: colour.text, fontSize: fontSize.base, fontWeight: '700' },
+            headerStyle: { backgroundColor: c.background },
+            headerTintColor: c.accent,
+            headerTitleStyle: { color: c.text, fontSize: fontSize.base, fontWeight: '700' },
             headerShadowVisible: false,
-            contentStyle: { backgroundColor: colour.background },
+            contentStyle: { backgroundColor: c.background },
           }}
         >
           {/* The tab group draws its own header and its own bar (M7 T012). */}
@@ -81,9 +95,5 @@ export default function RootLayout(): React.ReactElement {
         </Stack>
         <MiniPlayer />
       </SafeAreaView>
-      </GraphProvider>
-      </SafetyProvider>
-      </SocialProvider>
-    </AppProviders>
   );
 }

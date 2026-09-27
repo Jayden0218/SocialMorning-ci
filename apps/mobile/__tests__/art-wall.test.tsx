@@ -9,6 +9,9 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { ART_WAIT_MS, ArtWall } from '../src/ui/auth/ArtWall';
 
 jest.mock('expo-linear-gradient', () => ({ LinearGradient: () => null }));
+// M10b US4: the component reads its palette through useStores(); pin it to light so the
+// colour assertions compare against `colour`, whatever the runner's system scheme is.
+jest.mock('../src/ui/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }) }));
 
 const render = (el: React.ReactElement): ReactTestRenderer => { let r!: ReactTestRenderer; act(() => { r = create(el); }); return r; };
 

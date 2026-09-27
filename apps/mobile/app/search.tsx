@@ -20,7 +20,8 @@ import { looksLikeFeedUrl, searchLibrary } from '../src/discover/local-search';
 import { useDiscover } from '../src/discover/useDiscover';
 import { EpisodeRow } from '../src/ui/EpisodeRow';
 import { EmptyState } from '../src/ui/EmptyState';
-import { colour, hit } from '../src/design';
+import { hit } from '../src/design';
+import { useColours } from '../src/ui/useColours';
 import { GENRES } from '../src/discover/genres';
 import { addHistory, clearHistory, readHistory } from '../src/search/history';
 import { suggestions } from '../src/search/suggest';
@@ -33,6 +34,7 @@ type CatalogueState = { kind: 'idle' } | { kind: 'loading' } | { kind: 'ok'; res
 export default function SearchScreen(): React.ReactElement {
   const router = useRouter();
   const stores = useStores();
+  const c = useColours(stores.settings);
   const { api } = useSocial();
   const { open, view } = useDiscover();
   const { hiddenFeeds } = useSafety();
@@ -83,7 +85,7 @@ export default function SearchScreen(): React.ReactElement {
         <View className="flex-1 flex-row items-center bg-surface rounded-row pl-row">
           <View className="w-4 h-4 rounded-pill border-2 border-separator" />
           <TextInput
-            placeholderTextColor={colour.muted} className="flex-1 px-row py-row text-text text-sm" placeholder={params.hint ?? 'Search shows and episodes, or paste a feed URL'} autoCorrect={false} autoFocus returnKeyType="search"
+            placeholderTextColor={c.muted} className="flex-1 px-row py-row text-text text-sm" placeholder={params.hint ?? 'Search shows and episodes, or paste a feed URL'} autoCorrect={false} autoFocus returnKeyType="search"
             value={term} onChangeText={setTerm} onSubmitEditing={() => (term.trim() === '' && params.hint ? searchFor(params.hint) : remember(term))} accessibilityLabel="Search podcasts" />
           <Pressable onPress={() => router.push('/scan')} accessibilityRole="button" accessibilityLabel="Scan a QR code" className="items-center justify-center" style={TAP}>
             <View className="w-5 h-5 border-2 border-muted rounded-sm" />

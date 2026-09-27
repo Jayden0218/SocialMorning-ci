@@ -10,7 +10,8 @@
 import { Link, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, SafeAreaView, ScrollView, Text, View } from 'react-native';
-import { colour, hit } from '../../src/design';
+import { hit } from '../../src/design';
+import { useColours } from '../../src/ui/useColours';
 import { Icon } from '../../src/ui/Icon';
 import { createFeed } from '../../src/graph/feed';
 import { inboxIds } from '../../src/inbox';
@@ -24,6 +25,7 @@ const TAP = { minHeight: hit.min };
 
 export default function MeScreen(): React.ReactElement {
   const stores = useStores();
+  const c = useColours(stores.settings);
   const { api, listener, auth } = useSocial();
   const feed = useMemo(() => createFeed({ api, cache: stores.feedCache, settings: stores.settings, now: () => Date.now() }), [api, stores]);
   const [counts, setCounts] = useState({ unread: 0, moments: 0, inbox: 0 });
@@ -36,7 +38,7 @@ export default function MeScreen(): React.ReactElement {
       <ScrollView contentContainerClassName="px-screen-x pt-section" contentContainerStyle={{ paddingBottom: BOTTOM_INSET }}>
         <Link href="/stickers" asChild>
           <Pressable accessibilityRole="link" accessibilityLabel="Stickers" className="self-start flex-row items-center gap-2 border border-separator rounded-row px-row" style={TAP}>
-            <Icon name="medal-outline" size={18} color={colour.text} />
+            <Icon name="medal-outline" size={18} color={c.text} />
             <Text className="text-accent text-sm font-semibold">Stickers</Text>
           </Pressable>
         </Link>
@@ -60,14 +62,14 @@ export default function MeScreen(): React.ReactElement {
           <View className="w-20 h-20 rounded-pill bg-surface items-center justify-center" accessible={false}>
             {listener
               ? <Text className="text-muted text-lg">{listener.displayName.slice(0, 1).toUpperCase()}</Text>
-              : <Icon name="person-outline" size={32} color={colour.muted} />}
+              : <Icon name="person-outline" size={32} color={c.muted} />}
           </View>
         </View>
 
         <Link href="/moments" asChild>
           <Pressable accessibilityRole="link" accessibilityLabel={`Saved moments, ${counts.moments}. Save a moment while listening and add a note`} className="bg-surface border border-separator rounded-artwork p-section flex-row items-center justify-between mb-section">
             <View className="flex-1">
-              <View className="flex-row items-center gap-1"><Icon name="bookmark-outline" size={16} color={colour.accent} /><Text className="text-accent text-sm font-bold">Saved moments</Text></View>
+              <View className="flex-row items-center gap-1"><Icon name="bookmark-outline" size={16} color={c.accent} /><Text className="text-accent text-sm font-bold">Saved moments</Text></View>
               <Text className="text-muted text-xs mt-1">Save a moment while listening, and add a note</Text>
             </View>
             <Text className="text-accent text-sm font-semibold">{counts.moments > 0 ? `${counts.moments} ›` : 'Open ›'}</Text>

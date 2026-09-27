@@ -11,7 +11,8 @@ import { mb } from '../src/ui/DownloadButton';
 import { useDownloads, useStores } from '../src/ui/providers';
 import type { DownloadRow } from '../src/storage/types';
 import { EmptyState } from '../src/ui/EmptyState';
-import { colour, hit } from '../src/design';
+import { hit } from '../src/design';
+import { useColours } from '../src/ui/useColours';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
 
@@ -20,6 +21,7 @@ const BUDGETS = [200 * 1024 ** 2, 500 * 1024 ** 2, ...[1, 2, 4, 8].map((g) => g 
 export default function DownloadsScreen(): React.ReactElement {
   const downloads = useDownloads();
   const stores = useStores();
+  const c = useColours(stores.settings);
   const [rows, setRows] = useState<DownloadRow[]>(() => stores.downloads.list());
   const [, force] = useState(0);
   const [settings, setSettings] = useState(false);
@@ -45,7 +47,7 @@ export default function DownloadsScreen(): React.ReactElement {
         <>
         <Stack.Screen options={{ headerRight: () => (
           <Pressable onPress={() => setSettings((v) => !v)} accessibilityRole="button" accessibilityLabel="Download settings" accessibilityState={{ expanded: settings }} className="items-center justify-center" style={TAP}>
-            <Icon name="settings-outline" size={22} color={colour.accent} />
+            <Icon name="settings-outline" size={22} color={c.accent} />
           </Pressable>
         ) }} />
         {settings ? (
@@ -60,7 +62,7 @@ export default function DownloadsScreen(): React.ReactElement {
           </View>
           <View className="flex-row gap-3 items-center flex-wrap">
             <Text className="text-[15px] text-text">Allow mobile data</Text>
-            <Switch trackColor={{ false: colour.separator, true: colour.primary }} thumbColor={colour.background} value={downloads.allowMobile()} onValueChange={(v) => downloads.setAllowMobile(v)} accessibilityLabel="Allow mobile data for downloads" accessibilityRole="switch" accessibilityState={{ checked: downloads.allowMobile() }} />
+            <Switch trackColor={{ false: c.separator, true: c.primary }} thumbColor={c.background} value={downloads.allowMobile()} onValueChange={(v) => downloads.setAllowMobile(v)} accessibilityLabel="Allow mobile data for downloads" accessibilityRole="switch" accessibilityState={{ checked: downloads.allowMobile() }} />
           </View>
           <Pressable onPress={() => void downloads.removeFinished()} accessibilityRole="button">
             <Text className="text-accent text-[15px] py-1">Remove finished downloads</Text>
@@ -71,7 +73,7 @@ export default function DownloadsScreen(): React.ReactElement {
       }
       ListEmptyComponent={
         <View className="items-center pt-24 gap-section">
-          <View className="w-28 h-28 rounded-pill bg-surface items-center justify-center" accessible={false}><Icon name="download-outline" size={44} color={colour.muted} /></View>
+          <View className="w-28 h-28 rounded-pill bg-surface items-center justify-center" accessible={false}><Icon name="download-outline" size={44} color={c.muted} /></View>
           <EmptyState surface="downloads" />
         </View>
       }

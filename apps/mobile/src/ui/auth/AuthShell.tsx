@@ -7,7 +7,9 @@
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
 import { Image, KeyboardAvoidingView, Platform, Pressable, SafeAreaView, ScrollView, Text, TextInput, View, type TextInputProps } from 'react-native';
-import { colour, hit, type Colour } from '../../design';
+import { hit, type Colour } from '../../design';
+import { useStores } from '../providers';
+import { useColours } from '../useColours';
 import { Icon, type IconName } from '../Icon';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
@@ -39,9 +41,11 @@ export function AuthShell(props: { title: string; subtitle?: ReactNode; children
 
 /** A grey rounded field with no border, as in the reference. */
 export function AuthField(props: TextInputProps & { accessibilityLabel: string }): React.ReactElement {
+  const stores = useStores();
+  const c = useColours(stores.settings);
   return (
     <TextInput
-      placeholderTextColor={colour.muted}
+      placeholderTextColor={c.muted}
       {...props}
       accessibilityLabel={props.accessibilityLabel}
       className="bg-surface rounded-row px-section text-sm text-text"
@@ -63,6 +67,8 @@ export type AuthMark = { icon: IconName; tint?: Colour } | 'google';
  * button, whatever its length (owner, 2026-09-27).
  */
 export function AuthButton(props: { label: string; disabled: boolean; busy?: boolean; outline?: boolean; mark?: AuthMark; onPress: () => void }): React.ReactElement {
+  const stores = useStores();
+  const c = useColours(stores.settings);
   return (
     <Pressable
       onPress={props.onPress}
@@ -77,7 +83,7 @@ export function AuthButton(props: { label: string; disabled: boolean; busy?: boo
         <View className="absolute left-section top-0 bottom-0 justify-center">
           {props.mark === 'google'
             ? <Image source={GOOGLE_G} style={MARK} accessibilityIgnoresInvertColors />
-            : <Icon name={props.mark.icon} size={20} color={colour[props.mark.tint ?? (props.outline ? 'text' : 'onPrimary')]} />}
+            : <Icon name={props.mark.icon} size={20} color={c[props.mark.tint ?? (props.outline ? 'text' : 'onPrimary')]} />}
         </View>
       ) : null}
       <Text className={props.outline ? 'text-text text-sm font-semibold' : 'text-onPrimary text-sm font-semibold'}>{props.busy ? '…' : props.label}</Text>

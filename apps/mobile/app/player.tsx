@@ -50,12 +50,14 @@ import { EndOffer } from '../src/ui/EndOffer';
 import { endOffer } from '../src/discover/end-offer';
 import { toPlayable } from '../src/storage/playable';
 import { useDiscover } from '../src/discover/useDiscover';
-import { colour, tabular } from '../src/design';
+import { tabular } from '../src/design';
+import { useColours } from '../src/ui/useColours';
 
 export default function PlayerScreen(): React.ReactElement {
   const player = usePlayer();
   const state = usePlayerState();
   const stores = useStores();
+  const c = useColours(stores.settings);
   const { composer, reactToggle, refresh, useEpisodeSocial, listener, bump } = useSocial();
   const [composing, setComposing] = useState<ComposerState | undefined>();
   const [myBuckets, setMyBuckets] = useState<number[] | undefined>();
@@ -159,9 +161,9 @@ export default function PlayerScreen(): React.ReactElement {
     <LinearGradient colors={[...gradientFor()]} className={FILL}>
     <SafeAreaView className="flex-1">
     <TopBar back="down" onBack={close}>
-      <BarButton label="Clip the last 30 seconds" onPress={clip}><Icon name="cut-outline" size={24} color={colour.text} /></BarButton>
+      <BarButton label="Clip the last 30 seconds" onPress={clip}><Icon name="cut-outline" size={24} color={c.text} /></BarButton>
       <BarButton label="Share this episode" onPress={() => { void Share.share({ message: `${episode?.title ?? ''} — ${show?.title ?? ''}\n${episode?.enclosureUrl ?? ''}` }).catch(() => undefined); }}>
-        <Icon name="share-outline" size={24} color={colour.text} />
+        <Icon name="share-outline" size={24} color={c.text} />
       </BarButton>
     </TopBar>
     {/* Grows to the screen and spreads out; scrolls only when a large font needs it. */}
@@ -240,10 +242,10 @@ export default function PlayerScreen(): React.ReactElement {
 
       <View className="flex-row items-center justify-between">
         <Pressable onPress={() => setMore(true)} accessibilityRole="button" accessibilityLabel={`Speed ${rate.toFixed(1)}×, sleep timer and chapters`} className={ROUND}>
-          {Math.abs(rate - 1) < 0.01 ? <Icon name="speedometer-outline" size={28} color={colour.muted} /> : <Text className="text-sm font-bold text-text">{rate.toFixed(1)}×</Text>}
+          {Math.abs(rate - 1) < 0.01 ? <Icon name="speedometer-outline" size={28} color={c.muted} /> : <Text className="text-sm font-bold text-text">{rate.toFixed(1)}×</Text>}
         </Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Skip back 15 seconds" onPress={() => player.skip(-15_000)} className={ROUND}>
-          <View style={MIRROR}><Icon name="refresh-outline" size={44} color={colour.text} /></View>
+          <View style={MIRROR}><Icon name="refresh-outline" size={44} color={c.text} /></View>
           <Text className={SKIP_NUMBER}>15</Text>
         </Pressable>
         <Pressable
@@ -252,10 +254,10 @@ export default function PlayerScreen(): React.ReactElement {
           accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
           onPress={() => (isPlaying ? player.pause() : player.play())}
         >
-          <Icon name={isPlaying ? 'pause' : 'play'} size={64} color={colour.text} />
+          <Icon name={isPlaying ? 'pause' : 'play'} size={64} color={c.text} />
         </Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Skip forward 30 seconds" onPress={() => player.skip(30_000)} className={ROUND}>
-          <Icon name="refresh-outline" size={44} color={colour.text} />
+          <Icon name="refresh-outline" size={44} color={c.text} />
           <Text className={SKIP_NUMBER}>30</Text>
         </Pressable>
         <Pressable
@@ -271,20 +273,20 @@ export default function PlayerScreen(): React.ReactElement {
           }}
         >
           {/* Filled vs outline, and the name — never hue alone (FR-016). */}
-          <Icon name={reacted ? 'thumbs-up' : 'thumbs-up-outline'} size={30} color={reacted ? colour.accent : colour.muted} />
+          <Icon name={reacted ? 'thumbs-up' : 'thumbs-up-outline'} size={30} color={reacted ? c.accent : c.muted} />
         </Pressable>
       </View>
 
       <View className="flex-row items-center justify-between">
         <BarButton label="About this episode" onPress={() => router.push({ pathname: '/episode/[id]', params: { id: state.episodeId } })}>
-          <Icon name="information-circle-outline" size={30} color={colour.muted} />
+          <Icon name="information-circle-outline" size={30} color={c.muted} />
         </BarButton>
         <Pressable onPress={() => router.push('/queue')} accessibilityRole="button" accessibilityLabel="Playlist" className="flex-row items-center gap-2 px-section rounded-row bg-surface" style={{ minHeight: TAP.minHeight }}>
-          <Icon name="list" size={20} color={colour.muted} />
+          <Icon name="list" size={20} color={c.muted} />
           <Text className="text-sm text-muted">Playlist</Text>
         </Pressable>
         <Pressable onPress={commentHere} accessibilityRole="button" accessibilityLabel="Comment at this moment" className="flex-row items-end justify-center" style={TAP}>
-          <Icon name="chatbox-ellipses-outline" size={28} color={colour.muted} />
+          <Icon name="chatbox-ellipses-outline" size={28} color={c.muted} />
           <Text className="text-xs text-muted">{commentCount}</Text>
         </Pressable>
       </View>

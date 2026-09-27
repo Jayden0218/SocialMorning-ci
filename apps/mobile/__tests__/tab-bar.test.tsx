@@ -11,6 +11,9 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { colour, hit } from '../src/design';
 import { TabBar } from '../src/ui/TabBar';
 import { TAB_BAR_HEIGHT } from '../src/ui/Screen';
+// M10b US4: the component reads its palette through useStores(); pin it to light so the
+// colour assertions compare against `colour`, whatever the runner's system scheme is.
+jest.mock('../src/ui/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }) }));
 
 const ITEMS = [
   { key: 'index', label: 'Library' },

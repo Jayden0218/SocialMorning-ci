@@ -6,7 +6,7 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
-import { colour } from '../src/design';
+import { useColours } from '../src/ui/useColours';
 import { deleteMoment, editMoment, listMoments, NOTE_MAX, type Moment } from '../src/me/moments';
 import { usePlayer } from '../src/playback/store';
 import { toPlayable } from '../src/storage/playable';
@@ -16,6 +16,7 @@ import { useStores, useToast } from '../src/ui/providers';
 
 export default function MomentsScreen(): React.ReactElement {
   const stores = useStores();
+  const c = useColours(stores.settings);
   const player = usePlayer();
   const toast = useToast();
   const [rows, setRows] = useState<Moment[]>(() => listMoments(stores.settings));
@@ -48,7 +49,7 @@ export default function MomentsScreen(): React.ReactElement {
             </Pressable>
             {editing?.id === item.id ? (
               <>
-                <TextInput value={editing.note} onChangeText={(note) => setEditing({ id: item.id, note })} maxLength={NOTE_MAX} multiline placeholder="Your note" placeholderTextColor={colour.muted}
+                <TextInput value={editing.note} onChangeText={(note) => setEditing({ id: item.id, note })} maxLength={NOTE_MAX} multiline placeholder="Your note" placeholderTextColor={c.muted}
                   className="bg-background rounded-row p-row text-text text-sm" accessibilityLabel="Note" />
                 <View className="flex-row gap-section">
                   <Pressable onPress={() => { editMoment(stores.settings, item.id, editing.note); setEditing(undefined); reload(); }} accessibilityRole="button" accessibilityLabel="Save note" className="min-h-12 justify-center"><Text className="text-accent text-sm">Save</Text></Pressable>

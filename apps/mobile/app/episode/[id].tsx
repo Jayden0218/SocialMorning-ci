@@ -10,7 +10,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Modal, Pressable, SafeAreaView, ScrollView, Share, Text, View } from 'react-native';
 import { enqueue } from '@socialmorning/player-core';
-import { colour } from '../../src/design';
+import { useColours } from '../../src/ui/useColours';
 import { Icon } from '../../src/ui/Icon';
 import { usePlayer, usePlayerState } from '../../src/playback/store';
 import { ago, htmlToText, minutesLabel, mmss, timestampParts } from '../../src/ui/format';
@@ -33,6 +33,7 @@ import { useDiscover } from '../../src/discover/useDiscover';
 
 export default function EpisodeScreen(): React.ReactElement {
   const stores = useStores();
+  const c = useColours(stores.settings);
   const player = usePlayer();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -120,10 +121,10 @@ export default function EpisodeScreen(): React.ReactElement {
           <Text className={subscribed ? 'text-sm font-semibold px-row py-2 rounded-row bg-surface text-muted' : 'text-sm font-semibold px-row py-2 rounded-row bg-surface text-text'}>{subscribed ? 'Subscribed' : '+ Subscribe'}</Text>
         </Pressable>
         <BarButton label="Share this episode" onPress={() => { void Share.share({ message: `${episode.title} — ${show?.title ?? ''}\n${episode.enclosureUrl}` }).catch(() => undefined); }}>
-          <Icon name="share-outline" size={24} color={colour.text} />
+          <Icon name="share-outline" size={24} color={c.text} />
         </BarButton>
         <BarButton label="More: play next, download, save a moment" onPress={() => setMore(true)}>
-          <Icon name="ellipsis-horizontal" size={24} color={colour.text} />
+          <Icon name="ellipsis-horizontal" size={24} color={c.text} />
         </BarButton>
       </TopBar>
       <ScrollView ref={scroll} contentContainerClassName="px-screen-x pb-24">
@@ -140,7 +141,7 @@ export default function EpisodeScreen(): React.ReactElement {
               router.push('/player');
             }}
           >
-            <Icon name={playing ? 'pause' : 'play'} size={26} color={colour.text} />
+            <Icon name={playing ? 'pause' : 'play'} size={26} color={c.text} />
           </Pressable>
         </View>
         {show === undefined ? null : (
@@ -152,23 +153,23 @@ export default function EpisodeScreen(): React.ReactElement {
             style={TAP}
           >
             <Text className="text-sm text-text">{show.title}</Text>
-            <Icon name="chevron-forward" size={16} color={colour.text} />
+            <Icon name="chevron-forward" size={16} color={c.text} />
           </Pressable>
         )}
         <View className="flex-row items-center">
           <Text className="flex-1 text-sm text-muted" numberOfLines={1}>{meta}</Text>
           <BarButton label="Add to queue" onPress={addToQueue}>
-            <Icon name="list-outline" size={24} color={colour.text} />
+            <Icon name="list-outline" size={24} color={c.text} />
           </BarButton>
           <BarButton label={`Comments, ${commentCount}`} onPress={() => scroll.current?.scrollTo({ y: commentsY, animated: true })}>
             <View className="flex-row items-end">
-              <Icon name="chatbox-ellipses-outline" size={24} color={colour.text} />
+              <Icon name="chatbox-ellipses-outline" size={24} color={c.text} />
               <Text className="text-xs text-text">{commentCount}</Text>
             </View>
           </BarButton>
           <Pressable onPress={() => setFav(toggleFavourite(stores.settings, episode.id, Date.now()))} accessibilityRole="button" accessibilityState={{ selected: fav }} accessibilityLabel={fav ? 'Remove from favourites' : 'Add to favourites'} className="items-center justify-center" style={TAP}>
             {/* Filled vs outline, and the name — never hue alone (FR-016). */}
-            <Icon name={fav ? 'heart' : 'heart-outline'} size={24} color={fav ? colour.accent : colour.text} />
+            <Icon name={fav ? 'heart' : 'heart-outline'} size={24} color={fav ? c.accent : c.text} />
           </Pressable>
         </View>
         <View className="h-px bg-separator mt-row mb-section" />

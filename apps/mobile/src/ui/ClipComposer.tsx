@@ -8,7 +8,9 @@ import { Pressable, Text, TextInput, View } from 'react-native';
 import { usePlayer, usePlayerState, type PlayableEpisode } from '../playback/store';
 import { canSave, endHere, nudgeEdge, openComposer, problemText, setCaption, startHere, type ComposerState } from '../graph/composer';
 import { mmss } from './format';
-import { colour, tabular } from '../design';
+import { tabular } from '../design';
+import { useStores } from './providers';
+import { useColours } from './useColours';
 
 export type ClipComposerProps = {
   episode: PlayableEpisode;
@@ -18,6 +20,8 @@ export type ClipComposerProps = {
 };
 
 export function ClipComposer(props: ClipComposerProps): React.ReactElement {
+  const stores = useStores();
+  const c = useColours(stores.settings);
   const player = usePlayer();
   const state = usePlayerState();
   const position: number = 'positionMs' in state && typeof state.positionMs === 'number' ? state.positionMs : props.initialPositionMs;
@@ -40,7 +44,7 @@ export function ClipComposer(props: ClipComposerProps): React.ReactElement {
       </View>
       {s.problem ? <Text className="text-accent">{problemText[s.problem]}</Text> : null}
       <TextInput
-        placeholderTextColor={colour.muted}
+        placeholderTextColor={c.muted}
         className="border border-separator rounded-lg p-2.5 min-h-[60px] text-sm text-text"
         placeholder="Caption (optional)"
         value={s.caption}

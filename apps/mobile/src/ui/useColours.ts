@@ -7,6 +7,7 @@
  */
 import { useColorScheme } from 'react-native';
 import { colour, colourDark, type Palette } from '../design';
+import { DARK_READY } from '../design/theme';
 import type { SettingsStore } from '../storage/types';
 
 export type Appearance = 'system' | 'light' | 'dark';
@@ -25,5 +26,7 @@ export function paletteFor(appearance: Appearance, system: 'light' | 'dark' | nu
 
 export function useColours(settings: Pick<SettingsStore, 'get'>): Palette {
   const system = useColorScheme();
+  // Until the class side flips too (M9), every JS reader stays on the light palette.
+  if (!DARK_READY) return colour;
   return paletteFor(readAppearance(settings), system === 'dark' || system === 'light' ? system : null);
 }

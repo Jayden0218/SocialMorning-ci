@@ -7,6 +7,9 @@ const mockReport = jest.fn<'hidden' | 'sign_in' | 'own', unknown[]>(() => 'hidde
 const mockPush = jest.fn();
 jest.mock('expo-router', () => ({ router: { push: (...a: unknown[]) => mockPush(...a) } }));
 jest.mock('../src/safety/context', () => ({ useSafety: () => ({ safety: { report: (...a: unknown[]) => mockReport(...a) } }), announce: jest.fn() }));
+// M10b US4: the component reads its palette through useStores(); pin it to light so the
+// colour assertions compare against `colour`, whatever the runner's system scheme is.
+jest.mock('../src/ui/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }) }));
 const report = mockReport;
 const push = mockPush;
 

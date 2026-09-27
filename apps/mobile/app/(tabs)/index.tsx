@@ -10,7 +10,7 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Image, RefreshControl, SafeAreaView, ScrollView, Text, View } from 'react-native';
-import { colour } from '../../src/design';
+import { useColours } from '../../src/ui/useColours';
 import { buildModel } from '../../src/discover/sections';
 import { HINT_EVERY_MS, hintAt, trendingHints } from '../../src/discover/trending';
 import { Loader } from '../../src/ui/Loader';
@@ -33,6 +33,7 @@ const ICON = { width: 36, height: 36 };
 export default function DiscoverScreen(): React.ReactElement {
   const router = useRouter();
   const stores = useStores();
+  const c = useColours(stores.settings);
   const { view, refreshing, refresh, open, play } = useDiscover();
   const { listener } = useSocial();
   const { sets, hiddenFeeds, version } = useSafety();
@@ -62,7 +63,7 @@ export default function DiscoverScreen(): React.ReactElement {
     <SafeAreaView className="flex-1 bg-background">
       <ScrollView
         contentContainerStyle={{ paddingBottom: BOTTOM_INSET }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refreshBoth()} tintColor={colour.accent} colors={[colour.accent]} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refreshBoth()} tintColor={c.accent} colors={[c.accent]} />}
       >
         {/* Owner, 2026-09-27: less space above the title. */}
         <View className="flex-row items-center justify-between px-screen-x pt-1 pb-2">

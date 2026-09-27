@@ -8,7 +8,7 @@
  */
 import { useCallback, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
-import { colour } from '../../src/design';
+import { useColours } from '../../src/ui/useColours';
 import { Icon } from '../../src/ui/Icon';
 import { Loader } from '../../src/ui/Loader';
 import { Link, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
@@ -18,6 +18,7 @@ import { FollowButton } from '../../src/ui/FollowButton';
 import { BlockButton } from '../../src/ui/BlockButton';
 import { hms } from '../../src/ui/StatsBlock';
 import { Artwork } from '../../src/ui/Artwork';
+import { countryName } from '../../src/ui/country';
 import { useStores } from '../../src/ui/providers';
 import { listeningHistory } from '../../src/me/history';
 import { listMoments } from '../../src/me/moments';
@@ -34,6 +35,7 @@ export default function ProfileScreen(): React.ReactElement {
   const { api, listener } = useSocial();
   const { safety, version, feed } = useSafety();
   const stores = useStores();
+  const c = useColours(stores.settings);
   const [profile, setProfile] = useState<Profile | undefined>();
   const [error, setError] = useState<string | undefined>();
   const [reporting, setReporting] = useState<ReportTarget | undefined>();
@@ -77,6 +79,8 @@ export default function ProfileScreen(): React.ReactElement {
         <View className="flex-1 pr-row">
           <Text className="text-text text-lg font-bold" accessibilityRole="header">{profile.displayName}</Text>
           {own ? <Text className="text-muted text-xs mt-1">This is you</Text> : null}
+          {/* M10b US7: "IP location" — the country from the last sign-in, public (the privacy policy says so). */}
+          {profile.country ? <Text className="text-muted text-xs mt-1">{`IP location: ${countryName(profile.country)}`}</Text> : null}
         </View>
         <View className="items-end gap-row">
           <View className="w-20 h-20 rounded-pill bg-surface items-center justify-center" accessible={false}>
@@ -134,7 +138,7 @@ export default function ProfileScreen(): React.ReactElement {
                 <Text className="text-text text-sm font-bold">{earned.filter((x) => x.earned).length} stickers ›</Text>
                 <Text className="text-muted text-xs">{latest ? `Latest: ${latest.title}` : 'Listen for an hour to earn the first'}</Text>
               </View>
-              <View className="flex-row gap-1">{earned.filter((x) => x.earned).slice(-3).map((x) => <Icon key={x.id} name={x.icon} size={22} color={colour.text} />)}</View>
+              <View className="flex-row gap-1">{earned.filter((x) => x.earned).slice(-3).map((x) => <Icon key={x.id} name={x.icon} size={22} color={c.text} />)}</View>
             </Pressable>
           </Link>
         </>

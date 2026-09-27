@@ -12,7 +12,9 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, Easing, Pressable, SafeAreaView, Text, View, useWindowDimensions } from 'react-native';
-import { colour, hit } from '../src/design';
+import { hit } from '../src/design';
+import { useStores } from '../src/ui/providers';
+import { useColours } from '../src/ui/useColours';
 import { apiBaseUrl } from '../src/social/base-url';
 import { scanTarget } from '../src/search/scan';
 import { Button } from '../src/ui/Button';
@@ -71,6 +73,8 @@ function ScanLine(props: { size: number }): React.ReactElement {
 }
 
 export default function ScanScreen(): React.ReactElement {
+  const stores = useStores();
+  const c = useColours(stores.settings);
   const router = useRouter();
   const [permission, ask] = useCameraPermissions();
   const [torch, setTorch] = useState(false);
@@ -84,12 +88,12 @@ export default function ScanScreen(): React.ReactElement {
       <SafeAreaView className="flex-1 bg-background">
         <View className="flex-row justify-end px-row">
           <Pressable onPress={() => close(router)} accessibilityRole="button" accessibilityLabel="Close" className="items-center justify-center" style={TAP}>
-            <Icon name="close" size={26} color={colour.muted} />
+            <Icon name="close" size={26} color={c.muted} />
           </Pressable>
         </View>
         <View className="flex-1 px-screen-x items-center justify-center gap-section">
           <View className="w-28 h-28 rounded-pill bg-surface items-center justify-center">
-            <Icon name="qr-code-outline" size={48} color={colour.text} />
+            <Icon name="qr-code-outline" size={48} color={c.text} />
           </View>
           <Text className="text-text text-lg font-bold text-center" accessibilityRole="header">Scan a QR code</Text>
           <Text className="text-muted text-sm text-center">SocialNet needs the camera to read a QR code. It is used only on this screen, and nothing is recorded.</Text>
@@ -136,7 +140,7 @@ export default function ScanScreen(): React.ReactElement {
       <SafeAreaView className="absolute left-0 right-0 top-0">
         <View className="flex-row items-center px-row">
           <Pressable onPress={() => close(router)} accessibilityRole="button" accessibilityLabel="Close" className="items-center justify-center" style={TAP}>
-            <Icon name="close" size={28} color={colour.onPrimary} />
+            <Icon name="close" size={28} color={c.onPrimary} />
           </Pressable>
           <Text className="flex-1 text-center text-onPrimary text-base font-bold" accessibilityRole="header">Scan QR code</Text>
           <View style={TAP} />
@@ -151,7 +155,7 @@ export default function ScanScreen(): React.ReactElement {
           className={`w-14 h-14 rounded-pill items-center justify-center mb-section ${torch ? 'bg-onPrimary' : 'bg-scrim'}`}
           style={TAP}
         >
-          <Icon name="flashlight-outline" size={24} color={torch ? colour.text : colour.onPrimary} />
+          <Icon name="flashlight-outline" size={24} color={torch ? c.text : c.onPrimary} />
         </Pressable>
       </SafeAreaView>
     </View>

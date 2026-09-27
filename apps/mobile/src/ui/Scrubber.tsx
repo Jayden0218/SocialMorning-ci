@@ -5,7 +5,8 @@
  */
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
-import { colour } from '../design';
+import { useStores } from './providers';
+import { useColours } from './useColours';
 import { mmss } from './format';
 
 export const SCRUB_FORWARD_MS = 30_000;
@@ -24,6 +25,8 @@ export function Scrubber(props: {
   /** The same ±15 / +30 the buttons use; the player's `skip` takes that exact union. */
   onSkip: (deltaMs: 30_000 | -15_000) => void;
 }): React.ReactElement {
+  const stores = useStores();
+  const c = useColours(stores.settings);
   const [barWidth, setBarWidth] = useState(0);
   const fraction = props.durationMs === undefined || props.durationMs === 0 ? 0 : props.positionMs / props.durationMs;
   return (
@@ -40,7 +43,7 @@ export function Scrubber(props: {
       // `style`: two tests read them off this element's own props, and `bg-track` compiles to
       // `#ffffff2e`, not the token's `rgba(...)` string they compare against.
       className="rounded overflow-hidden mt-2"
-      style={{ width: '100%', height: 8, backgroundColor: colour.track }}
+      style={{ width: '100%', height: 8, backgroundColor: c.track }}
       onLayout={(event) => setBarWidth(event.nativeEvent.layout.width)}
       onPress={(event) => {
         if (props.durationMs === undefined || barWidth === 0) return;

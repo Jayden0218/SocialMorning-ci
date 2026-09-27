@@ -9,7 +9,8 @@ import { router } from 'expo-router';
 import { REPORT_NOTE_MAX, REPORT_REASONS, type ReportReason } from '@socialmorning/social-core';
 import { announce, useSafety } from '../safety/context';
 import type { HiddenKind } from '../storage/types';
-import { colour } from '../design';
+import { useStores } from './providers';
+import { useColours } from './useColours';
 
 export const REASON_LABEL: Record<ReportReason, string> = {
   spam: 'Spam', harassment: 'Harassment', hate: 'Hate', sexual: 'Sexual content', violence: 'Violence', illegal: 'Illegal content', other: 'Something else',
@@ -18,6 +19,8 @@ export const REASON_LABEL: Record<ReportReason, string> = {
 export type ReportTarget = { kind: HiddenKind; id: string; authorId: string | null; label: string };
 
 export function ReportSheet(props: { target: ReportTarget | undefined; onClose: () => void; onReported?: () => void }): React.ReactElement {
+  const stores = useStores();
+  const c = useColours(stores.settings);
   const { safety } = useSafety();
   const [reason, setReason] = useState<ReportReason | undefined>();
   const [note, setNote] = useState('');
@@ -48,7 +51,7 @@ export function ReportSheet(props: { target: ReportTarget | undefined; onClose: 
             ))}
           </ScrollView>
           <TextInput
-        placeholderTextColor={colour.muted} className="border border-separator rounded-lg p-2.5 min-h-16 align-top text-text" placeholder="Anything to add? (optional)" value={note} onChangeText={(t) => setNote(t.slice(0, REPORT_NOTE_MAX))} multiline maxLength={REPORT_NOTE_MAX} accessibilityLabel="Note, optional" />
+        placeholderTextColor={c.muted} className="border border-separator rounded-lg p-2.5 min-h-16 align-top text-text" placeholder="Anything to add? (optional)" value={note} onChangeText={(t) => setNote(t.slice(0, REPORT_NOTE_MAX))} multiline maxLength={REPORT_NOTE_MAX} accessibilityLabel="Note, optional" />
           <Text className="text-muted text-xs text-right">{note.length} / {REPORT_NOTE_MAX}</Text>
           <View className="flex-row justify-end gap-3">
             <Pressable onPress={close} accessibilityRole="button" accessibilityLabel="Cancel" className="py-3 px-4 min-h-12 justify-center"><Text className="text-accent text-sm">Cancel</Text></Pressable>

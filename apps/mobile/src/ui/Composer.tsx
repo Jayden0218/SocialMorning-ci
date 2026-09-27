@@ -8,13 +8,16 @@ import { KeyboardAvoidingView, Modal, Platform, Pressable, Text, TextInput, View
 import { mmss } from './format';
 import { useSocial } from '../social/context';
 import type { ComposerState } from '../social/composer';
-import { colour } from '../design';
+import { useStores } from './providers';
+import { useColours } from './useColours';
 
 export function ComposerSheet(props: {
   initial: ComposerState;
   onClose: () => void;
   onPosted: () => void;
 }): React.ReactElement {
+  const stores = useStores();
+  const c = useColours(stores.settings);
   const { composer, bump } = useSocial();
   const [state, setState] = useState<ComposerState>(props.initial);
   const [error, setError] = useState<string | undefined>();
@@ -57,7 +60,7 @@ export function ComposerSheet(props: {
             <Text className={length > 2000 ? 'text-accent' : 'text-muted'}>{length} / 2000</Text>
           </View>
           <TextInput
-        placeholderTextColor={colour.muted}
+        placeholderTextColor={c.muted}
             className="min-h-[90px] max-h-[200px] border border-separator rounded-lg p-2.5 text-sm align-top text-text"
             multiline
             autoFocus

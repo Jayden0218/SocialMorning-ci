@@ -6,7 +6,8 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef } from 'react';
 import { Image, View, useWindowDimensions } from 'react-native';
-import { colour } from '../../design';
+import { useStores } from '../providers';
+import { useColours } from '../useColours';
 
 /** x, y and size as fractions of the screen width. Overlaps are on purpose. */
 const SPOTS = [
@@ -27,6 +28,8 @@ export const ART_WAIT_MS = 1500;
  * so the page can appear whole instead of cover by cover (owner, 2026-09-27).
  */
 export function ArtWall(props: { urls: string[]; onReady?: () => void }): React.ReactElement {
+  const stores = useStores();
+  const c = useColours(stores.settings);
   const { width } = useWindowDimensions();
   const height = width * 1.02;
   const settled = useRef(0);
@@ -56,7 +59,7 @@ export function ArtWall(props: { urls: string[]; onReady?: () => void }): React.
           />
         );
       })}
-      <LinearGradient colors={[colour.clear, colour.background]} className="absolute left-0 right-0 bottom-0" style={{ height: height * 0.35 }} />
+      <LinearGradient colors={[c.clear, c.background]} className="absolute left-0 right-0 bottom-0" style={{ height: height * 0.35 }} />
     </View>
   );
 }

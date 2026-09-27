@@ -27,6 +27,8 @@ jest.mock('../src/playback/store', () => ({
 }));
 jest.mock('../src/ui/providers', () => ({
   useStores: () => ({
+    // M10b US4: MiniPlayer and its ProgressRing read the palette; pin it to light.
+    settings: { get: () => 'light' },
     feeds: {
       getEpisode: (id: string) =>
         id === 'e1'

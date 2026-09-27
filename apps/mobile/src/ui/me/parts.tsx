@@ -5,17 +5,21 @@
  */
 import { Link } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
-import { colour, hit } from '../../design';
+import { hit } from '../../design';
+import { useStores } from '../providers';
+import { useColours } from '../useColours';
 import { Icon, type IconName } from '../Icon';
 
 const TAP = { minHeight: hit.min + 8 };
 
 export function MenuRow(props: { href: string; icon: IconName; label: string; note?: string; badge?: number }): React.ReactElement {
+  const stores = useStores();
+  const c = useColours(stores.settings);
   const spoken = [props.label, props.badge ? `${props.badge} new` : undefined, props.note].filter(Boolean).join(', ');
   return (
     <Link href={props.href as never} asChild>
       <Pressable accessibilityRole="link" accessibilityLabel={spoken} className="flex-row items-center gap-section" style={TAP}>
-        <View className="w-7 items-center"><Icon name={props.icon} size={22} color={colour.text} /></View>
+        <View className="w-7 items-center"><Icon name={props.icon} size={22} color={c.text} /></View>
         <Text className="text-text text-sm flex-1">{props.label}</Text>
         {props.note ? <Text className="text-muted text-xs" numberOfLines={1}>{props.note}</Text> : null}
         {props.badge ? (
@@ -28,9 +32,11 @@ export function MenuRow(props: { href: string; icon: IconName; label: string; no
 }
 
 export function EmptyPicture(props: { icon: IconName; line: string }): React.ReactElement {
+  const stores = useStores();
+  const c = useColours(stores.settings);
   return (
     <View className="flex-1 items-center justify-center py-24 gap-section" accessible accessibilityLabel={props.line}>
-      <View className="w-28 h-28 rounded-pill bg-surface items-center justify-center"><Icon name={props.icon} size={44} color={colour.muted} /></View>
+      <View className="w-28 h-28 rounded-pill bg-surface items-center justify-center"><Icon name={props.icon} size={44} color={c.muted} /></View>
       <Text className="text-muted text-sm">{props.line}</Text>
     </View>
   );
