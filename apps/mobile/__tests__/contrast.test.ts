@@ -4,7 +4,9 @@
  * contrast drops, this is what says so.
  */
 import { colour } from '../src/design/tokens';
-import { BODY_MIN, LARGE_MIN, PAIRS, WAIVED, contrastRatio, failures, relativeLuminance } from '../src/design/contrast';
+import { BODY_MIN, LARGE_MIN, PAIRS, PAIRS_DARK, WAIVED, contrastRatio, failures, relativeLuminance } from '../src/design/contrast';
+import { colour as lightColour, colourDark } from '../src/design/tokens';
+import { paletteFor } from '../src/ui/useColours';
 
 const round = (n: number) => Math.round(n * 100) / 100;
 
@@ -48,4 +50,27 @@ it('the owner\'s waiver is exactly one pair, pinned at its measured ratio', () =
   expect(round(contrastRatio(WAIVED[0]!.fg, WAIVED[0]!.bg))).toBe(1.6);
   expect(WAIVED[0]!.fg).toBe(colour.onPrimary);
   expect(WAIVED[0]!.bg).toBe(colour.primary);
+});
+
+
+/**
+ * M10b US4 — the dark palette. Guard G-D1: the break that turns this red is lightening one
+ * dark text token (e.g. `colourDark.muted` to '#55585e') in `src/design/tokens.ts`.
+ */
+it('G-D1: every dark pair clears its floor', () => {
+  expect(failures(PAIRS_DARK)).toEqual([]);
+  expect(PAIRS_DARK.length).toBe(8);
+});
+
+it('the dark palette has exactly the light one\'s keys (M9 writes CSS variables from both)', () => {
+  expect(Object.keys(colourDark).sort()).toEqual(Object.keys(lightColour).sort());
+  for (const v of Object.values(colourDark)) expect(typeof v).toBe('string');
+});
+
+it('Appearance: the setting wins; System follows the phone', () => {
+  expect(paletteFor('dark', 'light')).toBe(colourDark);
+  expect(paletteFor('light', 'dark')).toBe(lightColour);
+  expect(paletteFor('system', 'dark')).toBe(colourDark);
+  expect(paletteFor('system', 'light')).toBe(lightColour);
+  expect(paletteFor('system', null)).toBe(lightColour);
 });

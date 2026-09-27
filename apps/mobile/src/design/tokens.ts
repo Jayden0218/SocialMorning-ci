@@ -51,6 +51,31 @@ export const colour = {
   clear: 'rgba(255,255,255,0)',
 } as const;
 
+/**
+ * The dark palette (M10b US4, owner 2026-09-27: "Appearance: System / Light / Dark").
+ * Exactly the same keys as `colour`, plain string literals only — M9's generator reads both
+ * objects and writes CSS variables from them (socialmorning-ba, 2026-09-27). Measured with
+ * `contrast.ts` before adoption, and re-checked on every run by `PAIRS_DARK`:
+ * text 16.87 · muted 7.62 · accent 11.80 on background; text 15.02 · muted 6.79 · accent
+ * 10.51 on surface; bar 6.21 / 5.93. The brand yellow is bright enough to be the link colour
+ * on dark. White on the yellow fill stays the owner's waiver (1.60), as in light.
+ */
+export const colourDark = {
+  background: '#111114',
+  surface: '#1d1d22',
+  text: '#f2f2f5',
+  muted: '#a1a5ac',
+  primary: '#fcc522',
+  onPrimary: '#ffffff',
+  accent: '#fcc522',
+  track: 'rgba(255,255,255,0.16)',
+  bar: 'rgba(255,255,255,0.55)',
+  separator: 'rgba(255,255,255,0.14)',
+  scrim: 'rgba(0,0,0,0.60)',
+} as const;
+
+export type Palette = { readonly [K in keyof typeof colour]: string };
+
 export const fontSize = { xs: 12, sm: 16, base: 20, lg: 24 } as const;
 
 export const spacing = { screenX: 24, row: 12, gap: 8, section: 16 } as const;

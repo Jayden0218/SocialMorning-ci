@@ -57,6 +57,12 @@ export type PlayerDeps = {
   };
   /** M4 (research R3): every TICK's episode time, for the listened-interval accumulator. Kept out of the reducer. */
   onTick?: (episodeId: string, positionMs: Ms) => void;
+  /**
+   * M10b US4 (FR-014): may an episode stream from the network right now? False on mobile
+   * data with "Allow mobile data for playback" off. A downloaded file (not http) always plays.
+   * Absent → always (M1–M10 tests).
+   */
+  mayStream?: () => boolean;
 };
 
 export type PlayerRuntime = {
@@ -268,6 +274,11 @@ export function createPlayerRuntime(deps: PlayerDeps): PlayerRuntime {
   }
 
   function load(episode: PlayableEpisode, intent: 'play' | 'pause', startMs?: Ms): void {
+    // M10b US4 (FR-014, guard G-M1): no stream on mobile data when the listener said so.
+    if (deps.mayStream !== undefined && /^https?:/i.test(episode.url) && !deps.mayStream()) {
+      deps.notify('Not downloaded, and playing on mobile data is off. Use Wi-Fi, download it, or allow mobile data in Settings → More.');
+      return;
+    }
     // M2 (FR-013): the show's remembered speed, else the app-wide default.
     currentFeedUrl = episode.feedUrl;
     const prefs = new Map<string, number>();

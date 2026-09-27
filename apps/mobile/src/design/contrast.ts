@@ -3,7 +3,7 @@
  * assumed. The same formula was used to compute the palette in research R1; shipping it
  * means the gate re-checks every token pair on every run.
  */
-import { colour } from './tokens';
+import { colour, colourDark } from './tokens';
 
 /** Accepts `#rgb`, `#rrggbb`, or `rgba(r,g,b,a)` composited over `over` (default black). */
 export function relativeLuminance(value: string, over = '#000000'): number {
@@ -38,6 +38,18 @@ export const PAIRS: Pair[] = [
   { fg: colour.accent, bg: colour.background, min: LARGE_MIN, role: 'the listener’s own marks' },
   { fg: colour.accent, bg: colour.surface, min: BODY_MIN, role: 'links and actions on a card' },
   { fg: colour.bar, bg: colour.surface, min: LARGE_MIN, role: 'heat bars on a card' },
+];
+
+/** M10b US4: the same pairs in the dark palette — every one must clear its floor too. */
+export const PAIRS_DARK: Pair[] = [
+  { fg: colourDark.text, bg: colourDark.background, min: BODY_MIN, role: 'body text (dark)' },
+  { fg: colourDark.muted, bg: colourDark.background, min: BODY_MIN, role: 'secondary text (dark)' },
+  { fg: colourDark.accent, bg: colourDark.background, min: BODY_MIN, role: 'links and actions (dark)' },
+  { fg: colourDark.text, bg: colourDark.surface, min: BODY_MIN, role: 'text on a card (dark)' },
+  { fg: colourDark.muted, bg: colourDark.surface, min: BODY_MIN, role: 'secondary text on a card (dark)' },
+  { fg: colourDark.bar, bg: colourDark.background, min: LARGE_MIN, role: 'heat bars (dark)' },
+  { fg: colourDark.accent, bg: colourDark.surface, min: BODY_MIN, role: 'links and actions on a card (dark)' },
+  { fg: colourDark.bar, bg: colourDark.surface, min: LARGE_MIN, role: 'heat bars on a card (dark)' },
 ];
 
 /**

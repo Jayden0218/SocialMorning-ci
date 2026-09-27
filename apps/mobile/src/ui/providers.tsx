@@ -28,6 +28,7 @@ import { createExpoDownloader, downloadPathFor } from '../downloads/expo-downloa
 import { createExpoNetwork } from '../downloads/expo-network';
 import { waitForStartup } from './startup';
 import { onNotificationTap } from '../notify/expo';
+import { canStream } from '../settings/playback';
 import { Splash } from './Splash';
 import { Terms } from './Terms';
 import { accept, hasAccepted } from './terms';
@@ -189,10 +190,12 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
   // loss resumes when the network is back (gap 6), and a transient failure is
   // retried within 30 s instead of never.
   const online = useRef(true);
+  // M10b US4: the last network kind, for "Allow mobile data for playback".
+  const netKind = useRef<string>('wifi');
   const network = useMemo(() => createExpoNetwork(), []);
   useEffect(() => {
     const refresh = () => {
-      void network.kind().then((k) => { online.current = k !== 'none'; });
+      void network.kind().then((k) => { online.current = k !== 'none'; netKind.current = k; });
       void downloads.tick();
     };
     refresh();
@@ -225,6 +228,7 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
         // FR-019: an episode that has a position has been played — it leaves the inbox.
         stores.inboxState.mark(row.episodeId, 'played', Date.now());
       },
+      mayStream: () => canStream(stores.settings, netKind.current),
       advance: {
         lookup: (episodeId) => toPlayable(stores, episodeId),
         online: () => online.current,

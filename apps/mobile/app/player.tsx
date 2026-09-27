@@ -40,6 +40,7 @@ import { SpeedControl } from '../src/ui/SpeedControl';
 import { SleepTimerControl } from '../src/ui/SleepTimerControl';
 import { ChapterList, CurrentChapter } from '../src/ui/ChapterList';
 import { TranscriptPane } from '../src/ui/TranscriptPane';
+import { getPref } from '../src/settings/prefs';
 import { fetchExtras, readExtras, type Extras } from '../src/extras/fetch-extras';
 import { router } from 'expo-router';
 import { useNextUp } from '../src/ui/NextUp';
@@ -136,7 +137,9 @@ export default function PlayerScreen(): React.ReactElement {
     setTick((n) => n + 1);
   };
   const rate = player.rate();
-  const cue = extras?.transcript && 'lines' in extras.transcript ? extras.transcript.lines[currentLine(extras.transcript.lines, positionMs) ?? -1]?.text : undefined;
+  // M10b US4 (FR-015): "Show transcript entry" off → no transcript button and no live line.
+  const showTranscript = getPref(stores.settings, 'transcriptEntry');
+  const cue = showTranscript && extras?.transcript && 'lines' in extras.transcript ? extras.transcript.lines[currentLine(extras.transcript.lines, positionMs) ?? -1]?.text : undefined;
   const reacted = reactToggle.isReacted(shownBuckets, positionMs, heatAxisMs);
   const commentCount = (cached?.social.comments ?? []).reduce((n, c) => n + (c.deleted ? 0 : 1) + (c.replies ?? []).filter((r) => !r.deleted).length, 0);
   const clip = () => {
@@ -295,14 +298,14 @@ export default function PlayerScreen(): React.ReactElement {
         <ScrollView contentContainerClassName="gap-section">
           <SpeedControl />
           <SleepTimerControl />
-          {extras && (extras.chapters?.length || extras.transcript) ? (
+          {extras && (extras.chapters?.length || (showTranscript && extras.transcript)) ? (
             <View className="flex-row gap-row flex-wrap">
               {extras.chapters && extras.chapters.length > 0 ? (
                 <Pressable className={pane === 'chapters' ? SECONDARY_ON : SECONDARY} onPress={() => setPane(pane === 'chapters' ? 'none' : 'chapters')} accessibilityRole="button">
                   <Text className={pane === 'chapters' ? SECONDARY_ON_TEXT : SECONDARY_TEXT}>Chapters ({extras.chapters.length})</Text>
                 </Pressable>
               ) : null}
-              {extras.transcript ? (
+              {showTranscript && extras.transcript ? (
                 <Pressable className={pane === 'transcript' ? SECONDARY_ON : SECONDARY} onPress={() => setPane(pane === 'transcript' ? 'none' : 'transcript')} accessibilityRole="button">
                   <Text className={pane === 'transcript' ? SECONDARY_ON_TEXT : SECONDARY_TEXT}>Transcript</Text>
                 </Pressable>
@@ -311,7 +314,7 @@ export default function PlayerScreen(): React.ReactElement {
           ) : null}
           {extras?.error ? <Text className="text-xs text-muted">Couldn't load {extras.error.includes('chapters') ? 'chapters' : 'the transcript'}</Text> : null}
           {pane === 'chapters' && extras?.chapters ? <ChapterList chapters={extras.chapters} positionMs={positionMs} onSeek={(ms) => player.seek(ms)} /> : null}
-          {pane === 'transcript' && extras?.transcript ? <TranscriptPane transcript={extras.transcript} positionMs={positionMs} onSeek={(ms) => player.seek(ms)} /> : null}
+          {showTranscript && pane === 'transcript' && extras?.transcript ? <TranscriptPane transcript={extras.transcript} positionMs={positionMs} onSeek={(ms) => player.seek(ms)} /> : null}
         </ScrollView>
       </View>
     </Modal>
