@@ -37,9 +37,26 @@ it('G11: the bar is adjustable, carries the value, and increment / decrement ski
   act(() => { bar.props['onAccessibilityAction']({ nativeEvent: { actionName: 'increment' } }); });
   act(() => { bar.props['onAccessibilityAction']({ nativeEvent: { actionName: 'decrement' } }); });
   expect(onSkip.mock.calls).toEqual([[SCRUB_FORWARD_MS], [-SCRUB_BACK_MS]]);
-  act(() => { bar.props['onLayout']({ nativeEvent: { layout: { width: 200 } } }); });
-  act(() => { bar.props['onPress']({ nativeEvent: { locationX: 100 } }); });
+  // M9: the touch is gluestack's Slider now (thousandths of the episode); the seek happens
+  // once, when the finger lifts — never on every step of a drag.
+  const slider = r.root.find((n) => typeof n.props['onChangeEnd'] === 'function');
+  act(() => { slider.props['onChange'](500); });
+  expect(onSeek).not.toHaveBeenCalled();
+  act(() => { slider.props['onChangeEnd'](500); });
   expect(onSeek).toHaveBeenCalledWith(1_028_500);
+});
+
+it('M9 guard: the library draws the position on the right side — 14:32 of 34:17 puts the thumb 42.4 % from the LEFT', () => {
+  // The break that turns this red: `isReversed` on the Slider in src/ui/Scrubber.tsx, or
+  // minValue / maxValue swapped — the bar would then fill from the wrong end.
+  let r!: ReactTestRenderer;
+  act(() => { r = create(createElement(Scrubber, { positionMs: 872_000, durationMs: 2_057_000, onSeek: () => undefined, onSkip: () => undefined })); });
+  const lefts = r.root.findAll((n) => typeof n.type === 'string')
+    .map((n) => (StyleSheet.flatten(n.props['style']) ?? {}) as Record<string, unknown>)
+    .filter((st) => typeof st['left'] === 'string' && String(st['left']).endsWith('%'))
+    .map((st) => parseFloat(String(st['left'])));
+  expect(lefts.length).toBeGreaterThan(0);
+  expect(lefts[0]).toBeCloseTo(42.4, 1);
 });
 
 it('FR-024: the heat curve announces its loudest moment, or the empty sentence with the action in it', () => {

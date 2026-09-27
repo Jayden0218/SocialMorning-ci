@@ -13,13 +13,36 @@
  * buttons ran under the home bar (owner, 2026-09-27).
  */
 import { useEffect, useRef, useState } from 'react';
-import { BackHandler, Image, Platform, Pressable, SafeAreaView, ScrollView, Text, View } from 'react-native';
+import { BackHandler, Platform } from 'react-native';
+import { Image } from './lib/image';
+import { Pressable } from './lib/pressable';
+import { SafeAreaView } from './lib/safe-area-view';
+import { ScrollView } from './lib/scroll-view';
+import { Text } from './lib/text';
+import { Box } from './lib/box';
 import { LEGAL_TEXT } from '../legal/texts';
-import { Button } from './Button';
+import { Button, ButtonText } from './lib/button';
+import { Heading } from './lib/heading';
+import { hit } from '../design';
 import { LegalDoc } from './LegalDoc';
 import { CONSENT_INTRO, CONSENT_ITEMS, CONSENT_OUTRO, CONSENT_TITLE, REFUSE_TEXT, type LegalDocId } from './terms';
 
 const ICON = { width: 44, height: 44 };
+
+/** Apple's and Android's minimum tap size, as a style (shared-ui asserts it). */
+const TAP = { minHeight: hit.min };
+
+/**
+ * M9: the two choices are gluestack Buttons — solid yellow for yes, outlined for no. The
+ * words are the name, and the state is a state, not only an opacity.
+ */
+function Choice(props: { label: string; onPress: () => void; outline?: boolean; className: string }): React.ReactElement {
+  return (
+    <Button variant={props.outline ? 'outline' : 'default'} onPress={props.onPress} accessibilityRole="button" accessibilityLabel={props.label} className={`rounded-pill px-section ${props.outline ? 'bg-transparent' : ''} ${props.className}`} style={TAP}>
+      <ButtonText className={props.outline ? 'text-sm font-semibold text-text' : 'text-sm font-semibold text-onPrimary'}>{props.label}</ButtonText>
+    </Button>
+  );
+}
 
 /** Android can close itself; iOS cannot (and must not), so there Exit returns to page one. */
 const exitApp = (back: () => void): void => { if (Platform.OS === 'android') BackHandler.exitApp(); else back(); };
@@ -45,31 +68,31 @@ export function Terms(props: { onAccept: () => void; exit?: (back: () => void) =
 
   if (refused) {
     return (
-      <View className="absolute inset-0 bg-scrim justify-end">
+      <Box className="absolute inset-0 bg-scrim justify-end">
         <SafeAreaView className="bg-background rounded-t-artwork">
-          <View className="px-screen-x pt-section pb-section">
+          <Box className="px-screen-x pt-section pb-section">
             <Image source={require('../../assets/app-icon.png')} style={ICON} className="rounded-row mb-row" accessibilityIgnoresInvertColors />
-            <Text className="text-text text-lg font-bold mb-row" accessibilityRole="header">{CONSENT_TITLE}</Text>
+            <Heading className="text-text text-lg font-bold mb-row" accessibilityRole="header">{CONSENT_TITLE}</Heading>
             <Text className="text-text text-sm">{REFUSE_TEXT}</Text>
-            <View className="flex-row gap-row mt-section">
-              <Button label="Exit app" kind="secondary" onPress={() => (props.exit ?? exitApp)(() => setRefused(false))} className="flex-1" />
-              <Button label="Agree and continue" onPress={props.onAccept} className="flex-[2]" />
-            </View>
-          </View>
+            <Box className="flex-row gap-row mt-section">
+              <Choice label="Exit app" outline onPress={() => (props.exit ?? exitApp)(() => setRefused(false))} className="flex-1" />
+              <Choice label="Agree and continue" onPress={props.onAccept} className="flex-[2]" />
+            </Box>
+          </Box>
         </SafeAreaView>
-      </View>
+      </Box>
     );
   }
 
   return (
     <SafeAreaView className="absolute inset-0 bg-background">
-      <View className="flex-1 px-screen-x pt-section pb-section">
+      <Box className="flex-1 px-screen-x pt-section pb-section">
         <Image source={require('../../assets/app-icon.png')} style={ICON} className="rounded-row mb-row" accessibilityIgnoresInvertColors />
-        <Text className="text-text text-lg font-bold mb-section" accessibilityRole="header">{CONSENT_TITLE}</Text>
+        <Heading className="text-text text-lg font-bold mb-section" accessibilityRole="header">{CONSENT_TITLE}</Heading>
         <ScrollView className="flex-1" contentContainerClassName="pb-row">
           <Text className="text-muted text-sm mb-section">{CONSENT_INTRO}</Text>
           {CONSENT_ITEMS.map((item, n) => (
-            <View key={item.doc} className="mb-section">
+            <Box key={item.doc} className="mb-section">
               <Pressable onPress={() => setOpen(item.doc)} accessibilityRole="link" accessibilityLabel={`${item.link}, opens the full text`}>
                 <Text className="text-muted text-sm mb-row">
                   {`${n + 1}. `}
@@ -78,20 +101,20 @@ export function Terms(props: { onAccept: () => void; exit?: (back: () => void) =
                 </Text>
               </Pressable>
               {item.points.map((p) => (
-                <View key={p} className="flex-row pl-section mb-row">
+                <Box key={p} className="flex-row pl-section mb-row">
                   <Text className="text-muted text-sm min-w-5 pr-2">•</Text>
                   <Text className="text-muted text-sm flex-1">{p}</Text>
-                </View>
+                </Box>
               ))}
-            </View>
+            </Box>
           ))}
           <Text className="text-muted text-sm">{CONSENT_OUTRO}</Text>
         </ScrollView>
-        <View className="flex-row gap-row mt-section">
-          <Button label="Disagree" kind="secondary" onPress={() => setRefused(true)} className="flex-1" />
-          <Button label="Agree" onPress={props.onAccept} className="flex-[2]" />
-        </View>
-      </View>
+        <Box className="flex-row gap-row mt-section">
+          <Choice label="Disagree" outline onPress={() => setRefused(true)} className="flex-1" />
+          <Choice label="Agree" onPress={props.onAccept} className="flex-[2]" />
+        </Box>
+      </Box>
     </SafeAreaView>
   );
 }

@@ -4,8 +4,12 @@
  */
 import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
-import { hit } from '../../src/design';
+import { Linking } from 'react-native';
+import { Pressable } from '../../src/ui/lib/pressable';
+import { ScrollView } from '../../src/ui/lib/scroll-view';
+import { Text } from '../../src/ui/lib/text';
+import { Box } from '../../src/ui/lib/box';
+import { colour, hit } from '../../src/design';
 import { useColours } from '../../src/ui/useColours';
 import { FAQ } from '../../src/settings/faq';
 import { appealsMailto, APPEALS_KEY, refreshAppeals } from '../../src/social/links';
@@ -30,21 +34,21 @@ export default function HelpScreen(): React.ReactElement {
       <Stack.Screen options={{ title: 'Help and feedback' }} />
       <Text className="text-text text-base font-bold px-screen-x mb-row" accessibilityRole="header">Common questions</Text>
       {FAQ.map((f, i) => (
-        <View key={f.q} className="border-b-hairline border-separator px-screen-x">
+        <Box key={f.q} className="border-b-hairline border-separator px-screen-x">
           <Pressable onPress={() => setOpen(open === i ? undefined : i)} accessibilityRole="button" accessibilityState={{ expanded: open === i }} accessibilityLabel={f.q} className="flex-row items-center py-row" style={TAP}>
-            <View className="flex-1">
+            <Box className="flex-1">
               <Text className="text-text text-sm">{f.q}</Text>
               <Text className="text-muted text-xs">[{f.tag}]</Text>
-            </View>
+            </Box>
             <Icon name={open === i ? 'chevron-down' : 'chevron-forward'} size={18} color={c.muted} />
           </Pressable>
           {open === i ? <Text className="text-muted text-sm pb-section">{f.a}</Text> : null}
-        </View>
+        </Box>
       ))}
-      <View className="px-screen-x mt-section gap-row">
+      <Box className="px-screen-x mt-section gap-row">
         <LinkRow href="/settings/feedback" icon="create-outline" label="Send feedback" line="Tell us what went wrong or what you would like" />
         <Button label={mail ? 'Contact support' : 'Contact support (offline)'} kind="secondary" disabled={!mail} onPress={() => { if (mail) void Linking.openURL(mail); }} accessibilityLabel="Report a problem to support" />
-      </View>
+      </Box>
     </ScrollView>
   );
 }

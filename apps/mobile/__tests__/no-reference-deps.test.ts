@@ -52,7 +52,22 @@ const M7_ADDITIONS = ['expo-blur', 'expo-linear-gradient'];
  * Reanimated and Worklets were already in the tree through expo-router; listing them
  * directly is what makes autolinking build them for certain. All MIT (LICENSES.md).
  */
-const TAILWIND_ADDITIONS = ['nativewind', 'react-native-reanimated', 'react-native-worklets'];
+const TAILWIND_ADDITIONS = ['react-native-reanimated', 'react-native-worklets'];
+
+/**
+ * M9 (2026-09-27, the owner's call): the styling engine is UniWind, not NativeWind — Tailwind
+ * v4 is what gluestack-ui v5 needs. Pinned exactly: the Jest setup reads its compiled
+ * internals (research R1). MIT (LICENSES.md).
+ */
+const M9_ENGINE = ['uniwind'];
+
+/**
+ * M9 (owner: gluestack-ui v5 everywhere, 2026-09-27): the component library's runtime and
+ * the native peers its copied components import. All MIT (LICENSES.md). NativeWind comes
+ * back as an unused peer of @legendapp/motion (owner chose to accept it, research R5), so it
+ * is allowed in the lockfile but never as a direct dependency and never imported.
+ */
+const M9_LIBRARY = ['@gluestack-ui/core', '@gluestack-ui/utils', '@expo/html-elements', '@legendapp/motion', 'react-native-svg', 'react-native-safe-area-context'];
 
 /** Notification permission on the sign-in page (owner, 2026-09-27). MIT (LICENSES.md). */
 const NOTIFY_ADDITIONS = ['expo-notifications'];
@@ -62,6 +77,9 @@ const ICON_ADDITIONS = ['@expo/vector-icons'];
 
 /** Scanning a QR code on the search page (owner, 2026-09-27). MIT (LICENSES.md). */
 const SCAN_ADDITIONS = ['expo-camera'];
+
+/** M9 iOS i5 (2026-09-27): the launch screen shows the icon, not a plain white page. */
+const SPLASH_ADDITIONS = ['expo-splash-screen'];
 
 /** M10b US5: the picture for video episodes (spec 010, research R7). MIT (LICENSES.md). */
 const VIDEO_ADDITIONS = ['expo-video'];
@@ -88,6 +106,11 @@ it('M7 added exactly expo-blur and expo-linear-gradient, Tailwind its three, not
   const now = Object.keys(pkg.dependencies).sort();
   const added = now.filter((name) => !M6_DEPENDENCIES.includes(name));
   const removed = M6_DEPENDENCIES.filter((name) => !now.includes(name));
-  expect(added.sort()).toEqual([...M7_ADDITIONS, ...TAILWIND_ADDITIONS, ...NOTIFY_ADDITIONS, ...SCAN_ADDITIONS, ...ICON_ADDITIONS, ...VIDEO_ADDITIONS, ...FEEDBACK_ADDITIONS, ...OUTSIDE_ADDITIONS].sort());
+  expect(added.sort()).toEqual([...M7_ADDITIONS, ...TAILWIND_ADDITIONS, ...NOTIFY_ADDITIONS, ...SCAN_ADDITIONS, ...ICON_ADDITIONS, ...VIDEO_ADDITIONS, ...FEEDBACK_ADDITIONS, ...M9_ENGINE, ...M9_LIBRARY, ...SPLASH_ADDITIONS, ...OUTSIDE_ADDITIONS].sort());
   expect(removed).toEqual([]);
+});
+
+it('M9: NativeWind is no longer a dependency, and UniWind is pinned exactly', () => {
+  expect(pkg.dependencies['nativewind']).toBeUndefined();
+  expect(pkg.dependencies['uniwind']).toMatch(/^\d+\.\d+\.\d+$/);
 });

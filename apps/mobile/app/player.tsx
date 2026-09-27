@@ -18,7 +18,13 @@
  * below the fold. The reference's "200+ listening" is left out: there is no such number.
  */
 import { useEffect, useState } from 'react';
-import { Modal, Pressable, SafeAreaView, ScrollView, Share, Text, useWindowDimensions, View } from 'react-native';
+import { Share, useWindowDimensions } from 'react-native';
+import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '../src/ui/lib/actionsheet';
+import { Pressable } from '../src/ui/lib/pressable';
+import { SafeAreaView } from '../src/ui/lib/safe-area-view';
+import { ScrollView } from '../src/ui/lib/scroll-view';
+import { Text } from '../src/ui/lib/text';
+import { Box } from '../src/ui/lib/box';
 import { currentLine } from '@socialmorning/player-core';
 import { Icon } from '../src/ui/Icon';
 import { BarButton, TAP, TopBar } from '../src/ui/TopBar';
@@ -100,7 +106,7 @@ export default function PlayerScreen(): React.ReactElement {
     return (
       <SafeAreaView className={FILL}>
         <TopBar back="down" onBack={close} />
-        <View className={BODY}><Text className={SUBTITLE}>Nothing is playing yet.</Text></View>
+        <Box className={BODY}><Text className={SUBTITLE}>Nothing is playing yet.</Text></Box>
       </SafeAreaView>
     );
   }
@@ -109,12 +115,12 @@ export default function PlayerScreen(): React.ReactElement {
     return (
       <SafeAreaView className={FILL}>
         <TopBar back="down" onBack={close} />
-        <View className={BODY}>
+        <Box className={BODY}>
           <Text className={TITLE}>{state.message}</Text>
           <Pressable className={PRIMARY} accessibilityRole="button" onPress={() => player.play()}>
             <Text className={PRIMARY_TEXT}>Try again</Text>
           </Pressable>
-        </View>
+        </Box>
       </SafeAreaView>
     );
   }
@@ -168,13 +174,13 @@ export default function PlayerScreen(): React.ReactElement {
     </TopBar>
     {/* Grows to the screen and spreads out; scrolls only when a large font needs it. */}
     <ScrollView contentContainerClassName="flex-grow justify-between px-screen-x pb-section">
-      <View className="items-center gap-2">
+      <Box className="items-center gap-2">
         {/* M10b US5: a video episode shows its picture (muted, following the sound). */}
         {episode && mediaKindOf(episode.enclosureType, episode.enclosureUrl) === 'video'
           ? <VideoStage url={episode.enclosureUrl} positionMs={positionMs} playing={isPlaying} size={art} />
           : <Artwork url={artworkUrl} size={art} rounded="artwork" className="mt-2" />}
         <Text className={TITLE} numberOfLines={3}>{episode?.title ?? 'Now playing'}</Text>
-        <View className="flex-row items-center justify-center gap-2">
+        <Box className="flex-row items-center justify-center gap-2">
           {feedUrl === undefined ? <Text className={SUBTITLE}>{show?.title ?? ''}</Text> : (
             <Pressable onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(feedUrl) } })} accessibilityRole="link" accessibilityLabel={`Show: ${show?.title ?? ''}`} className="justify-center flex-shrink" style={{ minHeight: TAP.minHeight }}>
               <Text className="text-sm text-muted" numberOfLines={1}>{show?.title ?? ''}</Text>
@@ -185,16 +191,16 @@ export default function PlayerScreen(): React.ReactElement {
               <Text className="text-xs font-bold text-background bg-text rounded-row px-2 py-1">+ Subscribe</Text>
             </Pressable>
           )}
-        </View>
-      </View>
+        </Box>
+      </Box>
 
-      <View className="gap-1">
+      <Box className="gap-1">
         {extras?.chapters && extras.chapters.length > 0 ? <CurrentChapter chapters={extras.chapters} positionMs={positionMs} /> : null}
         {cue ? <Text className="text-sm text-muted text-center" numberOfLines={2}>{cue}</Text> : null}
-        <View className="flex-row justify-between" accessible accessibilityLabel={scrubberValue(positionMs, durationMs).text}>
+        <Box className="flex-row justify-between" accessible accessibilityLabel={scrubberValue(positionMs, durationMs).text}>
           <Text className="text-sm font-semibold text-text" style={tabular}>{mmss(positionMs)}</Text>
           <Text className="text-sm font-semibold text-text" style={tabular}>{durationMs === undefined ? '--:--' : `-${mmss(durationMs - positionMs)}`}</Text>
-        </View>
+        </Box>
         <Rail
           comments={cached?.social.comments ?? []}
           durationMs={durationMs}
@@ -203,7 +209,7 @@ export default function PlayerScreen(): React.ReactElement {
             setOpenMarker(m);
           }}
         />
-        <View className="bg-surface rounded-row px-2 pt-2 pb-1">
+        <Box className="bg-surface rounded-row px-2 pt-2 pb-1">
           <HeatCurve
             heat={cached?.social.heat}
             durationMs={heatAxisMs}
@@ -217,7 +223,7 @@ export default function PlayerScreen(): React.ReactElement {
             }}
           />
           <Scrubber positionMs={positionMs} durationMs={durationMs} onSeek={(ms) => player.seek(ms)} onSkip={(d) => player.skip(d)} />
-        </View>
+        </Box>
         {/* One status line at most, so the controls below never jump far. */}
         {state.kind === 'buffering' ? <Text className={SUBTITLE}>Buffering…</Text>
           : state.kind === 'loading' ? <Text className={SUBTITLE}>Loading…</Text>
@@ -226,10 +232,10 @@ export default function PlayerScreen(): React.ReactElement {
           : stale ? <Text className={SUBTITLE}>Couldn't refresh comments — showing the last copy</Text>
           : null}
         {!player.clip() && state.kind === 'paused' && lastClipEnd !== undefined && Math.abs(positionMs - lastClipEnd) <= 6_000 ? (
-          <View className={CLIP_BANNER}>
+          <Box className={CLIP_BANNER}>
             <Text className={SUBTITLE}>The clip ended.</Text>
             <Pressable className={SECONDARY} accessibilityRole="button" onPress={() => { setLastClipEnd(undefined); player.play(); }}><Text className={SECONDARY_TEXT}>Keep listening</Text></Pressable>
-          </View>
+          </Box>
         ) : null}
         {offer ? (
           <EndOffer item={offer} onPlay={() => {
@@ -238,14 +244,14 @@ export default function PlayerScreen(): React.ReactElement {
             void discoverOpen(offer.episode);
           }} />
         ) : null}
-      </View>
+      </Box>
 
-      <View className="flex-row items-center justify-between">
+      <Box className="flex-row items-center justify-between">
         <Pressable onPress={() => setMore(true)} accessibilityRole="button" accessibilityLabel={`Speed ${rate.toFixed(1)}×, sleep timer and chapters`} className={ROUND}>
           {Math.abs(rate - 1) < 0.01 ? <Icon name="speedometer-outline" size={28} color={c.muted} /> : <Text className="text-sm font-bold text-text">{rate.toFixed(1)}×</Text>}
         </Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Skip back 15 seconds" onPress={() => player.skip(-15_000)} className={ROUND}>
-          <View style={MIRROR}><Icon name="refresh-outline" size={44} color={c.text} /></View>
+          <Box style={MIRROR}><Icon name="refresh-outline" size={44} color={c.text} /></Box>
           <Text className={SKIP_NUMBER}>15</Text>
         </Pressable>
         <Pressable
@@ -275,9 +281,9 @@ export default function PlayerScreen(): React.ReactElement {
           {/* Filled vs outline, and the name — never hue alone (FR-016). */}
           <Icon name={reacted ? 'thumbs-up' : 'thumbs-up-outline'} size={30} color={reacted ? c.accent : c.muted} />
         </Pressable>
-      </View>
+      </Box>
 
-      <View className="flex-row items-center justify-between">
+      <Box className="flex-row items-center justify-between">
         <BarButton label="About this episode" onPress={() => router.push({ pathname: '/episode/[id]', params: { id: state.episodeId } })}>
           <Icon name="information-circle-outline" size={30} color={c.muted} />
         </BarButton>
@@ -289,24 +295,25 @@ export default function PlayerScreen(): React.ReactElement {
           <Icon name="chatbox-ellipses-outline" size={28} color={c.muted} />
           <Text className="text-xs text-muted">{commentCount}</Text>
         </Pressable>
-      </View>
+      </Box>
     </ScrollView>
     </SafeAreaView>
 
-    <Modal visible={more} animationType="slide" transparent onRequestClose={() => setMore(false)}>
-      <Pressable className="flex-1 bg-scrim" accessibilityRole="button" accessibilityLabel="Close" onPress={() => setMore(false)} />
-      <View className="bg-background rounded-t-2xl px-screen-x pt-section pb-10 gap-section max-h-[75%]">
-        <View className="flex-row justify-between items-center">
+        <Actionsheet isOpen={more} onClose={() => setMore(false)}>
+      <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
+      <ActionsheetContent className="bg-background rounded-t-2xl px-screen-x pt-row pb-10 gap-section max-h-[75%] items-stretch">
+        <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
+        <Box className="flex-row justify-between items-center">
           <Text className="text-base font-bold text-text">Playback</Text>
           <Pressable onPress={() => setMore(false)} accessibilityRole="button" accessibilityLabel="Close" className="justify-center" style={TAP}>
             <Text className="text-sm text-accent">Done</Text>
           </Pressable>
-        </View>
+        </Box>
         <ScrollView contentContainerClassName="gap-section">
           <SpeedControl />
           <SleepTimerControl />
           {extras && (extras.chapters?.length || (showTranscript && extras.transcript)) ? (
-            <View className="flex-row gap-row flex-wrap">
+            <Box className="flex-row gap-row flex-wrap">
               {extras.chapters && extras.chapters.length > 0 ? (
                 <Pressable className={pane === 'chapters' ? SECONDARY_ON : SECONDARY} onPress={() => setPane(pane === 'chapters' ? 'none' : 'chapters')} accessibilityRole="button">
                   <Text className={pane === 'chapters' ? SECONDARY_ON_TEXT : SECONDARY_TEXT}>Chapters ({extras.chapters.length})</Text>
@@ -317,14 +324,14 @@ export default function PlayerScreen(): React.ReactElement {
                   <Text className={pane === 'transcript' ? SECONDARY_ON_TEXT : SECONDARY_TEXT}>Transcript</Text>
                 </Pressable>
               ) : null}
-            </View>
+            </Box>
           ) : null}
           {extras?.error ? <Text className="text-xs text-muted">Couldn't load {extras.error.includes('chapters') ? 'chapters' : 'the transcript'}</Text> : null}
           {pane === 'chapters' && extras?.chapters ? <ChapterList chapters={extras.chapters} positionMs={positionMs} onSeek={(ms) => player.seek(ms)} /> : null}
           {showTranscript && pane === 'transcript' && extras?.transcript ? <TranscriptPane transcript={extras.transcript} positionMs={positionMs} onSeek={(ms) => player.seek(ms)} /> : null}
         </ScrollView>
-      </View>
-    </Modal>
+      </ActionsheetContent>
+    </Actionsheet>
 
     {composing ? (
       <ComposerSheet

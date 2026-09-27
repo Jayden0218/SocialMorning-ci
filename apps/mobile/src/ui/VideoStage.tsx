@@ -7,7 +7,7 @@
  */
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect } from 'react';
-import { View } from 'react-native';
+import { Box } from './lib/box';
 import { followAudio } from '../playback/video/sync';
 
 export function VideoStage(props: { url: string; positionMs: number; playing: boolean; size: number }): React.ReactElement {
@@ -20,8 +20,8 @@ export function VideoStage(props: { url: string; positionMs: number; playing: bo
   }, [player, props.positionMs, props.playing]);
   const box = { width: props.size, height: props.size };
   return (
-    <View className="mt-2 rounded-artwork overflow-hidden bg-surface" style={box} accessible accessibilityLabel="Video">
+    <Box className="mt-2 rounded-artwork overflow-hidden bg-surface" style={box} accessible accessibilityLabel="Video">
       <VideoView player={player} style={box} contentFit="contain" nativeControls={false} />
-    </View>
+    </Box>
   );
 }

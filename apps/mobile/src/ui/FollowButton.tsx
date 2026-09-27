@@ -1,6 +1,6 @@
 /** Follow / Following (M4 FR-007): optimistic, reverts on a refusal, hidden on your own profile. */
 import { useState } from 'react';
-import { Pressable, Text } from 'react-native';
+import { Button, ButtonText } from './lib/button';
 import { router } from 'expo-router';
 import { useSocial } from '../social/context';
 import { useToast } from './providers';
@@ -13,8 +13,11 @@ export function FollowButton(props: { listenerId: string; following: boolean; on
   const [busy, setBusy] = useState(false);
   if (listener?.listenerId === props.listenerId) return null;
   return (
-    <Pressable
-      className={`border border-separator rounded-3xl px-[18px] py-2 self-start ${following ? 'bg-primary border-primary' : ''}`}
+    // M9 (T031): gluestack's Button — solid when following, outlined when not.
+    <Button
+      variant={following ? 'default' : 'outline'}
+      className={`rounded-3xl px-[18px] py-2 self-start min-h-[44px] ${following ? 'border border-primary' : 'bg-transparent'}`}
+      isDisabled={busy}
       disabled={busy}
       accessibilityRole="button"
       accessibilityLabel={following ? 'Unfollow' : 'Follow'}
@@ -31,8 +34,8 @@ export function FollowButton(props: { listenerId: string; following: boolean; on
         } finally { setBusy(false); }
       }}
     >
-      <Text className={following ? 'font-semibold text-onPrimary' : 'font-semibold text-text'}>{following ? 'Following' : 'Follow'}</Text>
-    </Pressable>
+      <ButtonText className={following ? 'font-semibold text-onPrimary' : 'font-semibold text-text'}>{following ? 'Following' : 'Follow'}</ButtonText>
+    </Button>
   );
 }
 

@@ -4,8 +4,12 @@
  * Colours are tokens only: section titles take `accent`, the play button the brand
  * `primary` fill, cards `surface`.
  */
-import { Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
-import { hit } from '../../design';
+import { useWindowDimensions } from 'react-native';
+import { Pressable } from '../lib/pressable';
+import { ScrollView } from '../lib/scroll-view';
+import { Text } from '../lib/text';
+import { Box } from '../lib/box';
+import { colour, hit } from '../../design';
 import { useStores } from '../providers';
 import { useColours } from '../useColours';
 import { Icon } from '../Icon';
@@ -16,19 +20,19 @@ const TAP = { minHeight: hit.min, minWidth: hit.min };
 
 export function SectionTitle(props: { title: string; action?: { label: string; onPress: () => void }; badge?: number }): React.ReactElement {
   return (
-    <View className="flex-row items-center justify-between px-screen-x mt-section mb-row">
-      <View className="flex-row items-center gap-row flex-1">
+    <Box className="flex-row items-center justify-between px-screen-x mt-section mb-row">
+      <Box className="flex-row items-center gap-row flex-1">
         <Text className="text-accent text-base font-bold" accessibilityRole="header" numberOfLines={1}>{props.title}</Text>
         {props.badge !== undefined ? (
-          <View className="bg-primary rounded-pill px-2 py-0.5"><Text className="text-onPrimary text-xs font-bold">{props.badge}</Text></View>
+          <Box className="bg-primary rounded-pill px-2 py-0.5"><Text className="text-onPrimary text-xs font-bold">{props.badge}</Text></Box>
         ) : null}
-      </View>
+      </Box>
       {props.action ? (
         <Pressable onPress={props.action.onPress} accessibilityRole="link" accessibilityLabel={props.action.label} className="justify-center pl-row" style={TAP}>
           <Text className="text-muted text-xs">{props.action.label} →</Text>
         </Pressable>
       ) : null}
-    </View>
+    </Box>
   );
 }
 
@@ -36,9 +40,11 @@ export function SectionTitle(props: { title: string; action?: { label: string; o
 export function PlayButton(props: { title: string; onPress: () => void }): React.ReactElement {
   return (
     <Pressable onPress={props.onPress} accessibilityRole="button" accessibilityLabel={`Play ${props.title}`} className="items-center justify-center" style={TAP}>
-      <View className="w-10 h-10 rounded-pill bg-primary items-center justify-center">
-        <Text className="text-onPrimary text-sm pl-0.5">▶</Text>
-      </View>
+      <Box className="w-10 h-10 rounded-pill bg-primary items-center justify-center">
+        {/* iOS J6: the ▶ is an icon in a fixed circle; at the largest Dynamic Type it grew out
+            of the circle and under the next card. It scales a little and no more. */}
+        <Text className="text-onPrimary text-sm pl-0.5" maxFontSizeMultiplier={1.3}>▶</Text>
+      </Box>
     </Pressable>
   );
 }
@@ -48,19 +54,19 @@ export function EpisodeLine(props: { card: EpisodeCard; line?: string; rank?: nu
   const { card } = props;
   const size = props.size ?? 72;
   return (
-    <View className="flex-row items-center gap-row py-row">
+    <Box className="flex-row items-center gap-row py-row">
       <Pressable onPress={props.onOpen} accessibilityRole="button" accessibilityLabel={props.label ?? `${card.title}, ${card.showTitle}`} className="flex-row items-center gap-row flex-1">
         <Artwork url={card.imageUrl} size={size} rounded="row" />
         {props.rank !== undefined ? <Text className="text-muted text-sm w-5 text-center">{props.rank}</Text> : null}
-        <View className="flex-1">
+        <Box className="flex-1">
           {props.rank === undefined ? <Text className="text-muted text-xs" numberOfLines={1}>{card.showTitle}</Text> : null}
           <Text className="text-text text-sm font-semibold" numberOfLines={2}>{card.title}</Text>
           {props.rank !== undefined ? <Text className="text-muted text-xs" numberOfLines={1}>{card.showTitle}</Text> : null}
           {props.line ? <Text className="text-muted text-xs" numberOfLines={1}>{props.line}</Text> : null}
-        </View>
+        </Box>
       </Pressable>
       <PlayButton title={card.title} onPress={props.onPlay} />
-    </View>
+    </Box>
   );
 }
 
@@ -81,7 +87,7 @@ export function Pager(props: { count: number; children: (index: number, width: n
       onMomentumScrollEnd={(e) => props.onPage?.(Math.round(e.nativeEvent.contentOffset.x / page))}
     >
       {Array.from({ length: props.count }, (_, i) => (
-        <View key={i} style={{ width: page }} className="pr-row">{props.children(i, page)}</View>
+        <Box key={i} style={{ width: page }} className="pr-row">{props.children(i, page)}</Box>
       ))}
     </ScrollView>
   );
@@ -96,7 +102,7 @@ export function SearchBar(props: { hint?: string; onPress: () => void; onScan?: 
   const stores = useStores();
   const c = useColours(stores.settings);
   return (
-    <View className="mx-screen-x flex-row items-center bg-surface rounded-pill">
+    <Box className="mx-screen-x flex-row items-center bg-surface rounded-pill">
       <Pressable
         onPress={props.onPress}
         accessibilityRole="search"
@@ -112,6 +118,6 @@ export function SearchBar(props: { hint?: string; onPress: () => void; onScan?: 
           <Icon name="scan-outline" size={22} color={c.text} />
         </Pressable>
       ) : null}
-    </View>
+    </Box>
   );
 }

@@ -5,7 +5,10 @@
  */
 import { Link, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { FlatList, Pressable, Text, View } from 'react-native';
+import { FlatList } from '../src/ui/lib/flat-list';
+import { Pressable } from '../src/ui/lib/pressable';
+import { Text } from '../src/ui/lib/text';
+import { Box } from '../src/ui/lib/box';
 import { refreshAll } from '../src/feeds/refresh-all';
 import { useSafety } from '../src/safety/context';
 import type { CachedShow } from '../src/storage/types';
@@ -44,10 +47,10 @@ export default function SubscriptionsScreen(): React.ReactElement {
           <Link href={{ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(item.feedUrl) } }} asChild>
             <Pressable className="flex-row gap-row py-row items-center" accessibilityRole="button" accessibilityLabel={`${item.show?.title ?? item.feedUrl}. ${line}`}>
               <Artwork url={item.show?.imageUrl} size={56} rounded="row" />
-              <View className="flex-1">
+              <Box className="flex-1">
                 <Text className="text-text text-sm font-semibold" numberOfLines={2}>{item.show?.title ?? item.feedUrl}</Text>
                 <Text className="text-muted text-xs">{line}</Text>
-              </View>
+              </Box>
             </Pressable>
           </Link>
         );

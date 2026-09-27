@@ -6,8 +6,9 @@
  * builds 17 and 18; `accessibilityRole` on the Link itself does not change the node).
  * `asChild` hands the press to a Pressable, which Android exposes properly.
  */
-import { Link } from 'expo-router';
-import { Pressable, Text } from 'react-native';
+import { Link } from '../design/tailwind';
+import { Pressable } from './lib/pressable';
+import { Text } from './lib/text';
 import type { ComponentProps } from 'react';
 
 export function NavLink(props: { href: ComponentProps<typeof Link>['href']; label: string; className?: string }): React.ReactElement {

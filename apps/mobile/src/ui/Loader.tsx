@@ -4,7 +4,8 @@
  * the label still says "Loading".
  */
 import { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, Easing, View } from 'react-native';
+import { AccessibilityInfo, Animated, Easing } from 'react-native';
+import { Box } from './lib/box';
 import { LOADER_BARS, LOADER_CYCLE_MS, barDelay, barRest } from './loader-timing';
 
 export function Loader(props: { size?: number; label?: string; className?: string }): React.ReactElement {
@@ -37,7 +38,7 @@ export function Loader(props: { size?: number; label?: string; className?: strin
   }, [still, values]);
 
   return (
-    <View
+    <Box
       accessible
       accessibilityRole="progressbar"
       accessibilityLabel={props.label ?? 'Loading'}
@@ -51,6 +52,6 @@ export function Loader(props: { size?: number; label?: string; className?: strin
           style={{ width: barWidth, height: size, transform: [{ scaleY: v }] }}
         />
       ))}
-    </View>
+    </Box>
   );
 }

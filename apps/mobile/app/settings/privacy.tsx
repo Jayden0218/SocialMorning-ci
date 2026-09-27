@@ -5,7 +5,8 @@
  */
 import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView, Text } from 'react-native';
+import { ScrollView } from '../../src/ui/lib/scroll-view';
+import { Text } from '../../src/ui/lib/text';
 import { useSocial } from '../../src/social/context';
 import { useStores } from '../../src/ui/providers';
 import { Divider, LinkRow, SwitchRow } from '../../src/ui/settings/rows';

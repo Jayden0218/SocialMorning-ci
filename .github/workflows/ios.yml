@@ -1,0 +1,56 @@
+# iOS build in the cloud, UNSIGNED (owner, 2026-09-27: "try to do it online as build may make
+# my laptop burn"; option A — the signing key never leaves the Mac).
+#
+# A free macOS runner (free on this public mirror) compiles a Release build with signing
+# switched off, and uploads the unsigned .app. The laptop then only re-signs it with the
+# owner's own keychain identity and installs it — seconds, no compile. No secret is read
+# here, so there is nothing in this workflow that could leak one.
+name: ios
+on:
+  push:
+    branches: [ios]
+  workflow_dispatch:
+jobs:
+  ios:
+    # Release = the app as users get it. Debug = loads its code from the owner's `expo start`
+    # (press r to reload); the laptop writes its own Metro host into the app before signing.
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration: [Release, Debug]
+    runs-on: macos-26
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: prebuild (generate the ios/ project from app.json)
+        working-directory: apps/mobile
+        run: npx expo prebuild --platform ios --no-install --clean
+      - name: pods
+        working-directory: apps/mobile/ios
+        run: pod install
+      - name: build ${{ matrix.configuration }} for a device, unsigned
+        working-directory: apps/mobile/ios
+        run: |
+          WS=$(ls -d *.xcworkspace | head -1)
+          SCHEME="${WS%.xcworkspace}"
+          echo "workspace=$WS scheme=$SCHEME"
+          xcodebuild build -quiet \
+            -workspace "$WS" -scheme "$SCHEME" -configuration "${{ matrix.configuration }}" \
+            -sdk iphoneos -destination 'generic/platform=iOS' \
+            -derivedDataPath "$RUNNER_TEMP/dd" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          APP=$(ls -d "$RUNNER_TEMP"/dd/Build/Products/${{ matrix.configuration }}-iphoneos/*.app | head -1)
+          echo "built: $APP"
+          du -sh "$APP"
+          mkdir -p "$RUNNER_TEMP/out"
+          (cd "$(dirname "$APP")" && ditto -c -k --sequesterRsrc --keepParent "$(basename "$APP")" "$RUNNER_TEMP/out/unsigned-app.zip")
+      - uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-ios-app-${{ matrix.configuration }}
+          path: ${{ runner.temp }}/out/unsigned-app.zip
+          retention-days: 3

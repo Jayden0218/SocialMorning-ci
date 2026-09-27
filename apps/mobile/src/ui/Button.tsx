@@ -1,11 +1,15 @@
 /**
  * The one button (M7 FR-007). Three kinds, one look each.
  *
+ * M9: built on gluestack's Button and ButtonText (owner: "the special parts are built from
+ * gluestack parts"). It came back after the 2026-09-27 merge because upstream's new
+ * settings and scan pages use it; the props are unchanged.
+ *
  * `destructive` uses the same accent as `primary` — the palette has one accent, and
  * M6's FR-016 forbids colour alone carrying state, so a destructive action is told apart
  * by its word ("Delete", "Remove", "Unsubscribe") and, where M6 put one, its confirm.
  */
-import { Pressable, Text } from 'react-native';
+import { Button as LibButton, ButtonText } from './lib/button';
 import { hit } from '../design';
 
 export type ButtonKind = 'primary' | 'secondary' | 'destructive';
@@ -13,7 +17,7 @@ export type ButtonKind = 'primary' | 'secondary' | 'destructive';
 const KIND: Record<ButtonKind, string> = {
   primary: 'bg-primary',
   destructive: 'bg-primary',
-  secondary: 'border border-separator',
+  secondary: 'border border-separator bg-transparent',
 };
 
 /** Words on the solid yellow take `onPrimary`; on the outlined secondary they sit on the page, so `text`. */
@@ -23,7 +27,7 @@ const LABEL: Record<ButtonKind, string> = {
   secondary: 'text-sm font-semibold text-text',
 };
 
-/** Kept as a style: shared-ui asserts the tap target on the Pressable's own `style`. */
+/** Kept as a style: shared-ui asserts the tap target on the button's own `style`. */
 const TAP = { minHeight: hit.min };
 
 export function Button(props: {
@@ -36,8 +40,10 @@ export function Button(props: {
 }): React.ReactElement {
   const kind = props.kind ?? 'primary';
   return (
-    <Pressable
+    <LibButton
+      variant={kind === 'secondary' ? 'outline' : 'default'}
       onPress={props.onPress}
+      isDisabled={props.disabled === true}
       disabled={props.disabled}
       accessibilityRole="button"
       accessibilityLabel={props.accessibilityLabel ?? props.label}
@@ -45,7 +51,7 @@ export function Button(props: {
       className={`px-section justify-center items-center rounded-pill ${KIND[kind]} ${props.disabled ? 'opacity-40' : ''} ${props.className ?? ''}`}
       style={TAP}
     >
-      <Text className={LABEL[kind]}>{props.label}</Text>
-    </Pressable>
+      <ButtonText className={LABEL[kind]}>{props.label}</ButtonText>
+    </LibButton>
   );
 }

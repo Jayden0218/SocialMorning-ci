@@ -3,11 +3,13 @@
  * shows. The list is on the phone (`src/discover/genres.ts`), so it draws offline.
  */
 import { useRouter } from 'expo-router';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable } from '../src/ui/lib/pressable';
+import { Text } from '../src/ui/lib/text';
+import { Box } from '../src/ui/lib/box';
+import { colour, hit } from '../src/design';
 import { useStores } from '../src/ui/providers';
 import { useColours } from '../src/ui/useColours';
 import { Icon } from '../src/ui/Icon';
-import { hit } from '../src/design';
 import { GENRES } from '../src/discover/genres';
 import { Screen } from '../src/ui/Screen';
 
@@ -19,7 +21,7 @@ export default function CategoriesScreen(): React.ReactElement {
   const router = useRouter();
   return (
     <Screen scroll className="pt-section">
-      <View className="flex-row flex-wrap gap-row">
+      <Box className="flex-row flex-wrap gap-row">
         {GENRES.map((g) => (
           <Pressable
             key={g.id}
@@ -33,7 +35,7 @@ export default function CategoriesScreen(): React.ReactElement {
             <Text className="text-text text-sm font-semibold">{g.name}</Text>
           </Pressable>
         ))}
-      </View>
+      </Box>
     </Screen>
   );
 }
