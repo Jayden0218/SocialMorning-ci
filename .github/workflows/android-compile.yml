@@ -29,6 +29,11 @@ jobs:
       - name: expo prebuild (android)
         run: npx expo prebuild -p android --no-install --clean
         working-directory: apps/mobile
+      # Found on the phone 2026-09-28: the widget's WorkManager crashed at start. Print what
+      # Gradle resolves for WorkManager / Room so a version clash is visible in the log.
+      - name: WorkManager / Room versions resolved
+        run: ./gradlew :app:dependencies --configuration releaseRuntimeClasspath --no-daemon | grep -E "androidx\.(work|room|sqlite)" | sort -u | head -40
+        working-directory: apps/mobile/android
       - name: gradle assembleRelease (JS bundled; signed with the template's debug key)
         run: ./gradlew :app:assembleRelease --no-daemon --stacktrace
         working-directory: apps/mobile/android
