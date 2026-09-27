@@ -18,6 +18,7 @@ Checked with `npm view <pkg> license` on 2026-09-21 (constitution, Principle III
 | nativewind | 4.2.7 | MIT | Tailwind, 2026-09-27 |
 | react-native-css-interop | 0.2.7 | MIT | Tailwind (via nativewind) |
 | react-native-reanimated | 4.7.0 | MIT | Tailwind (nativewind peer; was already installed by expo-router) |
+| expo-notifications | 58.0.7 | MIT | Notification permission on the sign-in page, 2026-09-27 |
 | react-native-worklets | 0.13.0 | MIT | Tailwind (reanimated peer; same) |
 | tailwindcss (dev) | 3.4.19 | MIT | Tailwind |
 
