@@ -1,14 +1,25 @@
-/** The real `NotifyApi`: expo-notifications. Kept apart so tests never load the native module. */
-import * as Notifications from 'expo-notifications';
+/**
+ * The real `NotifyApi`: expo-notifications. Kept apart so tests never load the native module.
+ *
+ * Loaded on first use, not at import: a build made before expo-notifications was added
+ * has no `ExpoPushTokenManager`, and a top-level import then throws while sign-in.tsx
+ * loads — the route loses its default export and the page is gone (2026-09-27, iOS).
+ * Now the throw lands inside `askForNotifications`, which returns 'failed' and signing
+ * in carries on.
+ */
 import { Platform } from 'react-native';
 import type { NotifyApi, PermissionState } from './permission';
 
+type Notifications = typeof import('expo-notifications');
+let loaded: Notifications | undefined;
+const native = (): Notifications => (loaded ??= require('expo-notifications') as Notifications);
+
 export const expoNotify: NotifyApi = {
   os: Platform.OS,
-  status: async () => `${(await Notifications.getPermissionsAsync()).status}` as PermissionState,
-  createChannel: () => Notifications.setNotificationChannelAsync('default', {
+  status: async () => `${(await native().getPermissionsAsync()).status}` as PermissionState,
+  createChannel: async () => native().setNotificationChannelAsync('default', {
     name: 'General',
-    importance: Notifications.AndroidImportance.DEFAULT,
+    importance: native().AndroidImportance.DEFAULT,
   }),
-  request: () => Notifications.requestPermissionsAsync(),
+  request: async () => native().requestPermissionsAsync(),
 };
