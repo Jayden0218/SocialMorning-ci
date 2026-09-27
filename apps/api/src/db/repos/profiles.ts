@@ -13,10 +13,12 @@ export type ProfileOut = {
   suspended?: boolean;
   /** M6: set when the VIEWER blocked this listener (so the app can offer Unblock). Never set the other way round (FR-008). */
   blockedByMe?: boolean;
+  /** M10b US7: the country from the listener's last sign-in (two letters), shown to everyone. */
+  country?: string;
 };
 
 export async function profile(db: Db, id: string, viewerId: string | undefined, today: string): Promise<ProfileOut | undefined> {
-  const [l] = await db.query<{ id: string; display_name: string; private_listening: boolean; suspended_at: string | null }>('SELECT id, display_name, private_listening, suspended_at FROM listeners WHERE id = $1', [id]);
+  const [l] = await db.query<{ id: string; display_name: string; private_listening: boolean; suspended_at: string | null; country: string | null }>('SELECT id, display_name, private_listening, suspended_at, country FROM listeners WHERE id = $1', [id]);
   if (!l) return undefined;
   // M6 (FR-008, FR-015): to someone they blocked, a listener looks private and quiet — name only, no hint why. A suspended account shows as suspended.
   const bare = { id: l.id, displayName: l.display_name, followers: 0, following: 0, isFollowing: false, stats: null, recent: [] };
@@ -28,7 +30,7 @@ export async function profile(db: Db, id: string, viewerId: string | undefined, 
   const showStats = !l.private_listening || viewerId === id;
   const s = showStats ? stats(await listenedRowsFor(db, id), today) : null;
   const recent = (await recentBy(db, id)).map(toFeedItem);
-  return { id: l.id, displayName: l.display_name, followers: c.followers, following: c.following, isFollowing: following, stats: s, recent, ...(blockedByMe ? { blockedByMe: true } : {}) };
+  return { id: l.id, displayName: l.display_name, followers: c.followers, following: c.following, isFollowing: following, stats: s, recent, ...(blockedByMe ? { blockedByMe: true } : {}), ...(l.country ? { country: l.country.trim() } : {}) };
 }
 
 export async function setPrivateListening(db: Db, id: string, value: boolean): Promise<void> {

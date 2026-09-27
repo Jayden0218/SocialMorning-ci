@@ -16,6 +16,7 @@ export function collectedList(c: Counts): CollectedGroup[] {
       line: 'What is needed to create your account, sign you in and show your name.',
       items: [
         { id: 'account', title: 'Account details', purpose: 'Create your account, sign you in, show your name on comments', when: 'When you sign up, and when you change your name', scope: 'Display name, email address', count: c.signedIn ? 2 : 0 },
+        { id: 'country', title: 'Country (IP location)', purpose: 'Shown on your profile to everyone, as the country you use SocialNet from', when: 'Each time you sign in', scope: 'The country your internet address belongs to — never your city or the address itself', count: c.signedIn ? 1 : 0 },
         { id: 'email', title: 'Email address', purpose: 'Sign in with a one-time code; account messages', when: 'When you sign up or sign in', scope: 'Email address', count: c.signedIn ? 1 : 0 },
       ],
     },

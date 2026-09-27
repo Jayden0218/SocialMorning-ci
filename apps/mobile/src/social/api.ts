@@ -72,6 +72,8 @@ export type Profile = {
   id: string; displayName: string; followers: number; following: number; isFollowing: boolean;
   stats: { last7: ProfileStats; all: ProfileStats } | null; recent: FeedItem[];
   suspended?: boolean; blockedByMe?: boolean;
+  /** M10b US7: two-letter country from the listener's last sign-in ("IP location"), public. */
+  country?: string;
 };
 export type FeedResult = { status: 200; etag?: string; body: { items: FeedItem[]; next?: string; serverTime: string } } | { status: 304 };
 export type ListenedDay = { episodeId: string; day: string; ranges: [number, number][] };

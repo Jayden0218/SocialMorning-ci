@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { lockoutUntil } from '@socialmorning/social-core';
 import type { AuthEnv } from '../auth/session.ts';
 import { suspendedError, createSession, publicListener, requireAuth, tokenHash } from '../auth/session.ts';
+import { COUNTRY_HEADER, recordCountry } from '../db/repos/country.ts';
 import { hashPassword, verifyPassword } from '../auth/password.ts';
 import { clearFailedSignIns, createListener, listenerByEmail, recordFailedSignIn } from '../db/repos/listeners.ts';
 import { ApiError } from '../errors.ts';
@@ -33,6 +34,7 @@ auth.post('/sign-up', json(signUpBody), async (c) => {
     throw new ApiError('conflict', 'An account with this email exists — sign in instead.');
   }
   const token = await createSession(db, created.id, c.get('pepper'));
+  await recordCountry(db, created.id, c.req.header(COUNTRY_HEADER)); // M10b US7
   return c.json({ token, listener: publicListener(created) });
 });
 
@@ -59,6 +61,7 @@ auth.post('/sign-in', json(signInBody), async (c) => {
   await clearFailedSignIns(db, row.id);
   if (row.suspended_at) throw suspendedError(c.get('safety')?.appealsEmail);
   const token = await createSession(db, row.id, c.get('pepper'), body.deviceLabel);
+  await recordCountry(db, row.id, c.req.header(COUNTRY_HEADER)); // M10b US7
   return c.json({ token, listener: publicListener(row) });
 });
 
@@ -115,6 +118,7 @@ auth.post('/code/verify', json(codeVerify), async (c) => {
   if (!row) throw new ApiError('not_found', 'No such account.');
   if (row.suspended_at) throw suspendedError(c.get('safety')?.appealsEmail);
   const token = await createSession(db, row.id, pepper, body.deviceLabel);
+  await recordCountry(db, row.id, c.req.header(COUNTRY_HEADER)); // M10b US7
   return c.json({ token, listener: publicListener(row) });
 });
 
