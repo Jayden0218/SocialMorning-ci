@@ -99,3 +99,26 @@ test('"New episodes" off → nothing; a DeviceNotRegistered token is dropped; to
   assert.equal((await t.q('SELECT token FROM push_tokens')).length, 0, 'removed at sign-out');
   await t.close();
 });
+
+/**
+ * G-N1 on its own: two cycles that BOTH see the episode as new (two overlapping rebuild runs
+ * read the feed before either registered it) must still tell each device once. First-seen
+ * detection cannot stop this; only `push_sent`'s key can.
+ */
+test('G-N1: the send step called twice for one episode tells each device once', async () => {
+  const { t, sent } = await appWith([]);
+  const a = await signUp(t, 'a@example.com', 'Alex');
+  await t.call('PUT', '/v1/me/subscriptions', { items: [{ feedUrl: FX, createdAt: new Date().toISOString() }] }, a.token);
+  await t.call('POST', '/v1/me/push-tokens', { token: TOKEN_A, platform: 'android' }, a.token);
+  const { fanOutNewEpisode } = await import('../src/db/repos/push.ts');
+  const f = (async (_i: string | URL | Request, init?: RequestInit) => {
+    const batch = JSON.parse(String(init?.body)) as { to: string; title: string; body: string; data: Record<string, string> }[];
+    sent.push(...batch);
+    return new Response(JSON.stringify({ data: batch.map(() => ({ status: 'ok' })) }), { status: 200 });
+  }) as typeof fetch;
+  const ep = { id: 'ep-overlap', feedUrl: FX, title: 'Overlap', showTitle: 'Push Show' };
+  await fanOutNewEpisode(t.db, f, ep);
+  await fanOutNewEpisode(t.db, f, ep);
+  assert.equal(sent.length, 1);
+  await t.close();
+});
