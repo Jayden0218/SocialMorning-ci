@@ -16,7 +16,7 @@ index a326438..99f0f11 100644
        context.registerReceiver(ringerModeReceiver, IntentFilter(AudioManager.RINGER_MODE_CHANGED_ACTION))
      }
 diff --git a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
-index f3ad9d3..db58b92 100644
+index f3ad9d3..d643cfc 100644
 --- a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
 +++ b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
 @@ -20,7 +20,11 @@ import androidx.media3.common.Player
@@ -67,7 +67,7 @@ index f3ad9d3..db58b92 100644
          addSession(session)
          mediaSession = session
          sessionMetadataPlayer = sessionPlayer
-@@ -451,8 +457,41 @@ class AudioControlsService : MediaSessionService() {
+@@ -451,13 +457,52 @@ class AudioControlsService : MediaSessionService() {
      stopForeground(STOP_FOREGROUND_REMOVE)
    }
  
@@ -75,8 +75,11 @@ index f3ad9d3..db58b92 100644
 -    return mediaSession
 +  override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? {
 +    return (mediaSession as? MediaLibrarySession) ?: idleSession()
-+  }
-+
+   }
+ 
+-  override fun onBind(intent: Intent?): IBinder {
+-    super.onBind(intent)
+-    return binder
 +  // ---- SocialNet patch (M10b, Android Auto) ----
 +  // Before anything plays there is no session, and a car that finds none cannot browse. This
 +  // stand-in session has a player that does nothing; it is released the moment a real one is
@@ -108,10 +111,21 @@ index f3ad9d3..db58b92 100644
 +  private fun notifyCarChanged(ids: List<String>) {
 +    val s = (mediaSession as? MediaLibrarySession) ?: idle ?: return
 +    for (id in ids) s.notifyChildrenChanged(id, Int.MAX_VALUE, null)
++  }
++
++  override fun onBind(intent: Intent?): IBinder? {
++    val media = super.onBind(intent)
++    // SocialNet patch (found on Android Auto's car screen, 2026-09-28): a browser (the car) must
++    // get Media3's own binder, or it binds and then waits for ever. The app's own connection
++    // (AudioPlaybackServiceConnection, the MediaSessionService action) keeps expo's binder.
++    return when (intent?.action) {
++      MediaLibraryService.SERVICE_INTERFACE, "android.media.browse.MediaBrowserService" -> media
++      else -> binder
++    }
    }
  
-   override fun onBind(intent: Intent?): IBinder {
-@@ -481,14 +520,15 @@ class AudioControlsService : MediaSessionService() {
+   fun setPlayableMetadata(playable: LockScreenPlayable, metadata: Metadata?) {
+@@ -481,14 +526,15 @@ class AudioControlsService : MediaSessionService() {
          val sessionPlayer = MetadataInjectingPlayer(resolveSessionPlayer(playable, options)).apply {
            updateMetadata(metadata)
          }
