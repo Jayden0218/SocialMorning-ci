@@ -67,7 +67,8 @@ export default function SignInScreen(): React.ReactElement {
         <ArtWall urls={art} onReady={() => setReady(true)} />
       </View>
       <View className="px-screen-x pb-section">
-        <View className="flex-row items-center justify-center gap-row">
+        {/* Owner, 2026-09-27: a clear gap between the name and the ways in. */}
+        <View className="flex-row items-center justify-center gap-row mb-section">
           <Image source={require('../../assets/app-icon.png')} style={LOGO} className="rounded-row" accessibilityIgnoresInvertColors />
           <Text className="text-text text-lg font-bold" accessibilityRole="header">SocialNet</Text>
         </View>
