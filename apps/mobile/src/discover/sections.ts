@@ -34,7 +34,7 @@ export function pages<T>(items: readonly T[], n = 3): T[][] {
 export function buildModel(body: Discover | undefined, forYou: ForYou | undefined, hidden: Hidden): DiscoverModel {
   const keepCard = (c: EpisodeCard) => !hidden.feeds.has(c.feedUrl);
   const keepItem = (i: DiscoverItem) => keepCard(i.episode);
-  const picks = (body?.picks ?? []).filter(keepItem);
+  const picks = (body?.picks ?? []);
   const newShows = (body?.newShows ?? []).filter((n) => keepCard(n.episode) && !hidden.feeds.has(n.show.feedUrl));
   const chart: ChartTab[] = [
     { key: 'top' as const, label: 'Top', rows: (body?.trending ?? []).filter(keepItem).map((i) => i.episode) },
@@ -50,7 +50,7 @@ export function buildModel(body: Discover | undefined, forYou: ForYou | undefine
     shows: (body?.shows ?? []).filter((s) => !hidden.feeds.has(s.feedUrl)).slice(0, 6),
     collections: (body?.collections ?? []).map((c) => ({ ...c, items: c.items.filter(keepItem) })).filter((c) => c.items.length > 0),
     ...(followed && followedShows.length > 0 ? { followedHere: { total: followed.total, shows: followedShows } } : {}),
-    said: (body?.said ?? []).filter((s) => !hidden.blocked.has(s.authorId) && keepCard(s.episode)),
+    said: (body?.said ?? []).filter((s) => keepCard(s.episode)),
     newShows,
   };
 }

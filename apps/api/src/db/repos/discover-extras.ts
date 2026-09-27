@@ -106,7 +106,7 @@ export async function followedHere(db: Db): Promise<FollowedHere> {
  */
 export async function said(db: Db): Promise<Said[]> {
   const rows = await db.query<{ id: string; author_id: string; body: string; created_at: string | Date; episode_id: string; feed_url: string; guid: string; title: string; show_title: string | null; image_url: string | null; duration_ms: number | null; enclosure_url: string; published_at: string | Date | null }>(
-    `SELECT c.id, c.author_id, c.body, c.created_at,
+    `SELECT c.id, l.display_name AS author_id, c.body, c.created_at,
             e.id AS episode_id, e.feed_url, e.guid, e.title, e.show_title, e.image_url, e.duration_ms, e.enclosure_url, e.published_at
      FROM comments c
      JOIN episodes e ON e.id = c.episode_id

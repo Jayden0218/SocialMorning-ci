@@ -42,7 +42,7 @@ export function excludeHidden(body: DiscoverBody, hidden: ReadonlySet<string>): 
   const keep = (i: DiscoverItem) => !hidden.has(i.episode.feedUrl);
   return {
     ...body, picks: body.picks.filter(keep), talkedAbout: body.talkedAbout.filter(keep), trending: body.trending.filter(keep),
-    ...(body.shows ? { shows: body.shows.filter((s) => !hidden.has(s.feedUrl)) } : {}),
+    ...(body.shows ? { shows: body.shows } : {}),
     ...(body.newShows ? { newShows: body.newShows.filter((n) => !hidden.has(n.show.feedUrl) && !hidden.has(n.episode.feedUrl)) } : {}),
   };
 }
