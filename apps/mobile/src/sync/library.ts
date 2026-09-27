@@ -30,7 +30,7 @@ export function recordChange(s: SettingsStore, kind: Kind, key: string, payload:
   const at = new Date(now).toISOString();
   const rest = readLog(s).filter((i) => !(i.kind === kind && i.key === key));
   const row: LogItem = payload === undefined
-    ? { kind, key, updatedAt: at, deletedAt: at }
+    ? { kind, key, updatedAt: at }
     : { kind, key, payload, updatedAt: at };
   s.set(LOG_KEY, JSON.stringify([row, ...rest]));
   for (const fn of listeners) fn();
