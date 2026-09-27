@@ -22,6 +22,9 @@ Checked with `npm view <pkg> license` on 2026-09-21 (constitution, Principle III
 | @expo/vector-icons | 15.1.1 | MIT | Tab bar and mini player icons (Ionicons font), 2026-09-27 |
 | expo-camera | 58.0.3 | MIT | Scanning a QR code from the search page, 2026-09-27 |
 | expo-video | 58.0.3 | MIT | The picture for video episodes (spec 010 US5), 2026-09-27 |
+| react-native-android-widget | 0.22.1 | MIT | The Android home-screen widget (spec 010 US9), 2026-09-27 |
+| @bacons/apple-targets | 5.0.0 | MIT | The iPhone widget and Siri shortcut targets (spec 010 US9; linked only with SOCIALNET_IOS_EXTRAS=1), 2026-09-27 |
+| expo-live-activity | 0.4.2 | MIT | The iPhone lock-screen live activity (spec 010 US9; linked only with SOCIALNET_IOS_EXTRAS=1), 2026-09-27 |
 | expo-image-picker | 58.0.7 | MIT | Adding images to feedback (spec 010 US6), 2026-09-27 |
 | expo-image-manipulator | 58.0.8 | MIT | Shrinking feedback images on the phone (spec 010 US6), 2026-09-27 |
 | react-native-worklets | 0.13.0 | MIT | Tailwind (reanimated peer; same) |

@@ -70,6 +70,24 @@
           "cameraPermission": false,
           "microphonePermission": false
         }
+      ],
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "NowPlaying",
+              "label": "SocialNet — now playing",
+              "description": "The episode you are listening to, with play and pause.",
+              "minWidth": "250dp",
+              "minHeight": "80dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 1,
+              "resizeMode": "horizontal",
+              "updatePeriodMillis": 0
+            }
+          ]
+        }
       ]
     ],
     "extra": {

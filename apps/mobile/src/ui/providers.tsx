@@ -29,6 +29,8 @@ import { createExpoNetwork } from '../downloads/expo-network';
 import { waitForStartup } from './startup';
 import { onNotificationTap } from '../notify/expo';
 import { canStream } from '../settings/playback';
+import { createOutsideBridge, setOutsideToggle } from '../outside/bridge';
+import { platformSinks } from '../outside/sinks';
 import { applyAppearance } from '../design/theme';
 import { readAppearance } from './useColours';
 import { Splash } from './Splash';
@@ -296,6 +298,22 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
   useEffect(() => {
     runtime.restore((episodeId) => toPlayable(stores, episodeId));
   }, [runtime, stores]);
+
+  // M10b US9: the widgets and the lock-screen live activity follow the player; the widget's
+  // button toggles it while the app is alive.
+  useEffect(() => {
+    const bridge = createOutsideBridge({
+      runtime,
+      lookup: (id) => {
+        const e = stores.feeds.getEpisode(id);
+        return e ? { title: e.title, show: stores.feeds.getShow(e.feedUrl)?.title ?? '' } : undefined;
+      },
+      social: async (id) => { const r = await graphApi.social(id); return r.status === 200 ? r.body : undefined; },
+      sinks: platformSinks(),
+    });
+    setOutsideToggle(() => { const k = runtime.getState().kind; if (k === 'playing' || k === 'buffering') runtime.pause(); else runtime.play(); });
+    return () => { setOutsideToggle(undefined); bridge.dispose(); };
+  }, [runtime, stores, graphApi]);
 
   useEffect(() => () => runtime.dispose(), [runtime]);
 
