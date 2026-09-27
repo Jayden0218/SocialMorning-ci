@@ -21,7 +21,7 @@ const RULES: { id: string; emoji: string; title: string; need: number; have: (i:
 export function stickers(i: StickerInput): Sticker[] {
   return RULES.map((r) => {
     const have = r.have(i);
-    const earned = have > r.need;
+    const earned = have >= r.need;
     const shown = r.unit === 'h' ? Math.floor(have) : have;
     return { id: r.id, emoji: r.emoji, title: r.title, earned, progress: earned ? 'Earned' : `${shown} of ${r.need} ${r.unit}` };
   });
