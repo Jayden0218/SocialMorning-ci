@@ -57,7 +57,7 @@ function resolves(path: string): boolean {
 const PATHS = [
   '/', '/discover', '/following', '/library',
   // M10
-  '/categories', '/category/1301',
+  '/categories', '/category/1301', '/scan',
   '/inbox', '/queue', '/downloads', '/account', '/search',
   '/show/https%3A%2F%2Ff%2Fx.xml', '/episode/e1', '/player',
   '/profile/l1', '/profile/l1/followers', '/profile/l1/following',

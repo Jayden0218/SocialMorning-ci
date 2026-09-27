@@ -44,7 +44,9 @@ export default function RootLayout(): React.ReactElement {
         >
           {/* The tab group draws its own header and its own bar (M7 T012). */}
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="search" options={{ title: 'Search' }} />
+          {/* M10: Search draws its own box + Cancel at the top, like the reference. */}
+          <Stack.Screen name="search" options={{ title: 'Search', headerShown: false }} />
+          <Stack.Screen name="scan" options={{ title: 'Scan a QR code' }} />
           <Stack.Screen name="show/[feedUrl]" options={{ title: 'Show' }} />
           <Stack.Screen name="episode/[id]" options={{ title: 'Episode' }} />
           <Stack.Screen name="player" options={{ title: 'Now Playing' }} />

@@ -42,7 +42,7 @@ export default function CategoryScreen(): React.ReactElement {
       {shows.map((s, i) => (
         <Pressable
           key={s.feedUrl}
-          onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: s.feedUrl } })}
+          onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(s.feedUrl) } })}
           accessibilityRole="button"
           accessibilityLabel={`${i + 1}. ${s.title}, ${s.author}`}
           className="flex-row items-center gap-row py-row border-b-hairline border-separator"

@@ -54,7 +54,15 @@
       "expo-router",
       "expo-secure-store",
       "./plugins/without-push-entitlement",
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "SocialNet uses the camera only to scan QR codes.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ]
     ],
     "extra": {
       "apiBaseUrl": "https://socialmorning-api.vercel.app",

@@ -57,6 +57,9 @@ const TAILWIND_ADDITIONS = ['nativewind', 'react-native-reanimated', 'react-nati
 /** Notification permission on the sign-in page (owner, 2026-09-27). MIT (LICENSES.md). */
 const NOTIFY_ADDITIONS = ['expo-notifications'];
 
+/** Scanning a QR code on the search page (owner, 2026-09-27). MIT (LICENSES.md). */
+const SCAN_ADDITIONS = ['expo-camera'];
+
 it('no reference dependency is installed, anywhere', () => {
   const installed = new Set([
     ...Object.keys(pkg.dependencies),
@@ -69,10 +72,10 @@ it('expo-audio is still the runtime', () => {
   expect(pkg.dependencies['expo-audio']).toBeDefined();
 });
 
-it('M7 added exactly expo-blur and expo-linear-gradient, Tailwind its three, notifications its one, and removed nothing', () => {
+it('M7 added exactly expo-blur and expo-linear-gradient, Tailwind its three, notifications its one, the scanner its one, and removed nothing', () => {
   const now = Object.keys(pkg.dependencies).sort();
   const added = now.filter((name) => !M6_DEPENDENCIES.includes(name));
   const removed = M6_DEPENDENCIES.filter((name) => !now.includes(name));
-  expect(added.sort()).toEqual([...M7_ADDITIONS, ...TAILWIND_ADDITIONS, ...NOTIFY_ADDITIONS].sort());
+  expect(added.sort()).toEqual([...M7_ADDITIONS, ...TAILWIND_ADDITIONS, ...NOTIFY_ADDITIONS, ...SCAN_ADDITIONS].sort());
   expect(removed).toEqual([]);
 });

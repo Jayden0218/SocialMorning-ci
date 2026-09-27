@@ -43,7 +43,7 @@ export default function DiscoverScreen(): React.ReactElement {
     [view, forYou.view, hiddenFeeds, sets, version],
   );
   const inbox = inboxIds(stores).length;
-  const showPage = (feedUrl: string) => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl } });
+  const showPage = (feedUrl: string) => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(feedUrl) } });
   const act = { onOpen: (c: Parameters<typeof open>[0]) => void open(c), onPlay: (c: Parameters<typeof play>[0]) => void play(c) };
 
   return (
@@ -56,7 +56,7 @@ export default function DiscoverScreen(): React.ReactElement {
           <Text className="text-text text-lg font-bold" accessibilityRole="header">Discover</Text>
           <Image source={require('../../assets/app-icon.png')} style={ICON} className="rounded-row" accessibilityIgnoresInvertColors accessibilityLabel="SocialNet" />
         </View>
-        <SearchBar onPress={() => router.push('/search')} />
+        <SearchBar onPress={() => router.push('/search')} onScan={() => router.push('/scan')} />
         <Shortcuts
           items={[
             { label: 'Categories', emoji: '🗂️', onPress: () => router.push('/categories') },

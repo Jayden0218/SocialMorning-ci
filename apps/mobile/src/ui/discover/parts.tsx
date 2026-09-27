@@ -84,12 +84,19 @@ export function Pager(props: { count: number; children: (index: number, width: n
   );
 }
 
-/** A search box that is a button: tapping it opens Search, where typing happens. */
-export function SearchBar(props: { onPress: () => void }): React.ReactElement {
+/** A search box that is a button: tapping it opens Search, where typing happens. The square on the right scans a QR code. */
+export function SearchBar(props: { onPress: () => void; onScan?: () => void }): React.ReactElement {
   return (
-    <Pressable onPress={props.onPress} accessibilityRole="search" accessibilityLabel="Search shows and episodes" className="mx-screen-x flex-row items-center gap-row bg-surface rounded-row px-row" style={TAP}>
-      <View className="w-4 h-4 rounded-pill border-2 border-separator" />
-      <Text className="text-muted text-sm">Search shows and episodes</Text>
-    </Pressable>
+    <View className="mx-screen-x flex-row items-center bg-surface rounded-row">
+      <Pressable onPress={props.onPress} accessibilityRole="search" accessibilityLabel="Search shows and episodes" className="flex-1 flex-row items-center gap-row px-row" style={TAP}>
+        <View className="w-4 h-4 rounded-pill border-2 border-separator" />
+        <Text className="text-muted text-sm">Search shows and episodes</Text>
+      </Pressable>
+      {props.onScan ? (
+        <Pressable onPress={props.onScan} accessibilityRole="button" accessibilityLabel="Scan a QR code" className="items-center justify-center" style={TAP}>
+          <View className="w-5 h-5 border-2 border-muted rounded-sm" />
+        </Pressable>
+      ) : null}
+    </View>
   );
 }
