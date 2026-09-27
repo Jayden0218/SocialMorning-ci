@@ -27,7 +27,7 @@ export function latestUpdates(stores: Pick<Stores, 'subscriptions' | 'feeds'> & 
   for (const { feedUrl } of stores.subscriptions.list()) {
     if (hidden.has(feedUrl)) continue;
     const show = stores.feeds.getShow(feedUrl);
-    for (const e of stores.feeds.listEpisodes(feedUrl).slice(0, perShow)) {
+    for (const e of stores.feeds.listEpisodes(feedUrl).filter((x) => !(noExplicit && x.explicit)).slice(0, perShow)) {
       const img = e.imageUrl ?? show?.imageUrl;
       rows.push({ episode: e, showTitle: show?.title ?? feedUrl, ...(img ? { imageUrl: img } : {}), summary: plainSummary(e.shownotesHtml) });
     }

@@ -14,7 +14,7 @@ export function queueEpisode(stores: Pick<Stores, 'queue' | 'settings'>, downloa
   const r = enqueue(stores.queue.list(), episodeId, at);
   if (r.refused) return { kind: 'full' };
   stores.queue.replace(r.queue, now);
-  const downloading = downloads !== undefined;
+  const downloading = downloads !== undefined && getPref(stores.settings, 'autoDownloadQueued');
   if (downloading) void downloads.request(episodeId);
   return { kind: 'queued', where: at, evicted: r.evicted !== undefined, downloading };
 }
