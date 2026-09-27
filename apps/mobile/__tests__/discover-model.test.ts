@@ -21,6 +21,7 @@ it('an older server (no M10 fields) still gives picks and a chart, and no empty 
   expect(m.collections).toEqual([]);
   expect(m.said).toEqual([]);
   expect(m.newShows).toEqual([]);
+  expect(m.video).toEqual([]);
   expect(m.followedHere).toBeUndefined();
   expect(m.forYou).toEqual([]);
 });

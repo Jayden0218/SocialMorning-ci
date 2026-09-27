@@ -19,6 +19,8 @@ export type DiscoverModel = {
   followedHere?: { total: number; shows: FollowedShow[] };
   said: SaidItem[];
   newShows: { show: ShowCard; episode: EpisodeCard }[];
+  /** M10b US5: "Podcasts you can watch". */
+  video: DiscoverItem[];
 };
 
 /** What the viewer has hidden: shows (owner or own), and blocked listeners. */
@@ -52,6 +54,7 @@ export function buildModel(body: Discover | undefined, forYou: ForYou | undefine
     ...(followed && followedShows.length > 0 ? { followedHere: { total: followed.total, shows: followedShows } } : {}),
     said: (body?.said ?? []).filter((s) => !hidden.blocked.has(s.authorId) && keepCard(s.episode)),
     newShows,
+    video: (body?.video ?? []).filter(keepItem).slice(0, 10),
   };
 }
 

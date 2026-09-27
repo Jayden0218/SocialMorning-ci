@@ -26,6 +26,8 @@ export type EpisodeInput = {
   publishedAt?: string;
   /** Apple genre id for the show this episode belongs to (M8, catalog/genres.ts). */
   genreId?: number;
+  /** M10b US5: 'video' when the feed says so; absent keeps what is stored (default audio). */
+  mediaKind?: 'video';
 };
 
 /**
@@ -35,8 +37,8 @@ export type EpisodeInput = {
  */
 export async function upsertEpisode(db: Db, e: EpisodeInput): Promise<EpisodeRow> {
   const rows = await db.query<EpisodeRow>(
-    `INSERT INTO episodes (id, feed_url, guid, title, show_title, enclosure_url, image_url, duration_ms, published_at, genre_id)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+    `INSERT INTO episodes (id, feed_url, guid, title, show_title, enclosure_url, image_url, duration_ms, published_at, genre_id, media_kind)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, COALESCE($11, 'audio'))
      ON CONFLICT (id) DO UPDATE SET
        title = EXCLUDED.title,
        show_title = COALESCE(EXCLUDED.show_title, episodes.show_title),
@@ -44,9 +46,10 @@ export async function upsertEpisode(db: Db, e: EpisodeInput): Promise<EpisodeRow
        duration_ms = COALESCE(episodes.duration_ms, EXCLUDED.duration_ms),
        published_at = COALESCE(EXCLUDED.published_at, episodes.published_at),
        genre_id = COALESCE(EXCLUDED.genre_id, episodes.genre_id),
+       media_kind = CASE WHEN $11::text = 'video' THEN 'video' ELSE episodes.media_kind END,
        updated_at = CASE WHEN episodes.duration_ms IS NULL AND EXCLUDED.duration_ms IS NOT NULL THEN now() ELSE episodes.updated_at END
      RETURNING id, feed_url, guid, title, show_title, enclosure_url, image_url, duration_ms, published_at, genre_id`,
-    [e.id, e.feedUrl, e.guid, e.title, e.showTitle ?? null, e.enclosureUrl, e.imageUrl ?? null, e.durationMs ?? null, e.publishedAt ?? null, e.genreId ?? null],
+    [e.id, e.feedUrl, e.guid, e.title, e.showTitle ?? null, e.enclosureUrl, e.imageUrl ?? null, e.durationMs ?? null, e.publishedAt ?? null, e.genreId ?? null, e.mediaKind ?? null],
   );
   return rows[0]!;
 }

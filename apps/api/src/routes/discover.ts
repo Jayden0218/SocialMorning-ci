@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { createHash } from 'node:crypto';
 import type { AuthEnv } from '../auth/session.ts';
 import { discoverBody, SHOWS_SERVED } from '../db/repos/discover.ts';
-import { collectionsWithoutHidden, followedHere, resolveCollections, said, statsFor, withStats, type Collection, type FollowedHere, type Said } from '../db/repos/discover-extras.ts';
+import { collectionsWithoutHidden, followedHere, resolveCollections, said, statsFor, videoEpisodes, withStats, type Collection, type FollowedHere, type Said } from '../db/repos/discover-extras.ts';
 import { hiddenFeedUrls } from '../db/repos/moderation.ts';
 
 /** Mounted at /v1/discover — public; ETag/304; `stale` when the catalogue could not be refreshed. */
@@ -25,6 +25,7 @@ discover.get('/', async (c) => {
   let collections: Collection[] | undefined = resolved ? collectionsWithoutHidden(resolved.collections, hidden) : undefined;
   const followed: FollowedHere | undefined = await optional('followedHere', extraWarnings, () => followedHere(db));
   const saidList: Said[] | undefined = await optional('said', extraWarnings, () => said(db));
+  const video = await optional('video', extraWarnings, () => videoEpisodes(db));
   const ids = [...pub.picks, ...(collections ?? []).flatMap((x) => x.items)].map((i) => i.episode.id);
   const stats = await optional('stats', extraWarnings, () => statsFor(db, ids));
   const picks = stats ? withStats(pub.picks, stats) : pub.picks;
@@ -38,6 +39,7 @@ discover.get('/', async (c) => {
     followed ? [followed.total, followed.shows.map((s) => [s.feedUrl, s.followers, s.title])] : null,
     saidList?.map((s) => s.commentId), collections?.map((x) => [x.id, x.title, x.subtitle, x.items.map((i) => i.key)]),
     picks.map((p) => p.stats ?? null), collections?.map((x) => x.items.map((i) => i.stats ?? null)),
+    video?.map((v) => v.episode.id),
   ])).digest('base64url').slice(0, 16)}"`;
   if (c.req.header('if-none-match') === etag) return c.body(null, 304);
   c.header('ETag', etag);
@@ -49,6 +51,7 @@ discover.get('/', async (c) => {
     ...(followed ? { followedHere: followed } : {}),
     ...(saidList ? { said: saidList } : {}),
     ...(collections ? { collections } : {}),
+    ...(video && video.length > 0 ? { video } : {}),
     stale, serverTime: new Date().toISOString(),
   });
 });

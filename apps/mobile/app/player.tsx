@@ -25,6 +25,8 @@ import { BarButton, TAP, TopBar } from '../src/ui/TopBar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { gradientFor } from '../src/design/gradient';
 import { Artwork } from '../src/ui/Artwork';
+import { mediaKindOf } from '@socialmorning/social-core';
+import { VideoStage } from '../src/ui/VideoStage';
 import { usePlayer, usePlayerState } from '../src/playback/store';
 import { Scrubber, scrubberValue } from '../src/ui/Scrubber';
 import { mmss } from '../src/ui/format';
@@ -165,7 +167,10 @@ export default function PlayerScreen(): React.ReactElement {
     {/* Grows to the screen and spreads out; scrolls only when a large font needs it. */}
     <ScrollView contentContainerClassName="flex-grow justify-between px-screen-x pb-section">
       <View className="items-center gap-2">
-        <Artwork url={artworkUrl} size={art} rounded="artwork" className="mt-2" />
+        {/* M10b US5: a video episode shows its picture (muted, following the sound). */}
+        {episode && mediaKindOf(episode.enclosureType, episode.enclosureUrl) === 'video'
+          ? <VideoStage url={episode.enclosureUrl} positionMs={positionMs} playing={isPlaying} size={art} />
+          : <Artwork url={artworkUrl} size={art} rounded="artwork" className="mt-2" />}
         <Text className={TITLE} numberOfLines={3}>{episode?.title ?? 'Now playing'}</Text>
         <View className="flex-row items-center justify-center gap-2">
           {feedUrl === undefined ? <Text className={SUBTITLE}>{show?.title ?? ''}</Text> : (

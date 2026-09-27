@@ -25,7 +25,7 @@ import { BOTTOM_INSET } from '../../src/ui/Screen';
 import { SearchBar } from '../../src/ui/discover/parts';
 import {
   CategoryStrip, ChartSection, CollectionSection, ForYouSection, MoreCategories, NewShowsSection, PicksSection, SaidSection, ShowTiles, Shortcuts,
-  followedShowTiles, popularShowTiles,
+  followedShowTiles, popularShowTiles, VideoSection,
 } from '../../src/ui/discover/sections';
 
 const ICON = { width: 36, height: 36 };
@@ -99,6 +99,7 @@ export default function DiscoverScreen(): React.ReactElement {
         <ChartSection tabs={model.chart} {...act} />
         {view ? <CategoryStrip onGenre={(id) => router.push({ pathname: '/category/[id]', params: { id: String(id) } })} onAll={() => router.push('/categories')} /> : null}
         <ShowTiles title="Popular shows" shows={popularShowTiles(model.shows)} onShow={showPage} />
+        <VideoSection items={model.video} {...act} />
         {model.collections.map((c) => <CollectionSection key={c.id} collection={c} {...act} />)}
         {model.followedHere ? (
           <ShowTiles title="Shows listeners here follow" badge={model.followedHere.total} shows={followedShowTiles(model.followedHere.shows)} onShow={showPage} boxed />

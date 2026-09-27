@@ -1,3 +1,4 @@
+import { mediaKindOf } from '@socialmorning/social-core';
 /**
  * A feed, parsed server-side (M5 research R3/R5): for show picks ("its latest episode"),
  * "new on this show", and the category behind "trending in". Cached 1 h; the parser never
@@ -38,6 +39,8 @@ export function toCard(feedUrl: string, show: ParsedFeed['show'], e: Episode): E
     ...(imageUrl ? { imageUrl } : {}), ...(e.durationMs !== undefined ? { durationMs: e.durationMs } : {}),
     ...(e.publishedAt !== undefined ? { publishedAt: new Date(e.publishedAt).toISOString() } : {}),
     ...(genre ? { genreId: genre.id } : {}),
+    // M10b US5: a video episode is recognised once, here, from the feed.
+    ...(mediaKindOf(e.enclosureType, e.enclosureUrl) === 'video' ? { mediaKind: 'video' as const } : {}),
   };
 }
 
@@ -54,5 +57,6 @@ export async function registerCard(db: Db, c: EpisodeCard): Promise<EpisodeRow> 
     id: episodeIdOf(c.feedUrl, c.guid), feedUrl: c.feedUrl, guid: c.guid, title: c.title, enclosureUrl: c.enclosureUrl,
     ...(c.showTitle ? { showTitle: c.showTitle } : {}), ...(c.imageUrl ? { imageUrl: c.imageUrl } : {}), ...(c.durationMs !== undefined ? { durationMs: c.durationMs } : {}),
     ...(c.publishedAt !== undefined ? { publishedAt: c.publishedAt } : {}), ...(c.genreId !== undefined ? { genreId: c.genreId } : {}),
+    ...(c.mediaKind === 'video' ? { mediaKind: 'video' as const } : {}),
   });
 }

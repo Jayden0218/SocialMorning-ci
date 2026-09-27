@@ -220,3 +220,24 @@ export function MoreCategories(props: { onPress: () => void }): React.ReactEleme
     </Pressable>
   );
 }
+
+/** M10b US5 — "Podcasts you can watch": video episodes as wide tiles, each opening its episode. */
+export function VideoSection(props: Act & { items: DiscoverItem[] }): React.ReactElement | null {
+  if (props.items.length === 0) return null;
+  return (
+    <View>
+      <SectionTitle title="Podcasts you can watch" />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="px-screen-x gap-row">
+        {props.items.map((i) => (
+          <Pressable key={i.key} onPress={() => props.onOpen(i.episode)} accessibilityRole="button" accessibilityLabel={`Video: ${i.episode.title}, ${i.episode.showTitle}`} className="w-60 bg-surface rounded-artwork overflow-hidden">
+            <Artwork url={i.episode.imageUrl} size={240} rounded="row" />
+            <View className="p-row">
+              <Text className="text-text text-sm font-semibold" numberOfLines={2}>{i.episode.title}</Text>
+              <Text className="text-muted text-xs" numberOfLines={1}>{`▶ Video · ${i.episode.showTitle}`}</Text>
+            </View>
+          </Pressable>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}

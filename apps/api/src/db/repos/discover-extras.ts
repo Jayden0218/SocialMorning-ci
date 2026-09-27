@@ -178,3 +178,27 @@ export function collectionsWithoutHidden(cols: readonly Collection[], hidden: Re
   if (hidden.size === 0) return [...cols];
   return cols.map((c) => ({ ...c, items: c.items.filter((i) => !hidden.has(i.episode.feedUrl)) })).filter((c) => c.items.length > 0);
 }
+
+
+/**
+ * M10b US5 — "Podcasts you can watch": the newest video episodes SocialNet has registered
+ * (from feeds, charts and picks), at most 10, hidden shows left out. Live, not cached.
+ */
+export async function videoEpisodes(db: Db, limit = 10): Promise<{ kind: 'trending'; key: string; episode: EpisodeCard & { id: string; mediaKind: 'video' } }[]> {
+  const rows = await db.query<{ id: string; feed_url: string; guid: string; title: string; show_title: string | null; image_url: string | null; duration_ms: number | null; enclosure_url: string; published_at: string | Date | null }>(
+    `SELECT e.id, e.feed_url, e.guid, e.title, e.show_title, e.image_url, e.duration_ms, e.enclosure_url, e.published_at
+     FROM episodes e
+     WHERE e.media_kind = 'video' AND NOT EXISTS (SELECT 1 FROM hidden_feeds h WHERE h.feed_url = e.feed_url)
+     ORDER BY e.published_at DESC NULLS LAST, e.id LIMIT $1`,
+    [limit],
+  );
+  return rows.map((r) => ({
+    kind: 'trending' as const,
+    key: `${r.feed_url}\u0001${r.guid}`,
+    episode: {
+      id: r.id, feedUrl: r.feed_url, guid: r.guid, title: r.title, showTitle: r.show_title ?? '', enclosureUrl: r.enclosure_url, mediaKind: 'video' as const,
+      ...(r.image_url ? { imageUrl: r.image_url } : {}), ...(r.duration_ms !== null ? { durationMs: r.duration_ms } : {}),
+      ...(r.published_at ? { publishedAt: new Date(r.published_at).toISOString() } : {}),
+    },
+  }));
+}

@@ -51,3 +51,5 @@ export { MMR_THETA, LIST_SIZE, MAX_PER_SHOW_TOP10, TOP10, MAX_PER_GENRE_TOP20, S
 export type { ReasonContext } from './reason';
 export { REASON_MAX, reasonFor } from './reason';
 export { REPLAY_TARGET_PERCENTILE, REPLAY_FIELD, replayScore } from './replay';
+// M10b US5
+export { mediaKindOf, type MediaKind } from './media';

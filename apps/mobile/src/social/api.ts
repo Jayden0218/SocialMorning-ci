@@ -93,6 +93,8 @@ export type Discover = {
   followedHere?: { total: number; shows: FollowedShow[] };
   said?: SaidItem[];
   collections?: Collection[];
+  /** M10b US5: video episodes, newest first (≤ 10). */
+  video?: DiscoverItem[];
 };
 export type LibraryItem = { kind: 'fav_episode' | 'fav_comment' | 'moment' | 'search'; key: string; payload?: Record<string, unknown>; updatedAt: string; deletedAt?: string };
 export type MyComment = { id: string; body: string | null; deleted: boolean; removed: boolean; offsetMs: number | null; createdAt: string; episode: EpisodeCard };
