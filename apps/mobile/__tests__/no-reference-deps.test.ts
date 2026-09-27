@@ -66,6 +66,9 @@ const SCAN_ADDITIONS = ['expo-camera'];
 /** M10b US5: the picture for video episodes (spec 010, research R7). MIT (LICENSES.md). */
 const VIDEO_ADDITIONS = ['expo-video'];
 
+/** M10b US6: images in feedback — pick and shrink on the phone (research R8). MIT (LICENSES.md). */
+const FEEDBACK_ADDITIONS = ['expo-image-picker', 'expo-image-manipulator'];
+
 it('no reference dependency is installed, anywhere', () => {
   const installed = new Set([
     ...Object.keys(pkg.dependencies),
@@ -82,6 +85,6 @@ it('M7 added exactly expo-blur and expo-linear-gradient, Tailwind its three, not
   const now = Object.keys(pkg.dependencies).sort();
   const added = now.filter((name) => !M6_DEPENDENCIES.includes(name));
   const removed = M6_DEPENDENCIES.filter((name) => !now.includes(name));
-  expect(added.sort()).toEqual([...M7_ADDITIONS, ...TAILWIND_ADDITIONS, ...NOTIFY_ADDITIONS, ...SCAN_ADDITIONS, ...ICON_ADDITIONS, ...VIDEO_ADDITIONS].sort());
+  expect(added.sort()).toEqual([...M7_ADDITIONS, ...TAILWIND_ADDITIONS, ...NOTIFY_ADDITIONS, ...SCAN_ADDITIONS, ...ICON_ADDITIONS, ...VIDEO_ADDITIONS, ...FEEDBACK_ADDITIONS].sort());
   expect(removed).toEqual([]);
 });

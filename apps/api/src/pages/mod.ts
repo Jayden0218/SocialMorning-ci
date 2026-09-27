@@ -25,6 +25,8 @@ const COOKIE = 'mod';
 const ACTIONS: readonly Action[] = ['dismiss', 'remove', 'hide_show', 'suspend', 'unsuspend', 'unhide_show'];
 const csrfFor = (token: string) => createHash('sha256').update('csrf|').update(token).digest('base64url').slice(0, 24);
 
+import { feedbackImage, recentFeedback } from '../db/repos/feedback.ts';
+
 export const mod = new Hono<AuthEnv>();
 
 /** The owner behind the cookie, or undefined. Not the owner → undefined too (G9). */
@@ -73,6 +75,39 @@ mod.get('/recs', async (c) => {
     <p class="muted">Aggregates only — no listener is named here.</p>
     <p><a href="/mod">Back to the queue</a></p>
   `));
+});
+
+/**
+ * M10b US6 — the listeners' feedback, newest first, with its images (owner only). The images
+ * are served one by one below, behind the same owner check; nothing here is public.
+ */
+mod.get('/feedback', async (c) => {
+  if (!c.get('safety').ownerListenerId) return c.html(page('Feedback', '<h1>Not configured</h1>'), 503);
+  const who = await ownerFromCookie(c);
+  if (!who) return c.html(page('Feedback — refused', '<h1>Not the owner</h1><p><a href="/mod">Back</a></p>'), 403);
+  const rows = await recentFeedback(c.get('db'));
+  return c.html(page('Feedback', `
+    <h1>Feedback — newest 50</h1>
+    ${rows.length === 0 ? '<p class="muted">Nothing yet.</p>' : rows.map((r) => `
+      <div class="card">
+        <p class="muted">${esc(r.kind)} · ${esc(new Date(r.created_at).toISOString().slice(0, 16).replace('T', ' '))} · ${esc(r.display_name ?? 'signed out')}${r.app_version ? ` · ${esc(r.app_version)}` : ''}</p>
+        <p>${esc(r.body)}</p>
+        ${Array.from({ length: r.images }, (_, k) => `<a href="/mod/feedback/${esc(r.id)}/${k + 1}"><img src="/mod/feedback/${esc(r.id)}/${k + 1}" alt="image ${k + 1}" style="max-width:240px;max-height:240px;margin-right:8px"></a>`).join('')}
+      </div>`).join('')}
+    <p><a href="/mod">Back to the queue</a></p>
+  `));
+});
+
+mod.get('/feedback/:id/:n', async (c) => {
+  const who = await ownerFromCookie(c);
+  if (!who) return c.text('Not the owner', 403);
+  const n = Number(c.req.param('n'));
+  if (!Number.isInteger(n) || n < 1 || n > 3) return c.text('Not found', 404);
+  const img = await feedbackImage(c.get('db'), c.req.param('id'), n).catch(() => undefined);
+  if (!img) return c.text('Not found', 404);
+  c.header('content-type', img.mime);
+  c.header('cache-control', 'private, no-store');
+  return c.body(img.bytes as unknown as ArrayBuffer);
 });
 
 mod.get('/', async (c) => {

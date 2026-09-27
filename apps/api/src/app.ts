@@ -14,6 +14,7 @@ import { positions } from './routes/positions.ts';
 import { subscriptions } from './routes/subscriptions.ts';
 import { library, myCommentsRoute } from './routes/library.ts';
 import { pushPrefs, pushTokens } from './routes/push.ts';
+import { feedback } from './routes/feedback.ts';
 import { clipById, episodeClips } from './routes/clips.ts';
 import { createClipPages } from './pages/clip.ts';
 import { mod } from './pages/mod.ts';
@@ -66,7 +67,10 @@ export function createApp(deps: AppDeps) {
   const app = new Hono<AuthEnv>();
 
   app.use('*', requestId());
-  app.use('*', bodyLimit({ maxSize: 16 * 1024 }));
+  // M10b US6: feedback carries up to 3 images (≤ 250 000 bytes each, base64); every other route stays at 16 KB.
+  const small = bodyLimit({ maxSize: 16 * 1024 });
+  const feedbackLimit = bodyLimit({ maxSize: 1_100_000 });
+  app.use('*', (c, next) => (c.req.path === '/v1/feedback' ? feedbackLimit(c, next) : small(c, next)));
   // M5: the picks file is validated once; every bad entry is a warning, never a crash (G1).
   const { picks, warnings } = validatePicks(deps.picksRaw ?? picksJson);
   for (const w of warnings) console.warn(`[picks] ${w}`);
@@ -108,6 +112,7 @@ export function createApp(deps: AppDeps) {
   app.route('/v1/me/comments', myCommentsRoute);
   app.route('/v1/me/push-tokens', pushTokens);
   app.route('/v1/me/push-prefs', pushPrefs);
+  app.route('/v1/feedback', feedback);
   app.route('/v1/me/rec-events', recEvents);
   app.route('/v1/me/feed', feed);
   app.route('/v1/me/listened', listened);

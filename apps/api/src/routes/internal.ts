@@ -6,6 +6,7 @@ import { ApiError } from '../errors.ts';
 import { rebuildSimilarity, similarityAgeHours } from '../db/repos/similarity.ts';
 import { fetchFeed, registerCard, toCard } from '../catalog/feed.ts';
 import { fanOutNewEpisode, NEW_WINDOW_HOURS, sendPopular } from '../db/repos/push.ts';
+import { sweepImages } from '../db/repos/feedback.ts';
 import { picksForDay } from '@socialmorning/social-core';
 
 /**
@@ -83,6 +84,8 @@ export function createInternalRoute(jobToken: string | undefined) {
       // M10b US3: the day's first pick, once per listener per day, on the first call of a cycle.
       let popular = 0;
       if (cursor === undefined) {
+        // M10b US6 (FR-020): feedback images older than 90 days go, once per cycle.
+        try { await sweepImages(db); } catch (e) { failed.push(`sweep: ${e instanceof Error ? e.message : String(e)}`); }
         try {
           const day = picksForDay(cat.picks, cat.today());
           const p = day.picks[0];

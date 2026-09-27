@@ -1,8 +1,13 @@
-/** Send feedback (M10): choose a kind, write it, send through your email app; "My feedback" lists what you sent. */
+/**
+ * Send feedback (M10; images and direct delivery M10b US6): choose a kind, write it, add up to
+ * 3 images, send. It goes straight to the owner's /mod page; if the server cannot be reached,
+ * the email app is offered instead (without the images). "My feedback" lists what you sent.
+ */
 import Constants from 'expo-constants';
 import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { FlatList, Linking, Pressable, Text, TextInput, View } from 'react-native';
+import { FlatList, Image, Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { pickImages, type PickedImage } from '../../src/feedback/images';
 import { colour, hit } from '../../src/design';
 import { FEEDBACK_KINDS, type FeedbackKind } from '../../src/settings/faq';
 import { FEEDBACK_MAX, feedbackMailto, listFeedback, rememberFeedback, type SentFeedback } from '../../src/settings/feedback';
@@ -25,17 +30,37 @@ export default function FeedbackScreen(): React.ReactElement {
   const [sent, setSent] = useState<SentFeedback[]>(() => listFeedback(stores.settings));
   const [to, setTo] = useState<string | undefined>(() => stores.settings.get(APPEALS_KEY) || undefined);
   useEffect(() => { void refreshAppeals(api, stores).then(setTo); }, [api, stores]);
-  const ready = kind !== undefined && body.trim().length >= 5 && to !== undefined;
+  const [images, setImages] = useState<PickedImage[]>([]);
+  const [busy, setBusy] = useState(false);
+  const ready = kind !== undefined && body.trim().length >= 5 && !busy;
+  const addImages = () => {
+    void pickImages(3 - images.length).then((r) => {
+      if (r.kind === 'denied') toast('Allow photo access for SocialNet in your phone’s Settings to add images.');
+      else if (r.kind === 'ok') setImages((cur) => [...cur, ...r.images].slice(0, 3));
+      else if (r.kind === 'too-big') { setImages((cur) => [...cur, ...r.kept].slice(0, 3)); toast('One image was too large even after shrinking, and was left out.'); }
+    }, () => toast('Could not open your photos.'));
+  };
 
+  const done = (k: FeedbackKind) => {
+    rememberFeedback(stores.settings, k, body, Date.now());
+    setSent(listFeedback(stores.settings));
+    setBody('');
+    setKind(undefined);
+    setImages([]);
+  };
   const send = () => {
-    if (!ready || !kind || !to) return;
-    void Linking.openURL(feedbackMailto(to, kind, body, Constants.expoConfig?.version ?? '?')).then(() => {
-      rememberFeedback(stores.settings, kind, body, Date.now());
-      setSent(listFeedback(stores.settings));
-      setBody('');
-      setKind(undefined);
-      toast('Opened your email app — send the message from there.');
-    }, () => toast('No email app on this phone.'));
+    if (!ready || !kind) return;
+    const k = kind;
+    const version = Constants.expoConfig?.version ?? '?';
+    setBusy(true);
+    api.sendFeedback({ kind: k, body: body.trim(), appVersion: version, images: images.map((i) => ({ mime: 'image/jpeg' as const, base64: i.base64 })) })
+      .then(() => { done(k); toast('Sent. Thank you.'); })
+      .catch(() => {
+        // Offline or refused: the email app still works (without the images).
+        if (!to) { toast('Could not send — check your connection.'); return; }
+        void Linking.openURL(feedbackMailto(to, k, body, version)).then(() => { done(k); toast('Opened your email app — send the message from there.'); }, () => toast('Could not send — check your connection.'));
+      })
+      .finally(() => setBusy(false));
   };
 
   return (
@@ -60,9 +85,20 @@ export default function FeedbackScreen(): React.ReactElement {
           </View>
           <TextInput value={body} onChangeText={setBody} maxLength={FEEDBACK_MAX} multiline placeholder="Write here…" placeholderTextColor={colour.muted} textAlignVertical="top"
             className="bg-surface rounded-artwork p-section text-text text-sm min-h-40" accessibilityLabel="Your feedback" />
-          {to === undefined ? <Text className="text-muted text-xs">The support address has not loaded yet — check your connection.</Text> : null}
+          <ScrollView horizontal contentContainerClassName="gap-row" showsHorizontalScrollIndicator={false}>
+            {images.map((img, i) => (
+              <Pressable key={img.uri + i} onPress={() => setImages((cur) => cur.filter((_, j) => j !== i))} accessibilityRole="button" accessibilityLabel={`Remove image ${i + 1}`}>
+                <Image source={{ uri: img.uri }} className="w-20 h-20 rounded-row bg-surface" />
+              </Pressable>
+            ))}
+            {images.length < 3 ? (
+              <Pressable onPress={addImages} accessibilityRole="button" accessibilityLabel="Add an image" className="w-20 h-20 rounded-row border border-separator items-center justify-center">
+                <Text className="text-muted text-lg">＋</Text>
+              </Pressable>
+            ) : null}
+          </ScrollView>
           <View className="flex-1" />
-          <Button label="Send" onPress={send} disabled={!ready} className="mb-section" />
+          <Button label={busy ? 'Sending…' : 'Send'} onPress={send} disabled={!ready} className="mb-section" />
         </View>
       ) : (
         <FlatList

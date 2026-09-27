@@ -163,6 +163,8 @@ export type ApiClient = {
   pushTokenAdd(token: string, platform: 'ios' | 'android'): Promise<void>;
   pushTokenRemove(token: string): Promise<void>;
   pushPrefs(p: { newEpisodes: boolean; popular: boolean }): Promise<void>;
+  /** M10b US6: feedback, with up to 3 small JPEGs (base64). */
+  sendFeedback(f: { kind: string; body: string; appVersion?: string; images?: { mime: 'image/jpeg'; base64: string }[] }): Promise<{ id: string }>;
   /** M10b US2: your own comments with their text. */
   myComments(before?: string): Promise<{ items: MyComment[]; next?: string }>;
   /** M10: one Apple genre's top shows (the genre list itself is `src/discover/genres.ts`). */
@@ -281,6 +283,7 @@ export function createApi(deps: ApiDeps): ApiClient {
     pushTokenAdd: async (token, platform) => { await call('POST', '/v1/me/push-tokens', { token, platform }); },
     pushTokenRemove: async (token) => { await call('DELETE', `/v1/me/push-tokens/${encodeURIComponent(token)}`); },
     pushPrefs: async (p) => { await call('PUT', '/v1/me/push-prefs', p); },
+    sendFeedback: async (f) => (await call<{ id: string }>('POST', '/v1/feedback', f)).json,
     libraryPut: async (items) => (await call<{ items: LibraryItem[] }>('PUT', '/v1/me/library', { items })).json,
     myComments: async (before) => (await call<{ items: MyComment[]; next?: string }>('GET', `/v1/me/comments${before ? `?before=${encodeURIComponent(before)}` : ''}`)).json,
     category: async (genreId) => (await call<CategoryShows>('GET', `/v1/categories/${genreId}`)).json,
