@@ -1,0 +1,35 @@
+# M10b (2026-09-27): compile the Android app's native code on GitHub's runner, so a native
+# change (the home-screen widget, Android Auto) is known to build BEFORE an EAS build is spent.
+# The EAS free budget is a few builds a month; this runner is unlimited in the public mirror.
+# A debug build: no signing, no JS bundle. It proves the Kotlin/Java and the config plugins
+# compile. It proves nothing about how the app behaves on a phone.
+name: android-compile
+on:
+  push:
+    paths:
+      - 'apps/mobile/**'
+      - 'package-lock.json'
+      - '.github/workflows/android-compile.yml'
+  workflow_dispatch:
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+      - run: npm ci --no-audit --no-fund
+      - name: expo prebuild (android)
+        run: npx expo prebuild -p android --no-install --clean
+        working-directory: apps/mobile
+      - name: gradle assembleDebug
+        run: ./gradlew :app:assembleDebug --no-daemon --stacktrace
+        working-directory: apps/mobile/android
