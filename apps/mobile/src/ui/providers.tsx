@@ -29,6 +29,7 @@ import { waitForStartup } from './startup';
 import { Splash } from './Splash';
 import { Terms } from './Terms';
 import { accept, hasAccepted } from './terms';
+import { opensSignIn } from './launch';
 import { router } from 'expo-router';
 
 const StoresContext = createContext<Stores | undefined>(undefined);
@@ -131,6 +132,13 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
   const [ready, setReady] = useState(false);
   // After the launch screen, the Terms — until accepted, nothing else is reachable.
   const [accepted, setAccepted] = useState(() => hasAccepted(stores.settings));
+  // Then the sign-in page, on every launch while signed out (see `./launch`).
+  const signInOpened = useRef(false);
+  useEffect(() => {
+    if (!opensSignIn({ ready, accepted, signedIn: stores.auth.get() !== undefined, opened: signInOpened.current })) return;
+    signInOpened.current = true;
+    router.push('/auth/sign-in');
+  }, [ready, accepted, stores]);
   useEffect(() => {
     let live = true;
     void waitForStartup([...startupTasks.current, downloads.recover()]).then(() => { if (live) setReady(true); });
@@ -260,12 +268,7 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
         <PlayerProvider runtime={runtime}>
           {props.children}
           {ready ? null : <Splash />}
-          {ready && !accepted ? <Terms onAccept={() => {
-            accept(stores.settings);
-            setAccepted(true);
-            // Owner, 2026-09-27: accepting leads to the login page, unless already signed in.
-            if (stores.auth.get() === undefined) router.push('/auth/sign-in');
-          }} /> : null}
+          {ready && !accepted ? <Terms onAccept={() => { accept(stores.settings); setAccepted(true); }} /> : null}
           {message === undefined ? null : (
             <View className="absolute left-3 right-3 bottom-24 bg-surface border border-separator rounded-lg p-3" accessibilityLiveRegion="polite">
               <Text className="text-text">{message}</Text>
