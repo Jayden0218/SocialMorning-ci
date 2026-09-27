@@ -24,6 +24,6 @@ export function waitForStartup(
   const minMs = opts.minMs ?? SPLASH_MIN_MS;
   const maxMs = opts.maxMs ?? SPLASH_MAX_MS;
   const sleep = opts.sleep ?? realSleep;
-  const done = Promise.all([Promise.allSettled(tasks)]).then(() => undefined);
+  const done = Promise.all([Promise.allSettled(tasks), sleep(minMs)]).then(() => undefined);
   return Promise.race([done, sleep(Math.max(minMs, maxMs))]);
 }

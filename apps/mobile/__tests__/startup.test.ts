@@ -12,7 +12,7 @@ async function settledAt(p: Promise<void>, stepMs: number, maxMs: number): Promi
   let done = false;
   void p.then(() => { done = true; });
   for (let t = 0; t <= maxMs; t += stepMs) {
-    await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+    for (let i = 0; i < 20; i++) await Promise.resolve();
     if (done) return t;
     jest.advanceTimersByTime(stepMs);
   }
