@@ -8,8 +8,8 @@
  *
  * M10 (owner, 2026-09-27) changed the tabs to Discover · Updates · Me. Two things went
  * one tap further, by the owner's decision, and are named here as such (`owner`):
- * the Following feed (a tab → Me → Notifications) and the show list (the Library at `/`
- * → Updates → My subscriptions).
+ * the Following feed (a tab → Me → Notifications) and the show list (the Library tab →
+ * Updates → My subscriptions).
  *
  * The break that turns it red: delete the Account row from `app/(tabs)/me.tsx`.
  */
@@ -25,18 +25,18 @@ const links = (src: string, href: string): boolean => {
   return new RegExp(`href="${h}"|push\\('${h}'\\)`).test(src);
 };
 
-/** Destination → taps from a cold start, before M10 and after. */
+/** Destination → taps from a cold start, before this change (Discover · Library · Following) and after. */
 const CONTRACT = [
-  { name: 'Discover', href: '/', before: 2, after: 0 },
-  { name: 'Updates', href: '/library', before: 0, after: 1 },
-  { name: 'Me', href: '/me', before: 2, after: 1 },
-  { name: 'Search', href: '/search', before: 2, after: 1 },
-  { name: 'Inbox', href: '/inbox', before: 2, after: 1 },
-  { name: 'Queue', href: '/queue', before: 2, after: 1 },
-  { name: 'Downloads', href: '/downloads', before: 2, after: 1 },
+  { name: 'Discover', href: '/', before: 0, after: 0 },
+  { name: 'Updates', href: '/library', before: 1, after: 1 },
+  { name: 'Me', href: '/me', before: 1, after: 1 }, // new; counted as the tab it replaced
+  { name: 'Search', href: '/search', before: 1, after: 1 },
+  { name: 'Inbox', href: '/inbox', before: 1, after: 1 },
+  { name: 'Queue', href: '/queue', before: 1, after: 1 },
+  { name: 'Downloads', href: '/downloads', before: 1, after: 1 },
   { name: 'Account', href: '/account', before: 2, after: 2 },
   { name: 'Following feed', href: '/notifications', before: 1, after: 2, owner: '2026-09-27' },
-  { name: 'Show list', href: '/subscriptions', before: 0, after: 2, owner: '2026-09-27' },
+  { name: 'Show list', href: '/subscriptions', before: 1, after: 2, owner: '2026-09-27' },
 ] as const;
 
 it('G4: nothing got further away except the owner\'s two named moves', () => {
