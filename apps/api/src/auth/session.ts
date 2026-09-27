@@ -40,6 +40,8 @@ export type Safety = { ownerListenerId?: string; appealsEmail?: string; releaseS
 /** M5: what the discovery routes need beyond the db — the catalogue fetch (real or fake) and the owner's picks. */
 export type Catalog = {
   fetch: typeof fetch; picks: import('@socialmorning/social-core').PickIn[]; today: () => string;
+  /** M10b US3: Expo push. */
+  pushFetch: typeof fetch;
   /** M10: the owner's curated collections (collections.json), validated once at start. */
   collections: import('../catalog/collections.ts').CollectionIn[];
 };

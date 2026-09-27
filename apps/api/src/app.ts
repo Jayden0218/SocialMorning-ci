@@ -13,6 +13,7 @@ import { reactions } from './routes/reactions.ts';
 import { positions } from './routes/positions.ts';
 import { subscriptions } from './routes/subscriptions.ts';
 import { library, myCommentsRoute } from './routes/library.ts';
+import { pushPrefs, pushTokens } from './routes/push.ts';
 import { clipById, episodeClips } from './routes/clips.ts';
 import { createClipPages } from './pages/clip.ts';
 import { mod } from './pages/mod.ts';
@@ -51,6 +52,8 @@ export type AppDeps = {
   releaseSha256?: string;
   /** M8: the scheduled rebuild's bearer token (env JOB_TOKEN). Unset → /v1/internal is closed. */
   jobToken?: string;
+  /** M10b US3: the fetch used for Expo push (tests inject a fake). Default: global fetch. */
+  pushFetch?: typeof fetch;
   /** Sends the sign-in code (env GMAIL_USER + GMAIL_APP_PASSWORD). Unset → the code routes answer 503. */
   mailer?: import('./mail/mailer.ts').Mailer;
 };
@@ -70,7 +73,7 @@ export function createApp(deps: AppDeps) {
   // M10: collections are validated the same way — a bad one is a warning, never a crash.
   const cols = validateCollections(deps.collectionsRaw ?? collectionsJson);
   for (const w of cols.warnings) console.warn(`[collections] ${w}`);
-  const catalog: Catalog = { fetch: deps.catalogFetch ?? fetch, picks, collections: cols.collections, today: deps.today ?? (() => new Date().toISOString().slice(0, 10)) };
+  const catalog: Catalog = { pushFetch: deps.pushFetch ?? fetch, fetch: deps.catalogFetch ?? fetch, picks, collections: cols.collections, today: deps.today ?? (() => new Date().toISOString().slice(0, 10)) };
 
   if (!deps.ownerListenerId || !deps.appealsEmail) console.warn('[safety] OWNER_LISTENER_ID / APPEALS_EMAIL not set: /mod is off, messages name no address');
   const safety: Safety = { ownerListenerId: deps.ownerListenerId, appealsEmail: deps.appealsEmail, releaseSha256: deps.releaseSha256 };
@@ -103,6 +106,8 @@ export function createApp(deps: AppDeps) {
   app.route('/v1/me/subscriptions', subscriptions);
   app.route('/v1/me/library', library);
   app.route('/v1/me/comments', myCommentsRoute);
+  app.route('/v1/me/push-tokens', pushTokens);
+  app.route('/v1/me/push-prefs', pushPrefs);
   app.route('/v1/me/rec-events', recEvents);
   app.route('/v1/me/feed', feed);
   app.route('/v1/me/listened', listened);

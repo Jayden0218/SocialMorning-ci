@@ -22,6 +22,11 @@ test('G-S1: a removal on one phone is not revived by the other phone\'s older co
   assert.ok(find(removed, 'fav_episode', 'e1')?.deletedAt, 'stored as a tombstone');
   const stale = await put(t, a.token, [{ kind: 'fav_episode', key: 'e1', updatedAt: '2026-09-27T10:00:00.000Z' }]);
   assert.ok(find(stale, 'fav_episode', 'e1')?.deletedAt, 'the stale copy does not revive it');
+  // The case the tie rule cannot hide: phone B touched it at 10:03 — after it was starred,
+  // before phone A removed it at 10:05. The removal is later, so it must stand. (A merge that
+  // compared `updatedAt` only would revive it: 10:03 > 10:00.)
+  const between = await put(t, a.token, [{ kind: 'fav_episode', key: 'e1', updatedAt: '2026-09-27T10:03:00.000Z' }]);
+  assert.ok(find(between, 'fav_episode', 'e1')?.deletedAt, 'an edit older than the removal does not revive it');
   const later = await put(t, a.token, [{ kind: 'moment', key: 'm1', payload: { episodeId: 'e1', atMs: 1000, note: 'first' }, updatedAt: '2026-09-27T11:00:00.000Z' }]);
   assert.equal(find(later, 'moment', 'm1')?.payload['note'], 'first');
   const edited = await put(t, a.token, [{ kind: 'moment', key: 'm1', payload: { episodeId: 'e1', atMs: 1000, note: 'x'.repeat(900) }, updatedAt: '2026-09-27T12:00:00.000Z' }]);
