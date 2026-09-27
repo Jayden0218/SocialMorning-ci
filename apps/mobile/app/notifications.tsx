@@ -7,8 +7,6 @@
 import { Link, router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, RefreshControl, Text, View } from 'react-native';
-import { colour } from '../src/design';
-import { Icon, type IconName } from '../src/ui/Icon';
 import { createFeed, type FeedView } from '../src/graph/feed';
 import { useSafety } from '../src/safety/context';
 import type { FeedItem as Item } from '../src/social/api';
@@ -18,7 +16,7 @@ import { FeedItem } from '../src/ui/FeedItem';
 import { EmptyPicture } from '../src/ui/me/parts';
 import { useStores } from '../src/ui/providers';
 
-function Card(props: { title: string; line: string; icon: IconName; badge?: number; active?: boolean }): React.ReactElement {
+function Card(props: { title: string; line: string; emoji: string; badge?: number; active?: boolean }): React.ReactElement {
   return (
     <View className={`flex-1 rounded-artwork p-section bg-surface ${props.active ? 'border-2 border-primary' : ''}`} accessible accessibilityLabel={`${props.title}. ${props.badge ? `${props.badge} new. ` : ''}${props.line}`}>
       <View className="flex-row items-center gap-2">
@@ -26,7 +24,7 @@ function Card(props: { title: string; line: string; icon: IconName; badge?: numb
         {props.badge ? <View className="bg-accent rounded-pill min-w-6 h-6 px-1 items-center justify-center"><Text className="text-onPrimary text-xs font-bold">{props.badge > 99 ? '99+' : props.badge}</Text></View> : null}
       </View>
       <Text className="text-muted text-xs mt-1">{props.line}</Text>
-      <View className="self-end mt-row"><Icon name={props.icon} size={24} color={colour.text} /></View>
+      <Text className="text-text text-lg self-end mt-row">{props.emoji}</Text>
     </View>
   );
 }
@@ -54,8 +52,8 @@ export default function NotificationsScreen(): React.ReactElement {
 
   const cards = (
     <View className="flex-row gap-row mb-section">
-      <Card title="System" line="No new notifications" icon="notifications-outline" />
-      <Card title="People" line={unread > 0 ? 'New activity from people you follow' : 'People you follow'} icon="people-outline" {...(unread > 0 ? { badge: unread } : {})} active={unread > 0} />
+      <Card title="System" line="No new notifications" emoji="🔔" />
+      <Card title="People" line={unread > 0 ? 'New activity from people you follow' : 'People you follow'} emoji="👥" {...(unread > 0 ? { badge: unread } : {})} active={unread > 0} />
     </View>
   );
 
@@ -84,7 +82,7 @@ export default function NotificationsScreen(): React.ReactElement {
       ListEmptyComponent={!refreshing ? (
         (view?.stale ?? false)
           ? <EmptyState surface="feed" offline hasCache={false} onRetry={() => void refresh()} />
-          : <EmptyPicture icon="sparkles-outline" line="No activity yet — follow people from their profile" />
+          : <EmptyPicture emoji="✳️" line="No activity yet — follow people from their profile" />
       ) : undefined}
       renderItem={({ item }) => <FeedItem item={item} onOpen={open} />}
       onEndReached={() => {

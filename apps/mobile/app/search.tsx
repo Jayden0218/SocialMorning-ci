@@ -10,8 +10,7 @@
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Image, Pressable, SafeAreaView, ScrollView, Text, TextInput, View } from 'react-native';
-import { Loader } from '../src/ui/Loader';
+import { ActivityIndicator, Image, Pressable, SafeAreaView, ScrollView, Text, TextInput, View } from 'react-native';
 import { mergeSearch } from '@socialmorning/social-core';
 import { useSocial } from '../src/social/context';
 import { useStores } from '../src/ui/providers';
@@ -36,8 +35,7 @@ export default function SearchScreen(): React.ReactElement {
   const { api } = useSocial();
   const { open, view } = useDiscover();
   const { hiddenFeeds } = useSafety();
-  // `hint`: the trending name the Discover box was showing; searching an empty box uses it.
-  const params = useLocalSearchParams<{ q?: string; hint?: string }>();
+  const params = useLocalSearchParams<{ q?: string }>();
   const [term, setTerm] = useState(params.q ?? '');
   const [history, setHistory] = useState<string[]>(() => readHistory(stores.settings));
   const tryThese = useMemo(() => suggestions(view?.body, hiddenFeeds), [view, hiddenFeeds]);
@@ -83,8 +81,8 @@ export default function SearchScreen(): React.ReactElement {
         <View className="flex-1 flex-row items-center bg-surface rounded-row pl-row">
           <View className="w-4 h-4 rounded-pill border-2 border-separator" />
           <TextInput
-            placeholderTextColor={colour.muted} className="flex-1 px-row py-row text-text text-sm" placeholder={params.hint ?? 'Search shows and episodes, or paste a feed URL'} autoCorrect={false} autoFocus returnKeyType="search"
-            value={term} onChangeText={setTerm} onSubmitEditing={() => (term.trim() === '' && params.hint ? searchFor(params.hint) : remember(term))} accessibilityLabel="Search podcasts" />
+            placeholderTextColor={colour.muted} className="flex-1 px-row py-row text-text text-sm" placeholder="Search shows and episodes, or paste a feed URL" autoCorrect={false} autoFocus returnKeyType="search"
+            value={term} onChangeText={setTerm} onSubmitEditing={() => remember(term)} accessibilityLabel="Search podcasts" />
           <Pressable onPress={() => router.push('/scan')} accessibilityRole="button" accessibilityLabel="Scan a QR code" className="items-center justify-center" style={TAP}>
             <View className="w-5 h-5 border-2 border-muted rounded-sm" />
           </Pressable>
@@ -140,7 +138,7 @@ export default function SearchScreen(): React.ReactElement {
         {looksLikeFeedUrl(trimmed) ? (
           <Pressable className="py-2.5" accessibilityRole="button" onPress={() => openShow(trimmed)}><Text className="text-accent">Open feed {trimmed}</Text></Pressable>
         ) : null}
-        {catalogue.kind === 'loading' ? <Loader className="my-2" /> : null}
+        {catalogue.kind === 'loading' ? <ActivityIndicator className="my-2" /> : null}
         {catalogue.kind === 'error' ? <Text className="my-2 text-accent bg-surface p-2 rounded-md">{catalogue.message}</Text> : null}
         {catalogue.kind === 'ok' && catalogue.result.episodeSearch === 'unavailable' ? <Text className="my-2 text-accent bg-surface p-2 rounded-md">Episode search is unavailable right now — shows only.</Text> : null}
         {nothing ? <EmptyState surface="search" /> : null}

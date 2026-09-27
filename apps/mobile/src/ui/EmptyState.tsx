@@ -4,8 +4,7 @@
  * state with Retry after 10 s. The copy lives in `packages/social-core/src/empty.ts`, so
  * the 13 surfaces are enumerable and testable.
  */
-import { Pressable, Text, View } from 'react-native';
-import { Loader } from './Loader';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { emptyState, type Surface } from '@socialmorning/social-core';
 
@@ -37,7 +36,7 @@ export function EmptyState(props: EmptyStateProps): React.ReactElement | null {
   if (view.kind === 'loading') {
     return (
       <View className={wrap} accessibilityLiveRegion="polite">
-        <Loader label="Loading" />
+        <ActivityIndicator accessibilityLabel="Loading" />
       </View>
     );
   }

@@ -37,7 +37,7 @@ export default function MomentsScreen(): React.ReactElement {
       data={rows}
       keyExtractor={(m) => m.id}
       contentContainerClassName="px-screen-x py-row pb-24 flex-grow"
-      ListEmptyComponent={<EmptyPicture icon="bookmark-outline" line="No saved moments — tap “Save moment” while listening" />}
+      ListEmptyComponent={<EmptyPicture emoji="📌" line="No saved moments — tap “Save moment” while listening" />}
       renderItem={({ item }) => {
         const e = stores.feeds.getEpisode(item.episodeId);
         return (

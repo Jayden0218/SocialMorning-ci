@@ -6,7 +6,6 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { Loader } from '../../src/ui/Loader';
 import { genreById } from '../../src/discover/genres';
 import { useSafety } from '../../src/safety/context';
 import type { CategoryShows } from '../../src/social/api';
@@ -36,7 +35,7 @@ export default function CategoryScreen(): React.ReactElement {
   return (
     <Screen scroll className="pt-row">
       <Stack.Screen options={{ title: genre?.name ?? 'Category' }} />
-      {state.kind === 'loading' ? <Loader className="my-section" /> : null}
+      {state.kind === 'loading' ? <Text className="text-muted text-sm">Loading…</Text> : null}
       {state.kind === 'error' ? <Text className="text-muted text-sm">Couldn't load this category right now.</Text> : null}
       {state.kind === 'ok' && state.body.stale ? <Text className="text-accent text-sm mb-row">Couldn't refresh — showing an earlier list.</Text> : null}
       {state.kind === 'ok' && shows.length === 0 ? <Text className="text-muted text-sm">No shows here yet.</Text> : null}

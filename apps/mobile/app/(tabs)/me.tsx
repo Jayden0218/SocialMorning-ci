@@ -10,8 +10,7 @@
 import { Link, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, SafeAreaView, ScrollView, Text, View } from 'react-native';
-import { colour, hit } from '../../src/design';
-import { Icon } from '../../src/ui/Icon';
+import { hit } from '../../src/design';
 import { createFeed } from '../../src/graph/feed';
 import { inboxIds } from '../../src/inbox';
 import { listMoments } from '../../src/me/moments';
@@ -36,7 +35,7 @@ export default function MeScreen(): React.ReactElement {
       <ScrollView contentContainerClassName="px-screen-x pt-section" contentContainerStyle={{ paddingBottom: BOTTOM_INSET }}>
         <Link href="/stickers" asChild>
           <Pressable accessibilityRole="link" accessibilityLabel="Stickers" className="self-start flex-row items-center gap-2 border border-separator rounded-row px-row" style={TAP}>
-            <Icon name="medal-outline" size={18} color={colour.text} />
+            <Text className="text-text text-sm">🏅</Text>
             <Text className="text-accent text-sm font-semibold">Stickers</Text>
           </Pressable>
         </Link>
@@ -58,33 +57,31 @@ export default function MeScreen(): React.ReactElement {
             </Link>
           )}
           <View className="w-20 h-20 rounded-pill bg-surface items-center justify-center" accessible={false}>
-            {listener
-              ? <Text className="text-muted text-lg">{listener.displayName.slice(0, 1).toUpperCase()}</Text>
-              : <Icon name="person-outline" size={32} color={colour.muted} />}
+            <Text className="text-muted text-lg">{listener ? listener.displayName.slice(0, 1).toUpperCase() : '👤'}</Text>
           </View>
         </View>
 
         <Link href="/moments" asChild>
           <Pressable accessibilityRole="link" accessibilityLabel={`Saved moments, ${counts.moments}. Save a moment while listening and add a note`} className="bg-surface border border-separator rounded-artwork p-section flex-row items-center justify-between mb-section">
             <View className="flex-1">
-              <View className="flex-row items-center gap-1"><Icon name="bookmark-outline" size={16} color={colour.accent} /><Text className="text-accent text-sm font-bold">Saved moments</Text></View>
+              <Text className="text-accent text-sm font-bold">📌 Saved moments</Text>
               <Text className="text-muted text-xs mt-1">Save a moment while listening, and add a note</Text>
             </View>
             <Text className="text-accent text-sm font-semibold">{counts.moments > 0 ? `${counts.moments} ›` : 'Open ›'}</Text>
           </Pressable>
         </Link>
 
-        {listener ? <MenuRow href={`/profile/${listener.listenerId}`} icon="id-card-outline" label="My profile" /> : null}
+        {listener ? <MenuRow href={`/profile/${listener.listenerId}`} emoji="🪪" label="My profile" /> : null}
         <View className="border-b-hairline border-separator my-row" />
-        <MenuRow href="/notifications" icon="notifications-outline" label="Notifications" {...(counts.unread > 0 ? { badge: counts.unread } : {})} />
-        <MenuRow href="/inbox" icon="file-tray-outline" label="Inbox" {...(counts.inbox > 0 ? { badge: counts.inbox } : {})} />
-        <MenuRow href="/downloads" icon="download-outline" label="Downloads" />
-        <MenuRow href="/history" icon="time-outline" label="Listening history" />
-        <MenuRow href="/favourites" icon="star-outline" label="Favourites" />
-        <MenuRow href="/my-comments" icon="chatbubble-outline" label="My comments" />
-        <MenuRow href="/queue" icon="list-outline" label="Queue" />
+        <MenuRow href="/notifications" emoji="🔔" label="Notifications" {...(counts.unread > 0 ? { badge: counts.unread } : {})} />
+        <MenuRow href="/inbox" emoji="📥" label="Inbox" {...(counts.inbox > 0 ? { badge: counts.inbox } : {})} />
+        <MenuRow href="/downloads" emoji="⬇️" label="Downloads" />
+        <MenuRow href="/history" emoji="🕒" label="Listening history" />
+        <MenuRow href="/favourites" emoji="⭐" label="Favourites" />
+        <MenuRow href="/my-comments" emoji="💬" label="My comments" />
+        <MenuRow href="/queue" emoji="🎧" label="Queue" />
         <View className="border-b-hairline border-separator my-row" />
-        <MenuRow href="/account" icon="settings-outline" label="Account and settings" />
+        <MenuRow href="/account" emoji="⚙️" label="Account and settings" />
         {listener ? (
           <Pressable onPress={() => void auth.signOut()} accessibilityRole="button" accessibilityLabel="Sign out" className="justify-center" style={TAP}>
             <Text className="text-accent text-sm">Sign out</Text>

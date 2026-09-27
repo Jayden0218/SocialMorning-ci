@@ -8,12 +8,9 @@
  * feed without subscribing (research R8). New: every row plays from its round button.
  */
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Image, RefreshControl, SafeAreaView, ScrollView, Text, View } from 'react-native';
-import { colour } from '../../src/design';
 import { buildModel } from '../../src/discover/sections';
-import { HINT_EVERY_MS, hintAt, trendingHints } from '../../src/discover/trending';
-import { Loader } from '../../src/ui/Loader';
 import { useDiscover } from '../../src/discover/useDiscover';
 import { useForYou } from '../../src/recs/useForYou';
 import { useRecOutbox } from '../../src/recs/useRecOutbox';
@@ -46,15 +43,6 @@ export default function DiscoverScreen(): React.ReactElement {
     [view, forYou.view, hiddenFeeds, sets, version],
   );
   const inbox = inboxIds(stores).length;
-  // The search box's middle cycles through what is trending (owner, 2026-09-27).
-  const hints = useMemo(() => trendingHints(model.chart), [model]);
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    if (hints.length < 2) return;
-    const t = setInterval(() => setTick((n) => n + 1), HINT_EVERY_MS);
-    return () => clearInterval(t);
-  }, [hints]);
-  const hint = hintAt(hints, tick);
   const showPage = (feedUrl: string) => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(feedUrl) } });
   const act = { onOpen: (c: Parameters<typeof open>[0]) => void open(c), onPlay: (c: Parameters<typeof play>[0]) => void play(c) };
 
@@ -62,24 +50,19 @@ export default function DiscoverScreen(): React.ReactElement {
     <SafeAreaView className="flex-1 bg-background">
       <ScrollView
         contentContainerStyle={{ paddingBottom: BOTTOM_INSET }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refreshBoth()} tintColor={colour.accent} colors={[colour.accent]} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refreshBoth()} />}
       >
-        {/* Owner, 2026-09-27: less space above the title. */}
-        <View className="flex-row items-center justify-between px-screen-x pt-1 pb-2">
+        <View className="flex-row items-center justify-between px-screen-x pt-section pb-row">
           <Text className="text-text text-lg font-bold" accessibilityRole="header">Discover</Text>
           <Image source={require('../../assets/app-icon.png')} style={ICON} className="rounded-row" accessibilityIgnoresInvertColors accessibilityLabel="SocialNet" />
         </View>
-        <SearchBar
-          {...(hint ? { hint } : {})}
-          onPress={() => router.push(hint ? { pathname: '/search', params: { hint } } : '/search')}
-          onScan={() => router.push('/scan')}
-        />
+        <SearchBar onPress={() => router.push('/search')} onScan={() => router.push('/scan')} />
         <Shortcuts
           items={[
-            { label: 'Categories', icon: 'grid-outline', onPress: () => router.push('/categories') },
-            { label: inbox > 0 ? `Inbox (${inbox})` : 'Inbox', icon: 'file-tray-outline', onPress: () => router.push('/inbox') },
-            { label: 'Queue', icon: 'list-outline', onPress: () => router.push('/queue') },
-            { label: 'Downloads', icon: 'download-outline', onPress: () => router.push('/downloads') },
+            { label: 'Categories', emoji: '🗂️', onPress: () => router.push('/categories') },
+            { label: inbox > 0 ? `Inbox (${inbox})` : 'Inbox', emoji: '📥', onPress: () => router.push('/inbox') },
+            { label: 'Queue', emoji: '🎧', onPress: () => router.push('/queue') },
+            { label: 'Downloads', emoji: '⬇️', onPress: () => router.push('/downloads') },
           ]}
         />
 
@@ -89,9 +72,7 @@ export default function DiscoverScreen(): React.ReactElement {
           </Text>
         ) : null}
         {!view ? (
-          refreshing
-            ? <Loader className="mt-section" />
-            : <Text className="text-muted text-sm px-screen-x mt-section">Couldn't reach the server, and nothing is cached yet.</Text>
+          <Text className="text-muted text-sm px-screen-x mt-section">{refreshing ? 'Loading…' : "Couldn't reach the server, and nothing is cached yet."}</Text>
         ) : null}
 
         <ForYouSection rows={model.forYou} {...act} onOpenAt={(c, index) => { outbox.opened(index); void open(c); }} />

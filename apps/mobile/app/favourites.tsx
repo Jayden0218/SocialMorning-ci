@@ -18,7 +18,7 @@ export default function FavouritesScreen(): React.ReactElement {
       data={known}
       keyExtractor={(r) => r.f.episodeId}
       contentContainerClassName="px-screen-x py-row pb-24 flex-grow"
-      ListEmptyComponent={<EmptyPicture icon="star-outline" line="No favourites yet — star an episode on its page" />}
+      ListEmptyComponent={<EmptyPicture emoji="⭐" line="No favourites yet — star an episode on its page" />}
       renderItem={({ item }) => {
         const e = item.e!;
         const show = stores.feeds.getShow(e.feedUrl);

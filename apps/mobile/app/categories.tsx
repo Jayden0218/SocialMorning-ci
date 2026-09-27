@@ -4,8 +4,6 @@
  */
 import { useRouter } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
-import { colour } from '../src/design';
-import { Icon } from '../src/ui/Icon';
 import { hit } from '../src/design';
 import { GENRES } from '../src/discover/genres';
 import { Screen } from '../src/ui/Screen';
@@ -26,7 +24,7 @@ export default function CategoriesScreen(): React.ReactElement {
             className="bg-surface rounded-row flex-row items-center gap-2 px-row"
             style={TAP}
           >
-            <Icon name={g.icon} size={20} color={colour.text} />
+            <Text className="text-text text-sm">{g.emoji}</Text>
             <Text className="text-text text-sm font-semibold">{g.name}</Text>
           </Pressable>
         ))}

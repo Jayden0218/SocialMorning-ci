@@ -8,8 +8,7 @@
  */
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { colour, hit } from '../../design';
-import { Icon, type IconName } from '../Icon';
+import { hit } from '../../design';
 import { GENRES } from '../../discover/genres';
 import { ago, pages, statsLine, type ChartTab } from '../../discover/sections';
 import type { Collection, DiscoverItem, EpisodeCard, FollowedShow, SaidItem, ShowCard } from '../../social/api';
@@ -21,12 +20,12 @@ const TAP = { minHeight: hit.min };
 type Act = { onOpen: (card: EpisodeCard) => void; onPlay: (card: EpisodeCard) => void };
 
 /** The four shortcut chips under the search bar. */
-export function Shortcuts(props: { items: { label: string; icon: IconName; onPress: () => void }[] }): React.ReactElement {
+export function Shortcuts(props: { items: { label: string; emoji: string; onPress: () => void }[] }): React.ReactElement {
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="px-screen-x gap-row" className="mt-row">
       {props.items.map((c) => (
         <Pressable key={c.label} onPress={c.onPress} accessibilityRole="button" accessibilityLabel={c.label} className="flex-row items-center gap-2 border border-separator rounded-row px-row" style={TAP}>
-          <Icon name={c.icon} size={18} color={colour.text} />
+          <Text className="text-text text-sm">{c.emoji}</Text>
           <Text className="text-text text-sm font-semibold">{c.label}</Text>
         </Pressable>
       ))}
@@ -76,7 +75,7 @@ export function PicksSection(props: Act & { items: DiscoverItem[]; date?: string
                   <Text className="text-muted text-sm" numberOfLines={4}>“{p.why}”</Text>
                 </View>
               ) : null}
-              {stats ? <View className="flex-row items-center gap-1 mt-2"><Icon name="headset-outline" size={14} color={colour.muted} /><Text className="text-muted text-xs">{stats}</Text></View> : null}
+              {stats ? <Text className="text-muted text-xs mt-2">🎧 {stats}</Text> : null}
             </View>
           </View>
         );
@@ -124,7 +123,7 @@ export function CategoryStrip(props: { onGenre: (id: number) => void; onAll: () 
         {GENRES.slice(0, 8).map((g) => (
           <Pressable key={g.id} onPress={() => props.onGenre(g.id)} accessibilityRole="button" accessibilityLabel={g.name} className="bg-background rounded-row items-center justify-center px-row py-row w-24">
             <Text className="text-text text-xs font-semibold text-center" numberOfLines={1}>{g.name}</Text>
-            <View className="mt-1"><Icon name={g.icon} size={24} color={colour.text} /></View>
+            <Text className="text-text text-lg mt-1">{g.emoji}</Text>
           </Pressable>
         ))}
       </ScrollView>
