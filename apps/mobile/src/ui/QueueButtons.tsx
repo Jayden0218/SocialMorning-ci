@@ -1,17 +1,18 @@
 /** "Add to queue" / "Play next" (US2, FR-008/011), through player-core's enqueue. */
-import { enqueue } from '@socialmorning/player-core';
 import { Pressable, Text, View } from 'react-native';
-import { useStores, useToast } from './providers';
+import { queueEpisode } from '../settings/queue';
+import { useDownloads, useStores, useToast } from './providers';
 
 export function QueueButtons(props: { episodeId: string; onQueued?: () => void }): React.ReactElement {
   const stores = useStores();
   const toast = useToast();
+  const downloads = useDownloads();
   const add = (where: 'end' | 'front') => {
-    const r = enqueue(stores.queue.list(), props.episodeId, where);
-    if (r.refused) { toast('The queue is full (300). Remove something first.'); return; }
-    stores.queue.replace(r.queue, Date.now());
+    // M10: "Download queued episodes" applies here (src/settings/queue.ts).
+    const r = queueEpisode(stores, downloads, props.episodeId, Date.now(), where);
+    if (r.kind === 'full') { toast('The queue is full (300). Remove something first.'); return; }
     if (r.evicted) toast('The queue was full — the last item was dropped.');
-    toast(where === 'end' ? 'Added to the queue' : 'Playing next');
+    toast(`${where === 'end' ? 'Added to the queue' : 'Playing next'}${r.downloading ? ' · downloading' : ''}`);
     props.onQueued?.();
   };
   return (

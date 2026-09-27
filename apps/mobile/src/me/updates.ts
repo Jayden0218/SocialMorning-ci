@@ -4,6 +4,7 @@
  * shows offline. Hidden shows are left out, as they are everywhere else.
  */
 import type { CachedEpisode, Stores } from '../storage/types';
+import { getPref } from '../settings/prefs';
 
 export type UpdateRow = { episode: CachedEpisode; showTitle: string; imageUrl?: string; summary: string };
 
@@ -19,12 +20,14 @@ export function plainSummary(html: string | undefined, max = 160): string {
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
 }
 
-export function latestUpdates(stores: Pick<Stores, 'subscriptions' | 'feeds'>, hidden: ReadonlySet<string>, perShow = 5, limit = 50): UpdateRow[] {
+export function latestUpdates(stores: Pick<Stores, 'subscriptions' | 'feeds'> & { settings?: Stores['settings'] }, hidden: ReadonlySet<string>, perShow = 5, limit = 50): UpdateRow[] {
   const rows: UpdateRow[] = [];
+  // M10 minor mode (Settings → Minor mode): explicit episodes are left out.
+  const noExplicit = stores.settings !== undefined && getPref(stores.settings, 'hideExplicit');
   for (const { feedUrl } of stores.subscriptions.list()) {
     if (hidden.has(feedUrl)) continue;
     const show = stores.feeds.getShow(feedUrl);
-    for (const e of stores.feeds.listEpisodes(feedUrl).slice(0, perShow)) {
+    for (const e of stores.feeds.listEpisodes(feedUrl).filter((x) => !(noExplicit && x.explicit)).slice(0, perShow)) {
       const img = e.imageUrl ?? show?.imageUrl;
       rows.push({ episode: e, showTitle: show?.title ?? feedUrl, ...(img ? { imageUrl: img } : {}), summary: plainSummary(e.shownotesHtml) });
     }

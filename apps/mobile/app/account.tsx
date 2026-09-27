@@ -1,141 +1,47 @@
 /**
- * Account (US5): who you are, sign out, delete account. Deletion is confirmed with a
- * code sent to the account's email (owner, 2026-09-27: no passwords) and clears
- * everything of the account's on this phone — auth row,
- * token, drafts — but NOT M1's positions or the episode caches (T048).
+ * Settings (设置, M10, owner 2026-09-27) — at `/account`, the path Me → "Account and
+ * settings" and every older link already use (G3, G4). Laid out after the reference: one
+ * list of pages, then Sign out.
+ *
+ * M6 (FR-027) required four things to be reachable from Account; each still is, one page
+ * down: the privacy policy and community rules (About), "Report a problem" (Help and
+ * feedback), and account deletion (Account and security).
+ *
+ * Not here, on purpose: Appearance (the app has one palette, measured for contrast — a
+ * dark one is its own piece of work), lock-screen live activities, Siri, CarPlay and
+ * widgets (each needs native code outside this Expo app), a paid account and tips (the
+ * app takes no payments — everything is free).
  */
-import { Link } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Linking, Pressable, Switch, Text, TextInput, View } from 'react-native';
-import { useStores } from '../src/ui/providers';
-import { appealsMailto, APPEALS_KEY, legalLinks, refreshAppeals } from '../src/social/links';
-import { ApiError } from '../src/social/api';
+import { Stack } from 'expo-router';
+import { ScrollView, Pressable, Text } from 'react-native';
+import { hit } from '../src/design';
 import { useSocial } from '../src/social/context';
-import { colour } from '../src/design';
+import { Divider, LinkRow } from '../src/ui/settings/rows';
 
-export default function AccountScreen(): React.ReactElement {
-  const { auth, listener, api } = useSocial();
-  const stores = useStores();
-  // M4 (FR-013): one switch. Mirrored in settings so the screen opens with the last known value.
-  const [privateListening, setPrivateListening] = useState(() => stores.settings.get('me.privateListening') === '1');
-  useEffect(() => {
-    if (!listener) return;
-    void api.me().then((me) => {
-      if (me.privateListening === undefined) return;
-      setPrivateListening(me.privateListening);
-      stores.settings.set('me.privateListening', me.privateListening ? '1' : '0');
-    }).catch(() => undefined); // offline: the mirror stands
-  }, [api, listener, stores]);
-  // M6 (FR-027): the four things a listener must be able to reach from Account.
-  const [appeals, setAppeals] = useState<string | undefined>(() => stores.settings.get(APPEALS_KEY) || undefined);
-  useEffect(() => { void refreshAppeals(api, stores).then(setAppeals); }, [api, stores]);
-  const links = legalLinks();
-  const [confirming, setConfirming] = useState(false);
-  const [code, setCode] = useState('');
-  const [codeSent, setCodeSent] = useState(false);
-  const [error, setError] = useState<string | undefined>();
-  const [busy, setBusy] = useState(false);
+const TAP = { minHeight: hit.min };
 
-  async function sendCode() {
-    if (!listener) return;
-    setBusy(true);
-    setError(undefined);
-    try {
-      await auth.requestCode(listener.email);
-      setCodeSent(true);
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Something went wrong. Try again.');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function remove() {
-    setBusy(true);
-    setError(undefined);
-    try {
-      // Lands on the sign-in page (the context does it).
-      await auth.deleteAccountWithCode(code.trim());
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Something went wrong. Try again.');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  const link = 'text-accent text-[15px] py-2';
-  const button = 'bg-primary rounded-3xl py-3 items-center';
-  const buttonText = 'text-onPrimary text-sm font-semibold';
-  const noAppeals = appealsMailto(appeals) === undefined;
-
+export default function SettingsScreen(): React.ReactElement {
+  const { auth, listener } = useSocial();
   return (
-    <View className="p-4 gap-3">
-      <Text className="text-text text-[18px] font-semibold">{listener?.displayName ?? 'Not signed in'}</Text>
-      <Text className="text-muted">{listener?.email ?? ''}</Text>
-      {listener ? <Link href={{ pathname: '/profile/[id]', params: { id: listener.listenerId } }} className={link} accessibilityRole="link">Your profile</Link> : null}
+    <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x py-row pb-24">
+      <Stack.Screen options={{ title: 'Settings' }} />
+      <LinkRow href="/settings/account" icon="person-circle-outline" label="Account and security" />
+      <Divider />
+      <LinkRow href="/settings/downloads" icon="download-outline" label="Downloads and cache" />
+      <LinkRow href="/settings/push" icon="notifications-outline" label="Notifications" />
+      <LinkRow href="/settings/privacy" icon="lock-closed-outline" label="Privacy" />
+      <LinkRow href="/settings/minor" icon="umbrella-outline" label="Minor mode" />
+      <LinkRow href="/settings/more" icon="play-circle-outline" label="More" />
+      <Divider />
+      <LinkRow href="/settings/sharing" icon="alert-circle-outline" label="Third-party sharing list" />
+      <LinkRow href="/settings/collected" icon="document-text-outline" label="Personal information we collect" />
+      <LinkRow href="/settings/help" icon="help-circle-outline" label="Help and feedback" />
+      <LinkRow href="/settings/about" icon="planet-outline" label="About SocialNet" />
       {listener ? (
-        <View className="flex-row items-center gap-3">
-          <Switch
-            trackColor={{ false: colour.separator, true: colour.primary }}
-            thumbColor={colour.background}
-            value={privateListening}
-            accessibilityLabel="Private listening"
-            onValueChange={async (v) => {
-              setPrivateListening(v);
-              try { await api.setPrivacy(v); stores.settings.set('me.privateListening', v ? '1' : '0'); }
-              catch { setPrivateListening(!v); }
-            }}
-          />
-          {/* M6 (FR-025, J6 on build 17): without `flex-1` this ran off the right edge at the largest font. */}
-          <Text className="flex-1 text-text">Private listening{'\n'}<Text className="text-muted text-xs">Hides what you listen to and your stats from others. Comments and clips stay public.</Text></Text>
-        </View>
+        <Pressable onPress={() => void auth.signOut()} accessibilityRole="button" accessibilityLabel="Sign out" className="items-center justify-center bg-surface rounded-artwork mt-section" style={TAP}>
+          <Text className="text-accent text-sm">Sign out</Text>
+        </Pressable>
       ) : null}
-      <Pressable className={button} onPress={() => void auth.signOut()} accessibilityRole="button" accessibilityLabel="Sign out">
-        <Text className={buttonText}>Sign out</Text>
-      </Pressable>
-
-      <View className="gap-1 mt-2">
-        <Pressable onPress={() => void Linking.openURL(links.privacy)} accessibilityRole="link" accessibilityLabel="Privacy policy">
-          <Text className={link}>Privacy policy</Text>
-        </Pressable>
-        <Pressable onPress={() => void Linking.openURL(links.rules)} accessibilityRole="link" accessibilityLabel="Community rules">
-          <Text className={link}>Community rules</Text>
-        </Pressable>
-        <Pressable
-          onPress={() => { const to = appealsMailto(appeals); if (to) void Linking.openURL(to); }}
-          disabled={noAppeals}
-          accessibilityRole="link"
-          accessibilityLabel="Report a problem"
-          accessibilityState={{ disabled: noAppeals }}
-        >
-          <Text className={noAppeals ? 'text-muted text-[15px] py-2' : link}>Report a problem{appeals ? '' : ' (offline)'}</Text>
-        </Pressable>
-      </View>
-
-      {!confirming ? (
-        <Pressable onPress={() => setConfirming(true)} accessibilityRole="button">
-          <Text className={link}>Delete my account…</Text>
-        </Pressable>
-      ) : (
-        <View className="gap-2 mt-2">
-          <Text className="text-text">This removes your comments, reactions and listening positions from every phone. Where someone replied to you, "Comment deleted" stays so their reply still makes sense. This cannot be undone.</Text>
-          {codeSent ? (
-            <TextInput
-              placeholderTextColor={colour.muted} className="border border-separator rounded-lg p-3 text-sm text-text" placeholder="The 6-digit code we emailed you" keyboardType="number-pad" maxLength={6} value={code} onChangeText={setCode} accessibilityLabel="Code" />
-          ) : null}
-          {error ? <Text className="text-accent">{error}</Text> : null}
-          {codeSent ? (
-            <Pressable className={`${button} ${busy || code.trim().length !== 6 ? 'opacity-50' : ''}`} disabled={busy || code.trim().length !== 6} onPress={remove} accessibilityRole="button">
-              <Text className={buttonText}>Delete account</Text>
-            </Pressable>
-          ) : (
-            <Pressable className={`${button} ${busy ? 'opacity-50' : ''}`} disabled={busy} onPress={sendCode} accessibilityRole="button">
-              <Text className={buttonText}>Email me a code to confirm</Text>
-            </Pressable>
-          )}
-          <Pressable onPress={() => setConfirming(false)} accessibilityRole="button"><Text className={link}>Keep my account</Text></Pressable>
-        </View>
-      )}
-    </View>
+    </ScrollView>
   );
 }

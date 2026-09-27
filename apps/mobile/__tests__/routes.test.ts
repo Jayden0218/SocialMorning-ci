@@ -59,6 +59,7 @@ const PATHS = [
   // M10
   '/categories', '/category/1301', '/scan',
   '/me', '/subscriptions', '/notifications', '/history', '/favourites', '/moments', '/my-comments', '/stickers',
+  '/settings/account', '/settings/downloads', '/settings/push', '/settings/privacy', '/settings/blocked', '/settings/minor', '/settings/more', '/settings/opml', '/settings/sharing', '/settings/collected', '/settings/help', '/settings/feedback', '/settings/about',
   '/inbox', '/queue', '/downloads', '/account', '/search',
   '/show/https%3A%2F%2Ff%2Fx.xml', '/episode/e1', '/player',
   '/profile/l1', '/profile/l1/followers', '/profile/l1/following',

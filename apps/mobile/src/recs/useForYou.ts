@@ -4,10 +4,14 @@ import { useFocusEffect } from 'expo-router';
 import { useSocial } from '../social/context';
 import { useStores } from '../ui/providers';
 import { createForYou, type ForYouView } from './cache';
+import { getPref } from '../settings/prefs';
 
-export function useForYou(signedIn: boolean) {
+export function useForYou(signedInArg: boolean) {
   const { api } = useSocial();
   const stores = useStores();
+  // M10: Settings → More → Personalised recommendations. Off = no For You and, with no
+  // items, no recommendation events either (useRecOutbox has nothing to report).
+  const signedIn = signedInArg && getPref(stores.settings, 'personalRecs');
   const forYou = useMemo(() => createForYou({ api, cache: stores.feedCache, now: () => Date.now() }), [api, stores]);
   const [view, setView] = useState<ForYouView | undefined>(() => (signedIn ? forYou.cached() : undefined));
   const refresh = useCallback(async () => {

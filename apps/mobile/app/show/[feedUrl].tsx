@@ -27,6 +27,7 @@ import { useSafety } from '../../src/safety/context';
 import { ReportSheet, type ReportTarget } from '../../src/ui/ReportSheet';
 import { useStores, useSubscriptionSync } from '../../src/ui/providers';
 import type { CachedEpisode, CachedShow } from '../../src/storage/types';
+import { getPref } from '../../src/settings/prefs';
 
 export default function ShowScreen(): React.ReactElement {
   const stores = useStores();
@@ -95,7 +96,9 @@ export default function ShowScreen(): React.ReactElement {
   const [tab, setTab] = useState<'episodes' | 'about'>('episodes');
   const [oldestFirst, setOldestFirst] = useState(false);
   const now = Date.now();
-  const shown = oldestFirst ? [...episodes].reverse() : episodes;
+  // M10 minor mode (Settings → Minor mode): explicit episodes are not listed.
+  const allowed = getPref(stores.settings, 'hideExplicit') ? episodes.filter((e) => !e.explicit) : episodes;
+  const shown = oldestFirst ? [...allowed].reverse() : allowed;
 
   const progressFor = (episode: CachedEpisode): string => {
     const row = stores.positions.get(episode.id);
