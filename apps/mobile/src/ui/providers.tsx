@@ -27,7 +27,6 @@ import { createDownloadManager, type DownloadManager } from '../downloads/manage
 import { createExpoDownloader, downloadPathFor } from '../downloads/expo-downloader';
 import { createExpoNetwork } from '../downloads/expo-network';
 import { waitForStartup } from './startup';
-import { router } from 'expo-router';
 import { onNotificationTap } from '../notify/expo';
 import { Splash } from './Splash';
 import { Terms } from './Terms';
