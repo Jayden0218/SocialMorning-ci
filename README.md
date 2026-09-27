@@ -1,6 +1,6 @@
 # SocialMorning — CI mirror
 
 Test mirror of a private repository. Only the code the gate needs is here; the product
-documentation, specs and research are not. Source commit: `39b50d7`.
+documentation, specs and research are not. Source commit: `b2f7ac2`.
 
 Runs `scripts/gate.sh` on every push (typecheck, every workspace's tests, coverage thresholds).

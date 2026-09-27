@@ -33,6 +33,7 @@ export function Loader(props: { size?: number; label?: string; className?: strin
       ),
     );
     loops.forEach((l) => l.start());
+    return () => loops.forEach((l) => l.stop());
   }, [still, values]);
 
   return (

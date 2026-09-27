@@ -3,18 +3,18 @@ import assert from 'node:assert/strict';
 import { freshDb } from './harness.ts';
 import { migrate } from '../src/db/migrate.ts';
 
-test('migrations 001–006 apply once and are idempotent', async () => {
+test('migrations 001–007 apply once and are idempotent', async () => {
   const t = await freshDb();
   const again = await migrate(t.runner);
   assert.deepEqual(again, [], 'second run applies nothing');
   const rows = await t.q<{ version: number }>('SELECT version FROM schema_migrations ORDER BY version');
-  assert.deepEqual(rows.map((r) => Number(r.version)), [1, 2, 3, 4, 5, 6]);
+  assert.deepEqual(rows.map((r) => Number(r.version)), [1, 2, 3, 4, 5, 6, 7]);
   const tables = await t.q<{ table_name: string }>(
     "SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY 1",
   );
   assert.deepEqual(
     tables.map((r) => r.table_name),
-    ['activity', 'blocks', 'cache', 'clips', 'comments', 'email_codes', 'episode_heat', 'episodes', 'follows', 'hidden_feeds', 'listened_ranges', 'listeners', 'moderation_actions', 'positions', 'reactions', 'rec_events', 'reports', 'schema_migrations', 'sessions', 'show_similarity', 'show_similarity_next', 'subscriptions'],
+    ['activity', 'blocks', 'cache', 'clips', 'comments', 'creator_claims', 'email_codes', 'entitlements', 'episode_heat', 'episodes', 'feedback', 'feedback_images', 'follows', 'hidden_feeds', 'library_items', 'listened_ranges', 'listeners', 'moderation_actions', 'positions', 'purchases', 'push_prefs', 'push_sent', 'push_tokens', 'reactions', 'rec_events', 'redeem_codes', 'reports', 'schema_migrations', 'sessions', 'show_similarity', 'show_similarity_next', 'subscriptions', 'tips'],
   );
   await t.close();
 });
