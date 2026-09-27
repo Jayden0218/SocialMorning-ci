@@ -139,7 +139,7 @@ it('reserves its height with minHeight, so the largest system font grows the bar
 
 it('exactly one bar: the root instance stands down on a tab route, where the tab layout draws its own', () => {
   mockPlayerState = { kind: 'playing', episodeId: 'e1' };
-  for (const path of ['/', '/discover', '/library', '/following']) {
+  for (const path of ['/', '/discover', '/library', '/me', '/following']) {
     expect(render(createElement(MiniPlayer, { pathname: path, context: 'root' })).toJSON()).toBeNull();
     expect(render(createElement(MiniPlayer, { pathname: path, context: 'tabs' })).toJSON()).not.toBeNull();
   }

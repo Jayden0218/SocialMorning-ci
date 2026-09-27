@@ -7,7 +7,7 @@
 export function ringAngles(progress: number): { right: number; left: number } {
   const p = Number.isFinite(progress) ? Math.min(1, Math.max(0, progress)) : 0;
   return {
-    right: -135 + p * 360,
+    right: -135 + Math.min(p, 0.5) * 360,
     left: -135 + Math.max(0, p - 0.5) * 360,
   };
 }

@@ -33,8 +33,11 @@ const MINI_ARTWORK = 48;
 const RING = hit.min;
 const ROUND = { width: hit.min, height: hit.min, minWidth: hit.min, minHeight: hit.min };
 
-/** The routes that live behind the tab bar (T012; `/library` since M10's reorder). */
-export const TAB_ROUTES: readonly string[] = ['/', '/discover', '/library', '/following'];
+/**
+ * The routes that live behind the tab bar (T012; `/library` since M10's reorder; `/me`
+ * for the Discover · Updates · Me bar, 2026-09-27). `/following` stays until it leaves the bar.
+ */
+export const TAB_ROUTES: readonly string[] = ['/', '/discover', '/library', '/me', '/following'];
 
 /**
  * No `height`: at the largest system font the title and the show name must be allowed to
