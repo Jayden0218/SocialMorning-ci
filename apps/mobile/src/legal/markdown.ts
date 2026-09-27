@@ -11,7 +11,7 @@ export type Block = { kind: BlockKind; spans: Span[] };
 export function spans(line: string): Span[] {
   return line
     .replace(/`/g, '')
-    .split('**')
+    .split('\u0000')
     .map((text, i) => ({ text, bold: i % 2 === 1 }))
     .filter((s) => s.text.length > 0);
 }
