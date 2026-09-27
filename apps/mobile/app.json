@@ -89,7 +89,8 @@
           ]
         }
       ],
-      "./plugins/android-auto"
+      "./plugins/android-auto",
+      "./plugins/keep-room"
     ],
     "extra": {
       "apiBaseUrl": "https://socialmorning-api.vercel.app",

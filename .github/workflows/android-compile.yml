@@ -43,6 +43,9 @@ jobs:
       # An APK the phone can install without spending an EAS build. It is NOT signed with the
       # EAS keystore, so it will not install over an EAS build (uninstall first, which wipes the
       # phone's local data). No secrets are in it: the API address is public (app.json).
+      - name: the Room keep rule reached R8 (plugins/keep-room.js)
+        run: grep -n "androidx.room.RoomDatabase" app/proguard-rules.pro
+        working-directory: apps/mobile/android
       - uses: actions/upload-artifact@v4
         with:
           name: socialnet-release-apk
