@@ -37,7 +37,7 @@ export function ContinueListening(): React.ReactElement | null {
         {episode.showTitle === '' ? mmss(offsetMs) : `${episode.showTitle} · ${mmss(offsetMs)}`}
       </Text>
       <Pressable
-        className="self-start mt-1.5 py-2 px-[18px] rounded-pill bg-accent"
+        className="self-start mt-1.5 py-2 px-[18px] rounded-pill bg-primary"
         accessibilityRole="button"
         accessibilityLabel={`Continue ${episode.title}`}
         onPress={() => {
@@ -45,7 +45,7 @@ export function ContinueListening(): React.ReactElement | null {
           router.push('/player');
         }}
       >
-        <Text className="text-onAccent font-bold">Play</Text>
+        <Text className="text-onPrimary font-bold">Play</Text>
       </Pressable>
     </View>
   );

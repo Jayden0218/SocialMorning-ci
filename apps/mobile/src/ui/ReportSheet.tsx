@@ -52,7 +52,7 @@ export function ReportSheet(props: { target: ReportTarget | undefined; onClose: 
           <Text className="text-muted text-xs text-right">{note.length} / {REPORT_NOTE_MAX}</Text>
           <View className="flex-row justify-end gap-3">
             <Pressable onPress={close} accessibilityRole="button" accessibilityLabel="Cancel" className="py-3 px-4 min-h-12 justify-center"><Text className="text-accent text-sm">Cancel</Text></Pressable>
-            <Pressable onPress={send} disabled={!reason} accessibilityRole="button" accessibilityLabel="Send report" accessibilityState={{ disabled: !reason }} className={`py-3 px-4 min-h-12 justify-center bg-accent rounded-3xl ${!reason ? 'opacity-40' : ''}`}><Text className="text-onAccent font-semibold">Send</Text></Pressable>
+            <Pressable onPress={send} disabled={!reason} accessibilityRole="button" accessibilityLabel="Send report" accessibilityState={{ disabled: !reason }} className={`py-3 px-4 min-h-12 justify-center bg-primary rounded-3xl ${!reason ? 'opacity-40' : ''}`}><Text className="text-onPrimary font-semibold">Send</Text></Pressable>
           </View>
         </View>
       </View>

@@ -70,12 +70,12 @@ export function ComposerSheet(props: {
           <View className="flex-row justify-between items-center">
             <Pressable onPress={props.onClose} accessibilityRole="button"><Text className="text-accent text-[15px]">Cancel</Text></Pressable>
             <Pressable
-              className={`bg-accent rounded-3xl py-2.5 px-[22px] ${busy || !composer.canSubmit(state) ? 'opacity-50' : ''}`}
+              className={`bg-primary rounded-3xl py-2.5 px-[22px] ${busy || !composer.canSubmit(state) ? 'opacity-50' : ''}`}
               disabled={busy || !composer.canSubmit(state)}
               onPress={submit}
               accessibilityRole="button"
             >
-              <Text className="text-onAccent font-semibold">Post</Text>
+              <Text className="text-onPrimary font-semibold">Post</Text>
             </Pressable>
           </View>
         </View>

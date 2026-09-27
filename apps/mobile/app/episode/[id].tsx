@@ -83,7 +83,7 @@ export default function EpisodeScreen(): React.ReactElement {
         </Text>
       )}
       <Pressable
-        className="self-start py-2.5 px-5 rounded-pill bg-accent my-2"
+        className="self-start py-2.5 px-5 rounded-pill bg-primary my-2"
         accessibilityRole="button"
         accessibilityLabel="Play this episode"
         onPress={() => {
@@ -91,7 +91,7 @@ export default function EpisodeScreen(): React.ReactElement {
           router.push('/player');
         }}
       >
-        <Text className="text-onAccent font-bold">Play</Text>
+        <Text className="text-onPrimary font-bold">Play</Text>
       </Pressable>
       <DownloadButton episodeId={episode.id} />
       <QueueButtons episodeId={episode.id} onQueued={() => stores.inboxState.mark(episode.id, 'queued', Date.now())} />

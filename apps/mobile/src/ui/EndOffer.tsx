@@ -8,7 +8,7 @@ export function EndOffer(props: { item: NextUpItem; onPlay: () => void }): React
       <Text className="font-semibold text-text">That's the end. Next up:</Text>
       <Text className="text-sm font-semibold text-text" numberOfLines={2}>{props.item.episode.title}</Text>
       <Text className="text-muted">{props.item.episode.showTitle} · {props.item.label}</Text>
-      <Pressable className="self-start bg-accent rounded-3xl px-5 py-2.5 mt-1.5" accessibilityRole="button" onPress={props.onPlay}><Text className="text-onAccent font-semibold">Play it</Text></Pressable>
+      <Pressable className="self-start bg-primary rounded-3xl px-5 py-2.5 mt-1.5" accessibilityRole="button" onPress={props.onPlay}><Text className="text-onPrimary font-semibold">Play it</Text></Pressable>
     </View>
   );
 }

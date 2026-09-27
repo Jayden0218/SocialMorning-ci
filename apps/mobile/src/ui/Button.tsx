@@ -11,8 +11,8 @@ import { hit } from '../design';
 export type ButtonKind = 'primary' | 'secondary' | 'destructive';
 
 const KIND: Record<ButtonKind, string> = {
-  primary: 'bg-accent',
-  destructive: 'bg-accent',
+  primary: 'bg-primary',
+  destructive: 'bg-primary',
   secondary: 'border border-separator',
 };
 
@@ -38,7 +38,7 @@ export function Button(props: {
       className={`px-section justify-center items-center rounded-pill ${KIND[kind]} ${props.disabled ? 'opacity-40' : ''} ${props.className ?? ''}`}
       style={TAP}
     >
-      <Text className="text-sm font-semibold text-onAccent">{props.label}</Text>
+      <Text className="text-sm font-semibold text-onPrimary">{props.label}</Text>
     </Pressable>
   );
 }

@@ -284,12 +284,12 @@ const BODY_INSET = { paddingBottom: BOTTOM_INSET };
 const TITLE = 'text-base font-bold text-center text-text mt-section';
 const SUBTITLE = 'text-xs text-muted text-center';
 const CONTROL = 'text-base font-semibold text-text min-w-12 text-center';
-const PRIMARY = 'min-h-12 py-row px-screen-x rounded-pill bg-accent justify-center';
-const PRIMARY_TEXT = 'text-onAccent font-bold text-sm';
+const PRIMARY = 'min-h-12 py-row px-screen-x rounded-pill bg-primary justify-center';
+const PRIMARY_TEXT = 'text-onPrimary font-bold text-sm';
 const SOCIAL_ROW = 'flex-row gap-row mt-row flex-wrap justify-center';
 const CLIP_BANNER = 'flex-row gap-row items-center mt-row flex-wrap justify-center';
 const SECONDARY = 'min-h-12 py-2 px-section rounded-pill border border-separator justify-center';
 // Reacted is told apart by its WORD ("♥ Reacted" vs "♡ React") and its accessible
 // name as well as by the fill — never by hue alone (FR-016).
-const SECONDARY_ON = 'min-h-12 py-2 px-section rounded-pill border bg-selected border-accent justify-center';
+const SECONDARY_ON = 'min-h-12 py-2 px-section rounded-pill border bg-primary border-primary justify-center';
 const SECONDARY_TEXT = 'font-semibold text-xs text-text';

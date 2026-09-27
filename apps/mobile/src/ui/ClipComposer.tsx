@@ -52,8 +52,8 @@ export function ClipComposer(props: ClipComposerProps): React.ReactElement {
       <Text className="text-muted">{s.caption.length} / 200</Text>
       <View className="flex-row gap-2 items-center flex-wrap">
         <Pressable className="border border-separator rounded-3xl px-[18px] py-2.5" onPress={() => player.playClip(props.episode, s.range)} accessibilityRole="button"><Text className="text-text">Preview</Text></Pressable>
-        <Pressable className={`bg-accent rounded-3xl px-[22px] py-2.5 ${!canSave(s) || props.saving ? 'opacity-40' : ''}`} disabled={!canSave(s) || props.saving} onPress={() => props.onSave(s)} accessibilityRole="button">
-          <Text className="text-onAccent font-semibold">{props.saving ? 'Saving…' : 'Save'}</Text>
+        <Pressable className={`bg-primary rounded-3xl px-[22px] py-2.5 ${!canSave(s) || props.saving ? 'opacity-40' : ''}`} disabled={!canSave(s) || props.saving} onPress={() => props.onSave(s)} accessibilityRole="button">
+          <Text className="text-onPrimary font-semibold">{props.saving ? 'Saving…' : 'Save'}</Text>
         </Pressable>
       </View>
     </View>

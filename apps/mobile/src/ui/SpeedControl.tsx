@@ -21,7 +21,7 @@ export function SpeedControl(): React.ReactElement {
         <Pressable onPress={() => set(rate + 0.1)} accessibilityRole="button" accessibilityLabel="Faster"><Text className="text-[22px] px-2 text-text">+</Text></Pressable>
         {PRESETS.map((p) => (
           <Pressable key={p} onPress={() => set(p)} accessibilityRole="button">
-            <Text className={`border rounded-pill px-2.5 py-[3px] text-text ${Math.abs(rate - p) < 0.01 ? 'bg-selected border-accent' : 'border-separator'}`}>{p}×</Text>
+            <Text className={`border rounded-pill px-2.5 py-[3px] text-text ${Math.abs(rate - p) < 0.01 ? 'bg-primary border-primary' : 'border-separator'}`}>{p}×</Text>
           </Pressable>
         ))}
       </View>

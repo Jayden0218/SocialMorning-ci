@@ -22,7 +22,7 @@ export function SleepTimerControl(): React.ReactElement {
         <Text className="font-semibold text-text">Sleep</Text>
         {CHOICES.map((c) => (
           <Pressable key={String(c)} onPress={() => player.setSleepTimer(c)} accessibilityRole="button">
-            <Text className={`border rounded-pill px-2.5 py-[3px] text-text text-[13px] ${(c === 'endOfEpisode' ? timer.kind === 'endOfEpisode' : false) ? 'bg-selected border-accent' : 'border-separator'}`}>{c === 'endOfEpisode' ? 'End of episode' : `${c} min`}</Text>
+            <Text className={`border rounded-pill px-2.5 py-[3px] text-text text-[13px] ${(c === 'endOfEpisode' ? timer.kind === 'endOfEpisode' : false) ? 'bg-primary border-primary' : 'border-separator'}`}>{c === 'endOfEpisode' ? 'End of episode' : `${c} min`}</Text>
           </Pressable>
         ))}
       </View>

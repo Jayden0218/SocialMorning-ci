@@ -3,20 +3,20 @@
  * Change a colour here and every screen follows; `scripts/token-check.mjs` fails the
  * build if a colour literal appears anywhere else.
  *
- * **White theme (2026-09-27, the owner's call).** Replaces M7's black palette. Every
- * ratio below was measured with `contrast.ts` before adoption, and `PAIRS` re-checks
- * them on every run. Two things the flip forced:
- *   - the old accent #fc3c44 measures 3.58 on white and fails the 4.5 body floor, so the
- *     accent is the deeper #d70015 (5.38) — and white text on it measures the same 5.38;
- *   - text on a solid accent fill is `onAccent`, never `text`: dark text on red is 3.50.
- * Links AND destructive actions take the accent; a destructive action is told apart by
- * its word, never by its hue (FR-016).
+ * **White theme, yellow brand (2026-09-27, the owner's call).** The yellow is sampled
+ * from the app icon (`assets/app-icon.png`, #fcc522). Every ratio below was measured
+ * with `contrast.ts` before adoption, and `PAIRS` re-checks them on every run.
+ * What measuring forced:
+ *   - yellow on white is 1.60, so yellow is a FILL only (`primary`), never a text
+ *     colour. The words on a yellow fill are dark (`onPrimary`, 11.80);
+ *   - links, text actions and the listener's own marks need a colour that reads on
+ *     white, so `accent` is a deep amber from the same family (5.93).
+ * A destructive action is told apart by its word, never by its hue (FR-016).
  *
  * How the roles pair up:
  *   screen  → `background`, cards/sheets → `surface`
- *   words   → `text`, secondary words → `muted`, links/actions → `accent`
- *   a solid button → `bg-accent` + `text-onAccent`
- *   a chosen chip / toggle → `bg-selected border-accent` + `text-text`
+ *   words   → `text`, secondary words → `muted`, links/text actions → `accent`
+ *   a solid button, a chosen chip → `bg-primary` + `text-onPrimary` (or `text-text`)
  */
 export const colour = {
   /** 18.85 against text. */
@@ -27,12 +27,12 @@ export const colour = {
   text: '#111114',
   /** 6.05 on background, 5.56 on surface — secondary lines. */
   muted: '#5f6368',
-  /** 5.38 on background, 4.94 on surface — links, primary actions, destructive actions, the listener's own marks. */
-  accent: '#d70015',
-  /** Text and icons on a solid accent fill. 5.38 on accent. */
-  onAccent: '#ffffff',
-  /** A chosen chip or toggle: a soft accent wash that `text` still reads on. */
-  selected: '#fde8ea',
+  /** The brand yellow, from the app icon. A fill only: 1.60 on white, so never text. */
+  primary: '#fcc522',
+  /** Words and icons on a `primary` fill. 11.80 on primary. */
+  onPrimary: '#111114',
+  /** 5.93 on background, 5.44 on surface — links, text actions, the listener's own marks. */
+  accent: '#8a5a00',
   /** Decorative: the scrubber's unfilled track. */
   track: 'rgba(0,0,0,0.12)',
   /** Carries information (the heat curve), so it must clear 3:1 — 0.50 black on white measures 3.98. */

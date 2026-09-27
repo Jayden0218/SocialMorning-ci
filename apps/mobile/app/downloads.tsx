@@ -37,13 +37,13 @@ export default function DownloadsScreen(): React.ReactElement {
           <View className="flex-row gap-3 items-center flex-wrap">
             {BUDGETS.map((b) => (
               <Pressable key={b} onPress={() => downloads.setBudgetBytes(b)} accessibilityRole="button">
-                <Text className={`border rounded-pill px-2.5 py-1 text-text ${downloads.budgetBytes() === b ? 'bg-selected border-accent' : 'border-separator'}`}>{b < 1024 ** 3 ? `${b / 1024 ** 2} MB` : `${b / 1024 ** 3} GB`}</Text>
+                <Text className={`border rounded-pill px-2.5 py-1 text-text ${downloads.budgetBytes() === b ? 'bg-primary border-primary' : 'border-separator'}`}>{b < 1024 ** 3 ? `${b / 1024 ** 2} MB` : `${b / 1024 ** 3} GB`}</Text>
               </Pressable>
             ))}
           </View>
           <View className="flex-row gap-3 items-center flex-wrap">
             <Text className="text-[15px] text-text">Allow mobile data</Text>
-            <Switch trackColor={{ false: colour.separator, true: colour.accent }} thumbColor={colour.onAccent} value={downloads.allowMobile()} onValueChange={(v) => downloads.setAllowMobile(v)} accessibilityLabel="Allow mobile data for downloads" accessibilityRole="switch" accessibilityState={{ checked: downloads.allowMobile() }} />
+            <Switch trackColor={{ false: colour.separator, true: colour.primary }} thumbColor={colour.background} value={downloads.allowMobile()} onValueChange={(v) => downloads.setAllowMobile(v)} accessibilityLabel="Allow mobile data for downloads" accessibilityRole="switch" accessibilityState={{ checked: downloads.allowMobile() }} />
           </View>
           <Pressable onPress={() => void downloads.removeFinished()} accessibilityRole="button">
             <Text className="text-accent text-[15px] py-1">Remove finished downloads</Text>

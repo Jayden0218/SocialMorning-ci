@@ -8,7 +8,7 @@ export function Chip(props: { label: string; selected?: boolean; onPress: () => 
       accessibilityRole="button"
       accessibilityLabel={props.accessibilityLabel ?? props.label}
       accessibilityState={{ selected: props.selected === true }}
-      className={`min-h-12 px-section justify-center rounded-pill border ${props.selected ? 'bg-selected border-accent' : 'border-separator'} ${props.className ?? ''}`}
+      className={`min-h-12 px-section justify-center rounded-pill border ${props.selected ? 'bg-primary border-primary' : 'border-separator'} ${props.className ?? ''}`}
     >
       <Text className={props.selected ? 'text-text text-xs font-semibold' : 'text-muted text-xs font-semibold'}>{props.label}</Text>
     </Pressable>

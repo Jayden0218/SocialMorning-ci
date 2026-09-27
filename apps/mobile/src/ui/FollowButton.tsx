@@ -14,7 +14,7 @@ export function FollowButton(props: { listenerId: string; following: boolean; on
   if (listener?.listenerId === props.listenerId) return null;
   return (
     <Pressable
-      className={`border border-separator rounded-3xl px-[18px] py-2 self-start ${following ? 'bg-selected border-accent' : ''}`}
+      className={`border border-separator rounded-3xl px-[18px] py-2 self-start ${following ? 'bg-primary border-primary' : ''}`}
       disabled={busy}
       accessibilityRole="button"
       accessibilityLabel={following ? 'Unfollow' : 'Follow'}
