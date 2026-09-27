@@ -7,5 +7,5 @@
  * Agree, so every later launch of a signed-out phone went to the main page.
  */
 export function opensSignIn(s: { ready: boolean; accepted: boolean; signedIn: boolean; opened: boolean }): boolean {
-  return s.ready && s.accepted && !s.opened;
+  return s.ready && s.accepted && !s.signedIn && !s.opened;
 }
