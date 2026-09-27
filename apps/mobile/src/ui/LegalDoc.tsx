@@ -11,8 +11,8 @@ import { parseLegal, titleOf, type Block, type BlockKind } from '../legal/markdo
 
 /**
  * Owner, 2026-09-27: plain weight for the body, looser lines (16 px type on 26 px lines),
- * and no bold inside a paragraph — `**…**` spans keep the darker `text` colour instead,
- * so the terms the documents say are "shown in bold" still stand apart from the grey body.
+ * and **one grey for all body text** — `**…**` spans are no longer darker (the owner:
+ * "i want all same grey for the content"). Headings keep `text`.
  */
 const KIND: Record<BlockKind, string> = {
   title: 'text-text text-lg font-semibold',
@@ -28,17 +28,17 @@ const KIND: Record<BlockKind, string> = {
 const TAP = { minHeight: hit.min, minWidth: hit.min };
 
 function Spans(props: { block: Block }): React.ReactElement {
-  return <>{props.block.spans.map((s, i) => (s.bold ? <Text key={i} className="text-text">{s.text}</Text> : s.text))}</>;
+  return <>{props.block.spans.map((s) => s.text).join('')}</>;
 }
 
 function BlockText(props: { block: Block }): React.ReactElement {
   const { block } = props;
-  // A list item hangs: the bullet has its own column, so a wrapped line starts under
-  // the words, never under the bullet.
+  // A list item hangs: its bullet or number ("•", "(1)", "2.8.1") has its own column,
+  // so the second and later lines start under the words, never under the marker.
   if (block.kind === 'item') {
     return (
-      <View className="flex-row mb-row pl-2">
-        <Text className="text-muted text-sm leading-[26px] w-5">•</Text>
+      <View className="flex-row mb-row">
+        <Text className="text-muted text-sm leading-[26px] min-w-5 pr-2">{block.marker ?? '•'}</Text>
         <Text className={KIND.item}><Spans block={block} /></Text>
       </View>
     );

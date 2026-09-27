@@ -5,7 +5,8 @@
  */
 export type Span = { text: string; bold: boolean };
 export type BlockKind = 'title' | 'heading' | 'subheading' | 'paragraph' | 'item' | 'note' | 'row';
-export type Block = { kind: BlockKind; spans: Span[] };
+/** `marker` is a list item's bullet or number ("•", "(1)", "2.8.1"), drawn in its own column so wrapped lines hang. */
+export type Block = { kind: BlockKind; spans: Span[]; marker?: string };
 
 /** `a **b** c` → a, b (bold), c. Backticks are dropped: they mark a name, not code, here. */
 export function spans(line: string): Span[] {
@@ -15,6 +16,12 @@ export function spans(line: string): Span[] {
     .map((text, i) => ({ text, bold: i % 2 === 1 }))
     .filter((s) => s.text.length > 0);
 }
+
+/**
+ * A numbered clause: "(1)", "1.", "2.8.1", "3.12.5" — at the start of a line, maybe
+ * inside bold. A bare number ("15 working days…") is not one: it needs a dot or brackets.
+ */
+const NUMBERED = /^(\*\*)?(\(\d+\)|\d+(?:\.\d+)+\.?|\d+\.)\s+/;
 
 const cells = (line: string): string[] => line.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim());
 
@@ -40,7 +47,9 @@ export function parseLegal(md: string): Block[] {
       continue;
     }
     if (line.startsWith('> ')) { blocks.push({ kind: 'note', spans: spans(line.slice(2)) }); continue; }
-    if (line.startsWith('- ')) { blocks.push({ kind: 'item', spans: spans(line.slice(2)) }); continue; }
+    if (line.startsWith('- ')) { blocks.push({ kind: 'item', marker: '•', spans: spans(line.slice(2)) }); continue; }
+    const n = NUMBERED.exec(line);
+    if (n?.[2]) { blocks.push({ kind: 'item', marker: n[2], spans: spans((n[1] ?? '') + line.slice(n[0].length)) }); continue; }
     blocks.push({ kind: 'paragraph', spans: spans(line) });
   }
   return blocks;

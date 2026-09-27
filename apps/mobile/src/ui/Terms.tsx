@@ -77,7 +77,12 @@ export function Terms(props: { onAccept: () => void; exit?: (back: () => void) =
                   {' mainly covers:'}
                 </Text>
               </Pressable>
-              {item.points.map((p) => <Text key={p} className="text-muted text-sm pl-section mb-row">{`• ${p}`}</Text>)}
+              {item.points.map((p) => (
+                <View key={p} className="flex-row pl-section mb-row">
+                  <Text className="text-muted text-sm min-w-5 pr-2">•</Text>
+                  <Text className="text-muted text-sm flex-1">{p}</Text>
+                </View>
+              ))}
             </View>
           ))}
           <Text className="text-muted text-sm">{CONSENT_OUTRO}</Text>

@@ -26,3 +26,20 @@ it('each document has its own title and no raw Markdown left in the blocks', () 
     for (const b of parseLegal(text)) for (const s of b.spans) expect(s.text).not.toMatch(/\*\*|^#|^\|/);
   }
 });
+
+/**
+ * Owner, 2026-09-27: numbered clauses hang like bullets. The break that turns this red:
+ * delete the `NUMBERED` branch in `parseLegal`.
+ */
+it('numbered clauses become items with their number as the marker; a bare number does not', () => {
+  const md = '(1) first\n\n2.8.1 deep\n\n**3.12.5 bold one**\n\n1. top\n\n- dot\n\n15 working days later\n\n#### (2) a heading stays a heading';
+  expect(parseLegal(md).map((b) => [b.kind, b.marker ?? null, b.spans.map((s) => s.text).join('')])).toEqual([
+    ['item', '(1)', 'first'],
+    ['item', '2.8.1', 'deep'],
+    ['item', '3.12.5', 'bold one'],
+    ['item', '1.', 'top'],
+    ['item', '•', 'dot'],
+    ['paragraph', null, '15 working days later'],
+    ['subheading', null, '(2) a heading stays a heading'],
+  ]);
+});
