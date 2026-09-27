@@ -6,6 +6,9 @@ import { freshDb, signUp } from './harness.ts';
 
 const ep = { feedUrl: 'https://feeds.example.com/x.xml', guid: 'g1', title: 'Ep 1', showTitle: 'Show', enclosureUrl: 'https://cdn/1.mp3' };
 const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
+// Relative to today: the stats window is the last 7 days, so a fixed date fell out of it
+// on 2026-09-27 and this test went red with no code change.
+const dayAgo = (n: number): string => new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
 type Prof = { id: string; displayName: string; followers: number; following: number; isFollowing: boolean; stats: { last7: { listenedMs: number } } | null; recent: { kind: string }[] };
 
 test('A7: B private → A sees B\'s clip and comment but 0 listens in the feed and no stats on the profile; B sees own stats; switching back hides nothing retroactively and shows nothing retroactively', async () => {
@@ -15,13 +18,13 @@ test('A7: B private → A sees B\'s clip and comment but 0 listens in the feed a
   const b = await signUp(t, 'b@example.com', 'Bea');
   await t.call('PUT', `/v1/listeners/${b.id}/follow`, undefined, a.token);
   // Public first: a 6-minute listen is an item.
-  await t.call('PUT', '/v1/me/listened', { deviceId: 'pb', days: [{ episodeId: EP, day: '2026-09-20', ranges: [[0, 360_000]] }] }, b.token);
+  await t.call('PUT', '/v1/me/listened', { deviceId: 'pb', days: [{ episodeId: EP, day: dayAgo(2), ranges: [[0, 360_000]] }] }, b.token);
   const feedKinds = async () => ((await (await t.call('GET', '/v1/me/feed', undefined, a.token)).json()) as { items: { kind: string }[] }).items.map((i) => i.kind);
   assert.deepEqual(await feedKinds(), ['listened']);
   // B goes private.
   assert.deepEqual(await (await t.call('PUT', '/v1/me/privacy', { privateListening: true }, b.token)).json(), { privateListening: true });
   assert.equal(((await (await t.call('GET', '/v1/me', undefined, b.token)).json()) as { listener: { privateListening: boolean } }).listener.privateListening, true);
-  await t.call('PUT', '/v1/me/listened', { deviceId: 'pb', days: [{ episodeId: EP, day: '2026-09-21', ranges: [[0, 360_000]] }] }, b.token);
+  await t.call('PUT', '/v1/me/listened', { deviceId: 'pb', days: [{ episodeId: EP, day: dayAgo(1), ranges: [[0, 360_000]] }] }, b.token);
   await t.call('POST', `/v1/episodes/${EP}/clips`, { clientId: 'k', startMs: 0, endMs: 30_000 }, b.token);
   await t.call('POST', `/v1/episodes/${EP}/comments`, { body: 'hi', offsetMs: 5 }, b.token);
   const kinds = await feedKinds();
@@ -37,7 +40,7 @@ test('A7: B private → A sees B\'s clip and comment but 0 listens in the feed a
   assert.equal(seenByB.isFollowing, false);
   // Back to public: the private-time listen stays hidden (written hidden); new ones flow.
   await t.call('PUT', '/v1/me/privacy', { privateListening: false }, b.token);
-  await t.call('PUT', '/v1/me/listened', { deviceId: 'pb', days: [{ episodeId: EP, day: '2026-09-22', ranges: [[0, 360_000]] }] }, b.token);
+  await t.call('PUT', '/v1/me/listened', { deviceId: 'pb', days: [{ episodeId: EP, day: dayAgo(0), ranges: [[0, 360_000]] }] }, b.token);
   assert.equal((await feedKinds()).filter((k) => k === 'listened').length, 2);
   assert.deepEqual(await t.q(`SELECT count(*)::int AS n FROM activity WHERE kind = 'listened' AND hidden`), [{ n: 1 }]);
   // Anonymous: the profile is public, stats visible again, isFollowing false.
