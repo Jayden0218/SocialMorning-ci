@@ -1,7 +1,9 @@
 /**
  * The consent screen (owner, 2026-09-27): the whole page, not a half sheet. Drawn over the stack like the launch screen,
  * so no route — not even a link that opened the app — gets past it. One way out: Agree.
- * "Disagree" only explains; it does not close the app (iOS does not allow that).
+ * "Disagree" opens a second page (the owner's screenshot, 2026-09-27): "Exit app" or
+ * "Agree and continue". Exit closes the app on Android; iOS does not allow an app to
+ * close itself, so there it goes back to the first page.
  *
  * A link opens the full document inside this same overlay (`LegalDoc`), not as a route:
  * a route would sit *under* the sheet. Android's back button closes an open document
@@ -11,29 +13,53 @@
  * buttons ran under the home bar (owner, 2026-09-27).
  */
 import { useEffect, useRef, useState } from 'react';
-import { BackHandler, Image, Pressable, SafeAreaView, ScrollView, Text, View } from 'react-native';
+import { BackHandler, Image, Platform, Pressable, SafeAreaView, ScrollView, Text, View } from 'react-native';
 import { LEGAL_TEXT } from '../legal/texts';
 import { Button } from './Button';
 import { LegalDoc } from './LegalDoc';
-import { CONSENT_INTRO, CONSENT_ITEMS, CONSENT_OUTRO, CONSENT_TITLE, DISAGREE_NOTE, type LegalDocId } from './terms';
+import { CONSENT_INTRO, CONSENT_ITEMS, CONSENT_OUTRO, CONSENT_TITLE, REFUSE_TEXT, type LegalDocId } from './terms';
 
 const ICON = { width: 44, height: 44 };
 
-export function Terms(props: { onAccept: () => void }): React.ReactElement {
+/** Android can close itself; iOS cannot (and must not), so there Exit returns to page one. */
+const exitApp = (back: () => void): void => { if (Platform.OS === 'android') BackHandler.exitApp(); else back(); };
+
+export function Terms(props: { onAccept: () => void; exit?: (back: () => void) => void }): React.ReactElement {
   const [open, setOpen] = useState<LegalDocId | undefined>(undefined);
   const [refused, setRefused] = useState(false);
   const openRef = useRef(open);
   openRef.current = open;
+  const refusedRef = useRef(refused);
+  refusedRef.current = refused;
 
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
       if (openRef.current !== undefined) setOpen(undefined);
+      else if (refusedRef.current) setRefused(false);
       return true;
     });
     return () => sub.remove();
   }, []);
 
   if (open !== undefined) return <LegalDoc text={LEGAL_TEXT[open]} onClose={() => setOpen(undefined)} />;
+
+  if (refused) {
+    return (
+      <View className="absolute inset-0 bg-scrim justify-end">
+        <SafeAreaView className="bg-background rounded-t-artwork">
+          <View className="px-screen-x pt-section pb-section">
+            <Image source={require('../../assets/app-icon.png')} style={ICON} className="rounded-row mb-row" accessibilityIgnoresInvertColors />
+            <Text className="text-text text-lg font-bold mb-row" accessibilityRole="header">{CONSENT_TITLE}</Text>
+            <Text className="text-text text-sm">{REFUSE_TEXT}</Text>
+            <View className="flex-row gap-row mt-section">
+              <Button label="Exit app" kind="secondary" onPress={() => (props.exit ?? exitApp)(() => setRefused(false))} className="flex-1" />
+              <Button label="Agree and continue" onPress={props.onAccept} className="flex-[2]" />
+            </View>
+          </View>
+        </SafeAreaView>
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView className="absolute inset-0 bg-background">
@@ -55,7 +81,6 @@ export function Terms(props: { onAccept: () => void }): React.ReactElement {
             </View>
           ))}
           <Text className="text-muted text-sm">{CONSENT_OUTRO}</Text>
-          {refused ? <Text className="text-accent text-sm mt-section" accessibilityLiveRegion="polite">{DISAGREE_NOTE}</Text> : null}
         </ScrollView>
         <View className="flex-row gap-row mt-section">
           <Button label="Disagree" kind="secondary" onPress={() => setRefused(true)} className="flex-1" />

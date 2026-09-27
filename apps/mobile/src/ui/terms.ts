@@ -59,7 +59,11 @@ export const CONSENT_ITEMS: { doc: LegalDocId; link: string; points: string[] }[
 
 export const CONSENT_OUTRO = 'Tap "Agree" to accept these documents and start using SocialNet.';
 
-export const DISAGREE_NOTE = 'SocialNet cannot be used without agreeing. You can read the documents above, then tap "Agree", or close the app.';
+/** The second page, after "Disagree" — the last chance before leaving. */
+export const REFUSE_TEXT =
+  'SocialNet only uses your information to provide the service and improve your experience, ' +
+  'and will do its best to keep your information safe. Please agree before you use it. ' +
+  'If you do not agree to this Privacy Policy, we are sorry, but we cannot provide the service to you.';
 
 export function hasAccepted(settings: SettingsStore): boolean {
   return settings.get(TERMS_KEY) === TERMS_VERSION;
