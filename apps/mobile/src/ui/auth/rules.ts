@@ -7,7 +7,7 @@ export type SubmitAction = 'disabled' | 'ask' | 'submit';
 
 export function submitAction(s: { valid: boolean; agreed: boolean; busy: boolean }): SubmitAction {
   if (!s.valid || s.busy) return 'disabled';
-  return 'submit';
+  return s.agreed ? 'submit' : 'ask';
 }
 
 /** An email the server will accept the shape of: something@something.something. */
