@@ -17,3 +17,10 @@ export function listeningHistory(stores: Pick<Stores, 'positions' | 'feeds'>, li
     .filter((r): r is HistoryRow => r !== undefined)
     .slice(0, limit);
 }
+
+/** Every word of `term` somewhere in the texts, any case. An empty term matches all. */
+export function matchesAll(term: string, texts: readonly (string | undefined)[]): boolean {
+  const words = term.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const hay = texts.filter(Boolean).join(' ').toLowerCase();
+  return words.every((w) => hay.includes(w));
+}

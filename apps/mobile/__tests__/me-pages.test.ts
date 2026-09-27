@@ -7,7 +7,7 @@
 import type { Episode, ParsedFeed, Show } from '@socialmorning/feed-parser';
 import { hash } from '../src/feeds/hash';
 import { isFavourite, listFavourites, toggleFavourite } from '../src/me/favourites';
-import { listeningHistory } from '../src/me/history';
+import { listeningHistory, matchesAll } from '../src/me/history';
 import { deleteMoment, editMoment, listMoments, NOTE_MAX, saveMoment } from '../src/me/moments';
 import { latestEarned, stickers } from '../src/me/stickers';
 import { latestUpdates, plainSummary } from '../src/me/updates';
@@ -80,4 +80,10 @@ it('updates: newest across shows, hidden shows left out, notes as one plain line
   expect(rows[1]?.summary).toBe('Hello world');
   expect(plainSummary('<script>x</script>' + 'a'.repeat(200), 10)).toBe(`${'a'.repeat(9)}…`);
   expect(plainSummary(undefined)).toBe('');
+});
+
+it('search: every word, any case, across the texts; empty matches all', () => {
+  expect(matchesAll('', ['x'])).toBe(true);
+  expect(matchesAll('ivan ILYICH', ['The Death of Ivan Ilyich', 'Book show'])).toBe(true);
+  expect(matchesAll('ivan tolstoy', ['The Death of Ivan Ilyich', undefined])).toBe(false);
 });
