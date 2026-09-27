@@ -184,7 +184,7 @@ export function SaidSection(props: Act & { items: SaidItem[]; now: number }): Re
           if (!s) return null;
           return (
             <View className="bg-surface rounded-artwork p-section">
-              <Text className="text-muted text-xs">A listener · {ago(s.createdAt, props.now)}</Text>
+              <Text className="text-muted text-xs">{`A listener · ${ago(s.createdAt, props.now)}`}</Text>
               <Text className="text-accent text-sm text-center my-section" numberOfLines={4}>{s.body}</Text>
               <View className="border-t-hairline border-separator pt-row">
                 <EpisodeLine card={s.episode} size={44} onOpen={() => props.onOpen(s.episode)} onPlay={() => props.onPlay(s.episode)} />
