@@ -144,7 +144,7 @@ index f3ad9d3..d643cfc 100644
          mediaSession = session
          sessionMetadataPlayer = sessionPlayer
 diff --git a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt
-index ee83be1..cd9f3c9 100644
+index ee83be1..ad5f113 100644
 --- a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt
 +++ b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt
 @@ -4,7 +4,12 @@ import android.os.Bundle
@@ -169,7 +169,23 @@ index ee83be1..cd9f3c9 100644
    override fun onConnect(
      session: MediaSession,
      controller: MediaSession.ControllerInfo
-@@ -83,4 +88,55 @@ class AudioMediaSessionCallback(
+@@ -35,7 +40,14 @@ class AudioMediaSessionCallback(
+         }
+         .build()
+ 
+-      val availableSessionCommands = MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS.buildUpon()
++      // SocialNet patch (found on Android Auto's car screen, 2026-09-28): a library session must
++      // grant the library commands too, or Media3 refuses the car's root request and it waits.
++      val baseSessionCommands = if (session is MediaLibraryService.MediaLibrarySession) {
++        MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS
++      } else {
++        MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS
++      }
++      val availableSessionCommands = baseSessionCommands.buildUpon()
+         .add(SessionCommand(AudioControlsService.ACTION_SEEK_BACKWARD, Bundle.EMPTY))
+         .add(SessionCommand(AudioControlsService.ACTION_SEEK_FORWARD, Bundle.EMPTY))
+         .apply {
+@@ -83,4 +95,55 @@ class AudioMediaSessionCallback(
        else -> super.onCustomCommand(session, controller, command, args)
      }
    }
