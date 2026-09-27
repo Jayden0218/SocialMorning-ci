@@ -27,4 +27,4 @@ export async function refreshAppeals(api: ApiClient, stores: Pick<Stores, 'setti
 }
 
 export const appealsMailto = (address: string | undefined): string | undefined =>
-  address === undefined || address === '' ? undefined : `mailto:${address}?subject=${encodeURIComponent('SocialMorning — report a problem')}`;
+  address === undefined || address === '' ? undefined : `mailto:${address}?subject=${encodeURIComponent('SocialNet — report a problem')}`;

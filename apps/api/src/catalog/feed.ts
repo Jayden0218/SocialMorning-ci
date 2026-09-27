@@ -11,7 +11,7 @@ import { upsertEpisode, type EpisodeRow } from '../db/repos/episodes.ts';
 import type { EpisodeCard } from './apple.ts';
 import { genreIdFor } from './genres.ts';
 
-export const USER_AGENT = 'SocialMorning/0.1 (+https://socialmorning-api.vercel.app)';
+export const USER_AGENT = 'SocialNet/0.1 (+https://socialmorning-api.vercel.app)';
 
 export type FetchedFeed = { show: ParsedFeed['show']; episodes: Episode[]; warnings: ParsedFeed['warnings'] };
 

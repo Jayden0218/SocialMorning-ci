@@ -24,7 +24,7 @@ it('refreshAppeals stores what the server says; offline it keeps the mirror; wit
 });
 
 it('appealsMailto carries a subject, and is undefined when there is no address', () => {
-  expect(appealsMailto('help@example.test')).toBe('mailto:help@example.test?subject=SocialMorning%20%E2%80%94%20report%20a%20problem');
+  expect(appealsMailto('help@example.test')).toBe('mailto:help@example.test?subject=SocialNet%20%E2%80%94%20report%20a%20problem');
   expect(appealsMailto(undefined)).toBeUndefined();
   expect(appealsMailto('')).toBeUndefined();
 });

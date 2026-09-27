@@ -17,7 +17,7 @@ test('fetchFeed parses and caches; a broken item is a warning, not a failure; a 
   assert.ok(feed.warnings.length >= 1);
   await fetchFeed(t.db, f, 'https://feeds.example.com/fx.xml');
   assert.equal(calls, 1); // cached
-  assert.match(ua ?? '', /^SocialMorning\//); // feeds.podcastindex.org 403s a fetch without one (seen live)
+  assert.match(ua ?? '', /^SocialNet\//); // feeds.podcastindex.org 403s a fetch without one (seen live)
   const card = toCard('https://feeds.example.com/fx.xml', feed.show, feed.episodes[0]!);
   assert.deepEqual(card, { feedUrl: 'https://feeds.example.com/fx.xml', guid: 'g-new', title: 'Newest', showTitle: 'Fixture Show', enclosureUrl: 'https://cdn/new.mp3', imageUrl: 'https://img/show.png', durationMs: 1_800_000, publishedAt: '2026-09-21T10:00:00.000Z', genreId: 1318 });
   const row = await registerCard(t.db, card);

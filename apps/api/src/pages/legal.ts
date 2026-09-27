@@ -10,7 +10,7 @@ export const legal = new Hono<AuthEnv>();
 legal.get('/privacy', (c) => {
   const appeals = c.get('safety').appealsEmail;
   return c.html(page('Privacy', `<h1>Privacy</h1>
-<p>SocialMorning is a podcast player with a social layer. This page says what it keeps and where.</p>
+<p>SocialNet is a podcast player with a social layer. This page says what it keeps and where.</p>
 <h2>What the app keeps on the server</h2>
 <ul>
 <li><b>Your account</b>: email, display name, a password hash. Sessions are random tokens; only their hash is stored.</li>
@@ -52,7 +52,7 @@ legal.get('/rules', (c) => {
 
 legal.get('/get', (c) => {
   const sha = c.get('safety').releaseSha256;
-  return c.html(page('Get SocialMorning', `<h1>Get SocialMorning for Android</h1>
+  return c.html(page('Get SocialNet', `<h1>Get SocialNet for Android</h1>
 <p>A podcast player with a social layer: comments pinned to the moment, a reaction curve on the scrubber, clips as ranges, and a Discover page that has something to open on day one.</p>
 <a class="btn" href="${RELEASES_URL}">Download the latest build</a>
 <p class="muted">The build is a signed APK on GitHub Releases. Android will ask you to allow installs from your browser the first time.${sha ? ` SHA-256 of the current build: <code>${esc(sha)}</code>` : ''}</p>

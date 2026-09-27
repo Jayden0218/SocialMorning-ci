@@ -12,7 +12,7 @@ export function Splash(): React.ReactElement {
     <View
       className="absolute inset-0 bg-background items-center justify-center"
       accessible
-      accessibilityLabel="SocialMorning is loading"
+      accessibilityLabel="SocialNet is loading"
     >
       <Image
         source={require("../../assets/app-icon.png")}
