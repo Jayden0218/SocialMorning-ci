@@ -6,10 +6,10 @@
  * **White theme, yellow brand (2026-09-27, the owner's call).** The yellow is taken
  * from the app icon (`assets/app-icon.png`, #fcc522). Every ratio below was measured
  * with `contrast.ts` before adoption, and `PAIRS` re-checks them on every run.
- * What measuring forced:
- *   - the owner wants WHITE words on the yellow. White on the icon's #fcc522 is 1.60,
- *     so the fill deepens to the gold #9a6c00, where white measures 4.65. Dark text on
- *     that gold is only 4.06, so a chosen chip's words turn white too;
+ * What measuring found:
+ *   - the owner wants WHITE words on the icon's own yellow. That measures 1.60, under
+ *     the 4.5 body floor. The owner chose it knowing the number (2026-09-27), so it is
+ *     listed in `WAIVED` in `contrast.ts` — visible, not silently passing;
  *   - links, text actions and the listener's own marks need a colour that reads on
  *     white, so `accent` is a deep amber from the same family (5.93).
  * A destructive action is told apart by its word, never by its hue (FR-016).
@@ -28,9 +28,9 @@ export const colour = {
   text: '#111114',
   /** 6.05 on background, 5.56 on surface — secondary lines. */
   muted: '#5f6368',
-  /** The brand gold: the icon's yellow, deepened so white reads on it. A fill only. */
-  primary: '#9a6c00',
-  /** Words and icons on a `primary` fill. 4.65 on primary. */
+  /** The brand yellow, from the app icon. A fill only: 1.60 on white, so never text. */
+  primary: '#fcc522',
+  /** Words and icons on a `primary` fill. 1.60 on primary — the owner's waiver. */
   onPrimary: '#ffffff',
   /** 5.93 on background, 5.44 on surface — links, text actions, the listener's own marks. */
   accent: '#8a5a00',

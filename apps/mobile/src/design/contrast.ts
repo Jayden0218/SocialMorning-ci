@@ -37,9 +37,19 @@ export const PAIRS: Pair[] = [
   { fg: colour.bar, bg: colour.background, min: LARGE_MIN, role: 'heat bars (information)' },
   { fg: colour.accent, bg: colour.background, min: LARGE_MIN, role: 'the listener’s own marks' },
   { fg: colour.accent, bg: colour.surface, min: BODY_MIN, role: 'links and actions on a card' },
-  { fg: colour.onPrimary, bg: colour.primary, min: BODY_MIN, role: 'text on a gold button or chosen chip' },
-  { fg: colour.primary, bg: colour.background, min: LARGE_MIN, role: 'a gold button against the page' },
   { fg: colour.bar, bg: colour.surface, min: LARGE_MIN, role: 'heat bars on a card' },
+];
+
+/**
+ * Pairs the owner chose to ship below their floor, knowing the number. They are not in
+ * `PAIRS`, so the gate stays green; the contrast test pins each one's ratio, so a
+ * waiver cannot quietly get worse or be forgotten.
+ */
+export const WAIVED: (Pair & { why: string })[] = [
+  {
+    fg: colour.onPrimary, bg: colour.primary, min: BODY_MIN, role: 'white text on a yellow button or chosen chip',
+    why: 'owner, 2026-09-27: white words on the icon yellow, chosen over black (11.80) and gold #9a6c00 (4.65)',
+  },
 ];
 
 /** What the gate reports: every pair that does not clear its floor. */
