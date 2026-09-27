@@ -5,8 +5,16 @@
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { ComponentProps } from 'react';
-import { Text, View } from 'react-native';
-import { colour, type Colour } from '../design';
+import { Text } from './lib/text';
+import { Box } from './lib/box';
+import type { Colour } from '../design';
+
+/**
+ * M10b: the fills are token classes, so they follow the light / dark theme. Static strings —
+ * UniWind compiles only class names it can see in the source.
+ */
+const BG: Partial<Record<Colour, string>> = { text: 'bg-text', muted: 'bg-muted', accent: 'bg-accent', onPrimary: 'bg-onPrimary' };
+const BORDER_L: Partial<Record<Colour, string>> = { text: 'border-l-text', muted: 'border-l-muted', accent: 'border-l-accent', onPrimary: 'border-l-onPrimary' };
 
 const HIDE = { accessible: false, importantForAccessibility: 'no-hide-descendants' as const };
 
@@ -14,12 +22,13 @@ const HIDE = { accessible: false, importantForAccessibility: 'no-hide-descendant
 export function PlayIcon(props: { size: number; tint?: Colour }): React.ReactElement {
   const h = props.size / 2;
   return (
-    <View
+    <Box
       {...HIDE}
+      className={BORDER_L[props.tint ?? 'text'] ?? 'border-l-text'}
       style={{
         width: 0, height: 0, marginLeft: props.size * 0.15,
         borderTopWidth: h, borderBottomWidth: h, borderLeftWidth: props.size * 0.85,
-        borderTopColor: 'transparent', borderBottomColor: 'transparent', borderLeftColor: colour[props.tint ?? 'text'],
+        borderTopColor: 'transparent', borderBottomColor: 'transparent',
       }}
     />
   );
@@ -27,12 +36,13 @@ export function PlayIcon(props: { size: number; tint?: Colour }): React.ReactEle
 
 /** Two upright bars. */
 export function PauseIcon(props: { size: number; tint?: Colour }): React.ReactElement {
-  const bar = { width: props.size * 0.3, height: props.size, borderRadius: 2, backgroundColor: colour[props.tint ?? 'text'] };
+  const bar = { width: props.size * 0.3, height: props.size, borderRadius: 2 };
+  const fill = BG[props.tint ?? 'text'] ?? 'bg-text';
   return (
-    <View {...HIDE} className="flex-row" style={{ gap: props.size * 0.25 }}>
-      <View style={bar} />
-      <View style={bar} />
-    </View>
+    <Box {...HIDE} className="flex-row" style={{ gap: props.size * 0.25 }}>
+      <Box className={fill} style={bar} />
+      <Box className={fill} style={bar} />
+    </Box>
   );
 }
 
@@ -41,26 +51,26 @@ export function Chevron(props: { dir: 'left' | 'right' | 'down'; size?: number }
   const s = props.size ?? 12;
   const turn = { left: '135deg', right: '-45deg', down: '45deg' }[props.dir];
   return (
-    <View {...HIDE} className="border-text" style={{ width: s, height: s, borderRightWidth: 2, borderBottomWidth: 2, transform: [{ rotate: turn }] }} />
+    <Box {...HIDE} className="border-text" style={{ width: s, height: s, borderRightWidth: 2, borderBottomWidth: 2, transform: [{ rotate: turn }] }} />
   );
 }
 
 /** A magnifier: a ring and a short handle. */
 export function SearchIcon(): React.ReactElement {
   return (
-    <View {...HIDE} className="w-6 h-6">
-      <View className="w-[18px] h-[18px] rounded-pill border-2 border-text" />
-      <View className="absolute bg-text" style={{ width: 8, height: 2, right: 0, bottom: 3, transform: [{ rotate: '45deg' }] }} />
-    </View>
+    <Box {...HIDE} className="w-6 h-6">
+      <Box className="w-[18px] h-[18px] rounded-pill border-2 border-text" />
+      <Box className="absolute bg-text" style={{ width: 8, height: 2, right: 0, bottom: 3, transform: [{ rotate: '45deg' }] }} />
+    </Box>
   );
 }
 
 /** Three dots in a row ("more"). */
 export function Dots(): React.ReactElement {
   return (
-    <View {...HIDE} className="flex-row gap-[3px]">
-      {[0, 1, 2].map((i) => <View key={i} className="w-1 h-1 rounded-pill bg-text" />)}
-    </View>
+    <Box {...HIDE} className="flex-row gap-[3px]">
+      {[0, 1, 2].map((i) => <Box key={i} className="w-1 h-1 rounded-pill bg-text" />)}
+    </Box>
   );
 }
 

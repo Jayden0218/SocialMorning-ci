@@ -64,6 +64,15 @@
         }
       ],
       [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 120,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "photosPermission": "SocialNet uses your photos only when you add an image to feedback.",

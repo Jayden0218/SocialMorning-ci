@@ -7,7 +7,11 @@
  */
 import { Stack } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Input, InputField } from '../../src/ui/lib/input';
+import { Pressable } from '../../src/ui/lib/pressable';
+import { ScrollView } from '../../src/ui/lib/scroll-view';
+import { Text } from '../../src/ui/lib/text';
+import { Box } from '../../src/ui/lib/box';
 import { ApiError } from '../../src/social/api';
 import { useSocial } from '../../src/social/context';
 import { useStores } from '../../src/ui/providers';
@@ -62,30 +66,32 @@ export default function AccountSecurityScreen(): React.ReactElement {
       <Stack.Screen options={{ title: 'Account and security' }} />
       {/* M10 (owner, 2026-09-27), after the reference: the ways you sign in, then deletion.
           SocialNet signs in by an emailed code; Google and Facebook are not set up yet. */}
-      <View className="flex-row items-center gap-section min-h-14">
+      <Box className="flex-row items-center gap-section min-h-14">
         <Icon name="mail-outline" size={24} color={c.accent} />
         <Text className="text-text text-sm flex-1">Email</Text>
         <Text className="text-muted text-xs">{masked || 'Not signed in'}</Text>
-      </View>
+      </Box>
       {OTHER_METHODS.map((m) => (
-        <View key={m.id} className="flex-row items-center gap-section min-h-14" accessible accessibilityLabel={`${m.label.replace('Continue with ', '')}: not set up yet`}>
+        <Box key={m.id} className="flex-row items-center gap-section min-h-14" accessible accessibilityLabel={`${m.label.replace('Continue with ', '')}: not set up yet`}>
           <Icon name={m.icon} size={24} color={c.muted} />
           <Text className="text-text text-sm flex-1">{m.label.replace('Continue with ', '')}</Text>
           <Text className="text-muted text-xs">Not set up yet</Text>
-        </View>
+        </Box>
       ))}
-      <View className="border-b-hairline border-separator my-row" />
+      <Box className="border-b-hairline border-separator my-row" />
       {!listener ? <Text className="text-muted text-sm">Sign in to manage your account.</Text> : null}
       {!confirming ? (
         <Pressable onPress={() => setConfirming(true)} accessibilityRole="button">
           <Text className={link}>Delete my account…</Text>
         </Pressable>
       ) : (
-        <View className="gap-2 mt-2">
+        <Box className="gap-2 mt-2">
           <Text className="text-text">This removes your comments, reactions and listening positions from every phone. Where someone replied to you, "Comment deleted" stays so their reply still makes sense. This cannot be undone.</Text>
           {codeSent ? (
-            <TextInput
-              placeholderTextColor={c.muted} className="border border-separator rounded-lg p-3 text-sm text-text" placeholder="The 6-digit code we emailed you" keyboardType="number-pad" maxLength={6} value={code} onChangeText={setCode} accessibilityLabel="Code" />
+            <Input className="border border-separator rounded-lg h-auto px-0">
+              <InputField
+              placeholderTextColor={c.muted} placeholder="The 6-digit code we emailed you" keyboardType="number-pad" maxLength={6} value={code} onChangeText={setCode} accessibilityLabel="Code"  className="p-3 text-sm text-text" />
+            </Input>
           ) : null}
           {error ? <Text className="text-accent">{error}</Text> : null}
           {codeSent ? (
@@ -98,7 +104,7 @@ export default function AccountSecurityScreen(): React.ReactElement {
             </Pressable>
           )}
           <Pressable onPress={() => setConfirming(false)} accessibilityRole="button"><Text className={link}>Keep my account</Text></Pressable>
-        </View>
+        </Box>
       )}
     </ScrollView>
   );

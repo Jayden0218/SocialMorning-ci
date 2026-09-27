@@ -3,7 +3,9 @@
  * most two lines, a muted second line, an optional trailing element, a hairline
  * separator, and a tap target of at least 48 dp (M6 FR-015, carried forward).
  */
-import { Pressable, Text, View } from 'react-native';
+import { Pressable } from './lib/pressable';
+import { Text } from './lib/text';
+import { Box } from './lib/box';
 import { hit } from '../design';
 import { Artwork } from './Artwork';
 
@@ -32,14 +34,14 @@ export function Row(props: {
   const body = (
     <>
       <Artwork url={props.artworkUrl} size={ROW_ARTWORK} />
-      <View className="flex-1 gap-0.5">
+      <Box className="flex-1 gap-0.5">
         <Text className="text-text text-sm font-semibold" numberOfLines={2}>{props.title}</Text>
         {props.line ? <Text className="text-muted text-xs" numberOfLines={2}>{props.line}</Text> : null}
-      </View>
+      </Box>
       {props.trailing}
     </>
   );
-  if (!props.onPress) return <View className={row} style={TAP}>{body}</View>;
+  if (!props.onPress) return <Box className={row} style={TAP}>{body}</Box>;
   return (
     <Pressable
       className={row}

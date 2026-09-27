@@ -6,7 +6,11 @@
  */
 import { Link, router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FlatList, RefreshControl, Text, View } from 'react-native';
+import { FlatList } from '../src/ui/lib/flat-list';
+import { RefreshControl } from '../src/ui/lib/refresh-control';
+import { Text } from '../src/ui/lib/text';
+import { Box } from '../src/ui/lib/box';
+import { colour } from '../src/design';
 import { useColours } from '../src/ui/useColours';
 import { Icon, type IconName } from '../src/ui/Icon';
 import { createFeed, type FeedView } from '../src/graph/feed';
@@ -22,14 +26,14 @@ function Card(props: { title: string; line: string; icon: IconName; badge?: numb
   const stores = useStores();
   const c = useColours(stores.settings);
   return (
-    <View className={`flex-1 rounded-artwork p-section bg-surface ${props.active ? 'border-2 border-primary' : ''}`} accessible accessibilityLabel={`${props.title}. ${props.badge ? `${props.badge} new. ` : ''}${props.line}`}>
-      <View className="flex-row items-center gap-2">
+    <Box className={`flex-1 rounded-artwork p-section bg-surface ${props.active ? 'border-2 border-primary' : ''}`} accessible accessibilityLabel={`${props.title}. ${props.badge ? `${props.badge} new. ` : ''}${props.line}`}>
+      <Box className="flex-row items-center gap-2">
         <Text className="text-text text-sm font-bold">{props.title}</Text>
-        {props.badge ? <View className="bg-accent rounded-pill min-w-6 h-6 px-1 items-center justify-center"><Text className="text-onPrimary text-xs font-bold">{props.badge > 99 ? '99+' : props.badge}</Text></View> : null}
-      </View>
+        {props.badge ? <Box className="bg-accent rounded-pill min-w-6 h-6 px-1 items-center justify-center"><Text className="text-onPrimary text-xs font-bold">{props.badge > 99 ? '99+' : props.badge}</Text></Box> : null}
+      </Box>
       <Text className="text-muted text-xs mt-1">{props.line}</Text>
-      <View className="self-end mt-row"><Icon name={props.icon} size={24} color={c.text} /></View>
-    </View>
+      <Box className="self-end mt-row"><Icon name={props.icon} size={24} color={c.text} /></Box>
+    </Box>
   );
 }
 
@@ -55,19 +59,19 @@ export default function NotificationsScreen(): React.ReactElement {
   };
 
   const cards = (
-    <View className="flex-row gap-row mb-section">
+    <Box className="flex-row gap-row mb-section">
       <Card title="System" line="No new notifications" icon="notifications-outline" />
       <Card title="People" line={unread > 0 ? 'New activity from people you follow' : 'People you follow'} icon="people-outline" {...(unread > 0 ? { badge: unread } : {})} active={unread > 0} />
-    </View>
+    </Box>
   );
 
   if (!listener) {
     return (
-      <View className="flex-1 bg-background px-screen-x pt-section">
+      <Box className="flex-1 bg-background px-screen-x pt-section">
         {cards}
         <Text className="text-muted text-sm">Sign in to follow people and see what they listen to.</Text>
         <Link href="/auth/sign-in" className="text-accent text-sm mt-row" accessibilityRole="link">Sign in</Link>
-      </View>
+      </Box>
     );
   }
   return (
@@ -78,10 +82,10 @@ export default function NotificationsScreen(): React.ReactElement {
       contentContainerClassName="px-screen-x pt-section pb-24 gap-2 flex-grow"
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} />}
       ListHeaderComponent={
-        <View>
+        <Box>
           {cards}
           {view?.stale ? <Text className="text-accent bg-surface p-2 rounded-md">Couldn't refresh — showing what was fetched {view.fetchedAt ? new Date(view.fetchedAt).toLocaleTimeString() : 'earlier'}.</Text> : null}
-        </View>
+        </Box>
       }
       ListEmptyComponent={!refreshing ? (
         (view?.stale ?? false)

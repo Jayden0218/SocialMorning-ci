@@ -9,8 +9,13 @@
  */
 import { Link, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, SafeAreaView, ScrollView, Text, View } from 'react-native';
-import { hit } from '../../src/design';
+import { Pressable } from '../../src/ui/lib/pressable';
+import { SafeAreaView } from '../../src/ui/lib/safe-area-view';
+import { ScrollView } from '../../src/ui/lib/scroll-view';
+import { Text } from '../../src/ui/lib/text';
+import { Box } from '../../src/ui/lib/box';
+import { SignOut } from '../../src/ui/SignOut';
+import { colour, hit } from '../../src/design';
 import { useColours } from '../../src/ui/useColours';
 import { Icon } from '../../src/ui/Icon';
 import { createFeed } from '../../src/graph/feed';
@@ -43,7 +48,7 @@ export default function MeScreen(): React.ReactElement {
           </Pressable>
         </Link>
 
-        <View className="flex-row items-center justify-between mt-section mb-section">
+        <Box className="flex-row items-center justify-between mt-section mb-section">
           {listener ? (
             <Link href={{ pathname: '/profile/[id]', params: { id: listener.listenerId } }} asChild>
               <Pressable accessibilityRole="link" accessibilityLabel={`${listener.displayName}, open your profile`} className="flex-1 flex-row items-center gap-2" style={TAP}>
@@ -59,25 +64,25 @@ export default function MeScreen(): React.ReactElement {
               </Pressable>
             </Link>
           )}
-          <View className="w-20 h-20 rounded-pill bg-surface items-center justify-center" accessible={false}>
+          <Box className="w-20 h-20 rounded-pill bg-surface items-center justify-center" accessible={false}>
             {listener
               ? <Text className="text-muted text-lg">{listener.displayName.slice(0, 1).toUpperCase()}</Text>
               : <Icon name="person-outline" size={32} color={c.muted} />}
-          </View>
-        </View>
+          </Box>
+        </Box>
 
         <Link href="/moments" asChild>
           <Pressable accessibilityRole="link" accessibilityLabel={`Saved moments, ${counts.moments}. Save a moment while listening and add a note`} className="bg-surface border border-separator rounded-artwork p-section flex-row items-center justify-between mb-section">
-            <View className="flex-1">
-              <View className="flex-row items-center gap-1"><Icon name="bookmark-outline" size={16} color={c.accent} /><Text className="text-accent text-sm font-bold">Saved moments</Text></View>
+            <Box className="flex-1">
+              <Box className="flex-row items-center gap-1"><Icon name="bookmark-outline" size={16} color={c.accent} /><Text className="text-accent text-sm font-bold">Saved moments</Text></Box>
               <Text className="text-muted text-xs mt-1">Save a moment while listening, and add a note</Text>
-            </View>
+            </Box>
             <Text className="text-accent text-sm font-semibold">{counts.moments > 0 ? `${counts.moments} ›` : 'Open ›'}</Text>
           </Pressable>
         </Link>
 
         {listener ? <MenuRow href={`/profile/${listener.listenerId}`} icon="id-card-outline" label="My profile" /> : null}
-        <View className="border-b-hairline border-separator my-row" />
+        <Box className="border-b-hairline border-separator my-row" />
         <MenuRow href="/notifications" icon="notifications-outline" label="Notifications" {...(counts.unread > 0 ? { badge: counts.unread } : {})} />
         <MenuRow href="/inbox" icon="file-tray-outline" label="Inbox" {...(counts.inbox > 0 ? { badge: counts.inbox } : {})} />
         <MenuRow href="/downloads" icon="download-outline" label="Downloads" />
@@ -85,13 +90,10 @@ export default function MeScreen(): React.ReactElement {
         <MenuRow href="/favourites" icon="star-outline" label="Favourites" />
         <MenuRow href="/my-comments" icon="chatbubble-outline" label="My comments" />
         <MenuRow href="/queue" icon="list-outline" label="Queue" />
-        {listener ? <MenuRow href="/creator" icon="mic-outline" label="Creator centre" /> : null}
-        <View className="border-b-hairline border-separator my-row" />
+        <Box className="border-b-hairline border-separator my-row" />
         <MenuRow href="/account" icon="settings-outline" label="Account and settings" />
         {listener ? (
-          <Pressable onPress={() => void auth.signOut()} accessibilityRole="button" accessibilityLabel="Sign out" className="justify-center" style={TAP}>
-            <Text className="text-accent text-sm">Sign out</Text>
-          </Pressable>
+          <SignOut onSignOut={() => void auth.signOut()} />
         ) : null}
       </ScrollView>
     </SafeAreaView>

@@ -1,6 +1,3 @@
-# SocialMorning — CI mirror
+# SocialMorning — CI mirror (M9 branch)
 
-Test mirror of a private repository. Only the code the gate needs is here; the product
-documentation, specs and research are not. Source commit: `4c82da1`.
-
-Runs `scripts/gate.sh` on every push (typecheck, every workspace's tests, coverage thresholds).
+Source commit: `f9fd3f7`.

@@ -45,8 +45,6 @@ export type Comment = {
   blocked?: boolean;
   /** M6 (FR-002): this viewer reported it — "You reported this". */
   reported?: boolean;
-  /** M10b US8: written by the show's proven creator. */
-  host?: true;
 };
 export type Social = {
   serverTime: string;
@@ -101,9 +99,6 @@ export type Discover = {
   video?: DiscoverItem[];
 };
 export type LibraryItem = { kind: 'fav_episode' | 'fav_comment' | 'moment' | 'search'; key: string; payload?: Record<string, unknown>; updatedAt: string; deletedAt?: string };
-/** M10b US8: a claim on a feed the listener publishes; `code` goes anywhere in the feed. */
-export type CreatorClaim = { id: string; feedUrl: string; code: string; status: 'pending' | 'proven' | 'revoked'; provenAt?: string };
-export type ShowStats = { listeners: number; comments: number; episodes: number; topMoments: { episodeId: string; title: string; offsetMs: number; comments: number }[] };
 export type MyComment = { id: string; body: string | null; deleted: boolean; removed: boolean; offsetMs: number | null; createdAt: string; episode: EpisodeCard };
 export type CategoryShows = { genreId: number; name: string; shows: ShowCard[]; stale?: boolean };
 export type DiscoverResult = { status: 200; etag?: string; body: Discover } | { status: 304 };
@@ -174,11 +169,6 @@ export type ApiClient = {
   sendFeedback(f: { kind: string; body: string; appVersion?: string; images?: { mime: 'image/jpeg'; base64: string }[] }): Promise<{ id: string }>;
   /** M10b US2: your own comments with their text. */
   myComments(before?: string): Promise<{ items: MyComment[]; next?: string }>;
-  /** M10b US8: the creator centre. `creatorVerify` answers 'taken' when someone else proved the feed first. */
-  creatorClaims(): Promise<CreatorClaim[]>;
-  creatorClaim(feedUrl: string): Promise<CreatorClaim>;
-  creatorVerify(id: string): Promise<{ status: CreatorClaim['status'] } | 'taken'>;
-  creatorStats(feedUrl: string): Promise<ShowStats>;
   /** M10: one Apple genre's top shows (the genre list itself is `src/discover/genres.ts`). */
   category(genreId: number): Promise<CategoryShows>;
   nextUp(episodeId: string): Promise<{ items: NextUpItem[]; computedAt: string }>;
@@ -298,13 +288,6 @@ export function createApi(deps: ApiDeps): ApiClient {
     sendFeedback: async (f) => (await call<{ id: string }>('POST', '/v1/feedback', f)).json,
     libraryPut: async (items) => (await call<{ items: LibraryItem[] }>('PUT', '/v1/me/library', { items })).json,
     myComments: async (before) => (await call<{ items: MyComment[]; next?: string }>('GET', `/v1/me/comments${before ? `?before=${encodeURIComponent(before)}` : ''}`)).json,
-    creatorClaims: async () => (await call<{ claims: CreatorClaim[] }>('GET', '/v1/creator/claims')).json.claims,
-    creatorClaim: async (feedUrl) => (await call<CreatorClaim>('POST', '/v1/creator/claims', { feedUrl })).json,
-    creatorVerify: async (id) => {
-      try { return (await call<{ status: CreatorClaim['status'] }>('POST', `/v1/creator/claims/${encodeURIComponent(id)}/verify`)).json; }
-      catch (e) { if (e instanceof ApiError && e.status === 409) return 'taken'; throw e; }
-    },
-    creatorStats: async (feedUrl) => (await call<ShowStats>('GET', `/v1/creator/shows/stats?feedUrl=${encodeURIComponent(feedUrl)}`)).json,
     category: async (genreId) => (await call<CategoryShows>('GET', `/v1/categories/${genreId}`)).json,
     nextUp: async (episodeId) => (await call<{ items: NextUpItem[]; computedAt: string }>('GET', `/v1/episodes/${episodeId}/next-up`)).json,
     // M6

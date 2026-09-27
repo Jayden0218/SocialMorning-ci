@@ -6,21 +6,25 @@ import '../global.css';
 import '../src/design/tailwind';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { LogBox, SafeAreaView } from 'react-native';
-import { fontSize } from '../src/design';
+import { LogBox } from 'react-native';
+import { SafeAreaView } from '../src/ui/lib/safe-area-view';
+import { colourDark, fontSize } from '../src/design';
 import { AppProviders, useStores } from '../src/ui/providers';
 import { useColours } from '../src/ui/useColours';
 import { SocialProvider } from '../src/social/context';
 import { GraphProvider } from '../src/graph/context';
 import { SafetyProvider } from '../src/safety/context';
 import { MiniPlayer } from '../src/ui/MiniPlayer';
+import { GluestackUIProvider } from '../src/ui/lib/gluestack-ui-provider';
 
 // Owner, 2026-09-27: no warning bar over the app in Debug builds. Warnings still print
 // in the Metro terminal; Release builds never show the bar.
 LogBox.ignoreAllLogs(true);
 
+
 export default function RootLayout(): React.ReactElement {
   return (
+    <GluestackUIProvider>
     <AppProviders>
       <SocialProvider>
       <SafetyProvider>
@@ -30,6 +34,7 @@ export default function RootLayout(): React.ReactElement {
       </SafetyProvider>
       </SocialProvider>
     </AppProviders>
+    </GluestackUIProvider>
   );
 }
 
@@ -39,7 +44,8 @@ function RootStack(): React.ReactElement {
   const c = useColours(stores.settings);
   return (
       <SafeAreaView className="flex-1 bg-background">
-        <StatusBar style="dark" />
+        {/* M10b: the clock and battery follow the page (light words on the dark palette). */}
+        <StatusBar style={c.background === colourDark.background ? 'light' : 'dark'} />
         {/*
           * M7: one place decides the chrome for every screen in the stack — the dark
           * background, the large white title, the accent back arrow. Setting
@@ -85,7 +91,6 @@ function RootStack(): React.ReactElement {
           <Stack.Screen name="favourites" options={{ title: 'Favourites' }} />
           <Stack.Screen name="moments" options={{ title: 'Saved moments' }} />
           <Stack.Screen name="my-comments" options={{ title: 'My comments' }} />
-          <Stack.Screen name="creator" options={{ title: 'Creator centre' }} />
           <Stack.Screen name="stickers" options={{ title: 'Stickers' }} />
           <Stack.Screen name="category/[id]" options={{ title: 'Category' }} />
           <Stack.Screen name="clip/new" options={{ title: 'New clip' }} />
