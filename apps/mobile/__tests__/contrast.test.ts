@@ -14,8 +14,8 @@ it('the measured ratios are the ones the palette was chosen for', () => {
   expect(round(contrastRatio(colour.muted, colour.background))).toBe(6.05);
   expect(round(contrastRatio(colour.accent, colour.background))).toBe(5.38);
   expect(round(contrastRatio(colour.onAccent, colour.accent))).toBe(5.38);
-  // The heat bars are 50 % black: 3.95, over the 3:1 information floor.
-  expect(round(contrastRatio(colour.bar, colour.background))).toBe(3.95);
+  // The heat bars are 50 % black: 3.98, over the 3:1 information floor.
+  expect(round(contrastRatio(colour.bar, colour.background))).toBe(3.98);
 });
 
 it('G2: every declared pair clears its floor', () => {

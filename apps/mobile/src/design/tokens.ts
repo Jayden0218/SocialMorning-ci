@@ -35,7 +35,7 @@ export const colour = {
   selected: '#fde8ea',
   /** Decorative: the scrubber's unfilled track. */
   track: 'rgba(0,0,0,0.12)',
-  /** Carries information (the heat curve), so it must clear 3:1 — 0.50 black on white measures 3.95. */
+  /** Carries information (the heat curve), so it must clear 3:1 — 0.50 black on white measures 3.98. */
   bar: 'rgba(0,0,0,0.50)',
   /** Decorative: the hairline between rows. */
   separator: 'rgba(0,0,0,0.12)',
