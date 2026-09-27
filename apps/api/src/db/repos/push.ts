@@ -68,7 +68,7 @@ export async function fanOutNewEpisode(db: Db, f: typeof fetch, ep: { id: string
      SELECT s.listener_id, $2, 'new_episode' FROM subscriptions s
      LEFT JOIN push_prefs p ON p.listener_id = s.listener_id
      WHERE s.feed_url = $1 AND s.deleted_at IS NULL AND COALESCE(p.new_episodes, true)
-     ON CONFLICT (listener_id, episode_id, kind) DO UPDATE SET sent_at = now()
+     ON CONFLICT (listener_id, episode_id, kind) DO NOTHING
      RETURNING listener_id`,
     [ep.feedUrl, ep.id],
   );
