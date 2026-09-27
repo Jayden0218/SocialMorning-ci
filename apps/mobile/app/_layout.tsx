@@ -13,6 +13,7 @@ import { useColours } from '../src/ui/useColours';
 import { SocialProvider } from '../src/social/context';
 import { GraphProvider } from '../src/graph/context';
 import { SafetyProvider } from '../src/safety/context';
+import { CarLibrarySync } from '../src/outside/CarLibrarySync';
 import { MiniPlayer } from '../src/ui/MiniPlayer';
 
 // Owner, 2026-09-27: no warning bar over the app in Debug builds. Warnings still print
@@ -40,6 +41,7 @@ function RootStack(): React.ReactElement {
   return (
       <SafeAreaView className="flex-1 bg-background">
         <StatusBar style="dark" />
+        <CarLibrarySync />
         {/*
           * M7: one place decides the chrome for every screen in the stack — the dark
           * background, the large white title, the accent back arrow. Setting

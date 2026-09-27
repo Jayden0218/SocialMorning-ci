@@ -1,0 +1,307 @@
+diff --git a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioModule.kt b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioModule.kt
+index a326438..99f0f11 100644
+--- a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioModule.kt
++++ b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioModule.kt
+@@ -366,7 +366,12 @@ class AudioModule : Module() {
+   override fun definition() = ModuleDefinition {
+     Name("ExpoAudio")
+ 
++    // SocialNet patch (M10b, Android Auto): the car's lists come from JS; a pick goes back to it.
++    Events("onCarSelect")
++    Function("setCarLibrary") { json: String -> expo.modules.audio.service.CarLibrary.set(json) }
++
+     OnCreate {
++      expo.modules.audio.service.CarLibrary.onSelect = { id -> sendEvent("onCarSelect", mapOf("episodeId" to id)) }
+       audioManager = appContext.reactContext?.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+       context.registerReceiver(ringerModeReceiver, IntentFilter(AudioManager.RINGER_MODE_CHANGED_ACTION))
+     }
+diff --git a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
+index f3ad9d3..db58b92 100644
+--- a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
++++ b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
+@@ -20,7 +20,11 @@ import androidx.media3.common.Player
+ import androidx.media3.common.util.UnstableApi
+ import androidx.media3.session.CommandButton
+ import androidx.media3.session.MediaSession
++import androidx.media3.session.MediaLibraryService
+ import androidx.media3.session.MediaSessionService
++import androidx.media3.common.SimpleBasePlayer
++import android.os.Looper
++import com.google.common.util.concurrent.Futures
+ import androidx.media3.session.MediaStyleNotificationHelper
+ import androidx.media3.session.SessionCommand
+ import expo.modules.audio.AudioLockScreenOptions
+@@ -38,7 +42,7 @@ import java.lang.ref.WeakReference
+ import java.net.URL
+ 
+ @OptIn(UnstableApi::class)
+-class AudioControlsService : MediaSessionService() {
++class AudioControlsService : MediaLibraryService() {
+   private lateinit var audioManager: AudioManager
+   private val binder = AudioPlaybackServiceBinder(this)
+   private var mediaSession: MediaSession? = null
+@@ -131,6 +135,7 @@ class AudioControlsService : MediaSessionService() {
+   override fun onCreate() {
+     super.onCreate()
+     audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
++    CarLibrary.onChanged = { ids -> android.os.Handler(Looper.getMainLooper()).post { notifyCarChanged(ids) } }
+     createNotificationChannelIfNeeded()
+   }
+ 
+@@ -401,15 +406,16 @@ class AudioControlsService : MediaSessionService() {
+         // Distinguish this lock-screen session from the basic session built in
+         // `buildBasicMediaSession` (and from sessions for other players); two
+         // MediaSession instances with the empty default ID throw on construction.
+-        val session = MediaSession.Builder(context, sessionPlayer)
++        // SocialNet patch: a library session, so Android Auto can browse (MediaLibraryService).
++        val session = MediaLibrarySession.Builder(this@AudioControlsService, sessionPlayer, AudioMediaSessionCallback(this@AudioControlsService))
+           .setId("ExpoAudioLockScreenSession_${playable.player.hashCode()}")
+-          .setCallback(AudioMediaSessionCallback(this@AudioControlsService))
+           .build()
+ 
+         // Replace the basic media session with a session connected to our playback service.
+         playable.mediaSession.release()
+         playable.mediaSession = session
+ 
++        releaseIdleSession()
+         addSession(session)
+         mediaSession = session
+         sessionMetadataPlayer = sessionPlayer
+@@ -451,8 +457,41 @@ class AudioControlsService : MediaSessionService() {
+     stopForeground(STOP_FOREGROUND_REMOVE)
+   }
+ 
+-  override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
+-    return mediaSession
++  override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? {
++    return (mediaSession as? MediaLibrarySession) ?: idleSession()
++  }
++
++  // ---- SocialNet patch (M10b, Android Auto) ----
++  // Before anything plays there is no session, and a car that finds none cannot browse. This
++  // stand-in session has a player that does nothing; it is released the moment a real one is
++  // made, which disconnects the car so that it reconnects to the real one.
++  private var idle: MediaLibrarySession? = null
++
++  private fun idleSession(): MediaLibrarySession {
++    idle?.let { return it }
++    val player = object : SimpleBasePlayer(Looper.getMainLooper()) {
++      override fun getState(): State = State.Builder()
++        .setAvailableCommands(Player.Commands.Builder().add(Player.COMMAND_GET_CURRENT_MEDIA_ITEM).build())
++        .build()
++      override fun handleSetMediaItems(mediaItems: MutableList<androidx.media3.common.MediaItem>, startIndex: Int, startPositionMs: Long) =
++        Futures.immediateVoidFuture()
++    }
++    return MediaLibrarySession.Builder(this, player, AudioMediaSessionCallback(this))
++      .setId("SocialNetCarIdle")
++      .build()
++      .also { idle = it }
++  }
++
++  private fun releaseIdleSession() {
++    val s = idle ?: return
++    idle = null
++    s.player.release()
++    s.release()
++  }
++
++  private fun notifyCarChanged(ids: List<String>) {
++    val s = (mediaSession as? MediaLibrarySession) ?: idle ?: return
++    for (id in ids) s.notifyChildrenChanged(id, Int.MAX_VALUE, null)
+   }
+ 
+   override fun onBind(intent: Intent?): IBinder {
+@@ -481,14 +520,15 @@ class AudioControlsService : MediaSessionService() {
+         val sessionPlayer = MetadataInjectingPlayer(resolveSessionPlayer(playable, options)).apply {
+           updateMetadata(metadata)
+         }
+-        val session = MediaSession.Builder(context, sessionPlayer)
++        // SocialNet patch: a library session, so Android Auto can browse (MediaLibraryService).
++        val session = MediaLibrarySession.Builder(this@AudioControlsService, sessionPlayer, AudioMediaSessionCallback(this@AudioControlsService))
+           .setId("ExpoAudioLockScreenSession_${playable.player.hashCode()}")
+-          .setCallback(AudioMediaSessionCallback(this@AudioControlsService))
+           .build()
+ 
+         playable.mediaSession.release()
+         playable.mediaSession = session
+ 
++        releaseIdleSession()
+         addSession(session)
+         mediaSession = session
+         sessionMetadataPlayer = sessionPlayer
+diff --git a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt
+index ee83be1..cd9f3c9 100644
+--- a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt
++++ b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt
+@@ -4,7 +4,12 @@ import android.os.Bundle
+ import androidx.annotation.OptIn
+ import androidx.media3.common.Player
+ import androidx.media3.common.util.UnstableApi
++import androidx.media3.common.MediaItem
++import androidx.media3.session.LibraryResult
++import androidx.media3.session.MediaLibraryService
+ import androidx.media3.session.MediaSession
++import androidx.media3.session.SessionError
++import com.google.common.collect.ImmutableList
+ import androidx.media3.session.SessionCommand
+ import androidx.media3.session.SessionResult
+ import com.google.common.util.concurrent.Futures
+@@ -13,7 +18,7 @@ import com.google.common.util.concurrent.ListenableFuture
+ @OptIn(UnstableApi::class)
+ class AudioMediaSessionCallback(
+   private val service: AudioControlsService
+-) : MediaSession.Callback {
++) : MediaLibraryService.MediaLibrarySession.Callback {
+   override fun onConnect(
+     session: MediaSession,
+     controller: MediaSession.ControllerInfo
+@@ -83,4 +88,55 @@ class AudioMediaSessionCallback(
+       else -> super.onCustomCommand(session, controller, command, args)
+     }
+   }
++
++  // ---- SocialNet patch (M10b, Android Auto): browsing, and a pick handed to the app's JS ----
++
++  override fun onGetLibraryRoot(
++    session: MediaLibraryService.MediaLibrarySession,
++    browser: MediaSession.ControllerInfo,
++    params: MediaLibraryService.LibraryParams?
++  ): ListenableFuture<LibraryResult<MediaItem>> {
++    if (!CarLibrary.mayBrowse(browser.packageName, browser.isTrusted, service.packageName)) {
++      return Futures.immediateFuture(LibraryResult.ofError(SessionError.ERROR_PERMISSION_DENIED))
++    }
++    return Futures.immediateFuture(LibraryResult.ofItem(CarLibrary.root(), params))
++  }
++
++  override fun onGetChildren(
++    session: MediaLibraryService.MediaLibrarySession,
++    browser: MediaSession.ControllerInfo,
++    parentId: String,
++    page: Int,
++    pageSize: Int,
++    params: MediaLibraryService.LibraryParams?
++  ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
++    if (!CarLibrary.mayBrowse(browser.packageName, browser.isTrusted, service.packageName)) {
++      return Futures.immediateFuture(LibraryResult.ofError(SessionError.ERROR_PERMISSION_DENIED))
++    }
++    val all = CarLibrary.children(parentId)
++    val from = (page.toLong() * pageSize).coerceAtMost(all.size.toLong()).toInt()
++    val to = (from.toLong() + pageSize).coerceAtMost(all.size.toLong()).toInt()
++    return Futures.immediateFuture(LibraryResult.ofItemList(ImmutableList.copyOf(all.subList(from, to)), params))
++  }
++
++  override fun onGetItem(
++    session: MediaLibraryService.MediaLibrarySession,
++    browser: MediaSession.ControllerInfo,
++    mediaId: String
++  ): ListenableFuture<LibraryResult<MediaItem>> {
++    val item = CarLibrary.item(mediaId)
++      ?: return Futures.immediateFuture(LibraryResult.ofError(SessionError.ERROR_BAD_VALUE))
++    return Futures.immediateFuture(LibraryResult.ofItem(item, null))
++  }
++
++  // The car picked an episode. The app's own player loads it (its queue, positions and
++  // "finished" rules stay in charge), so Media3 is told no, rather than handed a URL to play.
++  override fun onAddMediaItems(
++    mediaSession: MediaSession,
++    controller: MediaSession.ControllerInfo,
++    mediaItems: MutableList<MediaItem>
++  ): ListenableFuture<MutableList<MediaItem>> {
++    CarLibrary.select(mediaItems.firstOrNull()?.mediaId)
++    return Futures.immediateFailedFuture(UnsupportedOperationException("SocialNet plays the pick itself"))
++  }
+ }
+diff --git a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/CarLibrary.kt b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/CarLibrary.kt
+new file mode 100644
+index 0000000..a56f964
+--- /dev/null
++++ b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/CarLibrary.kt
+@@ -0,0 +1,88 @@
++package expo.modules.audio.service
++
++import android.net.Uri
++import androidx.media3.common.MediaItem
++import androidx.media3.common.MediaMetadata
++import org.json.JSONArray
++import org.json.JSONObject
++
++/**
++ * SocialNet patch (M10b, Android Auto): what the car can browse, set by the app's JS as JSON
++ * `{"sections":[{"id","title","items":[{"id","title","subtitle","artworkUrl"}]}]}`, and the
++ * pick sent back to JS, which plays it through its own player. No JS running (the app is not
++ * open) → one line asking to open the app on the phone.
++ */
++object CarLibrary {
++  const val ROOT_ID = "socialnet-root"
++  private const val OPEN_APP_ID = "socialnet-open-app"
++  private const val EPISODE = "ep:"
++
++  @Volatile private var sections: JSONArray = JSONArray()
++  @Volatile var onSelect: ((String) -> Unit)? = null
++  @Volatile var onChanged: ((List<String>) -> Unit)? = null
++
++  fun set(json: String) {
++    sections = try { JSONObject(json).optJSONArray("sections") ?: JSONArray() } catch (e: Exception) { JSONArray() }
++    onChanged?.invoke(listOf(ROOT_ID) + sectionIds())
++  }
++
++  fun root(): MediaItem = folder(ROOT_ID, "SocialNet")
++
++  fun children(parentId: String): List<MediaItem> {
++    val s = sections
++    if (parentId == ROOT_ID) {
++      if (s.length() == 0) return listOf(note(OPEN_APP_ID, "Open SocialNet on your phone"))
++      return (0 until s.length()).map { i -> s.getJSONObject(i).let { folder(it.optString("id"), it.optString("title")) } }
++    }
++    for (i in 0 until s.length()) {
++      val section = s.getJSONObject(i)
++      if (section.optString("id") != parentId) continue
++      val items = section.optJSONArray("items") ?: return emptyList()
++      return (0 until items.length()).map { j -> episode(items.getJSONObject(j)) }
++    }
++    return emptyList()
++  }
++
++  fun item(mediaId: String): MediaItem? {
++    if (mediaId == ROOT_ID) return root()
++    return (listOf(ROOT_ID) + sectionIds()).flatMap { children(it) }.firstOrNull { it.mediaId == mediaId }
++  }
++
++  /** The car asked to play `mediaId`: hand the episode id to JS. False when it is not an episode or JS is gone. */
++  fun select(mediaId: String?): Boolean {
++    if (mediaId == null || !mediaId.startsWith(EPISODE)) return false
++    val send = onSelect ?: return false
++    send(mediaId.removePrefix(EPISODE))
++    return true
++  }
++
++  /**
++   * The service is exported so the car can reach it; only these may browse the lists: Android
++   * Auto, Google's car apps, the system (trusted), and the app itself. Playback controls are
++   * unchanged (expo-audio's onConnect).
++   */
++  private val BROWSERS = setOf("com.google.android.projection.gearhead", "com.google.android.carassistant", "com.android.car.media")
++  fun mayBrowse(packageName: String, trusted: Boolean, ownPackage: String): Boolean =
++    trusted || packageName == ownPackage || packageName in BROWSERS
++
++  private fun sectionIds(): List<String> = sections.let { s -> (0 until s.length()).map { s.getJSONObject(it).optString("id") } }
++
++  private fun folder(id: String, title: String) = MediaItem.Builder().setMediaId(id).setMediaMetadata(
++    MediaMetadata.Builder().setTitle(title).setIsBrowsable(true).setIsPlayable(false)
++      .setMediaType(MediaMetadata.MEDIA_TYPE_FOLDER_PODCASTS).build()
++  ).build()
++
++  private fun note(id: String, title: String) = MediaItem.Builder().setMediaId(id).setMediaMetadata(
++    MediaMetadata.Builder().setTitle(title).setIsBrowsable(false).setIsPlayable(false).build()
++  ).build()
++
++  private fun episode(o: JSONObject): MediaItem {
++    val art = o.optString("artworkUrl")
++    return MediaItem.Builder().setMediaId(EPISODE + o.optString("id")).setMediaMetadata(
++      MediaMetadata.Builder().setTitle(o.optString("title")).setArtist(o.optString("subtitle"))
++        .apply { if (art.isNotEmpty()) setArtworkUri(Uri.parse(art)) }
++        .setIsBrowsable(false).setIsPlayable(true)
++        .setMediaType(MediaMetadata.MEDIA_TYPE_PODCAST_EPISODE).build()
++    ).build()
++  }
++}
