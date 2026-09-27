@@ -3,9 +3,9 @@
  * the router stays mounted, so a link that opened the app (M4) still lands on its
  * screen underneath and is there when this lifts. Just the app icon, centred.
  */
-import { Image, View } from 'react-native';
+import { Image, View } from "react-native";
 
-const ICON = { width: 128, height: 128 };
+const ICON = { width: 192, height: 192 };
 
 export function Splash(): React.ReactElement {
   return (
@@ -14,7 +14,11 @@ export function Splash(): React.ReactElement {
       accessible
       accessibilityLabel="SocialMorning is loading"
     >
-      <Image source={require('../../assets/app-icon.png')} style={ICON} className="rounded-artwork" />
+      <Image
+        source={require("../../assets/app-icon.png")}
+        style={ICON}
+        className="rounded-artwork"
+      />
     </View>
   );
 }
