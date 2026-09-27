@@ -69,7 +69,7 @@ export default function FeedbackScreen(): React.ReactElement {
           data={sent}
           keyExtractor={(f) => String(f.at)}
           contentContainerClassName="px-screen-x py-row flex-grow"
-          ListEmptyComponent={<EmptyPicture emoji="📝" line="Nothing sent yet" />}
+          ListEmptyComponent={<EmptyPicture icon="document-text-outline" line="Nothing sent yet" />}
           renderItem={({ item }) => (
             <View className="py-row border-b-hairline border-separator">
               <Text className="text-muted text-xs">{item.kind} · {shortDate(item.at)}</Text>

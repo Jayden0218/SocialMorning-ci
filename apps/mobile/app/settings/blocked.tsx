@@ -18,7 +18,7 @@ export default function BlockedScreen(): React.ReactElement {
       keyExtractor={(b) => b.listenerId}
       contentContainerClassName="px-screen-x py-row flex-grow"
       ListHeaderComponent={<Stack.Screen options={{ title: 'Blocked listeners' }} />}
-      ListEmptyComponent={<EmptyPicture emoji="🙂" line="You have not blocked anyone" />}
+      ListEmptyComponent={<EmptyPicture icon="happy-outline" line="You have not blocked anyone" />}
       renderItem={({ item }) => (
         <View className="flex-row items-center justify-between py-row border-b-hairline border-separator">
           <Text className="text-text text-sm flex-1" numberOfLines={1}>{item.displayName ?? 'A listener'}</Text>
