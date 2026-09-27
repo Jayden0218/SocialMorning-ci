@@ -1,56 +1,61 @@
 /**
  * Guard G4 — the tab bar was allowed to move things closer, never further away.
  *
- * FR-010 froze behaviour; the owner's clarification then relaxed it **for navigation
- * only**, which is a documented decision and not a licence to bury a screen. The
- * contract from research R5 is counted here against the source, so "Account is still
- * two taps" is a fact the build checks rather than a claim in a plan.
+ * The contract is counted against the source, so "Account is two taps" is a fact the
+ * build checks rather than a claim in a plan. A destination is N taps from a cold start
+ * when the screen at N−1 links to it: the app opens on Discover (`/`), the tabs are one
+ * tap, and a tab screen's links are two.
  *
- * The break that turns it red: delete the Account link from the Library.
+ * M10 (owner, 2026-09-27) changed the tabs to Discover · Updates · Me. Two things went
+ * one tap further, by the owner's decision, and are named here as such (`owner`):
+ * the Following feed (a tab → Me → Notifications) and the show list (the Library at `/`
+ * → Updates → My subscriptions).
+ *
+ * The break that turns it red: delete the Account row from `app/(tabs)/me.tsx`.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { TABS } from '../src/ui/tabs';
+import { TABS, TAB_HREF } from '../src/ui/tabs';
 
-// M10: the Library moved to `/library` when Discover became the first tab (`/`).
-const library = readFileSync(join(__dirname, '..', 'app', '(tabs)', 'library.tsx'), 'utf8');
-const linkedFromLibrary = (href: string): boolean =>
-  new RegExp(`<NavLink[^>]*href="${href.replace('/', '\\/')}"`).test(library);
+const read = (f: string) => readFileSync(join(__dirname, '..', 'app', '(tabs)', f), 'utf8');
+const SCREEN: Record<string, string> = { '/': read('index.tsx'), '/library': read('library.tsx'), '/me': read('me.tsx') };
+/** Does this screen's source open `href` — a Link, a MenuRow, or a router.push? */
+const links = (src: string, href: string): boolean => {
+  const h = href.replace(/[/]/g, '\\/');
+  return new RegExp(`href="${h}"|push\\('${h}'\\)`).test(src);
+};
 
-/** Destination → taps from a cold start, before M7 and after. */
+/** Destination → taps from a cold start, before M10 and after. */
 const CONTRACT = [
-  // M10: Discover is where the app opens now (0 taps); the Library became the tab.
   { name: 'Discover', href: '/', before: 2, after: 0 },
-  // The one move that went further, by the owner's decision (2026-09-27: "Discover
-  // first"). Named here so it is a recorded choice, not a drift G4 failed to notice.
-  { name: 'Library', href: '/library', before: 0, after: 1, owner: '2026-09-27' },
-  { name: 'Following', href: '/following', before: 2, after: 1 },
-  { name: 'Search', href: '/search', before: 2, after: 2 },
-  { name: 'Inbox', href: '/inbox', before: 2, after: 2 },
-  { name: 'Queue', href: '/queue', before: 2, after: 2 },
-  { name: 'Downloads', href: '/downloads', before: 2, after: 2 },
+  { name: 'Updates', href: '/library', before: 0, after: 1 },
+  { name: 'Me', href: '/me', before: 2, after: 1 },
+  { name: 'Search', href: '/search', before: 2, after: 1 },
+  { name: 'Inbox', href: '/inbox', before: 2, after: 1 },
+  { name: 'Queue', href: '/queue', before: 2, after: 1 },
+  { name: 'Downloads', href: '/downloads', before: 2, after: 1 },
   { name: 'Account', href: '/account', before: 2, after: 2 },
+  { name: 'Following feed', href: '/notifications', before: 1, after: 2, owner: '2026-09-27' },
+  { name: 'Show list', href: '/subscriptions', before: 0, after: 2, owner: '2026-09-27' },
 ] as const;
 
-it('G4: nothing got further away', () => {
+it('G4: nothing got further away except the owner\'s two named moves', () => {
   for (const row of CONTRACT) if (!('owner' in row)) expect(row.after).toBeLessThanOrEqual(row.before);
-  expect(CONTRACT.filter((r) => 'owner' in r).map((r) => r.name)).toEqual(['Library']);
+  expect(CONTRACT.filter((r) => 'owner' in r).map((r) => r.name)).toEqual(['Following feed', 'Show list']);
 });
 
-it('the 1-tap destinations are tabs, and only those', () => {
-  const tabHrefs = TABS.map((t) => (t.key === 'index' ? '/' : `/${t.key}`));
-  expect(tabHrefs).toEqual(['/', '/library', '/following']);
-  for (const row of CONTRACT) {
-    expect(tabHrefs.includes(row.href)).toBe(row.after <= 1);
-  }
+it('the tabs are Discover · Updates · Me, at their paths', () => {
+  expect(TABS.map((t) => t.label)).toEqual(['Discover', 'Updates', 'Me']);
+  expect(TABS.map((t) => TAB_HREF[t.key])).toEqual(['/', '/library', '/me']);
 });
 
-it('every 2-tap destination is still one link away on the Library', () => {
-  const missing = CONTRACT.filter((r) => r.after === 2 && !linkedFromLibrary(r.href)).map((r) => r.name);
+it('every 1-tap destination is a tab or a link on Discover', () => {
+  const tabs = new Set(TABS.map((t) => TAB_HREF[t.key]));
+  const missing = CONTRACT.filter((r) => r.after === 1 && !tabs.has(r.href as never) && !links(SCREEN['/']!, r.href)).map((r) => r.name);
   expect(missing).toEqual([]);
 });
 
-it('the two that became tabs no longer duplicate as links — one route, one way in', () => {
-  expect(linkedFromLibrary('/discover')).toBe(false);
-  expect(linkedFromLibrary('/following')).toBe(false);
+it('every 2-tap destination is a link on a tab screen', () => {
+  const missing = CONTRACT.filter((r) => r.after === 2 && !Object.values(SCREEN).some((src) => links(src, r.href))).map((r) => r.name);
+  expect(missing).toEqual([]);
 });

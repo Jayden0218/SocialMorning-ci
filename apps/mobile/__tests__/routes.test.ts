@@ -58,6 +58,7 @@ const PATHS = [
   '/', '/discover', '/following', '/library',
   // M10
   '/categories', '/category/1301', '/scan',
+  '/me', '/subscriptions', '/notifications', '/history', '/favourites', '/moments', '/my-comments', '/stickers',
   '/inbox', '/queue', '/downloads', '/account', '/search',
   '/show/https%3A%2F%2Ff%2Fx.xml', '/episode/e1', '/player',
   '/profile/l1', '/profile/l1/followers', '/profile/l1/following',
@@ -75,7 +76,7 @@ it('a path that does not exist is reported as not resolving — otherwise the te
 });
 
 it('the three tabs live in the group, and the group is invisible in the URL', () => {
-  for (const f of ['index.tsx', 'library.tsx', 'discover.tsx', 'following.tsx', '_layout.tsx']) {
+  for (const f of ['index.tsx', 'library.tsx', 'me.tsx', 'discover.tsx', 'following.tsx', '_layout.tsx']) {
     expect(existsSync(join(APP, '(tabs)', f))).toBe(true);
   }
   // The old locations are gone — two files answering `/discover` is a silent conflict.

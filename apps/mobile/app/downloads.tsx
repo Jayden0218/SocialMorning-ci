@@ -1,11 +1,18 @@
-/** Downloads (US1, FR-004): every row, the budget, "remove finished", the mobile-data switch. */
+/**
+ * Downloads (US1, FR-004): every row, the budget, "remove finished", the mobile-data switch.
+ * M10 (owner, 2026-09-27), after the reference: the settings sit behind the ⚙ in the header,
+ * and an empty list is a picture and one line, with M6's action under it.
+ */
+import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { FlatList, Pressable, Switch, Text, View } from 'react-native';
 import { mb } from '../src/ui/DownloadButton';
 import { useDownloads, useStores } from '../src/ui/providers';
 import type { DownloadRow } from '../src/storage/types';
 import { EmptyState } from '../src/ui/EmptyState';
-import { colour } from '../src/design';
+import { colour, hit } from '../src/design';
+
+const TAP = { minHeight: hit.min, minWidth: hit.min };
 
 const BUDGETS = [200 * 1024 ** 2, 500 * 1024 ** 2, ...[1, 2, 4, 8].map((g) => g * 1024 ** 3)];
 
@@ -14,6 +21,7 @@ export default function DownloadsScreen(): React.ReactElement {
   const stores = useStores();
   const [rows, setRows] = useState<DownloadRow[]>(() => stores.downloads.list());
   const [, force] = useState(0);
+  const [settings, setSettings] = useState(false);
   useEffect(() => downloads.subscribe(() => { setRows(stores.downloads.list()); force((n) => n + 1); }), [downloads, stores]);
 
   const title = (id: string) => stores.feeds.getEpisode(id)?.title ?? id;
@@ -30,9 +38,17 @@ export default function DownloadsScreen(): React.ReactElement {
     <FlatList
       data={rows}
       keyExtractor={(r) => r.episodeId}
-      contentContainerClassName="p-3 gap-1.5"
+      contentContainerClassName="p-3 gap-1.5 flex-grow"
+      className="flex-1 bg-background"
       ListHeaderComponent={
-        <View className="gap-2 mb-2">
+        <>
+        <Stack.Screen options={{ headerRight: () => (
+          <Pressable onPress={() => setSettings((v) => !v)} accessibilityRole="button" accessibilityLabel="Download settings" accessibilityState={{ expanded: settings }} className="items-center justify-center" style={TAP}>
+            <Text className="text-accent text-lg">⚙</Text>
+          </Pressable>
+        ) }} />
+        {settings ? (
+        <View className="gap-2 mb-2 bg-surface rounded-artwork p-section">
           <Text className="text-[15px] text-text">Used {mb(downloads.usedBytes())} of {mb(downloads.budgetBytes())}</Text>
           <View className="flex-row gap-3 items-center flex-wrap">
             {BUDGETS.map((b) => (
@@ -49,8 +65,15 @@ export default function DownloadsScreen(): React.ReactElement {
             <Text className="text-accent text-[15px] py-1">Remove finished downloads</Text>
           </Pressable>
         </View>
+        ) : null}
+        </>
       }
-      ListEmptyComponent={<EmptyState surface="downloads" />}
+      ListEmptyComponent={
+        <View className="items-center pt-24 gap-section">
+          <View className="w-28 h-28 rounded-pill bg-surface items-center justify-center" accessible={false}><Text className="text-text text-lg">⬇️</Text></View>
+          <EmptyState surface="downloads" />
+        </View>
+      }
       renderItem={({ item }) => (
         <View className="py-2 gap-0.5 border-b-hairline border-separator">
           <Text className="text-[15px] font-semibold text-text" numberOfLines={2}>{title(item.episodeId)}</Text>

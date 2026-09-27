@@ -62,6 +62,14 @@ export default function RootLayout(): React.ReactElement {
           <Stack.Screen name="queue" options={{ title: 'Queue' }} />
           <Stack.Screen name="inbox" options={{ title: 'Inbox' }} />
           <Stack.Screen name="categories" options={{ title: 'Categories' }} />
+          {/* M10: the Me tab's pages. */}
+          <Stack.Screen name="subscriptions" options={{ title: 'My subscriptions' }} />
+          <Stack.Screen name="notifications" options={{ title: 'Notifications' }} />
+          <Stack.Screen name="history" options={{ title: 'Listening history' }} />
+          <Stack.Screen name="favourites" options={{ title: 'Favourites' }} />
+          <Stack.Screen name="moments" options={{ title: 'Saved moments' }} />
+          <Stack.Screen name="my-comments" options={{ title: 'My comments' }} />
+          <Stack.Screen name="stickers" options={{ title: 'Stickers' }} />
           <Stack.Screen name="category/[id]" options={{ title: 'Category' }} />
           <Stack.Screen name="clip/new" options={{ title: 'New clip' }} />
           <Stack.Screen name="clip/[id]" options={{ title: 'Clip' }} />

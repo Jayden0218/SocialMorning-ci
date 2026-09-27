@@ -13,10 +13,15 @@ import type { TabItem } from './TabBar';
  * and the Library moved to `/library`. `/discover` still resolves — it redirects to `/`,
  * because links carrying it already exist (G3).
  */
+/**
+ * M10, second step (owner, 2026-09-27: "Discover · Updates · Me", like the reference):
+ * the Library became **Updates** (same path, `/library`), and **Me** (`/me`) replaced
+ * Following — whose feed now lives in Me → Notifications; `/following` redirects there.
+ */
 export const TABS: readonly TabItem[] = [
   { key: 'index', label: 'Discover', icon: { idle: 'planet-outline', active: 'planet' } },
-  { key: 'library', label: 'Library', icon: { idle: 'library-outline', active: 'library' } },
-  { key: 'following', label: 'Following', icon: { idle: 'people-outline', active: 'people' } },
+  { key: 'library', label: 'Updates', icon: { idle: 'albums-outline', active: 'albums' } },
+  { key: 'me', label: 'Me', icon: { idle: 'person-outline', active: 'person' } },
 ];
 
 /**
@@ -24,8 +29,8 @@ export const TABS: readonly TabItem[] = [
  * than by the navigator's own `navigate(name)` is deliberate: it is the same string a
  * `socialmorning://…` link carries, so a tab and a deep link cannot drift apart (G3).
  */
-export const TAB_HREF: Record<string, '/' | '/library' | '/following'> = {
+export const TAB_HREF: Record<string, '/' | '/library' | '/me'> = {
   index: '/',
   library: '/library',
-  following: '/following',
+  me: '/me',
 };

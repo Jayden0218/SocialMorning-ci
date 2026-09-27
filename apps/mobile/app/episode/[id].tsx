@@ -18,6 +18,7 @@ import { BarButton, TAP, TopBar } from '../../src/ui/TopBar';
 import { toPlayable } from '../../src/storage/playable';
 import { DownloadButton } from '../../src/ui/DownloadButton';
 import { QueueButtons } from '../../src/ui/QueueButtons';
+import { EpisodeExtras } from '../../src/ui/me/EpisodeExtras';
 import { useSocial } from '../../src/social/context';
 import { usePoll } from '../../src/social/usePoll';
 import type { ComposerState } from '../../src/social/composer';
@@ -150,6 +151,8 @@ export default function EpisodeScreen(): React.ReactElement {
           <QueueButtons episodeId={episode.id} onQueued={() => stores.inboxState.mark(episode.id, 'queued', Date.now())} />
           <DownloadButton episodeId={episode.id} />
         </View>
+        {/* M10 (owner, 2026-09-27): favourite, and save this moment with a note. */}
+        <EpisodeExtras episodeId={episode.id} atMs={snapshotOffset} />
         <View className="h-px bg-separator my-2" />
         {notes === '' ? null : (
           <Text className="text-sm leading-[26px] text-text">

@@ -51,7 +51,8 @@ export default function TabsLayout(): React.ReactElement {
     };
   }, [api, stores, listener, visit]);
 
-  const items = TABS.map((t) => (t.key === 'following' && unread > 0 ? { ...t, badge: unread } : t));
+  // M10: the unread count now badges Me, where Notifications holds the feed.
+  const items = TABS.map((t) => (t.key === 'me' && unread > 0 ? { ...t, badge: unread } : t));
 
   return (
     <Tabs
@@ -84,7 +85,10 @@ export default function TabsLayout(): React.ReactElement {
     >
       {/* M10: Discover draws its own large title, so it has no bar. */}
       <Tabs.Screen name="index" options={{ title: 'Discover', headerShown: false }} />
-      <Tabs.Screen name="library" options={{ title: 'Library' }} />
+      {/* M10: Updates and Me draw their own large titles, like Discover. */}
+      <Tabs.Screen name="library" options={{ title: 'Updates', headerShown: false }} />
+      <Tabs.Screen name="me" options={{ title: 'Me', headerShown: false }} />
+      {/* Not in the bar: only so old `/following` links land (they redirect to Notifications). */}
       <Tabs.Screen name="following" options={{ title: 'Following' }} />
       {/* Not in the bar (TABS drives the bar): only here so old `/discover` links land. */}
       <Tabs.Screen name="discover" options={{ title: 'Discover' }} />
