@@ -34,8 +34,9 @@ export function parseLegal(md: string): Block[] {
     }
     const h = /^(#{1,6})\s+(.*)$/.exec(line);
     if (h) {
-      const kind: BlockKind = h[1].length === 1 ? 'title' : h[1].length === 2 ? 'heading' : 'subheading';
-      blocks.push({ kind, spans: spans(h[2]) });
+      const [, hashes = '', rest = ''] = h;
+      const kind: BlockKind = hashes.length === 1 ? 'title' : hashes.length === 2 ? 'heading' : 'subheading';
+      blocks.push({ kind, spans: spans(rest) });
       continue;
     }
     if (line.startsWith('> ')) { blocks.push({ kind: 'note', spans: spans(line.slice(2)) }); continue; }
