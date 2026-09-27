@@ -29,7 +29,7 @@ import { waitForStartup } from './startup';
 import { Splash } from './Splash';
 import { Terms } from './Terms';
 import { accept, hasAccepted } from './terms';
-import { opensSignIn } from './launch';
+import { ALWAYS_SHOW_TERMS, opensSignIn } from './launch';
 import { router } from 'expo-router';
 
 const StoresContext = createContext<Stores | undefined>(undefined);
@@ -131,7 +131,7 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
   }), [stores]);
   const [ready, setReady] = useState(false);
   // After the launch screen, the Terms — until accepted, nothing else is reachable.
-  const [accepted, setAccepted] = useState(() => hasAccepted(stores.settings));
+  const [accepted, setAccepted] = useState(() => !ALWAYS_SHOW_TERMS && hasAccepted(stores.settings));
   // Then the sign-in page, on every launch while signed out (see `./launch`).
   const signInOpened = useRef(false);
   useEffect(() => {
