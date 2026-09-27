@@ -23,7 +23,7 @@ export default function FavouritesScreen(): React.ReactElement {
       keyExtractor={(r) => r.f.episodeId}
       contentContainerClassName="px-screen-x py-row pb-24 flex-grow"
       keyboardShouldPersistTaps="handled"
-      ListHeaderComponent={rows.length > 0 ? <FilterBar term={term} onTerm={setTerm} placeholder="Search your favourites" /> : null}
+      ListHeaderComponent={rows.length > 0 ? <FilterBar term={term} onTerm={setTerm} placeholder="Search your favourites" /> : undefined}
       ListEmptyComponent={<EmptyPicture icon="star-outline" line={term ? 'Nothing matches' : 'No favourites yet — star an episode on its page'} />}
       renderItem={({ item }) => {
         const e = item.e!;
