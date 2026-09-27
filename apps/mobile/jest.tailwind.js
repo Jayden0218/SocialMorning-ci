@@ -10,3 +10,13 @@ require('react-native-css-interop/dist/runtime/components');
 require('./src/design/tailwind');
 
 injectData(JSON.parse(fs.readFileSync(OUT, 'utf8')));
+
+// The Ionicons font (`src/ui/Icon.tsx`) loads asynchronously and re-renders when it
+// arrives — under jest that can be after a test file has finished, which threw "import a
+// file after the Jest environment has been torn down" (2026-09-27). A plain element with
+// the same props stands in; tests still read `name` and `size`.
+jest.mock('@expo/vector-icons/Ionicons', () => {
+  const { createElement } = require('react');
+  const Ionicons = (props) => createElement('Ionicons', props);
+  return { __esModule: true, default: Ionicons };
+});
