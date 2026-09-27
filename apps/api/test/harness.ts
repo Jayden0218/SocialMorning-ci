@@ -21,9 +21,9 @@ export type TestDb = {
   /** JSON request helper: `call('POST', '/v1/auth/sign-in', body, token)`. */
   call(method: string, path: string, body?: unknown, token?: string, headers?: Record<string, string>): Promise<Response>;
   /** Every email the app would have sent (a fake mailer; see `src/mail/mailer.ts`). */
-  mail: Mail[];
+  mail?: Mail[];
   /** The last code sent to this address. */
-  lastCode(to: string): string;
+  lastCode?(to: string): string;
   /** M6: rebuilds the app with this listener as the owner (the id exists only after a sign-up). */
   setOwner?(id: string): void;
   close(): Promise<void>;
