@@ -1,40 +1,46 @@
 /**
  * The one place a colour, size, radius or padding is written down (M7 FR-002).
+ * Change a colour here and every screen follows; `scripts/token-check.mjs` fails the
+ * build if a colour literal appears anywhere else.
  *
- * The values are design decisions read from the reference app on 2026-09-24
- * (see `apps/mobile/LICENSES.md` — re-implemented, not copied), with two corrections
- * that measuring forced (research R1):
- *   - the heat bars are 40 % white, not the reference's 30 %: 30 % on black measures
- *     2.45 and fails the 3:1 floor for anything carrying information;
- *   - our old blue (#0645ad, 2.46) and dark red (#b00020, 2.87) are gone entirely —
- *     both are illegible on black. Links AND destructive actions take the accent, and a
- *     destructive action is told apart by its word, never by its hue (FR-016).
+ * **White theme (2026-09-27, the owner's call).** Replaces M7's black palette. Every
+ * ratio below was measured with `contrast.ts` before adoption, and `PAIRS` re-checks
+ * them on every run. Two things the flip forced:
+ *   - the old accent #fc3c44 measures 3.58 on white and fails the 4.5 body floor, so the
+ *     accent is the deeper #d70015 (5.38) — and white text on it measures the same 5.38;
+ *   - text on a solid accent fill is `onAccent`, never `text`: dark text on red is 3.50.
+ * Links AND destructive actions take the accent; a destructive action is told apart by
+ * its word, never by its hue (FR-016).
  *
- * `scripts/token-check.mjs` fails the build if a literal appears anywhere else.
+ * How the roles pair up:
+ *   screen  → `background`, cards/sheets → `surface`
+ *   words   → `text`, secondary words → `muted`, links/actions → `accent`
+ *   a solid button → `bg-accent` + `text-onAccent`
+ *   a chosen chip / toggle → `bg-selected border-accent` + `text-text`
  */
 export const colour = {
-  /** 21.00 against text. */
-  background: '#000000',
-  /** Cards, sheets, the mini player. */
-  surface: '#101012',
-  /** 21.00 on background. */
-  text: '#ffffff',
-  /** 8.27 on background — secondary lines. */
-  muted: '#9ca3af',
-  /** 5.87 on background — links, primary actions, destructive actions, the listener's own marks. */
-  accent: '#fc3c44',
+  /** 18.85 against text. */
+  background: '#ffffff',
+  /** Cards, sheets, the mini player. 17.31 against text. */
+  surface: '#f5f5f7',
+  /** 18.85 on background. */
+  text: '#111114',
+  /** 6.05 on background, 5.56 on surface — secondary lines. */
+  muted: '#5f6368',
+  /** 5.38 on background, 4.94 on surface — links, primary actions, destructive actions, the listener's own marks. */
+  accent: '#d70015',
+  /** Text and icons on a solid accent fill. 5.38 on accent. */
+  onAccent: '#ffffff',
+  /** A chosen chip or toggle: a soft accent wash that `text` still reads on. */
+  selected: '#fde8ea',
   /** Decorative: the scrubber's unfilled track. */
-  track: 'rgba(255,255,255,0.18)',
-  /** Carries information (the heat curve), so it must clear 3:1 — 0.40 measures 3.66. */
-  bar: 'rgba(255,255,255,0.40)',
+  track: 'rgba(0,0,0,0.12)',
+  /** Carries information (the heat curve), so it must clear 3:1 — 0.50 black on white measures 3.95. */
+  bar: 'rgba(0,0,0,0.50)',
   /** Decorative: the hairline between rows. */
-  separator: 'rgba(255,255,255,0.30)',
-  /**
-   * Decorative: behind a sheet. Heavier than the old 0.35 because the app below it is
-   * now black — a light scrim over a light app read as "dimmed"; over a dark one it
-   * reads as nothing at all. No text sits on it, so no contrast floor applies.
-   */
-  scrim: 'rgba(0,0,0,0.60)',
+  separator: 'rgba(0,0,0,0.12)',
+  /** Decorative: behind a sheet. No text sits on it, so no contrast floor applies. */
+  scrim: 'rgba(0,0,0,0.40)',
 } as const;
 
 export const fontSize = { xs: 12, sm: 16, base: 20, lg: 24 } as const;

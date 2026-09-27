@@ -91,7 +91,7 @@ export default function EpisodeScreen(): React.ReactElement {
           router.push('/player');
         }}
       >
-        <Text className="text-text font-bold">Play</Text>
+        <Text className="text-onAccent font-bold">Play</Text>
       </Pressable>
       <DownloadButton episodeId={episode.id} />
       <QueueButtons episodeId={episode.id} onQueued={() => stores.inboxState.mark(episode.id, 'queued', Date.now())} />

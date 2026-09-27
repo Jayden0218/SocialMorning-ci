@@ -9,11 +9,13 @@ import { BODY_MIN, LARGE_MIN, PAIRS, contrastRatio, failures, relativeLuminance 
 const round = (n: number) => Math.round(n * 100) / 100;
 
 it('the measured ratios are the ones the palette was chosen for', () => {
-  expect(round(contrastRatio(colour.text, colour.background))).toBe(21);
-  expect(round(contrastRatio(colour.muted, colour.background))).toBe(8.27);
-  expect(round(contrastRatio(colour.accent, colour.background))).toBe(5.87);
-  // The heat bars are 40 % white: 3.66, just over the 3:1 information floor.
-  expect(round(contrastRatio(colour.bar, colour.background))).toBe(3.66);
+  // White theme, 2026-09-27.
+  expect(round(contrastRatio(colour.text, colour.background))).toBe(18.85);
+  expect(round(contrastRatio(colour.muted, colour.background))).toBe(6.05);
+  expect(round(contrastRatio(colour.accent, colour.background))).toBe(5.38);
+  expect(round(contrastRatio(colour.onAccent, colour.accent))).toBe(5.38);
+  // The heat bars are 50 % black: 3.95, over the 3:1 information floor.
+  expect(round(contrastRatio(colour.bar, colour.background))).toBe(3.95);
 });
 
 it('G2: every declared pair clears its floor', () => {
@@ -22,10 +24,12 @@ it('G2: every declared pair clears its floor', () => {
 });
 
 it('the colours this app dropped would have failed — that is why they are gone', () => {
-  expect(contrastRatio('#0645ad', colour.background)).toBeLessThan(LARGE_MIN); // old link, 2.46
-  expect(contrastRatio('#b00020', colour.background)).toBeLessThan(LARGE_MIN); // old danger, 2.87
-  // The reference's own 30 % bars fail the information floor — the reason ours are 40 %.
-  expect(contrastRatio('rgba(255,255,255,0.30)', colour.background)).toBeLessThan(LARGE_MIN);
+  // M7's dark-theme accent fails the body floor on white — the reason the accent deepened.
+  expect(contrastRatio('#fc3c44', colour.background)).toBeLessThan(BODY_MIN); // 3.58
+  // Dark text on the accent fails too — the reason `onAccent` exists.
+  expect(contrastRatio(colour.text, colour.accent)).toBeLessThan(BODY_MIN); // 3.50
+  // 40 % black bars fail the information floor on white — the reason ours are 50 %.
+  expect(contrastRatio('rgba(0,0,0,0.40)', colour.background)).toBeLessThan(LARGE_MIN); // 2.85
 });
 
 it('handles #rgb, #rrggbb and rgba() composited over its background', () => {

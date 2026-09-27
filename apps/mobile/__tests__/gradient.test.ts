@@ -14,14 +14,14 @@ it('with no tint — which is every call today — it is the neutral wash, never
   expect(FLAT[2]).toBe(colour.background);
 });
 
-it('a tint white text can be read on is used', () => {
-  // #3b0a12 is dark enough for white to clear the body floor.
-  expect(contrastRatio(colour.text, '#3b0a12')).toBeGreaterThanOrEqual(BODY_MIN);
-  expect(gradientFor('#3b0a12')[0]).toBe('#3b0a12');
+it('a tint the dark text can be read on is used', () => {
+  // White theme: #f5c542 is light enough for the dark text to clear the body floor.
+  expect(contrastRatio(colour.text, '#f5c542')).toBeGreaterThanOrEqual(BODY_MIN);
+  expect(gradientFor('#f5c542')[0]).toBe('#f5c542');
 });
 
-it('a tint that would drop white text under the floor is refused, and the flat background is used', () => {
-  // A bright artwork colour: white on it measures well under 4.5.
-  expect(contrastRatio(colour.text, '#f5c542')).toBeLessThan(BODY_MIN);
-  expect(gradientFor('#f5c542')).toEqual(FLAT);
+it('a tint that would drop the dark text under the floor is refused, and the flat background is used', () => {
+  // A deep artwork colour: the dark text on it measures well under 4.5.
+  expect(contrastRatio(colour.text, '#3b0a12')).toBeLessThan(BODY_MIN);
+  expect(gradientFor('#3b0a12')).toEqual(FLAT);
 });

@@ -21,7 +21,7 @@ export default function RootLayout(): React.ReactElement {
       <SafetyProvider>
       <GraphProvider>
       <SafeAreaView className="flex-1 bg-background">
-        <StatusBar style="light" />
+        <StatusBar style="dark" />
         {/*
           * M7: one place decides the chrome for every screen in the stack — the dark
           * background, the large white title, the accent back arrow. Setting

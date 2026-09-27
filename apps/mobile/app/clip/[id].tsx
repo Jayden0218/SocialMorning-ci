@@ -62,8 +62,8 @@ export default function ClipScreen(): React.ReactElement {
       />
       {clip.deleted ? <Text className="text-muted">This clip was removed. The episode is still here.</Text> : null}
       <View className="flex-row gap-3 flex-wrap items-center">
-        {clip.deleted ? <Pressable className="bg-accent rounded-3xl px-5 py-2.5" accessibilityRole="button" onPress={() => { player.load(resolved.episode, 'play'); router.push('/player'); }}><Text className="text-text font-semibold">Play the episode</Text></Pressable> : null}
-        {pausedAtEnd ? <Pressable className="bg-accent rounded-3xl px-5 py-2.5" accessibilityRole="button" onPress={() => player.play()}><Text className="text-text font-semibold">Keep listening</Text></Pressable> : null}
+        {clip.deleted ? <Pressable className="bg-accent rounded-3xl px-5 py-2.5" accessibilityRole="button" onPress={() => { player.load(resolved.episode, 'play'); router.push('/player'); }}><Text className="text-onAccent font-semibold">Play the episode</Text></Pressable> : null}
+        {pausedAtEnd ? <Pressable className="bg-accent rounded-3xl px-5 py-2.5" accessibilityRole="button" onPress={() => player.play()}><Text className="text-onAccent font-semibold">Keep listening</Text></Pressable> : null}
         <Pressable className="border border-separator rounded-3xl px-[18px] py-2.5" accessibilityRole="button" onPress={() => router.push('/player')}><Text className="text-text">Open player</Text></Pressable>
       </View>
       {!listener ? <Text className="text-muted">You are not signed in — clips play anyway. Sign in to follow people and make your own.</Text> : null}

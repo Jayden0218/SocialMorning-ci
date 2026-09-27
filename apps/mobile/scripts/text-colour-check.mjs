@@ -21,7 +21,7 @@ import ts from 'typescript';
 const ROOTS = ['app', 'src'];
 const TOKENS = [...readFileSync(path.join('src', 'design', 'tokens.ts'), 'utf8')
   .split('} as const')[0]
-  .matchAll(/^\s+([a-z]+):/gm)].map((m) => m[1]);
+  .matchAll(/^\s+([a-zA-Z]+):/gm)].map((m) => m[1]);
 const COLOURED = new RegExp(`(?:^|[\\s'"\`])text-(?:${TOKENS.join('|')})(?=[\\s'"\`]|$)`);
 
 const files = [];

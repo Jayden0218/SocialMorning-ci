@@ -60,5 +60,5 @@ export const body = 'p-4 gap-3';
 export const input = 'border border-separator rounded-lg p-3 text-sm text-text';
 export const errorText = 'text-accent';
 export const button = 'bg-accent rounded-3xl py-3 items-center';
-export const buttonText = 'text-text text-sm font-semibold';
+export const buttonText = 'text-onAccent text-sm font-semibold';
 export const link = 'text-accent text-[15px] py-2';

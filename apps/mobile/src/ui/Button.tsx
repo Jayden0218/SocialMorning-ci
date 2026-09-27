@@ -38,7 +38,7 @@ export function Button(props: {
       className={`px-section justify-center items-center rounded-pill ${KIND[kind]} ${props.disabled ? 'opacity-40' : ''} ${props.className ?? ''}`}
       style={TAP}
     >
-      <Text className="text-sm font-semibold text-text">{props.label}</Text>
+      <Text className="text-sm font-semibold text-onAccent">{props.label}</Text>
     </Pressable>
   );
 }

@@ -49,7 +49,7 @@ export default function AccountScreen(): React.ReactElement {
 
   const link = 'text-accent text-[15px] py-2';
   const button = 'bg-accent rounded-3xl py-3 items-center';
-  const buttonText = 'text-text text-sm font-semibold';
+  const buttonText = 'text-onAccent text-sm font-semibold';
   const noAppeals = appealsMailto(appeals) === undefined;
 
   return (
@@ -61,7 +61,7 @@ export default function AccountScreen(): React.ReactElement {
         <View className="flex-row items-center gap-3">
           <Switch
             trackColor={{ false: colour.separator, true: colour.accent }}
-            thumbColor={colour.text}
+            thumbColor={colour.onAccent}
             value={privateListening}
             accessibilityLabel="Private listening"
             onValueChange={async (v) => {

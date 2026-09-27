@@ -45,7 +45,7 @@ export function ContinueListening(): React.ReactElement | null {
           router.push('/player');
         }}
       >
-        <Text className="text-text font-bold">Play</Text>
+        <Text className="text-onAccent font-bold">Play</Text>
       </Pressable>
     </View>
   );

@@ -72,7 +72,7 @@ for (const file of files) {
  */
 const TOKENS = [...readFileSync(ALLOWED, 'utf8')
   .slice(0, readFileSync(ALLOWED, 'utf8').indexOf('} as const'))
-  .matchAll(/^\s+([a-z]+):/gm)].map((m) => m[1]);
+  .matchAll(/^\s+([a-zA-Z]+):/gm)].map((m) => m[1]);
 const PALETTE =
   /\b(?:bg|text|border(?:-[trblxy])?|tint|placeholder|decoration|shadow|fill|stroke|divide|ring|outline)-(?:(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3}|white|black)\b/g;
 const TYPE = /(?:^|\s)(?:text-(?:xs|sm|base|lg|\[\d+px\])|font-(?:thin|light|normal|medium|semibold|bold|extrabold|black)|leading-\S+)(?=\s|$)/;

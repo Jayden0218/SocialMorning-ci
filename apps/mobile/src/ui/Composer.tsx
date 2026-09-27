@@ -75,7 +75,7 @@ export function ComposerSheet(props: {
               onPress={submit}
               accessibilityRole="button"
             >
-              <Text className="text-text font-semibold">Post</Text>
+              <Text className="text-onAccent font-semibold">Post</Text>
             </Pressable>
           </View>
         </View>
