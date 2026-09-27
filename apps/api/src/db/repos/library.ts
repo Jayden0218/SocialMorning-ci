@@ -29,7 +29,7 @@ export const toPublic = (r: LibraryRow): LibraryOut => ({
   ...(r.deleted_at ? { deletedAt: new Date(r.deleted_at).toISOString() } : {}),
 });
 
-const stampOf = (r: { updatedAt: string; deletedAt?: string | null }) => new Date(r.deletedAt ?? r.updatedAt).getTime();
+const stampOf = (r: { updatedAt: string; deletedAt?: string | null }) => new Date(r.updatedAt).getTime();
 
 /** A moment's note is capped; nothing else in a payload is trusted to be small. */
 function clean(i: LibraryIn): Record<string, unknown> {
