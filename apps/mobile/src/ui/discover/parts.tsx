@@ -32,7 +32,7 @@ export function SectionTitle(props: { title: string; action?: { label: string; o
 /** The round play button every row ends with. */
 export function PlayButton(props: { title: string; onPress: () => void }): React.ReactElement {
   return (
-    <Pressable onPress={() => undefined} accessibilityRole="button" accessibilityLabel={`Play ${props.title}`} className="items-center justify-center" style={TAP}>
+    <Pressable onPress={props.onPress} accessibilityRole="button" accessibilityLabel={`Play ${props.title}`} className="items-center justify-center" style={TAP}>
       <View className="w-10 h-10 rounded-pill bg-primary items-center justify-center">
         <Text className="text-onPrimary text-sm pl-0.5">▶</Text>
       </View>

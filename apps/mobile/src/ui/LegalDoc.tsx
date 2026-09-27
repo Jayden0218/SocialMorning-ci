@@ -57,22 +57,21 @@ function Chevron(): React.ReactElement {
 
 export function LegalDoc(props: { text: string; onClose: () => void }): React.ReactElement {
   const title = useMemo(() => titleOf(props.text), [props.text]);
-  // The title is in the bar; the body starts after it.
+  // The title is drawn once, above the body; the body starts after it.
   const body = useMemo(() => parseLegal(props.text).filter((b) => b.kind !== 'title'), [props.text]);
   return (
     <SafeAreaView className="absolute inset-0 bg-background">
-      <View className="flex-row items-center border-b-hairline border-separator pt-section">
+      {/* Owner, 2026-09-27: the bar holds only the chevron; the title sits below it. */}
+      <View className="flex-row items-center pt-section px-2">
         <Pressable onPress={props.onClose} accessibilityRole="button" accessibilityLabel="Back" className="justify-center items-center" style={TAP}>
           <Chevron />
         </Pressable>
-        <Text className="text-text text-sm font-semibold flex-1 text-center" numberOfLines={1} accessibilityRole="header">{title}</Text>
-        {/* Balances the chevron, so the title sits in the true centre. */}
-        <View style={TAP} />
       </View>
       {/* The ScrollView spans the full width, so its scroll bar sits on the screen's edge;
           the side margin is on the inner View, so the bar never lies over the words. */}
       <ScrollView className="flex-1">
-        <View className="px-screen-x pt-section pb-section">
+        <View className="px-screen-x pt-2 pb-section">
+          <Text className="text-text text-lg font-bold leading-[32px] mb-section" accessibilityRole="header">{title}</Text>
           {body.map((b, i) => <BlockText key={i} block={b} />)}
         </View>
       </ScrollView>
