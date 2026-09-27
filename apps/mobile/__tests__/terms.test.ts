@@ -4,7 +4,8 @@
  * test red: make `hasAccepted` in `src/ui/terms.ts` return `true`.
  */
 import { createMemoryStores } from '../src/storage/memory';
-import { TERMS_KEY, TERMS_SECTIONS, TERMS_VERSION, accept, hasAccepted } from '../src/ui/terms';
+import { CONSENT_ITEMS, TERMS_KEY, TERMS_VERSION, accept, hasAccepted } from '../src/ui/terms';
+import { LEGAL_TEXT } from '../src/legal/texts';
 
 it('a fresh install has not accepted', () => {
   const { settings } = createMemoryStores((x) => x);
@@ -23,7 +24,17 @@ it('an older version of the terms asks again', () => {
   expect(hasAccepted(settings)).toBe(false);
 });
 
-it('the terms have something to read', () => {
-  expect(TERMS_SECTIONS.length).toBeGreaterThan(0);
-  for (const s of TERMS_SECTIONS) expect(s.body.length).toBeGreaterThan(0);
+it('every point on the sheet links to a full document that has text', () => {
+  expect(CONSENT_ITEMS.map((i) => i.doc)).toEqual(['agreement', 'privacy', 'community']);
+  for (const i of CONSENT_ITEMS) {
+    expect(i.points.length).toBeGreaterThan(0);
+    expect(LEGAL_TEXT[i.doc].length).toBeGreaterThan(1000);
+  }
+});
+
+it('the documents are SocialNet\'s, with no 小宇宙 name or contact left in them', () => {
+  for (const text of Object.values(LEGAL_TEXT)) {
+    expect(text).toContain('SocialNet');
+    expect(text).not.toMatch(/小宇宙|Xiaoyuzhou|iftech|okjike|Shanghai/);
+  }
 });

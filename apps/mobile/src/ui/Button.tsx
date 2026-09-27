@@ -16,6 +16,13 @@ const KIND: Record<ButtonKind, string> = {
   secondary: 'border border-separator',
 };
 
+/** Words on the solid yellow take `onPrimary`; on the outlined secondary they sit on the page, so `text`. */
+const LABEL: Record<ButtonKind, string> = {
+  primary: 'text-sm font-semibold text-onPrimary',
+  destructive: 'text-sm font-semibold text-onPrimary',
+  secondary: 'text-sm font-semibold text-text',
+};
+
 /** Kept as a style: shared-ui asserts the tap target on the Pressable's own `style`. */
 const TAP = { minHeight: hit.min };
 
@@ -38,7 +45,7 @@ export function Button(props: {
       className={`px-section justify-center items-center rounded-pill ${KIND[kind]} ${props.disabled ? 'opacity-40' : ''} ${props.className ?? ''}`}
       style={TAP}
     >
-      <Text className="text-sm font-semibold text-onPrimary">{props.label}</Text>
+      <Text className={LABEL[kind]}>{props.label}</Text>
     </Pressable>
   );
 }

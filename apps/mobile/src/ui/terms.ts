@@ -1,40 +1,65 @@
 /**
- * Terms and Conditions (owner, 2026-09-27): shown after the launch screen; the app is
- * not usable until the listener accepts. Accepting is remembered on this phone, per
- * version — raise `TERMS_VERSION` when the text changes and everyone is asked again.
+ * The consent sheet (owner, 2026-09-27): shown after the launch screen; the app is not
+ * usable until the listener agrees. Agreeing is remembered on this phone, per version —
+ * raise `TERMS_VERSION` when the text changes and everyone is asked again.
  *
- * DRAFT text, written from what the app actually does. It is not legal advice; the
- * owner replaces it before release.
+ * The wording follows the sheet the owner showed (2026-09-27), in English, for
+ * SocialNet. Each numbered point links to the full document in `src/legal/texts.ts`,
+ * which is generated from `docs/legal/*.md`. Not legal advice.
  */
 import type { SettingsStore } from '../storage/types';
+import { LEGAL_TEXT } from '../legal/texts';
 
-export const TERMS_VERSION = '1';
+/** v2 (2026-09-27): the sheet and the three full documents replace the v1 draft. */
+export const TERMS_VERSION = '2';
 export const TERMS_KEY = 'terms.accepted';
 
-export const TERMS_TITLE = 'Terms and Conditions';
+export type LegalDocId = keyof typeof LEGAL_TEXT;
 
-export const TERMS_SECTIONS: { heading: string; body: string }[] = [
+/** Filled in from `docs/legal/placeholders.md` once the owner has the company name. */
+export const OPERATOR = '[COMPANY LEGAL NAME]';
+
+export const CONSENT_TITLE = 'Service Agreement and Privacy Policy';
+
+export const CONSENT_INTRO =
+  `Welcome to SocialNet! SocialNet's products and services are provided to you by ${OPERATOR}. ` +
+  "Before you use SocialNet, we want to explain SocialNet's Service Agreement and Privacy Policy. " +
+  'Please read them carefully and make your choice:';
+
+export const CONSENT_ITEMS: { doc: LegalDocId; link: string; points: string[] }[] = [
   {
-    heading: 'Podcasts',
-    body: 'SocialMorning does not host audio. Every episode streams or downloads from its publisher, and belongs to them.',
+    doc: 'agreement',
+    link: 'SocialNet User Agreement',
+    points: [
+      'Your account is for you alone. You are responsible for everything done with it.',
+      'What you post shows your own views. It must follow the law and the Community Guidelines. Breaking the rules can lead to posts being removed or the account being closed.',
+      'You keep the rights to what you post, and give SocialNet a free licence to show and share it.',
+      'The service is provided as is, and may change or stop.',
+    ],
   },
   {
-    heading: 'What you post',
-    body: 'Comments, reactions and clips you post are public, and show at the moment in the episode where you posted them. You are responsible for what you post. Do not post anything illegal, hateful, or harassing.',
+    doc: 'privacy',
+    link: 'SocialNet Privacy Policy',
+    points: [
+      'What personal information we collect, why, and how we use it.',
+      'We ask for a phone permission only when you use the feature that needs it, and you can refuse.',
+      'We do not share your personal information without your consent, except in the cases the policy lists.',
+      'How you can view, change or delete your information, and close your account.',
+    ],
   },
   {
-    heading: 'Reports and blocks',
-    body: 'You can report a comment or block a person. A reported comment is kept for up to 90 days for review. Accounts that break these terms can be suspended.',
-  },
-  {
-    heading: 'Your data',
-    body: 'When you sign in, your subscriptions, listening positions and listening time are saved to your account so they follow you across devices.',
-  },
-  {
-    heading: 'No warranty',
-    body: 'The app is provided as is. It may change, or stop, at any time.',
+    doc: 'community',
+    link: 'SocialNet Community Guidelines',
+    points: [
+      'Respect hosts and listeners. Talk about the issue, not the person.',
+      'No illegal content, harassment, spam or doxxing.',
+    ],
   },
 ];
+
+export const CONSENT_OUTRO = 'Tap "Agree" to accept these documents and start using SocialNet.';
+
+export const DISAGREE_NOTE = 'SocialNet cannot be used without agreeing. You can read the documents above, then tap "Agree", or close the app.';
 
 export function hasAccepted(settings: SettingsStore): boolean {
   return settings.get(TERMS_KEY) === TERMS_VERSION;

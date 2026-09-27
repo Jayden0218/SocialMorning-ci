@@ -1,10 +1,11 @@
 /**
  * One legal document, full screen (owner, 2026-09-27). Opened from a link on the Terms
  * sheet and drawn inside the same overlay, so reading a document never gets anyone past
- * the sheet. Back — the button or Android's — returns to the sheet.
+ * the sheet. Back — the button or Android's — returns to the sheet. Its own
+ * SafeAreaView, for the same reason as the sheet's.
  */
 import { useMemo } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, SafeAreaView, ScrollView, Text, View } from 'react-native';
 import { hit } from '../design';
 import { parseLegal, titleOf, type Block, type BlockKind } from '../legal/markdown';
 
@@ -36,7 +37,7 @@ export function LegalDoc(props: { text: string; onClose: () => void }): React.Re
   // The title is in the bar; the body starts after it.
   const body = useMemo(() => parseLegal(props.text).filter((b) => b.kind !== 'title'), [props.text]);
   return (
-    <View className="absolute inset-0 bg-background">
+    <SafeAreaView className="absolute inset-0 bg-background">
       <View className="flex-row items-center border-b-hairline border-separator px-row pt-section">
         <Pressable onPress={props.onClose} accessibilityRole="button" accessibilityLabel="Back" className="justify-center px-row" style={TAP}>
           <Text className="text-accent text-sm font-semibold">‹ Back</Text>
@@ -47,6 +48,6 @@ export function LegalDoc(props: { text: string; onClose: () => void }): React.Re
         <Text className="text-text text-lg font-bold mb-section">{title}</Text>
         {body.map((b, i) => <BlockText key={i} block={b} />)}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
