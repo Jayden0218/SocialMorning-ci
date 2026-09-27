@@ -13,7 +13,7 @@ it('the measured ratios are the ones the palette was chosen for', () => {
   expect(round(contrastRatio(colour.text, colour.background))).toBe(18.85);
   expect(round(contrastRatio(colour.muted, colour.background))).toBe(6.05);
   expect(round(contrastRatio(colour.accent, colour.background))).toBe(5.93);
-  expect(round(contrastRatio(colour.onPrimary, colour.primary))).toBe(11.8);
+  expect(round(contrastRatio(colour.onPrimary, colour.primary))).toBe(4.65);
   // The heat bars are 50 % black: 3.98, over the 3:1 information floor.
   expect(round(contrastRatio(colour.bar, colour.background))).toBe(3.98);
 });
@@ -26,9 +26,11 @@ it('G2: every declared pair clears its floor', () => {
 it('the colours this app dropped would have failed — that is why they are gone', () => {
   // M7's dark-theme red fails the body floor on white.
   expect(contrastRatio('#fc3c44', colour.background)).toBeLessThan(BODY_MIN); // 3.58
-  // The brand yellow as text on white fails even the large floor — the reason it is a
-  // fill only, and links take the deep amber `accent`.
-  expect(contrastRatio(colour.primary, colour.background)).toBeLessThan(LARGE_MIN); // 1.60
+  // White on the icon's own yellow fails even the large floor — the reason the fill
+  // is the deeper gold. And dark text on that gold fails too — the reason chosen chips
+  // take white words.
+  expect(contrastRatio(colour.onPrimary, '#fcc522')).toBeLessThan(LARGE_MIN); // 1.60
+  expect(contrastRatio(colour.text, colour.primary)).toBeLessThan(BODY_MIN); // 4.06
   // 40 % black bars fail the information floor on white — the reason ours are 50 %.
   expect(contrastRatio('rgba(0,0,0,0.40)', colour.background)).toBeLessThan(LARGE_MIN); // 2.85
 });

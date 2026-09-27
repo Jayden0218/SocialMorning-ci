@@ -31,7 +31,7 @@ export function FollowButton(props: { listenerId: string; following: boolean; on
         } finally { setBusy(false); }
       }}
     >
-      <Text className="font-semibold text-text">{following ? 'Following' : 'Follow'}</Text>
+      <Text className={following ? 'font-semibold text-onPrimary' : 'font-semibold text-text'}>{following ? 'Following' : 'Follow'}</Text>
     </Pressable>
   );
 }

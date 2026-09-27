@@ -37,8 +37,8 @@ export const PAIRS: Pair[] = [
   { fg: colour.bar, bg: colour.background, min: LARGE_MIN, role: 'heat bars (information)' },
   { fg: colour.accent, bg: colour.background, min: LARGE_MIN, role: 'the listener’s own marks' },
   { fg: colour.accent, bg: colour.surface, min: BODY_MIN, role: 'links and actions on a card' },
-  { fg: colour.onPrimary, bg: colour.primary, min: BODY_MIN, role: 'text on a yellow button' },
-  { fg: colour.text, bg: colour.primary, min: BODY_MIN, role: 'text on a chosen chip' },
+  { fg: colour.onPrimary, bg: colour.primary, min: BODY_MIN, role: 'text on a gold button or chosen chip' },
+  { fg: colour.primary, bg: colour.background, min: LARGE_MIN, role: 'a gold button against the page' },
   { fg: colour.bar, bg: colour.surface, min: LARGE_MIN, role: 'heat bars on a card' },
 ];
 

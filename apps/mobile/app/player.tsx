@@ -181,12 +181,12 @@ export default function PlayerScreen(): React.ReactElement {
         <View className={SOCIAL_ROW}>
           {extras.chapters && extras.chapters.length > 0 ? (
             <Pressable className={pane === 'chapters' ? SECONDARY_ON : SECONDARY} onPress={() => setPane(pane === 'chapters' ? 'none' : 'chapters')} accessibilityRole="button">
-              <Text className={SECONDARY_TEXT}>Chapters ({extras.chapters.length})</Text>
+              <Text className={pane === 'chapters' ? SECONDARY_ON_TEXT : SECONDARY_TEXT}>Chapters ({extras.chapters.length})</Text>
             </Pressable>
           ) : null}
           {extras.transcript ? (
             <Pressable className={pane === 'transcript' ? SECONDARY_ON : SECONDARY} onPress={() => setPane(pane === 'transcript' ? 'none' : 'transcript')} accessibilityRole="button">
-              <Text className={SECONDARY_TEXT}>Transcript</Text>
+              <Text className={pane === 'transcript' ? SECONDARY_ON_TEXT : SECONDARY_TEXT}>Transcript</Text>
             </Pressable>
           ) : null}
         </View>
@@ -207,7 +207,7 @@ export default function PlayerScreen(): React.ReactElement {
           void r.settled.then((s) => { setMyBuckets(s.myBuckets); bump(state.episodeId); });
         }}
       >
-        <Text className={SECONDARY_TEXT}>{reactToggle.isReacted(shownBuckets, positionMs, heatAxisMs) ? '♥ Reacted' : '♡ React'}</Text>
+        <Text className={reactToggle.isReacted(shownBuckets, positionMs, heatAxisMs) ? SECONDARY_ON_TEXT : SECONDARY_TEXT}>{reactToggle.isReacted(shownBuckets, positionMs, heatAxisMs) ? '♥ Reacted' : '♡ React'}</Text>
       </Pressable>
       <Pressable
         className={SECONDARY}
@@ -293,3 +293,4 @@ const SECONDARY = 'min-h-12 py-2 px-section rounded-pill border border-separator
 // name as well as by the fill — never by hue alone (FR-016).
 const SECONDARY_ON = 'min-h-12 py-2 px-section rounded-pill border bg-primary border-primary justify-center';
 const SECONDARY_TEXT = 'font-semibold text-xs text-text';
+const SECONDARY_ON_TEXT = 'font-semibold text-xs text-onPrimary';

@@ -3,12 +3,13 @@
  * Change a colour here and every screen follows; `scripts/token-check.mjs` fails the
  * build if a colour literal appears anywhere else.
  *
- * **White theme, yellow brand (2026-09-27, the owner's call).** The yellow is sampled
+ * **White theme, yellow brand (2026-09-27, the owner's call).** The yellow is taken
  * from the app icon (`assets/app-icon.png`, #fcc522). Every ratio below was measured
  * with `contrast.ts` before adoption, and `PAIRS` re-checks them on every run.
  * What measuring forced:
- *   - yellow on white is 1.60, so yellow is a FILL only (`primary`), never a text
- *     colour. The words on a yellow fill are dark (`onPrimary`, 11.80);
+ *   - the owner wants WHITE words on the yellow. White on the icon's #fcc522 is 1.60,
+ *     so the fill deepens to the gold #9a6c00, where white measures 4.65. Dark text on
+ *     that gold is only 4.06, so a chosen chip's words turn white too;
  *   - links, text actions and the listener's own marks need a colour that reads on
  *     white, so `accent` is a deep amber from the same family (5.93).
  * A destructive action is told apart by its word, never by its hue (FR-016).
@@ -16,7 +17,7 @@
  * How the roles pair up:
  *   screen  → `background`, cards/sheets → `surface`
  *   words   → `text`, secondary words → `muted`, links/text actions → `accent`
- *   a solid button, a chosen chip → `bg-primary` + `text-onPrimary` (or `text-text`)
+ *   a solid button, a chosen chip → `bg-primary` + `text-onPrimary`
  */
 export const colour = {
   /** 18.85 against text. */
@@ -27,10 +28,10 @@ export const colour = {
   text: '#111114',
   /** 6.05 on background, 5.56 on surface — secondary lines. */
   muted: '#5f6368',
-  /** The brand yellow, from the app icon. A fill only: 1.60 on white, so never text. */
-  primary: '#fcc522',
-  /** Words and icons on a `primary` fill. 11.80 on primary. */
-  onPrimary: '#111114',
+  /** The brand gold: the icon's yellow, deepened so white reads on it. A fill only. */
+  primary: '#9a6c00',
+  /** Words and icons on a `primary` fill. 4.65 on primary. */
+  onPrimary: '#ffffff',
   /** 5.93 on background, 5.44 on surface — links, text actions, the listener's own marks. */
   accent: '#8a5a00',
   /** Decorative: the scrubber's unfilled track. */

@@ -37,7 +37,7 @@ export default function DownloadsScreen(): React.ReactElement {
           <View className="flex-row gap-3 items-center flex-wrap">
             {BUDGETS.map((b) => (
               <Pressable key={b} onPress={() => downloads.setBudgetBytes(b)} accessibilityRole="button">
-                <Text className={`border rounded-pill px-2.5 py-1 text-text ${downloads.budgetBytes() === b ? 'bg-primary border-primary' : 'border-separator'}`}>{b < 1024 ** 3 ? `${b / 1024 ** 2} MB` : `${b / 1024 ** 3} GB`}</Text>
+                <Text className={`border rounded-pill px-2.5 py-1 ${downloads.budgetBytes() === b ? 'bg-primary border-primary text-onPrimary' : 'border-separator text-text'}`}>{b < 1024 ** 3 ? `${b / 1024 ** 2} MB` : `${b / 1024 ** 3} GB`}</Text>
               </Pressable>
             ))}
           </View>
