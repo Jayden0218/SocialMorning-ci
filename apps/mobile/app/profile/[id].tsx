@@ -8,6 +8,9 @@
  */
 import { useCallback, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
+import { colour } from '../../src/design';
+import { Icon } from '../../src/ui/Icon';
+import { Loader } from '../../src/ui/Loader';
 import { Link, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSocial } from '../../src/social/context';
 import { useSafety } from '../../src/safety/context';
@@ -44,7 +47,7 @@ export default function ProfileScreen(): React.ReactElement {
     else router.push({ pathname: '/episode/[id]', params: { id: item.episode.id } });
   };
   if (error) return <View className="p-4 gap-3"><Text className="text-text">{error}</Text></View>;
-  if (!profile) return <View className="p-4 gap-3"><Text className="text-muted">Loading…</Text></View>;
+  if (!profile) return <View className="p-4 items-center"><Loader /></View>;
   const own = listener?.listenerId === profile.id;
   const blocked = !own && safety.isBlocked(profile.id);
   const reported = !own && safety.isHidden('profile', profile.id);
@@ -131,7 +134,7 @@ export default function ProfileScreen(): React.ReactElement {
                 <Text className="text-text text-sm font-bold">{earned.filter((x) => x.earned).length} stickers ›</Text>
                 <Text className="text-muted text-xs">{latest ? `Latest: ${latest.title}` : 'Listen for an hour to earn the first'}</Text>
               </View>
-              <Text className="text-text text-lg">{earned.filter((x) => x.earned).slice(-3).map((x) => x.emoji).join(' ')}</Text>
+              <View className="flex-row gap-1">{earned.filter((x) => x.earned).slice(-3).map((x) => <Icon key={x.id} name={x.icon} size={22} color={colour.text} />)}</View>
             </Pressable>
           </Link>
         </>

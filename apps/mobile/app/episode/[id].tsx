@@ -9,6 +9,8 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Pressable, SafeAreaView, ScrollView, Share, Text, View } from 'react-native';
+import { colour } from '../../src/design';
+import { Icon } from '../../src/ui/Icon';
 import { usePlayer, usePlayerState } from '../../src/playback/store';
 import { ago, htmlToText, minutesLabel, mmss, timestampParts } from '../../src/ui/format';
 import { useStores, useSubscriptionSync } from '../../src/ui/providers';
@@ -139,7 +141,7 @@ export default function EpisodeScreen(): React.ReactElement {
             {[minutesLabel(episode.durationMs), ago(episode.publishedAt, Date.now())].filter((p) => p !== '').join(' · ')}
           </Text>
           <BarButton label={`Comments, ${commentCount}`} onPress={() => scroll.current?.scrollTo({ y: commentsY, animated: true })}>
-            <Text className="text-sm text-text">💬 {commentCount}</Text>
+            <View className="flex-row items-center gap-1"><Icon name="chatbubble-outline" size={18} color={colour.text} /><Text className="text-sm text-text">{commentCount}</Text></View>
           </BarButton>
         </View>
         {saved === undefined ? null : (

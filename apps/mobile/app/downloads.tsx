@@ -6,6 +6,8 @@
 import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { FlatList, Pressable, Switch, Text, View } from 'react-native';
+import { colour } from '../src/design';
+import { Icon } from '../src/ui/Icon';
 import { mb } from '../src/ui/DownloadButton';
 import { useDownloads, useStores } from '../src/ui/providers';
 import type { DownloadRow } from '../src/storage/types';
@@ -44,7 +46,7 @@ export default function DownloadsScreen(): React.ReactElement {
         <>
         <Stack.Screen options={{ headerRight: () => (
           <Pressable onPress={() => setSettings((v) => !v)} accessibilityRole="button" accessibilityLabel="Download settings" accessibilityState={{ expanded: settings }} className="items-center justify-center" style={TAP}>
-            <Text className="text-accent text-lg">⚙</Text>
+            <Icon name="settings-outline" size={22} color={colour.accent} />
           </Pressable>
         ) }} />
         {settings ? (
@@ -70,7 +72,7 @@ export default function DownloadsScreen(): React.ReactElement {
       }
       ListEmptyComponent={
         <View className="items-center pt-24 gap-section">
-          <View className="w-28 h-28 rounded-pill bg-surface items-center justify-center" accessible={false}><Text className="text-text text-lg">⬇️</Text></View>
+          <View className="w-28 h-28 rounded-pill bg-surface items-center justify-center" accessible={false}><Icon name="download-outline" size={44} color={colour.muted} /></View>
           <EmptyState surface="downloads" />
         </View>
       }

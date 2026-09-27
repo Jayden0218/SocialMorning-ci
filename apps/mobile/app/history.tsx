@@ -16,7 +16,7 @@ export default function HistoryScreen(): React.ReactElement {
       data={rows}
       keyExtractor={(r) => r.episode.id}
       contentContainerClassName="px-screen-x py-row pb-24 flex-grow"
-      ListEmptyComponent={<EmptyPicture emoji="🕒" line="Nothing played yet" />}
+      ListEmptyComponent={<EmptyPicture icon="time-outline" line="Nothing played yet" />}
       renderItem={({ item }) => {
         const show = stores.feeds.getShow(item.episode.feedUrl);
         const where = item.finished ? 'Finished' : `Stopped at ${mmss(item.offsetMs)}`;
