@@ -11,6 +11,8 @@
  * layout adapts the router's props to it, so this can be tested with no router at all.
  */
 import { Pressable, Text, View } from 'react-native';
+import { colour } from '../design';
+import { Icon, type IconName } from './Icon';
 import { TAB_BAR_HEIGHT } from './Screen';
 
 export type TabItem = {
@@ -20,6 +22,8 @@ export type TabItem = {
   label: string;
   /** Appended to the label, e.g. "Following, 3 new". Never colour alone (FR-016). */
   badge?: number;
+  /** Owner, 2026-09-27 (the reference's bar): an icon over the label — outline, filled when active. */
+  icon?: { idle: IconName; active: IconName };
 };
 
 export function TabBar(props: {
@@ -30,7 +34,7 @@ export function TabBar(props: {
 }): React.ReactElement {
   return (
     <View
-      className={`flex-row bg-surface border-t-hairline border-separator ${props.className ?? ''}`}
+      className={`flex-row bg-background border-t-hairline border-separator ${props.className ?? ''}`}
       // `minHeight`, never `height`: at the largest system font the labels must push the
       // bar taller rather than clip (M6 J6 found exactly this on the Account screen).
       // It stays a style because `TAB_BAR_HEIGHT` is the one source for this number.
@@ -46,13 +50,23 @@ export function TabBar(props: {
             accessibilityRole="tab"
             accessibilityLabel={badge === undefined ? item.label : `${item.label}, ${badge} new`}
             accessibilityState={{ selected }}
-            className="flex-1 min-h-12 py-2 px-2 items-center justify-center"
+            className="flex-1 min-h-12 pt-2 pb-1 px-2 items-center justify-center gap-1"
             onPress={() => props.onSelect(item.key)}
           >
-            {/* The active tab is told apart by weight AND colour, and by `accessibilityState`
-                — never by colour alone (FR-016). */}
+            {item.icon ? (
+              <View>
+                <Icon name={selected ? item.icon.active : item.icon.idle} size={26} color={selected ? colour.accent : colour.muted} />
+                {badge === undefined ? null : (
+                  <View className="absolute -top-1 -right-3 min-w-5 px-1 rounded-pill bg-accent items-center">
+                    <Text className="text-background text-xs font-bold">{badge}</Text>
+                  </View>
+                )}
+              </View>
+            ) : null}
+            {/* The active tab is told apart by weight AND colour AND a filled icon, and by
+                `accessibilityState` — never by colour alone (FR-016). */}
             <Text className={selected ? 'text-xs text-accent font-bold' : 'text-xs text-muted'} numberOfLines={1}>
-              {badge === undefined ? item.label : `${item.label} (${badge})`}
+              {badge === undefined || item.icon ? item.label : `${item.label} (${badge})`}
             </Text>
           </Pressable>
         );

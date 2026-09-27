@@ -57,6 +57,9 @@ const TAILWIND_ADDITIONS = ['nativewind', 'react-native-reanimated', 'react-nati
 /** Notification permission on the sign-in page (owner, 2026-09-27). MIT (LICENSES.md). */
 const NOTIFY_ADDITIONS = ['expo-notifications'];
 
+/** Tab bar and mini player icons (owner, 2026-09-27). A font over expo-font; MIT (LICENSES.md). */
+const ICON_ADDITIONS = ['@expo/vector-icons'];
+
 /** Scanning a QR code on the search page (owner, 2026-09-27). MIT (LICENSES.md). */
 const SCAN_ADDITIONS = ['expo-camera'];
 
@@ -76,6 +79,6 @@ it('M7 added exactly expo-blur and expo-linear-gradient, Tailwind its three, not
   const now = Object.keys(pkg.dependencies).sort();
   const added = now.filter((name) => !M6_DEPENDENCIES.includes(name));
   const removed = M6_DEPENDENCIES.filter((name) => !now.includes(name));
-  expect(added.sort()).toEqual([...M7_ADDITIONS, ...TAILWIND_ADDITIONS, ...NOTIFY_ADDITIONS, ...SCAN_ADDITIONS].sort());
+  expect(added.sort()).toEqual([...M7_ADDITIONS, ...TAILWIND_ADDITIONS, ...NOTIFY_ADDITIONS, ...SCAN_ADDITIONS, ...ICON_ADDITIONS].sort());
   expect(removed).toEqual([]);
 });

@@ -90,6 +90,13 @@ it('shows the episode, the show and the artwork, and opens the player', () => {
   expect(link?.props['accessibilityRole']).toBe('link');
 });
 
+it('with a length known, the second line is the time — "26:37/1:30:28", as in the reference — and Queue is one tap away', () => {
+  mockPlayerState = { kind: 'paused', episodeId: 'e1', positionMs: 1_597_000, durationMs: 5_428_000 };
+  const r = render(createElement(MiniPlayer, { pathname: '/episode/e1' }));
+  expect(JSON.stringify(r.toJSON())).toContain('26:37/1:30:28');
+  expect(byLabel(r, 'Queue')?.props['accessibilityRole']).toBe('link');
+});
+
 it('the play/pause button carries the state in its NAME, not only in its glyph', () => {
   mockPlayerState = { kind: 'paused', episodeId: 'e1' };
   const paused = render(createElement(MiniPlayer, { pathname: '/episode/e1' }));
@@ -124,7 +131,7 @@ it('reserves its height with minHeight, so the largest system font grows the bar
   const bar = flat(r.root.findAll((n) => typeof n.type === 'string')[0]!.props['style']);
   expect(bar['height']).toBeUndefined();
   expect(bar['minHeight']).toBe(MINI_PLAYER_HEIGHT);
-  expect(bar['backgroundColor']).toBe(colour.surface);
+  expect(bar['backgroundColor']).toBe(colour.background);
   const button = flat(byLabel(r, 'Play')!.props['style']);
   expect(Number(button['minHeight'])).toBeGreaterThanOrEqual(hit.min);
   expect(Number(button['minWidth'])).toBeGreaterThanOrEqual(hit.min);
@@ -132,7 +139,7 @@ it('reserves its height with minHeight, so the largest system font grows the bar
 
 it('exactly one bar: the root instance stands down on a tab route, where the tab layout draws its own', () => {
   mockPlayerState = { kind: 'playing', episodeId: 'e1' };
-  for (const path of ['/', '/discover', '/following']) {
+  for (const path of ['/', '/discover', '/library', '/following']) {
     expect(render(createElement(MiniPlayer, { pathname: path, context: 'root' })).toJSON()).toBeNull();
     expect(render(createElement(MiniPlayer, { pathname: path, context: 'tabs' })).toJSON()).not.toBeNull();
   }

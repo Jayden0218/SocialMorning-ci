@@ -1,8 +1,10 @@
 /**
  * The few icons the show, episode and player pages draw (owner's reference, 2026-09-27).
- * Drawn with views, like the search page's box and QR square: no icon font, no new
- * dependency. Every one is decoration — the Pressable around it carries the name.
+ * Drawn with views, like the search page's box and QR square. Every one is decoration —
+ * the Pressable around it carries the name. `Icon` at the end is the one font icon.
  */
+import Ionicons from '@expo/vector-icons/Ionicons';
+import type { ComponentProps } from 'react';
 import { Text, View } from 'react-native';
 import { colour, type Colour } from '../design';
 
@@ -65,4 +67,15 @@ export function Dots(): React.ReactElement {
 /** A plain glyph at icon size, for the shapes a font already draws well (← ↗ ♡). */
 export function Glyph(props: { children: string; className?: string }): React.ReactElement {
   return <Text {...HIDE} className={`text-text text-lg ${props.className ?? ''}`}>{props.children}</Text>;
+}
+
+/**
+ * A font icon, for the tab bar and the mini player (owner's reference, 2026-09-27):
+ * Ionicons from `@expo/vector-icons` (MIT). A font, so no new native module — `expo-font`
+ * is already in every build. Decoration, like the rest of this file.
+ */
+export type IconName = ComponentProps<typeof Ionicons>['name'];
+
+export function Icon(props: { name: IconName; size: number; color: string }): React.ReactElement {
+  return <Ionicons name={props.name} size={props.size} color={props.color} {...HIDE} />;
 }

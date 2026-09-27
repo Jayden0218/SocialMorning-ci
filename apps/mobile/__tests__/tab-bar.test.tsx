@@ -69,7 +69,7 @@ it('no fixed height anywhere, and every tab clears the 48 dp target', () => {
   const bar = flat(r.root.findAll((n) => typeof n.type === 'string')[0]!.props['style']);
   expect(bar['height']).toBeUndefined();
   expect(bar['minHeight']).toBe(TAB_BAR_HEIGHT);
-  expect(bar['backgroundColor']).toBe(colour.surface);
+  expect(bar['backgroundColor']).toBe(colour.background);
   for (const t of tabs(r)) {
     const s = flat(t.props['style']);
     expect(s['height']).toBeUndefined();
@@ -82,4 +82,19 @@ it('the active tab differs by weight as well as colour (FR-016: never hue alone)
   const labels = r.root.findAll((n) => String(n.type) === 'Text').map((n) => flat(n.props['style']));
   expect(labels[0]!['fontWeight']).toBe('700');
   expect(labels[1]!['fontWeight']).toBeUndefined();
+});
+
+it('with icons (owner, 2026-09-27): the active tab shows the filled icon, the others the outline', () => {
+  const items = ITEMS.map((t) => ({ ...t, icon: { idle: 'planet-outline' as const, active: 'planet' as const } }));
+  const r = render(createElement(TabBar, { items, activeKey: 'discover', onSelect: jest.fn() }));
+  const names = r.root.findAll((n) => typeof n.props['name'] === 'string' && n.props['size'] === 26).map((n) => n.props['name']);
+  // One icon per tab (a composite may repeat the prop, so compare the distinct sequence).
+  const perTab = names.filter((_, i) => i === 0 || names[i - 1] !== names[i] || false);
+  expect(perTab).toContain('planet');
+  expect(names.filter((n) => n === 'planet').length).toBeGreaterThan(0);
+  expect(names.filter((n) => n === 'planet-outline').length).toBeGreaterThan(0);
+  // The badge still reaches a screen reader by name when the count is drawn on the icon.
+  const withBadge = items.map((t) => (t.key === 'following' ? { ...t, badge: 2 } : t));
+  const b = render(createElement(TabBar, { items: withBadge, activeKey: 'index', onSelect: jest.fn() }));
+  expect(tabs(b)[2]!.props['accessibilityLabel']).toBe('Following, 2 new');
 });

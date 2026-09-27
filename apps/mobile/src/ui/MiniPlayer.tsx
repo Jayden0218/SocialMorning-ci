@@ -17,23 +17,31 @@
  */
 import { Link, usePathname } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
+import { colour, hit } from '../design';
 import { usePlayer, usePlayerState } from '../playback/store';
 import { useStores } from './providers';
 import { Artwork } from './Artwork';
+import { mmss } from './format';
+import { Icon } from './Icon';
+import { ProgressRing } from './ProgressRing';
 import { MINI_PLAYER_HEIGHT } from './Screen';
 
 /** Artwork in the bar. Smaller than a list row's, because the bar is not a row. */
-const MINI_ARTWORK = 40;
+const MINI_ARTWORK = 48;
 
-/** The three routes that live behind the tab bar (T012). */
-export const TAB_ROUTES: readonly string[] = ['/', '/discover', '/following'];
+/** The play button's ring, and the queue button beside it (owner's reference, 2026-09-27). */
+const RING = hit.min;
+const ROUND = { width: hit.min, height: hit.min, minWidth: hit.min, minHeight: hit.min };
+
+/** The routes that live behind the tab bar (T012; `/library` since M10's reorder). */
+export const TAB_ROUTES: readonly string[] = ['/', '/discover', '/library', '/following'];
 
 /**
  * No `height`: at the largest system font the title and the show name must be allowed to
  * push the bar taller rather than clip (M6 J6). `minHeight` stays a style because
  * `MINI_PLAYER_HEIGHT` is the one source for this number (`Screen` reserves it too).
  */
-const BAR = 'flex-row items-center gap-row px-row py-2 bg-surface border-t-hairline border-separator';
+const BAR = 'flex-row items-center gap-row px-section py-2 bg-background border-t-hairline border-separator';
 const BAR_HEIGHT = { minHeight: MINI_PLAYER_HEIGHT };
 
 /**
@@ -72,6 +80,10 @@ export function MiniPlayer(props: { pathname?: string; context?: 'root' | 'tabs'
   const episode = stores.feeds.getEpisode(state.episodeId);
   const show = episode ? stores.feeds.getShow(episode.feedUrl) : undefined;
   const isPlaying = state.kind === 'playing' || state.kind === 'buffering';
+  // "26:37/1:30:28" under the title, and the ring around the play button (the reference's bar).
+  const positionMs = 'positionMs' in state && typeof state.positionMs === 'number' ? state.positionMs : 0;
+  const durationMs = ('durationMs' in state ? state.durationMs : undefined) ?? episode?.durationMs;
+  const progress = durationMs ? positionMs / durationMs : 0;
 
   return (
     <View className={`${BAR} ${props.className ?? ''}`} style={BAR_HEIGHT}>
@@ -83,14 +95,12 @@ export function MiniPlayer(props: { pathname?: string; context?: 'root' | 'tabs'
         >
           <Artwork url={episode?.imageUrl ?? show?.imageUrl} size={MINI_ARTWORK} />
           <View className="flex-1">
-            <Text className="text-sm text-text" numberOfLines={1}>
+            <Text className="text-sm text-text font-semibold" numberOfLines={1}>
               {episode?.title ?? 'Now playing'}
             </Text>
-            {show?.title ? (
-              <Text className="text-xs text-muted" numberOfLines={1}>
-                {show.title}
-              </Text>
-            ) : null}
+            <Text className="text-xs text-muted" numberOfLines={1}>
+              {durationMs ? `${mmss(positionMs)}/${mmss(durationMs)}` : (show?.title ?? mmss(positionMs))}
+            </Text>
           </View>
         </Pressable>
       </Link>
@@ -98,11 +108,19 @@ export function MiniPlayer(props: { pathname?: string; context?: 'root' | 'tabs'
         accessibilityRole="button"
         accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
         accessibilityState={{ selected: isPlaying }}
-        className="min-w-12 min-h-12 px-row rounded-pill items-center justify-center"
+        className="rounded-pill items-center justify-center"
+        style={ROUND}
         onPress={() => (isPlaying ? player.pause() : player.play())}
       >
-        <Text className="text-sm font-semibold text-accent">{isPlaying ? 'Pause' : 'Play'}</Text>
+        <ProgressRing progress={progress} size={RING} stroke={3}>
+          <Icon name={isPlaying ? 'pause' : 'play'} size={22} color={colour.text} />
+        </ProgressRing>
       </Pressable>
+      <Link href="/queue" asChild>
+        <Pressable accessibilityRole="link" accessibilityLabel="Queue" className="rounded-pill bg-surface items-center justify-center" style={ROUND}>
+          <Icon name="list" size={24} color={colour.accent} />
+        </Pressable>
+      </Link>
     </View>
   );
 }

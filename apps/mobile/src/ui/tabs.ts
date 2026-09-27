@@ -14,9 +14,9 @@ import type { TabItem } from './TabBar';
  * because links carrying it already exist (G3).
  */
 export const TABS: readonly TabItem[] = [
-  { key: 'index', label: 'Discover' },
-  { key: 'library', label: 'Library' },
-  { key: 'following', label: 'Following' },
+  { key: 'index', label: 'Discover', icon: { idle: 'planet-outline', active: 'planet' } },
+  { key: 'library', label: 'Library', icon: { idle: 'library-outline', active: 'library' } },
+  { key: 'following', label: 'Following', icon: { idle: 'people-outline', active: 'people' } },
 ];
 
 /**
