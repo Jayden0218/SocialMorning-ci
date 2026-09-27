@@ -45,7 +45,11 @@ async function appWith(initial: { guid: string; title: string; at: number }[], d
   return { t, sent, state };
 }
 
-const rebuild = (t: TestDb) => t.call('POST', '/v1/internal/rebuild', { step: 'feeds' }, undefined, { authorization: `Bearer ${JOB}` });
+/** One hourly cycle. The feed cache lives an hour (TTL.feed), so a real cycle reads the feed fresh; here it is cleared. */
+const rebuild = async (t: TestDb) => {
+  await t.q("DELETE FROM cache WHERE key LIKE 'feed:%'");
+  return t.call('POST', '/v1/internal/rebuild', { step: 'feeds' }, undefined, { authorization: `Bearer ${JOB}` });
+};
 const TOKEN_A = 'ExponentPushToken[aaaaaaaaaaaa]';
 const TOKEN_B = 'ExponentPushToken[bbbbbbbbbbbb]';
 
