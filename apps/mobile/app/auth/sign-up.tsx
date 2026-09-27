@@ -1,10 +1,12 @@
 /** Create an account (US5 #1, #2). Display names need not be unique (clarified 2026-09-21). */
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Text } from 'react-native';
 import { useSocial } from '../../src/social/context';
-import { body, button, buttonText, describe, errorText, input } from './sign-in';
-import { colour } from '../../src/design';
+import { describe, errorText } from './sign-in';
+import { AuthButton, AuthField, AuthShell } from '../../src/ui/auth/AuthShell';
+import { ConsentDialog, ConsentRow, useLegalOverlay } from '../../src/ui/auth/Consent';
+import { looksLikeEmail, submitAction } from '../../src/ui/auth/rules';
 
 export default function SignUpScreen(): React.ReactElement {
   const { auth } = useSocial();
@@ -13,8 +15,11 @@ export default function SignUpScreen(): React.ReactElement {
   const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
+  const [agreed, setAgreed] = useState(false);
+  const [asking, setAsking] = useState(false);
+  const legal = useLegalOverlay();
 
-  const valid = email.includes('@') && password.length >= 8 && displayName.trim().length >= 1 && displayName.trim().length <= 40;
+  const valid = looksLikeEmail(email) && password.length >= 8 && displayName.trim().length >= 1 && displayName.trim().length <= 40;
 
   async function submit() {
     setBusy(true);
@@ -31,18 +36,24 @@ export default function SignUpScreen(): React.ReactElement {
     }
   }
 
+  const action = submitAction({ valid, agreed, busy });
+
   return (
-    <View className={body}>
-      <TextInput
-        placeholderTextColor={colour.muted} className={input} placeholder="Display name (what others see)" value={displayName} onChangeText={setDisplayName} maxLength={40} accessibilityLabel="Display name" />
-      <TextInput
-        placeholderTextColor={colour.muted} className={input} placeholder="Email" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} accessibilityLabel="Email" />
-      <TextInput
-        placeholderTextColor={colour.muted} className={input} placeholder="Password (8+ characters)" secureTextEntry value={password} onChangeText={setPassword} accessibilityLabel="Password" />
-      {error ? <Text className={errorText}>{error}</Text> : null}
-      <Pressable className={`${button} ${busy || !valid ? 'opacity-50' : ''}`} disabled={busy || !valid} onPress={submit} accessibilityRole="button">
-        <Text className={buttonText}>Create account</Text>
-      </Pressable>
-    </View>
+    <AuthShell title="Create account">
+      <AuthField placeholder="Display name (what others see)" value={displayName} onChangeText={setDisplayName} maxLength={40} accessibilityLabel="Display name" />
+      <AuthField placeholder="Email" autoCapitalize="none" keyboardType="email-address" autoComplete="email" value={email} onChangeText={setEmail} accessibilityLabel="Email" />
+      <AuthField placeholder="Password (8+ characters)" secureTextEntry autoComplete="new-password" value={password} onChangeText={setPassword} accessibilityLabel="Password" />
+      {error ? <Text className={errorText} accessibilityLiveRegion="polite">{error}</Text> : null}
+      <AuthButton label="Create account" disabled={action === 'disabled'} busy={busy} onPress={() => (action === 'ask' ? setAsking(true) : void submit())} />
+      <ConsentRow agreed={agreed} onToggle={() => setAgreed((a) => !a)} open={legal.open} />
+      <ConsentDialog
+        visible={asking}
+        action="create account"
+        open={legal.open}
+        onCancel={() => setAsking(false)}
+        onAgree={() => { setAsking(false); setAgreed(true); void submit(); }}
+      />
+      {legal.overlay}
+    </AuthShell>
   );
 }

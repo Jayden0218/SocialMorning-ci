@@ -48,8 +48,9 @@ export default function RootLayout(): React.ReactElement {
           <Stack.Screen name="show/[feedUrl]" options={{ title: 'Show' }} />
           <Stack.Screen name="episode/[id]" options={{ title: 'Episode' }} />
           <Stack.Screen name="player" options={{ title: 'Now Playing' }} />
-          <Stack.Screen name="auth/sign-in" options={{ title: 'Sign in' }} />
-          <Stack.Screen name="auth/sign-up" options={{ title: 'Create account' }} />
+          {/* The auth pages draw their own close ✕ and title (owner's reference, 2026-09-27). */}
+          <Stack.Screen name="auth/sign-in" options={{ title: 'Sign in', headerShown: false }} />
+          <Stack.Screen name="auth/sign-up" options={{ title: 'Create account', headerShown: false }} />
           <Stack.Screen name="account" options={{ title: 'Account' }} />
           <Stack.Screen name="downloads" options={{ title: 'Downloads' }} />
           <Stack.Screen name="queue" options={{ title: 'Queue' }} />

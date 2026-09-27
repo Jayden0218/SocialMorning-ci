@@ -1,13 +1,18 @@
-/** Sign in (US5). The 409/429 messages come from the server verbatim (contracts/api.md). */
+/**
+ * Sign in (US5). The 409/429 messages come from the server verbatim (contracts/api.md).
+ * Laid out after the owner's reference screenshots (2026-09-27): see `src/ui/auth/`.
+ */
 import { Link, router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, Text } from 'react-native';
 import { ApiError } from '../../src/social/api';
 import { SUSPENDED_KEY, useSocial } from '../../src/social/context';
 import { useStores } from '../../src/ui/providers';
-import { colour } from '../../src/design';
 import { askForNotifications } from '../../src/notify/permission';
 import { expoNotify } from '../../src/notify/expo';
+import { AuthButton, AuthField, AuthShell } from '../../src/ui/auth/AuthShell';
+import { ConsentDialog, ConsentRow, useLegalOverlay } from '../../src/ui/auth/Consent';
+import { looksLikeEmail, submitAction } from '../../src/ui/auth/rules';
 
 export default function SignInScreen(): React.ReactElement {
   const { auth } = useSocial();
@@ -17,6 +22,9 @@ export default function SignInScreen(): React.ReactElement {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
+  const [agreed, setAgreed] = useState(false);
+  const [asking, setAsking] = useState(false);
+  const legal = useLegalOverlay();
 
   // Owner, 2026-09-27: the OS asks for notification permission when this page opens.
   useEffect(() => { void askForNotifications(expoNotify); }, []);
@@ -36,19 +44,30 @@ export default function SignInScreen(): React.ReactElement {
     }
   }
 
+  const action = submitAction({ valid: looksLikeEmail(email) && password.length > 0, agreed, busy });
+
   return (
-    <View className={body}>
-      <TextInput
-        placeholderTextColor={colour.muted} className={input} placeholder="Email" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} accessibilityLabel="Email" />
-      <TextInput
-        placeholderTextColor={colour.muted} className={input} placeholder="Password" secureTextEntry value={password} onChangeText={setPassword} accessibilityLabel="Password" />
+    <AuthShell title="Sign in">
+      <AuthField placeholder="Email" autoCapitalize="none" keyboardType="email-address" autoComplete="email" value={email} onChangeText={setEmail} accessibilityLabel="Email" />
+      <AuthField placeholder="Password" secureTextEntry autoComplete="password" value={password} onChangeText={setPassword} accessibilityLabel="Password" />
       {suspended ? <Text className={errorText} accessibilityLiveRegion="polite">{suspended}</Text> : null}
       {error ? <Text className={errorText} accessibilityLiveRegion="polite">{error}</Text> : null}
-      <Pressable className={`${button} ${busy ? 'opacity-50' : ''}`} disabled={busy || !email || !password} onPress={submit} accessibilityRole="button">
-        <Text className={buttonText}>Sign in</Text>
-      </Pressable>
-      <Link href="/auth/sign-up" className={link} accessibilityRole="link">Create an account</Link>
-    </View>
+      <AuthButton label="Sign in" disabled={action === 'disabled'} busy={busy} onPress={() => (action === 'ask' ? setAsking(true) : void submit())} />
+      <ConsentRow agreed={agreed} onToggle={() => setAgreed((a) => !a)} open={legal.open} />
+      <Link href="/auth/sign-up" asChild>
+        <Pressable accessibilityRole="link" accessibilityLabel="Create an account" className="items-center justify-center min-h-12">
+          <Text className="text-accent text-sm">Create an account</Text>
+        </Pressable>
+      </Link>
+      <ConsentDialog
+        visible={asking}
+        action="sign in"
+        open={legal.open}
+        onCancel={() => setAsking(false)}
+        onAgree={() => { setAsking(false); setAgreed(true); void submit(); }}
+      />
+      {legal.overlay}
+    </AuthShell>
   );
 }
 
@@ -60,10 +79,5 @@ export function describe(e: unknown): string {
   return 'Something went wrong. Try again.';
 }
 
-/** Shared with sign-up, so the two forms stay one look. */
-export const body = 'p-4 gap-3';
-export const input = 'border border-separator rounded-lg p-3 text-sm text-text';
-export const errorText = 'text-accent';
-export const button = 'bg-primary rounded-3xl py-3 items-center';
-export const buttonText = 'text-onPrimary text-sm font-semibold';
-export const link = 'text-accent text-[15px] py-2';
+/** Shared with sign-up. */
+export const errorText = 'text-accent text-sm';
