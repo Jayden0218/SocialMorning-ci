@@ -49,8 +49,8 @@ export function AuthField(props: TextInputProps & { accessibilityLabel: string }
   );
 }
 
-/** The full-width primary button. Pale until the form is valid. */
-export function AuthButton(props: { label: string; disabled: boolean; busy?: boolean; onPress: () => void }): React.ReactElement {
+/** The full-width button: solid yellow (the form's own), or outlined (another way in). Pale until usable. */
+export function AuthButton(props: { label: string; disabled: boolean; busy?: boolean; outline?: boolean; onPress: () => void }): React.ReactElement {
   return (
     <Pressable
       onPress={props.onPress}
@@ -58,10 +58,10 @@ export function AuthButton(props: { label: string; disabled: boolean; busy?: boo
       accessibilityRole="button"
       accessibilityLabel={props.label}
       accessibilityState={{ disabled: props.disabled, busy: props.busy === true }}
-      className={`bg-primary rounded-row items-center justify-center mt-row ${props.disabled ? 'opacity-40' : ''}`}
+      className={`${props.outline ? 'border border-separator' : 'bg-primary'} rounded-row items-center justify-center mt-row ${props.disabled ? 'opacity-40' : ''}`}
       style={FIELD}
     >
-      <Text className="text-onPrimary text-sm font-semibold">{props.busy ? '…' : props.label}</Text>
+      <Text className={props.outline ? 'text-text text-sm font-semibold' : 'text-onPrimary text-sm font-semibold'}>{props.busy ? '…' : props.label}</Text>
     </Pressable>
   );
 }
