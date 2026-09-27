@@ -24,6 +24,9 @@ const KIND: Record<BlockKind, string> = {
   row: 'text-muted text-xs leading-[20px]',
 };
 
+/** iOS's scroll bar sits 3 pt inside the right edge by default; this puts it on the edge. */
+const EDGE = { right: -3 } as const;
+
 /** Kept as a style: the tap target is asserted on the Pressable's own `style` elsewhere. */
 const TAP = { minHeight: hit.min, minWidth: hit.min };
 
@@ -68,8 +71,10 @@ export function LegalDoc(props: { text: string; onClose: () => void }): React.Re
         </Pressable>
       </View>
       {/* The ScrollView spans the full width, so its scroll bar sits on the screen's edge;
-          the side margin is on the inner View, so the bar never lies over the words. */}
-      <ScrollView className="flex-1">
+          the side margin is on the inner View, so the bar never lies over the words.
+          iOS still draws its bar ~3 pt in from the edge; the owner wants it on the edge
+          (2026-09-27), so the inset is pulled out by that much. Android draws it on the edge. */}
+      <ScrollView className="flex-1" automaticallyAdjustsScrollIndicatorInsets={false} scrollIndicatorInsets={EDGE}>
         <View className="px-screen-x pt-2 pb-section">
           <Text className="text-text text-lg font-bold leading-[32px] mb-section" accessibilityRole="header">{title}</Text>
           {body.map((b, i) => <BlockText key={i} block={b} />)}
