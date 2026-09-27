@@ -34,7 +34,7 @@ export default function LibraryScreen(): React.ReactElement {
   const stores = useStores();
   const { safety, version: safetyVersion, hiddenFeeds } = useSafety();
   void safetyVersion;
-  const { listener } = useSocial();
+  const { listener, auth } = useSocial();
   const [rows, setRows] = useState<Row[]>([]);
   const [tick, setTick] = useState(0);
 
@@ -91,7 +91,18 @@ export default function LibraryScreen(): React.ReactElement {
           {listener === undefined ? (
             <NavLink href="/auth/sign-in" label="Sign in to comment" />
           ) : (
-            <NavLink href="/account" label={`Signed in as ${listener.displayName}`} />
+            <>
+              <NavLink href="/account" label={`Signed in as ${listener.displayName}`} />
+              {/* Owner, 2026-09-27: Sign out one tap away, not only inside Account. */}
+              <Pressable
+                onPress={() => void auth.signOut()}
+                accessibilityRole="button"
+                accessibilityLabel="Sign out"
+                className="min-h-12 py-row justify-center border-b-hairline border-separator"
+              >
+                <Text className="text-sm text-accent">Sign out</Text>
+              </Pressable>
+            </>
           )}
         </View>
       }

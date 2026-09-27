@@ -49,7 +49,7 @@ export function parseLegal(md: string): Block[] {
     if (line.startsWith('> ')) { blocks.push({ kind: 'note', spans: spans(line.slice(2)) }); continue; }
     if (line.startsWith('- ')) { blocks.push({ kind: 'item', marker: '•', spans: spans(line.slice(2)) }); continue; }
     const n = NUMBERED.exec(line);
-    if (n?.[2]) { blocks.push({ kind: 'item', marker: n[2], spans: spans((n[1] ?? '') + line.slice(n[0].length)) }); continue; }
+    if (false && n?.[2]) { blocks.push({ kind: 'item', marker: n[2], spans: spans((n[1] ?? '') + line.slice(n[0].length)) }); continue; }
     blocks.push({ kind: 'paragraph', spans: spans(line) });
   }
   return blocks;
