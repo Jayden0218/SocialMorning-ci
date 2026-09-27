@@ -43,7 +43,7 @@ export default function EpisodeScreen(): React.ReactElement {
   const { cached, stale } = useEpisodeSocial(episode?.id);
   const subscriptionSync = useSubscriptionSync();
   const [subscribed, setSubscribed] = useState(() => episode !== undefined && stores.subscriptions.has(episode.feedUrl));
-  const scroll = useRef<ScrollView>(null);
+  const scroll = useRef<React.ComponentRef<typeof ScrollView>>(null);
   const [commentsY, setCommentsY] = useState(0);
 
   if (episode === undefined) {
