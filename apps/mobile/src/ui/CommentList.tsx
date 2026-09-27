@@ -15,6 +15,8 @@ import { Placeholder, placeholderFor } from './Placeholder';
 import { ReportSheet, type ReportTarget } from './ReportSheet';
 import type { Comment } from '../social/api';
 import { EmptyState } from './EmptyState';
+import { useStores } from './providers';
+import { isFavComment, toggleFavComment } from '../me/fav-comments';
 
 export function CommentList(props: {
   episodeId: string;
@@ -30,6 +32,13 @@ export function CommentList(props: {
   const [order, setOrder] = useState<CommentOrder>('newest');
   const [busy, setBusy] = useState<string | undefined>();
   const [reporting, setReporting] = useState<ReportTarget | undefined>();
+  // M10b US2 (FR-005): star a comment; it appears under Favourites → Comments.
+  const stores = useStores();
+  const [, starred] = useState(0);
+  const star = (c: Comment) => {
+    toggleFavComment(stores.settings, { commentId: c.id, episodeId: props.episodeId, body: c.body ?? '', author: c.displayName ?? 'A listener', offsetMs: c.offsetMs }, Date.now());
+    starred((n) => n + 1);
+  };
 
   // M6 (R1): the phone's own blocks and reports apply before anything renders — instant, offline.
   const visible = useMemo(() => safety.comments(props.comments), [props.comments, safety]);
@@ -69,6 +78,11 @@ export function CommentList(props: {
             {!isReply ? (
               <Pressable onPress={() => (listener ? props.onReply(c.id) : needSignIn())} accessibilityRole="button">
                 <Text className="text-accent text-[14px]">{listener ? 'Reply' : 'Sign in to reply'}</Text>
+              </Pressable>
+            ) : null}
+            {c.body ? (
+              <Pressable onPress={() => star(c)} accessibilityRole="button" accessibilityState={{ selected: isFavComment(stores.settings, c.id) }} accessibilityLabel={isFavComment(stores.settings, c.id) ? 'Remove this comment from favourites' : 'Add this comment to favourites'}>
+                <Text className="text-accent text-[14px]">{isFavComment(stores.settings, c.id) ? '★' : '☆'}</Text>
               </Pressable>
             ) : null}
             {c.mine ? (

@@ -11,7 +11,7 @@ import { createSocialCache, type CachedSocial, type SocialCache } from './cache'
 import { registrationFor } from './registration';
 import { createReactToggle } from './react';
 import { secureToken } from './token';
-import { usePositionSync, useStores } from '../ui/providers';
+import { useLibrarySync, usePositionSync, useStores } from '../ui/providers';
 import { apiBaseUrl } from './base-url';
 import { toSignIn } from '../ui/auth/navigate';
 import type { AuthRow } from '../storage/types';
@@ -47,12 +47,13 @@ export function useSocial(): SocialContextValue {
 export function SocialProvider(props: { children?: ReactNode }): ReactNode {
   const stores = useStores();
   const sync = usePositionSync();
+  const library = useLibrarySync();
   const [listener, setListener] = useState<AuthRow | undefined>(() => stores.auth.get());
 
   // M6 (FR-015): a suspended answer ends the local session and leaves the message for the sign-in screen.
   const suspendedRef = useRef<(m: string) => void>(() => undefined);
   const api = useMemo(() => createApi({ baseUrl: apiBaseUrl(), fetch, getToken: secureToken.get, onSuspended: (m) => suspendedRef.current(m) }), []);
-  const auth = useMemo(() => createAuth({ api, stores, token: secureToken, now: () => Date.now(), onSignedIn: () => sync.reconcile() }), [api, stores, sync]);
+  const auth = useMemo(() => createAuth({ api, stores, token: secureToken, now: () => Date.now(), onSignedIn: () => { void library.reconcile().catch(() => undefined); return sync.reconcile(); } }), [api, stores, sync, library]);
   const refreshListener = useCallback(() => setListener(stores.auth.get()), [stores]);
   suspendedRef.current = (m) => {
     stores.settings.set(SUSPENDED_KEY, m);

@@ -6,6 +6,7 @@
  */
 import type { SettingsStore } from '../storage/types';
 import { readList, writeList } from './local-list';
+import { recordChange } from '../sync/library';
 
 export const MOMENTS_KEY = 'me.moments';
 export const NOTE_MAX = 500;
@@ -21,13 +22,18 @@ export const listMoments = (s: SettingsStore): Moment[] => readList(s, MOMENTS_K
 export function saveMoment(s: SettingsStore, episodeId: string, atMs: number, note: string, now: number): Moment {
   const m: Moment = { id: `${episodeId}@${Math.max(0, Math.floor(atMs))}@${now}`, episodeId, atMs: Math.max(0, Math.floor(atMs)), note: note.trim().slice(0, NOTE_MAX), savedAt: now };
   writeList(s, MOMENTS_KEY, [m, ...listMoments(s)]);
+  recordChange(s, 'moment', m.id, { episodeId: m.episodeId, atMs: m.atMs, note: m.note, savedAt: m.savedAt }, now);
   return m;
 }
 
-export function editMoment(s: SettingsStore, id: string, note: string): void {
-  writeList(s, MOMENTS_KEY, listMoments(s).map((m) => (m.id === id ? { ...m, note: note.trim().slice(0, NOTE_MAX) } : m)));
+export function editMoment(s: SettingsStore, id: string, note: string, now = Date.now()): void {
+  const next = listMoments(s).map((m) => (m.id === id ? { ...m, note: note.trim().slice(0, NOTE_MAX) } : m));
+  writeList(s, MOMENTS_KEY, next);
+  const m = next.find((x) => x.id === id);
+  if (m) recordChange(s, 'moment', id, { episodeId: m.episodeId, atMs: m.atMs, note: m.note, savedAt: m.savedAt }, now);
 }
 
-export function deleteMoment(s: SettingsStore, id: string): void {
+export function deleteMoment(s: SettingsStore, id: string, now = Date.now()): void {
   writeList(s, MOMENTS_KEY, listMoments(s).filter((m) => m.id !== id));
+  recordChange(s, 'moment', id, undefined, now);
 }

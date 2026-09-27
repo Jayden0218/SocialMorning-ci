@@ -94,6 +94,8 @@ export type Discover = {
   said?: SaidItem[];
   collections?: Collection[];
 };
+export type LibraryItem = { kind: 'fav_episode' | 'fav_comment' | 'moment' | 'search'; key: string; payload?: Record<string, unknown>; updatedAt: string; deletedAt?: string };
+export type MyComment = { id: string; body: string | null; deleted: boolean; removed: boolean; offsetMs: number | null; createdAt: string; episode: EpisodeCard };
 export type CategoryShows = { genreId: number; name: string; shows: ShowCard[]; stale?: boolean };
 export type DiscoverResult = { status: 200; etag?: string; body: Discover } | { status: 304 };
 export type ShowCard = { appleId?: number; feedUrl: string; title: string; author: string; imageUrl?: string; genres: string[]; episodeCount?: number };
@@ -153,6 +155,10 @@ export type ApiClient = {
   // M5
   discover(ifNoneMatch?: string): Promise<DiscoverResult>;
   search(q: string): Promise<SearchResult>;
+  /** M10b US2: the account's library (favourites, moments, searches, favourite comments), merged. */
+  libraryPut(items: LibraryItem[]): Promise<{ items: LibraryItem[] }>;
+  /** M10b US2: your own comments with their text. */
+  myComments(before?: string): Promise<{ items: MyComment[]; next?: string }>;
   /** M10: one Apple genre's top shows (the genre list itself is `src/discover/genres.ts`). */
   category(genreId: number): Promise<CategoryShows>;
   nextUp(episodeId: string): Promise<{ items: NextUpItem[]; computedAt: string }>;
@@ -266,6 +272,8 @@ export function createApi(deps: ApiDeps): ApiClient {
       return { status: 200, ...(etag ? { etag } : {}), body: r.json };
     },
     search: async (q) => (await call<SearchResult>('GET', `/v1/search?q=${encodeURIComponent(q)}`)).json,
+    libraryPut: async (items) => (await call<{ items: LibraryItem[] }>('PUT', '/v1/me/library', { items })).json,
+    myComments: async (before) => (await call<{ items: MyComment[]; next?: string }>('GET', `/v1/me/comments${before ? `?before=${encodeURIComponent(before)}` : ''}`)).json,
     category: async (genreId) => (await call<CategoryShows>('GET', `/v1/categories/${genreId}`)).json,
     nextUp: async (episodeId) => (await call<{ items: NextUpItem[]; computedAt: string }>('GET', `/v1/episodes/${episodeId}/next-up`)).json,
     // M6

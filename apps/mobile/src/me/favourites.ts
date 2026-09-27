@@ -4,6 +4,7 @@
  */
 import type { SettingsStore } from '../storage/types';
 import { readList, writeList } from './local-list';
+import { recordChange } from '../sync/library';
 
 export const FAVOURITES_KEY = 'me.favourites';
 export type Favourite = { episodeId: string; at: number };
@@ -19,8 +20,10 @@ export function toggleFavourite(s: SettingsStore, episodeId: string, now: number
   const list = listFavourites(s);
   if (list.some((f) => f.episodeId === episodeId)) {
     writeList(s, FAVOURITES_KEY, list.filter((f) => f.episodeId !== episodeId));
+    recordChange(s, 'fav_episode', episodeId, undefined, now); // M10b: follows the account
     return false;
   }
   writeList(s, FAVOURITES_KEY, [{ episodeId, at: now }, ...list]);
+  recordChange(s, 'fav_episode', episodeId, {}, now);
   return true;
 }

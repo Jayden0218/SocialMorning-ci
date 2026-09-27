@@ -19,6 +19,7 @@ import { registrationFor } from '../social/registration';
 import { secureToken } from '../social/token';
 import { createPositionSync, IMMEDIATE, UPLOAD_EVERY_MS, type PositionSync } from '../sync/positions';
 import { createSubscriptionSync, type SubscriptionSync } from '../sync/subscriptions';
+import { createLibrarySync, type LibrarySync } from '../sync/library';
 import { createRecOutbox } from '../recs/outbox';
 import { createListened } from '../graph/listened';
 import { deviceId } from '../sync/device-id';
@@ -37,6 +38,14 @@ const ToastContext = createContext<((message: string) => void) | undefined>(unde
 const SyncContext = createContext<PositionSync | undefined>(undefined);
 const SubscriptionSyncContext = createContext<SubscriptionSync | undefined>(undefined);
 const DownloadsContext = createContext<DownloadManager | undefined>(undefined);
+const LibrarySyncContext = createContext<LibrarySync | undefined>(undefined);
+
+/** M10b US2: favourites, moments, searches and favourite comments follow the account. */
+export function useLibrarySync(): LibrarySync {
+  const v = useContext(LibrarySyncContext);
+  if (v === undefined) throw new Error('useLibrarySync must be used inside <AppProviders>');
+  return v;
+}
 
 export function useDownloads(): DownloadManager {
   const m = useContext(DownloadsContext);
@@ -115,6 +124,18 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
     const created = createSubscriptionSync({
       api: graphApi,
       subscriptions: stores.subscriptions,
+      isSignedIn: () => stores.auth.get() !== undefined,
+    });
+    startupTasks.current.push(created.reconcile().catch(() => undefined));
+    return created;
+  }, [stores, graphApi]);
+
+  // M10b US2: the library change log uploads on every change, at launch, and at sign-in
+  // (the social context calls `reconcile` from onSignedIn).
+  const librarySync = useMemo<LibrarySync>(() => {
+    const created = createLibrarySync({
+      put: (items) => graphApi.libraryPut(items),
+      settings: stores.settings,
       isSignedIn: () => stores.auth.get() !== undefined,
     });
     startupTasks.current.push(created.reconcile().catch(() => undefined));
@@ -278,6 +299,7 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
       <DownloadsContext.Provider value={downloads}>
       <SyncContext.Provider value={sync}>
       <SubscriptionSyncContext.Provider value={subscriptionSync}>
+      <LibrarySyncContext.Provider value={librarySync}>
       <ToastContext.Provider value={show.current}>
         <PlayerProvider runtime={runtime}>
           {props.children}
@@ -290,6 +312,7 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
           )}
         </PlayerProvider>
       </ToastContext.Provider>
+      </LibrarySyncContext.Provider>
       </SubscriptionSyncContext.Provider>
       </SyncContext.Provider>
       </DownloadsContext.Provider>
