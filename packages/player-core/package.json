@@ -1,0 +1,20 @@
+{
+  "name": "@socialmorning/player-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Pure rules for M2: queue, sleep timer, speed, download budget and order, inbox membership, chapter and transcript parsers. No I/O (specs/003-m2-real-client/contracts/player-core.ts).",
+  "main": "src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": {
+    "test": "tsx --test test/*.test.ts",
+    "test:coverage": "c8 --100 --include 'src/**' --exclude 'src/types.ts' --exclude 'src/index.ts' --reporter=text -- tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "c8": "^10.1.3",
+    "tsx": "^4.19.0",
+    "typescript": "^5.9.2"
+  }
+}

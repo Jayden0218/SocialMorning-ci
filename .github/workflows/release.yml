@@ -1,0 +1,63 @@
+name: release
+# M6 (FR-028, research R5): publish a signed build as a GitHub Release on the PUBLIC CI
+# mirror. The runner fetches the EAS artifact — the APK never passes through the owner's
+# laptop. Triggered by `scripts/release.sh`, never automatically.
+on:
+  workflow_dispatch:
+    inputs:
+      apk_url:
+        description: EAS artifact URL (from `eas build:view --json`)
+        required: true
+      tag:
+        description: Release tag, e.g. v0.1.0
+        required: true
+      notes:
+        description: Release notes
+        required: false
+        default: A build of SocialMorning for Android.
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch the APK from EAS
+        env:
+          APK_URL: ${{ inputs.apk_url }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -eu
+          case "$APK_URL" in https://*) ;; *) echo "apk_url must be https"; exit 1;; esac
+          curl -fL "$APK_URL" -o "socialmorning-$TAG.apk"
+          ls -l "socialmorning-$TAG.apk"
+          sha256sum "socialmorning-$TAG.apk" | tee sha256.txt
+
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+          NOTES: ${{ inputs.notes }}
+        run: |
+          set -eu
+          SHA=$(cut -d' ' -f1 sha256.txt)
+          BASE=https://socialmorning-api.vercel.app
+          {
+            echo "$NOTES"
+            echo
+            echo "SHA-256: \`$SHA\`"
+            echo
+            echo "Install: open this page on an Android phone, download the APK, and allow installs from your browser once."
+            echo
+            echo "[Privacy]($BASE/privacy) · [Community rules]($BASE/rules) · [Get the app]($BASE/get)"
+          } > notes.md
+          PRERELEASE=""
+          case "$TAG" in v0.*) PRERELEASE="--prerelease";; esac
+          # shellcheck disable=SC2086
+          gh release create "$TAG" "socialmorning-$TAG.apk" \
+            --title "SocialMorning $TAG" --notes-file notes.md $PRERELEASE
+          echo "Set RELEASE_SHA256=$SHA in the API's environment so /get shows it."
+          echo "RELEASE_SHA256=$SHA" >> "$GITHUB_STEP_SUMMARY"

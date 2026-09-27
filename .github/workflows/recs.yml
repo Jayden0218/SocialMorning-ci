@@ -1,0 +1,61 @@
+# M8 — the rebuild the recommendation layer needs (specs/008-m8-for-you/research.md R4, R5).
+#
+# This file lives in the PRIVATE repo under ci/workflows/ and is copied by
+# scripts/push-ci.sh into the PUBLIC mirror's .github/workflows/.
+#
+# Why here and not Vercel: **Vercel Hobby cron runs once per day**, UTC, and fires anywhere
+# inside its hour. That cannot refresh feeds or rebuild similarity usefully. GitHub Actions
+# allows a 5-minute minimum and costs nothing on a public repo.
+#
+# Why :17 and not :00 — GitHub delays scheduled runs at busy times, and the top of the
+# hour is the busiest moment there is.
+#
+# Why no database credential — this workflow holds ONLY $JOB_TOKEN and talks to the API.
+# DATABASE_URL stays in Vercel's environment. A public repository is the wrong place for a
+# production connection string even with secrets encrypted (R5).
+#
+# ⚠️ GitHub **silently disables scheduled workflows in a public repo after 60 days with no
+# repository activity**. Nothing announces it. That is why the API reports `similarityAge`
+# and /mod/recs says so loudly past a week: a dead scheduler must be visible, not silent.
+name: recs
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: refresh subscribed feeds, then rebuild show similarity
+        env:
+          API: https://socialmorning-api.vercel.app
+          JOB_TOKEN: ${{ secrets.JOB_TOKEN }}
+        run: |
+          set -eu
+          if [ -z "${JOB_TOKEN:-}" ]; then
+            echo "JOB_TOKEN is not set — the owner has not completed T002. Nothing to do."
+            exit 0
+          fi
+          run_step() {
+            step="$1"; cursor=""; n=0
+            while [ "$n" -lt 200 ]; do
+              body=$(printf '{"step":"%s"%s}' "$step" "${cursor:+,\"cursor\":\"$cursor\"}")
+              out=$(curl -sS -X POST "$API/v1/internal/rebuild" \
+                     -H "authorization: Bearer $JOB_TOKEN" \
+                     -H 'content-type: application/json' \
+                     -d "$body")
+              echo "$step: $out"
+              case "$out" in *'"done":true'*) return 0;; esac
+              cursor=$(printf '%s' "$out" | sed -n 's/.*"next":"\([^"]*\)".*/\1/p')
+              [ -n "$cursor" ] || { echo "no cursor and not done — stopping"; return 1; }
+              n=$((n+1))
+            done
+            echo "step $step did not finish in 200 chunks"; return 1
+          }
+          run_step feeds
+          # Self-throttling: the route itself skips a similarity rebuild whose last run is
+          # under 20 h old, so a missed hour costs nothing and a catch-up burst does no
+          # extra work (R4).
+          run_step similarity
