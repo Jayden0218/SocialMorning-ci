@@ -48,3 +48,41 @@ export function relativeTime(createdAt: string, serverTime: string): string {
   if (s < 86_400) return `${Math.floor(s / 3600)} h ago`;
   return `${Math.floor(s / 86_400)} d ago`;
 }
+
+/** "69 min" — how the reference writes an episode's length. Empty when the feed gave none. */
+export function minutesLabel(ms: number | undefined): string {
+  if (ms === undefined) return '';
+  return `${Math.max(1, Math.round(ms / 60_000))} min`;
+}
+
+/** "13 h ago" for this week, the date after that. Uses the phone's clock: a feed date, not a comment. */
+export function ago(ms: number | undefined, now: number): string {
+  if (ms === undefined) return '';
+  const s = Math.max(0, Math.floor((now - ms) / 1000));
+  if (s < 3600) return `${Math.max(1, Math.floor(s / 60))} min ago`;
+  if (s < 86_400) return `${Math.floor(s / 3600)} h ago`;
+  if (s < 7 * 86_400) return `${Math.floor(s / 86_400)} d ago`;
+  return shortDate(ms);
+}
+
+/** A run of shownotes text, or a timestamp in it that seeks (`atMs`). */
+export type NotePart = { text: string; atMs?: number };
+
+/**
+ * Shownotes split around their timestamps ("00:39", "1:02:03"), so each one can be a
+ * link that plays from there. A time glued to other digits or colons is left as text.
+ */
+export function timestampParts(text: string): NotePart[] {
+  const parts: NotePart[] = [];
+  const re = /(^|[^\d:])((?:\d{1,2}:)?\d{1,2}:[0-5]\d)(?![\d:])/g;
+  let last = 0;
+  for (let m = re.exec(text); m !== null; m = re.exec(text)) {
+    const start = m.index + m[1]!.length;
+    if (start > last) parts.push({ text: text.slice(last, start) });
+    const atMs = m[2]!.split(':').reduce((sum, n) => sum * 60 + Number(n), 0) * 1000;
+    parts.push({ text: m[2]!, atMs });
+    last = start + m[2]!.length;
+  }
+  if (last < text.length) parts.push({ text: text.slice(last) });
+  return parts;
+}
