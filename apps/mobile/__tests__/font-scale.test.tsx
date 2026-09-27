@@ -11,6 +11,8 @@ import { EpisodeRow } from '../src/ui/EpisodeRow';
 import { EmptyState } from '../src/ui/EmptyState';
 
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
+// M10b: shared components read the palette through useStores; a light setting keeps colours static.
+jest.mock('../src/ui/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }) }));
 
 const flat = (style: unknown): Record<string, unknown> => (StyleSheet.flatten(style as never) ?? {}) as Record<string, unknown>;
 const render = (el: React.ReactElement): ReactTestRenderer => { let r!: ReactTestRenderer; act(() => { r = create(el); }); return r; };

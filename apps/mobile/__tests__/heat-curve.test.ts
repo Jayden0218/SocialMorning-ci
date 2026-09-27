@@ -1,3 +1,5 @@
+// M10b: HeatCurve reads the palette through useStores; a light setting keeps colours static.
+jest.mock('../src/ui/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }) }));
 import { EMPTY_STATES } from '@socialmorning/social-core';
 import { heatMessage } from '../src/ui/HeatCurve';
 
