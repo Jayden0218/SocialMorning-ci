@@ -1,8 +1,8 @@
 # M10b (2026-09-27): compile the Android app's native code on GitHub's runner, so a native
 # change (the home-screen widget, Android Auto) is known to build BEFORE an EAS build is spent.
 # The EAS free budget is a few builds a month; this runner is unlimited in the public mirror.
-# A debug build: no signing, no JS bundle. It proves the Kotlin/Java and the config plugins
-# compile. It proves nothing about how the app behaves on a phone.
+# A release build with the JS bundled, signed with the prebuild template's debug key, kept as
+# a 7-day artifact. Compiling proves the native code builds; it proves nothing on a phone.
 name: android-compile
 on:
   push:
@@ -29,6 +29,17 @@ jobs:
       - name: expo prebuild (android)
         run: npx expo prebuild -p android --no-install --clean
         working-directory: apps/mobile
-      - name: gradle assembleDebug
-        run: ./gradlew :app:assembleDebug --no-daemon --stacktrace
+      - name: gradle assembleRelease (JS bundled; signed with the template's debug key)
+        run: ./gradlew :app:assembleRelease --no-daemon --stacktrace
         working-directory: apps/mobile/android
+      - name: which key signed it
+        run: grep -n "signingConfig" app/build.gradle
+        working-directory: apps/mobile/android
+      # An APK the phone can install without spending an EAS build. It is NOT signed with the
+      # EAS keystore, so it will not install over an EAS build (uninstall first, which wipes the
+      # phone's local data). No secrets are in it: the API address is public (app.json).
+      - uses: actions/upload-artifact@v4
+        with:
+          name: socialnet-release-apk
+          path: apps/mobile/android/app/build/outputs/apk/release/app-release.apk
+          retention-days: 7
