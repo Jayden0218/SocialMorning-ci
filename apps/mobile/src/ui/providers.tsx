@@ -29,6 +29,8 @@ import { createExpoNetwork } from '../downloads/expo-network';
 import { waitForStartup } from './startup';
 import { onNotificationTap } from '../notify/expo';
 import { canStream } from '../settings/playback';
+import { applyAppearance } from '../design/theme';
+import { readAppearance } from './useColours';
 import { Splash } from './Splash';
 import { Terms } from './Terms';
 import { accept, hasAccepted } from './terms';
@@ -152,6 +154,8 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
     now: () => Date.now(),
     pathFor: downloadPathFor,
   }), [stores]);
+  // M10b US4: the Appearance choice is applied at start (a no-op on main until M9 wires it).
+  useEffect(() => { applyAppearance(readAppearance(stores.settings)); }, [stores]);
   // M10b US3 (FR-011): tapping a notification opens its episode.
   useEffect(() => onNotificationTap((episodeId) => router.push({ pathname: '/episode/[id]', params: { id: episodeId } })), []);
   const [ready, setReady] = useState(false);

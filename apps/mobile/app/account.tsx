@@ -17,6 +17,7 @@ import { ScrollView, Pressable, Text } from 'react-native';
 import { hit } from '../src/design';
 import { useSocial } from '../src/social/context';
 import { Divider, LinkRow } from '../src/ui/settings/rows';
+import { DARK_READY } from '../src/design/theme';
 
 const TAP = { minHeight: hit.min };
 
@@ -27,6 +28,8 @@ export default function SettingsScreen(): React.ReactElement {
       <Stack.Screen options={{ title: 'Settings' }} />
       <LinkRow href="/settings/account" icon="person-circle-outline" label="Account and security" />
       <Divider />
+      {/* M10b US4: shown once dark mode is wired end to end (DARK_READY, flipped by M9). */}
+      {DARK_READY ? <LinkRow href="/settings/appearance" icon="contrast-outline" label="Appearance" /> : null}
       <LinkRow href="/settings/downloads" icon="download-outline" label="Downloads and cache" />
       <LinkRow href="/settings/push" icon="notifications-outline" label="Notifications" />
       <LinkRow href="/settings/privacy" icon="lock-closed-outline" label="Privacy" />
