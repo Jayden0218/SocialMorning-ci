@@ -22,7 +22,6 @@ export function plainSummary(html: string | undefined, max = 160): string {
 export function latestUpdates(stores: Pick<Stores, 'subscriptions' | 'feeds'>, hidden: ReadonlySet<string>, perShow = 5, limit = 50): UpdateRow[] {
   const rows: UpdateRow[] = [];
   for (const { feedUrl } of stores.subscriptions.list()) {
-    if (hidden.has(feedUrl)) continue;
     const show = stores.feeds.getShow(feedUrl);
     for (const e of stores.feeds.listEpisodes(feedUrl).slice(0, perShow)) {
       const img = e.imageUrl ?? show?.imageUrl;

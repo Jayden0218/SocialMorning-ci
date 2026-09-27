@@ -81,7 +81,6 @@ export default function MeScreen(): React.ReactElement {
         <MenuRow href="/my-comments" emoji="💬" label="My comments" />
         <MenuRow href="/queue" emoji="🎧" label="Queue" />
         <View className="border-b-hairline border-separator my-row" />
-        <MenuRow href="/account" emoji="⚙️" label="Account and settings" />
         {listener ? (
           <Pressable onPress={() => void auth.signOut()} accessibilityRole="button" accessibilityLabel="Sign out" className="justify-center" style={TAP}>
             <Text className="text-accent text-sm">Sign out</Text>
