@@ -14,7 +14,7 @@
     "android": {
       "package": "app.socialmorning.mobile",
       "adaptiveIcon": {
-        "backgroundColor": "#FCC723",
+        "backgroundColor": "#FDC621",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
