@@ -5,6 +5,7 @@
  */
 import { useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
+import { Icon } from '../Icon';
 import { colour, hit } from '../../design';
 import { isFavourite, toggleFavourite } from '../../me/favourites';
 import { NOTE_MAX, saveMoment } from '../../me/moments';
@@ -23,10 +24,10 @@ export function EpisodeExtras(props: { episodeId: string; atMs: number }): React
     <View>
       <View className="flex-row items-center gap-x-3">
         <Pressable onPress={() => setFav(toggleFavourite(stores.settings, props.episodeId, Date.now()))} accessibilityRole="button" accessibilityState={{ selected: fav }} accessibilityLabel={fav ? 'Remove from favourites' : 'Add to favourites'} className="justify-center" style={TAP}>
-          <Text className="text-accent text-sm">{fav ? '★ Favourite' : '☆ Favourite'}</Text>
+          <View className="flex-row items-center gap-1"><Icon name={fav ? 'star' : 'star-outline'} size={16} color={colour.accent} /><Text className="text-accent text-sm">Favourite</Text></View>
         </Pressable>
         <Pressable onPress={() => { setAt(props.atMs); setNote(''); }} accessibilityRole="button" accessibilityLabel={`Save the moment at ${mmss(props.atMs)}`} className="justify-center" style={TAP}>
-          <Text className="text-accent text-sm">📌 Save moment</Text>
+          <View className="flex-row items-center gap-1"><Icon name="bookmark-outline" size={16} color={colour.accent} /><Text className="text-accent text-sm">Save moment</Text></View>
         </Pressable>
       </View>
       {note !== undefined ? (

@@ -5,7 +5,8 @@
  * `primary` fill, cards `surface`.
  */
 import { Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
-import { hit } from '../../design';
+import { colour, hit } from '../../design';
+import { Icon } from '../Icon';
 import type { EpisodeCard } from '../../social/api';
 import { Artwork } from '../Artwork';
 
@@ -84,17 +85,27 @@ export function Pager(props: { count: number; children: (index: number, width: n
   );
 }
 
-/** A search box that is a button: tapping it opens Search, where typing happens. The square on the right scans a QR code. */
-export function SearchBar(props: { onPress: () => void; onScan?: () => void }): React.ReactElement {
+/**
+ * A search box that is a button: tapping it opens Search, where typing happens. Its middle
+ * shows what is trending (owner, 2026-09-27; `src/discover/trending.ts`); the icon on the
+ * right scans a QR code.
+ */
+export function SearchBar(props: { hint?: string; onPress: () => void; onScan?: () => void }): React.ReactElement {
   return (
-    <View className="mx-screen-x flex-row items-center bg-surface rounded-row">
-      <Pressable onPress={props.onPress} accessibilityRole="search" accessibilityLabel="Search shows and episodes" className="flex-1 flex-row items-center gap-row px-row" style={TAP}>
-        <View className="w-4 h-4 rounded-pill border-2 border-separator" />
-        <Text className="text-muted text-sm">Search shows and episodes</Text>
+    <View className="mx-screen-x flex-row items-center bg-surface rounded-pill">
+      <Pressable
+        onPress={props.onPress}
+        accessibilityRole="search"
+        accessibilityLabel={props.hint ? `Search. Trending: ${props.hint}` : 'Search shows and episodes'}
+        className="flex-1 flex-row items-center gap-2 pl-section pr-row"
+        style={TAP}
+      >
+        <Icon name="search-outline" size={18} color={colour.muted} />
+        <Text className="text-muted text-sm flex-1 text-center" numberOfLines={1}>{props.hint ?? 'Search shows and episodes'}</Text>
       </Pressable>
       {props.onScan ? (
-        <Pressable onPress={props.onScan} accessibilityRole="button" accessibilityLabel="Scan a QR code" className="items-center justify-center" style={TAP}>
-          <View className="w-5 h-5 border-2 border-muted rounded-sm" />
+        <Pressable onPress={props.onScan} accessibilityRole="button" accessibilityLabel="Scan a QR code" className="items-center justify-center pr-row" style={TAP}>
+          <Icon name="scan-outline" size={22} color={colour.text} />
         </Pressable>
       ) : null}
     </View>

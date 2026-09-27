@@ -46,7 +46,8 @@ export default function RootLayout(): React.ReactElement {
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           {/* M10: Search draws its own box + Cancel at the top, like the reference. */}
           <Stack.Screen name="search" options={{ title: 'Search', headerShown: false }} />
-          <Stack.Screen name="scan" options={{ title: 'Scan a QR code' }} />
+          {/* The scanner draws its own close button and title over the camera (owner, 2026-09-27). */}
+          <Stack.Screen name="scan" options={{ title: 'Scan a QR code', headerShown: false }} />
           {/* The show, episode and player pages draw their own bar (owner reference, 2026-09-27). */}
           <Stack.Screen name="show/[feedUrl]" options={{ title: 'Show', headerShown: false }} />
           <Stack.Screen name="episode/[id]" options={{ title: 'Episode', headerShown: false }} />
