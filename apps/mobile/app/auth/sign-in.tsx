@@ -1,18 +1,21 @@
 /**
  * The sign-in landing page (owner's reference screenshot, 2026-09-27): a wall of show
- * covers, the app's name, the consent box, then the ways in. Each way opens its own page
- * — the email form is `/auth/email`. The layout follows the reference; nothing of the
+ * covers, the app's name, the consent box, then the ways in — each an icon and its name
+ * in one row, each opening its own page. The layout follows the reference; nothing of the
  * reference's own (logo, covers, words) is used.
+ *
+ * Signing in is required (owner, 2026-09-27): no close button, no swipe back (the stack
+ * option), and Android's back does nothing here.
  */
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Image, Pressable, SafeAreaView, Text, View } from 'react-native';
-import { hit } from '../../src/design';
+import { BackHandler, Image, SafeAreaView, Text, View } from 'react-native';
 import { createDiscover } from '../../src/discover/cache';
 import { useSocial } from '../../src/social/context';
 import { useStores, useToast } from '../../src/ui/providers';
 import { askForNotifications } from '../../src/notify/permission';
 import { expoNotify } from '../../src/notify/expo';
+import { Splash } from '../../src/ui/Splash';
 import { AuthButton } from '../../src/ui/auth/AuthShell';
 import { ArtWall } from '../../src/ui/auth/ArtWall';
 import { landingArt } from '../../src/ui/auth/art';
@@ -20,18 +23,9 @@ import { ConsentDialog, ConsentRow, useLegalOverlay } from '../../src/ui/auth/Co
 import { submitAction } from '../../src/ui/auth/rules';
 import { OTHER_METHODS, notReadyMessage, type OtherMethod } from '../../src/ui/auth/methods';
 
-const TAP = { minHeight: hit.min, minWidth: hit.min };
 const LOGO = { width: 48, height: 48 };
 
-type Way = 'email' | 'sign-up' | OtherMethod;
-
-/** The quiet row under the main button names each way in short; its accessible name is the full label. */
-const SHORT: Record<OtherMethod, string> = { code: 'Email code', google: 'Google', facebook: 'Facebook' };
-
-function close(): void {
-  if (router.canGoBack()) router.back();
-  else router.replace('/');
-}
+type Way = 'email' | OtherMethod;
 
 export default function SignInScreen(): React.ReactElement {
   const { api } = useSocial();
@@ -41,9 +35,15 @@ export default function SignInScreen(): React.ReactElement {
   const [agreed, setAgreed] = useState(false);
   // Which way in is waiting on the consent dialog.
   const [asking, setAsking] = useState<Way | undefined>(undefined);
+  // The page appears whole, once its covers are in (owner, 2026-09-27).
+  const [ready, setReady] = useState(false);
 
   // Owner, 2026-09-27: the OS asks for notification permission when this page opens.
   useEffect(() => { void askForNotifications(expoNotify); }, []);
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => true);
+    return () => sub.remove();
+  }, []);
 
   const art = useMemo(() => landingArt({
     subscribed: stores.subscriptions.list().map((s) => stores.feeds.getShow(s.feedUrl)?.imageUrl),
@@ -52,7 +52,6 @@ export default function SignInScreen(): React.ReactElement {
 
   function go(way: Way): void {
     if (way === 'email') { router.push({ pathname: '/auth/email', params: { agreed: '1' } }); return; }
-    if (way === 'sign-up') { router.push('/auth/sign-up'); return; }
     const m = OTHER_METHODS.find((o) => o.id === way)!;
     // M11 wires the backend; until then, say so rather than do nothing.
     if (!m.ready) toast(notReadyMessage(m.label));
@@ -65,10 +64,7 @@ export default function SignInScreen(): React.ReactElement {
   return (
     <SafeAreaView className="flex-1 bg-background">
       <View className="flex-1">
-        <ArtWall urls={art} />
-        <Pressable onPress={close} accessibilityRole="button" accessibilityLabel="Close" className="absolute top-2 right-2 items-center justify-center" style={TAP}>
-          <Text className="text-muted text-lg">✕</Text>
-        </Pressable>
+        <ArtWall urls={art} onReady={() => setReady(true)} />
       </View>
       <View className="px-screen-x pb-section">
         <View className="flex-row items-center justify-center gap-row">
@@ -76,17 +72,10 @@ export default function SignInScreen(): React.ReactElement {
           <Text className="text-text text-lg font-bold" accessibilityRole="header">SocialNet</Text>
         </View>
         <ConsentRow agreed={agreed} onToggle={() => setAgreed((a) => !a)} open={legal.open} />
-        <AuthButton label="Sign in with email" disabled={false} onPress={() => choose('email')} />
-        <Pressable onPress={() => choose('sign-up')} accessibilityRole="link" accessibilityLabel="Create an account" className="items-center justify-center mt-row" style={TAP}>
-          <Text className="text-muted text-sm">Create an account</Text>
-        </Pressable>
-        <View className="flex-row justify-center gap-section">
-          {OTHER_METHODS.map((m) => (
-            <Pressable key={m.id} onPress={() => choose(m.id)} accessibilityRole="button" accessibilityLabel={m.label} className="items-center justify-center" style={TAP}>
-              <Text className="text-muted text-xs">{SHORT[m.id]}</Text>
-            </Pressable>
-          ))}
-        </View>
+        <AuthButton icon="mail-outline" label="Continue with email" disabled={false} onPress={() => choose('email')} />
+        {OTHER_METHODS.map((m) => (
+          <AuthButton key={m.id} outline icon={m.icon} label={m.label} disabled={false} onPress={() => choose(m.id)} />
+        ))}
       </View>
       <ConsentDialog
         visible={asking !== undefined}
@@ -96,6 +85,8 @@ export default function SignInScreen(): React.ReactElement {
         onAgree={() => { const way = asking; setAsking(undefined); setAgreed(true); if (way) go(way); }}
       />
       {legal.overlay}
+      {/* Same picture as the launch screen, so launch → this page is one step, not two. */}
+      {ready ? null : <Splash />}
     </SafeAreaView>
   );
 }

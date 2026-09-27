@@ -1,9 +1,10 @@
 /**
- * Account (US5): who you are, sign out, delete account. Deletion re-asks the
- * password and clears everything of the account's on this phone — auth row,
+ * Account (US5): who you are, sign out, delete account. Deletion is confirmed with a
+ * code sent to the account's email (owner, 2026-09-27: no passwords) and clears
+ * everything of the account's on this phone — auth row,
  * token, drafts — but NOT M1's positions or the episode caches (T048).
  */
-import { Link, router } from 'expo-router';
+import { Link } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Linking, Pressable, Switch, Text, TextInput, View } from 'react-native';
 import { useStores } from '../src/ui/providers';
@@ -30,16 +31,31 @@ export default function AccountScreen(): React.ReactElement {
   useEffect(() => { void refreshAppeals(api, stores).then(setAppeals); }, [api, stores]);
   const links = legalLinks();
   const [confirming, setConfirming] = useState(false);
-  const [password, setPassword] = useState('');
+  const [code, setCode] = useState('');
+  const [codeSent, setCodeSent] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
+
+  async function sendCode() {
+    if (!listener) return;
+    setBusy(true);
+    setError(undefined);
+    try {
+      await auth.requestCode(listener.email);
+      setCodeSent(true);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Something went wrong. Try again.');
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function remove() {
     setBusy(true);
     setError(undefined);
     try {
-      await auth.deleteAccount(password);
-      router.replace('/');
+      // Lands on the sign-in page (the context does it).
+      await auth.deleteAccountWithCode(code.trim());
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Something went wrong. Try again.');
     } finally {
@@ -74,7 +90,7 @@ export default function AccountScreen(): React.ReactElement {
           <Text className="flex-1 text-text">Private listening{'\n'}<Text className="text-muted text-xs">Hides what you listen to and your stats from others. Comments and clips stay public.</Text></Text>
         </View>
       ) : null}
-      <Pressable className={button} onPress={async () => { await auth.signOut(); router.back(); }} accessibilityRole="button" accessibilityLabel="Sign out">
+      <Pressable className={button} onPress={() => void auth.signOut()} accessibilityRole="button" accessibilityLabel="Sign out">
         <Text className={buttonText}>Sign out</Text>
       </Pressable>
 
@@ -103,12 +119,20 @@ export default function AccountScreen(): React.ReactElement {
       ) : (
         <View className="gap-2 mt-2">
           <Text className="text-text">This removes your comments, reactions and listening positions from every phone. Where someone replied to you, "Comment deleted" stays so their reply still makes sense. This cannot be undone.</Text>
-          <TextInput
-            placeholderTextColor={colour.muted} className="border border-separator rounded-lg p-3 text-sm text-text" placeholder="Your password, to confirm" secureTextEntry value={password} onChangeText={setPassword} accessibilityLabel="Password" />
+          {codeSent ? (
+            <TextInput
+              placeholderTextColor={colour.muted} className="border border-separator rounded-lg p-3 text-sm text-text" placeholder="The 6-digit code we emailed you" keyboardType="number-pad" maxLength={6} value={code} onChangeText={setCode} accessibilityLabel="Code" />
+          ) : null}
           {error ? <Text className="text-accent">{error}</Text> : null}
-          <Pressable className={`${button} ${busy || !password ? 'opacity-50' : ''}`} disabled={busy || !password} onPress={remove} accessibilityRole="button">
-            <Text className={buttonText}>Delete account</Text>
-          </Pressable>
+          {codeSent ? (
+            <Pressable className={`${button} ${busy || code.trim().length !== 6 ? 'opacity-50' : ''}`} disabled={busy || code.trim().length !== 6} onPress={remove} accessibilityRole="button">
+              <Text className={buttonText}>Delete account</Text>
+            </Pressable>
+          ) : (
+            <Pressable className={`${button} ${busy ? 'opacity-50' : ''}`} disabled={busy} onPress={sendCode} accessibilityRole="button">
+              <Text className={buttonText}>Email me a code to confirm</Text>
+            </Pressable>
+          )}
           <Pressable onPress={() => setConfirming(false)} accessibilityRole="button"><Text className={link}>Keep my account</Text></Pressable>
         </View>
       )}

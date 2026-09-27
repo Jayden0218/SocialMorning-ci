@@ -4,6 +4,7 @@
  * fades into the page so the choices below sit on white.
  */
 import { LinearGradient } from 'expo-linear-gradient';
+import { useEffect, useRef } from 'react';
 import { Image, View, useWindowDimensions } from 'react-native';
 import { colour } from '../../design';
 
@@ -18,9 +19,28 @@ const SPOTS = [
   { x: -0.04, y: 0.74, s: 0.24 },
 ] as const;
 
-export function ArtWall(props: { urls: string[] }): React.ReactElement {
+/** The longest the page waits for covers before it shows without the slow ones. */
+export const ART_WAIT_MS = 1500;
+
+/**
+ * `onReady` fires once, when every cover has loaded or failed (or after `ART_WAIT_MS`),
+ * so the page can appear whole instead of cover by cover (owner, 2026-09-27).
+ */
+export function ArtWall(props: { urls: string[]; onReady?: () => void }): React.ReactElement {
   const { width } = useWindowDimensions();
   const height = width * 1.02;
+  const settled = useRef(0);
+  const fired = useRef(false);
+  const ready = useRef(props.onReady);
+  ready.current = props.onReady;
+  const fire = (): void => { if (!fired.current) { fired.current = true; ready.current?.(); } };
+  const one = (): void => { settled.current += 1; if (settled.current >= props.urls.length) fire(); };
+  useEffect(() => {
+    if (props.urls.length === 0) { fire(); return; }
+    const t = setTimeout(fire, ART_WAIT_MS);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.urls.length]);
   return (
     <View style={{ height }} className="overflow-hidden" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       {props.urls.map((uri, i) => {
@@ -30,6 +50,7 @@ export function ArtWall(props: { urls: string[] }): React.ReactElement {
           <Image
             key={uri}
             source={{ uri }}
+            onLoadEnd={one}
             className="absolute rounded-row bg-surface"
             style={{ left: spot.x * width, top: spot.y * width, width: size, height: size }}
           />

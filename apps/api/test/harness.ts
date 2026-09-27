@@ -8,6 +8,7 @@ import { citext } from '@electric-sql/pglite/contrib/citext';
 import { migrate, type MigrationRunner } from '../src/db/migrate.ts';
 import { fromPglite, type Db } from '../src/db/db.ts';
 import { createApp } from '../src/app.ts';
+import type { Mail, Mailer } from '../src/mail/mailer.ts';
 
 export const TEST_PEPPER = 'test-pepper-not-secret';
 
@@ -19,6 +20,10 @@ export type TestDb = {
   q<T = Record<string, unknown>>(sql: string, params?: unknown[]): Promise<T[]>;
   /** JSON request helper: `call('POST', '/v1/auth/sign-in', body, token)`. */
   call(method: string, path: string, body?: unknown, token?: string, headers?: Record<string, string>): Promise<Response>;
+  /** Every email the app would have sent (a fake mailer; see `src/mail/mailer.ts`). */
+  mail: Mail[];
+  /** The last code sent to this address. */
+  lastCode(to: string): string;
   /** M6: rebuilds the app with this listener as the owner (the id exists only after a sign-up). */
   setOwner?(id: string): void;
   close(): Promise<void>;
@@ -27,7 +32,8 @@ export type TestDb = {
 export const TEST_APPEALS = 'appeals@example.test';
 
 /** `ownerListenerId` is unknown until a listener exists: tests that need the owner sign up first, then `setOwner`. */
-export async function freshDb(opts: { ownerListenerId?: string; appealsEmail?: string; releaseSha256?: string } = {}): Promise<TestDb> {
+export async function freshDb(allOpts: { ownerListenerId?: string; appealsEmail?: string; releaseSha256?: string; noMailer?: boolean } = {}): Promise<TestDb> {
+  const { noMailer, ...opts } = allOpts;
   const pg = new PGlite({ extensions: { citext } });
   const runner: MigrationRunner = {
     exec: (s) => pg.exec(s),
@@ -35,13 +41,22 @@ export async function freshDb(opts: { ownerListenerId?: string; appealsEmail?: s
   };
   await migrate(runner);
   const db = fromPglite(pg);
-  let app = createApp({ db, pepper: TEST_PEPPER, appealsEmail: TEST_APPEALS, ...opts });
+  const mail: Mail[] = [];
+  const mailer: Mailer | undefined = noMailer ? undefined : { send: async (m) => { mail.push(m); } };
+  let app = createApp({ db, pepper: TEST_PEPPER, appealsEmail: TEST_APPEALS, ...(mailer ? { mailer } : {}), ...opts });
   const t: TestDb = {
     pg,
     db,
     runner,
     app,
-    setOwner: (id) => { app = createApp({ db, pepper: TEST_PEPPER, appealsEmail: TEST_APPEALS, ...opts, ownerListenerId: id }); t.app = app; },
+    mail,
+    lastCode: (to) => {
+      const m = [...mail].reverse().find((x) => x.to === to);
+      const code = m ? /\b(\d{6})\b/.exec(m.text)?.[1] : undefined;
+      if (!code) throw new Error(`no code was sent to ${to}`);
+      return code;
+    },
+    setOwner: (id) => { app = createApp({ db, pepper: TEST_PEPPER, appealsEmail: TEST_APPEALS, ...(mailer ? { mailer } : {}), ...opts, ownerListenerId: id }); t.app = app; },
     q: async <T,>(s: string, params?: unknown[]) => (await pg.query<T>(s, params)).rows,
     call: async (method, path, body, token, headers = {}) =>
       app.request(path, {

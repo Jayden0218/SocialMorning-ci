@@ -50,28 +50,32 @@ export function ConsentRow(props: { agreed: boolean; onToggle: () => void; open:
           {props.agreed ? <Text className="text-onPrimary text-xs font-bold">✓</Text> : null}
         </View>
       </Pressable>
-      <Text className="text-muted text-xs flex-1">
+      <Text className="text-muted text-xs leading-[18px] flex-1">
         I have read and agree to the <Links open={props.open} />
       </Text>
     </View>
   );
 }
 
+/**
+ * Owner, 2026-09-27: the old dialog read as cramped — tight lines and two bare words at
+ * the bottom. Now: centred title, the sentence on 24 px lines, and two real buttons.
+ */
 export function ConsentDialog(props: { visible: boolean; action: string; onCancel: () => void; onAgree: () => void; open: (d: Doc) => void }): React.ReactElement {
   return (
     <Modal visible={props.visible} transparent animationType="fade" onRequestClose={props.onCancel}>
       <View className="flex-1 bg-scrim items-center justify-center px-screen-x">
-        <View className="bg-background rounded-row p-section w-full gap-section" accessibilityViewIsModal>
-          <Text className="text-text text-base font-bold" accessibilityRole="header">Notice</Text>
-          <Text className="text-muted text-sm">
-            Please read and agree to the <Links open={props.open} />
+        <View className="bg-background rounded-artwork px-section pt-section pb-section w-full" accessibilityViewIsModal>
+          <Text className="text-text text-base font-bold text-center" accessibilityRole="header">Before you continue</Text>
+          <Text className="text-muted text-sm leading-[24px] text-center mt-row">
+            Please read and agree to the <Links open={props.open} />.
           </Text>
-          <View className="flex-row justify-end gap-section">
-            <Pressable onPress={props.onCancel} accessibilityRole="button" accessibilityLabel="Cancel" className="justify-center px-row" style={TAP}>
-              <Text className="text-accent text-sm font-semibold">Cancel</Text>
+          <View className="flex-row gap-row mt-section">
+            <Pressable onPress={props.onCancel} accessibilityRole="button" accessibilityLabel="Cancel" className="flex-1 items-center justify-center rounded-pill border border-separator" style={TAP}>
+              <Text className="text-text text-sm font-semibold">Cancel</Text>
             </Pressable>
-            <Pressable onPress={props.onAgree} accessibilityRole="button" accessibilityLabel={`Agree and ${props.action}`} className="justify-center px-row" style={TAP}>
-              <Text className="text-accent text-sm font-semibold">Agree and {props.action}</Text>
+            <Pressable onPress={props.onAgree} accessibilityRole="button" accessibilityLabel={`Agree and ${props.action}`} className="flex-1 items-center justify-center rounded-pill bg-primary" style={TAP}>
+              <Text className="text-onPrimary text-sm font-semibold">Agree</Text>
             </Pressable>
           </View>
         </View>

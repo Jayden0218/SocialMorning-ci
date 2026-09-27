@@ -50,6 +50,8 @@ export type AppDeps = {
   releaseSha256?: string;
   /** M8: the scheduled rebuild's bearer token (env JOB_TOKEN). Unset → /v1/internal is closed. */
   jobToken?: string;
+  /** Sends the sign-in code (env GMAIL_USER + GMAIL_APP_PASSWORD). Unset → the code routes answer 503. */
+  mailer?: import('./mail/mailer.ts').Mailer;
 };
 
 /**
@@ -77,6 +79,7 @@ export function createApp(deps: AppDeps) {
     c.set('pepper', deps.pepper);
     c.set('catalog', catalog);
     c.set('safety', safety);
+    if (deps.mailer) c.set('mailer', deps.mailer);
     await next();
   });
 

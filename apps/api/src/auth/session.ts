@@ -32,7 +32,7 @@ export async function listenerForToken(db: Db, token: string, pepper: string): P
   return rows[0];
 }
 
-export type AuthEnv = { Variables: { db: Db; pepper: string; listener?: Listener; token?: string; catalog: Catalog; safety: Safety } };
+export type AuthEnv = { Variables: { db: Db; pepper: string; listener?: Listener; token?: string; catalog: Catalog; safety: Safety; mailer?: import('../mail/mailer.ts').Mailer } };
 
 /** M6: the moderator's id, the appeals address, the published build's hash — any may be unset. */
 export type Safety = { ownerListenerId?: string; appealsEmail?: string; releaseSha256?: string };

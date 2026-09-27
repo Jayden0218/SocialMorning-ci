@@ -13,6 +13,7 @@ import { createReactToggle } from './react';
 import { secureToken } from './token';
 import { usePositionSync, useStores } from '../ui/providers';
 import { apiBaseUrl } from './base-url';
+import { toSignIn } from '../ui/auth/navigate';
 import type { AuthRow } from '../storage/types';
 
 export type SocialContextValue = {
@@ -103,8 +104,13 @@ export function SocialProvider(props: { children?: ReactNode }): ReactNode {
     current: auth.current,
     signUp: async (...a) => { const r = await auth.signUp(...a); setListener(r); return r; },
     signIn: async (...a) => { const r = await auth.signIn(...a); setListener(r); return r; },
-    signOut: async () => { await auth.signOut(); setListener(undefined); },
-    deleteAccount: async (p) => { await auth.deleteAccount(p); setListener(undefined); },
+    // Owner, 2026-09-27: signing in is required, so leaving an account lands on the
+    // sign-in page, with nothing of the old stack underneath to go back to.
+    signOut: async () => { await auth.signOut(); setListener(undefined); toSignIn(); },
+    deleteAccount: async (p) => { await auth.deleteAccount(p); setListener(undefined); toSignIn(); },
+    requestCode: (e) => auth.requestCode(e),
+    signInWithCode: async (...a) => { const r = await auth.signInWithCode(...a); if (r !== 'needsName') setListener(r); return r; },
+    deleteAccountWithCode: async (c) => { await auth.deleteAccountWithCode(c); setListener(undefined); toSignIn(); },
   }), [auth]);
 
   const value = useMemo(() => ({ api, auth: wrapped, listener, refreshListener, composer, reactToggle, cache, useEpisodeSocial, bump, refresh }),

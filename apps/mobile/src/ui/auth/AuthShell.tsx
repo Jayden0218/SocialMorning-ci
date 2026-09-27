@@ -8,6 +8,7 @@ import { router } from 'expo-router';
 import type { ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, SafeAreaView, ScrollView, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { colour, hit } from '../../design';
+import { Icon, type IconName } from '../Icon';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
 const FIELD = { minHeight: 56 };
@@ -49,8 +50,11 @@ export function AuthField(props: TextInputProps & { accessibilityLabel: string }
   );
 }
 
-/** The full-width button: solid yellow (the form's own), or outlined (another way in). Pale until usable. */
-export function AuthButton(props: { label: string; disabled: boolean; busy?: boolean; outline?: boolean; onPress: () => void }): React.ReactElement {
+/**
+ * The full-width button: solid yellow (the form's own), or outlined (another way in). Pale
+ * until usable. With `icon`, the icon and the name sit in one row (owner, 2026-09-27).
+ */
+export function AuthButton(props: { label: string; disabled: boolean; busy?: boolean; outline?: boolean; icon?: IconName; onPress: () => void }): React.ReactElement {
   return (
     <Pressable
       onPress={props.onPress}
@@ -58,9 +62,10 @@ export function AuthButton(props: { label: string; disabled: boolean; busy?: boo
       accessibilityRole="button"
       accessibilityLabel={props.label}
       accessibilityState={{ disabled: props.disabled, busy: props.busy === true }}
-      className={`${props.outline ? 'border border-separator' : 'bg-primary'} rounded-row items-center justify-center mt-row ${props.disabled ? 'opacity-40' : ''}`}
+      className={`${props.outline ? 'border border-separator' : 'bg-primary'} rounded-row flex-row gap-row items-center justify-center mt-row ${props.disabled ? 'opacity-40' : ''}`}
       style={FIELD}
     >
+      {props.icon ? <Icon name={props.icon} size={20} color={props.outline ? colour.text : colour.onPrimary} /> : null}
       <Text className={props.outline ? 'text-text text-sm font-semibold' : 'text-onPrimary text-sm font-semibold'}>{props.busy ? '…' : props.label}</Text>
     </Pressable>
   );

@@ -27,6 +27,10 @@ export type AuthApi = {
   signIn(email: string, password: string): Promise<AuthRow>;
   signOut(): Promise<void>;
   deleteAccount(password: string): Promise<void>;
+  /** Owner, 2026-09-27: the code ways in. 'needsName' = a right code for a new email. */
+  requestCode(email: string): Promise<{ resendAfterSeconds: number }>;
+  signInWithCode(email: string, code: string, displayName?: string): Promise<AuthRow | 'needsName'>;
+  deleteAccountWithCode(code: string): Promise<void>;
 };
 
 export function createAuth(deps: AuthDeps): AuthApi {
@@ -53,6 +57,18 @@ export function createAuth(deps: AuthDeps): AuthApi {
       // Drafts are the listener's; the social cache is the episode's and stays (T048).
       deps.stores.drafts.clearAll();
       // M6: what this listener hid and blocked is theirs too.
+      deps.stores.hidden?.clearAll();
+      deps.stores.blocks?.clearAll();
+    },
+    requestCode: async (email) => ({ resendAfterSeconds: (await deps.api.requestCode(email)).resendAfterSeconds }),
+    async signInWithCode(email, code, displayName) {
+      const r = await deps.api.verifyCode(email, code, displayName);
+      return 'needsName' in r ? 'needsName' : accept(r);
+    },
+    async deleteAccountWithCode(code) {
+      await deps.api.deleteMeWithCode(code);
+      await forget();
+      deps.stores.drafts.clearAll();
       deps.stores.hidden?.clearAll();
       deps.stores.blocks?.clearAll();
     },

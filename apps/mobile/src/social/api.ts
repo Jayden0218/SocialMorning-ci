@@ -119,6 +119,10 @@ export type ApiClient = {
   signUp(email: string, password: string, displayName: string): Promise<{ token: string; listener: Listener }>;
   signIn(email: string, password: string, deviceLabel?: string): Promise<{ token: string; listener: Listener }>;
   signOut(): Promise<void>;
+  /** Owner, 2026-09-27: sign in and sign up with a code sent by email; no password. */
+  requestCode(email: string): Promise<{ sent: true; resendAfterSeconds: number }>;
+  verifyCode(email: string, code: string, displayName?: string): Promise<{ token: string; listener: Listener } | { needsName: true }>;
+  deleteMeWithCode(code: string): Promise<void>;
   me(): Promise<Listener>;
   deleteMe(password: string): Promise<void>;
   registerEpisode(id: string, e: EpisodeRegistration): Promise<void>;
@@ -210,6 +214,9 @@ export function createApi(deps: ApiDeps): ApiClient {
     signUp: async (email, password, displayName) => (await call<{ token: string; listener: Listener }>('POST', '/v1/auth/sign-up', { email, password, displayName })).json,
     signIn: async (email, password, deviceLabel) => (await call<{ token: string; listener: Listener }>('POST', '/v1/auth/sign-in', { email, password, deviceLabel })).json,
     signOut: async () => { await call('POST', '/v1/auth/sign-out'); },
+    requestCode: async (email) => (await call<{ sent: true; resendAfterSeconds: number }>('POST', '/v1/auth/code', { email })).json,
+    verifyCode: async (email, code, displayName) => (await call<{ token: string; listener: Listener } | { needsName: true }>('POST', '/v1/auth/code/verify', { email, code, ...(displayName ? { displayName } : {}) })).json,
+    deleteMeWithCode: async (code) => { await call('DELETE', '/v1/me', { code }); },
     me: async () => (await call<{ listener: Listener }>('GET', '/v1/me')).json.listener,
     deleteMe: async (password) => { await call('DELETE', '/v1/me', { password }); },
     registerEpisode: async (id, e) => { await call('PUT', `/v1/episodes/${id}`, e); },

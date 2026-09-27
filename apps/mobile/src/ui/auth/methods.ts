@@ -1,14 +1,15 @@
 /**
- * The other ways in on the sign-in page (owner, 2026-09-27). The buttons exist now;
- * the backend comes later (M11), so until then each one says it is not set up yet
- * rather than doing nothing. Flip `ready` when its backend lands.
+ * The ways in on the sign-in page (owner, 2026-09-27): email (a code, no password) and
+ * two that come later. Each is an icon and its name in one row. Google and Facebook have
+ * no backend yet (M11), so until then each says it is not set up rather than doing nothing.
  */
-export type OtherMethod = 'code' | 'google' | 'facebook';
+import type { IconName } from '../Icon';
 
-export const OTHER_METHODS: { id: OtherMethod; label: string; ready: boolean }[] = [
-  { id: 'code', label: 'Sign in with email code', ready: false },
-  { id: 'google', label: 'Continue with Google', ready: false },
-  { id: 'facebook', label: 'Continue with Facebook', ready: false },
+export type OtherMethod = 'google' | 'facebook';
+
+export const OTHER_METHODS: { id: OtherMethod; label: string; icon: IconName; ready: boolean }[] = [
+  { id: 'google', label: 'Continue with Google', icon: 'logo-google', ready: false },
+  { id: 'facebook', label: 'Continue with Facebook', icon: 'logo-facebook', ready: false },
 ];
 
 export function notReadyMessage(label: string): string {
