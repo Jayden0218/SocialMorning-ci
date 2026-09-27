@@ -9,6 +9,7 @@ on:
     paths:
       - 'apps/mobile/**'
       - 'package-lock.json'
+      - 'patches/**'
       - '.github/workflows/android-compile.yml'
   workflow_dispatch:
 jobs:
