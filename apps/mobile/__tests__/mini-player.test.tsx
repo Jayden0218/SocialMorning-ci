@@ -72,6 +72,13 @@ it('is absent on /player, where the full player already draws the same episode',
   expect(render(createElement(MiniPlayer, { pathname: '/episode/e1' })).toJSON()).not.toBeNull();
 });
 
+it('is absent on the sign-in pages (owner, 2026-09-27), even while an episode plays', () => {
+  mockPlayerState = { kind: 'playing', episodeId: 'e1' };
+  for (const p of ['/auth/sign-in', '/auth/email', '/auth/sign-up']) {
+    expect(render(createElement(MiniPlayer, { pathname: p })).toJSON()).toBeNull();
+  }
+});
+
 it('shows the episode, the show and the artwork, and opens the player', () => {
   mockPlayerState = { kind: 'paused', episodeId: 'e1' };
   const r = render(createElement(MiniPlayer, { pathname: '/episode/e1' }));

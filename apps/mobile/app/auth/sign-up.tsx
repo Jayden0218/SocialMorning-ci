@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Text } from 'react-native';
 import { useSocial } from '../../src/social/context';
-import { describe, errorText } from './sign-in';
+import { describe, errorText } from '../../src/ui/auth/errors';
 import { AuthButton, AuthField, AuthShell } from '../../src/ui/auth/AuthShell';
 import { ConsentDialog, ConsentRow, useLegalOverlay } from '../../src/ui/auth/Consent';
 import { looksLikeEmail, submitAction } from '../../src/ui/auth/rules';

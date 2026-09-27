@@ -29,8 +29,8 @@ import { waitForStartup } from './startup';
 import { Splash } from './Splash';
 import { Terms } from './Terms';
 import { accept, hasAccepted } from './terms';
-import { ALWAYS_SHOW_TERMS, opensSignIn } from './launch';
-import { router } from 'expo-router';
+import { ALWAYS_SHOW_TERMS, HANDOFF_MAX_MS, coverLaunch, opensSignIn } from './launch';
+import { router, usePathname } from 'expo-router';
 
 const StoresContext = createContext<Stores | undefined>(undefined);
 const ToastContext = createContext<((message: string) => void) | undefined>(undefined);
@@ -134,11 +134,25 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
   const [accepted, setAccepted] = useState(() => !ALWAYS_SHOW_TERMS && hasAccepted(stores.settings));
   // Then the sign-in page, on every launch while signed out (see `./launch`).
   const signInOpened = useRef(false);
+  const wantSignIn = opensSignIn({ ready, accepted, signedIn: stores.auth.get() !== undefined, opened: signInOpened.current });
+  // Owner, 2026-09-27: Accept goes straight to the sign-in page, with no glimpse of the
+  // home page first. The launch screen stays up from the render that decides to open it
+  // (`wantSignIn`) until the page is on top (`handoff`); the page itself does not slide.
+  const pathname = usePathname();
+  const [handoff, setHandoff] = useState(false);
   useEffect(() => {
-    if (!opensSignIn({ ready, accepted, signedIn: stores.auth.get() !== undefined, opened: signInOpened.current })) return;
+    if (!wantSignIn) return;
     signInOpened.current = true;
+    setHandoff(true);
     router.push('/auth/sign-in');
-  }, [ready, accepted, stores]);
+  }, [wantSignIn]);
+  useEffect(() => {
+    if (!handoff) return;
+    if (pathname === '/auth/sign-in') { setHandoff(false); return; }
+    // Never trap the app behind the cover if the page does not arrive.
+    const t = setTimeout(() => setHandoff(false), HANDOFF_MAX_MS);
+    return () => clearTimeout(t);
+  }, [handoff, pathname]);
   useEffect(() => {
     let live = true;
     void waitForStartup([...startupTasks.current, downloads.recover()]).then(() => { if (live) setReady(true); });
@@ -267,7 +281,7 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
       <ToastContext.Provider value={show.current}>
         <PlayerProvider runtime={runtime}>
           {props.children}
-          {ready ? null : <Splash />}
+          {coverLaunch({ ready, wantSignIn, handoff }) ? <Splash /> : null}
           {ready && !accepted ? <Terms onAccept={() => { accept(stores.settings); setAccepted(true); }} /> : null}
           {message === undefined ? null : (
             <View className="absolute left-3 right-3 bottom-24 bg-surface border border-separator rounded-lg p-3" accessibilityLiveRegion="polite">

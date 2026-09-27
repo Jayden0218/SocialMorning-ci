@@ -62,7 +62,7 @@ const PATHS = [
   '/show/https%3A%2F%2Ff%2Fx.xml', '/episode/e1', '/player',
   '/profile/l1', '/profile/l1/followers', '/profile/l1/following',
   '/clip/new', '/clip/c1',
-  '/auth/sign-in', '/auth/sign-up',
+  '/auth/sign-in', '/auth/sign-up', '/auth/email',
 ];
 
 it('G3: every path M1–M6 deep-links to still resolves', () => {

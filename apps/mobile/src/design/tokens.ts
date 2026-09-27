@@ -42,6 +42,8 @@ export const colour = {
   separator: 'rgba(0,0,0,0.12)',
   /** Decorative: behind a sheet. No text sits on it, so no contrast floor applies. */
   scrim: 'rgba(0,0,0,0.40)',
+  /** Decorative: the page colour at 0 % — where a fade into the page starts. */
+  clear: 'rgba(255,255,255,0)',
 } as const;
 
 export const fontSize = { xs: 12, sm: 16, base: 20, lg: 24 } as const;

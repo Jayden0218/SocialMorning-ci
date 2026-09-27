@@ -53,6 +53,8 @@ export function MiniPlayer(props: { pathname?: string; context?: 'root' | 'tabs'
 
   // Reason 2 above. `/player` is the only route that draws the same episode itself.
   if (path === '/player') return null;
+  // Owner, 2026-09-27: the sign-in and sign-up pages are not a place to be playing from.
+  if (path.startsWith('/auth/')) return null;
   // Exactly one bar. Two would announce the episode twice to a screen reader.
   if (context === 'root' && TAB_ROUTES.includes(path)) return null;
   if (state.kind === 'idle') return null;

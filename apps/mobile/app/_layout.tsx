@@ -52,7 +52,10 @@ export default function RootLayout(): React.ReactElement {
           <Stack.Screen name="episode/[id]" options={{ title: 'Episode', headerShown: false }} />
           <Stack.Screen name="player" options={{ title: 'Now Playing', headerShown: false }} />
           {/* The auth pages draw their own close ✕ and title (owner's reference, 2026-09-27). */}
-          <Stack.Screen name="auth/sign-in" options={{ title: 'Sign in', headerShown: false }} />
+          {/* No slide: after Accept the landing page must appear at once, with nothing of
+              the home page showing on the way (owner, 2026-09-27; see providers). */}
+          <Stack.Screen name="auth/sign-in" options={{ title: 'Sign in', headerShown: false, animation: 'none' }} />
+          <Stack.Screen name="auth/email" options={{ title: 'Sign in with email', headerShown: false }} />
           <Stack.Screen name="auth/sign-up" options={{ title: 'Create account', headerShown: false }} />
           <Stack.Screen name="account" options={{ title: 'Account' }} />
           <Stack.Screen name="downloads" options={{ title: 'Downloads' }} />
