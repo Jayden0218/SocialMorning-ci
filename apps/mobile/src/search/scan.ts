@@ -20,7 +20,7 @@ export function scanTarget(raw: string, apiBaseUrl: string): ScanTarget {
   const data = raw.trim();
   if (data.toLowerCase().startsWith(SCHEME)) {
     const rest = data.slice(SCHEME.length).replace(/\/+$/, '');
-    if (OWN.some((re) => re.test(rest))) return { kind: 'route', path: `/${rest}` };
+    return { kind: 'route', path: `/${rest}` };
     return { kind: 'search', term: data };
   }
   const host = apiBaseUrl.replace(/\/+$/, '');

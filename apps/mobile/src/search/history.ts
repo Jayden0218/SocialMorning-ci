@@ -21,7 +21,7 @@ export function readHistory(settings: SettingsStore): string[] {
 export function addHistory(settings: SettingsStore, term: string): string[] {
   const t = term.trim();
   if (t === '' || /^https?:\/\//i.test(t)) return readHistory(settings);
-  const next = [t, ...readHistory(settings).filter((h) => h.toLowerCase() !== t.toLowerCase())].slice(0, HISTORY_MAX);
+  const next = [t, ...readHistory(settings)].slice(0, HISTORY_MAX);
   settings.set(HISTORY_KEY, JSON.stringify(next));
   return next;
 }
