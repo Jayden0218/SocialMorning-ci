@@ -1,13 +1,11 @@
 /** Sign in (US5). The 409/429 messages come from the server verbatim (contracts/api.md). */
 import { Link, router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { ApiError } from '../../src/social/api';
 import { SUSPENDED_KEY, useSocial } from '../../src/social/context';
 import { useStores } from '../../src/ui/providers';
 import { colour } from '../../src/design';
-import { askForNotifications } from '../../src/notify/permission';
-import { expoNotify } from '../../src/notify/expo';
 
 export default function SignInScreen(): React.ReactElement {
   const { auth } = useSocial();
@@ -17,9 +15,6 @@ export default function SignInScreen(): React.ReactElement {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
-
-  // Owner, 2026-09-27: the OS asks for notification permission when this page opens.
-  useEffect(() => { void askForNotifications(expoNotify); }, []);
 
   async function submit() {
     setBusy(true);

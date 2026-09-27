@@ -52,9 +52,7 @@
         }
       ],
       "expo-router",
-      "expo-secure-store",
-      "./plugins/without-push-entitlement",
-      "expo-notifications"
+      "expo-secure-store"
     ],
     "extra": {
       "apiBaseUrl": "https://socialmorning-api.vercel.app",

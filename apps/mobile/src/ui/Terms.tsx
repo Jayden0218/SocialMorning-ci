@@ -52,7 +52,7 @@ export function Terms(props: { onAccept: () => void; exit?: (back: () => void) =
             <Text className="text-text text-lg font-bold mb-row" accessibilityRole="header">{CONSENT_TITLE}</Text>
             <Text className="text-text text-sm">{REFUSE_TEXT}</Text>
             <View className="flex-row gap-row mt-section">
-              <Button label="Exit app" kind="secondary" onPress={props.onAccept} className="flex-1" />
+              <Button label="Exit app" kind="secondary" onPress={() => (props.exit ?? exitApp)(() => setRefused(false))} className="flex-1" />
               <Button label="Agree and continue" onPress={props.onAccept} className="flex-[2]" />
             </View>
           </View>
@@ -70,7 +70,7 @@ export function Terms(props: { onAccept: () => void; exit?: (back: () => void) =
           <Text className="text-muted text-sm mb-section">{CONSENT_INTRO}</Text>
           {CONSENT_ITEMS.map((item, n) => (
             <View key={item.doc} className="mb-section">
-              <Pressable onPress={() => undefined} accessibilityRole="link" accessibilityLabel={`${item.link}, opens the full text`}>
+              <Pressable onPress={() => setOpen(item.doc)} accessibilityRole="link" accessibilityLabel={`${item.link}, opens the full text`}>
                 <Text className="text-muted text-sm mb-row">
                   {`${n + 1}. `}
                   <Text className="text-accent underline">{item.link}</Text>

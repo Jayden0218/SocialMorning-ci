@@ -29,7 +29,6 @@ import { waitForStartup } from './startup';
 import { Splash } from './Splash';
 import { Terms } from './Terms';
 import { accept, hasAccepted } from './terms';
-import { router } from 'expo-router';
 
 const StoresContext = createContext<Stores | undefined>(undefined);
 const ToastContext = createContext<((message: string) => void) | undefined>(undefined);
@@ -260,12 +259,7 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
         <PlayerProvider runtime={runtime}>
           {props.children}
           {ready ? null : <Splash />}
-          {ready && !accepted ? <Terms onAccept={() => {
-            accept(stores.settings);
-            setAccepted(true);
-            // Owner, 2026-09-27: accepting leads to the login page, unless already signed in.
-            if (stores.auth.get() === undefined) router.push('/auth/sign-in');
-          }} /> : null}
+          {ready && !accepted ? <Terms onAccept={() => { accept(stores.settings); setAccepted(true); }} /> : null}
           {message === undefined ? null : (
             <View className="absolute left-3 right-3 bottom-24 bg-surface border border-separator rounded-lg p-3" accessibilityLiveRegion="polite">
               <Text className="text-text">{message}</Text>
