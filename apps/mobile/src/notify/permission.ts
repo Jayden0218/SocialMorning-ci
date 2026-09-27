@@ -13,6 +13,8 @@ export type NotifyApi = {
   status(): Promise<PermissionState>;
   createChannel(): Promise<unknown>;
   request(): Promise<unknown>;
+  /** M10b US3: this device's Expo push address; undefined when permission is not granted. */
+  pushToken?(): Promise<string | undefined>;
 };
 
 export async function askForNotifications(api: NotifyApi): Promise<'asked' | 'known' | 'failed'> {

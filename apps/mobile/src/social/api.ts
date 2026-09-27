@@ -157,6 +157,10 @@ export type ApiClient = {
   search(q: string): Promise<SearchResult>;
   /** M10b US2: the account's library (favourites, moments, searches, favourite comments), merged. */
   libraryPut(items: LibraryItem[]): Promise<{ items: LibraryItem[] }>;
+  /** M10b US3: this device's push address, and the two notification switches. */
+  pushTokenAdd(token: string, platform: 'ios' | 'android'): Promise<void>;
+  pushTokenRemove(token: string): Promise<void>;
+  pushPrefs(p: { newEpisodes: boolean; popular: boolean }): Promise<void>;
   /** M10b US2: your own comments with their text. */
   myComments(before?: string): Promise<{ items: MyComment[]; next?: string }>;
   /** M10: one Apple genre's top shows (the genre list itself is `src/discover/genres.ts`). */
@@ -272,6 +276,9 @@ export function createApi(deps: ApiDeps): ApiClient {
       return { status: 200, ...(etag ? { etag } : {}), body: r.json };
     },
     search: async (q) => (await call<SearchResult>('GET', `/v1/search?q=${encodeURIComponent(q)}`)).json,
+    pushTokenAdd: async (token, platform) => { await call('POST', '/v1/me/push-tokens', { token, platform }); },
+    pushTokenRemove: async (token) => { await call('DELETE', `/v1/me/push-tokens/${encodeURIComponent(token)}`); },
+    pushPrefs: async (p) => { await call('PUT', '/v1/me/push-prefs', p); },
     libraryPut: async (items) => (await call<{ items: LibraryItem[] }>('PUT', '/v1/me/library', { items })).json,
     myComments: async (before) => (await call<{ items: MyComment[]; next?: string }>('GET', `/v1/me/comments${before ? `?before=${encodeURIComponent(before)}` : ''}`)).json,
     category: async (genreId) => (await call<CategoryShows>('GET', `/v1/categories/${genreId}`)).json,

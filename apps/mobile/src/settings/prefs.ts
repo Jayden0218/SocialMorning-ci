@@ -14,8 +14,14 @@ export const PREFS = {
   queueAddToEnd: { key: 'pref.queueAddToEnd', default: true },
   /** Minor mode: episodes marked explicit are hidden. Read by `me/updates.ts`, the show page and the inbox. */
   hideExplicit: { key: 'pref.hideExplicit', default: false },
-  /** Popular-content notifications. Stored for when the server sends any; it sends none yet. */
+  /** Popular-content notifications: the day's pick, at most once a day. Synced by `app/settings/push.tsx`. */
   popularPush: { key: 'pref.popularPush', default: true },
+  /** M10b US3: a notification when a show you follow publishes. Synced by `app/settings/push.tsx`. */
+  newEpisodePush: { key: 'pref.newEpisodePush', default: true },
+  /** M10b US4: stream over mobile data (downloaded episodes always play). Read by `settings/playback.ts`. */
+  mobilePlayback: { key: 'pref.mobilePlayback', default: true },
+  /** M10b US4: the transcript entry on the player. Read by `app/player.tsx`. */
+  transcriptEntry: { key: 'pref.transcriptEntry', default: true },
 } as const;
 
 export type PrefName = keyof typeof PREFS;

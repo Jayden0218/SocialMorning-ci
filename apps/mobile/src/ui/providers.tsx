@@ -27,6 +27,8 @@ import { createDownloadManager, type DownloadManager } from '../downloads/manage
 import { createExpoDownloader, downloadPathFor } from '../downloads/expo-downloader';
 import { createExpoNetwork } from '../downloads/expo-network';
 import { waitForStartup } from './startup';
+import { router } from 'expo-router';
+import { onNotificationTap } from '../notify/expo';
 import { Splash } from './Splash';
 import { Terms } from './Terms';
 import { accept, hasAccepted } from './terms';
@@ -150,6 +152,8 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
     now: () => Date.now(),
     pathFor: downloadPathFor,
   }), [stores]);
+  // M10b US3 (FR-011): tapping a notification opens its episode.
+  useEffect(() => onNotificationTap((episodeId) => router.push({ pathname: '/episode/[id]', params: { id: episodeId } })), []);
   const [ready, setReady] = useState(false);
   // After the launch screen, the Terms — until accepted, nothing else is reachable.
   const [accepted, setAccepted] = useState(() => !ALWAYS_SHOW_TERMS && hasAccepted(stores.settings));

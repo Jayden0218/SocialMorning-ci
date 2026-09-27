@@ -11,6 +11,7 @@
  * carries on.
  */
 import { requireOptionalNativeModule } from 'expo';
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import type { NotifyApi, PermissionState } from './permission';
 
@@ -30,4 +31,23 @@ export const expoNotify: NotifyApi = {
     importance: native().AndroidImportance.DEFAULT,
   }),
   request: async () => native().requestPermissionsAsync(),
+  pushToken: async () => {
+    const n = native();
+    if ((await n.getPermissionsAsync()).status !== 'granted') return undefined;
+    const projectId = (Constants.expoConfig?.extra as { eas?: { projectId?: string } } | undefined)?.eas?.projectId;
+    return (await n.getExpoPushTokenAsync(projectId ? { projectId } : {})).data;
+  },
 };
+
+/** M10b US3: open the episode a tapped notification names. Returns the unsubscribe, or a no-op without the module. */
+export function onNotificationTap(open: (episodeId: string) => void): () => void {
+  try {
+    const sub = native().addNotificationResponseReceivedListener((r) => {
+      const id = (r.notification.request.content.data as { episodeId?: unknown } | undefined)?.episodeId;
+      if (typeof id === 'string' && id !== '') open(id);
+    });
+    return () => sub.remove();
+  } catch {
+    return () => undefined;
+  }
+}

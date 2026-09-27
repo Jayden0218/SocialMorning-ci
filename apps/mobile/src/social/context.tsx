@@ -2,7 +2,7 @@
  * What the social screens need: the API client, the auth API, and a live
  * "who am I" that re-renders on sign-in/out. Mounted inside <AppProviders>.
  */
-import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ApiError, createApi, type ApiClient, type Social } from './api';
 import { createAuth, type AuthApi } from './auth-store';
 import { createComposer, type Composer } from './composer';
@@ -12,6 +12,8 @@ import { registrationFor } from './registration';
 import { createReactToggle } from './react';
 import { secureToken } from './token';
 import { useLibrarySync, usePositionSync, useStores } from '../ui/providers';
+import { registerPush, unregisterPush } from '../notify/push-token';
+import { expoNotify } from '../notify/expo';
 import { apiBaseUrl } from './base-url';
 import { toSignIn } from '../ui/auth/navigate';
 import type { AuthRow } from '../storage/types';
@@ -53,8 +55,18 @@ export function SocialProvider(props: { children?: ReactNode }): ReactNode {
   // M6 (FR-015): a suspended answer ends the local session and leaves the message for the sign-in screen.
   const suspendedRef = useRef<(m: string) => void>(() => undefined);
   const api = useMemo(() => createApi({ baseUrl: apiBaseUrl(), fetch, getToken: secureToken.get, onSuspended: (m) => suspendedRef.current(m) }), []);
-  const auth = useMemo(() => createAuth({ api, stores, token: secureToken, now: () => Date.now(), onSignedIn: () => { void library.reconcile().catch(() => undefined); return sync.reconcile(); } }), [api, stores, sync, library]);
+  const auth = useMemo(() => createAuth({ api, stores, token: secureToken, now: () => Date.now(), onSignedIn: () => {
+    void library.reconcile().catch(() => undefined);
+    return sync.reconcile();
+  } }), [api, stores, sync, library]);
   const refreshListener = useCallback(() => setListener(stores.auth.get()), [stores]);
+  // M10b US3: whenever someone is signed in — at launch or just after signing in — this
+  // device's push address joins the account (only if notifications are allowed; never throws).
+  const listenerId = listener?.listenerId;
+  useEffect(() => {
+    if (listenerId === undefined) return;
+    void registerPush({ token: () => expoNotify.pushToken?.() ?? Promise.resolve(undefined), add: (t, p) => api.pushTokenAdd(t, p), remove: (t) => api.pushTokenRemove(t), settings: stores.settings, platform: expoNotify.os });
+  }, [listenerId, api, stores]);
   suspendedRef.current = (m) => {
     stores.settings.set(SUSPENDED_KEY, m);
     void secureToken.clear().then(() => { stores.auth.clear(); stores.drafts.clearAll(); stores.hidden.clearAll(); stores.blocks.clearAll(); setListener(undefined); });
@@ -107,12 +119,13 @@ export function SocialProvider(props: { children?: ReactNode }): ReactNode {
     signIn: async (...a) => { const r = await auth.signIn(...a); setListener(r); return r; },
     // Owner, 2026-09-27: signing in is required, so leaving an account lands on the
     // sign-in page, with nothing of the old stack underneath to go back to.
-    signOut: async () => { await auth.signOut(); setListener(undefined); toSignIn(); },
+    // M10b US3: this device's push address leaves the account before the session does.
+    signOut: async () => { await unregisterPush({ remove: (t) => api.pushTokenRemove(t), settings: stores.settings }); await auth.signOut(); setListener(undefined); toSignIn(); },
     deleteAccount: async (p) => { await auth.deleteAccount(p); setListener(undefined); toSignIn(); },
     requestCode: (e) => auth.requestCode(e),
     signInWithCode: async (...a) => { const r = await auth.signInWithCode(...a); if (r !== 'needsName') setListener(r); return r; },
     deleteAccountWithCode: async (c) => { await auth.deleteAccountWithCode(c); setListener(undefined); toSignIn(); },
-  }), [auth]);
+  }), [auth, api, stores]);
 
   const value = useMemo(() => ({ api, auth: wrapped, listener, refreshListener, composer, reactToggle, cache, useEpisodeSocial, bump, refresh }),
     [api, wrapped, listener, refreshListener, composer, reactToggle, cache, useEpisodeSocial, bump, refresh]);
