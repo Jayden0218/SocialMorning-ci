@@ -6,13 +6,17 @@ import '../global.css';
 import '../src/design/tailwind';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaView } from 'react-native';
+import { LogBox, SafeAreaView } from 'react-native';
 import { colour, fontSize } from '../src/design';
 import { AppProviders } from '../src/ui/providers';
 import { SocialProvider } from '../src/social/context';
 import { GraphProvider } from '../src/graph/context';
 import { SafetyProvider } from '../src/safety/context';
 import { MiniPlayer } from '../src/ui/MiniPlayer';
+
+// Owner, 2026-09-27: no warning bar over the app in Debug builds. Warnings still print
+// in the Metro terminal; Release builds never show the bar.
+LogBox.ignoreAllLogs(true);
 
 export default function RootLayout(): React.ReactElement {
   return (
