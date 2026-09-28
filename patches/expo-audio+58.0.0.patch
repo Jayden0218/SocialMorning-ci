@@ -16,7 +16,7 @@ index a326438..99f0f11 100644
        context.registerReceiver(ringerModeReceiver, IntentFilter(AudioManager.RINGER_MODE_CHANGED_ACTION))
      }
 diff --git a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
-index f3ad9d3..fbd4fda 100644
+index f3ad9d3..5b565ef 100644
 --- a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
 +++ b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
 @@ -20,7 +20,11 @@ import androidx.media3.common.Player
@@ -67,7 +67,7 @@ index f3ad9d3..fbd4fda 100644
          addSession(session)
          mediaSession = session
          sessionMetadataPlayer = sessionPlayer
-@@ -451,13 +457,57 @@ class AudioControlsService : MediaSessionService() {
+@@ -451,13 +457,69 @@ class AudioControlsService : MediaSessionService() {
      stopForeground(STOP_FOREGROUND_REMOVE)
    }
  
@@ -77,11 +77,8 @@ index f3ad9d3..fbd4fda 100644
 +    val s = (mediaSession as? MediaLibrarySession) ?: idleSession()
 +    android.util.Log.i("SocialNetCar", "onGetSession for ${controllerInfo.packageName} -> ${s.id} (real=${mediaSession != null}, library=${mediaSession is MediaLibrarySession})")
 +    return s
-   }
- 
--  override fun onBind(intent: Intent?): IBinder {
--    super.onBind(intent)
--    return binder
++  }
++
 +  // ---- SocialNet patch (M10b, Android Auto) ----
 +  // Before anything plays there is no session, and a car that finds none cannot browse. This
 +  // stand-in session has a player that does nothing; it is released the moment a real one is
@@ -92,18 +89,33 @@ index f3ad9d3..fbd4fda 100644
 +  private fun idleSession(): MediaLibrarySession {
 +    idle?.let { return it }
 +    val player = object : SimpleBasePlayer(Looper.getMainLooper()) {
++      // SocialNet patch (found on the car screen): the car's "play this" reaches onAddMediaItems
++      // only if the player says it can take media items, prepare and play. It does nothing itself:
++      // the pick goes to JS, which plays it through the app's own player.
 +      override fun getState(): State = State.Builder()
-+        .setAvailableCommands(Player.Commands.Builder().add(Player.COMMAND_GET_CURRENT_MEDIA_ITEM).build())
++        .setAvailableCommands(
++          Player.Commands.Builder().addAll(
++            Player.COMMAND_GET_CURRENT_MEDIA_ITEM, Player.COMMAND_SET_MEDIA_ITEM, Player.COMMAND_CHANGE_MEDIA_ITEMS,
++            Player.COMMAND_PREPARE, Player.COMMAND_PLAY_PAUSE
++          ).build()
++        )
 +        .build()
 +      override fun handleSetMediaItems(mediaItems: MutableList<androidx.media3.common.MediaItem>, startIndex: Int, startPositionMs: Long) =
 +        Futures.immediateVoidFuture()
++      override fun handleAddMediaItems(index: Int, mediaItems: MutableList<androidx.media3.common.MediaItem>) =
++        Futures.immediateVoidFuture()
++      override fun handlePrepare() = Futures.immediateVoidFuture()
++      override fun handleSetPlayWhenReady(playWhenReady: Boolean) = Futures.immediateVoidFuture()
 +    }
 +    return MediaLibrarySession.Builder(this, player, AudioMediaSessionCallback(this))
 +      .setId("SocialNetCarIdle_${System.identityHashCode(this)}_${++idleCount}")
 +      .build()
 +      .also { idle = it }
-+  }
-+
+   }
+ 
+-  override fun onBind(intent: Intent?): IBinder {
+-    super.onBind(intent)
+-    return binder
 +  private fun releaseIdleSession() {
 +    val s = idle ?: return
 +    idle = null
@@ -130,7 +142,7 @@ index f3ad9d3..fbd4fda 100644
    }
  
    fun setPlayableMetadata(playable: LockScreenPlayable, metadata: Metadata?) {
-@@ -481,14 +531,15 @@ class AudioControlsService : MediaSessionService() {
+@@ -481,14 +543,15 @@ class AudioControlsService : MediaSessionService() {
          val sessionPlayer = MetadataInjectingPlayer(resolveSessionPlayer(playable, options)).apply {
            updateMetadata(metadata)
          }
@@ -148,7 +160,7 @@ index f3ad9d3..fbd4fda 100644
          addSession(session)
          mediaSession = session
          sessionMetadataPlayer = sessionPlayer
-@@ -586,6 +637,10 @@ class AudioControlsService : MediaSessionService() {
+@@ -586,6 +649,10 @@ class AudioControlsService : MediaSessionService() {
    }
  
    override fun onDestroy() {
@@ -160,7 +172,7 @@ index f3ad9d3..fbd4fda 100644
  
      removePlayerListener()
 diff --git a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt
-index ee83be1..61f31c0 100644
+index ee83be1..035ca3f 100644
 --- a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt
 +++ b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt
 @@ -4,7 +4,12 @@ import android.os.Bundle
@@ -215,7 +227,7 @@ index ee83be1..61f31c0 100644
        return MediaSession.ConnectionResult.reject()
      }
    }
-@@ -83,4 +97,58 @@ class AudioMediaSessionCallback(
+@@ -83,4 +97,63 @@ class AudioMediaSessionCallback(
        else -> super.onCustomCommand(session, controller, command, args)
      }
    }
@@ -270,7 +282,12 @@ index ee83be1..61f31c0 100644
 +    controller: MediaSession.ControllerInfo,
 +    mediaItems: MutableList<MediaItem>
 +  ): ListenableFuture<MutableList<MediaItem>> {
-+    CarLibrary.select(mediaItems.firstOrNull()?.mediaId)
++    val sent = CarLibrary.select(mediaItems.firstOrNull()?.mediaId)
++    val idle = mediaSession.id.startsWith("SocialNetCarIdle")
++    android.util.Log.i("SocialNetCar", "onAddMediaItems ${mediaItems.firstOrNull()?.mediaId} sentToJs=$sent idle=$idle")
++    // On the stand-in session the items go to a player that ignores them, so the car sees success.
++    // On a real session they would replace what expo-audio is playing, so Media3 is told no.
++    if (sent && idle) return Futures.immediateFuture(mediaItems)
 +    return Futures.immediateFailedFuture(UnsupportedOperationException("SocialNet plays the pick itself"))
 +  }
  }
