@@ -16,7 +16,7 @@ index a326438..99f0f11 100644
        context.registerReceiver(ringerModeReceiver, IntentFilter(AudioManager.RINGER_MODE_CHANGED_ACTION))
      }
 diff --git a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
-index f3ad9d3..d643cfc 100644
+index f3ad9d3..0ce8745 100644
 --- a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
 +++ b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
 @@ -20,7 +20,11 @@ import androidx.media3.common.Player
@@ -67,14 +67,16 @@ index f3ad9d3..d643cfc 100644
          addSession(session)
          mediaSession = session
          sessionMetadataPlayer = sessionPlayer
-@@ -451,13 +457,52 @@ class AudioControlsService : MediaSessionService() {
+@@ -451,13 +457,56 @@ class AudioControlsService : MediaSessionService() {
      stopForeground(STOP_FOREGROUND_REMOVE)
    }
  
 -  override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
 -    return mediaSession
 +  override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? {
-+    return (mediaSession as? MediaLibrarySession) ?: idleSession()
++    val s = (mediaSession as? MediaLibrarySession) ?: idleSession()
++    android.util.Log.i("SocialNetCar", "onGetSession for ${controllerInfo.packageName} -> ${s.id} (real=${mediaSession != null}, library=${mediaSession is MediaLibrarySession})")
++    return s
    }
  
 -  override fun onBind(intent: Intent?): IBinder {
@@ -118,14 +120,16 @@ index f3ad9d3..d643cfc 100644
 +    // SocialNet patch (found on Android Auto's car screen, 2026-09-28): a browser (the car) must
 +    // get Media3's own binder, or it binds and then waits for ever. The app's own connection
 +    // (AudioPlaybackServiceConnection, the MediaSessionService action) keeps expo's binder.
-+    return when (intent?.action) {
++    val out = when (intent?.action) {
 +      MediaLibraryService.SERVICE_INTERFACE, "android.media.browse.MediaBrowserService" -> media
 +      else -> binder
 +    }
++    android.util.Log.i("SocialNetCar", "onBind action=${intent?.action} media=${media?.javaClass?.name} returned=${out?.javaClass?.name}")
++    return out
    }
  
    fun setPlayableMetadata(playable: LockScreenPlayable, metadata: Metadata?) {
-@@ -481,14 +526,15 @@ class AudioControlsService : MediaSessionService() {
+@@ -481,14 +530,15 @@ class AudioControlsService : MediaSessionService() {
          val sessionPlayer = MetadataInjectingPlayer(resolveSessionPlayer(playable, options)).apply {
            updateMetadata(metadata)
          }
@@ -144,7 +148,7 @@ index f3ad9d3..d643cfc 100644
          mediaSession = session
          sessionMetadataPlayer = sessionPlayer
 diff --git a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt
-index ee83be1..ad5f113 100644
+index ee83be1..61f31c0 100644
 --- a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt
 +++ b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt
 @@ -4,7 +4,12 @@ import android.os.Bundle
@@ -185,7 +189,21 @@ index ee83be1..ad5f113 100644
          .add(SessionCommand(AudioControlsService.ACTION_SEEK_BACKWARD, Bundle.EMPTY))
          .add(SessionCommand(AudioControlsService.ACTION_SEEK_FORWARD, Bundle.EMPTY))
          .apply {
-@@ -83,4 +95,55 @@ class AudioMediaSessionCallback(
+@@ -48,11 +60,13 @@ class AudioMediaSessionCallback(
+         }
+         .build()
+ 
++      android.util.Log.i("SocialNetCar", "onConnect ${controller.packageName} library=${session is MediaLibraryService.MediaLibrarySession} rootAllowed=${availableSessionCommands.contains(SessionCommand.COMMAND_CODE_LIBRARY_GET_LIBRARY_ROOT)}")
+       return MediaSession.ConnectionResult.AcceptedResultBuilder(session)
+         .setAvailablePlayerCommands(availablePlayerCommands)
+         .setAvailableSessionCommands(availableSessionCommands)
+         .build()
+     } catch (e: Exception) {
++      android.util.Log.w("SocialNetCar", "onConnect rejected ${controller.packageName}", e)
+       return MediaSession.ConnectionResult.reject()
+     }
+   }
+@@ -83,4 +97,58 @@ class AudioMediaSessionCallback(
        else -> super.onCustomCommand(session, controller, command, args)
      }
    }
@@ -197,7 +215,9 @@ index ee83be1..ad5f113 100644
 +    browser: MediaSession.ControllerInfo,
 +    params: MediaLibraryService.LibraryParams?
 +  ): ListenableFuture<LibraryResult<MediaItem>> {
-+    if (!CarLibrary.mayBrowse(browser.packageName, browser.isTrusted, service.packageName)) {
++    val ok = CarLibrary.mayBrowse(browser.packageName, browser.isTrusted, service.packageName)
++    android.util.Log.i("SocialNetCar", "onGetLibraryRoot ${browser.packageName} trusted=${browser.isTrusted} allowed=$ok")
++    if (!ok) {
 +      return Futures.immediateFuture(LibraryResult.ofError(SessionError.ERROR_PERMISSION_DENIED))
 +    }
 +    return Futures.immediateFuture(LibraryResult.ofItem(CarLibrary.root(), params))
@@ -215,6 +235,7 @@ index ee83be1..ad5f113 100644
 +      return Futures.immediateFuture(LibraryResult.ofError(SessionError.ERROR_PERMISSION_DENIED))
 +    }
 +    val all = CarLibrary.children(parentId)
++    android.util.Log.i("SocialNetCar", "onGetChildren $parentId page=$page size=$pageSize -> ${all.size}")
 +    val from = (page.toLong() * pageSize).coerceAtMost(all.size.toLong()).toInt()
 +    val to = (from.toLong() + pageSize).coerceAtMost(all.size.toLong()).toInt()
 +    return Futures.immediateFuture(LibraryResult.ofItemList(ImmutableList.copyOf(all.subList(from, to)), params))
