@@ -47,6 +47,15 @@ jobs:
       - name: the Room keep rule reached R8 (plugins/keep-room.js)
         run: grep -n "androidx.room.RoomDatabase" app/proguard-rules.pro
         working-directory: apps/mobile/android
+      # Found 2026-09-28: Expo 58 links expo-audio from a PRECOMPILED .aar, so the patch compiled
+      # into nothing and two phone tests ran old code. buildFromSource (apps/mobile/package.json)
+      # fixes that; this step fails the build if the patched Kotlin is not in the APK's code.
+      - name: the expo-audio patch is inside the APK
+        run: |
+          APK=app/build/outputs/apk/release/app-release.apk
+          n=0; for f in $(unzip -Z1 $APK | grep '\.dex$'); do c=$(unzip -p $APK "$f" | grep -a -c "socialnet-root" || true); n=$((n + c)); done
+          echo "dex hits for socialnet-root: $n"; test "$n" -gt 0
+        working-directory: apps/mobile/android
       - uses: actions/upload-artifact@v4
         with:
           name: socialnet-release-apk
