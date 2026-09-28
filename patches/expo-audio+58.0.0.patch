@@ -16,7 +16,7 @@ index a326438..99f0f11 100644
        context.registerReceiver(ringerModeReceiver, IntentFilter(AudioManager.RINGER_MODE_CHANGED_ACTION))
      }
 diff --git a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
-index f3ad9d3..5b565ef 100644
+index f3ad9d3..4ea7e1d 100644
 --- a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
 +++ b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
 @@ -20,7 +20,11 @@ import androidx.media3.common.Player
@@ -48,33 +48,59 @@ index f3ad9d3..5b565ef 100644
      createNotificationChannelIfNeeded()
    }
  
-@@ -401,15 +406,16 @@ class AudioControlsService : MediaSessionService() {
+@@ -390,7 +395,7 @@ class AudioControlsService : MediaSessionService() {
+     playable?.isActiveForLockScreen = true
+ 
+     if (playable != null) {
+-      mediaSession?.release()
++      // SocialNet patch: the one car session is kept; only its player is swapped below.
+       sessionMetadataPlayer = null
+ 
+       appContext?.mainQueue?.launch {
+@@ -401,16 +406,18 @@ class AudioControlsService : MediaSessionService() {
          // Distinguish this lock-screen session from the basic session built in
          // `buildBasicMediaSession` (and from sessions for other players); two
          // MediaSession instances with the empty default ID throw on construction.
 -        val session = MediaSession.Builder(context, sessionPlayer)
-+        // SocialNet patch: a library session, so Android Auto can browse (MediaLibraryService).
-+        val session = MediaLibrarySession.Builder(this@AudioControlsService, sessionPlayer, AudioMediaSessionCallback(this@AudioControlsService))
-           .setId("ExpoAudioLockScreenSession_${playable.player.hashCode()}")
+-          .setId("ExpoAudioLockScreenSession_${playable.player.hashCode()}")
 -          .setCallback(AudioMediaSessionCallback(this@AudioControlsService))
-           .build()
+-          .build()
++        // SocialNet patch: a library session, so Android Auto can browse (MediaLibraryService).
++        // SocialNet patch: ONE library session lives as long as the service and only its player
++        // changes. Android hands every later car connection the same cached binder, so a session
++        // replaced mid-drive left the car watching a dead one (found on the car screen, 2026-09-28).
++        val session = idleSession()
++        session.player = sessionPlayer
  
          // Replace the basic media session with a session connected to our playback service.
++        // The playable keeps its (released) basic session: it releases and rebuilds that itself,
++        // and must never release the shared car session.
          playable.mediaSession.release()
-         playable.mediaSession = session
- 
-+        releaseIdleSession()
-         addSession(session)
+-        playable.mediaSession = session
+-
+-        addSession(session)
++        if (!isSessionAdded(session)) addSession(session)
          mediaSession = session
          sessionMetadataPlayer = sessionPlayer
-@@ -451,13 +457,69 @@ class AudioControlsService : MediaSessionService() {
+ 
+@@ -442,7 +449,8 @@ class AudioControlsService : MediaSessionService() {
+     playable?.isActiveForLockScreen = false
+     removePlayerListener()
+     currentMetadata = null
+-    mediaSession?.release()
++    // SocialNet patch: back to the do-nothing player; the car session itself stays.
++    idleStub?.let { stub -> idle?.player = stub }
+     mediaSession = null
+     sessionMetadataPlayer = null
+     clearArtwork()
+@@ -451,13 +459,75 @@ class AudioControlsService : MediaSessionService() {
      stopForeground(STOP_FOREGROUND_REMOVE)
    }
  
 -  override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
 -    return mediaSession
 +  override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? {
-+    val s = (mediaSession as? MediaLibrarySession) ?: idleSession()
++    val s = idleSession()
 +    android.util.Log.i("SocialNetCar", "onGetSession for ${controllerInfo.packageName} -> ${s.id} (real=${mediaSession != null}, library=${mediaSession is MediaLibrarySession})")
 +    return s
 +  }
@@ -84,6 +110,10 @@ index f3ad9d3..5b565ef 100644
 +  // stand-in session has a player that does nothing; it is released the moment a real one is
 +  // made, which disconnects the car so that it reconnects to the real one.
 +  private var idle: MediaLibrarySession? = null
++  private var idleStub: Player? = null
++
++  /** True while the car session holds the do-nothing player (nothing is playing yet). */
++  fun isIdle(session: MediaSession): Boolean = idleStub != null && session.player === idleStub
 +  private var idleCount = 0
 +
 +  private fun idleSession(): MediaLibrarySession {
@@ -107,6 +137,7 @@ index f3ad9d3..5b565ef 100644
 +      override fun handlePrepare() = Futures.immediateVoidFuture()
 +      override fun handleSetPlayWhenReady(playWhenReady: Boolean) = Futures.immediateVoidFuture()
 +    }
++    idleStub = player
 +    return MediaLibrarySession.Builder(this, player, AudioMediaSessionCallback(this))
 +      .setId("SocialNetCarIdle_${System.identityHashCode(this)}_${++idleCount}")
 +      .build()
@@ -119,8 +150,9 @@ index f3ad9d3..5b565ef 100644
 +  private fun releaseIdleSession() {
 +    val s = idle ?: return
 +    idle = null
-+    s.player.release()
 +    s.release()
++    idleStub?.release()
++    idleStub = null
 +  }
 +
 +  private fun notifyCarChanged(ids: List<String>) {
@@ -142,25 +174,41 @@ index f3ad9d3..5b565ef 100644
    }
  
    fun setPlayableMetadata(playable: LockScreenPlayable, metadata: Metadata?) {
-@@ -481,14 +543,15 @@ class AudioControlsService : MediaSessionService() {
+@@ -474,22 +544,24 @@ class AudioControlsService : MediaSessionService() {
+       currentOptions = options
+       updateArtwork(metadata, postUpdate = false)
+ 
+-      mediaSession?.release()
++      // SocialNet patch: the one car session is kept; only its player is swapped below.
+       sessionMetadataPlayer = null
+       appContext?.mainQueue?.launch {
+         val context = appContext?.reactContext ?: return@launch
          val sessionPlayer = MetadataInjectingPlayer(resolveSessionPlayer(playable, options)).apply {
            updateMetadata(metadata)
          }
 -        val session = MediaSession.Builder(context, sessionPlayer)
-+        // SocialNet patch: a library session, so Android Auto can browse (MediaLibraryService).
-+        val session = MediaLibrarySession.Builder(this@AudioControlsService, sessionPlayer, AudioMediaSessionCallback(this@AudioControlsService))
-           .setId("ExpoAudioLockScreenSession_${playable.player.hashCode()}")
+-          .setId("ExpoAudioLockScreenSession_${playable.player.hashCode()}")
 -          .setCallback(AudioMediaSessionCallback(this@AudioControlsService))
-           .build()
- 
+-          .build()
+-
++        // SocialNet patch: a library session, so Android Auto can browse (MediaLibraryService).
++        // SocialNet patch: ONE library session lives as long as the service and only its player
++        // changes. Android hands every later car connection the same cached binder, so a session
++        // replaced mid-drive left the car watching a dead one (found on the car screen, 2026-09-28).
++        val session = idleSession()
++        session.player = sessionPlayer
++
++        // The playable keeps its (released) basic session: it releases and rebuilds that itself,
++        // and must never release the shared car session.
          playable.mediaSession.release()
-         playable.mediaSession = session
- 
-+        releaseIdleSession()
-         addSession(session)
+-        playable.mediaSession = session
+-
+-        addSession(session)
++        if (!isSessionAdded(session)) addSession(session)
          mediaSession = session
          sessionMetadataPlayer = sessionPlayer
-@@ -586,6 +649,10 @@ class AudioControlsService : MediaSessionService() {
+ 
+@@ -586,6 +658,10 @@ class AudioControlsService : MediaSessionService() {
    }
  
    override fun onDestroy() {
@@ -172,7 +220,7 @@ index f3ad9d3..5b565ef 100644
  
      removePlayerListener()
 diff --git a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt
-index ee83be1..035ca3f 100644
+index ee83be1..494bfe5 100644
 --- a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt
 +++ b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt
 @@ -4,7 +4,12 @@ import android.os.Bundle
@@ -283,7 +331,7 @@ index ee83be1..035ca3f 100644
 +    mediaItems: MutableList<MediaItem>
 +  ): ListenableFuture<MutableList<MediaItem>> {
 +    val sent = CarLibrary.select(mediaItems.firstOrNull()?.mediaId)
-+    val idle = mediaSession.id.startsWith("SocialNetCarIdle")
++    val idle = service.isIdle(mediaSession)
 +    android.util.Log.i("SocialNetCar", "onAddMediaItems ${mediaItems.firstOrNull()?.mediaId} sentToJs=$sent idle=$idle")
 +    // On the stand-in session the items go to a player that ignores them, so the car sees success.
 +    // On a real session they would replace what expo-audio is playing, so Media3 is told no.
