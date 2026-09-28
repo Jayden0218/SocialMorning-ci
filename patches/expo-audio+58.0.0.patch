@@ -16,7 +16,7 @@ index a326438..99f0f11 100644
        context.registerReceiver(ringerModeReceiver, IntentFilter(AudioManager.RINGER_MODE_CHANGED_ACTION))
      }
 diff --git a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
-index f3ad9d3..0ce8745 100644
+index f3ad9d3..fbd4fda 100644
 --- a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
 +++ b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
 @@ -20,7 +20,11 @@ import androidx.media3.common.Player
@@ -67,7 +67,7 @@ index f3ad9d3..0ce8745 100644
          addSession(session)
          mediaSession = session
          sessionMetadataPlayer = sessionPlayer
-@@ -451,13 +457,56 @@ class AudioControlsService : MediaSessionService() {
+@@ -451,13 +457,57 @@ class AudioControlsService : MediaSessionService() {
      stopForeground(STOP_FOREGROUND_REMOVE)
    }
  
@@ -87,6 +87,7 @@ index f3ad9d3..0ce8745 100644
 +  // stand-in session has a player that does nothing; it is released the moment a real one is
 +  // made, which disconnects the car so that it reconnects to the real one.
 +  private var idle: MediaLibrarySession? = null
++  private var idleCount = 0
 +
 +  private fun idleSession(): MediaLibrarySession {
 +    idle?.let { return it }
@@ -98,7 +99,7 @@ index f3ad9d3..0ce8745 100644
 +        Futures.immediateVoidFuture()
 +    }
 +    return MediaLibrarySession.Builder(this, player, AudioMediaSessionCallback(this))
-+      .setId("SocialNetCarIdle")
++      .setId("SocialNetCarIdle_${System.identityHashCode(this)}_${++idleCount}")
 +      .build()
 +      .also { idle = it }
 +  }
@@ -129,7 +130,7 @@ index f3ad9d3..0ce8745 100644
    }
  
    fun setPlayableMetadata(playable: LockScreenPlayable, metadata: Metadata?) {
-@@ -481,14 +530,15 @@ class AudioControlsService : MediaSessionService() {
+@@ -481,14 +531,15 @@ class AudioControlsService : MediaSessionService() {
          val sessionPlayer = MetadataInjectingPlayer(resolveSessionPlayer(playable, options)).apply {
            updateMetadata(metadata)
          }
@@ -147,6 +148,17 @@ index f3ad9d3..0ce8745 100644
          addSession(session)
          mediaSession = session
          sessionMetadataPlayer = sessionPlayer
+@@ -586,6 +637,10 @@ class AudioControlsService : MediaSessionService() {
+   }
+ 
+   override fun onDestroy() {
++    // SocialNet patch (found on the car screen, 2026-09-28): the service can be destroyed and made
++    // again in the same process; an idle session left behind made the next one crash
++    // ("Session ID must be unique"). Release it with the service.
++    releaseIdleSession()
+     super.onDestroy()
+ 
+     removePlayerListener()
 diff --git a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt
 index ee83be1..61f31c0 100644
 --- a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt
