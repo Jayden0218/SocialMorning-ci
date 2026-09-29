@@ -30,11 +30,10 @@ export function blobStorage(token: string | undefined): EpisodeStorage {
     ready: Boolean(token),
     uploadToken: async (pathname, o) => {
       if (!token) throw new Error('episode store not connected');
-      return generateClientTokenFromReadWriteToken(
-        pathname,
-        { maximumSizeInBytes: o.maxBytes, allowedContentTypes: o.types, validUntil: new Date(Date.now() + 60 * 60 * 1000), addRandomSuffix: false },
-        token,
-      );
+      // 2.8.0 takes ONE object; vercel.com's SDK page still shows an older 3-argument form (read from the package's own .d.ts).
+      return generateClientTokenFromReadWriteToken({
+        token, pathname, maximumSizeInBytes: o.maxBytes, allowedContentTypes: o.types, validUntil: Date.now() + 60 * 60 * 1000, addRandomSuffix: false,
+      });
     },
     head: async (url) => {
       if (!token) return undefined;
