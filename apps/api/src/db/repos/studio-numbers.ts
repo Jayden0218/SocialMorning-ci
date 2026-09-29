@@ -28,7 +28,7 @@ async function count(db: Db, sql: string, feedUrl: string): Promise<number> {
 
 /** Completion over every (listener, episode) that has a play, as one rate; per-episode when `episodeId` given. */
 export async function completion(db: Db, feedUrl: string): Promise<{ all: number | null; byEpisode: Map<string, number | null> }> {
-  const rows = await db.query<{ episode_id: string; ranges: Range[][] | null; duration_ms: number | null; finished: boolean | null }>(
+  const rows = await db.query<{ episode_id: string; ranges: (Range[] | string)[] | null; duration_ms: number | null; finished: boolean | null }>(
     `SELECT a.episode_id, e.duration_ms,
             (SELECT jsonb_agg(lr.ranges) FROM listened_ranges lr
               WHERE lr.listener_id = a.actor_id AND lr.episode_id = a.episode_id) AS ranges,
@@ -42,7 +42,9 @@ export async function completion(db: Db, feedUrl: string): Promise<{ all: number
   const per = new Map<string, (boolean | null)[]>();
   const all: (boolean | null)[] = [];
   for (const r of rows) {
-    const done = isComplete(r.ranges ?? [], r.duration_ms, r.finished === true);
+    // A set stored as a JSON string (the driver's double-encoding, repaired by migration 012) still counts.
+    const sets = (r.ranges ?? []).map((s) => (typeof s === 'string' ? (JSON.parse(s) as Range[]) : s));
+    const done = isComplete(sets, r.duration_ms, r.finished === true);
     all.push(done);
     per.set(r.episode_id, [...(per.get(r.episode_id) ?? []), done]);
   }

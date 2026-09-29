@@ -21,10 +21,12 @@ export type LibraryRow = { kind: Kind; item_key: string; payload: Record<string,
 export type LibraryIn = { kind: Kind; key: string; payload?: Record<string, unknown>; updatedAt: string; deletedAt?: string | null };
 export type LibraryOut = { kind: Kind; key: string; payload: Record<string, unknown>; updatedAt: string; deletedAt?: string };
 
+// The `postgres` driver double-encodes a string cast `$n::jsonb` (pglite does not): writes go
+// through text, and a row stored as a string before migration 012 still reads as an object.
 export const toPublic = (r: LibraryRow): LibraryOut => ({
   kind: r.kind,
   key: r.item_key,
-  payload: r.payload,
+  payload: (typeof r.payload === 'string' ? JSON.parse(r.payload) : r.payload) as Record<string, unknown>,
   updatedAt: new Date(r.updated_at).toISOString(),
   ...(r.deleted_at ? { deletedAt: new Date(r.deleted_at).toISOString() } : {}),
 });
@@ -71,7 +73,7 @@ export async function merge(db: Db, listenerId: string, items: readonly LibraryI
         if (!takeNext) continue;
       }
       await tx.query(
-        `INSERT INTO library_items (listener_id, kind, item_key, payload, updated_at, deleted_at) VALUES ($1, $2, $3, $4::jsonb, $5, $6)
+        `INSERT INTO library_items (listener_id, kind, item_key, payload, updated_at, deleted_at) VALUES ($1, $2, $3, ($4::text)::jsonb, $5, $6)
          ON CONFLICT (listener_id, kind, item_key) DO UPDATE SET payload = excluded.payload, updated_at = excluded.updated_at, deleted_at = excluded.deleted_at`,
         [listenerId, next.kind, next.key, JSON.stringify(clean(next)), next.updatedAt, next.deletedAt ?? null],
       );

@@ -18,7 +18,7 @@ export async function replaceRanges(db: Db, listenerId: string, deviceId: string
       const before = await unionFor(tx, listenerId, d.episodeId, d.day);
       const merged = mergeRanges(d.ranges);
       await tx.query(
-        `INSERT INTO listened_ranges (listener_id, episode_id, day, device_id, ranges) VALUES ($1, $2, $3, $4, $5::jsonb)
+        `INSERT INTO listened_ranges (listener_id, episode_id, day, device_id, ranges) VALUES ($1, $2, $3, $4, ($5::text)::jsonb)
          ON CONFLICT (listener_id, episode_id, day, device_id) DO UPDATE SET ranges = EXCLUDED.ranges, updated_at = now()`,
         [listenerId, d.episodeId, d.day, deviceId, JSON.stringify(merged)],
       );
