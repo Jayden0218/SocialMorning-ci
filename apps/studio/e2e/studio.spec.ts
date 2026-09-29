@@ -109,14 +109,16 @@ test('the whole Studio, one creator, from sign-in to sign-out', async ({ page, r
   await snap(page, 'comments-replied');
 
   // 8 — hide: others see a placeholder, the author still reads it; un-hide restores
-  await page.getByRole('button', { name: 'Hide' }).first().click();
+  // Newest first: the host's own reply is now on top, so act inside Mei's comment, not on the first Hide.
+  const meis = page.getByRole('article', { name: `Comment by ${LISTENER.name}` }).first();
+  await meis.getByRole('button', { name: 'Hide' }).click();
   await page.getByRole('dialog', { name: 'Hide this comment?' }).getByRole('button', { name: 'Hide' }).click();
-  await expect(page.getByText('Hidden by you')).toBeVisible();
+  await expect(meis.getByText('Hidden by you')).toBeVisible();
   const hiddenForOther = (await thread(xuToken)).find((c) => c.id === commentId)!;
   expect([hiddenForOther.body, hiddenForOther.hiddenByHost]).toEqual([null, true]);
   expect((await thread(meiToken)).find((c) => c.id === commentId)!.body).toBe('Loved the intro!');
   await snap(page, 'comment-hidden');
-  await page.getByRole('button', { name: 'Un-hide' }).click();
+  await meis.getByRole('button', { name: 'Un-hide' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Un-hide' }).click();
   await expect(page.getByText('Hidden by you')).toHaveCount(0);
   expect((await thread(xuToken)).find((c) => c.id === commentId)!.body).toBe('Loved the intro!');
