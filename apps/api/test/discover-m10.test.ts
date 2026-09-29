@@ -56,8 +56,8 @@ function fakeCatalog() {
     if (url.includes('/rss/toppodcasts/')) return json({ feed: { entry: CHART.map((s) => ({ id: { attributes: { 'im:id': String(s.collectionId) } } })) } });
     const ids = (u.searchParams.get('id') ?? '').split(',').map(Number);
     if (u.searchParams.get('entity') === 'podcastEpisode') {
-      const s = CHART.find((x) => x.collectionId === ids[0]);
-      return json({ results: s ? [showJson(s), latestJson(s)] : [] });
+      // As Apple answers (read 2026-09-29): every id's show, then its newest episode.
+      return json({ results: CHART.filter((s) => ids.includes(s.collectionId)).flatMap((s) => [showJson(s), latestJson(s)]) });
     }
     return json({ results: CHART.filter((s) => ids.includes(s.collectionId)).map(showJson) });
   }) as typeof fetch;
@@ -87,7 +87,7 @@ async function appWith(opts: { collectionsRaw?: unknown } = {}) {
 
 type Card = { id: string; feedUrl: string; guid: string; title: string; showTitle: string; enclosureUrl: string };
 type Item = { kind: string; key: string; episode: Card; why?: string; reason?: string; stats?: { listeners: number; comments: number } };
-type Show = { appleId?: number; feedUrl: string; title: string; author: string; genres: string[]; episodeCount?: number };
+type Show = { appleId?: number; feedUrl: string; title: string; author: string; genres: string[]; episodeCount?: number; latestEpisode?: { title: string; publishedAt?: string } };
 type Body = {
   date?: string; picks: Item[]; talkedAbout: Item[]; trending: Item[]; stale: boolean; serverTime: string;
   shows?: Show[]; newShows?: { show: Show; episode: Card }[];
@@ -298,6 +298,10 @@ test('M10: GET /v1/categories lists Apple\'s genres with display names; /:genreI
   assert.equal(one.shows.length, CHART.length);
   assert.ok(one.shows.length <= 20);
   assert.match(cat.calls.find((u) => u.includes('genre=1303'))!, /toppodcasts\/limit=20\/genre=1303\/json$/);
+  // M12 FR-072 (guard G-C2): each show names its newest episode, from the same one lookup.
+  assert.deepEqual(one.shows[0]!.latestEpisode, { title: 'The Joe Rogan Experience latest', publishedAt: '2026-09-20T10:00:00Z' });
+  assert.ok(one.shows.every((s) => s.latestEpisode?.title === `${s.title} latest`));
+  assert.equal(cat.calls.filter((u) => u.includes('/lookup')).length, 1, 'one lookup for the whole chart');
   const n = cat.calls.length;
   await t.call('GET', '/v1/categories/1303');
   assert.equal(cat.calls.length, n, 'served from the cache');

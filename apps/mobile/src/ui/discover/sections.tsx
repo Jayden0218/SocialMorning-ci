@@ -60,13 +60,14 @@ export function ForYouSection(props: Act & { rows: { card: EpisodeCard; line: st
 }
 
 /** Editor's picks — the owner's note in a quote box, and how many listened and talked. */
-export function PicksSection(props: Act & { items: DiscoverItem[]; date?: string }): React.ReactElement | null {
+export function PicksSection(props: Act & { items: DiscoverItem[]; date?: string; onPast?: () => void }): React.ReactElement | null {
   const stores = useStores();
   const c = useColours(stores.settings);
   if (props.items.length === 0) return null;
   return (
     <Box>
-      <SectionTitle title={props.date ? `Editor's picks · ${props.date}` : "Editor's picks"} />
+      {/* M12 FR-070: earlier days' picks are one tap away. */}
+      <SectionTitle title={props.date ? `Editor's picks · ${props.date}` : "Editor's picks"} {...(props.onPast ? { action: { label: 'Past picks', onPress: props.onPast } } : {})} />
       {props.items.map((p) => {
         const stats = statsLine(p.stats);
         return (
@@ -97,7 +98,7 @@ export function PicksSection(props: Act & { items: DiscoverItem[]; date?: string
 }
 
 /** The chart — three tabs (top, talked about, new shows), numbered rows in pages of three. */
-export function ChartSection(props: Act & { tabs: ChartTab[] }): React.ReactElement | null {
+export function ChartSection(props: Act & { tabs: ChartTab[]; onFull?: () => void }): React.ReactElement | null {
   const [tab, setTab] = useState(0);
   const [page, setPage] = useState(0);
   const current = props.tabs[Math.min(tab, props.tabs.length - 1)];
@@ -111,6 +112,12 @@ export function ChartSection(props: Act & { tabs: ChartTab[] }): React.ReactElem
             <Text className={i === tab ? 'text-accent text-base font-bold' : 'text-muted text-base'}>{t.label}</Text>
           </Pressable>
         ))}
+        {/* M12 FR-071: the whole Talked-about ranking, not only the three pages shown here. */}
+        {props.onFull ? (
+          <Pressable onPress={props.onFull} accessibilityRole="link" accessibilityLabel="Full chart" className="justify-center ml-auto pl-row" style={TAP}>
+            <Text className="text-muted text-xs">Full chart →</Text>
+          </Pressable>
+        ) : null}
       </Box>
       <Pager key={current.key} count={p.length} onPage={setPage}>
         {(i) => (p[i] ?? []).map((card, j) => (

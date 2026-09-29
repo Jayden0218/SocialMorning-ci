@@ -59,3 +59,17 @@ it('a comment card names nobody (G6)', () => {
   expect(text(r)).toContain('Loved the ending');
   expect(text(r)).not.toContain('l1');
 });
+
+// M12 guard G-D2 (FR-070, FR-071): Discover links to past picks and the full chart. The break:
+// drop the `action` from PicksSection's title, or the "Full chart" link from ChartSection.
+it('Editor\'s picks links to past picks; the chart links to the full chart', () => {
+  const onPast = jest.fn();
+  const onFull = jest.fn();
+  let r!: ReactTestRenderer;
+  act(() => { r = create(createElement(PicksSection, { items: [{ kind: 'pick', key: 'p1', episode: card('p1') }], onOpen: jest.fn(), onPlay: jest.fn(), onPast })); });
+  act(() => { byLabel(r, 'Past picks').props['onPress'](); });
+  expect(onPast).toHaveBeenCalledTimes(1);
+  act(() => { r = create(createElement(ChartSection, { tabs: [{ key: 'top' as const, label: 'Top', rows: [card('a')] }], onOpen: jest.fn(), onPlay: jest.fn(), onFull })); });
+  act(() => { byLabel(r, 'Full chart').props['onPress'](); });
+  expect(onFull).toHaveBeenCalledTimes(1);
+});

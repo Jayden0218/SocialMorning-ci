@@ -76,3 +76,13 @@ export function ago(iso: string, now: number): string {
   if (h < 24) return `${h} h ago`;
   return `${Math.floor(h / 24)} d ago`;
 }
+
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** M12 FR-070 (past picks): "2026-09-22" → "Tue 22 Sep 2026" — the date as written, never shifted by the phone's zone. */
+export function dayTitle(date: string): string {
+  const d = new Date(`${date}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return date;
+  return `${DAYS[d.getUTCDay()]} ${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+}

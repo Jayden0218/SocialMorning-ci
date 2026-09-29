@@ -28,6 +28,14 @@ export function addHistory(settings: SettingsStore, term: string): string[] {
   return next;
 }
 
+/** M12 FR-073: how many terms the search page lists under "Recent". */
+export const RECENT_MAX = 10;
+
+/** The search page's "Recent" list: the newest RECENT_MAX terms, newest first. */
+export function recentSearches(history: readonly string[]): string[] {
+  return history.slice(0, RECENT_MAX);
+}
+
 export function clearHistory(settings: SettingsStore): void {
   const now = Date.now();
   for (const h of readHistory(settings)) recordChange(settings, 'search', h.toLowerCase(), undefined, now);

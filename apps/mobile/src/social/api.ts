@@ -115,7 +115,7 @@ export type ShowStats = { listeners: number; comments: number; episodes: number;
 export type MyComment = { id: string; body: string | null; deleted: boolean; removed: boolean; hiddenByHost?: true; offsetMs: number | null; createdAt: string; episode: EpisodeCard };
 export type CategoryShows = { genreId: number; name: string; shows: ShowCard[]; stale?: boolean };
 export type DiscoverResult = { status: 200; etag?: string; body: Discover } | { status: 304 };
-export type ShowCard = { appleId?: number; feedUrl: string; title: string; author: string; imageUrl?: string; genres: string[]; episodeCount?: number };
+export type ShowCard = { appleId?: number; feedUrl: string; title: string; author: string; imageUrl?: string; genres: string[]; episodeCount?: number; /** M12 FR-072: only on a category chart. */ latestEpisode?: { title: string; publishedAt?: string } };
 export type SearchResult = { shows: ShowCard[]; episodes: EpisodeCard[]; episodeSearch: 'ok' | 'unavailable'; source: { shows: 'apple' } };
 export type NextUpItem = { episode: EpisodeCard; reason: 'alsoListened' | 'talkedAboutOnShow' | 'newOnShow' | 'trendingInCategory'; label: string };
 

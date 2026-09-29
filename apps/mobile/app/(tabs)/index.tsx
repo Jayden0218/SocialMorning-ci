@@ -102,8 +102,8 @@ export default function DiscoverScreen(): React.ReactElement {
         ) : null}
 
         <ForYouSection rows={model.forYou} {...act} onOpenAt={(c, index) => { outbox.opened(index); void open(c); }} />
-        <PicksSection items={model.picks} {...(view?.body.date ? { date: view.body.date } : {})} {...act} />
-        <ChartSection tabs={model.chart} {...act} />
+        <PicksSection items={model.picks} {...(view?.body.date ? { date: view.body.date } : {})} {...act} onPast={() => router.push('/picks/past')} />
+        <ChartSection tabs={model.chart} {...act} onFull={() => router.push('/chart')} />
         {view ? <CategoryStrip onGenre={(id) => router.push({ pathname: '/category/[id]', params: { id: String(id) } })} onAll={() => router.push('/categories')} /> : null}
         <ShowTiles title="Popular shows" shows={popularShowTiles(model.shows)} onShow={showPage} />
         <VideoSection items={model.video} {...act} />

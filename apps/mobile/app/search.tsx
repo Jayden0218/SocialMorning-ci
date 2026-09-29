@@ -6,7 +6,8 @@
  * M10 (owner, 2026-09-27), laid out after the reference: the box sits at the top with a
  * QR button and "Cancel"; with nothing typed the page shows "Try searching" (show names
  * from the Discover copy on the phone), "Browse categories", and this phone's search
- * history with a ✕ to clear it. `?q=` fills the box — how a scanned code's text lands.
+ * history with a ✕ to clear it. M12 FR-073: that history is a "Recent" list (the last 10,
+ * newest first) with Clear. `?q=` fills the box — how a scanned code's text lands.
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -26,15 +27,16 @@ import { looksLikeFeedUrl, searchLibrary } from '../src/discover/local-search';
 import { useDiscover } from '../src/discover/useDiscover';
 import { EpisodeRow } from '../src/ui/EpisodeRow';
 import { EmptyState } from '../src/ui/EmptyState';
-import { hit } from '../src/design';
+import { hit, size } from '../src/design';
 import { useColours } from '../src/ui/useColours';
 import { Icon } from '../src/ui/Icon';
 import { GENRES } from '../src/discover/genres';
-import { addHistory, clearHistory, readHistory } from '../src/search/history';
+import { addHistory, clearHistory, readHistory, recentSearches } from '../src/search/history';
 import { suggestions } from '../src/search/suggest';
 import { useSafety } from '../src/safety/context';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
+const ROW = { minHeight: size.row };
 
 type CatalogueState = { kind: 'idle' } | { kind: 'loading' } | { kind: 'ok'; result: SearchResult } | { kind: 'error'; message: string };
 
@@ -130,21 +132,21 @@ export default function SearchScreen(): React.ReactElement {
                 </Pressable>
               ))}
             </Box>
+            {/* M12 FR-073: "Recent" — the last 10 searches, newest first, each one tap away. */}
             {history.length > 0 ? (
               <>
                 <Box className="flex-row items-center justify-between mt-section">
-                  <Text className="text-muted text-xs">Search history</Text>
-                  <Pressable onPress={() => { clearHistory(stores.settings); setHistory([]); }} accessibilityRole="button" accessibilityLabel="Clear search history" className="items-center justify-center" style={TAP}>
-                    <Text className="text-muted text-sm">✕</Text>
+                  <Text className="text-muted text-xs" accessibilityRole="header">Recent</Text>
+                  <Pressable onPress={() => { clearHistory(stores.settings); setHistory([]); }} accessibilityRole="button" accessibilityLabel="Clear recent searches" className="items-center justify-center pl-row" style={TAP}>
+                    <Text className="text-accent text-sm">Clear</Text>
                   </Pressable>
                 </Box>
-                <Box className="flex-row flex-wrap gap-row">
-                  {history.map((h) => (
-                    <Pressable key={h} onPress={() => searchFor(h)} accessibilityRole="button" accessibilityLabel={`Search for ${h}`} className="bg-surface rounded-row justify-center px-section" style={TAP}>
-                      <Text className="text-text text-sm" numberOfLines={1}>{h}</Text>
-                    </Pressable>
-                  ))}
-                </Box>
+                {recentSearches(history).map((h) => (
+                  <Pressable key={h} onPress={() => searchFor(h)} accessibilityRole="button" accessibilityLabel={`Search for ${h}`} className="flex-row items-center gap-row border-b-hairline border-separator" style={ROW}>
+                    <Icon name="time-outline" size={18} color={c.muted} />
+                    <Text className="text-text text-sm flex-1" numberOfLines={1}>{h}</Text>
+                  </Pressable>
+                ))}
               </>
             ) : null}
           </Box>

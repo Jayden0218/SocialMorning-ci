@@ -3,13 +3,17 @@
  * many test fakes of `ApiClient` need no new methods. Same transport as `createApi`.
  */
 import { useMemo } from 'react';
-import { ApiError, requester, type ApiDeps, type DiscoverItem, type EpisodeCard } from './api';
+import { ApiError, requester, type ApiDeps, type EpisodeCard } from './api';
 import { apiBaseUrl } from './base-url';
 import { secureToken } from './token';
 
 export type LikeState = { likeCount: number; likedByMe: boolean };
 export type FriendListen = { episode: EpisodeCard; listeners: { id: string; name: string; initials: string }[]; lastAt: string };
-export type PastPicksDay = { date: string; picks: DiscoverItem[] };
+/** contracts/api.md FR-070: `episode` is null when the server cannot name the episode yet. */
+export type PastPick = { feedUrl: string; guid?: string; why: string; episode: EpisodeCard | null };
+export type PastPicksDay = { date: string; picks: PastPick[] };
+/** contracts/api.md FR-071: the Talked-about ranking, un-truncated. */
+export type ChartItem = { kind: 'talkedAbout'; key: string; rank: number; score: number; reason: string; episode: EpisodeCard };
 export type IssueSummary = { id: string; date: string; title: string };
 export type Issue = IssueSummary & { intro: string; items: { order: number; episode: EpisodeCard; note: string }[] };
 export type NotifyShow = { feedUrl: string; title: string; enabled: boolean };
@@ -31,7 +35,7 @@ export function createM12Api(deps: ApiDeps) {
     pastPicks: async (before?: string) => (await call<{ days: PastPicksDay[]; next?: string }>('GET', `/v1/picks/past${before ? `?before=${enc(before)}` : ''}`)).json,
     issues: async () => (await call<{ issues: IssueSummary[] }>('GET', '/v1/issues')).json.issues,
     issue: async (id: string) => (await call<Issue>('GET', `/v1/issues/${enc(id)}`)).json,
-    chart: async (limit = 100) => (await call<{ items: DiscoverItem[] }>('GET', `/v1/discover/chart?limit=${limit}`)).json.items,
+    chart: async (limit = 100) => (await call<{ items: ChartItem[]; serverTime: string }>('GET', `/v1/discover/chart?limit=${limit}`)).json.items,
     notifyShows: async () => (await call<{ shows: NotifyShow[] }>('GET', '/v1/me/notify/shows')).json.shows,
     setNotifyShow: async (feedUrl: string, enabled: boolean) => { await call('PUT', `/v1/me/notify/shows/${enc(feedUrl)}`, { enabled }); },
     purchases: async () => (await call<{ items: Purchase[]; storeReady: boolean }>('GET', '/v1/me/purchases')).json,

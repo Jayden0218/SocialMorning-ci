@@ -129,6 +129,8 @@ function RootStack(): React.ReactElement {
           <Stack.Screen name="play-latest" options={{ title: 'Play latest' }} />
           <Stack.Screen name="stickers" options={{ title: 'Stickers' }} />
           <Stack.Screen name="category/[id]" options={{ title: 'Category' }} />
+          <Stack.Screen name="picks/past" options={{ title: 'Past picks' }} />
+          <Stack.Screen name="chart" options={{ title: 'Talked about' }} />
           <Stack.Screen name="clip/new" options={{ title: 'New clip' }} />
           <Stack.Screen name="clip/[id]" options={{ title: 'Clip' }} />
           <Stack.Screen name="profile/[id]" options={{ title: 'Profile' }} />

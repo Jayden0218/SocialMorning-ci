@@ -25,8 +25,6 @@ export function dueForRefresh(fetchedAt: number | string | undefined, now: numbe
 export function useDiscover() {
   const { api } = useSocial();
   const stores = useStores();
-  const toast = useToast();
-  const player = usePlayer();
   const discover = useMemo(() => createDiscover({ api, cache: stores.feedCache, now: () => Date.now() }), [api, stores]);
   // M12 NEW-9: the saved copy is not "couldn't refresh" until a refresh has actually failed —
   // the first launch showed that banner before any request was made.
@@ -47,6 +45,18 @@ export function useDiscover() {
     try { const v = await discover.refresh(); if (v) setView(v); } catch { /* the cached copy stands */ }
   }, [discover, view?.fetchedAt]);
   useFocusEffect(useCallback(() => { void quiet(); }, [quiet]));
+  const { open, play } = useCardActions();
+  return { view, refreshing, refresh, open, play };
+}
+
+/**
+ * Open or play a Discover card through the resolver — shared by Discover and the pages it
+ * links to (M12: the full chart, past picks), so a row behaves the same wherever it is.
+ */
+export function useCardActions() {
+  const stores = useStores();
+  const toast = useToast();
+  const player = usePlayer();
   const open = useCallback(async (card: EpisodeCard) => {
     const r = await resolveCard({ stores, refreshShow: (u) => refreshShow(u, stores.feeds, Date.now()) }, card);
     if (r.episodeId !== undefined) router.push({ pathname: '/episode/[id]', params: { id: r.episodeId } });
@@ -58,5 +68,5 @@ export function useDiscover() {
     if (playable) player.load(playable, 'play');
     else toast(r.episodeId === undefined && r.reason === 'offline' ? "Couldn't fetch that show right now." : "That episode can't be played right now.");
   }, [stores, toast, player]);
-  return { view, refreshing, refresh, open, play };
+  return { open, play };
 }

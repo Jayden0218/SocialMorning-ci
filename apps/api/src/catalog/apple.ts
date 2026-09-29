@@ -11,6 +11,8 @@ export type ShowCard = {
   appleId?: number; feedUrl: string; title: string; author: string; imageUrl?: string; genres: string[];
   /** M10: Apple's `trackCount` from the lookup — the episodes Apple lists for the show (Reply All: 214, read 2026-09-27). Absent when Apple omits it. */
   episodeCount?: number;
+  /** M12 FR-072: the show's newest episode, as Apple lists it — only on a category chart. */
+  latestEpisode?: { title: string; publishedAt?: string };
 };
 export type EpisodeCard = {
   feedUrl: string; guid: string; title: string; showTitle: string; imageUrl?: string; durationMs?: number; publishedAt?: string; enclosureUrl: string; appleShowId?: number;
@@ -73,15 +75,29 @@ export async function searchEpisodes(f: Fetch, term: string, limit = 20): Promis
   return (body.results ?? []).map(toEpisodeCard).filter((e): e is EpisodeCard => e !== undefined);
 }
 
-/** The chart gives Apple ids; one lookup call turns them into shows with feed URLs. */
-export async function topShows(f: Fetch, genreId: number | undefined, limit = 10): Promise<ShowCard[]> {
+/**
+ * The chart gives Apple ids; one lookup call turns them into shows with feed URLs. With
+ * `latest`, the same one call asks for `entity=podcastEpisode&limit=1`, which answers each
+ * show **and** its newest episode (read 2026-09-29: 20 ids → 20 shows + 20 episodes).
+ */
+export async function topShows(f: Fetch, genreId: number | undefined, limit = 10, opts: { latest?: boolean } = {}): Promise<ShowCard[]> {
   const chart = await getJson<{ feed?: { entry?: { id?: { attributes?: { 'im:id'?: string } } }[] | { id?: { attributes?: { 'im:id'?: string } } } } }>(f, CHART(limit, genreId));
   const entries = chart.feed?.entry === undefined ? [] : Array.isArray(chart.feed.entry) ? chart.feed.entry : [chart.feed.entry];
   const ids = entries.map((e) => e.id?.attributes?.['im:id']).filter((id): id is string => typeof id === 'string' && /^\d+$/.test(id));
   if (ids.length === 0) return [];
-  const body = await getJson<{ results?: AppleShow[] }>(f, `${LOOKUP}?id=${ids.join(',')}&entity=podcast`);
-  const byId = new Map((body.results ?? []).map((r) => [r.collectionId, r] as const));
-  return ids.map((id) => byId.get(Number(id))).map((r) => (r ? toShowCard(r) : undefined)).filter((s): s is ShowCard => s !== undefined);
+  const body = await getJson<{ results?: (AppleShow & AppleEpisode)[] }>(f, `${LOOKUP}?id=${ids.join(',')}&entity=${opts.latest ? 'podcastEpisode&limit=1' : 'podcast'}`);
+  const results = body.results ?? [];
+  const byId = new Map(results.filter((r) => r.wrapperType !== 'podcastEpisode').map((r) => [r.collectionId, r] as const));
+  const latest = new Map<number | undefined, ShowCard['latestEpisode']>();
+  for (const r of results) {
+    if (r.wrapperType !== 'podcastEpisode' || !r.trackName || latest.has(r.collectionId)) continue;
+    latest.set(r.collectionId, { title: r.trackName, ...(r.releaseDate ? { publishedAt: r.releaseDate } : {}) });
+  }
+  return ids.map((id) => byId.get(Number(id))).map((r) => {
+    const card = r ? toShowCard(r) : undefined;
+    const newest = r ? latest.get(r.collectionId) : undefined;
+    return card && newest ? { ...card, latestEpisode: newest } : card;
+  }).filter((s): s is ShowCard => s !== undefined);
 }
 
 export async function latestEpisodes(f: Fetch, appleShowId: number, n = 1): Promise<EpisodeCard[]> {

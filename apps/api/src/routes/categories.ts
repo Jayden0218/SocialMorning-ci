@@ -9,7 +9,8 @@ import { GENRE_LIST, genreName } from '../catalog/genres.ts';
 /**
  * M10 (2026-09-27), mounted at /v1/categories — public.
  *   GET /             → { categories: { genreId, name }[] } — Apple's top-level genres
- *   GET /:genreId     → { genreId, name, shows: ShowCard[] (≤ 20), stale } — that genre's chart
+ *   GET /:genreId     → { genreId, name, shows: ShowCard[] (≤ 20), stale } — that genre's chart;
+ *                       M12 FR-072: each show carries `latestEpisode { title, publishedAt }` when Apple lists one
  * One chart call + one lookup per genre, cached 6 h (a chart moves slowly, and Apple
  * allows ~20 calls a minute). Apple failing with a cached copy → that copy, `stale: true`;
  * with none → 503 (429 → `locked`). A hidden show is removed at serve time (FR-014).
@@ -29,7 +30,7 @@ categories.get('/:genreId', async (c) => {
   const db = c.get('db');
   let r: { body: ShowCard[]; stale: boolean };
   try {
-    r = await cached<ShowCard[]>(db, `apple:category:${genreId}`, CATEGORY_TTL, () => topShows(c.get('catalog').fetch, genreId, CATEGORY_SHOWS));
+    r = await cached<ShowCard[]>(db, `apple:category:${genreId}`, CATEGORY_TTL, () => topShows(c.get('catalog').fetch, genreId, CATEGORY_SHOWS, { latest: true }));
   } catch (e) {
     if (e instanceof CatalogRateLimited) throw new ApiError('locked', 'The catalogue is busy — try again in a moment.', { retryAfterSeconds: 30 });
     throw new ApiError('unavailable', 'The catalogue is not answering right now.');
