@@ -15,7 +15,7 @@
  *     accessible name alone and watched this button's label flip from "Play" to "Pause";
  *     the label, the role and the `accessibilityState` are the contract, not the glyph.
  */
-import { Link, usePathname } from 'expo-router';
+import { Link, useIsFocused, usePathname } from 'expo-router';
 import { Pressable } from './lib/pressable';
 import { Text } from './lib/text';
 import { Box } from './lib/box';
@@ -132,4 +132,16 @@ export function MiniPlayer(props: { pathname?: string; context?: 'root' | 'tabs'
       </Link>
     </Box>
   );
+}
+
+/**
+ * The bar above the tab bar (M12 FR-002, B3). The root bar hides by pathname, which changes
+ * only when a back-swipe *finishes*; this one used to draw as soon as the tab screen showed
+ * under the swipe, so two bars (the tab bar between them) were on screen together. It now
+ * draws only while the tabs are the focused screen — the same state change that lets the root
+ * bar stand down — so exactly one bar is ever drawn.
+ */
+export function TabsMiniPlayer(): React.ReactElement | null {
+  const focused = useIsFocused();
+  return focused ? <MiniPlayer context="tabs" /> : null;
 }

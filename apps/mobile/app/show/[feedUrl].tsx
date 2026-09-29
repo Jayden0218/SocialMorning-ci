@@ -22,7 +22,7 @@ import { SafeAreaView } from '../../src/ui/lib/safe-area-view';
 import { Text } from '../../src/ui/lib/text';
 import { Box } from '../../src/ui/lib/box';
 import { refreshShow } from '../../src/feeds/fetch';
-import { ago, htmlToText, minutesLabel, mmss } from '../../src/ui/format';
+import { ago, htmlToText, minutesLabel, mmss, noteSummary } from '../../src/ui/format';
 import { usePlayer, usePlayerState } from '../../src/playback/store';
 import { toPlayable } from '../../src/storage/playable';
 import { Artwork } from '../../src/ui/Artwork';
@@ -218,7 +218,7 @@ export default function ShowScreen(): React.ReactElement {
           <Text className="p-screen-x text-muted">{failed === undefined ? 'No episodes yet.' : failed}</Text>
         )}
         renderItem={({ item }) => {
-          const notes = htmlToText(item.shownotesHtml).replace(/\s+/g, ' ');
+          const notes = noteSummary(item.shownotesHtml);
           const meta = [minutesLabel(item.durationMs), ago(item.publishedAt, now), progressFor(item)].filter((p) => p !== '').join(' · ');
           return (
             <Box className="flex-row gap-row px-screen-x py-row items-start">

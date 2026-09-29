@@ -21,7 +21,7 @@ import { colour, fontSize } from '../../src/design';
 import { useColours } from '../../src/ui/useColours';
 import { createFeed } from '../../src/graph/feed';
 import { useSocial } from '../../src/social/context';
-import { MiniPlayer } from '../../src/ui/MiniPlayer';
+import { TabsMiniPlayer } from '../../src/ui/MiniPlayer';
 import { useStores } from '../../src/ui/providers';
 import { TabBar } from '../../src/ui/TabBar';
 import { TABS, TAB_HREF } from '../../src/ui/tabs';
@@ -71,7 +71,7 @@ export default function TabsLayout(): React.ReactElement {
         const active = props.state.routes[props.state.index]?.name ?? 'index';
         return (
           <Box className="bg-background">
-            <MiniPlayer context="tabs" />
+            <TabsMiniPlayer />
             <TabBar
               items={items}
               activeKey={active}

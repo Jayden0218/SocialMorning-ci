@@ -17,24 +17,46 @@ export function shortDate(ms: number | undefined): string {
 }
 
 /**
- * Shownotes arrive as HTML and M1 renders plain text (chapters and rich
- * shownotes are M2). Entities are decoded so a listener does not read
- * "Tom &amp; Jerry".
+ * Shownotes arrive as HTML; the app shows text. Entities are decoded so a listener does not
+ * read "Tom &amp; Jerry".
+ *
+ * M12 FR-003 (B4, found on the iPhone 2026-09-29): only `<br>` and `</p>` used to break a
+ * line, so "…/button</a></div><div>There" read "buttonThere", and two links side by side read
+ * "MuseumThe Button". Every block tag now breaks the line, two adjacent links are put on
+ * separate lines, and a run of blank or space-only lines collapses to one paragraph gap.
  */
 export function htmlToText(html: string | undefined): string {
   if (html === undefined) return '';
-  return html
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/p>/gi, '\n\n')
-    .replace(/<[^>]+>/g, '')
+  return tidy(
+    html
+      .replace(/<\/a>\s*<a\b/gi, '</a>\n<a')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/?(?:p|div|h[1-6]|ul|ol|table|tr|blockquote|section|article|header|footer)\b[^>]*>/gi, '\n\n')
+      .replace(/<li\b[^>]*>/gi, '\n• ')
+      .replace(/<\/li>/gi, '')
+      .replace(/<[^>]+>/g, ''),
+  );
+}
+
+/** Entities decoded, lines trimmed at the end, blank runs collapsed to one gap. */
+function tidy(text: string): string {
+  return decode(text)
+    .replace(/[ \t\u00a0]+\n/g, '\n')
+    .replace(/\n[ \t\u00a0]*(?=\n)/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function decode(text: string): string {
+  return text
     .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&#x([0-9a-f]+);/gi, (_, h: string) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d: string) => String.fromCodePoint(Number(d)))
+    .replace(/&amp;/g, '&');
 }
 
 /**
@@ -65,24 +87,83 @@ export function ago(ms: number | undefined, now: number): string {
   return shortDate(ms);
 }
 
-/** A run of shownotes text, or a timestamp in it that seeks (`atMs`). */
-export type NotePart = { text: string; atMs?: number };
+/** A run of shownotes text: plain, a timestamp that seeks (`atMs`), or a link (`href`). */
+export type NotePart = { text: string; atMs?: number; href?: string };
+
+const TIME = /^([ \t]*(?:[-•*·–]|\(|\[)?[ \t]*)((?:\d{1,2}:)?\d{1,2}:[0-5]\d)(?![\d:])/;
 
 /**
- * Shownotes split around their timestamps ("00:39", "1:02:03"), so each one can be a
- * link that plays from there. A time glued to other digits or colons is left as text.
+ * Shownotes split around their chapter times ("00:39", "1:02:03"), so each one can be a link
+ * that plays from there. M12 FR-030: only a time that opens a line (after an optional bullet or
+ * bracket) counts — "John 3:16" mid-sentence stays text — and, when the length is known, only
+ * one inside the episode.
  */
-export function timestampParts(text: string): NotePart[] {
+export function timestampParts(text: string, maxMs?: number): NotePart[] {
   const parts: NotePart[] = [];
-  const re = /(^|[^\d:])((?:\d{1,2}:)?\d{1,2}:[0-5]\d)(?![\d:])/g;
-  let last = 0;
-  for (let m = re.exec(text); m !== null; m = re.exec(text)) {
-    const start = m.index + m[1]!.length;
-    if (start > last) parts.push({ text: text.slice(last, start) });
-    const atMs = m[2]!.split(':').reduce((sum, n) => sum * 60 + Number(n), 0) * 1000;
-    parts.push({ text: m[2]!, atMs });
-    last = start + m[2]!.length;
-  }
-  if (last < text.length) parts.push({ text: text.slice(last) });
+  const push = (p: NotePart) => {
+    const prev = parts[parts.length - 1];
+    if (p.atMs === undefined && prev && prev.atMs === undefined && prev.href === undefined) prev.text += p.text;
+    else if (p.text !== '') parts.push(p);
+  };
+  const lines = text.split('\n');
+  lines.forEach((line, n) => {
+    const m = TIME.exec(line);
+    const atMs = m ? m[2]!.split(':').reduce((sum, v) => sum * 60 + Number(v), 0) * 1000 : undefined;
+    if (m && atMs !== undefined && (maxMs === undefined || atMs <= maxMs)) {
+      push({ text: m[1]! });
+      push({ text: m[2]!, atMs });
+      push({ text: line.slice(m[0].length) });
+    } else push({ text: line });
+    if (n < lines.length - 1) push({ text: '\n' });
+  });
   return parts;
+}
+
+const URL = /https?:\/\/[^\s<>"')\]]+[^\s<>"')\].,;:!?]/g;
+
+/**
+ * M12 FR-003, FR-030, FR-031: shownotes as runs — plain text, links (from `<a href>` and from
+ * bare URLs) and chapter times — for the episode page to render as nested Text.
+ */
+export function noteParts(html: string | undefined, maxMs?: number): NotePart[] {
+  if (html === undefined) return [];
+  // Mark each <a href> so its target survives the tag stripping.
+  const marked = html.replace(/<\/a>\s*<a\b/gi, '</a>\n<a').replace(/<a\b[^>]*?href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi, (_, href: string, label: string) =>
+    `\u0001${href}\u0002${label.replace(/<[^>]+>/g, '')}\u0003`);
+  const text = htmlToText(marked);
+  const out: NotePart[] = [];
+  const plain = (t: string) => {
+    let last = 0;
+    for (const m of t.matchAll(URL)) {
+      if (m.index! > last) out.push(...timestampParts(t.slice(last, m.index), maxMs));
+      out.push({ text: m[0], href: m[0] });
+      last = m.index! + m[0].length;
+    }
+    if (last < t.length) out.push(...timestampParts(t.slice(last), maxMs));
+  };
+  let at = 0;
+  for (const m of text.matchAll(/\u0001([^\u0002]*)\u0002([^\u0003]*)\u0003/g)) {
+    plain(text.slice(at, m.index));
+    const label = m[2]!.trim() || m[1]!;
+    out.push({ text: label, href: decode(m[1]!) });
+    at = m.index! + m[0].length;
+  }
+  plain(text.slice(at));
+  return out.filter((p) => p.text !== '');
+}
+
+const summaries = new Map<string, string>();
+
+/**
+ * M12 T036: a row's one-line summary of its shownotes, cached — the show page used to strip
+ * every row's HTML again on every render, for 861 rows on one show.
+ */
+export function noteSummary(html: string | undefined): string {
+  if (html === undefined) return '';
+  const hit = summaries.get(html);
+  if (hit !== undefined) return hit;
+  const line = htmlToText(html).replace(/\s+/g, ' ').slice(0, 280);
+  if (summaries.size >= 1000) summaries.delete(summaries.keys().next().value!);
+  summaries.set(html, line);
+  return line;
 }

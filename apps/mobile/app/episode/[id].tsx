@@ -8,7 +8,7 @@
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Share } from 'react-native';
+import { Share, Linking } from 'react-native';
 import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '../../src/ui/lib/actionsheet';
 import { Pressable } from '../../src/ui/lib/pressable';
 import { SafeAreaView } from '../../src/ui/lib/safe-area-view';
@@ -19,7 +19,7 @@ import { enqueue } from '@socialmorning/player-core';
 import { useColours } from '../../src/ui/useColours';
 import { Icon } from '../../src/ui/Icon';
 import { usePlayer, usePlayerState } from '../../src/playback/store';
-import { ago, htmlToText, minutesLabel, mmss, timestampParts } from '../../src/ui/format';
+import { ago, minutesLabel, mmss, noteParts } from '../../src/ui/format';
 import { useStores, useSubscriptionSync, useToast } from '../../src/ui/providers';
 import { isFavourite, toggleFavourite } from '../../src/me/favourites';
 import { Artwork } from '../../src/ui/Artwork';
@@ -111,7 +111,8 @@ export default function EpisodeScreen(): React.ReactElement {
     subscriptionSync.push();
   };
   const commentCount = (cached?.social.comments ?? []).reduce((n, c) => n + (c.deleted ? 0 : 1) + (c.replies ?? []).filter((r) => !r.deleted).length, 0);
-  const notes = htmlToText(episode.shownotesHtml);
+  // M12 FR-003/030/031: text, tappable links and chapter times inside the episode.
+  const notes = noteParts(episode.shownotesHtml, episode.durationMs);
 
   const addToQueue = () => {
     const r = enqueue(stores.queue.list(), episode.id, 'end');
@@ -136,7 +137,7 @@ export default function EpisodeScreen(): React.ReactElement {
           <Icon name="ellipsis-horizontal" size={24} color={c.text} />
         </BarButton>
       </TopBar>
-      <ScrollView ref={scroll} contentContainerClassName="px-screen-x pb-24">
+      <ScrollView ref={scroll} contentContainerClassName="px-screen-x pb-section">
         <Artwork url={episode.imageUrl ?? show?.imageUrl} size={48} rounded="row" className="mt-2" />
         <Box className="flex-row items-center gap-section mt-section">
           <Text className="flex-1 text-[26px] leading-[34px] font-bold text-text" accessibilityRole="header">{episode.title}</Text>
@@ -182,10 +183,20 @@ export default function EpisodeScreen(): React.ReactElement {
           </Pressable>
         </Box>
         <Box className="h-px bg-separator mt-row mb-section" />
-        {notes === '' ? null : (
+        {notes.length === 0 ? null : (
           <Text className="text-sm leading-[28px] text-text">
-            {timestampParts(notes).map((part, i) =>
-              part.atMs === undefined ? part.text : (
+            {notes.map((part, i) =>
+              part.href !== undefined ? (
+                <Text
+                  key={i}
+                  className="text-accent underline"
+                  accessibilityRole="link"
+                  accessibilityLabel={`${part.text}, opens in the browser`}
+                  onPress={() => void Linking.openURL(part.href!).catch(() => undefined)}
+                >
+                  {part.text}
+                </Text>
+              ) : part.atMs === undefined ? part.text : (
                 <Text
                   key={i}
                   className="text-text font-semibold underline"

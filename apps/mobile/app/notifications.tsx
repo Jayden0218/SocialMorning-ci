@@ -11,9 +11,8 @@ import { FlatList } from '../src/ui/lib/flat-list';
 import { RefreshControl } from '../src/ui/lib/refresh-control';
 import { Text } from '../src/ui/lib/text';
 import { Box } from '../src/ui/lib/box';
-import { colour } from '../src/design';
 import { useColours } from '../src/ui/useColours';
-import { Icon, type IconName } from '../src/ui/Icon';
+import { NoticeCards, type NoticeSection } from '../src/ui/NoticeCards';
 import { createFeed, type FeedView } from '../src/graph/feed';
 import { useSafety } from '../src/safety/context';
 import type { FeedItem as Item } from '../src/social/api';
@@ -22,21 +21,6 @@ import { EmptyState } from '../src/ui/EmptyState';
 import { FeedItem } from '../src/ui/FeedItem';
 import { EmptyPicture } from '../src/ui/me/parts';
 import { useStores } from '../src/ui/providers';
-
-function Card(props: { title: string; line: string; icon: IconName; badge?: number; active?: boolean }): React.ReactElement {
-  const stores = useStores();
-  const c = useColours(stores.settings);
-  return (
-    <Box className={`flex-1 rounded-artwork p-section bg-surface ${props.active ? 'border-2 border-primary' : ''}`} accessible accessibilityLabel={`${props.title}. ${props.badge ? `${props.badge} new. ` : ''}${props.line}`}>
-      <Box className="flex-row items-center gap-2">
-        <Text className="text-text text-sm font-bold">{props.title}</Text>
-        {props.badge ? <Box className="bg-accent rounded-pill min-w-6 h-6 px-1 items-center justify-center"><Text className="text-onPrimary text-xs font-bold">{props.badge > 99 ? '99+' : props.badge}</Text></Box> : null}
-      </Box>
-      <Text className="text-muted text-xs mt-1">{props.line}</Text>
-      <Box className="self-end mt-row"><Icon name={props.icon} size={24} color={c.text} /></Box>
-    </Box>
-  );
-}
 
 export default function NotificationsScreen(): React.ReactElement {
   const { api, listener } = useSocial();
@@ -59,12 +43,19 @@ export default function NotificationsScreen(): React.ReactElement {
     else router.push({ pathname: '/episode/[id]', params: { id: item.episode.id, ...(item.momentMs !== null ? { at: String(item.momentMs) } : {}) } });
   };
 
-  const cards = (
-    <Box className="flex-row gap-row mb-section">
-      <Card title="System" line="No new notifications" icon="notifications-outline" />
-      <Card title="People" line={unread > 0 ? 'New activity from people you follow' : 'People you follow'} icon="people-outline" {...(unread > 0 ? { badge: unread } : {})} active={unread > 0} />
-    </Box>
-  );
+  const c = useColours(stores.settings);
+  // M12 FR-001 (B2): the cards choose what is listed; People (the feed) first, as before.
+  const [section, setSection] = useState<NoticeSection>('people');
+  const cards = <NoticeCards section={section} unread={unread} iconColour={c.text} onSelect={setSection} />;
+
+  if (section === 'system') {
+    return (
+      <Box className="flex-1 bg-background px-screen-x pt-section">
+        {cards}
+        <EmptyPicture icon="notifications-outline" line="No messages from SocialNet yet — announcements and account notices will appear here" />
+      </Box>
+    );
+  }
 
   if (!listener) {
     return (
@@ -85,7 +76,7 @@ export default function NotificationsScreen(): React.ReactElement {
       ListHeaderComponent={
         <Box>
           {cards}
-          {view?.stale ? <Text className="text-accent bg-surface p-2 rounded-md">Couldn't refresh — showing what was fetched {view.fetchedAt ? new Date(view.fetchedAt).toLocaleTimeString() : 'earlier'}.</Text> : null}
+          {view?.stale ? <Text className="text-accent bg-surface p-2 rounded-row">Couldn't refresh — showing what was fetched {view.fetchedAt ? new Date(view.fetchedAt).toLocaleTimeString() : 'earlier'}.</Text> : null}
         </Box>
       }
       ListEmptyComponent={!refreshing ? (

@@ -1,5 +1,5 @@
 /** Display helpers. Small, but `mmss` is what the gate reads off the screen. */
-import { ago, htmlToText, minutesLabel, mmss, shortDate, timestampParts } from '../src/ui/format';
+import { ago, htmlToText, minutesLabel, mmss, noteParts, shortDate, timestampParts } from '../src/ui/format';
 
 describe('mmss', () => {
   it('formats under an hour as mm:ss', () => {
@@ -63,5 +63,36 @@ describe('the episode and show pages (owner reference, 2026-09-27)', () => {
     ]);
     expect(timestampParts('call 12:345 or 10:61')).toEqual([{ text: 'call 12:345 or 10:61' }]);
     expect(timestampParts('')).toEqual([]);
+  });
+});
+
+/**
+ * M12 guards G-B4 and G-S1 (B4, found on the iPhone 2026-09-29): show notes read
+ * "…/buttonThere are" and "MuseumThe Button", the links could not be tapped, and a
+ * space-only paragraph left a 60 pt gap. The breaks that turn these red: let only `</p>`
+ * break a line again; drop the length check in `timestampParts`.
+ */
+describe('show notes (M12)', () => {
+  const html = '<p>do so here:<a href="https://x.com/button">https://x.com/button</a></p><div>There are a few</div>'
+    + '<p>LINKS:<a href="https://a.com">Busy Beaver Button Museum</a><a href="https://b.com">The Button in Question</a></p><p> </p><p>&nbsp;</p><p>Learn more</p>';
+
+  it('G-B4: every block breaks the line, side-by-side links are split, blank paragraphs collapse', () => {
+    const text = htmlToText(html);
+    expect(text).not.toMatch(/buttonThere|MuseumThe/);
+    expect(text).toContain('Busy Beaver Button Museum\nThe Button in Question');
+    expect(text).not.toMatch(/\n\s*\n\s*\n/);
+    expect(text.endsWith('Learn more')).toBe(true);
+    expect(htmlToText('<div>Busy Beaver</div><div>The Button</div><li>one</li><li>two</li>')).toBe('Busy Beaver\n\nThe Button\n\n• one\n• two');
+  });
+
+  it('G-B4: links keep their target and can be tapped; bare URLs are links too', () => {
+    const links = noteParts(html + '<p>more at https://podcastchoices.com/adchoices.</p>').filter((p) => p.href !== undefined);
+    expect(links.map((p) => p.href)).toEqual(['https://x.com/button', 'https://a.com', 'https://b.com', 'https://podcastchoices.com/adchoices']);
+    expect(links[1]!.text).toBe('Busy Beaver Button Museum');
+  });
+
+  it('G-S1: a time links only at the start of a line and inside the episode', () => {
+    const parts = timestampParts('00:39 intro\n- 12:00 chapter\nJohn 3:16 said\n95:00 after the end', 60 * 60_000);
+    expect(parts.filter((p) => p.atMs !== undefined).map((p) => p.text)).toEqual(['00:39', '12:00']);
   });
 });

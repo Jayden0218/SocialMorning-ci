@@ -15,11 +15,13 @@ import { colour, hit } from '../src/design';
 const mockPause = jest.fn();
 const mockPlay = jest.fn();
 let mockPlayerState: Record<string, unknown> = { kind: 'idle' };
+let mockFocused = true;
 
 jest.mock('expo-router', () => ({
   // `asChild` hands the press to the child; for rendering, the child IS the output.
   Link: ({ children }: { children: React.ReactNode }) => children,
   usePathname: () => '/',
+  useIsFocused: () => mockFocused,
 }));
 jest.mock('../src/playback/store', () => ({
   usePlayer: () => ({ play: mockPlay, pause: mockPause }),
@@ -39,7 +41,7 @@ jest.mock('../src/ui/providers', () => ({
   }),
 }));
 
-import { MiniPlayer } from '../src/ui/MiniPlayer';
+import { MiniPlayer, TabsMiniPlayer } from '../src/ui/MiniPlayer';
 import { MINI_PLAYER_HEIGHT } from '../src/ui/Screen';
 import { TAB_HREF } from '../src/ui/tabs';
 
@@ -150,4 +152,15 @@ it('exactly one bar: the root instance stands down on a tab route, where the tab
   }
   // Off the tabs, the root instance is the only one mounted, and it shows.
   expect(render(createElement(MiniPlayer, { pathname: '/episode/e1', context: 'root' })).toJSON()).not.toBeNull();
+});
+
+it('G-B3: the bar above the tab bar draws only while the tabs are focused — never beside the root bar mid-swipe (M12 B3)', () => {
+  mockPlayerState = { kind: 'paused', episodeId: 'e1' };
+  mockFocused = false;
+  let r!: ReactTestRenderer;
+  act(() => { r = create(createElement(TabsMiniPlayer)); });
+  expect(r.toJSON()).toBeNull();
+  mockFocused = true;
+  act(() => { r = create(createElement(TabsMiniPlayer)); });
+  expect(r.toJSON()).not.toBeNull();
 });
