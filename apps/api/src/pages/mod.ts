@@ -4,6 +4,7 @@
  *   POST /mod/login   email + password → cookie `mod` (HttpOnly; Secure; SameSite=Strict; Path=/mod)
  *   POST /mod/act     item (kind:id) + action + csrf → apply, redirect
  *   POST /mod/logout
+ *   POST /mod/host-unhide  M11 (FR-016): undo a show host's hide from the Studio
  * Anyone but the owner (G9) gets a 403 page on every route; no app links here.
  */
 import { Hono, type Context } from 'hono';
@@ -20,6 +21,7 @@ import { rollup } from '../db/repos/rec-events.ts';
 import { similarityAgeHours } from '../db/repos/similarity.ts';
 import { SIMILARITY_STALE_HOURS } from '../db/repos/similarity.ts';
 import { esc, mmss, page } from './clip.ts';
+import { recentHostHides, setHostHidden } from '../db/repos/studio-comments.ts';
 
 const COOKIE = 'mod';
 const ACTIONS: readonly Action[] = ['dismiss', 'remove', 'hide_show', 'suspend', 'unsuspend', 'unhide_show'];
@@ -116,7 +118,7 @@ mod.get('/', async (c) => {
   if (!who) return c.html(page('Moderation — sign in', loginForm()));
   const db = c.get('db');
   await purgeClosedOlderThan(db, RETENTION_DAYS);
-  const [open, closed, actions] = await Promise.all([openReports(db), closedReports(db, RETENTION_DAYS), recentActions(db, 50)]);
+  const [open, closed, actions, hides] = await Promise.all([openReports(db), closedReports(db, RETENTION_DAYS), recentActions(db, 50), recentHostHides(db, 50)]);
   const items = groupReports(open.map(toRow));
   const csrf = csrfFor(who.token);
   return c.html(page('Moderation', `
@@ -125,6 +127,8 @@ mod.get('/', async (c) => {
 ${items.length === 0 ? '<p class="muted">Nothing to review.</p>' : items.map((i) => renderItem(i, csrf)).join('')}
 <h2>Closed in the last ${RETENTION_DAYS} days (${closed.length})</h2>
 ${closed.length === 0 ? '<p class="muted">None.</p>' : `<ul>${closed.map(renderClosed).join('')}</ul>`}
+<h2>Hidden by show hosts (${hides.length})</h2>
+${hides.length === 0 ? '<p class="muted">None.</p>' : `<ul>${hides.map((h) => `<li>${esc(h.at)} · “${esc(h.title)}” · hidden by ${esc(h.by ?? 'a deleted account')}<blockquote>${h.body ? esc(h.body) : '<i>(no text)</i>'}</blockquote><form method="post" action="/mod/host-unhide"><input type="hidden" name="csrf" value="${csrf}"><input type="hidden" name="id" value="${esc(h.id)}"><input type="hidden" name="feed" value="${esc(h.feedUrl)}"><button>Un-hide</button></form></li>`).join('')}</ul>`}
 <h2>Recent actions</h2>
 ${actions.length === 0 ? '<p class="muted">None.</p>' : `<ul>${actions.map((a) => `<li>${esc(new Date(a.created_at).toISOString())} · <b>${esc(a.action)}</b> ${esc(a.target_kind)} <code>${esc(a.target_id)}</code> by ${esc(a.actor_name)}</li>`).join('')}</ul>`}`));
 });
@@ -158,6 +162,15 @@ mod.post('/act', async (c) => {
   }
   if (action === 'suspend' && kind === 'profile' && id === who.owner.id) return c.html(page('Moderation — refused', '<h1>You cannot suspend yourself</h1><p><a href="/mod">Back</a></p>'), 400);
   await act(c.get('db'), who.owner.id, { kind, id }, action);
+  return c.redirect('/mod', 303);
+});
+
+mod.post('/host-unhide', async (c) => {
+  const who = await ownerFromCookie(c);
+  if (!who) return c.html(page('Moderation — refused', '<h1>Not the owner</h1>'), 403);
+  const form = await c.req.parseBody();
+  if (String(form['csrf'] ?? '') !== csrfFor(who.token)) return c.html(page('Moderation — refused', '<h1>Stale form</h1><p><a href="/mod">Back</a></p>'), 403);
+  await setHostHidden(c.get('db'), String(form['feed'] ?? ''), String(form['id'] ?? ''), who.owner.id, false).catch(() => undefined);
   return c.redirect('/mod', 303);
 });
 

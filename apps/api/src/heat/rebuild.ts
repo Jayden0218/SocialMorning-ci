@@ -26,7 +26,7 @@ export async function rebuildEpisodeHeat(db: Db, episodeId: string): Promise<voi
        SELECT c.author_id AS listener_id,
               least(99, floor(c.offset_ms * 100.0 / e.duration_ms))::smallint AS bucket
        FROM comments c JOIN episodes e ON e.id = c.episode_id
-       WHERE c.episode_id = $1 AND c.offset_ms IS NOT NULL AND c.deleted_at IS NULL
+       WHERE c.episode_id = $1 AND c.offset_ms IS NOT NULL AND c.deleted_at IS NULL AND c.host_hidden_at IS NULL
          AND c.author_id IS NOT NULL AND e.duration_ms IS NOT NULL
      ) marks
      GROUP BY bucket`,

@@ -42,7 +42,7 @@ export async function statsFor(db: Db, episodeIds: readonly string[]): Promise<M
     `WITH ids AS (SELECT DISTINCT value AS id FROM jsonb_array_elements_text(($1::text)::jsonb))
      SELECT ids.id,
             (SELECT count(DISTINCT a.actor_id)::int FROM activity a WHERE a.episode_id = ids.id AND a.kind = 'listened' AND a.hidden = false) AS listeners,
-            (SELECT count(*)::int FROM comments c WHERE c.episode_id = ids.id AND c.parent_id IS NULL AND c.deleted_at IS NULL AND c.removed_at IS NULL) AS comments
+            (SELECT count(*)::int FROM comments c WHERE c.episode_id = ids.id AND c.parent_id IS NULL AND c.deleted_at IS NULL AND c.removed_at IS NULL AND c.host_hidden_at IS NULL) AS comments
      FROM ids`,
     [JSON.stringify(episodeIds)],
   );
@@ -111,7 +111,7 @@ export async function said(db: Db): Promise<Said[]> {
      FROM comments c
      JOIN episodes e ON e.id = c.episode_id
      JOIN listeners l ON l.id = c.author_id
-     WHERE c.parent_id IS NULL AND c.deleted_at IS NULL AND c.removed_at IS NULL AND c.body IS NOT NULL
+     WHERE c.parent_id IS NULL AND c.deleted_at IS NULL AND c.removed_at IS NULL AND c.host_hidden_at IS NULL AND c.body IS NOT NULL
        AND l.suspended_at IS NULL
        AND c.created_at > now() - ($1 || ' days')::interval
        AND NOT EXISTS (SELECT 1 FROM hidden_feeds h WHERE h.feed_url = e.feed_url)

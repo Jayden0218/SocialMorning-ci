@@ -28,7 +28,7 @@ social.get('/:id/social', optionalAuth, async (c) => {
 
   const [stamp] = await db.query<{ comments_v: string | null; episode_v: string; heat_v: string | null }>(
     `SELECT
-       (SELECT max(greatest(created_at, coalesce(deleted_at, created_at), coalesce(removed_at, created_at)))::text FROM comments WHERE episode_id = $1) AS comments_v,
+       (SELECT max(greatest(created_at, coalesce(deleted_at, created_at), coalesce(removed_at, created_at)))::text || '/' || count(host_hidden_at)::text FROM comments WHERE episode_id = $1) AS comments_v,
        (SELECT updated_at::text FROM episodes WHERE id = $1) AS episode_v,
        (SELECT string_agg(bucket || ':' || distinct_listeners, ',' ORDER BY bucket) FROM episode_heat WHERE episode_id = $1) AS heat_v`,
     [episodeId],

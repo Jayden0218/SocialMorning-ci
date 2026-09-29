@@ -88,12 +88,12 @@ export async function merge(db: Db, listenerId: string, items: readonly LibraryI
 
 export { listAll };
 
-export type MyComment = { id: string; body: string | null; deleted: boolean; removed: boolean; offsetMs: number | null; createdAt: string; episode: { id: string; feedUrl: string; guid: string; title: string; showTitle: string; imageUrl?: string; enclosureUrl: string } };
+export type MyComment = { id: string; body: string | null; deleted: boolean; removed: boolean; hiddenByHost?: true; offsetMs: number | null; createdAt: string; episode: { id: string; feedUrl: string; guid: string; title: string; showTitle: string; imageUrl?: string; enclosureUrl: string } };
 
 /** The caller's own top-level comments, newest first, 50 a page. A deleted or removed one has no body. */
 export async function myComments(db: Pick<Db, 'query'>, listenerId: string, before?: string): Promise<{ items: MyComment[]; next?: string }> {
-  const rows = await db.query<{ id: string; body: string | null; deleted_at: string | null; removed_at: string | null; offset_ms: number | null; created_at: string; episode_id: string; feed_url: string; guid: string; title: string; show_title: string | null; image_url: string | null; enclosure_url: string }>(
-    `SELECT c.id, c.body, c.deleted_at, c.removed_at, c.offset_ms, c.created_at, e.id AS episode_id, e.feed_url, e.guid, e.title, e.show_title, e.image_url, e.enclosure_url
+  const rows = await db.query<{ id: string; body: string | null; deleted_at: string | null; removed_at: string | null; host_hidden_at: string | null; offset_ms: number | null; created_at: string; episode_id: string; feed_url: string; guid: string; title: string; show_title: string | null; image_url: string | null; enclosure_url: string }>(
+    `SELECT c.id, c.body, c.deleted_at, c.removed_at, c.host_hidden_at, c.offset_ms, c.created_at, e.id AS episode_id, e.feed_url, e.guid, e.title, e.show_title, e.image_url, e.enclosure_url
      FROM comments c JOIN episodes e ON e.id = c.episode_id
      WHERE c.author_id = $1 AND c.parent_id IS NULL AND ($2::timestamptz IS NULL OR c.created_at < $2::timestamptz)
      ORDER BY c.created_at DESC, c.id DESC LIMIT 51`,
@@ -103,7 +103,7 @@ export async function myComments(db: Pick<Db, 'query'>, listenerId: string, befo
   const items = page.map((r) => {
     const gone = r.deleted_at !== null || r.removed_at !== null;
     return {
-      id: r.id, body: gone ? null : r.body, deleted: r.deleted_at !== null, removed: r.removed_at !== null, offsetMs: r.offset_ms,
+      id: r.id, body: gone ? null : r.body, deleted: r.deleted_at !== null, removed: r.removed_at !== null, ...(r.host_hidden_at !== null ? { hiddenByHost: true as const } : {}), offsetMs: r.offset_ms,
       createdAt: new Date(r.created_at).toISOString(),
       episode: { id: r.episode_id, feedUrl: r.feed_url, guid: r.guid, title: r.title, showTitle: r.show_title ?? '', enclosureUrl: r.enclosure_url, ...(r.image_url ? { imageUrl: r.image_url } : {}) },
     };

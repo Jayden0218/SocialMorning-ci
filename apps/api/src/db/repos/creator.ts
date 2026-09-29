@@ -63,12 +63,12 @@ export async function showStats(db: Db, feedUrl: string): Promise<{ listeners: n
   const [l] = await db.query<{ n: number }>(
     "SELECT count(DISTINCT a.actor_id)::int AS n FROM activity a JOIN episodes e ON e.id = a.episode_id WHERE e.feed_url = $1 AND a.kind = 'listened'", [feedUrl]);
   const [cm] = await db.query<{ n: number }>(
-    'SELECT count(*)::int AS n FROM comments c JOIN episodes e ON e.id = c.episode_id WHERE e.feed_url = $1 AND c.deleted_at IS NULL AND c.removed_at IS NULL', [feedUrl]);
+    'SELECT count(*)::int AS n FROM comments c JOIN episodes e ON e.id = c.episode_id WHERE e.feed_url = $1 AND c.deleted_at IS NULL AND c.removed_at IS NULL AND c.host_hidden_at IS NULL', [feedUrl]);
   const [ep] = await db.query<{ n: number }>('SELECT count(*)::int AS n FROM episodes WHERE feed_url = $1', [feedUrl]);
   const top = await db.query<{ episode_id: string; title: string; minute: number; n: number }>(
     `SELECT e.id AS episode_id, e.title, (c.offset_ms / 60000) * 60000 AS minute, count(*)::int AS n
      FROM comments c JOIN episodes e ON e.id = c.episode_id
-     WHERE e.feed_url = $1 AND c.offset_ms IS NOT NULL AND c.deleted_at IS NULL AND c.removed_at IS NULL
+     WHERE e.feed_url = $1 AND c.offset_ms IS NOT NULL AND c.deleted_at IS NULL AND c.removed_at IS NULL AND c.host_hidden_at IS NULL
      GROUP BY e.id, e.title, minute ORDER BY n DESC, e.id LIMIT 5`, [feedUrl]);
   return { listeners: l?.n ?? 0, comments: cm?.n ?? 0, episodes: ep?.n ?? 0, topMoments: top.map((t) => ({ episodeId: t.episode_id, title: t.title, offsetMs: Number(t.minute), comments: t.n })) };
 }

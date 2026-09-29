@@ -137,3 +137,118 @@ export async function claimedAt(db: Db, feedUrl: string): Promise<string | null>
     "SELECT proven_at FROM creator_claims WHERE feed_url = $1 AND status = 'proven' LIMIT 1", [feedUrl]);
   return r?.proven_at ? new Date(r.proven_at).toISOString() : null;
 }
+
+// ---- US2: Data (FR-008..FR-010) ----
+
+/** Yesterday in the viewer's zone (plays by the listener's own day, like the trend). */
+export async function yesterday(db: Db, feedUrl: string, tz: string): Promise<{ plays: number; subs: number; comments: number; shares: number }> {
+  const one = async (m: Metric) => {
+    const days = await trend(db, feedUrl, m, 2, tz);
+    return days[0]?.value ?? 0;
+  };
+  const [plays, subs, comments, shares] = await Promise.all([one('plays'), one('subs'), one('comments'), one('shares')]);
+  return { plays, subs, comments, shares };
+}
+
+export type EpisodeStats = {
+  id: string; title: string; publishedAt: string | null; plays: number; completionRate: number | null;
+  comments: number; shares: number; saves: number; likes: number;
+};
+
+export const EPISODE_SORTS = ['publishedAt', 'plays', 'completionRate', 'comments', 'shares', 'saves', 'likes', 'title'] as const;
+export type EpisodeSort = (typeof EPISODE_SORTS)[number];
+
+/** Every episode of the feed with its numbers — the one source for the table, its CSV and the top 5. */
+export async function episodeStats(db: Db, feedUrl: string): Promise<EpisodeStats[]> {
+  const [rows, comp] = await Promise.all([
+    db.query<{ id: string; title: string; published_at: Date | string | null; plays: string | number; comments: string | number; shares: string | number; saves: string | number; likes: string | number }>(
+      `SELECT e.id, e.title, e.published_at,
+              (SELECT count(*) FROM activity a WHERE a.episode_id = e.id AND a.kind = 'listened') AS plays,
+              (SELECT count(*) FROM comments c WHERE c.episode_id = e.id AND ${VISIBLE}) AS comments,
+              (SELECT count(*) FROM share_events s WHERE s.target_kind = 'episode' AND s.target_id = e.id) AS shares,
+              (SELECT count(*) FROM library_items li WHERE li.kind = 'fav_episode' AND li.item_key = e.id AND li.deleted_at IS NULL) AS saves,
+              (SELECT count(DISTINCT r.listener_id) FROM reactions r WHERE r.episode_id = e.id) AS likes 
+         FROM episodes e WHERE e.feed_url = $1`,
+      [feedUrl],
+    ),
+    completion(db, feedUrl),
+  ]);
+  return rows.map((r) => ({
+    id: r.id, title: r.title, publishedAt: r.published_at ? new Date(r.published_at).toISOString() : null,
+    plays: Number(r.plays), completionRate: comp.byEpisode.get(r.id) ?? null,
+    comments: Number(r.comments), shares: Number(r.shares), saves: Number(r.saves), likes: Number(r.likes),
+  }));
+}
+
+export function sortEpisodes(items: EpisodeStats[], sort: EpisodeSort = 'publishedAt', dir: 'asc' | 'desc' = 'desc'): EpisodeStats[] {
+  const k = dir === 'asc' ? 1 : -1;
+  const val = (e: EpisodeStats): number | string => {
+    if (sort === 'title') return e.title.toLowerCase();
+    if (sort === 'publishedAt') return e.publishedAt ? Date.parse(e.publishedAt) : -Infinity;
+    const v = e[sort];
+    return v === null ? -Infinity : v;
+  };
+  return [...items].sort((a, b) => {
+    const x = val(a), y = val(b);
+    return (x < y ? -1 : x > y ? 1 : a.id < b.id ? -1 : 1) * k;
+  });
+}
+
+/** Other shows this show's live subscribers also follow — hidden under 5 subscribers (FR-010, G-L1). */
+export const ALSO_FOLLOW_MIN = 5;
+export async function alsoFollow(db: Db, feedUrl: string): Promise<{ hidden: 'too_few' } | { shows: { feedUrl: string; title: string | null; image: string | null; listeners: number }[] }> {
+  const [n] = await db.query<{ n: string | number }>('SELECT count(*) AS n FROM subscriptions WHERE feed_url = $1 AND deleted_at IS NULL', [feedUrl]);
+  if (Number(n?.n ?? 0) < ALSO_FOLLOW_MIN) return { hidden: 'too_few' };
+  const rows = await db.query<{ feed_url: string; listeners: string | number; title: string | null; image: string | null }>(
+    `SELECT o.feed_url, count(DISTINCT o.listener_id) AS listeners,
+            (SELECT coalesce(e.show_title, e.title) FROM episodes e WHERE e.feed_url = o.feed_url ORDER BY e.published_at DESC NULLS LAST LIMIT 1) AS title,
+            (SELECT e.image_url FROM episodes e WHERE e.feed_url = o.feed_url AND e.image_url IS NOT NULL ORDER BY e.published_at DESC NULLS LAST LIMIT 1) AS image
+       FROM subscriptions me JOIN subscriptions o ON o.listener_id = me.listener_id AND o.feed_url <> me.feed_url AND o.deleted_at IS NULL
+      WHERE me.feed_url = $1 AND me.deleted_at IS NULL
+        AND NOT EXISTS (SELECT 1 FROM hidden_feeds h WHERE h.feed_url = o.feed_url)
+      GROUP BY o.feed_url ORDER BY listeners DESC, o.feed_url LIMIT 5`,
+    [feedUrl],
+  );
+  return { shows: rows.map((r) => ({ feedUrl: r.feed_url, title: r.title, image: r.image, listeners: Number(r.listeners) })) };
+}
+
+/** One episode of the feed: its numbers, its 100-bucket heat curve (0–1) and comments per minute. */
+export async function episodeDetail(db: Db, feedUrl: string, episodeId: string) {
+  const stats = (await episodeStats(db, feedUrl)).find((e) => e.id === episodeId);
+  if (!stats) return undefined;
+  const [heat, perMinute, dur] = await Promise.all([
+    db.query<{ bucket: number; n: number }>('SELECT bucket, distinct_listeners AS n FROM episode_heat WHERE episode_id = $1', [episodeId]),
+    db.query<{ minute: number | string; n: number | string }>(
+      `SELECT (c.offset_ms / 60000) AS minute, count(*) AS n FROM comments c
+        WHERE c.episode_id = $1 AND c.offset_ms IS NOT NULL AND ${VISIBLE} GROUP BY 1 ORDER BY 1`, [episodeId]),
+    db.query<{ duration_ms: number | null }>('SELECT duration_ms FROM episodes WHERE id = $1', [episodeId]),
+  ]);
+  const curve = Array.from({ length: 100 }, () => 0);
+  for (const h of heat) curve[h.bucket] = Number(h.n);
+  const max = Math.max(0, ...curve);
+  return {
+    episode: { ...stats, durationMs: dur[0]?.duration_ms ?? null },
+    heat: curve.map((v) => (max === 0 ? 0 : v / max)),
+    commentsByMinute: perMinute.map((m) => ({ minute: Number(m.minute), count: Number(m.n) })),
+  };
+}
+
+// ---- CSV (FR-009): built from the same values the JSON routes return (G-E1) ----
+
+const cell = (v: string | number | null): string => {
+  const s = v === null ? '' : String(v);
+  return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
+
+/** RFC 4180, CRLF rows, a UTF-8 BOM so spreadsheet apps read Chinese titles correctly. */
+export function toCsv(header: string[], rows: (string | number | null)[][]): string {
+  return '﻿' + [header, ...rows].map((r) => r.map(cell).join(',')).join('\r\n') + '\r\n';
+}
+
+export const episodeCsv = (items: EpisodeStats[]) =>
+  toCsv(
+    ['Title', 'Published', 'Plays', 'Completion %', 'Comments', 'Shares', 'Saves', 'Likes'],
+    items.map((e) => [e.title, e.publishedAt ? e.publishedAt.slice(0, 10) : null, e.plays, e.completionRate === null ? null : Math.round(e.completionRate * 1000) / 10, e.comments, e.shares, e.saves, e.likes]),
+  );
+
+export const trendCsv = (metric: Metric, days: { date: string; value: number }[]) => toCsv(['Date', metric], days.map((d) => [d.date, d.value]));

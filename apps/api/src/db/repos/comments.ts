@@ -16,6 +16,8 @@ export type CommentRow = {
   created_at: Date | string;
   deleted_at: Date | string | null;
   removed_at: Date | string | null;
+  /** M11: hidden by the show's host in the Studio — gone for everyone but its author. */
+  host_hidden_at?: Date | string | null;
 };
 
 export type PublicComment = {
@@ -37,14 +39,19 @@ export type PublicComment = {
   replies?: PublicComment[];
   /** M10b US8: written by the show's proven creator. */
   host?: true;
+  /** M11 (FR-016): the host hid it. Others get a placeholder; the author still reads it, marked. */
+  hiddenByHost?: true;
 };
 
-const SELECT = `SELECT c.id, c.episode_id, c.author_id, l.display_name, c.parent_id, c.body, c.offset_ms, c.created_at, c.deleted_at, c.removed_at
+const SELECT = `SELECT c.id, c.episode_id, c.author_id, l.display_name, c.parent_id, c.body, c.offset_ms, c.created_at, c.deleted_at, c.removed_at, c.host_hidden_at
                 FROM comments c LEFT JOIN listeners l ON l.id = c.author_id`;
 
 export function toPublic(r: CommentRow, viewerId?: string): PublicComment {
   const removed = r.removed_at !== null;
-  const deleted = r.deleted_at !== null || removed;
+  // M11 guard G-H1: a host-hidden comment is a placeholder for everyone except its author.
+  const hostHidden = r.host_hidden_at != null && !removed && r.deleted_at === null;
+  const authorSees = hostHidden && viewerId !== undefined && r.author_id === viewerId;
+  const deleted = r.deleted_at !== null || removed || (hostHidden && !authorSees);
   return {
     id: r.id,
     authorId: deleted ? null : r.author_id,
@@ -55,9 +62,10 @@ export function toPublic(r: CommentRow, viewerId?: string): PublicComment {
     createdAt: new Date(r.created_at).toISOString(),
     deleted,
     ...(removed ? { removed: true } : {}),
+    ...(hostHidden ? { hiddenByHost: true } : {}),
     ...((r as CommentRow & { blocked?: true }).blocked ? { blocked: true } : {}),
     ...((r as CommentRow & { reported?: true }).reported ? { reported: true } : {}),
-    ...(viewerId !== undefined ? { mine: (!deleted || removed) && r.author_id === viewerId } : {}),
+    ...(viewerId !== undefined ? { mine: (!deleted || removed || authorSees) && r.author_id === viewerId } : {}),
   };
 }
 
