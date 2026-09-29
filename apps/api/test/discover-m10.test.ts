@@ -272,7 +272,7 @@ test('M10: collections validate like picks — a bad entry is a warning, the res
 });
 
 test('M10: the shipped collections.json is valid and uses only feeds already in picks.json', () => {
-  const picks = shippedPicks as { feedUrl: string }[];
+  const picks = (shippedPicks as unknown as { picks: { feedUrl: string }[] }).picks; // M12: the file is { picks, issues }
   const r = validateCollections(shippedCollections);
   assert.deepEqual(r.warnings, []);
   assert.equal(r.collections.length, 1);

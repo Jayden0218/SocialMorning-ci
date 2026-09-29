@@ -9,17 +9,20 @@
     "test": "tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit",
     "migrate": "tsx src/db/migrate.ts",
-    "build": "esbuild src/vercel-entry.ts --bundle --platform=node --format=esm --target=node22 --outfile=api/index.js --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\"",
+    "build": "esbuild src/vercel-entry.ts --bundle --platform=node --format=esm --target=node22 --loader:.wasm=binary --loader:.woff=binary --outfile=api/index.js --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\"",
     "replay": "tsx scripts/replay.ts"
   },
   "dependencies": {
+    "@fontsource/inter": "5.3.0",
     "@hono/node-server": "^2.1.1",
+    "@resvg/resvg-wasm": "2.6.2",
     "@socialmorning/feed-parser": "*",
     "@socialmorning/social-core": "*",
     "@vercel/blob": "2.8.0",
     "hono": "^4.13.8",
     "nodemailer": "^10.0.10",
     "postgres": "^3.4.9",
+    "satori": "0.32.0",
     "zod": "^4.6.5"
   },
   "devDependencies": {

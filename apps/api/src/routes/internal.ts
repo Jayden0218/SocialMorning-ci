@@ -7,6 +7,7 @@ import { rebuildSimilarity, similarityAgeHours } from '../db/repos/similarity.ts
 import { fetchFeed, registerCard, toCard } from '../catalog/feed.ts';
 import { fanOutNewEpisode, NEW_WINDOW_HOURS, sendPopular } from '../db/repos/push.ts';
 import { sweepImages } from '../db/repos/feedback.ts';
+import { sweepExpired } from '../db/repos/voice-posts.ts';
 import { picksForDay } from '@socialmorning/social-core';
 
 /**
@@ -83,9 +84,16 @@ export function createInternalRoute(jobToken: string | undefined) {
       const done = rows.length <= FEEDS_PER_CALL;
       // M10b US3: the day's first pick, once per listener per day, on the first call of a cycle.
       let popular = 0;
+      let voiceDeleted = 0;
       if (cursor === undefined) {
         // M10b US6 (FR-020): feedback images older than 90 days go, once per cycle.
         try { await sweepImages(db); } catch (e) { failed.push(`sweep: ${e instanceof Error ? e.message : String(e)}`); }
+        // M12 FR-104 (guard G-V1): voice posts past 48 h lose their blob AND their row.
+        try {
+          const v = await sweepExpired(db, c.get('voice'));
+          voiceDeleted = v.deleted;
+          if (v.failed > 0) failed.push(`voice: ${v.failed} blob(s) not deleted, kept for the next cycle`);
+        } catch (e) { failed.push(`voice: ${e instanceof Error ? e.message : String(e)}`); }
         try {
           const day = picksForDay(cat.picks, cat.today());
           const p = day.picks[0];
@@ -99,7 +107,7 @@ export function createInternalRoute(jobToken: string | undefined) {
       }
       return c.json({
         done, ...(done || last === undefined ? {} : { next: last.feed_url }),
-        counts: { feeds: batch.length, registered, failed: failed.length, pushed, popular }, ms: Date.now() - started,
+        counts: { feeds: batch.length, registered, failed: failed.length, pushed, popular, voiceDeleted }, ms: Date.now() - started,
       });
     }
 

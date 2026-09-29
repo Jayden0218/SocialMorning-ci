@@ -8,13 +8,13 @@ test('migrations 001–011 apply once and are idempotent', async () => {
   const again = await migrate(t.runner);
   assert.deepEqual(again, [], 'second run applies nothing');
   const rows = await t.q<{ version: number }>('SELECT version FROM schema_migrations ORDER BY version');
-  assert.deepEqual(rows.map((r) => Number(r.version)), [1, 2, 3, 4, 5, 6, 7, 8, 10, 11]);
+  assert.deepEqual(rows.map((r) => Number(r.version)), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
   const tables = await t.q<{ table_name: string }>(
     "SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY 1",
   );
   assert.deepEqual(
     tables.map((r) => r.table_name),
-    ['activity', 'announcements', 'blocks', 'cache', 'clips', 'comments', 'creator_claims', 'email_codes', 'entitlements', 'episode_heat', 'episodes', 'feedback', 'feedback_images', 'follows', 'hidden_feeds', 'hosted_episodes', 'hosted_shows', 'library_items', 'listened_ranges', 'listeners', 'moderation_actions', 'poll_options', 'poll_votes', 'polls', 'positions', 'purchases', 'push_prefs', 'push_sent', 'push_tokens', 'reactions', 'rec_events', 'redeem_codes', 'reports', 'schema_migrations', 'sessions', 'share_events', 'show_hosts', 'show_invites', 'show_members', 'show_mutes', 'show_overrides', 'show_similarity', 'show_similarity_next', 'subscription_events', 'subscriptions', 'tips'],
+    ['activity', 'announcements', 'blocks', 'cache', 'clips', 'comment_likes', 'comments', 'creator_claims', 'email_codes', 'entitlements', 'episode_heat', 'episodes', 'feedback', 'feedback_images', 'follows', 'hidden_feeds', 'hosted_episodes', 'hosted_shows', 'library_items', 'listened_ranges', 'listeners', 'live_listeners', 'moderation_actions', 'notify_show_prefs', 'poll_options', 'poll_votes', 'polls', 'positions', 'purchases', 'push_prefs', 'push_sent', 'push_tokens', 'reactions', 'rec_events', 'redeem_codes', 'reports', 'schema_migrations', 'sessions', 'share_events', 'show_hosts', 'show_invites', 'show_members', 'show_mutes', 'show_overrides', 'show_similarity', 'show_similarity_next', 'subscription_events', 'subscriptions', 'tips', 'voice_posts'],
   );
   await t.close();
 });

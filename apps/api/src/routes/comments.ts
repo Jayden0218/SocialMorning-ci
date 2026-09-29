@@ -9,6 +9,7 @@ import { createComment, deleteComment, getComment, toPublic } from '../db/repos/
 import { rebuildEpisodeHeat } from '../heat/rebuild.ts';
 import { isBlockedBy } from '../db/repos/blocks.ts';
 import { isMutedOn } from '../db/repos/studio-subscribers.ts';
+import { like, unlike } from '../db/repos/comment-likes.ts';
 
 const commentBody = z.object({
   body: z.string().trim().min(1).max(2000),
@@ -80,3 +81,13 @@ commentById.delete('/:id', requireAuth, async (c) => {
   });
   return c.json({ placeholder: result.placeholder });
 });
+
+/**
+ * M12 (FR-023) — PUT/DELETE /v1/comments/:id/like. Both idempotent; both answer the new
+ * count. Your own comment is 403 `own_comment` (guard G-C2); a comment you cannot see is 404.
+ */
+commentById.put('/:id/like', requireAuth, async (c) =>
+  c.json(await like(c.get('db'), c.req.param('id'), c.get('listener')!.id)));
+
+commentById.delete('/:id/like', requireAuth, async (c) =>
+  c.json(await unlike(c.get('db'), c.req.param('id'), c.get('listener')!.id)));

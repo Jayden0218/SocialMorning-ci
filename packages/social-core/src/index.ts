@@ -23,8 +23,8 @@ export { stats } from './stats';
 export type { FeedItem } from './feed';
 export { listenItemDue, orderFeed, unreadCount, LISTEN_ITEM_THRESHOLD_MS } from './feed';
 // M5 — discovery (specs/005-m5-discovery/contracts/discovery-core.ts)
-export type { PickIn } from './picks';
-export { validatePicks, picksForDay, PICKS_PER_DAY } from './picks';
+export type { PickIn, IssueIn, IssueItemIn } from './picks';
+export { validatePicks, picksForDay, PICKS_PER_DAY, pastPickDays, validateIssues } from './picks';
 export type { ActivityRow } from './discover';
 export { scoreTalkedAbout, rankTalkedAbout, fillWithTrending } from './discover';
 export type { Reason, Candidate } from './nextup';

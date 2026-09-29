@@ -8,6 +8,7 @@ import { getEpisode } from '../db/repos/episodes.ts';
 import { listComments } from '../db/repos/comments.ts';
 import { safetyStamp } from '../db/repos/blocks.ts';
 import { hostsOfEpisode } from '../db/repos/creator.ts';
+import { likesStamp } from '../db/repos/comment-likes.ts';
 
 /**
  * The poll (research R7, FR-015, FR-022, FR-032): comments + heat + serverTime in one
@@ -37,9 +38,11 @@ social.get('/:id/social', optionalAuth, async (c) => {
   const safety = viewer ? await safetyStamp(db, viewer.id) : '-';
   // M10b US8: a claim proven later adds the Host mark, so the claimant is in the stamp too.
   const host = (await hostsOfEpisode(db, episodeId)).join(',') || undefined;
+  // M12 (FR-023): a like added or taken away changes the counts, so likes are in the stamp.
+  const likes = await likesStamp(db, episodeId);
   const etag = '"' + createHash('sha256')
     .update(String(stamp?.comments_v)).update('|').update(String(stamp?.episode_v)).update('|')
-    .update(String(stamp?.heat_v)).update('|').update(viewer?.id ?? '-').update('|').update(safety).update('|').update(host ?? '-')
+    .update(String(stamp?.heat_v)).update('|').update(viewer?.id ?? '-').update('|').update(safety).update('|').update(host ?? '-').update('|').update(likes)
     .digest('base64url').slice(0, 27) + '"';
 
   if (c.req.header('if-none-match') === etag) {

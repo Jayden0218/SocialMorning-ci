@@ -67,7 +67,9 @@ export async function fanOutNewEpisode(db: Db, f: typeof fetch, ep: { id: string
     `INSERT INTO push_sent (listener_id, episode_id, kind)
      SELECT s.listener_id, $2, 'new_episode' FROM subscriptions s
      LEFT JOIN push_prefs p ON p.listener_id = s.listener_id
+     LEFT JOIN notify_show_prefs n ON n.listener_id = s.listener_id AND n.feed_url = s.feed_url
      WHERE s.feed_url = $1 AND s.deleted_at IS NULL AND COALESCE(p.new_episodes, true)
+       AND COALESCE(n.enabled, true) -- M12 FR-093: this show turned off
      ON CONFLICT (listener_id, episode_id, kind) DO NOTHING
      RETURNING listener_id`,
     [ep.feedUrl, ep.id],

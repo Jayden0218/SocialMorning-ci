@@ -151,6 +151,26 @@ async function newShowsFrom(db: Db, f: typeof fetch, chart: readonly ShowCard[],
   return out;
 }
 
+/** M12 FR-071: the whole "Talked about" chart — the same ranking as Discover's list, up to `limit` (≤ 100), shows the owner hid left out. */
+export const CHART_MAX = 100;
+export async function talkedAboutChart(db: Db, limit: number): Promise<(DiscoverItem & { rank: number })[]> {
+  const hidden = await hiddenFeedUrls(db);
+  const ranked = rankTalkedAbout(await talkedAbout(db, 7), Number.MAX_SAFE_INTEGER);
+  const rows = await db.query<{ id: string; feed_url: string; guid: string; title: string; show_title: string | null; image_url: string | null; duration_ms: number | null; enclosure_url: string }>(
+    'SELECT id, feed_url, guid, title, show_title, image_url, duration_ms, enclosure_url FROM episodes WHERE id = ANY($1::text[])', [ranked.map((r) => r.episodeId)]);
+  const byId = new Map(rows.map((e) => [e.id, e]));
+  const out: (DiscoverItem & { rank: number })[] = [];
+  for (const r of ranked) {
+    if (out.length >= limit) break;
+    const e = byId.get(r.episodeId);
+    if (!e || hidden.has(e.feed_url)) continue;
+    const card: EpisodeCard & { id: string } = { id: e.id, feedUrl: e.feed_url, guid: e.guid, title: e.title, showTitle: e.show_title ?? '', enclosureUrl: e.enclosure_url, ...(e.image_url ? { imageUrl: e.image_url } : {}), ...(e.duration_ms !== null ? { durationMs: Number(e.duration_ms) } : {}) };
+    const score = 3 * r.listeners + 2 * r.comments + 2 * r.clips + r.reactions;
+    out.push({ kind: 'talkedAbout', key: keyOf(card), episode: card, score, reason: describe(r), rank: out.length + 1 });
+  }
+  return out;
+}
+
 function describe(r: { listeners: number; comments: number; clips: number; reactions: number }): string {
   const parts: string[] = [];
   if (r.listeners > 0) parts.push(`${r.listeners} listened`);

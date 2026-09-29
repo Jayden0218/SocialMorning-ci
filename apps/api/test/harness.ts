@@ -9,6 +9,7 @@ import { migrate, type MigrationRunner } from '../src/db/migrate.ts';
 import { fromPglite, type Db } from '../src/db/db.ts';
 import { createApp } from '../src/app.ts';
 import type { Mail, Mailer } from '../src/mail/mailer.ts';
+import type { VoiceStorage } from '../src/storage/voice-blob.ts';
 
 export const TEST_PEPPER = 'test-pepper-not-secret';
 
@@ -32,7 +33,8 @@ export type TestDb = {
 export const TEST_APPEALS = 'appeals@example.test';
 
 /** `ownerListenerId` is unknown until a listener exists: tests that need the owner sign up first, then `setOwner`. */
-export async function freshDb(allOpts: { ownerListenerId?: string; appealsEmail?: string; releaseSha256?: string; noMailer?: boolean; pushFetch?: typeof fetch; catalogFetch?: typeof fetch } = {}): Promise<TestDb> {
+export async function freshDb(allOpts: { ownerListenerId?: string; appealsEmail?: string; releaseSha256?: string; noMailer?: boolean; pushFetch?: typeof fetch; catalogFetch?: typeof fetch;
+  /** M12 */ jobToken?: string; voiceStorage?: VoiceStorage; imageFetch?: typeof fetch; picksRaw?: unknown; today?: () => string } = {}): Promise<TestDb> {
   const { noMailer, ...opts } = allOpts;
   const pg = new PGlite({ extensions: { citext } });
   const runner: MigrationRunner = {

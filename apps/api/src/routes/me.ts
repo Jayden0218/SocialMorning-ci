@@ -7,6 +7,7 @@ import { json } from '../validate.ts';
 import { ApiError } from '../errors.ts';
 import { deleteAccount } from '../db/repos/delete-account.ts';
 import { checkCode, consumeCode } from '../auth/codes.ts';
+import { removeAllFor } from '../db/repos/voice-posts.ts';
 
 export const me = new Hono<AuthEnv>();
 
@@ -40,6 +41,8 @@ me.delete('/', requireAuth, json(deleteBody), async (c) => {
       throw new ApiError('unauthenticated', 'That password is not right.');
     }
   }
+  // M12 FR-104: the listener's voice recordings leave the store before the rows cascade away.
+  try { await removeAllFor(db, c.get('voice'), listener.id); } catch (e) { console.error('voice cleanup on delete', e); }
   await deleteAccount(db, listener.id);
   return c.json({});
 });

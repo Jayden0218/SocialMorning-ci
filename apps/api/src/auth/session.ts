@@ -34,7 +34,11 @@ export async function listenerForToken(db: Db, token: string, pepper: string): P
 
 export type AuthEnv = { Variables: { db: Db; pepper: string; listener?: Listener; token?: string; catalog: Catalog; safety: Safety; mailer?: import('../mail/mailer.ts').Mailer;
   /** M13: created shows' audio store, and the public address their feeds live under. */
-  storage: import('../storage/episodes-blob.ts').EpisodeStorage; publicBase: string; hostedCeilingBytes: number } };
+  storage: import('../storage/episodes-blob.ts').EpisodeStorage; publicBase: string; hostedCeilingBytes: number;
+  /** M12 FR-104: the voice-post store (`socialmorning-voice`); `ready` false when its token is unset. */
+  voice: import('../storage/voice-blob.ts').VoiceStorage;
+  /** M12 FR-034: the fetch the share card uses for artwork (tests inject a fake). */
+  imageFetch: typeof fetch } };
 
 /** M6: the moderator's id, the appeals address, the published build's hash — any may be unset. */
 export type Safety = { ownerListenerId?: string; appealsEmail?: string; releaseSha256?: string };
@@ -46,6 +50,8 @@ export type Catalog = {
   pushFetch: typeof fetch;
   /** M10: the owner's curated collections (collections.json), validated once at start. */
   collections: import('../catalog/collections.ts').CollectionIn[];
+  /** M12 FR-101: curated issues, from the picks file's `issues` key. */
+  issues: import('@socialmorning/social-core').IssueIn[];
 };
 
 function bearer(c: Context): string | undefined {

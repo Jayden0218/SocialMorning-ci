@@ -1,22 +1,51 @@
-[
-  {
-    "date": "2026-09-22",
-    "feedUrl": "https://feeds.megaphone.fm/replyall",
-    "guid": "c0633378-b188-11ef-bcb2-677967fca1e9",
-    "why": "Fifteen years chasing one button. The one everyone on here clipped.",
-    "order": 1
-  },
-  {
-    "date": "2026-09-22",
-    "feedUrl": "https://feeds.podcastindex.org/pc20.xml",
-    "guid": "PC20-271",
-    "why": "The people who write the podcast spec, talking about the spec.",
-    "order": 2
-  },
-  {
-    "date": "2026-09-22",
-    "feedUrl": "https://feeds.simplecast.com/BqbsxVfO",
-    "why": "A show pick: whatever 99% Invisible put out last.",
-    "order": 3
-  }
-]
+{
+  "picks": [
+    {
+      "date": "2026-09-22",
+      "feedUrl": "https://feeds.megaphone.fm/replyall",
+      "guid": "c0633378-b188-11ef-bcb2-677967fca1e9",
+      "why": "Fifteen years chasing one button. The one everyone on here clipped.",
+      "order": 1
+    },
+    {
+      "date": "2026-09-22",
+      "feedUrl": "https://feeds.podcastindex.org/pc20.xml",
+      "guid": "PC20-271",
+      "why": "The people who write the podcast spec, talking about the spec.",
+      "order": 2
+    },
+    {
+      "date": "2026-09-22",
+      "feedUrl": "https://feeds.simplecast.com/BqbsxVfO",
+      "why": "A show pick: whatever 99% Invisible put out last.",
+      "order": 3
+    }
+  ],
+  "issues": [
+    {
+      "id": "issue-1",
+      "date": "2026-09-29",
+      "title": "How things get made",
+      "intro": "Three episodes about the work behind things you use every day: a missing button, the rules a podcast feed follows, and the design nobody notices. Chosen by the SocialNet team.",
+      "items": [
+        {
+          "order": 1,
+          "feedUrl": "https://feeds.megaphone.fm/replyall",
+          "guid": "c0633378-b188-11ef-bcb2-677967fca1e9",
+          "note": "A long search for one small thing. Listeners here clipped the ending more than any other part."
+        },
+        {
+          "order": 2,
+          "feedUrl": "https://feeds.podcastindex.org/pc20.xml",
+          "guid": "PC20-271",
+          "note": "The people who maintain the podcast spec explain how a new feature becomes part of it."
+        },
+        {
+          "order": 3,
+          "feedUrl": "https://feeds.simplecast.com/BqbsxVfO",
+          "note": "The newest episode of a show about design you walk past without seeing."
+        }
+      ]
+    }
+  ]
+}

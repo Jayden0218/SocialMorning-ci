@@ -32,7 +32,7 @@ import { nextup } from './routes/nextup.ts';
 import { foryou } from './routes/foryou.ts';
 import { createInternalRoute } from './routes/internal.ts';
 import { recEvents } from './routes/rec-events.ts';
-import { validatePicks } from '@socialmorning/social-core';
+import { validateIssues, validatePicks } from '@socialmorning/social-core';
 import type { Catalog, Safety } from './auth/session.ts';
 import picksJson from '../picks.json' with { type: 'json' };
 import collectionsJson from '../collections.json' with { type: 'json' };
@@ -44,6 +44,16 @@ import { feeds } from './routes/feeds.ts';
 import { showCard } from './pages/show-card.ts';
 import { blobStorage } from './storage/episodes-blob.ts';
 import { DEFAULT_CEILING_BYTES } from './db/repos/hosted.ts';
+import { live } from './routes/live.ts';
+import { notify } from './routes/notify.ts';
+import { wallet } from './routes/wallet.ts';
+import { friends } from './routes/friends.ts';
+import { issues, pastPicks } from './routes/issues.ts';
+import { voice } from './routes/voice.ts';
+import { share } from './routes/share.ts';
+import { episodePages } from './pages/episode.ts';
+import { voiceBlobStorage, type VoiceStorage } from './storage/voice-blob.ts';
+import { VOICE_MAX_BYTES } from './db/repos/voice-posts.ts';
 
 export type AppDeps = {
   db: Db; pepper: string; assetLinksSha256?: string;
@@ -68,6 +78,10 @@ export type AppDeps = {
   hostedCeilingBytes?: number;
   /** Sends the sign-in code (env GMAIL_USER + GMAIL_APP_PASSWORD). Unset → the code routes answer 503. */
   mailer?: import('./mail/mailer.ts').Mailer;
+  /** M12 FR-104: the voice-post store (default: Vercel Blob with env BLOB_READ_WRITE_TOKEN; unset → 503 storage_off). */
+  voiceStorage?: VoiceStorage;
+  /** M12 FR-034: the fetch the share card uses for artwork. Default: global fetch. */
+  imageFetch?: typeof fetch;
 };
 
 /**
@@ -81,20 +95,28 @@ export function createApp(deps: AppDeps) {
   // M10b US6: feedback carries up to 3 images (≤ 250 000 bytes each, base64); every other route stays at 16 KB.
   const small = bodyLimit({ maxSize: 16 * 1024 });
   const feedbackLimit = bodyLimit({ maxSize: 1_100_000 });
-  app.use('*', (c, next) => (c.req.path === '/v1/feedback' ? feedbackLimit(c, next) : small(c, next)));
+  // M12 FR-104: a voice post is the raw recording, ≤ 600 000 bytes — only on that one route.
+  const voiceLimit = bodyLimit({ maxSize: VOICE_MAX_BYTES, onError: (c) => c.json(new ApiError('too_large', 'A voice post is at most 600 000 bytes.').body(), 413) });
+  app.use('*', (c, next) => (c.req.path === '/v1/feedback' ? feedbackLimit(c, next)
+    : c.req.path === '/v1/voice-posts' && c.req.method === 'POST' ? voiceLimit(c, next) : small(c, next)));
   // M5: the picks file is validated once; every bad entry is a warning, never a crash (G1).
   const { picks, warnings } = validatePicks(deps.picksRaw ?? picksJson);
   for (const w of warnings) console.warn(`[picks] ${w}`);
   // M10: collections are validated the same way — a bad one is a warning, never a crash.
   const cols = validateCollections(deps.collectionsRaw ?? collectionsJson);
   for (const w of cols.warnings) console.warn(`[collections] ${w}`);
-  const catalog: Catalog = { pushFetch: deps.pushFetch ?? fetch, fetch: deps.catalogFetch ?? fetch, picks, collections: cols.collections, today: deps.today ?? (() => new Date().toISOString().slice(0, 10)) };
+  // M12 FR-101: the same file's `issues` key, validated the same way.
+  const iss = validateIssues(deps.picksRaw ?? picksJson);
+  for (const w of iss.warnings) console.warn(`[issues] ${w}`);
+  const catalog: Catalog = { pushFetch: deps.pushFetch ?? fetch, fetch: deps.catalogFetch ?? fetch, picks, collections: cols.collections, issues: iss.issues, today: deps.today ?? (() => new Date().toISOString().slice(0, 10)) };
 
   if (!deps.ownerListenerId || !deps.appealsEmail) console.warn('[safety] OWNER_LISTENER_ID / APPEALS_EMAIL not set: /mod is off, messages name no address');
   const safety: Safety = { ownerListenerId: deps.ownerListenerId, appealsEmail: deps.appealsEmail, releaseSha256: deps.releaseSha256 };
 
   // M13: an unconnected store is not an error — creating a show still works; uploads say why not.
   const storage = deps.episodeStorage ?? blobStorage(process.env['EPISODES_READ_WRITE_TOKEN']);
+  const voiceStorage = deps.voiceStorage ?? voiceBlobStorage(process.env['BLOB_READ_WRITE_TOKEN']);
+  const imageFetch = deps.imageFetch ?? fetch;
   const publicBase = deps.publicBase ?? process.env['PUBLIC_API_URL'] ?? 'https://socialmorning-api.vercel.app';
 
   app.use('*', async (c, next) => {
@@ -106,6 +128,8 @@ export function createApp(deps: AppDeps) {
     c.set('storage', storage);
     c.set('publicBase', publicBase);
     c.set('hostedCeilingBytes', deps.hostedCeilingBytes ?? DEFAULT_CEILING_BYTES);
+    c.set('voice', voiceStorage);
+    c.set('imageFetch', imageFetch);
     await next();
   });
 
@@ -138,6 +162,15 @@ export function createApp(deps: AppDeps) {
   app.route('/feeds', feeds);
   app.route('/show', showCard);
   app.route('/v1/me/rec-events', recEvents);
+  // M12 (specs/012-m12-the-finish/contracts/api.md)
+  app.route('/v1/me/notify', notify);
+  app.route('/v1/me', wallet);
+  app.route('/v1/me', friends);
+  app.route('/v1/picks', pastPicks);
+  app.route('/v1/issues', issues);
+  app.route('/v1/voice-posts', voice);
+  app.route('/v1/share', share);
+  app.route('/v1/episodes', live);
   app.route('/v1/me/feed', feed);
   app.route('/v1/me/listened', listened);
   app.route('/v1/me/privacy', privacy);
@@ -161,6 +194,7 @@ export function createApp(deps: AppDeps) {
   app.route('/v1/clips', clipById);
   app.route('/mod', mod);
   app.route('/', legal);
+  app.route('/', episodePages);
   app.route('/', createClipPages({ ...(deps.assetLinksSha256 !== undefined ? { assetLinksSha256: deps.assetLinksSha256 } : {}) }));
 
   return app;

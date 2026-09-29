@@ -1,9 +1,10 @@
 import { Hono } from 'hono';
 import { createHash } from 'node:crypto';
 import type { AuthEnv } from '../auth/session.ts';
-import { discoverBody, SHOWS_SERVED } from '../db/repos/discover.ts';
+import { CHART_MAX, discoverBody, SHOWS_SERVED, talkedAboutChart } from '../db/repos/discover.ts';
 import { collectionsWithoutHidden, followedHere, resolveCollections, said, statsFor, videoEpisodes, withStats, type Collection, type FollowedHere, type Said } from '../db/repos/discover-extras.ts';
 import { hiddenFeedUrls } from '../db/repos/moderation.ts';
+import { ApiError } from '../errors.ts';
 
 /** Mounted at /v1/discover — public; ETag/304; `stale` when the catalogue could not be refreshed. */
 export const discover = new Hono<AuthEnv>();
@@ -54,4 +55,14 @@ discover.get('/', async (c) => {
     ...(video && video.length > 0 ? { video } : {}),
     stale, serverTime: new Date().toISOString(),
   });
+});
+
+/** M12 FR-071 — GET /v1/discover/chart?limit=1..100 (default 100): the full "Talked about" ranking. Counts only, never names (G6). */
+discover.get('/chart', async (c) => {
+  const raw = c.req.query('limit');
+  const limit = raw === undefined ? CHART_MAX : Number(raw);
+  if (!Number.isInteger(limit) || limit < 1 || limit > CHART_MAX) throw new ApiError('validation', `limit must be 1–${CHART_MAX}.`, { fields: ['limit'] });
+  const items = await talkedAboutChart(c.get('db'), limit);
+  c.header('cache-control', 'public, max-age=300');
+  return c.json({ items, serverTime: new Date().toISOString() });
 });

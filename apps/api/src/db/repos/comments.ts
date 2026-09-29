@@ -4,6 +4,7 @@ import type { Db } from '../db.ts';
 import { ApiError } from '../../errors.ts';
 import { blockedIdsFor } from './blocks.ts';
 import { hiddenFor } from './reports.ts';
+import { initialsOf, likesOnEpisode } from './comment-likes.ts';
 
 export type CommentRow = {
   id: string;
@@ -41,6 +42,12 @@ export type PublicComment = {
   host?: true;
   /** M11 (FR-016): the host hid it. Others get a placeholder; the author still reads it, marked. */
   hiddenByHost?: true;
+  /** M12 (FR-023): the author's avatar letter — first letter or digit of the name, upper-cased; null for a placeholder. */
+  initials: string | null;
+  /** M12 (FR-023): how many listeners liked it. */
+  likeCount: number;
+  /** M12 (FR-023): present only when signed in — whether the viewer is one of them. */
+  likedByMe?: boolean;
 };
 
 const SELECT = `SELECT c.id, c.episode_id, c.author_id, l.display_name, c.parent_id, c.body, c.offset_ms, c.created_at, c.deleted_at, c.removed_at, c.host_hidden_at
@@ -61,6 +68,9 @@ export function toPublic(r: CommentRow, viewerId?: string): PublicComment {
     parentId: r.parent_id,
     createdAt: new Date(r.created_at).toISOString(),
     deleted,
+    initials: deleted ? null : initialsOf(r.display_name),
+    likeCount: 0,
+    ...(viewerId !== undefined ? { likedByMe: false } : {}),
     ...(removed ? { removed: true } : {}),
     ...(hostHidden ? { hiddenByHost: true } : {}),
     ...((r as CommentRow & { blocked?: true }).blocked ? { blocked: true } : {}),
@@ -130,8 +140,12 @@ export async function listComments(db: Db, episodeId: string, viewerId?: string)
   const top: PublicComment[] = [];
   // M10b US8 + M14: the show's proven creator's and invited hosts' comments carry a Host mark.
   const hosts = new Set(await hostsOfEpisode(db, episodeId));
+  // M12 (FR-023): like counts in one grouped read.
+  const likes = await likesOnEpisode(db, episodeId, viewerId);
   for (const r of rows) {
-    const base = toPublic(r, viewerId);
+    const plain = toPublic(r, viewerId);
+    const l = likes.get(r.id);
+    const base = l ? { ...plain, likeCount: l.likeCount, ...(viewerId !== undefined ? { likedByMe: l.likedByMe } : {}) } : plain;
     const c = base.authorId !== null && hosts.has(base.authorId) ? { ...base, host: true as const } : base;
     byId.set(c.id, c);
     if (c.parentId === null) top.push({ ...c, replies: [] });
