@@ -8,7 +8,7 @@
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Share, Linking } from 'react-native';
+import { Linking } from 'react-native';
 import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '../../src/ui/lib/actionsheet';
 import { Pressable } from '../../src/ui/lib/pressable';
 import { SafeAreaView } from '../../src/ui/lib/safe-area-view';
@@ -32,6 +32,7 @@ import { useSocial } from '../../src/social/context';
 import { usePoll } from '../../src/social/usePoll';
 import type { ComposerState } from '../../src/social/composer';
 import { CommentPreview } from '../../src/ui/CommentPreview';
+import { ShareChooser } from '../../src/ui/ShareChooser';
 import { ShowExtrasBlock, useShowExtras } from '../../src/ui/ShowExtras';
 import { ComposerSheet } from '../../src/ui/Composer';
 import { ClipList } from '../../src/ui/ClipList';
@@ -60,6 +61,8 @@ export default function EpisodeScreen(): React.ReactElement {
   // Play next, download and save-a-moment live in the ⋯ sheet, so the page itself is
   // only what the reference shows (owner, 2026-09-27).
   const [more, setMore] = useState(false);
+  // M12 FR-033: Share opens a first step (episode link · this moment · picture).
+  const [sharing, setSharing] = useState(false);
   const [fav, setFav] = useState(() => episode !== undefined && isFavourite(stores.settings, episode.id));
   // M11 (FR-023): a poll the host attached to this episode.
   const [extras, replacePoll] = useShowExtras(episode?.feedUrl ?? '');
@@ -122,7 +125,8 @@ export default function EpisodeScreen(): React.ReactElement {
     toast(r.evicted ? 'Added to the queue — the last item was dropped.' : 'Added to the queue');
   };
   const resume = saved === undefined ? '' : saved.finished ? 'finished' : `resumes at ${mmss(saved.offsetMs)}`;
-  const meta = [minutesLabel(episode.durationMs), ago(episode.publishedAt, Date.now()), resume].filter((p) => p !== '').join(' · ');
+  // M12 FR-035: length and date on one line, where you stopped on its own — it was cut to "resumes…".
+  const meta = [minutesLabel(episode.durationMs), ago(episode.publishedAt, Date.now())].filter((p) => p !== '').join(' · ');
 
   return (
     <SafeAreaView className="flex-1 bg-background">
@@ -130,7 +134,7 @@ export default function EpisodeScreen(): React.ReactElement {
         <Pressable onPress={toggleSubscription} accessibilityRole="button" accessibilityLabel={subscribed ? 'Unsubscribe from this show' : 'Subscribe to this show'} accessibilityState={{ selected: subscribed }} className="justify-center" style={TAP}>
           <Text className={subscribed ? 'text-sm font-semibold px-row py-2 rounded-row bg-surface text-muted' : 'text-sm font-semibold px-row py-2 rounded-row bg-surface text-text'}>{subscribed ? 'Subscribed' : '+ Subscribe'}</Text>
         </Pressable>
-        <BarButton label="Share this episode" onPress={() => { void api.recordShare({ targetKind: 'episode', targetId: episode.id, feedUrl: episode.feedUrl }).catch(() => undefined); void Share.share({ message: `${episode.title} — ${show?.title ?? ''}\n${episode.enclosureUrl}` }).catch(() => undefined); }}>
+        <BarButton label="Share this episode" onPress={() => setSharing(true)}>
           <Icon name="share-outline" size={24} color={c.text} />
         </BarButton>
         <BarButton label="More: play next, download, save a moment" onPress={() => setMore(true)}>
@@ -167,7 +171,10 @@ export default function EpisodeScreen(): React.ReactElement {
           </Pressable>
         )}
         <Box className="flex-row items-center">
-          <Text className="flex-1 text-sm text-muted" numberOfLines={1}>{meta}</Text>
+          <Box className="flex-1">
+            <Text className="text-sm text-muted" numberOfLines={1}>{meta}</Text>
+            {resume !== '' ? <Text className="text-xs text-accent" numberOfLines={1}>{resume}</Text> : null}
+          </Box>
           <BarButton label="Add to queue" onPress={addToQueue}>
             <Icon name="list-outline" size={24} color={c.text} />
           </BarButton>
@@ -225,20 +232,27 @@ export default function EpisodeScreen(): React.ReactElement {
         <NextUp items={nextUp.items} onOpen={(c) => void discoverOpen(c)} />
       </ScrollView>
 
+      <ShareChooser
+        open={sharing}
+        onClose={() => setSharing(false)}
+        episode={{ id: episode.id, title: episode.title, showTitle: show?.title ?? '' }}
+        atMs={snapshotOffset}
+        onClip={() => router.push({ pathname: '/clip/new', params: { episodeId: episode.id, positionMs: String(Math.round(snapshotOffset)) } })}
+        onShared={() => void api.recordShare({ targetKind: 'episode', targetId: episode.id, feedUrl: episode.feedUrl }).catch(() => undefined)}
+      />
             <Actionsheet isOpen={more} onClose={() => setMore(false)}>
         <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-        <ActionsheetContent className="bg-background rounded-t-2xl px-screen-x pt-row pb-10 gap-row items-stretch">
+        <ActionsheetContent className="bg-background rounded-t-2xl px-screen-x pt-row pb-10 items-stretch">
           <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
-          <Box className="flex-row justify-between items-center">
-            <Text className="text-base font-bold text-text" numberOfLines={1}>{episode.title}</Text>
-            <Pressable onPress={() => setMore(false)} accessibilityRole="button" accessibilityLabel="Close" className="justify-center pl-row" style={TAP}>
-              <Text className="text-sm text-accent">Done</Text>
-            </Pressable>
-          </Box>
+          <Text className="text-sm font-bold text-text py-row" numberOfLines={2}>{episode.title}</Text>
           <QueueButtons episodeId={episode.id} onQueued={() => stores.inboxState.mark(episode.id, 'queued', Date.now())} />
           <DownloadButton episodeId={episode.id} />
           {/* M10 (owner, 2026-09-27): favourite, and save this moment with a note. */}
           <EpisodeExtras episodeId={episode.id} atMs={snapshotOffset} />
+          {/* M12 FR-032: a Cancel row closes the list, as a list sheet should. */}
+          <Pressable onPress={() => setMore(false)} accessibilityRole="button" accessibilityLabel="Cancel" className="items-center justify-center mt-row" style={TAP}>
+            <Text className="text-sm text-muted">Cancel</Text>
+          </Pressable>
         </ActionsheetContent>
       </Actionsheet>
       {composing ? (

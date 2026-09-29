@@ -1,7 +1,7 @@
 /** "Add to queue" / "Play next" (US2, FR-008/011), through player-core's enqueue. */
-import { Pressable } from './lib/pressable';
-import { Text } from './lib/text';
 import { Box } from './lib/box';
+import { SheetRow } from './SheetRow';
+import { useColours } from './useColours';
 import { queueEpisode } from '../settings/queue';
 import { useDownloads, useStores, useToast } from './providers';
 
@@ -9,6 +9,7 @@ export function QueueButtons(props: { episodeId: string; onQueued?: () => void }
   const stores = useStores();
   const toast = useToast();
   const downloads = useDownloads();
+  const c = useColours(stores.settings);
   const add = (where: 'end' | 'front') => {
     // M10: "Download queued episodes" applies here (src/settings/queue.ts).
     const r = queueEpisode(stores, downloads, props.episodeId, Date.now(), where);
@@ -17,10 +18,11 @@ export function QueueButtons(props: { episodeId: string; onQueued?: () => void }
     toast(`${where === 'end' ? 'Added to the queue' : 'Playing next'}${r.downloading ? ' · downloading' : ''}`);
     props.onQueued?.();
   };
+  // M12 FR-032: full-width rows in the ⋯ sheet (were 32 pt pills).
   return (
-    <Box className="flex-row gap-2.5 my-1">
-      <Pressable className="py-2 px-3.5 rounded-pill border border-separator" onPress={() => add('end')} accessibilityRole="button"><Text className="font-semibold text-text">Add to queue</Text></Pressable>
-      <Pressable className="py-2 px-3.5 rounded-pill border border-separator" onPress={() => add('front')} accessibilityRole="button"><Text className="font-semibold text-text">Play next</Text></Pressable>
+    <Box>
+      <SheetRow icon="play-skip-forward-outline" label="Play next" iconColour={c.text} onPress={() => add('front')} />
+      <SheetRow icon="list-outline" label="Add to queue" iconColour={c.text} onPress={() => add('end')} />
     </Box>
   );
 }

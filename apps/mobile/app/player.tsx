@@ -18,7 +18,7 @@
  * below the fold. The reference's "200+ listening" is left out: there is no such number.
  */
 import { useEffect, useState } from 'react';
-import { Share, useWindowDimensions } from 'react-native';
+import { useWindowDimensions } from 'react-native';
 import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '../src/ui/lib/actionsheet';
 import { Pressable } from '../src/ui/lib/pressable';
 import { SafeAreaView } from '../src/ui/lib/safe-area-view';
@@ -41,6 +41,7 @@ import { useSocial } from '../src/social/context';
 import { usePoll } from '../src/social/usePoll';
 import type { ComposerState } from '../src/social/composer';
 import { ComposerSheet } from '../src/ui/Composer';
+import { ShareChooser } from '../src/ui/ShareChooser';
 import { MomentSheet } from '../src/ui/MomentSheet';
 import { Rail, type RailMarker } from '../src/ui/Rail';
 import { HeatCurve } from '../src/ui/HeatCurve';
@@ -99,6 +100,8 @@ export default function PlayerScreen(): React.ReactElement {
   // Speed, sleep timer, chapters and transcript live in one sheet behind the left
   // control, so the screen itself is only what the reference shows (owner, 2026-09-27).
   const [more, setMore] = useState(false);
+  // M12 FR-033: Share opens a first step (episode link · this moment · picture).
+  const [sharing, setSharing] = useState(false);
   const screen = useWindowDimensions();
   const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
@@ -170,7 +173,7 @@ export default function PlayerScreen(): React.ReactElement {
     <SafeAreaView className="flex-1">
     <TopBar back="down" onBack={close}>
       <BarButton label="Clip the last 30 seconds" onPress={clip}><Icon name="cut-outline" size={24} color={c.text} /></BarButton>
-      <BarButton label="Share this episode" onPress={() => { if (episode) void api.recordShare({ targetKind: 'episode', targetId: episode.id, feedUrl: episode.feedUrl }).catch(() => undefined); void Share.share({ message: `${episode?.title ?? ''} — ${show?.title ?? ''}\n${episode?.enclosureUrl ?? ''}` }).catch(() => undefined); }}>
+      <BarButton label="Share this episode" onPress={() => setSharing(true)}>
         <Icon name="share-outline" size={24} color={c.text} />
       </BarButton>
     </TopBar>
@@ -352,6 +355,16 @@ export default function PlayerScreen(): React.ReactElement {
           setOpenMarker(undefined);
           setComposing(composer.open({ episodeId: state.episodeId, offsetMs: positionMs, ...(durationMs !== undefined ? { durationMs } : {}) }, parentId));
         }}
+      />
+    ) : null}
+    {episode ? (
+      <ShareChooser
+        open={sharing}
+        onClose={() => setSharing(false)}
+        episode={{ id: episode.id, title: episode.title, showTitle: show?.title ?? '' }}
+        atMs={positionMs}
+        onClip={clip}
+        onShared={() => void api.recordShare({ targetKind: 'episode', targetId: episode.id, feedUrl: episode.feedUrl }).catch(() => undefined)}
       />
     ) : null}
     </LinearGradient>

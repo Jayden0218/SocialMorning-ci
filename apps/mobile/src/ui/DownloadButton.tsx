@@ -5,9 +5,9 @@
  * moves without polling from here.
  */
 import { useEffect, useState } from 'react';
-import { Pressable } from './lib/pressable';
-import { Text } from './lib/text';
 import { Box } from './lib/box';
+import { SheetRow } from './SheetRow';
+import { useColours } from './useColours';
 import { useDownloads, useStores, useToast } from './providers';
 import type { DownloadRow } from '../storage/types';
 
@@ -24,6 +24,7 @@ export function DownloadButton(props: { episodeId: string }): React.ReactElement
   const toast = useToast();
   const [row, setRow] = useState<DownloadRow | undefined>(() => stores.downloads.get(props.episodeId));
   const [askMobile, setAskMobile] = useState(false);
+  const c = useColours(stores.settings);
 
   useEffect(() => {
     const read = () => setRow(stores.downloads.get(props.episodeId));
@@ -39,39 +40,33 @@ export function DownloadButton(props: { episodeId: string }): React.ReactElement
     setAskMobile(false);
   }
 
+  // M12 FR-032: full-width rows in the ⋯ sheet (were pills and small text links).
   if (!row || row.state === 'failed') {
+    const label = row?.state === 'failed' ? (row.error === 'budget' ? 'Not enough space — retry download' : 'Download failed — retry') : 'Download';
     return (
-      <Box className="flex-row items-center gap-3.5 my-1">
-        <Pressable className="py-2 px-4 rounded-pill border border-separator" onPress={() => request()} accessibilityRole="button" accessibilityLabel="Download this episode">
-          <Text className="font-semibold text-text">{row?.state === 'failed' ? (row.error === 'budget' ? 'Not enough space · Retry' : 'Failed · Retry') : 'Download'}</Text>
-        </Pressable>
-        {askMobile ? (
-          <Pressable onPress={() => request(true)} accessibilityRole="button"><Text className="text-accent text-[14px]">Use mobile data</Text></Pressable>
-        ) : (
-          <Pressable onPress={() => setAskMobile(true)} accessibilityRole="button"><Text className="text-muted text-[14px]">Wi-Fi only</Text></Pressable>
-        )}
+      <Box>
+        <SheetRow icon="download-outline" label={label} detail={askMobile ? undefined : 'Wi-Fi only'} iconColour={c.text} onPress={() => void request()} accessibilityLabel="Download this episode" />
+        {askMobile
+          ? <SheetRow icon="cellular-outline" label="Download now on mobile data" iconColour={c.accent} tone="accent" onPress={() => void request(true)} />
+          : <SheetRow icon="cellular-outline" label="Use mobile data instead" iconColour={c.muted} tone="muted" onPress={() => setAskMobile(true)} />}
       </Box>
     );
   }
   if (row.state === 'complete') {
     return (
-      <Box className="flex-row items-center gap-3.5 my-1">
+      <Box>
         {/* A statement of fact, not an action: muted. (Owner's K1 note, 2026-09-25.) */}
-        <Text className="font-semibold text-muted">Downloaded · {mb(row.bytesTotal)}</Text>
-        <Pressable onPress={() => downloads.remove(props.episodeId)} accessibilityRole="button" accessibilityLabel="Remove the download">
-          <Text className="text-accent text-[14px]">Remove</Text>
-        </Pressable>
+        <SheetRow icon="checkmark-circle-outline" label="Downloaded" detail={mb(row.bytesTotal)} iconColour={c.muted} tone="muted" />
+        <SheetRow icon="trash-outline" label="Remove download" iconColour={c.accent} tone="accent" onPress={() => void downloads.remove(props.episodeId)} accessibilityLabel="Remove the download" />
       </Box>
     );
   }
   const pct = row.bytesTotal ? Math.floor((row.bytesDone / row.bytesTotal) * 100) : undefined;
-  const label = row.state === 'waiting' ? 'Waiting…' : row.state === 'paused' ? `Paused at ${pct ?? 0} %` : pct === undefined ? 'Downloading…' : `${pct} %`;
+  const label = row.state === 'waiting' ? 'Waiting…' : row.state === 'paused' ? `Paused at ${pct ?? 0} %` : pct === undefined ? 'Downloading…' : `Downloading · ${pct} %`;
   return (
-    <Box className="flex-row items-center gap-3.5 my-1">
-      <Text className="text-muted text-[14px]">{label}{row.error === 'no-resume' ? ' · restarted (server refused resume)' : ''}</Text>
-      <Pressable onPress={() => downloads.cancel(props.episodeId)} accessibilityRole="button" accessibilityLabel="Cancel the download">
-        <Text className="text-accent text-[14px]">Cancel</Text>
-      </Pressable>
+    <Box>
+      <SheetRow icon="cloud-download-outline" label={label} {...(row.error === 'no-resume' ? { detail: 'restarted' } : {})} iconColour={c.muted} tone="muted" />
+      <SheetRow icon="close-circle-outline" label="Cancel download" iconColour={c.accent} tone="accent" onPress={() => void downloads.cancel(props.episodeId)} accessibilityLabel="Cancel the download" />
     </Box>
   );
 }

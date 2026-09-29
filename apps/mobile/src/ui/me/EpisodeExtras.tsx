@@ -8,7 +8,7 @@ import { Textarea, TextareaInput } from '../lib/textarea';
 import { Pressable } from '../lib/pressable';
 import { Text } from '../lib/text';
 import { Box } from '../lib/box';
-import { Icon } from '../Icon';
+import { SheetRow } from '../SheetRow';
 import { hit } from '../../design';
 import { useColours } from '../useColours';
 import { isFavourite, toggleFavourite } from '../../me/favourites';
@@ -27,14 +27,9 @@ export function EpisodeExtras(props: { episodeId: string; atMs: number }): React
   const [at, setAt] = useState(0);
   return (
     <Box>
-      <Box className="flex-row items-center gap-x-3">
-        <Pressable onPress={() => setFav(toggleFavourite(stores.settings, props.episodeId, Date.now()))} accessibilityRole="button" accessibilityState={{ selected: fav }} accessibilityLabel={fav ? 'Remove from favourites' : 'Add to favourites'} className="justify-center" style={TAP}>
-          <Box className="flex-row items-center gap-1"><Icon name={fav ? 'star' : 'star-outline'} size={16} color={c.accent} /><Text className="text-accent text-sm">Favourite</Text></Box>
-        </Pressable>
-        <Pressable onPress={() => { setAt(props.atMs); setNote(''); }} accessibilityRole="button" accessibilityLabel={`Save the moment at ${mmss(props.atMs)}`} className="justify-center" style={TAP}>
-          <Box className="flex-row items-center gap-1"><Icon name="bookmark-outline" size={16} color={c.accent} /><Text className="text-accent text-sm">Save moment</Text></Box>
-        </Pressable>
-      </Box>
+      {/* M12 FR-032: full-width rows in the ⋯ sheet. */}
+      <SheetRow icon={fav ? 'star' : 'star-outline'} label={fav ? 'Remove from favourites' : 'Add to favourites'} iconColour={c.accent} selected={fav} onPress={() => setFav(toggleFavourite(stores.settings, props.episodeId, Date.now()))} />
+      <SheetRow icon="bookmark-outline" label="Save this moment" detail={mmss(props.atMs)} iconColour={c.accent} onPress={() => { setAt(props.atMs); setNote(''); }} accessibilityLabel={`Save the moment at ${mmss(props.atMs)}`} />
       {note !== undefined ? (
         <Box className="bg-surface rounded-row p-row gap-row">
           <Text className="text-muted text-xs">Moment at {mmss(at)}</Text>
