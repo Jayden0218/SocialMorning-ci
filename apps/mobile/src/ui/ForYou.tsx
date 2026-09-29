@@ -8,8 +8,7 @@
  * A reason is not decoration: it is how a listener decides whether to trust the list, and
  * it is the only way L5 can be checked by a human at all.
  */
-import { Text } from './lib/text';
-import { Box } from './lib/box';
+import { Text, View } from 'react-native';
 import type { EpisodeCard, ForYou as ForYouBody } from '../social/api';
 import { EpisodeRow } from './EpisodeRow';
 
@@ -21,7 +20,7 @@ export function ForYou(props: {
 }): React.ReactElement | null {
   if (props.body === undefined || props.body.items.length === 0) return null;
   return (
-    <Box className="gap-2">
+    <View className="gap-2">
       <Text className="text-base font-semibold mb-1 text-text">For you</Text>
       {props.stale ? (
         <Text className="text-accent bg-surface p-2 rounded-md">
@@ -37,6 +36,6 @@ export function ForYou(props: {
           onPress={() => props.onOpen(i.episode, index)}
         />
       ))}
-    </Box>
+    </View>
   );
 }

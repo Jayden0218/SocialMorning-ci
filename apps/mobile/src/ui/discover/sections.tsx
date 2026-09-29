@@ -7,11 +7,8 @@
  * plays audio only) and paid shows (the app has none — a banner would lead nowhere).
  */
 import { useState } from 'react';
-import { Pressable } from '../lib/pressable';
-import { ScrollView } from '../lib/scroll-view';
-import { Text } from '../lib/text';
-import { Box } from '../lib/box';
-import { colour, hit } from '../../design';
+import { Pressable, ScrollView, Text, View } from 'react-native';
+import { hit } from '../../design';
 import { useStores } from '../providers';
 import { useColours } from '../useColours';
 import { Icon, type IconName } from '../Icon';
@@ -47,14 +44,14 @@ export function ForYouSection(props: Act & { rows: { card: EpisodeCard; line: st
   if (props.rows.length === 0) return null;
   const p = pages(props.rows);
   return (
-    <Box>
+    <View>
       <SectionTitle title="For You" />
       <Pager count={p.length}>
         {(i) => (p[i] ?? []).map((r) => (
           <EpisodeLine key={r.card.id} card={r.card} line={r.line} label={`${r.card.title}, ${r.card.showTitle}. ${r.line}`} onOpen={() => props.onOpenAt(r.card, r.index)} onPlay={() => props.onPlay(r.card)} />
         ))}
       </Pager>
-    </Box>
+    </View>
   );
 }
 
@@ -64,34 +61,34 @@ export function PicksSection(props: Act & { items: DiscoverItem[]; date?: string
   const c = useColours(stores.settings);
   if (props.items.length === 0) return null;
   return (
-    <Box>
+    <View>
       <SectionTitle title={props.date ? `Editor's picks · ${props.date}` : "Editor's picks"} />
       {props.items.map((p) => {
         const stats = statsLine(p.stats);
         return (
-          <Box key={p.key} className="flex-row gap-row px-screen-x mb-section">
+          <View key={p.key} className="flex-row gap-row px-screen-x mb-section">
             <Pressable onPress={() => props.onOpen(p.episode)} accessibilityRole="button" accessibilityLabel={`${p.episode.title}, ${p.episode.showTitle}`}>
               <Artwork url={p.episode.imageUrl} size={88} rounded="row" />
             </Pressable>
-            <Box className="flex-1">
-              <Box className="flex-row items-start">
+            <View className="flex-1">
+              <View className="flex-row items-start">
                 <Pressable onPress={() => props.onOpen(p.episode)} className="flex-1" accessibilityRole="button" accessibilityLabel={`Open ${p.episode.title}`}>
                   <Text className="text-muted text-xs" numberOfLines={1}>{p.episode.showTitle}</Text>
                   <Text className="text-text text-sm font-semibold" numberOfLines={3}>{p.episode.title}</Text>
                 </Pressable>
                 <PlayButton title={p.episode.title} onPress={() => props.onPlay(p.episode)} />
-              </Box>
+              </View>
               {p.why ? (
-                <Box className="bg-surface rounded-row p-row mt-2">
+                <View className="bg-surface rounded-row p-row mt-2">
                   <Text className="text-muted text-sm" numberOfLines={4}>“{p.why}”</Text>
-                </Box>
+                </View>
               ) : null}
-              {stats ? <Box className="flex-row items-center gap-1 mt-2"><Icon name="headset-outline" size={14} color={c.muted} /><Text className="text-muted text-xs">{stats}</Text></Box> : null}
-            </Box>
-          </Box>
+              {stats ? <View className="flex-row items-center gap-1 mt-2"><Icon name="headset-outline" size={14} color={c.muted} /><Text className="text-muted text-xs">{stats}</Text></View> : null}
+            </View>
+          </View>
         );
       })}
-    </Box>
+    </View>
   );
 }
 
@@ -103,25 +100,25 @@ export function ChartSection(props: Act & { tabs: ChartTab[] }): React.ReactElem
   if (!current) return null;
   const p = pages(current.rows);
   return (
-    <Box>
-      <Box className="flex-row items-center gap-section px-screen-x mt-section mb-row">
+    <View>
+      <View className="flex-row items-center gap-section px-screen-x mt-section mb-row">
         {props.tabs.map((t, i) => (
           <Pressable key={t.key} onPress={() => { setTab(i); setPage(0); }} accessibilityRole="tab" accessibilityState={{ selected: i === tab }} accessibilityLabel={`${t.label} chart`} className="justify-center" style={TAP}>
             <Text className={i === tab ? 'text-accent text-base font-bold' : 'text-muted text-base'}>{t.label}</Text>
           </Pressable>
         ))}
-      </Box>
+      </View>
       <Pager key={current.key} count={p.length} onPage={setPage}>
         {(i) => (p[i] ?? []).map((card, j) => (
           <EpisodeLine key={card.id} card={card} rank={i * 3 + j + 1} size={56} onOpen={() => props.onOpen(card)} onPlay={() => props.onPlay(card)} />
         ))}
       </Pager>
       {p.length > 1 ? (
-        <Box className="flex-row gap-2 px-screen-x mt-row" accessibilityLabel={`Page ${page + 1} of ${p.length}`} accessible>
-          {p.map((_, i) => <Box key={i} className={`flex-1 h-1 rounded-pill ${i === page ? 'bg-primary' : 'bg-surface'}`} />)}
-        </Box>
+        <View className="flex-row gap-2 px-screen-x mt-row" accessibilityLabel={`Page ${page + 1} of ${p.length}`} accessible>
+          {p.map((_, i) => <View key={i} className={`flex-1 h-1 rounded-pill ${i === page ? 'bg-primary' : 'bg-surface'}`} />)}
+        </View>
       ) : null}
-    </Box>
+    </View>
   );
 }
 
@@ -130,17 +127,17 @@ export function CategoryStrip(props: { onGenre: (id: number) => void; onAll: () 
   const stores = useStores();
   const c = useColours(stores.settings);
   return (
-    <Box className="bg-surface py-row mt-section">
+    <View className="bg-surface py-row mt-section">
       <SectionTitle title="Explore by category" action={{ label: 'All', onPress: props.onAll }} />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="px-screen-x gap-row">
         {GENRES.slice(0, 8).map((g) => (
           <Pressable key={g.id} onPress={() => props.onGenre(g.id)} accessibilityRole="button" accessibilityLabel={g.name} className="bg-background rounded-row items-center justify-center px-row py-row w-24">
             <Text className="text-text text-xs font-semibold text-center" numberOfLines={1}>{g.name}</Text>
-            <Box className="mt-1"><Icon name={g.icon} size={24} color={c.text} /></Box>
+            <View className="mt-1"><Icon name={g.icon} size={24} color={c.text} /></View>
           </Pressable>
         ))}
       </ScrollView>
-    </Box>
+    </View>
   );
 }
 
@@ -148,7 +145,7 @@ export function CategoryStrip(props: { onGenre: (id: number) => void; onAll: () 
 export function ShowTiles(props: { title: string; shows: { feedUrl: string; title: string; imageUrl?: string; line?: string }[]; onShow: (feedUrl: string) => void; badge?: number; boxed?: boolean }): React.ReactElement | null {
   if (props.shows.length === 0) return null;
   return (
-    <Box className={props.boxed ? 'mx-row mt-section border border-separator rounded-artwork pb-row' : ''}>
+    <View className={props.boxed ? 'mx-row mt-section border border-separator rounded-artwork pb-row' : ''}>
       <SectionTitle title={props.title} {...(props.badge !== undefined ? { badge: props.badge } : {})} />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="px-screen-x gap-row">
         {props.shows.map((s) => (
@@ -159,7 +156,7 @@ export function ShowTiles(props: { title: string; shows: { feedUrl: string; titl
           </Pressable>
         ))}
       </ScrollView>
-    </Box>
+    </View>
   );
 }
 
@@ -172,13 +169,13 @@ export const followedShowTiles = (shows: FollowedShow[]) =>
 export function CollectionSection(props: Act & { collection: Collection }): React.ReactElement {
   const c = props.collection;
   return (
-    <Box>
+    <View>
       <SectionTitle title={c.title} />
       {c.subtitle ? <Text className="text-muted text-sm px-screen-x -mt-1 mb-row">{c.subtitle}</Text> : null}
-      <Box className="px-screen-x">
+      <View className="px-screen-x">
         {c.items.map((i) => <EpisodeLine key={i.key} card={i.episode} {...(i.why ? { line: `“${i.why}”` } : {})} onOpen={() => props.onOpen(i.episode)} onPlay={() => props.onPlay(i.episode)} />)}
-      </Box>
-    </Box>
+      </View>
+    </View>
   );
 }
 
@@ -189,24 +186,24 @@ export function CollectionSection(props: Act & { collection: Collection }): Reac
 export function SaidSection(props: Act & { items: SaidItem[]; now: number }): React.ReactElement | null {
   if (props.items.length === 0) return null;
   return (
-    <Box>
+    <View>
       <SectionTitle title="What listeners said" />
       <Pager count={props.items.length}>
         {(i) => {
           const s = props.items[i];
           if (!s) return null;
           return (
-            <Box className="bg-surface rounded-artwork p-section">
+            <View className="bg-surface rounded-artwork p-section">
               <Text className="text-muted text-xs">{`A listener · ${ago(s.createdAt, props.now)}`}</Text>
               <Text className="text-accent text-sm text-center my-section" numberOfLines={4}>{s.body}</Text>
-              <Box className="border-t-hairline border-separator pt-row">
+              <View className="border-t-hairline border-separator pt-row">
                 <EpisodeLine card={s.episode} size={44} onOpen={() => props.onOpen(s.episode)} onPlay={() => props.onPlay(s.episode)} />
-              </Box>
-            </Box>
+              </View>
+            </View>
           );
         }}
       </Pager>
-    </Box>
+    </View>
   );
 }
 
@@ -214,14 +211,14 @@ export function SaidSection(props: Act & { items: SaidItem[]; now: number }): Re
 export function NewShowsSection(props: Act & { items: { show: ShowCard; episode: EpisodeCard }[] }): React.ReactElement | null {
   if (props.items.length === 0) return null;
   return (
-    <Box>
+    <View>
       <SectionTitle title="New shows climbing the chart" />
-      <Box className="px-screen-x">
+      <View className="px-screen-x">
         {props.items.map((n) => (
           <EpisodeLine key={n.episode.id} card={n.episode} line={n.show.episodeCount !== undefined ? `${n.show.episodeCount} episode${n.show.episodeCount === 1 ? '' : 's'} so far` : 'New on the chart'} onOpen={() => props.onOpen(n.episode)} onPlay={() => props.onPlay(n.episode)} />
         ))}
-      </Box>
-    </Box>
+      </View>
+    </View>
   );
 }
 
@@ -237,19 +234,19 @@ export function MoreCategories(props: { onPress: () => void }): React.ReactEleme
 export function VideoSection(props: Act & { items: DiscoverItem[] }): React.ReactElement | null {
   if (props.items.length === 0) return null;
   return (
-    <Box>
+    <View>
       <SectionTitle title="Podcasts you can watch" />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="px-screen-x gap-row">
         {props.items.map((i) => (
           <Pressable key={i.key} onPress={() => props.onOpen(i.episode)} accessibilityRole="button" accessibilityLabel={`Video: ${i.episode.title}, ${i.episode.showTitle}`} className="w-60 bg-surface rounded-artwork overflow-hidden">
             <Artwork url={i.episode.imageUrl} size={240} rounded="row" />
-            <Box className="p-row">
+            <View className="p-row">
               <Text className="text-text text-sm font-semibold" numberOfLines={2}>{i.episode.title}</Text>
               <Text className="text-muted text-xs" numberOfLines={1}>{`▶ Video · ${i.episode.showTitle}`}</Text>
-            </Box>
+            </View>
           </Pressable>
         ))}
       </ScrollView>
-    </Box>
+    </View>
   );
 }

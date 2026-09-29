@@ -1,7 +1,5 @@
 /** "Add to queue" / "Play next" (US2, FR-008/011), through player-core's enqueue. */
-import { Pressable } from './lib/pressable';
-import { Text } from './lib/text';
-import { Box } from './lib/box';
+import { Pressable, Text, View } from 'react-native';
 import { queueEpisode } from '../settings/queue';
 import { useDownloads, useStores, useToast } from './providers';
 
@@ -18,9 +16,9 @@ export function QueueButtons(props: { episodeId: string; onQueued?: () => void }
     props.onQueued?.();
   };
   return (
-    <Box className="flex-row gap-2.5 my-1">
+    <View className="flex-row gap-2.5 my-1">
       <Pressable className="py-2 px-3.5 rounded-pill border border-separator" onPress={() => add('end')} accessibilityRole="button"><Text className="font-semibold text-text">Add to queue</Text></Pressable>
       <Pressable className="py-2 px-3.5 rounded-pill border border-separator" onPress={() => add('front')} accessibilityRole="button"><Text className="font-semibold text-text">Play next</Text></Pressable>
-    </Box>
+    </View>
   );
 }

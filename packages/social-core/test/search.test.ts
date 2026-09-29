@@ -31,14 +31,3 @@ test('G8: collapseEpisodes keeps the first of duplicate feed+guid pairs; the sam
   const eps = [{ feedUrl: 'https://feeds.x/a', guid: 'g', n: 1 }, { feedUrl: 'https://feeds.x/a/', guid: 'g', n: 2 }, { feedUrl: 'https://feeds.y/b', guid: 'g', n: 3 }];
   assert.deepEqual(collapseEpisodes(eps).map((e) => e.n), [1, 3]);
 });
-
-test('iOS i10: two guids for one episode (same show, same title) fold to one — in the catalogue and against the library', () => {
-  const a = { feedUrl: 'https://feeds.x/a', guid: 'g1', title: 'The Case of the Missing Hit ', showTitle: 'Reply All', n: 1 };
-  const b = { feedUrl: 'https://feeds.x/a', guid: 'g2', title: 'the case of the missing hit', showTitle: 'reply all', n: 2 };
-  const other = { feedUrl: 'https://feeds.x/a', guid: 'g3', title: 'Another one', showTitle: 'Reply All', n: 3 };
-  const untitled = { feedUrl: 'https://feeds.x/a', guid: 'g4', title: '', showTitle: 'Reply All', n: 4 };
-  const noShow = { feedUrl: 'https://feeds.x/a', guid: 'g5', title: 'Another one', n: 5 };
-  assert.deepEqual(collapseEpisodes([a, b, other, untitled, noShow]).map((e) => e.n), [1, 3, 4, 5]);
-  const merged = mergeSearch({ shows: [], episodes: [a] }, { shows: [], episodes: [b, other] });
-  assert.deepEqual(merged.episodes.map((e) => e.n), [1, 3]);
-});

@@ -7,10 +7,7 @@
  * Tap/drag on the bars seeks to that segment and hands back the bucket.
  */
 import { useState } from 'react';
-import { Pressable } from './lib/pressable';
-import { Text } from './lib/text';
-import { Box } from './lib/box';
-import { colour } from '../design';
+import { Pressable, Text, View } from 'react-native';
 import { useStores } from './providers';
 import { useColours } from './useColours';
 import { EMPTY_STATES } from '@socialmorning/social-core';
@@ -64,7 +61,7 @@ export function HeatCurve(props: {
   const axisFraction = props.durationMs && props.playerDurationMs ? props.durationMs / props.playerDurationMs : 1;
 
   return (
-    <Box className="w-full gap-1 overflow-hidden">
+    <View className="w-full gap-1 overflow-hidden">
       <Pressable
         accessibilityRole="adjustable"
         accessibilityLabel={label}
@@ -83,11 +80,11 @@ export function HeatCurve(props: {
           // buckets in the accent (5.87) — clearly apart from 40 % grey. Height is per bar at
           // runtime; the colour stays a token in `style` because G6 compares it to the token
           // string and `bg-bar` compiles to `#ffffff66`.
-          <Box key={i} className="flex-1 rounded-t-[1px]" style={{ height: 2 + v * 26, backgroundColor: mine.has(i) ? c.accent : c.bar }} />
+          <View key={i} className="flex-1 rounded-t-[1px]" style={{ height: 2 + v * 26, backgroundColor: mine.has(i) ? c.accent : c.bar }} />
         ))}
       </Pressable>
       {message ? <Text className="text-xs text-muted text-center">{message}</Text> : null}
-    </Box>
+    </View>
   );
 }
 

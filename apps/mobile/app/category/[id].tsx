@@ -5,9 +5,7 @@
  */
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable } from '../../src/ui/lib/pressable';
-import { Text } from '../../src/ui/lib/text';
-import { Box } from '../../src/ui/lib/box';
+import { Pressable, Text, View } from 'react-native';
 import { Loader } from '../../src/ui/Loader';
 import { genreById } from '../../src/discover/genres';
 import { useSafety } from '../../src/safety/context';
@@ -52,10 +50,10 @@ export default function CategoryScreen(): React.ReactElement {
         >
           <Text className="text-muted text-sm w-6 text-center">{i + 1}</Text>
           <Artwork url={s.imageUrl} size={56} rounded="row" />
-          <Box className="flex-1">
+          <View className="flex-1">
             <Text className="text-text text-sm font-semibold" numberOfLines={2}>{s.title}</Text>
             <Text className="text-muted text-xs" numberOfLines={1}>{s.author}</Text>
-          </Box>
+          </View>
         </Pressable>
       ))}
     </Screen>

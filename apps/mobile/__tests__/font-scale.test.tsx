@@ -57,14 +57,15 @@ it('a label beside a control takes the remaining width, so it wraps instead of r
  */
 it('the shared components and the two bars have no fixed height on anything carrying text', () => {
   const { Row } = require('../src/ui/Row');
-  // M9: the hand-built Button and Chip are gone; the library Button is checked as it is used.
-  const { Button, ButtonText } = require('../src/ui/lib/button');
+  const { Button } = require('../src/ui/Button');
+  const { Chip } = require('../src/ui/Chip');
   const { TabBar } = require('../src/ui/TabBar');
   const { hit } = require('../src/design');
 
   const cases: [string, React.ReactElement][] = [
     ['Row', createElement(Row, { title: 'A title long enough to wrap', subtitle: 'Reply All · 34:17', onPress: () => undefined })],
-    ['Button', createElement(Button, { onPress: () => undefined, accessibilityRole: 'button', className: 'rounded-pill px-section', style: { minHeight: hit.min } }, createElement(ButtonText, null, 'Play this episode'))],
+    ['Button', createElement(Button, { label: 'Play this episode', onPress: () => undefined })],
+    ['Chip', createElement(Chip, { label: '1.5×', onPress: () => undefined })],
     ['TabBar', createElement(TabBar, { items: [{ key: 'index', label: 'Library' }], activeKey: 'index', onSelect: () => undefined })],
   ];
   for (const [name, el] of cases) {
@@ -82,7 +83,7 @@ it('the shared components and the two bars have no fixed height on anything carr
   }
 
   // Every tap target still clears 48 dp when the text grows.
-  for (const el of [cases[1]![1]]) {
+  for (const el of [cases[1]![1], cases[2]![1]]) {
     const r = render(el);
     const btn = r.root.find((n) => typeof n.type === 'string' && n.props['accessibilityRole'] === 'button');
     expect(Number(flat(btn.props['style'])['minHeight'])).toBeGreaterThanOrEqual(hit.min);

@@ -15,8 +15,8 @@ Checked with `npm view <pkg> license` on 2026-09-21 (constitution, Principle III
 | fast-xml-parser (via feed-parser) | 5.x | MIT | M1 |
 | expo-blur | 58.0.1 | MIT | M7 |
 | expo-linear-gradient | 58.0.1 | MIT | M7 |
-| ~~nativewind~~ | ~~4.2.7~~ | MIT | removed by M9 (2026-09-27): UniWind replaces it |
-| uniwind | 1.12.0 | MIT | M9 styling engine (Tailwind v4), 2026-09-27 |
+| nativewind | 4.2.7 | MIT | Tailwind, 2026-09-27 |
+| react-native-css-interop | 0.2.7 | MIT | Tailwind (via nativewind) |
 | react-native-reanimated | 4.7.0 | MIT | Tailwind (nativewind peer; was already installed by expo-router) |
 | expo-notifications | 58.0.7 | MIT | Notification permission on the sign-in page, 2026-09-27 |
 | @expo/vector-icons | 15.1.1 | MIT | Tab bar and mini player icons (Ionicons font), 2026-09-27 |
@@ -26,20 +26,10 @@ Checked with `npm view <pkg> license` on 2026-09-21 (constitution, Principle III
 | @bacons/apple-targets | 5.0.0 | MIT | The iPhone widget and Siri shortcut targets (spec 010 US9; linked only with SOCIALNET_IOS_EXTRAS=1), 2026-09-27 |
 | expo-live-activity | 0.4.2 | MIT | The iPhone lock-screen live activity (spec 010 US9; linked only with SOCIALNET_IOS_EXTRAS=1), 2026-09-27 |
 | expo-image-picker | 58.0.3 | MIT | Adding images to feedback (spec 010 US6), 2026-09-27 |
+| expo-splash-screen | 58.0.1 | MIT | One launch screen: the native one, held until the first page is drawn, 2026-09-29 |
 | expo-image-manipulator | 58.0.8 | MIT | Shrinking feedback images on the phone (spec 010 US6), 2026-09-27 |
 | react-native-worklets | 0.13.0 | MIT | Tailwind (reanimated peer; same) |
-| tailwindcss (dev) | 4.x | MIT | Tailwind v4, M9 |
-| @gluestack-ui/core | 5.0.15 | MIT | M9 component library, 2026-09-27 |
-| @gluestack-ui/utils | 5.0.6 | MIT | M9 (`tva`) |
-| gluestack-ui component source | b712c85 | MIT | copied into `src/ui/lib/`, M9 |
-| @expo/html-elements | 58.0.x | MIT | M9 (Heading, Actionsheet) |
-| @legendapp/motion | 2.5.3 | MIT | M9 (Actionsheet animation) |
-| expo-splash-screen | 58.0.x | MIT | M9 iOS i5: the launch screen shows the icon; since 2026-09-29 the only one, held until the first page is drawn |
-| react-native-svg | 15.15.5 | MIT | M9 (Icon, Badge) — native |
-| react-native-safe-area-context | 5.10.0 (^5.9.1) | MIT | M9 (direct; one copy, shared with expo-router) |
-| react-aria / react-stately | per @gluestack-ui/core | Apache-2.0 | M9 (transitive) |
-| tailwind-variants / tailwind-merge | 0.1.20 / 1.14.0 | MIT | M9 (transitive, via utils) |
-| nativewind / react-native-css-interop | 4.2.7 / 0.2.7 | MIT | M9: unused peer of @legendapp/motion — installed, never imported (owner, option a) |
+| tailwindcss (dev) | 3.4.19 | MIT | Tailwind |
 
 **Third-party marks (not code), 2026-09-27.** `assets/google-g.png` is Google's "G", cut
 unchanged from Google's own sign-in button kit

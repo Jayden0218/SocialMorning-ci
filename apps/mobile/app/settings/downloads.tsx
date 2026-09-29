@@ -1,8 +1,7 @@
 /** Downloads and cache (下载设置, M10): download queued episodes, mobile data, and clearing downloads. */
 import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert } from 'react-native';
-import { ScrollView } from '../../src/ui/lib/scroll-view';
+import { Alert, ScrollView } from 'react-native';
 import { getPref, setPref } from '../../src/settings/prefs';
 import { mb } from '../../src/ui/DownloadButton';
 import { useDownloads, useStores, useToast } from '../../src/ui/providers';

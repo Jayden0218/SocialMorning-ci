@@ -1,16 +1,10 @@
 /**
  * The consent checkbox under the sign-in form and the dialog that asks when it is not
  * ticked (owner's reference screenshots, 2026-09-27). The links open the full documents
- * in an overlay, as the Terms screen does. M9: the dialog is gluestack's AlertDialog and the
- * document overlay is gluestack's Modal at full size.
+ * in an overlay, as the Terms screen does.
  */
 import { useState } from 'react';
-import { Pressable } from '../lib/pressable';
-import { Modal, ModalBackdrop, ModalContent } from '../lib/modal';
-import { AlertDialog, AlertDialogBackdrop, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader } from '../lib/alert-dialog';
-import { Heading } from '../lib/heading';
-import { Text } from '../lib/text';
-import { Box } from '../lib/box';
+import { Modal, Pressable, Text, View } from 'react-native';
 import { hit } from '../../design';
 import { LEGAL_TEXT } from '../../legal/texts';
 import { LegalDoc } from '../LegalDoc';
@@ -36,11 +30,8 @@ export function useLegalOverlay(): { open: (d: Doc) => void; overlay: React.Reac
   return {
     open: setDoc,
     overlay: doc === undefined ? null : (
-      <Modal isOpen size="full" onClose={() => setDoc(undefined)}>
-        <ModalBackdrop />
-        <ModalContent className="w-full h-full p-0 rounded-none border-0 bg-background">
-          <LegalDoc text={LEGAL_TEXT[doc]} onClose={() => setDoc(undefined)} />
-        </ModalContent>
+      <Modal visible animationType="slide" onRequestClose={() => setDoc(undefined)}>
+        <LegalDoc text={LEGAL_TEXT[doc]} onClose={() => setDoc(undefined)} />
       </Modal>
     ),
   };
@@ -48,7 +39,7 @@ export function useLegalOverlay(): { open: (d: Doc) => void; overlay: React.Reac
 
 export function ConsentRow(props: { agreed: boolean; onToggle: () => void; open: (d: Doc) => void }): React.ReactElement {
   return (
-    <Box className="flex-row items-center gap-row mt-section">
+    <View className="flex-row items-center gap-row mt-section">
       <Pressable
         onPress={props.onToggle}
         accessibilityRole="checkbox"
@@ -57,14 +48,14 @@ export function ConsentRow(props: { agreed: boolean; onToggle: () => void; open:
         className="justify-center"
         style={TAP}
       >
-        <Box className={`rounded-sm border-2 items-center justify-center ${props.agreed ? 'bg-primary border-primary' : 'border-muted'}`} style={BOX}>
+        <View className={`rounded border-2 items-center justify-center ${props.agreed ? 'bg-primary border-primary' : 'border-muted'}`} style={BOX}>
           {props.agreed ? <Text className="text-onPrimary text-xs font-bold">✓</Text> : null}
-        </Box>
+        </View>
       </Pressable>
       <Text className="text-muted text-xs leading-[18px] flex-1">
         I have read and agree to the <Links open={props.open} />
       </Text>
-    </Box>
+    </View>
   );
 }
 
@@ -77,26 +68,23 @@ export function ConsentRow(props: { agreed: boolean; onToggle: () => void; open:
  */
 export function ConsentDialog(props: { visible: boolean; action: string; onCancel: () => void; onAgree: () => void; open: (d: Doc) => void }): React.ReactElement {
   return (
-    <AlertDialog isOpen={props.visible} onClose={props.onCancel}>
-      <AlertDialogBackdrop />
-      <AlertDialogContent className="bg-background rounded-artwork p-screen-x border-0" style={CARD} accessibilityViewIsModal>
-        <AlertDialogHeader className="justify-center">
-          <Heading className="text-text text-base font-bold text-center" accessibilityRole="header">Before you continue</Heading>
-        </AlertDialogHeader>
-        <AlertDialogBody>
-          <Text className="text-muted text-sm leading-[24px] text-center mt-row">
+    <Modal visible={props.visible} transparent animationType="fade" onRequestClose={props.onCancel}>
+      <View className="flex-1 bg-scrim items-center justify-center">
+        <View className="bg-background rounded-artwork p-screen-x" style={CARD} accessibilityViewIsModal>
+          <Text className="text-text text-base font-bold text-center" accessibilityRole="header">Before you continue</Text>
+          <Text className="text-muted text-sm leading-[24px] text-center mt-row mb-screen-x">
             Please read and agree to the <Links open={props.open} />.
           </Text>
-        </AlertDialogBody>
-        <AlertDialogFooter className="flex-row gap-row mt-screen-x">
+          <View className="flex-row gap-row">
             <Pressable onPress={props.onCancel} accessibilityRole="button" accessibilityLabel="Cancel" className="flex-1 items-center justify-center rounded-pill border border-separator" style={TAP}>
               <Text className="text-text text-sm font-semibold">Cancel</Text>
             </Pressable>
             <Pressable onPress={props.onAgree} accessibilityRole="button" accessibilityLabel={`Agree and ${props.action}`} className="flex-1 items-center justify-center rounded-pill bg-primary" style={TAP}>
               <Text className="text-onPrimary text-sm font-semibold">Agree</Text>
             </Pressable>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+          </View>
+        </View>
+      </View>
+    </Modal>
   );
 }

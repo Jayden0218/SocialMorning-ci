@@ -4,14 +4,12 @@
  * state with Retry after 10 s. The copy lives in `packages/social-core/src/empty.ts`, so
  * the 13 surfaces are enumerable and testable.
  */
-import { Button, ButtonText } from './lib/button';
-import { Text } from './lib/text';
-import { Box } from './lib/box';
+import { Pressable, Text, View } from 'react-native';
 import { Loader } from './Loader';
 import { router } from 'expo-router';
 import { emptyState, type Surface } from '@socialmorning/social-core';
 
-/** Kept as a style: font-scale asserts the action's tap target on the button's own `style`. M9 (T033): the actions are gluestack Buttons. */
+/** Kept as a style: font-scale asserts the action's tap target on the Pressable's own `style`. */
 const TAP = { minHeight: 44 };
 
 export type EmptyStateProps = {
@@ -38,30 +36,30 @@ export function EmptyState(props: EmptyStateProps): React.ReactElement | null {
   const wrap = `py-4 gap-1.5 items-start ${props.className ?? ''}`;
   if (view.kind === 'loading') {
     return (
-      <Box className={wrap} accessibilityLiveRegion="polite">
+      <View className={wrap} accessibilityLiveRegion="polite">
         <Loader label="Loading" />
-      </Box>
+      </View>
     );
   }
   if (view.kind === 'offline' || view.kind === 'error') {
     return (
-      <Box className={wrap} accessibilityLiveRegion="polite">
+      <View className={wrap} accessibilityLiveRegion="polite">
         <Text className="text-text text-[15px]">{view.sentence}</Text>
         {props.onRetry ? (
-          <Button variant="link" className="py-2.5 px-0 justify-center self-start" style={TAP} onPress={props.onRetry} accessibilityRole="button" accessibilityLabel="Retry">
-            <ButtonText className="text-accent text-sm font-semibold">Retry</ButtonText>
-          </Button>
+          <Pressable className="py-2.5 justify-center" style={TAP} onPress={props.onRetry} accessibilityRole="button" accessibilityLabel="Retry">
+            <Text className="text-accent text-sm font-semibold">Retry</Text>
+          </Pressable>
         ) : null}
-      </Box>
+      </View>
     );
   }
   const action = props.action ?? { label: view.action.label, onPress: () => router.push(view.action.route as never) };
   return (
-    <Box className={wrap}>
+    <View className={wrap}>
       <Text className="text-text text-[15px]">{view.sentence}</Text>
-      <Button variant="link" className="py-2.5 px-0 justify-center self-start" style={TAP} onPress={action.onPress} accessibilityRole="button" accessibilityLabel={action.label}>
-        <ButtonText className="text-accent text-sm font-semibold">{action.label}</ButtonText>
-      </Button>
-    </Box>
+      <Pressable className="py-2.5 justify-center" style={TAP} onPress={action.onPress} accessibilityRole="button" accessibilityLabel={action.label}>
+        <Text className="text-accent text-sm font-semibold">{action.label}</Text>
+      </Pressable>
+    </View>
   );
 }

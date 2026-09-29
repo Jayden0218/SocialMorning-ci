@@ -1,10 +1,7 @@
 /** A paged list of followers (M4 FR-007). */
 import { useEffect, useState } from 'react';
-import { FlatList } from '../../../src/ui/lib/flat-list';
-import { Pressable } from '../../../src/ui/lib/pressable';
-import { Text } from '../../../src/ui/lib/text';
-import { useLocalSearchParams } from 'expo-router';
-import { Link } from '../../../src/design/tailwind';
+import { FlatList, Pressable, Text } from 'react-native';
+import { Link, useLocalSearchParams } from 'expo-router';
 import { useSocial } from '../../../src/social/context';
 import { useSafety } from '../../../src/safety/context';
 import type { ClipAuthor } from '../../../src/social/api';

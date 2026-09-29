@@ -5,10 +5,7 @@
  */
 import { Stack } from 'expo-router';
 import { useState } from 'react';
-import { Pressable } from '../../src/ui/lib/pressable';
-import { ScrollView } from '../../src/ui/lib/scroll-view';
-import { Text } from '../../src/ui/lib/text';
-import { Box } from '../../src/ui/lib/box';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { hit } from '../../src/design';
 import { applyAppearance } from '../../src/design/theme';
 import { useStores } from '../../src/ui/providers';
@@ -30,11 +27,11 @@ export default function AppearanceScreen(): React.ReactElement {
       <Stack.Screen options={{ title: 'Appearance' }} />
       {CHOICES.map((c) => (
         <Pressable key={c.value} onPress={() => choose(c.value)} accessibilityRole="radio" accessibilityState={{ checked: value === c.value }} accessibilityLabel={`${c.label}. ${c.line}`} className="flex-row items-center gap-section" style={TAP}>
-          <Box className={`w-5 h-5 rounded-pill border-2 ${value === c.value ? 'border-accent bg-accent' : 'border-separator'}`} />
-          <Box className="flex-1">
+          <View className={`w-5 h-5 rounded-pill border-2 ${value === c.value ? 'border-accent bg-accent' : 'border-separator'}`} />
+          <View className="flex-1">
             <Text className="text-text text-sm">{c.label}</Text>
             <Text className="text-muted text-xs">{c.line}</Text>
-          </Box>
+          </View>
         </Pressable>
       ))}
     </ScrollView>

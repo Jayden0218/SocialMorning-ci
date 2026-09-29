@@ -1,9 +1,7 @@
 /** One clip: caption, author (a profile link), range, and the actions the viewer may take. */
-import { Pressable } from './lib/pressable';
-import { Text } from './lib/text';
-import { Box } from './lib/box';
+import { Pressable, Text, View } from 'react-native';
 import { tabular } from '../design';
-import { Link } from '../design/tailwind';
+import { Link } from 'expo-router';
 import type { Clip } from '../social/api';
 import { mmss } from './format';
 
@@ -21,18 +19,18 @@ export function ClipCard(props: ClipCardProps): React.ReactElement {
   // M6 (FR-002/FR-013): a clip the viewer reported, or one moderation removed, keeps its place as a line of text.
   if (clip.reported || clip.removed) {
     return (
-      <Box className="py-2.5 border-b-hairline border-separator gap-1">
+      <View className="py-2.5 border-b-hairline border-separator gap-1">
         <Text className="text-muted">{clip.reported ? 'You reported this' : 'Removed by moderation'}</Text>
-      </Box>
+      </View>
     );
   }
   return (
-    <Box className="py-2.5 border-b-hairline border-separator gap-1" accessibilityLabel={`Clip ${mmss(clip.startMs)} to ${mmss(clip.endMs)}`}>
+    <View className="py-2.5 border-b-hairline border-separator gap-1" accessibilityLabel={`Clip ${mmss(clip.startMs)} to ${mmss(clip.endMs)}`}>
       <Pressable onPress={props.onPlay} disabled={!props.onPlay} accessibilityRole="button">
         <Text className="font-semibold text-text" style={tabular}>{mmss(clip.startMs)} – {mmss(clip.endMs)}{props.pending ? ' · sending…' : ''}{clip.deleted ? ' · removed' : ''}</Text>
         {clip.caption ? <Text className="text-sm text-text">{clip.caption}</Text> : null}
       </Pressable>
-      <Box className="flex-row gap-4 items-center">
+      <View className="flex-row gap-4 items-center">
         {clip.author.displayName !== null && !props.pending ? (
           <Link href={{ pathname: '/profile/[id]', params: { id: clip.author.id } }} asChild>
             {/* A name is not an action (owner's K1 note, 2026-09-25): it takes the text colour, not the accent. */}
@@ -42,8 +40,8 @@ export function ClipCard(props: ClipCardProps): React.ReactElement {
         {props.onShare ? <Pressable onPress={props.onShare} accessibilityRole="button" accessibilityLabel="Share this clip"><Text className="text-accent">Share</Text></Pressable> : null}
         {props.onDelete ? <Pressable onPress={props.onDelete} accessibilityRole="button" accessibilityLabel="Delete this clip"><Text className="text-accent">Delete</Text></Pressable> : null}
         {props.onReport ? <Pressable onPress={props.onReport} accessibilityRole="button" accessibilityLabel="Report this clip"><Text className="text-muted">Report</Text></Pressable> : null}
-      </Box>
-    </Box>
+      </View>
+    </View>
   );
 }
 

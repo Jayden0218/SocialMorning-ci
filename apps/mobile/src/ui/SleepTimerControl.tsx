@@ -1,8 +1,6 @@
 /** Sleep timer (US3, FR-015..017): the fixed choices, the remaining time while it runs, cancel. */
 import { useEffect, useState } from 'react';
-import { Pressable } from './lib/pressable';
-import { Text } from './lib/text';
-import { Box } from './lib/box';
+import { Pressable, Text, View } from 'react-native';
 import type { SleepChoice } from '@socialmorning/player-core';
 import { usePlayer } from '../playback/store';
 import { mmss } from './format';
@@ -19,27 +17,27 @@ export function SleepTimerControl(): React.ReactElement {
   const timer = player.sleepTimer();
   const remaining = player.sleepRemainingMs();
   return (
-    <Box className="w-full gap-1 mt-2">
-      <Box className="flex-row items-center gap-2 flex-wrap">
+    <View className="w-full gap-1 mt-2">
+      <View className="flex-row items-center gap-2 flex-wrap">
         <Text className="font-semibold text-text">Sleep</Text>
         {CHOICES.map((c) => (
           <Pressable key={String(c)} onPress={() => player.setSleepTimer(c)} accessibilityRole="button">
             <Text className={`border rounded-pill px-2.5 py-[3px] ${(c === 'endOfEpisode' ? timer.kind === 'endOfEpisode' : false) ? 'text-[13px] bg-primary border-primary text-onPrimary' : 'text-[13px] border-separator text-text'}`}>{c === 'endOfEpisode' ? 'End of episode' : `${c} min`}</Text>
           </Pressable>
         ))}
-      </Box>
+      </View>
       {timer.kind === 'minutes' && remaining !== undefined ? (
-        <Box className="flex-row items-center gap-2 flex-wrap">
+        <View className="flex-row items-center gap-2 flex-wrap">
           <Text className="text-text">Pausing in {mmss(remaining)}</Text>
           <Pressable onPress={() => player.setSleepTimer('off')} accessibilityRole="button"><Text className="text-accent text-[13px]">Cancel</Text></Pressable>
-        </Box>
+        </View>
       ) : timer.kind === 'endOfEpisode' ? (
-        <Box className="flex-row items-center gap-2 flex-wrap">
+        <View className="flex-row items-center gap-2 flex-wrap">
           <Text className="text-text">Stops when this episode ends</Text>
           <Pressable onPress={() => player.setSleepTimer('off')} accessibilityRole="button"><Text className="text-accent text-[13px]">Cancel</Text></Pressable>
-        </Box>
+        </View>
       ) : null}
-    </Box>
+    </View>
   );
 }
 

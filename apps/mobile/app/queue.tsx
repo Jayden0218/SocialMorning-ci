@@ -5,10 +5,7 @@
  */
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { FlatList } from '../src/ui/lib/flat-list';
-import { Pressable } from '../src/ui/lib/pressable';
-import { Text } from '../src/ui/lib/text';
-import { Box } from '../src/ui/lib/box';
+import { FlatList, Pressable, Text, View } from 'react-native';
 import { move, remove } from '@socialmorning/player-core';
 import { usePlayer } from '../src/playback/store';
 import { toPlayable } from '../src/storage/playable';
@@ -38,12 +35,12 @@ export default function QueueScreen(): React.ReactElement {
         const show = episode ? stores.feeds.getShow(episode.feedUrl) : undefined;
         const download = stores.downloads.get(item);
         return (
-          <Box className="py-2 gap-1 border-b-hairline border-separator">
+          <View className="py-2 gap-1 border-b-hairline border-separator">
             <Text className="text-[15px] font-semibold text-text" numberOfLines={2}>{index + 1}. {episode?.title ?? item}</Text>
             <Text className="text-muted text-[13px]">
               {[show?.title, episode?.durationMs !== undefined ? mmss(episode.durationMs) : undefined, download?.state === 'complete' ? 'Downloaded' : 'Streams'].filter(Boolean).join(' · ')}
             </Text>
-            <Box className="flex-row gap-[18px] items-center">
+            <View className="flex-row gap-[18px] items-center">
               <Pressable disabled={index === 0} onPress={() => write(move(ids, item, index - 1))} accessibilityRole="button" accessibilityLabel="Move up"><Text className={`text-accent text-[15px] ${index === 0 ? 'opacity-30' : ''}`}>↑</Text></Pressable>
               <Pressable disabled={index === ids.length - 1} onPress={() => write(move(ids, item, index + 1))} accessibilityRole="button" accessibilityLabel="Move down"><Text className={`text-accent text-[15px] ${index === ids.length - 1 ? 'opacity-30' : ''}`}>↓</Text></Pressable>
               <Pressable disabled={index === 0} onPress={() => write(move(ids, item, 0))} accessibilityRole="button" accessibilityLabel="Move to top"><Text className={`text-accent text-[15px] ${index === 0 ? 'opacity-30' : ''}`}>Top</Text></Pressable>
@@ -60,8 +57,8 @@ export default function QueueScreen(): React.ReactElement {
               >
                 <Text className="text-accent text-[15px]">Play now</Text>
               </Pressable>
-            </Box>
-          </Box>
+            </View>
+          </View>
         );
       }}
     />

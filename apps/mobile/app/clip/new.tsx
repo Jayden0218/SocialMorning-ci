@@ -4,9 +4,7 @@
  * episode) or needs sign-in.
  */
 import { useState } from 'react';
-import { Share } from 'react-native';
-import { Text } from '../../src/ui/lib/text';
-import { Box } from '../../src/ui/lib/box';
+import { Share, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useGraph } from '../../src/graph/context';
 import { useSocial } from '../../src/social/context';
@@ -24,8 +22,8 @@ export default function NewClipScreen(): React.ReactElement {
   const toast = useToast();
   const [saving, setSaving] = useState(false);
   const episode = params.episodeId ? toPlayable(stores, params.episodeId) : undefined;
-  if (!episode) return <Box className="p-4"><Text className="text-text">This episode is not in the library.</Text></Box>;
-  if (!listener) return <Box className="p-4"><Text className="text-text">Sign in to make a clip.</Text></Box>;
+  if (!episode) return <View className="p-4"><Text className="text-text">This episode is not in the library.</Text></View>;
+  if (!listener) return <View className="p-4"><Text className="text-text">Sign in to make a clip.</Text></View>;
   return (
     <ClipComposer
       episode={episode}

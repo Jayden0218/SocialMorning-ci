@@ -5,9 +5,7 @@
  * second": one marker, both listed).
  */
 import { useMemo } from 'react';
-import { Pressable } from './lib/pressable';
-import { Text } from './lib/text';
-import { Box } from './lib/box';
+import { Pressable, Text, View } from 'react-native';
 import { mmss } from './format';
 import type { Comment } from '../social/api';
 
@@ -47,7 +45,7 @@ export function Rail(props: {
   const markers = useMemo(() => railMarkers(props.comments), [props.comments]);
   if (props.durationMs === undefined || props.durationMs <= 0 || markers.length === 0) return null;
   return (
-    <Box className="w-full h-[14px] relative" accessibilityRole="list" accessibilityLabel={`${markers.length} commented moment${markers.length === 1 ? '' : 's'}`}>
+    <View className="w-full h-[14px] relative" accessibilityRole="list" accessibilityLabel={`${markers.length} commented moment${markers.length === 1 ? '' : 's'}`}>
       {markers.map((m) => (
         <Pressable
           key={m.second}
@@ -59,11 +57,11 @@ export function Rail(props: {
           // The position is offset / duration, known only at runtime.
           style={{ left: `${Math.min(100, (m.offsetMs / props.durationMs!) * 100)}%` }}
         >
-          <Box className={`bg-accent ${m.comments.length > 1 ? 'w-2.5 h-2.5 rounded-[5px]' : 'w-2 h-2 rounded-sm'}`} />
+          <View className={`bg-accent ${m.comments.length > 1 ? 'w-2.5 h-2.5 rounded-[5px]' : 'w-2 h-2 rounded'}`} />
         </Pressable>
       ))}
       <Text className="absolute opacity-0 h-0 text-text">{markers.length}</Text>
-    </Box>
+    </View>
   );
 }
 

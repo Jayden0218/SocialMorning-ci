@@ -1,20 +1,10 @@
 /**
  * The comment box (US1). The moment chip shows what `captureMoment` returned
  * when the box opened; the ✕ removes it; nothing here re-reads the player.
- * M9: a gluestack Actionsheet with a Textarea. Its body sits in a ScrollView that keeps
- * taps while the keyboard is up, so the first tap on Post posts (iOS i3: it only closed
- * the keyboard, and a second tap posted).
  */
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Platform } from 'react-native';
-import { KeyboardAvoidingView } from './lib/keyboard-avoiding-view';
-import { Pressable } from './lib/pressable';
-import { ScrollView } from './lib/scroll-view';
-import { Actionsheet, ActionsheetBackdrop, ActionsheetContent } from './lib/actionsheet';
-import { Textarea, TextareaInput } from './lib/textarea';
-import { Text } from './lib/text';
-import { Box } from './lib/box';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { mmss } from './format';
 import { useSocial } from '../social/context';
 import type { ComposerState } from '../social/composer';
@@ -53,28 +43,25 @@ export function ComposerSheet(props: {
   }
 
   return (
-    <Actionsheet isOpen onClose={props.onClose}>
-      <ActionsheetBackdrop />
-      <KeyboardAvoidingView className="w-full justify-end" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <ActionsheetContent className="bg-surface p-0 rounded-t-2xl items-stretch">
-        <ScrollView keyboardShouldPersistTaps="handled" scrollEnabled={false} contentContainerClassName="p-4 gap-2.5">
-          <Box className="flex-row justify-between items-center">
+    <Modal visible animationType="slide" onRequestClose={props.onClose} transparent>
+      <KeyboardAvoidingView className="flex-1 justify-end bg-scrim" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <View className="bg-surface p-4 gap-2.5 rounded-t-2xl">
+          <View className="flex-row justify-between items-center">
             {state.moment ? (
-              <Box className="flex-row gap-2 items-center bg-surface rounded-pill py-1 px-2.5">
+              <View className="flex-row gap-2 items-center bg-surface rounded-pill py-1 px-2.5">
                 <Text className="font-semibold text-text">at {mmss(state.moment.offsetMs)}</Text>
                 <Pressable onPress={() => setState(composer.removeMoment(state))} accessibilityLabel="Remove the moment" accessibilityRole="button">
                   <Text className="text-[14px] text-muted">✕</Text>
                 </Pressable>
-              </Box>
+              </View>
             ) : (
               <Text className="text-muted">{state.parentId ? 'Reply' : 'No moment attached'}</Text>
             )}
             <Text className={length > 2000 ? 'text-accent' : 'text-muted'}>{length} / 2000</Text>
-          </Box>
-          <Textarea className="min-h-[90px] max-h-[200px] h-auto border border-separator rounded-lg">
-          <TextareaInput
-            placeholderTextColor={c.muted}
-            className="p-2.5 text-sm align-top text-text"
+          </View>
+          <TextInput
+        placeholderTextColor={c.muted}
+            className="min-h-[90px] max-h-[200px] border border-separator rounded-lg p-2.5 text-sm align-top text-text"
             multiline
             autoFocus
             placeholder={state.parentId ? 'Write a reply' : 'What is worth saying here?'}
@@ -82,10 +69,9 @@ export function ComposerSheet(props: {
             onChangeText={(t) => setState(composer.edit(state, t))}
             accessibilityLabel="Comment"
           />
-          </Textarea>
           {error ? <Text className="text-accent">{error}</Text> : null}
-          <Box className="flex-row justify-between items-center">
-            <Pressable onPress={props.onClose} accessibilityRole="button" className="min-h-[44px] justify-center"><Text className="text-accent text-[15px]">Cancel</Text></Pressable>
+          <View className="flex-row justify-between items-center">
+            <Pressable onPress={props.onClose} accessibilityRole="button"><Text className="text-accent text-[15px]">Cancel</Text></Pressable>
             <Pressable
               className={`bg-primary rounded-3xl py-2.5 px-[22px] ${busy || !composer.canSubmit(state) ? 'opacity-50' : ''}`}
               disabled={busy || !composer.canSubmit(state)}
@@ -94,11 +80,10 @@ export function ComposerSheet(props: {
             >
               <Text className="text-onPrimary font-semibold">Post</Text>
             </Pressable>
-          </Box>
-        </ScrollView>
-        </ActionsheetContent>
+          </View>
+        </View>
       </KeyboardAvoidingView>
-    </Actionsheet>
+    </Modal>
   );
 }
 

@@ -3,11 +3,8 @@
  * icon, the label, an optional muted value or line under it, then a chevron or a switch.
  */
 import { Link } from 'expo-router';
-import { Pressable } from '../lib/pressable';
-import { Switch } from '../lib/switch';
-import { Text } from '../lib/text';
-import { Box } from '../lib/box';
-import { colour, hit } from '../../design';
+import { Pressable, Switch, Text, View } from 'react-native';
+import { hit } from '../../design';
 import { useStores } from '../providers';
 import { useColours } from '../useColours';
 import { Icon, type IconName } from '../Icon';
@@ -20,10 +17,10 @@ function Body(props: { icon: IconName; label: string; line?: string; value?: str
   return (
     <>
       <Icon name={props.icon} size={24} color={c.accent} />
-      <Box className="flex-1">
+      <View className="flex-1">
         <Text className={props.danger ? 'text-accent text-sm' : 'text-text text-sm'}>{props.label}</Text>
         {props.line ? <Text className="text-muted text-xs mt-0.5">{props.line}</Text> : null}
-      </Box>
+      </View>
       {props.value ? <Text className="text-muted text-xs" numberOfLines={1}>{props.value}</Text> : null}
     </>
   );
@@ -59,7 +56,7 @@ export function SwitchRow(props: { icon: IconName; label: string; line?: string;
   const stores = useStores();
   const c = useColours(stores.settings);
   return (
-    <Box className="flex-row items-center gap-section py-row" style={TAP}>
+    <View className="flex-row items-center gap-section py-row" style={TAP}>
       <Body icon={props.icon} label={props.label} {...(props.line ? { line: props.line } : {})} />
       <Switch
         value={props.value}
@@ -71,10 +68,10 @@ export function SwitchRow(props: { icon: IconName; label: string; line?: string;
         accessibilityRole="switch"
         accessibilityState={{ checked: props.value, disabled: props.disabled === true }}
       />
-    </Box>
+    </View>
   );
 }
 
 export function Divider(): React.ReactElement {
-  return <Box className="border-b-hairline border-separator my-row" />;
+  return <View className="border-b-hairline border-separator my-row" />;
 }

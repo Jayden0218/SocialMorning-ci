@@ -9,8 +9,9 @@ import { colour, hit } from '../src/design';
 import { BOTTOM_INSET, MINI_PLAYER_HEIGHT, Screen, TAB_BAR_HEIGHT } from '../src/ui/Screen';
 import { Artwork } from '../src/ui/Artwork';
 import { Row } from '../src/ui/Row';
-import { Button, ButtonText } from '../src/ui/lib/button';
-import { Heading } from '../src/ui/lib/heading';
+import { Button } from '../src/ui/Button';
+import { Chip } from '../src/ui/Chip';
+import { Header } from '../src/ui/Header';
 
 const render = (el: React.ReactElement): ReactTestRenderer => { let r!: ReactTestRenderer; act(() => { r = create(el); }); return r; };
 const flat = (s: unknown): Record<string, unknown> => (StyleSheet.flatten(s as never) ?? {}) as Record<string, unknown>;
@@ -51,21 +52,30 @@ it('G5: Row has a name and a role, a title of at most 2 lines, no fixed height, 
   expect(render(createElement(Row, { title: 'x' })).root.findAll((n) => n.props['accessibilityRole'] === 'button')).toHaveLength(0);
 });
 
-// M9: the hand-built Button, Chip and Header were replaced by gluestack's Button and Heading
-// (contracts/components.md). The same promises, checked on the library parts as they are used.
-it('library Button: named by its words, a real button, a 48 dp target, disabled is a state', () => {
-  const make = (disabled: boolean) => createElement(Button, { onPress: () => undefined, isDisabled: disabled, accessibilityRole: 'button', accessibilityLabel: 'Go', accessibilityState: { disabled }, className: 'rounded-pill px-section', style: { minHeight: hit.min } }, createElement(ButtonText, null, 'Go'));
-  const b = render(make(false)).root.find((n) => typeof n.type === 'string' && n.props['accessibilityRole'] === 'button');
-  expect(b.props['accessibilityLabel']).toBe('Go');
-  expect(Number(flat(b.props['style'])['minHeight'])).toBeGreaterThanOrEqual(hit.min);
-  expect(flat(b.props['style'])['height']).toBeUndefined();
-  const off = render(make(true)).root.find((n) => typeof n.type === 'string' && n.props['accessibilityRole'] === 'button');
-  expect(off.props['accessibilityState']).toEqual({ disabled: true });
+it('Button: three kinds, one look each; disabled is a state, not just an opacity', () => {
+  for (const kind of ['primary', 'secondary', 'destructive'] as const) {
+    const r = render(createElement(Button, { label: 'Go', onPress: () => undefined, kind }));
+    const b = r.root.find((n) => n.props['accessibilityRole'] === 'button');
+    expect(b.props['accessibilityLabel']).toBe('Go');
+    expect(Number(flat(b.props['style'])['minHeight'])).toBeGreaterThanOrEqual(hit.min);
+  }
+  const off = render(createElement(Button, { label: 'Go', onPress: () => undefined, disabled: true }));
+  expect(off.root.find((n) => n.props['accessibilityRole'] === 'button').props['accessibilityState']).toEqual({ disabled: true });
 });
 
-it('library Heading is a header in a token colour', () => {
-  const r = render(createElement(Heading, { accessibilityRole: 'header' }, 'Library'));
-  const h = r.root.find((n) => typeof n.type === 'string' && n.props['accessibilityRole'] === 'header');
-  expect(h.props['children']).toBe('Library');
-  expect(flat(h.props['style'])['color']).toBeDefined();
+it('Chip carries its selected state', () => {
+  const on = render(createElement(Chip, { label: '1.5×', selected: true, onPress: () => undefined }));
+  expect(on.root.find((n) => n.props['accessibilityRole'] === 'button').props['accessibilityState']).toEqual({ selected: true });
+  const off = render(createElement(Chip, { label: '1.5×', onPress: () => undefined }));
+  expect(off.root.find((n) => n.props['accessibilityRole'] === 'button').props['accessibilityState']).toEqual({ selected: false });
+});
+
+it('Header falls back to a solid bar when blur is unavailable, and its title is a header', () => {
+  const solid = render(createElement(Header, { title: 'Library', blur: null }));
+  const bar = solid.root.findAll((n) => typeof n.type === 'string')[0]!;
+  expect(flat(bar.props['style'])['backgroundColor']).toBe(colour.background);
+  expect(solid.root.find((n) => n.props['accessibilityRole'] === 'header').props['children']).toBe('Library');
+  const FakeBlur = (p: { children?: React.ReactNode }) => createElement('BlurStub', null, p.children);
+  const blurred = render(createElement(Header, { title: 'Library', blur: FakeBlur as never }));
+  expect(json(blurred)).toContain('BlurStub');
 });

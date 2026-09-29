@@ -8,13 +8,7 @@
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Share } from 'react-native';
-import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '../../src/ui/lib/actionsheet';
-import { Pressable } from '../../src/ui/lib/pressable';
-import { SafeAreaView } from '../../src/ui/lib/safe-area-view';
-import { ScrollView } from '../../src/ui/lib/scroll-view';
-import { Text } from '../../src/ui/lib/text';
-import { Box } from '../../src/ui/lib/box';
+import { Modal, Pressable, SafeAreaView, ScrollView, Share, Text, View } from 'react-native';
 import { enqueue } from '@socialmorning/player-core';
 import { useColours } from '../../src/ui/useColours';
 import { Icon } from '../../src/ui/Icon';
@@ -135,7 +129,7 @@ export default function EpisodeScreen(): React.ReactElement {
       </TopBar>
       <ScrollView ref={scroll} contentContainerClassName="px-screen-x pb-24">
         <Artwork url={episode.imageUrl ?? show?.imageUrl} size={48} rounded="row" className="mt-2" />
-        <Box className="flex-row items-center gap-section mt-section">
+        <View className="flex-row items-center gap-section mt-section">
           <Text className="flex-1 text-[26px] leading-[34px] font-bold text-text" accessibilityRole="header">{episode.title}</Text>
           <Pressable
             className="w-14 h-14 rounded-pill bg-surface items-center justify-center"
@@ -149,7 +143,7 @@ export default function EpisodeScreen(): React.ReactElement {
           >
             <Icon name={playing ? 'pause' : 'play'} size={26} color={c.text} />
           </Pressable>
-        </Box>
+        </View>
         {show === undefined ? null : (
           <Pressable
             onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(episode.feedUrl) } })}
@@ -162,23 +156,23 @@ export default function EpisodeScreen(): React.ReactElement {
             <Icon name="chevron-forward" size={16} color={c.text} />
           </Pressable>
         )}
-        <Box className="flex-row items-center">
+        <View className="flex-row items-center">
           <Text className="flex-1 text-sm text-muted" numberOfLines={1}>{meta}</Text>
           <BarButton label="Add to queue" onPress={addToQueue}>
             <Icon name="list-outline" size={24} color={c.text} />
           </BarButton>
           <BarButton label={`Comments, ${commentCount}`} onPress={() => scroll.current?.scrollTo({ y: commentsY, animated: true })}>
-            <Box className="flex-row items-end">
+            <View className="flex-row items-end">
               <Icon name="chatbox-ellipses-outline" size={24} color={c.text} />
               <Text className="text-xs text-text">{commentCount}</Text>
-            </Box>
+            </View>
           </BarButton>
           <Pressable onPress={() => setFav(toggleFavourite(stores.settings, episode.id, Date.now()))} accessibilityRole="button" accessibilityState={{ selected: fav }} accessibilityLabel={fav ? 'Remove from favourites' : 'Add to favourites'} className="items-center justify-center" style={TAP}>
             {/* Filled vs outline, and the name — never hue alone (FR-016). */}
             <Icon name={fav ? 'heart' : 'heart-outline'} size={24} color={fav ? c.accent : c.text} />
           </Pressable>
-        </Box>
-        <Box className="h-px bg-separator mt-row mb-section" />
+        </View>
+        <View className="h-px bg-separator mt-row mb-section" />
         {notes === '' ? null : (
           <Text className="text-sm leading-[28px] text-text">
             {timestampParts(notes).map((part, i) =>
@@ -196,7 +190,7 @@ export default function EpisodeScreen(): React.ReactElement {
             )}
           </Text>
         )}
-        <Box className="mt-section" onLayout={(e) => setCommentsY(e.nativeEvent.layout.y)}>
+        <View className="mt-section" onLayout={(e) => setCommentsY(e.nativeEvent.layout.y)}>
           <CommentList
             episodeId={episode.id}
             comments={cached?.social.comments ?? []}
@@ -206,27 +200,26 @@ export default function EpisodeScreen(): React.ReactElement {
             onReply={(parentId) => setComposing(composer.open({ episodeId: episode.id, offsetMs: snapshotOffset, ...(episode.durationMs !== undefined ? { durationMs: episode.durationMs } : {}) }, parentId))}
             onCompose={() => setComposing(composer.open({ episodeId: episode.id, offsetMs: snapshotOffset, ...(episode.durationMs !== undefined ? { durationMs: episode.durationMs } : {}) }))}
           />
-        </Box>
+        </View>
         <ClipList episode={playable} />
         <NextUp items={nextUp.items} onOpen={(c) => void discoverOpen(c)} />
       </ScrollView>
 
-            <Actionsheet isOpen={more} onClose={() => setMore(false)}>
-        <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-        <ActionsheetContent className="bg-background rounded-t-2xl px-screen-x pt-row pb-10 gap-row items-stretch">
-          <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
-          <Box className="flex-row justify-between items-center">
+      <Modal visible={more} animationType="slide" transparent onRequestClose={() => setMore(false)}>
+        <Pressable className="flex-1 bg-scrim" accessibilityRole="button" accessibilityLabel="Close" onPress={() => setMore(false)} />
+        <View className="bg-background rounded-t-2xl px-screen-x pt-section pb-10 gap-row">
+          <View className="flex-row justify-between items-center">
             <Text className="text-base font-bold text-text" numberOfLines={1}>{episode.title}</Text>
             <Pressable onPress={() => setMore(false)} accessibilityRole="button" accessibilityLabel="Close" className="justify-center pl-row" style={TAP}>
               <Text className="text-sm text-accent">Done</Text>
             </Pressable>
-          </Box>
+          </View>
           <QueueButtons episodeId={episode.id} onQueued={() => stores.inboxState.mark(episode.id, 'queued', Date.now())} />
           <DownloadButton episodeId={episode.id} />
           {/* M10 (owner, 2026-09-27): favourite, and save this moment with a note. */}
           <EpisodeExtras episodeId={episode.id} atMs={snapshotOffset} />
-        </ActionsheetContent>
-      </Actionsheet>
+        </View>
+      </Modal>
       {composing ? (
         <ComposerSheet initial={composing} onClose={() => setComposing(undefined)} onPosted={() => { void refresh(episode.id); }} />
       ) : null}

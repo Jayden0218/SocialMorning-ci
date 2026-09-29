@@ -5,10 +5,7 @@
  */
 import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { FlatList } from '../src/ui/lib/flat-list';
-import { Pressable } from '../src/ui/lib/pressable';
-import { Text } from '../src/ui/lib/text';
-import { Box } from '../src/ui/lib/box';
+import { FlatList, Pressable, Text, View } from 'react-native';
 import { Loader } from '../src/ui/Loader';
 import type { MyComment } from '../src/social/api';
 import { useSocial } from '../src/social/context';
@@ -33,7 +30,7 @@ export default function MyCommentsScreen(): React.ReactElement {
     void api.myComments(at).then((r) => { setRows((cur) => [...(cur ?? []), ...r.items]); setNext(r.next); }, () => setNext(at));
   }, [api, next]);
 
-  if (rows === undefined) return <Box className="flex-1 bg-background p-section items-center"><Loader /></Box>;
+  if (rows === undefined) return <View className="flex-1 bg-background p-section items-center"><Loader /></View>;
   return (
     <FlatList
       className="flex-1 bg-background"

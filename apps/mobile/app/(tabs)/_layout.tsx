@@ -16,8 +16,8 @@
  */
 import { Tabs, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Box } from '../../src/ui/lib/box';
-import { colour, fontSize } from '../../src/design';
+import { View } from 'react-native';
+import { fontSize } from '../../src/design';
 import { useColours } from '../../src/ui/useColours';
 import { createFeed } from '../../src/graph/feed';
 import { useSocial } from '../../src/social/context';
@@ -70,7 +70,7 @@ export default function TabsLayout(): React.ReactElement {
       tabBar={(props) => {
         const active = props.state.routes[props.state.index]?.name ?? 'index';
         return (
-          <Box className="bg-background">
+          <View className="bg-background">
             <MiniPlayer context="tabs" />
             <TabBar
               items={items}
@@ -81,7 +81,7 @@ export default function TabsLayout(): React.ReactElement {
                 router.navigate(TAB_HREF[key] ?? '/');
               }}
             />
-          </Box>
+          </View>
         );
       }}
     >

@@ -1,6 +1,5 @@
 /** Discover's three sections (M5 US1), reused by the Discover screen and the zero-subscription home. */
-import { Text } from './lib/text';
-import { Box } from './lib/box';
+import { Text, View } from 'react-native';
 import type { Discover, EpisodeCard } from '../social/api';
 import { PickCard } from './PickCard';
 import { EpisodeRow } from './EpisodeRow';
@@ -9,7 +8,7 @@ export function DiscoverSections(props: { body: Discover; stale: boolean; fetche
   const { body } = props;
   const picks = props.maxPicks !== undefined ? body.picks.slice(0, props.maxPicks) : body.picks;
   return (
-    <Box className="gap-1.5">
+    <View className="gap-1.5">
       {props.stale ? <Text className="text-accent bg-surface p-2 rounded-md">Couldn't refresh — showing what was fetched {props.fetchedAt ? new Date(props.fetchedAt).toLocaleTimeString() : 'earlier'}.</Text> : null}
       <Text className="text-[18px] font-semibold mt-3 mb-1 text-text">{body.date ? `Picks for ${body.date}` : "Today's picks"}</Text>
       {picks.length === 0 ? <Text className="text-muted">No picks yet.</Text> : picks.map((p) => <PickCard key={p.key} item={p} onPress={() => props.onOpen(p.episode)} />)}
@@ -26,6 +25,6 @@ export function DiscoverSections(props: { body: Discover; stale: boolean; fetche
           ) : null}
         </>
       ) : null}
-    </Box>
+    </View>
   );
 }

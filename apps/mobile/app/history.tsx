@@ -1,10 +1,7 @@
 /** Listening history (收听历史, M10): what this phone played, most recent first, with where you stopped; search and "Only finished" as in the reference. */
 import { Link } from 'expo-router';
 import { useState } from 'react';
-import { FlatList } from '../src/ui/lib/flat-list';
-import { Pressable } from '../src/ui/lib/pressable';
-import { Text } from '../src/ui/lib/text';
-import { Box } from '../src/ui/lib/box';
+import { FlatList, Pressable, Text, View } from 'react-native';
 import { listeningHistory, matchesAll } from '../src/me/history';
 import { FilterBar } from '../src/ui/me/FilterBar';
 import { Artwork } from '../src/ui/Artwork';
@@ -33,10 +30,10 @@ export default function HistoryScreen(): React.ReactElement {
           <Link href={{ pathname: '/episode/[id]', params: { id: item.episode.id } }} asChild>
             <Pressable className="flex-row gap-row py-row items-center" accessibilityRole="button" accessibilityLabel={`${item.episode.title}. ${where}`}>
               <Artwork url={item.episode.imageUrl ?? show?.imageUrl} size={56} rounded="row" />
-              <Box className="flex-1">
+              <View className="flex-1">
                 <Text className="text-text text-sm font-semibold" numberOfLines={2}>{item.episode.title}</Text>
                 <Text className="text-muted text-xs" numberOfLines={1}>{[show?.title, where, shortDate(item.updatedAt)].filter(Boolean).join(' · ')}</Text>
-              </Box>
+              </View>
             </Pressable>
           </Link>
         );

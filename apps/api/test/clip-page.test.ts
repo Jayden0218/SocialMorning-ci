@@ -22,11 +22,6 @@ test('A10: live → 200 with the title escaped, the caption, the author and "Ope
   assert.match(html, /Clipped by Alex · 14:32–15:10/);
   assert.match(html, new RegExp(`href="socialmorning://clip/${c.id}"`));
   assert.doesNotMatch(html, /<audio|\.mp3/);
-  assert.match(html, /Get SocialNet for Android/);
-  // iOS i6: an iPhone is never offered the Android download.
-  const ios = await (await t.call('GET', `/c/${c.id}`, undefined, undefined, { 'user-agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X)' })).text();
-  assert.doesNotMatch(ios, /for Android/);
-  assert.match(ios, /not on the App Store yet/);
   await t.call('DELETE', `/v1/clips/${c.id}`, undefined, a.token);
   const gone = await t.call('GET', `/c/${c.id}`);
   assert.equal(gone.status, 200);

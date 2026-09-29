@@ -9,11 +9,7 @@
  */
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { BackHandler } from 'react-native';
-import { Image } from '../../src/ui/lib/image';
-import { SafeAreaView } from '../../src/ui/lib/safe-area-view';
-import { Text } from '../../src/ui/lib/text';
-import { Box } from '../../src/ui/lib/box';
+import { BackHandler, Image, SafeAreaView, Text, View } from 'react-native';
 import { createDiscover } from '../../src/discover/cache';
 import { useSocial } from '../../src/social/context';
 import { useStores, useToast } from '../../src/ui/providers';
@@ -69,22 +65,22 @@ export default function SignInScreen(): React.ReactElement {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <Box className="flex-1">
+      <View className="flex-1">
         <ArtWall urls={art} onReady={() => signInPage.setWhole(true)} />
-      </Box>
-      <Box className="px-screen-x pb-section">
+      </View>
+      <View className="px-screen-x pb-section">
         {/* Owner, 2026-09-27: a clear gap between the name and the ways in. */}
-        <Box className="flex-row items-center justify-center gap-row mb-section">
+        <View className="flex-row items-center justify-center gap-row mb-section">
           <Image source={require('../../assets/app-icon.png')} style={LOGO} className="rounded-row" accessibilityIgnoresInvertColors />
           <Text className="text-text text-lg font-bold" accessibilityRole="header">SocialNet</Text>
-        </Box>
+        </View>
         <AuthButton mark={{ icon: 'mail-outline' }} label="Continue with email" disabled={false} onPress={() => choose('email')} />
         {OTHER_METHODS.map((m) => (
           <AuthButton key={m.id} outline mark={m.mark} label={m.label} disabled={false} onPress={() => choose(m.id)} />
         ))}
         {/* Owner, 2026-09-27: the consent box sits under the three ways in. */}
         <ConsentRow agreed={agreed} onToggle={() => setAgreed((a) => !a)} open={legal.open} />
-      </Box>
+      </View>
       <ConsentDialog
         visible={asking !== undefined}
         action="continue"

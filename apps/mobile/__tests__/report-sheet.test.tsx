@@ -1,4 +1,4 @@
-/** M6 US1 (M9: now a gluestack Actionsheet, so it renders inside the provider's overlay): the report sheet collects one reason + a note and hands them to the safety layer; own content is refused in place. */
+/** M6 US1: the report sheet collects one reason + a note and hands them to the safety layer; own content is refused in place. */
 import { createElement } from 'react';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 
@@ -14,7 +14,6 @@ const report = mockReport;
 const push = mockPush;
 
 import { ReportSheet } from '../src/ui/ReportSheet';
-import { GluestackUIProvider } from '../src/ui/lib/gluestack-ui-provider';
 import { PLACEHOLDER_TEXT, placeholderFor } from '../src/ui/Placeholder';
 
 const byLabel = (r: ReactTestRenderer, label: string): ReactTestInstance => r.root.find((n) => n.props['accessibilityLabel'] === label && typeof n.props['onPress'] === 'function');
@@ -23,7 +22,7 @@ it('picks a reason, sends with the note, closes; Send is disabled until a reason
   const onClose = jest.fn();
   const onReported = jest.fn();
   let r!: ReactTestRenderer;
-  act(() => { r = create(createElement(GluestackUIProvider, null, createElement(ReportSheet, { target: { kind: 'comment', id: 'c1', authorId: 'them', label: 'comment' }, onClose, onReported }))); });
+  act(() => { r = create(createElement(ReportSheet, { target: { kind: 'comment', id: 'c1', authorId: 'them', label: 'comment' }, onClose, onReported })); });
   expect(byLabel(r, 'Send report').props['accessibilityState']).toEqual({ disabled: true });
   act(() => { byLabel(r, 'Harassment').props['onPress'](); });
   expect(byLabel(r, 'Harassment').props['accessibilityState']).toEqual({ checked: true });
@@ -38,7 +37,7 @@ it('own content: the sheet stays with the hint; signed out: closes and goes to s
   report.mockReturnValueOnce('own');
   const onClose = jest.fn();
   let r!: ReactTestRenderer;
-  act(() => { r = create(createElement(GluestackUIProvider, null, createElement(ReportSheet, { target: { kind: 'clip', id: 'k1', authorId: 'me', label: 'clip' }, onClose }))); });
+  act(() => { r = create(createElement(ReportSheet, { target: { kind: 'clip', id: 'k1', authorId: 'me', label: 'clip' }, onClose })); });
   act(() => { byLabel(r, 'Spam').props['onPress'](); });
   act(() => { byLabel(r, 'Send report').props['onPress'](); });
   expect(JSON.stringify(r.toJSON())).toContain("That's yours — delete it instead.");

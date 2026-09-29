@@ -16,10 +16,8 @@
  *     the label, the role and the `accessibilityState` are the contract, not the glyph.
  */
 import { Link, usePathname } from 'expo-router';
-import { Pressable } from './lib/pressable';
-import { Text } from './lib/text';
-import { Box } from './lib/box';
-import { colour, hit } from '../design';
+import { Pressable, Text, View } from 'react-native';
+import { hit } from '../design';
 import { useColours } from './useColours';
 import { usePlayer, usePlayerState } from '../playback/store';
 import { useStores } from './providers';
@@ -28,7 +26,6 @@ import { mmss } from './format';
 import { Icon } from './Icon';
 import { ProgressRing } from './ProgressRing';
 import { MINI_PLAYER_HEIGHT } from './Screen';
-import { TAB_HREF } from './tabs';
 
 /** Artwork in the bar. Smaller than a list row's, because the bar is not a row. */
 const MINI_ARTWORK = 48;
@@ -41,8 +38,7 @@ const ROUND = { width: hit.min, height: hit.min, minWidth: hit.min, minHeight: h
  * The routes that live behind the tab bar (T012; `/library` since M10's reorder; `/me`
  * for the Discover · Updates · Me bar, 2026-09-27). `/following` stays until it leaves the bar.
  */
-// iOS i12: read from TAB_HREF, so a new tab can never draw a second bar.
-export const TAB_ROUTES: readonly string[] = [...Object.values(TAB_HREF), '/discover', '/following'];
+export const TAB_ROUTES: readonly string[] = ['/', '/discover', '/library', '/me', '/following'];
 
 /**
  * No `height`: at the largest system font the title and the show name must be allowed to
@@ -78,11 +74,11 @@ export function MiniPlayer(props: { pathname?: string; context?: 'root' | 'tabs'
 
   if (state.kind === 'error') {
     return (
-      <Box className={`${BAR} ${props.className ?? ''}`} style={BAR_HEIGHT}>
+      <View className={`${BAR} ${props.className ?? ''}`} style={BAR_HEIGHT}>
         <Text className="flex-1 text-sm text-accent" numberOfLines={2}>
           {state.message}
         </Text>
-      </Box>
+      </View>
     );
   }
 
@@ -95,7 +91,7 @@ export function MiniPlayer(props: { pathname?: string; context?: 'root' | 'tabs'
   const progress = durationMs ? positionMs / durationMs : 0;
 
   return (
-    <Box className={`${BAR} ${props.className ?? ''}`} style={BAR_HEIGHT}>
+    <View className={`${BAR} ${props.className ?? ''}`} style={BAR_HEIGHT}>
       <Link href="/player" asChild>
         <Pressable
           accessibilityRole="link"
@@ -103,14 +99,14 @@ export function MiniPlayer(props: { pathname?: string; context?: 'root' | 'tabs'
           className="flex-1 flex-row items-center gap-row"
         >
           <Artwork url={episode?.imageUrl ?? show?.imageUrl} size={MINI_ARTWORK} />
-          <Box className="flex-1">
+          <View className="flex-1">
             <Text className="text-sm text-text font-semibold" numberOfLines={1}>
               {episode?.title ?? 'Now playing'}
             </Text>
             <Text className="text-xs text-muted" numberOfLines={1}>
               {durationMs ? `${mmss(positionMs)}/${mmss(durationMs)}` : (show?.title ?? mmss(positionMs))}
             </Text>
-          </Box>
+          </View>
         </Pressable>
       </Link>
       <Pressable
@@ -130,6 +126,6 @@ export function MiniPlayer(props: { pathname?: string; context?: 'root' | 'tabs'
           <Icon name="list" size={24} color={c.accent} />
         </Pressable>
       </Link>
-    </Box>
+    </View>
   );
 }

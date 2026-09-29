@@ -4,10 +4,7 @@
  * note. Both are kept on this phone (`src/me/favourites.ts`, `src/me/moments.ts`).
  */
 import { useState } from 'react';
-import { Textarea, TextareaInput } from '../lib/textarea';
-import { Pressable } from '../lib/pressable';
-import { Text } from '../lib/text';
-import { Box } from '../lib/box';
+import { Pressable, Text, TextInput, View } from 'react-native';
 import { Icon } from '../Icon';
 import { hit } from '../../design';
 import { useColours } from '../useColours';
@@ -26,27 +23,25 @@ export function EpisodeExtras(props: { episodeId: string; atMs: number }): React
   const [note, setNote] = useState<string | undefined>(undefined);
   const [at, setAt] = useState(0);
   return (
-    <Box>
-      <Box className="flex-row items-center gap-x-3">
+    <View>
+      <View className="flex-row items-center gap-x-3">
         <Pressable onPress={() => setFav(toggleFavourite(stores.settings, props.episodeId, Date.now()))} accessibilityRole="button" accessibilityState={{ selected: fav }} accessibilityLabel={fav ? 'Remove from favourites' : 'Add to favourites'} className="justify-center" style={TAP}>
-          <Box className="flex-row items-center gap-1"><Icon name={fav ? 'star' : 'star-outline'} size={16} color={c.accent} /><Text className="text-accent text-sm">Favourite</Text></Box>
+          <View className="flex-row items-center gap-1"><Icon name={fav ? 'star' : 'star-outline'} size={16} color={c.accent} /><Text className="text-accent text-sm">Favourite</Text></View>
         </Pressable>
         <Pressable onPress={() => { setAt(props.atMs); setNote(''); }} accessibilityRole="button" accessibilityLabel={`Save the moment at ${mmss(props.atMs)}`} className="justify-center" style={TAP}>
-          <Box className="flex-row items-center gap-1"><Icon name="bookmark-outline" size={16} color={c.accent} /><Text className="text-accent text-sm">Save moment</Text></Box>
+          <View className="flex-row items-center gap-1"><Icon name="bookmark-outline" size={16} color={c.accent} /><Text className="text-accent text-sm">Save moment</Text></View>
         </Pressable>
-      </Box>
+      </View>
       {note !== undefined ? (
-        <Box className="bg-surface rounded-row p-row gap-row">
+        <View className="bg-surface rounded-row p-row gap-row">
           <Text className="text-muted text-xs">Moment at {mmss(at)}</Text>
-          <Textarea className="bg-background rounded-row border-0 h-auto">
-            <TextareaInput value={note} onChangeText={setNote} maxLength={NOTE_MAX} multiline placeholder="Add a note (optional)" placeholderTextColor={c.muted} accessibilityLabel="Note for this moment"  className="p-row text-text text-sm" />
-          </Textarea>
-          <Box className="flex-row gap-section">
+          <TextInput value={note} onChangeText={setNote} maxLength={NOTE_MAX} multiline placeholder="Add a note (optional)" placeholderTextColor={c.muted} className="bg-background rounded-row p-row text-text text-sm" accessibilityLabel="Note for this moment" />
+          <View className="flex-row gap-section">
             <Pressable onPress={() => { saveMoment(stores.settings, props.episodeId, at, note, Date.now()); setNote(undefined); toast(`Saved the moment at ${mmss(at)}.`); }} accessibilityRole="button" accessibilityLabel="Save moment" className="justify-center" style={TAP}><Text className="text-accent text-sm font-semibold">Save</Text></Pressable>
             <Pressable onPress={() => setNote(undefined)} accessibilityRole="button" accessibilityLabel="Cancel" className="justify-center" style={TAP}><Text className="text-muted text-sm">Cancel</Text></Pressable>
-          </Box>
-        </Box>
+          </View>
+        </View>
       ) : null}
-    </Box>
+    </View>
   );
 }

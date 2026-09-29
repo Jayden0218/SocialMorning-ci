@@ -7,10 +7,7 @@
  * stickers and what you played recently (this phone's positions).
  */
 import { useCallback, useState } from 'react';
-import { ScrollView } from '../../src/ui/lib/scroll-view';
-import { Text } from '../../src/ui/lib/text';
-import { Box } from '../../src/ui/lib/box';
-import { colour } from '../../src/design';
+import { ScrollView, Text, View } from 'react-native';
 import { useColours } from '../../src/ui/useColours';
 import { Icon } from '../../src/ui/Icon';
 import { Loader } from '../../src/ui/Loader';
@@ -29,7 +26,7 @@ import { latestEarned, stickers } from '../../src/me/stickers';
 import { FeedItem } from '../../src/ui/FeedItem';
 import { Placeholder } from '../../src/ui/Placeholder';
 import { ReportSheet, type ReportTarget } from '../../src/ui/ReportSheet';
-import { Pressable } from '../../src/ui/lib/pressable';
+import { Pressable } from 'react-native';
 import { ApiError, type FeedItem as Item, type Profile } from '../../src/social/api';
 import { EmptyState } from '../../src/ui/EmptyState';
 
@@ -51,21 +48,21 @@ export default function ProfileScreen(): React.ReactElement {
     if (item.kind === 'clipped' && item.refId) router.push({ pathname: '/clip/[id]', params: { id: item.refId } });
     else router.push({ pathname: '/episode/[id]', params: { id: item.episode.id } });
   };
-  if (error) return <Box className="p-4 gap-3"><Text className="text-text">{error}</Text></Box>;
-  if (!profile) return <Box className="p-4 items-center"><Loader /></Box>;
+  if (error) return <View className="p-4 gap-3"><Text className="text-text">{error}</Text></View>;
+  if (!profile) return <View className="p-4 items-center"><Loader /></View>;
   const own = listener?.listenerId === profile.id;
   const blocked = !own && safety.isBlocked(profile.id);
   const reported = !own && safety.isHidden('profile', profile.id);
   if (profile.suspended) {
-    return <Box className="p-4 gap-3"><Text className="text-lg font-semibold text-text">{profile.displayName}</Text><Text className="text-muted">This account is suspended.</Text></Box>;
+    return <View className="p-4 gap-3"><Text className="text-lg font-semibold text-text">{profile.displayName}</Text><Text className="text-muted">This account is suspended.</Text></View>;
   }
   if (blocked || reported) {
     return (
-      <Box className="p-4 gap-3">
+      <View className="p-4 gap-3">
         <Text className="text-lg font-semibold text-text">{profile.displayName}</Text>
         {reported ? <Placeholder kind="reported" /> : <Text className="text-muted">You blocked this listener.</Text>}
         {blocked ? <BlockButton listenerId={profile.id} displayName={profile.displayName} /> : null}
-      </Box>
+      </View>
     );
   }
   const all = profile.stats?.all;
@@ -78,44 +75,44 @@ export default function ProfileScreen(): React.ReactElement {
     <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pt-section pb-24">
       {/* M10 (owner, 2026-09-27): laid out after the reference — big name, avatar, counts,
           a listening-time card, stickers, then recent listens. */}
-      <Box className="flex-row items-start justify-between">
-        <Box className="flex-1 pr-row">
+      <View className="flex-row items-start justify-between">
+        <View className="flex-1 pr-row">
           <Text className="text-text text-lg font-bold" accessibilityRole="header">{profile.displayName}</Text>
           {own ? <Text className="text-muted text-xs mt-1">This is you</Text> : null}
           {/* M10b US7: "IP location" — the country from the last sign-in, public (the privacy policy says so). */}
           {profile.country ? <Text className="text-muted text-xs mt-1">{`IP location: ${countryName(profile.country)}`}</Text> : null}
-        </Box>
-        <Box className="items-end gap-row">
-          <Box className="w-20 h-20 rounded-pill bg-surface items-center justify-center" accessible={false}>
+        </View>
+        <View className="items-end gap-row">
+          <View className="w-20 h-20 rounded-pill bg-surface items-center justify-center" accessible={false}>
             <Text className="text-muted text-lg">{profile.displayName.slice(0, 1).toUpperCase()}</Text>
-          </Box>
+          </View>
           {own ? <Link href="/account" className="text-accent text-sm" accessibilityRole="link">Edit profile</Link> : null}
-        </Box>
-      </Box>
+        </View>
+      </View>
 
-      <Box className="flex-row gap-section mt-section">
+      <View className="flex-row gap-section mt-section">
         {/* Counts and names are links but not actions (owner's K1 note, 2026-09-25). */}
         <Link href={{ pathname: '/profile/[id]/following', params: { id: profile.id } }} asChild>
           <Pressable accessibilityRole="link" accessibilityLabel={`${profile.following} following`}><Text className="text-text text-lg font-bold">{profile.following}</Text><Text className="text-muted text-xs">Following</Text></Pressable>
         </Link>
         <Link href={{ pathname: '/profile/[id]/followers', params: { id: profile.id } }} asChild>
-          <Pressable accessibilityRole="link" accessibilityLabel={`${profile.followers} follower${profile.followers === 1 ? '' : 's'}`}><Text className="text-text text-lg font-bold">{profile.followers}</Text><Text className="text-muted text-xs">Followers</Text></Pressable>
+          <Pressable accessibilityRole="link" accessibilityLabel={`${profile.followers} followers`}><Text className="text-text text-lg font-bold">{profile.followers}</Text><Text className="text-muted text-xs">Followers</Text></Pressable>
         </Link>
         {own ? (
           <Link href="/subscriptions" asChild>
             <Pressable accessibilityRole="link" accessibilityLabel={`${stores.subscriptions.list().length} subscriptions`}><Text className="text-text text-lg font-bold">{stores.subscriptions.list().length}</Text><Text className="text-muted text-xs">Subscriptions</Text></Pressable>
           </Link>
         ) : null}
-      </Box>
+      </View>
 
       {!own ? (
-        <Box className="flex-row gap-4 items-center flex-wrap mt-section">
+        <View className="flex-row gap-4 items-center flex-wrap mt-section">
           <FollowButton listenerId={profile.id} following={profile.isFollowing} onChange={(f) => setProfile({ ...profile, isFollowing: f, followers: profile.followers + (f ? 1 : -1) })} />
           <BlockButton listenerId={profile.id} displayName={profile.displayName} />
           <Pressable onPress={() => setReporting({ kind: 'profile', id: profile.id, authorId: profile.id, label: 'profile' })} accessibilityRole="button" accessibilityLabel={`Report ${profile.displayName}`} className="py-2 min-h-[44px] justify-center">
             <Text className="text-muted">Report</Text>
           </Pressable>
-        </Box>
+        </View>
       ) : null}
 
       <Text className="text-text text-base font-bold mt-section mb-row" accessibilityRole="header">Listening time</Text>
@@ -125,11 +122,11 @@ export default function ProfileScreen(): React.ReactElement {
       ) : all && all.listenedMs === 0 && all.finished === 0 ? (
         <EmptyState surface="stats" />
       ) : (
-        <Box className="bg-surface rounded-artwork p-section" accessible accessibilityLabel={`Total listening time ${h} hours ${m} minutes`}>
+        <View className="bg-surface rounded-artwork p-section" accessible accessibilityLabel={`Total listening time ${h} hours ${m} minutes`}>
           <Text className="text-text text-lg font-bold">{h}<Text className="text-muted text-xs font-normal"> h </Text>{m}<Text className="text-muted text-xs font-normal"> min</Text></Text>
           <Text className="text-muted text-xs">Total listening time · {all?.finished ?? 0} finished</Text>
           {profile.stats.last7.listenedMs > 0 ? <Text className="text-muted text-xs mt-1">This week: {hms(profile.stats.last7.listenedMs)}</Text> : null}
-        </Box>
+        </View>
       )}
 
       {own ? (
@@ -137,11 +134,11 @@ export default function ProfileScreen(): React.ReactElement {
           <Text className="text-text text-base font-bold mt-section mb-row" accessibilityRole="header">My stickers</Text>
           <Link href="/stickers" asChild>
             <Pressable accessibilityRole="button" accessibilityLabel={`${earned.filter((x) => x.earned).length} stickers`} className="bg-surface rounded-artwork p-section flex-row items-center justify-between">
-              <Box>
+              <View>
                 <Text className="text-text text-sm font-bold">{earned.filter((x) => x.earned).length} stickers ›</Text>
                 <Text className="text-muted text-xs">{latest ? `Latest: ${latest.title}` : 'Listen for an hour to earn the first'}</Text>
-              </Box>
-              <Box className="flex-row gap-1">{earned.filter((x) => x.earned).slice(-3).map((x) => <Icon key={x.id} name={x.icon} size={22} color={c.text} />)}</Box>
+              </View>
+              <View className="flex-row gap-1">{earned.filter((x) => x.earned).slice(-3).map((x) => <Icon key={x.id} name={x.icon} size={22} color={c.text} />)}</View>
             </Pressable>
           </Link>
         </>
@@ -153,10 +150,10 @@ export default function ProfileScreen(): React.ReactElement {
             <Link key={r.episode.id} href={{ pathname: '/episode/[id]', params: { id: r.episode.id } }} asChild>
               <Pressable accessibilityRole="button" accessibilityLabel={r.episode.title} className="flex-row gap-row py-row items-center">
                 <Artwork url={r.episode.imageUrl ?? stores.feeds.getShow(r.episode.feedUrl)?.imageUrl} size={64} rounded="row" />
-                <Box className="flex-1">
+                <View className="flex-1">
                   <Text className="text-text text-sm font-semibold" numberOfLines={2}>{r.episode.title}</Text>
                   <Text className="text-muted text-xs" numberOfLines={1}>{stores.feeds.getShow(r.episode.feedUrl)?.title ?? ''}{r.finished ? ' · finished' : ''}</Text>
-                </Box>
+                </View>
               </Pressable>
             </Link>
           )))

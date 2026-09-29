@@ -7,12 +7,7 @@
  */
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Share } from 'react-native';
-import { Input, InputField } from '../src/ui/lib/input';
-import { Pressable } from '../src/ui/lib/pressable';
-import { ScrollView } from '../src/ui/lib/scroll-view';
-import { Text } from '../src/ui/lib/text';
-import { Box } from '../src/ui/lib/box';
+import { Pressable, ScrollView, Share, Text, TextInput, View } from 'react-native';
 import { hit } from '../src/design';
 import type { CreatorClaim, ShowStats } from '../src/social/api';
 import { useSocial } from '../src/social/context';
@@ -48,7 +43,7 @@ export default function CreatorScreen(): React.ReactElement {
   }, [api, listener]);
   useFocusEffect(load);
 
-  if (!listener) return <Box className="flex-1 bg-background"><EmptyPicture icon="mic-outline" line="Sign in to claim your show" /></Box>;
+  if (!listener) return <View className="flex-1 bg-background"><EmptyPicture icon="mic-outline" line="Sign in to claim your show" /></View>;
 
   const claim = async (url: string) => {
     setBusy(true); setNote(undefined);
@@ -78,7 +73,7 @@ export default function CreatorScreen(): React.ReactElement {
       <Text className="text-muted text-sm">Claim the show you publish. We never host your audio — you keep your own feed. Once you prove it is yours, you see your show's numbers and your comments carry a Host mark.</Text>
 
       {(claims ?? []).map((cl) => (
-        <Box key={cl.id} className="bg-surface rounded-artwork p-section gap-row">
+        <View key={cl.id} className="bg-surface rounded-artwork p-section gap-row">
           <Text className="text-text text-sm font-semibold" numberOfLines={2}>{stores.feeds.getShow(cl.feedUrl)?.title ?? cl.feedUrl}</Text>
           {cl.status === 'proven' ? (
             <ProvenStats stats={stats[cl.feedUrl]} />
@@ -86,30 +81,29 @@ export default function CreatorScreen(): React.ReactElement {
             <>
               <Text className="text-muted text-sm">1. Copy this code. 2. Put it anywhere in your show description, in your hosting service. 3. Tap Verify.</Text>
               <Text selectable className="text-text text-base font-bold" accessibilityLabel={`Your code: ${cl.code}`}>{cl.code}</Text>
-              <Box className="flex-row gap-row">
+              <View className="flex-row gap-row">
                 <Button kind="secondary" label="Share code" onPress={() => void Share.share({ message: cl.code })} className="flex-1" />
                 <Button label="Verify" onPress={() => void verify(cl)} disabled={busy} className="flex-1" />
-              </Box>
+              </View>
             </>
           )}
-        </Box>
+        </View>
       ))}
 
       {note ? <Text className="text-accent text-sm" accessibilityLiveRegion="polite">{note}</Text> : null}
 
-      <Box className="gap-row">
+      <View className="gap-row">
         <Text className="text-text text-sm font-semibold">Claim a show</Text>
         {subscribed.map((s) => (
           <Pressable key={s.feedUrl} onPress={() => void claim(s.feedUrl)} disabled={busy} accessibilityRole="button" accessibilityLabel={`Claim ${s.title}`} className="justify-center border-b-hairline border-separator" style={TAP}>
             <Text className="text-text text-sm" numberOfLines={1}>{s.title}</Text>
           </Pressable>
         ))}
-        <Input className="bg-surface rounded-artwork border-0 h-auto px-0">
-          <InputField value={feedUrl} onChangeText={setFeedUrl} placeholder="Or paste your feed address (RSS)" placeholderTextColor={c.muted}
-          autoCapitalize="none" autoCorrect={false} keyboardType="url" inputMode="url" style={TAP} accessibilityLabel="Your feed address"  className="px-section text-text text-sm" />
-        </Input>
+        <TextInput value={feedUrl} onChangeText={setFeedUrl} placeholder="Or paste your feed address (RSS)" placeholderTextColor={c.muted}
+          autoCapitalize="none" autoCorrect={false} keyboardType="url" inputMode="url"
+          className="bg-surface rounded-artwork px-section text-text text-sm" style={TAP} accessibilityLabel="Your feed address" />
         <Button label="Get my code" onPress={() => void claim(feedUrl)} disabled={busy || !/^https?:\/\/\S+$/.test(feedUrl.trim())} />
-      </Box>
+      </View>
     </ScrollView>
   );
 }
@@ -118,13 +112,13 @@ function ProvenStats(props: { stats: ShowStats | undefined }): React.ReactElemen
   const s = props.stats;
   if (!s) return <Text className="text-muted text-sm">Proven — loading your numbers…</Text>;
   return (
-    <Box className="gap-1">
+    <View className="gap-1">
       <Text className="text-accent text-xs font-bold">Proven — you are the host</Text>
       <Text className="text-text text-sm">{`${s.listeners} listened · ${s.comments} comment${s.comments === 1 ? '' : 's'} · ${s.episodes} episode${s.episodes === 1 ? '' : 's'}`}</Text>
       {s.topMoments.length > 0 ? <Text className="text-muted text-xs mt-1">Where people talk most</Text> : null}
       {s.topMoments.map((m) => (
         <Text key={m.episodeId + m.offsetMs} className="text-text text-sm" numberOfLines={1}>{`${mmss(m.offsetMs)} · ${m.title} · ${m.comments}`}</Text>
       ))}
-    </Box>
+    </View>
   );
 }

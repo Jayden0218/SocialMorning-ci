@@ -6,16 +6,8 @@
  */
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
-import { Platform, type TextInputProps } from 'react-native';
-import { Input, InputField } from '../lib/input';
-import { Image } from '../lib/image';
-import { KeyboardAvoidingView } from '../lib/keyboard-avoiding-view';
-import { Pressable } from '../lib/pressable';
-import { SafeAreaView } from '../lib/safe-area-view';
-import { ScrollView } from '../lib/scroll-view';
-import { Text } from '../lib/text';
-import { Box } from '../lib/box';
-import { colour, hit, type Colour } from '../../design';
+import { Image, KeyboardAvoidingView, Platform, Pressable, SafeAreaView, ScrollView, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { hit, type Colour } from '../../design';
 import { useStores } from '../providers';
 import { useColours } from '../useColours';
 import { Icon, type IconName } from '../Icon';
@@ -32,15 +24,15 @@ export function AuthShell(props: { title: string; subtitle?: ReactNode; children
   return (
     <SafeAreaView className="flex-1 bg-background">
       <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <Box className="flex-row justify-end px-row pt-row">
+        <View className="flex-row justify-end px-row pt-row">
           <Pressable onPress={close} accessibilityRole="button" accessibilityLabel="Close" className="items-center justify-center" style={TAP}>
             <Text className="text-muted text-lg">✕</Text>
           </Pressable>
-        </Box>
+        </View>
         <ScrollView className="flex-1" contentContainerClassName="px-screen-x pb-section" keyboardShouldPersistTaps="handled">
           <Text className="text-text text-lg font-bold text-center mt-section" accessibilityRole="header">{props.title}</Text>
-          {props.subtitle ? <Box className="mt-row items-center">{props.subtitle}</Box> : null}
-          <Box className="mt-section pt-section gap-row">{props.children}</Box>
+          {props.subtitle ? <View className="mt-row items-center">{props.subtitle}</View> : null}
+          <View className="mt-section pt-section gap-row">{props.children}</View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -52,15 +44,13 @@ export function AuthField(props: TextInputProps & { accessibilityLabel: string }
   const stores = useStores();
   const c = useColours(stores.settings);
   return (
-    // M9: gluestack's Input; the grey field is the Input, the words are its InputField.
-    <Input className="bg-surface rounded-row border-0 px-section h-auto" style={FIELD}>
-      <InputField
-        placeholderTextColor={c.muted}
-        {...props}
-        accessibilityLabel={props.accessibilityLabel}
-        className="text-sm text-text"
-      />
-    </Input>
+    <TextInput
+      placeholderTextColor={c.muted}
+      {...props}
+      accessibilityLabel={props.accessibilityLabel}
+      className="bg-surface rounded-row px-section text-sm text-text"
+      style={FIELD}
+    />
   );
 }
 
@@ -90,11 +80,11 @@ export function AuthButton(props: { label: string; disabled: boolean; busy?: boo
       style={FIELD}
     >
       {props.mark ? (
-        <Box className="absolute left-section top-0 bottom-0 justify-center">
+        <View className="absolute left-section top-0 bottom-0 justify-center">
           {props.mark === 'google'
             ? <Image source={GOOGLE_G} style={MARK} accessibilityIgnoresInvertColors />
             : <Icon name={props.mark.icon} size={20} color={c[props.mark.tint ?? (props.outline ? 'text' : 'onPrimary')]} />}
-        </Box>
+        </View>
       ) : null}
       <Text className={props.outline ? 'text-text text-sm font-semibold' : 'text-onPrimary text-sm font-semibold'}>{props.busy ? '…' : props.label}</Text>
     </Pressable>

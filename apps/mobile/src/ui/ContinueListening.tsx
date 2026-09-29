@@ -5,9 +5,7 @@
  * Hidden when the last episode is finished; there is nothing to continue.
  */
 import { useRouter } from 'expo-router';
-import { Pressable } from './lib/pressable';
-import { Text } from './lib/text';
-import { Box } from './lib/box';
+import { Pressable, Text, View } from 'react-native';
 import { usePlayer } from '../playback/store';
 import { toPlayable } from '../storage/playable';
 import { mmss } from './format';
@@ -30,7 +28,7 @@ export function ContinueListening(): React.ReactElement | null {
   const offsetMs = saved?.offsetMs ?? 0;
 
   return (
-    <Box className="p-3 gap-1 border-hairline border-separator rounded-[10px] bg-surface">
+    <View className="p-3 gap-1 border-hairline border-separator rounded-[10px] bg-surface">
       <Text className="text-xs uppercase text-muted tracking-[0.5px]">Continue listening</Text>
       <Text className="text-sm font-bold text-text" numberOfLines={2}>
         {episode.title}
@@ -49,6 +47,6 @@ export function ContinueListening(): React.ReactElement | null {
       >
         <Text className="text-onPrimary font-bold">Play</Text>
       </Pressable>
-    </Box>
+    </View>
   );
 }

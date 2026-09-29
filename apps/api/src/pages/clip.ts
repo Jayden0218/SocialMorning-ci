@@ -37,18 +37,13 @@ export function createClipPages(env: { assetLinksSha256?: string }) {
       return c.html(page('Clip not found', `<h1>No such clip</h1><p class="muted">The link may be wrong, or the clip was never sent.</p>`), 404);
     }
     const { clip, episode } = found;
-    // iOS i6: the only build is an Android APK, so an iPhone is told that plainly instead of
-    // being offered a download it cannot install.
-    const getApp = /iPhone|iPad|iPod/.test(c.req.header('user-agent') ?? '')
-      ? 'The iPhone app is not on the App Store yet'
-      : '<a href="/get">Get SocialNet for Android</a>';
     const open = `socialmorning://clip/${encodeURIComponent(clip.id)}`;
     const show = episode.show_title ? `<p class="muted">${esc(episode.show_title)}</p>` : '';
     if (clip.deleted_at !== null || clip.removed_at != null) {
-      return c.html(page(episode.title, `<h1>This clip was removed</h1><h2>${esc(episode.title)}</h2>${show}<p class="muted">The episode is still there.</p><a class="btn" href="${open}">Open the episode in the app</a><p class="muted">No app yet? ${getApp}.</p>`));
+      return c.html(page(episode.title, `<h1>This clip was removed</h1><h2>${esc(episode.title)}</h2>${show}<p class="muted">The episode is still there.</p><a class="btn" href="${open}">Open the episode in the app</a><p class="muted">No app yet? <a href="/get">Get SocialNet for Android</a>.</p>`));
     }
     const by = clip.author_name ? `<p class="muted">Clipped by ${esc(clip.author_name)} · ${mmss(clip.start_ms)}–${mmss(clip.end_ms)}</p>` : `<p class="muted">${mmss(clip.start_ms)}–${mmss(clip.end_ms)}</p>`;
-    return c.html(page(episode.title, `<h1>${esc(episode.title)}</h1>${show}${clip.caption ? `<blockquote>${esc(clip.caption)}</blockquote>` : ''}${by}<a class="btn" href="${open}">Open in app</a><p class="muted">No app yet? ${getApp} — the clip plays from the publisher's own audio; nothing is hosted here.</p>`));
+    return c.html(page(episode.title, `<h1>${esc(episode.title)}</h1>${show}${clip.caption ? `<blockquote>${esc(clip.caption)}</blockquote>` : ''}${by}<a class="btn" href="${open}">Open in app</a><p class="muted">No app yet? <a href="/get">Get SocialNet for Android</a> — the clip plays from the publisher's own audio; nothing is hosted here.</p>`));
   });
 
   return pages;

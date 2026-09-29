@@ -6,8 +6,7 @@
  */
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable } from '../../src/ui/lib/pressable';
-import { Text } from '../../src/ui/lib/text';
+import { Pressable, Text } from 'react-native';
 import { SUSPENDED_KEY, useSocial } from '../../src/social/context';
 import { useStores } from '../../src/ui/providers';
 import { AuthButton, AuthField, AuthShell } from '../../src/ui/auth/AuthShell';

@@ -11,12 +11,8 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, Easing, useWindowDimensions } from 'react-native';
-import { Pressable } from '../src/ui/lib/pressable';
-import { SafeAreaView } from '../src/ui/lib/safe-area-view';
-import { Text } from '../src/ui/lib/text';
-import { Box } from '../src/ui/lib/box';
-import { colour, hit } from '../src/design';
+import { AccessibilityInfo, Animated, Easing, Pressable, SafeAreaView, Text, View, useWindowDimensions } from 'react-native';
+import { hit } from '../src/design';
 import { useStores } from '../src/ui/providers';
 import { useColours } from '../src/ui/useColours';
 import { apiBaseUrl } from '../src/social/base-url';
@@ -39,7 +35,7 @@ function Corner(props: { at: 'tl' | 'tr' | 'bl' | 'br' }): React.ReactElement {
   const top = props.at[0] === 't';
   const left = props.at[1] === 'l';
   return (
-    <Box
+    <View
       className="absolute border-accent"
       style={{
         width: CORNER, height: CORNER,
@@ -86,31 +82,31 @@ export default function ScanScreen(): React.ReactElement {
   const { width } = useWindowDimensions();
   const size = Math.min(280, Math.round(width * 0.7));
 
-  if (!permission) return <Box className="flex-1 bg-background" />;
+  if (!permission) return <View className="flex-1 bg-background" />;
   if (!permission.granted) {
     return (
       <SafeAreaView className="flex-1 bg-background">
-        <Box className="flex-row justify-end px-row">
+        <View className="flex-row justify-end px-row">
           <Pressable onPress={() => close(router)} accessibilityRole="button" accessibilityLabel="Close" className="items-center justify-center" style={TAP}>
             <Icon name="close" size={26} color={c.muted} />
           </Pressable>
-        </Box>
-        <Box className="flex-1 px-screen-x items-center justify-center gap-section">
-          <Box className="w-28 h-28 rounded-pill bg-surface items-center justify-center">
+        </View>
+        <View className="flex-1 px-screen-x items-center justify-center gap-section">
+          <View className="w-28 h-28 rounded-pill bg-surface items-center justify-center">
             <Icon name="qr-code-outline" size={48} color={c.text} />
-          </Box>
+          </View>
           <Text className="text-text text-lg font-bold text-center" accessibilityRole="header">Scan a QR code</Text>
           <Text className="text-muted text-sm text-center">SocialNet needs the camera to read a QR code. It is used only on this screen, and nothing is recorded.</Text>
           {permission.canAskAgain
             ? <Button label="Allow camera" onPress={() => void ask()} className="self-stretch" />
             : <Text className="text-muted text-sm text-center">Camera access is off. Turn it on for SocialNet in your phone's Settings.</Text>}
-        </Box>
+        </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <Box className="flex-1 bg-text">
+    <View className="flex-1 bg-text">
       <CameraView
         style={{ flex: 1 }}
         facing="back"
@@ -126,29 +122,29 @@ export default function ScanScreen(): React.ReactElement {
         }}
       />
       {/* The dimmed frame around the window: four panels, so the window itself stays clear. */}
-      <Box className="absolute inset-0" pointerEvents="box-none">
-        <Box className="flex-1 bg-scrim" />
-        <Box className="flex-row" style={{ height: size }}>
-          <Box className="flex-1 bg-scrim" />
-          <Box style={{ width: size, height: size }} accessible accessibilityLabel="Point the camera at a QR code">
+      <View className="absolute inset-0" pointerEvents="box-none">
+        <View className="flex-1 bg-scrim" />
+        <View className="flex-row" style={{ height: size }}>
+          <View className="flex-1 bg-scrim" />
+          <View style={{ width: size, height: size }} accessible accessibilityLabel="Point the camera at a QR code">
             <Corner at="tl" /><Corner at="tr" /><Corner at="bl" /><Corner at="br" />
             <ScanLine size={size} />
-          </Box>
-          <Box className="flex-1 bg-scrim" />
-        </Box>
-        <Box className="flex-1 bg-scrim items-center pt-section gap-2">
+          </View>
+          <View className="flex-1 bg-scrim" />
+        </View>
+        <View className="flex-1 bg-scrim items-center pt-section gap-2">
           <Text className="text-onPrimary text-sm font-semibold">Point at a QR code</Text>
           <Text className="text-onPrimary text-xs opacity-80">Clip, episode and show codes open right here</Text>
-        </Box>
-      </Box>
+        </View>
+      </View>
       <SafeAreaView className="absolute left-0 right-0 top-0">
-        <Box className="flex-row items-center px-row">
+        <View className="flex-row items-center px-row">
           <Pressable onPress={() => close(router)} accessibilityRole="button" accessibilityLabel="Close" className="items-center justify-center" style={TAP}>
             <Icon name="close" size={28} color={c.onPrimary} />
           </Pressable>
           <Text className="flex-1 text-center text-onPrimary text-base font-bold" accessibilityRole="header">Scan QR code</Text>
-          <Box style={TAP} />
-        </Box>
+          <View style={TAP} />
+        </View>
       </SafeAreaView>
       <SafeAreaView className="absolute left-0 right-0 bottom-0 items-center">
         <Pressable
@@ -162,6 +158,6 @@ export default function ScanScreen(): React.ReactElement {
           <Icon name="flashlight-outline" size={24} color={torch ? c.text : c.onPrimary} />
         </Pressable>
       </SafeAreaView>
-    </Box>
+    </View>
   );
 }

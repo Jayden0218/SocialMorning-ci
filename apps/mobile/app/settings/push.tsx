@@ -6,9 +6,7 @@
  */
 import { Stack, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Linking } from 'react-native';
-import { ScrollView } from '../../src/ui/lib/scroll-view';
-import { Text } from '../../src/ui/lib/text';
+import { Linking, ScrollView, Text } from 'react-native';
 import { useSocial } from '../../src/social/context';
 import { expoNotify } from '../../src/notify/expo';
 import type { PermissionState } from '../../src/notify/permission';

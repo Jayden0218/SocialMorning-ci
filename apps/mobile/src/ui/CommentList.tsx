@@ -4,12 +4,9 @@
  * write control asks to sign in (FR-022, US4 #4). Tapping a moment chip plays
  * the episode from there.
  */
-import { router } from 'expo-router';
-import { Link } from '../design/tailwind';
+import { Link, router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable } from './lib/pressable';
-import { Text } from './lib/text';
-import { Box } from './lib/box';
+import { Pressable, Text, View } from 'react-native';
 import { orderComments, type CommentOrder } from '@socialmorning/social-core';
 import { mmss, relativeTime } from './format';
 import { useSocial } from '../social/context';
@@ -58,12 +55,12 @@ export function CommentList(props: {
   }
 
   const Row = ({ c, isReply }: { c: Comment; isReply: boolean }) => (
-    <Box className={`py-2 gap-1 border-separator ${isReply ? 'ml-4 border-b-0' : 'border-b-hairline'}`}>
+    <View className={`py-2 gap-1 border-separator ${isReply ? 'ml-4 border-b-0' : 'border-b-hairline'}`}>
       {placeholderFor(c, c.reported) !== undefined ? (
         <Placeholder kind={placeholderFor(c, c.reported)!} />
       ) : (
         <>
-          <Box className="flex-row gap-2 items-center flex-wrap">
+          <View className="flex-row gap-2 items-center flex-wrap">
             {c.authorId !== null ? (
               <Link href={{ pathname: '/profile/[id]', params: { id: c.authorId } }} asChild>
                 <Pressable accessibilityRole="link"><Text className="font-semibold text-text">{c.displayName ?? 'Deleted account'}</Text></Pressable>
@@ -76,9 +73,9 @@ export function CommentList(props: {
               </Pressable>
             ) : null}
             <Text className="text-muted text-[13px]">{relativeTime(c.createdAt, props.serverTime)}</Text>
-          </Box>
+          </View>
           <Text className="text-[15px] text-text">{c.body}</Text>
-          <Box className="flex-row gap-4">
+          <View className="flex-row gap-4">
             {!isReply ? (
               <Pressable onPress={() => (listener ? props.onReply(c.id) : needSignIn())} accessibilityRole="button">
                 <Text className="text-accent text-[14px]">{listener ? 'Reply' : 'Sign in to reply'}</Text>
@@ -98,25 +95,25 @@ export function CommentList(props: {
                 <Text className="text-muted text-[13px]">Report</Text>
               </Pressable>
             )}
-          </Box>
+          </View>
         </>
       )}
       {c.replies?.map((r) => <Row key={r.id} c={r} isReply />)}
-    </Box>
+    </View>
   );
 
   return (
-    <Box className="gap-1.5 mt-3">
-      <Box className="flex-row justify-between items-center">
+    <View className="gap-1.5 mt-3">
+      <View className="flex-row justify-between items-center">
         <Text className="text-[17px] font-bold text-text">Comments</Text>
-        <Box className="flex-row gap-3">
+        <View className="flex-row gap-3">
           {(['newest', 'byMoment'] as const).map((o) => (
             <Pressable key={o} onPress={() => setOrder(o)} accessibilityRole="button" accessibilityState={{ selected: order === o }}>
               <Text className={order === o ? 'text-[14px] text-text font-bold underline' : 'text-[14px] text-muted'}>{o === 'newest' ? 'Newest' : 'By moment'}</Text>
             </Pressable>
           ))}
-        </Box>
-      </Box>
+        </View>
+      </View>
       {props.stale ? <Text className="text-muted text-[13px]">Couldn't refresh — showing the last copy</Text> : null}
       <Pressable className="py-1.5" onPress={() => (listener ? props.onCompose() : needSignIn())} accessibilityRole="button">
         <Text className="text-accent text-[14px]">{listener ? 'Write a comment' : 'Sign in to join the conversation'}</Text>
@@ -124,7 +121,7 @@ export function CommentList(props: {
       {ordered.length === 0 ? <EmptyState surface="comments" action={{ label: 'Comment here', onPress: () => (listener ? props.onCompose() : needSignIn()) }} /> : null}
       {ordered.map((o) => <Row key={o.raw.id} c={o.raw} isReply={false} />)}
       <ReportSheet target={reporting} onClose={() => setReporting(undefined)} />
-    </Box>
+    </View>
   );
 }
 

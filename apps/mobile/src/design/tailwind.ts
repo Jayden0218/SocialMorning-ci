@@ -1,12 +1,13 @@
 /**
- * UniWind turns `className` into `style` on React Native's own components by itself (its
- * Metro resolver swaps them). Anything else that takes a `style` is wrapped here once, and
- * screens import the wrapped version. Unlike NativeWind's `cssInterop`, `withUniwind`
- * returns a new component instead of patching the original in place (M9, research R1).
+ * NativeWind turns `className` into `style` on React Native's own components only.
+ * Anything else that takes a `style` has to be registered here, once, before it renders.
+ * `jest.tailwind.js` imports this file too, so the tests style the same components.
  */
-import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
-import { Link as ExpoLink } from 'expo-router';
-import { withUniwind } from 'uniwind';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Link } from 'expo-router';
+import { cssInterop } from 'nativewind';
+import { SafeAreaView } from 'react-native';
 
-export const Link = withUniwind(ExpoLink);
-export const LinearGradient = withUniwind(ExpoLinearGradient);
+cssInterop(Link, { className: 'style' });
+cssInterop(LinearGradient, { className: 'style' });
+cssInterop(SafeAreaView, { className: 'style' });
