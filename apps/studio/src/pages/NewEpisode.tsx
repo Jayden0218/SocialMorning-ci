@@ -118,7 +118,7 @@ export function NewEpisode({ show }: { show: Show }) {
             {when === 'schedule' ? (
               <div style={{ marginTop: 8 }}>
                 <label htmlFor="ne-at" style={{ fontWeight: 500 }}>Date and time (your time zone)</label>
-                <input id="ne-at" type="datetime-local" value={at} min={localInput(new Date())} max={localInput(new Date(Date.now() + 90 * 86_400_000))} onChange={(e) => setAt(e.target.value)} />
+                <input id="ne-at" type="datetime-local" value={at} onChange={(e) => setAt(e.target.value)} />
               </div>
             ) : null}
           </fieldset>

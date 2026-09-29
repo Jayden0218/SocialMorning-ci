@@ -38,9 +38,9 @@ export function Pending({ show, onChange }: { show: Show; onChange: () => void }
               <div className="row-sub">{e.status === 'draft' ? 'Draft' : `Scheduled for ${when(e.publishedAt)}`}</div>
             </div>
             <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-              <button type="button" className="btn btn-quiet" disabled={busy}
+              <button type="button" className="btn btn-quiet" disabled={busy} aria-label={`Publish now: ${e.title}`}
                 onClick={() => { void run(() => api(`/v1/studio/shows/${show.key}/hosted-episodes/${e.id}`, { method: 'PUT', body: { status: 'published', publishAt: null } })); }}>
-                Publish now<span className="sr-only">: {e.title}</span>
+                Publish now
               </button>
               <button type="button" className="linkish" disabled={busy} onClick={() => setDel(e)}>Delete<span className="sr-only"> {e.title}</span></button>
             </div>
