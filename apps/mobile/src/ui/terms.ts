@@ -18,7 +18,8 @@ export const TERMS_KEY = 'terms.accepted';
 export type LegalDocId = keyof typeof LEGAL_TEXT;
 
 /** Filled in from `docs/legal/placeholders.md` once the owner has the company name. */
-export const OPERATOR = '[COMPANY LEGAL NAME]';
+/** M12 B1: the operator's registered name is the owner's to give (gate A2); until then, the app's name. */
+export const OPERATOR = 'SocialNet';
 
 export const CONSENT_TITLE = 'Service Agreement and Privacy Policy';
 

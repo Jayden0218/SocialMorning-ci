@@ -136,7 +136,8 @@ export function CategoryStrip(props: { onGenre: (id: number) => void; onAll: () 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="px-screen-x gap-row">
         {GENRES.slice(0, 8).map((g) => (
           <Pressable key={g.id} onPress={() => props.onGenre(g.id)} accessibilityRole="button" accessibilityLabel={g.name} className="bg-background rounded-row items-center justify-center px-row py-row w-24">
-            <Text className="text-text text-xs font-semibold text-center" numberOfLines={1}>{g.name}</Text>
+            {/* M12 FR-008 (B8): two lines before an ellipsis ("Society & Culture" was "Society &…"). */}
+            <Text className="text-text text-xs font-semibold text-center min-h-8" numberOfLines={2}>{g.name}</Text>
             <Box className="mt-1"><Icon name={g.icon} size={24} color={c.text} /></Box>
           </Pressable>
         ))}
@@ -154,8 +155,8 @@ export function ShowTiles(props: { title: string; shows: { feedUrl: string; titl
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="px-screen-x gap-row">
         {props.shows.map((s) => (
           <Pressable key={s.feedUrl} onPress={() => props.onShow(s.feedUrl)} accessibilityRole="button" accessibilityLabel={s.line ? `${s.title}. ${s.line}` : s.title} className="w-32">
-            <Artwork url={s.imageUrl} size={128} rounded="row" />
-            <Text className="text-text text-sm font-semibold mt-2" numberOfLines={1}>{s.title}</Text>
+            <Artwork url={s.imageUrl} size={128} rounded="row" name={s.title} />
+            <Text className="text-text text-sm font-semibold mt-2" numberOfLines={2}>{s.title}</Text>
             {s.line ? <Text className="text-muted text-xs" numberOfLines={2}>{s.line}</Text> : null}
           </Pressable>
         ))}

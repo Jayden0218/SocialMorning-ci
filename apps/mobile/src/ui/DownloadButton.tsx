@@ -13,6 +13,8 @@ import type { DownloadRow } from '../storage/types';
 
 export function mb(bytes: number | undefined): string {
   if (bytes === undefined) return '';
+  // M12 FR-011 (B11): nothing is 0 MB — the floor of 1 made an empty Downloads say "Used 1 MB".
+  if (bytes <= 0) return '0 MB';
   return `${Math.max(1, Math.round(bytes / 1024 / 1024))} MB`;
 }
 

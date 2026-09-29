@@ -24,3 +24,19 @@ export function matchesAll(term: string, texts: readonly (string | undefined)[])
   const hay = texts.filter(Boolean).join(' ').toLowerCase();
   return words.every((w) => hay.includes(w));
 }
+
+/**
+ * M12 FR-006 (B6): this phone's own listening, for the listener's own profile. On the iPhone
+ * the profile said "Nothing listened yet" while Recently played listed three episodes, one
+ * finished — the server's totals only count what reached it. The profile shows the larger.
+ */
+export function localTotals(stores: Pick<Stores, 'positions' | 'feeds'>): { listenedMs: number; finished: number } {
+  let listenedMs = 0;
+  let finished = 0;
+  for (const p of stores.positions.all()) {
+    const duration = stores.feeds.getEpisode(p.episodeId)?.durationMs;
+    listenedMs += p.finished && duration !== undefined ? duration : p.offsetMs;
+    if (p.finished) finished += 1;
+  }
+  return { listenedMs, finished };
+}

@@ -28,6 +28,7 @@ import { EpisodeRow } from '../src/ui/EpisodeRow';
 import { EmptyState } from '../src/ui/EmptyState';
 import { hit } from '../src/design';
 import { useColours } from '../src/ui/useColours';
+import { Icon } from '../src/ui/Icon';
 import { GENRES } from '../src/discover/genres';
 import { addHistory, clearHistory, readHistory } from '../src/search/history';
 import { suggestions } from '../src/search/suggest';
@@ -89,14 +90,15 @@ export default function SearchScreen(): React.ReactElement {
     <SafeAreaView className="flex-1 bg-background">
       <Box className="flex-row items-center gap-row px-screen-x pt-row">
         <Box className="flex-1 flex-row items-center bg-surface rounded-row pl-row">
-          <Box className="w-4 h-4 rounded-pill border-2 border-separator" />
+          {/* M12 FR-010 (B10): the same magnifier and scan marks as the Discover bar. */}
+          <Icon name="search-outline" size={18} color={c.muted} />
           <Input className="flex-1 border-0 h-auto px-0 w-auto">
             <InputField
             placeholderTextColor={c.muted} placeholder={params.hint ?? 'Search shows and episodes, or paste a feed URL'} autoCorrect={false} autoFocus returnKeyType="search"
             value={term} onChangeText={setTerm} onSubmitEditing={() => (term.trim() === '' && params.hint ? searchFor(params.hint) : remember(term))} accessibilityLabel="Search podcasts"  className="px-row py-row text-text text-sm" />
           </Input>
           <Pressable onPress={() => router.push('/scan')} accessibilityRole="button" accessibilityLabel="Scan a QR code" className="items-center justify-center" style={TAP}>
-            <Box className="w-5 h-5 border-2 border-muted rounded-sm" />
+            <Icon name="scan-outline" size={22} color={c.text} />
           </Pressable>
         </Box>
         <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Cancel" className="justify-center" style={TAP}>

@@ -23,6 +23,7 @@ export default function AccountSecurityScreen(): React.ReactElement {
   const stores = useStores();
   const c = useColours(stores.settings);
   const { auth, listener } = useSocial();
+  const [more, setMore] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [code, setCode] = useState('');
   const [codeSent, setCodeSent] = useState(false);
@@ -63,9 +64,11 @@ export default function AccountSecurityScreen(): React.ReactElement {
   const masked = listener?.email ? listener.email.replace(/^(.)(.*)(.@.*)$/, (_m, a: string, mid: string, b: string) => `${a}${'*'.repeat(Math.min(6, mid.length))}${b}`) : '';
   return (
     <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x py-section gap-3">
-      <Stack.Screen options={{ title: 'Account and security' }} />
+      <Stack.Screen options={{ title: more ? 'More' : 'Account and security' }} />
       {/* M10 (owner, 2026-09-27), after the reference: the ways you sign in, then deletion.
           SocialNet signs in by an emailed code; Google and Facebook are not set up yet. */}
+      {/* M12 FR-096: deletion sits one level down, under More (was on the first screen). */}
+      {more ? null : (<>
       <Box className="flex-row items-center gap-section min-h-14">
         <Icon name="mail-outline" size={24} color={c.accent} />
         <Text className="text-text text-sm flex-1">Email</Text>
@@ -79,8 +82,13 @@ export default function AccountSecurityScreen(): React.ReactElement {
         </Box>
       ))}
       <Box className="border-b-hairline border-separator my-row" />
-      {!listener ? <Text className="text-muted text-sm">Sign in to manage your account.</Text> : null}
-      {!confirming ? (
+      <Pressable onPress={() => setMore(true)} accessibilityRole="button" accessibilityLabel="More account options" className="flex-row items-center min-h-14">
+        <Text className="text-text text-sm flex-1">More</Text>
+        <Icon name="chevron-forward" size={20} color={c.muted} />
+      </Pressable>
+      </>)}
+      {!more ? null : !listener ? <Text className="text-muted text-sm">Sign in to manage your account.</Text> : null}
+      {!more ? null : !confirming ? (
         <Pressable onPress={() => setConfirming(true)} accessibilityRole="button">
           <Text className={link}>Delete my account…</Text>
         </Pressable>

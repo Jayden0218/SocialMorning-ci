@@ -24,7 +24,7 @@ import { hms } from '../../src/ui/StatsBlock';
 import { Artwork } from '../../src/ui/Artwork';
 import { countryName } from '../../src/ui/country';
 import { useStores } from '../../src/ui/providers';
-import { listeningHistory } from '../../src/me/history';
+import { listeningHistory, localTotals } from '../../src/me/history';
 import { listMoments } from '../../src/me/moments';
 import { latestEarned, stickers } from '../../src/me/stickers';
 import { FeedItem } from '../../src/ui/FeedItem';
@@ -70,7 +70,10 @@ export default function ProfileScreen(): React.ReactElement {
       </Box>
     );
   }
-  const all = profile.stats?.all;
+  // M12 FR-006 (B6): your own totals are at least what this phone has recorded.
+  const local = own ? localTotals(stores) : undefined;
+  const server = profile.stats?.all;
+  const all = server && local ? { ...server, listenedMs: Math.max(server.listenedMs, local.listenedMs), finished: Math.max(server.finished, local.finished) } : server;
   const history = own ? listeningHistory(stores, 5) : [];
   const earned = own ? stickers({ listenedMs: all?.listenedMs ?? 0, finished: all?.finished ?? 0, moments: listMoments(stores.settings).length, comments: profile.recent.filter((r) => r.kind === 'commented').length }) : [];
   const latest = latestEarned(earned);

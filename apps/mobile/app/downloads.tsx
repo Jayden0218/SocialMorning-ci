@@ -59,8 +59,9 @@ export default function DownloadsScreen(): React.ReactElement {
           <Text className="text-[15px] text-text">Used {mb(downloads.usedBytes())} of {mb(downloads.budgetBytes())}</Text>
           <Box className="flex-row gap-3 items-center flex-wrap">
             {BUDGETS.map((b) => (
-              <Pressable key={b} onPress={() => downloads.setBudgetBytes(b)} accessibilityRole="button">
-                <Text className={`border rounded-pill px-2.5 py-1 ${downloads.budgetBytes() === b ? 'bg-primary border-primary text-onPrimary' : 'border-separator text-text'}`}>{b < 1024 ** 3 ? `${b / 1024 ** 2} MB` : `${b / 1024 ** 3} GB`}</Text>
+              // M12 NEW-6: a 48 pt target (the chips were 27 pt) that says which size is chosen.
+              <Pressable key={b} onPress={() => downloads.setBudgetBytes(b)} accessibilityRole="button" accessibilityState={{ selected: downloads.budgetBytes() === b }} className="justify-center" style={TAP}>
+                <Text className={`border rounded-pill px-3 py-1.5 ${downloads.budgetBytes() === b ? 'bg-primary border-primary text-onPrimary' : 'border-separator text-text'}`}>{b < 1024 ** 3 ? `${b / 1024 ** 2} MB` : `${b / 1024 ** 3} GB`}</Text>
               </Pressable>
             ))}
           </Box>
