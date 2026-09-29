@@ -3,7 +3,7 @@
  * The arrangement is ours; the covers are whatever `landingArt` found. The lower edge
  * fades into the page so the choices below sit on white.
  */
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from '../../design/tailwind';
 import { useEffect, useRef } from 'react';
 import { useWindowDimensions } from 'react-native';
 import { Image } from '../lib/image';

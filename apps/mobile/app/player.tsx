@@ -28,7 +28,7 @@ import { Box } from '../src/ui/lib/box';
 import { currentLine } from '@socialmorning/player-core';
 import { Icon } from '../src/ui/Icon';
 import { BarButton, TAP, TopBar } from '../src/ui/TopBar';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from '../src/design/tailwind';
 import { gradientFor } from '../src/design/gradient';
 import { Artwork } from '../src/ui/Artwork';
 import { mediaKindOf } from '@socialmorning/social-core';

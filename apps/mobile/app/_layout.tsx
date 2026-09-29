@@ -29,17 +29,21 @@ void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout(): React.ReactElement {
   return (
-    <GluestackUIProvider>
     <AppProviders>
       <SocialProvider>
       <SafetyProvider>
       <GraphProvider>
+      {/* Innermost (found on the iPhone 2026-09-29): gluestack draws sheets, dialogs and toasts
+          in a portal at this provider, so it must sit inside every data provider — outside
+          AppProviders the episode ⋯ sheet threw "useStores must be used inside <AppProviders>",
+          which a Release build turns into a crash. */}
+      <GluestackUIProvider>
       <RootStack />
+      </GluestackUIProvider>
       </GraphProvider>
       </SafetyProvider>
       </SocialProvider>
     </AppProviders>
-    </GluestackUIProvider>
   );
 }
 

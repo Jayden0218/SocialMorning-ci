@@ -4,7 +4,8 @@
  * follow: listens, comments, clips — M4's Following feed, which used to be a tab) — then
  * that activity below. Opening the page marks it read, as the Following tab did.
  */
-import { Link, router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
+import { Link } from '../src/design/tailwind';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList } from '../src/ui/lib/flat-list';
 import { RefreshControl } from '../src/ui/lib/refresh-control';
