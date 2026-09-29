@@ -4,10 +4,10 @@
  * The break: record with expo-audio's HIGH_QUALITY settings (stereo, 128 kbit/s).
  */
 const listeners: ((s: { didJustFinish: boolean }) => void)[] = [];
-const fakePlayer = { play: jest.fn(), remove: jest.fn(), addListener: jest.fn((_e: string, f: (s: { didJustFinish: boolean }) => void) => { listeners.push(f); }) };
+const mockPlayer = { play: jest.fn(), remove: jest.fn(), addListener: jest.fn((_e: string, f: (s: { didJustFinish: boolean }) => void) => { listeners.push(f); }) };
 jest.mock('expo-audio', () => ({
   AudioQuality: { MEDIUM: 64 }, IOSOutputFormat: { MPEG4AAC: 'aac ' },
-  createAudioPlayer: jest.fn(() => fakePlayer),
+  createAudioPlayer: jest.fn(() => mockPlayer),
   setAudioModeAsync: jest.fn(async () => undefined),
   requestRecordingPermissionsAsync: jest.fn(async () => ({ granted: false })),
 }));
@@ -35,13 +35,13 @@ it('the clock stops at 1:00; hours left never go negative', () => {
 it('a voice post plays once and reports its end; stop removes the player', () => {
   const onEnd = jest.fn();
   const v = playVoice('https://blob/v.m4a', onEnd);
-  expect(fakePlayer.play).toHaveBeenCalled();
+  expect(mockPlayer.play).toHaveBeenCalled();
   listeners[0]!({ didJustFinish: false });
   expect(onEnd).not.toHaveBeenCalled();
   listeners[0]!({ didJustFinish: true });
   expect(onEnd).toHaveBeenCalledTimes(1);
   v.stop();
-  expect(fakePlayer.remove).toHaveBeenCalled();
+  expect(mockPlayer.remove).toHaveBeenCalled();
 });
 
 it('recording turns the session to record and back to the player\'s own mode; a refused microphone is false', async () => {
