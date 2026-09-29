@@ -74,3 +74,24 @@ it('Appearance: the setting wins; System follows the phone', () => {
   expect(paletteFor('system', 'light')).toBe(lightColour);
   expect(paletteFor('system', null)).toBe(lightColour);
 });
+
+// M12 guard G-A1b (FR-108): every accent theme clears its floors in light and dark —
+// 6 themes × 8 pairs. The break: set a theme's light accent to a 3:1 colour.
+import { ACCENT_PAIRS } from '../src/design/contrast';
+import { ACCENTS } from '../src/design/tokens';
+import { withAccent } from '../src/design/accent';
+import { colour as base } from '../src/design/tokens';
+
+it('G-A1b: every accent theme passes its contrast floors', () => {
+  expect(Object.keys(ACCENTS).length - 1).toBeGreaterThanOrEqual(6);
+  expect(ACCENT_PAIRS).toHaveLength((Object.keys(ACCENTS).length - 1) * 8);
+  expect(failures(ACCENT_PAIRS)).toEqual([]);
+});
+
+it('an accent swaps only its four tokens; sunrise is the brand palette', () => {
+  expect(withAccent(base, 'sunrise', false)).toBe(base);
+  const teal = withAccent(base, 'teal', false);
+  expect(teal.accent).toBe(ACCENTS.teal.light.accent);
+  expect(teal.text).toBe(base.text);
+  expect(teal.background).toBe(base.background);
+});

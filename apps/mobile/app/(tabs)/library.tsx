@@ -37,6 +37,7 @@ import { useDownloads, useStores, useSubscriptionSync, useToast } from '../../sr
 import { useSocial } from '../../src/social/context';
 import { useM12Api } from '../../src/social/m12-api';
 import { CommentsButton } from '../../src/ui/CommentsButton';
+import { VoicePosts } from '../../src/ui/VoicePosts';
 import { BOTTOM_INSET } from '../../src/ui/Screen';
 import { plural } from '@socialmorning/social-core';
 
@@ -89,6 +90,7 @@ export default function UpdatesScreen(): React.ReactElement {
   // the icons without numbers — the list itself never waits on it.
   const m12 = useM12Api();
   const [counts, setCounts] = useState<Record<string, number>>({});
+  const loadVoice = useCallback(() => m12.voicePosts(), [m12]);
   const ids = rows.slice(0, 100).map((r) => r.episode.id).join(',');
   useEffect(() => {
     if (ids === '') return;
@@ -123,6 +125,8 @@ export default function UpdatesScreen(): React.ReactElement {
                 </Pressable>
               </Link>
             </Box>
+            {/* M12 FR-104: voice statuses from you and the people you follow (signed in only). */}
+            {listenerId !== undefined ? <VoicePosts load={loadVoice} remove={m12.deleteVoicePost} pauseEpisode={player.pause} colours={c} /> : null}
             <Box className="px-screen-x pt-row">
               <ContinueListening />
               {stale > 0 ? <Text className="text-muted text-xs mt-row">{plural(stale, 'show')} could not refresh — showing the saved copy.</Text> : null}

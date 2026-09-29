@@ -94,6 +94,26 @@ export const colourDark = {
 
 export type Palette = { readonly [K in keyof typeof colour]: string };
 
+/**
+ * M12 FR-108: accent themes — SocialNet's own, not 小宇宙's (FR-110). Each swaps only the four
+ * accent tokens, in each palette. Measured with `contrast.ts` before adoption (2026-09-29) and
+ * re-checked on every run by `ACCENT_PAIRS` (guard G-A1b): accent on page / card, words on the
+ * fill, the play glyph on its tint. Lowest: forest's accent on a light card, 4.61. Unlike the
+ * brand yellow (the owner's waiver), every theme's fill carries its words at 5.02 or more — so
+ * on dark the fill's words are the page colour, not white. "sunrise" is the brand palette itself.
+ */
+export type AccentKeys = { primary: string; onPrimary: string; accent: string; accentTint: string };
+export const ACCENTS = {
+  sunrise: { label: 'Sunrise', light: { primary: colour.primary, onPrimary: colour.onPrimary, accent: colour.accent, accentTint: colour.accentTint }, dark: { primary: colourDark.primary, onPrimary: colourDark.onPrimary, accent: colourDark.accent, accentTint: colourDark.accentTint } },
+  teal: { label: 'Teal', light: { primary: '#0f766e', onPrimary: '#ffffff', accent: '#0f766e', accentTint: 'rgba(15,118,110,0.14)' }, dark: { primary: '#2dd4bf', onPrimary: '#111114', accent: '#2dd4bf', accentTint: 'rgba(45,212,191,0.18)' } },
+  coral: { label: 'Coral', light: { primary: '#be123c', onPrimary: '#ffffff', accent: '#be123c', accentTint: 'rgba(190,18,60,0.14)' }, dark: { primary: '#fb7185', onPrimary: '#111114', accent: '#fb7185', accentTint: 'rgba(251,113,133,0.18)' } },
+  violet: { label: 'Violet', light: { primary: '#6d28d9', onPrimary: '#ffffff', accent: '#6d28d9', accentTint: 'rgba(109,40,217,0.14)' }, dark: { primary: '#a78bfa', onPrimary: '#111114', accent: '#a78bfa', accentTint: 'rgba(167,139,250,0.18)' } },
+  forest: { label: 'Forest', light: { primary: '#15803d', onPrimary: '#ffffff', accent: '#15803d', accentTint: 'rgba(21,128,61,0.14)' }, dark: { primary: '#4ade80', onPrimary: '#111114', accent: '#4ade80', accentTint: 'rgba(74,222,128,0.18)' } },
+  ocean: { label: 'Ocean', light: { primary: '#1d4ed8', onPrimary: '#ffffff', accent: '#1d4ed8', accentTint: 'rgba(29,78,216,0.14)' }, dark: { primary: '#60a5fa', onPrimary: '#111114', accent: '#60a5fa', accentTint: 'rgba(96,165,250,0.18)' } },
+  plum: { label: 'Plum', light: { primary: '#a21caf', onPrimary: '#ffffff', accent: '#a21caf', accentTint: 'rgba(162,28,175,0.14)' }, dark: { primary: '#e879f9', onPrimary: '#111114', accent: '#e879f9', accentTint: 'rgba(232,121,249,0.18)' } },
+} as const satisfies Record<string, { label: string; light: AccentKeys; dark: AccentKeys }>;
+export type AccentName = keyof typeof ACCENTS;
+
 export const fontSize = { xs: 12, sm: 16, base: 20, lg: 24 } as const;
 
 /**

@@ -3,7 +3,7 @@
  * assumed. The same formula was used to compute the palette in research R1; shipping it
  * means the gate re-checks every token pair on every run.
  */
-import { colour, colourDark } from './tokens';
+import { ACCENTS, colour, colourDark } from './tokens';
 
 /** Accepts `#rgb`, `#rrggbb`, or `rgba(r,g,b,a)` composited over `over` (default black). */
 export function relativeLuminance(value: string, over = '#000000'): number {
@@ -68,6 +68,21 @@ export const PAIRS_DARK: Pair[] = [
   { fg: colourDark.text, bg: over(colourDark.veil, '#ffffff'), min: BODY_MIN, role: 'player text on the veil, white cover (dark)' },
   { fg: colourDark.muted, bg: over(colourDark.veil, '#ffffff'), min: BODY_MIN, role: 'player secondary text on the veil, white cover (dark)' },
 ];
+
+/**
+ * M12 guard G-A1b (FR-108): every accent theme, in both palettes. The brand theme ("sunrise")
+ * is left out: its pairs are the ones above, and its fill's white words are the waiver below.
+ */
+export const ACCENT_PAIRS: Pair[] = Object.entries(ACCENTS).filter(([name]) => name !== 'sunrise').flatMap(([name, t]) => [
+  { fg: t.light.accent, bg: colour.background, min: BODY_MIN, role: `${name}: links on the page` },
+  { fg: t.light.accent, bg: colour.surface, min: BODY_MIN, role: `${name}: links on a card` },
+  { fg: t.light.onPrimary, bg: t.light.primary, min: BODY_MIN, role: `${name}: words on the fill` },
+  { fg: t.light.accent, bg: over(t.light.accentTint, colour.background), min: LARGE_MIN, role: `${name}: play glyph on its tint` },
+  { fg: t.dark.accent, bg: colourDark.background, min: BODY_MIN, role: `${name}: links on the page (dark)` },
+  { fg: t.dark.accent, bg: colourDark.surface, min: BODY_MIN, role: `${name}: links on a card (dark)` },
+  { fg: t.dark.onPrimary, bg: t.dark.primary, min: BODY_MIN, role: `${name}: words on the fill (dark)` },
+  { fg: t.dark.accent, bg: over(t.dark.accentTint, colourDark.background), min: LARGE_MIN, role: `${name}: play glyph on its tint (dark)` },
+]);
 
 /**
  * Pairs the owner chose to ship below their floor, knowing the number. They are not in
