@@ -78,6 +78,7 @@ export function CommentList(props: {
             <Text className="text-muted text-[13px]">{relativeTime(c.createdAt, props.serverTime)}</Text>
           </Box>
           <Text className="text-[15px] text-text">{c.body}</Text>
+          {c.hiddenByHost ? <Text className="text-muted text-[13px] italic">Hidden by the host — only you can see it</Text> : null}
           <Box className="flex-row gap-4">
             {!isReply ? (
               <Pressable onPress={() => (listener ? props.onReply(c.id) : needSignIn())} accessibilityRole="button">

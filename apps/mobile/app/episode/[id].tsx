@@ -32,6 +32,7 @@ import { useSocial } from '../../src/social/context';
 import { usePoll } from '../../src/social/usePoll';
 import type { ComposerState } from '../../src/social/composer';
 import { CommentList } from '../../src/ui/CommentList';
+import { ShowExtrasBlock, useShowExtras } from '../../src/ui/ShowExtras';
 import { ComposerSheet } from '../../src/ui/Composer';
 import { ClipList } from '../../src/ui/ClipList';
 import { NextUp, useNextUp } from '../../src/ui/NextUp';
@@ -44,7 +45,7 @@ export default function EpisodeScreen(): React.ReactElement {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const episode = id === undefined ? undefined : stores.feeds.getEpisode(id);
-  const { composer, useEpisodeSocial, refresh } = useSocial();
+  const { composer, useEpisodeSocial, refresh, api } = useSocial();
   // M5 (FR-008): "Next up" for this episode; absent when the server has no answer.
   const nextUp = useNextUp(episode?.id);
   const { open: discoverOpen } = useDiscover();
@@ -61,6 +62,8 @@ export default function EpisodeScreen(): React.ReactElement {
   // only what the reference shows (owner, 2026-09-27).
   const [more, setMore] = useState(false);
   const [fav, setFav] = useState(() => episode !== undefined && isFavourite(stores.settings, episode.id));
+  // M11 (FR-023): a poll the host attached to this episode.
+  const [extras, replacePoll] = useShowExtras(episode?.feedUrl ?? '');
 
   if (episode === undefined) {
     return (
@@ -126,7 +129,7 @@ export default function EpisodeScreen(): React.ReactElement {
         <Pressable onPress={toggleSubscription} accessibilityRole="button" accessibilityLabel={subscribed ? 'Unsubscribe from this show' : 'Subscribe to this show'} accessibilityState={{ selected: subscribed }} className="justify-center" style={TAP}>
           <Text className={subscribed ? 'text-sm font-semibold px-row py-2 rounded-row bg-surface text-muted' : 'text-sm font-semibold px-row py-2 rounded-row bg-surface text-text'}>{subscribed ? 'Subscribed' : '+ Subscribe'}</Text>
         </Pressable>
-        <BarButton label="Share this episode" onPress={() => { void Share.share({ message: `${episode.title} — ${show?.title ?? ''}\n${episode.enclosureUrl}` }).catch(() => undefined); }}>
+        <BarButton label="Share this episode" onPress={() => { void api.recordShare({ targetKind: 'episode', targetId: episode.id, feedUrl: episode.feedUrl }).catch(() => undefined); void Share.share({ message: `${episode.title} — ${show?.title ?? ''}\n${episode.enclosureUrl}` }).catch(() => undefined); }}>
           <Icon name="share-outline" size={24} color={c.text} />
         </BarButton>
         <BarButton label="More: play next, download, save a moment" onPress={() => setMore(true)}>
@@ -197,6 +200,7 @@ export default function EpisodeScreen(): React.ReactElement {
           </Text>
         )}
         <Box className="mt-section" onLayout={(e) => setCommentsY(e.nativeEvent.layout.y)}>
+          {extras ? <ShowExtrasBlock extras={extras} onPoll={replacePoll} episodeId={episode.id} /> : null}
           <CommentList
             episodeId={episode.id}
             comments={cached?.social.comments ?? []}

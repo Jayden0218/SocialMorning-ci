@@ -11,7 +11,9 @@
 export type ErrorCode =
   | 'validation' | 'unauthenticated' | 'forbidden' | 'not_found' | 'conflict' | 'locked'
   | 'duration_unknown' | 'reply_depth' | 'self_follow' | 'unavailable' | 'internal' | 'network'
-  | 'suspended' | 'blocked' | 'removed';
+  | 'suspended' | 'blocked' | 'removed'
+  // M11: the show's host turned off comments for this listener on that show.
+  | 'muted_on_show';
 
 export class ApiError extends Error {
   constructor(
@@ -47,6 +49,8 @@ export type Comment = {
   reported?: boolean;
   /** M10b US8: written by the show's proven creator. */
   host?: true;
+  /** M11: the host hid it. Others get a placeholder; the author still reads it, marked. */
+  hiddenByHost?: true;
 };
 export type Social = {
   serverTime: string;
@@ -104,7 +108,7 @@ export type LibraryItem = { kind: 'fav_episode' | 'fav_comment' | 'moment' | 'se
 /** M10b US8: a claim on a feed the listener publishes; `code` goes anywhere in the feed. */
 export type CreatorClaim = { id: string; feedUrl: string; code: string; status: 'pending' | 'proven' | 'revoked'; provenAt?: string };
 export type ShowStats = { listeners: number; comments: number; episodes: number; topMoments: { episodeId: string; title: string; offsetMs: number; comments: number }[] };
-export type MyComment = { id: string; body: string | null; deleted: boolean; removed: boolean; offsetMs: number | null; createdAt: string; episode: EpisodeCard };
+export type MyComment = { id: string; body: string | null; deleted: boolean; removed: boolean; hiddenByHost?: true; offsetMs: number | null; createdAt: string; episode: EpisodeCard };
 export type CategoryShows = { genreId: number; name: string; shows: ShowCard[]; stale?: boolean };
 export type DiscoverResult = { status: 200; etag?: string; body: Discover } | { status: 304 };
 export type ShowCard = { appleId?: number; feedUrl: string; title: string; author: string; imageUrl?: string; genres: string[]; episodeCount?: number };
@@ -188,6 +192,24 @@ export type ApiClient = {
   unblock(listenerId: string): Promise<void>;
   hidden(): Promise<HiddenOut>;
   meta(): Promise<Meta>;
+  // M11 — a creator's announcements, polls and display settings for a show; share events
+  showExtras(feedUrl: string): Promise<ShowExtras>;
+  votePoll(pollId: string, optionIdx: number): Promise<ShowPoll>;
+  recordShare(s: { targetKind: 'episode' | 'clip' | 'show'; targetId: string; feedUrl: string }): Promise<void>;
+};
+
+/** M11 (specs/011-m11-studio/contracts/studio-api.md, "App-facing"). */
+export type ShowPoll = {
+  id: string; question: string; episodeId: string | null; endsAt: string; closedAt: string | null; open: boolean;
+  total: number; options: { idx: number; label: string; votes: number }[]; myVote?: number | null;
+};
+export type ShowExtras = {
+  overrides: {
+    title: string | null; description: string | null; coverUrl: string | null; themeColour: string | null;
+    milestoneMessage: string | null; hosts: string[] | null; links: { label: string; url: string }[] | null;
+  } | null;
+  announcements: { id: string; body: string; createdAt: string; edited: boolean }[];
+  polls: ShowPoll[];
 };
 
 export type ApiDeps = {
@@ -298,6 +320,9 @@ export function createApi(deps: ApiDeps): ApiClient {
     sendFeedback: async (f) => (await call<{ id: string }>('POST', '/v1/feedback', f)).json,
     libraryPut: async (items) => (await call<{ items: LibraryItem[] }>('PUT', '/v1/me/library', { items })).json,
     myComments: async (before) => (await call<{ items: MyComment[]; next?: string }>('GET', `/v1/me/comments${before ? `?before=${encodeURIComponent(before)}` : ''}`)).json,
+    showExtras: async (feedUrl) => (await call<ShowExtras>('GET', `/v1/shows/extras?feedUrl=${encodeURIComponent(feedUrl)}`)).json,
+    votePoll: async (pollId, optionIdx) => (await call<{ poll: ShowPoll }>('POST', `/v1/polls/${pollId}/vote`, { optionIdx })).json.poll,
+    recordShare: async (s) => { await call('POST', '/v1/shares', s); },
     creatorClaims: async () => (await call<{ claims: CreatorClaim[] }>('GET', '/v1/creator/claims')).json.claims,
     creatorClaim: async (feedUrl) => (await call<CreatorClaim>('POST', '/v1/creator/claims', { feedUrl })).json,
     creatorVerify: async (id) => {

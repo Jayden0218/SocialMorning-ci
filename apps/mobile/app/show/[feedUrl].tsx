@@ -33,6 +33,8 @@ import { ReportSheet, type ReportTarget } from '../../src/ui/ReportSheet';
 import { useStores, useSubscriptionSync } from '../../src/ui/providers';
 import type { CachedEpisode, CachedShow } from '../../src/storage/types';
 import { getPref } from '../../src/settings/prefs';
+import { ShowExtrasBlock, useShowExtras } from '../../src/ui/ShowExtras';
+import { useSocial } from '../../src/social/context';
 
 export default function ShowScreen(): React.ReactElement {
   const stores = useStores();
@@ -58,6 +60,12 @@ export default function ShowScreen(): React.ReactElement {
   // when this screen was pushed (seen on the phone 2026-09-21: Casey "0:57" while
   // its own screen said 15:52).
   const [focusTick, setFocusTick] = useState(0);
+  // M11: the creator's Studio settings, announcements and polls — after the feed, never instead of it.
+  const [extras, replacePoll] = useShowExtras(feedUrl);
+  const { api } = useSocial();
+  const ov = extras?.overrides ?? null;
+  const title = ov?.title ?? show?.title;
+  const description = ov?.description ?? show?.description;
   useFocusEffect(useCallback(() => { setFocusTick((n) => n + 1); }, []));
 
   useEffect(() => {
@@ -125,13 +133,13 @@ export default function ShowScreen(): React.ReactElement {
       <Box className="px-screen-x pt-row gap-section">
         <Box className="flex-row gap-section items-start">
           <Box className="flex-1 gap-2">
-            <Text className="text-[28px] leading-[36px] font-bold text-text" accessibilityRole="header">{show?.title ?? 'Loading…'}</Text>
-            {show?.description === undefined ? null : (
-              <Text className="text-sm text-muted" numberOfLines={2}>{htmlToText(show.description)}</Text>
+            <Text className="text-[28px] leading-[36px] font-bold text-text" accessibilityRole="header">{title ?? 'Loading…'}</Text>
+            {description === undefined ? null : (
+              <Text className="text-sm text-muted" numberOfLines={2}>{htmlToText(description)}</Text>
             )}
             {show?.author === undefined ? null : <Text className="text-sm text-muted mt-2" numberOfLines={1}>{show.author}</Text>}
           </Box>
-          <Artwork url={show?.imageUrl} size={120} rounded="artwork" />
+          <Artwork url={ov?.coverUrl ?? show?.imageUrl} size={120} rounded="artwork" />
         </Box>
         <Box className="flex-row items-center gap-section">
           <Text className="text-text">
@@ -153,6 +161,7 @@ export default function ShowScreen(): React.ReactElement {
         {hiddenShow ? <Text className="text-[13px] text-accent">Hidden from discovery by moderation. It stays in your library.</Text> : null}
         {stale ? <Text className="text-[13px] text-accent">Showing the last copy — refresh failed</Text> : null}
         {failed === undefined ? null : <Text className="text-[13px] text-accent">{failed}</Text>}
+        {extras ? <ShowExtrasBlock extras={extras} onPoll={replacePoll} /> : null}
         <Box className="flex-row gap-6" accessibilityRole="tablist">
           {(['episodes', 'about'] as const).map((t) => (
             <Pressable key={t} onPress={() => setTab(t)} accessibilityRole="tab" accessibilityState={{ selected: tab === t }} accessibilityLabel={t === 'episodes' ? 'Episodes' : 'About'} className="justify-end" style={TAP}>
@@ -188,7 +197,10 @@ export default function ShowScreen(): React.ReactElement {
   return (
     <SafeAreaView className="flex-1 bg-background">
       <TopBar onBack={() => router.back()}>
-        <BarButton label="Share this show" onPress={() => { void Share.share({ message: `${show?.title ?? ''}\n${feedUrl}` }).catch(() => undefined); }}>
+        <BarButton label="Share this show" onPress={() => {
+          void api.recordShare({ targetKind: 'show', targetId: feedUrl, feedUrl }).catch(() => undefined); // M11 FR-011: never waits
+          void Share.share({ message: `${title ?? ''}\n${feedUrl}` }).catch(() => undefined);
+        }}>
           <Glyph>↗</Glyph>
         </BarButton>
         <BarButton label="Search" onPress={() => router.push('/search')}><SearchIcon /></BarButton>

@@ -43,7 +43,7 @@ export default function MyCommentsScreen(): React.ReactElement {
       onEndReached={more}
       ListEmptyComponent={<EmptyPicture icon="chatbubbles-outline" line={!listener ? 'Sign in to comment' : failed ? "Couldn't load your comments" : 'No comments yet'} />}
       renderItem={({ item }) => {
-        const text = item.removed ? 'Removed by moderation' : item.deleted ? 'You deleted this comment' : item.body ?? '';
+        const text = item.removed ? 'Removed by moderation' : item.deleted ? 'You deleted this comment' : item.hiddenByHost ? `${item.body ?? ''} — hidden by the host` : item.body ?? '';
         return (
           <Pressable onPress={() => router.push({ pathname: '/episode/[id]', params: { id: item.episode.id, ...(item.offsetMs !== null ? { at: String(item.offsetMs) } : {}) } })}
             accessibilityRole="button" accessibilityLabel={`${text}. On ${item.episode.title}`} className="py-row border-b-hairline border-separator gap-1">

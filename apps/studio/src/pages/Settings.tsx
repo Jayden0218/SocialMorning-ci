@@ -7,6 +7,7 @@ import { ConfirmDialog } from '../shell/ConfirmDialog';
 import { PageHead } from '../shell/Page';
 import { Empty, Failed, Loading } from '../shell/States';
 import { useLoad } from '../useLoad';
+import { light } from '../tokens';
 
 type Overrides = { title: string | null; description: string | null; coverUrl: string | null; themeColour: string | null; milestoneMessage: string | null; hosts: string[] | null; links: { label: string; url: string }[] | null };
 
@@ -75,7 +76,7 @@ function Appearance({ show }: { show: Show }) {
           <label htmlFor="o-themeColour">Theme colour</label>
           <div style={{ display: 'flex', gap: 8 }}>
             <input id="o-themeColour" value={f.themeColour} onChange={set('themeColour')} placeholder="#rrggbb" pattern="#[0-9a-fA-F]{6}" style={{ flex: 1 }} />
-            <input type="color" aria-label="Pick a colour" value={/^#[0-9a-f]{6}$/i.test(f.themeColour) ? f.themeColour : '#888888'} onChange={set('themeColour')} style={{ width: 56, minHeight: 44, padding: 4 }} />
+            <input type="color" aria-label="Pick a colour" value={/^#[0-9a-f]{6}$/i.test(f.themeColour) ? f.themeColour : light.muted} onChange={set('themeColour')} style={{ width: 56, minHeight: 44, padding: 4 }} />
           </div>
           <span className="muted" style={{ fontSize: 13 }}>Used as an accent only where it stays readable; otherwise the app keeps its own.</span>
         </div>

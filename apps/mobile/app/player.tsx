@@ -64,7 +64,7 @@ export default function PlayerScreen(): React.ReactElement {
   const state = usePlayerState();
   const stores = useStores();
   const c = useColours(stores.settings);
-  const { composer, reactToggle, refresh, useEpisodeSocial, listener, bump } = useSocial();
+  const { composer, reactToggle, refresh, useEpisodeSocial, listener, bump, api } = useSocial();
   const [composing, setComposing] = useState<ComposerState | undefined>();
   const [myBuckets, setMyBuckets] = useState<number[] | undefined>();
   // M2 (US5): chapters + transcript, fetched once per episode, cached (research R5).
@@ -168,7 +168,7 @@ export default function PlayerScreen(): React.ReactElement {
     <SafeAreaView className="flex-1">
     <TopBar back="down" onBack={close}>
       <BarButton label="Clip the last 30 seconds" onPress={clip}><Icon name="cut-outline" size={24} color={c.text} /></BarButton>
-      <BarButton label="Share this episode" onPress={() => { void Share.share({ message: `${episode?.title ?? ''} — ${show?.title ?? ''}\n${episode?.enclosureUrl ?? ''}` }).catch(() => undefined); }}>
+      <BarButton label="Share this episode" onPress={() => { if (episode) void api.recordShare({ targetKind: 'episode', targetId: episode.id, feedUrl: episode.feedUrl }).catch(() => undefined); void Share.share({ message: `${episode?.title ?? ''} — ${show?.title ?? ''}\n${episode?.enclosureUrl ?? ''}` }).catch(() => undefined); }}>
         <Icon name="share-outline" size={24} color={c.text} />
       </BarButton>
     </TopBar>
