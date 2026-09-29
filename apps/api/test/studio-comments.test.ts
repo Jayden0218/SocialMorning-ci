@@ -100,3 +100,12 @@ test('a comment on another show cannot be answered or hidden from this one', asy
   assert.equal((await sCall(t, 'POST', `/v1/studio/shows/${key}/comments/${id}/reply`, owner, { body: 'x' })).status, 404);
   await t.close();
 });
+
+test('the Studio marks comments by the show\'s own team (they cannot be muted there)', async () => {
+  const t = await freshDb();
+  const { owner, key, commentId } = await setup(t);
+  await sCall(t, 'POST', `/v1/studio/shows/${key}/comments/${commentId}/reply`, owner, { body: 'Thanks!' });
+  const list = (await (await sCall(t, 'GET', `/v1/studio/shows/${key}/comments`, owner)).json()) as { items: { body: string; byTeam: boolean }[] };
+  assert.deepEqual(list.items.map((c) => [c.body, c.byTeam]).sort(), [['That bit at 14:32!', false], ['Thanks!', true]]);
+  await t.close();
+});

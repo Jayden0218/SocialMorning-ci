@@ -117,7 +117,7 @@ export function Home({ show }: { show: Show }) {
                     <div className="row-title">{e.title}</div>
                     <div className="row-sub">{shortDate(e.publishedAt)}</div>
                   </div>
-                  <span className="row-side num">{num(e.plays)} plays · {num(e.comments)} comments</span>
+                  <span className="row-side num">{num(e.plays)} play{e.plays === 1 ? '' : 's'} · {num(e.comments)} comment{e.comments === 1 ? '' : 's'}</span>
                 </li>
               ))}
             </ul>

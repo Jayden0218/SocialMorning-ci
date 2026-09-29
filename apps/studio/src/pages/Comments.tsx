@@ -12,7 +12,7 @@ import type { EpisodePage } from './types';
 export type StudioComment = {
   id: string; episodeId: string; episodeTitle: string; author: { id: string; displayName: string } | null;
   body: string | null; state: 'visible' | 'host_hidden' | 'removed' | 'deleted'; offsetMs: number | null;
-  createdAt: string; parentId: string | null; replies: number;
+  createdAt: string; parentId: string | null; replies: number; byTeam?: boolean;
 };
 
 const STATE: Record<StudioComment['state'], string> = { visible: '', host_hidden: 'Hidden by you', removed: 'Removed by moderation', deleted: 'Deleted by its author' };
@@ -65,6 +65,7 @@ function CommentItem({ show, c, showEpisode, onChanged }: { show: Show; c: Studi
         {c.offsetMs !== null ? <span className="num">at {mmss(c.offsetMs)}</span> : null}
         <span>{shortDate(c.createdAt)}</span>
         {c.parentId ? <span className="pill">Reply</span> : null}
+        {c.byTeam ? <span className="pill">Your team</span> : null}
         {STATE[c.state] ? <span className={`pill${c.state === 'host_hidden' ? ' pill-warn' : ''}`}>{STATE[c.state]}</span> : null}
       </div>
       <p className="comment-body">{c.body ?? <i className="muted">No text</i>}</p>
@@ -76,7 +77,7 @@ function CommentItem({ show, c, showEpisode, onChanged }: { show: Show; c: Studi
           {c.state === 'visible'
             ? <button type="button" className="linkish" onClick={() => setConfirm('hide')}>Hide</button>
             : <button type="button" className="linkish" onClick={() => setConfirm('unhide')}>Un-hide</button>}
-          {c.author && !muted ? <button type="button" className="linkish" onClick={() => setMuting(true)}>Mute {c.author.displayName}</button> : null}
+          {c.author && !c.byTeam && !muted ? <button type="button" className="linkish" onClick={() => setMuting(true)}>Mute {c.author.displayName}</button> : null}
           {muted ? <span className="muted" role="status">Muted on your show</span> : null}
         </div>
       ) : null}

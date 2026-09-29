@@ -107,6 +107,8 @@ test('the whole Studio, one creator, from sign-in to sign-out', async ({ page, r
   const [top] = await thread(xuToken);
   expect(top!.replies.map((r) => [r.body, r.host])).toEqual([['Thanks for listening!', true]]);
   await snap(page, 'comments-replied');
+  // The host's own reply is marked as the team's and offers no Mute.
+  await expect(page.getByRole('button', { name: `Mute ${OWNER.name}` })).toHaveCount(0);
 
   // 8 — hide: others see a placeholder, the author still reads it; un-hide restores
   // Newest first: the host's own reply is now on top, so act inside Mei's comment, not on the first Hide.
