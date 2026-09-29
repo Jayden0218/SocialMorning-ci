@@ -91,7 +91,7 @@ export default function SubscriptionsScreen(): React.ReactElement {
         contentContainerClassName="px-screen-x py-row pb-24 flex-grow"
         keyboardShouldPersistTaps="handled"
         stickySectionHeadersEnabled={false}
-        ListHeaderComponent={rows.length === 0 ? null : (
+        ListHeaderComponent={rows.length === 0 ? undefined : (
           <Box>
             <FilterBar term={term} onTerm={setTerm} placeholder="Search your shows" />
             <Box className="flex-row gap-row pb-row" accessibilityRole="tablist">
