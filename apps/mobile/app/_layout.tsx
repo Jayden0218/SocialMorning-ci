@@ -4,12 +4,15 @@
  */
 import '../global.css';
 import '../src/design/tailwind';
-import { Stack } from 'expo-router';
+import { Stack, type ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { LogBox } from 'react-native';
 import { SafeAreaView } from '../src/ui/lib/safe-area-view';
-import { colourDark, fontSize } from '../src/design';
+import { colourDark, fontSize, hit } from '../src/design';
+import { Box } from '../src/ui/lib/box';
+import { Text } from '../src/ui/lib/text';
+import { Pressable } from '../src/ui/lib/pressable';
 import { AppProviders, useStores } from '../src/ui/providers';
 import { useColours } from '../src/ui/useColours';
 import { SocialProvider } from '../src/social/context';
@@ -26,6 +29,25 @@ LogBox.ignoreAllLogs(true);
 // Owner, 2026-09-29: one launch screen, then the first page — no white page between. The
 // native launch screen stays until AppProviders has that page drawn and hides it (providers).
 void SplashScreen.preventAutoHideAsync();
+
+/**
+ * M12 T004 (Principle IV, degrade partially): an error anywhere in the app shows this screen
+ * with a way back, instead of a blank white app (found on the iPhone 2026-09-29 as NEW-1 — a
+ * layout that collapsed, but a thrown error would have looked the same). It sits outside every
+ * provider, so it uses only plain parts and token classes.
+ */
+export function ErrorBoundary(props: ErrorBoundaryProps): React.ReactElement {
+  if (__DEV__) console.error(props.error);
+  return (
+    <Box className="flex-1 bg-background items-center justify-center px-screen-x gap-section">
+      <Text className="text-text text-base font-bold text-center" accessibilityRole="header">Something went wrong</Text>
+      <Text className="text-muted text-sm text-center">This screen stopped working. Your listening and downloads are safe.</Text>
+      <Pressable onPress={() => void props.retry()} accessibilityRole="button" accessibilityLabel="Try again" className="bg-primary rounded-pill px-section items-center justify-center" style={{ minHeight: hit.min }}>
+        <Text className="text-onPrimary text-sm font-semibold">Try again</Text>
+      </Pressable>
+    </Box>
+  );
+}
 
 export default function RootLayout(): React.ReactElement {
   return (
