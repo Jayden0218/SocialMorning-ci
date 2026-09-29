@@ -12,6 +12,8 @@ import { LegalDoc } from '../LegalDoc';
 type Doc = 'agreement' | 'privacy';
 const TAP = { minHeight: hit.min };
 const BOX = { width: 22, height: 22 };
+/** A dialog, not a banner: narrower than the screen, so it reads as a card (owner, 2026-09-29). */
+const CARD = { width: '84%', maxWidth: 340 } as const;
 
 function Links(props: { open: (d: Doc) => void }): React.ReactElement {
   return (
@@ -60,17 +62,20 @@ export function ConsentRow(props: { agreed: boolean; onToggle: () => void; open:
 /**
  * Owner, 2026-09-27: the old dialog read as cramped — tight lines and two bare words at
  * the bottom. Now: centred title, the sentence on 24 px lines, and two real buttons.
+ * Owner, 2026-09-29: it was the full screen width and only ~150 pt tall — a strip, not a
+ * dialog. Now a card at 84 % of the width (at most 340), 24 pt inside on every side,
+ * and more room between the title, the sentence and the buttons.
  */
 export function ConsentDialog(props: { visible: boolean; action: string; onCancel: () => void; onAgree: () => void; open: (d: Doc) => void }): React.ReactElement {
   return (
     <Modal visible={props.visible} transparent animationType="fade" onRequestClose={props.onCancel}>
-      <View className="flex-1 bg-scrim items-center justify-center px-screen-x">
-        <View className="bg-background rounded-artwork px-section pt-section pb-section w-full" accessibilityViewIsModal>
+      <View className="flex-1 bg-scrim items-center justify-center">
+        <View className="bg-background rounded-artwork p-screen-x" style={CARD} accessibilityViewIsModal>
           <Text className="text-text text-base font-bold text-center" accessibilityRole="header">Before you continue</Text>
-          <Text className="text-muted text-sm leading-[24px] text-center mt-row">
+          <Text className="text-muted text-sm leading-[24px] text-center mt-row mb-screen-x">
             Please read and agree to the <Links open={props.open} />.
           </Text>
-          <View className="flex-row gap-row mt-section">
+          <View className="flex-row gap-row">
             <Pressable onPress={props.onCancel} accessibilityRole="button" accessibilityLabel="Cancel" className="flex-1 items-center justify-center rounded-pill border border-separator" style={TAP}>
               <Text className="text-text text-sm font-semibold">Cancel</Text>
             </Pressable>

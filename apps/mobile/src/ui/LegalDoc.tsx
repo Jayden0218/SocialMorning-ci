@@ -25,7 +25,7 @@ const KIND: Record<BlockKind, string> = {
 };
 
 /** iOS's scroll bar sits 3 pt inside the right edge by default; this puts it on the edge. */
-const EDGE = { right: -3 } as const;
+export const EDGE = { right: -3 } as const;
 
 /** Kept as a style: the tap target is asserted on the Pressable's own `style` elsewhere. */
 const TAP = { minHeight: hit.min, minWidth: hit.min };

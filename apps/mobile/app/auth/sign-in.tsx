@@ -15,7 +15,7 @@ import { useSocial } from '../../src/social/context';
 import { useStores, useToast } from '../../src/ui/providers';
 import { askForNotifications } from '../../src/notify/permission';
 import { expoNotify } from '../../src/notify/expo';
-import { Splash } from '../../src/ui/Splash';
+import { signInPage } from '../../src/ui/launch';
 import { AuthButton } from '../../src/ui/auth/AuthShell';
 import { ArtWall } from '../../src/ui/auth/ArtWall';
 import { landingArt } from '../../src/ui/auth/art';
@@ -35,8 +35,10 @@ export default function SignInScreen(): React.ReactElement {
   const [agreed, setAgreed] = useState(false);
   // Which way in is waiting on the consent dialog.
   const [asking, setAsking] = useState<Way | undefined>(undefined);
-  // The page appears whole, once its covers are in (owner, 2026-09-27).
-  const [ready, setReady] = useState(false);
+  // The page appears whole, once its covers are in (owner, 2026-09-27): whatever is over the
+  // app (the launch screen, or the Terms right after Agree) lifts only then — never a splash
+  // of this page's own (owner, 2026-09-29: Agree → splash → sign-in read as a step too many).
+  useEffect(() => () => signInPage.setWhole(false), []);
 
   // Owner, 2026-09-27: the OS asks for notification permission when this page opens.
   useEffect(() => { void askForNotifications(expoNotify); }, []);
@@ -64,7 +66,7 @@ export default function SignInScreen(): React.ReactElement {
   return (
     <SafeAreaView className="flex-1 bg-background">
       <View className="flex-1">
-        <ArtWall urls={art} onReady={() => setReady(true)} />
+        <ArtWall urls={art} onReady={() => signInPage.setWhole(true)} />
       </View>
       <View className="px-screen-x pb-section">
         {/* Owner, 2026-09-27: a clear gap between the name and the ways in. */}
@@ -87,8 +89,6 @@ export default function SignInScreen(): React.ReactElement {
         onAgree={() => { const way = asking; setAsking(undefined); setAgreed(true); if (way) go(way); }}
       />
       {legal.overlay}
-      {/* Same picture as the launch screen, so launch → this page is one step, not two. */}
-      {ready ? null : <Splash />}
     </SafeAreaView>
   );
 }

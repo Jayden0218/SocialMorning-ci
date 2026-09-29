@@ -72,7 +72,7 @@ const FEEDBACK_ADDITIONS = ['expo-image-picker', 'expo-image-manipulator'];
 /** M10b US9: widgets (Android + iOS) and the iPhone live activity (research R11). MIT (LICENSES.md). */
 const OUTSIDE_ADDITIONS = ['react-native-android-widget', '@bacons/apple-targets', 'expo-live-activity'];
 
-/** One launch screen: the native one draws the same icon as the in-app Splash (owner, 2026-09-29). MIT (LICENSES.md). */
+/** One launch screen: the native one, held until the first page is drawn (owner, 2026-09-29). MIT (LICENSES.md). */
 const SPLASH_ADDITIONS = ['expo-splash-screen'];
 
 it('no reference dependency is installed, anywhere', () => {

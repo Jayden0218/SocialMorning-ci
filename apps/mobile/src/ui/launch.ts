@@ -18,8 +18,30 @@ export function coverLaunch(s: { ready: boolean; wantSignIn: boolean; handoff: b
   return !s.ready || s.wantSignIn || s.handoff;
 }
 
-/** The longest the cover waits for the sign-in page before it lifts anyway. */
-export const HANDOFF_MAX_MS = 1500;
+/**
+ * What does the covering (owner, 2026-09-29 — no white page, and no splash after Agree):
+ * at launch it is the **native** launch screen, held until the cover is no longer needed;
+ * after Agree it is the **Terms page itself**, kept until the sign-in page is whole.
+ * `launched` is true once the native launch screen has been hidden.
+ */
+export function keepTerms(s: { ready: boolean; accepted: boolean; launched: boolean; cover: boolean }): boolean {
+  return s.ready && (!s.accepted || (s.launched && s.cover));
+}
+
+/**
+ * The longest the cover waits for the sign-in page to be whole before it lifts anyway:
+ * the page's own wait for its covers (`ART_WAIT_MS`, 1.5 s) plus the push.
+ */
+export const HANDOFF_MAX_MS = 2500;
+
+/** The sign-in page says when it is whole (its art wall loaded), so the cover lifts onto a finished page. */
+let signInWhole = false;
+const wholeListeners = new Set<() => void>();
+export const signInPage = {
+  setWhole(v: boolean): void { signInWhole = v; wholeListeners.forEach((l) => l()); },
+  isWhole: (): boolean => signInWhole,
+  subscribe(l: () => void): () => void { wholeListeners.add(l); return () => { wholeListeners.delete(l); }; },
+};
 
 /**
  * Owner, 2026-09-27, while debugging: show the Terms on every launch even after they

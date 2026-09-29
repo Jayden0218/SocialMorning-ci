@@ -2,7 +2,7 @@
  * The sign-in page is offered on every launch while signed out. The break that turns the
  * first test red: drop `!s.signedIn` from `opensSignIn` in `src/ui/launch.ts`.
  */
-import { coverLaunch, opensSignIn } from '../src/ui/launch';
+import { coverLaunch, keepTerms, opensSignIn } from '../src/ui/launch';
 
 const base = { ready: true, accepted: true, signedIn: false, opened: false };
 
@@ -29,4 +29,18 @@ it('the launch screen covers the home page until sign-in is on top (owner, 2026-
   expect(coverLaunch({ ...idle, handoff: true })).toBe(true);
   // Signed in, or sign-in is on top: nothing covers the app.
   expect(coverLaunch(idle)).toBe(false);
+});
+
+it('after Agree the Terms stay up until sign-in is whole — no splash in between (owner, 2026-09-29)', () => {
+  const s = { ready: true, accepted: true, launched: true, cover: true };
+  // Agreed, the sign-in page is not whole yet: the Terms page is what covers the app.
+  expect(keepTerms(s)).toBe(true);
+  // Sign-in is on top and whole: the Terms go.
+  expect(keepTerms({ ...s, cover: false })).toBe(false);
+  // Not agreed: always the Terms.
+  expect(keepTerms({ ...s, accepted: false, cover: false })).toBe(true);
+  // At launch, already agreed, signed out: the native launch screen covers, not the Terms.
+  expect(keepTerms({ ...s, launched: false })).toBe(false);
+  // Nothing before startup is done.
+  expect(keepTerms({ ...s, ready: false, accepted: false })).toBe(false);
 });

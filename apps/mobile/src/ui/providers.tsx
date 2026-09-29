@@ -5,7 +5,7 @@
  * This is the only place that opens the database and builds the audio
  * adapter, and it does both exactly once for the app's life.
  */
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { AppState, Text, View } from 'react-native';
 import { createExpoAudioAdapter } from '../playback/expo-audio-adapter';
 import { PlayerProvider, createPlayerRuntime, type PlayerRuntime } from '../playback/store';
@@ -33,10 +33,10 @@ import { createOutsideBridge, setOutsideToggle } from '../outside/bridge';
 import { platformSinks } from '../outside/sinks';
 import { applyAppearance } from '../design/theme';
 import { readAppearance } from './useColours';
-import { Splash } from './Splash';
+import * as SplashScreen from 'expo-splash-screen';
 import { Terms } from './Terms';
 import { accept, hasAccepted } from './terms';
-import { ALWAYS_SHOW_TERMS, HANDOFF_MAX_MS, coverLaunch, opensSignIn } from './launch';
+import { ALWAYS_SHOW_TERMS, HANDOFF_MAX_MS, coverLaunch, keepTerms, opensSignIn, signInPage } from './launch';
 import { router, usePathname } from 'expo-router';
 
 const StoresContext = createContext<Stores | undefined>(undefined);
@@ -167,9 +167,11 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
   const signInOpened = useRef(false);
   const wantSignIn = opensSignIn({ ready, accepted, signedIn: stores.auth.get() !== undefined, opened: signInOpened.current });
   // Owner, 2026-09-27: Accept goes straight to the sign-in page, with no glimpse of the
-  // home page first. The launch screen stays up from the render that decides to open it
-  // (`wantSignIn`) until the page is on top (`handoff`); the page itself does not slide.
+  // home page first. Something stays over the app from the render that decides to open it
+  // (`wantSignIn`) until the page is on top and whole (`handoff`); the page does not slide.
+  // Owner, 2026-09-29: that something is never a second splash — see `keepTerms`.
   const pathname = usePathname();
+  const whole = useSyncExternalStore(signInPage.subscribe, signInPage.isWhole);
   const [handoff, setHandoff] = useState(false);
   useEffect(() => {
     if (!wantSignIn) return;
@@ -179,11 +181,21 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
   }, [wantSignIn]);
   useEffect(() => {
     if (!handoff) return;
-    if (pathname === '/auth/sign-in') { setHandoff(false); return; }
+    if (pathname === '/auth/sign-in' && whole) { setHandoff(false); return; }
     // Never trap the app behind the cover if the page does not arrive.
     const t = setTimeout(() => setHandoff(false), HANDOFF_MAX_MS);
     return () => clearTimeout(t);
-  }, [handoff, pathname]);
+  }, [handoff, pathname, whole]);
+  // The native launch screen stays up (app/_layout.tsx stops its auto-hide) until the app
+  // under it is finished — no white frame while the first screen draws (owner, 2026-09-29).
+  const cover = coverLaunch({ ready, wantSignIn, handoff });
+  const [launched, setLaunched] = useState(false);
+  useEffect(() => {
+    if (launched || cover) return;
+    setLaunched(true);
+    // One frame, so what replaces it is already drawn.
+    requestAnimationFrame(() => SplashScreen.hide());
+  }, [launched, cover]);
   useEffect(() => {
     let live = true;
     void waitForStartup([...startupTasks.current, downloads.recover()]).then(() => { if (live) setReady(true); });
@@ -332,8 +344,7 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
       <ToastContext.Provider value={show.current}>
         <PlayerProvider runtime={runtime}>
           {props.children}
-          {coverLaunch({ ready, wantSignIn, handoff }) ? <Splash /> : null}
-          {ready && !accepted ? <Terms onAccept={() => { accept(stores.settings); setAccepted(true); }} /> : null}
+          {keepTerms({ ready, accepted, launched, cover }) ? <Terms onAccept={() => { accept(stores.settings); setAccepted(true); }} /> : null}
           {message === undefined ? null : (
             <View className="absolute left-3 right-3 bottom-24 bg-surface border border-separator rounded-lg p-3" accessibilityLiveRegion="polite">
               <Text className="text-text">{message}</Text>

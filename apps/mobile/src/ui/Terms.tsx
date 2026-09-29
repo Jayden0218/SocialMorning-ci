@@ -16,7 +16,7 @@ import { useEffect, useRef, useState } from 'react';
 import { BackHandler, Image, Platform, Pressable, SafeAreaView, ScrollView, Text, View } from 'react-native';
 import { LEGAL_TEXT } from '../legal/texts';
 import { Button } from './Button';
-import { LegalDoc } from './LegalDoc';
+import { EDGE, LegalDoc } from './LegalDoc';
 import { CONSENT_INTRO, CONSENT_ITEMS, CONSENT_OUTRO, CONSENT_TITLE, REFUSE_TEXT, type LegalDocId } from './terms';
 
 const ICON = { width: 44, height: 44 };
@@ -63,10 +63,14 @@ export function Terms(props: { onAccept: () => void; exit?: (back: () => void) =
 
   return (
     <SafeAreaView className="absolute inset-0 bg-background">
-      <View className="flex-1 px-screen-x pt-section pb-section">
-        <Image source={require('../../assets/app-icon.png')} style={ICON} className="rounded-row mb-row" accessibilityIgnoresInvertColors />
-        <Text className="text-text text-lg font-bold mb-section" accessibilityRole="header">{CONSENT_TITLE}</Text>
-        <ScrollView className="flex-1" contentContainerClassName="pb-row">
+      <View className="flex-1 pt-section pb-section">
+        <View className="px-screen-x">
+          <Image source={require('../../assets/app-icon.png')} style={ICON} className="rounded-row mb-row" accessibilityIgnoresInvertColors />
+          <Text className="text-text text-lg font-bold mb-section" accessibilityRole="header">{CONSENT_TITLE}</Text>
+        </View>
+        {/* Full width, so the scroll bar sits on the screen's edge with no gap (owner, 2026-09-29);
+            the side margin is on the content instead. Same as LegalDoc. */}
+        <ScrollView className="flex-1" contentContainerClassName="px-screen-x pb-row" automaticallyAdjustsScrollIndicatorInsets={false} scrollIndicatorInsets={EDGE}>
           <Text className="text-muted text-sm mb-section">{CONSENT_INTRO}</Text>
           {CONSENT_ITEMS.map((item, n) => (
             <View key={item.doc} className="mb-section">
@@ -87,7 +91,7 @@ export function Terms(props: { onAccept: () => void; exit?: (back: () => void) =
           ))}
           <Text className="text-muted text-sm">{CONSENT_OUTRO}</Text>
         </ScrollView>
-        <View className="flex-row gap-row mt-section">
+        <View className="flex-row gap-row mt-section px-screen-x">
           <Button label="Disagree" kind="secondary" onPress={() => setRefused(true)} className="flex-1" />
           <Button label="Agree" onPress={props.onAccept} className="flex-[2]" />
         </View>

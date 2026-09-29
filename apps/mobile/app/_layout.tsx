@@ -5,6 +5,7 @@
 import '../global.css';
 import '../src/design/tailwind';
 import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { LogBox, SafeAreaView } from 'react-native';
 import { fontSize } from '../src/design';
@@ -19,6 +20,10 @@ import { MiniPlayer } from '../src/ui/MiniPlayer';
 // Owner, 2026-09-27: no warning bar over the app in Debug builds. Warnings still print
 // in the Metro terminal; Release builds never show the bar.
 LogBox.ignoreAllLogs(true);
+
+// Owner, 2026-09-29: one launch screen, then the first page — no white page between. The
+// native launch screen stays until AppProviders has that page drawn and hides it (providers).
+void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout(): React.ReactElement {
   return (
