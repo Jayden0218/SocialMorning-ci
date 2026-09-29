@@ -13,6 +13,8 @@ export type Overview = {
   totals: Totals;
   recentComments: { id: string; episodeTitle: string; author: string | null; body: string; offsetMs: number | null; createdAt: string }[];
   recentEpisodes: { id: string; title: string; publishedAt: string | null; plays: number; comments: number }[];
+  /** M14 US6 (FR-07): 14 daily points per measure, oldest first — the same numbers as the trend. */
+  sparklines?: Partial<Record<'plays' | 'subs' | 'comments' | 'saves' | 'shares' | 'likes', number[]>>;
 };
 
 const METRICS = [
@@ -26,9 +28,10 @@ const METRICS = [
 type MetricKey = (typeof METRICS)[number]['key'];
 
 export function Home({ show }: { show: Show }) {
-  const overview = useLoad(() => api<Overview>(`/v1/studio/shows/${show.key}/overview`), [show.key]);
-  const [metric, setMetric] = useState<MetricKey>('plays');
   const tz = browserTz();
+  const overview = useLoad(() => api<Overview>(`/v1/studio/shows/${show.key}/overview?tz=${encodeURIComponent(tz)}`), [show.key]);
+  const [metric, setMetric] = useState<MetricKey>('plays');
+  const sp = overview.state === 'ready' ? overview.data.sparklines ?? {} : {};
   const trend = useLoad(
     () => api<{ days: Point[] }>(`/v1/studio/shows/${show.key}/trend?metric=${metric}&days=30&tz=${encodeURIComponent(tz)}`),
     [show.key, metric],
@@ -50,14 +53,14 @@ export function Home({ show }: { show: Show }) {
         <div className="card" style={{ marginBottom: 16 }}><Failed message={overview.message} retry={overview.retry} /></div>
       ) : (
         <section className="stats" aria-label="Totals">
-          <StatCard label="Plays" value={t && num(t.plays)} note="One listener, one episode, one day" />
+          <StatCard label="Plays" spark={sp.plays} value={t && num(t.plays)} note="One listener, one episode, one day" />
           <StatCard label="Completion" value={t && pct(t.completionRate)} note={t && t.completionRate === null ? 'Needs episode lengths' : 'Heard 90 % or more'} />
-          <StatCard label="Subscribers" value={t && num(t.subscribers)} />
-          <StatCard label="Comments" value={t && num(t.comments)} />
-          <StatCard label="Likes" value={t && num(t.likes)} note="Listeners who reacted" />
+          <StatCard label="Subscribers" spark={sp.subs} value={t && num(t.subscribers)} />
+          <StatCard label="Comments" spark={sp.comments} value={t && num(t.comments)} />
+          <StatCard label="Likes" spark={sp.likes} value={t && num(t.likes)} note="Listeners who reacted" />
           <StatCard label="Clips" value={t && num(t.clips)} />
-          <StatCard label="Saves" value={t && num(t.saves)} />
-          <StatCard label="Shares" value={t && num(t.shares)} />
+          <StatCard label="Saves" spark={sp.saves} value={t && num(t.saves)} />
+          <StatCard label="Shares" spark={sp.shares} value={t && num(t.shares)} />
         </section>
       )}
 

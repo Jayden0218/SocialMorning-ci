@@ -1,7 +1,8 @@
 import { NavLink, useNavigate } from 'react-router';
 import type { Show } from '../api';
 import { useSession } from '../session';
-import { IconChart, IconCoin, IconComments, IconEpisodes, IconHome, IconMegaphone, IconPeople, IconPoll, IconSettings } from './Icons';
+import { IconChart, IconCoin, IconComments, IconEpisodes, IconHome, IconMedia, IconMegaphone, IconPeople, IconPoll, IconSettings } from './Icons';
+import { useUnsaved } from './Unsaved';
 
 /**
  * The nine jobs, in the order a creator reaches for them. Sections not built yet are shown
@@ -11,6 +12,7 @@ export const SECTIONS = [
   { path: 'home', label: 'Home', icon: IconHome, built: true },
   { path: 'data', label: 'Data', icon: IconChart, built: true },
   { path: 'episodes', label: 'Episodes', icon: IconEpisodes, built: true },
+  { path: 'media', label: 'Media', icon: IconMedia, built: true, hostedOnly: true },
   { path: 'comments', label: 'Comments', icon: IconComments, built: true },
   { path: 'subscribers', label: 'Subscribers', icon: IconPeople, built: true },
   { path: 'announcements', label: 'Announcements', icon: IconMegaphone, built: true },
@@ -22,6 +24,7 @@ export const SECTIONS = [
 export function Sidebar({ show, open, onNavigate }: { show: Show; open: boolean; onNavigate: () => void }) {
   const { session, signOut } = useSession();
   const navigate = useNavigate();
+  const { guard } = useUnsaved();
   const shows = session.state === 'in' ? session.shows : [show];
   return (
     <aside className={`sidebar${open ? ' open' : ''}`} aria-label="Studio">
@@ -44,9 +47,9 @@ export function Sidebar({ show, open, onNavigate }: { show: Show; open: boolean;
         ) : null}
       </div>
       <nav className="nav" aria-label="Sections">
-        {SECTIONS.filter((s) => !('ownerOnly' in s) || show.role === 'owner').map((s) =>
+        {SECTIONS.filter((s) => (!('ownerOnly' in s) || show.role === 'owner') && (!('hostedOnly' in s) || show.hosted)).map((s) =>
           s.built ? (
-            <NavLink key={s.path} to={`/s/${show.key}/${s.path}`} end={false} onClick={onNavigate}>
+            <NavLink key={s.path} to={`/s/${show.key}/${s.path}`} end={false} onClick={(e) => { guard(`/s/${show.key}/${s.path}`)(e); onNavigate(); }}>
               <s.icon />{s.label}
             </NavLink>
           ) : (

@@ -22,7 +22,7 @@ export function SignIn() {
     const { me, shows } = await startSession(token);
     signedIn(me, shows);
     const next = params.get('next');
-    navigate(next && next.startsWith('/s/') ? next : shows[0] ? `/s/${shows[0].key}/home` : '/no-show', { replace: true });
+    navigate(next && /^\/(s|invite)\//.test(next) ? next : shows[0] ? `/s/${shows[0].key}/home` : '/no-show', { replace: true });
   }
 
   async function run(fn: () => Promise<void>) {

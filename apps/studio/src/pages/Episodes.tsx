@@ -7,14 +7,16 @@ import { Empty, Failed, Loading } from '../shell/States';
 import { Pager, Table, type Column } from '../shell/Table';
 import { useLoad } from '../useLoad';
 import type { EpisodePage, EpisodeRow } from './types';
+import { Pending } from './Pending';
 
 /** US3 — every episode of the feed (FR-013). New episodes come from the creator's own feed. */
 export function Episodes({ show }: { show: Show }) {
   const [q, setQ] = useState('');
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
+  const [bump, setBump] = useState(0);
   useEffect(() => { const t = setTimeout(() => { setQuery(q.trim()); setPage(1); }, 300); return () => clearTimeout(t); }, [q]);
-  const list = useLoad(() => api<EpisodePage>(`/v1/studio/shows/${show.key}/episodes?page=${page}&q=${encodeURIComponent(query)}`), [show.key, page, query]);
+  const list = useLoad(() => api<EpisodePage>(`/v1/studio/shows/${show.key}/episodes?page=${page}&q=${encodeURIComponent(query)}`), [show.key, page, query, bump]);
   const cols: Column<EpisodeRow>[] = [
     { key: 'title', label: 'Episode', render: (e) => <Link to={`/s/${show.key}/episodes/${e.id}`}>{e.title}</Link> },
     { key: 'plays', label: 'Plays', numeric: true, render: (e) => num(e.plays) },
@@ -29,6 +31,7 @@ export function Episodes({ show }: { show: Show }) {
       ) : (
         <PageHead title="Episodes" sub="From your feed. To publish a new episode, publish it in your feed — it appears here once listeners see it." />
       )}
+      {show.hosted ? <Pending show={show} onChange={() => setBump((x) => x + 1)} /> : null}
       <div className="toolbar">
         <label className="sr-only" htmlFor="ep-q">Search episodes</label>
         <input id="ep-q" type="search" placeholder="Search by title" value={q} onChange={(e) => setQ(e.target.value)} />

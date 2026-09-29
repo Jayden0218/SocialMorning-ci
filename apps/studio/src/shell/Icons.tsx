@@ -19,3 +19,4 @@ export const IconSettings = () => <Svg><circle cx="12" cy="12" r="3" /><path d="
 export const IconMenu = () => <Svg><path d="M4 7h16M4 12h16M4 17h16" /></Svg>;
 export const IconAlert = ({ size }: { size?: number }) => <Svg size={size}><path d="M12 3 2.5 20h19z" /><path d="M12 10v4.5M12 17.5v.01" /></Svg>;
 export const IconEmpty = ({ size = 40 }: { size?: number }) => <Svg size={size}><circle cx="12" cy="12" r="8.5" /><path d="M8.5 14.5c1 1 2.1 1.5 3.5 1.5s2.5-.5 3.5-1.5M9 9.5v.01M15 9.5v.01" /></Svg>;
+export const IconMedia = () => <Svg><rect x="3" y="5" width="18" height="14" rx="2.5" /><circle cx="9" cy="10" r="1.6" /><path d="m21 16-5-5-8 8" /></Svg>;

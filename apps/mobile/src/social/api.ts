@@ -211,6 +211,8 @@ export type ShowExtras = {
   overrides: {
     title: string | null; description: string | null; coverUrl: string | null; themeColour: string | null;
     milestoneMessage: string | null; hosts: string[] | null; links: { label: string; url: string }[] | null;
+    /** M14 US3: typed contacts, each checked by the server for its type. */
+    contacts?: { type: string; value: string }[] | null;
   } | null;
   announcements: { id: string; body: string; createdAt: string; edited: boolean }[];
   polls: ShowPoll[];

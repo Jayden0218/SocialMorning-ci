@@ -1,6 +1,7 @@
 /**
  * M11 — what a show's creator set in the Studio, on the show page: their announcements, their
- * polls, and the hosts and links they listed (specs/011-m11-studio FR-020..FR-024).
+ * polls, and the hosts and links they listed (specs/011-m11-studio FR-020..FR-024), and their
+ * contacts (M14 US3).
  *
  * Fetched after the feed has drawn the page. If the call fails, nothing here renders and the
  * page stays exactly as the feed made it (Principle IV).
@@ -31,12 +32,29 @@ export function useShowExtras(feedUrl: string): [Extras | undefined, (p: ShowPol
 /** Only an https link from the creator is ever opened. */
 const openLink = (url: string) => { if (/^https:\/\//.test(url)) void Linking.openURL(url).catch(() => undefined); };
 
+const CONTACT_LABEL: Record<string, string> = {
+  website: 'Website', email: 'Email', wechat: 'WeChat', wechat_official: 'WeChat Official Account', weibo: 'Weibo', jike: 'Jike', xiaohongshu: 'Xiaohongshu',
+};
+
+/** A link type opens (https only), an email opens mail, a WeChat ID is shown to copy by hand. */
+function Contact({ type, value }: { type: string; value: string }): React.ReactElement {
+  const label = CONTACT_LABEL[type] ?? type;
+  const target = type === 'email' ? `mailto:${value}` : /^https:\/\//.test(value) ? value : null;
+  if (!target) return <Text className="text-sm text-muted">{`${label}: ${value}`}</Text>;
+  return (
+    <Pressable onPress={() => { void Linking.openURL(target).catch(() => undefined); }} accessibilityRole="link" accessibilityLabel={`${label}, opens ${value}`} className="justify-center" style={TAP}>
+      <Text className="text-sm text-accent">{`${label} ↗`}</Text>
+    </Pressable>
+  );
+}
+
 export function ShowExtrasBlock({ extras, onPoll, episodeId }: { extras: Extras; onPoll: (p: ShowPoll) => void; episodeId?: string }): React.ReactElement | null {
   const polls = extras.polls.filter((p) => (episodeId ? p.episodeId === episodeId : true));
   const announcements = episodeId ? [] : extras.announcements;
   const hosts = episodeId ? null : extras.overrides?.hosts ?? null;
   const links = episodeId ? null : extras.overrides?.links ?? null;
-  if (announcements.length === 0 && polls.length === 0 && !hosts?.length && !links?.length) return null;
+  const contacts = episodeId ? null : extras.overrides?.contacts ?? null;
+  if (announcements.length === 0 && polls.length === 0 && !hosts?.length && !links?.length && !contacts?.length) return null;
   return (
     <Box className="gap-section">
       {announcements.map((a) => (
@@ -54,6 +72,11 @@ export function ShowExtrasBlock({ extras, onPoll, episodeId }: { extras: Extras;
               <Text className="text-sm text-accent">{`${l.label} ↗`}</Text>
             </Pressable>
           ))}
+        </Box>
+      ) : null}
+      {contacts?.length ? (
+        <Box className="flex-row flex-wrap gap-4">
+          {contacts.map((c) => <Contact key={`${c.type}:${c.value}`} type={c.type} value={c.value} />)}
         </Box>
       ) : null}
     </Box>

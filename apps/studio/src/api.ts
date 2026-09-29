@@ -7,6 +7,8 @@
  * sending it as a Bearer header instead.
  */
 const BASE = '/api';
+/** The API's own address, for public pages a listener opens without the Studio (the show card). */
+export const PUBLIC_API = 'https://socialmorning-api.vercel.app';
 const BEARER_KEY = 'sm_studio_bearer';
 
 export class HttpError extends Error {

@@ -54,3 +54,15 @@ it('a closed poll shows its result and takes no vote; on an episode page only th
   expect(texts(r)).not.toContain('Other?');
   expect(r.root.findAll((n) => typeof n.props['accessibilityLabel'] === 'string' && n.props['accessibilityLabel'].startsWith('Vote '))).toHaveLength(0);
 });
+
+it('M14 US3: contacts show on the show page — links and email open, a WeChat ID is text; not on an episode page', () => {
+  const o = { title: null, description: null, coverUrl: null, themeColour: null, milestoneMessage: null, hosts: null, links: null,
+    contacts: [{ type: 'weibo', value: 'https://weibo.com/x' }, { type: 'email', value: 'hi@example.com' }, { type: 'wechat', value: 'morning_fm' }] };
+  let r!: ReactTestRenderer;
+  act(() => { r = create(createElement(ShowExtrasBlock, { extras: extras({ overrides: o }), onPoll: jest.fn() })); });
+  expect(byLabel(r, 'Weibo, opens https://weibo.com/x')).toBeTruthy();
+  expect(byLabel(r, 'Email, opens hi@example.com')).toBeTruthy();
+  expect(texts(r)).toContain('WeChat: morning_fm');
+  act(() => { r.update(createElement(ShowExtrasBlock, { extras: extras({ overrides: o }), onPoll: jest.fn(), episodeId: 'e1' })); });
+  expect(r.toJSON()).toBeNull();
+});

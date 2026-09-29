@@ -16,6 +16,8 @@ import { Tips } from './pages/Tips';
 import { NewEpisode } from './pages/NewEpisode';
 import type { Show } from './api';
 import { NoShow } from './pages/NoShow';
+import { Invite } from './pages/Invite';
+import { Media } from './pages/Media';
 import { SignIn } from './pages/SignIn';
 
 /** Route table. Each later story adds its page next to `home` (tasks.md T012). */
@@ -24,6 +26,8 @@ export function App() {
     <Routes>
       <Route path="/sign-in" element={<SignIn />} />
       <Route path="/no-show" element={<Signed><NoShow /></Signed>} />
+      <Route path="/invite/:token" element={<Signed><Invite /></Signed>} />
+      <Route path="/s/:show/media" element={<Signed><ShowPage page={(s) => <Media show={s} />} /></Signed>} />
       <Route path="/s/:show/home" element={<Signed><ShowPage page={(s) => <Home show={s} />} /></Signed>} />
       <Route path="/s/:show/data" element={<Signed><ShowPage page={(s) => <Data show={s} />} /></Signed>} />
       <Route path="/s/:show/episodes" element={<Signed><ShowPage page={(s) => <Episodes show={s} />} /></Signed>} />

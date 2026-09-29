@@ -10,7 +10,7 @@
 import { del, head, list } from '@vercel/blob';
 import { generateClientTokenFromReadWriteToken } from '@vercel/blob/client';
 
-export type StoredFile = { url: string; pathname: string; size: number; contentType: string };
+export type StoredFile = { url: string; pathname: string; size: number; contentType: string; uploadedAt?: string };
 
 export interface EpisodeStorage {
   /** False when the store is not connected: shows can still be created, uploads say why not. */
@@ -55,7 +55,7 @@ export function blobStorage(token: string | undefined): EpisodeStorage {
       let cursor: string | undefined;
       do {
         const r = await list({ token, prefix, limit: 1000, ...(cursor ? { cursor } : {}) });
-        for (const b of r.blobs) out.push({ url: b.url, pathname: b.pathname, size: b.size, contentType: typeFromPath(b.pathname) });
+        for (const b of r.blobs) out.push({ url: b.url, pathname: b.pathname, size: b.size, contentType: typeFromPath(b.pathname), uploadedAt: new Date(b.uploadedAt).toISOString() });
         cursor = r.hasMore ? r.cursor : undefined;
       } while (cursor);
       return out;
