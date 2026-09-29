@@ -17,5 +17,7 @@ npm test >/dev/null 2>&1; U=$?
 # 2026-09-27: every <Text> and <TextInput> names a token colour — a bare <Text> sets no
 # style, so token-check cannot see it, and it renders black on the black app.
 (cd apps/mobile && node scripts/text-colour-check.mjs >/dev/null 2>&1); X=$?
-echo "gate: typecheck=$T tests=$U mobile-coverage=$C a11y=$A tokens=$K text-colour=$X"
-[ "$T" -eq 0 ] && [ "$U" -eq 0 ] && [ "$C" -eq 0 ] && [ "$A" -eq 0 ] && [ "$K" -eq 0 ] && [ "$X" -eq 0 ]
+# M11: the Studio's production build (its tests run in `npm test` above).
+npm run build --workspace=@socialmorning/studio >/dev/null 2>&1; S=$?
+echo "gate: typecheck=$T tests=$U mobile-coverage=$C a11y=$A tokens=$K text-colour=$X studio-build=$S"
+[ "$T" -eq 0 ] && [ "$U" -eq 0 ] && [ "$C" -eq 0 ] && [ "$A" -eq 0 ] && [ "$K" -eq 0 ] && [ "$X" -eq 0 ] && [ "$S" -eq 0 ]

@@ -44,3 +44,9 @@ jobs:
       - name: text colour check (every Text and TextInput names a token colour)
         run: node scripts/text-colour-check.mjs
         working-directory: apps/mobile
+      # M11 (research R9 open item): recharts 3 was reported to resolve react-is@18 under
+      # React 19. List what it resolves; the Studio's own tests (npm test) render its charts.
+      - name: studio — react-is resolved under React 19
+        run: npm ls react-is --workspace=@socialmorning/studio
+      - name: studio — production build
+        run: npm run build --workspace=@socialmorning/studio

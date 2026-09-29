@@ -1,0 +1,32 @@
+{
+  "name": "@socialmorning/studio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "M11 \u2014 the Studio: the creator website (specs/011-m11-studio). Vite + React; calls the API as /api through its own host.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-router": "8.4.0",
+    "recharts": "3.10.1"
+  },
+  "devDependencies": {
+    "@testing-library/dom": "10.4.2",
+    "@testing-library/react": "16.3.3",
+    "@types/node": "^22.0.0",
+    "@types/react": "~19.2.14",
+    "@types/react-dom": "~19.2.3",
+    "@vitejs/plugin-react": "6.1.1",
+    "axe-core": "4.13.0",
+    "jsdom": "30.1.1",
+    "typescript": "^5.9.2",
+    "vite": "8.3.1",
+    "vitest": "5.0.2"
+  }
+}
