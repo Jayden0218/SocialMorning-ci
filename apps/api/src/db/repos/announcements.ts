@@ -21,7 +21,7 @@ export function resetsOn(now = new Date()): string {
 
 async function pushedThisMonth(db: Db, feedUrl: string): Promise<number> {
   const [r] = await db.query<{ n: string | number }>(
-    "SELECT count(*) AS n FROM announcements WHERE feed_url = $1 AND pushed_at IS NOT NULL",
+    "SELECT count(*) AS n FROM announcements WHERE feed_url = $1 AND pushed_at >= date_trunc('month', now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'",
     [feedUrl],
   );
   return Number(r?.n ?? 0);

@@ -45,7 +45,7 @@ comments.post('/:id/comments', requireAuth, json(commentBody), async (c) => {
     }
   }
   // M11 (FR-019, G-M1): the show's host turned off comments for this listener, on this show only.
-  if ((await isMutedOn(db, episode.feed_url, listener.id)) && episode.feed_url === '') {
+  if (await isMutedOn(db, episode.feed_url, listener.id)) {
     throw new ApiError('muted_on_show', 'The host has turned off comments for you on this show.');
   }
 

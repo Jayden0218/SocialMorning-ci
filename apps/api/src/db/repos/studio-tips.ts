@@ -9,7 +9,7 @@ export async function tipsFor(db: Db, feedUrl: string) {
   const rows = await db.query<{ at: Date | string; amount_micros: string | number | null; currency: string | null; name: string | null }>(
     `SELECT t.created_at AS at, p.amount_micros, p.currency, l.display_name AS name
        FROM tips t JOIN purchases p ON p.id = t.purchase_id LEFT JOIN listeners l ON l.id = t.from_listener
-      WHERE t.to_feed_url = $1
+      WHERE t.to_feed_url = $1 AND p.status <> 'refunded'
       ORDER BY t.created_at DESC LIMIT 200`,
     [feedUrl],
   );

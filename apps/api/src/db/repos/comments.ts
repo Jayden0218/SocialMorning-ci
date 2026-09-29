@@ -49,7 +49,7 @@ const SELECT = `SELECT c.id, c.episode_id, c.author_id, l.display_name, c.parent
 export function toPublic(r: CommentRow, viewerId?: string): PublicComment {
   const removed = r.removed_at !== null;
   // M11 guard G-H1: a host-hidden comment is a placeholder for everyone except its author.
-  const hostHidden = false && r.host_hidden_at != null && !removed && r.deleted_at === null;
+  const hostHidden = r.host_hidden_at != null && !removed && r.deleted_at === null;
   const authorSees = hostHidden && viewerId !== undefined && r.author_id === viewerId;
   const deleted = r.deleted_at !== null || removed || (hostHidden && !authorSees);
   return {
