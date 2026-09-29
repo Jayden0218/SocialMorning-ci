@@ -43,13 +43,21 @@ export function createSearchRoute() {
     cached<ShowCard[]>(db, `apple:search:shows:${key}`, TTL.search, () => searchShows(f, q)),
     cached<EpisodeCard[]>(db, `apple:search:episodes:${key}`, TTL.search, () => searchEpisodes(f, q)),
   ]);
+  // M13 (FR-010): shows created in the Studio are not in Apple's catalogue; they are found here first.
+  const local = await db.query<{ feed_url: string; title: string; author: string; cover_url: string | null; category: string }>(
+    `SELECT feed_url, title, author, cover_url, category FROM hosted_shows
+      WHERE deleted_at IS NULL AND title ILIKE '%' || $1 || '%' ORDER BY created_at DESC LIMIT 10`,
+    [q.replace(/[\\%_]/g, (m) => '\\' + m)],
+  );
+  const created: ShowCard[] = local.map((r) => ({ feedUrl: r.feed_url, title: r.title, author: r.author, genres: [r.category], ...(r.cover_url ? { imageUrl: r.cover_url } : {}) }));
   const rateLimited = [showsR, episodesR].some((r) => r.status === 'rejected' && r.reason instanceof CatalogRateLimited);
-  if (showsR.status === 'rejected' && episodesR.status === 'rejected') {
+  if (showsR.status === 'rejected' && episodesR.status === 'rejected' && created.length === 0) {
     if (rateLimited) throw new ApiError('locked', 'The catalogue is busy — try again in a moment.', { retryAfterSeconds: 30 });
     throw new ApiError('unavailable', 'The catalogue is not answering right now.');
   }
   const hidden = await hiddenFeedUrls(db); // M6 (FR-014): a hidden show is not found
-  const shows = showsR.status === 'fulfilled' ? collapseByFeed(showsR.value.body).filter((s) => !hidden.has(s.feedUrl)) : [];
+  const fromApple = showsR.status === 'fulfilled' ? collapseByFeed(showsR.value.body) : [];
+  const shows = [...created, ...fromApple.filter((s) => !created.some((x) => x.feedUrl === s.feedUrl))].filter((s) => !hidden.has(s.feedUrl));
   const episodes: (EpisodeCard & { id: string })[] = [];
   if (episodesR.status === 'fulfilled') {
     for (const e of collapseEpisodes(episodesR.value.body)) {

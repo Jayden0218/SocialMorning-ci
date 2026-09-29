@@ -16,6 +16,7 @@
     "@hono/node-server": "^2.1.1",
     "@socialmorning/feed-parser": "*",
     "@socialmorning/social-core": "*",
+    "@vercel/blob": "2.8.0",
     "hono": "^4.13.8",
     "nodemailer": "^10.0.10",
     "postgres": "^3.4.9",

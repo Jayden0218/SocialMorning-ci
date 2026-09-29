@@ -40,6 +40,9 @@ import { validateCollections } from './catalog/collections.ts';
 import { categories } from './routes/categories.ts';
 import { studio } from './routes/studio.ts';
 import { extras } from './routes/extras.ts';
+import { feeds } from './routes/feeds.ts';
+import { blobStorage } from './storage/episodes-blob.ts';
+import { DEFAULT_CEILING_BYTES } from './db/repos/hosted.ts';
 
 export type AppDeps = {
   db: Db; pepper: string; assetLinksSha256?: string;
@@ -58,6 +61,10 @@ export type AppDeps = {
   jobToken?: string;
   /** M10b US3: the fetch used for Expo push (tests inject a fake). Default: global fetch. */
   pushFetch?: typeof fetch;
+  /** M13: the store for created shows' audio (default: Vercel Blob with env EPISODES_READ_WRITE_TOKEN), the API's public address, the storage ceiling. */
+  episodeStorage?: import('./storage/episodes-blob.ts').EpisodeStorage;
+  publicBase?: string;
+  hostedCeilingBytes?: number;
   /** Sends the sign-in code (env GMAIL_USER + GMAIL_APP_PASSWORD). Unset → the code routes answer 503. */
   mailer?: import('./mail/mailer.ts').Mailer;
 };
@@ -85,12 +92,19 @@ export function createApp(deps: AppDeps) {
   if (!deps.ownerListenerId || !deps.appealsEmail) console.warn('[safety] OWNER_LISTENER_ID / APPEALS_EMAIL not set: /mod is off, messages name no address');
   const safety: Safety = { ownerListenerId: deps.ownerListenerId, appealsEmail: deps.appealsEmail, releaseSha256: deps.releaseSha256 };
 
+  // M13: an unconnected store is not an error — creating a show still works; uploads say why not.
+  const storage = deps.episodeStorage ?? blobStorage(process.env['EPISODES_READ_WRITE_TOKEN']);
+  const publicBase = deps.publicBase ?? process.env['PUBLIC_API_URL'] ?? 'https://socialmorning-api.vercel.app';
+
   app.use('*', async (c, next) => {
     c.set('db', deps.db);
     c.set('pepper', deps.pepper);
     c.set('catalog', catalog);
     c.set('safety', safety);
     if (deps.mailer) c.set('mailer', deps.mailer);
+    c.set('storage', storage);
+    c.set('publicBase', publicBase);
+    c.set('hostedCeilingBytes', deps.hostedCeilingBytes ?? DEFAULT_CEILING_BYTES);
     await next();
   });
 
@@ -120,6 +134,7 @@ export function createApp(deps: AppDeps) {
   // M11 — the Studio (specs/011-m11-studio). Its env adds `show`; the shared variables are the same.
   app.route('/v1/studio', studio as unknown as Hono<AuthEnv>);
   app.route('/v1', extras);
+  app.route('/feeds', feeds);
   app.route('/v1/me/rec-events', recEvents);
   app.route('/v1/me/feed', feed);
   app.route('/v1/me/listened', listened);

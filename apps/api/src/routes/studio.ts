@@ -31,6 +31,11 @@ import { getOverrides, putOverrides } from '../db/repos/show-overrides.ts';
 import { addOperator, release, removeOperator, team } from '../db/repos/show-team.ts';
 import { tipsFor } from '../db/repos/studio-tips.ts';
 import { createClaim, myClaims, verifyClaim } from '../db/repos/creator.ts';
+import {
+  CATEGORIES, createHostedShow, hostedByFeed, listHostedEpisodes, publishEpisode, removeEpisode, storedBytes, updateHostedShow,
+} from '../db/repos/hosted.ts';
+import { AUDIO_TYPES, IMAGE_TYPES, MAX_AUDIO_BYTES, MAX_IMAGE_BYTES } from '../storage/episodes-blob.ts';
+import { randomUUID } from 'node:crypto';
 import { isBlockedBy } from '../db/repos/blocks.ts';
 
 export type { StudioEnv };
@@ -91,6 +96,29 @@ studio.post('/claims/:id/verify', async (c) => {
   if (r === 'taken') throw new ApiError('conflict', 'Someone else has already proved this show is theirs.');
   return c.json({ status: r.status, shows: await showsFor(db, me.id) });
 });
+
+// ---- M13: create a show here (specs/013-m13-create-show US1) ----
+
+const showDetails = z.object({
+  title: z.string().trim().min(1).max(100),
+  description: z.string().trim().max(4000).optional(),
+  author: z.string().trim().max(100).optional(),
+  language: z.string().regex(/^[a-z]{2}(-[A-Za-z]{2,4})?$/).optional(),
+  category: z.enum(CATEGORIES).optional(),
+  explicit: z.boolean().optional(),
+});
+
+studio.post('/hosted-shows', json(showDetails), async (c) => {
+  const db = c.get('db');
+  const me = c.get('listener')!;
+  const [n] = await db.query<{ n: number }>('SELECT count(*)::int AS n FROM hosted_shows WHERE owner_id = $1 AND deleted_at IS NULL', [me.id]);
+  if (Number(n?.n ?? 0) >= 5) throw new ApiError('conflict', 'One account can create 5 shows.', { reason: 'too_many_shows' });
+  const show = await createHostedShow(db, me.id, c.get('publicBase'), c.req.valid('json'));
+  return c.json({ show, shows: await showsFor(db, me.id) }, 201);
+});
+
+studio.get('/storage', async (c) =>
+  c.json({ ready: c.get('storage').ready, usedBytes: await storedBytes(c.get('db')), ceilingBytes: c.get('hostedCeilingBytes'), maxAudioBytes: MAX_AUDIO_BYTES }));
 
 // ---- Show scope (G-A1) ----
 studio.use('/shows/:show/*', async (c, next) => {
@@ -303,10 +331,105 @@ studio.post('/shows/:show/release', ownerOnly, json(z.object({ confirm: z.string
   if (c.req.valid('json').confirm.trim() !== (show.title ?? show.feedUrl).trim()) {
     throw new ApiError('validation', 'Type the show\'s name exactly to confirm.', { fields: ['confirm'] });
   }
+  const hosted = await hostedByFeed(c.get('db'), show.feedUrl);
   await release(c.get('db'), show.feedUrl);
+  if (hosted) {
+    // A show made here has no other home: giving it back deletes it and its audio (the feed answers 410).
+    const eps = await listHostedEpisodes(c.get('db'), hosted.id);
+    await c.get('db').query('UPDATE hosted_shows SET deleted_at = now() WHERE id = $1', [hosted.id]);
+    await c.get('db').query('UPDATE hosted_episodes SET deleted_at = now() WHERE show_id = $1 AND deleted_at IS NULL', [hosted.id]);
+    for (const e of eps) await c.get('storage').remove(e.audioUrl).catch(() => undefined);
+  }
   return c.body(null, 204);
 });
 
 // ---- US7: Tips — owner only ----
 
 studio.get('/shows/:show/tips', ownerOnly, async (c) => c.json(await tipsFor(c.get('db'), c.get('show').feedUrl)));
+
+// ---- M13: a created show's details, uploads and episodes (US2, US3) ----
+
+/** The created show behind this Studio show, or 404 — a claimed feed has no uploads. */
+async function hostedOf(db: import('../db/db.ts').Db, feedUrl: string) {
+  const h = await hostedByFeed(db, feedUrl);
+  if (!h) throw new ApiError('not_found', 'This show comes from another feed; its episodes are published there.');
+  return h;
+}
+
+studio.get('/shows/:show/details', async (c) => c.json({ show: await hostedOf(c.get('db'), c.get('show').feedUrl) }));
+
+studio.put('/shows/:show/details', ownerOnly, json(showDetails.partial().extend({ coverUrl: z.string().url().nullable().optional() })), async (c) => {
+  const h = await hostedOf(c.get('db'), c.get('show').feedUrl);
+  const b = c.req.valid('json');
+  if (b.coverUrl) {
+    const f = await c.get('storage').head(b.coverUrl);
+    if (!f || !f.pathname.startsWith(`covers/${h.id}/`) || !IMAGE_TYPES.includes(f.contentType)) throw new ApiError('validation', 'Upload the cover first.', { fields: ['coverUrl'] });
+    b.coverUrl = f.url;
+  }
+  return c.json({ show: await updateHostedShow(c.get('db'), h.id, b) });
+});
+
+const uploadBody = z.object({
+  kind: z.enum(['audio', 'cover']),
+  contentType: z.string().max(100),
+  size: z.number().int().positive(),
+});
+
+/** A 1-hour token for ONE path under this show, the allowed types and the size limit (FR-005). */
+studio.post('/shows/:show/uploads', json(uploadBody), async (c) => {
+  const h = await hostedOf(c.get('db'), c.get('show').feedUrl);
+  const storage = c.get('storage');
+  if (!storage.ready) throw new ApiError('unavailable', 'The audio store is not connected yet. The owner connects it once in Vercel (Storage → socialmorning-episodes).');
+  const b = c.req.valid('json');
+  const audio = b.kind === 'audio';
+  const types = audio ? AUDIO_TYPES : IMAGE_TYPES;
+  const max = audio ? MAX_AUDIO_BYTES : MAX_IMAGE_BYTES;
+  if (!types.includes(b.contentType)) throw new ApiError('validation', audio ? 'Upload an MP3 or M4A file.' : 'Upload a JPEG or PNG image.', { fields: ['contentType'] });
+  if (b.size > max) throw new ApiError('validation', `The file is over ${Math.round(max / 1024 / 1024)} MB.`, { fields: ['size'] });
+  if (audio) {
+    const used = await storedBytes(c.get('db'));
+    const ceiling = c.get('hostedCeilingBytes');
+    if (used + b.size > ceiling) throw new ApiError('conflict', `Storage is full: ${Math.round(used / 1024 / 1024)} MB of ${Math.round(ceiling / 1024 / 1024)} MB used.`, { reason: 'storage_full', usedBytes: used, ceilingBytes: ceiling });
+  }
+  const ext = { 'audio/mpeg': 'mp3', 'audio/mp4': 'm4a', 'audio/x-m4a': 'm4a', 'audio/aac': 'aac', 'image/jpeg': 'jpg', 'image/png': 'png' }[b.contentType] ?? 'bin';
+  const pathname = `${audio ? 'episodes' : 'covers'}/${h.id}/${randomUUID()}.${ext}`;
+  return c.json({ pathname, token: await storage.uploadToken(pathname, { maxBytes: max, types }) });
+});
+
+studio.get('/shows/:show/hosted-episodes', async (c) => c.json({ items: await listHostedEpisodes(c.get('db'), (await hostedOf(c.get('db'), c.get('show').feedUrl)).id) }));
+
+const publishBody = z.object({
+  title: z.string().trim().min(1).max(200),
+  description: z.string().max(20000).default(''),
+  audioUrl: z.string().url(),
+  durationMs: z.number().int().positive().max(24 * 3600 * 1000).nullable().optional(),
+});
+
+/** Publish: the file must really be in our store, under THIS show, audio, within limits (FR-006). */
+studio.post('/shows/:show/hosted-episodes', json(publishBody), async (c) => {
+  const h = await hostedOf(c.get('db'), c.get('show').feedUrl);
+  const b = c.req.valid('json');
+  const storage = c.get('storage');
+  const f = await storage.head(b.audioUrl);
+  if (!f || !f.pathname.startsWith(`episodes/${h.id}/`)) throw new ApiError('validation', 'That audio was not uploaded to this show.', { fields: ['audioUrl'] });
+  if (!AUDIO_TYPES.includes(f.contentType) || f.size > MAX_AUDIO_BYTES) {
+    await storage.remove(f.url);
+    throw new ApiError('validation', 'That file is not an MP3 or M4A under 200 MB.', { fields: ['audioUrl'] });
+  }
+  const used = await storedBytes(c.get('db'));
+  if (used + f.size > c.get('hostedCeilingBytes')) {
+    await storage.remove(f.url);
+    throw new ApiError('conflict', 'Storage is full.', { reason: 'storage_full' });
+  }
+  const ep = await publishEpisode(c.get('db'), h, c.get('listener')!.id, { title: b.title, description: b.description, audioUrl: f.url, audioBytes: f.size, audioType: f.contentType, durationMs: b.durationMs ?? null });
+  return c.json({ episode: ep }, 201);
+});
+
+/** Unpublish and delete the audio (FR-007, guard G-D1). Comments on it stay, like any episode that leaves a feed. */
+studio.delete('/shows/:show/hosted-episodes/:id', async (c) => {
+  const h = await hostedOf(c.get('db'), c.get('show').feedUrl);
+  const ep = await removeEpisode(c.get('db'), h.id, c.req.param('id'));
+  if (!ep) throw new ApiError('not_found', 'No such episode.');
+  await c.get('storage').remove(ep.audioUrl);
+  return c.body(null, 204);
+});

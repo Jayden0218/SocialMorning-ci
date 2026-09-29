@@ -32,7 +32,9 @@ export async function listenerForToken(db: Db, token: string, pepper: string): P
   return rows[0];
 }
 
-export type AuthEnv = { Variables: { db: Db; pepper: string; listener?: Listener; token?: string; catalog: Catalog; safety: Safety; mailer?: import('../mail/mailer.ts').Mailer } };
+export type AuthEnv = { Variables: { db: Db; pepper: string; listener?: Listener; token?: string; catalog: Catalog; safety: Safety; mailer?: import('../mail/mailer.ts').Mailer;
+  /** M13: created shows' audio store, and the public address their feeds live under. */
+  storage: import('../storage/episodes-blob.ts').EpisodeStorage; publicBase: string; hostedCeilingBytes: number } };
 
 /** M6: the moderator's id, the appeals address, the published build's hash — any may be unset. */
 export type Safety = { ownerListenerId?: string; appealsEmail?: string; releaseSha256?: string };

@@ -20,7 +20,7 @@ const OTHER = 'https://feeds.example.com/theirs.xml';
 /** Owner-only routes, as `METHOD path` — filled as US6/US7 add them. */
 const OWNER_ONLY = new Set<string>([
   'GET /shows/:show/overrides', 'PUT /shows/:show/overrides', 'GET /shows/:show/team', 'POST /shows/:show/team',
-  'DELETE /shows/:show/team/:listenerId', 'POST /shows/:show/release', 'GET /shows/:show/tips',
+  'DELETE /shows/:show/team/:listenerId', 'POST /shows/:show/release', 'GET /shows/:show/tips', 'PUT /shows/:show/details',
 ]);
 
 const showRoutes = () => {
