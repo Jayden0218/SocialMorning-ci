@@ -121,14 +121,14 @@ export function createMemoryDraftStore(): DraftStore {
 }
 
 export function createMemorySubscriptionStore(): SubscriptionStore {
-  const rows = new Map<string, { subscribedAt: number; deletedAt?: number; starred: boolean }>();
+  const rows = new Map<string, { subscribedAt: number; deletedAt?: number; starred: boolean; starredAt?: number }>();
   const live = (f: string) => { const r = rows.get(f); return r !== undefined && r.deletedAt === undefined; };
   return {
-    list: () => [...rows.entries()].filter(([f]) => live(f)).map(([feedUrl, r]) => ({ feedUrl, subscribedAt: r.subscribedAt })),
+    list: () => [...rows.entries()].filter(([f]) => live(f)).map(([feedUrl, r]) => ({ feedUrl, subscribedAt: r.subscribedAt, starred: r.starred })),
     add(feedUrl, now) {
       const r = rows.get(feedUrl);
       if (r === undefined) rows.set(feedUrl, { subscribedAt: now, starred: false });
-      else if (r.deletedAt !== undefined) rows.set(feedUrl, { subscribedAt: now, starred: r.starred });
+      else if (r.deletedAt !== undefined) rows.set(feedUrl, { subscribedAt: now, starred: r.starred, ...(r.starredAt === undefined ? {} : { starredAt: r.starredAt }) });
     },
     // FR-023: this touches subscriptions and nothing else. No position is
     // reachable from here, which is the point.
@@ -138,10 +138,14 @@ export function createMemorySubscriptionStore(): SubscriptionStore {
       if (r !== undefined && r.deletedAt === undefined) rows.set(feedUrl, { ...r, deletedAt: now });
     },
     has: (feedUrl) => live(feedUrl),
-    all: () => [...rows.entries()].map(([feedUrl, r]) => ({ feedUrl, subscribedAt: r.subscribedAt, ...(r.deletedAt === undefined ? {} : { deletedAt: r.deletedAt }), starred: r.starred })),
+    setStarred: (feedUrl, starred, now) => {
+      const r = rows.get(feedUrl);
+      if (r !== undefined && r.deletedAt === undefined) rows.set(feedUrl, { ...r, starred, starredAt: now });
+    },
+    all: () => [...rows.entries()].map(([feedUrl, r]) => ({ feedUrl, subscribedAt: r.subscribedAt, ...(r.deletedAt === undefined ? {} : { deletedAt: r.deletedAt }), starred: r.starred, ...(r.starredAt === undefined ? {} : { starredAt: r.starredAt }) })),
     replaceAll: (next) => {
       rows.clear();
-      for (const r of next) rows.set(r.feedUrl, { subscribedAt: r.subscribedAt, ...(r.deletedAt === undefined ? {} : { deletedAt: r.deletedAt }), starred: r.starred });
+      for (const r of next) rows.set(r.feedUrl, { subscribedAt: r.subscribedAt, ...(r.deletedAt === undefined ? {} : { deletedAt: r.deletedAt }), starred: r.starred, ...(r.starredAt === undefined ? {} : { starredAt: r.starredAt }) });
     },
   };
 }

@@ -298,7 +298,7 @@ test('M10: GET /v1/categories lists Apple\'s genres with display names; /:genreI
   assert.equal(one.shows.length, CHART.length);
   assert.ok(one.shows.length <= 20);
   assert.match(cat.calls.find((u) => u.includes('genre=1303'))!, /toppodcasts\/limit=20\/genre=1303\/json$/);
-  // M12 FR-072 (guard G-C2): each show names its newest episode, from the same one lookup.
+  // M12 FR-072 (guard G-CAT): each show names its newest episode, from the same one lookup.
   assert.deepEqual(one.shows[0]!.latestEpisode, { title: 'The Joe Rogan Experience latest', publishedAt: '2026-09-20T10:00:00Z' });
   assert.ok(one.shows.every((s) => s.latestEpisode?.title === `${s.title} latest`));
   assert.equal(cat.calls.filter((u) => u.includes('/lookup')).length, 1, 'one lookup for the whole chart');

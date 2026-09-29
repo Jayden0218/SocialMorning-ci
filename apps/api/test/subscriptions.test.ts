@@ -92,3 +92,31 @@ test('FR-004: nothing about another listener discloses what they subscribe to', 
 
   await t.close();
 });
+
+// M12 guard G-ST1 (FR-081): a star merges on its own `starredAt`. Starring moves neither row
+// stamp, so before this a star never beat the server's copy and the next sync undid it.
+// The break: drop the `takeStar` update in `merge` (src/db/repos/subscriptions.ts).
+test('G-ST1: a star sticks — the later starredAt wins, an older one does not, and an old build cannot unstar', async () => {
+  const t = await freshDb();
+  const a = await signUp(t);
+  const at = '2026-09-25T10:00:00.000Z';
+  await put(t, a.token, [{ feedUrl: F1, createdAt: at, starred: false }]);
+
+  // Phone A stars it at 12:00 — same row stamp as before.
+  const r1 = await put(t, a.token, [{ feedUrl: F1, createdAt: at, starred: true, starredAt: '2026-09-29T12:00:00.000Z' }]);
+  assert.equal(byUrl(r1, F1)?.starred, true, 'the star is kept, not answered back as false');
+
+  // Phone B, which last changed it at 11:00, reconciles with "not starred": older, loses.
+  const r2 = await put(t, a.token, [{ feedUrl: F1, createdAt: at, starred: false, starredAt: '2026-09-29T11:00:00.000Z' }]);
+  assert.equal(byUrl(r2, F1)?.starred, true);
+
+  // A build before M12 sends starred: false with no stamp, even on a later re-subscribe: the star stays.
+  const r3 = await put(t, a.token, [{ feedUrl: F1, createdAt: '2026-09-29T13:00:00.000Z', starred: false }]);
+  assert.equal(byUrl(r3, F1)?.starred, true);
+
+  // Phone B unstars at 14:00: later, wins.
+  const r4 = await put(t, a.token, [{ feedUrl: F1, createdAt: at, starred: false, starredAt: '2026-09-29T14:00:00.000Z' }]);
+  assert.equal(byUrl(r4, F1)?.starred, false);
+  assert.equal((r4.items.find((i) => i.feedUrl === F1) as { starredAt?: string })?.starredAt, '2026-09-29T14:00:00.000Z');
+  await t.close();
+});

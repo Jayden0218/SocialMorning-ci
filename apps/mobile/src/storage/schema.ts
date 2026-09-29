@@ -18,7 +18,7 @@
  * The separator is U+0001, which cannot appear in a URL or a sane guid, so
  * two different (feedUrl, guid) pairs cannot collide by concatenation.
  */
-export const SCHEMA_VERSION = 6;
+export const SCHEMA_VERSION = 7;
 
 export const MIGRATION_001 = `
 CREATE TABLE IF NOT EXISTS shows (
@@ -263,7 +263,16 @@ CREATE TABLE IF NOT EXISTS rec_outbox (
 );
 `;
 
-export const MIGRATIONS: readonly string[] = [MIGRATION_001, MIGRATION_002, MIGRATION_003, MIGRATION_004, MIGRATION_005, MIGRATION_006];
+/**
+ * M12 FR-081: a star gets its own time, so it syncs on its own (the server's migration 013,
+ * guard G-ST1). Starring moves neither `subscribed_at` nor `deleted_at`, so it could never
+ * win the row merge and the next sync undid it.
+ */
+export const MIGRATION_007 = `
+ALTER TABLE subscriptions ADD COLUMN starred_at INTEGER NULL;
+`;
+
+export const MIGRATIONS: readonly string[] = [MIGRATION_001, MIGRATION_002, MIGRATION_003, MIGRATION_004, MIGRATION_005, MIGRATION_006, MIGRATION_007];
 
 /** The minimum a database must offer for `migrateSchema` (expo-sqlite and node:sqlite both do). */
 export interface SchemaDb {

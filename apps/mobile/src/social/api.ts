@@ -132,7 +132,7 @@ export type HiddenOut = { reported: { kind: ReportKind; id: string }[]; blocked:
 export type Meta = { appealsEmail?: string };
 
 /** M8 US1 — the wire shape of one subscription. `deletedAt` present ⇒ unsubscribed. */
-export type SubscriptionOut = { feedUrl: string; createdAt: string; deletedAt?: string; starred: boolean };
+export type SubscriptionOut = { feedUrl: string; createdAt: string; deletedAt?: string; starred: boolean; starredAt?: string };
 
 export type ApiClient = {
   signUp(email: string, password: string, displayName: string): Promise<{ token: string; listener: Listener }>;

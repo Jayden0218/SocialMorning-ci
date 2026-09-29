@@ -20,6 +20,7 @@ export type SubscriptionRow = {
   starred: boolean;
   created_at: string;
   deleted_at: string | null;
+  starred_at: string | null;
 };
 
 export type SubscriptionIn = {
@@ -27,6 +28,8 @@ export type SubscriptionIn = {
   createdAt: string;
   deletedAt?: string | null;
   starred?: boolean;
+  /** M12: when this phone last starred or unstarred the show. Absent from older builds. */
+  starredAt?: string;
 };
 
 export type SubscriptionOut = {
@@ -34,6 +37,7 @@ export type SubscriptionOut = {
   createdAt: string;
   deletedAt?: string;
   starred: boolean;
+  starredAt?: string;
 };
 
 export const toPublic = (r: SubscriptionRow): SubscriptionOut => ({
@@ -41,6 +45,7 @@ export const toPublic = (r: SubscriptionRow): SubscriptionOut => ({
   createdAt: new Date(r.created_at).toISOString(),
   ...(r.deleted_at ? { deletedAt: new Date(r.deleted_at).toISOString() } : {}),
   starred: r.starred,
+  ...(r.starred_at ? { starredAt: new Date(r.starred_at).toISOString() } : {}),
 });
 
 /** The row's own latest moment. A tombstone's stamp is its `deleted_at`. */
@@ -50,7 +55,7 @@ export const stampOf = (r: { createdAt: string; deletedAt?: string | null }): nu
 /** Everything the account has ever had, tombstones included, so a phone can converge in one round trip. */
 export async function listAll(db: Db, listenerId: string): Promise<SubscriptionRow[]> {
   return db.query<SubscriptionRow>(
-    'SELECT feed_url, starred, created_at, deleted_at FROM subscriptions WHERE listener_id = $1 ORDER BY created_at DESC',
+    'SELECT feed_url, starred, created_at, deleted_at, starred_at FROM subscriptions WHERE listener_id = $1 ORDER BY created_at DESC',
     [listenerId],
   );
 }
@@ -58,7 +63,7 @@ export async function listAll(db: Db, listenerId: string): Promise<SubscriptionR
 /** The live ones only — what "subscribed" means everywhere else (guard G-M1). */
 export async function listLive(db: Db, listenerId: string): Promise<SubscriptionRow[]> {
   return db.query<SubscriptionRow>(
-    'SELECT feed_url, starred, created_at, deleted_at FROM subscriptions WHERE listener_id = $1 AND deleted_at IS NULL ORDER BY created_at DESC',
+    'SELECT feed_url, starred, created_at, deleted_at, starred_at FROM subscriptions WHERE listener_id = $1 AND deleted_at IS NULL ORDER BY created_at DESC',
     [listenerId],
   );
 }
@@ -80,7 +85,7 @@ export async function merge(db: Db, listenerId: string, items: readonly Subscrip
   return db.transaction(async (tx) => {
     const urls = [...incoming.keys()];
     const existing = await tx.query<SubscriptionRow>(
-      'SELECT feed_url, starred, created_at, deleted_at FROM subscriptions WHERE listener_id = $1 AND feed_url = ANY($2::text[])',
+      'SELECT feed_url, starred, created_at, deleted_at, starred_at FROM subscriptions WHERE listener_id = $1 AND feed_url = ANY($2::text[])',
       [listenerId, urls],
     );
     const have = new Map(existing.map((r) => [r.feed_url, r]));
@@ -89,8 +94,8 @@ export async function merge(db: Db, listenerId: string, items: readonly Subscrip
       const cur = have.get(feedUrl);
       if (cur === undefined) {
         await tx.query(
-          'INSERT INTO subscriptions (listener_id, feed_url, starred, created_at, deleted_at) VALUES ($1, $2, $3, $4, $5)',
-          [listenerId, feedUrl, next.starred ?? false, next.createdAt, next.deletedAt ?? null],
+          'INSERT INTO subscriptions (listener_id, feed_url, starred, created_at, deleted_at, starred_at) VALUES ($1, $2, $3, $4, $5, $6)',
+          [listenerId, feedUrl, next.starred ?? false, next.createdAt, next.deletedAt ?? null, next.starredAt ?? null],
         );
         // M11 (research R4): a new live row is a subscribe. A row born as a tombstone changes nothing.
         if ((next.deletedAt ?? null) === null) await logFlip(tx, listenerId, feedUrl, 'sub');
@@ -102,17 +107,26 @@ export async function merge(db: Db, listenerId: string, items: readonly Subscrip
       const nextIsTombstone = (next.deletedAt ?? null) !== null;
       const curIsTombstone = cur.deleted_at !== null;
       const takeNext = nextStamp > curStamp || (nextStamp === curStamp && nextIsTombstone && !curIsTombstone);
+      // M12 (guard G-ST1): the star merges on its own stamp — starring moves neither row
+      // stamp, so under the row rule alone it could never win. A phone that sends no
+      // `starredAt` (a build before M12) keeps the M8 behaviour: its star rides the row.
+      const takeStar = next.starred !== undefined && next.starredAt !== undefined
+        && (cur.starred_at === null || new Date(next.starredAt).getTime() > new Date(cur.starred_at).getTime());
+      if (takeStar) {
+        await tx.query('UPDATE subscriptions SET starred = $3, starred_at = $4 WHERE listener_id = $1 AND feed_url = $2', [listenerId, feedUrl, next.starred, next.starredAt]);
+      }
       if (!takeNext) continue;
+      const legacyStar = next.starredAt === undefined && cur.starred_at === null ? (next.starred ?? cur.starred) : takeStar ? next.starred! : cur.starred;
       await tx.query(
         'UPDATE subscriptions SET created_at = $3, deleted_at = $4, starred = $5 WHERE listener_id = $1 AND feed_url = $2',
-        [listenerId, feedUrl, next.createdAt, next.deletedAt ?? null, next.starred ?? cur.starred],
+        [listenerId, feedUrl, next.createdAt, next.deletedAt ?? null, legacyStar],
       );
       // M11: only a change of live state is history; a re-sent or re-starred row is not.
       if (curIsTombstone !== nextIsTombstone) await logFlip(tx, listenerId, feedUrl, nextIsTombstone ? 'unsub' : 'sub');
     }
 
     return tx.query<SubscriptionRow>(
-      'SELECT feed_url, starred, created_at, deleted_at FROM subscriptions WHERE listener_id = $1 ORDER BY created_at DESC',
+      'SELECT feed_url, starred, created_at, deleted_at, starred_at FROM subscriptions WHERE listener_id = $1 ORDER BY created_at DESC',
       [listenerId],
     );
   });

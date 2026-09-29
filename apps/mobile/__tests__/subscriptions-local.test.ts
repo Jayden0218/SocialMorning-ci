@@ -171,3 +171,35 @@ it('a v5 database upgrades to v6 with its subscriptions intact and none of them 
   const tables = (db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as { name: string }[]).map((r) => r.name);
   expect(tables).toContain('rec_outbox');
 });
+
+/**
+ * M12 guard G-ST2 (FR-081): starring stamps `starredAt`, and the stamp goes up with the sync,
+ * so the server's star merge (G-ST1) can let it win. Both stores; a tombstone cannot be starred.
+ * The break: leave `starredAt` out of `toWire`.
+ */
+describe.each(stores)('%s store: stars', (_name, make) => {
+  it('setStarred stamps the star and the wire carries it', () => {
+    const s = make();
+    s.add(F1, 1000);
+    s.add(F2, 1000);
+    s.setStarred(F1, true, 5000);
+    expect(s.list().find((r) => r.feedUrl === F1)?.starred).toBe(true);
+    const row = s.all().find((r) => r.feedUrl === F1)!;
+    expect(row.starredAt).toBe(5000);
+    expect(toWire(row)).toEqual(expect.objectContaining({ starred: true, starredAt: new Date(5000).toISOString() }));
+    expect(fromWire(toWire(row))).toEqual(row);
+    s.remove(F2, 6000);
+    s.setStarred(F2, true, 7000);
+    expect(s.all().find((r) => r.feedUrl === F2)?.starred).toBe(false);
+  });
+});
+
+it('a v6 database upgrades to v7 with its stars intact', () => {
+  const { MIGRATIONS } = require('../src/storage/schema');
+  const db = new DatabaseSync(':memory:');
+  for (const m of MIGRATIONS.slice(0, 6)) db.exec(m);
+  db.exec('PRAGMA user_version = 6');
+  db.exec(`INSERT INTO subscriptions (feed_url, subscribed_at, starred) VALUES ('${F1}', 1000, 1)`);
+  expect(migrateSchema(wrap(db))).toBe(7);
+  expect(db.prepare('SELECT starred, starred_at FROM subscriptions').get()).toEqual({ starred: 1, starred_at: null });
+});

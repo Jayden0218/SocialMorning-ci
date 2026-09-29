@@ -15,6 +15,7 @@ const item = z.object({
   createdAt: z.string().datetime(),
   deletedAt: z.string().datetime().optional(),
   starred: z.boolean().optional(),
+  starredAt: z.string().datetime().optional(),
 });
 const putBody = z.object({ items: z.array(item).max(1000) });
 

@@ -247,10 +247,10 @@ export function createSqliteSubscriptionStore(db: SQLiteDatabase): SubscriptionS
   return {
     list: () =>
       db
-        .getAllSync<{ feed_url: string; subscribed_at: number }>(
+        .getAllSync<{ feed_url: string; subscribed_at: number; starred: number }>(
           'SELECT * FROM subscriptions WHERE deleted_at IS NULL ORDER BY subscribed_at DESC',
         )
-        .map((r) => ({ feedUrl: r.feed_url, subscribedAt: r.subscribed_at })),
+        .map((r) => ({ feedUrl: r.feed_url, subscribedAt: r.subscribed_at, starred: r.starred === 1 })),
     add: (feedUrl, now) =>
       void db.runSync(
         // M8: re-subscribing must clear the tombstone, not be swallowed by DO NOTHING.
@@ -266,17 +266,19 @@ export function createSqliteSubscriptionStore(db: SQLiteDatabase): SubscriptionS
       db.getFirstSync<{ n: number }>('SELECT COUNT(*) AS n FROM subscriptions WHERE feed_url = ? AND deleted_at IS NULL', [
         feedUrl,
       ])?.n === 1,
+    setStarred: (feedUrl, starred, now) =>
+      void db.runSync('UPDATE subscriptions SET starred = ?, starred_at = ? WHERE feed_url = ? AND deleted_at IS NULL', [starred ? 1 : 0, now, feedUrl]),
     all: () =>
       db
-        .getAllSync<{ feed_url: string; subscribed_at: number; deleted_at: number | null; starred: number }>(
-          'SELECT feed_url, subscribed_at, deleted_at, starred FROM subscriptions ORDER BY subscribed_at DESC',
+        .getAllSync<{ feed_url: string; subscribed_at: number; deleted_at: number | null; starred: number; starred_at: number | null }>(
+          'SELECT feed_url, subscribed_at, deleted_at, starred, starred_at FROM subscriptions ORDER BY subscribed_at DESC',
         )
-        .map((r) => ({ feedUrl: r.feed_url, subscribedAt: r.subscribed_at, ...(r.deleted_at === null ? {} : { deletedAt: r.deleted_at }), starred: r.starred === 1 })),
+        .map((r) => ({ feedUrl: r.feed_url, subscribedAt: r.subscribed_at, ...(r.deleted_at === null ? {} : { deletedAt: r.deleted_at }), starred: r.starred === 1, ...(r.starred_at === null ? {} : { starredAt: r.starred_at }) })),
     replaceAll: (rows) => {
       db.runSync('DELETE FROM subscriptions');
       for (const r of rows) {
-        db.runSync('INSERT INTO subscriptions (feed_url, subscribed_at, deleted_at, starred) VALUES (?, ?, ?, ?)',
-          [r.feedUrl, r.subscribedAt, r.deletedAt ?? null, r.starred ? 1 : 0]);
+        db.runSync('INSERT INTO subscriptions (feed_url, subscribed_at, deleted_at, starred, starred_at) VALUES (?, ?, ?, ?, ?)',
+          [r.feedUrl, r.subscribedAt, r.deletedAt ?? null, r.starred ? 1 : 0, r.starredAt ?? null]);
       }
     },
   };

@@ -65,6 +65,8 @@ const PATHS = [
   '/profile/l1', '/profile/l1/followers', '/profile/l1/following',
   '/clip/new', '/clip/c1',
   '/auth/sign-in', '/auth/sign-up', '/auth/email',
+  // M12
+  '/chart', '/picks/past', '/comments/e1',
 ];
 
 it('G3: every path M1–M6 deep-links to still resolves', () => {

@@ -36,6 +36,7 @@ export const toWire = (r: SubscriptionRow): SubscriptionOut => ({
   createdAt: new Date(r.subscribedAt).toISOString(),
   ...(r.deletedAt === undefined ? {} : { deletedAt: new Date(r.deletedAt).toISOString() }),
   starred: r.starred,
+  ...(r.starredAt === undefined ? {} : { starredAt: new Date(r.starredAt).toISOString() }),
 });
 
 export const fromWire = (i: SubscriptionOut): SubscriptionRow => ({
@@ -43,6 +44,7 @@ export const fromWire = (i: SubscriptionOut): SubscriptionRow => ({
   subscribedAt: new Date(i.createdAt).getTime(),
   ...(i.deletedAt === undefined ? {} : { deletedAt: new Date(i.deletedAt).getTime() }),
   starred: i.starred,
+  ...(i.starredAt === undefined ? {} : { starredAt: new Date(i.starredAt).getTime() }),
 });
 
 export function createSubscriptionSync(deps: SubscriptionSyncDeps): SubscriptionSync {

@@ -85,7 +85,7 @@ describe('SubscriptionStore', () => {
     subscriptions.add(FEED, 100);
     subscriptions.add(FEED, 200);
     expect(subscriptions.has(FEED)).toBe(true);
-    expect(subscriptions.list()).toEqual([{ feedUrl: FEED, subscribedAt: 100 }]);
+    expect(subscriptions.list()).toEqual([{ feedUrl: FEED, subscribedAt: 100, starred: false }]);
   });
 
   // (b) FR-023. This is the requirement an "obvious" ON DELETE CASCADE in the

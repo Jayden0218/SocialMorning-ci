@@ -30,6 +30,8 @@ export function createM12Api(deps: ApiDeps) {
     unlikeComment: async (id: string) => (await call<LikeState>('DELETE', `/v1/comments/${id}/like`)).json,
     /** FR-042: "I am playing this" — an install id, stored by the server only as a salted daily hash. */
     live: async (episodeId: string, installId: string) => { await call('PUT', `/v1/episodes/${episodeId}/live`, { installId }); },
+    /** FR-080: comment counts for up to 100 episodes in one call (the Updates list). */
+    commentCounts: async (ids: readonly string[]) => (await call<{ counts: Record<string, number> }>('POST', '/v1/episodes/comment-counts', { ids: ids.slice(0, 100) })).json.counts,
     listeningNow: async (episodeId: string) => (await call<{ listeningNow: number }>('GET', `/v1/episodes/${episodeId}/live`)).json.listeningNow,
     friendsListening: async () => (await call<{ items: FriendListen[] }>('GET', '/v1/me/friends-listening')).json.items,
     pastPicks: async (before?: string) => (await call<{ days: PastPicksDay[]; next?: string }>('GET', `/v1/picks/past${before ? `?before=${enc(before)}` : ''}`)).json,

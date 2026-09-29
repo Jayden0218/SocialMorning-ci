@@ -62,11 +62,11 @@ export interface PositionStore {
   applyRemote(p: { episodeId: string; offsetMs: number; finished: boolean; explicitSeek: boolean }, now: number): PositionRow;
 }
 
-export type SubscriptionRow = { feedUrl: string; subscribedAt: number; deletedAt?: number; starred: boolean };
+export type SubscriptionRow = { feedUrl: string; subscribedAt: number; deletedAt?: number; starred: boolean; /** M12: when the star last changed. */ starredAt?: number };
 
 export interface SubscriptionStore {
   /** The LIVE subscriptions. Tombstones are never in here (M8, guard G-M1). */
-  list(): { feedUrl: string; subscribedAt: number }[];
+  list(): { feedUrl: string; subscribedAt: number; starred: boolean }[];
   add(feedUrl: string, now: number): void;
   /**
    * FR-023: MUST NOT touch PositionStore. Positions outlive subscriptions.
@@ -75,6 +75,8 @@ export interface SubscriptionStore {
    */
   remove(feedUrl: string, now?: number): void;
   has(feedUrl: string): boolean;
+  /** M12 FR-081: star or unstar a live subscription; stamps `starredAt` so the change syncs. */
+  setStarred(feedUrl: string, starred: boolean, now: number): void;
   /** Everything including tombstones — what the sync uploads (M8 US1). */
   all(): SubscriptionRow[];
   /** Replace the whole table with the server's merged set (M8 US1, FR-002). */

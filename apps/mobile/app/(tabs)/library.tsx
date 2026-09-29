@@ -35,6 +35,8 @@ import { PlayButton } from '../../src/ui/discover/parts';
 import { mmss, shortDate } from '../../src/ui/format';
 import { useDownloads, useStores, useSubscriptionSync, useToast } from '../../src/ui/providers';
 import { useSocial } from '../../src/social/context';
+import { useM12Api } from '../../src/social/m12-api';
+import { CommentsButton } from '../../src/ui/CommentsButton';
 import { BOTTOM_INSET } from '../../src/ui/Screen';
 import { plural } from '@socialmorning/social-core';
 
@@ -82,6 +84,18 @@ export default function UpdatesScreen(): React.ReactElement {
     });
     return () => { live = false; };
   }, [listenerId, subscriptionSync, read, stores]);
+
+  // M12 FR-080: each row's comment count, one call for the first 100 rows. A failure leaves
+  // the icons without numbers — the list itself never waits on it.
+  const m12 = useM12Api();
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  const ids = rows.slice(0, 100).map((r) => r.episode.id).join(',');
+  useEffect(() => {
+    if (ids === '') return;
+    let live = true;
+    m12.commentCounts(ids.split(',')).then((next) => { if (live) setCounts(next); }, () => undefined);
+    return () => { live = false; };
+  }, [m12, ids]);
 
   const play = (id: string) => { const p = toPlayable(stores, id); if (p) player.load(p, 'play'); };
   const queue = (id: string) => {
@@ -135,7 +149,7 @@ export default function UpdatesScreen(): React.ReactElement {
                 </Pressable>
                 <Box className="flex-row items-center mt-1">
                   <Pressable onPress={() => queue(e.id)} accessibilityRole="button" accessibilityLabel={`Add ${e.title} to the queue`} className="justify-center pr-section" style={TAP}><Text className="text-accent text-sm">＋ Queue</Text></Pressable>
-                  <Pressable onPress={() => router.push({ pathname: '/episode/[id]', params: { id: e.id } })} accessibilityRole="button" accessibilityLabel={`Comments on ${e.title}`} className="justify-center pr-section" style={TAP}><Icon name="chatbubble-outline" size={20} color={c.accent} /></Pressable>
+                  <CommentsButton title={e.title} {...(counts[e.id] !== undefined ? { count: counts[e.id] } : {})} colour={c.accent} onPress={() => router.push({ pathname: '/comments/[episodeId]', params: { episodeId: e.id } })} />
                   <Pressable onPress={() => download(e.id)} accessibilityRole="button" accessibilityLabel={`Download ${e.title}`} className="justify-center pr-section" style={TAP}><Icon name="download-outline" size={20} color={c.accent} /></Pressable>
                   <Box className="flex-1" />
                   <PlayButton title={e.title} onPress={() => play(e.id)} />

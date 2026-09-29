@@ -1,3 +1,4 @@
+import { commentCounts } from './routes/comment-counts.ts';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { requestId } from 'hono/request-id';
@@ -171,6 +172,7 @@ export function createApp(deps: AppDeps) {
   app.route('/v1/voice-posts', voice);
   app.route('/v1/share', share);
   app.route('/v1/episodes', live);
+  app.route('/v1/episodes', commentCounts);
   app.route('/v1/me/feed', feed);
   app.route('/v1/me/listened', listened);
   app.route('/v1/me/privacy', privacy);
