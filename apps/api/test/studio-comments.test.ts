@@ -14,7 +14,7 @@ const FEED = 'https://feeds.example.com/mine.xml';
 const ep = { feedUrl: FEED, guid: 'g1', title: 'Ep 1', enclosureUrl: 'https://cdn/1.mp3' };
 const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
 
-type Thread = { id: string; body: string | null; deleted: boolean; host?: true; hiddenByHost?: true; mine?: boolean; replies: Thread[] }[];
+type Thread = { id: string; body: string | null; deleted: boolean; host?: true; hiddenByHost?: true; mine?: boolean; replies: Thread }[];
 
 async function setup(t: TestDb) {
   await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: 1_000_000 });

@@ -9,9 +9,9 @@ import { IconChart, IconCoin, IconComments, IconEpisodes, IconHome, IconMegaphon
  */
 export const SECTIONS = [
   { path: 'home', label: 'Home', icon: IconHome, built: true },
-  { path: 'data', label: 'Data', icon: IconChart, built: false },
-  { path: 'episodes', label: 'Episodes', icon: IconEpisodes, built: false },
-  { path: 'comments', label: 'Comments', icon: IconComments, built: false },
+  { path: 'data', label: 'Data', icon: IconChart, built: true },
+  { path: 'episodes', label: 'Episodes', icon: IconEpisodes, built: true },
+  { path: 'comments', label: 'Comments', icon: IconComments, built: true },
   { path: 'subscribers', label: 'Subscribers', icon: IconPeople, built: false },
   { path: 'announcements', label: 'Announcements', icon: IconMegaphone, built: false },
   { path: 'polls', label: 'Polls', icon: IconPoll, built: false },
@@ -46,7 +46,7 @@ export function Sidebar({ show, open, onNavigate }: { show: Show; open: boolean;
       <nav className="nav" aria-label="Sections">
         {SECTIONS.filter((s) => !('ownerOnly' in s) || show.role === 'owner').map((s) =>
           s.built ? (
-            <NavLink key={s.path} to={`/s/${show.key}/${s.path}`} onClick={onNavigate}>
+            <NavLink key={s.path} to={`/s/${show.key}/${s.path}`} end={false} onClick={onNavigate}>
               <s.icon />{s.label}
             </NavLink>
           ) : (

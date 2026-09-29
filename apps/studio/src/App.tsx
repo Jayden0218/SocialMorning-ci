@@ -4,6 +4,11 @@ import { useSession } from './session';
 import { Layout } from './shell/Layout';
 import { Loading } from './shell/States';
 import { Home } from './pages/Home';
+import { Data } from './pages/Data';
+import { Episodes } from './pages/Episodes';
+import { Episode } from './pages/Episode';
+import { Comments } from './pages/Comments';
+import type { Show } from './api';
 import { NoShow } from './pages/NoShow';
 import { SignIn } from './pages/SignIn';
 
@@ -13,7 +18,11 @@ export function App() {
     <Routes>
       <Route path="/sign-in" element={<SignIn />} />
       <Route path="/no-show" element={<Signed><NoShow /></Signed>} />
-      <Route path="/s/:show/home" element={<Signed><ShowPage /></Signed>} />
+      <Route path="/s/:show/home" element={<Signed><ShowPage page={(s) => <Home show={s} />} /></Signed>} />
+      <Route path="/s/:show/data" element={<Signed><ShowPage page={(s) => <Data show={s} />} /></Signed>} />
+      <Route path="/s/:show/episodes" element={<Signed><ShowPage page={(s) => <Episodes show={s} />} /></Signed>} />
+      <Route path="/s/:show/episodes/:id" element={<Signed><ShowPage page={(s) => <Episode show={s} />} /></Signed>} />
+      <Route path="/s/:show/comments" element={<Signed><ShowPage page={(s) => <Comments show={s} />} /></Signed>} />
       <Route path="*" element={<Signed><FirstShow /></Signed>} />
     </Routes>
   );
@@ -34,11 +43,11 @@ function FirstShow() {
   return <Navigate to={first ? `/s/${first.key}/home` : '/no-show'} replace />;
 }
 
-function ShowPage() {
+function ShowPage({ page }: { page: (s: Show) => ReactElement }) {
   const { session } = useSession();
   const { show: key } = useParams();
   if (session.state !== 'in') return null;
   const show = session.shows.find((s) => s.key === key);
   if (!show) return <Navigate to="/" replace />;
-  return <Layout show={show}><Home show={show} /></Layout>;
+  return <Layout show={show}>{page(show)}</Layout>;
 }

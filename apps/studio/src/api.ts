@@ -76,3 +76,19 @@ export async function startSession(token: string): Promise<{ me: Me; shows: Show
   }
   return s;
 }
+
+/** Downloads a CSV through `api`'s auth (cookie or the Bearer fallback), then saves it. */
+export async function downloadCsv(path: string, fallbackName: string): Promise<void> {
+  const token = bearer.get();
+  const res = await fetch(BASE + path, { credentials: 'same-origin', ...(token ? { headers: { authorization: `Bearer ${token}` } } : {}) });
+  if (!res.ok) throw new HttpError(res.status, 'export', 'The export did not work. Try again.');
+  const name = /filename="([^"]+)"/.exec(res.headers.get('content-disposition') ?? '')?.[1] ?? fallbackName;
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
