@@ -14,8 +14,8 @@ export const SUB_SORTS: readonly { key: SubSort; label: string }[] = [
 
 export type SubRow = { feedUrl: string; title: string; subscribedAt: number; starred: boolean; latestAt?: number };
 
-export function arrangeSubscriptions(rows: readonly SubRow[], term: string, sort: SubSort): { starred: SubRow[]; rest: SubRow[] } {
-  const by: Record<SubSort, (a: SubRow, b: SubRow) => number> = {
+export function arrangeSubscriptions<T extends SubRow>(rows: readonly T[], term: string, sort: SubSort): { starred: T[]; rest: T[] } {
+  const by: Record<SubSort, (a: T, b: T) => number> = {
     updated: (a, b) => (b.latestAt ?? -Infinity) - (a.latestAt ?? -Infinity) || a.title.localeCompare(b.title),
     az: (a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base' }),
     added: (a, b) => b.subscribedAt - a.subscribedAt,

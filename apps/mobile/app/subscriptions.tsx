@@ -48,12 +48,12 @@ export default function SubscriptionsScreen(): React.ReactElement {
     stores.subscriptions.list().map(({ feedUrl, subscribedAt, starred }) => {
       const show = stores.feeds.getShow(feedUrl);
       const latest = stores.feeds.listEpisodes(feedUrl)[0];
-      const latestAt = latest?.publishedAt ? Date.parse(latest.publishedAt) : undefined;
+      const latestAt = latest?.publishedAt;
       return {
         feedUrl, subscribedAt, starred, title: show?.title ?? feedUrl, stale: stale.has(feedUrl),
         ...(show?.imageUrl ? { imageUrl: show.imageUrl } : {}),
         ...(latest ? { latestTitle: latest.title } : {}),
-        ...(latestAt !== undefined && !Number.isNaN(latestAt) ? { latestAt } : {}),
+        ...(latestAt !== undefined ? { latestAt } : {}),
       };
     }), [stores]);
   useFocusEffect(useCallback(() => {
@@ -78,9 +78,9 @@ export default function SubscriptionsScreen(): React.ReactElement {
   };
 
   const { starred, rest } = arrangeSubscriptions(rows, term, sort);
-  const sections = [
-    ...(starred.length > 0 ? [{ key: 'starred', title: 'Starred', data: starred as Row[] }] : []),
-    ...(rest.length > 0 ? [{ key: 'all', title: starred.length > 0 ? 'All shows' : '', data: rest as Row[] }] : []),
+  const sections: { key: string; title: string; data: Row[] }[] = [
+    ...(starred.length > 0 ? [{ key: 'starred', title: 'Starred', data: starred }] : []),
+    ...(rest.length > 0 ? [{ key: 'all', title: starred.length > 0 ? 'All shows' : '', data: rest }] : []),
   ];
 
   return (
@@ -112,7 +112,7 @@ export default function SubscriptionsScreen(): React.ReactElement {
         renderItem={({ item }) => {
           const extra = [item.stale ? 'offline copy' : undefined,
             safety.isHidden('show', item.feedUrl) ? 'reported' : hiddenFeeds.has(item.feedUrl) ? 'hidden from discovery' : undefined].filter(Boolean).join(' · ');
-          const line = item.latestTitle ? `${item.latestAt !== undefined ? `${shortDate(new Date(item.latestAt).toISOString())} · ` : ''}${item.latestTitle}` : 'No episodes yet';
+          const line = item.latestTitle ? `${item.latestAt !== undefined ? `${shortDate(item.latestAt)} · ` : ''}${item.latestTitle}` : 'No episodes yet';
           return (
             <Box className="flex-row items-center gap-row py-row">
               <Pressable
