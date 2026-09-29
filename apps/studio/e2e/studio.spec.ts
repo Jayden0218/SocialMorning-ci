@@ -141,7 +141,7 @@ test('the whole Studio, one creator, from sign-in to sign-out', async ({ page, r
   await page.goto(`/s/${key}/subscribers/list`);
   await expect(page.getByRole('cell', { name: LISTENER.name })).toBeVisible();
   await page.goto(`/s/${key}/subscribers`);
-  await expect(page.getByText('Subscribes and unsubscribes')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Subscribes and unsubscribes' })).toBeVisible();
   await snap(page, 'subscribers');
 
   // 11 — an announcement → on the show in the app
@@ -163,7 +163,7 @@ test('the whole Studio, one creator, from sign-in to sign-out', async ({ page, r
   const pollId = (await extras()).polls[0]!.id;
   expect((await request.post(`/api/v1/polls/${pollId}/vote`, { headers: as(meiToken), data: { optionIdx: 1 } })).status()).toBe(200);
   await page.reload();
-  await expect(page.getByText('1 vote')).toBeVisible();
+  await expect(page.getByText('1 vote', { exact: true })).toBeVisible();
   await snap(page, 'poll');
 
   // 13 — show details: rename → the feed follows
