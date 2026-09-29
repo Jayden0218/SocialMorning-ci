@@ -24,6 +24,7 @@ import {
 } from '../db/repos/studio-numbers.ts';
 import { commentOnFeed, listShowComments, setHostHidden } from '../db/repos/studio-comments.ts';
 import { createComment, toPublic } from '../db/repos/comments.ts';
+import { listMutes, mute, subscriberList, subscriberStats, unmute } from '../db/repos/studio-subscribers.ts';
 import { isBlockedBy } from '../db/repos/blocks.ts';
 
 export type { StudioEnv };
@@ -182,5 +183,25 @@ studio.post('/shows/:show/comments/:id/hide', async (c) => {
 
 studio.post('/shows/:show/comments/:id/unhide', async (c) => {
   await setHostHidden(c.get('db'), c.get('show').feedUrl, c.req.param('id'), c.get('listener')!.id, false);
+  return c.body(null, 204);
+});
+
+// ---- US4: Subscribers and mutes ----
+
+studio.get('/shows/:show/subscribers/stats', async (c) =>
+  c.json(await subscriberStats(c.get('db'), c.get('show').feedUrl, days(c.req.query('days')), validTz(c.req.query('tz')))));
+
+studio.get('/shows/:show/subscribers', async (c) =>
+  c.json(await subscriberList(c.get('db'), c.get('show').feedUrl, Math.max(1, Number.parseInt(c.req.query('page') ?? '1', 10) || 1))));
+
+studio.get('/shows/:show/mutes', async (c) => c.json(await listMutes(c.get('db'), c.get('show').feedUrl)));
+
+studio.put('/shows/:show/mutes/:listenerId', async (c) => {
+  await mute(c.get('db'), c.get('show').feedUrl, c.req.param('listenerId'), c.get('listener')!.id);
+  return c.body(null, 204);
+});
+
+studio.delete('/shows/:show/mutes/:listenerId', async (c) => {
+  await unmute(c.get('db'), c.get('show').feedUrl, c.req.param('listenerId'));
   return c.body(null, 204);
 });

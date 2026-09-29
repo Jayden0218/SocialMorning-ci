@@ -11,7 +11,7 @@ type Route = (path: string) => { status: number; body?: unknown } | undefined;
 
 /** Answers `fetch('/api/…')` from a table; anything unmatched is a 404, so a missing fixture shows. */
 export function mockApi(route: Route) {
-  const f = vi.fn(async (input: RequestInfo | URL) => {
+  const f = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
     const path = String(input).replace(/^\/api/, '');
     const r = route(path) ?? { status: 404, body: { error: 'not_found', message: 'No such route.' } };
     return new Response(r.status === 204 ? null : JSON.stringify(r.body ?? {}), { status: r.status, headers: { 'content-type': 'application/json' } });

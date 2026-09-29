@@ -92,6 +92,8 @@ export async function merge(db: Db, listenerId: string, items: readonly Subscrip
           'INSERT INTO subscriptions (listener_id, feed_url, starred, created_at, deleted_at) VALUES ($1, $2, $3, $4, $5)',
           [listenerId, feedUrl, next.starred ?? false, next.createdAt, next.deletedAt ?? null],
         );
+        // M11 (research R4): a new live row is a subscribe. A row born as a tombstone changes nothing.
+        if ((next.deletedAt ?? null) === null) await logFlip(tx, listenerId, feedUrl, 'sub');
         continue;
       }
       const curStamp = stampOf({ createdAt: cur.created_at, deletedAt: cur.deleted_at });
@@ -105,6 +107,8 @@ export async function merge(db: Db, listenerId: string, items: readonly Subscrip
         'UPDATE subscriptions SET created_at = $3, deleted_at = $4, starred = $5 WHERE listener_id = $1 AND feed_url = $2',
         [listenerId, feedUrl, next.createdAt, next.deletedAt ?? null, next.starred ?? cur.starred],
       );
+      // M11: only a change of live state is history; a re-sent or re-starred row is not.
+      if (curIsTombstone !== nextIsTombstone) await logFlip(tx, listenerId, feedUrl, nextIsTombstone ? 'unsub' : 'sub');
     }
 
     return tx.query<SubscriptionRow>(
@@ -112,4 +116,9 @@ export async function merge(db: Db, listenerId: string, items: readonly Subscrip
       [listenerId],
     );
   });
+}
+
+/** M11 (research R4): `subscriptions` overwrites itself, so each live-state flip is also appended here. */
+async function logFlip(db: Db, listenerId: string, feedUrl: string, kind: 'sub' | 'unsub'): Promise<void> {
+  await db.query('INSERT INTO subscription_events (listener_id, feed_url, kind) VALUES ($1, $2, $3)', [listenerId, feedUrl, kind]);
 }

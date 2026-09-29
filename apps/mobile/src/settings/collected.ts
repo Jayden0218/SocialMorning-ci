@@ -25,7 +25,7 @@ export function collectedList(c: Counts): CollectedGroup[] {
       line: 'Kept so the app can resume, recommend and show your own history.',
       items: [
         { id: 'history', title: 'Listening history', purpose: 'Resume where you stopped; listening time; recommendations', when: 'While you listen', scope: 'Episode, position, finished or not, listening time', count: c.history },
-        { id: 'subscriptions', title: 'Subscriptions', purpose: 'Your shows, on every phone you sign in on', when: 'When you subscribe or unsubscribe', scope: 'Show feed addresses', count: c.subscriptions },
+        { id: 'subscriptions', title: 'Subscriptions', purpose: 'Your shows, on every phone you sign in on', when: 'When you subscribe or unsubscribe', scope: 'Show feed addresses; a show\u2019s host sees your name and the date you subscribed to their show', count: c.subscriptions },
         { id: 'favourites', title: 'Favourites', purpose: 'Your list of starred episodes', when: 'When you star an episode', scope: 'Episode, time starred — on this phone only', count: c.favourites },
         { id: 'moments', title: 'Saved moments', purpose: 'Your saved moments and notes', when: 'When you save a moment', scope: 'Episode, time, your note — on this phone only', count: c.moments },
         { id: 'searches', title: 'Search history', purpose: 'Show your recent searches on the search page', when: 'When you search', scope: 'Search terms — on this phone only', count: c.searches },

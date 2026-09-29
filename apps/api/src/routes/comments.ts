@@ -8,6 +8,7 @@ import { getEpisode, upsertEpisode } from '../db/repos/episodes.ts';
 import { createComment, deleteComment, getComment, toPublic } from '../db/repos/comments.ts';
 import { rebuildEpisodeHeat } from '../heat/rebuild.ts';
 import { isBlockedBy } from '../db/repos/blocks.ts';
+import { isMutedOn } from '../db/repos/studio-subscribers.ts';
 
 const commentBody = z.object({
   body: z.string().trim().min(1).max(2000),
@@ -42,6 +43,10 @@ comments.post('/:id/comments', requireAuth, json(commentBody), async (c) => {
     if (parent?.author_id && parent.author_id !== listener.id && (await isBlockedBy(db, parent.author_id, listener.id))) {
       throw new ApiError('blocked', "You can't interact with this listener.");
     }
+  }
+  // M11 (FR-019, G-M1): the show's host turned off comments for this listener, on this show only.
+  if (await isMutedOn(db, episode.feed_url, listener.id)) {
+    throw new ApiError('muted_on_show', 'The host has turned off comments for you on this show.');
   }
 
   const created = await db.transaction(async (tx) => {

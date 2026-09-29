@@ -19,8 +19,12 @@ legal.get('/privacy', (c) => {
 <li><b>Listening ranges</b> — which parts of an episode you heard — and playback positions, so your place survives a new phone. With <b>private listening</b> on (Account), your listens count in totals but are never shown against your name.</li>
 <li><b>Follows, blocks and reports</b> you make. A report keeps a copy of what you reported for 90 days so the owner can review it.</li>
 </ul>
+<h2>What a show's host can see</h2>
+<ul><li><b>Subscriptions</b> are kept on the server so they follow your account to a new phone. A show's creator — the person who proved the feed is theirs — and the helpers they add can see <b>your display name and the date you subscribed</b> to <b>their</b> show, and nothing about any other show you follow.</li>
+<li>They also see comments on their show and counts: plays, likes, saves and shares. Listens with private listening on count in totals and are never shown against your name.</li>
+<li>A host can hide a comment on their show (you still see it, marked) and can stop an account from commenting on their show.</li></ul>
 <h2>What it does not keep</h2>
-<ul><li><b>Audio.</b> Episodes stream or download from the publisher's own servers. Nothing is hosted here.</li><li>Your subscriptions and downloads live on your phone only.</li><li>No advertising, no analytics service, no sale of data.</li></ul>
+<ul><li><b>Audio.</b> Episodes stream or download from the publisher's own servers. Nothing is hosted here.</li><li>Downloads stay on your phone.</li><li>No advertising, no analytics service, no sale of data.</li></ul>
 <h2>Deleting everything</h2>
 <p>Account → <b>Delete my account</b> removes your account, sessions, reactions, positions, listening ranges, follows and blocks at once. Comments with replies become an anonymous placeholder so other people's replies keep their context; comments without replies are deleted. The email is free to use again.</p>
 <h2>Reports and moderation</h2>

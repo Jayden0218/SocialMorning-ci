@@ -68,7 +68,7 @@ describe('Comments (US3)', () => {
     expect(screen.getByRole('dialog', { name: 'Hide this comment?' })).toBeTruthy();
     expect(f.mock.calls.some(([u]) => String(u).endsWith('/hide'))).toBe(false);
     fireEvent.click(screen.getAllByRole('button', { name: 'Hide' }).at(-1)!);
-    await vi.waitFor(() => expect(f.mock.calls.some(([u, o]) => String(u).endsWith('/comments/c1/hide') && (o as RequestInit).method === 'POST')).toBe(true));
+    await vi.waitFor(() => expect(f.mock.calls.some(([u, o]) => String(u).endsWith('/comments/c1/hide') && (o as RequestInit | undefined)?.method === 'POST')).toBe(true));
   });
 
   it('a reply posts to the reply route with the Studio header', async () => {
@@ -81,7 +81,7 @@ describe('Comments (US3)', () => {
     await vi.waitFor(() => {
       const call = f.mock.calls.find(([u]) => String(u).endsWith('/comments/c1/reply'));
       expect(call).toBeTruthy();
-      const init = call![1] as RequestInit;
+      const init = call![1]!;
       expect((init.headers as Record<string, string>)['x-studio']).toBe('1');
       expect(JSON.parse(String(init.body))).toEqual({ body: 'Thank you!' });
     });
