@@ -1,5 +1,7 @@
 /** The one error shape (contracts/api.md): `{ error, message }` plus a status. */
-export type ErrorCode = 'validation' | 'unauthenticated' | 'forbidden' | 'not_found' | 'conflict' | 'locked' | 'duration_unknown' | 'reply_depth' | 'self_follow' | 'unavailable' | 'suspended' | 'blocked' | 'removed';
+export type ErrorCode = 'validation' | 'unauthenticated' | 'forbidden' | 'not_found' | 'conflict' | 'locked' | 'duration_unknown' | 'reply_depth' | 'self_follow' | 'unavailable' | 'suspended' | 'blocked' | 'removed'
+  // M11 — the Studio (specs/011-m11-studio/contracts/studio-api.md)
+  | 'session_expired' | 'csrf' | 'no_role' | 'owner_only';
 
 const STATUS: Record<ErrorCode, number> = {
   validation: 422,
@@ -15,6 +17,10 @@ const STATUS: Record<ErrorCode, number> = {
   suspended: 403,
   blocked: 403,
   removed: 410,
+  session_expired: 401,
+  csrf: 403,
+  no_role: 403,
+  owner_only: 403,
 };
 
 export class ApiError extends Error {
