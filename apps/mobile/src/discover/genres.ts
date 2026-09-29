@@ -31,3 +31,21 @@ export const GENRES: readonly Genre[] = [
 ];
 
 export const genreById = (id: number): Genre | undefined => GENRES.find((g) => g.id === id);
+
+/**
+ * M12 FR-063: the genre a feed names in its categories (`itunes:category` text, the same
+ * names Apple uses), first match wins; undefined when none is one of Apple's top-level ones.
+ */
+export function genreOf(categories: readonly string[] | undefined): Genre | undefined {
+  for (const c of categories ?? []) {
+    const name = c.trim().toLowerCase().replace(/&amp;/g, '&');
+    const g = GENRES.find((x) => x.name.toLowerCase() === name);
+    if (g) return g;
+  }
+  return undefined;
+}
+
+/** Up to `max` other shows from a genre chart: not this one, not a hidden one. */
+export function similarShows<T extends { feedUrl: string }>(shows: readonly T[], self: string, hidden: ReadonlySet<string>, max = 6): T[] {
+  return shows.filter((s) => s.feedUrl !== self && !hidden.has(s.feedUrl)).slice(0, max);
+}

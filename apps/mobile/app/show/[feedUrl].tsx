@@ -12,9 +12,17 @@
  * shownotes, "69 min · 13 h ago", and a round play button that plays without leaving.
  * The reference's subscriber count and "most popular" filter are left out: this app
  * has neither number, and it does not invent one.
+ *
+ * M12 (US6): past the header a slim bar keeps back, 24 pt art, the title and Subscribe on
+ * top (FR-060); rows add plays and comments from one server call and a ⋮ sheet (FR-061);
+ * About no longer repeats the header's description — the header hides it there — and adds
+ * a host row and up to 6 similar shows from the show's genre chart (FR-063). The host's
+ * announcement card is M11's (`ShowExtrasBlock`); RSS has no announcement tag (the podcast
+ * namespace's 28 tags, read 2026-09-29), so a feed alone never shows one (FR-062).
  */
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
+import { ScrollView } from 'react-native';
 import { Share } from 'react-native';
 import { FlatList } from '../../src/ui/lib/flat-list';
 import { Pressable } from '../../src/ui/lib/pressable';
@@ -35,7 +43,19 @@ import type { CachedEpisode, CachedShow } from '../../src/storage/types';
 import { getPref } from '../../src/settings/prefs';
 import { ShowExtrasBlock, useShowExtras } from '../../src/ui/ShowExtras';
 import { useSocial } from '../../src/social/context';
-import { noun } from '@socialmorning/social-core';
+import { noun, plural } from '@socialmorning/social-core';
+import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '../../src/ui/lib/actionsheet';
+import { QueueButtons } from '../../src/ui/QueueButtons';
+import { DownloadButton } from '../../src/ui/DownloadButton';
+import { EpisodeExtras } from '../../src/ui/me/EpisodeExtras';
+import { Icon } from '../../src/ui/Icon';
+import { useColours } from '../../src/ui/useColours';
+import { useM12Api } from '../../src/social/m12-api';
+import { genreOf, similarShows } from '../../src/discover/genres';
+import type { ShowCard } from '../../src/social/api';
+
+/** How far the page scrolls before the slim bar takes over (about the title block's height). */
+export const COLLAPSE_AT = 150;
 
 export default function ShowScreen(): React.ReactElement {
   const stores = useStores();
@@ -68,6 +88,28 @@ export default function ShowScreen(): React.ReactElement {
   const title = ov?.title ?? show?.title;
   const description = ov?.description ?? show?.description;
   useFocusEffect(useCallback(() => { setFocusTick((n) => n + 1); }, []));
+  const c = useColours(stores.settings);
+  const m12 = useM12Api();
+  const [collapsed, setCollapsed] = useState(false);
+  const [menuFor, setMenuFor] = useState<CachedEpisode | undefined>();
+  // FR-061: plays and comments for the first 100 rows, one call; a failure leaves them out.
+  const [counts, setCounts] = useState<{ counts: Record<string, number>; listeners?: Record<string, number> }>({ counts: {} });
+  const ids = episodes.slice(0, 100).map((e) => e.id).join(',');
+  useEffect(() => {
+    if (ids === '') return;
+    let live = true;
+    m12.episodeCounts(ids.split(',')).then((r) => { if (live) setCounts(r); }, () => undefined);
+    return () => { live = false; };
+  }, [m12, ids]);
+  // FR-063: similar shows — the show's genre chart (cached on the server), this one left out.
+  const genre = genreOf(show?.categories);
+  const [similar, setSimilar] = useState<ShowCard[]>([]);
+  useEffect(() => {
+    if (genre === undefined) return;
+    let live = true;
+    api.category(genre.id).then((r) => { if (live) setSimilar(r.shows); }, () => undefined);
+    return () => { live = false; };
+  }, [api, genre?.id]);
 
   useEffect(() => {
     let live = true;
@@ -135,7 +177,7 @@ export default function ShowScreen(): React.ReactElement {
         <Box className="flex-row gap-section items-start">
           <Box className="flex-1 gap-2">
             <Text className="text-[28px] leading-[36px] font-bold text-text" accessibilityRole="header">{title ?? 'Loading…'}</Text>
-            {description === undefined ? null : (
+            {description === undefined || tab === 'about' ? null : (
               <Text className="text-sm text-muted" numberOfLines={2}>{htmlToText(description)}</Text>
             )}
             {show?.author === undefined ? null : <Text className="text-sm text-muted mt-2" numberOfLines={1}>{show.author}</Text>}
@@ -183,12 +225,37 @@ export default function ShowScreen(): React.ReactElement {
     </Box>
   );
 
+  // FR-063: the host row — the creator's own names from the Studio, else the feed's author.
+  const hostLine = ov?.hosts?.length ? ov.hosts.join(', ') : show?.author;
+  const similarRow = similarShows(similar, feedUrl, hiddenFeeds);
+
   const about = (
     <Box className="px-screen-x py-section gap-section">
       {show?.description === undefined ? <Text className="text-sm text-muted">This show has no description.</Text> : (
         <Text className="text-sm leading-[22px] text-text">{htmlToText(show.description)}</Text>
       )}
-      {show?.author === undefined ? null : <Text className="text-sm text-muted">By {show.author}</Text>}
+      {hostLine === undefined ? null : (
+        <Box className="flex-row items-center gap-row" accessible accessibilityLabel={`Hosted by ${hostLine}`}>
+          <Box className="w-10 h-10 rounded-pill bg-surface items-center justify-center"><Icon name="person-outline" size={20} color={c.muted} /></Box>
+          <Box className="flex-1">
+            <Text className="text-xs text-muted">Hosted by</Text>
+            <Text className="text-sm font-semibold text-text" numberOfLines={2}>{hostLine}</Text>
+          </Box>
+        </Box>
+      )}
+      {similarRow.length > 0 ? (
+        <Box className="gap-row">
+          <Text className="text-base font-bold text-text" accessibilityRole="header">Similar shows</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-row">
+            {similarRow.map((s) => (
+              <Pressable key={s.feedUrl} onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(s.feedUrl) } })} accessibilityRole="button" accessibilityLabel={s.title} className="w-24">
+                <Artwork url={s.imageUrl} size={96} rounded="row" name={s.title} />
+                <Text className="text-xs text-text mt-1" numberOfLines={2}>{s.title}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </Box>
+      ) : null}
       <Pressable onPress={() => setReporting({ kind: 'show', id: feedUrl, authorId: null, label: 'show' })} accessibilityRole="button" accessibilityLabel="Report this show" className="self-start justify-center" style={TAP}>
         <Text className="text-sm text-muted">{reportedShow ? 'Reported' : 'Report this show'}</Text>
       </Pressable>
@@ -197,7 +264,21 @@ export default function ShowScreen(): React.ReactElement {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <TopBar onBack={() => router.back()}>
+      <TopBar
+        onBack={() => router.back()}
+        {...(collapsed ? {
+          middle: (
+            <>
+              <Artwork url={ov?.coverUrl ?? show?.imageUrl} size={24} rounded="row" name={title} />
+              <Text className="text-sm font-semibold text-text flex-1" numberOfLines={1}>{title ?? ''}</Text>
+              <Pressable onPress={toggleSubscription} accessibilityRole="button" accessibilityLabel={subscribed ? 'Unsubscribe from this show' : 'Subscribe to this show'} accessibilityState={{ selected: subscribed }}
+                className={`justify-center px-row rounded-pill ${subscribed ? 'bg-surface' : 'bg-text'}`} style={TAP}>
+                <Text className={subscribed ? 'text-xs font-bold text-muted' : 'text-xs font-bold text-background'}>{subscribed ? 'Subscribed' : 'Subscribe'}</Text>
+              </Pressable>
+            </>
+          ),
+        } : {})}
+      >
         <BarButton label="Share this show" onPress={() => {
           void api.recordShare({ targetKind: 'show', targetId: feedUrl, feedUrl }).catch(() => undefined); // M11 FR-011: never waits
           void Share.share({ message: `${title ?? ''}\n${feedUrl}` }).catch(() => undefined);
@@ -213,13 +294,17 @@ export default function ShowScreen(): React.ReactElement {
         keyExtractor={(episode) => episode.id}
         ListHeaderComponent={header}
         contentContainerClassName="pb-24"
+        onScroll={(e) => { const past = e.nativeEvent.contentOffset.y > COLLAPSE_AT; if (past !== collapsed) setCollapsed(past); }}
+        scrollEventThrottle={32}
         // iOS i13: "No episodes yet." showed while the show was still loading.
         ListEmptyComponent={tab === 'about' ? about : show === undefined && failed === undefined ? undefined : (
           <Text className="p-screen-x text-muted">{failed === undefined ? 'No episodes yet.' : failed}</Text>
         )}
         renderItem={({ item }) => {
           const notes = noteSummary(item.shownotesHtml);
-          const meta = [minutesLabel(item.durationMs), ago(item.publishedAt, now), progressFor(item)].filter((p) => p !== '').join(' · ');
+          const plays = counts.listeners?.[item.id] ?? 0;
+          const talk = counts.counts[item.id] ?? 0;
+          const meta = [minutesLabel(item.durationMs), ago(item.publishedAt, now), plays > 0 ? `${plays} listened` : '', talk > 0 ? plural(talk, 'comment') : '', progressFor(item)].filter((p) => p !== '').join(' · ');
           return (
             <Box className="flex-row gap-row px-screen-x py-row items-start">
               <Pressable
@@ -243,11 +328,31 @@ export default function ShowScreen(): React.ReactElement {
               >
                 {isPlaying(item.id) ? <PauseIcon size={14} /> : <PlayIcon size={16} />}
               </Pressable>
+              <Pressable onPress={() => setMenuFor(item)} accessibilityRole="button" accessibilityLabel={`More for ${item.title}`} className="items-center justify-center mt-2" style={TAP}>
+                <Icon name="ellipsis-vertical" size={18} color={c.muted} />
+              </Pressable>
             </Box>
           );
         }}
         ListFooterComponent={<ReportSheet target={reporting} onClose={() => setReporting(undefined)} />}
       />
+      <Actionsheet isOpen={menuFor !== undefined} onClose={() => setMenuFor(undefined)}>
+        <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
+        <ActionsheetContent className="bg-background rounded-t-2xl px-screen-x pt-row pb-10 items-stretch">
+          <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
+          {menuFor ? (
+            <>
+              <Text className="text-sm font-bold text-text py-row" numberOfLines={2}>{menuFor.title}</Text>
+              <QueueButtons episodeId={menuFor.id} />
+              <DownloadButton episodeId={menuFor.id} />
+              <EpisodeExtras episodeId={menuFor.id} atMs={stores.positions.get(menuFor.id)?.offsetMs ?? 0} />
+            </>
+          ) : null}
+          <Pressable onPress={() => setMenuFor(undefined)} accessibilityRole="button" accessibilityLabel="Cancel" className="items-center justify-center mt-row" style={TAP}>
+            <Text className="text-sm text-muted">Cancel</Text>
+          </Pressable>
+        </ActionsheetContent>
+      </Actionsheet>
     </SafeAreaView>
   );
 }

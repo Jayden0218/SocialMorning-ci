@@ -34,6 +34,7 @@ import { Pressable } from '../../src/ui/lib/pressable';
 import { ApiError, type FeedItem as Item, type Profile } from '../../src/social/api';
 import { EmptyState } from '../../src/ui/EmptyState';
 import { plural } from '@socialmorning/social-core';
+import { ProfileStatRow, listenedLabel, type StatCell } from '../../src/ui/ProfileStatRow';
 
 export default function ProfileScreen(): React.ReactElement {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -77,6 +78,14 @@ export default function ProfileScreen(): React.ReactElement {
   const history = own ? listeningHistory(stores, 5) : [];
   const earned = own ? stickers({ listenedMs: all?.listenedMs ?? 0, finished: all?.finished ?? 0, moments: listMoments(stores.settings).length, comments: profile.recent.filter((r) => r.kind === 'commented').length }) : [];
   const latest = latestEarned(earned);
+  const subs = own ? stores.subscriptions.list().length : undefined;
+  const time = listenedLabel(profile.stats === null ? undefined : all?.listenedMs ?? 0);
+  const statCells: StatCell[] = [
+    { key: 'following', value: String(profile.following), label: 'Following', spoken: `${profile.following} following`, href: { pathname: '/profile/[id]/following', params: { id: profile.id } } },
+    { key: 'followers', value: String(profile.followers), label: 'Followers', spoken: plural(profile.followers, 'follower'), href: { pathname: '/profile/[id]/followers', params: { id: profile.id } } },
+    ...(subs !== undefined ? [{ key: 'subs', value: String(subs), label: 'Subscriptions', spoken: plural(subs, 'subscription'), href: '/subscriptions' }] : []),
+    { key: 'time', value: time.value, label: 'Listened', spoken: time.spoken },
+  ];
   const h = Math.floor((all?.listenedMs ?? 0) / 3_600_000);
   const m = Math.floor(((all?.listenedMs ?? 0) % 3_600_000) / 60_000);
   return (
@@ -98,20 +107,8 @@ export default function ProfileScreen(): React.ReactElement {
         </Box>
       </Box>
 
-      <Box className="flex-row gap-section mt-section">
-        {/* Counts and names are links but not actions (owner's K1 note, 2026-09-25). */}
-        <Link href={{ pathname: '/profile/[id]/following', params: { id: profile.id } }} asChild>
-          <Pressable accessibilityRole="link" accessibilityLabel={`${profile.following} following`}><Text className="text-text text-lg font-bold">{profile.following}</Text><Text className="text-muted text-xs">Following</Text></Pressable>
-        </Link>
-        <Link href={{ pathname: '/profile/[id]/followers', params: { id: profile.id } }} asChild>
-          <Pressable accessibilityRole="link" accessibilityLabel={`${plural(profile.followers, 'follower')}`}><Text className="text-text text-lg font-bold">{profile.followers}</Text><Text className="text-muted text-xs">Followers</Text></Pressable>
-        </Link>
-        {own ? (
-          <Link href="/subscriptions" asChild>
-            <Pressable accessibilityRole="link" accessibilityLabel={`${stores.subscriptions.list().length} subscriptions`}><Text className="text-text text-lg font-bold">{stores.subscriptions.list().length}</Text><Text className="text-muted text-xs">Subscriptions</Text></Pressable>
-          </Link>
-        ) : null}
-      </Box>
+      {/* M12 FR-064: four numbers in one row — the listening time moved up from the card. */}
+      <ProfileStatRow cells={statCells} />
 
       {!own ? (
         <Box className="flex-row gap-4 items-center flex-wrap mt-section">
@@ -140,13 +137,21 @@ export default function ProfileScreen(): React.ReactElement {
       {own ? (
         <>
           <Text className="text-text text-base font-bold mt-section mb-row" accessibilityRole="header">My stickers</Text>
+          {/* M12 FR-065: the stickers themselves, not a count — earned ones in colour, the next
+              ones faint, so there is something to see from the first day. */}
           <Link href="/stickers" asChild>
-            <Pressable accessibilityRole="button" accessibilityLabel={plural(earned.filter((x) => x.earned).length, 'sticker')} className="bg-surface rounded-artwork p-section flex-row items-center justify-between">
-              <Box>
-                <Text className="text-text text-sm font-bold">{plural(earned.filter((x) => x.earned).length, 'sticker')} ›</Text>
-                <Text className="text-muted text-xs">{latest ? `Latest: ${latest.title}` : 'Listen for an hour to earn the first'}</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel={`My stickers: ${plural(earned.filter((x) => x.earned).length, 'sticker')} earned${latest ? `, latest ${latest.title}` : ''}. Open all stickers`} className="bg-surface rounded-artwork p-section">
+              <Box className="flex-row gap-row">
+                {[...earned.filter((x) => x.earned).reverse(), ...earned.filter((x) => !x.earned)].slice(0, 5).map((x) => (
+                  <Box key={x.id} className="flex-1 items-center gap-1">
+                    <Box className={`w-12 h-12 rounded-pill items-center justify-center ${x.earned ? 'bg-accentTint' : 'bg-background'}`}>
+                      <Icon name={x.icon} size={24} color={x.earned ? c.accent : c.muted} />
+                    </Box>
+                    <Text className={x.earned ? 'text-text text-xs text-center' : 'text-muted text-xs text-center'} numberOfLines={2}>{x.title}</Text>
+                  </Box>
+                ))}
               </Box>
-              <Box className="flex-row gap-1">{earned.filter((x) => x.earned).slice(-3).map((x) => <Icon key={x.id} name={x.icon} size={22} color={c.text} />)}</Box>
+              <Text className="text-muted text-xs mt-row">{latest ? `Latest: ${latest.title} · all stickers ›` : 'Listen for an hour to earn the first · all stickers ›'}</Text>
             </Pressable>
           </Link>
         </>

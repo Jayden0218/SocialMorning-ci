@@ -31,7 +31,9 @@ test('G-U1: counts are top-level, live comments only; unknown ids are 0; the bod
 
   const res = await t.call('POST', '/v1/episodes/comment-counts', { ids: [id('g1'), id('g2'), 'never-seen'] });
   assert.equal(res.status, 200);
-  assert.deepEqual(((await res.json()) as { counts: Record<string, number> }).counts, { [id('g1')]: 2, [id('g2')]: 1, 'never-seen': 0 });
+  const body = (await res.json()) as { counts: Record<string, number>; listeners: Record<string, number> };
+  assert.deepEqual(body.counts, { [id('g1')]: 2, [id('g2')]: 1, 'never-seen': 0 });
+  assert.deepEqual(body.listeners, { [id('g1')]: 0, [id('g2')]: 0, 'never-seen': 0 });
 
   assert.equal((await t.call('POST', '/v1/episodes/comment-counts', { ids: [] })).status, 422);
   assert.equal((await t.call('POST', '/v1/episodes/comment-counts', { ids: Array.from({ length: 101 }, (_, i) => `e${i}`) })).status, 422);
