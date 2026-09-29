@@ -103,7 +103,7 @@ test('the whole Studio, one creator, from sign-in to sign-out', async ({ page, r
   await page.getByLabel('Your reply').fill('Thanks for listening!');
   await page.getByRole('button', { name: 'Send' }).click();
   await expect(page.getByText(/Reply sent/)).toBeVisible();
-  const thread = async (token: string) => ((await (await request.get(`/api/v1/episodes/${episodeId}/social`, { headers: as(token) })).json()) as { comments: { id: string; body: string | null; hiddenByHost?: true; replies: { body: string; host?: true }[] }[] }).comments;
+  const thread = async (token: string) => ((await (await request.get(`/api/v1/episodes/${episodeId}/social`, { headers: as(token) })).json()) as { comments: { id: string; body: string | null; hiddenByHost?: true; host?: true; replies: { body: string; host?: true }[] }[] }).comments;
   const [top] = await thread(xuToken);
   expect(top!.replies.map((r) => [r.body, r.host])).toEqual([['Thanks for listening!', true]]);
   await snap(page, 'comments-replied');
@@ -168,13 +168,84 @@ test('the whole Studio, one creator, from sign-in to sign-out', async ({ page, r
   await expect(page.getByText('1 vote', { exact: true })).toBeVisible();
   await snap(page, 'poll');
 
-  // 13 — show details: rename → the feed follows
+  // 13 — show details: rename → the feed follows. M14: Save is off until something changes,
+  // and leaving with changes asks in the page first.
   await page.goto(`/s/${key}/settings`);
+  const saveBtn = page.getByRole('button', { name: 'Save changes' });
+  await expect(page.getByLabel('Show name')).toHaveValue(SHOW);
+  await expect(saveBtn).toBeDisabled();
   await page.getByLabel('Show name').fill('E2E Morning Talk');
-  await page.getByRole('button', { name: 'Save' }).click();
+  await expect(saveBtn).toBeEnabled();
+  await page.getByRole('navigation', { name: 'Sections' }).getByRole('link', { name: 'Home' }).click();
+  await expect(page.getByRole('dialog', { name: 'Leave without saving?' })).toBeVisible();
+  await snap(page, 'leave-guard');
+  await page.getByRole('dialog').getByRole('button', { name: 'Cancel' }).click();
+  await expect(page).toHaveURL(new RegExp(`/s/${key}/settings$`));
+  await saveBtn.click();
   await expect(page.getByText(/Saved\. Your feed shows it now/)).toBeVisible();
+  await expect(saveBtn).toBeDisabled();
   expect(await (await request.get(feedPath)).text()).toContain('<title>E2E Morning Talk</title>');
   await snap(page, 'show-details');
+
+  // 13a — M14 US3: a contact is checked, saved, and reaches the app
+  await page.goto(`/s/${key}/settings/contacts`);
+  await page.getByRole('button', { name: 'Add a contact' }).click();
+  await page.getByLabel('Website').fill('http://not-https.example');
+  await page.getByRole('button', { name: 'Save changes' }).click();
+  await expect(page.getByText('Must start with https://')).toBeVisible();
+  await page.getByLabel('Website').fill('https://morning.example');
+  await page.getByRole('button', { name: 'Save changes' }).click();
+  await expect(page.getByText('Saved.', { exact: true })).toBeVisible();
+  const ex = (await (await request.get(`/api/v1/shows/extras?feedUrl=${encodeURIComponent(details.show.feedUrl)}`, { headers: as(meiToken) })).json()) as { overrides: { contacts: unknown } };
+  expect(ex.overrides.contacts).toEqual([{ type: 'website', value: 'https://morning.example' }]);
+  await snap(page, 'contacts');
+
+  // 13b — M14 US2: an invite link, accepted by Mei in her own browser; her comments then carry the Host mark
+  await page.goto(`/s/${key}/settings/hosts`);
+  await page.getByRole('button', { name: 'Make an invite link' }).click();
+  const inviteUrl = (await page.getByRole('status').locator('code').textContent())!;
+  await snap(page, 'hosts-invite');
+  const meiCtx = await browser.newContext();
+  const mp = await meiCtx.newPage();
+  await mp.goto(new URL(inviteUrl).pathname);
+  await expect(mp).toHaveURL(/\/sign-in\?next=/);
+  await mp.getByRole('tab', { name: 'Password' }).click();
+  await mp.getByLabel('Email').fill(LISTENER.email);
+  await mp.getByLabel('Password').fill(PW);
+  await mp.getByRole('button', { name: 'Sign in' }).click();
+  await expect(mp.getByRole('heading', { name: 'Join E2E Morning Talk as a host' })).toBeVisible();
+  await mp.getByRole('button', { name: 'Accept' }).click();
+  await expect(mp.getByRole('heading', { name: 'You are a host of E2E Morning Talk' })).toBeVisible();
+  await mp.screenshot({ path: `e2e-results/steps/${String(++shot).padStart(2, '0')}-invite-accepted.png`, fullPage: true });
+  await mp.goto(new URL(inviteUrl).pathname);
+  await expect(mp.getByText('This invite link was already used.')).toBeVisible();
+  await meiCtx.close();
+  await page.reload();
+  await expect(page.getByRole('list', { name: 'Hosts' }).getByText(LISTENER.name, { exact: true }).first()).toBeVisible();
+  const meiNow = (await thread(xuToken)).filter((c) => c.body === 'sorry!') as { host?: true }[];
+  expect(meiNow.map((c) => c.host)).toEqual([true]);
+
+  // 13c — M14 US4: a scheduled episode is not in the feed; it is listed apart; Media shows both files in use
+  await page.goto(`/s/${key}/episodes/new`);
+  await page.getByLabel(/Audio file/).setInputFiles({ name: 'later.mp3', mimeType: 'audio/mpeg', buffer: Buffer.alloc(48_000, 2) });
+  await page.getByLabel('Title').fill('Episode two');
+  await page.getByLabel('Publish at a time').check();
+  const soon = new Date(Date.now() + 2 * 86_400_000);
+  await page.getByLabel(/Date and time/).fill(new Date(soon.getTime() - soon.getTimezoneOffset() * 60_000).toISOString().slice(0, 16));
+  await page.getByRole('button', { name: 'Upload and schedule' }).click();
+  await expect(page).toHaveURL(new RegExp(`/s/${key}/episodes$`));
+  const pending = page.getByRole('region', { name: 'Drafts and scheduled' });
+  await expect(pending.getByText('Episode two', { exact: true }).first()).toBeVisible();
+  await expect(pending.getByText(/^Scheduled for/)).toBeVisible();
+  expect(await (await request.get(feedPath)).text()).not.toContain('Episode two');
+  await snap(page, 'scheduled');
+  await page.goto(`/s/${key}/media`);
+  await expect(page.getByText('In use', { exact: true })).toHaveCount(2);
+  await snap(page, 'media');
+  await page.goto(`/s/${key}/episodes`);
+  await pending.getByRole('button', { name: 'Delete Episode two' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click();
+  await expect(pending).toHaveCount(0);
 
   // 14 — team: add a helper; the helper sees Comments but not Settings or Tips
   await page.goto(`/s/${key}/settings/team`);
@@ -216,7 +287,7 @@ test('the whole Studio, one creator, from sign-in to sign-out', async ({ page, r
   await expect(page).toHaveURL(new RegExp(`/s/${key}/episodes$`));
   expect(await (await request.get(feedPath)).text()).not.toContain('<item>');
   const removed = (await (await request.get('http://localhost:8787/__e2e/removed')).json()) as string[];
-  expect(removed).toHaveLength(1);
+  expect(removed).toHaveLength(2); // Episode two's audio (13c), then this one's
   await snap(page, 'episode-deleted');
 
   // 19 — sign out → back to sign-in, and the Studio refuses the old session
