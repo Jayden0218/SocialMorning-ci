@@ -1,0 +1,51 @@
+# The Studio end to end (M11 + M13): a real browser against the built Studio (vite preview,
+# proxying /api like production) and the real API on a real PostgreSQL. Stand-ins: the audio
+# store's upload call and Apple's catalogue (apps/api/scripts/e2e-server.ts). Screenshots of
+# every step are uploaded as the `studio-e2e` artifact.
+name: studio-e2e
+on:
+  workflow_dispatch:
+  push:
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        # No password: a throw-away container for this run only (trust auth), so no secret-shaped string exists.
+        env: { POSTGRES_HOST_AUTH_METHOD: trust, POSTGRES_DB: e2e }
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres@localhost:5432/e2e
+      SESSION_PEPPER: e2e-pepper-not-secret
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --no-audit --no-fund
+      - name: migrate
+        run: npx tsx src/db/migrate.ts
+        working-directory: apps/api
+      - name: start the API
+        run: (npx tsx scripts/e2e-server.ts > ../../api.log 2>&1 &) && for i in $(seq 1 60); do curl -sf localhost:8787/v1/health && break; sleep 1; done
+        working-directory: apps/api
+      - name: build and serve the Studio
+        run: npm run build && (npx vite preview --port 4173 --strictPort > ../../studio.log 2>&1 &) && for i in $(seq 1 60); do curl -sf localhost:4173/api/v1/health && break; sleep 1; done
+        working-directory: apps/studio
+      - run: npx playwright install --with-deps chromium
+        working-directory: apps/studio
+      - name: end to end
+        run: npx playwright test
+        working-directory: apps/studio
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: studio-e2e
+          path: |
+            apps/studio/e2e-results
+            apps/studio/e2e-report
+            api.log
+            studio.log

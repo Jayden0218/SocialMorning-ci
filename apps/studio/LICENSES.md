@@ -14,4 +14,5 @@ Checked with `npm view <pkg> license` on 2026-09-29 (specs/011-m11-studio/resear
 | @testing-library/react | 16.3.3 | MIT | tests only |
 | @testing-library/dom | 10.4.2 | MIT | tests only |
 | jsdom | 30.1.1 | MIT | tests only |
+| @playwright/test | 1.63.0 | Apache-2.0 | tests only (end-to-end, in CI) |
 | axe-core | 4.13.0 | MPL-2.0 | tests only, unmodified (file-level copyleft; our code is not covered) |
