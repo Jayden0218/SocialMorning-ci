@@ -27,7 +27,7 @@ export default function TipsScreen(): React.ReactElement {
       data={state.kind === 'ok' ? state.items : []}
       keyExtractor={(t) => t.id}
       contentContainerClassName="px-screen-x py-row pb-24 flex-grow"
-      ListHeaderComponent={state.kind === 'ok' && !state.storeReady ? <Text className="text-muted text-xs mb-row">Tipping is not available yet. When it is, tips are paid through the App Store or Google Play.</Text> : null}
+      ListHeaderComponent={state.kind === 'ok' && !state.storeReady ? <Text className="text-muted text-xs mb-row">Tipping is not available yet. When it is, tips are paid through the App Store or Google Play.</Text> : undefined}
       ListEmptyComponent={state.kind === 'loading' ? <Loader className="my-section" /> : state.kind === 'error' ? <Text className="text-muted text-sm my-section">Couldn't load your tips right now.</Text> : <EmptyPicture icon="heart-outline" line="No tips yet" />}
       renderItem={({ item }) => (
         <Box className="flex-row items-center gap-row border-b-hairline border-separator" style={ROW} accessible accessibilityLabel={`${item.showTitle ?? 'A show'}, ${moneyLabel(item.amountMicros, item.currency)}, ${shortDate(Date.parse(item.createdAt))}`}>
