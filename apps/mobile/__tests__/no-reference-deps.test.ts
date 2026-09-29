@@ -72,6 +72,9 @@ const FEEDBACK_ADDITIONS = ['expo-image-picker', 'expo-image-manipulator'];
 /** M10b US9: widgets (Android + iOS) and the iPhone live activity (research R11). MIT (LICENSES.md). */
 const OUTSIDE_ADDITIONS = ['react-native-android-widget', '@bacons/apple-targets', 'expo-live-activity'];
 
+/** One launch screen: the native one draws the same icon as the in-app Splash (owner, 2026-09-29). MIT (LICENSES.md). */
+const SPLASH_ADDITIONS = ['expo-splash-screen'];
+
 it('no reference dependency is installed, anywhere', () => {
   const installed = new Set([
     ...Object.keys(pkg.dependencies),
@@ -88,6 +91,6 @@ it('M7 added exactly expo-blur and expo-linear-gradient, Tailwind its three, not
   const now = Object.keys(pkg.dependencies).sort();
   const added = now.filter((name) => !M6_DEPENDENCIES.includes(name));
   const removed = M6_DEPENDENCIES.filter((name) => !now.includes(name));
-  expect(added.sort()).toEqual([...M7_ADDITIONS, ...TAILWIND_ADDITIONS, ...NOTIFY_ADDITIONS, ...SCAN_ADDITIONS, ...ICON_ADDITIONS, ...VIDEO_ADDITIONS, ...FEEDBACK_ADDITIONS, ...OUTSIDE_ADDITIONS].sort());
+  expect(added.sort()).toEqual([...M7_ADDITIONS, ...TAILWIND_ADDITIONS, ...NOTIFY_ADDITIONS, ...SCAN_ADDITIONS, ...ICON_ADDITIONS, ...VIDEO_ADDITIONS, ...FEEDBACK_ADDITIONS, ...OUTSIDE_ADDITIONS, ...SPLASH_ADDITIONS].sort());
   expect(removed).toEqual([]);
 });
