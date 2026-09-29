@@ -117,7 +117,7 @@ export default function ProfileScreen(): React.ReactElement {
         <Box className="flex-row gap-4 items-center flex-wrap mt-section">
           <FollowButton listenerId={profile.id} following={profile.isFollowing} onChange={(f) => setProfile({ ...profile, isFollowing: f, followers: profile.followers + (f ? 1 : -1) })} />
           <BlockButton listenerId={profile.id} displayName={profile.displayName} />
-          <Pressable onPress={() => setReporting({ kind: 'profile', id: profile.id, authorId: profile.id, label: 'profile' })} accessibilityRole="button" accessibilityLabel={`Report ${profile.displayName}`} className="py-2 min-h-[44px] justify-center">
+          <Pressable onPress={() => setReporting({ kind: 'profile', id: profile.id, authorId: profile.id, label: 'profile' })} accessibilityRole="button" accessibilityLabel={`Report ${profile.displayName}`} className="py-2 min-h-12 justify-center">
             <Text className="text-muted">Report</Text>
           </Pressable>
         </Box>

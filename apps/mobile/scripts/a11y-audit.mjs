@@ -78,9 +78,34 @@ for (const file of files) {
   }
 }
 
+/**
+ * M12 guard G-A1 (FR-057): a tap target is at least 48 pt (hit.min). The 2026-09-29 comparison
+ * measured 24 pt speed chips, 27 pt size chips and 17 pt comment tabs. A <Pressable> that
+ * writes its own height — `min-h-*` or `minHeight: N` — below 48 is refused.
+ */
+const small = [];
+for (const file of files) {
+  const lines = readFileSync(file, 'utf8').split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    if (!/<Pressable\b/.test(lines[i])) continue;
+    // The opening tag, read past arrow functions (`=>`) and comparisons in its props.
+    const tag = lines.slice(i, i + 6).join(' ').replace(/=>|>=|<=/g, '').split(/>(?!=)/)[0];
+    const cls = /min-h-(\d+)(?![\d.\[])/.exec(tag);
+    const arb = /min-h-\[(\d+)px\]/.exec(tag);
+    const style = /minHeight:\s*(\d+)/.exec(tag);
+    const pt = cls ? Number(cls[1]) * 4 : arb ? Number(arb[1]) : style ? Number(style[1]) : undefined;
+    if (pt !== undefined && pt < 48) small.push(`${file}:${i + 1} a tap target of ${pt} pt — at least 48 (hit.min)`);
+  }
+}
+if (small.length > 0) {
+  console.error(`a11y audit: ${small.length} tap target(s) under 48 pt`);
+  for (const f of small) console.error('  ' + f);
+  process.exitCode = 1;
+}
+
 if (findings.length > 0) {
   console.error(`a11y audit: ${findings.length} interactive element(s) with no name`);
   for (const f of findings) console.error('  ' + f);
   process.exit(1);
 }
-console.log(`a11y audit: every interactive element in ${files.length} files has a name`);
+if (small.length === 0) console.log(`a11y audit: every interactive element in ${files.length} files has a name, and no written target is under 48 pt`);

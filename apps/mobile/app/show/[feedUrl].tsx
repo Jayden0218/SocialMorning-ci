@@ -228,7 +228,7 @@ export default function ShowScreen(): React.ReactElement {
                 accessibilityLabel={`${item.title}. ${meta}`}
                 onPress={() => router.push({ pathname: '/episode/[id]', params: { id: item.id } })}
               >
-                <Artwork url={item.imageUrl ?? show?.imageUrl} size={64} rounded="row" />
+                <Artwork url={item.imageUrl ?? show?.imageUrl} size={64} rounded="row" name={show?.title} />
                 <Box className="flex-1 gap-1">
                   <Text className="text-sm font-semibold text-text" numberOfLines={2}>{item.title}</Text>
                   {notes === '' ? null : <Text className="text-xs text-muted" numberOfLines={2}>{notes}</Text>}
@@ -239,7 +239,7 @@ export default function ShowScreen(): React.ReactElement {
                 onPress={() => playOrPause(item)}
                 accessibilityRole="button"
                 accessibilityLabel={isPlaying(item.id) ? `Pause ${item.title}` : `Play ${item.title}`}
-                className="w-12 h-12 rounded-pill bg-surface items-center justify-center mt-2"
+                className="w-12 h-12 rounded-pill bg-accentTint items-center justify-center mt-2"
               >
                 {isPlaying(item.id) ? <PauseIcon size={14} /> : <PlayIcon size={16} />}
               </Pressable>

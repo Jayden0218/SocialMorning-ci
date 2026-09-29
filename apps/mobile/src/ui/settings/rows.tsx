@@ -77,5 +77,6 @@ export function SwitchRow(props: { icon: IconName; label: string; line?: string;
 }
 
 export function Divider(): React.ReactElement {
-  return <Box className="border-b-hairline border-separator my-row" />;
+  // M12 FR-051: 16 pt between sections (8 + 8 around the hairline; was 12 + 12).
+  return <Box className="border-b-hairline border-separator my-2" />;
 }

@@ -85,7 +85,7 @@ export function ComposerSheet(props: {
           </Textarea>
           {error ? <Text className="text-accent">{error}</Text> : null}
           <Box className="flex-row justify-between items-center">
-            <Pressable onPress={props.onClose} accessibilityRole="button" className="min-h-[44px] justify-center"><Text className="text-accent text-[15px]">Cancel</Text></Pressable>
+            <Pressable onPress={props.onClose} accessibilityRole="button" className="min-h-12 justify-center"><Text className="text-accent text-[15px]">Cancel</Text></Pressable>
             <Pressable
               className={`bg-primary rounded-3xl py-2.5 px-[22px] ${busy || !composer.canSubmit(state) ? 'opacity-50' : ''}`}
               disabled={busy || !composer.canSubmit(state)}

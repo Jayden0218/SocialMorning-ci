@@ -22,7 +22,7 @@ export function MenuRow(props: { href: string; icon: IconName; label: string; no
   return (
     <Link href={props.href as never} asChild>
       <Pressable accessibilityRole="link" accessibilityLabel={spoken} className="flex-row items-center gap-section" style={TAP}>
-        <Box className="w-7 items-center"><Icon name={props.icon} size={22} color={c.text} /></Box>
+        <Box className="w-7 items-center"><Icon name={props.icon} size={22} color={c.accent} /></Box>
         <Text className="text-text text-sm flex-1">{props.label}</Text>
         {props.note ? <Text className="text-muted text-xs" numberOfLines={1}>{props.note}</Text> : null}
         {props.badge ? (

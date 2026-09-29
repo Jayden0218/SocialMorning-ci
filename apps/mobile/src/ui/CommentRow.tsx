@@ -86,7 +86,7 @@ export function CommentRow(props: {
             {c.body}
           </Text>
           {(c.body ?? '').length > 320 ? (
-            <Pressable onPress={() => setOpen((o) => !o)} accessibilityRole="button" className="self-start justify-center" style={{ minHeight: 32 }}>
+            <Pressable onPress={() => setOpen((o) => !o)} accessibilityRole="button" className="self-start justify-center" style={TAP}>
               <Text className="text-accent text-xs font-semibold">{open ? 'Less' : 'More'}</Text>
             </Pressable>
           ) : null}
@@ -112,7 +112,7 @@ export function CommentRow(props: {
             <CommentRow key={r.id} {...props} c={r} isReply />
           ))}
           {replies.length > 2 ? (
-            <Pressable onPress={() => setExpanded((e) => !e)} accessibilityRole="button" className="justify-center" style={{ minHeight: 40 }}>
+            <Pressable onPress={() => setExpanded((e) => !e)} accessibilityRole="button" className="justify-center" style={TAP}>
               <Text className="text-accent text-xs font-semibold">{expanded ? 'Show fewer replies' : `View all ${plural(replies.length, 'reply', 'replies')}`}</Text>
             </Pressable>
           ) : null}

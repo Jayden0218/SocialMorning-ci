@@ -11,6 +11,9 @@ import { Artwork } from '../src/ui/Artwork';
 import { mmss, shortDate } from '../src/ui/format';
 import { EmptyPicture } from '../src/ui/me/parts';
 import { useStores } from '../src/ui/providers';
+import { size } from '../src/design';
+
+const ROW = { minHeight: size.row };
 
 export default function HistoryScreen(): React.ReactElement {
   const stores = useStores();
@@ -31,10 +34,11 @@ export default function HistoryScreen(): React.ReactElement {
         const where = item.finished ? 'Finished' : `Stopped at ${mmss(item.offsetMs)}`;
         return (
           <Link href={{ pathname: '/episode/[id]', params: { id: item.episode.id } }} asChild>
-            <Pressable className="flex-row gap-row py-row items-center" accessibilityRole="button" accessibilityLabel={`${item.episode.title}. ${where}`}>
-              <Artwork url={item.episode.imageUrl ?? show?.imageUrl} size={56} rounded="row" />
+            {/* M12 FR-050: a compact 50 pt row (was 80). */}
+            <Pressable className="flex-row gap-row py-1.5 items-center" style={ROW} accessibilityRole="button" accessibilityLabel={`${item.episode.title}. ${where}`}>
+              <Artwork url={item.episode.imageUrl ?? show?.imageUrl} size={40} rounded="row" name={show?.title} />
               <Box className="flex-1">
-                <Text className="text-text text-sm font-semibold" numberOfLines={2}>{item.episode.title}</Text>
+                <Text className="text-text text-sm font-semibold" numberOfLines={1}>{item.episode.title}</Text>
                 <Text className="text-muted text-xs" numberOfLines={1}>{[show?.title, where, shortDate(item.updatedAt)].filter(Boolean).join(' · ')}</Text>
               </Box>
             </Pressable>

@@ -14,7 +14,6 @@ import { SafeAreaView } from '../../src/ui/lib/safe-area-view';
 import { ScrollView } from '../../src/ui/lib/scroll-view';
 import { Text } from '../../src/ui/lib/text';
 import { Box } from '../../src/ui/lib/box';
-import { SignOut } from '../../src/ui/SignOut';
 import { colour, hit } from '../../src/design';
 import { useColours } from '../../src/ui/useColours';
 import { Icon } from '../../src/ui/Icon';
@@ -31,7 +30,7 @@ const TAP = { minHeight: hit.min };
 export default function MeScreen(): React.ReactElement {
   const stores = useStores();
   const c = useColours(stores.settings);
-  const { api, listener, auth } = useSocial();
+  const { api, listener } = useSocial();
   const feed = useMemo(() => createFeed({ api, cache: stores.feedCache, settings: stores.settings, now: () => Date.now() }), [api, stores]);
   const [counts, setCounts] = useState({ unread: 0, moments: 0, inbox: 0 });
   useFocusEffect(useCallback(() => {
@@ -82,7 +81,7 @@ export default function MeScreen(): React.ReactElement {
         </Link>
 
         {listener ? <MenuRow href={`/profile/${listener.listenerId}`} icon="id-card-outline" label="My profile" /> : null}
-        <Box className="border-b-hairline border-separator my-row" />
+        <Box className="border-b-hairline border-separator my-2" />
         <MenuRow href="/notifications" icon="notifications-outline" label="Notifications" {...(counts.unread > 0 ? { badge: counts.unread } : {})} />
         <MenuRow href="/inbox" icon="file-tray-outline" label="Inbox" {...(counts.inbox > 0 ? { badge: counts.inbox } : {})} />
         <MenuRow href="/downloads" icon="download-outline" label="Downloads" />
@@ -91,11 +90,11 @@ export default function MeScreen(): React.ReactElement {
         <MenuRow href="/my-comments" icon="chatbubble-outline" label="My comments" />
         <MenuRow href="/queue" icon="list-outline" label="Queue" />
         {listener ? <MenuRow href="/creator" icon="mic-outline" label="Creator centre" /> : null}
-        <Box className="border-b-hairline border-separator my-row" />
+        <Box className="border-b-hairline border-separator my-2" />
+        {/* M12 FR-091: feedback is one tap from Me. */}
+        <MenuRow href="/settings/feedback" icon="chatbox-ellipses-outline" label="Feedback" />
         <MenuRow href="/account" icon="settings-outline" label="Account and settings" />
-        {listener ? (
-          <SignOut onSignOut={() => void auth.signOut()} />
-        ) : null}
+        {/* M12 FR-090: Sign out lives once, in Settings (it was on Me as well). */}
       </ScrollView>
     </SafeAreaView>
   );

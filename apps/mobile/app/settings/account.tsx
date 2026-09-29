@@ -81,7 +81,7 @@ export default function AccountSecurityScreen(): React.ReactElement {
           <Text className="text-muted text-xs">Not set up yet</Text>
         </Box>
       ))}
-      <Box className="border-b-hairline border-separator my-row" />
+      <Box className="border-b-hairline border-separator my-2" />
       <Pressable onPress={() => setMore(true)} accessibilityRole="button" accessibilityLabel="More account options" className="flex-row items-center min-h-14">
         <Text className="text-text text-sm flex-1">More</Text>
         <Icon name="chevron-forward" size={20} color={c.muted} />
