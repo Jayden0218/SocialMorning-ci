@@ -12,13 +12,13 @@
  */
 import { Hono, type MiddlewareHandler } from 'hono';
 import { deleteCookie, setCookie } from 'hono/cookie';
-import { tokenHash, publicListener, type AuthEnv } from '../auth/session.ts';
-import { STUDIO_COOKIE, STUDIO_IDLE_MS, studioAuth, studioCsrf, studioListener, studioToken } from '../auth/studio-session.ts';
+import { tokenHash, publicListener } from '../auth/session.ts';
+import { STUDIO_COOKIE, STUDIO_IDLE_MS, studioAuth, studioCsrf, studioListener, studioToken, type StudioEnv } from '../auth/studio-session.ts';
 import { ApiError } from '../errors.ts';
-import { roleFor, showsFor, type StudioShow } from '../db/repos/studio-roles.ts';
+import { roleFor, showsFor } from '../db/repos/studio-roles.ts';
 import { METRICS, claimedAt, recentComments, recentEpisodes, totals, trend, validTz, type Metric } from '../db/repos/studio-numbers.ts';
 
-export type StudioEnv = { Variables: AuthEnv['Variables'] & { show: StudioShow } };
+export type { StudioEnv };
 
 export const studio = new Hono<StudioEnv>();
 
@@ -39,7 +39,7 @@ const secure = (url: string) => new URL(url).protocol === 'https:';
  */
 studio.post('/session', async (c) => {
   const token = studioToken(c);
-  const who = token ? await studioListener(c, token) : undefined;
+  const who = token ? await studioListener(c.get('db'), c.get('pepper'), token) : undefined;
   if (who === 'expired') throw new ApiError('session_expired', 'You were away for a while. Sign in again.');
   if (!who || !token) throw new ApiError('unauthenticated', 'Sign in with deviceLabel "studio-web" first.');
   setCookie(c, STUDIO_COOKIE, token, { httpOnly: true, secure: secure(c.req.url), sameSite: 'Strict', path: '/', maxAge: STUDIO_IDLE_MS / 1000 });
