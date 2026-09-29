@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router';
 import { api, type Show } from '../api';
 import { TrendChart, type Point } from '../charts/TrendChart';
 import { browserTz, dayNumber, mmss, num, pct, shortDate } from '../format';
@@ -81,7 +82,7 @@ export function Home({ show }: { show: Show }) {
 
       <div className="grid-2">
         <section className="card" aria-labelledby="rc-h">
-          <h2 id="rc-h">Latest comments</h2>
+          <div className="card-head"><h2 id="rc-h">Latest comments</h2><Link to={`/s/${show.key}/comments`}>See all</Link></div>
           {overview.state === 'loading' ? <Loading /> : null}
           {overview.state === 'error' ? <Failed message={overview.message} retry={overview.retry} /> : null}
           {overview.state === 'ready' && overview.data.recentComments.length === 0 ? (
@@ -102,7 +103,7 @@ export function Home({ show }: { show: Show }) {
           ) : null}
         </section>
         <section className="card" aria-labelledby="re-h">
-          <h2 id="re-h">Latest episodes</h2>
+          <div className="card-head"><h2 id="re-h">Latest episodes</h2><Link to={`/s/${show.key}/episodes`}>See all</Link></div>
           {overview.state === 'loading' ? <Loading /> : null}
           {overview.state === 'error' ? <Failed message={overview.message} retry={overview.retry} /> : null}
           {overview.state === 'ready' && overview.data.recentEpisodes.length === 0 ? (

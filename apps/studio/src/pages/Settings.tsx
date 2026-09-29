@@ -78,9 +78,9 @@ function Appearance({ show }: { show: Show }) {
             <input id="o-themeColour" value={f.themeColour} onChange={set('themeColour')} placeholder="#rrggbb" pattern="#[0-9a-fA-F]{6}" style={{ flex: 1 }} />
             <input type="color" aria-label="Pick a colour" value={/^#[0-9a-f]{6}$/i.test(f.themeColour) ? f.themeColour : light.muted} onChange={set('themeColour')} style={{ width: 56, minHeight: 44, padding: 4 }} />
           </div>
-          <span className="muted" style={{ fontSize: 13 }}>Used as an accent only where it stays readable; otherwise the app keeps its own.</span>
+          <span className="muted" style={{ fontSize: 13 }}>Saved now; the app does not use it yet.</span>
         </div>
-        {field('milestoneMessage', 'Message after 100 hours', 'Shown once to a listener who has spent 100 hours with your show.', 'input', { maxLength: 120 })}
+        {field('milestoneMessage', 'Message after 100 hours', 'Saved now; the app does not show it yet.', 'input', { maxLength: 120 })}
         {field('hosts', 'Hosts', 'Names, separated by commas (up to 5).')}
         {field('links', 'Links', 'One per line: a short label, a space, then an https:// link (up to 5).', 'textarea')}
         <button className="btn" type="submit" disabled={busy}>{busy ? 'Saving…' : 'Save'}</button>
