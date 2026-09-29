@@ -16,13 +16,20 @@ export type Overrides = {
 
 type Row = { title: string | null; description: string | null; cover_url: string | null; theme_colour: string | null; milestone_message: string | null; hosts: string[] | null; links: { label: string; url: string }[] | null; updated_at: Date | string; contacts: Contact[] | null; tips_enabled: boolean };
 
+/**
+ * Found by the M14 e2e on real PostgreSQL (2026-09-29), the same defect M5 found in `cache`: the
+ * `postgres` driver stores a string parameter cast `$n::jsonb` as a JSON *string*; pglite does not,
+ * so the unit tests were green. Writes now go through text; reads accept rows written before.
+ */
+const unwrap = <T>(v: T | string | null): T | null => (typeof v === 'string' ? (JSON.parse(v) as T) : v);
+
 export async function getOverrides(db: Db, feedUrl: string): Promise<Overrides | null> {
   const [r] = await db.query<Row>(
     'SELECT title, description, cover_url, theme_colour, milestone_message, hosts, links, updated_at, contacts, tips_enabled FROM show_overrides WHERE feed_url = $1', [feedUrl]);
   if (!r) return null;
   return {
     title: r.title, description: r.description, coverUrl: r.cover_url, themeColour: r.theme_colour, milestoneMessage: r.milestone_message,
-    hosts: r.hosts, links: r.links, updatedAt: new Date(r.updated_at).toISOString(), contacts: r.contacts, tipsEnabled: r.tips_enabled,
+    hosts: unwrap(r.hosts), links: unwrap(r.links), updatedAt: new Date(r.updated_at).toISOString(), contacts: unwrap(r.contacts), tipsEnabled: r.tips_enabled,
   };
 }
 
@@ -44,9 +51,9 @@ export async function putOverrides(db: Db, feedUrl: string, by: string, o: Overr
   };
   await db.query(
     `INSERT INTO show_overrides (feed_url, title, description, cover_url, theme_colour, milestone_message, hosts, links, updated_at, updated_by, contacts, tips_enabled)
-     VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb, now(), $9, $10::jsonb, $11)
+     VALUES ($1, $2, $3, $4, $5, $6, ($7::text)::jsonb, ($8::text)::jsonb, now(), $9, ($10::text)::jsonb, $11)
      ON CONFLICT (feed_url) DO UPDATE SET title = $2, description = $3, cover_url = $4, theme_colour = $5, milestone_message = $6,
-       hosts = $7::jsonb, links = $8::jsonb, updated_at = now(), updated_by = $9, contacts = $10::jsonb, tips_enabled = $11`,
+       hosts = ($7::text)::jsonb, links = ($8::text)::jsonb, updated_at = now(), updated_by = $9, contacts = ($10::text)::jsonb, tips_enabled = $11`,
     [feedUrl, next.title, next.description, next.cover_url, next.theme_colour, next.milestone_message,
       next.hosts === null ? null : JSON.stringify(next.hosts), next.links === null ? null : JSON.stringify(next.links), by,
       next.contacts === null ? null : JSON.stringify(next.contacts), next.tips_enabled],

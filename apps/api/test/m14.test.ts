@@ -142,3 +142,14 @@ test('the show card is public, escapes text, and 404s for an unknown show', asyn
   assert.equal((await t.call('GET', '/show/0000000000000000')).status, 404);
   await t.close();
 });
+
+test('overrides written as a JSON string (the postgres driver, before the fix) read back as lists', async () => {
+  const t = await freshDb();
+  const feed = 'https://feeds.example.com/old.xml';
+  await t.q(`INSERT INTO show_overrides (feed_url, hosts, links, contacts) VALUES ($1, to_jsonb($2::text), to_jsonb($3::text), to_jsonb($4::text))`,
+    [feed, '["Mei"]', '[{"label":"Site","url":"https://x.example"}]', '[{"type":"email","value":"a@b.co"}]']);
+  const { getOverrides } = await import('../src/db/repos/show-overrides.ts');
+  const o = await getOverrides(t.db, feed);
+  assert.deepEqual([o!.hosts, o!.links, o!.contacts], [['Mei'], [{ label: 'Site', url: 'https://x.example' }], [{ type: 'email', value: 'a@b.co' }]]);
+  await t.close();
+});
