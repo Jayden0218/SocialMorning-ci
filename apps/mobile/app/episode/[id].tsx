@@ -31,7 +31,7 @@ import { EpisodeExtras } from '../../src/ui/me/EpisodeExtras';
 import { useSocial } from '../../src/social/context';
 import { usePoll } from '../../src/social/usePoll';
 import type { ComposerState } from '../../src/social/composer';
-import { CommentList } from '../../src/ui/CommentList';
+import { CommentPreview } from '../../src/ui/CommentPreview';
 import { ShowExtrasBlock, useShowExtras } from '../../src/ui/ShowExtras';
 import { ComposerSheet } from '../../src/ui/Composer';
 import { ClipList } from '../../src/ui/ClipList';
@@ -56,7 +56,6 @@ export default function EpisodeScreen(): React.ReactElement {
   const subscriptionSync = useSubscriptionSync();
   const [subscribed, setSubscribed] = useState(() => episode !== undefined && stores.subscriptions.has(episode.feedUrl));
   const scroll = useRef<React.ComponentRef<typeof ScrollView>>(null);
-  const [commentsY, setCommentsY] = useState(0);
   const toast = useToast();
   // Play next, download and save-a-moment live in the ⋯ sheet, so the page itself is
   // only what the reference shows (owner, 2026-09-27).
@@ -85,6 +84,7 @@ export default function EpisodeScreen(): React.ReactElement {
     ...((episode.imageUrl ?? show?.imageUrl) !== undefined ? { artworkUrl: episode.imageUrl ?? show?.imageUrl } : {}),
     ...(episode.durationMs !== undefined && { durationMs: episode.durationMs }),
   };
+  const openComments = () => router.push({ pathname: '/comments/[episodeId]', params: { episodeId: episode.id, at: String(Math.round(snapshotOffset)) } });
   const playFrom = (offsetMs: number) => {
     // If this episode is already loaded, seek; otherwise load paused-at-start then seek.
     if (playerState.kind !== 'idle' && playerState.episodeId === episode.id) {
@@ -171,7 +171,7 @@ export default function EpisodeScreen(): React.ReactElement {
           <BarButton label="Add to queue" onPress={addToQueue}>
             <Icon name="list-outline" size={24} color={c.text} />
           </BarButton>
-          <BarButton label={`Comments, ${commentCount}`} onPress={() => scroll.current?.scrollTo({ y: commentsY, animated: true })}>
+          <BarButton label={`Comments, ${commentCount}`} onPress={openComments}>
             <Box className="flex-row items-end">
               <Icon name="chatbox-ellipses-outline" size={24} color={c.text} />
               <Text className="text-xs text-text">{commentCount}</Text>
@@ -210,16 +210,15 @@ export default function EpisodeScreen(): React.ReactElement {
             )}
           </Text>
         )}
-        <Box className="mt-section" onLayout={(e) => setCommentsY(e.nativeEvent.layout.y)}>
+        <Box className="mt-section">
           {extras ? <ShowExtrasBlock extras={extras} onPoll={replacePoll} episodeId={episode.id} /> : null}
-          <CommentList
-            episodeId={episode.id}
+          {/* M12 FR-027: a two-comment preview; the conversation has its own page. */}
+          <CommentPreview
             comments={cached?.social.comments ?? []}
             serverTime={cached?.social.serverTime ?? new Date().toISOString()}
             stale={stale}
             onSeek={playFrom}
-            onReply={(parentId) => setComposing(composer.open({ episodeId: episode.id, offsetMs: snapshotOffset, ...(episode.durationMs !== undefined ? { durationMs: episode.durationMs } : {}) }, parentId))}
-            onCompose={() => setComposing(composer.open({ episodeId: episode.id, offsetMs: snapshotOffset, ...(episode.durationMs !== undefined ? { durationMs: episode.durationMs } : {}) }))}
+            onOpen={openComments}
           />
         </Box>
         <ClipList episode={playable} />

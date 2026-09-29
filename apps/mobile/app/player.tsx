@@ -160,8 +160,10 @@ export default function PlayerScreen(): React.ReactElement {
   // As big as fits: the width less the margins, and never so tall that the controls
   // leave the first screen.
   const art = Math.round(Math.min(screen.width - 96, screen.height * 0.36));
-  const commentHere = () =>
-    setComposing(composer.open({ episodeId: state.episodeId, offsetMs: positionMs, ...(durationMs !== undefined ? { durationMs } : {}) }));
+  // M12 FR-020 (found on the iPhone): the comment button opens the conversation, not the
+  // keyboard; the page's write box carries this moment.
+  const openComments = () =>
+    router.push({ pathname: '/comments/[episodeId]', params: { episodeId: state.episodeId, at: String(Math.round(positionMs)) } });
 
   return (
     <LinearGradient colors={[...gradientFor()]} className={FILL}>
@@ -291,7 +293,7 @@ export default function PlayerScreen(): React.ReactElement {
           <Icon name="list" size={20} color={c.muted} />
           <Text className="text-sm text-muted">Playlist</Text>
         </Pressable>
-        <Pressable onPress={commentHere} accessibilityRole="button" accessibilityLabel="Comment at this moment" className="flex-row items-end justify-center" style={TAP}>
+        <Pressable onPress={openComments} accessibilityRole="button" accessibilityLabel={`Comments, ${commentCount}`} className="flex-row items-end justify-center" style={TAP}>
           <Icon name="chatbox-ellipses-outline" size={28} color={c.muted} />
           <Text className="text-xs text-muted">{commentCount}</Text>
         </Pressable>

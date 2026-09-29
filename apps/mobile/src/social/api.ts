@@ -51,6 +51,10 @@ export type Comment = {
   host?: true;
   /** M11: the host hid it. Others get a placeholder; the author still reads it, marked. */
   hiddenByHost?: true;
+  /** M12 FR-022/023: public like count; whether this viewer liked it; the avatar's letter. */
+  likeCount?: number;
+  likedByMe?: boolean;
+  initials?: string | null;
 };
 export type Social = {
   serverTime: string;
@@ -221,10 +225,10 @@ export type ApiDeps = {
   onSuspended?: (message: string, appeals: string | undefined) => void;
 };
 
-export function createApi(deps: ApiDeps): ApiClient {
+/** The one way this app talks to the server: JSON in and out, the session token, a timeout, typed errors. */
+export function requester(deps: ApiDeps) {
   const timeoutMs = deps.timeoutMs ?? 10_000;
-
-  async function call<T>(method: string, path: string, body?: unknown, headers: Record<string, string> = {}): Promise<{ status: number; headers: Headers; json: T }> {
+  return async function call<T>(method: string, path: string, body?: unknown, headers: Record<string, string> = {}): Promise<{ status: number; headers: Headers; json: T }> {
     const token = await deps.getToken();
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -256,8 +260,11 @@ export function createApi(deps: ApiDeps): ApiClient {
       throw new ApiError((error as ErrorCode) ?? 'internal', message ?? `Server answered ${res.status}.`, res.status, extra);
     }
     return { status: res.status, headers: res.headers, json: json as T };
-  }
+  };
+}
 
+export function createApi(deps: ApiDeps): ApiClient {
+  const call = requester(deps);
   return {
     signUp: async (email, password, displayName) => (await call<{ token: string; listener: Listener }>('POST', '/v1/auth/sign-up', { email, password, displayName })).json,
     signIn: async (email, password, deviceLabel) => (await call<{ token: string; listener: Listener }>('POST', '/v1/auth/sign-in', { email, password, deviceLabel })).json,

@@ -17,4 +17,4 @@ export type PlaybackSnapshot = { episodeId: string; offsetMs: number; durationMs
 export type Moment = { offsetMs: number };
 
 /** FR-023: "newest" or "by moment". */
-export type CommentOrder = 'newest' | 'byMoment';
+export type CommentOrder = 'newest' | 'byMoment' | 'liked';

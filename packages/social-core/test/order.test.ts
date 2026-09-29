@@ -31,3 +31,14 @@ test('byMoment: two moment-less comments with the same createdAt keep input orde
   const equal = [{ id: 'p', offsetMs: null, createdAt: 7 }, { id: 'q', offsetMs: null, createdAt: 7 }];
   assert.deepEqual(orderComments(equal, 'byMoment').map((r) => r.id), ['p', 'q']);
 });
+
+test('liked: most likes first, ties newest first, no count counts as 0 (M12 FR-026)', () => {
+  const liked = [
+    { id: 'a', offsetMs: null, createdAt: 1, likeCount: 2 },
+    { id: 'b', offsetMs: 5, createdAt: 2 },
+    { id: 'c', offsetMs: null, createdAt: 3, likeCount: 2 },
+    { id: 'd', offsetMs: null, createdAt: 4, likeCount: 7 },
+    { id: 'e', offsetMs: null, createdAt: 4, likeCount: 7 },
+  ];
+  assert.deepEqual(orderComments(liked, 'liked').map((r) => r.id), ['d', 'e', 'c', 'a', 'b']);
+});

@@ -81,6 +81,8 @@ function RootStack(): React.ReactElement {
           {/* The show, episode and player pages draw their own bar (owner reference, 2026-09-27). */}
           <Stack.Screen name="show/[feedUrl]" options={{ title: 'Show', headerShown: false }} />
           <Stack.Screen name="episode/[id]" options={{ title: 'Episode', headerShown: false }} />
+          {/* M12 US2: comments on their own page, opened from the player and the episode page. */}
+          <Stack.Screen name="comments/[episodeId]" options={{ title: 'Comments' }} />
           <Stack.Screen name="player" options={{ title: 'Now Playing', headerShown: false }} />
           {/* The auth pages draw their own close ✕ and title (owner's reference, 2026-09-27). */}
           {/* No slide: after Accept the landing page must appear at once, with nothing of
