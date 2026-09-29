@@ -1,0 +1,10 @@
+/** M12 FR-044: a drag moves a row by whole rows and never out of the queue. */
+jest.mock('../src/ui/providers', () => ({ useStores: () => ({}) }));
+import { QUEUE_ROW, dragTarget } from '../src/ui/QueueList';
+
+it('turns a drag distance into places, clamped to the queue', () => {
+  expect(dragTarget(2, 0, 5)).toBe(2);
+  expect(dragTarget(2, QUEUE_ROW * 1.4, 5)).toBe(3);
+  expect(dragTarget(2, -QUEUE_ROW * 2.6, 5)).toBe(0);
+  expect(dragTarget(2, QUEUE_ROW * 9, 5)).toBe(4);
+});

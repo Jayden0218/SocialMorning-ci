@@ -50,7 +50,8 @@ export const PAIRS: Pair[] = [
   { fg: colour.bar, bg: colour.surface, min: LARGE_MIN, role: 'heat bars on a card' },
   // M12: a list row's play glyph on its tinted disc; the player's words on the veil over a white cover.
   { fg: colour.accent, bg: over(colour.accentTint, colour.background), min: LARGE_MIN, role: 'play glyph on its tint' },
-  { fg: colourDark.text, bg: over(colour.scrimStrong, '#ffffff'), min: BODY_MIN, role: 'player text on the veil (white cover)' },
+  { fg: colour.text, bg: over(colour.veil, '#000000'), min: BODY_MIN, role: 'player text on the veil (black cover)' },
+  { fg: colour.muted, bg: over(colour.veil, '#000000'), min: BODY_MIN, role: 'player secondary text on the veil (black cover)' },
 ];
 
 /** M10b US4: the same pairs in the dark palette — every one must clear its floor too. */
@@ -64,7 +65,8 @@ export const PAIRS_DARK: Pair[] = [
   { fg: colourDark.accent, bg: colourDark.surface, min: BODY_MIN, role: 'links and actions on a card (dark)' },
   { fg: colourDark.bar, bg: colourDark.surface, min: LARGE_MIN, role: 'heat bars on a card (dark)' },
   { fg: colourDark.accent, bg: over(colourDark.accentTint, colourDark.background), min: LARGE_MIN, role: 'play glyph on its tint (dark)' },
-  { fg: colourDark.text, bg: over(colourDark.scrimStrong, '#ffffff'), min: BODY_MIN, role: 'player text on the veil, white cover (dark)' },
+  { fg: colourDark.text, bg: over(colourDark.veil, '#ffffff'), min: BODY_MIN, role: 'player text on the veil, white cover (dark)' },
+  { fg: colourDark.muted, bg: over(colourDark.veil, '#ffffff'), min: BODY_MIN, role: 'player secondary text on the veil, white cover (dark)' },
 ];
 
 /**

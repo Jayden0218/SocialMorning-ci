@@ -1,69 +1,37 @@
 /**
- * The queue (US2): ordered list, move up / down / top, remove, play now. Buttons rather
- * than drag in M2 (research R3). The list re-reads the store on focus and after every
- * change; the runtime consumes the front item when an episode ends.
+ * The queue page (US2), reached from the mini player's Queue button. M12 FR-044: the same rows
+ * as the sheet over the player (src/ui/QueueList.tsx) — artwork, time left, drag handle, ⋮.
  */
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { FlatList } from '../src/ui/lib/flat-list';
-import { Pressable } from '../src/ui/lib/pressable';
-import { Text } from '../src/ui/lib/text';
-import { Box } from '../src/ui/lib/box';
-import { move, remove } from '@socialmorning/player-core';
+import { ScrollView } from '../src/ui/lib/scroll-view';
 import { usePlayer } from '../src/playback/store';
 import { toPlayable } from '../src/storage/playable';
-import { mmss } from '../src/ui/format';
+import { remove } from '@socialmorning/player-core';
 import { useStores } from '../src/ui/providers';
+import { useColours } from '../src/ui/useColours';
 import { EmptyState } from '../src/ui/EmptyState';
+import { QueueList } from '../src/ui/QueueList';
 
 export default function QueueScreen(): React.ReactElement {
   const stores = useStores();
+  const c = useColours(stores.settings);
   const player = usePlayer();
   const router = useRouter();
-  const [ids, setIds] = useState<string[]>([]);
+  const [ids, setIds] = useState<readonly string[]>([]);
   const reload = useCallback(() => setIds(stores.queue.list()), [stores]);
   useFocusEffect(reload);
-
   const write = (next: readonly string[]) => { stores.queue.replace(next, Date.now()); reload(); };
-
+  const play = (id: string) => {
+    const playable = toPlayable(stores, id);
+    if (!playable) return;
+    write(remove(ids, id));
+    player.load(playable, 'play');
+    router.push('/player');
+  };
   return (
-    <FlatList
-      data={ids}
-      keyExtractor={(id) => id}
-      contentContainerClassName="px-screen-x py-row gap-1"
-      ListHeaderComponent={<Text className="text-muted text-[13px]">{ids.length} of 300 · plays in order when the current episode ends</Text>}
-      ListEmptyComponent={<EmptyState surface="queue" page />}
-      renderItem={({ item, index }) => {
-        const episode = stores.feeds.getEpisode(item);
-        const show = episode ? stores.feeds.getShow(episode.feedUrl) : undefined;
-        const download = stores.downloads.get(item);
-        return (
-          <Box className="py-2 gap-1 border-b-hairline border-separator">
-            <Text className="text-[15px] font-semibold text-text" numberOfLines={2}>{index + 1}. {episode?.title ?? item}</Text>
-            <Text className="text-muted text-[13px]">
-              {[show?.title, episode?.durationMs !== undefined ? mmss(episode.durationMs) : undefined, download?.state === 'complete' ? 'Downloaded' : 'Streams'].filter(Boolean).join(' · ')}
-            </Text>
-            <Box className="flex-row gap-[18px] items-center">
-              <Pressable disabled={index === 0} onPress={() => write(move(ids, item, index - 1))} accessibilityRole="button" accessibilityLabel="Move up"><Text className={`text-accent text-[15px] ${index === 0 ? 'opacity-30' : ''}`}>↑</Text></Pressable>
-              <Pressable disabled={index === ids.length - 1} onPress={() => write(move(ids, item, index + 1))} accessibilityRole="button" accessibilityLabel="Move down"><Text className={`text-accent text-[15px] ${index === ids.length - 1 ? 'opacity-30' : ''}`}>↓</Text></Pressable>
-              <Pressable disabled={index === 0} onPress={() => write(move(ids, item, 0))} accessibilityRole="button" accessibilityLabel="Move to top"><Text className={`text-accent text-[15px] ${index === 0 ? 'opacity-30' : ''}`}>Top</Text></Pressable>
-              <Pressable onPress={() => write(remove(ids, item))} accessibilityRole="button" accessibilityLabel="Remove from the queue"><Text className="text-accent text-[15px]">Remove</Text></Pressable>
-              <Pressable
-                onPress={() => {
-                  const playable = toPlayable(stores, item);
-                  if (!playable) return;
-                  write(remove(ids, item));
-                  player.load(playable, 'play');
-                  router.push('/player');
-                }}
-                accessibilityRole="button"
-              >
-                <Text className="text-accent text-[15px]">Play now</Text>
-              </Pressable>
-            </Box>
-          </Box>
-        );
-      }}
-    />
+    <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pb-section flex-grow">
+      {ids.length === 0 ? <EmptyState surface="queue" page /> : <QueueList ids={ids} stores={stores} colours={{ text: c.text, muted: c.muted, accent: c.accent }} onChange={write} onPlay={play} />}
+    </ScrollView>
   );
 }

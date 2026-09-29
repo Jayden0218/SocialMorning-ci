@@ -28,8 +28,7 @@ import { Box } from '../src/ui/lib/box';
 import { currentLine } from '@socialmorning/player-core';
 import { Icon } from '../src/ui/Icon';
 import { BarButton, TAP, TopBar } from '../src/ui/TopBar';
-import { LinearGradient } from '../src/design/tailwind';
-import { gradientFor } from '../src/design/gradient';
+import { Image } from '../src/ui/lib/image';
 import { Artwork } from '../src/ui/Artwork';
 import { mediaKindOf } from '@socialmorning/social-core';
 import { VideoStage } from '../src/ui/VideoStage';
@@ -42,6 +41,8 @@ import { usePoll } from '../src/social/usePoll';
 import type { ComposerState } from '../src/social/composer';
 import { ComposerSheet } from '../src/ui/Composer';
 import { ShareChooser } from '../src/ui/ShareChooser';
+import { QueueSheet } from '../src/ui/QueueSheet';
+import { liveLabel, useListeningNow } from '../src/social/live';
 import { MomentSheet } from '../src/ui/MomentSheet';
 import { Rail, type RailMarker } from '../src/ui/Rail';
 import { HeatCurve } from '../src/ui/HeatCurve';
@@ -63,6 +64,8 @@ import { useColours } from '../src/ui/useColours';
 export default function PlayerScreen(): React.ReactElement {
   const player = usePlayer();
   const state = usePlayerState();
+  // M12 FR-042: "N listening now" — before the early returns, as every hook must be.
+  const liveCount = useListeningNow(state.kind === 'idle' ? undefined : state.episodeId, state.kind === 'playing' || state.kind === 'buffering');
   const stores = useStores();
   const c = useColours(stores.settings);
   const { composer, reactToggle, refresh, useEpisodeSocial, listener, bump, api } = useSocial();
@@ -102,6 +105,8 @@ export default function PlayerScreen(): React.ReactElement {
   const [more, setMore] = useState(false);
   // M12 FR-033: Share opens a first step (episode link · this moment · picture).
   const [sharing, setSharing] = useState(false);
+  // M12 FR-044: the queue opens as a sheet over the player (was a separate page).
+  const [queueOpen, setQueueOpen] = useState(false);
   const screen = useWindowDimensions();
   const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
@@ -169,7 +174,12 @@ export default function PlayerScreen(): React.ReactElement {
     router.push({ pathname: '/comments/[episodeId]', params: { episodeId: state.episodeId, at: String(Math.round(positionMs)) } });
 
   return (
-    <LinearGradient colors={[...gradientFor()]} className={FILL}>
+    <Box className={FILL}>
+    {/* M12 FR-040: the cover, blurred, tints the whole player; the veil keeps the theme's text readable. */}
+    {artworkUrl ? (
+      <Image source={{ uri: artworkUrl }} blurRadius={40} className="absolute inset-0" style={COVER} accessible={false} importantForAccessibility="no-hide-descendants" />
+    ) : null}
+    <Box className="absolute inset-0 bg-veil" accessible={false} />
     <SafeAreaView className="flex-1">
     <TopBar back="down" onBack={close}>
       <BarButton label="Clip the last 30 seconds" onPress={clip}><Icon name="cut-outline" size={24} color={c.text} /></BarButton>
@@ -184,7 +194,13 @@ export default function PlayerScreen(): React.ReactElement {
         {episode && mediaKindOf(episode.enclosureType, episode.enclosureUrl) === 'video'
           ? <VideoStage url={episode.enclosureUrl} positionMs={positionMs} playing={isPlaying} size={art} />
           : <Artwork url={artworkUrl} size={art} rounded="artwork" className="mt-2" />}
-        <Text className={TITLE} numberOfLines={3}>{episode?.title ?? 'Now playing'}</Text>
+        <Text className={TITLE} numberOfLines={2}>{episode?.title ?? 'Now playing'}</Text>
+        {liveLabel(liveCount) ? (
+          <Box className="flex-row items-center gap-1 bg-accentTint rounded-pill px-2 py-0.5" accessible accessibilityLabel={liveLabel(liveCount)!}>
+            <Box className="w-1.5 h-1.5 rounded-pill bg-accent" />
+            <Text className="text-accent text-xs font-semibold">{liveLabel(liveCount)}</Text>
+          </Box>
+        ) : null}
         <Box className="flex-row items-center justify-center gap-2">
           {feedUrl === undefined ? <Text className={SUBTITLE}>{show?.title ?? ''}</Text> : (
             <Pressable onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(feedUrl) } })} accessibilityRole="link" accessibilityLabel={`Show: ${show?.title ?? ''}`} className="justify-center flex-shrink" style={{ minHeight: TAP.minHeight }}>
@@ -292,7 +308,7 @@ export default function PlayerScreen(): React.ReactElement {
         <BarButton label="About this episode" onPress={() => router.push({ pathname: '/episode/[id]', params: { id: state.episodeId } })}>
           <Icon name="information-circle-outline" size={30} color={c.muted} />
         </BarButton>
-        <Pressable onPress={() => router.push('/queue')} accessibilityRole="button" accessibilityLabel="Playlist" className="flex-row items-center gap-2 px-section rounded-row bg-surface" style={{ minHeight: TAP.minHeight }}>
+        <Pressable onPress={() => setQueueOpen(true)} accessibilityRole="button" accessibilityLabel="Playlist" className="flex-row items-center gap-2 px-section rounded-row bg-surface" style={{ minHeight: TAP.minHeight }}>
           <Icon name="list" size={20} color={c.muted} />
           <Text className="text-sm text-muted">Playlist</Text>
         </Pressable>
@@ -357,6 +373,7 @@ export default function PlayerScreen(): React.ReactElement {
         }}
       />
     ) : null}
+    <QueueSheet open={queueOpen} onClose={() => setQueueOpen(false)} />
     {episode ? (
       <ShareChooser
         open={sharing}
@@ -367,12 +384,14 @@ export default function PlayerScreen(): React.ReactElement {
         onShared={() => void api.recordShare({ targetKind: 'episode', targetId: episode.id, feedUrl: episode.feedUrl }).catch(() => undefined)}
       />
     ) : null}
-    </LinearGradient>
+    </Box>
   );
 }
 
 // The screen's classes, named once because several elements share them.
 const FILL = 'flex-1 bg-background';
+/** The blurred cover fills the screen behind the player (a style: it is a size, not a class). */
+const COVER = { width: '100%', height: '100%' } as const;
 const BODY = 'flex-1 p-section gap-2 items-center justify-center';
 const TITLE = 'text-base font-bold text-center text-text mt-row';
 const SUBTITLE = 'text-xs text-muted text-center';

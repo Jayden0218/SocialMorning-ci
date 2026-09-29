@@ -59,7 +59,7 @@ it('the owner\'s waiver is exactly one pair, pinned at its measured ratio', () =
  */
 it('G-D1: every dark pair clears its floor', () => {
   expect(failures(PAIRS_DARK)).toEqual([]);
-  expect(PAIRS_DARK.length).toBe(10); // M12: + play glyph on its tint, player text on the veil
+  expect(PAIRS_DARK.length).toBe(11); // M12: + play glyph on its tint, player text and secondary text on the veil
 });
 
 it('the dark palette has exactly the light one\'s keys (M9 writes CSS variables from both)', () => {

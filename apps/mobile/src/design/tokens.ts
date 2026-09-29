@@ -54,8 +54,12 @@ export const colour = {
    * lighter than the solid yellow circles did. The accent glyph on it is checked in PAIRS.
    */
   accentTint: 'rgba(138,90,0,0.14)',
-  /** M12 FR-040: the dark veil over the player's blurred artwork; light text sits on it. */
-  scrimStrong: 'rgba(0,0,0,0.65)',
+  /**
+   * M12 FR-040: the veil over the player's blurred artwork — the page colour at 88 %, so the
+   * cover tints the screen and the theme's own text stays readable. Measured, not guessed: at
+   * 78 % secondary text on a black cover was 3.58; 88 % gives 4.58 (PAIRS, worst case).
+   */
+  veil: 'rgba(255,255,255,0.88)',
 } as const;
 
 /**
@@ -84,7 +88,8 @@ export const colourDark = {
   /** The page colour at 0 % — where a fade into the dark page starts. */
   clear: 'rgba(17,17,20,0)',
   accentTint: 'rgba(252,197,34,0.18)',
-  scrimStrong: 'rgba(0,0,0,0.70)',
+  /** 84 %: secondary text on a white cover 4.80 (80 % gave 4.12). */
+  veil: 'rgba(17,17,20,0.84)',
 } as const;
 
 export type Palette = { readonly [K in keyof typeof colour]: string };

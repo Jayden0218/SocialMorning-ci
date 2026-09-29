@@ -19,7 +19,7 @@
       --color-facebook: #1877f2;
       --color-clear: rgba(255, 255, 255, 0);
       --color-accentTint: rgba(138, 90, 0, 0.14);
-      --color-scrimStrong: rgba(0, 0, 0, 0.65);
+      --color-veil: rgba(255, 255, 255, 0.88);
     }
     @variant dark {
       --color-background: #111114;
@@ -36,7 +36,7 @@
       --color-facebook: #1877f2;
       --color-clear: rgba(17, 17, 20, 0);
       --color-accentTint: rgba(252, 197, 34, 0.18);
-      --color-scrimStrong: rgba(0, 0, 0, 0.70);
+      --color-veil: rgba(17, 17, 20, 0.84);
     }
   }
 }
@@ -57,7 +57,7 @@
   --color-facebook: #1877f2;
   --color-clear: rgba(255, 255, 255, 0);
   --color-accentTint: rgba(138, 90, 0, 0.14);
-  --color-scrimStrong: rgba(0, 0, 0, 0.65);
+  --color-veil: rgba(255, 255, 255, 0.88);
 }
 @theme inline {
   --text-*: initial;
