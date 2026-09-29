@@ -41,6 +41,7 @@ jest.mock('../src/ui/providers', () => ({
 
 import { MiniPlayer } from '../src/ui/MiniPlayer';
 import { MINI_PLAYER_HEIGHT } from '../src/ui/Screen';
+import { TAB_HREF } from '../src/ui/tabs';
 
 const render = (el: React.ReactElement): ReactTestRenderer => {
   let r!: ReactTestRenderer;
@@ -141,7 +142,9 @@ it('reserves its height with minHeight, so the largest system font grows the bar
 
 it('exactly one bar: the root instance stands down on a tab route, where the tab layout draws its own', () => {
   mockPlayerState = { kind: 'playing', episodeId: 'e1' };
-  for (const path of ['/', '/discover', '/library', '/me', '/following']) {
+  // Every tab the app has, read from the tab definitions — the hard-coded list this test used
+  // to carry went stale with the code, so /library drew two bars (iOS defect i12).
+  for (const path of [...Object.values(TAB_HREF), '/discover', '/following']) {
     expect(render(createElement(MiniPlayer, { pathname: path, context: 'root' })).toJSON()).toBeNull();
     expect(render(createElement(MiniPlayer, { pathname: path, context: 'tabs' })).toJSON()).not.toBeNull();
   }

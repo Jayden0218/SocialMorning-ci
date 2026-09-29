@@ -21,6 +21,9 @@ it('renders both windows with top shows; null stats say private', () => {
   expect(t.split('Reply All').length - 1).toBe(2);
   expect(t).toContain('10 min 00 s');
   expect(t).toContain('1 h 02 min');
+  // iOS i15: the spoken label keeps the value, not just its name.
+  const labels = r.root.findAll((n) => typeof n.props['accessibilityLabel'] === 'string').map((n) => String(n.props['accessibilityLabel']));
+  expect(labels).toContain('Last 7 days: time listened, 10 min 00 s');
   act(() => { r = create(createElement(StatsBlock, { stats: null, own: false })); });
   expect(textOf(r)).toContain('Listening is private.');
   act(() => { r = create(createElement(StatsBlock, { stats: null, own: true })); });

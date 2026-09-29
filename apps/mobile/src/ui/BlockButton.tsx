@@ -1,5 +1,6 @@
 /** M6 US1: Block / Unblock a listener, with a confirm. The block is local at once; the server hears later. */
-import { Alert, Pressable, Text } from 'react-native';
+import { Alert } from 'react-native';
+import { Button, ButtonText } from './lib/button';
 import { router } from 'expo-router';
 import { announce, useSafety } from '../safety/context';
 
@@ -26,11 +27,12 @@ export function BlockButton(props: { listenerId: string; displayName: string; on
     ]);
   }
   return (
-    <Pressable onPress={press} accessibilityRole="button" accessibilityLabel={blocked ? `Unblock ${props.displayName}` : `Block ${props.displayName}`} className="py-2 min-h-[44px] justify-center">
+    // M9 (T032): gluestack's Button, the quiet `ghost` kind — a peer of Report, not a shout.
+    <Button variant="ghost" onPress={press} accessibilityRole="button" accessibilityLabel={blocked ? `Unblock ${props.displayName}` : `Block ${props.displayName}`} className="py-2 px-0 min-h-[44px] justify-center self-start">
       {/* FR-016: the word carries it, not the hue — Block and Unblock share one colour. Report beside it is
           muted for the same reason — neither of two peer actions should shout over the other. */}
-      <Text className="text-text text-[15px]">{blocked ? 'Unblock' : 'Block'}</Text>
-    </Pressable>
+      <ButtonText className="text-text text-[15px]">{blocked ? 'Unblock' : 'Block'}</ButtonText>
+    </Button>
   );
 }
 

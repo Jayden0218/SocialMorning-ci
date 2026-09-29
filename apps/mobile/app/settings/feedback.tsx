@@ -3,12 +3,19 @@
  * 3 images, send. It goes straight to the owner's /mod page; if the server cannot be reached,
  * the email app is offered instead (without the images). "My feedback" lists what you sent.
  */
+import { ScrollView } from '../../src/ui/lib/scroll-view';
+import { Image } from '../../src/ui/lib/image';
 import Constants from 'expo-constants';
 import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { FlatList, Image, Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Linking } from 'react-native';
+import { Textarea, TextareaInput } from '../../src/ui/lib/textarea';
+import { FlatList } from '../../src/ui/lib/flat-list';
+import { Pressable } from '../../src/ui/lib/pressable';
+import { Text } from '../../src/ui/lib/text';
+import { Box } from '../../src/ui/lib/box';
+import { colour, hit } from '../../src/design';
 import { pickImages, type PickedImage } from '../../src/feedback/images';
-import { hit } from '../../src/design';
 import { useColours } from '../../src/ui/useColours';
 import { FEEDBACK_KINDS, type FeedbackKind } from '../../src/settings/faq';
 import { FEEDBACK_MAX, feedbackMailto, listFeedback, rememberFeedback, type SentFeedback } from '../../src/settings/feedback';
@@ -66,27 +73,28 @@ export default function FeedbackScreen(): React.ReactElement {
   };
 
   return (
-    <View className="flex-1 bg-background">
+    <Box className="flex-1 bg-background">
       <Stack.Screen options={{ title: 'Help and feedback' }} />
-      <View className="flex-row border-b-hairline border-separator">
+      <Box className="flex-row border-b-hairline border-separator">
         {(['write', 'mine'] as const).map((t) => (
           <Pressable key={t} onPress={() => setTab(t)} accessibilityRole="tab" accessibilityState={{ selected: tab === t }} accessibilityLabel={t === 'write' ? 'Write feedback' : 'My feedback'} className="flex-1 items-center justify-center" style={TAP}>
             <Text className={tab === t ? 'text-accent text-sm font-bold' : 'text-muted text-sm'}>{t === 'write' ? 'Write feedback' : 'My feedback'}</Text>
           </Pressable>
         ))}
-      </View>
+      </Box>
       {tab === 'write' ? (
-        <View className="flex-1 px-screen-x pt-section gap-section">
-          <View className="flex-row flex-wrap gap-x-section">
+        <Box className="flex-1 px-screen-x pt-section gap-section">
+          <Box className="flex-row flex-wrap gap-x-section">
             {FEEDBACK_KINDS.map((k) => (
               <Pressable key={k} onPress={() => setKind(k)} accessibilityRole="radio" accessibilityState={{ checked: kind === k }} accessibilityLabel={k} className="flex-row items-center gap-2" style={TAP}>
-                <View className={`w-5 h-5 rounded-pill border-2 ${kind === k ? 'border-accent bg-accent' : 'border-separator'}`} />
+                <Box className={`w-5 h-5 rounded-pill border-2 ${kind === k ? 'border-accent bg-accent' : 'border-separator'}`} />
                 <Text className={kind === k ? 'text-text text-sm' : 'text-muted text-sm'}>{k}</Text>
               </Pressable>
             ))}
-          </View>
-          <TextInput value={body} onChangeText={setBody} maxLength={FEEDBACK_MAX} multiline placeholder="Write here…" placeholderTextColor={c.muted} textAlignVertical="top"
-            className="bg-surface rounded-artwork p-section text-text text-sm min-h-40" accessibilityLabel="Your feedback" />
+          </Box>
+          <Textarea className="bg-surface rounded-artwork min-h-40 border-0 h-auto">
+            <TextareaInput value={body} onChangeText={setBody} maxLength={FEEDBACK_MAX} multiline placeholder="Write here…" placeholderTextColor={c.muted} textAlignVertical="top" accessibilityLabel="Your feedback" className="p-section text-text text-sm" />
+          </Textarea>
           <ScrollView horizontal contentContainerClassName="gap-row" showsHorizontalScrollIndicator={false}>
             {images.map((img, i) => (
               <Pressable key={img.uri + i} onPress={() => setImages((cur) => cur.filter((_, j) => j !== i))} accessibilityRole="button" accessibilityLabel={`Remove image ${i + 1}`}>
@@ -99,9 +107,9 @@ export default function FeedbackScreen(): React.ReactElement {
               </Pressable>
             ) : null}
           </ScrollView>
-          <View className="flex-1" />
+          <Box className="flex-1" />
           <Button label={busy ? 'Sending…' : 'Send'} onPress={send} disabled={!ready} className="mb-section" />
-        </View>
+        </Box>
       ) : (
         <FlatList
           data={sent}
@@ -109,13 +117,13 @@ export default function FeedbackScreen(): React.ReactElement {
           contentContainerClassName="px-screen-x py-row flex-grow"
           ListEmptyComponent={<EmptyPicture icon="document-text-outline" line="Nothing sent yet" />}
           renderItem={({ item }) => (
-            <View className="py-row border-b-hairline border-separator">
+            <Box className="py-row border-b-hairline border-separator">
               <Text className="text-muted text-xs">{item.kind} · {shortDate(item.at)}</Text>
               <Text className="text-text text-sm" numberOfLines={4}>{item.body}</Text>
-            </View>
+            </Box>
           )}
         />
       )}
-    </View>
+    </Box>
   );
 }

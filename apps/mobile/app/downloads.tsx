@@ -5,7 +5,11 @@
  */
 import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { FlatList, Pressable, Switch, Text, View } from 'react-native';
+import { FlatList } from '../src/ui/lib/flat-list';
+import { Pressable } from '../src/ui/lib/pressable';
+import { Switch } from '../src/ui/lib/switch';
+import { Text } from '../src/ui/lib/text';
+import { Box } from '../src/ui/lib/box';
 import { Icon } from '../src/ui/Icon';
 import { mb } from '../src/ui/DownloadButton';
 import { useDownloads, useStores } from '../src/ui/providers';
@@ -51,37 +55,37 @@ export default function DownloadsScreen(): React.ReactElement {
           </Pressable>
         ) }} />
         {settings ? (
-        <View className="gap-2 mb-2 bg-surface rounded-artwork p-section">
+        <Box className="gap-2 mb-2 bg-surface rounded-artwork p-section">
           <Text className="text-[15px] text-text">Used {mb(downloads.usedBytes())} of {mb(downloads.budgetBytes())}</Text>
-          <View className="flex-row gap-3 items-center flex-wrap">
+          <Box className="flex-row gap-3 items-center flex-wrap">
             {BUDGETS.map((b) => (
               <Pressable key={b} onPress={() => downloads.setBudgetBytes(b)} accessibilityRole="button">
                 <Text className={`border rounded-pill px-2.5 py-1 ${downloads.budgetBytes() === b ? 'bg-primary border-primary text-onPrimary' : 'border-separator text-text'}`}>{b < 1024 ** 3 ? `${b / 1024 ** 2} MB` : `${b / 1024 ** 3} GB`}</Text>
               </Pressable>
             ))}
-          </View>
-          <View className="flex-row gap-3 items-center flex-wrap">
+          </Box>
+          <Box className="flex-row gap-3 items-center flex-wrap">
             <Text className="text-[15px] text-text">Allow mobile data</Text>
             <Switch trackColor={{ false: c.separator, true: c.primary }} thumbColor={c.background} value={downloads.allowMobile()} onValueChange={(v) => downloads.setAllowMobile(v)} accessibilityLabel="Allow mobile data for downloads" accessibilityRole="switch" accessibilityState={{ checked: downloads.allowMobile() }} />
-          </View>
+          </Box>
           <Pressable onPress={() => void downloads.removeFinished()} accessibilityRole="button">
             <Text className="text-accent text-[15px] py-1">Remove finished downloads</Text>
           </Pressable>
-        </View>
+        </Box>
         ) : null}
         </>
       }
       ListEmptyComponent={
-        <View className="items-center pt-24 gap-section">
-          <View className="w-28 h-28 rounded-pill bg-surface items-center justify-center" accessible={false}><Icon name="download-outline" size={44} color={c.muted} /></View>
+        <Box className="items-center pt-24 gap-section">
+          <Box className="w-28 h-28 rounded-pill bg-surface items-center justify-center" accessible={false}><Icon name="download-outline" size={44} color={c.muted} /></Box>
           <EmptyState surface="downloads" />
-        </View>
+        </Box>
       }
       renderItem={({ item }) => (
-        <View className="py-2 gap-0.5 border-b-hairline border-separator">
+        <Box className="py-2 gap-0.5 border-b-hairline border-separator">
           <Text className="text-[15px] font-semibold text-text" numberOfLines={2}>{title(item.episodeId)}</Text>
           <Text className="text-muted">{state(item)}</Text>
-          <View className="flex-row gap-3 items-center flex-wrap">
+          <Box className="flex-row gap-3 items-center flex-wrap">
             {item.state === 'complete' ? (
               <Pressable onPress={() => downloads.remove(item.episodeId)} accessibilityRole="button"><Text className="text-accent text-[15px] py-1">Remove</Text></Pressable>
             ) : item.state === 'failed' ? (
@@ -93,8 +97,8 @@ export default function DownloadsScreen(): React.ReactElement {
             ) : (
               <Pressable onPress={() => downloads.cancel(item.episodeId)} accessibilityRole="button"><Text className="text-accent text-[15px] py-1">Cancel</Text></Pressable>
             )}
-          </View>
-        </View>
+          </Box>
+        </Box>
       )}
     />
   );

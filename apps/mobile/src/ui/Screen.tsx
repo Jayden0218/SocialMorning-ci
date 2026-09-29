@@ -3,7 +3,9 @@
  * that is easy to forget — bottom padding equal to the mini player plus the tab bar, so
  * the last row of a list is never hidden underneath them.
  */
-import { ScrollView, View, type ViewProps } from 'react-native';
+import { type ViewProps } from 'react-native';
+import { ScrollView } from './lib/scroll-view';
+import { Box } from './lib/box';
 
 /** Height of the mini player and the tab bar, so lists can reserve room for both. */
 export const MINI_PLAYER_HEIGHT = 64;
@@ -23,8 +25,8 @@ export function Screen(props: ViewProps & { scroll?: boolean; padded?: boolean }
     );
   }
   return (
-    <View className={`flex-1 bg-background ${pad} ${className ?? ''}`} style={[bottom, style]} {...rest}>
+    <Box className={`flex-1 bg-background ${pad} ${className ?? ''}`} style={[bottom, style]} {...rest}>
       {children}
-    </View>
+    </Box>
   );
 }

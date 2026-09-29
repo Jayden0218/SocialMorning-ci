@@ -5,7 +5,10 @@
  */
 import { Link, router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { FlatList, Pressable, Text, View } from 'react-native';
+import { FlatList } from '../src/ui/lib/flat-list';
+import { Pressable } from '../src/ui/lib/pressable';
+import { Text } from '../src/ui/lib/text';
+import { Box } from '../src/ui/lib/box';
 import { hit } from '../src/design';
 import { listFavComments, type FavComment } from '../src/me/fav-comments';
 import { listFavourites, type Favourite } from '../src/me/favourites';
@@ -31,16 +34,16 @@ export default function FavouritesScreen(): React.ReactElement {
   const any = tab === 'episodes' ? rows.length > 0 : comments.length > 0;
 
   const header = (
-    <View>
-      <View className="flex-row border-b-hairline border-separator mb-row">
+    <Box>
+      <Box className="flex-row border-b-hairline border-separator mb-row">
         {(['episodes', 'comments'] as const).map((t) => (
           <Pressable key={t} onPress={() => setTab(t)} accessibilityRole="tab" accessibilityState={{ selected: tab === t }} accessibilityLabel={t === 'episodes' ? 'Episodes' : 'Comments'} className="flex-1 items-center justify-center" style={TAP}>
             <Text className={tab === t ? 'text-accent text-sm font-bold' : 'text-muted text-sm'}>{t === 'episodes' ? 'Episodes' : 'Comments'}</Text>
           </Pressable>
         ))}
-      </View>
+      </Box>
       {any ? <FilterBar term={term} onTerm={setTerm} placeholder="Search your favourites" /> : null}
-    </View>
+    </Box>
   );
 
   if (tab === 'comments') {
@@ -84,10 +87,10 @@ export default function FavouritesScreen(): React.ReactElement {
           <Link href={{ pathname: '/episode/[id]', params: { id: e.id } }} asChild>
             <Pressable className="flex-row gap-row py-row items-center" accessibilityRole="button" accessibilityLabel={e.title}>
               <Artwork url={e.imageUrl ?? show?.imageUrl} size={56} rounded="row" />
-              <View className="flex-1">
+              <Box className="flex-1">
                 <Text className="text-text text-sm font-semibold" numberOfLines={2}>{e.title}</Text>
                 <Text className="text-muted text-xs" numberOfLines={1}>{show?.title ?? ''}</Text>
-              </View>
+              </Box>
             </Pressable>
           </Link>
         );

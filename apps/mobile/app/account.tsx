@@ -13,13 +13,12 @@
  * app takes no payments — everything is free).
  */
 import { Stack } from 'expo-router';
-import { ScrollView, Pressable, Text } from 'react-native';
-import { hit } from '../src/design';
+import { ScrollView } from '../src/ui/lib/scroll-view';
+import { SignOut } from '../src/ui/SignOut';
 import { useSocial } from '../src/social/context';
 import { Divider, LinkRow } from '../src/ui/settings/rows';
 import { DARK_READY } from '../src/design/theme';
 
-const TAP = { minHeight: hit.min };
 
 export default function SettingsScreen(): React.ReactElement {
   const { auth, listener } = useSocial();
@@ -41,9 +40,7 @@ export default function SettingsScreen(): React.ReactElement {
       <LinkRow href="/settings/help" icon="help-circle-outline" label="Help and feedback" />
       <LinkRow href="/settings/about" icon="planet-outline" label="About SocialNet" />
       {listener ? (
-        <Pressable onPress={() => void auth.signOut()} accessibilityRole="button" accessibilityLabel="Sign out" className="items-center justify-center bg-surface rounded-artwork mt-section" style={TAP}>
-          <Text className="text-accent text-sm">Sign out</Text>
-        </Pressable>
+        <SignOut onSignOut={() => void auth.signOut()} className="items-center justify-center bg-surface rounded-artwork mt-section" />
       ) : null}
     </ScrollView>
   );

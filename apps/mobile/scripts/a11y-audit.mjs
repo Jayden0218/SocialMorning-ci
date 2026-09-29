@@ -13,7 +13,9 @@ const files = [];
 const walk = (dir) => {
   for (const name of readdirSync(dir)) {
     const p = path.join(dir, name);
-    if (statSync(p).isDirectory()) { if (name !== 'node_modules') walk(p); continue; }
+    // M9: src/ui/lib holds gluestack's generic wrappers (`<Pressable {...props} />`); their
+    // names come from where they are used, so the audit checks the call sites instead.
+    if (statSync(p).isDirectory()) { if (name !== 'node_modules' && p !== path.join('src', 'ui', 'lib')) walk(p); continue; }
     if (/\.tsx$/.test(p)) files.push(p);
   }
 };
@@ -38,10 +40,13 @@ for (const file of files) {
     // M7 (T029): the shared components are interactive too. `Row`, `Button`, `Chip` and
     // `NavLink` take their name as a prop, so the audit looks for that prop rather than
     // for a text child — a `Row title={x}` with no `title` is exactly the miss.
-    const open = /<(Pressable|TouchableOpacity|TouchableHighlight|Switch|TextInput|Link|Row|Button|Chip|NavLink|TabBar)\b/.exec(lines[i]);
+    // M9: gluestack's interactive parts are checked where they are used, the same way.
+    const open = /<(Pressable|TouchableOpacity|TouchableHighlight|Switch|TextInput|Link|Row|Button|Chip|NavLink|TabBar|ActionsheetItem|Slider|TextareaInput|InputField|Fab|Checkbox|Radio)\b/.exec(lines[i]);
     if (!open) continue;
     const tag = open[1];
-    if (['Row', 'Button', 'Chip', 'NavLink', 'TabBar'].includes(tag) && !shared.has(tag)) continue;
+    // M9: a gluestack Button (from ui/lib/button) is named by its ButtonText child or a label.
+    const libButton = tag === 'Button' && /from\s*'[^']*ui\/lib\/button'/.test(src);
+    if (['Row', 'Button', 'Chip', 'NavLink', 'TabBar'].includes(tag) && !shared.has(tag) && !libButton) continue;
     // Read to the element's own close: `</Tag>`, or a `/>` that closes THIS tag (a `/>`
     // on an inner element, e.g. <View style={styles.art} />, is not the end).
     let block = '';
@@ -62,7 +67,7 @@ for (const file of files) {
       (tag === 'Row' && /\btitle\s*=/.test(block)) ||
       ((tag === 'Button' || tag === 'Chip' || tag === 'NavLink') && /\blabel\s*=/.test(block)) ||
       (tag === 'TabBar' && /\bitems\s*=/.test(block));
-    const hasText = /<Text[\s>]/.test(block) || /\{`[^`]+`\}/.test(block) || /<Link\b[^>]*>[^<]+</.test(block);
+    const hasText = /<[A-Za-z]*Text[\s>]/.test(block) || /\{`[^`]+`\}/.test(block) || /<Link\b[^>]*>[^<]+</.test(block);
     if (!named && !hasText) findings.push(`${file}:${i + 1} <${tag}> has no accessibilityLabel and no text child`);
     // M6 (FR-022, found on the phone in J5): a bare <Link> renders a View that TalkBack
     // reads as plain text — focusable but with no role and clickable="false". It needs a

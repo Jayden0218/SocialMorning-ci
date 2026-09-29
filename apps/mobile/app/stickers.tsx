@@ -1,6 +1,9 @@
 /** Stickers (贴纸, M10): listening milestones — earned ones in colour, the rest with how far along you are. */
 import { useEffect, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { ScrollView } from '../src/ui/lib/scroll-view';
+import { Text } from '../src/ui/lib/text';
+import { Box } from '../src/ui/lib/box';
+import { colour } from '../src/design';
 import { useColours } from '../src/ui/useColours';
 import { Icon } from '../src/ui/Icon';
 import { listMoments } from '../src/me/moments';
@@ -27,15 +30,15 @@ export default function StickersScreen(): React.ReactElement {
     <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x py-section pb-24">
       <Text className="text-text text-base font-bold mb-section" accessibilityRole="header">{earned} of {list.length} earned</Text>
       {!listener ? <Text className="text-muted text-sm mb-section">Sign in to count your listening time.</Text> : null}
-      <View className="flex-row flex-wrap gap-row">
+      <Box className="flex-row flex-wrap gap-row">
         {list.map((s) => (
-          <View key={s.id} className={`w-[31%] rounded-artwork p-row items-center gap-1 ${s.earned ? 'bg-surface' : 'border border-separator'}`} accessible accessibilityLabel={`${s.title}. ${s.progress}`}>
-            <View className={s.earned ? '' : 'opacity-40'}><Icon name={s.icon} size={28} color={s.earned ? c.text : c.muted} /></View>
+          <Box key={s.id} className={`w-[31%] rounded-artwork p-row items-center gap-1 ${s.earned ? 'bg-surface' : 'border border-separator'}`} accessible accessibilityLabel={`${s.title}. ${s.progress}`}>
+            <Box className={s.earned ? '' : 'opacity-40'}><Icon name={s.icon} size={28} color={s.earned ? c.text : c.muted} /></Box>
             <Text className="text-text text-xs font-semibold text-center" numberOfLines={2}>{s.title}</Text>
             <Text className="text-muted text-xs text-center">{s.progress}</Text>
-          </View>
+          </Box>
         ))}
-      </View>
+      </Box>
     </ScrollView>
   );
 }
