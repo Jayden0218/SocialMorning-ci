@@ -28,7 +28,9 @@ describe('axe (no layout, so no contrast — see tokens.test.ts)', () => {
   });
 
   it('no show yet', async () => {
+    mockApi((p) => (p.includes('/claims') ? { status: 200, body: { claims: [] } } : undefined));
     const { container } = renderIn(<NoShow />);
+    await screen.findByText('Get my code');
     expect(await violations(container)).toEqual([]);
   });
 

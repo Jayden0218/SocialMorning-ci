@@ -82,3 +82,25 @@ test('/me lists owned and operated shows; an operator loses the show when the cl
   assert.equal((await sCall(t, 'GET', `/v1/studio/shows/${key}/overview`, owner)).status, 403);
   await t.close();
 });
+
+test('a signed-in person with no show claims one from the Studio; only the code in the live feed proves it', async () => {
+  let feedText = '<rss><channel><description>a show</description></channel></rss>';
+  const t = await freshDb({ catalogFetch: (async () => new Response(feedText)) as unknown as typeof fetch });
+  const me = await studioLogin(t, 'new@example.com', 'New');
+  await addEpisode(t, FEED, 'e1', 'One', 1_000_000);
+  const started = await sCall(t, 'POST', '/v1/studio/claims', me, { feedUrl: FEED });
+  assert.equal(started.status, 201);
+  const { claim } = (await started.json()) as { claim: { id: string; code: string; status: string } };
+  assert.equal(claim.status, 'pending');
+  assert.deepEqual(((await (await sCall(t, 'GET', '/v1/studio/claims', me)).json()) as { claims: { id: string }[] }).claims.map((c) => c.id), [claim.id]);
+
+  const before = (await (await sCall(t, 'POST', `/v1/studio/claims/${claim.id}/verify`, me)).json()) as { status: string; shows: unknown[] };
+  assert.deepEqual([before.status, before.shows], ['pending', []], 'asking is not proof');
+  feedText = `<rss><channel><description>a show ${claim.code}</description></channel></rss>`;
+  const after = (await (await sCall(t, 'POST', `/v1/studio/claims/${claim.id}/verify`, me)).json()) as { status: string; shows: { role: string; title: string }[] };
+  assert.deepEqual([after.status, after.shows.map((s) => [s.role, s.title])], ['proven', [['owner', 'The Show']]]);
+
+  assert.equal((await sCall(t, 'POST', '/v1/studio/claims', me, { feedUrl: 'not a url' })).status, 422);
+  assert.equal((await t.call('POST', '/v1/studio/claims', { feedUrl: FEED }, undefined, { 'x-studio': '1' })).status, 401, 'signed out: refused');
+  await t.close();
+});

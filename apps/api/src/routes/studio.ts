@@ -30,6 +30,7 @@ import { closePoll, createPoll, listPolls } from '../db/repos/polls.ts';
 import { getOverrides, putOverrides } from '../db/repos/show-overrides.ts';
 import { addOperator, release, removeOperator, team } from '../db/repos/show-team.ts';
 import { tipsFor } from '../db/repos/studio-tips.ts';
+import { createClaim, myClaims, verifyClaim } from '../db/repos/creator.ts';
 import { isBlockedBy } from '../db/repos/blocks.ts';
 
 export type { StudioEnv };
@@ -71,6 +72,24 @@ studio.post('/session/sign-out', async (c) => {
 studio.get('/me', async (c) => {
   const me = c.get('listener')!;
   return c.json({ me: publicListener(me), shows: await showsFor(c.get('db'), me.id) });
+});
+
+// ---- Claiming a show from the Studio (the app's M10b flow, on the web) ----
+// A person with no show lands here first. Ownership is still proven the same way: the code must
+// appear in the live feed (M10b guard G-C1), so nobody reaches another creator's data by asking.
+
+studio.get('/claims', async (c) => c.json({ claims: await myClaims(c.get('db'), c.get('listener')!.id) }));
+
+studio.post('/claims', json(z.object({ feedUrl: z.string().trim().url().max(2048).regex(/^https?:\/\//) })), async (c) =>
+  c.json({ claim: await createClaim(c.get('db'), c.get('listener')!.id, c.req.valid('json').feedUrl) }, 201));
+
+studio.post('/claims/:id/verify', async (c) => {
+  const db = c.get('db');
+  const me = c.get('listener')!;
+  const r = await verifyClaim(db, c.get('catalog').fetch, me.id, c.req.param('id')).catch(() => ({ status: 'pending' as const }));
+  if (r === 'not_found') throw new ApiError('not_found', 'No such claim.');
+  if (r === 'taken') throw new ApiError('conflict', 'Someone else has already proved this show is theirs.');
+  return c.json({ status: r.status, shows: await showsFor(db, me.id) });
 });
 
 // ---- Show scope (G-A1) ----
