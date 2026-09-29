@@ -41,6 +41,7 @@ import { categories } from './routes/categories.ts';
 import { studio } from './routes/studio.ts';
 import { extras } from './routes/extras.ts';
 import { feeds } from './routes/feeds.ts';
+import { showCard } from './pages/show-card.ts';
 import { blobStorage } from './storage/episodes-blob.ts';
 import { DEFAULT_CEILING_BYTES } from './db/repos/hosted.ts';
 
@@ -135,6 +136,7 @@ export function createApp(deps: AppDeps) {
   app.route('/v1/studio', studio as unknown as Hono<AuthEnv>);
   app.route('/v1', extras);
   app.route('/feeds', feeds);
+  app.route('/show', showCard);
   app.route('/v1/me/rec-events', recEvents);
   app.route('/v1/me/feed', feed);
   app.route('/v1/me/listened', listened);

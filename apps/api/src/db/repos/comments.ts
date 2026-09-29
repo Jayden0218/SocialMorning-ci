@@ -1,4 +1,4 @@
-import { hostOfEpisode } from './creator.ts';
+import { hostsOfEpisode } from './creator.ts';
 import { applyBlocks, hiddenKey } from '@socialmorning/social-core';
 import type { Db } from '../db.ts';
 import { ApiError } from '../../errors.ts';
@@ -128,11 +128,11 @@ export async function listComments(db: Db, episodeId: string, viewerId?: string)
   const rows = viewerId === undefined ? all : await filterForViewer(db, all, viewerId);
   const byId = new Map<string, PublicComment>();
   const top: PublicComment[] = [];
-  // M10b US8: the show's proven creator's comments carry a Host mark.
-  const host = await hostOfEpisode(db, episodeId);
+  // M10b US8 + M14: the show's proven creator's and invited hosts' comments carry a Host mark.
+  const hosts = new Set(await hostsOfEpisode(db, episodeId));
   for (const r of rows) {
     const base = toPublic(r, viewerId);
-    const c = host !== undefined && base.authorId === host ? { ...base, host: true as const } : base;
+    const c = base.authorId !== null && hosts.has(base.authorId) ? { ...base, host: true as const } : base;
     byId.set(c.id, c);
     if (c.parentId === null) top.push({ ...c, replies: [] });
   }

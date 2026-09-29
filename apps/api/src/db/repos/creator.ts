@@ -79,3 +79,13 @@ export async function hostOfEpisode(db: Db, episodeId: string): Promise<string |
     "SELECT cl.listener_id FROM creator_claims cl JOIN episodes e ON e.feed_url = cl.feed_url WHERE e.id = $1 AND cl.status = 'proven' LIMIT 1", [episodeId]);
   return r?.listener_id;
 }
+
+/** M14 (FR-03): everyone who carries the Host mark on an episode's show — the proven owner and invited hosts. */
+export async function hostsOfEpisode(db: Db, episodeId: string): Promise<string[]> {
+  const rows = await db.query<{ id: string }>(
+    `SELECT cl.listener_id AS id FROM creator_claims cl JOIN episodes e ON e.feed_url = cl.feed_url WHERE e.id = $1 AND cl.status = 'proven'
+     UNION SELECT h.listener_id FROM show_hosts h JOIN episodes e ON e.feed_url = h.feed_url WHERE e.id = $1
+       AND EXISTS (SELECT 1 FROM creator_claims c2 WHERE c2.feed_url = h.feed_url AND c2.status = 'proven')`,
+    [episodeId]);
+  return rows.map((r) => r.id).sort();
+}

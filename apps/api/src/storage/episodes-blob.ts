@@ -7,7 +7,7 @@
  * good for ONE path, the allowed types and a size limit, for 1 hour; the browser uploads
  * straight to the store; publishing then reads the file's real size and type back with `head`.
  */
-import { del, head } from '@vercel/blob';
+import { del, head, list } from '@vercel/blob';
 import { generateClientTokenFromReadWriteToken } from '@vercel/blob/client';
 
 export type StoredFile = { url: string; pathname: string; size: number; contentType: string };
@@ -18,6 +18,8 @@ export interface EpisodeStorage {
   uploadToken(pathname: string, opts: { maxBytes: number; types: string[] }): Promise<string>;
   head(url: string): Promise<StoredFile | undefined>;
   remove(url: string): Promise<void>;
+  /** M14 US5: every stored file under a prefix (one show's folder), for the media library. */
+  list(prefix: string): Promise<StoredFile[]>;
 }
 
 export const AUDIO_TYPES = ['audio/mpeg', 'audio/mp4', 'audio/x-m4a', 'audio/aac'];
@@ -47,5 +49,22 @@ export function blobStorage(token: string | undefined): EpisodeStorage {
     remove: async (url) => {
       if (token) await del(url, { token });
     },
+    list: async (prefix) => {
+      if (!token) return [];
+      const out: StoredFile[] = [];
+      let cursor: string | undefined;
+      do {
+        const r = await list({ token, prefix, limit: 1000, ...(cursor ? { cursor } : {}) });
+        for (const b of r.blobs) out.push({ url: b.url, pathname: b.pathname, size: b.size, contentType: typeFromPath(b.pathname) });
+        cursor = r.hasMore ? r.cursor : undefined;
+      } while (cursor);
+      return out;
+    },
   };
+}
+
+/** `list` does not return a type; ours are always named by the upload route, so the extension is the type. */
+export function typeFromPath(p: string): string {
+  const ext = p.split('.').pop()?.toLowerCase();
+  return ({ mp3: 'audio/mpeg', m4a: 'audio/mp4', aac: 'audio/aac', jpg: 'image/jpeg', png: 'image/png' } as Record<string, string>)[ext ?? ''] ?? 'application/octet-stream';
 }

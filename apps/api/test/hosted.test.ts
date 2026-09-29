@@ -14,25 +14,9 @@ import { hash } from '@socialmorning/social-core';
 import { parseFeed } from '@socialmorning/feed-parser';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 import { sCall, studioLogin } from './studio-harness.ts';
-import type { EpisodeStorage, StoredFile } from '../src/storage/episodes-blob.ts';
+import { fakeStore, STORE } from './fake-store.ts';
 
 const BASE = 'https://api.example.test';
-const STORE = 'https://store.public.blob.vercel-storage.com/';
-
-/** An in-memory store: `uploadToken` records the pathname; a test "uploads" with `put`. */
-function fakeStore(ready = true) {
-  const files = new Map<string, StoredFile>();
-  const removed: string[] = [];
-  const s: EpisodeStorage & { put: (pathname: string, size: number, type: string) => string; files: typeof files; removed: string[] } = {
-    ready,
-    uploadToken: async (pathname) => `token-for:${pathname}`,
-    head: async (url) => files.get(url),
-    remove: async (url) => { removed.push(url); files.delete(url); },
-    put: (pathname, size, contentType) => { const url = STORE + pathname; files.set(url, { url, pathname, size, contentType }); return url; },
-    files, removed,
-  };
-  return s;
-}
 
 async function setup(opts: { ceiling?: number; ready?: boolean } = {}) {
   const store = fakeStore(opts.ready ?? true);

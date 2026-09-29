@@ -32,8 +32,10 @@ import { addOperator, release, removeOperator, team } from '../db/repos/show-tea
 import { tipsFor } from '../db/repos/studio-tips.ts';
 import { createClaim, myClaims, verifyClaim } from '../db/repos/creator.ts';
 import {
-  CATEGORIES, createHostedShow, hostedByFeed, listHostedEpisodes, publishEpisode, removeEpisode, storedBytes, updateHostedShow,
+  CATEGORIES, createHostedShow, hostedByFeed, listHostedEpisodes, promoteDue, publishEpisode, removeEpisode, storedBytes, updateEpisode, updateHostedShow,
 } from '../db/repos/hosted.ts';
+import { acceptInvite, createInvite, listHosts, openInvites, previewInvite, removeHost, revokeInvite } from '../db/repos/show-hosts.ts';
+import { CONTACT_TYPES } from '../db/repos/show-overrides.ts';
 import { AUDIO_TYPES, IMAGE_TYPES, MAX_AUDIO_BYTES, MAX_IMAGE_BYTES } from '../storage/episodes-blob.ts';
 import { randomUUID } from 'node:crypto';
 import { isBlockedBy } from '../db/repos/blocks.ts';
@@ -140,10 +142,16 @@ const metric = (v: string | undefined): Metric => ((METRICS as readonly string[]
 studio.get('/shows/:show/overview', async (c) => {
   const db = c.get('db');
   const { feedUrl } = c.get('show');
-  const [t, comments, episodes, since] = await Promise.all([
+  const tz = validTz(c.req.query('tz'));
+  const hosted = await hostedByFeed(db, feedUrl);
+  if (hosted) await promoteDue(db, hosted);
+  const [t, comments, episodes, since, ...sparks] = await Promise.all([
     totals(db, feedUrl), recentComments(db, feedUrl), recentEpisodes(db, feedUrl), claimedAt(db, feedUrl),
+    ...METRICS.map((m) => trend(db, feedUrl, m, 14, tz)),
   ]);
-  return c.json({ show: c.get('show'), claimedAt: since, totals: t, recentComments: comments, recentEpisodes: episodes });
+  // M14 US6 (FR-07): 14 daily points per stat, from the same query as the trend.
+  const sparkline = Object.fromEntries(METRICS.map((m, i) => [m, (sparks[i] as { value: number }[]).map((d) => d.value)]));
+  return c.json({ show: c.get('show'), claimedAt: since, totals: t, recentComments: comments, recentEpisodes: episodes, sparklines: sparkline });
 });
 
 studio.get('/shows/:show/trend', async (c) => {
@@ -306,7 +314,17 @@ const overridesBody = z.object({
   milestoneMessage: z.string().trim().max(120).nullable().optional(),
   hosts: z.array(z.string().trim().min(1).max(40)).max(5).nullable().optional(),
   links: z.array(z.object({ label: z.string().trim().min(1).max(20), url: https })).max(5).nullable().optional(),
-}).strict();
+  contacts: z.array(z.object({ type: z.enum(CONTACT_TYPES), value: z.string().trim().min(1).max(200) })).max(6).nullable().optional(),
+  tipsEnabled: z.boolean().optional(),
+}).strict().superRefine((b, ctx) => {
+  // M14 US3 (FR-04): each contact is checked for its type.
+  for (const [i, c] of (b.contacts ?? []).entries()) {
+    const ok = c.type === 'email' ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.value)
+      : c.type === 'wechat' || c.type === 'wechat_official' ? /^[\w\-\u4e00-\u9fff]{1,50}$/.test(c.value)
+      : /^https:\/\/\S+$/.test(c.value);
+    if (!ok) ctx.addIssue({ code: 'custom', path: ['contacts', i, 'value'], message: `Not a valid ${c.type}` });
+  }
+});
 
 studio.get('/shows/:show/overrides', ownerOnly, async (c) => c.json({ overrides: await getOverrides(c.get('db'), c.get('show').feedUrl) }));
 
@@ -396,14 +414,36 @@ studio.post('/shows/:show/uploads', json(uploadBody), async (c) => {
   return c.json({ pathname, token: await storage.uploadToken(pathname, { maxBytes: max, types }) });
 });
 
-studio.get('/shows/:show/hosted-episodes', async (c) => c.json({ items: await listHostedEpisodes(c.get('db'), (await hostedOf(c.get('db'), c.get('show').feedUrl)).id) }));
+studio.get('/shows/:show/hosted-episodes', async (c) => {
+  const h = await hostedOf(c.get('db'), c.get('show').feedUrl);
+  await promoteDue(c.get('db'), h);
+  return c.json({ items: await listHostedEpisodes(c.get('db'), h.id) });
+});
 
 const publishBody = z.object({
   title: z.string().trim().min(1).max(200),
   description: z.string().max(20000).default(''),
   audioUrl: z.string().url(),
   durationMs: z.number().int().positive().max(24 * 3600 * 1000).nullable().optional(),
+  status: z.enum(['draft', 'published']).default('published'),
+  publishAt: z.string().datetime().nullable().optional(),
+  coverUrl: z.string().url().nullable().optional(),
 });
+
+/** M14 US4 (FR-05): a scheduled time is in the future and within 90 days. */
+function checkPublishAt(at: string | null | undefined): void {
+  if (!at) return;
+  const t = Date.parse(at);
+  if (!(t > Date.now() && t <= Date.now() + 90 * 86_400_000)) throw new ApiError('validation', 'Schedule a time in the next 90 days.', { fields: ['publishAt'] });
+}
+
+/** An episode cover must be an image this show uploaded (FR-05). */
+async function checkEpisodeCover(storage: import('../storage/episodes-blob.ts').EpisodeStorage, showId: string, url: string | null | undefined): Promise<string | null | undefined> {
+  if (!url) return url;
+  const f = await storage.head(url);
+  if (!f || !f.pathname.startsWith(`covers/${showId}/`) || !IMAGE_TYPES.includes(f.contentType)) throw new ApiError('validation', 'Upload the episode cover first.', { fields: ['coverUrl'] });
+  return f.url;
+}
 
 /** Publish: the file must really be in our store, under THIS show, audio, within limits (FR-006). */
 studio.post('/shows/:show/hosted-episodes', json(publishBody), async (c) => {
@@ -421,8 +461,31 @@ studio.post('/shows/:show/hosted-episodes', json(publishBody), async (c) => {
     await storage.remove(f.url);
     throw new ApiError('conflict', 'Storage is full.', { reason: 'storage_full' });
   }
-  const ep = await publishEpisode(c.get('db'), h, c.get('listener')!.id, { title: b.title, description: b.description, audioUrl: f.url, audioBytes: f.size, audioType: f.contentType, durationMs: b.durationMs ?? null });
+  checkPublishAt(b.publishAt);
+  const coverUrl = await checkEpisodeCover(storage, h.id, b.coverUrl);
+  const ep = await publishEpisode(c.get('db'), h, c.get('listener')!.id, {
+    title: b.title, description: b.description, audioUrl: f.url, audioBytes: f.size, audioType: f.contentType, durationMs: b.durationMs ?? null,
+    status: b.status, publishAt: b.publishAt ?? null, coverUrl: coverUrl ?? null,
+  });
   return c.json({ episode: ep }, 201);
+});
+
+const editBody = z.object({
+  title: z.string().trim().min(1).max(200).optional(),
+  description: z.string().max(20000).optional(),
+  status: z.enum(['draft', 'published']).optional(),
+  publishAt: z.string().datetime().nullable().optional(),
+  coverUrl: z.string().url().nullable().optional(),
+}).strict();
+
+/** Edit a hosted episode: text, cover; publish a draft now or at a time; move back to draft. */
+studio.put('/shows/:show/hosted-episodes/:id', json(editBody), async (c) => {
+  const h = await hostedOf(c.get('db'), c.get('show').feedUrl);
+  const b = c.req.valid('json');
+  checkPublishAt(b.publishAt);
+  const patch = { ...b } as Parameters<typeof updateEpisode>[3];
+  if ('coverUrl' in b) patch.coverUrl = (await checkEpisodeCover(c.get('storage'), h.id, b.coverUrl)) ?? null;
+  return c.json({ episode: await updateEpisode(c.get('db'), h, c.req.param('id'), patch) });
 });
 
 /** Unpublish and delete the audio (FR-007, guard G-D1). Comments on it stay, like any episode that leaves a feed. */
@@ -431,5 +494,64 @@ studio.delete('/shows/:show/hosted-episodes/:id', async (c) => {
   const ep = await removeEpisode(c.get('db'), h.id, c.req.param('id'));
   if (!ep) throw new ApiError('not_found', 'No such episode.');
   await c.get('storage').remove(ep.audioUrl);
+  return c.body(null, 204);
+});
+
+// ---- M14 US2: hosts, invited by link ----
+
+const studioBase = () => process.env['STUDIO_URL'] ?? 'https://socialmorning-studio.vercel.app';
+
+studio.get('/shows/:show/hosts', async (c) => c.json({ hosts: await listHosts(c.get('db'), c.get('show').feedUrl) }));
+
+studio.delete('/shows/:show/hosts/:listenerId', ownerOnly, async (c) => {
+  await removeHost(c.get('db'), c.get('show').feedUrl, c.req.param('listenerId'));
+  return c.body(null, 204);
+});
+
+studio.get('/shows/:show/host-invites', ownerOnly, async (c) => c.json({ invites: await openInvites(c.get('db'), c.get('show').feedUrl) }));
+
+/** The link is shown once; only its hash is kept. */
+studio.post('/shows/:show/host-invites', ownerOnly, async (c) => {
+  const inv = await createInvite(c.get('db'), c.get('show').feedUrl, c.get('listener')!.id);
+  return c.json({ id: inv.id, url: `${studioBase()}/invite/${inv.token}`, expiresAt: inv.expiresAt }, 201);
+});
+
+studio.delete('/shows/:show/host-invites/:id', ownerOnly, async (c) => {
+  await revokeInvite(c.get('db'), c.get('show').feedUrl, c.req.param('id'));
+  return c.body(null, 204);
+});
+
+studio.get('/invites/:token', async (c) => c.json(await previewInvite(c.get('db'), c.req.param('token'))));
+
+studio.post('/invites/:token/accept', async (c) => {
+  const r = await acceptInvite(c.get('db'), c.req.param('token'), c.get('listener')!.id);
+  return c.json({ feedUrl: r.feedUrl });
+});
+
+// ---- M14 US5: the show's media library ----
+
+/** Every file this show stored, and whether the feed or the show uses it (FR-06). */
+async function mediaOf(db: import('../db/db.ts').Db, storage: import('../storage/episodes-blob.ts').EpisodeStorage, feedUrl: string) {
+  const h = await hostedOf(db, feedUrl);
+  const [audio, covers, eps] = await Promise.all([storage.list(`episodes/${h.id}/`), storage.list(`covers/${h.id}/`), listHostedEpisodes(db, h.id)]);
+  const used = new Map<string, string>();
+  for (const e of eps) { used.set(e.audioUrl, e.title); if (e.coverUrl) used.set(e.coverUrl, `${e.title} (cover)`); }
+  if (h.coverUrl) used.set(h.coverUrl, 'Show cover');
+  const files = [...audio, ...covers].map((f) => ({ ...f, kind: f.pathname.startsWith('episodes/') ? 'audio' as const : 'image' as const, usedBy: used.get(f.url) ?? null }));
+  return { files, usedBytes: files.reduce((n, f) => n + f.size, 0) };
+}
+
+studio.get('/shows/:show/media', async (c) => {
+  const m = await mediaOf(c.get('db'), c.get('storage'), c.get('show').feedUrl);
+  return c.json({ ...m, ceilingBytes: c.get('hostedCeilingBytes'), totalUsedBytes: await storedBytes(c.get('db')) });
+});
+
+studio.delete('/shows/:show/media', json(z.object({ url: z.string().url() })), async (c) => {
+  const url = c.req.valid('json').url;
+  const m = await mediaOf(c.get('db'), c.get('storage'), c.get('show').feedUrl);
+  const f = m.files.find((x) => x.url === url);
+  if (!f) throw new ApiError('not_found', 'No such file in this show.');
+  if (f.usedBy) throw new ApiError('conflict', `In use by: ${f.usedBy}. Delete or change that first.`, { reason: 'in_use' });
+  await c.get('storage').remove(url);
   return c.body(null, 204);
 });

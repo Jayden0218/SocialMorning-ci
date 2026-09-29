@@ -23,10 +23,12 @@ export type HostedShow = {
 export type HostedEpisode = {
   id: string; guid: string; episodeId: string; title: string; description: string; audioUrl: string;
   audioBytes: number; audioType: string; durationMs: number | null; publishedAt: string;
+  /** M14 US4: a draft is not in the feed; a published episode with a future time is scheduled. */
+  status: 'draft' | 'published'; coverUrl: string | null; scheduled: boolean;
 };
 
 type ShowRow = { id: string; owner_id: string; feed_url: string; title: string; description: string; author: string; language: string; category: string; explicit: boolean; cover_url: string | null; created_at: Date | string; updated_at: Date | string };
-type EpRow = { id: string; guid: string; episode_id: string; title: string; description: string; audio_url: string; audio_bytes: string | number; audio_type: string; duration_ms: number | null; published_at: Date | string };
+type EpRow = { id: string; guid: string; episode_id: string; title: string; description: string; audio_url: string; audio_bytes: string | number; audio_type: string; duration_ms: number | null; published_at: Date | string; status: 'draft' | 'published'; cover_url: string | null };
 
 const iso = (d: Date | string) => new Date(d).toISOString();
 const toShow = (r: ShowRow): HostedShow => ({
@@ -36,9 +38,10 @@ const toShow = (r: ShowRow): HostedShow => ({
 const toEp = (r: EpRow): HostedEpisode => ({
   id: r.id, guid: r.guid, episodeId: r.episode_id, title: r.title, description: r.description, audioUrl: r.audio_url,
   audioBytes: Number(r.audio_bytes), audioType: r.audio_type, durationMs: r.duration_ms, publishedAt: iso(r.published_at),
+  status: r.status, coverUrl: r.cover_url, scheduled: r.status === 'published' && new Date(r.published_at).getTime() > Date.now(),
 });
 const SHOW_COLS = 'id, owner_id, feed_url, title, description, author, language, category, explicit, cover_url, created_at, updated_at';
-const EP_COLS = 'id, guid, episode_id, title, description, audio_url, audio_bytes, audio_type, duration_ms, published_at';
+const EP_COLS = 'id, guid, episode_id, title, description, audio_url, audio_bytes, audio_type, duration_ms, published_at, status, cover_url';
 
 export type ShowIn = { title: string; description?: string; author?: string; language?: string; category?: string; explicit?: boolean; coverUrl?: string | null };
 
@@ -85,8 +88,25 @@ export async function updateHostedShow(db: Db, id: string, s: Partial<ShowIn>): 
   return toShow(r!);
 }
 
-export async function listHostedEpisodes(db: Db, showId: string): Promise<HostedEpisode[]> {
-  return (await db.query<EpRow>(`SELECT ${EP_COLS} FROM hosted_episodes WHERE show_id = $1 AND deleted_at IS NULL ORDER BY published_at DESC`, [showId])).map(toEp);
+export async function listHostedEpisodes(db: Db, showId: string, opts: { liveOnly?: boolean } = {}): Promise<HostedEpisode[]> {
+  const live = opts.liveOnly ? "AND status = 'published' AND published_at <= now()" : '';
+  return (await db.query<EpRow>(`SELECT ${EP_COLS} FROM hosted_episodes WHERE show_id = $1 AND deleted_at IS NULL ${live} ORDER BY published_at DESC`, [showId])).map(toEp);
+}
+
+/**
+ * M14 US4: an episode joins the app's episode table only once it is live (published and due),
+ * so a draft or a scheduled one never shows in lists, search or numbers early. Run whenever the
+ * feed or the Studio reads a show — there is no clock job, and none is needed.
+ */
+export async function promoteDue(db: Db, show: HostedShow): Promise<void> {
+  await db.query(
+    `INSERT INTO episodes (id, feed_url, guid, title, show_title, enclosure_url, image_url, duration_ms, published_at)
+     SELECT he.episode_id, $2, he.guid, he.title, $3, he.audio_url, coalesce(he.cover_url, $4), he.duration_ms, he.published_at
+       FROM hosted_episodes he
+      WHERE he.show_id = $1 AND he.deleted_at IS NULL AND he.status = 'published' AND he.published_at <= now()
+     ON CONFLICT (id) DO NOTHING`,
+    [show.id, show.feedUrl, show.title, show.coverUrl],
+  );
 }
 
 /** Every created show's audio, in bytes — what the ceiling is measured against. */
@@ -96,22 +116,38 @@ export async function storedBytes(db: Db): Promise<number> {
 }
 
 /** Publish: the episode joins the feed and the app's episode table (so Studio numbers and comments work at once). */
-export async function publishEpisode(db: Db, show: HostedShow, by: string, e: { title: string; description: string; audioUrl: string; audioBytes: number; audioType: string; durationMs: number | null }): Promise<HostedEpisode> {
-  return db.transaction(async (tx) => {
+export async function publishEpisode(db: Db, show: HostedShow, by: string, e: {
+  title: string; description: string; audioUrl: string; audioBytes: number; audioType: string; durationMs: number | null;
+  status?: 'draft' | 'published'; publishAt?: string | null; coverUrl?: string | null;
+}): Promise<HostedEpisode> {
+  const ep = await db.transaction(async (tx) => {
     const [{ guid }] = (await tx.query<{ guid: string }>('SELECT gen_random_uuid()::text AS guid')) as [{ guid: string }];
     const episodeId = fnv1a64(show.feedUrl + '\u0001' + guid);
     const [r] = await tx.query<EpRow>(
-      `INSERT INTO hosted_episodes (show_id, guid, episode_id, title, description, audio_url, audio_bytes, audio_type, duration_ms, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING ${EP_COLS}`,
-      [show.id, guid, episodeId, e.title, e.description, e.audioUrl, e.audioBytes, e.audioType, e.durationMs, by],
-    );
-    await tx.query(
-      `INSERT INTO episodes (id, feed_url, guid, title, show_title, enclosure_url, image_url, duration_ms, published_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) ON CONFLICT (id) DO NOTHING`,
-      [episodeId, show.feedUrl, guid, e.title, show.title, e.audioUrl, show.coverUrl, e.durationMs, r!.published_at],
+      `INSERT INTO hosted_episodes (show_id, guid, episode_id, title, description, audio_url, audio_bytes, audio_type, duration_ms, created_by, status, published_at, cover_url)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, coalesce($12::timestamptz, now()), $13) RETURNING ${EP_COLS}`,
+      [show.id, guid, episodeId, e.title, e.description, e.audioUrl, e.audioBytes, e.audioType, e.durationMs, by, e.status ?? 'published', e.publishAt ?? null, e.coverUrl ?? null],
     );
     return toEp(r!);
   });
+  await promoteDue(db, show);
+  return ep;
+}
+
+/** Edit a hosted episode: text, cover, state or time. A live episode's title follows into the app's row. */
+export async function updateEpisode(db: Db, show: HostedShow, id: string, e: { title?: string; description?: string; status?: 'draft' | 'published'; publishAt?: string | null; coverUrl?: string | null }): Promise<HostedEpisode> {
+  if (!/^[0-9a-f-]{36}$/i.test(id)) throw new ApiError('not_found', 'No such episode.');
+  const [r] = await db.query<EpRow>(
+    `UPDATE hosted_episodes SET title = coalesce($3, title), description = coalesce($4, description), status = coalesce($5, status),
+            published_at = CASE WHEN $6::boolean THEN coalesce($7::timestamptz, now()) ELSE published_at END,
+            cover_url = CASE WHEN $8::boolean THEN $9 ELSE cover_url END
+      WHERE id = $1 AND show_id = $2 AND deleted_at IS NULL RETURNING ${EP_COLS}`,
+    [id, show.id, e.title ?? null, e.description ?? null, e.status ?? null, 'publishAt' in e || e.status === 'published', e.publishAt ?? null, 'coverUrl' in e, e.coverUrl ?? null],
+  );
+  if (!r) throw new ApiError('not_found', 'No such episode.');
+  await db.query('UPDATE episodes SET title = $2, image_url = coalesce($3, image_url) WHERE id = $1', [r.episode_id, r.title, r.cover_url]);
+  await promoteDue(db, show);
+  return toEp(r);
 }
 
 /** Unpublish: out of the feed; the caller removes the audio from storage (guard G-D1). */
@@ -134,7 +170,7 @@ export function feedXml(show: HostedShow, eps: HostedEpisode[]): string {
       <guid isPermaLink="false">${x(e.guid)}</guid>
       <pubDate>${rfc822(e.publishedAt)}</pubDate>
       <enclosure url="${x(e.audioUrl)}" length="${e.audioBytes}" type="${x(e.audioType)}"/>
-${secs(e.durationMs) === null ? '' : `      <itunes:duration>${secs(e.durationMs)}</itunes:duration>\n`}    </item>`).join('\n');
+${e.coverUrl ? `      <itunes:image href="${x(e.coverUrl)}"/>\n` : ''}${secs(e.durationMs) === null ? '' : `      <itunes:duration>${secs(e.durationMs)}</itunes:duration>\n`}    </item>`).join('\n');
   return `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">
   <channel>

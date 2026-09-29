@@ -51,6 +51,8 @@ export async function release(db: Db, feedUrl: string): Promise<void> {
     await tx.query('DELETE FROM show_members WHERE feed_url = $1', [feedUrl]);
     await tx.query('DELETE FROM show_mutes WHERE feed_url = $1', [feedUrl]);
     await tx.query('DELETE FROM show_overrides WHERE feed_url = $1', [feedUrl]);
+    await tx.query('DELETE FROM show_hosts WHERE feed_url = $1', [feedUrl]);
+    await tx.query('UPDATE show_invites SET revoked_at = now() WHERE feed_url = $1 AND used_at IS NULL AND revoked_at IS NULL', [feedUrl]);
     await tx.query('UPDATE polls SET closed_at = now() WHERE feed_url = $1 AND closed_at IS NULL', [feedUrl]);
   });
 }

@@ -16,6 +16,8 @@ import type { EpisodeStorage } from '../src/storage/episodes-blob.ts';
 export const E2E_STORE = 'https://e2estore.public.blob.vercel-storage.com/';
 const DUMMY_RW = 'vercel_blob_rw_e2estore_notarealsecretnotarealsecret00';
 const removed: string[] = [];
+/** Files the test published (seen through `head` at publish), so the media library has something to list. */
+const seen = new Map<string, { url: string; pathname: string; size: number; contentType: string }>();
 
 const storage: EpisodeStorage = {
   ready: true,
@@ -24,9 +26,12 @@ const storage: EpisodeStorage = {
     if (!url.startsWith(E2E_STORE) || removed.includes(url)) return undefined;
     const pathname = url.slice(E2E_STORE.length);
     const contentType = pathname.endsWith('.mp3') ? 'audio/mpeg' : pathname.endsWith('.png') ? 'image/png' : pathname.endsWith('.jpg') ? 'image/jpeg' : 'application/octet-stream';
-    return { url, pathname, size: 48_000, contentType };
+    const f = { url, pathname, size: 48_000, contentType };
+    seen.set(url, f);
+    return f;
   },
-  remove: async (url) => { removed.push(url); },
+  remove: async (url) => { removed.push(url); seen.delete(url); },
+  list: async (prefix) => [...seen.values()].filter((f) => f.pathname.startsWith(prefix)),
 };
 
 const app = createApp({

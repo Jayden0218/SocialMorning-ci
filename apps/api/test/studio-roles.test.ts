@@ -21,6 +21,7 @@ const OTHER = 'https://feeds.example.com/theirs.xml';
 const OWNER_ONLY = new Set<string>([
   'GET /shows/:show/overrides', 'PUT /shows/:show/overrides', 'GET /shows/:show/team', 'POST /shows/:show/team',
   'DELETE /shows/:show/team/:listenerId', 'POST /shows/:show/release', 'GET /shows/:show/tips', 'PUT /shows/:show/details',
+  'DELETE /shows/:show/hosts/:listenerId', 'GET /shows/:show/host-invites', 'POST /shows/:show/host-invites', 'DELETE /shows/:show/host-invites/:id',
 ]);
 
 const showRoutes = () => {

@@ -4,7 +4,7 @@
  */
 import { Hono } from 'hono';
 import type { AuthEnv } from '../auth/session.ts';
-import { feedXml, hostedById, listHostedEpisodes } from '../db/repos/hosted.ts';
+import { feedXml, hostedById, listHostedEpisodes, promoteDue } from '../db/repos/hosted.ts';
 
 export const feeds = new Hono<AuthEnv>();
 
@@ -17,6 +17,8 @@ feeds.get('/:file', async (c) => {
   if (row.deleted) return c.text('This show was removed by its creator.', 410);
   const show = await hostedById(db, m[1]!);
   if (!show) return c.text('Not found', 404);
-  const body = feedXml(show, await listHostedEpisodes(db, show.id));
+  await promoteDue(db, show);
+  // Drafts and scheduled episodes stay out until their time (guard G-S1).
+  const body = feedXml(show, await listHostedEpisodes(db, show.id, { liveOnly: true }));
   return c.body(body, 200, { 'content-type': 'application/rss+xml; charset=utf-8', 'cache-control': 'public, max-age=60' });
 });

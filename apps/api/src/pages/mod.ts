@@ -5,6 +5,7 @@
  *   POST /mod/act     item (kind:id) + action + csrf → apply, redirect
  *   POST /mod/logout
  *   POST /mod/host-unhide  M11 (FR-016): undo a show host's hide from the Studio
+ *   POST /mod/takedown     M14 (FR-09): take a show created in the Studio down (feed 410, audio removed)
  * Anyone but the owner (G9) gets a 403 page on every route; no app links here.
  */
 import { Hono, type Context } from 'hono';
@@ -22,6 +23,7 @@ import { similarityAgeHours } from '../db/repos/similarity.ts';
 import { SIMILARITY_STALE_HOURS } from '../db/repos/similarity.ts';
 import { esc, mmss, page } from './clip.ts';
 import { recentHostHides, setHostHidden } from '../db/repos/studio-comments.ts';
+import { listHostedEpisodes } from '../db/repos/hosted.ts';
 
 const COOKIE = 'mod';
 const ACTIONS: readonly Action[] = ['dismiss', 'remove', 'hide_show', 'suspend', 'unsuspend', 'unhide_show'];
@@ -118,7 +120,12 @@ mod.get('/', async (c) => {
   if (!who) return c.html(page('Moderation — sign in', loginForm()));
   const db = c.get('db');
   await purgeClosedOlderThan(db, RETENTION_DAYS);
-  const [open, closed, actions, hides] = await Promise.all([openReports(db), closedReports(db, RETENTION_DAYS), recentActions(db, 50), recentHostHides(db, 50)]);
+  const [open, closed, actions, hides, created] = await Promise.all([openReports(db), closedReports(db, RETENTION_DAYS), recentActions(db, 50), recentHostHides(db, 50),
+    db.query<{ id: string; title: string; feed_url: string; owner: string | null; created_at: Date | string; updated_at: Date | string; eps: number; hidden: boolean }>(
+      `SELECT h.id, h.title, h.feed_url, l.display_name AS owner, h.created_at, h.updated_at,
+              (SELECT count(*)::int FROM hosted_episodes e WHERE e.show_id = h.id AND e.deleted_at IS NULL) AS eps,
+              EXISTS (SELECT 1 FROM hidden_feeds f WHERE f.feed_url = h.feed_url) AS hidden
+         FROM hosted_shows h LEFT JOIN listeners l ON l.id = h.owner_id WHERE h.deleted_at IS NULL ORDER BY h.updated_at DESC LIMIT 50`)]);
   const items = groupReports(open.map(toRow));
   const csrf = csrfFor(who.token);
   return c.html(page('Moderation', `
@@ -127,6 +134,10 @@ mod.get('/', async (c) => {
 ${items.length === 0 ? '<p class="muted">Nothing to review.</p>' : items.map((i) => renderItem(i, csrf)).join('')}
 <h2>Closed in the last ${RETENTION_DAYS} days (${closed.length})</h2>
 ${closed.length === 0 ? '<p class="muted">None.</p>' : `<ul>${closed.map(renderClosed).join('')}</ul>`}
+<h2>Shows created in the Studio (${created.length})</h2>
+${created.length === 0 ? '<p class="muted">None.</p>' : `<ul>${created.map((s) => `<li><b>${esc(s.title)}</b> · by ${esc(s.owner ?? 'a deleted account')} · ${s.eps} episode${s.eps === 1 ? '' : 's'} · created ${esc(new Date(s.created_at).toISOString().slice(0, 10))}, updated ${esc(new Date(s.updated_at).toISOString().slice(0, 16).replace('T', ' '))}${s.hidden ? ' · <i>hidden from discovery</i>' : ''} · <a href="${esc(s.feed_url)}">feed</a>
+<form method="post" action="/mod/act" style="display:inline"><input type="hidden" name="csrf" value="${csrf}"><input type="hidden" name="item" value="show:${esc(s.feed_url)}"><button name="action" value="${s.hidden ? 'unhide_show' : 'hide_show'}">${s.hidden ? 'Un-hide' : 'Hide from discovery'}</button></form>
+<form method="post" action="/mod/takedown" style="display:inline"><input type="hidden" name="csrf" value="${csrf}"><input type="hidden" name="id" value="${esc(s.id)}"><button>Take down</button></form></li>`).join('')}</ul>`}
 <h2>Hidden by show hosts (${hides.length})</h2>
 ${hides.length === 0 ? '<p class="muted">None.</p>' : `<ul>${hides.map((h) => `<li>${esc(h.at)} · “${esc(h.title)}” · hidden by ${esc(h.by ?? 'a deleted account')}<blockquote>${h.body ? esc(h.body) : '<i>(no text)</i>'}</blockquote><form method="post" action="/mod/host-unhide"><input type="hidden" name="csrf" value="${csrf}"><input type="hidden" name="id" value="${esc(h.id)}"><input type="hidden" name="feed" value="${esc(h.feedUrl)}"><button>Un-hide</button></form></li>`).join('')}</ul>`}
 <h2>Recent actions</h2>
@@ -171,6 +182,25 @@ mod.post('/host-unhide', async (c) => {
   const form = await c.req.parseBody();
   if (String(form['csrf'] ?? '') !== csrfFor(who.token)) return c.html(page('Moderation — refused', '<h1>Stale form</h1><p><a href="/mod">Back</a></p>'), 403);
   await setHostHidden(c.get('db'), String(form['feed'] ?? ''), String(form['id'] ?? ''), who.owner.id, false).catch(() => undefined);
+  return c.redirect('/mod', 303);
+});
+
+mod.post('/takedown', async (c) => {
+  const who = await ownerFromCookie(c);
+  if (!who) return c.html(page('Moderation — refused', '<h1>Not the owner</h1>'), 403);
+  const form = await c.req.parseBody();
+  if (String(form['csrf'] ?? '') !== csrfFor(who.token)) return c.html(page('Moderation — refused', '<h1>Stale form</h1><p><a href="/mod">Back</a></p>'), 403);
+  const id = String(form['id'] ?? '');
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return c.redirect('/mod', 303);
+  const db = c.get('db');
+  const [s] = await db.query<{ feed_url: string }>('UPDATE hosted_shows SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL RETURNING feed_url', [id]);
+  if (s) {
+    const eps = await listHostedEpisodes(db, id);
+    await db.query('UPDATE hosted_episodes SET deleted_at = now() WHERE show_id = $1 AND deleted_at IS NULL', [id]);
+    await db.query("UPDATE creator_claims SET status = 'revoked' WHERE feed_url = $1 AND status = 'proven'", [s.feed_url]);
+    await db.query("INSERT INTO moderation_actions (actor_id, action, target_kind, target_id) VALUES ($1, 'hide_show', 'show', $2)", [who.owner.id, s.feed_url]);
+    for (const e of eps) await c.get('storage').remove(e.audioUrl).catch(() => undefined);
+  }
   return c.redirect('/mod', 303);
 });
 
