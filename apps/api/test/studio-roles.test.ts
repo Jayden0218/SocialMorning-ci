@@ -5,7 +5,8 @@
  *
  * The break that turns it red: in `src/routes/studio.ts`, change the show-scope middleware's
  * path from '/shows/:show/*' to '/shows/:show/overview' (every other route loses the wall).
- * G-A2 (owner-only) joins this matrix with the first owner-only route (US6).
+ * G-A2 (owner-only routes refuse operators): make `ownerOnly` in `src/routes/studio.ts` call `next()`
+ * for every role — the operator rows for OWNER_ONLY then go through.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -17,7 +18,10 @@ const FEED = 'https://feeds.example.com/mine.xml';
 const OTHER = 'https://feeds.example.com/theirs.xml';
 
 /** Owner-only routes, as `METHOD path` — filled as US6/US7 add them. */
-const OWNER_ONLY = new Set<string>([]);
+const OWNER_ONLY = new Set<string>([
+  'GET /shows/:show/overrides', 'PUT /shows/:show/overrides', 'GET /shows/:show/team', 'POST /shows/:show/team',
+  'DELETE /shows/:show/team/:listenerId', 'POST /shows/:show/release', 'GET /shows/:show/tips',
+]);
 
 const showRoutes = () => {
   const seen = new Set<string>();

@@ -182,3 +182,8 @@ button { font: inherit; }
 .dialog { background: var(--background); color: var(--text); border-radius: 16px; padding: 24px; max-width: 420px; width: 100%; }
 .dialog h2 { margin: 0 0 8px; font-size: 18px; }
 .dialog-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px; }
+.textarea {
+  width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--separator);
+  background: var(--background); color: var(--text); font: inherit; resize: vertical;
+}
+.field textarea, .field select { font: inherit; }

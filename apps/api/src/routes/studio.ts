@@ -27,6 +27,9 @@ import { createComment, toPublic } from '../db/repos/comments.ts';
 import { listMutes, mute, subscriberList, subscriberStats, unmute } from '../db/repos/studio-subscribers.ts';
 import { edit as editAnnouncement, listAnnouncements, publish, remove as removeAnnouncement } from '../db/repos/announcements.ts';
 import { closePoll, createPoll, listPolls } from '../db/repos/polls.ts';
+import { getOverrides, putOverrides } from '../db/repos/show-overrides.ts';
+import { addOperator, release, removeOperator, team } from '../db/repos/show-team.ts';
+import { tipsFor } from '../db/repos/studio-tips.ts';
 import { isBlockedBy } from '../db/repos/blocks.ts';
 
 export type { StudioEnv };
@@ -244,3 +247,47 @@ studio.post('/shows/:show/polls/:id/close', async (c) => {
   await closePoll(c.get('db'), c.get('show').feedUrl, c.req.param('id'));
   return c.body(null, 204);
 });
+
+// ---- US6: Settings, team, release — owner only (G-A2) ----
+
+const https = z.string().trim().max(2048).regex(/^https:\/\/\S+$/, 'must be an https link');
+const overridesBody = z.object({
+  title: z.string().trim().min(1).max(100).nullable().optional(),
+  description: z.string().trim().max(4000).nullable().optional(),
+  coverUrl: https.nullable().optional(),
+  themeColour: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional(),
+  milestoneMessage: z.string().trim().max(120).nullable().optional(),
+  hosts: z.array(z.string().trim().min(1).max(40)).max(5).nullable().optional(),
+  links: z.array(z.object({ label: z.string().trim().min(1).max(20), url: https })).max(5).nullable().optional(),
+}).strict();
+
+studio.get('/shows/:show/overrides', ownerOnly, async (c) => c.json({ overrides: await getOverrides(c.get('db'), c.get('show').feedUrl) }));
+
+studio.put('/shows/:show/overrides', ownerOnly, json(overridesBody), async (c) =>
+  c.json({ overrides: await putOverrides(c.get('db'), c.get('show').feedUrl, c.get('listener')!.id, c.req.valid('json') as never) }));
+
+studio.get('/shows/:show/team', ownerOnly, async (c) => c.json(await team(c.get('db'), c.get('show').feedUrl)));
+
+studio.post('/shows/:show/team', ownerOnly, json(z.object({ email: z.string().trim().toLowerCase().email().max(254) })), async (c) => {
+  await addOperator(c.get('db'), c.get('show').feedUrl, c.req.valid('json').email, c.get('listener')!.id);
+  return c.json(await team(c.get('db'), c.get('show').feedUrl), 201);
+});
+
+studio.delete('/shows/:show/team/:listenerId', ownerOnly, async (c) => {
+  await removeOperator(c.get('db'), c.get('show').feedUrl, c.req.param('listenerId'));
+  return c.body(null, 204);
+});
+
+/** The owner types the show's title to confirm, so a stray click cannot give the show away. */
+studio.post('/shows/:show/release', ownerOnly, json(z.object({ confirm: z.string() })), async (c) => {
+  const show = c.get('show');
+  if (c.req.valid('json').confirm.trim() !== (show.title ?? show.feedUrl).trim()) {
+    throw new ApiError('validation', 'Type the show\'s name exactly to confirm.', { fields: ['confirm'] });
+  }
+  await release(c.get('db'), show.feedUrl);
+  return c.body(null, 204);
+});
+
+// ---- US7: Tips — owner only ----
+
+studio.get('/shows/:show/tips', ownerOnly, async (c) => c.json(await tipsFor(c.get('db'), c.get('show').feedUrl)));

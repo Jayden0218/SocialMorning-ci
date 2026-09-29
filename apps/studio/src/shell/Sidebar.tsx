@@ -13,10 +13,10 @@ export const SECTIONS = [
   { path: 'episodes', label: 'Episodes', icon: IconEpisodes, built: true },
   { path: 'comments', label: 'Comments', icon: IconComments, built: true },
   { path: 'subscribers', label: 'Subscribers', icon: IconPeople, built: true },
-  { path: 'announcements', label: 'Announcements', icon: IconMegaphone, built: false },
-  { path: 'polls', label: 'Polls', icon: IconPoll, built: false },
-  { path: 'tips', label: 'Tips', icon: IconCoin, built: false, ownerOnly: true },
-  { path: 'settings', label: 'Settings', icon: IconSettings, built: false, ownerOnly: true },
+  { path: 'announcements', label: 'Announcements', icon: IconMegaphone, built: true },
+  { path: 'polls', label: 'Polls', icon: IconPoll, built: true },
+  { path: 'tips', label: 'Tips', icon: IconCoin, built: true, ownerOnly: true },
+  { path: 'settings', label: 'Settings', icon: IconSettings, built: true, ownerOnly: true },
 ] as const;
 
 export function Sidebar({ show, open, onNavigate }: { show: Show; open: boolean; onNavigate: () => void }) {
