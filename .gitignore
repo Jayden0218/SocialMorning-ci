@@ -55,3 +55,4 @@ apps/api/api/index.js.map
 
 # The public CI mirror checkout (scripts/push-ci.sh). Never commit it here.
 .ci-mirror/
+/.claude/worktrees/
