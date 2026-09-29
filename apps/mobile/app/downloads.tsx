@@ -45,7 +45,7 @@ export default function DownloadsScreen(): React.ReactElement {
     <FlatList
       data={rows}
       keyExtractor={(r) => r.episodeId}
-      contentContainerClassName="p-3 gap-1.5 flex-grow"
+      contentContainerClassName="px-screen-x py-row gap-1.5 flex-grow"
       className="flex-1 bg-background"
       ListHeaderComponent={
         <>

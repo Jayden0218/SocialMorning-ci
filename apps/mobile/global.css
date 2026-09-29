@@ -18,6 +18,8 @@
       --scrim: 0 0 0 / 0.40;
       --facebook: 24 119 242;
       --clear: 255 255 255 / 0;
+      --accent-tint: 138 90 0 / 0.14;
+      --scrim-strong: 0 0 0 / 0.65;
     }
     @variant dark {
       --background: 17 17 20;
@@ -33,6 +35,8 @@
       --scrim: 0 0 0 / 0.60;
       --facebook: 24 119 242;
       --clear: 17 17 20 / 0;
+      --accent-tint: 252 197 34 / 0.18;
+      --scrim-strong: 0 0 0 / 0.70;
     }
   }
 }
@@ -52,6 +56,8 @@
   --color-scrim: rgb(var(--scrim));
   --color-facebook: rgb(var(--facebook));
   --color-clear: rgb(var(--clear));
+  --color-accentTint: rgb(var(--accent-tint));
+  --color-scrimStrong: rgb(var(--scrim-strong));
   --text-*: initial;
   --text-xs: 12px;
   --text-sm: 16px;
@@ -65,9 +71,11 @@
   --text-4xl: 24px;
   --text-5xl: 24px;
   --text-6xl: 24px;
-  --spacing-screen-x: 24px;
+  --spacing-screen-x: 20px;
   --spacing-row: 12px;
+  --spacing-gap: 8px;
   --spacing-section: 16px;
+  --spacing-row-h: 50px;
   --radius-row: 8px;
   --radius-artwork: 12px;
   --radius-pill: 999px;

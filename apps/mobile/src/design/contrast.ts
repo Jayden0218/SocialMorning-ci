@@ -22,6 +22,16 @@ export function contrastRatio(a: string, b: string): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
+/**
+ * A see-through colour as it looks drawn over a solid one — so a tint or veil is measured
+ * against the page it actually sits on (the ratio function composites over black).
+ */
+export function over(value: string, base: string): string {
+  const top = toRgb(value, base);
+  const hex = (n: number) => Math.round(n).toString(16).padStart(2, '0');
+  return `#${hex(top.r)}${hex(top.g)}${hex(top.b)}`;
+}
+
 export const BODY_MIN = 4.5;
 export const LARGE_MIN = 3;
 
@@ -38,6 +48,9 @@ export const PAIRS: Pair[] = [
   { fg: colour.accent, bg: colour.background, min: LARGE_MIN, role: 'the listener’s own marks' },
   { fg: colour.accent, bg: colour.surface, min: BODY_MIN, role: 'links and actions on a card' },
   { fg: colour.bar, bg: colour.surface, min: LARGE_MIN, role: 'heat bars on a card' },
+  // M12: a list row's play glyph on its tinted disc; the player's words on the veil over a white cover.
+  { fg: colour.accent, bg: over(colour.accentTint, colour.background), min: LARGE_MIN, role: 'play glyph on its tint' },
+  { fg: colourDark.text, bg: over(colour.scrimStrong, '#ffffff'), min: BODY_MIN, role: 'player text on the veil (white cover)' },
 ];
 
 /** M10b US4: the same pairs in the dark palette — every one must clear its floor too. */
@@ -50,6 +63,8 @@ export const PAIRS_DARK: Pair[] = [
   { fg: colourDark.bar, bg: colourDark.background, min: LARGE_MIN, role: 'heat bars (dark)' },
   { fg: colourDark.accent, bg: colourDark.surface, min: BODY_MIN, role: 'links and actions on a card (dark)' },
   { fg: colourDark.bar, bg: colourDark.surface, min: LARGE_MIN, role: 'heat bars on a card (dark)' },
+  { fg: colourDark.accent, bg: over(colourDark.accentTint, colourDark.background), min: LARGE_MIN, role: 'play glyph on its tint (dark)' },
+  { fg: colourDark.text, bg: over(colourDark.scrimStrong, '#ffffff'), min: BODY_MIN, role: 'player text on the veil, white cover (dark)' },
 ];
 
 /**

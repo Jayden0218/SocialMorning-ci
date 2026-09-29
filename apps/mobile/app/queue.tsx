@@ -30,7 +30,7 @@ export default function QueueScreen(): React.ReactElement {
     <FlatList
       data={ids}
       keyExtractor={(id) => id}
-      contentContainerClassName="p-3 gap-1"
+      contentContainerClassName="px-screen-x py-row gap-1"
       ListHeaderComponent={<Text className="text-muted text-[13px]">{ids.length} of 300 · plays in order when the current episode ends</Text>}
       ListEmptyComponent={<EmptyState surface="queue" />}
       renderItem={({ item, index }) => {

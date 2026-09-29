@@ -49,6 +49,13 @@ export const colour = {
   facebook: '#1877f2',
   /** Decorative: the page colour at 0 % — where a fade into the page starts. */
   clear: 'rgba(255,255,255,0)',
+  /**
+   * M12 FR-053: the disc behind a list row's play glyph — the accent at 14 %, so rows read
+   * lighter than the solid yellow circles did. The accent glyph on it is checked in PAIRS.
+   */
+  accentTint: 'rgba(138,90,0,0.14)',
+  /** M12 FR-040: the dark veil over the player's blurred artwork; light text sits on it. */
+  scrimStrong: 'rgba(0,0,0,0.65)',
 } as const;
 
 /**
@@ -76,13 +83,22 @@ export const colourDark = {
   facebook: '#1877f2',
   /** The page colour at 0 % — where a fade into the dark page starts. */
   clear: 'rgba(17,17,20,0)',
+  accentTint: 'rgba(252,197,34,0.18)',
+  scrimStrong: 'rgba(0,0,0,0.70)',
 } as const;
 
 export type Palette = { readonly [K in keyof typeof colour]: string };
 
 export const fontSize = { xs: 12, sm: 16, base: 20, lg: 24 } as const;
 
-export const spacing = { screenX: 24, row: 12, gap: 8, section: 16 } as const;
+/**
+ * M12 (FR-051, FR-052): one 20 pt side margin on every page (was 24, and several pages used
+ * 12 of their own); sections 16 apart.
+ */
+export const spacing = { screenX: 20, row: 12, gap: 8, section: 16 } as const;
+
+/** M12 FR-050: a list row is 50 pt tall at the default text size, and grows with it. */
+export const size = { row: 50 } as const;
 
 export const radius = { row: 8, artwork: 12, pill: 999 } as const;
 

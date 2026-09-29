@@ -148,7 +148,7 @@ export function CategoryStrip(props: { onGenre: (id: number) => void; onAll: () 
 export function ShowTiles(props: { title: string; shows: { feedUrl: string; title: string; imageUrl?: string; line?: string }[]; onShow: (feedUrl: string) => void; badge?: number; boxed?: boolean }): React.ReactElement | null {
   if (props.shows.length === 0) return null;
   return (
-    <Box className={props.boxed ? 'mx-row mt-section border border-separator rounded-artwork pb-row' : ''}>
+    <Box className={props.boxed ? 'mx-screen-x mt-section border border-separator rounded-artwork pb-row' : ''}>
       <SectionTitle title={props.title} {...(props.badge !== undefined ? { badge: props.badge } : {})} />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="px-screen-x gap-row">
         {props.shows.map((s) => (

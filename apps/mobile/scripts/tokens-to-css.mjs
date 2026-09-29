@@ -51,7 +51,7 @@ export function channels(value) {
  * two of them (accent, muted) already mean something else in this app (data-model §1).
  */
 export function renderBlock(tokens = loadTokens()) {
-  const { colour, colourDark, fontSize, spacing, radius } = tokens;
+  const { colour, colourDark, fontSize, spacing, radius, size } = tokens;
   const lines = [BEGIN];
   // M10b dark mode (with 4f, 2026-09-27): one set of variables per UniWind theme. UniWind
   // defines the `light` / `dark` variants and follows the system unless `Uniwind.setTheme`
@@ -74,7 +74,9 @@ export function renderBlock(tokens = loadTokens()) {
   // names land on the nearest one instead of silently falling back to the default size.
   const alias = { '2xs': 'xs', md: 'base', xl: 'lg', '2xl': 'lg', '3xl': 'lg', '4xl': 'lg', '5xl': 'lg', '6xl': 'lg' };
   for (const [k, to] of Object.entries(alias)) lines.push(`  --text-${k}: ${fontSize[to]}px;`);
-  lines.push(`  --spacing-screen-x: ${spacing.screenX}px;`, `  --spacing-row: ${spacing.row}px;`, `  --spacing-section: ${spacing.section}px;`);
+  lines.push(`  --spacing-screen-x: ${spacing.screenX}px;`, `  --spacing-row: ${spacing.row}px;`, `  --spacing-gap: ${spacing.gap}px;`, `  --spacing-section: ${spacing.section}px;`);
+  // M12 FR-050: `min-h-row-h` — a list row's height (not `row`, which is the 12 pt padding).
+  if (size) lines.push(`  --spacing-row-h: ${size.row}px;`);
   lines.push(`  --radius-row: ${radius.row}px;`, `  --radius-artwork: ${radius.artwork}px;`, `  --radius-pill: ${radius.pill}px;`);
   lines.push('}');
   // `StyleSheet.hairlineWidth` as utilities (v3 had `borderWidth.hairline` in the config).
