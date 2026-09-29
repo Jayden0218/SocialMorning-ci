@@ -89,8 +89,9 @@ export default function AccountSecurityScreen(): React.ReactElement {
       </>)}
       {!more ? null : !listener ? <Text className="text-muted text-sm">Sign in to manage your account.</Text> : null}
       {!more ? null : !confirming ? (
-        <Pressable onPress={() => setConfirming(true)} accessibilityRole="button">
-          <Text className={link}>Delete my account…</Text>
+        <Pressable onPress={() => setConfirming(true)} accessibilityRole="button" accessibilityLabel="Delete my account" className="flex-row items-center gap-section min-h-14">
+          <Icon name="trash-outline" size={24} color={c.accent} />
+          <Text className="text-accent text-sm flex-1">Delete my account…</Text>
         </Pressable>
       ) : (
         <Box className="gap-2 mt-2">

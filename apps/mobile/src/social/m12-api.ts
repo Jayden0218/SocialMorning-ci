@@ -16,7 +16,7 @@ export type PastPicksDay = { date: string; picks: PastPick[] };
 export type ChartItem = { kind: 'talkedAbout'; key: string; rank: number; score: number; reason: string; episode: EpisodeCard };
 export type IssueSummary = { id: string; date: string; title: string };
 export type Issue = IssueSummary & { intro: string; items: { order: number; episode: EpisodeCard; note: string }[] };
-export type NotifyShow = { feedUrl: string; title: string; enabled: boolean };
+export type NotifyShow = { feedUrl: string; title: string | null; enabled: boolean };
 export type Purchase = { id: string; kind: string; productId: string; amount?: string; createdAt: string; feedUrl?: string };
 export type VoicePost = { id: string; author: { id: string; name: string; initials: string }; url: string; durationMs: number; createdAt: string; expiresAt: string };
 

@@ -3,7 +3,7 @@
  * Comments you starred with ☆ — each newest first, both searchable, both following the
  * account (src/sync/library.ts).
  */
-import { Link, router, useFocusEffect } from 'expo-router';
+import { Link, router, Stack, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { FlatList } from '../src/ui/lib/flat-list';
 import { Pressable } from '../src/ui/lib/pressable';
@@ -33,15 +33,20 @@ export default function FavouritesScreen(): React.ReactElement {
   const starred = comments.filter((c) => matchesAll(term, [c.body, c.author, stores.feeds.getEpisode(c.episodeId)?.title]));
   const any = tab === 'episodes' ? rows.length > 0 : comments.length > 0;
 
+  // M12 FR-097: the two tabs are the top bar's title, not a row under it.
+  const tabs = (
+    <Box className="flex-row gap-section" accessibilityRole="tablist">
+      {(['episodes', 'comments'] as const).map((t) => (
+        <Pressable key={t} onPress={() => setTab(t)} accessibilityRole="tab" accessibilityState={{ selected: tab === t }} accessibilityLabel={t === 'episodes' ? 'Episodes' : 'Comments'} className="items-center justify-center" style={TAP}>
+          <Text className={tab === t ? 'text-text text-base font-bold' : 'text-muted text-base'}>{t === 'episodes' ? 'Episodes' : 'Comments'}</Text>
+          <Box className={`h-1 w-5 mt-1 rounded-pill ${tab === t ? 'bg-primary' : 'bg-transparent'}`} />
+        </Pressable>
+      ))}
+    </Box>
+  );
   const header = (
     <Box>
-      <Box className="flex-row border-b-hairline border-separator mb-row">
-        {(['episodes', 'comments'] as const).map((t) => (
-          <Pressable key={t} onPress={() => setTab(t)} accessibilityRole="tab" accessibilityState={{ selected: tab === t }} accessibilityLabel={t === 'episodes' ? 'Episodes' : 'Comments'} className="flex-1 items-center justify-center" style={TAP}>
-            <Text className={tab === t ? 'text-accent text-sm font-bold' : 'text-muted text-sm'}>{t === 'episodes' ? 'Episodes' : 'Comments'}</Text>
-          </Pressable>
-        ))}
-      </Box>
+      <Stack.Screen options={{ headerTitle: () => tabs }} />
       {any ? <FilterBar term={term} onTerm={setTerm} placeholder="Search your favourites" /> : null}
     </Box>
   );

@@ -3,6 +3,8 @@
  * permission — only the system can change it, so the switch opens the system settings.
  * "New episodes" and "Popular content" are the server's switches too: each change is sent
  * (`PUT /v1/me/push-prefs`), so turning one off stops it on every device.
+ * M12 FR-093: under them, a switch per subscribed show (`NotifyShows`), off while
+ * "New episodes" itself is off.
  */
 import { Stack, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
@@ -15,6 +17,8 @@ import type { PermissionState } from '../../src/notify/permission';
 import { getPref, setPref } from '../../src/settings/prefs';
 import { useStores } from '../../src/ui/providers';
 import { SwitchRow } from '../../src/ui/settings/rows';
+import { NotifyShows } from '../../src/ui/settings/NotifyShows';
+import { useM12Api } from '../../src/social/m12-api';
 
 export default function PushSettings(): React.ReactElement {
   const stores = useStores();
@@ -27,6 +31,8 @@ export default function PushSettings(): React.ReactElement {
     setPref(stores.settings, 'popularPush', next.popular);
     if (listener) void api.pushPrefs(next).catch(() => undefined);
   };
+  const m12 = useM12Api();
+  const loadShows = useCallback(() => m12.notifyShows(), [m12]);
   useFocusEffect(useCallback(() => {
     let live = true;
     expoNotify.status().then((s) => { if (live) setStatus(s); }, () => { if (live) setStatus('unavailable'); });
@@ -45,6 +51,7 @@ export default function PushSettings(): React.ReactElement {
       />
       <SwitchRow icon="albums-outline" label="New episodes" line="When a show you follow publishes" value={episodes} onChange={(v) => { setEpisodes(v); save({ newEpisodes: v, popular }); }} />
       <SwitchRow icon="notifications-outline" label="Popular content" line="The day's pick, at most once a day" value={popular} onChange={(v) => { setPopular(v); save({ newEpisodes: episodes, popular: v }); }} />
+      {listener ? <NotifyShows load={loadShows} save={m12.setNotifyShow} titleOf={(f) => stores.feeds.getShow(f)?.title} disabled={!episodes} /> : null}
       {!listener ? <Text className="text-muted text-xs mt-row">Sign in to receive notifications.</Text> : null}
     </ScrollView>
   );

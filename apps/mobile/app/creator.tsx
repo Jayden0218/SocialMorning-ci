@@ -5,6 +5,7 @@
  * re-reads the feed from the publisher and looks for it. Once proven, the page shows the
  * show's numbers and their comments carry a Host mark.
  */
+import { Artwork } from '../src/ui/Artwork';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Share } from 'react-native';
@@ -75,12 +76,16 @@ export default function CreatorScreen(): React.ReactElement {
     .filter((s) => !(claims ?? []).some((cl) => cl.feedUrl === s.feedUrl)).slice(0, 5);
 
   return (
-    <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x py-row pb-24 gap-section" keyboardShouldPersistTaps="handled">
+    <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pt-section pb-24 gap-section" keyboardShouldPersistTaps="handled">
       <Text className="text-muted text-sm">Claim the show you publish. We never host your audio — you keep your own feed. Once you prove it is yours, you see your show's numbers and your comments carry a Host mark.</Text>
 
       {(claims ?? []).map((cl) => (
         <Box key={cl.id} className="bg-surface rounded-artwork p-section gap-row">
-          <Text className="text-text text-sm font-semibold" numberOfLines={2}>{stores.feeds.getShow(cl.feedUrl)?.title ?? cl.feedUrl}</Text>
+          {/* M12 FR-098: the claimed show as a card — its artwork beside its name. */}
+          <Box className="flex-row items-center gap-row">
+            <Artwork url={stores.feeds.getShow(cl.feedUrl)?.imageUrl} size={56} rounded="row" name={stores.feeds.getShow(cl.feedUrl)?.title} />
+            <Text className="text-text text-sm font-semibold flex-1" numberOfLines={2}>{stores.feeds.getShow(cl.feedUrl)?.title ?? cl.feedUrl}</Text>
+          </Box>
           {cl.status === 'proven' ? (
             <ProvenStats stats={stats[cl.feedUrl]} />
           ) : (
