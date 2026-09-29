@@ -52,7 +52,7 @@ function RootStack(): React.ReactElement {
   const stores = useStores();
   const c = useColours(stores.settings);
   return (
-      <SafeAreaView className="flex-1 bg-background">
+      <SafeAreaView className="flex-1 bg-background" edges={['bottom']}>
         {/* M10b: the clock and battery follow the page (light words on the dark palette). */}
         <StatusBar style={c.background === colourDark.background ? 'light' : 'dark'} />
         <CarLibrarySync />

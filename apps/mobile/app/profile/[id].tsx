@@ -33,6 +33,7 @@ import { ReportSheet, type ReportTarget } from '../../src/ui/ReportSheet';
 import { Pressable } from '../../src/ui/lib/pressable';
 import { ApiError, type FeedItem as Item, type Profile } from '../../src/social/api';
 import { EmptyState } from '../../src/ui/EmptyState';
+import { plural } from '@socialmorning/social-core';
 
 export default function ProfileScreen(): React.ReactElement {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -100,7 +101,7 @@ export default function ProfileScreen(): React.ReactElement {
           <Pressable accessibilityRole="link" accessibilityLabel={`${profile.following} following`}><Text className="text-text text-lg font-bold">{profile.following}</Text><Text className="text-muted text-xs">Following</Text></Pressable>
         </Link>
         <Link href={{ pathname: '/profile/[id]/followers', params: { id: profile.id } }} asChild>
-          <Pressable accessibilityRole="link" accessibilityLabel={`${profile.followers} follower${profile.followers === 1 ? '' : 's'}`}><Text className="text-text text-lg font-bold">{profile.followers}</Text><Text className="text-muted text-xs">Followers</Text></Pressable>
+          <Pressable accessibilityRole="link" accessibilityLabel={`${plural(profile.followers, 'follower')}`}><Text className="text-text text-lg font-bold">{profile.followers}</Text><Text className="text-muted text-xs">Followers</Text></Pressable>
         </Link>
         {own ? (
           <Link href="/subscriptions" asChild>
@@ -137,9 +138,9 @@ export default function ProfileScreen(): React.ReactElement {
         <>
           <Text className="text-text text-base font-bold mt-section mb-row" accessibilityRole="header">My stickers</Text>
           <Link href="/stickers" asChild>
-            <Pressable accessibilityRole="button" accessibilityLabel={`${earned.filter((x) => x.earned).length} stickers`} className="bg-surface rounded-artwork p-section flex-row items-center justify-between">
+            <Pressable accessibilityRole="button" accessibilityLabel={plural(earned.filter((x) => x.earned).length, 'sticker')} className="bg-surface rounded-artwork p-section flex-row items-center justify-between">
               <Box>
-                <Text className="text-text text-sm font-bold">{earned.filter((x) => x.earned).length} stickers ›</Text>
+                <Text className="text-text text-sm font-bold">{plural(earned.filter((x) => x.earned).length, 'sticker')} ›</Text>
                 <Text className="text-muted text-xs">{latest ? `Latest: ${latest.title}` : 'Listen for an hour to earn the first'}</Text>
               </Box>
               <Box className="flex-row gap-1">{earned.filter((x) => x.earned).slice(-3).map((x) => <Icon key={x.id} name={x.icon} size={22} color={c.text} />)}</Box>

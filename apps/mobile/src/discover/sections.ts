@@ -7,6 +7,7 @@
  * skips it instead of drawing an empty frame. Nothing is invented to fill a gap.
  */
 import type { Collection, Discover, DiscoverItem, EpisodeCard, FollowedShow, ForYou, SaidItem, ShowCard } from '../social/api';
+import { plural } from '@socialmorning/social-core';
 
 export type ChartTab = { key: 'top' | 'talked' | 'new'; label: string; rows: EpisodeCard[] };
 
@@ -63,7 +64,7 @@ export function statsLine(stats: DiscoverItem['stats']): string {
   if (!stats) return '';
   const parts: string[] = [];
   if (stats.listeners > 0) parts.push(`${stats.listeners} listened`);
-  if (stats.comments > 0) parts.push(`${stats.comments} comment${stats.comments === 1 ? '' : 's'}`);
+  if (stats.comments > 0) parts.push(`${plural(stats.comments, 'comment')}`);
   return parts.join(' · ');
 }
 

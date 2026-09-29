@@ -7,6 +7,7 @@ import { getPref, setPref } from '../../src/settings/prefs';
 import { mb } from '../../src/ui/DownloadButton';
 import { useDownloads, useStores, useToast } from '../../src/ui/providers';
 import { ActionRow, Divider, LinkRow, SwitchRow } from '../../src/ui/settings/rows';
+import { plural } from '@socialmorning/social-core';
 
 export default function DownloadSettings(): React.ReactElement {
   const stores = useStores();
@@ -20,7 +21,7 @@ export default function DownloadSettings(): React.ReactElement {
   const clearAll = () => {
     const done = stores.downloads.list().filter((d) => d.state === 'complete');
     if (done.length === 0) { toast('There are no downloaded episodes.'); return; }
-    Alert.alert('Clear downloaded episodes?', `${done.length} episode${done.length === 1 ? '' : 's'}, ${mb(used)}. Your places in them are kept.`, [
+    Alert.alert('Clear downloaded episodes?', `${plural(done.length, 'episode')}, ${mb(used)}. Your places in them are kept.`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Clear', style: 'destructive', onPress: () => { void Promise.all(done.map((d) => downloads.remove(d.episodeId))).then(() => toast('Downloads cleared.')); } },
     ]);

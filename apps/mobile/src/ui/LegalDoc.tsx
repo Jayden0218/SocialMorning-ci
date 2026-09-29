@@ -7,6 +7,8 @@
 import { useMemo } from 'react';
 import { Pressable } from './lib/pressable';
 import { SafeAreaView } from './lib/safe-area-view';
+/** Drawn over the stack, outside the root layout's bottom inset — so this pads all four edges (M12). */
+const ALL_EDGES = ['top', 'bottom', 'left', 'right'] as const;
 import { ScrollView } from './lib/scroll-view';
 import { Text } from './lib/text';
 import { Box } from './lib/box';
@@ -67,7 +69,7 @@ export function LegalDoc(props: { text: string; onClose: () => void }): React.Re
   // The title is drawn once, above the body; the body starts after it.
   const body = useMemo(() => parseLegal(props.text).filter((b) => b.kind !== 'title'), [props.text]);
   return (
-    <SafeAreaView className="absolute inset-0 bg-background">
+    <SafeAreaView edges={ALL_EDGES} className="absolute inset-0 bg-background">
       {/* Owner, 2026-09-27: the bar holds only the chevron; the title sits below it. */}
       <Box className="flex-row items-center pt-section px-2">
         <Pressable onPress={props.onClose} accessibilityRole="button" accessibilityLabel="Back" className="justify-center items-center" style={TAP}>

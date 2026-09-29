@@ -36,6 +36,7 @@ import { mmss, shortDate } from '../../src/ui/format';
 import { useDownloads, useStores, useSubscriptionSync, useToast } from '../../src/ui/providers';
 import { useSocial } from '../../src/social/context';
 import { BOTTOM_INSET } from '../../src/ui/Screen';
+import { plural } from '@socialmorning/social-core';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
 
@@ -110,7 +111,7 @@ export default function UpdatesScreen(): React.ReactElement {
             </Box>
             <Box className="px-screen-x pt-row">
               <ContinueListening />
-              {stale > 0 ? <Text className="text-muted text-xs mt-row">{stale} show{stale === 1 ? '' : 's'} could not refresh — showing the saved copy.</Text> : null}
+              {stale > 0 ? <Text className="text-muted text-xs mt-row">{plural(stale, 'show')} could not refresh — showing the saved copy.</Text> : null}
               {subscribed === 0 && discover.view ? (
                 <DiscoverSections body={discover.view.body} stale={discover.view.stale} fetchedAt={discover.view.fetchedAt} onOpen={(c) => void discover.open(c)} />
               ) : null}

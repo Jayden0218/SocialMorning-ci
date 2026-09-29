@@ -35,6 +35,7 @@ import type { CachedEpisode, CachedShow } from '../../src/storage/types';
 import { getPref } from '../../src/settings/prefs';
 import { ShowExtrasBlock, useShowExtras } from '../../src/ui/ShowExtras';
 import { useSocial } from '../../src/social/context';
+import { noun } from '@socialmorning/social-core';
 
 export default function ShowScreen(): React.ReactElement {
   const stores = useStores();
@@ -144,7 +145,7 @@ export default function ShowScreen(): React.ReactElement {
         <Box className="flex-row items-center gap-section">
           <Text className="text-text">
             <Text className="text-lg font-bold text-text">{episodes.length}</Text>
-            <Text className="text-xs text-muted"> episodes</Text>
+            <Text className="text-xs text-muted"> {noun(episodes.length, 'episode')}</Text>
           </Text>
           <Pressable
             className={`flex-1 items-center justify-center rounded-row ${subscribed ? 'bg-surface' : 'bg-text'}`}
@@ -172,8 +173,8 @@ export default function ShowScreen(): React.ReactElement {
         </Box>
       </Box>
       {tab === 'episodes' && episodes.length > 0 ? (
-        <Box className="flex-row items-center justify-between px-screen-x">
-          <Text className="text-sm text-muted">{episodes.length} episodes</Text>
+        <Box className="flex-row items-center justify-end px-screen-x">
+          {/* M12 B12: the count is in the header once; this row holds only the order. */}
           <Pressable onPress={() => setOldestFirst((o) => !o)} accessibilityRole="button" accessibilityLabel={oldestFirst ? 'Oldest first. Show newest first' : 'Newest first. Show oldest first'} className="justify-center" style={TAP}>
             <Text className="text-sm text-muted">{oldestFirst ? 'Oldest first ↑' : 'Newest first ↓'}</Text>
           </Pressable>

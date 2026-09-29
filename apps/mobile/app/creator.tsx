@@ -21,6 +21,7 @@ import { mmss } from '../src/ui/format';
 import { EmptyPicture } from '../src/ui/me/parts';
 import { useStores } from '../src/ui/providers';
 import { useColours } from '../src/ui/useColours';
+import { plural } from '@socialmorning/social-core';
 
 const TAP = { minHeight: hit.min };
 
@@ -120,7 +121,7 @@ function ProvenStats(props: { stats: ShowStats | undefined }): React.ReactElemen
   return (
     <Box className="gap-1">
       <Text className="text-accent text-xs font-bold">Proven — you are the host</Text>
-      <Text className="text-text text-sm">{`${s.listeners} listened · ${s.comments} comment${s.comments === 1 ? '' : 's'} · ${s.episodes} episode${s.episodes === 1 ? '' : 's'}`}</Text>
+      <Text className="text-text text-sm">{`${s.listeners} listened · ${plural(s.comments, 'comment')} · ${plural(s.episodes, 'episode')}`}</Text>
       {s.topMoments.length > 0 ? <Text className="text-muted text-xs mt-1">Where people talk most</Text> : null}
       {s.topMoments.map((m) => (
         <Text key={m.episodeId + m.offsetMs} className="text-text text-sm" numberOfLines={1}>{`${mmss(m.offsetMs)} · ${m.title} · ${m.comments}`}</Text>

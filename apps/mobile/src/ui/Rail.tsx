@@ -10,6 +10,7 @@ import { Text } from './lib/text';
 import { Box } from './lib/box';
 import { mmss } from './format';
 import type { Comment } from '../social/api';
+import { plural } from '@socialmorning/social-core';
 
 export type RailMarker = { second: number; offsetMs: number; comments: Comment[] };
 
@@ -35,7 +36,7 @@ export function railMarkers(comments: readonly Comment[]): RailMarker[] {
  */
 export function markerLabel(m: RailMarker): string {
   const names = [...new Set(m.comments.map((c) => c.displayName).filter((n): n is string => typeof n === 'string' && n.length > 0))];
-  const who = names.length === 0 ? '' : names.length === 1 ? ` by ${names[0]}` : ` by ${names[0]} and ${names.length - 1} other${names.length === 2 ? '' : 's'}`;
+  const who = names.length === 0 ? '' : names.length === 1 ? ` by ${names[0]}` : ` by ${names[0]} and ${plural(names.length - 1, 'other')}`;
   return m.comments.length === 1 ? `Comment at ${mmss(m.offsetMs)}${who}` : `${m.comments.length} comments at ${mmss(m.offsetMs)}${who}`;
 }
 
@@ -47,7 +48,7 @@ export function Rail(props: {
   const markers = useMemo(() => railMarkers(props.comments), [props.comments]);
   if (props.durationMs === undefined || props.durationMs <= 0 || markers.length === 0) return null;
   return (
-    <Box className="w-full h-[14px] relative" accessibilityRole="list" accessibilityLabel={`${markers.length} commented moment${markers.length === 1 ? '' : 's'}`}>
+    <Box className="w-full h-[14px] relative" accessibilityRole="list" accessibilityLabel={`${plural(markers.length, 'commented moment')}`}>
       {markers.map((m) => (
         <Pressable
           key={m.second}

@@ -17,6 +17,9 @@ import { BackHandler, Platform } from 'react-native';
 import { Image } from './lib/image';
 import { Pressable } from './lib/pressable';
 import { SafeAreaView } from './lib/safe-area-view';
+/** Drawn over the stack, outside the root layout's bottom inset — so this pads all four edges (M12). */
+const ALL_EDGES = ['top', 'bottom', 'left', 'right'] as const;
+const SHEET_EDGES = ['bottom', 'left', 'right'] as const;
 import { ScrollView } from './lib/scroll-view';
 import { Text } from './lib/text';
 import { Box } from './lib/box';
@@ -69,7 +72,7 @@ export function Terms(props: { onAccept: () => void; exit?: (back: () => void) =
   if (refused) {
     return (
       <Box className="absolute inset-0 bg-scrim justify-end">
-        <SafeAreaView className="bg-background rounded-t-artwork">
+        <SafeAreaView edges={SHEET_EDGES} className="bg-background rounded-t-artwork">
           <Box className="px-screen-x pt-section pb-section">
             <Image source={require('../../assets/app-icon.png')} style={ICON} className="rounded-row mb-row" accessibilityIgnoresInvertColors />
             <Heading className="text-text text-lg font-bold mb-row" accessibilityRole="header">{CONSENT_TITLE}</Heading>
@@ -85,7 +88,7 @@ export function Terms(props: { onAccept: () => void; exit?: (back: () => void) =
   }
 
   return (
-    <SafeAreaView className="absolute inset-0 bg-background">
+    <SafeAreaView edges={ALL_EDGES} className="absolute inset-0 bg-background">
       <Box className="flex-1 pt-section pb-section">
         <Box className="px-screen-x">
           <Image source={require('../../assets/app-icon.png')} style={ICON} className="rounded-row mb-row" accessibilityIgnoresInvertColors />

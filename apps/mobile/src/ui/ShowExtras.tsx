@@ -13,6 +13,7 @@ import { Box } from './lib/box';
 import { Pressable } from './lib/pressable';
 import { Text } from './lib/text';
 import { TAP } from './TopBar';
+import { plural } from '@socialmorning/social-core';
 
 /** The creator's extras for a show, or undefined until (or unless) they arrive. */
 export function useShowExtras(feedUrl: string): [Extras | undefined, (p: ShowPoll) => void] {
@@ -92,7 +93,7 @@ function Poll({ poll, onChange }: { poll: ShowPoll; onChange: (p: ShowPoll) => v
         );
       })}
       {!listener && poll.open && !voted ? <Text className="text-xs text-muted">Sign in to vote.</Text> : null}
-      {showResult ? <Text className="text-xs text-muted">{`${poll.total} vote${poll.total === 1 ? '' : 's'}`}</Text> : null}
+      {showResult ? <Text className="text-xs text-muted">{`${plural(poll.total, 'vote')}`}</Text> : null}
       {error ? <Text className="text-xs text-accent">{error}</Text> : null}
     </Box>
   );

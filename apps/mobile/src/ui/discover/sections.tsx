@@ -20,6 +20,7 @@ import { ago, pages, statsLine, type ChartTab } from '../../discover/sections';
 import type { Collection, DiscoverItem, EpisodeCard, FollowedShow, SaidItem, ShowCard } from '../../social/api';
 import { Artwork } from '../Artwork';
 import { EpisodeLine, Pager, PlayButton, SectionTitle } from './parts';
+import { noun, plural } from '@socialmorning/social-core';
 
 const TAP = { minHeight: hit.min };
 
@@ -166,7 +167,7 @@ export function ShowTiles(props: { title: string; shows: { feedUrl: string; titl
 export const popularShowTiles = (shows: ShowCard[]) => shows.map((s) => ({ feedUrl: s.feedUrl, title: s.title, ...(s.imageUrl ? { imageUrl: s.imageUrl } : {}), line: s.author }));
 
 export const followedShowTiles = (shows: FollowedShow[]) =>
-  shows.map((s) => ({ feedUrl: s.feedUrl, title: s.title, ...(s.imageUrl ? { imageUrl: s.imageUrl } : {}), line: `${s.followers} listener${s.followers === 1 ? '' : 's'} here follow` }));
+  shows.map((s) => ({ feedUrl: s.feedUrl, title: s.title, ...(s.imageUrl ? { imageUrl: s.imageUrl } : {}), line: `${plural(s.followers, 'listener')} here ${noun(s.followers, 'follows', 'follow')}` }));
 
 /** An owner-curated collection: its title and line, then episode rows with play. */
 export function CollectionSection(props: Act & { collection: Collection }): React.ReactElement {
@@ -218,7 +219,7 @@ export function NewShowsSection(props: Act & { items: { show: ShowCard; episode:
       <SectionTitle title="New shows climbing the chart" />
       <Box className="px-screen-x">
         {props.items.map((n) => (
-          <EpisodeLine key={n.episode.id} card={n.episode} line={n.show.episodeCount !== undefined ? `${n.show.episodeCount} episode${n.show.episodeCount === 1 ? '' : 's'} so far` : 'New on the chart'} onOpen={() => props.onOpen(n.episode)} onPlay={() => props.onPlay(n.episode)} />
+          <EpisodeLine key={n.episode.id} card={n.episode} line={n.show.episodeCount !== undefined ? `${plural(n.show.episodeCount, 'episode')} so far` : 'New on the chart'} onOpen={() => props.onOpen(n.episode)} onPlay={() => props.onPlay(n.episode)} />
         ))}
       </Box>
     </Box>

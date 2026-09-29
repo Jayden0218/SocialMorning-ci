@@ -55,3 +55,4 @@ export { REPLAY_TARGET_PERCENTILE, REPLAY_FIELD, replayScore } from './replay';
 export { mediaKindOf, type MediaKind } from './media';
 // M11 — the Studio (specs/011-m11-studio/research.md R3)
 export { isComplete, completionRate, COMPLETE_SHARE } from './completion';
+export { noun, plural } from './plural';
