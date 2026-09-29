@@ -90,6 +90,9 @@ export default function MeScreen(): React.ReactElement {
         <MenuRow href="/my-comments" icon="chatbubble-outline" label="My comments" />
         <MenuRow href="/queue" icon="list-outline" label="Queue" />
         {listener ? <MenuRow href="/creator" icon="mic-outline" label="Creator centre" /> : null}
+        {/* M12 FR-105, FR-106: read-only; the stores hold the money. */}
+        {listener ? <MenuRow href="/wallet" icon="wallet-outline" label="Wallet" /> : null}
+        {listener ? <MenuRow href="/tips" icon="heart-outline" label="Tips I gave" /> : null}
         <Box className="border-b-hairline border-separator my-2" />
         {/* M12 FR-091: feedback is one tap from Me. */}
         <MenuRow href="/settings/feedback" icon="chatbox-ellipses-outline" label="Feedback" />

@@ -5,6 +5,8 @@
  * re-reads the feed from the publisher and looks for it. Once proven, the page shows the
  * show's numbers and their comments carry a Host mark.
  */
+import { Icon } from '../src/ui/Icon';
+import { Link } from '../src/design/tailwind';
 import { Artwork } from '../src/ui/Artwork';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
@@ -77,6 +79,17 @@ export default function CreatorScreen(): React.ReactElement {
 
   return (
     <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pt-section pb-24 gap-section" keyboardShouldPersistTaps="handled">
+      {/* M12 FR-103 */}
+      <Link href="/academy" asChild>
+        <Pressable accessibilityRole="link" accessibilityLabel="Creator academy: how claiming, numbers, comments, clips and the Studio work" className="bg-surface rounded-artwork p-section flex-row items-center gap-row">
+          <Icon name="school-outline" size={24} color={c.accent} />
+          <Box className="flex-1">
+            <Text className="text-text text-sm font-semibold">Creator academy</Text>
+            <Text className="text-muted text-xs">Claiming, numbers, comments, clips, the Studio</Text>
+          </Box>
+          <Icon name="chevron-forward" size={18} color={c.muted} />
+        </Pressable>
+      </Link>
       <Text className="text-muted text-sm">Claim the show you publish. We never host your audio — you keep your own feed. Once you prove it is yours, you see your show's numbers and your comments carry a Host mark.</Text>
 
       {(claims ?? []).map((cl) => (

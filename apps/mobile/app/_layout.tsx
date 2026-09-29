@@ -131,6 +131,13 @@ function RootStack(): React.ReactElement {
           <Stack.Screen name="category/[id]" options={{ title: 'Category' }} />
           <Stack.Screen name="picks/past" options={{ title: 'Past picks' }} />
           <Stack.Screen name="chart" options={{ title: 'Talked about' }} />
+          <Stack.Screen name="issues" options={{ title: 'Issues' }} />
+          <Stack.Screen name="issue/[id]" options={{ title: 'Issue' }} />
+          <Stack.Screen name="friends-listening" options={{ title: 'Friends listening' }} />
+          <Stack.Screen name="academy/index" options={{ title: 'Creator academy' }} />
+          <Stack.Screen name="academy/[slug]" options={{ title: 'Article' }} />
+          <Stack.Screen name="wallet" options={{ title: 'Wallet' }} />
+          <Stack.Screen name="tips" options={{ title: 'Tips I gave' }} />
           <Stack.Screen name="clip/new" options={{ title: 'New clip' }} />
           <Stack.Screen name="clip/[id]" options={{ title: 'Clip' }} />
           <Stack.Screen name="profile/[id]" options={{ title: 'Profile' }} />

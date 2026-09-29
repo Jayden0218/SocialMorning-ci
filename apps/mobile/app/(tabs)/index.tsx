@@ -87,6 +87,9 @@ export default function DiscoverScreen(): React.ReactElement {
             { label: inbox > 0 ? `Inbox (${inbox})` : 'Inbox', icon: 'file-tray-outline', onPress: () => router.push('/inbox') },
             { label: 'Queue', icon: 'list-outline', onPress: () => router.push('/queue') },
             { label: 'Downloads', icon: 'download-outline', onPress: () => router.push('/downloads') },
+            // M12 FR-101, FR-102
+            { label: 'Issues', icon: 'newspaper-outline', onPress: () => router.push('/issues') },
+            { label: 'Friends listening', icon: 'people-outline', onPress: () => router.push('/friends-listening') },
           ]}
         />
 

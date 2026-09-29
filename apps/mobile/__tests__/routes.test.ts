@@ -66,7 +66,7 @@ const PATHS = [
   '/clip/new', '/clip/c1',
   '/auth/sign-in', '/auth/sign-up', '/auth/email',
   // M12
-  '/chart', '/picks/past', '/comments/e1',
+  '/chart', '/picks/past', '/comments/e1', '/issues', '/issue/i1', '/friends-listening', '/academy', '/academy/clips', '/wallet', '/tips', '/settings/how-for-you',
 ];
 
 it('G3: every path M1–M6 deep-links to still resolves', () => {

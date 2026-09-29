@@ -15,6 +15,13 @@ import { fromOpml, toOpml } from '../../src/settings/opml';
 import { Button } from '../../src/ui/Button';
 import { useStores, useSubscriptionSync, useToast } from '../../src/ui/providers';
 import { plural } from '@socialmorning/social-core';
+import { Pressable } from '../../src/ui/lib/pressable';
+import { Box } from '../../src/ui/lib/box';
+import { Icon } from '../../src/ui/Icon';
+import { size } from '../../src/design';
+import { EXPORT_STEPS } from '../../src/settings/export-steps';
+
+const ROW = { minHeight: size.row };
 
 export default function OpmlScreen(): React.ReactElement {
   const stores = useStores();
@@ -22,6 +29,7 @@ export default function OpmlScreen(): React.ReactElement {
   const sync = useSubscriptionSync();
   const toast = useToast();
   const [text, setText] = useState('');
+  const [openApp, setOpenApp] = useState<string | undefined>();
   const found = fromOpml(text);
   const fresh = found.filter((u) => !stores.subscriptions.has(u));
 
@@ -46,6 +54,26 @@ export default function OpmlScreen(): React.ReactElement {
       <Button label="Export subscriptions" onPress={exportAll} />
       <Text className="text-text text-base font-bold mt-section" accessibilityRole="header">Import</Text>
       <Text className="text-muted text-sm">Export OPML from your other app, then paste it here.</Text>
+      {/* M12 FR-095: where each app keeps its export — tap one to see the steps. */}
+      <Box>
+        {EXPORT_STEPS.map((a) => {
+          const shown = openApp === a.app;
+          return (
+            <Box key={a.app} className="border-b-hairline border-separator">
+              <Pressable onPress={() => setOpenApp(shown ? undefined : a.app)} accessibilityRole="button" accessibilityState={{ expanded: shown }} accessibilityLabel={`From ${a.app}`} className="flex-row items-center gap-row" style={ROW}>
+                <Text className="text-text text-sm flex-1">From {a.app}</Text>
+                <Icon name={shown ? 'chevron-up' : 'chevron-down'} size={18} color={c.muted} />
+              </Pressable>
+              {shown ? (
+                <Box className="pb-row gap-1">
+                  {a.steps.map((step, i) => <Text key={step} className="text-text text-sm">{`${i + 1}. ${step}`}</Text>)}
+                  {a.note ? <Text className="text-muted text-xs">{a.note}</Text> : null}
+                </Box>
+              ) : null}
+            </Box>
+          );
+        })}
+      </Box>
       <Textarea className="bg-surface rounded-row min-h-32 border-0 h-auto">
         <TextareaInput value={text} onChangeText={setText} multiline placeholder="Paste OPML here" placeholderTextColor={c.muted} autoCorrect={false} autoCapitalize="none" accessibilityLabel="OPML to import"  className="p-row text-text text-xs" />
       </Textarea>
