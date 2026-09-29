@@ -8,6 +8,8 @@ import { PageHead } from '../shell/Page';
 import { Empty, Failed, Loading } from '../shell/States';
 import { useLoad } from '../useLoad';
 import { light } from '../tokens';
+import { CATEGORIES, LANGUAGES } from '../categories';
+import { mb, uploadFile } from '../upload';
 
 type Overrides = { title: string | null; description: string | null; coverUrl: string | null; themeColour: string | null; milestoneMessage: string | null; hosts: string[] | null; links: { label: string; url: string }[] | null };
 
@@ -20,8 +22,8 @@ export function Settings({ show }: { show: Show }) {
   }
   return (
     <>
-      <PageHead title="Settings" tabs={[{ to: base, label: 'How it appears' }, { to: `${base}/team`, label: 'Team' }, { to: `${base}/more`, label: 'More' }]} />
-      {tab === 'team' ? <Team show={show} /> : tab === 'more' ? <More show={show} /> : <Appearance show={show} />}
+      <PageHead title="Settings" tabs={[{ to: base, label: show.hosted ? 'Show details' : 'How it appears' }, { to: `${base}/team`, label: 'Team' }, { to: `${base}/more`, label: 'More' }]} />
+      {tab === 'team' ? <Team show={show} /> : tab === 'more' ? <More show={show} /> : show.hosted ? <Details show={show} /> : <Appearance show={show} />}
     </>
   );
 }
@@ -153,6 +155,75 @@ function More({ show }: { show: Show }) {
       <div className="field"><label htmlFor="rel">Type the show's name to confirm: <b>{name}</b></label><input id="rel" value={typed} onChange={(e) => setTyped(e.target.value)} /></div>
       <button type="button" className="btn btn-quiet" disabled={typed.trim() !== name.trim()} onClick={() => setConfirm(true)}>Give the show back</button>
       {confirm ? <ConfirmDialog title={`Give back ${name}?`} body="This cannot be undone from here." confirm="Give it back" busy={busy} onCancel={() => setConfirm(false)} onConfirm={() => { void release(); }} /> : null}
+    </section>
+  );
+}
+
+type HostedDetails = { title: string; description: string; author: string; language: string; category: string; explicit: boolean; coverUrl: string | null; feedUrl: string };
+
+/** M13 US3 — a show made here: its own details and cover, which ARE its feed (not overrides of someone else's). */
+function Details({ show }: { show: Show }) {
+  const d = useLoad(() => api<{ show: HostedDetails }>(`/v1/studio/shows/${show.key}/details`), [show.key]);
+  const [f, setF] = useState<HostedDetails | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [pct, setPct] = useState<number | null>(null);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+  useEffect(() => { if (d.state === 'ready') setF(d.data.show); }, [d.state]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (d.state === 'loading' || (d.state === 'ready' && !f)) return <Loading lines={6} />;
+  if (d.state === 'error') return <div className="card"><Failed message={d.message} retry={d.retry} /></div>;
+  const v = f!;
+  const save = async (patch: Partial<HostedDetails>) => {
+    setBusy(true); setMsg(null);
+    try {
+      const r = await api<{ show: HostedDetails }>(`/v1/studio/shows/${show.key}/details`, { method: 'PUT', body: patch });
+      setF(r.show); setMsg({ ok: true, text: 'Saved. Your feed shows it now.' });
+    } catch (e) { setMsg({ ok: false, text: e instanceof HttpError ? e.message : 'That did not save.' }); } finally { setBusy(false); }
+  };
+  const cover = async (file: File | undefined) => {
+    if (!file) return;
+    if (!/^image\/(jpeg|png)$/.test(file.type) || file.size > 5 * 1024 * 1024) return setMsg({ ok: false, text: 'Choose a JPEG or PNG under 5 MB.' });
+    setMsg(null); setPct(0);
+    try { const url = await uploadFile(show.key, 'cover', file, setPct); await save({ coverUrl: url }); }
+    catch (e) { setMsg({ ok: false, text: e instanceof HttpError ? e.message : 'The cover did not upload.' }); } finally { setPct(null); }
+  };
+  return (
+    <section className="card">
+      {msg ? <p className={msg.ok ? 'muted' : 'error'} role={msg.ok ? 'status' : 'alert'}>{msg.text}</p> : null}
+      <div className="field">
+        <span style={{ fontWeight: 600, fontSize: 14 }}>Cover (square JPEG or PNG, up to {mb(5 * 1024 * 1024)})</span>
+        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+          {v.coverUrl ? <img src={v.coverUrl} alt="Current cover" className="show-art" style={{ width: 96, height: 96 }} /> : <div className="show-art" style={{ width: 96, height: 96 }} aria-hidden="true" />}
+          <label className="btn btn-quiet" style={{ cursor: 'pointer' }}>
+            {pct === null ? 'Upload cover' : `Uploading… ${pct}%`}
+            <input type="file" accept="image/jpeg,image/png" className="sr-only" onChange={(e) => { void cover(e.target.files?.[0]); }} />
+          </label>
+        </div>
+      </div>
+      <form onSubmit={(e) => { e.preventDefault(); void save({ title: v.title, description: v.description, author: v.author, language: v.language, category: v.category, explicit: v.explicit }); }}>
+        <div className="field"><label htmlFor="d-t">Show name</label><input id="d-t" required maxLength={100} value={v.title} onChange={(e) => setF({ ...v, title: e.target.value })} /></div>
+        <div className="field"><label htmlFor="d-d">Description</label><textarea id="d-d" className="textarea" rows={4} maxLength={4000} value={v.description} onChange={(e) => setF({ ...v, description: e.target.value })} /></div>
+        <div className="field"><label htmlFor="d-a">Host or author name</label><input id="d-a" maxLength={100} value={v.author} onChange={(e) => setF({ ...v, author: e.target.value })} /></div>
+        <div className="toolbar">
+          <div className="field" style={{ margin: 0, flex: 1 }}><label htmlFor="d-c">Category</label>
+            <select id="d-c" className="select" value={v.category} onChange={(e) => setF({ ...v, category: e.target.value })}>{CATEGORIES.map((c) => <option key={c}>{c}</option>)}</select></div>
+          <div className="field" style={{ margin: 0, flex: 1 }}><label htmlFor="d-l">Language</label>
+            <select id="d-l" className="select" value={v.language} onChange={(e) => setF({ ...v, language: e.target.value })}>{LANGUAGES.map(([c, l]) => <option key={c} value={c}>{l}</option>)}</select></div>
+        </div>
+        <div className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <input id="d-x" type="checkbox" checked={v.explicit} onChange={(e) => setF({ ...v, explicit: e.target.checked })} style={{ width: 20, height: 20 }} />
+          <label htmlFor="d-x" style={{ fontWeight: 500 }}>Contains explicit content</label>
+        </div>
+        <button className="btn" type="submit" disabled={busy}>{busy ? 'Saving…' : 'Save'}</button>
+      </form>
+      <div className="field" style={{ marginTop: 24 }}>
+        <span style={{ fontWeight: 600, fontSize: 14 }}>Your show's RSS feed</span>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <code className="card" style={{ padding: '10px 14px', flex: 1, overflowWrap: 'anywhere' }}>{v.feedUrl}</code>
+          <button type="button" className="btn btn-quiet" onClick={() => { void navigator.clipboard?.writeText(v.feedUrl).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }, () => undefined); }}>{copied ? 'Copied' : 'Copy'}</button>
+        </div>
+        <span className="muted" style={{ fontSize: 13 }}>Listeners find your show by name in SocialMorning. Other podcast apps can use this address too.</span>
+      </div>
     </section>
   );
 }

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "M11 \u2014 the Studio: the creator website (specs/011-m11-studio). Vite + React; calls the API as /api through its own host.",
+  "description": "M11 — the Studio: the creator website (specs/011-m11-studio). Vite + React; calls the API as /api through its own host.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -11,6 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@vercel/blob": "2.8.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-router": "7.18.4",

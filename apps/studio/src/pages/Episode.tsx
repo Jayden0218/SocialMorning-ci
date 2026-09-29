@@ -1,5 +1,7 @@
-import { Link, useParams } from 'react-router';
-import { api, type Show } from '../api';
+import { useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router';
+import { ConfirmDialog } from '../shell/ConfirmDialog';
+import { api, HttpError, type Show } from '../api';
 import { HeatCurve, MinuteBars } from '../charts/HeatCurve';
 import { mmss, num, pct, shortDate } from '../format';
 import { PageHead } from '../shell/Page';
@@ -21,7 +23,8 @@ export function Episode({ show }: { show: Show }) {
   return (
     <>
       <p style={{ margin: '0 0 8px' }}><Link to={`/s/${show.key}/episodes`}>← Episodes</Link></p>
-      <PageHead title={e.title} sub={`${shortDate(e.publishedAt)}${e.durationMs ? ` · ${mmss(e.durationMs)}` : ''}`} />
+      <PageHead title={e.title} sub={`${shortDate(e.publishedAt)}${e.durationMs ? ` · ${mmss(e.durationMs)}` : ''}`}
+        action={show.hosted ? <DeleteEpisode show={show} episodeId={id} /> : undefined} />
       <section className="stats" aria-label="This episode">
         <StatCard label="Plays" value={num(e.plays)} />
         <StatCard label="Completion" value={pct(e.completionRate)} />
@@ -42,6 +45,31 @@ export function Episode({ show }: { show: Show }) {
         <h2 id="ec-h">Comments on this episode</h2>
         <CommentList show={show} episodeId={id} />
       </section>
+    </>
+  );
+}
+
+/** M13: a hosted episode can be taken down — out of the feed, audio deleted (FR-007). */
+function DeleteEpisode({ show, episodeId }: { show: Show; episodeId: string }) {
+  const navigate = useNavigate();
+  const [ask, setAsk] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const remove = async () => {
+    setBusy(true); setError(null);
+    try {
+      const { items } = await api<{ items: { id: string; episodeId: string }[] }>(`/v1/studio/shows/${show.key}/hosted-episodes`);
+      const mine = items.find((i) => i.episodeId === episodeId);
+      if (!mine) throw new HttpError(404, 'not_found', 'This episode is not one uploaded here.');
+      await api(`/v1/studio/shows/${show.key}/hosted-episodes/${mine.id}`, { method: 'DELETE' });
+      navigate(`/s/${show.key}/episodes`, { replace: true });
+    } catch (e) { setError(e instanceof HttpError ? e.message : 'That did not work.'); setAsk(false); } finally { setBusy(false); }
+  };
+  return (
+    <>
+      <button type="button" className="btn btn-quiet" onClick={() => setAsk(true)}>Delete episode</button>
+      {error ? <p className="error" role="alert">{error}</p> : null}
+      {ask ? <ConfirmDialog title="Delete this episode?" body="It leaves your feed and its audio file is deleted. Comments on it stay in the app. This cannot be undone." confirm="Delete" busy={busy} onCancel={() => setAsk(false)} onConfirm={() => { void remove(); }} /> : null}
     </>
   );
 }

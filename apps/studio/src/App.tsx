@@ -13,6 +13,7 @@ import { Announcements } from './pages/Announcements';
 import { Polls } from './pages/Polls';
 import { Settings } from './pages/Settings';
 import { Tips } from './pages/Tips';
+import { NewEpisode } from './pages/NewEpisode';
 import type { Show } from './api';
 import { NoShow } from './pages/NoShow';
 import { SignIn } from './pages/SignIn';
@@ -26,6 +27,7 @@ export function App() {
       <Route path="/s/:show/home" element={<Signed><ShowPage page={(s) => <Home show={s} />} /></Signed>} />
       <Route path="/s/:show/data" element={<Signed><ShowPage page={(s) => <Data show={s} />} /></Signed>} />
       <Route path="/s/:show/episodes" element={<Signed><ShowPage page={(s) => <Episodes show={s} />} /></Signed>} />
+      <Route path="/s/:show/episodes/new" element={<Signed><ShowPage page={(s) => <NewEpisode show={s} />} /></Signed>} />
       <Route path="/s/:show/episodes/:id" element={<Signed><ShowPage page={(s) => <Episode show={s} />} /></Signed>} />
       <Route path="/s/:show/subscribers" element={<Signed><ShowPage page={(s) => <Subscribers show={s} />} /></Signed>} />
       <Route path="/s/:show/subscribers/:tab" element={<Signed><ShowPage page={(s) => <Subscribers show={s} />} /></Signed>} />

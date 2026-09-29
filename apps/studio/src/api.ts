@@ -59,7 +59,7 @@ export async function api<T>(path: string, opts: { method?: string; body?: unkno
 }
 
 export type Me = { id: string; email: string; displayName: string };
-export type Show = { key: string; feedUrl: string; title: string | null; image: string | null; role: 'owner' | 'operator' };
+export type Show = { key: string; feedUrl: string; title: string | null; image: string | null; role: 'owner' | 'operator'; hosted?: boolean };
 
 /**
  * Sign in the way the whole product does (`/v1/auth`, labelled `studio-web`), then trade the

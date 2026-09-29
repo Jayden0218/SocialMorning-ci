@@ -19,6 +19,7 @@ it('claims a feed on the web: address → code → verify → the show opens', a
   f.mockImplementationOnce(async () => new Response(JSON.stringify({ claims: [] }), { status: 200 }));
   f.mockImplementationOnce(async () => new Response(JSON.stringify({ claim: CLAIM }), { status: 201 }));
   renderIn(<NoShow />, '/no-show');
+  fireEvent.click(screen.getByRole('button', { name: 'Bring your existing feed' }));
   fireEvent.change(screen.getByLabelText(/RSS feed address/), { target: { value: CLAIM.feedUrl } });
   fireEvent.click(screen.getByRole('button', { name: 'Get my code' }));
   expect(await screen.findByText(CLAIM.code)).toBeTruthy();

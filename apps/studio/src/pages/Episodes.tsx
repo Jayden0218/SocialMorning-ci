@@ -23,7 +23,12 @@ export function Episodes({ show }: { show: Show }) {
   ];
   return (
     <>
-      <PageHead title="Episodes" sub="From your feed. To publish a new episode, publish it in your feed — it appears here once listeners see it." />
+      {show.hosted ? (
+        <PageHead title="Episodes" sub="Upload and publish episodes here; they go straight into your show's feed."
+          action={<Link className="btn" to={`/s/${show.key}/episodes/new`} style={{ textDecoration: 'none' }}>New episode</Link>} />
+      ) : (
+        <PageHead title="Episodes" sub="From your feed. To publish a new episode, publish it in your feed — it appears here once listeners see it." />
+      )}
       <div className="toolbar">
         <label className="sr-only" htmlFor="ep-q">Search episodes</label>
         <input id="ep-q" type="search" placeholder="Search by title" value={q} onChange={(e) => setQ(e.target.value)} />
