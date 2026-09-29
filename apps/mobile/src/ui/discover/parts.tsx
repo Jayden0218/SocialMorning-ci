@@ -4,7 +4,6 @@
  * Colours are tokens only: section titles take `accent`, the play button the brand
  * `primary` fill, cards `surface`.
  */
-import { twoTone } from '../two-tone';
 import { useWindowDimensions } from 'react-native';
 import { Pressable } from '../lib/pressable';
 import { ScrollView } from '../lib/scroll-view';
@@ -18,6 +17,12 @@ import type { EpisodeCard } from '../../social/api';
 import { Artwork } from '../Artwork';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
+
+/** Splits a title for the two-tone style: one word stays all accent. */
+export function twoTone(title: string): { lead: string; rest: string } {
+  const at = title.indexOf(' ');
+  return at <= 0 ? { lead: '', rest: title } : { lead: title.slice(0, at), rest: title.slice(at) };
+}
 
 export function SectionTitle(props: { title: string; action?: { label: string; onPress: () => void }; badge?: number }): React.ReactElement {
   return (
