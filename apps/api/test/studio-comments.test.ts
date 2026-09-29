@@ -106,6 +106,6 @@ test('the Studio marks comments by the show\'s own team (they cannot be muted th
   const { owner, key, commentId } = await setup(t);
   await sCall(t, 'POST', `/v1/studio/shows/${key}/comments/${commentId}/reply`, owner, { body: 'Thanks!' });
   const list = (await (await sCall(t, 'GET', `/v1/studio/shows/${key}/comments`, owner)).json()) as { items: { body: string; byTeam: boolean }[] };
-  assert.deepEqual(list.items.map((c) => [c.body, c.byTeam]).sort(), [['That bit at 14:32!', false], ['Thanks!', true]]);
+  assert.deepEqual(list.items.map((c) => [c.body, c.byTeam]).sort(), [['Thanks!', true], ['That bit at 14:32!', false]]);
   await t.close();
 });
