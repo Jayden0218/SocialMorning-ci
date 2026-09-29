@@ -40,7 +40,11 @@
  * Everything below about what Android actually does is inference from the
  * typings and the changelog, and stays NOT VERIFIED until quickstart Tier B.
  */
-import { createAudioPlayer, setAudioModeAsync, type AudioPlayer, type AudioStatus } from 'expo-audio';
+import {
+  AudioQuality, IOSOutputFormat, createAudioPlayer, requestRecordingPermissionsAsync, setAudioModeAsync,
+  useAudioRecorder, useAudioRecorderState, type AudioPlayer, type AudioStatus, type RecordingOptions,
+} from 'expo-audio';
+import { VOICE_BIT_RATE } from '../voice/recording';
 import { AppState, type AppStateStatus } from 'react-native';
 import type { Effect, Ms, PlayerEvent } from './types';
 
@@ -246,4 +250,49 @@ export function createExpoAudioAdapter(
   }
 
   return { execute, subscribe, configure, release };
+}
+
+/*
+ * M12 FR-104 — the voice status's native half. It lives here because this file is the only
+ * one allowed to import expo-audio (expo-audio-isolation.test.ts): everything else about
+ * voice posts (the cap, the clock, the size) is plain code in src/voice/recording.ts.
+ */
+
+/**
+ * Mono AAC at VOICE_BIT_RATE: 60 s ≈ 480 000 bytes, under the server's 600 000 cap. A
+ * function, not a constant: the enums are read on use, so tests that mock expo-audio without
+ * them can still import this file.
+ */
+export const voiceOptions = (): RecordingOptions => ({
+  extension: '.m4a',
+  sampleRate: 44_100,
+  numberOfChannels: 1,
+  bitRate: VOICE_BIT_RATE,
+  android: { outputFormat: 'mpeg4', audioEncoder: 'aac' },
+  ios: { outputFormat: IOSOutputFormat.MPEG4AAC, audioQuality: AudioQuality.MEDIUM, linearPCMBitDepth: 16, linearPCMIsBigEndian: false, linearPCMIsFloat: false },
+  web: { mimeType: 'audio/webm', bitsPerSecond: VOICE_BIT_RATE },
+});
+
+/** The voice recorder hooks, bound to `voiceOptions()`. */
+export function useVoiceRecorder() {
+  const recorder = useAudioRecorder(voiceOptions());
+  const state = useAudioRecorderState(recorder, 250);
+  return { recorder, state };
+}
+
+export const askMicrophone = async (): Promise<boolean> => (await requestRecordingPermissionsAsync()).granted;
+
+/** Recording on: iOS switches the session to play-and-record. */
+export const voiceSessionOn = (): Promise<void> => setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+
+/** Recording off: back to the episode player's own mode (see `configure` above) — else iOS plays through the earpiece. */
+export const voiceSessionOff = (): Promise<void> =>
+  setAudioModeAsync({ allowsRecording: false, shouldPlayInBackground: true, interruptionMode: 'doNotMix', playsInSilentMode: true });
+
+/** A short-lived player for one voice post; `onEnd` fires when it finishes. */
+export function playVoice(url: string, onEnd: () => void): { stop: () => void } {
+  const p = createAudioPlayer(url);
+  p.addListener('playbackStatusUpdate', (s) => { if (s.didJustFinish) onEnd(); });
+  p.play();
+  return { stop: () => p.remove() };
 }

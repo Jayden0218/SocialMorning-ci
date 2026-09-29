@@ -5,7 +5,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, Alert } from 'react-native';
-import { createAudioPlayer, type AudioPlayer } from 'expo-audio';
+import { playVoice } from '../playback/expo-audio-adapter';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Pressable } from './lib/pressable';
 import { Text } from './lib/text';
@@ -26,21 +26,18 @@ export function VoicePosts(props: { load: () => Promise<VoicePost[]>; remove: (i
   const router = useRouter();
   const [posts, setPosts] = useState<VoicePost[]>([]);
   const [playing, setPlaying] = useState<string | undefined>();
-  const audio = useRef<AudioPlayer | undefined>(undefined);
+  const audio = useRef<{ stop: () => void } | undefined>(undefined);
   const { load } = props;
   const refresh = useCallback(() => { load().then(setPosts, () => undefined); }, [load]);
   useFocusEffect(refresh);
-  const stop = () => { audio.current?.remove(); audio.current = undefined; setPlaying(undefined); };
+  const stop = () => { audio.current?.stop(); audio.current = undefined; setPlaying(undefined); };
   useEffect(() => () => stop(), []);
 
   const toggle = (p: VoicePost) => {
     if (playing === p.id) { stop(); return; }
     stop();
     props.pauseEpisode();
-    const a = createAudioPlayer(p.url);
-    a.addListener('playbackStatusUpdate', (s) => { if (s.didJustFinish) stop(); });
-    a.play();
-    audio.current = a;
+    audio.current = playVoice(p.url, stop);
     setPlaying(p.id);
   };
   const askDelete = (p: VoicePost) => {

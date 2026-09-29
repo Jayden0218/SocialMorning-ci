@@ -3,10 +3,11 @@
  * the server after 48 hours. The microphone is used only while the button says "Recording".
  * Episode playback pauses first; the audio session returns to playback when recording ends
  * (with recording allowed, iOS would route sound to the earpiece — expo-audio's AudioMode).
+ * The native calls are in src/playback/expo-audio-adapter.ts, the one file that imports expo-audio.
  */
 import { router, Stack } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder, useAudioRecorderState } from 'expo-audio';
+import { askMicrophone, useVoiceRecorder, voiceSessionOff, voiceSessionOn } from '../../src/playback/expo-audio-adapter';
 import { Linking } from 'react-native';
 import { Pressable } from '../../src/ui/lib/pressable';
 import { Text } from '../../src/ui/lib/text';
@@ -19,9 +20,7 @@ import { useColours } from '../../src/ui/useColours';
 import { useStores, useToast } from '../../src/ui/providers';
 import { useM12Api } from '../../src/social/m12-api';
 import { ApiError } from '../../src/social/api';
-import { VOICE_MAX_MS, VOICE_OPTIONS, voiceClock } from '../../src/voice/recording';
-
-void RecordingPresets; // the presets are too large for the server's cap; see src/voice/recording.ts
+import { VOICE_MAX_MS, voiceClock } from '../../src/voice/recording';
 
 type Phase = { kind: 'idle' } | { kind: 'denied' } | { kind: 'recording' } | { kind: 'done'; uri: string; ms: number } | { kind: 'posting'; uri: string; ms: number };
 
@@ -31,21 +30,19 @@ export default function NewVoicePost(): React.ReactElement {
   const toast = useToast();
   const player = usePlayer();
   const m12 = useM12Api();
-  const recorder = useAudioRecorder(VOICE_OPTIONS);
-  const state = useAudioRecorderState(recorder, 250);
+  const { recorder, state } = useVoiceRecorder();
   const [phase, setPhase] = useState<Phase>({ kind: 'idle' });
   const [error, setError] = useState<string | undefined>();
   const stopping = useRef(false);
 
-  const restore = () => setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true, shouldPlayInBackground: true, interruptionMode: 'doNotMix' }).catch(() => undefined);
+  const restore = () => voiceSessionOff().catch(() => undefined);
   useEffect(() => () => { void restore(); }, []);
 
   const start = async () => {
     setError(undefined);
-    const perm = await requestRecordingPermissionsAsync();
-    if (!perm.granted) { setPhase({ kind: 'denied' }); return; }
+    if (!(await askMicrophone())) { setPhase({ kind: 'denied' }); return; }
     player.pause();
-    await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+    await voiceSessionOn();
     await recorder.prepareToRecordAsync();
     recorder.record();
     stopping.current = false;
