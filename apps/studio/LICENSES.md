@@ -5,7 +5,7 @@ Checked with `npm view <pkg> license` on 2026-09-29 (specs/011-m11-studio/resear
 | Package | Version | Licence | Ships to users |
 |---|---|---|---|
 | react, react-dom | 19.2.3 | MIT | yes |
-| react-router | 8.4.0 | MIT | yes |
+| react-router | 7.18.4 | MIT | yes (8.x needs React ≥ 19.2.7; the monorepo pins 19.2.3) |
 | recharts | 3.10.1 | MIT | yes |
 | vite | 8.3.1 | MIT | build only |
 | @vitejs/plugin-react | 6.1.1 | MIT | build only |
