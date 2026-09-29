@@ -389,7 +389,7 @@ studio.post('/shows/:show/uploads', json(uploadBody), async (c) => {
   if (audio) {
     const used = await storedBytes(c.get('db'));
     const ceiling = c.get('hostedCeilingBytes');
-    if (false as boolean && used + b.size > ceiling) throw new ApiError('conflict', `Storage is full: ${Math.round(used / 1024 / 1024)} MB of ${Math.round(ceiling / 1024 / 1024)} MB used.`, { reason: 'storage_full', usedBytes: used, ceilingBytes: ceiling });
+    if (used + b.size > ceiling) throw new ApiError('conflict', `Storage is full: ${Math.round(used / 1024 / 1024)} MB of ${Math.round(ceiling / 1024 / 1024)} MB used.`, { reason: 'storage_full', usedBytes: used, ceilingBytes: ceiling });
   }
   const ext = { 'audio/mpeg': 'mp3', 'audio/mp4': 'm4a', 'audio/x-m4a': 'm4a', 'audio/aac': 'aac', 'image/jpeg': 'jpg', 'image/png': 'png' }[b.contentType] ?? 'bin';
   const pathname = `${audio ? 'episodes' : 'covers'}/${h.id}/${randomUUID()}.${ext}`;
@@ -430,5 +430,6 @@ studio.delete('/shows/:show/hosted-episodes/:id', async (c) => {
   const h = await hostedOf(c.get('db'), c.get('show').feedUrl);
   const ep = await removeEpisode(c.get('db'), h.id, c.req.param('id'));
   if (!ep) throw new ApiError('not_found', 'No such episode.');
+  await c.get('storage').remove(ep.audioUrl);
   return c.body(null, 204);
 });

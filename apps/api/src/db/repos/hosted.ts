@@ -133,6 +133,7 @@ export function feedXml(show: HostedShow, eps: HostedEpisode[]): string {
       <description>${x(e.description)}</description>
       <guid isPermaLink="false">${x(e.guid)}</guid>
       <pubDate>${rfc822(e.publishedAt)}</pubDate>
+      <enclosure url="${x(e.audioUrl)}" length="${e.audioBytes}" type="${x(e.audioType)}"/>
 ${secs(e.durationMs) === null ? '' : `      <itunes:duration>${secs(e.durationMs)}</itunes:duration>\n`}    </item>`).join('\n');
   return `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">
