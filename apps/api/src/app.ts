@@ -39,6 +39,7 @@ import collectionsJson from '../collections.json' with { type: 'json' };
 import { validateCollections } from './catalog/collections.ts';
 import { categories } from './routes/categories.ts';
 import { studio } from './routes/studio.ts';
+import { extras } from './routes/extras.ts';
 
 export type AppDeps = {
   db: Db; pepper: string; assetLinksSha256?: string;
@@ -118,6 +119,7 @@ export function createApp(deps: AppDeps) {
   app.route('/v1/creator', creator);
   // M11 — the Studio (specs/011-m11-studio). Its env adds `show`; the shared variables are the same.
   app.route('/v1/studio', studio as unknown as Hono<AuthEnv>);
+  app.route('/v1', extras);
   app.route('/v1/me/rec-events', recEvents);
   app.route('/v1/me/feed', feed);
   app.route('/v1/me/listened', listened);

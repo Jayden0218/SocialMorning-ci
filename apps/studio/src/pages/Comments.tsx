@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { api, HttpError, type Show } from '../api';
 import { mmss, shortDate } from '../format';
 import { ConfirmDialog } from '../shell/ConfirmDialog';
+import { MuteDialog } from './Subscribers';
 import { PageHead } from '../shell/Page';
 import { Empty, Failed, Loading } from '../shell/States';
 import { useLoad } from '../useLoad';
@@ -49,6 +50,8 @@ function CommentItem({ show, c, showEpisode, onChanged }: { show: Show; c: Studi
   const [confirm, setConfirm] = useState<'hide' | 'unhide' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+  const [muting, setMuting] = useState(false);
+  const [muted, setMuted] = useState(false);
   const act = async (fn: () => Promise<unknown>, after?: () => void) => {
     setBusy(true); setError(null);
     try { await fn(); after?.(); } catch (e) { setError(e instanceof HttpError ? e.message : 'That did not work. Try again.'); } finally { setBusy(false); }
@@ -73,6 +76,8 @@ function CommentItem({ show, c, showEpisode, onChanged }: { show: Show; c: Studi
           {c.state === 'visible'
             ? <button type="button" className="linkish" onClick={() => setConfirm('hide')}>Hide</button>
             : <button type="button" className="linkish" onClick={() => setConfirm('unhide')}>Un-hide</button>}
+          {c.author && !muted ? <button type="button" className="linkish" onClick={() => setMuting(true)}>Mute {c.author.displayName}</button> : null}
+          {muted ? <span className="muted" role="status">Muted on your show</span> : null}
         </div>
       ) : null}
       {replying ? (
@@ -84,6 +89,10 @@ function CommentItem({ show, c, showEpisode, onChanged }: { show: Show; c: Studi
           <textarea id={`r-${c.id}`} maxLength={2000} required value={text} onChange={(e) => setText(e.target.value)} placeholder="Reply as the host" />
           <button className="btn" type="submit" disabled={busy || !text.trim()}>Send</button>
         </form>
+      ) : null}
+      {muting && c.author ? (
+        <MuteDialog show={show} id={c.author.id} name={c.author.displayName} busy={busy} setBusy={setBusy}
+          onDone={() => { setMuting(false); setMuted(true); }} onError={setError} onCancel={() => setMuting(false)} />
       ) : null}
       {confirm ? (
         <ConfirmDialog

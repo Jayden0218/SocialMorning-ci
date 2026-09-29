@@ -12,7 +12,7 @@ export const SECTIONS = [
   { path: 'data', label: 'Data', icon: IconChart, built: true },
   { path: 'episodes', label: 'Episodes', icon: IconEpisodes, built: true },
   { path: 'comments', label: 'Comments', icon: IconComments, built: true },
-  { path: 'subscribers', label: 'Subscribers', icon: IconPeople, built: false },
+  { path: 'subscribers', label: 'Subscribers', icon: IconPeople, built: true },
   { path: 'announcements', label: 'Announcements', icon: IconMegaphone, built: false },
   { path: 'polls', label: 'Polls', icon: IconPoll, built: false },
   { path: 'tips', label: 'Tips', icon: IconCoin, built: false, ownerOnly: true },

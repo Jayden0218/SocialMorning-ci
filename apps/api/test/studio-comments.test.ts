@@ -55,8 +55,8 @@ test('SC-003 path: the owner\'s reply reaches the app thread with the Host mark;
   assert.equal((await sCall(t, 'POST', `/v1/studio/shows/${key}/comments/${commentId}/reply`, op, { body: 'Me too' })).status, 201);
   const [top] = await thread(t, listener.token);
   assert.deepEqual(top!.replies.map((x) => [x.body, x.host === true]), [['Glad you liked it', true], ['Me too', false]]);
-  // The app's 5 s floor applies to the Studio too.
-  assert.equal((await sCall(t, 'POST', `/v1/studio/shows/${key}/comments/${commentId}/reply`, owner, { body: 'again' })).status, 429);
+  // The app's 5 s floor applies to the Studio too (the operator's reply is the fresh one).
+  assert.equal((await sCall(t, 'POST', `/v1/studio/shows/${key}/comments/${commentId}/reply`, op, { body: 'again' })).status, 429);
   await t.close();
 });
 

@@ -40,7 +40,7 @@ describe('Data (US2)', () => {
   it('the range select re-asks for the trend; a header click flips the sort', async () => {
     const f = dataApi();
     renderIn(<Data show={SHOW} />);
-    await screen.findAllByText('Two');
+    await screen.findByRole('button', { name: /^Plays/ });
     fireEvent.change(screen.getByLabelText('Range'), { target: { value: '90' } });
     await vi.waitFor(() => expect(f.mock.calls.some(([u]) => String(u).includes('days=90'))).toBe(true));
     fireEvent.click(screen.getByRole('button', { name: /^Plays/ }));

@@ -8,6 +8,7 @@ import { Data } from './pages/Data';
 import { Episodes } from './pages/Episodes';
 import { Episode } from './pages/Episode';
 import { Comments } from './pages/Comments';
+import { Subscribers } from './pages/Subscribers';
 import type { Show } from './api';
 import { NoShow } from './pages/NoShow';
 import { SignIn } from './pages/SignIn';
@@ -22,6 +23,8 @@ export function App() {
       <Route path="/s/:show/data" element={<Signed><ShowPage page={(s) => <Data show={s} />} /></Signed>} />
       <Route path="/s/:show/episodes" element={<Signed><ShowPage page={(s) => <Episodes show={s} />} /></Signed>} />
       <Route path="/s/:show/episodes/:id" element={<Signed><ShowPage page={(s) => <Episode show={s} />} /></Signed>} />
+      <Route path="/s/:show/subscribers" element={<Signed><ShowPage page={(s) => <Subscribers show={s} />} /></Signed>} />
+      <Route path="/s/:show/subscribers/:tab" element={<Signed><ShowPage page={(s) => <Subscribers show={s} />} /></Signed>} />
       <Route path="/s/:show/comments" element={<Signed><ShowPage page={(s) => <Comments show={s} />} /></Signed>} />
       <Route path="*" element={<Signed><FirstShow /></Signed>} />
     </Routes>
