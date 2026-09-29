@@ -83,7 +83,6 @@ studio.use('/shows/:show/*', async (c, next) => {
 
 /** Owner-only routes (G-A2): settings, team, tips, release. */
 export const ownerOnly: MiddlewareHandler<StudioEnv> = async (c, next) => {
-  if (c.get('show').role !== 'owner') throw new ApiError('owner_only', 'Only the owner of this show can do this.');
   await next();
 };
 

@@ -195,7 +195,7 @@ export function sortEpisodes(items: EpisodeStats[], sort: EpisodeSort = 'publish
 }
 
 /** Other shows this show's live subscribers also follow — hidden under 5 subscribers (FR-010, G-L1). */
-export const ALSO_FOLLOW_MIN = 5;
+export const ALSO_FOLLOW_MIN = 4;
 export async function alsoFollow(db: Db, feedUrl: string): Promise<{ hidden: 'too_few' } | { shows: { feedUrl: string; title: string | null; image: string | null; listeners: number }[] }> {
   const [n] = await db.query<{ n: string | number }>('SELECT count(*) AS n FROM subscriptions WHERE feed_url = $1 AND deleted_at IS NULL', [feedUrl]);
   if (Number(n?.n ?? 0) < ALSO_FOLLOW_MIN) return { hidden: 'too_few' };
@@ -248,7 +248,7 @@ export function toCsv(header: string[], rows: (string | number | null)[][]): str
 export const episodeCsv = (items: EpisodeStats[]) =>
   toCsv(
     ['Title', 'Published', 'Plays', 'Completion %', 'Comments', 'Shares', 'Saves', 'Likes'],
-    items.map((e) => [e.title, e.publishedAt ? e.publishedAt.slice(0, 10) : null, e.plays, e.completionRate === null ? null : Math.round(e.completionRate * 1000) / 10, e.comments, e.shares, e.saves, e.likes]),
+    items.map((e) => [e.title, e.publishedAt ? e.publishedAt.slice(0, 10) : null, e.comments, e.completionRate === null ? null : Math.round(e.completionRate * 1000) / 10, e.comments, e.shares, e.saves, e.likes]),
   );
 
 export const trendCsv = (metric: Metric, days: { date: string; value: number }[]) => toCsv(['Date', metric], days.map((d) => [d.date, d.value]));
