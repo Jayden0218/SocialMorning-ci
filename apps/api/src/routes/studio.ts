@@ -22,7 +22,11 @@ export type { StudioEnv };
 
 export const studio = new Hono<StudioEnv>();
 
-
+studio.use('*', async (c, next) => {
+  c.header('Cache-Control', 'private, no-store');
+  await next();
+  c.res.headers.set('Cache-Control', 'private, no-store');
+});
 studio.use('*', studioCsrf);
 
 const secure = (url: string) => new URL(url).protocol === 'https:';
@@ -56,7 +60,7 @@ studio.get('/me', async (c) => {
 });
 
 // ---- Show scope (G-A1) ----
-studio.use('/shows/:show/overview', async (c, next) => {
+studio.use('/shows/:show/*', async (c, next) => {
   const show = await roleFor(c.get('db'), c.get('listener')!.id, c.req.param('show'));
   if (!show) throw new ApiError('no_role', 'You do not manage this show.');
   c.set('show', show);

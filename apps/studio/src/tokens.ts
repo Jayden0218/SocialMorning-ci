@@ -11,7 +11,7 @@ import { colour, colourDark, type Palette } from '@tokens';
 
 export type Role = keyof Palette | 'onFill';
 
-export const light: Record<Role, string> = { ...colour, onFill: colour.onPrimary };
+export const light: Record<Role, string> = { ...colour, onFill: colour.text };
 export const dark: Record<Role, string> = { ...colourDark, onFill: colour.text };
 
 const kebab = (k: string) => k.replace(/[A-Z]/g, (m) => '-' + m.toLowerCase());

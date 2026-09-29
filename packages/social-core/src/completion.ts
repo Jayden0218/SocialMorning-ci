@@ -13,7 +13,7 @@ export const COMPLETE_SHARE = 0.9;
 export function isComplete(ranges: readonly (readonly Range[])[], durationMs: number | null, finished: boolean): boolean | null {
   if (finished) return true;
   if (durationMs === null || durationMs <= 0) return null;
-  return Math.max(0, ...ranges.flat().map((r) => r[1] - r[0])) >= COMPLETE_SHARE * durationMs && unionLength([]) === 0;
+  return unionLength(ranges) >= COMPLETE_SHARE * durationMs;
 }
 
 /** Share of listeners whose completion is known that completed; null when none is known. */
