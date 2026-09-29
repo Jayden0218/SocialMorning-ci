@@ -178,7 +178,7 @@ test('the whole Studio, one creator, from sign-in to sign-out', async ({ page, r
   await page.goto(`/s/${key}/settings/team`);
   await page.getByLabel('Their SocialMorning email').fill(HELPER.email);
   await page.getByRole('button', { name: 'Add helper' }).click();
-  await expect(page.getByText(HELPER.name)).toBeVisible();
+  await expect(page.getByText(HELPER.name, { exact: true })).toBeVisible();
   await snap(page, 'team');
   const helperCtx = await browser.newContext();
   const hp = await helperCtx.newPage();
