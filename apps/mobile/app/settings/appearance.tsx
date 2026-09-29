@@ -9,12 +9,13 @@ import { Pressable } from '../../src/ui/lib/pressable';
 import { ScrollView } from '../../src/ui/lib/scroll-view';
 import { Text } from '../../src/ui/lib/text';
 import { Box } from '../../src/ui/lib/box';
-import { hit } from '../../src/design';
+import { size } from '../../src/design';
 import { applyAppearance } from '../../src/design/theme';
 import { useStores } from '../../src/ui/providers';
 import { APPEARANCE_KEY, readAppearance, type Appearance } from '../../src/ui/useColours';
 
-const TAP = { minHeight: hit.min + 8 };
+/** M12 FR-050: one row height for every list (was hit.min + 8 = 56). */
+const TAP = { minHeight: size.row };
 const CHOICES: { value: Appearance; label: string; line: string }[] = [
   { value: 'system', label: 'Follow the phone', line: 'Light or dark, as the phone is set' },
   { value: 'light', label: 'Light', line: 'Always light' },

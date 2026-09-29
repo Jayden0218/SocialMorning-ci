@@ -7,12 +7,13 @@ import { Link } from 'expo-router';
 import { Pressable } from '../lib/pressable';
 import { Text } from '../lib/text';
 import { Box } from '../lib/box';
-import { colour, hit } from '../../design';
+import { colour, size } from '../../design';
 import { useStores } from '../providers';
 import { useColours } from '../useColours';
 import { Icon, type IconName } from '../Icon';
 
-const TAP = { minHeight: hit.min + 8 };
+/** M12 FR-050: one row height for every list (was hit.min + 8 = 56). */
+const TAP = { minHeight: size.row };
 
 export function MenuRow(props: { href: string; icon: IconName; label: string; note?: string; badge?: number }): React.ReactElement {
   const stores = useStores();

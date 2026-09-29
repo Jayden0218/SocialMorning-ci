@@ -21,7 +21,7 @@ export default function FollowersScreen(): React.ReactElement {
     <FlatList
       data={safetyFilter.listeners(rows)}
       keyExtractor={(l) => l.id}
-      contentContainerClassName="p-4"
+      contentContainerClassName="px-screen-x py-section"
       ListEmptyComponent={<EmptyState surface="followers" />}
       renderItem={({ item }) => (
         <Link href={{ pathname: '/profile/[id]', params: { id: item.id } }} asChild>

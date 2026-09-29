@@ -1,4 +1,4 @@
-export { colour, colourDark, fontSize, spacing, radius, hit, tabular } from './tokens';
+export { colour, colourDark, fontSize, spacing, radius, hit, size, tabular } from './tokens';
 export type { Palette } from './tokens';
 export type { Colour } from './tokens';
 export { relativeLuminance, contrastRatio, failures, BODY_MIN, LARGE_MIN, PAIRS, PAIRS_DARK, WAIVED } from './contrast';

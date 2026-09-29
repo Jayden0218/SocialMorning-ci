@@ -7,12 +7,13 @@ import { Pressable } from '../lib/pressable';
 import { Switch } from '../lib/switch';
 import { Text } from '../lib/text';
 import { Box } from '../lib/box';
-import { colour, hit } from '../../design';
+import { colour, size } from '../../design';
 import { useStores } from '../providers';
 import { useColours } from '../useColours';
 import { Icon, type IconName } from '../Icon';
 
-const TAP = { minHeight: hit.min + 8 };
+/** M12 FR-050: one row height for every list (was hit.min + 8 = 56). */
+const TAP = { minHeight: size.row };
 
 function Body(props: { icon: IconName; label: string; line?: string; value?: string; danger?: boolean }): React.ReactElement {
   const stores = useStores();

@@ -9,7 +9,7 @@ import { Pressable } from '../../src/ui/lib/pressable';
 import { ScrollView } from '../../src/ui/lib/scroll-view';
 import { Text } from '../../src/ui/lib/text';
 import { Box } from '../../src/ui/lib/box';
-import { colour, hit } from '../../src/design';
+import { colour, size } from '../../src/design';
 import { useColours } from '../../src/ui/useColours';
 import { FAQ } from '../../src/settings/faq';
 import { appealsMailto, APPEALS_KEY, refreshAppeals } from '../../src/social/links';
@@ -19,7 +19,8 @@ import { Icon } from '../../src/ui/Icon';
 import { useStores } from '../../src/ui/providers';
 import { LinkRow } from '../../src/ui/settings/rows';
 
-const TAP = { minHeight: hit.min + 8 };
+/** M12 FR-050: one row height for every list (was hit.min + 8 = 56). */
+const TAP = { minHeight: size.row };
 
 export default function HelpScreen(): React.ReactElement {
   const { api } = useSocial();

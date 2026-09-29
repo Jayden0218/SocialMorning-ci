@@ -112,6 +112,24 @@ for (const file of files) {
   }
 }
 
+/**
+ * The fourth class, M12 guard G-R1 (2026-09-29): the page rhythm comes from tokens.
+ *
+ * The 2026-09-29 comparison measured rows of 48, 56 and 80 pt and page margins of 12, 20 and
+ * 24 on one phone — each page had chosen its own. So a row height built by hand
+ * (`hit.min + 8`) and a scroll page with a number margin (`p-3`, `px-4`) are refused; rows
+ * use `size.row`, pages use `px-screen-x`.
+ */
+for (const file of files) {
+  if (file === ALLOWED || EXEMPT.includes(file) || file.startsWith(LIB)) continue;
+  const lines = readFileSync(file, 'utf8').split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    const bare = lines[i].trim();
+    if (bare.startsWith('*') || bare.startsWith('//') || bare.startsWith('/*')) continue;
+    if (/hit\.min\s*\+\s*\d/.test(lines[i])) classes.push(`${file}:${i + 1} a row height built by hand — use size.row`);
+    if (/contentContainerClassName=["'`][^"'`]*(?:^|\s|["'`])(?:p|px)-\d/.test(lines[i])) classes.push(`${file}:${i + 1} a page margin written as a number — use px-screen-x`);
+  }
+}
 if (classes.length > 0) {
   console.error(`token check: ${classes.length} class string(s) break the token rule`);
   for (const f of classes) console.error('  ' + f);

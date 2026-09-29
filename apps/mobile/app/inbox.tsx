@@ -36,7 +36,7 @@ export default function InboxScreen(): React.ReactElement {
     <FlatList
       data={ids.slice(0, shown)}
       keyExtractor={(id) => id}
-      contentContainerClassName="p-3 gap-1"
+      contentContainerClassName="px-screen-x py-row gap-1"
       ListHeaderComponent={<Text className="text-muted text-[13px]">{ids.length} new since you subscribed</Text>}
       ListEmptyComponent={<EmptyState surface="inbox" />}
       ListFooterComponent={ids.length > shown ? (
