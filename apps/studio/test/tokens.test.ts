@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * FR-028: every Studio colour comes from the app's tokens, and every pair the Studio draws
  * meets WCAG AA — measured here, in both themes, on every run.
