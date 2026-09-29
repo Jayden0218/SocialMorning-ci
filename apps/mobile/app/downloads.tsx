@@ -78,7 +78,7 @@ export default function DownloadsScreen(): React.ReactElement {
       ListEmptyComponent={
         <Box className="items-center pt-24 gap-section">
           <Box className="w-28 h-28 rounded-pill bg-surface items-center justify-center" accessible={false}><Icon name="download-outline" size={44} color={c.muted} /></Box>
-          <EmptyState surface="downloads" />
+          <EmptyState surface="downloads" page />
         </Box>
       }
       renderItem={({ item }) => (

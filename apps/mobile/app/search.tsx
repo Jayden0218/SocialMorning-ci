@@ -153,7 +153,7 @@ export default function SearchScreen(): React.ReactElement {
         {catalogue.kind === 'loading' ? <Loader className="my-2" /> : null}
         {catalogue.kind === 'error' ? <Text className="my-2 text-accent bg-surface p-2 rounded-md">{catalogue.message}</Text> : null}
         {catalogue.kind === 'ok' && catalogue.result.episodeSearch === 'unavailable' ? <Text className="my-2 text-accent bg-surface p-2 rounded-md">Episode search is unavailable right now — shows only.</Text> : null}
-        {nothing ? <EmptyState surface="search" /> : null}
+        {nothing ? <EmptyState surface="search" page /> : null}
 
         {merged.shows.length > 0 ? <Text className="text-sm font-semibold mt-3 mb-1 text-text">Shows</Text> : null}
         {merged.shows.map((s) => (

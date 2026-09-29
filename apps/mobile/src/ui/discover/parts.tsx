@@ -18,11 +18,21 @@ import { Artwork } from '../Artwork';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
 
+/** Splits a title for the two-tone style: one word stays all accent. */
+export function twoTone(title: string): { lead: string; rest: string } {
+  const at = title.indexOf(' ');
+  return at <= 0 ? { lead: '', rest: title } : { lead: title.slice(0, at), rest: title.slice(at) };
+}
+
 export function SectionTitle(props: { title: string; action?: { label: string; onPress: () => void }; badge?: number }): React.ReactElement {
   return (
     <Box className="flex-row items-center justify-between px-screen-x mt-section mb-row">
       <Box className="flex-row items-center gap-row flex-1">
-        <Text className="text-accent text-base font-bold" accessibilityRole="header" numberOfLines={1}>{props.title}</Text>
+        <Text className="text-accent text-base font-bold" accessibilityRole="header" numberOfLines={1}>
+          {/* M12 FR-055: two tones — the first word in the text colour, the rest in the accent. */}
+          {twoTone(props.title).lead ? <Text className="text-text text-base font-bold">{twoTone(props.title).lead}</Text> : null}
+          {twoTone(props.title).rest}
+        </Text>
         {props.badge !== undefined ? (
           <Box className="bg-primary rounded-pill px-2 py-0.5"><Text className="text-onPrimary text-xs font-bold">{props.badge}</Text></Box>
         ) : null}
@@ -36,14 +46,18 @@ export function SectionTitle(props: { title: string; action?: { label: string; o
   );
 }
 
-/** The round play button every row ends with. */
+/**
+ * The round play button every row ends with. M12 FR-053: a tinted disc with an accent glyph —
+ * six solid yellow circles a screen read heavier than the rows they end (2026-09-29
+ * comparison). The player's own Play stays solid.
+ */
 export function PlayButton(props: { title: string; onPress: () => void }): React.ReactElement {
   return (
     <Pressable onPress={props.onPress} accessibilityRole="button" accessibilityLabel={`Play ${props.title}`} className="items-center justify-center" style={TAP}>
-      <Box className="w-10 h-10 rounded-pill bg-primary items-center justify-center">
+      <Box className="w-10 h-10 rounded-pill bg-accentTint items-center justify-center">
         {/* iOS J6: the ▶ is an icon in a fixed circle; at the largest Dynamic Type it grew out
             of the circle and under the next card. It scales a little and no more. */}
-        <Text className="text-onPrimary text-sm pl-0.5" maxFontSizeMultiplier={1.3}>▶</Text>
+        <Text className="text-accent text-sm pl-0.5" maxFontSizeMultiplier={1.3}>▶</Text>
       </Box>
     </Pressable>
   );

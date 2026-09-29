@@ -32,7 +32,7 @@ export default function QueueScreen(): React.ReactElement {
       keyExtractor={(id) => id}
       contentContainerClassName="px-screen-x py-row gap-1"
       ListHeaderComponent={<Text className="text-muted text-[13px]">{ids.length} of 300 · plays in order when the current episode ends</Text>}
-      ListEmptyComponent={<EmptyState surface="queue" />}
+      ListEmptyComponent={<EmptyState surface="queue" page />}
       renderItem={({ item, index }) => {
         const episode = stores.feeds.getEpisode(item);
         const show = episode ? stores.feeds.getShow(episode.feedUrl) : undefined;

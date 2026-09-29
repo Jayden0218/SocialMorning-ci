@@ -25,6 +25,11 @@ export type EmptyStateProps = {
   /** Overrides the table's action (e.g. "Comment at 14:32" on the episode page). */
   action?: { label: string; onPress: () => void };
   className?: string;
+  /**
+   * M12 FR-056 (B9): the empty state fills a whole page — centre the sentence and its action,
+   * as the picture empty states do. Inline uses (the episode page's comments) stay left.
+   */
+  page?: boolean;
 };
 
 export function EmptyState(props: EmptyStateProps): React.ReactElement | null {
@@ -35,7 +40,9 @@ export function EmptyState(props: EmptyStateProps): React.ReactElement | null {
     ...(props.failed !== undefined ? { failed: props.failed } : {}),
   });
   if (view.kind === 'quiet') return null;
-  const wrap = `py-4 gap-1.5 items-start ${props.className ?? ''}`;
+  const wrap = `py-4 gap-1.5 ${props.page ? 'items-center px-screen-x' : 'items-start'} ${props.className ?? ''}`;
+  const align = props.page ? 'text-center' : '';
+  const self = props.page ? 'self-center' : 'self-start';
   if (view.kind === 'loading') {
     return (
       <Box className={wrap} accessibilityLiveRegion="polite">
@@ -46,9 +53,9 @@ export function EmptyState(props: EmptyStateProps): React.ReactElement | null {
   if (view.kind === 'offline' || view.kind === 'error') {
     return (
       <Box className={wrap} accessibilityLiveRegion="polite">
-        <Text className="text-text text-[15px]">{view.sentence}</Text>
+        <Text className={`text-text text-[15px] ${align}`}>{view.sentence}</Text>
         {props.onRetry ? (
-          <Button variant="link" className="py-2.5 px-0 justify-center self-start" style={TAP} onPress={props.onRetry} accessibilityRole="button" accessibilityLabel="Retry">
+          <Button variant="link" className={`py-2.5 px-0 justify-center ${self}`} style={TAP} onPress={props.onRetry} accessibilityRole="button" accessibilityLabel="Retry">
             <ButtonText className="text-accent text-sm font-semibold">Retry</ButtonText>
           </Button>
         ) : null}
@@ -58,8 +65,8 @@ export function EmptyState(props: EmptyStateProps): React.ReactElement | null {
   const action = props.action ?? { label: view.action.label, onPress: () => router.push(view.action.route as never) };
   return (
     <Box className={wrap}>
-      <Text className="text-text text-[15px]">{view.sentence}</Text>
-      <Button variant="link" className="py-2.5 px-0 justify-center self-start" style={TAP} onPress={action.onPress} accessibilityRole="button" accessibilityLabel={action.label}>
+      <Text className={`text-text text-[15px] ${align}`}>{view.sentence}</Text>
+      <Button variant="link" className={`py-2.5 px-0 justify-center ${self}`} style={TAP} onPress={action.onPress} accessibilityRole="button" accessibilityLabel={action.label}>
         <ButtonText className="text-accent text-sm font-semibold">{action.label}</ButtonText>
       </Button>
     </Box>

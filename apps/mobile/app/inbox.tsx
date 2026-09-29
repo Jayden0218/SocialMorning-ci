@@ -38,7 +38,7 @@ export default function InboxScreen(): React.ReactElement {
       keyExtractor={(id) => id}
       contentContainerClassName="px-screen-x py-row gap-1"
       ListHeaderComponent={<Text className="text-muted text-[13px]">{ids.length} new since you subscribed</Text>}
-      ListEmptyComponent={<EmptyState surface="inbox" />}
+      ListEmptyComponent={<EmptyState surface="inbox" page />}
       ListFooterComponent={ids.length > shown ? (
         <Pressable onPress={() => setShown((n) => n + INBOX_PAGE)} accessibilityRole="button"><Text className="text-accent text-[15px]">Load more</Text></Pressable>
       ) : undefined}

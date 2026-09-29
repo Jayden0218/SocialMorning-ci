@@ -40,7 +40,7 @@ export function EmptyPicture(props: { icon: IconName; line: string }): React.Rea
   return (
     <Box className="flex-1 items-center justify-center py-24 gap-section" accessible accessibilityLabel={props.line}>
       <Box className="w-28 h-28 rounded-pill bg-surface items-center justify-center"><Icon name={props.icon} size={44} color={c.muted} /></Box>
-      <Text className="text-muted text-sm">{props.line}</Text>
+      <Text className="text-muted text-sm text-center px-screen-x">{props.line}</Text>
     </Box>
   );
 }

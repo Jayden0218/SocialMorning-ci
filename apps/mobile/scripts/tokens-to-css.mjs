@@ -33,6 +33,14 @@ export function loadTokens() {
 
 const kebab = (s) => s.replace(/[A-Z]/g, (c) => '-' + c.toLowerCase());
 
+/** A token colour as CSS: `#rrggbb` as is, `rgba(r,g,b,a)` normalised to `rgba(r, g, b, a)`. */
+export function css(value) {
+  if (/^#[0-9a-f]{6}$/i.test(value)) return value.toLowerCase();
+  const rgba = /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+)\s*)?\)$/i.exec(value);
+  if (rgba) return rgba[4] === undefined ? `rgb(${rgba[1]}, ${rgba[2]}, ${rgba[3]})` : `rgba(${rgba[1]}, ${rgba[2]}, ${rgba[3]}, ${rgba[4]})`;
+  throw new Error(`tokens-to-css: cannot read colour ${value}`);
+}
+
 /** `#rrggbb` → `r g b`; `rgba(r,g,b,a)` → `r g b / a` — the channel form gluestack's vars use. */
 export function channels(value) {
   const hex = /^#([0-9a-f]{6})$/i.exec(value);
@@ -59,14 +67,21 @@ export function renderBlock(tokens = loadTokens()) {
   lines.push('@layer theme {', '  :root {');
   for (const [name, palette] of [['light', colour], ['dark', colourDark ?? colour]]) {
     lines.push(`    @variant ${name} {`);
-    for (const k of Object.keys(colour)) lines.push(`      --${kebab(k)}: ${channels(palette[k])};`);
+    // M12 (found on the iPhone 2026-09-29): the documented UniWind form — the real colour, hex
+    // or rgba(), under its --color- name (docs.uniwind.dev/theming/global-css). The earlier
+    // `--x: r g b / a` + `rgb(var(--x))` lost every alpha: separators drew as solid black
+    // lines, and a 14 % tint drew nothing.
+    for (const k of Object.keys(colour)) lines.push(`      --color-${k}: ${css(palette[k])};`);
     lines.push('    }');
   }
   lines.push('  }', '}');
-  lines.push('@theme inline {');
   // Tailwind's own palette stays off, as `colors` replaced it in v3: `bg-red-500` generates nothing.
-  lines.push('  --color-*: initial;', '  --color-transparent: transparent;');
-  for (const k of Object.keys(colour)) lines.push(`  --color-${k}: rgb(var(--${kebab(k)}));`);
+  // The token names are registered in a plain (not inline) @theme, so each utility reads the
+  // variable at run time and the dark variant above can replace it.
+  lines.push('@theme {', '  --color-*: initial;', '  --color-transparent: transparent;');
+  for (const k of Object.keys(colour)) lines.push(`  --color-${k}: ${css(colour[k])};`);
+  lines.push('}');
+  lines.push('@theme inline {');
   // Font sizes REPLACE the default scale, as in v3; no line-height is set, as in v3.
   lines.push('  --text-*: initial;');
   for (const [k, v] of Object.entries(fontSize)) lines.push(`  --text-${k}: ${v}px;`);

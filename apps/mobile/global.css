@@ -5,59 +5,61 @@
 @layer theme {
   :root {
     @variant light {
-      --background: 255 255 255;
-      --surface: 245 245 247;
-      --text: 17 17 20;
-      --muted: 95 99 104;
-      --primary: 252 197 34;
-      --on-primary: 255 255 255;
-      --accent: 138 90 0;
-      --track: 0 0 0 / 0.12;
-      --bar: 0 0 0 / 0.50;
-      --separator: 0 0 0 / 0.12;
-      --scrim: 0 0 0 / 0.40;
-      --facebook: 24 119 242;
-      --clear: 255 255 255 / 0;
-      --accent-tint: 138 90 0 / 0.14;
-      --scrim-strong: 0 0 0 / 0.65;
+      --color-background: #ffffff;
+      --color-surface: #f5f5f7;
+      --color-text: #111114;
+      --color-muted: #5f6368;
+      --color-primary: #fcc522;
+      --color-onPrimary: #ffffff;
+      --color-accent: #8a5a00;
+      --color-track: rgba(0, 0, 0, 0.12);
+      --color-bar: rgba(0, 0, 0, 0.50);
+      --color-separator: rgba(0, 0, 0, 0.12);
+      --color-scrim: rgba(0, 0, 0, 0.40);
+      --color-facebook: #1877f2;
+      --color-clear: rgba(255, 255, 255, 0);
+      --color-accentTint: rgba(138, 90, 0, 0.14);
+      --color-scrimStrong: rgba(0, 0, 0, 0.65);
     }
     @variant dark {
-      --background: 17 17 20;
-      --surface: 29 29 34;
-      --text: 242 242 245;
-      --muted: 161 165 172;
-      --primary: 252 197 34;
-      --on-primary: 255 255 255;
-      --accent: 252 197 34;
-      --track: 255 255 255 / 0.16;
-      --bar: 255 255 255 / 0.55;
-      --separator: 255 255 255 / 0.14;
-      --scrim: 0 0 0 / 0.60;
-      --facebook: 24 119 242;
-      --clear: 17 17 20 / 0;
-      --accent-tint: 252 197 34 / 0.18;
-      --scrim-strong: 0 0 0 / 0.70;
+      --color-background: #111114;
+      --color-surface: #1d1d22;
+      --color-text: #f2f2f5;
+      --color-muted: #a1a5ac;
+      --color-primary: #fcc522;
+      --color-onPrimary: #ffffff;
+      --color-accent: #fcc522;
+      --color-track: rgba(255, 255, 255, 0.16);
+      --color-bar: rgba(255, 255, 255, 0.55);
+      --color-separator: rgba(255, 255, 255, 0.14);
+      --color-scrim: rgba(0, 0, 0, 0.60);
+      --color-facebook: #1877f2;
+      --color-clear: rgba(17, 17, 20, 0);
+      --color-accentTint: rgba(252, 197, 34, 0.18);
+      --color-scrimStrong: rgba(0, 0, 0, 0.70);
     }
   }
 }
-@theme inline {
+@theme {
   --color-*: initial;
   --color-transparent: transparent;
-  --color-background: rgb(var(--background));
-  --color-surface: rgb(var(--surface));
-  --color-text: rgb(var(--text));
-  --color-muted: rgb(var(--muted));
-  --color-primary: rgb(var(--primary));
-  --color-onPrimary: rgb(var(--on-primary));
-  --color-accent: rgb(var(--accent));
-  --color-track: rgb(var(--track));
-  --color-bar: rgb(var(--bar));
-  --color-separator: rgb(var(--separator));
-  --color-scrim: rgb(var(--scrim));
-  --color-facebook: rgb(var(--facebook));
-  --color-clear: rgb(var(--clear));
-  --color-accentTint: rgb(var(--accent-tint));
-  --color-scrimStrong: rgb(var(--scrim-strong));
+  --color-background: #ffffff;
+  --color-surface: #f5f5f7;
+  --color-text: #111114;
+  --color-muted: #5f6368;
+  --color-primary: #fcc522;
+  --color-onPrimary: #ffffff;
+  --color-accent: #8a5a00;
+  --color-track: rgba(0, 0, 0, 0.12);
+  --color-bar: rgba(0, 0, 0, 0.50);
+  --color-separator: rgba(0, 0, 0, 0.12);
+  --color-scrim: rgba(0, 0, 0, 0.40);
+  --color-facebook: #1877f2;
+  --color-clear: rgba(255, 255, 255, 0);
+  --color-accentTint: rgba(138, 90, 0, 0.14);
+  --color-scrimStrong: rgba(0, 0, 0, 0.65);
+}
+@theme inline {
   --text-*: initial;
   --text-xs: 12px;
   --text-sm: 16px;

@@ -109,6 +109,7 @@ test('G-Q1: past the storage ceiling, the upload is refused before any bytes mov
   assert.equal(over.status, 409);
   assert.equal((over.body as { reason: string }).reason, 'storage_full');
   assert.equal(store.files.size, 1, 'no second file was stored');
+  assert.deepEqual(store.removed, [], 'refused at the token: no bytes moved and then had to be deleted');
   await t.close();
 });
 

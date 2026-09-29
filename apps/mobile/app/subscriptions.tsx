@@ -38,7 +38,7 @@ export default function SubscriptionsScreen(): React.ReactElement {
       data={rows}
       keyExtractor={(r) => r.feedUrl}
       contentContainerClassName="px-screen-x py-row pb-24"
-      ListEmptyComponent={<EmptyState surface="library" />}
+      ListEmptyComponent={<EmptyState surface="library" page />}
       renderItem={({ item }) => {
         const latest = stores.feeds.listEpisodes(item.feedUrl)[0]?.publishedAt;
         const line = [latest === undefined ? 'No episodes yet' : `Latest ${shortDate(latest)}`, item.stale ? 'offline copy' : undefined,
