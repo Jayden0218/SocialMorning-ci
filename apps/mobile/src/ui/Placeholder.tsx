@@ -1,5 +1,5 @@
 /** M6: the four placeholders a comment or clip can become — the same shape, one word each. */
-import { Text } from 'react-native';
+import { Text } from './lib/text';
 import type { Comment } from '../social/api';
 
 export type PlaceholderKind = 'deleted' | 'removed' | 'removed_mine' | 'blocked' | 'reported';

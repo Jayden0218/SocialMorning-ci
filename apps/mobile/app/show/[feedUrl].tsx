@@ -15,7 +15,12 @@
  */
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { FlatList, Pressable, SafeAreaView, Share, Text, View } from 'react-native';
+import { Share } from 'react-native';
+import { FlatList } from '../../src/ui/lib/flat-list';
+import { Pressable } from '../../src/ui/lib/pressable';
+import { SafeAreaView } from '../../src/ui/lib/safe-area-view';
+import { Text } from '../../src/ui/lib/text';
+import { Box } from '../../src/ui/lib/box';
 import { refreshShow } from '../../src/feeds/fetch';
 import { ago, htmlToText, minutesLabel, mmss } from '../../src/ui/format';
 import { usePlayer, usePlayerState } from '../../src/playback/store';
@@ -116,19 +121,19 @@ export default function ShowScreen(): React.ReactElement {
   };
 
   const header = (
-    <View>
-      <View className="px-screen-x pt-row gap-section">
-        <View className="flex-row gap-section items-start">
-          <View className="flex-1 gap-2">
+    <Box>
+      <Box className="px-screen-x pt-row gap-section">
+        <Box className="flex-row gap-section items-start">
+          <Box className="flex-1 gap-2">
             <Text className="text-[28px] leading-[36px] font-bold text-text" accessibilityRole="header">{show?.title ?? 'Loading…'}</Text>
             {show?.description === undefined ? null : (
               <Text className="text-sm text-muted" numberOfLines={2}>{htmlToText(show.description)}</Text>
             )}
             {show?.author === undefined ? null : <Text className="text-sm text-muted mt-2" numberOfLines={1}>{show.author}</Text>}
-          </View>
+          </Box>
           <Artwork url={show?.imageUrl} size={120} rounded="artwork" />
-        </View>
-        <View className="flex-row items-center gap-section">
+        </Box>
+        <Box className="flex-row items-center gap-section">
           <Text className="text-text">
             <Text className="text-lg font-bold text-text">{episodes.length}</Text>
             <Text className="text-xs text-muted"> episodes</Text>
@@ -143,33 +148,33 @@ export default function ShowScreen(): React.ReactElement {
           >
             <Text className={subscribed ? 'text-sm font-bold text-muted' : 'text-sm font-bold text-background'}>{subscribed ? 'Subscribed' : '+ Subscribe'}</Text>
           </Pressable>
-        </View>
+        </Box>
         {reportedShow ? <Text className="text-[13px] text-accent">You reported this show. It stays in your library; it is hidden from discovery for you.</Text> : null}
         {hiddenShow ? <Text className="text-[13px] text-accent">Hidden from discovery by moderation. It stays in your library.</Text> : null}
         {stale ? <Text className="text-[13px] text-accent">Showing the last copy — refresh failed</Text> : null}
         {failed === undefined ? null : <Text className="text-[13px] text-accent">{failed}</Text>}
-        <View className="flex-row gap-6" accessibilityRole="tablist">
+        <Box className="flex-row gap-6" accessibilityRole="tablist">
           {(['episodes', 'about'] as const).map((t) => (
             <Pressable key={t} onPress={() => setTab(t)} accessibilityRole="tab" accessibilityState={{ selected: tab === t }} accessibilityLabel={t === 'episodes' ? 'Episodes' : 'About'} className="justify-end" style={TAP}>
               <Text className={tab === t ? 'text-base font-bold text-text' : 'text-base text-muted'}>{t === 'episodes' ? 'Episodes' : 'About'}</Text>
-              <View className={`h-1 mt-1 rounded-pill ${tab === t ? 'bg-text' : 'bg-transparent'}`} />
+              <Box className={`h-1 mt-1 rounded-pill ${tab === t ? 'bg-text' : 'bg-transparent'}`} />
             </Pressable>
           ))}
-        </View>
-      </View>
+        </Box>
+      </Box>
       {tab === 'episodes' && episodes.length > 0 ? (
-        <View className="flex-row items-center justify-between px-screen-x">
+        <Box className="flex-row items-center justify-between px-screen-x">
           <Text className="text-sm text-muted">{episodes.length} episodes</Text>
           <Pressable onPress={() => setOldestFirst((o) => !o)} accessibilityRole="button" accessibilityLabel={oldestFirst ? 'Oldest first. Show newest first' : 'Newest first. Show oldest first'} className="justify-center" style={TAP}>
             <Text className="text-sm text-muted">{oldestFirst ? 'Oldest first ↑' : 'Newest first ↓'}</Text>
           </Pressable>
-        </View>
+        </Box>
       ) : null}
-    </View>
+    </Box>
   );
 
   const about = (
-    <View className="px-screen-x py-section gap-section">
+    <Box className="px-screen-x py-section gap-section">
       {show?.description === undefined ? <Text className="text-sm text-muted">This show has no description.</Text> : (
         <Text className="text-sm leading-[22px] text-text">{htmlToText(show.description)}</Text>
       )}
@@ -177,7 +182,7 @@ export default function ShowScreen(): React.ReactElement {
       <Pressable onPress={() => setReporting({ kind: 'show', id: feedUrl, authorId: null, label: 'show' })} accessibilityRole="button" accessibilityLabel="Report this show" className="self-start justify-center" style={TAP}>
         <Text className="text-sm text-muted">{reportedShow ? 'Reported' : 'Report this show'}</Text>
       </Pressable>
-    </View>
+    </Box>
   );
 
   return (
@@ -195,14 +200,15 @@ export default function ShowScreen(): React.ReactElement {
         keyExtractor={(episode) => episode.id}
         ListHeaderComponent={header}
         contentContainerClassName="pb-24"
-        ListEmptyComponent={tab === 'about' ? about : (
+        // iOS i13: "No episodes yet." showed while the show was still loading.
+        ListEmptyComponent={tab === 'about' ? about : show === undefined && failed === undefined ? undefined : (
           <Text className="p-screen-x text-muted">{failed === undefined ? 'No episodes yet.' : failed}</Text>
         )}
         renderItem={({ item }) => {
           const notes = htmlToText(item.shownotesHtml).replace(/\s+/g, ' ');
           const meta = [minutesLabel(item.durationMs), ago(item.publishedAt, now), progressFor(item)].filter((p) => p !== '').join(' · ');
           return (
-            <View className="flex-row gap-row px-screen-x py-row items-start">
+            <Box className="flex-row gap-row px-screen-x py-row items-start">
               <Pressable
                 className="flex-1 flex-row gap-row"
                 accessibilityRole="button"
@@ -210,11 +216,11 @@ export default function ShowScreen(): React.ReactElement {
                 onPress={() => router.push({ pathname: '/episode/[id]', params: { id: item.id } })}
               >
                 <Artwork url={item.imageUrl ?? show?.imageUrl} size={64} rounded="row" />
-                <View className="flex-1 gap-1">
+                <Box className="flex-1 gap-1">
                   <Text className="text-sm font-semibold text-text" numberOfLines={2}>{item.title}</Text>
                   {notes === '' ? null : <Text className="text-xs text-muted" numberOfLines={2}>{notes}</Text>}
                   <Text className="text-xs text-muted">{meta}</Text>
-                </View>
+                </Box>
               </Pressable>
               <Pressable
                 onPress={() => playOrPause(item)}
@@ -224,7 +230,7 @@ export default function ShowScreen(): React.ReactElement {
               >
                 {isPlaying(item.id) ? <PauseIcon size={14} /> : <PlayIcon size={16} />}
               </Pressable>
-            </View>
+            </Box>
           );
         }}
         ListFooterComponent={<ReportSheet target={reporting} onClose={() => setReporting(undefined)} />}

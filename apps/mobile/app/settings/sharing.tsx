@@ -4,7 +4,9 @@
  * call. No advertising or analytics SDK is in the app.
  */
 import { Stack } from 'expo-router';
-import { ScrollView, Text, View } from 'react-native';
+import { ScrollView } from '../../src/ui/lib/scroll-view';
+import { Text } from '../../src/ui/lib/text';
+import { Box } from '../../src/ui/lib/box';
 
 const PARTIES: { name: string; who: string; what: string; why: string }[] = [
   { name: 'Podcast publishers', who: 'Each show’s own feed and audio host', what: 'Your IP address and app name, when a feed or episode is fetched', why: 'To play and download episodes — SocialNet never hosts audio' },
@@ -20,12 +22,12 @@ export default function SharingScreen(): React.ReactElement {
       <Stack.Screen options={{ title: 'Third-party sharing' }} />
       <Text className="text-muted text-sm mb-row">No advertising or analytics companies receive anything from SocialNet.</Text>
       {PARTIES.map((p) => (
-        <View key={p.name} className="bg-surface rounded-artwork p-section gap-1" accessible accessibilityLabel={`${p.name}. ${p.who}. Shared: ${p.what}. Why: ${p.why}`}>
+        <Box key={p.name} className="bg-surface rounded-artwork p-section gap-1" accessible accessibilityLabel={`${p.name}. ${p.who}. Shared: ${p.what}. Why: ${p.why}`}>
           <Text className="text-text text-sm font-bold">{p.name}</Text>
           <Text className="text-muted text-xs">{p.who}</Text>
           <Text className="text-muted text-xs mt-1">Shared: {p.what}</Text>
           <Text className="text-muted text-xs">Why: {p.why}</Text>
-        </View>
+        </Box>
       ))}
     </ScrollView>
   );

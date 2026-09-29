@@ -5,7 +5,8 @@
  */
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Text } from '../src/ui/lib/text';
+import { Box } from '../src/ui/lib/box';
 import { latestToPlay } from '../src/outside/now-playing';
 import { usePlayer } from '../src/playback/store';
 import { useSafety } from '../src/safety/context';
@@ -26,8 +27,8 @@ export default function PlayLatest(): React.ReactElement {
     router.replace('/player');
   }, [stores, player, hiddenFeeds]);
   return (
-    <View className="flex-1 bg-background">
+    <Box className="flex-1 bg-background">
       {nothing ? <EmptyPicture icon="play-circle-outline" line="Nothing new to play — follow a show or add to your queue" /> : <Text className="text-muted text-sm p-section">Starting…</Text>}
-    </View>
+    </Box>
   );
 }

@@ -5,7 +5,11 @@
  * SafeAreaView, for the same reason as the sheet's.
  */
 import { useMemo } from 'react';
-import { Pressable, SafeAreaView, ScrollView, Text, View } from 'react-native';
+import { Pressable } from './lib/pressable';
+import { SafeAreaView } from './lib/safe-area-view';
+import { ScrollView } from './lib/scroll-view';
+import { Text } from './lib/text';
+import { Box } from './lib/box';
 import { hit } from '../design';
 import { parseLegal, titleOf, type Block, type BlockKind } from '../legal/markdown';
 
@@ -40,10 +44,10 @@ function BlockText(props: { block: Block }): React.ReactElement {
   // so the second and later lines start under the words, never under the marker.
   if (block.kind === 'item') {
     return (
-      <View className="flex-row mb-row">
+      <Box className="flex-row mb-row">
         <Text className="text-muted text-sm leading-[26px] min-w-5 pr-2">{block.marker ?? '•'}</Text>
         <Text className={KIND.item}><Spans block={block} /></Text>
-      </View>
+      </Box>
     );
   }
   return (
@@ -55,7 +59,7 @@ function BlockText(props: { block: Block }): React.ReactElement {
 
 /** A chevron drawn from two borders, so no icon font is added for one glyph. */
 function Chevron(): React.ReactElement {
-  return <View className="w-3 h-3 border-l-2 border-b-2 border-text rotate-45 ml-1" />;
+  return <Box className="w-3 h-3 border-l-2 border-b-2 border-text rotate-45 ml-1" />;
 }
 
 export function LegalDoc(props: { text: string; onClose: () => void }): React.ReactElement {
@@ -65,20 +69,20 @@ export function LegalDoc(props: { text: string; onClose: () => void }): React.Re
   return (
     <SafeAreaView className="absolute inset-0 bg-background">
       {/* Owner, 2026-09-27: the bar holds only the chevron; the title sits below it. */}
-      <View className="flex-row items-center pt-section px-2">
+      <Box className="flex-row items-center pt-section px-2">
         <Pressable onPress={props.onClose} accessibilityRole="button" accessibilityLabel="Back" className="justify-center items-center" style={TAP}>
           <Chevron />
         </Pressable>
-      </View>
+      </Box>
       {/* The ScrollView spans the full width, so its scroll bar sits on the screen's edge;
           the side margin is on the inner View, so the bar never lies over the words.
           iOS still draws its bar ~3 pt in from the edge; the owner wants it on the edge
           (2026-09-27), so the inset is pulled out by that much. Android draws it on the edge. */}
       <ScrollView className="flex-1" automaticallyAdjustsScrollIndicatorInsets={false} scrollIndicatorInsets={EDGE}>
-        <View className="px-screen-x pt-2 pb-section">
+        <Box className="px-screen-x pt-2 pb-section">
           <Text className="text-text text-lg font-bold leading-[32px] mb-section" accessibilityRole="header">{title}</Text>
           {body.map((b, i) => <BlockText key={i} block={b} />)}
-        </View>
+        </Box>
       </ScrollView>
     </SafeAreaView>
   );

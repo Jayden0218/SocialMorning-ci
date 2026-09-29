@@ -1,13 +1,17 @@
 /** Chapters (US5, FR-021): start time + title, the current one highlighted, tap → seek. */
 import { currentChapter, type Chapter } from '@socialmorning/player-core';
-import { Image, Linking, Pressable, Text, View } from 'react-native';
+import { Linking } from 'react-native';
+import { Image } from './lib/image';
+import { Pressable } from './lib/pressable';
+import { Text } from './lib/text';
+import { Box } from './lib/box';
 import { mmss } from './format';
 import { tabular } from '../design';
 
 export function ChapterList(props: { chapters: Chapter[]; positionMs: number; onSeek: (ms: number) => void }): React.ReactElement {
   const current = currentChapter(props.chapters, props.positionMs);
   return (
-    <View className="w-full gap-0.5">
+    <Box className="w-full gap-0.5">
       {props.chapters.map((c, i) => (
         <Pressable key={`${c.startMs}-${i}`} onPress={() => props.onSeek(c.startMs)} accessibilityRole="button" accessibilityLabel={`Chapter ${i + 1}, ${c.title ?? mmss(c.startMs)}`} className={`flex-row items-center gap-2.5 py-1.5 px-1.5 rounded-md ${i === current ? 'bg-surface' : ''}`}>
           <Text className="text-text w-14" style={tabular}>{mmss(c.startMs)}</Text>
@@ -17,7 +21,7 @@ export function ChapterList(props: { chapters: Chapter[]; positionMs: number; on
           ) : null}
         </Pressable>
       ))}
-    </View>
+    </Box>
   );
 }
 
@@ -27,10 +31,10 @@ export function CurrentChapter(props: { chapters: Chapter[]; positionMs: number 
   if (i === undefined) return null;
   const c = props.chapters[i]!;
   return (
-    <View className="flex-row items-center gap-2">
-      {c.imageUrl ? <Image source={{ uri: c.imageUrl }} className="w-7 h-7 rounded" /> : null}
+    <Box className="flex-row items-center gap-2">
+      {c.imageUrl ? <Image source={{ uri: c.imageUrl }} className="w-7 h-7 rounded-sm" /> : null}
       <Text className="text-text text-[13px]" numberOfLines={1}>{c.title ?? `Chapter ${i + 1}`}</Text>
-    </View>
+    </Box>
   );
 }
 

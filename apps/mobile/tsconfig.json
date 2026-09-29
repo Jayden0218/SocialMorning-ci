@@ -11,7 +11,7 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
-    "nativewind-env.d.ts"
+    "uniwind-env.d.ts"
   ],
   "exclude": [
     "node_modules"

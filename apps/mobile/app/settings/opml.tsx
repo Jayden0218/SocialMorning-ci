@@ -5,7 +5,11 @@
  */
 import { Stack } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, Share, Text, TextInput } from 'react-native';
+import { Share } from 'react-native';
+import { Textarea, TextareaInput } from '../../src/ui/lib/textarea';
+import { ScrollView } from '../../src/ui/lib/scroll-view';
+import { Text } from '../../src/ui/lib/text';
+import { colour } from '../../src/design';
 import { useColours } from '../../src/ui/useColours';
 import { fromOpml, toOpml } from '../../src/settings/opml';
 import { Button } from '../../src/ui/Button';
@@ -41,8 +45,9 @@ export default function OpmlScreen(): React.ReactElement {
       <Button label="Export subscriptions" onPress={exportAll} />
       <Text className="text-text text-base font-bold mt-section" accessibilityRole="header">Import</Text>
       <Text className="text-muted text-sm">Export OPML from your other app, then paste it here.</Text>
-      <TextInput value={text} onChangeText={setText} multiline placeholder="Paste OPML here" placeholderTextColor={c.muted} autoCorrect={false} autoCapitalize="none"
-        className="bg-surface rounded-row p-row text-text text-xs min-h-32" accessibilityLabel="OPML to import" />
+      <Textarea className="bg-surface rounded-row min-h-32 border-0 h-auto">
+        <TextareaInput value={text} onChangeText={setText} multiline placeholder="Paste OPML here" placeholderTextColor={c.muted} autoCorrect={false} autoCapitalize="none" accessibilityLabel="OPML to import"  className="p-row text-text text-xs" />
+      </Textarea>
       {text.trim() !== '' ? <Text className="text-muted text-sm">{found.length} show{found.length === 1 ? '' : 's'} found, {fresh.length} new.</Text> : null}
       <Button label={fresh.length > 0 ? `Subscribe to ${fresh.length}` : 'Nothing new to import'} onPress={importAll} disabled={fresh.length === 0} />
     </ScrollView>

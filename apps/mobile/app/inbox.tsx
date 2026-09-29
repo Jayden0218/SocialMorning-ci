@@ -4,7 +4,10 @@
  */
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { FlatList, Pressable, Text, View } from 'react-native';
+import { FlatList } from '../src/ui/lib/flat-list';
+import { Pressable } from '../src/ui/lib/pressable';
+import { Text } from '../src/ui/lib/text';
+import { Box } from '../src/ui/lib/box';
 import { enqueue } from '@socialmorning/player-core';
 import { usePlayer } from '../src/playback/store';
 import { toPlayable } from '../src/storage/playable';
@@ -43,19 +46,19 @@ export default function InboxScreen(): React.ReactElement {
         const episode = stores.feeds.getEpisode(item);
         const show = episode ? stores.feeds.getShow(episode.feedUrl) : undefined;
         return (
-          <View className="py-2 gap-1 border-b-hairline border-separator">
+          <Box className="py-2 gap-1 border-b-hairline border-separator">
             <Pressable onPress={() => router.push({ pathname: '/episode/[id]', params: { id: item } })} accessibilityRole="button">
               <Text className="text-xs text-muted uppercase">{show?.title ?? ''}</Text>
               <Text className="text-[15px] font-semibold text-text" numberOfLines={2}>{episode?.title ?? item}</Text>
               <Text className="text-muted text-[13px]">{[shortDate(episode?.publishedAt), episode?.durationMs !== undefined ? mmss(episode.durationMs) : ''].filter(Boolean).join(' · ')}</Text>
             </Pressable>
-            <View className="flex-row gap-[18px]">
+            <Box className="flex-row gap-[18px]">
               <Pressable onPress={() => { const p = toPlayable(stores, item); if (!p) return; leave(item, 'played'); player.load(p, 'play'); router.push('/player'); }} accessibilityRole="button"><Text className="text-accent text-[15px]">Play</Text></Pressable>
               <Pressable onPress={() => { const r = enqueue(stores.queue.list(), item, 'end'); if (r.refused) { toast('The queue is full (300).'); return; } stores.queue.replace(r.queue, Date.now()); leave(item, 'queued'); }} accessibilityRole="button"><Text className="text-accent text-[15px]">Queue</Text></Pressable>
               <Pressable onPress={() => { void downloads.request(item).then((r) => { if (r.kind === 'budget') toast('Not enough space for this download.'); else leave(item, 'downloaded'); }); }} accessibilityRole="button"><Text className="text-accent text-[15px]">Download</Text></Pressable>
               <Pressable onPress={() => leave(item, 'dismissed')} accessibilityRole="button"><Text className="text-accent text-[15px]">Dismiss</Text></Pressable>
-            </View>
-          </View>
+            </Box>
+          </Box>
         );
       }}
     />

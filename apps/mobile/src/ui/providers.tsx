@@ -6,7 +6,9 @@
  * adapter, and it does both exactly once for the app's life.
  */
 import { createContext, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
-import { AppState, Text, View } from 'react-native';
+import { AppState } from 'react-native';
+import { Text } from './lib/text';
+import { Box } from './lib/box';
 import { createExpoAudioAdapter } from '../playback/expo-audio-adapter';
 import { PlayerProvider, createPlayerRuntime, type PlayerRuntime } from '../playback/store';
 import { hash } from '../feeds/hash';
@@ -346,9 +348,9 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
           {props.children}
           {keepTerms({ ready, accepted, launched, cover }) ? <Terms onAccept={() => { accept(stores.settings); setAccepted(true); }} /> : null}
           {message === undefined ? null : (
-            <View className="absolute left-3 right-3 bottom-24 bg-surface border border-separator rounded-lg p-3" accessibilityLiveRegion="polite">
+            <Box className="absolute left-3 right-3 bottom-24 bg-surface border border-separator rounded-lg p-3" accessibilityLiveRegion="polite">
               <Text className="text-text">{message}</Text>
-            </View>
+            </Box>
           )}
         </PlayerProvider>
       </ToastContext.Provider>

@@ -13,6 +13,8 @@ const ROOTS = ['app', 'src'];
 const ALLOWED = path.join('src', 'design', 'tokens.ts');
 // The contrast module names the dropped colours on purpose, to prove they would fail.
 const EXEMPT = [path.join('src', 'design', 'contrast.ts')];
+/** M9: the gluestack source copied at b712c85 (see the TYPE rule below). */
+const LIB = path.join('src', 'ui', 'lib') + path.sep;
 
 const files = [];
 const walk = (dir) => {
@@ -87,12 +89,22 @@ for (const file of files) {
     if (bare.startsWith('*') || bare.startsWith('//') || bare.startsWith('/*')) continue;
     const hits = lines[i].match(PALETTE);
     if (hits) classes.push(`${file}:${i + 1} ${hits.join(' ')} is not a token colour`);
+    // M9 G9: `group-*` variants are UniWind Pro only (research R9, docs.uniwind.dev/pro-version).
+    // On the free engine such a class silently does nothing, so it is refused. A bare
+    // `group/name` marker is inert on its own and allowed.
+    if (/(?:['"`\s])group-\S*:/.test(lines[i])) {
+      classes.push(`${file}:${i + 1} a group-* variant is UniWind Pro only — it would do nothing here`);
+    }
     // `tabular-nums` compiles to nothing on native; the digits need `style={tabular}`.
     if (/(?:['"`\s])tabular-nums(?=['"`\s])/.test(lines[i])) {
       classes.push(`${file}:${i + 1} the tabular-nums class does nothing on native — use style={tabular}`);
     }
     for (const m of lines[i].matchAll(LITERAL)) {
       const str = m[1] ?? m[2] ?? m[3] ?? '';
+      // M9: gluestack's size/weight VARIANT strings never carry a colour — the component's
+      // base style does, and __tests__/gluestack-lib.test.tsx renders each text part to prove
+      // it. The literal and palette rules above still apply to the copied library.
+      if (file.startsWith(LIB)) continue;
       if (TYPE.test(str) && !COLOURED.test(str)) {
         classes.push(`${file}:${i + 1} "${str}" sets type but no text colour — it would fall back to black`);
       }

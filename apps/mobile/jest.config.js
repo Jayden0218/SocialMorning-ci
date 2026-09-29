@@ -7,11 +7,19 @@
  * `expo-audio-adapter.ts` lives in here too and is held to the same bar: it is
  * the one file allowed to import `expo-audio`, and its tests mock that module.
  */
+const expoPreset = require('jest-expo/jest-preset');
+
 module.exports = {
   preset: 'jest-expo',
-  // NativeWind: compile the Tailwind classes once, then load them into every test file.
-  globalSetup: './jest.tailwind.global.js',
-  setupFilesAfterEnv: ['./jest.tailwind.js'],
+  // UniWind and gluestack ship TypeScript/ESM source for React Native, so they are transformed too.
+  transformIgnorePatterns: [
+    expoPreset.transformIgnorePatterns[0].replace('(?!(', '(?!(uniwind|@gluestack-ui|@legendapp|tailwind-variants|tailwind-merge|'),
+    ...expoPreset.transformIgnorePatterns.slice(1),
+  ],
+  // UniWind (M9, research R1): its Metro resolver and transformer, rebuilt for Jest.
+  resolver: './jest.uniwind.resolver.js',
+  globalSetup: './jest.uniwind.global.js',
+  setupFilesAfterEnv: ['./jest.uniwind.js'],
   collectCoverageFrom: ['src/playback/**'],
   coverageThreshold: {
     './src/playback/': {

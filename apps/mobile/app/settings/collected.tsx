@@ -5,8 +5,12 @@
  */
 import { Stack } from 'expo-router';
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
-import { hit } from '../../src/design';
+import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '../../src/ui/lib/actionsheet';
+import { Pressable } from '../../src/ui/lib/pressable';
+import { ScrollView } from '../../src/ui/lib/scroll-view';
+import { Text } from '../../src/ui/lib/text';
+import { Box } from '../../src/ui/lib/box';
+import { colour, hit } from '../../src/design';
 import { useColours } from '../../src/ui/useColours';
 import { listFavourites } from '../../src/me/favourites';
 import { listMoments } from '../../src/me/moments';
@@ -35,40 +39,39 @@ export default function CollectedScreen(): React.ReactElement {
     <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x py-section pb-24">
       <Stack.Screen options={{ title: 'Information we collect' }} />
       {groups.map((g) => (
-        <View key={g.title} className="mb-section">
+        <Box key={g.title} className="mb-section">
           <Text className="text-text text-base font-bold text-center" accessibilityRole="header">{g.title}</Text>
           <Text className="text-muted text-xs text-center mt-1 mb-section">{g.line}</Text>
           {g.items.map((i) => (
             <Pressable key={i.id} onPress={() => setOpen(i)} accessibilityRole="button" accessibilityLabel={`${i.title}${i.count !== undefined ? `, ${i.count} held` : ''}. ${i.purpose}. Details`} className="border border-separator rounded-artwork p-section mb-row">
-              <View className="flex-row items-start justify-between">
+              <Box className="flex-row items-start justify-between">
                 <Text className="text-text text-sm font-semibold flex-1">{i.title}</Text>
                 {i.count !== undefined ? <Text className="text-muted text-xs bg-surface rounded-pill px-row py-1">{i.count} held</Text> : null}
-              </View>
+              </Box>
               <Text className="text-muted text-xs mt-1">{i.purpose}</Text>
               <Text className="text-accent text-sm mt-row">Details</Text>
             </Pressable>
           ))}
-        </View>
+        </Box>
       ))}
       <Text className="text-muted text-xs text-center">To offer these features SocialNet keeps the information above, and nothing else. Counts are from this phone and may lag the server.</Text>
-      <Modal visible={open !== undefined} transparent animationType="slide" onRequestClose={() => setOpen(undefined)}>
-        <View className="flex-1 bg-scrim justify-end">
-          <View className="bg-background rounded-t-artwork p-screen-x pb-24 gap-section">
-            <View className="flex-row items-start justify-between">
-              <View className="flex-1">
+            <Actionsheet isOpen={open !== undefined} onClose={() => setOpen(undefined)}>
+        <ActionsheetBackdrop />
+          <ActionsheetContent className="bg-background rounded-t-artwork p-screen-x pb-24 gap-section items-stretch">
+            <Box className="flex-row items-start justify-between">
+              <Box className="flex-1">
                 <Text className="text-text text-lg font-bold" accessibilityRole="header">{open?.title}</Text>
                 {open?.count !== undefined ? <Text className="text-accent text-xs mt-1">{open.count} held</Text> : null}
-              </View>
+              </Box>
               <Pressable onPress={() => setOpen(undefined)} accessibilityRole="button" accessibilityLabel="Close" className="items-center justify-center" style={TAP}>
                 <Icon name="close" size={22} color={c.muted} />
               </Pressable>
-            </View>
-            <View><Text className="text-muted text-xs">Purpose</Text><Text className="text-text text-sm">{open?.purpose}</Text></View>
-            <View><Text className="text-muted text-xs">When it is collected</Text><Text className="text-text text-sm">{open?.when}</Text></View>
-            <View><Text className="text-muted text-xs">What exactly</Text><Text className="text-text text-sm">{open?.scope}</Text></View>
-          </View>
-        </View>
-      </Modal>
+            </Box>
+            <Box><Text className="text-muted text-xs">Purpose</Text><Text className="text-text text-sm">{open?.purpose}</Text></Box>
+            <Box><Text className="text-muted text-xs">When it is collected</Text><Text className="text-text text-sm">{open?.when}</Text></Box>
+            <Box><Text className="text-muted text-xs">What exactly</Text><Text className="text-text text-sm">{open?.scope}</Text></Box>
+          </ActionsheetContent>
+      </Actionsheet>
     </ScrollView>
   );
 }

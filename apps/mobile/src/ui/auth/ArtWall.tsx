@@ -5,7 +5,10 @@
  */
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef } from 'react';
-import { Image, View, useWindowDimensions } from 'react-native';
+import { useWindowDimensions } from 'react-native';
+import { Image } from '../lib/image';
+import { Box } from '../lib/box';
+import { colour } from '../../design';
 import { useStores } from '../providers';
 import { useColours } from '../useColours';
 
@@ -45,7 +48,7 @@ export function ArtWall(props: { urls: string[]; onReady?: () => void }): React.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.urls.length]);
   return (
-    <View style={{ height }} className="overflow-hidden" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+    <Box style={{ height }} className="overflow-hidden" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       {props.urls.map((uri, i) => {
         const spot = SPOTS[i % SPOTS.length]!;
         const size = spot.s * width;
@@ -60,6 +63,6 @@ export function ArtWall(props: { urls: string[]; onReady?: () => void }): React.
         );
       })}
       <LinearGradient colors={[c.clear, c.background]} className="absolute left-0 right-0 bottom-0" style={{ height: height * 0.35 }} />
-    </View>
+    </Box>
   );
 }

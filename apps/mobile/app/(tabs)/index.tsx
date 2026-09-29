@@ -9,7 +9,13 @@
  */
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Image, RefreshControl, SafeAreaView, ScrollView, Text, View } from 'react-native';
+import { Image } from '../../src/ui/lib/image';
+import { RefreshControl } from '../../src/ui/lib/refresh-control';
+import { SafeAreaView } from '../../src/ui/lib/safe-area-view';
+import { ScrollView } from '../../src/ui/lib/scroll-view';
+import { Text } from '../../src/ui/lib/text';
+import { Box } from '../../src/ui/lib/box';
+import { colour } from '../../src/design';
 import { useColours } from '../../src/ui/useColours';
 import { buildModel } from '../../src/discover/sections';
 import { HINT_EVERY_MS, hintAt, trendingHints } from '../../src/discover/trending';
@@ -66,10 +72,10 @@ export default function DiscoverScreen(): React.ReactElement {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refreshBoth()} tintColor={c.accent} colors={[c.accent]} />}
       >
         {/* Owner, 2026-09-27: less space above the title. */}
-        <View className="flex-row items-center justify-between px-screen-x pt-1 pb-2">
+        <Box className="flex-row items-center justify-between px-screen-x pt-1 pb-2">
           <Text className="text-text text-lg font-bold" accessibilityRole="header">Discover</Text>
           <Image source={require('../../assets/app-icon.png')} style={ICON} className="rounded-row" accessibilityIgnoresInvertColors accessibilityLabel="SocialNet" />
-        </View>
+        </Box>
         <SearchBar
           {...(hint ? { hint } : {})}
           onPress={() => (hint ? router.push({ pathname: '/search', params: { hint } }) : router.push('/search'))}
