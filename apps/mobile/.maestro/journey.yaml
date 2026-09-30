@@ -74,7 +74,7 @@ env:
     text: "Write a comment at 0:[23][0-9]"   # the comment is pinned to the paused moment
 - inputText: ${NOTE}
 - tapOn: "Post"
-- extendedWaitUntil:
-    visible: ${NOTE}
+- extendedWaitUntil:                   # the row's name is the whole row: "L, Listener 02, just now, 0:2x  <note>, …"
+    visible: ".*${NOTE}.*"
     timeout: 15000
 - takeScreenshot: 04-commented
