@@ -6,7 +6,7 @@
  * the keyboard, and a second tap posted).
  */
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { KeyboardAvoidingView } from './lib/keyboard-avoiding-view';
 import { Pressable } from './lib/pressable';
@@ -30,6 +30,17 @@ export function ComposerSheet(props: {
   const c = useColours(stores.settings);
   const { composer, bump } = useSocial();
   const [state, setState] = useState<ComposerState>(props.initial);
+  // The draft is saved 250 ms after typing stops, not on every key: the save is a synchronous
+  // SQLite write, and on 2026-09-30 fast typing lost letters in this box — on the iPhone
+  // ("iPhne", "nte") and in the simulator journey ("herd"). The text itself updates at once.
+  const unsaved = useRef<ComposerState | undefined>(undefined);
+  useEffect(() => {
+    if (!unsaved.current) return;
+    const t = setTimeout(() => { if (unsaved.current) { composer.edit(unsaved.current, unsaved.current.body); unsaved.current = undefined; } }, 250);
+    return () => clearTimeout(t);
+  }, [state.body, composer]);
+  // Closing the box keeps what was typed (posting saves and clears `unsaved` first).
+  useEffect(() => () => { if (unsaved.current) composer.edit(unsaved.current, unsaved.current.body); }, [composer]);
   const [error, setError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
   const length = state.body.trim().length;
@@ -37,6 +48,8 @@ export function ComposerSheet(props: {
   async function submit() {
     setBusy(true);
     setError(undefined);
+    // Save what is typed first, so a failed post keeps the whole draft; a posted one clears it.
+    if (unsaved.current) { composer.edit(unsaved.current, unsaved.current.body); unsaved.current = undefined; }
     const r = await composer.submit(state);
     setBusy(false);
     if (r.kind === 'posted') {
@@ -79,7 +92,7 @@ export function ComposerSheet(props: {
             autoFocus
             placeholder={state.parentId ? 'Write a reply' : 'What is worth saying here?'}
             value={state.body}
-            onChangeText={(t) => setState(composer.edit(state, t))}
+            onChangeText={(t) => setState((s) => { const next = { ...s, body: t }; unsaved.current = next; return next; })}
             accessibilityLabel="Comment"
           />
           </Textarea>
