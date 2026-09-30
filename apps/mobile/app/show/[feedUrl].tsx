@@ -279,13 +279,14 @@ export default function ShowScreen(): React.ReactElement {
           ),
         } : {})}
       >
-        <BarButton label="Share this show" onPress={() => {
+        {/* Phone walk 2026-09-30: with all three icons the slim title showed 7 letters; collapsed, only ⋯ stays. */}
+        {collapsed ? null : <BarButton label="Share this show" onPress={() => {
           void api.recordShare({ targetKind: 'show', targetId: feedUrl, feedUrl }).catch(() => undefined); // M11 FR-011: never waits
           void Share.share({ message: `${title ?? ''}\n${feedUrl}` }).catch(() => undefined);
         }}>
           <Glyph>↗</Glyph>
-        </BarButton>
-        <BarButton label="Search" onPress={() => router.push('/search')}><SearchIcon /></BarButton>
+        </BarButton>}
+        {collapsed ? null : <BarButton label="Search" onPress={() => router.push('/search')}><SearchIcon /></BarButton>}
         <BarButton label="More: report this show" onPress={() => setReporting({ kind: 'show', id: feedUrl, authorId: null, label: 'show' })}><Dots /></BarButton>
       </TopBar>
       <FlatList

@@ -45,7 +45,7 @@ export const ARTICLES: readonly Article[] = [
     sections: [
       { heading: 'What a clip is', body: 'A clip is a start time and an end time in your episode. No audio is copied: whoever opens it plays that part from your own feed.' },
       { heading: 'Making one', body: 'In the player, tap the scissors: it takes the last 30 seconds. Change the start and end if you like, and share the link. Anyone can do this with any episode.' },
-      { heading: 'Why it helps you', body: 'Every play of a clip is a play of your feed, so it counts where your host counts downloads.' },
+      { heading: 'Why it helps you', body: 'A clip plays from your own feed and links back to the episode, so a listener who likes the minute is one tap from the whole show.' },
     ],
   },
   {

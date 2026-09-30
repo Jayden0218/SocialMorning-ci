@@ -65,7 +65,7 @@ export function EpisodeLine(props: { card: EpisodeCard; line?: string; rank?: nu
   return (
     <Box className="flex-row items-center gap-row py-row">
       <Pressable onPress={props.onOpen} accessibilityRole="button" accessibilityLabel={props.label ?? `${card.title}, ${card.showTitle}`} className="flex-row items-center gap-row flex-1">
-        <Artwork url={card.imageUrl} size={size} rounded="row" />
+        <Artwork url={card.imageUrl} size={size} rounded="row" name={card.showTitle} />
         {props.rank !== undefined ? <Text className="text-muted text-sm w-5 text-center">{props.rank}</Text> : null}
         <Box className="flex-1">
           {props.rank === undefined ? <Text className="text-muted text-xs" numberOfLines={1}>{card.showTitle}</Text> : null}

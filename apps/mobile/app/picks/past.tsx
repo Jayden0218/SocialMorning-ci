@@ -4,7 +4,7 @@
  * A pick whose episode the server cannot name yet (`episode: null`) keeps its note and opens
  * the show instead; it has no play button, since there is nothing to play.
  */
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable } from '../../src/ui/lib/pressable';
 import { Text } from '../../src/ui/lib/text';
@@ -24,6 +24,8 @@ type State = { kind: 'loading' } | { kind: 'error' } | { kind: 'ok'; days: PastP
 
 export default function PastPicksScreen(): React.ReactElement {
   const router = useRouter();
+  // Phone walk 2026-09-30: the first page repeated the day Discover already shows; it starts before it now.
+  const { before } = useLocalSearchParams<{ before?: string }>();
   const m12 = useM12Api();
   const { open, play } = useCardActions();
   const { hiddenFeeds } = useSafety();
@@ -31,11 +33,11 @@ export default function PastPicksScreen(): React.ReactElement {
 
   const first = useCallback(() => {
     setState({ kind: 'loading' });
-    m12.pastPicks().then(
+    m12.pastPicks(typeof before === 'string' && before !== '' ? before : undefined).then(
       (r) => setState({ kind: 'ok', days: r.days, ...(r.next ? { next: r.next } : {}), more: 'idle' }),
       () => setState({ kind: 'error' }),
     );
-  }, [m12]);
+  }, [m12, before]);
   useEffect(() => { first(); }, [first]);
 
   const loadMore = (): void => {

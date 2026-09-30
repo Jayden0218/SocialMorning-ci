@@ -6,7 +6,7 @@
  */
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { ScrollView } from 'react-native';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable } from '../../src/ui/lib/pressable';
 import { Text } from '../../src/ui/lib/text';
 import { Box } from '../../src/ui/lib/box';
@@ -26,6 +26,8 @@ type State = { kind: 'loading' } | { kind: 'ok'; body: CategoryShows } | { kind:
 export default function CategoryScreen(): React.ReactElement {
   const params = useLocalSearchParams<{ id: string }>();
   const [genreId, setGenreId] = useState(Number(params.id));
+  const strip = useRef<ScrollView>(null);
+  const placed = useRef(false);
   const genre = genreById(genreId);
   const router = useRouter();
   const { api } = useSocial();
@@ -44,11 +46,12 @@ export default function CategoryScreen(): React.ReactElement {
   return (
     <Screen scroll className="pt-row">
       <Stack.Screen options={{ title: genre?.name ?? 'Category' }} />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-row pb-row" className="-mx-screen-x px-screen-x">
+      {/* Phone walk 2026-09-30: a genre far along the strip opened off-screen; the chosen chip scrolls into view once. */}
+      <ScrollView ref={strip} horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-row pb-row" className="-mx-screen-x px-screen-x">
         {GENRES.map((g) => {
           const on = g.id === genreId;
           return (
-            <Pressable key={g.id} onPress={() => setGenreId(g.id)} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={g.name}
+            <Pressable key={g.id} onPress={() => setGenreId(g.id)} onLayout={on && !placed.current ? (e) => { placed.current = true; strip.current?.scrollTo({ x: Math.max(0, e.nativeEvent.layout.x - 20), animated: false }); } : undefined} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={g.name}
               className={`justify-center px-section rounded-pill ${on ? 'bg-primary' : 'bg-surface'}`} style={TAP}>
               <Text className={on ? 'text-onPrimary text-sm font-semibold' : 'text-text text-sm'}>{g.name}</Text>
             </Pressable>

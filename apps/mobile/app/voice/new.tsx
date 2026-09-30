@@ -77,7 +77,12 @@ export default function NewVoicePost(): React.ReactElement {
   const shownMs = recording ? state.durationMillis : phase.kind === 'done' || phase.kind === 'posting' ? phase.ms : 0;
   return (
     <Screen className="pt-section items-center gap-section">
-      <Stack.Screen options={{ title: 'Voice status' }} />
+      {/* Phone walk 2026-09-30: the sheet could only be swiped away. */}
+      <Stack.Screen options={{ title: 'Voice status', headerLeft: () => (
+        <Pressable onPress={() => { if (phase.kind === 'recording') void stop(); router.back(); }} accessibilityRole="button" accessibilityLabel="Cancel" className="justify-center px-row" style={{ minHeight: 48 }}>
+          <Text className="text-accent text-sm">Cancel</Text>
+        </Pressable>
+      ) }} />
       <Text className="text-muted text-sm text-center">Up to 60 seconds. People who follow you can play it for 48 hours; then it is deleted.</Text>
       <Text className="text-text text-2xl font-bold" accessibilityLiveRegion="polite" accessibilityLabel={`${Math.floor(shownMs / 1000)} seconds of 60`}>{voiceClock(shownMs)}</Text>
       <Pressable
