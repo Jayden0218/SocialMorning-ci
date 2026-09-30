@@ -11,7 +11,16 @@ env:
 - runScript: health.js                # fail here, clearly, if the test server is not answering
 - launchApp:
     clearState: true
-- tapOn: "Agree"                       # the Terms screen on first launch (Terms.tsx)
+- extendedWaitUntil:                   # the Terms screen on first launch (Terms.tsx)
+    visible: "Agree"
+    timeout: 30000
+- retry:                               # run 36708974619: the first tap came before the page took taps
+    maxRetries: 2
+    commands:
+      - tapOn: "Agree"
+      - extendedWaitUntil:
+          visible: "Continue with email"
+          timeout: 10000
 - tapOn: "Continue with email"
 - extendedWaitUntil:                   # the consent dialog fades in (run 36693828013 looked too soon)
     visible: "Agree and continue"
