@@ -91,7 +91,11 @@ export function ComposerSheet(props: {
             multiline
             autoFocus
             placeholder={state.parentId ? 'Write a reply' : 'What is worth saying here?'}
-            value={state.body}
+            // Uncontrolled: the box keeps its own text and the sheet only listens. Controlled
+            // (value={state.body}), the text written back during fast typing moved the cursor to
+            // the end — the simulator journey stored "Mao: heard it on the simulatores" for
+            // "Maestro: heard it on the simulator" (run 36710217453).
+            defaultValue={props.initial.body}
             onChangeText={(t) => setState((s) => { const next = { ...s, body: t }; unsaved.current = next; return next; })}
             accessibilityLabel="Comment"
           />
