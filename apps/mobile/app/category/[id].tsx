@@ -6,7 +6,7 @@
  */
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { ScrollView } from 'react-native';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { Pressable } from '../../src/ui/lib/pressable';
 import { Text } from '../../src/ui/lib/text';
 import { Box } from '../../src/ui/lib/box';
@@ -26,7 +26,7 @@ type State = { kind: 'loading' } | { kind: 'ok'; body: CategoryShows } | { kind:
 export default function CategoryScreen(): React.ReactElement {
   const params = useLocalSearchParams<{ id: string }>();
   const [genreId, setGenreId] = useState(Number(params.id));
-  const strip = useRef<ScrollView>(null);
+  const strip = useRef<ComponentRef<typeof ScrollView>>(null);
   const placed = useRef(false);
   const genre = genreById(genreId);
   const router = useRouter();
