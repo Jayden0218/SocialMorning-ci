@@ -84,6 +84,20 @@ jobs:
           UDID=$(xcrun simctl list devices available -j | jq -r '[.devices[][] | select(.name | startswith("iPhone"))][0].udid')
           echo "UDID=$UDID" >> "$GITHUB_ENV"
           xcrun simctl boot "$UDID" && xcrun simctl bootstatus "$UDID" -b
+          # The build is unsigned, so it has no Keychain entitlement: every read of the session
+          # token failed with -34018 and the app said "Something went wrong" before any request
+          # (runs 36678729111 → 36693828013). An ad-hoc signature with these entitlements is
+          # enough on a simulator.
+          cat > "$RUNNER_TEMP/sim.entitlements" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>application-identifier</key><string>SIMULATOR.app.socialmorning.mobile</string>
+            <key>keychain-access-groups</key><array><string>SIMULATOR.app.socialmorning.mobile</string></array>
+          </dict></plist>
+          PLIST
+          codesign --force --deep --sign - --entitlements "$RUNNER_TEMP/sim.entitlements" "$APP"
+          codesign -d --entitlements - "$APP" | head -20
           xcrun simctl install "$UDID" "$APP"
       - name: install Maestro
         run: |

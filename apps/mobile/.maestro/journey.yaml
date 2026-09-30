@@ -13,6 +13,9 @@ env:
     clearState: true
 - tapOn: "Agree"                       # the Terms screen on first launch (Terms.tsx)
 - tapOn: "Continue with email"
+- extendedWaitUntil:                   # the consent dialog fades in (run 36693828013 looked too soon)
+    visible: "Agree and continue"
+    timeout: 10000
 - tapOn: "Agree and continue"          # the consent sheet before signing in
 - extendedWaitUntil:                   # the email page has finished sliding in ("Send code" is
     visible: "Email"                   # greyed out until an address is typed, so wait on the box)
