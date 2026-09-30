@@ -28,8 +28,8 @@ env:
     text: "Search.*"
 - inputText: "Journey Morning"
 - pressKey: Enter
-- tapOn:                              # the row under "Shows" (its name is the title, then the author)
-    text: "Journey Morning.*"
+- tapOn:                              # the row under "Shows": "J, Journey Morning, Journey Host"
+    text: ".*Journey Morning, Journey Host"  # (the cover's letter, the title, the author — seen on the iPhone)
     below: "Shows"
 - tapOn: "Subscribe to this show"
 - takeScreenshot: 02-subscribed
@@ -50,7 +50,6 @@ env:
     text: "Comments.*"
 - tapOn:
     text: "Write a comment at 0:[23][0-9]"   # the comment is pinned to the paused moment
-- tapOn: "Comment"                     # the composer's field
 - inputText: ${NOTE}
 - tapOn: "Post"
 - extendedWaitUntil:
