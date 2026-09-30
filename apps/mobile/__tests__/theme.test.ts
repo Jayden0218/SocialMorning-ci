@@ -30,3 +30,17 @@ it('the Appearance setting reaches the theme: system, light and dark each as cho
   }
   spy.mockRestore();
 });
+
+// Guard G-T2 (phone walk 2026-09-30): Dark → "Follow the phone" stayed dark until a restart,
+// because UniWind read the colour scheme while its own 'dark' override was still set. The
+// override is cleared first. The break: drop the RNAppearance.setColorScheme('auto') call.
+it('following the phone clears the dark override before UniWind reads the scheme', () => {
+  const { Appearance } = require('react-native') as typeof import('react-native');
+  const order: string[] = [];
+  const reset = jest.spyOn(Appearance, 'setColorScheme').mockImplementation(((s: string) => { order.push(`override:${s}`); }) as never);
+  const theme = jest.spyOn(Uniwind, 'setTheme').mockImplementation(((t: string) => { order.push(`theme:${t}`); }) as never);
+  applyAppearance('system');
+  expect(order.slice(0, 2)).toEqual(['override:auto', 'theme:system']);
+  reset.mockRestore();
+  theme.mockRestore();
+});

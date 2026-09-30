@@ -33,7 +33,7 @@ export function Row(props: {
   const row = `flex-row items-center gap-row py-2 ${props.last ? '' : 'border-b-hairline border-separator'} ${props.className ?? ''}`;
   const body = (
     <>
-      <Artwork url={props.artworkUrl} size={ROW_ARTWORK} />
+      <Artwork url={props.artworkUrl} size={ROW_ARTWORK} name={props.title} />
       <Box className="flex-1 gap-0.5">
         <Text className="text-text text-sm font-semibold" numberOfLines={2}>{props.title}</Text>
         {props.line ? <Text className="text-muted text-xs" numberOfLines={2}>{props.line}</Text> : null}

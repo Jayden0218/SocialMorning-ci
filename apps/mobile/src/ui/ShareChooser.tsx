@@ -38,6 +38,8 @@ export function ShareChooser(props: {
     try { await Share.share({ message: `${props.episode.title} — ${props.episode.showTitle}\n${url}`, url }); props.onShared?.(); } catch { /* dismissed */ }
   };
   const shareImage = async () => {
+    // Phone walk 2026-09-30: the card took 10–16 s with nothing on screen; say it is coming.
+    toast('Making the picture…');
     try {
       const target = new File(Paths.cache, `share-${props.episode.id}-${Date.now()}.png`);
       const file = await File.downloadFileAsync(m12.shareCardUrl(props.episode.id, props.atMs), target);

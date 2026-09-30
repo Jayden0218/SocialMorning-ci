@@ -71,7 +71,7 @@ export default function CategoryScreen(): React.ReactElement {
           className="flex-row items-center gap-row py-row border-b-hairline border-separator"
         >
           <Text className="text-muted text-sm w-6 text-center">{i + 1}</Text>
-          <Artwork url={s.imageUrl} size={56} rounded="row" />
+          <Artwork url={s.imageUrl} size={56} rounded="row" name={s.title} />
           <Box className="flex-1">
             <Text className="text-text text-sm font-semibold" numberOfLines={2}>{s.title}</Text>
             <Text className="text-muted text-xs" numberOfLines={1}>{s.author}</Text>

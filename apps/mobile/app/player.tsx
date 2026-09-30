@@ -193,7 +193,7 @@ export default function PlayerScreen(): React.ReactElement {
         {/* M10b US5: a video episode shows its picture (muted, following the sound). */}
         {episode && mediaKindOf(episode.enclosureType, episode.enclosureUrl) === 'video'
           ? <VideoStage url={episode.enclosureUrl} positionMs={positionMs} playing={isPlaying} size={art} />
-          : <Artwork url={artworkUrl} size={art} rounded="artwork" className="mt-2" />}
+          : <Artwork url={artworkUrl} size={art} rounded="artwork" className="mt-2" name={show?.title} />}
         <Text className={TITLE} numberOfLines={2}>{episode?.title ?? 'Now playing'}</Text>
         {liveLabel(liveCount) ? (
           <Box className="flex-row items-center gap-1 bg-accentTint rounded-pill px-2 py-0.5" accessible accessibilityLabel={liveLabel(liveCount)!}>

@@ -69,3 +69,12 @@ it('removeMoment posts a plain comment; canSubmit rejects whitespace and > 2000 
   expect(composer.canSubmit(composer.edit(s, 'x'.repeat(2001)))).toBe(false);
   expect(composer.canSubmit(composer.edit(s, 'ok'))).toBe(true);
 });
+
+// Guard G-C3 (phone walk 2026-09-30): an empty draft never hides the moment. The break: restore any draft.
+it('an empty draft does not stop the moment being captured; a draft with words keeps its choice', () => {
+  const { composer, draftStore } = build();
+  draftStore.put({ episodeId: 'e', body: '', savedAt: 1 });
+  expect(composer.open({ episodeId: 'e', offsetMs: 298_000 }).moment).toEqual({ offsetMs: 298_000 });
+  draftStore.put({ episodeId: 'e', body: 'kept', savedAt: 2 });
+  expect(composer.open({ episodeId: 'e', offsetMs: 298_000 }).moment).toBeNull();
+});

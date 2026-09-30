@@ -143,7 +143,7 @@ export default function UpdatesScreen(): React.ReactElement {
           return (
             <Box className="flex-row gap-row px-screen-x py-section">
               <Pressable onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(e.feedUrl) } })} accessibilityRole="button" accessibilityLabel={`Open ${item.showTitle}`}>
-                <Artwork url={item.imageUrl} size={72} rounded="row" />
+                <Artwork url={item.imageUrl} size={72} rounded="row" name={item.showTitle} />
               </Pressable>
               <Box className="flex-1">
                 <Pressable onPress={() => router.push({ pathname: '/episode/[id]', params: { id: e.id } })} accessibilityRole="button" accessibilityLabel={`${e.title}, ${item.showTitle}`}>

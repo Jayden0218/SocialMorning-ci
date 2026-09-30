@@ -91,7 +91,7 @@ export default function FavouritesScreen(): React.ReactElement {
         return (
           <Link href={{ pathname: '/episode/[id]', params: { id: e.id } }} asChild>
             <Pressable className="flex-row gap-row py-row items-center" accessibilityRole="button" accessibilityLabel={e.title}>
-              <Artwork url={e.imageUrl ?? show?.imageUrl} size={56} rounded="row" />
+              <Artwork url={e.imageUrl ?? show?.imageUrl} size={56} rounded="row" name={show?.title} />
               <Box className="flex-1">
                 <Text className="text-text text-sm font-semibold" numberOfLines={2}>{e.title}</Text>
                 <Text className="text-muted text-xs" numberOfLines={1}>{show?.title ?? ''}</Text>

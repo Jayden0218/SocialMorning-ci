@@ -142,7 +142,7 @@ export default function EpisodeScreen(): React.ReactElement {
         </BarButton>
       </TopBar>
       <ScrollView ref={scroll} contentContainerClassName="px-screen-x pb-section">
-        <Artwork url={episode.imageUrl ?? show?.imageUrl} size={48} rounded="row" className="mt-2" />
+        <Artwork url={episode.imageUrl ?? show?.imageUrl} size={48} rounded="row" className="mt-2" name={show?.title} />
         <Box className="flex-row items-center gap-section mt-section">
           <Text className="flex-1 text-[26px] leading-[34px] font-bold text-text" accessibilityRole="header">{episode.title}</Text>
           <Pressable

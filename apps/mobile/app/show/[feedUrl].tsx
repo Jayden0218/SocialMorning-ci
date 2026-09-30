@@ -182,7 +182,7 @@ export default function ShowScreen(): React.ReactElement {
             )}
             {show?.author === undefined ? null : <Text className="text-sm text-muted mt-2" numberOfLines={1}>{show.author}</Text>}
           </Box>
-          <Artwork url={ov?.coverUrl ?? show?.imageUrl} size={120} rounded="artwork" />
+          <Artwork url={ov?.coverUrl ?? show?.imageUrl} size={120} rounded="artwork" name={title} />
         </Box>
         <Box className="flex-row items-center gap-section">
           <Text className="text-text">

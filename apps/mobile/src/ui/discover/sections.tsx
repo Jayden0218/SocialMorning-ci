@@ -73,7 +73,7 @@ export function PicksSection(props: Act & { items: DiscoverItem[]; date?: string
         return (
           <Box key={p.key} className="flex-row gap-row px-screen-x mb-section">
             <Pressable onPress={() => props.onOpen(p.episode)} accessibilityRole="button" accessibilityLabel={`${p.episode.title}, ${p.episode.showTitle}`}>
-              <Artwork url={p.episode.imageUrl} size={88} rounded="row" />
+              <Artwork url={p.episode.imageUrl} size={88} rounded="row" name={p.episode.showTitle} />
             </Pressable>
             <Box className="flex-1">
               <Box className="flex-row items-start">
@@ -251,7 +251,7 @@ export function VideoSection(props: Act & { items: DiscoverItem[] }): React.Reac
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="px-screen-x gap-row">
         {props.items.map((i) => (
           <Pressable key={i.key} onPress={() => props.onOpen(i.episode)} accessibilityRole="button" accessibilityLabel={`Video: ${i.episode.title}, ${i.episode.showTitle}`} className="w-60 bg-surface rounded-artwork overflow-hidden">
-            <Artwork url={i.episode.imageUrl} size={240} rounded="row" />
+            <Artwork url={i.episode.imageUrl} size={240} rounded="row" name={i.episode.showTitle} />
             <Box className="p-row">
               <Text className="text-text text-sm font-semibold" numberOfLines={2}>{i.episode.title}</Text>
               <Text className="text-muted text-xs" numberOfLines={1}>{`▶ Video · ${i.episode.showTitle}`}</Text>

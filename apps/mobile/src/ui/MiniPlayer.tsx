@@ -102,7 +102,7 @@ export function MiniPlayer(props: { pathname?: string; context?: 'root' | 'tabs'
           accessibilityLabel={`Now playing: ${episode?.title ?? 'an episode'}. Open the player.`}
           className="flex-1 flex-row items-center gap-row"
         >
-          <Artwork url={episode?.imageUrl ?? show?.imageUrl} size={MINI_ARTWORK} />
+          <Artwork url={episode?.imageUrl ?? show?.imageUrl} size={MINI_ARTWORK} name={show?.title} />
           <Box className="flex-1">
             <Text className="text-sm text-text font-semibold" numberOfLines={1}>
               {episode?.title ?? 'Now playing'}

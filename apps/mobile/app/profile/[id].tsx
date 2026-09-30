@@ -162,7 +162,7 @@ export default function ProfileScreen(): React.ReactElement {
         ? (history.length === 0 ? <Text className="text-muted text-sm">Nothing played yet.</Text> : history.map((r) => (
             <Link key={r.episode.id} href={{ pathname: '/episode/[id]', params: { id: r.episode.id } }} asChild>
               <Pressable accessibilityRole="button" accessibilityLabel={r.episode.title} className="flex-row gap-row py-row items-center">
-                <Artwork url={r.episode.imageUrl ?? stores.feeds.getShow(r.episode.feedUrl)?.imageUrl} size={64} rounded="row" />
+                <Artwork url={r.episode.imageUrl ?? stores.feeds.getShow(r.episode.feedUrl)?.imageUrl} size={64} rounded="row" name={stores.feeds.getShow(r.episode.feedUrl)?.title} />
                 <Box className="flex-1">
                   <Text className="text-text text-sm font-semibold" numberOfLines={2}>{r.episode.title}</Text>
                   <Text className="text-muted text-xs" numberOfLines={1}>{stores.feeds.getShow(r.episode.feedUrl)?.title ?? ''}{r.finished ? ' · finished' : ''}</Text>

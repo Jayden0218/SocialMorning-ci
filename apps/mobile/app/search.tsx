@@ -12,7 +12,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Input, InputField } from '../src/ui/lib/input';
-import { Image } from '../src/ui/lib/image';
 import { Pressable } from '../src/ui/lib/pressable';
 import { SafeAreaView } from '../src/ui/lib/safe-area-view';
 import { ScrollView } from '../src/ui/lib/scroll-view';
@@ -26,6 +25,7 @@ import { ApiError, type EpisodeCard, type SearchResult, type ShowCard } from '..
 import { looksLikeFeedUrl, searchLibrary } from '../src/discover/local-search';
 import { useDiscover } from '../src/discover/useDiscover';
 import { EpisodeRow } from '../src/ui/EpisodeRow';
+import { Artwork } from '../src/ui/Artwork';
 import { EmptyState } from '../src/ui/EmptyState';
 import { hit, size } from '../src/design';
 import { useColours } from '../src/ui/useColours';
@@ -162,7 +162,8 @@ export default function SearchScreen(): React.ReactElement {
         {merged.shows.length > 0 ? <Text className="text-sm font-semibold mt-3 mb-1 text-text">Shows</Text> : null}
         {merged.shows.map((s) => (
           <Pressable key={s.feedUrl} className="flex-row gap-3 py-2" accessibilityRole="button" onPress={() => openShow(s.feedUrl)}>
-            {s.imageUrl ? <Image source={{ uri: s.imageUrl }} className="w-14 h-14 rounded-md bg-surface" /> : <Box className="w-14 h-14 rounded-md bg-surface" />}
+            {/* Phone walk 2026-09-30: shows with no (or a broken) image were blank grey squares. */}
+            <Artwork url={s.imageUrl} size={56} rounded="row" name={s.title} />
             <Box className="flex-1">
               <Text className="text-[15px] font-semibold text-text" numberOfLines={2}>{s.title}</Text>
               <Text className="text-[13px] text-muted" numberOfLines={1}>{s.author}{libShowKeys.has(s.feedUrl) ? ' · in your library' : ''}</Text>

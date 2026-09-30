@@ -41,7 +41,11 @@ export function createComposer(deps: ComposerDeps) {
   return {
     /** Opens the box: restores a draft if one exists, else captures the moment now. */
     open(snapshot: { episodeId: string; offsetMs: number; durationMs?: number }, parentId?: string): ComposerState {
-      const draft = deps.drafts.load(snapshot.episodeId);
+      // Phone walk 2026-09-30: an EMPTY draft (the box opened, the moment removed or never set,
+      // nothing typed) won over the fresh capture, so the composer said "No moment attached" at
+      // 4:58. Only a draft with words in it is worth restoring — its moment choice with it.
+      const saved = deps.drafts.load(snapshot.episodeId);
+      const draft = saved && saved.body.trim() !== '' ? saved : undefined;
       const moment = draft ? (draft.offsetMs === undefined ? null : { offsetMs: draft.offsetMs }) : captureMoment(snapshot);
       return {
         episodeId: snapshot.episodeId,
