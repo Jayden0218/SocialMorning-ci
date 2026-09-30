@@ -13,12 +13,30 @@ env:
 - tapOn: "Agree"                       # the Terms screen on first launch (Terms.tsx)
 - tapOn: "Continue with email"
 - tapOn: "Agree and continue"          # the consent sheet before signing in
-- tapOn: "Email"
-- inputText: ${EMAIL}
+- extendedWaitUntil:                   # the email page has finished sliding in
+    visible: "Send code"
+    timeout: 10000
+- waitForAnimationToEnd
+- retry:                               # run 36685147199: the text was "typed" while the page
+    maxRetries: 2                      # moved, and the box stayed empty — so check it landed
+    commands:
+      - tapOn: "Email"
+      - eraseText
+      - inputText: ${EMAIL}
+      - assertVisible: ${EMAIL}
 - tapOn: "Send code"
 - runScript: fetch-code.js             # the test server's inbox — what a person reads in their mail
-- tapOn: "Code"                        # the code field's accessible name (auth/email.tsx)
-- inputText: ${output.code}
+- extendedWaitUntil:
+    visible: "Code"                    # the code field's accessible name (auth/email.tsx)
+    timeout: 10000
+- waitForAnimationToEnd
+- retry:
+    maxRetries: 2
+    commands:
+      - tapOn: "Code"
+      - eraseText
+      - inputText: ${output.code}
+      - assertVisible: ${output.code}
 - tapOn: "Continue"
 - extendedWaitUntil:
     visible: "Discover"
