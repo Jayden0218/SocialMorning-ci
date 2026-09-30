@@ -60,3 +60,4 @@ apps/api/api/index.js.map
 # Studio end-to-end output (CI artifacts)
 apps/studio/e2e-results/
 apps/studio/e2e-report/
+apps/api/journey.json

@@ -7,7 +7,17 @@
  */
 const APP_GROUP = 'group.app.socialmorning.mobile';
 
-module.exports = ({ config }) => {
+/**
+ * The listener journey (specs/015-e2e-journey): `SOCIALNET_API_BASE_URL=http://<mac>:8787 npx expo start`
+ * points a Debug build at a local test server, so a real phone can run the journey without ever
+ * writing to production. Unset → app.json's production address, exactly as before.
+ */
+const withApi = (config) => (process.env.SOCIALNET_API_BASE_URL
+  ? { ...config, extra: { ...config.extra, apiBaseUrl: process.env.SOCIALNET_API_BASE_URL } }
+  : config);
+
+module.exports = ({ config: base }) => {
+  const config = withApi(base);
   if (process.env.SOCIALNET_IOS_EXTRAS !== '1') return config;
   return {
     ...config,

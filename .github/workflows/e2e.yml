@@ -21,6 +21,10 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres@localhost:5432/e2e
       SESSION_PEPPER: e2e-pepper-not-secret
+      # The listener journey (specs/015-e2e-journey): the moderator account, the seed's output.
+      E2E_MOD_EMAIL: mod@journey.test
+      E2E_API: http://localhost:8787
+      JOURNEY_OUT: ${{ github.workspace }}/apps/api/journey.json
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -35,6 +39,9 @@ jobs:
       - name: build and serve the Studio
         run: npm run build && (npx vite preview --port 4173 --strictPort > ../../studio.log 2>&1 &) && for i in $(seq 1 60); do curl -sf localhost:4173/api/v1/health && break; sleep 1; done
         working-directory: apps/studio
+      - name: seed 50 listeners, then listener-01's journey through the API (layer B)
+        run: npx tsx scripts/journey.ts seed && npx tsx scripts/journey.ts listener
+        working-directory: apps/api
       - run: npx playwright install --with-deps chromium
         working-directory: apps/studio
       - name: end to end
@@ -49,3 +56,4 @@ jobs:
             apps/studio/e2e-report
             api.log
             studio.log
+            apps/api/journey.json
