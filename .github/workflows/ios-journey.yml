@@ -52,6 +52,10 @@ jobs:
         if: inputs.app_run == ''
         working-directory: apps/mobile/ios
         run: pod install
+      # Signed "to run locally" (ad hoc), not unsigned: an unsigned build has no Keychain
+      # entitlement, every read of the session token failed (-34018) and the app said
+      # "Something went wrong" before sending anything (runs 36678729111 → 36693828013).
+      # Re-signing the finished app afterwards made it refuse to launch (36695722855, 36697189306).
       - name: build Release for the simulator
         if: inputs.app_run == ''
         working-directory: apps/mobile/ios
@@ -59,8 +63,11 @@ jobs:
           WS=$(ls -d *.xcworkspace | head -1)
           xcodebuild build -quiet -workspace "$WS" -scheme "${WS%.xcworkspace}" -configuration Release \
             -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
-            -derivedDataPath "$RUNNER_TEMP/dd" CODE_SIGNING_ALLOWED=NO
+            -derivedDataPath "$RUNNER_TEMP/dd" CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER=
           echo "APP=$(ls -d "$RUNNER_TEMP"/dd/Build/Products/Release-iphonesimulator/*.app | head -1)" >> "$GITHUB_ENV"
+          A=$(ls -d "$RUNNER_TEMP"/dd/Build/Products/Release-iphonesimulator/*.app | head -1)
+          codesign -dv "$A" 2>&1 | grep -E "Signature|Identifier" || true
+          otool -s __TEXT __entitlements "$A/$(defaults read "$A/Info.plist" CFBundleExecutable)" | head -3 || true
       - name: pack the .app (a tar keeps the executable bit an artifact would drop)
         if: inputs.app_run == ''
         run: tar -C "$(dirname "$APP")" -cf "$RUNNER_TEMP/app.tar" "$(basename "$APP")"
@@ -84,24 +91,6 @@ jobs:
           UDID=$(xcrun simctl list devices available -j | jq -r '[.devices[][] | select(.name | startswith("iPhone"))][0].udid')
           echo "UDID=$UDID" >> "$GITHUB_ENV"
           xcrun simctl boot "$UDID" && xcrun simctl bootstatus "$UDID" -b
-          # The build is unsigned, so it has no Keychain entitlement: every read of the session
-          # token failed with -34018 and the app said "Something went wrong" before any request
-          # (runs 36678729111 → 36693828013). An ad-hoc signature with these entitlements is
-          # enough on a simulator.
-          cat > "$RUNNER_TEMP/sim.entitlements" <<'PLIST'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0"><dict>
-            <key>application-identifier</key><string>A1B2C3D4E5.app.socialmorning.mobile</string>
-            <key>keychain-access-groups</key><array><string>A1B2C3D4E5.app.socialmorning.mobile</string></array>
-          </dict></plist>
-          PLIST
-          # Nested code first, plainly; the entitlements go on the app alone (run 36695722855:
-          # --deep gave every framework the entitlements too, and the app would not launch).
-          find "$APP/Frameworks" -maxdepth 1 \( -name "*.framework" -o -name "*.dylib" \) -exec codesign --force --sign - {} \; 2>/dev/null || true
-          codesign --force --sign - --entitlements "$RUNNER_TEMP/sim.entitlements" "$APP"
-          codesign --verify --verbose "$APP"
-          codesign -d --entitlements - "$APP" | head -20
           xcrun simctl install "$UDID" "$APP"
       - name: install Maestro
         run: |
