@@ -28,6 +28,8 @@ jobs:
       # The simulator's "localhost" can be ::1; listen on IPv6 and IPv4 (run 36691015371: the app's
       # requests never arrived and it said "Something went wrong").
       E2E_HOST: '::'
+      # Maestro's iOS driver can take > 2 min to start on a cold runner (run 36701745093).
+      MAESTRO_DRIVER_STARTUP_TIMEOUT: '180000'
       JOURNEY_OUT: ${{ github.workspace }}/apps/api/journey.json
       # The app's server address, read by app.config.js at prebuild and when the JS is bundled.
       SOCIALNET_API_BASE_URL: http://localhost:8787
