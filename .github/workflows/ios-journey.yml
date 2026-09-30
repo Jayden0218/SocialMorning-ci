@@ -61,7 +61,8 @@ jobs:
         run: maestro --device "$UDID" test .maestro/journey.yaml --test-output-dir "$RUNNER_TEMP/maestro"
       - name: what the server holds after the phone
         working-directory: apps/api
-        run: npx tsx scripts/journey.ts phone listener-02@journey.test "Maestro: heard it on the simulator"
+        run: |
+          npx tsx scripts/journey.ts phone listener-02@journey.test "Maestro: heard it on the simulator"
       - if: always()
         uses: actions/upload-artifact@v4
         with:
