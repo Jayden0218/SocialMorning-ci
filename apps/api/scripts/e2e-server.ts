@@ -112,11 +112,19 @@ serve({
   fetch: (req, env) => {
     const url = new URL(req.url);
     if (url.pathname === '/__e2e/removed') return Response.json(removed);
+    // Maestro has no sleep: a flow waits for real playback by asking the server to answer late.
+    if (url.pathname === '/__e2e/wait') {
+      const ms = Math.min(Number(url.searchParams.get('ms') ?? 0) || 0, 60_000);
+      return new Promise<Response>((done) => setTimeout(() => done(Response.json({ waited: ms })), ms));
+    }
     if (url.pathname === '/__e2e/code') {
       const code = inbox.get((url.searchParams.get('email') ?? '').toLowerCase());
       return code ? Response.json({ code }) : Response.json({ error: 'no code yet' }, { status: 404 });
     }
-    return servedFile(req) ?? app.fetch(req, env);
+    const res = servedFile(req) ?? app.fetch(req, env);
+    // E2E_LOG=1: one line per request, so a failed phone run shows what the app asked for.
+    if (process.env['E2E_LOG'] === '1') void Promise.resolve(res).then((r) => console.log(`${req.method} ${url.pathname} ${r.status}`));
+    return res;
   },
   port,
   hostname: process.env['E2E_HOST'] ?? '0.0.0.0',

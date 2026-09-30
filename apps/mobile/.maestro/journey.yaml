@@ -10,14 +10,14 @@ env:
 ---
 - launchApp:
     clearState: true
-- tapOn: "Agree and continue"          # the Terms screen on first launch
+- tapOn: "Agree"                       # the Terms screen on first launch (Terms.tsx)
 - tapOn: "Continue with email"
 - tapOn: "Agree and continue"          # the consent sheet before signing in
 - tapOn: "Email"
 - inputText: ${EMAIL}
 - tapOn: "Send code"
 - runScript: fetch-code.js             # the test server's inbox — what a person reads in their mail
-- tapOn: "6-digit code"
+- tapOn: "Code"                        # the code field's accessible name (auth/email.tsx)
 - inputText: ${output.code}
 - tapOn: "Continue"
 - extendedWaitUntil:
@@ -28,16 +28,20 @@ env:
     text: "Search.*"
 - inputText: "Journey Morning"
 - pressKey: Enter
-- tapOn:
-    text: "Journey Morning"
-    index: 0
+- tapOn:                              # the row under "Shows" (its name is the title, then the author)
+    text: "Journey Morning.*"
+    below: "Shows"
 - tapOn: "Subscribe to this show"
 - takeScreenshot: 02-subscribed
 - tapOn: "Play Episode 1: A minute of tone"
-- extendedWaitUntil:                   # about 20 s of real playback
+- extendedWaitUntil:                   # the mini player is up: playback started
     visible:
-      text: "0:2[0-9]/1:00"
-    timeout: 45000
+      text: "Now playing: .*"
+    timeout: 20000
+- runScript:                           # about 22 s of real playback (the mini player's time is
+    file: wait.js                      # inside its "Now playing" name, so it cannot be read)
+    env:
+      MS: "22000"
 - tapOn: "Pause"
 - takeScreenshot: 03-paused-at-0-2x
 - tapOn:
@@ -45,7 +49,8 @@ env:
 - tapOn:
     text: "Comments.*"
 - tapOn:
-    text: "Write a comment.*"
+    text: "Write a comment at 0:[23][0-9]"   # the comment is pinned to the paused moment
+- tapOn: "Comment"                     # the composer's field
 - inputText: ${NOTE}
 - tapOn: "Post"
 - extendedWaitUntil:

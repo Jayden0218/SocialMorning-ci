@@ -6,11 +6,17 @@
 name: ios-journey
 on:
   workflow_dispatch:
+    inputs:
+      app_run:
+        description: 'Reuse the .app from this earlier ios-journey run (skips the ~30 min build; only for flow-only changes)'
+        required: false
+        default: ''
   schedule:
     - cron: '30 18 * * *' # 02:30 in Malaysia
 jobs:
   journey:
     runs-on: macos-26
+    permissions: { contents: read, actions: read }
     timeout-minutes: 90
     env:
       E2E_API: http://localhost:8787
@@ -18,6 +24,7 @@ jobs:
       E2E_PUBLIC_BASE: http://localhost:8787
       E2E_MOD_EMAIL: mod@journey.test
       SESSION_PEPPER: journey-pepper-not-secret
+      E2E_LOG: '1'
       JOURNEY_OUT: ${{ github.workspace }}/apps/api/journey.json
       # The app's server address, read by app.config.js at prebuild and when the JS is bundled.
       SOCIALNET_API_BASE_URL: http://localhost:8787
@@ -33,12 +40,15 @@ jobs:
           for i in $(seq 1 90); do curl -sf localhost:8787/v1/health && break; sleep 1; done
           npx tsx scripts/journey.ts seed
       - name: prebuild
+        if: inputs.app_run == ''
         working-directory: apps/mobile
         run: npx expo prebuild --platform ios --no-install --clean
       - name: pods
+        if: inputs.app_run == ''
         working-directory: apps/mobile/ios
         run: pod install
       - name: build Release for the simulator
+        if: inputs.app_run == ''
         working-directory: apps/mobile/ios
         run: |
           WS=$(ls -d *.xcworkspace | head -1)
@@ -46,6 +56,24 @@ jobs:
             -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath "$RUNNER_TEMP/dd" CODE_SIGNING_ALLOWED=NO
           echo "APP=$(ls -d "$RUNNER_TEMP"/dd/Build/Products/Release-iphonesimulator/*.app | head -1)" >> "$GITHUB_ENV"
+      - name: pack the .app (a tar keeps the executable bit an artifact would drop)
+        if: inputs.app_run == ''
+        run: tar -C "$(dirname "$APP")" -cf "$RUNNER_TEMP/app.tar" "$(basename "$APP")"
+      - name: keep the .app for later flow-only runs
+        if: inputs.app_run == ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-journey-app
+          path: ${{ runner.temp }}/app.tar
+          retention-days: 7
+      - name: the .app from run ${{ inputs.app_run }}
+        if: inputs.app_run != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download "${{ inputs.app_run }}" -R "$GITHUB_REPOSITORY" -n ios-journey-app -D "$RUNNER_TEMP/app"
+          tar -C "$RUNNER_TEMP/app" -xf "$RUNNER_TEMP/app/app.tar"
+          echo "APP=$(ls -d "$RUNNER_TEMP"/app/*.app | head -1)" >> "$GITHUB_ENV"
       - name: boot a simulator and install
         run: |
           UDID=$(xcrun simctl list devices available -j | jq -r '[.devices[][] | select(.name | startswith("iPhone"))][0].udid')
