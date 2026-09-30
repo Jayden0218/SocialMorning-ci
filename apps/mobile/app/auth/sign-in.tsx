@@ -39,6 +39,15 @@ export default function SignInScreen(): React.ReactElement {
   const [agreed, setAgreed] = useState(false);
   // Which way in is waiting on the consent dialog.
   const [asking, setAsking] = useState<Way | undefined>(undefined);
+  // The way in chosen in the dialog opens once the dialog has closed. Opening the next page
+  // in the same moment as the close could leave the dialog up and the page unopened (the
+  // simulator journey, run 36716389842: consent ticked, dialog still showing, no email page).
+  const [afterClose, setAfterClose] = useState<Way | undefined>(undefined);
+  useEffect(() => {
+    if (afterClose === undefined || asking !== undefined) return;
+    const t = setTimeout(() => { setAfterClose(undefined); go(afterClose); }, 300);
+    return () => clearTimeout(t);
+  }, [afterClose, asking]);
   // The page appears whole, once its covers are in (owner, 2026-09-27): whatever is over the
   // app (the launch screen, or the Terms right after Agree) lifts only then — never a splash
   // of this page's own (owner, 2026-09-29: Agree → splash → sign-in read as a step too many).
@@ -90,7 +99,7 @@ export default function SignInScreen(): React.ReactElement {
         action="continue"
         open={legal.open}
         onCancel={() => setAsking(undefined)}
-        onAgree={() => { const way = asking; setAsking(undefined); setAgreed(true); if (way) go(way); }}
+        onAgree={() => { const way = asking; setAsking(undefined); setAgreed(true); if (way) setAfterClose(way); }}
       />
       {legal.overlay}
     </SafeAreaView>

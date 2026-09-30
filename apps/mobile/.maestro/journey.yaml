@@ -21,14 +21,22 @@ env:
       - extendedWaitUntil:
           visible: "Continue with email"
           timeout: 10000
-- tapOn: "Continue with email"
-- extendedWaitUntil:                   # the consent dialog fades in (run 36693828013 looked too soon)
-    visible: "Agree and continue"
-    timeout: 10000
-- tapOn: "Agree and continue"          # the consent sheet before signing in
-- extendedWaitUntil:                   # the email page has finished sliding in ("Send code" is
-    visible: "Email"                   # greyed out until an address is typed, so wait on the box)
-    timeout: 10000
+- retry:                               # run 36716389842: consent ticked, dialog still up, no email page
+    maxRetries: 2
+    commands:
+      - tapOn:
+          text: "Continue with email"
+          optional: true               # already past it on a retry
+      - extendedWaitUntil:
+          visible: "Agree and continue"
+          timeout: 10000
+          optional: true
+      - tapOn:
+          text: "Agree and continue"   # the consent dialog before signing in
+          optional: true
+      - extendedWaitUntil:             # the email page's box ("Send code" is greyed out until typed)
+          visible: "Email"
+          timeout: 10000
 - waitForAnimationToEnd
 - retry:                               # run 36685147199: the text was "typed" while the page
     maxRetries: 2                      # moved, and the box stayed empty — so check it landed
