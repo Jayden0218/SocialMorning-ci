@@ -7,7 +7,7 @@
  */
 import { router, Stack } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { askMicrophone, useVoiceRecorder, voiceSessionOff, voiceSessionOn } from '../../src/playback/expo-audio-adapter';
+import { askMicrophone, playVoice, useVoiceRecorder, voiceSessionOff, voiceSessionOn } from '../../src/playback/expo-audio-adapter';
 import { Linking } from 'react-native';
 import { Pressable } from '../../src/ui/lib/pressable';
 import { Text } from '../../src/ui/lib/text';
@@ -34,11 +34,21 @@ export default function NewVoicePost(): React.ReactElement {
   const [phase, setPhase] = useState<Phase>({ kind: 'idle' });
   const [error, setError] = useState<string | undefined>();
   const stopping = useRef(false);
+  // Defect 6 (phone walk 2026-09-30): the recording could not be heard before posting.
+  const [hearing, setHearing] = useState(false);
+  const listenBack = useRef<{ stop: () => void } | undefined>(undefined);
+  const stopHearing = () => { listenBack.current?.stop(); listenBack.current = undefined; setHearing(false); };
+  const hear = (uri: string) => {
+    if (listenBack.current) { stopHearing(); return; }
+    listenBack.current = playVoice(uri, stopHearing);
+    setHearing(true);
+  };
 
   const restore = () => voiceSessionOff().catch(() => undefined);
-  useEffect(() => () => { void restore(); }, []);
+  useEffect(() => () => { listenBack.current?.stop(); void restore(); }, []);
 
   const start = async () => {
+    stopHearing();
     setError(undefined);
     if (!(await askMicrophone())) { setPhase({ kind: 'denied' }); return; }
     player.pause();
@@ -61,6 +71,7 @@ export default function NewVoicePost(): React.ReactElement {
   useEffect(() => { if (phase.kind === 'recording' && state.durationMillis >= VOICE_MAX_MS) void stop(); });
 
   const post = async (uri: string, ms: number) => {
+    stopHearing();
     setPhase({ kind: 'posting', uri, ms });
     try {
       const blob = await (await fetch(uri)).blob();
@@ -105,7 +116,8 @@ export default function NewVoicePost(): React.ReactElement {
       ) : null}
       {error ? <Text className="text-accent text-sm text-center">{error}</Text> : null}
       {phase.kind === 'done' || phase.kind === 'posting' ? (
-        <Box className="self-stretch mt-section">
+        <Box className="self-stretch mt-section gap-row">
+          <Button kind="secondary" label={hearing ? 'Stop playing' : 'Play it back'} disabled={phase.kind === 'posting'} onPress={() => hear(phase.uri)} />
           <Button label={phase.kind === 'posting' ? 'Posting…' : 'Post'} disabled={phase.kind === 'posting'} onPress={() => void post(phase.uri, phase.ms)} />
         </Box>
       ) : null}
