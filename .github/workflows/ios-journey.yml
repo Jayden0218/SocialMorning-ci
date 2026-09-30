@@ -89,6 +89,12 @@ jobs:
         run: |
           curl -Ls "https://get.maestro.mobile.dev" | bash
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+      - name: the test server is still up, from the runner and from inside the simulator
+        run: |
+          curl -sS -o /dev/null -w "runner → localhost:8787 %{http_code}\n" http://localhost:8787/v1/health
+          curl -sS -o /dev/null -w "runner → 127.0.0.1:8787 %{http_code}\n" http://127.0.0.1:8787/v1/health
+          curl -sS -o /dev/null -w "runner → [::1]:8787 %{http_code}\n" "http://[::1]:8787/v1/health" || true
+          xcrun simctl spawn "$UDID" /usr/bin/curl -sS -o /dev/null -w "simulator → localhost:8787 %{http_code}\n" http://localhost:8787/v1/health || echo "simulator curl unavailable"
       - name: the journey on screen
         working-directory: apps/mobile
         run: maestro --device "$UDID" test .maestro/journey.yaml --test-output-dir "$RUNNER_TEMP/maestro"

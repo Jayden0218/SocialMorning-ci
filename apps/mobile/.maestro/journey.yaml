@@ -8,13 +8,14 @@ env:
   EMAIL: listener-02@journey.test
   NOTE: "Maestro: heard it on the simulator"
 ---
+- runScript: health.js                # fail here, clearly, if the test server is not answering
 - launchApp:
     clearState: true
 - tapOn: "Agree"                       # the Terms screen on first launch (Terms.tsx)
 - tapOn: "Continue with email"
 - tapOn: "Agree and continue"          # the consent sheet before signing in
-- extendedWaitUntil:                   # the email page has finished sliding in
-    visible: "Send code"
+- extendedWaitUntil:                   # the email page has finished sliding in ("Send code" is
+    visible: "Email"                   # greyed out until an address is typed, so wait on the box)
     timeout: 10000
 - waitForAnimationToEnd
 - retry:                               # run 36685147199: the text was "typed" while the page
