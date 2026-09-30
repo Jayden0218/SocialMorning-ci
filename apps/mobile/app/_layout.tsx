@@ -20,6 +20,7 @@ import { GraphProvider } from '../src/graph/context';
 import { SafetyProvider } from '../src/safety/context';
 import { CarLibrarySync } from '../src/outside/CarLibrarySync';
 import { MiniPlayer } from '../src/ui/MiniPlayer';
+import { HeaderBack } from '../src/ui/TopBar';
 import { GluestackUIProvider } from '../src/ui/lib/gluestack-ui-provider';
 
 // Owner, 2026-09-27: no warning bar over the app in Debug builds. Warnings still print
@@ -86,7 +87,9 @@ function RootStack(): React.ReactElement {
           */}
         <Stack
           screenOptions={{
-            headerBackTitle: 'Back',
+            // Owner, 2026-09-30: every back button is the app's own ←, never iOS's chevron.
+            headerBackVisible: false,
+            headerLeft: () => <HeaderBack />,
             headerStyle: { backgroundColor: c.background },
             headerTintColor: c.accent,
             headerTitleStyle: { color: c.text, fontSize: fontSize.base, fontWeight: '700' },
