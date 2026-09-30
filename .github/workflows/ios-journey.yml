@@ -92,11 +92,15 @@ jobs:
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0"><dict>
-            <key>application-identifier</key><string>SIMULATOR.app.socialmorning.mobile</string>
-            <key>keychain-access-groups</key><array><string>SIMULATOR.app.socialmorning.mobile</string></array>
+            <key>application-identifier</key><string>A1B2C3D4E5.app.socialmorning.mobile</string>
+            <key>keychain-access-groups</key><array><string>A1B2C3D4E5.app.socialmorning.mobile</string></array>
           </dict></plist>
           PLIST
-          codesign --force --deep --sign - --entitlements "$RUNNER_TEMP/sim.entitlements" "$APP"
+          # Nested code first, plainly; the entitlements go on the app alone (run 36695722855:
+          # --deep gave every framework the entitlements too, and the app would not launch).
+          find "$APP/Frameworks" -maxdepth 1 \( -name "*.framework" -o -name "*.dylib" \) -exec codesign --force --sign - {} \; 2>/dev/null || true
+          codesign --force --sign - --entitlements "$RUNNER_TEMP/sim.entitlements" "$APP"
+          codesign --verify --verbose "$APP"
           codesign -d --entitlements - "$APP" | head -20
           xcrun simctl install "$UDID" "$APP"
       - name: install Maestro
