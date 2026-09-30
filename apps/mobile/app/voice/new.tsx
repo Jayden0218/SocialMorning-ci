@@ -75,14 +75,16 @@ export default function NewVoicePost(): React.ReactElement {
 
   const recording = phase.kind === 'recording';
   const shownMs = recording ? state.durationMillis : phase.kind === 'done' || phase.kind === 'posting' ? phase.ms : 0;
+  // The header's left item (set on both keys: iOS reads the items — see app/_layout.tsx).
+  const cancel = (
+    <Pressable onPress={() => { if (phase.kind === 'recording') void stop(); router.back(); }} accessibilityRole="button" accessibilityLabel="Cancel" className="justify-center px-row" style={{ minHeight: 48 }}>
+      <Text className="text-accent text-sm">Cancel</Text>
+    </Pressable>
+  );
   return (
     <Screen className="pt-section items-center gap-section">
       {/* Phone walk 2026-09-30: the sheet could only be swiped away. */}
-      <Stack.Screen options={{ title: 'Voice status', headerLeft: () => (
-        <Pressable onPress={() => { if (phase.kind === 'recording') void stop(); router.back(); }} accessibilityRole="button" accessibilityLabel="Cancel" className="justify-center px-row" style={{ minHeight: 48 }}>
-          <Text className="text-accent text-sm">Cancel</Text>
-        </Pressable>
-      ) }} />
+      <Stack.Screen options={{ title: 'Voice status', headerLeft: () => cancel, unstable_headerLeftItems: () => [{ type: 'custom', element: cancel, hidesSharedBackground: true }] }} />
       <Text className="text-muted text-sm text-center">Up to 60 seconds. People who follow you can play it for 48 hours; then it is deleted.</Text>
       <Text className="text-text text-2xl font-bold" accessibilityLiveRegion="polite" accessibilityLabel={`${Math.floor(shownMs / 1000)} seconds of 60`}>{voiceClock(shownMs)}</Text>
       <Pressable

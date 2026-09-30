@@ -90,6 +90,9 @@ function RootStack(): React.ReactElement {
             // Owner, 2026-09-30: every back button is the app's own ←, never iOS's chevron.
             headerBackVisible: false,
             headerLeft: () => <HeaderBack />,
+            // iOS reads the items, not headerLeft; `hidesSharedBackground` drops iOS 26's glass
+            // circle, so the ← looks the same as on the pages that draw their own bar.
+            unstable_headerLeftItems: () => [{ type: 'custom', element: <HeaderBack />, hidesSharedBackground: true }],
             headerStyle: { backgroundColor: c.background },
             headerTintColor: c.accent,
             headerTitleStyle: { color: c.text, fontSize: fontSize.base, fontWeight: '700' },
