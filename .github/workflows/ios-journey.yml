@@ -1,0 +1,74 @@
+# The listener journey on the real app (specs/015-e2e-journey, layer A): a Release build for the
+# iPhone simulator, pointed at a local test server (PGlite in memory — never Neon), seeded with 50
+# listeners; Maestro signs in as listener-02 by emailed code, finds the host's show, subscribes,
+# plays ~20 s, pauses and comments at that moment; then the server is asked what it holds.
+# macos-26 is a standard runner: free on this public mirror. Nightly, and on demand.
+name: ios-journey
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '30 18 * * *' # 02:30 in Malaysia
+jobs:
+  journey:
+    runs-on: macos-26
+    timeout-minutes: 90
+    env:
+      E2E_API: http://localhost:8787
+      E2E_STORE_BASE: http://localhost:8787/__e2e/store/
+      E2E_PUBLIC_BASE: http://localhost:8787
+      E2E_MOD_EMAIL: mod@journey.test
+      SESSION_PEPPER: journey-pepper-not-secret
+      JOURNEY_OUT: ${{ github.workspace }}/apps/api/journey.json
+      # The app's server address, read by app.config.js at prebuild and when the JS is bundled.
+      SOCIALNET_API_BASE_URL: http://localhost:8787
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --no-audit --no-fund
+      - name: start the test server (PGlite) and seed 50 listeners
+        working-directory: apps/api
+        run: |
+          (npx tsx scripts/e2e-server.ts > ../../api.log 2>&1 &)
+          for i in $(seq 1 90); do curl -sf localhost:8787/v1/health && break; sleep 1; done
+          npx tsx scripts/journey.ts seed
+      - name: prebuild
+        working-directory: apps/mobile
+        run: npx expo prebuild --platform ios --no-install --clean
+      - name: pods
+        working-directory: apps/mobile/ios
+        run: pod install
+      - name: build Release for the simulator
+        working-directory: apps/mobile/ios
+        run: |
+          WS=$(ls -d *.xcworkspace | head -1)
+          xcodebuild build -quiet -workspace "$WS" -scheme "${WS%.xcworkspace}" -configuration Release \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/dd" CODE_SIGNING_ALLOWED=NO
+          echo "APP=$(ls -d "$RUNNER_TEMP"/dd/Build/Products/Release-iphonesimulator/*.app | head -1)" >> "$GITHUB_ENV"
+      - name: boot a simulator and install
+        run: |
+          UDID=$(xcrun simctl list devices available -j | jq -r '[.devices[][] | select(.name | startswith("iPhone"))][0].udid')
+          echo "UDID=$UDID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$UDID" && xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl install "$UDID" "$APP"
+      - name: install Maestro
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+      - name: the journey on screen
+        working-directory: apps/mobile
+        run: maestro --device "$UDID" test .maestro/journey.yaml --test-output-dir "$RUNNER_TEMP/maestro"
+      - name: what the server holds after the phone
+        working-directory: apps/api
+        run: npx tsx scripts/journey.ts phone listener-02@journey.test "Maestro: heard it on the simulator"
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-journey
+          path: |
+            ${{ runner.temp }}/maestro
+            apps/mobile/*.png
+            api.log
+            apps/api/journey.json
+          retention-days: 7

@@ -14,7 +14,9 @@
  *     file being scripts/fixtures/journey.mp3 (60 s, byte ranges for the phone's player), so a
  *     published episode really plays;
  *   - E2E_MOD_EMAIL + E2E_MOD_PASSWORD → that account exists at start and is the moderator;
- *   - E2E_PUBLIC_BASE → the address feeds and pages name (the phone needs the Mac's LAN address).
+ *   - E2E_PUBLIC_BASE → the address feeds and pages name (the phone needs the Mac's LAN address);
+ *   - the email-code sign-in always works here: codes go to an in-memory inbox, and
+ *     GET /__e2e/code?email=… returns the latest (the phone signs in by code, as a person would).
  */
 import { serve } from '@hono/node-server';
 import { createApp } from '../src/app.ts';
@@ -74,6 +76,10 @@ async function moderator(): Promise<string | undefined> {
 }
 const ownerListenerId = await moderator();
 
+/** The inbox: the latest sign-in code per address (the app's only way in is an emailed code). */
+const inbox = new Map<string, string>();
+const mailer = { async send(m: { to: string; subject: string }) { const code = /\b(\d{6})\b/.exec(m.subject)?.[1]; if (code) inbox.set(m.to.toLowerCase(), code); } };
+
 /** The store's files, served here when E2E_STORE_BASE points at this server: every audio file is the fixture. */
 function servedFile(req: Request): Response | undefined {
   const url = new URL(req.url);
@@ -92,6 +98,7 @@ function servedFile(req: Request): Response | undefined {
 
 const app = createApp({
   db,
+  mailer,
   ...(ownerListenerId ? { ownerListenerId, appealsEmail: 'appeals@e2e.test' } : {}),
   pepper: process.env['SESSION_PEPPER'] ?? 'e2e-pepper',
   episodeStorage: storage,
@@ -102,7 +109,15 @@ const app = createApp({
 // Test-only window into what was deleted from the store (never mounted in production).
 const port = Number(process.env['PORT'] ?? 8787);
 serve({
-  fetch: (req, env) => (new URL(req.url).pathname === '/__e2e/removed' ? Response.json(removed) : servedFile(req) ?? app.fetch(req, env)),
+  fetch: (req, env) => {
+    const url = new URL(req.url);
+    if (url.pathname === '/__e2e/removed') return Response.json(removed);
+    if (url.pathname === '/__e2e/code') {
+      const code = inbox.get((url.searchParams.get('email') ?? '').toLowerCase());
+      return code ? Response.json({ code }) : Response.json({ error: 'no code yet' }, { status: 404 });
+    }
+    return servedFile(req) ?? app.fetch(req, env);
+  },
   port,
   hostname: process.env['E2E_HOST'] ?? '0.0.0.0',
 }, () => console.log(`e2e api on :${port}${ownerListenerId ? ' (moderator set)' : ''}`));

@@ -8,6 +8,11 @@
  *                                           sign in, subscribe, listen, resume, comment at a moment,
  *                                           like, star — then the host replies from the Studio and
  *                                           the listener sees the Host reply
+ *   npx tsx scripts/journey.ts phone <email> <note>
+ *                                        → after a phone ran the journey on screen (Maestro on a
+ *                                           simulator, or a real iPhone): the server has that
+ *                                           listener's subscription, a position past 0:15, and the
+ *                                           comment with that text at the moment they were at
  *
  * Every step checks what the server answers; the first wrong answer stops the run with its name.
  * Env: E2E_API (default http://localhost:8787), E2E_STORE_BASE (the same value the server has),
@@ -256,7 +261,26 @@ async function listener(): Promise<void> {
   console.log(`listener journey done: ${step} checks`);
 }
 
+/** What the server holds after a phone did the journey on screen (layer A / the real iPhone). */
+async function phone(email: string, note: string): Promise<void> {
+  const j = JSON.parse(readFileSync(OUT, 'utf8')) as Journey;
+  const ep = j.episodes[0]!;
+  console.log(`phone check for ${email} → ${API}`);
+  const token = await signIn(email);
+  const subs = await call<{ items: { feedUrl: string; deletedAt?: string }[] }>('GET', '/v1/me/subscriptions', undefined, token);
+  ok(subs.json.items.some((i) => i.feedUrl === j.show.feedUrl && !i.deletedAt), 'the phone subscribed to the show');
+  const pos = (await call<{ positions: { episodeId: string; offsetMs: number }[] }>('GET', '/v1/me/positions', undefined, token)).json.positions.find((p) => p.episodeId === ep.episodeId);
+  ok(pos !== undefined && pos.offsetMs >= 15_000, `the phone's listening position reached the server (${pos?.offsetMs} ms)`);
+  type C = { body: string | null; offsetMs: number | null; mine?: boolean; replies?: C[] };
+  const social = await call<{ comments: C[] }>('GET', `/v1/episodes/${ep.episodeId}/social`, undefined, token);
+  const c = social.json.comments.flatMap((x) => [x, ...(x.replies ?? [])]).find((x) => x.body === note && x.mine);
+  ok(c !== undefined, 'the comment typed on the phone is on the server');
+  ok(c!.offsetMs !== null && c!.offsetMs >= 15_000 && c!.offsetMs <= 40_000, `…at the moment the phone was at (${c!.offsetMs} ms)`);
+  console.log(`phone check done: ${step} checks`);
+}
+
 const cmd = process.argv[2];
 if (cmd === 'seed') await seed();
 else if (cmd === 'listener') await listener();
-else { console.error('usage: journey.ts seed | listener'); process.exit(2); }
+else if (cmd === 'phone') await phone(process.argv[3] ?? 'listener-02@journey.test', process.argv[4] ?? 'Maestro: heard it on the simulator');
+else { console.error('usage: journey.ts seed | listener | phone <email> <note>'); process.exit(2); }
