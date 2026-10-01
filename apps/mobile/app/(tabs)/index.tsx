@@ -10,16 +10,16 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Image } from '../../src/ui/lib/image';
-import { RefreshControl } from '../../src/ui/lib/refresh-control';
 import { SafeAreaView } from '../../src/ui/lib/safe-area-view';
 import { ScrollView } from '../../src/ui/lib/scroll-view';
 import { Text } from '../../src/ui/lib/text';
 import { Box } from '../../src/ui/lib/box';
 import { colour } from '../../src/design';
-import { useColours } from '../../src/ui/useColours';
+import { GENRES } from '../../src/discover/genres';
 import { buildModel } from '../../src/discover/sections';
 import { HINT_EVERY_MS, hintAt, trendingHints } from '../../src/discover/trending';
 import { Loader } from '../../src/ui/Loader';
+import { usePullRefresh } from '../../src/ui/PullRefresh';
 import { useDiscover } from '../../src/discover/useDiscover';
 import { useForYou } from '../../src/recs/useForYou';
 import { useRecOutbox } from '../../src/recs/useRecOutbox';
@@ -39,7 +39,6 @@ const ICON = { width: 36, height: 36 };
 export default function DiscoverScreen(): React.ReactElement {
   const router = useRouter();
   const stores = useStores();
-  const c = useColours(stores.settings);
   const { view, refreshing, refresh, open, play } = useDiscover();
   const { listener } = useSocial();
   const { sets, hiddenFeeds, version } = useSafety();
@@ -63,14 +62,23 @@ export default function DiscoverScreen(): React.ReactElement {
   }, [hints]);
   const hint = hintAt(hints, tick);
   const showPage = (feedUrl: string) => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(feedUrl) } });
+  // Owner, 2026-10-01: "Categories" opens the genre strip with the first genre's list under it,
+  // not the page of genre choices.
+  const allCategories = () => router.push({ pathname: '/category/[id]', params: { id: String(GENRES[0]!.id) } });
+  const pull = usePullRefresh(refreshing, () => void refreshBoth());
   const act = { onOpen: (c: Parameters<typeof open>[0]) => void open(c), onPlay: (c: Parameters<typeof play>[0]) => void play(c) };
 
   return (
     <SafeAreaView className="flex-1 bg-background">
+      <Box className="flex-1">
+      {pull.backdrop}
       <ScrollView
         contentContainerStyle={{ paddingBottom: BOTTOM_INSET }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refreshBoth()} tintColor={c.accent} colors={[c.accent]} />}
+        refreshControl={pull.refreshControl}
+        onScroll={pull.onScroll}
+        scrollEventThrottle={pull.scrollEventThrottle}
       >
+        {view ? pull.inline : null}
         {/* Owner, 2026-09-27: less space above the title. */}
         <Box className="flex-row items-center justify-between px-screen-x pt-1 pb-2">
           <Text className="text-text text-lg font-bold" accessibilityRole="header">Discover</Text>
@@ -78,12 +86,13 @@ export default function DiscoverScreen(): React.ReactElement {
         </Box>
         <SearchBar
           {...(hint ? { hint } : {})}
-          onPress={() => (hint ? router.push({ pathname: '/search', params: { hint } }) : router.push('/search'))}
+          // `fromY`: where the bar sits now, so Search can start its box here and move it up.
+          onPress={(fromY) => router.push({ pathname: '/search', params: { fromY: String(Math.round(fromY)), ...(hint ? { hint } : {}) } })}
           onScan={() => router.push('/scan')}
         />
         <Shortcuts
           items={[
-            { label: 'Categories', icon: 'grid-outline', onPress: () => router.push('/categories') },
+            { label: 'Categories', icon: 'grid-outline', onPress: allCategories },
             { label: inbox > 0 ? `Inbox (${inbox})` : 'Inbox', icon: 'file-tray-outline', onPress: () => router.push('/inbox') },
             { label: 'Queue', icon: 'list-outline', onPress: () => router.push('/queue') },
             { label: 'Downloads', icon: 'download-outline', onPress: () => router.push('/downloads') },
@@ -107,7 +116,7 @@ export default function DiscoverScreen(): React.ReactElement {
         <ForYouSection rows={model.forYou} {...act} onOpenAt={(c, index) => { outbox.opened(index); void open(c); }} />
         <PicksSection items={model.picks} {...(view?.body.date ? { date: view.body.date } : {})} {...act} onPast={() => router.push({ pathname: '/picks/past', params: view?.body.date ? { before: view.body.date } : {} })} />
         <ChartSection tabs={model.chart} {...act} onFull={() => router.push('/chart')} />
-        {view ? <CategoryStrip onGenre={(id) => router.push({ pathname: '/category/[id]', params: { id: String(id) } })} onAll={() => router.push('/categories')} /> : null}
+        {view ? <CategoryStrip onGenre={(id) => router.push({ pathname: '/category/[id]', params: { id: String(id) } })} onAll={allCategories} /> : null}
         <ShowTiles title="Popular shows" shows={popularShowTiles(model.shows)} onShow={showPage} />
         <VideoSection items={model.video} {...act} />
         {model.collections.map((c) => <CollectionSection key={c.id} collection={c} {...act} />)}
@@ -116,8 +125,9 @@ export default function DiscoverScreen(): React.ReactElement {
         ) : null}
         <SaidSection items={model.said} now={Date.now()} {...act} />
         <NewShowsSection items={model.newShows} {...act} />
-        {view ? <MoreCategories onPress={() => router.push('/categories')} /> : null}
+        {view ? <MoreCategories onPress={allCategories} /> : null}
       </ScrollView>
+      </Box>
     </SafeAreaView>
   );
 }

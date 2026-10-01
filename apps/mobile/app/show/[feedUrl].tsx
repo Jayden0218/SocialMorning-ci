@@ -35,7 +35,7 @@ import { usePlayer, usePlayerState } from '../../src/playback/store';
 import { toPlayable } from '../../src/storage/playable';
 import { Artwork } from '../../src/ui/Artwork';
 import { Dots, Glyph, PauseIcon, PlayIcon, SearchIcon } from '../../src/ui/Icon';
-import { BarButton, goBack, TAP, TopBar } from '../../src/ui/TopBar';
+import { BarButton, TAP, TopBar } from '../../src/ui/TopBar';
 import { useSafety } from '../../src/safety/context';
 import { ReportSheet, type ReportTarget } from '../../src/ui/ReportSheet';
 import { useStores, useSubscriptionSync } from '../../src/ui/providers';
@@ -265,7 +265,7 @@ export default function ShowScreen(): React.ReactElement {
   return (
     <SafeAreaView className="flex-1 bg-background">
       <TopBar
-        onBack={() => goBack(router)}
+        onBack={() => router.back()}
         {...(collapsed ? {
           middle: (
             <>

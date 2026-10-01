@@ -23,7 +23,7 @@ import { ago, minutesLabel, mmss, noteParts } from '../../src/ui/format';
 import { useStores, useSubscriptionSync, useToast } from '../../src/ui/providers';
 import { isFavourite, toggleFavourite } from '../../src/me/favourites';
 import { Artwork } from '../../src/ui/Artwork';
-import { BarButton, goBack, TAP, TopBar } from '../../src/ui/TopBar';
+import { BarButton, TAP, TopBar } from '../../src/ui/TopBar';
 import { toPlayable } from '../../src/storage/playable';
 import { DownloadButton } from '../../src/ui/DownloadButton';
 import { QueueButtons } from '../../src/ui/QueueButtons';
@@ -70,7 +70,7 @@ export default function EpisodeScreen(): React.ReactElement {
   if (episode === undefined) {
     return (
       <SafeAreaView className="flex-1 bg-background">
-        <TopBar onBack={() => goBack(router)} />
+        <TopBar onBack={() => router.back()} />
         <Text className="px-screen-x text-base font-bold text-text">This episode is no longer in the feed.</Text>
       </SafeAreaView>
     );
@@ -130,7 +130,7 @@ export default function EpisodeScreen(): React.ReactElement {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <TopBar onBack={() => goBack(router)}>
+      <TopBar onBack={() => router.back()}>
         <Pressable onPress={toggleSubscription} accessibilityRole="button" accessibilityLabel={subscribed ? 'Unsubscribe from this show' : 'Subscribe to this show'} accessibilityState={{ selected: subscribed }} className="justify-center" style={TAP}>
           <Text className={subscribed ? 'text-sm font-semibold px-row py-2 rounded-row bg-surface text-muted' : 'text-sm font-semibold px-row py-2 rounded-row bg-surface text-text'}>{subscribed ? 'Subscribed' : '+ Subscribe'}</Text>
         </Pressable>

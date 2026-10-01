@@ -6,17 +6,11 @@
 name: ios-journey
 on:
   workflow_dispatch:
-    inputs:
-      app_run:
-        description: 'Reuse the .app from this earlier ios-journey run (skips the ~30 min build; only for flow-only changes)'
-        required: false
-        default: ''
   schedule:
     - cron: '30 18 * * *' # 02:30 in Malaysia
 jobs:
   journey:
     runs-on: macos-26
-    permissions: { contents: read, actions: read }
     timeout-minutes: 90
     env:
       E2E_API: http://localhost:8787
@@ -24,17 +18,9 @@ jobs:
       E2E_PUBLIC_BASE: http://localhost:8787
       E2E_MOD_EMAIL: mod@journey.test
       SESSION_PEPPER: journey-pepper-not-secret
-      E2E_LOG: '1'
-      # The simulator's "localhost" can be ::1; listen on IPv6 and IPv4 (run 36691015371: the app's
-      # requests never arrived and it said "Something went wrong").
-      E2E_HOST: '::'
-      # Maestro's iOS driver can take > 2 min to start on a cold runner (run 36701745093).
-      MAESTRO_DRIVER_STARTUP_TIMEOUT: '180000'
       JOURNEY_OUT: ${{ github.workspace }}/apps/api/journey.json
       # The app's server address, read by app.config.js at prebuild and when the JS is bundled.
       SOCIALNET_API_BASE_URL: http://localhost:8787
-      # …and written into the JS bundle (src/social/base-url.ts), which is what the app reads first.
-      EXPO_PUBLIC_API_BASE_URL: http://localhost:8787
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -47,47 +33,19 @@ jobs:
           for i in $(seq 1 90); do curl -sf localhost:8787/v1/health && break; sleep 1; done
           npx tsx scripts/journey.ts seed
       - name: prebuild
-        if: inputs.app_run == ''
         working-directory: apps/mobile
         run: npx expo prebuild --platform ios --no-install --clean
       - name: pods
-        if: inputs.app_run == ''
         working-directory: apps/mobile/ios
         run: pod install
-      # Signed "to run locally" (ad hoc), not unsigned: an unsigned build has no Keychain
-      # entitlement, every read of the session token failed (-34018) and the app said
-      # "Something went wrong" before sending anything (runs 36678729111 → 36693828013).
-      # Re-signing the finished app afterwards made it refuse to launch (36695722855, 36697189306).
       - name: build Release for the simulator
-        if: inputs.app_run == ''
         working-directory: apps/mobile/ios
         run: |
           WS=$(ls -d *.xcworkspace | head -1)
           xcodebuild build -quiet -workspace "$WS" -scheme "${WS%.xcworkspace}" -configuration Release \
             -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
-            -derivedDataPath "$RUNNER_TEMP/dd" CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER=
+            -derivedDataPath "$RUNNER_TEMP/dd" CODE_SIGNING_ALLOWED=NO
           echo "APP=$(ls -d "$RUNNER_TEMP"/dd/Build/Products/Release-iphonesimulator/*.app | head -1)" >> "$GITHUB_ENV"
-          A=$(ls -d "$RUNNER_TEMP"/dd/Build/Products/Release-iphonesimulator/*.app | head -1)
-          codesign -dv "$A" 2>&1 | grep -E "Signature|Identifier" || true
-          otool -s __TEXT __entitlements "$A/$(defaults read "$A/Info.plist" CFBundleExecutable)" | head -3 || true
-      - name: pack the .app (a tar keeps the executable bit an artifact would drop)
-        if: inputs.app_run == ''
-        run: tar -C "$(dirname "$APP")" -cf "$RUNNER_TEMP/app.tar" "$(basename "$APP")"
-      - name: keep the .app for later flow-only runs
-        if: inputs.app_run == ''
-        uses: actions/upload-artifact@v4
-        with:
-          name: ios-journey-app
-          path: ${{ runner.temp }}/app.tar
-          retention-days: 7
-      - name: the .app from run ${{ inputs.app_run }}
-        if: inputs.app_run != ''
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh run download "${{ inputs.app_run }}" -R "$GITHUB_REPOSITORY" -n ios-journey-app -D "$RUNNER_TEMP/app"
-          tar -C "$RUNNER_TEMP/app" -xf "$RUNNER_TEMP/app/app.tar"
-          echo "APP=$(ls -d "$RUNNER_TEMP"/app/*.app | head -1)" >> "$GITHUB_ENV"
       - name: boot a simulator and install
         run: |
           UDID=$(xcrun simctl list devices available -j | jq -r '[.devices[][] | select(.name | startswith("iPhone"))][0].udid')
@@ -98,12 +56,6 @@ jobs:
         run: |
           curl -Ls "https://get.maestro.mobile.dev" | bash
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
-      - name: the test server is still up, from the runner and from inside the simulator
-        run: |
-          curl -sS -o /dev/null -w "runner → localhost:8787 %{http_code}\n" http://localhost:8787/v1/health
-          curl -sS -o /dev/null -w "runner → 127.0.0.1:8787 %{http_code}\n" http://127.0.0.1:8787/v1/health
-          curl -sS -o /dev/null -w "runner → [::1]:8787 %{http_code}\n" "http://[::1]:8787/v1/health" || true
-          xcrun simctl spawn "$UDID" /usr/bin/curl -sS -o /dev/null -w "simulator → localhost:8787 %{http_code}\n" http://localhost:8787/v1/health || echo "simulator curl unavailable"
       - name: the journey on screen
         working-directory: apps/mobile
         run: maestro --device "$UDID" test .maestro/journey.yaml --test-output-dir "$RUNNER_TEMP/maestro"

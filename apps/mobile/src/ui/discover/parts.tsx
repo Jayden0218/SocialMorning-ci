@@ -5,7 +5,8 @@
  * `primary` fill, cards `surface`.
  */
 import { twoTone } from '../two-tone';
-import { useWindowDimensions } from 'react-native';
+import { useRef } from 'react';
+import { useWindowDimensions, type View } from 'react-native';
 import { Pressable } from '../lib/pressable';
 import { ScrollView } from '../lib/scroll-view';
 import { Text } from '../lib/text';
@@ -107,13 +108,20 @@ export function Pager(props: { count: number; children: (index: number, width: n
  * shows what is trending (owner, 2026-09-27; `src/discover/trending.ts`); the icon on the
  * right scans a QR code.
  */
-export function SearchBar(props: { hint?: string; onPress: () => void; onScan?: () => void }): React.ReactElement {
+export function SearchBar(props: { hint?: string; onPress: (fromY: number) => void; onScan?: () => void }): React.ReactElement {
   const stores = useStores();
   const c = useColours(stores.settings);
+  // Owner, 2026-10-01: Search opens by moving this box to the top, so it needs to know
+  // where the box is on the screen when tapped.
+  const box = useRef<View>(null);
+  const press = () => {
+    if (!box.current) { props.onPress(0); return; }
+    box.current.measureInWindow((_x, y) => props.onPress(y));
+  };
   return (
-    <Box className="mx-screen-x flex-row items-center bg-surface rounded-pill">
+    <Box ref={box} collapsable={false} className="mx-screen-x flex-row items-center bg-surface rounded-pill">
       <Pressable
-        onPress={props.onPress}
+        onPress={press}
         accessibilityRole="search"
         accessibilityLabel={props.hint ? `Search. Trending: ${props.hint}` : 'Search shows and episodes'}
         className="flex-1 flex-row items-center gap-2 pl-section pr-row"

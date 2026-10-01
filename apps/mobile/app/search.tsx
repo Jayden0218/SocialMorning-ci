@@ -8,9 +8,18 @@
  * from the Discover copy on the phone), "Browse categories", and this phone's search
  * history with a ✕ to clear it. M12 FR-073: that history is a "Recent" list (the last 10,
  * newest first) with Clear. `?q=` fills the box — how a scanned code's text lands.
+ *
+ * Owner, 2026-10-01:
+ * - The page does not slide in. It fades, and the box moves up from where Discover's box
+ *   was (`?fromY=`) to the top; the rest of the page fades in after it. Cancel reverses it.
+ * - Three states: nothing typed (the page above); typing (names to search for); and the
+ *   result page — reached by the keyboard's Search, a "Try searching" name, a Recent
+ *   search or a typed suggestion — with All / Shows / Episodes tabs and the keyboard down.
+ *   Typing again leaves the result page.
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { AccessibilityInfo, Animated, Easing, Keyboard, type View } from 'react-native';
 import { Input, InputField } from '../src/ui/lib/input';
 import { Pressable } from '../src/ui/lib/pressable';
 import { SafeAreaView } from '../src/ui/lib/safe-area-view';
@@ -37,8 +46,14 @@ import { useSafety } from '../src/safety/context';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
 const ROW = { minHeight: size.row };
+/** How long the box takes to move between Discover's place and the top. */
+const MOVE_MS = 260;
+/** On "All", this many shows sit above the episodes; the Shows tab has the rest. */
+const ALL_SHOWS = 3;
 
 type CatalogueState = { kind: 'idle' } | { kind: 'loading' } | { kind: 'ok'; result: SearchResult } | { kind: 'error'; message: string };
+type Tab = 'all' | 'shows' | 'episodes';
+const TABS: { key: Tab; label: string }[] = [{ key: 'all', label: 'All' }, { key: 'shows', label: 'Shows' }, { key: 'episodes', label: 'Episodes' }];
 
 export default function SearchScreen(): React.ReactElement {
   const router = useRouter();
@@ -48,15 +63,52 @@ export default function SearchScreen(): React.ReactElement {
   const { open, view } = useDiscover();
   const { hiddenFeeds } = useSafety();
   // `hint`: the trending name the Discover box was showing; searching an empty box uses it.
-  const params = useLocalSearchParams<{ q?: string; hint?: string }>();
+  // `fromY`: where Discover's box was on the screen.
+  const params = useLocalSearchParams<{ q?: string; hint?: string; fromY?: string }>();
   const [term, setTerm] = useState(params.q ?? '');
+  // The term the result page is showing; undefined while the listener is still typing.
+  const [submitted, setSubmitted] = useState<string | undefined>(params.q?.trim() ? params.q.trim() : undefined);
+  const [tab, setTab] = useState<Tab>('all');
   const [history, setHistory] = useState<string[]>(() => readHistory(stores.settings));
   const tryThese = useMemo(() => suggestions(view?.body, hiddenFeeds), [view, hiddenFeeds]);
   const remember = (t: string) => setHistory(addHistory(stores.settings, t));
-  const searchFor = (t: string) => { setTerm(t); remember(t); };
+  const run = (t: string) => {
+    const q = t.trim();
+    if (q === '') return;
+    Keyboard.dismiss();
+    setTerm(q);
+    setSubmitted(q);
+    setTab('all');
+    remember(q);
+  };
+  const type = (t: string) => { setTerm(t); setSubmitted(undefined); };
   const [catalogue, setCatalogue] = useState<CatalogueState>({ kind: 'idle' });
   const requestId = useRef(0);
   const trimmed = term.trim();
+
+  // --- The box moving up from Discover (and back down on Cancel). 0 = Discover's place, 1 = the top.
+  const fromY = params.fromY !== undefined && Number.isFinite(Number(params.fromY)) ? Number(params.fromY) : undefined;
+  const move = useRef(new Animated.Value(fromY === undefined ? 1 : 0)).current;
+  const [delta, setDelta] = useState(0);
+  const [placed, setPlaced] = useState(fromY === undefined);
+  const still = useRef(false);
+  const bar = useRef<View>(null);
+  useEffect(() => { void AccessibilityInfo.isReduceMotionEnabled().then((v) => { still.current = v; }).catch(() => undefined); }, []);
+  const place = () => {
+    if (placed || fromY === undefined || !bar.current) return;
+    bar.current.measureInWindow((_x, y) => {
+      setDelta(fromY - y);
+      setPlaced(true);
+      Animated.timing(move, { toValue: 1, duration: still.current ? 0 : MOVE_MS, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+    });
+  };
+  const leave = () => {
+    Keyboard.dismiss();
+    if (fromY === undefined || still.current) { router.back(); return; }
+    Animated.timing(move, { toValue: 0, duration: MOVE_MS, easing: Easing.in(Easing.cubic), useNativeDriver: true }).start(() => router.back());
+  };
+  const barY = move.interpolate({ inputRange: [0, 1], outputRange: [delta, 0] });
+  const fadeIn = move.interpolate({ inputRange: [0, 0.6, 1], outputRange: [0, 0, 1] });
 
   const library = useMemo(() => (trimmed === '' ? { shows: [], episodes: [] } : searchLibrary(stores, trimmed)), [stores, trimmed]);
 
@@ -84,30 +136,77 @@ export default function SearchScreen(): React.ReactElement {
   }, [library, catalogue]);
   const libShowKeys = new Set(library.shows.map((s) => s.feedUrl));
   const libEpisodeKeys = new Set(library.episodes.map((e) => e.id));
-  const nothing = trimmed !== '' && catalogue.kind !== 'loading' && merged.shows.length === 0 && merged.episodes.length === 0 && !looksLikeFeedUrl(trimmed);
+  const results = submitted !== undefined;
+  const nothing = results && catalogue.kind !== 'loading' && merged.shows.length === 0 && merged.episodes.length === 0 && !looksLikeFeedUrl(trimmed);
+  // While typing: names to search for — the shows first, then episode titles, no repeats.
+  const typed = useMemo(() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const name of [...merged.shows.map((s) => s.title), ...merged.episodes.map((e) => e.title)]) {
+      const key = name.trim().toLowerCase();
+      if (key === '' || seen.has(key) || key === trimmed.toLowerCase()) continue;
+      seen.add(key);
+      out.push(name.trim());
+      if (out.length >= 8) break;
+    }
+    return out;
+  }, [merged, trimmed]);
 
   const openShow = (feedUrl: string) => { remember(trimmed); router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(feedUrl) } }); };
+  const allCategories = () => router.push({ pathname: '/category/[id]', params: { id: String(GENRES[0]!.id) } });
+
+  const showRows = (list: typeof merged.shows) => list.map((s) => (
+    <Pressable key={s.feedUrl} className="flex-row gap-3 py-2" accessibilityRole="button" onPress={() => openShow(s.feedUrl)}>
+      {/* Phone walk 2026-09-30: shows with no (or a broken) image were blank grey squares. */}
+      <Artwork url={s.imageUrl} size={56} rounded="row" name={s.title} />
+      <Box className="flex-1">
+        <Text className="text-[15px] font-semibold text-text" numberOfLines={2}>{s.title}</Text>
+        <Text className="text-[13px] text-muted" numberOfLines={1}>{s.author}{libShowKeys.has(s.feedUrl) ? ' · in your library' : ''}</Text>
+      </Box>
+    </Pressable>
+  ));
+  const episodeRows = (list: typeof merged.episodes) => list.map((e) => (
+    <EpisodeRow key={`${e.feedUrl}\u0001${e.guid}`} card={e} line={libEpisodeKeys.has(e.id) ? 'In your library' : undefined} onPress={() => { remember(trimmed); if (libEpisodeKeys.has(e.id)) router.push({ pathname: '/episode/[id]', params: { id: e.id } }); else void open(e); }} />
+  ));
 
   return (
     <SafeAreaView className="flex-1 bg-background">
       <Box className="flex-row items-center gap-row px-screen-x pt-row">
-        <Box className="flex-1 flex-row items-center bg-surface rounded-row pl-row">
+        <Animated.View
+          ref={bar}
+          collapsable={false}
+          onLayout={place}
+          className="flex-1 flex-row items-center bg-surface rounded-pill pl-section"
+          style={{ opacity: placed ? 1 : 0, transform: [{ translateY: barY }] }}
+        >
           {/* M12 FR-010 (B10): the same magnifier and scan marks as the Discover bar. */}
           <Icon name="search-outline" size={18} color={c.muted} />
           <Input className="flex-1 border-0 h-auto px-0 w-auto">
             <InputField
-            placeholderTextColor={c.muted} placeholder={params.hint ?? 'Search shows and episodes, or paste a feed URL'} autoCorrect={false} autoFocus returnKeyType="search"
-            value={term} onChangeText={setTerm} onSubmitEditing={() => (term.trim() === '' && params.hint ? searchFor(params.hint) : remember(term))} accessibilityLabel="Search podcasts"  className="px-row py-row text-text text-sm" />
+            placeholderTextColor={c.muted} placeholder={params.hint ?? 'Search shows and episodes, or paste a feed URL'} autoCorrect={false} autoFocus={params.q === undefined} returnKeyType="search"
+            value={term} onChangeText={type} onSubmitEditing={() => run(term.trim() === '' && params.hint ? params.hint : term)} accessibilityLabel="Search podcasts"  className="px-row py-row text-text text-sm" />
           </Input>
           <Pressable onPress={() => router.push('/scan')} accessibilityRole="button" accessibilityLabel="Scan a QR code" className="items-center justify-center" style={TAP}>
             <Icon name="scan-outline" size={22} color={c.text} />
           </Pressable>
-        </Box>
-        <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Cancel" className="justify-center" style={TAP}>
-          <Text className="text-muted text-sm">Cancel</Text>
-        </Pressable>
+        </Animated.View>
+        <Animated.View style={{ opacity: fadeIn }}>
+          <Pressable onPress={leave} accessibilityRole="button" accessibilityLabel="Cancel" className="justify-center" style={TAP}>
+            <Text className="text-muted text-sm">Cancel</Text>
+          </Pressable>
+        </Animated.View>
       </Box>
-      <ScrollView contentContainerClassName="px-screen-x pb-24" keyboardShouldPersistTaps="handled">
+      <Animated.View className="flex-1" style={{ opacity: fadeIn }}>
+      {results ? (
+        <Box className="flex-row border-b-hairline border-separator px-screen-x mt-row">
+          {TABS.map((t) => (
+            <Pressable key={t.key} onPress={() => setTab(t.key)} accessibilityRole="tab" accessibilityState={{ selected: tab === t.key }} accessibilityLabel={t.label} className="flex-1 items-center justify-center" style={TAP}>
+              <Text className={tab === t.key ? 'text-accent text-sm font-bold' : 'text-muted text-sm'}>{t.label}</Text>
+            </Pressable>
+          ))}
+        </Box>
+      ) : null}
+      <ScrollView contentContainerClassName="px-screen-x pb-24" keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         {trimmed === '' ? (
           <Box>
             {tryThese.length > 0 ? (
@@ -115,14 +214,14 @@ export default function SearchScreen(): React.ReactElement {
                 <Text className="text-muted text-xs mt-section mb-row">Try searching</Text>
                 <Box className="flex-row flex-wrap">
                   {tryThese.map((t) => (
-                    <Pressable key={t} onPress={() => searchFor(t)} accessibilityRole="button" accessibilityLabel={`Search for ${t}`} className="w-1/2 justify-center pr-row" style={TAP}>
+                    <Pressable key={t} onPress={() => run(t)} accessibilityRole="button" accessibilityLabel={`Search for ${t}`} className="w-1/2 justify-center pr-row" style={TAP}>
                       <Text className="text-text text-sm" numberOfLines={1}>{t}</Text>
                     </Pressable>
                   ))}
                 </Box>
               </>
             ) : null}
-            <Pressable onPress={() => router.push('/categories')} accessibilityRole="link" accessibilityLabel="Browse categories" className="justify-center mt-section" style={TAP}>
+            <Pressable onPress={allCategories} accessibilityRole="link" accessibilityLabel="Browse categories" className="justify-center mt-section" style={TAP}>
               <Text className="text-muted text-xs">Browse categories →</Text>
             </Pressable>
             <Box className="flex-row flex-wrap gap-row">
@@ -142,7 +241,7 @@ export default function SearchScreen(): React.ReactElement {
                   </Pressable>
                 </Box>
                 {recentSearches(history).map((h) => (
-                  <Pressable key={h} onPress={() => searchFor(h)} accessibilityRole="button" accessibilityLabel={`Search for ${h}`} className="flex-row items-center gap-row border-b-hairline border-separator" style={ROW}>
+                  <Pressable key={h} onPress={() => run(h)} accessibilityRole="button" accessibilityLabel={`Search for ${h}`} className="flex-row items-center gap-row border-b-hairline border-separator" style={ROW}>
                     <Icon name="time-outline" size={18} color={c.muted} />
                     <Text className="text-text text-sm flex-1" numberOfLines={1}>{h}</Text>
                   </Pressable>
@@ -154,27 +253,49 @@ export default function SearchScreen(): React.ReactElement {
         {looksLikeFeedUrl(trimmed) ? (
           <Pressable className="py-2.5" accessibilityRole="button" onPress={() => openShow(trimmed)}><Text className="text-accent">Open feed {trimmed}</Text></Pressable>
         ) : null}
-        {catalogue.kind === 'loading' ? <Loader className="my-2" /> : null}
-        {catalogue.kind === 'error' ? <Text className="my-2 text-accent bg-surface p-2 rounded-md">{catalogue.message}</Text> : null}
-        {catalogue.kind === 'ok' && catalogue.result.episodeSearch === 'unavailable' ? <Text className="my-2 text-accent bg-surface p-2 rounded-md">Episode search is unavailable right now — shows only.</Text> : null}
-        {nothing ? <EmptyState surface="search" page /> : null}
 
-        {merged.shows.length > 0 ? <Text className="text-sm font-semibold mt-3 mb-1 text-text">Shows</Text> : null}
-        {merged.shows.map((s) => (
-          <Pressable key={s.feedUrl} className="flex-row gap-3 py-2" accessibilityRole="button" onPress={() => openShow(s.feedUrl)}>
-            {/* Phone walk 2026-09-30: shows with no (or a broken) image were blank grey squares. */}
-            <Artwork url={s.imageUrl} size={56} rounded="row" name={s.title} />
-            <Box className="flex-1">
-              <Text className="text-[15px] font-semibold text-text" numberOfLines={2}>{s.title}</Text>
-              <Text className="text-[13px] text-muted" numberOfLines={1}>{s.author}{libShowKeys.has(s.feedUrl) ? ' · in your library' : ''}</Text>
-            </Box>
-          </Pressable>
-        ))}
-        {merged.episodes.length > 0 ? <Text className="text-sm font-semibold mt-3 mb-1 text-text">Episodes</Text> : null}
-        {merged.episodes.map((e) => (
-          <EpisodeRow key={`${e.feedUrl}\u0001${e.guid}`} card={e} line={libEpisodeKeys.has(e.id) ? 'In your library' : undefined} onPress={() => { remember(trimmed); if (libEpisodeKeys.has(e.id)) router.push({ pathname: '/episode/[id]', params: { id: e.id } }); else void open(e); }} />
-        ))}
+        {/* Typing: the term itself, then names from what matched so far. */}
+        {!results && trimmed !== '' && !looksLikeFeedUrl(trimmed) ? (
+          <Box>
+            {[trimmed, ...typed].map((name, i) => (
+              <Pressable key={`${i}\u0001${name}`} onPress={() => run(name)} accessibilityRole="button" accessibilityLabel={`Search for ${name}`} className="flex-row items-center gap-row border-b-hairline border-separator" style={ROW}>
+                <Icon name="search-outline" size={18} color={c.muted} />
+                <Text className={i === 0 ? 'text-accent text-sm flex-1' : 'text-text text-sm flex-1'} numberOfLines={1}>{i === 0 ? `Search “${name}”` : name}</Text>
+              </Pressable>
+            ))}
+          </Box>
+        ) : null}
+
+        {results ? (
+          <Box>
+            {catalogue.kind === 'loading' ? <Loader className="my-section" /> : null}
+            {catalogue.kind === 'error' ? <Text className="my-2 text-accent bg-surface p-2 rounded-md">{catalogue.message}</Text> : null}
+            {catalogue.kind === 'ok' && catalogue.result.episodeSearch === 'unavailable' ? <Text className="my-2 text-accent bg-surface p-2 rounded-md">Episode search is unavailable right now — shows only.</Text> : null}
+            {nothing ? <EmptyState surface="search" page /> : null}
+
+            {tab === 'all' ? (
+              <>
+                {merged.shows.length > 0 ? (
+                  <Box className="flex-row items-center justify-between mt-3 mb-1">
+                    <Text className="text-sm font-semibold text-text">Shows</Text>
+                    {merged.shows.length > ALL_SHOWS ? (
+                      <Pressable onPress={() => setTab('shows')} accessibilityRole="button" accessibilityLabel="All shows" className="justify-center pl-row" style={TAP}>
+                        <Text className="text-muted text-xs">All {merged.shows.length} →</Text>
+                      </Pressable>
+                    ) : null}
+                  </Box>
+                ) : null}
+                {showRows(merged.shows.slice(0, ALL_SHOWS))}
+                {merged.episodes.length > 0 ? <Text className="text-sm font-semibold mt-3 mb-1 text-text">Episodes</Text> : null}
+                {episodeRows(merged.episodes)}
+              </>
+            ) : null}
+            {tab === 'shows' ? (catalogue.kind !== 'loading' && merged.shows.length === 0 && !nothing ? <Text className="text-muted text-sm mt-section">No shows match.</Text> : showRows(merged.shows)) : null}
+            {tab === 'episodes' ? (catalogue.kind !== 'loading' && merged.episodes.length === 0 && !nothing ? <Text className="text-muted text-sm mt-section">No episodes match.</Text> : episodeRows(merged.episodes)) : null}
+          </Box>
+        ) : null}
       </ScrollView>
+      </Animated.View>
     </SafeAreaView>
   );
 }

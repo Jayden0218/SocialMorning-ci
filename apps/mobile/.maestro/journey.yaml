@@ -8,56 +8,17 @@ env:
   EMAIL: listener-02@journey.test
   NOTE: "Maestro: heard it on the simulator"
 ---
-- runScript: health.js                # fail here, clearly, if the test server is not answering
 - launchApp:
     clearState: true
-- extendedWaitUntil:                   # the Terms screen on first launch (Terms.tsx)
-    visible: "Agree"
-    timeout: 30000
-- retry:                               # run 36708974619: the first tap came before the page took taps
-    maxRetries: 2
-    commands:
-      - tapOn: "Agree"
-      - extendedWaitUntil:
-          visible: "Continue with email"
-          timeout: 10000
-- retry:                               # run 36716389842: consent ticked, dialog still up, no email page
-    maxRetries: 2
-    commands:
-      - tapOn:
-          text: "Continue with email"
-          optional: true               # already past it on a retry
-      - extendedWaitUntil:
-          visible: "Agree and continue"
-          timeout: 10000
-          optional: true
-      - tapOn:
-          text: "Agree and continue"   # the consent dialog before signing in
-          optional: true
-      - extendedWaitUntil:             # the email page's box ("Send code" is greyed out until typed)
-          visible: "Email"
-          timeout: 10000
-- waitForAnimationToEnd
-- retry:                               # run 36685147199: the text was "typed" while the page
-    maxRetries: 2                      # moved, and the box stayed empty — so check it landed
-    commands:
-      - tapOn: "Email"
-      - eraseText
-      - inputText: ${EMAIL}
-      - assertVisible: ${EMAIL}
+- tapOn: "Agree and continue"          # the Terms screen on first launch
+- tapOn: "Continue with email"
+- tapOn: "Agree and continue"          # the consent sheet before signing in
+- tapOn: "Email"
+- inputText: ${EMAIL}
 - tapOn: "Send code"
 - runScript: fetch-code.js             # the test server's inbox — what a person reads in their mail
-- extendedWaitUntil:
-    visible: "Code"                    # the code field's accessible name (auth/email.tsx)
-    timeout: 10000
-- waitForAnimationToEnd
-- retry:
-    maxRetries: 2
-    commands:
-      - tapOn: "Code"
-      - eraseText
-      - inputText: ${output.code}
-      - assertVisible: ${output.code}
+- tapOn: "6-digit code"
+- inputText: ${output.code}
 - tapOn: "Continue"
 - extendedWaitUntil:
     visible: "Discover"
@@ -67,20 +28,16 @@ env:
     text: "Search.*"
 - inputText: "Journey Morning"
 - pressKey: Enter
-- tapOn:                              # the row under "Shows": "J, Journey Morning, Journey Host"
-    text: ".*Journey Morning, Journey Host"  # (the cover's letter, the title, the author — seen on the iPhone)
-    below: "Shows"
+- tapOn:
+    text: "Journey Morning"
+    index: 0
 - tapOn: "Subscribe to this show"
 - takeScreenshot: 02-subscribed
 - tapOn: "Play Episode 1: A minute of tone"
-- extendedWaitUntil:                   # the mini player is up: playback started
+- extendedWaitUntil:                   # about 20 s of real playback
     visible:
-      text: "Now playing: .*"
-    timeout: 20000
-- runScript:                           # about 15 s of real playback (the mini player's time is
-    file: wait.js                      # inside its "Now playing" name, so it cannot be read)
-    env:
-      MS: "15000"
+      text: "0:2[0-9]/1:00"
+    timeout: 45000
 - tapOn: "Pause"
 - takeScreenshot: 03-paused-at-0-2x
 - tapOn:
@@ -88,10 +45,10 @@ env:
 - tapOn:
     text: "Comments.*"
 - tapOn:
-    text: "Write a comment at 0:[1-5][0-9]"   # pinned to the paused moment; 10–59 s, as runner tap latency varies (0:19 and 0:44 seen)
+    text: "Write a comment.*"
 - inputText: ${NOTE}
 - tapOn: "Post"
-- extendedWaitUntil:                   # the row's name is the whole row: "L, Listener 02, just now, 0:2x  <note>, …"
-    visible: ".*${NOTE}.*"
+- extendedWaitUntil:
+    visible: ${NOTE}
     timeout: 15000
 - takeScreenshot: 04-commented

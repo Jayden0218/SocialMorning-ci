@@ -7,7 +7,7 @@
  */
 import { router, Stack } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { askMicrophone, playVoice, useVoiceRecorder, voiceSessionOff, voiceSessionOn } from '../../src/playback/expo-audio-adapter';
+import { askMicrophone, useVoiceRecorder, voiceSessionOff, voiceSessionOn } from '../../src/playback/expo-audio-adapter';
 import { Linking } from 'react-native';
 import { Pressable } from '../../src/ui/lib/pressable';
 import { Text } from '../../src/ui/lib/text';
@@ -34,21 +34,11 @@ export default function NewVoicePost(): React.ReactElement {
   const [phase, setPhase] = useState<Phase>({ kind: 'idle' });
   const [error, setError] = useState<string | undefined>();
   const stopping = useRef(false);
-  // Defect 6 (phone walk 2026-09-30): the recording could not be heard before posting.
-  const [hearing, setHearing] = useState(false);
-  const listenBack = useRef<{ stop: () => void } | undefined>(undefined);
-  const stopHearing = () => { listenBack.current?.stop(); listenBack.current = undefined; setHearing(false); };
-  const hear = (uri: string) => {
-    if (listenBack.current) { stopHearing(); return; }
-    listenBack.current = playVoice(uri, stopHearing);
-    setHearing(true);
-  };
 
   const restore = () => voiceSessionOff().catch(() => undefined);
-  useEffect(() => () => { listenBack.current?.stop(); void restore(); }, []);
+  useEffect(() => () => { void restore(); }, []);
 
   const start = async () => {
-    stopHearing();
     setError(undefined);
     if (!(await askMicrophone())) { setPhase({ kind: 'denied' }); return; }
     player.pause();
@@ -71,7 +61,6 @@ export default function NewVoicePost(): React.ReactElement {
   useEffect(() => { if (phase.kind === 'recording' && state.durationMillis >= VOICE_MAX_MS) void stop(); });
 
   const post = async (uri: string, ms: number) => {
-    stopHearing();
     setPhase({ kind: 'posting', uri, ms });
     try {
       const blob = await (await fetch(uri)).blob();
@@ -86,16 +75,14 @@ export default function NewVoicePost(): React.ReactElement {
 
   const recording = phase.kind === 'recording';
   const shownMs = recording ? state.durationMillis : phase.kind === 'done' || phase.kind === 'posting' ? phase.ms : 0;
-  // The header's left item (set on both keys: iOS reads the items — see app/_layout.tsx).
-  const cancel = (
-    <Pressable onPress={() => { if (phase.kind === 'recording') void stop(); router.back(); }} accessibilityRole="button" accessibilityLabel="Cancel" className="justify-center px-row" style={{ minHeight: 48 }}>
-      <Text className="text-accent text-sm">Cancel</Text>
-    </Pressable>
-  );
   return (
     <Screen className="pt-section items-center gap-section">
       {/* Phone walk 2026-09-30: the sheet could only be swiped away. */}
-      <Stack.Screen options={{ title: 'Voice status', headerLeft: () => cancel, unstable_headerLeftItems: () => [{ type: 'custom', element: cancel, hidesSharedBackground: true }] }} />
+      <Stack.Screen options={{ title: 'Voice status', headerLeft: () => (
+        <Pressable onPress={() => { if (phase.kind === 'recording') void stop(); router.back(); }} accessibilityRole="button" accessibilityLabel="Cancel" className="justify-center px-row" style={{ minHeight: 48 }}>
+          <Text className="text-accent text-sm">Cancel</Text>
+        </Pressable>
+      ) }} />
       <Text className="text-muted text-sm text-center">Up to 60 seconds. People who follow you can play it for 48 hours; then it is deleted.</Text>
       <Text className="text-text text-2xl font-bold" accessibilityLiveRegion="polite" accessibilityLabel={`${Math.floor(shownMs / 1000)} seconds of 60`}>{voiceClock(shownMs)}</Text>
       <Pressable
@@ -116,8 +103,7 @@ export default function NewVoicePost(): React.ReactElement {
       ) : null}
       {error ? <Text className="text-accent text-sm text-center">{error}</Text> : null}
       {phase.kind === 'done' || phase.kind === 'posting' ? (
-        <Box className="self-stretch mt-section gap-row">
-          <Button kind="secondary" label={hearing ? 'Stop playing' : 'Play it back'} disabled={phase.kind === 'posting'} onPress={() => hear(phase.uri)} />
+        <Box className="self-stretch mt-section">
           <Button label={phase.kind === 'posting' ? 'Posting…' : 'Post'} disabled={phase.kind === 'posting'} onPress={() => void post(phase.uri, phase.ms)} />
         </Box>
       ) : null}

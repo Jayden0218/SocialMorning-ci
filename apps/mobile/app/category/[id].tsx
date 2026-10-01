@@ -3,6 +3,8 @@
  * (`GET /v1/categories/:id`, cached there). Tapping a show opens its page; nothing is
  * subscribed on the listener's behalf. M12 FR-072: a strip of every genre along the top
  * switches in place (no new page per tap), and each row names the show's newest episode.
+ * Owner, 2026-10-01: Discover's "Categories" opens here (on the first genre) instead of the
+ * page of choices; the page is titled "Categories" and the strip scrolls to the chosen genre.
  */
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { ScrollView } from 'react-native';
@@ -11,7 +13,7 @@ import { Pressable } from '../../src/ui/lib/pressable';
 import { Text } from '../../src/ui/lib/text';
 import { Box } from '../../src/ui/lib/box';
 import { Loader } from '../../src/ui/Loader';
-import { GENRES, genreById } from '../../src/discover/genres';
+import { GENRES } from '../../src/discover/genres';
 import { hit } from '../../src/design';
 import { ago } from '../../src/discover/sections';
 import { useSafety } from '../../src/safety/context';
@@ -26,13 +28,17 @@ type State = { kind: 'loading' } | { kind: 'ok'; body: CategoryShows } | { kind:
 export default function CategoryScreen(): React.ReactElement {
   const params = useLocalSearchParams<{ id: string }>();
   const [genreId, setGenreId] = useState(Number(params.id));
-  const strip = useRef<ComponentRef<typeof ScrollView>>(null);
-  const placed = useRef(false);
-  const genre = genreById(genreId);
   const router = useRouter();
   const { api } = useSocial();
   const { hiddenFeeds } = useSafety();
   const [state, setState] = useState<State>({ kind: 'loading' });
+  const strip = useRef<ComponentRef<typeof ScrollView>>(null);
+  const chipX = useRef(new Map<number, number>());
+  const scrolled = useRef(false);
+  const showChip = (id: number, animated: boolean) => {
+    const x = chipX.current.get(id);
+    if (x !== undefined) strip.current?.scrollTo({ x: Math.max(0, x - 40), animated });
+  };
 
   useEffect(() => {
     let live = true;
@@ -45,13 +51,14 @@ export default function CategoryScreen(): React.ReactElement {
   const shows = state.kind === 'ok' ? state.body.shows.filter((s) => !hiddenFeeds.has(s.feedUrl)) : [];
   return (
     <Screen scroll className="pt-row">
-      <Stack.Screen options={{ title: genre?.name ?? 'Category' }} />
-      {/* Phone walk 2026-09-30: a genre far along the strip opened off-screen; the chosen chip scrolls into view once. */}
+      <Stack.Screen options={{ title: 'Categories' }} />
       <ScrollView ref={strip} horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-row pb-row" className="-mx-screen-x px-screen-x">
         {GENRES.map((g) => {
           const on = g.id === genreId;
           return (
-            <Pressable key={g.id} onPress={() => setGenreId(g.id)} onLayout={on && !placed.current ? (e) => { placed.current = true; strip.current?.scrollTo({ x: Math.max(0, e.nativeEvent.layout.x - 20), animated: false }); } : undefined} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={g.name}
+            <Pressable key={g.id} onPress={() => { setGenreId(g.id); showChip(g.id, true); }}
+              onLayout={(e) => { chipX.current.set(g.id, e.nativeEvent.layout.x); if (on && !scrolled.current) { scrolled.current = true; showChip(g.id, false); } }}
+              accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={g.name}
               className={`justify-center px-section rounded-pill ${on ? 'bg-primary' : 'bg-surface'}`} style={TAP}>
               <Text className={on ? 'text-onPrimary text-sm font-semibold' : 'text-text text-sm'}>{g.name}</Text>
             </Pressable>

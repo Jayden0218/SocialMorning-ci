@@ -20,7 +20,6 @@ import { GraphProvider } from '../src/graph/context';
 import { SafetyProvider } from '../src/safety/context';
 import { CarLibrarySync } from '../src/outside/CarLibrarySync';
 import { MiniPlayer } from '../src/ui/MiniPlayer';
-import { HeaderBack } from '../src/ui/TopBar';
 import { GluestackUIProvider } from '../src/ui/lib/gluestack-ui-provider';
 
 // Owner, 2026-09-27: no warning bar over the app in Debug builds. Warnings still print
@@ -87,12 +86,7 @@ function RootStack(): React.ReactElement {
           */}
         <Stack
           screenOptions={{
-            // Owner, 2026-09-30: every back button is the app's own ←, never iOS's chevron.
-            headerBackVisible: false,
-            headerLeft: () => <HeaderBack />,
-            // iOS reads the items, not headerLeft; `hidesSharedBackground` drops iOS 26's glass
-            // circle, so the ← looks the same as on the pages that draw their own bar.
-            unstable_headerLeftItems: () => [{ type: 'custom', element: <HeaderBack />, hidesSharedBackground: true }],
+            headerBackTitle: 'Back',
             headerStyle: { backgroundColor: c.background },
             headerTintColor: c.accent,
             headerTitleStyle: { color: c.text, fontSize: fontSize.base, fontWeight: '700' },
@@ -102,8 +96,9 @@ function RootStack(): React.ReactElement {
         >
           {/* The tab group draws its own header and its own bar (M7 T012). */}
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          {/* M10: Search draws its own box + Cancel at the top, like the reference. */}
-          <Stack.Screen name="search" options={{ title: 'Search', headerShown: false }} />
+          {/* M10: Search draws its own box + Cancel at the top, like the reference. Owner,
+              2026-10-01: no slide and no swipe — it fades while its box moves up (search.tsx). */}
+          <Stack.Screen name="search" options={{ title: 'Search', headerShown: false, animation: 'fade', animationDuration: 200, gestureEnabled: false }} />
           {/* The scanner draws its own close button and title over the camera (owner, 2026-09-27). */}
           <Stack.Screen name="scan" options={{ title: 'Scan a QR code', headerShown: false }} />
           {/* The show, episode and player pages draw their own bar (owner reference, 2026-09-27). */}
@@ -134,7 +129,7 @@ function RootStack(): React.ReactElement {
           <Stack.Screen name="creator" options={{ title: 'Creator centre' }} />
           <Stack.Screen name="play-latest" options={{ title: 'Play latest' }} />
           <Stack.Screen name="stickers" options={{ title: 'Stickers' }} />
-          <Stack.Screen name="category/[id]" options={{ title: 'Category' }} />
+          <Stack.Screen name="category/[id]" options={{ title: 'Categories' }} />
           <Stack.Screen name="picks/past" options={{ title: 'Past picks' }} />
           <Stack.Screen name="chart" options={{ title: 'Talked about' }} />
           <Stack.Screen name="issues" options={{ title: 'Issues' }} />

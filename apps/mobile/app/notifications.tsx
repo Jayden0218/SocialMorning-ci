@@ -8,7 +8,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { Link } from '../src/design/tailwind';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList } from '../src/ui/lib/flat-list';
-import { RefreshControl } from '../src/ui/lib/refresh-control';
+import { usePullRefresh } from '../src/ui/PullRefresh';
 import { Text } from '../src/ui/lib/text';
 import { Box } from '../src/ui/lib/box';
 import { useColours } from '../src/ui/useColours';
@@ -36,6 +36,7 @@ export default function NotificationsScreen(): React.ReactElement {
     try { setView(await feed.refresh()); } finally { setRefreshing(false); }
   }, [feed]);
   useFocusEffect(useCallback(() => { feed.markOpened(); void refresh(); }, [feed, refresh]));
+  const pull = usePullRefresh(refreshing, () => void refresh());
   useEffect(() => { feed.markOpened(); }, [feed, view]);
 
   const open = (item: Item) => {
@@ -67,14 +68,19 @@ export default function NotificationsScreen(): React.ReactElement {
     );
   }
   return (
+    <Box className="flex-1 bg-background">
+    {pull.backdrop}
     <FlatList
-      className="flex-1 bg-background"
+      className="flex-1"
       data={safetyFilter.feed(view?.items ?? [])}
       keyExtractor={(i) => String(i.id)}
       contentContainerClassName="px-screen-x pt-section pb-24 gap-2 flex-grow"
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} />}
+      refreshControl={pull.refreshControl}
+      onScroll={pull.onScroll}
+      scrollEventThrottle={pull.scrollEventThrottle}
       ListHeaderComponent={
         <Box>
+          {pull.inline}
           {cards}
           {view?.stale ? <Text className="text-accent bg-surface p-2 rounded-row">Couldn't refresh — showing what was fetched {view.fetchedAt ? new Date(view.fetchedAt).toLocaleTimeString() : 'earlier'}.</Text> : null}
         </Box>
@@ -91,5 +97,6 @@ export default function NotificationsScreen(): React.ReactElement {
         void feed.more(next).then((m) => setView((v) => v ? { ...v, items: [...v.items, ...m.items], ...(m.next ? { next: m.next } : { next: undefined }) } : v));
       }}
     />
+    </Box>
   );
 }

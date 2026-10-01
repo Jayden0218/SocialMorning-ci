@@ -6,7 +6,7 @@
  * the keyboard, and a second tap posted).
  */
 import { router } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Platform } from 'react-native';
 import { KeyboardAvoidingView } from './lib/keyboard-avoiding-view';
 import { Pressable } from './lib/pressable';
@@ -30,17 +30,6 @@ export function ComposerSheet(props: {
   const c = useColours(stores.settings);
   const { composer, bump } = useSocial();
   const [state, setState] = useState<ComposerState>(props.initial);
-  // The draft is saved 250 ms after typing stops, not on every key: the save is a synchronous
-  // SQLite write, and on 2026-09-30 fast typing lost letters in this box — on the iPhone
-  // ("iPhne", "nte") and in the simulator journey ("herd"). The text itself updates at once.
-  const unsaved = useRef<ComposerState | undefined>(undefined);
-  useEffect(() => {
-    if (!unsaved.current) return;
-    const t = setTimeout(() => { if (unsaved.current) { composer.edit(unsaved.current, unsaved.current.body); unsaved.current = undefined; } }, 250);
-    return () => clearTimeout(t);
-  }, [state.body, composer]);
-  // Closing the box keeps what was typed (posting saves and clears `unsaved` first).
-  useEffect(() => () => { if (unsaved.current) composer.edit(unsaved.current, unsaved.current.body); }, [composer]);
   const [error, setError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
   const length = state.body.trim().length;
@@ -48,8 +37,6 @@ export function ComposerSheet(props: {
   async function submit() {
     setBusy(true);
     setError(undefined);
-    // Save what is typed first, so a failed post keeps the whole draft; a posted one clears it.
-    if (unsaved.current) { composer.edit(unsaved.current, unsaved.current.body); unsaved.current = undefined; }
     const r = await composer.submit(state);
     setBusy(false);
     if (r.kind === 'posted') {
@@ -91,12 +78,8 @@ export function ComposerSheet(props: {
             multiline
             autoFocus
             placeholder={state.parentId ? 'Write a reply' : 'What is worth saying here?'}
-            // Uncontrolled: the box keeps its own text and the sheet only listens. Controlled
-            // (value={state.body}), the text written back during fast typing moved the cursor to
-            // the end — the simulator journey stored "Mao: heard it on the simulatores" for
-            // "Maestro: heard it on the simulator" (run 36710217453).
-            defaultValue={props.initial.body}
-            onChangeText={(t) => setState((s) => { const next = { ...s, body: t }; unsaved.current = next; return next; })}
+            value={state.body}
+            onChangeText={(t) => setState(composer.edit(state, t))}
             accessibilityLabel="Comment"
           />
           </Textarea>

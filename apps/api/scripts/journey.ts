@@ -270,12 +270,12 @@ async function phone(email: string, note: string): Promise<void> {
   const subs = await call<{ items: { feedUrl: string; deletedAt?: string }[] }>('GET', '/v1/me/subscriptions', undefined, token);
   ok(subs.json.items.some((i) => i.feedUrl === j.show.feedUrl && !i.deletedAt), 'the phone subscribed to the show');
   const pos = (await call<{ positions: { episodeId: string; offsetMs: number }[] }>('GET', '/v1/me/positions', undefined, token)).json.positions.find((p) => p.episodeId === ep.episodeId);
-  ok(pos !== undefined && pos.offsetMs >= 10_000, `the phone's listening position reached the server (${pos?.offsetMs} ms)`);
+  ok(pos !== undefined && pos.offsetMs >= 15_000, `the phone's listening position reached the server (${pos?.offsetMs} ms)`);
   type C = { body: string | null; offsetMs: number | null; mine?: boolean; replies?: C[] };
   const social = await call<{ comments: C[] }>('GET', `/v1/episodes/${ep.episodeId}/social`, undefined, token);
   const c = social.json.comments.flatMap((x) => [x, ...(x.replies ?? [])]).find((x) => x.body === note && x.mine);
   ok(c !== undefined, 'the comment typed on the phone is on the server');
-  ok(c!.offsetMs !== null && c!.offsetMs >= 10_000 && c!.offsetMs < 60_000, `…at the moment the phone was at (${c!.offsetMs} ms)`);
+  ok(c!.offsetMs !== null && c!.offsetMs >= 15_000 && c!.offsetMs <= 40_000, `…at the moment the phone was at (${c!.offsetMs} ms)`);
   console.log(`phone check done: ${step} checks`);
 }
 
