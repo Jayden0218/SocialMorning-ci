@@ -3,7 +3,9 @@ export type ErrorCode = 'validation' | 'unauthenticated' | 'forbidden' | 'not_fo
   // M11 — the Studio (specs/011-m11-studio/contracts/studio-api.md)
   | 'session_expired' | 'csrf' | 'no_role' | 'owner_only' | 'muted_on_show'
   // M12 (specs/012-m12-the-finish/contracts/api.md)
-  | 'own_comment' | 'storage_off' | 'too_large';
+  | 'own_comment' | 'storage_off' | 'too_large'
+  // M15 — Admin (specs/015-m15-admin/contracts/admin-api.md)
+  | 'signed_out' | 'reauth' | 'not_admin' | 'changed' | 'storage_full';
 
 const STATUS: Record<ErrorCode, number> = {
   validation: 422,
@@ -27,6 +29,11 @@ const STATUS: Record<ErrorCode, number> = {
   own_comment: 403,
   storage_off: 503,
   too_large: 413,
+  signed_out: 401,
+  reauth: 401,
+  not_admin: 403,
+  changed: 409,
+  storage_full: 409,
 };
 
 export class ApiError extends Error {

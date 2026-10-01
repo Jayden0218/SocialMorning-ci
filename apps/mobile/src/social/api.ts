@@ -107,6 +107,11 @@ export type Discover = {
   collections?: Collection[];
   /** M10b US5: video episodes, newest first (≤ 10). */
   video?: DiscoverItem[];
+  /**
+   * M15 US5 (contracts/admin-api.md): the owner's section order and hidden sections, by the
+   * phone's section ids (`src/discover/sections.ts` `SECTION_IDS`). Absent → today's order.
+   */
+  layout?: { order: string[]; hidden: string[] };
 };
 export type LibraryItem = { kind: 'fav_episode' | 'fav_comment' | 'moment' | 'search'; key: string; payload?: Record<string, unknown>; updatedAt: string; deletedAt?: string };
 /** M10b US8: a claim on a feed the listener publishes; `code` goes anywhere in the feed. */
@@ -218,6 +223,11 @@ export type ShowExtras = {
   } | null;
   announcements: { id: string; body: string; createdAt: string; edited: boolean }[];
   polls: ShowPoll[];
+  /**
+   * M15 US4 (D3): the admin-made account that shares this external show — shown as
+   * "Shared by <name>", never as its host (guard G-C1). Absent on an older server.
+   */
+  curator?: { id: string; displayName: string } | null;
 };
 
 export type ApiDeps = {

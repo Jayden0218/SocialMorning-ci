@@ -32,3 +32,14 @@ export function audioDurationMs(file: File): Promise<number | undefined> {
 }
 
 export const mb = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(bytes < 10 * 1024 * 1024 ? 1 : 0)} MB`;
+
+/** M15 T021: a launch-screen image (JPEG/PNG/WebP, ≤ 1 MB) goes the same way — a one-path token, then `put`. */
+export const LAUNCH_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+export const MAX_LAUNCH_BYTES = 1_048_576;
+export async function uploadLaunchImage(file: File, onProgress: (pct: number) => void): Promise<string> {
+  const { pathname, token } = await api<{ pathname: string; token: string }>('/v1/admin/launch/uploads', {
+    method: 'POST', body: { contentType: file.type, size: file.size },
+  });
+  const r = await put(pathname, file, { access: 'public', token, contentType: file.type, onUploadProgress: (e) => onProgress(Math.round(e.percentage)) });
+  return r.url;
+}

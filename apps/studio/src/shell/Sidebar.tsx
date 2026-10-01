@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from 'react-router';
 import type { Show } from '../api';
 import { useSession } from '../session';
-import { IconChart, IconCoin, IconComments, IconEpisodes, IconHome, IconMedia, IconMegaphone, IconPeople, IconPoll, IconSettings } from './Icons';
+import { IconChart, IconCoin, IconComments, IconEpisodes, IconHome, IconMedia, IconMegaphone, IconPeople, IconPoll, IconSettings, IconShield } from './Icons';
 import { useUnsaved } from './Unsaved';
 
 /**
@@ -59,6 +59,12 @@ export function Sidebar({ show, open, onNavigate }: { show: Show; open: boolean;
           ),
         )}
       </nav>
+      {/* M15 T005: shown only when the server says this account is admin (display only; every admin route checks for itself). */}
+      {session.state === 'in' && session.isAdmin ? (
+        <nav className="nav" aria-label="Admin">
+          <NavLink to="/admin" onClick={(e) => { guard('/admin')(e); onNavigate(); }}><IconShield />Admin</NavLink>
+        </nav>
+      ) : null}
       <div className="sidebar-foot">
         {session.state === 'in' ? <span className="muted">{session.me.displayName}</span> : null}
         <button type="button" className="linkish" onClick={() => { void signOut(); }}>Sign out</button>

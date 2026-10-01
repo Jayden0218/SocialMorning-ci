@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
-import { api, HttpError, startSession } from '../api';
+import { api, HttpError, REAUTH_MESSAGE, startSession } from '../api';
 import { useSession } from '../session';
 
 type Mode = 'password' | 'code';
@@ -19,10 +19,11 @@ export function SignIn() {
   const [error, setError] = useState<string | null>(null);
 
   async function finish(token: string) {
-    const { me, shows } = await startSession(token);
-    signedIn(me, shows);
+    const { me, shows, isAdmin, actingAs } = await startSession(token);
+    signedIn(me, shows, { isAdmin: isAdmin ?? false, actingAs: actingAs ?? null });
     const next = params.get('next');
-    navigate(next && /^\/(s|invite)\//.test(next) ? next : shows[0] ? `/s/${shows[0].key}/home` : '/no-show', { replace: true });
+    // M15: `/admin…` is a place to come back to as well.
+    navigate(next && /^\/((s|invite)\/|admin(\/|$))/.test(next) ? next : shows[0] ? `/s/${shows[0].key}/home` : '/no-show', { replace: true });
   }
 
   async function run(fn: () => Promise<void>) {
@@ -78,6 +79,7 @@ export function SignIn() {
             <button type="button" role="tab" className="tab" aria-selected={mode === 'code'} onClick={() => { setMode('code'); setError(null); }}>Email code</button>
             <button type="button" role="tab" className="tab" aria-selected={mode === 'password'} onClick={() => { setMode('password'); setError(null); }}>Password</button>
           </div>
+          {params.get('reason') === 'reauth' ? <p className="error" role="status">{REAUTH_MESSAGE}. For safety, Admin asks every 12 hours.</p> : null}
           {error ? <p className="error" role="alert">{error}</p> : null}
           {mode === 'password' ? (
             <form onSubmit={onPassword}>

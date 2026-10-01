@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { api, HttpError, type Show } from '../api';
 import { CATEGORIES, LANGUAGES } from '../categories';
 import { useSession } from '../session';
+import { ActingBanner } from '../shell/ActingBanner';
 
 type Claim = { id: string; feedUrl: string; code: string; status: 'pending' | 'proven' | 'revoked' };
 
@@ -18,6 +19,9 @@ export function NoShow() {
     <main className="auth-form" style={{ minHeight: '100%' }}>
       <div className="panel" style={{ maxWidth: 560 }}>
         <div className="brand" style={{ padding: 0, marginBottom: 24 }}><span className="brand-mark" aria-hidden="true">S</span>SocialMorning Studio</div>
+        {/* M15: an account made in Admin often has no show yet — the way back must still be on screen. */}
+        <ActingBanner />
+        {session.state === 'in' && session.isAdmin && !session.actingAs ? <p><Link to="/admin">Open Admin</Link></p> : null}
         {mode === 'create' ? <CreateShow /> : <ClaimFeed />}
         <p className="muted" style={{ marginTop: 32 }}>
           {mode === 'create'

@@ -17,9 +17,12 @@ import { tokenHash, suspendedError, type AuthEnv, type Listener } from './sessio
 import { ApiError } from '../errors.ts';
 import type { Db } from '../db/db.ts';
 import type { StudioShow } from '../db/repos/studio-roles.ts';
+import { actAsCookie, actingTarget } from './admin.ts';
 
 /** The Studio's routes see everything the API's do, plus the show the request is about. */
-export type StudioEnv = { Variables: AuthEnv['Variables'] & { show: StudioShow } };
+export type StudioEnv = { Variables: AuthEnv['Variables'] & { show: StudioShow;
+  /** M15 T028: set while an admin acts as `listener`; `token` is then still the admin's own. */
+  actingAdmin?: Listener } };
 
 export const STUDIO_LABEL = 'studio-web';
 export const STUDIO_COOKIE = 'sm_studio';
@@ -41,7 +44,7 @@ export async function studioListener(db: Db, pepper: string, token: string): Pro
   const [row] = await db.query<Row>(
     `SELECT l.id, l.email, l.display_name, l.created_at, l.suspended_at, s.last_seen_at
        FROM sessions s JOIN listeners l ON l.id = s.listener_id
-      WHERE s.token_hash = $1 AND s.device_label = $2`,
+      WHERE s.token_hash = $1 AND s.device_label = $2 AND s.acting_admin_id IS NULL`,
     [hash, STUDIO_LABEL],
   );
   if (!row) return undefined;
@@ -67,7 +70,11 @@ export const studioAuth: MiddlewareHandler<StudioEnv> = async (c, next) => {
   if (who === 'expired') throw new ApiError('session_expired', 'You were away for a while. Sign in again.');
   if (!who) throw new ApiError('unauthenticated', 'Sign in to the Studio.');
   if (who.suspended_at) throw suspendedError(c.get('safety')?.appealsEmail);
-  c.set('listener', who);
+  // M15 T028: the act-as cookie counts only beside the same admin's own live cookie session.
+  const asToken = actAsCookie(c);
+  const target = asToken && token === getCookie(c, STUDIO_COOKIE) ? await actingTarget(c.get('db'), c.get('pepper'), asToken, who.id) : undefined;
+  if (target) c.set('actingAdmin', who);
+  c.set('listener', target ?? who);
   c.set('token', token);
   await next();
 };

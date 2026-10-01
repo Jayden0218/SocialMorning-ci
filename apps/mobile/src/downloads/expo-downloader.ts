@@ -1,8 +1,12 @@
 /**
  * The `Downloader` (specs/003-m2-real-client/contracts/downloader.ts) on
  * expo-file-system 58's `DownloadTask` — research R1 (corrected). This is the ONLY
- * file that imports expo-file-system, so the fallback (the legacy module, or
+ * file that imports expo-file-system for downloads, so the fallback (the legacy module, or
  * fetch + Range) is a one-file swap.
+ *
+ * The allow-list of expo-file-system importers (a rule kept by review — no test enforces
+ * it yet): this file; `src/launch/launch-files.ts` (M15 US3, launch-screen images in
+ * `Paths.cache/launch/`); and `src/ui/ShareChooser.tsx` (M12, the share card).
  *
  * API VERIFIED against the installed typings, not recalled (Principle III):
  * `node_modules/expo-file-system/build/NetworkTasks.d.ts` — `DownloadTask`,

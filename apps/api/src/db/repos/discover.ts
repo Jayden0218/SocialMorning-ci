@@ -47,6 +47,13 @@ export function excludeHidden(body: DiscoverBody, hidden: ReadonlySet<string>): 
   };
 }
 
+export const discoverCacheKey = (day: string) => `discover:v3:${day}`;
+
+/** M15 T014: drop every cached Discover body (all days), so the next request rebuilds with the saved picks. */
+export async function dropDiscoverCache(db: Db): Promise<void> {
+  await db.query("DELETE FROM cache WHERE key LIKE 'discover:v3:%' OR (key LIKE 'foryou:%' AND key <> 'foryou:chart')");
+}
+
 export async function discoverBody(db: Db, f: typeof fetch, picks: readonly PickIn[], today: string): Promise<{ body: DiscoverBody; stale: boolean }> {
   const r = await cachedDiscover(db, f, picks, today);
   return { body: excludeHidden(r.body, await hiddenFeedUrls(db)), stale: r.stale };
@@ -54,7 +61,9 @@ export async function discoverBody(db: Db, f: typeof fetch, picks: readonly Pick
 
 async function cachedDiscover(db: Db, f: typeof fetch, picks: readonly PickIn[], today: string): Promise<{ body: DiscoverBody; stale: boolean }> {
   // M10: a new key, so a body cached before `shows`/`newShows` existed is not served for its last hour.
-  return cached<DiscoverBody>(db, 'discover:v2', TTL.discover, async () => {
+  // M15 T014: the key carries the (UTC) day, so a new day's picks show at midnight, not up to 1 h later;
+  // every admin save of picks/issues/collections deletes it (`dropDiscoverCache`, guard G-P1).
+  return cached<DiscoverBody>(db, discoverCacheKey(today), TTL.discover, async () => {
     const warnings: string[] = [];
     const day = picksForDay(picks, today);
     const pickItems: DiscoverItem[] = [];

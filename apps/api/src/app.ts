@@ -55,6 +55,10 @@ import { share } from './routes/share.ts';
 import { episodePages } from './pages/episode.ts';
 import { voiceBlobStorage, type VoiceStorage } from './storage/voice-blob.ts';
 import { VOICE_MAX_BYTES } from './db/repos/voice-posts.ts';
+import { admin } from './routes/admin.ts';
+import { createLaunchRoute } from './routes/launch.ts';
+import { seedOwnerAdmin } from './auth/admin.ts';
+import { liveCatalog } from './catalog/live.ts';
 
 export type AppDeps = {
   db: Db; pepper: string; assetLinksSha256?: string;
@@ -98,7 +102,10 @@ export function createApp(deps: AppDeps) {
   const feedbackLimit = bodyLimit({ maxSize: 1_100_000 });
   // M12 FR-104: a voice post is the raw recording, ≤ 600 000 bytes — only on that one route.
   const voiceLimit = bodyLimit({ maxSize: VOICE_MAX_BYTES, onError: (c) => c.json(new ApiError('too_large', 'A voice post is at most 600 000 bytes.').body(), 413) });
+  // M15 T027: a bulk account list (≤ 50 rows of name + bio + email) can pass 16 KB.
+  const adminBulkLimit = bodyLimit({ maxSize: 64 * 1024 });
   app.use('*', (c, next) => (c.req.path === '/v1/feedback' ? feedbackLimit(c, next)
+    : c.req.path === '/v1/admin/accounts' ? adminBulkLimit(c, next)
     : c.req.path === '/v1/voice-posts' && c.req.method === 'POST' ? voiceLimit(c, next) : small(c, next)));
   // M5: the picks file is validated once; every bad entry is a warning, never a crash (G1).
   const { picks, warnings } = validatePicks(deps.picksRaw ?? picksJson);
@@ -110,6 +117,10 @@ export function createApp(deps: AppDeps) {
   const iss = validateIssues(deps.picksRaw ?? picksJson);
   for (const w of iss.warnings) console.warn(`[issues] ${w}`);
   const catalog: Catalog = { pushFetch: deps.pushFetch ?? fetch, fetch: deps.catalogFetch ?? fetch, picks, collections: cols.collections, issues: iss.issues, today: deps.today ?? (() => new Date().toISOString().slice(0, 10)) };
+
+  // M15 T004: the owner is the first admin (FR-002). Also done lazily by every admin check, so a
+  // start before migration 014 only warns.
+  if (deps.ownerListenerId) seedOwnerAdmin(deps.db, deps.ownerListenerId).catch((e: unknown) => console.warn(`[admin] seed skipped: ${e instanceof Error ? e.message : String(e)}`));
 
   if (!deps.ownerListenerId || !deps.appealsEmail) console.warn('[safety] OWNER_LISTENER_ID / APPEALS_EMAIL not set: /mod is off, messages name no address');
   const safety: Safety = { ownerListenerId: deps.ownerListenerId, appealsEmail: deps.appealsEmail, releaseSha256: deps.releaseSha256 };
@@ -123,7 +134,8 @@ export function createApp(deps: AppDeps) {
   app.use('*', async (c, next) => {
     c.set('db', deps.db);
     c.set('pepper', deps.pepper);
-    c.set('catalog', catalog);
+    // M15 T013: picks, issues and collections from the admin tables first, the files second (60 s memo).
+    c.set('catalog', await liveCatalog(deps.db, catalog));
     c.set('safety', safety);
     if (deps.mailer) c.set('mailer', deps.mailer);
     c.set('storage', storage);
@@ -159,6 +171,9 @@ export function createApp(deps: AppDeps) {
   app.route('/v1/creator', creator);
   // M11 — the Studio (specs/011-m11-studio). Its env adds `show`; the shared variables are the same.
   app.route('/v1/studio', studio as unknown as Hono<AuthEnv>);
+  // M15 — Admin (specs/015-m15-admin): owner-only, every route behind `adminOnly` (guard G-A1).
+  app.route('/v1/admin', admin as unknown as Hono<AuthEnv>);
+  app.route('/v1/launch', createLaunchRoute());
   app.route('/v1', extras);
   app.route('/feeds', feeds);
   app.route('/show', showCard);

@@ -6,7 +6,7 @@
  * adapter, and it does both exactly once for the app's life.
  */
 import { createContext, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
-import { AppState } from 'react-native';
+import { AppState, Linking } from 'react-native';
 import { Text } from './lib/text';
 import { Box } from './lib/box';
 import { createExpoAudioAdapter } from '../playback/expo-audio-adapter';
@@ -41,6 +41,12 @@ import { Terms } from './Terms';
 import { accept, hasAccepted } from './terms';
 import { ALWAYS_SHOW_TERMS, HANDOFF_MAX_MS, coverLaunch, keepTerms, opensSignIn, signInPage } from './launch';
 import { router, usePathname } from 'expo-router';
+import { LaunchScreen } from './LaunchScreen';
+import { createLaunchApi } from '../launch/api';
+import { knownRoute, resolveTarget } from '../launch/choose';
+import { decideLaunch, recordShown } from '../launch/decide';
+import { createLaunchFiles } from '../launch/launch-files';
+import { syncLaunch } from '../launch/sync';
 
 const StoresContext = createContext<Stores | undefined>(undefined);
 const ToastContext = createContext<((message: string) => void) | undefined>(undefined);
@@ -164,6 +170,24 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
   // M10b US3 (FR-011): tapping a notification opens its episode.
   useEffect(() => onNotificationTap((episodeId) => router.push({ pathname: '/episode/[id]', params: { id: episodeId } })), []);
   const [ready, setReady] = useState(false);
+  // M15 US3: the owner's promotion. Decided ONCE, here, synchronously, from the settings
+  // store and the files already on disk — no network call can delay start-up (SC-004,
+  // guard G-L4). Never when signed out, when the Terms are due, or in minor mode.
+  const launchFiles = useMemo(() => createLaunchFiles(), []);
+  const launchApi = useMemo(() => createLaunchApi({ baseUrl: apiBaseUrl(), fetch }), []);
+  const [launchPick, setLaunchPick] = useState(() => decideLaunch({
+    settings: stores.settings,
+    files: launchFiles,
+    now: Date.now(),
+    signedIn: stores.auth.get() !== undefined,
+    termsDue: ALWAYS_SHOW_TERMS || !hasAccepted(stores.settings),
+    random: Math.random,
+  }));
+  // The list and images for the NEXT launch: after start-up is ready, fire and forget.
+  useEffect(() => {
+    if (!ready) return;
+    void syncLaunch({ api: launchApi, files: launchFiles, settings: stores.settings });
+  }, [ready, launchApi, launchFiles, stores]);
   // After the launch screen, the Terms — until accepted, nothing else is reachable.
   const [accepted, setAccepted] = useState(() => !ALWAYS_SHOW_TERMS && hasAccepted(stores.settings));
   // Then the sign-in page, on every launch while signed out (see `./launch`).
@@ -347,6 +371,24 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
       <ToastContext.Provider value={show.current}>
         <PlayerProvider runtime={runtime}>
           {props.children}
+          {launchPick ? (
+            <LaunchScreen
+              promotion={launchPick.promotion}
+              uri={launchPick.uri}
+              started={launched}
+              onShown={() => {
+                recordShown(stores.settings, launchPick.promotion.id, Date.now());
+                void launchApi.event(launchPick.promotion.id, 'impression').catch(() => undefined);
+              }}
+              onTap={() => {
+                void launchApi.event(launchPick.promotion.id, 'tap').catch(() => undefined);
+                const to = resolveTarget(launchPick.promotion, (path) => knownRoute(path));
+                if (to.kind === 'url') void Linking.openURL(to.url).catch(() => undefined);
+                else if (to.path !== '/') router.push(to.path as never);
+              }}
+              onDone={() => setLaunchPick(undefined)}
+            />
+          ) : null}
           {keepTerms({ ready, accepted, launched, cover }) ? <Terms onAccept={() => { accept(stores.settings); setAccepted(true); }} /> : null}
           {message === undefined ? null : (
             <Box className="absolute left-3 right-3 bottom-24 bg-surface border border-separator rounded-lg p-3" accessibilityLiveRegion="polite">

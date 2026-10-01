@@ -8,7 +8,7 @@
  * feed without subscribing (research R8). New: every row plays from its round button.
  */
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Image } from '../../src/ui/lib/image';
 import { SafeAreaView } from '../../src/ui/lib/safe-area-view';
 import { ScrollView } from '../../src/ui/lib/scroll-view';
@@ -16,7 +16,7 @@ import { Text } from '../../src/ui/lib/text';
 import { Box } from '../../src/ui/lib/box';
 import { colour } from '../../src/design';
 import { GENRES } from '../../src/discover/genres';
-import { buildModel } from '../../src/discover/sections';
+import { buildModel, sectionOrder, type SectionId } from '../../src/discover/sections';
 import { HINT_EVERY_MS, hintAt, trendingHints } from '../../src/discover/trending';
 import { Loader } from '../../src/ui/Loader';
 import { usePullRefresh } from '../../src/ui/PullRefresh';
@@ -43,7 +43,9 @@ export default function DiscoverScreen(): React.ReactElement {
   const { listener } = useSocial();
   const { sets, hiddenFeeds, version } = useSafety();
   const forYou = useForYou(listener !== undefined);
-  const outbox = useRecOutbox(listener !== undefined, forYou.view?.body.items);
+  // M15 US5: a For You the owner hid is not drawn, so it records no impressions either.
+  const forYouOn = sectionOrder(view?.body.layout).includes('forYou');
+  const outbox = useRecOutbox(listener !== undefined, forYouOn ? forYou.view?.body.items : undefined);
   const refreshBoth = async (): Promise<void> => { await Promise.all([refresh(), forYou.refresh()]); };
   const model = useMemo(
     () => buildModel(view?.body, forYou.view?.body, { feeds: hiddenFeeds, blocked: sets.blocked }),
@@ -67,6 +69,22 @@ export default function DiscoverScreen(): React.ReactElement {
   const allCategories = () => router.push({ pathname: '/category/[id]', params: { id: String(GENRES[0]!.id) } });
   const pull = usePullRefresh(refreshing, () => void refreshBoth());
   const act = { onOpen: (c: Parameters<typeof open>[0]) => void open(c), onPlay: (c: Parameters<typeof play>[0]) => void play(c) };
+  const categoryStrip = view ? <CategoryStrip onGenre={(id) => router.push({ pathname: '/category/[id]', params: { id: String(id) } })} onAll={allCategories} /> : null;
+  const section = (id: SectionId): React.ReactNode => {
+    switch (id) {
+      case 'forYou': return <ForYouSection rows={model.forYou} {...act} onOpenAt={(c, index) => { outbox.opened(index); void open(c); }} />;
+      case 'picks': return <PicksSection items={model.picks} {...(view?.body.date ? { date: view.body.date } : {})} {...act} onPast={() => router.push({ pathname: '/picks/past', params: view?.body.date ? { before: view.body.date } : {} })} />;
+      case 'chart': return <ChartSection tabs={model.chart} {...act} onFull={() => router.push('/chart')} />;
+      case 'shows': return <ShowTiles title="Popular shows" shows={popularShowTiles(model.shows)} onShow={showPage} />;
+      case 'video': return <VideoSection items={model.video} {...act} />;
+      case 'collections': return model.collections.map((c) => <CollectionSection key={c.id} collection={c} {...act} />);
+      case 'followedHere': return model.followedHere ? (
+        <ShowTiles title="Shows listeners here follow" badge={model.followedHere.total} shows={followedShowTiles(model.followedHere.shows)} onShow={showPage} boxed />
+      ) : null;
+      case 'said': return <SaidSection items={model.said} now={Date.now()} {...act} />;
+      case 'newShows': return <NewShowsSection items={model.newShows} {...act} />;
+    }
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-background">
@@ -113,18 +131,10 @@ export default function DiscoverScreen(): React.ReactElement {
             : <Text className="text-muted text-sm px-screen-x mt-section">Couldn't reach the server, and nothing is cached yet.</Text>
         ) : null}
 
-        <ForYouSection rows={model.forYou} {...act} onOpenAt={(c, index) => { outbox.opened(index); void open(c); }} />
-        <PicksSection items={model.picks} {...(view?.body.date ? { date: view.body.date } : {})} {...act} onPast={() => router.push({ pathname: '/picks/past', params: view?.body.date ? { before: view.body.date } : {} })} />
-        <ChartSection tabs={model.chart} {...act} onFull={() => router.push('/chart')} />
-        {view ? <CategoryStrip onGenre={(id) => router.push({ pathname: '/category/[id]', params: { id: String(id) } })} onAll={allCategories} /> : null}
-        <ShowTiles title="Popular shows" shows={popularShowTiles(model.shows)} onShow={showPage} />
-        <VideoSection items={model.video} {...act} />
-        {model.collections.map((c) => <CollectionSection key={c.id} collection={c} {...act} />)}
-        {model.followedHere ? (
-          <ShowTiles title="Shows listeners here follow" badge={model.followedHere.total} shows={followedShowTiles(model.followedHere.shows)} onShow={showPage} boxed />
-        ) : null}
-        <SaidSection items={model.said} now={Date.now()} {...act} />
-        <NewShowsSection items={model.newShows} {...act} />
+        {/* M15 US5: the owner's order, hidden sections left out (`buildModel`). The category
+            strip follows the chart, or leads when the chart is hidden. */}
+        {model.order.includes('chart') ? null : categoryStrip}
+        {model.order.map((id) => <Fragment key={id}>{section(id)}{id === 'chart' ? categoryStrip : null}</Fragment>)}
         {view ? <MoreCategories onPress={allCategories} /> : null}
       </ScrollView>
       </Box>

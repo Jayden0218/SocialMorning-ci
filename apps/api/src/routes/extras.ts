@@ -13,6 +13,7 @@ import { ApiError } from '../errors.ts';
 import { pollsForApp, vote } from '../db/repos/polls.ts';
 import { getOverrides } from '../db/repos/show-overrides.ts';
 import { listHosts } from '../db/repos/show-hosts.ts';
+import { curatorFor } from '../db/repos/curators.ts';
 
 export const extras = new Hono<AuthEnv>();
 
@@ -21,12 +22,14 @@ extras.get('/shows/extras', optionalAuth, async (c) => {
   if (!/^https?:\/\//.test(feedUrl) || feedUrl.length > 2048) throw new ApiError('validation', 'feedUrl is required.', { fields: ['feedUrl'] });
   const db = c.get('db');
   const viewer = c.get('listener');
-  const [overrides, announcements, polls, hosts] = await Promise.all([
+  const [overrides, announcements, polls, hosts, curator] = await Promise.all([
     getOverrides(db, feedUrl),
     db.query<{ id: string; body: string; created_at: Date | string; edited_at: Date | string | null }>(
       'SELECT id, body, created_at, edited_at FROM announcements WHERE feed_url = $1 AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 3', [feedUrl]),
     pollsForApp(db, feedUrl, viewer?.id),
     listHosts(db, feedUrl),
+    // M15 T029 (D3): an admin-made account that shares this external show — "Shared by", never host.
+    curatorFor(db, feedUrl).catch(() => null),
   ]);
   c.header('Cache-Control', viewer ? 'private, no-store' : 'public, max-age=60');
   return c.json({
@@ -36,6 +39,7 @@ extras.get('/shows/extras', optionalAuth, async (c) => {
     // M14: invited hosts (real accounts) and whether tips are switched on.
     hostAccounts: hosts.map((h) => ({ id: h.id, displayName: h.displayName })),
     tipsEnabled: overrides?.tipsEnabled ?? false,
+    curator,
   });
 });
 

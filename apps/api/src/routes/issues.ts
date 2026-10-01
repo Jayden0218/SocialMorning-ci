@@ -17,7 +17,7 @@ type EpRow = { id: string; feed_url: string; guid: string; title: string; show_t
 const cardOf = (e: EpRow): EpisodeCard & { id: string } => ({ id: e.id, feedUrl: e.feed_url, guid: e.guid, title: e.title, showTitle: e.show_title ?? '', enclosureUrl: e.enclosure_url, ...(e.image_url ? { imageUrl: e.image_url } : {}), ...(e.duration_ms !== null ? { durationMs: Number(e.duration_ms) } : {}) });
 const COLS = 'id, feed_url, guid, title, show_title, image_url, duration_ms, enclosure_url';
 
-async function episodeFor(db: Db, feedUrl: string, guid: string | undefined): Promise<(EpisodeCard & { id: string }) | null> {
+export async function episodeFor(db: Db, feedUrl: string, guid: string | undefined): Promise<(EpisodeCard & { id: string }) | null> {
   const [e] = guid !== undefined
     ? await db.query<EpRow>(`SELECT ${COLS} FROM episodes WHERE feed_url = $1 AND guid = $2`, [feedUrl, guid])
     : await db.query<EpRow>(`SELECT ${COLS} FROM episodes WHERE feed_url = $1 ORDER BY published_at DESC NULLS LAST, first_seen_at DESC LIMIT 1`, [feedUrl]);

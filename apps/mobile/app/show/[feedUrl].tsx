@@ -57,6 +57,7 @@ import type { ShowCard } from '../../src/social/api';
 import { hasPlays, orderEpisodes, type ListView } from '../../src/ui/show/order';
 import { EpisodeMeta, metaLabel } from '../../src/ui/show/EpisodeMeta';
 import { AnnouncementCard } from '../../src/ui/show/AnnouncementCard';
+import { CuratorLine, hostLineFor } from '../../src/ui/show/CuratorLine';
 
 /** How far the page scrolls before the slim bar takes over (about the title block's height). */
 export const COLLAPSE_AT = 150;
@@ -89,6 +90,7 @@ export default function ShowScreen(): React.ReactElement {
   const [extras, replacePoll] = useShowExtras(feedUrl);
   const { api } = useSocial();
   const ov = extras?.overrides ?? null;
+  const curator = extras?.curator ?? null;
   const title = ov?.title ?? show?.title;
   const description = ov?.description ?? show?.description;
   useFocusEffect(useCallback(() => { setFocusTick((n) => n + 1); }, []));
@@ -193,6 +195,8 @@ export default function ShowScreen(): React.ReactElement {
         <Box className="flex-row gap-section items-start">
           <Box className="flex-1 gap-2">
             <Text className="text-[28px] leading-[36px] font-bold text-text" accessibilityRole="header">{title ?? 'Loading…'}</Text>
+            {/* M15 US4: the curator, under the title — never through the "Hosted by" line (G-C1). */}
+            {curator ? <CuratorLine curator={curator} iconColour={c.muted} /> : null}
             {description === undefined || tab === 'about' ? null : (
               <Text className="text-sm text-muted" numberOfLines={2}>{htmlToText(description)}</Text>
             )}
@@ -257,7 +261,7 @@ export default function ShowScreen(): React.ReactElement {
   );
 
   // FR-063: the host row — the creator's own names from the Studio, else the feed's author.
-  const hostLine = ov?.hosts?.length ? ov.hosts.join(', ') : show?.author;
+  const hostLine = hostLineFor(ov, show?.author);
   const similarRow = similarShows(similar, feedUrl, hiddenFeeds);
 
   const about = (
@@ -274,6 +278,7 @@ export default function ShowScreen(): React.ReactElement {
           </Box>
         </Box>
       )}
+      {curator ? <CuratorLine curator={curator} row iconColour={c.muted} /> : null}
       {similarRow.length > 0 ? (
         <Box className="gap-row">
           <Text className="text-base font-bold text-text" accessibilityRole="header">Similar shows</Text>

@@ -20,9 +20,13 @@ module.exports = {
   resolver: './jest.uniwind.resolver.js',
   globalSetup: './jest.uniwind.global.js',
   setupFilesAfterEnv: ['./jest.uniwind.js'],
-  collectCoverageFrom: ['src/playback/**'],
+  collectCoverageFrom: ['src/playback/**', 'src/launch/choose.ts'],
   coverageThreshold: {
     './src/playback/': {
+      branches: 100,
+    },
+    // M15 guard G-L1: the launch screen's decision, pure, every branch tested.
+    './src/launch/choose.ts': {
       branches: 100,
     },
   },

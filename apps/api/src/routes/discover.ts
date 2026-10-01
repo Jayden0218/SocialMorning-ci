@@ -5,6 +5,9 @@ import { CHART_MAX, discoverBody, SHOWS_SERVED, talkedAboutChart } from '../db/r
 import { collectionsWithoutHidden, followedHere, resolveCollections, said, statsFor, videoEpisodes, withStats, type Collection, type FollowedHere, type Said } from '../db/repos/discover-extras.ts';
 import { hiddenFeedUrls } from '../db/repos/moderation.ts';
 import { ApiError } from '../errors.ts';
+import type { DiscoverItem } from '../db/repos/discover.ts';
+import { getDiscoverSettings, hasLayout } from '../db/repos/discover-settings.ts';
+import { episodeFor } from './issues.ts';
 
 /** Mounted at /v1/discover — public; ETag/304; `stale` when the catalogue could not be refreshed. */
 export const discover = new Hono<AuthEnv>();
@@ -32,9 +35,26 @@ discover.get('/', async (c) => {
   const picks = stats ? withStats(pub.picks, stats) : pub.picks;
   if (stats && collections) collections = collections.map((x) => ({ ...x, items: withStats(x.items, stats) }));
   const shows = pub.shows?.slice(0, SHOWS_SERVED);
+  // M15 T034 (FR-026–FR-029): the owner's Discover settings, at serve time. Unreadable → today's Discover, no `layout`.
+  const settings = await optional('discoverSettings', extraWarnings, async () => ({ s: await getDiscoverSettings(db), saved: await hasLayout(db) }));
+  let trending: DiscoverItem[] = pub.trending;
+  if (settings) {
+    const hideKeys = new Set(settings.s.hides.map((h) => `${h.feedUrl}\u0001${h.guid}`));
+    const pinned: DiscoverItem[] = [];
+    for (const p of settings.s.pins) {
+      if (hidden.has(p.feedUrl)) continue;
+      const ep = await episodeFor(db, p.feedUrl, p.guid);
+      if (ep) pinned.push({ kind: 'trending', key: `${ep.feedUrl}\u0001${ep.guid}`, episode: ep, reason: 'Picked by the editors' });
+    }
+    const pinKeys = new Set(pinned.map((i) => i.key));
+    trending = [...pinned, ...pub.trending.filter((t) => !pinKeys.has(t.key) && !hideKeys.has(t.key))];
+  }
+  const layout = settings?.saved ? { order: settings.s.order, hidden: settings.s.hidden } : undefined;
 
   const etag = `W/"${createHash('sha256').update(JSON.stringify([
-    body.date, body.picks.map((p) => p.key), body.talkedAbout.map((p) => p.key), body.trending.map((p) => p.key),
+    body.date, body.picks.map((p) => p.key), body.talkedAbout.map((p) => p.key), trending.map((p) => p.key),
+    // M15: the layout and the pins/hides (already in `trending`) are in the hash too.
+    layout ?? null,
     // M10: every new list is in the hash, so a change in any of them is a 200, not a 304.
     shows?.map((s) => s.feedUrl), pub.newShows?.map((n) => n.episode.id),
     followed ? [followed.total, followed.shows.map((s) => [s.feedUrl, s.followers, s.title])] : null,
@@ -47,7 +67,8 @@ discover.get('/', async (c) => {
   const all = [...warnings, ...extraWarnings];
   if (all.length > 0) console.warn(`[discover] ${all.join(' | ')}`);
   return c.json({
-    ...pub, picks,
+    ...pub, picks, trending,
+    ...(layout ? { layout } : {}),
     ...(shows ? { shows } : {}),
     ...(followed ? { followedHere: followed } : {}),
     ...(saidList ? { said: saidList } : {}),

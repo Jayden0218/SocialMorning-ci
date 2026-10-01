@@ -22,7 +22,32 @@ export type DiscoverModel = {
   newShows: { show: ShowCard; episode: EpisodeCard }[];
   /** M10b US5: "Podcasts you can watch". */
   video: DiscoverItem[];
+  /** M15 US5: the sections to draw, top to bottom — the owner's order, hidden ones left out. */
+  order: SectionId[];
 };
+
+/**
+ * M15 US5 (data-model.md `discover_settings`): the section ids the owner orders and hides
+ * in the Studio, in today's order. `collections` is every collection as one block.
+ */
+export const SECTION_IDS = ['forYou', 'picks', 'chart', 'shows', 'video', 'collections', 'followedHere', 'said', 'newShows'] as const;
+export type SectionId = (typeof SECTION_IDS)[number];
+
+const isSectionId = (v: unknown): v is SectionId => typeof v === 'string' && (SECTION_IDS as readonly string[]).includes(v);
+
+/**
+ * The owner's order with the hidden sections removed (guard G-D1). Unknown ids are ignored;
+ * a known section the owner's order leaves out keeps its place after the listed ones; a
+ * missing or unreadable `layout` is today's order (FR-029).
+ */
+export function sectionOrder(layout: Discover['layout'] | undefined): SectionId[] {
+  const rawOrder: unknown = layout?.order;
+  const rawHidden: unknown = layout?.hidden;
+  const order = Array.isArray(rawOrder) ? rawOrder.filter(isSectionId) : [];
+  const hidden = new Set(Array.isArray(rawHidden) ? rawHidden.filter(isSectionId) : []);
+  const listed = [...new Set(order)];
+  return [...listed, ...SECTION_IDS.filter((id) => !listed.includes(id))].filter((id) => !hidden.has(id));
+}
 
 /** What the viewer has hidden: shows (owner or own), and blocked listeners. */
 export type Hidden = { feeds: ReadonlySet<string>; blocked: ReadonlySet<string> };
@@ -46,16 +71,20 @@ export function buildModel(body: Discover | undefined, forYou: ForYou | undefine
   ].filter((t) => t.rows.length > 0);
   const followed = body?.followedHere;
   const followedShows = (followed?.shows ?? []).filter((s) => !hidden.feeds.has(s.feedUrl));
+  const order = sectionOrder(body?.layout);
+  // A hidden section is emptied as well as left out of `order`, so no path draws it.
+  const on = (id: SectionId): boolean => order.includes(id);
   return {
-    forYou: (forYou?.items ?? []).map((i, index) => ({ card: i.episode as EpisodeCard, line: i.reason, index })).filter((r) => keepCard(r.card)),
-    picks,
-    chart,
-    shows: (body?.shows ?? []).filter((s) => !hidden.feeds.has(s.feedUrl)).slice(0, 6),
-    collections: (body?.collections ?? []).map((c) => ({ ...c, items: c.items.filter(keepItem) })).filter((c) => c.items.length > 0),
-    ...(followed && followedShows.length > 0 ? { followedHere: { total: followed.total, shows: followedShows } } : {}),
-    said: (body?.said ?? []).filter((s) => !hidden.blocked.has(s.authorId) && keepCard(s.episode)),
-    newShows,
-    video: (body?.video ?? []).filter(keepItem).slice(0, 10),
+    forYou: on('forYou') ? (forYou?.items ?? []).map((i, index) => ({ card: i.episode as EpisodeCard, line: i.reason, index })).filter((r) => keepCard(r.card)) : [],
+    picks: on('picks') ? picks : [],
+    chart: on('chart') ? chart : [],
+    shows: on('shows') ? (body?.shows ?? []).filter((s) => !hidden.feeds.has(s.feedUrl)).slice(0, 6) : [],
+    collections: on('collections') ? (body?.collections ?? []).map((c) => ({ ...c, items: c.items.filter(keepItem) })).filter((c) => c.items.length > 0) : [],
+    ...(on('followedHere') && followed && followedShows.length > 0 ? { followedHere: { total: followed.total, shows: followedShows } } : {}),
+    said: on('said') ? (body?.said ?? []).filter((s) => !hidden.blocked.has(s.authorId) && keepCard(s.episode)) : [],
+    newShows: on('newShows') ? newShows : [],
+    video: on('video') ? (body?.video ?? []).filter(keepItem).slice(0, 10) : [],
+    order,
   };
 }
 

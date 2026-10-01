@@ -38,6 +38,15 @@ export const bearer = {
 let onSignedOut: (() => void) | null = null;
 export const whenSignedOut = (fn: () => void) => { onSignedOut = fn; };
 
+/**
+ * M15 T010: an Admin session older than 12 h answers 401 `reauth`. The page says
+ * "Sign in again to use Admin" and goes to `/sign-in?next=` (the Admin layout sets the handler).
+ */
+export const REAUTH_MESSAGE = 'Sign in again to use Admin';
+let onReauth: (() => void) | null = null;
+export const whenReauth = (fn: (() => void) | null) => { onReauth = fn; };
+export const reauthPath = (next: string) => `/sign-in?reason=reauth&next=${encodeURIComponent(next)}`;
+
 export async function api<T>(path: string, opts: { method?: string; body?: unknown; token?: string } = {}): Promise<T> {
   const method = opts.method ?? 'GET';
   const token = opts.token ?? bearer.get();
@@ -55,20 +64,29 @@ export async function api<T>(path: string, opts: { method?: string; body?: unkno
   const data = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
   if (!res.ok) {
     if (res.status === 401 && path.startsWith('/v1/studio') && !opts.token) onSignedOut?.();
+    if (res.status === 401 && path.startsWith('/v1/admin')) {
+      if (data.error === 'reauth') {
+        if (onReauth) onReauth();
+        else if (typeof window !== 'undefined') window.location.assign(reauthPath(window.location.pathname));
+      } else onSignedOut?.();
+    }
     throw new HttpError(res.status, data.error ?? 'error', data.message ?? 'Something went wrong.');
   }
   return data as T;
 }
 
 export type Me = { id: string; email: string; displayName: string };
+/** M15: who an admin is acting as, if anyone (display only — the server decides everything). */
+export type ActingAs = { id: string; displayName: string } | null;
+export type StudioMe = { me: Me; shows: Show[]; isAdmin?: boolean; actingAs?: ActingAs };
 export type Show = { key: string; feedUrl: string; title: string | null; image: string | null; role: 'owner' | 'operator'; hosted?: boolean };
 
 /**
  * Sign in the way the whole product does (`/v1/auth`, labelled `studio-web`), then trade the
  * token for the Studio's cookie. Returns who and which shows.
  */
-export async function startSession(token: string): Promise<{ me: Me; shows: Show[] }> {
-  const s = await api<{ me: Me; shows: Show[] }>('/v1/studio/session', { method: 'POST', token });
+export async function startSession(token: string): Promise<StudioMe> {
+  const s = await api<StudioMe>('/v1/studio/session', { method: 'POST', token });
   bearer.set(null);
   try {
     await api('/v1/studio/me', { token: '' });

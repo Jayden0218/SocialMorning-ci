@@ -27,6 +27,28 @@ export const IMAGE_TYPES = ['image/jpeg', 'image/png'];
 export const MAX_AUDIO_BYTES = 200 * 1024 * 1024;
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
+/**
+ * M15 T002 — launch-screen images (constitution v2.4.0, D2): JPEG/PNG/WebP, ≤ 1 MB each, ≤ 50 MB for
+ * every promotion together (counted from `promotions.image_bytes`). Same store, path `launch/`.
+ */
+export const LAUNCH_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+export const MAX_LAUNCH_IMAGE_BYTES = 1_048_576;
+export const LAUNCH_CEILING_BYTES = 50 * 1024 * 1024;
+const LAUNCH_EXT: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+
+/** `launch/<uuid>.<ext>` for an allowed type; undefined for any other type. */
+export function launchPathname(type: string, uuid: string): string | undefined {
+  const ext = LAUNCH_EXT[type];
+  return ext === undefined ? undefined : `launch/${uuid}.${ext}`;
+}
+
+/** A 1-hour token for ONE launch image path, through the same client-token flow as covers. */
+export function launchUploadToken(storage: EpisodeStorage, pathname: string, size: number, type: string): Promise<string> {
+  if (!LAUNCH_IMAGE_TYPES.includes(type)) throw new Error(`launch image type ${type} is not allowed`);
+  if (size > MAX_LAUNCH_IMAGE_BYTES) throw new Error(`launch image over ${MAX_LAUNCH_IMAGE_BYTES} bytes`);
+  return storage.uploadToken(pathname, { maxBytes: MAX_LAUNCH_IMAGE_BYTES, types: LAUNCH_IMAGE_TYPES });
+}
+
 export function blobStorage(token: string | undefined): EpisodeStorage {
   return {
     ready: Boolean(token),
@@ -66,5 +88,5 @@ export function blobStorage(token: string | undefined): EpisodeStorage {
 /** `list` does not return a type; ours are always named by the upload route, so the extension is the type. */
 export function typeFromPath(p: string): string {
   const ext = p.split('.').pop()?.toLowerCase();
-  return ({ mp3: 'audio/mpeg', m4a: 'audio/mp4', aac: 'audio/aac', jpg: 'image/jpeg', png: 'image/png' } as Record<string, string>)[ext ?? ''] ?? 'application/octet-stream';
+  return ({ mp3: 'audio/mpeg', m4a: 'audio/mp4', aac: 'audio/aac', jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp' } as Record<string, string>)[ext ?? ''] ?? 'application/octet-stream';
 }

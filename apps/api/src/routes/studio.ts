@@ -39,6 +39,7 @@ import { CONTACT_TYPES } from '../db/repos/show-overrides.ts';
 import { AUDIO_TYPES, IMAGE_TYPES, MAX_AUDIO_BYTES, MAX_IMAGE_BYTES } from '../storage/episodes-blob.ts';
 import { randomUUID } from 'node:crypto';
 import { isBlockedBy } from '../db/repos/blocks.ts';
+import { ACT_AS_COOKIE, ensureSeeded, insertAudit, isAdmin, stopActing } from '../auth/admin.ts';
 
 export type { StudioEnv };
 
@@ -65,20 +66,44 @@ studio.post('/session', async (c) => {
   if (who === 'expired') throw new ApiError('session_expired', 'You were away for a while. Sign in again.');
   if (!who || !token) throw new ApiError('unauthenticated', 'Sign in with deviceLabel "studio-web" first.');
   setCookie(c, STUDIO_COOKIE, token, { httpOnly: true, secure: secure(c.req.url), sameSite: 'Strict', path: '/', maxAge: STUDIO_IDLE_MS / 1000 });
-  return c.json({ token, me: publicListener(who), shows: await showsFor(c.get('db'), who.id) });
+  const db = c.get('db');
+  await ensureSeeded(db, c.get('safety').ownerListenerId);
+  return c.json({ token, me: publicListener(who), shows: await showsFor(db, who.id), isAdmin: await isAdmin(db, who.id), actingAs: null });
 });
 
 studio.use('*', async (c, next) => (c.req.path.endsWith('/v1/studio/session') && c.req.method === 'POST' ? next() : studioAuth(c, next)));
 
+// M15 T028 (FR-021): every Studio write made while acting is recorded with BOTH ids (guard G-C2).
+studio.use('*', async (c, next) => {
+  await next();
+  const admin = c.get('actingAdmin');
+  const m = c.req.method;
+  if (!admin || m === 'GET' || m === 'HEAD' || c.res.status >= 400) return;
+  await insertAudit(c.get('db'), { adminId: admin.id, actingAs: c.get('listener')!.id, device: (c.req.header('user-agent') ?? '').slice(0, 200) || null },
+    { area: 'accounts', action: `studio ${m}`, target: c.req.path }, null, { path: c.req.path, status: c.res.status });
+});
+
 studio.post('/session/sign-out', async (c) => {
-  await c.get('db').query('DELETE FROM sessions WHERE token_hash = $1', [tokenHash(c.get('token')!, c.get('pepper'))]);
+  const db = c.get('db');
+  await db.query('DELETE FROM sessions WHERE token_hash = $1', [tokenHash(c.get('token')!, c.get('pepper'))]);
+  // M15 T028: signing out ends any "act as" too.
+  await stopActing(db, (c.get('actingAdmin') ?? c.get('listener')!).id);
+  deleteCookie(c, ACT_AS_COOKIE, { path: '/', secure: secure(c.req.url) });
   deleteCookie(c, STUDIO_COOKIE, { path: '/', secure: secure(c.req.url) });
   return c.body(null, 204);
 });
 
 studio.get('/me', async (c) => {
   const me = c.get('listener')!;
-  return c.json({ me: publicListener(me), shows: await showsFor(c.get('db'), me.id) });
+  const admin = c.get('actingAdmin');
+  const db = c.get('db');
+  await ensureSeeded(db, c.get('safety').ownerListenerId);
+  // M15 T004: `isAdmin` is display only — every admin route checks for itself (FR-001).
+  return c.json({
+    me: publicListener(me), shows: await showsFor(db, me.id),
+    isAdmin: await isAdmin(db, (admin ?? me).id),
+    actingAs: admin ? { id: me.id, displayName: me.display_name } : null,
+  });
 });
 
 // ---- Claiming a show from the Studio (the app's M10b flow, on the web) ----

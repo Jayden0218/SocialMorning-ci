@@ -5,6 +5,19 @@ import { cached } from '../db/repos/cache.ts';
 import { hiddenFeedUrls } from '../db/repos/moderation.ts';
 import { CatalogRateLimited, topShows, type ShowCard } from '../catalog/apple.ts';
 import { GENRE_LIST, genreName } from '../catalog/genres.ts';
+import { featuredFirst, getFeatures } from '../db/repos/discover-settings.ts';
+import type { Db } from '../db/db.ts';
+
+/** M15: a featured show that is not on Apple's chart, drawn from the feed the server already read. */
+async function showCardFromCache(db: Db, feedUrl: string): Promise<ShowCard | undefined> {
+  const [row] = await db.query<{ body: unknown }>('SELECT body FROM cache WHERE key = $1', [`feed:${feedUrl}`]);
+  if (!row) return undefined;
+  try {
+    const b = (typeof row.body === 'string' ? JSON.parse(row.body) : row.body) as { show?: { title?: string; author?: string; imageUrl?: string } };
+    if (!b.show?.title) return undefined;
+    return { feedUrl, title: b.show.title, author: b.show.author ?? '', genres: [], ...(b.show.imageUrl ? { imageUrl: b.show.imageUrl } : {}) };
+  } catch { return undefined; }
+}
 
 /**
  * M10 (2026-09-27), mounted at /v1/categories — public.
@@ -36,6 +49,15 @@ categories.get('/:genreId', async (c) => {
     throw new ApiError('unavailable', 'The catalogue is not answering right now.');
   }
   const hidden = await hiddenFeedUrls(db);
-  const shows = r.body.filter((s) => !hidden.has(s.feedUrl)).slice(0, CATEGORY_SHOWS);
+  const chart = r.body.filter((s) => !hidden.has(s.feedUrl));
+  // M15 T034 (FR-028): the owner's featured shows first, in the owner's order. Unreadable → the chart as it was.
+  let featured: string[] = [];
+  try { featured = (await getFeatures(db, genreId)).filter((f) => !hidden.has(f)); } catch (e) { console.warn(`[categories] features skipped: ${e instanceof Error ? e.message : String(e)}`); }
+  const extra = new Map<string, ShowCard>();
+  for (const f of featured.filter((x) => !chart.some((s) => s.feedUrl === x))) {
+    const card = await showCardFromCache(db, f);
+    if (card) extra.set(f, card);
+  }
+  const shows = featuredFirst(chart, featured, (f) => extra.get(f)).slice(0, CATEGORY_SHOWS);
   return c.json({ genreId, name, shows, stale: r.stale });
 });
