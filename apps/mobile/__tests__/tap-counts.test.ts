@@ -22,7 +22,8 @@ const SCREEN: Record<string, string> = { '/': read('index.tsx'), '/library': rea
 /** Does this screen's source open `href` — a Link, a MenuRow, or a router.push? */
 const links = (src: string, href: string): boolean => {
   const h = href.replace(/[/]/g, '\\/');
-  return new RegExp(`href="${h}"|push\\('${h}'\\)`).test(src);
+  // Owner, 2026-10-01: Search is pushed with params (`{ pathname: '/search', params }`) so its box can move up.
+  return new RegExp(`href="${h}"|push\\('${h}'\\)|pathname: '${h}'`).test(src);
 };
 
 /** Destination → taps from a cold start, before this change (Discover · Library · Following) and after. */

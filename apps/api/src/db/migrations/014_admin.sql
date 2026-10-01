@@ -7,17 +7,20 @@ CREATE TABLE admins (
   granted_by  uuid        NULL
 );
 
--- FR-002: there must always be at least one admin.
+-- FR-002: there must always be at least one admin. Only the removal of a ROLE is refused: when
+-- the listener itself is deleted (account deletion cascades here) the row goes with it — the gate
+-- run 36873304971 found every account-deletion test answering 500 under a statement-level check.
 CREATE OR REPLACE FUNCTION admins_keep_one() RETURNS trigger AS $$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM admins) THEN
+  IF NOT EXISTS (SELECT 1 FROM admins)
+     AND EXISTS (SELECT 1 FROM listeners WHERE id = OLD.listener_id) THEN
     RAISE EXCEPTION 'admins_keep_one: there must always be at least one admin';
   END IF;
   RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
 CREATE TRIGGER admins_keep_one AFTER DELETE ON admins
-  FOR EACH STATEMENT EXECUTE FUNCTION admins_keep_one();
+  FOR EACH ROW EXECUTE FUNCTION admins_keep_one();
 
 -- US1: the record of every admin change. No foreign keys: the record outlives accounts.
 -- before/after are objects, never JSON strings (the M14 lesson, guard G-A4).
