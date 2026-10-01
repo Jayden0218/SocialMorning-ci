@@ -31,6 +31,7 @@ import { useColours } from '../../src/ui/useColours';
 import { usePlayer, usePlayerState } from '../../src/playback/store';
 import { toPlayable } from '../../src/storage/playable';
 import { isFavComment, toggleFavComment } from '../../src/me/fav-comments';
+import { EpisodeCard } from '../../src/ui/comments/EpisodeCard';
 
 const TAB = { minHeight: hit.min };
 const ORDERS: { key: CommentOrder; label: string }[] = [
@@ -118,6 +119,8 @@ export default function CommentsScreen(): React.ReactElement {
   return (
     <Box className="flex-1 bg-background">
       <Stack.Screen options={{ title: count > 0 ? `Comments ${count}` : 'Comments' }} />
+      {/* Owner, 2026-10-01: the episode, with its own play/pause, at the top of the page. */}
+      {episodeId ? <EpisodeCard episodeId={episodeId} /> : null}
       <Box className="flex-row px-screen-x gap-row border-b-hairline border-separator" accessibilityRole="tablist">
         {ORDERS.map((o) => (
           <Pressable key={o.key} onPress={() => setOrder(o.key)} accessibilityRole="tab" accessibilityState={{ selected: order === o.key }} className="justify-center" style={TAB}>

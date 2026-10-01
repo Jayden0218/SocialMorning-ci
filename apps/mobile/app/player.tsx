@@ -15,7 +15,12 @@
  * right; the heat curve and the seek bar together in one grey box; then speed, −15,
  * play/pause, +30 and React on one line; then About, Playlist and Comments. Everything
  * the old screen had (chapters, transcript, sleep timer, clip, comment-at) is still here,
- * below the fold. The reference's "200+ listening" is left out: there is no such number.
+ * below the fold. "N listening now" came with M12 (FR-042, src/social/live.ts).
+ *
+ * Owner, 2026-10-01 (the 小宇宙 player): the page is always dark — the dark palette whatever
+ * the app's Appearance (`PlayerDark`), washed from the show's Studio theme colour when it has
+ * one (`playerWash`), else the blurred cover under the dark veil. "N listening now" sits in the
+ * top bar, and a star there favourites the episode.
  */
 import { useEffect, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
@@ -59,7 +64,11 @@ import { endOffer } from '../src/discover/end-offer';
 import { toPlayable } from '../src/storage/playable';
 import { useDiscover } from '../src/discover/useDiscover';
 import { tabular } from '../src/design';
-import { useColours } from '../src/ui/useColours';
+import { LinearGradient } from '../src/design/tailwind';
+import { PlayerDark } from '../src/ui/player/PlayerDark';
+import { playerWash, usePlayerPalette } from '../src/ui/player/palette';
+import { useShowExtras } from '../src/ui/ShowExtras';
+import { isFavourite, toggleFavourite } from '../src/me/favourites';
 
 export default function PlayerScreen(): React.ReactElement {
   const player = usePlayer();
@@ -67,7 +76,8 @@ export default function PlayerScreen(): React.ReactElement {
   // M12 FR-042: "N listening now" — before the early returns, as every hook must be.
   const liveCount = useListeningNow(state.kind === 'idle' ? undefined : state.episodeId, state.kind === 'playing' || state.kind === 'buffering');
   const stores = useStores();
-  const c = useColours(stores.settings);
+  // Owner, 2026-10-01: the player is dark in either app theme, so its icons use the dark palette.
+  const c = usePlayerPalette();
   const { composer, reactToggle, refresh, useEpisodeSocial, listener, bump, api } = useSocial();
   const [composing, setComposing] = useState<ComposerState | undefined>();
   const [myBuckets, setMyBuckets] = useState<number[] | undefined>();
@@ -80,6 +90,9 @@ export default function PlayerScreen(): React.ReactElement {
   const clipNow = player.clip();
   useEffect(() => { if (clipNow) setLastClipEnd(clipNow.endMs); }, [clipNow]);
   const currentEpisodeId = state.kind === 'idle' ? undefined : state.episodeId;
+  // Owner, 2026-10-01: the show's Studio theme colour (if set) tints the top of the page.
+  const [showExtras] = useShowExtras((currentEpisodeId ? stores.feeds.getEpisode(currentEpisodeId)?.feedUrl : undefined) ?? '');
+  const wash = playerWash(showExtras?.overrides?.themeColour);
   // M5 (FR-010): the end-of-episode offer — fetched while the episode plays, shown at `ended` with an empty queue, never autoplayed.
   const nextUp = useNextUp(currentEpisodeId);
   const { open: discoverOpen } = useDiscover();
@@ -112,15 +125,18 @@ export default function PlayerScreen(): React.ReactElement {
 
   if (state.kind === 'idle') {
     return (
+      <PlayerDark>
       <SafeAreaView className={FILL}>
         <TopBar back="down" onBack={close} />
         <Box className={BODY}><Text className={SUBTITLE}>Nothing is playing yet.</Text></Box>
       </SafeAreaView>
+      </PlayerDark>
     );
   }
 
   if (state.kind === 'error') {
     return (
+      <PlayerDark>
       <SafeAreaView className={FILL}>
         <TopBar back="down" onBack={close} />
         <Box className={BODY}>
@@ -130,6 +146,7 @@ export default function PlayerScreen(): React.ReactElement {
           </Pressable>
         </Box>
       </SafeAreaView>
+      </PlayerDark>
     );
   }
 
@@ -154,6 +171,8 @@ export default function PlayerScreen(): React.ReactElement {
     subscriptionSync.push();
     setTick((n) => n + 1);
   };
+  const favourite = isFavourite(stores.settings, state.episodeId);
+  const live = liveLabel(liveCount);
   const rate = player.rate();
   // M10b US4 (FR-015): "Show transcript entry" off → no transcript button and no live line.
   const showTranscript = getPref(stores.settings, 'transcriptEntry');
@@ -174,14 +193,43 @@ export default function PlayerScreen(): React.ReactElement {
     router.push({ pathname: '/comments/[episodeId]', params: { episodeId: state.episodeId, at: String(Math.round(positionMs)) } });
 
   return (
+    <PlayerDark>
     <Box className={FILL}>
-    {/* M12 FR-040: the cover, blurred, tints the whole player; the veil keeps the theme's text readable. */}
-    {artworkUrl ? (
-      <Image source={{ uri: artworkUrl }} blurRadius={40} className="absolute inset-0" style={COVER} accessible={false} importantForAccessibility="no-hide-descendants" />
-    ) : null}
-    <Box className="absolute inset-0 bg-veil" accessible={false} />
+    {/* Owner, 2026-10-01: the show's theme colour, darkened until the dark text reads on it. */}
+    {wash ? <LinearGradient colors={wash} className="absolute inset-0" accessible={false} /> : (
+      <>
+        {/* M12 FR-040: the cover, blurred, tints the whole player; the (dark) veil keeps the text readable. */}
+        {artworkUrl ? (
+          <Image source={{ uri: artworkUrl }} blurRadius={40} className="absolute inset-0" style={COVER} accessible={false} importantForAccessibility="no-hide-descendants" />
+        ) : null}
+        <Box className="absolute inset-0 bg-veil" accessible={false} />
+      </>
+    )}
     <SafeAreaView className="flex-1">
-    <TopBar back="down" onBack={close}>
+    <TopBar
+      back="down"
+      onBack={close}
+      middle={live ? (
+        // Owner, 2026-10-01: "N listening now" near the top, as a small pill with a dot.
+        <Box className="flex-1 items-center">
+          <Box className="flex-row items-center gap-1 bg-accentTint rounded-pill px-2 py-0.5" accessible accessibilityLabel={live}>
+            <Box className="w-1.5 h-1.5 rounded-pill bg-accent" />
+            <Text className="text-accent text-xs font-semibold">{live}</Text>
+          </Box>
+        </Box>
+      ) : undefined}
+    >
+      {/* Owner, 2026-10-01: a star in the bar favourites this episode (src/me/favourites). */}
+      <Pressable
+        onPress={() => { toggleFavourite(stores.settings, state.episodeId, Date.now()); setTick((n) => n + 1); }}
+        accessibilityRole="button"
+        accessibilityState={{ selected: favourite }}
+        accessibilityLabel={favourite ? 'Remove from favourites' : 'Add to favourites'}
+        className="items-center justify-center"
+        style={TAP}
+      >
+        <Icon name={favourite ? 'star' : 'star-outline'} size={24} color={favourite ? c.accent : c.text} />
+      </Pressable>
       <BarButton label="Clip the last 30 seconds" onPress={clip}><Icon name="cut-outline" size={24} color={c.text} /></BarButton>
       <BarButton label="Share this episode" onPress={() => setSharing(true)}>
         <Icon name="share-outline" size={24} color={c.text} />
@@ -195,12 +243,6 @@ export default function PlayerScreen(): React.ReactElement {
           ? <VideoStage url={episode.enclosureUrl} positionMs={positionMs} playing={isPlaying} size={art} />
           : <Artwork url={artworkUrl} size={art} rounded="artwork" className="mt-2" name={show?.title} />}
         <Text className={TITLE} numberOfLines={2}>{episode?.title ?? 'Now playing'}</Text>
-        {liveLabel(liveCount) ? (
-          <Box className="flex-row items-center gap-1 bg-accentTint rounded-pill px-2 py-0.5" accessible accessibilityLabel={liveLabel(liveCount)!}>
-            <Box className="w-1.5 h-1.5 rounded-pill bg-accent" />
-            <Text className="text-accent text-xs font-semibold">{liveLabel(liveCount)}</Text>
-          </Box>
-        ) : null}
         <Box className="flex-row items-center justify-center gap-2">
           {feedUrl === undefined ? <Text className={SUBTITLE}>{show?.title ?? ''}</Text> : (
             <Pressable onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(feedUrl) } })} accessibilityRole="link" accessibilityLabel={`Show: ${show?.title ?? ''}`} className="justify-center flex-shrink" style={{ minHeight: TAP.minHeight }}>
@@ -385,6 +427,7 @@ export default function PlayerScreen(): React.ReactElement {
       />
     ) : null}
     </Box>
+    </PlayerDark>
   );
 }
 

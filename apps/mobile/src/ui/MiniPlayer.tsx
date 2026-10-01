@@ -72,6 +72,9 @@ export function MiniPlayer(props: { pathname?: string; context?: 'root' | 'tabs'
   if (path === '/player') return null;
   // Owner, 2026-09-27: the sign-in and sign-up pages are not a place to be playing from.
   if (path.startsWith('/auth/')) return null;
+  // Owner, 2026-10-01: the comments page has its own episode card with play/pause, and its
+  // write box sits where the bar would — so the bar stands down there.
+  if (path.startsWith('/comments/')) return null;
   // Exactly one bar. Two would announce the episode twice to a screen reader.
   if (context === 'root' && TAB_ROUTES.includes(path)) return null;
   if (state.kind === 'idle') return null;

@@ -16,6 +16,11 @@
  *   result page — reached by the keyboard's Search, a "Try searching" name, a Recent
  *   search or a typed suggestion — with All / Shows / Episodes tabs and the keyboard down.
  *   Typing again leaves the result page.
+ * - Typing lists up to 4 matching shows (artwork + name, opening the show), then names to
+ *   search for; the typed part of each name is in the accent colour (`splitMatch`).
+ * - The result page: a Subscribe pill on each show (the show page's own toggle); "More ›"
+ *   on All's sections; All caps episodes at 5; a People tab (`/v1/search/people`).
+ * - "Recent" searches are wrapping chips, cleared by a trash button.
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -29,7 +34,7 @@ import { Box } from '../src/ui/lib/box';
 import { Loader } from '../src/ui/Loader';
 import { mergeSearch } from '@socialmorning/social-core';
 import { useSocial } from '../src/social/context';
-import { useStores } from '../src/ui/providers';
+import { useStores, useSubscriptionSync } from '../src/ui/providers';
 import { ApiError, type EpisodeCard, type SearchResult, type ShowCard } from '../src/social/api';
 import { looksLikeFeedUrl, searchLibrary } from '../src/discover/local-search';
 import { useDiscover } from '../src/discover/useDiscover';
@@ -42,6 +47,7 @@ import { Icon } from '../src/ui/Icon';
 import { GENRES } from '../src/discover/genres';
 import { addHistory, clearHistory, readHistory, recentSearches } from '../src/search/history';
 import { suggestions } from '../src/search/suggest';
+import { splitMatch } from '../src/search/match';
 import { useSafety } from '../src/safety/context';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
@@ -50,10 +56,26 @@ const ROW = { minHeight: size.row };
 const MOVE_MS = 260;
 /** On "All", this many shows sit above the episodes; the Shows tab has the rest. */
 const ALL_SHOWS = 3;
+/** Owner, 2026-10-01: on "All", at most this many episodes; the Episodes tab has the rest. */
+const ALL_EPISODES = 5;
+/** Owner, 2026-10-01: while typing, at most this many shows above the names to search for. */
+const TYPED_SHOWS = 4;
 
 type CatalogueState = { kind: 'idle' } | { kind: 'loading' } | { kind: 'ok'; result: SearchResult } | { kind: 'error'; message: string };
-type Tab = 'all' | 'shows' | 'episodes';
-const TABS: { key: Tab; label: string }[] = [{ key: 'all', label: 'All' }, { key: 'shows', label: 'Shows' }, { key: 'episodes', label: 'Episodes' }];
+type PeopleState = { kind: 'idle' } | { kind: 'loading' } | { kind: 'ok'; people: { id: string; displayName: string }[] } | { kind: 'error'; message: string };
+type Tab = 'all' | 'shows' | 'episodes' | 'people';
+const TABS: { key: Tab; label: string }[] = [{ key: 'all', label: 'All' }, { key: 'shows', label: 'Shows' }, { key: 'episodes', label: 'Episodes' }, { key: 'people', label: 'People' }];
+
+/** Owner, 2026-10-01: a name with the typed part in the accent colour. */
+function Marked(props: { text: string; term: string; bold?: boolean; lines?: number }): React.ReactElement {
+  return (
+    <Text className={props.bold ? 'text-text text-[15px] font-semibold flex-1' : 'text-text text-sm flex-1'} numberOfLines={props.lines ?? 1}>
+      {splitMatch(props.text, props.term).map((s, i) => (
+        <Text key={i} className={s.match ? 'text-accent' : 'text-text'}>{s.text}</Text>
+      ))}
+    </Text>
+  );
+}
 
 export default function SearchScreen(): React.ReactElement {
   const router = useRouter();
@@ -61,7 +83,10 @@ export default function SearchScreen(): React.ReactElement {
   const c = useColours(stores.settings);
   const { api } = useSocial();
   const { open, view } = useDiscover();
-  const { hiddenFeeds } = useSafety();
+  const { hiddenFeeds, listeners: safeListeners } = useSafety();
+  const subscriptionSync = useSubscriptionSync();
+  // Bumped by a Subscribe tap so the pills re-read `stores.subscriptions`.
+  const [, setSubVersion] = useState(0);
   // `hint`: the trending name the Discover box was showing; searching an empty box uses it.
   // `fromY`: where Discover's box was on the screen.
   const params = useLocalSearchParams<{ q?: string; hint?: string; fromY?: string }>();
@@ -130,6 +155,27 @@ export default function SearchScreen(): React.ReactElement {
     return () => clearTimeout(timer);
   }, [trimmed, api]);
 
+  // Owner, 2026-10-01: People — asked for only when the People tab is open on a result page.
+  const [people, setPeople] = useState<PeopleState>({ kind: 'idle' });
+  const peopleId = useRef(0);
+  const peopleFor = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (submitted === undefined || tab !== 'people') return;
+    if (peopleFor.current === submitted) return; // already asked for this term
+    const mine = ++peopleId.current;
+    setPeople({ kind: 'loading' });
+    api.searchPeople(submitted)
+      .then((list) => { if (mine === peopleId.current) { peopleFor.current = submitted; setPeople({ kind: 'ok', people: list }); } })
+      .catch((e: unknown) => {
+        if (mine !== peopleId.current) return;
+        const message = e instanceof ApiError
+          ? (e.code === 'network' ? 'Finding people needs a connection.' : e.code === 'locked' ? 'Too many searches — try again in a moment.' : e.message)
+          : 'Search failed.';
+        setPeople({ kind: 'error', message });
+      });
+  }, [submitted, tab, api]);
+  const shownPeople = useMemo(() => (people.kind === 'ok' ? safeListeners(people.people) : []), [people, safeListeners]);
+
   const merged = useMemo(() => {
     const cat = catalogue.kind === 'ok' ? catalogue.result : { shows: [] as ShowCard[], episodes: [] as EpisodeCard[] };
     return mergeSearch(library, cat);
@@ -142,6 +188,8 @@ export default function SearchScreen(): React.ReactElement {
   const typed = useMemo(() => {
     const seen = new Set<string>();
     const out: string[] = [];
+    // Owner, 2026-10-01: the shows above are not repeated as names.
+    for (const s of merged.shows.slice(0, TYPED_SHOWS)) seen.add(s.title.trim().toLowerCase());
     for (const name of [...merged.shows.map((s) => s.title), ...merged.episodes.map((e) => e.title)]) {
       const key = name.trim().toLowerCase();
       if (key === '' || seen.has(key) || key === trimmed.toLowerCase()) continue;
@@ -153,18 +201,47 @@ export default function SearchScreen(): React.ReactElement {
   }, [merged, trimmed]);
 
   const openShow = (feedUrl: string) => { remember(trimmed); router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(feedUrl) } }); };
+  // Owner, 2026-10-01: the same toggle as the show page — a local write first, then the push.
+  const toggleSubscription = (feedUrl: string) => {
+    if (stores.subscriptions.has(feedUrl)) stores.subscriptions.remove(feedUrl);
+    else stores.subscriptions.add(feedUrl, Date.now());
+    subscriptionSync.push();
+    setSubVersion((v) => v + 1);
+  };
   const allCategories = () => router.push({ pathname: '/category/[id]', params: { id: String(GENRES[0]!.id) } });
 
-  const showRows = (list: typeof merged.shows) => list.map((s) => (
-    <Pressable key={s.feedUrl} className="flex-row gap-3 py-2" accessibilityRole="button" onPress={() => openShow(s.feedUrl)}>
-      {/* Phone walk 2026-09-30: shows with no (or a broken) image were blank grey squares. */}
-      <Artwork url={s.imageUrl} size={56} rounded="row" name={s.title} />
-      <Box className="flex-1">
-        <Text className="text-[15px] font-semibold text-text" numberOfLines={2}>{s.title}</Text>
-        <Text className="text-[13px] text-muted" numberOfLines={1}>{s.author}{libShowKeys.has(s.feedUrl) ? ' · in your library' : ''}</Text>
+  const showRows = (list: typeof merged.shows) => list.map((s) => {
+    const on = stores.subscriptions.has(s.feedUrl);
+    return (
+      <Box key={s.feedUrl} className="flex-row items-center gap-row">
+        <Pressable className="flex-1 flex-row gap-3 py-2" accessibilityRole="button" accessibilityLabel={`${s.title}, ${s.author}`} onPress={() => openShow(s.feedUrl)}>
+          {/* Phone walk 2026-09-30: shows with no (or a broken) image were blank grey squares. */}
+          <Artwork url={s.imageUrl} size={56} rounded="row" name={s.title} />
+          <Box className="flex-1">
+            <Box className="flex-row"><Marked text={s.title} term={submitted ?? trimmed} bold lines={2} /></Box>
+            <Text className="text-[13px] text-muted" numberOfLines={1}>{s.author}{libShowKeys.has(s.feedUrl) ? ' · in your library' : ''}</Text>
+          </Box>
+        </Pressable>
+        {/* Owner, 2026-10-01: subscribe from the result, as on the show page. */}
+        <Pressable onPress={() => toggleSubscription(s.feedUrl)} accessibilityRole="button" accessibilityLabel={on ? `Unsubscribe from ${s.title}` : `Subscribe to ${s.title}`} accessibilityState={{ selected: on }}
+          className={`justify-center px-row rounded-pill ${on ? 'bg-surface' : 'bg-primary'}`} style={TAP}>
+          <Text className={on ? 'text-xs font-bold text-muted' : 'text-xs font-bold text-onPrimary'}>{on ? 'Subscribed' : 'Subscribe'}</Text>
+        </Pressable>
       </Box>
+    );
+  });
+  // Owner, 2026-10-01: "More ›" on an All section when its tab has more than All shows.
+  const more = (label: string, to: Tab) => (
+    <Pressable onPress={() => setTab(to)} accessibilityRole="button" accessibilityLabel={`More ${label.toLowerCase()}`} className="justify-center pl-row" style={TAP}>
+      <Text className="text-muted text-xs">More ›</Text>
     </Pressable>
-  ));
+  );
+  const sectionHead = (label: string, to: Tab, extra: boolean) => (
+    <Box className="flex-row items-center justify-between mt-3 mb-1">
+      <Text className="text-sm font-semibold text-text" accessibilityRole="header">{label}</Text>
+      {extra ? more(label, to) : null}
+    </Box>
+  );
   const episodeRows = (list: typeof merged.episodes) => list.map((e) => (
     <EpisodeRow key={`${e.feedUrl}\u0001${e.guid}`} card={e} line={libEpisodeKeys.has(e.id) ? 'In your library' : undefined} onPress={() => { remember(trimmed); if (libEpisodeKeys.has(e.id)) router.push({ pathname: '/episode/[id]', params: { id: e.id } }); else void open(e); }} />
   ));
@@ -236,16 +313,19 @@ export default function SearchScreen(): React.ReactElement {
               <>
                 <Box className="flex-row items-center justify-between mt-section">
                   <Text className="text-muted text-xs" accessibilityRole="header">Recent</Text>
-                  <Pressable onPress={() => { clearHistory(stores.settings); setHistory([]); }} accessibilityRole="button" accessibilityLabel="Clear recent searches" className="items-center justify-center pl-row" style={TAP}>
-                    <Text className="text-accent text-sm">Clear</Text>
+                  {/* Owner, 2026-10-01: a trash button, not the word "Clear". */}
+                  <Pressable onPress={() => { clearHistory(stores.settings); setHistory([]); }} accessibilityRole="button" accessibilityLabel="Clear recent searches" className="items-center justify-center" style={TAP}>
+                    <Icon name="trash-outline" size={18} color={c.muted} />
                   </Pressable>
                 </Box>
-                {recentSearches(history).map((h) => (
-                  <Pressable key={h} onPress={() => run(h)} accessibilityRole="button" accessibilityLabel={`Search for ${h}`} className="flex-row items-center gap-row border-b-hairline border-separator" style={ROW}>
-                    <Icon name="time-outline" size={18} color={c.muted} />
-                    <Text className="text-text text-sm flex-1" numberOfLines={1}>{h}</Text>
-                  </Pressable>
-                ))}
+                {/* Owner, 2026-10-01: wrapping chips, not full-width rows. */}
+                <Box className="flex-row flex-wrap gap-row">
+                  {recentSearches(history).map((h) => (
+                    <Pressable key={h} onPress={() => run(h)} accessibilityRole="button" accessibilityLabel={`Search for ${h}`} className="bg-surface rounded-row px-row justify-center max-w-full" style={TAP}>
+                      <Text className="text-text text-sm" numberOfLines={1}>{h}</Text>
+                    </Pressable>
+                  ))}
+                </Box>
               </>
             ) : null}
           </Box>
@@ -257,10 +337,21 @@ export default function SearchScreen(): React.ReactElement {
         {/* Typing: the term itself, then names from what matched so far. */}
         {!results && trimmed !== '' && !looksLikeFeedUrl(trimmed) ? (
           <Box>
-            {[trimmed, ...typed].map((name, i) => (
+            <Pressable onPress={() => run(trimmed)} accessibilityRole="button" accessibilityLabel={`Search for ${trimmed}`} className="flex-row items-center gap-row border-b-hairline border-separator" style={ROW}>
+              <Icon name="search-outline" size={18} color={c.muted} />
+              <Text className="text-accent text-sm flex-1" numberOfLines={1}>{`Search “${trimmed}”`}</Text>
+            </Pressable>
+            {/* Owner, 2026-10-01: the matching shows first — artwork and name, opening the show. */}
+            {merged.shows.slice(0, TYPED_SHOWS).map((s) => (
+              <Pressable key={s.feedUrl} onPress={() => openShow(s.feedUrl)} accessibilityRole="button" accessibilityLabel={`Open ${s.title}`} className="flex-row items-center gap-row border-b-hairline border-separator" style={ROW}>
+                <Artwork url={s.imageUrl} size={32} rounded="row" name={s.title} />
+                <Marked text={s.title} term={trimmed} />
+              </Pressable>
+            ))}
+            {typed.map((name, i) => (
               <Pressable key={`${i}\u0001${name}`} onPress={() => run(name)} accessibilityRole="button" accessibilityLabel={`Search for ${name}`} className="flex-row items-center gap-row border-b-hairline border-separator" style={ROW}>
                 <Icon name="search-outline" size={18} color={c.muted} />
-                <Text className={i === 0 ? 'text-accent text-sm flex-1' : 'text-text text-sm flex-1'} numberOfLines={1}>{i === 0 ? `Search “${name}”` : name}</Text>
+                <Marked text={name} term={trimmed} />
               </Pressable>
             ))}
           </Box>
@@ -268,30 +359,40 @@ export default function SearchScreen(): React.ReactElement {
 
         {results ? (
           <Box>
-            {catalogue.kind === 'loading' ? <Loader className="my-section" /> : null}
-            {catalogue.kind === 'error' ? <Text className="my-2 text-accent bg-surface p-2 rounded-md">{catalogue.message}</Text> : null}
-            {catalogue.kind === 'ok' && catalogue.result.episodeSearch === 'unavailable' ? <Text className="my-2 text-accent bg-surface p-2 rounded-md">Episode search is unavailable right now — shows only.</Text> : null}
-            {nothing ? <EmptyState surface="search" page /> : null}
+            {tab !== 'people' ? (
+              <>
+                {catalogue.kind === 'loading' ? <Loader className="my-section" /> : null}
+                {catalogue.kind === 'error' ? <Text className="my-2 text-accent bg-surface p-2 rounded-md">{catalogue.message}</Text> : null}
+                {catalogue.kind === 'ok' && catalogue.result.episodeSearch === 'unavailable' ? <Text className="my-2 text-accent bg-surface p-2 rounded-md">Episode search is unavailable right now — shows only.</Text> : null}
+                {nothing ? <EmptyState surface="search" page /> : null}
+              </>
+            ) : null}
 
             {tab === 'all' ? (
               <>
-                {merged.shows.length > 0 ? (
-                  <Box className="flex-row items-center justify-between mt-3 mb-1">
-                    <Text className="text-sm font-semibold text-text">Shows</Text>
-                    {merged.shows.length > ALL_SHOWS ? (
-                      <Pressable onPress={() => setTab('shows')} accessibilityRole="button" accessibilityLabel="All shows" className="justify-center pl-row" style={TAP}>
-                        <Text className="text-muted text-xs">All {merged.shows.length} →</Text>
-                      </Pressable>
-                    ) : null}
-                  </Box>
-                ) : null}
+                {merged.shows.length > 0 ? sectionHead('Shows', 'shows', merged.shows.length > ALL_SHOWS) : null}
                 {showRows(merged.shows.slice(0, ALL_SHOWS))}
-                {merged.episodes.length > 0 ? <Text className="text-sm font-semibold mt-3 mb-1 text-text">Episodes</Text> : null}
-                {episodeRows(merged.episodes)}
+                {merged.episodes.length > 0 ? sectionHead('Episodes', 'episodes', merged.episodes.length > ALL_EPISODES) : null}
+                {episodeRows(merged.episodes.slice(0, ALL_EPISODES))}
               </>
             ) : null}
             {tab === 'shows' ? (catalogue.kind !== 'loading' && merged.shows.length === 0 && !nothing ? <Text className="text-muted text-sm mt-section">No shows match.</Text> : showRows(merged.shows)) : null}
             {tab === 'episodes' ? (catalogue.kind !== 'loading' && merged.episodes.length === 0 && !nothing ? <Text className="text-muted text-sm mt-section">No episodes match.</Text> : episodeRows(merged.episodes)) : null}
+            {/* Owner, 2026-10-01: People — listeners by name, opening their profile. */}
+            {tab === 'people' ? (
+              <Box>
+                {people.kind === 'loading' ? <Loader className="my-section" /> : null}
+                {people.kind === 'error' ? <Text className="my-2 text-accent bg-surface p-2 rounded-md">{people.message}</Text> : null}
+                {people.kind === 'ok' && shownPeople.length === 0 ? <Text className="text-muted text-sm mt-section">No one by that name.</Text> : null}
+                {shownPeople.map((p) => (
+                  <Pressable key={p.id} onPress={() => { remember(trimmed); router.push({ pathname: '/profile/[id]', params: { id: p.id } }); }} accessibilityRole="link" accessibilityLabel={p.displayName ?? 'Listener'}
+                    className="flex-row items-center gap-row py-2 border-b-hairline border-separator" style={ROW}>
+                    <Artwork url={null} size={40} rounded="pill" name={p.displayName ?? undefined} />
+                    <Marked text={p.displayName ?? ''} term={submitted ?? trimmed} />
+                  </Pressable>
+                ))}
+              </Box>
+            ) : null}
           </Box>
         ) : null}
       </ScrollView>

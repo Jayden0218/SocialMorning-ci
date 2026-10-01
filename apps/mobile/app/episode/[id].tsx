@@ -5,6 +5,11 @@
  * the bar; small artwork, then the title large with a round play button beside it; the
  * show's name as a link; "69 min · 13 h ago" with the comment count; then the shownotes,
  * where every timestamp ("00:39") is a link that plays from there.
+ *
+ * Owner, 2026-10-01 (after the 小宇宙 episode page): the title is text-lg, at most 4 lines; once
+ * the page scrolls past it the bar shows the show's 24 pt art, its name, share and a round play
+ * button (above that point: back, share and ⋯; Subscribe sits beside the show's name); the
+ * page ends with "Related episodes" (next-up, at most 5).
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
@@ -36,7 +41,8 @@ import { ShareChooser } from '../../src/ui/ShareChooser';
 import { ShowExtrasBlock, useShowExtras } from '../../src/ui/ShowExtras';
 import { ComposerSheet } from '../../src/ui/Composer';
 import { ClipList } from '../../src/ui/ClipList';
-import { NextUp, useNextUp } from '../../src/ui/NextUp';
+import { useNextUp } from '../../src/ui/NextUp';
+import { RelatedEpisodes } from '../../src/ui/episode/RelatedEpisodes';
 import { useDiscover } from '../../src/discover/useDiscover';
 
 export default function EpisodeScreen(): React.ReactElement {
@@ -66,6 +72,10 @@ export default function EpisodeScreen(): React.ReactElement {
   const [fav, setFav] = useState(() => episode !== undefined && isFavourite(stores.settings, episode.id));
   // M11 (FR-023): a poll the host attached to this episode.
   const [extras, replacePoll] = useShowExtras(episode?.feedUrl ?? '');
+  // Owner, 2026-10-01: the bar collapses once the title has scrolled away. Where the title
+  // block ends is measured by its onLayout; until then the bar never collapses.
+  const [titleBottom, setTitleBottom] = useState<number | undefined>();
+  const [collapsed, setCollapsed] = useState(false);
 
   if (episode === undefined) {
     return (
@@ -108,6 +118,11 @@ export default function EpisodeScreen(): React.ReactElement {
 
   const loaded = playerState.kind !== 'idle' && playerState.episodeId === episode.id;
   const playing = loaded && (playerState.kind === 'playing' || playerState.kind === 'buffering');
+  const playOrPause = () => {
+    if (playing) { player.pause(); return; }
+    if (loaded) player.play(); else player.load(playable, 'play');
+    router.push('/player');
+  };
   const toggleSubscription = () => {
     if (stores.subscriptions.has(episode.feedUrl)) { stores.subscriptions.remove(episode.feedUrl); setSubscribed(false); }
     else { stores.subscriptions.add(episode.feedUrl, Date.now()); setSubscribed(true); }
@@ -130,46 +145,72 @@ export default function EpisodeScreen(): React.ReactElement {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <TopBar onBack={() => router.back()}>
-        <Pressable onPress={toggleSubscription} accessibilityRole="button" accessibilityLabel={subscribed ? 'Unsubscribe from this show' : 'Subscribe to this show'} accessibilityState={{ selected: subscribed }} className="justify-center" style={TAP}>
-          <Text className={subscribed ? 'text-sm font-semibold px-row py-2 rounded-row bg-surface text-muted' : 'text-sm font-semibold px-row py-2 rounded-row bg-surface text-text'}>{subscribed ? 'Subscribed' : '+ Subscribe'}</Text>
-        </Pressable>
+      <TopBar
+        onBack={() => router.back()}
+        {...(collapsed ? {
+          middle: (
+            <>
+              <Artwork url={show?.imageUrl ?? episode.imageUrl} size={24} rounded="row" name={show?.title} />
+              <Text className="text-sm font-semibold text-text flex-1" numberOfLines={1}>{show?.title ?? ''}</Text>
+            </>
+          ),
+        } : {})}
+      >
         <BarButton label="Share this episode" onPress={() => setSharing(true)}>
           <Icon name="share-outline" size={24} color={c.text} />
         </BarButton>
-        <BarButton label="More: play next, download, save a moment" onPress={() => setMore(true)}>
-          <Icon name="ellipsis-horizontal" size={24} color={c.text} />
-        </BarButton>
+        {collapsed ? (
+          <Pressable onPress={playOrPause} accessibilityRole="button" accessibilityLabel={playing ? 'Pause' : 'Play this episode'} className="items-center justify-center" style={TAP}>
+            <Box className="w-9 h-9 rounded-pill bg-surface items-center justify-center">
+              <Icon name={playing ? 'pause' : 'play'} size={18} color={c.text} />
+            </Box>
+          </Pressable>
+        ) : (
+          <BarButton label="More: play next, download, save a moment" onPress={() => setMore(true)}>
+            <Icon name="ellipsis-horizontal" size={24} color={c.text} />
+          </BarButton>
+        )}
       </TopBar>
-      <ScrollView ref={scroll} contentContainerClassName="px-screen-x pb-section">
+      <ScrollView
+        ref={scroll}
+        contentContainerClassName="px-screen-x pb-section"
+        scrollEventThrottle={32}
+        onScroll={(e) => {
+          if (titleBottom === undefined) return;
+          const past = e.nativeEvent.contentOffset.y > titleBottom;
+          if (past !== collapsed) setCollapsed(past);
+        }}
+      >
         <Artwork url={episode.imageUrl ?? show?.imageUrl} size={48} rounded="row" className="mt-2" name={show?.title} />
-        <Box className="flex-row items-center gap-section mt-section">
-          <Text className="flex-1 text-[26px] leading-[34px] font-bold text-text" accessibilityRole="header">{episode.title}</Text>
+        <Box className="flex-row items-center gap-section mt-section" onLayout={(e) => setTitleBottom(e.nativeEvent.layout.y + e.nativeEvent.layout.height)}>
+          <Text className="flex-1 text-lg font-bold text-text" numberOfLines={4} accessibilityRole="header">{episode.title}</Text>
           <Pressable
             className="w-14 h-14 rounded-pill bg-surface items-center justify-center"
             accessibilityRole="button"
             accessibilityLabel={playing ? 'Pause' : 'Play this episode'}
-            onPress={() => {
-              if (playing) { player.pause(); return; }
-              if (loaded) player.play(); else player.load(playable, 'play');
-              router.push('/player');
-            }}
+            onPress={playOrPause}
           >
             <Icon name={playing ? 'pause' : 'play'} size={26} color={c.text} />
           </Pressable>
         </Box>
-        {show === undefined ? null : (
-          <Pressable
-            onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(episode.feedUrl) } })}
-            accessibilityRole="link"
-            accessibilityLabel={`Show: ${show.title}`}
-            className="self-start flex-row items-center gap-1"
-            style={TAP}
-          >
-            <Text className="text-sm text-text">{show.title}</Text>
-            <Icon name="chevron-forward" size={16} color={c.text} />
+        <Box className="flex-row items-center gap-row">
+          {show === undefined ? null : (
+            <Pressable
+              onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(episode.feedUrl) } })}
+              accessibilityRole="link"
+              accessibilityLabel={`Show: ${show.title}`}
+              className="flex-shrink flex-row items-center gap-1"
+              style={TAP}
+            >
+              <Text className="text-sm text-text flex-shrink" numberOfLines={1}>{show.title}</Text>
+              <Icon name="chevron-forward" size={16} color={c.text} />
+            </Pressable>
+          )}
+          {/* Owner, 2026-10-01: Subscribe moved here from the bar, which now holds only share and ⋯. */}
+          <Pressable onPress={toggleSubscription} accessibilityRole="button" accessibilityLabel={subscribed ? 'Unsubscribe from this show' : 'Subscribe to this show'} accessibilityState={{ selected: subscribed }} className="justify-center" style={TAP}>
+            <Text className={subscribed ? 'text-xs font-semibold px-row py-1 rounded-pill bg-surface text-muted' : 'text-xs font-semibold px-row py-1 rounded-pill bg-surface text-text'}>{subscribed ? 'Subscribed' : '+ Subscribe'}</Text>
           </Pressable>
-        )}
+        </Box>
         <Box className="flex-row items-center">
           <Box className="flex-1">
             <Text className="text-sm text-muted" numberOfLines={1}>{meta}</Text>
@@ -206,7 +247,7 @@ export default function EpisodeScreen(): React.ReactElement {
               ) : part.atMs === undefined ? part.text : (
                 <Text
                   key={i}
-                  className="text-text font-semibold underline"
+                  className="text-accent font-semibold underline"
                   accessibilityRole="link"
                   accessibilityLabel={`Play from ${part.text}`}
                   onPress={() => playFrom(part.atMs!)}
@@ -229,7 +270,7 @@ export default function EpisodeScreen(): React.ReactElement {
           />
         </Box>
         <ClipList episode={playable} />
-        <NextUp items={nextUp.items} onOpen={(c) => void discoverOpen(c)} />
+        <RelatedEpisodes items={nextUp.items} onOpen={(card) => void discoverOpen(card)} />
       </ScrollView>
 
       <ShareChooser

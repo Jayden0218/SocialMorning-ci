@@ -3,7 +3,11 @@
  * no picture), the name, how long ago, the moment as a chip that plays from there, the text
  * folded after 8 lines, and the like count on the right. Reply, Copy, Save and Report/Delete
  * live behind a long-press (the "Reply ☆ Report" row under every comment is gone). Up to two
- * replies are previewed in a tinted box; the rest open with "View all N replies".
+ * replies are previewed in a tinted box; the rest open with "Show N more".
+ *
+ * Owner, 2026-10-01 (the 小宇宙 comments page): the name on its own line, then "time · place"
+ * (place = the commenter's IP location when the server sends one), the like count on the
+ * right; replies in a grey box under the parent, the first 2 shown and "Show N more" for the rest.
  */
 import { useState } from 'react';
 import { Link } from '../design/tailwind';
@@ -16,6 +20,7 @@ import { mmss, relativeTime } from './format';
 import { Placeholder, placeholderFor } from './Placeholder';
 import { hit } from '../design';
 import type { Comment } from '../social/api';
+import { countryName } from './country';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
 const AVATAR = { width: 32, height: 32 };
@@ -29,6 +34,31 @@ export function initialsFor(c: Pick<Comment, 'initials' | 'displayName'>): strin
 }
 
 export type LikeView = { count: number; liked: boolean };
+
+/** How many replies show before "Show N more". */
+export const REPLY_PREVIEW = 2;
+
+/**
+ * The commenter's IP location, as a country name. The `Comment` type has no such field yet —
+ * profiles carry `country` (M10b US7) but comments do not — so this reads it only if the
+ * server starts sending `country` on a comment, and is empty until then.
+ */
+export function placeOf(c: Comment): string | undefined {
+  const code = (c as Comment & { country?: string | null }).country;
+  return typeof code === 'string' && /^[A-Za-z]{2}$/.test(code) ? countryName(code.toUpperCase()) : undefined;
+}
+
+/** "3 min ago · Malaysia", or just the time. */
+export function timeAndPlace(createdAt: string, serverTime: string, place: string | undefined): string {
+  const when = relativeTime(createdAt, serverTime);
+  return place ? `${when} · ${place}` : when;
+}
+
+/** The fold under a parent's replies: "Show 3 more", or "Show fewer replies" once open. Undefined when nothing is folded. */
+export function moreRepliesLabel(total: number, expanded: boolean): string | undefined {
+  if (total <= REPLY_PREVIEW) return undefined;
+  return expanded ? 'Show fewer replies' : `Show ${total - REPLY_PREVIEW} more`;
+}
 
 export function CommentRow(props: {
   c: Comment;
@@ -49,7 +79,8 @@ export function CommentRow(props: {
   if (kind !== undefined) return <Box className="py-row"><Placeholder kind={kind} /></Box>;
 
   const replies = c.replies ?? [];
-  const shownReplies = expanded ? replies : replies.slice(0, 2);
+  const shownReplies = expanded ? replies : replies.slice(0, REPLY_PREVIEW);
+  const more = moreRepliesLabel(replies.length, expanded);
   const avatar = props.isReply ? REPLY_AVATAR : AVATAR;
   const name = c.displayName ?? 'Deleted account';
 
@@ -68,14 +99,16 @@ export function CommentRow(props: {
           <Text className="text-muted text-xs font-bold">{initialsFor(c)}</Text>
         </Box>
         <Box className="flex-1 gap-1">
-          <Box className="flex-row items-center gap-2 flex-wrap">
-            {c.authorId !== null ? (
-              <Link href={{ pathname: '/profile/[id]', params: { id: c.authorId } }} asChild>
-                <Pressable accessibilityRole="link"><Text className="text-muted text-xs font-semibold">{name}</Text></Pressable>
-              </Link>
-            ) : <Text className="text-muted text-xs font-semibold">{name}</Text>}
-            {c.host ? <Text className="bg-accentTint text-accent rounded-pill px-2 text-xs font-bold" accessibilityLabel="Host of this show">Host</Text> : null}
-            <Text className="text-muted text-xs">{relativeTime(c.createdAt, props.serverTime)}</Text>
+          <Box>
+            <Box className="flex-row items-center gap-2 flex-wrap">
+              {c.authorId !== null ? (
+                <Link href={{ pathname: '/profile/[id]', params: { id: c.authorId } }} asChild>
+                  <Pressable accessibilityRole="link"><Text className="text-text text-xs font-semibold">{name}</Text></Pressable>
+                </Link>
+              ) : <Text className="text-text text-xs font-semibold">{name}</Text>}
+              {c.host ? <Text className="bg-accentTint text-accent rounded-pill px-2 text-xs font-bold" accessibilityLabel="Host of this show">Host</Text> : null}
+            </Box>
+            <Text className="text-muted text-xs">{timeAndPlace(c.createdAt, props.serverTime, placeOf(c))}</Text>
           </Box>
           <Text className="text-text text-sm leading-[24px]" numberOfLines={open ? undefined : 8}>
             {c.offsetMs !== null ? (
@@ -107,13 +140,13 @@ export function CommentRow(props: {
         )}
       </Pressable>
       {!props.isReply && replies.length > 0 ? (
-        <Box className="ml-10 mt-2 bg-surface rounded-row px-row py-1">
+        <Box className="ml-10 mt-2 bg-surface rounded-row p-row">
           {shownReplies.map((r) => (
             <CommentRow key={r.id} {...props} c={r} isReply />
           ))}
-          {replies.length > 2 ? (
-            <Pressable onPress={() => setExpanded((e) => !e)} accessibilityRole="button" className="justify-center" style={TAP}>
-              <Text className="text-accent text-xs font-semibold">{expanded ? 'Show fewer replies' : `View all ${plural(replies.length, 'reply', 'replies')}`}</Text>
+          {more ? (
+            <Pressable onPress={() => setExpanded((e) => !e)} accessibilityRole="button" accessibilityLabel={expanded ? more : `${more}: ${plural(replies.length, 'reply', 'replies')} in all`} className="justify-center" style={TAP}>
+              <Text className="text-accent text-xs font-semibold">{more}</Text>
             </Pressable>
           ) : null}
         </Box>

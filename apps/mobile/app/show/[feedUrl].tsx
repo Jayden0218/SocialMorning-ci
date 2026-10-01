@@ -10,14 +10,15 @@
  * more; the title large with the artwork to its right; a wide black Subscribe button;
  * two tabs — Episodes and About; each episode a row with its artwork, two lines of
  * shownotes, "69 min · 13 h ago", and a round play button that plays without leaving.
- * The reference's subscriber count and "most popular" filter are left out: this app
- * has neither number, and it does not invent one.
+ * The reference's subscriber count is left out: no public API gives one, and the app does
+ * not invent one. "Most played" (owner, 2026-10-01) sorts by FR-061's listener counts and
+ * hides itself when there are none.
  *
  * M12 (US6): past the header a slim bar keeps back, 24 pt art, the title and Subscribe on
  * top (FR-060); rows add plays and comments from one server call and a ⋮ sheet (FR-061);
  * About no longer repeats the header's description — the header hides it there — and adds
  * a host row and up to 6 similar shows from the show's genre chart (FR-063). The host's
- * announcement card is M11's (`ShowExtrasBlock`); RSS has no announcement tag (the podcast
+ * newest announcement is one card under the header (show/AnnouncementCard, owner 2026-10-01); RSS has no announcement tag (the podcast
  * namespace's 28 tags, read 2026-09-29), so a feed alone never shows one (FR-062).
  */
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
@@ -30,7 +31,7 @@ import { SafeAreaView } from '../../src/ui/lib/safe-area-view';
 import { Text } from '../../src/ui/lib/text';
 import { Box } from '../../src/ui/lib/box';
 import { refreshShow } from '../../src/feeds/fetch';
-import { ago, htmlToText, minutesLabel, mmss, noteSummary } from '../../src/ui/format';
+import { htmlToText, mmss, noteSummary } from '../../src/ui/format';
 import { usePlayer, usePlayerState } from '../../src/playback/store';
 import { toPlayable } from '../../src/storage/playable';
 import { Artwork } from '../../src/ui/Artwork';
@@ -43,7 +44,7 @@ import type { CachedEpisode, CachedShow } from '../../src/storage/types';
 import { getPref } from '../../src/settings/prefs';
 import { ShowExtrasBlock, useShowExtras } from '../../src/ui/ShowExtras';
 import { useSocial } from '../../src/social/context';
-import { noun, plural } from '@socialmorning/social-core';
+import { plural } from '@socialmorning/social-core';
 import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '../../src/ui/lib/actionsheet';
 import { QueueButtons } from '../../src/ui/QueueButtons';
 import { DownloadButton } from '../../src/ui/DownloadButton';
@@ -53,6 +54,9 @@ import { useColours } from '../../src/ui/useColours';
 import { useM12Api } from '../../src/social/m12-api';
 import { genreOf, similarShows } from '../../src/discover/genres';
 import type { ShowCard } from '../../src/social/api';
+import { hasPlays, orderEpisodes, type ListView } from '../../src/ui/show/order';
+import { EpisodeMeta, metaLabel } from '../../src/ui/show/EpisodeMeta';
+import { AnnouncementCard } from '../../src/ui/show/AnnouncementCard';
 
 /** How far the page scrolls before the slim bar takes over (about the title block's height). */
 export const COLLAPSE_AT = 150;
@@ -151,10 +155,21 @@ export default function ShowScreen(): React.ReactElement {
   const playerState = usePlayerState();
   const [tab, setTab] = useState<'episodes' | 'about'>('episodes');
   const [oldestFirst, setOldestFirst] = useState(false);
+  // Owner, 2026-10-01: the "All" / "Most played" chips and an "Unplayed" filter above the list.
+  const [view, setView] = useState<ListView>('all');
+  const [unplayedOnly, setUnplayedOnly] = useState(false);
   const now = Date.now();
   // M10 minor mode (Settings → Minor mode): explicit episodes are not listed.
   const allowed = getPref(stores.settings, 'hideExplicit') ? episodes.filter((e) => !e.explicit) : episodes;
-  const shown = oldestFirst ? [...allowed].reverse() : allowed;
+  const playsKnown = hasPlays(counts.listeners);
+  // "Most played" hides with no counts; the list then reads as "All" (orderEpisodes agrees).
+  const chips: ListView[] = playsKnown ? ['all', 'mostPlayed'] : ['all'];
+  const activeView: ListView = playsKnown ? view : 'all';
+  const shown = orderEpisodes(allowed, {
+    oldestFirst, view, unplayedOnly,
+    isFinished: (id) => stores.positions.get(id)?.finished === true,
+    ...(counts.listeners !== undefined ? { listeners: counts.listeners } : {}),
+  });
 
   const progressFor = (episode: CachedEpisode): string => {
     const row = stores.positions.get(episode.id);
@@ -171,6 +186,7 @@ export default function ShowScreen(): React.ReactElement {
     if (playable) player.load(playable, 'play');
   };
 
+  const latestAnnouncement = extras?.announcements[0]; // the server sends newest first
   const header = (
     <Box>
       <Box className="px-screen-x pt-row gap-section">
@@ -184,11 +200,8 @@ export default function ShowScreen(): React.ReactElement {
           </Box>
           <Artwork url={ov?.coverUrl ?? show?.imageUrl} size={120} rounded="artwork" name={title} />
         </Box>
+        {/* Owner, 2026-10-01: the episode count sits once, over the list (it follows the filter). */}
         <Box className="flex-row items-center gap-section">
-          <Text className="text-text">
-            <Text className="text-lg font-bold text-text">{episodes.length}</Text>
-            <Text className="text-xs text-muted"> {noun(episodes.length, 'episode')}</Text>
-          </Text>
           <Pressable
             className={`flex-1 items-center justify-center rounded-row ${subscribed ? 'bg-surface' : 'bg-text'}`}
             style={TAP}
@@ -204,7 +217,9 @@ export default function ShowScreen(): React.ReactElement {
         {hiddenShow ? <Text className="text-[13px] text-accent">Hidden from discovery by moderation. It stays in your library.</Text> : null}
         {stale ? <Text className="text-[13px] text-accent">Showing the last copy — refresh failed</Text> : null}
         {failed === undefined ? null : <Text className="text-[13px] text-accent">{failed}</Text>}
-        {extras ? <ShowExtrasBlock extras={extras} onPoll={replacePoll} /> : null}
+        {/* Owner, 2026-10-01: the newest announcement as one card under the header. */}
+        {latestAnnouncement ? <AnnouncementCard announcement={latestAnnouncement} iconColour={c.text} /> : null}
+        {extras ? <ShowExtrasBlock extras={extras} onPoll={replacePoll} noAnnouncements /> : null}
         <Box className="flex-row gap-6" accessibilityRole="tablist">
           {(['episodes', 'about'] as const).map((t) => (
             <Pressable key={t} onPress={() => setTab(t)} accessibilityRole="tab" accessibilityState={{ selected: tab === t }} accessibilityLabel={t === 'episodes' ? 'Episodes' : 'About'} className="justify-end" style={TAP}>
@@ -215,11 +230,27 @@ export default function ShowScreen(): React.ReactElement {
         </Box>
       </Box>
       {tab === 'episodes' && episodes.length > 0 ? (
-        <Box className="flex-row items-center justify-end px-screen-x">
-          {/* M12 B12: the count is in the header once; this row holds only the order. */}
-          <Pressable onPress={() => setOldestFirst((o) => !o)} accessibilityRole="button" accessibilityLabel={oldestFirst ? 'Oldest first. Show newest first' : 'Newest first. Show oldest first'} className="justify-center" style={TAP}>
-            <Text className="text-sm text-muted">{oldestFirst ? 'Oldest first ↑' : 'Newest first ↓'}</Text>
-          </Pressable>
+        <Box className="px-screen-x">
+          {/* Owner, 2026-10-01 (after 小宇宙): "N episodes" left; order and the Unplayed filter right. */}
+          <Box className="flex-row items-center">
+            <Text className="flex-1 text-sm font-semibold text-text">{plural(shown.length, 'episode')}</Text>
+            <Pressable onPress={() => setOldestFirst((o) => !o)} accessibilityRole="button" accessibilityLabel={oldestFirst ? 'Oldest first. Show newest first' : 'Newest first. Show oldest first'} className="flex-row items-center justify-center gap-1" style={TAP}>
+              <Icon name="swap-vertical-outline" size={18} color={c.muted} />
+              <Text className="text-xs text-muted">{oldestFirst ? 'Oldest' : 'Newest'}</Text>
+            </Pressable>
+            <Pressable onPress={() => setUnplayedOnly((u) => !u)} accessibilityRole="button" accessibilityLabel={unplayedOnly ? 'Showing unplayed only. Show all' : 'Show unplayed only'} accessibilityState={{ selected: unplayedOnly }} className="items-center justify-center" style={TAP}>
+              {/* Filled vs outline, and the name — never hue alone (FR-016). */}
+              <Icon name={unplayedOnly ? 'funnel' : 'funnel-outline'} size={18} color={unplayedOnly ? c.accent : c.muted} />
+            </Pressable>
+          </Box>
+          <Box className="flex-row gap-2" accessibilityRole="tablist">
+            {chips.map((v) => (
+              <Pressable key={v} onPress={() => setView(v)} accessibilityRole="tab" accessibilityState={{ selected: activeView === v }} accessibilityLabel={v === 'all' ? 'All' : 'Most played'}
+                className={`justify-center px-row rounded-pill ${activeView === v ? 'bg-text' : 'bg-surface'}`} style={TAP}>
+                <Text className={activeView === v ? 'text-xs font-bold text-background' : 'text-xs text-text'}>{v === 'all' ? 'All' : 'Most played'}</Text>
+              </Pressable>
+            ))}
+          </Box>
         </Box>
       ) : null}
     </Box>
@@ -305,7 +336,9 @@ export default function ShowScreen(): React.ReactElement {
           const notes = noteSummary(item.shownotesHtml);
           const plays = counts.listeners?.[item.id] ?? 0;
           const talk = counts.counts[item.id] ?? 0;
-          const meta = [minutesLabel(item.durationMs), ago(item.publishedAt, now), plays > 0 ? `${plays} listened` : '', talk > 0 ? plural(talk, 'comment') : '', progressFor(item)].filter((p) => p !== '').join(' · ');
+          // Owner, 2026-10-01: "duration · ago  🎧 plays  💬 comments" with icons; the label keeps the words.
+          const metaIn = { durationMs: item.durationMs, publishedAt: item.publishedAt, plays, comments: talk, progress: progressFor(item), now };
+          const meta = metaLabel(metaIn);
           return (
             <Box className="flex-row gap-row px-screen-x py-row items-start">
               <Pressable
@@ -318,7 +351,7 @@ export default function ShowScreen(): React.ReactElement {
                 <Box className="flex-1 gap-1">
                   <Text className="text-sm font-semibold text-text" numberOfLines={2}>{item.title}</Text>
                   {notes === '' ? null : <Text className="text-xs text-muted" numberOfLines={2}>{notes}</Text>}
-                  <Text className="text-xs text-muted">{meta}</Text>
+                  <EpisodeMeta {...metaIn} iconColour={c.muted} />
                 </Box>
               </Pressable>
               <Pressable

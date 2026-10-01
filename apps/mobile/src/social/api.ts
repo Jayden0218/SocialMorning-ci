@@ -172,6 +172,8 @@ export type ApiClient = {
   // M5
   discover(ifNoneMatch?: string): Promise<DiscoverResult>;
   search(q: string): Promise<SearchResult>;
+  /** Owner, 2026-10-01: listeners by display name (the Search page's People tab), at most 20. */
+  searchPeople(q: string): Promise<{ id: string; displayName: string }[]>;
   /** M10b US2: the account's library (favourites, moments, searches, favourite comments), merged. */
   libraryPut(items: LibraryItem[]): Promise<{ items: LibraryItem[] }>;
   /** M10b US3: this device's push address, and the two notification switches. */
@@ -323,6 +325,7 @@ export function createApi(deps: ApiDeps): ApiClient {
       return { status: 200, ...(etag ? { etag } : {}), body: r.json };
     },
     search: async (q) => (await call<SearchResult>('GET', `/v1/search?q=${encodeURIComponent(q)}`)).json,
+    searchPeople: async (q) => (await call<{ listeners: { id: string; displayName: string }[] }>('GET', `/v1/search/people?q=${encodeURIComponent(q)}`)).json.listeners,
     pushTokenAdd: async (token, platform) => { await call('POST', '/v1/me/push-tokens', { token, platform }); },
     pushTokenRemove: async (token) => { await call('DELETE', `/v1/me/push-tokens/${encodeURIComponent(token)}`); },
     pushPrefs: async (p) => { await call('PUT', '/v1/me/push-prefs', p); },

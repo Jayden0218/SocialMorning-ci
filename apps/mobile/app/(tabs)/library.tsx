@@ -2,8 +2,8 @@
  * Updates (更新, M10, owner 2026-09-27) — the second tab, at `/library` (the path the
  * Library always answered on, so its links still land, G3). Laid out after the reference:
  * a large title with a "My subscriptions" button, then the newest episodes of every show
- * you follow in one list — show notes, length, date, and Queue · Comments · Download ·
- * Play under each.
+ * you follow in one list — show notes, then "length · ago · plays · comments", and Queue ·
+ * Comments · Download · More · Play under each (Owner, 2026-10-01: `UpdateEpisodeRow`).
  *
  * Kept from the Library: "Continue listening" first (Story 3 — losing your place in a
  * two-hour episode is what people abandon a podcast app over); a background refresh that
@@ -27,16 +27,17 @@ import { usePlayer } from '../../src/playback/store';
 import { useSafety } from '../../src/safety/context';
 import { toPlayable } from '../../src/storage/playable';
 import { hit } from '../../src/design';
-import { Artwork } from '../../src/ui/Artwork';
 import { ContinueListening } from '../../src/ui/ContinueListening';
 import { DiscoverSections } from '../../src/ui/DiscoverSections';
 import { EmptyState } from '../../src/ui/EmptyState';
-import { PlayButton } from '../../src/ui/discover/parts';
-import { mmss, shortDate } from '../../src/ui/format';
+import { UpdateEpisodeRow } from '../../src/ui/UpdateEpisodeRow';
+import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '../../src/ui/lib/actionsheet';
+import { QueueButtons } from '../../src/ui/QueueButtons';
+import { DownloadButton } from '../../src/ui/DownloadButton';
+import { EpisodeExtras } from '../../src/ui/me/EpisodeExtras';
 import { useDownloads, useStores, useSubscriptionSync, useToast } from '../../src/ui/providers';
 import { useSocial } from '../../src/social/context';
 import { useM12Api } from '../../src/social/m12-api';
-import { CommentsButton } from '../../src/ui/CommentsButton';
 import { VoicePosts } from '../../src/ui/VoicePosts';
 import { BOTTOM_INSET } from '../../src/ui/Screen';
 import { plural } from '@socialmorning/social-core';
@@ -86,16 +87,18 @@ export default function UpdatesScreen(): React.ReactElement {
     return () => { live = false; };
   }, [listenerId, subscriptionSync, read, stores]);
 
-  // M12 FR-080: each row's comment count, one call for the first 100 rows. A failure leaves
-  // the icons without numbers — the list itself never waits on it.
+  // M12 FR-080: each row's comment count — and, Owner 2026-10-01, its plays (`listeners`) —
+  // one call for the first 100 rows. A failure leaves the meta line without numbers; the
+  // list itself never waits on it.
   const m12 = useM12Api();
-  const [counts, setCounts] = useState<Record<string, number>>({});
+  const [counts, setCounts] = useState<{ counts: Record<string, number>; listeners?: Record<string, number> }>({ counts: {} });
+  const [menuFor, setMenuFor] = useState<UpdateRow | undefined>(undefined);
   const loadVoice = useCallback(() => m12.voicePosts(), [m12]);
   const ids = rows.slice(0, 100).map((r) => r.episode.id).join(',');
   useEffect(() => {
     if (ids === '') return;
     let live = true;
-    m12.commentCounts(ids.split(',')).then((next) => { if (live) setCounts(next); }, () => undefined);
+    m12.episodeCounts(ids.split(',')).then((next) => { if (live) setCounts(next); }, () => undefined);
     return () => { live = false; };
   }, [m12, ids]);
 
@@ -113,6 +116,7 @@ export default function UpdatesScreen(): React.ReactElement {
       <FlatList
         data={rows}
         keyExtractor={(r) => r.episode.id}
+        extraData={counts} // the counts arrive after the rows; without this a row keeps its old meta line
         contentContainerStyle={{ paddingBottom: BOTTOM_INSET }}
         ListHeaderComponent={
           <Box>
@@ -139,30 +143,42 @@ export default function UpdatesScreen(): React.ReactElement {
         ListEmptyComponent={subscribed === 0 ? <Box className="px-screen-x"><EmptyState surface="library" /></Box> : <Text className="text-muted text-sm px-screen-x mt-section">No episodes yet.</Text>}
         renderItem={({ item }) => {
           const e = item.episode;
-          const meta = [e.durationMs !== undefined ? mmss(e.durationMs) : undefined, shortDate(e.publishedAt)].filter(Boolean).join(' · ');
           return (
-            <Box className="flex-row gap-row px-screen-x py-section">
-              <Pressable onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(e.feedUrl) } })} accessibilityRole="button" accessibilityLabel={`Open ${item.showTitle}`}>
-                <Artwork url={item.imageUrl} size={72} rounded="row" name={item.showTitle} />
-              </Pressable>
-              <Box className="flex-1">
-                <Pressable onPress={() => router.push({ pathname: '/episode/[id]', params: { id: e.id } })} accessibilityRole="button" accessibilityLabel={`${e.title}, ${item.showTitle}`}>
-                  <Text className="text-text text-sm font-semibold" numberOfLines={2}>{e.title}</Text>
-                  {item.summary ? <Text className="text-muted text-xs mt-1" numberOfLines={2}>{item.summary}</Text> : null}
-                  <Text className="text-muted text-xs mt-1">{[item.showTitle, meta].filter(Boolean).join(' · ')}</Text>
-                </Pressable>
-                <Box className="flex-row items-center mt-1">
-                  <Pressable onPress={() => queue(e.id)} accessibilityRole="button" accessibilityLabel={`Add ${e.title} to the queue`} className="justify-center pr-section" style={TAP}><Text className="text-accent text-sm">＋ Queue</Text></Pressable>
-                  <CommentsButton title={e.title} {...(counts[e.id] !== undefined ? { count: counts[e.id] } : {})} colour={c.accent} onPress={() => router.push({ pathname: '/comments/[episodeId]', params: { episodeId: e.id } })} />
-                  <Pressable onPress={() => download(e.id)} accessibilityRole="button" accessibilityLabel={`Download ${e.title}`} className="justify-center pr-section" style={TAP}><Icon name="download-outline" size={20} color={c.accent} /></Pressable>
-                  <Box className="flex-1" />
-                  <PlayButton title={e.title} onPress={() => play(e.id)} />
-                </Box>
-              </Box>
-            </Box>
+            <UpdateEpisodeRow
+              item={item}
+              plays={counts.listeners?.[e.id]}
+              comments={counts.counts[e.id]}
+              now={Date.now()}
+              iconColour={c.muted}
+              onOpenShow={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(e.feedUrl) } })}
+              onOpenEpisode={() => router.push({ pathname: '/episode/[id]', params: { id: e.id } })}
+              onQueue={() => queue(e.id)}
+              onComments={() => router.push({ pathname: '/comments/[episodeId]', params: { episodeId: e.id } })}
+              onDownload={() => download(e.id)}
+              onMore={() => setMenuFor(item)}
+              onPlay={() => play(e.id)}
+            />
           );
         }}
       />
+      {/* "⋯" more (Owner, 2026-10-01): the same sheet as a show page's episode row. */}
+      <Actionsheet isOpen={menuFor !== undefined} onClose={() => setMenuFor(undefined)}>
+        <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
+        <ActionsheetContent className="bg-background rounded-t-2xl px-screen-x pt-row pb-10 items-stretch">
+          <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
+          {menuFor ? (
+            <>
+              <Text className="text-sm font-bold text-text py-row" numberOfLines={2}>{menuFor.episode.title}</Text>
+              <QueueButtons episodeId={menuFor.episode.id} />
+              <DownloadButton episodeId={menuFor.episode.id} />
+              <EpisodeExtras episodeId={menuFor.episode.id} atMs={stores.positions.get(menuFor.episode.id)?.offsetMs ?? 0} />
+            </>
+          ) : null}
+          <Pressable onPress={() => setMenuFor(undefined)} accessibilityRole="button" accessibilityLabel="Cancel" className="items-center justify-center mt-row" style={TAP}>
+            <Text className="text-sm text-muted">Cancel</Text>
+          </Pressable>
+        </ActionsheetContent>
+      </Actionsheet>
     </SafeAreaView>
   );
 }

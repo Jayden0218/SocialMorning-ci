@@ -48,9 +48,13 @@ function Contact({ type, value }: { type: string; value: string }): React.ReactE
   );
 }
 
-export function ShowExtrasBlock({ extras, onPoll, episodeId }: { extras: Extras; onPoll: (p: ShowPoll) => void; episodeId?: string }): React.ReactElement | null {
+/**
+ * `noAnnouncements`: the show page draws the newest one itself as a card under its header
+ * (show/AnnouncementCard — owner, 2026-10-01), so it asks this block to leave them out.
+ */
+export function ShowExtrasBlock({ extras, onPoll, episodeId, noAnnouncements }: { extras: Extras; onPoll: (p: ShowPoll) => void; episodeId?: string; noAnnouncements?: boolean }): React.ReactElement | null {
   const polls = extras.polls.filter((p) => (episodeId ? p.episodeId === episodeId : true));
-  const announcements = episodeId ? [] : extras.announcements;
+  const announcements = episodeId || noAnnouncements ? [] : extras.announcements;
   const hosts = episodeId ? null : extras.overrides?.hosts ?? null;
   const links = episodeId ? null : extras.overrides?.links ?? null;
   const contacts = episodeId ? null : extras.overrides?.contacts ?? null;

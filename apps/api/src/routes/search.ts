@@ -69,5 +69,31 @@ export function createSearchRoute() {
   return c.json({ shows, episodes, episodeSearch: episodesR.status === 'fulfilled' ? 'ok' : 'unavailable', source: { shows: 'apple' } });
 });
 
+  /**
+   * GET /v1/search/people?q= (owner, 2026-10-01): listeners by display name, at most 20 —
+   * only `{ id, displayName }`, the fields `GET /v1/listeners/:id` shows to anyone. A
+   * suspended account is not found (M6 FR-015); a deleted one has no row. Blocks hide both
+   * ways (M6 FR-008): you are not found by someone you blocked, nor they by you. Names
+   * starting with the term come first.
+   */
+  search.get('/people', optionalAuth, async (c) => {
+    const q = normaliseQuery(c.req.query('q') ?? '');
+    if (q.length < 1 || q.length > 40) throw new ApiError('validation', 'q must be 1–40 characters.', { fields: ['q'] });
+    if (!isSearchable(q)) return c.json({ listeners: [] });
+    const viewer = c.get('listener')?.id;
+    const who = viewer ?? c.req.header('x-forwarded-for') ?? 'anon';
+    if (throttled(`people:${who}`, Date.now(), 30)) throw new ApiError('locked', 'Too many searches — try again in a moment.', { retryAfterSeconds: 30 });
+    const like = q.replace(/[\\%_]/g, (m) => '\\' + m);
+    const rows = await c.get('db').query<{ id: string; display_name: string }>(
+      `SELECT l.id, l.display_name FROM listeners l
+        WHERE l.suspended_at IS NULL AND l.display_name ILIKE '%' || $1 || '%'
+          AND ($2::uuid IS NULL OR (l.id <> $2::uuid AND NOT EXISTS (
+            SELECT 1 FROM blocks b WHERE (b.blocker_id = l.id AND b.blocked_id = $2::uuid) OR (b.blocker_id = $2::uuid AND b.blocked_id = l.id))))
+        ORDER BY (l.display_name ILIKE $1 || '%') DESC, lower(l.display_name), l.id LIMIT 20`,
+      [like, viewer ?? null],
+    );
+    return c.json({ listeners: rows.map((r) => ({ id: r.id, displayName: r.display_name })) });
+  });
+
   return search;
 }
