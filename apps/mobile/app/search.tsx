@@ -41,7 +41,7 @@ import { useDiscover } from '../src/discover/useDiscover';
 import { EpisodeRow } from '../src/ui/EpisodeRow';
 import { Artwork } from '../src/ui/Artwork';
 import { EmptyState } from '../src/ui/EmptyState';
-import { hit, size } from '../src/design';
+import { hit, size, spacing } from '../src/design';
 import { useColours } from '../src/ui/useColours';
 import { Icon } from '../src/ui/Icon';
 import { GENRES } from '../src/discover/genres';
@@ -274,9 +274,12 @@ export default function SearchScreen(): React.ReactElement {
             <Icon name="scan-outline" size={22} color={c.text} />
           </Pressable>
         </Animated.View>
+        {/* Phone check 2026-10-02: measured inside the 0-wide box, "Cancel" wrapped to two lines.
+            The word is measured here, outside it, hidden; the button then takes that width. */}
+        <Text className="absolute text-muted text-sm opacity-0" numberOfLines={1} accessible={false} importantForAccessibility="no-hide-descendants" onLayout={(e) => setCancelW(Math.ceil(e.nativeEvent.layout.width) + spacing.row)}>Cancel</Text>
         <Animated.View className="self-stretch overflow-hidden" style={{ width: cancelRoom, opacity: fadeIn }}>
-          <Pressable onPress={leave} onLayout={(e) => setCancelW(Math.ceil(e.nativeEvent.layout.width))} accessibilityRole="button" accessibilityLabel="Cancel" className="absolute left-0 top-0 bottom-0 justify-center pl-row" style={TAP}>
-            <Text className="text-muted text-sm">Cancel</Text>
+          <Pressable onPress={leave} accessibilityRole="button" accessibilityLabel="Cancel" className="absolute left-0 top-0 bottom-0 justify-center pl-row" style={{ ...TAP, width: cancelW }}>
+            <Text className="text-muted text-sm" numberOfLines={1}>Cancel</Text>
           </Pressable>
         </Animated.View>
       </Box>

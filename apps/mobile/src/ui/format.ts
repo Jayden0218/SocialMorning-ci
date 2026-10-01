@@ -91,12 +91,16 @@ export function ago(ms: number | undefined, now: number): string {
 export type NotePart = { text: string; atMs?: number; href?: string };
 
 const TIME = /^([ \t]*(?:[-•*·–]|\(|\[)?[ \t]*)((?:\d{1,2}:)?\d{1,2}:[0-5]\d)(?![\d:])/;
+/** Mid-line: only h:mm:ss (two colons), never preceded or followed by another digit or colon. */
+const HMS = /(?<![\d:])(\d{1,2}:[0-5]\d:[0-5]\d)(?![\d:])/g;
 
 /**
  * Shownotes split around their chapter times ("00:39", "1:02:03"), so each one can be a link
  * that plays from there. M12 FR-030: only a time that opens a line (after an optional bullet or
  * bracket) counts — "John 3:16" mid-sentence stays text — and, when the length is known, only
- * one inside the episode.
+ * one inside the episode. Phone check 2026-10-02: a full h:mm:ss time (two colons) also counts
+ * mid-line — shows write ranges inside sentences ("(00:32:21-01:09:30)"), and no verse or clock
+ * time has two colons.
  */
 export function timestampParts(text: string, maxMs?: number): NotePart[] {
   const parts: NotePart[] = [];
@@ -109,11 +113,21 @@ export function timestampParts(text: string, maxMs?: number): NotePart[] {
   lines.forEach((line, n) => {
     const m = TIME.exec(line);
     const atMs = m ? m[2]!.split(':').reduce((sum, v) => sum * 60 + Number(v), 0) * 1000 : undefined;
+    let rest = line;
     if (m && atMs !== undefined && (maxMs === undefined || atMs <= maxMs)) {
       push({ text: m[1]! });
       push({ text: m[2]!, atMs });
-      push({ text: line.slice(m[0].length) });
-    } else push({ text: line });
+      rest = line.slice(m[0].length);
+    }
+    let last = 0;
+    for (const t of rest.matchAll(HMS)) {
+      const ms = t[1]!.split(':').reduce((sum, v) => sum * 60 + Number(v), 0) * 1000;
+      if (maxMs !== undefined && ms > maxMs) continue;
+      push({ text: rest.slice(last, t.index) });
+      push({ text: t[1]!, atMs: ms });
+      last = t.index! + t[0].length;
+    }
+    push({ text: rest.slice(last) });
     if (n < lines.length - 1) push({ text: '\n' });
   });
   return parts;

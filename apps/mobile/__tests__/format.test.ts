@@ -64,6 +64,21 @@ describe('the episode and show pages (owner reference, 2026-09-27)', () => {
     expect(timestampParts('call 12:345 or 10:61')).toEqual([{ text: 'call 12:345 or 10:61' }]);
     expect(timestampParts('')).toEqual([]);
   });
+
+  /**
+   * Phone check 2026-10-02 (Pardon My Take): ranges inside sentences were plain text. The break
+   * that turns this red: drop the HMS loop in `timestampParts`.
+   */
+  it('makes mid-line h:mm:ss times seek points, and still leaves "John 3:16" alone', () => {
+    expect(timestampParts('awesome (00:00:00-00:32:21). John 3:16 at 10:30', 3_600_000)).toEqual([
+      { text: 'awesome (' },
+      { text: '00:00:00', atMs: 0 },
+      { text: '-' },
+      { text: '00:32:21', atMs: 1_941_000 },
+      { text: '). John 3:16 at 10:30' },
+    ]);
+    expect(timestampParts('past the end 02:00:00', 3_600_000)).toEqual([{ text: 'past the end 02:00:00' }]);
+  });
 });
 
 /**
