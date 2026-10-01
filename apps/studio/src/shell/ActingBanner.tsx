@@ -17,8 +17,10 @@ export function ActingBanner() {
     setBusy(true); setError(null);
     try {
       await api('/v1/admin/act-as/stop', { method: 'POST' });
-      await refresh();
+      // Leave the acted-as account's page first: refreshing while still on it sends the owner to
+      // that show's fallback (/no-show) before this navigate runs (found by the e2e, run 36872853132).
       navigate('/admin/accounts');
+      await refresh();
     } catch (e) {
       setError(e instanceof HttpError ? e.message : 'That did not work.');
     } finally { setBusy(false); }

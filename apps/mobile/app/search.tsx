@@ -23,7 +23,7 @@
  * - "Recent" searches are wrapping chips, cleared by a trash button.
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import { AccessibilityInfo, Animated, Easing, Keyboard, type View } from 'react-native';
 import { Input, InputField } from '../src/ui/lib/input';
 import { Pressable } from '../src/ui/lib/pressable';
@@ -117,7 +117,7 @@ export default function SearchScreen(): React.ReactElement {
   const [delta, setDelta] = useState(0);
   const [placed, setPlaced] = useState(fromY === undefined);
   const still = useRef(false);
-  const bar = useRef<View>(null);
+  const bar = useRef<ComponentRef<typeof View>>(null);
   useEffect(() => { void AccessibilityInfo.isReduceMotionEnabled().then((v) => { still.current = v; }).catch(() => undefined); }, []);
   const place = () => {
     if (placed || fromY === undefined || !bar.current) return;

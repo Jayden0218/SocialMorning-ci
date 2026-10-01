@@ -5,7 +5,7 @@
  * `primary` fill, cards `surface`.
  */
 import { twoTone } from '../two-tone';
-import { useRef } from 'react';
+import { useRef, type ComponentRef } from 'react';
 import { useWindowDimensions, type View } from 'react-native';
 import { Pressable } from '../lib/pressable';
 import { ScrollView } from '../lib/scroll-view';
@@ -113,7 +113,7 @@ export function SearchBar(props: { hint?: string; onPress: (fromY: number) => vo
   const c = useColours(stores.settings);
   // Owner, 2026-10-01: Search opens by moving this box to the top, so it needs to know
   // where the box is on the screen when tapped.
-  const box = useRef<View>(null);
+  const box = useRef<ComponentRef<typeof View>>(null);
   const press = () => {
     if (!box.current) { props.onPress(0); return; }
     box.current.measureInWindow((_x, y) => props.onPress(y));

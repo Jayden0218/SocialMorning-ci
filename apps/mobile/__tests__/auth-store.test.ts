@@ -20,6 +20,7 @@ function fakeApi(over: Partial<ApiClient> = {}): ApiClient {
     signUp: async () => ({ token: 'T', listener }),
     signIn: async () => ({ token: 'T', listener }),
     signOut: async () => {},
+    searchPeople: async () => [],
     requestCode: async () => ({ sent: true, resendAfterSeconds: 30 }), verifyCode: notCalled, deleteMeWithCode: async () => {},
     me: notCalled, deleteMe: async () => {}, registerEpisode: notCalled, social: notCalled, postComment: notCalled,
     deleteComment: notCalled, react: notCalled, putPositions: notCalled, getPositions: notCalled,
