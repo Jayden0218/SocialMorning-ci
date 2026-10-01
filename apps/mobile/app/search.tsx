@@ -124,16 +124,22 @@ export default function SearchScreen(): React.ReactElement {
     bar.current.measureInWindow((_x, y) => {
       setDelta(fromY - y);
       setPlaced(true);
-      Animated.timing(move, { toValue: 1, duration: still.current ? 0 : MOVE_MS, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+      Animated.timing(move, { toValue: 1, duration: still.current ? 0 : MOVE_MS, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
     });
   };
   const leave = () => {
     Keyboard.dismiss();
     if (fromY === undefined || still.current) { router.back(); return; }
-    Animated.timing(move, { toValue: 0, duration: MOVE_MS, easing: Easing.in(Easing.cubic), useNativeDriver: true }).start(() => router.back());
+    Animated.timing(move, { toValue: 0, duration: MOVE_MS, easing: Easing.in(Easing.cubic), useNativeDriver: false }).start(() => router.back());
   };
   const barY = move.interpolate({ inputRange: [0, 1], outputRange: [delta, 0] });
   const fadeIn = move.interpolate({ inputRange: [0, 0.6, 1], outputRange: [0, 0, 1] });
+  // Phone check 2026-10-01: Discover stays visible under this page (transparentModal) while the
+  // page's own background fades in, and "Cancel" opens room for itself, so the box starts at
+  // Discover's full width. Width is not a native-driver prop, so this animation runs in JS.
+  const backdrop = move.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
+  const [cancelW, setCancelW] = useState(64);
+  const cancelRoom = move.interpolate({ inputRange: [0, 1], outputRange: [0, cancelW] });
 
   const library = useMemo(() => (trimmed === '' ? { shows: [], episodes: [] } : searchLibrary(stores, trimmed)), [stores, trimmed]);
 
@@ -247,8 +253,9 @@ export default function SearchScreen(): React.ReactElement {
   ));
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
-      <Box className="flex-row items-center gap-row px-screen-x pt-row">
+    <SafeAreaView className="flex-1">
+      <Animated.View pointerEvents="none" className="absolute inset-0 bg-background" style={{ opacity: backdrop }} />
+      <Box className="flex-row items-center px-screen-x pt-row">
         <Animated.View
           ref={bar}
           collapsable={false}
@@ -267,8 +274,8 @@ export default function SearchScreen(): React.ReactElement {
             <Icon name="scan-outline" size={22} color={c.text} />
           </Pressable>
         </Animated.View>
-        <Animated.View style={{ opacity: fadeIn }}>
-          <Pressable onPress={leave} accessibilityRole="button" accessibilityLabel="Cancel" className="justify-center" style={TAP}>
+        <Animated.View className="self-stretch overflow-hidden" style={{ width: cancelRoom, opacity: fadeIn }}>
+          <Pressable onPress={leave} onLayout={(e) => setCancelW(Math.ceil(e.nativeEvent.layout.width))} accessibilityRole="button" accessibilityLabel="Cancel" className="absolute left-0 top-0 bottom-0 justify-center pl-row" style={TAP}>
             <Text className="text-muted text-sm">Cancel</Text>
           </Pressable>
         </Animated.View>

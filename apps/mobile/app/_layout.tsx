@@ -98,7 +98,7 @@ function RootStack(): React.ReactElement {
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           {/* M10: Search draws its own box + Cancel at the top, like the reference. Owner,
               2026-10-01: no slide and no swipe — it fades while its box moves up (search.tsx). */}
-          <Stack.Screen name="search" options={{ title: 'Search', headerShown: false, animation: 'fade', animationDuration: 200, gestureEnabled: false }} />
+          <Stack.Screen name="search" options={{ title: 'Search', headerShown: false, presentation: 'transparentModal', animation: 'fade', animationDuration: 200, gestureEnabled: false, contentStyle: { backgroundColor: 'transparent' } }} />
           {/* The scanner draws its own close button and title over the camera (owner, 2026-09-27). */}
           <Stack.Screen name="scan" options={{ title: 'Scan a QR code', headerShown: false }} />
           {/* The show, episode and player pages draw their own bar (owner reference, 2026-09-27). */}
