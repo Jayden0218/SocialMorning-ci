@@ -26,6 +26,21 @@ describe('colour literals', () => {
   });
 });
 
+/**
+ * M17 guard G-E5 (FR-020): the phone app moved to the Editorial palette; the Studio keeps its
+ * own colours and never reads the app's tokens again.
+ * The break that turns it red: re-add `import … from '@tokens'` in `src/tokens.ts`.
+ */
+describe('G-E5: the Studio keeps its own palette', () => {
+  it('no file in src/ imports the app tokens', () => {
+    const hits = files(SRC).filter((f) => /from\s+'@tokens'|mobile\/src\/design\/tokens/.test(readFileSync(f, 'utf8').replace(/^\s*(\/\/|\*).*$/gm, '')));
+    expect(hits).toEqual([]);
+  });
+  it('the light palette is the pre-M17 one', () => {
+    expect([light.background, light.surface, light.text, light.muted, light.primary, light.accent]).toEqual(['#ffffff', '#f5f5f7', '#111114', '#5f6368', '#fcc522', '#8a5a00']);
+  });
+});
+
 // WCAG 2.x relative luminance and contrast ratio, from the definition.
 const lum = (hex: string) => {
   const n = parseInt(hex.slice(1), 16);
