@@ -3,8 +3,8 @@
  * Account (US5): who you are and the ways you sign in. Deleting the account sits one level
  * down, under More (M12 FR-096) — its own page, `app/settings/account-more.tsx`.
  *
- * M17 (phone walk 2026-10-02, Tier B row "Settings → Account → More" FAILED): "More" was a
- * sub-view toggled inside this route (`useState`), so the stack had one page where the listener
+ * M16a (phone walk 2026-10-02, Tier B row "Settings → Account → More" FAILED): "More" was a
+ * sub-view toggled by a state flag inside this route, so the stack had one page where the listener
  * saw two — both ← and the edge swipe popped the route and skipped "Account and security".
  * It is a real route now, pushed like every other page. Guard: __tests__/account-more-route.test.ts.
  */
