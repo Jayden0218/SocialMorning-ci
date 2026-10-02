@@ -17,6 +17,7 @@ import type { radius } from '../design';
 const ROUNDED: Record<keyof typeof radius, string> = {
   row: 'rounded-row',
   artwork: 'rounded-artwork',
+  artworkLarge: 'rounded-artwork-lg',
   pill: 'rounded-pill',
 };
 
