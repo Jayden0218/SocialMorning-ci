@@ -16,6 +16,13 @@
  * view moves. The Search transition is untouched: Search keeps its see-through presentation,
  * Discover under it, the box moving up and Cancel reversing it. Android has no such stacking
  * (its modals are in-window), so it keeps the plain view.
+ *
+ * M17 (2026-10-02): Search is no longer a native modal (it is drawn in place over the tabs —
+ * src/ui/search/SearchOverlay.tsx), so the case that found this is gone. Kept on purpose: the
+ * voice status page (`voice/new`) is still `presentation: 'modal'`, and a sheet, confirm or toast
+ * opened over it — or over any modal added later — must still be on top. On a page with no
+ * presented controller the overlay is simply the top layer, as the M16a phone rows showed
+ * (sheets 4 of 4, toast VERIFIED with it in place).
  */
 import React from 'react';
 import { Platform, View, type ViewProps } from 'react-native';

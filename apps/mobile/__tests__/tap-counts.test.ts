@@ -23,6 +23,8 @@ const SCREEN: Record<string, string> = { '/': read('index.tsx'), '/library': rea
 const links = (src: string, href: string): boolean => {
   const h = href.replace(/[/]/g, '\\/');
   // Owner, 2026-10-01: Search is pushed with params (`{ pathname: '/search', params }`) so its box can move up.
+  // M17: from Discover, Search opens in place (`search.open(...)` from useSearchOverlay) — still one tap.
+  if (href === '/search' && /useSearchOverlay\(\)/.test(src) && /search\.open\(/.test(src)) return true;
   return new RegExp(`href="${h}"|push\\('${h}'\\)|pathname: '${h}'`).test(src);
 };
 

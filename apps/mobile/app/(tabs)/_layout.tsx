@@ -25,6 +25,7 @@ import { TabsMiniPlayer } from '../../src/ui/MiniPlayer';
 import { useStores } from '../../src/ui/providers';
 import { TabBar } from '../../src/ui/TabBar';
 import { TABS, TAB_HREF } from '../../src/ui/tabs';
+import { SearchOverlayHost } from '../../src/ui/search/SearchOverlay';
 
 
 export default function TabsLayout(): React.ReactElement {
@@ -57,6 +58,9 @@ export default function TabsLayout(): React.ReactElement {
   const items = TABS.map((t) => (t.key === 'me' && unread > 0 ? { ...t, badge: unread } : t));
 
   return (
+    // M17: Discover's Search is drawn in place over the tabs and their bar, so result pages push
+    // on the root stack with the normal edge swipe (src/ui/search/SearchOverlay.tsx).
+    <SearchOverlayHost>
     <Tabs
       screenOptions={{
         // M16a T002 (FR-012): no system header here either — Discover, Updates and Me draw their
@@ -92,5 +96,6 @@ export default function TabsLayout(): React.ReactElement {
       {/* Not in the bar (TABS drives the bar): only here so old `/discover` links land. */}
       <Tabs.Screen name="discover" options={{ title: 'Discover' }} />
     </Tabs>
+    </SearchOverlayHost>
   );
 }

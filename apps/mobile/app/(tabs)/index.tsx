@@ -29,6 +29,7 @@ import { inboxIds } from '../../src/inbox';
 import { useStores } from '../../src/ui/providers';
 import { BOTTOM_INSET } from '../../src/ui/Screen';
 import { SearchBar } from '../../src/ui/discover/parts';
+import { useSearchOverlay } from '../../src/ui/search/SearchOverlay';
 import {
   CategoryStrip, ChartSection, CollectionSection, ForYouSection, MoreCategories, NewShowsSection, PicksSection, SaidSection, ShowTiles, Shortcuts,
   followedShowTiles, popularShowTiles, VideoSection,
@@ -39,6 +40,7 @@ const ICON = { width: 36, height: 36 };
 export default function DiscoverScreen(): React.ReactElement {
   const router = useRouter();
   const stores = useStores();
+  const search = useSearchOverlay();
   const { view, refreshing, refresh, open, play } = useDiscover();
   const { listener } = useSocial();
   const { sets, hiddenFeeds, version } = useSafety();
@@ -105,7 +107,9 @@ export default function DiscoverScreen(): React.ReactElement {
         <SearchBar
           {...(hint ? { hint } : {})}
           // `fromY`: where the bar sits now, so Search can start its box here and move it up.
-          onPress={(fromY) => router.push({ pathname: '/search', params: { fromY: String(Math.round(fromY)), ...(hint ? { hint } : {}) } })}
+          // M17: Search opens IN PLACE over the tabs (not the `/search` route), so a page opened
+          // from its results is an ordinary push with the edge swipe (src/ui/search/SearchOverlay.tsx).
+          onPress={(fromY) => search.open({ fromY: Math.round(fromY), ...(hint ? { hint } : {}) })}
           onScan={() => router.push('/scan')}
         />
         <Shortcuts

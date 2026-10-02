@@ -117,8 +117,12 @@ function RootStack(): React.ReactElement {
           {/* The tab group draws its own header and its own bar (M7 T012). */}
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           {/* M10: Search draws its own box + Cancel at the top, like the reference. Owner,
-              2026-10-01: no slide and no swipe — it fades while its box moves up (search.tsx). */}
-          <Stack.Screen name="search" options={{ title: 'Search', headerShown: false, presentation: 'transparentModal', animation: 'fade', animationDuration: 200, gestureEnabled: false, contentStyle: { backgroundColor: 'transparent' } }} />
+              2026-10-01: no slide and no swipe — it fades. M17 (phone walk 2026-10-02): NOT a
+              modal of any kind. Every route pushed after a modal is presented as a modal sheet
+              (expo-router getModalRouteKeys), so an episode opened from Search had no edge swipe.
+              From Discover, Search is drawn in place (src/ui/search/SearchOverlay.tsx); this
+              route is the other ways in. Guard G-S2: __tests__/search-in-place.test.ts. */}
+          <Stack.Screen name="search" options={{ title: 'Search', headerShown: false, animation: 'fade', animationDuration: 200, gestureEnabled: false }} />
           {/* The scanner draws its own close button and title over the camera (owner, 2026-09-27). */}
           <Stack.Screen name="scan" options={{ title: 'Scan a QR code', headerShown: false }} />
           {/* The show, episode and player pages draw their own bar (owner reference, 2026-09-27). */}

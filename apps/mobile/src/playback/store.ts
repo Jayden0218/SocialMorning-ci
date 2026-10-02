@@ -119,6 +119,16 @@ export function createPlayerRuntime(deps: PlayerDeps): PlayerRuntime {
   // clip's start, and the end watch is armed only once a TICK inside the range is seen.
   let clipArmed = false;
   let currentFeedUrl: string | undefined;
+  /**
+   * M17 (phone walk 2026-10-02: "Episode 271" paused at 0:45 later read "Finished" at 1:31:58).
+   * The episode whose finished row is being played again — loaded (FR-019 starts it at 0) or
+   * replayed from `ended`. The server's merge keeps `finished` sticky and never lets progress
+   * go backwards unless the save is an explicit seek (social-core merge.ts, rules 2–3), so a
+   * replay's first plain save at 0:45 lost to the stored end, and the sync reply wrote "finished
+   * at the end" back over the phone's row. Playing a finished episode again is the listener's
+   * choice of place: its first save after the restart is marked explicit, which clears it.
+   */
+  let restarted: string | undefined;
 
   const SPEED_DEFAULT_KEY = 'speed.default';
   const defaultRate = () => clampRate(Number(deps.stores.settings.get(SPEED_DEFAULT_KEY) ?? 1));
@@ -168,13 +178,16 @@ export function createPlayerRuntime(deps: PlayerDeps): PlayerRuntime {
   function runEffect(effect: Effect): void {
     switch (effect.kind) {
       case 'savePosition': {
+        const restart = restarted === effect.episodeId;
+        if (restart) restarted = undefined;
         const row = deps.stores.positions.save(
           {
             episodeId: effect.episodeId,
             offsetMs: effect.offsetMs,
             durationMsAtSave: effect.durationMs,
             finished: effect.finished,
-            explicitSeek: effect.explicitSeek,
+            // M17: the first save of a restarted finished episode is the listener's choice.
+            explicitSeek: effect.explicitSeek || (restart && !effect.finished),
           },
           deps.now(),
         );
@@ -237,6 +250,8 @@ export function createPlayerRuntime(deps: PlayerDeps): PlayerRuntime {
     if (clip !== undefined && (full.type === 'PLAY' || full.type === 'SEEK' || full.type === 'SKIP' || full.type === 'LOAD')) clip = undefined;
     // M4 (research R3): the listened-interval accumulator hears every TICK in episode time.
     if (full.type === 'TICK' && 'episodeId' in state && typeof state.episodeId === 'string') deps.onTick?.(state.episodeId, full.positionMs);
+    // M17: Play on an ended episode starts it over (reducer, FR-019) — a restart.
+    if (full.type === 'PLAY' && state.kind === 'ended') restarted = state.episodeId;
     const next = reduce(state, full, ctx);
     const wasEnded = state.kind === 'ended';
     const wasPlaying = state.kind === 'playing' || state.kind === 'buffering';
@@ -290,6 +305,8 @@ export function createPlayerRuntime(deps: PlayerDeps): PlayerRuntime {
     if (rate !== ctx.rate) dispatch({ type: 'SET_RATE', rate });
     // FR-016: "end of episode" is for the episode it was set on; a new load clears it.
     if (sleep.kind === 'endOfEpisode') { sleep = { kind: 'off' }; holdAdvance = false; }
+    // M17: loading an episode whose row says finished plays it again; any other load ends a restart.
+    restarted = deps.stores.positions.get(episode.id)?.finished === true ? episode.id : undefined;
     dispatch({
       type: 'LOAD',
       episodeId: episode.id,
