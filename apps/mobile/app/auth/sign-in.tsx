@@ -29,7 +29,9 @@ import { ConsentDialog, ConsentRow, useLegalOverlay } from '../../src/ui/auth/Co
 import { submitAction } from '../../src/ui/auth/rules';
 import { OTHER_METHODS, notReadyMessage, type OtherMethod } from '../../src/ui/auth/methods';
 
-const LOGO = { width: 48, height: 48 };
+/** Owner, 2026-10-03: larger (was 48), and the covers lower down (was 40 below the name). */
+const LOGO = { width: 72, height: 72 };
+const ROW_TOP = { marginTop: 64 };
 
 type Way = 'email' | OtherMethod;
 
@@ -76,16 +78,16 @@ export default function SignInScreen(): React.ReactElement {
           moves on every second; the ways in at the bottom — email full width, Google and
           Facebook side by side. */}
       <Box className="px-screen-x pt-section">
-        <Image source={require('../../assets/app-icon.png')} style={LOGO} className="rounded-artwork" accessibilityIgnoresInvertColors />
+        <Image source={require('../../assets/app-icon.png')} style={LOGO} className="rounded-2xl" accessibilityIgnoresInvertColors />
         <Text style={display(44, c.text)} className="mt-section" accessibilityRole="header">SocialNet</Text>
       </Box>
       {/* Owner, 2026-10-03: room above the covers. */}
-      <Box className="mt-screen-x pt-screen-x">
+      <Box style={ROW_TOP}>
         <ArtWall urls={art} onReady={() => signInPage.setWhole(true)} />
       </Box>
       <Box className="flex-1" />
       <Box className="px-screen-x pb-section">
-        <AuthButton mark={{ icon: 'mail-outline' }} label="Continue with email" text="Continue with email" className="rounded-pill" tall disabled={false} onPress={() => choose('email')} />
+        <AuthButton mark={{ icon: 'mail-outline' }} label="Continue with email" text="Continue with email" className="rounded-pill" tall bold disabled={false} onPress={() => choose('email')} />
         <Box className="flex-row gap-row mt-row">
           {OTHER_METHODS.map((m) => (
             <AuthButton key={m.id} outline mark={m.mark} label={m.label} text={m.short} className="flex-1 rounded-pill bg-background" tall disabled={false} onPress={() => choose(m.id)} />

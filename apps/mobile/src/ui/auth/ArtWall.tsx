@@ -92,7 +92,7 @@ export function ArtWall(props: { urls: string[]; onReady?: () => void }): React.
       importantForAccessibility="no-hide-descendants"
     >
       {row.map((uri, i) => (
-        <Box key={`${i}-${uri}`} className="rounded-artwork bg-surface overflow-hidden" style={{ width: card, height: card }}>
+        <Box key={`${i}-${uri}`} className="rounded-3xl bg-surface overflow-hidden" style={{ width: card, height: card }}>
           <Image source={{ uri }} onLoadEnd={i < n ? one : undefined} style={{ width: card, height: card }} />
         </Box>
       ))}

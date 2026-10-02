@@ -108,7 +108,7 @@ export type AuthMark = { icon: IconName; tint?: Colour } | 'google';
  * spoken `label`, and `className` places the button (the sign-in page's pills, 2026-10-03).
  * `trail` is an icon after the words (the code step's "Continue →", 2026-10-03).
  */
-export function AuthButton(props: { label: string; text?: string; className?: string; tall?: boolean; disabled: boolean; busy?: boolean; outline?: boolean; mark?: AuthMark; trail?: IconName; onPress: () => void }): React.ReactElement {
+export function AuthButton(props: { label: string; text?: string; className?: string; tall?: boolean; bold?: boolean; disabled: boolean; busy?: boolean; outline?: boolean; mark?: AuthMark; trail?: IconName; onPress: () => void }): React.ReactElement {
   const stores = useStores();
   const c = useColours(stores.settings);
   return (
@@ -128,7 +128,7 @@ export function AuthButton(props: { label: string; text?: string; className?: st
             : <Icon name={props.mark.icon} size={20} color={props.mark.tint ? c[props.mark.tint] : props.outline ? c.text : inkOn(c)} />}
         </Box>
       ) : null}
-      <Text className={props.outline ? 'text-text text-sm font-semibold' : 'text-onPrimary text-sm font-semibold'} style={props.outline ? undefined : { color: inkOn(c) }}>{props.busy ? '…' : props.text ?? props.label}</Text>
+      <Text className={`${props.outline ? 'text-text' : 'text-onPrimary'} text-sm ${props.bold ? 'font-bold' : 'font-semibold'}`} style={props.outline ? undefined : { color: inkOn(c) }}>{props.busy ? '…' : props.text ?? props.label}</Text>
       {props.trail && !props.busy ? <Box className="ml-gap"><Icon name={props.trail} size={18} color={props.outline ? c.text : inkOn(c)} /></Box> : null}
     </Pressable>
   );
