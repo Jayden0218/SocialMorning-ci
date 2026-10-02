@@ -90,6 +90,8 @@ const FEEDBACK_ADDITIONS = ['expo-image-picker', 'expo-image-manipulator'];
 
 /** M10b US9: widgets (Android + iOS) and the iPhone live activity (research R11). MIT (LICENSES.md). */
 const OUTSIDE_ADDITIONS = ['react-native-android-widget', '@bacons/apple-targets', 'expo-live-activity'];
+/** M17 (research R5): the Editorial fonts — Fraunces + Manrope (OFL-1.1), loaded through expo-font. */
+const FONT_ADDITIONS = ['expo-font', '@expo-google-fonts/fraunces', '@expo-google-fonts/manrope'];
 
 it('no reference dependency is installed, anywhere', () => {
   const installed = new Set([
@@ -107,7 +109,7 @@ it('M7 added exactly expo-blur and expo-linear-gradient, Tailwind its three, not
   const now = Object.keys(pkg.dependencies).sort();
   const added = now.filter((name) => !M6_DEPENDENCIES.includes(name));
   const removed = M6_DEPENDENCIES.filter((name) => !now.includes(name));
-  expect(added.sort()).toEqual([...M7_ADDITIONS, ...TAILWIND_ADDITIONS, ...NOTIFY_ADDITIONS, ...SCAN_ADDITIONS, ...ICON_ADDITIONS, ...VIDEO_ADDITIONS, ...FEEDBACK_ADDITIONS, ...M9_ENGINE, ...M9_LIBRARY, ...SPLASH_ADDITIONS, ...OUTSIDE_ADDITIONS].sort());
+  expect(added.sort()).toEqual([...M7_ADDITIONS, ...TAILWIND_ADDITIONS, ...NOTIFY_ADDITIONS, ...SCAN_ADDITIONS, ...ICON_ADDITIONS, ...VIDEO_ADDITIONS, ...FEEDBACK_ADDITIONS, ...M9_ENGINE, ...M9_LIBRARY, ...SPLASH_ADDITIONS, ...OUTSIDE_ADDITIONS, ...FONT_ADDITIONS].sort());
   expect(removed).toEqual([]);
 });
 

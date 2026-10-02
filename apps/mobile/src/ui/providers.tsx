@@ -32,6 +32,7 @@ import { canStream } from '../settings/playback';
 import { createOutsideBridge, setOutsideToggle } from '../outside/bridge';
 import { platformSinks } from '../outside/sinks';
 import { applyAccent, readAccent } from '../design/accent';
+import { loadFonts } from '../design/fonts';
 import * as SplashScreen from 'expo-splash-screen';
 import { Terms } from './Terms';
 import { ToastHost } from './ToastHost';
@@ -222,7 +223,9 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
   }, [launched, cover]);
   useEffect(() => {
     let live = true;
-    void waitForStartup([...startupTasks.current, downloads.recover()]).then(() => { if (live) setReady(true); });
+    // M17 (research R5): the Editorial fonts load behind the held splash; `loadFonts` never
+    // rejects and gives up after FONT_WAIT_MS, so start-up always settles (guard G-E4).
+    void waitForStartup([...startupTasks.current, downloads.recover(), loadFonts()]).then(() => { if (live) setReady(true); });
     return () => { live = false; };
   }, [downloads]);
 
