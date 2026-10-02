@@ -52,7 +52,7 @@ export function AuthShell(props: { title: string; eyebrow?: string; closeRight?:
           {props.eyebrow ? <Text className="text-accent text-xs font-bold tracking-widest mt-section">{props.eyebrow.toUpperCase()}</Text> : null}
           <Text style={display(40, c.text)} className={props.eyebrow ? 'mt-gap' : 'mt-section'} accessibilityRole="header">{props.title}</Text>
           {props.subtitle ? <Box className="mt-row">{props.subtitle}</Box> : null}
-          <Box className="mt-section gap-row">{props.children}</Box>
+          <Box className="mt-10 gap-row">{props.children}</Box>
         </ScrollView>
         {props.footer ? (
           <Box className="bg-surface px-screen-x pt-row" style={{ paddingBottom: Math.max(insets.bottom, 12) }}>{props.footer}</Box>

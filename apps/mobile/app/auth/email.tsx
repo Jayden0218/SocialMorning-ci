@@ -23,7 +23,7 @@ import { looksLikeEmail, submitAction } from '../../src/ui/auth/rules';
 
 type Step = 'email' | 'code' | 'name';
 
-const TITLE: Record<Step, string> = { email: 'Continue with email', code: 'Enter the code', name: 'Your name' };
+const TITLE: Record<Step, string> = { email: 'Continue\nwith email', code: 'Enter the code', name: 'Your name' };
 
 export default function EmailScreen(): React.ReactElement {
   const { auth } = useSocial();
