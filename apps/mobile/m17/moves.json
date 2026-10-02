@@ -1,0 +1,10 @@
+[
+ {
+  "surface": "/settings/appearance",
+  "name": "${c.label}. ${c.line}",
+  "destination": "choose",
+  "to": "removed",
+  "why": "System / Light / Dark theme radios — dark mode removed by the owner (2026-10-03, \"remove it\"; constitution v3.0.0, FR-010)",
+  "task": "T016"
+ }
+]

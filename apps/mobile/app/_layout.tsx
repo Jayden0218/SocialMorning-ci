@@ -12,7 +12,7 @@ import { LogBox } from 'react-native';
 import { SafeAreaListener } from 'react-native-safe-area-context';
 import { Uniwind } from 'uniwind';
 import { SafeAreaView } from '../src/ui/lib/safe-area-view';
-import { colourDark, hit } from '../src/design';
+import { hit } from '../src/design';
 import { Box } from '../src/ui/lib/box';
 import { Text } from '../src/ui/lib/text';
 import { Pressable } from '../src/ui/lib/pressable';
@@ -88,7 +88,7 @@ function RootStack(): React.ReactElement {
   return (
       <SafeAreaView className="flex-1 bg-background" edges={['bottom']}>
         {/* M10b: the clock and battery follow the page (light words on the dark palette). */}
-        <StatusBar style={c.background === colourDark.background ? 'light' : 'dark'} />
+        <StatusBar style="dark" />
         <CarLibrarySync />
         {/*
           * M16a T002 (FR-012, owner 2026-10-02, said twice): no iOS-native header on any page.

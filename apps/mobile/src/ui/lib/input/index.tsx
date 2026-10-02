@@ -23,7 +23,7 @@ const UIInput = createInput({
 
 
 const inputStyle = tva({
-  base: 'min-h-9 w-full flex-row items-center rounded-md border border-separator  dark:bg-separator/30 bg-transparent shadow-xs transition-[color,box-shadow] overflow-hidden data-[focus=true]:outline-none data-[focus=true]:border-accent dark:data-[focus=true]:border-accent data-[focus=true]:web:ring-[3px] data-[focus=true]:web:ring-accent/50 data-[invalid=true]:border-accent/40 dark:data-[invalid=true]:border-accent/40 data-[invalid=true]:web:ring-accent/20 dark:data-[invalid=true]:web:ring-accent/40 data-[disabled=true]:pointer-events-none data-[disabled=true]:cursor-not-allowed data-[disabled=true]:opacity-50 px-3 gap-2',
+  base: 'min-h-9 w-full flex-row items-center rounded-md border border-separator bg-transparent shadow-xs transition-[color,box-shadow] overflow-hidden data-[focus=true]:outline-none data-[focus=true]:border-accent data-[focus=true]:web:ring-[3px] data-[focus=true]:web:ring-accent/50 data-[invalid=true]:border-accent/40 data-[invalid=true]:web:ring-accent/20 data-[disabled=true]:pointer-events-none data-[disabled=true]:cursor-not-allowed data-[disabled=true]:opacity-50 px-3 gap-2',
 });
 
 const inputIconStyle = tva({

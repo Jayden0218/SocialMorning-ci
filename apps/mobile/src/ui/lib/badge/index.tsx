@@ -18,8 +18,8 @@ const badgeStyle = tva({
       default: 'bg-primary',
       secondary: 'bg-surface',
       destructive:
-        'bg-accent dark:bg-accent/60',
-      outline: 'border border-separator dark:border-separator/90 bg-transparent',
+        'bg-accent',
+      outline: 'border border-separator bg-transparent',
     },
   },
 });

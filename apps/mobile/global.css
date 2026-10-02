@@ -5,66 +5,57 @@
 @layer theme {
   :root {
     @variant light {
-      --color-background: #ffffff;
-      --color-surface: #f5f5f7;
-      --color-text: #111114;
-      --color-muted: #5f6368;
+      --color-background: #fbf8f1;
+      --color-surface: #ffffff;
+      --color-border: rgba(17, 17, 20, 0.08);
+      --color-text: #16130d;
+      --color-muted: #5c5546;
       --color-primary: #fcc522;
-      --color-onPrimary: #ffffff;
+      --color-onPrimary: #111114;
       --color-accent: #8a5a00;
-      --color-track: rgba(0, 0, 0, 0.12);
+      --color-track: rgba(17, 17, 20, 0.10);
       --color-bar: rgba(0, 0, 0, 0.50);
-      --color-separator: rgba(0, 0, 0, 0.12);
+      --color-separator: rgba(17, 17, 20, 0.08);
       --color-scrim: rgba(0, 0, 0, 0.40);
       --color-facebook: #1877f2;
-      --color-clear: rgba(255, 255, 255, 0);
+      --color-clear: rgba(251, 248, 241, 0);
       --color-accentTint: rgba(138, 90, 0, 0.14);
-      --color-veil: rgba(255, 255, 255, 0.88);
-    }
-    @variant dark {
-      --color-background: #111114;
-      --color-surface: #1d1d22;
-      --color-text: #f2f2f5;
-      --color-muted: #a1a5ac;
-      --color-primary: #fcc522;
-      --color-onPrimary: #ffffff;
-      --color-accent: #fcc522;
-      --color-track: rgba(255, 255, 255, 0.16);
-      --color-bar: rgba(255, 255, 255, 0.55);
-      --color-separator: rgba(255, 255, 255, 0.14);
-      --color-scrim: rgba(0, 0, 0, 0.60);
-      --color-facebook: #1877f2;
-      --color-clear: rgba(17, 17, 20, 0);
-      --color-accentTint: rgba(252, 197, 34, 0.18);
-      --color-veil: rgba(17, 17, 20, 0.84);
+      --color-veil: rgba(251, 248, 241, 0.88);
     }
   }
 }
 @theme {
   --color-*: initial;
   --color-transparent: transparent;
-  --color-background: #ffffff;
-  --color-surface: #f5f5f7;
-  --color-text: #111114;
-  --color-muted: #5f6368;
+  --color-background: #fbf8f1;
+  --color-surface: #ffffff;
+  --color-border: rgba(17, 17, 20, 0.08);
+  --color-text: #16130d;
+  --color-muted: #5c5546;
   --color-primary: #fcc522;
-  --color-onPrimary: #ffffff;
+  --color-onPrimary: #111114;
   --color-accent: #8a5a00;
-  --color-track: rgba(0, 0, 0, 0.12);
+  --color-track: rgba(17, 17, 20, 0.10);
   --color-bar: rgba(0, 0, 0, 0.50);
-  --color-separator: rgba(0, 0, 0, 0.12);
+  --color-separator: rgba(17, 17, 20, 0.08);
   --color-scrim: rgba(0, 0, 0, 0.40);
   --color-facebook: #1877f2;
-  --color-clear: rgba(255, 255, 255, 0);
+  --color-clear: rgba(251, 248, 241, 0);
   --color-accentTint: rgba(138, 90, 0, 0.14);
-  --color-veil: rgba(255, 255, 255, 0.88);
+  --color-veil: rgba(251, 248, 241, 0.88);
 }
 @theme inline {
   --text-*: initial;
+  --text-micro: 11px;
   --text-xs: 12px;
+  --text-meta: 13px;
+  --text-body: 14px;
   --text-sm: 16px;
+  --text-title: 17px;
   --text-base: 20px;
   --text-lg: 24px;
+  --text-hero: 28px;
+  --text-display: 32px;
   --text-2xs: 12px;
   --text-md: 20px;
   --text-xl: 24px;
@@ -78,9 +69,10 @@
   --spacing-gap: 8px;
   --spacing-section: 16px;
   --spacing-row-h: 50px;
-  --radius-row: 8px;
-  --radius-artwork: 12px;
+  --radius-row: 16px;
+  --radius-artwork: 16px;
   --radius-pill: 999px;
+  --radius-artwork-lg: 22px;
 }
 @utility border-hairline {
   border-width: hairlineWidth();

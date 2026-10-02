@@ -28,7 +28,6 @@ export function applyAccent(name: AccentName): void {
   const t = ACCENTS[name];
   try {
     Uniwind.updateCSSVariables('light', vars(t.light));
-    Uniwind.updateCSSVariables('dark', vars(t.dark));
   } catch {
     // Test renderers have no UniWind runtime; the palette below still follows.
   }
@@ -36,8 +35,7 @@ export function applyAccent(name: AccentName): void {
 }
 
 /** The palette with the accent's four tokens swapped in. */
-export function withAccent<P extends AccentKeys>(palette: P, name: AccentName, dark: boolean): P {
+export function withAccent<P extends AccentKeys>(palette: P, name: AccentName): P {
   if (name === 'sunrise') return palette;
-  const t = ACCENTS[name];
-  return { ...palette, ...(dark ? t.dark : t.light) };
+  return { ...palette, ...ACCENTS[name].light };
 }

@@ -69,7 +69,7 @@ export const UIActionsheet = createActionsheet({
 const actionsheetStyle = tva({ base: 'w-full h-full web:pointer-events-none' });
 
 const actionsheetContentStyle = tva({
-  base: 'items-center rounded-t-lg p-4 bg-background web:pointer-events-auto web:select-none border-t border-separator dark:border-separator/10 max-h-[80vh] pb-safe',
+  base: 'items-center rounded-t-lg p-4 bg-background web:pointer-events-auto web:select-none border-t border-separator max-h-[80vh] pb-safe',
 });
 
 const actionsheetItemStyle = tva({

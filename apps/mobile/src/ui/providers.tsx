@@ -31,9 +31,7 @@ import { onNotificationTap } from '../notify/expo';
 import { canStream } from '../settings/playback';
 import { createOutsideBridge, setOutsideToggle } from '../outside/bridge';
 import { platformSinks } from '../outside/sinks';
-import { applyAppearance } from '../design/theme';
 import { applyAccent, readAccent } from '../design/accent';
-import { readAppearance } from './useColours';
 import * as SplashScreen from 'expo-splash-screen';
 import { Terms } from './Terms';
 import { ToastHost } from './ToastHost';
@@ -165,7 +163,7 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
     pathFor: downloadPathFor,
   }), [stores]);
   // M10b US4: the Appearance choice is applied at start (a no-op on main until M9 wires it).
-  useEffect(() => { applyAppearance(readAppearance(stores.settings)); applyAccent(readAccent(stores.settings)); }, [stores]);
+  useEffect(() => { applyAccent(readAccent(stores.settings)); }, [stores]);
   // M10b US3 (FR-011): tapping a notification opens its episode.
   useEffect(() => onNotificationTap((episodeId) => router.push({ pathname: '/episode/[id]', params: { id: episodeId } })), []);
   const [ready, setReady] = useState(false);

@@ -1,0 +1,2774 @@
+{
+ "capturedAt": "2026-10-02T23:27:43.744Z",
+ "commit": "b5d62c6",
+ "entries": [
+  {
+   "surface": "/_layout",
+   "file": "apps/mobile/app/(tabs)/_layout.tsx",
+   "line": 76,
+   "role": "tablist",
+   "name": "",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "/library",
+   "file": "apps/mobile/app/(tabs)/library.tsx",
+   "line": 125,
+   "role": "link",
+   "name": "My subscriptions, ${subscribed}",
+   "destination": "/subscriptions"
+  },
+  {
+   "surface": "/library",
+   "file": "apps/mobile/app/(tabs)/library.tsx",
+   "line": 177,
+   "role": "button",
+   "name": "Cancel",
+   "destination": "setMenuFor"
+  },
+  {
+   "surface": "/me",
+   "file": "apps/mobile/app/(tabs)/me.tsx",
+   "line": 43,
+   "role": "link",
+   "name": "Stickers",
+   "destination": "/stickers"
+  },
+  {
+   "surface": "/me",
+   "file": "apps/mobile/app/(tabs)/me.tsx",
+   "line": 52,
+   "role": "link",
+   "name": "${listener.displayName}, open your profile",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "/me",
+   "file": "apps/mobile/app/(tabs)/me.tsx",
+   "line": 59,
+   "role": "link",
+   "name": "Sign in",
+   "destination": "/auth/sign-in"
+  },
+  {
+   "surface": "/me",
+   "file": "apps/mobile/app/(tabs)/me.tsx",
+   "line": 73,
+   "role": "link",
+   "name": "Saved moments, ${counts.moments}. Save a moment while listening and add a note",
+   "destination": "/moments"
+  },
+  {
+   "surface": "/me",
+   "file": "apps/mobile/app/(tabs)/me.tsx",
+   "line": 83,
+   "role": "link",
+   "name": "My profile",
+   "destination": "/profile/${listener.listenerId}"
+  },
+  {
+   "surface": "/me",
+   "file": "apps/mobile/app/(tabs)/me.tsx",
+   "line": 85,
+   "role": "link",
+   "name": "Notifications",
+   "destination": "/notifications"
+  },
+  {
+   "surface": "/me",
+   "file": "apps/mobile/app/(tabs)/me.tsx",
+   "line": 86,
+   "role": "link",
+   "name": "Inbox",
+   "destination": "/inbox"
+  },
+  {
+   "surface": "/me",
+   "file": "apps/mobile/app/(tabs)/me.tsx",
+   "line": 87,
+   "role": "link",
+   "name": "Downloads",
+   "destination": "/downloads"
+  },
+  {
+   "surface": "/me",
+   "file": "apps/mobile/app/(tabs)/me.tsx",
+   "line": 88,
+   "role": "link",
+   "name": "Listening history",
+   "destination": "/history"
+  },
+  {
+   "surface": "/me",
+   "file": "apps/mobile/app/(tabs)/me.tsx",
+   "line": 89,
+   "role": "link",
+   "name": "Favourites",
+   "destination": "/favourites"
+  },
+  {
+   "surface": "/me",
+   "file": "apps/mobile/app/(tabs)/me.tsx",
+   "line": 90,
+   "role": "link",
+   "name": "My comments",
+   "destination": "/my-comments"
+  },
+  {
+   "surface": "/me",
+   "file": "apps/mobile/app/(tabs)/me.tsx",
+   "line": 91,
+   "role": "link",
+   "name": "Queue",
+   "destination": "/queue"
+  },
+  {
+   "surface": "/me",
+   "file": "apps/mobile/app/(tabs)/me.tsx",
+   "line": 92,
+   "role": "link",
+   "name": "Creator centre",
+   "destination": "/creator"
+  },
+  {
+   "surface": "/me",
+   "file": "apps/mobile/app/(tabs)/me.tsx",
+   "line": 94,
+   "role": "link",
+   "name": "Wallet",
+   "destination": "/wallet"
+  },
+  {
+   "surface": "/me",
+   "file": "apps/mobile/app/(tabs)/me.tsx",
+   "line": 95,
+   "role": "link",
+   "name": "Tips I gave",
+   "destination": "/tips"
+  },
+  {
+   "surface": "/me",
+   "file": "apps/mobile/app/(tabs)/me.tsx",
+   "line": 98,
+   "role": "link",
+   "name": "Feedback",
+   "destination": "/settings/feedback"
+  },
+  {
+   "surface": "/me",
+   "file": "apps/mobile/app/(tabs)/me.tsx",
+   "line": 99,
+   "role": "link",
+   "name": "Account and settings",
+   "destination": "/account"
+  },
+  {
+   "surface": "/_layout",
+   "file": "apps/mobile/app/_layout.tsx",
+   "line": 49,
+   "role": "button",
+   "name": "Try again",
+   "destination": "props.retry"
+  },
+  {
+   "surface": "/academy",
+   "file": "apps/mobile/app/academy/index.tsx",
+   "line": 24,
+   "role": "button",
+   "name": "${a.title}. ${a.summary}",
+   "destination": "/academy/[slug]"
+  },
+  {
+   "surface": "/account",
+   "file": "apps/mobile/app/account.tsx",
+   "line": 29,
+   "role": "link",
+   "name": "Account and security",
+   "destination": "/settings/account"
+  },
+  {
+   "surface": "/account",
+   "file": "apps/mobile/app/account.tsx",
+   "line": 32,
+   "role": "link",
+   "name": "Appearance",
+   "destination": "/settings/appearance"
+  },
+  {
+   "surface": "/account",
+   "file": "apps/mobile/app/account.tsx",
+   "line": 33,
+   "role": "link",
+   "name": "Downloads and cache",
+   "destination": "/settings/downloads"
+  },
+  {
+   "surface": "/account",
+   "file": "apps/mobile/app/account.tsx",
+   "line": 34,
+   "role": "link",
+   "name": "Notifications",
+   "destination": "/settings/push"
+  },
+  {
+   "surface": "/account",
+   "file": "apps/mobile/app/account.tsx",
+   "line": 35,
+   "role": "link",
+   "name": "Privacy",
+   "destination": "/settings/privacy"
+  },
+  {
+   "surface": "/account",
+   "file": "apps/mobile/app/account.tsx",
+   "line": 36,
+   "role": "link",
+   "name": "Minor mode",
+   "destination": "/settings/minor"
+  },
+  {
+   "surface": "/account",
+   "file": "apps/mobile/app/account.tsx",
+   "line": 37,
+   "role": "link",
+   "name": "More",
+   "destination": "/settings/more"
+  },
+  {
+   "surface": "/account",
+   "file": "apps/mobile/app/account.tsx",
+   "line": 39,
+   "role": "link",
+   "name": "Third-party sharing list",
+   "destination": "/settings/sharing"
+  },
+  {
+   "surface": "/account",
+   "file": "apps/mobile/app/account.tsx",
+   "line": 40,
+   "role": "link",
+   "name": "Personal information we collect",
+   "destination": "/settings/collected"
+  },
+  {
+   "surface": "/account",
+   "file": "apps/mobile/app/account.tsx",
+   "line": 41,
+   "role": "link",
+   "name": "Help and feedback",
+   "destination": "/settings/help"
+  },
+  {
+   "surface": "/account",
+   "file": "apps/mobile/app/account.tsx",
+   "line": 42,
+   "role": "link",
+   "name": "About SocialNet",
+   "destination": "/settings/about"
+  },
+  {
+   "surface": "/auth/email",
+   "file": "apps/mobile/app/auth/email.tsx",
+   "line": 89,
+   "role": "button",
+   "name": "Send the code again",
+   "destination": "sendCode"
+  },
+  {
+   "surface": "/categories",
+   "file": "apps/mobile/app/categories.tsx",
+   "line": 29,
+   "role": "button",
+   "name": "g.name",
+   "destination": "/category/[id]"
+  },
+  {
+   "surface": "/category/[id]",
+   "file": "apps/mobile/app/category/[id].tsx",
+   "line": 95,
+   "role": "tab",
+   "name": "g.name",
+   "destination": "pick"
+  },
+  {
+   "surface": "/category/[id]",
+   "file": "apps/mobile/app/category/[id].tsx",
+   "line": 105,
+   "role": "button",
+   "name": "panel ? 'Hide all categories' : 'Show all categories'",
+   "destination": "setPanel"
+  },
+  {
+   "surface": "/category/[id]",
+   "file": "apps/mobile/app/category/[id].tsx",
+   "line": 115,
+   "role": "button",
+   "name": "g.name",
+   "destination": "pick"
+  },
+  {
+   "surface": "/category/[id]",
+   "file": "apps/mobile/app/category/[id].tsx",
+   "line": 128,
+   "role": "button",
+   "name": "k === 'all' ? 'All, chart order' : 'Newest episodes first'",
+   "destination": "setSort"
+  },
+  {
+   "surface": "/category/[id]",
+   "file": "apps/mobile/app/category/[id].tsx",
+   "line": 151,
+   "role": "button",
+   "name": "{s.title}",
+   "destination": "/show/[feedUrl]"
+  },
+  {
+   "surface": "/category/[id]",
+   "file": "apps/mobile/app/category/[id].tsx",
+   "line": 172,
+   "role": "button",
+   "name": "on ? `Unsubscribe from ${s.title}` : `Subscribe to ${s.title}`",
+   "destination": "toggleSubscription"
+  },
+  {
+   "surface": "/chart",
+   "file": "apps/mobile/app/chart.tsx",
+   "line": 50,
+   "role": "button",
+   "name": "Retry",
+   "destination": "load"
+  },
+  {
+   "surface": "/clip/[id]",
+   "file": "apps/mobile/app/clip/[id].tsx",
+   "line": 74,
+   "role": "button",
+   "name": "Play the episode",
+   "destination": "/player"
+  },
+  {
+   "surface": "/clip/[id]",
+   "file": "apps/mobile/app/clip/[id].tsx",
+   "line": 75,
+   "role": "button",
+   "name": "Keep listening",
+   "destination": "/player"
+  },
+  {
+   "surface": "/clip/[id]",
+   "file": "apps/mobile/app/clip/[id].tsx",
+   "line": 76,
+   "role": "button",
+   "name": "Open player",
+   "destination": "/player"
+  },
+  {
+   "surface": "/comments/[episodeId]",
+   "file": "apps/mobile/app/comments/[episodeId].tsx",
+   "line": 128,
+   "role": "tab",
+   "name": "{o.label}",
+   "destination": "setOrder"
+  },
+  {
+   "surface": "/comments/[episodeId]",
+   "file": "apps/mobile/app/comments/[episodeId].tsx",
+   "line": 153,
+   "role": "button",
+   "name": "Close",
+   "destination": "compose"
+  },
+  {
+   "surface": "/comments/[episodeId]",
+   "file": "apps/mobile/app/comments/[episodeId].tsx",
+   "line": 162,
+   "role": "button",
+   "name": "{item.label}",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "/comments/[episodeId]",
+   "file": "apps/mobile/app/comments/[episodeId].tsx",
+   "line": 166,
+   "role": "button",
+   "name": "Cancel",
+   "destination": "setMenu"
+  },
+  {
+   "surface": "/creator",
+   "file": "apps/mobile/app/creator.tsx",
+   "line": 89,
+   "role": "link",
+   "name": "Creator academy: how claiming, numbers, comments, clips and the Studio work",
+   "destination": "/academy"
+  },
+  {
+   "surface": "/creator",
+   "file": "apps/mobile/app/creator.tsx",
+   "line": 115,
+   "role": "button",
+   "name": "Share code",
+   "destination": "verify"
+  },
+  {
+   "surface": "/creator",
+   "file": "apps/mobile/app/creator.tsx",
+   "line": 116,
+   "role": "button",
+   "name": "Verify",
+   "destination": "verify"
+  },
+  {
+   "surface": "/creator",
+   "file": "apps/mobile/app/creator.tsx",
+   "line": 128,
+   "role": "button",
+   "name": "Claim ${s.title}",
+   "destination": "claim"
+  },
+  {
+   "surface": "/creator",
+   "file": "apps/mobile/app/creator.tsx",
+   "line": 133,
+   "role": "input",
+   "name": "Your feed address",
+   "destination": "claim"
+  },
+  {
+   "surface": "/creator",
+   "file": "apps/mobile/app/creator.tsx",
+   "line": 136,
+   "role": "button",
+   "name": "Get my code",
+   "destination": "claim"
+  },
+  {
+   "surface": "/downloads",
+   "file": "apps/mobile/app/downloads.tsx",
+   "line": 66,
+   "role": "button",
+   "name": "{b",
+   "destination": "downloads.setBudgetBytes"
+  },
+  {
+   "surface": "/downloads",
+   "file": "apps/mobile/app/downloads.tsx",
+   "line": 75,
+   "role": "button",
+   "name": "Remove finished downloads",
+   "destination": "downloads.removeFinished"
+  },
+  {
+   "surface": "/downloads",
+   "file": "apps/mobile/app/downloads.tsx",
+   "line": 94,
+   "role": "button",
+   "name": "Remove",
+   "destination": "downloads.remove"
+  },
+  {
+   "surface": "/downloads",
+   "file": "apps/mobile/app/downloads.tsx",
+   "line": 97,
+   "role": "button",
+   "name": "Retry",
+   "destination": "downloads.request"
+  },
+  {
+   "surface": "/downloads",
+   "file": "apps/mobile/app/downloads.tsx",
+   "line": 99,
+   "role": "button",
+   "name": "Remove",
+   "destination": "downloads.remove"
+  },
+  {
+   "surface": "/downloads",
+   "file": "apps/mobile/app/downloads.tsx",
+   "line": 102,
+   "role": "button",
+   "name": "Cancel",
+   "destination": "downloads.cancel"
+  },
+  {
+   "surface": "/episode/[id]",
+   "file": "apps/mobile/app/episode/[id].tsx",
+   "line": 163,
+   "role": "button",
+   "name": "playing ? 'Pause' : 'Play this episode'",
+   "destination": "playOrPause"
+  },
+  {
+   "surface": "/episode/[id]",
+   "file": "apps/mobile/app/episode/[id].tsx",
+   "line": 187,
+   "role": "button",
+   "name": "playing ? 'Pause' : 'Play this episode'",
+   "destination": "playOrPause"
+  },
+  {
+   "surface": "/episode/[id]",
+   "file": "apps/mobile/app/episode/[id].tsx",
+   "line": 198,
+   "role": "link",
+   "name": "Show: ${show.title}",
+   "destination": "/show/[feedUrl]"
+  },
+  {
+   "surface": "/episode/[id]",
+   "file": "apps/mobile/app/episode/[id].tsx",
+   "line": 210,
+   "role": "button",
+   "name": "subscribed ? 'Unsubscribe from this show' : 'Subscribe to this show'",
+   "destination": "toggleSubscription"
+  },
+  {
+   "surface": "/episode/[id]",
+   "file": "apps/mobile/app/episode/[id].tsx",
+   "line": 228,
+   "role": "button",
+   "name": "fav ? 'Remove from favourites' : 'Add to favourites'",
+   "destination": "setFav"
+  },
+  {
+   "surface": "/episode/[id]",
+   "file": "apps/mobile/app/episode/[id].tsx",
+   "line": 294,
+   "role": "button",
+   "name": "Cancel",
+   "destination": "setMore"
+  },
+  {
+   "surface": "/favourites",
+   "file": "apps/mobile/app/favourites.tsx",
+   "line": 41,
+   "role": "tab",
+   "name": "t === 'episodes' ? 'Episodes' : 'Comments'",
+   "destination": "setTab"
+  },
+  {
+   "surface": "/favourites",
+   "file": "apps/mobile/app/favourites.tsx",
+   "line": 70,
+   "role": "button",
+   "name": "${item.author}: ${item.body}",
+   "destination": "/episode/[id]"
+  },
+  {
+   "surface": "/favourites",
+   "file": "apps/mobile/app/favourites.tsx",
+   "line": 98,
+   "role": "button",
+   "name": "e.title",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "/friends-listening",
+   "file": "apps/mobile/app/friends-listening.tsx",
+   "line": 49,
+   "role": "button",
+   "name": "Retry",
+   "destination": "load"
+  },
+  {
+   "surface": "/history",
+   "file": "apps/mobile/app/history.tsx",
+   "line": 39,
+   "role": "button",
+   "name": "${item.episode.title}. ${where}",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "/inbox",
+   "file": "apps/mobile/app/inbox.tsx",
+   "line": 50,
+   "role": "button",
+   "name": "Load more",
+   "destination": "setShown"
+  },
+  {
+   "surface": "/inbox",
+   "file": "apps/mobile/app/inbox.tsx",
+   "line": 57,
+   "role": "button",
+   "name": "{show?.title ?? ''}",
+   "destination": "/episode/[id]"
+  },
+  {
+   "surface": "/inbox",
+   "file": "apps/mobile/app/inbox.tsx",
+   "line": 63,
+   "role": "button",
+   "name": "Play",
+   "destination": "/player"
+  },
+  {
+   "surface": "/inbox",
+   "file": "apps/mobile/app/inbox.tsx",
+   "line": 64,
+   "role": "button",
+   "name": "Queue",
+   "destination": "leave"
+  },
+  {
+   "surface": "/inbox",
+   "file": "apps/mobile/app/inbox.tsx",
+   "line": 65,
+   "role": "button",
+   "name": "Download",
+   "destination": "leave"
+  },
+  {
+   "surface": "/inbox",
+   "file": "apps/mobile/app/inbox.tsx",
+   "line": 66,
+   "role": "button",
+   "name": "Dismiss",
+   "destination": "leave"
+  },
+  {
+   "surface": "/issue/[id]",
+   "file": "apps/mobile/app/issue/[id].tsx",
+   "line": 45,
+   "role": "button",
+   "name": "Retry",
+   "destination": "load"
+  },
+  {
+   "surface": "/issue/[id]",
+   "file": "apps/mobile/app/issue/[id].tsx",
+   "line": 59,
+   "role": "link",
+   "name": "Open the show",
+   "destination": "/show/[feedUrl]"
+  },
+  {
+   "surface": "/issues",
+   "file": "apps/mobile/app/issues.tsx",
+   "line": 43,
+   "role": "button",
+   "name": "Retry",
+   "destination": "/issue/[id]"
+  },
+  {
+   "surface": "/issues",
+   "file": "apps/mobile/app/issues.tsx",
+   "line": 47,
+   "role": "button",
+   "name": "${item.title}, ${dayTitle(item.date)}",
+   "destination": "/issue/[id]"
+  },
+  {
+   "surface": "/moments",
+   "file": "apps/mobile/app/moments.tsx",
+   "line": 54,
+   "role": "button",
+   "name": "Play ${e?.title ?? 'episode'} from ${mmss(item.atMs)}",
+   "destination": "play"
+  },
+  {
+   "surface": "/moments",
+   "file": "apps/mobile/app/moments.tsx",
+   "line": 61,
+   "role": "button",
+   "name": "Note",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "/moments",
+   "file": "apps/mobile/app/moments.tsx",
+   "line": 64,
+   "role": "button",
+   "name": "Save note",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "/moments",
+   "file": "apps/mobile/app/moments.tsx",
+   "line": 65,
+   "role": "button",
+   "name": "Cancel",
+   "destination": "setEditing"
+  },
+  {
+   "surface": "/moments",
+   "file": "apps/mobile/app/moments.tsx",
+   "line": 72,
+   "role": "button",
+   "name": "Edit note",
+   "destination": "setEditing"
+  },
+  {
+   "surface": "/moments",
+   "file": "apps/mobile/app/moments.tsx",
+   "line": 73,
+   "role": "button",
+   "name": "Delete moment",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "/my-comments",
+   "file": "apps/mobile/app/my-comments.tsx",
+   "line": 51,
+   "role": "button",
+   "name": "${text}. On ${item.episode.title}",
+   "destination": "/episode/[id]"
+  },
+  {
+   "surface": "/notifications",
+   "file": "apps/mobile/app/notifications.tsx",
+   "line": 72,
+   "role": "link",
+   "name": "",
+   "destination": "/auth/sign-in"
+  },
+  {
+   "surface": "/picks/past",
+   "file": "apps/mobile/app/picks/past.tsx",
+   "line": 68,
+   "role": "link",
+   "name": "${p.why}. Open the show",
+   "destination": "openShow"
+  },
+  {
+   "surface": "/picks/past",
+   "file": "apps/mobile/app/picks/past.tsx",
+   "line": 87,
+   "role": "button",
+   "name": "Retry",
+   "destination": "first"
+  },
+  {
+   "surface": "/picks/past",
+   "file": "apps/mobile/app/picks/past.tsx",
+   "line": 100,
+   "role": "button",
+   "name": "Show earlier days",
+   "destination": "loadMore"
+  },
+  {
+   "surface": "/player",
+   "file": "apps/mobile/app/player.tsx",
+   "line": 144,
+   "role": "button",
+   "name": "Try again",
+   "destination": "player.play"
+  },
+  {
+   "surface": "/player",
+   "file": "apps/mobile/app/player.tsx",
+   "line": 223,
+   "role": "button",
+   "name": "favourite ? 'Remove from favourites' : 'Add to favourites'",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "/player",
+   "file": "apps/mobile/app/player.tsx",
+   "line": 248,
+   "role": "link",
+   "name": "Show: ${show?.title ?? ''}",
+   "destination": "/show/[feedUrl]"
+  },
+  {
+   "surface": "/player",
+   "file": "apps/mobile/app/player.tsx",
+   "line": 253,
+   "role": "button",
+   "name": "Subscribe to this show",
+   "destination": "subscribe"
+  },
+  {
+   "surface": "/player",
+   "file": "apps/mobile/app/player.tsx",
+   "line": 300,
+   "role": "button",
+   "name": "Keep listening",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "/player",
+   "file": "apps/mobile/app/player.tsx",
+   "line": 313,
+   "role": "button",
+   "name": "Speed ${rate.toFixed(1)}×, sleep timer and chapters",
+   "destination": "setMore"
+  },
+  {
+   "surface": "/player",
+   "file": "apps/mobile/app/player.tsx",
+   "line": 316,
+   "role": "button",
+   "name": "Skip back 15 seconds",
+   "destination": "player.skip"
+  },
+  {
+   "surface": "/player",
+   "file": "apps/mobile/app/player.tsx",
+   "line": 320,
+   "role": "button",
+   "name": "isPlaying ? 'Pause' : 'Play'",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "/player",
+   "file": "apps/mobile/app/player.tsx",
+   "line": 328,
+   "role": "button",
+   "name": "Skip forward 30 seconds",
+   "destination": "player.skip"
+  },
+  {
+   "surface": "/player",
+   "file": "apps/mobile/app/player.tsx",
+   "line": 332,
+   "role": "button",
+   "name": "reacted ? 'Remove your reaction here' : 'React at this moment'",
+   "destination": "/auth/sign-in"
+  },
+  {
+   "surface": "/player",
+   "file": "apps/mobile/app/player.tsx",
+   "line": 353,
+   "role": "button",
+   "name": "Playlist",
+   "destination": "setQueueOpen"
+  },
+  {
+   "surface": "/player",
+   "file": "apps/mobile/app/player.tsx",
+   "line": 357,
+   "role": "button",
+   "name": "Comments, ${commentCount}",
+   "destination": "openComments"
+  },
+  {
+   "surface": "/player",
+   "file": "apps/mobile/app/player.tsx",
+   "line": 371,
+   "role": "button",
+   "name": "Close",
+   "destination": "setMore"
+  },
+  {
+   "surface": "/player",
+   "file": "apps/mobile/app/player.tsx",
+   "line": 381,
+   "role": "button",
+   "name": "Chapters ({extras.chapters.length})",
+   "destination": "setPane"
+  },
+  {
+   "surface": "/player",
+   "file": "apps/mobile/app/player.tsx",
+   "line": 386,
+   "role": "button",
+   "name": "Transcript",
+   "destination": "setPane"
+  },
+  {
+   "surface": "/profile/[id]",
+   "file": "apps/mobile/app/profile/[id].tsx",
+   "line": 113,
+   "role": "link",
+   "name": "",
+   "destination": "/account"
+  },
+  {
+   "surface": "/profile/[id]",
+   "file": "apps/mobile/app/profile/[id].tsx",
+   "line": 124,
+   "role": "button",
+   "name": "Report ${profile.displayName}",
+   "destination": "setReporting"
+  },
+  {
+   "surface": "/profile/[id]",
+   "file": "apps/mobile/app/profile/[id].tsx",
+   "line": 149,
+   "role": "button",
+   "name": "",
+   "destination": "/stickers"
+  },
+  {
+   "surface": "/profile/[id]",
+   "file": "apps/mobile/app/profile/[id].tsx",
+   "line": 170,
+   "role": "button",
+   "name": "r.episode.title",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "/scan",
+   "file": "apps/mobile/app/scan.tsx",
+   "line": 94,
+   "role": "button",
+   "name": "Close",
+   "destination": "close"
+  },
+  {
+   "surface": "/scan",
+   "file": "apps/mobile/app/scan.tsx",
+   "line": 105,
+   "role": "button",
+   "name": "Allow camera",
+   "destination": "ask"
+  },
+  {
+   "surface": "/scan",
+   "file": "apps/mobile/app/scan.tsx",
+   "line": 146,
+   "role": "button",
+   "name": "Close",
+   "destination": "close"
+  },
+  {
+   "surface": "/scan",
+   "file": "apps/mobile/app/scan.tsx",
+   "line": 154,
+   "role": "button",
+   "name": "torch ? 'Turn the torch off' : 'Turn the torch on'",
+   "destination": "setTorch"
+  },
+  {
+   "surface": "/settings/account-more",
+   "file": "apps/mobile/app/settings/account-more.tsx",
+   "line": 73,
+   "role": "button",
+   "name": "Delete my account",
+   "destination": "setConfirming"
+  },
+  {
+   "surface": "/settings/account-more",
+   "file": "apps/mobile/app/settings/account-more.tsx",
+   "line": 82,
+   "role": "button",
+   "name": "Code",
+   "destination": "remove"
+  },
+  {
+   "surface": "/settings/account-more",
+   "file": "apps/mobile/app/settings/account-more.tsx",
+   "line": 88,
+   "role": "button",
+   "name": "Delete account",
+   "destination": "remove"
+  },
+  {
+   "surface": "/settings/account-more",
+   "file": "apps/mobile/app/settings/account-more.tsx",
+   "line": 92,
+   "role": "button",
+   "name": "Email me a code to confirm",
+   "destination": "sendCode"
+  },
+  {
+   "surface": "/settings/account-more",
+   "file": "apps/mobile/app/settings/account-more.tsx",
+   "line": 96,
+   "role": "button",
+   "name": "Keep my account",
+   "destination": "setConfirming"
+  },
+  {
+   "surface": "/settings/account",
+   "file": "apps/mobile/app/settings/account.tsx",
+   "line": 50,
+   "role": "button",
+   "name": "More account options",
+   "destination": "/settings/account-more"
+  },
+  {
+   "surface": "/settings/appearance",
+   "file": "apps/mobile/app/settings/appearance.tsx",
+   "line": 42,
+   "role": "radio",
+   "name": "${c.label}. ${c.line}",
+   "destination": "choose"
+  },
+  {
+   "surface": "/settings/appearance",
+   "file": "apps/mobile/app/settings/appearance.tsx",
+   "line": 56,
+   "role": "radio",
+   "name": "Accent: ${t.label}",
+   "destination": "pick"
+  },
+  {
+   "surface": "/settings/collected",
+   "file": "apps/mobile/app/settings/collected.tsx",
+   "line": 47,
+   "role": "button",
+   "name": "{i.title}",
+   "destination": "setOpen"
+  },
+  {
+   "surface": "/settings/collected",
+   "file": "apps/mobile/app/settings/collected.tsx",
+   "line": 67,
+   "role": "button",
+   "name": "Close",
+   "destination": "setOpen"
+  },
+  {
+   "surface": "/settings/downloads",
+   "file": "apps/mobile/app/settings/downloads.tsx",
+   "line": 42,
+   "role": "link",
+   "name": "Manage downloads and storage limit",
+   "destination": "/downloads"
+  },
+  {
+   "surface": "/settings/feedback",
+   "file": "apps/mobile/app/settings/feedback.tsx",
+   "line": 81,
+   "role": "tab",
+   "name": "t === 'write' ? 'Write feedback' : 'My feedback'",
+   "destination": "setTab"
+  },
+  {
+   "surface": "/settings/feedback",
+   "file": "apps/mobile/app/settings/feedback.tsx",
+   "line": 90,
+   "role": "radio",
+   "name": "k",
+   "destination": "setKind"
+  },
+  {
+   "surface": "/settings/feedback",
+   "file": "apps/mobile/app/settings/feedback.tsx",
+   "line": 97,
+   "role": "button",
+   "name": "Your feedback",
+   "destination": "setImages"
+  },
+  {
+   "surface": "/settings/feedback",
+   "file": "apps/mobile/app/settings/feedback.tsx",
+   "line": 101,
+   "role": "button",
+   "name": "Remove image ${i + 1}",
+   "destination": "setImages"
+  },
+  {
+   "surface": "/settings/feedback",
+   "file": "apps/mobile/app/settings/feedback.tsx",
+   "line": 106,
+   "role": "button",
+   "name": "Add an image",
+   "destination": "addImages"
+  },
+  {
+   "surface": "/settings/feedback",
+   "file": "apps/mobile/app/settings/feedback.tsx",
+   "line": 112,
+   "role": "button",
+   "name": "busy ? 'Sending…' : 'Send'",
+   "destination": "send"
+  },
+  {
+   "surface": "/settings/help",
+   "file": "apps/mobile/app/settings/help.tsx",
+   "line": 40,
+   "role": "button",
+   "name": "f.q",
+   "destination": "setOpen"
+  },
+  {
+   "surface": "/settings/help",
+   "file": "apps/mobile/app/settings/help.tsx",
+   "line": 51,
+   "role": "link",
+   "name": "Report a problem to support",
+   "destination": "/settings/feedback"
+  },
+  {
+   "surface": "/settings/how-for-you",
+   "file": "apps/mobile/app/settings/how-for-you.tsx",
+   "line": 28,
+   "role": "button",
+   "name": "item.q",
+   "destination": "setOpen"
+  },
+  {
+   "surface": "/settings/more",
+   "file": "apps/mobile/app/settings/more.tsx",
+   "line": 23,
+   "role": "link",
+   "name": "Import or export subscriptions",
+   "destination": "/settings/opml"
+  },
+  {
+   "surface": "/settings/more",
+   "file": "apps/mobile/app/settings/more.tsx",
+   "line": 30,
+   "role": "link",
+   "name": "How For You works",
+   "destination": "/settings/how-for-you"
+  },
+  {
+   "surface": "/settings/opml",
+   "file": "apps/mobile/app/settings/opml.tsx",
+   "line": 58,
+   "role": "header",
+   "name": "Export subscriptions",
+   "destination": "exportAll"
+  },
+  {
+   "surface": "/settings/opml",
+   "file": "apps/mobile/app/settings/opml.tsx",
+   "line": 67,
+   "role": "button",
+   "name": "From ${a.app}",
+   "destination": "setOpenApp"
+  },
+  {
+   "surface": "/settings/opml",
+   "file": "apps/mobile/app/settings/opml.tsx",
+   "line": 82,
+   "role": "input",
+   "name": "OPML to import",
+   "destination": "importAll"
+  },
+  {
+   "surface": "/settings/opml",
+   "file": "apps/mobile/app/settings/opml.tsx",
+   "line": 85,
+   "role": "button",
+   "name": "fresh.length > 0 ? `Subscribe to ${fresh.length}` : 'Nothing new to import'",
+   "destination": "importAll"
+  },
+  {
+   "surface": "/settings/privacy",
+   "file": "apps/mobile/app/settings/privacy.tsx",
+   "line": 44,
+   "role": "link",
+   "name": "Blocked listeners",
+   "destination": "/settings/blocked"
+  },
+  {
+   "surface": "/show/[feedUrl]",
+   "file": "apps/mobile/app/show/[feedUrl].tsx",
+   "line": 212,
+   "role": "button",
+   "name": "subscribed ? 'Unsubscribe from this show' : 'Subscribe to this show'",
+   "destination": "toggleSubscription"
+  },
+  {
+   "surface": "/show/[feedUrl]",
+   "file": "apps/mobile/app/show/[feedUrl].tsx",
+   "line": 232,
+   "role": "tab",
+   "name": "t === 'episodes' ? 'Episodes' : 'About'",
+   "destination": "setTab"
+  },
+  {
+   "surface": "/show/[feedUrl]",
+   "file": "apps/mobile/app/show/[feedUrl].tsx",
+   "line": 244,
+   "role": "button",
+   "name": "oldestFirst ? 'Oldest first. Show newest first' : 'Newest first. Show oldest first'",
+   "destination": "setOldestFirst"
+  },
+  {
+   "surface": "/show/[feedUrl]",
+   "file": "apps/mobile/app/show/[feedUrl].tsx",
+   "line": 248,
+   "role": "button",
+   "name": "unplayedOnly ? 'Showing unplayed only. Show all' : 'Show unplayed only'",
+   "destination": "setUnplayedOnly"
+  },
+  {
+   "surface": "/show/[feedUrl]",
+   "file": "apps/mobile/app/show/[feedUrl].tsx",
+   "line": 255,
+   "role": "tab",
+   "name": "v === 'all' ? 'All' : 'Most played'",
+   "destination": "setView"
+  },
+  {
+   "surface": "/show/[feedUrl]",
+   "file": "apps/mobile/app/show/[feedUrl].tsx",
+   "line": 290,
+   "role": "button",
+   "name": "s.title",
+   "destination": "/show/[feedUrl]"
+  },
+  {
+   "surface": "/show/[feedUrl]",
+   "file": "apps/mobile/app/show/[feedUrl].tsx",
+   "line": 298,
+   "role": "button",
+   "name": "Report this show",
+   "destination": "setReporting"
+  },
+  {
+   "surface": "/show/[feedUrl]",
+   "file": "apps/mobile/app/show/[feedUrl].tsx",
+   "line": 313,
+   "role": "button",
+   "name": "subscribed ? 'Unsubscribe from this show' : 'Subscribe to this show'",
+   "destination": "toggleSubscription"
+  },
+  {
+   "surface": "/show/[feedUrl]",
+   "file": "apps/mobile/app/show/[feedUrl].tsx",
+   "line": 352,
+   "role": "button",
+   "name": "${item.title}. ${meta}",
+   "destination": "/episode/[id]"
+  },
+  {
+   "surface": "/show/[feedUrl]",
+   "file": "apps/mobile/app/show/[feedUrl].tsx",
+   "line": 365,
+   "role": "button",
+   "name": "isPlaying(item.id) ? `Pause ${item.title}` : `Play ${item.title}`",
+   "destination": "playOrPause"
+  },
+  {
+   "surface": "/show/[feedUrl]",
+   "file": "apps/mobile/app/show/[feedUrl].tsx",
+   "line": 373,
+   "role": "button",
+   "name": "More for ${item.title}",
+   "destination": "setMenuFor"
+  },
+  {
+   "surface": "/show/[feedUrl]",
+   "file": "apps/mobile/app/show/[feedUrl].tsx",
+   "line": 393,
+   "role": "button",
+   "name": "Cancel",
+   "destination": "setMenuFor"
+  },
+  {
+   "surface": "/subscriptions",
+   "file": "apps/mobile/app/subscriptions.tsx",
+   "line": 42,
+   "role": "button",
+   "name": "",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "/subscriptions",
+   "file": "apps/mobile/app/subscriptions.tsx",
+   "line": 45,
+   "role": "button",
+   "name": "",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "/subscriptions",
+   "file": "apps/mobile/app/subscriptions.tsx",
+   "line": 104,
+   "role": "tab",
+   "name": "Sort: ${s.label}",
+   "destination": "setSort"
+  },
+  {
+   "surface": "/subscriptions",
+   "file": "apps/mobile/app/subscriptions.tsx",
+   "line": 121,
+   "role": "button",
+   "name": "{item.title}",
+   "destination": "/show/[feedUrl]"
+  },
+  {
+   "surface": "/subscriptions",
+   "file": "apps/mobile/app/subscriptions.tsx",
+   "line": 134,
+   "role": "button",
+   "name": "More for ${item.title}",
+   "destination": "setMenu"
+  },
+  {
+   "surface": "/subscriptions",
+   "file": "apps/mobile/app/subscriptions.tsx",
+   "line": 148,
+   "role": "button",
+   "name": "Cancel",
+   "destination": "star"
+  },
+  {
+   "surface": "/subscriptions",
+   "file": "apps/mobile/app/subscriptions.tsx",
+   "line": 149,
+   "role": "button",
+   "name": "Cancel",
+   "destination": "unsubscribe"
+  },
+  {
+   "surface": "/subscriptions",
+   "file": "apps/mobile/app/subscriptions.tsx",
+   "line": 152,
+   "role": "button",
+   "name": "Cancel",
+   "destination": "setMenu"
+  },
+  {
+   "surface": "/voice/new",
+   "file": "apps/mobile/app/voice/new.tsx",
+   "line": 83,
+   "role": "button",
+   "name": "Cancel",
+   "destination": "back"
+  },
+  {
+   "surface": "/voice/new",
+   "file": "apps/mobile/app/voice/new.tsx",
+   "line": 90,
+   "role": "button",
+   "name": "recording ? 'Stop recording' : phase.kind === 'done' ? 'Record again' : 'Start recording'",
+   "destination": "void"
+  },
+  {
+   "surface": "/voice/new",
+   "file": "apps/mobile/app/voice/new.tsx",
+   "line": 103,
+   "role": "button",
+   "name": "Open settings",
+   "destination": "Linking.openSettings"
+  },
+  {
+   "surface": "/voice/new",
+   "file": "apps/mobile/app/voice/new.tsx",
+   "line": 109,
+   "role": "button",
+   "name": "phase.kind === 'posting' ? 'Posting…' : 'Post'",
+   "destination": "post"
+  },
+  {
+   "surface": "/wallet",
+   "file": "apps/mobile/app/wallet.tsx",
+   "line": 41,
+   "role": "button",
+   "name": "${item.productId}, ${item.status}, ${moneyLabel(item.amountMicros, item.currency)}",
+   "destination": "manage"
+  },
+  {
+   "surface": "BlockButton",
+   "file": "apps/mobile/src/ui/BlockButton.tsx",
+   "line": 36,
+   "role": "button",
+   "name": "blocked ? `Unblock ${props.displayName}` : `Block ${props.displayName}`",
+   "destination": "press"
+  },
+  {
+   "surface": "ChapterList",
+   "file": "apps/mobile/src/ui/ChapterList.tsx",
+   "line": 16,
+   "role": "button",
+   "name": "Chapter ${i + 1}, ${c.title ?? mmss(c.startMs)}",
+   "destination": "props.onSeek"
+  },
+  {
+   "surface": "ChapterList",
+   "file": "apps/mobile/src/ui/ChapterList.tsx",
+   "line": 20,
+   "role": "link",
+   "name": "↗",
+   "destination": "Linking.openURL"
+  },
+  {
+   "surface": "ClipCard",
+   "file": "apps/mobile/src/ui/ClipCard.tsx",
+   "line": 31,
+   "role": "button",
+   "name": "{mmss(clip.startMs)} – {mmss(clip.endMs)}{props.pending ? ' · sending…' : ''}{clip.deleted ? ' · removed' : ''}",
+   "destination": "props.onPlay"
+  },
+  {
+   "surface": "ClipCard",
+   "file": "apps/mobile/src/ui/ClipCard.tsx",
+   "line": 37,
+   "role": "link",
+   "name": "Share this clip",
+   "destination": "props.onShare"
+  },
+  {
+   "surface": "ClipCard",
+   "file": "apps/mobile/src/ui/ClipCard.tsx",
+   "line": 39,
+   "role": "link",
+   "name": "Share this clip",
+   "destination": "props.onShare"
+  },
+  {
+   "surface": "ClipCard",
+   "file": "apps/mobile/src/ui/ClipCard.tsx",
+   "line": 42,
+   "role": "button",
+   "name": "Share this clip",
+   "destination": "props.onShare"
+  },
+  {
+   "surface": "ClipCard",
+   "file": "apps/mobile/src/ui/ClipCard.tsx",
+   "line": 43,
+   "role": "button",
+   "name": "Delete this clip",
+   "destination": "props.onDelete"
+  },
+  {
+   "surface": "ClipCard",
+   "file": "apps/mobile/src/ui/ClipCard.tsx",
+   "line": 44,
+   "role": "button",
+   "name": "Report this clip",
+   "destination": "props.onReport"
+  },
+  {
+   "surface": "ClipComposer",
+   "file": "apps/mobile/src/ui/ClipComposer.tsx",
+   "line": 39,
+   "role": "button",
+   "name": "Start 5 seconds earlier",
+   "destination": "setS"
+  },
+  {
+   "surface": "ClipComposer",
+   "file": "apps/mobile/src/ui/ClipComposer.tsx",
+   "line": 40,
+   "role": "button",
+   "name": "Start 5 seconds earlier",
+   "destination": "setS"
+  },
+  {
+   "surface": "ClipComposer",
+   "file": "apps/mobile/src/ui/ClipComposer.tsx",
+   "line": 41,
+   "role": "button",
+   "name": "Start 5 seconds later",
+   "destination": "setS"
+  },
+  {
+   "surface": "ClipComposer",
+   "file": "apps/mobile/src/ui/ClipComposer.tsx",
+   "line": 44,
+   "role": "button",
+   "name": "End 5 seconds earlier",
+   "destination": "setS"
+  },
+  {
+   "surface": "ClipComposer",
+   "file": "apps/mobile/src/ui/ClipComposer.tsx",
+   "line": 45,
+   "role": "button",
+   "name": "End 5 seconds earlier",
+   "destination": "setS"
+  },
+  {
+   "surface": "ClipComposer",
+   "file": "apps/mobile/src/ui/ClipComposer.tsx",
+   "line": 46,
+   "role": "button",
+   "name": "End 5 seconds later",
+   "destination": "setS"
+  },
+  {
+   "surface": "ClipComposer",
+   "file": "apps/mobile/src/ui/ClipComposer.tsx",
+   "line": 50,
+   "role": "button",
+   "name": "Caption",
+   "destination": "player.playClip"
+  },
+  {
+   "surface": "ClipComposer",
+   "file": "apps/mobile/src/ui/ClipComposer.tsx",
+   "line": 63,
+   "role": "button",
+   "name": "Preview",
+   "destination": "player.playClip"
+  },
+  {
+   "surface": "ClipComposer",
+   "file": "apps/mobile/src/ui/ClipComposer.tsx",
+   "line": 64,
+   "role": "button",
+   "name": "{props.saving ? 'Saving…' : 'Save'}",
+   "destination": "props.onSave"
+  },
+  {
+   "surface": "CommentList",
+   "file": "apps/mobile/src/ui/CommentList.tsx",
+   "line": 68,
+   "role": "link",
+   "name": "Host of this show",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "CommentList",
+   "file": "apps/mobile/src/ui/CommentList.tsx",
+   "line": 69,
+   "role": "link",
+   "name": "Host of this show",
+   "destination": "props.onSeek"
+  },
+  {
+   "surface": "CommentList",
+   "file": "apps/mobile/src/ui/CommentList.tsx",
+   "line": 74,
+   "role": "button",
+   "name": "Play from ${mmss(c.offsetMs)}",
+   "destination": "props.onSeek"
+  },
+  {
+   "surface": "CommentList",
+   "file": "apps/mobile/src/ui/CommentList.tsx",
+   "line": 84,
+   "role": "button",
+   "name": "isFavComment(stores.settings, c.id) ? 'Remove this comment from favourites' : 'Add this comment to favourites'",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "CommentList",
+   "file": "apps/mobile/src/ui/CommentList.tsx",
+   "line": 89,
+   "role": "button",
+   "name": "isFavComment(stores.settings, c.id) ? 'Remove this comment from favourites' : 'Add this comment to favourites'",
+   "destination": "star"
+  },
+  {
+   "surface": "CommentList",
+   "file": "apps/mobile/src/ui/CommentList.tsx",
+   "line": 94,
+   "role": "button",
+   "name": "Delete this comment",
+   "destination": "remove"
+  },
+  {
+   "surface": "CommentList",
+   "file": "apps/mobile/src/ui/CommentList.tsx",
+   "line": 98,
+   "role": "button",
+   "name": "Report this comment",
+   "destination": "setReporting"
+  },
+  {
+   "surface": "CommentList",
+   "file": "apps/mobile/src/ui/CommentList.tsx",
+   "line": 105,
+   "role": "button",
+   "name": "",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "CommentList",
+   "file": "apps/mobile/src/ui/CommentList.tsx",
+   "line": 115,
+   "role": "button",
+   "name": "{o === 'newest' ? 'Newest' : 'By moment'}",
+   "destination": "setOrder"
+  },
+  {
+   "surface": "CommentList",
+   "file": "apps/mobile/src/ui/CommentList.tsx",
+   "line": 122,
+   "role": "button",
+   "name": "{listener ? 'Write a comment' : 'Sign in to join the conversation'}",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "CommentList",
+   "file": "apps/mobile/src/ui/CommentList.tsx",
+   "line": 126,
+   "role": "button",
+   "name": "",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "CommentPreview",
+   "file": "apps/mobile/src/ui/CommentPreview.tsx",
+   "line": 36,
+   "role": "button",
+   "name": "No comments yet — be the first to say something.",
+   "destination": "props.onOpen"
+  },
+  {
+   "surface": "CommentRow",
+   "file": "apps/mobile/src/ui/CommentRow.tsx",
+   "line": 89,
+   "role": "button",
+   "name": "{initialsFor(c)}",
+   "destination": "props.onMenu"
+  },
+  {
+   "surface": "CommentRow",
+   "file": "apps/mobile/src/ui/CommentRow.tsx",
+   "line": 105,
+   "role": "link",
+   "name": "Host of this show",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "CommentRow",
+   "file": "apps/mobile/src/ui/CommentRow.tsx",
+   "line": 122,
+   "role": "button",
+   "name": "{open ? 'Less' : 'More'}",
+   "destination": "setOpen"
+  },
+  {
+   "surface": "CommentRow",
+   "file": "apps/mobile/src/ui/CommentRow.tsx",
+   "line": 129,
+   "role": "button",
+   "name": "${like.liked ? 'Unlike' : 'Like'}. ${plural(like.count, 'like')}",
+   "destination": "props.onLike"
+  },
+  {
+   "surface": "CommentRow",
+   "file": "apps/mobile/src/ui/CommentRow.tsx",
+   "line": 148,
+   "role": "button",
+   "name": "expanded ? more : `${more}: ${plural(replies.length, 'reply', 'replies')} in all`",
+   "destination": "setExpanded"
+  },
+  {
+   "surface": "CommentsButton",
+   "file": "apps/mobile/src/ui/CommentsButton.tsx",
+   "line": 16,
+   "role": "button",
+   "name": "n > 0 ? `Comments on ${props.title}, ${plural(n, 'comment')}` : `Comments on ${props.title}`",
+   "destination": "props.onPress"
+  },
+  {
+   "surface": "Composer",
+   "file": "apps/mobile/src/ui/Composer.tsx",
+   "line": 65,
+   "role": "button",
+   "name": "Remove the moment",
+   "destination": "setState"
+  },
+  {
+   "surface": "Composer",
+   "file": "apps/mobile/src/ui/Composer.tsx",
+   "line": 75,
+   "role": "button",
+   "name": "Comment",
+   "destination": "props.onClose"
+  },
+  {
+   "surface": "Composer",
+   "file": "apps/mobile/src/ui/Composer.tsx",
+   "line": 88,
+   "role": "button",
+   "name": "Cancel",
+   "destination": "props.onClose"
+  },
+  {
+   "surface": "Composer",
+   "file": "apps/mobile/src/ui/Composer.tsx",
+   "line": 89,
+   "role": "button",
+   "name": "Post",
+   "destination": "submit"
+  },
+  {
+   "surface": "ContinueListening",
+   "file": "apps/mobile/src/ui/ContinueListening.tsx",
+   "line": 41,
+   "role": "button",
+   "name": "Continue ${episode.title}",
+   "destination": "/player"
+  },
+  {
+   "surface": "DownloadButton",
+   "file": "apps/mobile/src/ui/DownloadButton.tsx",
+   "line": 48,
+   "role": "button",
+   "name": "Download this episode",
+   "destination": "request"
+  },
+  {
+   "surface": "DownloadButton",
+   "file": "apps/mobile/src/ui/DownloadButton.tsx",
+   "line": 50,
+   "role": "button",
+   "name": "Download now on mobile data",
+   "destination": "request"
+  },
+  {
+   "surface": "DownloadButton",
+   "file": "apps/mobile/src/ui/DownloadButton.tsx",
+   "line": 51,
+   "role": "button",
+   "name": "Use mobile data instead",
+   "destination": "setAskMobile"
+  },
+  {
+   "surface": "DownloadButton",
+   "file": "apps/mobile/src/ui/DownloadButton.tsx",
+   "line": 59,
+   "role": "button",
+   "name": "Remove the download",
+   "destination": "downloads.remove"
+  },
+  {
+   "surface": "DownloadButton",
+   "file": "apps/mobile/src/ui/DownloadButton.tsx",
+   "line": 60,
+   "role": "button",
+   "name": "Remove the download",
+   "destination": "downloads.remove"
+  },
+  {
+   "surface": "DownloadButton",
+   "file": "apps/mobile/src/ui/DownloadButton.tsx",
+   "line": 68,
+   "role": "button",
+   "name": "Cancel the download",
+   "destination": "downloads.cancel"
+  },
+  {
+   "surface": "DownloadButton",
+   "file": "apps/mobile/src/ui/DownloadButton.tsx",
+   "line": 69,
+   "role": "button",
+   "name": "Cancel the download",
+   "destination": "downloads.cancel"
+  },
+  {
+   "surface": "EmptyState",
+   "file": "apps/mobile/src/ui/EmptyState.tsx",
+   "line": 58,
+   "role": "button",
+   "name": "Retry",
+   "destination": "props.onRetry"
+  },
+  {
+   "surface": "EmptyState",
+   "file": "apps/mobile/src/ui/EmptyState.tsx",
+   "line": 69,
+   "role": "button",
+   "name": "action.label",
+   "destination": "action.onPress"
+  },
+  {
+   "surface": "EndOffer",
+   "file": "apps/mobile/src/ui/EndOffer.tsx",
+   "line": 13,
+   "role": "button",
+   "name": "Play it",
+   "destination": "props.onPlay"
+  },
+  {
+   "surface": "EpisodeRow",
+   "file": "apps/mobile/src/ui/EpisodeRow.tsx",
+   "line": 13,
+   "role": "button",
+   "name": "props.label ?? `${card.title}, ${card.showTitle}`",
+   "destination": "props.onPress"
+  },
+  {
+   "surface": "FeedItem",
+   "file": "apps/mobile/src/ui/FeedItem.tsx",
+   "line": 21,
+   "role": "button",
+   "name": "${item.actor.displayName ?? 'Someone'} ${describe(item)}",
+   "destination": "props.onOpen"
+  },
+  {
+   "surface": "FeedItem",
+   "file": "apps/mobile/src/ui/FeedItem.tsx",
+   "line": 23,
+   "role": "link",
+   "name": "{item.actor.displayName ?? 'Deleted account'}",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "FollowButton",
+   "file": "apps/mobile/src/ui/FollowButton.tsx",
+   "line": 17,
+   "role": "button",
+   "name": "following ? 'Unfollow' : 'Follow'",
+   "destination": "/auth/sign-in"
+  },
+  {
+   "surface": "FollowList",
+   "file": "apps/mobile/src/ui/FollowList.tsx",
+   "line": 75,
+   "role": "button",
+   "name": "Retry",
+   "destination": "load"
+  },
+  {
+   "surface": "FollowList",
+   "file": "apps/mobile/src/ui/FollowList.tsx",
+   "line": 79,
+   "role": "link",
+   "name": "{item.displayName ?? 'Deleted account'}",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "HeatCurve",
+   "file": "apps/mobile/src/ui/HeatCurve.tsx",
+   "line": 68,
+   "role": "adjustable",
+   "name": "label",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "LaunchScreen",
+   "file": "apps/mobile/src/ui/LaunchScreen.tsx",
+   "line": 81,
+   "role": "button",
+   "name": "${props.promotion.label} image",
+   "destination": "open"
+  },
+  {
+   "surface": "LaunchScreen",
+   "file": "apps/mobile/src/ui/LaunchScreen.tsx",
+   "line": 94,
+   "role": "button",
+   "name": "Skip",
+   "destination": "finish"
+  },
+  {
+   "surface": "LaunchScreen",
+   "file": "apps/mobile/src/ui/LaunchScreen.tsx",
+   "line": 107,
+   "role": "link",
+   "name": "${props.promotion.label}. Opens the promotion",
+   "destination": "open"
+  },
+  {
+   "surface": "LegalDoc",
+   "file": "apps/mobile/src/ui/LegalDoc.tsx",
+   "line": 112,
+   "role": "button",
+   "name": "Back",
+   "destination": "props.onClose"
+  },
+  {
+   "surface": "LegalDoc",
+   "file": "apps/mobile/src/ui/LegalDoc.tsx",
+   "line": 138,
+   "role": "button",
+   "name": "Go to ${e.label}",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "MiniPlayer",
+   "file": "apps/mobile/src/ui/MiniPlayer.tsx",
+   "line": 102,
+   "role": "link",
+   "name": "Now playing: ${episode?.title ?? 'an episode'}. Open the player.",
+   "destination": "/player"
+  },
+  {
+   "surface": "MiniPlayer",
+   "file": "apps/mobile/src/ui/MiniPlayer.tsx",
+   "line": 119,
+   "role": "button",
+   "name": "isPlaying ? 'Pause' : 'Play'",
+   "destination": "/queue"
+  },
+  {
+   "surface": "MiniPlayer",
+   "file": "apps/mobile/src/ui/MiniPlayer.tsx",
+   "line": 131,
+   "role": "link",
+   "name": "Queue",
+   "destination": "/queue"
+  },
+  {
+   "surface": "MomentSheet",
+   "file": "apps/mobile/src/ui/MomentSheet.tsx",
+   "line": 60,
+   "role": "button",
+   "name": "Reply",
+   "destination": "/auth/sign-in"
+  },
+  {
+   "surface": "MomentSheet",
+   "file": "apps/mobile/src/ui/MomentSheet.tsx",
+   "line": 65,
+   "role": "button",
+   "name": "Report this comment",
+   "destination": "remove"
+  },
+  {
+   "surface": "MomentSheet",
+   "file": "apps/mobile/src/ui/MomentSheet.tsx",
+   "line": 69,
+   "role": "button",
+   "name": "Report this comment",
+   "destination": "setReporting"
+  },
+  {
+   "surface": "MomentSheet",
+   "file": "apps/mobile/src/ui/MomentSheet.tsx",
+   "line": 76,
+   "role": "button",
+   "name": "",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "MomentSheet",
+   "file": "apps/mobile/src/ui/MomentSheet.tsx",
+   "line": 89,
+   "role": "button",
+   "name": "Close",
+   "destination": "props.onClose"
+  },
+  {
+   "surface": "MomentSheet",
+   "file": "apps/mobile/src/ui/MomentSheet.tsx",
+   "line": 92,
+   "role": "button",
+   "name": "",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "NavLink",
+   "file": "apps/mobile/src/ui/NavLink.tsx",
+   "line": 16,
+   "role": "link",
+   "name": "props.label",
+   "destination": "props.href"
+  },
+  {
+   "surface": "NavLink",
+   "file": "apps/mobile/src/ui/NavLink.tsx",
+   "line": 19,
+   "role": "link",
+   "name": "props.label",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "NoticeCards",
+   "file": "apps/mobile/src/ui/NoticeCards.tsx",
+   "line": 15,
+   "role": "tab",
+   "name": "{props.title}",
+   "destination": "props.onPress"
+  },
+  {
+   "surface": "ProfileStatRow",
+   "file": "apps/mobile/src/ui/ProfileStatRow.tsx",
+   "line": 33,
+   "role": "link",
+   "name": "cell.spoken",
+   "destination": "cell.href as never"
+  },
+  {
+   "surface": "QueueButtons",
+   "file": "apps/mobile/src/ui/QueueButtons.tsx",
+   "line": 24,
+   "role": "button",
+   "name": "Play next",
+   "destination": "add"
+  },
+  {
+   "surface": "QueueButtons",
+   "file": "apps/mobile/src/ui/QueueButtons.tsx",
+   "line": 25,
+   "role": "button",
+   "name": "Add to queue",
+   "destination": "add"
+  },
+  {
+   "surface": "QueueList",
+   "file": "apps/mobile/src/ui/QueueList.tsx",
+   "line": 94,
+   "role": "button",
+   "name": "Play ${title}",
+   "destination": "props.onPlay"
+  },
+  {
+   "surface": "QueueList",
+   "file": "apps/mobile/src/ui/QueueList.tsx",
+   "line": 101,
+   "role": "button",
+   "name": "More for ${title}",
+   "destination": "props.onToggle"
+  },
+  {
+   "surface": "QueueList",
+   "file": "apps/mobile/src/ui/QueueList.tsx",
+   "line": 107,
+   "role": "button",
+   "name": "Play now",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "QueueList",
+   "file": "apps/mobile/src/ui/QueueList.tsx",
+   "line": 108,
+   "role": "button",
+   "name": "Move to top",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "QueueList",
+   "file": "apps/mobile/src/ui/QueueList.tsx",
+   "line": 109,
+   "role": "button",
+   "name": "Move up",
+   "destination": "props.onChange"
+  },
+  {
+   "surface": "QueueList",
+   "file": "apps/mobile/src/ui/QueueList.tsx",
+   "line": 110,
+   "role": "button",
+   "name": "Move down",
+   "destination": "props.onChange"
+  },
+  {
+   "surface": "QueueList",
+   "file": "apps/mobile/src/ui/QueueList.tsx",
+   "line": 111,
+   "role": "button",
+   "name": "Remove from the queue",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "Rail",
+   "file": "apps/mobile/src/ui/Rail.tsx",
+   "line": 53,
+   "role": "button",
+   "name": "markerLabel(m)",
+   "destination": "props.onTap"
+  },
+  {
+   "surface": "ReportSheet",
+   "file": "apps/mobile/src/ui/ReportSheet.tsx",
+   "line": 56,
+   "role": "radio",
+   "name": "REASON_LABEL[r]",
+   "destination": "setReason"
+  },
+  {
+   "surface": "ReportSheet",
+   "file": "apps/mobile/src/ui/ReportSheet.tsx",
+   "line": 62,
+   "role": "button",
+   "name": "Note, optional",
+   "destination": "close"
+  },
+  {
+   "surface": "ReportSheet",
+   "file": "apps/mobile/src/ui/ReportSheet.tsx",
+   "line": 66,
+   "role": "button",
+   "name": "Cancel",
+   "destination": "close"
+  },
+  {
+   "surface": "ReportSheet",
+   "file": "apps/mobile/src/ui/ReportSheet.tsx",
+   "line": 67,
+   "role": "button",
+   "name": "Send report",
+   "destination": "send"
+  },
+  {
+   "surface": "Row",
+   "file": "apps/mobile/src/ui/Row.tsx",
+   "line": 46,
+   "role": "button",
+   "name": "props.accessibilityLabel ?? (props.line ? `${props.title}, ${props.line}` : props.title)",
+   "destination": "props.onPress"
+  },
+  {
+   "surface": "Scrubber",
+   "file": "apps/mobile/src/ui/Scrubber.tsx",
+   "line": 57,
+   "role": "adjustable",
+   "name": "Seek",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "ShareChooser",
+   "file": "apps/mobile/src/ui/ShareChooser.tsx",
+   "line": 89,
+   "role": "button",
+   "name": "More ways to share",
+   "destination": "close"
+  },
+  {
+   "surface": "ShareChooser",
+   "file": "apps/mobile/src/ui/ShareChooser.tsx",
+   "line": 91,
+   "role": "button",
+   "name": "More ways to share",
+   "destination": "close"
+  },
+  {
+   "surface": "ShareChooser",
+   "file": "apps/mobile/src/ui/ShareChooser.tsx",
+   "line": 92,
+   "role": "button",
+   "name": "Cancel",
+   "destination": "props.onClose"
+  },
+  {
+   "surface": "SheetRow",
+   "file": "apps/mobile/src/ui/SheetRow.tsx",
+   "line": 27,
+   "role": "button",
+   "name": "props.accessibilityLabel ?? props.label",
+   "destination": "props.onPress"
+  },
+  {
+   "surface": "ShowExtras",
+   "file": "apps/mobile/src/ui/ShowExtras.tsx",
+   "line": 45,
+   "role": "link",
+   "name": "${label}, opens ${value}",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "ShowExtras",
+   "file": "apps/mobile/src/ui/ShowExtras.tsx",
+   "line": 75,
+   "role": "link",
+   "name": "${l.label}, opens ${l.url}",
+   "destination": "openLink"
+  },
+  {
+   "surface": "ShowExtras",
+   "file": "apps/mobile/src/ui/ShowExtras.tsx",
+   "line": 116,
+   "role": "button",
+   "name": "Vote ${o.label}",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "SignOut",
+   "file": "apps/mobile/src/ui/SignOut.tsx",
+   "line": 18,
+   "role": "button",
+   "name": "Sign out",
+   "destination": "setAsking"
+  },
+  {
+   "surface": "SignOut",
+   "file": "apps/mobile/src/ui/SignOut.tsx",
+   "line": 27,
+   "role": "button",
+   "name": "Stay signed in",
+   "destination": "setAsking"
+  },
+  {
+   "surface": "SignOut",
+   "file": "apps/mobile/src/ui/SignOut.tsx",
+   "line": 30,
+   "role": "button",
+   "name": "Confirm sign out",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "SleepTimerControl",
+   "file": "apps/mobile/src/ui/SleepTimerControl.tsx",
+   "line": 30,
+   "role": "button",
+   "name": "{c === 'endOfEpisode' ? 'End of episode' : `${c} min`}",
+   "destination": "player.setSleepTimer"
+  },
+  {
+   "surface": "SleepTimerControl",
+   "file": "apps/mobile/src/ui/SleepTimerControl.tsx",
+   "line": 38,
+   "role": "button",
+   "name": "Cancel",
+   "destination": "player.setSleepTimer"
+  },
+  {
+   "surface": "SleepTimerControl",
+   "file": "apps/mobile/src/ui/SleepTimerControl.tsx",
+   "line": 43,
+   "role": "button",
+   "name": "Cancel",
+   "destination": "player.setSleepTimer"
+  },
+  {
+   "surface": "SpeedControl",
+   "file": "apps/mobile/src/ui/SpeedControl.tsx",
+   "line": 25,
+   "role": "button",
+   "name": "Slower",
+   "destination": "set"
+  },
+  {
+   "surface": "SpeedControl",
+   "file": "apps/mobile/src/ui/SpeedControl.tsx",
+   "line": 27,
+   "role": "button",
+   "name": "Faster",
+   "destination": "set"
+  },
+  {
+   "surface": "SpeedControl",
+   "file": "apps/mobile/src/ui/SpeedControl.tsx",
+   "line": 29,
+   "role": "button",
+   "name": "${p}×",
+   "destination": "set"
+  },
+  {
+   "surface": "SpeedControl",
+   "file": "apps/mobile/src/ui/SpeedControl.tsx",
+   "line": 34,
+   "role": "button",
+   "name": "Set {rate.toFixed(1)}× as default (this show remembers its own)",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "TabBar",
+   "file": "apps/mobile/src/ui/TabBar.tsx",
+   "line": 54,
+   "role": "tab",
+   "name": "badge === undefined ? item.label : `${item.label}, ${badge} new`",
+   "destination": "props.onSelect"
+  },
+  {
+   "surface": "Terms",
+   "file": "apps/mobile/src/ui/Terms.tsx",
+   "line": 57,
+   "role": "button",
+   "name": "props.label",
+   "destination": "props.onPress"
+  },
+  {
+   "surface": "Terms",
+   "file": "apps/mobile/src/ui/Terms.tsx",
+   "line": 84,
+   "role": "button",
+   "name": "${item.link}, ${item.points.length} points",
+   "destination": "props.onToggle"
+  },
+  {
+   "surface": "Terms",
+   "file": "apps/mobile/src/ui/Terms.tsx",
+   "line": 107,
+   "role": "link",
+   "name": "${item.link}, opens the full text",
+   "destination": "props.onOpen"
+  },
+  {
+   "surface": "Terms",
+   "file": "apps/mobile/src/ui/Terms.tsx",
+   "line": 176,
+   "role": "button",
+   "name": "Disagree",
+   "destination": "setRefused"
+  },
+  {
+   "surface": "Toggle",
+   "file": "apps/mobile/src/ui/Toggle.tsx",
+   "line": 44,
+   "role": "switch",
+   "name": "props.label",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "TopBar",
+   "file": "apps/mobile/src/ui/TopBar.tsx",
+   "line": 21,
+   "role": "button",
+   "name": "props.back === 'down' ? 'Close the player' : 'Back'",
+   "destination": "props.onBack"
+  },
+  {
+   "surface": "TopBar",
+   "file": "apps/mobile/src/ui/TopBar.tsx",
+   "line": 34,
+   "role": "button",
+   "name": "props.label",
+   "destination": "props.onPress"
+  },
+  {
+   "surface": "TranscriptPane",
+   "file": "apps/mobile/src/ui/TranscriptPane.tsx",
+   "line": 26,
+   "role": "button",
+   "name": "{mmss(l.startMs)}",
+   "destination": "props.onSeek"
+  },
+  {
+   "surface": "UpdateEpisodeRow",
+   "file": "apps/mobile/src/ui/UpdateEpisodeRow.tsx",
+   "line": 45,
+   "role": "button",
+   "name": "props.label",
+   "destination": "props.onPress"
+  },
+  {
+   "surface": "UpdateEpisodeRow",
+   "file": "apps/mobile/src/ui/UpdateEpisodeRow.tsx",
+   "line": 71,
+   "role": "button",
+   "name": "Open ${item.showTitle}",
+   "destination": "props.onOpenShow"
+  },
+  {
+   "surface": "UpdateEpisodeRow",
+   "file": "apps/mobile/src/ui/UpdateEpisodeRow.tsx",
+   "line": 75,
+   "role": "button",
+   "name": "${e.title}, ${item.showTitle}. ${meta.label}",
+   "destination": "props.onOpenEpisode"
+  },
+  {
+   "surface": "VoicePosts",
+   "file": "apps/mobile/src/ui/VoicePosts.tsx",
+   "line": 59,
+   "role": "button",
+   "name": "Record a voice status",
+   "destination": "/voice/new"
+  },
+  {
+   "surface": "VoicePosts",
+   "file": "apps/mobile/src/ui/VoicePosts.tsx",
+   "line": 64,
+   "role": "button",
+   "name": "voiceLabel(p, now, playing === p.id)",
+   "destination": "toggle"
+  },
+  {
+   "surface": "AuthShell",
+   "file": "apps/mobile/src/ui/auth/AuthShell.tsx",
+   "line": 47,
+   "role": "button",
+   "name": "Close",
+   "destination": "close"
+  },
+  {
+   "surface": "AuthShell",
+   "file": "apps/mobile/src/ui/auth/AuthShell.tsx",
+   "line": 77,
+   "role": "input",
+   "name": "props.accessibilityLabel",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "AuthShell",
+   "file": "apps/mobile/src/ui/auth/AuthShell.tsx",
+   "line": 115,
+   "role": "button",
+   "name": "props.label",
+   "destination": "props.onPress"
+  },
+  {
+   "surface": "AuthShell",
+   "file": "apps/mobile/src/ui/auth/AuthShell.tsx",
+   "line": 165,
+   "role": "input",
+   "name": "Code",
+   "destination": "props.onChange"
+  },
+  {
+   "surface": "AuthShell",
+   "file": "apps/mobile/src/ui/auth/AuthShell.tsx",
+   "line": 191,
+   "role": "button",
+   "name": "Use a different email",
+   "destination": "props.onChange"
+  },
+  {
+   "surface": "Consent",
+   "file": "apps/mobile/src/ui/auth/Consent.tsx",
+   "line": 56,
+   "role": "checkbox",
+   "name": "I have read and agree to the Service Agreement and Privacy Policy",
+   "destination": "props.onToggle"
+  },
+  {
+   "surface": "Consent",
+   "file": "apps/mobile/src/ui/auth/Consent.tsx",
+   "line": 85,
+   "role": "link",
+   "name": "label",
+   "destination": "props.open"
+  },
+  {
+   "surface": "Consent",
+   "file": "apps/mobile/src/ui/auth/Consent.tsx",
+   "line": 108,
+   "role": "button",
+   "name": "Agree and ${props.action}",
+   "destination": "props.onAgree"
+  },
+  {
+   "surface": "Consent",
+   "file": "apps/mobile/src/ui/auth/Consent.tsx",
+   "line": 111,
+   "role": "button",
+   "name": "Cancel",
+   "destination": "props.onCancel"
+  },
+  {
+   "surface": "EpisodeCard",
+   "file": "apps/mobile/src/ui/comments/EpisodeCard.tsx",
+   "line": 49,
+   "role": "link",
+   "name": "{episode.title}",
+   "destination": "/player"
+  },
+  {
+   "surface": "EpisodeCard",
+   "file": "apps/mobile/src/ui/comments/EpisodeCard.tsx",
+   "line": 63,
+   "role": "button",
+   "name": "playing ? 'Pause' : 'Play'",
+   "destination": "toggle"
+  },
+  {
+   "surface": "confirm",
+   "file": "apps/mobile/src/ui/confirm.tsx",
+   "line": 45,
+   "role": "button",
+   "name": "cancel",
+   "destination": "props.onClose"
+  },
+  {
+   "surface": "confirm",
+   "file": "apps/mobile/src/ui/confirm.tsx",
+   "line": 49,
+   "role": "button",
+   "name": "action",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "parts",
+   "file": "apps/mobile/src/ui/discover/parts.tsx",
+   "line": 37,
+   "role": "link",
+   "name": "props.action.label",
+   "destination": "props.action.onPress"
+  },
+  {
+   "surface": "parts",
+   "file": "apps/mobile/src/ui/discover/parts.tsx",
+   "line": 52,
+   "role": "button",
+   "name": "Play ${props.title}",
+   "destination": "props.onPress"
+  },
+  {
+   "surface": "parts",
+   "file": "apps/mobile/src/ui/discover/parts.tsx",
+   "line": 68,
+   "role": "button",
+   "name": "props.label ?? `${card.title}, ${card.showTitle}`",
+   "destination": "props.onOpen"
+  },
+  {
+   "surface": "parts",
+   "file": "apps/mobile/src/ui/discover/parts.tsx",
+   "line": 123,
+   "role": "search",
+   "name": "props.hint ? `Search. Trending: ${props.hint}` : 'Search shows and episodes'",
+   "destination": "press"
+  },
+  {
+   "surface": "parts",
+   "file": "apps/mobile/src/ui/discover/parts.tsx",
+   "line": 134,
+   "role": "button",
+   "name": "Scan a QR code",
+   "destination": "props.onScan"
+  },
+  {
+   "surface": "sections",
+   "file": "apps/mobile/src/ui/discover/sections.tsx",
+   "line": 37,
+   "role": "button",
+   "name": "c.label",
+   "destination": "c.onPress"
+  },
+  {
+   "surface": "sections",
+   "file": "apps/mobile/src/ui/discover/sections.tsx",
+   "line": 75,
+   "role": "button",
+   "name": "${p.episode.title}, ${p.episode.showTitle}",
+   "destination": "props.onOpen"
+  },
+  {
+   "surface": "sections",
+   "file": "apps/mobile/src/ui/discover/sections.tsx",
+   "line": 80,
+   "role": "button",
+   "name": "Open ${p.episode.title}",
+   "destination": "props.onOpen"
+  },
+  {
+   "surface": "sections",
+   "file": "apps/mobile/src/ui/discover/sections.tsx",
+   "line": 111,
+   "role": "tab",
+   "name": "${t.label} chart",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "sections",
+   "file": "apps/mobile/src/ui/discover/sections.tsx",
+   "line": 117,
+   "role": "link",
+   "name": "Full chart",
+   "destination": "props.onFull"
+  },
+  {
+   "surface": "sections",
+   "file": "apps/mobile/src/ui/discover/sections.tsx",
+   "line": 145,
+   "role": "button",
+   "name": "g.name",
+   "destination": "props.onGenre"
+  },
+  {
+   "surface": "sections",
+   "file": "apps/mobile/src/ui/discover/sections.tsx",
+   "line": 164,
+   "role": "button",
+   "name": "s.line ? `${s.title}. ${s.line}` : s.title",
+   "destination": "props.onShow"
+  },
+  {
+   "surface": "sections",
+   "file": "apps/mobile/src/ui/discover/sections.tsx",
+   "line": 239,
+   "role": "link",
+   "name": "Explore more categories",
+   "destination": "props.onPress"
+  },
+  {
+   "surface": "sections",
+   "file": "apps/mobile/src/ui/discover/sections.tsx",
+   "line": 253,
+   "role": "button",
+   "name": "Video: ${i.episode.title}, ${i.episode.showTitle}",
+   "destination": "props.onOpen"
+  },
+  {
+   "surface": "EpisodeExtras",
+   "file": "apps/mobile/src/ui/me/EpisodeExtras.tsx",
+   "line": 31,
+   "role": "button",
+   "name": "Save the moment at ${mmss(props.atMs)}",
+   "destination": "setFav"
+  },
+  {
+   "surface": "EpisodeExtras",
+   "file": "apps/mobile/src/ui/me/EpisodeExtras.tsx",
+   "line": 37,
+   "role": "button",
+   "name": "Note for this moment",
+   "destination": "setNote"
+  },
+  {
+   "surface": "EpisodeExtras",
+   "file": "apps/mobile/src/ui/me/EpisodeExtras.tsx",
+   "line": 40,
+   "role": "button",
+   "name": "Save moment",
+   "destination": "setNote"
+  },
+  {
+   "surface": "EpisodeExtras",
+   "file": "apps/mobile/src/ui/me/EpisodeExtras.tsx",
+   "line": 41,
+   "role": "button",
+   "name": "Cancel",
+   "destination": "setNote"
+  },
+  {
+   "surface": "FilterBar",
+   "file": "apps/mobile/src/ui/me/FilterBar.tsx",
+   "line": 19,
+   "role": "input",
+   "name": "props.placeholder",
+   "destination": "props.onTerm"
+  },
+  {
+   "surface": "parts",
+   "file": "apps/mobile/src/ui/me/parts.tsx",
+   "line": 23,
+   "role": "link",
+   "name": "spoken",
+   "destination": "props.href as never"
+  },
+  {
+   "surface": "SearchPage",
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "line": 254,
+   "role": "button",
+   "name": "${s.title}, ${s.author}",
+   "destination": "openShow"
+  },
+  {
+   "surface": "SearchPage",
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "line": 263,
+   "role": "button",
+   "name": "on ? `Unsubscribe from ${s.title}` : `Subscribe to ${s.title}`",
+   "destination": "toggleSubscription"
+  },
+  {
+   "surface": "SearchPage",
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "line": 272,
+   "role": "button",
+   "name": "More ${label.toLowerCase()}",
+   "destination": "setTab"
+  },
+  {
+   "surface": "SearchPage",
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "line": 300,
+   "role": "button",
+   "name": "Search podcasts",
+   "destination": "/scan"
+  },
+  {
+   "surface": "SearchPage",
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "line": 304,
+   "role": "button",
+   "name": "Scan a QR code",
+   "destination": "/scan"
+  },
+  {
+   "surface": "SearchPage",
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "line": 312,
+   "role": "button",
+   "name": "Cancel",
+   "destination": "leave"
+  },
+  {
+   "surface": "SearchPage",
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "line": 321,
+   "role": "tab",
+   "name": "t.label",
+   "destination": "setTab"
+  },
+  {
+   "surface": "SearchPage",
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "line": 335,
+   "role": "button",
+   "name": "Search for ${t}",
+   "destination": "run"
+  },
+  {
+   "surface": "SearchPage",
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "line": 342,
+   "role": "link",
+   "name": "Browse categories",
+   "destination": "/category/[id]"
+  },
+  {
+   "surface": "SearchPage",
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "line": 347,
+   "role": "button",
+   "name": "g.name",
+   "destination": "/category/[id]"
+  },
+  {
+   "surface": "SearchPage",
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "line": 358,
+   "role": "button",
+   "name": "Clear recent searches",
+   "destination": "dynamic"
+  },
+  {
+   "surface": "SearchPage",
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "line": 365,
+   "role": "button",
+   "name": "Search for ${h}",
+   "destination": "run"
+  },
+  {
+   "surface": "SearchPage",
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "line": 375,
+   "role": "button",
+   "name": "Open feed {trimmed}",
+   "destination": "openShow"
+  },
+  {
+   "surface": "SearchPage",
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "line": 381,
+   "role": "button",
+   "name": "Search for ${trimmed}",
+   "destination": "run"
+  },
+  {
+   "surface": "SearchPage",
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "line": 387,
+   "role": "button",
+   "name": "Open ${s.title}",
+   "destination": "openShow"
+  },
+  {
+   "surface": "SearchPage",
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "line": 393,
+   "role": "button",
+   "name": "Search for ${name}",
+   "destination": "run"
+  },
+  {
+   "surface": "SearchPage",
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "line": 429,
+   "role": "link",
+   "name": "p.displayName ?? 'Listener'",
+   "destination": "/profile/[id]"
+  },
+  {
+   "surface": "rows",
+   "file": "apps/mobile/src/ui/settings/rows.tsx",
+   "line": 38,
+   "role": "link",
+   "name": "spoken",
+   "destination": "props.href as never"
+  },
+  {
+   "surface": "rows",
+   "file": "apps/mobile/src/ui/settings/rows.tsx",
+   "line": 52,
+   "role": "button",
+   "name": "spoken",
+   "destination": "props.onPress"
+  },
+  {
+   "surface": "AnnouncementCard",
+   "file": "apps/mobile/src/ui/show/AnnouncementCard.tsx",
+   "line": 26,
+   "role": "button",
+   "name": "${heading}. ${props.announcement.body}",
+   "destination": "setOpen"
+  },
+  {
+   "surface": "CuratorLine",
+   "file": "apps/mobile/src/ui/show/CuratorLine.tsx",
+   "line": 32,
+   "role": "link",
+   "name": "label",
+   "destination": "open"
+  },
+  {
+   "surface": "CuratorLine",
+   "file": "apps/mobile/src/ui/show/CuratorLine.tsx",
+   "line": 44,
+   "role": "link",
+   "name": "label",
+   "destination": "open"
+  }
+ ]
+}

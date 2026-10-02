@@ -31,12 +31,12 @@ const buttonStyle = tva({
       default:
         'bg-primary data-[hover=true]:bg-primary/90 data-[active=true]:bg-primary/90',
       destructive:
-        'bg-accent data-[hover=true]:bg-accent/90 data-[active=true]:bg-accent/90 focus-visible:ring-accent/20 dark:focus-visible:ring-accent/40 dark:bg-accent/60',
+        'bg-accent data-[hover=true]:bg-accent/90 data-[active=true]:bg-accent/90 focus-visible:ring-accent/20',
       outline:
-        'border border-separator bg-background shadow-xs data-[hover=true]:bg-surface data-[active=true]:bg-surface dark:bg-separator/[0.045] dark:border-separator/90 dark:data-[hover=true]:bg-separator/[0.075] dark:data-[active=true]:bg-separator/[0.075]',
+        'border border-separator bg-background shadow-xs data-[hover=true]:bg-surface data-[active=true]:bg-surface',
       secondary:
         'bg-surface text-text data-[hover=true]:bg-surface/80 data-[active=true]:bg-surface/80',
-      ghost: 'data-[hover=true]:bg-surface data-[active=true]:bg-surface dark:data-[hover=true]:bg-surface/50 dark:data-[active=true]:bg-surface/50',
+      ghost: 'data-[hover=true]:bg-surface data-[active=true]:bg-surface',
       link: 'text-accent underline-offset-4 data-[hover=true]:underline data-[active=true]:underline',
     },
     size: {

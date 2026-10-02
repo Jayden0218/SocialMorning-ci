@@ -17,9 +17,9 @@
  * the old screen had (chapters, transcript, sleep timer, clip, comment-at) is still here,
  * below the fold. "N listening now" came with M12 (FR-042, src/social/live.ts).
  *
- * Owner, 2026-10-01 (the 小宇宙 player): the page is always dark — the dark palette whatever
- * the app's Appearance (`PlayerDark`), washed from the show's Studio theme colour when it has
- * one (`playerWash`), else the blurred cover under the dark veil. "N listening now" sits in the
+ * M17 (constitution v3.0.0): the page uses the light Editorial palette (`Player-B`), washed from
+ * the show's Studio theme colour when it has one (`playerWash`), else the blurred cover under
+ * the light veil. "N listening now" sits in the
  * top bar, and a star there favourites the episode.
  */
 import { useEffect, useState } from 'react';
@@ -65,7 +65,6 @@ import { toPlayable } from '../src/storage/playable';
 import { useDiscover } from '../src/discover/useDiscover';
 import { tabular } from '../src/design';
 import { LinearGradient } from '../src/design/tailwind';
-import { PlayerDark } from '../src/ui/player/PlayerDark';
 import { playerWash, usePlayerPalette } from '../src/ui/player/palette';
 import { useShowExtras } from '../src/ui/ShowExtras';
 import { isFavourite, toggleFavourite } from '../src/me/favourites';
@@ -76,7 +75,7 @@ export default function PlayerScreen(): React.ReactElement {
   // M12 FR-042: "N listening now" — before the early returns, as every hook must be.
   const liveCount = useListeningNow(state.kind === 'idle' ? undefined : state.episodeId, state.kind === 'playing' || state.kind === 'buffering');
   const stores = useStores();
-  // Owner, 2026-10-01: the player is dark in either app theme, so its icons use the dark palette.
+  // M17: the player uses the light Editorial palette (with the listener's accent).
   const c = usePlayerPalette();
   const { composer, reactToggle, refresh, useEpisodeSocial, listener, bump, api } = useSocial();
   const [composing, setComposing] = useState<ComposerState | undefined>();
@@ -125,18 +124,18 @@ export default function PlayerScreen(): React.ReactElement {
 
   if (state.kind === 'idle') {
     return (
-      <PlayerDark>
+      <>
       <SafeAreaView className={FILL}>
         <TopBar back="down" onBack={close} />
         <Box className={BODY}><Text className={SUBTITLE}>Nothing is playing yet.</Text></Box>
       </SafeAreaView>
-      </PlayerDark>
+      </>
     );
   }
 
   if (state.kind === 'error') {
     return (
-      <PlayerDark>
+      <>
       <SafeAreaView className={FILL}>
         <TopBar back="down" onBack={close} />
         <Box className={BODY}>
@@ -146,7 +145,7 @@ export default function PlayerScreen(): React.ReactElement {
           </Pressable>
         </Box>
       </SafeAreaView>
-      </PlayerDark>
+      </>
     );
   }
 
@@ -193,9 +192,9 @@ export default function PlayerScreen(): React.ReactElement {
     router.push({ pathname: '/comments/[episodeId]', params: { episodeId: state.episodeId, at: String(Math.round(positionMs)) } });
 
   return (
-    <PlayerDark>
+    <>
     <Box className={FILL}>
-    {/* Owner, 2026-10-01: the show's theme colour, darkened until the dark text reads on it. */}
+    {/* The show's theme colour, laid lightly over the page while the text still reads on it. */}
     {wash ? <LinearGradient colors={wash} className="absolute inset-0" accessible={false} /> : (
       <>
         {/* M12 FR-040: the cover, blurred, tints the whole player; the (dark) veil keeps the text readable. */}
@@ -427,7 +426,7 @@ export default function PlayerScreen(): React.ReactElement {
       />
     ) : null}
     </Box>
-    </PlayerDark>
+    </>
   );
 }
 

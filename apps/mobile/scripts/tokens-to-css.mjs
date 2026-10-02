@@ -59,13 +59,11 @@ export function channels(value) {
  * two of them (accent, muted) already mean something else in this app (data-model §1).
  */
 export function renderBlock(tokens = loadTokens()) {
-  const { colour, colourDark, fontSize, spacing, radius, size } = tokens;
+  const { colour, fontSize, spacing, radius, size } = tokens;
   const lines = [BEGIN];
-  // M10b dark mode (with 4f, 2026-09-27): one set of variables per UniWind theme. UniWind
-  // defines the `light` / `dark` variants and follows the system unless `Uniwind.setTheme`
-  // picks one; it refuses themes whose variable names differ, so both come from the same keys.
+  // M17 (constitution v3.0.0): light only — one UniWind theme. (M10b had a `dark` variant too.)
   lines.push('@layer theme {', '  :root {');
-  for (const [name, palette] of [['light', colour], ['dark', colourDark ?? colour]]) {
+  for (const [name, palette] of [['light', colour]]) {
     lines.push(`    @variant ${name} {`);
     // M12 (found on the iPhone 2026-09-29): the documented UniWind form — the real colour, hex
     // or rgba(), under its --color- name (docs.uniwind.dev/theming/global-css). The earlier
@@ -77,7 +75,7 @@ export function renderBlock(tokens = loadTokens()) {
   lines.push('  }', '}');
   // Tailwind's own palette stays off, as `colors` replaced it in v3: `bg-red-500` generates nothing.
   // The token names are registered in a plain (not inline) @theme, so each utility reads the
-  // variable at run time and the dark variant above can replace it.
+  // variable at run time and an accent theme (`Uniwind.updateCSSVariables`) can replace it.
   lines.push('@theme {', '  --color-*: initial;', '  --color-transparent: transparent;');
   for (const k of Object.keys(colour)) lines.push(`  --color-${k}: ${css(colour[k])};`);
   lines.push('}');
@@ -93,6 +91,7 @@ export function renderBlock(tokens = loadTokens()) {
   // M12 FR-050: `min-h-row-h` — a list row's height (not `row`, which is the 12 pt padding).
   if (size) lines.push(`  --spacing-row-h: ${size.row}px;`);
   lines.push(`  --radius-row: ${radius.row}px;`, `  --radius-artwork: ${radius.artwork}px;`, `  --radius-pill: ${radius.pill}px;`);
+  if (radius.artworkLarge) lines.push(`  --radius-artwork-lg: ${radius.artworkLarge}px;`);
   lines.push('}');
   // `StyleSheet.hairlineWidth` as utilities (v3 had `borderWidth.hairline` in the config).
   for (const [cls, prop] of [['border-hairline', 'border-width'], ['border-t-hairline', 'border-top-width'], ['border-b-hairline', 'border-bottom-width'], ['border-l-hairline', 'border-left-width'], ['border-r-hairline', 'border-right-width']]) {

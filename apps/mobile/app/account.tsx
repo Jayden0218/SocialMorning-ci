@@ -16,7 +16,6 @@ import { ScrollView } from '../src/ui/lib/scroll-view';
 import { SignOut } from '../src/ui/SignOut';
 import { useSocial } from '../src/social/context';
 import { Divider, LinkRow } from '../src/ui/settings/rows';
-import { DARK_READY } from '../src/design/theme';
 import { PageHeader } from '../src/ui/PageHeader';
 
 
@@ -28,8 +27,8 @@ export default function SettingsScreen(): React.ReactElement {
     <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x py-row pb-24">
       <LinkRow href="/settings/account" icon="person-circle-outline" label="Account and security" />
       <Divider />
-      {/* M10b US4: shown once dark mode is wired end to end (DARK_READY, flipped by M9). */}
-      {DARK_READY ? <LinkRow href="/settings/appearance" icon="contrast-outline" label="Appearance" /> : null}
+      {/* M17: Appearance holds the accent colour only (dark mode removed, constitution v3.0.0). */}
+      <LinkRow href="/settings/appearance" icon="contrast-outline" label="Appearance" />
       <LinkRow href="/settings/downloads" icon="download-outline" label="Downloads and cache" />
       <LinkRow href="/settings/push" icon="notifications-outline" label="Notifications" />
       <LinkRow href="/settings/privacy" icon="lock-closed-outline" label="Privacy" />

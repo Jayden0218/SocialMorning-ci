@@ -3,7 +3,7 @@
  * assumed. The same formula was used to compute the palette in research R1; shipping it
  * means the gate re-checks every token pair on every run.
  */
-import { ACCENTS, colour, colourDark } from './tokens';
+import { ACCENTS, colour } from './tokens';
 
 /** Accepts `#rgb`, `#rrggbb`, or `rgba(r,g,b,a)` composited over `over` (default black). */
 export function relativeLuminance(value: string, over = '#000000'): number {
@@ -37,64 +37,44 @@ export const LARGE_MIN = 3;
 
 export type Pair = { fg: string; bg: string; min: number; role: string };
 
-/** Every foreground the app draws, against the background it is drawn on. */
+/**
+ * Every foreground the app draws, against the background it is drawn on. M17 (research R2):
+ * measured on the Editorial palette before adoption; the comment is the ratio on 2026-10-03.
+ */
 export const PAIRS: Pair[] = [
-  { fg: colour.text, bg: colour.background, min: BODY_MIN, role: 'body text' },
-  { fg: colour.muted, bg: colour.background, min: BODY_MIN, role: 'secondary text' },
-  { fg: colour.accent, bg: colour.background, min: BODY_MIN, role: 'links and actions' },
-  { fg: colour.text, bg: colour.surface, min: BODY_MIN, role: 'text on a card' },
-  { fg: colour.muted, bg: colour.surface, min: BODY_MIN, role: 'secondary text on a card' },
-  { fg: colour.bar, bg: colour.background, min: LARGE_MIN, role: 'heat bars (information)' },
-  { fg: colour.accent, bg: colour.background, min: LARGE_MIN, role: 'the listener’s own marks' },
-  { fg: colour.accent, bg: colour.surface, min: BODY_MIN, role: 'links and actions on a card' },
+  { fg: colour.text, bg: colour.background, min: BODY_MIN, role: 'body text' }, // 17.47
+  { fg: colour.muted, bg: colour.background, min: BODY_MIN, role: 'secondary text' }, // 6.96
+  { fg: colour.accent, bg: colour.background, min: BODY_MIN, role: 'links and actions' }, // 5.59
+  { fg: colour.text, bg: colour.surface, min: BODY_MIN, role: 'text on a card' }, // 18.53
+  { fg: colour.muted, bg: colour.surface, min: BODY_MIN, role: 'secondary text on a card' }, // 7.39
+  { fg: colour.accent, bg: colour.surface, min: BODY_MIN, role: 'links and actions on a card' }, // 5.93
+  { fg: colour.onPrimary, bg: colour.primary, min: BODY_MIN, role: 'words on a yellow button or chosen chip' }, // 11.80
+  { fg: colour.muted, bg: colour.primary, min: BODY_MIN, role: 'a second line on the yellow card' }, // 4.63
+  { fg: colour.background, bg: colour.accent, min: BODY_MIN, role: 'a count badge (page words on the accent)' }, // 5.59
+  { fg: colour.bar, bg: colour.background, min: LARGE_MIN, role: 'heat bars (information)' }, // 3.93
   { fg: colour.bar, bg: colour.surface, min: LARGE_MIN, role: 'heat bars on a card' },
-  // M12: a list row's play glyph on its tinted disc; the player's words on the veil over a white cover.
-  { fg: colour.accent, bg: over(colour.accentTint, colour.background), min: LARGE_MIN, role: 'play glyph on its tint' },
-  { fg: colour.text, bg: over(colour.veil, '#000000'), min: BODY_MIN, role: 'player text on the veil (black cover)' },
-  { fg: colour.muted, bg: over(colour.veil, '#000000'), min: BODY_MIN, role: 'player secondary text on the veil (black cover)' },
-];
-
-/** M10b US4: the same pairs in the dark palette — every one must clear its floor too. */
-export const PAIRS_DARK: Pair[] = [
-  { fg: colourDark.text, bg: colourDark.background, min: BODY_MIN, role: 'body text (dark)' },
-  { fg: colourDark.muted, bg: colourDark.background, min: BODY_MIN, role: 'secondary text (dark)' },
-  { fg: colourDark.accent, bg: colourDark.background, min: BODY_MIN, role: 'links and actions (dark)' },
-  { fg: colourDark.text, bg: colourDark.surface, min: BODY_MIN, role: 'text on a card (dark)' },
-  { fg: colourDark.muted, bg: colourDark.surface, min: BODY_MIN, role: 'secondary text on a card (dark)' },
-  { fg: colourDark.bar, bg: colourDark.background, min: LARGE_MIN, role: 'heat bars (dark)' },
-  { fg: colourDark.accent, bg: colourDark.surface, min: BODY_MIN, role: 'links and actions on a card (dark)' },
-  { fg: colourDark.bar, bg: colourDark.surface, min: LARGE_MIN, role: 'heat bars on a card (dark)' },
-  { fg: colourDark.accent, bg: over(colourDark.accentTint, colourDark.background), min: LARGE_MIN, role: 'play glyph on its tint (dark)' },
-  { fg: colourDark.text, bg: over(colourDark.veil, '#ffffff'), min: BODY_MIN, role: 'player text on the veil, white cover (dark)' },
-  { fg: colourDark.muted, bg: over(colourDark.veil, '#ffffff'), min: BODY_MIN, role: 'player secondary text on the veil, white cover (dark)' },
+  { fg: colour.accent, bg: over(colour.accentTint, colour.background), min: BODY_MIN, role: 'play glyph on its tint' }, // 4.60
+  { fg: colour.muted, bg: over(colour.accentTint, colour.background), min: BODY_MIN, role: 'secondary text on the tint' }, // 5.74
+  { fg: colour.text, bg: over(colour.veil, '#000000'), min: BODY_MIN, role: 'player text on the veil (black cover)' }, // 13.29
+  { fg: colour.muted, bg: over(colour.veil, '#000000'), min: BODY_MIN, role: 'player secondary text on the veil (black cover)' }, // 5.30
 ];
 
 /**
- * M12 guard G-A1b (FR-108): every accent theme, in both palettes. The brand theme ("sunrise")
- * is left out: its pairs are the ones above, and its fill's white words are the waiver below.
+ * M12 guard G-A1b (FR-108): every accent theme on the M17 page and card (light only since M17).
+ * The brand theme ("sunrise") is left out: its pairs are the ones above.
  */
 export const ACCENT_PAIRS: Pair[] = Object.entries(ACCENTS).filter(([name]) => name !== 'sunrise').flatMap(([name, t]) => [
   { fg: t.light.accent, bg: colour.background, min: BODY_MIN, role: `${name}: links on the page` },
   { fg: t.light.accent, bg: colour.surface, min: BODY_MIN, role: `${name}: links on a card` },
   { fg: t.light.onPrimary, bg: t.light.primary, min: BODY_MIN, role: `${name}: words on the fill` },
   { fg: t.light.accent, bg: over(t.light.accentTint, colour.background), min: LARGE_MIN, role: `${name}: play glyph on its tint` },
-  { fg: t.dark.accent, bg: colourDark.background, min: BODY_MIN, role: `${name}: links on the page (dark)` },
-  { fg: t.dark.accent, bg: colourDark.surface, min: BODY_MIN, role: `${name}: links on a card (dark)` },
-  { fg: t.dark.onPrimary, bg: t.dark.primary, min: BODY_MIN, role: `${name}: words on the fill (dark)` },
-  { fg: t.dark.accent, bg: over(t.dark.accentTint, colourDark.background), min: LARGE_MIN, role: `${name}: play glyph on its tint (dark)` },
 ]);
 
 /**
- * Pairs the owner chose to ship below their floor, knowing the number. They are not in
- * `PAIRS`, so the gate stays green; the contrast test pins each one's ratio, so a
- * waiver cannot quietly get worse or be forgotten.
+ * Pairs shipped below their floor, knowing the number. Empty since M17 (constitution v3.0.0:
+ * "no contrast waiver"); guard G-E1 fails if anything is added back.
  */
-export const WAIVED: (Pair & { why: string })[] = [
-  {
-    fg: colour.onPrimary, bg: colour.primary, min: BODY_MIN, role: 'white text on a yellow button or chosen chip',
-    why: 'owner, 2026-09-27: white words on the icon yellow, chosen over black (11.80) and gold #9a6c00 (4.65)',
-  },
-];
+export const WAIVED: (Pair & { why: string })[] = [];
 
 /** What the gate reports: every pair that does not clear its floor. */
 export function failures(pairs: readonly Pair[] = PAIRS): (Pair & { ratio: number })[] {
