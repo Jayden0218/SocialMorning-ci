@@ -5,7 +5,7 @@
  * A finger can drag it; the timer starts again from where it lets go. Reduce Motion keeps it
  * still. The covers are whatever `landingArt` found.
  */
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ComponentRef } from 'react';
 import { AccessibilityInfo, ScrollView, useWindowDimensions } from 'react-native';
 import { Image } from '../lib/image';
 import { Box } from '../lib/box';
@@ -36,7 +36,7 @@ export function ArtWall(props: { urls: string[]; onReady?: () => void }): React.
   const card = Math.round(width * 0.5);
   const step = card + spacing.section;
   const n = props.urls.length;
-  const scroller = useRef<ScrollView>(null);
+  const scroller = useRef<ComponentRef<typeof ScrollView>>(null);
   const at = useRef(0);
   const dragging = useRef(false);
   const settled = useRef(0);
