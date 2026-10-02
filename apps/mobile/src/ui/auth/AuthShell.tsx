@@ -30,20 +30,25 @@ function close(): void {
   else router.replace('/');
 }
 
-export function AuthShell(props: { title: string; subtitle?: ReactNode; footer?: ReactNode; children: ReactNode }): React.ReactElement {
+/**
+ * `eyebrow` is the small capital line over the title, and `closeRight` moves the ✕ to the
+ * right — both from the code step's screenshot (owner, 2026-10-03).
+ */
+export function AuthShell(props: { title: string; eyebrow?: string; closeRight?: boolean; subtitle?: ReactNode; footer?: ReactNode; children: ReactNode }): React.ReactElement {
   const stores = useStores();
   const c = useColours(stores.settings);
   const insets = useSafeAreaInsets();
   return (
     <Box className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <Box className="flex-row px-row pt-row">
+        <Box className={`flex-row px-row pt-row ${props.closeRight ? 'justify-end' : ''}`}>
           <Pressable onPress={close} accessibilityRole="button" accessibilityLabel="Close" className="items-center justify-center" style={TAP}>
             <Icon name="close" size={24} color={c.text} />
           </Pressable>
         </Box>
         <ScrollView className="flex-1" contentContainerClassName="px-screen-x pb-section" keyboardShouldPersistTaps="handled">
-          <Text style={display(40, c.text)} className="mt-section" accessibilityRole="header">{props.title}</Text>
+          {props.eyebrow ? <Text className="text-accent text-xs font-bold tracking-widest mt-section">{props.eyebrow.toUpperCase()}</Text> : null}
+          <Text style={display(40, c.text)} className={props.eyebrow ? 'mt-gap' : 'mt-section'} accessibilityRole="header">{props.title}</Text>
           {props.subtitle ? <Box className="mt-row">{props.subtitle}</Box> : null}
           <Box className="mt-section gap-row">{props.children}</Box>
         </ScrollView>
@@ -91,8 +96,9 @@ export type AuthMark = { icon: IconName; tint?: Colour } | 'google';
  * until usable. A `mark` is pinned to the left edge so every label stays centred on the
  * button, whatever its length (owner, 2026-09-27). `text` shows shorter words than the
  * spoken `label`, and `className` places the button (the sign-in page's pills, 2026-10-03).
+ * `trail` is an icon after the words (the code step's "Continue →", 2026-10-03).
  */
-export function AuthButton(props: { label: string; text?: string; className?: string; disabled: boolean; busy?: boolean; outline?: boolean; mark?: AuthMark; onPress: () => void }): React.ReactElement {
+export function AuthButton(props: { label: string; text?: string; className?: string; disabled: boolean; busy?: boolean; outline?: boolean; mark?: AuthMark; trail?: IconName; onPress: () => void }): React.ReactElement {
   const stores = useStores();
   const c = useColours(stores.settings);
   return (
@@ -102,7 +108,7 @@ export function AuthButton(props: { label: string; text?: string; className?: st
       accessibilityRole="button"
       accessibilityLabel={props.label}
       accessibilityState={{ disabled: props.disabled, busy: props.busy === true }}
-      className={`${props.outline ? 'border border-separator' : 'bg-primary'} ${props.text ? 'flex-row ' : ''}items-center justify-center ${props.className ?? 'rounded-row mt-row'} ${props.disabled ? 'opacity-40' : ''}`}
+      className={`${props.outline ? 'border border-separator' : 'bg-primary'} ${props.text || props.trail ? 'flex-row ' : ''}items-center justify-center ${props.className ?? 'rounded-row mt-row'} ${props.disabled ? 'opacity-40' : ''}`}
       style={FIELD}
     >
       {props.mark ? (
@@ -113,6 +119,67 @@ export function AuthButton(props: { label: string; text?: string; className?: st
         </Box>
       ) : null}
       <Text className={props.outline ? 'text-text text-sm font-semibold' : 'text-onPrimary text-sm font-semibold'}>{props.busy ? '…' : props.text ?? props.label}</Text>
+      {props.trail && !props.busy ? <Box className="ml-gap"><Icon name={props.trail} size={18} color={c[props.outline ? 'text' : 'onPrimary']} /></Box> : null}
     </Pressable>
+  );
+}
+
+const CELLS = 6;
+const CELL = { height: 64 };
+/** Nearly invisible, not 0: iOS skips a fully transparent field for the code from Messages. */
+const HIDDEN = { opacity: 0.02 };
+
+/**
+ * The code as 6 cells (owner's screenshot, 2026-10-03): each digit large in the serif over a
+ * line; the next cell's line is the accent with a caret, empty ones are the separator. One
+ * real field lies over the row, so typing, pasting and the code from Messages all work.
+ */
+export function CodeCells(props: { value: string; onChange: (v: string) => void }): React.ReactElement {
+  const stores = useStores();
+  const c = useColours(stores.settings);
+  const digits = props.value.replace(/\D/g, '').slice(0, CELLS);
+  return (
+    <Box>
+      <Box className="flex-row gap-gap" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+        {Array.from({ length: CELLS }, (_, i) => {
+          const next = i === digits.length;
+          const filled = i < digits.length;
+          return (
+            <Box key={i} className={`flex-1 items-center justify-end pb-gap ${filled ? 'border-b-2 border-text' : next ? 'border-b-2 border-accent' : 'border-b border-separator'}`} style={CELL}>
+              {filled ? <Text style={display(34, c.text)}>{digits[i]}</Text> : next ? <Box className="bg-accent mb-1" style={{ width: 2, height: 32 }} /> : null}
+            </Box>
+          );
+        })}
+      </Box>
+      <Input className="absolute inset-0 border-0 bg-transparent h-auto" style={HIDDEN}>
+        <InputField
+          value={digits}
+          onChangeText={(t) => props.onChange(t.replace(/\D/g, '').slice(0, CELLS))}
+          keyboardType="number-pad"
+          autoComplete="one-time-code"
+          textContentType="oneTimeCode"
+          maxLength={CELLS}
+          autoFocus
+          caretHidden
+          accessibilityLabel="Code"
+          accessibilityHint="6 digits"
+        />
+      </Input>
+    </Box>
+  );
+}
+
+/** The address the code went to, in a card, with "Change" at its right (owner, 2026-10-03). */
+export function SentTo(props: { email: string; onChange: () => void }): React.ReactElement {
+  const stores = useStores();
+  const c = useColours(stores.settings);
+  return (
+    <Box className="flex-row items-center bg-surface rounded-row pl-section" style={FIELD}>
+      <Icon name="mail-outline" size={18} color={c.text} />
+      <Text className="flex-1 text-text text-sm font-semibold ml-gap" numberOfLines={1}>{props.email}</Text>
+      <Pressable onPress={props.onChange} accessibilityRole="button" accessibilityLabel="Use a different email" className="items-center justify-center px-section" style={TAP}>
+        <Text className="text-accent text-sm font-semibold">Change</Text>
+      </Pressable>
+    </Box>
   );
 }

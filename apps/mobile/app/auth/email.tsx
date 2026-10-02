@@ -4,14 +4,18 @@
  * The same page signs in and signs up. Consent was given on the landing page
  * (`agreed=1`); opened any other way, the box is here too and the same dialog asks.
  * Each step's main button sits in the bar pinned to the bottom (owner's screenshot, 2026-10-03).
+ * The code step (owner's screenshot, 2026-10-03): "CHECK YOUR EMAIL" over the title, ✕ on the
+ * right, the address in a card with "Change", 6 cells, and the bar holds the resend at the
+ * left and "Continue →" at the right.
  */
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable } from '../../src/ui/lib/pressable';
 import { Text } from '../../src/ui/lib/text';
+import { Box } from '../../src/ui/lib/box';
 import { SUSPENDED_KEY, useSocial } from '../../src/social/context';
 import { useStores } from '../../src/ui/providers';
-import { AuthButton, AuthField, AuthShell } from '../../src/ui/auth/AuthShell';
+import { AuthButton, AuthField, AuthShell, CodeCells, SentTo } from '../../src/ui/auth/AuthShell';
 import { ConsentDialog, ConsentRow, useLegalOverlay } from '../../src/ui/auth/Consent';
 import { describe, errorText } from '../../src/ui/auth/errors';
 import { toApp } from '../../src/ui/auth/navigate';
@@ -71,10 +75,24 @@ export default function EmailScreen(): React.ReactElement {
   return (
     <AuthShell
       title={TITLE[step]}
-      subtitle={step === 'email' ? null : <Text className="text-muted text-sm leading-[22px]">{step === 'code' ? `We sent a 6-digit code to ${email.trim()}.` : 'This is the name others see. You can use any name.'}</Text>}
+      eyebrow={step === 'code' ? 'Check your email' : undefined}
+      closeRight={step === 'code'}
+      subtitle={step === 'email' ? null : <Text className="text-muted text-sm leading-[22px]">{step === 'code' ? 'We sent a 6-digit code to' : 'This is the name others see. You can use any name.'}</Text>}
       footer={
         step === 'email' ? <AuthButton label="Send code" className="rounded-pill" disabled={emailAction === 'disabled'} busy={busy} onPress={() => (emailAction === 'ask' ? setAsking(true) : void sendCode())} />
-        : step === 'code' ? <AuthButton label="Continue" className="rounded-pill" disabled={busy || code.trim().length !== 6} busy={busy} onPress={() => void verify()} />
+        : step === 'code' ? (
+          <Box className="flex-row items-center gap-row">
+            <Box className="flex-1">
+              <Text className="text-muted text-xs">Didn't get it?</Text>
+              {wait > 0
+                ? <Text className="text-muted text-xs">Send again in {wait} s</Text>
+                : <Pressable onPress={() => void sendCode()} disabled={busy} accessibilityRole="button" accessibilityLabel="Send the code again" hitSlop={12}>
+                    <Text className="text-accent text-xs font-semibold">Send again</Text>
+                  </Pressable>}
+            </Box>
+            <AuthButton label="Continue" trail="arrow-forward" className="rounded-pill px-section" disabled={busy || code.length !== 6} busy={busy} onPress={() => void verify()} />
+          </Box>
+        )
         : <AuthButton label="Create account" className="rounded-pill" disabled={busy || name.trim().length === 0} busy={busy} onPress={() => void verify(name.trim())} />
       }
     >
@@ -86,13 +104,8 @@ export default function EmailScreen(): React.ReactElement {
       ) : null}
       {step === 'code' ? (
         <>
-          <AuthField label="Code" placeholder="6-digit code" keyboardType="number-pad" autoComplete="one-time-code" textContentType="oneTimeCode" maxLength={6} autoFocus value={code} onChangeText={setCode} accessibilityLabel="Code" />
-          <Pressable onPress={() => void sendCode()} disabled={busy || wait > 0} accessibilityRole="button" accessibilityLabel="Send the code again" className="items-center justify-center min-h-12">
-            <Text className={wait > 0 ? 'text-muted text-sm' : 'text-accent text-sm'}>{wait > 0 ? `Send again in ${wait} s` : 'Send the code again'}</Text>
-          </Pressable>
-          <Pressable onPress={() => { setStep('email'); setError(undefined); }} accessibilityRole="button" accessibilityLabel="Use a different email" className="items-center justify-center min-h-12">
-            <Text className="text-muted text-sm">Use a different email</Text>
-          </Pressable>
+          <SentTo email={email.trim()} onChange={() => { setStep('email'); setError(undefined); }} />
+          <Box className="mt-section"><CodeCells value={code} onChange={setCode} /></Box>
         </>
       ) : null}
       {step === 'name' ? (
