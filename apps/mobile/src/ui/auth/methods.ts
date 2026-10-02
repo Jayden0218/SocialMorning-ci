@@ -12,9 +12,9 @@ export type OtherMethod = 'google' | 'facebook';
  * `mark` is what the sign-in button draws: Google's own multi-colour "G", Facebook's mark
  * in its own blue (owner, 2026-09-27). `icon` is the plain font icon for lists (Settings).
  */
-export const OTHER_METHODS: { id: OtherMethod; label: string; icon: IconName; mark: AuthMark; ready: boolean }[] = [
-  { id: 'google', label: 'Continue with Google', icon: 'logo-google', mark: 'google', ready: false },
-  { id: 'facebook', label: 'Continue with Facebook', icon: 'logo-facebook', mark: { icon: 'logo-facebook', tint: 'facebook' }, ready: false },
+export const OTHER_METHODS: { id: OtherMethod; label: string; short: string; icon: IconName; mark: AuthMark; ready: boolean }[] = [
+  { id: 'google', label: 'Continue with Google', short: 'Google', icon: 'logo-google', mark: 'google', ready: false },
+  { id: 'facebook', label: 'Continue with Facebook', short: 'Facebook', icon: 'logo-facebook', mark: { icon: 'logo-facebook', tint: 'facebook' }, ready: false },
 ];
 
 export function notReadyMessage(label: string): string {

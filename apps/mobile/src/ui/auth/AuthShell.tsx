@@ -74,9 +74,10 @@ export type AuthMark = { icon: IconName; tint?: Colour } | 'google';
 /**
  * The full-width button: solid yellow (the form's own), or outlined (another way in). Pale
  * until usable. A `mark` is pinned to the left edge so every label stays centred on the
- * button, whatever its length (owner, 2026-09-27).
+ * button, whatever its length (owner, 2026-09-27). `text` shows shorter words than the
+ * spoken `label`, and `className` places the button (the sign-in page's pills, 2026-10-03).
  */
-export function AuthButton(props: { label: string; disabled: boolean; busy?: boolean; outline?: boolean; mark?: AuthMark; onPress: () => void }): React.ReactElement {
+export function AuthButton(props: { label: string; text?: string; className?: string; disabled: boolean; busy?: boolean; outline?: boolean; mark?: AuthMark; onPress: () => void }): React.ReactElement {
   const stores = useStores();
   const c = useColours(stores.settings);
   return (
@@ -86,17 +87,17 @@ export function AuthButton(props: { label: string; disabled: boolean; busy?: boo
       accessibilityRole="button"
       accessibilityLabel={props.label}
       accessibilityState={{ disabled: props.disabled, busy: props.busy === true }}
-      className={`${props.outline ? 'border border-separator' : 'bg-primary'} rounded-row items-center justify-center mt-row ${props.disabled ? 'opacity-40' : ''}`}
+      className={`${props.outline ? 'border border-separator' : 'bg-primary'} ${props.text ? 'flex-row ' : ''}items-center justify-center ${props.className ?? 'rounded-row mt-row'} ${props.disabled ? 'opacity-40' : ''}`}
       style={FIELD}
     >
       {props.mark ? (
-        <Box className="absolute left-section top-0 bottom-0 justify-center">
+        <Box className={props.text ? 'mr-gap' : 'absolute left-section top-0 bottom-0 justify-center'}>
           {props.mark === 'google'
             ? <Image source={GOOGLE_G} style={MARK} accessibilityIgnoresInvertColors />
             : <Icon name={props.mark.icon} size={20} color={c[props.mark.tint ?? (props.outline ? 'text' : 'onPrimary')]} />}
         </Box>
       ) : null}
-      <Text className={props.outline ? 'text-text text-sm font-semibold' : 'text-onPrimary text-sm font-semibold'}>{props.busy ? '…' : props.label}</Text>
+      <Text className={props.outline ? 'text-text text-sm font-semibold' : 'text-onPrimary text-sm font-semibold'}>{props.busy ? '…' : props.text ?? props.label}</Text>
     </Pressable>
   );
 }

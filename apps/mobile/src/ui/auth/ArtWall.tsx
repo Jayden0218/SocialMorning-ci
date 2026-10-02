@@ -1,68 +1,101 @@
 /**
- * A loose wall of show covers above the sign-in choices (owner's reference, 2026-09-27).
- * The arrangement is ours; the covers are whatever `landingArt` found. The lower edge
- * fades into the page so the choices below sit on white.
+ * A row of show covers on the sign-in page (owner, 2026-10-03: was a loose wall). It moves
+ * on one cover every second and loops without a jump back: the covers are drawn twice, and
+ * on reaching the second copy's first cover it snaps, unanimated, to the identical first.
+ * A finger can drag it; the timer starts again from where it lets go. Reduce Motion keeps it
+ * still. The covers are whatever `landingArt` found.
  */
-import { LinearGradient } from '../../design/tailwind';
 import { useEffect, useRef } from 'react';
-import { useWindowDimensions } from 'react-native';
+import { AccessibilityInfo, ScrollView, useWindowDimensions } from 'react-native';
 import { Image } from '../lib/image';
 import { Box } from '../lib/box';
-import { colour } from '../../design';
-import { useStores } from '../providers';
-import { useColours } from '../useColours';
-
-/** x, y and size as fractions of the screen width. Overlaps are on purpose. */
-const SPOTS = [
-  { x: -0.05, y: 0.08, s: 0.34 },
-  { x: 0.4, y: 0.02, s: 0.24 },
-  { x: 0.66, y: 0.1, s: 0.36 },
-  { x: 0.26, y: 0.26, s: 0.3 },
-  { x: 0.14, y: 0.52, s: 0.21 },
-  { x: 0.64, y: 0.5, s: 0.22 },
-  { x: -0.04, y: 0.74, s: 0.24 },
-] as const;
+import { spacing } from '../../design';
 
 /** The longest the page waits for covers before it shows without the slow ones. */
 export const ART_WAIT_MS = 1500;
+/** One cover forward this often (owner, 2026-10-03). */
+export const ART_STEP_MS = 1000;
+/** How long the animated step takes before the loop may snap back. */
+const SETTLE_MS = 400;
+
+/**
+ * One tick of the loop from cover `at` of `n`: where to scroll, and whether to snap back to
+ * the first cover once there (the second copy's first cover looks the same).
+ */
+export function nextStep(at: number, n: number): { to: number; snapBack: boolean } {
+  const to = at + 1;
+  return { to, snapBack: to >= n };
+}
 
 /**
  * `onReady` fires once, when every cover has loaded or failed (or after `ART_WAIT_MS`),
  * so the page can appear whole instead of cover by cover (owner, 2026-09-27).
  */
 export function ArtWall(props: { urls: string[]; onReady?: () => void }): React.ReactElement {
-  const stores = useStores();
-  const c = useColours(stores.settings);
   const { width } = useWindowDimensions();
-  const height = width * 1.02;
+  const card = Math.round(width * 0.5);
+  const step = card + spacing.section;
+  const n = props.urls.length;
+  const scroller = useRef<ScrollView>(null);
+  const at = useRef(0);
+  const dragging = useRef(false);
   const settled = useRef(0);
   const fired = useRef(false);
   const ready = useRef(props.onReady);
   ready.current = props.onReady;
   const fire = (): void => { if (!fired.current) { fired.current = true; ready.current?.(); } };
-  const one = (): void => { settled.current += 1; if (settled.current >= props.urls.length) fire(); };
+  const one = (): void => { settled.current += 1; if (settled.current >= n) fire(); };
+
   useEffect(() => {
-    if (props.urls.length === 0) { fire(); return; }
+    if (n === 0) { fire(); return; }
     const t = setTimeout(fire, ART_WAIT_MS);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.urls.length]);
+  }, [n]);
+
+  useEffect(() => {
+    if (n < 2) return;
+    let still = false;
+    let live = true;
+    void AccessibilityInfo.isReduceMotionEnabled().then((v) => { if (live) still = v; }).catch(() => undefined);
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const tick = setInterval(() => {
+      if (still || dragging.current) return;
+      const next = nextStep(at.current, n);
+      at.current = next.to;
+      scroller.current?.scrollTo?.({ x: next.to * step, animated: true });
+      if (next.snapBack) {
+        timers.push(setTimeout(() => { at.current = 0; scroller.current?.scrollTo?.({ x: 0, animated: false }); }, SETTLE_MS));
+      }
+    }, ART_STEP_MS);
+    return () => { live = false; clearInterval(tick); timers.forEach(clearTimeout); };
+  }, [n, step]);
+
+  // Drawn twice so the loop has somewhere to go; only the first copy counts towards `onReady`.
+  const row = n >= 2 ? [...props.urls, ...props.urls] : props.urls;
   return (
-    <Box style={{ height }} className="overflow-hidden" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-      {props.urls.map((uri, i) => {
-        const spot = SPOTS[i % SPOTS.length]!;
-        const size = spot.s * width;
-        return (
-          <Image
-            key={uri}
-            source={{ uri }}
-            onLoadEnd={one}
-            className="absolute rounded-row bg-surface"
-            style={{ left: spot.x * width, top: spot.y * width, width: size, height: size }}
-          />
-        );
-      })}
-      <LinearGradient colors={[c.clear, c.background]} className="absolute left-0 right-0 bottom-0" style={{ height: height * 0.35 }} />
-    </Box>
+    <ScrollView
+      ref={scroller}
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      snapToInterval={step}
+      decelerationRate="fast"
+      contentContainerStyle={{ paddingHorizontal: spacing.screenX, gap: spacing.section }}
+      onScrollBeginDrag={() => { dragging.current = true; }}
+      onMomentumScrollEnd={(e) => {
+        dragging.current = false;
+        at.current = Math.round(e.nativeEvent.contentOffset.x / step) % Math.max(n, 1);
+        scroller.current?.scrollTo?.({ x: at.current * step, animated: false });
+      }}
+      style={{ flexGrow: 0 }}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    >
+      {row.map((uri, i) => (
+        <Box key={`${i}-${uri}`} className="rounded-artwork bg-surface overflow-hidden" style={{ width: card, height: card }}>
+          <Image source={{ uri }} onLoadEnd={i < n ? one : undefined} style={{ width: card, height: card }} />
+        </Box>
+      ))}
+    </ScrollView>
   );
 }

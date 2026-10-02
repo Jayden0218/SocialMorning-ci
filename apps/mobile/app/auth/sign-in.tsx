@@ -1,7 +1,7 @@
 /**
- * The sign-in landing page (owner's reference screenshot, 2026-09-27): a wall of show
- * covers, the app's name, the consent box, then the ways in — each an icon and its name
- * in one row, each opening its own page. The layout follows the reference; nothing of the
+ * The sign-in landing page (owner's reference screenshots, 2026-09-27 and 2026-10-03): the
+ * icon, the app's name, a moving row of show covers, then the ways in and the consent box —
+ * each way in opening its own page. The layout follows the reference; nothing of the
  * reference's own (logo, covers, words) is used.
  *
  * Signing in is required (owner, 2026-09-27): no close button, no swipe back (the stack
@@ -17,12 +17,14 @@ import { Box } from '../../src/ui/lib/box';
 import { createDiscover } from '../../src/discover/cache';
 import { useSocial } from '../../src/social/context';
 import { useStores, useToast } from '../../src/ui/providers';
+import { useColours } from '../../src/ui/useColours';
 import { askForNotifications } from '../../src/notify/permission';
 import { expoNotify } from '../../src/notify/expo';
 import { signInPage } from '../../src/ui/launch';
 import { AuthButton } from '../../src/ui/auth/AuthShell';
 import { ArtWall } from '../../src/ui/auth/ArtWall';
 import { landingArt } from '../../src/ui/auth/art';
+import { display } from '../../src/ui/auth/display';
 import { ConsentDialog, ConsentRow, useLegalOverlay } from '../../src/ui/auth/Consent';
 import { submitAction } from '../../src/ui/auth/rules';
 import { OTHER_METHODS, notReadyMessage, type OtherMethod } from '../../src/ui/auth/methods';
@@ -34,6 +36,7 @@ type Way = 'email' | OtherMethod;
 export default function SignInScreen(): React.ReactElement {
   const { api } = useSocial();
   const stores = useStores();
+  const c = useColours(stores.settings);
   const toast = useToast();
   const legal = useLegalOverlay();
   const [agreed, setAgreed] = useState(false);
@@ -69,20 +72,25 @@ export default function SignInScreen(): React.ReactElement {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <Box className="flex-1">
+      {/* Owner, 2026-10-03: the icon on top, the name under it, then a row of covers that
+          moves on every second; the ways in at the bottom — email full width, Google and
+          Facebook side by side. */}
+      <Box className="px-screen-x pt-section">
+        <Image source={require('../../assets/app-icon.png')} style={LOGO} className="rounded-artwork" accessibilityIgnoresInvertColors />
+        <Text style={display(44, c.text)} className="mt-section" accessibilityRole="header">SocialNet</Text>
+      </Box>
+      <Box className="mt-screen-x">
         <ArtWall urls={art} onReady={() => signInPage.setWhole(true)} />
       </Box>
+      <Box className="flex-1" />
       <Box className="px-screen-x pb-section">
-        {/* Owner, 2026-09-27: a clear gap between the name and the ways in. */}
-        <Box className="flex-row items-center justify-center gap-row mb-section">
-          <Image source={require('../../assets/app-icon.png')} style={LOGO} className="rounded-row" accessibilityIgnoresInvertColors />
-          <Text className="text-text text-lg font-bold" accessibilityRole="header">SocialNet</Text>
+        <AuthButton mark={{ icon: 'mail-outline' }} label="Continue with email" text="Continue with email" className="rounded-pill" disabled={false} onPress={() => choose('email')} />
+        <Box className="flex-row gap-row mt-row">
+          {OTHER_METHODS.map((m) => (
+            <AuthButton key={m.id} outline mark={m.mark} label={m.label} text={m.short} className="flex-1 rounded-pill bg-background" disabled={false} onPress={() => choose(m.id)} />
+          ))}
         </Box>
-        <AuthButton mark={{ icon: 'mail-outline' }} label="Continue with email" disabled={false} onPress={() => choose('email')} />
-        {OTHER_METHODS.map((m) => (
-          <AuthButton key={m.id} outline mark={m.mark} label={m.label} disabled={false} onPress={() => choose(m.id)} />
-        ))}
-        {/* Owner, 2026-09-27: the consent box sits under the three ways in. */}
+        {/* Owner, 2026-09-27: the consent box sits under the ways in. */}
         <ConsentRow agreed={agreed} onToggle={() => setAgreed((a) => !a)} open={legal.open} />
       </Box>
       <ConsentDialog
