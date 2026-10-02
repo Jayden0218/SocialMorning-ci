@@ -29,7 +29,7 @@ import { Heading } from './lib/heading';
 import { EDGE, LegalDoc } from './LegalDoc';
 import { Icon, type IconName } from './Icon';
 import { useColours } from './useColours';
-import { hit, type Palette } from '../design';
+import { colour, hit, type Palette } from '../design';
 import { display } from './auth/display';
 import type { SettingsStore } from '../storage/types';
 import { CONSENT_INTRO, CONSENT_ITEMS, CONSENT_OUTRO, CONSENT_TITLE, REFUSE_TEXT, type LegalDocId } from './terms';
@@ -38,15 +38,23 @@ const ICON = { width: 44, height: 44 };
 
 /** Apple's and Android's minimum tap size, as a style (shared-ui asserts it). */
 const TAP = { minHeight: hit.min };
+/**
+ * Words on the brand-yellow fill are dark (owner, 2026-10-03) — AuthShell's `inkOn`, not
+ * imported: AuthShell reads the providers, and the providers draw this page.
+ */
+const inkOn = (c: Palette): string => (c.primary === colour.primary ? colour.text : c.onPrimary);
+
+/** Agree and the other choices: 56 pt tall (owner, 2026-10-03), as the consent sheet's Agree. */
+const TALL = { minHeight: 56 };
 
 /**
  * M9: the two choices are gluestack Buttons — solid yellow for yes, outlined for no. The
  * words are the name, and the state is a state, not only an opacity.
  */
-function Choice(props: { label: string; onPress: () => void; outline?: boolean; className: string }): React.ReactElement {
+function Choice(props: { label: string; onPress: () => void; outline?: boolean; className: string; colours: Palette }): React.ReactElement {
   return (
-    <Button variant={props.outline ? 'outline' : 'default'} onPress={props.onPress} accessibilityRole="button" accessibilityLabel={props.label} className={`rounded-pill px-section ${props.outline ? 'bg-transparent' : ''} ${props.className}`} style={TAP}>
-      <ButtonText className={props.outline ? 'text-sm font-semibold text-text' : 'text-sm font-semibold text-onPrimary'}>{props.label}</ButtonText>
+    <Button variant={props.outline ? 'outline' : 'default'} onPress={props.onPress} accessibilityRole="button" accessibilityLabel={props.label} className={`rounded-pill px-section ${props.outline ? 'bg-transparent' : ''} ${props.className}`} style={TALL}>
+      <ButtonText className={props.outline ? 'text-base font-semibold text-text' : 'text-base font-semibold text-onPrimary'} style={props.outline ? undefined : { color: inkOn(props.colours) }}>{props.label}</ButtonText>
     </Button>
   );
 }
@@ -80,9 +88,9 @@ function Card(props: { item: (typeof CONSENT_ITEMS)[number]; colours: Palette; e
         className="flex-row items-center gap-row py-row"
         style={TAP}
       >
-        <Icon name={DOC_ICON[item.doc]} size={20} color={c.text} />
+        <Icon name={DOC_ICON[item.doc]} size={22} color={c.accent} />
         <Box className="flex-1">
-          <Text className="text-text text-base font-semibold">{item.link}</Text>
+          <Text className="text-text text-lg font-semibold">{item.link}</Text>
           <Text className="text-muted text-xs">{item.points.length} points</Text>
         </Box>
         <Icon name={props.expanded ? 'chevron-up' : 'chevron-down'} size={18} color={c.muted} />
@@ -138,8 +146,8 @@ export function Terms(props: { onAccept: () => void; exit?: (back: () => void) =
             <Heading className="text-text text-lg font-bold mb-row" accessibilityRole="header">{CONSENT_TITLE}</Heading>
             <Text className="text-text text-sm">{REFUSE_TEXT}</Text>
             <Box className="flex-row gap-row mt-section">
-              <Choice label="Exit app" outline onPress={() => (props.exit ?? exitApp)(() => setRefused(false))} className="flex-1" />
-              <Choice label="Agree and continue" onPress={props.onAccept} className="flex-[2]" />
+              <Choice colours={c} label="Exit app" outline onPress={() => (props.exit ?? exitApp)(() => setRefused(false))} className="flex-1" />
+              <Choice colours={c} label="Agree and continue" onPress={props.onAccept} className="flex-[2]" />
             </Box>
           </Box>
         </SafeAreaView>
@@ -163,9 +171,9 @@ export function Terms(props: { onAccept: () => void; exit?: (back: () => void) =
         <Text className="text-muted text-xs mt-section">{CONSENT_OUTRO}</Text>
       </ScrollView>
       <Box className="border-t border-separator px-screen-x pt-section pb-row">
-        <Choice label="Agree" onPress={props.onAccept} className="w-full" />
+        <Choice colours={c} label="Agree" onPress={props.onAccept} className="w-full" />
         <Pressable onPress={() => setRefused(true)} accessibilityRole="button" accessibilityLabel="Disagree" className="items-center justify-center mt-gap" style={TAP}>
-          <Text className="text-accent text-sm font-semibold">Disagree</Text>
+          <Text className="text-accent text-base font-bold">Disagree</Text>
         </Pressable>
       </Box>
     </SafeAreaView>
