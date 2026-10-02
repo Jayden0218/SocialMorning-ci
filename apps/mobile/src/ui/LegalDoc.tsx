@@ -10,8 +10,7 @@
  * full inset when the zoom ended (owner, 2026-10-03). The hook's insets are the screen's,
  * known before the first frame.
  */
-import { useMemo, useRef, useState } from 'react';
-import type { ScrollView as RNScrollView } from 'react-native';
+import { useMemo, useRef, useState, type ComponentRef } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Pressable } from './lib/pressable';
 import { ScrollView } from './lib/scroll-view';
@@ -102,7 +101,7 @@ export function LegalDoc(props: { text: string; onClose: () => void }): React.Re
     return [n?.[1] ? { index, number: n[1], label: text.slice(n[0].length) } : { index, label: text }];
   }), [body]);
   const [allShown, setAllShown] = useState(false);
-  const scroll = useRef<RNScrollView>(null);
+  const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const tops = useRef<Record<number, number>>({});
   const insets = useSafeAreaInsets();
   const pad = { paddingTop: insets.top, paddingBottom: insets.bottom, paddingLeft: insets.left, paddingRight: insets.right };
