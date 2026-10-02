@@ -3,7 +3,7 @@
  * Comments you starred with ☆ — each newest first, both searchable, both following the
  * account (src/sync/library.ts).
  */
-import { Link, router, Stack, useFocusEffect } from 'expo-router';
+import { Link, router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { FlatList } from '../src/ui/lib/flat-list';
 import { Pressable } from '../src/ui/lib/pressable';
@@ -18,6 +18,7 @@ import { Artwork } from '../src/ui/Artwork';
 import { mmss } from '../src/ui/format';
 import { EmptyPicture } from '../src/ui/me/parts';
 import { useStores } from '../src/ui/providers';
+import { PageHeader } from '../src/ui/PageHeader';
 
 const TAP = { minHeight: hit.min };
 
@@ -46,13 +47,15 @@ export default function FavouritesScreen(): React.ReactElement {
   );
   const header = (
     <Box>
-      <Stack.Screen options={{ headerTitle: () => tabs }} />
       {any ? <FilterBar term={term} onTerm={setTerm} placeholder="Search your favourites" /> : null}
     </Box>
   );
 
   if (tab === 'comments') {
     return (
+      <>
+      {/* M16a T002: the two tabs are the app's own bar's middle (were the native header's title). */}
+      <PageHeader middle={<Box className="flex-1 items-center">{tabs}</Box>} />
       <FlatList
         className="flex-1 bg-background"
         data={starred}
@@ -73,10 +76,13 @@ export default function FavouritesScreen(): React.ReactElement {
           );
         }}
       />
+      </>
     );
   }
 
   return (
+    <>
+    <PageHeader middle={<Box className="flex-1 items-center">{tabs}</Box>} />
     <FlatList
       className="flex-1 bg-background"
       data={known}
@@ -101,5 +107,6 @@ export default function FavouritesScreen(): React.ReactElement {
         );
       }}
     />
+    </>
   );
 }

@@ -12,6 +12,7 @@ import { useColours } from '../src/ui/useColours';
 import { Icon } from '../src/ui/Icon';
 import { GENRES } from '../src/discover/genres';
 import { Screen } from '../src/ui/Screen';
+import { PageHeader } from '../src/ui/PageHeader';
 
 const TAP = { minHeight: hit.min };
 
@@ -20,6 +21,8 @@ export default function CategoriesScreen(): React.ReactElement {
   const c = useColours(stores.settings);
   const router = useRouter();
   return (
+    <>
+    <PageHeader title="Categories" />
     <Screen scroll className="pt-section">
       <Box className="flex-row flex-wrap gap-row">
         {GENRES.map((g) => (
@@ -37,5 +40,6 @@ export default function CategoriesScreen(): React.ReactElement {
         ))}
       </Box>
     </Screen>
+    </>
   );
 }

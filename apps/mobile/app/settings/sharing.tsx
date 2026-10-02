@@ -3,10 +3,10 @@
  * something because you use SocialNet — written from what the app and server actually
  * call. No advertising or analytics SDK is in the app.
  */
-import { Stack } from 'expo-router';
 import { ScrollView } from '../../src/ui/lib/scroll-view';
 import { Text } from '../../src/ui/lib/text';
 import { Box } from '../../src/ui/lib/box';
+import { PageHeader } from '../../src/ui/PageHeader';
 
 const PARTIES: { name: string; who: string; what: string; why: string }[] = [
   { name: 'Podcast publishers', who: 'Each show’s own feed and audio host', what: 'Your IP address and app name, when a feed or episode is fetched', why: 'To play and download episodes — SocialNet never hosts audio' },
@@ -18,8 +18,9 @@ const PARTIES: { name: string; who: string; what: string; why: string }[] = [
 
 export default function SharingScreen(): React.ReactElement {
   return (
+    <>
+    <PageHeader title="Third-party sharing" />
     <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x py-section gap-row">
-      <Stack.Screen options={{ title: 'Third-party sharing' }} />
       <Text className="text-muted text-sm mb-row">No advertising or analytics companies receive anything from SocialNet.</Text>
       {PARTIES.map((p) => (
         <Box key={p.name} className="bg-surface rounded-artwork p-section gap-1" accessible accessibilityLabel={`${p.name}. ${p.who}. Shared: ${p.what}. Why: ${p.why}`}>
@@ -30,5 +31,6 @@ export default function SharingScreen(): React.ReactElement {
         </Box>
       ))}
     </ScrollView>
+    </>
   );
 }

@@ -3,6 +3,12 @@
  * its section title — seven days a page from `GET /v1/picks/past`, the next page by `next`.
  * A pick whose episode the server cannot name yet (`episode: null`) keeps its note and opens
  * the show instead; it has no play button, since there is nothing to play.
+ *
+ * M16a bug 7 (FR-008), checked 2026-10-02: the walk saw this page empty while Discover showed
+ * picks dated 2026-09-22. The live server (`GET /v1/picks/past`) has ONE day of picks —
+ * 2026-09-22, 3 picks, no `next` — and `?before=2026-09-22` (what Discover passes) returns
+ * `{"days":[]}`. So the page was right: correct, one day of picks. An empty answer shows
+ * "No earlier picks yet".
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
@@ -18,6 +24,7 @@ import { useCardActions } from '../../src/discover/useDiscover';
 import { dayTitle } from '../../src/discover/sections';
 import { useSafety } from '../../src/safety/context';
 import { useM12Api, type PastPick, type PastPicksDay } from '../../src/social/m12-api';
+import { PageHeader } from '../../src/ui/PageHeader';
 
 const TAP = { minHeight: hit.min };
 type State = { kind: 'loading' } | { kind: 'error' } | { kind: 'ok'; days: PastPicksDay[]; next?: string; more: 'idle' | 'loading' | 'error' };
@@ -70,6 +77,8 @@ export default function PastPicksScreen(): React.ReactElement {
     : [];
 
   return (
+    <>
+    <PageHeader title="Past picks" />
     <Screen scroll className="pt-row">
       {state.kind === 'loading' ? <Loader className="my-section" /> : null}
       {state.kind === 'error' ? (
@@ -93,5 +102,6 @@ export default function PastPicksScreen(): React.ReactElement {
         </Pressable>
       ) : null}
     </Screen>
+    </>
   );
 }

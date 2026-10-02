@@ -3,11 +3,10 @@
  * M10 (owner, 2026-09-27), after the reference: the settings sit behind the ⚙ in the header,
  * and an empty list is a picture and one line, with M6's action under it.
  */
-import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { FlatList } from '../src/ui/lib/flat-list';
 import { Pressable } from '../src/ui/lib/pressable';
-import { Switch } from '../src/ui/lib/switch';
+import { Toggle } from '../src/ui/Toggle';
 import { Text } from '../src/ui/lib/text';
 import { Box } from '../src/ui/lib/box';
 import { Icon } from '../src/ui/Icon';
@@ -17,6 +16,8 @@ import type { DownloadRow } from '../src/storage/types';
 import { EmptyState } from '../src/ui/EmptyState';
 import { hit } from '../src/design';
 import { useColours } from '../src/ui/useColours';
+import { PageHeader } from '../src/ui/PageHeader';
+import { BarButton } from '../src/ui/TopBar';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
 
@@ -42,6 +43,13 @@ export default function DownloadsScreen(): React.ReactElement {
   };
 
   return (
+    <>
+    {/* M16a T002: the ⚙ is on the app's own bar now (was the native header's right side). */}
+    <PageHeader title="Downloads" right={(
+      <BarButton label={settings ? 'Hide download settings' : 'Download settings'} onPress={() => setSettings((v) => !v)}>
+        <Icon name="settings-outline" size={22} color={c.accent} />
+      </BarButton>
+    )} />
     <FlatList
       data={rows}
       keyExtractor={(r) => r.episodeId}
@@ -49,11 +57,6 @@ export default function DownloadsScreen(): React.ReactElement {
       className="flex-1 bg-background"
       ListHeaderComponent={
         <>
-        <Stack.Screen options={{ headerRight: () => (
-          <Pressable onPress={() => setSettings((v) => !v)} accessibilityRole="button" accessibilityLabel="Download settings" accessibilityState={{ expanded: settings }} className="items-center justify-center" style={TAP}>
-            <Icon name="settings-outline" size={22} color={c.accent} />
-          </Pressable>
-        ) }} />
         {settings ? (
         <Box className="gap-2 mb-2 bg-surface rounded-artwork p-section">
           <Text className="text-[15px] text-text">Used {mb(downloads.usedBytes())} of {mb(downloads.budgetBytes())}</Text>
@@ -67,7 +70,7 @@ export default function DownloadsScreen(): React.ReactElement {
           </Box>
           <Box className="flex-row gap-3 items-center flex-wrap">
             <Text className="text-[15px] text-text">Allow mobile data</Text>
-            <Switch trackColor={{ false: c.separator, true: c.primary }} thumbColor={c.background} value={downloads.allowMobile()} onValueChange={(v) => downloads.setAllowMobile(v)} accessibilityLabel="Allow mobile data for downloads" accessibilityRole="switch" accessibilityState={{ checked: downloads.allowMobile() }} />
+            <Toggle value={downloads.allowMobile()} onChange={(v) => downloads.setAllowMobile(v)} label="Allow mobile data for downloads" />
           </Box>
           <Pressable onPress={() => void downloads.removeFinished()} accessibilityRole="button">
             <Text className="text-accent text-[15px] py-1">Remove finished downloads</Text>
@@ -102,5 +105,6 @@ export default function DownloadsScreen(): React.ReactElement {
         </Box>
       )}
     />
+    </>
   );
 }

@@ -24,9 +24,10 @@ import { hms } from '../../src/ui/StatsBlock';
 import { Artwork } from '../../src/ui/Artwork';
 import { countryName } from '../../src/ui/country';
 import { useStores } from '../../src/ui/providers';
-import { listeningHistory, localTotals } from '../../src/me/history';
-import { listMoments } from '../../src/me/moments';
-import { latestEarned, stickers } from '../../src/me/stickers';
+import { listeningHistory } from '../../src/me/history';
+import { latestEarned } from '../../src/me/stickers';
+import { myStickers, myTotals } from '../../src/me/my-stickers';
+import { PageHeader } from '../../src/ui/PageHeader';
 import { FeedItem } from '../../src/ui/FeedItem';
 import { Placeholder } from '../../src/ui/Placeholder';
 import { ReportSheet, type ReportTarget } from '../../src/ui/ReportSheet';
@@ -54,41 +55,47 @@ export default function ProfileScreen(): React.ReactElement {
     if (item.kind === 'clipped' && item.refId) router.push({ pathname: '/clip/[id]', params: { id: item.refId } });
     else router.push({ pathname: '/episode/[id]', params: { id: item.episode.id } });
   };
-  if (error) return <Box className="p-4 gap-3"><Text className="text-text">{error}</Text></Box>;
-  if (!profile) return <Box className="p-4 items-center"><Loader /></Box>;
+  const header = <PageHeader title="Profile" />;
+  if (error) return <>{header}<Box className="p-4 gap-3"><Text className="text-text">{error}</Text></Box></>;
+  if (!profile) return <>{header}<Box className="p-4 items-center"><Loader /></Box></>;
   const own = listener?.listenerId === profile.id;
   const blocked = !own && safety.isBlocked(profile.id);
   const reported = !own && safety.isHidden('profile', profile.id);
   if (profile.suspended) {
-    return <Box className="p-4 gap-3"><Text className="text-lg font-semibold text-text">{profile.displayName}</Text><Text className="text-muted">This account is suspended.</Text></Box>;
+    return <>{header}<Box className="p-4 gap-3"><Text className="text-lg font-semibold text-text">{profile.displayName}</Text><Text className="text-muted">This account is suspended.</Text></Box></>;
   }
   if (blocked || reported) {
     return (
+      <>
+      {header}
       <Box className="p-4 gap-3">
         <Text className="text-lg font-semibold text-text">{profile.displayName}</Text>
         {reported ? <Placeholder kind="reported" /> : <Text className="text-muted">You blocked this listener.</Text>}
         {blocked ? <BlockButton listenerId={profile.id} displayName={profile.displayName} /> : null}
       </Box>
+      </>
     );
   }
-  // M12 FR-006 (B6): your own totals are at least what this phone has recorded.
-  const local = own ? localTotals(stores) : undefined;
+  // M12 FR-006 (B6): your own totals are at least what this phone has recorded. M16a bug 3: the
+  // Stickers page reads the same two functions (src/me/my-stickers.ts), so the numbers agree.
   const server = profile.stats?.all;
-  const all = server && local ? { ...server, listenedMs: Math.max(server.listenedMs, local.listenedMs), finished: Math.max(server.finished, local.finished) } : server;
+  const all = own && server ? { ...server, ...myTotals(stores, server) } : server;
   const history = own ? listeningHistory(stores, 5) : [];
-  const earned = own ? stickers({ listenedMs: all?.listenedMs ?? 0, finished: all?.finished ?? 0, moments: listMoments(stores.settings).length, comments: profile.recent.filter((r) => r.kind === 'commented').length }) : [];
+  const earned = own ? myStickers(stores, profile) : [];
   const latest = latestEarned(earned);
   const subs = own ? stores.subscriptions.list().length : undefined;
   const time = listenedLabel(profile.stats === null ? undefined : all?.listenedMs ?? 0);
   const statCells: StatCell[] = [
-    { key: 'following', value: String(profile.following), label: 'Following', spoken: `${profile.following} following`, href: { pathname: '/profile/[id]/following', params: { id: profile.id } } },
-    { key: 'followers', value: String(profile.followers), label: 'Followers', spoken: plural(profile.followers, 'follower'), href: { pathname: '/profile/[id]/followers', params: { id: profile.id } } },
+    { key: 'following', value: String(profile.following), label: 'Following', spoken: `${profile.following} following`, href: { pathname: '/profile/[id]/following', params: { id: profile.id, name: profile.displayName } } },
+    { key: 'followers', value: String(profile.followers), label: 'Followers', spoken: plural(profile.followers, 'follower'), href: { pathname: '/profile/[id]/followers', params: { id: profile.id, name: profile.displayName } } },
     ...(subs !== undefined ? [{ key: 'subs', value: String(subs), label: 'Subscriptions', spoken: plural(subs, 'subscription'), href: '/subscriptions' }] : []),
     { key: 'time', value: time.value, label: 'Listened', spoken: time.spoken },
   ];
   const h = Math.floor((all?.listenedMs ?? 0) / 3_600_000);
   const m = Math.floor(((all?.listenedMs ?? 0) % 3_600_000) / 60_000);
   return (
+    <>
+    {header}
     <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pt-section pb-24">
       {/* M10 (owner, 2026-09-27): laid out after the reference — big name, avatar, counts,
           a listening-time card, stickers, then recent listens. */}
@@ -173,5 +180,6 @@ export default function ProfileScreen(): React.ReactElement {
         : (profile.recent.length === 0 ? <Text className="text-muted text-sm">Nothing public yet.</Text> : feed(profile.recent).map((item) => <FeedItem key={item.id} item={item} onOpen={open} />))}
       <ReportSheet target={reporting} onClose={() => setReporting(undefined)} />
     </ScrollView>
+    </>
   );
 }

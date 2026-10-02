@@ -9,6 +9,7 @@ import {
   withStyleContext,
 } from '@gluestack-ui/utils/nativewind-utils';
 import React from 'react';
+import { OverlayRoot } from '../above-modals';
 import { Pressable, ScrollView, View } from 'react-native';
 import Animated, {
   Easing,
@@ -19,7 +20,8 @@ import Animated, {
 
 const SCOPE = 'ALERT_DIALOG';
 
-const RootComponent = withStyleContext(View, SCOPE);
+// M16a: the root is lifted above native modals on iOS (bug 1 — see ../above-modals).
+const RootComponent = withStyleContext(OverlayRoot, SCOPE);
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const AnimatedView = Animated.createAnimatedComponent(View);

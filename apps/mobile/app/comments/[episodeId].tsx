@@ -7,7 +7,7 @@
  */
 import { useCallback, useMemo, useState } from 'react';
 import { Clipboard } from 'react-native';
-import { Stack, router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { orderComments, type CommentOrder } from '@socialmorning/social-core';
 import { FlatList } from '../../src/ui/lib/flat-list';
 import { Pressable } from '../../src/ui/lib/pressable';
@@ -32,6 +32,7 @@ import { usePlayer, usePlayerState } from '../../src/playback/store';
 import { toPlayable } from '../../src/storage/playable';
 import { isFavComment, toggleFavComment } from '../../src/me/fav-comments';
 import { EpisodeCard } from '../../src/ui/comments/EpisodeCard';
+import { PageHeader } from '../../src/ui/PageHeader';
 
 const TAB = { minHeight: hit.min };
 const ORDERS: { key: CommentOrder; label: string }[] = [
@@ -117,8 +118,9 @@ export default function CommentsScreen(): React.ReactElement {
   ];
 
   return (
+    <>
+    <PageHeader title={count > 0 ? `Comments ${count}` : 'Comments'} />
     <Box className="flex-1 bg-background">
-      <Stack.Screen options={{ title: count > 0 ? `Comments ${count}` : 'Comments' }} />
       {/* Owner, 2026-10-01: the episode, with its own play/pause, at the top of the page. */}
       {episodeId ? <EpisodeCard episodeId={episodeId} /> : null}
       <Box className="flex-row px-screen-x gap-row border-b-hairline border-separator" accessibilityRole="tablist">
@@ -154,7 +156,7 @@ export default function CommentsScreen(): React.ReactElement {
       </Pressable>
       <Actionsheet isOpen={menu !== undefined} onClose={() => setMenu(undefined)}>
         <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-        <ActionsheetContent className="bg-background rounded-t-2xl pb-10 items-stretch">
+        <ActionsheetContent className="bg-background rounded-t-2xl items-stretch">
           <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
           {menu ? menuItems(menu).map((item) => (
             <Pressable key={item.label} onPress={() => { setMenu(undefined); item.run(); }} accessibilityRole="button" className="justify-center px-screen-x border-b-hairline border-separator" style={TAB}>
@@ -169,6 +171,7 @@ export default function CommentsScreen(): React.ReactElement {
       <ReportSheet target={reporting} onClose={() => setReporting(undefined)} />
       {composing ? <ComposerSheet initial={composing} onClose={() => setComposing(undefined)} onPosted={() => { if (episodeId) void refresh(episodeId); }} /> : null}
     </Box>
+    </>
   );
 }
 

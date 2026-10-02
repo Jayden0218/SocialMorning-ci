@@ -15,6 +15,8 @@ import { toPlayable } from '../../src/storage/playable';
 import { ClipComposer } from '../../src/ui/ClipComposer';
 import { shareClip } from '../../src/graph/share';
 import { apiBaseUrl } from '../../src/social/base-url';
+import { useSharePanel } from '../../src/ui/ShareChooser';
+import { PageHeader } from '../../src/ui/PageHeader';
 
 export default function NewClipScreen(): React.ReactElement {
   const params = useLocalSearchParams<{ episodeId: string; positionMs: string }>();
@@ -23,10 +25,14 @@ export default function NewClipScreen(): React.ReactElement {
   const { listener } = useSocial();
   const toast = useToast();
   const [saving, setSaving] = useState(false);
+  // M16a T005 (FR-015): after a save the app's share panel opens here; closing it goes back.
+  const [share, sharePanel] = useSharePanel();
   const episode = params.episodeId ? toPlayable(stores, params.episodeId) : undefined;
-  if (!episode) return <Box className="p-4"><Text className="text-text">This episode is not in the library.</Text></Box>;
-  if (!listener) return <Box className="p-4"><Text className="text-text">Sign in to make a clip.</Text></Box>;
+  if (!episode) return <><PageHeader title="New clip" /><Box className="p-4"><Text className="text-text">This episode is not in the library.</Text></Box></>;
+  if (!listener) return <><PageHeader title="New clip" /><Box className="p-4"><Text className="text-text">Sign in to make a clip.</Text></Box></>;
   return (
+    <>
+    <PageHeader title="New clip" />
     <ClipComposer
       episode={episode}
       initialPositionMs={Number(params.positionMs ?? 0)}
@@ -36,8 +42,8 @@ export default function NewClipScreen(): React.ReactElement {
         const r = await clips.create(episode.id, s.range, s.caption, episode.durationMs);
         setSaving(false);
         if (r.kind === 'sent') {
-          router.back();
-          await shareClip(Share, r.clip, episode.title, apiBaseUrl());
+          const clip = r.clip;
+          share({ heading: 'Clip saved — share it', more: { detail: 'other apps', run: () => void shareClip(Share, clip, episode.title, apiBaseUrl()) }, onClosed: () => router.back() });
         } else if (r.kind === 'pending') {
           toast('Clip saved — it will be sent when you are online.');
           router.back();
@@ -48,6 +54,8 @@ export default function NewClipScreen(): React.ReactElement {
         }
       }}
     />
+    {sharePanel}
+    </>
   );
 }
 

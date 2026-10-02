@@ -14,6 +14,7 @@ import type { MyComment } from '../src/social/api';
 import { useSocial } from '../src/social/context';
 import { mmss, shortDate } from '../src/ui/format';
 import { EmptyPicture } from '../src/ui/me/parts';
+import { PageHeader } from '../src/ui/PageHeader';
 
 export default function MyCommentsScreen(): React.ReactElement {
   const { api, listener } = useSocial();
@@ -33,8 +34,10 @@ export default function MyCommentsScreen(): React.ReactElement {
     void api.myComments(at).then((r) => { setRows((cur) => [...(cur ?? []), ...r.items]); setNext(r.next); }, () => setNext(at));
   }, [api, next]);
 
-  if (rows === undefined) return <Box className="flex-1 bg-background p-section items-center"><Loader /></Box>;
+  if (rows === undefined) return <><PageHeader title="My comments" /><Box className="flex-1 bg-background p-section items-center"><Loader /></Box></>;
   return (
+    <>
+    <PageHeader title="My comments" />
     <FlatList
       className="flex-1 bg-background"
       data={rows}
@@ -53,5 +56,6 @@ export default function MyCommentsScreen(): React.ReactElement {
         );
       }}
     />
+    </>
   );
 }

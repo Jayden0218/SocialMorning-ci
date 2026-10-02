@@ -6,7 +6,7 @@
  * M12 FR-093: under them, a switch per subscribed show (`NotifyShows`), off while
  * "New episodes" itself is off.
  */
-import { Stack, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Linking } from 'react-native';
 import { ScrollView } from '../../src/ui/lib/scroll-view';
@@ -19,6 +19,7 @@ import { useStores } from '../../src/ui/providers';
 import { SwitchRow } from '../../src/ui/settings/rows';
 import { NotifyShows } from '../../src/ui/settings/NotifyShows';
 import { useM12Api } from '../../src/social/m12-api';
+import { PageHeader } from '../../src/ui/PageHeader';
 
 export default function PushSettings(): React.ReactElement {
   const stores = useStores();
@@ -39,8 +40,9 @@ export default function PushSettings(): React.ReactElement {
     return () => { live = false; };
   }, []));
   return (
+    <>
+    <PageHeader title="Notifications" />
     <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x py-row">
-      <Stack.Screen options={{ title: 'Notifications' }} />
       <SwitchRow
         icon="phone-portrait-outline"
         label="Allow notifications"
@@ -54,5 +56,6 @@ export default function PushSettings(): React.ReactElement {
       {listener ? <NotifyShows load={loadShows} save={m12.setNotifyShow} titleOf={(f) => stores.feeds.getShow(f)?.title} disabled={!episodes} /> : null}
       {!listener ? <Text className="text-muted text-xs mt-row">Sign in to receive notifications.</Text> : null}
     </ScrollView>
+    </>
   );
 }

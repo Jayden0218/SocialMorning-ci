@@ -20,6 +20,7 @@ import { minutesLabel } from './format';
 import type { Stores } from '../storage/types';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
+const ROW_TAP = { minHeight: hit.min };
 /** A row's height, for turning a drag distance into places moved. */
 export const QUEUE_ROW = 72;
 
@@ -87,11 +88,16 @@ function QueueRow(props: {
         <Box {...handlers} className="items-center justify-center" style={TAP} accessible accessibilityRole="adjustable" accessibilityLabel={`Drag to reorder ${title}`}>
           <Icon name="reorder-three-outline" size={22} color={props.colours.muted} />
         </Box>
-        <Artwork url={episode?.imageUrl ?? show?.imageUrl} size={48} name={show?.title ?? title} />
-        <Box className="flex-1">
-          <Text className="text-text text-sm font-semibold" numberOfLines={2}>{title}</Text>
-          <Text className="text-muted text-xs" numberOfLines={1}>{[show?.title, left, downloaded ? 'Downloaded' : undefined].filter(Boolean).join(' · ')}</Text>
-        </Box>
+        {/* M16a bug 6 (FR-002). Phone walk 2026-10-02: tapping a row in "Up next" did nothing —
+            the artwork and title were plain views; only the drag handle and ⋮ took a tap. The row
+            itself now plays the episode (the sheet closes, the page opens the player). */}
+        <Pressable onPress={() => props.onPlay(id)} accessibilityRole="button" accessibilityLabel={`Play ${title}`} className="flex-1 flex-row items-center gap-row" style={ROW_TAP}>
+          <Artwork url={episode?.imageUrl ?? show?.imageUrl} size={48} name={show?.title ?? title} />
+          <Box className="flex-1">
+            <Text className="text-text text-sm font-semibold" numberOfLines={2}>{title}</Text>
+            <Text className="text-muted text-xs" numberOfLines={1}>{[show?.title, left, downloaded ? 'Downloaded' : undefined].filter(Boolean).join(' · ')}</Text>
+          </Box>
+        </Pressable>
         <Pressable onPress={props.onToggle} accessibilityRole="button" accessibilityLabel={`More for ${title}`} accessibilityState={{ expanded: props.open }} className="items-center justify-center" style={TAP}>
           <Icon name="ellipsis-vertical" size={20} color={props.colours.text} />
         </Pressable>

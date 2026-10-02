@@ -12,19 +12,20 @@
  * widgets (each needs native code outside this Expo app), a paid account and tips (the
  * app takes no payments — everything is free).
  */
-import { Stack } from 'expo-router';
 import { ScrollView } from '../src/ui/lib/scroll-view';
 import { SignOut } from '../src/ui/SignOut';
 import { useSocial } from '../src/social/context';
 import { Divider, LinkRow } from '../src/ui/settings/rows';
 import { DARK_READY } from '../src/design/theme';
+import { PageHeader } from '../src/ui/PageHeader';
 
 
 export default function SettingsScreen(): React.ReactElement {
   const { auth, listener } = useSocial();
   return (
+    <>
+    <PageHeader title="Settings" />
     <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x py-row pb-24">
-      <Stack.Screen options={{ title: 'Settings' }} />
       <LinkRow href="/settings/account" icon="person-circle-outline" label="Account and security" />
       <Divider />
       {/* M10b US4: shown once dark mode is wired end to end (DARK_READY, flipped by M9). */}
@@ -43,5 +44,6 @@ export default function SettingsScreen(): React.ReactElement {
         <SignOut onSignOut={() => void auth.signOut()} className="items-center justify-center bg-surface rounded-artwork mt-section" />
       ) : null}
     </ScrollView>
+    </>
   );
 }

@@ -12,6 +12,7 @@ import { mmss, shortDate } from '../src/ui/format';
 import { EmptyPicture } from '../src/ui/me/parts';
 import { useStores } from '../src/ui/providers';
 import { size } from '../src/design';
+import { PageHeader } from '../src/ui/PageHeader';
 
 const ROW = { minHeight: size.row };
 
@@ -21,6 +22,8 @@ export default function HistoryScreen(): React.ReactElement {
   const [finished, setFinished] = useState(false);
   const rows = listeningHistory(stores).filter((r) => (!finished || r.finished) && matchesAll(term, [r.episode.title, stores.feeds.getShow(r.episode.feedUrl)?.title]));
   return (
+    <>
+    <PageHeader title="Listening history" />
     <FlatList
       className="flex-1 bg-background"
       data={rows}
@@ -46,5 +49,6 @@ export default function HistoryScreen(): React.ReactElement {
         );
       }}
     />
+    </>
   );
 }

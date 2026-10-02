@@ -22,11 +22,20 @@ export async function isFollowing(db: Db, followerId: string, followedId: string
   return (await db.query('SELECT 1 FROM follows WHERE follower_id = $1 AND followed_id = $2', [followerId, followedId])).length > 0;
 }
 
-export async function counts(db: Db, listenerId: string): Promise<{ followers: number; following: number }> {
+const NOT_BLOCKED = `AND ($4::uuid IS NULL OR l.id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id = $4::uuid))`;
+/** The same rule as NOT_BLOCKED, with the viewer as the second parameter (for `counts`). */
+const NOT_BLOCKED_2 = `AND ($2::uuid IS NULL OR l.id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id = $2::uuid))`;
+
+/**
+ * M16a bug 2 (FR-003): a count is the number of people its list can show the viewer. The lists
+ * below leave out listeners the viewer blocked (NOT_BLOCKED); the counts did not, so a profile
+ * could say more followers than its list would ever hold. Both now use the same rule.
+ */
+export async function counts(db: Db, listenerId: string, viewerId?: string): Promise<{ followers: number; following: number }> {
   const [r] = await db.query<{ followers: number; following: number }>(
-    `SELECT (SELECT count(*)::int FROM follows WHERE followed_id = $1) AS followers,
-            (SELECT count(*)::int FROM follows WHERE follower_id = $1) AS following`,
-    [listenerId],
+    `SELECT (SELECT count(*)::int FROM follows f JOIN listeners l ON l.id = f.follower_id WHERE f.followed_id = $1 ${NOT_BLOCKED_2}) AS followers,
+            (SELECT count(*)::int FROM follows f JOIN listeners l ON l.id = f.followed_id WHERE f.follower_id = $1 ${NOT_BLOCKED_2}) AS following`,
+    [listenerId, viewerId ?? null],
   );
   return { followers: Number(r!.followers), following: Number(r!.following) };
 }
@@ -40,7 +49,6 @@ async function page(db: Db, sql: string, params: unknown[], limit: number): Prom
   return { listeners: slice.map((r) => ({ id: r.id, displayName: r.display_name })), ...(next ? { next } : {}) };
 }
 
-const NOT_BLOCKED = `AND ($4::uuid IS NULL OR l.id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id = $4::uuid))`;
 
 export function followers(db: Db, listenerId: string, before?: string, limit = 50, viewerId?: string): Promise<Page> {
   return page(db,

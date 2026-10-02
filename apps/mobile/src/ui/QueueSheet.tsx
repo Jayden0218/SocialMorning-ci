@@ -3,6 +3,7 @@
  * queue was a separate page.
  */
 import { useEffect, useState } from 'react';
+import { router } from 'expo-router';
 import { remove } from '@socialmorning/player-core';
 import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from './lib/actionsheet';
 import { ScrollView } from './lib/scroll-view';
@@ -24,17 +25,19 @@ export function QueueSheet(props: { open: boolean; onClose: () => void }): React
   const [ids, setIds] = useState<readonly string[]>(() => stores.queue.list());
   useEffect(() => { if (props.open) setIds(stores.queue.list()); }, [props.open, stores]);
   const write = (next: readonly string[]) => { stores.queue.replace(next, Date.now()); setIds(stores.queue.list()); };
+  // M16a bug 6 (FR-002): a row tap plays that episode and closes the sheet; one that cannot be
+  // played from here (not in the library) closes and opens its page instead — never nothing.
   const play = (id: string) => {
     const playable = toPlayable(stores, id);
-    if (!playable) return;
+    props.onClose();
+    if (!playable) { router.push({ pathname: '/episode/[id]', params: { id } }); return; }
     write(remove(ids, id));
     player.load(playable, 'play');
-    props.onClose();
   };
   return (
     <Actionsheet isOpen={props.open} onClose={props.onClose}>
       <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-      <ActionsheetContent className="bg-background rounded-t-2xl px-screen-x pb-10 items-stretch" style={TALL}>
+      <ActionsheetContent className="bg-background rounded-t-2xl px-screen-x items-stretch" style={TALL}>
         <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
         <Text className="text-text text-base font-bold py-row" accessibilityRole="header">Up next</Text>
         <ScrollView className="w-full">

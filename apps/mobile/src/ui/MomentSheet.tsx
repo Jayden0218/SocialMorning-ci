@@ -82,7 +82,7 @@ export function MomentSheet(props: {
       <Actionsheet isOpen onClose={props.onClose}>
         <ActionsheetBackdrop />
         <KeyboardAvoidingView className="w-full justify-end" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <ActionsheetContent className="bg-surface p-4 gap-2 rounded-t-2xl max-h-[70%] items-stretch">
+          <ActionsheetContent className="bg-surface px-4 pt-4 gap-2 rounded-t-2xl max-h-[70%] items-stretch">
             <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
             <Box className="flex-row justify-between items-center">
               <Text className="text-sm font-bold text-text">{props.title}</Text>

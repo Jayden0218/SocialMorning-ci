@@ -4,7 +4,6 @@
  * privacy policy and community rules live here now).
  */
 import Constants from 'expo-constants';
-import { Stack } from 'expo-router';
 import { Modal, ModalBackdrop, ModalContent } from '../../src/ui/lib/modal';
 import { Image } from '../../src/ui/lib/image';
 import { ScrollView } from '../../src/ui/lib/scroll-view';
@@ -14,6 +13,7 @@ import { useState } from 'react';
 import { LEGAL_TEXT } from '../../src/legal/texts';
 import { LegalDoc } from '../../src/ui/LegalDoc';
 import { ActionRow } from '../../src/ui/settings/rows';
+import { PageHeader } from '../../src/ui/PageHeader';
 
 type Doc = keyof typeof LEGAL_TEXT;
 const ICON = { width: 88, height: 88 };
@@ -21,8 +21,9 @@ const ICON = { width: 88, height: 88 };
 export default function AboutScreen(): React.ReactElement {
   const [doc, setDoc] = useState<Doc | undefined>();
   return (
+    <>
+    <PageHeader title="About SocialNet" />
     <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x py-section">
-      <Stack.Screen options={{ title: 'About SocialNet' }} />
       <Box className="items-center gap-row mb-section">
         <Image source={require('../../assets/app-icon.png')} style={ICON} className="rounded-artwork" accessibilityLabel="SocialNet" />
         <Text className="text-text text-lg font-bold">SocialNet</Text>
@@ -40,5 +41,6 @@ export default function AboutScreen(): React.ReactElement {
         </ModalContent>
       </Modal>
     </ScrollView>
+    </>
   );
 }

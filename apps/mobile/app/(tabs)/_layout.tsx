@@ -17,7 +17,7 @@
 import { Tabs, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Box } from '../../src/ui/lib/box';
-import { colour, fontSize } from '../../src/design';
+import { colour } from '../../src/design';
 import { useColours } from '../../src/ui/useColours';
 import { createFeed } from '../../src/graph/feed';
 import { useSocial } from '../../src/social/context';
@@ -59,12 +59,9 @@ export default function TabsLayout(): React.ReactElement {
   return (
     <Tabs
       screenOptions={{
-        // The tab screens had no header at all on build 20: the first row sat under the
-        // status bar. They get the same chrome as the stack.
-        headerStyle: { backgroundColor: c.background },
-        headerTintColor: c.accent,
-        headerTitleStyle: { color: c.text, fontSize: fontSize.lg, fontWeight: '700' },
-        headerShadowVisible: false,
+        // M16a T002 (FR-012): no system header here either — Discover, Updates and Me draw their
+        // own titles; the two hidden routes only redirect.
+        headerShown: false,
         sceneStyle: { backgroundColor: c.background },
       }}
       tabBar={(props) => {

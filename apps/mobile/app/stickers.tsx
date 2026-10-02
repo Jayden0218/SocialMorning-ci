@@ -6,27 +6,32 @@ import { Box } from '../src/ui/lib/box';
 import { colour } from '../src/design';
 import { useColours } from '../src/ui/useColours';
 import { Icon } from '../src/ui/Icon';
-import { listMoments } from '../src/me/moments';
-import { stickers, type Sticker } from '../src/me/stickers';
+import type { Sticker } from '../src/me/stickers';
+import { myStickers } from '../src/me/my-stickers';
 import { useSocial } from '../src/social/context';
 import { useStores } from '../src/ui/providers';
+import { PageHeader } from '../src/ui/PageHeader';
 
 export default function StickersScreen(): React.ReactElement {
   const stores = useStores();
   const c = useColours(stores.settings);
   const { api, listener } = useSocial();
-  const [list, setList] = useState<Sticker[]>(() => stickers({ listenedMs: 0, finished: 0, moments: listMoments(stores.settings).length, comments: 0 }));
+  // M16a bug 3: the same source as the profile card (src/me/my-stickers.ts) — this phone's totals
+  // at once, then the larger of those and the server's once the profile arrives.
+  const [list, setList] = useState<Sticker[]>(() => myStickers(stores, undefined));
   useEffect(() => {
     if (!listener) return;
     let live = true;
     void api.profile(listener.listenerId).then((p) => {
       if (!live) return;
-      setList(stickers({ listenedMs: p.stats?.all.listenedMs ?? 0, finished: p.stats?.all.finished ?? 0, moments: listMoments(stores.settings).length, comments: p.recent.filter((r) => r.kind === 'commented').length }));
+      setList(myStickers(stores, p));
     }, () => undefined);
     return () => { live = false; };
   }, [api, listener, stores]);
   const earned = list.filter((s) => s.earned).length;
   return (
+    <>
+    <PageHeader title="Stickers" />
     <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x py-section pb-24">
       <Text className="text-text text-base font-bold mb-section" accessibilityRole="header">{earned} of {list.length} earned</Text>
       {!listener ? <Text className="text-muted text-sm mb-section">Sign in to count your listening time.</Text> : null}
@@ -40,5 +45,6 @@ export default function StickersScreen(): React.ReactElement {
         ))}
       </Box>
     </ScrollView>
+    </>
   );
 }

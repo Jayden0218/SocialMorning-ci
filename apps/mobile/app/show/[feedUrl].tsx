@@ -25,6 +25,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView } from 'react-native';
 import { Share } from 'react-native';
+import { useSharePanel } from '../../src/ui/ShareChooser';
 import { FlatList } from '../../src/ui/lib/flat-list';
 import { Pressable } from '../../src/ui/lib/pressable';
 import { SafeAreaView } from '../../src/ui/lib/safe-area-view';
@@ -78,6 +79,8 @@ export default function ShowScreen(): React.ReactElement {
   const [subscribed, setSubscribed] = useState(() => stores.subscriptions.has(feedUrl));
   const { safety, version, hiddenFeeds } = useSafety();
   const [reporting, setReporting] = useState<ReportTarget | undefined>();
+  // M16a T005 (FR-015): Share opens the app's panel; the system sheet is behind its "More".
+  const [share, sharePanel] = useSharePanel();
   void version;
   const reportedShow = safety.isHidden('show', feedUrl);
   const hiddenShow = hiddenFeeds.has(feedUrl);
@@ -318,7 +321,7 @@ export default function ShowScreen(): React.ReactElement {
         {/* Phone walk 2026-09-30: with all three icons the slim title showed 7 letters; collapsed, only ⋯ stays. */}
         {collapsed ? null : <BarButton label="Share this show" onPress={() => {
           void api.recordShare({ targetKind: 'show', targetId: feedUrl, feedUrl }).catch(() => undefined); // M11 FR-011: never waits
-          void Share.share({ message: `${title ?? ''}\n${feedUrl}` }).catch(() => undefined);
+          share({ heading: 'Share this show', more: { detail: 'other apps', run: () => void Share.share({ message: `${title ?? ''}\n${feedUrl}` }).catch(() => undefined) } });
         }}>
           <Glyph>↗</Glyph>
         </BarButton>}
@@ -377,7 +380,7 @@ export default function ShowScreen(): React.ReactElement {
       />
       <Actionsheet isOpen={menuFor !== undefined} onClose={() => setMenuFor(undefined)}>
         <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-        <ActionsheetContent className="bg-background rounded-t-2xl px-screen-x pt-row pb-10 items-stretch">
+        <ActionsheetContent className="bg-background rounded-t-2xl px-screen-x pt-row items-stretch">
           <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
           {menuFor ? (
             <>
@@ -392,6 +395,7 @@ export default function ShowScreen(): React.ReactElement {
           </Pressable>
         </ActionsheetContent>
       </Actionsheet>
+      {sharePanel}
     </SafeAreaView>
   );
 }

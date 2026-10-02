@@ -3,7 +3,6 @@
  * cards, each with how many items are held; tapping a card opens its details — purpose,
  * when it is collected, and what exactly. Counts are live, from this phone.
  */
-import { Stack } from 'expo-router';
 import { useState } from 'react';
 import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '../../src/ui/lib/actionsheet';
 import { Pressable } from '../../src/ui/lib/pressable';
@@ -19,6 +18,7 @@ import { collectedList, type CollectedItem } from '../../src/settings/collected'
 import { useSocial } from '../../src/social/context';
 import { Icon } from '../../src/ui/Icon';
 import { useStores } from '../../src/ui/providers';
+import { PageHeader } from '../../src/ui/PageHeader';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
 
@@ -36,8 +36,9 @@ export default function CollectedScreen(): React.ReactElement {
     subscriptions: stores.subscriptions.list().length,
   });
   return (
+    <>
+    <PageHeader title="Information we collect" />
     <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x py-section pb-24">
-      <Stack.Screen options={{ title: 'Information we collect' }} />
       {groups.map((g) => (
         <Box key={g.title} className="mb-section">
           <Text className="text-text text-base font-bold text-center" accessibilityRole="header">{g.title}</Text>
@@ -57,7 +58,7 @@ export default function CollectedScreen(): React.ReactElement {
       <Text className="text-muted text-xs text-center">To offer these features SocialNet keeps the information above, and nothing else. Counts are from this phone and may lag the server.</Text>
             <Actionsheet isOpen={open !== undefined} onClose={() => setOpen(undefined)}>
         <ActionsheetBackdrop />
-          <ActionsheetContent className="bg-background rounded-t-artwork p-screen-x pb-24 gap-section items-stretch">
+          <ActionsheetContent className="bg-background rounded-t-artwork px-screen-x pt-screen-x gap-section items-stretch">
             <Box className="flex-row items-start justify-between">
               <Box className="flex-1">
                 <Text className="text-text text-lg font-bold" accessibilityRole="header">{open?.title}</Text>
@@ -73,5 +74,6 @@ export default function CollectedScreen(): React.ReactElement {
           </ActionsheetContent>
       </Actionsheet>
     </ScrollView>
+    </>
   );
 }

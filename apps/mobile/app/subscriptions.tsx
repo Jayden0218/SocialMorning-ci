@@ -27,6 +27,7 @@ import { shortDate } from '../src/ui/format';
 import { useStores, useSubscriptionSync, useToast } from '../src/ui/providers';
 import { useColours } from '../src/ui/useColours';
 import { hit } from '../src/design';
+import { PageHeader } from '../src/ui/PageHeader';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
 type Row = SubRow & { imageUrl?: string; latestTitle?: string; stale: boolean };
@@ -84,6 +85,8 @@ export default function SubscriptionsScreen(): React.ReactElement {
   ];
 
   return (
+    <>
+    <PageHeader title="My subscriptions" />
     <Box className="flex-1 bg-background">
       <SectionList
         sections={sections}
@@ -137,7 +140,7 @@ export default function SubscriptionsScreen(): React.ReactElement {
       />
       <Actionsheet isOpen={menu !== undefined} onClose={() => setMenu(undefined)}>
         <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-        <ActionsheetContent className="bg-background rounded-t-2xl px-screen-x pt-row pb-10 items-stretch">
+        <ActionsheetContent className="bg-background rounded-t-2xl px-screen-x pt-row items-stretch">
           <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
           {menu ? (
             <>
@@ -152,5 +155,6 @@ export default function SubscriptionsScreen(): React.ReactElement {
         </ActionsheetContent>
       </Actionsheet>
     </Box>
+    </>
   );
 }

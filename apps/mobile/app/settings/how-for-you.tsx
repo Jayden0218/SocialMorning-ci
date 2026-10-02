@@ -1,5 +1,4 @@
 /** How For You works (M12 FR-094): questions that open to show their answer. */
-import { Stack } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView } from '../../src/ui/lib/scroll-view';
 import { Pressable } from '../../src/ui/lib/pressable';
@@ -10,6 +9,7 @@ import { useColours } from '../../src/ui/useColours';
 import { useStores } from '../../src/ui/providers';
 import { size } from '../../src/design';
 import { HOW_FOR_YOU } from '../../src/settings/how-for-you';
+import { PageHeader } from '../../src/ui/PageHeader';
 
 const ROW = { minHeight: size.row };
 
@@ -18,8 +18,9 @@ export default function HowForYou(): React.ReactElement {
   const c = useColours(stores.settings);
   const [open, setOpen] = useState<number | undefined>(0);
   return (
+    <>
+    <PageHeader title="How For You works" />
     <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x py-row pb-24">
-      <Stack.Screen options={{ title: 'How For You works' }} />
       {HOW_FOR_YOU.map((item, i) => {
         const shown = open === i;
         return (
@@ -34,5 +35,6 @@ export default function HowForYou(): React.ReactElement {
         );
       })}
     </ScrollView>
+    </>
   );
 }

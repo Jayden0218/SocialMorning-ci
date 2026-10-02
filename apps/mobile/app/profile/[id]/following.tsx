@@ -1,34 +1,9 @@
-/** A paged list of following (M4 FR-007). */
-import { useEffect, useState } from 'react';
-import { FlatList } from '../../../src/ui/lib/flat-list';
-import { Pressable } from '../../../src/ui/lib/pressable';
-import { Text } from '../../../src/ui/lib/text';
+/** A paged list of following (M4 FR-007). M16a bug 2: one component for both lists — src/ui/FollowList.tsx. */
 import { useLocalSearchParams } from 'expo-router';
-import { Link } from '../../../src/design/tailwind';
-import { useSocial } from '../../../src/social/context';
-import { useSafety } from '../../../src/safety/context';
-import type { ClipAuthor } from '../../../src/social/api';
-import { EmptyState } from '../../../src/ui/EmptyState';
+import { FollowList } from '../../../src/ui/FollowList';
 
 export default function FollowingScreen(): React.ReactElement {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const { api } = useSocial();
-  const safetyFilter = useSafety();
-  const [rows, setRows] = useState<ClipAuthor[]>([]);
-  const [next, setNext] = useState<string | undefined>();
-  useEffect(() => { void api.following(String(id)).then((r) => { setRows(r.listeners); setNext(r.next); }).catch(() => undefined); }, [api, id]);
-  return (
-    <FlatList
-      data={safetyFilter.listeners(rows)}
-      keyExtractor={(l) => l.id}
-      contentContainerClassName="px-screen-x py-section"
-      ListEmptyComponent={<EmptyState surface="following" />}
-      renderItem={({ item }) => (
-        <Link href={{ pathname: '/profile/[id]', params: { id: item.id } }} asChild>
-          <Pressable className="py-3 border-b-hairline border-separator" accessibilityRole="link"><Text className="text-sm text-text">{item.displayName ?? 'Deleted account'}</Text></Pressable>
-        </Link>
-      )}
-      onEndReached={() => { if (next) void api.following(String(id), next).then((r) => { setRows((x) => [...x, ...r.listeners]); setNext(r.next); }).catch(() => undefined); }}
-    />
-  );
+  // `name` comes from the profile's link, so an empty list can say whose it is.
+  const { id, name } = useLocalSearchParams<{ id: string; name?: string }>();
+  return <FollowList kind="following" id={String(id)} {...(typeof name === 'string' ? { name } : {})} />;
 }

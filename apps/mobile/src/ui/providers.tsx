@@ -7,8 +7,6 @@
  */
 import { createContext, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { AppState, Linking } from 'react-native';
-import { Text } from './lib/text';
-import { Box } from './lib/box';
 import { createExpoAudioAdapter } from '../playback/expo-audio-adapter';
 import { PlayerProvider, createPlayerRuntime, type PlayerRuntime } from '../playback/store';
 import { hash } from '../feeds/hash';
@@ -38,6 +36,7 @@ import { applyAccent, readAccent } from '../design/accent';
 import { readAppearance } from './useColours';
 import * as SplashScreen from 'expo-splash-screen';
 import { Terms } from './Terms';
+import { ToastHost } from './ToastHost';
 import { accept, hasAccepted } from './terms';
 import { ALWAYS_SHOW_TERMS, HANDOFF_MAX_MS, coverLaunch, keepTerms, opensSignIn, signInPage } from './launch';
 import { router, usePathname } from 'expo-router';
@@ -390,11 +389,8 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
             />
           ) : null}
           {keepTerms({ ready, accepted, launched, cover }) ? <Terms onAccept={() => { accept(stores.settings); setAccepted(true); }} /> : null}
-          {message === undefined ? null : (
-            <Box className="absolute left-3 right-3 bottom-24 bg-surface border border-separator rounded-lg p-3" accessibilityLiveRegion="polite">
-              <Text className="text-text">{message}</Text>
-            </Box>
-          )}
+          {/* M16a T015: the toast host — spoken on iOS too, and drawn above native modals. */}
+          <ToastHost message={message} />
         </PlayerProvider>
       </ToastContext.Provider>
       </LibrarySyncContext.Provider>

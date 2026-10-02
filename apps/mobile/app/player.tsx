@@ -364,7 +364,7 @@ export default function PlayerScreen(): React.ReactElement {
 
         <Actionsheet isOpen={more} onClose={() => setMore(false)}>
       <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-      <ActionsheetContent className="bg-background rounded-t-2xl px-screen-x pt-row pb-10 gap-section max-h-[75%] items-stretch">
+      <ActionsheetContent className="bg-background rounded-t-2xl px-screen-x pt-row gap-section max-h-[75%] items-stretch">
         <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
         <Box className="flex-row justify-between items-center">
           <Text className="text-base font-bold text-text">Playback</Text>

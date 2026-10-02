@@ -4,7 +4,8 @@
  * stop; long-press your own to delete it. "+ Voice" records one.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ScrollView, Alert } from 'react-native';
+import { ScrollView } from './lib/scroll-view';
+import { useConfirm } from './confirm';
 import { playVoice } from '../playback/expo-audio-adapter';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Pressable } from './lib/pressable';
@@ -29,6 +30,8 @@ export function VoicePosts(props: { load: () => Promise<VoicePost[]>; remove: (i
   const audio = useRef<{ stop: () => void } | undefined>(undefined);
   const { load } = props;
   const refresh = useCallback(() => { load().then(setPosts, () => undefined); }, [load]);
+  // M16a T003 (FR-013): the app's own dialog, not the iOS alert.
+  const [confirm, dialog] = useConfirm();
   useFocusEffect(refresh);
   const stop = () => { audio.current?.stop(); audio.current = undefined; setPlaying(undefined); };
   useEffect(() => () => stop(), []);
@@ -42,10 +45,13 @@ export function VoicePosts(props: { load: () => Promise<VoicePost[]>; remove: (i
   };
   const askDelete = (p: VoicePost) => {
     if (!p.mine) return;
-    Alert.alert('Delete this voice status?', 'It is removed for everyone now.', [
-      { text: 'Keep', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => { if (playing === p.id) stop(); void props.remove(p.id).then(refresh, () => undefined); } },
-    ]);
+    confirm({
+      title: 'Delete this voice status?',
+      message: 'It is removed for everyone now.',
+      cancel: 'Keep',
+      action: 'Delete',
+      onConfirm: () => { if (playing === p.id) stop(); void props.remove(p.id).then(refresh, () => undefined); },
+    });
   };
   const now = Date.now();
   return (
@@ -62,6 +68,7 @@ export function VoicePosts(props: { load: () => Promise<VoicePost[]>; remove: (i
           <Text className="text-muted text-xs" numberOfLines={1}>{p.mine ? 'You' : p.author.name}</Text>
         </Pressable>
       ))}
+      {dialog}
     </ScrollView>
   );
 }

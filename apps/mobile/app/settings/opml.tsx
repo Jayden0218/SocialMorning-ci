@@ -3,7 +3,6 @@
  * through the phone's share sheet; import takes OPML pasted in and subscribes to every
  * feed in it that you do not already follow, then syncs (M8).
  */
-import { Stack } from 'expo-router';
 import { useState } from 'react';
 import { Share } from 'react-native';
 import { Textarea, TextareaInput } from '../../src/ui/lib/textarea';
@@ -20,6 +19,8 @@ import { Box } from '../../src/ui/lib/box';
 import { Icon } from '../../src/ui/Icon';
 import { size } from '../../src/design';
 import { EXPORT_STEPS } from '../../src/settings/export-steps';
+import { PageHeader } from '../../src/ui/PageHeader';
+import { useSharePanel } from '../../src/ui/ShareChooser';
 
 const ROW = { minHeight: size.row };
 
@@ -28,6 +29,8 @@ export default function OpmlScreen(): React.ReactElement {
   const c = useColours(stores.settings);
   const sync = useSubscriptionSync();
   const toast = useToast();
+  // M16a T005 (FR-015): the app's share panel first; the system sheet behind "More".
+  const [share, sharePanel] = useSharePanel();
   const [text, setText] = useState('');
   const [openApp, setOpenApp] = useState<string | undefined>();
   const found = fromOpml(text);
@@ -36,7 +39,7 @@ export default function OpmlScreen(): React.ReactElement {
   const exportAll = () => {
     const shows = stores.subscriptions.list().map(({ feedUrl }) => ({ feedUrl, ...(stores.feeds.getShow(feedUrl)?.title ? { title: stores.feeds.getShow(feedUrl)!.title } : {}) }));
     if (shows.length === 0) { toast('You have no subscriptions to export.'); return; }
-    void Share.share({ title: 'SocialNet subscriptions.opml', message: toOpml(shows, new Date()) });
+    share({ heading: 'Export subscriptions', more: { detail: 'OPML to another app', run: () => void Share.share({ title: 'SocialNet subscriptions.opml', message: toOpml(shows, new Date()) }) } });
   };
   const importAll = () => {
     const now = Date.now();
@@ -47,8 +50,9 @@ export default function OpmlScreen(): React.ReactElement {
   };
 
   return (
+    <>
+    <PageHeader title="Import or export" />
     <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x py-section gap-section" keyboardShouldPersistTaps="handled">
-      <Stack.Screen options={{ title: 'Import or export' }} />
       <Text className="text-text text-base font-bold" accessibilityRole="header">Export</Text>
       <Text className="text-muted text-sm">Share your {plural(stores.subscriptions.list().length, 'subscription')} as OPML, to keep or to open in another app.</Text>
       <Button label="Export subscriptions" onPress={exportAll} />
@@ -80,5 +84,7 @@ export default function OpmlScreen(): React.ReactElement {
       {text.trim() !== '' ? <Text className="text-muted text-sm">{plural(found.length, 'show')} found, {fresh.length} new.</Text> : null}
       <Button label={fresh.length > 0 ? `Subscribe to ${fresh.length}` : 'Nothing new to import'} onPress={importAll} disabled={fresh.length === 0} />
     </ScrollView>
+    {sharePanel}
+    </>
   );
 }

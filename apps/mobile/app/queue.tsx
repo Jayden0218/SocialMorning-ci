@@ -12,6 +12,7 @@ import { useStores } from '../src/ui/providers';
 import { useColours } from '../src/ui/useColours';
 import { EmptyState } from '../src/ui/EmptyState';
 import { QueueList } from '../src/ui/QueueList';
+import { PageHeader } from '../src/ui/PageHeader';
 
 export default function QueueScreen(): React.ReactElement {
   const stores = useStores();
@@ -30,8 +31,11 @@ export default function QueueScreen(): React.ReactElement {
     router.push('/player');
   };
   return (
+    <>
+    <PageHeader title="Queue" />
     <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pb-section flex-grow">
       {ids.length === 0 ? <EmptyState surface="queue" page /> : <QueueList ids={ids} stores={stores} colours={{ text: c.text, muted: c.muted, accent: c.accent }} onChange={write} onPlay={play} />}
     </ScrollView>
+    </>
   );
 }

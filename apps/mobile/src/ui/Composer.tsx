@@ -56,7 +56,7 @@ export function ComposerSheet(props: {
     <Actionsheet isOpen onClose={props.onClose}>
       <ActionsheetBackdrop />
       <KeyboardAvoidingView className="w-full justify-end" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <ActionsheetContent className="bg-surface p-0 rounded-t-2xl items-stretch">
+        <ActionsheetContent className="bg-surface px-0 pt-0 rounded-t-2xl items-stretch">
         <ScrollView keyboardShouldPersistTaps="handled" scrollEnabled={false} contentContainerClassName="px-screen-x py-section gap-2.5">
           <Box className="flex-row justify-between items-center">
             {state.moment ? (

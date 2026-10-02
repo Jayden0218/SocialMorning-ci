@@ -6,7 +6,6 @@
 import { ScrollView } from '../../src/ui/lib/scroll-view';
 import { Image } from '../../src/ui/lib/image';
 import Constants from 'expo-constants';
-import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Linking } from 'react-native';
 import { Textarea, TextareaInput } from '../../src/ui/lib/textarea';
@@ -25,6 +24,7 @@ import { Button } from '../../src/ui/Button';
 import { shortDate } from '../../src/ui/format';
 import { EmptyPicture } from '../../src/ui/me/parts';
 import { useStores, useToast } from '../../src/ui/providers';
+import { PageHeader } from '../../src/ui/PageHeader';
 
 const TAP = { minHeight: hit.min };
 
@@ -73,8 +73,9 @@ export default function FeedbackScreen(): React.ReactElement {
   };
 
   return (
+    <>
+    <PageHeader title="Help and feedback" />
     <Box className="flex-1 bg-background">
-      <Stack.Screen options={{ title: 'Help and feedback' }} />
       <Box className="flex-row border-b-hairline border-separator">
         {(['write', 'mine'] as const).map((t) => (
           <Pressable key={t} onPress={() => setTab(t)} accessibilityRole="tab" accessibilityState={{ selected: tab === t }} accessibilityLabel={t === 'write' ? 'Write feedback' : 'My feedback'} className="flex-1 items-center justify-center" style={TAP}>
@@ -125,5 +126,6 @@ export default function FeedbackScreen(): React.ReactElement {
         />
       )}
     </Box>
+    </>
   );
 }

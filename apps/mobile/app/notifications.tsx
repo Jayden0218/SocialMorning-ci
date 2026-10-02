@@ -21,6 +21,7 @@ import { EmptyState } from '../src/ui/EmptyState';
 import { FeedItem } from '../src/ui/FeedItem';
 import { EmptyPicture } from '../src/ui/me/parts';
 import { useStores } from '../src/ui/providers';
+import { PageHeader } from '../src/ui/PageHeader';
 
 export default function NotificationsScreen(): React.ReactElement {
   const { api, listener } = useSocial();
@@ -51,23 +52,31 @@ export default function NotificationsScreen(): React.ReactElement {
 
   if (section === 'system') {
     return (
+      <>
+      <PageHeader title="Notifications" />
       <Box className="flex-1 bg-background px-screen-x pt-section">
         {cards}
         <EmptyPicture icon="notifications-outline" line="No messages from SocialNet yet — announcements and account notices will appear here" />
       </Box>
+      </>
     );
   }
 
   if (!listener) {
     return (
+      <>
+      <PageHeader title="Notifications" />
       <Box className="flex-1 bg-background px-screen-x pt-section">
         {cards}
         <Text className="text-muted text-sm">Sign in to follow people and see what they listen to.</Text>
         <Link href="/auth/sign-in" className="text-accent text-sm mt-row" accessibilityRole="link">Sign in</Link>
       </Box>
+      </>
     );
   }
   return (
+    <>
+    <PageHeader title="Notifications" />
     <Box className="flex-1 bg-background">
     {pull.backdrop}
     <FlatList
@@ -98,5 +107,6 @@ export default function NotificationsScreen(): React.ReactElement {
       }}
     />
     </Box>
+    </>
   );
 }

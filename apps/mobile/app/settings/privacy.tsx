@@ -3,13 +3,13 @@
  * your listens, listening time and recently played are hidden from others; comments and
  * clips stay public. Blocked listeners are managed from here.
  */
-import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ScrollView } from '../../src/ui/lib/scroll-view';
 import { Text } from '../../src/ui/lib/text';
 import { useSocial } from '../../src/social/context';
 import { useStores } from '../../src/ui/providers';
 import { Divider, LinkRow, SwitchRow } from '../../src/ui/settings/rows';
+import { PageHeader } from '../../src/ui/PageHeader';
 
 export default function PrivacySettings(): React.ReactElement {
   const { api, listener } = useSocial();
@@ -25,8 +25,9 @@ export default function PrivacySettings(): React.ReactElement {
   }, [api, listener, stores]);
   const blocked = stores.blocks.all().filter((b) => b.pending >= 0).length;
   return (
+    <>
+    <PageHeader title="Privacy" />
     <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x py-row">
-      <Stack.Screen options={{ title: 'Privacy' }} />
       {listener ? (
         <SwitchRow
           icon="eye-off-outline"
@@ -42,5 +43,6 @@ export default function PrivacySettings(): React.ReactElement {
       <Divider />
       <LinkRow href="/settings/blocked" icon="person-remove-outline" label="Blocked listeners" value={blocked > 0 ? String(blocked) : ''} />
     </ScrollView>
+    </>
   );
 }

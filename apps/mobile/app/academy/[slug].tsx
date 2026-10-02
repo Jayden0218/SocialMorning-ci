@@ -1,18 +1,20 @@
 /** One academy article (M12 FR-103). */
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { ScrollView } from '../../src/ui/lib/scroll-view';
 import { Text } from '../../src/ui/lib/text';
 import { Box } from '../../src/ui/lib/box';
 import { EmptyPicture } from '../../src/ui/me/parts';
 import { articleBySlug } from '../../src/academy/articles';
+import { PageHeader } from '../../src/ui/PageHeader';
 
 export default function ArticleScreen(): React.ReactElement {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const a = articleBySlug(String(slug));
-  if (!a) return <Box className="flex-1 bg-background"><EmptyPicture icon="document-text-outline" line="This article has moved" /></Box>;
+  if (!a) return <><PageHeader title="Article" /><Box className="flex-1 bg-background"><EmptyPicture icon="document-text-outline" line="This article has moved" /></Box></>;
   return (
+    <>
+    <PageHeader title={a.title} />
     <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pt-section pb-24 gap-section">
-      <Stack.Screen options={{ title: a.title }} />
       <Text className="text-text text-xl font-bold" accessibilityRole="header">{a.title}</Text>
       <Text className="text-muted text-sm">{a.summary}</Text>
       {a.sections.map((s) => (
@@ -22,5 +24,6 @@ export default function ArticleScreen(): React.ReactElement {
         </Box>
       ))}
     </ScrollView>
+    </>
   );
 }

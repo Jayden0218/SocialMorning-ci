@@ -4,7 +4,7 @@
  */
 import { Link } from 'expo-router';
 import { Pressable } from '../lib/pressable';
-import { Switch } from '../lib/switch';
+import { Toggle } from '../Toggle';
 import { Text } from '../lib/text';
 import { Box } from '../lib/box';
 import { colour, size } from '../../design';
@@ -57,21 +57,11 @@ export function ActionRow(props: { onPress: () => void; icon: IconName; label: s
 }
 
 export function SwitchRow(props: { icon: IconName; label: string; line?: string; value: boolean; onChange: (v: boolean) => void; disabled?: boolean }): React.ReactElement {
-  const stores = useStores();
-  const c = useColours(stores.settings);
   return (
     <Box className="flex-row items-center gap-section py-row" style={TAP}>
       <Body icon={props.icon} label={props.label} {...(props.line ? { line: props.line } : {})} />
-      <Switch
-        value={props.value}
-        onValueChange={props.onChange}
-        disabled={props.disabled}
-        trackColor={{ false: c.separator, true: c.primary }}
-        thumbColor={c.background}
-        accessibilityLabel={props.label}
-        accessibilityRole="switch"
-        accessibilityState={{ checked: props.value, disabled: props.disabled === true }}
-      />
+      {/* M16a T004: the app's own toggle, not the iOS switch. */}
+      <Toggle value={props.value} onChange={props.onChange} label={props.label} {...(props.disabled !== undefined ? { disabled: props.disabled } : {})} />
     </Box>
   );
 }

@@ -13,6 +13,7 @@ import {
   MotionComponentProps,
 } from '@legendapp/motion';
 import { withUniwind } from 'uniwind';
+import { OverlayRoot } from '../above-modals';
 import React from 'react';
 import {
   FlatList,
@@ -48,7 +49,8 @@ const AnimatedPressable = createMotionAnimatedComponent(
 const StyledUIIcon = withUniwind(UIIcon);
 
 export const UIActionsheet = createActionsheet({
-  Root: View,
+  // M16a: the root is lifted above native modals on iOS (bug 1 — see ../above-modals).
+  Root: OverlayRoot,
   Content: MotionView,
   Item: ItemWrapper,
   ItemText: Text,

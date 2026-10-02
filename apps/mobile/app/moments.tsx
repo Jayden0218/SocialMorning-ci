@@ -18,6 +18,7 @@ import { toPlayable } from '../src/storage/playable';
 import { mmss } from '../src/ui/format';
 import { EmptyPicture } from '../src/ui/me/parts';
 import { useStores, useToast } from '../src/ui/providers';
+import { PageHeader } from '../src/ui/PageHeader';
 
 export default function MomentsScreen(): React.ReactElement {
   const stores = useStores();
@@ -38,6 +39,8 @@ export default function MomentsScreen(): React.ReactElement {
   };
 
   return (
+    <>
+    <PageHeader title="Saved moments" />
     <FlatList
       className="flex-1 bg-background"
       data={rows}
@@ -75,5 +78,6 @@ export default function MomentsScreen(): React.ReactElement {
         );
       }}
     />
+    </>
   );
 }

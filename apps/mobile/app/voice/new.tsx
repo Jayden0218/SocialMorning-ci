@@ -5,7 +5,7 @@
  * (with recording allowed, iOS would route sound to the earpiece — expo-audio's AudioMode).
  * The native calls are in src/playback/expo-audio-adapter.ts, the one file that imports expo-audio.
  */
-import { router, Stack } from 'expo-router';
+import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { askMicrophone, useVoiceRecorder, voiceSessionOff, voiceSessionOn } from '../../src/playback/expo-audio-adapter';
 import { Linking } from 'react-native';
@@ -21,6 +21,7 @@ import { useStores, useToast } from '../../src/ui/providers';
 import { useM12Api } from '../../src/social/m12-api';
 import { ApiError } from '../../src/social/api';
 import { VOICE_MAX_MS, voiceClock } from '../../src/voice/recording';
+import { PageHeader } from '../../src/ui/PageHeader';
 
 type Phase = { kind: 'idle' } | { kind: 'denied' } | { kind: 'recording' } | { kind: 'done'; uri: string; ms: number } | { kind: 'posting'; uri: string; ms: number };
 
@@ -76,13 +77,14 @@ export default function NewVoicePost(): React.ReactElement {
   const recording = phase.kind === 'recording';
   const shownMs = recording ? state.durationMillis : phase.kind === 'done' || phase.kind === 'posting' ? phase.ms : 0;
   return (
+    <>
+    {/* Phone walk 2026-09-30: the sheet could only be swiped away. M16a T002: Cancel is on the app's own bar. */}
+    <PageHeader title="Voice status" left={(
+      <Pressable onPress={() => { if (phase.kind === 'recording') void stop(); router.back(); }} accessibilityRole="button" accessibilityLabel="Cancel" className="justify-center px-row" style={{ minHeight: 48 }}>
+        <Text className="text-accent text-sm">Cancel</Text>
+      </Pressable>
+    )} />
     <Screen className="pt-section items-center gap-section">
-      {/* Phone walk 2026-09-30: the sheet could only be swiped away. */}
-      <Stack.Screen options={{ title: 'Voice status', headerLeft: () => (
-        <Pressable onPress={() => { if (phase.kind === 'recording') void stop(); router.back(); }} accessibilityRole="button" accessibilityLabel="Cancel" className="justify-center px-row" style={{ minHeight: 48 }}>
-          <Text className="text-accent text-sm">Cancel</Text>
-        </Pressable>
-      ) }} />
       <Text className="text-muted text-sm text-center">Up to 60 seconds. People who follow you can play it for 48 hours; then it is deleted.</Text>
       <Text className="text-text text-2xl font-bold" accessibilityLiveRegion="polite" accessibilityLabel={`${Math.floor(shownMs / 1000)} seconds of 60`}>{voiceClock(shownMs)}</Text>
       <Pressable
@@ -108,5 +110,6 @@ export default function NewVoicePost(): React.ReactElement {
         </Box>
       ) : null}
     </Screen>
+    </>
   );
 }

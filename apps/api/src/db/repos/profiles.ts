@@ -25,7 +25,8 @@ export async function profile(db: Db, id: string, viewerId: string | undefined, 
   if (l.suspended_at) return { ...bare, suspended: true };
   if (viewerId && viewerId !== id && (await isBlockedBy(db, id, viewerId))) return bare;
   const blockedByMe = viewerId && viewerId !== id ? await isBlockedBy(db, viewerId, id) : false;
-  const c = await counts(db, id);
+  // M16a bug 2: counted with the same rule the follower/following lists use for this viewer.
+  const c = await counts(db, id, viewerId);
   const following = viewerId ? await isFollowing(db, viewerId, id) : false;
   const showStats = !l.private_listening || viewerId === id;
   const s = showStats ? stats(await listenedRowsFor(db, id), today) : null;

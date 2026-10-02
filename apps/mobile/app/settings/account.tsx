@@ -5,7 +5,6 @@
  * everything of the account's on this phone — auth row,
  * token, drafts — but NOT M1's positions or the episode caches (T048).
  */
-import { Stack } from 'expo-router';
 import { useState } from 'react';
 import { Input, InputField } from '../../src/ui/lib/input';
 import { Pressable } from '../../src/ui/lib/pressable';
@@ -18,6 +17,7 @@ import { useStores } from '../../src/ui/providers';
 import { useColours } from '../../src/ui/useColours';
 import { Icon } from '../../src/ui/Icon';
 import { OTHER_METHODS } from '../../src/ui/auth/methods';
+import { PageHeader } from '../../src/ui/PageHeader';
 
 export default function AccountSecurityScreen(): React.ReactElement {
   const stores = useStores();
@@ -63,8 +63,9 @@ export default function AccountSecurityScreen(): React.ReactElement {
 
   const masked = listener?.email ? listener.email.replace(/^(.)(.*)(.@.*)$/, (_m, a: string, mid: string, b: string) => `${a}${'*'.repeat(Math.min(6, mid.length))}${b}`) : '';
   return (
+    <>
+    <PageHeader title={more ? 'More' : 'Account and security'} />
     <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x py-section gap-3">
-      <Stack.Screen options={{ title: more ? 'More' : 'Account and security' }} />
       {/* M10 (owner, 2026-09-27), after the reference: the ways you sign in, then deletion.
           SocialNet signs in by an emailed code; Google and Facebook are not set up yet. */}
       {/* M12 FR-096: deletion sits one level down, under More (was on the first screen). */}
@@ -116,5 +117,6 @@ export default function AccountSecurityScreen(): React.ReactElement {
         </Box>
       )}
     </ScrollView>
+    </>
   );
 }

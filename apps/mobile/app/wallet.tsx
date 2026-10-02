@@ -15,6 +15,7 @@ import { EmptyPicture } from '../src/ui/me/parts';
 import { shortDate } from '../src/ui/format';
 import { MANAGE_SUBSCRIPTIONS, moneyLabel } from '../src/me/money';
 import { useM12Api, type Purchase } from '../src/social/m12-api';
+import { PageHeader } from '../src/ui/PageHeader';
 
 const ROW = { minHeight: size.row };
 type State = { kind: 'loading' } | { kind: 'error' } | { kind: 'ok'; items: Purchase[]; storeReady: boolean };
@@ -26,6 +27,8 @@ export default function WalletScreen(): React.ReactElement {
   useEffect(() => { load(); }, [load]);
   const manage = () => { void Linking.openURL(Platform.OS === 'ios' ? MANAGE_SUBSCRIPTIONS.ios : MANAGE_SUBSCRIPTIONS.android).catch(() => undefined); };
   return (
+    <>
+    <PageHeader title="Wallet" />
     <FlatList
       className="flex-1 bg-background"
       data={state.kind === 'ok' ? state.items : []}
@@ -49,5 +52,6 @@ export default function WalletScreen(): React.ReactElement {
         </Box>
       )}
     />
+    </>
   );
 }

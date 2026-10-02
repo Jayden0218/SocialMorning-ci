@@ -13,6 +13,7 @@ import { dayTitle } from '../src/discover/sections';
 import { useColours } from '../src/ui/useColours';
 import { useStores } from '../src/ui/providers';
 import { useM12Api, type IssueSummary } from '../src/social/m12-api';
+import { PageHeader } from '../src/ui/PageHeader';
 
 const ROW = { minHeight: size.row };
 const TAP = { minHeight: hit.min };
@@ -29,6 +30,8 @@ export default function IssuesScreen(): React.ReactElement {
   }, [m12]);
   useEffect(() => { load(); }, [load]);
   return (
+    <>
+    <PageHeader title="Issues" />
     <FlatList
       className="flex-1 bg-background"
       data={state.kind === 'ok' ? state.issues : []}
@@ -51,5 +54,6 @@ export default function IssuesScreen(): React.ReactElement {
         </Pressable>
       )}
     />
+    </>
   );
 }

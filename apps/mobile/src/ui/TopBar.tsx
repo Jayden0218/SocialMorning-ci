@@ -10,12 +10,18 @@ import { Chevron, Glyph } from './Icon';
 
 export const TAP = { minHeight: hit.min, minWidth: hit.min };
 
-export function TopBar(props: { onBack: () => void; back?: 'arrow' | 'down'; children?: React.ReactNode; /** M12 FR-060: the slim bar's middle (small art + title) once the page has scrolled. */ middle?: React.ReactNode }): React.ReactElement {
+export function TopBar(props: {
+  onBack: () => void; back?: 'arrow' | 'down'; children?: React.ReactNode;
+  /** M12 FR-060: the slim bar's middle (small art + title) once the page has scrolled. */ middle?: React.ReactNode;
+  /** M16a (PageHeader): replaces the back button, e.g. a modal page's "Cancel". */ left?: React.ReactNode;
+}): React.ReactElement {
   return (
     <Box className="flex-row items-center justify-between px-row">
-      <Pressable onPress={props.onBack} accessibilityRole="button" accessibilityLabel={props.back === 'down' ? 'Close the player' : 'Back'} className="items-center justify-center" style={TAP}>
-        {props.back === 'down' ? <Chevron dir="down" size={14} /> : <Glyph>←</Glyph>}
-      </Pressable>
+      {props.left ?? (
+        <Pressable onPress={props.onBack} accessibilityRole="button" accessibilityLabel={props.back === 'down' ? 'Close the player' : 'Back'} className="items-center justify-center" style={TAP}>
+          {props.back === 'down' ? <Chevron dir="down" size={14} /> : <Glyph>←</Glyph>}
+        </Pressable>
+      )}
       {props.middle ? <Box className="flex-1 flex-row items-center gap-2 px-1">{props.middle}</Box> : null}
       <Box className="flex-row items-center gap-1">{props.children}</Box>
     </Box>

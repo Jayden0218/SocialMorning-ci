@@ -3,7 +3,7 @@
  * editor's note. From the same curation file as Editor's picks (`picks.json`). A pick the
  * server cannot name as an episode yet keeps its note and opens the show.
  */
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable } from '../../src/ui/lib/pressable';
 import { Text } from '../../src/ui/lib/text';
@@ -16,6 +16,7 @@ import { useCardActions } from '../../src/discover/useDiscover';
 import { dayTitle } from '../../src/discover/sections';
 import { useSafety } from '../../src/safety/context';
 import { useM12Api, type Issue } from '../../src/social/m12-api';
+import { PageHeader } from '../../src/ui/PageHeader';
 
 const TAP = { minHeight: hit.min };
 type State = { kind: 'loading' } | { kind: 'error' } | { kind: 'ok'; issue: Issue };
@@ -34,8 +35,9 @@ export default function IssueScreen(): React.ReactElement {
   useEffect(() => { load(); }, [load]);
   const items = state.kind === 'ok' ? [...state.issue.items].sort((a, b) => a.order - b.order).filter((i) => !hiddenFeeds.has(i.feedUrl)) : [];
   return (
+    <>
+    <PageHeader title={state.kind === 'ok' ? state.issue.title : 'Issue'} />
     <Screen scroll className="pt-row">
-      <Stack.Screen options={{ title: state.kind === 'ok' ? state.issue.title : 'Issue' }} />
       {state.kind === 'loading' ? <Loader className="my-section" /> : null}
       {state.kind === 'error' ? (
         <Box className="items-center my-section">
@@ -64,5 +66,6 @@ export default function IssueScreen(): React.ReactElement {
         </>
       ) : null}
     </Screen>
+    </>
   );
 }

@@ -3,12 +3,12 @@
  * and whether Discover recommends for you. Siri, CarPlay and widgets are not here: each
  * needs native code this Expo app does not have.
  */
-import { Stack } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView } from '../../src/ui/lib/scroll-view';
 import { getPref, setPref } from '../../src/settings/prefs';
 import { useStores } from '../../src/ui/providers';
 import { Divider, LinkRow, SwitchRow } from '../../src/ui/settings/rows';
+import { PageHeader } from '../../src/ui/PageHeader';
 
 export default function MoreSettings(): React.ReactElement {
   const stores = useStores();
@@ -17,8 +17,9 @@ export default function MoreSettings(): React.ReactElement {
   const [mobile, setMobile] = useState(() => getPref(stores.settings, 'mobilePlayback'));
   const [transcript, setTranscript] = useState(() => getPref(stores.settings, 'transcriptEntry'));
   return (
+    <>
+    <PageHeader title="More" />
     <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x py-row">
-      <Stack.Screen options={{ title: 'More' }} />
       <LinkRow href="/settings/opml" icon="swap-horizontal-outline" label="Import or export subscriptions" line="OPML — the file every podcast app reads" />
       <SwitchRow icon="add-circle-outline" label="Queue adds to the end" line="Off: a one-tap Queue plays the episode next. The episode page offers both." value={end} onChange={(v) => { setEnd(v); setPref(stores.settings, 'queueAddToEnd', v); }} />
       <SwitchRow icon="cellular-outline" label="Allow mobile data for playback" line="Off: on mobile data only downloaded episodes play" value={mobile} onChange={(v) => { setMobile(v); setPref(stores.settings, 'mobilePlayback', v); }} />
@@ -28,5 +29,6 @@ export default function MoreSettings(): React.ReactElement {
       {/* M12 FR-094 */}
       <LinkRow href="/settings/how-for-you" icon="help-circle-outline" label="How For You works" line="What it uses, and what it never uses" />
     </ScrollView>
+    </>
   );
 }

@@ -9,6 +9,7 @@ import { Icon } from '../../src/ui/Icon';
 import { useColours } from '../../src/ui/useColours';
 import { useStores } from '../../src/ui/providers';
 import { ARTICLES } from '../../src/academy/articles';
+import { PageHeader } from '../../src/ui/PageHeader';
 
 const ROW = { minHeight: size.row };
 
@@ -16,6 +17,8 @@ export default function Academy(): React.ReactElement {
   const router = useRouter();
   const c = useColours(useStores().settings);
   return (
+    <>
+    <PageHeader title="Creator academy" />
     <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pt-section pb-24">
       {ARTICLES.map((a, i) => (
         <Pressable key={a.slug} onPress={() => router.push({ pathname: '/academy/[slug]', params: { slug: a.slug } })} accessibilityRole="button" accessibilityLabel={`${a.title}. ${a.summary}`}
@@ -29,5 +32,6 @@ export default function Academy(): React.ReactElement {
         </Pressable>
       ))}
     </ScrollView>
+    </>
   );
 }

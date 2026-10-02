@@ -10,13 +10,13 @@
  * switch sit under it; rows lose the rank number, show the newest episode in a grey box, and
  * carry a round subscribe button — the only subscribing here is the listener's own tap.
  */
-import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { ScrollView } from 'react-native';
 import { useCallback, useEffect, useRef, useState, type ComponentRef } from 'react';
 import { Pressable } from '../../src/ui/lib/pressable';
 import { Text } from '../../src/ui/lib/text';
 import { Box } from '../../src/ui/lib/box';
-import { Switch } from '../../src/ui/lib/switch';
+import { Toggle } from '../../src/ui/Toggle';
 import { Loader } from '../../src/ui/Loader';
 import { GENRES } from '../../src/discover/genres';
 import { categoryList, type CategorySort } from '../../src/discover/category-list';
@@ -30,6 +30,7 @@ import { useColours } from '../../src/ui/useColours';
 import { Icon } from '../../src/ui/Icon';
 import { Artwork } from '../../src/ui/Artwork';
 import { Screen } from '../../src/ui/Screen';
+import { PageHeader } from '../../src/ui/PageHeader';
 
 const TAP = { minHeight: hit.min };
 const TILE = { width: 72, minHeight: 64 };
@@ -83,8 +84,9 @@ export default function CategoryScreen(): React.ReactElement {
   const visible = state.kind === 'ok' ? state.body.shows.filter((s) => !hiddenFeeds.has(s.feedUrl)) : [];
   const shows = categoryList(visible, { sort, notSubscribedOnly, subscribed });
   return (
+    <>
+    <PageHeader title="Categories" />
     <Screen scroll className="pt-row">
-      <Stack.Screen options={{ title: 'Categories' }} />
       <Box className="flex-row items-center pb-row">
         <ScrollView ref={strip} horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2 pl-screen-x pr-row" className="flex-1 -ml-screen-x">
           {GENRES.map((g) => {
@@ -132,8 +134,7 @@ export default function CategoryScreen(): React.ReactElement {
         <Box className="flex-1" />
         <Box className="flex-row items-center gap-2" style={TAP}>
           <Text className="text-muted text-xs">Not subscribed only</Text>
-          <Switch trackColor={{ false: c.separator, true: c.primary }} thumbColor={c.background} value={notSubscribedOnly} onValueChange={setNotSubscribedOnly}
-            accessibilityLabel="Not subscribed only" accessibilityRole="switch" accessibilityState={{ checked: notSubscribedOnly }} />
+          <Toggle value={notSubscribedOnly} onChange={setNotSubscribedOnly} label="Not subscribed only" />
         </Box>
       </Box>
       {state.kind === 'loading' ? <Loader className="my-section" /> : null}
@@ -177,5 +178,6 @@ export default function CategoryScreen(): React.ReactElement {
         );
       })}
     </Screen>
+    </>
   );
 }

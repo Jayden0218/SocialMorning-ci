@@ -17,6 +17,7 @@ import { ago } from '../src/discover/sections';
 import { useSocial } from '../src/social/context';
 import { useM12Api, type FriendListen } from '../src/social/m12-api';
 import { whoListened } from '../src/social/who';
+import { PageHeader } from '../src/ui/PageHeader';
 
 const TAP = { minHeight: hit.min };
 type State = { kind: 'loading' } | { kind: 'error' } | { kind: 'ok'; items: FriendListen[] };
@@ -32,9 +33,11 @@ export default function FriendsListening(): React.ReactElement {
     m12.friendsListening().then((items) => setState({ kind: 'ok', items }), () => setState({ kind: 'error' }));
   }, [m12, listener]);
   useEffect(() => { load(); }, [load]);
-  if (!listener) return <Box className="flex-1 bg-background"><EmptyPicture icon="people-outline" line="Sign in to see what people you follow are playing" /></Box>;
+  if (!listener) return <><PageHeader title="Friends listening" /><Box className="flex-1 bg-background"><EmptyPicture icon="people-outline" line="Sign in to see what people you follow are playing" /></Box></>;
   const now = Date.now();
   return (
+    <>
+    <PageHeader title="Friends listening" />
     <FlatList
       className="flex-1 bg-background"
       data={state.kind === 'ok' ? state.items : []}
@@ -50,5 +53,6 @@ export default function FriendsListening(): React.ReactElement {
         <EpisodeLine card={item.episode} size={56} line={`${whoListened(item.listeners.map((l) => l.name))} · ${ago(item.lastAt, now)}`} onOpen={() => void open(item.episode)} onPlay={() => void play(item.episode)} />
       )}
     />
+    </>
   );
 }

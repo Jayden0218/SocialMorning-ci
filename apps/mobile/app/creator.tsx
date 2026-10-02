@@ -25,6 +25,8 @@ import { EmptyPicture } from '../src/ui/me/parts';
 import { useStores } from '../src/ui/providers';
 import { useColours } from '../src/ui/useColours';
 import { plural } from '@socialmorning/social-core';
+import { PageHeader } from '../src/ui/PageHeader';
+import { useSharePanel } from '../src/ui/ShareChooser';
 
 const TAP = { minHeight: hit.min };
 
@@ -37,6 +39,8 @@ export default function CreatorScreen(): React.ReactElement {
   const [note, setNote] = useState<string | undefined>();
   const [stats, setStats] = useState<Record<string, ShowStats>>({});
   const [busy, setBusy] = useState(false);
+  // M16a T005 (FR-015): the app's share panel first; the system sheet behind "More".
+  const [share, sharePanel] = useSharePanel();
 
   const load = useCallback(() => {
     if (!listener) { setClaims([]); return () => undefined; }
@@ -52,7 +56,7 @@ export default function CreatorScreen(): React.ReactElement {
   }, [api, listener]);
   useFocusEffect(load);
 
-  if (!listener) return <Box className="flex-1 bg-background"><EmptyPicture icon="mic-outline" line="Sign in to claim your show" /></Box>;
+  if (!listener) return <><PageHeader title="Creator centre" /><Box className="flex-1 bg-background"><EmptyPicture icon="mic-outline" line="Sign in to claim your show" /></Box></>;
 
   const claim = async (url: string) => {
     setBusy(true); setNote(undefined);
@@ -78,6 +82,8 @@ export default function CreatorScreen(): React.ReactElement {
     .filter((s) => !(claims ?? []).some((cl) => cl.feedUrl === s.feedUrl)).slice(0, 5);
 
   return (
+    <>
+    <PageHeader title="Creator centre" />
     <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pt-section pb-24 gap-section" keyboardShouldPersistTaps="handled">
       {/* M12 FR-103 */}
       <Link href="/academy" asChild>
@@ -106,7 +112,7 @@ export default function CreatorScreen(): React.ReactElement {
               <Text className="text-muted text-sm">1. Copy this code. 2. Put it anywhere in your show description, in your hosting service. 3. Tap Verify.</Text>
               <Text selectable className="text-text text-base font-bold" accessibilityLabel={`Your code: ${cl.code}`}>{cl.code}</Text>
               <Box className="flex-row gap-row">
-                <Button kind="secondary" label="Share code" onPress={() => void Share.share({ message: cl.code })} className="flex-1" />
+                <Button kind="secondary" label="Share code" onPress={() => share({ heading: 'Share your code', more: { detail: 'other apps', run: () => void Share.share({ message: cl.code }) } })} className="flex-1" />
                 <Button label="Verify" onPress={() => void verify(cl)} disabled={busy} className="flex-1" />
               </Box>
             </>
@@ -130,6 +136,8 @@ export default function CreatorScreen(): React.ReactElement {
         <Button label="Get my code" onPress={() => void claim(feedUrl)} disabled={busy || !/^https?:\/\/\S+$/.test(feedUrl.trim())} />
       </Box>
     </ScrollView>
+    {sharePanel}
+    </>
   );
 }
 

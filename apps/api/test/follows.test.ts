@@ -36,3 +36,27 @@ test('T033: the 61st follow in a minute is 429', async () => {
   assert.equal((await t.call('PUT', `/v1/listeners/${ids[60]}/follow`, undefined, a.token)).status, 429);
   await t.close();
 });
+
+/**
+ * M16a guard G-B2, server half (FR-003): a profile's follower/following counts are the number of
+ * people its lists can show the viewer. The lists leave out listeners the viewer blocked; the
+ * counts did not (phone walk 2026-10-02: a count that disagreed with its own list).
+ * The break that turns it red: drop `${NOT_BLOCKED_2}` from `counts` in src/db/repos/follows.ts.
+ */
+test('M16a G-B2: counts use the lists\' rule — a listener the viewer blocked is in neither', async () => {
+  const t = await freshDb();
+  const a = await signUp(t);
+  const b = await signUp(t, 'b@example.com', 'Bea');
+  const c = await signUp(t, 'c@example.com', 'Cal');
+  assert.equal((await t.call('PUT', `/v1/listeners/${b.id}/follow`, undefined, a.token)).status, 204);
+  assert.equal((await t.call('PUT', `/v1/listeners/${b.id}/follow`, undefined, c.token)).status, 204);
+  await t.q('INSERT INTO blocks (blocker_id, blocked_id) VALUES ($1, $2)', [a.id, c.id]); // Alex blocked Cal
+  const seen = async (viewer?: string) => {
+    const p = ((await (await t.call('GET', `/v1/listeners/${b.id}`, undefined, viewer)).json()) as { profile: { followers: number } }).profile;
+    const list = ((await (await t.call('GET', `/v1/listeners/${b.id}/followers`, undefined, viewer)).json()) as { listeners: { id: string }[] }).listeners;
+    return { count: p.followers, list: list.length };
+  };
+  assert.deepEqual(await seen(a.token), { count: 1, list: 1 }); // Alex does not see Cal in either
+  assert.deepEqual(await seen(undefined), { count: 2, list: 2 }); // signed out: both
+  await t.close();
+});

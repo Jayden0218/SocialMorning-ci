@@ -5,6 +5,7 @@ import { createModal } from '@gluestack-ui/core/modal/creator';
 import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils';
 import { tva, useStyleContext, withStyleContext } from '@gluestack-ui/utils/nativewind-utils';
 import { withUniwind } from 'uniwind';
+import { OverlayRoot } from '../above-modals';
 import React from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import Animated, {
@@ -21,7 +22,8 @@ const SCOPE = 'MODAL';
 const StyledAnimatedPressable = withUniwind(AnimatedPressable);
 const StyledAnimatedView = withUniwind(AnimatedView);
 const UIModal = createModal({
-  Root: withStyleContext(View as any, SCOPE),
+  // M16a: the root is lifted above native modals on iOS (bug 1 — see ../above-modals).
+  Root: withStyleContext(OverlayRoot as any, SCOPE),
   Backdrop: StyledAnimatedPressable,
   Content: StyledAnimatedView,
   Body: ScrollView,

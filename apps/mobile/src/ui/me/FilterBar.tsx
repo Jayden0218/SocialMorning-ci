@@ -1,6 +1,6 @@
 /** The search box (and optional switch) above History and Favourites (M10, after the reference). */
 import { Input, InputField } from '../lib/input';
-import { Switch } from '../lib/switch';
+import { Toggle } from '../Toggle';
 import { Text } from '../lib/text';
 import { Box } from '../lib/box';
 import { colour } from '../../design';
@@ -22,8 +22,7 @@ export function FilterBar(props: { term: string; onTerm: (t: string) => void; pl
       {props.toggle ? (
         <Box className="flex-row items-center justify-end gap-2">
           <Text className="text-muted text-xs">{props.toggle.label}</Text>
-          <Switch value={props.toggle.value} onValueChange={props.toggle.onChange} trackColor={{ false: c.separator, true: c.primary }} thumbColor={c.background}
-            accessibilityLabel={props.toggle.label} accessibilityRole="switch" accessibilityState={{ checked: props.toggle.value }} />
+          <Toggle value={props.toggle.value} onChange={props.toggle.onChange} label={props.toggle.label} />
         </Box>
       ) : null}
     </Box>

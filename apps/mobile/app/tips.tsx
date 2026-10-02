@@ -12,6 +12,7 @@ import { EmptyPicture } from '../src/ui/me/parts';
 import { shortDate } from '../src/ui/format';
 import { moneyLabel } from '../src/me/money';
 import { useM12Api, type Tip } from '../src/social/m12-api';
+import { PageHeader } from '../src/ui/PageHeader';
 
 const ROW = { minHeight: size.row };
 type State = { kind: 'loading' } | { kind: 'error' } | { kind: 'ok'; items: Tip[]; storeReady: boolean };
@@ -22,6 +23,8 @@ export default function TipsScreen(): React.ReactElement {
   const load = useCallback(() => { m12.tips().then((r) => setState({ kind: 'ok', ...r }), () => setState({ kind: 'error' })); }, [m12]);
   useEffect(() => { load(); }, [load]);
   return (
+    <>
+    <PageHeader title="Tips I gave" />
     <FlatList
       className="flex-1 bg-background"
       data={state.kind === 'ok' ? state.items : []}
@@ -39,5 +42,6 @@ export default function TipsScreen(): React.ReactElement {
         </Box>
       )}
     />
+    </>
   );
 }

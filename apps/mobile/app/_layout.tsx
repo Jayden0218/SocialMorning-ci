@@ -7,9 +7,12 @@ import '../src/design/tailwind';
 import { Stack, type ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import { useState } from 'react';
 import { LogBox } from 'react-native';
+import { SafeAreaListener } from 'react-native-safe-area-context';
+import { Uniwind } from 'uniwind';
 import { SafeAreaView } from '../src/ui/lib/safe-area-view';
-import { colourDark, fontSize, hit } from '../src/design';
+import { colourDark, hit } from '../src/design';
 import { Box } from '../src/ui/lib/box';
 import { Text } from '../src/ui/lib/text';
 import { Pressable } from '../src/ui/lib/pressable';
@@ -20,6 +23,7 @@ import { GraphProvider } from '../src/graph/context';
 import { SafetyProvider } from '../src/safety/context';
 import { CarLibrarySync } from '../src/outside/CarLibrarySync';
 import { MiniPlayer } from '../src/ui/MiniPlayer';
+import { leavingToTabs, rootBarHidden, type LeavingToTabs } from '../src/ui/mini-player-swipe';
 import { GluestackUIProvider } from '../src/ui/lib/gluestack-ui-provider';
 
 // Owner, 2026-09-27: no warning bar over the app in Debug builds. Warnings still print
@@ -51,6 +55,11 @@ export function ErrorBoundary(props: ErrorBoundaryProps): React.ReactElement {
 
 export default function RootLayout(): React.ReactElement {
   return (
+    // M16a T014 (FR-009, gluestack audit P0): UniWind's free engine learns the safe-area insets
+    // only from this listener (docs.uniwind.dev/faq; the upstream starter does the same). Without
+    // it every `pb-safe` — ActionsheetContent's base class among them — resolved to 0, and the
+    // sheets carried guessed `pb-10` / `pb-24` instead.
+    <SafeAreaListener onChange={({ insets }) => Uniwind.updateInsets(insets)}>
     <AppProviders>
       <SocialProvider>
       <SafetyProvider>
@@ -66,6 +75,7 @@ export default function RootLayout(): React.ReactElement {
       </SafetyProvider>
       </SocialProvider>
     </AppProviders>
+    </SafeAreaListener>
   );
 }
 
@@ -73,26 +83,36 @@ export default function RootLayout(): React.ReactElement {
 function RootStack(): React.ReactElement {
   const stores = useStores();
   const c = useColours(stores.settings);
+  // M16a bug 5: which page, if any, is being swiped back onto the tabs (src/ui/mini-player-swipe.ts).
+  const [leaving, setLeaving] = useState<LeavingToTabs>(undefined);
   return (
       <SafeAreaView className="flex-1 bg-background" edges={['bottom']}>
         {/* M10b: the clock and battery follow the page (light words on the dark palette). */}
         <StatusBar style={c.background === colourDark.background ? 'light' : 'dark'} />
         <CarLibrarySync />
         {/*
-          * M7: one place decides the chrome for every screen in the stack — the dark
-          * background, the large white title, the accent back arrow. Setting
-          * `contentStyle` here is what stops a screen that has not been touched yet
-          * from flashing white underneath the new header.
+          * M16a T002 (FR-012, owner 2026-10-02, said twice): no iOS-native header on any page.
+          * Every page draws the app's own bar (src/ui/PageHeader.tsx, or TopBar on the show,
+          * episode and player pages); the titles below stay for the screen name a screen reader
+          * and the app switcher use. `gestureEnabled` is untouched, so edge-swipe back works as
+          * before on every page. Guard G-N1: __tests__/no-native-ui.test.ts.
+          * `contentStyle` still stops an untouched screen flashing white (M7).
           */}
         <Stack
           screenOptions={{
-            headerBackTitle: 'Back',
-            headerStyle: { backgroundColor: c.background },
-            headerTintColor: c.accent,
-            headerTitleStyle: { color: c.text, fontSize: fontSize.base, fontWeight: '700' },
-            headerShadowVisible: false,
+            headerShown: false,
             contentStyle: { backgroundColor: c.background },
           }}
+          screenListeners={({ navigation, route }) => ({
+            // M16a bug 5: a back-swipe onto the tabs hides the root bar as it starts, not after.
+            transitionStart: (e) => {
+              const routes = navigation.getState().routes;
+              const i = routes.findIndex((r: { key: string }) => r.key === route.key);
+              const below = i > 0 ? routes[i - 1]?.name : undefined;
+              setLeaving((s) => leavingToTabs(s, { type: 'transitionStart', key: route.key, closing: e.data.closing, below, name: route.name }));
+            },
+            gestureCancel: () => setLeaving((s) => leavingToTabs(s, { type: 'gestureCancel', key: route.key })),
+          })}
         >
           {/* The tab group draws its own header and its own bar (M7 T012). */}
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -146,7 +166,7 @@ function RootStack(): React.ReactElement {
           <Stack.Screen name="profile/[id]/followers" options={{ title: 'Followers' }} />
           <Stack.Screen name="profile/[id]/following" options={{ title: 'Following' }} />
         </Stack>
-        <MiniPlayer />
+        {rootBarHidden(leaving) ? null : <MiniPlayer />}
       </SafeAreaView>
   );
 }

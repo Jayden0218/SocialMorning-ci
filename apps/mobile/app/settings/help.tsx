@@ -2,7 +2,6 @@
  * Help and feedback (帮助与反馈, M10): SocialNet's common questions (tap to read the
  * answer), then "Send feedback" and "Contact support". M6's "Report a problem" lives here.
  */
-import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Linking } from 'react-native';
 import { Pressable } from '../../src/ui/lib/pressable';
@@ -18,6 +17,7 @@ import { Button } from '../../src/ui/Button';
 import { Icon } from '../../src/ui/Icon';
 import { useStores } from '../../src/ui/providers';
 import { LinkRow } from '../../src/ui/settings/rows';
+import { PageHeader } from '../../src/ui/PageHeader';
 
 /** M12 FR-050: one row height for every list (was hit.min + 8 = 56). */
 const TAP = { minHeight: size.row };
@@ -31,8 +31,9 @@ export default function HelpScreen(): React.ReactElement {
   useEffect(() => { void refreshAppeals(api, stores).then(setAppeals); }, [api, stores]);
   const mail = appealsMailto(appeals);
   return (
+    <>
+    <PageHeader title="Help and feedback" />
     <ScrollView className="flex-1 bg-background" contentContainerClassName="py-section pb-24">
-      <Stack.Screen options={{ title: 'Help and feedback' }} />
       <Text className="text-text text-base font-bold px-screen-x mb-row" accessibilityRole="header">Common questions</Text>
       {FAQ.map((f, i) => (
         <Box key={f.q} className="border-b-hairline border-separator px-screen-x">
@@ -51,5 +52,6 @@ export default function HelpScreen(): React.ReactElement {
         <Button label={mail ? 'Contact support' : 'Contact support (offline)'} kind="secondary" disabled={!mail} onPress={() => { if (mail) void Linking.openURL(mail); }} accessibilityLabel="Report a problem to support" />
       </Box>
     </ScrollView>
+    </>
   );
 }

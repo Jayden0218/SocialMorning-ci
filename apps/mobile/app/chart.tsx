@@ -15,6 +15,7 @@ import { EpisodeLine } from '../src/ui/discover/parts';
 import { useCardActions } from '../src/discover/useDiscover';
 import { useSafety } from '../src/safety/context';
 import { useM12Api, type ChartItem } from '../src/social/m12-api';
+import { PageHeader } from '../src/ui/PageHeader';
 
 const TAP = { minHeight: hit.min };
 type State = { kind: 'loading' } | { kind: 'error' } | { kind: 'ok'; items: ChartItem[] };
@@ -33,6 +34,8 @@ export default function ChartScreen(): React.ReactElement {
 
   const items = state.kind === 'ok' ? state.items.filter((i) => !hiddenFeeds.has(i.episode.feedUrl)) : [];
   return (
+    <>
+    <PageHeader title="Talked about" />
     <FlatList
       className="flex-1 bg-background"
       data={items}
@@ -54,5 +57,6 @@ export default function ChartScreen(): React.ReactElement {
         <EpisodeLine card={item.episode} rank={index + 1} size={56} {...(item.reason ? { line: item.reason } : {})} onOpen={() => void open(item.episode)} onPlay={() => void play(item.episode)} />
       )}
     />
+    </>
   );
 }

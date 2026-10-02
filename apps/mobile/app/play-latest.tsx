@@ -13,6 +13,7 @@ import { useSafety } from '../src/safety/context';
 import { toPlayable } from '../src/storage/playable';
 import { EmptyPicture } from '../src/ui/me/parts';
 import { useStores } from '../src/ui/providers';
+import { PageHeader } from '../src/ui/PageHeader';
 
 export default function PlayLatest(): React.ReactElement {
   const stores = useStores();
@@ -27,8 +28,11 @@ export default function PlayLatest(): React.ReactElement {
     router.replace('/player');
   }, [stores, player, hiddenFeeds]);
   return (
+    <>
+    <PageHeader title="Play latest" />
     <Box className="flex-1 bg-background">
       {nothing ? <EmptyPicture icon="play-circle-outline" line="Nothing new to play — follow a show or add to your queue" /> : <Text className="text-muted text-sm p-section">Starting…</Text>}
     </Box>
+    </>
   );
 }
