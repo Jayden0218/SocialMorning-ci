@@ -13,8 +13,14 @@
  * `withStyleContext(View, SCOPE)` in src/ui/lib/alert-dialog/index.tsx).
  */
 // The sheets and dialogs animate with reanimated, whose native worklets do not load under jest.
-jest.mock('react-native-worklets', () => require('react-native-worklets/src/mock'));
-jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
+// reanimated 4.7's own mock still boots its native module (gate 36952107013), so a tiny stand-in:
+// the dialog only needs createAnimatedComponent and chainable entering/exiting builders.
+jest.mock('react-native-reanimated', () => {
+  const chain: Record<string, unknown> = {};
+  for (const k of ['duration', 'easing', 'delay', 'withInitialValues', 'springify']) chain[k] = () => chain;
+  const createAnimatedComponent = (c: unknown) => c;
+  return { __esModule: true, default: { createAnimatedComponent }, createAnimatedComponent, Easing: { linear: (t: number) => t }, FadeIn: chain, FadeOut: chain, ZoomIn: chain };
+});
 
 import { createElement } from 'react';
 import { Platform, Text } from 'react-native';
