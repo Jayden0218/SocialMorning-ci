@@ -24,6 +24,8 @@ import { display } from './display';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
 const FIELD = { minHeight: 56 };
+/** The sign-in page's taller buttons (owner, 2026-10-03). */
+const TALL = { minHeight: 64 };
 
 function close(): void {
   if (router.canGoBack()) router.back();
@@ -84,6 +86,14 @@ export function AuthField(props: TextInputProps & { accessibilityLabel: string; 
   );
 }
 
+/**
+ * Words on the brand-yellow fill are dark, not white (owner, 2026-10-03): 12.0 against the
+ * yellow instead of 1.60. Another accent's fill keeps its own `onPrimary`.
+ */
+export function inkOn(c: { primary: string; onPrimary: string }): string {
+  return c.primary === colour.primary ? colour.text : c.onPrimary;
+}
+
 /** Google's own "G", from its sign-in branding kit — shown only as supplied, on white. */
 const GOOGLE_G = require('../../../assets/google-g.png');
 const MARK = { width: 20, height: 20 };
@@ -98,7 +108,7 @@ export type AuthMark = { icon: IconName; tint?: Colour } | 'google';
  * spoken `label`, and `className` places the button (the sign-in page's pills, 2026-10-03).
  * `trail` is an icon after the words (the code step's "Continue →", 2026-10-03).
  */
-export function AuthButton(props: { label: string; text?: string; className?: string; disabled: boolean; busy?: boolean; outline?: boolean; mark?: AuthMark; trail?: IconName; onPress: () => void }): React.ReactElement {
+export function AuthButton(props: { label: string; text?: string; className?: string; tall?: boolean; disabled: boolean; busy?: boolean; outline?: boolean; mark?: AuthMark; trail?: IconName; onPress: () => void }): React.ReactElement {
   const stores = useStores();
   const c = useColours(stores.settings);
   return (
@@ -109,17 +119,17 @@ export function AuthButton(props: { label: string; text?: string; className?: st
       accessibilityLabel={props.label}
       accessibilityState={{ disabled: props.disabled, busy: props.busy === true }}
       className={`${props.outline ? 'border border-separator' : 'bg-primary'} ${props.text || props.trail ? 'flex-row ' : ''}items-center justify-center ${props.className ?? 'rounded-row mt-row'} ${props.disabled ? 'opacity-40' : ''}`}
-      style={FIELD}
+      style={props.tall ? TALL : FIELD}
     >
       {props.mark ? (
         <Box className={props.text ? 'mr-gap' : 'absolute left-section top-0 bottom-0 justify-center'}>
           {props.mark === 'google'
             ? <Image source={GOOGLE_G} style={MARK} accessibilityIgnoresInvertColors />
-            : <Icon name={props.mark.icon} size={20} color={c[props.mark.tint ?? (props.outline ? 'text' : 'onPrimary')]} />}
+            : <Icon name={props.mark.icon} size={20} color={props.mark.tint ? c[props.mark.tint] : props.outline ? c.text : inkOn(c)} />}
         </Box>
       ) : null}
-      <Text className={props.outline ? 'text-text text-sm font-semibold' : 'text-onPrimary text-sm font-semibold'}>{props.busy ? '…' : props.text ?? props.label}</Text>
-      {props.trail && !props.busy ? <Box className="ml-gap"><Icon name={props.trail} size={18} color={c[props.outline ? 'text' : 'onPrimary']} /></Box> : null}
+      <Text className={props.outline ? 'text-text text-sm font-semibold' : 'text-onPrimary text-sm font-semibold'} style={props.outline ? undefined : { color: inkOn(c) }}>{props.busy ? '…' : props.text ?? props.label}</Text>
+      {props.trail && !props.busy ? <Box className="ml-gap"><Icon name={props.trail} size={18} color={props.outline ? c.text : inkOn(c)} /></Box> : null}
     </Pressable>
   );
 }

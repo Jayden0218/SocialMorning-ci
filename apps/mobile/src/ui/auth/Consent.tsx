@@ -17,6 +17,7 @@ import { Icon, type IconName } from '../Icon';
 import { useStores } from '../providers';
 import { useColours } from '../useColours';
 import { display } from './display';
+import { inkOn } from './AuthShell';
 
 type Doc = 'agreement' | 'privacy';
 const TAP = { minHeight: hit.min };
@@ -105,7 +106,7 @@ export function ConsentDialog(props: { visible: boolean; action: string; onCance
           {row('privacy', 'shield-checkmark-outline', 'Privacy Policy')}
         </Box>
         <Pressable onPress={props.onAgree} accessibilityRole="button" accessibilityLabel={`Agree and ${props.action}`} className="items-center justify-center rounded-pill bg-primary mt-screen-x" style={ROW}>
-          <Text className="text-onPrimary text-sm font-semibold">Agree</Text>
+          <Text className="text-onPrimary text-sm font-semibold" style={{ color: inkOn(c) }}>Agree</Text>
         </Pressable>
         <Pressable onPress={props.onCancel} accessibilityRole="button" accessibilityLabel="Cancel" className="items-center justify-center mt-gap mb-row" style={TAP}>
           <Text className="text-accent text-sm font-semibold">Cancel</Text>

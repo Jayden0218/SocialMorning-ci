@@ -79,15 +79,16 @@ export default function SignInScreen(): React.ReactElement {
         <Image source={require('../../assets/app-icon.png')} style={LOGO} className="rounded-artwork" accessibilityIgnoresInvertColors />
         <Text style={display(44, c.text)} className="mt-section" accessibilityRole="header">SocialNet</Text>
       </Box>
-      <Box className="mt-screen-x">
+      {/* Owner, 2026-10-03: room above the covers. */}
+      <Box className="mt-screen-x pt-screen-x">
         <ArtWall urls={art} onReady={() => signInPage.setWhole(true)} />
       </Box>
       <Box className="flex-1" />
       <Box className="px-screen-x pb-section">
-        <AuthButton mark={{ icon: 'mail-outline' }} label="Continue with email" text="Continue with email" className="rounded-pill" disabled={false} onPress={() => choose('email')} />
+        <AuthButton mark={{ icon: 'mail-outline' }} label="Continue with email" text="Continue with email" className="rounded-pill" tall disabled={false} onPress={() => choose('email')} />
         <Box className="flex-row gap-row mt-row">
           {OTHER_METHODS.map((m) => (
-            <AuthButton key={m.id} outline mark={m.mark} label={m.label} text={m.short} className="flex-1 rounded-pill bg-background" disabled={false} onPress={() => choose(m.id)} />
+            <AuthButton key={m.id} outline mark={m.mark} label={m.label} text={m.short} className="flex-1 rounded-pill bg-background" tall disabled={false} onPress={() => choose(m.id)} />
           ))}
         </Box>
         {/* Owner, 2026-09-27: the consent box sits under the ways in. */}
