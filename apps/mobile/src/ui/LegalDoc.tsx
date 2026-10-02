@@ -1,14 +1,18 @@
 /**
  * One legal document, full screen (owner, 2026-09-27). Opened from a link on the Terms
  * sheet and drawn inside the same overlay, so reading a document never gets anyone past
- * the sheet. Back — the button or Android's — returns to the sheet. Its own
- * SafeAreaView, for the same reason as the sheet's.
+ * the sheet. Back — the button or Android's — returns to the sheet.
+ *
+ * Drawn over the stack, outside the root layout's bottom inset — so this pads all four edges
+ * (M12). The padding comes from `useSafeAreaInsets`, not a SafeAreaView: the document opens
+ * inside the Modal's ZoomIn (scale 0.9 → 1), and the native SafeAreaView measures the inset
+ * from its on-screen frame, so it drew no top padding during the zoom and then jumped to the
+ * full inset when the zoom ended (owner, 2026-10-03). The hook's insets are the screen's,
+ * known before the first frame.
  */
 import { useMemo } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Pressable } from './lib/pressable';
-import { SafeAreaView } from './lib/safe-area-view';
-/** Drawn over the stack, outside the root layout's bottom inset — so this pads all four edges (M12). */
-const ALL_EDGES = ['top', 'bottom', 'left', 'right'] as const;
 import { ScrollView } from './lib/scroll-view';
 import { Text } from './lib/text';
 import { Box } from './lib/box';
@@ -68,8 +72,10 @@ export function LegalDoc(props: { text: string; onClose: () => void }): React.Re
   const title = useMemo(() => titleOf(props.text), [props.text]);
   // The title is drawn once, above the body; the body starts after it.
   const body = useMemo(() => parseLegal(props.text).filter((b) => b.kind !== 'title'), [props.text]);
+  const insets = useSafeAreaInsets();
+  const pad = { paddingTop: insets.top, paddingBottom: insets.bottom, paddingLeft: insets.left, paddingRight: insets.right };
   return (
-    <SafeAreaView edges={ALL_EDGES} className="absolute inset-0 bg-background">
+    <Box className="absolute inset-0 bg-background" style={pad}>
       {/* Owner, 2026-09-27: the bar holds only the chevron; the title sits below it. */}
       <Box className="flex-row items-center pt-section px-2">
         <Pressable onPress={props.onClose} accessibilityRole="button" accessibilityLabel="Back" className="justify-center items-center" style={TAP}>
@@ -86,6 +92,6 @@ export function LegalDoc(props: { text: string; onClose: () => void }): React.Re
           {body.map((b, i) => <BlockText key={i} block={b} />)}
         </Box>
       </ScrollView>
-    </SafeAreaView>
+    </Box>
   );
 }
