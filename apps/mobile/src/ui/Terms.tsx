@@ -162,7 +162,7 @@ export function Terms(props: { onAccept: () => void; exit?: (back: () => void) =
           the side margin is on the content instead. Same as LegalDoc. */}
       <ScrollView className="flex-1" contentContainerClassName="px-screen-x pt-section pb-section" automaticallyAdjustsScrollIndicatorInsets={false} scrollIndicatorInsets={EDGE}>
         <Image source={require('../../assets/app-icon.png')} style={ICON} className="rounded-artwork mb-section" accessibilityIgnoresInvertColors />
-        <Text style={display(36, c.text)} className="mb-row" accessibilityRole="header">{CONSENT_TITLE}</Text>
+        <Text style={display(36, c.text)} className="text-text mb-row" accessibilityRole="header">{CONSENT_TITLE}</Text>
         <Text className="text-muted text-sm leading-[22px] mb-section">{CONSENT_INTRO}</Text>
         <Box className="gap-row">
           {CONSENT_ITEMS.map((item) => (

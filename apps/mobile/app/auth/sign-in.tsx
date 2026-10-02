@@ -79,7 +79,7 @@ export default function SignInScreen(): React.ReactElement {
           Facebook side by side. */}
       <Box className="px-screen-x pt-section">
         <Image source={require('../../assets/app-icon.png')} style={LOGO} className="rounded-2xl" accessibilityIgnoresInvertColors />
-        <Text style={display(44, c.text)} className="mt-section" accessibilityRole="header">SocialNet</Text>
+        <Text style={display(44, c.text)} className="text-text mt-section" accessibilityRole="header">SocialNet</Text>
       </Box>
       {/* Owner, 2026-10-03: room above the covers. */}
       <Box style={ROW_TOP}>

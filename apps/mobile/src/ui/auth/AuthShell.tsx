@@ -50,7 +50,7 @@ export function AuthShell(props: { title: string; eyebrow?: string; closeRight?:
         </Box>
         <ScrollView className="flex-1" contentContainerClassName="px-screen-x pb-section" keyboardShouldPersistTaps="handled">
           {props.eyebrow ? <Text className="text-accent text-xs font-bold tracking-widest mt-section">{props.eyebrow.toUpperCase()}</Text> : null}
-          <Text style={display(40, c.text)} className={props.eyebrow ? 'mt-gap' : 'mt-section'} accessibilityRole="header">{props.title}</Text>
+          <Text style={display(40, c.text)} className={props.eyebrow ? 'text-text mt-gap' : 'text-text mt-section'} accessibilityRole="header">{props.title}</Text>
           {props.subtitle ? <Box className="mt-row">{props.subtitle}</Box> : null}
           <Box className="mt-10 gap-row">{props.children}</Box>
         </ScrollView>
@@ -156,7 +156,7 @@ export function CodeCells(props: { value: string; onChange: (v: string) => void 
           const filled = i < digits.length;
           return (
             <Box key={i} className={`flex-1 items-center justify-end pb-gap ${filled ? 'border-b-2 border-text' : next ? 'border-b-2 border-accent' : 'border-b border-separator'}`} style={CELL}>
-              {filled ? <Text style={display(34, c.text)}>{digits[i]}</Text> : next ? <Box className="bg-accent mb-1" style={{ width: 2, height: 32 }} /> : null}
+              {filled ? <Text style={display(34, c.text)} className="text-text">{digits[i]}</Text> : next ? <Box className="bg-accent mb-1" style={{ width: 2, height: 32 }} /> : null}
             </Box>
           );
         })}
