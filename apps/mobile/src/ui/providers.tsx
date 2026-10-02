@@ -388,7 +388,7 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
               onDone={() => setLaunchPick(undefined)}
             />
           ) : null}
-          {keepTerms({ ready, accepted, launched, cover }) ? <Terms onAccept={() => { accept(stores.settings); setAccepted(true); }} /> : null}
+          {keepTerms({ ready, accepted, launched, cover }) ? <Terms settings={stores.settings} onAccept={() => { accept(stores.settings); setAccepted(true); }} /> : null}
           {/* M16a T015: the toast host — spoken on iOS too, and drawn above native modals. */}
           <ToastHost message={message} />
         </PlayerProvider>

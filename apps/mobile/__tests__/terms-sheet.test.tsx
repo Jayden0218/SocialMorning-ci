@@ -2,6 +2,8 @@
  * The consent sheet (owner, 2026-09-27): a link opens its full document in place and Back
  * returns to the sheet; Disagree opens a second page whose Exit leaves without accepting;
  * Agree (either page) accepts.
+ * Each document is a card (owner, 2026-10-03): the first is open, a tap on a card's head opens
+ * its points and its "Read the full …" link.
  * The break that turns the first test red: make the link's `onPress` in `src/ui/Terms.tsx`
  * do nothing.
  */
@@ -18,6 +20,7 @@ it('a link opens its document, and Back returns to the sheet', () => {
   let r!: ReactTestRenderer;
   act(() => { r = create(createElement(Terms, { onAccept: jest.fn() })); });
   expect(text(r)).toContain('Service Agreement and Privacy Policy');
+  act(() => { byLabel(r, 'SocialNet Privacy Policy, 4 points').props['onPress'](); });
   act(() => { byLabel(r, 'SocialNet Privacy Policy, opens the full text').props['onPress'](); });
   expect(text(r)).toContain('How we collect and use your personal information');
   expect(text(r)).not.toContain('Service Agreement and Privacy Policy');
@@ -27,14 +30,16 @@ it('a link opens its document, and Back returns to the sheet', () => {
 
 it('all three links open a different document', () => {
   const seen: string[] = [];
-  for (const [label, words] of [
-    ['SocialNet User Agreement, opens the full text', 'Scope of the Agreement'],
-    ['SocialNet Privacy Policy, opens the full text', 'Do Not Track'],
-    ['SocialNet Community Guidelines, opens the full text', 'Disturbing community order'],
+  for (const [name, words] of [
+    ['SocialNet User Agreement', 'Scope of the Agreement'],
+    ['SocialNet Privacy Policy', 'Do Not Track'],
+    ['SocialNet Community Guidelines', 'Disturbing community order'],
   ] as const) {
     let r!: ReactTestRenderer;
     act(() => { r = create(createElement(Terms, { onAccept: jest.fn() })); });
-    act(() => { byLabel(r, label).props['onPress'](); });
+    // The first card starts open; the others open with a tap on their head.
+    if (name !== 'SocialNet User Agreement') act(() => { r.root.find((n) => typeof n.props['onPress'] === 'function' && String(n.props['accessibilityLabel']).startsWith(`${name}, `) && String(n.props['accessibilityLabel']).endsWith(' points')).props['onPress'](); });
+    act(() => { byLabel(r, `${name}, opens the full text`).props['onPress'](); });
     expect(text(r)).toContain(words);
     seen.push(words);
   }
@@ -63,5 +68,5 @@ it('Exit app leaves without accepting; where the app cannot close, it returns to
   expect(exit).toHaveBeenCalledTimes(1);
   expect(onAccept).not.toHaveBeenCalled();
   expect(text(r)).not.toContain(REFUSE_TEXT.slice(0, 40));
-  expect(text(r)).toContain('mainly covers:');
+  expect(text(r)).toContain('Read the full agreement');
 });

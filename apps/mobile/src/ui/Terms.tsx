@@ -26,8 +26,12 @@ import { Box } from './lib/box';
 import { LEGAL_TEXT } from '../legal/texts';
 import { Button, ButtonText } from './lib/button';
 import { Heading } from './lib/heading';
-import { hit } from '../design';
 import { EDGE, LegalDoc } from './LegalDoc';
+import { Icon, type IconName } from './Icon';
+import { useColours } from './useColours';
+import { hit, type Palette } from '../design';
+import { display } from './auth/display';
+import type { SettingsStore } from '../storage/types';
 import { CONSENT_INTRO, CONSENT_ITEMS, CONSENT_OUTRO, CONSENT_TITLE, REFUSE_TEXT, type LegalDocId } from './terms';
 
 const ICON = { width: 44, height: 44 };
@@ -47,11 +51,67 @@ function Choice(props: { label: string; onPress: () => void; outline?: boolean; 
   );
 }
 
+/** Each document's icon on its card. */
+const DOC_ICON: Record<LegalDocId, IconName> = {
+  agreement: 'document-text-outline',
+  privacy: 'shield-checkmark-outline',
+  community: 'people-outline',
+};
+
+/** "Read the full agreement" — the link's last word, by document. */
+const FULL: Record<LegalDocId, string> = { agreement: 'agreement', privacy: 'policy', community: 'guidelines' };
+
+/** Tests render the page without the stores; the theme then follows the system. */
+const NO_SETTINGS: Pick<SettingsStore, 'get'> = { get: () => undefined };
+
+/**
+ * One document as a card (owner's reference, 2026-10-03): its icon, name and point count; a
+ * tap on the head opens or closes its points; "Read the full …" opens the whole document.
+ */
+function Card(props: { item: (typeof CONSENT_ITEMS)[number]; colours: Palette; expanded: boolean; onToggle: () => void; onOpen: () => void }): React.ReactElement {
+  const { item, colours: c } = props;
+  return (
+    <Box className="rounded-artwork border border-separator bg-background px-section">
+      <Pressable
+        onPress={props.onToggle}
+        accessibilityRole="button"
+        accessibilityLabel={`${item.link}, ${item.points.length} points`}
+        accessibilityState={{ expanded: props.expanded }}
+        className="flex-row items-center gap-row py-row"
+        style={TAP}
+      >
+        <Icon name={DOC_ICON[item.doc]} size={20} color={c.text} />
+        <Box className="flex-1">
+          <Text className="text-text text-base font-semibold">{item.link}</Text>
+          <Text className="text-muted text-xs">{item.points.length} points</Text>
+        </Box>
+        <Icon name={props.expanded ? 'chevron-up' : 'chevron-down'} size={18} color={c.muted} />
+      </Pressable>
+      {props.expanded ? (
+        <Box className="pb-section">
+          {item.points.map((p) => (
+            <Box key={p} className="flex-row mb-row">
+              <Text className="text-text text-sm leading-[22px] min-w-5 pr-2">•</Text>
+              <Text className="text-text text-sm leading-[22px] flex-1">{p}</Text>
+            </Box>
+          ))}
+          <Pressable onPress={props.onOpen} accessibilityRole="link" accessibilityLabel={`${item.link}, opens the full text`} className="justify-center self-start" style={TAP}>
+            <Text className="text-accent text-sm font-semibold underline">Read the full {FULL[item.doc]}</Text>
+          </Pressable>
+        </Box>
+      ) : null}
+    </Box>
+  );
+}
+
 /** Android can close itself; iOS cannot (and must not), so there Exit returns to page one. */
 const exitApp = (back: () => void): void => { if (Platform.OS === 'android') BackHandler.exitApp(); else back(); };
 
-export function Terms(props: { onAccept: () => void; exit?: (back: () => void) => void }): React.ReactElement {
+export function Terms(props: { onAccept: () => void; exit?: (back: () => void) => void; settings?: Pick<SettingsStore, 'get'> }): React.ReactElement {
+  const c = useColours(props.settings ?? NO_SETTINGS);
   const [open, setOpen] = useState<LegalDocId | undefined>(undefined);
+  // The first document is open when the page appears (owner's reference, 2026-10-03).
+  const [expanded, setExpanded] = useState<LegalDocId | undefined>(CONSENT_ITEMS[0]?.doc);
   const [refused, setRefused] = useState(false);
   const openRef = useRef(open);
   openRef.current = open;
@@ -88,39 +148,25 @@ export function Terms(props: { onAccept: () => void; exit?: (back: () => void) =
   }
 
   return (
-    <SafeAreaView edges={ALL_EDGES} className="absolute inset-0 bg-background">
-      <Box className="flex-1 pt-section pb-section">
-        <Box className="px-screen-x">
-          <Image source={require('../../assets/app-icon.png')} style={ICON} className="rounded-row mb-row" accessibilityIgnoresInvertColors />
-          <Heading className="text-text text-lg font-bold mb-section" accessibilityRole="header">{CONSENT_TITLE}</Heading>
-        </Box>
-        {/* Full width, so the scroll bar sits on the screen's edge with no gap (owner, 2026-09-29);
-            the side margin is on the content instead. Same as LegalDoc. */}
-        <ScrollView className="flex-1" contentContainerClassName="px-screen-x pb-row" automaticallyAdjustsScrollIndicatorInsets={false} scrollIndicatorInsets={EDGE}>
-          <Text className="text-muted text-sm mb-section">{CONSENT_INTRO}</Text>
-          {CONSENT_ITEMS.map((item, n) => (
-            <Box key={item.doc} className="mb-section">
-              <Pressable onPress={() => setOpen(item.doc)} accessibilityRole="link" accessibilityLabel={`${item.link}, opens the full text`}>
-                <Text className="text-muted text-sm mb-row">
-                  {`${n + 1}. `}
-                  <Text className="text-accent underline">{item.link}</Text>
-                  {' mainly covers:'}
-                </Text>
-              </Pressable>
-              {item.points.map((p) => (
-                <Box key={p} className="flex-row pl-section mb-row">
-                  <Text className="text-muted text-sm min-w-5 pr-2">•</Text>
-                  <Text className="text-muted text-sm flex-1">{p}</Text>
-                </Box>
-              ))}
-            </Box>
+    <SafeAreaView edges={ALL_EDGES} className="absolute inset-0 bg-surface">
+      {/* Full width, so the scroll bar sits on the screen's edge with no gap (owner, 2026-09-29);
+          the side margin is on the content instead. Same as LegalDoc. */}
+      <ScrollView className="flex-1" contentContainerClassName="px-screen-x pt-section pb-section" automaticallyAdjustsScrollIndicatorInsets={false} scrollIndicatorInsets={EDGE}>
+        <Image source={require('../../assets/app-icon.png')} style={ICON} className="rounded-row mb-section" accessibilityIgnoresInvertColors />
+        <Text style={display(30, c.text)} className="mb-row" accessibilityRole="header">{CONSENT_TITLE}</Text>
+        <Text className="text-muted text-sm leading-[22px] mb-section">{CONSENT_INTRO}</Text>
+        <Box className="gap-row">
+          {CONSENT_ITEMS.map((item) => (
+            <Card key={item.doc} item={item} colours={c} expanded={expanded === item.doc} onToggle={() => setExpanded(expanded === item.doc ? undefined : item.doc)} onOpen={() => setOpen(item.doc)} />
           ))}
-          <Text className="text-muted text-sm">{CONSENT_OUTRO}</Text>
-        </ScrollView>
-        <Box className="flex-row gap-row mt-section px-screen-x">
-          <Choice label="Disagree" outline onPress={() => setRefused(true)} className="flex-1" />
-          <Choice label="Agree" onPress={props.onAccept} className="flex-[2]" />
         </Box>
+        <Text className="text-muted text-xs mt-section">{CONSENT_OUTRO}</Text>
+      </ScrollView>
+      <Box className="border-t border-separator px-screen-x pt-section pb-row">
+        <Choice label="Agree" onPress={props.onAccept} className="w-full" />
+        <Pressable onPress={() => setRefused(true)} accessibilityRole="button" accessibilityLabel="Disagree" className="items-center justify-center mt-gap" style={TAP}>
+          <Text className="text-accent text-sm font-semibold">Disagree</Text>
+        </Pressable>
       </Box>
     </SafeAreaView>
   );
