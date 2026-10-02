@@ -12,6 +12,9 @@
  * The break that turns it red: put `Root: View` back in src/ui/lib/actionsheet/index.tsx (or
  * `withStyleContext(View, SCOPE)` in src/ui/lib/alert-dialog/index.tsx).
  */
+// The sheets and dialogs animate with reanimated, whose native worklets do not load under jest.
+jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
+
 import { createElement } from 'react';
 import { Platform, Text } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
