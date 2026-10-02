@@ -10,7 +10,7 @@
  * full inset when the zoom ended (owner, 2026-10-03). The hook's insets are the screen's,
  * known before the first frame.
  */
-import { useMemo, useRef, useState, type ComponentRef } from 'react';
+import { useMemo, useRef, type ComponentRef } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Pressable } from './lib/pressable';
 import { ScrollView } from './lib/scroll-view';
@@ -78,11 +78,9 @@ const shortDate = (d: string): string => d.replace(/\b([A-Z][a-z]{2})[a-z]+\b/, 
 const NUMBER = /^(?:Part\s+)?(\d+)(?:\.|\s+—)\s+/;
 type Entry = { index: number; number?: string; label: string };
 
-/** How many sections the Contents card lists before "and N more". */
-const CONTENTS_SHOWN = 5;
-
 export function LegalDoc(props: { text: string; onClose: () => void }): React.ReactElement {
-  const title = useMemo(() => titleOf(props.text), [props.text]);
+  // Owner, 2026-10-03: "Privacy Policy", not "SocialNet Privacy Policy".
+  const title = useMemo(() => titleOf(props.text).replace(/^SocialNet\s+/, ''), [props.text]);
   // The title is drawn once, above the body; the date lines become boxes under it.
   const { body, dates } = useMemo(() => {
     const all = parseLegal(props.text).filter((b) => b.kind !== 'title');
@@ -92,6 +90,9 @@ export function LegalDoc(props: { text: string; onClose: () => void }): React.Re
       if (m?.[1] && m[2]) { found.push(`${DATE_LABEL[m[1]] ?? m[1]} ${shortDate(m[2])}`); return false; }
       return true;
     });
+    // A document that opens with plain paragraphs gets an "Introduction" heading, so the
+    // Contents card and the text both start with a named section (owner, 2026-10-03).
+    if (rest.length > 0 && rest[0]?.kind !== 'heading') rest.unshift({ kind: 'heading', spans: [{ text: 'Introduction', bold: false }] });
     return { body: rest, dates: found };
   }, [props.text]);
   const contents = useMemo<Entry[]>(() => body.flatMap((b, index) => {
@@ -100,12 +101,10 @@ export function LegalDoc(props: { text: string; onClose: () => void }): React.Re
     const n = NUMBER.exec(text);
     return [n?.[1] ? { index, number: n[1], label: text.slice(n[0].length) } : { index, label: text }];
   }), [body]);
-  const [allShown, setAllShown] = useState(false);
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const tops = useRef<Record<number, number>>({});
   const insets = useSafeAreaInsets();
   const pad = { paddingTop: insets.top, paddingBottom: insets.bottom, paddingLeft: insets.left, paddingRight: insets.right };
-  const shown = allShown ? contents : contents.slice(0, CONTENTS_SHOWN);
   return (
     <Box className="absolute inset-0 bg-background" style={pad}>
       {/* Owner, 2026-09-27: the bar holds only the chevron; the title sits below it. */}
@@ -121,7 +120,7 @@ export function LegalDoc(props: { text: string; onClose: () => void }): React.Re
       <ScrollView ref={scroll} className="flex-1" automaticallyAdjustsScrollIndicatorInsets={false} scrollIndicatorInsets={EDGE}>
         <Box className="px-screen-x pt-2 pb-section">
           {/* Owner, 2026-10-03: the editorial layout — a large title, the dates in boxes,
-              then a Contents card that jumps to each section. */}
+              then a Contents card listing every section, each a jump to it. */}
           <Text className="text-text text-[32px] font-extrabold leading-[38px]" accessibilityRole="header">{title}</Text>
           {dates.length > 0 ? (
             <Box className="flex-row flex-wrap gap-2 mt-3">
@@ -133,26 +132,21 @@ export function LegalDoc(props: { text: string; onClose: () => void }): React.Re
             </Box>
           ) : null}
           {contents.length > 1 ? (
-            <Box className="mt-section px-4 pt-3 pb-1 rounded-xl border-hairline border-separator bg-surface">
+            <Box className="mt-section mb-row px-4 pt-3 pb-1 rounded-xl border-hairline border-separator bg-surface">
               <Text className="text-muted text-xs font-bold tracking-widest mb-1">CONTENTS</Text>
-              {shown.map((e, i) => (
+              {contents.map((e, i) => (
                 <Pressable
                   key={e.index}
                   onPress={() => scroll.current?.scrollTo({ y: tops.current[e.index] ?? 0, animated: true })}
                   accessibilityRole="button"
                   accessibilityLabel={`Go to ${e.label}`}
-                  className={`flex-row items-center py-3 ${i < shown.length - 1 ? 'border-b border-hairline border-separator' : ''}`}
+                  className={`flex-row items-center py-3 ${i < contents.length - 1 ? 'border-b border-hairline border-separator' : ''}`}
                   style={{ minHeight: hit.min }}
                 >
                   <Text className="text-accent text-sm font-bold w-7">{e.number ?? '·'}</Text>
                   <Text className="text-text text-sm flex-1">{e.label}</Text>
                 </Pressable>
               ))}
-              {contents.length > CONTENTS_SHOWN ? (
-                <Pressable onPress={() => setAllShown((v) => !v)} accessibilityRole="button" className="justify-center pl-7" style={{ minHeight: hit.min }}>
-                  <Text className="text-muted text-xs">{allShown ? 'Show less' : `and ${contents.length - CONTENTS_SHOWN} more`}</Text>
-                </Pressable>
-              ) : null}
             </Box>
           ) : null}
           {body.map((b, i) => (
