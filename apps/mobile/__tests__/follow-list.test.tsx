@@ -30,7 +30,9 @@ jest.mock('../src/ui/providers', () => ({ useStores: () => ({ settings: { get: (
 
 import { FollowList, followEmptyLine } from '../src/ui/FollowList';
 
-const text = (r: ReactTestRenderer): string => JSON.stringify(r.toJSON());
+// The visible words only: the tree's props hold React elements (ListEmptyComponent), which JSON cannot hold.
+const text = (r: ReactTestRenderer): string =>
+  r.root.findAll((n) => typeof n.type === 'string').flatMap((n) => n.children.filter((c): c is string => typeof c === 'string')).join(' ');
 async function render(id: string, name?: string, kind: 'followers' | 'following' = 'followers'): Promise<ReactTestRenderer> {
   let r!: ReactTestRenderer;
   await act(async () => { r = create(createElement(FollowList, { kind, id, ...(name ? { name } : {}) })); });

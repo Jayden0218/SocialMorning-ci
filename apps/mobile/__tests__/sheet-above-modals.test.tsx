@@ -13,6 +13,7 @@
  * `withStyleContext(View, SCOPE)` in src/ui/lib/alert-dialog/index.tsx).
  */
 // The sheets and dialogs animate with reanimated, whose native worklets do not load under jest.
+jest.mock('react-native-worklets', () => require('react-native-worklets/src/mock'));
 jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
 
 import { createElement } from 'react';
