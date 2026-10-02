@@ -128,7 +128,7 @@ export function AuthButton(props: { label: string; text?: string; className?: st
             : <Icon name={props.mark.icon} size={20} color={props.mark.tint ? c[props.mark.tint] : props.outline ? c.text : inkOn(c)} />}
         </Box>
       ) : null}
-      <Text className={`${props.outline ? 'text-text' : 'text-onPrimary'} text-sm ${props.bold ? 'font-bold' : 'font-semibold'}`} style={props.outline ? undefined : { color: inkOn(c) }}>{props.busy ? '…' : props.text ?? props.label}</Text>
+      <Text className={props.bold ? (props.outline ? 'text-text text-sm font-bold' : 'text-onPrimary text-sm font-bold') : (props.outline ? 'text-text text-sm font-semibold' : 'text-onPrimary text-sm font-semibold')} style={props.outline ? undefined : { color: inkOn(c) }}>{props.busy ? '…' : props.text ?? props.label}</Text>
       {props.trail && !props.busy ? <Box className="ml-gap"><Icon name={props.trail} size={18} color={props.outline ? c.text : inkOn(c)} /></Box> : null}
     </Pressable>
   );
@@ -173,6 +173,7 @@ export function CodeCells(props: { value: string; onChange: (v: string) => void 
           caretHidden
           accessibilityLabel="Code"
           accessibilityHint="6 digits"
+          className="text-text"
         />
       </Input>
     </Box>
