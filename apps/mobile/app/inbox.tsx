@@ -44,7 +44,7 @@ export default function InboxScreen(): React.ReactElement {
       data={ids.slice(0, shown)}
       keyExtractor={(id) => id}
       contentContainerClassName="px-screen-x py-row gap-1"
-      ListHeaderComponent={load.kind === 'ok' ? <Text className="text-muted text-[13px]">{ids.length} new since you subscribed</Text> : null}
+      ListHeaderComponent={load.kind === 'ok' ? <Text className="text-muted text-[13px]">{ids.length} new since you subscribed</Text> : undefined}
       ListEmptyComponent={body === 'loading' ? <Loader className="my-section" /> : body === 'error' ? <EmptyState surface="inbox" failed onRetry={reload} page /> : <EmptyState surface="inbox" page />}
       ListFooterComponent={ids.length > shown ? (
         <Pressable onPress={() => setShown((n) => n + INBOX_PAGE)} accessibilityRole="button"><Text className="text-accent text-[15px]">Load more</Text></Pressable>

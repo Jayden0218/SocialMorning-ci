@@ -31,7 +31,7 @@ export function AboveModals(props: {
 }
 
 /** A plain View root, lifted above native modals. Passed as `Root` to the overlay creators. */
-export const OverlayRoot = React.forwardRef<View, ViewProps>(function OverlayRoot(props, ref) {
+export const OverlayRoot = React.forwardRef<React.ComponentRef<typeof View>, ViewProps>(function OverlayRoot(props, ref) {
   return (
     <AboveModals>
       <View ref={ref} {...props} />
