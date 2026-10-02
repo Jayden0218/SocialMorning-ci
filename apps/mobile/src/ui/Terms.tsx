@@ -34,7 +34,8 @@ import { display } from './auth/display';
 import type { SettingsStore } from '../storage/types';
 import { CONSENT_INTRO, CONSENT_ITEMS, CONSENT_OUTRO, CONSENT_TITLE, REFUSE_TEXT, type LegalDocId } from './terms';
 
-const ICON = { width: 44, height: 44 };
+/** The app icon on top: 64 pt (owner, 2026-10-03; was 44). */
+const ICON = { width: 64, height: 64 };
 
 /** Apple's and Android's minimum tap size, as a style (shared-ui asserts it). */
 const TAP = { minHeight: hit.min };
@@ -90,7 +91,7 @@ function Card(props: { item: (typeof CONSENT_ITEMS)[number]; colours: Palette; e
       >
         <Icon name={DOC_ICON[item.doc]} size={22} color={c.accent} />
         <Box className="flex-1">
-          <Text className="text-text text-lg font-semibold">{item.link}</Text>
+          <Text className="text-text text-base font-semibold">{item.link}</Text>
           <Text className="text-muted text-xs">{item.points.length} points</Text>
         </Box>
         <Icon name={props.expanded ? 'chevron-up' : 'chevron-down'} size={18} color={c.muted} />
@@ -104,7 +105,7 @@ function Card(props: { item: (typeof CONSENT_ITEMS)[number]; colours: Palette; e
             </Box>
           ))}
           <Pressable onPress={props.onOpen} accessibilityRole="link" accessibilityLabel={`${item.link}, opens the full text`} className="justify-center self-start" style={TAP}>
-            <Text className="text-accent text-sm font-semibold underline">Read the full {FULL[item.doc]}</Text>
+            <Text className="text-accent text-sm font-semibold underline">{`Read the full ${FULL[item.doc]}`}</Text>
           </Pressable>
         </Box>
       ) : null}
@@ -160,8 +161,8 @@ export function Terms(props: { onAccept: () => void; exit?: (back: () => void) =
       {/* Full width, so the scroll bar sits on the screen's edge with no gap (owner, 2026-09-29);
           the side margin is on the content instead. Same as LegalDoc. */}
       <ScrollView className="flex-1" contentContainerClassName="px-screen-x pt-section pb-section" automaticallyAdjustsScrollIndicatorInsets={false} scrollIndicatorInsets={EDGE}>
-        <Image source={require('../../assets/app-icon.png')} style={ICON} className="rounded-row mb-section" accessibilityIgnoresInvertColors />
-        <Text style={display(30, c.text)} className="mb-row" accessibilityRole="header">{CONSENT_TITLE}</Text>
+        <Image source={require('../../assets/app-icon.png')} style={ICON} className="rounded-artwork mb-section" accessibilityIgnoresInvertColors />
+        <Text style={display(36, c.text)} className="mb-row" accessibilityRole="header">{CONSENT_TITLE}</Text>
         <Text className="text-muted text-sm leading-[22px] mb-section">{CONSENT_INTRO}</Text>
         <Box className="gap-row">
           {CONSENT_ITEMS.map((item) => (
