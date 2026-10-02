@@ -3,6 +3,7 @@
  * 6-digit code sent to it, step 3 — only for a new email — the name others will see.
  * The same page signs in and signs up. Consent was given on the landing page
  * (`agreed=1`); opened any other way, the box is here too and the same dialog asks.
+ * Each step's main button sits in the bar pinned to the bottom (owner's screenshot, 2026-10-03).
  */
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -70,19 +71,22 @@ export default function EmailScreen(): React.ReactElement {
   return (
     <AuthShell
       title={TITLE[step]}
-      subtitle={step === 'email' ? null : <Text className="text-muted text-sm leading-[22px] text-center">{step === 'code' ? `We sent a 6-digit code to ${email.trim()}.` : 'This is the name others see. You can use any name.'}</Text>}
+      subtitle={step === 'email' ? null : <Text className="text-muted text-sm leading-[22px]">{step === 'code' ? `We sent a 6-digit code to ${email.trim()}.` : 'This is the name others see. You can use any name.'}</Text>}
+      footer={
+        step === 'email' ? <AuthButton label="Send code" className="rounded-pill" disabled={emailAction === 'disabled'} busy={busy} onPress={() => (emailAction === 'ask' ? setAsking(true) : void sendCode())} />
+        : step === 'code' ? <AuthButton label="Continue" className="rounded-pill" disabled={busy || code.trim().length !== 6} busy={busy} onPress={() => void verify()} />
+        : <AuthButton label="Create account" className="rounded-pill" disabled={busy || name.trim().length === 0} busy={busy} onPress={() => void verify(name.trim())} />
+      }
     >
       {step === 'email' ? (
         <>
-          <AuthField placeholder="Email" autoCapitalize="none" keyboardType="email-address" autoComplete="email" autoFocus value={email} onChangeText={setEmail} accessibilityLabel="Email" />
-          <AuthButton label="Send code" disabled={emailAction === 'disabled'} busy={busy} onPress={() => (emailAction === 'ask' ? setAsking(true) : void sendCode())} />
+          <AuthField placeholder="you@example.com" autoCapitalize="none" keyboardType="email-address" autoComplete="email" autoFocus value={email} onChangeText={setEmail} accessibilityLabel="Email" />
           {consentGiven ? null : <ConsentRow agreed={agreed} onToggle={() => setAgreed((a) => !a)} open={legal.open} />}
         </>
       ) : null}
       {step === 'code' ? (
         <>
-          <AuthField placeholder="6-digit code" keyboardType="number-pad" autoComplete="one-time-code" textContentType="oneTimeCode" maxLength={6} autoFocus value={code} onChangeText={setCode} accessibilityLabel="Code" />
-          <AuthButton label="Continue" disabled={busy || code.trim().length !== 6} busy={busy} onPress={() => void verify()} />
+          <AuthField label="Code" placeholder="6-digit code" keyboardType="number-pad" autoComplete="one-time-code" textContentType="oneTimeCode" maxLength={6} autoFocus value={code} onChangeText={setCode} accessibilityLabel="Code" />
           <Pressable onPress={() => void sendCode()} disabled={busy || wait > 0} accessibilityRole="button" accessibilityLabel="Send the code again" className="items-center justify-center min-h-12">
             <Text className={wait > 0 ? 'text-muted text-sm' : 'text-accent text-sm'}>{wait > 0 ? `Send again in ${wait} s` : 'Send the code again'}</Text>
           </Pressable>
@@ -93,8 +97,7 @@ export default function EmailScreen(): React.ReactElement {
       ) : null}
       {step === 'name' ? (
         <>
-          <AuthField placeholder="Display name" autoFocus maxLength={40} value={name} onChangeText={setName} accessibilityLabel="Display name" />
-          <AuthButton label="Create account" disabled={busy || name.trim().length === 0} busy={busy} onPress={() => void verify(name.trim())} />
+          <AuthField label="Name" placeholder="Display name" autoFocus maxLength={40} value={name} onChangeText={setName} accessibilityLabel="Display name" />
         </>
       ) : null}
       {suspended ? <Text className={errorText} accessibilityLiveRegion="polite">{suspended}</Text> : null}
