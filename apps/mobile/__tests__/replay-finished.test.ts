@@ -1,3 +1,4 @@
+// Tests that replaying a finished episode saves the new position, not "Finished".
 /**
  * M17 guard G-RF1 — playing a finished episode again must not be turned back into "Finished".
  *

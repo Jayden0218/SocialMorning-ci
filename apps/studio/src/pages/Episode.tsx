@@ -1,3 +1,4 @@
+// One episode's page: its numbers, reaction curve, comments and take-down button.
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { ConfirmDialog } from '../shell/ConfirmDialog';

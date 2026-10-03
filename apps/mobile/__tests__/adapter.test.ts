@@ -1,3 +1,4 @@
+// Tests that the audio adapter turns player commands and events into the right calls.
 /**
  * The expo-audio adapter, with the native module MOCKED.
  *

@@ -1,3 +1,4 @@
+// Merges picks, issues and collections from the database over the built-in files.
 /**
  * M15 T013 — picks, issues and collections: the DATABASE first, the files second
  * (specs/015-m15-admin/research.md R3, FR-008, FR-009).

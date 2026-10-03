@@ -1,3 +1,4 @@
+// Tests following: no self-follow, no duplicates, rate limit, and counts.
 /** quickstart A6 (guard G4: the CHECK on follows). */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

@@ -1,3 +1,4 @@
+// Lets a creator claim a show by placing a code in their live feed.
 /**
  * M10b US8 — a creator claims the show they already publish (owner, 2026-09-27: "Claim your
  * feed"; nothing is uploaded — Principle V). SocialNet hands out a code; the creator puts it

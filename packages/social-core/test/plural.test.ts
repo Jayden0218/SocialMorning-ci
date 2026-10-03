@@ -1,3 +1,4 @@
+// Tests one uses the singular and every other count uses the plural.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { noun, plural } from '../src/plural.ts';

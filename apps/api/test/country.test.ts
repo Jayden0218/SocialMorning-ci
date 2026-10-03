@@ -1,3 +1,4 @@
+// Tests that only a two-letter country is stored and shown on profiles.
 /**
  * M10b US7 — "IP location": the country from the sign-in request, two letters only, shown on
  * the profile to everyone. Guard G-I1 (country only, never more) — the break that turns it

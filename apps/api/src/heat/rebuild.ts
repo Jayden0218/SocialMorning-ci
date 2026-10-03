@@ -1,3 +1,4 @@
+// Rebuilds an episode's reaction heat curve, counting each listener once per segment.
 import type { Db } from '../db/db.ts';
 
 /**

@@ -1,3 +1,4 @@
+// Category routes: list genres and show each genre's top shows.
 import { Hono } from 'hono';
 import type { AuthEnv } from '../../auth/session.ts';
 import { ApiError } from '../../errors.ts';

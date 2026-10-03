@@ -1,3 +1,4 @@
+// Studio comment routes: list a show's comments, reply, hide and unhide.
 /**
  * Studio API (`/v1/studio/*`) — US3: Comments
  */

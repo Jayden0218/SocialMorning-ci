@@ -1,3 +1,4 @@
+// Admin dashboard route: usage numbers for 7, 30 or 90 days, cached five minutes.
 /**
  * Admin API (`/v1/admin/*`, owner only) — M18: the dashboard
  */

@@ -1,3 +1,4 @@
+// Builds a listener's profile: name, counts, stats and recent public activity.
 /** A profile (M4 FR-011/FR-012/FR-013): name, counts, stats (unless private and not the viewer), recent public activity. */
 import { stats } from '@socialmorning/social-core';
 import type { Db } from '../../db.ts';

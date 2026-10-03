@@ -1,3 +1,4 @@
+// The single API error shape and its error codes with HTTP statuses.
 /** The one error shape (contracts/api.md): `{ error, message }` plus a status. */
 export type ErrorCode = 'validation' | 'unauthenticated' | 'forbidden' | 'not_found' | 'conflict' | 'locked' | 'duration_unknown' | 'reply_depth' | 'self_follow' | 'unavailable' | 'suspended' | 'blocked' | 'removed'
   // M11 — the Studio (specs/011-m11-studio/contracts/studio-api.md)

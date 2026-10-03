@@ -1,3 +1,4 @@
+// Checks that every sync, outbox and manager is actually created and used.
 /**
  * M8 guard G-W1 — **a module nothing constructs is not a feature.**
  *

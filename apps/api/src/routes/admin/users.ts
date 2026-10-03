@@ -1,3 +1,4 @@
+// Admin routes for users and safety: list, rename, suspend, restore, act on reports.
 /**
  * Admin API (`/v1/admin/*`, owner only) — US6: users and safety
  */

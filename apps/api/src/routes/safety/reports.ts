@@ -1,3 +1,4 @@
+// Report routes: report content, rate-limited, and list what I have hidden.
 /**
  * M6 reports (contracts/api.md): POST /v1/reports · GET /v1/me/hidden. Own content is
  * refused (FR-004), a repeat is one row (FR-003, G3), a target already gone closes at

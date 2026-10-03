@@ -1,3 +1,4 @@
+// Tests that cached comments show, marked out of date, when the server is unreachable.
 /**
  * quickstart A21 / FR-032: with a cached copy and the server unreachable, the
  * social view is the cached one and it is flagged stale. Exercised on the pure

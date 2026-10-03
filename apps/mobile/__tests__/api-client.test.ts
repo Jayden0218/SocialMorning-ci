@@ -1,3 +1,4 @@
+// Tests that the API client sends the token, parses answers and maps errors.
 import { ApiError, createApi } from '@/social/api';
 
 type Call = { url: string; init: RequestInit };

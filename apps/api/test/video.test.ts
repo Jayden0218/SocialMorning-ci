@@ -1,3 +1,4 @@
+// Tests video episodes are listed on Discover and audio ones are not.
 /**
  * M10b US5 — "Podcasts you can watch": an episode whose feed declares a video file is
  * recorded as video once, listed newest first, hidden shows left out; an audio one never is.

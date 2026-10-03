@@ -1,3 +1,4 @@
+// Stores and merges playback positions sent from each device.
 import { mergePosition, type PositionObs } from '@socialmorning/social-core';
 import type { Db } from '../../db.ts';
 

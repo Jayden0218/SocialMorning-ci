@@ -1,3 +1,4 @@
+// Checks the app's dependencies: no copied reference libraries, expo-audio still used.
 /**
  * M7 took the reference's *look*. It must never take its *runtime*.
  *

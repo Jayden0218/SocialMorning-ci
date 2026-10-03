@@ -1,3 +1,4 @@
+// Shared Admin helpers: error text, an episode search box, and reorder buttons.
 import { useState } from 'react';
 import { api, HttpError } from '../../api';
 

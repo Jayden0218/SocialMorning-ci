@@ -1,3 +1,4 @@
+// Checks one creator's whole Studio path in a real browser, sign-in to sign-out.
 /**
  * The Studio, end to end, in a real browser (Chromium) against the real API and a real
  * PostgreSQL (ci/workflows/e2e.yml). Stand-ins, and only these: the audio store answers the

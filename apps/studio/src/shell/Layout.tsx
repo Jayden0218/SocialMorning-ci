@@ -1,3 +1,4 @@
+// The page frame for a show: side menu, top bar and content area.
 import { useState, type ReactNode } from 'react';
 import type { Show } from '../api';
 import { IconMenu } from './Icons';

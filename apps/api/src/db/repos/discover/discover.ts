@@ -1,3 +1,4 @@
+// Builds the Discover page: daily picks, talked-about episodes and the chart, cached hourly.
 /**
  * The Discover payload (M5 US1, research R3/R4): today's picks resolved through their
  * feeds, "listened and talked about" from the app's own aggregates, the all-genres

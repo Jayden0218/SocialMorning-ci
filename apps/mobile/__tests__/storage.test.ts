@@ -1,3 +1,4 @@
+// Tests the basic storage rules for positions and subscriptions in memory.
 /**
  * The storage rules the requirements name, pinned against `memory.ts`.
  *

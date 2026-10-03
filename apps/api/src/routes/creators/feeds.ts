@@ -1,3 +1,4 @@
+// Serves the public RSS feed of a show created in the Studio.
 /**
  * M13 — the public RSS feed of a show created in the Studio (FR-003). Any podcast app, and the
  * SocialMorning app's own show page, reads it like any other feed.

@@ -1,3 +1,4 @@
+// Tests the show page's sort and filter, episode row details and announcement card.
 /**
  * Owner, 2026-10-01 — the show page's list controls, row meta and announcement card.
  * Breaks to watch red: drop the `view === 'mostPlayed'` sort in src/ui/show/order.ts; drop

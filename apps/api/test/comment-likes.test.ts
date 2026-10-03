@@ -1,3 +1,4 @@
+// Tests comment likes: not your own, repeat-safe, hidden comments not likeable.
 /**
  * M12 FR-023 — comment likes. Guard G-C2: your own comment cannot be liked (403 own_comment).
  * The break: drop the author check in `likeable` (src/db/repos/social/comment-likes.ts) — the

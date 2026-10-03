@@ -1,3 +1,4 @@
+// Tests that feedback images are shrunk under 200 KB or dropped.
 /**
  * M10b US6 — an image is shrunk until it fits 200 KB, trying falling qualities; one that
  * never fits is dropped rather than sent to be refused. The break that turns this red:

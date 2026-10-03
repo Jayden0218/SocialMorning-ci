@@ -1,3 +1,4 @@
+// Tests that owner Discover settings apply at once, and failures fall back safely.
 /**
  * M15 guard G-D1, server half (FR-026–FR-029, SC-007): Discover control is applied at serve time.
  * (The phone half — `buildModel` follows `layout` — is apps/mobile/__tests__/discover-layout.test.ts.)

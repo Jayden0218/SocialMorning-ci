@@ -1,3 +1,4 @@
+// Tests that start-up never waits forever on fonts, falling back to system fonts.
 /**
  * M17 guard G-E4 (FR-003): the Editorial fonts never hold start-up hostage. `loadFonts` settles
  * whether the load works, fails or hangs; when it does not work, the system fonts stay in use.

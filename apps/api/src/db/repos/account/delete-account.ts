@@ -1,3 +1,4 @@
+// Deletes an account and its data in one step, keeping reply threads intact.
 import type { Db } from '../../db.ts';
 import { rebuildEpisodeHeat } from '../../../heat/rebuild.ts';
 

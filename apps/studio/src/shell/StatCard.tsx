@@ -1,3 +1,4 @@
+// A card showing one number with its label, note and small line.
 import { Loading } from './States';
 import { Sparkline } from './Sparkline';
 

@@ -1,3 +1,4 @@
+// Tests subscriber stats and that muted listeners cannot comment on that show.
 /**
  * M11 US4 — subscribers and mutes (FR-017..FR-019, FR-031).
  *

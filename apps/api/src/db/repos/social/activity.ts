@@ -1,3 +1,4 @@
+// The Following feed: activity by people you follow, newest first, in pages.
 /**
  * The Following feed (M4 FR-008, research R4): activity rows by the people a listener
  * follows, `hidden = false` (guard G5: a private actor's listens never show — the flag was

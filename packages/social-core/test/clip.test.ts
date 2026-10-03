@@ -1,3 +1,4 @@
+// Tests suggesting a clip, checking its length limits, and moving its edges.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { nudge, proposeClip, validateClipRange } from '../src/clip.ts';

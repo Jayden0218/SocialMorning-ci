@@ -1,3 +1,4 @@
+// Route listing episodes that people I follow listened to this week.
 import { Hono } from 'hono';
 import type { AuthEnv } from '../../auth/session.ts';
 import { requireAuth } from '../../auth/session.ts';

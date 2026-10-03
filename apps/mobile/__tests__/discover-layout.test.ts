@@ -1,3 +1,4 @@
+// Tests that Discover follows the admin's section order and hides hidden sections.
 /**
  * Guard G-D1, phone half (specs/015-m15-admin/data-model.md, FR-026, FR-029): a section the
  * owner hides is not drawn; the owner's order is followed; no `layout` (an older server, or

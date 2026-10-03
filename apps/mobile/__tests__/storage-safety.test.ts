@@ -1,3 +1,4 @@
+// Tests the hidden-content and block stores and their database upgrade.
 /**
  * M6 storage (migration 005): a v4 database (M5 phone) upgrades to v5 with its rows
  * intact; the hidden and block stores behave the same in SQLite (node:sqlite) and memory.

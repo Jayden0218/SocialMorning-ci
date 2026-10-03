@@ -1,3 +1,4 @@
+// Tests the clip maker: pick start and end, nudge, check limits, add caption.
 /** T013: the composer state machine — propose → adjust while listening → validate → caption. */
 import { canSave, endHere, nudgeEdge, openComposer, setCaption, startHere } from '@/graph/composer';
 

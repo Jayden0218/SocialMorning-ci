@@ -1,3 +1,4 @@
+// Checks that each screen edge gets safe-area padding only once.
 /**
  * M12 guard G-T1 (NEW-5): each safe-area edge is padded once. react-native-safe-area-context's
  * SafeAreaView adds the full inset even inside another one, so the root (bottom only) and the

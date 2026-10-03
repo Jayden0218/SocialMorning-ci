@@ -1,3 +1,4 @@
+// Entry point that runs the API as a Vercel serverless function.
 /**
  * Vercel entry (bundled by `npm run build` into api/index.js — research R1, T017: the
  * builder kept `.ts` import paths, so we bundle ourselves). Same Hono app as src/server.ts.

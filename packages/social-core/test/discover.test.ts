@@ -1,3 +1,4 @@
+// Tests the "talked about" score and ranking, and filling with trending items.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fillWithTrending, rankTalkedAbout, scoreTalkedAbout } from '../src/discover.ts';

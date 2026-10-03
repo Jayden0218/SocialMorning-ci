@@ -1,3 +1,4 @@
+// Keeps the listener's two-letter country from the sign-in request, nothing more.
 /**
  * M10b US7 — "IP location" (owner, 2026-09-27: public, like the reference). The hosting platform
  * adds `x-vercel-ip-country` (ISO 3166-1 alpha-2) to every request (vercel.com/docs/headers/

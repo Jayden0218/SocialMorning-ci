@@ -1,3 +1,4 @@
+// Admin page showing every admin change, newest first, read only.
 import { useState } from 'react';
 import { api } from '../../api';
 import { PageHead } from '../../shell/Page';

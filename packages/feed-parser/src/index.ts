@@ -1,3 +1,4 @@
+// Entry point that exports the feed parser and its types.
 export { parseFeed } from './parse-feed';
 export type { Hash, ParseOptions } from './parse-feed';
 export { parseDateMs, parseDurationMs } from './duration';

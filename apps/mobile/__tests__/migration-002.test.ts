@@ -1,3 +1,4 @@
+// Tests that old phone databases upgrade to newer versions with data intact.
 /**
  * The phone's schema, exercised on a REAL SQLite (node:sqlite, built into Node)
  * rather than expo-sqlite, which needs a device. Same SQL, same migration

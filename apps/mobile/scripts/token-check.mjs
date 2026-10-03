@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Checks that no colour is written outside the design tokens file.
 /**
  * M7 FR-002 / guard G1: a colour is written down once, in `src/design/tokens.ts`.
  *

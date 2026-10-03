@@ -1,3 +1,4 @@
+// Email sign-in codes: six digits, ten minutes, five tries, stored only hashed.
 /**
  * Email sign-in codes (owner, 2026-09-27). Six digits, 10 minutes, 5 tries, and a new
  * code at most every 30 s per email. Only `sha256(email | code | pepper)` is stored.

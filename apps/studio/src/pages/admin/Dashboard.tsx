@@ -1,3 +1,4 @@
+// Admin dashboard with app-wide numbers and charts over a chosen date range.
 import { useState, type ReactNode } from 'react';
 import { api } from '../../api';
 import { TrendChart, type Point } from '../../charts/TrendChart';

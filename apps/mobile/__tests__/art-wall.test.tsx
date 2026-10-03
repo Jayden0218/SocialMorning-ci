@@ -1,3 +1,4 @@
+// Tests that the sign-in cover wall waits for all covers and scrolls them.
 /**
  * The sign-in landing page appears whole (owner, 2026-09-27): `onReady` waits for every
  * cover, fires once, and never waits past ART_WAIT_MS. Break that turns the first test

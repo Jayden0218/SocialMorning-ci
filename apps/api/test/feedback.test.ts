@@ -1,3 +1,4 @@
+// Tests feedback with images: only the owner sees it, limits, 90-day cleanup.
 /**
  * M10b US6 — feedback with images reaches the owner, and only the owner. An image is at most
  * 250 000 bytes and must really be a JPEG or PNG (its first bytes, not its claimed type).

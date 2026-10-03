@@ -1,3 +1,4 @@
+// Block and unblock listeners; a block also removes follows both ways.
 /** M6 blocks (FR-006–FR-010): one-way visibility, two-way interaction; a block removes follows both ways. */
 import type { Db } from '../../db.ts';
 

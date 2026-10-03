@@ -1,3 +1,4 @@
+// Tests the inbox shows only new episodes, not old ones or played ones.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { inboxOf } from '../src/inbox.ts';

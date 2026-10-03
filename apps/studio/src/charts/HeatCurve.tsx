@@ -1,3 +1,4 @@
+// Draws an episode's reaction curve and per-minute bars.
 import { Area, AreaChart, Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { mmss } from '../format';
 import { palette } from '../tokens';

@@ -1,3 +1,4 @@
+// Tests that the next queued episode plays only when the current one ends.
 /**
  * quickstart A10: the runtime consumes the queue on `ended` — and only then.
  * Fake adapter (as store.test.ts); memory stores; no device.

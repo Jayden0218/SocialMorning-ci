@@ -1,3 +1,4 @@
+// Tests that each admin write leaves one unchangeable record; old sessions are refused.
 /**
  * M15 guards G-A2…G-A5 (FR-004, SC-003, edge case "stolen session").
  *

@@ -1,3 +1,4 @@
+// Tests that lock-screen controls are set before audio plays, in the right order.
 /**
  * Ordering, which on Android is not a detail.
  *

@@ -1,3 +1,4 @@
+// Tests claiming an existing feed: enter address, get code, verify, show opens.
 import { afterEach, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, screen } from '@testing-library/react';
 import { NoShow } from '../src/pages/NoShow';

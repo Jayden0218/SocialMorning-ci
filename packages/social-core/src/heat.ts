@@ -1,3 +1,4 @@
+// Splits an episode into 100 parts and scales reaction counts into a curve.
 export const HEAT_BUCKETS = 100;
 
 /**

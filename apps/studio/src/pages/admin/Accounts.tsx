@@ -1,3 +1,4 @@
+// Admin page to create accounts, act as them, and name show curators.
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { api } from '../../api';

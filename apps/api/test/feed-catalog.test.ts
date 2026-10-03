@@ -1,3 +1,4 @@
+// Tests server feed fetching: parsing, caching, bad items, and stale fallback.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { freshDb } from './harness.ts';

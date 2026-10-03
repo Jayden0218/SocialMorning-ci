@@ -1,3 +1,4 @@
+// Tests that streaming on mobile data is blocked when the user turned it off.
 /**
  * M10b US4 (FR-014) — guard G-M1: with "Allow mobile data for playback" off and the phone on
  * mobile data, a not-downloaded episode does not stream; a downloaded file still plays.

@@ -1,3 +1,4 @@
+// Tests comment markers on the timeline: one per second, spoken time and author.
 import { markerLabel, railMarkers } from '@/ui/player/Rail';
 import type { Comment } from '@/social/api';
 

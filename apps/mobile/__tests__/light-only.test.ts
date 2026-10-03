@@ -1,3 +1,4 @@
+// Checks that no dark-mode code or colours are left in the app.
 /**
  * M17 guard G-E2 (FR-010, constitution v3.0.0 "light only"): no dark-mode path is left — no
  * dark palette, no `dark:` class, nothing that reads or sets the phone's colour scheme, no

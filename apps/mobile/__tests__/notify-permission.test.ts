@@ -1,3 +1,4 @@
+// Tests how notification permission is asked on iOS and Android, without crashing.
 /**
  * Notification permission, asked on the sign-in page (owner, 2026-09-27). The break that
  * turns the first test red: delete the `!== 'undetermined'` early return in

@@ -1,3 +1,4 @@
+// Tests the position rule: order does not matter, seeks win, progress never goes back.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mergePosition } from '../src/merge.ts';

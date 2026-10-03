@@ -1,3 +1,4 @@
+// Counts listens, comments, clips and reactions per episode, never naming listeners.
 /**
  * "Listened and talked about" inputs (M5 research R4): per episode over a window,
  * AGGREGATES ONLY — listeners are counted, never listed (guard G6). `hidden = false`

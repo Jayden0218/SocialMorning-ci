@@ -1,3 +1,4 @@
+// Tests that comments poll every 10 s only when focused, foreground and online.
 import { createPoller, POLL_INTERVAL_MS } from '@/social/poll';
 
 jest.useFakeTimers();

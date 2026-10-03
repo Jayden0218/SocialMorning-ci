@@ -2,12 +2,14 @@
 
 Hono on Vercel (`https://socialmorning-api.vercel.app`), Postgres on Neon. Deploy from the repo root (see `CLAUDE.md`).
 
+Every code file is listed with one plain line in [`src/README.md`](src/README.md).
+
 | Path | What is in it |
 |---|---|
 | `src/app.ts` | Builds the app: every route mounted in one place |
 | `src/server.ts`, `src/vercel-entry.ts` | Start it locally / on Vercel |
-| `src/routes/` | One file per API area (comments, clips, follows, discover, library…) |
-| `src/db/repos/` | One file per table group: the SQL lives here, nowhere else |
+| `src/routes/<area>/` | The web requests, by area: account, social, safety, library, discover, creators, studio, admin |
+| `src/db/repos/<area>/` | The SQL, by the same areas; nothing else writes SQL |
 | `src/db/migrations/`, `src/db/migrate.ts` | Database changes, numbered, run in order |
 | `src/auth/` | Passwords, sessions, sign-in codes, admin and Studio sessions |
 | `src/catalog/` | Apple podcast search, feeds, genres, curated collections |

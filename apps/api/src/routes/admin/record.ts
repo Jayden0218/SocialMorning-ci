@@ -1,3 +1,4 @@
+// Admin route to read the admin action record, filtered by area.
 /**
  * Admin API (`/v1/admin/*`, owner only) — US1: the record
  */

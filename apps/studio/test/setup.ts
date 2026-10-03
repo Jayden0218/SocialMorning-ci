@@ -1,3 +1,4 @@
+// Test setup that adds browser features the fake test browser lacks.
 // jsdom has no layout: recharts' ResponsiveContainer needs ResizeObserver, tokens need matchMedia.
 class RO { observe() {} unobserve() {} disconnect() {} }
 (globalThis as unknown as { ResizeObserver: typeof RO }).ResizeObserver ??= RO;

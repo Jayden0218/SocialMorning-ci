@@ -1,3 +1,4 @@
+// The Studio's own simple line icons.
 /** Our own line icons (24 px grid, 1.8 stroke, currentColor) — nothing copied (FR-028). */
 import type { ReactNode } from 'react';
 

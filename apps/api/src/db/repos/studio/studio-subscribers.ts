@@ -1,3 +1,4 @@
+// A show's subscribers: totals, trend, listening hours, names, and muted listeners.
 /**
  * M11 US4 — who subscribes, how that changes, and who may not comment (FR-017..FR-019).
  *

@@ -1,3 +1,4 @@
+// Tests that a shared show says "Shared by", never calls the sharer its host.
 /**
  * Guard G-C1 (specs/015-m15-admin/data-model.md, SC-006, constitution v2.4.0): a curated
  * external show reads "Shared by <name>" (linking to the profile), and no phone screen

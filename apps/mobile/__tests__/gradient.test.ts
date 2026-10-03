@@ -1,3 +1,4 @@
+// Tests that the player background refuses any tint that makes text hard to read.
 /**
  * The player's wash (research R3/R4). No native colour extractor is wired — RN cannot
  * read an image's pixels without one, and adding the reference's was refused as a cost

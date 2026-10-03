@@ -1,3 +1,4 @@
+// Checks that every bottom sheet leaves room for the iPhone home bar.
 /**
  * M16a guard G-S1 (FR-009, gluestack audit P0): every bottom sheet clears the home indicator.
  * gluestack's ActionsheetContent pads its bottom with `pb-safe`, but UniWind's free engine only

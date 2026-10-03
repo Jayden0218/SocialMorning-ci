@@ -1,3 +1,4 @@
+// Tests the Me pages' logic: favourites, moments, stickers, history and Updates.
 /**
  * M10's Me pages, the logic under them: favourites, saved moments, stickers, listening
  * history and the Updates list. The breaks that turn these red: in `src/me/updates.ts`

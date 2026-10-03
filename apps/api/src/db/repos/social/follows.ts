@@ -1,3 +1,4 @@
+// Follow and unfollow listeners, and list followers and following.
 /** Follows (M4 FR-007): one-way, idempotent both ways, never self (the CHECK is guard G4). */
 import type { Db } from '../../db.ts';
 

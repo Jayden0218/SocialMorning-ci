@@ -1,3 +1,4 @@
+// Tests that deleting an account removes all its data except needed placeholders.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';

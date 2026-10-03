@@ -1,3 +1,4 @@
+// Block routes: list, block and unblock listeners.
 /** M6 blocks (contracts/api.md): GET/POST /v1/me/blocks · DELETE /v1/me/blocks/:id. Self and the owner are refused. */
 import { Hono } from 'hono';
 import { z } from 'zod';

@@ -1,3 +1,4 @@
+// Tests the Terms consent sheet: open documents, Agree, Disagree and Exit.
 /**
  * The consent sheet (owner, 2026-09-27): a link opens its full document in place and Back
  * returns to the sheet; Disagree opens a second page whose Exit leaves without accepting;

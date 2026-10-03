@@ -1,3 +1,4 @@
+// Tests that sheets and dialogs open above pages shown over the Search modal.
 /**
  * M16a guard G-B1 (FR-001): a sheet opens above a page that sits over the Search modal.
  *

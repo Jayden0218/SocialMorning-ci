@@ -1,3 +1,4 @@
+// Test helpers for admin tests: an owner, a second account, a fake catalogue.
 /**
  * M15 — helpers for the Admin tests: an owner (the first admin, seeded from OWNER_LISTENER_ID)
  * and a second, ordinary Studio account; a catalogue fetch that answers Apple with the fake and

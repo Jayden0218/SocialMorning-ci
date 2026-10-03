@@ -1,3 +1,4 @@
+// Checks that every admin route refuses signed-out and non-admin users.
 /**
  * M15 guard G-A1 (SC-002): every `/v1/admin/*` route refuses a non-admin — the test ENUMERATES
  * the routes the app registered, so a route added later is covered without editing this file.

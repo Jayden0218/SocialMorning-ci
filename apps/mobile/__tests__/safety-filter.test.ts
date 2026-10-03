@@ -1,3 +1,4 @@
+// Tests that blocked authors are removed from cached comments, clips and feeds.
 /** The phone-side filter is the server's rule over cached payloads (research R1). */
 import { hiddenKey } from '@socialmorning/social-core';
 import { filterClips, filterComments, filterFeed, filterListeners } from '@/safety/filter';

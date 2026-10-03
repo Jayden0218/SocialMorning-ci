@@ -1,3 +1,4 @@
+// Admin page with a calendar to choose and order each day's episode picks.
 import { useEffect, useState, type DragEvent } from 'react';
 import { api } from '../../api';
 import { PageHead } from '../../shell/Page';

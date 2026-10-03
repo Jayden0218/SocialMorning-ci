@@ -1,3 +1,4 @@
+// Tests the home page totals, empty show, a failed chart and measure switch.
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, screen, fireEvent } from '@testing-library/react';
 import { Home } from '../src/pages/Home';

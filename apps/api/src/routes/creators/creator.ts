@@ -1,3 +1,4 @@
+// Creator claim routes in the app: list, start and verify claims, see stats.
 import { Hono } from 'hono';
 import { z } from 'zod';
 import type { AuthEnv } from '../../auth/session.ts';

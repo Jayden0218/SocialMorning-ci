@@ -1,3 +1,4 @@
+// Stores feedback with up to three small images; images deleted after 90 days.
 /**
  * M10b US6 — feedback, with up to 3 small images, delivered to the owner (FR-019/020).
  * Images live in the existing database (no storage service — Principle V): each ≤ 250 000

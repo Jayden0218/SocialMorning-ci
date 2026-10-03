@@ -1,3 +1,4 @@
+// Sorts comments by newest, most liked, or their time in the episode.
 import type { CommentOrder } from './types';
 
 /**

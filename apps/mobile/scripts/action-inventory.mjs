@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Produces a list of every button and link, with name and destination.
 /**
  * M17 (FR-007, guard G-E3): the action inventory — every interactive element in app/ and src/
  * with its role, its accessible name and where it goes, so a rebuilt screen can be checked

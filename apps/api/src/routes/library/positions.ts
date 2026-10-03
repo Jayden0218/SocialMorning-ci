@@ -1,3 +1,4 @@
+// Playback position routes: send positions from a device and read them back.
 import { Hono } from 'hono';
 import { z } from 'zod';
 import type { AuthEnv } from '../../auth/session.ts';

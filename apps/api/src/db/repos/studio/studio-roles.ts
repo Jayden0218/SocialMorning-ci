@@ -1,3 +1,4 @@
+// Decides who may manage which show in the Studio: owner or helper.
 /**
  * M11 — who may use the Studio for which show (specs/011-m11-studio/data-model.md).
  * The owner is the PROVEN claim (M10b); operators are `show_members`, and only count while

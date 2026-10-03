@@ -1,3 +1,4 @@
+// Admin page to manage promotion images shown on the app's launch screen.
 import { useState } from 'react';
 import { api } from '../../api';
 import { num, shortDate } from '../../format';

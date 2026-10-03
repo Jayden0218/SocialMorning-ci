@@ -1,3 +1,4 @@
+// Tests that the Notifications page cards work as tabs and announce selection.
 /**
  * M12 guard G-B2 (B2, found on the iPhone 2026-09-29): Notifications' System and People
  * cards were plain boxes — tapping them did nothing. Each is now a tab that selects what the

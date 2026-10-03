@@ -1,3 +1,4 @@
+// Tests the episode social poll: caching, comment order and placeholders.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';

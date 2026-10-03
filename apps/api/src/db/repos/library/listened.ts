@@ -1,3 +1,4 @@
+// Stores listened time ranges per device and counts their union across devices.
 /**
  * Listened ranges (M4 FR-012, research R3/R4). A phone REPLACES its own merged set per
  * (listener, episode, day, device); time listened is the UNION across devices (guard G3

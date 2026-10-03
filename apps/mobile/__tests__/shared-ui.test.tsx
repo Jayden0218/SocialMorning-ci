@@ -1,3 +1,4 @@
+// Tests that shared UI parts render with names, roles and no fixed heights.
 /**
  * quickstart A8 + guard G5: the shared components render, carry names, roles and states,
  * and have no fixed height on anything that holds text (so the largest font still fits).

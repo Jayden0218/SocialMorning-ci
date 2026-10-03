@@ -1,3 +1,4 @@
+// Checks that unreleased features show a "Coming soon" pop-up with no date or price.
 /**
  * M17 guard G-E7 (FR-013, FR-014, FR-015): a feature that is not released yet says so with the
  * Coming soon pop-up — never the old "… is not set up yet." toast. Sign-in's not-ready methods

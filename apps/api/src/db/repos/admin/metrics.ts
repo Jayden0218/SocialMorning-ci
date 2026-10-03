@@ -1,7 +1,8 @@
+// Admin dashboard numbers: totals only, each section fails on its own.
 /**
  * M18 (specs/019-m18-admin-dashboard, contracts/metrics-api.md). Aggregates only — nothing here
- * returns a listener's id, email or name (FR-013, guard G-D2). Each section runs in its own `try`:
- * one failing query marks that section `{ ok: false }` and the rest still answer (FR-017, G-D4).
+ * returns a listener's id, email or name (FR-013, guard G-AD2). Each section runs in its own `try`:
+ * one failing query marks that section `{ ok: false }` and the rest still answer (FR-017, G-AD4).
  *
  * Days are calendar days in UTC+8 (research R3), computed in SQL from UTC so the database's own
  * time zone never matters; listening keeps the phone's stored day (FR-019).

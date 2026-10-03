@@ -1,3 +1,4 @@
+// Routes for past daily picks and curated issues.
 import { Hono } from 'hono';
 import { pastPickDays } from '@socialmorning/social-core';
 import type { AuthEnv } from '../../auth/session.ts';

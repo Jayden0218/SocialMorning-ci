@@ -1,3 +1,4 @@
+// The Studio's only colour file: light and dark palettes applied to the page.
 /**
  * The Studio's only colour file (FR-028). Until M17 every colour came from the app's tokens
  * through the `@tokens` alias; since M17 (2026-10-03) the Studio holds its own copy of those

@@ -1,3 +1,4 @@
+// Tests follower lists: correct empty sentence, error with Retry, and rows.
 /**
  * M16a guard G-B2 (FR-003, FR-004). Phone walk 2026-10-02: own profile "300 followers", list
  * "Nobody follows you yet"; and another user's empty list said "you" too.

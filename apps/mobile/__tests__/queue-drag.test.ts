@@ -1,3 +1,4 @@
+// Tests that dragging a queue row moves it by whole rows inside the queue.
 /** M12 FR-044: a drag moves a row by whole rows and never out of the queue. */
 jest.mock('@/ui/shell/providers', () => ({ useStores: () => ({}) }));
 import { QUEUE_ROW, dragTarget } from '@/ui/queue/QueueList';

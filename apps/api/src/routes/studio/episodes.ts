@@ -1,3 +1,4 @@
+// Studio routes for a created show: edit details, upload and publish episodes.
 /**
  * Studio API (`/v1/studio/*`) — M13: a created show's details
  */

@@ -1,3 +1,4 @@
+// Tests that a two-letter country code becomes a country name.
 /** M10b US7 — the profile's "IP location" names the country; an unknown code is shown as it is. */
 import { countryName } from '@/ui/me/country';
 

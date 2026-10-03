@@ -1,3 +1,4 @@
+// Tests that a video episode's picture stays in step with its audio.
 /**
  * M10b US5 — the muted picture follows the sound: a drift beyond 1.5 s is corrected by a
  * seek, and play/pause follow the audio. The break that turns this red: return `{}` from

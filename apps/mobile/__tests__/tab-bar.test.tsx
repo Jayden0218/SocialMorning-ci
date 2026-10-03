@@ -1,3 +1,4 @@
+// Tests that the bottom tab bar has real tabs, spoken badges and big targets.
 /**
  * The bottom tab bar (M7 T012). Written by hand, so it is tested by hand.
  *

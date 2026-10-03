@@ -1,13 +1,14 @@
+// Tests that dashboard numbers match seeded data and never name a listener.
 /**
  * M18 — the admin dashboard's numbers (specs/019-m18-admin-dashboard, data-model.md guards).
  *
- * G-D1 every number equals the seeded fixture. Break: in `listening`, sum each device's ranges instead of
+ * G-AD1 every number equals the seeded fixture. Break: in `listening`, sum each device's ranges instead of
  *                                              their union (two phones overlapping count twice).
- * G-D2 nothing names a listener.               Break: add `ids: [...]` to the users section.
- * G-D3 N visits in a day count once; a Studio session counts 0.
+ * G-AD2 nothing names a listener.               Break: add `ids: [...]` to the users section.
+ * G-AD3 N visits in a day count once; a Studio session counts 0.
  *                                              Break: remove the `studio-web` filter in listenerForToken.
- * G-D4 one failing section leaves the others.  Break: rethrow in `section()`.
- * G-D5 a non-admin is refused.                 Break: register `/metrics` above `admin.use('*', adminOnly)`.
+ * G-AD4 one failing section leaves the others.  Break: rethrow in `section()`.
+ * G-AD5 a non-admin is refused.                 Break: register `/metrics` above `admin.use('*', adminOnly)`.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -80,7 +81,7 @@ async function seed(t: TestDb) {
   return { u1, u2 };
 }
 
-test('G-D1: every number on the dashboard equals the seeded fixture', async () => {
+test('G-AD1: every number on the dashboard equals the seeded fixture', async () => {
   const { t, owner } = await adminSetup();
   await seed(t);
   const m = await metrics(t, owner);
@@ -125,7 +126,7 @@ test('G-D1: every number on the dashboard equals the seeded fixture', async () =
   await t.close();
 });
 
-test('G-D2: the response names no listener — no id, email or display name', async () => {
+test('G-AD2: the response names no listener — no id, email or display name', async () => {
   const { t, owner, other } = await adminSetup();
   const { u1, u2 } = await seed(t);
   const body = JSON.stringify(await metrics(t, owner, 30));
@@ -135,7 +136,7 @@ test('G-D2: the response names no listener — no id, email or display name', as
   await t.close();
 });
 
-test('G-D3: a person counts once per day however often they come; a Studio session never counts', async () => {
+test('G-AD3: a person counts once per day however often they come; a Studio session never counts', async () => {
   const { t, owner } = await adminSetup();
   const u = await signUp(t, 'x@example.com', 'Xia');
   for (let i = 0; i < 5; i++) await t.call('GET', '/v1/me', undefined, u.token);
@@ -161,7 +162,7 @@ test('FR-015: a day of app use is deleted after 400 days by the hourly rebuild',
   await t.close();
 });
 
-test('G-D4: one section failing leaves the other seven; a partial result is not kept', async () => {
+test('G-AD4: one section failing leaves the other seven; a partial result is not kept', async () => {
   const { t, owner } = await adminSetup();
   await t.q('DROP TABLE tips');
   const m = await metrics(t, owner);
@@ -183,7 +184,7 @@ test('the numbers are kept 5 minutes: a second open shows the same count and the
   await t.close();
 });
 
-test('G-D5: an ordinary account, and no session at all, are refused; a bad range is refused (422, like every validation error)', async () => {
+test('G-AD5: an ordinary account, and no session at all, are refused; a bad range is refused (422, like every validation error)', async () => {
   const { t, owner, other } = await adminSetup();
   assert.equal((await aCall(t, 'GET', '/v1/admin/metrics', other)).status, 403);
   assert.ok([401, 403].includes((await aCall(t, 'GET', '/v1/admin/metrics')).status));

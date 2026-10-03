@@ -1,3 +1,4 @@
+// Tests For You is signed-in only, survives failing sources, and serves new accounts.
 /**
  * M8 US2 — /v1/for-you (quickstart A10, A13, A14, A17, A18).
  *

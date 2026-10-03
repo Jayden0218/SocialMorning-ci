@@ -1,3 +1,4 @@
+// Builds the "Next up" list from four sources, without repeats or finished episodes.
 /**
  * M5 FR-008/FR-009 (research R5): "Next up" — four sources, one list. Sources are taken
  * in order of strength; the same episode appearing twice keeps its FIRST (strongest)

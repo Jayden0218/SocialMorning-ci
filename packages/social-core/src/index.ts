@@ -1,3 +1,4 @@
+// Entry point exporting the shared rules the phone and server both use.
 /**
  * @socialmorning/social-core — the rules the phone and the server must agree on.
  *

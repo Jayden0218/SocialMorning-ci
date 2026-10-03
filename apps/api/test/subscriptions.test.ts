@@ -1,3 +1,4 @@
+// Tests subscription sync: unsubscribes win ties and stay private.
 /**
  * M8 US1 — subscriptions as an account-level fact. Quickstart A9.
  *

@@ -1,3 +1,4 @@
+// Reads the admin action record, newest first, 50 per page, by area.
 /**
  * M15 T008 — reading the admin record (FR-005): newest first, 50 a page, by area. Rows are only
  * ever inserted (`auth/admin.ts` `insertAudit`); the table refuses UPDATE and DELETE (G-A3).

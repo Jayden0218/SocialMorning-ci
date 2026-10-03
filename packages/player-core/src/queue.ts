@@ -1,3 +1,4 @@
+// Play queue rules: add, move, remove, the 300 limit, and what plays next.
 import type { DownloadView, Queue } from './types';
 
 export const QUEUE_MAX = 300;

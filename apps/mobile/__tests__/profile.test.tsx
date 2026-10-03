@@ -1,3 +1,4 @@
+// Tests the profile listening stats block, including private stats and time format.
 /** T028: the stats block — private → the one line; own → "Your listening is private."; numbers formatted as episode time. */
 import { createElement } from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';

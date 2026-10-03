@@ -1,3 +1,4 @@
+// Page where a creator makes polls for listeners and sees the results.
 import { useState } from 'react';
 import { api, HttpError, type Show } from '../api';
 import { num, shortDate } from '../format';

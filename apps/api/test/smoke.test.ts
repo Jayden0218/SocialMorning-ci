@@ -1,3 +1,4 @@
+// Tests the health check and the 404 error shape.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { freshDb } from './harness.ts';

@@ -1,3 +1,4 @@
+// Tests splitting a name so the searched words can be drawn highlighted.
 /**
  * Owner, 2026-10-01: the matching part of a search name is drawn in the accent colour.
  * The break that turns this red: in `src/search/match.ts` drop the `i` from the RegExp

@@ -1,3 +1,4 @@
+// Voice status posts up to 60 seconds, fully deleted after 48 hours.
 /**
  * M12 FR-104 — voice status posts (constitution 2.2.0: ≤ 60 s, deleted by the server at 48 h).
  * Guard G-V1: expiry DELETES — the blob first, then the row. Reads also never return an

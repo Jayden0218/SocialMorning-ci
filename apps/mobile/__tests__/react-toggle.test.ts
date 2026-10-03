@@ -1,3 +1,4 @@
+// Tests that a reaction toggles at once and rolls back if it fails.
 import { createReactToggle } from '@/social/react';
 import { createSocialCache } from '@/social/cache';
 import { createMemorySocialCacheStore } from '@/storage/memory';

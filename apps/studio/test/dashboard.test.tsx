@@ -1,3 +1,4 @@
+// Tests the admin dashboard numbers, a failed section with retry, and range switch.
 /**
  * M18 — the admin Dashboard draws what the server counted: the headline row, eight sections, and
  * a failed section as "could not load" + Retry while the other seven still show (FR-017).

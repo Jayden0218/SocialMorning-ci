@@ -1,3 +1,4 @@
+// Studio subscriber routes: stats, subscriber list, and muting listeners.
 /**
  * Studio API (`/v1/studio/*`) — US4: Subscribers and mutes
  */

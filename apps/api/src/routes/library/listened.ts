@@ -1,3 +1,4 @@
+// Listened-time route: a device replaces its listened ranges per episode and day.
 import { Hono } from 'hono';
 import { z } from 'zod';
 import type { AuthEnv } from '../../auth/session.ts';

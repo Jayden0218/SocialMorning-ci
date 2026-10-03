@@ -1,3 +1,4 @@
+// Admin routes for accounts: list, create, edit, and act as an account.
 /**
  * Admin API (`/v1/admin/*`, owner only) — US4: accounts
  */

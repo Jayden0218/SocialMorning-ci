@@ -1,3 +1,4 @@
+// Comments: create, list as threads, delete, and shape them for each viewer.
 import { hostsOfEpisode } from '../studio/creator.ts';
 import { applyBlocks, hiddenKey } from '@socialmorning/social-core';
 import type { Db } from '../../db.ts';

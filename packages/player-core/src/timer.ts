@@ -1,3 +1,4 @@
+// Sleep timer rules: set it, time left, when it fires, end of episode.
 import type { SleepChoice, SleepTimer } from './types';
 
 /** FR-015: the fixed choices; `endOfEpisode` is a flag, not a clock. */

@@ -1,3 +1,4 @@
+// Studio router: no-cache, cross-site check, session and show-role walls for every route.
 /**
  * M11 — the Studio's API, `/v1/studio/*` (specs/011-m11-studio/contracts/studio-api.md).
  *

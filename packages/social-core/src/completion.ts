@@ -1,3 +1,4 @@
+// Decides if a listener finished an episode: 90 percent heard across all sessions.
 /**
  * M11 — did a listener finish an episode? (specs/011-m11-studio/research.md R3.)
  *

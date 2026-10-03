@@ -1,3 +1,4 @@
+// Admin page for the reports queue: dismiss, remove, hide or suspend.
 import { useState } from 'react';
 import { api } from '../../api';
 import { ConfirmDialog } from '../../shell/ConfirmDialog';

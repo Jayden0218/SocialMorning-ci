@@ -1,3 +1,4 @@
+// Tests show and episode search, partial failures, and the rate limit.
 /** quickstart A7: shows + episodes; the episode call failing alone; both failing; Apple's 429; punctuation-only; throttle. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

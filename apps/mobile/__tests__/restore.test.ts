@@ -1,3 +1,4 @@
+// Tests that episodes restore at their saved place after the app is killed.
 /**
  * Story 3, end to end through the real runtime and the real stores: play,
  * die, come back.

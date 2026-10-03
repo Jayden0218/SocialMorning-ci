@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Copies the legal documents into a code file the app can show.
 /**
  * Copies the three legal texts from `docs/legal/*.md` into `src/legal/texts.ts`, so the
  * app shows exactly what the documents say. `docs/` is not in the CI mirror and Metro

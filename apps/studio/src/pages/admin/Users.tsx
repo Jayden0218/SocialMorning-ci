@@ -1,3 +1,4 @@
+// Admin page to find an account, rename it, and suspend or restore it.
 import { useState } from 'react';
 import { api } from '../../api';
 import { shortDate } from '../../format';

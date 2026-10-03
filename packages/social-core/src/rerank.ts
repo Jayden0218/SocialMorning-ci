@@ -1,3 +1,4 @@
+// Reorders recommendations for variety, with limits per show and per category.
 /**
  * M8 — diversity (research R7).
  *

@@ -1,3 +1,4 @@
+// Tests word matching, library first, and removing duplicate shows and episodes.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { collapseByFeed, collapseEpisodes, matchesTerm, mergeSearch, normaliseFeedUrl } from '../src/search.ts';

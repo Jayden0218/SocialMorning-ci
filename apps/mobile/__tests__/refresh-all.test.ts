@@ -1,3 +1,4 @@
+// Tests that refreshing all shows continues when one feed fails or hangs.
 /**
  * Refreshing the whole library.
  *

@@ -1,3 +1,4 @@
+// Tests the Announcements, Polls, Settings and Tips pages.
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, screen } from '@testing-library/react';
 import axe from 'axe-core';

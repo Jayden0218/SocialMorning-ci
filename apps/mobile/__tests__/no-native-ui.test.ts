@@ -1,3 +1,4 @@
+// Checks that no screen uses the native iOS header or native alert.
 /**
  * M16a guard G-N1 (FR-012, FR-013, FR-016; owner 2026-10-02, said twice): no iOS-native chrome.
  *  - the root stack hides the native header for every screen, and no screen turns it back on;

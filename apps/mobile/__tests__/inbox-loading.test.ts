@@ -1,3 +1,4 @@
+// Tests that Inbox shows loading first, not "Nothing new", and errors with Retry.
 /**
  * M16a guard G-B4 (FR-006). Phone walk 2026-10-02: Inbox flashed "0 new … Nothing new" for a
  * moment before its 68 rows. The page started from an empty list and filled it after the first

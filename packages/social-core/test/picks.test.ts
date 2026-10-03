@@ -1,3 +1,4 @@
+// Tests bad picks are dropped with warnings, and the right day's picks are returned.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { pastPickDays, picksForDay, validateIssues, validatePicks } from '../src/picks.ts';

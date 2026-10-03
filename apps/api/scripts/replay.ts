@@ -1,3 +1,4 @@
+// Offline check: hides real listens and sees how high the ranker puts them.
 /**
  * M8 Tier C (L8) — the offline replay (research R9).
  *

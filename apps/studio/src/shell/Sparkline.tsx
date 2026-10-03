@@ -1,3 +1,4 @@
+// Draws a tiny 14-day line under a number.
 /** M14 US6: a 14-day sparkline under a stat (accent line; decorative — the number beside it is the value). */
 export function Sparkline({ points }: { points: number[] }) {
   if (points.length < 2) return null;

@@ -1,3 +1,4 @@
+// Show polls: create, vote once per listener, close, and count votes.
 /**
  * M11 US5 — polls on a show (FR-022, FR-023). One vote per listener is the table's primary key
  * (guard G-P1); a second vote changes nothing, and a closed or expired poll takes none.

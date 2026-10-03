@@ -1,3 +1,4 @@
+// Measures how similar two shows are from the people who like both.
 /**
  * M8 — Swing show-to-show similarity (research R3).
  *

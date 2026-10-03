@@ -1,3 +1,4 @@
+// Captures the episode time a comment belongs to when the comment box opens.
 import type { Moment, PlaybackSnapshot } from './types';
 
 /**

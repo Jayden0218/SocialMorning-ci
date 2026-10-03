@@ -1,3 +1,4 @@
+// The Studio's route table: which page opens at each web address.
 import type { ReactElement } from 'react';
 import { Navigate, Route, Routes, useLocation, useParams } from 'react-router';
 import { useSession } from './session';

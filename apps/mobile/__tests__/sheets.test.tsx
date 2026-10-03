@@ -1,3 +1,4 @@
+// Tests that the comment sheet offers Report and all its buttons are big enough.
 /**
  * M9 T039: the sheets rebuilt on gluestack's Actionsheet keep their promises.
  * - Moment sheet: someone else's comment has Report (iOS i8 — only the episode page had it);

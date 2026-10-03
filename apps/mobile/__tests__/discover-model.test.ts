@@ -1,3 +1,4 @@
+// Tests that Discover's data skips hidden shows and blocked listeners, and never crashes.
 /**
  * M10's Discover model: no data → no section; hidden shows and blocked listeners never
  * reach the screen. The breaks that turn these red: drop `keepItem` from `picks` in

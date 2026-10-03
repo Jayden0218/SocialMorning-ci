@@ -1,3 +1,4 @@
+// Tests helpers for academy articles, money labels, friend names and OPML guides.
 /**
  * M12 US10 helpers. Guards:
  *   G-A2 (FR-103, FR-110): academy articles are SocialNet's own — no Chinese text at all (so no

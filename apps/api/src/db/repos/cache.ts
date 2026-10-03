@@ -1,3 +1,4 @@
+// Simple database cache: serve fresh rows, fall back to stale rows on failure.
 /**
  * The one caching rule (M5 data-model): a row younger than its TTL is served; else
  * `fetch()` runs and its result is written; a `fetch()` that throws with a stale row

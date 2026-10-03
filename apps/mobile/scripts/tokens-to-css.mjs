@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Produces global.css theme colours and sizes from the design tokens file.
 /**
  * M9 (FR-004): `src/design/tokens.ts` stays the only place a colour, size, space or radius
  * is written. This writes them into `global.css` — between the GENERATED markers — as the

@@ -1,3 +1,4 @@
+// Tests the declared type decides audio or video before the file extension.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mediaKindOf } from '../src/media.ts';

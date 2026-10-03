@@ -1,3 +1,4 @@
+// "Listening now" routes: send a heartbeat and read the live count.
 import { Hono } from 'hono';
 import { z } from 'zod';
 import type { AuthEnv } from '../../auth/session.ts';

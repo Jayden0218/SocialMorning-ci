@@ -1,3 +1,4 @@
+// Reads Apple's public podcast catalogue: show search, episode search, charts, latest episodes.
 /**
  * Apple's public podcast catalogue (M5 research R2) — the only catalogue source, no key.
  *   searchShows     search?media=podcast&entity=podcast&term=

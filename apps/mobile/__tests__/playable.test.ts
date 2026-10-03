@@ -1,3 +1,4 @@
+// Tests that a finished download plays from the file, otherwise it streams.
 import { toPlayable } from '@/storage/playable';
 import { createMemoryStores } from '@/storage/memory';
 import { episodeId } from '@/storage/schema';

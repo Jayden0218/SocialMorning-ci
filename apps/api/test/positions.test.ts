@@ -1,3 +1,4 @@
+// Tests playback position merging over HTTP, and errors for unknown episodes.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';

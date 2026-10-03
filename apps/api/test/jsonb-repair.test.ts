@@ -1,3 +1,4 @@
+// Tests that JSON stored as text reads correctly and the repair migration fixes it.
 /**
  * The `postgres` driver double-encodes a string parameter cast `$n::jsonb` (a JSON string, not an
  * array or object); pglite does not, so these rows are written by hand the way production stored

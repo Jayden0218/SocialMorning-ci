@@ -1,3 +1,4 @@
+// Public web page for a shared clip, plus the Android app-link file.
 /**
  * GET /c/:id — the shareable clip link (research R1). An HTML page, no player, no media:
  * the episode's title, the caption, the author, and "Open in app" on the app's own

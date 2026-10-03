@@ -1,3 +1,4 @@
+// Tests posting, rate limits, reply depth and deleting comments.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';

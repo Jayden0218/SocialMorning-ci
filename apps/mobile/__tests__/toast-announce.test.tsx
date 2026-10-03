@@ -1,3 +1,4 @@
+// Tests that VoiceOver reads every toast message aloud on iPhone.
 /**
  * M16a guard G-T1 (FR-010, gluestack audit P0): VoiceOver speaks every toast. The toast box had
  * only `accessibilityLiveRegion="polite"`, which is Android-only, so on the iPhone no toast was

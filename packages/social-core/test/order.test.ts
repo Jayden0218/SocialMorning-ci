@@ -1,3 +1,4 @@
+// Tests sorting comments by newest, by episode time, and by likes.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { orderComments } from '../src/order.ts';

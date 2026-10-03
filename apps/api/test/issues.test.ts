@@ -1,3 +1,4 @@
+// Tests past picks, curated issues and the full talked-about chart.
 /**
  * M12 FR-070 (past picks), FR-101 (curated issues) and FR-071 (the full "Talked about" chart).
  * Picks and issues come from the picks file; nothing here fetches a feed.

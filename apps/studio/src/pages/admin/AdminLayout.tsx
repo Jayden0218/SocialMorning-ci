@@ -1,3 +1,4 @@
+// The Admin section's frame: its side menu, banner and sign-in-again rule.
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { reauthPath, whenReauth } from '../../api';

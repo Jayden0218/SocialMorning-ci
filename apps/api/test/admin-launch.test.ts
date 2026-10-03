@@ -1,3 +1,4 @@
+// Tests that promotions store no personal data and images stay under size limits.
 /**
  * M15 guards G-L2, G-L3 (FR-013, FR-017; constitution v2.4.0) — the launch screen counts totals
  * only, and its images stay within 1 MB each and 50 MB together.

@@ -1,3 +1,4 @@
+// Tests that the mini player hides on the comments page.
 /**
  * Owner, 2026-10-01: the mini player stands down on the comments page, which has its own
  * episode card with play/pause and a write box where the bar would sit.

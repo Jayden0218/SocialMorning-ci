@@ -1,3 +1,4 @@
+// Tests feed parsing edge cases: missing parts, repeats, number-like ids, links.
 import { strict as assert } from 'node:assert';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';

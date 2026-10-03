@@ -1,3 +1,4 @@
+// The Studio sign-in page, by password or by emailed code.
 import { useState, type FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { api, HttpError, REAUTH_MESSAGE, startSession } from '../api';

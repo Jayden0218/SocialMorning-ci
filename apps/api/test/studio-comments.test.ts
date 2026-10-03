@@ -1,3 +1,4 @@
+// Tests creators reading, answering and hiding comments on their own show.
 /**
  * M11 US3 — the creator reads, answers and hides comments (FR-014..FR-016).
  *

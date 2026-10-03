@@ -1,3 +1,4 @@
+// Tests that the player's comment button opens the comments page at the moment.
 /**
  * M12 guard G-C1 (FR-020, found on the iPhone 2026-09-29): the player's comment button opened
  * the keyboard ("No moment attached" at 4:58) instead of the conversation. It now opens the

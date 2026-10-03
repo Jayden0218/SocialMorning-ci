@@ -1,3 +1,4 @@
+// Show settings page: how the show looks, contacts, hosts, and giving it up.
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { api, HttpError, PUBLIC_API, type Show } from '../api';

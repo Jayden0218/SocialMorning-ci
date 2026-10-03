@@ -1,3 +1,4 @@
+// Checks that the main Studio pages have no accessibility problems found by axe.
 /**
  * FR-028 / SC-007: axe finds no violations on each page. jsdom has no layout, so axe's
  * colour-contrast rule cannot run here — contrast is measured from the tokens instead

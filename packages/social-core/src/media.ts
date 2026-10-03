@@ -1,3 +1,4 @@
+// Decides if an episode is audio or video from its declared type or extension.
 /**
  * M10b US5 — is an episode a video? The feed's declared enclosure type decides; when a feed
  * declares nothing useful, the file's extension does. SocialNet never hosts either — a video

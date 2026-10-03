@@ -1,3 +1,4 @@
+// Checks that the legal pages show no "[placeholder]" text except known pending facts.
 /**
  * M12 guard G-B1 (B1, found on the iPhone 2026-09-29): the legal pages showed "[DATE]",
  * "[SocialNet Privacy Policy]" and "[COMPANY LEGAL NAME]". Answers now come from

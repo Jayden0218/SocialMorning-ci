@@ -1,3 +1,4 @@
+// Checks the owner's curated collections file, dropping bad items with a warning.
 /**
  * M10: the owner's curated collections (`apps/api/collections.json`), validated the way
  * picks are (M5 FR-004, guard G1): validation never throws — a bad collection or item is

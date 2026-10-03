@@ -1,3 +1,4 @@
+// Tests Studio session walls: cookie settings, no-cache, and cross-site write check.
 /**
  * M11 — the Studio's session walls (specs/011-m11-studio/data-model.md guards).
  *

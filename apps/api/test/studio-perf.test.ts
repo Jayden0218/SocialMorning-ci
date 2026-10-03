@@ -1,3 +1,4 @@
+// Tests every Studio call on a big show answers within two seconds.
 /**
  * M11 SC-006 — every Studio call on a big show answers inside 2 s: 500 episodes, 10 000
  * comments, 2 000 listeners with plays, reactions and subscriptions. Measured on pglite in the

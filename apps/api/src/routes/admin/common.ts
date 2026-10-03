@@ -1,3 +1,4 @@
+// Helpers shared by admin routes: date and id checks, body shapes, cache reset.
 /**
  * Admin API — helpers more than one admin area uses (day and id parameters, shared body shapes, the catalogue reset).
  */

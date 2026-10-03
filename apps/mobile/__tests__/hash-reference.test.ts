@@ -1,3 +1,4 @@
+// Tests that the episode id hash is stable, correct and does not collide.
 /**
  * The device-side hash has to agree with itself forever: it produces episode
  * ids and `contentHash` values that are compared across polls and, in M3,

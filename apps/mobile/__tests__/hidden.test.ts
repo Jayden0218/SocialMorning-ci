@@ -1,3 +1,4 @@
+// Tests that reported or blocked content hides at once and is sent once.
 /** quickstart A9: a report hides locally at once and is delivered once; blocks likewise; refill at sign-in. */
 import { createMemoryStores } from '@/storage/memory';
 import { createSafety } from '@/safety/hidden';

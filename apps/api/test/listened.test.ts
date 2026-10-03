@@ -1,3 +1,4 @@
+// Tests that overlapping listens from two devices count once.
 /** quickstart A8: the same ranges from two devices count once (G3, server side); one listened item per day (G6). */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

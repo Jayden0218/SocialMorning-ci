@@ -1,3 +1,4 @@
+// Tests that sign-in needs the consent box ticked and a valid form.
 /**
  * The sign-in consent rule (owner's reference screenshots, 2026-09-27). The break that
  * turns the first test red: return 'submit' without checking `agreed` in

@@ -1,3 +1,4 @@
+// Tests save bar, contacts, hosts, drafts, media, sparklines and the tips switch.
 /**
  * M14 — Studio parity (specs/014-m14-studio-parity): save bar + leave guard, contacts, hosts and
  * invites, drafts and scheduling, media, sparklines, the tips switch. axe on each new screen

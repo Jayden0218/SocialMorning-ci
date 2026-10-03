@@ -1,3 +1,4 @@
+// Ranks episodes by how much people listened and talked, then fills with trending.
 /**
  * M5 FR-001 (research R4): "listened and talked about" over the app's own public
  * activity. Aggregates only — a row never names a listener.

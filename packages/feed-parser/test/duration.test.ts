@@ -1,3 +1,4 @@
+// Tests reading episode lengths and dates in every form feeds use.
 import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
 import { parseDateMs, parseDurationMs } from '../src/duration';

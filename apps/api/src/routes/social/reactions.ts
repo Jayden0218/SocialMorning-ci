@@ -1,3 +1,4 @@
+// Reaction route: toggle a reaction at a moment in an episode.
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { bucketOf } from '@socialmorning/social-core';

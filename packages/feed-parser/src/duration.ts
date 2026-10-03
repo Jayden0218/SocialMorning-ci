@@ -1,3 +1,4 @@
+// Reads episode lengths and dates from podcast feeds, refusing values it cannot trust.
 /**
  * `<itunes:duration>` is the single least trustworthy field in podcast RSS.
  * Observed in the wild: plain seconds, `H:MM:SS`, `MM:SS`, fractional

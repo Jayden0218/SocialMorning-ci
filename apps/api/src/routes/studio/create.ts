@@ -1,3 +1,4 @@
+// Studio routes to create a new show and check storage status.
 /**
  * Studio API (`/v1/studio/*`) — M13: create a show here
  */

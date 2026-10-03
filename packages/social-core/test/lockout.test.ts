@@ -1,3 +1,4 @@
+// Tests no lock for four failures, then doubling locks capped at 15 minutes.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { lockoutUntil, LOCKOUT_MAX_MS } from '../src/lockout.ts';

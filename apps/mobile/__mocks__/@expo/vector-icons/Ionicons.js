@@ -1,3 +1,4 @@
+// Stand-in for the Ionicons icon font, so tests do not wait for fonts.
 /**
  * Jest stand-in for the Ionicons font icon (`src/ui/Icon.tsx`). The real one loads its
  * font asynchronously and re-renders when it arrives; under jest that could land after a

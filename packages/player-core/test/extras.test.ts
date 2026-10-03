@@ -1,3 +1,4 @@
+// Tests reading chapters and transcripts, skipping bad parts, and following playback.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { currentChapter, parseChapters } from '../src/chapters.ts';

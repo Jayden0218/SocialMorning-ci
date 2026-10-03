@@ -1,3 +1,4 @@
+// Fetches and parses a podcast RSS feed on the server, cached for one hour.
 import { mediaKindOf } from '@socialmorning/social-core';
 /**
  * A feed, parsed server-side (M5 research R3/R5): for show picks ("its latest episode"),

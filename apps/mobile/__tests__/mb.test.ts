@@ -1,3 +1,4 @@
+// Tests that empty Downloads shows 0 MB; a little shows 1 MB.
 /** M12 guard G-B11 (B11): an empty Downloads said "Used 1 MB". The break: floor 0 bytes at 1 MB again. */
 jest.mock('@/ui/shell/providers', () => ({ useDownloads: () => ({}), useToast: () => () => undefined, useStores: () => ({}) }));
 import { mb } from '@/ui/episode/DownloadButton';

@@ -1,3 +1,4 @@
+// Tests that migrations apply once and their key database rules exist.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { freshDb } from './harness.ts';

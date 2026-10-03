@@ -1,3 +1,4 @@
+// A data table with keyboard-friendly sortable headers and page buttons.
 import type { ReactNode } from 'react';
 
 export type Column<T> = { key: string; label: string; render: (row: T) => ReactNode; numeric?: boolean; sortable?: boolean };

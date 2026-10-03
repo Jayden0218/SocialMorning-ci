@@ -1,0 +1,285 @@
+# apps/api/src — file map
+
+Every code file in the server, one plain line each. Each file also starts with the same sentence
+as a `//` comment — change both together. A check in the cloud tests fails if a file is missing
+here or a line does not match its file.
+
+- **Routes** (`routes/<area>/`) answer the web requests; **repos** (`db/repos/<area>/`) hold the SQL.
+  Both use the same areas: account, social, safety, library, discover, creators/studio, admin.
+- `routes/admin/` and `routes/studio/` are one router each, split into one file per part of the page;
+  `index.ts` builds the router and calls the parts in order (route order matters).
+- Database changes are numbered files in `db/migrations/` (SQL, not listed here).
+
+### Top level — start-up, the app, errors, input checks
+
+| File | What it does |
+|---|---|
+| `app.ts` | Builds the Hono app: shared setup, error handling, and every route mounted. |
+| `errors.ts` | The single API error shape and its error codes with HTTP statuses. |
+| `server.ts` | Starts the API locally on Node with the real database. |
+| `validate.ts` | Checks JSON request bodies with zod and answers 422 naming bad fields. |
+| `vercel-entry.ts` | Entry point that runs the API as a Vercel serverless function. |
+
+### `routes/` — requests that belong to no single area
+
+| File | What it does |
+|---|---|
+| `internal.ts` | Internal routes the scheduled job calls to rebuild data in small steps. |
+
+### `routes/account/` — sign-in, your account, notifications, wallet, feedback
+
+| File | What it does |
+|---|---|
+| `auth.ts` | Sign-in routes: sign up, sign in, sign out, and email code sign-in. |
+| `feedback.ts` | Feedback route: send text and up to three images, signed in or not. |
+| `me.ts` | My account routes: read, edit name and privacy, and delete the account. |
+| `notify.ts` | Per-show notification routes: list shows and turn new-episode alerts on or off. |
+| `push.ts` | Push routes: register or remove a device token and set alert preferences. |
+| `wallet.ts` | Read-only wallet routes: my purchases and the tips I gave. |
+
+### `routes/social/` — comments, reactions, clips, follows, profiles, voice posts, sharing
+
+| File | What it does |
+|---|---|
+| `clips.ts` | Clip routes: create, list, read and delete clips on an episode. |
+| `comment-counts.ts` | Route returning comment counts for many episodes in one call. |
+| `comments.ts` | Comment routes: post, delete and like comments on an episode. |
+| `feed.ts` | Following feed route: activity by people I follow, with caching headers. |
+| `follows.ts` | Follow routes: follow, unfollow, and list followers and following. |
+| `friends.ts` | Route listing episodes that people I follow listened to this week. |
+| `live.ts` | "Listening now" routes: send a heartbeat and read the live count. |
+| `profiles.ts` | Profile routes: read a listener's profile and set my privacy switch. |
+| `reactions.ts` | Reaction route: toggle a reaction at a moment in an episode. |
+| `share.ts` | Share card route: draws a PNG image for sharing an episode moment. |
+| `social.ts` | Episode social poll route: comments and heat curve in one cached answer. |
+| `voice.ts` | Voice post routes: upload a short recording, list, and delete posts. |
+
+### `routes/safety/` — reports and blocks
+
+| File | What it does |
+|---|---|
+| `blocks.ts` | Block routes: list, block and unblock listeners. |
+| `reports.ts` | Report routes: report content, rate-limited, and list what I have hidden. |
+
+### `routes/library/` — subscriptions, positions, listening, history
+
+| File | What it does |
+|---|---|
+| `episodes.ts` | Episode route: the app registers an episode's details with the server. |
+| `library.ts` | Library routes: sync favourites, moments and searches; list my comments. |
+| `listened.ts` | Listened-time route: a device replaces its listened ranges per episode and day. |
+| `positions.ts` | Playback position routes: send positions from a device and read them back. |
+| `rec-events.ts` | Route to record which recommendations were shown, opened, played or finished. |
+| `subscriptions.ts` | Subscription routes: read and sync my subscriptions across devices. |
+
+### `routes/discover/` — Discover, search, For You, next up, launch screen
+
+| File | What it does |
+|---|---|
+| `categories.ts` | Category routes: list genres and show each genre's top shows. |
+| `discover.ts` | Discover route: the public Discover page plus the full talked-about chart. |
+| `foryou.ts` | For You route: the personal recommendation list, signed-in only. |
+| `issues.ts` | Routes for past daily picks and curated issues. |
+| `launch.ts` | Public launch-screen routes: live promotions and anonymous view or tap counts. |
+| `nextup.ts` | Route for an episode's "Next up" suggestions. |
+| `search.ts` | Search routes: shows and episodes from Apple, and people by name, rate-limited. |
+
+### `routes/creators/` — show owners in the app: claims, extras, hosted feeds
+
+| File | What it does |
+|---|---|
+| `creator.ts` | Creator claim routes in the app: list, start and verify claims, see stats. |
+| `extras.ts` | App routes for creator features: show extras, poll votes, and share events. |
+| `feeds.ts` | Serves the public RSS feed of a show created in the Studio. |
+
+### `routes/studio/` — the Studio website's API, one file per page
+
+| File | What it does |
+|---|---|
+| `announcements.ts` | Studio routes for show announcements and polls. |
+| `claims.ts` | Studio routes to claim a show and verify the claim. |
+| `comments.ts` | Studio comment routes: list a show's comments, reply, hide and unhide. |
+| `common.ts` | Helpers shared by Studio routes: owner-only check, date ranges, CSV answers. |
+| `create.ts` | Studio routes to create a new show and check storage status. |
+| `data.ts` | Studio data routes: yesterday, top episodes, episode table, CSV exports. |
+| `episodes.ts` | Studio routes for a created show: edit details, upload and publish episodes. |
+| `hosts.ts` | Studio host routes: list hosts, remove one, make and accept invite links. |
+| `index.ts` | Studio router: no-cache, cross-site check, session and show-role walls for every route. |
+| `media.ts` | Studio media library routes: list a show's stored files and delete unused ones. |
+| `overview.ts` | Studio overview routes: a show's totals and trend over time. |
+| `settings.ts` | Studio settings routes: show overrides, helpers team, and giving the show back. |
+| `subscribers.ts` | Studio subscriber routes: stats, subscriber list, and muting listeners. |
+| `tips.ts` | Studio route listing a show's tips, owner only. |
+
+### `routes/admin/` — the owner-only Admin API, one file per page
+
+| File | What it does |
+|---|---|
+| `accounts.ts` | Admin routes for accounts: list, create, edit, and act as an account. |
+| `common.ts` | Helpers shared by admin routes: date and id checks, body shapes, cache reset. |
+| `curated.ts` | Admin routes for curated issues and collections: list, read, save, retire. |
+| `discover.ts` | Admin routes for Discover layout and featured shows per category. |
+| `index.ts` | Admin router: puts every admin route behind the admin-only check. |
+| `launch.ts` | Admin routes for launch-screen promotions: upload images, create, edit, end. |
+| `metrics.ts` | Admin dashboard route: usage numbers for 7, 30 or 90 days, cached five minutes. |
+| `picks.ts` | Admin routes for daily picks: list, read and save a day's picks. |
+| `record.ts` | Admin route to read the admin action record, filtered by area. |
+| `users.ts` | Admin routes for users and safety: list, rename, suspend, restore, act on reports. |
+
+### `db/` — the database connection and migrations
+
+| File | What it does |
+|---|---|
+| `client.ts` | Creates the one Postgres connection each server instance uses. |
+| `db.ts` | The shared database interface, with adapters for real Postgres and in-memory pglite. |
+| `migrate.ts` | Runs every database migration file not yet applied, in order. |
+
+### `db/repos/` — shared database helpers
+
+| File | What it does |
+|---|---|
+| `cache.ts` | Simple database cache: serve fresh rows, fall back to stale rows on failure. |
+
+### `db/repos/account/` — accounts and what belongs to them
+
+| File | What it does |
+|---|---|
+| `country.ts` | Keeps the listener's two-letter country from the sign-in request, nothing more. |
+| `delete-account.ts` | Deletes an account and its data in one step, keeping reply threads intact. |
+| `feedback.ts` | Stores feedback with up to three small images; images deleted after 90 days. |
+| `listeners.ts` | Database queries to create and find listener accounts. |
+| `push.ts` | Sends new-episode push notifications through Expo, never twice to one device. |
+
+### `db/repos/social/` — comments, clips, follows, profiles, activity
+
+| File | What it does |
+|---|---|
+| `activity.ts` | The Following feed: activity by people you follow, newest first, in pages. |
+| `clips.ts` | Clips: save, list and delete a time range of an episode, no audio. |
+| `comment-likes.ts` | Comment likes: one per listener, never your own, hidden comments not likeable. |
+| `comments.ts` | Comments: create, list as threads, delete, and shape them for each viewer. |
+| `follows.ts` | Follow and unfollow listeners, and list followers and following. |
+| `live-listeners.ts` | Counts "listening now" per episode using only daily-salted install hashes. |
+| `profiles.ts` | Builds a listener's profile: name, counts, stats and recent public activity. |
+| `voice-posts.ts` | Voice status posts up to 60 seconds, fully deleted after 48 hours. |
+
+### `db/repos/safety/` — reports, blocks, moderation
+
+| File | What it does |
+|---|---|
+| `blocks.ts` | Block and unblock listeners; a block also removes follows both ways. |
+| `moderation.ts` | Applies a moderation action, closes its reports and records it, in one step. |
+| `reports.ts` | Stores reports with a copy of the reported item, hidden for the reporter. |
+
+### `db/repos/library/` — subscriptions, positions, listening, library
+
+| File | What it does |
+|---|---|
+| `episodes.ts` | Saves and reads episodes the app registers; a known duration is never overwritten. |
+| `library.ts` | Syncs favourites, saved moments and search history across a listener's devices. |
+| `listened.ts` | Stores listened time ranges per device and counts their union across devices. |
+| `positions.ts` | Stores and merges playback positions sent from each device. |
+| `rec-events.ts` | Records what recommendations were shown and opened, counted per source. |
+| `subscriptions.ts` | Syncs subscriptions across devices; an unsubscribe wins a tie. |
+
+### `db/repos/discover/` — Discover, For You, similarity, next up, launch
+
+| File | What it does |
+|---|---|
+| `activity-stats.ts` | Counts listens, comments, clips and reactions per episode, never naming listeners. |
+| `discover-extras.ts` | Extra Discover parts: pick counts, followed shows, what people said, collections. |
+| `discover-settings.ts` | Applies the owner's Discover settings: section order, hidden items, pinned and featured shows. |
+| `discover.ts` | Builds the Discover page: daily picks, talked-about episodes and the chart, cached hourly. |
+| `foryou.ts` | Builds the personal For You list from seven sources, scored and mixed. |
+| `nextup.ts` | Builds "Next up" suggestions for an episode from four sources. |
+| `promotions.ts` | Launch-screen promotions: store, schedule, count views and taps as totals only. |
+| `similarity.ts` | Computes which shows are similar, ignoring private listeners and storing no listener ids. |
+
+### `db/repos/studio/` — a show's data for its creators
+
+| File | What it does |
+|---|---|
+| `announcements.ts` | Show announcements; at most two pushed per show each month. |
+| `creator.ts` | Lets a creator claim a show by placing a code in their live feed. |
+| `curators.ts` | Finds the curator who shared an outside show, hiding suspended accounts. |
+| `hosted.ts` | Shows and episodes created in the Studio, and the RSS feed built from them. |
+| `polls.ts` | Show polls: create, vote once per listener, close, and count votes. |
+| `show-hosts.ts` | Show hosts added by single-use invite links lasting four days, five hosts maximum. |
+| `show-overrides.ts` | Owner changes to how a show looks in the app, like title, cover, contacts. |
+| `show-team.ts` | A show's owner and helpers: add helpers by email, remove, give the show back. |
+| `studio-comments.ts` | A show's comments for the creator: list, reply, and hide or unhide. |
+| `studio-numbers.ts` | A show's Studio numbers: plays, completion, likes, saves, shares, trends, CSV. |
+| `studio-roles.ts` | Decides who may manage which show in the Studio: owner or helper. |
+| `studio-subscribers.ts` | A show's subscribers: totals, trend, listening hours, names, and muted listeners. |
+| `studio-tips.ts` | Lists tips a show received, leaving out refunded purchases. |
+
+### `db/repos/admin/` — what the Admin pages read and write
+
+| File | What it does |
+|---|---|
+| `admin-accounts.ts` | Admin-made accounts: create one or many, edit, with or without email. |
+| `admin-audit.ts` | Reads the admin action record, newest first, 50 per page, by area. |
+| `admin-curated.ts` | Curated issues and collections stored in the database, with save and retire. |
+| `admin-picks.ts` | The owner's daily picks stored in the database, refusing out-of-date saves. |
+| `metrics.ts` | Admin dashboard numbers: totals only, each section fails on its own. |
+
+### `auth/` — sessions, passwords, codes, admin access
+
+| File | What it does |
+|---|---|
+| `admin.ts` | Admin access: who is admin, the admin-only wall, and the admin action record. |
+| `codes.ts` | Email sign-in codes: six digits, ten minutes, five tries, stored only hashed. |
+| `password.ts` | Hashes and checks passwords with scrypt from Node's built-in crypto. |
+| `session.ts` | Session tokens: create, hash, look up the signed-in listener, require sign-in. |
+| `studio-session.ts` | Studio web session: cookie sign-in, 12-hour idle limit, and cross-site write check. |
+
+### `catalog/` — Apple podcast search and RSS feeds
+
+| File | What it does |
+|---|---|
+| `apple.ts` | Reads Apple's public podcast catalogue: show search, episode search, charts, latest episodes. |
+| `collections.ts` | Checks the owner's curated collections file, dropping bad items with a warning. |
+| `feed.ts` | Fetches and parses a podcast RSS feed on the server, cached for one hour. |
+| `genres.ts` | Apple's top podcast genres, and matching a feed's category to a genre id. |
+| `live.ts` | Merges picks, issues and collections from the database over the built-in files. |
+
+### `pages/` — web pages the server draws (share cards, legal, moderation)
+
+| File | What it does |
+|---|---|
+| `clip.ts` | Public web page for a shared clip, plus the Android app-link file. |
+| `episode.ts` | Public web page for a shared episode link, with "Open in app". |
+| `legal.ts` | Plain web pages: privacy, community rules, and where to get the app. |
+| `mod.ts` | The owner's moderation web page: sign in, review reports, act on them. |
+| `show-card.ts` | Public web card for a show: cover, name, description, latest episodes. |
+
+### `heat/` — the reaction heat curve
+
+| File | What it does |
+|---|---|
+| `rebuild.ts` | Rebuilds an episode's reaction heat curve, counting each listener once per segment. |
+
+### `share/` — share images
+
+| File | What it does |
+|---|---|
+| `card.ts` | Draws the 1080×1350 share card PNG with artwork, title and time. |
+
+### `storage/` — file storage for hosted audio, images and voice
+
+| File | What it does |
+|---|---|
+| `episodes-blob.ts` | Storage for created shows' audio and covers: upload tokens, check, delete. |
+| `voice-blob.ts` | Storage for voice post recordings in Vercel Blob. |
+
+### `mail/` — sending email
+
+| File | What it does |
+|---|---|
+| `mailer.ts` | Sends sign-in code emails through Gmail SMTP. |
+
+### `voice/` — voice post helpers
+
+| File | What it does |
+|---|---|
+| `duration.ts` | Measures audio length from MP4 or AAC file bytes. |

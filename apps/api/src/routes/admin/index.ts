@@ -1,3 +1,4 @@
+// Admin router: puts every admin route behind the admin-only check.
 /**
  * M15 — `/v1/admin/*` (specs/015-m15-admin/contracts/admin-api.md). Owner-only.
  *

@@ -1,3 +1,4 @@
+// Tests the Data page charts and sorting, and the Comments page actions.
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, screen } from '@testing-library/react';
 import axe from 'axe-core';

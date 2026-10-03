@@ -1,3 +1,4 @@
+// Tests the Android Auto lists: new episodes, queue, limits, and no hidden shows.
 /**
  * M10b — Android Auto's lists and picks (src/outside/car.ts). Guard G-A1 (a hidden show never
  * reaches the car): the break that turns it red is dropping the `hidden.has(e.feedUrl)` check

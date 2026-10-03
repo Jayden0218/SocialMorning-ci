@@ -1,3 +1,4 @@
+// Discover route: the public Discover page plus the full talked-about chart.
 import { Hono } from 'hono';
 import { createHash } from 'node:crypto';
 import type { AuthEnv } from '../../auth/session.ts';

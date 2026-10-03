@@ -1,3 +1,4 @@
+// Admin routes for daily picks: list, read and save a day's picks.
 /**
  * Admin API (`/v1/admin/*`, owner only) — US2: picks
  */

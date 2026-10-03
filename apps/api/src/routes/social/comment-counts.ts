@@ -1,3 +1,4 @@
+// Route returning comment counts for many episodes in one call.
 import { Hono } from 'hono';
 import { z } from 'zod';
 import type { AuthEnv } from '../../auth/session.ts';

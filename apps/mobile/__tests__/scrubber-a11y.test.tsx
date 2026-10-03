@@ -1,3 +1,4 @@
+// Tests that the seek bar speaks its position and can skip with screen readers.
 /** quickstart A10 / guard G11: the scrubber is operable without sight — a spoken value and ±30/−15 actions. */
 import { createElement } from 'react';
 import { StyleSheet } from 'react-native';

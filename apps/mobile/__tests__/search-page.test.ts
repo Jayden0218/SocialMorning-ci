@@ -1,3 +1,4 @@
+// Tests search history, suggestions, and what a scanned QR code opens.
 /**
  * M10's search page logic: history, "Try searching", and what a scanned QR code opens.
  * The breaks that turn these red: in `src/search/scan.ts` return `{ kind: 'route', path:

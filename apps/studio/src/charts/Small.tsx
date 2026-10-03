@@ -1,3 +1,4 @@
+// Small charts: daily subscribes and unsubscribes, and listening by hour.
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { axisDate } from '../format';
 import { palette } from '../tokens';

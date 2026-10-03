@@ -1,3 +1,4 @@
+// Tests that the mini player's progress ring fills correctly and stays in range.
 /**
  * The mini player's progress ring (owner's reference, 2026-09-27), drawn without SVG.
  * The break that turns the first test red: drop the `Math.min(p, 0.5)` in

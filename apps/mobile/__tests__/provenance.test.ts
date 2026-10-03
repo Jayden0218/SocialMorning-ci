@@ -1,3 +1,4 @@
+// Checks that no code or names were copied from the design reference project.
 /**
  * FR-017/FR-018: the reference was *read*, not copied. The owner chose "copy
  * nothing" over "adapt with attribution", so this test is the mechanical half

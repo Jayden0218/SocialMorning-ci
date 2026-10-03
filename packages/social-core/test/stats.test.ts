@@ -1,3 +1,4 @@
+// Tests 7-day and all-time listening totals and the top shows.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { stats, type ListenedRow } from '../src/stats.ts';

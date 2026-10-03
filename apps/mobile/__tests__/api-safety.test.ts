@@ -1,3 +1,4 @@
+// Tests the report and block API calls and the suspended-account answer.
 /** The M6 client calls and the suspended hook (FR-015). */
 import { ApiError, createApi } from '@/social/api';
 

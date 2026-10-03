@@ -1,3 +1,4 @@
+// Tests the storage limit counts in-progress downloads and the download order.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { canStartDownload, nextDownload, usedBytesOf } from '../src/downloads.ts';

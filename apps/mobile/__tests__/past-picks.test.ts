@@ -1,3 +1,4 @@
+// Tests that past-picks dates are not shifted by time zone, and Recent shows 10.
 /**
  * M12 FR-070 / FR-073 helpers: a past-picks day title keeps the date as written (never
  * shifted by the phone's zone), and search's "Recent" is the newest 10.

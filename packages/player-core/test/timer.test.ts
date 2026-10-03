@@ -1,3 +1,4 @@
+// Tests the sleep timer fires on time and only end-of-episode stops the queue.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { armTimer, shouldAdvance, timerFired, timerRemainingMs } from '../src/timer.ts';

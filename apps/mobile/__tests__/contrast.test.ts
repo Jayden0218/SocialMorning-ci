@@ -1,3 +1,4 @@
+// Checks that every colour pair is readable enough under WCAG contrast rules.
 /**
  * quickstart A1 / guards G2 and G-E1 (M17, FR-005): every token pair clears its WCAG floor,
  * and nothing ships under it. The numbers are the ones research R2 measured on 2026-10-03

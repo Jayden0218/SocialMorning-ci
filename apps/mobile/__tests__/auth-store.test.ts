@@ -1,3 +1,4 @@
+// Tests that sign-in saves the session and sign-out clears it, even offline.
 import { createAuth, type TokenStore } from '@/social/auth-store';
 import { ApiError, type ApiClient } from '@/social/api';
 import { createMemoryStores } from '@/storage/memory';

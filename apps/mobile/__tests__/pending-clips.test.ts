@@ -1,3 +1,4 @@
+// Tests that a clip made offline survives a restart and is sent once.
 /** quickstart A12: a clip made offline survives a restart and is sent ONCE with the same clientId. */
 import { createClips } from '@/graph/clips';
 import type { ApiClient, Clip } from '@/social/api';

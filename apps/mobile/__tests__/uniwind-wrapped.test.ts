@@ -1,3 +1,4 @@
+// Checks that outside components given style classes are wrapped so classes apply.
 /**
  * UniWind styles only components it knows. A third-party component given a `className`
  * must come through `withUniwind` (src/design/tailwind.ts), or the class is silently

@@ -1,3 +1,4 @@
+// Hashes and checks passwords with scrypt from Node's built-in crypto.
 import { randomBytes, scrypt as scryptCb, timingSafeEqual, type ScryptOptions } from 'node:crypto';
 
 const scrypt = (password: string, salt: Buffer, keylen: number, opts: ScryptOptions) =>

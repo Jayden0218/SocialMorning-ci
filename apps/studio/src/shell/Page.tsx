@@ -1,3 +1,4 @@
+// A page header with title, short purpose, an action and sub-tabs.
 import type { ReactNode } from 'react';
 import { NavLink } from 'react-router';
 import { useUnsaved } from './Unsaved';

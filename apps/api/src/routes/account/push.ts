@@ -1,3 +1,4 @@
+// Push routes: register or remove a device token and set alert preferences.
 import { Hono } from 'hono';
 import { z } from 'zod';
 import type { AuthEnv } from '../../auth/session.ts';

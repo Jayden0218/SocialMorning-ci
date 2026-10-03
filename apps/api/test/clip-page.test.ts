@@ -1,3 +1,4 @@
+// Tests the shared clip web page and the Android app-link file.
 /** quickstart A10: the shareable link page and the App Links statement (research R1). */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

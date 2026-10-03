@@ -1,3 +1,4 @@
+// Syncs subscriptions across devices; an unsubscribe wins a tie.
 /**
  * M8 US1 — subscriptions as an account-level fact (specs/008-m8-for-you/research.md R1).
  *

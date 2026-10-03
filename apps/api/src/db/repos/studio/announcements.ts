@@ -1,3 +1,4 @@
+// Show announcements; at most two pushed per show each month.
 /**
  * M11 US5 — a show's announcements (FR-020, FR-021). At most 2 are PUSHED per show per UTC
  * calendar month; over the limit, publishing is refused rather than silently not pushed, so the

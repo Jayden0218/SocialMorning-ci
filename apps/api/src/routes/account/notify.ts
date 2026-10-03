@@ -1,3 +1,4 @@
+// Per-show notification routes: list shows and turn new-episode alerts on or off.
 import { Hono } from 'hono';
 import { z } from 'zod';
 import type { AuthEnv } from '../../auth/session.ts';

@@ -1,3 +1,4 @@
+// Decides if a download fits the storage limit and which one starts next.
 import type { DownloadCandidate, NetworkKind } from './types';
 
 /**

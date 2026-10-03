@@ -1,3 +1,4 @@
+// Sends every Studio request to the server and handles sign-in and errors.
 /**
  * Every request the Studio makes. The browser only ever talks to its own host: `/api/*` is
  * rewritten to the API (research R1), so the session cookie is first-party.

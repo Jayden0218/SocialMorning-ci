@@ -1,3 +1,4 @@
+// Tests the search box's trending show names: order, no repeats, at most five.
 /**
  * The search box's trending line (owner, 2026-09-27). The break that turns the first test
  * red: drop the `!out.includes(name)` check in `src/discover/trending.ts`.

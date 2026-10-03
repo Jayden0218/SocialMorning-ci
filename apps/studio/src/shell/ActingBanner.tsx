@@ -1,3 +1,4 @@
+// Banner shown while the owner acts as another account, with a way back.
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { api, HttpError } from '../api';

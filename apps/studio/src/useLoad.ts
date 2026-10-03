@@ -1,3 +1,4 @@
+// A hook that loads one block's data and tracks loading, error and retry.
 import { useCallback, useEffect, useState } from 'react';
 import { HttpError } from './api';
 

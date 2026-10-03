@@ -1,3 +1,4 @@
+// For You route: the personal recommendation list, signed-in only.
 import { Hono } from 'hono';
 import { createHash } from 'node:crypto';
 import type { AuthEnv } from '../../auth/session.ts';

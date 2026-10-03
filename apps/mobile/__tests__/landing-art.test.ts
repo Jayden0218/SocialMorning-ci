@@ -1,3 +1,4 @@
+// Tests that the sign-in page covers use real shows, own first, no repeats.
 /** The sign-in landing page's covers (owner, 2026-09-27): real covers, own shows first, no repeats. */
 import { landingArt } from '@/ui/auth/art';
 import type { Discover } from '@/social/api';

@@ -1,3 +1,4 @@
+// Storage for created shows' audio and covers: upload tokens, check, delete.
 /**
  * M13 — where created shows' audio and covers live (constitution v2.3.0; plan R1, R2).
  * Everything that touches the storage service is in this one file, so moving to Cloudflare R2

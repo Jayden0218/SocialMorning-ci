@@ -1,3 +1,4 @@
+// Checks the phone hash matches an independent reference version of the same hash.
 /**
  * Same reference test as apps/mobile/__tests__/hash-reference.test.ts, run under
  * node:test: the hash produces episode ids compared ACROSS DEVICES in M3, so it is

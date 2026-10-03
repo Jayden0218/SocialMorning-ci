@@ -1,3 +1,4 @@
+// Tests that a show claim is proven only by its code in the feed.
 /**
  * M10b US8 — the creator claims a feed they already publish. Guard G-C1 (only the code in the
  * live feed proves ownership) — the break that turns it red: in `src/db/repos/studio/creator.ts`

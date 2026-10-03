@@ -1,3 +1,4 @@
+// Sends sign-in code emails through Gmail SMTP.
 /**
  * Sending the sign-in code (owner, 2026-09-27): the owner's Gmail, over SMTP with an app
  * password (env GMAIL_USER, GMAIL_APP_PASSWORD). Port 465 is open on Vercel; the send is

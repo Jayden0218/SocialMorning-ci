@@ -1,3 +1,4 @@
+// Tests that a launch promotion never slows start-up when nothing is cached.
 /**
  * Guard G-L4 (specs/015-m15-admin/data-model.md, SC-004): a launch with nothing cached adds
  * no wait — the overlay is not mounted, and start-up never waits on `GET /v1/launch`.

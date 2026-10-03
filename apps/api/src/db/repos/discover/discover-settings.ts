@@ -1,3 +1,4 @@
+// Applies the owner's Discover settings: section order, hidden items, pinned and featured shows.
 /**
  * M15 T034 — Discover control (FR-026–FR-029; research R4). Applied at SERVE time, after the
  * hour's cache, so a change shows on the next refresh (SC-007):

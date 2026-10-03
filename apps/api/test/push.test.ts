@@ -1,3 +1,4 @@
+// Tests new-episode notifications go once per device and respect settings.
 /**
  * M10b US3 — notifications are sent: one per show per cycle for a genuinely new episode,
  * never twice (guard G-N1 — break: remove the `ON CONFLICT … DO NOTHING RETURNING` filter

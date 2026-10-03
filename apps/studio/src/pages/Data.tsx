@@ -1,3 +1,4 @@
+// Page with a show's numbers, trends and an episode table to download.
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { api, downloadCsv, HttpError, type Show } from '../api';

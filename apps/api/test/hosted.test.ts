@@ -1,3 +1,4 @@
+// Tests creating a show, uploading and publishing episodes, and storage limits.
 /**
  * M13 — create a show in the Studio and publish uploaded episodes (specs/013-m13-create-show).
  * The store is a fake in memory; the token rules it would enforce are checked at our boundary.

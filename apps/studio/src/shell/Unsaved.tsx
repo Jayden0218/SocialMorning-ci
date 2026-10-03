@@ -1,3 +1,4 @@
+// Save bar and warning before leaving a page with unsaved changes.
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import { ConfirmDialog } from './ConfirmDialog';

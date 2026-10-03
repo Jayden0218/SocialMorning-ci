@@ -1,3 +1,4 @@
+// Checks a listener's comment reaches the Studio, the public page and moderation.
 /**
  * The listener journey's website half (specs/015-e2e-journey). Runs after
  * `apps/api/scripts/journey.ts seed` and `… listener` have filled the server: 50 listeners, a host's

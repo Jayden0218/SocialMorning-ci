@@ -1,3 +1,4 @@
+// Search rules: match words, put the library first, and remove duplicate results.
 /**
  * M5 FR-005 (research R7): library-first search. `matchesTerm` is the local match;
  * `mergeSearch` puts the library first and never repeats a library hit as a catalogue

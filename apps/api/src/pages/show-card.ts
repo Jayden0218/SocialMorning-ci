@@ -1,3 +1,4 @@
+// Public web card for a show: cover, name, description, latest episodes.
 /**
  * M14 US9 — GET /show/<key>: a public card for a show (claimed or created), like 小宇宙's 播客名片.
  * Cover, name, description, latest episodes, "Open in the app". No personal data; every value

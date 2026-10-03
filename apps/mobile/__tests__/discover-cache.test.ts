@@ -1,3 +1,4 @@
+// Tests that Discover is cached with ETags and still shows when offline.
 import { createDiscover } from '@/discover/cache';
 import { resolveCard } from '@/discover/open';
 import { ApiError, type ApiClient, type Discover, type EpisodeCard } from '@/social/api';

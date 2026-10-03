@@ -1,3 +1,4 @@
+// Test helper: an in-memory file store for upload tests.
 import type { EpisodeStorage, StoredFile } from '../src/storage/episodes-blob.ts';
 
 export const STORE = 'https://store.public.blob.vercel-storage.com/';

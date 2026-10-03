@@ -1,3 +1,4 @@
+// Tests that Discover rows open and play episodes, and chart tabs switch lists.
 /**
  * M10's Discover sections: a row's body opens the episode and its round button plays it;
  * the chart's tabs switch lists. The break that turns the first test red: make

@@ -1,3 +1,4 @@
+// A show's Studio numbers: plays, completion, likes, saves, shares, trends, CSV.
 /**
  * M11 — a show's numbers for the Studio (specs/011-m11-studio/spec.md FR-006..FR-012).
  * Every query is scoped by the show's feed_url; nothing here is ever called without the

@@ -1,3 +1,4 @@
+// Tests that episode activity counts skip private listeners and name nobody.
 /** T010 (guard G2): a private listener's listens count 0; comments, clips and reactions count; the shape carries no ids of people. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

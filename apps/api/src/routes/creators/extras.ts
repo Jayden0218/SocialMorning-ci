@@ -1,3 +1,4 @@
+// App routes for creator features: show extras, poll votes, and share events.
 /**
  * M11 — what the APP reads and writes for a show's creator features (contracts/studio-api.md,
  * "App-facing"). The show page fetches RSS on the phone (research R7), so the creator's

@@ -1,3 +1,4 @@
+// Route to record which recommendations were shown, opened, played or finished.
 import { Hono } from 'hono';
 import { z } from 'zod';
 import type { AuthEnv } from '../../auth/session.ts';

@@ -1,3 +1,4 @@
+// Starts the API locally on Node with the real database.
 import { serve } from '@hono/node-server';
 import { createApp } from './app.ts';
 import { gmailMailer } from './mail/mailer.ts';

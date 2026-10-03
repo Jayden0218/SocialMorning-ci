@@ -1,3 +1,4 @@
+// Helpers shared by Studio routes: owner-only check, date ranges, CSV answers.
 /**
  * Studio API — helpers more than one Studio area uses (the owner-only wall, ranges, CSV answers).
  */

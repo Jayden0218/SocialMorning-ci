@@ -1,3 +1,4 @@
+// Tests widget and Siri cards, and that position updates never redraw the widget.
 /**
  * M10b US9 — SocialNet outside the app. Guard G-W1 (a position TICK never redraws a widget):
  * the break that turns it red is `sameCard` in `src/outside/now-playing.ts` returning false

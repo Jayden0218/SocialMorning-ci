@@ -1,3 +1,4 @@
+// Admin routes for Discover layout and featured shows per category.
 /**
  * Admin API (`/v1/admin/*`, owner only) — US5: Discover control
  */

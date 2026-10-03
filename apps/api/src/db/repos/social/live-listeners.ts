@@ -1,3 +1,4 @@
+// Counts "listening now" per episode using only daily-salted install hashes.
 /**
  * M12 FR-042 — "N listening now". Guard G-L1: what is stored is ONLY
  * `sha256(installId : dailySalt)` with the episode and a time. No account, no listener, no

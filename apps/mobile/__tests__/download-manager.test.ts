@@ -1,3 +1,4 @@
+// Tests downloads run in order, resume, follow Wi-Fi and space rules.
 /**
  * quickstart A9: the download manager over a fake Downloader and Network. What this
  * proves: the one-at-a-time / order / Wi-Fi / budget / resume / join / remove rules.

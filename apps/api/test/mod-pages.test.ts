@@ -1,3 +1,4 @@
+// Tests the moderation page access and actions, plus the plain legal pages.
 /** quickstart A7 (the /mod page: G5, G6, G9), A8 (retention), pages (/privacy /rules /get). */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

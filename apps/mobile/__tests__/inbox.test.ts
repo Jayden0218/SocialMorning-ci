@@ -1,3 +1,4 @@
+// Tests that the inbox is built from subscriptions, positions and downloads.
 import { inboxIds } from '@/me/inbox';
 import { createMemoryStores } from '@/storage/memory';
 import { episodeId } from '@/storage/schema';

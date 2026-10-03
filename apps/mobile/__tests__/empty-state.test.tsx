@@ -1,3 +1,4 @@
+// Tests that every empty screen shows its sentence and one working action.
 /** quickstart A10 (half): the component renders the table's sentence and one action; loading, offline and error variants. */
 import { createElement } from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';

@@ -1,3 +1,4 @@
+// Tests "Next up" merges sources with reasons and skips finished episodes.
 /** quickstart A8: 3–8 items with reasons; the current and the viewer's finished episodes absent; no display names. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

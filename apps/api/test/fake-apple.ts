@@ -1,3 +1,4 @@
+// Test helper: a fake Apple catalogue with recorded answers and failure modes.
 /**
  * A fake Apple catalogue for the pglite tests: recorded shapes from the real endpoints
  * (2026-09-22 — "Casey Wants to Believe", "reply all", genre 1303). Mode switches let a

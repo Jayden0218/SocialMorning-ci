@@ -1,3 +1,4 @@
+// Voice post routes: upload a short recording, list, and delete posts.
 import { Hono } from 'hono';
 import { randomUUID } from 'node:crypto';
 import type { AuthEnv } from '../../auth/session.ts';

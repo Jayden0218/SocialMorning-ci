@@ -1,3 +1,4 @@
+// Reads transcripts in SRT, VTT, JSON or text and finds the current line.
 import type { Transcript, TranscriptLine } from './types';
 
 /**

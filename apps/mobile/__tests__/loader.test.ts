@@ -1,3 +1,4 @@
+// Tests that the loading bars move as a wave and rest symmetrically.
 /**
  * The loading mark (owner, 2026-09-27). The break that turns the first test red: make
  * `barDelay` return 0, so every bar moves together and the wave is gone.

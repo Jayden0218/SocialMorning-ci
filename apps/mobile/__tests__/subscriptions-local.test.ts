@@ -1,3 +1,4 @@
+// Tests that unsubscribing keeps a removal marker so it can sync to other phones.
 /**
  * M8 US1 (quickstart A9's phone half, guard G-M1) — unsubscribing writes a TOMBSTONE.
  *

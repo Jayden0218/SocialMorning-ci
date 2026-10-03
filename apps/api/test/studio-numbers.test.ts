@@ -1,3 +1,4 @@
+// Tests Studio overview numbers equal hand counts with no other show leaking.
 /**
  * M11 — SC-002: every number on Home equals a hand count of a seeded show, and nothing from
  * another show leaks in. The seed is small enough to count on paper; each expected value

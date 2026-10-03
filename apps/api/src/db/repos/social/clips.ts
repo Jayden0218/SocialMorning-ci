@@ -1,3 +1,4 @@
+// Clips: save, list and delete a time range of an episode, no audio.
 /**
  * Clips (M4 FR-001..006): a RANGE on an episode, no media. `create` is idempotent on
  * (author, clientId) — a phone that retries after a crash makes one clip (G8) — and

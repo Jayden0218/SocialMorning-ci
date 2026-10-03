@@ -1,3 +1,4 @@
+// Data shapes for a parsed show, episode, transcript and sound clip.
 /** Milliseconds since the Unix epoch. */
 export type EpochMs = number;
 

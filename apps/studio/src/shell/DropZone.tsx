@@ -1,3 +1,4 @@
+// A box to drop or choose an image file, showing the current one.
 import { useState, type DragEvent } from 'react';
 
 /** M14 US1: a cover drop box inside the form — drop an image or click to choose; shows the current one. */

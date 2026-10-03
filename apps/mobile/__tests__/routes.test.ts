@@ -1,3 +1,4 @@
+// Checks that every deep-link path still opens a real screen after adding tabs.
 /**
  * Guard G3 — every path M1–M6 deep-links to still resolves after the tab group landed.
  *

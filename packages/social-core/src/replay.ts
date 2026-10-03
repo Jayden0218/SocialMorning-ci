@@ -1,3 +1,4 @@
+// Offline score of the recommender: how high it ranks episodes a listener later played.
 /**
  * M8 — the honest measurement (research R9).
  *

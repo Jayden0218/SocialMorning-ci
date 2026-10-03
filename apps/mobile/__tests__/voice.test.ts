@@ -1,3 +1,4 @@
+// Tests that a 60-second voice post fits the size limit and plays once.
 /**
  * M12 guard G-V2 (FR-104, phone half): a full 60 s recording fits the server's 600 000-byte
  * cap with room for the container, and the clock never runs past 1:00.

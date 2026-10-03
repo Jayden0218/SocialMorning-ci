@@ -1,3 +1,4 @@
+// Tests settings logic: defaults, queue options, minor mode, OPML and feedback.
 /**
  * M10's settings, the logic under the pages: defaults, one-tap Queue with "download
  * queued episodes", minor mode, OPML both ways, the collected-information list, and the

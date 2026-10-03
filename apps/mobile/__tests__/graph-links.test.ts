@@ -1,3 +1,4 @@
+// Tests building and reading the app's share links, both web and app forms.
 import { clipLinkFor, clipSchemeLinkFor, parseClipLink } from '@/graph/links';
 
 const ID = '0f1e2d3c-4b5a-4697-8877-665544332211';

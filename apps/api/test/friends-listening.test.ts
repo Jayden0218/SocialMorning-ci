@@ -1,3 +1,4 @@
+// Tests "friends are listening" shows only followed, public, unblocked people.
 /**
  * M12 FR-102 — "Friends are listening". Only people the caller follows, only the last 7
  * days, NEVER a person whose listening is private (now, or at the time it was written),

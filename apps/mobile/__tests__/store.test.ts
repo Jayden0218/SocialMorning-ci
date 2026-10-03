@@ -1,3 +1,4 @@
+// Tests that player state changes reach the audio adapter, stores and timers.
 /**
  * The binding: reducer -> effects -> adapter, stores and timers.
  *

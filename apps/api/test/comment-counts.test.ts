@@ -1,3 +1,4 @@
+// Tests that comment counts include only live top-level comments.
 /**
  * M12 FR-080 — the Updates list's comment counts, one call for the page. Guard G-U1: a count
  * leaves out a deleted, a removed and a host-hidden comment and every reply; an unknown id is 0.

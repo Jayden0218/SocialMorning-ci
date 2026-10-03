@@ -1,3 +1,4 @@
+// Studio web session: cookie sign-in, 12-hour idle limit, and cross-site write check.
 /**
  * M11 — the Studio's session (specs/011-m11-studio/research.md R1, R2).
  *

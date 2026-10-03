@@ -1,3 +1,4 @@
+// Settings section to invite hosts by a one-use link and remove them.
 import { useState } from 'react';
 import { api, HttpError, type Show } from '../../api';
 import { shortDate } from '../../format';

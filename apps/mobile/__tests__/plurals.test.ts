@@ -1,3 +1,4 @@
+// Checks that screens use the shared plural helper, so "1 episode" reads right.
 /**
  * M12 guard G-B7 (B7): counted nouns go through social-core's `plural` / `noun`. The
  * 2026-09-29 comparison found "0 of 1 episodes" and "Share your 1 subscriptions", and 13

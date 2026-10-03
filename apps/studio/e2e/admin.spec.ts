@@ -1,3 +1,4 @@
+// Checks in a real browser that the owner can use every Admin page.
 /**
  * M15 T040 — Admin in a real browser against the real API and PostgreSQL (ci/workflows/e2e.yml).
  * The owner is `E2E_MOD_EMAIL` (scripts/e2e-server.ts makes that account at start and passes it

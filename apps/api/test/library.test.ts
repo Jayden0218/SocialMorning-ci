@@ -1,3 +1,4 @@
+// Tests library sync: removals stay removed and data stays private to its owner.
 /**
  * M10b US2 — favourites, favourite comments, moments and search history follow the account.
  * Guards: G-S1 (a tombstone beats an older edit — break: make the merge ignore `deleted_at`

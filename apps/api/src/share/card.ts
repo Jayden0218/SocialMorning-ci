@@ -1,3 +1,4 @@
+// Draws the 1080×1350 share card PNG with artwork, title and time.
 /**
  * M12 FR-034 — the share card: a 1080×1350 PNG with the artwork, the title, the show and
  * "at mm:ss". No audio, ever.

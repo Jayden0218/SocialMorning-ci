@@ -1,3 +1,4 @@
+// Keeps track of who is signed in, their shows, and admin status.
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { api, bearer, whenSignedOut, type ActingAs, type Me, type Show, type StudioMe } from './api';
 

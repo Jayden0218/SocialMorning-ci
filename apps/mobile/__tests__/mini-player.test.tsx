@@ -1,3 +1,4 @@
+// Tests when the mini player shows, what it shows, and opening the player.
 /**
  * `MiniPlayer` (M7 T011) replaces `MiniBar`. The look changed; the contract did not.
  *

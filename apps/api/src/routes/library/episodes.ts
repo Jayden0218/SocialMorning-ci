@@ -1,3 +1,4 @@
+// Episode route: the app registers an episode's details with the server.
 import { Hono } from 'hono';
 import { json } from '../../validate.ts';
 import { z } from 'zod';

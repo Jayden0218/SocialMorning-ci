@@ -1,3 +1,4 @@
+// Tests heat curve parts at the ends, all-zero curves, and scaling to one.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { bucketOf, normaliseHeat } from '../src/heat.ts';

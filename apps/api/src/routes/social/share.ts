@@ -1,3 +1,4 @@
+// Share card route: draws a PNG image for sharing an episode moment.
 import { Hono } from 'hono';
 import type { AuthEnv } from '../../auth/session.ts';
 import { ApiError } from '../../errors.ts';

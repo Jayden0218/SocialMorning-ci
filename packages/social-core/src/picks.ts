@@ -1,3 +1,4 @@
+// Reads and checks the daily picks file and returns picks for a day.
 /**
  * M5 FR-004: the owner's picks file. Validation never throws — a bad entry is dropped
  * with a warning naming its index and reason, and the rest serve (principle IV; guard

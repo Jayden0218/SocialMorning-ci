@@ -1,3 +1,4 @@
+// Tests that the loading animation leaves no timers running after it closes.
 /**
  * The Loader's animation stops when it leaves the screen. Its loop never ends on its own,
  * so a Loader that does not stop on unmount keeps timers alive after its screen (or

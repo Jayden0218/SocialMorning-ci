@@ -1,3 +1,4 @@
+// Tests that a hidden show leaves Discover, search and next-up at once.
 /** quickstart A7 (hide_show, G7): a hidden show leaves Discover, search and next-up at once, and stays in a library (the phone's job). */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

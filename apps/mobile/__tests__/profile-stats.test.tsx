@@ -1,3 +1,4 @@
+// Tests that profile numbers sit in one row; private time shows "—".
 /**
  * M12 guard G-P2 (FR-064): a profile's numbers sit in one row and the listening time is one
  * of them — "—" when private, never a made-up 0. The break: drop the time cell's value.

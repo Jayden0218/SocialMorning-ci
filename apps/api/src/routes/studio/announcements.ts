@@ -1,3 +1,4 @@
+// Studio routes for show announcements and polls.
 /**
  * Studio API (`/v1/studio/*`) — US5: Announcements and polls
  */

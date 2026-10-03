@@ -1,3 +1,4 @@
+// Tests that without an account, listening works and social writes are refused.
 /**
  * FR-004: with no account, everything from M1 behaves as before, and the social
  * layer reads but refuses to write — without ever calling the server for a write.

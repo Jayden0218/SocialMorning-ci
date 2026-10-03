@@ -1,3 +1,4 @@
+// Finds the curator who shared an outside show, hiding suspended accounts.
 /**
  * M15 T029 (D3) — a curator shares an external show: the app says "Shared by <name>", never
  * "Host" (FR-023). One curator per show. A suspended account is not shown (FR-025).

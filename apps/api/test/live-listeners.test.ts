@@ -1,3 +1,4 @@
+// Tests "listening now" stores no account and counts installs correctly.
 /**
  * M12 FR-042 — "N listening now". Guard G-L1: the table stores no account — its columns are
  * exactly (episode_id, listener_hash, seen_at) — and the count is of installs in the last

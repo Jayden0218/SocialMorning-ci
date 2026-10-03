@@ -1,3 +1,4 @@
+// Tests show overrides, helpers team, giving a show back, and tips totals.
 /**
  * M11 US6 + US7 — overrides, helpers, giving the show back, tips (FR-024..FR-027).
  *

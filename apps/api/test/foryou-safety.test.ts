@@ -1,3 +1,4 @@
+// Checks For You respects blocks, hidden shows and private listening.
 /**
  * M8 US4 (quickstart A11, A12, A15, A16 · guards G-R1, G-R3).
  *

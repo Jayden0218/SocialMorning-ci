@@ -1,3 +1,4 @@
+// Admin routes for launch-screen promotions: upload images, create, edit, end.
 /**
  * Admin API (`/v1/admin/*`, owner only) — US3: the launch screen
  */

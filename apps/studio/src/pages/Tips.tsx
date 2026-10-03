@@ -1,3 +1,4 @@
+// Page showing tips received, with a switch to allow or stop tips.
 import { useEffect, useState } from 'react';
 import { api, HttpError, type Show } from '../api';
 import { shortDate } from '../format';

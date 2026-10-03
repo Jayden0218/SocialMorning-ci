@@ -1,3 +1,4 @@
+// Checks that pages opened from Search can be closed with the edge swipe.
 /**
  * M17 guard G-S2 — a page opened from Search is an ordinary push, so the edge swipe closes it.
  *

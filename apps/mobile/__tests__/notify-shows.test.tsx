@@ -1,3 +1,4 @@
+// Tests per-show notification switches, which flip back if the server refuses.
 /**
  * M12 guard G-N2 (FR-093): a switch per show; a flip is sent, and a refused one flips back.
  * The break: drop the `set(!enabled)` in NotifyShows' catch.

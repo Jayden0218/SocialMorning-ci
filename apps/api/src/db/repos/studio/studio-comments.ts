@@ -1,3 +1,4 @@
+// A show's comments for the creator: list, reply, and hide or unhide.
 /**
  * M11 US3 — a show's comments, as its creator sees them in the Studio (FR-013..FR-016).
  *

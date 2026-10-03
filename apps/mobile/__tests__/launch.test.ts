@@ -1,3 +1,4 @@
+// Tests that a signed-out launch opens sign-in once, after the Terms.
 /**
  * The sign-in page is offered on every launch while signed out. The break that turns the
  * first test red: drop `!s.signedIn` from `opensSignIn` in `src/ui/shell/launch.ts`.

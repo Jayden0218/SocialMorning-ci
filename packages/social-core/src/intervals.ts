@@ -1,3 +1,4 @@
+// Turns player ticks into listened time ranges and measures total time without double counting.
 /**
  * M4 research R3: listening time is the length of the UNION of listened intervals in
  * episode time. Intervals come from the player's TICKs: consecutive ticks on one

@@ -1,3 +1,4 @@
+// Public web page for a shared episode link, with "Open in app".
 /**
  * M12 NEW-8 — GET /e/:id, the shareable episode link. Built like the clip page (`/c/:id`):
  * an HTML page, no player and no media — the title, the show, the artwork, "Open in

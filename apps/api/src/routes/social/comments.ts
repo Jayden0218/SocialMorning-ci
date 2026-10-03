@@ -1,3 +1,4 @@
+// Comment routes: post, delete and like comments on an episode.
 import { Hono } from 'hono';
 import { z } from 'zod';
 import type { AuthEnv } from '../../auth/session.ts';

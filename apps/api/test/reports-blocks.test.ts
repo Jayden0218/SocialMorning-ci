@@ -1,3 +1,4 @@
+// Tests reports hide content for the reporter, and blocks hide people.
 /** quickstart A4 (reports: G3, G4), A5 (blocks), A6 (the poll: G1, G2, G8). */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

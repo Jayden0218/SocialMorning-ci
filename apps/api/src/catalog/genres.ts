@@ -1,3 +1,4 @@
+// Apple's top podcast genres, and matching a feed's category to a genre id.
 /**
  * Apple's top-level podcast genres (the ids the `toppodcasts/genre=` chart accepts),
  * matched by name to a feed's `<itunes:category>` (M5 research R5). Unknown → undefined

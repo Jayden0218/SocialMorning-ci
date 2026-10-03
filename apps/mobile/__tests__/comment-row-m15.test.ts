@@ -1,3 +1,4 @@
+// Tests that comments show time and country, and fold replies after the first two.
 /**
  * Owner, 2026-10-01 (the 小宇宙 comments page): under each name, "time · place"; under a
  * parent, the first 2 replies and "Show N more".

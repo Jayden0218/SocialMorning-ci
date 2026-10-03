@@ -1,3 +1,4 @@
+// Tests that a clip link finds its episode in cache, then feed, then server.
 /** T014: a clip link's episode is found in the cache, else the feed, else the server's record. */
 import { resolveClipEpisode } from '@/graph/resolve';
 import { createMemoryStores } from '@/storage/memory';

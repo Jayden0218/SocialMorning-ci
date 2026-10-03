@@ -1,3 +1,4 @@
+// Database queries to create and find listener accounts.
 import type { Db } from '../../db.ts';
 import type { Listener } from '../../../auth/session.ts';
 

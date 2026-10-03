@@ -1,3 +1,4 @@
+// Admin routes for curated issues and collections: list, read, save, retire.
 /**
  * Admin API (`/v1/admin/*`, owner only) — US2: issues; US2: collections
  */

@@ -1,3 +1,4 @@
+// Tests when a launch promotion is shown, and that it is picked by weight.
 /**
  * Guard G-L1 (specs/015-m15-admin/data-model.md): `chooseLaunch` shows nothing when the
  * image is not cached, in minor mode, signed out, with the Terms due, outside the dates,

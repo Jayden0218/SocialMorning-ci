@@ -1,3 +1,4 @@
+// Tests listened time ranges: seeks count as gaps, and overlaps are not double counted.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { addTick, closeAcc, mergeRanges, unionLength, type ListenAcc } from '../src/intervals.ts';

@@ -1,3 +1,4 @@
+// Tests that the mini player hides when a swipe back to tabs starts.
 /**
  * M16a guard G-B5 (FR-007). Phone walk 2026-10-02: after an edge-swipe back to Discover the root
  * mini player drew below the tab bar for a frame. iOS finishes the swipe before JS hears the pop,

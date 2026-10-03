@@ -1,3 +1,4 @@
+// Internal routes the scheduled job calls to rebuild data in small steps.
 import { Hono } from 'hono';
 import { z } from 'zod';
 import type { AuthEnv } from '../auth/session.ts';

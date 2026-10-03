@@ -1,3 +1,4 @@
+// Builds the Hono app: shared setup, error handling, and every route mounted.
 import { commentCounts } from './routes/social/comment-counts.ts';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';

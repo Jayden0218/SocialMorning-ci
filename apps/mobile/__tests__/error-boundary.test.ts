@@ -1,3 +1,4 @@
+// Checks that an app crash shows a "Try again" screen, never a blank page.
 /**
  * M12 T004 (Principle IV): an error shows a way back, never a blank app. The break that turns it
  * red: remove the `ErrorBoundary` export from app/_layout.tsx.

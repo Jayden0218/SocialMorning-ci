@@ -1,3 +1,4 @@
+// Tests every empty screen has text and an action, and the loading timings.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { EMPTY_STATES, emptyState, ERROR_SENTENCE, GIVE_UP_AFTER_MS, LOADING_AFTER_MS, OFFLINE_SENTENCE, SURFACES } from '../src/empty.ts';

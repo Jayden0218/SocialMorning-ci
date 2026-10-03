@@ -1,3 +1,4 @@
+// Admin page to create, edit, order and retire curated episode collections.
 import { useState } from 'react';
 import { api } from '../../api';
 import { ConfirmDialog } from '../../shell/ConfirmDialog';

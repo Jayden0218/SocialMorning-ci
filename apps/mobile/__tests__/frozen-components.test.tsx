@@ -1,3 +1,4 @@
+// Checks that the scrubber, comment rail and heat curve still work and announce themselves.
 /**
  * Guard G6 — the three components M7 is allowed to **recolour but not rewrite**.
  *

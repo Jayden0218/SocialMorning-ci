@@ -1,3 +1,4 @@
+// Tests the listened-time and pending-clip stores and their database upgrade.
 /**
  * M4 stores and migration 004 (quickstart T007). The memory stores are the spec; the
  * expo-sqlite ones mirror them and are VERIFIED only on the phone (G0). Migration 004

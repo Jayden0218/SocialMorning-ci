@@ -1,3 +1,4 @@
+// Tests password hashing round-trips and never stores the plain password.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { hashPassword, verifyPassword } from '../src/auth/password.ts';

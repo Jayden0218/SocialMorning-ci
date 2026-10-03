@@ -1,3 +1,4 @@
+// Tests that a clip plays from its start and pauses once at its end.
 /**
  * M4 runtime clip mode (T011, FR-003, research R7): load → explicit seek to the start on
  * LOADED → pause once at the end on a TICK → "keep listening" is a plain Play. And the

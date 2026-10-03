@@ -1,3 +1,4 @@
+// Sign-in routes: sign up, sign in, sign out, and email code sign-in.
 import { Hono } from 'hono';
 import { json } from '../../validate.ts';
 import { z } from 'zod';

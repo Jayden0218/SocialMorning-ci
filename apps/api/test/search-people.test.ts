@@ -1,3 +1,4 @@
+// Tests people search: names only, prefix first, at most 20, hides blocked.
 /** Owner, 2026-10-01: GET /v1/search/people — names only, suspended and blocked listeners not found, prefix first, at most 20. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

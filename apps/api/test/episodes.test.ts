@@ -1,3 +1,4 @@
+// Tests that a known episode duration is never overwritten.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { freshDb } from './harness.ts';

@@ -1,3 +1,4 @@
+// Applies a moderation action, closes its reports and records it, in one step.
 /**
  * M6 moderation actions (FR-012–FR-016, R8): one transaction records the action, closes
  * the target's open reports, and applies the effect. Only the owner reaches this (G9,

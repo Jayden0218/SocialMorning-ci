@@ -1,3 +1,4 @@
+// Tests the database cache: fresh, refetch, stale fallback, and double-encoded rows.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { freshDb } from './harness.ts';

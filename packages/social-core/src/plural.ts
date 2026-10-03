@@ -1,3 +1,4 @@
+// Writes counts with the right singular or plural noun, like "1 episode".
 /**
  * M12 FR-007 (B7): one rule for counted nouns, so the app never says "1 episodes" or
  * "Share your 1 subscriptions" again. The 2026-09-29 comparison found 4 such strings and

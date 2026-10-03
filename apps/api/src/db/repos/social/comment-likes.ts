@@ -1,3 +1,4 @@
+// Comment likes: one per listener, never your own, hidden comments not likeable.
 /**
  * M12 FR-023 — comment likes. One per listener per comment (the primary key makes both
  * directions idempotent). Guard G-C2: you cannot like your own comment — refused here with

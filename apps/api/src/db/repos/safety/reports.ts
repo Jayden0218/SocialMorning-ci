@@ -1,3 +1,4 @@
+// Stores reports with a copy of the reported item, hidden for the reporter.
 /**
  * M6 reports (FR-001–FR-005, R7): one row per reporter per target (the UNIQUE key is
  * G3), a copy of the target at report time (G4), hidden for the reporter at once.

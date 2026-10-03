@@ -1,3 +1,4 @@
+// The owner's moderation web page: sign in, review reports, act on them.
 /**
  * M6 moderation queue (research R3): a signed-in HTML page for the ONE owner.
  *   GET  /mod         the sign-in form, or the queue (open items, then the last 90 days closed)

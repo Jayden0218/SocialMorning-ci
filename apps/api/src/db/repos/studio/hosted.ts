@@ -1,3 +1,4 @@
+// Shows and episodes created in the Studio, and the RSS feed built from them.
 /**
  * M13 — shows created in the Studio, and their episodes (specs/013-m13-create-show).
  * A created show is ALSO a proven claim on its own feed address (plan R3), so the whole M11

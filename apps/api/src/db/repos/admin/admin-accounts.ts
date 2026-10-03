@@ -1,3 +1,4 @@
+// Admin-made accounts: create one or many, edit, with or without email.
 /**
  * M15 T027 — accounts the admin makes (FR-019, FR-020; research R6).
  *

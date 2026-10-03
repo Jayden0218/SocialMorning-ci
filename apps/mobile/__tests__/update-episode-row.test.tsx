@@ -1,3 +1,4 @@
+// Tests the Updates row's details line and that every action button is labelled.
 /**
  * Owner, 2026-10-01 (row 9): an Updates row's meta line is "duration · ago · plays · comments",
  * with a count left out when 0 or unknown, and four labelled icon buttons + play under it.

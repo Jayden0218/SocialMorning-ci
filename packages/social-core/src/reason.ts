@@ -1,3 +1,4 @@
+// Writes the short, true reason why each recommended episode is shown.
 /**
  * M8 — why an episode is in the list (FR-026, FR-024).
  *

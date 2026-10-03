@@ -1,3 +1,4 @@
+// Entry point exporting the player rules: queue, speed, timer, downloads, inbox.
 /**
  * @socialmorning/player-core — the rules that decide what plays next, when to stop,
  * how fast, what may download, and what is new. Pure functions only, so every one of

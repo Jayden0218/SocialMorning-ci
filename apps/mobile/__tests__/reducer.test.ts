@@ -1,3 +1,4 @@
+// Tests the playback state rules for calls, interruptions, seeks and other events.
 /**
  * quickstart.md Tier A, scenarios A1-A12, plus the seven invariants from
  * data-model.md.

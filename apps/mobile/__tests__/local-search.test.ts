@@ -1,3 +1,4 @@
+// Tests that search finds subscribed shows and episodes at once, and feed URLs.
 /** quickstart A9: library hits at once over a seeded cache; a feed URL is recognised; unsubscribed shows are not searched. */
 import { looksLikeFeedUrl, searchLibrary } from '@/discover/local-search';
 import { createMemoryStores } from '@/storage/memory';

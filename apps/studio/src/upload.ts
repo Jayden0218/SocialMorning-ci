@@ -1,3 +1,4 @@
+// Uploads audio and image files from the browser straight to storage.
 import { put } from '@vercel/blob/client';
 import { api } from './api';
 

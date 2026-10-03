@@ -1,3 +1,4 @@
+// Tests that admin suspend, restore and report actions match the moderation page.
 /**
  * M15 guard G-U1 (FR-030, FR-031): suspend/restore and report actions in Admin go through the
  * SAME `act()` as `/mod`, so both pages agree by construction.

@@ -1,3 +1,4 @@
+// The text and action for each empty screen, and loading and timeout timings.
 /**
  * M6 empty states (spec FR-019–FR-021): the 13 surfaces, each with one sentence on what
  * fills it and one action that leads there; loading after 1 s; give up at 10 s.

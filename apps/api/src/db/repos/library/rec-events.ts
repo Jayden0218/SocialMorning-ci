@@ -1,3 +1,4 @@
+// Records what recommendations were shown and opened, counted per source.
 /**
  * M8 US6 — what was shown, and what happened next (FR-028, FR-029).
  *

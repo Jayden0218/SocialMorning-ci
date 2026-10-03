@@ -1,3 +1,4 @@
+// Studio routes to claim a show and verify the claim.
 /**
  * Studio API (`/v1/studio/*`) — Claiming a show from the Studio
  */

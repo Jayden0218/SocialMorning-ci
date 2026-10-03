@@ -1,3 +1,4 @@
+// Tests who may report or block, and how reported or blocked items show.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { applyBlocks, canBlock, canReport, hiddenKey, REPORT_REASONS, TARGET_KINDS } from '../src/safety.ts';

@@ -1,3 +1,4 @@
+// Tests that Apple catalogue answers map correctly and errors are classified.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { CatalogRateLimited, CatalogUnavailable, latestEpisodes, searchEpisodes, searchShows, topShows } from '../src/catalog/apple.ts';

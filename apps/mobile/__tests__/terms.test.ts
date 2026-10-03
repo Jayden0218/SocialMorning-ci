@@ -1,3 +1,4 @@
+// Tests that Terms acceptance is remembered and asked again for a new version.
 /**
  * The Terms gate (owner, 2026-09-27): not accepted until Accept is pressed, remembered
  * after, asked again when the text's version changes. The break that turns the first

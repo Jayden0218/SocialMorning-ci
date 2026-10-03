@@ -1,3 +1,4 @@
+// Turns a podcast RSS feed into a show and its list of episodes.
 import { XMLParser } from 'fast-xml-parser';
 import { parseDateMs, parseDurationMs } from './duration';
 import type { Episode, FeedWarning, ParsedFeed, Show, Soundbite, Transcript } from './types';

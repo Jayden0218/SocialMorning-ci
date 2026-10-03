@@ -1,3 +1,4 @@
+// Test helper that answers Studio requests with fake data and renders pages.
 import { render } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router';

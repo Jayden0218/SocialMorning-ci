@@ -1,3 +1,4 @@
+// Checks that only one launch screen shows, hidden once the first page draws.
 /**
  * One launch screen, then the first page (owner, 2026-09-29). Found on the iPhone: the
  * native launch screen hid by itself, a white page showed while the in-app copy of it

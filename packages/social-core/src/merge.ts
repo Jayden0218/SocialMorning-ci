@@ -1,3 +1,4 @@
+// The one rule for choosing a listening position when two devices disagree.
 import type { PositionObs } from './types';
 
 /**

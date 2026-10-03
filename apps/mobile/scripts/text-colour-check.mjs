@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Checks that every text element has a colour set, not the default black.
 /**
  * M7's black-on-black defect, the class token-check cannot see (2026-09-27).
  *

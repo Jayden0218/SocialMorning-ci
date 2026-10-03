@@ -1,3 +1,4 @@
+// Tests the share card PNG and the shared episode web page.
 /**
  * M12 FR-034 — the share card is a real 1080×1350 PNG (rendered by satori + resvg-wasm, no
  * network needed for Latin text), cached a day, with no audio anywhere; NEW-8 — the episode

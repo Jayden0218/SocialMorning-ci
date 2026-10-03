@@ -1,3 +1,4 @@
+// Admin access: who is admin, the admin-only wall, and the admin action record.
 /**
  * M15 — who may use Admin, and the record of what they did (specs/015-m15-admin/research.md R1, R2, R6).
  *

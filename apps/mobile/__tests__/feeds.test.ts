@@ -1,3 +1,4 @@
+// Tests that refreshing a show's RSS feed updates the cache and never loses it.
 /**
  * Refreshing a show. `fetch` is mocked; the parser and the memory cache are
  * real, so this exercises the whole conditional-GET -> parse -> cache path.

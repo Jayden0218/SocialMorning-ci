@@ -1,3 +1,4 @@
+// Tests sign-up, sign-in, sign-out, validation errors and account lockout.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { freshDb, signUp } from './harness.ts';

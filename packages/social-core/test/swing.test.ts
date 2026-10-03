@@ -1,3 +1,4 @@
+// Tests a small group of shared fans counts less toward show similarity.
 /**
  * M8 (quickstart A1, A2 · guard G-R2) — Swing show-to-show similarity.
  *

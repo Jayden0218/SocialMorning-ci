@@ -1,3 +1,4 @@
+// Tests when an episode counts as finished, near the last 30 seconds.
 /**
  * FR-019 and FR-020, the whole table. These decide whether someone is
  * offered an episode at 1:59:41 or told they have finished it, which is a

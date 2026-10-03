@@ -1,3 +1,4 @@
+// Shows a day's picks the way the phone app will draw them.
 import { api } from '../../api';
 import { Empty, Failed, Loading } from '../../shell/States';
 import { useLoad } from '../../useLoad';

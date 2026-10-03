@@ -1,3 +1,4 @@
+// Keeps playback speed between 0.5 and 3.0 and picks each show's speed.
 export const RATE_MIN = 0.5;
 export const RATE_MAX = 3.0;
 export const RATE_STEP = 0.1;

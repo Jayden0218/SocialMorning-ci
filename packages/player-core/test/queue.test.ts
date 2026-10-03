@@ -1,3 +1,4 @@
+// Tests the queue limit, moving repeats instead of duplicating, and offline skipping.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { enqueue, move, nextPlayable, QUEUE_MAX, remove } from '../src/queue.ts';

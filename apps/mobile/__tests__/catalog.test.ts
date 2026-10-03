@@ -1,3 +1,4 @@
+// Tests that Apple podcast search results are mapped into the app's show format.
 /**
  * Apple's search, with `fetch` mocked. Nothing here talks to Apple: the
  * mapping is what we own, and rate limits are not something a test suite

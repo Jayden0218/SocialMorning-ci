@@ -1,3 +1,4 @@
+// Report queue rules: group reports by item, allowed actions, and closing.
 /** M6 moderation queue rules: grouping, the actions a kind allows, how an item closes. */
 import type { TargetKind } from './safety';
 

@@ -1,3 +1,4 @@
+// Tests that a comment's "time ago" uses the server clock, not the phone's.
 import { relativeTime } from '@/ui/kit/format';
 
 it('relative time is computed from the server clock, never the phone', () => {

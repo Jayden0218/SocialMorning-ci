@@ -1,3 +1,4 @@
+// Drives a full listener and host journey against the local test server.
 /**
  * The listener journey (specs/015-e2e-journey), against a running e2e server
  * (scripts/e2e-server.ts). NEVER point it at production: it refuses any https address.

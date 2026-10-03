@@ -1,3 +1,4 @@
+// Checks that no destination needs more taps than it did before the tab bar.
 /**
  * Guard G4 — the tab bar was allowed to move things closer, never further away.
  *

@@ -1,3 +1,4 @@
+// Tests that the reaction heat curve shows a plain message when it is empty.
 // M10b: HeatCurve reads the palette through useStores; a light setting keeps colours static.
 jest.mock('@/ui/shell/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }) }));
 import { EMPTY_STATES } from '@socialmorning/social-core';

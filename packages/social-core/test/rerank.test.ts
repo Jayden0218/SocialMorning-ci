@@ -1,3 +1,4 @@
+// Tests only one episode per show in the top 10, three per category.
 /**
  * M8 (quickstart A6) — MMR plus the two hard rules.
  *

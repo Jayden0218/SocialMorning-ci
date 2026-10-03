@@ -1,3 +1,4 @@
+// Tests that sign-in merges phone and server play positions without losing any.
 /**
  * T057 / FR-029: on sign-in the account's positions and the phone's are merged by
  * the one rule; nothing is discarded. Local 16:00 vs server 15:00 → 16:00 on both

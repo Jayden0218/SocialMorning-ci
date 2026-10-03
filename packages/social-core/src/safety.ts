@@ -1,3 +1,4 @@
+// Report and block rules: who may report or block, and hiding blocked content.
 /**
  * M6 report / block rules (specs/006-m6-fit-to-ship/data-model.md "Pure rules").
  * The server runs `applyBlocks` over every per-viewer answer and the phone runs it over

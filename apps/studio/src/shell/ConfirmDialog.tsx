@@ -1,3 +1,4 @@
+// An in-page "are you sure?" dialog; Escape or clicking outside cancels.
 import { useEffect, useRef } from 'react';
 
 /** An in-page dialog (never window.confirm, which would block the page). Esc or the backdrop cancels. */

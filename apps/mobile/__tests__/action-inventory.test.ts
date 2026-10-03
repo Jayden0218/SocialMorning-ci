@@ -1,3 +1,4 @@
+// Checks that no button or link was lost when the screens were redesigned.
 /**
  * M17 guard G-E3 (FR-007): no action is lost while the screens are rebuilt. `m17/before.json`
  * is every interactive element (role, accessible name, destination) as it was before wave 1;

@@ -1,3 +1,4 @@
+// Tests grouping reports into queue items and the actions allowed per kind.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { actionsFor, closeReason, DELETED_REPORTER, groupReports, REPORTS_PER_HOUR, RETENTION_DAYS } from '../src/moderation.ts';

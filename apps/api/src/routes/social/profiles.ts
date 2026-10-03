@@ -1,3 +1,4 @@
+// Profile routes: read a listener's profile and set my privacy switch.
 import { Hono } from 'hono';
 import { z } from 'zod';
 import type { AuthEnv } from '../../auth/session.ts';

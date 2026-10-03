@@ -1,3 +1,4 @@
+// Tests "Next up" has no repeats, skips finished episodes, and respects the cap.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { enoughNextUp, nextUp, REASON_LABEL, type Candidate } from '../src/nextup.ts';

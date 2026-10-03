@@ -1,3 +1,4 @@
+// Tests that the profile and Stickers page use the same listening totals.
 /**
  * M16a guard G-B3 (FR-005). Phone walk 2026-10-02: the profile card said 4 stickers and 13 h
  * listened; the Stickers page said "1 of 8 earned" and "First hour 0 of 1 h". The profile used

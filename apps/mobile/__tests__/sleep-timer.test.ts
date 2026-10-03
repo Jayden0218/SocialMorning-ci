@@ -1,3 +1,4 @@
+// Tests the sleep timer pausing on time, and the remembered playback speed.
 /**
  * M2 sleep timer (FR-015..017) and speed memory (FR-013) in the runtime, with fake
  * timers. What this proves: the rules. What it does not: that a JS timer fires on a

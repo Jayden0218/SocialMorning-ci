@@ -1,3 +1,4 @@
+// Tests that the launch screen stays at least 1 s, with a time limit.
 /**
  * The launch screen's timing: at least 1 s, waits for the syncs, never longer than the
  * ceiling. The break that turns the first test red: drop `sleep(minMs)` from

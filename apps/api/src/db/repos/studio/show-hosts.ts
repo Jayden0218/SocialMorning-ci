@@ -1,3 +1,4 @@
+// Show hosts added by single-use invite links lasting four days, five hosts maximum.
 /**
  * M14 US2 — hosts are real accounts, added the way 小宇宙 adds them: the owner makes an invite
  * link, the host opens it signed in and accepts (FR-02). The token is 24 random bytes, stored

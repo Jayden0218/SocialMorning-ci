@@ -1,3 +1,4 @@
+// Page for a signed-in person with no show: create one or claim a feed.
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { api, HttpError, type Show } from '../api';

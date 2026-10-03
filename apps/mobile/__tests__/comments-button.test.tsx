@@ -1,3 +1,4 @@
+// Tests that the comments icon shows its count and reads it aloud.
 /**
  * M12 guard G-U2 (FR-080): an Updates row's comment icon shows the count, and says it.
  * The break: stop rendering `n` in src/ui/comments/CommentsButton.tsx.

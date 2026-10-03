@@ -1,3 +1,4 @@
+// Checks that expo-audio still has no audio-output-change event.
 /**
  * Pins the T039 finding so that "expo-audio has no output-change event"
  * cannot quietly become folklore. If a future SDK adds one, this test fails

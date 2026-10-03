@@ -1,3 +1,4 @@
+// Tests that rows and text fit and wrap at the largest system font.
 /**
  * M6 FR-025: at the largest system font nothing is clipped — the rows that carry content
  * have no fixed height, titles wrap, and the rows a listener taps are ≥ 48 dp tall.

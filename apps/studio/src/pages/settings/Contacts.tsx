@@ -1,3 +1,4 @@
+// Settings section for the show's contact links and the 100-hour message.
 import { useEffect, useState } from 'react';
 import { api, HttpError, type Show } from '../../api';
 import { Failed, Loading } from '../../shell/States';

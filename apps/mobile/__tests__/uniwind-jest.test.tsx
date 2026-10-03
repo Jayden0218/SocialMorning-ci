@@ -1,3 +1,4 @@
+// Checks that style classes become real styles in tests, so style tests mean something.
 /**
  * M9 guard G8 (research R1): classes compile to REAL styles under Jest. If the UniWind setup
  * (jest.uniwind.*) is skipped, `className` does nothing and every style-reading test passes

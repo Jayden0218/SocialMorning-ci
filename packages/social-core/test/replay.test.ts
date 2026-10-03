@@ -1,3 +1,4 @@
+// Tests the offline score uses the middle rank of the hidden episodes.
 /**
  * M8 (quickstart A8) — the offline replay.
  *

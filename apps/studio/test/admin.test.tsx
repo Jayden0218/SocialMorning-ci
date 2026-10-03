@@ -1,3 +1,4 @@
+// Tests the Admin link shows only for admins, sign-in-again, and Admin pages.
 /**
  * M15 — Admin in the Studio (specs/015-m15-admin): the Admin link is drawn only for an admin
  * (display only — the server decides, guard G-A1 in apps/api); a `reauth` answer sends the owner

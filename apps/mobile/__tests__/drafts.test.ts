@@ -1,3 +1,4 @@
+// Tests that a comment draft survives sign-in and is saved at the right time.
 import { createDrafts } from '@/social/drafts';
 import { createMemoryDraftStore } from '@/storage/memory';
 

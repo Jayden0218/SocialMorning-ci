@@ -1,3 +1,4 @@
+// Tests the Following feed: order, paging, unfollow, and caching.
 /** quickstart A7 (ordering half): the Following feed — clips and comments by followed people, newest first, gone on unfollow, ETag/304. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

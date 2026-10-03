@@ -1,3 +1,4 @@
+// Read-only wallet routes: my purchases and the tips I gave.
 import { Hono } from 'hono';
 import type { AuthEnv } from '../../auth/session.ts';
 import { requireAuth } from '../../auth/session.ts';

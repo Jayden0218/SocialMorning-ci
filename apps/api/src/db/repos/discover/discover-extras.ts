@@ -1,3 +1,4 @@
+// Extra Discover parts: pick counts, followed shows, what people said, collections.
 /**
  * M10 additions to Discover (2026-09-27): per-pick counts, "followed here", "what people
  * said", and the owner's collections. All of it is optional on the wire so an older build

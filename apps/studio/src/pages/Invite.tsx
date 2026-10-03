@@ -1,3 +1,4 @@
+// Page an invite link opens, where a person accepts becoming a show host.
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { api, HttpError } from '../api';

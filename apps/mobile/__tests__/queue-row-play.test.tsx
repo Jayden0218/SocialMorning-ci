@@ -1,3 +1,4 @@
+// Tests that tapping a row in "Up next" plays it and closes the sheet.
 /**
  * M16a guard G-B6 (FR-002). Phone walk 2026-10-02: tapping a row in the "Up next" sheet did
  * nothing — the artwork and title were plain views; only the drag handle and ⋮ took a tap. A

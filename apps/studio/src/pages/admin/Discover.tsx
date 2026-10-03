@@ -1,3 +1,4 @@
+// Admin page controlling the app's Discover sections, pins, hides and featured shows.
 import { useEffect, useState } from 'react';
 import { api } from '../../api';
 import { PageHead } from '../../shell/Page';

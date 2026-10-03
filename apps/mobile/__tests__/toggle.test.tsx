@@ -1,3 +1,4 @@
+// Tests that the app's own switch speaks its state and has a big target.
 /**
  * M16a guard G-N2 (FR-014): the app-drawn Toggle that replaced the iOS switch is still a switch
  * to a screen reader — role "switch", its name, and `accessibilityState.checked` that follows

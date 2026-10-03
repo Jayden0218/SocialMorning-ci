@@ -1,3 +1,4 @@
+// Tests that the push address is sent when allowed and removed at sign-out.
 /**
  * M10b US3 on the phone: the push address joins the account only when there is one
  * (permission granted), is remembered, and is removed at sign-out; nothing here can fail

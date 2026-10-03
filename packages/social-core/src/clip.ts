@@ -1,3 +1,4 @@
+// Rules for clips as time ranges: suggest one, check its length, adjust edges.
 /**
  * M4 FR-001/FR-002: a clip is a range on an episode — no media (constitution V).
  *   proposeClip      the last 30 s before the moment the listener tapped Clip

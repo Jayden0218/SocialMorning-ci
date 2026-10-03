@@ -1,3 +1,4 @@
+// Studio route listing a show's tips, owner only.
 /**
  * Studio API (`/v1/studio/*`) — US7: Tips
  */

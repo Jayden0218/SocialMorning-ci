@@ -1,3 +1,4 @@
+// Tests that the "listening now" chip shows only for two or more people.
 /** M12 FR-042: the chip shows at 2 or more, never at 0, 1 or when the count is unknown (offline). */
 jest.mock('@/sync/device-id', () => ({ deviceId: async () => 'install-1' }));
 jest.mock('@/social/m12-api', () => ({ useM12Api: () => ({}) }));

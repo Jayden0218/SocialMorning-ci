@@ -1,3 +1,4 @@
+// Page where a creator writes announcements and sends them to listeners.
 import { useState } from 'react';
 import { api, HttpError, type Show } from '../api';
 import { num, shortDate } from '../format';

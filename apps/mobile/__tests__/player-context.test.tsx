@@ -1,3 +1,4 @@
+// Tests the player React wrapper, and a clear error outside its provider.
 /**
  * The React wrapper around the runtime. Small, but it is the thing every
  * screen touches, and `usePlayer` outside a provider is the mistake that

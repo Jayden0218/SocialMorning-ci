@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Checks that every tappable element has a name a screen reader can speak.
 /**
  * M6 FR-022: every interactive element has a name a screen reader can speak — either an
  * `accessibilityLabel` or text children that ARE the name. This is a grep, not a

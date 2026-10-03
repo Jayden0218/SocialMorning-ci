@@ -1,3 +1,4 @@
+// Tests Studio extras: drafts, scheduling, host invites, contacts, media library, show card.
 /**
  * M14 — Studio parity (specs/014-m14-studio-parity).
  *

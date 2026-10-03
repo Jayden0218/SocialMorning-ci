@@ -1,3 +1,4 @@
+// Checks that global.css theme exactly matches the design tokens file.
 /**
  * M9 guard G4 (FR-004): `global.css`'s theme is generated from `src/design/tokens.ts` and
  * must match it byte for byte. The break that turns it red: change a colour in tokens.ts

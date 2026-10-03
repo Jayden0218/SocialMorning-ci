@@ -1,3 +1,4 @@
+// Page listing all comments on a show, with reply, hide and mute.
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { api, HttpError, type Show } from '../api';

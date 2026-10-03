@@ -1,3 +1,4 @@
+// Tests that "More account options" is its own page, so Back works right.
 /**
  * M17 guard G-AM1 (phone walk 2026-10-02, M16a Tier B row "Settings → Account → More" FAILED:
  * both ← and the edge swipe skipped "Account and security" and landed on Settings).

@@ -1,3 +1,4 @@
+// Studio overview routes: a show's totals and trend over time.
 /**
  * Studio API (`/v1/studio/*`) — Overview and trend
  */

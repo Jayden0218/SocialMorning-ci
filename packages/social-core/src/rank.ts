@@ -1,3 +1,4 @@
+// Weights and scoring for recommendations: freshness, popularity, quality and fatigue.
 /**
  * M8 — the ordering rules (specs/008-m8-for-you/contracts/recsys-core.ts).
  *

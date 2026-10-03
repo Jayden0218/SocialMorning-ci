@@ -1,3 +1,4 @@
+// Measures audio length from MP4 or AAC file bytes.
 /**
  * M12 FR-104 — "≤ 60 s, declared AND checked". The phone declares the length in a header;
  * the server measures it from the bytes and refuses a file it cannot measure. Two shapes,

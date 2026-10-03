@@ -1,3 +1,4 @@
+// Tests voice posts: size and length limits, who sees them, full deletion.
 /**
  * M12 FR-104 — voice status posts (constitution 2.2.0: ≤ 60 s, deleted by the server at 48 h).
  * Guard G-V1: an expired post's blob delete is called AND its row is gone — not merely hidden.

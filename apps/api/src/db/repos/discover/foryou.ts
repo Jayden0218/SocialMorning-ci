@@ -1,3 +1,4 @@
+// Builds the personal For You list from seven sources, scored and mixed.
 /**
  * M8 — the For You list (US2; FR-006..FR-023).
  *

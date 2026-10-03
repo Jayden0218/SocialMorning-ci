@@ -1,3 +1,4 @@
+// Computes which shows are similar, ignoring private listeners and storing no listener ids.
 /**
  * M8 — show-to-show similarity (research R2/R3; guards G-R1, G-R2, G-R3).
  *

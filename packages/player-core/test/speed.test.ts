@@ -1,3 +1,4 @@
+// Tests speed is kept in range and a show's speed beats the default.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { clampRate, rateFor } from '../src/speed.ts';

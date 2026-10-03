@@ -1,3 +1,4 @@
+// The owner's daily picks stored in the database, refusing out-of-date saves.
 /**
  * M15 T012 — the owner's picks, by day, in the database (specs/015-m15-admin/data-model.md).
  *

@@ -1,3 +1,4 @@
+// Loading, empty and failed-with-retry blocks, so nothing is ever blank.
 import type { ReactNode } from 'react';
 import { IconAlert, IconEmpty } from './Icons';
 

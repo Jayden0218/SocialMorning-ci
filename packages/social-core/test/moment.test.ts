@@ -1,3 +1,4 @@
+// Tests a comment's time is taken once when the box opens and never drifts.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { captureMoment } from '../src/moment.ts';

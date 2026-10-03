@@ -1,3 +1,4 @@
+// Tests creator extras in the app: hidden comments, announcements and polls.
 /**
  * M11 — the app side of the Studio: a host-hidden comment's placeholder, and the show page's
  * announcements and polls (specs/011-m11-studio FR-016, FR-020, FR-023).

@@ -1,3 +1,4 @@
+// Reads episode chapter lists and finds the chapter at a given time.
 import type { Chapter } from './types';
 
 /**

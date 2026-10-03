@@ -1,3 +1,4 @@
+// Tests that Discover only refreshes on focus when its copy is old.
 /**
  * M12 guard G-N9 (NEW-9, found on the iPhone): Discover refreshed through the pull spinner on
  * every focus. A focus refreshes only a copy older than FOCUS_REFRESH_MS.

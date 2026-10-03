@@ -1,3 +1,4 @@
+// Checks that sheets and pop-ups sit inside the app's providers, avoiding crashes.
 /**
  * gluestack draws Actionsheets, dialogs and toasts in a portal at GluestackUIProvider, so
  * anything inside a sheet can only reach contexts that wrap that provider. Found on the

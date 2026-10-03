@@ -1,3 +1,4 @@
+// Checks JSON request bodies with zod and answers 422 naming bad fields.
 import { validator } from 'hono/validator';
 import type { z, ZodType } from 'zod';
 import { ApiError } from './errors.ts';

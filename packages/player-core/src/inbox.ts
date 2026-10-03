@@ -1,3 +1,4 @@
+// Decides which new episodes from subscribed shows belong in the inbox.
 import type { InboxInput } from './types';
 
 /**

@@ -1,3 +1,4 @@
+// Session tokens: create, hash, look up the signed-in listener, require sign-in.
 import { createHash, randomBytes } from 'node:crypto';
 import type { Context, MiddlewareHandler } from 'hono';
 import type { Db } from '../db/db.ts';

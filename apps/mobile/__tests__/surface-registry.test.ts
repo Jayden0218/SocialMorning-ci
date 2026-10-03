@@ -1,3 +1,4 @@
+// Checks that every redesigned screen lists its design and an existing entry file.
 /**
  * M17 guard G-E6: the surface registry is whole — 84 in-scope surfaces (86 designs less the two
  * Coming soon designs with no entry point, FR-016), each naming a stored B design and an entry

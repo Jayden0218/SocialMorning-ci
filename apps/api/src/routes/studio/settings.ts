@@ -1,3 +1,4 @@
+// Studio settings routes: show overrides, helpers team, and giving the show back.
 /**
  * Studio API (`/v1/studio/*`) — US6: Settings, team, release
  */

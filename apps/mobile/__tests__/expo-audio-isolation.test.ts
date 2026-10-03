@@ -1,3 +1,4 @@
+// Checks that only the audio adapter imports expo-audio, and core logic stays pure.
 /**
  * The one architectural rule this milestone cannot afford to lose.
  *

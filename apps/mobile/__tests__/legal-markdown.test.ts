@@ -1,3 +1,4 @@
+// Tests turning the legal texts' Markdown into headings, items, tables and bold text.
 /**
  * The legal texts' Markdown → blocks. The break that turns the first test red: make
  * `spans` in `src/legal/markdown.ts` ignore `**` (every span comes back not bold).

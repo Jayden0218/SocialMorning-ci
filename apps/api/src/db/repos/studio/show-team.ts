@@ -1,3 +1,4 @@
+// A show's owner and helpers: add helpers by email, remove, give the show back.
 /**
  * M11 US6 — the owner's helpers (operators) and giving the show back (FR-025, FR-026).
  * There is no handle in this product, so an operator is added by their account's email.

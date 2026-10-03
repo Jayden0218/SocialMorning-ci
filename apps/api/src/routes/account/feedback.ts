@@ -1,3 +1,4 @@
+// Feedback route: send text and up to three images, signed in or not.
 import { Hono } from 'hono';
 import { z } from 'zod';
 import type { AuthEnv } from '../../auth/session.ts';

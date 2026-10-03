@@ -1,3 +1,4 @@
+// Tests that recommendation taps are queued offline and sent later without waiting.
 /**
  * M8 US6 (quickstart A23) — the outbox.
  *

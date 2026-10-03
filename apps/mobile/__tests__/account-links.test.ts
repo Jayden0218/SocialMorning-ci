@@ -1,3 +1,4 @@
+// Tests that Account's legal links and appeals email come from the server.
 /** M6 FR-027: the pages Account must reach, and the appeals address the server owns. */
 import { appealsMailto, APPEALS_KEY, legalLinks, refreshAppeals } from '@/social/links';
 import { createMemoryStores } from '@/storage/memory';

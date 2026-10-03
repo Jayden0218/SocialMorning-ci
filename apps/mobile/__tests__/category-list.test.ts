@@ -1,3 +1,4 @@
+// Tests the category page's All, Newest and "Not subscribed only" filters.
 /** Owner, 2026-10-01: the category page's "All" / "Newest" chips and "Not subscribed only". */
 import { categoryList, sortCategoryShows } from '@/discover/category-list';
 import type { ShowCard } from '@/social/api';

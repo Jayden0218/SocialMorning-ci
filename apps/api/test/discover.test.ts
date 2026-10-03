@@ -1,3 +1,4 @@
+// Tests Discover picks from feeds, bad picks skipped, and past-day fallback.
 /** quickstart A6 (guards G1 in the app, G6 in the payload). */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

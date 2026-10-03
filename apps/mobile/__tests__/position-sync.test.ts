@@ -1,3 +1,4 @@
+// Tests that play positions upload in limited amounts and retry after server errors.
 import { createPositionSync, RETRY_SCHEDULE_MS, UPLOAD_EVERY_MS } from '@/sync/positions';
 import { ApiError, type ApiClient, type PositionRowOut } from '@/social/api';
 import { createMemoryStores } from '@/storage/memory';

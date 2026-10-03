@@ -1,3 +1,4 @@
+// Tests turning one show's notifications off skips only that show.
 /**
  * M12 FR-093 — per-show notifications. Every live subscription is listed, on by default; a
  * show turned off is skipped by the M10b new-episode sender (and only that show).

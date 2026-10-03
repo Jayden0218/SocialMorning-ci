@@ -1,3 +1,4 @@
+// Tests loading and caching episode transcripts and chapters, including failures.
 import { fetchExtras, pickTranscript, readExtras } from '@/feeds/fetch-extras';
 import { createMemoryExtrasStore } from '@/storage/memory';
 

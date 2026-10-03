@@ -1,3 +1,4 @@
+// Tests the clip share text; closing the share sheet is not an error.
 import { shareClip, shareText } from '@/graph/share';
 import type { Clip } from '@/social/api';
 

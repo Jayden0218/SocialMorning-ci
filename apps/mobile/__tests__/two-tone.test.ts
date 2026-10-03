@@ -1,3 +1,4 @@
+// Tests that a section title splits at its first space into two colours.
 import { twoTone } from '@/ui/kit/two-tone';
 
 it('splits a section title at its first space; one word stays all accent (M12 FR-055)', () => {

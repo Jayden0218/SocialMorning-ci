@@ -1,3 +1,4 @@
+// Tests every reason stays under the length limit and long titles use short form.
 /**
  * M8 (quickstart A7) — the reason on every row.
  *

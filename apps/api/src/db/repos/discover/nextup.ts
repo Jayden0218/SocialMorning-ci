@@ -1,3 +1,4 @@
+// Builds "Next up" suggestions for an episode from four sources.
 /**
  * "Next up" (M5 FR-008/009, research R5): four sources for episode E, merged by the shared
  * `nextUp` rule (strongest reason wins, one entry per episode, the viewer's exclusions

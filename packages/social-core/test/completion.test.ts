@@ -1,3 +1,4 @@
+// Tests an episode heard in parts on different days counts as finished.
 /**
  * Guard G-C1 (M11): completion is the UNION of ranges across days and devices. The break that
  * turns it red: in `src/completion.ts`, replace `unionLength(ranges)` with the longest single

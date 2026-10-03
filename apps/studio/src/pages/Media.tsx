@@ -1,3 +1,4 @@
+// Page listing the show's stored audio and image files, with delete.
 import { useState } from 'react';
 import { api, HttpError, type Show } from '../api';
 import { shortDate } from '../format';

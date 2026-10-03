@@ -1,3 +1,4 @@
+// Tests the read-only wallet shows only the caller's own rows.
 /** M12 FR-105/FR-106 — the wallet and "Tips I gave" are READ ONLY, and say the store is not ready. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

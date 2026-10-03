@@ -1,3 +1,4 @@
+// Checks that every UI library part that shows text gives it a theme colour.
 /**
  * M9 guard G2 (FR-005): every gluestack part that draws words gives them a TOKEN colour by
  * itself. M7's worst defect was text with no colour at all (black on the old black app), and

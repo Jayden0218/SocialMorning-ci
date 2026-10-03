@@ -1,3 +1,4 @@
+// Data shapes for the queue, downloads, sleep timer, inbox and chapters.
 /** Types from specs/003-m2-real-client/contracts/player-core.ts. */
 export type Queue = readonly string[]; // episode ids, index 0 = next
 

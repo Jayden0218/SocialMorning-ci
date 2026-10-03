@@ -1,3 +1,4 @@
+// Tests that cached social data saves and loads with its ETag, even if corrupt.
 import { createSocialCache } from '@/social/cache';
 import { createMemorySocialCacheStore } from '@/storage/memory';
 import type { Social } from '@/social/api';

@@ -1,3 +1,4 @@
+// Tests the activity feed cache, offline copy, and unread count.
 /** T021: the feed cache — stale offline, 304 keeps the copy, the unread count clears on open. */
 import { createFeed, FEED_LAST_OPENED_KEY } from '@/graph/feed';
 import { ApiError, type ApiClient, type FeedItem } from '@/social/api';

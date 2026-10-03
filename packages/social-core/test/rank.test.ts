@@ -1,3 +1,4 @@
+// Tests new episodes score higher, and undated episodes count as a week old.
 /**
  * M8 (quickstart A3, A4, A5 · guards G-F1 and the fatigue rule) — the combined score.
  *

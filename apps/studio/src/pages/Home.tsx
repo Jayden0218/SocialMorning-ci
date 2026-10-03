@@ -1,3 +1,4 @@
+// The Studio home page: totals, a trend chart and the latest activity.
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { api, type Show } from '../api';

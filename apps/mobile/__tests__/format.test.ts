@@ -1,3 +1,4 @@
+// Tests the display helpers for time positions and short dates.
 /** Display helpers. Small, but `mmss` is what the gate reads off the screen. */
 import { ago, htmlToText, minutesLabel, mmss, noteParts, shortDate, timestampParts } from '@/ui/kit/format';
 

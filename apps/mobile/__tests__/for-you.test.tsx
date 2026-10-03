@@ -1,3 +1,4 @@
+// Tests the For You section: hidden when empty, reasons spoken, cached copy marked.
 /**
  * M8 US2 (quickstart A20, A21, A22) — the For You section and its last copy.
  *

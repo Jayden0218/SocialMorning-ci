@@ -1,3 +1,4 @@
+// Checks the parser really uses the hash function it is given.
 import { strict as assert } from 'node:assert';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';

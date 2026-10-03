@@ -1,3 +1,4 @@
+// Tests that favourites, moments and search history sync, keeping removals as markers.
 /**
  * M10b US2 on the phone: every change to favourites, favourite comments, moments and
  * search history is logged (removals as tombstones), uploaded, and the lists are rebuilt

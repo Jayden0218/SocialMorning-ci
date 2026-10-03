@@ -1,3 +1,4 @@
+// Test helper: real app on an in-memory Postgres with real migrations.
 /**
  * Test harness (research R8): an in-process Postgres (pglite) running the SAME
  * migration files the real database gets, and the real Hono app on top of it.

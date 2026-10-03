@@ -1,3 +1,4 @@
+// Checks that every Studio show route refuses people with no role on it.
 /**
  * M11 — guard G-A1: nobody sees a show's Studio data without a role on it (SC-005).
  * The matrix is read from the router's own route list, so a new `/shows/:show/*` route is

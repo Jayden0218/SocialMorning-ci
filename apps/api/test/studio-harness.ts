@@ -1,3 +1,4 @@
+// Test helpers for Studio tests: Studio sign-in, proven claims, seeded shows.
 /**
  * M11 — helpers for the Studio's tests: sign in the way the Studio does (auth with
  * `deviceLabel: 'studio-web'`, then trade the token for the cookie), prove a claim, and seed a

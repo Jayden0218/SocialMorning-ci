@@ -1,3 +1,4 @@
+// Public launch-screen routes: live promotions and anonymous view or tap counts.
 /**
  * M15 T020 — the public launch-screen routes the phone reads (contracts/admin-api.md "Public").
  *

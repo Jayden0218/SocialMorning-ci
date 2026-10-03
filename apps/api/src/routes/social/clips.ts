@@ -1,3 +1,4 @@
+// Clip routes: create, list, read and delete clips on an episode.
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { validateClipRange } from '@socialmorning/social-core';

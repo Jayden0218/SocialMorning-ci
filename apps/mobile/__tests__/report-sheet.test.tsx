@@ -1,3 +1,4 @@
+// Tests the report sheet: pick a reason, add a note, send, or sign in.
 /** M6 US1 (M9: now a gluestack Actionsheet, so it renders inside the provider's overlay): the report sheet collects one reason + a note and hands them to the safety layer; own content is refused in place. */
 import { createElement } from 'react';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';

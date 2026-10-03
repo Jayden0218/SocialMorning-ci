@@ -1,3 +1,4 @@
+// Tests that listened time is recorded as ranges and uploaded, even after offline.
 /** quickstart A11: TICKs → listened rows; a seek closes the interval; pushed once as the whole set; offline rows stay dirty. */
 import { createListened } from '@/graph/listened';
 import { ApiError, type ApiClient, type ListenedDay } from '@/social/api';

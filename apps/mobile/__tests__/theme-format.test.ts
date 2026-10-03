@@ -1,3 +1,4 @@
+// Checks that theme colours are written in the form that keeps transparency.
 /**
  * M12 guard G-T2: theme colours are written in UniWind's documented form — the real colour,
  * hex or rgba(), under its `--color-` name (docs.uniwind.dev/theming/global-css). One light

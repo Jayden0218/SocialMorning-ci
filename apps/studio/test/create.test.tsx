@@ -1,3 +1,4 @@
+// Tests creating a show in one form and uploading and publishing an episode.
 import { afterEach, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, screen } from '@testing-library/react';
 import axe from 'axe-core';

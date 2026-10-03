@@ -1,3 +1,4 @@
+// Launch-screen promotions: store, schedule, count views and taps as totals only.
 /**
  * M15 T020 — the owner's launch-screen promotions (constitution v2.4.0; FR-013–FR-017).
  *

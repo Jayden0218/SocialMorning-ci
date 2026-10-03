@@ -1,3 +1,4 @@
+// Curated issues and collections stored in the database, with save and retire.
 /**
  * M15 T012 — curated issues and collections in the database (FR-010). Same rules as the files
  * (`validateIssues`, `validateCollections`), same version check as picks (FR-012, G-P3).

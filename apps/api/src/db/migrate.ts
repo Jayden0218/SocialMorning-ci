@@ -1,3 +1,4 @@
+// Runs every database migration file not yet applied, in order.
 import { readdir, readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';

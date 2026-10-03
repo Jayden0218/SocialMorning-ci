@@ -1,3 +1,4 @@
+// Studio host routes: list hosts, remove one, make and accept invite links.
 /**
  * Studio API (`/v1/studio/*`) — M14 US2: hosts
  */

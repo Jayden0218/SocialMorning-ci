@@ -1,3 +1,4 @@
+// The shared database interface, with adapters for real Postgres and in-memory pglite.
 /**
  * The one database interface the repositories use. Two adapters satisfy it:
  * `fromPostgres` (production, the `postgres` driver on Neon) and `fromPglite`

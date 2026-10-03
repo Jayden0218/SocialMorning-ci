@@ -1,3 +1,4 @@
+// A simple string hash that runs on the phone, used for episode ids.
 /**
  * A deterministic string hash that runs on the phone (research R6).
  *

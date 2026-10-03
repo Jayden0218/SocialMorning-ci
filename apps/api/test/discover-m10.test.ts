@@ -1,3 +1,4 @@
+// Tests Discover's extra sections, hidden shows leaving them, and catalogue outages.
 /**
  * M10 (2026-09-27): Discover's additions — shows, newShows, followedHere, said,
  * collections, per-pick stats — and /v1/categories. Guards: G6 (no display name in any

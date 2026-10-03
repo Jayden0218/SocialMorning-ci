@@ -1,3 +1,4 @@
+// Studio media library routes: list a show's stored files and delete unused ones.
 /**
  * Studio API (`/v1/studio/*`) — M14 US5: the show's media library
  */

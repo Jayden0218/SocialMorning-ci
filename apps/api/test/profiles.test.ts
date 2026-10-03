@@ -1,3 +1,4 @@
+// Tests profiles and that private listeners' stats stay hidden.
 /** quickstart A7 (privacy half, guard G5) and the profile shape. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

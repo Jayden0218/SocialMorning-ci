@@ -1,3 +1,4 @@
+// The Studio side menu listing each section, marking unbuilt ones "Soon".
 import { NavLink, useNavigate } from 'react-router';
 import type { Show } from '../api';
 import { useSession } from '../session';

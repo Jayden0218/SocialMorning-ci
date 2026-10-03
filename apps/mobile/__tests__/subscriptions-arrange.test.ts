@@ -1,3 +1,4 @@
+// Tests that starred subscriptions get their own section, with search and sorting.
 /**
  * M12 guard G-ST3 (FR-081): My subscriptions — starred shows sit in their own section, the
  * search filters both, and each sort orders as named. The break: return every row in `rest`.

@@ -1,3 +1,4 @@
+// Tests that similar shows come from the same genre, excluding itself and hidden shows.
 /**
  * M12 guard G-SH1 (FR-063): About's similar shows come from the show's genre chart — never
  * the show itself, never a hidden show, at most 6. The break: drop the self filter.

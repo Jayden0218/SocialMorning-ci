@@ -1,3 +1,4 @@
+// Shared data shapes for positions, playback snapshots, moments and comment order.
 /** One observation of a listener's place in an episode (research R5). */
 export type PositionObs = {
   episodeId: string;

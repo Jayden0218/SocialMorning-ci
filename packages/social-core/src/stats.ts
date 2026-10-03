@@ -1,3 +1,4 @@
+// Listening totals for the last 7 days and all time, with top shows.
 /**
  * M4 FR-012: totals over listened rows (one per episode per day, already unioned across
  * devices by the server). Windows: the last 7 days including today, and all time.

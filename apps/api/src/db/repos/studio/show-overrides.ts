@@ -1,3 +1,4 @@
+// Owner changes to how a show looks in the app, like title, cover, contacts.
 /**
  * M11 US6 — how a show appears in the app, set by its owner (FR-024). NULL in a field means
  * "use what the feed says"; the feed stays the source of everything else.

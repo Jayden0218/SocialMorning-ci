@@ -1,3 +1,4 @@
+// Tests creating, validating, listing and deleting clips; retries make one clip.
 /**
  * quickstart A9 (clip half) + the routes in contracts/api.md. Guard G8: one clip per
  * (author, clientId) — the UNIQUE plus the repo's read-first — watched red by dropping

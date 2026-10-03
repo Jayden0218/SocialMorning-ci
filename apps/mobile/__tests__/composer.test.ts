@@ -1,3 +1,4 @@
+// Tests the comment box: drafts kept when signed out or failing, length limits.
 import { createComposer } from '@/social/composer';
 import { createDrafts } from '@/social/drafts';
 import { createSocialCache } from '@/social/cache';

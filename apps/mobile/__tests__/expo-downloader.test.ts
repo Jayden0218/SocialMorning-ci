@@ -1,3 +1,4 @@
+// Tests where an interrupted download resumes from, and file extension choice.
 /**
  * The pure parts of the expo-file-system adapter. What this proves: where a transfer
  * continues from (gap 1 / D0 on build 3: a kill or a network loss must resume from the

@@ -1,3 +1,4 @@
+// Plain web pages: privacy, community rules, and where to get the app.
 /** M6 (FR-027, FR-028): /privacy, /rules and /get — plain pages the owner can edit here; no build needed. */
 import { Hono } from 'hono';
 import type { AuthEnv } from '../auth/session.ts';

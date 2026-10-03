@@ -1,3 +1,4 @@
+// Page listing every episode of the show with its numbers.
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { api, type Show } from '../api';

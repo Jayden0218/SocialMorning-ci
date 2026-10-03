@@ -1,3 +1,4 @@
+// Page listing subscribers and trends, and muting listeners from commenting.
 import { useState } from 'react';
 import { useLocation } from 'react-router';
 import { api, HttpError, type Show } from '../api';

@@ -1,3 +1,4 @@
+// Tests registering an episode over HTTP, including a mismatched id.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';

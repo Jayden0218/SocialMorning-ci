@@ -1,3 +1,4 @@
+// Tests that the next-episode offer shows only at the end with an empty queue.
 /** quickstart A10 (guard G7): the offer is shown only at `ended` with an empty queue, and choosing it is the only thing that loads. */
 import { endOffer } from '@/discover/end-offer';
 import { createPlayerRuntime, type PlayableEpisode } from '@/playback/store';

@@ -1,3 +1,4 @@
+// Tests that admin picks show up at once, never leave gaps, refuse stale saves.
 /**
  * M15 guards G-P1, G-P2, G-P3 (SC-001, FR-008, FR-009, FR-012) — picks edited in Admin reach
  * `/v1/discover` with no deploy, never leave the section empty, and a stale save is refused.

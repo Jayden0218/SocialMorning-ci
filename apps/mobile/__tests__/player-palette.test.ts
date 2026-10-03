@@ -1,3 +1,4 @@
+// Tests that a show's theme colour tints the player only while text stays readable.
 /**
  * M17 (constitution v3.0.0, `Player-B`): the player uses the light Editorial palette, and a
  * show's Studio theme colour tints its top — only as far as the text and secondary text still

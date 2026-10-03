@@ -1,3 +1,4 @@
+// Episode social poll route: comments and heat curve in one cached answer.
 import { Hono } from 'hono';
 import { createHash } from 'node:crypto';
 import { normaliseHeat } from '@socialmorning/social-core';

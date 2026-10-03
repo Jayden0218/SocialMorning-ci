@@ -1,3 +1,4 @@
+// Starts the real API on a test database for browser end-to-end tests.
 /**
  * The real API for the Studio's end-to-end test (ci/workflows/e2e.yml) — NOT used in production.
  * Real app, real PostgreSQL, real sessions. Two things are stand-ins, and only these:

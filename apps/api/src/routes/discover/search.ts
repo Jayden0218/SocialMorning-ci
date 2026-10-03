@@ -1,3 +1,4 @@
+// Search routes: shows and episodes from Apple, and people by name, rate-limited.
 import { Hono } from 'hono';
 import { collapseByFeed, collapseEpisodes } from '@socialmorning/social-core';
 import type { AuthEnv } from '../../auth/session.ts';

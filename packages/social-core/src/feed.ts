@@ -1,3 +1,4 @@
+// Following feed rules: when a listen is posted, the order, and unread count.
 /**
  * M4 research R4: the Following feed's rules, shared so the phone can show its owner the
  * same "listened" moment the server will write.

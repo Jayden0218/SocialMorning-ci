@@ -1,3 +1,4 @@
+// Tests email code sign-in: new and known emails, wrong codes, single use.
 /**
  * Email-code sign-in (owner, 2026-09-27): no password anywhere in the app.
  * Breaks that turn these red: accept any code in `checkCode`; drop the attempts check;

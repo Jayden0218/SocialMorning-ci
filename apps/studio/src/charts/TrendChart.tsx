@@ -1,3 +1,4 @@
+// Draws a number over time as a line chart, plus a screen-reader table.
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { palette } from '../tokens';
 import { axisDate, num } from '../format';

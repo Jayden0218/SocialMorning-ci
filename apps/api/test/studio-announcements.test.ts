@@ -1,3 +1,4 @@
+// Tests announcements' monthly push limit, polls voting, and the app's extras call.
 /**
  * M11 US5 — announcements, polls, the app's extras call, and share events.
  *

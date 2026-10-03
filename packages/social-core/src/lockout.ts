@@ -1,3 +1,4 @@
+// After repeated wrong passwords, locks sign-in for a growing time, at most 15 minutes.
 /**
  * Sign-in throttling (research R3, FR-005).
  *

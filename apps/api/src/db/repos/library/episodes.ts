@@ -1,3 +1,4 @@
+// Saves and reads episodes the app registers; a known duration is never overwritten.
 import type { Db } from '../../db.ts';
 
 export type EpisodeRow = {

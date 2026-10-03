@@ -1,3 +1,4 @@
+// Storage for voice post recordings in Vercel Blob.
 /**
  * M12 FR-104 — where voice status posts live: the Vercel Blob store `socialmorning-voice`,
  * approved by name by the owner (tasks.md T126, gate A1; constitution 2.2.0 exception). Its
