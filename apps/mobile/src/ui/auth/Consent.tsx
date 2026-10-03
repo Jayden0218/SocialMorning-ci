@@ -5,17 +5,17 @@
  * document overlay is gluestack's Modal at full size.
  */
 import { useState } from 'react';
-import { Pressable } from '../lib/pressable';
-import { Modal, ModalBackdrop, ModalContent } from '../lib/modal';
-import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '../lib/actionsheet';
-import { Text } from '../lib/text';
-import { Box } from '../lib/box';
-import { hit } from '../../design';
-import { LEGAL_TEXT } from '../../legal/texts';
-import { LegalDoc } from '../LegalDoc';
-import { Icon, type IconName } from '../Icon';
-import { useStores } from '../providers';
-import { useColours } from '../useColours';
+import { Pressable } from '@/ui/lib/pressable';
+import { Modal, ModalBackdrop, ModalContent } from '@/ui/lib/modal';
+import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '@/ui/lib/actionsheet';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
+import { hit } from '@/design';
+import { LEGAL_TEXT } from '@/legal/texts';
+import { LegalDoc } from '@/ui/shell/LegalDoc';
+import { Icon, type IconName } from '@/ui/kit/Icon';
+import { useStores } from '@/ui/shell/providers';
+import { useColours } from '@/ui/kit/useColours';
 import { display } from './display';
 import { inkOn } from './AuthShell';
 

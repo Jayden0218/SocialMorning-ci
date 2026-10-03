@@ -1,7 +1,7 @@
 /** M12 FR-042: the chip shows at 2 or more, never at 0, 1 or when the count is unknown (offline). */
-jest.mock('../src/sync/device-id', () => ({ deviceId: async () => 'install-1' }));
-jest.mock('../src/social/m12-api', () => ({ useM12Api: () => ({}) }));
-import { liveLabel } from '../src/social/live';
+jest.mock('@/sync/device-id', () => ({ deviceId: async () => 'install-1' }));
+jest.mock('@/social/m12-api', () => ({ useM12Api: () => ({}) }));
+import { liveLabel } from '@/social/live';
 
 it('says "N listening now" only for 2 or more known listeners', () => {
   expect(liveLabel(undefined)).toBeUndefined();

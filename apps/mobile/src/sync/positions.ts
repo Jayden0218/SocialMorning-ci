@@ -15,10 +15,10 @@
  *
  * Pure over injected pieces; `__tests__/position-sync.test.ts` (A19, A20) is the spec.
  */
-import type { ApiClient, EpisodeRegistration, PositionRowOut } from '../social/api';
-import { ApiError } from '../social/api';
-import type { PositionRow, PositionStore } from '../storage/types';
-import type { SaveReason } from '../playback/types';
+import type { ApiClient, EpisodeRegistration, PositionRowOut } from '@/social/api';
+import { ApiError } from '@/social/api';
+import type { PositionRow, PositionStore } from '@/storage/types';
+import type { SaveReason } from '@/playback/types';
 
 export const UPLOAD_EVERY_MS = 30_000;
 export const RETRY_SCHEDULE_MS = [2_000, 4_000, 8_000, 16_000, 30_000, 30_000] as const;

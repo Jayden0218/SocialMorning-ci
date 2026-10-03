@@ -2,7 +2,7 @@
  * The loading mark (owner, 2026-09-27). The break that turns the first test red: make
  * `barDelay` return 0, so every bar moves together and the wave is gone.
  */
-import { LOADER_BARS, LOADER_CYCLE_MS, barDelay, barRest } from '../src/ui/loader-timing';
+import { LOADER_BARS, LOADER_CYCLE_MS, barDelay, barRest } from '@/ui/kit/loader-timing';
 
 it('the bars start one after another, all within the first half of the cycle', () => {
   const delays = Array.from({ length: LOADER_BARS }, (_, i) => barDelay(i));

@@ -1,9 +1,9 @@
 /**
  * The launch screen's timing: at least 1 s, waits for the syncs, never longer than the
  * ceiling. The break that turns the first test red: drop `sleep(minMs)` from
- * `waitForStartup` in `src/ui/startup.ts`.
+ * `waitForStartup` in `src/ui/shell/startup.ts`.
  */
-import { SPLASH_MIN_MS, waitForStartup } from '../src/ui/startup';
+import { SPLASH_MIN_MS, waitForStartup } from '@/ui/shell/startup';
 
 beforeEach(() => jest.useFakeTimers());
 afterEach(() => jest.useRealTimers());

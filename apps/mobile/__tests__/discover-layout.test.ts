@@ -6,8 +6,8 @@
  * The break that turns it red: ignore `layout.hidden` in `sectionOrder`
  * (src/discover/sections.ts) — e.g. `const hidden = new Set<SectionId>();`.
  */
-import { SECTION_IDS, buildModel, sectionOrder } from '../src/discover/sections';
-import type { Discover, DiscoverItem, EpisodeCard } from '../src/social/api';
+import { SECTION_IDS, buildModel, sectionOrder } from '@/discover/sections';
+import type { Discover, DiscoverItem, EpisodeCard } from '@/social/api';
 
 const card = (id: string): EpisodeCard => ({ id, feedUrl: `https://f/${id}.xml`, guid: id, title: `T ${id}`, showTitle: `S ${id}`, enclosureUrl: `https://a/${id}.mp3` });
 const item = (kind: DiscoverItem['kind'], id: string): DiscoverItem => ({ kind, key: id, episode: card(id) });

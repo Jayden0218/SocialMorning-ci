@@ -2,7 +2,7 @@
  * `MiniPlayer` (M7 T011) replaces `MiniBar`. The look changed; the contract did not.
  *
  * Two of these assertions exist because of the phone, not because of a design:
- *  - the bar must be **absent on `/player`** — `docs/m7-before/06-player.png` caught the
+ *  - the bar must be **absent on `/player`** — `docs/archive/m7-before/06-player.png` caught the
  *    old one drawing underneath the full player, so the episode announced twice;
  *  - the play/pause button's **name flips with the state** — M6's J5 drove the player by
  *    accessible name alone, and that only worked because this label is state-driven.
@@ -10,7 +10,7 @@
 import { createElement } from 'react';
 import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { colour, hit } from '../src/design';
+import { colour, hit } from '@/design';
 
 const mockPause = jest.fn();
 const mockPlay = jest.fn();
@@ -23,11 +23,11 @@ jest.mock('expo-router', () => ({
   usePathname: () => '/',
   useIsFocused: () => mockFocused,
 }));
-jest.mock('../src/playback/store', () => ({
+jest.mock('@/playback/store', () => ({
   usePlayer: () => ({ play: mockPlay, pause: mockPause }),
   usePlayerState: () => mockPlayerState,
 }));
-jest.mock('../src/ui/providers', () => ({
+jest.mock('@/ui/shell/providers', () => ({
   useStores: () => ({
     // M10b US4: MiniPlayer and its ProgressRing read the palette; pin it to light.
     settings: { get: () => 'light' },
@@ -41,9 +41,9 @@ jest.mock('../src/ui/providers', () => ({
   }),
 }));
 
-import { MiniPlayer, TabsMiniPlayer } from '../src/ui/MiniPlayer';
-import { MINI_PLAYER_HEIGHT } from '../src/ui/Screen';
-import { TAB_HREF } from '../src/ui/tabs';
+import { MiniPlayer, TabsMiniPlayer } from '@/ui/player/MiniPlayer';
+import { MINI_PLAYER_HEIGHT } from '@/ui/kit/Screen';
+import { TAB_HREF } from '@/ui/shell/tabs';
 
 const render = (el: React.ReactElement): ReactTestRenderer => {
   let r!: ReactTestRenderer;

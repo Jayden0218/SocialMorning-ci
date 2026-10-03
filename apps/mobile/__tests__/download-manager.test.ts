@@ -3,11 +3,11 @@
  * proves: the one-at-a-time / order / Wi-Fi / budget / resume / join / remove rules.
  * What it does not: that expo-file-system's DownloadTask resumes on the phone — D0.
  */
-import { createDownloadManager, DEFAULT_BUDGET_BYTES } from '../src/downloads/manager';
-import type { Downloader, DownloadRow, Network } from '../src/downloads/types';
-import { createMemoryStores } from '../src/storage/memory';
-import { episodeId } from '../src/storage/schema';
-import { hash } from '../src/feeds/hash';
+import { createDownloadManager, DEFAULT_BUDGET_BYTES } from '@/downloads/manager';
+import type { Downloader, DownloadRow, Network } from '@/downloads/types';
+import { createMemoryStores } from '@/storage/memory';
+import { episodeId } from '@/storage/schema';
+import { hash } from '@/feeds/hash';
 import type { Episode, ParsedFeed, Show } from '@socialmorning/feed-parser';
 
 const FEED = 'https://feeds.example.com/x.xml';

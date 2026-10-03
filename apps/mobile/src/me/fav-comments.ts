@@ -3,8 +3,8 @@
  * enough of the comment kept to list it (text, episode, moment, author name) — the comment
  * itself may later be deleted, and then the star says so rather than vanishing.
  */
-import type { SettingsStore } from '../storage/types';
-import { recordChange } from '../sync/library';
+import type { SettingsStore } from '@/storage/types';
+import { recordChange } from '@/sync/library';
 import { readList, writeList } from './local-list';
 
 export const FAV_COMMENTS_KEY = 'me.favComments';

@@ -15,24 +15,24 @@
  */
 import { Link, router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable } from '../../src/ui/lib/pressable';
-import { SafeAreaView } from '../../src/ui/lib/safe-area-view';
-import { ScrollView } from '../../src/ui/lib/scroll-view';
-import { Text } from '../../src/ui/lib/text';
-import { Box } from '../../src/ui/lib/box';
-import { hit } from '../../src/design';
-import { useColours } from '../../src/ui/useColours';
-import { Icon } from '../../src/ui/Icon';
-import { createFeed } from '../../src/graph/feed';
-import { inboxIds } from '../../src/inbox';
-import { listMoments } from '../../src/me/moments';
-import { useSocial } from '../../src/social/context';
-import { Card, CardDivider } from '../../src/ui/Card';
-import { MenuRow, MenuTile } from '../../src/ui/me/parts';
-import { useComingSoon } from '../../src/ui/ComingSoon';
-import { readStoreReady } from '../../src/social/store-ready';
-import { useStores } from '../../src/ui/providers';
-import { BOTTOM_INSET } from '../../src/ui/Screen';
+import { Pressable } from '@/ui/lib/pressable';
+import { SafeAreaView } from '@/ui/lib/safe-area-view';
+import { ScrollView } from '@/ui/lib/scroll-view';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
+import { hit } from '@/design';
+import { useColours } from '@/ui/kit/useColours';
+import { Icon } from '@/ui/kit/Icon';
+import { createFeed } from '@/graph/feed';
+import { inboxIds } from '@/me/inbox';
+import { listMoments } from '@/me/moments';
+import { useSocial } from '@/social/context';
+import { Card, CardDivider } from '@/ui/kit/Card';
+import { MenuRow, MenuTile } from '@/ui/me/parts';
+import { useComingSoon } from '@/ui/kit/ComingSoon';
+import { readStoreReady } from '@/social/store-ready';
+import { useStores } from '@/ui/shell/providers';
+import { BOTTOM_INSET } from '@/ui/kit/Screen';
 
 const TAP = { minHeight: hit.min };
 /** The picture: 96 pt, as in `Me-B`. A size, so it stays a style. */

@@ -1,6 +1,6 @@
 /** M12 guard G-B11 (B11): an empty Downloads said "Used 1 MB". The break: floor 0 bytes at 1 MB again. */
-jest.mock('../src/ui/providers', () => ({ useDownloads: () => ({}), useToast: () => () => undefined, useStores: () => ({}) }));
-import { mb } from '../src/ui/DownloadButton';
+jest.mock('@/ui/shell/providers', () => ({ useDownloads: () => ({}), useToast: () => () => undefined, useStores: () => ({}) }));
+import { mb } from '@/ui/episode/DownloadButton';
 
 it('nothing downloaded is 0 MB; a little is at least 1 MB', () => {
   expect(mb(0)).toBe('0 MB');

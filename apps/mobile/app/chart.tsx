@@ -9,20 +9,20 @@
  * rows (divided by hairlines). Same data, same order, same open and play.
  */
 import { useCallback, useEffect, useState } from 'react';
-import { FlatList } from '../src/ui/lib/flat-list';
-import { Pressable } from '../src/ui/lib/pressable';
-import { Text } from '../src/ui/lib/text';
-import { Box } from '../src/ui/lib/box';
-import { hit } from '../src/design';
-import { Loader } from '../src/ui/Loader';
-import { Card } from '../src/ui/Card';
-import { Artwork } from '../src/ui/Artwork';
-import { EmptyPicture } from '../src/ui/me/parts';
-import { EpisodeLine, PlayButton } from '../src/ui/discover/parts';
-import { useCardActions } from '../src/discover/useDiscover';
-import { useSafety } from '../src/safety/context';
-import { useM12Api, type ChartItem } from '../src/social/m12-api';
-import { PageHeader } from '../src/ui/PageHeader';
+import { FlatList } from '@/ui/lib/flat-list';
+import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
+import { hit } from '@/design';
+import { Loader } from '@/ui/kit/Loader';
+import { Card } from '@/ui/kit/Card';
+import { Artwork } from '@/ui/kit/Artwork';
+import { EmptyPicture } from '@/ui/me/parts';
+import { EpisodeLine, PlayButton } from '@/ui/discover/parts';
+import { useCardActions } from '@/discover/useDiscover';
+import { useSafety } from '@/safety/context';
+import { useM12Api, type ChartItem } from '@/social/m12-api';
+import { PageHeader } from '@/ui/kit/PageHeader';
 
 const TAP = { minHeight: hit.min };
 /** How many ranks are drawn as cards above the rows (`Chart-B`: 1 wide, 2 and 3 side by side). */

@@ -3,7 +3,7 @@
  * turns the first test red: return 'submit' without checking `agreed` in
  * `src/ui/auth/rules.ts`.
  */
-import { looksLikeEmail, submitAction } from '../src/ui/auth/rules';
+import { looksLikeEmail, submitAction } from '@/ui/auth/rules';
 
 it('not ticked: the button asks instead of signing in', () => {
   expect(submitAction({ valid: true, agreed: false, busy: false })).toBe('ask');

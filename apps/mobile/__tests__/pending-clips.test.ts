@@ -1,8 +1,8 @@
 /** quickstart A12: a clip made offline survives a restart and is sent ONCE with the same clientId. */
-import { createClips } from '../src/graph/clips';
-import type { ApiClient, Clip } from '../src/social/api';
-import { ApiError } from '../src/social/api';
-import { createMemoryPendingClipStore } from '../src/storage/memory';
+import { createClips } from '@/graph/clips';
+import type { ApiClient, Clip } from '@/social/api';
+import { ApiError } from '@/social/api';
+import { createMemoryPendingClipStore } from '@/storage/memory';
 
 const clipOf = (c: { clientId: string; startMs: number; endMs: number; caption: string }, episodeId: string): Clip =>
   ({ id: `id-${c.clientId}`, author: { id: 'me', displayName: 'Me' }, episodeId, startMs: c.startMs, endMs: c.endMs, caption: c.caption, createdAt: 'now', deleted: false });

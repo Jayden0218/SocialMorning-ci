@@ -10,7 +10,7 @@
  * `leading` the line height (B's own, tighter than the 1.15 default).
  */
 import { Platform, type TextStyle } from 'react-native';
-import { fontsStore } from '../../design/fonts';
+import { fontsStore } from '@/design/fonts';
 
 const SERIF = Platform.select({ ios: 'Georgia', default: 'serif' });
 

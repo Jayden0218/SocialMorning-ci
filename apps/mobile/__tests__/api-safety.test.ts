@@ -1,5 +1,5 @@
 /** The M6 client calls and the suspended hook (FR-015). */
-import { ApiError, createApi } from '../src/social/api';
+import { ApiError, createApi } from '@/social/api';
 
 function fakeFetch(handler: (url: string, init: RequestInit) => { status: number; body?: unknown }) {
   const calls: { url: string; init: RequestInit }[] = [];

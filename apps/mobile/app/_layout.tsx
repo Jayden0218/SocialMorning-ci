@@ -3,7 +3,7 @@
  * the toast host (FR-015). Everything else is a screen.
  */
 import '../global.css';
-import '../src/design/tailwind';
+import '@/design/tailwind';
 import { Stack, type ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -11,20 +11,20 @@ import { useState } from 'react';
 import { LogBox } from 'react-native';
 import { SafeAreaListener } from 'react-native-safe-area-context';
 import { Uniwind } from 'uniwind';
-import { SafeAreaView } from '../src/ui/lib/safe-area-view';
-import { hit } from '../src/design';
-import { Box } from '../src/ui/lib/box';
-import { Text } from '../src/ui/lib/text';
-import { Pressable } from '../src/ui/lib/pressable';
-import { AppProviders, useStores } from '../src/ui/providers';
-import { useColours } from '../src/ui/useColours';
-import { SocialProvider } from '../src/social/context';
-import { GraphProvider } from '../src/graph/context';
-import { SafetyProvider } from '../src/safety/context';
-import { CarLibrarySync } from '../src/outside/CarLibrarySync';
-import { MiniPlayer } from '../src/ui/MiniPlayer';
-import { leavingToTabs, rootBarHidden, type LeavingToTabs } from '../src/ui/mini-player-swipe';
-import { GluestackUIProvider } from '../src/ui/lib/gluestack-ui-provider';
+import { SafeAreaView } from '@/ui/lib/safe-area-view';
+import { hit } from '@/design';
+import { Box } from '@/ui/lib/box';
+import { Text } from '@/ui/lib/text';
+import { Pressable } from '@/ui/lib/pressable';
+import { AppProviders, useStores } from '@/ui/shell/providers';
+import { useColours } from '@/ui/kit/useColours';
+import { SocialProvider } from '@/social/context';
+import { GraphProvider } from '@/graph/context';
+import { SafetyProvider } from '@/safety/context';
+import { CarLibrarySync } from '@/outside/CarLibrarySync';
+import { MiniPlayer } from '@/ui/player/MiniPlayer';
+import { leavingToTabs, rootBarHidden, type LeavingToTabs } from '@/ui/player/mini-player-swipe';
+import { GluestackUIProvider } from '@/ui/lib/gluestack-ui-provider';
 
 // Owner, 2026-09-27: no warning bar over the app in Debug builds. Warnings still print
 // in the Metro terminal; Release builds never show the bar.
@@ -93,7 +93,7 @@ export default function RootLayout(): React.ReactElement {
 function RootStack(): React.ReactElement {
   const stores = useStores();
   const c = useColours(stores.settings);
-  // M16a bug 5: which page, if any, is being swiped back onto the tabs (src/ui/mini-player-swipe.ts).
+  // M16a bug 5: which page, if any, is being swiped back onto the tabs (src/ui/player/mini-player-swipe.ts).
   const [leaving, setLeaving] = useState<LeavingToTabs>(undefined);
   return (
       <SafeAreaView className="flex-1 bg-background" edges={['bottom']}>
@@ -102,7 +102,7 @@ function RootStack(): React.ReactElement {
         <CarLibrarySync />
         {/*
           * M16a T002 (FR-012, owner 2026-10-02, said twice): no iOS-native header on any page.
-          * Every page draws the app's own bar (src/ui/PageHeader.tsx, or TopBar on the show,
+          * Every page draws the app's own bar (src/ui/kit/PageHeader.tsx, or TopBar on the show,
           * episode and player pages); the titles below stay for the screen name a screen reader
           * and the app switcher use. `gestureEnabled` is untouched, so edge-swipe back works as
           * before on every page. Guard G-N1: __tests__/no-native-ui.test.ts.

@@ -1,11 +1,11 @@
 /**
  * The Terms gate (owner, 2026-09-27): not accepted until Accept is pressed, remembered
  * after, asked again when the text's version changes. The break that turns the first
- * test red: make `hasAccepted` in `src/ui/terms.ts` return `true`.
+ * test red: make `hasAccepted` in `src/ui/shell/terms.ts` return `true`.
  */
-import { createMemoryStores } from '../src/storage/memory';
-import { CONSENT_ITEMS, TERMS_KEY, TERMS_VERSION, accept, hasAccepted } from '../src/ui/terms';
-import { LEGAL_TEXT } from '../src/legal/texts';
+import { createMemoryStores } from '@/storage/memory';
+import { CONSENT_ITEMS, TERMS_KEY, TERMS_VERSION, accept, hasAccepted } from '@/ui/shell/terms';
+import { LEGAL_TEXT } from '@/legal/texts';
 
 it('a fresh install has not accepted', () => {
   const { settings } = createMemoryStores((x) => x);

@@ -1,7 +1,7 @@
 /**
  * M17 guard G-S2 — a page opened from Search is an ordinary push, so the edge swipe closes it.
  *
- * Phone walk 2026-10-02 (docs/M16a-GATE-LOG.md, Tier B A): an episode opened from Search could not
+ * Phone walk 2026-10-02 (docs/gate-logs/M16a-GATE-LOG.md, Tier B A): an episode opened from Search could not
  * be closed with the left-edge swipe, 0 of 5; ← worked. Cause: Search was
  * `presentation: 'transparentModal'` in app/_layout.tsx, and expo-router's native stack groups
  * every later route with a modal — `getModalRouteKeys` marks a route with no `presentation` after

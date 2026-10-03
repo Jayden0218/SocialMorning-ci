@@ -4,12 +4,12 @@
  * useful still says what fills it (M6 FR-019), as NextUp did here before.
  * M17 (`Episode-B`): the heading is the shared serif section title.
  */
-import { Box } from '../lib/box';
-import { SectionTitle } from '../discover/parts';
+import { Box } from '@/ui/lib/box';
+import { SectionTitle } from '@/ui/discover/parts';
 import { enoughNextUp } from '@socialmorning/social-core';
-import { EmptyState } from '../EmptyState';
-import { EpisodeRow } from '../EpisodeRow';
-import type { EpisodeCard, NextUpItem } from '../../social/api';
+import { EmptyState } from '@/ui/kit/EmptyState';
+import { EpisodeRow } from './EpisodeRow';
+import type { EpisodeCard, NextUpItem } from '@/social/api';
 
 export const RELATED_MAX = 5;
 

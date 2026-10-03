@@ -5,7 +5,7 @@
  * opens the app. The name `NowPlaying` must match `app.json`'s widget entry.
  */
 import { FlexWidget, TextWidget, requestWidgetUpdate, type WidgetTaskHandler } from 'react-native-android-widget';
-import { colour } from '../design';
+import { colour } from '@/design';
 import { outsideCard, outsideToggle, type OutsideSink } from './bridge';
 import type { NowPlaying } from './now-playing';
 

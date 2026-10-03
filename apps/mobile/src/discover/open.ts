@@ -3,8 +3,8 @@
  * as M4's clip resolution): fetch the show's feed if unknown, find the episode by guid,
  * open its page. The show is never subscribed on the listener's behalf.
  */
-import type { EpisodeCard } from '../social/api';
-import type { Stores } from '../storage/types';
+import type { EpisodeCard } from '@/social/api';
+import type { Stores } from '@/storage/types';
 
 export type OpenDeps = { stores: Stores; refreshShow: (feedUrl: string) => Promise<unknown> };
 

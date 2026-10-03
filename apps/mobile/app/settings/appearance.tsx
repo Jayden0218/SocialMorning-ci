@@ -8,16 +8,16 @@
  * B's theme preview and Light / Dark / Phone cards are not built: dark mode was removed.
  */
 import { useState } from 'react';
-import { Pressable } from '../../src/ui/lib/pressable';
-import { ScrollView } from '../../src/ui/lib/scroll-view';
-import { Text } from '../../src/ui/lib/text';
-import { Box } from '../../src/ui/lib/box';
-import { hit } from '../../src/design';
-import { useStores } from '../../src/ui/providers';
-import { ACCENT_KEY, applyAccent, readAccent } from '../../src/design/accent';
-import { ACCENTS, type AccentName } from '../../src/design';
-import { Icon } from '../../src/ui/Icon';
-import { PageHeader } from '../../src/ui/PageHeader';
+import { Pressable } from '@/ui/lib/pressable';
+import { ScrollView } from '@/ui/lib/scroll-view';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
+import { hit } from '@/design';
+import { useStores } from '@/ui/shell/providers';
+import { ACCENT_KEY, applyAccent, readAccent } from '@/design/accent';
+import { ACCENTS, type AccentName } from '@/design';
+import { Icon } from '@/ui/kit/Icon';
+import { PageHeader } from '@/ui/kit/PageHeader';
 
 const SWATCH = { width: 36, height: 36 };
 const TAP = { minHeight: hit.min };

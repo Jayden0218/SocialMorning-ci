@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import {
   OUTPUT_CHANGE_EVENT_AVAILABLE,
   subscribeToOutputChanges,
-} from '../src/playback/output';
+} from '@/playback/output';
 
 const BUILD = join(__dirname, '..', '..', '..', 'node_modules', 'expo-audio', 'build');
 

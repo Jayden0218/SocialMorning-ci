@@ -10,25 +10,25 @@
  */
 import { useEffect, useState } from 'react';
 import { Share } from 'react-native';
-import { Pressable } from '../../src/ui/lib/pressable';
-import { Text } from '../../src/ui/lib/text';
-import { Box } from '../../src/ui/lib/box';
-import { ScrollView } from '../../src/ui/lib/scroll-view';
+import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
+import { ScrollView } from '@/ui/lib/scroll-view';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useSocial } from '../../src/social/context';
-import { useStores } from '../../src/ui/providers';
-import { usePlayer, usePlayerState } from '../../src/playback/store';
-import { refreshShow } from '../../src/feeds/fetch';
-import { resolveClipEpisode, type Resolved } from '../../src/graph/resolve';
-import { ClipCard } from '../../src/ui/ClipCard';
-import { shareClip } from '../../src/graph/share';
-import { useSharePanel } from '../../src/ui/ShareChooser';
-import { PageHeader } from '../../src/ui/PageHeader';
-import { Icon } from '../../src/ui/Icon';
-import { useColours } from '../../src/ui/useColours';
-import { hit } from '../../src/design';
-import { apiBaseUrl } from '../../src/social/base-url';
-import { ApiError, type Clip } from '../../src/social/api';
+import { useSocial } from '@/social/context';
+import { useStores } from '@/ui/shell/providers';
+import { usePlayer, usePlayerState } from '@/playback/store';
+import { refreshShow } from '@/feeds/fetch';
+import { resolveClipEpisode, type Resolved } from '@/graph/resolve';
+import { ClipCard } from '@/ui/clips/ClipCard';
+import { shareClip } from '@/graph/share';
+import { useSharePanel } from '@/ui/clips/ShareChooser';
+import { PageHeader } from '@/ui/kit/PageHeader';
+import { Icon } from '@/ui/kit/Icon';
+import { useColours } from '@/ui/kit/useColours';
+import { hit } from '@/design';
+import { apiBaseUrl } from '@/social/base-url';
+import { ApiError, type Clip } from '@/social/api';
 
 type Status = { kind: 'loading' } | { kind: 'error'; message: string } | { kind: 'ready'; clip: Clip; resolved: Resolved };
 

@@ -3,7 +3,7 @@
  * queue is empty, the first Next-up item is offered — shown, never loaded (guard G7).
  * Pure: the screen feeds it the state; it says what to show.
  */
-import type { NextUpItem } from '../social/api';
+import type { NextUpItem } from '@/social/api';
 
 export type PlayerLike = { kind: string; episodeId?: string };
 

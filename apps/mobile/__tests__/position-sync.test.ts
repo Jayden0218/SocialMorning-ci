@@ -1,7 +1,7 @@
-import { createPositionSync, RETRY_SCHEDULE_MS, UPLOAD_EVERY_MS } from '../src/sync/positions';
-import { ApiError, type ApiClient, type PositionRowOut } from '../src/social/api';
-import { createMemoryStores } from '../src/storage/memory';
-import { hash } from '../src/feeds/hash';
+import { createPositionSync, RETRY_SCHEDULE_MS, UPLOAD_EVERY_MS } from '@/sync/positions';
+import { ApiError, type ApiClient, type PositionRowOut } from '@/social/api';
+import { createMemoryStores } from '@/storage/memory';
+import { hash } from '@/feeds/hash';
 
 jest.useFakeTimers();
 

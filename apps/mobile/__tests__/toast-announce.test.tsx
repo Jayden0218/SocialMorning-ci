@@ -5,12 +5,12 @@
  * gluestack's own ToastTitle does) and keeps the live region for TalkBack.
  *
  * The break that turns it red: remove the announce call (`announceToast(message)`) from the
- * effect in src/ui/ToastHost.tsx.
+ * effect in src/ui/kit/ToastHost.tsx.
  */
 import { createElement } from 'react';
 import { AccessibilityInfo, Platform } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { ToastHost } from '../src/ui/ToastHost';
+import { ToastHost } from '@/ui/kit/ToastHost';
 
 let spoken: jest.SpyInstance;
 beforeEach(() => { spoken = jest.spyOn(AccessibilityInfo, 'announceForAccessibility').mockImplementation(() => undefined); });

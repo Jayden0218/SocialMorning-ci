@@ -5,15 +5,15 @@
  * as a big serif figure with "listeners blocked" and the block rule in one muted line; then a
  * two-column grid of white cards — an initials disc, the name, and the same Unblock button.
  */
-import { FlatList } from '../../src/ui/lib/flat-list';
-import { Text } from '../../src/ui/lib/text';
-import { Box } from '../../src/ui/lib/box';
-import { spacing } from '../../src/design';
-import { useSafety } from '../../src/safety/context';
-import { BlockButton } from '../../src/ui/BlockButton';
-import { EmptyPicture } from '../../src/ui/me/parts';
-import { useStores } from '../../src/ui/providers';
-import { PageHeader } from '../../src/ui/PageHeader';
+import { FlatList } from '@/ui/lib/flat-list';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
+import { spacing } from '@/design';
+import { useSafety } from '@/safety/context';
+import { BlockButton } from '@/ui/social/BlockButton';
+import { EmptyPicture } from '@/ui/me/parts';
+import { useStores } from '@/ui/shell/providers';
+import { PageHeader } from '@/ui/kit/PageHeader';
 
 const COLUMNS = { gap: spacing.row };
 

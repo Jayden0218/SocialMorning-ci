@@ -8,12 +8,12 @@
  * mid-line h:mm:ss still plays from there; only where they sit changed.
  */
 import { Linking } from 'react-native';
-import { Box } from '../lib/box';
-import { Pressable } from '../lib/pressable';
-import { Text } from '../lib/text';
-import { hit } from '../../design';
-import { Eyebrow } from '../Eyebrow';
-import type { NotePart } from '../format';
+import { Box } from '@/ui/lib/box';
+import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
+import { hit } from '@/design';
+import { Eyebrow } from '@/ui/kit/Eyebrow';
+import type { NotePart } from '@/ui/kit/format';
 
 const ROW = { minHeight: hit.min };
 /** A first paragraph longer than this reads as body text, not a lede. */

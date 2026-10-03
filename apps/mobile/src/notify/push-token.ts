@@ -3,7 +3,7 @@
  * the listener is signed in and has allowed notifications, removed at sign-out. The last
  * address sent is remembered so sign-out can remove exactly it.
  */
-import type { SettingsStore } from '../storage/types';
+import type { SettingsStore } from '@/storage/types';
 
 export const PUSH_TOKEN_KEY = 'push.token';
 

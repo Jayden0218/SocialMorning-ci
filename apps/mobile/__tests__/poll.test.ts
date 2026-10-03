@@ -1,4 +1,4 @@
-import { createPoller, POLL_INTERVAL_MS } from '../src/social/poll';
+import { createPoller, POLL_INTERVAL_MS } from '@/social/poll';
 
 jest.useFakeTimers();
 

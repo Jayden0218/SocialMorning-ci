@@ -4,12 +4,12 @@
  * the value — and a 48 pt target. A drawn control that loses its state is a silent regression:
  * VoiceOver would say "switch" with no "on" or "off".
  *
- * The break that turns it red: drop `accessibilityState` from the Pressable in src/ui/Toggle.tsx.
+ * The break that turns it red: drop `accessibilityState` from the Pressable in src/ui/kit/Toggle.tsx.
  */
 import { createElement } from 'react';
 import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
-import { Toggle } from '../src/ui/Toggle';
+import { Toggle } from '@/ui/kit/Toggle';
 
 const render = (value: boolean, onChange = jest.fn(), disabled?: boolean): ReactTestRenderer => {
   let r!: ReactTestRenderer;
