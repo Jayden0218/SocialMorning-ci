@@ -244,7 +244,6 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `Segmented.tsx` | A pill with two to four choices; the chosen one is yellow. |
 | `SheetRow.tsx` | One full-width row in a pop-up action list: icon, label, optional detail. |
 | `ToastHost.tsx` | The short message that pops up near the top, then goes away. |
-| `Toggle.tsx` | The app's own on/off switch. |
 | `TopBar.tsx` | Top bar with back (or close) button on left, page actions on right. |
 | `confirm.tsx` | A "Are you sure?" sheet from the bottom with the action and Cancel. |
 | `format.ts` | Turns numbers into text: times like 14:32, dates, show notes as plain text. |
