@@ -1,5 +1,5 @@
-import { shareClip, shareText } from '../src/graph/share';
-import type { Clip } from '../src/social/api';
+import { shareClip, shareText } from '@/graph/share';
+import type { Clip } from '@/social/api';
 
 const clip: Clip = { id: '0f1e2d3c-4b5a-4697-8877-665544332211', author: { id: 'a', displayName: 'Alex' }, episodeId: 'e', startMs: 872_000, endMs: 910_000, caption: 'the good bit', createdAt: 'now', deleted: false };
 

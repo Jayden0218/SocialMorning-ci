@@ -1,6 +1,6 @@
 /** Owner, 2026-10-01: the category page's "All" / "Newest" chips and "Not subscribed only". */
-import { categoryList, sortCategoryShows } from '../src/discover/category-list';
-import type { ShowCard } from '../src/social/api';
+import { categoryList, sortCategoryShows } from '@/discover/category-list';
+import type { ShowCard } from '@/social/api';
 
 const show = (feedUrl: string, publishedAt?: string): ShowCard => ({
   feedUrl, title: feedUrl, author: 'A', genres: [],

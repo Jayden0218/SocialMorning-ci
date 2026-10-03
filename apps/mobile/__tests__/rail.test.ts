@@ -1,5 +1,5 @@
-import { markerLabel, railMarkers } from '../src/ui/Rail';
-import type { Comment } from '../src/social/api';
+import { markerLabel, railMarkers } from '@/ui/player/Rail';
+import type { Comment } from '@/social/api';
 
 const c = (id: string, offsetMs: number | null, extra: Partial<Comment> = {}): Comment =>
   ({ id, authorId: 'a', displayName: 'A', body: id, offsetMs, parentId: null, createdAt: 'now', deleted: false, ...extra });

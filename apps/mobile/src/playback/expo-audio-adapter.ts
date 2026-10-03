@@ -32,7 +32,7 @@
  *     disconnect surfaces as the library's OWN pause (expo/expo#48151, new in
  *     58), which reaches us as an unrequested `playing: false` — i.e. as
  *     EXTERNAL_PAUSE, indistinguishable from a phone call until the resume
- *     watch expires. Recorded in docs/M1-AUDIO-RISKS.md.
+ *     watch expires. Recorded in docs/plans/M1-AUDIO-RISKS.md.
  *   - the only signal that a call arrived is an unrequested `playing: false`,
  *     which is why `requestedPlay`/`requestedPause` below are load-bearing.
  *
@@ -44,7 +44,7 @@ import {
   AudioQuality, IOSOutputFormat, createAudioPlayer, requestRecordingPermissionsAsync, setAudioModeAsync,
   useAudioRecorder, useAudioRecorderState, type AudioPlayer, type AudioStatus, type RecordingOptions,
 } from 'expo-audio';
-import { VOICE_BIT_RATE } from '../voice/recording';
+import { VOICE_BIT_RATE } from '@/social/voice';
 import { AppState, type AppStateStatus } from 'react-native';
 import type { Effect, Ms, PlayerEvent } from './types';
 
@@ -99,7 +99,7 @@ export function createExpoAudioAdapter(
    * the wrong place after every recovered stall. Chaining also makes the
    * setLockScreen-before-play ordering a property of the adapter rather than
    * a coincidence of which calls happen to be synchronous, which matters
-   * because gate item 1 depends on it (docs/M1-AUDIO-RISKS.md gap 1).
+   * because gate item 1 depends on it (docs/plans/M1-AUDIO-RISKS.md gap 1).
    */
   let chain: Promise<void> = Promise.resolve();
 
@@ -140,7 +140,7 @@ export function createExpoAudioAdapter(
       case 'setLockScreen': {
         // On Android this is what keeps background playback alive past about
         // three minutes; the now-playing metadata is the side effect, not the
-        // purpose (docs/M1-AUDIO-RISKS.md gap 1).
+        // purpose (docs/plans/M1-AUDIO-RISKS.md gap 1).
         const metadata = {
           title: effect.meta.title,
           artist: effect.meta.artist,
@@ -255,7 +255,7 @@ export function createExpoAudioAdapter(
 /*
  * M12 FR-104 — the voice status's native half. It lives here because this file is the only
  * one allowed to import expo-audio (expo-audio-isolation.test.ts): everything else about
- * voice posts (the cap, the clock, the size) is plain code in src/voice/recording.ts.
+ * voice posts (the cap, the clock, the size) is plain code in src/social/voice.ts.
  */
 
 /**

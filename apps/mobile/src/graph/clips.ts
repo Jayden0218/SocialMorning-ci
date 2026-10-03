@@ -6,9 +6,9 @@
  * known, because the link does not exist before then.
  */
 import { validateClipRange, type ClipRange } from '@socialmorning/social-core';
-import type { ApiClient, Clip, EpisodeRegistration } from '../social/api';
-import { ApiError } from '../social/api';
-import type { PendingClipRow, PendingClipStore } from '../storage/types';
+import type { ApiClient, Clip, EpisodeRegistration } from '@/social/api';
+import { ApiError } from '@/social/api';
+import type { PendingClipRow, PendingClipStore } from '@/storage/types';
 
 export type ClipsDeps = {
   api: ApiClient;

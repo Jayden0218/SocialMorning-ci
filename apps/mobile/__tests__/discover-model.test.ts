@@ -4,8 +4,8 @@
  * `src/discover/sections.ts` (hidden show test), and drop the `blocked` check from `said`
  * (blocked listener test).
  */
-import { ago, buildModel, pages, statsLine } from '../src/discover/sections';
-import type { Discover, DiscoverItem, EpisodeCard } from '../src/social/api';
+import { ago, buildModel, pages, statsLine } from '@/discover/sections';
+import type { Discover, DiscoverItem, EpisodeCard } from '@/social/api';
 
 const card = (id: string, feedUrl = `https://f/${id}.xml`): EpisodeCard => ({ id, feedUrl, guid: id, title: `T ${id}`, showTitle: `S ${id}`, enclosureUrl: `https://a/${id}.mp3` });
 const item = (kind: DiscoverItem['kind'], id: string, feedUrl?: string): DiscoverItem => ({ kind, key: id, episode: card(id, feedUrl) });

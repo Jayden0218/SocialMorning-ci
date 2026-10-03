@@ -1,3 +1,4 @@
+/** The design system in one import: colours, sizes, contrast checks and gradients. */
 export { colour, fontSize, spacing, radius, hit, size, tabular, ACCENTS, type AccentName } from './tokens';
 export type { Palette } from './tokens';
 export type { Colour } from './tokens';

@@ -3,11 +3,11 @@
  * cards were plain boxes — tapping them did nothing. Each is now a tab that selects what the
  * page lists, and says so to a screen reader.
  *
- * The break that turns it red: drop `onPress` from the Card in src/ui/NoticeCards.tsx.
+ * The break that turns it red: drop `onPress` from the Card in src/ui/social/NoticeCards.tsx.
  */
 import { createElement } from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { NoticeCards } from '../src/ui/NoticeCards';
+import { NoticeCards } from '@/ui/social/NoticeCards';
 
 const tabs = (r: ReactTestRenderer) => r.root.findAll((n) => typeof n.type === 'string' && n.props['accessibilityRole'] === 'tab');
 /** The pressable that owns the card's onPress (the host view underneath does not carry it). */

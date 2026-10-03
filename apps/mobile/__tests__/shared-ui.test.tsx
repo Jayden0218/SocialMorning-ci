@@ -5,12 +5,12 @@
 import { createElement } from 'react';
 import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { colour, hit } from '../src/design';
-import { BOTTOM_INSET, MINI_PLAYER_HEIGHT, Screen, TAB_BAR_HEIGHT } from '../src/ui/Screen';
-import { Artwork } from '../src/ui/Artwork';
-import { Row } from '../src/ui/Row';
-import { Button, ButtonText } from '../src/ui/lib/button';
-import { Heading } from '../src/ui/lib/heading';
+import { colour, hit } from '@/design';
+import { BOTTOM_INSET, MINI_PLAYER_HEIGHT, Screen, TAB_BAR_HEIGHT } from '@/ui/kit/Screen';
+import { Artwork } from '@/ui/kit/Artwork';
+import { Row } from '@/ui/kit/Row';
+import { Button, ButtonText } from '@/ui/lib/button';
+import { Heading } from '@/ui/lib/heading';
 
 const render = (el: React.ReactElement): ReactTestRenderer => { let r!: ReactTestRenderer; act(() => { r = create(el); }); return r; };
 const flat = (s: unknown): Record<string, unknown> => (StyleSheet.flatten(s as never) ?? {}) as Record<string, unknown>;

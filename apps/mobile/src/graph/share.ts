@@ -1,7 +1,7 @@
 /** The share sheet (research R2): React Native's own `Share`, the link in the text. */
-import type { Clip } from '../social/api';
+import type { Clip } from '@/social/api';
 import { clipLinkFor } from './links';
-import { mmss } from '../ui/format';
+import { mmss } from '@/ui/kit/format';
 
 export type ShareLike = { share(content: { message: string; title?: string }): Promise<unknown> };
 

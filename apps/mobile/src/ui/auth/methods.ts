@@ -3,7 +3,7 @@
  * two that come later. Each is an icon and its name in one row. Google and Facebook have
  * no backend yet (M11), so until then each says it is not set up rather than doing nothing.
  */
-import type { IconName } from '../Icon';
+import type { IconName } from '@/ui/kit/Icon';
 import type { AuthMark } from './AuthShell';
 
 export type OtherMethod = 'google' | 'facebook';

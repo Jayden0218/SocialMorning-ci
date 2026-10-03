@@ -5,7 +5,7 @@
  * page). Anything else is not followed — a QR code can point anywhere — it goes into
  * the search box as text instead.
  */
-import { looksLikeFeedUrl } from '../discover/local-search';
+import { looksLikeFeedUrl } from '@/discover/local-search';
 
 export type ScanTarget =
   | { kind: 'route'; path: string }

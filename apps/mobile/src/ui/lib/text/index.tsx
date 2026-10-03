@@ -5,7 +5,7 @@ import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils';
 import { Text as RNText } from 'react-native';
 import { textStyle } from './styles';
 // M17 (research R5): the Editorial faces, picked from the weight class once they have loaded.
-import { familyFor, fontsStore, type Face } from '../../../design/fonts';
+import { familyFor, fontsStore, type Face } from '@/design/fonts';
 
 /** A nested Text with no weight class of its own takes its parent's face, as RN's fontWeight is inherited. */
 const ParentFace = createContext<Face | undefined>(undefined);

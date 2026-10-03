@@ -3,7 +3,7 @@
  * mapping is what we own, and rate limits are not something a test suite
  * should spend.
  */
-import { CatalogError, searchShows } from '../src/catalog/apple';
+import { CatalogError, searchShows } from '@/discover/apple';
 
 const ok = (body: unknown): Response =>
   ({ ok: true, status: 200, json: async () => body }) as unknown as Response;

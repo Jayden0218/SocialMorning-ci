@@ -8,7 +8,7 @@
  */
 import { parseFeed, type FeedWarning } from '@socialmorning/feed-parser';
 import { hash } from './hash';
-import type { CachedEpisode, CachedShow, FeedCache } from '../storage/types';
+import type { CachedEpisode, CachedShow, FeedCache } from '@/storage/types';
 
 export class FeedError extends Error {
   constructor(message: string) {

@@ -10,8 +10,8 @@
  * Nothing is read from the artwork's pixels — that needs a native module (research R3).
  */
 import { useSyncExternalStore } from 'react';
-import { BODY_MIN, colour, contrastRatio, type Palette } from '../../design';
-import { accentStore, withAccent } from '../../design/accent';
+import { BODY_MIN, colour, contrastRatio, type Palette } from '@/design';
+import { accentStore, withAccent } from '@/design/accent';
 
 /** The palette with the listener's accent theme swapped in — what the player's icons use. */
 export function usePlayerPalette(): Palette {

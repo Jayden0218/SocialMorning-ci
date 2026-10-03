@@ -1,9 +1,9 @@
 /**
  * M10b US4 (FR-014): may an episode stream now? Only "mobile data + the switch off" says no.
  * Offline is not this switch's business — the player reports that itself. Wired into the
- * runtime's `mayStream` in `src/ui/providers.tsx` with the last network reading.
+ * runtime's `mayStream` in `src/ui/shell/providers.tsx` with the last network reading.
  */
-import type { SettingsStore } from '../storage/types';
+import type { SettingsStore } from '@/storage/types';
 import { getPref } from './prefs';
 
 export type NetworkKind = 'wifi' | 'cellular' | 'none' | 'other';

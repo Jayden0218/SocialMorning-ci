@@ -5,8 +5,8 @@
  * **per listener**, so signing out must not leave the previous listener's
  * recommendations on the screen. `forget()` is called from sign-out.
  */
-import { ApiError, type ApiClient, type ForYou } from '../social/api';
-import type { FeedCacheStore } from '../storage/types';
+import { ApiError, type ApiClient, type ForYou } from '@/social/api';
+import type { FeedCacheStore } from '@/storage/types';
 
 export const FOR_YOU_KEY = 'foryou';
 export type ForYouView = { body: ForYou; stale: boolean; fetchedAt?: number };

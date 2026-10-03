@@ -9,7 +9,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { myStickers, myTotals } from '../src/me/my-stickers';
+import { myStickers, myTotals } from '@/me/my-stickers';
 
 const H = 3_600_000;
 /** This phone: 13 h on one episode (finished) — the walk's numbers. */

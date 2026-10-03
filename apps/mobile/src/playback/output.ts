@@ -37,7 +37,7 @@
  * answer: whether the library emits any `playing: true` after a disconnect.
  * It is gate row 3, it is NOT VERIFIED, and the fallback if it fails is
  * T042's native `OnAudioFocusChangeListener` module, which CAN distinguish
- * the two. `docs/M1-AUDIO-RISKS.md` carries the same note.
+ * the two. `docs/plans/M1-AUDIO-RISKS.md` carries the same note.
  *
  * DUCKING (research R4, FR-011, gate row 7) has the same shape. Android
  * delivers AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK for a navigation prompt or a

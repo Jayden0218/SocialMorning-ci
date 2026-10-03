@@ -7,10 +7,10 @@
  * the parties are a numbered list (serif accent numbers, hairlines between) with "Shared" and
  * "Why" side by side under each name. Same parties, same words, same spoken labels.
  */
-import { ScrollView } from '../../src/ui/lib/scroll-view';
-import { Text } from '../../src/ui/lib/text';
-import { Box } from '../../src/ui/lib/box';
-import { PageHeader } from '../../src/ui/PageHeader';
+import { ScrollView } from '@/ui/lib/scroll-view';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
+import { PageHeader } from '@/ui/kit/PageHeader';
 
 const PARTIES: { name: string; who: string; what: string; why: string }[] = [
   { name: 'Podcast publishers', who: 'Each show’s own feed and audio host', what: 'Your IP address and app name, when a feed or episode is fetched', why: 'To play and download episodes — SocialNet never hosts audio' },

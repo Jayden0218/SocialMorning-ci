@@ -8,21 +8,21 @@
  */
 import { useEffect, useState } from 'react';
 import { Link } from 'expo-router';
-import { ScrollView } from '../../src/ui/lib/scroll-view';
-import { Pressable } from '../../src/ui/lib/pressable';
-import { Text } from '../../src/ui/lib/text';
-import { Box } from '../../src/ui/lib/box';
-import { hit } from '../../src/design';
-import { getPref, setPref } from '../../src/settings/prefs';
-import { mb } from '../../src/ui/DownloadButton';
-import { useDownloads, useStores, useToast } from '../../src/ui/providers';
-import { SwitchRow } from '../../src/ui/settings/rows';
-import { Button } from '../../src/ui/Button';
-import { Card, CardDivider } from '../../src/ui/Card';
-import { Eyebrow } from '../../src/ui/Eyebrow';
+import { ScrollView } from '@/ui/lib/scroll-view';
+import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
+import { hit } from '@/design';
+import { getPref, setPref } from '@/settings/prefs';
+import { mb } from '@/ui/episode/DownloadButton';
+import { useDownloads, useStores, useToast } from '@/ui/shell/providers';
+import { SwitchRow } from '@/ui/settings/rows';
+import { Button } from '@/ui/kit/Button';
+import { Card, CardDivider } from '@/ui/kit/Card';
+import { Eyebrow } from '@/ui/kit/Eyebrow';
 import { plural } from '@socialmorning/social-core';
-import { useConfirm } from '../../src/ui/confirm';
-import { PageHeader } from '../../src/ui/PageHeader';
+import { useConfirm } from '@/ui/kit/confirm';
+import { PageHeader } from '@/ui/kit/PageHeader';
 
 const TAP = { minHeight: hit.min };
 

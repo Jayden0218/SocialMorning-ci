@@ -3,8 +3,8 @@
  * offered an episode at 1:59:41 or told they have finished it, which is a
  * visible, arguable product decision rather than an implementation detail.
  */
-import { isFinished, reconcileOffset } from '../src/playback/finished';
-import { FINISHED_WITHIN_MS } from '../src/playback/types';
+import { isFinished, reconcileOffset } from '@/playback/finished';
+import { FINISHED_WITHIN_MS } from '@/playback/types';
 
 const HOUR = 3_600_000;
 

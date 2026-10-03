@@ -2,8 +2,8 @@
  * The search box's trending line (owner, 2026-09-27). The break that turns the first test
  * red: drop the `!out.includes(name)` check in `src/discover/trending.ts`.
  */
-import type { ChartTab } from '../src/discover/sections';
-import { hintAt, trendingHints } from '../src/discover/trending';
+import type { ChartTab } from '@/discover/sections';
+import { hintAt, trendingHints } from '@/discover/trending';
 
 const card = (showTitle: string) => ({ showTitle }) as ChartTab['rows'][number];
 

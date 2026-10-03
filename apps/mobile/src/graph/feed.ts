@@ -4,8 +4,8 @@
  * be reached (M3's pattern), an unread count against the last time the screen opened.
  */
 import { orderFeed, unreadCount } from '@socialmorning/social-core';
-import { ApiError, type ApiClient, type FeedItem } from '../social/api';
-import type { FeedCacheStore, SettingsStore } from '../storage/types';
+import { ApiError, type ApiClient, type FeedItem } from '@/social/api';
+import type { FeedCacheStore, SettingsStore } from '@/storage/types';
 
 export const FEED_KEY = 'following';
 export const FEED_LAST_OPENED_KEY = 'feed.lastOpenedAt';

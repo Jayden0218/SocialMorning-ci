@@ -1,7 +1,7 @@
-import { createReactToggle } from '../src/social/react';
-import { createSocialCache } from '../src/social/cache';
-import { createMemorySocialCacheStore } from '../src/storage/memory';
-import { ApiError, type ApiClient, type Social } from '../src/social/api';
+import { createReactToggle } from '@/social/react';
+import { createSocialCache } from '@/social/cache';
+import { createMemorySocialCacheStore } from '@/storage/memory';
+import { ApiError, type ApiClient, type Social } from '@/social/api';
 
 const D = 2_899_000;
 const social = (my: number[]): Social => ({ serverTime: 's', episode: { id: 'e', durationMs: D }, comments: [], heat: { available: true, buckets: new Array(100).fill(0) }, myReactionBuckets: my });

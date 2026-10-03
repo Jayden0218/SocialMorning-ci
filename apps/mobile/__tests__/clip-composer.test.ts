@@ -1,5 +1,5 @@
 /** T013: the composer state machine — propose → adjust while listening → validate → caption. */
-import { canSave, endHere, nudgeEdge, openComposer, setCaption, startHere } from '../src/graph/composer';
+import { canSave, endHere, nudgeEdge, openComposer, setCaption, startHere } from '@/graph/composer';
 
 it('opens on the last 30 s, adjusts with Start here / End here and ±5 s nudges, refuses what cannot be a clip', () => {
   let s = openComposer('e', 872_000, 3_000_000);

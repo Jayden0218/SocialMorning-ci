@@ -7,7 +7,7 @@ import { createSwitch } from '@gluestack-ui/core/switch/creator';
 import { tva } from '@gluestack-ui/utils/nativewind-utils';
 import { withStyleContext } from '@gluestack-ui/utils/nativewind-utils';
 import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils';
-import { colour } from '../../../design/tokens';
+import { colour } from '@/design/tokens';
 
 const UISwitch = createSwitch({
   Root: withStyleContext(RNSwitch),

@@ -5,12 +5,12 @@
  * empty read, and shows an error with Retry if the read throws.
  *
  * The break that turns it red: render the empty state while loading — make `inboxBody` return
- * 'empty' for `{ kind: 'loading' }` in src/inbox/index.ts, or start app/inbox.tsx from
+ * 'empty' for `{ kind: 'loading' }` in src/me/inbox.ts, or start app/inbox.tsx from
  * `{ kind: 'ok', ids: [] }`.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { inboxBody, loadInbox } from '../src/inbox';
+import { inboxBody, loadInbox } from '@/me/inbox';
 
 it('before the first answer: loading — never "empty"', () => {
   expect(inboxBody({ kind: 'loading' })).toBe('loading');

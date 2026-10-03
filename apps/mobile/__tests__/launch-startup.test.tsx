@@ -3,26 +3,26 @@
  * no wait — the overlay is not mounted, and start-up never waits on `GET /v1/launch`.
  *
  * Three parts: `decideLaunch` answers synchronously from local data and never touches the
- * network; `src/ui/providers.tsx` decides once at mount and starts `syncLaunch` only after
+ * network; `src/ui/shell/providers.tsx` decides once at mount and starts `syncLaunch` only after
  * `ready`, without awaiting it or adding it to the start-up tasks; and the overlay itself
  * (Skip first, the label, 3 s, a tap).
  *
  * The break that turns it red: await the list fetch before hiding the splash — e.g. add
  * `startupTasks.current.push(syncLaunch({ … }))` (or `await launchApi.list()`) in
- * `src/ui/providers.tsx`; the "providers" test fails.
+ * `src/ui/shell/providers.tsx`; the "providers" test fails.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createElement } from 'react';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
-import { decideLaunch, recordShown } from '../src/launch/decide';
-import { localDay, type Promotion } from '../src/launch/choose';
-import { LAUNCH_KEYS, readFiles, readList, readShown, writeFiles, writeList } from '../src/launch/store';
-import { syncLaunch } from '../src/launch/sync';
-import type { LaunchFiles } from '../src/launch/launch-files';
-import { createMemorySettingsStore } from '../src/storage/memory';
-import { setPref } from '../src/settings/prefs';
-import { LaunchScreen } from '../src/ui/LaunchScreen';
+import { decideLaunch, recordShown } from '@/launch/decide';
+import { localDay, type Promotion } from '@/launch/choose';
+import { LAUNCH_KEYS, readFiles, readList, readShown, writeFiles, writeList } from '@/launch/store';
+import { syncLaunch } from '@/launch/sync';
+import type { LaunchFiles } from '@/launch/launch-files';
+import { createMemorySettingsStore } from '@/storage/memory';
+import { setPref } from '@/settings/prefs';
+import { LaunchScreen } from '@/ui/shell/LaunchScreen';
 
 const NOW = Date.parse('2026-10-01T09:00:00Z');
 const promo = (id: string, over: Partial<Promotion> = {}): Promotion => ({
@@ -131,7 +131,7 @@ describe('syncLaunch — for the next launch', () => {
 });
 
 describe('providers.tsx — start-up never waits on the launch list', () => {
-  const src = readFileSync(join(__dirname, '..', 'src', 'ui', 'providers.tsx'), 'utf8');
+  const src = readFileSync(join(__dirname, '..', 'src', 'ui', 'shell', 'providers.tsx'), 'utf8');
 
   it('decides once, at mount, synchronously', () => {
     expect(src).toMatch(/useState\(\(\) => decideLaunch\(\{/);

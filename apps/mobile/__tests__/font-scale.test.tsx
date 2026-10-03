@@ -7,12 +7,12 @@
 import { createElement } from 'react';
 import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { EpisodeRow } from '../src/ui/EpisodeRow';
-import { EmptyState } from '../src/ui/EmptyState';
+import { EpisodeRow } from '@/ui/episode/EpisodeRow';
+import { EmptyState } from '@/ui/kit/EmptyState';
 
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 // M10b: shared components read the palette through useStores; a light setting keeps colours static.
-jest.mock('../src/ui/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }) }));
+jest.mock('@/ui/shell/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }) }));
 
 const flat = (style: unknown): Record<string, unknown> => (StyleSheet.flatten(style as never) ?? {}) as Record<string, unknown>;
 const render = (el: React.ReactElement): ReactTestRenderer => { let r!: ReactTestRenderer; act(() => { r = create(el); }); return r; };
@@ -56,11 +56,11 @@ it('a label beside a control takes the remaining width, so it wraps instead of r
  * screen at 1.75× — the worst possible place for the mistake M6 found on Account.
  */
 it('the shared components and the two bars have no fixed height on anything carrying text', () => {
-  const { Row } = require('../src/ui/Row');
+  const { Row } = require('@/ui/kit/Row');
   // M9: the hand-built Button and Chip are gone; the library Button is checked as it is used.
-  const { Button, ButtonText } = require('../src/ui/lib/button');
-  const { TabBar } = require('../src/ui/TabBar');
-  const { hit } = require('../src/design');
+  const { Button, ButtonText } = require('@/ui/lib/button');
+  const { TabBar } = require('@/ui/shell/TabBar');
+  const { hit } = require('@/design');
 
   const cases: [string, React.ReactElement][] = [
     ['Row', createElement(Row, { title: 'A title long enough to wrap', subtitle: 'Reply All · 34:17', onPress: () => undefined })],

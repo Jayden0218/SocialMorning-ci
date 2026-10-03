@@ -2,10 +2,10 @@
  * M12 guard G-N2 (FR-093): a switch per show; a flip is sent, and a refused one flips back.
  * The break: drop the `set(!enabled)` in NotifyShows' catch.
  */
-jest.mock('../src/ui/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }) }));
+jest.mock('@/ui/shell/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }) }));
 import { createElement } from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { NotifyShows } from '../src/ui/settings/NotifyShows';
+import { NotifyShows } from '@/ui/settings/NotifyShows';
 
 const flush = () => act(async () => { await Promise.resolve(); await Promise.resolve(); });
 // M16a: the native switch became the app's own Toggle (props `label` + `onChange`); the first match is the outermost.

@@ -4,7 +4,7 @@
  * without a network call, whether Wallet opens the page or the Coming soon pop-up. Unknown
  * counts as not ready — the pop-up's "Open Wallet" still reaches the page, which refreshes it.
  */
-import type { SettingsStore } from '../storage/types';
+import type { SettingsStore } from '@/storage/types';
 
 export const STORE_READY_KEY = 'store.ready';
 

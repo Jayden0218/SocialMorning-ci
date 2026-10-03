@@ -3,7 +3,7 @@
  * "is this stale" flag the UI shows when a refresh fails.
  */
 import type { Social } from './api';
-import type { SocialCacheStore } from '../storage/types';
+import type { SocialCacheStore } from '@/storage/types';
 
 export type CachedSocial = { social: Social; etag?: string; fetchedAt: number };
 

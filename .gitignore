@@ -23,7 +23,7 @@ Thumbs.db
 npm-debug.log*
 
 # Raw HAR captures carry live session tokens. Only scrubbed ones are committed,
-# and only deliberately. See tools/scrub-har.py.
+# and only deliberately. See research/tools/scrub-har.py.
 *.har
 !*.scrubbed.har
 
@@ -31,8 +31,8 @@ npm-debug.log*
 __pycache__/
 
 # web-extract.py output: raw JS bundles (MBs) and anything it fetched. The
-# scrubbed text extracts are copied to docs/discovery/creator-web/ deliberately.
-web-out/
+# scrubbed text extracts are copied to research/discovery/creator-web/ deliberately.
+research/web-out/
 web-extract-out/
 
 # WhatsApp channel plugin state: paired auth keys live here. Never commit.

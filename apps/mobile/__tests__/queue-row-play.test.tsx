@@ -4,13 +4,13 @@
  * row is now a button ("Play <title>") that plays the episode; the sheet closes on it.
  *
  * The break that turns it red: drop the `onPress` from the row's Pressable in
- * src/ui/QueueList.tsx (or the `props.onClose()` from `play` in src/ui/QueueSheet.tsx).
+ * src/ui/queue/QueueList.tsx (or the `props.onClose()` from `play` in src/ui/queue/QueueSheet.tsx).
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createElement } from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { QueueList } from '../src/ui/QueueList';
+import { QueueList } from '@/ui/queue/QueueList';
 
 const stores = {
   feeds: {
@@ -32,7 +32,7 @@ it('tapping a row plays that episode', () => {
 });
 
 it('the sheet closes when a row plays', () => {
-  const sheet = readFileSync(join(__dirname, '../src/ui/QueueSheet.tsx'), 'utf8');
+  const sheet = readFileSync(join(__dirname, '../src/ui/queue/QueueSheet.tsx'), 'utf8');
   const play = sheet.slice(sheet.indexOf('const play = '), sheet.indexOf('return (', sheet.indexOf('const play = ')));
   expect(play).toContain('props.onClose()');
   expect(sheet).toMatch(/onPlay=\{play\}/);

@@ -5,7 +5,7 @@
  * read worked — offline it hides rather than claiming 0.
  */
 import { useEffect, useState } from 'react';
-import { deviceId } from '../sync/device-id';
+import { deviceId } from '@/sync/device-id';
 import { useM12Api } from './m12-api';
 
 export const LIVE_EVERY_MS = 60_000;

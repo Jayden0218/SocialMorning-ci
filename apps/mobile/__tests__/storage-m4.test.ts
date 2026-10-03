@@ -4,8 +4,8 @@
  * runs on a REAL SQLite (node:sqlite) over a v3 database with M2 rows in it.
  */
 import { DatabaseSync } from 'node:sqlite';
-import { MIGRATION_001, MIGRATION_002, MIGRATION_003, migrateSchema, SCHEMA_VERSION, type SchemaDb } from '../src/storage/schema';
-import { createMemoryFeedCacheStore, createMemoryListenedStore, createMemoryPendingClipStore } from '../src/storage/memory';
+import { MIGRATION_001, MIGRATION_002, MIGRATION_003, migrateSchema, SCHEMA_VERSION, type SchemaDb } from '@/storage/schema';
+import { createMemoryFeedCacheStore, createMemoryListenedStore, createMemoryPendingClipStore } from '@/storage/memory';
 
 function wrap(db: DatabaseSync): SchemaDb {
   return {

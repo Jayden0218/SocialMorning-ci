@@ -11,7 +11,7 @@
  * data is worse for the listener than waiting, and nothing here blocks the UI.
  */
 import { refreshShow } from './fetch';
-import type { Stores } from '../storage/types';
+import type { Stores } from '@/storage/types';
 
 export type RefreshAllResult = {
   refreshed: string[];

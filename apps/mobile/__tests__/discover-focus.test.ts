@@ -3,11 +3,11 @@
  * every focus. A focus refreshes only a copy older than FOCUS_REFRESH_MS.
  * The break: make `dueForRefresh` always true.
  */
-jest.mock('../src/ui/providers', () => ({ useStores: () => ({}), useToast: () => () => undefined }));
-jest.mock('../src/social/context', () => ({ useSocial: () => ({}) }));
-jest.mock('../src/playback/store', () => ({ usePlayer: () => ({}) }));
-jest.mock('../src/feeds/fetch', () => ({ refreshShow: jest.fn() }));
-import { FOCUS_REFRESH_MS, dueForRefresh } from '../src/discover/useDiscover';
+jest.mock('@/ui/shell/providers', () => ({ useStores: () => ({}), useToast: () => () => undefined }));
+jest.mock('@/social/context', () => ({ useSocial: () => ({}) }));
+jest.mock('@/playback/store', () => ({ usePlayer: () => ({}) }));
+jest.mock('@/feeds/fetch', () => ({ refreshShow: jest.fn() }));
+import { FOCUS_REFRESH_MS, dueForRefresh } from '@/discover/useDiscover';
 
 it('a recent copy is not fetched again on focus; an old or missing one is', () => {
   const now = 1_000_000_000;

@@ -1,7 +1,7 @@
 /** M6 FR-027: the pages Account must reach, and the appeals address the server owns. */
-import { appealsMailto, APPEALS_KEY, legalLinks, refreshAppeals } from '../src/social/links';
-import { createMemoryStores } from '../src/storage/memory';
-import { ApiError, type ApiClient } from '../src/social/api';
+import { appealsMailto, APPEALS_KEY, legalLinks, refreshAppeals } from '@/social/links';
+import { createMemoryStores } from '@/storage/memory';
+import { ApiError, type ApiClient } from '@/social/api';
 
 it('the legal links point at the deployed API, not a build-time constant', () => {
   const l = legalLinks();

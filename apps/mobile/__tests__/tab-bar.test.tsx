@@ -8,12 +8,12 @@
 import { createElement } from 'react';
 import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { colour, hit } from '../src/design';
-import { TabBar } from '../src/ui/TabBar';
-import { TAB_BAR_HEIGHT } from '../src/ui/Screen';
+import { colour, hit } from '@/design';
+import { TabBar } from '@/ui/shell/TabBar';
+import { TAB_BAR_HEIGHT } from '@/ui/kit/Screen';
 // M10b US4: the component reads its palette through useStores(); pin it to light so the
 // colour assertions compare against `colour`, whatever the runner's system scheme is.
-jest.mock('../src/ui/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }) }));
+jest.mock('@/ui/shell/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }) }));
 
 const ITEMS = [
   { key: 'index', label: 'Library' },

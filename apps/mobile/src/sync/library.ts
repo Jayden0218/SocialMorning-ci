@@ -8,7 +8,7 @@
  * phone). Every change records here, notifies the sync, and the sync uploads the log; the
  * server answers with the merged set and the lists are rebuilt from it.
  */
-import type { SettingsStore } from '../storage/types';
+import type { SettingsStore } from '@/storage/types';
 
 export const LOG_KEY = 'library.log';
 export type Kind = 'fav_episode' | 'fav_comment' | 'moment' | 'search';

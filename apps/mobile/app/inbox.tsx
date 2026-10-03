@@ -11,25 +11,25 @@
  */
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { FlatList } from '../src/ui/lib/flat-list';
-import { Pressable } from '../src/ui/lib/pressable';
-import { Text } from '../src/ui/lib/text';
-import { Box } from '../src/ui/lib/box';
+import { FlatList } from '@/ui/lib/flat-list';
+import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
 import { enqueue } from '@socialmorning/player-core';
-import { usePlayer } from '../src/playback/store';
-import { toPlayable } from '../src/storage/playable';
-import { inboxBody, loadInbox, INBOX_PAGE, type InboxLoad } from '../src/inbox';
-import { mmss, shortDate } from '../src/ui/format';
-import { useDownloads, useStores, useToast } from '../src/ui/providers';
-import { EmptyState } from '../src/ui/EmptyState';
-import { Loader } from '../src/ui/Loader';
-import { PageHeader } from '../src/ui/PageHeader';
-import { Artwork } from '../src/ui/Artwork';
-import { Card } from '../src/ui/Card';
-import { Eyebrow } from '../src/ui/Eyebrow';
-import { Icon, PlayIcon } from '../src/ui/Icon';
-import { useColours } from '../src/ui/useColours';
-import { hit } from '../src/design';
+import { usePlayer } from '@/playback/store';
+import { toPlayable } from '@/storage/playable';
+import { inboxBody, loadInbox, INBOX_PAGE, type InboxLoad } from '@/me/inbox';
+import { mmss, shortDate } from '@/ui/kit/format';
+import { useDownloads, useStores, useToast } from '@/ui/shell/providers';
+import { EmptyState } from '@/ui/kit/EmptyState';
+import { Loader } from '@/ui/kit/Loader';
+import { PageHeader } from '@/ui/kit/PageHeader';
+import { Artwork } from '@/ui/kit/Artwork';
+import { Card } from '@/ui/kit/Card';
+import { Eyebrow } from '@/ui/kit/Eyebrow';
+import { Icon, PlayIcon } from '@/ui/kit/Icon';
+import { useColours } from '@/ui/kit/useColours';
+import { hit } from '@/design';
 
 const TAP = { minHeight: hit.min };
 /** The count beside "new since you subscribed": 52 pt serif (`Inbox-B`). */
@@ -54,7 +54,7 @@ export default function InboxScreen(): React.ReactElement {
   const router = useRouter();
   const toast = useToast();
   const c = useColours(stores.settings);
-  // M16a bug 4: `loading` until the first read finishes — never "Nothing new" before it (src/inbox).
+  // M16a bug 4: `loading` until the first read finishes — never "Nothing new" before it (src/me/inbox).
   const [load, setLoad] = useState<InboxLoad>({ kind: 'loading' });
   const [shown, setShown] = useState(INBOX_PAGE);
   const reload = useCallback(() => setLoad(loadInbox(stores)), [stores]);

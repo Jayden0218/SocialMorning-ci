@@ -5,10 +5,10 @@
  *   G-W1b (FR-105/106): an amount with no value is empty, never "0.00". Break: default null to 0.
  *   OPML (FR-095): at least five apps named; an app with no export says so instead of steps.
  */
-import { ARTICLES, articleBySlug } from '../src/academy/articles';
-import { moneyLabel } from '../src/me/money';
-import { whoListened } from '../src/social/who';
-import { EXPORT_STEPS } from '../src/settings/export-steps';
+import { ARTICLES, articleBySlug } from '@/settings/academy';
+import { moneyLabel } from '@/me/money';
+import { whoListened } from '@/social/who';
+import { EXPORT_STEPS } from '@/settings/export-steps';
 
 const CJK = /[　-鿿＀-￯]/;
 

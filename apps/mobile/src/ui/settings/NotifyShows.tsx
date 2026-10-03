@@ -7,12 +7,12 @@
  * show's artwork (its initial while there is none) beside the toggle, the name under them.
  */
 import { useEffect, useState } from 'react';
-import { Text } from '../lib/text';
-import { Box } from '../lib/box';
-import { Card } from '../Card';
-import { Artwork } from '../Artwork';
-import { Toggle } from '../Toggle';
-import type { NotifyShow } from '../../social/m12-api';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
+import { Card } from '@/ui/kit/Card';
+import { Artwork } from '@/ui/kit/Artwork';
+import { Toggle } from '@/ui/kit/Toggle';
+import type { NotifyShow } from '@/social/m12-api';
 
 export function NotifyShows(props: { load: () => Promise<NotifyShow[]>; save: (feedUrl: string, enabled: boolean) => Promise<void>; titleOf: (feedUrl: string) => string | undefined; artOf?: (feedUrl: string) => string | null | undefined; disabled?: boolean }): React.ReactElement | null {
   const [shows, setShows] = useState<NotifyShow[] | undefined>();

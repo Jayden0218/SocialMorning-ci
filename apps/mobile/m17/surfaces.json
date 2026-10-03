@@ -9,7 +9,7 @@
  {
   "name": "Discover",
   "design": "Discover-B",
-  "entry": "apps/mobile/src/ui/DiscoverSections.tsx",
+  "entry": "apps/mobile/src/ui/discover/DiscoverSections.tsx",
   "wave": "W1",
   "status": "built"
  },
@@ -303,7 +303,7 @@
  {
   "name": "Splash",
   "design": "Splash-B",
-  "entry": "apps/mobile/src/ui/LaunchScreen.tsx",
+  "entry": "apps/mobile/src/ui/shell/LaunchScreen.tsx",
   "wave": "W4",
   "status": "built"
  },
@@ -443,28 +443,28 @@
  {
   "name": "QueueSheet",
   "design": "QueueSheet-B",
-  "entry": "apps/mobile/src/ui/QueueSheet.tsx",
+  "entry": "apps/mobile/src/ui/queue/QueueSheet.tsx",
   "wave": "W6",
   "status": "built"
  },
  {
   "name": "ReportSheet",
   "design": "ReportSheet-B",
-  "entry": "apps/mobile/src/ui/ReportSheet.tsx",
+  "entry": "apps/mobile/src/ui/comments/ReportSheet.tsx",
   "wave": "W6",
   "status": "built"
  },
  {
   "name": "ShareSheet",
   "design": "ShareSheet-B",
-  "entry": "apps/mobile/src/ui/ShareChooser.tsx",
+  "entry": "apps/mobile/src/ui/clips/ShareChooser.tsx",
   "wave": "W6",
   "status": "built"
  },
  {
   "name": "MomentSheet",
   "design": "MomentSheet-B",
-  "entry": "apps/mobile/src/ui/MomentSheet.tsx",
+  "entry": "apps/mobile/src/ui/comments/MomentSheet.tsx",
   "wave": "W6",
   "status": "built"
  },
@@ -485,7 +485,7 @@
  {
   "name": "CommentComposer",
   "design": "CommentComposer-B",
-  "entry": "apps/mobile/src/ui/Composer.tsx",
+  "entry": "apps/mobile/src/ui/comments/Composer.tsx",
   "wave": "W6",
   "status": "built"
  },
@@ -506,7 +506,7 @@
  {
   "name": "ConfirmDialog",
   "design": "ConfirmDialog-B",
-  "entry": "apps/mobile/src/ui/confirm.tsx",
+  "entry": "apps/mobile/src/ui/kit/confirm.tsx",
   "wave": "W6",
   "status": "built"
  },
@@ -520,28 +520,28 @@
  {
   "name": "Terms",
   "design": "Terms-B",
-  "entry": "apps/mobile/src/ui/Terms.tsx",
+  "entry": "apps/mobile/src/ui/shell/Terms.tsx",
   "wave": "W6",
   "status": "built"
  },
  {
   "name": "TermsRefused",
   "design": "TermsRefused-B",
-  "entry": "apps/mobile/src/ui/Terms.tsx",
+  "entry": "apps/mobile/src/ui/shell/Terms.tsx",
   "wave": "W6",
   "status": "built"
  },
  {
   "name": "LegalDoc",
   "design": "LegalDoc-B",
-  "entry": "apps/mobile/src/ui/LegalDoc.tsx",
+  "entry": "apps/mobile/src/ui/shell/LegalDoc.tsx",
   "wave": "W6",
   "status": "built"
  },
  {
   "name": "Toast",
   "design": "Toast-B",
-  "entry": "apps/mobile/src/ui/ToastHost.tsx",
+  "entry": "apps/mobile/src/ui/kit/ToastHost.tsx",
   "wave": "W6",
   "status": "built"
  },
@@ -555,7 +555,7 @@
  {
   "name": "LoadError",
   "design": "LoadError-B",
-  "entry": "apps/mobile/src/ui/EmptyState.tsx",
+  "entry": "apps/mobile/src/ui/kit/EmptyState.tsx",
   "wave": "W6",
   "status": "built"
  },
@@ -569,7 +569,7 @@
  {
   "name": "EpisodeEnd",
   "design": "EpisodeEnd-B",
-  "entry": "apps/mobile/src/ui/EndOffer.tsx",
+  "entry": "apps/mobile/src/ui/player/EndOffer.tsx",
   "wave": "W6",
   "status": "built"
  },

@@ -3,8 +3,8 @@
  *  - the root stack hides the native header for every screen, and no screen turns it back on;
  *  - every page in the stack draws the app's own bar (PageHeader, TopBar or FollowList, which
  *    draws a PageHeader), except the pages listed in OWN_BAR, which draw their own top;
- *  - no code calls the native alert (`Alert.alert`) — confirmations use src/ui/confirm.tsx;
- *  - no file outside src/ui/lib uses the native switch — on/off is src/ui/Toggle.tsx.
+ *  - no code calls the native alert (`Alert.alert`) — confirmations use src/ui/kit/confirm.tsx;
+ *  - no file outside src/ui/lib uses the native switch — on/off is src/ui/kit/Toggle.tsx.
  *
  * A source scan, like no-double-inset: the native header is a navigator option, not something a
  * renderer test can see. The phone row (Tier B) is the real evidence.

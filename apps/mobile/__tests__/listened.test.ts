@@ -1,7 +1,7 @@
 /** quickstart A11: TICKs → listened rows; a seek closes the interval; pushed once as the whole set; offline rows stay dirty. */
-import { createListened } from '../src/graph/listened';
-import { ApiError, type ApiClient, type ListenedDay } from '../src/social/api';
-import { createMemoryListenedStore } from '../src/storage/memory';
+import { createListened } from '@/graph/listened';
+import { ApiError, type ApiClient, type ListenedDay } from '@/social/api';
+import { createMemoryListenedStore } from '@/storage/memory';
 
 function build(opts: { online?: boolean; signedIn?: boolean; device?: string | null } = {}) {
   let online = opts.online ?? true;

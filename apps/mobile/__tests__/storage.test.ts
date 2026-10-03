@@ -11,8 +11,8 @@ import {
   createMemorySessionStore,
   createMemoryStores,
   createMemorySubscriptionStore,
-} from '../src/storage/memory';
-import { episodeId } from '../src/storage/schema';
+} from '@/storage/memory';
+import { episodeId } from '@/storage/schema';
 import type { Episode, ParsedFeed, Show } from '@socialmorning/feed-parser';
 
 const testHash = (s: string): string => {

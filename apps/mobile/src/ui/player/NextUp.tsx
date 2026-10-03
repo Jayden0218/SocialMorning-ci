@@ -1,0 +1,45 @@
+/** "Next up" on the episode page (M5 FR-008): 3–8 episodes with a reason each; hidden when there is nothing to show. */
+import { useEffect, useState } from 'react';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
+import { enoughNextUp } from '@socialmorning/social-core';
+import { EmptyState } from '@/ui/kit/EmptyState';
+import { useSocial } from '@/social/context';
+import { ApiError, type EpisodeCard, type NextUpItem } from '@/social/api';
+import { EpisodeRow } from '@/ui/episode/EpisodeRow';
+
+export function useNextUp(episodeId: string | undefined): { items: NextUpItem[] | undefined; status: 'loading' | 'ok' | 'none' } {
+  const { api } = useSocial();
+  const [items, setItems] = useState<NextUpItem[] | undefined>();
+  const [status, setStatus] = useState<'loading' | 'ok' | 'none'>('loading');
+  useEffect(() => {
+    let live = true;
+    setItems(undefined); setStatus('loading');
+    if (!episodeId) { setStatus('none'); return; }
+    api.nextUp(episodeId).then((r) => { if (live) { setItems(r.items); setStatus('ok'); } }).catch((e: unknown) => {
+      if (!live) return;
+      setStatus('none');
+      if (!(e instanceof ApiError)) return; // 404 (unregistered) or offline: the block is simply absent
+    });
+    return () => { live = false; };
+  }, [api, episodeId]);
+  return { items, status };
+}
+
+export function NextUp(props: { items: NextUpItem[] | undefined; onOpen: (card: EpisodeCard) => void; loadingMs?: number }): React.ReactElement | null {
+  // M6 (FR-019): too few to be useful is still a surface — it says what fills it.
+  if (!props.items || !enoughNextUp(props.items)) {
+    return (
+      <Box className="mt-4">
+        <Text className="text-[18px] font-semibold mb-1 text-text" accessibilityRole="header">Next up</Text>
+        <EmptyState surface="nextup" {...(props.loadingMs !== undefined ? { loadingMs: props.loadingMs } : {})} />
+      </Box>
+    );
+  }
+  return (
+    <Box className="mt-4">
+      <Text className="text-[18px] font-semibold mb-1 text-text" accessibilityRole="header">Next up</Text>
+      {props.items.map((i) => <EpisodeRow key={i.episode.id} card={i.episode} line={i.label} onPress={() => props.onOpen(i.episode)} />)}
+    </Box>
+  );
+}
