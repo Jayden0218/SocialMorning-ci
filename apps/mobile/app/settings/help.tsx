@@ -10,20 +10,20 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Linking } from 'react-native';
 import { Link } from 'expo-router';
-import { Pressable } from '../../src/ui/lib/pressable';
-import { ScrollView } from '../../src/ui/lib/scroll-view';
-import { Text } from '../../src/ui/lib/text';
-import { Box } from '../../src/ui/lib/box';
-import { size } from '../../src/design';
-import { useColours } from '../../src/ui/useColours';
-import { FAQ } from '../../src/settings/faq';
-import { appealsMailto, APPEALS_KEY, refreshAppeals } from '../../src/social/links';
-import { useSocial } from '../../src/social/context';
-import { Icon } from '../../src/ui/Icon';
-import { useStores } from '../../src/ui/providers';
-import { PageHeader } from '../../src/ui/PageHeader';
-import { Card, CardDivider } from '../../src/ui/Card';
-import { Chip } from '../../src/ui/Chip';
+import { Pressable } from '@/ui/lib/pressable';
+import { ScrollView } from '@/ui/lib/scroll-view';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
+import { size } from '@/design';
+import { useColours } from '@/ui/useColours';
+import { FAQ } from '@/settings/faq';
+import { appealsMailto, APPEALS_KEY, refreshAppeals } from '@/social/links';
+import { useSocial } from '@/social/context';
+import { Icon } from '@/ui/Icon';
+import { useStores } from '@/ui/providers';
+import { PageHeader } from '@/ui/PageHeader';
+import { Card, CardDivider } from '@/ui/Card';
+import { Chip } from '@/ui/Chip';
 
 /** M12 FR-050: one row height for every list (was hit.min + 8 = 56). */
 const TAP = { minHeight: size.row };

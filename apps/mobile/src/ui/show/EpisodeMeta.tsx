@@ -4,10 +4,10 @@
  * The row's own accessibilityLabel speaks the words (metaLabel); the Pressable groups this line.
  * M17 (`Show-B`): where you stopped is in the accent, as the design marks your own progress.
  */
-import { Box } from '../lib/box';
-import { Text } from '../lib/text';
-import { Icon } from '../Icon';
-import { ago, minutesLabel } from '../format';
+import { Box } from '@/ui/lib/box';
+import { Text } from '@/ui/lib/text';
+import { Icon } from '@/ui/Icon';
+import { ago, minutesLabel } from '@/ui/format';
 import { plural } from '@socialmorning/social-core';
 
 export type MetaInput = { durationMs?: number | undefined; publishedAt?: number | undefined; plays: number; comments: number; progress: string; now: number };

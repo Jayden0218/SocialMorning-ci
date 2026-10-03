@@ -14,20 +14,20 @@
  * not tappable — FR-016), and the More row pinned to the foot of the page.
  */
 import { useRouter } from 'expo-router';
-import { Pressable } from '../../src/ui/lib/pressable';
-import { ScrollView } from '../../src/ui/lib/scroll-view';
-import { Text } from '../../src/ui/lib/text';
-import { Box } from '../../src/ui/lib/box';
-import { SafeAreaView } from '../../src/ui/lib/safe-area-view';
-import { useSocial } from '../../src/social/context';
-import { useStores } from '../../src/ui/providers';
-import { useColours } from '../../src/ui/useColours';
-import { Icon } from '../../src/ui/Icon';
-import { OTHER_METHODS } from '../../src/ui/auth/methods';
-import { PageHeader } from '../../src/ui/PageHeader';
-import { Card } from '../../src/ui/Card';
-import { Eyebrow } from '../../src/ui/Eyebrow';
-import { size } from '../../src/design';
+import { Pressable } from '@/ui/lib/pressable';
+import { ScrollView } from '@/ui/lib/scroll-view';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
+import { SafeAreaView } from '@/ui/lib/safe-area-view';
+import { useSocial } from '@/social/context';
+import { useStores } from '@/ui/providers';
+import { useColours } from '@/ui/useColours';
+import { Icon } from '@/ui/Icon';
+import { OTHER_METHODS } from '@/ui/auth/methods';
+import { PageHeader } from '@/ui/PageHeader';
+import { Card } from '@/ui/Card';
+import { Eyebrow } from '@/ui/Eyebrow';
+import { size } from '@/design';
 
 const AVATAR = { width: 56, height: 56 };
 const TAP = { minHeight: size.row };

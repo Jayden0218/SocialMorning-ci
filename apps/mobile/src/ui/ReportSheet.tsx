@@ -10,16 +10,16 @@
  * as an accent text action. Same reasons, note, handlers and props as before.
  */
 import { useState } from 'react';
-import { Pressable } from './lib/pressable';
-import { Text } from './lib/text';
-import { Heading } from './lib/heading';
-import { Box } from './lib/box';
-import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper, ActionsheetItem, ActionsheetItemText, ActionsheetScrollView } from './lib/actionsheet';
-import { Textarea, TextareaInput } from './lib/textarea';
+import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
+import { Heading } from '@/ui/lib/heading';
+import { Box } from '@/ui/lib/box';
+import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper, ActionsheetItem, ActionsheetItemText, ActionsheetScrollView } from '@/ui/lib/actionsheet';
+import { Textarea, TextareaInput } from '@/ui/lib/textarea';
 import { router } from 'expo-router';
 import { REPORT_NOTE_MAX, REPORT_REASONS, type ReportReason } from '@socialmorning/social-core';
-import { announce, useSafety } from '../safety/context';
-import type { HiddenKind } from '../storage/types';
+import { announce, useSafety } from '@/safety/context';
+import type { HiddenKind } from '@/storage/types';
 import { useStores } from './providers';
 import { useColours } from './useColours';
 import { Eyebrow } from './Eyebrow';

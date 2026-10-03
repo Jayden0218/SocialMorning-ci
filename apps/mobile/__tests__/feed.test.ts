@@ -1,7 +1,7 @@
 /** T021: the feed cache — stale offline, 304 keeps the copy, the unread count clears on open. */
-import { createFeed, FEED_LAST_OPENED_KEY } from '../src/graph/feed';
-import { ApiError, type ApiClient, type FeedItem } from '../src/social/api';
-import { createMemoryFeedCacheStore, createMemorySettingsStore } from '../src/storage/memory';
+import { createFeed, FEED_LAST_OPENED_KEY } from '@/graph/feed';
+import { ApiError, type ApiClient, type FeedItem } from '@/social/api';
+import { createMemoryFeedCacheStore, createMemorySettingsStore } from '@/storage/memory';
 
 const item = (id: number, createdAt: string): FeedItem => ({ id, kind: 'clipped', actor: { id: 'b', displayName: 'Bea' }, episode: { id: 'e', title: 'Ep', showTitle: null, imageUrl: null }, momentMs: 1, refId: null, createdAt });
 

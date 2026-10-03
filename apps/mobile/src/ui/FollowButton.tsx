@@ -4,12 +4,12 @@
  * action), "Following" the white outlined one. `className` lets a row stretch it (`flex-1`).
  */
 import { useState } from 'react';
-import { hit } from '../design';
-import { Button, ButtonText } from './lib/button';
+import { hit } from '@/design';
+import { Button, ButtonText } from '@/ui/lib/button';
 import { router } from 'expo-router';
-import { useSocial } from '../social/context';
+import { useSocial } from '@/social/context';
 import { useToast } from './providers';
-import { ApiError } from '../social/api';
+import { ApiError } from '@/social/api';
 
 const TAP = { minHeight: hit.min };
 

@@ -5,10 +5,10 @@
 import { requireOptionalNativeModule } from 'expo';
 import { useEffect } from 'react';
 import { AppState, Platform } from 'react-native';
-import { usePlayer } from '../playback/store';
-import { useSafety } from '../safety/context';
-import { toPlayable } from '../storage/playable';
-import { useStores } from '../ui/providers';
+import { usePlayer } from '@/playback/store';
+import { useSafety } from '@/safety/context';
+import { toPlayable } from '@/storage/playable';
+import { useStores } from '@/ui/providers';
 import { carSections, createCarSync, type CarNative } from './car';
 
 export function CarLibrarySync(): null {

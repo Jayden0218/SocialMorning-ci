@@ -3,9 +3,9 @@
  * with its soft drop shadow. The shadow sits on a wrapper because `Artwork` clips its corners;
  * its colour is the text token (no literal), so it reads as a warm shade on the paper page.
  */
-import { Box } from '../lib/box';
-import { Artwork } from '../Artwork';
-import { useColours } from '../useColours';
+import { Box } from '@/ui/lib/box';
+import { Artwork } from '@/ui/Artwork';
+import { useColours } from '@/ui/useColours';
 
 export function HeroArtwork(props: { url?: string | null | undefined; size: number; name?: string | undefined }): React.ReactElement {
   const c = useColours();

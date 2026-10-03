@@ -5,11 +5,11 @@
  */
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AccessibilityInfo } from 'react-native';
-import { useSocial } from '../social/context';
-import { useStores } from '../ui/providers';
+import { useSocial } from '@/social/context';
+import { useStores } from '@/ui/providers';
 import { createSafety, type Safety } from './hidden';
 import { filterClips, filterComments, filterFeed, filterListeners, type Sets } from './filter';
-import type { Clip, ClipAuthor, Comment, FeedItem } from '../social/api';
+import type { Clip, ClipAuthor, Comment, FeedItem } from '@/social/api';
 
 export type SafetyContextValue = {
   safety: Safety;

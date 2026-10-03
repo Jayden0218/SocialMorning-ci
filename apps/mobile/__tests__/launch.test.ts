@@ -2,7 +2,7 @@
  * The sign-in page is offered on every launch while signed out. The break that turns the
  * first test red: drop `!s.signedIn` from `opensSignIn` in `src/ui/launch.ts`.
  */
-import { coverLaunch, keepTerms, opensSignIn } from '../src/ui/launch';
+import { coverLaunch, keepTerms, opensSignIn } from '@/ui/launch';
 
 const base = { ready: true, accepted: true, signedIn: false, opened: false };
 

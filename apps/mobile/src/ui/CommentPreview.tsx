@@ -4,16 +4,16 @@
  */
 import { useMemo } from 'react';
 import { orderComments, plural } from '@socialmorning/social-core';
-import { Pressable } from './lib/pressable';
-import { Text } from './lib/text';
-import { Box } from './lib/box';
-import { hit } from '../design';
-import type { Comment } from '../social/api';
-import { useSafety } from '../safety/context';
+import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
+import { hit } from '@/design';
+import type { Comment } from '@/social/api';
+import { useSafety } from '@/safety/context';
 import { useStores } from './providers';
 import { useColours } from './useColours';
 import { CommentRow } from './CommentRow';
-import { SectionTitle } from './discover/parts';
+import { SectionTitle } from '@/ui/discover/parts';
 
 const TAP = { minHeight: hit.min };
 

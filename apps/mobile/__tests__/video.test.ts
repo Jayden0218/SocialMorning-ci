@@ -4,7 +4,7 @@
  * `followAudio` in `src/playback/video/sync.ts`.
  */
 import { mediaKindOf } from '@socialmorning/social-core';
-import { followAudio, MAX_DRIFT_MS } from '../src/playback/video/sync';
+import { followAudio, MAX_DRIFT_MS } from '@/playback/video/sync';
 
 it('in step and in the same state → nothing to do', () => {
   expect(followAudio({ positionMs: 10_000, playing: true }, { currentTimeS: 10.4, playing: true })).toEqual({});

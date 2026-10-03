@@ -18,11 +18,11 @@
  * sheet); the backdrop and a drag down still cancel. Same two buttons, same names and handlers.
  */
 import { useCallback, useState } from 'react';
-import { Pressable } from './lib/pressable';
-import { Text } from './lib/text';
-import { Box } from './lib/box';
-import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from './lib/actionsheet';
-import { hit } from '../design';
+import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
+import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '@/ui/lib/actionsheet';
+import { hit } from '@/design';
 
 const TAP = { minHeight: hit.min };
 /** B's primary pill: 52 pt. */

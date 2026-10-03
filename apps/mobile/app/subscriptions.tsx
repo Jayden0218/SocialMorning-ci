@@ -14,26 +14,26 @@
  */
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { FlatList } from '../src/ui/lib/flat-list';
-import { ScrollView } from '../src/ui/lib/scroll-view';
-import { Pressable } from '../src/ui/lib/pressable';
-import { Text } from '../src/ui/lib/text';
-import { Box } from '../src/ui/lib/box';
-import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '../src/ui/lib/actionsheet';
-import { refreshAll } from '../src/feeds/refresh-all';
-import { useSafety } from '../src/safety/context';
-import { arrangeSubscriptions, SUB_SORTS, type SubRow, type SubSort } from '../src/me/subscriptions';
-import { Artwork } from '../src/ui/Artwork';
-import { EmptyState } from '../src/ui/EmptyState';
-import { FilterBar } from '../src/ui/me/FilterBar';
-import { EmptyPicture } from '../src/ui/me/parts';
-import { SheetRow } from '../src/ui/SheetRow';
-import { Icon } from '../src/ui/Icon';
-import { shortDate } from '../src/ui/format';
-import { useStores, useSubscriptionSync, useToast } from '../src/ui/providers';
-import { useColours } from '../src/ui/useColours';
-import { hit } from '../src/design';
-import { PageHeader } from '../src/ui/PageHeader';
+import { FlatList } from '@/ui/lib/flat-list';
+import { ScrollView } from '@/ui/lib/scroll-view';
+import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
+import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '@/ui/lib/actionsheet';
+import { refreshAll } from '@/feeds/refresh-all';
+import { useSafety } from '@/safety/context';
+import { arrangeSubscriptions, SUB_SORTS, type SubRow, type SubSort } from '@/me/subscriptions';
+import { Artwork } from '@/ui/Artwork';
+import { EmptyState } from '@/ui/EmptyState';
+import { FilterBar } from '@/ui/me/FilterBar';
+import { EmptyPicture } from '@/ui/me/parts';
+import { SheetRow } from '@/ui/SheetRow';
+import { Icon } from '@/ui/Icon';
+import { shortDate } from '@/ui/format';
+import { useStores, useSubscriptionSync, useToast } from '@/ui/providers';
+import { useColours } from '@/ui/useColours';
+import { hit } from '@/design';
+import { PageHeader } from '@/ui/PageHeader';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
 /** M17 (`Subscriptions-B`): a starred card is 220 pt wide; its artwork fills it inside 10 pt padding and the border. */

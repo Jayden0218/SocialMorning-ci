@@ -7,7 +7,7 @@
  * show. Its end date is checked at launch (`chooseLaunch`), so a stale list cannot show an
  * ended promotion.
  */
-import type { SettingsStore } from '../storage/types';
+import type { SettingsStore } from '@/storage/types';
 import type { LaunchApi } from './api';
 import type { Promotion } from './choose';
 import type { LaunchFiles } from './launch-files';

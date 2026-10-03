@@ -12,7 +12,7 @@ import { join } from 'node:path';
 import {
   LAUNCH_MAX_MS, LAUNCH_ROUTES, chooseLaunch, isLive, knownRoute, localDay, markShown, resolveTarget, shownToday,
   type ChooseInput, type Promotion,
-} from '../src/launch/choose';
+} from '@/launch/choose';
 
 /** mulberry32 — a seeded [0, 1) so the weighted pick is repeatable. */
 function seeded(seed: number): () => number {

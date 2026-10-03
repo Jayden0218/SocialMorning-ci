@@ -2,10 +2,10 @@
  * The comment icon under an Updates row, with how many comments the episode has (M12
  * FR-080). No count yet, or none at all → the icon alone, never a "0".
  */
-import { Pressable } from './lib/pressable';
-import { Text } from './lib/text';
+import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
 import { Icon } from './Icon';
-import { hit } from '../design';
+import { hit } from '@/design';
 import { plural } from '@socialmorning/social-core';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };

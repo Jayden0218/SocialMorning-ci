@@ -4,7 +4,7 @@
  * first (shows with no date go last, in chart order); "Not subscribed only" drops shows the
  * listener already follows. Pure, so the order is tested without a screen.
  */
-import type { ShowCard } from '../social/api';
+import type { ShowCard } from '@/social/api';
 
 export type CategorySort = 'all' | 'newest';
 

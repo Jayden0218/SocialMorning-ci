@@ -3,7 +3,7 @@
  * never fits is dropped rather than sent to be refused. The break that turns this red:
  * return the first encoding in `smallestFit` whatever its size.
  */
-import { base64Bytes, QUALITIES, smallestFit, TARGET_BYTES } from '../src/feedback/shrink';
+import { base64Bytes, QUALITIES, smallestFit, TARGET_BYTES } from '@/feedback/shrink';
 
 const ofBytes = (n: number) => 'A'.repeat(Math.ceil((n * 4) / 3));
 

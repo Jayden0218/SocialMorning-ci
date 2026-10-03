@@ -3,7 +3,7 @@
  * ceiling. The break that turns the first test red: drop `sleep(minMs)` from
  * `waitForStartup` in `src/ui/startup.ts`.
  */
-import { SPLASH_MIN_MS, waitForStartup } from '../src/ui/startup';
+import { SPLASH_MIN_MS, waitForStartup } from '@/ui/startup';
 
 beforeEach(() => jest.useFakeTimers());
 afterEach(() => jest.useRealTimers());

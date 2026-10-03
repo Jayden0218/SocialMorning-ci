@@ -2,7 +2,7 @@
  * M12 guard G-ST3 (FR-081): My subscriptions — starred shows sit in their own section, the
  * search filters both, and each sort orders as named. The break: return every row in `rest`.
  */
-import { arrangeSubscriptions, type SubRow } from '../src/me/subscriptions';
+import { arrangeSubscriptions, type SubRow } from '@/me/subscriptions';
 
 const rows: SubRow[] = [
   { feedUrl: 'a', title: 'banana talk', subscribedAt: 3, starred: false, latestAt: 10 },

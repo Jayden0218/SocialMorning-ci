@@ -5,9 +5,9 @@
  * (every `bg-background`, `text-text` …) is generated from the same object into `global.css`.
  */
 import { useSyncExternalStore } from 'react';
-import { colour, type Palette } from '../design';
-import { accentStore, withAccent } from '../design/accent';
-import type { SettingsStore } from '../storage/types';
+import { colour, type Palette } from '@/design';
+import { accentStore, withAccent } from '@/design/accent';
+import type { SettingsStore } from '@/storage/types';
 
 /**
  * `settings` is kept so every caller stays as it is; nothing is read from it since M17 —

@@ -8,13 +8,13 @@
  * iPhone extras row (owner decision, FR-016). Same switches, same links, same names.
  */
 import { useState } from 'react';
-import { ScrollView } from '../../src/ui/lib/scroll-view';
-import { Text } from '../../src/ui/lib/text';
-import { getPref, setPref } from '../../src/settings/prefs';
-import { useStores } from '../../src/ui/providers';
-import { LinkRow, SwitchRow } from '../../src/ui/settings/rows';
-import { Card, CardDivider } from '../../src/ui/Card';
-import { PageHeader } from '../../src/ui/PageHeader';
+import { ScrollView } from '@/ui/lib/scroll-view';
+import { Text } from '@/ui/lib/text';
+import { getPref, setPref } from '@/settings/prefs';
+import { useStores } from '@/ui/providers';
+import { LinkRow, SwitchRow } from '@/ui/settings/rows';
+import { Card, CardDivider } from '@/ui/Card';
+import { PageHeader } from '@/ui/PageHeader';
 
 function Section(props: { title: string }): React.ReactElement {
   return <Text className="text-text text-base font-display-semibold mt-section mb-gap" accessibilityRole="header">{props.title}</Text>;

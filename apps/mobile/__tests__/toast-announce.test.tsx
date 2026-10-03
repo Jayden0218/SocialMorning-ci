@@ -10,7 +10,7 @@
 import { createElement } from 'react';
 import { AccessibilityInfo, Platform } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { ToastHost } from '../src/ui/ToastHost';
+import { ToastHost } from '@/ui/ToastHost';
 
 let spoken: jest.SpyInstance;
 beforeEach(() => { spoken = jest.spyOn(AccessibilityInfo, 'announceForAccessibility').mockImplementation(() => undefined); });

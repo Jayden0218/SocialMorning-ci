@@ -1,7 +1,7 @@
 /** The phone-side filter is the server's rule over cached payloads (research R1). */
 import { hiddenKey } from '@socialmorning/social-core';
-import { filterClips, filterComments, filterFeed, filterListeners } from '../src/safety/filter';
-import type { Clip, Comment, FeedItem } from '../src/social/api';
+import { filterClips, filterComments, filterFeed, filterListeners } from '@/safety/filter';
+import type { Clip, Comment, FeedItem } from '@/social/api';
 
 const c = (id: string, authorId: string | null, parentId: string | null = null, replies?: Comment[]): Comment =>
   ({ id, authorId, displayName: authorId, body: 'b', offsetMs: 1, parentId, createdAt: '2026-09-22T00:00:00Z', deleted: false, ...(replies ? { replies } : {}) });

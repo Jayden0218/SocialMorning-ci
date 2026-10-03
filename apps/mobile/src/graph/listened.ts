@@ -5,8 +5,8 @@
  * phone's whole merged set and marks it pushed. The server unions across phones.
  */
 import { addTick, closeAcc, type ListenAcc, type Range } from '@socialmorning/social-core';
-import type { ApiClient } from '../social/api';
-import type { ListenedStore } from '../storage/types';
+import type { ApiClient } from '@/social/api';
+import type { ListenedStore } from '@/storage/types';
 
 export type ListenedDeps = {
   api: ApiClient;

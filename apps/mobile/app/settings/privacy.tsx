@@ -9,18 +9,18 @@
  */
 import { Link } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView } from '../../src/ui/lib/scroll-view';
-import { Text } from '../../src/ui/lib/text';
-import { Box } from '../../src/ui/lib/box';
-import { Pressable } from '../../src/ui/lib/pressable';
-import { useSocial } from '../../src/social/context';
-import { useStores } from '../../src/ui/providers';
-import { useColours } from '../../src/ui/useColours';
-import { PageHeader } from '../../src/ui/PageHeader';
-import { Card, CardDivider } from '../../src/ui/Card';
-import { Icon } from '../../src/ui/Icon';
-import { Toggle } from '../../src/ui/Toggle';
-import { hit } from '../../src/design';
+import { ScrollView } from '@/ui/lib/scroll-view';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
+import { Pressable } from '@/ui/lib/pressable';
+import { useSocial } from '@/social/context';
+import { useStores } from '@/ui/providers';
+import { useColours } from '@/ui/useColours';
+import { PageHeader } from '@/ui/PageHeader';
+import { Card, CardDivider } from '@/ui/Card';
+import { Icon } from '@/ui/Icon';
+import { Toggle } from '@/ui/Toggle';
+import { hit } from '@/design';
 
 const TAP = { minHeight: hit.min };
 

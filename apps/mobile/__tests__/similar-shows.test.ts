@@ -2,7 +2,7 @@
  * M12 guard G-SH1 (FR-063): About's similar shows come from the show's genre chart — never
  * the show itself, never a hidden show, at most 6. The break: drop the self filter.
  */
-import { genreOf, similarShows } from '../src/discover/genres';
+import { genreOf, similarShows } from '@/discover/genres';
 
 it('a feed category names its genre, case and &amp; aside', () => {
   expect(genreOf(['Technology'])?.id).toBe(1318);

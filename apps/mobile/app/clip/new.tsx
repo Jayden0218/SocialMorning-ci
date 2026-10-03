@@ -9,18 +9,18 @@
  */
 import { useState } from 'react';
 import { Share } from 'react-native';
-import { Text } from '../../src/ui/lib/text';
-import { Box } from '../../src/ui/lib/box';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useGraph } from '../../src/graph/context';
-import { useSocial } from '../../src/social/context';
-import { useStores, useToast } from '../../src/ui/providers';
-import { toPlayable } from '../../src/storage/playable';
-import { ClipComposer } from '../../src/ui/ClipComposer';
-import { shareClip } from '../../src/graph/share';
-import { apiBaseUrl } from '../../src/social/base-url';
-import { useSharePanel } from '../../src/ui/ShareChooser';
-import { PageHeader } from '../../src/ui/PageHeader';
+import { useGraph } from '@/graph/context';
+import { useSocial } from '@/social/context';
+import { useStores, useToast } from '@/ui/providers';
+import { toPlayable } from '@/storage/playable';
+import { ClipComposer } from '@/ui/ClipComposer';
+import { shareClip } from '@/graph/share';
+import { apiBaseUrl } from '@/social/base-url';
+import { useSharePanel } from '@/ui/ShareChooser';
+import { PageHeader } from '@/ui/PageHeader';
 
 export default function NewClipScreen(): React.ReactElement {
   const params = useLocalSearchParams<{ episodeId: string; positionMs: string }>();

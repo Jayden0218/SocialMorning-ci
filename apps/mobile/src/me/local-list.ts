@@ -3,7 +3,7 @@
  * favourites and saved moments (M10, owner 2026-09-27). A broken stored value reads as
  * empty rather than crashing the screen that shows it.
  */
-import type { SettingsStore } from '../storage/types';
+import type { SettingsStore } from '@/storage/types';
 
 export function readList<T>(settings: SettingsStore, key: string, ok: (x: unknown) => x is T): T[] {
   try {

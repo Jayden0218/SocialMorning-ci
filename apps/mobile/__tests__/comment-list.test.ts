@@ -1,4 +1,4 @@
-import { relativeTime } from '../src/ui/format';
+import { relativeTime } from '@/ui/format';
 
 it('relative time is computed from the server clock, never the phone', () => {
   const server = '2026-09-21T06:30:00Z';

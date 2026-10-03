@@ -12,20 +12,20 @@
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable } from '../../src/ui/lib/pressable';
-import { Text } from '../../src/ui/lib/text';
-import { Box } from '../../src/ui/lib/box';
-import { hit } from '../../src/design';
-import { Loader } from '../../src/ui/Loader';
-import { Screen } from '../../src/ui/Screen';
-import { Card } from '../../src/ui/Card';
-import { Artwork } from '../../src/ui/Artwork';
-import { PlayButton } from '../../src/ui/discover/parts';
-import { useCardActions } from '../../src/discover/useDiscover';
-import { dayTitle } from '../../src/discover/sections';
-import { useSafety } from '../../src/safety/context';
-import { useM12Api, type Issue } from '../../src/social/m12-api';
-import { PageHeader } from '../../src/ui/PageHeader';
+import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
+import { hit } from '@/design';
+import { Loader } from '@/ui/Loader';
+import { Screen } from '@/ui/Screen';
+import { Card } from '@/ui/Card';
+import { Artwork } from '@/ui/Artwork';
+import { PlayButton } from '@/ui/discover/parts';
+import { useCardActions } from '@/discover/useDiscover';
+import { dayTitle } from '@/discover/sections';
+import { useSafety } from '@/safety/context';
+import { useM12Api, type Issue } from '@/social/m12-api';
+import { PageHeader } from '@/ui/PageHeader';
 
 const TAP = { minHeight: hit.min };
 /** `Issue-B`: the pick's tile is 112 pt high with a 44 pt serif number. */

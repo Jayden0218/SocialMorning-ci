@@ -1,10 +1,10 @@
 /** M8 US2 — the For You section's data: the last copy at once, a refresh on focus. */
 import { useCallback, useMemo, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
-import { useSocial } from '../social/context';
-import { useStores } from '../ui/providers';
+import { useSocial } from '@/social/context';
+import { useStores } from '@/ui/providers';
 import { createForYou, type ForYouView } from './cache';
-import { getPref } from '../settings/prefs';
+import { getPref } from '@/settings/prefs';
 
 export function useForYou(signedInArg: boolean) {
   const { api } = useSocial();

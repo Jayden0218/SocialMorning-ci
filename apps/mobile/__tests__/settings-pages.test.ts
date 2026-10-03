@@ -6,15 +6,15 @@
  * drop the `noExplicit` filter (minor mode test).
  */
 import type { Episode, ParsedFeed, Show } from '@socialmorning/feed-parser';
-import { hash } from '../src/feeds/hash';
-import { inboxIds } from '../src/inbox';
-import { latestUpdates } from '../src/me/updates';
-import { collectedList } from '../src/settings/collected';
-import { feedbackMailto, listFeedback, rememberFeedback } from '../src/settings/feedback';
-import { fromOpml, toOpml } from '../src/settings/opml';
-import { getPref, PREFS, setPref } from '../src/settings/prefs';
-import { queueEpisode } from '../src/settings/queue';
-import { createMemoryStores } from '../src/storage/memory';
+import { hash } from '@/feeds/hash';
+import { inboxIds } from '@/inbox';
+import { latestUpdates } from '@/me/updates';
+import { collectedList } from '@/settings/collected';
+import { feedbackMailto, listFeedback, rememberFeedback } from '@/settings/feedback';
+import { fromOpml, toOpml } from '@/settings/opml';
+import { getPref, PREFS, setPref } from '@/settings/prefs';
+import { queueEpisode } from '@/settings/queue';
+import { createMemoryStores } from '@/storage/memory';
 
 const F = 'https://f/a.xml';
 const show: Show = { feedUrl: F, title: 'A', explicit: false, categories: [], contentHash: 'h' };

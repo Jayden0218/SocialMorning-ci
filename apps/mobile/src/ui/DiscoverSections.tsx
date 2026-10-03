@@ -4,9 +4,9 @@
  * M17 (`Discover-B`): serif section titles, the stale notice and each pick as bordered white
  * cards (`PickCard`), episode lists inside a card. Props unchanged — the Updates tab renders it.
  */
-import { Text } from './lib/text';
-import { Box } from './lib/box';
-import type { Discover, EpisodeCard } from '../social/api';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
+import type { Discover, EpisodeCard } from '@/social/api';
 import { Card } from './Card';
 import { PickCard } from './PickCard';
 import { EpisodeRow } from './EpisodeRow';

@@ -10,7 +10,7 @@
 import { createElement } from 'react';
 import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { colour, hit } from '../src/design';
+import { colour, hit } from '@/design';
 
 const mockPause = jest.fn();
 const mockPlay = jest.fn();
@@ -23,11 +23,11 @@ jest.mock('expo-router', () => ({
   usePathname: () => '/',
   useIsFocused: () => mockFocused,
 }));
-jest.mock('../src/playback/store', () => ({
+jest.mock('@/playback/store', () => ({
   usePlayer: () => ({ play: mockPlay, pause: mockPause }),
   usePlayerState: () => mockPlayerState,
 }));
-jest.mock('../src/ui/providers', () => ({
+jest.mock('@/ui/providers', () => ({
   useStores: () => ({
     // M10b US4: MiniPlayer and its ProgressRing read the palette; pin it to light.
     settings: { get: () => 'light' },
@@ -41,9 +41,9 @@ jest.mock('../src/ui/providers', () => ({
   }),
 }));
 
-import { MiniPlayer, TabsMiniPlayer } from '../src/ui/MiniPlayer';
-import { MINI_PLAYER_HEIGHT } from '../src/ui/Screen';
-import { TAB_HREF } from '../src/ui/tabs';
+import { MiniPlayer, TabsMiniPlayer } from '@/ui/MiniPlayer';
+import { MINI_PLAYER_HEIGHT } from '@/ui/Screen';
+import { TAB_HREF } from '@/ui/tabs';
 
 const render = (el: React.ReactElement): ReactTestRenderer => {
   let r!: ReactTestRenderer;

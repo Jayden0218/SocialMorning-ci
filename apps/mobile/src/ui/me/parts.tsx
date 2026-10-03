@@ -6,13 +6,13 @@
  */
 import { Link } from 'expo-router';
 import type { ComponentProps } from 'react';
-import { Pressable } from '../lib/pressable';
-import { Text } from '../lib/text';
-import { Box } from '../lib/box';
-import { colour, size } from '../../design';
-import { useStores } from '../providers';
-import { useColours } from '../useColours';
-import { Icon, type IconName } from '../Icon';
+import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
+import { colour, size } from '@/design';
+import { useStores } from '@/ui/providers';
+import { useColours } from '@/ui/useColours';
+import { Icon, type IconName } from '@/ui/Icon';
 
 /** M12 FR-050: one row height for every list (was hit.min + 8 = 56). */
 const TAP = { minHeight: size.row };

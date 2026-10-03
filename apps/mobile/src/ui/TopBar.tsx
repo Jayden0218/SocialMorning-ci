@@ -3,9 +3,9 @@
  * 2026-09-27): a way back on the left, the page's own actions on the right, no title.
  * Those three routes hide the stack header and draw this instead.
  */
-import { Pressable } from './lib/pressable';
-import { Box } from './lib/box';
-import { hit } from '../design';
+import { Pressable } from '@/ui/lib/pressable';
+import { Box } from '@/ui/lib/box';
+import { hit } from '@/design';
 import { Chevron, Glyph } from './Icon';
 
 export const TAP = { minHeight: hit.min, minWidth: hit.min };

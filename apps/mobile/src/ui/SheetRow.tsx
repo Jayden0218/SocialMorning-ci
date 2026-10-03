@@ -3,11 +3,11 @@
  * an optional muted detail on the right. The episode ⋯ sheet used 32 pt pill chips in wrapping
  * rows with text links under them — under the 44 pt floor and hard to scan.
  */
-import { Pressable } from './lib/pressable';
-import { Text } from './lib/text';
-import { Box } from './lib/box';
+import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
 import { Icon, type IconName } from './Icon';
-import { size } from '../design';
+import { size } from '@/design';
 
 const ROW = { minHeight: size.row };
 

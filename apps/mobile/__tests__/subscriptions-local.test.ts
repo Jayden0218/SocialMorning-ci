@@ -11,11 +11,11 @@
  * to agree; a divergence there is a bug that only shows up on the device.
  */
 import { DatabaseSync } from 'node:sqlite';
-import { createMemorySubscriptionStore } from '../src/storage/memory';
-import { createSqliteSubscriptionStore } from '../src/storage/sqlite';
-import { migrateSchema, SCHEMA_VERSION, type SchemaDb } from '../src/storage/schema';
-import { createSubscriptionSync, fromWire, toWire } from '../src/sync/subscriptions';
-import type { SubscriptionStore } from '../src/storage/types';
+import { createMemorySubscriptionStore } from '@/storage/memory';
+import { createSqliteSubscriptionStore } from '@/storage/sqlite';
+import { migrateSchema, SCHEMA_VERSION, type SchemaDb } from '@/storage/schema';
+import { createSubscriptionSync, fromWire, toWire } from '@/sync/subscriptions';
+import type { SubscriptionStore } from '@/storage/types';
 
 const F1 = 'https://feeds.example.com/one.xml';
 const F2 = 'https://feeds.example.com/two.xml';
@@ -156,7 +156,7 @@ describe('the sync', () => {
  * subscription, and the rows it already had come back as live, not as tombstones.
  */
 it('a v5 database upgrades to v6 with its subscriptions intact and none of them tombstoned', () => {
-  const { MIGRATION_001, MIGRATION_002, MIGRATION_003, MIGRATION_004, MIGRATION_005 } = require('../src/storage/schema');
+  const { MIGRATION_001, MIGRATION_002, MIGRATION_003, MIGRATION_004, MIGRATION_005 } = require('@/storage/schema');
   const db = new DatabaseSync(':memory:');
   for (const m of [MIGRATION_001, MIGRATION_002, MIGRATION_003, MIGRATION_004, MIGRATION_005]) db.exec(m);
   db.exec('PRAGMA user_version = 5');
@@ -195,7 +195,7 @@ describe.each(stores)('%s store: stars', (_name, make) => {
 });
 
 it('a v6 database upgrades to v7 with its stars intact', () => {
-  const { MIGRATIONS } = require('../src/storage/schema');
+  const { MIGRATIONS } = require('@/storage/schema');
   const db = new DatabaseSync(':memory:');
   for (const m of MIGRATIONS.slice(0, 6)) db.exec(m);
   db.exec('PRAGMA user_version = 6');

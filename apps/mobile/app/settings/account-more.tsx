@@ -17,20 +17,20 @@
  * account", enabled at 6 digits). Same handlers, same names, same order of steps as before.
  */
 import { useState } from 'react';
-import { Input, InputField } from '../../src/ui/lib/input';
-import { Pressable } from '../../src/ui/lib/pressable';
-import { ScrollView } from '../../src/ui/lib/scroll-view';
-import { Text } from '../../src/ui/lib/text';
-import { Box } from '../../src/ui/lib/box';
-import { ApiError } from '../../src/social/api';
-import { useSocial } from '../../src/social/context';
-import { useStores } from '../../src/ui/providers';
-import { useColours } from '../../src/ui/useColours';
-import { Icon } from '../../src/ui/Icon';
-import { PageHeader } from '../../src/ui/PageHeader';
-import { Card } from '../../src/ui/Card';
-import { SafeAreaView } from '../../src/ui/lib/safe-area-view';
-import { hit } from '../../src/design';
+import { Input, InputField } from '@/ui/lib/input';
+import { Pressable } from '@/ui/lib/pressable';
+import { ScrollView } from '@/ui/lib/scroll-view';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
+import { ApiError } from '@/social/api';
+import { useSocial } from '@/social/context';
+import { useStores } from '@/ui/providers';
+import { useColours } from '@/ui/useColours';
+import { Icon } from '@/ui/Icon';
+import { PageHeader } from '@/ui/PageHeader';
+import { Card } from '@/ui/Card';
+import { SafeAreaView } from '@/ui/lib/safe-area-view';
+import { hit } from '@/design';
 
 export default function AccountMoreScreen(): React.ReactElement {
   const stores = useStores();

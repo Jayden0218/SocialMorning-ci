@@ -16,16 +16,16 @@
  * menu as the long-press (which still works). The Host badge is the yellow pill.
  */
 import { useState } from 'react';
-import { Link } from '../design/tailwind';
-import { Pressable } from './lib/pressable';
-import { Text } from './lib/text';
-import { Box } from './lib/box';
+import { Link } from '@/design/tailwind';
+import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
 import { Icon } from './Icon';
 import { plural } from '@socialmorning/social-core';
 import { mmss, relativeTime } from './format';
 import { Placeholder, placeholderFor } from './Placeholder';
-import { hit } from '../design';
-import type { Comment } from '../social/api';
+import { hit } from '@/design';
+import type { Comment } from '@/social/api';
 import { countryName } from './country';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };

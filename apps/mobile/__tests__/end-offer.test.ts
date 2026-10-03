@@ -1,11 +1,11 @@
 /** quickstart A10 (guard G7): the offer is shown only at `ended` with an empty queue, and choosing it is the only thing that loads. */
-import { endOffer } from '../src/discover/end-offer';
-import { createPlayerRuntime, type PlayableEpisode } from '../src/playback/store';
-import type { AdapterEvent, AudioAdapter } from '../src/playback/expo-audio-adapter';
-import type { Effect } from '../src/playback/types';
-import { createMemoryStores } from '../src/storage/memory';
-import { hash } from '../src/feeds/hash';
-import type { NextUpItem } from '../src/social/api';
+import { endOffer } from '@/discover/end-offer';
+import { createPlayerRuntime, type PlayableEpisode } from '@/playback/store';
+import type { AdapterEvent, AudioAdapter } from '@/playback/expo-audio-adapter';
+import type { Effect } from '@/playback/types';
+import { createMemoryStores } from '@/storage/memory';
+import { hash } from '@/feeds/hash';
+import type { NextUpItem } from '@/social/api';
 
 const item: NextUpItem = { episode: { id: 'n1', feedUrl: 'f', guid: 'g', title: 'Next one', showTitle: 'S', enclosureUrl: 'https://cdn/n1.mp3' }, reason: 'newOnShow', label: 'New on this show' };
 

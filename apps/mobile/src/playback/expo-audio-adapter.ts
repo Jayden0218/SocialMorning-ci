@@ -44,7 +44,7 @@ import {
   AudioQuality, IOSOutputFormat, createAudioPlayer, requestRecordingPermissionsAsync, setAudioModeAsync,
   useAudioRecorder, useAudioRecorderState, type AudioPlayer, type AudioStatus, type RecordingOptions,
 } from 'expo-audio';
-import { VOICE_BIT_RATE } from '../voice/recording';
+import { VOICE_BIT_RATE } from '@/voice/recording';
 import { AppState, type AppStateStatus } from 'react-native';
 import type { Effect, Ms, PlayerEvent } from './types';
 

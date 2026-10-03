@@ -2,14 +2,14 @@
  * FR-004: with no account, everything from M1 behaves as before, and the social
  * layer reads but refuses to write — without ever calling the server for a write.
  */
-import { createComposer } from '../src/social/composer';
-import { createDrafts } from '../src/social/drafts';
-import { createSocialCache } from '../src/social/cache';
-import { createAuth, type TokenStore } from '../src/social/auth-store';
-import { createReactToggle } from '../src/social/react';
-import type { ApiClient } from '../src/social/api';
-import { createMemoryStores } from '../src/storage/memory';
-import { hash } from '../src/feeds/hash';
+import { createComposer } from '@/social/composer';
+import { createDrafts } from '@/social/drafts';
+import { createSocialCache } from '@/social/cache';
+import { createAuth, type TokenStore } from '@/social/auth-store';
+import { createReactToggle } from '@/social/react';
+import type { ApiClient } from '@/social/api';
+import { createMemoryStores } from '@/storage/memory';
+import { hash } from '@/feeds/hash';
 
 it('signed out: M1 stores work, composer returns needsSignIn, deleteAccount keeps positions', async () => {
   const stores = createMemoryStores(hash);

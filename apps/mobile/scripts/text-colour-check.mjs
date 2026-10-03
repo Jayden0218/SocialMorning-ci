@@ -53,9 +53,11 @@ for (const file of files) {
   for (const st of sf.statements) {
     if (!ts.isImportDeclaration(st) || !ts.isStringLiteral(st.moduleSpecifier)) continue;
     const spec = st.moduleSpecifier.text;
-    if (!spec.startsWith('.')) continue;
+    if (!spec.startsWith('.') && !spec.startsWith('@/')) continue;
+    // `@/x` is the app's alias for src/x (tsconfig `paths`).
+    const base = spec.startsWith('@/') ? path.join('src', spec.slice(2)) : path.join(path.dirname(file), spec);
     for (const ext of ['.tsx', '.ts']) {
-      const p = path.join(path.dirname(file), spec + ext);
+      const p = base + ext;
       try {
         const src = readFileSync(p, 'utf8');
         collect(ts.createSourceFile(p, src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX));

@@ -10,11 +10,11 @@
 import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import { remove } from '@socialmorning/player-core';
-import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from './lib/actionsheet';
-import { ScrollView } from './lib/scroll-view';
-import { Text } from './lib/text';
-import { usePlayer } from '../playback/store';
-import { toPlayable } from '../storage/playable';
+import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '@/ui/lib/actionsheet';
+import { ScrollView } from '@/ui/lib/scroll-view';
+import { Text } from '@/ui/lib/text';
+import { usePlayer } from '@/playback/store';
+import { toPlayable } from '@/storage/playable';
 import { useStores } from './providers';
 import { useColours } from './useColours';
 import { EmptyState } from './EmptyState';

@@ -5,9 +5,9 @@
  */
 import { createElement } from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { hasPlays, orderEpisodes } from '../src/ui/show/order';
-import { EpisodeMeta, metaLabel } from '../src/ui/show/EpisodeMeta';
-import { AnnouncementCard, announcementHeading } from '../src/ui/show/AnnouncementCard';
+import { hasPlays, orderEpisodes } from '@/ui/show/order';
+import { EpisodeMeta, metaLabel } from '@/ui/show/EpisodeMeta';
+import { AnnouncementCard, announcementHeading } from '@/ui/show/AnnouncementCard';
 
 const eps = [{ id: 'a' }, { id: 'b' }, { id: 'c' }]; // newest first
 const base = { oldestFirst: false, view: 'all' as const, unplayedOnly: false, isFinished: () => false };

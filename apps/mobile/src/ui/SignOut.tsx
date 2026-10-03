@@ -3,11 +3,11 @@
  * M9: the question is gluestack's AlertDialog.
  */
 import { useState } from 'react';
-import { Pressable } from './lib/pressable';
-import { Text } from './lib/text';
-import { Heading } from './lib/heading';
-import { AlertDialog, AlertDialogBackdrop, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader } from './lib/alert-dialog';
-import { hit } from '../design';
+import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
+import { Heading } from '@/ui/lib/heading';
+import { AlertDialog, AlertDialogBackdrop, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader } from '@/ui/lib/alert-dialog';
+import { hit } from '@/design';
 
 const TAP = { minHeight: hit.min };
 

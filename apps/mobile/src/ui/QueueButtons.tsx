@@ -6,12 +6,12 @@
  * here so DownloadButton and EpisodeExtras draw the same tile; each part is one row of two, so
  * the library, show and episode sheets that stack the three parts all get the grid.
  */
-import { Pressable } from './lib/pressable';
-import { Text } from './lib/text';
-import { Box } from './lib/box';
+import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
 import { Icon, type IconName } from './Icon';
 import { useColours } from './useColours';
-import { queueEpisode } from '../settings/queue';
+import { queueEpisode } from '@/settings/queue';
 import { useDownloads, useStores, useToast } from './providers';
 
 /** 76 pt, as in B — above the 48 pt floor. */

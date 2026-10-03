@@ -1,12 +1,12 @@
 /** Chapters (US5, FR-021): start time + title, the current one highlighted, tap → seek. */
 import { currentChapter, type Chapter } from '@socialmorning/player-core';
 import { Linking } from 'react-native';
-import { Image } from './lib/image';
-import { Pressable } from './lib/pressable';
-import { Text } from './lib/text';
-import { Box } from './lib/box';
+import { Image } from '@/ui/lib/image';
+import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
 import { mmss } from './format';
-import { tabular } from '../design';
+import { tabular } from '@/design';
 
 export function ChapterList(props: { chapters: Chapter[]; positionMs: number; onSeek: (ms: number) => void }): React.ReactElement {
   const current = currentChapter(props.chapters, props.positionMs);

@@ -4,9 +4,9 @@
  * positions and "finished" stay in charge). The native half is patches/expo-audio+58.0.0.patch
  * (expo-audio's service as a Media3 MediaLibraryService) + plugins/android-auto.js.
  */
-import type { PlayerRuntime, PlayableEpisode } from '../playback/store';
-import type { Stores } from '../storage/types';
-import { latestUpdates } from '../me/updates';
+import type { PlayerRuntime, PlayableEpisode } from '@/playback/store';
+import type { Stores } from '@/storage/types';
+import { latestUpdates } from '@/me/updates';
 
 export const QUEUE_MAX = 50;
 export const UPDATES_MAX = 30;

@@ -10,9 +10,9 @@
  * 24 pt serif, and Retry as the full-width yellow pill at the foot of the page (it was a text
  * link). Inline uses keep the short sentence and the Retry link. Same Retry, same name.
  */
-import { Button, ButtonText } from './lib/button';
-import { Text } from './lib/text';
-import { Box } from './lib/box';
+import { Button, ButtonText } from '@/ui/lib/button';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
 import { Loader } from './Loader';
 import { router } from 'expo-router';
 import { emptyState, type Surface } from '@socialmorning/social-core';

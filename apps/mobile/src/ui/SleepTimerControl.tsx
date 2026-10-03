@@ -6,15 +6,15 @@
  * 4-column grid (End of episode spans two). Same choices, names, Cancels and handlers as before.
  */
 import { useEffect, useState } from 'react';
-import { Pressable } from './lib/pressable';
-import { hit } from '../design';
+import { Pressable } from '@/ui/lib/pressable';
+import { hit } from '@/design';
 
 /** M12 FR-043: every speed and sleep target is 48 pt (the chips were ~24 pt). */
 const TAP = { minHeight: hit.min, minWidth: hit.min };
-import { Text } from './lib/text';
-import { Box } from './lib/box';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
 import type { SleepChoice } from '@socialmorning/player-core';
-import { usePlayer } from '../playback/store';
+import { usePlayer } from '@/playback/store';
 import { mmss } from './format';
 
 const CHOICES: SleepChoice[] = [5, 10, 15, 30, 45, 60, 'endOfEpisode'];

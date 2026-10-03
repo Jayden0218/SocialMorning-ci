@@ -4,8 +4,8 @@
  * `src/ui/providers.tsx` calls it once, at mount; the list and images for the NEXT launch
  * come from `syncLaunch`, started after start-up is ready and never awaited.
  */
-import { getPref } from '../settings/prefs';
-import type { SettingsStore } from '../storage/types';
+import { getPref } from '@/settings/prefs';
+import type { SettingsStore } from '@/storage/types';
 import { chooseLaunch, localDay, markShown, type Promotion } from './choose';
 import type { LaunchFiles } from './launch-files';
 import { readFiles, readList, readShown, writeShown } from './store';

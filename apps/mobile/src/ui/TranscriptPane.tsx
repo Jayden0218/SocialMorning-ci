@@ -1,11 +1,11 @@
 /** Transcript (US5, FR-022): timed → current line highlighted, tap → seek; untimed → text. */
 import { currentLine, type Transcript } from '@socialmorning/player-core';
-import { Pressable } from './lib/pressable';
-import { ScrollView } from './lib/scroll-view';
-import { Text } from './lib/text';
-import { Box } from './lib/box';
+import { Pressable } from '@/ui/lib/pressable';
+import { ScrollView } from '@/ui/lib/scroll-view';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
 import { mmss } from './format';
-import { tabular } from '../design';
+import { tabular } from '@/design';
 
 const BOX = 'w-full max-h-[260px] border-hairline border-separator rounded-lg p-2';
 

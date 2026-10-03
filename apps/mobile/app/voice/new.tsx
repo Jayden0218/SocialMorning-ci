@@ -13,24 +13,24 @@
  */
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { askMicrophone, useVoiceRecorder, voiceSessionOff, voiceSessionOn } from '../../src/playback/expo-audio-adapter';
+import { askMicrophone, useVoiceRecorder, voiceSessionOff, voiceSessionOn } from '@/playback/expo-audio-adapter';
 import { Linking } from 'react-native';
-import { Pressable } from '../../src/ui/lib/pressable';
-import { Text } from '../../src/ui/lib/text';
-import { Box } from '../../src/ui/lib/box';
-import { ScrollView } from '../../src/ui/lib/scroll-view';
-import { SafeAreaView } from '../../src/ui/lib/safe-area-view';
-import { Card } from '../../src/ui/Card';
-import { hit } from '../../src/design';
-import { Button } from '../../src/ui/Button';
-import { Icon } from '../../src/ui/Icon';
-import { usePlayer } from '../../src/playback/store';
-import { useColours } from '../../src/ui/useColours';
-import { useStores, useToast } from '../../src/ui/providers';
-import { useM12Api } from '../../src/social/m12-api';
-import { ApiError } from '../../src/social/api';
-import { VOICE_MAX_MS, voiceClock } from '../../src/voice/recording';
-import { PageHeader } from '../../src/ui/PageHeader';
+import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
+import { ScrollView } from '@/ui/lib/scroll-view';
+import { SafeAreaView } from '@/ui/lib/safe-area-view';
+import { Card } from '@/ui/Card';
+import { hit } from '@/design';
+import { Button } from '@/ui/Button';
+import { Icon } from '@/ui/Icon';
+import { usePlayer } from '@/playback/store';
+import { useColours } from '@/ui/useColours';
+import { useStores, useToast } from '@/ui/providers';
+import { useM12Api } from '@/social/m12-api';
+import { ApiError } from '@/social/api';
+import { VOICE_MAX_MS, voiceClock } from '@/voice/recording';
+import { PageHeader } from '@/ui/PageHeader';
 
 /** The old one-line rule, word for word, split into `VoiceNew-B`'s numbered list. */
 const RULES = ['Up to 60 seconds.', 'People who follow you can play it', 'for 48 hours; then it is deleted.'] as const;

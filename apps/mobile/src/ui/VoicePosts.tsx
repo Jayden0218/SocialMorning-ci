@@ -8,19 +8,19 @@
  * playing turns yellow with a stop mark. Same buttons, names, tap / long-press as before.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ScrollView } from './lib/scroll-view';
+import { ScrollView } from '@/ui/lib/scroll-view';
 import { useConfirm } from './confirm';
-import { playVoice } from '../playback/expo-audio-adapter';
+import { playVoice } from '@/playback/expo-audio-adapter';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { Pressable } from './lib/pressable';
-import { Text } from './lib/text';
-import { Box } from './lib/box';
+import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
 import { Icon } from './Icon';
 import { Eyebrow } from './Eyebrow';
-import { hit } from '../design';
+import { hit } from '@/design';
 import { mmss } from './format';
-import type { VoicePost } from '../social/m12-api';
-import { hoursLeft } from '../voice/recording';
+import type { VoicePost } from '@/social/m12-api';
+import { hoursLeft } from '@/voice/recording';
 
 const TAP = { minHeight: hit.min };
 

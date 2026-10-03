@@ -12,7 +12,7 @@ import { useEffect, useState } from 'react';
 import { SheetTile, TileRow } from './QueueButtons';
 import { useColours } from './useColours';
 import { useDownloads, useStores, useToast } from './providers';
-import type { DownloadRow } from '../storage/types';
+import type { DownloadRow } from '@/storage/types';
 
 export function mb(bytes: number | undefined): string {
   if (bytes === undefined) return '';

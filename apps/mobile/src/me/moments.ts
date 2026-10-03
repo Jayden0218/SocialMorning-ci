@@ -4,9 +4,9 @@
  * episode and a time, plus an optional note; nothing is recorded or uploaded. On this
  * phone only, newest first.
  */
-import type { SettingsStore } from '../storage/types';
+import type { SettingsStore } from '@/storage/types';
 import { readList, writeList } from './local-list';
-import { recordChange } from '../sync/library';
+import { recordChange } from '@/sync/library';
 
 export const MOMENTS_KEY = 'me.moments';
 export const NOTE_MAX = 500;

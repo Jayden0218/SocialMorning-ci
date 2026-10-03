@@ -6,10 +6,10 @@
  * would drop items the listener never had a chance to see.
  */
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { useSocial } from '../social/context';
-import { useStores } from '../ui/providers';
+import { useSocial } from '@/social/context';
+import { useStores } from '@/ui/providers';
 import { createRecOutbox } from './outbox';
-import type { ForYouItem } from '../social/api';
+import type { ForYouItem } from '@/social/api';
 
 export function useRecOutbox(signedIn: boolean, items: readonly ForYouItem[] | undefined) {
   const { api } = useSocial();

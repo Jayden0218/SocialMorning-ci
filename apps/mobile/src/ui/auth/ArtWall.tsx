@@ -9,9 +9,9 @@
  */
 import { useEffect, useRef, type ComponentRef } from 'react';
 import { AccessibilityInfo, ScrollView, useWindowDimensions } from 'react-native';
-import { Image } from '../lib/image';
-import { Box } from '../lib/box';
-import { colour, spacing } from '../../design';
+import { Image } from '@/ui/lib/image';
+import { Box } from '@/ui/lib/box';
+import { colour, spacing } from '@/design';
 
 /** The longest the page waits for covers before it shows without the slow ones. */
 export const ART_WAIT_MS = 1500;

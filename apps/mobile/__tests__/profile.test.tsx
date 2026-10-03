@@ -1,7 +1,7 @@
 /** T028: the stats block — private → the one line; own → "Your listening is private."; numbers formatted as episode time. */
 import { createElement } from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { hms, StatsBlock } from '../src/ui/StatsBlock';
+import { hms, StatsBlock } from '@/ui/StatsBlock';
 
 const w = (listenedMs: number) => ({ listenedMs, finished: 2, topShows: [{ feedUrl: 'https://f/a.xml', showTitle: 'Reply All', listenedMs }] });
 const textOf = (r: ReactTestRenderer) => JSON.stringify(r.toJSON());

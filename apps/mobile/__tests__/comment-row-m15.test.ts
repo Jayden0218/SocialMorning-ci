@@ -2,8 +2,8 @@
  * Owner, 2026-10-01 (the 小宇宙 comments page): under each name, "time · place"; under a
  * parent, the first 2 replies and "Show N more".
  */
-import { moreRepliesLabel, placeOf, REPLY_PREVIEW, timeAndPlace } from '../src/ui/CommentRow';
-import type { Comment } from '../src/social/api';
+import { moreRepliesLabel, placeOf, REPLY_PREVIEW, timeAndPlace } from '@/ui/CommentRow';
+import type { Comment } from '@/social/api';
 
 const base: Comment = { id: 'c1', authorId: 'a', displayName: 'Ana', body: 'hi', offsetMs: null, parentId: null, createdAt: '2026-10-01T00:00:00Z', deleted: false };
 

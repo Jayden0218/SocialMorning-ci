@@ -14,14 +14,14 @@
 import { useCallback, useState } from 'react';
 import { Share } from 'react-native';
 import { File, Paths } from 'expo-file-system';
-import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from './lib/actionsheet';
-import { Pressable } from './lib/pressable';
-import { Text } from './lib/text';
-import { Box } from './lib/box';
+import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '@/ui/lib/actionsheet';
+import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
 import { Icon, type IconName } from './Icon';
-import { hit, tabular } from '../design';
+import { hit, tabular } from '@/design';
 import { mmss } from './format';
-import { useM12Api } from '../social/m12-api';
+import { useM12Api } from '@/social/m12-api';
 import { useStores, useToast } from './providers';
 import { useColours } from './useColours';
 

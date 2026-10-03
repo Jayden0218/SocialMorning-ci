@@ -5,11 +5,11 @@
  */
 import { createElement } from 'react';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
-import { ChartSection, PicksSection, SaidSection } from '../src/ui/discover/sections';
-import type { EpisodeCard } from '../src/social/api';
+import { ChartSection, PicksSection, SaidSection } from '@/ui/discover/sections';
+import type { EpisodeCard } from '@/social/api';
 // M10b US4: the component reads its palette through useStores(); pin it to light so the
 // colour assertions compare against `colour`, whatever the runner's system scheme is.
-jest.mock('../src/ui/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }) }));
+jest.mock('@/ui/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }) }));
 
 const card = (id: string): EpisodeCard => ({ id, feedUrl: `https://f/${id}.xml`, guid: id, title: `Title ${id}`, showTitle: `Show ${id}`, enclosureUrl: `https://a/${id}.mp3` });
 const byLabel = (r: ReactTestRenderer, label: string): ReactTestInstance =>

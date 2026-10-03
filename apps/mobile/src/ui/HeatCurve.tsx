@@ -10,10 +10,10 @@
  * 100 views, colours, label and seek — only the height changed.
  */
 import { useState } from 'react';
-import { Pressable } from './lib/pressable';
-import { Text } from './lib/text';
-import { Box } from './lib/box';
-import { colour } from '../design';
+import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
+import { colour } from '@/design';
 import { useStores } from './providers';
 import { useColours } from './useColours';
 import { EMPTY_STATES } from '@socialmorning/social-core';

@@ -2,13 +2,13 @@
  * M6 US1: Block / Unblock a listener, with a confirm. The block is local at once; the server hears later.
  * M17 (`Profile-B`): the white outlined pill beside Follow. Same confirm, same words.
  */
-import { Button, ButtonText } from './lib/button';
-import { hit } from '../design';
+import { Button, ButtonText } from '@/ui/lib/button';
+import { hit } from '@/design';
 
 const TAP = { minHeight: hit.min };
 import { useConfirm } from './confirm';
 import { router } from 'expo-router';
-import { announce, useSafety } from '../safety/context';
+import { announce, useSafety } from '@/safety/context';
 
 export function BlockButton(props: { listenerId: string; displayName: string; onChange?: (blocked: boolean) => void }): React.ReactElement {
   const { safety, version } = useSafety();

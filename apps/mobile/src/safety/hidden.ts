@@ -5,8 +5,8 @@
  * orchestration over injected pieces so the tests run without a device.
  */
 import { canBlock, canReport, hiddenKey, type TargetKind } from '@socialmorning/social-core';
-import { ApiError, type ApiClient } from '../social/api';
-import type { HiddenKind, Stores } from '../storage/types';
+import { ApiError, type ApiClient } from '@/social/api';
+import type { HiddenKind, Stores } from '@/storage/types';
 
 export type SafetyDeps = {
   api: ApiClient;

@@ -7,12 +7,12 @@
  * the LOGIC restores a position — that the position survives Android killing
  * the process is quickstart Tier B rows 4 and 4b.
  */
-import { hash } from '../src/feeds/hash';
-import { createPlayerRuntime, type PlayableEpisode, type PlayerRuntime } from '../src/playback/store';
-import { SAVE_EVERY_MS, type Effect } from '../src/playback/types';
-import { createMemoryStores } from '../src/storage/memory';
-import { toPlayable } from '../src/storage/playable';
-import type { AdapterEvent, AudioAdapter } from '../src/playback/expo-audio-adapter';
+import { hash } from '@/feeds/hash';
+import { createPlayerRuntime, type PlayableEpisode, type PlayerRuntime } from '@/playback/store';
+import { SAVE_EVERY_MS, type Effect } from '@/playback/types';
+import { createMemoryStores } from '@/storage/memory';
+import { toPlayable } from '@/storage/playable';
+import type { AdapterEvent, AudioAdapter } from '@/playback/expo-audio-adapter';
 import type { Episode, ParsedFeed, Show } from '@socialmorning/feed-parser';
 
 const HOUR = 3_600_000;

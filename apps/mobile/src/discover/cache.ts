@@ -3,8 +3,8 @@
  * M4's `feed_cache` table under key `discover`, shown as stale when the server cannot be
  * reached — the same pattern as the Following feed.
  */
-import { ApiError, type ApiClient, type Discover } from '../social/api';
-import type { FeedCacheStore } from '../storage/types';
+import { ApiError, type ApiClient, type Discover } from '@/social/api';
+import type { FeedCacheStore } from '@/storage/types';
 
 export const DISCOVER_KEY = 'discover';
 export type DiscoverView = { body: Discover; stale: boolean; fetchedAt?: number };

@@ -10,8 +10,8 @@
  */
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect } from 'react';
-import { Box } from './lib/box';
-import { followAudio } from '../playback/video/sync';
+import { Box } from '@/ui/lib/box';
+import { followAudio } from '@/playback/video/sync';
 
 export function VideoStage(props: { url: string; positionMs: number; playing: boolean; size: number }): React.ReactElement {
   const player = useVideoPlayer(props.url, (p) => { p.muted = true; });

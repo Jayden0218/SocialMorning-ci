@@ -15,7 +15,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { TABS, TAB_HREF } from '../src/ui/tabs';
+import { TABS, TAB_HREF } from '@/ui/tabs';
 
 const read = (f: string) => readFileSync(join(__dirname, '..', 'app', '(tabs)', f), 'utf8');
 const SCREEN: Record<string, string> = { '/': read('index.tsx'), '/library': read('library.tsx'), '/me': read('me.tsx') };

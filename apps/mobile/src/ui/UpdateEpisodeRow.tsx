@@ -10,17 +10,17 @@
  * hairline, then the four icon buttons and a yellow "Play" pill at the right. Same buttons,
  * names and handlers as before.
  */
-import { Pressable } from './lib/pressable';
-import { Text } from './lib/text';
-import { Box } from './lib/box';
+import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
 import { Artwork } from './Artwork';
 import { Card, CardDivider } from './Card';
 import { CommentsButton } from './CommentsButton';
 import { Icon, PlayIcon, type IconName } from './Icon';
 import { ago, minutesLabel } from './format';
-import { hit } from '../design';
+import { hit } from '@/design';
 import { plural } from '@socialmorning/social-core';
-import type { UpdateRow } from '../me/updates';
+import type { UpdateRow } from '@/me/updates';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
 /** The episode link and the Play pill: 48 pt tall, any width. */

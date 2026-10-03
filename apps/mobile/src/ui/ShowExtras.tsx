@@ -11,11 +11,11 @@
  */
 import { useEffect, useState } from 'react';
 import { Linking } from 'react-native';
-import { useSocial } from '../social/context';
-import type { ShowExtras as Extras, ShowPoll } from '../social/api';
-import { Box } from './lib/box';
-import { Pressable } from './lib/pressable';
-import { Text } from './lib/text';
+import { useSocial } from '@/social/context';
+import type { ShowExtras as Extras, ShowPoll } from '@/social/api';
+import { Box } from '@/ui/lib/box';
+import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
 import { TAP } from './TopBar';
 import { plural } from '@socialmorning/social-core';
 

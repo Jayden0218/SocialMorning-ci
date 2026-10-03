@@ -2,7 +2,7 @@
  * M17 (`Search-B`, `Following-B`): a section label — 11 pt bold capitals, spaced, in the muted
  * colour (or the accent for the section in focus). Spoken as a header.
  */
-import { Text } from './lib/text';
+import { Text } from '@/ui/lib/text';
 
 const CAPS = { letterSpacing: 1.3, textTransform: 'uppercase' as const };
 

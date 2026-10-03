@@ -15,14 +15,14 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createElement } from 'react';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
-import { decideLaunch, recordShown } from '../src/launch/decide';
-import { localDay, type Promotion } from '../src/launch/choose';
-import { LAUNCH_KEYS, readFiles, readList, readShown, writeFiles, writeList } from '../src/launch/store';
-import { syncLaunch } from '../src/launch/sync';
-import type { LaunchFiles } from '../src/launch/launch-files';
-import { createMemorySettingsStore } from '../src/storage/memory';
-import { setPref } from '../src/settings/prefs';
-import { LaunchScreen } from '../src/ui/LaunchScreen';
+import { decideLaunch, recordShown } from '@/launch/decide';
+import { localDay, type Promotion } from '@/launch/choose';
+import { LAUNCH_KEYS, readFiles, readList, readShown, writeFiles, writeList } from '@/launch/store';
+import { syncLaunch } from '@/launch/sync';
+import type { LaunchFiles } from '@/launch/launch-files';
+import { createMemorySettingsStore } from '@/storage/memory';
+import { setPref } from '@/settings/prefs';
+import { LaunchScreen } from '@/ui/LaunchScreen';
 
 const NOW = Date.parse('2026-10-01T09:00:00Z');
 const promo = (id: string, over: Partial<Promotion> = {}): Promotion => ({

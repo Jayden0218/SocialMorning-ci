@@ -2,9 +2,9 @@
  * M17 (contracts/ui-components.md, `SettingsOpml-B`, `Categories-B`): a round chip — white with
  * a thin border, or the yellow fill with dark words when chosen. At least 48 pt to tap.
  */
-import { Pressable } from './lib/pressable';
-import { Text } from './lib/text';
-import { hit } from '../design';
+import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
+import { hit } from '@/design';
 
 const TAP = { minHeight: hit.min };
 

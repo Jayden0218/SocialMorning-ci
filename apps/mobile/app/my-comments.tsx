@@ -12,19 +12,19 @@
  */
 import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { FlatList } from '../src/ui/lib/flat-list';
-import { Pressable } from '../src/ui/lib/pressable';
-import { Text } from '../src/ui/lib/text';
-import { Box } from '../src/ui/lib/box';
-import { Loader } from '../src/ui/Loader';
-import type { MyComment } from '../src/social/api';
-import { useSocial } from '../src/social/context';
-import { mmss, shortDate } from '../src/ui/format';
-import { EmptyPicture } from '../src/ui/me/parts';
-import { PageHeader } from '../src/ui/PageHeader';
-import { Artwork } from '../src/ui/Artwork';
-import { CardDivider } from '../src/ui/Card';
-import { PlayIcon } from '../src/ui/Icon';
+import { FlatList } from '@/ui/lib/flat-list';
+import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
+import { Loader } from '@/ui/Loader';
+import type { MyComment } from '@/social/api';
+import { useSocial } from '@/social/context';
+import { mmss, shortDate } from '@/ui/format';
+import { EmptyPicture } from '@/ui/me/parts';
+import { PageHeader } from '@/ui/PageHeader';
+import { Artwork } from '@/ui/Artwork';
+import { CardDivider } from '@/ui/Card';
+import { PlayIcon } from '@/ui/Icon';
 import { plural } from '@socialmorning/social-core';
 
 export default function MyCommentsScreen(): React.ReactElement {

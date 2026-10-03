@@ -10,9 +10,9 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated } from 'react-native';
-import { Pressable } from './lib/pressable';
-import { Box } from './lib/box';
-import { hit } from '../design';
+import { Pressable } from '@/ui/lib/pressable';
+import { Box } from '@/ui/lib/box';
+import { hit } from '@/design';
 
 const TRACK = { width: 52, height: 32 };
 const THUMB = 28;

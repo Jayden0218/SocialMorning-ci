@@ -11,21 +11,21 @@
  */
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Textarea, TextareaInput } from '../src/ui/lib/textarea';
-import { FlatList } from '../src/ui/lib/flat-list';
-import { Pressable } from '../src/ui/lib/pressable';
-import { Text } from '../src/ui/lib/text';
-import { Box } from '../src/ui/lib/box';
-import { hit, tabular } from '../src/design';
-import { useColours } from '../src/ui/useColours';
-import { deleteMoment, editMoment, listMoments, NOTE_MAX, type Moment } from '../src/me/moments';
-import { usePlayer } from '../src/playback/store';
-import { toPlayable } from '../src/storage/playable';
-import { mmss } from '../src/ui/format';
-import { EmptyPicture } from '../src/ui/me/parts';
-import { useStores, useToast } from '../src/ui/providers';
-import { PageHeader } from '../src/ui/PageHeader';
-import { Icon } from '../src/ui/Icon';
+import { Textarea, TextareaInput } from '@/ui/lib/textarea';
+import { FlatList } from '@/ui/lib/flat-list';
+import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
+import { hit, tabular } from '@/design';
+import { useColours } from '@/ui/useColours';
+import { deleteMoment, editMoment, listMoments, NOTE_MAX, type Moment } from '@/me/moments';
+import { usePlayer } from '@/playback/store';
+import { toPlayable } from '@/storage/playable';
+import { mmss } from '@/ui/format';
+import { EmptyPicture } from '@/ui/me/parts';
+import { useStores, useToast } from '@/ui/providers';
+import { PageHeader } from '@/ui/PageHeader';
+import { Icon } from '@/ui/Icon';
 
 const TAP = { minHeight: hit.min };
 const ICON_BUTTON = { width: hit.min, height: hit.min };

@@ -5,10 +5,10 @@
  *   3. else the server's record of the episode → a Playable straight from it (the feed dropped it)
  * The show is never subscribed on the listener's behalf.
  */
-import type { EpisodeRecord } from '../social/api';
-import type { PlayableEpisode } from '../playback/store';
-import type { Stores } from '../storage/types';
-import { toPlayable } from '../storage/playable';
+import type { EpisodeRecord } from '@/social/api';
+import type { PlayableEpisode } from '@/playback/store';
+import type { Stores } from '@/storage/types';
+import { toPlayable } from '@/storage/playable';
 
 export type ResolveDeps = {
   stores: Stores;

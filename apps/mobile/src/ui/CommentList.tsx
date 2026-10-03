@@ -5,21 +5,21 @@
  * the episode from there.
  */
 import { router } from 'expo-router';
-import { Link } from '../design/tailwind';
+import { Link } from '@/design/tailwind';
 import { useMemo, useState } from 'react';
-import { Pressable } from './lib/pressable';
-import { Text } from './lib/text';
-import { Box } from './lib/box';
+import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
 import { orderComments, type CommentOrder } from '@socialmorning/social-core';
 import { mmss, relativeTime } from './format';
-import { useSocial } from '../social/context';
-import { useSafety } from '../safety/context';
+import { useSocial } from '@/social/context';
+import { useSafety } from '@/safety/context';
 import { Placeholder, placeholderFor } from './Placeholder';
 import { ReportSheet, type ReportTarget } from './ReportSheet';
-import type { Comment } from '../social/api';
+import type { Comment } from '@/social/api';
 import { EmptyState } from './EmptyState';
 import { useStores } from './providers';
-import { isFavComment, toggleFavComment } from '../me/fav-comments';
+import { isFavComment, toggleFavComment } from '@/me/fav-comments';
 
 export function CommentList(props: {
   episodeId: string;

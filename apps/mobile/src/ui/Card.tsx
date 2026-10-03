@@ -3,7 +3,7 @@
  * surface with a thin border and 16 pt corners, on the warm page. Rows inside are divided by
  * `CardDivider`. Decoration only: it adds no role, so a screen reader reads the rows inside.
  */
-import { Box } from './lib/box';
+import { Box } from '@/ui/lib/box';
 
 export function Card(props: { children: React.ReactNode; className?: string; padded?: boolean }): React.ReactElement {
   return (

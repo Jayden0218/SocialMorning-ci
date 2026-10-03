@@ -7,13 +7,13 @@
  */
 import { useRouter } from 'expo-router';
 import { useWindowDimensions } from 'react-native';
-import { ScrollView } from '../../src/ui/lib/scroll-view';
-import { Pressable } from '../../src/ui/lib/pressable';
-import { Text } from '../../src/ui/lib/text';
-import { Box } from '../../src/ui/lib/box';
-import { hit, spacing } from '../../src/design';
-import { ARTICLES } from '../../src/academy/articles';
-import { PageHeader } from '../../src/ui/PageHeader';
+import { ScrollView } from '@/ui/lib/scroll-view';
+import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
+import { hit, spacing } from '@/design';
+import { ARTICLES } from '@/academy/articles';
+import { PageHeader } from '@/ui/PageHeader';
 
 const CAPS = { letterSpacing: 1.3, textTransform: 'uppercase' as const };
 const GHOST = { fontSize: 112, lineHeight: 112, right: -6, top: -10 };

@@ -9,21 +9,21 @@
  * Each card opens its document exactly as the old rows did.
  */
 import Constants from 'expo-constants';
-import { Modal, ModalBackdrop, ModalContent } from '../../src/ui/lib/modal';
-import { Image } from '../../src/ui/lib/image';
-import { Pressable } from '../../src/ui/lib/pressable';
-import { ScrollView } from '../../src/ui/lib/scroll-view';
-import { Text } from '../../src/ui/lib/text';
-import { Box } from '../../src/ui/lib/box';
+import { Modal, ModalBackdrop, ModalContent } from '@/ui/lib/modal';
+import { Image } from '@/ui/lib/image';
+import { Pressable } from '@/ui/lib/pressable';
+import { ScrollView } from '@/ui/lib/scroll-view';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
 import { useState } from 'react';
-import { LEGAL_TEXT } from '../../src/legal/texts';
-import { LegalDoc } from '../../src/ui/LegalDoc';
-import { PageHeader } from '../../src/ui/PageHeader';
-import { Eyebrow } from '../../src/ui/Eyebrow';
-import { Icon, type IconName } from '../../src/ui/Icon';
-import { useStores } from '../../src/ui/providers';
-import { useColours } from '../../src/ui/useColours';
-import { hit } from '../../src/design';
+import { LEGAL_TEXT } from '@/legal/texts';
+import { LegalDoc } from '@/ui/LegalDoc';
+import { PageHeader } from '@/ui/PageHeader';
+import { Eyebrow } from '@/ui/Eyebrow';
+import { Icon, type IconName } from '@/ui/Icon';
+import { useStores } from '@/ui/providers';
+import { useColours } from '@/ui/useColours';
+import { hit } from '@/design';
 
 type Doc = keyof typeof LEGAL_TEXT;
 const ICON = { width: 64, height: 64 };

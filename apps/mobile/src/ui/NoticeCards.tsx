@@ -9,11 +9,11 @@
  * only (no icon, no badge). The line under the track is drawn by the page. Same names, same
  * `onSelect` (guard G-B2, __tests__/notifications.test.tsx).
  */
-import { Pressable } from './lib/pressable';
-import { Text } from './lib/text';
-import { Box } from './lib/box';
+import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
 import { Icon, type IconName } from './Icon';
-import { hit } from '../design';
+import { hit } from '@/design';
 
 export type NoticeSection = 'people' | 'system';
 

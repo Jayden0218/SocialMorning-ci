@@ -3,8 +3,8 @@
  * first, at most 12, one copy each. Kept in the settings table — on this phone only,
  * never sent to the server — and cleared by the ✕ on the search page.
  */
-import type { SettingsStore } from '../storage/types';
-import { recordChange } from '../sync/library';
+import type { SettingsStore } from '@/storage/types';
+import { recordChange } from '@/sync/library';
 
 export const HISTORY_KEY = 'search.history';
 export const HISTORY_MAX = 12;

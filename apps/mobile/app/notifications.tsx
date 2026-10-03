@@ -11,26 +11,26 @@
  * picture under the same track. Loading, pull to refresh, paging and mark-as-read unchanged.
  */
 import { router, useFocusEffect } from 'expo-router';
-import { Link } from '../src/design/tailwind';
+import { Link } from '@/design/tailwind';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FlatList } from '../src/ui/lib/flat-list';
-import { usePullRefresh } from '../src/ui/PullRefresh';
-import { Text } from '../src/ui/lib/text';
-import { Box } from '../src/ui/lib/box';
-import { useColours } from '../src/ui/useColours';
-import { NoticeCards, noticeLine, type NoticeSection } from '../src/ui/NoticeCards';
-import { Card } from '../src/ui/Card';
-import { Eyebrow } from '../src/ui/Eyebrow';
-import { hit } from '../src/design';
-import { createFeed, type FeedView } from '../src/graph/feed';
-import { useSafety } from '../src/safety/context';
-import type { FeedItem as Item } from '../src/social/api';
-import { useSocial } from '../src/social/context';
-import { EmptyState } from '../src/ui/EmptyState';
-import { FeedItem } from '../src/ui/FeedItem';
-import { EmptyPicture } from '../src/ui/me/parts';
-import { useStores } from '../src/ui/providers';
-import { PageHeader } from '../src/ui/PageHeader';
+import { FlatList } from '@/ui/lib/flat-list';
+import { usePullRefresh } from '@/ui/PullRefresh';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
+import { useColours } from '@/ui/useColours';
+import { NoticeCards, noticeLine, type NoticeSection } from '@/ui/NoticeCards';
+import { Card } from '@/ui/Card';
+import { Eyebrow } from '@/ui/Eyebrow';
+import { hit } from '@/design';
+import { createFeed, type FeedView } from '@/graph/feed';
+import { useSafety } from '@/safety/context';
+import type { FeedItem as Item } from '@/social/api';
+import { useSocial } from '@/social/context';
+import { EmptyState } from '@/ui/EmptyState';
+import { FeedItem } from '@/ui/FeedItem';
+import { EmptyPicture } from '@/ui/me/parts';
+import { useStores } from '@/ui/providers';
+import { PageHeader } from '@/ui/PageHeader';
 
 type Day = { key: string; label: string; items: Item[] };
 

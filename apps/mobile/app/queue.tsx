@@ -8,15 +8,15 @@
  */
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ScrollView } from '../src/ui/lib/scroll-view';
-import { usePlayer } from '../src/playback/store';
-import { toPlayable } from '../src/storage/playable';
+import { ScrollView } from '@/ui/lib/scroll-view';
+import { usePlayer } from '@/playback/store';
+import { toPlayable } from '@/storage/playable';
 import { remove } from '@socialmorning/player-core';
-import { useStores } from '../src/ui/providers';
-import { useColours } from '../src/ui/useColours';
-import { EmptyState } from '../src/ui/EmptyState';
-import { QueueList } from '../src/ui/QueueList';
-import { PageHeader } from '../src/ui/PageHeader';
+import { useStores } from '@/ui/providers';
+import { useColours } from '@/ui/useColours';
+import { EmptyState } from '@/ui/EmptyState';
+import { QueueList } from '@/ui/QueueList';
+import { PageHeader } from '@/ui/PageHeader';
 
 export default function QueueScreen(): React.ReactElement {
   const stores = useStores();

@@ -7,17 +7,17 @@
  * right. Rows sit inside a card on Notifications; `last` drops the hairline under the final one.
  * `describe` (the spoken sentence) is unchanged.
  */
-import { Pressable } from './lib/pressable';
-import { Text } from './lib/text';
-import { Box } from './lib/box';
-import { Link } from '../design/tailwind';
-import type { FeedItem as Item } from '../social/api';
+import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
+import { Link } from '@/design/tailwind';
+import type { FeedItem as Item } from '@/social/api';
 import { mmss } from './format';
 import { Artwork } from './Artwork';
 import { Icon, type IconName } from './Icon';
 import { useStores } from './providers';
 import { useColours } from './useColours';
-import { hit } from '../design';
+import { hit } from '@/design';
 
 export function describe(item: Item): string {
   const ep = item.episode.showTitle ? `${item.episode.title} (${item.episode.showTitle})` : item.episode.title;

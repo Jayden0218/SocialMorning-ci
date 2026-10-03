@@ -17,9 +17,9 @@
 import { useContext, useEffect } from 'react';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { AccessibilityInfo, Platform, type ViewStyle } from 'react-native';
-import { Text } from './lib/text';
-import { Box } from './lib/box';
-import { AboveModals } from './lib/above-modals';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
+import { AboveModals } from '@/ui/lib/above-modals';
 
 /** Speak a toast on iOS; Android reads the live region itself. */
 export function announceToast(message: string): void {

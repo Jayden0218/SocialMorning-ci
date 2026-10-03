@@ -8,10 +8,10 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet } from 'react-native';
-import { Image } from './lib/image';
-import { Box } from './lib/box';
-import { Text } from './lib/text';
-import type { radius } from '../design';
+import { Image } from '@/ui/lib/image';
+import { Box } from '@/ui/lib/box';
+import { Text } from '@/ui/lib/text';
+import type { radius } from '@/design';
 
 /** Whole class names, so Tailwind can find each one written out. */
 const ROUNDED: Record<keyof typeof radius, string> = {

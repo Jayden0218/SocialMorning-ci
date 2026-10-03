@@ -10,23 +10,23 @@
  * numbered rows. Same items, same counts, same sheet behaviour.
  */
 import { useState } from 'react';
-import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '../../src/ui/lib/actionsheet';
-import { Pressable } from '../../src/ui/lib/pressable';
-import { ScrollView } from '../../src/ui/lib/scroll-view';
-import { Text } from '../../src/ui/lib/text';
-import { Box } from '../../src/ui/lib/box';
-import { hit, size } from '../../src/design';
-import { useColours } from '../../src/ui/useColours';
-import { listFavourites } from '../../src/me/favourites';
-import { listMoments } from '../../src/me/moments';
-import { readHistory } from '../../src/search/history';
-import { collectedList, type CollectedItem } from '../../src/settings/collected';
-import { useSocial } from '../../src/social/context';
-import { Icon } from '../../src/ui/Icon';
-import { useStores } from '../../src/ui/providers';
-import { PageHeader } from '../../src/ui/PageHeader';
-import { Card, CardDivider } from '../../src/ui/Card';
-import { Eyebrow } from '../../src/ui/Eyebrow';
+import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '@/ui/lib/actionsheet';
+import { Pressable } from '@/ui/lib/pressable';
+import { ScrollView } from '@/ui/lib/scroll-view';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
+import { hit, size } from '@/design';
+import { useColours } from '@/ui/useColours';
+import { listFavourites } from '@/me/favourites';
+import { listMoments } from '@/me/moments';
+import { readHistory } from '@/search/history';
+import { collectedList, type CollectedItem } from '@/settings/collected';
+import { useSocial } from '@/social/context';
+import { Icon } from '@/ui/Icon';
+import { useStores } from '@/ui/providers';
+import { PageHeader } from '@/ui/PageHeader';
+import { Card, CardDivider } from '@/ui/Card';
+import { Eyebrow } from '@/ui/Eyebrow';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
 const ROW = { minHeight: size.row };

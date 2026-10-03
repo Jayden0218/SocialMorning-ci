@@ -4,20 +4,20 @@
  */
 import { useMemo, useState } from 'react';
 import { Share } from 'react-native';
-import { Box } from './lib/box';
+import { Box } from '@/ui/lib/box';
 import { router } from 'expo-router';
-import { useSafety } from '../safety/context';
+import { useSafety } from '@/safety/context';
 import { ReportSheet, type ReportTarget } from './ReportSheet';
-import { useGraph } from '../graph/context';
-import { useSocial } from '../social/context';
-import { usePlayer, type PlayableEpisode } from '../playback/store';
-import { shareClip } from '../graph/share';
-import { apiBaseUrl } from '../social/base-url';
+import { useGraph } from '@/graph/context';
+import { useSocial } from '@/social/context';
+import { usePlayer, type PlayableEpisode } from '@/playback/store';
+import { shareClip } from '@/graph/share';
+import { apiBaseUrl } from '@/social/base-url';
 import { ClipCard } from './ClipCard';
 import { useSharePanel } from './ShareChooser';
-import type { Clip } from '../social/api';
+import type { Clip } from '@/social/api';
 import { EmptyState } from './EmptyState';
-import { SectionTitle } from './discover/parts';
+import { SectionTitle } from '@/ui/discover/parts';
 
 export function ClipList(props: { episode: PlayableEpisode }): React.ReactElement {
   const { useEpisodeClips } = useGraph();

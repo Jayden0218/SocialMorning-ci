@@ -9,19 +9,19 @@
  */
 import { Link } from 'expo-router';
 import { useState } from 'react';
-import { FlatList } from '../src/ui/lib/flat-list';
-import { Pressable } from '../src/ui/lib/pressable';
-import { Text } from '../src/ui/lib/text';
-import { Box } from '../src/ui/lib/box';
-import { listeningHistory, matchesAll, type HistoryRow } from '../src/me/history';
-import { FilterBar } from '../src/ui/me/FilterBar';
-import { Artwork } from '../src/ui/Artwork';
-import { Card, CardDivider } from '../src/ui/Card';
-import { mmss, shortDate } from '../src/ui/format';
-import { EmptyPicture } from '../src/ui/me/parts';
-import { useStores } from '../src/ui/providers';
-import { size } from '../src/design';
-import { PageHeader } from '../src/ui/PageHeader';
+import { FlatList } from '@/ui/lib/flat-list';
+import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
+import { Box } from '@/ui/lib/box';
+import { listeningHistory, matchesAll, type HistoryRow } from '@/me/history';
+import { FilterBar } from '@/ui/me/FilterBar';
+import { Artwork } from '@/ui/Artwork';
+import { Card, CardDivider } from '@/ui/Card';
+import { mmss, shortDate } from '@/ui/format';
+import { EmptyPicture } from '@/ui/me/parts';
+import { useStores } from '@/ui/providers';
+import { size } from '@/design';
+import { PageHeader } from '@/ui/PageHeader';
 
 const ROW = { minHeight: size.row };
 const DAY = 24 * 60 * 60 * 1000;

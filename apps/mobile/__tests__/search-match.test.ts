@@ -3,7 +3,7 @@
  * The break that turns this red: in `src/search/match.ts` drop the `i` from the RegExp
  * flags (the case test), or stop escaping the term (the "C++" test).
  */
-import { splitMatch } from '../src/search/match';
+import { splitMatch } from '@/search/match';
 
 it('splits every occurrence, any case, keeping the name as written', () => {
   expect(splitMatch('History of Rome: history', 'HISTORY')).toEqual([
