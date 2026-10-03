@@ -1,5 +1,5 @@
-import { createDrafts } from '@/social/drafts';
-import { createMemoryDraftStore } from '@/storage/memory';
+import { createDrafts } from '../src/social/drafts';
+import { createMemoryDraftStore } from '../src/storage/memory';
 
 jest.useFakeTimers();
 

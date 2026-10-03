@@ -1,5 +1,5 @@
 /** Display helpers. Small, but `mmss` is what the gate reads off the screen. */
-import { ago, htmlToText, minutesLabel, mmss, noteParts, shortDate, timestampParts } from '@/ui/kit/format';
+import { ago, htmlToText, minutesLabel, mmss, noteParts, shortDate, timestampParts } from '../src/ui/format';
 
 describe('mmss', () => {
   it('formats under an hour as mm:ss', () => {

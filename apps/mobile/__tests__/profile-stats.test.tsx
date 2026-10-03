@@ -2,10 +2,10 @@
  * M12 guard G-P2 (FR-064): a profile's numbers sit in one row and the listening time is one
  * of them — "—" when private, never a made-up 0. The break: drop the time cell's value.
  */
-jest.mock('@/design/tailwind', () => ({ Link: ({ children }: { children: React.ReactNode }) => children }));
+jest.mock('../src/design/tailwind', () => ({ Link: ({ children }: { children: React.ReactNode }) => children }));
 import { createElement } from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { ProfileStatRow, listenedLabel } from '@/ui/social/ProfileStatRow';
+import { ProfileStatRow, listenedLabel } from '../src/ui/ProfileStatRow';
 
 it('listening time reads as hours, minutes, or private', () => {
   expect(listenedLabel(3 * 3_600_000 + 10)).toEqual({ value: '3 h', spoken: '3 hours listened' });

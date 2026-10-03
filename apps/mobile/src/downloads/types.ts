@@ -1,5 +1,5 @@
 /** contracts/downloader.ts, as the app uses it. */
-import type { DownloadRow } from '@/storage/types';
+import type { DownloadRow } from '../storage/types';
 export type { DownloadRow };
 
 export interface Downloader {

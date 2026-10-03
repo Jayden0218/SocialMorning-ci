@@ -4,14 +4,14 @@
  */
 import { useCallback, useMemo, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
-import { useSocial } from '@/social/context';
-import { useStores, useToast } from '@/ui/shell/providers';
-import { refreshShow } from '@/feeds/fetch';
-import { usePlayer } from '@/playback/store';
-import { toPlayable } from '@/storage/playable';
+import { useSocial } from '../social/context';
+import { useStores, useToast } from '../ui/providers';
+import { refreshShow } from '../feeds/fetch';
+import { usePlayer } from '../playback/store';
+import { toPlayable } from '../storage/playable';
 import { createDiscover, type DiscoverView } from './cache';
 import { resolveCard } from './open';
-import type { EpisodeCard } from '@/social/api';
+import type { EpisodeCard } from '../social/api';
 
 /** How old the Discover copy may be before opening the tab fetches a new one. */
 export const FOCUS_REFRESH_MS = 5 * 60_000;

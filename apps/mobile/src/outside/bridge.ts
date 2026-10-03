@@ -3,8 +3,8 @@
  * changes (episode, play/pause, the best comment) — never on a position TICK, which would
  * wake the widget every second. The best comment is fetched once per episode.
  */
-import type { PlayerRuntime } from '@/playback/store';
-import type { Social } from '@/social/api';
+import type { PlayerRuntime } from '../playback/store';
+import type { Social } from '../social/api';
 import { bestComment, nowPlayingOf, sameCard, type NowPlaying } from './now-playing';
 
 /** One outside surface: the Android widget, the iOS widget, the live activity. */

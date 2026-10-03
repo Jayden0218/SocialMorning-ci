@@ -1,4 +1,4 @@
-import { clipLinkFor, clipSchemeLinkFor, parseClipLink } from '@/graph/links';
+import { clipLinkFor, clipSchemeLinkFor, parseClipLink } from '../src/graph/links';
 
 const ID = '0f1e2d3c-4b5a-4697-8877-665544332211';
 

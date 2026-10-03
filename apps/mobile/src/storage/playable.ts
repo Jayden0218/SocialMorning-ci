@@ -4,7 +4,7 @@
  * a valid `AudioSource` string — and never opens a stream. A download completing
  * while the same episode streams changes nothing until the next load (Q4).
  */
-import type { PlayableEpisode } from '@/playback/store';
+import type { PlayableEpisode } from '../playback/store';
 import type { Stores } from './types';
 
 export function toPlayable(stores: Stores, episodeId: string, filePresent?: (path: string) => boolean): PlayableEpisode | undefined {

@@ -15,7 +15,7 @@
  * kind of test that gets deleted the first time it breaks for an unrelated reason.
  *
  * The break that turns it red: delete the `createSubscriptionSync` call from
- * `src/ui/shell/providers.tsx`.
+ * `src/ui/providers.tsx`.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
@@ -53,7 +53,7 @@ it('G-W1: every sync, outbox and manager factory is actually constructed somewhe
 });
 
 it('G-W1: the subscription sync specifically reaches both of the places US1 needs it', () => {
-  const providers = sources.get(join(ROOT, 'src/ui/shell/providers.tsx'))!;
+  const providers = sources.get(join(ROOT, 'src/ui/providers.tsx'))!;
   const show = sources.get(join(ROOT, 'app/show/[feedUrl].tsx'))!;
 
   // At launch: something must construct it and reconcile.
@@ -72,7 +72,7 @@ it('G-W1: the subscription sync specifically reaches both of the places US1 need
  * an unreachable **method**, not an unreachable module, and only L7 on the phone found it.
  *
  * The break that turns it red: delete the `recOutbox.playedIfShown(...)` call from
- * `src/ui/shell/providers.tsx`.
+ * `src/ui/providers.tsx`.
  */
 it('G-W1b: every method the outbox offers is called by something outside it', () => {
   const file = join(ROOT, 'src/recs/outbox.ts');

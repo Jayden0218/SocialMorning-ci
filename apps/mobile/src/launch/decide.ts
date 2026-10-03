@@ -1,11 +1,11 @@
 /**
  * M15 US3: the launch screen's decision as start-up makes it — **synchronously**, from the
  * settings store and the files already on disk, with no network call (SC-004, guard G-L4).
- * `src/ui/shell/providers.tsx` calls it once, at mount; the list and images for the NEXT launch
+ * `src/ui/providers.tsx` calls it once, at mount; the list and images for the NEXT launch
  * come from `syncLaunch`, started after start-up is ready and never awaited.
  */
-import { getPref } from '@/settings/prefs';
-import type { SettingsStore } from '@/storage/types';
+import { getPref } from '../settings/prefs';
+import type { SettingsStore } from '../storage/types';
 import { chooseLaunch, localDay, markShown, type Promotion } from './choose';
 import type { LaunchFiles } from './launch-files';
 import { readFiles, readList, readShown, writeShown } from './store';

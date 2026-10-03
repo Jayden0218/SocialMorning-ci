@@ -8,10 +8,10 @@
  * they are. Same words, same tap, same accessible name.
  */
 import { useState } from 'react';
-import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
-import { TAP } from '@/ui/kit/TopBar';
-import type { ShowExtras } from '@/social/api';
+import { Pressable } from '../lib/pressable';
+import { Text } from '../lib/text';
+import { TAP } from '../TopBar';
+import type { ShowExtras } from '../../social/api';
 
 /** The eyebrow's spaced capitals (as `Eyebrow`, which is a header, not part of a button). */
 const CAPS = { letterSpacing: 1.3, textTransform: 'uppercase' as const };

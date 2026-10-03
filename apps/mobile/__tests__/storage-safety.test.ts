@@ -3,10 +3,10 @@
  * intact; the hidden and block stores behave the same in SQLite (node:sqlite) and memory.
  */
 import { DatabaseSync } from 'node:sqlite';
-import { MIGRATION_001, MIGRATION_002, MIGRATION_003, MIGRATION_004, migrateSchema, SCHEMA_VERSION, type SchemaDb } from '@/storage/schema';
-import { createMemoryBlockStore, createMemoryHiddenStore, createMemoryStores } from '@/storage/memory';
-import { createAuth } from '@/social/auth-store';
-import type { ApiClient } from '@/social/api';
+import { MIGRATION_001, MIGRATION_002, MIGRATION_003, MIGRATION_004, migrateSchema, SCHEMA_VERSION, type SchemaDb } from '../src/storage/schema';
+import { createMemoryBlockStore, createMemoryHiddenStore, createMemoryStores } from '../src/storage/memory';
+import { createAuth } from '../src/social/auth-store';
+import type { ApiClient } from '../src/social/api';
 
 const wrap = (db: DatabaseSync): SchemaDb => ({
   exec: (sql) => db.exec(sql),

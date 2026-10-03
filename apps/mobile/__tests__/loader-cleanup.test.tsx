@@ -4,11 +4,11 @@
  * test) is gone — seen as "Cannot log after tests are done" in run 36295287109.
  *
  * The break that turns this red: delete the effect's cleanup
- * (`return () => loops.forEach((l) => l.stop())`) in `src/ui/kit/Loader.tsx`.
+ * (`return () => loops.forEach((l) => l.stop())`) in `src/ui/Loader.tsx`.
  */
 import { createElement } from 'react';
 import { act, create } from 'react-test-renderer';
-import { Loader } from '@/ui/kit/Loader';
+import { Loader } from '../src/ui/Loader';
 
 beforeEach(() => jest.useFakeTimers());
 afterEach(() => jest.useRealTimers());

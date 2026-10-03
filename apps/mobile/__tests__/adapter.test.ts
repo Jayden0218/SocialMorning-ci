@@ -11,8 +11,8 @@
 import type { AudioStatus } from 'expo-audio';
 import { AppState, type AppStateStatus } from 'react-native';
 import { createAudioPlayer } from 'expo-audio';
-import { createExpoAudioAdapter, type AdapterEvent } from '@/playback/expo-audio-adapter';
-import type { Effect } from '@/playback/types';
+import { createExpoAudioAdapter, type AdapterEvent } from '../src/playback/expo-audio-adapter';
+import type { Effect } from '../src/playback/types';
 
 // jest.mock factories are hoisted, so anything they touch must be named
 // `mock*` — jest's own guard against uninitialised captures.

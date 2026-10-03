@@ -3,7 +3,7 @@
  * phone — popular shows, then the chart's and the picks' shows. No search log exists
  * and none is kept, so these are shows, not other people's searches.
  */
-import type { Discover } from '@/social/api';
+import type { Discover } from '../social/api';
 
 export function suggestions(body: Discover | undefined, hidden: ReadonlySet<string>, n = 8): string[] {
   if (!body) return [];

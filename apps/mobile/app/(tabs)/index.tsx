@@ -13,32 +13,32 @@
  */
 import { useRouter } from 'expo-router';
 import { Fragment, useEffect, useMemo, useState } from 'react';
-import { Image } from '@/ui/lib/image';
-import { SafeAreaView } from '@/ui/lib/safe-area-view';
-import { ScrollView } from '@/ui/lib/scroll-view';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import { colour } from '@/design';
-import { GENRES } from '@/discover/genres';
-import { buildModel, sectionOrder, type SectionId } from '@/discover/sections';
-import { HINT_EVERY_MS, hintAt, trendingHints } from '@/discover/trending';
-import { Loader } from '@/ui/kit/Loader';
-import { usePullRefresh } from '@/ui/kit/PullRefresh';
-import { useDiscover } from '@/discover/useDiscover';
-import { useForYou } from '@/recs/useForYou';
-import { useRecOutbox } from '@/recs/useRecOutbox';
-import { useSafety } from '@/safety/context';
-import { useSocial } from '@/social/context';
-import { inboxIds } from '@/me/inbox';
-import { useStores } from '@/ui/shell/providers';
-import { BOTTOM_INSET } from '@/ui/kit/Screen';
-import { Eyebrow } from '@/ui/kit/Eyebrow';
-import { SearchBar } from '@/ui/discover/parts';
-import { useSearchOverlay } from '@/ui/search/SearchOverlay';
+import { Image } from '../../src/ui/lib/image';
+import { SafeAreaView } from '../../src/ui/lib/safe-area-view';
+import { ScrollView } from '../../src/ui/lib/scroll-view';
+import { Text } from '../../src/ui/lib/text';
+import { Box } from '../../src/ui/lib/box';
+import { colour } from '../../src/design';
+import { GENRES } from '../../src/discover/genres';
+import { buildModel, sectionOrder, type SectionId } from '../../src/discover/sections';
+import { HINT_EVERY_MS, hintAt, trendingHints } from '../../src/discover/trending';
+import { Loader } from '../../src/ui/Loader';
+import { usePullRefresh } from '../../src/ui/PullRefresh';
+import { useDiscover } from '../../src/discover/useDiscover';
+import { useForYou } from '../../src/recs/useForYou';
+import { useRecOutbox } from '../../src/recs/useRecOutbox';
+import { useSafety } from '../../src/safety/context';
+import { useSocial } from '../../src/social/context';
+import { inboxIds } from '../../src/inbox';
+import { useStores } from '../../src/ui/providers';
+import { BOTTOM_INSET } from '../../src/ui/Screen';
+import { Eyebrow } from '../../src/ui/Eyebrow';
+import { SearchBar } from '../../src/ui/discover/parts';
+import { useSearchOverlay } from '../../src/ui/search/SearchOverlay';
 import {
   CategoryStrip, ChartSection, CollectionSection, ForYouSection, MoreCategories, NewShowsSection, PicksSection, SaidSection, ShowTiles, Shortcuts,
   followedShowTiles, popularShowTiles, VideoSection,
-} from '@/ui/discover/sections';
+} from '../../src/ui/discover/sections';
 
 const ICON = { width: 36, height: 36 };
 /** "Thursday, 2 October" — the eyebrow over the title (`Home-B`), from the phone's clock. */

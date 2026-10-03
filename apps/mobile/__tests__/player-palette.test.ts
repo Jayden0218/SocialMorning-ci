@@ -6,8 +6,8 @@
  * The break that turns it red: drop the `readableOnPage` check from `playerWash` (a full-strength
  * deep colour comes back as a wash the words cannot be read on).
  */
-import { BODY_MIN, colour, contrastRatio } from '@/design';
-import { playerWash, readableOnPage, tintOverPage } from '@/ui/player/palette';
+import { BODY_MIN, colour, contrastRatio } from '../src/design';
+import { playerWash, readableOnPage, tintOverPage } from '../src/ui/player/palette';
 
 it('no theme colour, or one that is not #rrggbb, gives the plain page', () => {
   expect(playerWash(undefined)).toBeUndefined();

@@ -192,7 +192,7 @@ export function reduce(state: PlayerState, event: PlayerEvent, ctx: PlayerContex
         // sustained background playback is contingent on the lock-screen
         // controls being active; without them audio stops at about three
         // minutes, quietly, and gate item 1 (10 minutes locked) fails looking
-        // like a battery problem. See docs/plans/M1-AUDIO-RISKS.md gap 1.
+        // like a battery problem. See docs/M1-AUDIO-RISKS.md gap 1.
         // M2: setRate before play so the first audible second is already at speed.
         effects: [{ kind: 'setLockScreen', meta: ctx.meta }, { kind: 'setRate', rate: ctx.rate }, { kind: 'play' }],
       };

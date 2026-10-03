@@ -11,12 +11,12 @@ import { createSocialCache, type CachedSocial, type SocialCache } from './cache'
 import { registrationFor } from './registration';
 import { createReactToggle } from './react';
 import { secureToken } from './token';
-import { useLibrarySync, usePositionSync, useStores } from '@/ui/shell/providers';
-import { registerPush, unregisterPush } from '@/notify/push-token';
-import { expoNotify } from '@/notify/expo';
+import { useLibrarySync, usePositionSync, useStores } from '../ui/providers';
+import { registerPush, unregisterPush } from '../notify/push-token';
+import { expoNotify } from '../notify/expo';
 import { apiBaseUrl } from './base-url';
-import { toSignIn } from '@/ui/auth/navigate';
-import type { AuthRow } from '@/storage/types';
+import { toSignIn } from '../ui/auth/navigate';
+import type { AuthRow } from '../storage/types';
 
 export type SocialContextValue = {
   api: ApiClient;

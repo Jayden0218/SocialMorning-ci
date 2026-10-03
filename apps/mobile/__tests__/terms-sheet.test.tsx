@@ -4,14 +4,14 @@
  * Agree (either page) accepts.
  * Each document is a card (owner, 2026-10-03): the first is open, a tap on a card's head opens
  * its points and its "Read the full …" link.
- * The break that turns the first test red: make the link's `onPress` in `src/ui/shell/Terms.tsx`
+ * The break that turns the first test red: make the link's `onPress` in `src/ui/Terms.tsx`
  * do nothing.
  */
 import { createElement } from 'react';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
-import { Terms } from '@/ui/shell/Terms';
-import { REFUSE_TEXT } from '@/ui/shell/terms';
+import { Terms } from '../src/ui/Terms';
+import { REFUSE_TEXT } from '../src/ui/terms';
 
 const byLabel = (r: ReactTestRenderer, label: string): ReactTestInstance =>
   r.root.find((n) => n.props['accessibilityLabel'] === label && typeof n.props['onPress'] === 'function');

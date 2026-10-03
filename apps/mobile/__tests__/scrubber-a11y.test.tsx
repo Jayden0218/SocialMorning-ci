@@ -2,12 +2,12 @@
 import { createElement } from 'react';
 import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { SCRUB_BACK_MS, SCRUB_FORWARD_MS, Scrubber, scrubberValue } from '@/ui/player/Scrubber';
-import { heatLabel, heatMessage } from '@/ui/player/HeatCurve';
+import { SCRUB_BACK_MS, SCRUB_FORWARD_MS, Scrubber, scrubberValue } from '../src/ui/Scrubber';
+import { heatLabel, heatMessage } from '../src/ui/HeatCurve';
 import { EMPTY_STATES } from '@socialmorning/social-core';
 // M10b US4: the component reads its palette through useStores(); pin it to light so the
 // colour assertions compare against `colour`, whatever the runner's system scheme is.
-jest.mock('@/ui/shell/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }) }));
+jest.mock('../src/ui/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }) }));
 
 it('the bar fills its row: without an explicit width it collapses in the player\'s centred column (found on the phone)', () => {
   let r!: ReactTestRenderer;
@@ -47,7 +47,7 @@ it('G11: the bar is adjustable, carries the value, and increment / decrement ski
 });
 
 it('M9 guard: the library draws the position on the right side — 14:32 of 34:17 puts the thumb 42.4 % from the LEFT', () => {
-  // The break that turns this red: `isReversed` on the Slider in src/ui/player/Scrubber.tsx, or
+  // The break that turns this red: `isReversed` on the Slider in src/ui/Scrubber.tsx, or
   // minValue / maxValue swapped — the bar would then fill from the wrong end.
   let r!: ReactTestRenderer;
   act(() => { r = create(createElement(Scrubber, { positionMs: 872_000, durationMs: 2_057_000, onSeek: () => undefined, onSkip: () => undefined })); });

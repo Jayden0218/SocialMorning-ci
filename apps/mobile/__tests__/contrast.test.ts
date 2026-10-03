@@ -7,9 +7,9 @@
  * G-E1, the break that turns it red: set `onPrimary` back to '#ffffff' in src/design/tokens.ts
  * (white on the icon yellow, 1.60 — the waiver constitution v3.0.0 ended).
  */
-import { colour, ACCENTS } from '@/design/tokens';
-import { ACCENT_PAIRS, BODY_MIN, LARGE_MIN, PAIRS, WAIVED, contrastRatio, failures, relativeLuminance } from '@/design/contrast';
-import { withAccent } from '@/design/accent';
+import { colour, ACCENTS } from '../src/design/tokens';
+import { ACCENT_PAIRS, BODY_MIN, LARGE_MIN, PAIRS, WAIVED, contrastRatio, failures, relativeLuminance } from '../src/design/contrast';
+import { withAccent } from '../src/design/accent';
 
 const round = (n: number) => Math.round(n * 100) / 100;
 

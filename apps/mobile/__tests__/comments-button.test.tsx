@@ -1,10 +1,10 @@
 /**
  * M12 guard G-U2 (FR-080): an Updates row's comment icon shows the count, and says it.
- * The break: stop rendering `n` in src/ui/comments/CommentsButton.tsx.
+ * The break: stop rendering `n` in src/ui/CommentsButton.tsx.
  */
 import { createElement } from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { CommentsButton } from '@/ui/comments/CommentsButton';
+import { CommentsButton } from '../src/ui/CommentsButton';
 
 const text = (r: ReactTestRenderer): string => JSON.stringify(r.toJSON());
 

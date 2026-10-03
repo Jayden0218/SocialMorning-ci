@@ -4,7 +4,7 @@
  * without a network call. `icon` is the tile's one-colour picture (Ionicons; owner 2026-09-27:
  * one-colour icons across the app, no colour emoji).
  */
-import type { IconName } from '@/ui/kit/Icon';
+import type { IconName } from '../ui/Icon';
 
 export type Genre = { id: number; name: string; icon: IconName };
 

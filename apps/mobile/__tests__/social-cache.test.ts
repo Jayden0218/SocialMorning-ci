@@ -1,6 +1,6 @@
-import { createSocialCache } from '@/social/cache';
-import { createMemorySocialCacheStore } from '@/storage/memory';
-import type { Social } from '@/social/api';
+import { createSocialCache } from '../src/social/cache';
+import { createMemorySocialCacheStore } from '../src/storage/memory';
+import type { Social } from '../src/social/api';
 
 const social: Social = { serverTime: 's', episode: { id: 'e', durationMs: 100 }, comments: [], heat: { available: false } };
 

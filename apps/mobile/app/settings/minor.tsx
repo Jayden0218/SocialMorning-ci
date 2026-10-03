@@ -8,17 +8,17 @@
  * the note about publishers under a hairline. Same switch, same name, same pref.
  */
 import { useState } from 'react';
-import { ScrollView } from '@/ui/lib/scroll-view';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import { size } from '@/design';
-import { getPref, setPref } from '@/settings/prefs';
-import { useStores } from '@/ui/shell/providers';
-import { useColours } from '@/ui/kit/useColours';
-import { Icon } from '@/ui/kit/Icon';
-import { Toggle } from '@/ui/kit/Toggle';
-import { Card } from '@/ui/kit/Card';
-import { PageHeader } from '@/ui/kit/PageHeader';
+import { ScrollView } from '../../src/ui/lib/scroll-view';
+import { Text } from '../../src/ui/lib/text';
+import { Box } from '../../src/ui/lib/box';
+import { size } from '../../src/design';
+import { getPref, setPref } from '../../src/settings/prefs';
+import { useStores } from '../../src/ui/providers';
+import { useColours } from '../../src/ui/useColours';
+import { Icon } from '../../src/ui/Icon';
+import { Toggle } from '../../src/ui/Toggle';
+import { Card } from '../../src/ui/Card';
+import { PageHeader } from '../../src/ui/PageHeader';
 
 const TAP = { minHeight: size.row };
 const DISC = { width: 112, height: 112 };

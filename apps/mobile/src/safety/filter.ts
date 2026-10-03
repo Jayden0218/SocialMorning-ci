@@ -4,7 +4,7 @@
  * is open right now, and offline.
  */
 import { applyBlocks, hiddenKey } from '@socialmorning/social-core';
-import type { Clip, ClipAuthor, Comment, FeedItem } from '@/social/api';
+import type { Clip, ClipAuthor, Comment, FeedItem } from '../social/api';
 
 export type Sets = { blocked: ReadonlySet<string>; hidden: ReadonlySet<string> };
 

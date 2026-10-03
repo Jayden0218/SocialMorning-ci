@@ -9,8 +9,8 @@
  * scroll — `fatigue` counts impressions, and counting finger movements would drop items
  * the listener never had a chance to see.
  */
-import { createRecOutbox } from '@/recs/outbox';
-import { createMemoryRecOutboxStore } from '@/storage/memory';
+import { createRecOutbox } from '../src/recs/outbox';
+import { createMemoryRecOutboxStore } from '../src/storage/memory';
 
 const items = [
   { episodeId: 'e0', channel: 'pick' as const },

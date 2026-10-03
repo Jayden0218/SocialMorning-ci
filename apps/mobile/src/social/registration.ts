@@ -1,6 +1,6 @@
 /** How the phone describes an episode to the server (client-registered, research R6). */
 import type { EpisodeRegistration } from './api';
-import type { Stores } from '@/storage/types';
+import type { Stores } from '../storage/types';
 
 export function registrationFor(stores: Pick<Stores, 'feeds'>, episodeId: string): EpisodeRegistration | undefined {
   const e = stores.feeds.getEpisode(episodeId);

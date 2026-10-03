@@ -15,14 +15,14 @@
 import { createElement } from 'react';
 import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { colour } from '@/design';
-import { Scrubber, scrubberValue } from '@/ui/player/Scrubber';
-import { Rail, markerLabel } from '@/ui/player/Rail';
-import { HeatCurve, heatLabel } from '@/ui/player/HeatCurve';
-import type { Comment } from '@/social/api';
+import { colour } from '../src/design';
+import { Scrubber, scrubberValue } from '../src/ui/Scrubber';
+import { Rail, markerLabel } from '../src/ui/Rail';
+import { HeatCurve, heatLabel } from '../src/ui/HeatCurve';
+import type { Comment } from '../src/social/api';
 // M10b US4: the component reads its palette through useStores(); pin it to light so the
 // colour assertions compare against `colour`, whatever the runner's system scheme is.
-jest.mock('@/ui/shell/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }) }));
+jest.mock('../src/ui/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }) }));
 
 const render = (el: React.ReactElement): ReactTestRenderer => {
   let r!: ReactTestRenderer;

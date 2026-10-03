@@ -8,7 +8,7 @@
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'fs';
 import { join } from 'path';
-import { colour } from '@/design/tokens';
+import { colour } from '../src/design/tokens';
 
 const root = join(__dirname, '..');
 const read = (p: string): string => readFileSync(join(root, p), 'utf8');
@@ -34,7 +34,7 @@ it('the native launch screen does not hide by itself', () => {
 });
 
 it('it is hidden in one place, once the first page is drawn', () => {
-  expect(read('src/ui/shell/providers.tsx')).toContain('SplashScreen.hide()');
+  expect(read('src/ui/providers.tsx')).toContain('SplashScreen.hide()');
 });
 
 it('no screen draws a second, in-app splash', () => {

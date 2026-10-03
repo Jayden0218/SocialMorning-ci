@@ -18,18 +18,18 @@
  * everything is free).
  */
 import { Link } from 'expo-router';
-import { ScrollView } from '@/ui/lib/scroll-view';
-import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import { SignOut } from '@/ui/me/SignOut';
-import { useSocial } from '@/social/context';
-import { LinkRow } from '@/ui/settings/rows';
-import { MenuTile } from '@/ui/me/parts';
-import { PageHeader } from '@/ui/kit/PageHeader';
-import { Icon } from '@/ui/kit/Icon';
-import { useStores } from '@/ui/shell/providers';
-import { useColours } from '@/ui/kit/useColours';
+import { ScrollView } from '../src/ui/lib/scroll-view';
+import { Pressable } from '../src/ui/lib/pressable';
+import { Text } from '../src/ui/lib/text';
+import { Box } from '../src/ui/lib/box';
+import { SignOut } from '../src/ui/SignOut';
+import { useSocial } from '../src/social/context';
+import { LinkRow } from '../src/ui/settings/rows';
+import { MenuTile } from '../src/ui/me/parts';
+import { PageHeader } from '../src/ui/PageHeader';
+import { Icon } from '../src/ui/Icon';
+import { useStores } from '../src/ui/providers';
+import { useColours } from '../src/ui/useColours';
 
 /** The hero card is 88 pt tall at the default text size (`Account-B`), and grows with it. */
 const HERO = { minHeight: 88 };

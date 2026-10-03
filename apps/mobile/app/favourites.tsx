@@ -12,22 +12,22 @@
 import { Link, router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
-import { FlatList } from '@/ui/lib/flat-list';
-import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import { hit, spacing } from '@/design';
-import { listFavComments, type FavComment } from '@/me/fav-comments';
-import { listFavourites, type Favourite } from '@/me/favourites';
-import { matchesAll } from '@/me/history';
-import { FilterBar } from '@/ui/me/FilterBar';
-import { Artwork } from '@/ui/kit/Artwork';
-import { Icon } from '@/ui/kit/Icon';
-import { mmss } from '@/ui/kit/format';
-import { EmptyPicture } from '@/ui/me/parts';
-import { useStores } from '@/ui/shell/providers';
-import { useColours } from '@/ui/kit/useColours';
-import { PageHeader } from '@/ui/kit/PageHeader';
+import { FlatList } from '../src/ui/lib/flat-list';
+import { Pressable } from '../src/ui/lib/pressable';
+import { Text } from '../src/ui/lib/text';
+import { Box } from '../src/ui/lib/box';
+import { hit, spacing } from '../src/design';
+import { listFavComments, type FavComment } from '../src/me/fav-comments';
+import { listFavourites, type Favourite } from '../src/me/favourites';
+import { matchesAll } from '../src/me/history';
+import { FilterBar } from '../src/ui/me/FilterBar';
+import { Artwork } from '../src/ui/Artwork';
+import { Icon } from '../src/ui/Icon';
+import { mmss } from '../src/ui/format';
+import { EmptyPicture } from '../src/ui/me/parts';
+import { useStores } from '../src/ui/providers';
+import { useColours } from '../src/ui/useColours';
+import { PageHeader } from '../src/ui/PageHeader';
 
 const TAP = { minHeight: hit.min };
 /** The grid's two columns sit `spacing.row` apart. */

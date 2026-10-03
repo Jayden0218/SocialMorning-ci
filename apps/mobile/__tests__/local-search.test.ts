@@ -1,7 +1,7 @@
 /** quickstart A9: library hits at once over a seeded cache; a feed URL is recognised; unsubscribed shows are not searched. */
-import { looksLikeFeedUrl, searchLibrary } from '@/discover/local-search';
-import { createMemoryStores } from '@/storage/memory';
-import { hash } from '@/feeds/hash';
+import { looksLikeFeedUrl, searchLibrary } from '../src/discover/local-search';
+import { createMemoryStores } from '../src/storage/memory';
+import { hash } from '../src/feeds/hash';
 import type { Episode, ParsedFeed, Show } from '@socialmorning/feed-parser';
 
 const FEED = 'https://feeds.megaphone.fm/replyall';

@@ -27,8 +27,8 @@ jest.mock('expo-file-system', () => {
   };
 });
 import { DownloadTask } from 'expo-file-system';
-import { createExpoDownloader, extensionFor, resumeStateFor } from '@/downloads/expo-downloader';
-import type { DownloadRow } from '@/downloads/types';
+import { createExpoDownloader, extensionFor, resumeStateFor } from '../src/downloads/expo-downloader';
+import type { DownloadRow } from '../src/downloads/types';
 
 const row = (extra: Partial<DownloadRow> = {}): DownloadRow => ({
   episodeId: 'e', filePath: 'file:///doc/downloads/e.mp3', state: 'paused', bytesDone: 0, allowMobile: false, requestedAt: 1, ...extra,

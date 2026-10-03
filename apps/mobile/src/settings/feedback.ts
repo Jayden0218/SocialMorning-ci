@@ -3,8 +3,8 @@
  * phone's own email app — SocialNet has no feedback inbox of its own — and a copy is kept
  * on this phone so "My feedback" can list what you sent.
  */
-import type { SettingsStore } from '@/storage/types';
-import { readList, writeList } from '@/me/local-list';
+import type { SettingsStore } from '../storage/types';
+import { readList, writeList } from '../me/local-list';
 import type { FeedbackKind } from './faq';
 
 export const FEEDBACK_KEY = 'me.feedback';

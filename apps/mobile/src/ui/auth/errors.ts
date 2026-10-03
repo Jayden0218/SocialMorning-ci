@@ -1,5 +1,5 @@
 /** How the sign-in and sign-up pages word a failure. The 409/429 messages come from the server verbatim. */
-import { ApiError } from '@/social/api';
+import { ApiError } from '../../social/api';
 
 export function describe(e: unknown): string {
   if (e instanceof ApiError) {

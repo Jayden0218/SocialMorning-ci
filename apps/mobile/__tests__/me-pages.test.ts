@@ -5,14 +5,14 @@
  * `have >= r.need` to `have > r.need` (stickers test).
  */
 import type { Episode, ParsedFeed, Show } from '@socialmorning/feed-parser';
-import { hash } from '@/feeds/hash';
-import { isFavourite, listFavourites, toggleFavourite } from '@/me/favourites';
-import { listeningHistory, matchesAll } from '@/me/history';
-import { deleteMoment, editMoment, listMoments, NOTE_MAX, saveMoment } from '@/me/moments';
-import { latestEarned, stickers } from '@/me/stickers';
-import { latestUpdates, plainSummary } from '@/me/updates';
-import { createMemoryStores } from '@/storage/memory';
-import { episodeId } from '@/storage/schema';
+import { hash } from '../src/feeds/hash';
+import { isFavourite, listFavourites, toggleFavourite } from '../src/me/favourites';
+import { listeningHistory, matchesAll } from '../src/me/history';
+import { deleteMoment, editMoment, listMoments, NOTE_MAX, saveMoment } from '../src/me/moments';
+import { latestEarned, stickers } from '../src/me/stickers';
+import { latestUpdates, plainSummary } from '../src/me/updates';
+import { createMemoryStores } from '../src/storage/memory';
+import { episodeId } from '../src/storage/schema';
 
 const show = (feedUrl: string, title: string): Show => ({ feedUrl, title, explicit: false, categories: [], contentHash: 'h' });
 const ep = (guid: string, publishedAt: number, notes?: string): Episode => ({ guid, guidSource: 'guid', title: guid, enclosureUrl: `https://cdn/${guid}.mp3`, publishedAt, explicit: false, transcripts: [], soundbites: [], contentHash: `h-${guid}`, ...(notes ? { shownotesHtml: notes } : {}) });

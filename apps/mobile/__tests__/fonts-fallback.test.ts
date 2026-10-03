@@ -5,7 +5,7 @@
  * The break that turns it red: let `loadFonts` pass the load's rejection through (drop the
  * `() => false` handler) — start-up's task list then rejects.
  */
-import { FACES, familyFor, fontsStore, loadFonts, resetFontsForTest } from '@/design/fonts';
+import { FACES, familyFor, fontsStore, loadFonts, resetFontsForTest } from '../src/design/fonts';
 
 beforeEach(() => resetFontsForTest());
 

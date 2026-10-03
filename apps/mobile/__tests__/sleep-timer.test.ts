@@ -3,11 +3,11 @@
  * timers. What this proves: the rules. What it does not: that a JS timer fires on a
  * locked phone — quickstart D3.
  */
-import { createPlayerRuntime, type PlayableEpisode } from '@/playback/store';
-import type { AdapterEvent, AudioAdapter } from '@/playback/expo-audio-adapter';
-import type { Effect } from '@/playback/types';
-import { createMemoryStores } from '@/storage/memory';
-import { hash } from '@/feeds/hash';
+import { createPlayerRuntime, type PlayableEpisode } from '../src/playback/store';
+import type { AdapterEvent, AudioAdapter } from '../src/playback/expo-audio-adapter';
+import type { Effect } from '../src/playback/types';
+import { createMemoryStores } from '../src/storage/memory';
+import { hash } from '../src/feeds/hash';
 
 jest.useFakeTimers();
 

@@ -6,11 +6,11 @@ import { createElement } from 'react';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 
 const mockVote = jest.fn();
-jest.mock('@/social/context', () => ({ useSocial: () => ({ api: { votePoll: (...a: unknown[]) => mockVote(...a) }, listener: { listenerId: 'me' } }) }));
+jest.mock('../src/social/context', () => ({ useSocial: () => ({ api: { votePoll: (...a: unknown[]) => mockVote(...a) }, listener: { listenerId: 'me' } }) }));
 
-import { PLACEHOLDER_TEXT, placeholderFor } from '@/ui/comments/Placeholder';
-import { ShowExtrasBlock } from '@/ui/show/ShowExtras';
-import type { ShowExtras, ShowPoll } from '@/social/api';
+import { PLACEHOLDER_TEXT, placeholderFor } from '../src/ui/Placeholder';
+import { ShowExtrasBlock } from '../src/ui/ShowExtras';
+import type { ShowExtras, ShowPoll } from '../src/social/api';
 
 const texts = (r: ReactTestRenderer) => r.root.findAll((n) => typeof n.props['children'] === 'string').map((n) => n.props['children'] as string);
 const byLabel = (r: ReactTestRenderer, label: string): ReactTestInstance => r.root.find((n) => n.props['accessibilityLabel'] === label && typeof n.props['onPress'] === 'function');

@@ -6,16 +6,16 @@ import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'rea
 const mockReport = jest.fn<'hidden' | 'sign_in' | 'own', unknown[]>(() => 'hidden');
 const mockPush = jest.fn();
 jest.mock('expo-router', () => ({ router: { push: (...a: unknown[]) => mockPush(...a) } }));
-jest.mock('@/safety/context', () => ({ useSafety: () => ({ safety: { report: (...a: unknown[]) => mockReport(...a) } }), announce: jest.fn() }));
+jest.mock('../src/safety/context', () => ({ useSafety: () => ({ safety: { report: (...a: unknown[]) => mockReport(...a) } }), announce: jest.fn() }));
 // M10b US4: the component reads its palette through useStores(); pin it to light so the
 // colour assertions compare against `colour`, whatever the runner's system scheme is.
-jest.mock('@/ui/shell/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }) }));
+jest.mock('../src/ui/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }) }));
 const report = mockReport;
 const push = mockPush;
 
-import { ReportSheet } from '@/ui/comments/ReportSheet';
-import { GluestackUIProvider } from '@/ui/lib/gluestack-ui-provider';
-import { PLACEHOLDER_TEXT, placeholderFor } from '@/ui/comments/Placeholder';
+import { ReportSheet } from '../src/ui/ReportSheet';
+import { GluestackUIProvider } from '../src/ui/lib/gluestack-ui-provider';
+import { PLACEHOLDER_TEXT, placeholderFor } from '../src/ui/Placeholder';
 
 const byLabel = (r: ReactTestRenderer, label: string): ReactTestInstance => r.root.find((n) => n.props['accessibilityLabel'] === label && typeof n.props['onPress'] === 'function');
 

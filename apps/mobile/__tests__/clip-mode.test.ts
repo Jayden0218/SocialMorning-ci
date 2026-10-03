@@ -4,11 +4,11 @@
  * TICK hook the listened accumulator uses (R3). No jest timers involved: the end is a
  * TICK fact, like M2's sleep timer after D3.
  */
-import { createPlayerRuntime, type PlayableEpisode } from '@/playback/store';
-import type { AdapterEvent, AudioAdapter } from '@/playback/expo-audio-adapter';
-import type { Effect } from '@/playback/types';
-import { createMemoryStores } from '@/storage/memory';
-import { hash } from '@/feeds/hash';
+import { createPlayerRuntime, type PlayableEpisode } from '../src/playback/store';
+import type { AdapterEvent, AudioAdapter } from '../src/playback/expo-audio-adapter';
+import type { Effect } from '../src/playback/types';
+import { createMemoryStores } from '../src/storage/memory';
+import { hash } from '../src/feeds/hash';
 
 function fakeAdapter(): { adapter: AudioAdapter; executed: Effect[]; push: (e: AdapterEvent) => void } {
   const executed: Effect[] = [];

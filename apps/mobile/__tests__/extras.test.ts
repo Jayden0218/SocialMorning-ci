@@ -1,5 +1,5 @@
-import { fetchExtras, pickTranscript, readExtras } from '@/feeds/fetch-extras';
-import { createMemoryExtrasStore } from '@/storage/memory';
+import { fetchExtras, pickTranscript, readExtras } from '../src/extras/fetch-extras';
+import { createMemoryExtrasStore } from '../src/storage/memory';
 
 const chaptersJson = JSON.stringify({ version: '1.2.0', chapters: [{ startTime: 0, title: 'Intro' }, { startTime: 120, title: 'Two' }] });
 const srt = '1\n00:00:01,000 --> 00:00:02,000\nHi\n\nbroken\n\n2\n00:00:03,000 --> 00:00:04,000\nBye';

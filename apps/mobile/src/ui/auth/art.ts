@@ -3,7 +3,7 @@
  * covers, never a stock picture. The listener's own shows first, then what Discover last
  * cached. Nothing invented — with neither, the wall is simply empty.
  */
-import type { Discover } from '@/social/api';
+import type { Discover } from '../../social/api';
 
 export const ART_MAX = 7;
 

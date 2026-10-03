@@ -4,8 +4,8 @@
  * before evidence. So today this always returns the neutral wash. The rule it enforces
  * is what matters: **a tint that would hurt legibility is refused**, whatever its source.
  */
-import { colour, BODY_MIN, contrastRatio } from '@/design';
-import { FLAT, gradientFor } from '@/design/gradient';
+import { colour, BODY_MIN, contrastRatio } from '../src/design';
+import { FLAT, gradientFor } from '../src/design/gradient';
 
 it('with no tint — which is every call today — it is the neutral wash, never a blank', () => {
   expect(gradientFor()).toEqual(FLAT);

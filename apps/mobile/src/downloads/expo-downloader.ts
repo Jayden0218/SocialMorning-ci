@@ -6,7 +6,7 @@
  *
  * The allow-list of expo-file-system importers (a rule kept by review — no test enforces
  * it yet): this file; `src/launch/launch-files.ts` (M15 US3, launch-screen images in
- * `Paths.cache/launch/`); and `src/ui/clips/ShareChooser.tsx` (M12, the share card).
+ * `Paths.cache/launch/`); and `src/ui/ShareChooser.tsx` (M12, the share card).
  *
  * API VERIFIED against the installed typings, not recalled (Principle III):
  * `node_modules/expo-file-system/build/NetworkTasks.d.ts` — `DownloadTask`,

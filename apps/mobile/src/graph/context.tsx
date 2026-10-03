@@ -4,12 +4,12 @@
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
-import { useSocial } from '@/social/context';
-import { registrationFor } from '@/social/registration';
-import { useStores } from '@/ui/shell/providers';
+import { useSocial } from '../social/context';
+import { registrationFor } from '../social/registration';
+import { useStores } from '../ui/providers';
 import { createClips, type Clips } from './clips';
-import type { Clip } from '@/social/api';
-import type { PendingClipRow } from '@/storage/types';
+import type { Clip } from '../social/api';
+import type { PendingClipRow } from '../storage/types';
 
 export type GraphContextValue = {
   clips: Clips;

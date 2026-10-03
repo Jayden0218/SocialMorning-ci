@@ -1,7 +1,7 @@
 /**
  * M17 guard G-RF1 — playing a finished episode again must not be turned back into "Finished".
  *
- * Found on the phone 2026-10-02 (docs/gate-logs/M16a-GATE-LOG.md, "Seen, not caused on purpose"):
+ * Found on the phone 2026-10-02 (docs/M16a-GATE-LOG.md, "Seen, not caused on purpose"):
  * "Episode 271" was played from 0:00 and paused at 0:45; it then read "Finished" with its
  * position at the end (1:31:58). Nothing marks the previous episode finished on a load — the
  * reducer's LOAD saves nothing for it. The cause is the sync: the server's merge
@@ -18,10 +18,10 @@
  * `explicitSeek: effect.explicitSeek,`.
  */
 import { mergePosition, type PositionObs } from '@socialmorning/social-core';
-import { createPlayerRuntime, type PlayableEpisode } from '@/playback/store';
-import { createMemoryStores } from '@/storage/memory';
-import { hash } from '@/feeds/hash';
-import type { AdapterEvent, AudioAdapter } from '@/playback/expo-audio-adapter';
+import { createPlayerRuntime, type PlayableEpisode } from '../src/playback/store';
+import { createMemoryStores } from '../src/storage/memory';
+import { hash } from '../src/feeds/hash';
+import type { AdapterEvent, AudioAdapter } from '../src/playback/expo-audio-adapter';
 
 const END = 5_518_000; // 1:31:58
 const EPISODE: PlayableEpisode = { id: 'e271', url: 'https://cdn.example.com/271.mp3', title: 'Episode 271', showTitle: 'Podcasting 2.0', durationMs: END };

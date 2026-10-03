@@ -4,14 +4,14 @@
  * M17: Editorial sizes (20 pt icon, 14 pt label, 16 pt chevron); they sit inside a `Card`.
  */
 import { Link } from 'expo-router';
-import { Pressable } from '@/ui/lib/pressable';
-import { Toggle } from '@/ui/kit/Toggle';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import { colour, size } from '@/design';
-import { useStores } from '@/ui/shell/providers';
-import { useColours } from '@/ui/kit/useColours';
-import { Icon, type IconName } from '@/ui/kit/Icon';
+import { Pressable } from '../lib/pressable';
+import { Toggle } from '../Toggle';
+import { Text } from '../lib/text';
+import { Box } from '../lib/box';
+import { colour, size } from '../../design';
+import { useStores } from '../providers';
+import { useColours } from '../useColours';
+import { Icon, type IconName } from '../Icon';
 
 /** M12 FR-050: one row height for every list (was hit.min + 8 = 56). */
 const TAP = { minHeight: size.row };

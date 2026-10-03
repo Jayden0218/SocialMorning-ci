@@ -1,4 +1,3 @@
-/** Where the app finds the server: the address set in app.json. */
 import Constants from 'expo-constants';
 
 /** `extra.apiBaseUrl` from app.json; the Android emulator's host alias otherwise. */

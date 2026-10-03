@@ -8,17 +8,17 @@
  * under it, and the play/pause as a round yellow button with dark glyph. Same actions.
  */
 import { router } from 'expo-router';
-import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import { hit } from '@/design';
-import { Artwork } from '@/ui/kit/Artwork';
-import { Icon } from '@/ui/kit/Icon';
-import { minutesLabel } from '@/ui/kit/format';
-import { useStores } from '@/ui/shell/providers';
-import { useColours } from '@/ui/kit/useColours';
-import { usePlayer, usePlayerState } from '@/playback/store';
-import { toPlayable } from '@/storage/playable';
+import { Pressable } from '../lib/pressable';
+import { Text } from '../lib/text';
+import { Box } from '../lib/box';
+import { hit } from '../../design';
+import { Artwork } from '../Artwork';
+import { Icon } from '../Icon';
+import { minutesLabel } from '../format';
+import { useStores } from '../providers';
+import { useColours } from '../useColours';
+import { usePlayer, usePlayerState } from '../../playback/store';
+import { toPlayable } from '../../storage/playable';
 
 export const CARD_ARTWORK = 40;
 const ROUND = { width: hit.min, height: hit.min, minWidth: hit.min, minHeight: hit.min };

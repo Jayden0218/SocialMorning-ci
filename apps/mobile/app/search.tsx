@@ -9,7 +9,7 @@
  * which turned every page pushed after it into a modal sheet). Guard: __tests__/search-in-place.test.ts.
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { SearchPage } from '@/ui/search/SearchPage';
+import { SearchPage } from '../src/ui/search/SearchPage';
 
 export default function SearchScreen(): React.ReactElement {
   const router = useRouter();

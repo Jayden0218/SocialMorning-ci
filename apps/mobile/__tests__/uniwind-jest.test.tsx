@@ -7,7 +7,7 @@
 import { createElement } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { colour } from '@/design/tokens';
+import { colour } from '../src/design/tokens';
 
 /** `#rrggbb` → the three channels, so the check holds whether UniWind emits hex or rgb(). */
 const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));

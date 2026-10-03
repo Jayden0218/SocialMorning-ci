@@ -8,14 +8,14 @@
  * `Segmented`, so the screen's actions stay where the inventory has them. Same value, same
  * handler: choosing a tab calls `toggle.onChange(true | false)`.
  */
-import { Input, InputField } from '@/ui/lib/input';
-import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import { hit } from '@/design';
-import { useStores } from '@/ui/shell/providers';
-import { useColours } from '@/ui/kit/useColours';
-import { Icon } from '@/ui/kit/Icon';
+import { Input, InputField } from '../lib/input';
+import { Pressable } from '../lib/pressable';
+import { Text } from '../lib/text';
+import { Box } from '../lib/box';
+import { hit } from '../../design';
+import { useStores } from '../providers';
+import { useColours } from '../useColours';
+import { Icon } from '../Icon';
 
 const TAP = { minHeight: hit.min };
 

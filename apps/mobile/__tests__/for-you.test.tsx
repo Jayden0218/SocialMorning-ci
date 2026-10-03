@@ -7,10 +7,10 @@
  */
 import { createElement } from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { ForYou } from '@/ui/discover/ForYou';
-import { createForYou, FOR_YOU_KEY } from '@/recs/cache';
-import { ApiError, type ForYou as ForYouBody } from '@/social/api';
-import type { FeedCacheRow, FeedCacheStore } from '@/storage/types';
+import { ForYou } from '../src/ui/ForYou';
+import { createForYou, FOR_YOU_KEY } from '../src/recs/cache';
+import { ApiError, type ForYou as ForYouBody } from '../src/social/api';
+import type { FeedCacheRow, FeedCacheStore } from '../src/storage/types';
 
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 

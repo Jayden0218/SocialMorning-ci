@@ -1,9 +1,9 @@
-import { createDiscover } from '@/discover/cache';
-import { resolveCard } from '@/discover/open';
-import { ApiError, type ApiClient, type Discover, type EpisodeCard } from '@/social/api';
-import { createMemoryFeedCacheStore, createMemoryStores } from '@/storage/memory';
-import { hash } from '@/feeds/hash';
-import { episodeId } from '@/storage/schema';
+import { createDiscover } from '../src/discover/cache';
+import { resolveCard } from '../src/discover/open';
+import { ApiError, type ApiClient, type Discover, type EpisodeCard } from '../src/social/api';
+import { createMemoryFeedCacheStore, createMemoryStores } from '../src/storage/memory';
+import { hash } from '../src/feeds/hash';
+import { episodeId } from '../src/storage/schema';
 import type { Episode, ParsedFeed, Show } from '@socialmorning/feed-parser';
 
 const body = (stale = false): Discover => ({ date: '2026-09-22', picks: [], talkedAbout: [], trending: [], stale, serverTime: 'x' });

@@ -11,7 +11,7 @@
  */
 import { canStartDownload, nextDownload, usedBytesOf } from '@socialmorning/player-core';
 import type { Downloader, Network } from './types';
-import type { DownloadRow, Stores } from '@/storage/types';
+import type { DownloadRow, Stores } from '../storage/types';
 
 export const DEFAULT_BUDGET_BYTES = 2 * 1024 ** 3;
 export const SETTING_BUDGET = 'downloads.budgetBytes';

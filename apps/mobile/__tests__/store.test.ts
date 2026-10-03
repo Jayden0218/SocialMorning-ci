@@ -5,11 +5,11 @@
  * push events back. No expo module is imported by anything under test here,
  * which is the whole reason this layer can be checked at all.
  */
-import { createPlayerRuntime, type PlayableEpisode, type PlayerRuntime } from '@/playback/store';
-import { createMemoryStores } from '@/storage/memory';
-import { hash } from '@/feeds/hash';
-import { RESUME_WATCH_MS, type Effect } from '@/playback/types';
-import type { AdapterEvent, AudioAdapter } from '@/playback/expo-audio-adapter';
+import { createPlayerRuntime, type PlayableEpisode, type PlayerRuntime } from '../src/playback/store';
+import { createMemoryStores } from '../src/storage/memory';
+import { hash } from '../src/feeds/hash';
+import { RESUME_WATCH_MS, type Effect } from '../src/playback/types';
+import type { AdapterEvent, AudioAdapter } from '../src/playback/expo-audio-adapter';
 
 const HOUR = 3_600_000;
 

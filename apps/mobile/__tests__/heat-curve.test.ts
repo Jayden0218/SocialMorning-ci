@@ -1,7 +1,7 @@
 // M10b: HeatCurve reads the palette through useStores; a light setting keeps colours static.
-jest.mock('@/ui/shell/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }) }));
+jest.mock('../src/ui/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }) }));
 import { EMPTY_STATES } from '@socialmorning/social-core';
-import { heatMessage } from '@/ui/player/HeatCurve';
+import { heatMessage } from '../src/ui/HeatCurve';
 
 it('SC-004: every empty state has a plain message; a real curve has none', () => {
   expect(heatMessage(undefined)).toMatch(/isn't available/);

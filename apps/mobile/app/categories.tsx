@@ -8,16 +8,16 @@
  * same names, same destination.
  */
 import { useRouter } from 'expo-router';
-import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import { hit } from '@/design';
-import { useStores } from '@/ui/shell/providers';
-import { useColours } from '@/ui/kit/useColours';
-import { Icon } from '@/ui/kit/Icon';
-import { GENRES, type Genre } from '@/discover/genres';
-import { Screen } from '@/ui/kit/Screen';
-import { PageHeader } from '@/ui/kit/PageHeader';
+import { Pressable } from '../src/ui/lib/pressable';
+import { Text } from '../src/ui/lib/text';
+import { Box } from '../src/ui/lib/box';
+import { hit } from '../src/design';
+import { useStores } from '../src/ui/providers';
+import { useColours } from '../src/ui/useColours';
+import { Icon } from '../src/ui/Icon';
+import { GENRES, type Genre } from '../src/discover/genres';
+import { Screen } from '../src/ui/Screen';
+import { PageHeader } from '../src/ui/PageHeader';
 
 /** A card is at least 96 pt high (`Categories-B`) — well over the 48 pt tap floor. */
 const CARD = { minHeight: Math.max(96, hit.min) };

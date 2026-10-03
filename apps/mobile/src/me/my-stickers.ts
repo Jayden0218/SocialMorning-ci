@@ -8,8 +8,8 @@
  * used the server's total alone and started from 0 until its request came back. Both now call
  * `myTotals` / `myStickers` below, and the Stickers page starts from this phone's totals.
  */
-import type { Stores } from '@/storage/types';
-import type { Profile } from '@/social/api';
+import type { Stores } from '../storage/types';
+import type { Profile } from '../social/api';
 import { localTotals } from './history';
 import { listMoments } from './moments';
 import { stickers, type Sticker } from './stickers';

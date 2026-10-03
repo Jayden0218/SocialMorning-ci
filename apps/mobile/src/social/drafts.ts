@@ -3,7 +3,7 @@
  * failed post, or a killed app. One draft per episode; debounced writes so a
  * keystroke storm is one SQLite row update.
  */
-import type { DraftRow, DraftStore } from '@/storage/types';
+import type { DraftRow, DraftStore } from '../storage/types';
 
 export type Drafts = {
   load(episodeId: string): DraftRow | undefined;

@@ -6,7 +6,7 @@
  * evidence that audio works — that is Tier B, on a phone, and nothing in
  * this file can reach it (Constitution Principle I).
  */
-import { reduce, type Reduction } from '@/playback/reducer';
+import { reduce, type Reduction } from '../src/playback/reducer';
 import {
   INITIAL_CONTEXT,
   INITIAL_STATE,
@@ -19,8 +19,8 @@ import {
   type PlayerContext,
   type PlayerEvent,
   type PlayerState,
-} from '@/playback/types';
-import { reconcileOffset } from '@/playback/finished';
+} from '../src/playback/types';
+import { reconcileOffset } from '../src/playback/finished';
 
 const HOUR = 3_600_000;
 const META: LockScreenMeta = { title: 'Episode 1', artist: 'A Show', artworkUrl: 'a.jpg' };

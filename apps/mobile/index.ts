@@ -8,7 +8,7 @@ import { Platform } from 'react-native';
 if (Platform.OS === 'android') {
   try {
     const { registerWidgetTaskHandler } = require('react-native-android-widget') as typeof import('react-native-android-widget');
-    const { widgetTaskHandler } = require('@/outside/android-widget') as typeof import('@/outside/android-widget');
+    const { widgetTaskHandler } = require('./src/outside/android-widget') as typeof import('./src/outside/android-widget');
     registerWidgetTaskHandler(widgetTaskHandler);
   } catch { /* a build without the widget module still starts */ }
 }

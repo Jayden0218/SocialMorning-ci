@@ -11,8 +11,8 @@ jest.mock('expo-audio', () => ({
   setAudioModeAsync: jest.fn(async () => undefined),
   requestRecordingPermissionsAsync: jest.fn(async () => ({ granted: false })),
 }));
-import { VOICE_MAX_BYTES, VOICE_MAX_MS, expectedBytes, hoursLeft, voiceClock } from '@/social/voice';
-import { askMicrophone, playVoice, voiceOptions, voiceSessionOff, voiceSessionOn } from '@/playback/expo-audio-adapter';
+import { VOICE_MAX_BYTES, VOICE_MAX_MS, expectedBytes, hoursLeft, voiceClock } from '../src/voice/recording';
+import { askMicrophone, playVoice, voiceOptions, voiceSessionOff, voiceSessionOn } from '../src/playback/expo-audio-adapter';
 import { setAudioModeAsync } from 'expo-audio';
 
 const VOICE_OPTIONS = voiceOptions();

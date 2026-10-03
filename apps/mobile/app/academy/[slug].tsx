@@ -6,12 +6,12 @@
  * a hairline, and each section numbered in the accent beside a serif heading and its body.
  */
 import { useLocalSearchParams } from 'expo-router';
-import { ScrollView } from '@/ui/lib/scroll-view';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import { EmptyPicture } from '@/ui/me/parts';
-import { ARTICLES, articleBySlug } from '@/settings/academy';
-import { PageHeader } from '@/ui/kit/PageHeader';
+import { ScrollView } from '../../src/ui/lib/scroll-view';
+import { Text } from '../../src/ui/lib/text';
+import { Box } from '../../src/ui/lib/box';
+import { EmptyPicture } from '../../src/ui/me/parts';
+import { ARTICLES, articleBySlug } from '../../src/academy/articles';
+import { PageHeader } from '../../src/ui/PageHeader';
 
 const CAPS = { letterSpacing: 1.3, textTransform: 'uppercase' as const };
 const NUMBER = { width: 36 };

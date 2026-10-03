@@ -1,6 +1,6 @@
 /**
  * The queue page (US2), reached from the mini player's Queue button. M12 FR-044: the same rows
- * as the sheet over the player (src/ui/queue/QueueList.tsx) — artwork, time left, drag handle, ⋮.
+ * as the sheet over the player (src/ui/QueueList.tsx) — artwork, time left, drag handle, ⋮.
  *
  * M17 T052 (`Queue-B`): the list draws its page layout — the next episode as an "Up next" card
  * with a Play now pill, the rest numbered, the ⋮ actions in a sheet. Load, play, reorder and
@@ -8,15 +8,15 @@
  */
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ScrollView } from '@/ui/lib/scroll-view';
-import { usePlayer } from '@/playback/store';
-import { toPlayable } from '@/storage/playable';
+import { ScrollView } from '../src/ui/lib/scroll-view';
+import { usePlayer } from '../src/playback/store';
+import { toPlayable } from '../src/storage/playable';
 import { remove } from '@socialmorning/player-core';
-import { useStores } from '@/ui/shell/providers';
-import { useColours } from '@/ui/kit/useColours';
-import { EmptyState } from '@/ui/kit/EmptyState';
-import { QueueList } from '@/ui/queue/QueueList';
-import { PageHeader } from '@/ui/kit/PageHeader';
+import { useStores } from '../src/ui/providers';
+import { useColours } from '../src/ui/useColours';
+import { EmptyState } from '../src/ui/EmptyState';
+import { QueueList } from '../src/ui/QueueList';
+import { PageHeader } from '../src/ui/PageHeader';
 
 export default function QueueScreen(): React.ReactElement {
   const stores = useStores();

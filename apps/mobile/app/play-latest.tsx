@@ -9,16 +9,16 @@
  */
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import { Icon } from '@/ui/kit/Icon';
-import { latestToPlay } from '@/outside/now-playing';
-import { usePlayer } from '@/playback/store';
-import { useSafety } from '@/safety/context';
-import { toPlayable } from '@/storage/playable';
-import { useStores } from '@/ui/shell/providers';
-import { useColours } from '@/ui/kit/useColours';
-import { PageHeader } from '@/ui/kit/PageHeader';
+import { Text } from '../src/ui/lib/text';
+import { Box } from '../src/ui/lib/box';
+import { Icon } from '../src/ui/Icon';
+import { latestToPlay } from '../src/outside/now-playing';
+import { usePlayer } from '../src/playback/store';
+import { useSafety } from '../src/safety/context';
+import { toPlayable } from '../src/storage/playable';
+import { useStores } from '../src/ui/providers';
+import { useColours } from '../src/ui/useColours';
+import { PageHeader } from '../src/ui/PageHeader';
 
 /** The picture's tiles: size, place and tilt are layout, so they stay styles. */
 const TILE = 170;

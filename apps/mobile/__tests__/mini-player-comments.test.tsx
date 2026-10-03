@@ -12,11 +12,11 @@ jest.mock('expo-router', () => ({
   usePathname: () => '/',
   useIsFocused: () => true,
 }));
-jest.mock('@/playback/store', () => ({
+jest.mock('../src/playback/store', () => ({
   usePlayer: () => ({ play: jest.fn(), pause: jest.fn() }),
   usePlayerState: () => ({ kind: 'playing', episodeId: 'e1', positionMs: 0 }),
 }));
-jest.mock('@/ui/shell/providers', () => ({
+jest.mock('../src/ui/providers', () => ({
   useStores: () => ({
     settings: { get: () => 'light' },
     feeds: {
@@ -26,7 +26,7 @@ jest.mock('@/ui/shell/providers', () => ({
   }),
 }));
 
-import { MiniPlayer } from '@/ui/player/MiniPlayer';
+import { MiniPlayer } from '../src/ui/MiniPlayer';
 
 const render = (el: React.ReactElement): ReactTestRenderer => {
   let r!: ReactTestRenderer;

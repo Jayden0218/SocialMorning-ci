@@ -26,9 +26,9 @@ import { createElement } from 'react';
 import { Platform, Text } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { FullWindowOverlay } from 'react-native-screens';
-import { GluestackUIProvider } from '@/ui/lib/gluestack-ui-provider';
-import { Actionsheet, ActionsheetBackdrop, ActionsheetContent } from '@/ui/lib/actionsheet';
-import { AlertDialog, AlertDialogBackdrop, AlertDialogContent } from '@/ui/lib/alert-dialog';
+import { GluestackUIProvider } from '../src/ui/lib/gluestack-ui-provider';
+import { Actionsheet, ActionsheetBackdrop, ActionsheetContent } from '../src/ui/lib/actionsheet';
+import { AlertDialog, AlertDialogBackdrop, AlertDialogContent } from '../src/ui/lib/alert-dialog';
 
 const render = (el: React.ReactElement): ReactTestRenderer => {
   let r!: ReactTestRenderer;

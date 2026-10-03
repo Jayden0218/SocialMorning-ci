@@ -8,18 +8,18 @@
  * (none today) are white cards. Loading, the error line and the data are unchanged.
  */
 import { useCallback, useEffect, useState } from 'react';
-import { FlatList } from '@/ui/lib/flat-list';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import { size } from '@/design';
-import { Loader } from '@/ui/kit/Loader';
-import { Icon } from '@/ui/kit/Icon';
-import { useStores } from '@/ui/shell/providers';
-import { useColours } from '@/ui/kit/useColours';
-import { shortDate } from '@/ui/kit/format';
-import { moneyLabel } from '@/me/money';
-import { useM12Api, type Tip } from '@/social/m12-api';
-import { PageHeader } from '@/ui/kit/PageHeader';
+import { FlatList } from '../src/ui/lib/flat-list';
+import { Text } from '../src/ui/lib/text';
+import { Box } from '../src/ui/lib/box';
+import { size } from '../src/design';
+import { Loader } from '../src/ui/Loader';
+import { Icon } from '../src/ui/Icon';
+import { useStores } from '../src/ui/providers';
+import { useColours } from '../src/ui/useColours';
+import { shortDate } from '../src/ui/format';
+import { moneyLabel } from '../src/me/money';
+import { useM12Api, type Tip } from '../src/social/m12-api';
+import { PageHeader } from '../src/ui/PageHeader';
 
 const ROW = { minHeight: size.row };
 /** `Tips-B`: the tile leans 6° to the left. */

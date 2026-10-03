@@ -7,7 +7,7 @@
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { stickers } from '@/me/stickers';
+import { stickers } from '../src/me/stickers';
 
 const root = join(__dirname, '..');
 function sources(dir: string): string[] {

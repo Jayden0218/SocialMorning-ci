@@ -3,8 +3,8 @@
  * their cached episodes, matched with the shared `matchesTerm` — instant, works offline.
  */
 import { matchesTerm } from '@socialmorning/social-core';
-import type { EpisodeCard, ShowCard } from '@/social/api';
-import type { Stores } from '@/storage/types';
+import type { EpisodeCard, ShowCard } from '../social/api';
+import type { Stores } from '../storage/types';
 
 export type LibraryHits = { shows: ShowCard[]; episodes: EpisodeCard[] };
 

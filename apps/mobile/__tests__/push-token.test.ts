@@ -4,9 +4,9 @@
  * a sign-in. The break that turns the first test red: in `src/notify/push-token.ts`
  * `registerPush`, skip `d.settings.set(PUSH_TOKEN_KEY, t)`.
  */
-import { hash } from '@/feeds/hash';
-import { PUSH_TOKEN_KEY, registerPush, unregisterPush } from '@/notify/push-token';
-import { createMemoryStores } from '@/storage/memory';
+import { hash } from '../src/feeds/hash';
+import { PUSH_TOKEN_KEY, registerPush, unregisterPush } from '../src/notify/push-token';
+import { createMemoryStores } from '../src/storage/memory';
 
 it('granted: the address is sent with the platform and remembered; sign-out removes exactly it', async () => {
   const { settings } = createMemoryStores(hash);

@@ -15,8 +15,8 @@
  * Why a tombstone at all: a deleted row cannot sync. Phone A unsubscribes, phone B still
  * holds the row, and B's next reconcile puts the show back (guard G-M2).
  */
-import type { ApiClient, SubscriptionOut } from '@/social/api';
-import type { SubscriptionRow, SubscriptionStore } from '@/storage/types';
+import type { ApiClient, SubscriptionOut } from '../social/api';
+import type { SubscriptionRow, SubscriptionStore } from '../storage/types';
 
 export type SubscriptionSyncDeps = {
   api: ApiClient;

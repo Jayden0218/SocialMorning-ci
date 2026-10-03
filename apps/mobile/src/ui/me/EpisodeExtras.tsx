@@ -8,18 +8,18 @@
  * on the warm page colour, then Cancel and a yellow Save pill. Same names, same handlers.
  */
 import { useState } from 'react';
-import { Textarea, TextareaInput } from '@/ui/lib/textarea';
-import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import { SheetTile, TileRow } from '@/ui/queue/QueueButtons';
-import { Icon } from '@/ui/kit/Icon';
-import { hit } from '@/design';
-import { useColours } from '@/ui/kit/useColours';
-import { isFavourite, toggleFavourite } from '@/me/favourites';
-import { NOTE_MAX, saveMoment } from '@/me/moments';
-import { mmss } from '@/ui/kit/format';
-import { useStores, useToast } from '@/ui/shell/providers';
+import { Textarea, TextareaInput } from '../lib/textarea';
+import { Pressable } from '../lib/pressable';
+import { Text } from '../lib/text';
+import { Box } from '../lib/box';
+import { SheetTile, TileRow } from '../QueueButtons';
+import { Icon } from '../Icon';
+import { hit } from '../../design';
+import { useColours } from '../useColours';
+import { isFavourite, toggleFavourite } from '../../me/favourites';
+import { NOTE_MAX, saveMoment } from '../../me/moments';
+import { mmss } from '../format';
+import { useStores, useToast } from '../providers';
 
 const TAP = { minHeight: hit.min };
 
