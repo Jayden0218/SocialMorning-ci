@@ -37,7 +37,7 @@ export default function BlockedScreen(): React.ReactElement {
       <Text className="text-text text-base font-display">{rows.length === 1 ? 'listener blocked' : 'listeners blocked'}</Text>
       <Text className="text-muted text-body mt-1">Nothing they write, clip or do shows for you. They are not told.</Text>
     </Box>
-  ) : null;
+  ) : undefined;
   return (
     <>
     <PageHeader

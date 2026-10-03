@@ -91,7 +91,7 @@ export default function IssuesScreen(): React.ReactElement {
           {issueCard(lead, true)}
           {issues.length > 1 ? <Text className="text-text text-base font-display-semibold mt-5 mb-2.5" accessibilityRole="header">Earlier issues</Text> : null}
         </Box>
-      ) : null}
+      ) : undefined}
       ListEmptyComponent={issues.length > 0 ? undefined : state.kind === 'loading' ? <Loader className="my-section" /> : state.kind === 'error' ? (
         <Box className="items-center my-section">
           <Text className="text-muted text-sm">Couldn't load the issues right now.</Text>
