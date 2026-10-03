@@ -96,7 +96,7 @@ export default function ChartScreen(): React.ReactElement {
         </Box>
       }
       ListEmptyComponent={
-        items.length > 0 ? null
+        items.length > 0 ? undefined
         : state.kind === 'loading' ? <Loader className="my-section" />
         : state.kind === 'error' ? (
           <Box className="items-center my-section">

@@ -116,7 +116,7 @@ export default function FriendsListening(): React.ReactElement {
       columnWrapperStyle={COLUMNS}
       contentContainerClassName="px-screen-x pb-24 flex-grow"
       ListHeaderComponent={<Box><Title />{lead ? feature(lead) : null}</Box>}
-      ListEmptyComponent={items.length > 0 ? null : state.kind === 'loading' ? <Loader className="my-section" /> : state.kind === 'error' ? (
+      ListEmptyComponent={items.length > 0 ? undefined : state.kind === 'loading' ? <Loader className="my-section" /> : state.kind === 'error' ? (
         <Box className="items-center my-section">
           <Text className="text-muted text-sm">Couldn't load this right now.</Text>
           <Pressable onPress={load} accessibilityRole="button" accessibilityLabel="Retry" className="justify-center" style={TAP}><Text className="text-accent text-sm font-semibold">Retry</Text></Pressable>
