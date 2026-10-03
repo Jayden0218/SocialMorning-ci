@@ -62,5 +62,45 @@
   "to": "ClipComposer | Caption | setS",
   "why": "scanner correction: the Caption input's destination was borrowed from the Preview button below it; the input is unchanged (accessibilityLabel 'Caption', onChangeText)",
   "task": "T060"
+ },
+ {
+  "surface": "/issues",
+  "name": "Retry",
+  "destination": "/issue/[id]",
+  "to": "/issues | Retry | load",
+  "why": "scanner correction: old line 43 was always onPress={load}; the baseline borrowed /issue/[id] from a nearby line",
+  "task": "T096"
+ },
+ {
+  "surface": "/settings/account-more",
+  "name": "Code",
+  "destination": "remove",
+  "to": "/settings/account-more | Code | setCode",
+  "why": "scanner correction: the Code field (old line 83) was always onChangeText={setCode}; the baseline borrowed 'remove' from the Delete button",
+  "task": "T081"
+ },
+ {
+  "surface": "/settings/feedback",
+  "name": "Your feedback",
+  "destination": "setImages",
+  "to": "/settings/feedback | Your feedback | setBody",
+  "why": "scanner correction: the text box (old line 97) was always onChangeText={setBody}; the baseline borrowed setImages from the image row",
+  "task": "T087"
+ },
+ {
+  "surface": "/settings/help",
+  "name": "Report a problem to support",
+  "destination": "/settings/feedback",
+  "to": "/settings/help | Report a problem to support | dynamic",
+  "why": "scanner correction: the support button (old line 52) always opened the mailto (Linking.openURL); the baseline borrowed /settings/feedback from the LinkRow above it, which is now its own entry",
+  "task": "T088"
+ },
+ {
+  "surface": "/wallet",
+  "name": "${item.productId}, ${item.status}, ${moneyLabel(item.amountMicros, item.currency)}",
+  "destination": "manage",
+  "to": "/wallet | Manage subscriptions in the store | manage",
+  "why": "scanner correction: the element with handler manage is the 'Manage subscriptions in the store' Button (old line 41); the baseline took its name from the purchase row below",
+  "task": "T073"
  }
 ]

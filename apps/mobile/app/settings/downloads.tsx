@@ -1,13 +1,30 @@
-/** Downloads and cache (下载设置, M10): download queued episodes, mobile data, and clearing downloads. */
+/**
+ * Downloads and cache (下载设置, M10): download queued episodes, mobile data, and clearing downloads.
+ *
+ * M17 T086 (`SettingsDownloads-B`): a white card first — "On this phone", the space used as a big
+ * serif figure with the episode count, a yellow bar against the storage limit, then Clear
+ * (outlined, same confirm) and Manage downloads (yellow, same /downloads link) side by side;
+ * under a serif "When to download" the two switches in one card. Same prefs, same handlers.
+ */
 import { useEffect, useState } from 'react';
+import { Link } from 'expo-router';
 import { ScrollView } from '../../src/ui/lib/scroll-view';
+import { Pressable } from '../../src/ui/lib/pressable';
+import { Text } from '../../src/ui/lib/text';
+import { Box } from '../../src/ui/lib/box';
+import { hit } from '../../src/design';
 import { getPref, setPref } from '../../src/settings/prefs';
 import { mb } from '../../src/ui/DownloadButton';
 import { useDownloads, useStores, useToast } from '../../src/ui/providers';
-import { ActionRow, Divider, LinkRow, SwitchRow } from '../../src/ui/settings/rows';
+import { SwitchRow } from '../../src/ui/settings/rows';
+import { Button } from '../../src/ui/Button';
+import { Card, CardDivider } from '../../src/ui/Card';
+import { Eyebrow } from '../../src/ui/Eyebrow';
 import { plural } from '@socialmorning/social-core';
 import { useConfirm } from '../../src/ui/confirm';
 import { PageHeader } from '../../src/ui/PageHeader';
+
+const TAP = { minHeight: hit.min };
 
 export default function DownloadSettings(): React.ReactElement {
   const stores = useStores();
@@ -31,15 +48,39 @@ export default function DownloadSettings(): React.ReactElement {
     });
   };
 
+  const budget = downloads.budgetBytes();
+  const episodes = stores.downloads.list().filter((d) => d.state === 'complete').length;
+  const fill = { width: `${budget > 0 ? Math.min(100, Math.round((used / budget) * 100)) : 0}%` } as const;
+
   return (
     <>
     <PageHeader title="Downloads and cache" />
-    <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x py-row">
-      <SwitchRow icon="list-outline" label="Download queued episodes" line="An episode starts downloading when you add it to the queue" value={auto} onChange={(v) => { setAuto(v); setPref(stores.settings, 'autoDownloadQueued', v); }} />
-      <SwitchRow icon="cellular-outline" label="Allow mobile data for downloads" line="Off: downloads wait for Wi-Fi" value={mobile} onChange={(v) => { setMobile(v); downloads.setAllowMobile(v); }} />
-      <Divider />
-      <ActionRow onPress={clearAll} icon="trash-outline" label="Clear downloaded episodes" value={mb(used)} />
-      <LinkRow href="/downloads" icon="folder-open-outline" label="Manage downloads and storage limit" />
+    <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x py-row pb-24">
+      <Card className="py-section mb-section">
+        <Eyebrow accent>On this phone</Eyebrow>
+        <Box className="flex-row items-baseline justify-between gap-gap mt-row">
+          <Text className="text-text text-display font-display">{mb(used)}</Text>
+          <Text className="text-muted text-meta">{plural(episodes, 'episode')}</Text>
+        </Box>
+        <Box className="h-2.5 rounded-pill bg-track overflow-hidden mt-row" accessible={false}>
+          <Box className="h-full bg-primary" style={fill} />
+        </Box>
+        <Text className="text-muted text-xs mt-row">{`of a ${mb(budget)} storage limit`}</Text>
+        <Box className="flex-row gap-gap mt-section">
+          <Button kind="secondary" label="Clear downloaded episodes" accessibilityLabel={`Clear downloaded episodes, ${mb(used)}`} onPress={clearAll} className="flex-1" />
+          <Link href="/downloads" asChild>
+            <Pressable accessibilityRole="link" accessibilityLabel="Manage downloads and storage limit" className="flex-1 px-section rounded-pill bg-primary items-center justify-center" style={TAP}>
+              <Text className="text-onPrimary text-body font-bold text-center">Manage downloads</Text>
+            </Pressable>
+          </Link>
+        </Box>
+      </Card>
+      <Text className="text-text text-base font-display-semibold mb-row" accessibilityRole="header">When to download</Text>
+      <Card>
+        <SwitchRow icon="list-outline" label="Download queued episodes" line="An episode starts downloading when you add it to the queue" value={auto} onChange={(v) => { setAuto(v); setPref(stores.settings, 'autoDownloadQueued', v); }} />
+        <CardDivider />
+        <SwitchRow icon="cellular-outline" label="Allow mobile data for downloads" line="Off: downloads wait for Wi-Fi" value={mobile} onChange={(v) => { setMobile(v); downloads.setAllowMobile(v); }} />
+      </Card>
     </ScrollView>
     {dialog}
     </>

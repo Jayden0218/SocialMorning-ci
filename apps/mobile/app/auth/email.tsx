@@ -7,6 +7,11 @@
  * The code step (owner's screenshot, 2026-10-03): "CHECK YOUR EMAIL" over the title, ✕ on the
  * right, the address in a card with "Change", 6 cells, and the bar holds the resend at the
  * left and "Continue →" at the right.
+ *
+ * M17 T071 (`EmailAuth-B`, `EmailCode-B`, `SignUp-B`): each step takes B's title size and
+ * weight; the code step's bar is the page colour with "Didn't get it?" in 13 pt and a 52 pt
+ * "Continue →"; the name step shows a monogram of the typed name over its title. Steps,
+ * consent, resend timer and sign-in calls are unchanged.
  */
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -15,7 +20,7 @@ import { Text } from '../../src/ui/lib/text';
 import { Box } from '../../src/ui/lib/box';
 import { SUSPENDED_KEY, useSocial } from '../../src/social/context';
 import { useStores } from '../../src/ui/providers';
-import { AuthButton, AuthField, AuthShell, CodeCells, SentTo } from '../../src/ui/auth/AuthShell';
+import { AuthButton, AuthField, AuthShell, CodeCells, NameMonogram, SentTo, type Heading } from '../../src/ui/auth/AuthShell';
 import { ConsentDialog, ConsentRow, useLegalOverlay } from '../../src/ui/auth/Consent';
 import { describe, errorText } from '../../src/ui/auth/errors';
 import { toApp } from '../../src/ui/auth/navigate';
@@ -24,6 +29,12 @@ import { looksLikeEmail, submitAction } from '../../src/ui/auth/rules';
 type Step = 'email' | 'code' | 'name';
 
 const TITLE: Record<Step, string> = { email: 'Continue\nwith email', code: 'Enter the code', name: 'Your name' };
+/** B's title per step: 44 SemiBold, 36 Bold, 40 SemiBold. */
+const HEADING: Record<Step, Heading> = {
+  email: { size: 44, semibold: true, tracking: -1, leading: 48 },
+  code: { size: 36, leading: 40 },
+  name: { size: 40, semibold: true, tracking: -0.8, leading: 44 },
+};
 
 export default function EmailScreen(): React.ReactElement {
   const { auth } = useSocial();
@@ -75,25 +86,29 @@ export default function EmailScreen(): React.ReactElement {
   return (
     <AuthShell
       title={TITLE[step]}
+      heading={HEADING[step]}
       eyebrow={step === 'code' ? 'Check your email' : undefined}
       closeRight={step === 'code'}
-      subtitle={step === 'email' ? null : <Text className="text-muted text-sm leading-[22px]">{step === 'code' ? 'We sent a 6-digit code to' : 'This is the name others see. You can use any name.'}</Text>}
+      compact={step === 'code'}
+      bar={step === 'code' ? 'page' : 'surface'}
+      hero={step === 'name' ? <NameMonogram name={name} /> : undefined}
+      subtitle={step === 'email' ? null : <Text className="text-muted text-sm leading-[23px]">{step === 'code' ? 'We sent a 6-digit code to' : 'This is the name others see. You can use any name.'}</Text>}
       footer={
-        step === 'email' ? <AuthButton label="Send code" className="rounded-pill" disabled={emailAction === 'disabled'} busy={busy} onPress={() => (emailAction === 'ask' ? setAsking(true) : void sendCode())} />
+        step === 'email' ? <AuthButton label="Send code" className="rounded-pill" bold disabled={emailAction === 'disabled'} busy={busy} onPress={() => (emailAction === 'ask' ? setAsking(true) : void sendCode())} />
         : step === 'code' ? (
           <Box className="flex-row items-center gap-row">
             <Box className="flex-1">
-              <Text className="text-muted text-xs">Didn't get it?</Text>
+              <Text className="text-muted text-meta">Didn't get it?</Text>
               {wait > 0
-                ? <Text className="text-muted text-xs">Send again in {wait} s</Text>
+                ? <Text className="text-muted text-meta">Send again in {wait} s</Text>
                 : <Pressable onPress={() => void sendCode()} disabled={busy} accessibilityRole="button" accessibilityLabel="Send the code again" hitSlop={12}>
-                    <Text className="text-accent text-xs font-semibold">Send again</Text>
+                    <Text className="text-accent text-meta font-bold">Send again</Text>
                   </Pressable>}
             </Box>
-            <AuthButton label="Continue" trail="arrow-forward" className="rounded-pill px-section" disabled={busy || code.length !== 6} busy={busy} onPress={() => void verify()} />
+            <AuthButton label="Continue" trail="arrow-forward" className="rounded-pill px-7" slim bold disabled={busy || code.length !== 6} busy={busy} onPress={() => void verify()} />
           </Box>
         )
-        : <AuthButton label="Create account" className="rounded-pill" disabled={busy || name.trim().length === 0} busy={busy} onPress={() => void verify(name.trim())} />
+        : <AuthButton label="Create account" className="rounded-pill" bold disabled={busy || name.trim().length === 0} busy={busy} onPress={() => void verify(name.trim())} />
       }
     >
       {step === 'email' ? (
@@ -105,7 +120,7 @@ export default function EmailScreen(): React.ReactElement {
       {step === 'code' ? (
         <>
           <SentTo email={email.trim()} onChange={() => { setStep('email'); setError(undefined); }} />
-          <Box className="mt-section"><CodeCells value={code} onChange={setCode} /></Box>
+          <Box className="mt-7"><CodeCells value={code} onChange={setCode} /></Box>
         </>
       ) : null}
       {step === 'name' ? (

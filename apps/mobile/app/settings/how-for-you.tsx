@@ -1,39 +1,57 @@
-/** How For You works (M12 FR-094): questions that open to show their answer. */
+/**
+ * How For You works (M12 FR-094): questions that open to show their answer.
+ *
+ * M17 (`SettingsHowForYou-B`): an eyebrow ("Discover › For You") over the serif title, then
+ * the questions as numbered cards. The open one is a full-width card — a large serif number,
+ * the question as a serif heading, the answer under it; the closed ones sit two to a row with
+ * their number and question. Tapping a card opens it, tapping the open one closes it — the
+ * same toggle as before, the same names.
+ */
 import { useState } from 'react';
 import { ScrollView } from '../../src/ui/lib/scroll-view';
 import { Pressable } from '../../src/ui/lib/pressable';
 import { Text } from '../../src/ui/lib/text';
 import { Box } from '../../src/ui/lib/box';
-import { Icon } from '../../src/ui/Icon';
-import { useColours } from '../../src/ui/useColours';
-import { useStores } from '../../src/ui/providers';
 import { size } from '../../src/design';
 import { HOW_FOR_YOU } from '../../src/settings/how-for-you';
 import { PageHeader } from '../../src/ui/PageHeader';
+import { Eyebrow } from '../../src/ui/Eyebrow';
 
 const ROW = { minHeight: size.row };
+/** Two closed cards to a row; the gap between them is `gap-row` (12 pt). */
+const HALF = { width: '48%' as const, minHeight: 104 };
+
+const two = (i: number): string => String(i + 1).padStart(2, '0');
 
 export default function HowForYou(): React.ReactElement {
-  const stores = useStores();
-  const c = useColours(stores.settings);
   const [open, setOpen] = useState<number | undefined>(0);
   return (
     <>
-    <PageHeader title="How For You works" />
-    <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x py-row pb-24">
-      {HOW_FOR_YOU.map((item, i) => {
-        const shown = open === i;
-        return (
-          <Box key={item.q} className="border-b-hairline border-separator">
-            <Pressable onPress={() => setOpen(shown ? undefined : i)} accessibilityRole="button" accessibilityState={{ expanded: shown }} accessibilityLabel={item.q}
-              className="flex-row items-center gap-row" style={ROW}>
-              <Text className="text-text text-sm font-semibold flex-1">{item.q}</Text>
-              <Icon name={shown ? 'chevron-up' : 'chevron-down'} size={18} color={c.muted} />
+    {/* M17: an empty middle, so the page draws its own eyebrow above the title. */}
+    <PageHeader middle={<Box />} />
+    <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pt-1 pb-24">
+      <Eyebrow accent>Discover › For You</Eyebrow>
+      <Text className="text-text text-display font-display mt-1" numberOfLines={2} accessibilityRole="header">How For You works</Text>
+      <Text className="text-muted text-meta mt-1 mb-section">What it uses, and what it never uses</Text>
+      <Box className="flex-row flex-wrap justify-between gap-y-row">
+        {HOW_FOR_YOU.map((item, i) => {
+          const shown = open === i;
+          return shown ? (
+            <Pressable key={item.q} onPress={() => setOpen(undefined)} accessibilityRole="button" accessibilityState={{ expanded: true }} accessibilityLabel={item.q}
+              className="w-full bg-surface border border-border rounded-row p-section" style={ROW}>
+              <Text className="text-accent text-display font-display" maxFontSizeMultiplier={1.3}>{two(i)}</Text>
+              <Text className="text-text text-base font-display mt-1">{item.q}</Text>
+              <Text className="text-muted text-body mt-gap leading-[21px]">{item.a}</Text>
             </Pressable>
-            {shown ? <Text className="text-muted text-sm pb-section leading-[21px]">{item.a}</Text> : null}
-          </Box>
-        );
-      })}
+          ) : (
+            <Pressable key={item.q} onPress={() => setOpen(i)} accessibilityRole="button" accessibilityState={{ expanded: false }} accessibilityLabel={item.q}
+              className="bg-surface border border-border rounded-row p-section justify-between" style={HALF}>
+              <Text className="text-accent text-base font-display" maxFontSizeMultiplier={1.3}>{two(i)}</Text>
+              <Text className="text-text text-xs font-semibold mt-row">{item.q}</Text>
+            </Pressable>
+          );
+        })}
+      </Box>
     </ScrollView>
     </>
   );

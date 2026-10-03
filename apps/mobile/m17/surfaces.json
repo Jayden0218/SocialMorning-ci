@@ -221,224 +221,224 @@
   "design": "SignIn-B",
   "entry": "apps/mobile/app/auth/sign-in.tsx",
   "wave": "W4",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "SignUp",
   "design": "SignUp-B",
   "entry": "apps/mobile/app/auth/email.tsx",
   "wave": "W4",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "EmailAuth",
   "design": "EmailAuth-B",
   "entry": "apps/mobile/app/auth/email.tsx",
   "wave": "W4",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "EmailCode",
   "design": "EmailCode-B",
   "entry": "apps/mobile/app/auth/email.tsx",
   "wave": "W4",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "Account",
   "design": "Account-B",
   "entry": "apps/mobile/app/account.tsx",
   "wave": "W4",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "Wallet",
   "design": "Wallet-B",
   "entry": "apps/mobile/app/wallet.tsx",
   "wave": "W4",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "Tips",
   "design": "Tips-B",
   "entry": "apps/mobile/app/tips.tsx",
   "wave": "W4",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "Stickers",
   "design": "Stickers-B",
   "entry": "apps/mobile/app/stickers.tsx",
   "wave": "W4",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "Creator",
   "design": "Creator-B",
   "entry": "apps/mobile/app/creator.tsx",
   "wave": "W4",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "Scan",
   "design": "Scan-B",
   "entry": "apps/mobile/app/scan.tsx",
   "wave": "W4",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "Academy",
   "design": "Academy-B",
   "entry": "apps/mobile/app/academy/index.tsx",
   "wave": "W4",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "AcademyLesson",
   "design": "AcademyLesson-B",
   "entry": "apps/mobile/app/academy/[slug].tsx",
   "wave": "W4",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "Splash",
   "design": "Splash-B",
   "entry": "apps/mobile/src/ui/LaunchScreen.tsx",
   "wave": "W4",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "NativeSplash",
   "design": "NativeSplash-B",
   "entry": "apps/mobile/app.json",
   "wave": "W4",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "SettingsAbout",
   "design": "SettingsAbout-B",
   "entry": "apps/mobile/app/settings/about.tsx",
   "wave": "W5",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "SettingsAccountMore",
   "design": "SettingsAccountMore-B",
   "entry": "apps/mobile/app/settings/account-more.tsx",
   "wave": "W5",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "SettingsAccount",
   "design": "SettingsAccount-B",
   "entry": "apps/mobile/app/settings/account.tsx",
   "wave": "W5",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "SettingsAppearance",
   "design": "SettingsAppearance-B",
   "entry": "apps/mobile/app/settings/appearance.tsx",
   "wave": "W5",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "SettingsBlocked",
   "design": "SettingsBlocked-B",
   "entry": "apps/mobile/app/settings/blocked.tsx",
   "wave": "W5",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "SettingsCollected",
   "design": "SettingsCollected-B",
   "entry": "apps/mobile/app/settings/collected.tsx",
   "wave": "W5",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "SettingsDownloads",
   "design": "SettingsDownloads-B",
   "entry": "apps/mobile/app/settings/downloads.tsx",
   "wave": "W5",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "SettingsFeedback",
   "design": "SettingsFeedback-B",
   "entry": "apps/mobile/app/settings/feedback.tsx",
   "wave": "W5",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "SettingsHelp",
   "design": "SettingsHelp-B",
   "entry": "apps/mobile/app/settings/help.tsx",
   "wave": "W5",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "SettingsHowForYou",
   "design": "SettingsHowForYou-B",
   "entry": "apps/mobile/app/settings/how-for-you.tsx",
   "wave": "W5",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "SettingsMinor",
   "design": "SettingsMinor-B",
   "entry": "apps/mobile/app/settings/minor.tsx",
   "wave": "W5",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "SettingsMore",
   "design": "SettingsMore-B",
   "entry": "apps/mobile/app/settings/more.tsx",
   "wave": "W5",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "SettingsOpml",
   "design": "SettingsOpml-B",
   "entry": "apps/mobile/app/settings/opml.tsx",
   "wave": "W5",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "SettingsPrivacy",
   "design": "SettingsPrivacy-B",
   "entry": "apps/mobile/app/settings/privacy.tsx",
   "wave": "W5",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "SettingsPush",
   "design": "SettingsPush-B",
   "entry": "apps/mobile/app/settings/push.tsx",
   "wave": "W5",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "SettingsSharing",
   "design": "SettingsSharing-B",
   "entry": "apps/mobile/app/settings/sharing.tsx",
   "wave": "W5",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "Issues",
   "design": "Issues-B",
   "entry": "apps/mobile/app/issues.tsx",
   "wave": "W5",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "Issue",
   "design": "Issue-B",
   "entry": "apps/mobile/app/issue/[id].tsx",
   "wave": "W5",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "QueueSheet",
@@ -501,7 +501,7 @@
   "design": "CollectedDetail-B",
   "entry": "apps/mobile/app/settings/collected.tsx",
   "wave": "W6",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "ConfirmDialog",
@@ -564,7 +564,7 @@
   "design": "ScanPermission-B",
   "entry": "apps/mobile/app/scan.tsx",
   "wave": "W6",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "EpisodeEnd",

@@ -8,6 +8,13 @@
  * ← and the edge swipe both popped the one route and landed on Settings. As its own route it
  * sits on the stack above "Account and security", and back returns there.
  * Guard: __tests__/account-more-route.test.ts.
+ *
+ * M17 (`SettingsAccountMore-B`, T081): the Editorial layout. Before confirming, "Delete my
+ * account…" sits in a card. Once confirming: a serif "Delete my account" heading, the warning,
+ * "This cannot be undone." in serif accent, then three numbered steps — 1 email a code (a tick
+ * and "Sent to …" once sent), 2 the 6-digit code field, 3 delete — and a bar at the foot with
+ * "Keep my account" and the step's primary action ("Email me a code to confirm", then "Delete
+ * account", enabled at 6 digits). Same handlers, same names, same order of steps as before.
  */
 import { useState } from 'react';
 import { Input, InputField } from '../../src/ui/lib/input';
@@ -21,6 +28,8 @@ import { useStores } from '../../src/ui/providers';
 import { useColours } from '../../src/ui/useColours';
 import { Icon } from '../../src/ui/Icon';
 import { PageHeader } from '../../src/ui/PageHeader';
+import { Card } from '../../src/ui/Card';
+import { SafeAreaView } from '../../src/ui/lib/safe-area-view';
 import { hit } from '../../src/design';
 
 export default function AccountMoreScreen(): React.ReactElement {
@@ -60,43 +69,87 @@ export default function AccountMoreScreen(): React.ReactElement {
     }
   }
 
-  const link = 'text-accent text-[15px] py-2';
-  const button = 'bg-primary rounded-3xl py-3 items-center';
-  const buttonText = 'text-onPrimary text-sm font-semibold';
+  const masked = listener?.email ? listener.email.replace(/^(.)(.*)(.@.*)$/, (_m, a: string, mid: string, b: string) => `${a}${'*'.repeat(Math.min(6, mid.length))}${b}`) : '';
+  const ready = code.trim().length === 6;
 
   return (
     <>
     <PageHeader title="More" />
-    <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x py-section gap-3">
+    <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pb-section gap-row">
       {!listener ? <Text className="text-muted text-sm">Sign in to manage your account.</Text> : null}
       {!confirming ? (
-        <Pressable onPress={() => setConfirming(true)} accessibilityRole="button" accessibilityLabel="Delete my account" className="flex-row items-center gap-section min-h-14">
-          <Icon name="trash-outline" size={24} color={c.accent} />
-          <Text className="text-accent text-sm flex-1">Delete my account…</Text>
-        </Pressable>
+        <Card>
+          <Pressable onPress={() => setConfirming(true)} accessibilityRole="button" accessibilityLabel="Delete my account" className="flex-row items-center gap-section" style={TAP}>
+            <Icon name="trash-outline" size={20} color={c.accent} />
+            <Text className="text-accent text-body flex-1">Delete my account…</Text>
+            <Icon name="chevron-forward" size={16} color={c.muted} />
+          </Pressable>
+        </Card>
       ) : (
-        <Box className="gap-2 mt-2">
-          <Text className="text-text">This removes your comments, reactions and listening positions from every phone. Where someone replied to you, "Comment deleted" stays so their reply still makes sense. This cannot be undone.</Text>
-          {codeSent ? (
-            <Input className="border border-separator rounded-lg h-auto px-0">
-              <InputField
-              placeholderTextColor={c.muted} placeholder="The 6-digit code we emailed you" keyboardType="number-pad" maxLength={6} value={code} onChangeText={setCode} accessibilityLabel="Code"  className="p-3 text-sm text-text" />
-            </Input>
-          ) : null}
-          {error ? <Text className="text-accent">{error}</Text> : null}
-          {codeSent ? (
-            <Pressable className={`${button} ${busy || code.trim().length !== 6 ? 'opacity-50' : ''}`} disabled={busy || code.trim().length !== 6} onPress={remove} accessibilityRole="button" accessibilityLabel="Delete account" style={{ minHeight: hit.min }}>
-              <Text className={buttonText}>Delete account</Text>
-            </Pressable>
-          ) : (
-            <Pressable className={`${button} ${busy ? 'opacity-50' : ''}`} disabled={busy} onPress={sendCode} accessibilityRole="button" accessibilityLabel="Email me a code to confirm" style={{ minHeight: hit.min }}>
-              <Text className={buttonText}>Email me a code to confirm</Text>
-            </Pressable>
-          )}
-          <Pressable onPress={() => setConfirming(false)} accessibilityRole="button" accessibilityLabel="Keep my account" className="justify-center" style={{ minHeight: hit.min }}><Text className={link}>Keep my account</Text></Pressable>
+        <Box className="gap-row">
+          <Text className="text-text text-hero font-display" accessibilityRole="header">Delete my account</Text>
+          <Text className="text-text text-body">This removes your comments, reactions and listening positions from every phone. Where someone replied to you, "Comment deleted" stays so their reply still makes sense.</Text>
+          <Text className="text-accent text-title font-display">This cannot be undone.</Text>
+          <Box className="gap-section mt-row">
+            <Step n={1} done={codeSent} active={!codeSent} title="Email me a code to confirm" line={codeSent && masked ? `Sent to ${masked}` : undefined} />
+            <Step n={2} done={codeSent && ready} active={codeSent && !ready} title="Enter the 6-digit code">
+              {codeSent ? (
+                <Box className="gap-1 mt-gap">
+                  <Text className="text-muted text-xs">Code</Text>
+                  <Input className="bg-surface border border-border rounded-row h-auto px-0">
+                    <InputField
+                    placeholderTextColor={c.muted} placeholder="The 6-digit code we emailed you" keyboardType="number-pad" maxLength={6} value={code} onChangeText={setCode} accessibilityLabel="Code"  className="p-row text-base text-text" />
+                  </Input>
+                </Box>
+              ) : null}
+            </Step>
+            <Step n={3} done={false} active={ready} title="Delete account" line={ready ? undefined : 'Available once all 6 digits are in.'} />
+          </Box>
+          {error ? <Text className="text-accent text-body">{error}</Text> : null}
         </Box>
       )}
     </ScrollView>
+    {confirming ? (
+      <SafeAreaView edges={['bottom']} className="bg-background border-t-hairline border-separator">
+        <Box className="flex-row gap-row px-screen-x py-row">
+          <Pressable onPress={() => setConfirming(false)} accessibilityRole="button" accessibilityLabel="Keep my account" className={`${pill} bg-surface border border-border`} style={TAP}><Text className="text-text text-body font-bold">Keep my account</Text></Pressable>
+          {codeSent ? (
+            <Pressable className={`${pill} bg-primary ${busy || !ready ? 'opacity-40' : ''}`} disabled={busy || code.trim().length !== 6} onPress={remove} accessibilityRole="button" accessibilityLabel="Delete account" accessibilityState={{ disabled: busy || !ready }} style={TAP}>
+              <Text className="text-onPrimary text-body font-bold">Delete account</Text>
+            </Pressable>
+          ) : (
+            <Pressable className={`${pill} bg-primary ${busy ? 'opacity-40' : ''}`} disabled={busy} onPress={sendCode} accessibilityRole="button" accessibilityLabel="Email me a code to confirm" accessibilityState={{ disabled: busy }} style={TAP}>
+              <Text className="text-onPrimary text-body font-bold text-center" numberOfLines={2}>Email me a code to confirm</Text>
+            </Pressable>
+          )}
+        </Box>
+      </SafeAreaView>
+    ) : null}
     </>
+  );
+}
+
+const pill = 'flex-1 rounded-pill items-center justify-center px-row';
+const TAP = { minHeight: hit.min };
+const DOT = { width: 32, height: 32 };
+
+/** M17: one numbered step — a yellow tick when done, a dark number when current, an outline otherwise. */
+function Step(props: { n: number; done: boolean; active: boolean; title: string; line?: string | undefined; children?: React.ReactNode }): React.ReactElement {
+  const stores = useStores();
+  const c = useColours(stores.settings);
+  const dot = props.done ? 'bg-primary' : props.active ? 'bg-text' : 'border border-border';
+  return (
+    <Box className="flex-row gap-row">
+      <Box className={`rounded-pill items-center justify-center ${dot}`} style={DOT} accessible={false}>
+        {props.done
+          ? <Icon name="checkmark" size={16} color={c.onPrimary} />
+          : <Text className={props.active ? 'text-background text-meta font-bold' : 'text-muted text-meta font-bold'}>{props.n}</Text>}
+      </Box>
+      <Box className="flex-1">
+        <Text className={props.done || props.active ? 'text-text text-sm font-bold' : 'text-muted text-sm font-bold'}>{props.title}</Text>
+        {props.line ? <Text className="text-muted text-xs mt-1">{props.line}</Text> : null}
+        {props.children}
+      </Box>
+    </Box>
   );
 }

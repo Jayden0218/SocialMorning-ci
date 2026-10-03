@@ -4,6 +4,12 @@
  * anywhere in their feed (the show description is easiest), and tap Verify; the server
  * re-reads the feed from the publisher and looks for it. Once proven, the page shows the
  * show's numbers and their comments carry a Host mark.
+ *
+ * M17 T075 (`Creator-B`): the Editorial page — a small centred title in the bar; each claimed
+ * show as a white card (large artwork, serif name, the steps, the code as a big serif, Share code
+ * and Verify pills); the explanation; "Claim a show" as a serif heading over a row of show cards
+ * that scrolls sideways (artwork, name, "Claim" in the accent); the feed address in a pill field;
+ * Get my code; and the Creator academy link as a card at the end. Same actions, same handlers.
  */
 import { Icon } from '../src/ui/Icon';
 import { Link } from '../src/design/tailwind';
@@ -20,6 +26,8 @@ import { hit } from '../src/design';
 import type { CreatorClaim, ShowStats } from '../src/social/api';
 import { useSocial } from '../src/social/context';
 import { Button } from '../src/ui/Button';
+import { Card } from '../src/ui/Card';
+import { Eyebrow } from '../src/ui/Eyebrow';
 import { mmss } from '../src/ui/format';
 import { EmptyPicture } from '../src/ui/me/parts';
 import { useStores } from '../src/ui/providers';
@@ -29,6 +37,14 @@ import { PageHeader } from '../src/ui/PageHeader';
 import { useSharePanel } from '../src/ui/ShareChooser';
 
 const TAP = { minHeight: hit.min };
+/** A show card in the sideways "Claim a show" row. */
+const SHOW_ART = 132;
+const SHOW_CARD = { width: SHOW_ART, minHeight: hit.min };
+
+/** `Creator-B`: the page's name small and centred in the bar, not the big serif title. */
+function Title(): React.ReactElement {
+  return <Text className="flex-1 text-center text-text text-sm font-bold" accessibilityRole="header">Creator centre</Text>;
+}
 
 export default function CreatorScreen(): React.ReactElement {
   const stores = useStores();
@@ -56,7 +72,7 @@ export default function CreatorScreen(): React.ReactElement {
   }, [api, listener]);
   useFocusEffect(load);
 
-  if (!listener) return <><PageHeader title="Creator centre" /><Box className="flex-1 bg-background"><EmptyPicture icon="mic-outline" line="Sign in to claim your show" /></Box></>;
+  if (!listener) return <><PageHeader middle={<Title />} /><Box className="flex-1 bg-background"><EmptyPicture icon="mic-outline" line="Sign in to claim your show" /></Box></>;
 
   const claim = async (url: string) => {
     setBusy(true); setNote(undefined);
@@ -83,58 +99,70 @@ export default function CreatorScreen(): React.ReactElement {
 
   return (
     <>
-    <PageHeader title="Creator centre" />
-    <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pt-section pb-24 gap-section" keyboardShouldPersistTaps="handled">
-      {/* M12 FR-103 */}
-      <Link href="/academy" asChild>
-        <Pressable accessibilityRole="link" accessibilityLabel="Creator academy: how claiming, numbers, comments, clips and the Studio work" className="bg-surface rounded-artwork p-section flex-row items-center gap-row">
-          <Icon name="school-outline" size={24} color={c.accent} />
-          <Box className="flex-1">
-            <Text className="text-text text-sm font-semibold">Creator academy</Text>
-            <Text className="text-muted text-xs">Claiming, numbers, comments, clips, the Studio</Text>
-          </Box>
-          <Icon name="chevron-forward" size={18} color={c.muted} />
-        </Pressable>
-      </Link>
-      <Text className="text-muted text-sm">Claim the show you publish. We never host your audio — you keep your own feed. Once you prove it is yours, you see your show's numbers and your comments carry a Host mark.</Text>
-
+    <PageHeader middle={<Title />} />
+    <ScrollView className="flex-1 bg-background" contentContainerClassName="pt-row pb-24 gap-section" keyboardShouldPersistTaps="handled">
       {(claims ?? []).map((cl) => (
-        <Box key={cl.id} className="bg-surface rounded-artwork p-section gap-row">
+        <Card key={cl.id} className="mx-screen-x py-section gap-row">
           {/* M12 FR-098: the claimed show as a card — its artwork beside its name. */}
-          <Box className="flex-row items-center gap-row">
-            <Artwork url={stores.feeds.getShow(cl.feedUrl)?.imageUrl} size={56} rounded="row" name={stores.feeds.getShow(cl.feedUrl)?.title} />
-            <Text className="text-text text-sm font-semibold flex-1" numberOfLines={2}>{stores.feeds.getShow(cl.feedUrl)?.title ?? cl.feedUrl}</Text>
+          <Box className="flex-row items-end gap-row">
+            <Artwork url={stores.feeds.getShow(cl.feedUrl)?.imageUrl} size={96} name={stores.feeds.getShow(cl.feedUrl)?.title} />
+            <Text className="text-text text-lg font-display flex-1" numberOfLines={3}>{stores.feeds.getShow(cl.feedUrl)?.title ?? cl.feedUrl}</Text>
           </Box>
           {cl.status === 'proven' ? (
             <ProvenStats stats={stats[cl.feedUrl]} />
           ) : (
             <>
-              <Text className="text-muted text-sm">1. Copy this code. 2. Put it anywhere in your show description, in your hosting service. 3. Tap Verify.</Text>
-              <Text selectable className="text-text text-base font-bold" accessibilityLabel={`Your code: ${cl.code}`}>{cl.code}</Text>
+              <Text className="text-muted text-meta">1. Copy this code. 2. Put it anywhere in your show description, in your hosting service. 3. Tap Verify.</Text>
+              <Text selectable className="text-text text-display font-display" accessibilityLabel={`Your code: ${cl.code}`}>{cl.code}</Text>
               <Box className="flex-row gap-row">
                 <Button kind="secondary" label="Share code" onPress={() => share({ heading: 'Share your code', more: { detail: 'other apps', run: () => void Share.share({ message: cl.code }) } })} className="flex-1" />
                 <Button label="Verify" onPress={() => void verify(cl)} disabled={busy} className="flex-1" />
               </Box>
             </>
           )}
-        </Box>
+        </Card>
       ))}
 
-      {note ? <Text className="text-accent text-sm" accessibilityLiveRegion="polite">{note}</Text> : null}
+      {note ? <Text className="px-screen-x text-accent text-body" accessibilityLiveRegion="polite">{note}</Text> : null}
+
+      <Text className="px-screen-x text-muted text-body">Claim the show you publish. We never host your audio — you keep your own feed. Once you prove it is yours, you see your show's numbers and your comments carry a Host mark.</Text>
 
       <Box className="gap-row">
-        <Text className="text-text text-sm font-semibold">Claim a show</Text>
-        {subscribed.map((s) => (
-          <Pressable key={s.feedUrl} onPress={() => void claim(s.feedUrl)} disabled={busy} accessibilityRole="button" accessibilityLabel={`Claim ${s.title}`} className="justify-center border-b-hairline border-separator" style={TAP}>
-            <Text className="text-text text-sm" numberOfLines={1}>{s.title}</Text>
-          </Pressable>
-        ))}
-        <Input className="bg-surface rounded-artwork border-0 h-auto px-0">
-          <InputField value={feedUrl} onChangeText={setFeedUrl} placeholder="Or paste your feed address (RSS)" placeholderTextColor={c.muted}
-          autoCapitalize="none" autoCorrect={false} keyboardType="url" inputMode="url" style={TAP} accessibilityLabel="Your feed address"  className="px-section text-text text-sm" />
-        </Input>
-        <Button label="Get my code" onPress={() => void claim(feedUrl)} disabled={busy || !/^https?:\/\/\S+$/.test(feedUrl.trim())} />
+        <Text className="px-screen-x text-text text-base font-display" accessibilityRole="header">Claim a show</Text>
+        {subscribed.length > 0 ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="px-screen-x gap-row">
+            {subscribed.map((s) => (
+              <Pressable key={s.feedUrl} onPress={() => void claim(s.feedUrl)} disabled={busy} accessibilityRole="button" accessibilityLabel={`Claim ${s.title}`} className="gap-1" style={SHOW_CARD}>
+                <Artwork url={s.imageUrl} size={SHOW_ART} name={s.title} />
+                <Text className="text-text text-meta font-bold mt-1" numberOfLines={2}>{s.title}</Text>
+                <Text className="text-accent text-xs font-bold">Claim</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        ) : null}
+        <Box className="px-screen-x gap-row">
+          <Input className="bg-surface border border-border rounded-pill h-auto px-0">
+            <InputField value={feedUrl} onChangeText={setFeedUrl} placeholder="Or paste your feed address (RSS)" placeholderTextColor={c.muted}
+            autoCapitalize="none" autoCorrect={false} keyboardType="url" inputMode="url" style={TAP} accessibilityLabel="Your feed address"  className="px-section text-text text-body" />
+          </Input>
+          <Button label="Get my code" onPress={() => void claim(feedUrl)} disabled={busy || !/^https?:\/\/\S+$/.test(feedUrl.trim())} />
+        </Box>
       </Box>
+
+      {/* M12 FR-103: the Creator academy link — at the end of the page in `Creator-B`, as a card
+          like the claimed shows above. */}
+      <Link href="/academy" asChild>
+        <Pressable accessibilityRole="link" accessibilityLabel="Creator academy: how claiming, numbers, comments, clips and the Studio work" className="mx-screen-x bg-surface border border-border rounded-row p-section flex-row items-center gap-row" style={TAP}>
+          <Box className="w-10 h-10 rounded-row bg-accentTint items-center justify-center">
+            <Icon name="school-outline" size={22} color={c.accent} />
+          </Box>
+          <Box className="flex-1">
+            <Text className="text-text text-title font-display">Creator academy</Text>
+            <Text className="text-muted text-meta">Claiming, numbers, comments, clips, the Studio</Text>
+          </Box>
+          <Icon name="chevron-forward" size={18} color={c.muted} />
+        </Pressable>
+      </Link>
     </ScrollView>
     {sharePanel}
     </>
@@ -143,14 +171,14 @@ export default function CreatorScreen(): React.ReactElement {
 
 function ProvenStats(props: { stats: ShowStats | undefined }): React.ReactElement {
   const s = props.stats;
-  if (!s) return <Text className="text-muted text-sm">Proven — loading your numbers…</Text>;
+  if (!s) return <Text className="text-muted text-body">Proven — loading your numbers…</Text>;
   return (
     <Box className="gap-1">
-      <Text className="text-accent text-xs font-bold">Proven — you are the host</Text>
-      <Text className="text-text text-sm">{`${s.listeners} listened · ${plural(s.comments, 'comment')} · ${plural(s.episodes, 'episode')}`}</Text>
-      {s.topMoments.length > 0 ? <Text className="text-muted text-xs mt-1">Where people talk most</Text> : null}
+      <Eyebrow accent>Proven — you are the host</Eyebrow>
+      <Text className="text-text text-body font-semibold">{`${s.listeners} listened · ${plural(s.comments, 'comment')} · ${plural(s.episodes, 'episode')}`}</Text>
+      {s.topMoments.length > 0 ? <Text className="text-muted text-meta mt-1">Where people talk most</Text> : null}
       {s.topMoments.map((m) => (
-        <Text key={m.episodeId + m.offsetMs} className="text-text text-sm" numberOfLines={1}>{`${mmss(m.offsetMs)} · ${m.title} · ${m.comments}`}</Text>
+        <Text key={m.episodeId + m.offsetMs} className="text-text text-body" numberOfLines={1}>{`${mmss(m.offsetMs)} · ${m.title} · ${m.comments}`}</Text>
       ))}
     </Box>
   );

@@ -2,6 +2,13 @@
  * Send feedback (M10; images and direct delivery M10b US6): choose a kind, write it, add up to
  * 3 images, send. It goes straight to the owner's /mod page; if the server cannot be reached,
  * the email app is offered instead (without the images). "My feedback" lists what you sent.
+ *
+ * M17 T087 (`SettingsFeedback-B`): the two tabs became one link on the right of the back row
+ * ("My feedback" with a count, or "Write feedback" back); the title names the open side under a
+ * "Help and feedback" line. The kinds are a scrolling row of pills (radios, the chosen one dark);
+ * the text box is a white card that writes in the serif; "n of 3 images" under it; and a white
+ * bar at the bottom holds the image tiles (tap to remove, the × marks it), the dashed add tile
+ * and the yellow Send. "My feedback" is a list of white cards. Same handlers throughout.
  */
 import { ScrollView } from '../../src/ui/lib/scroll-view';
 import { Image } from '../../src/ui/lib/image';
@@ -13,7 +20,7 @@ import { FlatList } from '../../src/ui/lib/flat-list';
 import { Pressable } from '../../src/ui/lib/pressable';
 import { Text } from '../../src/ui/lib/text';
 import { Box } from '../../src/ui/lib/box';
-import { colour, hit } from '../../src/design';
+import { hit } from '../../src/design';
 import { pickImages, type PickedImage } from '../../src/feedback/images';
 import { useColours } from '../../src/ui/useColours';
 import { FEEDBACK_KINDS, type FeedbackKind } from '../../src/settings/faq';
@@ -23,10 +30,14 @@ import { useSocial } from '../../src/social/context';
 import { Button } from '../../src/ui/Button';
 import { shortDate } from '../../src/ui/format';
 import { EmptyPicture } from '../../src/ui/me/parts';
+import { Icon } from '../../src/ui/Icon';
+import { Card } from '../../src/ui/Card';
+import { SafeAreaView } from '../../src/ui/lib/safe-area-view';
 import { useStores, useToast } from '../../src/ui/providers';
 import { PageHeader } from '../../src/ui/PageHeader';
 
 const TAP = { minHeight: hit.min };
+const TILE = { width: hit.min, height: hit.min };
 
 export default function FeedbackScreen(): React.ReactElement {
   const { api } = useSocial();
@@ -72,56 +83,76 @@ export default function FeedbackScreen(): React.ReactElement {
       .finally(() => setBusy(false));
   };
 
+  const other = tab === 'write' ? 'mine' : 'write';
   return (
     <>
-    <PageHeader title="Help and feedback" />
+    <PageHeader
+      title={tab === 'write' ? 'Write feedback' : 'My feedback'}
+      subtitle="Help and feedback"
+      right={(
+        <Box className="flex-row">
+          {([other] as const).map((t) => (
+            <Pressable key={t} onPress={() => setTab(t)} accessibilityRole="button" {...(t === 'mine' ? { accessibilityHint: `${sent.length} sent` } : {})} accessibilityLabel={t === 'write' ? 'Write feedback' : 'My feedback'} className="flex-row items-center gap-1.5 px-row" style={TAP}>
+              <Text className="text-accent text-meta font-bold">{t === 'write' ? 'Write feedback' : 'My feedback'}</Text>
+              {t === 'mine' && sent.length > 0 ? (
+                <Box className="min-w-5 h-5 px-1 rounded-pill bg-accentTint items-center justify-center">
+                  <Text className="text-accent text-micro font-bold">{sent.length}</Text>
+                </Box>
+              ) : null}
+            </Pressable>
+          ))}
+        </Box>
+      )}
+    />
     <Box className="flex-1 bg-background">
-      <Box className="flex-row border-b-hairline border-separator">
-        {(['write', 'mine'] as const).map((t) => (
-          <Pressable key={t} onPress={() => setTab(t)} accessibilityRole="tab" accessibilityState={{ selected: tab === t }} accessibilityLabel={t === 'write' ? 'Write feedback' : 'My feedback'} className="flex-1 items-center justify-center" style={TAP}>
-            <Text className={tab === t ? 'text-accent text-sm font-bold' : 'text-muted text-sm'}>{t === 'write' ? 'Write feedback' : 'My feedback'}</Text>
-          </Pressable>
-        ))}
-      </Box>
       {tab === 'write' ? (
-        <Box className="flex-1 px-screen-x pt-section gap-section">
-          <Box className="flex-row flex-wrap gap-x-section">
+        <>
+        <ScrollView className="flex-1" contentContainerClassName="px-screen-x pt-row pb-section gap-row" keyboardShouldPersistTaps="handled">
+          <Text className="text-muted text-xs">It is about</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-gap" accessibilityRole="radiogroup" accessibilityLabel="Kind of feedback">
             {FEEDBACK_KINDS.map((k) => (
-              <Pressable key={k} onPress={() => setKind(k)} accessibilityRole="radio" accessibilityState={{ checked: kind === k }} accessibilityLabel={k} className="flex-row items-center gap-2" style={TAP}>
-                <Box className={`w-5 h-5 rounded-pill border-2 ${kind === k ? 'border-accent bg-accent' : 'border-separator'}`} />
-                <Text className={kind === k ? 'text-text text-sm' : 'text-muted text-sm'}>{k}</Text>
+              <Pressable key={k} onPress={() => setKind(k)} accessibilityRole="radio" accessibilityState={{ checked: kind === k }} accessibilityLabel={k} className={`px-section rounded-pill items-center justify-center ${kind === k ? 'bg-text' : 'bg-surface border border-border'}`} style={TAP}>
+                <Text className={kind === k ? 'text-background text-meta font-semibold' : 'text-text text-meta font-semibold'}>{k}</Text>
               </Pressable>
             ))}
-          </Box>
-          <Textarea className="bg-surface rounded-artwork min-h-40 border-0 h-auto">
-            <TextareaInput value={body} onChangeText={setBody} maxLength={FEEDBACK_MAX} multiline placeholder="Write here…" placeholderTextColor={c.muted} textAlignVertical="top" accessibilityLabel="Your feedback" className="p-section text-text text-sm" />
+          </ScrollView>
+          <Text className="text-muted text-xs">Your feedback</Text>
+          <Textarea className="bg-surface border border-border rounded-row min-h-60 h-auto">
+            <TextareaInput value={body} onChangeText={setBody} maxLength={FEEDBACK_MAX} multiline placeholder="Write here…" placeholderTextColor={c.muted} textAlignVertical="top" accessibilityLabel="Your feedback" className="p-section text-text text-title font-display-semibold" />
           </Textarea>
-          <ScrollView horizontal contentContainerClassName="gap-row" showsHorizontalScrollIndicator={false}>
+          <Text className="text-muted text-micro text-right">{`${images.length} of 3 images`}</Text>
+        </ScrollView>
+        <SafeAreaView edges={['bottom']} className="bg-surface border-t border-border">
+          <Box className="flex-row items-center gap-row px-screen-x py-row">
             {images.map((img, i) => (
-              <Pressable key={img.uri + i} onPress={() => setImages((cur) => cur.filter((_, j) => j !== i))} accessibilityRole="button" accessibilityLabel={`Remove image ${i + 1}`}>
-                <Image source={{ uri: img.uri }} className="w-20 h-20 rounded-row bg-surface" />
+              <Pressable key={img.uri + i} onPress={() => setImages((cur) => cur.filter((_, j) => j !== i))} accessibilityRole="button" accessibilityLabel={`Remove image ${i + 1}`} style={TILE}>
+                <Image source={{ uri: img.uri }} className="w-12 h-12 rounded-row bg-background" />
+                <Box className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-pill bg-text items-center justify-center" accessible={false}>
+                  <Icon name="close" size={12} color={c.background} />
+                </Box>
               </Pressable>
             ))}
             {images.length < 3 ? (
-              <Pressable onPress={addImages} accessibilityRole="button" accessibilityLabel="Add an image" className="w-20 h-20 rounded-row border border-separator items-center justify-center">
-                <Text className="text-muted text-lg">＋</Text>
+              <Pressable onPress={addImages} accessibilityRole="button" accessibilityLabel="Add an image" className="rounded-row border border-dashed border-track items-center justify-center" style={TILE}>
+                <Icon name="image-outline" size={22} color={c.text} />
               </Pressable>
             ) : null}
-          </ScrollView>
-          <Box className="flex-1" />
-          <Button label={busy ? 'Sending…' : 'Send'} onPress={send} disabled={!ready} className="mb-section" />
-        </Box>
+            <Box className="flex-1" />
+            <Button label={busy ? 'Sending…' : 'Send'} onPress={send} disabled={!ready} className="px-9" />
+          </Box>
+        </SafeAreaView>
+        </>
       ) : (
         <FlatList
           data={sent}
           keyExtractor={(f) => String(f.at)}
-          contentContainerClassName="px-screen-x py-row flex-grow"
+          contentContainerClassName="px-screen-x py-row pb-24 flex-grow gap-row"
           ListEmptyComponent={<EmptyPicture icon="document-text-outline" line="Nothing sent yet" />}
           renderItem={({ item }) => (
-            <Box className="py-row border-b-hairline border-separator">
+            <Card className="py-section">
               <Text className="text-muted text-xs">{item.kind} · {shortDate(item.at)}</Text>
-              <Text className="text-text text-sm" numberOfLines={4}>{item.body}</Text>
-            </Box>
+              <Text className="text-text text-body mt-1" numberOfLines={4}>{item.body}</Text>
+            </Card>
           )}
         />
       )}

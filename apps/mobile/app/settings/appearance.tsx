@@ -2,21 +2,26 @@
  * Appearance (M12 FR-108): the accent colour. Until M17 this page also held System / Light /
  * Dark; M17 (constitution v3.0.0, owner 2026-10-03: "remove it") made the app light only, so
  * only the accent picker is left. The choice is stored ('pref.accent') and applied at once.
+ *
+ * M17 (`SettingsAppearance-B`, T083): the Editorial accent row — a serif "Accent colour" heading
+ * and a sideways row of pills (swatch + name; the chosen one outlined in `text` with a tick).
+ * B's theme preview and Light / Dark / Phone cards are not built: dark mode was removed.
  */
 import { useState } from 'react';
 import { Pressable } from '../../src/ui/lib/pressable';
 import { ScrollView } from '../../src/ui/lib/scroll-view';
 import { Text } from '../../src/ui/lib/text';
 import { Box } from '../../src/ui/lib/box';
-import { size } from '../../src/design';
+import { hit } from '../../src/design';
 import { useStores } from '../../src/ui/providers';
 import { ACCENT_KEY, applyAccent, readAccent } from '../../src/design/accent';
 import { ACCENTS, type AccentName } from '../../src/design';
 import { Icon } from '../../src/ui/Icon';
 import { PageHeader } from '../../src/ui/PageHeader';
 
-/** M12 FR-050: one row height for every list (was hit.min + 8 = 56). */
-const TAP = { minHeight: size.row };
+const SWATCH = { width: 36, height: 36 };
+const TAP = { minHeight: hit.min };
+
 export default function AppearanceScreen(): React.ReactElement {
   const stores = useStores();
   // M12 FR-108: the accent theme, applied at once and kept across restarts.
@@ -25,23 +30,23 @@ export default function AppearanceScreen(): React.ReactElement {
   return (
     <>
     <PageHeader title="Appearance" />
-    <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x py-row">
-      <Text className="text-muted text-xs mb-row" accessibilityRole="header">Accent colour</Text>
-      <Box className="flex-row flex-wrap gap-section">
+    <Box className="flex-1 bg-background pt-row">
+      <Text className="text-text text-base font-display px-screen-x mb-row" accessibilityRole="header">Accent colour</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="grow-0" contentContainerClassName="px-screen-x gap-gap">
         {(Object.keys(ACCENTS) as AccentName[]).map((name) => {
           const t = ACCENTS[name];
           const on = accent === name;
           return (
-            <Pressable key={name} onPress={() => pick(name)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`Accent: ${t.label}`} className="items-center gap-1 w-16" style={TAP}>
-              <Box className={`w-12 h-12 rounded-pill items-center justify-center ${on ? 'border-2 border-text' : ''}`} style={{ backgroundColor: t.light.primary }}>
-                {on ? <Icon name="checkmark" size={22} color={t.light.onPrimary} /> : null}
+            <Pressable key={name} onPress={() => pick(name)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`Accent: ${t.label}`} className={`flex-row items-center gap-gap rounded-pill bg-surface pl-1.5 pr-section ${on ? 'border-2 border-text' : 'border border-border'}`} style={TAP}>
+              <Box className="rounded-pill items-center justify-center" style={[SWATCH, { backgroundColor: t.light.primary }]}>
+                {on ? <Icon name="checkmark" size={18} color={t.light.onPrimary} /> : null}
               </Box>
-              <Text className={on ? 'text-text text-xs font-semibold' : 'text-muted text-xs'}>{t.label}</Text>
+              <Text className={on ? 'text-text text-body font-bold' : 'text-text text-body'}>{t.label}</Text>
             </Pressable>
           );
         })}
-      </Box>
-    </ScrollView>
+      </ScrollView>
+    </Box>
     </>
   );
 }

@@ -4,12 +4,14 @@
  * on reaching the second copy's first cover it snaps, unanimated, to the identical first.
  * A finger can drag it; the timer starts again from where it lets go. Reduce Motion keeps it
  * still. The covers are whatever `landingArt` found.
+ * M17 (`SignIn-B`): 22 pt corners and a soft shadow under each cover (room left under the row
+ * so the shadow is not cut off).
  */
 import { useEffect, useRef, type ComponentRef } from 'react';
 import { AccessibilityInfo, ScrollView, useWindowDimensions } from 'react-native';
 import { Image } from '../lib/image';
 import { Box } from '../lib/box';
-import { spacing } from '../../design';
+import { colour, spacing } from '../../design';
 
 /** The longest the page waits for covers before it shows without the slow ones. */
 export const ART_WAIT_MS = 1500;
@@ -17,6 +19,8 @@ export const ART_WAIT_MS = 1500;
 export const ART_STEP_MS = 1000;
 /** How long the animated step takes before the loop may snap back. */
 const SETTLE_MS = 400;
+/** `SignIn-B`: 0 12 28 at 10 % of the text colour. */
+const SHADOW = { shadowColor: colour.text, shadowOpacity: 0.1, shadowRadius: 14, shadowOffset: { width: 0, height: 12 }, elevation: 6 };
 
 /**
  * One tick of the loop from cover `at` of `n`: where to scroll, and whether to snap back to
@@ -80,7 +84,7 @@ export function ArtWall(props: { urls: string[]; onReady?: () => void }): React.
       showsHorizontalScrollIndicator={false}
       snapToInterval={step}
       decelerationRate="fast"
-      contentContainerStyle={{ paddingHorizontal: spacing.screenX, gap: spacing.section }}
+      contentContainerStyle={{ paddingHorizontal: spacing.screenX, paddingBottom: 28, gap: spacing.section }}
       onScrollBeginDrag={() => { dragging.current = true; }}
       onMomentumScrollEnd={(e) => {
         dragging.current = false;
@@ -92,8 +96,10 @@ export function ArtWall(props: { urls: string[]; onReady?: () => void }): React.
       importantForAccessibility="no-hide-descendants"
     >
       {row.map((uri, i) => (
-        <Box key={`${i}-${uri}`} className="rounded-3xl bg-surface overflow-hidden" style={{ width: card, height: card }}>
-          <Image source={{ uri }} onLoadEnd={i < n ? one : undefined} style={{ width: card, height: card }} />
+        <Box key={`${i}-${uri}`} className="rounded-artwork-lg bg-surface" style={[SHADOW, { width: card, height: card }]}>
+          <Box className="rounded-artwork-lg overflow-hidden">
+            <Image source={{ uri }} onLoadEnd={i < n ? one : undefined} style={{ width: card, height: card }} />
+          </Box>
         </Box>
       ))}
     </ScrollView>

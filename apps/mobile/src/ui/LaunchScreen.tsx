@@ -11,6 +11,12 @@
  *
  * The 3 s start when `started` turns true (the splash has hidden), not at mount: until then
  * the native launch screen covers it.
+ *
+ * M17 T109 (`Splash-B`): the Editorial frame — the app's mark and serif name top left, Skip as
+ * a white pill ringed in the accent top right (the count stays in the one "Skip 3" text the
+ * launch test reads, not in a separate ring as the design draws it), the owner's image in a
+ * rounded card, and the label as an accent link with an arrow at the bottom. The mark is hidden from screen readers so
+ * Skip stays the first thing reached (FR-018); timing, impression and tap are unchanged.
  */
 import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated } from 'react-native';
@@ -25,6 +31,9 @@ import { LAUNCH_MAX_MS, type Promotion } from '../launch/choose';
 const ALL_EDGES = ['top', 'bottom', 'left', 'right'] as const;
 const TAP = { minHeight: hit.min, minWidth: hit.min };
 const FILL = { width: '100%', height: '100%' } as const;
+/** The app's own mark, as the native splash and the sign-in page show it. */
+const MARK = require('../../assets/app-icon.png');
+const MARK_SIZE = { width: 34, height: 34 };
 /** The fade at the end, inside the 3 s. */
 export const LAUNCH_FADE_MS = 200;
 
@@ -75,47 +84,53 @@ export function LaunchScreen(props: {
 
   return (
     <Animated.View style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, opacity }}>
-      <Box className="flex-1 bg-background">
-        {/* The image is the tap target for sight; a screen reader skips it (it would be read
-            first — VoiceOver orders by position) and reaches the same link at the bottom. */}
-        <Pressable
-          onPress={open}
-          accessibilityLabel={`${props.promotion.label} image`}
-          accessible={false}
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-          className="absolute inset-0"
-        >
-          <Image source={{ uri: props.uri }} style={FILL} resizeMode="cover" accessibilityIgnoresInvertColors />
-        </Pressable>
-        <SafeAreaView edges={ALL_EDGES} className="absolute inset-0" pointerEvents="box-none">
-          {/* Skip first: the first thing a screen reader reaches (FR-018). */}
-          <Box className="flex-row justify-end px-screen-x pt-row" pointerEvents="box-none">
-            <Pressable
-              onPress={finish}
-              accessibilityRole="button"
-              accessibilityLabel="Skip"
-              accessibilityHint={`Closes in ${left} seconds`}
-              className="items-center justify-center rounded-pill bg-background px-section"
-              style={TAP}
-            >
-              <Text className="text-sm font-semibold text-text">{`Skip ${left}`}</Text>
-            </Pressable>
+      <SafeAreaView edges={ALL_EDGES} className="flex-1 bg-background">
+        {/* Skip first: the first thing a screen reader reaches (FR-018). The mark beside it is
+            decoration and hidden, so nothing is read before Skip. */}
+        <Box className="flex-row items-center justify-between px-screen-x pt-row pb-row">
+          <Box className="flex-row items-center gap-2" accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+            <Image source={MARK} style={MARK_SIZE} className="rounded-row" accessibilityIgnoresInvertColors />
+            <Text className="text-text text-base font-display">SocialNet</Text>
           </Box>
-          <Box className="flex-1" pointerEvents="none" />
-          <Box className="flex-row px-screen-x pb-row" pointerEvents="box-none">
-            <Pressable
-              onPress={open}
-              accessibilityRole="link"
-              accessibilityLabel={`${props.promotion.label}. Opens the promotion`}
-              className="items-center justify-center rounded-pill bg-background px-row"
-              style={TAP}
-            >
-              <Text className="text-xs text-muted">{props.promotion.label}</Text>
-            </Pressable>
-          </Box>
-        </SafeAreaView>
-      </Box>
+          <Pressable
+            onPress={finish}
+            accessibilityRole="button"
+            accessibilityLabel="Skip"
+            accessibilityHint={`Closes in ${left} seconds`}
+            className="items-center justify-center rounded-pill bg-surface border-2 border-accent px-section"
+            style={TAP}
+          >
+            {/* One Text, "Skip 3": launch-startup.test reads it whole (see the M17 note). */}
+            <Text className="text-body font-semibold text-text">{`Skip ${left}`}</Text>
+          </Pressable>
+        </Box>
+        {/* The image is the tap target for sight; a screen reader skips it and reaches the same
+            link at the bottom. */}
+        <Box className="flex-1 px-screen-x">
+          <Pressable
+            onPress={open}
+            accessibilityLabel={`${props.promotion.label} image`}
+            accessible={false}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            className="flex-1 rounded-artwork-lg overflow-hidden bg-surface border border-border"
+          >
+            <Image source={{ uri: props.uri }} style={FILL} resizeMode="cover" accessibilityIgnoresInvertColors />
+          </Pressable>
+        </Box>
+        <Box className="flex-row px-screen-x pt-row pb-row">
+          <Pressable
+            onPress={open}
+            accessibilityRole="link"
+            accessibilityLabel={`${props.promotion.label}. Opens the promotion`}
+            className="flex-row items-center gap-2"
+            style={TAP}
+          >
+            <Text className="text-body font-bold text-accent">{props.promotion.label}</Text>
+            <Text className="text-body font-bold text-accent">→</Text>
+          </Pressable>
+        </Box>
+      </SafeAreaView>
     </Animated.View>
   );
 }

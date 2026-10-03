@@ -6,6 +6,11 @@
  *
  * Signing in is required (owner, 2026-09-27): no close button, no swipe back (the stack
  * option), and Android's back does nothing here.
+ *
+ * M17 T070 (`SignIn-B`): the name in 56 pt Fraunces with tight spacing, covers at 22 pt corners
+ * with a soft shadow, a 60 pt yellow "Continue with email" and Google / Facebook as white 56 pt
+ * pills with the card border. The icon (72) and the gap above the covers (64) keep the owner's
+ * own sizes from 2026-10-03 rather than B's 44 / 56. Ways in, consent and the guards unchanged.
  */
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
@@ -79,7 +84,7 @@ export default function SignInScreen(): React.ReactElement {
           Facebook side by side. */}
       <Box className="px-screen-x pt-section">
         <Image source={require('../../assets/app-icon.png')} style={LOGO} className="rounded-2xl" accessibilityIgnoresInvertColors />
-        <Text style={display(44, c.text)} className="text-text mt-section" accessibilityRole="header">SocialNet</Text>
+        <Text style={display(56, c.text, { tracking: -1.5, leading: 58 })} className="text-text mt-section" accessibilityRole="header">SocialNet</Text>
       </Box>
       {/* Owner, 2026-10-03: room above the covers. */}
       <Box style={ROW_TOP}>
@@ -90,7 +95,7 @@ export default function SignInScreen(): React.ReactElement {
         <AuthButton mark={{ icon: 'mail-outline' }} label="Continue with email" text="Continue with email" className="rounded-pill" tall bold disabled={false} onPress={() => choose('email')} />
         <Box className="flex-row gap-row mt-row">
           {OTHER_METHODS.map((m) => (
-            <AuthButton key={m.id} outline mark={m.mark} label={m.label} text={m.short} className="flex-1 rounded-pill bg-background" tall disabled={false} onPress={() => choose(m.id)} />
+            <AuthButton key={m.id} outline mark={m.mark} label={m.label} text={m.short} className="flex-1 rounded-pill" disabled={false} onPress={() => choose(m.id)} />
           ))}
         </Box>
         {/* Owner, 2026-09-27: the consent box sits under the ways in. */}

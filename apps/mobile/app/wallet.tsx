@@ -2,6 +2,12 @@
  * Wallet (M12 FR-106): your App Store / Google Play purchases, read only. SocialNet holds no
  * balance and takes no money itself; managing or cancelling a subscription happens in the
  * store, which the button opens. Until the store setup (M10b) is done the list is empty.
+ *
+ * M17 (`Wallet-B`, constitution v3.0.0): an empty wallet is a white hero card — a pale yellow
+ * disc in the corner with the wallet icon, "No purchases" in the serif and, while the store is
+ * not set up, "Purchases are not available yet." as a tinted pill; the store sentence sits under
+ * it, and "Manage subscriptions in the store" moved to a bar at the foot of the page. Real
+ * purchases (none today) are white cards. Loading, the error line and the data are unchanged.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { Linking, Platform } from 'react-native';
@@ -11,21 +17,32 @@ import { Box } from '../src/ui/lib/box';
 import { size } from '../src/design';
 import { Loader } from '../src/ui/Loader';
 import { Button } from '../src/ui/Button';
-import { EmptyPicture } from '../src/ui/me/parts';
+import { Icon } from '../src/ui/Icon';
+import { useStores } from '../src/ui/providers';
+import { useColours } from '../src/ui/useColours';
 import { shortDate } from '../src/ui/format';
 import { MANAGE_SUBSCRIPTIONS, moneyLabel } from '../src/me/money';
 import { useM12Api, type Purchase } from '../src/social/m12-api';
 import { PageHeader } from '../src/ui/PageHeader';
 
 const ROW = { minHeight: size.row };
+/** The empty card is 260 pt tall in `Wallet-B`; the words sit at its foot. */
+const HERO = { minHeight: 260 };
 type State = { kind: 'loading' } | { kind: 'error' } | { kind: 'ok'; items: Purchase[]; storeReady: boolean };
 
 export default function WalletScreen(): React.ReactElement {
   const m12 = useM12Api();
+  const stores = useStores();
+  const c = useColours(stores.settings);
   const [state, setState] = useState<State>({ kind: 'loading' });
   const load = useCallback(() => { m12.purchases().then((r) => setState({ kind: 'ok', items: r.items, storeReady: r.storeReady }), () => setState({ kind: 'error' })); }, [m12]);
   useEffect(() => { load(); }, [load]);
   const manage = () => { void Linking.openURL(Platform.OS === 'ios' ? MANAGE_SUBSCRIPTIONS.ios : MANAGE_SUBSCRIPTIONS.android).catch(() => undefined); };
+  const notReady = state.kind === 'ok' && !state.storeReady;
+  const pill = notReady ? (
+    <Box className="self-start bg-accentTint rounded-pill px-row py-1.5"><Text className="text-accent text-xs font-bold">Purchases are not available yet.</Text></Box>
+  ) : null;
+  const empty = state.kind === 'ok' && state.items.length === 0;
   return (
     <>
     <PageHeader title="Wallet" />
@@ -33,25 +50,34 @@ export default function WalletScreen(): React.ReactElement {
       className="flex-1 bg-background"
       data={state.kind === 'ok' ? state.items : []}
       keyExtractor={(p) => p.id}
-      contentContainerClassName="px-screen-x py-row pb-24 flex-grow"
+      contentContainerClassName="px-screen-x pt-gap pb-24 flex-grow"
       ListHeaderComponent={
-        <Box className="gap-row mb-section">
-          <Text className="text-muted text-sm">Purchases are made through {Platform.OS === 'ios' ? 'the App Store' : 'Google Play'}. SocialNet keeps no balance and never takes money itself. Listening stays free.</Text>
-          {state.kind === 'ok' && !state.storeReady ? <Text className="text-muted text-xs">Purchases are not available yet.</Text> : null}
-          <Button kind="secondary" label="Manage subscriptions in the store" onPress={manage} />
+        <Box className="gap-section mb-section">
+          {empty ? (
+            <Box className="bg-surface border border-border rounded-row p-7 justify-end gap-section overflow-hidden" style={HERO} accessible accessibilityLabel={notReady ? 'No purchases. Purchases are not available yet.' : 'No purchases'}>
+              <Box className="absolute -right-8 -top-8 w-44 h-44 rounded-pill bg-primary opacity-35" />
+              <Box className="absolute right-9 top-9"><Icon name="wallet-outline" size={44} color={c.accent} /></Box>
+              <Text className="text-text text-hero font-display-semibold">No purchases</Text>
+              {pill}
+            </Box>
+          ) : pill}
+          <Text className="text-muted text-body">Purchases are made through {Platform.OS === 'ios' ? 'the App Store' : 'Google Play'}. SocialNet keeps no balance and never takes money itself. Listening stays free.</Text>
         </Box>
       }
-      ListEmptyComponent={state.kind === 'loading' ? <Loader className="my-section" /> : state.kind === 'error' ? <Text className="text-muted text-sm">Couldn't load your purchases right now.</Text> : <EmptyPicture icon="wallet-outline" line="No purchases" />}
+      ListEmptyComponent={state.kind === 'loading' ? <Loader className="my-section" /> : state.kind === 'error' ? <Text className="text-muted text-sm">Couldn't load your purchases right now.</Text> : undefined}
       renderItem={({ item }) => (
-        <Box className="flex-row items-center gap-row border-b-hairline border-separator" style={ROW} accessible accessibilityLabel={`${item.productId}, ${item.status}, ${moneyLabel(item.amountMicros, item.currency)}`}>
+        <Box className="flex-row items-center gap-row bg-surface border border-border rounded-row px-section py-row mb-gap" style={ROW} accessible accessibilityLabel={`${item.productId}, ${item.status}, ${moneyLabel(item.amountMicros, item.currency)}`}>
           <Box className="flex-1">
-            <Text className="text-text text-sm font-semibold" numberOfLines={1}>{item.productId}</Text>
+            <Text className="text-text text-body font-semibold" numberOfLines={1}>{item.productId}</Text>
             <Text className="text-muted text-xs">{`${item.store === 'apple' ? 'App Store' : item.store === 'google' ? 'Google Play' : item.store} · ${item.status} · ${shortDate(Date.parse(item.createdAt))}${item.expiresAt ? ` · until ${shortDate(Date.parse(item.expiresAt))}` : ''}`}</Text>
           </Box>
-          <Text className="text-text text-sm">{moneyLabel(item.amountMicros, item.currency)}</Text>
+          <Text className="text-text text-body font-semibold">{moneyLabel(item.amountMicros, item.currency)}</Text>
         </Box>
       )}
     />
+    <Box className="px-screen-x pt-section pb-row bg-surface border-t-hairline border-separator">
+      <Button kind="secondary" label="Manage subscriptions in the store" onPress={manage} />
+    </Box>
     </>
   );
 }
