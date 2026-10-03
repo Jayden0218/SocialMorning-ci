@@ -17,6 +17,3 @@ export const OTHER_METHODS: { id: OtherMethod; label: string; short: string; ico
   { id: 'facebook', label: 'Continue with Facebook', short: 'Facebook', icon: 'logo-facebook', mark: { icon: 'logo-facebook', tint: 'facebook' }, ready: false },
 ];
 
-export function notReadyMessage(label: string): string {
-  return `${label} is not set up yet.`;
-}

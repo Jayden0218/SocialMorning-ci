@@ -13,7 +13,7 @@
  * without an account (downloads, history, favourites, moments, queue). Sign out is here,
  * one tap away (owner, 2026-09-27: it was hard to find inside Account alone).
  */
-import { Link, useFocusEffect } from 'expo-router';
+import { Link, router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable } from '../../src/ui/lib/pressable';
 import { SafeAreaView } from '../../src/ui/lib/safe-area-view';
@@ -29,6 +29,8 @@ import { listMoments } from '../../src/me/moments';
 import { useSocial } from '../../src/social/context';
 import { Card, CardDivider } from '../../src/ui/Card';
 import { MenuRow, MenuTile } from '../../src/ui/me/parts';
+import { useComingSoon } from '../../src/ui/ComingSoon';
+import { readStoreReady } from '../../src/social/store-ready';
 import { useStores } from '../../src/ui/providers';
 import { BOTTOM_INSET } from '../../src/ui/Screen';
 
@@ -38,6 +40,13 @@ const AVATAR = { width: 96, height: 96 };
 
 export default function MeScreen(): React.ReactElement {
   const stores = useStores();
+  // M17 (FR-015, T113): while purchases are not switched on, Wallet says so first; the page stays one tap on.
+  const [comingSoon, comingSoonDialog] = useComingSoon();
+  const openWallet = readStoreReady(stores.settings) ? undefined : () => comingSoon({
+    feature: 'Wallet',
+    line: 'SocialNet PLUS and paid shows will be bought here, through the App Store or Google Play. Listening stays free.',
+    second: { label: 'Open Wallet', onPress: () => router.push('/wallet') },
+  });
   const c = useColours(stores.settings);
   const { api, listener } = useSocial();
   const feed = useMemo(() => createFeed({ api, cache: stores.feedCache, settings: stores.settings, now: () => Date.now() }), [api, stores]);
@@ -119,8 +128,8 @@ export default function MeScreen(): React.ReactElement {
         </Box>
 
         <Card className="mt-row">
-          {/* M12 FR-105, FR-106: read-only; the stores hold the money. A plain link for now (T113 adds Coming soon). */}
-          {listener ? <><MenuRow href="/wallet" icon="wallet-outline" label="Wallet" /><CardDivider /></> : null}
+          {/* M12 FR-105, FR-106: read-only; the stores hold the money. M17 T113: Coming soon until the store is on. */}
+          {listener ? <><MenuRow href="/wallet" icon="wallet-outline" label="Wallet" {...(openWallet ? { onPress: openWallet } : {})} /><CardDivider /></> : null}
           {listener ? <><MenuRow href="/tips" icon="heart-outline" label="Tips I gave" /><CardDivider /></> : null}
           {/* M12 FR-091: feedback is one tap from Me. */}
           <MenuRow href="/settings/feedback" icon="chatbox-ellipses-outline" label="Feedback" />
@@ -129,6 +138,7 @@ export default function MeScreen(): React.ReactElement {
           {/* M12 FR-090: Sign out lives once, in Settings (it was on Me as well). */}
         </Card>
       </ScrollView>
+      {comingSoonDialog}
     </SafeAreaView>
   );
 }

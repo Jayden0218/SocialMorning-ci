@@ -17,21 +17,28 @@ import { Icon, type IconName } from '../Icon';
 /** M12 FR-050: one row height for every list (was hit.min + 8 = 56). */
 const TAP = { minHeight: size.row };
 
-export function MenuRow(props: { href: string; icon: IconName; label: string; note?: string; badge?: number }): React.ReactElement {
+/** `onPress` (M17) replaces the link — e.g. Wallet opening Coming soon; `href` stays the row's real place. */
+export function MenuRow(props: { href: string; icon: IconName; label: string; note?: string; badge?: number; onPress?: () => void }): React.ReactElement {
   const stores = useStores();
   const c = useColours(stores.settings);
   const spoken = [props.label, props.badge ? `${props.badge} new` : undefined, props.note].filter(Boolean).join(', ');
+  const body = (
+    <>
+      <Box className="w-7 items-center"><Icon name={props.icon} size={20} color={c.accent} /></Box>
+      <Text className="text-text text-body flex-1">{props.label}</Text>
+      {props.note ? <Text className="text-muted text-xs" numberOfLines={1}>{props.note}</Text> : null}
+      {props.badge ? (
+        <Box className="bg-accent rounded-pill min-w-6 h-6 px-1 items-center justify-center"><Text className="text-background text-xs font-bold">{props.badge > 99 ? '99+' : props.badge}</Text></Box>
+      ) : null}
+      <Icon name="chevron-forward" size={16} color={c.muted} />
+    </>
+  );
+  if (props.onPress) {
+    return <Pressable onPress={props.onPress} accessibilityRole="button" accessibilityLabel={spoken} className="flex-row items-center gap-section" style={TAP}>{body}</Pressable>;
+  }
   return (
     <Link href={props.href as never} asChild>
-      <Pressable accessibilityRole="link" accessibilityLabel={spoken} className="flex-row items-center gap-section" style={TAP}>
-        <Box className="w-7 items-center"><Icon name={props.icon} size={20} color={c.accent} /></Box>
-        <Text className="text-text text-body flex-1">{props.label}</Text>
-        {props.note ? <Text className="text-muted text-xs" numberOfLines={1}>{props.note}</Text> : null}
-        {props.badge ? (
-          <Box className="bg-accent rounded-pill min-w-6 h-6 px-1 items-center justify-center"><Text className="text-onPrimary text-xs font-bold">{props.badge > 99 ? '99+' : props.badge}</Text></Box>
-        ) : null}
-        <Icon name="chevron-forward" size={16} color={c.muted} />
-      </Pressable>
+      <Pressable accessibilityRole="link" accessibilityLabel={spoken} className="flex-row items-center gap-section" style={TAP}>{body}</Pressable>
     </Link>
   );
 }

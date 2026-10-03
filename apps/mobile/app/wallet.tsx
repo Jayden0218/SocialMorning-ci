@@ -19,6 +19,7 @@ import { Loader } from '../src/ui/Loader';
 import { Button } from '../src/ui/Button';
 import { Icon } from '../src/ui/Icon';
 import { useStores } from '../src/ui/providers';
+import { writeStoreReady } from '../src/social/store-ready';
 import { useColours } from '../src/ui/useColours';
 import { shortDate } from '../src/ui/format';
 import { MANAGE_SUBSCRIPTIONS, moneyLabel } from '../src/me/money';
@@ -35,7 +36,8 @@ export default function WalletScreen(): React.ReactElement {
   const stores = useStores();
   const c = useColours(stores.settings);
   const [state, setState] = useState<State>({ kind: 'loading' });
-  const load = useCallback(() => { m12.purchases().then((r) => setState({ kind: 'ok', items: r.items, storeReady: r.storeReady }), () => setState({ kind: 'error' })); }, [m12]);
+  // M17: the answer is kept, so Me knows whether Wallet opens this page or the Coming soon pop-up.
+  const load = useCallback(() => { m12.purchases().then((r) => { writeStoreReady(stores.settings, r.storeReady); setState({ kind: 'ok', items: r.items, storeReady: r.storeReady }); }, () => setState({ kind: 'error' })); }, [m12, stores]);
   useEffect(() => { load(); }, [load]);
   const manage = () => { void Linking.openURL(Platform.OS === 'ios' ? MANAGE_SUBSCRIPTIONS.ios : MANAGE_SUBSCRIPTIONS.android).catch(() => undefined); };
   const notReady = state.kind === 'ok' && !state.storeReady;

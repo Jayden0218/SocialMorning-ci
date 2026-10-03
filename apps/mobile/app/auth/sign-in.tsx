@@ -21,7 +21,7 @@ import { Text } from '../../src/ui/lib/text';
 import { Box } from '../../src/ui/lib/box';
 import { createDiscover } from '../../src/discover/cache';
 import { useSocial } from '../../src/social/context';
-import { useStores, useToast } from '../../src/ui/providers';
+import { useStores } from '../../src/ui/providers';
 import { useColours } from '../../src/ui/useColours';
 import { askForNotifications } from '../../src/notify/permission';
 import { expoNotify } from '../../src/notify/expo';
@@ -32,7 +32,8 @@ import { landingArt } from '../../src/ui/auth/art';
 import { display } from '../../src/ui/auth/display';
 import { ConsentDialog, ConsentRow, useLegalOverlay } from '../../src/ui/auth/Consent';
 import { submitAction } from '../../src/ui/auth/rules';
-import { OTHER_METHODS, notReadyMessage, type OtherMethod } from '../../src/ui/auth/methods';
+import { OTHER_METHODS, type OtherMethod } from '../../src/ui/auth/methods';
+import { useComingSoon } from '../../src/ui/ComingSoon';
 
 /** Owner, 2026-10-03: larger (was 48), and the covers lower down (was 40 below the name). */
 const LOGO = { width: 72, height: 72 };
@@ -44,7 +45,7 @@ export default function SignInScreen(): React.ReactElement {
   const { api } = useSocial();
   const stores = useStores();
   const c = useColours(stores.settings);
-  const toast = useToast();
+  const [comingSoon, comingSoonDialog] = useComingSoon();
   const legal = useLegalOverlay();
   const [agreed, setAgreed] = useState(false);
   // Which way in is waiting on the consent dialog.
@@ -69,8 +70,12 @@ export default function SignInScreen(): React.ReactElement {
   function go(way: Way): void {
     if (way === 'email') { router.push({ pathname: '/auth/email', params: { agreed: '1' } }); return; }
     const m = OTHER_METHODS.find((o) => o.id === way)!;
-    // M11 wires the backend; until then, say so rather than do nothing.
-    if (!m.ready) toast(notReadyMessage(m.label));
+    // M17 (FR-014, T112): until the backend is wired, Coming soon says so — with email as the way in.
+    if (!m.ready) comingSoon({
+      feature: m.label,
+      line: `Signing in with your ${m.short} account is on its way. Email works today.`,
+      second: { label: 'Continue with email', onPress: () => router.push({ pathname: '/auth/email', params: { agreed: '1' } }) },
+    });
   }
   const choose = (way: Way): void => {
     if (submitAction({ valid: true, agreed, busy: false }) === 'ask') setAsking(way);
@@ -109,6 +114,7 @@ export default function SignInScreen(): React.ReactElement {
         onAgree={() => { const way = asking; setAsking(undefined); setAgreed(true); if (way) go(way); }}
       />
       {legal.overlay}
+      {comingSoonDialog}
     </SafeAreaView>
   );
 }

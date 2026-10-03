@@ -39,7 +39,7 @@ function Tab(props: { title: string; line: string; icon: IconName; iconColour: s
       <Text className={props.selected ? 'text-onPrimary text-body font-bold' : 'text-muted text-body'}>{props.title}</Text>
       {props.badge ? (
         <Box className={`rounded-pill min-w-5 px-1.5 items-center justify-center ${props.selected ? 'bg-onPrimary' : 'bg-accent'}`}>
-          <Text className={props.selected ? 'text-primary text-micro font-bold' : 'text-onPrimary text-micro font-bold'}>{props.badge > 99 ? '99+' : props.badge}</Text>
+          <Text className={props.selected ? 'text-primary text-micro font-bold' : 'text-background text-micro font-bold'}>{props.badge > 99 ? '99+' : props.badge}</Text>
         </Box>
       ) : null}
     </Pressable>
