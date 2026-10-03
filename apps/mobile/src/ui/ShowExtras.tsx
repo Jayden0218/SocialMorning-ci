@@ -5,6 +5,9 @@
  *
  * Fetched after the feed has drawn the page. If the call fails, nothing here renders and the
  * page stays exactly as the feed made it (Principle IV).
+ *
+ * M17 (`Show-B`, `Episode-B`): announcements and polls are white Editorial cards (thin border,
+ * 16 pt corners) with an accent eyebrow; a poll's question is in the serif. Props unchanged.
  */
 import { useEffect, useState } from 'react';
 import { Linking } from 'react-native';
@@ -30,6 +33,9 @@ export function useShowExtras(feedUrl: string): [Extras | undefined, (p: ShowPol
 }
 
 /** Only an https link from the creator is ever opened. */
+/** The eyebrow's spaced capitals (as `Eyebrow`). */
+const CAPS = { letterSpacing: 1.3, textTransform: 'uppercase' as const };
+
 const openLink = (url: string) => { if (/^https:\/\//.test(url)) void Linking.openURL(url).catch(() => undefined); };
 
 const CONTACT_LABEL: Record<string, string> = {
@@ -62,9 +68,9 @@ export function ShowExtrasBlock({ extras, onPoll, episodeId, noAnnouncements }: 
   return (
     <Box className="gap-section">
       {announcements.map((a) => (
-        <Box key={a.id} className="bg-surface rounded-row p-row gap-1" accessibilityRole="summary">
-          <Text className="text-xs font-bold text-accent">From the host</Text>
-          <Text className="text-sm text-text">{a.body}</Text>
+        <Box key={a.id} className="bg-surface border border-border rounded-row px-section py-row gap-1" accessibilityRole="summary">
+          <Text className="text-micro font-bold text-accent" style={CAPS}>From the host</Text>
+          <Text className="text-sm font-display-semibold text-text">{a.body}</Text>
         </Box>
       ))}
       {polls.map((p) => <Poll key={p.id} poll={p} onChange={onPoll} />)}
@@ -98,9 +104,9 @@ function Poll({ poll, onChange }: { poll: ShowPoll; onChange: (p: ShowPoll) => v
     try { onChange(await api.votePoll(poll.id, idx)); } catch (e) { setError(e instanceof Error ? e.message : 'That did not work.'); } finally { setBusy(false); }
   };
   return (
-    <Box className="bg-surface rounded-row p-row gap-2">
-      <Text className="text-xs font-bold text-accent">{poll.open ? 'Poll from the host' : 'Poll closed'}</Text>
-      <Text className="text-base font-semibold text-text">{poll.question}</Text>
+    <Box className="bg-surface border border-border rounded-row px-section py-row gap-2">
+      <Text className="text-micro font-bold text-accent" style={CAPS}>{poll.open ? 'Poll from the host' : 'Poll closed'}</Text>
+      <Text className="text-title font-display-semibold text-text">{poll.question}</Text>
       {poll.options.map((o) => {
         const share = poll.total ? o.votes / poll.total : 0;
         const mine = poll.myVote === o.idx;
@@ -110,12 +116,12 @@ function Poll({ poll, onChange }: { poll: ShowPoll; onChange: (p: ShowPoll) => v
               <Text className={mine ? 'text-sm font-bold text-text' : 'text-sm text-text'}>{mine ? `${o.label} ✓` : o.label}</Text>
               <Text className="text-sm text-muted">{`${Math.round(share * 100)}%`}</Text>
             </Box>
-            <Box className="h-2 rounded-pill bg-background overflow-hidden"><Box className="h-2 rounded-pill bg-accent" style={{ width: `${share * 100}%` }} /></Box>
+            <Box className="h-2 rounded-pill bg-track overflow-hidden"><Box className="h-2 rounded-pill bg-accent" style={{ width: `${share * 100}%` }} /></Box>
           </Box>
         ) : (
           <Pressable key={o.idx} disabled={busy || !listener} onPress={() => { void vote(o.idx); }} accessibilityRole="button" accessibilityLabel={`Vote ${o.label}`}
-            className="border border-separator rounded-row px-row justify-center bg-background" style={TAP}>
-            <Text className="text-sm text-text">{o.label}</Text>
+            className="border border-border rounded-pill px-section justify-center bg-surface" style={TAP}>
+            <Text className="text-body font-semibold text-text">{o.label}</Text>
           </Pressable>
         );
       })}

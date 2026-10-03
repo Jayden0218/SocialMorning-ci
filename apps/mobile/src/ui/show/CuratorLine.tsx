@@ -4,6 +4,9 @@
  * About. The curator is never the host: the "Hosted by" line is built by `hostLineFor`
  * from the creator's own Studio names or the feed's author, and takes no curator
  * (guard G-C1, `__tests__/curator-label.test.tsx`).
+ *
+ * M17 (`Show-B`): under the title the line is centred, as the B header is; About's row has a
+ * white bordered avatar disc.
  */
 import { useRouter } from 'expo-router';
 import { Box } from '../lib/box';
@@ -30,7 +33,7 @@ export function CuratorLine(props: { curator: Curator; row?: boolean; iconColour
   if (props.row) {
     return (
       <Pressable onPress={open} accessibilityRole="link" accessibilityLabel={label} className="flex-row items-center gap-row" style={TAP}>
-        <Box className="w-10 h-10 rounded-pill bg-surface items-center justify-center">
+        <Box className="w-10 h-10 rounded-pill bg-surface border border-border items-center justify-center">
           <Icon name="share-social-outline" size={20} color={props.iconColour} />
         </Box>
         <Box className="flex-1">
@@ -41,10 +44,10 @@ export function CuratorLine(props: { curator: Curator; row?: boolean; iconColour
     );
   }
   return (
-    <Pressable onPress={open} accessibilityRole="link" accessibilityLabel={label} className="self-start justify-center" style={TAP}>
-      <Text className="text-sm text-muted" numberOfLines={1}>
+    <Pressable onPress={open} accessibilityRole="link" accessibilityLabel={label} className="self-center justify-center" style={TAP}>
+      <Text className="text-meta text-muted text-center" numberOfLines={1}>
         {'Shared by '}
-        <Text className="text-sm font-semibold text-accent">{props.curator.displayName}</Text>
+        <Text className="text-meta font-semibold text-accent">{props.curator.displayName}</Text>
       </Text>
     </Pressable>
   );

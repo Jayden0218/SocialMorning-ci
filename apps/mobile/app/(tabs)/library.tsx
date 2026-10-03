@@ -9,6 +9,11 @@
  * two-hour episode is what people abandon a podcast app over); a background refresh that
  * never blanks the list (Principle IV); with no subscriptions, Discover's sections so the
  * first screen is never empty (M5 FR-002). The show list itself is `/subscriptions`.
+ *
+ * M17 (`Library-B`, T041): the Editorial order — "Updates" in the 32 pt serif with
+ * "My subscriptions · n →" in the accent under it; the Continue listening card; the voice
+ * pills under a "Voices · last 48 h" eyebrow; then "New from your shows" in the serif over the
+ * episode cards. The More sheet, the refresh and the counts call are unchanged.
  */
 import { Link, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
@@ -120,23 +125,26 @@ export default function UpdatesScreen(): React.ReactElement {
         contentContainerStyle={{ paddingBottom: BOTTOM_INSET }}
         ListHeaderComponent={
           <Box>
-            <Box className="flex-row items-center justify-between px-screen-x pt-section pb-row border-b-hairline border-separator">
-              <Text className="text-text text-lg font-bold" accessibilityRole="header">Updates</Text>
+            <Box className="px-screen-x pt-section">
+              <Text className="font-display text-display text-text" accessibilityRole="header">Updates</Text>
               <Link href="/subscriptions" asChild>
-                <Pressable accessibilityRole="link" accessibilityLabel={`My subscriptions, ${subscribed}`} className="flex-row items-center gap-2 bg-surface rounded-row px-row" style={TAP}>
-                  <Icon name="library-outline" size={18} color={c.text} />
-                  <Text className="text-accent text-sm font-semibold">My subscriptions</Text>
+                <Pressable accessibilityRole="link" accessibilityLabel={`My subscriptions, ${subscribed}`} className="self-start flex-row items-center gap-2" style={TAP}>
+                  <Icon name="library-outline" size={16} color={c.accent} />
+                  <Text className="text-accent text-meta font-semibold">{`My subscriptions · ${subscribed} →`}</Text>
                 </Pressable>
               </Link>
             </Box>
+            <Box className="px-screen-x pt-2">
+              <ContinueListening />
+            </Box>
             {/* M12 FR-104: voice statuses from you and the people you follow (signed in only). */}
             {listenerId !== undefined ? <VoicePosts load={loadVoice} remove={m12.deleteVoicePost} pauseEpisode={player.pause} colours={c} /> : null}
-            <Box className="px-screen-x pt-row">
-              <ContinueListening />
+            <Box className="px-screen-x">
               {stale > 0 ? <Text className="text-muted text-xs mt-row">{plural(stale, 'show')} could not refresh — showing the saved copy.</Text> : null}
               {subscribed === 0 && discover.view ? (
                 <DiscoverSections body={discover.view.body} stale={discover.view.stale} fetchedAt={discover.view.fetchedAt} onOpen={(c) => void discover.open(c)} />
               ) : null}
+              {rows.length > 0 ? <Text className="font-display text-base text-text mt-section" accessibilityRole="header">New from your shows</Text> : null}
             </Box>
           </Box>
         }

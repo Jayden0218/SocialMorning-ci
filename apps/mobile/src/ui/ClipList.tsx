@@ -1,7 +1,9 @@
-/** The episode's clips (M4 FR-006): pending ones first as "sending", then newest first. */
+/**
+ * The episode's clips (M4 FR-006): pending ones first as "sending", then newest first.
+ * M17 (`Episode-B`): the "Clips" heading is the shared serif section title, as Comments is.
+ */
 import { useMemo, useState } from 'react';
 import { Share } from 'react-native';
-import { Text } from './lib/text';
 import { Box } from './lib/box';
 import { router } from 'expo-router';
 import { useSafety } from '../safety/context';
@@ -15,6 +17,7 @@ import { ClipCard } from './ClipCard';
 import { useSharePanel } from './ShareChooser';
 import type { Clip } from '../social/api';
 import { EmptyState } from './EmptyState';
+import { SectionTitle } from './discover/parts';
 
 export function ClipList(props: { episode: PlayableEpisode }): React.ReactElement {
   const { useEpisodeClips } = useGraph();
@@ -27,10 +30,10 @@ export function ClipList(props: { episode: PlayableEpisode }): React.ReactElemen
   // M16a T005 (FR-015): the app's share panel first; the system sheet behind "More".
   const [share, sharePanel] = useSharePanel();
   const pendingAsClips: Clip[] = pending.map((p) => ({ id: `pending:${p.clientId}`, author: { id: listener?.listenerId ?? '', displayName: listener?.displayName ?? null }, episodeId: p.episodeId, startMs: p.startMs, endMs: p.endMs, caption: p.caption, createdAt: new Date(p.createdAt).toISOString(), deleted: false }));
-  if (clips.length === 0 && pending.length === 0) return <Box className="mt-4"><Text className="text-[18px] font-semibold mb-1 text-text" accessibilityRole="header">Clips</Text><EmptyState surface="clips" action={{ label: 'Open player', onPress: () => router.push('/player') }} /></Box>;
+  if (clips.length === 0 && pending.length === 0) return <Box className="mt-section"><Box className="-mx-screen-x"><SectionTitle title="Clips" /></Box><EmptyState surface="clips" action={{ label: 'Open player', onPress: () => router.push('/player') }} /></Box>;
   return (
-    <Box className="mt-4">
-      <Text className="text-[18px] font-semibold mb-1 text-text">Clips</Text>
+    <Box className="mt-section">
+      <Box className="-mx-screen-x"><SectionTitle title="Clips" /></Box>
       {pendingAsClips.map((c) => <ClipCard key={c.id} clip={c} pending onPlay={() => player.playClip(props.episode, { startMs: c.startMs, endMs: c.endMs })} />)}
       {clips.map((c) => (
         <ClipCard

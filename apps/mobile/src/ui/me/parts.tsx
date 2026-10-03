@@ -5,6 +5,7 @@
  * muted line, as in the reference.
  */
 import { Link } from 'expo-router';
+import type { ComponentProps } from 'react';
 import { Pressable } from '../lib/pressable';
 import { Text } from '../lib/text';
 import { Box } from '../lib/box';
@@ -32,6 +33,31 @@ export function MenuRow(props: { href: string; icon: IconName; label: string; no
         <Icon name="chevron-forward" size={16} color={c.muted} />
       </Pressable>
     </Link>
+  );
+}
+
+/** A tile is 64 pt tall at the default text size (`Me-B`), and grows with it. */
+const TILE = { minHeight: 64 };
+
+/**
+ * M17 (`Me-B`): one tile of the Me tab's two-column grid — a white card with a thin border, the
+ * icon in the accent at the top, the label under it, an optional count badge in the corner.
+ * Used as the child of `<Link href=… asChild>` on the screen, so the screen keeps each literal
+ * destination (tap-counts, the action inventory); the Link's press and ref pass through `rest`;
+ * the tile's own spoken name (with its count) wins over the Link's static label.
+ */
+export function MenuTile({ icon, label, badge, ...rest }: { icon: IconName; label: string; badge?: number } & Omit<ComponentProps<typeof Pressable>, 'children'>): React.ReactElement {
+  const stores = useStores();
+  const c = useColours(stores.settings);
+  const spoken = [label, badge ? `${badge} new` : undefined].filter(Boolean).join(', ');
+  return (
+    <Pressable {...rest} accessibilityRole="link" accessibilityLabel={spoken} className="flex-1 bg-surface border border-border rounded-row p-row justify-between gap-1" style={TILE}>
+      <Icon name={icon} size={22} color={c.accent} />
+      <Text className="text-text text-meta font-semibold" numberOfLines={1}>{label}</Text>
+      {badge ? (
+        <Box className="absolute top-2 right-2 bg-accent rounded-pill min-w-6 h-6 px-1 items-center justify-center"><Text className="text-background text-xs font-bold">{badge > 99 ? '99+' : badge}</Text></Box>
+      ) : null}
+    </Pressable>
   );
 }
 

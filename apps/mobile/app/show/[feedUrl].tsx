@@ -20,6 +20,14 @@
  * a host row and up to 6 similar shows from the show's genre chart (FR-063). The host's
  * newest announcement is one card under the header (show/AnnouncementCard, owner 2026-10-01); RSS has no announcement tag (the podcast
  * namespace's 28 tags, read 2026-09-29), so a feed alone never shows one (FR-062).
+ *
+ * M17 (constitution v3.0.0, `Show-B`): the Editorial layout. A centred hero — 156 pt artwork with
+ * a soft shadow, the title in 32 pt serif, the author in the accent, two lines of description —
+ * then a yellow Subscribe pill with round Share, Search and ⋯ buttons beside it (they were in
+ * the bar, which now holds only back until the page scrolls). The announcement is a white card;
+ * Episodes / About is a pill track carrying the count, with order and Unplayed beside it; All /
+ * Most played are underlined tabs; each episode is a white card with a serif title and a round
+ * play button over its ⋯. Every action, name and handler is the one it was.
  */
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
@@ -36,7 +44,8 @@ import { htmlToText, mmss, noteSummary } from '../../src/ui/format';
 import { usePlayer, usePlayerState } from '../../src/playback/store';
 import { toPlayable } from '../../src/storage/playable';
 import { Artwork } from '../../src/ui/Artwork';
-import { Dots, Glyph, PauseIcon, PlayIcon, SearchIcon } from '../../src/ui/Icon';
+import { Dots, PauseIcon, PlayIcon } from '../../src/ui/Icon';
+import { HeroArtwork } from '../../src/ui/episode/HeroArtwork';
 import { BarButton, TAP, TopBar } from '../../src/ui/TopBar';
 import { useSafety } from '../../src/safety/context';
 import { ReportSheet, type ReportTarget } from '../../src/ui/ReportSheet';
@@ -45,7 +54,6 @@ import type { CachedEpisode, CachedShow } from '../../src/storage/types';
 import { getPref } from '../../src/settings/prefs';
 import { ShowExtrasBlock, useShowExtras } from '../../src/ui/ShowExtras';
 import { useSocial } from '../../src/social/context';
-import { plural } from '@socialmorning/social-core';
 import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '../../src/ui/lib/actionsheet';
 import { QueueButtons } from '../../src/ui/QueueButtons';
 import { DownloadButton } from '../../src/ui/DownloadButton';
@@ -60,8 +68,10 @@ import { EpisodeMeta, metaLabel } from '../../src/ui/show/EpisodeMeta';
 import { AnnouncementCard } from '../../src/ui/show/AnnouncementCard';
 import { CuratorLine, hostLineFor } from '../../src/ui/show/CuratorLine';
 
-/** How far the page scrolls before the slim bar takes over (about the title block's height). */
-export const COLLAPSE_AT = 150;
+/** How far the page scrolls before the slim bar takes over (about the title block's height; M17's 156 pt hero made it taller). */
+export const COLLAPSE_AT = 220;
+/** M17: a round white 48 pt button beside Subscribe (`Show-B`). */
+const ROUND = 'w-12 h-12 rounded-pill bg-surface border border-border items-center justify-center';
 
 export default function ShowScreen(): React.ReactElement {
   const stores = useStores();
@@ -192,69 +202,89 @@ export default function ShowScreen(): React.ReactElement {
   };
 
   const latestAnnouncement = extras?.announcements[0]; // the server sends newest first
+  const shareShow = () => {
+    void api.recordShare({ targetKind: 'show', targetId: feedUrl, feedUrl }).catch(() => undefined); // M11 FR-011: never waits
+    share({ heading: 'Share this show', more: { detail: 'other apps', run: () => void Share.share({ message: `${title ?? ''}\n${feedUrl}` }).catch(() => undefined) } });
+  };
   const header = (
     <Box>
-      <Box className="px-screen-x pt-row gap-section">
-        <Box className="flex-row gap-section items-start">
-          <Box className="flex-1 gap-2">
-            <Text className="text-[28px] leading-[36px] font-bold text-text" accessibilityRole="header">{title ?? 'Loading…'}</Text>
-            {/* M15 US4: the curator, under the title — never through the "Hosted by" line (G-C1). */}
-            {curator ? <CuratorLine curator={curator} iconColour={c.muted} /> : null}
-            {description === undefined || tab === 'about' ? null : (
-              <Text className="text-sm text-muted" numberOfLines={2}>{htmlToText(description)}</Text>
-            )}
-            {show?.author === undefined ? null : <Text className="text-sm text-muted mt-2" numberOfLines={1}>{show.author}</Text>}
-          </Box>
-          <Artwork url={ov?.coverUrl ?? show?.imageUrl} size={120} rounded="artwork" name={title} />
-        </Box>
-        {/* Owner, 2026-10-01: the episode count sits once, over the list (it follows the filter). */}
-        <Box className="flex-row items-center gap-section">
+      {/* M17: the centred hero — artwork, serif title, curator, author, description. */}
+      <Box className="items-center px-screen-x">
+        <HeroArtwork url={ov?.coverUrl ?? show?.imageUrl} size={156} name={title} />
+        <Text className="text-text text-display font-display text-center mt-row" accessibilityRole="header">{title ?? 'Loading…'}</Text>
+        {/* M15 US4: the curator, under the title — never through the "Hosted by" line (G-C1). */}
+        {curator ? <CuratorLine curator={curator} iconColour={c.muted} /> : null}
+        {show?.author === undefined ? null : <Text className="text-accent text-meta font-semibold text-center mt-1" numberOfLines={1}>{show.author}</Text>}
+        {description === undefined || tab === 'about' ? null : (
+          <Text className="text-muted text-body leading-[21px] text-center mt-gap" numberOfLines={2}>{htmlToText(description)}</Text>
+        )}
+      </Box>
+      <Box className="px-screen-x pt-section gap-section">
+        {/* Owner, 2026-10-01: the episode count sits once, on the Episodes tab (it follows the filter). */}
+        <Box className="flex-row items-center gap-gap">
           <Pressable
-            className={`flex-1 items-center justify-center rounded-row ${subscribed ? 'bg-surface' : 'bg-text'}`}
+            className={`flex-1 items-center justify-center rounded-pill px-section ${subscribed ? 'bg-surface border border-border' : 'bg-primary'}`}
             style={TAP}
             accessibilityRole="button"
             accessibilityLabel={subscribed ? 'Unsubscribe from this show' : 'Subscribe to this show'}
             accessibilityState={{ selected: subscribed }}
             onPress={toggleSubscription}
           >
-            <Text className={subscribed ? 'text-sm font-bold text-muted' : 'text-sm font-bold text-background'}>{subscribed ? 'Subscribed' : '+ Subscribe'}</Text>
+            <Text className={subscribed ? 'text-body font-bold text-muted' : 'text-body font-bold text-onPrimary'}>{subscribed ? 'Subscribed' : '+ Subscribe'}</Text>
+          </Pressable>
+          {/* M17: share, search and ⋯ as round white buttons beside Subscribe (they were in the bar). */}
+          <Pressable onPress={shareShow} accessibilityRole="button" accessibilityLabel="Share this show" className={ROUND} style={TAP}>
+            <Icon name="share-outline" size={20} color={c.text} />
+          </Pressable>
+          <Pressable onPress={() => router.push('/search')} accessibilityRole="button" accessibilityLabel="Search" className={ROUND} style={TAP}>
+            <Icon name="search-outline" size={20} color={c.text} />
+          </Pressable>
+          <Pressable onPress={() => setReporting({ kind: 'show', id: feedUrl, authorId: null, label: 'show' })} accessibilityRole="button" accessibilityLabel="More: report this show" className={ROUND} style={TAP}>
+            <Icon name="ellipsis-horizontal" size={20} color={c.text} />
           </Pressable>
         </Box>
-        {reportedShow ? <Text className="text-[13px] text-accent">You reported this show. It stays in your library; it is hidden from discovery for you.</Text> : null}
-        {hiddenShow ? <Text className="text-[13px] text-accent">Hidden from discovery by moderation. It stays in your library.</Text> : null}
-        {stale ? <Text className="text-[13px] text-accent">Showing the last copy — refresh failed</Text> : null}
-        {failed === undefined ? null : <Text className="text-[13px] text-accent">{failed}</Text>}
+        {reportedShow ? <Text className="text-meta text-accent">You reported this show. It stays in your library; it is hidden from discovery for you.</Text> : null}
+        {hiddenShow ? <Text className="text-meta text-accent">Hidden from discovery by moderation. It stays in your library.</Text> : null}
+        {stale ? <Text className="text-meta text-accent">Showing the last copy — refresh failed</Text> : null}
+        {failed === undefined ? null : <Text className="text-meta text-accent">{failed}</Text>}
         {/* Owner, 2026-10-01: the newest announcement as one card under the header. */}
         {latestAnnouncement ? <AnnouncementCard announcement={latestAnnouncement} iconColour={c.text} /> : null}
         {extras ? <ShowExtrasBlock extras={extras} onPoll={replacePoll} noAnnouncements /> : null}
-        <Box className="flex-row gap-6" accessibilityRole="tablist">
-          {(['episodes', 'about'] as const).map((t) => (
-            <Pressable key={t} onPress={() => setTab(t)} accessibilityRole="tab" accessibilityState={{ selected: tab === t }} accessibilityLabel={t === 'episodes' ? 'Episodes' : 'About'} className="justify-end" style={TAP}>
-              <Text className={tab === t ? 'text-base font-bold text-text' : 'text-base text-muted'}>{t === 'episodes' ? 'Episodes' : 'About'}</Text>
-              <Box className={`h-1 mt-1 rounded-pill ${tab === t ? 'bg-text' : 'bg-transparent'}`} />
-            </Pressable>
-          ))}
+        {/* M17: Episodes / About as a pill track; order and the Unplayed filter on the same line. */}
+        <Box className="flex-row items-center gap-gap">
+          <Box className="flex-row gap-1 p-1 bg-surface border border-border rounded-pill" accessibilityRole="tablist">
+            {(['episodes', 'about'] as const).map((t) => (
+              <Pressable key={t} onPress={() => setTab(t)} accessibilityRole="tab" accessibilityState={{ selected: tab === t }} accessibilityLabel={t === 'episodes' ? 'Episodes' : 'About'} className={`justify-center px-section rounded-pill ${tab === t ? 'bg-primary' : ''}`} style={TAP}>
+                <Text className={tab === t ? 'text-meta font-bold text-onPrimary' : 'text-meta text-muted'}>
+                  {t === 'about' ? 'About' : episodes.length > 0 ? `Episodes · ${shown.length}` : 'Episodes'}
+                </Text>
+              </Pressable>
+            ))}
+          </Box>
+          <Box className="flex-1" />
+          {tab === 'episodes' && episodes.length > 0 ? (
+            <>
+              <Pressable onPress={() => setOldestFirst((o) => !o)} accessibilityRole="button" accessibilityLabel={oldestFirst ? 'Oldest first. Show newest first' : 'Newest first. Show oldest first'} className="flex-row items-center justify-center gap-1" style={TAP}>
+                <Icon name="swap-vertical-outline" size={18} color={c.muted} />
+                <Text className="text-xs text-muted">{oldestFirst ? 'Oldest' : 'Newest'}</Text>
+              </Pressable>
+              <Pressable onPress={() => setUnplayedOnly((u) => !u)} accessibilityRole="button" accessibilityLabel={unplayedOnly ? 'Showing unplayed only. Show all' : 'Show unplayed only'} accessibilityState={{ selected: unplayedOnly }} className="items-center justify-center" style={TAP}>
+                {/* Filled vs outline, and the name — never hue alone (FR-016). */}
+                <Icon name={unplayedOnly ? 'funnel' : 'funnel-outline'} size={18} color={unplayedOnly ? c.accent : c.muted} />
+              </Pressable>
+            </>
+          ) : null}
         </Box>
       </Box>
       {tab === 'episodes' && episodes.length > 0 ? (
         <Box className="px-screen-x">
-          {/* Owner, 2026-10-01 (after 小宇宙): "N episodes" left; order and the Unplayed filter right. */}
-          <Box className="flex-row items-center">
-            <Text className="flex-1 text-sm font-semibold text-text">{plural(shown.length, 'episode')}</Text>
-            <Pressable onPress={() => setOldestFirst((o) => !o)} accessibilityRole="button" accessibilityLabel={oldestFirst ? 'Oldest first. Show newest first' : 'Newest first. Show oldest first'} className="flex-row items-center justify-center gap-1" style={TAP}>
-              <Icon name="swap-vertical-outline" size={18} color={c.muted} />
-              <Text className="text-xs text-muted">{oldestFirst ? 'Oldest' : 'Newest'}</Text>
-            </Pressable>
-            <Pressable onPress={() => setUnplayedOnly((u) => !u)} accessibilityRole="button" accessibilityLabel={unplayedOnly ? 'Showing unplayed only. Show all' : 'Show unplayed only'} accessibilityState={{ selected: unplayedOnly }} className="items-center justify-center" style={TAP}>
-              {/* Filled vs outline, and the name — never hue alone (FR-016). */}
-              <Icon name={unplayedOnly ? 'funnel' : 'funnel-outline'} size={18} color={unplayedOnly ? c.accent : c.muted} />
-            </Pressable>
-          </Box>
-          <Box className="flex-row gap-2" accessibilityRole="tablist">
+          {/* M17: All / Most played as underlined tabs; the chosen one has a yellow line under it. */}
+          <Box className="flex-row gap-section" accessibilityRole="tablist">
             {chips.map((v) => (
               <Pressable key={v} onPress={() => setView(v)} accessibilityRole="tab" accessibilityState={{ selected: activeView === v }} accessibilityLabel={v === 'all' ? 'All' : 'Most played'}
-                className={`justify-center px-row rounded-pill ${activeView === v ? 'bg-text' : 'bg-surface'}`} style={TAP}>
-                <Text className={activeView === v ? 'text-xs font-bold text-background' : 'text-xs text-text'}>{v === 'all' ? 'All' : 'Most played'}</Text>
+                className="justify-center" style={TAP}>
+                <Text className={activeView === v ? 'text-meta font-bold text-text' : 'text-meta text-muted'}>{v === 'all' ? 'All' : 'Most played'}</Text>
+                <Box className={`h-0.5 mt-1 rounded-pill ${activeView === v ? 'bg-primary' : 'bg-clear'}`} />
               </Pressable>
             ))}
           </Box>
@@ -269,34 +299,34 @@ export default function ShowScreen(): React.ReactElement {
 
   const about = (
     <Box className="px-screen-x py-section gap-section">
-      {show?.description === undefined ? <Text className="text-sm text-muted">This show has no description.</Text> : (
-        <Text className="text-sm leading-[22px] text-text">{htmlToText(show.description)}</Text>
+      {show?.description === undefined ? <Text className="text-body text-muted">This show has no description.</Text> : (
+        <Text className="text-body leading-[22px] text-text">{htmlToText(show.description)}</Text>
       )}
       {hostLine === undefined ? null : (
         <Box className="flex-row items-center gap-row" accessible accessibilityLabel={`Hosted by ${hostLine}`}>
-          <Box className="w-10 h-10 rounded-pill bg-surface items-center justify-center"><Icon name="person-outline" size={20} color={c.muted} /></Box>
+          <Box className="w-10 h-10 rounded-pill bg-surface border border-border items-center justify-center"><Icon name="person-outline" size={20} color={c.muted} /></Box>
           <Box className="flex-1">
             <Text className="text-xs text-muted">Hosted by</Text>
-            <Text className="text-sm font-semibold text-text" numberOfLines={2}>{hostLine}</Text>
+            <Text className="text-body font-semibold text-text" numberOfLines={2}>{hostLine}</Text>
           </Box>
         </Box>
       )}
       {curator ? <CuratorLine curator={curator} row iconColour={c.muted} /> : null}
       {similarRow.length > 0 ? (
         <Box className="gap-row">
-          <Text className="text-base font-bold text-text" accessibilityRole="header">Similar shows</Text>
+          <Text className="text-lg font-display text-text" accessibilityRole="header">Similar shows</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-row">
             {similarRow.map((s) => (
               <Pressable key={s.feedUrl} onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(s.feedUrl) } })} accessibilityRole="button" accessibilityLabel={s.title} className="w-24">
-                <Artwork url={s.imageUrl} size={96} rounded="row" name={s.title} />
-                <Text className="text-xs text-text mt-1" numberOfLines={2}>{s.title}</Text>
+                <Artwork url={s.imageUrl} size={96} name={s.title} />
+                <Text className="text-meta font-display-semibold text-text mt-1" numberOfLines={2}>{s.title}</Text>
               </Pressable>
             ))}
           </ScrollView>
         </Box>
       ) : null}
       <Pressable onPress={() => setReporting({ kind: 'show', id: feedUrl, authorId: null, label: 'show' })} accessibilityRole="button" accessibilityLabel="Report this show" className="self-start justify-center" style={TAP}>
-        <Text className="text-sm text-muted">{reportedShow ? 'Reported' : 'Report this show'}</Text>
+        <Text className="text-body text-muted">{reportedShow ? 'Reported' : 'Report this show'}</Text>
       </Pressable>
     </Box>
   );
@@ -309,24 +339,18 @@ export default function ShowScreen(): React.ReactElement {
           middle: (
             <>
               <Artwork url={ov?.coverUrl ?? show?.imageUrl} size={24} rounded="row" name={title} />
-              <Text className="text-sm font-semibold text-text flex-1" numberOfLines={1}>{title ?? ''}</Text>
+              <Text className="text-body font-semibold text-text flex-1" numberOfLines={1}>{title ?? ''}</Text>
               <Pressable onPress={toggleSubscription} accessibilityRole="button" accessibilityLabel={subscribed ? 'Unsubscribe from this show' : 'Subscribe to this show'} accessibilityState={{ selected: subscribed }}
-                className={`justify-center px-row rounded-pill ${subscribed ? 'bg-surface' : 'bg-text'}`} style={TAP}>
-                <Text className={subscribed ? 'text-xs font-bold text-muted' : 'text-xs font-bold text-background'}>{subscribed ? 'Subscribed' : 'Subscribe'}</Text>
+                className={`justify-center px-row rounded-pill ${subscribed ? 'bg-surface border border-border' : 'bg-primary'}`} style={TAP}>
+                <Text className={subscribed ? 'text-xs font-bold text-muted' : 'text-xs font-bold text-onPrimary'}>{subscribed ? 'Subscribed' : 'Subscribe'}</Text>
               </Pressable>
             </>
           ),
         } : {})}
       >
-        {/* Phone walk 2026-09-30: with all three icons the slim title showed 7 letters; collapsed, only ⋯ stays. */}
-        {collapsed ? null : <BarButton label="Share this show" onPress={() => {
-          void api.recordShare({ targetKind: 'show', targetId: feedUrl, feedUrl }).catch(() => undefined); // M11 FR-011: never waits
-          share({ heading: 'Share this show', more: { detail: 'other apps', run: () => void Share.share({ message: `${title ?? ''}\n${feedUrl}` }).catch(() => undefined) } });
-        }}>
-          <Glyph>↗</Glyph>
-        </BarButton>}
-        {collapsed ? null : <BarButton label="Search" onPress={() => router.push('/search')}><SearchIcon /></BarButton>}
-        <BarButton label="More: report this show" onPress={() => setReporting({ kind: 'show', id: feedUrl, authorId: null, label: 'show' })}><Dots /></BarButton>
+        {/* M17 (`Show-B`): share, search and ⋯ sit beside Subscribe on the page; once it has scrolled
+            away the slim bar keeps ⋯, as it did (phone walk 2026-09-30: room for the title). */}
+        {collapsed ? <BarButton label="More: report this show" onPress={() => setReporting({ kind: 'show', id: feedUrl, authorId: null, label: 'show' })}><Dots /></BarButton> : null}
       </TopBar>
       <FlatList
         data={tab === 'episodes' ? shown : []}
@@ -338,7 +362,7 @@ export default function ShowScreen(): React.ReactElement {
         scrollEventThrottle={32}
         // iOS i13: "No episodes yet." showed while the show was still loading.
         ListEmptyComponent={tab === 'about' ? about : show === undefined && failed === undefined ? undefined : (
-          <Text className="p-screen-x text-muted">{failed === undefined ? 'No episodes yet.' : failed}</Text>
+          <Text className="p-screen-x text-body text-muted">{failed === undefined ? 'No episodes yet.' : failed}</Text>
         )}
         renderItem={({ item }) => {
           const notes = noteSummary(item.shownotesHtml);
@@ -348,31 +372,32 @@ export default function ShowScreen(): React.ReactElement {
           const metaIn = { durationMs: item.durationMs, publishedAt: item.publishedAt, plays, comments: talk, progress: progressFor(item), now };
           const meta = metaLabel(metaIn);
           return (
-            <Box className="flex-row gap-row px-screen-x py-row items-start">
+            // M17: each episode a white card — serif title, two lines of notes, the meta; play over ⋯ on the right.
+            <Box className="mx-screen-x mt-gap bg-surface border border-border rounded-row p-row flex-row gap-row items-start">
               <Pressable
-                className="flex-1 flex-row gap-row"
+                className="flex-1 gap-1"
+                style={TAP}
                 accessibilityRole="button"
                 accessibilityLabel={`${item.title}. ${meta}`}
                 onPress={() => router.push({ pathname: '/episode/[id]', params: { id: item.id } })}
               >
-                <Artwork url={item.imageUrl ?? show?.imageUrl} size={64} rounded="row" name={show?.title} />
-                <Box className="flex-1 gap-1">
-                  <Text className="text-sm font-semibold text-text" numberOfLines={2}>{item.title}</Text>
-                  {notes === '' ? null : <Text className="text-xs text-muted" numberOfLines={2}>{notes}</Text>}
-                  <EpisodeMeta {...metaIn} iconColour={c.muted} />
-                </Box>
+                <Text className="text-title font-display text-text leading-[21px]" numberOfLines={3}>{item.title}</Text>
+                {notes === '' ? null : <Text className="text-meta text-muted leading-[19px]" numberOfLines={2}>{notes}</Text>}
+                <EpisodeMeta {...metaIn} iconColour={c.muted} />
               </Pressable>
-              <Pressable
-                onPress={() => playOrPause(item)}
-                accessibilityRole="button"
-                accessibilityLabel={isPlaying(item.id) ? `Pause ${item.title}` : `Play ${item.title}`}
-                className="w-12 h-12 rounded-pill bg-accentTint items-center justify-center mt-2"
-              >
-                {isPlaying(item.id) ? <PauseIcon size={14} /> : <PlayIcon size={16} />}
-              </Pressable>
-              <Pressable onPress={() => setMenuFor(item)} accessibilityRole="button" accessibilityLabel={`More for ${item.title}`} className="items-center justify-center mt-2" style={TAP}>
-                <Icon name="ellipsis-vertical" size={18} color={c.muted} />
-              </Pressable>
+              <Box className="items-center">
+                <Pressable
+                  onPress={() => playOrPause(item)}
+                  accessibilityRole="button"
+                  accessibilityLabel={isPlaying(item.id) ? `Pause ${item.title}` : `Play ${item.title}`}
+                  className={`w-12 h-12 rounded-pill items-center justify-center ${isPlaying(item.id) ? 'bg-primary' : 'bg-accentTint'}`}
+                >
+                  {isPlaying(item.id) ? <PauseIcon size={14} tint="onPrimary" /> : <PlayIcon size={16} tint="accent" />}
+                </Pressable>
+                <Pressable onPress={() => setMenuFor(item)} accessibilityRole="button" accessibilityLabel={`More for ${item.title}`} className="items-center justify-center" style={TAP}>
+                  <Icon name="ellipsis-horizontal" size={18} color={c.muted} />
+                </Pressable>
+              </Box>
             </Box>
           );
         }}

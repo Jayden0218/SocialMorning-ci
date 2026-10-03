@@ -2,6 +2,10 @@
  * The episode at the top of the comments page (Owner, 2026-10-01, after the 小宇宙 comments
  * page): artwork 48, the title on up to two lines, "show · length", and a play/pause button
  * wired to the player. Tapping the card opens the player when this episode is the one loaded.
+ *
+ * M17 (`Comments-B`): no card box any more — the episode sits on the page under the serif
+ * title: artwork 40 with Editorial corners, the title in bold on one line, "show · length"
+ * under it, and the play/pause as a round yellow button with dark glyph. Same actions.
  */
 import { router } from 'expo-router';
 import { Pressable } from '../lib/pressable';
@@ -16,7 +20,7 @@ import { useColours } from '../useColours';
 import { usePlayer, usePlayerState } from '../../playback/store';
 import { toPlayable } from '../../storage/playable';
 
-export const CARD_ARTWORK = 48;
+export const CARD_ARTWORK = 40;
 const ROUND = { width: hit.min, height: hit.min, minWidth: hit.min, minHeight: hit.min };
 
 /** "Show · 69 min", leaving out whichever part is unknown. */
@@ -45,7 +49,7 @@ export function EpisodeCard(props: { episodeId: string }): React.ReactElement | 
   const subtitle = cardSubtitle(show?.title, episode.durationMs);
 
   return (
-    <Box className="flex-row items-center gap-row mx-screen-x mt-2 p-row bg-surface rounded-row">
+    <Box className="flex-row items-center gap-row mx-screen-x">
       <Pressable
         onPress={() => (loaded ? router.push('/player') : router.push({ pathname: '/episode/[id]', params: { id: props.episodeId } }))}
         accessibilityRole="link"
@@ -55,7 +59,7 @@ export function EpisodeCard(props: { episodeId: string }): React.ReactElement | 
       >
         <Artwork url={episode.imageUrl ?? show?.imageUrl} size={CARD_ARTWORK} name={show?.title} />
         <Box className="flex-1">
-          <Text className="text-text text-sm font-semibold" numberOfLines={2}>{episode.title}</Text>
+          <Text className="text-text text-meta font-bold" numberOfLines={1}>{episode.title}</Text>
           {subtitle ? <Text className="text-muted text-xs" numberOfLines={1}>{subtitle}</Text> : null}
         </Box>
       </Pressable>
@@ -65,10 +69,10 @@ export function EpisodeCard(props: { episodeId: string }): React.ReactElement | 
           accessibilityRole="button"
           accessibilityLabel={playing ? 'Pause' : 'Play'}
           accessibilityState={{ selected: playing }}
-          className="rounded-pill bg-background items-center justify-center"
+          className="rounded-pill bg-primary items-center justify-center"
           style={ROUND}
         >
-          <Icon name={playing ? 'pause' : 'play'} size={22} color={c.text} />
+          <Icon name={playing ? 'pause' : 'play'} size={20} color={c.onPrimary} />
         </Pressable>
       ) : null}
     </Box>

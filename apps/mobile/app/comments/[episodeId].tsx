@@ -4,6 +4,11 @@
  * the bottom of a ~3000 pt episode page. Now the button opens this page: the list first, three
  * orders (Newest · Most liked · By moment), public likes, and a write box that stays at the
  * bottom and already carries the moment the listener came from (removable in the composer).
+ *
+ * M17 (`Comments-B`): the Editorial page — the serif "Comments N" title, the episode on the page
+ * with a yellow play/pause, the three orders as the shared pill `Segmented`, each comment a white
+ * card (CommentRow), and the write box a white pill with a yellow edge, the listener's initial on
+ * the left and the moment as a yellow "at 26:37" chip. The ⋯ menu sheet is restyled later (T104).
  */
 import { useCallback, useMemo, useState } from 'react';
 import { Clipboard } from 'react-native';
@@ -23,7 +28,7 @@ import type { Comment } from '../../src/social/api';
 import { useM12Api } from '../../src/social/m12-api';
 import type { ComposerState } from '../../src/social/composer';
 import { ComposerSheet } from '../../src/ui/Composer';
-import { CommentRow, type LikeView } from '../../src/ui/CommentRow';
+import { CommentRow, initialsFor, type LikeView } from '../../src/ui/CommentRow';
 import { ReportSheet, type ReportTarget } from '../../src/ui/ReportSheet';
 import { EmptyState } from '../../src/ui/EmptyState';
 import { useStores, useToast } from '../../src/ui/providers';
@@ -33,12 +38,15 @@ import { toPlayable } from '../../src/storage/playable';
 import { isFavComment, toggleFavComment } from '../../src/me/fav-comments';
 import { EpisodeCard } from '../../src/ui/comments/EpisodeCard';
 import { PageHeader } from '../../src/ui/PageHeader';
+import { Segmented } from '../../src/ui/Segmented';
 
 const TAB = { minHeight: hit.min };
-const ORDERS: { key: CommentOrder; label: string }[] = [
-  { key: 'newest', label: 'Newest' },
-  { key: 'liked', label: 'Most liked' },
-  { key: 'byMoment', label: 'By moment' },
+const WRITE = { minHeight: 52 };
+const ME = { width: 36, height: 36 };
+const ORDERS: { value: CommentOrder; label: string }[] = [
+  { value: 'newest', label: 'Newest' },
+  { value: 'liked', label: 'Most liked' },
+  { value: 'byMoment', label: 'By moment' },
 ];
 
 export default function CommentsScreen(): React.ReactElement {
@@ -123,19 +131,13 @@ export default function CommentsScreen(): React.ReactElement {
     <Box className="flex-1 bg-background">
       {/* Owner, 2026-10-01: the episode, with its own play/pause, at the top of the page. */}
       {episodeId ? <EpisodeCard episodeId={episodeId} /> : null}
-      <Box className="flex-row px-screen-x gap-row border-b-hairline border-separator" accessibilityRole="tablist">
-        {ORDERS.map((o) => (
-          <Pressable key={o.key} onPress={() => setOrder(o.key)} accessibilityRole="tab" accessibilityState={{ selected: order === o.key }} className="justify-center" style={TAB}>
-            <Text className={order === o.key ? 'text-text text-sm font-bold' : 'text-muted text-sm'}>{o.label}</Text>
-          </Pressable>
-        ))}
-      </Box>
+      <Segmented items={ORDERS} value={order} onChange={setOrder} className="mx-screen-x mt-row" />
       {stale ? <Text className="text-muted text-xs px-screen-x pt-2">Couldn't refresh — showing the last copy</Text> : null}
       <FlatList
         className="flex-1"
         data={ordered}
         keyExtractor={(x) => x.id}
-        contentContainerClassName="px-screen-x pb-section flex-grow"
+        contentContainerClassName="px-screen-x pt-row pb-section gap-row flex-grow"
         ListEmptyComponent={<EmptyState surface="comments" page action={{ label: 'Comment here', onPress: () => compose() }} />}
         renderItem={({ item }) => (
           <CommentRow
@@ -150,9 +152,14 @@ export default function CommentsScreen(): React.ReactElement {
         )}
       />
       {/* FR-021: the write box stays at the bottom and already carries the moment. */}
-      <Pressable onPress={() => compose()} accessibilityRole="button" accessibilityLabel={listener ? `Write a comment${atMs !== undefined ? ` at ${mmss(atMs)}` : ''}` : 'Sign in to join the conversation'} className="flex-row items-center gap-row mx-screen-x my-2 px-row bg-surface rounded-row" style={TAB}>
-        <Text className="text-muted text-sm flex-1">{listener ? 'Say something about this episode…' : 'Sign in to join the conversation'}</Text>
-        {listener && atMs !== undefined ? <Text className="text-accent text-xs font-semibold bg-accentTint rounded-pill px-2 py-0.5">{mmss(atMs)}</Text> : null}
+      <Pressable onPress={() => compose()} accessibilityRole="button" accessibilityLabel={listener ? `Write a comment${atMs !== undefined ? ` at ${mmss(atMs)}` : ''}` : 'Sign in to join the conversation'} className="flex-row items-center gap-2.5 mx-screen-x my-2 px-2 bg-surface border-2 border-primary rounded-pill" style={WRITE}>
+        {listener ? (
+          <Box className="rounded-pill bg-accentTint items-center justify-center" style={ME} accessible={false}>
+            <Text className="text-text text-xs font-bold">{initialsFor({ displayName: listener.displayName })}</Text>
+          </Box>
+        ) : null}
+        <Text className={listener ? 'text-muted text-body flex-1' : 'text-muted text-body flex-1 pl-2'} numberOfLines={1}>{listener ? 'Say something about this episode…' : 'Sign in to join the conversation'}</Text>
+        {listener && atMs !== undefined ? <Text className="text-onPrimary text-xs font-bold bg-primary rounded-pill px-2.5 py-1.5">{`at ${mmss(atMs)}`}</Text> : null}
       </Pressable>
       <Actionsheet isOpen={menu !== undefined} onClose={() => setMenu(undefined)}>
         <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />

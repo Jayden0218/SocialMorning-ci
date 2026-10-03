@@ -6,5 +6,21 @@
   "to": "removed",
   "why": "System / Light / Dark theme radios — dark mode removed by the owner (2026-10-03, \"remove it\"; constitution v3.0.0, FR-010)",
   "task": "T016"
+ },
+ {
+  "surface": "/comments/[episodeId]",
+  "name": "{o.label}",
+  "destination": "setOrder",
+  "to": "Segmented | it.accessibilityLabel ?? it.label | props.onChange",
+  "why": "the three sort tabs (Newest / Most liked / By moment) are drawn by the shared Segmented (Comments-B); same names, onChange calls setOrder",
+  "task": "T046"
+ },
+ {
+  "surface": "/comments/[episodeId]",
+  "name": "Close",
+  "destination": "compose",
+  "to": "/comments/[episodeId] | {initialsFor(...)} | compose",
+  "why": "the write box: its accessible name is unchanged ('Write a comment at mm:ss' / 'Sign in to join the conversation'); the scanner's regex cannot read the nested template label and picked up the neighbouring text before (Close) and now (the avatar initials)",
+  "task": "T046"
  }
 ]

@@ -3,6 +3,12 @@
  * SocialNet; none are sent yet, so it says so) and People (the activity of listeners you
  * follow: listens, comments, clips — M4's Following feed, which used to be a tab) — then
  * that activity below. Opening the page marks it read, as the Following tab did.
+ *
+ * M17 (`Following-B` for People, `Notifications-B` for System): the Editorial page — the
+ * serif "Notifications" title, the two tabs as one pill track with the tab's line under it,
+ * then the activity grouped by day ("Today", "Yesterday", then the date) under a small-capitals
+ * label, each day's items in one white card divided by hairlines. System keeps its empty
+ * picture under the same track. Loading, pull to refresh, paging and mark-as-read unchanged.
  */
 import { router, useFocusEffect } from 'expo-router';
 import { Link } from '../src/design/tailwind';
@@ -12,7 +18,10 @@ import { usePullRefresh } from '../src/ui/PullRefresh';
 import { Text } from '../src/ui/lib/text';
 import { Box } from '../src/ui/lib/box';
 import { useColours } from '../src/ui/useColours';
-import { NoticeCards, type NoticeSection } from '../src/ui/NoticeCards';
+import { NoticeCards, noticeLine, type NoticeSection } from '../src/ui/NoticeCards';
+import { Card } from '../src/ui/Card';
+import { Eyebrow } from '../src/ui/Eyebrow';
+import { hit } from '../src/design';
 import { createFeed, type FeedView } from '../src/graph/feed';
 import { useSafety } from '../src/safety/context';
 import type { FeedItem as Item } from '../src/social/api';
@@ -22,6 +31,25 @@ import { FeedItem } from '../src/ui/FeedItem';
 import { EmptyPicture } from '../src/ui/me/parts';
 import { useStores } from '../src/ui/providers';
 import { PageHeader } from '../src/ui/PageHeader';
+
+type Day = { key: string; label: string; items: Item[] };
+
+/** `Following-B`: the feed in day groups, newest first as the server sent it. */
+function byDay(items: readonly Item[], now: Date): Day[] {
+  const dayKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  const today = dayKey(now);
+  const yesterday = dayKey(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
+  const out: Day[] = [];
+  for (const item of items) {
+    const d = new Date(item.createdAt);
+    const key = dayKey(d);
+    const last = out[out.length - 1];
+    if (last && last.key === key) { last.items.push(item); continue; }
+    const label = key === today ? 'Today' : key === yesterday ? 'Yesterday' : d.toLocaleDateString([], { day: 'numeric', month: 'short', ...(d.getFullYear() === now.getFullYear() ? {} : { year: 'numeric' as const }) });
+    out.push({ key, label, items: [item] });
+  }
+  return out;
+}
 
 export default function NotificationsScreen(): React.ReactElement {
   const { api, listener } = useSocial();
@@ -48,13 +76,19 @@ export default function NotificationsScreen(): React.ReactElement {
   const c = useColours(stores.settings);
   // M12 FR-001 (B2): the cards choose what is listed; People (the feed) first, as before.
   const [section, setSection] = useState<NoticeSection>('people');
-  const cards = <NoticeCards section={section} unread={unread} iconColour={c.text} onSelect={setSection} />;
+  const cards = (
+    <Box className="mb-section">
+      <NoticeCards section={section} unread={unread} iconColour={c.muted} selectedIconColour={c.onPrimary} onSelect={setSection} />
+      <Text className="text-muted text-xs mt-gap">{noticeLine(section, unread)}</Text>
+    </Box>
+  );
+  const days = useMemo(() => byDay(safetyFilter.feed(view?.items ?? []), new Date()), [safetyFilter, view]);
 
   if (section === 'system') {
     return (
       <>
       <PageHeader title="Notifications" />
-      <Box className="flex-1 bg-background px-screen-x pt-section">
+      <Box className="flex-1 bg-background px-screen-x pt-gap">
         {cards}
         <EmptyPicture icon="notifications-outline" line="No messages from SocialNet yet — announcements and account notices will appear here" />
       </Box>
@@ -66,10 +100,12 @@ export default function NotificationsScreen(): React.ReactElement {
     return (
       <>
       <PageHeader title="Notifications" />
-      <Box className="flex-1 bg-background px-screen-x pt-section">
+      <Box className="flex-1 bg-background px-screen-x pt-gap">
         {cards}
-        <Text className="text-muted text-sm">Sign in to follow people and see what they listen to.</Text>
-        <Link href="/auth/sign-in" className="text-accent text-sm mt-row" accessibilityRole="link">Sign in</Link>
+        <Card className="py-section">
+          <Text className="text-muted text-body">Sign in to follow people and see what they listen to.</Text>
+          <Link href="/auth/sign-in" className="text-accent text-body font-semibold mt-gap py-row" style={{ minHeight: hit.min }} accessibilityRole="link">Sign in</Link>
+        </Card>
       </Box>
       </>
     );
@@ -81,9 +117,9 @@ export default function NotificationsScreen(): React.ReactElement {
     {pull.backdrop}
     <FlatList
       className="flex-1"
-      data={safetyFilter.feed(view?.items ?? [])}
-      keyExtractor={(i) => String(i.id)}
-      contentContainerClassName="px-screen-x pt-section pb-24 gap-2 flex-grow"
+      data={days}
+      keyExtractor={(d) => d.key}
+      contentContainerClassName="px-screen-x pt-gap pb-24 gap-section flex-grow"
       refreshControl={pull.refreshControl}
       onScroll={pull.onScroll}
       scrollEventThrottle={pull.scrollEventThrottle}
@@ -91,7 +127,7 @@ export default function NotificationsScreen(): React.ReactElement {
         <Box>
           {pull.inline}
           {cards}
-          {view?.stale ? <Text className="text-accent bg-surface p-2 rounded-row">Couldn't refresh — showing what was fetched {view.fetchedAt ? new Date(view.fetchedAt).toLocaleTimeString() : 'earlier'}.</Text> : null}
+          {view?.stale ? <Text className="text-accent text-meta bg-surface border border-border p-row rounded-row">Couldn't refresh — showing what was fetched {view.fetchedAt ? new Date(view.fetchedAt).toLocaleTimeString() : 'earlier'}.</Text> : null}
         </Box>
       }
       ListEmptyComponent={!refreshing ? (
@@ -99,7 +135,14 @@ export default function NotificationsScreen(): React.ReactElement {
           ? <EmptyState surface="feed" offline hasCache={false} onRetry={() => void refresh()} />
           : <EmptyPicture icon="sparkles-outline" line="No activity yet — follow people from their profile" />
       ) : undefined}
-      renderItem={({ item }) => <FeedItem item={item} onOpen={open} />}
+      renderItem={({ item: day }) => (
+        <Box>
+          <Eyebrow className="mb-gap">{day.label}</Eyebrow>
+          <Card>
+            {day.items.map((item, i) => <FeedItem key={String(item.id)} item={item} onOpen={open} last={i === day.items.length - 1} />)}
+          </Card>
+        </Box>
+      )}
       onEndReached={() => {
         const next = view?.next;
         if (!next || refreshing) return;

@@ -2,14 +2,19 @@
  * The host's newest announcement as one card under the show header (owner, 2026-10-01, after
  * the 小宇宙 show page): a megaphone, "Announcement · 2026-09-30", the body in 2 lines, and a
  * tap that opens the whole text (and closes it again).
+ *
+ * M17 (`Show-B`): an Editorial card — the heading as an accent eyebrow, the host's words in the
+ * serif. The megaphone is gone (B has none); `iconColour` is still accepted so callers stay as
+ * they are. Same words, same tap, same accessible name.
  */
 import { useState } from 'react';
-import { Box } from '../lib/box';
 import { Pressable } from '../lib/pressable';
 import { Text } from '../lib/text';
-import { Icon } from '../Icon';
 import { TAP } from '../TopBar';
 import type { ShowExtras } from '../../social/api';
+
+/** The eyebrow's spaced capitals (as `Eyebrow`, which is a header, not part of a button). */
+const CAPS = { letterSpacing: 1.3, textTransform: 'uppercase' as const };
 
 export type Announcement = ShowExtras['announcements'][number];
 
@@ -29,14 +34,11 @@ export function AnnouncementCard(props: { announcement: Announcement; iconColour
       accessibilityLabel={`${heading}. ${props.announcement.body}`}
       accessibilityHint={open ? 'Shows less' : 'Shows the whole announcement'}
       accessibilityState={{ expanded: open }}
-      className="bg-surface rounded-row p-row gap-1"
+      className="bg-surface border border-border rounded-row px-section py-row gap-1"
       style={TAP}
     >
-      <Box className="flex-row items-center gap-1">
-        <Icon name="megaphone-outline" size={14} color={props.iconColour} />
-        <Text className="text-xs font-bold text-text">{heading}</Text>
-      </Box>
-      <Text className="text-sm text-text" {...(open ? {} : { numberOfLines: 2 })}>{props.announcement.body}</Text>
+      <Text className="text-micro font-bold text-accent" style={CAPS}>{heading}</Text>
+      <Text className="text-sm font-display-semibold text-text leading-[22px]" {...(open ? {} : { numberOfLines: 2 })}>{props.announcement.body}</Text>
     </Pressable>
   );
 }

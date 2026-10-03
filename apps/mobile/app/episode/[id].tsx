@@ -10,10 +10,16 @@
  * the page scrolls past it the bar shows the show's 24 pt art, its name, share and a round play
  * button (above that point: back, share and ⋯; Subscribe sits beside the show's name); the
  * page ends with "Related episodes" (next-up, at most 5).
+ *
+ * M17 (constitution v3.0.0, `Episode-B`): the Editorial layout. A centred hero — 148 pt artwork
+ * with a soft shadow, the show's name as an accent eyebrow link, the title in 28 pt serif, then
+ * "90 min · 13 h ago · resumes at 26:37". Under it a yellow "Play from …" pill beside a white
+ * Subscribe pill, then one white card of three: Queue, comments, Favourite (they were icons on
+ * the meta line). Show notes get an eyebrow, a serif lede and one row per chapter time
+ * (src/ui/episode/ShowNotes). Every action, name and handler is the one it was.
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Linking } from 'react-native';
 import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '../../src/ui/lib/actionsheet';
 import { Pressable } from '../../src/ui/lib/pressable';
 import { SafeAreaView } from '../../src/ui/lib/safe-area-view';
@@ -28,6 +34,10 @@ import { ago, minutesLabel, mmss, noteParts } from '../../src/ui/format';
 import { useStores, useSubscriptionSync, useToast } from '../../src/ui/providers';
 import { isFavourite, toggleFavourite } from '../../src/me/favourites';
 import { Artwork } from '../../src/ui/Artwork';
+import { Card } from '../../src/ui/Card';
+import { HeroArtwork } from '../../src/ui/episode/HeroArtwork';
+import { ShowNotes } from '../../src/ui/episode/ShowNotes';
+import { hit } from '../../src/design';
 import { BarButton, TAP, TopBar } from '../../src/ui/TopBar';
 import { toPlayable } from '../../src/storage/playable';
 import { DownloadButton } from '../../src/ui/DownloadButton';
@@ -44,6 +54,11 @@ import { ClipList } from '../../src/ui/ClipList';
 import { useNextUp } from '../../src/ui/NextUp';
 import { RelatedEpisodes } from '../../src/ui/episode/RelatedEpisodes';
 import { useDiscover } from '../../src/discover/useDiscover';
+
+/** The eyebrow's spaced capitals (as `Eyebrow`, which is a header and cannot be a link). */
+const CAPS = { letterSpacing: 1.3, textTransform: 'uppercase' as const };
+/** One cell of the queue · comments · favourite card (48 pt plus its py-1 padding: 56, as in B). */
+const CELL = { minHeight: hit.min };
 
 export default function EpisodeScreen(): React.ReactElement {
   const stores = useStores();
@@ -81,7 +96,7 @@ export default function EpisodeScreen(): React.ReactElement {
     return (
       <SafeAreaView className="flex-1 bg-background">
         <TopBar onBack={() => router.back()} />
-        <Text className="px-screen-x text-base font-bold text-text">This episode is no longer in the feed.</Text>
+        <Text className="px-screen-x text-lg font-display text-text">This episode is no longer in the feed.</Text>
       </SafeAreaView>
     );
   }
@@ -143,6 +158,9 @@ export default function EpisodeScreen(): React.ReactElement {
   // M12 FR-035: length and date on one line, where you stopped on its own — it was cut to "resumes…".
   const meta = [minutesLabel(episode.durationMs), ago(episode.publishedAt, Date.now())].filter((p) => p !== '').join(' · ');
 
+  // M17 (`Episode-B`): the yellow pill says where play starts; the accessible name is unchanged.
+  const playLabel = playing ? 'Pause' : saved?.finished !== true && snapshotOffset > 0 ? `Play from ${mmss(snapshotOffset)}` : 'Play';
+
   return (
     <SafeAreaView className="flex-1 bg-background">
       <TopBar
@@ -151,7 +169,7 @@ export default function EpisodeScreen(): React.ReactElement {
           middle: (
             <>
               <Artwork url={show?.imageUrl ?? episode.imageUrl} size={24} rounded="row" name={show?.title} />
-              <Text className="text-sm font-semibold text-text flex-1" numberOfLines={1}>{show?.title ?? ''}</Text>
+              <Text className="text-body font-semibold text-text flex-1" numberOfLines={1}>{show?.title ?? ''}</Text>
             </>
           ),
         } : {})}
@@ -161,8 +179,8 @@ export default function EpisodeScreen(): React.ReactElement {
         </BarButton>
         {collapsed ? (
           <Pressable onPress={playOrPause} accessibilityRole="button" accessibilityLabel={playing ? 'Pause' : 'Play this episode'} className="items-center justify-center" style={TAP}>
-            <Box className="w-9 h-9 rounded-pill bg-surface items-center justify-center">
-              <Icon name={playing ? 'pause' : 'play'} size={18} color={c.text} />
+            <Box className="w-9 h-9 rounded-pill bg-primary items-center justify-center">
+              <Icon name={playing ? 'pause' : 'play'} size={18} color={c.onPrimary} />
             </Box>
           </Pressable>
         ) : (
@@ -181,84 +199,65 @@ export default function EpisodeScreen(): React.ReactElement {
           if (past !== collapsed) setCollapsed(past);
         }}
       >
-        <Artwork url={episode.imageUrl ?? show?.imageUrl} size={48} rounded="row" className="mt-2" name={show?.title} />
-        <Box className="flex-row items-center gap-section mt-section" onLayout={(e) => setTitleBottom(e.nativeEvent.layout.y + e.nativeEvent.layout.height)}>
-          <Text className="flex-1 text-lg font-bold text-text" numberOfLines={4} accessibilityRole="header">{episode.title}</Text>
-          <Pressable
-            className="w-14 h-14 rounded-pill bg-surface items-center justify-center"
-            accessibilityRole="button"
-            accessibilityLabel={playing ? 'Pause' : 'Play this episode'}
-            onPress={playOrPause}
-          >
-            <Icon name={playing ? 'pause' : 'play'} size={26} color={c.text} />
-          </Pressable>
-        </Box>
-        <Box className="flex-row items-center gap-row">
-          {show === undefined ? null : (
+        {/* M17: centred hero — artwork, the show as an accent eyebrow link, the serif title, the meta line. */}
+        <Box className="items-center pt-1" onLayout={(e) => setTitleBottom(e.nativeEvent.layout.y + e.nativeEvent.layout.height)}>
+          <HeroArtwork url={episode.imageUrl ?? show?.imageUrl} size={148} name={show?.title} />
+          {show === undefined ? <Box className="h-section" /> : (
             <Pressable
               onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(episode.feedUrl) } })}
               accessibilityRole="link"
               accessibilityLabel={`Show: ${show.title}`}
-              className="flex-shrink flex-row items-center gap-1"
+              className="flex-row items-center justify-center gap-0.5 mt-1 px-row"
               style={TAP}
             >
-              <Text className="text-sm text-text flex-shrink" numberOfLines={1}>{show.title}</Text>
-              <Icon name="chevron-forward" size={16} color={c.text} />
+              <Text className="text-accent text-xs font-bold flex-shrink" style={CAPS} numberOfLines={1}>{show.title}</Text>
+              <Icon name="chevron-forward" size={14} color={c.accent} />
             </Pressable>
           )}
-          {/* Owner, 2026-10-01: Subscribe moved here from the bar, which now holds only share and ⋯. */}
-          <Pressable onPress={toggleSubscription} accessibilityRole="button" accessibilityLabel={subscribed ? 'Unsubscribe from this show' : 'Subscribe to this show'} accessibilityState={{ selected: subscribed }} className="justify-center" style={TAP}>
-            <Text className={subscribed ? 'text-xs font-semibold px-row py-1 rounded-pill bg-surface text-muted' : 'text-xs font-semibold px-row py-1 rounded-pill bg-surface text-text'}>{subscribed ? 'Subscribed' : '+ Subscribe'}</Text>
+          <Text className="text-text text-hero font-display text-center" numberOfLines={4} accessibilityRole="header">{episode.title}</Text>
+          {meta !== '' || resume !== '' ? (
+            <Text className="text-muted text-meta text-center mt-gap" numberOfLines={2}>
+              {meta}
+              {meta !== '' && resume !== '' ? ' · ' : ''}
+              {resume !== '' ? <Text className="text-accent text-meta font-semibold">{resume}</Text> : null}
+            </Text>
+          ) : null}
+        </Box>
+        {/* M17: Play (yellow pill) and Subscribe (white pill) side by side. */}
+        <Box className="flex-row gap-gap mt-section">
+          <Pressable
+            className="flex-1 flex-row gap-gap rounded-pill bg-primary items-center justify-center px-section"
+            style={TAP}
+            accessibilityRole="button"
+            accessibilityLabel={playing ? 'Pause' : 'Play this episode'}
+            onPress={playOrPause}
+          >
+            <Icon name={playing ? 'pause' : 'play'} size={16} color={c.onPrimary} />
+            <Text className="text-onPrimary text-body font-bold" numberOfLines={1}>{playLabel}</Text>
+          </Pressable>
+          {/* Owner, 2026-10-01: Subscribe sits on the page, not in the bar. */}
+          <Pressable onPress={toggleSubscription} accessibilityRole="button" accessibilityLabel={subscribed ? 'Unsubscribe from this show' : 'Subscribe to this show'} accessibilityState={{ selected: subscribed }} className="rounded-pill bg-surface border border-border items-center justify-center px-section" style={TAP}>
+            <Text className={subscribed ? 'text-muted text-body font-bold' : 'text-text text-body font-bold'}>{subscribed ? 'Subscribed' : '+ Subscribe'}</Text>
           </Pressable>
         </Box>
-        <Box className="flex-row items-center">
-          <Box className="flex-1">
-            <Text className="text-sm text-muted" numberOfLines={1}>{meta}</Text>
-            {resume !== '' ? <Text className="text-xs text-accent" numberOfLines={1}>{resume}</Text> : null}
-          </Box>
-          <BarButton label="Add to queue" onPress={addToQueue}>
-            <Icon name="list-outline" size={24} color={c.text} />
-          </BarButton>
-          <BarButton label={`Comments, ${commentCount}`} onPress={openComments}>
-            <Box className="flex-row items-end">
-              <Icon name="chatbox-ellipses-outline" size={24} color={c.text} />
-              <Text className="text-xs text-text">{commentCount}</Text>
-            </Box>
-          </BarButton>
-          <Pressable onPress={() => setFav(toggleFavourite(stores.settings, episode.id, Date.now()))} accessibilityRole="button" accessibilityState={{ selected: fav }} accessibilityLabel={fav ? 'Remove from favourites' : 'Add to favourites'} className="items-center justify-center" style={TAP}>
-            {/* Filled vs outline, and the name — never hue alone (FR-016). */}
-            <Icon name={fav ? 'heart' : 'heart-outline'} size={24} color={fav ? c.accent : c.text} />
+        {/* M17: queue, comments and favourite as one white card of three. */}
+        <Card padded={false} className="flex-row mt-gap">
+          <Pressable onPress={addToQueue} accessibilityRole="button" accessibilityLabel="Add to queue" className="flex-1 items-center justify-center gap-0.5 py-1" style={CELL}>
+            <Icon name="list-outline" size={20} color={c.text} />
+            <Text className="text-text text-xs font-semibold">Queue</Text>
           </Pressable>
-        </Box>
-        <Box className="h-px bg-separator mt-row mb-section" />
-        {notes.length === 0 ? null : (
-          <Text className="text-sm leading-[28px] text-text">
-            {notes.map((part, i) =>
-              part.href !== undefined ? (
-                <Text
-                  key={i}
-                  className="text-accent underline"
-                  accessibilityRole="link"
-                  accessibilityLabel={`${part.text}, opens in the browser`}
-                  onPress={() => void Linking.openURL(part.href!).catch(() => undefined)}
-                >
-                  {part.text}
-                </Text>
-              ) : part.atMs === undefined ? part.text : (
-                <Text
-                  key={i}
-                  className="text-accent font-semibold underline"
-                  accessibilityRole="link"
-                  accessibilityLabel={`Play from ${part.text}`}
-                  onPress={() => playFrom(part.atMs!)}
-                >
-                  {part.text}
-                </Text>
-              ),
-            )}
-          </Text>
-        )}
-        <Box className="mt-section">
+          <Pressable onPress={openComments} accessibilityRole="button" accessibilityLabel={`Comments, ${commentCount}`} className="flex-1 items-center justify-center gap-0.5 py-1" style={CELL}>
+            <Icon name="chatbox-ellipses-outline" size={20} color={c.text} />
+            <Text className="text-text text-xs font-semibold">{String(commentCount)}</Text>
+          </Pressable>
+          <Pressable onPress={() => setFav(toggleFavourite(stores.settings, episode.id, Date.now()))} accessibilityRole="button" accessibilityState={{ selected: fav }} accessibilityLabel={fav ? 'Remove from favourites' : 'Add to favourites'} className="flex-1 items-center justify-center gap-0.5 py-1" style={CELL}>
+            {/* Filled vs outline, and the word — never hue alone (FR-016). */}
+            <Icon name={fav ? 'heart' : 'heart-outline'} size={20} color={fav ? c.accent : c.text} />
+            <Text className="text-text text-xs font-semibold">{fav ? 'Favourited' : 'Favourite'}</Text>
+          </Pressable>
+        </Card>
+        <ShowNotes parts={notes} onPlayFrom={playFrom} />
+        <Box className="mt-section gap-section">
           {extras ? <ShowExtrasBlock extras={extras} onPoll={replacePoll} episodeId={episode.id} /> : null}
           {/* M12 FR-027: a two-comment preview; the conversation has its own page. */}
           <CommentPreview

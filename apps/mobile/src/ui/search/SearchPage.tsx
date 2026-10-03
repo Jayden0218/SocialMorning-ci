@@ -30,6 +30,16 @@
  * (src/ui/search/SearchOverlay.tsx — 小宇宙's "fade-in in place"), and result pages push on the
  * root stack like every other push. `app/search.tsx` keeps the `/search` route (the show page's
  * Search, a scanned code's text, links) as an ordinary page. Guard: __tests__/search-in-place.test.ts.
+ *
+ * M17 (`Search-B`, constitution v3.0.0 — layout follows B): a serif "Search" title with
+ * "Cancel" in the accent on its right; under it the box, a white 16 pt card with a dark outline
+ * (the magnifier, the field, the scan button). Nothing typed: "Try searching" as a numbered card
+ * (serif numbers, the first three in the accent), "Categories" with "Browse categories →" and a
+ * two-column grid of category tiles (icon + name), and "Recent" as rows with a clock (B's rows
+ * replace the 2026-10-01 chips). The result tabs are a pill track; section labels are small
+ * capitals. Cancel no longer sits beside the box, so the box keeps its full width and the
+ * "Cancel" room animation is gone; the box still moves up from Discover's place and the rest
+ * fades in. Every action, name and handler is the same.
  */
 import { useIsFocused, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
@@ -40,6 +50,8 @@ import { SafeAreaView } from '../lib/safe-area-view';
 import { ScrollView } from '../lib/scroll-view';
 import { Text } from '../lib/text';
 import { Box } from '../lib/box';
+import { Card } from '../Card';
+import { Eyebrow } from '../Eyebrow';
 import { Loader } from '../Loader';
 import { mergeSearch } from '@socialmorning/social-core';
 import { useSocial } from '../../social/context';
@@ -50,7 +62,7 @@ import { useDiscover } from '../../discover/useDiscover';
 import { EpisodeRow } from '../EpisodeRow';
 import { Artwork } from '../Artwork';
 import { EmptyState } from '../EmptyState';
-import { hit, size, spacing } from '../../design';
+import { hit, size } from '../../design';
 import { useColours } from '../useColours';
 import { Icon } from '../Icon';
 import { GENRES } from '../../discover/genres';
@@ -61,6 +73,11 @@ import { useSafety } from '../../safety/context';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
 const ROW = { minHeight: size.row };
+/** `Search-B`: the box is 56 pt tall; a category tile 64. */
+const BOX = { minHeight: 56 };
+const TILE = { minHeight: 64 };
+/** `Search-B`: "Try searching" numbers 1–3 are in the accent, the rest muted. */
+const LEAD = 3;
 /** How long the box takes to move between Discover's place and the top. */
 const MOVE_MS = 260;
 /** On "All", this many shows sit above the episodes; the Shows tab has the rest. */
@@ -78,7 +95,7 @@ const TABS: { key: Tab; label: string }[] = [{ key: 'all', label: 'All' }, { key
 /** Owner, 2026-10-01: a name with the typed part in the accent colour. */
 function Marked(props: { text: string; term: string; bold?: boolean; lines?: number }): React.ReactElement {
   return (
-    <Text className={props.bold ? 'text-text text-[15px] font-semibold flex-1' : 'text-text text-sm flex-1'} numberOfLines={props.lines ?? 1}>
+    <Text className={props.bold ? 'text-text text-sm font-display-semibold flex-1' : 'text-text text-body flex-1'} numberOfLines={props.lines ?? 1}>
       {splitMatch(props.text, props.term).map((s, i) => (
         <Text key={i} className={s.match ? 'text-accent' : 'text-text'}>{s.text}</Text>
       ))}
@@ -166,11 +183,9 @@ export function SearchPage(props: SearchPageProps): React.ReactElement {
   const barY = move.interpolate({ inputRange: [0, 1], outputRange: [delta, 0] });
   const fadeIn = move.interpolate({ inputRange: [0, 0.6, 1], outputRange: [0, 0, 1] });
   // Phone check 2026-10-01: Discover stays visible under this page (drawn in place, M17) while the
-  // page's own background fades in, and "Cancel" opens room for itself, so the box starts at
-  // Discover's full width. Width is not a native-driver prop, so this animation runs in JS.
+  // page's own background fades in. M17 (`Search-B`): "Cancel" sits in the title row now, so the
+  // box keeps Discover's full width throughout.
   const backdrop = move.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
-  const [cancelW, setCancelW] = useState(64);
-  const cancelRoom = move.interpolate({ inputRange: [0, 1], outputRange: [0, cancelW] });
 
   const library = useMemo(() => (trimmed === '' ? { shows: [], episodes: [] } : searchLibrary(stores, trimmed)), [stores, trimmed]);
 
@@ -245,23 +260,22 @@ export function SearchPage(props: SearchPageProps): React.ReactElement {
     subscriptionSync.push();
     setSubVersion((v) => v + 1);
   };
-  const allCategories = () => router.push({ pathname: '/category/[id]', params: { id: String(GENRES[0]!.id) } });
 
-  const showRows = (list: typeof merged.shows) => list.map((s) => {
+  const showRows = (list: typeof merged.shows) => list.map((s, i) => {
     const on = stores.subscriptions.has(s.feedUrl);
     return (
-      <Box key={s.feedUrl} className="flex-row items-center gap-row">
-        <Pressable className="flex-1 flex-row gap-3 py-2" accessibilityRole="button" accessibilityLabel={`${s.title}, ${s.author}`} onPress={() => openShow(s.feedUrl)}>
+      <Box key={s.feedUrl} className={`flex-row items-center gap-row ${i === list.length - 1 ? '' : 'border-b-hairline border-separator'}`}>
+        <Pressable className="flex-1 flex-row items-center gap-row py-gap" accessibilityRole="button" accessibilityLabel={`${s.title}, ${s.author}`} onPress={() => openShow(s.feedUrl)}>
           {/* Phone walk 2026-09-30: shows with no (or a broken) image were blank grey squares. */}
           <Artwork url={s.imageUrl} size={56} rounded="row" name={s.title} />
           <Box className="flex-1">
             <Box className="flex-row"><Marked text={s.title} term={submitted ?? trimmed} bold lines={2} /></Box>
-            <Text className="text-[13px] text-muted" numberOfLines={1}>{s.author}{libShowKeys.has(s.feedUrl) ? ' · in your library' : ''}</Text>
+            <Text className="text-meta text-muted" numberOfLines={1}>{s.author}{libShowKeys.has(s.feedUrl) ? ' · in your library' : ''}</Text>
           </Box>
         </Pressable>
         {/* Owner, 2026-10-01: subscribe from the result, as on the show page. */}
         <Pressable onPress={() => toggleSubscription(s.feedUrl)} accessibilityRole="button" accessibilityLabel={on ? `Unsubscribe from ${s.title}` : `Subscribe to ${s.title}`} accessibilityState={{ selected: on }}
-          className={`justify-center px-row rounded-pill ${on ? 'bg-surface' : 'bg-primary'}`} style={TAP}>
+          className={`justify-center px-section rounded-pill ${on ? 'bg-surface border border-border' : 'bg-primary'}`} style={TAP}>
           <Text className={on ? 'text-xs font-bold text-muted' : 'text-xs font-bold text-onPrimary'}>{on ? 'Subscribed' : 'Subscribe'}</Text>
         </Pressable>
       </Box>
@@ -270,12 +284,12 @@ export function SearchPage(props: SearchPageProps): React.ReactElement {
   // Owner, 2026-10-01: "More ›" on an All section when its tab has more than All shows.
   const more = (label: string, to: Tab) => (
     <Pressable onPress={() => setTab(to)} accessibilityRole="button" accessibilityLabel={`More ${label.toLowerCase()}`} className="justify-center pl-row" style={TAP}>
-      <Text className="text-muted text-xs">More ›</Text>
+      <Text className="text-accent text-meta font-semibold">More ›</Text>
     </Pressable>
   );
   const sectionHead = (label: string, to: Tab, extra: boolean) => (
-    <Box className="flex-row items-center justify-between mt-3 mb-1">
-      <Text className="text-sm font-semibold text-text" accessibilityRole="header">{label}</Text>
+    <Box className="flex-row items-center justify-between mt-section">
+      <Eyebrow accent>{label}</Eyebrow>
       {extra ? more(label, to) : null}
     </Box>
   );
@@ -286,13 +300,20 @@ export function SearchPage(props: SearchPageProps): React.ReactElement {
   return (
     <SafeAreaView className="flex-1">
       <Animated.View pointerEvents="none" className="absolute inset-0 bg-background" style={{ opacity: backdrop }} />
-      <Box className="flex-row items-center px-screen-x pt-row">
+      {/* M17 (`Search-B`): the page's name in serif, "Cancel" in the accent on its right. */}
+      <Animated.View className="flex-row items-center justify-between px-screen-x pt-row" style={{ opacity: fadeIn }}>
+        <Text className="text-text text-display font-display" accessibilityRole="header">Search</Text>
+        <Pressable onPress={leave} accessibilityRole="button" accessibilityLabel="Cancel" className="justify-center pl-row" style={TAP}>
+          <Text className="text-accent text-body font-semibold" numberOfLines={1}>Cancel</Text>
+        </Pressable>
+      </Animated.View>
+      <Box className="px-screen-x mt-gap">
         <Animated.View
           ref={bar}
           collapsable={false}
           onLayout={place}
-          className="flex-1 flex-row items-center bg-surface rounded-pill pl-section"
-          style={{ opacity: placed ? 1 : 0, transform: [{ translateY: barY }] }}
+          className="flex-row items-center bg-surface rounded-row border-[1.5px] border-text pl-section pr-1"
+          style={{ ...BOX, opacity: placed ? 1 : 0, transform: [{ translateY: barY }] }}
         >
           {/* M12 FR-010 (B10): the same magnifier and scan marks as the Discover bar. */}
           <Icon name="search-outline" size={18} color={c.muted} />
@@ -305,21 +326,13 @@ export function SearchPage(props: SearchPageProps): React.ReactElement {
             <Icon name="scan-outline" size={22} color={c.text} />
           </Pressable>
         </Animated.View>
-        {/* Phone check 2026-10-02: measured inside the 0-wide box, "Cancel" wrapped to two lines.
-            The word is measured here, outside it, hidden; the button then takes that width. */}
-        <Text className="absolute text-muted text-sm opacity-0" numberOfLines={1} accessible={false} importantForAccessibility="no-hide-descendants" onLayout={(e) => setCancelW(Math.ceil(e.nativeEvent.layout.width) + spacing.row)}>Cancel</Text>
-        <Animated.View className="self-stretch overflow-hidden" style={{ width: cancelRoom, opacity: fadeIn }}>
-          <Pressable onPress={leave} accessibilityRole="button" accessibilityLabel="Cancel" className="absolute left-0 top-0 bottom-0 justify-center pl-row" style={{ ...TAP, width: cancelW }}>
-            <Text className="text-muted text-sm" numberOfLines={1}>Cancel</Text>
-          </Pressable>
-        </Animated.View>
       </Box>
       <Animated.View className="flex-1" style={{ opacity: fadeIn }}>
       {results ? (
-        <Box className="flex-row border-b-hairline border-separator px-screen-x mt-row">
+        <Box className="flex-row gap-1 p-1 bg-surface border border-border rounded-pill mx-screen-x mt-row" accessibilityRole="tablist">
           {TABS.map((t) => (
-            <Pressable key={t.key} onPress={() => setTab(t.key)} accessibilityRole="tab" accessibilityState={{ selected: tab === t.key }} accessibilityLabel={t.label} className="flex-1 items-center justify-center" style={TAP}>
-              <Text className={tab === t.key ? 'text-accent text-sm font-bold' : 'text-muted text-sm'}>{t.label}</Text>
+            <Pressable key={t.key} onPress={() => setTab(t.key)} accessibilityRole="tab" accessibilityState={{ selected: tab === t.key }} accessibilityLabel={t.label} className={`flex-1 items-center justify-center rounded-pill ${tab === t.key ? 'bg-primary' : ''}`} style={TAP}>
+              <Text className={tab === t.key ? 'text-onPrimary text-body font-bold' : 'text-muted text-body'}>{t.label}</Text>
             </Pressable>
           ))}
         </Box>
@@ -329,44 +342,51 @@ export function SearchPage(props: SearchPageProps): React.ReactElement {
           <Box>
             {tryThese.length > 0 ? (
               <>
-                <Text className="text-muted text-xs mt-section mb-row">Try searching</Text>
-                <Box className="flex-row flex-wrap">
-                  {tryThese.map((t) => (
-                    <Pressable key={t} onPress={() => run(t)} accessibilityRole="button" accessibilityLabel={`Search for ${t}`} className="w-1/2 justify-center pr-row" style={TAP}>
-                      <Text className="text-text text-sm" numberOfLines={1}>{t}</Text>
+                <Eyebrow accent className="mt-section mb-gap">Try searching</Eyebrow>
+                {/* M17 (`Search-B`): a numbered card — serif numbers, the first three in the accent. */}
+                <Card>
+                  {tryThese.map((t, i) => (
+                    <Pressable key={t} onPress={() => run(t)} accessibilityRole="button" accessibilityLabel={`Search for ${t}`} className={`flex-row items-center gap-row ${i === 0 ? '' : 'border-t-hairline border-separator'}`} style={TAP}>
+                      <Text className={i < LEAD ? 'w-6 text-base font-display text-accent' : 'w-6 text-base font-display text-muted'}>{String(i + 1)}</Text>
+                      <Text className="flex-1 text-text text-title font-display-semibold" numberOfLines={1}>{t}</Text>
+                      <Icon name="search-outline" size={16} color={c.muted} />
                     </Pressable>
                   ))}
-                </Box>
+                </Card>
               </>
             ) : null}
-            <Pressable onPress={allCategories} accessibilityRole="link" accessibilityLabel="Browse categories" className="justify-center mt-section" style={TAP}>
-              <Text className="text-muted text-xs">Browse categories →</Text>
-            </Pressable>
-            <Box className="flex-row flex-wrap gap-row">
+            <Box className="flex-row items-center justify-between mt-section">
+              <Eyebrow accent>Categories</Eyebrow>
+              <Pressable onPress={() => router.push({ pathname: '/category/[id]', params: { id: String(GENRES[0]!.id) } })} accessibilityRole="link" accessibilityLabel="Browse categories" className="justify-center pl-row" style={TAP}>
+                <Text className="text-accent text-meta font-semibold">Browse categories →</Text>
+              </Pressable>
+            </Box>
+            {/* M17 (`Search-B`): a two-column grid of tiles — the category's icon, then its name. */}
+            <Box className="flex-row flex-wrap justify-between gap-y-2">
               {GENRES.slice(0, 4).map((g) => (
-                <Pressable key={g.id} onPress={() => router.push({ pathname: '/category/[id]', params: { id: String(g.id) } })} accessibilityRole="button" accessibilityLabel={g.name} className="bg-surface rounded-row justify-center px-section" style={TAP}>
-                  <Text className="text-text text-sm">{g.name}</Text>
+                <Pressable key={g.id} onPress={() => router.push({ pathname: '/category/[id]', params: { id: String(g.id) } })} accessibilityRole="button" accessibilityLabel={g.name} className="bg-surface border border-border rounded-row justify-between px-row py-2.5 gap-1.5 w-[48.5%]" style={TILE}>
+                  <Icon name={g.icon} size={18} color={c.accent} />
+                  <Text className="text-text text-meta font-semibold" numberOfLines={1}>{g.name}</Text>
                 </Pressable>
               ))}
             </Box>
             {/* M12 FR-073: "Recent" — the last 10 searches, newest first, each one tap away. */}
             {history.length > 0 ? (
               <>
-                <Box className="flex-row items-center justify-between mt-section">
-                  <Text className="text-muted text-xs" accessibilityRole="header">Recent</Text>
+                <Box className="flex-row items-center justify-between mt-row">
+                  <Eyebrow accent>Recent</Eyebrow>
                   {/* Owner, 2026-10-01: a trash button, not the word "Clear". */}
                   <Pressable onPress={() => { clearHistory(stores.settings); setHistory([]); }} accessibilityRole="button" accessibilityLabel="Clear recent searches" className="items-center justify-center" style={TAP}>
                     <Icon name="trash-outline" size={18} color={c.muted} />
                   </Pressable>
                 </Box>
-                {/* Owner, 2026-10-01: wrapping chips, not full-width rows. */}
-                <Box className="flex-row flex-wrap gap-row">
-                  {recentSearches(history).map((h) => (
-                    <Pressable key={h} onPress={() => run(h)} accessibilityRole="button" accessibilityLabel={`Search for ${h}`} className="bg-surface rounded-row px-row justify-center max-w-full" style={TAP}>
-                      <Text className="text-text text-sm" numberOfLines={1}>{h}</Text>
-                    </Pressable>
-                  ))}
-                </Box>
+                {/* M17 (`Search-B`): rows with a clock (they were wrapping chips, 2026-10-01). */}
+                {recentSearches(history).map((h) => (
+                  <Pressable key={h} onPress={() => run(h)} accessibilityRole="button" accessibilityLabel={`Search for ${h}`} className="flex-row items-center gap-row" style={TAP}>
+                    <Icon name="time-outline" size={16} color={c.muted} />
+                    <Text className="flex-1 text-text text-body" numberOfLines={1}>{h}</Text>
+                  </Pressable>
+                ))}
               </>
             ) : null}
           </Box>
@@ -403,8 +423,8 @@ export function SearchPage(props: SearchPageProps): React.ReactElement {
             {tab !== 'people' ? (
               <>
                 {catalogue.kind === 'loading' ? <Loader className="my-section" /> : null}
-                {catalogue.kind === 'error' ? <Text className="my-2 text-accent bg-surface p-2 rounded-md">{catalogue.message}</Text> : null}
-                {catalogue.kind === 'ok' && catalogue.result.episodeSearch === 'unavailable' ? <Text className="my-2 text-accent bg-surface p-2 rounded-md">Episode search is unavailable right now — shows only.</Text> : null}
+                {catalogue.kind === 'error' ? <Text className="my-2 text-accent bg-surface p-2 rounded-row">{catalogue.message}</Text> : null}
+                {catalogue.kind === 'ok' && catalogue.result.episodeSearch === 'unavailable' ? <Text className="my-2 text-accent bg-surface p-2 rounded-row">Episode search is unavailable right now — shows only.</Text> : null}
                 {nothing ? <EmptyState surface="search" page /> : null}
               </>
             ) : null}
@@ -412,18 +432,18 @@ export function SearchPage(props: SearchPageProps): React.ReactElement {
             {tab === 'all' ? (
               <>
                 {merged.shows.length > 0 ? sectionHead('Shows', 'shows', merged.shows.length > ALL_SHOWS) : null}
-                {showRows(merged.shows.slice(0, ALL_SHOWS))}
+                {merged.shows.length > 0 ? <Card className="mt-gap">{showRows(merged.shows.slice(0, ALL_SHOWS))}</Card> : null}
                 {merged.episodes.length > 0 ? sectionHead('Episodes', 'episodes', merged.episodes.length > ALL_EPISODES) : null}
                 {episodeRows(merged.episodes.slice(0, ALL_EPISODES))}
               </>
             ) : null}
-            {tab === 'shows' ? (catalogue.kind !== 'loading' && merged.shows.length === 0 && !nothing ? <Text className="text-muted text-sm mt-section">No shows match.</Text> : showRows(merged.shows)) : null}
+            {tab === 'shows' ? (catalogue.kind !== 'loading' && merged.shows.length === 0 && !nothing ? <Text className="text-muted text-sm mt-section">No shows match.</Text> : (merged.shows.length > 0 ? <Card className="mt-section">{showRows(merged.shows)}</Card> : null)) : null}
             {tab === 'episodes' ? (catalogue.kind !== 'loading' && merged.episodes.length === 0 && !nothing ? <Text className="text-muted text-sm mt-section">No episodes match.</Text> : episodeRows(merged.episodes)) : null}
             {/* Owner, 2026-10-01: People — listeners by name, opening their profile. */}
             {tab === 'people' ? (
               <Box>
                 {people.kind === 'loading' ? <Loader className="my-section" /> : null}
-                {people.kind === 'error' ? <Text className="my-2 text-accent bg-surface p-2 rounded-md">{people.message}</Text> : null}
+                {people.kind === 'error' ? <Text className="my-2 text-accent bg-surface p-2 rounded-row">{people.message}</Text> : null}
                 {people.kind === 'ok' && shownPeople.length === 0 ? <Text className="text-muted text-sm mt-section">No one by that name.</Text> : null}
                 {shownPeople.map((p) => (
                   <Pressable key={p.id} onPress={() => { remember(trimmed); router.push({ pathname: '/profile/[id]', params: { id: p.id } }); }} accessibilityRole="link" accessibilityLabel={p.displayName ?? 'Listener'}

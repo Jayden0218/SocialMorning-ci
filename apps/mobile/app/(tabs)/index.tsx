@@ -6,6 +6,10 @@
  * Kept from M5/M8: works signed out (For You simply is not there); the last copy shows at
  * once and offline, marked stale; pull to refresh; opening a card resolves it through its
  * feed without subscribing (research R8). New: every row plays from its round button.
+ *
+ * M17 (`Home-B`, `Discover-B`): today's date as an eyebrow over a 32 pt serif "Discover";
+ * the stale notice is a bordered white card. The sections themselves are restyled in
+ * `src/ui/discover/{parts,sections}.tsx`; order, data, pull to refresh and every action stay.
  */
 import { useRouter } from 'expo-router';
 import { Fragment, useEffect, useMemo, useState } from 'react';
@@ -28,6 +32,7 @@ import { useSocial } from '../../src/social/context';
 import { inboxIds } from '../../src/inbox';
 import { useStores } from '../../src/ui/providers';
 import { BOTTOM_INSET } from '../../src/ui/Screen';
+import { Eyebrow } from '../../src/ui/Eyebrow';
 import { SearchBar } from '../../src/ui/discover/parts';
 import { useSearchOverlay } from '../../src/ui/search/SearchOverlay';
 import {
@@ -36,6 +41,8 @@ import {
 } from '../../src/ui/discover/sections';
 
 const ICON = { width: 36, height: 36 };
+/** "Thursday, 2 October" — the eyebrow over the title (`Home-B`), from the phone's clock. */
+const today = (): string => new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 
 export default function DiscoverScreen(): React.ReactElement {
   const router = useRouter();
@@ -100,8 +107,11 @@ export default function DiscoverScreen(): React.ReactElement {
       >
         {view ? pull.inline : null}
         {/* Owner, 2026-09-27: less space above the title. */}
-        <Box className="flex-row items-center justify-between px-screen-x pt-1 pb-2">
-          <Text className="text-text text-lg font-bold" accessibilityRole="header">Discover</Text>
+        <Box className="flex-row items-end justify-between px-screen-x pt-1 pb-row">
+          <Box className="flex-1 gap-0.5">
+            <Eyebrow>{today()}</Eyebrow>
+            <Text className="text-text text-display font-display" accessibilityRole="header">Discover</Text>
+          </Box>
           <Image source={require('../../assets/app-icon.png')} style={ICON} className="rounded-row" accessibilityIgnoresInvertColors accessibilityLabel="SocialNet" />
         </Box>
         <SearchBar
@@ -125,7 +135,7 @@ export default function DiscoverScreen(): React.ReactElement {
         />
 
         {view?.stale ? (
-          <Text className="text-accent bg-surface mx-screen-x mt-row p-row rounded-row text-sm">
+          <Text className="text-accent bg-surface border border-border mx-screen-x mt-row p-row rounded-row text-body">
             Couldn't refresh — showing what was fetched {view.fetchedAt ? new Date(view.fetchedAt).toLocaleTimeString() : 'earlier'}.
           </Text>
         ) : null}

@@ -8,6 +8,12 @@
  * Owner, 2026-10-01 (the 小宇宙 comments page): the name on its own line, then "time · place"
  * (place = the commenter's IP location when the server sends one), the like count on the
  * right; replies in a grey box under the parent, the first 2 shown and "Show N more" for the rest.
+ *
+ * M17 (`Comments-B`): each top-level comment is a white card. Avatar 36 and the name in bold,
+ * "time · place" under it; the moment as its own tinted chip (▶ 14:32) that plays from there;
+ * the text in the serif (display-m) so the words lead; replies in a warm box inside the card;
+ * then a footer with the like on the left and a ⋯ button on the right that opens the same
+ * menu as the long-press (which still works). The Host badge is the yellow pill.
  */
 import { useState } from 'react';
 import { Link } from '../design/tailwind';
@@ -23,8 +29,7 @@ import type { Comment } from '../social/api';
 import { countryName } from './country';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
-const AVATAR = { width: 32, height: 32 };
-const REPLY_AVATAR = { width: 24, height: 24 };
+const AVATAR = { width: 36, height: 36 };
 
 /** The avatar's letter: what the server sent, else the name's first letter or digit. */
 export function initialsFor(c: Pick<Comment, 'initials' | 'displayName'>): string {
@@ -76,16 +81,34 @@ export function CommentRow(props: {
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const kind = placeholderFor(c, c.reported);
-  if (kind !== undefined) return <Box className="py-row"><Placeholder kind={kind} /></Box>;
+  if (kind !== undefined) {
+    return props.isReply
+      ? <Box className="py-2"><Placeholder kind={kind} /></Box>
+      : <Box className="bg-surface border border-border rounded-row p-row"><Placeholder kind={kind} /></Box>;
+  }
 
   const replies = c.replies ?? [];
   const shownReplies = expanded ? replies : replies.slice(0, REPLY_PREVIEW);
   const more = moreRepliesLabel(replies.length, expanded);
-  const avatar = props.isReply ? REPLY_AVATAR : AVATAR;
   const name = c.displayName ?? 'Deleted account';
+  const reply = props.isReply === true;
+
+  const likeButton = c.mine ? null : (
+    <Pressable
+      onPress={() => props.onLike(c)}
+      accessibilityRole="button"
+      accessibilityState={{ selected: like.liked }}
+      accessibilityLabel={`${like.liked ? 'Unlike' : 'Like'}. ${plural(like.count, 'like')}`}
+      className={reply ? 'items-center justify-start pt-1' : 'flex-row items-center gap-1.5 pr-2'}
+      style={TAP}
+    >
+      <Icon name={like.liked ? 'thumbs-up' : 'thumbs-up-outline'} size={reply ? 14 : 16} color={like.liked ? props.iconColour.accent : props.iconColour.muted} />
+      {like.count > 0 ? <Text className={like.liked ? 'text-accent text-xs font-semibold' : 'text-muted text-xs font-semibold'}>{like.count}</Text> : null}
+    </Pressable>
+  );
 
   return (
-    <Box className={props.isReply ? 'py-2' : 'py-row border-b-hairline border-separator'}>
+    <Box className={reply ? 'py-1 flex-row gap-2' : 'bg-surface border border-border rounded-row px-row pt-row'}>
       <Pressable
         onLongPress={() => props.onMenu(c)}
         delayLongPress={350}
@@ -93,64 +116,70 @@ export function CommentRow(props: {
         accessibilityHint="Long-press for reply, copy, save and report"
         accessibilityActions={[{ name: 'longpress', label: 'More actions' }]}
         onAccessibilityAction={() => props.onMenu(c)}
-        className="flex-row gap-row"
+        className={reply ? 'flex-1 gap-0.5' : 'gap-2'}
       >
-        <Box className="rounded-pill bg-surface items-center justify-center" style={avatar} accessible={false}>
-          <Text className="text-muted text-xs font-bold">{initialsFor(c)}</Text>
-        </Box>
-        <Box className="flex-1 gap-1">
-          <Box>
-            <Box className="flex-row items-center gap-2 flex-wrap">
+        <Box className="flex-row items-center gap-2.5">
+          {reply ? null : (
+            <Box className="rounded-pill bg-accentTint items-center justify-center" style={AVATAR} accessible={false}>
+              <Text className="text-text text-xs font-bold">{initialsFor(c)}</Text>
+            </Box>
+          )}
+          <Box className="flex-1">
+            <Box className="flex-row items-center gap-1.5 flex-wrap">
               {c.authorId !== null ? (
                 <Link href={{ pathname: '/profile/[id]', params: { id: c.authorId } }} asChild>
-                  <Pressable accessibilityRole="link"><Text className="text-text text-xs font-semibold">{name}</Text></Pressable>
+                  <Pressable accessibilityRole="link"><Text className={reply ? 'text-text text-meta font-bold' : 'text-text text-body font-bold'}>{name}</Text></Pressable>
                 </Link>
-              ) : <Text className="text-text text-xs font-semibold">{name}</Text>}
-              {c.host ? <Text className="bg-accentTint text-accent rounded-pill px-2 text-xs font-bold" accessibilityLabel="Host of this show">Host</Text> : null}
+              ) : <Text className={reply ? 'text-text text-meta font-bold' : 'text-text text-body font-bold'}>{name}</Text>}
+              {c.host ? <Text className="bg-primary text-onPrimary rounded-pill px-1.5 text-micro font-bold" accessibilityLabel="Host of this show">Host</Text> : null}
             </Box>
-            <Text className="text-muted text-xs">{timeAndPlace(c.createdAt, props.serverTime, placeOf(c))}</Text>
+            {reply ? null : <Text className="text-muted text-xs">{timeAndPlace(c.createdAt, props.serverTime, placeOf(c))}</Text>}
           </Box>
-          <Text className="text-text text-sm leading-[24px]" numberOfLines={open ? undefined : 8}>
-            {c.offsetMs !== null ? (
-              <Text className="text-accent font-semibold" accessibilityRole="button" accessibilityLabel={`Play from ${mmss(c.offsetMs)}`} onPress={() => props.onSeek(c.offsetMs!)}>
-                {`${mmss(c.offsetMs)}  `}
-              </Text>
-            ) : null}
-            {c.body}
-          </Text>
-          {(c.body ?? '').length > 320 ? (
-            <Pressable onPress={() => setOpen((o) => !o)} accessibilityRole="button" className="self-start justify-center" style={TAP}>
-              <Text className="text-accent text-xs font-semibold">{open ? 'Less' : 'More'}</Text>
-            </Pressable>
-          ) : null}
-          {c.hiddenByHost ? <Text className="text-muted text-xs italic">Hidden by the host — only you can see it</Text> : null}
         </Box>
-        {c.mine ? <Box style={TAP} /> : (
-          <Pressable
-            onPress={() => props.onLike(c)}
-            accessibilityRole="button"
-            accessibilityState={{ selected: like.liked }}
-            accessibilityLabel={`${like.liked ? 'Unlike' : 'Like'}. ${plural(like.count, 'like')}`}
-            className="items-center justify-start pt-1"
-            style={TAP}
-          >
-            <Icon name={like.liked ? 'thumbs-up' : 'thumbs-up-outline'} size={18} color={like.liked ? props.iconColour.accent : props.iconColour.muted} />
-            {like.count > 0 ? <Text className={like.liked ? 'text-accent text-xs' : 'text-muted text-xs'}>{like.count}</Text> : null}
+        {!reply && c.offsetMs !== null ? (
+          <Pressable onPress={() => props.onSeek(c.offsetMs!)} accessibilityRole="button" accessibilityLabel={`Play from ${mmss(c.offsetMs)}`} className="self-start justify-center" style={TAP}>
+            <Box className="flex-row items-center gap-1 bg-accentTint rounded-pill px-2.5 py-1">
+              <Icon name="play" size={10} color={props.iconColour.accent} />
+              <Text className="text-accent text-xs font-bold">{mmss(c.offsetMs)}</Text>
+            </Box>
           </Pressable>
-        )}
+        ) : null}
+        <Text className={reply ? 'text-text text-meta leading-[20px]' : 'text-text text-title font-display-semibold leading-[24px]'} numberOfLines={open ? undefined : 8}>
+          {reply && c.offsetMs !== null ? (
+            <Text className="text-accent font-semibold" accessibilityRole="button" accessibilityLabel={`Play from ${mmss(c.offsetMs)}`} onPress={() => props.onSeek(c.offsetMs!)}>
+              {`${mmss(c.offsetMs)}  `}
+            </Text>
+          ) : null}
+          {c.body}
+        </Text>
+        {(c.body ?? '').length > 320 ? (
+          <Pressable onPress={() => setOpen((o) => !o)} accessibilityRole="button" className="self-start justify-center" style={TAP}>
+            <Text className="text-accent text-xs font-semibold">{open ? 'Less' : 'More'}</Text>
+          </Pressable>
+        ) : null}
+        {c.hiddenByHost ? <Text className="text-muted text-xs italic">Hidden by the host — only you can see it</Text> : null}
       </Pressable>
-      {!props.isReply && replies.length > 0 ? (
-        <Box className="ml-10 mt-2 bg-surface rounded-row p-row">
+      {reply ? (likeButton ?? <Box style={TAP} />) : null}
+      {!reply && replies.length > 0 ? (
+        <Box className="mt-2.5 bg-background rounded-row px-row py-2">
           {shownReplies.map((r) => (
             <CommentRow key={r.id} {...props} c={r} isReply />
           ))}
           {more ? (
             <Pressable onPress={() => setExpanded((e) => !e)} accessibilityRole="button" accessibilityLabel={expanded ? more : `${more}: ${plural(replies.length, 'reply', 'replies')} in all`} className="justify-center" style={TAP}>
-              <Text className="text-accent text-xs font-semibold">{more}</Text>
+              <Text className="text-accent text-xs font-bold">{more}</Text>
             </Pressable>
           ) : null}
         </Box>
       ) : null}
+      {reply ? null : (
+        <Box className="flex-row items-center justify-between">
+          {likeButton ?? <Box style={TAP} />}
+          <Pressable onPress={() => props.onMenu(c)} accessibilityRole="button" accessibilityLabel="More for this comment" className="items-center justify-center" style={TAP}>
+            <Icon name="ellipsis-horizontal" size={18} color={props.iconColour.muted} />
+          </Pressable>
+        </Box>
+      )}
     </Box>
   );
 }

@@ -2,6 +2,7 @@
  * One show-page row's meta line: "69 min · 13 h ago  🎧 120  💬 8" (owner, 2026-10-01, after the
  * 小宇宙 show page). A count shows only when it is above 0 — the app never invents a number.
  * The row's own accessibilityLabel speaks the words (metaLabel); the Pressable groups this line.
+ * M17 (`Show-B`): where you stopped is in the accent, as the design marks your own progress.
  */
 import { Box } from '../lib/box';
 import { Text } from '../lib/text';
@@ -35,7 +36,7 @@ export function EpisodeMeta(props: MetaInput & { iconColour: string }): React.Re
           <Text className="text-xs text-muted">{String(props.comments)}</Text>
         </Box>
       ) : null}
-      {props.progress === '' ? null : <Text className="text-xs text-muted">{props.progress}</Text>}
+      {props.progress === '' ? null : <Text className="text-xs font-semibold text-accent">{props.progress}</Text>}
     </Box>
   );
 }

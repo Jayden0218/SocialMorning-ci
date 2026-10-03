@@ -2,6 +2,10 @@
  * Voice statuses on Updates (M12 FR-104): yours and the people you follow, newest first,
  * each gone 48 h after it was posted. Tap to play (episode playback pauses), tap again to
  * stop; long-press your own to delete it. "+ Voice" records one.
+ *
+ * M17 (`Library-B`, T041): an eyebrow "Voices · last 48 h" over a row of pills — a dashed
+ * "Voice" pill to record, then one white pill per status (initials disc + name); the one
+ * playing turns yellow with a stop mark. Same buttons, names, tap / long-press as before.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView } from './lib/scroll-view';
@@ -12,7 +16,9 @@ import { Pressable } from './lib/pressable';
 import { Text } from './lib/text';
 import { Box } from './lib/box';
 import { Icon } from './Icon';
+import { Eyebrow } from './Eyebrow';
 import { hit } from '../design';
+import { mmss } from './format';
 import type { VoicePost } from '../social/m12-api';
 import { hoursLeft } from '../voice/recording';
 
@@ -55,20 +61,26 @@ export function VoicePosts(props: { load: () => Promise<VoicePost[]>; remove: (i
   };
   const now = Date.now();
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-row px-screen-x" className="pt-row">
-      <Pressable onPress={() => router.push('/voice/new')} accessibilityRole="button" accessibilityLabel="Record a voice status" className="items-center gap-1 w-16" style={TAP}>
-        <Box className="w-12 h-12 rounded-pill bg-accentTint items-center justify-center"><Icon name="mic-outline" size={22} color={props.colours.accent} /></Box>
-        <Text className="text-muted text-xs">+ Voice</Text>
-      </Pressable>
-      {posts.map((p) => (
-        <Pressable key={p.id} onPress={() => toggle(p)} onLongPress={() => askDelete(p)} accessibilityRole="button" accessibilityLabel={voiceLabel(p, now, playing === p.id)} className="items-center gap-1 w-16" style={TAP}>
-          <Box className={`w-12 h-12 rounded-pill items-center justify-center ${playing === p.id ? 'bg-primary' : 'bg-surface'}`}>
-            {playing === p.id ? <Icon name="stop" size={20} color={props.colours.accent} /> : <Text className="text-text text-base font-bold">{p.author.initials ?? '·'}</Text>}
-          </Box>
-          <Text className="text-muted text-xs" numberOfLines={1}>{p.mine ? 'You' : p.author.name}</Text>
+    <Box className="pt-section">
+      <Eyebrow className="px-screen-x">Voices · last 48 h</Eyebrow>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-gap px-screen-x" className="pt-2">
+        <Pressable onPress={() => router.push('/voice/new')} accessibilityRole="button" accessibilityLabel="Record a voice status" className="flex-row items-center gap-2 pl-1.5 pr-section rounded-pill border border-dashed border-accent" style={TAP}>
+          <Box className="w-8 h-8 rounded-pill bg-accentTint items-center justify-center"><Icon name="mic-outline" size={18} color={props.colours.accent} /></Box>
+          <Text className="text-accent text-meta font-bold">Voice</Text>
         </Pressable>
-      ))}
-      {dialog}
-    </ScrollView>
+        {posts.map((p) => {
+          const on = playing === p.id;
+          return (
+            <Pressable key={p.id} onPress={() => toggle(p)} onLongPress={() => askDelete(p)} accessibilityRole="button" accessibilityLabel={voiceLabel(p, now, playing === p.id)} className={`flex-row items-center gap-2 pl-1.5 pr-row rounded-pill border border-border ${on ? 'bg-primary' : 'bg-surface'}`} style={TAP}>
+              <Box className={`w-8 h-8 rounded-pill items-center justify-center ${on ? 'bg-surface' : 'bg-accentTint'}`}>
+                {on ? <Icon name="stop" size={14} color={props.colours.accent} /> : <Text className="text-text text-micro font-bold">{p.author.initials ?? '·'}</Text>}
+              </Box>
+              <Text className={on ? 'text-onPrimary text-meta font-semibold' : 'text-text text-meta font-semibold'} numberOfLines={1}>{`${p.mine ? 'You' : p.author.name}${on ? ` · ${mmss(p.durationMs)}` : ''}`}</Text>
+            </Pressable>
+          );
+        })}
+        {dialog}
+      </ScrollView>
+    </Box>
   );
 }

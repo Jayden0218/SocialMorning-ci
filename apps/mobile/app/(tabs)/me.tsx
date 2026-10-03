@@ -3,7 +3,13 @@
  * Stickers chip, your name (opens your profile) and picture, the saved-moments card
  * (the reference's PLUS feature, free here), then the menu.
  *
- * Signed out, the top is a Sign in row instead of a name; the menu still opens what works
+ * M17 (`Me-B`, T040): the Editorial layout. The Stickers pill sits top right; the picture is a
+ * large centred circle with the name under it in the serif and "My profile →" below; saved
+ * moments is a yellow card with its count in the serif; the eight destinations are a
+ * two-column grid of white tiles (`MenuTile`), and Wallet · Tips · Feedback · Account sit in one
+ * white `Card` of rows. Every link, name and destination is the one Me had before.
+ *
+ * Signed out, the top is a Sign in link instead of a name; the menu still opens what works
  * without an account (downloads, history, favourites, moments, queue). Sign out is here,
  * one tap away (owner, 2026-09-27: it was hard to find inside Account alone).
  */
@@ -14,18 +20,21 @@ import { SafeAreaView } from '../../src/ui/lib/safe-area-view';
 import { ScrollView } from '../../src/ui/lib/scroll-view';
 import { Text } from '../../src/ui/lib/text';
 import { Box } from '../../src/ui/lib/box';
-import { colour, hit } from '../../src/design';
+import { hit } from '../../src/design';
 import { useColours } from '../../src/ui/useColours';
 import { Icon } from '../../src/ui/Icon';
 import { createFeed } from '../../src/graph/feed';
 import { inboxIds } from '../../src/inbox';
 import { listMoments } from '../../src/me/moments';
 import { useSocial } from '../../src/social/context';
-import { MenuRow } from '../../src/ui/me/parts';
+import { Card, CardDivider } from '../../src/ui/Card';
+import { MenuRow, MenuTile } from '../../src/ui/me/parts';
 import { useStores } from '../../src/ui/providers';
 import { BOTTOM_INSET } from '../../src/ui/Screen';
 
 const TAP = { minHeight: hit.min };
+/** The picture: 96 pt, as in `Me-B`. A size, so it stays a style. */
+const AVATAR = { width: 96, height: 96 };
 
 export default function MeScreen(): React.ReactElement {
   const stores = useStores();
@@ -41,63 +50,84 @@ export default function MeScreen(): React.ReactElement {
     <SafeAreaView className="flex-1 bg-background">
       <ScrollView contentContainerClassName="px-screen-x pt-section" contentContainerStyle={{ paddingBottom: BOTTOM_INSET }}>
         <Link href="/stickers" asChild>
-          <Pressable accessibilityRole="link" accessibilityLabel="Stickers" className="self-start flex-row items-center gap-2 border border-separator rounded-row px-row" style={TAP}>
+          <Pressable accessibilityRole="link" accessibilityLabel="Stickers" className="self-end flex-row items-center gap-2 bg-surface border border-border rounded-pill px-section" style={TAP}>
             <Icon name="medal-outline" size={18} color={c.text} />
-            <Text className="text-accent text-sm font-semibold">Stickers</Text>
+            <Text className="text-accent text-meta font-bold">Stickers</Text>
           </Pressable>
         </Link>
 
-        <Box className="flex-row items-center justify-between mt-section mb-section">
+        <Box className="items-center mt-2">
+          <Box className="rounded-pill bg-accentTint items-center justify-center" style={AVATAR} accessible={false}>
+            {listener
+              ? <Text className="font-display text-display text-text">{listener.displayName.slice(0, 1).toUpperCase()}</Text>
+              : <Icon name="person-outline" size={40} color={c.accent} />}
+          </Box>
           {listener ? (
-            <Link href={{ pathname: '/profile/[id]', params: { id: listener.listenerId } }} asChild>
-              <Pressable accessibilityRole="link" accessibilityLabel={`${listener.displayName}, open your profile`} className="flex-1 flex-row items-center gap-2" style={TAP}>
-                <Text className="text-text text-lg font-bold" numberOfLines={1}>{listener.displayName}</Text>
-                <Text className="text-accent text-lg">›</Text>
-              </Pressable>
-            </Link>
+            <>
+              <Link href={{ pathname: '/profile/[id]', params: { id: listener.listenerId } }} asChild>
+                <Pressable accessibilityRole="link" accessibilityLabel={`${listener.displayName}, open your profile`} className="items-center justify-center mt-2 self-stretch" style={TAP}>
+                  <Text className="font-display text-hero text-text text-center" numberOfLines={1}>
+                    {listener.displayName}
+                  </Text>
+                </Pressable>
+              </Link>
+              <Link href={`/profile/${listener.listenerId}`} asChild>
+                <Pressable accessibilityRole="link" accessibilityLabel="My profile" className="items-center justify-center px-section" style={TAP}>
+                  <Text className="text-accent text-meta font-semibold">My profile →</Text>
+                </Pressable>
+              </Link>
+            </>
           ) : (
             <Link href="/auth/sign-in" asChild>
-              <Pressable accessibilityRole="link" accessibilityLabel="Sign in" className="flex-1 flex-row items-center gap-2" style={TAP}>
-                <Text className="text-text text-lg font-bold">Sign in</Text>
-                <Text className="text-accent text-lg">›</Text>
+              <Pressable accessibilityRole="link" accessibilityLabel="Sign in" className="items-center justify-center mt-2 px-section" style={TAP}>
+                <Text className="font-display text-hero text-text">Sign in →</Text>
               </Pressable>
             </Link>
           )}
-          <Box className="w-20 h-20 rounded-pill bg-surface items-center justify-center" accessible={false}>
-            {listener
-              ? <Text className="text-muted text-lg">{listener.displayName.slice(0, 1).toUpperCase()}</Text>
-              : <Icon name="person-outline" size={32} color={c.muted} />}
-          </Box>
         </Box>
 
         <Link href="/moments" asChild>
-          <Pressable accessibilityRole="link" accessibilityLabel={`Saved moments, ${counts.moments}. Save a moment while listening and add a note`} className="bg-surface border border-separator rounded-artwork p-section flex-row items-center justify-between mb-section">
+          <Pressable accessibilityRole="link" accessibilityLabel={`Saved moments, ${counts.moments}. Save a moment while listening and add a note`} className="bg-primary rounded-row p-section flex-row items-center gap-row mt-section">
+            <Box className="w-11 h-11 rounded-pill bg-track items-center justify-center"><Icon name="bookmark-outline" size={22} color={c.onPrimary} /></Box>
             <Box className="flex-1">
-              <Box className="flex-row items-center gap-1"><Icon name="bookmark-outline" size={16} color={c.accent} /><Text className="text-accent text-sm font-bold">Saved moments</Text></Box>
-              <Text className="text-muted text-xs mt-1">Save a moment while listening, and add a note</Text>
+              <Text className="font-display text-title text-onPrimary">Saved moments</Text>
+              <Text className="text-onPrimary text-xs mt-1">Save a moment while listening, and add a note</Text>
             </Box>
-            <Text className="text-accent text-sm font-semibold">{counts.moments > 0 ? `${counts.moments} ›` : 'Open ›'}</Text>
+            {counts.moments > 0
+              ? <Text className="font-display text-hero text-onPrimary">{counts.moments}</Text>
+              : <Icon name="chevron-forward" size={20} color={c.onPrimary} />}
           </Pressable>
         </Link>
 
-        {listener ? <MenuRow href={`/profile/${listener.listenerId}`} icon="id-card-outline" label="My profile" /> : null}
-        <Box className="border-b-hairline border-separator my-2" />
-        <MenuRow href="/notifications" icon="notifications-outline" label="Notifications" {...(counts.unread > 0 ? { badge: counts.unread } : {})} />
-        <MenuRow href="/inbox" icon="file-tray-outline" label="Inbox" {...(counts.inbox > 0 ? { badge: counts.inbox } : {})} />
-        <MenuRow href="/downloads" icon="download-outline" label="Downloads" />
-        <MenuRow href="/history" icon="time-outline" label="Listening history" />
-        <MenuRow href="/favourites" icon="star-outline" label="Favourites" />
-        <MenuRow href="/my-comments" icon="chatbubble-outline" label="My comments" />
-        <MenuRow href="/queue" icon="list-outline" label="Queue" />
-        {listener ? <MenuRow href="/creator" icon="mic-outline" label="Creator centre" /> : null}
-        {/* M12 FR-105, FR-106: read-only; the stores hold the money. */}
-        {listener ? <MenuRow href="/wallet" icon="wallet-outline" label="Wallet" /> : null}
-        {listener ? <MenuRow href="/tips" icon="heart-outline" label="Tips I gave" /> : null}
-        <Box className="border-b-hairline border-separator my-2" />
-        {/* M12 FR-091: feedback is one tap from Me. */}
-        <MenuRow href="/settings/feedback" icon="chatbox-ellipses-outline" label="Feedback" />
-        <MenuRow href="/account" icon="settings-outline" label="Account and settings" />
-        {/* M12 FR-090: Sign out lives once, in Settings (it was on Me as well). */}
+        <Box className="gap-gap mt-section">
+          <Box className="flex-row gap-gap">
+            <Link href="/notifications" asChild accessibilityLabel="Notifications"><MenuTile icon="notifications-outline" label="Notifications" {...(counts.unread > 0 ? { badge: counts.unread } : {})} /></Link>
+            <Link href="/inbox" asChild accessibilityLabel="Inbox"><MenuTile icon="file-tray-outline" label="Inbox" {...(counts.inbox > 0 ? { badge: counts.inbox } : {})} /></Link>
+          </Box>
+          <Box className="flex-row gap-gap">
+            <Link href="/downloads" asChild accessibilityLabel="Downloads"><MenuTile icon="download-outline" label="Downloads" /></Link>
+            <Link href="/history" asChild accessibilityLabel="Listening history"><MenuTile icon="time-outline" label="Listening history" /></Link>
+          </Box>
+          <Box className="flex-row gap-gap">
+            <Link href="/favourites" asChild accessibilityLabel="Favourites"><MenuTile icon="star-outline" label="Favourites" /></Link>
+            <Link href="/my-comments" asChild accessibilityLabel="My comments"><MenuTile icon="chatbubble-outline" label="My comments" /></Link>
+          </Box>
+          <Box className="flex-row gap-gap">
+            <Link href="/queue" asChild accessibilityLabel="Queue"><MenuTile icon="list-outline" label="Queue" /></Link>
+            {listener ? <Link href="/creator" asChild accessibilityLabel="Creator centre"><MenuTile icon="mic-outline" label="Creator centre" /></Link> : <Box className="flex-1" />}
+          </Box>
+        </Box>
+
+        <Card className="mt-row">
+          {/* M12 FR-105, FR-106: read-only; the stores hold the money. A plain link for now (T113 adds Coming soon). */}
+          {listener ? <><MenuRow href="/wallet" icon="wallet-outline" label="Wallet" /><CardDivider /></> : null}
+          {listener ? <><MenuRow href="/tips" icon="heart-outline" label="Tips I gave" /><CardDivider /></> : null}
+          {/* M12 FR-091: feedback is one tap from Me. */}
+          <MenuRow href="/settings/feedback" icon="chatbox-ellipses-outline" label="Feedback" />
+          <CardDivider />
+          <MenuRow href="/account" icon="settings-outline" label="Account and settings" />
+          {/* M12 FR-090: Sign out lives once, in Settings (it was on Me as well). */}
+        </Card>
       </ScrollView>
     </SafeAreaView>
   );
