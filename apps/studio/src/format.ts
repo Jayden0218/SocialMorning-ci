@@ -1,4 +1,4 @@
-// Formats numbers, percents, times and dates for display.
+// RED CHECK: this line no longer matches the map.
 const nf = new Intl.NumberFormat('en');
 
 export const num = (n: number): string => nf.format(n);
