@@ -36,7 +36,7 @@ describe('Dashboard', () => {
     expect(within(head).getByText('3.5 h')).toBeTruthy(); // hours: 0.5 + 1 + 2
     expect(within(head).getByText('7')).toBeTruthy(); // comments: 4 + 0 + 3
     for (const h of ['Users', 'Listening', 'Library', 'Social', 'For You', 'Safety', 'Money', 'Creators']) {
-      expect(screen.getByRole('heading', { name: h, exact: true })).toBeTruthy();
+      expect(screen.getByRole('heading', { name: h })).toBeTruthy();
     }
     expect(screen.getByText('15%')).toBeTruthy(); // picks: 6 of 40
     expect(screen.getByText('MYR 4.90')).toBeTruthy();
@@ -50,7 +50,7 @@ describe('Dashboard', () => {
     const f = mockApi((p) => (p.startsWith('/v1/admin/metrics') ? { status: 200, body } : undefined));
     renderIn(<Dashboard />, '/admin/dashboard');
     expect(await screen.findByText('The money numbers could not be counted.')).toBeTruthy();
-    expect(screen.getByRole('heading', { name: 'Creators', exact: true })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Creators' })).toBeTruthy();
     expect(screen.getByText('Shows hosted here')).toBeTruthy();
     const before = f.mock.calls.length;
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));

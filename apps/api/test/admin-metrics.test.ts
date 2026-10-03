@@ -1,7 +1,8 @@
 /**
  * M18 — the admin dashboard's numbers (specs/019-m18-admin-dashboard, data-model.md guards).
  *
- * G-M1 every number equals the seeded fixture. Break: drop `WHERE ${col} >= $1` from `perDay`.
+ * G-M1 every number equals the seeded fixture. Break: in `listening`, sum each device's ranges instead of
+ *                                              their union (two phones overlapping count twice).
  * G-M2 nothing names a listener.               Break: add `ids: [...]` to the users section.
  * G-M3 N visits in a day count once; a Studio session counts 0.
  *                                              Break: remove the `studio-web` filter in listenerForToken.
@@ -138,8 +139,10 @@ test('G-M3: a person counts once per day however often they come; a Studio sessi
   const { t, owner } = await adminSetup();
   const u = await signUp(t, 'x@example.com', 'Xia');
   for (let i = 0; i < 5; i++) await t.call('GET', '/v1/me', undefined, u.token);
-  // The owner used only the Studio (studio-web sessions) — never the app.
+  // The owner used only the Studio — never the app. Their studio-web token, even sent straight to
+  // a phone route, must not count as app use (the Studio's own path never reaches listenerForToken).
   await aCall(t, 'GET', '/v1/admin/audit', owner);
+  assert.equal((await t.call('GET', '/v1/me', undefined, owner.token)).status, 200);
   const rows = await t.q<{ listener_id: string; day: string }>('SELECT listener_id, day::text AS day FROM daily_active');
   assert.deepEqual(rows, [{ listener_id: u.id, day: dayAgo(0) }]);
   // Deleting the account deletes its days (FR-015).
