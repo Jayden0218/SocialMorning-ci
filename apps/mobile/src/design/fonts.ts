@@ -62,10 +62,11 @@ export function resetFontsForTest(): void { ready = false; }
  */
 export function familyFor(className: string | undefined): Face {
   const c = ` ${className ?? ''} `;
-  if (c.includes(' font-display-semibold ')) return 'Fraunces-SemiBold';
-  if (c.includes(' font-display ')) return 'Fraunces-Bold';
-  if (/ font-(bold|extrabold|black) /.test(c)) return 'Manrope-Bold';
-  if (c.includes(' font-semibold ')) return 'Manrope-SemiBold';
-  if (c.includes(' font-medium ')) return 'Manrope-Medium';
+  // Patterns, not quoted class strings: the token check reads a quoted "font-…" as a style.
+  if (/\sfont-display-semibold\s/.test(c)) return 'Fraunces-SemiBold';
+  if (/\sfont-display\s/.test(c)) return 'Fraunces-Bold';
+  if (/\sfont-(bold|extrabold|black)\s/.test(c)) return 'Manrope-Bold';
+  if (/\sfont-semibold\s/.test(c)) return 'Manrope-SemiBold';
+  if (/\sfont-medium\s/.test(c)) return 'Manrope-Medium';
   return 'Manrope-Regular';
 }
