@@ -1,12 +1,12 @@
 /**
  * M10b US8 — the creator claims a feed they already publish. Guard G-C1 (only the code in the
- * live feed proves ownership) — the break that turns it red: in `src/db/repos/creator.ts`
+ * live feed proves ownership) — the break that turns it red: in `src/db/repos/studio/creator.ts`
  * `verifyClaim`, drop the `text.includes(c.code)` check (any reachable feed would then prove).
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
-import { verifyClaim } from '../src/db/repos/creator.ts';
+import { verifyClaim } from '../src/db/repos/studio/creator.ts';
 import { freshDb, signUp } from './harness.ts';
 
 const FEED = 'https://feeds.example.com/mine.xml';

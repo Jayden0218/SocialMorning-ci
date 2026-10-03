@@ -1,12 +1,12 @@
 /**
  * M10b US7 — "IP location": the country from the sign-in request, two letters only, shown on
  * the profile to everyone. Guard G-I1 (country only, never more) — the break that turns it
- * red: in `src/db/repos/country.ts` `countryOf`, return the header unchecked (a city or an
+ * red: in `src/db/repos/account/country.ts` `countryOf`, return the header unchecked (a city or an
  * IP would then be stored and shown).
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { countryOf } from '../src/db/repos/country.ts';
+import { countryOf } from '../src/db/repos/account/country.ts';
 import { freshDb, signUp } from './harness.ts';
 
 test('G-I1: only a two-letter country is kept; anything else is ignored', () => {

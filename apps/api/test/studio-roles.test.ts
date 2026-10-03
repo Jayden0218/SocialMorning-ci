@@ -3,9 +3,9 @@
  * The matrix is read from the router's own route list, so a new `/shows/:show/*` route is
  * covered the day it is added — it cannot skip the wall by being forgotten here.
  *
- * The break that turns it red: in `src/routes/studio.ts`, change the show-scope middleware's
+ * The break that turns it red: in `src/routes/studio/`, change the show-scope middleware's
  * path from '/shows/:show/*' to '/shows/:show/overview' (every other route loses the wall).
- * G-A2 (owner-only routes refuse operators): make `ownerOnly` in `src/routes/studio.ts` call `next()`
+ * G-A2 (owner-only routes refuse operators): make `ownerOnly` in `src/routes/studio/` call `next()`
  * for every role — the operator rows for OWNER_ONLY then go through.
  */
 import { test } from 'node:test';

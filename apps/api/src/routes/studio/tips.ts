@@ -1,7 +1,7 @@
 /**
  * Studio API (`/v1/studio/*`) — US7: Tips
  */
-import { tipsFor } from '../../db/repos/studio-tips.ts';
+import { tipsFor } from '../../db/repos/studio/studio-tips.ts';
 import type { Hono } from 'hono';
 import { ownerOnly } from './common.ts';
 import type { StudioEnv } from '../../auth/studio-session.ts';

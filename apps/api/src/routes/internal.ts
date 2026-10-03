@@ -3,11 +3,11 @@ import { z } from 'zod';
 import type { AuthEnv } from '../auth/session.ts';
 import { json } from '../validate.ts';
 import { ApiError } from '../errors.ts';
-import { rebuildSimilarity, similarityAgeHours } from '../db/repos/similarity.ts';
+import { rebuildSimilarity, similarityAgeHours } from '../db/repos/discover/similarity.ts';
 import { fetchFeed, registerCard, toCard } from '../catalog/feed.ts';
-import { fanOutNewEpisode, NEW_WINDOW_HOURS, sendPopular } from '../db/repos/push.ts';
-import { sweepImages } from '../db/repos/feedback.ts';
-import { sweepExpired } from '../db/repos/voice-posts.ts';
+import { fanOutNewEpisode, NEW_WINDOW_HOURS, sendPopular } from '../db/repos/account/push.ts';
+import { sweepImages } from '../db/repos/account/feedback.ts';
+import { sweepExpired } from '../db/repos/social/voice-posts.ts';
 import { picksForDay } from '@socialmorning/social-core';
 
 /**

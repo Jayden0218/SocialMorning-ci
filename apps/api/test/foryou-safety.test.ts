@@ -10,8 +10,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
-import { likers, rebuildSimilarity } from '../src/db/repos/similarity.ts';
-import { contextFor, buildForYou } from '../src/db/repos/foryou.ts';
+import { likers, rebuildSimilarity } from '../src/db/repos/discover/similarity.ts';
+import { contextFor, buildForYou } from '../src/db/repos/discover/foryou.ts';
 
 const SHOW_A = 'https://feeds.example.com/a.xml';
 const SHOW_B = 'https://feeds.example.com/b.xml';

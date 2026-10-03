@@ -95,7 +95,7 @@ test('FR-004: nothing about another listener discloses what they subscribe to', 
 
 // M12 guard G-ST1 (FR-081): a star merges on its own `starredAt`. Starring moves neither row
 // stamp, so before this a star never beat the server's copy and the next sync undid it.
-// The break: drop the `takeStar` update in `merge` (src/db/repos/subscriptions.ts).
+// The break: drop the `takeStar` update in `merge` (src/db/repos/library/subscriptions.ts).
 test('G-ST1: a star sticks — the later starredAt wins, an older one does not, and an old build cannot unstar', async () => {
   const t = await freshDb();
   const a = await signUp(t);

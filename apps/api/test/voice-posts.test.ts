@@ -1,7 +1,7 @@
 /**
  * M12 FR-104 — voice status posts (constitution 2.2.0: ≤ 60 s, deleted by the server at 48 h).
  * Guard G-V1: an expired post's blob delete is called AND its row is gone — not merely hidden.
- * The break: filter on read only (make `sweepExpired` in src/db/repos/voice-posts.ts delete
+ * The break: filter on read only (make `sweepExpired` in src/db/repos/social/voice-posts.ts delete
  * nothing); the reads still hide the post, and this file goes red.
  */
 import { test } from 'node:test';

@@ -2,7 +2,7 @@
  * M15 guard G-D1, server half (FR-026–FR-029, SC-007): Discover control is applied at serve time.
  * (The phone half — `buildModel` follows `layout` — is apps/mobile/__tests__/discover-layout.test.ts.)
  *
- * The break that turns it red (watched once, named in the commit): in `src/routes/discover.ts`,
+ * The break that turns it red (watched once, named in the commit): in `src/routes/discover/discover.ts`,
  * serve `pub.trending` and drop `layout` (ignore the settings) — the pin, the hide and
  * `layout.hidden` all fail below.
  */

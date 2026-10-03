@@ -1,7 +1,7 @@
 /**
  * M15 guard G-C2 (FR-021) and the account rules (FR-019, FR-020, FR-023).
  *
- * The break that turns G-C2 red (watched once, named in the commit): in `src/routes/studio.ts`,
+ * The break that turns G-C2 red (watched once, named in the commit): in `src/routes/studio/`,
  * the "act as" record middleware, pass `adminId: c.get('listener')!.id` (record only the account
  * acted as) instead of `adminId: admin.id`.
  */

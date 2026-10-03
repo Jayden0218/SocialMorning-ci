@@ -2,7 +2,7 @@
  * M11 US4 — subscribers and mutes (FR-017..FR-019, FR-031).
  *
  * Guard G-M1: a muted listener cannot comment on that show and only that show. The break that
- * turns it red: remove the `isMutedOn` check from `src/routes/comments.ts`.
+ * turns it red: remove the `isMutedOn` check from `src/routes/social/comments.ts`.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

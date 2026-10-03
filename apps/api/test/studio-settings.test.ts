@@ -2,7 +2,7 @@
  * M11 US6 + US7 — overrides, helpers, giving the show back, tips (FR-024..FR-027).
  *
  * Guard G-T1 (refunds do not count): the break is dropping `p.status <> 'refunded'` in
- * `src/db/repos/studio-tips.ts`.
+ * `src/db/repos/studio/studio-tips.ts`.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

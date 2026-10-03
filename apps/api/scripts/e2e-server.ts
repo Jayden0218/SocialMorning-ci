@@ -23,7 +23,7 @@ import { createApp } from '../src/app.ts';
 import { createClient } from '../src/db/client.ts';
 import { fromPglite, fromPostgres, type Db } from '../src/db/db.ts';
 import { migrate } from '../src/db/migrate.ts';
-import { createListener, listenerByEmail } from '../src/db/repos/listeners.ts';
+import { createListener, listenerByEmail } from '../src/db/repos/account/listeners.ts';
 import { hashPassword } from '../src/auth/password.ts';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';

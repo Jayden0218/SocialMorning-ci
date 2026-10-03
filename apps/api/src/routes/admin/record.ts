@@ -2,7 +2,7 @@
  * Admin API (`/v1/admin/*`, owner only) — US1: the record
  */
 import { ApiError } from '../../errors.ts';
-import { isArea, listAudit } from '../../db/repos/admin-audit.ts';
+import { isArea, listAudit } from '../../db/repos/admin/admin-audit.ts';
 import type { Hono } from 'hono';
 import type { AdminEnv } from '../../auth/admin.ts';
 

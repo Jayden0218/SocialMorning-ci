@@ -41,7 +41,7 @@ test('T033: the 61st follow in a minute is 429', async () => {
  * M16a guard G-B2, server half (FR-003): a profile's follower/following counts are the number of
  * people its lists can show the viewer. The lists leave out listeners the viewer blocked; the
  * counts did not (phone walk 2026-10-02: a count that disagreed with its own list).
- * The break that turns it red: in `counts` (src/db/repos/follows.ts) replace the block rule with
+ * The break that turns it red: in `counts` (src/db/repos/social/follows.ts) replace the block rule with
  * `AND ($2::uuid IS NULL OR TRUE)` — keep `$2` bound; dropping `${NOT_BLOCKED_2}` outright crashes the
  * whole query (unused parameter) and fails 7 other tests instead (watched: runs 36953581037, 36954448057).
  */

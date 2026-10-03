@@ -2,7 +2,7 @@
  * M11 — the Studio's session walls (specs/011-m11-studio/data-model.md guards).
  *
  * The breaks that turn each red:
- *   G-X1 (no-store everywhere): delete the first `studio.use('*', …)` in `src/routes/studio.ts`.
+ *   G-X1 (no-store everywhere): delete the first `studio.use('*', …)` in `src/routes/studio/`.
  *   G-X2 (writes need X-Studio): make `studioCsrf` in `src/auth/studio-session.ts` call `next()` unconditionally.
  *   G-S1 (12 h idle): remove the `STUDIO_IDLE_MS` comparison in `studioListener`.
  */

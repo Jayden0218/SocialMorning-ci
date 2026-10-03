@@ -7,7 +7,7 @@
  */
 import { Hono } from 'hono';
 import type { AuthEnv } from '../auth/session.ts';
-import { getEpisode } from '../db/repos/episodes.ts';
+import { getEpisode } from '../db/repos/library/episodes.ts';
 import { esc, mmss, page } from './clip.ts';
 
 export const episodePages = new Hono<AuthEnv>();

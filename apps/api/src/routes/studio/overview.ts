@@ -1,8 +1,8 @@
 /**
  * Studio API (`/v1/studio/*`) — Overview and trend
  */
-import { METRICS, claimedAt, recentComments, recentEpisodes, totals, trend, validTz } from '../../db/repos/studio-numbers.ts';
-import { hostedByFeed, promoteDue } from '../../db/repos/hosted.ts';
+import { METRICS, claimedAt, recentComments, recentEpisodes, totals, trend, validTz } from '../../db/repos/studio/studio-numbers.ts';
+import { hostedByFeed, promoteDue } from '../../db/repos/studio/hosted.ts';
 import type { Hono } from 'hono';
 import { days, metric } from './common.ts';
 import type { StudioEnv } from '../../auth/studio-session.ts';

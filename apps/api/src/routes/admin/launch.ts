@@ -6,7 +6,7 @@ import { randomUUID } from 'node:crypto';
 import { adminWrite, auditCtx } from '../../auth/admin.ts';
 import { ApiError } from '../../errors.ts';
 import { json } from '../../validate.ts';
-import { createPromotion, getPromotion, launchBytes, listPromotions, updatePromotion, type PromotionInput } from '../../db/repos/promotions.ts';
+import { createPromotion, getPromotion, launchBytes, listPromotions, updatePromotion, type PromotionInput } from '../../db/repos/discover/promotions.ts';
 import { LAUNCH_CEILING_BYTES, LAUNCH_IMAGE_TYPES, MAX_LAUNCH_IMAGE_BYTES, launchPathname, launchUploadToken, type EpisodeStorage } from '../../storage/episodes-blob.ts';
 import type { Db } from '../../db/db.ts';
 import type { Hono } from 'hono';

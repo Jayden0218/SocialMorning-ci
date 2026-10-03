@@ -2,7 +2,7 @@
  * M11 US3 — the creator reads, answers and hides comments (FR-014..FR-016).
  *
  * Guard G-H1: a host-hidden comment is gone for everyone but its author. The break that turns
- * it red: in `src/db/repos/comments.ts` `toPublic`, set `hostHidden` to `false`.
+ * it red: in `src/db/repos/social/comments.ts` `toPublic`, set `hostHidden` to `false`.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

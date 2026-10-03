@@ -1,7 +1,7 @@
 /**
  * Studio API (`/v1/studio/*`) — M14 US2: hosts
  */
-import { acceptInvite, createInvite, listHosts, openInvites, previewInvite, removeHost, revokeInvite } from '../../db/repos/show-hosts.ts';
+import { acceptInvite, createInvite, listHosts, openInvites, previewInvite, removeHost, revokeInvite } from '../../db/repos/studio/show-hosts.ts';
 import type { Hono } from 'hono';
 import { ownerOnly, https } from './common.ts';
 import type { StudioEnv } from '../../auth/studio-session.ts';

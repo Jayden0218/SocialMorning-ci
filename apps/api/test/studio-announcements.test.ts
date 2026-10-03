@@ -2,9 +2,9 @@
  * M11 US5 — announcements, polls, the app's extras call, and share events.
  *
  * The breaks that turn the guards red:
- *   G-N2 (2 pushes a month; an edit never pushes): in `src/db/repos/announcements.ts` `pushedThisMonth`,
+ *   G-N2 (2 pushes a month; an edit never pushes): in `src/db/repos/studio/announcements.ts` `pushedThisMonth`,
  *        drop the `pushed_at >= date_trunc('month', …)` condition — last month's pushes then use up this month.
- *   G-P1 (one vote each; closed takes none): in `src/db/repos/polls.ts` `vote`, drop the `!p.open` check.
+ *   G-P1 (one vote each; closed takes none): in `src/db/repos/studio/polls.ts` `vote`, drop the `!p.open` check.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

@@ -15,21 +15,21 @@ import { actionsFor, groupReports, RETENTION_DAYS, type Action, type QueueItem, 
 import type { AuthEnv, Listener } from '../auth/session.ts';
 import { createSession, listenerForToken, tokenHash } from '../auth/session.ts';
 import { verifyPassword } from '../auth/password.ts';
-import { listenerByEmail } from '../db/repos/listeners.ts';
-import { closedReports, openReports, purgeClosedOlderThan, type QueueRow } from '../db/repos/reports.ts';
-import { act, recentActions } from '../db/repos/moderation.ts';
-import { rollup } from '../db/repos/rec-events.ts';
-import { similarityAgeHours } from '../db/repos/similarity.ts';
-import { SIMILARITY_STALE_HOURS } from '../db/repos/similarity.ts';
+import { listenerByEmail } from '../db/repos/account/listeners.ts';
+import { closedReports, openReports, purgeClosedOlderThan, type QueueRow } from '../db/repos/safety/reports.ts';
+import { act, recentActions } from '../db/repos/safety/moderation.ts';
+import { rollup } from '../db/repos/library/rec-events.ts';
+import { similarityAgeHours } from '../db/repos/discover/similarity.ts';
+import { SIMILARITY_STALE_HOURS } from '../db/repos/discover/similarity.ts';
 import { esc, mmss, page } from './clip.ts';
-import { recentHostHides, setHostHidden } from '../db/repos/studio-comments.ts';
-import { listHostedEpisodes } from '../db/repos/hosted.ts';
+import { recentHostHides, setHostHidden } from '../db/repos/studio/studio-comments.ts';
+import { listHostedEpisodes } from '../db/repos/studio/hosted.ts';
 
 const COOKIE = 'mod';
 const ACTIONS: readonly Action[] = ['dismiss', 'remove', 'hide_show', 'suspend', 'unsuspend', 'unhide_show'];
 const csrfFor = (token: string) => createHash('sha256').update('csrf|').update(token).digest('base64url').slice(0, 24);
 
-import { feedbackImage, recentFeedback } from '../db/repos/feedback.ts';
+import { feedbackImage, recentFeedback } from '../db/repos/account/feedback.ts';
 
 export const mod = new Hono<AuthEnv>();
 

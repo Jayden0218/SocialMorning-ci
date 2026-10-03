@@ -3,9 +3,9 @@
  * The store is a fake in memory; the token rules it would enforce are checked at our boundary.
  *
  * The breaks that turn the guards red:
- *   G-F1 (our feed reads clean in the app's parser): in `src/db/repos/hosted.ts` `feedXml`, drop the
+ *   G-F1 (our feed reads clean in the app's parser): in `src/db/repos/studio/hosted.ts` `feedXml`, drop the
  *        `<enclosure …/>` line — every item then warns and no episode survives.
- *   G-Q1 (the ceiling): in `src/routes/studio.ts` POST …/uploads, drop the `used + b.size > ceiling` check.
+ *   G-Q1 (the ceiling): in `src/routes/studio/` POST …/uploads, drop the `used + b.size > ceiling` check.
  *   G-D1 (delete removes the audio): in DELETE …/hosted-episodes/:id, drop `storage.remove(ep.audioUrl)`.
  */
 import { test } from 'node:test';

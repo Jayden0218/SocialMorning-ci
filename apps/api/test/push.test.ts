@@ -110,7 +110,7 @@ test('G-N1: the send step called twice for one episode tells each device once', 
   const a = await signUp(t, 'a@example.com', 'Alex');
   await t.call('PUT', '/v1/me/subscriptions', { items: [{ feedUrl: FX, createdAt: new Date().toISOString() }] }, a.token);
   await t.call('POST', '/v1/me/push-tokens', { token: TOKEN_A, platform: 'android' }, a.token);
-  const { fanOutNewEpisode } = await import('../src/db/repos/push.ts');
+  const { fanOutNewEpisode } = await import('../src/db/repos/account/push.ts');
   const f = (async (_i: string | URL | Request, init?: RequestInit) => {
     const batch = JSON.parse(String(init?.body)) as { to: string; title: string; body: string; data: Record<string, string> }[];
     sent.push(...batch);

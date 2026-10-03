@@ -3,8 +3,8 @@
  */
 import { z } from 'zod';
 import { json } from '../../validate.ts';
-import { edit as editAnnouncement, listAnnouncements, publish, remove as removeAnnouncement } from '../../db/repos/announcements.ts';
-import { closePoll, createPoll, listPolls } from '../../db/repos/polls.ts';
+import { edit as editAnnouncement, listAnnouncements, publish, remove as removeAnnouncement } from '../../db/repos/studio/announcements.ts';
+import { closePoll, createPoll, listPolls } from '../../db/repos/studio/polls.ts';
 import type { Hono } from 'hono';
 import type { StudioEnv } from '../../auth/studio-session.ts';
 

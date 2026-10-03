@@ -1,8 +1,8 @@
 /**
  * Studio API (`/v1/studio/*`) — US4: Subscribers and mutes
  */
-import { validTz } from '../../db/repos/studio-numbers.ts';
-import { listMutes, mute, subscriberList, subscriberStats, unmute } from '../../db/repos/studio-subscribers.ts';
+import { validTz } from '../../db/repos/studio/studio-numbers.ts';
+import { listMutes, mute, subscriberList, subscriberStats, unmute } from '../../db/repos/studio/studio-subscribers.ts';
 import type { Hono } from 'hono';
 import { days } from './common.ts';
 import type { StudioEnv } from '../../auth/studio-session.ts';

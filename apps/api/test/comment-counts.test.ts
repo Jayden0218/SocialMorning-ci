@@ -1,7 +1,7 @@
 /**
  * M12 FR-080 — the Updates list's comment counts, one call for the page. Guard G-U1: a count
  * leaves out a deleted, a removed and a host-hidden comment and every reply; an unknown id is 0.
- * The break: drop `c.deleted_at IS NULL` from `statsFor` (src/db/repos/discover-extras.ts).
+ * The break: drop `c.deleted_at IS NULL` from `statsFor` (src/db/repos/discover/discover-extras.ts).
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

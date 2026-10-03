@@ -2,7 +2,7 @@
  * M15 guard G-U1 (FR-030, FR-031): suspend/restore and report actions in Admin go through the
  * SAME `act()` as `/mod`, so both pages agree by construction.
  *
- * The break that turns it red (watched once, named in the commit): in `src/routes/admin.ts`
+ * The break that turns it red (watched once, named in the commit): in `src/routes/admin/`
  * `POST /users/:id/suspend`, replace `adminAct(…)` with
  * `await c.get('db').query('UPDATE listeners SET suspended_at = now() WHERE id = $1', [id])`.
  */

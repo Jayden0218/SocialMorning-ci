@@ -2,9 +2,9 @@
  * M14 — Studio parity (specs/014-m14-studio-parity).
  *
  * The breaks that turn the guards red:
- *   G-I1 (an expired, used or revoked invite is refused): in `src/db/repos/show-hosts.ts` `acceptInvite`,
+ *   G-I1 (an expired, used or revoked invite is refused): in `src/db/repos/studio/show-hosts.ts` `acceptInvite`,
  *        drop the `expires_at` check.
- *   G-S1 (a scheduled episode is not in the feed before its time): in `src/routes/feeds.ts`, drop `liveOnly: true`.
+ *   G-S1 (a scheduled episode is not in the feed before its time): in `src/routes/creators/feeds.ts`, drop `liveOnly: true`.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -148,7 +148,7 @@ test('overrides written as a JSON string (the postgres driver, before the fix) r
   const feed = 'https://feeds.example.com/old.xml';
   await t.q(`INSERT INTO show_overrides (feed_url, hosts, links, contacts) VALUES ($1, to_jsonb($2::text), to_jsonb($3::text), to_jsonb($4::text))`,
     [feed, '["Mei"]', '[{"label":"Site","url":"https://x.example"}]', '[{"type":"email","value":"a@b.co"}]']);
-  const { getOverrides } = await import('../src/db/repos/show-overrides.ts');
+  const { getOverrides } = await import('../src/db/repos/studio/show-overrides.ts');
   const o = await getOverrides(t.db, feed);
   assert.deepEqual([o!.hosts, o!.links, o!.contacts], [['Mei'], [{ label: 'Site', url: 'https://x.example' }], [{ type: 'email', value: 'a@b.co' }]]);
   await t.close();

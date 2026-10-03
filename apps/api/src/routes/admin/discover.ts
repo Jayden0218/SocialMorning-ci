@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { adminWrite, auditCtx } from '../../auth/admin.ts';
 import { ApiError } from '../../errors.ts';
 import { json } from '../../validate.ts';
-import { getDiscoverSettings, getFeatures, MAX_FEATURES, MAX_PINS, putDiscoverSettings, putFeatures, SECTION_IDS } from '../../db/repos/discover-settings.ts';
+import { getDiscoverSettings, getFeatures, MAX_FEATURES, MAX_PINS, putDiscoverSettings, putFeatures, SECTION_IDS } from '../../db/repos/discover/discover-settings.ts';
 import { genreName } from '../../catalog/genres.ts';
 import type { Hono } from 'hono';
 import { feedUrl, guid, version, target } from './common.ts';

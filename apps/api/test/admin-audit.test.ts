@@ -2,7 +2,7 @@
  * M15 guards G-A2…G-A5 (FR-004, SC-003, edge case "stolen session").
  *
  * The breaks that turn each red (watched once, named in the commit):
- *   G-A2 (one record row per write): in `src/routes/admin.ts` `PUT /discover`, call
+ *   G-A2 (one record row per write): in `src/routes/admin/` `PUT /discover`, call
  *        `putDiscoverSettings(db, …)` directly instead of through `adminWrite`.
  *   G-A3 (append-only): delete the `CREATE TRIGGER admin_audit_append_only …` statement from
  *        `src/db/migrations/014_admin.sql`.

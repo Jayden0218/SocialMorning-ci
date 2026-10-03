@@ -4,9 +4,9 @@
 import { ApiError } from '../../errors.ts';
 import { z } from 'zod';
 import { json } from '../../validate.ts';
-import { commentOnFeed, listShowComments, setHostHidden } from '../../db/repos/studio-comments.ts';
-import { createComment, toPublic } from '../../db/repos/comments.ts';
-import { isBlockedBy } from '../../db/repos/blocks.ts';
+import { commentOnFeed, listShowComments, setHostHidden } from '../../db/repos/studio/studio-comments.ts';
+import { createComment, toPublic } from '../../db/repos/social/comments.ts';
+import { isBlockedBy } from '../../db/repos/safety/blocks.ts';
 import type { Hono } from 'hono';
 import type { StudioEnv } from '../../auth/studio-session.ts';
 

@@ -54,7 +54,7 @@ test('FR-020: images older than 90 days are swept; the text stays', async () => 
   const t = await freshDb();
   await t.call('POST', '/v1/feedback', { kind: 'x', body: 'keep me', images: [{ mime: 'image/jpeg', base64: JPEG }] });
   await t.q("UPDATE feedback_images SET created_at = now() - interval '91 days'");
-  const { sweepImages } = await import('../src/db/repos/feedback.ts');
+  const { sweepImages } = await import('../src/db/repos/account/feedback.ts');
   assert.equal(await sweepImages(t.db), 1);
   assert.equal((await t.q('SELECT 1 FROM feedback_images')).length, 0);
   assert.equal((await t.q("SELECT 1 FROM feedback WHERE body = 'keep me'")).length, 1);

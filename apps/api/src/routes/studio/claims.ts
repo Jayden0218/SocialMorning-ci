@@ -2,10 +2,10 @@
  * Studio API (`/v1/studio/*`) — Claiming a show from the Studio
  */
 import { ApiError } from '../../errors.ts';
-import { showsFor } from '../../db/repos/studio-roles.ts';
+import { showsFor } from '../../db/repos/studio/studio-roles.ts';
 import { z } from 'zod';
 import { json } from '../../validate.ts';
-import { createClaim, myClaims, verifyClaim } from '../../db/repos/creator.ts';
+import { createClaim, myClaims, verifyClaim } from '../../db/repos/studio/creator.ts';
 import type { Hono } from 'hono';
 import { https } from './common.ts';
 import type { StudioEnv } from '../../auth/studio-session.ts';

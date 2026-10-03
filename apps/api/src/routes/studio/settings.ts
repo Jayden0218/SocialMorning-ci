@@ -4,10 +4,10 @@
 import { ApiError } from '../../errors.ts';
 import { z } from 'zod';
 import { json } from '../../validate.ts';
-import { getOverrides, putOverrides } from '../../db/repos/show-overrides.ts';
-import { addOperator, release, removeOperator, team } from '../../db/repos/show-team.ts';
-import { hostedByFeed, listHostedEpisodes } from '../../db/repos/hosted.ts';
-import { CONTACT_TYPES } from '../../db/repos/show-overrides.ts';
+import { getOverrides, putOverrides } from '../../db/repos/studio/show-overrides.ts';
+import { addOperator, release, removeOperator, team } from '../../db/repos/studio/show-team.ts';
+import { hostedByFeed, listHostedEpisodes } from '../../db/repos/studio/hosted.ts';
+import { CONTACT_TYPES } from '../../db/repos/studio/show-overrides.ts';
 import type { Hono } from 'hono';
 import { ownerOnly, https } from './common.ts';
 import type { StudioEnv } from '../../auth/studio-session.ts';

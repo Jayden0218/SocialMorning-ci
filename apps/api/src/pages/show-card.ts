@@ -5,7 +5,7 @@
  */
 import { Hono } from 'hono';
 import type { AuthEnv } from '../auth/session.ts';
-import { showKey } from '../db/repos/studio-roles.ts';
+import { showKey } from '../db/repos/studio/studio-roles.ts';
 import { esc, page } from './clip.ts';
 
 export const showCard = new Hono<AuthEnv>();

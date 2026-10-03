@@ -7,7 +7,7 @@
  */
 import { Hono } from 'hono';
 import type { AuthEnv } from '../auth/session.ts';
-import { getClip } from '../db/repos/clips.ts';
+import { getClip } from '../db/repos/social/clips.ts';
 
 export const APP_PACKAGE = 'app.socialmorning.mobile';
 

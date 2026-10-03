@@ -15,7 +15,7 @@ import { deleteCookie, setCookie } from 'hono/cookie';
 import { tokenHash, publicListener } from '../../auth/session.ts';
 import { STUDIO_COOKIE, STUDIO_IDLE_MS, studioAuth, studioCsrf, studioListener, studioToken, type StudioEnv } from '../../auth/studio-session.ts';
 import { ApiError } from '../../errors.ts';
-import { roleFor, showsFor } from '../../db/repos/studio-roles.ts';
+import { roleFor, showsFor } from '../../db/repos/studio/studio-roles.ts';
 import { ACT_AS_COOKIE, ensureSeeded, insertAudit, isAdmin, stopActing } from '../../auth/admin.ts';
 import { https } from './common.ts';
 import { registerClaims } from './claims.ts';

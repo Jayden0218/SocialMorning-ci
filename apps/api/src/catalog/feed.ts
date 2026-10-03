@@ -8,7 +8,7 @@ import { parseFeed, type Episode, type ParsedFeed } from '@socialmorning/feed-pa
 import { hash } from '@socialmorning/social-core';
 import type { Db } from '../db/db.ts';
 import { cached, TTL } from '../db/repos/cache.ts';
-import { upsertEpisode, type EpisodeRow } from '../db/repos/episodes.ts';
+import { upsertEpisode, type EpisodeRow } from '../db/repos/library/episodes.ts';
 import type { EpisodeCard } from './apple.ts';
 import { genreIdFor } from './genres.ts';
 

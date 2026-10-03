@@ -4,8 +4,8 @@
 import { ApiError } from '../../errors.ts';
 import { z } from 'zod';
 import { json } from '../../validate.ts';
-import { publish } from '../../db/repos/announcements.ts';
-import { listHostedEpisodes, promoteDue, publishEpisode, removeEpisode, storedBytes, updateEpisode, updateHostedShow } from '../../db/repos/hosted.ts';
+import { publish } from '../../db/repos/studio/announcements.ts';
+import { listHostedEpisodes, promoteDue, publishEpisode, removeEpisode, storedBytes, updateEpisode, updateHostedShow } from '../../db/repos/studio/hosted.ts';
 import { AUDIO_TYPES, IMAGE_TYPES, MAX_AUDIO_BYTES, MAX_IMAGE_BYTES } from '../../storage/episodes-blob.ts';
 import { randomUUID } from 'node:crypto';
 import type { Hono } from 'hono';

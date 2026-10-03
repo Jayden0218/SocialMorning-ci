@@ -3,7 +3,7 @@
  * array or object); pglite does not, so these rows are written by hand the way production stored
  * them before the fix (found 2026-09-29 by the M14 e2e on real PostgreSQL).
  *
- * The break that turns it red: in `src/db/repos/studio-numbers.ts` `completion`, pass `r.ranges`
+ * The break that turns it red: in `src/db/repos/studio/studio-numbers.ts` `completion`, pass `r.ranges`
  * straight to `isComplete` again — the string-stored listen no longer counts as complete.
  */
 import { test } from 'node:test';
@@ -11,7 +11,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { freshDb, signUp } from './harness.ts';
 import { addEpisode, day } from './studio-harness.ts';
-import { completion } from '../src/db/repos/studio-numbers.ts';
+import { completion } from '../src/db/repos/studio/studio-numbers.ts';
 
 const FEED = 'https://feeds.example.com/j.xml';
 

@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp } from './harness.ts';
-import { fanOutNewEpisode } from '../src/db/repos/push.ts';
+import { fanOutNewEpisode } from '../src/db/repos/account/push.ts';
 
 const A = 'https://feeds.example.com/a.xml';
 const B = 'https://feeds.example.com/b.xml';

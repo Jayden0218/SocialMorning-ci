@@ -4,7 +4,7 @@
 import { ApiError } from '../../errors.ts';
 import { z } from 'zod';
 import { json } from '../../validate.ts';
-import { listHostedEpisodes, storedBytes } from '../../db/repos/hosted.ts';
+import { listHostedEpisodes, storedBytes } from '../../db/repos/studio/hosted.ts';
 import type { Hono } from 'hono';
 import { hostedOf } from './common.ts';
 import type { StudioEnv } from '../../auth/studio-session.ts';

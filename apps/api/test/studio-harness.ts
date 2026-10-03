@@ -4,7 +4,7 @@
  * show with known numbers.
  */
 import { signUp, type TestDb } from './harness.ts';
-import { showKey } from '../src/db/repos/studio-roles.ts';
+import { showKey } from '../src/db/repos/studio/studio-roles.ts';
 
 export type StudioUser = { id: string; cookie: string; token: string };
 

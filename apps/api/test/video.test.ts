@@ -5,7 +5,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { registerCard, toCard } from '../src/catalog/feed.ts';
-import { videoEpisodes } from '../src/db/repos/discover-extras.ts';
+import { videoEpisodes } from '../src/db/repos/discover/discover-extras.ts';
 import { freshDb } from './harness.ts';
 
 const show = { feedUrl: 'https://f/v.xml', title: 'Watch Show', explicit: false, categories: [], contentHash: 'h' };

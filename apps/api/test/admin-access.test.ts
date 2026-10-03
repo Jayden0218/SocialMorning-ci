@@ -2,7 +2,7 @@
  * M15 guard G-A1 (SC-002): every `/v1/admin/*` route refuses a non-admin — the test ENUMERATES
  * the routes the app registered, so a route added later is covered without editing this file.
  *
- * The break that turns it red (watched once, named in the commit): in `src/routes/admin.ts`,
+ * The break that turns it red (watched once, named in the commit): in `src/routes/admin/`,
  * move one route ABOVE `admin.use('*', adminOnly)` — e.g. put `admin.get('/audit', …)` first.
  * Hono runs handlers in registration order, so that route answers before the middleware.
  */

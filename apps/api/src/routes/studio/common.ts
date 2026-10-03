@@ -5,9 +5,9 @@ import { type MiddlewareHandler } from 'hono';
 import { type StudioEnv } from '../../auth/studio-session.ts';
 import { ApiError } from '../../errors.ts';
 import { z } from 'zod';
-import { METRICS, type Metric } from '../../db/repos/studio-numbers.ts';
-import { release, team } from '../../db/repos/show-team.ts';
-import { CATEGORIES, hostedByFeed } from '../../db/repos/hosted.ts';
+import { METRICS, type Metric } from '../../db/repos/studio/studio-numbers.ts';
+import { release, team } from '../../db/repos/studio/show-team.ts';
+import { CATEGORIES, hostedByFeed } from '../../db/repos/studio/hosted.ts';
 
 export const showDetails = z.object({
   title: z.string().trim().min(1).max(100),

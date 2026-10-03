@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { freshDb } from './harness.ts';
-import { upsertEpisode, getEpisode } from '../src/db/repos/episodes.ts';
+import { upsertEpisode, getEpisode } from '../src/db/repos/library/episodes.ts';
 
 const base = { id: 'ep1', feedUrl: 'https://f/x.xml', guid: 'g1', title: 'One', enclosureUrl: 'https://cdn/1.mp3' };
 

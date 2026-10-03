@@ -13,7 +13,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { aCall, adminSetup } from './admin-harness.ts';
 import { signUp, type TestDb } from './harness.ts';
-import { rangeDays, type Metrics } from '../src/db/repos/metrics.ts';
+import { rangeDays, type Metrics } from '../src/db/repos/admin/metrics.ts';
 
 const JOB = 'job-token-metrics';
 /** The UTC+8 calendar day `n` days ago, and noon on it. */

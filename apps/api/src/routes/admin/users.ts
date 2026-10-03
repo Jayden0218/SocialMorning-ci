@@ -7,8 +7,8 @@ import { actionsFor, groupReports, RETENTION_DAYS, type Action, type TargetKind 
 import { adminWrite, auditCtx, insertAudit, type AdminEnv } from '../../auth/admin.ts';
 import { ApiError } from '../../errors.ts';
 import { json } from '../../validate.ts';
-import { act, recentActions } from '../../db/repos/moderation.ts';
-import { closedReports, openReports, type QueueRow } from '../../db/repos/reports.ts';
+import { act, recentActions } from '../../db/repos/safety/moderation.ts';
+import { closedReports, openReports, type QueueRow } from '../../db/repos/safety/reports.ts';
 import type { Db } from '../../db/db.ts';
 import type { Hono } from 'hono';
 import { uuidParam, target } from './common.ts';

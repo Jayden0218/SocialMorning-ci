@@ -16,7 +16,7 @@ import { getCookie } from 'hono/cookie';
 import { tokenHash, suspendedError, type AuthEnv, type Listener } from './session.ts';
 import { ApiError } from '../errors.ts';
 import type { Db } from '../db/db.ts';
-import type { StudioShow } from '../db/repos/studio-roles.ts';
+import type { StudioShow } from '../db/repos/studio/studio-roles.ts';
 import { actAsCookie, actingTarget } from './admin.ts';
 
 /** The Studio's routes see everything the API's do, plus the show the request is about. */

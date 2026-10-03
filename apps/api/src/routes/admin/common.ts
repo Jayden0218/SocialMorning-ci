@@ -4,7 +4,7 @@
 import { z } from 'zod';
 import { ApiError } from '../../errors.ts';
 import { dropCatalogMemo } from '../../catalog/live.ts';
-import { dropDiscoverCache } from '../../db/repos/discover.ts';
+import { dropDiscoverCache } from '../../db/repos/discover/discover.ts';
 import type { Db } from '../../db/db.ts';
 
 export const DATE = /^\d{4}-\d{2}-\d{2}$/;

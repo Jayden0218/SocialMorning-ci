@@ -3,12 +3,12 @@
  * `/v1/discover` with no deploy, never leave the section empty, and a stale save is refused.
  *
  * The breaks that turn each red (watched once, named in the commit):
- *   G-P1: in `src/routes/admin.ts` `catalogChanged`, stop deleting the cache rows
+ *   G-P1: in `src/routes/admin/` `catalogChanged`, stop deleting the cache rows
  *         (remove `await dropDiscoverCache(db)`) — the hour's cached body keeps the old picks.
  *   G-P2: in `src/catalog/live.ts` `mergeCatalog`, keep only the tables' picks once any admin day
  *         exists: `const picks = rows.pickDays.size > 0 ? rows.picks : file.picks;` — a future admin
  *         day then leaves today with `[]`.
- *   G-P3: in `src/db/repos/admin-picks.ts` `putPickDay`, delete the `current !== version` check.
+ *   G-P3: in `src/db/repos/admin/admin-picks.ts` `putPickDay`, delete the `current !== version` check.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

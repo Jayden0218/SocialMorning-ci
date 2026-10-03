@@ -2,7 +2,7 @@
  * Studio API (`/v1/studio/*`) — US2: Data
  */
 import { ApiError } from '../../errors.ts';
-import { EPISODE_SORTS, alsoFollow, episodeCsv, episodeDetail, episodeStats, sortEpisodes, trend, trendCsv, validTz, yesterday, type EpisodeSort } from '../../db/repos/studio-numbers.ts';
+import { EPISODE_SORTS, alsoFollow, episodeCsv, episodeDetail, episodeStats, sortEpisodes, trend, trendCsv, validTz, yesterday, type EpisodeSort } from '../../db/repos/studio/studio-numbers.ts';
 import type { Hono } from 'hono';
 import { days, metric } from './common.ts';
 import type { StudioEnv } from '../../auth/studio-session.ts';

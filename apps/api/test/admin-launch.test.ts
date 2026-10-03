@@ -4,7 +4,7 @@
  *
  * The breaks that turn each red (watched once, named in the commit):
  *   G-L2: add `listener_id uuid NULL` to `promotions` in `014_admin.sql` (and to the insert in
- *         `src/db/repos/promotions.ts`) — the column scan below finds it.
+ *         `src/db/repos/discover/promotions.ts`) — the column scan below finds it.
  *   G-L3: raise `MAX_LAUNCH_IMAGE_BYTES` (or `LAUNCH_CEILING_BYTES`) in `src/storage/episodes-blob.ts`.
  */
 import { test } from 'node:test';

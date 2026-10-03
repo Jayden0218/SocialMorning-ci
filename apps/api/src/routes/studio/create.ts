@@ -2,9 +2,9 @@
  * Studio API (`/v1/studio/*`) — M13: create a show here
  */
 import { ApiError } from '../../errors.ts';
-import { showsFor } from '../../db/repos/studio-roles.ts';
+import { showsFor } from '../../db/repos/studio/studio-roles.ts';
 import { json } from '../../validate.ts';
-import { createHostedShow, storedBytes } from '../../db/repos/hosted.ts';
+import { createHostedShow, storedBytes } from '../../db/repos/studio/hosted.ts';
 import { MAX_AUDIO_BYTES } from '../../storage/episodes-blob.ts';
 import type { Hono } from 'hono';
 import { showDetails } from './common.ts';

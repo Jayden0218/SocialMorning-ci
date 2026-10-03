@@ -2,7 +2,7 @@
  * M11 US2 — Data: yesterday, top episodes, the episode table, CSV and "listeners also follow".
  *
  * The breaks that turn the guards red:
- *   G-E1 (CSV = screen): in `src/db/repos/studio-numbers.ts` `episodeCsv`, write `e.comments` in the Plays column.
+ *   G-E1 (CSV = screen): in `src/db/repos/studio/studio-numbers.ts` `episodeCsv`, write `e.comments` in the Plays column.
  *   G-L1 (hidden under 5): set `ALSO_FOLLOW_MIN` to 4.
  */
 import { test } from 'node:test';

@@ -3,7 +3,7 @@
  */
 import { ApiError } from '../../errors.ts';
 import { cached } from '../../db/repos/cache.ts';
-import { computeMetrics, METRIC_RANGES, type MetricRange } from '../../db/repos/metrics.ts';
+import { computeMetrics, METRIC_RANGES, type MetricRange } from '../../db/repos/admin/metrics.ts';
 import type { Hono } from 'hono';
 import type { AdminEnv } from '../../auth/admin.ts';
 
