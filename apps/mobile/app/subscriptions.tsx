@@ -153,7 +153,7 @@ export default function SubscriptionsScreen(): React.ReactElement {
             <FilterBar term={term} onTerm={setTerm} placeholder="Search your shows" />
           </Box>
         )}
-        ListEmptyComponent={rows.length === 0 ? <EmptyState surface="library" page /> : starred.length === 0 ? <EmptyPicture icon="search" line="No shows match" /> : null}
+        ListEmptyComponent={rows.length === 0 ? <EmptyState surface="library" page /> : starred.length === 0 ? <EmptyPicture icon="search" line="No shows match" /> : undefined}
         renderItem={({ item }) => {
           const { extra, line } = linesOf(item);
           return (
