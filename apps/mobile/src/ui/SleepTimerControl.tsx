@@ -1,4 +1,10 @@
-/** Sleep timer (US3, FR-015..017): the fixed choices, the remaining time while it runs, cancel. */
+/**
+ * Sleep timer (US3, FR-015..017): the fixed choices, the remaining time while it runs, cancel.
+ *
+ * M17 T102 (`PlaybackSheet-B`): a "Sleep" head with the running state ("Pausing in …" or "Stops
+ * when this episode ends") and its Cancel on the right; the choices are white tiles in a
+ * 4-column grid (End of episode spans two). Same choices, names, Cancels and handlers as before.
+ */
 import { useEffect, useState } from 'react';
 import { Pressable } from './lib/pressable';
 import { hit } from '../design';
@@ -12,6 +18,10 @@ import { usePlayer } from '../playback/store';
 import { mmss } from './format';
 
 const CHOICES: SleepChoice[] = [5, 10, 15, 30, 45, 60, 'endOfEpisode'];
+/** B's grid: four across, End of episode two columns wide. React Native has no CSS grid, so rows of flex tiles. */
+const ROWS: SleepChoice[][] = [CHOICES.slice(0, 4), CHOICES.slice(4)];
+const ONE = { ...TAP, flex: 1 };
+const TWO = { ...TAP, flex: 2 };
 
 export function SleepTimerControl(): React.ReactElement {
   const player = usePlayer();
@@ -23,27 +33,30 @@ export function SleepTimerControl(): React.ReactElement {
   const timer = player.sleepTimer();
   const remaining = player.sleepRemainingMs();
   return (
-    <Box className="w-full gap-1 mt-2">
-      <Box className="flex-row items-center gap-2 flex-wrap">
-        <Text className="font-semibold text-text">Sleep</Text>
-        {CHOICES.map((c) => (
-          <Pressable style={TAP} className="justify-center" key={String(c)} onPress={() => player.setSleepTimer(c)} accessibilityRole="button">
-            <Text className={`border rounded-pill px-3 py-1.5 ${(c === 'endOfEpisode' ? timer.kind === 'endOfEpisode' : false) ? 'text-[13px] bg-primary border-primary text-onPrimary' : 'text-[13px] border-separator text-text'}`}>{c === 'endOfEpisode' ? 'End of episode' : `${c} min`}</Text>
-          </Pressable>
-        ))}
+    <Box className="w-full gap-gap">
+      <Box className="flex-row items-center justify-between gap-gap">
+        <Text className="text-sm font-bold text-text" accessibilityRole="header">Sleep</Text>
+        {timer.kind === 'minutes' && remaining !== undefined ? (
+          <Box className="flex-row items-center gap-2.5">
+            <Text className="text-meta text-muted">Pausing in {mmss(remaining)}</Text>
+            <Pressable style={TAP} className="justify-center" onPress={() => player.setSleepTimer('off')} accessibilityRole="button"><Text className="text-accent text-meta font-semibold">Cancel</Text></Pressable>
+          </Box>
+        ) : timer.kind === 'endOfEpisode' ? (
+          <Box className="flex-row items-center gap-2.5 flex-shrink">
+            <Text className="text-meta text-muted flex-shrink">Stops when this episode ends</Text>
+            <Pressable style={TAP} className="justify-center" onPress={() => player.setSleepTimer('off')} accessibilityRole="button"><Text className="text-accent text-meta font-semibold">Cancel</Text></Pressable>
+          </Box>
+        ) : null}
       </Box>
-      {timer.kind === 'minutes' && remaining !== undefined ? (
-        <Box className="flex-row items-center gap-2 flex-wrap">
-          <Text className="text-text">Pausing in {mmss(remaining)}</Text>
-          <Pressable style={TAP} className="justify-center" onPress={() => player.setSleepTimer('off')} accessibilityRole="button"><Text className="text-accent text-[13px]">Cancel</Text></Pressable>
+      {ROWS.map((row, r) => (
+        <Box key={r} className="flex-row gap-1.5">
+          {row.map((c) => (
+            <Pressable style={c === 'endOfEpisode' ? TWO : ONE} className={`items-center justify-center rounded-row border ${c === 'endOfEpisode' && timer.kind === 'endOfEpisode' ? 'bg-primary border-primary' : 'bg-surface border-border'}`} key={String(c)} onPress={() => player.setSleepTimer(c)} accessibilityRole="button">
+              <Text className={c === 'endOfEpisode' && timer.kind === 'endOfEpisode' ? 'text-meta font-bold text-onPrimary' : 'text-meta font-semibold text-text'}>{c === 'endOfEpisode' ? 'End of episode' : `${c} min`}</Text>
+            </Pressable>
+          ))}
         </Box>
-      ) : timer.kind === 'endOfEpisode' ? (
-        <Box className="flex-row items-center gap-2 flex-wrap">
-          <Text className="text-text">Stops when this episode ends</Text>
-          <Pressable style={TAP} className="justify-center" onPress={() => player.setSleepTimer('off')} accessibilityRole="button"><Text className="text-accent text-[13px]">Cancel</Text></Pressable>
-        </Box>
-      ) : null}
+      ))}
     </Box>
   );
 }
-

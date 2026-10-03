@@ -8,9 +8,14 @@
  * M17 T052 (`Queue-B`): `layout="page"` draws the queue page's Editorial look — the first
  * episode as an "Up next" card (96 pt artwork, accent eyebrow, serif title, a yellow Play now
  * pill, ⋮ and the drag handle), the rest as numbered rows (serif number, 52 pt artwork, ⋮, the
- * handle on the right), and the ⋮ opens the actions in a sheet headed by the episode. The
- * default (`"sheet"`) is unchanged for the player's queue sheet (restyled later by T098). The
- * actions, their names and handlers are one component used by both, so nothing is lost.
+ * handle on the right), and the ⋮ opens the actions in a sheet headed by the episode.
+ *
+ * M17 T098 (`QueueSheet-B`): the default `layout="sheet"` (the player's queue sheet) draws every
+ * episode as a numbered white card — accent serif number, 64 pt artwork, serif title, the meta
+ * line, and ⋮ over the drag handle on the right. ⋮ opens the actions inside the card as pills
+ * (Play now yellow; Move to top, Move up, Move down, Remove from the queue) — same names and
+ * handlers as the old rows under the item. A card is taller than the old 72 pt row, so the
+ * sheet's drag turns distance into places with `SHEET_ROW` instead of `QUEUE_ROW`.
  */
 import { useMemo, useRef, useState } from 'react';
 import { PanResponder, type GestureResponderHandlers } from 'react-native';
@@ -34,10 +39,20 @@ const TAP = { minHeight: hit.min, minWidth: hit.min };
 const ROW_TAP = { minHeight: hit.min };
 /** A row's height, for turning a drag distance into places moved. */
 export const QUEUE_ROW = 72;
+/**
+ * M17 T098: a closed card's pitch in the sheet — ⋮ over the handle (2 × 48) + 12 pt padding top
+ * and bottom + the 1 pt border twice + the 10 pt gap under it. The card's content never exceeds
+ * the 96 pt control column (64 pt artwork; title and meta at most 2 lines each).
+ */
+export const SHEET_ROW = 132;
+/** M17 T098: B's pill under an open card is 44 pt; ours keeps the 48 pt floor. */
+const PILL = { minHeight: hit.min };
+/** M17 T098: ⋮ over the drag handle, a fixed column so the card's height is known. */
+const CONTROLS = { width: hit.min, height: hit.min * 2 };
 
 /** How many places a drag of `dy` points moves a row, kept inside the queue. */
-export function dragTarget(index: number, dy: number, length: number): number {
-  return Math.max(0, Math.min(length - 1, index + Math.round(dy / QUEUE_ROW)));
+export function dragTarget(index: number, dy: number, length: number, row: number = QUEUE_ROW): number {
+  return Math.max(0, Math.min(length - 1, index + Math.round(dy / row)));
 }
 
 type QueueStores = Pick<Stores, 'feeds' | 'positions' | 'downloads'>;
@@ -60,7 +75,7 @@ export function QueueList(props: {
   const toggle = (id: string) => setOpen((o) => (o === id ? undefined : id));
   return (
     <Box>
-      <Text className={page ? 'text-muted text-meta mb-2.5' : 'text-muted text-xs py-2'}>{`${plural(ids.length, 'episode')} · plays in order after this one`}</Text>
+      <Text className={page ? 'text-muted text-meta mb-2.5' : 'text-muted text-meta pt-1 pb-2.5'}>{`${plural(ids.length, 'episode')} · plays in order after this one`}</Text>
       {ids.map((id, index) => (
         <QueueRow
           key={id}
@@ -76,7 +91,7 @@ export function QueueList(props: {
           dy={drag?.id === id ? drag.dy : 0}
           onToggle={() => toggle(id)}
           onDrag={(dy) => setDrag({ id, dy })}
-          onDrop={(dy) => { setDrag(undefined); const to = dragTarget(index, dy, ids.length); if (to !== index) props.onChange(move(ids, id, to)); }}
+          onDrop={(dy) => { setDrag(undefined); const to = dragTarget(index, dy, ids.length, page ? QUEUE_ROW : SHEET_ROW); if (to !== index) props.onChange(move(ids, id, to)); }}
         />
       ))}
       {page ? (
@@ -120,7 +135,7 @@ function SheetHead(props: { id: string; stores: QueueStores }): React.ReactEleme
   );
 }
 
-/** The ⋮ actions — inline under a row in the player's sheet, in a sheet on the queue page. */
+/** The ⋮ actions in a sheet on the queue page (the player's queue sheet shows them as pills in the card, M17 T098). */
 function QueueActions(props: {
   id: string; index: number; ids: readonly string[]; colours: Colours;
   onChange: (next: readonly string[]) => void; onPlay: (id: string) => void; onToggle: () => void;
@@ -216,27 +231,58 @@ function QueueRow(props: {
     );
   }
 
+  // M17 `QueueSheet-B`: a numbered card per episode; the actions open inside it as pills.
   return (
-    <Box className={props.dy !== 0 ? 'bg-surface rounded-row' : ''} style={lifted}>
-      <Box className="flex-row items-center gap-row border-b-hairline border-separator" style={{ minHeight: QUEUE_ROW }}>
-        {handle}
-        {/* M16a bug 6 (FR-002). Phone walk 2026-10-02: tapping a row in "Up next" did nothing —
-            the artwork and title were plain views; only the drag handle and ⋮ took a tap. The row
-            itself now plays the episode (the sheet closes, the page opens the player). */}
-        <Pressable onPress={() => props.onPlay(id)} accessibilityRole="button" accessibilityLabel={`Play ${title}`} className="flex-1 flex-row items-center gap-row" style={ROW_TAP}>
-          <Artwork url={d.art} size={48} name={d.artName} />
-          <Box className="flex-1">
-            <Text className="text-text text-sm font-semibold" numberOfLines={2}>{title}</Text>
-            <Text className="text-muted text-xs" numberOfLines={1}>{d.meta}</Text>
+    <Box className="mb-2.5" style={lifted}>
+      <Box className="bg-surface border border-border rounded-row p-3">
+        <Box className="flex-row items-center gap-row">
+          <Text className="text-accent text-lg font-display w-6" accessible={false}>{String(index + 1)}</Text>
+          {/* M16a bug 6 (FR-002). Phone walk 2026-10-02: tapping a row in "Up next" did nothing —
+              the artwork and title were plain views; only the drag handle and ⋮ took a tap. The row
+              itself now plays the episode (the sheet closes, the page opens the player). */}
+          <Pressable onPress={() => props.onPlay(id)} accessibilityRole="button" accessibilityLabel={`Play ${title}`} className="flex-1 flex-row items-center gap-row" style={ROW_TAP}>
+            <Artwork url={d.art} size={64} name={d.artName} />
+            <Box className="flex-1 gap-0.5">
+              <Text className="text-text text-sm font-display-semibold" numberOfLines={2}>{title}</Text>
+              {d.meta ? <Text className="text-muted text-xs" numberOfLines={2}>{d.meta}</Text> : null}
+            </Box>
+          </Pressable>
+          <Box style={CONTROLS}>
+            <Box className={props.open ? 'bg-accentTint rounded-pill' : ''}>{more}</Box>
+            {handle}
           </Box>
-        </Pressable>
-        {more}
-      </Box>
-      {props.open ? (
-        <Box className="pl-12">
-          <QueueActions id={id} index={index} ids={ids} colours={props.colours} onChange={props.onChange} onPlay={props.onPlay} onToggle={props.onToggle} />
         </Box>
-      ) : null}
+        {props.open ? (
+          <Box className="flex-row flex-wrap gap-gap pt-3 mt-3 border-t-hairline border-separator">
+            <Pressable onPress={() => { props.onToggle(); props.onPlay(id); }} accessibilityRole="button" accessibilityLabel="Play now" className="flex-row items-center gap-1.5 px-3 rounded-pill bg-primary" style={PILL}>
+              <Icon name="play-outline" size={16} color={onPrimary} />
+              <Text className="text-onPrimary text-meta font-bold">Play now</Text>
+            </Pressable>
+            {index > 0 ? (
+              <Pressable onPress={() => { props.onToggle(); props.onChange(move(ids, id, 0)); }} accessibilityRole="button" accessibilityLabel="Move to top" className="flex-row items-center gap-1.5 px-3 rounded-pill bg-background border border-border" style={PILL}>
+                <Icon name="arrow-up-outline" size={16} color={props.colours.text} />
+                <Text className="text-text text-meta font-bold">Move to top</Text>
+              </Pressable>
+            ) : null}
+            {index > 0 ? (
+              <Pressable onPress={() => props.onChange(move(ids, id, index - 1))} accessibilityRole="button" accessibilityLabel="Move up" className="flex-row items-center gap-1.5 px-3 rounded-pill bg-background border border-border" style={PILL}>
+                <Icon name="chevron-up-outline" size={16} color={props.colours.text} />
+                <Text className="text-text text-meta font-bold">Move up</Text>
+              </Pressable>
+            ) : null}
+            {index < ids.length - 1 ? (
+              <Pressable onPress={() => props.onChange(move(ids, id, index + 1))} accessibilityRole="button" accessibilityLabel="Move down" className="flex-row items-center gap-1.5 px-3 rounded-pill bg-background border border-border" style={PILL}>
+                <Icon name="chevron-down-outline" size={16} color={props.colours.text} />
+                <Text className="text-text text-meta font-bold">Move down</Text>
+              </Pressable>
+            ) : null}
+            <Pressable onPress={() => { props.onToggle(); props.onChange(remove(ids, id)); }} accessibilityRole="button" accessibilityLabel="Remove from the queue" className="flex-row items-center gap-1.5 px-3 rounded-pill bg-background border border-border" style={PILL}>
+              <Icon name="trash-outline" size={16} color={props.colours.accent} />
+              <Text className="text-accent text-meta font-bold">Remove from the queue</Text>
+            </Pressable>
+          </Box>
+        ) : null}
+      </Box>
     </Box>
   );
 }
