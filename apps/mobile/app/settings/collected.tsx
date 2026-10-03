@@ -70,7 +70,7 @@ export default function CollectedScreen(): React.ReactElement {
       ))}
       <Actionsheet isOpen={open !== undefined} onClose={() => setOpen(undefined)}>
         <ActionsheetBackdrop />
-        <ActionsheetContent className="bg-background rounded-t-row px-screen-x pb-section items-stretch">
+        <ActionsheetContent className="bg-surface rounded-t-row px-screen-x items-stretch">
           <ActionsheetDragIndicatorWrapper>
             <ActionsheetDragIndicator />
           </ActionsheetDragIndicatorWrapper>
