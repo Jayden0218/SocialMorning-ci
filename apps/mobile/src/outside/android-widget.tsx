@@ -1,3 +1,4 @@
+// Draws the Android home-screen widget with episode and play/pause.
 /**
  * M10b US9 — the Android home-screen widget (react-native-android-widget 0.22.1, MIT). It shows
  * the episode, its show, and play/pause. The widget is drawn by the app's JS, so it can only

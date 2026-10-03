@@ -1,3 +1,4 @@
+// Searches Apple's public podcast catalogue for shows.
 /**
  * Apple's public podcast search (contracts/catalog.ts, research R5).
  *

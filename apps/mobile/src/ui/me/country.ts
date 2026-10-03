@@ -1,3 +1,4 @@
+// Turns a country code like "MY" into its name, "Malaysia".
 /** M10b US7 — a two-letter country code as a name ("MY" → "Malaysia"); the code itself when the phone cannot name it. */
 export function countryName(code: string, locale = 'en'): string {
   try {

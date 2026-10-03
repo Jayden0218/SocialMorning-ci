@@ -1,3 +1,4 @@
+// Works out which Discover sections to show from the server's data.
 /**
  * What the redesigned Discover (M10, owner 2026-09-27) shows, worked out from the data —
  * kept apart from the screen so it can be tested without rendering.

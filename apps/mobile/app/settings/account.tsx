@@ -1,3 +1,4 @@
+// Account and security: how you sign in, masked email, link to More.
 /**
  * Account and security (M10: moved here from /account, which is now Settings).
  * Account (US5): who you are and the ways you sign in. Deleting the account sits one level

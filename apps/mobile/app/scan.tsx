@@ -1,3 +1,4 @@
+// Camera window to scan a QR code; asks for camera permission first.
 /**
  * Scan a QR code (M10, owner 2026-09-27). The camera opens only here, only after the
  * listener allows it, and only reads QR codes. The first code read decides where to go

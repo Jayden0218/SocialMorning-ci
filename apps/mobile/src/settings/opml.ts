@@ -1,3 +1,4 @@
+// Imports or exports your subscription list as an OPML file.
 /**
  * Import or export the subscription list as OPML (M10) — the file every podcast app
  * reads, so moving to or from SocialNet keeps your shows. Export is text you can share;

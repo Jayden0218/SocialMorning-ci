@@ -1,3 +1,4 @@
+// Updates the iPhone widget and lock-screen live activity.
 /**
  * M10b US9 — the iPhone surfaces. The widget (`targets/widget`, SwiftUI) reads the card from
  * the shared App Group through @bacons/apple-targets' `ExtensionStorage`; the lock screen's

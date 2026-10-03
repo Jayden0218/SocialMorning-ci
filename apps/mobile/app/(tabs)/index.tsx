@@ -1,3 +1,4 @@
+// Discover, the first screen: search box, shortcuts, picks, For You, charts, categories.
 /**
  * Discover — the first tab and the screen the app opens on (M10, owner 2026-09-27),
  * laid out after the reference the owner chose: a large title, a search box, shortcut

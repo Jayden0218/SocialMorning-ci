@@ -1,3 +1,4 @@
+// Plays your next queued or newest episode and opens the player.
 /**
  * `socialmorning://play-latest` (M10b US9) — what Siri's "Play my latest SocialNet episode"
  * opens: the first unfinished episode in the queue, else the newest in Updates. It plays and

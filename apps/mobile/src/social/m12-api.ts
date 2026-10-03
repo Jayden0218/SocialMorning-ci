@@ -1,3 +1,4 @@
+// Extra server calls: likes, friends listening, picks, purchases, tips, voice posts.
 /**
  * M12's server calls (specs/012-m12-the-finish/contracts/api.md), in their own client so the
  * many test fakes of `ApiClient` need no new methods. Same transport as `createApi`.

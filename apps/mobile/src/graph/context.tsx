@@ -1,3 +1,4 @@
+// Gives screens the clip sender and each episode's clip list.
 /**
  * What the M4 screens need: the clips sender, a per-episode clip list cache, and the
  * feed/profile client. Sits inside <SocialProvider> (same api, same listener).

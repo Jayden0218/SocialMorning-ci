@@ -1,3 +1,4 @@
+// First-run page: you must agree to terms and privacy before using the app.
 /**
  * The consent screen (owner, 2026-09-27): the whole page, not a half sheet. Drawn over the stack like the launch screen,
  * so no route — not even a link that opened the app — gets past it. One way out: Agree.

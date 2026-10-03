@@ -1,3 +1,4 @@
+// Explains how to export your shows from other podcast apps.
 /**
  * M12 FR-095: how to get an OPML file out of other podcast apps. Each entry was read on
  * 2026-09-29 (Principle III); `source` is where. Two are the apps' own step pages (Pocket

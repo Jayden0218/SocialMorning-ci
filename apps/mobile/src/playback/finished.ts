@@ -1,3 +1,4 @@
+// Decides when an episode counts as finished.
 /**
  * FR-019 and FR-020, pure. No imports at all, deliberately — these two
  * functions are read back by the store, the reducer and the library screen,

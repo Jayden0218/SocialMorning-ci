@@ -1,3 +1,4 @@
+// Send feedback with type, text and up to 3 images; see what you sent.
 /**
  * Send feedback (M10; images and direct delivery M10b US6): choose a kind, write it, add up to
  * 3 images, send. It goes straight to the owner's /mod page; if the server cannot be reached,

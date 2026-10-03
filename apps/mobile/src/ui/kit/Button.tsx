@@ -1,3 +1,4 @@
+// The app's one button: yellow, white with border, or for delete actions.
 /**
  * The one button (M7 FR-007). Three kinds, one look each. M17 (`SignIn-B`, `Issues-B`): the
  * Editorial pill — dark words on the yellow (the 1.60 waiver ended), or white with a thin border.

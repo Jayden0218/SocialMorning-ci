@@ -1,3 +1,4 @@
+// Full "Talked about" ranking for 7 days: top three as cards, then rows.
 /**
  * The full chart (M12 FR-071): Discover's "Talked about" ranking — the same 7 days, the same
  * order — without the three-page cut Discover shows. From `GET /v1/discover/chart`; shows

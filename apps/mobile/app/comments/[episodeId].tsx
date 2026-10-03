@@ -1,3 +1,4 @@
+// An episode's comments: three sort orders, likes, write box with the current time.
 /**
  * The comments page (M12 US2, FR-020…FR-027). Found on the iPhone 2026-09-29: the player's
  * comment button opened the keyboard with "No moment attached" at 4:58, and the list lived at

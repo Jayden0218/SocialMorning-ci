@@ -1,3 +1,4 @@
+// Typed client for every server call, with clear error types.
 /**
  * Typed client for contracts/api.md. No React in here: it takes a `fetch`, a
  * base URL and a token provider, so the tests hand it fakes and the app hands it

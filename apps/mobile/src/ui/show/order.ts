@@ -1,3 +1,4 @@
+// Sorts the show's episodes: newest, oldest, unplayed only, or most played.
 /**
  * The show page's list controls (owner, 2026-10-01, after the 小宇宙 show page): newest or
  * oldest first, an "Unplayed" filter, and the "All" / "Most played" chips. Pure, so it is

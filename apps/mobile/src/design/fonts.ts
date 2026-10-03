@@ -1,3 +1,4 @@
+// Loads the two app fonts at start-up, falling back to system fonts.
 /**
  * M17 (FR-003, research R5): the Editorial fonts — Fraunces for display headings, Manrope for
  * everything else (both SIL OFL 1.1, checked 2026-10-03 at github.com/google/fonts). They load

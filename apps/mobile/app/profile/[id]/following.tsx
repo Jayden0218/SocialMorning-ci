@@ -1,3 +1,4 @@
+// List of people this listener follows.
 /** A paged list of following (M4 FR-007). M16a bug 2: one component for both lists — src/ui/social/FollowList.tsx.
  * M17 (`Followers-B` / `FollowingList-B`): the profile also passes `count`, shown as the eyebrow. */
 import { useLocalSearchParams } from 'expo-router';

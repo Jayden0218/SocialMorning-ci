@@ -1,3 +1,4 @@
+// Simple drawn icons (play, pause, arrows) and the one font icon helper.
 /**
  * The few icons the show, episode and player pages draw (owner's reference, 2026-09-27).
  * Drawn with views, like the search page's box and QR square. Every one is decoration —

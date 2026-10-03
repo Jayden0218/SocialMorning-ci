@@ -1,3 +1,4 @@
+// Settings rows: icon, label, optional value, then an arrow or switch.
 /**
  * Rows for the settings pages (M10, owner 2026-09-27), after the reference: a one-colour
  * icon, the label, an optional muted value or line under it, then a chevron or a switch.

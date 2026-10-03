@@ -1,3 +1,4 @@
+// Loads the Following feed, keeps a copy, and counts unread items.
 /**
  * The Following feed on the phone (M4 FR-008/FR-009): fetched on open and on pull with
  * the ETag, the last copy kept in `feed_cache` and shown as stale when the server cannot

@@ -1,3 +1,4 @@
+// Hides the mini player early on swipe-back, so it never shows under tabs.
 /**
  * M16a bug 5 (FR-007): the mini player must never be drawn below the tab bar.
  *

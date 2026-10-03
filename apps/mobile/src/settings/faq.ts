@@ -1,3 +1,4 @@
+// Questions and answers for the Help page.
 /** Help & feedback (帮助与反馈, M10): SocialNet's own questions and answers. */
 export const FAQ: { q: string; tag: string; a: string }[] = [
   { q: 'Where does the audio come from?', tag: 'Listening', a: 'Every episode plays straight from its publisher. SocialNet never stores or hosts audio.' },

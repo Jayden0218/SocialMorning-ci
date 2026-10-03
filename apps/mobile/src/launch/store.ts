@@ -1,3 +1,4 @@
+// Saves the promotion list, images and daily view counts in settings.
 /**
  * M15 US3: the launch screen's local state, in the settings store (data-model.md —
  * "Phone-side state", no migration). Every read survives a missing or broken value by

@@ -1,3 +1,4 @@
+// Suggests show names to search, taken from Discover data.
 /**
  * "Try searching" (M10): names worth typing, taken from the Discover copy already on the
  * phone — popular shows, then the chart's and the picks' shows. No search log exists

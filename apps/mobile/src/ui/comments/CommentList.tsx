@@ -1,3 +1,4 @@
+// All comments, newest or by time in episode, with replies under each.
 /**
  * The conversation (US4): top-level comments in "Newest" or "By moment" order,
  * replies one level under their parent, oldest first. Readable signed out; every

@@ -1,3 +1,4 @@
+// Keeps your last 12 search terms on this phone.
 /**
  * Search history (M10, owner 2026-09-27): the terms this phone searched for, newest
  * first, at most 12, one copy each. Kept in the settings table — on this phone only,

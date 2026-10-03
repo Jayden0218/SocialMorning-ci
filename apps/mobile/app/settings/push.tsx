@@ -1,3 +1,4 @@
+// Push notification settings: phone permission, new episodes, popular content, per show.
 /**
  * Notifications (推送设置, M10; sent since M10b US3). The first row is the phone's own
  * permission — only the system can change it, so the switch opens the system settings.

@@ -1,3 +1,4 @@
+// Me page pieces: a menu row with icon and arrow, and an empty-page picture.
 /**
  * Pieces of the Me tab and its pages (M10, owner 2026-09-27; Editorial sizes since M17 — they
  * sit inside a `Card`): a menu row (picture, label,

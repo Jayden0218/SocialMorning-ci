@@ -1,3 +1,4 @@
+// Each Discover section: shortcuts, editor picks, For You, the chart, and more.
 /**
  * The sections of the redesigned Discover (M10, owner 2026-09-27), top to bottom in the
  * order of the reference screens. Each takes only what it draws and a way to open or

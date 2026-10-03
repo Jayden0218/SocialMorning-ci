@@ -1,3 +1,4 @@
+// Big cover with soft shadow at the top of episode and show pages.
 /**
  * M17 (`Episode-B`, `Show-B`): the big centred artwork at the top of the episode and show pages,
  * with its soft drop shadow. The shadow sits on a wrapper because `Artwork` clips its corners;

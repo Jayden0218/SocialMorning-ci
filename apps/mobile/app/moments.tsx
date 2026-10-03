@@ -1,3 +1,4 @@
+// Saved moments as a timeline; tap to play from there, edit note, delete.
 /**
  * Saved moments (M10): the times you saved while listening, each with its note. Tapping
  * one plays the episode from that moment. Notes can be edited or the moment deleted.

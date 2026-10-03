@@ -1,3 +1,4 @@
+// One full-width row in a pop-up action list: icon, label, optional detail.
 /**
  * One row of an action sheet (M12 FR-032): full width, 50 pt, a leading icon, the label, and
  * an optional muted detail on the right. The episode ⋯ sheet used 32 pt pill chips in wrapping

@@ -1,3 +1,4 @@
+// Lists episodes you listened to, most recent first.
 /**
  * Listening history (收听历史, owner 2026-09-27): every episode this phone has a position
  * for, most recent first — the same rows M1 saves to resume, so nothing new is recorded.

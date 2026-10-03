@@ -1,3 +1,4 @@
+// Hides reported or blocked comments, clips and people from lists.
 /**
  * M6 (R1): the same `applyBlocks` the server runs, over the phone's cached payloads
  * with the phone's own sets — so a report or block hides its target on the screen that

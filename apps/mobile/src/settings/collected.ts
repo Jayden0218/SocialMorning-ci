@@ -1,3 +1,4 @@
+// Lists the personal data the app keeps, with live counts.
 /**
  * The personal information collection list (个人信息收集清单, M10) — what SocialNet
  * actually keeps about you, with live counts where there is a number to count. Written

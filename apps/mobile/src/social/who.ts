@@ -1,3 +1,4 @@
+// Writes friend names like "Ana, Bo and 3 others".
 /** M12 FR-102: the names under a "Friends are listening" row. */
 /** "Ana", "Ana and Bo", "Ana, Bo and 3 others". */
 export function whoListened(names: readonly string[]): string {

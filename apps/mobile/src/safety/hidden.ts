@@ -1,3 +1,4 @@
+// Saves a report or block at once and sends it to the server later.
 /**
  * M6 report / block on the phone (FR-002, FR-005, research R1): the hide is a local
  * row written at once — the screen re-renders from it — and delivered later, once,

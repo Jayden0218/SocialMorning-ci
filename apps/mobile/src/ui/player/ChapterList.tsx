@@ -1,3 +1,4 @@
+// List of episode chapters; current one is bold; tap to jump there.
 /** Chapters (US5, FR-021): start time + title, the current one highlighted, tap → seek. */
 import { currentChapter, type Chapter } from '@socialmorning/player-core';
 import { Linking } from 'react-native';

@@ -1,3 +1,4 @@
+// Two-choice switch at top of Notifications: System or People.
 /**
  * The two cards at the top of Notifications (M10): System and People. M12 FR-001 (B2): on
  * the iPhone both were plain boxes — tapping did nothing. Each is now a tab that chooses what

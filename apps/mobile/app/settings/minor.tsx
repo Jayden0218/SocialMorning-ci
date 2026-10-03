@@ -1,3 +1,4 @@
+// Minor mode switch: hides episodes the publisher marked explicit.
 /**
  * Minor mode (未成年模式, M10): hides every episode its publisher marked explicit — in
  * Updates, show pages and the inbox. The mark is the publisher's own `<itunes:explicit>`;

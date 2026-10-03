@@ -1,3 +1,4 @@
+// Small Discover pieces: section title, round play button, episode line, pager, search box.
 /**
  * The small pieces the redesigned Discover (M10) is built from: a section title, the
  * round play button, one episode line, a swipeable row of pages, and the search bar.

@@ -1,3 +1,4 @@
+// Runs the comment box: captures the moment, posts, keeps drafts.
 /**
  * The comment box (US1, FR-006..FR-011). Pure orchestration: the screen gives it
  * the player snapshot when it opens, and it owns the captured moment from then on.

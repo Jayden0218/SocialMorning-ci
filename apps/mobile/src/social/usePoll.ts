@@ -1,3 +1,4 @@
+// Runs the comment check while the screen is open and online.
 /**
  * Hook: run the 10 s poll for `episodeId` while this screen is focused, the app
  * is in the foreground, and the phone is online. "Online" is inferred from the

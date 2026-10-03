@@ -1,3 +1,4 @@
+// Builds and reads clip links, both web and in-app.
 /**
  * Clip links (research R1). Two forms for one clip:
  *   https://<api host>/c/<id>   — shareable; an Android App Link when the domain verifies,

@@ -1,3 +1,4 @@
+// Downloaded episodes, space used, size limit and mobile-data switch.
 /**
  * Downloads (US1, FR-004): every row, the budget, "remove finished", the mobile-data switch.
  * M10 (owner, 2026-09-27), after the reference: the settings sit behind the ⚙ in the header,

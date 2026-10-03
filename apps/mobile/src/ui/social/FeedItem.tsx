@@ -1,3 +1,4 @@
+// One activity row: who commented, clipped or listened, and on which episode.
 /**
  * One Following item (M4 FR-008): who, what, which episode, at which moment; tapping opens the moment.
  *

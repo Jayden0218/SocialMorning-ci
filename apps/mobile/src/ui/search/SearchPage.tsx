@@ -1,3 +1,4 @@
+// Search box, your shows first, then catalogue results; recent searches and categories.
 /**
  * Search (M1, reworked in M5 US2): the listener's library first — instant, offline —
  * then the catalogue's shows and episodes (`/v1/search`), merged so a library hit is

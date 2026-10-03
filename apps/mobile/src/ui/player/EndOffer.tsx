@@ -1,3 +1,4 @@
+// Card at episode end: "Next up" episode with a Play button.
 /**
  * The end-of-episode offer (M5 FR-010): the first Next-up item with its reason and a Play button — nothing plays by itself.
  *

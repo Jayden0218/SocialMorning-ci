@@ -1,3 +1,4 @@
+// Export your shows as an OPML file, or paste OPML to import them.
 /**
  * Import or export subscriptions (导入或导出订阅列表, M10). Export shares an OPML file's text
  * through the phone's share sheet; import takes OPML pasted in and subscribes to every

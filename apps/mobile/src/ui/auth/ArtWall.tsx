@@ -1,3 +1,4 @@
+// A row of show covers moving slowly on the sign-in page.
 /**
  * A row of show covers on the sign-in page (owner, 2026-10-03: was a loose wall). It moves
  * on one cover every second and loops without a jump back: the covers are drawn twice, and

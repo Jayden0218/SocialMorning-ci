@@ -1,3 +1,4 @@
+// List of personal data the app keeps, with counts; tap for details.
 /**
  * Personal information we collect (个人信息收集清单, M10), after the reference: groups of
  * cards, each with how many items are held; tapping a card opens its details — purpose,

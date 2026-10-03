@@ -1,3 +1,4 @@
+// Top bar with back (or close) button on left, page actions on right.
 /**
  * The bar at the top of the show, episode and player pages (owner's reference,
  * 2026-09-27): a way back on the left, the page's own actions on the right, no title.

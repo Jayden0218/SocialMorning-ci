@@ -1,3 +1,4 @@
+// Listening numbers for last 7 days and all time: time, finished, top shows.
 /** Listening stats (M4 FR-012): time listened, episodes finished, top shows — last 7 days and all time. */
 import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';

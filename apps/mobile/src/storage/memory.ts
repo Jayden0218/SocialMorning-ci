@@ -1,3 +1,4 @@
+// In-memory copy of the storage, used by tests instead of the database.
 /**
  * In-memory implementations of the four stores (contracts/stores.ts).
  *

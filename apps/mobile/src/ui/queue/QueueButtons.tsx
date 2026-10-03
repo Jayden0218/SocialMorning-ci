@@ -1,3 +1,4 @@
+// "Add to queue" and "Play next" buttons, as tiles in the episode menu.
 /**
  * "Add to queue" / "Play next" (US2, FR-008/011), through player-core's enqueue.
  *

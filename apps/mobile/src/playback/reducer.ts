@@ -1,3 +1,4 @@
+// The player's rules: how each event changes play state, testable without a phone.
 /**
  * The player state machine (data-model.md § Player state machine).
  *

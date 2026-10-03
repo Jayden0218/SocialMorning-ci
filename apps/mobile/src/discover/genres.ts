@@ -1,3 +1,4 @@
+// Lists Apple's podcast categories with their icons.
 /**
  * Apple's top-level podcast genres (the ids `toppodcasts/genre=` accepts; the server's
  * `catalog/genres.ts` has the same ids). Kept on the phone so the category strip draws

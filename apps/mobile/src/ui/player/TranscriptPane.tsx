@@ -1,3 +1,4 @@
+// Episode transcript; current line is marked; tap a line to jump.
 /** Transcript (US5, FR-022): timed → current line highlighted, tap → seek; untimed → text. */
 import { currentLine, type Transcript } from '@socialmorning/player-core';
 import { Pressable } from '@/ui/lib/pressable';

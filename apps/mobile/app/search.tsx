@@ -1,3 +1,4 @@
+// Search page for shows and episodes, opened from links or other screens.
 /**
  * The `/search` route (M1; M10 layout; owner 2026-10-01 behaviour) — the page itself is
  * src/ui/search/SearchPage.tsx.

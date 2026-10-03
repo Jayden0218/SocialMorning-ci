@@ -1,3 +1,4 @@
+// Record a voice post up to 60 seconds for followers; deleted after 48 hours.
 /**
  * Record a voice status (M12 FR-104): up to 60 s, heard by people who follow you, deleted by
  * the server after 48 hours. The microphone is used only while the button says "Recording".

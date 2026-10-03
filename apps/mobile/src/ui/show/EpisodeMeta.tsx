@@ -1,3 +1,4 @@
+// Small line under a show's episode: length, how long ago, plays, comments.
 /**
  * One show-page row's meta line: "69 min · 13 h ago  🎧 120  💬 8" (owner, 2026-10-01, after the
  * 小宇宙 show page). A count shows only when it is above 0 — the app never invents a number.

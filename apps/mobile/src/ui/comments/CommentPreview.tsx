@@ -1,3 +1,4 @@
+// Two newest comments on the episode page, then "All N comments".
 /**
  * The episode page's comments (M12 FR-027): the two newest, then "All N comments", which opens
  * the comments page. The page used to hold the whole conversation (~3000 pt on one episode).

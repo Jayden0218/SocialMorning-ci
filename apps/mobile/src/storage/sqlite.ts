@@ -1,3 +1,4 @@
+// Reads and writes app data in the phone's SQLite database.
 /**
  * `expo-sqlite` implementations of the four stores.
  *

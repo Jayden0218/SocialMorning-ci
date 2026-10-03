@@ -1,3 +1,4 @@
+// Rules for when to open sign-in and keep the start screen up.
 /**
  * What the app opens after the launch screen (owner, 2026-09-27): the Terms until they
  * are accepted, then — on every launch while signed out — the sign-in page. It keeps its

@@ -1,3 +1,4 @@
+// Keeps a video picture in step with the playing audio.
 /**
  * M10b US5 — keeping a muted picture in step with the sound. The audio engine stays the one
  * source of truth (position, comments, lock screen, the 100 %-branch adapter are untouched);

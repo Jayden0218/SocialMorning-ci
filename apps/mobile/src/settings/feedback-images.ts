@@ -1,3 +1,4 @@
+// Lets you pick photos for feedback and shrinks them.
 /**
  * M10b US6 — the photo library and the encoder (native; see `shrink.ts` for the logic).
  * The photo permission is asked only when the listener taps "Add image".

@@ -1,3 +1,4 @@
+// Notifications: System messages and People (what listeners you follow did).
 /**
  * Notifications (我的通知, M10, owner 2026-09-27): two cards — System (messages from
  * SocialNet; none are sent yet, so it says so) and People (the activity of listeners you

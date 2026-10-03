@@ -1,3 +1,4 @@
+// Lists every colour, font size, spacing and corner size the app uses.
 /**
  * The one place a colour, size, radius or padding is written down (M7 FR-002).
  * Change a colour here and every screen follows; `scripts/token-check.mjs` fails the

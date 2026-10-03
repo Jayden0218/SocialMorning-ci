@@ -1,3 +1,4 @@
+// Syncs favourites, saved moments and search history with your account.
 /**
  * M10b US2 — favourites, favourite comments, saved moments and search history follow the
  * account (specs/010-m10b-the-rest/research.md R2).

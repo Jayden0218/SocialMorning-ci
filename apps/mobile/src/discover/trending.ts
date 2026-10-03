@@ -1,3 +1,4 @@
+// Picks trending show names to rotate as hints in the search box.
 /**
  * What the Discover search box says in its middle (owner, 2026-09-27): what is trending,
  * one title at a time. The names come from the Top chart — show names, because they are

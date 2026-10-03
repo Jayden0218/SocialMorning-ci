@@ -1,3 +1,4 @@
+// The seek bar under the player; drag it to jump in the episode.
 /**
  * The seek bar (M1), made operable without sight in M6 (FR-023, research R4):
  * `adjustable` with a value a screen reader speaks ("14:32 of 34:17") and increment /

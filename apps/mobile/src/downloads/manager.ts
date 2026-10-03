@@ -1,3 +1,4 @@
+// Runs the download queue: order, Wi-Fi rule, storage limit, and progress.
 /**
  * The download manager (US1, FR-001..007). Pure orchestration over a `Downloader`, a
  * `Network`, the `DownloadStore` and the feed cache; the rules (one at a time, order,

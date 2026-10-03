@@ -1,3 +1,4 @@
+// Every comment you wrote, with its episode and time; tap to open.
 /**
  * My comments (我的评论, M10; text M10b US2, FR-006): each of your comments with what you
  * wrote, its episode and moment, from `GET /v1/me/comments`. A deleted or removed comment

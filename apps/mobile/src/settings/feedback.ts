@@ -1,3 +1,4 @@
+// Sends feedback by email and keeps a copy on the phone.
 /**
  * Feedback (填写反馈 / 我的反馈, M10): a message goes to SocialNet's support address by the
  * phone's own email app — SocialNet has no feedback inbox of its own — and a copy is kept

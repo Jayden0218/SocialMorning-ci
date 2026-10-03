@@ -1,3 +1,4 @@
+// Sheet with the comments at one moment; reply, delete or report.
 /**
  * What a rail marker opens: the comment(s) at that second, with Delete on the
  * listener's own (FR-010) and Reply (one level, US2 #4). Replies-to-replies are

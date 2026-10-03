@@ -1,3 +1,4 @@
+// The episode with play/pause at the top of the comments page.
 /**
  * The episode at the top of the comments page (Owner, 2026-10-01, after the 小宇宙 comments
  * page): artwork 48, the title on up to two lines, "show · length", and a play/pause button

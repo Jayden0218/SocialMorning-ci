@@ -1,3 +1,4 @@
+// Make a clip: set start and end while listening, preview, add caption, save.
 /**
  * The clip composer (M4 US1, clarified: two buttons while listening). Reads the player's
  * live position for "Start here" / "End here"; Preview plays the range through the

@@ -1,3 +1,4 @@
+// Saves and reads small lists on the phone, safely ignoring broken data.
 /**
  * A small list kept as JSON in the settings table — on this phone only. Used for
  * favourites and saved moments (M10, owner 2026-09-27). A broken stored value reads as

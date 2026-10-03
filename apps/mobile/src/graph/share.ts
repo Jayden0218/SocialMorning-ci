@@ -1,3 +1,4 @@
+// Opens the phone's share sheet with a clip's text and link.
 /** The share sheet (research R2): React Native's own `Share`, the link in the text. */
 import type { Clip } from '@/social/api';
 import { clipLinkFor } from './links';

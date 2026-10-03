@@ -1,3 +1,4 @@
+// A shared clip opened from a link: quote card, play, open player, share.
 /**
  * A clip link opened on this phone (M4 US1, FR-003/FR-004). Both link forms land here
  * (expo-router: `socialmorning://clip/<id>` and the verified https link). Works signed

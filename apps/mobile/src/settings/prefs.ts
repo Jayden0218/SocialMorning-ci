@@ -1,3 +1,4 @@
+// Lists the settings switches, their defaults, and reads them.
 /**
  * The switches on the settings pages (M10, owner 2026-09-27), in the settings table on
  * this phone. Each one is read where it acts — a switch nothing reads is not a setting —

@@ -1,3 +1,4 @@
+// Which outside companies get your data, what they get, and why.
 /**
  * Third-party sharing list (第三方信息共享清单, M10): every outside party that receives
  * something because you use SocialNet — written from what the app and server actually

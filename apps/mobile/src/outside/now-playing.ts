@@ -1,3 +1,4 @@
+// Works out what widgets show: episode, show, play state, best comment.
 /**
  * M10b US9 — SocialNet outside the app: the home-screen widget (Android + iOS), the iPhone
  * lock-screen live activity, and Siri's "play my latest episode". This file is the pure

@@ -1,3 +1,4 @@
+// Keeps each episode's last comments and reactions for offline viewing.
 /**
  * FR-032: the last successful GET /episodes/:id/social, per episode, plus the
  * "is this stale" flag the UI shows when a refresh fails.

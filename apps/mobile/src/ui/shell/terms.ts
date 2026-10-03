@@ -1,3 +1,4 @@
+// Terms version, title and text pointers; remembers if you agreed.
 /**
  * The consent sheet (owner, 2026-09-27): shown after the launch screen; the app is not
  * usable until the listener agrees. Agreeing is remembered on this phone, per version —

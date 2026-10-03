@@ -1,3 +1,4 @@
+// Measures colour contrast so every text colour stays easy to read.
 /**
  * WCAG 2.x relative luminance and contrast ratio, so FR-014 is asserted rather than
  * assumed. The same formula was used to compute the palette in research R1; shipping it

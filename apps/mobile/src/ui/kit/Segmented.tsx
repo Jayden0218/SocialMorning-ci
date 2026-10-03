@@ -1,3 +1,4 @@
+// A pill with two to four choices; the chosen one is yellow.
 /**
  * M17 (`Following-B`, `History-B`, `Favourites-B`): a pill track of two to four choices; the
  * chosen one is the yellow fill with dark words. Spoken as tabs.

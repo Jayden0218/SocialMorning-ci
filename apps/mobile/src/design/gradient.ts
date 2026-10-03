@@ -1,3 +1,4 @@
+// Picks the player's background wash, refusing tints that make text hard to read.
 /**
  * The player's background wash (M7 T013).
  *

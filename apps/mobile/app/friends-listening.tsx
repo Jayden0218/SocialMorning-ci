@@ -1,3 +1,4 @@
+// Episodes people you follow played this week, with who and when.
 /**
  * Friends are listening (M12 FR-102): episodes people you follow played in the last 7 days,
  * newest first, with who. The server leaves out anyone whose listening is private now or

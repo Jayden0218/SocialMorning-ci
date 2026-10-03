@@ -1,3 +1,4 @@
+// Gives the app's colour values to code that needs a colour, not a class.
 /**
  * The palette for code that needs a colour value rather than a class (placeholderTextColor,
  * an Icon's colour, a Switch track). Since M17 (constitution v3.0.0) the app is light only:

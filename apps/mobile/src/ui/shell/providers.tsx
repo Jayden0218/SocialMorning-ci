@@ -1,3 +1,4 @@
+// Sets up data, the audio player and messages once for the whole app.
 /**
  * The three things every screen needs: the stores, the player, and a way to
  * say something went wrong.

@@ -1,3 +1,4 @@
+// Asks once for permission to send notifications.
 /**
  * Notification permission (owner, 2026-09-27): asked when the sign-in page opens.
  *

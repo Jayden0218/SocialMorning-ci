@@ -1,3 +1,4 @@
+// Privacy: keep your listening private switch, and a link to blocked listeners.
 /**
  * Privacy (隐私设置, M10). "Keep my listening private" is M4's switch (it was on Account):
  * your listens, listening time and recently played are hidden from others; comments and

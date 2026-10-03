@@ -1,3 +1,4 @@
+// The large serif title style on sign-in pages.
 /**
  * The large serif title on the sign-in page and its consent sheet (owner, 2026-10-03). Since M17
  * it is the Editorial serif, Fraunces Bold, once the fonts have loaded (src/design/fonts.ts);

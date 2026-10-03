@@ -1,3 +1,4 @@
+// One episode: artwork, title, play, subscribe, queue, show notes with clickable times.
 /**
  * One episode (FR-003), and the tap that starts audio (Story 1 scenario 2).
  *

@@ -1,3 +1,4 @@
+// Records how long you listened each day and sends it to the server.
 /**
  * Listening time on the phone (M4 FR-012, research R3). TICKs feed `addTick`; a stop,
  * seek, load, background or day change closes the open interval into the

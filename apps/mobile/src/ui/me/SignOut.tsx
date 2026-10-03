@@ -1,3 +1,4 @@
+// Sign out button that asks first.
 /**
  * Sign out, asked first (iOS i16: one stray tap signed you out). Used on Me and on Account.
  * M9: the question is gluestack's AlertDialog.

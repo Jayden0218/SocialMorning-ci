@@ -1,3 +1,4 @@
+// The app's own loading sign: five sound bars moving up and down.
 /**
  * SocialNet's own loading mark (owner, 2026-09-27), used instead of the platform spinner.
  * See `./loader-timing` for the timing. With Reduce Motion on, the bars stand still at rest —

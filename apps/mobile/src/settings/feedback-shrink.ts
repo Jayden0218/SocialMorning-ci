@@ -1,3 +1,4 @@
+// Shrinks a picked image until it is small enough to send.
 /**
  * M10b US6 — shrinking a picked image before it is sent (FR-019): no wider than 1280 px, and
  * re-encoded at falling JPEG quality until it is ≤ 200 KB (the server refuses > 250 000

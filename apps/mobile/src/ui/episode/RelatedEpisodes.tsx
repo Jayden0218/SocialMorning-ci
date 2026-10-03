@@ -1,3 +1,4 @@
+// Up to 5 related episodes at the bottom of the episode page.
 /**
  * "Related episodes" at the end of the episode page (owner, 2026-10-01, after the 小宇宙 episode
  * page): M5's next-up answer (FR-008), at most 5 rows, each opening its episode. Too few to be

@@ -1,3 +1,4 @@
+// One episode card on Updates: notes, plays, comments, small buttons, Play.
 /**
  * One episode row on the Updates tab (Owner, 2026-10-01, row 9): artwork, title, show notes,
  * the show — then a meta line "duration · ago · (headset) plays · (chat) comments" and a row of

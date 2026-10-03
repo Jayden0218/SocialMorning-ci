@@ -1,3 +1,4 @@
+// Turns the legal texts' simple Markdown into blocks a screen can draw.
 /**
  * The small slice of Markdown the legal texts use, turned into blocks a screen can draw:
  * headings (`#`–`####`), paragraphs, `- ` items, `> ` notes, tables, and `**bold**`.

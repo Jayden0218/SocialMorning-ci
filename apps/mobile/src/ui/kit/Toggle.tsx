@@ -1,3 +1,4 @@
+// The app's own on/off switch.
 /**
  * M16a T004 (FR-014, owner 2026-10-02): the app's own on/off switch. The lib `Switch` wraps
  * React Native's `Switch`, which on iOS is the system UISwitch — native chrome the owner asked

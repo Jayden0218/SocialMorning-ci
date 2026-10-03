@@ -1,3 +1,4 @@
+// Help articles for podcast creators about using the app and Studio.
 /**
  * Creator academy (M12 FR-103): help for show owners, written for SocialNet — no 小宇宙 text
  * (FR-110). Every step describes what this app and the Studio do today; when a screen

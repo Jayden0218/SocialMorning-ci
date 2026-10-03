@@ -1,3 +1,4 @@
+// What an empty, loading, offline or failed page shows, with a Retry button.
 /**
  * M6 US3 (FR-019–FR-021): one component for every empty surface — a sentence on what
  * fills it and one action that leads there; a loading row after 1 s; an offline or error

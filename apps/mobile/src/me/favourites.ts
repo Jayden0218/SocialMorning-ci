@@ -1,3 +1,4 @@
+// Keeps the list of episodes you starred, newest first.
 /**
  * Favourites (我的收藏, owner 2026-09-27): episodes the listener starred, newest first.
  * On this phone only for now — the server has no favourites table.

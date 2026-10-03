@@ -1,3 +1,4 @@
+// Lists the newest episodes from all your shows in one feed.
 /**
  * Updates (更新, owner 2026-09-27): the newest episodes of every subscribed show in one
  * list, newest first — what the Library tab became. Read from the feed cache, so it

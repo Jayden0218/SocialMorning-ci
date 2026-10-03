@@ -1,3 +1,4 @@
+// Pick the app's accent colour.
 /**
  * Appearance (M12 FR-108): the accent colour. Until M17 this page also held System / Light /
  * Dark; M17 (constitution v3.0.0, owner 2026-10-03: "remove it") made the app light only, so

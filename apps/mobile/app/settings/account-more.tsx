@@ -1,3 +1,4 @@
+// Delete your account: email a code, enter it, confirm delete.
 /**
  * Account and security → More (M12 FR-096): deleting the account. Deletion is confirmed with a
  * code sent to the account's email (owner, 2026-09-27: no passwords) and clears everything of

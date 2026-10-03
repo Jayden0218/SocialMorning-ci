@@ -1,3 +1,4 @@
+// The full player: artwork, seek bar, comments heat curve, speed, chapters, sleep timer.
 /**
  * Now Playing: position and duration updating live (FR-008), play/pause
  * (FR-005), -15 / +30 (FR-006), a seek bar (FR-007), and honest buffering

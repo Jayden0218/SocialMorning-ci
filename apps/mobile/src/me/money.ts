@@ -1,3 +1,4 @@
+// Formats prices for display and links to store subscription pages.
 /**
  * M12 FR-105 / FR-106: a store amount for display. The stores report micros (1/1 000 000 of
  * the currency unit). No amount → an empty string, never "0".

@@ -1,3 +1,4 @@
+// The bottom tab bar you tap to change between main pages.
 /**
  * Our own bottom tab bar (M7 T012).
  *

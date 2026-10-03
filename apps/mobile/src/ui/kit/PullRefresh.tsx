@@ -1,3 +1,4 @@
+// Pull a list down to reload it, showing the app's own loading sign.
 /**
  * Pull to refresh with SocialNet's own loading mark (owner, 2026-10-01: "a custom loading
  * for my app, not the general spinner"). The platform RefreshControl stays for the gesture;

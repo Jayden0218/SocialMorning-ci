@@ -1,3 +1,4 @@
+// Favourite and "Save moment" (with a note) buttons in the episode menu.
 /**
  * Two buttons for the episode page (M10, owner 2026-09-27): ☆ Favourite, and 📌 Save
  * moment — the time you are at in this episode (or where you stopped), with an optional

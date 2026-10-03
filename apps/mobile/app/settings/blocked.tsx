@@ -1,3 +1,4 @@
+// Listeners you blocked, each with an Unblock button.
 /**
  * Blocked listeners (黑名单管理, M10): everyone you blocked, each with Unblock (M6's safety layer).
  *

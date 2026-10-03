@@ -1,3 +1,4 @@
+// Listening history by day, with where you stopped; filter to finished only.
 /**
  * Listening history (收听历史, M10): what this phone played, most recent first, with where you stopped; search and "Only finished" as in the reference.
  *

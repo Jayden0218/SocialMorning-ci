@@ -1,3 +1,4 @@
+// Remembers whether in-app purchases are switched on.
 /**
  * M17 (FR-015, research R8): whether in-app purchases are switched on, as the server last said
  * (`storeReady` on GET /v1/me/purchases and /v1/me/tips). Kept in settings so Me can decide,

@@ -1,3 +1,4 @@
+// Creates and upgrades the phone database tables.
 /**
  * Migration 001 — the whole of M1's on-device schema (data-model.md).
  *

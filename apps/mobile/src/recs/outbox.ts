@@ -1,3 +1,4 @@
+// Stores what recommendations were shown or tapped, and sends them in batches.
 /**
  * M8 US6 — what was shown, and what happened next (FR-028).
  *

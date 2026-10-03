@@ -1,3 +1,4 @@
+// Splits a name so the part matching your search can be highlighted.
 /**
  * Owner, 2026-10-01: on the Search page the part of a name that matches what was typed is
  * drawn in the accent colour. This splits a name into plain and matching pieces — every

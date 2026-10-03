@@ -1,3 +1,4 @@
+// Help: send feedback, contact support, common questions filtered by topic.
 /**
  * Help and feedback (帮助与反馈, M10): SocialNet's common questions (tap to read the
  * answer), then "Send feedback" and "Contact support". M6's "Report a problem" lives here.

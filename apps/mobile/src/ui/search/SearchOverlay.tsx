@@ -1,3 +1,4 @@
+// Opens search on top of the tabs, in place, not as a new page.
 /**
  * Search, drawn in place over the tabs (M17; 小宇宙's Search "fades in in place" and is closed
  * with 返回 — xiaoyuzhou-map.md row 14).

@@ -1,3 +1,4 @@
+// Rules for the sign-in button and checking an email looks right.
 /**
  * The sign-in consent rule (owner's reference screenshots, 2026-09-27): the form's
  * button works once the form is valid; if the consent box is not ticked, tapping it

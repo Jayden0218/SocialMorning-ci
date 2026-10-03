@@ -1,3 +1,4 @@
+// Sleep timer choices (5–60 min, end of episode), time left, Cancel.
 /**
  * Sleep timer (US3, FR-015..017): the fixed choices, the remaining time while it runs, cancel.
  *

@@ -1,3 +1,4 @@
+// Builds the inbox of new episodes from your subscribed shows.
 /** The inbox as the app reads it (US4): player-core's rule over the stores. */
 import { inboxOf } from '@socialmorning/player-core';
 import type { Stores } from '@/storage/types';

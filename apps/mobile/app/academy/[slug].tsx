@@ -1,3 +1,4 @@
+// One help article for show owners, in numbered sections.
 /**
  * One academy article (M12 FR-103).
  *

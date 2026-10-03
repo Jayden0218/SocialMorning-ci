@@ -1,3 +1,4 @@
+// The bottom bar: Discover, Updates, Me, with the mini player above it.
 /**
  * The three tabs (M7 T012; reordered M10): **Discover · Updates · Me** (the list is in
  * `src/ui/shell/tabs.ts`), with the mini player floating above the bar. `/discover` and

@@ -1,3 +1,4 @@
+// Size and length limits for short voice status posts.
 /**
  * M12 FR-104 — a voice status: at most 60 s, deleted by the server at 48 h (constitution
  * 2.2.0). The server refuses more than 600 000 bytes, so the recording is mono AAC at

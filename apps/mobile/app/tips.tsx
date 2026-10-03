@@ -1,3 +1,4 @@
+// Tips you gave to shows; today says tipping is not available yet.
 /**
  * Tips I gave (M12 FR-105): each tip's show, amount and date — store-verified purchases only.
  * Until the store setup (M10b) is done nothing can be bought, and the page says so.

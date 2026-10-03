@@ -1,3 +1,4 @@
+// Keeps Android Auto's episode lists up to date. Draws nothing.
 /**
  * Keeps Android Auto's lists current (src/outside/car.ts): at start, when the app comes back
  * to the front, when hidden shows change, and when the playing episode changes. Draws nothing.

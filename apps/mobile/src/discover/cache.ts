@@ -1,3 +1,4 @@
+// Keeps the last Discover page so it still shows when offline.
 /**
  * Discover's last copy (M5 FR-003): fetched on open and on pull with the ETag, kept in
  * M4's `feed_cache` table under key `discover`, shown as stale when the server cannot be

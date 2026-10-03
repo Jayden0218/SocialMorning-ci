@@ -1,3 +1,4 @@
+// More settings: import/export shows, queue and playback options, recommendations on/off.
 /**
  * More (更多功能, M10): moving your shows in or out, where one-tap Queue puts an episode,
  * and whether Discover recommends for you. Siri, CarPlay and widgets are not here: each

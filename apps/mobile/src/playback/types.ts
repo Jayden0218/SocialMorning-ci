@@ -1,3 +1,4 @@
+// Defines player states, events and actions shared by the player files.
 /**
  * The pure player vocabulary (specs/001-m1-it-plays/contracts/playback.ts).
  *

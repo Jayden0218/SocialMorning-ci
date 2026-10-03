@@ -1,3 +1,4 @@
+// Downloads and stores launch-screen images in the phone's cache.
 /**
  * M15 US3 (research R5): launch-screen images in `Paths.cache/launch/`, on expo-file-system
  * 58's object API — the same calls `src/downloads/expo-downloader.ts` uses, read from the

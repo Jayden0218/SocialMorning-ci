@@ -1,3 +1,4 @@
+// Short voice posts from you and people you follow; tap to play, record new.
 /**
  * Voice statuses on Updates (M12 FR-104): yours and the people you follow, newest first,
  * each gone 48 h after it was posted. Tap to play (episode playback pauses), tap again to

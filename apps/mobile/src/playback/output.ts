@@ -1,3 +1,4 @@
+// Placeholder for headphone-unplug events, which the audio library cannot report.
 /**
  * OUTPUT_LOST, and why nothing in the app can currently produce it.
  *

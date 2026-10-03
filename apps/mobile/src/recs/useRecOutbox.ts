@@ -1,3 +1,4 @@
+// Connects the recommendation event outbox to a screen.
 /**
  * M8 US6 — the outbox, wired to a screen.
  *

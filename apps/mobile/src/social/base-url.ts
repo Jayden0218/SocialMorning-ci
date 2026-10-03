@@ -1,3 +1,4 @@
+// Gives the server address set in the app config.
 /** Where the app finds the server: the address set in app.json. */
 import Constants from 'expo-constants';
 

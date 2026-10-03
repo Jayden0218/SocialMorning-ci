@@ -1,3 +1,4 @@
+// Toggles a reaction at once, then confirms with the server.
 /**
  * The react control's logic (US3, Q2 toggle): optimistic flip of the listener's
  * bucket set, server call, rollback on failure, then one refetch so the curve

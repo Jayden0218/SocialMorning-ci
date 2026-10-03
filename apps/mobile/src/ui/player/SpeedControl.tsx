@@ -1,3 +1,4 @@
+// Play speed: minus and plus buttons, quick choices, set as default.
 /**
  * Playback speed (US3, FR-012/013): −0.1 / +0.1, presets, "set as default". Episode time stays episode time (FR-014).
  *

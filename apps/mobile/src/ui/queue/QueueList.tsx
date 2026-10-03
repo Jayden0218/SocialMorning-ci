@@ -1,3 +1,4 @@
+// The queue's rows: play, move up/down, remove, drag to reorder.
 /**
  * The queue's rows (M12 FR-044), shared by the queue page and the sheet over the player: 48 pt
  * artwork, the title, the time left, a drag handle, and a ⋮ that opens the actions under the

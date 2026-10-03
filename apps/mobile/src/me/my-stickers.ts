@@ -1,3 +1,4 @@
+// Gives the profile card and Stickers page the same listening totals.
 /**
  * M16a bug 3 (FR-005): the profile card and the Stickers page read ONE source.
  *

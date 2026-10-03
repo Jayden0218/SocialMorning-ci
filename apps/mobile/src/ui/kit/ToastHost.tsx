@@ -1,3 +1,4 @@
+// The short message that pops up near the top, then goes away.
 /**
  * The app's one toast (FR-015 of M1, drawn by AppProviders). M16a T015 (FR-010, gluestack audit
  * P0): the box carried only `accessibilityLiveRegion="polite"`, which is Android-only — VoiceOver

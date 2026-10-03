@@ -1,3 +1,4 @@
+// Loads the "Next up" episodes, each with a reason, for the episode page.
 /** "Next up" on the episode page (M5 FR-008): 3–8 episodes with a reason each; hidden when there is nothing to show. */
 import { useEffect, useState } from 'react';
 import { Text } from '@/ui/lib/text';

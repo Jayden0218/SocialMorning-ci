@@ -1,3 +1,4 @@
+// One episode in a list: cover, title, show, length and date.
 /**
  * One catalogue episode (M5): artwork, title, show · length · date, an optional line under it.
  * M17 (`Episode-B`, data-model §2 display-m): the title in the serif (Fraunces SemiBold 16),

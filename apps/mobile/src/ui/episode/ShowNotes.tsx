@@ -1,3 +1,4 @@
+// Episode notes; lines starting with a time become rows that play from there.
 /**
  * M17 (`Episode-B`): the episode page's show notes, laid out the Editorial way — a "Show notes"
  * eyebrow, the first paragraph as a serif lede, the rest as body text, and every line that

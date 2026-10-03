@@ -1,3 +1,4 @@
+// Shows one full legal document, with contents, over the terms page.
 /**
  * One legal document, full screen (owner, 2026-09-27). Opened from a link on the Terms
  * sheet and drawn inside the same overlay, so reading a document never gets anyone past

@@ -1,3 +1,4 @@
+// All curated issues, newest first; each opens its list of picks.
 /**
  * Curated issues (M12 FR-101): every issue so far, newest first; each opens its numbered picks.
  *

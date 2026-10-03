@@ -1,3 +1,4 @@
+// Sends player changes to the widgets, only when what they show changes.
 /**
  * M10b US9 — feeds the outside surfaces from the player. It redraws only when what they show
  * changes (episode, play/pause, the best comment) — never on a position TICK, which would

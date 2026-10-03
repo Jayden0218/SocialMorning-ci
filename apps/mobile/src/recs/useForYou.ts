@@ -1,3 +1,4 @@
+// Gives screens the For You list and refreshes it on focus.
 /** M8 US2 — the For You section's data: the last copy at once, a refresh on focus. */
 import { useCallback, useMemo, useState } from 'react';
 import { useFocusEffect } from 'expo-router';

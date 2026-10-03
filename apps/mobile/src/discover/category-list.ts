@@ -1,3 +1,4 @@
+// Sorts and filters the shows on a category page.
 /**
  * The category page's list controls (Owner, 2026-10-01, after the reference's category page):
  * "All" keeps the server's chart order; "Newest" puts the show with the most recent episode

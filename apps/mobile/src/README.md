@@ -6,7 +6,7 @@ Import any file here as `@/<path>`, e.g. `@/ui/kit/Button`, `@/social/api`.
 - **Logic** (no drawing): [the first part](#logic) — data, sync, playback, rules.
 - **UI** (what you see): [`ui/`](#ui--what-you-see), split by feature. Shared parts are in `ui/kit/`.
 
-Keep this file up to date: when you add, move or delete a file, change its line here.
+Keep this file up to date: when you add, move or delete a file, change its line here. Each file also starts with the same sentence as a `//` comment — change both together.
 
 ## Logic
 

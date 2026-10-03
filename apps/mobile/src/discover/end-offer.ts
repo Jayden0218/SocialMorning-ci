@@ -1,3 +1,4 @@
+// Decides which episode to suggest when one ends and the queue is empty.
 /**
  * The end-of-episode offer (M5 FR-010, research R6): when the runtime is `ended` and the
  * queue is empty, the first Next-up item is offered — shown, never loaded (guard G7).

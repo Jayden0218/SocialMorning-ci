@@ -1,3 +1,4 @@
+// 100 bars under the seek bar showing where listeners reacted; tap to jump.
 /**
  * The heat curve (US3, FR-020/021): 100 bars under the scrubber. Three states,
  * each drawn on purpose — SC-004 says no new listener ever sees a broken chart:

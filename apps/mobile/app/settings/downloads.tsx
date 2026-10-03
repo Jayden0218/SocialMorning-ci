@@ -1,3 +1,4 @@
+// Download settings: space used, clear all, auto-download and mobile-data switches.
 /**
  * Downloads and cache (下载设置, M10): download queued episodes, mobile data, and clearing downloads.
  *

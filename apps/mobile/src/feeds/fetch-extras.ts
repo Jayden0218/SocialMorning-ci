@@ -1,3 +1,4 @@
+// Fetches and caches an episode's chapters and transcript.
 /**
  * Chapters and transcripts (US5, FR-021..023, research R5): fetched once per episode,
  * parsed by player-core, cached in `episode_extras`. Never blocks playback; a failure

@@ -1,3 +1,4 @@
+// Discover's main sections: picks, then episode lists, with an old-data note.
 /**
  * Discover's three sections (M5 US1), reused by the Discover screen and the zero-subscription home.
  *

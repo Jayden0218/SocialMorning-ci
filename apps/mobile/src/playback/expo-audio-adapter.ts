@@ -1,3 +1,4 @@
+// Connects the app's player to the phone's real audio engine.
 /**
  * The ONLY module in this app that imports `expo-audio`.
  *

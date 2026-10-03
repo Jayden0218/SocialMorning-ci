@@ -1,3 +1,4 @@
+// Makes and keeps a stable id for this phone install.
 /** A stable per-install id for `PUT /me/positions` (R5 ties, contracts/api.md). */
 import * as SecureStore from 'expo-secure-store';
 

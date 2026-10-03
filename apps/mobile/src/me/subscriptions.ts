@@ -1,3 +1,4 @@
+// Searches, sorts and groups your subscribed shows.
 /**
  * My subscriptions (M12 FR-081): search, sort, and the Starred section, as pure functions so
  * the page stays a view. "Recently updated" sorts by each show's newest episode (a show with

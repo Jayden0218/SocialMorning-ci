@@ -1,3 +1,4 @@
+// Gives screens report, block, and the current hidden and blocked lists.
 /**
  * M6: the safety layer for the screens — report, block, the viewer's sets, and a version
  * that bumps on every local change so lists re-filter at once. Sits inside

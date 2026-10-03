@@ -1,3 +1,4 @@
+// Makes episode ids the same way the server does.
 /**
  * The hash moved to `@socialmorning/social-core` (M3 T013): the server needs
  * the SAME episode id the phone computes — `fnv1a64(feedUrl + '\u0001' + guid)`

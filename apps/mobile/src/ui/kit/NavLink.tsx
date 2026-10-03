@@ -1,3 +1,4 @@
+// A tap-able row that opens another page; screen readers call it a link.
 /**
  * A navigation link a screen reader announces as a link.
  *

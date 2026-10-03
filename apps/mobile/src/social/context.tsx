@@ -1,3 +1,4 @@
+// Gives screens the server client, account, and who is signed in.
 /**
  * What the social screens need: the API client, the auth API, and a live
  * "who am I" that re-renders on sign-in/out. Mounted inside <AppProviders>.

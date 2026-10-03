@@ -1,3 +1,4 @@
+// New episodes from your shows; play, queue, download or dismiss each.
 /**
  * Inbox (US4, FR-018..020): what is new since each subscription, minus what was played,
  * queued, downloaded or dismissed. Paged 50. Every action records why the item left.

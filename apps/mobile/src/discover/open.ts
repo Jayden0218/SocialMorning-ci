@@ -1,3 +1,4 @@
+// Opens an episode card, fetching its show's feed first if needed.
 /**
  * Opening a catalogue card the phone may never have seen (M5 research R8, the same path
  * as M4's clip resolution): fetch the show's feed if unknown, find the episode by guid,

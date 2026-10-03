@@ -1,3 +1,4 @@
+// Searches your subscribed shows and their episodes on the phone, offline.
 /**
  * Library-first search (M5 FR-005, research R7): the listener's subscribed shows and
  * their cached episodes, matched with the shared `matchesTerm` — instant, works offline.

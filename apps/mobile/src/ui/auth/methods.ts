@@ -1,3 +1,4 @@
+// The other sign-in ways (Google, Facebook), not ready yet.
 /**
  * The ways in on the sign-in page (owner, 2026-09-27): email (a code, no password) and
  * two that come later. Each is an icon and its name in one row. Google and Facebook have

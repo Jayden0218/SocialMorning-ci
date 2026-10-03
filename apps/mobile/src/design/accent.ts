@@ -1,3 +1,4 @@
+// Saves the chosen accent colour and applies it across the whole app.
 /**
  * M12 FR-108: the chosen accent theme. Stored in settings (`pref.accent`), applied to the
  * classes through UniWind's own `updateCSSVariables` (uniwind 1.12, read in its native

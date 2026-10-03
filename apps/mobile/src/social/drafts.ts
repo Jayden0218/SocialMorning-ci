@@ -1,3 +1,4 @@
+// Saves unsent comment text so it survives sign-in or app closing.
 /**
  * US1 #6: the text and the captured moment survive a trip through sign-in, a
  * failed post, or a killed app. One draft per episode; debounced writes so a

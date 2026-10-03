@@ -1,3 +1,4 @@
+// Download button showing every state: waiting, percent, done, failed, remove.
 /**
  * One control, every download state (US1 #1, #6): Download → Waiting… → 43 % · Cancel →
  * Downloaded 82 MB · Remove; Failed · Retry; a "use mobile data" choice when the

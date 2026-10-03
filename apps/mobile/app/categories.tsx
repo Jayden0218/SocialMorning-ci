@@ -1,3 +1,4 @@
+// Every podcast category as a two-column grid of cards.
 /**
  * All categories (M10): Apple's top-level podcast genres; each opens that genre's top
  * shows. The list is on the phone (`src/discover/genres.ts`), so it draws offline.

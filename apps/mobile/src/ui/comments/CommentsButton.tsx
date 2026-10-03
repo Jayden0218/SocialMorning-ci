@@ -1,3 +1,4 @@
+// Comment icon with the comment count under an Updates row.
 /**
  * The comment icon under an Updates row, with how many comments the episode has (M12
  * FR-080). No count yet, or none at all → the icon alone, never a "0".

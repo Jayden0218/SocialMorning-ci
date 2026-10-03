@@ -1,3 +1,4 @@
+// Small bar at the bottom showing what plays; tap to open the player.
 /**
  * The floating bar that says something is loaded, and the way back to the player from
  * anywhere. It replaces `MiniBar` (M1) — same job, M7's look.

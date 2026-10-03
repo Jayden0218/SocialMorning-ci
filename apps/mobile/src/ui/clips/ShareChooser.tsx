@@ -1,3 +1,4 @@
+// The app's share panel: share episode, this moment, or a picture.
 /**
  * The first step of Share (M12 FR-033/034). The episode page and the player opened the system
  * sheet with the publisher's raw .mp3 address (NEW-8, found on the iPhone). Now: share the

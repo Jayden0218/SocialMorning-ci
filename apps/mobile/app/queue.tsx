@@ -1,3 +1,4 @@
+// Your queue: "Up next" card, then numbered episodes to reorder or remove.
 /**
  * The queue page (US2), reached from the mini player's Queue button. M12 FR-044: the same rows
  * as the sheet over the player (src/ui/queue/QueueList.tsx) — artwork, time left, drag handle, ⋮.

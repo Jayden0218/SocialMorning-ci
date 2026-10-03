@@ -1,3 +1,4 @@
+// Small marks on the seek bar where people left timed comments.
 /**
  * The rail (FR-013/014): one marker per distinct second that has a timestamped
  * comment, placed at offset / duration across the bar. Tapping seeks there and

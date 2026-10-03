@@ -3,7 +3,7 @@
 One file = one screen (Expo Router). The file path is the route: `show/[feedUrl].tsx` opens at `/show/<feedUrl>`.
 `(tabs)/` holds the 3 bottom tabs. `_layout.tsx` wraps the screens in its folder. Code they use is in [`../src/`](../src/README.md).
 
-Keep this file up to date: when you add, move or delete a screen, change its line here.
+Keep this file up to date: when you add, move or delete a screen, change its line here. Each screen file also starts with the same sentence as a `//` comment — change both together.
 
 
 ### Top level

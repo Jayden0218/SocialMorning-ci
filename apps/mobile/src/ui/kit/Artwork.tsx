@@ -1,3 +1,4 @@
+// Show or episode cover; shows the show's first letter while loading or broken.
 /**
  * Episode or show artwork at a fixed size (M7). An episode with no artwork gets the
  * placeholder, never a blank square (research R4).

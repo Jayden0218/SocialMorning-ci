@@ -1,3 +1,4 @@
+// One curated issue: editor's intro, then numbered picks with the editor's notes.
 /**
  * One curated issue (M12 FR-101): the editor's intro, then numbered picks, each with the
  * editor's note. From the same curation file as Editor's picks (`picks.json`). A pick the

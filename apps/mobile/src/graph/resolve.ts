@@ -1,3 +1,4 @@
+// Turns a clip link into an episode the player can play.
 /**
  * Turning a clip link into something playable (M4 FR-004, research R6):
  *   1. the episode is already in the feed cache (subscribed, or opened before) → it, with any download

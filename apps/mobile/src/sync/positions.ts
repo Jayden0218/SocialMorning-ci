@@ -1,3 +1,4 @@
+// Syncs where you stopped in each episode with the server.
 /**
  * Position sync (US6, FR-025..029, research R5/R9).
  *

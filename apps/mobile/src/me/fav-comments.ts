@@ -1,3 +1,4 @@
+// Keeps the list of comments you starred, newest first.
 /**
  * Favourite comments (M10b US2, FR-005): comments the listener starred, newest first, with
  * enough of the comment kept to list it (text, episode, moment, author name) — the comment

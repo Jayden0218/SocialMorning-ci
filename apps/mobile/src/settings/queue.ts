@@ -1,3 +1,4 @@
+// Adds an episode to the queue using your queue settings.
 /**
  * Queueing with the settings applied (M10): where a one-tap "Queue" puts the episode, and
  * whether it starts downloading at once ("Download queued episodes").

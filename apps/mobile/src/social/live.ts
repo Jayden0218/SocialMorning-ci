@@ -1,3 +1,4 @@
+// Shows "N listening now" in the player, checking once a minute.
 /**
  * M12 FR-042: "N listening now" in the player. While an episode plays, the phone checks in once
  * a minute with its install id (the server keeps only a salted daily hash — no account); the

@@ -1,3 +1,4 @@
+// "Hosted by" line and "Shared by" line linking to who shared the show.
 /**
  * M15 US4 (D3, FR-023): an external show an admin-made account shares reads
  * "Shared by <name>", linking to that account's profile — under the show title and in

@@ -1,3 +1,4 @@
+// Page-by-page list of a person's followers or who they follow.
 /**
  * A paged list of followers or following (M4 FR-007) — one component for both pages.
  *

@@ -1,3 +1,4 @@
+// Creator centre: claim a show you publish with a code, then see its numbers.
 /**
  * Creator centre (创作者中心, M10b US8). Nothing is uploaded — SocialNet never hosts audio
  * (Principle V). A creator claims the show they already publish: they get a code, put it

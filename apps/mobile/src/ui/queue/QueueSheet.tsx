@@ -1,3 +1,4 @@
+// The queue as a sheet over the player, titled "Up next".
 /**
  * The queue as a sheet over the player (M12 FR-044): the listener stays on the player; the
  * queue was a separate page.

@@ -1,3 +1,4 @@
+// Fetches launch promotions and reports views and taps, without user identity.
 /**
  * M15 US3: the two public launch-screen calls (specs/015-m15-admin/contracts/admin-api.md).
  *

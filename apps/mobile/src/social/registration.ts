@@ -1,3 +1,4 @@
+// Describes an episode to the server using the phone's saved feed.
 /** How the phone describes an episode to the server (client-registered, research R6). */
 import type { EpisodeRegistration } from './api';
 import type { Stores } from '@/storage/types';

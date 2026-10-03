@@ -1,3 +1,4 @@
+// Editor's picks from earlier days, grouped by date, with notes and Play.
 /**
  * Past picks (M12 FR-070): the editor's picks of earlier days, newest first, a day's date as
  * its section title — seven days a page from `GET /v1/picks/past`, the next page by `next`.

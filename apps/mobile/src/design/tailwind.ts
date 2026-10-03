@@ -1,3 +1,4 @@
+// Lets links and gradients accept style class names like other components.
 /**
  * UniWind turns `className` into `style` on React Native's own components by itself (its
  * Metro resolver swaps them). Anything else that takes a `style` is wrapped here once, and

@@ -1,3 +1,4 @@
+// A "Are you sure?" sheet from the bottom with the action and Cancel.
 /**
  * M16a T003 (FR-013, owner 2026-10-02): the app asks its own questions — never the iOS native
  * alert. One helper on gluestack's AlertDialog, the look SignOut already has: a title, a line,

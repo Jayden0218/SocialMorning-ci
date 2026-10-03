@@ -1,3 +1,4 @@
+// A round tap-able label; turns yellow when chosen.
 /**
  * M17 (contracts/ui-components.md, `SettingsOpml-B`, `Categories-B`): a round chip — white with
  * a thin border, or the yellow fill with dark words when chosen. At least 48 pt to tap.

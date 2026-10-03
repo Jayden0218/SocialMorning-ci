@@ -1,3 +1,4 @@
+// Questions and answers about how For You recommendations work.
 /**
  * How For You works (M12 FR-094): questions that open to show their answer.
  *

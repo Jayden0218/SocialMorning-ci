@@ -1,3 +1,4 @@
+// Timing numbers for the loading sign's moving bars.
 /**
  * The loading mark's timing (owner, 2026-09-27: "create your own special loading icon").
  * Five sound-wave bars — the waves beside the microphone in the app icon — rise and fall

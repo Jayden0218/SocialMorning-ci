@@ -1,3 +1,4 @@
+// The host's newest announcement as a card; tap to read it all.
 /**
  * The host's newest announcement as one card under the show header (owner, 2026-10-01, after
  * the 小宇宙 show page): a megaphone, "Announcement · 2026-09-30", the body in 2 lines, and a

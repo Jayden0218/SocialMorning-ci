@@ -1,3 +1,4 @@
+// Updates tab: continue listening, friends' voice posts, newest episodes from your shows.
 /**
  * Updates (更新, M10, owner 2026-09-27) — the second tab, at `/library` (the path the
  * Library always answered on, so its links still land, G3). Laid out after the reference:

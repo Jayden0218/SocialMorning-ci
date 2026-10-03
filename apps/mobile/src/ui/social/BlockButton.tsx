@@ -1,3 +1,4 @@
+// Block or Unblock a person, asking first.
 /**
  * M6 US1: Block / Unblock a listener, with a confirm. The block is local at once; the server hears later.
  * M17 (`Profile-B`): the white outlined pill beside Follow. Same confirm, same words.

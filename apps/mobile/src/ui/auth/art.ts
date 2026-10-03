@@ -1,3 +1,4 @@
+// Picks which real show covers to show on the sign-in page.
 /**
  * The artwork on the sign-in landing page (owner's reference, 2026-09-27): real show
  * covers, never a stock picture. The listener's own shows first, then what Discover last

@@ -1,3 +1,4 @@
+// Player colours, with a light tint of the show's own colour at the top.
 /**
  * The player's colours. Until M17 the player was always dark (owner, 2026-10-01); since M17
  * (constitution v3.0.0: light only, the B designs) it uses the light Editorial palette like

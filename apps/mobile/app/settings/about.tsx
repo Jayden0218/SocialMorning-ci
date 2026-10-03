@@ -1,3 +1,4 @@
+// About the app: version, service agreement, privacy policy, community rules.
 /**
  * About SocialNet (关于我们, M10): the version, and the three documents — service
  * agreement, privacy policy, community guidelines — opened in the app (M6 FR-027's

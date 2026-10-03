@@ -1,3 +1,4 @@
+// Chooses which promotion, if any, to show at launch.
 /**
  * M15 US3 (research R5): which promotion, if any, the launch screen shows — decided from
  * what is already on the phone, so a launch with nothing cached costs no network time

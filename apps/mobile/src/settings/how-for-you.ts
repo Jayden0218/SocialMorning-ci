@@ -1,3 +1,4 @@
+// Explains in plain words how For You picks episodes.
 /**
  * "How For You works" (M12 FR-094): each answer is what the server's code does
  * (`apps/api/src/db/repos/foryou.ts`, `packages/social-core`), read 2026-09-29 — if that

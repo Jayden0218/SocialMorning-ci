@@ -1,3 +1,4 @@
+// Gives screens the Discover data, refreshes it, and opens or plays cards.
 /**
  * The Discover data for a screen: last copy at once, a refresh on focus, `open(card)` through the resolver.
  * M10: `play(card)` resolves the same way and starts it — the round play button on every row.

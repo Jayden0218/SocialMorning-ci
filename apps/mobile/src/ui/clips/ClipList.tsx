@@ -1,3 +1,4 @@
+// The episode's clips, sending ones first, then newest first.
 /**
  * The episode's clips (M4 FR-006): pending ones first as "sending", then newest first.
  * M17 (`Episode-B`): the "Clips" heading is the shared serif section title, as Comments is.

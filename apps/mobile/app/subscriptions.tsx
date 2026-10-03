@@ -1,3 +1,4 @@
+// Shows you follow: starred strip on top, then all shows with sort and search.
 /**
  * My subscriptions (M10): the shows you follow — the list the Library tab used to be,
  * opened from the Updates tab's "My subscriptions" button. Refreshes in the background;

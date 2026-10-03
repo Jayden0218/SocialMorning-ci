@@ -1,3 +1,4 @@
+// Handles sign-up, sign-in and sign-out, and stores the account.
 /**
  * Accounts on the phone (FR-001..004). The token goes to secure storage, the
  * listener row to SQLite's `auth` table; both are cleared together on sign-out.

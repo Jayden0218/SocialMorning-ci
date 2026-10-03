@@ -1,3 +1,4 @@
+// Listening badges: earned ones in a grid, the rest with progress bars.
 /**
  * Stickers (贴纸, M10): listening milestones — earned ones in colour, the rest with how far along you are.
  *

@@ -1,3 +1,4 @@
+// The box where you write a comment or reply, with its moment in time.
 /**
  * The comment box (US1). The moment chip shows what `captureMoment` returned
  * when the box opened; the ✕ removes it; nothing here re-reads the player.

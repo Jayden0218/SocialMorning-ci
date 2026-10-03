@@ -1,3 +1,4 @@
+// A circle that fills around the mini player's play button as you listen.
 /** A circular progress track around a child (the mini player's play button). See `./ring`. */
 import type { ReactNode } from 'react';
 import { Box } from '@/ui/lib/box';

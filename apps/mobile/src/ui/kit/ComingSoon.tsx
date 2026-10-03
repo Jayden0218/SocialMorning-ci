@@ -1,3 +1,4 @@
+// A "Coming soon" box shown when you tap a feature not ready yet.
 /**
  * M17 (FR-013, `ComingSoonWallet-B` / `ComingSoonSocialSignIn-B`): what a not-released feature
  * says when it is tapped — instead of a short toast or a control that does nothing. One dialog:

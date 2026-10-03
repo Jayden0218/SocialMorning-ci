@@ -1,3 +1,4 @@
+// One clip: caption, who made it, time range, play and share buttons.
 /**
  * One clip: caption, author (a profile link), range, and the actions the viewer may take.
  *

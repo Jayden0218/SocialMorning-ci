@@ -1,3 +1,4 @@
+// Registers this phone's push address at sign-in, removes it at sign-out.
 /**
  * M10b US3 — this device's push address, kept with the account (FR-008): registered when
  * the listener is signed in and has allowed notifications, removed at sign-out. The last

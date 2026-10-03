@@ -1,3 +1,4 @@
+// One editor's pick: the episode plus a short quote on why.
 /**
  * An editorial pick (M5 FR-001): the episode with the owner's one-line "why".
  *

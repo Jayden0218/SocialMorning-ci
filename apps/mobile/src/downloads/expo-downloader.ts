@@ -1,3 +1,4 @@
+// Downloads episode files to the phone, with pause and resume.
 /**
  * The `Downloader` (specs/003-m2-real-client/contracts/downloader.ts) on
  * expo-file-system 58's `DownloadTask` — research R1 (corrected). This is the ONLY

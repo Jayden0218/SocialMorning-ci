@@ -1,3 +1,4 @@
+// Make a clip from the player: pick start and end, add caption, save.
 /**
  * New clip (M4 US1). Opened from the player's Clip button with the episode and the
  * moment. Save → `clips.create` → sent (Share offered) or pending ("sending" on the

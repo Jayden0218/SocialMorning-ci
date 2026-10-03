@@ -1,3 +1,4 @@
+// Outer frame of every screen; leaves room for mini player and tab bar.
 /**
  * Every screen's outer frame (M7): the dark background, the safe areas, and — the part
  * that is easy to forget — bottom padding equal to the mini player plus the tab bar, so

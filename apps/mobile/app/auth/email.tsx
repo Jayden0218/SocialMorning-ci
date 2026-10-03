@@ -1,3 +1,4 @@
+// Sign in with email: enter email, then 6-digit code, then your name if new.
 /**
  * Continue with email (owner, 2026-09-27): no password. Step 1 the email, step 2 the
  * 6-digit code sent to it, step 3 — only for a new email — the name others will see.

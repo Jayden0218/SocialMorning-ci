@@ -1,3 +1,4 @@
+// Follow or Following button on a profile.
 /**
  * Follow / Following (M4 FR-007): optimistic, reverts on a refusal, hidden on your own profile.
  * M17 (`Profile-B`): the Editorial pill — "Follow" is the yellow primary pill (the call to

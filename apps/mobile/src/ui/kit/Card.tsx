@@ -1,3 +1,4 @@
+// A white box with thin border that groups rows; plus the line between rows.
 /**
  * M17 (contracts/ui-components.md, `Me-B` / `SettingsMore-B`): the Editorial card — a white
  * surface with a thin border and 16 pt corners, on the warm page. Rows inside are divided by

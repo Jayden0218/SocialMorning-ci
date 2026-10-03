@@ -1,3 +1,4 @@
+// A listener's profile: name, counts, listening time, recent activity, Follow, Block, Report.
 /**
  * A profile (M4 US3, FR-011): name, follower/following counts, stats (hidden when the
  * listener is private and it is not you), recent public activity, Follow.

@@ -1,3 +1,4 @@
+// Top of a normal page: back arrow, then the page name in large serif.
 /**
  * M16a T001 (FR-012, owner 2026-10-02, said twice): every stack page draws the app's own top
  * bar — never the iOS native header with its "‹ Back" pill. Built on `TopBar`, so the back

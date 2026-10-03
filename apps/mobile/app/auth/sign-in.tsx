@@ -1,3 +1,4 @@
+// Sign-in start page: app name, moving show covers, ways to sign in, consent box.
 /**
  * The sign-in landing page (owner's reference screenshots, 2026-09-27 and 2026-10-03): the
  * icon, the app's name, a moving row of show covers, then the ways in and the consent box —

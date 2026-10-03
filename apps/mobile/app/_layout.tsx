@@ -1,3 +1,4 @@
+// No screen: starts the app, database and player; shows an error page if something breaks.
 /**
  * Root layout: open the database, build the player, mount the mini player and
  * the toast host (FR-015). Everything else is a screen.

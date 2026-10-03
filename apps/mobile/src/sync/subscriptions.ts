@@ -1,3 +1,4 @@
+// Syncs your subscribed shows with the server.
 /**
  * M8 US1 — subscription sync (FR-001..FR-004, research R1).
  *

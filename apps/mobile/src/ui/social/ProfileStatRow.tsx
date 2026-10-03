@@ -1,3 +1,4 @@
+// A profile's numbers in one row: following, followers, shows, listening time.
 /**
  * A profile's numbers in one row (M12 FR-064): following, followers, subscriptions (your own
  * profile only — nobody else's subscriptions are ever sent, M8 FR-004) and listening time.

@@ -1,3 +1,4 @@
+// Where you go after signing in or out.
 /**
  * Where an account change lands (owner, 2026-09-27). Signing in is required, so leaving an
  * account goes to the sign-in page with no old stack underneath, and signing in goes to

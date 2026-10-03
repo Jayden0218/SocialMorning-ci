@@ -1,3 +1,4 @@
+// Full-screen promotion picture for up to 3 seconds at start, with Skip.
 /**
  * M15 US3 (FR-015–FR-018): the owner's promotion, full screen, for at most 3 s after the
  * native launch screen hides. Mounted by `src/ui/shell/providers.tsx` beside the Terms overlay,

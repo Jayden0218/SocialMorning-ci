@@ -1,3 +1,4 @@
+// The "I agree" tick box under sign-in, and the ask if not ticked.
 /**
  * The consent checkbox under the sign-in form and the dialog that asks when it is not
  * ticked (owner's reference screenshots, 2026-09-27). The links open the full documents

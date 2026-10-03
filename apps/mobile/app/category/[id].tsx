@@ -1,3 +1,4 @@
+// Top shows in one category, with a category strip, sort, filter, subscribe buttons.
 /**
  * One category (M10): the genre's top shows from Apple's chart, through the server
  * (`GET /v1/categories/:id`, cached there). Tapping a show opens its page. M12 FR-072: a strip

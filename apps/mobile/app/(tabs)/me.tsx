@@ -1,3 +1,4 @@
+// Me tab: your picture and name, saved moments, menu tiles, Sign out.
 /**
  * Me (个人, M10, owner 2026-09-27): the third tab, laid out after the reference — a
  * Stickers chip, your name (opens your profile) and picture, the saved-moments card

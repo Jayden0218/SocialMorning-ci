@@ -1,3 +1,4 @@
+// Keeps saved moments in episodes, each with an optional note.
 /**
  * Saved moments with a note (the reference's PLUS feature "收藏时点，可记录时点笔记"),
  * free here — SocialNet takes no payments (constitution: everything free). A moment is an

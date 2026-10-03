@@ -1,3 +1,4 @@
+// Creator academy: list of help articles for show owners, as cards.
 /**
  * Creator academy (M12 FR-103): help for show owners, opened in the app.
  *

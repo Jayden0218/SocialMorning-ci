@@ -1,3 +1,4 @@
+// Updates the promotion list and images in the background for next launch.
 /**
  * M15 US3 (research R5, step 1): bring the launch list and its images up to date **for the
  * next launch**. Called once start-up is ready, fire-and-forget — start-up never awaits it

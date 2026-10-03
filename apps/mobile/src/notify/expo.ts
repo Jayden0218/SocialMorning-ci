@@ -1,3 +1,4 @@
+// Connects to the phone's notification system, safely if it is missing.
 /**
  * The real `NotifyApi`: expo-notifications. Kept apart so tests never load the native module.
  *

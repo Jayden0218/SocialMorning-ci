@@ -1,3 +1,4 @@
+// Short text shown instead of a deleted, removed, blocked or reported comment.
 /** M6: the four placeholders a comment or clip can become — the same shape, one word each. */
 import { Text } from '@/ui/lib/text';
 import type { Comment } from '@/social/api';

@@ -1,3 +1,4 @@
+// One "new episodes" alert switch for each show you follow.
 /**
  * M12 FR-093: one "new episodes" switch per subscribed show, under the global one. The
  * server keeps them (`/v1/me/notify/shows`) so every device agrees; a switch flips at once

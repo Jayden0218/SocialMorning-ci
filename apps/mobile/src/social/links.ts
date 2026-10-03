@@ -1,3 +1,4 @@
+// Gives links to legal pages and the appeals email address.
 /**
  * M6 FR-027: the pages the app must link to, and the appeals address, which comes from
  * the server (`/v1/meta`) so the owner can change it without a build. Offline: the

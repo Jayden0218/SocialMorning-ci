@@ -1,3 +1,4 @@
+// Tells whether the phone is on Wi-Fi, mobile data, or offline.
 /** The `Network` (contracts/downloader.ts) on expo-network 58 — research R6. Only importer. */
 import { addNetworkStateListener, getNetworkStateAsync, NetworkStateType } from 'expo-network';
 import type { Network } from './types';

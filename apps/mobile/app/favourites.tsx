@@ -1,3 +1,4 @@
+// Starred episodes and starred comments, in two tabs, with search.
 /**
  * Favourites (我的收藏, M10; tabs M10b US2): Episodes you starred on their page, and
  * Comments you starred with ☆ — each newest first, both searchable, both following the

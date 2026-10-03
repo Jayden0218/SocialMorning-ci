@@ -1,3 +1,4 @@
+// One show: artwork, title, Subscribe, episodes list and About tab with similar shows.
 /**
  * One show: its header, its episodes newest first, and whether what we are
  * looking at is fresh (FR-002).

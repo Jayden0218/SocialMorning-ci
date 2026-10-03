@@ -1,3 +1,4 @@
+// Describes the downloader and network pieces the download manager uses.
 /** contracts/downloader.ts, as the app uses it. */
 import type { DownloadRow } from '@/storage/types';
 export type { DownloadRow };

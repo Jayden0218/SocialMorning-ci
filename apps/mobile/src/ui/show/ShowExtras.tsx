@@ -1,3 +1,4 @@
+// What the host added: announcements, polls, hosts, links and contacts.
 /**
  * M11 — what a show's creator set in the Studio, on the show page: their announcements, their
  * polls, and the hosts and links they listed (specs/011-m11-studio FR-020..FR-024), and their

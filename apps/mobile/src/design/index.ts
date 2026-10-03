@@ -1,3 +1,4 @@
+// Gathers the design exports so screens import them from one place.
 /** The design system in one import: colours, sizes, contrast checks and gradients. */
 export { colour, fontSize, spacing, radius, hit, size, tabular, ACCENTS, type AccentName } from './tokens';
 export type { Palette } from './tokens';

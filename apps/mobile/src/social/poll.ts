@@ -1,3 +1,4 @@
+// Checks for new comments every 10 seconds, only when useful.
 /**
  * The 10-second poll (research R7, FR-015). It runs ONLY while all three are true:
  * the episode's screen is focused, the app is in the foreground, and the phone is

@@ -1,3 +1,4 @@
+// Sheet to report a comment: pick a reason, add a note, send.
 /**
  * M6 US1: the report sheet — one reason from the fixed list, an optional note, one tap
  * to send. Signed out → sign in first; own content → "delete it instead". The hide is

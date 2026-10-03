@@ -1,3 +1,4 @@
+// Math for how far the progress circle is turned.
 /**
  * A progress ring without SVG: two half rings, each clipped to one half of the circle
  * and turned. A half ring drawn with two coloured border sides and turned 45° covers

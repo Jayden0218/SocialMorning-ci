@@ -1,3 +1,4 @@
+// Your App Store / Google Play purchases, read only; link to manage them.
 /**
  * Wallet (M12 FR-106): your App Store / Google Play purchases, read only. SocialNet holds no
  * balance and takes no money itself; managing or cancelling a subscription happens in the

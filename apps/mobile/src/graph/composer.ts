@@ -1,3 +1,4 @@
+// Holds the clip maker's start, end and caption while you edit.
 /**
  * The clip composer's state (M4 US1, clarified 2026-09-21: two buttons while listening).
  * Pure: the screen feeds it the player's position; it owns the range and the caption.

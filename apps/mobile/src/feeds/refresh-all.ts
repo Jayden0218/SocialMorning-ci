@@ -1,3 +1,4 @@
+// Refreshes every subscribed show one by one, so one failure stops nothing.
 /**
  * Refreshing every subscription when the Library comes into focus.
  *

@@ -1,3 +1,4 @@
+// Settings: account card, everyday settings tiles, info pages, Sign out. From Me.
 /**
  * Settings (设置, M10, owner 2026-09-27) — at `/account`, the path Me → "Account and
  * settings" and every older link already use (G3, G4). Laid out after the reference: one

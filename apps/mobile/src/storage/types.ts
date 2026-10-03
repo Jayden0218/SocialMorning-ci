@@ -1,3 +1,4 @@
+// Defines the shapes of all saved data and storage functions.
 /**
  * The storage contracts (specs/001-m1-it-plays/contracts/stores.ts).
  *

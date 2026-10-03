@@ -1,3 +1,4 @@
+// Stores the sign-in token in the phone's secure storage.
 /**
  * The session token lives in expo-secure-store (Android Keystore-backed), never
  * in SQLite (data-model.md, "Phone"). This is the only file that imports it.

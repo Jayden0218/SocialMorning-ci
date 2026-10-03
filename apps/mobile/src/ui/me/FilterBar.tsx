@@ -1,3 +1,4 @@
+// Search box above History, Favourites, Subscriptions; History's "Only finished" choice.
 /**
  * The search box (and optional switch) above History, Favourites and My subscriptions (M10,
  * after the reference).

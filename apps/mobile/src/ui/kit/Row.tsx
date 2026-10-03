@@ -1,3 +1,4 @@
+// The standard list row: cover, title, grey second line, optional item on right.
 /**
  * THE list row (M7 FR-003). Every list in the app uses this one: artwork, a title of at
  * most two lines, a muted second line, an optional trailing element, a hairline

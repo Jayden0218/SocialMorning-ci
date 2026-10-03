@@ -1,3 +1,4 @@
+// Keeps the start screen at least 1 second, at most 6 seconds.
 /**
  * The launch screen's timing (owner, 2026-09-27): show it while the app pulls the
  * account's latest state, and for **at least 1 s** so it never flickers.

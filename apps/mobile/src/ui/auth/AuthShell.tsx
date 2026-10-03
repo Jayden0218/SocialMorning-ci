@@ -1,3 +1,4 @@
+// Shared frame for sign-in pages: close ✕, big title, form, bottom button.
 /**
  * The frame every auth page shares. Owner's screenshot (2026-10-03): a ✕ at the top left,
  * a large serif title on the left, the form under it, and the main button in a bar pinned

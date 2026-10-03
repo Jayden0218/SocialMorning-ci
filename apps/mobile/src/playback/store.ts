@@ -1,3 +1,4 @@
+// Links player rules, audio engine and storage; gives screens the player.
 /**
  * Binding: reducer <-> adapter <-> storage.
  *

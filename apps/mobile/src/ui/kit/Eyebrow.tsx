@@ -1,3 +1,4 @@
+// A small grey capital-letter label above a section.
 /**
  * M17 (`Search-B`, `Following-B`): a section label — 11 pt bold capitals, spaced, in the muted
  * colour (or the accent for the section in focus). Spoken as a header.

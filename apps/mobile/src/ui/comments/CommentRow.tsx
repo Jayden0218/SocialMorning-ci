@@ -1,3 +1,4 @@
+// One comment card: picture, name, time, moment chip, text, likes, replies.
 /**
  * One comment on the comments page (M12 US2, FR-022/024/025). An avatar (initials when there is
  * no picture), the name, how long ago, the moment as a chip that plays from there, the text

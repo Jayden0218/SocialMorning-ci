@@ -1,3 +1,4 @@
+// Builds the Queue and New episodes lists for Android Auto.
 /**
  * M10b — Android Auto. The car browses two lists the app builds here, Queue and New episodes,
  * and a pick comes back as an episode id, which plays through the app's own player (queue,

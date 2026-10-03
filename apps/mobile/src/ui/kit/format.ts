@@ -1,3 +1,4 @@
+// Turns numbers into text: times like 14:32, dates, show notes as plain text.
 /** Display helpers. No product decisions live here. */
 
 /** `mm:ss`, or `h:mm:ss` once an episode passes an hour. */

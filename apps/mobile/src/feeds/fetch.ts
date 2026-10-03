@@ -1,3 +1,4 @@
+// Refreshes one show's feed, keeping the saved copy if it fails.
 /**
  * Refreshing one show: conditional GET, parse, cache.
  *

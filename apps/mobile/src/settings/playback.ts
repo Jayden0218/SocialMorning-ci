@@ -1,3 +1,4 @@
+// Decides if streaming is allowed on mobile data.
 /**
  * M10b US4 (FR-014): may an episode stream now? Only "mobile data + the switch off" says no.
  * Offline is not this switch's business — the player reports that itself. Wired into the

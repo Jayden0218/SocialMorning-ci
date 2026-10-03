@@ -1,3 +1,4 @@
+// Makes the launch-screen choice at start-up from saved data, no network.
 /**
  * M15 US3: the launch screen's decision as start-up makes it — **synchronously**, from the
  * settings store and the files already on disk, with no network call (SC-004, guard G-L4).

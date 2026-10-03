@@ -1,3 +1,4 @@
+// Saves new clips on the phone and sends them to the server later.
 /**
  * Clips on the phone (M4 US1, FR-001/FR-001a, research R8). A new clip is a PENDING row
  * first — made offline or not — and `sendPending()` posts it when it can: register the

@@ -1,3 +1,4 @@
+// Shows the video picture for video episodes; sound comes from the audio.
 /**
  * M10b US5 — the picture for a video episode, where the artwork would be. Muted: the sound
  * comes from the audio engine as for every episode, so the lock screen, position saving,

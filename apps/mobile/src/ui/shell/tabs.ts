@@ -1,3 +1,4 @@
+// The list of bottom tabs (Discover, Updates, Me) as data.
 /**
  * The three tabs, as data (M7 T012/T024).
  *

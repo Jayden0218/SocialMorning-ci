@@ -1,3 +1,4 @@
+// Turns a saved episode into what the player needs, using downloads first.
 /**
  * From the cache rows to what the player is handed. M2 (FR-003): when a complete
  * download exists and its file is still there, the player gets the `file://` URI —

@@ -1,3 +1,4 @@
+// Keeps the last For You list, and clears it at sign-out.
 /**
  * M8 US2 — For You's last copy (FR-020).
  *

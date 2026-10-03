@@ -1,3 +1,4 @@
+// Turns a sign-in error into a short message for the user.
 /** How the sign-in and sign-up pages word a failure. The 409/429 messages come from the server verbatim. */
 import { ApiError } from '@/social/api';
 

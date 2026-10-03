@@ -1,3 +1,4 @@
+// Works out which listening badges you earned and which comes next.
 /**
  * Stickers (贴纸, owner 2026-09-27): badges for listening milestones, worked out from the
  * account's own all-time stats and this phone's saved moments. Nothing is stored — a

@@ -1,3 +1,4 @@
+// Decides what a scanned QR code opens, or searches its text.
 /**
  * What a scanned QR code opens (M10, owner 2026-09-27). Only what the app already
  * answers on: its own `socialmorning://` links (clip, episode, show, profile), the
