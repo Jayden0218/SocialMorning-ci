@@ -1,5 +1,6 @@
 /**
- * The one button (M7 FR-007). Three kinds, one look each.
+ * The one button (M7 FR-007). Three kinds, one look each. M17 (`SignIn-B`, `Issues-B`): the
+ * Editorial pill — dark words on the yellow (the 1.60 waiver ended), or white with a thin border.
  *
  * M9: built on gluestack's Button and ButtonText (owner: "the special parts are built from
  * gluestack parts"). It came back after the 2026-09-27 merge because upstream's new
@@ -17,14 +18,14 @@ export type ButtonKind = 'primary' | 'secondary' | 'destructive';
 const KIND: Record<ButtonKind, string> = {
   primary: 'bg-primary',
   destructive: 'bg-primary',
-  secondary: 'border border-separator bg-transparent',
+  secondary: 'border border-border bg-surface',
 };
 
 /** Words on the solid yellow take `onPrimary`; on the outlined secondary they sit on the page, so `text`. */
 const LABEL: Record<ButtonKind, string> = {
-  primary: 'text-sm font-semibold text-onPrimary',
-  destructive: 'text-sm font-semibold text-onPrimary',
-  secondary: 'text-sm font-semibold text-text',
+  primary: 'text-body font-bold text-onPrimary',
+  destructive: 'text-body font-bold text-onPrimary',
+  secondary: 'text-body font-bold text-text',
 };
 
 /** Kept as a style: shared-ui asserts the tap target on the button's own `style`. */

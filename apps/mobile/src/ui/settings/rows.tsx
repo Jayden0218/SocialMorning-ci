@@ -1,6 +1,7 @@
 /**
  * Rows for the settings pages (M10, owner 2026-09-27), after the reference: a one-colour
  * icon, the label, an optional muted value or line under it, then a chevron or a switch.
+ * M17: Editorial sizes (20 pt icon, 14 pt label, 16 pt chevron); they sit inside a `Card`.
  */
 import { Link } from 'expo-router';
 import { Pressable } from '../lib/pressable';
@@ -20,9 +21,9 @@ function Body(props: { icon: IconName; label: string; line?: string; value?: str
   const c = useColours(stores.settings);
   return (
     <>
-      <Icon name={props.icon} size={24} color={c.accent} />
+      <Icon name={props.icon} size={20} color={c.accent} />
       <Box className="flex-1">
-        <Text className={props.danger ? 'text-accent text-sm' : 'text-text text-sm'}>{props.label}</Text>
+        <Text className={props.danger ? 'text-accent text-body' : 'text-text text-body'}>{props.label}</Text>
         {props.line ? <Text className="text-muted text-xs mt-0.5">{props.line}</Text> : null}
       </Box>
       {props.value ? <Text className="text-muted text-xs" numberOfLines={1}>{props.value}</Text> : null}
@@ -38,7 +39,7 @@ export function LinkRow(props: { href: string; icon: IconName; label: string; li
     <Link href={props.href as never} asChild>
       <Pressable accessibilityRole="link" accessibilityLabel={spoken} className="flex-row items-center gap-section" style={TAP}>
         <Body {...props} />
-        <Icon name="chevron-forward" size={18} color={c.muted} />
+        <Icon name="chevron-forward" size={16} color={c.muted} />
       </Pressable>
     </Link>
   );
@@ -51,7 +52,7 @@ export function ActionRow(props: { onPress: () => void; icon: IconName; label: s
   return (
     <Pressable onPress={props.onPress} accessibilityRole="button" accessibilityLabel={spoken} className="flex-row items-center gap-section" style={TAP}>
       <Body {...props} />
-      <Icon name="chevron-forward" size={18} color={c.muted} />
+      <Icon name="chevron-forward" size={16} color={c.muted} />
     </Pressable>
   );
 }

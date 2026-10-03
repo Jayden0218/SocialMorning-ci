@@ -72,7 +72,7 @@ it('no fixed height anywhere, and every tab clears the 48 dp target', () => {
   const bar = flat(r.root.findAll((n) => typeof n.type === 'string')[0]!.props['style']);
   expect(bar['height']).toBeUndefined();
   expect(bar['minHeight']).toBe(TAB_BAR_HEIGHT);
-  expect(bar['backgroundColor']).toBe(colour.background);
+  expect(bar['backgroundColor']).toBe(colour.surface); // M17: the white Editorial bar
   for (const t of tabs(r)) {
     const s = flat(t.props['style']);
     expect(s['height']).toBeUndefined();

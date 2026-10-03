@@ -156,7 +156,7 @@ export default function CommentsScreen(): React.ReactElement {
       </Pressable>
       <Actionsheet isOpen={menu !== undefined} onClose={() => setMenu(undefined)}>
         <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-        <ActionsheetContent className="bg-background rounded-t-2xl items-stretch">
+        <ActionsheetContent className="bg-surface rounded-t-row items-stretch">
           <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
           {menu ? menuItems(menu).map((item) => (
             <Pressable key={item.label} onPress={() => { setMenu(undefined); item.run(); }} accessibilityRole="button" className="justify-center px-screen-x border-b-hairline border-separator" style={TAB}>

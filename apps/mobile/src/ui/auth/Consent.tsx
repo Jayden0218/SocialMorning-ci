@@ -97,7 +97,7 @@ export function ConsentDialog(props: { visible: boolean; action: string; onCance
   return (
     <Actionsheet isOpen={props.visible} onClose={props.onCancel}>
       <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-      <ActionsheetContent className="bg-background rounded-t-2xl px-screen-x pt-row items-stretch" accessibilityViewIsModal>
+      <ActionsheetContent className="bg-surface rounded-t-row px-screen-x pt-row items-stretch" accessibilityViewIsModal>
         <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
         <Text style={display(32, c.text)} className="mt-row" accessibilityRole="header">Before you continue</Text>
         <Text className="text-muted text-sm mt-gap">Please read and agree to these two documents.</Text>

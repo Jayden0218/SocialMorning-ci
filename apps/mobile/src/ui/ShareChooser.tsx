@@ -82,7 +82,7 @@ export function SharePanel(props: {
     <Actionsheet isOpen={props.open} onClose={props.onClose}>
       <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
       {/* M16a T014: no fixed bottom padding — ActionsheetContent's own `pb-safe` clears the home indicator. */}
-      <ActionsheetContent className="bg-background rounded-t-2xl px-screen-x pt-row items-stretch">
+      <ActionsheetContent className="bg-surface rounded-t-row px-screen-x pt-row items-stretch">
         <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
         <Text className="text-sm font-bold text-text py-row" accessibilityRole="header">{props.heading ?? 'Share'}</Text>
         {(props.rows ?? []).map((r) => (

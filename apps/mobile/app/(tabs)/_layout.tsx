@@ -71,7 +71,7 @@ export default function TabsLayout(): React.ReactElement {
       tabBar={(props) => {
         const active = props.state.routes[props.state.index]?.name ?? 'index';
         return (
-          <Box className="bg-background">
+          <Box className="bg-surface">
             <TabsMiniPlayer />
             <TabBar
               items={items}

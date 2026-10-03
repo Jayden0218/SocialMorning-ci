@@ -2,7 +2,8 @@
  * M6 US3 (FR-019–FR-021): one component for every empty surface — a sentence on what
  * fills it and one action that leads there; a loading row after 1 s; an offline or error
  * state with Retry after 10 s. The copy lives in `packages/social-core/src/empty.ts`, so
- * the 13 surfaces are enumerable and testable.
+ * the 13 surfaces are enumerable and testable. M17 (`LoadError-B`, `PlayLatest-B`): on a whole
+ * page the sentence is the Editorial serif headline.
  */
 import { Button, ButtonText } from './lib/button';
 import { Text } from './lib/text';
@@ -53,10 +54,10 @@ export function EmptyState(props: EmptyStateProps): React.ReactElement | null {
   if (view.kind === 'offline' || view.kind === 'error') {
     return (
       <Box className={wrap} accessibilityLiveRegion="polite">
-        <Text className={`text-text text-[15px] ${align}`}>{view.sentence}</Text>
+        <Text className={props.page ? `text-text text-title font-display-semibold ${align}` : 'text-text text-body'}>{view.sentence}</Text>
         {props.onRetry ? (
           <Button variant="link" className={`py-2.5 px-0 justify-center ${self}`} style={TAP} onPress={props.onRetry} accessibilityRole="button" accessibilityLabel="Retry">
-            <ButtonText className="text-accent text-sm font-semibold">Retry</ButtonText>
+            <ButtonText className="text-accent text-body font-bold">Retry</ButtonText>
           </Button>
         ) : null}
       </Box>
@@ -65,9 +66,9 @@ export function EmptyState(props: EmptyStateProps): React.ReactElement | null {
   const action = props.action ?? { label: view.action.label, onPress: () => router.push(view.action.route as never) };
   return (
     <Box className={wrap}>
-      <Text className={`text-text text-[15px] ${align}`}>{view.sentence}</Text>
+      <Text className={props.page ? `text-text text-title font-display-semibold ${align}` : 'text-text text-body'}>{view.sentence}</Text>
       <Button variant="link" className={`py-2.5 px-0 justify-center ${self}`} style={TAP} onPress={action.onPress} accessibilityRole="button" accessibilityLabel={action.label}>
-        <ButtonText className="text-accent text-sm font-semibold">{action.label}</ButtonText>
+        <ButtonText className="text-accent text-body font-bold">{action.label}</ButtonText>
       </Button>
     </Box>
   );

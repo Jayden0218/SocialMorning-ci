@@ -28,7 +28,9 @@ export function initialOf(name?: string): string {
 }
 
 export function Artwork(props: { url?: string | null; size: number; rounded?: keyof typeof radius; className?: string; name?: string }): React.ReactElement {
-  const cls = `bg-surface overflow-hidden items-center justify-center ${ROUNDED[props.rounded ?? 'row']} ${props.className ?? ''}`;
+  // M17: 16 pt corners, 22 from 96 pt up (`Show-B`, `Episode-B`); the placeholder is the accent tint.
+  const round = props.rounded ?? (props.size >= 96 ? 'artworkLarge' : 'row');
+  const cls = `bg-accentTint overflow-hidden items-center justify-center ${ROUNDED[round]} ${props.className ?? ''}`;
   // The size is a prop, so it stays a style.
   const box = { width: props.size, height: props.size };
   const letter = { fontSize: Math.round(props.size * 0.4) };

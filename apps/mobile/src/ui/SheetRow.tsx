@@ -12,12 +12,12 @@ import { size } from '../design';
 const ROW = { minHeight: size.row };
 
 export function SheetRow(props: { icon: IconName; label: string; detail?: string; iconColour: string; onPress?: () => void; accessibilityLabel?: string; selected?: boolean; tone?: 'normal' | 'accent' | 'muted' }): React.ReactElement {
-  const label = props.tone === 'accent' ? 'text-accent text-sm flex-1' : props.tone === 'muted' ? 'text-muted text-sm flex-1' : 'text-text text-sm flex-1';
+  const label = props.tone === 'accent' ? 'text-accent text-body flex-1' : props.tone === 'muted' ? 'text-muted text-body flex-1' : 'text-text text-body flex-1';
   const body = (
     <>
-      <Icon name={props.icon} size={22} color={props.iconColour} />
+      <Icon name={props.icon} size={20} color={props.iconColour} />
       <Text className={label}>{props.label}</Text>
-      {props.detail ? <Text className="text-muted text-xs">{props.detail}</Text> : null}
+      {props.detail ? <Text className="text-muted text-meta">{props.detail}</Text> : null}
     </>
   );
   if (!props.onPress) {

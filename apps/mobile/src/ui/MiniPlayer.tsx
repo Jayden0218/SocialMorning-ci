@@ -49,7 +49,8 @@ export const TAB_ROUTES: readonly string[] = [...Object.values(TAB_HREF), '/disc
  * push the bar taller rather than clip (M6 J6). `minHeight` stays a style because
  * `MINI_PLAYER_HEIGHT` is the one source for this number (`Screen` reserves it too).
  */
-const BAR = 'flex-row items-center gap-row px-section py-2 bg-background border-t-hairline border-separator';
+// M17 (`Me-B`): the white Editorial bar over the warm page.
+const BAR = 'flex-row items-center gap-row px-section py-2 bg-surface border-t-hairline border-separator';
 const BAR_HEIGHT = { minHeight: MINI_PLAYER_HEIGHT };
 
 /**
@@ -107,7 +108,7 @@ export function MiniPlayer(props: { pathname?: string; context?: 'root' | 'tabs'
         >
           <Artwork url={episode?.imageUrl ?? show?.imageUrl} size={MINI_ARTWORK} name={show?.title} />
           <Box className="flex-1">
-            <Text className="text-sm text-text font-semibold" numberOfLines={1}>
+            <Text className="text-body text-text font-semibold" numberOfLines={1}>
               {episode?.title ?? 'Now playing'}
             </Text>
             <Text className="text-xs text-muted" numberOfLines={1}>
@@ -129,8 +130,8 @@ export function MiniPlayer(props: { pathname?: string; context?: 'root' | 'tabs'
         </ProgressRing>
       </Pressable>
       <Link href="/queue" asChild>
-        <Pressable accessibilityRole="link" accessibilityLabel="Queue" className="rounded-pill bg-surface items-center justify-center" style={ROUND}>
-          <Icon name="list" size={24} color={c.accent} />
+        <Pressable accessibilityRole="link" accessibilityLabel="Queue" className="rounded-pill bg-surface border border-border items-center justify-center" style={ROUND}>
+          <Icon name="list" size={22} color={c.accent} />
         </Pressable>
       </Link>
     </Box>

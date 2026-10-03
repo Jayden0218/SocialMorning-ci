@@ -164,7 +164,7 @@ export default function UpdatesScreen(): React.ReactElement {
       {/* "⋯" more (Owner, 2026-10-01): the same sheet as a show page's episode row. */}
       <Actionsheet isOpen={menuFor !== undefined} onClose={() => setMenuFor(undefined)}>
         <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-        <ActionsheetContent className="bg-background rounded-t-2xl px-screen-x pt-row items-stretch">
+        <ActionsheetContent className="bg-surface rounded-t-row px-screen-x pt-row items-stretch">
           <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
           {menuFor ? (
             <>

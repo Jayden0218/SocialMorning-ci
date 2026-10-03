@@ -47,7 +47,7 @@ export function ReportSheet(props: { target: ReportTarget | undefined; onClose: 
     // selected state — so VoiceOver can reach all 7 (iOS i7: the radio rows were not in the tree).
     <Actionsheet isOpen={props.target !== undefined} onClose={close}>
       <ActionsheetBackdrop />
-      <ActionsheetContent className="bg-surface rounded-t-2xl px-4 pt-4 gap-2 max-h-[85%] items-stretch" accessibilityViewIsModal>
+      <ActionsheetContent className="bg-surface rounded-t-row px-4 pt-4 gap-2 max-h-[85%] items-stretch" accessibilityViewIsModal>
         <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
         <Heading className="text-[18px] font-bold text-text" accessibilityRole="header">Report {props.target?.label ?? ''}</Heading>
         {own ? <Text className="text-accent bg-surface p-2 rounded-md">That's yours — delete it instead.</Text> : null}

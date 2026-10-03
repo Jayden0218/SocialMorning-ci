@@ -40,7 +40,7 @@ export function TabBar(props: {
   const c = useColours(stores.settings);
   return (
     <Box
-      className={`flex-row bg-background border-t-hairline border-separator ${props.className ?? ''}`}
+      className={`flex-row bg-surface border-t-hairline border-separator ${props.className ?? ''}`}
       // `minHeight`, never `height`: at the largest system font the labels must push the
       // bar taller rather than clip (M6 J6 found exactly this on the Account screen).
       // It stays a style because `TAB_BAR_HEIGHT` is the one source for this number.

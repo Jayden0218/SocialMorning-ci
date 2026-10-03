@@ -37,7 +37,7 @@ export function QueueSheet(props: { open: boolean; onClose: () => void }): React
   return (
     <Actionsheet isOpen={props.open} onClose={props.onClose}>
       <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-      <ActionsheetContent className="bg-background rounded-t-2xl px-screen-x items-stretch" style={TALL}>
+      <ActionsheetContent className="bg-surface rounded-t-row px-screen-x items-stretch" style={TALL}>
         <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
         <Text className="text-text text-base font-bold py-row" accessibilityRole="header">Up next</Text>
         <ScrollView className="w-full">

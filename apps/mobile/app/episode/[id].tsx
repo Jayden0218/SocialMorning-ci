@@ -283,7 +283,7 @@ export default function EpisodeScreen(): React.ReactElement {
       />
             <Actionsheet isOpen={more} onClose={() => setMore(false)}>
         <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-        <ActionsheetContent className="bg-background rounded-t-2xl px-screen-x pt-row items-stretch">
+        <ActionsheetContent className="bg-surface rounded-t-row px-screen-x pt-row items-stretch">
           <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
           <Text className="text-sm font-bold text-text py-row" numberOfLines={2}>{episode.title}</Text>
           <QueueButtons episodeId={episode.id} onQueued={() => stores.inboxState.mark(episode.id, 'queued', Date.now())} />

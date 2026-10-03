@@ -380,7 +380,7 @@ export default function ShowScreen(): React.ReactElement {
       />
       <Actionsheet isOpen={menuFor !== undefined} onClose={() => setMenuFor(undefined)}>
         <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-        <ActionsheetContent className="bg-background rounded-t-2xl px-screen-x pt-row items-stretch">
+        <ActionsheetContent className="bg-surface rounded-t-row px-screen-x pt-row items-stretch">
           <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
           {menuFor ? (
             <>

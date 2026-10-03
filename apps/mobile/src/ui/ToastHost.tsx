@@ -27,8 +27,9 @@ export function ToastHost(props: { message: string | undefined }): React.ReactEl
   if (message === undefined) return null;
   return (
     <AboveModals modal={false}>
-      <Box className="absolute left-3 right-3 bottom-24 bg-surface border border-separator rounded-lg p-3" accessibilityLiveRegion="polite">
-        <Text className="text-text">{message}</Text>
+      {/* M17 (`Toast-B`): a dark pill with page-coloured words, above the mini player. */}
+      <Box className="absolute left-screen-x right-screen-x bottom-24 bg-text rounded-pill px-section py-row" accessibilityLiveRegion="polite">
+        <Text className="text-background text-body font-semibold">{message}</Text>
       </Box>
     </AboveModals>
   );

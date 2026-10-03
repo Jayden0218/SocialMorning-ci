@@ -58,7 +58,7 @@ export default function CollectedScreen(): React.ReactElement {
       <Text className="text-muted text-xs text-center">To offer these features SocialNet keeps the information above, and nothing else. Counts are from this phone and may lag the server.</Text>
             <Actionsheet isOpen={open !== undefined} onClose={() => setOpen(undefined)}>
         <ActionsheetBackdrop />
-          <ActionsheetContent className="bg-background rounded-t-artwork px-screen-x pt-screen-x gap-section items-stretch">
+          <ActionsheetContent className="bg-surface rounded-t-row px-screen-x pt-screen-x gap-section items-stretch">
             <Box className="flex-row items-start justify-between">
               <Box className="flex-1">
                 <Text className="text-text text-lg font-bold" accessibilityRole="header">{open?.title}</Text>

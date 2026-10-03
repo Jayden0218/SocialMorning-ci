@@ -5,6 +5,11 @@
  * and the title has the old native title's style: `fontSize.base`, bold, the text token,
  * centred. The bar sits on the app background and pads itself by the status bar (safe-area top).
  *
+ * M17 (constitution v3.0.0, `Followers-B` / `SettingsMore-B`): the Editorial header — the back
+ * row first, then the page's name under it as a 32 pt serif title (`font-display`), left-aligned,
+ * with an optional `subtitle`. A page that passes its own `middle` (Favourites' two tabs) keeps
+ * that in the bar and draws no big title.
+ *
  * Edge-swipe back still works: the stack keeps `gestureEnabled` per screen with
  * `headerShown: false` (expo-router's native-stack passes `gestureEnabled` to the screen
  * whatever the header does — react-navigation/native-stack/views/NativeStackView.native.js).
@@ -30,20 +35,25 @@ export function PageHeader(props: {
   title?: string;
   /** Replaces the title, e.g. Favourites' two tabs. */
   middle?: React.ReactNode;
+  /** M17: one secondary line under the title. */
+  subtitle?: string;
   /** Icon buttons on the right (use `BarButton`). */
   right?: React.ReactNode;
   /** Replaces the back button, e.g. a modal page's "Cancel". */
   left?: React.ReactNode;
   onBack?: () => void;
 }): React.ReactElement {
-  const middle = props.middle ?? (
-    <Text className="flex-1 text-text text-base font-bold text-center" numberOfLines={1} accessibilityRole="header">{props.title ?? ''}</Text>
-  );
   return (
     <SafeAreaView edges={['top', 'left', 'right']} className="bg-background">
-      <TopBar onBack={props.onBack ?? goBack} {...(props.left ? { left: props.left } : {})} middle={middle}>
+      <TopBar onBack={props.onBack ?? goBack} {...(props.left ? { left: props.left } : {})} {...(props.middle ? { middle: props.middle } : {})}>
         {props.right ?? <Box style={SIDE} />}
       </TopBar>
+      {props.middle ? null : (
+        <Box className="px-screen-x pb-row">
+          <Text className="text-text text-display font-display" numberOfLines={2} accessibilityRole="header">{props.title ?? ''}</Text>
+          {props.subtitle ? <Text className="text-muted text-meta mt-1">{props.subtitle}</Text> : null}
+        </Box>
+      )}
     </SafeAreaView>
   );
 }

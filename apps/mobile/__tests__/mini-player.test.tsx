@@ -136,7 +136,7 @@ it('reserves its height with minHeight, so the largest system font grows the bar
   const bar = flat(r.root.findAll((n) => typeof n.type === 'string')[0]!.props['style']);
   expect(bar['height']).toBeUndefined();
   expect(bar['minHeight']).toBe(MINI_PLAYER_HEIGHT);
-  expect(bar['backgroundColor']).toBe(colour.background);
+  expect(bar['backgroundColor']).toBe(colour.surface); // M17: the white Editorial bar
   const button = flat(byLabel(r, 'Play')!.props['style']);
   expect(Number(button['minHeight'])).toBeGreaterThanOrEqual(hit.min);
   expect(Number(button['minWidth'])).toBeGreaterThanOrEqual(hit.min);
