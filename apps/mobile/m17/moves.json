@@ -142,5 +142,109 @@
   "to": "EpisodeExtras | Save moment | dynamic",
   "why": "scanner correction: the handler is unchanged (saveMoment → setNote(undefined) → toast); the scanner now reads it as dynamic because the Cancel button moved before it",
   "task": "T103"
+ },
+ {
+  "surface": "CommentList",
+  "name": "Host of this show",
+  "destination": "dynamic",
+  "to": "removed",
+  "why": "src/ui/comments/CommentList.tsx deleted (owner, 2026-10-03: \"just delete them\"): no file imported it, so these controls were on no screen; the comments page draws its own rows (CommentRow)",
+  "task": "tidy"
+ },
+ {
+  "surface": "CommentList",
+  "name": "Host of this show",
+  "destination": "props.onSeek",
+  "to": "removed",
+  "why": "src/ui/comments/CommentList.tsx deleted (owner, 2026-10-03: \"just delete them\"): no file imported it, so these controls were on no screen; the comments page draws its own rows (CommentRow)",
+  "task": "tidy"
+ },
+ {
+  "surface": "CommentList",
+  "name": "Play from ${mmss(c.offsetMs)}",
+  "destination": "props.onSeek",
+  "to": "removed",
+  "why": "src/ui/comments/CommentList.tsx deleted (owner, 2026-10-03: \"just delete them\"): no file imported it, so these controls were on no screen; the comments page draws its own rows (CommentRow)",
+  "task": "tidy"
+ },
+ {
+  "surface": "CommentList",
+  "name": "isFavComment(stores.settings, c.id) ? 'Remove this comment from favourites' : 'Add this comment to favourites'",
+  "destination": "dynamic",
+  "to": "removed",
+  "why": "src/ui/comments/CommentList.tsx deleted (owner, 2026-10-03: \"just delete them\"): no file imported it, so these controls were on no screen; the comments page draws its own rows (CommentRow)",
+  "task": "tidy"
+ },
+ {
+  "surface": "CommentList",
+  "name": "isFavComment(stores.settings, c.id) ? 'Remove this comment from favourites' : 'Add this comment to favourites'",
+  "destination": "star",
+  "to": "removed",
+  "why": "src/ui/comments/CommentList.tsx deleted (owner, 2026-10-03: \"just delete them\"): no file imported it, so these controls were on no screen; the comments page draws its own rows (CommentRow)",
+  "task": "tidy"
+ },
+ {
+  "surface": "CommentList",
+  "name": "Delete this comment",
+  "destination": "remove",
+  "to": "removed",
+  "why": "src/ui/comments/CommentList.tsx deleted (owner, 2026-10-03: \"just delete them\"): no file imported it, so these controls were on no screen; the comments page draws its own rows (CommentRow)",
+  "task": "tidy"
+ },
+ {
+  "surface": "CommentList",
+  "name": "Report this comment",
+  "destination": "setReporting",
+  "to": "removed",
+  "why": "src/ui/comments/CommentList.tsx deleted (owner, 2026-10-03: \"just delete them\"): no file imported it, so these controls were on no screen; the comments page draws its own rows (CommentRow)",
+  "task": "tidy"
+ },
+ {
+  "surface": "CommentList",
+  "name": "",
+  "destination": "dynamic",
+  "to": "removed",
+  "why": "src/ui/comments/CommentList.tsx deleted (owner, 2026-10-03: \"just delete them\"): no file imported it, so these controls were on no screen; the comments page draws its own rows (CommentRow)",
+  "task": "tidy"
+ },
+ {
+  "surface": "CommentList",
+  "name": "{o === 'newest' ? 'Newest' : 'By moment'}",
+  "destination": "setOrder",
+  "to": "removed",
+  "why": "src/ui/comments/CommentList.tsx deleted (owner, 2026-10-03: \"just delete them\"): no file imported it, so these controls were on no screen; the comments page draws its own rows (CommentRow)",
+  "task": "tidy"
+ },
+ {
+  "surface": "CommentList",
+  "name": "{listener ? 'Write a comment' : 'Sign in to join the conversation'}",
+  "destination": "dynamic",
+  "to": "removed",
+  "why": "src/ui/comments/CommentList.tsx deleted (owner, 2026-10-03: \"just delete them\"): no file imported it, so these controls were on no screen; the comments page draws its own rows (CommentRow)",
+  "task": "tidy"
+ },
+ {
+  "surface": "CommentList",
+  "name": "",
+  "destination": "dynamic",
+  "to": "removed",
+  "why": "src/ui/comments/CommentList.tsx deleted (owner, 2026-10-03: \"just delete them\"): no file imported it, so these controls were on no screen; the comments page draws its own rows (CommentRow)",
+  "task": "tidy"
+ },
+ {
+  "surface": "NavLink",
+  "name": "props.label",
+  "destination": "props.href",
+  "to": "removed",
+  "why": "src/ui/kit/NavLink.tsx deleted (owner, 2026-10-03: \"just delete them\"): no file imported it, so this link was on no screen",
+  "task": "tidy"
+ },
+ {
+  "surface": "NavLink",
+  "name": "props.label",
+  "destination": "dynamic",
+  "to": "removed",
+  "why": "src/ui/kit/NavLink.tsx deleted (owner, 2026-10-03: \"just delete them\"): no file imported it, so this link was on no screen",
+  "task": "tidy"
  }
 ]

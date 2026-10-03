@@ -138,6 +138,7 @@ here or a line does not match its file.
 
 | File | What it does |
 |---|---|
+| `cache.ts` | Simple database cache: serve fresh rows, fall back to stale rows on failure. |
 
 ### `db/repos/account/` — accounts and what belongs to them
 

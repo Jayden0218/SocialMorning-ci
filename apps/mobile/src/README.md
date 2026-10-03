@@ -59,7 +59,6 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 
 | File | What it does |
 |---|---|
-| `api.ts` | Re-exports the server calls and types used for clips and profiles. |
 | `clips.ts` | Saves new clips on the phone and sends them to the server later. |
 | `composer.ts` | Holds the clip maker's start, end and caption while you edit. |
 | `context.tsx` | Gives screens the clip sender and each episode's clip list. |
@@ -235,7 +234,6 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `Eyebrow.tsx` | A small grey capital-letter label above a section. |
 | `Icon.tsx` | Simple drawn icons (play, pause, arrows) and the one font icon helper. |
 | `Loader.tsx` | The app's own loading sign: five sound bars moving up and down. |
-| `NavLink.tsx` | A tap-able row that opens another page; screen readers call it a link. |
 | `PageHeader.tsx` | Top of a normal page: back arrow, then the page name in large serif. |
 | `ProgressRing.tsx` | A circle that fills around the mini player's play button as you listen. |
 | `PullRefresh.tsx` | Pull a list down to reload it, showing the app's own loading sign. |
@@ -297,7 +295,6 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 
 | File | What it does |
 |---|---|
-| `CommentList.tsx` | All comments, newest or by time in episode, with replies under each. |
 | `CommentPreview.tsx` | Two newest comments on the episode page, then "All N comments". |
 | `CommentRow.tsx` | One comment card: picture, name, time, moment chip, text, likes, replies. |
 | `CommentsButton.tsx` | Comment icon with the comment count under an Updates row. |
