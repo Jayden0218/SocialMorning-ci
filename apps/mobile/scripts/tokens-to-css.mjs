@@ -61,9 +61,12 @@ export function channels(value) {
 export function renderBlock(tokens = loadTokens()) {
   const { colour, fontSize, spacing, radius, size } = tokens;
   const lines = [BEGIN];
-  // M17 (constitution v3.0.0): light only — one UniWind theme. (M10b had a `dark` variant too.)
+  // M17 (constitution v3.0.0): light only. UniWind always builds a `light` AND a `dark` theme
+  // (bundler/config.js hard-codes both and refuses themes whose variables differ — seen on the
+  // first device bundle, 2026-10-03), and follows the phone's scheme. So `dark` is written as an
+  // exact copy of the light palette: a phone set to Dark still draws the light Editorial look.
   lines.push('@layer theme {', '  :root {');
-  for (const [name, palette] of [['light', colour]]) {
+  for (const [name, palette] of [['light', colour], ['dark', colour]]) {
     lines.push(`    @variant ${name} {`);
     // M12 (found on the iPhone 2026-09-29): the documented UniWind form — the real colour, hex
     // or rgba(), under its --color- name (docs.uniwind.dev/theming/global-css). The earlier

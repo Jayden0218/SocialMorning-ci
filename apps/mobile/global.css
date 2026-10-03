@@ -22,6 +22,24 @@
       --color-accentTint: rgba(138, 90, 0, 0.14);
       --color-veil: rgba(251, 248, 241, 0.88);
     }
+    @variant dark {
+      --color-background: #fbf8f1;
+      --color-surface: #ffffff;
+      --color-border: rgba(17, 17, 20, 0.08);
+      --color-text: #16130d;
+      --color-muted: #5c5546;
+      --color-primary: #fcc522;
+      --color-onPrimary: #111114;
+      --color-accent: #8a5a00;
+      --color-track: rgba(17, 17, 20, 0.10);
+      --color-bar: rgba(0, 0, 0, 0.50);
+      --color-separator: rgba(17, 17, 20, 0.08);
+      --color-scrim: rgba(0, 0, 0, 0.40);
+      --color-facebook: #1877f2;
+      --color-clear: rgba(251, 248, 241, 0);
+      --color-accentTint: rgba(138, 90, 0, 0.14);
+      --color-veil: rgba(251, 248, 241, 0.88);
+    }
   }
 }
 @theme {

@@ -27,7 +27,9 @@ export function applyAccent(name: AccentName): void {
   current = name;
   const t = ACCENTS[name];
   try {
+    // M17: UniWind's `dark` theme is a copy of light (scripts/tokens-to-css.mjs) — keep it so.
     Uniwind.updateCSSVariables('light', vars(t.light));
+    Uniwind.updateCSSVariables('dark', vars(t.light));
   } catch {
     // Test renderers have no UniWind runtime; the palette below still follows.
   }

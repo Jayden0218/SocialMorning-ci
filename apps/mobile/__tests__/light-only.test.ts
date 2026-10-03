@@ -36,8 +36,14 @@ it('G-E2: no dark-mode path in app/ or src/', () => {
   expect(hits).toEqual([]);
 });
 
-it('G-E2: global.css carries the light variables only', () => {
+/**
+ * UniWind always builds a `light` and a `dark` theme (it hard-codes both), so global.css carries
+ * a `dark` set — and it must be the light set, value for value, so a phone set to Dark still gets
+ * the light look. The break: change one colour in the dark set only.
+ */
+it('G-E2: global.css\'s dark set is an exact copy of the light set', () => {
   const css = readFileSync(join(ROOT, 'global.css'), 'utf8');
-  expect(css).toMatch(/@variant light \{/);
-  expect(css).not.toMatch(/@variant dark/);
+  const block = (v: string) => (new RegExp(`@variant ${v} \\{([^}]*)\\}`).exec(css)?.[1] ?? '').trim();
+  expect(block('light').length).toBeGreaterThan(100);
+  expect(block('dark')).toBe(block('light'));
 });
