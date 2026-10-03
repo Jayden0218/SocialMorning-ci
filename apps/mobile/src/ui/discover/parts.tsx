@@ -11,7 +11,7 @@
  * search box gains the thin card border. Accessible names and handlers are unchanged.
  */
 import { useEffect, useRef, type ComponentRef } from 'react';
-import { useWindowDimensions, type View, type ScrollView as RNScrollView } from 'react-native';
+import { useWindowDimensions, type View } from 'react-native';
 import { Pressable } from '../lib/pressable';
 import { ScrollView } from '../lib/scroll-view';
 import { Text } from '../lib/text';
@@ -113,7 +113,7 @@ export function EpisodeLine(props: {
 export function Pager(props: { count: number; children: (index: number, width: number) => React.ReactNode; onPage?: (index: number) => void; full?: boolean; index?: number }): React.ReactElement {
   const { width } = useWindowDimensions();
   const page = props.full ? width : Math.round(width * 0.86);
-  const scroller = useRef<RNScrollView>(null);
+  const scroller = useRef<ComponentRef<typeof ScrollView>>(null);
   useEffect(() => {
     if (props.index === undefined) return;
     scroller.current?.scrollTo?.({ x: props.index * page, animated: true });
