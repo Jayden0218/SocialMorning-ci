@@ -22,11 +22,24 @@ export async function createSession(db: Db, listenerId: string, pepper: string, 
   return token;
 }
 
+/**
+ * M18 (FR-014, research R1–R3): the same statement records that this person used the app today —
+ * one `daily_active` row per (UTC+8 day, account), a second visit a no-op. A Studio session
+ * (`studio-web`) never counts as app use. No extra round trip: this already ran on every request.
+ */
 export async function listenerForToken(db: Db, token: string, pepper: string): Promise<Listener | undefined> {
   const rows = await db.query<Listener>(
-    `UPDATE sessions s SET last_seen_at = now()
-     FROM listeners l WHERE s.token_hash = $1 AND l.id = s.listener_id
-     RETURNING l.id, l.email, l.display_name, l.created_at, l.suspended_at`,
+    `WITH s AS (
+       UPDATE sessions s SET last_seen_at = now()
+       FROM listeners l WHERE s.token_hash = $1 AND l.id = s.listener_id
+       RETURNING l.id, l.email, l.display_name, l.created_at, l.suspended_at, s.device_label
+     ), d AS (
+       INSERT INTO daily_active (day, listener_id)
+       SELECT ((now() AT TIME ZONE 'UTC') + interval '8 hours')::date, id FROM s
+        WHERE device_label IS DISTINCT FROM 'studio-web'
+       ON CONFLICT DO NOTHING
+     )
+     SELECT id, email, display_name, created_at, suspended_at FROM s`,
     [tokenHash(token, pepper)],
   );
   return rows[0];

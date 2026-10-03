@@ -85,7 +85,11 @@ export function createInternalRoute(jobToken: string | undefined) {
       // M10b US3: the day's first pick, once per listener per day, on the first call of a cycle.
       let popular = 0;
       let voiceDeleted = 0;
+      let activeDeleted = 0;
       if (cursor === undefined) {
+        // M18 FR-015: a day of app use is kept 400 days, then deleted (research R8).
+        try { activeDeleted = (await db.query<{ n: number }>("WITH d AS (DELETE FROM daily_active WHERE day < ((now() AT TIME ZONE 'UTC') + interval '8 hours')::date - 400 RETURNING 1) SELECT count(*)::int AS n FROM d"))[0]?.n ?? 0; }
+        catch (e) { failed.push(`daily_active: ${e instanceof Error ? e.message : String(e)}`); }
         // M10b US6 (FR-020): feedback images older than 90 days go, once per cycle.
         try { await sweepImages(db); } catch (e) { failed.push(`sweep: ${e instanceof Error ? e.message : String(e)}`); }
         // M12 FR-104 (guard G-V1): voice posts past 48 h lose their blob AND their row.
@@ -107,7 +111,7 @@ export function createInternalRoute(jobToken: string | undefined) {
       }
       return c.json({
         done, ...(done || last === undefined ? {} : { next: last.feed_url }),
-        counts: { feeds: batch.length, registered, failed: failed.length, pushed, popular, voiceDeleted }, ms: Date.now() - started,
+        counts: { feeds: batch.length, registered, failed: failed.length, pushed, popular, voiceDeleted, activeDeleted }, ms: Date.now() - started,
       });
     }
 

@@ -41,7 +41,16 @@ test('Admin, as the owner: record, picks, accounts + act as, curator, Discover, 
   await fakeStore(page);
   await signIn(page, OWNER);
 
-  // US1 — the owner lands in Admin (next=/admin is honoured) and Activity opens.
+  // US1 — the owner lands in Admin (next=/admin is honoured). M18: Dashboard opens first, with
+  // its headline numbers counted on the live server; then Activity, one link away.
+  await expect(page).toHaveURL(/\/admin\/dashboard$/);
+  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Headline' }).getByText('Accounts')).toBeVisible();
+  for (const h of ['Users', 'Listening', 'Library', 'Social', 'For You', 'Safety', 'Money', 'Creators']) {
+    await expect(page.getByRole('heading', { name: h, exact: true })).toBeVisible();
+  }
+  await snap(page, 'dashboard');
+  await page.getByRole('navigation', { name: 'Admin sections' }).getByRole('link', { name: 'Activity' }).click();
   await expect(page).toHaveURL(/\/admin\/activity$/);
   await expect(page.getByRole('heading', { name: 'Activity' })).toBeVisible();
   await snap(page, 'activity-empty');

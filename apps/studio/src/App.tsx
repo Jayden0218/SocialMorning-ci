@@ -21,6 +21,7 @@ import { Media } from './pages/Media';
 import { SignIn } from './pages/SignIn';
 import { AdminLayout } from './pages/admin/AdminLayout';
 import { Activity } from './pages/admin/Activity';
+import { Dashboard } from './pages/admin/Dashboard';
 import { Picks } from './pages/admin/Picks';
 import { Curated } from './pages/admin/Curated';
 import { DiscoverControl } from './pages/admin/Discover';
@@ -52,7 +53,8 @@ export function App() {
       <Route path="/s/:show/comments" element={<Signed><ShowPage page={(s) => <Comments show={s} />} /></Signed>} />
       {/* M15 T005: Admin lives outside /s/:show, so it works with no show. The server decides who gets in. */}
       <Route path="/admin" element={<Signed><AdminLayout /></Signed>}>
-        <Route index element={<Navigate to="activity" replace />} />
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<Dashboard />} />
         <Route path="activity" element={<Activity />} />
         <Route path="picks" element={<Picks />} />
         <Route path="curated" element={<Curated />} />
@@ -61,7 +63,7 @@ export function App() {
         <Route path="accounts" element={<Accounts />} />
         <Route path="users" element={<Users />} />
         <Route path="reports" element={<Reports />} />
-        <Route path="*" element={<Navigate to="activity" replace />} />
+        <Route path="*" element={<Navigate to="dashboard" replace />} />
       </Route>
       <Route path="*" element={<Signed><FirstShow /></Signed>} />
     </Routes>

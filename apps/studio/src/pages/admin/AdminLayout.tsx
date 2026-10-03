@@ -9,6 +9,7 @@ import { UnsavedProvider, useUnsaved } from '../../shell/Unsaved';
 
 /** M15 T005 — the admin sub-nav, in the order the owner works through it. */
 export const ADMIN_SECTIONS = [
+  { path: 'dashboard', label: 'Dashboard' },
   { path: 'activity', label: 'Activity' },
   { path: 'picks', label: 'Picks' },
   { path: 'curated', label: 'Curated' },
