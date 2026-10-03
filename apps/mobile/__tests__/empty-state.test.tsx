@@ -6,7 +6,7 @@ const mockPush = jest.fn();
 jest.mock('expo-router', () => ({ router: { push: (...a: unknown[]) => mockPush(...a) } }));
 
 import { EMPTY_STATES, GIVE_UP_AFTER_MS, LOADING_AFTER_MS, OFFLINE_SENTENCE, SURFACES } from '@socialmorning/social-core';
-import { EmptyState } from '@/ui/EmptyState';
+import { EmptyState } from '../src/ui/EmptyState';
 
 // Unmounted after each test: the loading state draws the Loader, whose animation loop
 // runs until unmount. Left mounted, it kept firing into a later test file in the same

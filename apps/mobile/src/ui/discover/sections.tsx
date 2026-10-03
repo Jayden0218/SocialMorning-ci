@@ -14,21 +14,21 @@
  * Every row, tab and link keeps its accessible name and handler.
  */
 import { useState } from 'react';
-import { Pressable } from '@/ui/lib/pressable';
-import { ScrollView } from '@/ui/lib/scroll-view';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import { hit } from '@/design';
-import { useStores } from '@/ui/providers';
-import { useColours } from '@/ui/useColours';
-import { Icon, type IconName } from '@/ui/Icon';
-import { GENRES } from '@/discover/genres';
-import { ago, pages, statsLine, type ChartTab } from '@/discover/sections';
-import type { Collection, DiscoverItem, EpisodeCard, FollowedShow, SaidItem, ShowCard } from '@/social/api';
-import { Artwork } from '@/ui/Artwork';
-import { Button } from '@/ui/Button';
-import { Card } from '@/ui/Card';
-import { Eyebrow } from '@/ui/Eyebrow';
+import { Pressable } from '../lib/pressable';
+import { ScrollView } from '../lib/scroll-view';
+import { Text } from '../lib/text';
+import { Box } from '../lib/box';
+import { hit } from '../../design';
+import { useStores } from '../providers';
+import { useColours } from '../useColours';
+import { Icon, type IconName } from '../Icon';
+import { GENRES } from '../../discover/genres';
+import { ago, pages, statsLine, type ChartTab } from '../../discover/sections';
+import type { Collection, DiscoverItem, EpisodeCard, FollowedShow, SaidItem, ShowCard } from '../../social/api';
+import { Artwork } from '../Artwork';
+import { Button } from '../Button';
+import { Card } from '../Card';
+import { Eyebrow } from '../Eyebrow';
 import { EpisodeLine, Pager, SectionTitle } from './parts';
 import { noun, plural } from '@socialmorning/social-core';
 

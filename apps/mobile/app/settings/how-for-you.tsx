@@ -8,14 +8,14 @@
  * same toggle as before, the same names.
  */
 import { useState } from 'react';
-import { ScrollView } from '@/ui/lib/scroll-view';
-import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import { size } from '@/design';
-import { HOW_FOR_YOU } from '@/settings/how-for-you';
-import { PageHeader } from '@/ui/PageHeader';
-import { Eyebrow } from '@/ui/Eyebrow';
+import { ScrollView } from '../../src/ui/lib/scroll-view';
+import { Pressable } from '../../src/ui/lib/pressable';
+import { Text } from '../../src/ui/lib/text';
+import { Box } from '../../src/ui/lib/box';
+import { size } from '../../src/design';
+import { HOW_FOR_YOU } from '../../src/settings/how-for-you';
+import { PageHeader } from '../../src/ui/PageHeader';
+import { Eyebrow } from '../../src/ui/Eyebrow';
 
 const ROW = { minHeight: size.row };
 /** Two closed cards to a row; the gap between them is `gap-row` (12 pt). */

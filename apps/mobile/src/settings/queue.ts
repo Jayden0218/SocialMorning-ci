@@ -3,8 +3,8 @@
  * whether it starts downloading at once ("Download queued episodes").
  */
 import { enqueue } from '@socialmorning/player-core';
-import type { DownloadManager } from '@/downloads/manager';
-import type { Stores } from '@/storage/types';
+import type { DownloadManager } from '../downloads/manager';
+import type { Stores } from '../storage/types';
 import { getPref } from './prefs';
 
 export type QueueResult = { kind: 'full' } | { kind: 'queued'; where: 'end' | 'front'; evicted: boolean; downloading: boolean };

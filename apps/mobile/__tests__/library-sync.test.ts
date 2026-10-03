@@ -4,13 +4,13 @@
  * from the server's merged answer. The break that turns the first test red: in
  * `src/sync/library.ts` `recordChange`, write a removal with no `deletedAt`.
  */
-import { hash } from '@/feeds/hash';
-import { listFavComments, toggleFavComment } from '@/me/fav-comments';
-import { listFavourites, toggleFavourite } from '@/me/favourites';
-import { deleteMoment, listMoments, saveMoment } from '@/me/moments';
-import { addHistory, clearHistory, readHistory } from '@/search/history';
-import { createMemoryStores } from '@/storage/memory';
-import { applyMerged, createLibrarySync, readLog, type LogItem } from '@/sync/library';
+import { hash } from '../src/feeds/hash';
+import { listFavComments, toggleFavComment } from '../src/me/fav-comments';
+import { listFavourites, toggleFavourite } from '../src/me/favourites';
+import { deleteMoment, listMoments, saveMoment } from '../src/me/moments';
+import { addHistory, clearHistory, readHistory } from '../src/search/history';
+import { createMemoryStores } from '../src/storage/memory';
+import { applyMerged, createLibrarySync, readLog, type LogItem } from '../src/sync/library';
 
 it('a removal is logged as a tombstone, not dropped — the only shape that can sync', () => {
   const { settings } = createMemoryStores(hash);

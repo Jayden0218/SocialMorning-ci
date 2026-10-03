@@ -9,12 +9,12 @@
  * white bordered avatar disc.
  */
 import { useRouter } from 'expo-router';
-import { Box } from '@/ui/lib/box';
-import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
-import { Icon } from '@/ui/Icon';
-import { TAP } from '@/ui/TopBar';
-import type { ShowExtras } from '@/social/api';
+import { Box } from '../lib/box';
+import { Pressable } from '../lib/pressable';
+import { Text } from '../lib/text';
+import { Icon } from '../Icon';
+import { TAP } from '../TopBar';
+import type { ShowExtras } from '../../social/api';
 
 export type Curator = NonNullable<ShowExtras['curator']>;
 

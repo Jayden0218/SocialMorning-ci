@@ -12,16 +12,16 @@
  */
 import { useEffect, useRef, type ComponentRef } from 'react';
 import { useWindowDimensions, type View } from 'react-native';
-import { Pressable } from '@/ui/lib/pressable';
-import { ScrollView } from '@/ui/lib/scroll-view';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import { hit } from '@/design';
-import { useStores } from '@/ui/providers';
-import { useColours } from '@/ui/useColours';
-import { Icon } from '@/ui/Icon';
-import type { EpisodeCard } from '@/social/api';
-import { Artwork } from '@/ui/Artwork';
+import { Pressable } from '../lib/pressable';
+import { ScrollView } from '../lib/scroll-view';
+import { Text } from '../lib/text';
+import { Box } from '../lib/box';
+import { hit } from '../../design';
+import { useStores } from '../providers';
+import { useColours } from '../useColours';
+import { Icon } from '../Icon';
+import type { EpisodeCard } from '../../social/api';
+import { Artwork } from '../Artwork';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
 

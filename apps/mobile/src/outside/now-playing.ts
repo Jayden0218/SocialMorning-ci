@@ -3,10 +3,10 @@
  * lock-screen live activity, and Siri's "play my latest episode". This file is the pure
  * half — what each of them shows — so it is tested without any native code.
  */
-import type { PlayerState } from '@/playback/types';
-import type { Comment, Social } from '@/social/api';
-import type { Stores } from '@/storage/types';
-import { latestUpdates } from '@/me/updates';
+import type { PlayerState } from '../playback/types';
+import type { Comment, Social } from '../social/api';
+import type { Stores } from '../storage/types';
+import { latestUpdates } from '../me/updates';
 
 /** What every outside surface shows. `undefined` = nothing loaded. */
 export type NowPlaying = {

@@ -11,8 +11,8 @@
  * time a finger moved and would drop items the listener never actually got a chance to
  * see.
  */
-import type { ApiClient, ForYouChannel } from '@/social/api';
-import type { RecEventRow, RecOutboxStore, SettingsStore } from '@/storage/types';
+import type { ApiClient, ForYouChannel } from '../social/api';
+import type { RecEventRow, RecOutboxStore, SettingsStore } from '../storage/types';
 
 /**
  * Which episodes the listener was last shown, and where. Persisted rather than held in

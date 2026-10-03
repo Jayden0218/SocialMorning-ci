@@ -9,13 +9,13 @@ import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
-jest.mock('@/social/context', () => ({ useSocial: () => ({ composer: { remove: jest.fn() }, listener: { listenerId: 'me' }, bump: jest.fn() }) }));
-jest.mock('@/ui/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }) }));
-jest.mock('@/safety/context', () => ({ useSafety: () => ({ safety: { report: () => 'hidden' } }), announce: jest.fn() }));
+jest.mock('../src/social/context', () => ({ useSocial: () => ({ composer: { remove: jest.fn() }, listener: { listenerId: 'me' }, bump: jest.fn() }) }));
+jest.mock('../src/ui/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }) }));
+jest.mock('../src/safety/context', () => ({ useSafety: () => ({ safety: { report: () => 'hidden' } }), announce: jest.fn() }));
 
-import { MomentSheet } from '@/ui/MomentSheet';
-import { GluestackUIProvider } from '@/ui/lib/gluestack-ui-provider';
-import type { Comment } from '@/social/api';
+import { MomentSheet } from '../src/ui/MomentSheet';
+import { GluestackUIProvider } from '../src/ui/lib/gluestack-ui-provider';
+import type { Comment } from '../src/social/api';
 
 const comment = (id: string, mine: boolean): Comment =>
   ({ id, authorId: mine ? 'me' : 'them', displayName: mine ? 'Me' : 'Bea', body: 'x', offsetMs: 872_000, parentId: null, createdAt: 'now', deleted: false, mine });

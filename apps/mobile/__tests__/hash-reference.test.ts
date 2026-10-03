@@ -9,7 +9,7 @@
  * the very first sample. This test is why that shipped as a bug fix instead
  * of as a silent wrong answer.
  */
-import { fnv1a64, hash } from '@/feeds/hash';
+import { fnv1a64, hash } from '../src/feeds/hash';
 
 const MASK = (1n << 64n) - 1n;
 const PRIME = 0x100000001b3n;

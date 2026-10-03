@@ -2,8 +2,8 @@
  * The legal texts' Markdown → blocks. The break that turns the first test red: make
  * `spans` in `src/legal/markdown.ts` ignore `**` (every span comes back not bold).
  */
-import { parseLegal, spans, titleOf } from '@/legal/markdown';
-import { LEGAL_TEXT } from '@/legal/texts';
+import { parseLegal, spans, titleOf } from '../src/legal/markdown';
+import { LEGAL_TEXT } from '../src/legal/texts';
 
 it('bold is split out of a line', () => {
   expect(spans('a **b** c')).toEqual([{ text: 'a ', bold: false }, { text: 'b', bold: true }, { text: ' c', bold: false }]);

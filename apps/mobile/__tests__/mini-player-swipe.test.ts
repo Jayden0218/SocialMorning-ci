@@ -10,7 +10,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { TABS_ROUTE, leavingToTabs, rootBarHidden, type LeavingToTabs } from '@/ui/mini-player-swipe';
+import { TABS_ROUTE, leavingToTabs, rootBarHidden, type LeavingToTabs } from '../src/ui/mini-player-swipe';
 
 const start = (key: string, name: string, closing: boolean, below: string | undefined) =>
   ({ type: 'transitionStart', key, name, closing, below }) as const;

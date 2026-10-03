@@ -10,31 +10,31 @@
  * bar at the bottom holds the image tiles (tap to remove, the × marks it), the dashed add tile
  * and the yellow Send. "My feedback" is a list of white cards. Same handlers throughout.
  */
-import { ScrollView } from '@/ui/lib/scroll-view';
-import { Image } from '@/ui/lib/image';
+import { ScrollView } from '../../src/ui/lib/scroll-view';
+import { Image } from '../../src/ui/lib/image';
 import Constants from 'expo-constants';
 import { useEffect, useState } from 'react';
 import { Linking } from 'react-native';
-import { Textarea, TextareaInput } from '@/ui/lib/textarea';
-import { FlatList } from '@/ui/lib/flat-list';
-import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import { hit } from '@/design';
-import { pickImages, type PickedImage } from '@/feedback/images';
-import { useColours } from '@/ui/useColours';
-import { FEEDBACK_KINDS, type FeedbackKind } from '@/settings/faq';
-import { FEEDBACK_MAX, feedbackMailto, listFeedback, rememberFeedback, type SentFeedback } from '@/settings/feedback';
-import { APPEALS_KEY, refreshAppeals } from '@/social/links';
-import { useSocial } from '@/social/context';
-import { Button } from '@/ui/Button';
-import { shortDate } from '@/ui/format';
-import { EmptyPicture } from '@/ui/me/parts';
-import { Icon } from '@/ui/Icon';
-import { Card } from '@/ui/Card';
-import { SafeAreaView } from '@/ui/lib/safe-area-view';
-import { useStores, useToast } from '@/ui/providers';
-import { PageHeader } from '@/ui/PageHeader';
+import { Textarea, TextareaInput } from '../../src/ui/lib/textarea';
+import { FlatList } from '../../src/ui/lib/flat-list';
+import { Pressable } from '../../src/ui/lib/pressable';
+import { Text } from '../../src/ui/lib/text';
+import { Box } from '../../src/ui/lib/box';
+import { hit } from '../../src/design';
+import { pickImages, type PickedImage } from '../../src/feedback/images';
+import { useColours } from '../../src/ui/useColours';
+import { FEEDBACK_KINDS, type FeedbackKind } from '../../src/settings/faq';
+import { FEEDBACK_MAX, feedbackMailto, listFeedback, rememberFeedback, type SentFeedback } from '../../src/settings/feedback';
+import { APPEALS_KEY, refreshAppeals } from '../../src/social/links';
+import { useSocial } from '../../src/social/context';
+import { Button } from '../../src/ui/Button';
+import { shortDate } from '../../src/ui/format';
+import { EmptyPicture } from '../../src/ui/me/parts';
+import { Icon } from '../../src/ui/Icon';
+import { Card } from '../../src/ui/Card';
+import { SafeAreaView } from '../../src/ui/lib/safe-area-view';
+import { useStores, useToast } from '../../src/ui/providers';
+import { PageHeader } from '../../src/ui/PageHeader';
 
 const TAP = { minHeight: hit.min };
 const TILE = { width: hit.min, height: hit.min };

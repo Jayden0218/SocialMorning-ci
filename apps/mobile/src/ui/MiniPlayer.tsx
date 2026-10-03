@@ -16,12 +16,12 @@
  *     the label, the role and the `accessibilityState` are the contract, not the glyph.
  */
 import { Link, useIsFocused, usePathname } from 'expo-router';
-import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import { colour, hit } from '@/design';
+import { Pressable } from './lib/pressable';
+import { Text } from './lib/text';
+import { Box } from './lib/box';
+import { colour, hit } from '../design';
 import { useColours } from './useColours';
-import { usePlayer, usePlayerState } from '@/playback/store';
+import { usePlayer, usePlayerState } from '../playback/store';
 import { useStores } from './providers';
 import { Artwork } from './Artwork';
 import { mmss } from './format';

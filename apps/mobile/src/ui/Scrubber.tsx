@@ -4,8 +4,8 @@
  * decrement actions that are the same ±15 / +30 a sighted listener taps. Guard G11.
  */
 import { useState } from 'react';
-import { Box } from '@/ui/lib/box';
-import { Slider, SliderFilledTrack, SliderThumb, SliderTrack } from '@/ui/lib/slider';
+import { Box } from './lib/box';
+import { Slider, SliderFilledTrack, SliderThumb, SliderTrack } from './lib/slider';
 import { useStores } from './providers';
 import { useColours } from './useColours';
 import { mmss } from './format';

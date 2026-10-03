@@ -4,13 +4,13 @@
  * The break that turns this red: delete the `mayStream` check in `load` in
  * `src/playback/store.ts`.
  */
-import { createPlayerRuntime, type PlayableEpisode } from '@/playback/store';
-import { createMemoryStores } from '@/storage/memory';
-import { hash } from '@/feeds/hash';
-import type { Effect } from '@/playback/types';
-import type { AudioAdapter } from '@/playback/expo-audio-adapter';
-import { canStream } from '@/settings/playback';
-import { setPref } from '@/settings/prefs';
+import { createPlayerRuntime, type PlayableEpisode } from '../src/playback/store';
+import { createMemoryStores } from '../src/storage/memory';
+import { hash } from '../src/feeds/hash';
+import type { Effect } from '../src/playback/types';
+import type { AudioAdapter } from '../src/playback/expo-audio-adapter';
+import { canStream } from '../src/settings/playback';
+import { setPref } from '../src/settings/prefs';
 
 const STREAM: PlayableEpisode = { id: 'e1', url: 'https://cdn.example.com/1.mp3', title: 'One', showTitle: 'S', durationMs: 60_000 };
 const LOCAL: PlayableEpisode = { ...STREAM, id: 'e2', url: 'file:///data/e2.mp3' };

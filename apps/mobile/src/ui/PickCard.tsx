@@ -3,8 +3,8 @@
  *
  * M17 (`Home-B` pick card): a bordered white card; the "why" is a serif quote in the text colour.
  */
-import { Text } from '@/ui/lib/text';
-import type { DiscoverItem } from '@/social/api';
+import { Text } from './lib/text';
+import type { DiscoverItem } from '../social/api';
 import { Card } from './Card';
 import { EpisodeRow } from './EpisodeRow';
 

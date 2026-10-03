@@ -10,15 +10,15 @@
  * the range alone — the app has no waveform data, so it shows no fake peaks.
  */
 import { useState } from 'react';
-import { Textarea, TextareaInput } from '@/ui/lib/textarea';
-import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import { ScrollView } from '@/ui/lib/scroll-view';
-import { usePlayer, usePlayerState, type PlayableEpisode } from '@/playback/store';
-import { canSave, endHere, nudgeEdge, openComposer, problemText, setCaption, startHere, type ComposerState } from '@/graph/composer';
+import { Textarea, TextareaInput } from './lib/textarea';
+import { Pressable } from './lib/pressable';
+import { Text } from './lib/text';
+import { Box } from './lib/box';
+import { ScrollView } from './lib/scroll-view';
+import { usePlayer, usePlayerState, type PlayableEpisode } from '../playback/store';
+import { canSave, endHere, nudgeEdge, openComposer, problemText, setCaption, startHere, type ComposerState } from '../graph/composer';
 import { mmss } from './format';
-import { hit, tabular } from '@/design';
+import { hit, tabular } from '../design';
 import { useStores } from './providers';
 import { useColours } from './useColours';
 import { Card } from './Card';

@@ -4,9 +4,9 @@
  * The rule under test is the one a real subscription list breaks: ONE
  * publisher letting their feed rot must not cost you the other ninety-nine.
  */
-import { hash } from '@/feeds/hash';
-import { refreshAll } from '@/feeds/refresh-all';
-import { createMemoryStores } from '@/storage/memory';
+import { hash } from '../src/feeds/hash';
+import { refreshAll } from '../src/feeds/refresh-all';
+import { createMemoryStores } from '../src/storage/memory';
 
 const feedXml = (title: string): string => `<?xml version="1.0"?>
 <rss version="2.0"><channel>

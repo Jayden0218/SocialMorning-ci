@@ -1,11 +1,11 @@
 /** "Next up" on the episode page (M5 FR-008): 3–8 episodes with a reason each; hidden when there is nothing to show. */
 import { useEffect, useState } from 'react';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
+import { Text } from './lib/text';
+import { Box } from './lib/box';
 import { enoughNextUp } from '@socialmorning/social-core';
 import { EmptyState } from './EmptyState';
-import { useSocial } from '@/social/context';
-import { ApiError, type EpisodeCard, type NextUpItem } from '@/social/api';
+import { useSocial } from '../social/context';
+import { ApiError, type EpisodeCard, type NextUpItem } from '../social/api';
 import { EpisodeRow } from './EpisodeRow';
 
 export function useNextUp(episodeId: string | undefined): { items: NextUpItem[] | undefined; status: 'loading' | 'ok' | 'none' } {

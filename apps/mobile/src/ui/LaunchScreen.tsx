@@ -20,13 +20,13 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated } from 'react-native';
-import { Box } from '@/ui/lib/box';
-import { Image } from '@/ui/lib/image';
-import { Pressable } from '@/ui/lib/pressable';
-import { SafeAreaView } from '@/ui/lib/safe-area-view';
-import { Text } from '@/ui/lib/text';
-import { hit } from '@/design';
-import { LAUNCH_MAX_MS, type Promotion } from '@/launch/choose';
+import { Box } from './lib/box';
+import { Image } from './lib/image';
+import { Pressable } from './lib/pressable';
+import { SafeAreaView } from './lib/safe-area-view';
+import { Text } from './lib/text';
+import { hit } from '../design';
+import { LAUNCH_MAX_MS, type Promotion } from '../launch/choose';
 
 const ALL_EDGES = ['top', 'bottom', 'left', 'right'] as const;
 const TAP = { minHeight: hit.min, minWidth: hit.min };

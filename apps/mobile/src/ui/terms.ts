@@ -7,8 +7,8 @@
  * SocialNet. Each numbered point links to the full document in `src/legal/texts.ts`,
  * which is generated from `docs/legal/*.md`. Not legal advice.
  */
-import type { SettingsStore } from '@/storage/types';
-import { LEGAL_TEXT } from '@/legal/texts';
+import type { SettingsStore } from '../storage/types';
+import { LEGAL_TEXT } from '../legal/texts';
 
 /** v2 (2026-09-27): the sheet and the three full documents replace the v1 draft.
  *  v3 (2026-09-27, M10b US7): the privacy policy now says the country is shown on profiles — asked again. */

@@ -4,7 +4,7 @@
  * mirror in settings, then a plain "through the app" fallback.
  */
 import type { ApiClient } from './api';
-import type { Stores } from '@/storage/types';
+import type { Stores } from '../storage/types';
 import { apiBaseUrl } from './base-url';
 
 export const APPEALS_KEY = 'safety.appealsEmail';

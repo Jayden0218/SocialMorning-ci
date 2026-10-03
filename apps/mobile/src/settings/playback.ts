@@ -3,7 +3,7 @@
  * Offline is not this switch's business — the player reports that itself. Wired into the
  * runtime's `mayStream` in `src/ui/providers.tsx` with the last network reading.
  */
-import type { SettingsStore } from '@/storage/types';
+import type { SettingsStore } from '../storage/types';
 import { getPref } from './prefs';
 
 export type NetworkKind = 'wifi' | 'cellular' | 'none' | 'other';

@@ -8,17 +8,17 @@
  * is read from the sticker's own progress words ("17 of 42 h"), so nothing new is computed.
  */
 import { useEffect, useState } from 'react';
-import { ScrollView } from '@/ui/lib/scroll-view';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import { useColours } from '@/ui/useColours';
-import { Icon } from '@/ui/Icon';
-import { ProgressRing } from '@/ui/ProgressRing';
-import type { Sticker } from '@/me/stickers';
-import { myStickers } from '@/me/my-stickers';
-import { useSocial } from '@/social/context';
-import { useStores } from '@/ui/providers';
-import { PageHeader } from '@/ui/PageHeader';
+import { ScrollView } from '../src/ui/lib/scroll-view';
+import { Text } from '../src/ui/lib/text';
+import { Box } from '../src/ui/lib/box';
+import { useColours } from '../src/ui/useColours';
+import { Icon } from '../src/ui/Icon';
+import { ProgressRing } from '../src/ui/ProgressRing';
+import type { Sticker } from '../src/me/stickers';
+import { myStickers } from '../src/me/my-stickers';
+import { useSocial } from '../src/social/context';
+import { useStores } from '../src/ui/providers';
+import { PageHeader } from '../src/ui/PageHeader';
 
 /** An earned card is 72 pt tall in `Stickers-B`, and grows with the text size. */
 const CARD = { minHeight: 72 };

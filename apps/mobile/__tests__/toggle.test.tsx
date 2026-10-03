@@ -9,7 +9,7 @@
 import { createElement } from 'react';
 import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
-import { Toggle } from '@/ui/Toggle';
+import { Toggle } from '../src/ui/Toggle';
 
 const render = (value: boolean, onChange = jest.fn(), disabled?: boolean): ReactTestRenderer => {
   let r!: ReactTestRenderer;

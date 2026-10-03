@@ -1,7 +1,7 @@
-import { inboxIds } from '@/inbox';
-import { createMemoryStores } from '@/storage/memory';
-import { episodeId } from '@/storage/schema';
-import { hash } from '@/feeds/hash';
+import { inboxIds } from '../src/inbox';
+import { createMemoryStores } from '../src/storage/memory';
+import { episodeId } from '../src/storage/schema';
+import { hash } from '../src/feeds/hash';
 import type { Episode, ParsedFeed, Show } from '@socialmorning/feed-parser';
 
 const FEED = 'https://feeds.example.com/x.xml';

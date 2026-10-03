@@ -11,30 +11,30 @@
  * that scrolls sideways (artwork, name, "Claim" in the accent); the feed address in a pill field;
  * Get my code; and the Creator academy link as a card at the end. Same actions, same handlers.
  */
-import { Icon } from '@/ui/Icon';
-import { Link } from '@/design/tailwind';
-import { Artwork } from '@/ui/Artwork';
+import { Icon } from '../src/ui/Icon';
+import { Link } from '../src/design/tailwind';
+import { Artwork } from '../src/ui/Artwork';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Share } from 'react-native';
-import { Input, InputField } from '@/ui/lib/input';
-import { Pressable } from '@/ui/lib/pressable';
-import { ScrollView } from '@/ui/lib/scroll-view';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import { hit } from '@/design';
-import type { CreatorClaim, ShowStats } from '@/social/api';
-import { useSocial } from '@/social/context';
-import { Button } from '@/ui/Button';
-import { Card } from '@/ui/Card';
-import { Eyebrow } from '@/ui/Eyebrow';
-import { mmss } from '@/ui/format';
-import { EmptyPicture } from '@/ui/me/parts';
-import { useStores } from '@/ui/providers';
-import { useColours } from '@/ui/useColours';
+import { Input, InputField } from '../src/ui/lib/input';
+import { Pressable } from '../src/ui/lib/pressable';
+import { ScrollView } from '../src/ui/lib/scroll-view';
+import { Text } from '../src/ui/lib/text';
+import { Box } from '../src/ui/lib/box';
+import { hit } from '../src/design';
+import type { CreatorClaim, ShowStats } from '../src/social/api';
+import { useSocial } from '../src/social/context';
+import { Button } from '../src/ui/Button';
+import { Card } from '../src/ui/Card';
+import { Eyebrow } from '../src/ui/Eyebrow';
+import { mmss } from '../src/ui/format';
+import { EmptyPicture } from '../src/ui/me/parts';
+import { useStores } from '../src/ui/providers';
+import { useColours } from '../src/ui/useColours';
 import { plural } from '@socialmorning/social-core';
-import { PageHeader } from '@/ui/PageHeader';
-import { useSharePanel } from '@/ui/ShareChooser';
+import { PageHeader } from '../src/ui/PageHeader';
+import { useSharePanel } from '../src/ui/ShareChooser';
 
 const TAP = { minHeight: hit.min };
 /** A show card in the sideways "Claim a show" row. */

@@ -5,7 +5,7 @@
  * (srt > vtt > json), else the first html/text one.
  */
 import { parseChapters, parseTranscript, type Chapter, type Transcript } from '@socialmorning/player-core';
-import type { CachedEpisode, ExtrasStore } from '@/storage/types';
+import type { CachedEpisode, ExtrasStore } from '../storage/types';
 
 export type Extras = { chapters?: Chapter[]; transcript?: Transcript; error?: string };
 

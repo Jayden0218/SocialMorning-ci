@@ -9,21 +9,21 @@
  */
 import { useState } from 'react';
 import { Share } from 'react-native';
-import { Textarea, TextareaInput } from '@/ui/lib/textarea';
-import { ScrollView } from '@/ui/lib/scroll-view';
-import { Text } from '@/ui/lib/text';
-import { useColours } from '@/ui/useColours';
-import { fromOpml, toOpml } from '@/settings/opml';
-import { Button } from '@/ui/Button';
-import { useStores, useSubscriptionSync, useToast } from '@/ui/providers';
+import { Textarea, TextareaInput } from '../../src/ui/lib/textarea';
+import { ScrollView } from '../../src/ui/lib/scroll-view';
+import { Text } from '../../src/ui/lib/text';
+import { useColours } from '../../src/ui/useColours';
+import { fromOpml, toOpml } from '../../src/settings/opml';
+import { Button } from '../../src/ui/Button';
+import { useStores, useSubscriptionSync, useToast } from '../../src/ui/providers';
 import { plural } from '@socialmorning/social-core';
-import { Box } from '@/ui/lib/box';
-import { EXPORT_STEPS } from '@/settings/export-steps';
-import { PageHeader } from '@/ui/PageHeader';
-import { useSharePanel } from '@/ui/ShareChooser';
-import { Card } from '@/ui/Card';
-import { Eyebrow } from '@/ui/Eyebrow';
-import { Chip } from '@/ui/Chip';
+import { Box } from '../../src/ui/lib/box';
+import { EXPORT_STEPS } from '../../src/settings/export-steps';
+import { PageHeader } from '../../src/ui/PageHeader';
+import { useSharePanel } from '../../src/ui/ShareChooser';
+import { Card } from '../../src/ui/Card';
+import { Eyebrow } from '../../src/ui/Eyebrow';
+import { Chip } from '../../src/ui/Chip';
 
 /** A numbered step heading: a dark disc with the number, then the serif title. */
 function Step(props: { n: number; title: string }): React.ReactElement {

@@ -15,7 +15,6 @@ const rnResolver = require('@react-native/jest-preset/jest/resolver.js');
 const UNIWIND = path.dirname(require.resolve('uniwind/package.json'));
 const RN_DIR = path.dirname(require.resolve('react-native/package.json'));
 const RN_INTERNAL = /[\\/]node_modules[\\/](react-native|@react-native)[\\/]/;
-const APP_SRC = path.join(__dirname, 'src');
 const COMPONENTS = path.join(UNIWIND, 'src', 'components', 'index.ts');
 
 const isBareReactNative = (request) =>
@@ -26,11 +25,6 @@ module.exports = (request, options) => {
   const inUniwind = from.startsWith(UNIWIND + path.sep);
   if (inUniwind && request.startsWith('@/')) {
     return rnResolver(path.join(UNIWIND, 'src', request.slice(2)), options);
-  }
-  // The app's own `@/` alias (tsconfig `paths`): `@/ui/kit/Button` → src/ui/kit/Button.
-  // Only for app files — a package's `@/` (UniWind's, above) means its own src/.
-  if (request.startsWith('@/') && !from.includes(`${path.sep}node_modules${path.sep}`)) {
-    return rnResolver(path.join(APP_SRC, request.slice(2)), options);
   }
   if (isBareReactNative(request) && !inUniwind && !RN_INTERNAL.test(from)) {
     return COMPONENTS;

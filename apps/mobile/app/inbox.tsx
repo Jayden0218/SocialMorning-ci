@@ -11,25 +11,25 @@
  */
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { FlatList } from '@/ui/lib/flat-list';
-import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
+import { FlatList } from '../src/ui/lib/flat-list';
+import { Pressable } from '../src/ui/lib/pressable';
+import { Text } from '../src/ui/lib/text';
+import { Box } from '../src/ui/lib/box';
 import { enqueue } from '@socialmorning/player-core';
-import { usePlayer } from '@/playback/store';
-import { toPlayable } from '@/storage/playable';
-import { inboxBody, loadInbox, INBOX_PAGE, type InboxLoad } from '@/inbox';
-import { mmss, shortDate } from '@/ui/format';
-import { useDownloads, useStores, useToast } from '@/ui/providers';
-import { EmptyState } from '@/ui/EmptyState';
-import { Loader } from '@/ui/Loader';
-import { PageHeader } from '@/ui/PageHeader';
-import { Artwork } from '@/ui/Artwork';
-import { Card } from '@/ui/Card';
-import { Eyebrow } from '@/ui/Eyebrow';
-import { Icon, PlayIcon } from '@/ui/Icon';
-import { useColours } from '@/ui/useColours';
-import { hit } from '@/design';
+import { usePlayer } from '../src/playback/store';
+import { toPlayable } from '../src/storage/playable';
+import { inboxBody, loadInbox, INBOX_PAGE, type InboxLoad } from '../src/inbox';
+import { mmss, shortDate } from '../src/ui/format';
+import { useDownloads, useStores, useToast } from '../src/ui/providers';
+import { EmptyState } from '../src/ui/EmptyState';
+import { Loader } from '../src/ui/Loader';
+import { PageHeader } from '../src/ui/PageHeader';
+import { Artwork } from '../src/ui/Artwork';
+import { Card } from '../src/ui/Card';
+import { Eyebrow } from '../src/ui/Eyebrow';
+import { Icon, PlayIcon } from '../src/ui/Icon';
+import { useColours } from '../src/ui/useColours';
+import { hit } from '../src/design';
 
 const TAP = { minHeight: hit.min };
 /** The count beside "new since you subscribed": 52 pt serif (`Inbox-B`). */

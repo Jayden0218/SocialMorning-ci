@@ -3,8 +3,8 @@
  * shifted by the phone's zone), and search's "Recent" is the newest 10.
  * The breaks: build `dayTitle` from local-time getters; drop the slice in `recentSearches`.
  */
-import { dayTitle } from '@/discover/sections';
-import { RECENT_MAX, recentSearches } from '@/search/history';
+import { dayTitle } from '../src/discover/sections';
+import { RECENT_MAX, recentSearches } from '../src/search/history';
 
 it('a day title is the date as written', () => {
   expect(dayTitle('2026-09-22')).toBe('Tue 22 Sep 2026');

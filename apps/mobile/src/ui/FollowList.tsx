@@ -19,15 +19,15 @@
  * same paging, Retry and empty sentences.
  */
 import { useCallback, useEffect, useState } from 'react';
-import { FlatList } from '@/ui/lib/flat-list';
-import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import { Link } from '@/design/tailwind';
-import { hit } from '@/design';
-import { useSocial } from '@/social/context';
-import { useSafety } from '@/safety/context';
-import type { ClipAuthor } from '@/social/api';
+import { FlatList } from './lib/flat-list';
+import { Pressable } from './lib/pressable';
+import { Text } from './lib/text';
+import { Box } from './lib/box';
+import { Link } from '../design/tailwind';
+import { hit } from '../design';
+import { useSocial } from '../social/context';
+import { useSafety } from '../safety/context';
+import type { ClipAuthor } from '../social/api';
 import { EmptyState } from './EmptyState';
 import { Loader } from './Loader';
 import { PageHeader } from './PageHeader';

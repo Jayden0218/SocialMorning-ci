@@ -1,8 +1,8 @@
-import { createComposer } from '@/social/composer';
-import { createDrafts } from '@/social/drafts';
-import { createSocialCache } from '@/social/cache';
-import { ApiError, type ApiClient, type Comment, type Social } from '@/social/api';
-import { createMemoryDraftStore, createMemorySocialCacheStore } from '@/storage/memory';
+import { createComposer } from '../src/social/composer';
+import { createDrafts } from '../src/social/drafts';
+import { createSocialCache } from '../src/social/cache';
+import { ApiError, type ApiClient, type Comment, type Social } from '../src/social/api';
+import { createMemoryDraftStore, createMemorySocialCacheStore } from '../src/storage/memory';
 
 jest.useFakeTimers();
 

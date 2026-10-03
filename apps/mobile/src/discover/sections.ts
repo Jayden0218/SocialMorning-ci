@@ -6,7 +6,7 @@
  * fields out; a section the server could not build arrives empty; either way the screen
  * skips it instead of drawing an empty frame. Nothing is invented to fill a gap.
  */
-import type { Collection, Discover, DiscoverItem, EpisodeCard, FollowedShow, ForYou, SaidItem, ShowCard } from '@/social/api';
+import type { Collection, Discover, DiscoverItem, EpisodeCard, FollowedShow, ForYou, SaidItem, ShowCard } from '../social/api';
 import { plural } from '@socialmorning/social-core';
 
 export type ChartTab = { key: 'top' | 'talked' | 'new'; label: string; rows: EpisodeCard[] };

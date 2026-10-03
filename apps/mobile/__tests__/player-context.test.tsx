@@ -13,10 +13,10 @@ import {
   usePlayerState,
   type PlayableEpisode,
   type PlayerRuntime,
-} from '@/playback/store';
-import { createMemoryStores } from '@/storage/memory';
-import { hash } from '@/feeds/hash';
-import type { AdapterEvent, AudioAdapter } from '@/playback/expo-audio-adapter';
+} from '../src/playback/store';
+import { createMemoryStores } from '../src/storage/memory';
+import { hash } from '../src/feeds/hash';
+import type { AdapterEvent, AudioAdapter } from '../src/playback/expo-audio-adapter';
 
 const EPISODE: PlayableEpisode = {
   id: 'e1',

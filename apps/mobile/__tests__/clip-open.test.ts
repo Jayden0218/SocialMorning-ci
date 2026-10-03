@@ -1,10 +1,10 @@
 /** T014: a clip link's episode is found in the cache, else the feed, else the server's record. */
-import { resolveClipEpisode } from '@/graph/resolve';
-import { createMemoryStores } from '@/storage/memory';
-import { hash } from '@/feeds/hash';
-import { episodeId } from '@/storage/schema';
+import { resolveClipEpisode } from '../src/graph/resolve';
+import { createMemoryStores } from '../src/storage/memory';
+import { hash } from '../src/feeds/hash';
+import { episodeId } from '../src/storage/schema';
 import type { Episode, ParsedFeed, Show } from '@socialmorning/feed-parser';
-import type { EpisodeRecord } from '@/social/api';
+import type { EpisodeRecord } from '../src/social/api';
 
 const FEED = 'https://feeds.example.com/x.xml';
 const show: Show = { feedUrl: FEED, title: 'Reply All', explicit: false, categories: [], contentHash: 'h', imageUrl: 'https://img/show.png' };

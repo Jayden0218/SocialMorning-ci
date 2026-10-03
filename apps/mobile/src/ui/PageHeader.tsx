@@ -15,10 +15,10 @@
  * whatever the header does — react-navigation/native-stack/views/NativeStackView.native.js).
  */
 import { router } from 'expo-router';
-import { Box } from '@/ui/lib/box';
-import { Text } from '@/ui/lib/text';
-import { SafeAreaView } from '@/ui/lib/safe-area-view';
-import { hit } from '@/design';
+import { Box } from './lib/box';
+import { Text } from './lib/text';
+import { SafeAreaView } from './lib/safe-area-view';
+import { hit } from '../design';
 import { TopBar } from './TopBar';
 
 /** The width the back button takes, mirrored on the right so the title stays centred. */

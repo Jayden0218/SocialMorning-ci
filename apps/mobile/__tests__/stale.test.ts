@@ -4,9 +4,9 @@
  * pieces (cache + the refresh rule) — the provider's `refresh` follows the same
  * rule and is reviewed, not tested, until the device row S5.
  */
-import { createSocialCache } from '@/social/cache';
-import { createMemorySocialCacheStore } from '@/storage/memory';
-import { ApiError, type ApiClient, type Social } from '@/social/api';
+import { createSocialCache } from '../src/social/cache';
+import { createMemorySocialCacheStore } from '../src/storage/memory';
+import { ApiError, type ApiClient, type Social } from '../src/social/api';
 
 const social: Social = { serverTime: 's', episode: { id: 'e', durationMs: 100 }, comments: [{ id: 'c', authorId: 'a', displayName: 'A', body: 'x', offsetMs: 10, parentId: null, createdAt: 'now', deleted: false }], heat: { available: false } };
 

@@ -1,7 +1,7 @@
 /** A circular progress track around a child (the mini player's play button). See `./ring`. */
 import type { ReactNode } from 'react';
-import { Box } from '@/ui/lib/box';
-import { colour } from '@/design';
+import { Box } from './lib/box';
+import { colour } from '../design';
 import { useStores } from './providers';
 import { useColours } from './useColours';
 import { ringAngles } from './ring';

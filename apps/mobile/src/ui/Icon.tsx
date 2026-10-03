@@ -5,9 +5,9 @@
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { ComponentProps } from 'react';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import type { Colour } from '@/design';
+import { Text } from './lib/text';
+import { Box } from './lib/box';
+import type { Colour } from '../design';
 
 /**
  * M10b: the fills are token classes, so they follow the light / dark theme. Static strings —

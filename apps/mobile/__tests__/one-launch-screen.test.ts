@@ -8,7 +8,7 @@
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'fs';
 import { join } from 'path';
-import { colour } from '@/design/tokens';
+import { colour } from '../src/design/tokens';
 
 const root = join(__dirname, '..');
 const read = (p: string): string => readFileSync(join(root, p), 'utf8');

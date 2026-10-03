@@ -7,8 +7,8 @@
  * The break that turns it red: put "[DATE]" back into src/legal/texts.ts, or bracket a
  * document name again.
  */
-import { LEGAL_TEXT } from '@/legal/texts';
-import { OPERATOR, CONSENT_INTRO } from '@/ui/terms';
+import { LEGAL_TEXT } from '../src/legal/texts';
+import { OPERATOR, CONSENT_INTRO } from '../src/ui/terms';
 
 /** Owner-only facts (gate A2, 2026-09-29): company, address, law and contacts, and the SDK tables. */
 const WAITING_ON_OWNER = new Set([

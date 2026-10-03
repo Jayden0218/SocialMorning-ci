@@ -1,8 +1,8 @@
 /** Listening stats (M4 FR-012): time listened, episodes finished, top shows — last 7 days and all time. */
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import { tabular } from '@/design';
-import type { ProfileStats } from '@/social/api';
+import { Text } from './lib/text';
+import { Box } from './lib/box';
+import { tabular } from '../design';
+import type { ProfileStats } from '../social/api';
 
 export function hms(ms: number): string {
   const s = Math.floor(ms / 1000);

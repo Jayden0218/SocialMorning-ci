@@ -4,10 +4,10 @@
  * the meta at the 13 pt step; same props, same tap.
  */
 import { Artwork } from './Artwork';
-import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import type { EpisodeCard } from '@/social/api';
+import { Pressable } from './lib/pressable';
+import { Text } from './lib/text';
+import { Box } from './lib/box';
+import type { EpisodeCard } from '../social/api';
 import { mmss } from './format';
 
 export function EpisodeRow(props: { card: EpisodeCard; line?: string; onPress: () => void; disabled?: boolean; /** M8 FR-027: the reason must be part of what a screen reader speaks. */ label?: string }): React.ReactElement {

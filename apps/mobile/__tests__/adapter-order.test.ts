@@ -10,15 +10,15 @@
  * calls. Whether Android then keeps playing for ten minutes is quickstart
  * Tier B, on a phone.
  */
-import { createExpoAudioAdapter } from '@/playback/expo-audio-adapter';
-import { reduce } from '@/playback/reducer';
+import { createExpoAudioAdapter } from '../src/playback/expo-audio-adapter';
+import { reduce } from '../src/playback/reducer';
 import {
   INITIAL_CONTEXT,
   INITIAL_STATE,
   type Effect,
   type PlayerContext,
   type PlayerState,
-} from '@/playback/types';
+} from '../src/playback/types';
 
 jest.mock('expo-audio', () => ({
   createAudioPlayer: jest.fn(),

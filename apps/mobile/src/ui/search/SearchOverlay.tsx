@@ -17,7 +17,7 @@
  * Guard: __tests__/search-in-place.test.ts.
  */
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
-import { Box } from '@/ui/lib/box';
+import { Box } from '../lib/box';
 import { SearchPage } from './SearchPage';
 
 type Opening = { fromY: number; hint?: string; key: number };

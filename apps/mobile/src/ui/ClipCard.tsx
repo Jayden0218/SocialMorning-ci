@@ -7,12 +7,12 @@
  * episode's clip list) keeps its layout; its actions now reach 48 pt. Props are unchanged
  * apart from the three new optional ones.
  */
-import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import { hit, tabular } from '@/design';
-import { Link } from '@/design/tailwind';
-import type { Clip } from '@/social/api';
+import { Pressable } from './lib/pressable';
+import { Text } from './lib/text';
+import { Box } from './lib/box';
+import { hit, tabular } from '../design';
+import { Link } from '../design/tailwind';
+import type { Clip } from '../social/api';
 import { mmss } from './format';
 import { Card } from './Card';
 import { Eyebrow } from './Eyebrow';

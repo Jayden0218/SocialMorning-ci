@@ -10,8 +10,8 @@
 import { createElement } from 'react';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
-import { Terms } from '@/ui/Terms';
-import { REFUSE_TEXT } from '@/ui/terms';
+import { Terms } from '../src/ui/Terms';
+import { REFUSE_TEXT } from '../src/ui/terms';
 
 const byLabel = (r: ReactTestRenderer, label: string): ReactTestInstance =>
   r.root.find((n) => n.props['accessibilityLabel'] === label && typeof n.props['onPress'] === 'function');

@@ -14,12 +14,12 @@ import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'rea
 
 const mockPush = jest.fn();
 jest.mock('expo-router', () => ({ useRouter: () => ({ push: (...a: unknown[]) => mockPush(...a) }), router: { push: (...a: unknown[]) => mockPush(...a) } }));
-jest.mock('@/social/context', () => ({ useSocial: () => ({ api: { votePoll: jest.fn() }, listener: { listenerId: 'me' } }) }));
+jest.mock('../src/social/context', () => ({ useSocial: () => ({ api: { votePoll: jest.fn() }, listener: { listenerId: 'me' } }) }));
 
-import { CuratorLine, hostLineFor, sharedBy } from '@/ui/show/CuratorLine';
-import { ShowExtrasBlock } from '@/ui/ShowExtras';
-import type { ShowExtras } from '@/social/api';
-import { colour } from '@/design/tokens';
+import { CuratorLine, hostLineFor, sharedBy } from '../src/ui/show/CuratorLine';
+import { ShowExtrasBlock } from '../src/ui/ShowExtras';
+import type { ShowExtras } from '../src/social/api';
+import { colour } from '../src/design/tokens';
 
 const CURATOR = { id: 'acct-1', displayName: 'Ana Curates' };
 const texts = (r: ReactTestRenderer): string => JSON.stringify(r.toJSON());

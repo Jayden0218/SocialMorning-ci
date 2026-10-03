@@ -3,10 +3,10 @@
  * most two lines, a muted second line, an optional trailing element, a hairline
  * separator, and a tap target of at least 48 dp (M6 FR-015, carried forward).
  */
-import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import { hit } from '@/design';
+import { Pressable } from './lib/pressable';
+import { Text } from './lib/text';
+import { Box } from './lib/box';
+import { hit } from '../design';
 import { Artwork } from './Artwork';
 
 export const ROW_ARTWORK = 56;

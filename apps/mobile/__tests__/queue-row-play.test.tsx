@@ -10,7 +10,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createElement } from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { QueueList } from '@/ui/QueueList';
+import { QueueList } from '../src/ui/QueueList';
 
 const stores = {
   feeds: {

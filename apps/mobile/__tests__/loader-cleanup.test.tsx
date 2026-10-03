@@ -8,7 +8,7 @@
  */
 import { createElement } from 'react';
 import { act, create } from 'react-test-renderer';
-import { Loader } from '@/ui/Loader';
+import { Loader } from '../src/ui/Loader';
 
 beforeEach(() => jest.useFakeTimers());
 afterEach(() => jest.useRealTimers());

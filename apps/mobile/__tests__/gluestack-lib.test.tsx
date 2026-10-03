@@ -9,14 +9,14 @@
 import { createElement as h, type ReactElement } from 'react';
 import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { colour } from '@/design/tokens';
-import { Text } from '@/ui/lib/text';
-import { Heading } from '@/ui/lib/heading';
-import { Button, ButtonText } from '@/ui/lib/button';
-import { Badge, BadgeText } from '@/ui/lib/badge';
-import { Image } from '@/ui/lib/image';
-import { Input, InputField } from '@/ui/lib/input';
-import { Textarea, TextareaInput } from '@/ui/lib/textarea';
+import { colour } from '../src/design/tokens';
+import { Text } from '../src/ui/lib/text';
+import { Heading } from '../src/ui/lib/heading';
+import { Button, ButtonText } from '../src/ui/lib/button';
+import { Badge, BadgeText } from '../src/ui/lib/badge';
+import { Image } from '../src/ui/lib/image';
+import { Input, InputField } from '../src/ui/lib/input';
+import { Textarea, TextareaInput } from '../src/ui/lib/textarea';
 
 /** Every token colour as its three channels, so hex or rgb() output both compare. */
 const channels = (v: string): number[] => {

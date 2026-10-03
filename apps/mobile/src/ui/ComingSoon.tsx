@@ -9,11 +9,11 @@
  *   return <>…{dialog}</>;
  */
 import { useCallback, useState } from 'react';
-import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import { AlertDialog, AlertDialogBackdrop, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader } from '@/ui/lib/alert-dialog';
-import { hit } from '@/design';
+import { Pressable } from './lib/pressable';
+import { Text } from './lib/text';
+import { Box } from './lib/box';
+import { AlertDialog, AlertDialogBackdrop, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader } from './lib/alert-dialog';
+import { hit } from '../design';
 import { Eyebrow } from './Eyebrow';
 
 const TAP = { minHeight: hit.min };

@@ -22,7 +22,7 @@ import {
   type SaveReason,
 } from './types';
 import type { AdapterEvent, AudioAdapter } from './expo-audio-adapter';
-import type { PositionRow, Stores } from '@/storage/types';
+import type { PositionRow, Stores } from '../storage/types';
 
 /** What a screen hands the player. Deliberately not a storage row. */
 export type PlayableEpisode = {

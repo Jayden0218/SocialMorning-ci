@@ -6,16 +6,16 @@
  * accent line under it. Same buttons, names and handlers as before; only the layout moved.
  */
 import { useState } from 'react';
-import { Pressable } from '@/ui/lib/pressable';
-import { hit } from '@/design';
+import { Pressable } from './lib/pressable';
+import { hit } from '../design';
 
 /** M12 FR-043: every speed and sleep target is 48 pt (the chips were ~24 pt). */
 const TAP = { minHeight: hit.min, minWidth: hit.min };
 /** B's round − and + are 52 pt. */
 const ROUND = { width: 52, height: 52 };
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import { usePlayer, usePlayerState } from '@/playback/store';
+import { Text } from './lib/text';
+import { Box } from './lib/box';
+import { usePlayer, usePlayerState } from '../playback/store';
 import { useToast } from './providers';
 
 const PRESETS = [1, 1.2, 1.5, 2];

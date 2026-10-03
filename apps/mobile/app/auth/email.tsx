@@ -15,16 +15,16 @@
  */
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import { SUSPENDED_KEY, useSocial } from '@/social/context';
-import { useStores } from '@/ui/providers';
-import { AuthButton, AuthField, AuthShell, CodeCells, NameMonogram, SentTo, type Heading } from '@/ui/auth/AuthShell';
-import { ConsentDialog, ConsentRow, useLegalOverlay } from '@/ui/auth/Consent';
-import { describe, errorText } from '@/ui/auth/errors';
-import { toApp } from '@/ui/auth/navigate';
-import { looksLikeEmail, submitAction } from '@/ui/auth/rules';
+import { Pressable } from '../../src/ui/lib/pressable';
+import { Text } from '../../src/ui/lib/text';
+import { Box } from '../../src/ui/lib/box';
+import { SUSPENDED_KEY, useSocial } from '../../src/social/context';
+import { useStores } from '../../src/ui/providers';
+import { AuthButton, AuthField, AuthShell, CodeCells, NameMonogram, SentTo, type Heading } from '../../src/ui/auth/AuthShell';
+import { ConsentDialog, ConsentRow, useLegalOverlay } from '../../src/ui/auth/Consent';
+import { describe, errorText } from '../../src/ui/auth/errors';
+import { toApp } from '../../src/ui/auth/navigate';
+import { looksLikeEmail, submitAction } from '../../src/ui/auth/rules';
 
 type Step = 'email' | 'code' | 'name';
 

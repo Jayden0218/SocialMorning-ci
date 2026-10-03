@@ -5,11 +5,11 @@
  * CI compile job and a phone.
  */
 import type { Episode, ParsedFeed, Show } from '@socialmorning/feed-parser';
-import { hash } from '@/feeds/hash';
-import { carSections, createCarSync, UPDATES_MAX, type CarNative } from '@/outside/car';
-import type { PlayerState } from '@/playback/types';
-import { createMemoryStores } from '@/storage/memory';
-import { episodeId } from '@/storage/schema';
+import { hash } from '../src/feeds/hash';
+import { carSections, createCarSync, UPDATES_MAX, type CarNative } from '../src/outside/car';
+import type { PlayerState } from '../src/playback/types';
+import { createMemoryStores } from '../src/storage/memory';
+import { episodeId } from '../src/storage/schema';
 
 const show = (feedUrl: string, title: string): Show => ({ feedUrl, title, explicit: false, categories: [], contentHash: 'h', imageUrl: `https://img/${title}.jpg` });
 const ep = (guid: string, publishedAt: number): Episode => ({ guid, guidSource: 'guid', title: guid, enclosureUrl: `https://cdn/${guid}.mp3`, publishedAt, explicit: false, transcripts: [], soundbites: [], contentHash: `h-${guid}` });

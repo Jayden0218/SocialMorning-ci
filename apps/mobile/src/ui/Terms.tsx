@@ -21,22 +21,22 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { BackHandler, Platform } from "react-native";
-import { Image } from "@/ui/lib/image";
-import { Pressable } from "@/ui/lib/pressable";
-import { SafeAreaView } from "@/ui/lib/safe-area-view";
+import { Image } from "./lib/image";
+import { Pressable } from "./lib/pressable";
+import { SafeAreaView } from "./lib/safe-area-view";
 /** Drawn over the stack, outside the root layout's bottom inset — so this pads all four edges (M12). */
 const ALL_EDGES = ["top", "bottom", "left", "right"] as const;
-import { ScrollView } from "@/ui/lib/scroll-view";
-import { Text } from "@/ui/lib/text";
-import { Box } from "@/ui/lib/box";
-import { LEGAL_TEXT } from "@/legal/texts";
-import { Button, ButtonText } from "@/ui/lib/button";
+import { ScrollView } from "./lib/scroll-view";
+import { Text } from "./lib/text";
+import { Box } from "./lib/box";
+import { LEGAL_TEXT } from "../legal/texts";
+import { Button, ButtonText } from "./lib/button";
 import { EDGE, LegalDoc } from "./LegalDoc";
 import { Icon, type IconName } from "./Icon";
 import { useColours } from "./useColours";
-import { colour, hit, type Palette } from "@/design";
-import { display } from "@/ui/auth/display";
-import type { SettingsStore } from "@/storage/types";
+import { colour, hit, type Palette } from "../design";
+import { display } from "./auth/display";
+import type { SettingsStore } from "../storage/types";
 import {
   CONSENT_INTRO,
   CONSENT_ITEMS,
@@ -151,10 +151,11 @@ function Card(props: {
       </Pressable>
       {props.expanded ? (
         <Box className="pt-1 pb-1">
-          {item.points.map((p) => (
+          {/* Owner, 2026-10-03: numbered 01, 02 … instead of bullet dots. */}
+          {item.points.map((p, i) => (
             <Box key={p} className="flex-row mb-gap">
-              <Text className="text-muted text-body leading-[20px] min-w-5 pr-2">
-                •
+              <Text className="text-accent text-body font-bold leading-[20px] min-w-7 pr-2">
+                {String(i + 1).padStart(2, '0')}
               </Text>
               <Text className="text-muted text-body leading-[20px] flex-1">
                 {p}

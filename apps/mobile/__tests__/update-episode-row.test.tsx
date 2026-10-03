@@ -5,11 +5,11 @@
  */
 import { createElement } from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { UpdateEpisodeRow, compactCount, updateMeta } from '@/ui/UpdateEpisodeRow';
-import type { UpdateRow } from '@/me/updates';
+import { UpdateEpisodeRow, compactCount, updateMeta } from '../src/ui/UpdateEpisodeRow';
+import type { UpdateRow } from '../src/me/updates';
 
 // PlayButton (discover/parts) reads the palette through providers, whose import chain loads expo-audio.
-jest.mock('@/ui/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }) }));
+jest.mock('../src/ui/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }) }));
 
 const NOW = Date.UTC(2026, 9, 1, 12);
 const item = { episode: { id: 'e1', feedUrl: 'https://f', title: 'Ep', durationMs: 69 * 60_000, publishedAt: NOW - 3 * 3_600_000 }, showTitle: 'Show', summary: 'Notes' } as unknown as UpdateRow;

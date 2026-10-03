@@ -1,7 +1,7 @@
 /** The inbox as the app reads it (US4): player-core's rule over the stores. */
 import { inboxOf } from '@socialmorning/player-core';
-import type { Stores } from '@/storage/types';
-import { getPref } from '@/settings/prefs';
+import type { Stores } from '../storage/types';
+import { getPref } from '../settings/prefs';
 
 export const INBOX_PAGE = 50;
 

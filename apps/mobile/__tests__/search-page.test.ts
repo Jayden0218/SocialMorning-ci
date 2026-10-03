@@ -4,11 +4,11 @@
  * '/' + rest }` for ANY `socialmorning://` path (the "only our own links" test); in
  * `src/search/history.ts` drop the `.filter(...)` that removes the old copy (dedupe test).
  */
-import { createMemoryStores } from '@/storage/memory';
-import { HISTORY_MAX, addHistory, clearHistory, readHistory } from '@/search/history';
-import { scanTarget } from '@/search/scan';
-import { suggestions } from '@/search/suggest';
-import type { Discover, DiscoverItem } from '@/social/api';
+import { createMemoryStores } from '../src/storage/memory';
+import { HISTORY_MAX, addHistory, clearHistory, readHistory } from '../src/search/history';
+import { scanTarget } from '../src/search/scan';
+import { suggestions } from '../src/search/suggest';
+import type { Discover, DiscoverItem } from '../src/social/api';
 
 const API = 'https://socialmorning-api.vercel.app';
 

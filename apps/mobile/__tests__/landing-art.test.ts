@@ -1,6 +1,6 @@
 /** The sign-in landing page's covers (owner, 2026-09-27): real covers, own shows first, no repeats. */
-import { landingArt } from '@/ui/auth/art';
-import type { Discover } from '@/social/api';
+import { landingArt } from '../src/ui/auth/art';
+import type { Discover } from '../src/social/api';
 
 const ep = (imageUrl?: string) => ({ kind: 'pick' as const, key: imageUrl ?? 'x', episode: { id: 'e', feedUrl: 'f', guid: 'g', title: 't', showTitle: 's', enclosureUrl: 'u', ...(imageUrl ? { imageUrl } : {}) } });
 const discover = (urls: (string | undefined)[]): Discover => ({ picks: urls.map(ep), talkedAbout: [], trending: [], stale: false, serverTime: '' });

@@ -11,20 +11,20 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import { Linking, Platform } from 'react-native';
-import { FlatList } from '@/ui/lib/flat-list';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import { size } from '@/design';
-import { Loader } from '@/ui/Loader';
-import { Button } from '@/ui/Button';
-import { Icon } from '@/ui/Icon';
-import { useStores } from '@/ui/providers';
-import { writeStoreReady } from '@/social/store-ready';
-import { useColours } from '@/ui/useColours';
-import { shortDate } from '@/ui/format';
-import { MANAGE_SUBSCRIPTIONS, moneyLabel } from '@/me/money';
-import { useM12Api, type Purchase } from '@/social/m12-api';
-import { PageHeader } from '@/ui/PageHeader';
+import { FlatList } from '../src/ui/lib/flat-list';
+import { Text } from '../src/ui/lib/text';
+import { Box } from '../src/ui/lib/box';
+import { size } from '../src/design';
+import { Loader } from '../src/ui/Loader';
+import { Button } from '../src/ui/Button';
+import { Icon } from '../src/ui/Icon';
+import { useStores } from '../src/ui/providers';
+import { writeStoreReady } from '../src/social/store-ready';
+import { useColours } from '../src/ui/useColours';
+import { shortDate } from '../src/ui/format';
+import { MANAGE_SUBSCRIPTIONS, moneyLabel } from '../src/me/money';
+import { useM12Api, type Purchase } from '../src/social/m12-api';
+import { PageHeader } from '../src/ui/PageHeader';
 
 const ROW = { minHeight: size.row };
 /** The empty card is 260 pt tall in `Wallet-B`; the words sit at its foot. */

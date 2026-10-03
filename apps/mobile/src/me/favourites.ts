@@ -2,9 +2,9 @@
  * Favourites (我的收藏, owner 2026-09-27): episodes the listener starred, newest first.
  * On this phone only for now — the server has no favourites table.
  */
-import type { SettingsStore } from '@/storage/types';
+import type { SettingsStore } from '../storage/types';
 import { readList, writeList } from './local-list';
-import { recordChange } from '@/sync/library';
+import { recordChange } from '../sync/library';
 
 export const FAVOURITES_KEY = 'me.favourites';
 export type Favourite = { episodeId: string; at: number };

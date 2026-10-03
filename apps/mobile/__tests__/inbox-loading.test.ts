@@ -10,7 +10,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { inboxBody, loadInbox } from '@/inbox';
+import { inboxBody, loadInbox } from '../src/inbox';
 
 it('before the first answer: loading — never "empty"', () => {
   expect(inboxBody({ kind: 'loading' })).toBe('loading');

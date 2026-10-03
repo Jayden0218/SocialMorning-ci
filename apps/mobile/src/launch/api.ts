@@ -4,7 +4,7 @@
  * Neither sends the session token: the server keeps only a total per promotion and needs
  * to know nobody (FR-017, constitution v2.4.0 — "no per-person tracking").
  */
-import { requester, type ApiDeps } from '@/social/api';
+import { requester, type ApiDeps } from '../social/api';
 import type { Promotion } from './choose';
 
 export type LaunchApi = {

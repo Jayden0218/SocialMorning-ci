@@ -15,20 +15,20 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import { plural } from '@socialmorning/social-core';
-import { KeyboardAvoidingView } from '@/ui/lib/keyboard-avoiding-view';
-import { Pressable } from '@/ui/lib/pressable';
-import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper, ActionsheetScrollView } from '@/ui/lib/actionsheet';
+import { KeyboardAvoidingView } from './lib/keyboard-avoiding-view';
+import { Pressable } from './lib/pressable';
+import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper, ActionsheetScrollView } from './lib/actionsheet';
 import { ReportSheet, type ReportTarget } from './ReportSheet';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
+import { Text } from './lib/text';
+import { Box } from './lib/box';
 import { initialOf } from './Artwork';
 import { Eyebrow } from './Eyebrow';
 import { Icon } from './Icon';
 import { useColours } from './useColours';
 import { mmss } from './format';
-import { hit } from '@/design';
-import { useSocial } from '@/social/context';
-import type { Comment } from '@/social/api';
+import { hit } from '../design';
+import { useSocial } from '../social/context';
+import type { Comment } from '../social/api';
 
 /** The 48 pt minimum, in both directions (iOS i4; M17 rule: 48, was 44). */
 const TAP = { minHeight: hit.min, minWidth: hit.min };

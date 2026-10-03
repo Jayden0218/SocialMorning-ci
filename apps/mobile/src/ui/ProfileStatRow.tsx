@@ -6,11 +6,11 @@
  * M17 (`Profile-B`): each number is its own white card with a thin border, the value a 24 pt
  * serif, 8 pt apart. Links, names and the cells themselves are unchanged.
  */
-import { Link } from '@/design/tailwind';
-import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import { tabular } from '@/design';
+import { Link } from '../design/tailwind';
+import { Pressable } from './lib/pressable';
+import { Text } from './lib/text';
+import { Box } from './lib/box';
+import { tabular } from '../design';
 
 const CELL = 'flex-1 items-center justify-center min-h-12 bg-surface border border-border rounded-row py-row px-1.5';
 

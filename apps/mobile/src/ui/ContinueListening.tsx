@@ -9,16 +9,16 @@
  * Hidden when the last episode is finished; there is nothing to continue.
  */
 import { useRouter } from 'expo-router';
-import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
+import { Pressable } from './lib/pressable';
+import { Text } from './lib/text';
+import { Box } from './lib/box';
 import { Artwork } from './Artwork';
 import { Card } from './Card';
 import { Eyebrow } from './Eyebrow';
 import { PlayIcon } from './Icon';
-import { usePlayer } from '@/playback/store';
-import { toPlayable } from '@/storage/playable';
-import { hit } from '@/design';
+import { usePlayer } from '../playback/store';
+import { toPlayable } from '../storage/playable';
+import { hit } from '../design';
 import { mmss } from './format';
 import { useStores } from './providers';
 

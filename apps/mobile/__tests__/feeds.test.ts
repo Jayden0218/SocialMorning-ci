@@ -5,9 +5,9 @@
  * The rule under test throughout is Principle IV: a feed never throws away
  * what already parsed, and a failed refresh never throws away the cache.
  */
-import { FeedError, refreshShow } from '@/feeds/fetch';
-import { hash } from '@/feeds/hash';
-import { createMemoryFeedCache } from '@/storage/memory';
+import { FeedError, refreshShow } from '../src/feeds/fetch';
+import { hash } from '../src/feeds/hash';
+import { createMemoryFeedCache } from '../src/storage/memory';
 
 const FEED = 'https://example.com/show/feed.xml';
 

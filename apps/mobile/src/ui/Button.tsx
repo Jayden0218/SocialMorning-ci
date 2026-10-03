@@ -10,8 +10,8 @@
  * M6's FR-016 forbids colour alone carrying state, so a destructive action is told apart
  * by its word ("Delete", "Remove", "Unsubscribe") and, where M6 put one, its confirm.
  */
-import { Button as LibButton, ButtonText } from '@/ui/lib/button';
-import { hit } from '@/design';
+import { Button as LibButton, ButtonText } from './lib/button';
+import { hit } from '../design';
 
 export type ButtonKind = 'primary' | 'secondary' | 'destructive';
 

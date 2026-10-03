@@ -3,7 +3,7 @@
  * this phone. Each one is read where it acts — a switch nothing reads is not a setting —
  * and each key's reader is named here.
  */
-import type { SettingsStore } from '@/storage/types';
+import type { SettingsStore } from '../storage/types';
 
 export const PREFS = {
   /** For You on Discover, and the recommendation events it sends. Read by `recs/useForYou.ts`. */

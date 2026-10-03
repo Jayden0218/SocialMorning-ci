@@ -5,14 +5,14 @@
  * serif heading, the episode's artwork beside its serif title and show, the reason as an accent
  * tag, and Play it as a full-width yellow pill with a play icon. The label and handler are unchanged.
  */
-import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
+import { Pressable } from './lib/pressable';
+import { Text } from './lib/text';
+import { Box } from './lib/box';
 import { Artwork } from './Artwork';
 import { Icon } from './Icon';
 import { useColours } from './useColours';
-import { size } from '@/design';
-import type { NextUpItem } from '@/social/api';
+import { size } from '../design';
+import type { NextUpItem } from '../social/api';
 
 /** B's pill is 52 pt; the token row height (50) is the nearest. */
 const PILL = { minHeight: size.row };

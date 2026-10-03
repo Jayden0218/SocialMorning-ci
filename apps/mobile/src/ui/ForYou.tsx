@@ -8,9 +8,9 @@
  * A reason is not decoration: it is how a listener decides whether to trust the list, and
  * it is the only way L5 can be checked by a human at all.
  */
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import type { EpisodeCard, ForYou as ForYouBody } from '@/social/api';
+import { Text } from './lib/text';
+import { Box } from './lib/box';
+import type { EpisodeCard, ForYou as ForYouBody } from '../social/api';
 import { EpisodeRow } from './EpisodeRow';
 
 export function ForYou(props: {

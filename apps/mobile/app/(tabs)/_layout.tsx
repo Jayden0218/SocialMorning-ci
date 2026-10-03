@@ -16,16 +16,16 @@
  */
 import { Tabs, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Box } from '@/ui/lib/box';
-import { colour } from '@/design';
-import { useColours } from '@/ui/useColours';
-import { createFeed } from '@/graph/feed';
-import { useSocial } from '@/social/context';
-import { TabsMiniPlayer } from '@/ui/MiniPlayer';
-import { useStores } from '@/ui/providers';
-import { TabBar } from '@/ui/TabBar';
-import { TABS, TAB_HREF } from '@/ui/tabs';
-import { SearchOverlayHost } from '@/ui/search/SearchOverlay';
+import { Box } from '../../src/ui/lib/box';
+import { colour } from '../../src/design';
+import { useColours } from '../../src/ui/useColours';
+import { createFeed } from '../../src/graph/feed';
+import { useSocial } from '../../src/social/context';
+import { TabsMiniPlayer } from '../../src/ui/MiniPlayer';
+import { useStores } from '../../src/ui/providers';
+import { TabBar } from '../../src/ui/TabBar';
+import { TABS, TAB_HREF } from '../../src/ui/tabs';
+import { SearchOverlayHost } from '../../src/ui/search/SearchOverlay';
 
 
 export default function TabsLayout(): React.ReactElement {

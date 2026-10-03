@@ -5,11 +5,11 @@
  * second": one marker, both listed).
  */
 import { useMemo } from 'react';
-import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
+import { Pressable } from './lib/pressable';
+import { Text } from './lib/text';
+import { Box } from './lib/box';
 import { mmss } from './format';
-import type { Comment } from '@/social/api';
+import type { Comment } from '../social/api';
 import { plural } from '@socialmorning/social-core';
 
 export type RailMarker = { second: number; offsetMs: number; comments: Comment[] };

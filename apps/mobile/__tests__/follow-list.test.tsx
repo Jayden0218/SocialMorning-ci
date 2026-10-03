@@ -17,18 +17,18 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
 let mockFollowers: () => Promise<{ listeners: { id: string; displayName: string | null }[]; next?: string }> = () => Promise.resolve({ listeners: [] });
 jest.mock('expo-router', () => ({ router: { push: jest.fn() }, Link: ({ children }: { children: React.ReactNode }) => children }));
-jest.mock('@/design/tailwind', () => ({ Link: ({ children }: { children: React.ReactNode }) => children }));
-jest.mock('@/ui/PageHeader', () => ({ PageHeader: () => null }));
+jest.mock('../src/design/tailwind', () => ({ Link: ({ children }: { children: React.ReactNode }) => children }));
+jest.mock('../src/ui/PageHeader', () => ({ PageHeader: () => null }));
 // One api object for every render, as the real context gives: a new object per render re-ran the
 // page's load effect forever (gate 36950442286 ran out of memory here).
 const mockApi = { followers: () => mockFollowers(), following: () => mockFollowers() };
-jest.mock('@/social/context', () => ({
+jest.mock('../src/social/context', () => ({
   useSocial: () => ({ api: mockApi, listener: { listenerId: 'me' } }),
 }));
-jest.mock('@/safety/context', () => ({ useSafety: () => ({ listeners: (l: unknown[]) => l }) }));
-jest.mock('@/ui/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }) }));
+jest.mock('../src/safety/context', () => ({ useSafety: () => ({ listeners: (l: unknown[]) => l }) }));
+jest.mock('../src/ui/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }) }));
 
-import { FollowList, followEmptyLine } from '@/ui/FollowList';
+import { FollowList, followEmptyLine } from '../src/ui/FollowList';
 
 // The visible words only: the tree's props hold React elements (ListEmptyComponent), which JSON cannot hold.
 const text = (r: ReactTestRenderer): string =>

@@ -11,22 +11,22 @@
  * reveals "Remove finished downloads" at the card's foot. Every handler is unchanged.
  */
 import { useEffect, useState } from 'react';
-import { SectionList } from '@/ui/lib/section-list';
-import { Pressable } from '@/ui/lib/pressable';
-import { Toggle } from '@/ui/Toggle';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import { Icon } from '@/ui/Icon';
-import { Artwork } from '@/ui/Artwork';
-import { Card, CardDivider } from '@/ui/Card';
-import { mb } from '@/ui/DownloadButton';
-import { useDownloads, useStores } from '@/ui/providers';
-import type { DownloadRow } from '@/storage/types';
-import { EmptyState } from '@/ui/EmptyState';
-import { hit } from '@/design';
-import { useColours } from '@/ui/useColours';
-import { PageHeader } from '@/ui/PageHeader';
-import { BarButton } from '@/ui/TopBar';
+import { SectionList } from '../src/ui/lib/section-list';
+import { Pressable } from '../src/ui/lib/pressable';
+import { Toggle } from '../src/ui/Toggle';
+import { Text } from '../src/ui/lib/text';
+import { Box } from '../src/ui/lib/box';
+import { Icon } from '../src/ui/Icon';
+import { Artwork } from '../src/ui/Artwork';
+import { Card, CardDivider } from '../src/ui/Card';
+import { mb } from '../src/ui/DownloadButton';
+import { useDownloads, useStores } from '../src/ui/providers';
+import type { DownloadRow } from '../src/storage/types';
+import { EmptyState } from '../src/ui/EmptyState';
+import { hit } from '../src/design';
+import { useColours } from '../src/ui/useColours';
+import { PageHeader } from '../src/ui/PageHeader';
+import { BarButton } from '../src/ui/TopBar';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
 const ROW_TAP = { minHeight: hit.min };

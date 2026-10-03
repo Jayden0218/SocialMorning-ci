@@ -1,4 +1,4 @@
-import { ApiError, createApi } from '@/social/api';
+import { ApiError, createApi } from '../src/social/api';
 
 type Call = { url: string; init: RequestInit };
 

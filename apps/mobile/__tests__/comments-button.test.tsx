@@ -4,7 +4,7 @@
  */
 import { createElement } from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { CommentsButton } from '@/ui/CommentsButton';
+import { CommentsButton } from '../src/ui/CommentsButton';
 
 const text = (r: ReactTestRenderer): string => JSON.stringify(r.toJSON());
 

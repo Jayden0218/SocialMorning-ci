@@ -3,10 +3,10 @@
  * the one rule; nothing is discarded. Local 16:00 vs server 15:00 → 16:00 on both
  * sides; a server "finished" makes the local row finished.
  */
-import { createPositionSync } from '@/sync/positions';
-import type { ApiClient, PositionRowOut } from '@/social/api';
-import { createMemoryStores } from '@/storage/memory';
-import { hash } from '@/feeds/hash';
+import { createPositionSync } from '../src/sync/positions';
+import type { ApiClient, PositionRowOut } from '../src/social/api';
+import { createMemoryStores } from '../src/storage/memory';
+import { hash } from '../src/feeds/hash';
 
 jest.useFakeTimers();
 

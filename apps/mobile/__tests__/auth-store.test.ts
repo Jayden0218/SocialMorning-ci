@@ -1,7 +1,7 @@
-import { createAuth, type TokenStore } from '@/social/auth-store';
-import { ApiError, type ApiClient } from '@/social/api';
-import { createMemoryStores } from '@/storage/memory';
-import { hash } from '@/feeds/hash';
+import { createAuth, type TokenStore } from '../src/social/auth-store';
+import { ApiError, type ApiClient } from '../src/social/api';
+import { createMemoryStores } from '../src/storage/memory';
+import { hash } from '../src/feeds/hash';
 
 function memToken(): TokenStore & { value?: string } {
   const t: TokenStore & { value?: string } = {

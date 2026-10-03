@@ -4,15 +4,15 @@
  * (every TICK would then wake the widget). The rest pins what the surfaces show.
  */
 import type { Episode, ParsedFeed, Show } from '@socialmorning/feed-parser';
-import { hash } from '@/feeds/hash';
-import { createOutsideBridge, outsideCard, outsideToggle, setOutsideToggle } from '@/outside/bridge';
-import { bestComment, latestToPlay, nowPlayingOf, type NowPlaying } from '@/outside/now-playing';
-import { liveActivitySink } from '@/outside/ios';
-import { widgetTaskHandler } from '@/outside/android-widget';
-import type { PlayerState } from '@/playback/types';
-import type { Comment, Social } from '@/social/api';
-import { createMemoryStores } from '@/storage/memory';
-import { episodeId } from '@/storage/schema';
+import { hash } from '../src/feeds/hash';
+import { createOutsideBridge, outsideCard, outsideToggle, setOutsideToggle } from '../src/outside/bridge';
+import { bestComment, latestToPlay, nowPlayingOf, type NowPlaying } from '../src/outside/now-playing';
+import { liveActivitySink } from '../src/outside/ios';
+import { widgetTaskHandler } from '../src/outside/android-widget';
+import type { PlayerState } from '../src/playback/types';
+import type { Comment, Social } from '../src/social/api';
+import { createMemoryStores } from '../src/storage/memory';
+import { episodeId } from '../src/storage/schema';
 
 const META = (id: string) => (id === 'e1' ? { title: 'Ep one', show: 'Show' } : undefined);
 const comment = (id: string, offsetMs: number | null, extra: Partial<Comment> = {}): Comment =>

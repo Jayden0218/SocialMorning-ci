@@ -3,7 +3,7 @@
  * account's own all-time stats and this phone's saved moments. Nothing is stored — a
  * sticker is earned the moment its number is reached, and the list says which is next.
  */
-import type { IconName } from '@/ui/Icon';
+import type { IconName } from '../ui/Icon';
 import { plural } from '@socialmorning/social-core';
 
 export type StickerInput = { listenedMs: number; finished: number; moments: number; comments: number };

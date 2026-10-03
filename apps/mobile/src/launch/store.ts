@@ -3,7 +3,7 @@
  * "Phone-side state", no migration). Every read survives a missing or broken value by
  * returning "nothing", so a bad row can only ever mean "no launch screen".
  */
-import type { SettingsStore } from '@/storage/types';
+import type { SettingsStore } from '../storage/types';
 import type { Promotion, Shown } from './choose';
 
 export const LAUNCH_KEYS = {

@@ -10,10 +10,10 @@
  * The component is pure: it takes the tabs, which one is active, and a callback. The
  * layout adapts the router's props to it, so this can be tested with no router at all.
  */
-import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import { colour } from '@/design';
+import { Pressable } from './lib/pressable';
+import { Text } from './lib/text';
+import { Box } from './lib/box';
+import { colour } from '../design';
 import { useStores } from './providers';
 import { useColours } from './useColours';
 import { Icon, type IconName } from './Icon';

@@ -7,7 +7,7 @@
  */
 import { createElement } from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { NoticeCards } from '@/ui/NoticeCards';
+import { NoticeCards } from '../src/ui/NoticeCards';
 
 const tabs = (r: ReactTestRenderer) => r.root.findAll((n) => typeof n.type === 'string' && n.props['accessibilityRole'] === 'tab');
 /** The pressable that owns the card's onPress (the host view underneath does not carry it). */

@@ -3,8 +3,8 @@
  * list, newest first — what the Library tab became. Read from the feed cache, so it
  * shows offline. Hidden shows are left out, as they are everywhere else.
  */
-import type { CachedEpisode, Stores } from '@/storage/types';
-import { getPref } from '@/settings/prefs';
+import type { CachedEpisode, Stores } from '../storage/types';
+import { getPref } from '../settings/prefs';
 
 export type UpdateRow = { episode: CachedEpisode; showTitle: string; imageUrl?: string; summary: string };
 

@@ -9,7 +9,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { SCREEN_EDGES } from '@/ui/lib/safe-area-view';
+import { SCREEN_EDGES } from '../src/ui/lib/safe-area-view';
 
 it('screens pad their top and sides, never the bottom', () => {
   expect([...SCREEN_EDGES].sort()).toEqual(['left', 'right', 'top']);

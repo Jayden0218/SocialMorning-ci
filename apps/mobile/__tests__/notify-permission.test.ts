@@ -3,7 +3,7 @@
  * turns the first test red: delete the `!== 'undetermined'` early return in
  * `src/notify/permission.ts`.
  */
-import { askForNotifications, type NotifyApi, type PermissionState } from '@/notify/permission';
+import { askForNotifications, type NotifyApi, type PermissionState } from '../src/notify/permission';
 
 function fake(os: string, state: PermissionState, fail = false): NotifyApi & { calls: string[] } {
   const calls: string[] = [];

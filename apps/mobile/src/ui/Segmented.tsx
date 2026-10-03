@@ -2,10 +2,10 @@
  * M17 (`Following-B`, `History-B`, `Favourites-B`): a pill track of two to four choices; the
  * chosen one is the yellow fill with dark words. Spoken as tabs.
  */
-import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import { hit } from '@/design';
+import { Pressable } from './lib/pressable';
+import { Text } from './lib/text';
+import { Box } from './lib/box';
+import { hit } from '../design';
 
 const TAP = { minHeight: hit.min };
 

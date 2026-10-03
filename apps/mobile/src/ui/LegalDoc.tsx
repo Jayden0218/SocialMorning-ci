@@ -18,12 +18,12 @@
  */
 import { useMemo, useRef, type ComponentRef } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Pressable } from '@/ui/lib/pressable';
-import { ScrollView } from '@/ui/lib/scroll-view';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import { hit } from '@/design';
-import { parseLegal, titleOf, type Block, type BlockKind } from '@/legal/markdown';
+import { Pressable } from './lib/pressable';
+import { ScrollView } from './lib/scroll-view';
+import { Text } from './lib/text';
+import { Box } from './lib/box';
+import { hit } from '../design';
+import { parseLegal, titleOf, type Block, type BlockKind } from '../legal/markdown';
 
 /**
  * Owner, 2026-09-27: plain weight for the body, looser lines (16 px type on 26 px lines),

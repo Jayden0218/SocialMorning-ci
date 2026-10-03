@@ -4,8 +4,8 @@
  * the last row of a list is never hidden underneath them.
  */
 import { type ViewProps } from 'react-native';
-import { ScrollView } from '@/ui/lib/scroll-view';
-import { Box } from '@/ui/lib/box';
+import { ScrollView } from './lib/scroll-view';
+import { Box } from './lib/box';
 
 /** Height of the mini player and the tab bar, so lists can reserve room for both. */
 export const MINI_PLAYER_HEIGHT = 64;

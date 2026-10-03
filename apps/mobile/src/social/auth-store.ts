@@ -4,7 +4,7 @@
  * Pure orchestration over injected pieces so the tests run without a device.
  */
 import type { ApiClient, Listener } from './api';
-import type { AuthRow, Stores } from '@/storage/types';
+import type { AuthRow, Stores } from '../storage/types';
 
 export type TokenStore = {
   get(): Promise<string | undefined>;
