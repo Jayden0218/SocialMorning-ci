@@ -4,70 +4,70 @@
   "design": "Home-B",
   "entry": "apps/mobile/app/(tabs)/index.tsx",
   "wave": "W1",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "Discover",
   "design": "Discover-B",
   "entry": "apps/mobile/src/ui/DiscoverSections.tsx",
   "wave": "W1",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "Following",
   "design": "Following-B",
   "entry": "apps/mobile/app/notifications.tsx",
   "wave": "W1",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "Library",
   "design": "Library-B",
   "entry": "apps/mobile/app/(tabs)/library.tsx",
   "wave": "W1",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "Me",
   "design": "Me-B",
   "entry": "apps/mobile/app/(tabs)/me.tsx",
   "wave": "W1",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "Search",
   "design": "Search-B",
   "entry": "apps/mobile/app/search.tsx",
   "wave": "W1",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "Player",
   "design": "Player-B",
   "entry": "apps/mobile/app/player.tsx",
   "wave": "W1",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "Episode",
   "design": "Episode-B",
   "entry": "apps/mobile/app/episode/[id].tsx",
   "wave": "W1",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "Show",
   "design": "Show-B",
   "entry": "apps/mobile/app/show/[feedUrl].tsx",
   "wave": "W1",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "Comments",
   "design": "Comments-B",
   "entry": "apps/mobile/app/comments/[episodeId].tsx",
   "wave": "W1",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "Clip",
