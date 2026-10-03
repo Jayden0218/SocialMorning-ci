@@ -38,6 +38,23 @@ import type { Db } from '../db/db.ts';
 
 export const admin = new Hono<AdminEnv>();
 
+// ---- M18: the dashboard (specs/019-m18-admin-dashboard, contracts/metrics-api.md) ----
+
+/** Numbers at most 5 minutes old (D2). A result with a failed section is served once, never kept (R5). */
+export const METRICS_TTL_MS = 5 * 60_000;
+
+admin.get('/metrics', async (c) => {
+  const raw = c.req.query('days') ?? '30';
+  const days = Number(raw) as MetricRange;
+  if (!METRIC_RANGES.includes(days)) throw new ApiError('validation', 'The range must be 7, 30 or 90 days.', { fields: ['days'] });
+  const db = c.get('db');
+  const key = `admin-metrics:${days}`;
+  const { body } = await cached(db, key, METRICS_TTL_MS, () => computeMetrics(db, days));
+  if (body.partial) await db.query('DELETE FROM cache WHERE key = $1', [key]);
+  return c.json(body);
+});
+
+
 // G-A1: every route registered on this router is behind this line. Nothing may be registered above it.
 admin.use('*', adminOnly);
 
@@ -537,18 +554,3 @@ admin.post('/reports/act', json(z.object({
   return c.json({ action: { id: a.id, action: a.action, targetKind: a.target_kind, targetId: a.target_id } });
 });
 
-// ---- M18: the dashboard (specs/019-m18-admin-dashboard, contracts/metrics-api.md) ----
-
-/** Numbers at most 5 minutes old (D2). A result with a failed section is served once, never kept (R5). */
-export const METRICS_TTL_MS = 5 * 60_000;
-
-admin.get('/metrics', async (c) => {
-  const raw = c.req.query('days') ?? '30';
-  const days = Number(raw) as MetricRange;
-  if (!METRIC_RANGES.includes(days)) throw new ApiError('validation', 'The range must be 7, 30 or 90 days.', { fields: ['days'] });
-  const db = c.get('db');
-  const key = `admin-metrics:${days}`;
-  const { body } = await cached(db, key, METRICS_TTL_MS, () => computeMetrics(db, days));
-  if (body.partial) await db.query('DELETE FROM cache WHERE key = $1', [key]);
-  return c.json(body);
-});
