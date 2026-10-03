@@ -55,7 +55,6 @@ async function section<T>(name: string, f: () => Promise<T>): Promise<Section<T>
     return { ok: true, ...(await f()) };
   } catch (e) {
     console.warn(`[metrics ${name}] ${e instanceof Error ? e.message : String(e)}`);
-    throw e;
     return { ok: false, message: `The ${name} numbers could not be counted.` };
   }
 }
@@ -71,8 +70,7 @@ const users = (db: Db, days: string[]) => section('users', async () => {
     db.query<{ d: string; n: number }>('SELECT day::text AS d, count(*)::int AS n FROM daily_active WHERE day >= $1::date GROUP BY 1', [days[0]]),
     db.query<{ d: string | null }>('SELECT min(day)::text AS d FROM daily_active'),
   ]);
-  const ids = (await db.query<{ id: string }>('SELECT id FROM listeners')).map((r) => r.id);
-  return { ids, total, suspended, active: { d1, d7, d30 }, newPerDay, dauPerDay: series(days, dau), recordedSince: since[0]?.d ?? null };
+  return { total, suspended, active: { d1, d7, d30 }, newPerDay, dauPerDay: series(days, dau), recordedSince: since[0]?.d ?? null };
 });
 
 const listening = (db: Db, days: string[]) => section('listening', async () => {
@@ -95,7 +93,7 @@ const listening = (db: Db, days: string[]) => section('listening', async () => {
   const shows = new Map<string, { feedUrl: string; title: string; ms: number }>();
   const episodes = new Map<string, { episodeId: string; title: string; showTitle: string; ms: number }>();
   for (const s of sets.values()) {
-    const n = s.ranges.reduce((t, r) => t + unionLength([r]), 0);
+    const n = unionLength(s.ranges);
     if (n <= 0) continue;
     listeners.set(s.d, (listeners.get(s.d) ?? new Set()).add(s.listener));
     ms.set(s.d, (ms.get(s.d) ?? 0) + n);

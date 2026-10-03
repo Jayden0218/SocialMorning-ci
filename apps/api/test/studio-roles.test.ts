@@ -10,7 +10,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { studio } from '../src/routes/studio.ts';
+import { studio } from '../src/routes/studio/index.ts';
 import { freshDb } from './harness.ts';
 import { addEpisode, proveClaim, sCall, studioLogin } from './studio-harness.ts';
 

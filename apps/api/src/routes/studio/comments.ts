@@ -1,0 +1,48 @@
+/**
+ * Studio API (`/v1/studio/*`) — US3: Comments
+ */
+import { ApiError } from '../../errors.ts';
+import { z } from 'zod';
+import { json } from '../../validate.ts';
+import { commentOnFeed, listShowComments, setHostHidden } from '../../db/repos/studio-comments.ts';
+import { createComment, toPublic } from '../../db/repos/comments.ts';
+import { isBlockedBy } from '../../db/repos/blocks.ts';
+import type { Hono } from 'hono';
+import type { StudioEnv } from '../../auth/studio-session.ts';
+
+export function registerComments(studio: Hono<StudioEnv>): void {
+  studio.get('/shows/:show/comments', async (c) =>
+    c.json(await listShowComments(c.get('db'), c.get('show').feedUrl, {
+      ...(c.req.query('q') ? { q: c.req.query('q')! } : {}),
+      ...(c.req.query('episodeId') ? { episodeId: c.req.query('episodeId')! } : {}),
+      ...(c.req.query('before') ? { before: c.req.query('before')! } : {}),
+    })));
+
+  const replyBody = z.object({ body: z.string().trim().min(1).max(2000) });
+
+  /** The same rules as the app's POST: 5 s floor, no reply to someone who blocked you, one level deep. */
+  studio.post('/shows/:show/comments/:id/reply', json(replyBody), async (c) => {
+    const db = c.get('db');
+    const me = c.get('listener')!;
+    const parent = await commentOnFeed(db, c.get('show').feedUrl, c.req.param('id'));
+    if (!parent) throw new ApiError('not_found', 'No such comment on this show.');
+    const [recent] = await db.query<{ n: number }>("SELECT count(*)::int AS n FROM comments WHERE author_id = $1 AND created_at > now() - interval '5 seconds'", [me.id]);
+    if (Number(recent?.n ?? 0) > 0) throw new ApiError('locked', 'One comment every few seconds, please.', { retryAfterSeconds: 5 });
+    if (parent.author_id && parent.author_id !== me.id && (await isBlockedBy(db, parent.author_id, me.id))) {
+      throw new ApiError('blocked', "You can't interact with this listener.");
+    }
+    // Reply to the thread's top comment when answering a reply (replies are one level deep).
+    const created = await createComment(db, { episodeId: parent.episode_id, authorId: me.id, body: c.req.valid('json').body, parentId: parent.parent_id ?? parent.id });
+    return c.json({ comment: toPublic(created, me.id) }, 201);
+  });
+
+  studio.post('/shows/:show/comments/:id/hide', async (c) => {
+    await setHostHidden(c.get('db'), c.get('show').feedUrl, c.req.param('id'), c.get('listener')!.id, true);
+    return c.body(null, 204);
+  });
+
+  studio.post('/shows/:show/comments/:id/unhide', async (c) => {
+    await setHostHidden(c.get('db'), c.get('show').feedUrl, c.req.param('id'), c.get('listener')!.id, false);
+    return c.body(null, 204);
+  });
+}

@@ -36,6 +36,7 @@ export async function listenerForToken(db: Db, token: string, pepper: string): P
      ), d AS (
        INSERT INTO daily_active (day, listener_id)
        SELECT ((now() AT TIME ZONE 'UTC') + interval '8 hours')::date, id FROM s
+        WHERE device_label IS DISTINCT FROM 'studio-web'
        ON CONFLICT DO NOTHING
      )
      SELECT id, email, display_name, created_at, suspended_at FROM s`,
