@@ -42,7 +42,8 @@ it('G-E7: Me opens Coming soon for Wallet while the store is off, and keeps the 
 it('the pop-up names no date and no price', () => {
   const lines = [read('app/auth/sign-in.tsx'), read('app/(tabs)/me.tsx')].join('\n').match(/line: [`'][^`']+[`']/g) ?? [];
   expect(lines.length).toBeGreaterThanOrEqual(2);
-  for (const l of lines) {
+  // `${…}` is a code placeholder, not a dollar price — drop it before looking for prices.
+  for (const l of lines.map((x) => x.replace(/\$\{[^}]*\}/g, ''))) {
     expect(l).not.toMatch(/\b(19|20)\d\d\b|January|February|March|April|May|June|July|August|September|October|November|December|Q[1-4]/);
     expect(l).not.toMatch(/[$£€¥]|RM ?\d|\d+\.\d\d/);
   }

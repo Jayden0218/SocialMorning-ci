@@ -2,13 +2,18 @@
  * Two buttons for the episode page (M10, owner 2026-09-27): ☆ Favourite, and 📌 Save
  * moment — the time you are at in this episode (or where you stopped), with an optional
  * note. Both are kept on this phone (`src/me/favourites.ts`, `src/me/moments.ts`).
+ *
+ * M17 (`EpisodeMoreSheet-B`): the two are the last row of the ⋯ sheet's tile grid, and the note
+ * opens as a white card under it — "Save this moment" with the time on the right, the note box
+ * on the warm page colour, then Cancel and a yellow Save pill. Same names, same handlers.
  */
 import { useState } from 'react';
 import { Textarea, TextareaInput } from '../lib/textarea';
 import { Pressable } from '../lib/pressable';
 import { Text } from '../lib/text';
 import { Box } from '../lib/box';
-import { SheetRow } from '../SheetRow';
+import { SheetTile, TileRow } from '../QueueButtons';
+import { Icon } from '../Icon';
 import { hit } from '../../design';
 import { useColours } from '../useColours';
 import { isFavourite, toggleFavourite } from '../../me/favourites';
@@ -27,18 +32,24 @@ export function EpisodeExtras(props: { episodeId: string; atMs: number }): React
   const [at, setAt] = useState(0);
   return (
     <Box>
-      {/* M12 FR-032: full-width rows in the ⋯ sheet. */}
-      <SheetRow icon={fav ? 'star' : 'star-outline'} label={fav ? 'Remove from favourites' : 'Add to favourites'} iconColour={c.accent} selected={fav} onPress={() => setFav(toggleFavourite(stores.settings, props.episodeId, Date.now()))} />
-      <SheetRow icon="bookmark-outline" label="Save this moment" detail={mmss(props.atMs)} iconColour={c.accent} onPress={() => { setAt(props.atMs); setNote(''); }} accessibilityLabel={`Save the moment at ${mmss(props.atMs)}`} />
+      {/* M12 FR-032 made these full-width rows; M17 makes them a row of two tiles. */}
+      <TileRow>
+        <SheetTile icon={fav ? 'star' : 'star-outline'} label={fav ? 'Remove from favourites' : 'Add to favourites'} iconColour={c.accent} selected={fav} onPress={() => setFav(toggleFavourite(stores.settings, props.episodeId, Date.now()))} />
+        <SheetTile icon="bookmark-outline" label="Save this moment" detail={mmss(props.atMs)} iconColour={c.accent} onPress={() => { setAt(props.atMs); setNote(''); }} accessibilityLabel={`Save the moment at ${mmss(props.atMs)}`} />
+      </TileRow>
       {note !== undefined ? (
-        <Box className="bg-surface rounded-row p-row gap-row">
-          <Text className="text-muted text-xs">Moment at {mmss(at)}</Text>
-          <Textarea className="bg-background rounded-row border-0 h-auto">
-            <TextareaInput value={note} onChangeText={setNote} maxLength={NOTE_MAX} multiline placeholder="Add a note (optional)" placeholderTextColor={c.muted} accessibilityLabel="Note for this moment"  className="p-row text-text text-sm" />
+        <Box className="bg-surface border border-border rounded-row p-row gap-row mb-gap">
+          <Box className="flex-row items-center gap-gap">
+            <Icon name="bookmark-outline" size={18} color={c.accent} />
+            <Text className="text-text text-body font-bold flex-1">Save this moment</Text>
+            <Text className="text-muted text-xs">Moment at {mmss(at)}</Text>
+          </Box>
+          <Textarea className="bg-background rounded-row border border-border h-auto">
+            <TextareaInput value={note} onChangeText={setNote} maxLength={NOTE_MAX} multiline placeholder="Add a note (optional)" placeholderTextColor={c.muted} accessibilityLabel="Note for this moment"  className="p-row text-text text-body" />
           </Textarea>
-          <Box className="flex-row gap-section">
-            <Pressable onPress={() => { saveMoment(stores.settings, props.episodeId, at, note, Date.now()); setNote(undefined); toast(`Saved the moment at ${mmss(at)}.`); }} accessibilityRole="button" accessibilityLabel="Save moment" className="justify-center" style={TAP}><Text className="text-accent text-sm font-semibold">Save</Text></Pressable>
-            <Pressable onPress={() => setNote(undefined)} accessibilityRole="button" accessibilityLabel="Cancel" className="justify-center" style={TAP}><Text className="text-muted text-sm">Cancel</Text></Pressable>
+          <Box className="flex-row justify-end items-center gap-gap">
+            <Pressable onPress={() => setNote(undefined)} accessibilityRole="button" accessibilityLabel="Cancel" className="justify-center px-row" style={TAP}><Text className="text-muted text-body font-medium">Cancel</Text></Pressable>
+            <Pressable onPress={() => { saveMoment(stores.settings, props.episodeId, at, note, Date.now()); setNote(undefined); toast(`Saved the moment at ${mmss(at)}.`); }} accessibilityRole="button" accessibilityLabel="Save moment" className="justify-center rounded-pill bg-primary px-section" style={TAP}><Text className="text-onPrimary text-body font-bold">Save</Text></Pressable>
           </Box>
         </Box>
       ) : null}

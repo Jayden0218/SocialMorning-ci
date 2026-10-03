@@ -22,8 +22,9 @@ import { inkOn } from './AuthShell';
 type Doc = 'agreement' | 'privacy';
 const TAP = { minHeight: hit.min };
 const BOX = { width: 22, height: 22 };
-/** The sheet's document rows and its Agree button. */
+/** The sheet's document rows (56 pt) and its Agree pill (52 pt, `ConsentDialog-B`). */
 const ROW = { minHeight: 56 };
+const PILL = { minHeight: 52 };
 
 function Links(props: { open: (d: Doc) => void }): React.ReactElement {
   return (
@@ -77,6 +78,10 @@ export function ConsentRow(props: { agreed: boolean; onToggle: () => void; open:
  * screenshot): a bottom sheet, not a centred card — a large serif title, one line, the two
  * documents as rows that open them, then Agree (full width) and Cancel (a text button).
  * Was an AlertDialog card (2026-09-29). The Agree button keeps its "Agree and <action>" name.
+ *
+ * M17 (`ConsentDialog-B`): the sheet is the warm page colour with white document rows (it was
+ * the other way round), a 30 pt serif title, 8 pt between the rows, a 52 pt Agree pill and a
+ * bold Cancel — as the Editorial sheet. Same actions, same names.
  */
 export function ConsentDialog(props: { visible: boolean; action: string; onCancel: () => void; onAgree: () => void; open: (d: Doc) => void }): React.ReactElement {
   const stores = useStores();
@@ -86,30 +91,30 @@ export function ConsentDialog(props: { visible: boolean; action: string; onCance
       onPress={() => props.open(d)}
       accessibilityRole="link"
       accessibilityLabel={label}
-      className="flex-row items-center gap-row px-section rounded-artwork border border-separator bg-background"
+      className="flex-row items-center gap-row px-section rounded-row border border-border bg-surface"
       style={ROW}
     >
       <Icon name={icon} size={20} color={c.accent} />
-      <Text className="text-text text-sm font-semibold flex-1">{label}</Text>
+      <Text className="text-text text-body font-bold flex-1">{label}</Text>
       <Icon name="chevron-forward" size={18} color={c.muted} />
     </Pressable>
   );
   return (
     <Actionsheet isOpen={props.visible} onClose={props.onCancel}>
       <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-      <ActionsheetContent className="bg-surface rounded-t-row px-screen-x pt-row items-stretch" accessibilityViewIsModal>
+      <ActionsheetContent className="bg-background rounded-t-artwork-lg px-screen-x pt-gap items-stretch" accessibilityViewIsModal>
         <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
-        <Text style={display(32, c.text)} className="mt-row" accessibilityRole="header">Before you continue</Text>
-        <Text className="text-muted text-sm mt-gap">Please read and agree to these two documents.</Text>
-        <Box className="gap-row mt-section">
+        <Text style={display(30, c.text, { leading: 34 })} className="text-text font-display mt-row" accessibilityRole="header">Before you continue</Text>
+        <Text className="text-muted text-[15px] leading-[22px] mt-gap">Please read and agree to these two documents.</Text>
+        <Box className="gap-gap mt-section">
           {row('agreement', 'document-text-outline', 'Service Agreement')}
           {row('privacy', 'shield-checkmark-outline', 'Privacy Policy')}
         </Box>
-        <Pressable onPress={props.onAgree} accessibilityRole="button" accessibilityLabel={`Agree and ${props.action}`} className="items-center justify-center rounded-pill bg-primary mt-screen-x" style={ROW}>
-          <Text className="text-onPrimary text-sm font-semibold" style={{ color: inkOn(c) }}>Agree</Text>
+        <Pressable onPress={props.onAgree} accessibilityRole="button" accessibilityLabel={`Agree and ${props.action}`} className="items-center justify-center rounded-pill bg-primary mt-screen-x" style={PILL}>
+          <Text className="text-onPrimary text-[15px] font-bold" style={{ color: inkOn(c) }}>Agree</Text>
         </Pressable>
-        <Pressable onPress={props.onCancel} accessibilityRole="button" accessibilityLabel="Cancel" className="items-center justify-center mt-gap mb-row" style={TAP}>
-          <Text className="text-accent text-sm font-semibold">Cancel</Text>
+        <Pressable onPress={props.onCancel} accessibilityRole="button" accessibilityLabel="Cancel" className="items-center justify-center mt-1 mb-row" style={TAP}>
+          <Text className="text-accent text-body font-bold">Cancel</Text>
         </Pressable>
       </ActionsheetContent>
     </Actionsheet>

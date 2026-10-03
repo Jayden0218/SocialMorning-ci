@@ -102,5 +102,45 @@
   "to": "/wallet | Manage subscriptions in the store | manage",
   "why": "scanner correction: the element with handler manage is the 'Manage subscriptions in the store' Button (old line 41); the baseline took its name from the purchase row below",
   "task": "T073"
+ },
+ {
+  "surface": "/player",
+  "name": "Chapters ({extras.chapters.length})",
+  "destination": "setPane",
+  "to": "/player | `Chapters (${extras.chapters.length})` | setPane",
+  "why": "the Playback sheet's Chapters card now shows the count on a second line, so the spoken name moved from the Text child to accessibilityLabel; still heard as 'Chapters (N)', same setPane handler",
+  "task": "T102"
+ },
+ {
+  "surface": "Composer",
+  "name": "Comment",
+  "destination": "props.onClose",
+  "to": "Composer | Comment | setState",
+  "why": "scanner correction: the Comment text box was always onChangeText → setState(composer.edit(...)) (old line 82); the baseline borrowed props.onClose from the Cancel button",
+  "task": "T104"
+ },
+ {
+  "surface": "ReportSheet",
+  "name": "Note, optional",
+  "destination": "close",
+  "to": "ReportSheet | Note, optional | send",
+  "why": "scanner correction: the note box has no tap handler; the scanner takes the next handler in the file, which is now Send (B puts Send before Cancel). Same box, same name",
+  "task": "T100"
+ },
+ {
+  "surface": "ShareChooser",
+  "name": "More ways to share",
+  "destination": "close",
+  "to": "ShareChooser | r.label / t.label | close",
+  "why": "scanner correction: the second 'More ways to share' entry was really the option row inside rows.map (misnamed); the options are now the lead card (r.label) and the tiles (t.label), same labels, still close(onPress)",
+  "task": "T099"
+ },
+ {
+  "surface": "EpisodeExtras",
+  "name": "Save moment",
+  "destination": "setNote",
+  "to": "EpisodeExtras | Save moment | dynamic",
+  "why": "scanner correction: the handler is unchanged (saveMoment → setNote(undefined) → toast); the scanner now reads it as dynamic because the Cancel button moved before it",
+  "task": "T103"
  }
 ]

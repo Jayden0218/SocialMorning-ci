@@ -39,15 +39,25 @@ void SplashScreen.preventAutoHideAsync();
  * with a way back, instead of a blank white app (found on the iPhone 2026-09-29 as NEW-1 — a
  * layout that collapsed, but a thrown error would have looked the same). It sits outside every
  * provider, so it uses only plain parts and token classes.
+ *
+ * M17 T111 (`ErrorScreen-B`): left-aligned under a drawn accent waveform with a gap in it, a
+ * 40 pt serif title, the line in 17 pt muted, and Try again as the full-width yellow pill at the
+ * foot (it was a small centred pill). Same words, same `props.retry()`.
  */
+const WAVE = [10, 18, 28, 16, 34, 22, 12, 0, 0, 14, 30, 20, 38, 24, 14, 8];
 export function ErrorBoundary(props: ErrorBoundaryProps): React.ReactElement {
   if (__DEV__) console.error(props.error);
   return (
-    <Box className="flex-1 bg-background items-center justify-center px-screen-x gap-section">
-      <Text className="text-text text-base font-bold text-center" accessibilityRole="header">Something went wrong</Text>
-      <Text className="text-muted text-sm text-center">This screen stopped working. Your listening and downloads are safe.</Text>
-      <Pressable onPress={() => void props.retry()} accessibilityRole="button" accessibilityLabel="Try again" className="bg-primary rounded-pill px-section items-center justify-center" style={{ minHeight: hit.min }}>
-        <Text className="text-onPrimary text-sm font-semibold">Try again</Text>
+    <Box className="flex-1 bg-background px-screen-x pb-10">
+      <Box className="flex-1 pt-[120px]">
+        <Box className="flex-row items-center gap-[5px] h-12" accessible={false} importantForAccessibility="no-hide-descendants">
+          {WAVE.map((h, i) => <Box key={i} className={h > 0 ? 'bg-accent rounded' : 'rounded'} style={{ width: 8, height: h }} />)}
+        </Box>
+        <Text className="text-text font-display text-[40px] leading-[44px] mt-7" accessibilityRole="header">Something went wrong</Text>
+        <Text className="text-muted text-title leading-[25px] mt-[14px]">This screen stopped working. Your listening and downloads are safe.</Text>
+      </Box>
+      <Pressable onPress={() => void props.retry()} accessibilityRole="button" accessibilityLabel="Try again" className="bg-primary rounded-pill px-section items-center justify-center w-full" style={{ minHeight: Math.max(hit.min, 52) }}>
+        <Text className="text-onPrimary text-[15px] font-bold">Try again</Text>
       </Pressable>
     </Box>
   );

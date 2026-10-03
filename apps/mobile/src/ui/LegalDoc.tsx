@@ -9,6 +9,12 @@
  * from its on-screen frame, so it drew no top padding during the zoom and then jumped to the
  * full inset when the zoom ended (owner, 2026-10-03). The hook's insets are the screen's,
  * known before the first frame.
+ *
+ * M17 (`LegalDoc-B`): the title and the section headings are the Editorial serif (34 pt and
+ * 22 pt), the dates one muted line under the title as the document writes them (they were two
+ * boxes), and Contents a white card with serif accent numbers and hairlines between its rows.
+ * Body text 15 pt on 26 pt lines in muted, as B. Every Contents row stays — B shows five and
+ * "and 3 more", but each row is a jump, so none is hidden.
  */
 import { useMemo, useRef, type ComponentRef } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -26,10 +32,10 @@ import { parseLegal, titleOf, type Block, type BlockKind } from '../legal/markdo
  */
 const KIND: Record<BlockKind, string> = {
   title: 'text-text text-lg font-semibold',
-  heading: 'text-text text-xl font-bold leading-[30px] mt-section',
+  heading: 'text-text font-display text-[22px] leading-[28px] mt-5',
   subheading: 'text-text text-sm font-semibold leading-[26px] mt-row',
-  paragraph: 'text-muted text-sm leading-[26px]',
-  item: 'text-muted text-sm leading-[26px] flex-1',
+  paragraph: 'text-muted text-[15px] leading-[26px]',
+  item: 'text-muted text-[15px] leading-[26px] flex-1',
   note: 'text-muted text-xs leading-[20px] italic',
   row: 'text-muted text-xs leading-[20px]',
 };
@@ -51,7 +57,7 @@ function BlockText(props: { block: Block }): React.ReactElement {
   if (block.kind === 'item') {
     return (
       <Box className="flex-row mb-row">
-        <Text className="text-muted text-sm leading-[26px] min-w-5 pr-2">{block.marker ?? '•'}</Text>
+        <Text className="text-muted text-[15px] leading-[26px] min-w-5 pr-2">{block.marker ?? '•'}</Text>
         <Text className={KIND.item}><Spans block={block} /></Text>
       </Box>
     );
@@ -68,11 +74,8 @@ function Chevron(): React.ReactElement {
   return <Box className="w-3 h-3 border-l-2 border-b-2 border-text rotate-45 ml-1" />;
 }
 
-/** The "Last updated: …" / "Effective from: …" lines, lifted out of the body into two boxes. */
+/** The "Last updated: …" / "Effective from: …" lines, lifted out of the body into one line under the title. */
 const DATE_LINE = /^(Last updated|Effective from):\s*(.+)$/;
-const DATE_LABEL: Record<string, string> = { 'Last updated': 'Updated', 'Effective from': 'Effective' };
-/** "29 September 2026" → "29 Sep 2026"; anything else is shown as written. */
-const shortDate = (d: string): string => d.replace(/\b([A-Z][a-z]{2})[a-z]+\b/, '$1');
 
 /** "1. Scope" → 1 + Scope; "Part 2 — Personal…" → 2 + Personal…; "Introduction" → no number. */
 const NUMBER = /^(?:Part\s+)?(\d+)(?:\.|\s+—)\s+/;
@@ -87,7 +90,7 @@ export function LegalDoc(props: { text: string; onClose: () => void }): React.Re
     const found: string[] = [];
     const rest = all.filter((b) => {
       const m = b.kind === 'paragraph' ? DATE_LINE.exec(b.spans.map((x) => x.text).join('')) : null;
-      if (m?.[1] && m[2]) { found.push(`${DATE_LABEL[m[1]] ?? m[1]} ${shortDate(m[2])}`); return false; }
+      if (m?.[1] && m[2]) { found.push(`${m[1]}: ${m[2]}`); return false; }
       return true;
     });
     // A document that opens with plain paragraphs gets an "Introduction" heading, so the
@@ -121,30 +124,22 @@ export function LegalDoc(props: { text: string; onClose: () => void }): React.Re
         <Box className="px-screen-x pt-2 pb-section">
           {/* Owner, 2026-10-03: the editorial layout — a large title, the dates in boxes,
               then a Contents card listing every section, each a jump to it. */}
-          <Text className="text-text text-[32px] font-extrabold leading-[38px]" accessibilityRole="header">{title}</Text>
-          {dates.length > 0 ? (
-            <Box className="flex-row flex-wrap gap-2 mt-3">
-              {dates.map((d) => (
-                <Box key={d} className="px-3 py-1.5 rounded-full border-hairline border-separator bg-surface">
-                  <Text className="text-text text-xs font-semibold">{d}</Text>
-                </Box>
-              ))}
-            </Box>
-          ) : null}
+          <Text className="text-text font-display text-[34px] leading-[38px] mt-1" accessibilityRole="header">{title}</Text>
+          {dates.length > 0 ? <Text className="text-muted text-xs mt-1.5">{dates.join(' · ')}</Text> : null}
           {contents.length > 1 ? (
-            <Box className="mt-section mb-row px-4 pt-3 pb-1 rounded-xl border-hairline border-separator bg-surface">
-              <Text className="text-muted text-xs font-bold tracking-widest mb-1">CONTENTS</Text>
+            <Box className="mt-section mb-1 px-[14px] pt-[10px] pb-1 rounded-row border border-border bg-surface">
+              <Text className="text-muted text-micro font-extrabold tracking-widest">CONTENTS</Text>
               {contents.map((e, i) => (
                 <Pressable
                   key={e.index}
                   onPress={() => scroll.current?.scrollTo({ y: tops.current[e.index] ?? 0, animated: true })}
                   accessibilityRole="button"
                   accessibilityLabel={`Go to ${e.label}`}
-                  className={`flex-row items-center py-3 ${i < contents.length - 1 ? 'border-b border-hairline border-separator' : ''}`}
+                  className={`flex-row items-center gap-[10px] ${i > 0 ? 'border-t border-separator' : ''}`}
                   style={{ minHeight: hit.min }}
                 >
-                  <Text className="text-accent text-sm font-bold w-7">{e.number ?? '·'}</Text>
-                  <Text className="text-text text-sm flex-1">{e.label}</Text>
+                  <Text className="text-accent font-display text-body w-[18px]">{e.number ?? '·'}</Text>
+                  <Text className="text-text text-body flex-1">{e.label}</Text>
                 </Pressable>
               ))}
             </Box>

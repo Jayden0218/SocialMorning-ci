@@ -16,7 +16,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const MOBILE = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
-const TAGS = 'Pressable|TouchableOpacity|TouchableHighlight|Switch|TextInput|Link|Row|Button|Chip|NavLink|TabBar|ActionsheetItem|Slider|TextareaInput|InputField|Fab|Checkbox|Radio|MenuRow|LinkRow|SheetRow';
+const TAGS = 'Pressable|TouchableOpacity|TouchableHighlight|Switch|TextInput|Link|Row|Button|Chip|NavLink|TabBar|ActionsheetItem|Slider|TextareaInput|InputField|Fab|Checkbox|Radio|MenuRow|LinkRow|SheetRow|SheetTile';
 const OPEN = new RegExp(`<(${TAGS})\\b`);
 
 const files = [];

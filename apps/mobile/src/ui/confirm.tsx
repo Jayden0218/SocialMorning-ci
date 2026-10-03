@@ -10,14 +10,23 @@
  * The dialog is rendered by the caller (not a provider): gluestack portals it to
  * <GluestackUIProvider>, and the dialog needs nothing from the app's contexts. `cancel: null`
  * makes a one-button notice ("You can't block yourself.").
+ *
+ * M17 (`ConfirmDialog-B`, checked in T106–T111): B asks from a bottom sheet, not a centred card —
+ * the warm page colour, a grab handle, a 30 pt serif title, the line in muted, then the action as
+ * the full-width yellow pill and Cancel as a bold accent text button under it. Wave 0 had left it
+ * a centred card with the buttons side by side. Now gluestack's Actionsheet (as the consent
+ * sheet); the backdrop and a drag down still cancel. Same two buttons, same names and handlers.
  */
 import { useCallback, useState } from 'react';
 import { Pressable } from './lib/pressable';
 import { Text } from './lib/text';
-import { AlertDialog, AlertDialogBackdrop, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader } from './lib/alert-dialog';
+import { Box } from './lib/box';
+import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from './lib/actionsheet';
 import { hit } from '../design';
 
 const TAP = { minHeight: hit.min };
+/** B's primary pill: 52 pt. */
+const PILL = { minHeight: 52 };
 
 export type ConfirmRequest = {
   title: string;
@@ -34,24 +43,23 @@ export function ConfirmDialog(props: { request: ConfirmRequest | undefined; onCl
   const action = r?.action ?? 'OK';
   const cancel = r?.cancel === undefined ? 'Cancel' : r.cancel;
   return (
-    <AlertDialog isOpen={r !== undefined} onClose={props.onClose}>
-      <AlertDialogBackdrop />
-      {/* M17 (`ConfirmDialog-B`): a white card, serif title, the action as the yellow pill. */}
-      <AlertDialogContent className="bg-surface rounded-row p-section w-full gap-section border border-border" accessibilityViewIsModal>
-        <AlertDialogHeader><Text className="text-text text-lg font-display" accessibilityRole="header">{r?.title ?? ''}</Text></AlertDialogHeader>
-        {r?.message ? <AlertDialogBody><Text className="text-muted text-body">{r.message}</Text></AlertDialogBody> : null}
-        <AlertDialogFooter className="flex-row justify-end gap-row">
-          {cancel !== null ? (
-            <Pressable onPress={props.onClose} accessibilityRole="button" accessibilityLabel={cancel} className="justify-center px-section rounded-pill border border-border bg-surface" style={TAP}>
-              <Text className="text-text text-body font-bold">{cancel}</Text>
-            </Pressable>
-          ) : null}
-          <Pressable onPress={() => { props.onClose(); r?.onConfirm?.(); }} accessibilityRole="button" accessibilityLabel={action} className="justify-center px-section rounded-pill bg-primary" style={TAP}>
-            <Text className="text-onPrimary text-body font-bold">{action}</Text>
+    <Actionsheet isOpen={r !== undefined} onClose={props.onClose}>
+      <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
+      <ActionsheetContent className="bg-background rounded-t-artwork-lg px-screen-x pt-gap items-stretch" accessibilityViewIsModal>
+        <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
+        <Text className="text-text font-display text-[30px] leading-[34px] mt-row" accessibilityRole="header">{r?.title ?? ''}</Text>
+        {r?.message ? <Text className="text-muted text-[15px] leading-[22px] mt-gap">{r.message}</Text> : null}
+        <Pressable onPress={() => { props.onClose(); r?.onConfirm?.(); }} accessibilityRole="button" accessibilityLabel={action} className="items-center justify-center rounded-pill bg-primary mt-screen-x" style={PILL}>
+          <Text className="text-onPrimary text-[15px] font-bold">{action}</Text>
+        </Pressable>
+        {cancel !== null ? (
+          <Pressable onPress={props.onClose} accessibilityRole="button" accessibilityLabel={cancel} className="items-center justify-center mt-1" style={TAP}>
+            <Text className="text-accent text-body font-bold">{cancel}</Text>
           </Pressable>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+        ) : null}
+        <Box className="h-row" />
+      </ActionsheetContent>
+    </Actionsheet>
   );
 }
 

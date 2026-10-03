@@ -8,9 +8,15 @@
  *
  * On iOS the box is lifted above native modals too (../lib/above-modals), so a toast raised on a
  * page opened from Search is seen — not drawn underneath it. VoiceOver is not trapped in it.
+ *
+ * M17 (`Toast-B`, checked in T106–T111): B's toast is a white pill near the top — under the
+ * page's back row, clear of the mini player — with a yellow disc holding a check, then the words
+ * in bold. Wave 0 had made it a dark pill at the bottom. The top inset comes from the context,
+ * not `useSafeAreaInsets`, so the host still draws without a provider (the toast tests).
  */
-import { useEffect } from 'react';
-import { AccessibilityInfo, Platform } from 'react-native';
+import { useContext, useEffect } from 'react';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
+import { AccessibilityInfo, Platform, type ViewStyle } from 'react-native';
 import { Text } from './lib/text';
 import { Box } from './lib/box';
 import { AboveModals } from './lib/above-modals';
@@ -21,15 +27,27 @@ export function announceToast(message: string): void {
   try { AccessibilityInfo.announceForAccessibility(message); } catch { /* no screen reader API here */ }
 }
 
+/** Below the status bar and the page's 44 pt back row (B: 104 pt on a 44 pt inset). */
+const BELOW_BACK_ROW = 60;
+const DISC = { width: 26, height: 26 };
+/** A check drawn from two borders, on the disc. */
+const CHECK: ViewStyle = { width: 7, height: 12, borderRightWidth: 2, borderBottomWidth: 2, marginTop: -3, transform: [{ rotate: '45deg' }] };
+
 export function ToastHost(props: { message: string | undefined }): React.ReactElement | null {
   const { message } = props;
+  const insets = useContext(SafeAreaInsetsContext);
   useEffect(() => { if (message !== undefined) announceToast(message); }, [message]);
   if (message === undefined) return null;
   return (
     <AboveModals modal={false}>
-      {/* M17 (`Toast-B`): a dark pill with page-coloured words, above the mini player. */}
-      <Box className="absolute left-screen-x right-screen-x bottom-24 bg-text rounded-pill px-section py-row" accessibilityLiveRegion="polite">
-        <Text className="text-background text-body font-semibold">{message}</Text>
+      {/* M17 (`Toast-B`): a white pill near the top, a yellow disc with a check, bold words. */}
+      <Box className="absolute left-screen-x right-screen-x items-center" style={{ top: (insets?.top ?? 0) + BELOW_BACK_ROW }} pointerEvents="none">
+        <Box className="flex-row items-center gap-[10px] bg-surface border border-border rounded-pill pl-row pr-[18px] py-row max-w-full" accessibilityLiveRegion="polite">
+          <Box className="bg-primary rounded-pill items-center justify-center" style={DISC} accessible={false} importantForAccessibility="no-hide-descendants">
+            <Box className="border-onPrimary" style={CHECK} />
+          </Box>
+          <Text className="text-text text-body font-bold shrink">{message}</Text>
+        </Box>
       </Box>
     </AboveModals>
   );

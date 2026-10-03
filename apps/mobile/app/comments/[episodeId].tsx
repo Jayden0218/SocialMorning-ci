@@ -8,7 +8,8 @@
  * M17 (`Comments-B`): the Editorial page — the serif "Comments N" title, the episode on the page
  * with a yellow play/pause, the three orders as the shared pill `Segmented`, each comment a white
  * card (CommentRow), and the write box a white pill with a yellow edge, the listener's initial on
- * the left and the moment as a yellow "at 26:37" chip. The ⋯ menu sheet is restyled later (T104).
+ * the left and the moment as a yellow "at 26:37" chip.
+ * M17 T104 (`CommentMenu-B`): the ⋯ menu sheet shows the comment on a card above icon rows.
  */
 import { useCallback, useMemo, useState } from 'react';
 import { Clipboard } from 'react-native';
@@ -39,10 +40,22 @@ import { isFavComment, toggleFavComment } from '../../src/me/fav-comments';
 import { EpisodeCard } from '../../src/ui/comments/EpisodeCard';
 import { PageHeader } from '../../src/ui/PageHeader';
 import { Segmented } from '../../src/ui/Segmented';
+import { Icon, type IconName } from '../../src/ui/Icon';
 
 const TAB = { minHeight: hit.min };
 const WRITE = { minHeight: 52 };
 const ME = { width: 36, height: 36 };
+/** M17 T104: the comment menu's avatar (28 pt) and icon square (40 pt, as in `CommentMenu-B`). */
+const AVATAR = { width: 28, height: 28 };
+const ICON_BOX = { width: 40, height: 40 };
+function menuIcon(label: string): IconName {
+  if (label === 'Reply') return 'arrow-undo-outline';
+  if (label === 'Copy') return 'copy-outline';
+  if (label === 'Save') return 'bookmark-outline';
+  if (label === 'Remove from saved') return 'bookmark';
+  if (label === 'Delete') return 'trash-outline';
+  return 'flag-outline';
+}
 const ORDERS: { value: CommentOrder; label: string }[] = [
   { value: 'newest', label: 'Newest' },
   { value: 'liked', label: 'Most liked' },
@@ -163,15 +176,38 @@ export default function CommentsScreen(): React.ReactElement {
       </Pressable>
       <Actionsheet isOpen={menu !== undefined} onClose={() => setMenu(undefined)}>
         <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-        <ActionsheetContent className="bg-surface rounded-t-row items-stretch">
+        <ActionsheetContent className="bg-surface rounded-t-row px-screen-x items-stretch">
           <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
-          {menu ? menuItems(menu).map((item) => (
-            <Pressable key={item.label} onPress={() => { setMenu(undefined); item.run(); }} accessibilityRole="button" className="justify-center px-screen-x border-b-hairline border-separator" style={TAB}>
-              <Text className={item.label === 'Delete' || item.label === 'Report' ? 'text-accent text-sm' : 'text-text text-sm'}>{item.label}</Text>
-            </Pressable>
-          )) : null}
-          <Pressable onPress={() => setMenu(undefined)} accessibilityRole="button" className="justify-center items-center" style={TAB}>
-            <Text className="text-muted text-sm">Cancel</Text>
+          {/* M17 (`CommentMenu-B`, T104): the comment itself on a white card, then one row per action
+              with its icon in a bordered square; Delete / Report sit under a rule; Cancel is a pill. */}
+          {menu ? (
+            <Box className="bg-surface border border-border rounded-row p-row mt-gap mb-row" accessible accessibilityLabel={`${menu.displayName ?? 'A listener'}${menu.offsetMs !== null ? ` at ${mmss(menu.offsetMs)}` : ''}: ${menu.body ?? ''}`}>
+              <Box className="flex-row items-center gap-gap">
+                <Box className="rounded-pill bg-accentTint items-center justify-center" style={AVATAR}>
+                  <Text className="text-text text-micro font-bold">{initialsFor(menu)}</Text>
+                </Box>
+                <Text className="text-text text-meta font-bold flex-1" numberOfLines={1}>{menu.displayName ?? 'A listener'}</Text>
+                {menu.offsetMs !== null ? <Text className="text-accent text-xs font-bold">{mmss(menu.offsetMs)}</Text> : null}
+              </Box>
+              {menu.body ? <Text className="text-text text-title font-display-semibold mt-gap" numberOfLines={4}>{menu.body}</Text> : null}
+            </Box>
+          ) : null}
+          {menu ? menuItems(menu).map((item) => {
+            const strong = item.label === 'Delete' || item.label === 'Report';
+            return (
+              <Box key={item.label}>
+                {strong ? <Box className="border-b-hairline border-separator my-gap" /> : null}
+                <Pressable onPress={() => { setMenu(undefined); item.run(); }} accessibilityRole="button" className="flex-row items-center gap-section" style={TAB}>
+                  <Box className="rounded-row bg-surface border border-border items-center justify-center" style={ICON_BOX}>
+                    <Icon name={menuIcon(item.label)} size={18} color={c.accent} />
+                  </Box>
+                  <Text className={strong ? 'text-accent text-sm font-semibold' : 'text-text text-sm font-semibold'}>{item.label}</Text>
+                </Pressable>
+              </Box>
+            );
+          }) : null}
+          <Pressable onPress={() => setMenu(undefined)} accessibilityRole="button" className="justify-center items-center rounded-pill border border-border mt-row" style={TAB}>
+            <Text className="text-text text-body font-bold">Cancel</Text>
           </Pressable>
         </ActionsheetContent>
       </Actionsheet>

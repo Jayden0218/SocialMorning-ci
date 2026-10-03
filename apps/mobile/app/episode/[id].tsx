@@ -17,6 +17,10 @@
  * Subscribe pill, then one white card of three: Queue, comments, Favourite (they were icons on
  * the meta line). Show notes get an eyebrow, a serif lede and one row per chapter time
  * (src/ui/episode/ShowNotes). Every action, name and handler is the one it was.
+ *
+ * M17 T103 (`EpisodeMoreSheet-B`): the ⋯ sheet heads with the episode (art, show, serif title),
+ * its actions are a grid of white tiles (QueueButtons / DownloadButton / EpisodeExtras), and
+ * Cancel is an outlined pill.
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
@@ -280,18 +284,26 @@ export default function EpisodeScreen(): React.ReactElement {
         onClip={() => router.push({ pathname: '/clip/new', params: { episodeId: episode.id, positionMs: String(Math.round(snapshotOffset)) } })}
         onShared={() => void api.recordShare({ targetKind: 'episode', targetId: episode.id, feedUrl: episode.feedUrl }).catch(() => undefined)}
       />
-            <Actionsheet isOpen={more} onClose={() => setMore(false)}>
+      <Actionsheet isOpen={more} onClose={() => setMore(false)}>
         <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
         <ActionsheetContent className="bg-surface rounded-t-row px-screen-x pt-row items-stretch">
           <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
-          <Text className="text-sm font-bold text-text py-row" numberOfLines={2}>{episode.title}</Text>
+          {/* M17 (`EpisodeMoreSheet-B`, T103): the episode on top — 64 pt art, the show as an accent
+              line, the serif title — then a 2-column grid of tiles (the three parts) and a Cancel pill. */}
+          <Box className="flex-row items-center gap-row mt-gap mb-section">
+            <Artwork url={episode.imageUrl ?? show?.imageUrl} size={64} name={show?.title} />
+            <Box className="flex-1">
+              {show ? <Text className="text-accent text-xs font-bold" numberOfLines={1}>{show.title}</Text> : null}
+              <Text className="text-text text-base font-display" numberOfLines={2}>{episode.title}</Text>
+            </Box>
+          </Box>
           <QueueButtons episodeId={episode.id} onQueued={() => stores.inboxState.mark(episode.id, 'queued', Date.now())} />
           <DownloadButton episodeId={episode.id} />
           {/* M10 (owner, 2026-09-27): favourite, and save this moment with a note. */}
           <EpisodeExtras episodeId={episode.id} atMs={snapshotOffset} />
           {/* M12 FR-032: a Cancel row closes the list, as a list sheet should. */}
-          <Pressable onPress={() => setMore(false)} accessibilityRole="button" accessibilityLabel="Cancel" className="items-center justify-center mt-row" style={TAP}>
-            <Text className="text-sm text-muted">Cancel</Text>
+          <Pressable onPress={() => setMore(false)} accessibilityRole="button" accessibilityLabel="Cancel" className="items-center justify-center mt-gap rounded-pill border border-border" style={TAP}>
+            <Text className="text-body font-bold text-text">Cancel</Text>
           </Pressable>
         </ActionsheetContent>
       </Actionsheet>

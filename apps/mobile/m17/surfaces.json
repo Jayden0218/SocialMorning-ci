@@ -445,56 +445,56 @@
   "design": "QueueSheet-B",
   "entry": "apps/mobile/src/ui/QueueSheet.tsx",
   "wave": "W6",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "ReportSheet",
   "design": "ReportSheet-B",
   "entry": "apps/mobile/src/ui/ReportSheet.tsx",
   "wave": "W6",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "ShareSheet",
   "design": "ShareSheet-B",
   "entry": "apps/mobile/src/ui/ShareChooser.tsx",
   "wave": "W6",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "MomentSheet",
   "design": "MomentSheet-B",
   "entry": "apps/mobile/src/ui/MomentSheet.tsx",
   "wave": "W6",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "PlaybackSheet",
   "design": "PlaybackSheet-B",
   "entry": "apps/mobile/app/player.tsx",
   "wave": "W6",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "EpisodeMoreSheet",
   "design": "EpisodeMoreSheet-B",
   "entry": "apps/mobile/app/episode/[id].tsx",
   "wave": "W6",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "CommentComposer",
   "design": "CommentComposer-B",
   "entry": "apps/mobile/src/ui/Composer.tsx",
   "wave": "W6",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "CommentMenu",
   "design": "CommentMenu-B",
   "entry": "apps/mobile/app/comments/[episodeId].tsx",
   "wave": "W6",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "CollectedDetail",
@@ -508,56 +508,56 @@
   "design": "ConfirmDialog-B",
   "entry": "apps/mobile/src/ui/confirm.tsx",
   "wave": "W6",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "ConsentDialog",
   "design": "ConsentDialog-B",
   "entry": "apps/mobile/src/ui/auth/Consent.tsx",
   "wave": "W6",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "Terms",
   "design": "Terms-B",
   "entry": "apps/mobile/src/ui/Terms.tsx",
   "wave": "W6",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "TermsRefused",
   "design": "TermsRefused-B",
   "entry": "apps/mobile/src/ui/Terms.tsx",
   "wave": "W6",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "LegalDoc",
   "design": "LegalDoc-B",
   "entry": "apps/mobile/src/ui/LegalDoc.tsx",
   "wave": "W6",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "Toast",
   "design": "Toast-B",
   "entry": "apps/mobile/src/ui/ToastHost.tsx",
   "wave": "W6",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "ErrorScreen",
   "design": "ErrorScreen-B",
   "entry": "apps/mobile/app/_layout.tsx",
   "wave": "W6",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "LoadError",
   "design": "LoadError-B",
   "entry": "apps/mobile/src/ui/EmptyState.tsx",
   "wave": "W6",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "ScanPermission",
@@ -571,20 +571,20 @@
   "design": "EpisodeEnd-B",
   "entry": "apps/mobile/src/ui/EndOffer.tsx",
   "wave": "W6",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "ComingSoonWallet",
   "design": "ComingSoonWallet-B",
   "entry": "apps/mobile/app/(tabs)/me.tsx",
   "wave": "W6",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "ComingSoonSocialSignIn",
   "design": "ComingSoonSocialSignIn-B",
   "entry": "apps/mobile/app/auth/sign-in.tsx",
   "wave": "W6",
-  "status": "todo"
+  "status": "built"
  }
 ]

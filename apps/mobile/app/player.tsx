@@ -27,6 +27,9 @@
  * markers, heat curve, seek bar and times sit together in one white card under "What listeners
  * felt"; play/pause is a yellow disc, speed a bordered pill; About · Playlist · Comments become a
  * bottom bar under a hairline. Every action, label, handler and the Playback sheet are unchanged.
+ *
+ * M17 T102 (`PlaybackSheet-B`): the Playback sheet takes B's look — serif title, Chapters and
+ * Transcript as cards, Done as a yellow pill at the bottom. Same actions and handlers.
  */
 import { useEffect, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
@@ -71,7 +74,7 @@ import { EndOffer } from '../src/ui/EndOffer';
 import { endOffer } from '../src/discover/end-offer';
 import { toPlayable } from '../src/storage/playable';
 import { useDiscover } from '../src/discover/useDiscover';
-import { tabular } from '../src/design';
+import { size, tabular } from '../src/design';
 import { LinearGradient } from '../src/design/tailwind';
 import { playerWash, usePlayerPalette } from '../src/ui/player/palette';
 import { useShowExtras } from '../src/ui/ShowExtras';
@@ -387,29 +390,31 @@ export default function PlayerScreen(): React.ReactElement {
     </Box>
     </SafeAreaView>
 
-        <Actionsheet isOpen={more} onClose={() => setMore(false)}>
+    {/* M17 T102 (`PlaybackSheet-B`): a serif "Playback" title; speed and sleep as they were;
+        Chapters and Transcript as two cards side by side (icon, name, a line under it); Done as
+        the full-width yellow pill at the bottom (it was a link at the top, same name and handler). */}
+    <Actionsheet isOpen={more} onClose={() => setMore(false)}>
       <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-      <ActionsheetContent className="bg-surface rounded-t-row px-screen-x pt-row gap-section max-h-[75%] items-stretch">
+      <ActionsheetContent className="bg-surface rounded-t-row px-screen-x pt-row gap-row max-h-[85%] items-stretch">
         <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
-        <Box className="flex-row justify-between items-center">
-          <Text className="text-base font-bold text-text">Playback</Text>
-          <Pressable onPress={() => setMore(false)} accessibilityRole="button" accessibilityLabel="Close" className="justify-center" style={TAP}>
-            <Text className="text-sm text-accent">Done</Text>
-          </Pressable>
-        </Box>
+        <Text className="text-hero font-display text-text" accessibilityRole="header">Playback</Text>
         <ScrollView contentContainerClassName="gap-section">
           <SpeedControl />
           <SleepTimerControl />
           {extras && (extras.chapters?.length || (showTranscript && extras.transcript)) ? (
-            <Box className="flex-row gap-row flex-wrap">
+            <Box className="flex-row gap-row">
               {extras.chapters && extras.chapters.length > 0 ? (
-                <Pressable className={pane === 'chapters' ? SECONDARY_ON : SECONDARY} onPress={() => setPane(pane === 'chapters' ? 'none' : 'chapters')} accessibilityRole="button">
-                  <Text className={pane === 'chapters' ? SECONDARY_ON_TEXT : SECONDARY_TEXT}>Chapters ({extras.chapters.length})</Text>
+                <Pressable className={pane === 'chapters' ? TILE_ON : TILE} style={{ minHeight: TAP.minHeight }} onPress={() => setPane(pane === 'chapters' ? 'none' : 'chapters')} accessibilityRole="button" accessibilityLabel={`Chapters (${extras.chapters.length})`} accessibilityState={{ expanded: pane === 'chapters' }}>
+                  <Icon name="library-outline" size={22} color={pane === 'chapters' ? c.onPrimary : c.accent} />
+                  <Text className={pane === 'chapters' ? TILE_ON_TITLE : TILE_TITLE}>Chapters</Text>
+                  <Text className={pane === 'chapters' ? TILE_ON_DETAIL : TILE_DETAIL}>{plural(extras.chapters.length, 'chapter')}</Text>
                 </Pressable>
               ) : null}
               {showTranscript && extras.transcript ? (
-                <Pressable className={pane === 'transcript' ? SECONDARY_ON : SECONDARY} onPress={() => setPane(pane === 'transcript' ? 'none' : 'transcript')} accessibilityRole="button">
-                  <Text className={pane === 'transcript' ? SECONDARY_ON_TEXT : SECONDARY_TEXT}>Transcript</Text>
+                <Pressable className={pane === 'transcript' ? TILE_ON : TILE} style={{ minHeight: TAP.minHeight }} onPress={() => setPane(pane === 'transcript' ? 'none' : 'transcript')} accessibilityRole="button" accessibilityLabel="Transcript" accessibilityState={{ expanded: pane === 'transcript' }}>
+                  <Icon name="document-text-outline" size={22} color={pane === 'transcript' ? c.onPrimary : c.accent} />
+                  <Text className={pane === 'transcript' ? TILE_ON_TITLE : TILE_TITLE}>Transcript</Text>
+                  <Text className={pane === 'transcript' ? TILE_ON_DETAIL : TILE_DETAIL}>Follows the audio</Text>
                 </Pressable>
               ) : null}
             </Box>
@@ -418,6 +423,9 @@ export default function PlayerScreen(): React.ReactElement {
           {pane === 'chapters' && extras?.chapters ? <ChapterList chapters={extras.chapters} positionMs={positionMs} onSeek={(ms) => player.seek(ms)} /> : null}
           {showTranscript && pane === 'transcript' && extras?.transcript ? <TranscriptPane transcript={extras.transcript} positionMs={positionMs} onSeek={(ms) => player.seek(ms)} /> : null}
         </ScrollView>
+        <Pressable onPress={() => setMore(false)} accessibilityRole="button" accessibilityLabel="Close" className="items-center justify-center rounded-pill bg-primary mt-1" style={DONE}>
+          <Text className="text-sm font-bold text-onPrimary">Done</Text>
+        </Pressable>
       </ActionsheetContent>
     </Actionsheet>
 
@@ -483,7 +491,13 @@ const PRIMARY = 'min-h-12 py-row px-screen-x rounded-pill bg-primary justify-cen
 const PRIMARY_TEXT = 'text-onPrimary font-bold text-sm';
 const CLIP_BANNER = 'flex-row gap-row items-center flex-wrap justify-center';
 const SECONDARY = 'min-h-12 py-2 px-section rounded-pill border border-separator justify-center';
-// Chosen is told apart by the fill AND by the pane opening — never by hue alone (FR-016).
-const SECONDARY_ON = 'min-h-12 py-2 px-section rounded-pill border bg-primary border-primary justify-center';
 const SECONDARY_TEXT = 'font-semibold text-xs text-text';
-const SECONDARY_ON_TEXT = 'font-semibold text-xs text-onPrimary';
+/** M17 (`PlaybackSheet-B`): Chapters / Transcript as half-width cards. Chosen is told apart by the yellow fill AND the pane opening — never by hue alone (FR-016). */
+const TILE = 'flex-1 p-section gap-1 rounded-row border border-border bg-surface';
+const TILE_ON = 'flex-1 p-section gap-1 rounded-row border border-primary bg-primary';
+const TILE_TITLE = 'text-sm font-bold text-text mt-1';
+const TILE_ON_TITLE = 'text-sm font-bold text-onPrimary mt-1';
+const TILE_DETAIL = 'text-meta text-muted';
+const TILE_ON_DETAIL = 'text-meta text-onPrimary';
+/** The sheet's Done pill: B's 52 pt, as the token row height (50). A size, so a style. */
+const DONE = { minHeight: size.row };
