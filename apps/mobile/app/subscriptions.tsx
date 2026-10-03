@@ -6,10 +6,16 @@
  * M12 FR-081: a search box, three sorts, a Starred section on top, 56 pt artwork, each
  * show's newest episode, and a ⋮ per row with Star / Unstar and Unsubscribe. A star is
  * stamped and synced (guards G-ST1, G-ST2).
+ *
+ * M17 (`Subscriptions-B`): the 32 pt serif title; starred shows become a sideways strip of
+ * white cards (artwork, serif name, newest episode, ⋮ on the artwork) under a serif "Starred";
+ * then "All shows", the three sorts as a pill track (inline, so the inventory keeps them here),
+ * the pill search box, and the rows split by hairlines. Same actions, same sheet, same names.
  */
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { SectionList } from '../src/ui/lib/section-list';
+import { FlatList } from '../src/ui/lib/flat-list';
+import { ScrollView } from '../src/ui/lib/scroll-view';
 import { Pressable } from '../src/ui/lib/pressable';
 import { Text } from '../src/ui/lib/text';
 import { Box } from '../src/ui/lib/box';
@@ -30,6 +36,9 @@ import { hit } from '../src/design';
 import { PageHeader } from '../src/ui/PageHeader';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
+/** M17 (`Subscriptions-B`): a starred card is 220 pt wide; its artwork fills it inside 10 pt padding and the border. */
+const CARD = { width: 220 };
+const CARD_ART = 220 - 2 * 10 - 2;
 type Row = SubRow & { imageUrl?: string; latestTitle?: string; stale: boolean };
 
 export default function SubscriptionsScreen(): React.ReactElement {
@@ -79,45 +88,76 @@ export default function SubscriptionsScreen(): React.ReactElement {
   };
 
   const { starred, rest } = arrangeSubscriptions(rows, term, sort);
-  const sections: { key: string; title: string; data: Row[] }[] = [
-    ...(starred.length > 0 ? [{ key: 'starred', title: 'Starred', data: starred }] : []),
-    ...(rest.length > 0 ? [{ key: 'all', title: starred.length > 0 ? 'All shows' : '', data: rest }] : []),
-  ];
+
+  /** The spoken and printed lines a show carries, wherever it is drawn. */
+  const linesOf = (item: Row): { extra: string; line: string } => ({
+    extra: [item.stale ? 'offline copy' : undefined,
+      safety.isHidden('show', item.feedUrl) ? 'reported' : hiddenFeeds.has(item.feedUrl) ? 'hidden from discovery' : undefined].filter(Boolean).join(' · '),
+    line: item.latestTitle ? `${item.latestAt !== undefined ? `${shortDate(item.latestAt)} · ` : ''}${item.latestTitle}` : 'No episodes yet',
+  });
+
+  /** M17: a starred show is a 220 pt card in the strip on top — artwork, serif name, newest episode, ⋮ on the artwork. */
+  const starredCard = (item: Row) => {
+    const { extra, line } = linesOf(item);
+    return (
+      <Box key={item.feedUrl} className="bg-surface border border-border rounded-row p-2.5" style={CARD}>
+        <Pressable
+          onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(item.feedUrl) } })}
+          className="gap-1"
+          accessibilityRole="button"
+          accessibilityLabel={`${item.title}${item.starred ? ', starred' : ''}. Newest: ${line}${extra ? `. ${extra}` : ''}`}
+        >
+          <Artwork url={item.imageUrl} size={CARD_ART} rounded="row" name={item.title} />
+          <Text className="text-text text-title font-display mt-1.5" numberOfLines={1}>{item.title}</Text>
+          <Text className="text-muted text-xs" numberOfLines={2}>{line}</Text>
+          {extra ? <Text className="text-muted text-xs">{extra}</Text> : null}
+        </Pressable>
+        <Pressable onPress={() => setMenu(item)} accessibilityRole="button" accessibilityLabel={`More for ${item.title}`} className="absolute top-4 right-4 items-center justify-center rounded-pill bg-veil" style={TAP}>
+          <Icon name="ellipsis-vertical" size={20} color={c.text} />
+        </Pressable>
+      </Box>
+    );
+  };
 
   return (
     <>
     <PageHeader title="My subscriptions" />
     <Box className="flex-1 bg-background">
-      <SectionList
-        sections={sections}
+      <FlatList
+        data={rest}
         keyExtractor={(r) => r.feedUrl}
-        contentContainerClassName="px-screen-x py-row pb-24 flex-grow"
+        contentContainerClassName="px-screen-x pb-24 flex-grow"
         keyboardShouldPersistTaps="handled"
-        stickySectionHeadersEnabled={false}
         ListHeaderComponent={rows.length === 0 ? undefined : (
           <Box>
-            <FilterBar term={term} onTerm={setTerm} placeholder="Search your shows" />
-            <Box className="flex-row gap-row pb-row" accessibilityRole="tablist">
+            {starred.length > 0 ? (
+              <>
+                <Text className="text-text text-base font-display-semibold mb-2.5" accessibilityRole="header">Starred</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mr-screen-x" contentContainerClassName="gap-row pr-screen-x">
+                  {starred.map(starredCard)}
+                </ScrollView>
+                <Text className="text-text text-base font-display-semibold mt-5 mb-2" accessibilityRole="header">All shows</Text>
+              </>
+            ) : null}
+            <Box className="flex-row gap-1 p-1 mb-section bg-surface border border-border rounded-pill" accessibilityRole="tablist">
               {SUB_SORTS.map((s) => {
                 const on = s.key === sort;
                 return (
                   <Pressable key={s.key} onPress={() => setSort(s.key)} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={`Sort: ${s.label}`}
-                    className={`justify-center px-section rounded-pill ${on ? 'bg-primary' : 'bg-surface'}`} style={TAP}>
-                    <Text className={on ? 'text-onPrimary text-xs font-semibold' : 'text-text text-xs'}>{s.label}</Text>
+                    className={`flex-1 items-center justify-center px-1 rounded-pill ${on ? 'bg-primary' : ''}`} style={TAP}>
+                    <Text className={on ? 'text-onPrimary text-meta font-bold text-center' : 'text-muted text-meta font-medium text-center'}>{s.label}</Text>
                   </Pressable>
                 );
               })}
             </Box>
+            <FilterBar term={term} onTerm={setTerm} placeholder="Search your shows" />
           </Box>
         )}
-        renderSectionHeader={({ section }) => (section.title ? <Text className="text-muted text-xs mt-section mb-1" accessibilityRole="header">{section.title}</Text> : null)}
-        ListEmptyComponent={rows.length === 0 ? <EmptyState surface="library" page /> : <EmptyPicture icon="search" line="No shows match" />}
+        ListEmptyComponent={rows.length === 0 ? <EmptyState surface="library" page /> : starred.length === 0 ? <EmptyPicture icon="search" line="No shows match" /> : null}
         renderItem={({ item }) => {
-          const extra = [item.stale ? 'offline copy' : undefined,
-            safety.isHidden('show', item.feedUrl) ? 'reported' : hiddenFeeds.has(item.feedUrl) ? 'hidden from discovery' : undefined].filter(Boolean).join(' · ');
-          const line = item.latestTitle ? `${item.latestAt !== undefined ? `${shortDate(item.latestAt)} · ` : ''}${item.latestTitle}` : 'No episodes yet';
+          const { extra, line } = linesOf(item);
           return (
-            <Box className="flex-row items-center gap-row py-row">
+            <Box className="flex-row items-center gap-2 py-2.5 border-b-hairline border-separator">
               <Pressable
                 onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(item.feedUrl) } })}
                 className="flex-row gap-row items-center flex-1"
@@ -126,8 +166,8 @@ export default function SubscriptionsScreen(): React.ReactElement {
               >
                 <Artwork url={item.imageUrl} size={56} rounded="row" name={item.title} />
                 <Box className="flex-1">
-                  <Text className="text-text text-sm font-semibold" numberOfLines={1}>{item.title}</Text>
-                  <Text className="text-muted text-xs" numberOfLines={1}>{line}</Text>
+                  <Text className="text-text text-sm font-bold" numberOfLines={1}>{item.title}</Text>
+                  <Text className="text-muted text-xs mt-0.5" numberOfLines={1}>{line}</Text>
                   {extra ? <Text className="text-muted text-xs">{extra}</Text> : null}
                 </Box>
               </Pressable>

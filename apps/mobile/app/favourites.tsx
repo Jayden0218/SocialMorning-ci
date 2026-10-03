@@ -2,28 +2,43 @@
  * Favourites (我的收藏, M10; tabs M10b US2): Episodes you starred on their page, and
  * Comments you starred with ☆ — each newest first, both searchable, both following the
  * account (src/sync/library.ts).
+ *
+ * M17 (`Favourites-B`): the page's name is the 32 pt serif title again (M16a had the two tabs
+ * in the bar); under it the pill search box, then Episodes / Comments as a pill track with
+ * each tab's count, the chosen one yellow. Episodes are a two-column grid of white cards —
+ * artwork with the accent star in its corner, the title, the show. Comments are white cards —
+ * author and moment, the words, the episode. Same rows, same links, same spoken names.
  */
 import { Link, router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
+import { useWindowDimensions } from 'react-native';
 import { FlatList } from '../src/ui/lib/flat-list';
 import { Pressable } from '../src/ui/lib/pressable';
 import { Text } from '../src/ui/lib/text';
 import { Box } from '../src/ui/lib/box';
-import { hit } from '../src/design';
+import { hit, spacing } from '../src/design';
 import { listFavComments, type FavComment } from '../src/me/fav-comments';
 import { listFavourites, type Favourite } from '../src/me/favourites';
 import { matchesAll } from '../src/me/history';
 import { FilterBar } from '../src/ui/me/FilterBar';
 import { Artwork } from '../src/ui/Artwork';
+import { Icon } from '../src/ui/Icon';
 import { mmss } from '../src/ui/format';
 import { EmptyPicture } from '../src/ui/me/parts';
 import { useStores } from '../src/ui/providers';
+import { useColours } from '../src/ui/useColours';
 import { PageHeader } from '../src/ui/PageHeader';
 
 const TAP = { minHeight: hit.min };
+/** The grid's two columns sit `spacing.row` apart. */
+const COLUMNS = { gap: spacing.row };
+/** A grid card's inner padding (p-2) and border, either side. */
+const CARD_INSET = 2 * 8 + 2;
 
 export default function FavouritesScreen(): React.ReactElement {
   const stores = useStores();
+  const c = useColours(stores.settings);
+  const { width } = useWindowDimensions();
   const [tab, setTab] = useState<'episodes' | 'comments'>('episodes');
   const [rows, setRows] = useState<Favourite[]>(() => listFavourites(stores.settings));
   const [comments, setComments] = useState<FavComment[]>(() => listFavComments(stores.settings));
@@ -33,34 +48,36 @@ export default function FavouritesScreen(): React.ReactElement {
     .filter((r) => r.e !== undefined && matchesAll(term, [r.e.title, stores.feeds.getShow(r.e.feedUrl)?.title]));
   const starred = comments.filter((c) => matchesAll(term, [c.body, c.author, stores.feeds.getEpisode(c.episodeId)?.title]));
   const any = tab === 'episodes' ? rows.length > 0 : comments.length > 0;
+  const art = Math.max(0, Math.floor((width - 2 * spacing.screenX - spacing.row) / 2 - CARD_INSET));
 
-  // M12 FR-097: the two tabs are the top bar's title, not a row under it.
+  // M12 FR-097 kept the two tabs; M17 draws them as a pill track under the search box (inline,
+  // not the shared Segmented, so the inventory keeps them on this page).
   const tabs = (
-    <Box className="flex-row gap-section" accessibilityRole="tablist">
+    <Box className="flex-row gap-1 p-1 bg-surface border border-border rounded-pill" accessibilityRole="tablist">
       {(['episodes', 'comments'] as const).map((t) => (
-        <Pressable key={t} onPress={() => setTab(t)} accessibilityRole="tab" accessibilityState={{ selected: tab === t }} accessibilityLabel={t === 'episodes' ? 'Episodes' : 'Comments'} className="items-center justify-center" style={TAP}>
-          <Text className={tab === t ? 'text-text text-base font-bold' : 'text-muted text-base'}>{t === 'episodes' ? 'Episodes' : 'Comments'}</Text>
-          <Box className={`h-1 w-5 mt-1 rounded-pill ${tab === t ? 'bg-primary' : 'bg-transparent'}`} />
+        <Pressable key={t} onPress={() => setTab(t)} accessibilityRole="tab" accessibilityState={{ selected: tab === t }} accessibilityLabel={t === 'episodes' ? 'Episodes' : 'Comments'} className={`flex-1 rounded-pill items-center justify-center ${tab === t ? 'bg-primary' : ''}`} style={TAP}>
+          <Text className={tab === t ? 'text-onPrimary text-meta font-bold' : 'text-muted text-meta font-medium'}>{t === 'episodes' ? `Episodes · ${rows.length}` : `Comments · ${comments.length}`}</Text>
         </Pressable>
       ))}
     </Box>
   );
   const header = (
-    <Box>
+    <Box className="pb-row">
       {any ? <FilterBar term={term} onTerm={setTerm} placeholder="Search your favourites" /> : null}
+      {tabs}
     </Box>
   );
 
   if (tab === 'comments') {
     return (
       <>
-      {/* M16a T002: the two tabs are the app's own bar's middle (were the native header's title). */}
-      <PageHeader middle={<Box className="flex-1 items-center">{tabs}</Box>} />
+      <PageHeader title="Favourites" />
       <FlatList
+        key="comments"
         className="flex-1 bg-background"
         data={starred}
         keyExtractor={(c) => c.commentId}
-        contentContainerClassName="px-screen-x py-row pb-24 flex-grow"
+        contentContainerClassName="px-screen-x pb-24 flex-grow"
         keyboardShouldPersistTaps="handled"
         ListHeaderComponent={header}
         ListEmptyComponent={<EmptyPicture icon="chatbubble-outline" line={term ? 'Nothing matches' : 'No favourite comments yet — tap ☆ on a comment'} />}
@@ -68,10 +85,10 @@ export default function FavouritesScreen(): React.ReactElement {
           const e = stores.feeds.getEpisode(item.episodeId);
           return (
             <Pressable onPress={() => router.push({ pathname: '/episode/[id]', params: { id: item.episodeId, ...(item.offsetMs !== null ? { at: String(item.offsetMs) } : {}) } })}
-              accessibilityRole="button" accessibilityLabel={`${item.author}: ${item.body}`} className="py-row border-b-hairline border-separator">
-              <Text className="text-muted text-xs">{item.author}{item.offsetMs !== null ? ` · at ${mmss(item.offsetMs)}` : ''}</Text>
-              <Text className="text-text text-sm" numberOfLines={4}>{item.body || 'This comment was deleted'}</Text>
-              <Text className="text-muted text-xs mt-1" numberOfLines={1}>{e?.title ?? ''}</Text>
+              accessibilityRole="button" accessibilityLabel={`${item.author}: ${item.body}`} className="bg-surface border border-border rounded-row p-row mb-row gap-1" style={TAP}>
+              <Text className="text-muted text-xs font-semibold">{item.author}{item.offsetMs !== null ? ` · at ${mmss(item.offsetMs)}` : ''}</Text>
+              <Text className="text-text text-sm font-display-semibold" numberOfLines={4}>{item.body || 'This comment was deleted'}</Text>
+              <Text className="text-muted text-xs" numberOfLines={1}>{e?.title ?? ''}</Text>
             </Pressable>
           );
         }}
@@ -82,29 +99,38 @@ export default function FavouritesScreen(): React.ReactElement {
 
   return (
     <>
-    <PageHeader middle={<Box className="flex-1 items-center">{tabs}</Box>} />
+    <PageHeader title="Favourites" />
     <FlatList
+      key="episodes"
       className="flex-1 bg-background"
       data={known}
+      numColumns={2}
+      columnWrapperStyle={COLUMNS}
       keyExtractor={(r) => r.f.episodeId}
-      contentContainerClassName="px-screen-x py-row pb-24 flex-grow"
+      contentContainerClassName="px-screen-x pb-24 flex-grow gap-row"
       keyboardShouldPersistTaps="handled"
       ListHeaderComponent={header}
       ListEmptyComponent={<EmptyPicture icon="star-outline" line={term ? 'Nothing matches' : 'No favourites yet — star an episode on its page'} />}
-      renderItem={({ item }) => {
+      renderItem={({ item, index }) => {
         const e = item.e!;
         const show = stores.feeds.getShow(e.feedUrl);
-        return (
+        // The last card of an odd count keeps its half width: a spacer takes the other half.
+        const alone = index === known.length - 1 && known.length % 2 === 1;
+        const card = (
           <Link href={{ pathname: '/episode/[id]', params: { id: e.id } }} asChild>
-            <Pressable className="flex-row gap-row py-row items-center" accessibilityRole="button" accessibilityLabel={e.title}>
-              <Artwork url={e.imageUrl ?? show?.imageUrl} size={56} rounded="row" name={show?.title} />
-              <Box className="flex-1">
-                <Text className="text-text text-sm font-semibold" numberOfLines={2}>{e.title}</Text>
-                <Text className="text-muted text-xs" numberOfLines={1}>{show?.title ?? ''}</Text>
+            <Pressable className="flex-1 bg-surface border border-border rounded-row p-2 pb-row gap-2" accessibilityRole="button" accessibilityLabel={e.title}>
+              <Box>
+                <Artwork url={e.imageUrl ?? show?.imageUrl} size={art} rounded="row" name={show?.title} />
+                <Box className="absolute right-2 bottom-2"><Icon name="star" size={16} color={c.accent} /></Box>
+              </Box>
+              <Box className="px-1">
+                <Text className="text-text text-meta font-bold" numberOfLines={2}>{e.title}</Text>
+                <Text className="text-muted text-micro mt-0.5" numberOfLines={1}>{show?.title ?? ''}</Text>
               </Box>
             </Pressable>
           </Link>
         );
+        return alone ? <Box className="flex-1 flex-row gap-row">{card}<Box className="flex-1" /></Box> : card;
       }}
     />
     </>

@@ -1,5 +1,11 @@
-/** M6 US1: Block / Unblock a listener, with a confirm. The block is local at once; the server hears later. */
+/**
+ * M6 US1: Block / Unblock a listener, with a confirm. The block is local at once; the server hears later.
+ * M17 (`Profile-B`): the white outlined pill beside Follow. Same confirm, same words.
+ */
 import { Button, ButtonText } from './lib/button';
+import { hit } from '../design';
+
+const TAP = { minHeight: hit.min };
 import { useConfirm } from './confirm';
 import { router } from 'expo-router';
 import { announce, useSafety } from '../safety/context';
@@ -32,11 +38,11 @@ export function BlockButton(props: { listenerId: string; displayName: string; on
   }
   return (
     <>
-    {/* M9 (T032): gluestack's Button, the quiet `ghost` kind — a peer of Report, not a shout. */}
-    <Button variant="ghost" onPress={press} accessibilityRole="button" accessibilityLabel={blocked ? `Unblock ${props.displayName}` : `Block ${props.displayName}`} className="py-2 px-0 min-h-[44px] justify-center self-start">
+    {/* M9 (T032): gluestack's Button. M17: an outlined pill — a peer of Report, not a shout. */}
+    <Button variant="outline" onPress={press} accessibilityRole="button" accessibilityLabel={blocked ? `Unblock ${props.displayName}` : `Block ${props.displayName}`} className="px-section rounded-pill border border-border bg-surface justify-center items-center self-start" style={TAP}>
       {/* FR-016: the word carries it, not the hue — Block and Unblock share one colour. Report beside it is
           muted for the same reason — neither of two peer actions should shout over the other. */}
-      <ButtonText className="text-text text-[15px]">{blocked ? 'Unblock' : 'Block'}</ButtonText>
+      <ButtonText className="text-text text-body font-semibold">{blocked ? 'Unblock' : 'Block'}</ButtonText>
     </Button>
     {dialog}
     </>
