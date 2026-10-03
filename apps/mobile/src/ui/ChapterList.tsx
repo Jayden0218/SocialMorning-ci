@@ -25,7 +25,7 @@ export function ChapterList(props: { chapters: Chapter[]; positionMs: number; on
   );
 }
 
-/** The current chapter's title (and artwork when it has one), for the player header. */
+/** The current chapter's title (and artwork when it has one), for the player header. M17: Editorial meta type, muted. */
 export function CurrentChapter(props: { chapters: Chapter[]; positionMs: number }): React.ReactElement | null {
   const i = currentChapter(props.chapters, props.positionMs);
   if (i === undefined) return null;
@@ -33,7 +33,7 @@ export function CurrentChapter(props: { chapters: Chapter[]; positionMs: number 
   return (
     <Box className="flex-row items-center gap-2">
       {c.imageUrl ? <Image source={{ uri: c.imageUrl }} className="w-7 h-7 rounded-sm" /> : null}
-      <Text className="text-text text-[13px]" numberOfLines={1}>{c.title ?? `Chapter ${i + 1}`}</Text>
+      <Text className="text-muted text-meta font-semibold" numberOfLines={1}>{c.title ?? `Chapter ${i + 1}`}</Text>
     </Box>
   );
 }

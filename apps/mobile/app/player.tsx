@@ -21,6 +21,12 @@
  * the show's Studio theme colour when it has one (`playerWash`), else the blurred cover under
  * the light veil. "N listening now" sits in the
  * top bar, and a star there favourites the episode.
+ *
+ * M17 T043 (`Player-B`): the artwork moves to the left of a "Now playing" eyebrow, a serif title
+ * and the show + Subscribe; the current transcript line becomes a large serif quote; the comment
+ * markers, heat curve, seek bar and times sit together in one white card under "What listeners
+ * felt"; play/pause is a yellow disc, speed a bordered pill; About · Playlist · Comments become a
+ * bottom bar under a hairline. Every action, label, handler and the Playback sheet are unchanged.
  */
 import { useEffect, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
@@ -35,7 +41,7 @@ import { Icon } from '../src/ui/Icon';
 import { BarButton, TAP, TopBar } from '../src/ui/TopBar';
 import { Image } from '../src/ui/lib/image';
 import { Artwork } from '../src/ui/Artwork';
-import { mediaKindOf } from '@socialmorning/social-core';
+import { mediaKindOf, plural } from '@socialmorning/social-core';
 import { VideoStage } from '../src/ui/VideoStage';
 import { usePlayer, usePlayerState } from '../src/playback/store';
 import { Scrubber, scrubberValue } from '../src/ui/Scrubber';
@@ -49,7 +55,9 @@ import { ShareChooser } from '../src/ui/ShareChooser';
 import { QueueSheet } from '../src/ui/QueueSheet';
 import { liveLabel, useListeningNow } from '../src/social/live';
 import { MomentSheet } from '../src/ui/MomentSheet';
-import { Rail, type RailMarker } from '../src/ui/Rail';
+import { Rail, railMarkers, type RailMarker } from '../src/ui/Rail';
+import { Card } from '../src/ui/Card';
+import { Eyebrow } from '../src/ui/Eyebrow';
 import { HeatCurve } from '../src/ui/HeatCurve';
 import { SpeedControl } from '../src/ui/SpeedControl';
 import { SleepTimerControl } from '../src/ui/SleepTimerControl';
@@ -139,7 +147,7 @@ export default function PlayerScreen(): React.ReactElement {
       <SafeAreaView className={FILL}>
         <TopBar back="down" onBack={close} />
         <Box className={BODY}>
-          <Text className={TITLE}>{state.message}</Text>
+          <Text className={`${TITLE} text-center`}>{state.message}</Text>
           <Pressable className={PRIMARY} accessibilityRole="button" onPress={() => player.play()}>
             <Text className={PRIMARY_TEXT}>Try again</Text>
           </Pressable>
@@ -183,9 +191,9 @@ export default function PlayerScreen(): React.ReactElement {
     router.push({ pathname: '/clip/new', params: { episodeId: state.episodeId, positionMs: String(positionMs) } });
   };
 
-  // As big as fits: the width less the margins, and never so tall that the controls
-  // leave the first screen.
-  const art = Math.round(Math.min(screen.width - 96, screen.height * 0.36));
+  // M17 (`Player-B`): the artwork sits beside the title, 148 pt on a 390 pt phone.
+  const art = Math.round(Math.min(148, screen.width * 0.38, screen.height * 0.2));
+  const markerCount = railMarkers(cached?.social.comments ?? []).length;
   // M12 FR-020 (found on the iPhone): the comment button opens the conversation, not the
   // keyboard; the page's write box carries this moment.
   const openComments = () =>
@@ -234,34 +242,45 @@ export default function PlayerScreen(): React.ReactElement {
         <Icon name="share-outline" size={24} color={c.text} />
       </BarButton>
     </TopBar>
-    {/* Grows to the screen and spreads out; scrolls only when a large font needs it. */}
-    <ScrollView contentContainerClassName="flex-grow justify-between px-screen-x pb-section">
-      <Box className="items-center gap-2">
+    {/* M17: the page reads top-down (hero, quote, card, controls); it scrolls only when a large font needs it. */}
+    <ScrollView className="flex-1" contentContainerClassName="flex-grow px-screen-x pt-2 pb-section gap-section">
+      {/* The hero: artwork on the left; eyebrow, serif title, show and Subscribe on the right. */}
+      <Box className="flex-row items-end gap-section">
         {/* M10b US5: a video episode shows its picture (muted, following the sound). */}
         {episode && mediaKindOf(episode.enclosureType, episode.enclosureUrl) === 'video'
           ? <VideoStage url={episode.enclosureUrl} positionMs={positionMs} playing={isPlaying} size={art} />
-          : <Artwork url={artworkUrl} size={art} rounded="artwork" className="mt-2" name={show?.title} />}
-        <Text className={TITLE} numberOfLines={2}>{episode?.title ?? 'Now playing'}</Text>
-        <Box className="flex-row items-center justify-center gap-2">
-          {feedUrl === undefined ? <Text className={SUBTITLE}>{show?.title ?? ''}</Text> : (
-            <Pressable onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(feedUrl) } })} accessibilityRole="link" accessibilityLabel={`Show: ${show?.title ?? ''}`} className="justify-center flex-shrink" style={{ minHeight: TAP.minHeight }}>
-              <Text className="text-sm text-muted" numberOfLines={1}>{show?.title ?? ''}</Text>
-            </Pressable>
-          )}
-          {feedUrl === undefined || subscribed ? null : (
-            <Pressable onPress={subscribe} accessibilityRole="button" accessibilityLabel="Subscribe to this show" className="justify-center" style={{ minHeight: TAP.minHeight }}>
-              <Text className="text-xs font-bold text-background bg-text rounded-row px-2 py-1">+ Subscribe</Text>
-            </Pressable>
-          )}
+          : <Artwork url={artworkUrl} size={art} name={show?.title} />}
+        <Box className="flex-1 gap-1">
+          <Eyebrow accent>Now playing</Eyebrow>
+          <Text className={TITLE} numberOfLines={4}>{episode?.title ?? 'Now playing'}</Text>
+          <Box className="flex-row items-center gap-2 flex-wrap">
+            {feedUrl === undefined ? <Text className={SUBTITLE}>{show?.title ?? ''}</Text> : (
+              <Pressable onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(feedUrl) } })} accessibilityRole="link" accessibilityLabel={`Show: ${show?.title ?? ''}`} className="justify-center flex-shrink" style={{ minHeight: TAP.minHeight }}>
+                <Text className="text-meta text-muted" numberOfLines={1}>{show?.title ?? ''}</Text>
+              </Pressable>
+            )}
+            {feedUrl === undefined || subscribed ? null : (
+              <Pressable onPress={subscribe} accessibilityRole="button" accessibilityLabel="Subscribe to this show" className="justify-center" style={{ minHeight: TAP.minHeight }}>
+                <Box className="bg-text rounded-pill px-2.5 py-1.5"><Text className="text-xs font-bold text-background">+ Subscribe</Text></Box>
+              </Pressable>
+            )}
+          </Box>
         </Box>
       </Box>
 
-      <Box className="gap-1">
-        {extras?.chapters && extras.chapters.length > 0 ? <CurrentChapter chapters={extras.chapters} positionMs={positionMs} /> : null}
-        {cue ? <Text className="text-sm text-muted text-center" numberOfLines={2}>{cue}</Text> : null}
-        <Box className="flex-row justify-between" accessible accessibilityLabel={scrubberValue(positionMs, durationMs).text}>
-          <Text className="text-sm font-semibold text-text" style={tabular}>{mmss(positionMs)}</Text>
-          <Text className="text-sm font-semibold text-text" style={tabular}>{durationMs === undefined ? '--:--' : `-${mmss(durationMs - positionMs)}`}</Text>
+      {extras?.chapters && extras.chapters.length > 0 ? <CurrentChapter chapters={extras.chapters} positionMs={positionMs} /> : null}
+      {/* The line being spoken, as the page's quote (M10b US4: absent when the transcript entry is off). */}
+      {cue ? (
+        <Text className={QUOTE} numberOfLines={4}>
+          <Text className={QUOTE_MARK}>“</Text>{cue}<Text className={QUOTE_MARK}>”</Text>
+        </Text>
+      ) : null}
+
+      {/* What listeners felt: markers, heat curve, seek bar and times in one card. */}
+      <Card className="py-row gap-1">
+        <Box className="flex-row justify-between items-baseline">
+          <Eyebrow>What listeners felt</Eyebrow>
+          {markerCount > 0 ? <Text className="text-xs text-muted">{plural(markerCount, 'commented moment')}</Text> : null}
         </Box>
         <Rail
           comments={cached?.social.comments ?? []}
@@ -271,61 +290,64 @@ export default function PlayerScreen(): React.ReactElement {
             setOpenMarker(m);
           }}
         />
-        <Box className="bg-surface rounded-row px-2 pt-2 pb-1">
-          <HeatCurve
-            heat={cached?.social.heat}
-            durationMs={heatAxisMs}
-            playerDurationMs={durationMs}
-            myBuckets={shownBuckets}
-            onSeek={(bucket, toMs) => {
-              player.seek(toMs);
-              const at = (cached?.social.comments ?? []).flatMap((c) => [c, ...(c.replies ?? [])])
-                .filter((c) => !c.deleted && c.offsetMs !== null && heatAxisMs !== undefined && Math.floor((c.offsetMs * 100) / heatAxisMs) === bucket);
-              if (at.length > 0) setOpenMarker({ second: Math.floor(toMs / 1000), offsetMs: toMs, comments: at });
-            }}
-          />
-          <Scrubber positionMs={positionMs} durationMs={durationMs} onSeek={(ms) => player.seek(ms)} onSkip={(d) => player.skip(d)} />
+        <HeatCurve
+          heat={cached?.social.heat}
+          durationMs={heatAxisMs}
+          playerDurationMs={durationMs}
+          myBuckets={shownBuckets}
+          onSeek={(bucket, toMs) => {
+            player.seek(toMs);
+            const at = (cached?.social.comments ?? []).flatMap((c) => [c, ...(c.replies ?? [])])
+              .filter((c) => !c.deleted && c.offsetMs !== null && heatAxisMs !== undefined && Math.floor((c.offsetMs * 100) / heatAxisMs) === bucket);
+            if (at.length > 0) setOpenMarker({ second: Math.floor(toMs / 1000), offsetMs: toMs, comments: at });
+          }}
+        />
+        <Scrubber positionMs={positionMs} durationMs={durationMs} onSeek={(ms) => player.seek(ms)} onSkip={(d) => player.skip(d)} />
+        <Box className="flex-row justify-between mt-2" accessible accessibilityLabel={scrubberValue(positionMs, durationMs).text}>
+          <Text className="text-meta font-bold text-text" style={tabular}>{mmss(positionMs)}</Text>
+          <Text className="text-meta font-bold text-text" style={tabular}>{durationMs === undefined ? '--:--' : `-${mmss(durationMs - positionMs)}`}</Text>
         </Box>
-        {/* One status line at most, so the controls below never jump far. */}
-        {state.kind === 'buffering' ? <Text className={SUBTITLE}>Buffering…</Text>
-          : state.kind === 'loading' ? <Text className={SUBTITLE}>Loading…</Text>
-          : state.kind === 'paused' && state.by === 'output-lost' ? <Text className={SUBTITLE}>Paused — your headphones disconnected</Text>
-          : player.clip() ? <Text className={SUBTITLE}>Playing a clip · {mmss(player.clip()!.startMs)}–{mmss(player.clip()!.endMs)} · pauses at the end</Text>
-          : stale ? <Text className={SUBTITLE}>Couldn't refresh comments — showing the last copy</Text>
-          : null}
-        {!player.clip() && state.kind === 'paused' && lastClipEnd !== undefined && Math.abs(positionMs - lastClipEnd) <= 6_000 ? (
-          <Box className={CLIP_BANNER}>
-            <Text className={SUBTITLE}>The clip ended.</Text>
-            <Pressable className={SECONDARY} accessibilityRole="button" onPress={() => { setLastClipEnd(undefined); player.play(); }}><Text className={SECONDARY_TEXT}>Keep listening</Text></Pressable>
-          </Box>
-        ) : null}
-        {offer ? (
-          <EndOffer item={offer} onPlay={() => {
-            const local = toPlayable(stores, offer.episode.id);
-            if (local) { player.load(local, 'play'); return; }
-            void discoverOpen(offer.episode);
-          }} />
-        ) : null}
-      </Box>
+      </Card>
+
+      {/* One status line at most, so the controls below never jump far. */}
+      {state.kind === 'buffering' ? <Text className={SUBTITLE}>Buffering…</Text>
+        : state.kind === 'loading' ? <Text className={SUBTITLE}>Loading…</Text>
+        : state.kind === 'paused' && state.by === 'output-lost' ? <Text className={SUBTITLE}>Paused — your headphones disconnected</Text>
+        : player.clip() ? <Text className={SUBTITLE}>Playing a clip · {mmss(player.clip()!.startMs)}–{mmss(player.clip()!.endMs)} · pauses at the end</Text>
+        : stale ? <Text className={SUBTITLE}>Couldn't refresh comments — showing the last copy</Text>
+        : null}
+      {!player.clip() && state.kind === 'paused' && lastClipEnd !== undefined && Math.abs(positionMs - lastClipEnd) <= 6_000 ? (
+        <Box className={CLIP_BANNER}>
+          <Text className={SUBTITLE}>The clip ended.</Text>
+          <Pressable className={SECONDARY} accessibilityRole="button" onPress={() => { setLastClipEnd(undefined); player.play(); }}><Text className={SECONDARY_TEXT}>Keep listening</Text></Pressable>
+        </Box>
+      ) : null}
+      {offer ? (
+        <EndOffer item={offer} onPlay={() => {
+          const local = toPlayable(stores, offer.episode.id);
+          if (local) { player.load(local, 'play'); return; }
+          void discoverOpen(offer.episode);
+        }} />
+      ) : null}
 
       <Box className="flex-row items-center justify-between">
-        <Pressable onPress={() => setMore(true)} accessibilityRole="button" accessibilityLabel={`Speed ${rate.toFixed(1)}×, sleep timer and chapters`} className={ROUND}>
-          {Math.abs(rate - 1) < 0.01 ? <Icon name="speedometer-outline" size={28} color={c.muted} /> : <Text className="text-sm font-bold text-text">{rate.toFixed(1)}×</Text>}
+        <Pressable onPress={() => setMore(true)} accessibilityRole="button" accessibilityLabel={`Speed ${rate.toFixed(1)}×, sleep timer and chapters`} className={SPEED}>
+          <Text className="text-meta font-bold text-text" style={tabular}>{rate.toFixed(1)}×</Text>
         </Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Skip back 15 seconds" onPress={() => player.skip(-15_000)} className={ROUND}>
-          <Box style={MIRROR}><Icon name="refresh-outline" size={44} color={c.text} /></Box>
+          <Box style={MIRROR}><Icon name="refresh-outline" size={40} color={c.text} /></Box>
           <Text className={SKIP_NUMBER}>15</Text>
         </Pressable>
         <Pressable
-          className="w-20 h-20 items-center justify-center"
+          className={PLAY}
           accessibilityRole="button"
           accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
           onPress={() => (isPlaying ? player.pause() : player.play())}
         >
-          <Icon name={isPlaying ? 'pause' : 'play'} size={64} color={c.text} />
+          <Icon name={isPlaying ? 'pause' : 'play'} size={34} color={c.onPrimary} />
         </Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Skip forward 30 seconds" onPress={() => player.skip(30_000)} className={ROUND}>
-          <Icon name="refresh-outline" size={44} color={c.text} />
+          <Icon name="refresh-outline" size={40} color={c.text} />
           <Text className={SKIP_NUMBER}>30</Text>
         </Pressable>
         <Pressable
@@ -341,24 +363,28 @@ export default function PlayerScreen(): React.ReactElement {
           }}
         >
           {/* Filled vs outline, and the name — never hue alone (FR-016). */}
-          <Icon name={reacted ? 'thumbs-up' : 'thumbs-up-outline'} size={30} color={reacted ? c.accent : c.muted} />
-        </Pressable>
-      </Box>
-
-      <Box className="flex-row items-center justify-between">
-        <BarButton label="About this episode" onPress={() => router.push({ pathname: '/episode/[id]', params: { id: state.episodeId } })}>
-          <Icon name="information-circle-outline" size={30} color={c.muted} />
-        </BarButton>
-        <Pressable onPress={() => setQueueOpen(true)} accessibilityRole="button" accessibilityLabel="Playlist" className="flex-row items-center gap-2 px-section rounded-row bg-surface" style={{ minHeight: TAP.minHeight }}>
-          <Icon name="list" size={20} color={c.muted} />
-          <Text className="text-sm text-muted">Playlist</Text>
-        </Pressable>
-        <Pressable onPress={openComments} accessibilityRole="button" accessibilityLabel={`Comments, ${commentCount}`} className="flex-row items-end justify-center" style={TAP}>
-          <Icon name="chatbox-ellipses-outline" size={28} color={c.muted} />
-          <Text className="text-xs text-muted">{commentCount}</Text>
+          <Icon name={reacted ? 'thumbs-up' : 'thumbs-up-outline'} size={28} color={reacted ? c.accent : c.muted} />
         </Pressable>
       </Box>
     </ScrollView>
+
+    {/* About · Playlist · Comments: the page's bottom bar, under a hairline. */}
+    <Box className="flex-row mx-screen-x border-t-hairline border-separator">
+      <Box className="flex-1 items-center">
+        <BarButton label="About this episode" onPress={() => router.push({ pathname: '/episode/[id]', params: { id: state.episodeId } })}>
+          <Icon name="information-circle-outline" size={22} color={c.text} />
+          <Text className={BAR_LABEL}>About</Text>
+        </BarButton>
+      </Box>
+      <Pressable onPress={() => setQueueOpen(true)} accessibilityRole="button" accessibilityLabel="Playlist" className={BAR_ITEM} style={{ minHeight: TAP.minHeight }}>
+        <Icon name="list" size={22} color={c.text} />
+        <Text className={BAR_LABEL}>Playlist</Text>
+      </Pressable>
+      <Pressable onPress={openComments} accessibilityRole="button" accessibilityLabel={`Comments, ${commentCount}`} className={BAR_ITEM} style={{ minHeight: TAP.minHeight }}>
+        <Icon name="chatbox-ellipses-outline" size={22} color={c.text} />
+        <Text className={BAR_LABEL}>Comments {commentCount}</Text>
+      </Pressable>
+    </Box>
     </SafeAreaView>
 
         <Actionsheet isOpen={more} onClose={() => setMore(false)}>
@@ -435,10 +461,20 @@ const FILL = 'flex-1 bg-background';
 /** The blurred cover fills the screen behind the player (a style: it is a size, not a class). */
 const COVER = { width: '100%', height: '100%' } as const;
 const BODY = 'flex-1 p-section gap-2 items-center justify-center';
-const TITLE = 'text-base font-bold text-center text-text mt-row';
+/** The idle/error message; on the main page, the episode's serif title beside the artwork. */
+const TITLE = 'text-lg font-display text-text';
 const SUBTITLE = 'text-xs text-muted text-center';
-/** The four small round controls either side of play/pause. */
+/** M17: the spoken line as the page's serif quote, its marks in the accent. */
+const QUOTE = 'text-hero font-display-semibold text-text';
+const QUOTE_MARK = 'text-hero font-display-semibold text-accent';
+/** The round controls either side of play/pause. */
 const ROUND = 'w-14 h-14 items-center justify-center';
+/** M17: speed is a bordered pill showing the rate. */
+const SPEED = 'w-14 h-12 rounded-pill border border-border bg-surface items-center justify-center';
+/** M17: play/pause is the yellow disc. */
+const PLAY = 'w-[76px] h-[76px] rounded-pill bg-primary items-center justify-center';
+const BAR_ITEM = 'flex-1 items-center justify-center py-1.5 gap-0.5';
+const BAR_LABEL = 'text-xs font-semibold text-text';
 /** The 15 / 30 inside the circular arrow. */
 const SKIP_NUMBER = 'absolute text-xs font-bold text-text';
 /** The back arrow is the forward arrow, mirrored. A transform, so a style. */

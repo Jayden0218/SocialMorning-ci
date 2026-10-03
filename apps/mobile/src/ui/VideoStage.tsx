@@ -4,6 +4,9 @@
  * comments and the heat curve are exactly as before. See `src/playback/video/sync.ts`.
  *
  * Cost, stated plainly: the publisher's file is fetched by both engines while it plays.
+ *
+ * M17 T043 (`Player-B`): it sits beside the title now, so no top margin, and the large-artwork
+ * corners (22 pt) like the picture it replaces.
  */
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect } from 'react';
@@ -20,7 +23,7 @@ export function VideoStage(props: { url: string; positionMs: number; playing: bo
   }, [player, props.positionMs, props.playing]);
   const box = { width: props.size, height: props.size };
   return (
-    <Box className="mt-2 rounded-artwork overflow-hidden bg-surface" style={box} accessible accessibilityLabel="Video">
+    <Box className="rounded-artwork-lg overflow-hidden bg-surface" style={box} accessible accessibilityLabel="Video">
       <VideoView player={player} style={box} contentFit="contain" nativeControls={false} />
     </Box>
   );

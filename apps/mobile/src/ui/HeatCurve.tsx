@@ -5,6 +5,9 @@
  *   all zero        → a flat line and "Nobody has marked a moment yet"
  *   otherwise       → bars, tallest = 1
  * Tap/drag on the bars seeks to that segment and hands back the bucket.
+ *
+ * M17 T043 (`Player-B`): the bars stand 40 pt tall (was 28) inside the player's card; the same
+ * 100 views, colours, label and seek — only the height changed.
  */
 import { useState } from 'react';
 import { Pressable } from './lib/pressable';
@@ -68,7 +71,7 @@ export function HeatCurve(props: {
       <Pressable
         accessibilityRole="adjustable"
         accessibilityLabel={label}
-        className="h-7 flex-row items-end gap-px self-start"
+        className="h-10 flex-row items-end gap-px self-start"
         style={{ width: `${axisFraction * 100}%` }}
         onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
         onPress={(e) => {
@@ -83,7 +86,7 @@ export function HeatCurve(props: {
           // buckets in the accent (5.87) — clearly apart from 40 % grey. Height is per bar at
           // runtime; the colour stays a token in `style` because G6 compares it to the token
           // string and `bg-bar` compiles to `#ffffff66`.
-          <Box key={i} className="flex-1 rounded-t-[1px]" style={{ height: 2 + v * 26, backgroundColor: mine.has(i) ? c.accent : c.bar }} />
+          <Box key={i} className="flex-1 rounded-t-[1px]" style={{ height: 2 + v * 38, backgroundColor: mine.has(i) ? c.accent : c.bar }} />
         ))}
       </Pressable>
       {message ? <Text className="text-xs text-muted text-center">{message}</Text> : null}
