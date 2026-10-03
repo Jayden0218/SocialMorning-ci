@@ -4,6 +4,12 @@
  * Episode playback pauses first; the audio session returns to playback when recording ends
  * (with recording allowed, iOS would route sound to the earpiece — expo-audio's AudioMode).
  * The native calls are in src/playback/expo-audio-adapter.ts, the one file that imports expo-audio.
+ *
+ * M17 T068 (`VoiceNew-B`): the Editorial page — Cancel and the serif title, the three rules as a
+ * numbered list, then a white card with the microphone disc beside the clock (large serif time,
+ * the 1:00 cap small) and the state line; at the bottom, a bar with the record button as a pill
+ * (yellow alone; outlined "Record again" beside a yellow Post once recorded). Same buttons, names
+ * and handlers; the 60 s cap, the microphone-refused state and posting unchanged.
  */
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -12,7 +18,10 @@ import { Linking } from 'react-native';
 import { Pressable } from '../../src/ui/lib/pressable';
 import { Text } from '../../src/ui/lib/text';
 import { Box } from '../../src/ui/lib/box';
-import { Screen } from '../../src/ui/Screen';
+import { ScrollView } from '../../src/ui/lib/scroll-view';
+import { SafeAreaView } from '../../src/ui/lib/safe-area-view';
+import { Card } from '../../src/ui/Card';
+import { hit } from '../../src/design';
 import { Button } from '../../src/ui/Button';
 import { Icon } from '../../src/ui/Icon';
 import { usePlayer } from '../../src/playback/store';
@@ -22,6 +31,13 @@ import { useM12Api } from '../../src/social/m12-api';
 import { ApiError } from '../../src/social/api';
 import { VOICE_MAX_MS, voiceClock } from '../../src/voice/recording';
 import { PageHeader } from '../../src/ui/PageHeader';
+
+/** The old one-line rule, word for word, split into `VoiceNew-B`'s numbered list. */
+const RULES = ['Up to 60 seconds.', 'People who follow you can play it', 'for 48 hours; then it is deleted.'] as const;
+/** The footer pills: 52 pt in the design, never under 48; the row stretches Post to match. */
+const PILL = { minHeight: Math.max(hit.min, 52) };
+/** The 40 pt serif clock keeps its line from clipping Fraunces' figures. */
+const CLOCK = { lineHeight: 46 };
 
 type Phase = { kind: 'idle' } | { kind: 'denied' } | { kind: 'recording' } | { kind: 'done'; uri: string; ms: number } | { kind: 'posting'; uri: string; ms: number };
 
@@ -76,40 +92,63 @@ export default function NewVoicePost(): React.ReactElement {
 
   const recording = phase.kind === 'recording';
   const shownMs = recording ? state.durationMillis : phase.kind === 'done' || phase.kind === 'posting' ? phase.ms : 0;
+  // "0:24 / 1:00": the time large, the cap small beside it (`VoiceNew-B`).
+  const [clock = '', cap] = voiceClock(shownMs).split(' / ');
+  const recorded = phase.kind === 'done' || phase.kind === 'posting';
   return (
     <>
     {/* Phone walk 2026-09-30: the sheet could only be swiped away. M16a T002: Cancel is on the app's own bar. */}
     <PageHeader title="Voice status" left={(
       <Pressable onPress={() => { if (phase.kind === 'recording') void stop(); router.back(); }} accessibilityRole="button" accessibilityLabel="Cancel" className="justify-center px-row" style={{ minHeight: 48 }}>
-        <Text className="text-accent text-sm">Cancel</Text>
+        <Text className="text-accent text-body font-semibold">Cancel</Text>
       </Pressable>
     )} />
-    <Screen className="pt-section items-center gap-section">
-      <Text className="text-muted text-sm text-center">Up to 60 seconds. People who follow you can play it for 48 hours; then it is deleted.</Text>
-      <Text className="text-text text-2xl font-bold" accessibilityLiveRegion="polite" accessibilityLabel={`${Math.floor(shownMs / 1000)} seconds of 60`}>{voiceClock(shownMs)}</Text>
-      <Pressable
-        onPress={() => void (recording ? stop() : start())}
-        disabled={phase.kind === 'posting'}
-        accessibilityRole="button"
-        accessibilityLabel={recording ? 'Stop recording' : phase.kind === 'done' ? 'Record again' : 'Start recording'}
-        className={`w-24 h-24 rounded-pill items-center justify-center ${recording ? 'bg-primary' : 'bg-accentTint'}`}
-      >
-        <Icon name={recording ? 'stop' : 'mic'} size={40} color={recording ? c.onPrimary : c.accent} />
-      </Pressable>
-      <Text className="text-muted text-xs">{recording ? 'Recording — tap to stop' : phase.kind === 'done' ? 'Tap to record again' : 'Tap to record'}</Text>
-      {phase.kind === 'denied' ? (
-        <Box className="items-center gap-row">
-          <Text className="text-text text-sm text-center">SocialNet needs the microphone to record. You can allow it in the phone's settings.</Text>
-          <Button kind="secondary" label="Open settings" onPress={() => void Linking.openSettings()} />
+    <Box className="flex-1 bg-background">
+      <ScrollView className="flex-1" contentContainerClassName="px-screen-x pt-gap pb-section gap-section">
+        <Box className="gap-row">
+          {RULES.map((line, i) => (
+            <Box key={line} className="flex-row items-center gap-row">
+              <Box className="w-7 h-7 rounded-pill bg-accentTint items-center justify-center"><Text className="text-accent text-meta font-bold">{i + 1}</Text></Box>
+              <Text className="flex-1 text-text text-body">{line}</Text>
+            </Box>
+          ))}
         </Box>
-      ) : null}
-      {error ? <Text className="text-accent text-sm text-center">{error}</Text> : null}
-      {phase.kind === 'done' || phase.kind === 'posting' ? (
-        <Box className="self-stretch mt-section">
-          <Button label={phase.kind === 'posting' ? 'Posting…' : 'Post'} disabled={phase.kind === 'posting'} onPress={() => void post(phase.uri, phase.ms)} />
-        </Box>
-      ) : null}
-    </Screen>
+        <Card className="py-section flex-row items-center gap-section">
+          <Box className={`w-[72px] h-[72px] rounded-pill items-center justify-center ${recording ? 'bg-primary' : 'bg-accentTint'}`}>
+            <Icon name={recording ? 'stop' : 'mic-outline'} size={32} color={recording ? c.onPrimary : c.accent} />
+          </Box>
+          <Box className="flex-1 gap-1">
+            <Text className="text-text text-[40px] font-display" style={CLOCK} accessibilityLiveRegion="polite" accessibilityLabel={`${Math.floor(shownMs / 1000)} seconds of 60`}>
+              {clock}{cap ? <Text className="text-muted text-base font-display-semibold">{` / ${cap}`}</Text> : null}
+            </Text>
+            <Text className="text-muted text-meta">{recording ? 'Recording — tap to stop' : phase.kind === 'done' ? 'Tap to record again' : 'Tap to record'}</Text>
+          </Box>
+        </Card>
+        {phase.kind === 'denied' ? (
+          <Card className="py-section items-center gap-row">
+            <Text className="text-text text-body text-center">SocialNet needs the microphone to record. You can allow it in the phone's settings.</Text>
+            <Button kind="secondary" label="Open settings" onPress={() => void Linking.openSettings()} />
+          </Card>
+        ) : null}
+        {error ? <Text className="text-accent text-body text-center">{error}</Text> : null}
+      </ScrollView>
+      <SafeAreaView edges={['bottom']} className="flex-row items-stretch gap-gap px-screen-x pt-row pb-row border-t-hairline border-separator bg-background">
+        <Pressable
+          onPress={() => void (recording ? stop() : start())}
+          disabled={phase.kind === 'posting'}
+          accessibilityRole="button"
+          accessibilityLabel={recording ? 'Stop recording' : phase.kind === 'done' ? 'Record again' : 'Start recording'}
+          className={`flex-row items-center justify-center gap-2 px-section rounded-pill ${recorded ? 'border border-border bg-surface' : 'flex-1 bg-primary'} ${phase.kind === 'posting' ? 'opacity-40' : ''}`}
+          style={PILL}
+        >
+          <Icon name={recording ? 'stop' : 'mic-outline'} size={18} color={recorded ? c.text : c.onPrimary} />
+          <Text className={recorded ? 'text-text text-body font-bold' : 'text-onPrimary text-body font-bold'}>{recording ? 'Stop recording' : recorded ? 'Record again' : 'Start recording'}</Text>
+        </Pressable>
+        {phase.kind === 'done' || phase.kind === 'posting' ? (
+          <Button className="flex-1" label={phase.kind === 'posting' ? 'Posting…' : 'Post'} disabled={phase.kind === 'posting'} onPress={() => void post(phase.uri, phase.ms)} />
+        ) : null}
+      </SafeAreaView>
+    </Box>
     </>
   );
 }

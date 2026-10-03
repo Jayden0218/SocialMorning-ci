@@ -22,5 +22,45 @@
   "to": "/comments/[episodeId] | {initialsFor(...)} | compose",
   "why": "the write box: its accessible name is unchanged ('Write a comment at mm:ss' / 'Sign in to join the conversation'); the scanner's regex cannot read the nested template label and picked up the neighbouring text before (Close) and now (the avatar initials)",
   "task": "T046"
+ },
+ {
+  "surface": "/clip/[id]",
+  "name": "Keep listening",
+  "destination": "/player",
+  "to": "/clip/[id] | Keep listening | player.play",
+  "why": "scanner correction: the old handler was always player.play() (old line 75); the baseline borrowed /player from the next line. Same button, same handler",
+  "task": "T059"
+ },
+ {
+  "surface": "/inbox",
+  "name": "Queue",
+  "destination": "leave",
+  "to": "/inbox | Queue | dynamic",
+  "why": "scanner correction: the handler is unchanged (enqueue → stores.queue.replace → leave(item, 'queued')); the scanner cannot read its 3-level braces and borrowed a later button's handler, which the new icon lines pushed out of reach",
+  "task": "T065"
+ },
+ {
+  "surface": "ClipComposer",
+  "name": "Start 5 seconds earlier",
+  "destination": "setS",
+  "to": "ClipComposer | Start here | setS",
+  "why": "scanner correction: old line 39 'Start here' had no label, so the baseline borrowed the next button's name; it now has its own label 'Start here' (same setS(startHere(...)) handler)",
+  "task": "T060"
+ },
+ {
+  "surface": "ClipComposer",
+  "name": "End 5 seconds earlier",
+  "destination": "setS",
+  "to": "ClipComposer | End here | setS",
+  "why": "scanner correction: old line 44 'End here' had no label, so the baseline borrowed the next button's name; it now has its own label 'End here' (same handler)",
+  "task": "T060"
+ },
+ {
+  "surface": "ClipComposer",
+  "name": "Caption",
+  "destination": "player.playClip",
+  "to": "ClipComposer | Caption | setS",
+  "why": "scanner correction: the Caption input's destination was borrowed from the Preview button below it; the input is unchanged (accessibilityLabel 'Caption', onChangeText)",
+  "task": "T060"
  }
 ]

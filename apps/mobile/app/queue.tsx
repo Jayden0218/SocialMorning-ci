@@ -1,6 +1,10 @@
 /**
  * The queue page (US2), reached from the mini player's Queue button. M12 FR-044: the same rows
  * as the sheet over the player (src/ui/QueueList.tsx) — artwork, time left, drag handle, ⋮.
+ *
+ * M17 T052 (`Queue-B`): the list draws its page layout — the next episode as an "Up next" card
+ * with a Play now pill, the rest numbered, the ⋮ actions in a sheet. Load, play, reorder and
+ * remove are unchanged.
  */
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
@@ -34,7 +38,7 @@ export default function QueueScreen(): React.ReactElement {
     <>
     <PageHeader title="Queue" />
     <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pb-section flex-grow">
-      {ids.length === 0 ? <EmptyState surface="queue" page /> : <QueueList ids={ids} stores={stores} colours={{ text: c.text, muted: c.muted, accent: c.accent }} onChange={write} onPlay={play} />}
+      {ids.length === 0 ? <EmptyState surface="queue" page /> : <QueueList ids={ids} stores={stores} colours={{ text: c.text, muted: c.muted, accent: c.accent }} onChange={write} onPlay={play} layout="page" />}
     </ScrollView>
     </>
   );

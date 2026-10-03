@@ -74,147 +74,147 @@
   "design": "Clip-B",
   "entry": "apps/mobile/app/clip/[id].tsx",
   "wave": "W2",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "ClipNew",
   "design": "ClipNew-B",
   "entry": "apps/mobile/app/clip/new.tsx",
   "wave": "W2",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "Moments",
   "design": "Moments-B",
   "entry": "apps/mobile/app/moments.tsx",
   "wave": "W2",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "Profile",
   "design": "Profile-B",
   "entry": "apps/mobile/app/profile/[id].tsx",
   "wave": "W2",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "Followers",
   "design": "Followers-B",
   "entry": "apps/mobile/app/profile/[id]/followers.tsx",
   "wave": "W2",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "FollowingList",
   "design": "FollowingList-B",
   "entry": "apps/mobile/app/profile/[id]/following.tsx",
   "wave": "W2",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "FriendsListening",
   "design": "FriendsListening-B",
   "entry": "apps/mobile/app/friends-listening.tsx",
   "wave": "W2",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "Inbox",
   "design": "Inbox-B",
   "entry": "apps/mobile/app/inbox.tsx",
   "wave": "W2",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "Notifications",
   "design": "Notifications-B",
   "entry": "apps/mobile/app/notifications.tsx",
   "wave": "W2",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "MyComments",
   "design": "MyComments-B",
   "entry": "apps/mobile/app/my-comments.tsx",
   "wave": "W2",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "VoiceNew",
   "design": "VoiceNew-B",
   "entry": "apps/mobile/app/voice/new.tsx",
   "wave": "W2",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "Downloads",
   "design": "Downloads-B",
   "entry": "apps/mobile/app/downloads.tsx",
   "wave": "W3",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "Favourites",
   "design": "Favourites-B",
   "entry": "apps/mobile/app/favourites.tsx",
   "wave": "W3",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "History",
   "design": "History-B",
   "entry": "apps/mobile/app/history.tsx",
   "wave": "W3",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "Queue",
   "design": "Queue-B",
   "entry": "apps/mobile/app/queue.tsx",
   "wave": "W3",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "Subscriptions",
   "design": "Subscriptions-B",
   "entry": "apps/mobile/app/subscriptions.tsx",
   "wave": "W3",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "PlayLatest",
   "design": "PlayLatest-B",
   "entry": "apps/mobile/app/play-latest.tsx",
   "wave": "W3",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "PastPicks",
   "design": "PastPicks-B",
   "entry": "apps/mobile/app/picks/past.tsx",
   "wave": "W3",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "Chart",
   "design": "Chart-B",
   "entry": "apps/mobile/app/chart.tsx",
   "wave": "W3",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "Categories",
   "design": "Categories-B",
   "entry": "apps/mobile/app/categories.tsx",
   "wave": "W3",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "Category",
   "design": "Category-B",
   "entry": "apps/mobile/app/category/[id].tsx",
   "wave": "W3",
-  "status": "todo"
+  "status": "built"
  },
  {
   "name": "SignIn",

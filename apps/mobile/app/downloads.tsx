@@ -2,14 +2,23 @@
  * Downloads (US1, FR-004): every row, the budget, "remove finished", the mobile-data switch.
  * M10 (owner, 2026-09-27), after the reference: the settings sit behind the ⚙ in the header,
  * and an empty list is a picture and one line, with M6's action under it.
+ *
+ * M17 T049 (`Downloads-B`): a white card on top — the space used as a big serif figure over a
+ * yellow fill bar, the budget as a pill track, the mobile-data switch — then the rows in serif
+ * sections ("In progress", "Needs attention", "Downloaded") with artwork, the state, a thin
+ * progress bar while downloading, and the actions as accent words on the right. B shows the
+ * budget and the switch in the card, so they are always there now; the ⚙ keeps its toggle and
+ * reveals "Remove finished downloads" at the card's foot. Every handler is unchanged.
  */
 import { useEffect, useState } from 'react';
-import { FlatList } from '../src/ui/lib/flat-list';
+import { SectionList } from '../src/ui/lib/section-list';
 import { Pressable } from '../src/ui/lib/pressable';
 import { Toggle } from '../src/ui/Toggle';
 import { Text } from '../src/ui/lib/text';
 import { Box } from '../src/ui/lib/box';
 import { Icon } from '../src/ui/Icon';
+import { Artwork } from '../src/ui/Artwork';
+import { Card, CardDivider } from '../src/ui/Card';
 import { mb } from '../src/ui/DownloadButton';
 import { useDownloads, useStores } from '../src/ui/providers';
 import type { DownloadRow } from '../src/storage/types';
@@ -20,8 +29,14 @@ import { PageHeader } from '../src/ui/PageHeader';
 import { BarButton } from '../src/ui/TopBar';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
+const ROW_TAP = { minHeight: hit.min };
 
 const BUDGETS = [200 * 1024 ** 2, 500 * 1024 ** 2, ...[1, 2, 4, 8].map((g) => g * 1024 ** 3)];
+
+type Section = { key: 'progress' | 'attention' | 'done'; title: string; data: DownloadRow[] };
+
+/** 0–100, or undefined while the size is unknown. */
+const percent = (r: DownloadRow): number | undefined => (r.bytesTotal ? Math.min(100, Math.floor((r.bytesDone / r.bytesTotal) * 100)) : undefined);
 
 export default function DownloadsScreen(): React.ReactElement {
   const downloads = useDownloads();
@@ -36,11 +51,21 @@ export default function DownloadsScreen(): React.ReactElement {
   const state = (r: DownloadRow) => {
     if (r.state === 'complete') return `Downloaded · ${mb(r.bytesTotal)}`;
     if (r.state === 'failed') return r.error === 'budget' ? 'Not enough space' : `Failed${r.error ? ` · ${r.error}` : ''}`;
-    const pct = r.bytesTotal ? Math.floor((r.bytesDone / r.bytesTotal) * 100) : undefined;
+    const pct = percent(r);
     const base = r.state === 'waiting' ? 'Waiting' : r.state === 'paused' ? `Paused · ${pct ?? 0} %` : `${pct ?? '…'} %`;
     // FR-002: the same honesty as the episode screen — a kill-restart says so here too.
     return r.error === 'no-resume' ? `${base} · restarted` : base;
   };
+
+  const sections: Section[] = ([
+    { key: 'progress', title: 'In progress', data: rows.filter((r) => r.state !== 'complete' && r.state !== 'failed') },
+    { key: 'attention', title: 'Needs attention', data: rows.filter((r) => r.state === 'failed') },
+    { key: 'done', title: 'Downloaded', data: rows.filter((r) => r.state === 'complete') },
+  ] satisfies Section[]).filter((s) => s.data.length > 0);
+
+  const used = downloads.usedBytes();
+  const budget = downloads.budgetBytes();
+  const fill = { width: `${budget > 0 ? Math.min(100, Math.round((used / budget) * 100)) : 0}%` } as const;
 
   return (
     <>
@@ -50,60 +75,93 @@ export default function DownloadsScreen(): React.ReactElement {
         <Icon name="settings-outline" size={22} color={c.accent} />
       </BarButton>
     )} />
-    <FlatList
-      data={rows}
+    <SectionList
+      sections={sections}
       keyExtractor={(r) => r.episodeId}
-      contentContainerClassName="px-screen-x py-row gap-1.5 flex-grow"
+      stickySectionHeadersEnabled={false}
+      contentContainerClassName="px-screen-x pb-section flex-grow"
       className="flex-1 bg-background"
       ListHeaderComponent={
-        <>
-        {settings ? (
-        <Box className="gap-2 mb-2 bg-surface rounded-artwork p-section">
-          <Text className="text-[15px] text-text">Used {mb(downloads.usedBytes())} of {mb(downloads.budgetBytes())}</Text>
-          <Box className="flex-row gap-3 items-center flex-wrap">
-            {BUDGETS.map((b) => (
-              // M12 NEW-6: a 48 pt target (the chips were 27 pt) that says which size is chosen.
-              <Pressable key={b} onPress={() => downloads.setBudgetBytes(b)} accessibilityRole="button" accessibilityState={{ selected: downloads.budgetBytes() === b }} className="justify-center" style={TAP}>
-                <Text className={`border rounded-pill px-3 py-1.5 ${downloads.budgetBytes() === b ? 'bg-primary border-primary text-onPrimary' : 'border-separator text-text'}`}>{b < 1024 ** 3 ? `${b / 1024 ** 2} MB` : `${b / 1024 ** 3} GB`}</Text>
-              </Pressable>
-            ))}
+        <Card className="pt-section pb-1.5 mb-section">
+          <Box className="flex-row items-baseline gap-gap flex-wrap">
+            <Text className="text-text text-display font-display">{mb(used)}</Text>
+            <Text className="text-muted text-body">{`used of ${mb(budget)}`}</Text>
           </Box>
-          <Box className="flex-row gap-3 items-center flex-wrap">
-            <Text className="text-[15px] text-text">Allow mobile data</Text>
+          <Box className="h-2.5 rounded-pill bg-track overflow-hidden mt-row mb-row" accessible={false}>
+            <Box className="h-full bg-primary" style={fill} />
+          </Box>
+          <Text className="text-muted text-xs mb-1.5">Budget</Text>
+          <Box className="flex-row gap-1 p-1 rounded-pill bg-background">
+            {BUDGETS.map((b) => {
+              const on = budget === b;
+              return (
+                // M12 NEW-6: a 48 pt target (the chips were 27 pt) that says which size is chosen.
+                <Pressable key={b} onPress={() => downloads.setBudgetBytes(b)} accessibilityRole="button" accessibilityState={{ selected: on }} className={`flex-1 rounded-pill items-center justify-center ${on ? 'bg-primary' : ''}`} style={ROW_TAP}>
+                  <Text className={on ? 'text-onPrimary text-meta font-bold' : 'text-muted text-meta font-medium'} numberOfLines={1}>{b < 1024 ** 3 ? `${b / 1024 ** 2} MB` : `${b / 1024 ** 3} GB`}</Text>
+                </Pressable>
+              );
+            })}
+          </Box>
+          <Box className="flex-row items-center justify-between gap-row mt-1.5">
+            <Text className="text-text text-body flex-1">Allow mobile data</Text>
             <Toggle value={downloads.allowMobile()} onChange={(v) => downloads.setAllowMobile(v)} label="Allow mobile data for downloads" />
           </Box>
-          <Pressable onPress={() => void downloads.removeFinished()} accessibilityRole="button">
-            <Text className="text-accent text-[15px] py-1">Remove finished downloads</Text>
-          </Pressable>
-        </Box>
-        ) : null}
-        </>
+          {settings ? (
+            <>
+              <CardDivider />
+              <Pressable onPress={() => void downloads.removeFinished()} accessibilityRole="button" className="justify-center" style={ROW_TAP}>
+                <Text className="text-accent text-body font-bold">Remove finished downloads</Text>
+              </Pressable>
+            </>
+          ) : null}
+        </Card>
       }
+      renderSectionHeader={({ section }) => (
+        <Box className="flex-row items-baseline gap-1.5 mt-1">
+          <Text className="text-text text-lg font-display" accessibilityRole="header">{section.title}</Text>
+          <Text className="text-muted text-meta font-semibold">{String(section.data.length)}</Text>
+        </Box>
+      )}
+      renderSectionFooter={() => <Box className="h-3.5" />}
       ListEmptyComponent={
-        <Box className="items-center pt-24 gap-section">
+        <Box className="items-center pt-16 gap-section">
           <Box className="w-28 h-28 rounded-pill bg-surface items-center justify-center" accessible={false}><Icon name="download-outline" size={44} color={c.muted} /></Box>
           <EmptyState surface="downloads" page />
         </Box>
       }
-      renderItem={({ item }) => (
-        <Box className="py-2 gap-0.5 border-b-hairline border-separator">
-          <Text className="text-[15px] font-semibold text-text" numberOfLines={2}>{title(item.episodeId)}</Text>
-          <Text className="text-muted">{state(item)}</Text>
-          <Box className="flex-row gap-3 items-center flex-wrap">
-            {item.state === 'complete' ? (
-              <Pressable onPress={() => downloads.remove(item.episodeId)} accessibilityRole="button"><Text className="text-accent text-[15px] py-1">Remove</Text></Pressable>
-            ) : item.state === 'failed' ? (
-              <>
-                <Pressable onPress={() => downloads.request(item.episodeId)} accessibilityRole="button"><Text className="text-accent text-[15px] py-1">Retry</Text></Pressable>
-                {/* Build 5 (2026-09-21): a refused row had no way off the list but a retry that is refused again. */}
-                <Pressable onPress={() => downloads.remove(item.episodeId)} accessibilityRole="button"><Text className="text-accent text-[15px] py-1">Remove</Text></Pressable>
-              </>
-            ) : (
-              <Pressable onPress={() => downloads.cancel(item.episodeId)} accessibilityRole="button"><Text className="text-accent text-[15px] py-1">Cancel</Text></Pressable>
-            )}
+      renderItem={({ item }) => {
+        const episode = stores.feeds.getEpisode(item.episodeId);
+        const show = episode ? stores.feeds.getShow(episode.feedUrl) : undefined;
+        const going = item.state !== 'complete' && item.state !== 'failed';
+        const bar = { width: `${percent(item) ?? 0}%` } as const;
+        return (
+          <Box className="flex-row items-center gap-row py-2 border-b-hairline border-separator">
+            <Artwork url={episode?.imageUrl ?? show?.imageUrl} size={52} name={show?.title ?? title(item.episodeId)} />
+            <Box className="flex-1">
+              <Text className="text-text text-body font-semibold" numberOfLines={1}>{title(item.episodeId)}</Text>
+              <Text className="text-muted text-xs mt-0.5">{state(item)}</Text>
+              {going ? (
+                <Box className="h-1 rounded-pill bg-track overflow-hidden mt-1.5" accessible={false}>
+                  <Box className="h-full bg-primary" style={bar} />
+                </Box>
+              ) : null}
+            </Box>
+            <Box className="flex-row gap-2.5 items-center">
+              {item.state === 'complete' ? (
+                <Pressable onPress={() => downloads.remove(item.episodeId)} accessibilityRole="button" className="justify-center px-0.5" style={TAP}><Text className="text-accent text-body font-bold">Remove</Text></Pressable>
+              ) : item.state === 'failed' ? (
+                <>
+                  <Pressable onPress={() => downloads.request(item.episodeId)} accessibilityRole="button" className="justify-center px-0.5" style={TAP}><Text className="text-accent text-body font-bold">Retry</Text></Pressable>
+                  {/* Build 5 (2026-09-21): a refused row had no way off the list but a retry that is refused again. */}
+                  <Pressable onPress={() => downloads.remove(item.episodeId)} accessibilityRole="button" className="justify-center px-0.5" style={TAP}><Text className="text-accent text-body font-bold">Remove</Text></Pressable>
+                </>
+              ) : (
+                <Pressable onPress={() => downloads.cancel(item.episodeId)} accessibilityRole="button" className="justify-center px-0.5" style={TAP}><Text className="text-accent text-body font-bold">Cancel</Text></Pressable>
+              )}
+            </Box>
           </Box>
-        </Box>
-      )}
+        );
+      }}
     />
     </>
   );

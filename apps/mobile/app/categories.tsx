@@ -1,20 +1,30 @@
 /**
  * All categories (M10): Apple's top-level podcast genres; each opens that genre's top
  * shows. The list is on the phone (`src/discover/genres.ts`), so it draws offline.
+ *
+ * M17 T057 (`Categories-B`): a two-column grid of white cards — the genre's icon in a tinted
+ * rounded tile at the top, its name as a serif label at the bottom. The design's per-genre
+ * pastel tiles are one token tint here (the palette has no per-genre colours). Same genres,
+ * same names, same destination.
  */
 import { useRouter } from 'expo-router';
 import { Pressable } from '../src/ui/lib/pressable';
 import { Text } from '../src/ui/lib/text';
 import { Box } from '../src/ui/lib/box';
-import { colour, hit } from '../src/design';
+import { hit } from '../src/design';
 import { useStores } from '../src/ui/providers';
 import { useColours } from '../src/ui/useColours';
 import { Icon } from '../src/ui/Icon';
-import { GENRES } from '../src/discover/genres';
+import { GENRES, type Genre } from '../src/discover/genres';
 import { Screen } from '../src/ui/Screen';
 import { PageHeader } from '../src/ui/PageHeader';
 
-const TAP = { minHeight: hit.min };
+/** A card is at least 96 pt high (`Categories-B`) — well over the 48 pt tap floor. */
+const CARD = { minHeight: Math.max(96, hit.min) };
+
+/** The genres two to a row. */
+const ROWS: Genre[][] = [];
+for (let i = 0; i < GENRES.length; i += 2) ROWS.push(GENRES.slice(i, i + 2));
 
 export default function CategoriesScreen(): React.ReactElement {
   const stores = useStores();
@@ -23,20 +33,27 @@ export default function CategoriesScreen(): React.ReactElement {
   return (
     <>
     <PageHeader title="Categories" />
-    <Screen scroll className="pt-section">
-      <Box className="flex-row flex-wrap gap-row">
-        {GENRES.map((g) => (
-          <Pressable
-            key={g.id}
-            onPress={() => router.push({ pathname: '/category/[id]', params: { id: String(g.id) } })}
-            accessibilityRole="button"
-            accessibilityLabel={g.name}
-            className="bg-surface rounded-row flex-row items-center gap-2 px-row"
-            style={TAP}
-          >
-            <Icon name={g.icon} size={20} color={c.text} />
-            <Text className="text-text text-sm font-semibold">{g.name}</Text>
-          </Pressable>
+    <Screen scroll>
+      <Box className="gap-2.5">
+        {ROWS.map((pair) => (
+          <Box key={pair.map((g) => g.id).join('-')} className="flex-row gap-2.5">
+            {pair.map((g) => (
+              <Pressable
+                key={g.id}
+                onPress={() => router.push({ pathname: '/category/[id]', params: { id: String(g.id) } })}
+                accessibilityRole="button"
+                accessibilityLabel={g.name}
+                className="flex-1 bg-surface border border-border rounded-row p-row justify-between"
+                style={CARD}
+              >
+                <Box className="w-10 h-10 rounded-row bg-accentTint items-center justify-center">
+                  <Icon name={g.icon} size={20} color={c.text} />
+                </Box>
+                <Text className="text-text text-sm font-display-semibold mt-row" numberOfLines={2}>{g.name}</Text>
+              </Pressable>
+            ))}
+            {pair.length === 1 ? <Box className="flex-1" /> : null}
+          </Box>
         ))}
       </Box>
     </Screen>
