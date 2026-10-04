@@ -18,7 +18,8 @@
  * sort, filter, subscribe and show links; the strip still scrolls to the chosen genre.
  */
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { ScrollView } from 'react-native';
+import { useCallback, useEffect, useRef, useState, type ComponentRef } from 'react';
 import { Pressable } from '@/ui/lib/pressable';
 import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
@@ -55,13 +56,19 @@ export default function CategoryScreen(): React.ReactElement {
   const [state, setState] = useState<State>({ kind: 'loading' });
   const [sort, setSort] = useState<CategorySort>('all');
   const [notSubscribedOnly, setNotSubscribedOnly] = useState(false);
-  const [panel, setPanel] = useState(false);
   const readSubscribed = useCallback(() => new Set(stores.subscriptions.list().map((s) => s.feedUrl)), [stores]);
   const [subscribed, setSubscribed] = useState<Set<string>>(readSubscribed);
   // A show page opened from here may subscribe or unsubscribe; re-read on coming back.
   useFocusEffect(useCallback(() => { setSubscribed(readSubscribed()); }, [readSubscribed]));
 
-  const pick = (id: number) => { setGenreId(id); setPanel(false); };
+  const strip = useRef<ComponentRef<typeof ScrollView>>(null);
+  const tileX = useRef(new Map<number, number>());
+  const scrolled = useRef(false);
+  const showTile = (id: number, animated: boolean) => {
+    const x = tileX.current.get(id);
+    if (x !== undefined) strip.current?.scrollTo({ x: Math.max(0, x - 40), animated });
+  };
+  const pick = (id: number) => { setGenreId(id); showTile(id, true); };
 
   useEffect(() => {
     let live = true;
@@ -82,7 +89,6 @@ export default function CategoryScreen(): React.ReactElement {
   const now = Date.now();
   const visible = state.kind === 'ok' ? state.body.shows.filter((s) => !hiddenFeeds.has(s.feedUrl)) : [];
   const shows = categoryList(visible, { sort, notSubscribedOnly, subscribed });
-  const genreName = GENRES.find((g) => g.id === genreId)?.name ?? (state.kind === 'ok' ? state.body.name : '');
   const [lead, ...rest] = shows;
   const pairs: ShowCard[][] = [];
   for (let i = 0; i < rest.length; i += 2) pairs.push(rest.slice(i, i + 2));
@@ -129,29 +135,23 @@ export default function CategoryScreen(): React.ReactElement {
     <>
     <PageHeader middle={<Text className="text-text text-title font-bold" numberOfLines={1}>Categories</Text>} />
     <Screen scroll>
-      <Box className="flex-row items-center gap-1">
-        <Text className="shrink text-text text-display font-display" numberOfLines={1} accessibilityRole="header">{genreName}</Text>
-        <Pressable onPress={() => setPanel((p) => !p)} accessibilityRole="button" accessibilityLabel={panel ? 'Hide all categories' : 'Show all categories'}
-          accessibilityState={{ expanded: panel }} className="items-center justify-center" style={ROUND}>
-          <Icon name={panel ? 'chevron-up' : 'chevron-down'} size={20} color={c.accent} />
-        </Pressable>
-      </Box>
-      {panel ? (
-        <Box className="flex-row flex-wrap gap-2 pt-row">
+      {/* Owner, 2026-10-04: no large category title and no list under it — the sliding row of
+          categories below is how a category is chosen. */}
+      <Box className="-mx-screen-x border-b-hairline border-separator mb-section">
+        <ScrollView ref={strip} horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-5 px-screen-x">
           {GENRES.map((g) => {
             const on = g.id === genreId;
             return (
-              <Pressable key={g.id} onPress={() => pick(g.id)} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={g.name}
-                className={`rounded-pill flex-row items-center gap-2 px-row ${on ? 'bg-primary' : 'bg-surface border border-border'}`} style={TAP}>
-                <Icon name={g.icon} size={18} color={on ? c.onPrimary : c.text} />
-                <Text className={on ? 'text-onPrimary text-body font-semibold' : 'text-text text-body font-semibold'}>{g.name}</Text>
+              <Pressable key={g.id} onPress={() => pick(g.id)}
+                onLayout={(e) => { tileX.current.set(g.id, e.nativeEvent.layout.x); if (on && !scrolled.current) { scrolled.current = true; showTile(g.id, false); } }}
+                accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={g.name}
+                className={`justify-center border-b-2 ${on ? 'border-primary' : 'border-clear'}`} style={TAP}>
+                <Text className={on ? 'text-text text-body font-bold' : 'text-muted text-body'} numberOfLines={1}>{g.name}</Text>
               </Pressable>
             );
           })}
-        </Box>
-      ) : null}
-      {/* Owner, 2026-10-04: no row of category tabs under the title — the title's chevron opens
-          the full list instead. */}
+        </ScrollView>
+      </Box>
       <Box className="flex-row items-center gap-2 pb-row">
         <Box className="flex-row gap-1 p-1 bg-track rounded-pill">
           {(['all', 'newest'] as const).map((k) => {

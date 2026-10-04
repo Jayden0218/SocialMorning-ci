@@ -281,10 +281,18 @@
  },
  {
   "surface": "/category/[id]",
+  "name": "panel ? 'Hide all categories' : 'Show all categories'",
+  "destination": "setPanel",
+  "to": "removed",
+  "why": "the large category title and the list under it are removed (owner, 2026-10-04); a category is chosen in the sliding row of categories, which stays",
+  "task": "tidy"
+ },
+ {
+  "surface": "/category/[id]",
   "name": "g.name",
   "destination": "pick",
-  "to": "removed",
-  "why": "the row of category tabs under the title is removed (owner, 2026-10-04); the same pick stays in the panel the title's chevron opens",
+  "to": "the sliding row's tab (same name, same pick)",
+  "why": "the large category title and the list under it are removed (owner, 2026-10-04); a category is chosen in the sliding row of categories, which stays",
   "task": "tidy"
  }
 ]
