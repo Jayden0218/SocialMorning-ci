@@ -8,15 +8,15 @@ import type { CachedEpisode, Stores } from '@/storage/types';
 export type HistoryRow = { episode: CachedEpisode; offsetMs: number; finished: boolean; updatedAt: number };
 
 export function listeningHistory(stores: Pick<Stores, 'positions' | 'feeds'>, limit = 100): HistoryRow[] {
-  return stores.positions.all()
-    .slice()
-    .sort((a, b) => b.updatedAt - a.updatedAt)
-    .map((p) => {
-      const episode = stores.feeds.getEpisode(p.episodeId);
-      return episode ? { episode, offsetMs: p.offsetMs, finished: p.finished, updatedAt: p.updatedAt } : undefined;
-    })
-    .filter((r): r is HistoryRow => r !== undefined)
-    .slice(0, limit);
+  // The lag audit (2026-10-04): read episodes only until `limit` rows are found — it used to read
+  // every episode ever played (one SQLite read each) and then keep the first 100.
+  const out: HistoryRow[] = [];
+  for (const p of stores.positions.all().slice().sort((a, b) => b.updatedAt - a.updatedAt)) {
+    if (out.length >= limit) break;
+    const episode = stores.feeds.getEpisode(p.episodeId);
+    if (episode) out.push({ episode, offsetMs: p.offsetMs, finished: p.finished, updatedAt: p.updatedAt });
+  }
+  return out;
 }
 
 /** Every word of `term` somewhere in the texts, any case. An empty term matches all. */

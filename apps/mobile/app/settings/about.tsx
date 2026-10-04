@@ -47,7 +47,7 @@ export default function AboutScreen(): React.ReactElement {
     <PageHeader middle={<Box />} />
     <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pb-section">
       <Box className="flex-row items-center gap-section mt-row">
-        <Image source={require('../../assets/app-icon.png')} style={ICON} className="rounded-[14px]" accessibilityLabel="SocialNet" />
+        <Image source={require('../../assets/app-icon.png')} style={ICON} className="rounded-artwork" accessibilityLabel="SocialNet" />
         <Box className="flex-1">
           <Text className="text-text text-hero font-display" accessibilityRole="header">SocialNet</Text>
           <Text className="text-muted text-xs mt-0.5">Version {Constants.expoConfig?.version ?? '?'}</Text>

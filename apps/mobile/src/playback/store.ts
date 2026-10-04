@@ -292,7 +292,7 @@ export function createPlayerRuntime(deps: PlayerDeps): PlayerRuntime {
   function load(episode: PlayableEpisode, intent: 'play' | 'pause', startMs?: Ms): void {
     // M10b US4 (FR-014, guard G-M1): no stream on mobile data when the listener said so.
     if (deps.mayStream !== undefined && /^https?:/i.test(episode.url) && !deps.mayStream()) {
-      deps.notify('Not downloaded, and playing on mobile data is off. Use Wi-Fi, download it, or allow mobile data in Settings › More.');
+      deps.notify('Not downloaded, and playing on mobile data is off. Use Wi-Fi, download it, or allow mobile data in Settings → More.');
       return;
     }
     // M2 (FR-013): the show's remembered speed, else the app-wide default.
@@ -405,4 +405,29 @@ export function usePlayer(): PlayerRuntime {
 export function usePlayerState(): PlayerState {
   const runtime = usePlayer();
   return useSyncExternalStore(runtime.subscribe, runtime.getState, runtime.getState);
+}
+
+/**
+ * The lag audit (2026-10-04): the state changes on every position tick (about twice a second),
+ * so a page that only asks "which episode, playing or not" re-rendered with it. This returns a
+ * SELECTED value — a string, number or boolean — and re-renders only when that value changes.
+ * Pages that show the moving time (the player, the mini player, the clip composer) keep
+ * usePlayerState.
+ */
+export function usePlayerSelect<T extends string | number | boolean | undefined>(select: (s: PlayerState) => T): T {
+  const runtime = usePlayer();
+  const get = (): T => select(runtime.getState());
+  return useSyncExternalStore(runtime.subscribe, get, get);
+}
+
+/** What most pages need: "kind|episodeId", e.g. "playing|ep-1", or "idle|". */
+export function playerStatusOf(s: PlayerState): string {
+  return `${s.kind}|${('episodeId' in s && s.episodeId) || ''}`;
+}
+
+/** The player's kind and episode, re-rendering only when one of them changes. */
+export function usePlayerStatus(): { kind: PlayerState['kind']; episodeId: string | undefined } {
+  const key = usePlayerSelect(playerStatusOf);
+  const [kind, episodeId] = key.split('|');
+  return { kind: kind as PlayerState['kind'], episodeId: episodeId || undefined };
 }

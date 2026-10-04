@@ -113,7 +113,7 @@ export default function EmailScreen(): React.ReactElement {
                     </BusyContent>
                   </Pressable>}
             </Box>
-            <AuthButton label="Continue" trail="chevron-forward" className="rounded-pill px-7" slim bold disabled={code.length !== 6} busy={verifying} onPress={() => void verify()} />
+            <AuthButton label="Continue" trail="arrow-forward" className="rounded-pill px-7" slim bold disabled={code.length !== 6} busy={verifying} onPress={() => void verify()} />
           </Box>
         )
         : <AuthButton label="Create account" className="rounded-pill" bold disabled={name.trim().length === 0} busy={verifying} onPress={() => void verify(name.trim())} />

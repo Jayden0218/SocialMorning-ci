@@ -145,7 +145,7 @@ function QueueActions(props: {
   return (
     <>
       <SheetRow icon="play-outline" label="Play now" iconColour={props.colours.text} onPress={() => { props.onToggle(); props.onPlay(id); }} />
-      {index > 0 ? <SheetRow icon="chevron-up-outline" label="Move to top" iconColour={props.colours.text} onPress={() => { props.onToggle(); props.onChange(move(ids, id, 0)); }} /> : null}
+      {index > 0 ? <SheetRow icon="arrow-up-outline" label="Move to top" iconColour={props.colours.text} onPress={() => { props.onToggle(); props.onChange(move(ids, id, 0)); }} /> : null}
       {index > 0 ? <SheetRow icon="chevron-up-outline" label="Move up" iconColour={props.colours.text} onPress={() => props.onChange(move(ids, id, index - 1))} /> : null}
       {index < ids.length - 1 ? <SheetRow icon="chevron-down-outline" label="Move down" iconColour={props.colours.text} onPress={() => props.onChange(move(ids, id, index + 1))} /> : null}
       <SheetRow icon="trash-outline" label="Remove from the queue" iconColour={props.colours.accent} tone="accent" onPress={() => { props.onToggle(); props.onChange(remove(ids, id)); }} />
@@ -261,7 +261,7 @@ function QueueRow(props: {
             </Pressable>
             {index > 0 ? (
               <Pressable onPress={() => { props.onToggle(); props.onChange(move(ids, id, 0)); }} accessibilityRole="button" accessibilityLabel="Move to top" className="flex-row items-center gap-1.5 px-3 rounded-pill bg-background border border-border" style={PILL}>
-                <Icon name="chevron-up-outline" size={16} color={props.colours.text} />
+                <Icon name="arrow-up-outline" size={16} color={props.colours.text} />
                 <Text className="text-text text-meta font-bold">Move to top</Text>
               </Pressable>
             ) : null}

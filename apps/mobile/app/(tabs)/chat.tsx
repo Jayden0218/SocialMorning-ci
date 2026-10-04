@@ -63,7 +63,7 @@ export default function ChatTab(): React.ReactElement {
         <Link href="/chat/new" asChild>
           <Pressable accessibilityRole="link" accessibilityLabel="New chat" className="self-start flex-row items-center gap-2" style={TAP}>
             <Icon name="create-outline" size={16} color={c.accent} />
-            <Text className="text-accent text-meta font-semibold">New chat ›</Text>
+            <Text className="text-accent text-meta font-semibold">New chat →</Text>
           </Pressable>
         </Link>
       ) : null}

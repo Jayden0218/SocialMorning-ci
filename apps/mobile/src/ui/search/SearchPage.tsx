@@ -359,7 +359,7 @@ export function SearchPage(props: SearchPageProps): React.ReactElement {
             <Box className="flex-row items-center justify-between mt-section">
               <Eyebrow accent>Categories</Eyebrow>
               <Pressable onPress={() => router.push({ pathname: '/category/[id]', params: { id: String(GENRES[0]!.id) } })} accessibilityRole="link" accessibilityLabel="Browse categories" className="justify-center pl-row" style={TAP}>
-                <Text className="text-accent text-meta font-semibold">Browse categories ›</Text>
+                <Text className="text-accent text-meta font-semibold">Browse categories →</Text>
               </Pressable>
             </Box>
             {/* M17 (`Search-B`): a two-column grid of tiles — the category's icon, then its name. */}

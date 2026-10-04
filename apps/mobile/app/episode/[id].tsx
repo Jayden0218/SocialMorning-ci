@@ -34,7 +34,7 @@ import { Box } from '@/ui/lib/box';
 import { enqueue } from '@socialmorning/player-core';
 import { useColours } from '@/ui/kit/useColours';
 import { Icon } from '@/ui/kit/Icon';
-import { usePlayer, usePlayerState } from '@/playback/store';
+import { usePlayer, usePlayerStatus } from '@/playback/store';
 import { ago, minutesLabel, mmss, noteParts } from '@/ui/kit/format';
 import { useStores, useSubscriptionSync, useToast } from '@/ui/shell/providers';
 import { isFavourite, toggleFavourite } from '@/me/favourites';
@@ -76,7 +76,10 @@ export default function EpisodeScreen(): React.ReactElement {
   // M5 (FR-008): "Next up" for this episode; absent when the server has no answer.
   const nextUp = useNextUp(episode?.id);
   const { open: discoverOpen } = useDiscover();
-  const playerState = usePlayerState();
+  // The lag audit (2026-10-04): re-render on play/pause/episode change only, then read the full
+  // state fresh — usePlayerState re-rendered this page on every position tick.
+  usePlayerStatus();
+  const playerState = player.getState();
   const [composing, setComposing] = useState<ComposerState | undefined>();
   usePoll(episode?.id);
   const { cached, stale } = useEpisodeSocial(episode?.id);

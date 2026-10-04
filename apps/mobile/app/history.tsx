@@ -8,8 +8,8 @@
  * date, then a thin progress bar (yellow) with "Stopped at" / "Finished" beside it. Same rows,
  * same links, same spoken names.
  */
-import { Link } from 'expo-router';
-import { useState } from 'react';
+import { Link, useFocusEffect } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
 import { FlatList } from '@/ui/lib/flat-list';
 import { Pressable } from '@/ui/lib/pressable';
 import { Text } from '@/ui/lib/text';
@@ -54,7 +54,19 @@ export default function HistoryScreen(): React.ReactElement {
   const stores = useStores();
   const [term, setTerm] = useState('');
   const [finished, setFinished] = useState(false);
-  const rows = listeningHistory(stores).filter((r) => (!finished || r.finished) && matchesAll(term, [r.episode.title, stores.feeds.getShow(r.episode.feedUrl)?.title]));
+  // The lag audit (2026-10-04): read once per visit, then filter on each key press — it re-read
+  // the whole history (and every show) on every letter typed.
+  const [visit, setVisit] = useState(0);
+  useFocusEffect(useCallback(() => { setVisit((n) => n + 1); }, []));
+  const all = useMemo(
+    () => listeningHistory(stores).map((r) => ({ r, showTitle: stores.feeds.getShow(r.episode.feedUrl)?.title })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [stores, visit],
+  );
+  const rows = useMemo(
+    () => all.filter(({ r, showTitle }) => (!finished || r.finished) && matchesAll(term, [r.episode.title, showTitle])).map(({ r }) => r),
+    [all, term, finished],
+  );
   const groups = byDay(rows, Date.now());
   return (
     <>

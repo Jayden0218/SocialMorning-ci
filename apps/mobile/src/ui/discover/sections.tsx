@@ -76,7 +76,7 @@ export function ForYouSection(props: Act & { rows: { card: EpisodeCard; line: st
             className="justify-center pl-row"
             style={SQUARE}
           >
-            <Text className="text-accent text-meta font-semibold">{`${shown + 1} / ${p.length} ›`}</Text>
+            <Text className="text-accent text-meta font-semibold">{`${shown + 1} / ${p.length} →`}</Text>
           </Pressable>
         ) : null}
       </Box>
@@ -123,7 +123,7 @@ export function PicksSection(props: Act & { items: DiscoverItem[]; date?: string
                 <Eyebrow accent className="flex-1">{props.date ? `Editor's picks · ${props.date}` : "Editor's picks"}</Eyebrow>
                 {props.onPast ? (
                   <Pressable onPress={props.onPast} accessibilityRole="link" accessibilityLabel="Past picks" className="justify-center pl-row" style={TAP}>
-                    <Text className="text-accent text-meta font-semibold">Past picks ›</Text>
+                    <Text className="text-accent text-meta font-semibold">Past picks →</Text>
                   </Pressable>
                 ) : null}
               </Box>
@@ -169,7 +169,7 @@ export function ChartSection(props: Act & { tabs: ChartTab[]; onFull?: () => voi
         {/* M12 FR-071: the whole Talked-about ranking, not only the three pages shown here. */}
         {props.onFull ? (
           <Pressable onPress={props.onFull} accessibilityRole="link" accessibilityLabel="Full chart" className="justify-center pl-row" style={TAP}>
-            <Text className="text-accent text-meta font-semibold">Full chart ›</Text>
+            <Text className="text-accent text-meta font-semibold">Full chart →</Text>
           </Pressable>
         ) : null}
       </Box>
@@ -305,7 +305,7 @@ export function NewShowsSection(props: Act & { items: { show: ShowCard; episode:
 export function MoreCategories(props: { onPress: () => void }): React.ReactElement {
   return (
     <Pressable onPress={props.onPress} accessibilityRole="link" accessibilityLabel="Explore more categories" className="items-center justify-center mt-section" style={TAP}>
-      <Text className="text-accent text-meta font-semibold">Explore more categories ›</Text>
+      <Text className="text-accent text-meta font-semibold">Explore more categories →</Text>
     </Pressable>
   );
 }

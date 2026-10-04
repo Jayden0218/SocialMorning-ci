@@ -32,6 +32,7 @@
  * M17 T102 (`PlaybackSheet-B`): the Playback sheet takes B's look — serif title, Chapters and
  * Transcript as cards, Done as a yellow pill at the bottom. Same actions and handlers.
  */
+import { episodeAndShow } from '@/ui/player/lookup';
 import { useEffect, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
 import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '@/ui/lib/actionsheet';
@@ -102,7 +103,7 @@ export default function PlayerScreen(): React.ReactElement {
   useEffect(() => { if (clipNow) setLastClipEnd(clipNow.endMs); }, [clipNow]);
   const currentEpisodeId = state.kind === 'idle' ? undefined : state.episodeId;
   // Owner, 2026-10-01: the show's Studio theme colour (if set) tints the top of the page.
-  const [showExtras] = useShowExtras((currentEpisodeId ? stores.feeds.getEpisode(currentEpisodeId)?.feedUrl : undefined) ?? '');
+  const [showExtras] = useShowExtras((currentEpisodeId ? episodeAndShow(stores.feeds, currentEpisodeId).episode?.feedUrl : undefined) ?? '');
   const wash = playerWash(showExtras?.overrides?.themeColour);
   // M5 (FR-010): the end-of-episode offer — fetched while the episode plays, shown at `ended` with an empty queue, never autoplayed.
   const nextUp = useNextUp(currentEpisodeId);
@@ -161,8 +162,8 @@ export default function PlayerScreen(): React.ReactElement {
     );
   }
 
-  const episode = stores.feeds.getEpisode(state.episodeId);
-  const show = episode === undefined ? undefined : stores.feeds.getShow(episode.feedUrl);
+  // Read once per episode, not on every tick (src/ui/player/lookup.ts).
+  const { episode, show } = episodeAndShow(stores.feeds, state.episodeId);
   const artworkUrl = episode?.imageUrl ?? show?.imageUrl;
 
   const positionMs = state.kind === 'ended' ? (state.durationMs ?? 0) : state.positionMs;

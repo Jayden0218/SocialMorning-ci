@@ -238,7 +238,7 @@ export function Terms(props: {
         <Image
           source={require("../../../assets/app-icon.png")}
           style={ICON}
-          className="rounded-[13px]"
+          className="rounded-row"
           accessibilityIgnoresInvertColors
         />
         <Text
@@ -316,7 +316,7 @@ export function Terms(props: {
           <Image
             source={require("../../../assets/app-icon.png")}
             style={ICON}
-            className="rounded-[13px] self-center"
+            className="rounded-row self-center"
             accessibilityIgnoresInvertColors
           />
           <Text

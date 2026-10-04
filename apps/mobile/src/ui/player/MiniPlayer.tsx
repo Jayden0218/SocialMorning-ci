@@ -16,6 +16,7 @@
  *     accessible name alone and watched this button's label flip from "Play" to "Pause";
  *     the label, the role and the `accessibilityState` are the contract, not the glyph.
  */
+import { episodeAndShow } from './lookup';
 import { Link, useIsFocused, usePathname } from 'expo-router';
 import { Pressable } from '@/ui/lib/pressable';
 import { Text } from '@/ui/lib/text';
@@ -91,8 +92,8 @@ export function MiniPlayer(props: { pathname?: string; context?: 'root' | 'tabs'
     );
   }
 
-  const episode = stores.feeds.getEpisode(state.episodeId);
-  const show = episode ? stores.feeds.getShow(episode.feedUrl) : undefined;
+  // Read once per episode, not on every tick (src/ui/player/lookup.ts).
+  const { episode, show } = episodeAndShow(stores.feeds, state.episodeId);
   const isPlaying = state.kind === 'playing' || state.kind === 'buffering';
   // "26:37/1:30:28" under the title, and the ring around the play button (the reference's bar).
   const positionMs = 'positionMs' in state && typeof state.positionMs === 'number' ? state.positionMs : 0;

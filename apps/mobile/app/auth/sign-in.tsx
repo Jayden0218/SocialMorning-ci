@@ -96,7 +96,7 @@ export default function SignInScreen(): React.ReactElement {
         <Image
           source={require("../../assets/app-icon.png")}
           style={LOGO}
-          className="rounded-[16px]"
+          className="rounded-2xl"
           accessibilityIgnoresInvertColors
         />
 

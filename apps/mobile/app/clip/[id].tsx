@@ -18,7 +18,7 @@ import { ScrollView } from '@/ui/lib/scroll-view';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSocial } from '@/social/context';
 import { useStores } from '@/ui/shell/providers';
-import { usePlayer, usePlayerState } from '@/playback/store';
+import { usePlayer, usePlayerStatus } from '@/playback/store';
 import { refreshShow } from '@/feeds/fetch';
 import { resolveClipEpisode, type Resolved } from '@/graph/resolve';
 import { ClipCard } from '@/ui/clips/ClipCard';
@@ -42,7 +42,10 @@ export default function ClipScreen(): React.ReactElement {
   const stores = useStores();
   const c = useColours(stores.settings);
   const player = usePlayer();
-  const state = usePlayerState();
+  // The lag audit (2026-10-04): re-render on play/pause/episode change only, then read the full
+  // state fresh — usePlayerState re-rendered this page on every position tick.
+  usePlayerStatus();
+  const state = player.getState();
   const [status, setStatus] = useState<Status>({ kind: 'loading' });
   // M16a T005 (FR-015): the app's share panel first; the system sheet behind "More".
   const [share, sharePanel] = useSharePanel();

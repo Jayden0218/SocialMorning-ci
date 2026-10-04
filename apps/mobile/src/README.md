@@ -277,6 +277,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `ChapterList.tsx` | List of episode chapters; current one is bold; tap to jump there. |
 | `EndOffer.tsx` | Card at episode end: "Next up" episode with a Play button. |
 | `HeatCurve.tsx` | 100 bars under the seek bar showing where listeners reacted; tap to jump. |
+| `lookup.ts` | Remembers the playing episode and its show, so a player tick does not read the database again. |
 | `MiniPlayer.tsx` | Small bar at the bottom showing what plays; tap to open the player. |
 | `NextUp.tsx` | Loads the "Next up" episodes, each with a reason, for the episode page. |
 | `Rail.tsx` | Small marks on the seek bar where people left timed comments. |
