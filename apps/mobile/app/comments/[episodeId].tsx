@@ -35,7 +35,7 @@ import { ReportSheet, type ReportTarget } from '@/ui/comments/ReportSheet';
 import { EmptyState } from '@/ui/kit/EmptyState';
 import { useStores, useToast } from '@/ui/shell/providers';
 import { useColours } from '@/ui/kit/useColours';
-import { usePlayer, usePlayerStatus } from '@/playback/store';
+import { usePlayer, usePlayerState } from '@/playback/store';
 import { toPlayable } from '@/storage/playable';
 import { isFavComment, toggleFavComment } from '@/me/fav-comments';
 import { EpisodeCard } from '@/ui/comments/EpisodeCard';
@@ -70,10 +70,7 @@ export default function CommentsScreen(): React.ReactElement {
   const toast = useToast();
   const m12 = useM12Api();
   const player = usePlayer();
-  // The scroll audit (2026-10-04): every visible comment re-rendered on each player tick. Re-render
-  // on play/pause/episode only and read the position fresh when the page renders.
-  usePlayerStatus();
-  const playerState = player.getState();
+  const playerState = usePlayerState();
   const { composer, listener, useEpisodeSocial, refresh, bump } = useSocial();
   const safety = useSafety();
   usePoll(episodeId);

@@ -49,8 +49,5 @@ export function usePullRefresh(refreshing: boolean, onRefresh: () => void) {
   );
   const inline = Platform.OS === 'android' && refreshing ? <Loader size={22} label="Refreshing" className="my-row" /> : null;
 
-  // The scroll audit (2026-10-04): this follows the scroll on the JS thread only to fade the mark in
-  // during a pull, so one event per 48 ms (a third of 16) is plenty — a page's scroll no longer
-  // sends every frame to JS.
-  return { onScroll, scrollEventThrottle: 48, refreshControl, backdrop, inline };
+  return { onScroll, scrollEventThrottle: 16, refreshControl, backdrop, inline };
 }

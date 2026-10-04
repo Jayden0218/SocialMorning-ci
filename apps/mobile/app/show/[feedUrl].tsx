@@ -42,7 +42,7 @@ import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
 import { refreshShow } from '@/feeds/fetch';
 import { htmlToText, mmss, noteSummary } from '@/ui/kit/format';
-import { usePlayer, usePlayerStatus } from '@/playback/store';
+import { usePlayer, usePlayerState } from '@/playback/store';
 import { toPlayable } from '@/storage/playable';
 import { Artwork } from '@/ui/kit/Artwork';
 import { Dots, PauseIcon, PlayIcon } from '@/ui/kit/Icon';
@@ -168,10 +168,7 @@ export default function ShowScreen(): React.ReactElement {
   }, [feedUrl, stores, subscriptionSync]);
 
   const player = usePlayer();
-  // The lag audit (2026-10-04): re-render on play/pause/episode change only, then read the full
-  // state fresh — usePlayerState re-rendered this page on every position tick.
-  const playerStatus = usePlayerStatus();
-  const playerState = player.getState();
+  const playerState = usePlayerState();
   const [tab, setTab] = useState<'episodes' | 'about'>('episodes');
   const [oldestFirst, setOldestFirst] = useState(false);
   // Owner, 2026-10-01: the "All" / "Most played" chips and an "Unplayed" filter above the list.
@@ -358,9 +355,7 @@ export default function ShowScreen(): React.ReactElement {
       </TopBar>
       <FlatList
         data={tab === 'episodes' ? shown : []}
-        // FlatList is pure: without this the rows keep their old text. A string, not a new array, so
-        // an unrelated re-render (the header collapsing on scroll) does not redraw every row.
-        extraData={`${focusTick}|${playerStatus.kind}|${playerStatus.episodeId ?? ''}`}
+        extraData={[focusTick, playerState]} // FlatList is pure: without this the rows keep their old text
         keyExtractor={(episode) => episode.id}
         ListHeaderComponent={header}
         contentContainerClassName="pb-24"

@@ -26,7 +26,6 @@
     "expo-blur": "~58.0.1",
     "expo-camera": "~58.0.3",
     "expo-font": "~58.0.1",
-    "expo-image": "58.0.2",
     "expo-image-manipulator": "~58.0.8",
     "expo-image-picker": "58.0.3",
     "expo-linear-gradient": "~58.0.1",

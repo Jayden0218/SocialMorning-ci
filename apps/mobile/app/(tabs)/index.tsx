@@ -12,8 +12,8 @@
  * the stale notice is a bordered white card. The sections themselves are restyled in
  * `src/ui/discover/{parts,sections}.tsx`; order, data, pull to refresh and every action stay.
  */
-import { useFocusEffect, useRouter } from 'expo-router';
-import { Fragment, useCallback, useMemo, useState } from 'react';
+import { useRouter } from 'expo-router';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Image } from '@/ui/lib/image';
 import { SafeAreaView } from '@/ui/lib/safe-area-view';
 import { ScrollView } from '@/ui/lib/scroll-view';
@@ -46,22 +46,6 @@ const ICON = { width: 36, height: 36 };
 /** "Thursday, 2 October" — the eyebrow over the title (`Home-B`), from the phone's clock. */
 const today = (): string => new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 
-/**
- * The search box with its trending hint, cycling every HINT_EVERY_MS while Discover is on screen.
- * The scroll audit (2026-10-04): the timer lived in the page, so every 4 s the WHOLE Discover page
- * re-rendered (every section, every cover) — now only this box does.
- */
-function TrendingSearchBar(props: { hints: readonly string[]; onOpen: (fromY: number, hint: string | undefined) => void; onScan: () => void }): React.ReactElement {
-  const [tick, setTick] = useState(0);
-  useFocusEffect(useCallback(() => {
-    if (props.hints.length < 2) return undefined;
-    const t = setInterval(() => setTick((n) => n + 1), HINT_EVERY_MS);
-    return () => clearInterval(t);
-  }, [props.hints]));
-  const hint = hintAt(props.hints, tick);
-  return <SearchBar {...(hint ? { hint } : {})} onPress={(fromY) => props.onOpen(fromY, hint)} onScan={props.onScan} />;
-}
-
 export default function DiscoverScreen(): React.ReactElement {
   const router = useRouter();
   const stores = useStores();
@@ -80,12 +64,16 @@ export default function DiscoverScreen(): React.ReactElement {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [view, forYou.view, hiddenFeeds, sets, version],
   );
-  // The lag audit (2026-10-04): this reads every episode of every subscribed show, so it runs
-  // when Discover is opened, not on every re-render (the hint ticker re-rendered every 4 s).
-  const [inbox, setInbox] = useState(() => inboxIds(stores).length);
-  useFocusEffect(useCallback(() => { setInbox(inboxIds(stores).length); }, [stores]));
+  const inbox = inboxIds(stores).length;
   // The search box's middle cycles through what is trending (owner, 2026-09-27).
   const hints = useMemo(() => trendingHints(model.chart), [model]);
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    if (hints.length < 2) return;
+    const t = setInterval(() => setTick((n) => n + 1), HINT_EVERY_MS);
+    return () => clearInterval(t);
+  }, [hints]);
+  const hint = hintAt(hints, tick);
   const showPage = (feedUrl: string) => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(feedUrl) } });
   // Owner, 2026-10-01: "Categories" opens the genre strip with the first genre's list under it,
   // not the page of genre choices.
@@ -139,12 +127,12 @@ export default function DiscoverScreen(): React.ReactElement {
           </Box>
           <Image source={require('../../assets/app-icon.png')} style={ICON} className="rounded-row" accessibilityIgnoresInvertColors accessibilityLabel="SocialNet" />
         </Box>
-        <TrendingSearchBar
-          hints={hints}
+        <SearchBar
+          {...(hint ? { hint } : {})}
           // `fromY`: where the bar sits now, so Search can start its box here and move it up.
           // M17: Search opens IN PLACE over the tabs (not the `/search` route), so a page opened
           // from its results is an ordinary push with the edge swipe (src/ui/search/SearchOverlay.tsx).
-          onOpen={(fromY, hint) => search.open({ fromY: Math.round(fromY), ...(hint ? { hint } : {}) })}
+          onPress={(fromY) => search.open({ fromY: Math.round(fromY), ...(hint ? { hint } : {}) })}
           onScan={() => router.push('/scan')}
         />
         <Shortcuts

@@ -26,6 +26,8 @@ import { CarLibrarySync } from '@/outside/CarLibrarySync';
 import { MiniPlayer } from '@/ui/player/MiniPlayer';
 import { leavingToTabs, rootBarHidden, type LeavingToTabs } from '@/ui/player/mini-player-swipe';
 import { GluestackUIProvider } from '@/ui/lib/gluestack-ui-provider';
+import { RateSheet } from '@/ui/shell/RateSheet';
+import { consentGiven } from '@/ui/shell/consent';
 
 // Owner, 2026-09-27: no warning bar over the app in Debug builds. Warnings still print
 // in the Metro terminal; Release builds never show the bar.
@@ -116,9 +118,6 @@ function RootStack(): React.ReactElement {
           screenOptions={{
             headerShown: false,
             contentStyle: { backgroundColor: c.background },
-            // The lag audit (2026-10-04): a page under the top one stops re-rendering until it is
-            // shown again — before, every page in the stack re-drew on each player tick.
-            freezeOnBlur: true,
           }}
           screenListeners={({ navigation, route }) => ({
             // M16a bug 5: a back-swipe onto the tabs hides the root bar as it starts, not after.
@@ -193,6 +192,8 @@ function RootStack(): React.ReactElement {
           <Stack.Screen name="profile/[id]/following" options={{ title: 'Following' }} />
         </Stack>
         {rootBarHidden(leaving) ? null : <MiniPlayer />}
+        {/* Owner, 2026-10-04: "Enjoying SocialNet?" — on the tabs, after the terms are agreed. */}
+        <RateSheet ready={onTabs && consentGiven(stores.settings, stores.auth.get() !== undefined)} />
       </SafeAreaView>
   );
 }
