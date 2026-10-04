@@ -14,7 +14,7 @@
  * track and its pages get Previous / Next buttons; categories are a 2-column grid of tiles.
  * Every row, tab and link keeps its accessible name and handler.
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable } from '@/ui/lib/pressable';
 import { ScrollView } from '@/ui/lib/scroll-view';
 import { Text } from '@/ui/lib/text';
@@ -24,6 +24,8 @@ import { useStores } from '@/ui/shell/providers';
 import { useColours } from '@/ui/kit/useColours';
 import { Icon, type IconName } from '@/ui/kit/Icon';
 import { GENRES } from '@/discover/genres';
+import { warmCategories } from '@/discover/category-cache';
+import { useSocial } from '@/social/context';
 import { ago, pages, statsLine, type ChartTab } from '@/discover/sections';
 import type { Collection, DiscoverItem, EpisodeCard, FollowedShow, SaidItem, ShowCard } from '@/social/api';
 import { Artwork } from '@/ui/kit/Artwork';
@@ -210,10 +212,20 @@ export function ChartSection(props: Act & { tabs: ChartTab[]; onFull?: () => voi
   );
 }
 
+/** How long after Discover appears the category lists start loading. */
+const WARM_AFTER_MS = 1500;
+
 /** Explore by category — genre tiles two to a row; each opens that genre's top shows. */
 export function CategoryStrip(props: { onGenre: (id: number) => void; onAll: () => void }): React.ReactElement {
   const stores = useStores();
   const c = useColours(stores.settings);
+  const { api } = useSocial();
+  // Owner, 2026-10-04: the 8 genres' lists (and first covers) load in the background once
+  // Discover has drawn, so a tapped category opens full (src/discover/category-cache.ts).
+  useEffect(() => {
+    const t = setTimeout(() => warmCategories({ api, cache: stores.feedCache, now: () => Date.now() }, GENRES.slice(0, 8).map((g) => g.id)), WARM_AFTER_MS);
+    return () => clearTimeout(t);
+  }, [api, stores]);
   return (
     <Box className="mt-row">
       <SectionTitle title="Explore by category" action={{ label: 'All', onPress: props.onAll }} />

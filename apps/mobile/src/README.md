@@ -29,6 +29,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 |---|---|
 | `apple.ts` | Searches Apple's public podcast catalogue for shows. |
 | `cache.ts` | Keeps the last Discover page so it still shows when offline. |
+| `category-cache.ts` | Keeps each category's last list so its page shows at once, then refreshes quietly. |
 | `category-list.ts` | Sorts and filters the shows on a category page. |
 | `end-offer.ts` | Decides which episode to suggest when one ends and the queue is empty. |
 | `first-paint.ts` | Holds the Discover page back until its data is in, so it appears whole, not piece by piece. |

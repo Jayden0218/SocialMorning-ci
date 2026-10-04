@@ -32,6 +32,7 @@ import { Box } from "@/ui/lib/box";
 import { Segmented } from "@/ui/kit/Segmented";
 import { Toggle } from "@/ui/kit/Toggle";
 import { Loader } from "@/ui/kit/Loader";
+import { cachedCategory, fetchCategory, firstCovers } from "@/discover/category-cache";
 import { GENRES } from "@/discover/genres";
 import { categoryList, type CategorySort } from "@/discover/category-list";
 import { hit } from "@/design";
@@ -68,7 +69,12 @@ export default function CategoryScreen(): React.ReactElement {
   const stores = useStores();
   const subscriptionSync = useSubscriptionSync();
   const c = useColours(stores.settings);
-  const [state, setState] = useState<State>({ kind: "loading" });
+  // Owner, 2026-10-04: the kept list draws on the first frame; the fresh one replaces it.
+  const keptState = (id: number): State => {
+    const body = cachedCategory(stores.feedCache, id);
+    return body ? { kind: "ok", body } : { kind: "loading" };
+  };
+  const [state, setState] = useState<State>(() => keptState(Number(params.id)));
   const [sort, setSort] = useState<CategorySort>("all");
   const [notSubscribedOnly, setNotSubscribedOnly] = useState(false);
   const readSubscribed = useCallback(
@@ -98,26 +104,31 @@ export default function CategoryScreen(): React.ReactElement {
 
   useEffect(() => {
     let live = true;
-    setState({ kind: "loading" });
-    api.category(genreId).then(
+    const shown = keptState(genreId);
+    setState(shown);
+    fetchCategory({ api, cache: stores.feedCache, now: () => Date.now() }, genreId).then(
       async (body) => {
         // Owner, 2026-10-04: a new category shows its covers when ready, not the letter tiles
-        // first. The covers of the first screen (9) are fetched before the list appears;
-        // at most 3 s, then the list shows anyway.
-        const covers = body.shows.slice(0, 9).flatMap((s) => (s.imageUrl ? [s.imageUrl] : []));
-        await Promise.race([
-          Promise.all(covers.map((u) => RNImage.prefetch(u).catch(() => false))),
-          new Promise((done) => setTimeout(done, COVER_WAIT_MS)),
-        ]);
+        // first. With nothing kept, the covers of the first screen (9) are fetched before the
+        // list appears; at most 3 s, then the list shows anyway. With a kept list on screen,
+        // the fresh one swaps in at once.
+        if (shown.kind === "loading") {
+          await Promise.race([
+            Promise.all(firstCovers(body).map((u) => RNImage.prefetch(u).catch(() => false))),
+            new Promise((done) => setTimeout(done, COVER_WAIT_MS)),
+          ]);
+        }
         if (live) setState({ kind: "ok", body });
       },
       () => {
-        if (live) setState({ kind: "error" });
+        // Offline with a kept list: keep showing it.
+        if (live && shown.kind === "loading") setState({ kind: "error" });
       },
     );
     return () => {
       live = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keptState reads the same store
   }, [api, genreId]);
 
   // The same store calls and push as the show page's Subscribe (app/show/[feedUrl].tsx,
