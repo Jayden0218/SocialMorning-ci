@@ -246,5 +246,37 @@
   "to": "removed",
   "why": "src/ui/kit/NavLink.tsx deleted (owner, 2026-10-03: \"just delete them\"): no file imported it, so this link was on no screen",
   "task": "tidy"
+ },
+ {
+  "surface": "/settings/feedback",
+  "name": "busy ? 'Sending…' : 'Send'",
+  "destination": "send",
+  "to": "/settings/feedback | Send | send",
+  "why": "busy text replaced by the moving sound bars (owner, 2026-10-04, BusyContent / G-BU1): the button keeps one name, so the scanner reads the plain words",
+  "task": "busy-bars"
+ },
+ {
+  "surface": "/voice/new",
+  "name": "phase.kind === 'posting' ? 'Posting…' : 'Post'",
+  "destination": "post",
+  "to": "/voice/new | Post | post",
+  "why": "busy text replaced by the moving sound bars (owner, 2026-10-04, BusyContent / G-BU1): the button keeps one name, so the scanner reads the plain words",
+  "task": "busy-bars"
+ },
+ {
+  "surface": "ClipComposer",
+  "name": "{props.saving ? 'Saving…' : 'Save'}",
+  "destination": "props.onSave",
+  "to": "ClipComposer | Save | props.onSave",
+  "why": "busy text replaced by the moving sound bars (owner, 2026-10-04, BusyContent / G-BU1): the button keeps one name, so the scanner reads the plain words",
+  "task": "busy-bars"
+ },
+ {
+  "surface": "MomentSheet",
+  "name": "Report this comment",
+  "destination": "remove",
+  "to": "MomentSheet | Delete | remove",
+  "why": "the Delete action had no name of its own, so the scanner borrowed the next one's label; its words are now inside BusyContent (owner, 2026-10-04, G-BU1) and the scanner reads them: 'Delete'",
+  "task": "busy-bars"
  }
 ]

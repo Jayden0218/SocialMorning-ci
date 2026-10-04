@@ -52,9 +52,10 @@ export function Button(props: {
   return (
     <LibButton
       variant={kind === 'secondary' ? 'outline' : 'default'}
-      onPress={props.onPress}
-      isDisabled={props.disabled === true || busy}
-      disabled={props.disabled === true || busy}
+      // Busy is not `isDisabled`: the library dims a disabled button. The press is dropped instead.
+      onPress={busy ? undefined : props.onPress}
+      isDisabled={dim}
+      disabled={dim}
       accessibilityRole="button"
       accessibilityLabel={props.accessibilityLabel ?? props.label}
       accessibilityState={{ disabled: props.disabled === true || busy, busy }}

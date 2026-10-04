@@ -39,17 +39,24 @@ it('busy: the words stay (so the size stays), the bars move over them, no second
   const busy = render(true);
   expect(words(busy)).toBe(true);
   expect(bars(busy)).toHaveLength(1);
-  expect(button(busy).props['accessibilityState']).toMatchObject({ busy: true, disabled: true });
+  expect(button(busy).props['accessibilityState']).toMatchObject({ busy: true });
+  // No second press: the press handler is dropped while busy.
+  expect(read('src/ui/kit/Button.tsx')).toContain('onPress={busy ? undefined : props.onPress}');
   act(() => { idle.unmount(); busy.unmount(); });
 });
 
+/** The dim class on its own — the library's `data-[disabled=true]:opacity-40` is always in the string. */
+const DIM = /(^|\s)opacity-40(\s|$)/;
+
 it('busy is not dimmed, even when the button is also disabled', () => {
   const r = render(true, true);
-  expect(String(button(r).props['className'])).not.toContain('opacity-40');
+  expect(String(button(r).props['className'])).not.toMatch(DIM);
   act(() => r.unmount());
   const off = render(false, true);
-  expect(String(button(off).props['className'])).toContain('opacity-40');
+  expect(String(button(off).props['className'])).toMatch(DIM);
   act(() => off.unmount());
+  // The library dims anything `isDisabled`, so busy must not be passed as disabled.
+  expect(read('src/ui/kit/Button.tsx')).toMatch(/isDisabled=\{dim\}/);
 });
 
 it('AuthButton keeps its words and arrow while busy and draws BusyContent', () => {
@@ -76,7 +83,8 @@ function files(dir: string): string[] {
 
 it('no button swaps its words for still busy text', () => {
   const still = [...files(join(ROOT, 'app')), ...files(join(ROOT, 'src'))]
-    .filter((p) => /\? '(?:…|Sending…|Posting…|Saving…|Deleting…)'/.test(readFileSync(p, 'utf8')))
+    // `(?<!\?)`: `pct ?? '…'` (a download's unknown percent) is not a busy label.
+    .filter((p) => /(?<!\?)\? '(?:…|Sending…|Posting…|Saving…|Deleting…)'/.test(readFileSync(p, 'utf8')))
     .map((p) => relative(ROOT, p));
   expect(still).toEqual([]);
 });
