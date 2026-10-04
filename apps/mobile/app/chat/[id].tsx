@@ -195,7 +195,7 @@ export default function ChatThread(): React.ReactElement {
               className={`bg-primary rounded-pill items-center justify-center w-12 ${cannot ? 'opacity-50' : ''}`}
               style={TAP}
             >
-              <Icon name="arrow-up" size={22} color={c.onPrimary} />
+              <Icon name="chevron-up" size={22} color={c.onPrimary} />
             </Pressable>
           </Box>
           {over ? <Text className="text-accent text-meta text-right">{`${body.length} / ${CHAT_BODY_MAX}`}</Text> : null}

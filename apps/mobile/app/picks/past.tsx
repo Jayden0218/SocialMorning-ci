@@ -106,7 +106,7 @@ export default function PastPicksScreen(): React.ReactElement {
     return (
       <Pressable key={`${p.feedUrl}-${i}`} onPress={() => openShow(p.feedUrl)} accessibilityRole="link" accessibilityLabel={`${p.why}. Open the show`} className={`justify-center py-row ${i === 0 ? '' : 'border-t-hairline border-separator'}`} style={TAP}>
         <Text className="text-text text-body font-display-semibold italic" numberOfLines={3}>“{p.why}”</Text>
-        <Text className="text-accent text-xs font-semibold mt-1">Open the show →</Text>
+        <Text className="text-accent text-xs font-semibold mt-1">Open the show ›</Text>
       </Pressable>
     );
   };

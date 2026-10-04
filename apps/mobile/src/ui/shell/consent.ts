@@ -72,6 +72,14 @@ export function hasAccepted(settings: SettingsStore): boolean {
   return settings.get(TERMS_KEY) === TERMS_VERSION;
 }
 
+/**
+ * Owner, 2026-10-04: the consent page is for a first-time user only. Agreed on this phone before,
+ * or signed in (signing in needs the same agreement, ticked on the sign-in page) → not again.
+ */
+export function consentGiven(settings: SettingsStore, signedIn: boolean): boolean {
+  return signedIn || hasAccepted(settings);
+}
+
 export function accept(settings: SettingsStore): void {
   settings.set(TERMS_KEY, TERMS_VERSION);
 }

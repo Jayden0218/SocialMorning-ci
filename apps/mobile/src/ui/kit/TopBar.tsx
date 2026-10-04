@@ -7,7 +7,7 @@
 import { Pressable } from '@/ui/lib/pressable';
 import { Box } from '@/ui/lib/box';
 import { hit } from '@/design';
-import { Chevron, Glyph } from './Icon';
+import { Chevron } from './Icon';
 
 export const TAP = { minHeight: hit.min, minWidth: hit.min };
 
@@ -20,7 +20,7 @@ export function TopBar(props: {
     <Box className="flex-row items-center justify-between px-row">
       {props.left ?? (
         <Pressable onPress={props.onBack} accessibilityRole="button" accessibilityLabel={props.back === 'down' ? 'Close the player' : 'Back'} className="items-center justify-center" style={TAP}>
-          {props.back === 'down' ? <Chevron dir="down" size={14} /> : <Glyph>←</Glyph>}
+          {props.back === 'down' ? <Chevron dir="down" size={14} /> : <Chevron dir="left" size={14} />}
         </Pressable>
       )}
       {props.middle ? <Box className="flex-1 flex-row items-center gap-2 px-1">{props.middle}</Box> : null}

@@ -17,7 +17,7 @@
  * `socialmorning://…` link M1–M6 uses still resolves (FR-010b, guard G3).
  */
 import { Tabs, useRouter } from 'expo-router';
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Box } from '@/ui/lib/box';
 import { colour } from '@/design';
 import { useColours } from '@/ui/kit/useColours';
@@ -31,9 +31,6 @@ import { TABS, TAB_HREF } from '@/ui/shell/tabs';
 import { SearchOverlayHost } from '@/ui/search/SearchOverlay';
 
 
-
-/** A tab tap re-reads the unread badges at most this often (the minute timer still runs). */
-const VISIT_REFRESH_MS = 30_000;
 export default function TabsLayout(): React.ReactElement {
   const router = useRouter();
   const stores = useStores();
@@ -44,9 +41,6 @@ export default function TabsLayout(): React.ReactElement {
   // listener changes, plus on every tab switch (the `active` dependency below).
   const [unread, setUnread] = useState(0);
   const [visit, setVisit] = useState(0);
-  // The lag audit (2026-10-04): every tab tap re-read both badges from the server (and
-  // re-rendered the tabs) while the new tab was appearing. At most once per VISIT_REFRESH_MS now.
-  const lastVisit = useRef(0);
   useEffect(() => {
     if (listener === undefined) {
       setUnread(0);
@@ -83,10 +77,7 @@ export default function TabsLayout(): React.ReactElement {
   }, [chat, listener, visit]);
 
   // M10: the unread count now badges Me, where Notifications holds the feed.
-  const items = useMemo(
-    () => TABS.map((t) => (t.key === 'me' && unread > 0 ? { ...t, badge: unread } : t.key === 'chat' && unreadChat > 0 ? { ...t, badge: unreadChat } : t)),
-    [unread, unreadChat],
-  );
+  const items = TABS.map((t) => (t.key === 'me' && unread > 0 ? { ...t, badge: unread } : t.key === 'chat' && unreadChat > 0 ? { ...t, badge: unreadChat } : t));
 
   return (
     // M17: Discover's Search is drawn in place over the tabs and their bar, so result pages push
@@ -98,8 +89,6 @@ export default function TabsLayout(): React.ReactElement {
         // own titles; the two hidden routes only redirect.
         headerShown: false,
         sceneStyle: { backgroundColor: c.background },
-        // The lag audit (2026-10-04): a tab that is not shown stops re-rendering.
-        freezeOnBlur: true,
       }}
       tabBar={(props) => {
         const active = props.state.routes[props.state.index]?.name ?? 'index';
@@ -111,10 +100,7 @@ export default function TabsLayout(): React.ReactElement {
               activeKey={active}
               onSelect={(key) => {
                 if (key === active) return;
-                if (Date.now() - lastVisit.current >= VISIT_REFRESH_MS) {
-                  lastVisit.current = Date.now();
-                  setVisit((n) => n + 1);
-                }
+                setVisit((n) => n + 1);
                 router.navigate(TAB_HREF[key] ?? '/');
               }}
             />
