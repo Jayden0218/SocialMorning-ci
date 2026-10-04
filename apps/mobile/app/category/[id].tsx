@@ -41,6 +41,8 @@ import { Screen } from '@/ui/kit/Screen';
 import { PageHeader } from '@/ui/kit/PageHeader';
 
 const TAP = { minHeight: hit.min };
+/** The All / Newest pills are ~28 pt tall; this keeps their tap area at 48. */
+const SLIM_SLOP = { top: 10, bottom: 10, left: 4, right: 4 };
 const ROUND = { width: hit.min, height: hit.min };
 type State = { kind: 'loading' } | { kind: 'ok'; body: CategoryShows } | { kind: 'error' };
 
@@ -158,22 +160,22 @@ export default function CategoryScreen(): React.ReactElement {
           })}
         </ScrollView>
       </Box>
-      <Box className="flex-row items-center gap-2 pb-row">
-        <Box className="flex-row gap-1 p-1 bg-track rounded-pill">
+      {/* Owner, 2026-10-04: a smaller All / Newest switch and filter, at the two ends of the row. */}
+      <Box className="flex-row items-center justify-between gap-2 pb-row">
+        <Box className="flex-row gap-0.5 p-0.5 bg-track rounded-pill">
           {(['all', 'newest'] as const).map((k) => {
             const on = sort === k;
             return (
               <Pressable key={k} onPress={() => setSort(k)} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={k === 'all' ? 'All, chart order' : 'Newest episodes first'}
-                className={`justify-center px-section rounded-pill ${on ? 'bg-primary' : ''}`} style={TAP}>
-                <Text className={on ? 'text-onPrimary text-body font-bold' : 'text-muted text-body'}>{k === 'all' ? 'All' : 'Newest'}</Text>
+                className={`justify-center px-row py-1 rounded-pill ${on ? 'bg-primary' : ''}`} hitSlop={SLIM_SLOP}>
+                <Text className={on ? 'text-onPrimary text-meta font-bold' : 'text-muted text-meta'}>{k === 'all' ? 'All' : 'Newest'}</Text>
               </Pressable>
             );
           })}
         </Box>
-        <Box className="flex-1" />
-        <Box className="flex-row items-center gap-2" style={TAP}>
+        <Box className="flex-row items-center gap-1" style={TAP}>
           <Text className="text-muted text-xs">Not subscribed only</Text>
-          <Toggle value={notSubscribedOnly} onChange={setNotSubscribedOnly} label="Not subscribed only" />
+          <Toggle value={notSubscribedOnly} onChange={setNotSubscribedOnly} label="Not subscribed only" size="small" />
         </Box>
       </Box>
       {state.kind === 'loading' ? <Loader className="my-section" /> : null}
