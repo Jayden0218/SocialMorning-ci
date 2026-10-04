@@ -15,10 +15,10 @@ import { Pressable } from '@/ui/lib/pressable';
 import { Box } from '@/ui/lib/box';
 import { hit } from '@/design';
 
-/** Owner, 2026-10-04: a `small` switch (40 × 24) for tight rows, e.g. a category's filter. */
+/** Owner, 2026-10-04: a `small` switch (32 × 18; first 40 × 24, then "even smaller") for tight rows, e.g. a category's filter. */
 const SIZES = {
   regular: { track: { width: 52, height: 32 }, thumb: 28 },
-  small: { track: { width: 40, height: 24 }, thumb: 20 },
+  small: { track: { width: 32, height: 18 }, thumb: 14 },
 } as const;
 const TAP = { minHeight: hit.min, minWidth: hit.min };
 
@@ -28,7 +28,7 @@ export function Toggle(props: {
   /** What the switch turns on or off — spoken with its state. */
   label: string;
   disabled?: boolean;
-  /** `small`: 40 × 24 instead of 52 × 32. The tap area stays 48 pt either way. */
+  /** `small`: 32 × 18 instead of 52 × 32. The tap area stays 48 pt either way. */
   size?: keyof typeof SIZES;
 }): React.ReactElement {
   const { track: TRACK, thumb: THUMB } = SIZES[props.size ?? 'regular'];
