@@ -226,7 +226,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 
 | File | What it does |
 |---|---|
-| `Artwork.tsx` | Show or episode cover; shows the show's first letter while loading or broken. |
+| `Artwork.tsx` | Show or episode cover; shows the show's two-letter tile while loading, broken or missing. |
 | `Button.tsx` | The app's one button: yellow, white with border, or for delete actions. |
 | `Card.tsx` | A white box with thin border that groups rows; plus the line between rows. |
 | `Chip.tsx` | A round tap-able label; turns yellow when chosen. |

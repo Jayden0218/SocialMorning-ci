@@ -72,7 +72,8 @@ test('G-AC1: a show made with no cover gets the tile as its cover, in the Studio
 
 test('G-AC2: saving with the drawn cover sent back works, and a rename redraws the letters', async () => {
   const s = await setup();
-  const put = await sCall(s.t, 'PUT', `/v1/studio/shows/${s.key}/details`, s.me, { title: 'Morning Ledger', coverUrl: s.show.coverUrl });
+  // The address itself, not `s.show.coverUrl`: with G-AC1 broken too, that would be null and hide this break.
+  const put = await sCall(s.t, 'PUT', `/v1/studio/shows/${s.key}/details`, s.me, { title: 'Morning Ledger', coverUrl: autoCoverUrl(BASE, 'Late Walks') });
   assert.equal(put.status, 200, 'the drawn address is not an upload to check');
   assert.equal((await details(s)).coverUrl, autoCoverUrl(BASE, 'Morning Ledger'));
   await s.t.close();
