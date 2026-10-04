@@ -57,7 +57,7 @@ export async function createHostedShow(db: Db, ownerId: string, publicBase: stri
     const [r] = await tx.query<ShowRow>(
       `INSERT INTO hosted_shows (id, owner_id, feed_url, title, description, author, language, category, explicit, cover_url)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING ${SHOW_COLS}`,
-      [id, ownerId, feedUrl, s.title, s.description ?? '', s.author ?? '', s.language ?? 'zh', s.category ?? 'Society & Culture', s.explicit ?? false, s.coverUrl ?? autoCoverUrl(publicBase, s.title)],
+      [id, ownerId, feedUrl, s.title, s.description ?? '', s.author ?? '', s.language ?? 'zh', s.category ?? 'Society & Culture', s.explicit ?? false, s.coverUrl ?? drawnCover(publicBase, s.title)],
     );
     await tx.query(
       "INSERT INTO creator_claims (listener_id, feed_url, code, status, proven_at) VALUES ($1, $2, $3, 'proven', now())",
@@ -69,6 +69,12 @@ export async function createHostedShow(db: Db, ownerId: string, publicBase: stri
 
 /** The API's own address, read back from a show's feed address (`<base>/feeds/<id>.xml`). */
 const apiBase = (feedUrl: string) => feedUrl.replace(/\/feeds\/[^/]+$/, '');
+
+/**
+ * The made-for-you cover's address — only on an https server: a cover must be https (the column's
+ * CHECK, and Apple's rule). A local http server (the Studio e2e run) keeps no cover, as before.
+ */
+const drawnCover = (base: string, title: string) => (base.startsWith('https://') ? autoCoverUrl(base, title) : null);
 
 export async function hostedByFeed(db: Db, feedUrl: string): Promise<HostedShow | undefined> {
   const [r] = await db.query<ShowRow>(`SELECT ${SHOW_COLS} FROM hosted_shows WHERE feed_url = $1 AND deleted_at IS NULL`, [feedUrl]);
@@ -87,7 +93,7 @@ export async function updateHostedShow(db: Db, id: string, s: Partial<ShowIn>): 
   const n = { ...cur, ...Object.fromEntries(Object.entries(s).filter(([, v]) => v !== undefined)) } as HostedShow;
   // No cover of the owner's own (none sent, or the drawn one kept): the tile for the name as it
   // is now, so a rename redraws the letters. An uploaded cover is never replaced.
-  if (!n.coverUrl || isAutoCover(n.coverUrl)) n.coverUrl = autoCoverUrl(apiBase(cur.feedUrl), n.title);
+  if (!n.coverUrl || isAutoCover(n.coverUrl)) n.coverUrl = drawnCover(apiBase(cur.feedUrl), n.title);
   const [r] = await db.query<ShowRow>(
     `UPDATE hosted_shows SET title = $2, description = $3, author = $4, language = $5, category = $6, explicit = $7, cover_url = $8, updated_at = now()
       WHERE id = $1 RETURNING ${SHOW_COLS}`,

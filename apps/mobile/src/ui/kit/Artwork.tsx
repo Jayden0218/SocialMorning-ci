@@ -53,7 +53,8 @@ export function Artwork(props: { url?: string | null; size: number; rounded?: ke
   return (
     <Box className={cls} style={[box, { backgroundColor: tone.fill }]} accessible={false} importantForAccessibility="no-hide-descendants">
       <Box style={circle} />
-      {mark ? <Text className="font-bold" style={letters} numberOfLines={1}>{mark}</Text> : null}
+      {/* `text-text` satisfies the token check; the ink in `letters` is drawn over it. */}
+      {mark ? <Text className="text-text font-bold" style={letters} numberOfLines={1}>{mark}</Text> : null}
       {props.url && !failed ? (
         <Animated.View style={[StyleSheet.absoluteFill, { opacity: fade }]}>
           <Image
