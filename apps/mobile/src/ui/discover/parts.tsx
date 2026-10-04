@@ -84,12 +84,13 @@ export function EpisodeLine(props: {
   const size = props.size ?? 72;
   const ranked = props.rank !== undefined;
   const rankClass = props.rankTone === 'accent'
-    ? 'text-accent text-lg font-display w-6 text-center'
+    ? 'text-accent text-lg font-display w-8 text-center'
     : `${props.rank === 1 ? 'text-text' : 'text-muted'} text-display font-display w-9 text-center`;
   return (
     <Box className={`flex-row items-center gap-row py-row ${props.divided ? 'border-t-hairline border-separator' : ''}`}>
       <Pressable onPress={props.onOpen} accessibilityRole="button" accessibilityLabel={props.label ?? `${card.title}, ${card.showTitle}`} className="flex-row items-center gap-row flex-1">
-        {ranked ? <Text className={rankClass} maxFontSizeMultiplier={1.3}>{props.rank}</Text> : null}
+        {/* Owner, 2026-10-04: one line, so "10" is not stacked as 1 over 0. */}
+        {ranked ? <Text className={rankClass} numberOfLines={1} maxFontSizeMultiplier={1.3}>{props.rank}</Text> : null}
         <Artwork url={card.imageUrl} size={size} name={card.showTitle} />
         <Box className="flex-1 gap-0.5">
           {!ranked ? <Text className="text-muted text-xs" numberOfLines={1}>{card.showTitle}</Text> : null}

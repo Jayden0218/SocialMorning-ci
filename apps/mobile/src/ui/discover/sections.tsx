@@ -66,7 +66,8 @@ export function ForYouSection(props: Act & { rows: { card: EpisodeCard; line: st
   const shown = Math.min(page, p.length - 1);
   return (
     <Box>
-      <Box className="flex-row items-end justify-between px-screen-x mt-section mb-gap">
+      {/* Owner, 2026-10-04: "For You" and "1 / 7 ›" on one middle line. */}
+      <Box className="flex-row items-center justify-between px-screen-x mt-section mb-gap">
         <Text className="text-text text-lg font-display flex-1" accessibilityRole="header" numberOfLines={1}>For You</Text>
         {p.length > 1 ? (
           <Pressable
@@ -105,6 +106,14 @@ export function ForYouSection(props: Act & { rows: { card: EpisodeCard; line: st
   );
 }
 
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+/** Owner, 2026-10-04: "2026-10-02" reads "Oct 2" — the month and day, no year. Anything else is shown as it came. */
+export function shortDate(date: string): string {
+  const m = /^\d{4}-(\d{2})-(\d{2})/.exec(date);
+  const month = m ? MONTHS[Number(m[1]) - 1] : undefined;
+  return m && month ? `${month} ${Number(m[2])}` : date;
+}
+
 /** Editor's picks — each a white card: the owner's note as a serif quote, the stats, and Play. */
 export function PicksSection(props: Act & { items: DiscoverItem[]; date?: string; onPast?: () => void }): React.ReactElement | null {
   const stores = useStores();
@@ -120,7 +129,7 @@ export function PicksSection(props: Act & { items: DiscoverItem[]; date?: string
                 days' picks are one tap away). */}
             {n === 0 ? (
               <Box className="flex-row items-center justify-between" style={TAP}>
-                <Eyebrow accent className="flex-1">{props.date ? `Editor's picks · ${props.date}` : "Editor's picks"}</Eyebrow>
+                <Eyebrow accent className="flex-1">{props.date ? `Editor's picks · ${shortDate(props.date)}` : "Editor's picks"}</Eyebrow>
                 {props.onPast ? (
                   <Pressable onPress={props.onPast} accessibilityRole="link" accessibilityLabel="Past picks" className="justify-center pl-row" style={TAP}>
                     <Text className="text-accent text-meta font-semibold">Past picks ›</Text>

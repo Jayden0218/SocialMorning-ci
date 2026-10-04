@@ -43,19 +43,19 @@ export type Pair = { fg: string; bg: string; min: number; role: string };
  * measured on the Editorial palette before adoption; the comment is the ratio on 2026-10-03.
  */
 export const PAIRS: Pair[] = [
-  { fg: colour.text, bg: colour.background, min: BODY_MIN, role: 'body text' }, // 17.66
-  { fg: colour.muted, bg: colour.background, min: BODY_MIN, role: 'secondary text' }, // 7.04
-  { fg: colour.accent, bg: colour.background, min: BODY_MIN, role: 'links and actions' }, // 5.65
+  { fg: colour.text, bg: colour.background, min: BODY_MIN, role: 'body text' }, // 17.47
+  { fg: colour.muted, bg: colour.background, min: BODY_MIN, role: 'secondary text' }, // 6.96
+  { fg: colour.accent, bg: colour.background, min: BODY_MIN, role: 'links and actions' }, // 5.59
   { fg: colour.text, bg: colour.surface, min: BODY_MIN, role: 'text on a card' }, // 18.53
   { fg: colour.muted, bg: colour.surface, min: BODY_MIN, role: 'secondary text on a card' }, // 7.39
   { fg: colour.accent, bg: colour.surface, min: BODY_MIN, role: 'links and actions on a card' }, // 5.93
   { fg: colour.onPrimary, bg: colour.primary, min: BODY_MIN, role: 'words on a yellow button or chosen chip' }, // 11.80
   { fg: colour.muted, bg: colour.primary, min: BODY_MIN, role: 'a second line on the yellow card' }, // 4.63
-  { fg: colour.background, bg: colour.accent, min: BODY_MIN, role: 'a count badge (page words on the accent)' }, // 5.65
-  { fg: colour.bar, bg: colour.background, min: LARGE_MIN, role: 'heat bars (information)' }, // 3.94
+  { fg: colour.background, bg: colour.accent, min: BODY_MIN, role: 'a count badge (page words on the accent)' }, // 5.59
+  { fg: colour.bar, bg: colour.background, min: LARGE_MIN, role: 'heat bars (information)' }, // 3.93
   { fg: colour.bar, bg: colour.surface, min: LARGE_MIN, role: 'heat bars on a card' },
-  { fg: colour.accent, bg: over(colour.accentTint, colour.background), min: BODY_MIN, role: 'play glyph on its tint' }, // 4.66
-  { fg: colour.muted, bg: over(colour.accentTint, colour.background), min: BODY_MIN, role: 'secondary text on the tint' }, // 5.80
+  { fg: colour.accent, bg: over(colour.accentTint, colour.background), min: BODY_MIN, role: 'play glyph on its tint' }, // 4.60
+  { fg: colour.muted, bg: over(colour.accentTint, colour.background), min: BODY_MIN, role: 'secondary text on the tint' }, // 5.74
   { fg: colour.text, bg: over(colour.veil, '#000000'), min: BODY_MIN, role: 'player text on the veil (black cover)' }, // 13.29
   { fg: colour.muted, bg: over(colour.veil, '#000000'), min: BODY_MIN, role: 'player secondary text on the veil (black cover)' }, // 5.30
 ];

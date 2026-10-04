@@ -21,7 +21,7 @@ it('no theme colour, or one that is not #rrggbb, gives the plain page', () => {
 
 it('a colour is laid over the page at the strongest strength the words still read on', () => {
   // Measured 2026-10-03: the brand yellow passes at 40 %, a deep blue only at 20 %.
-  expect(playerWash('#fcc522')).toEqual(['#fbe49e', colour.background, colour.background]);
+  expect(playerWash('#fcc522')).toEqual([tintOverPage('#fcc522', 0.4), colour.background, colour.background]);
   expect(playerWash('#1d4ed8')?.[0]).toBe(tintOverPage('#1d4ed8', 0.2));
   expect(playerWash('1d4ed8')?.[0]).toBe(tintOverPage('#1d4ed8', 0.2));
 });

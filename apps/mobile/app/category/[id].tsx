@@ -99,18 +99,21 @@ export default function CategoryScreen(): React.ReactElement {
     const on = subscribed.has(s.feedUrl);
     const ep = s.latestEpisode;
     return (
-      <Card key={s.feedUrl} padded={false} className={wide ? 'p-section mb-row' : 'flex-1 p-row'}>
+      <Card key={s.feedUrl} padded={false} className={wide ? 'mb-row' : 'flex-1'}>
+        {/* Owner, 2026-10-04 ("I press a podcast and can't go in"): the whole card is the tap
+            area — the padding and the empty space under a shorter half card used to sit outside it. */}
         <Pressable
           onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(s.feedUrl) } })}
           accessibilityRole="button"
           accessibilityLabel={`${s.title}, ${s.author}${ep ? `. Newest: ${ep.title}` : ''}`}
-          className={wide ? 'flex-row items-center gap-section pr-12' : 'gap-1'}
+          className={wide ? 'flex-row items-center gap-section p-section pr-16' : 'flex-1 gap-1 p-row'}
           style={TAP}
         >
           <Artwork url={s.imageUrl} size={wide ? 100 : 72} rounded="row" name={s.title} />
           <Box className={wide ? 'flex-1' : ''}>
             {/* Owner, 2026-10-04: names were cut off with "…" — a line more for each (title 3, author 2, episode 3). */}
-            <Text className={wide ? 'text-text text-base font-display' : 'text-text text-body font-bold mt-1'} numberOfLines={3}>{s.title}</Text>
+            {/* Owner, 2026-10-04: smaller titles: 17 pt wide, 13 pt half (were 20 and 14). */}
+            <Text className={wide ? 'text-text text-title font-display' : 'text-text text-meta font-bold mt-1'} numberOfLines={3}>{s.title}</Text>
             <Text className="text-muted text-xs" numberOfLines={2}>{s.author}</Text>
             {ep ? (
               <Box className={wide ? 'flex-row items-start gap-1 mt-2' : 'flex-row items-start gap-1 bg-background rounded-row p-2 mt-2'}>
@@ -170,7 +173,8 @@ export default function CategoryScreen(): React.ReactElement {
         value={sort}
         onChange={setSort}
       />
-      <Box className="flex-row items-center gap-2 pb-row" style={TAP}>
+      {/* Owner, 2026-10-04: right under the switch (no 48 pt row round it; the toggle is its own tap target). */}
+      <Box className="flex-row items-center gap-2 mt-2 mb-row">
         <Text className="text-muted text-body">Not subscribed only</Text>
         <Toggle value={notSubscribedOnly} onChange={setNotSubscribedOnly} label="Not subscribed only" size="small" />
       </Box>
