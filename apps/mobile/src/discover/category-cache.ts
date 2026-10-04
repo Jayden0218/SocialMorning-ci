@@ -54,7 +54,7 @@ export function fetchCategory(deps: { api: ApiClient; cache: FeedCacheStore; now
   const p = deps.api.category(genreId).then((body) => {
     const k = { body, fetchedAt: deps.now() };
     memory.set(genreId, k);
-    // RED CHECK: the list is no longer kept on the phone.
+    deps.cache.set({ key: categoryKey(genreId), fetchedAt: k.fetchedAt, body: JSON.stringify(body) });
     return body;
   }).finally(() => inFlight.delete(genreId));
   inFlight.set(genreId, p);
