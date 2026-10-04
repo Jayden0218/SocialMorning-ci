@@ -320,7 +320,8 @@ export function Terms(props: {
             accessibilityIgnoresInvertColors
           />
           <Text
-            style={display(28, c.text, { leading: 28 })}
+            // Owner, 2026-10-04: more space between the title's two lines (was 28 = the font size).
+            style={display(28, c.text, { leading: 36 })}
             className="text-text font-display text-center mt-[14px]"
             accessibilityRole="header"
           >
