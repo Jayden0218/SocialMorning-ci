@@ -37,3 +37,26 @@ export function categoryList(
   const kept = opts.notSubscribedOnly ? shows.filter((s) => !opts.subscribed.has(s.feedUrl)) : shows;
   return sortCategoryShows(kept, opts.sort);
 }
+
+/** Shows per page from the server (`GET /v1/categories/:id?page=N`). */
+export const CATEGORY_PAGE = 20;
+
+/**
+ * Owner, 2026-10-05 ("when scroll to bottom, it should continue to get more"): whether another
+ * page follows. A list kept before `hasMore` existed counts as "more" when it is a full page.
+ */
+export function hasMoreAfter(body: { shows: readonly ShowCard[]; hasMore?: boolean }): boolean {
+  return body.hasMore ?? body.shows.length >= CATEGORY_PAGE;
+}
+
+/** The loaded shows with a new page after them; a show already on the list is not added again. */
+export function appendPage(shows: readonly ShowCard[], page: readonly ShowCard[]): ShowCard[] {
+  const seen = new Set(shows.map((s) => s.feedUrl));
+  const out = [...shows];
+  for (const s of page) {
+    if (seen.has(s.feedUrl)) continue;
+    seen.add(s.feedUrl);
+    out.push(s);
+  }
+  return out;
+}

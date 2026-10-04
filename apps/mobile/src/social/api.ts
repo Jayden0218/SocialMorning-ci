@@ -119,7 +119,8 @@ export type LibraryItem = { kind: 'fav_episode' | 'fav_comment' | 'moment' | 'se
 export type CreatorClaim = { id: string; feedUrl: string; code: string; status: 'pending' | 'proven' | 'revoked'; provenAt?: string };
 export type ShowStats = { listeners: number; comments: number; episodes: number; topMoments: { episodeId: string; title: string; offsetMs: number; comments: number }[] };
 export type MyComment = { id: string; body: string | null; deleted: boolean; removed: boolean; hiddenByHost?: true; offsetMs: number | null; createdAt: string; episode: EpisodeCard };
-export type CategoryShows = { genreId: number; name: string; shows: ShowCard[]; stale?: boolean };
+/** `hasMore` (owner, 2026-10-05): another page follows — `?page=N`, 20 at a time. Missing on lists kept before it. */
+export type CategoryShows = { genreId: number; name: string; shows: ShowCard[]; stale?: boolean; hasMore?: boolean };
 export type DiscoverResult = { status: 200; etag?: string; body: Discover } | { status: 304 };
 export type ShowCard = { appleId?: number; feedUrl: string; title: string; author: string; imageUrl?: string; genres: string[]; episodeCount?: number; /** M12 FR-072: only on a category chart. */ latestEpisode?: { title: string; publishedAt?: string } };
 export type SearchResult = { shows: ShowCard[]; episodes: EpisodeCard[]; episodeSearch: 'ok' | 'unavailable'; source: { shows: 'apple' } };
@@ -196,7 +197,7 @@ export type ApiClient = {
   creatorVerify(id: string): Promise<{ status: CreatorClaim['status'] } | 'taken'>;
   creatorStats(feedUrl: string): Promise<ShowStats>;
   /** M10: one Apple genre's top shows (the genre list itself is `src/discover/genres.ts`). */
-  category(genreId: number): Promise<CategoryShows>;
+  category(genreId: number, page?: number): Promise<CategoryShows>;
   nextUp(episodeId: string): Promise<{ items: NextUpItem[]; computedAt: string }>;
   // M6
   report(kind: ReportKind, targetId: string, reason: string, note?: string): Promise<{ id: string; duplicate: boolean; closed?: string }>;
@@ -353,7 +354,7 @@ export function createApi(deps: ApiDeps): ApiClient {
       catch (e) { if (e instanceof ApiError && e.status === 409) return 'taken'; throw e; }
     },
     creatorStats: async (feedUrl) => (await call<ShowStats>('GET', `/v1/creator/shows/stats?feedUrl=${encodeURIComponent(feedUrl)}`)).json,
-    category: async (genreId) => (await call<CategoryShows>('GET', `/v1/categories/${genreId}`)).json,
+    category: async (genreId, page) => (await call<CategoryShows>('GET', `/v1/categories/${genreId}${page ? `?page=${page}` : ''}`)).json,
     nextUp: async (episodeId) => (await call<{ items: NextUpItem[]; computedAt: string }>('GET', `/v1/episodes/${episodeId}/next-up`)).json,
     // M6
     report: async (kind, targetId, reason, note) => (await call<{ id: string; duplicate: boolean; closed?: string }>('POST', '/v1/reports', { targetKind: kind, targetId, reason, ...(note ? { note } : {}) })).json,

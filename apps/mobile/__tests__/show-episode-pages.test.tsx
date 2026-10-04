@@ -6,7 +6,7 @@
  */
 import { createElement } from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { hasPlays, orderEpisodes } from '@/ui/show/order';
+import { hasPlays, matchEpisodes, orderEpisodes } from '@/ui/show/order';
 import { EpisodeMeta, metaLabel } from '@/ui/show/EpisodeMeta';
 import { AnnouncementCard, announcementHeading } from '@/ui/show/AnnouncementCard';
 
@@ -58,4 +58,18 @@ it('the announcement card says "Announcement · date", shows 2 lines, and a tap 
   const card = r.root.findAll((n) => n.props['accessibilityLabel'] === 'Announcement · 2026-09-30. New season Monday' && typeof n.props['onPress'] === 'function')[0]!;
   act(() => { card.props['onPress'](); });
   expect(lines().every((l) => l === undefined)).toBe(true);
+});
+
+test("owner 2026-10-05: the show page's search keeps episodes whose title or notes hold every word, any case", () => {
+  const eps = [
+    { id: 'a', text: 'Money talk\nEPF and tax' },
+    { id: 'b', text: 'Travel\nJapan in winter' },
+    { id: 'c', text: 'Tax season\nhow to file' },
+  ];
+  const of = (e: { text: string }) => e.text;
+  expect(matchEpisodes(eps, 'TAX', of).map((e) => e.id)).toEqual(['a', 'c']);
+  expect(matchEpisodes(eps, 'tax  file', of).map((e) => e.id)).toEqual(['c']);
+  expect(matchEpisodes(eps, 'japan', of).map((e) => e.id)).toEqual(['b']);
+  expect(matchEpisodes(eps, '   ', of).map((e) => e.id)).toEqual(['a', 'b', 'c']);
+  expect(matchEpisodes(eps, 'nothing', of)).toEqual([]);
 });

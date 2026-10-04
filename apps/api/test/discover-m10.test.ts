@@ -43,7 +43,7 @@ const CHART: AppleShow[] = [
 const showJson = (s: AppleShow) => ({ wrapperType: 'track', kind: 'podcast', collectionId: s.collectionId, collectionName: s.collectionName, artistName: `By ${s.collectionName}`, feedUrl: s.feedUrl, artworkUrl600: `https://img/${s.collectionId}.jpg`, genres: ['Comedy', 'Podcasts'], ...(s.trackCount !== undefined ? { trackCount: s.trackCount } : {}) });
 const latestJson = (s: AppleShow) => ({ wrapperType: 'podcastEpisode', kind: 'podcast-episode', trackName: `${s.collectionName} latest`, collectionName: s.collectionName, collectionId: s.collectionId, episodeGuid: `g-${s.collectionId}`, episodeUrl: `https://cdn/${s.collectionId}.mp3`, feedUrl: s.feedUrl, releaseDate: '2026-09-20T10:00:00Z', trackTimeMillis: 1_000_000 });
 
-function fakeCatalog() {
+function fakeCatalog(chart: AppleShow[] = CHART) {
   const calls: string[] = [];
   const state = { appleDown: false };
   const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { 'content-type': 'application/json' } });
@@ -54,23 +54,26 @@ function fakeCatalog() {
     if (!url.includes('itunes.apple.com')) return new Response('nope', { status: 404 });
     if (state.appleDown) return json({}, 503);
     const u = new URL(url);
-    if (url.includes('/rss/toppodcasts/')) return json({ feed: { entry: CHART.map((s) => ({ id: { attributes: { 'im:id': String(s.collectionId) } } })) } });
+    if (url.includes('/rss/toppodcasts/')) {
+      const limit = Number(/limit=(\d+)/.exec(url)?.[1] ?? 200);
+      return json({ feed: { entry: chart.slice(0, limit).map((s) => ({ id: { attributes: { 'im:id': String(s.collectionId) } } })) } });
+    }
     const ids = (u.searchParams.get('id') ?? '').split(',').map(Number);
     if (u.searchParams.get('entity') === 'podcastEpisode') {
       // As Apple answers (read 2026-09-29): every id's show, then its newest episode.
-      return json({ results: CHART.filter((s) => ids.includes(s.collectionId)).flatMap((s) => [showJson(s), latestJson(s)]) });
+      return json({ results: chart.filter((s) => ids.includes(s.collectionId)).flatMap((s) => [showJson(s), latestJson(s)]) });
     }
-    return json({ results: CHART.filter((s) => ids.includes(s.collectionId)).map(showJson) });
+    return json({ results: chart.filter((s) => ids.includes(s.collectionId)).map(showJson) });
   }) as typeof fetch;
   return { fetch: f, calls, state };
 }
 
-async function appWith(opts: { collectionsRaw?: unknown } = {}) {
+async function appWith(opts: { collectionsRaw?: unknown; chart?: AppleShow[] } = {}) {
   const pg = new PGlite({ extensions: { citext } });
   const runner: MigrationRunner = { exec: (s) => pg.exec(s), query: async <T,>(s: string, p?: unknown[]) => (await pg.query<T>(s, p)).rows };
   await migrate(runner);
   const db = fromPglite(pg);
-  const cat = fakeCatalog();
+  const cat = fakeCatalog(opts.chart);
   const picksRaw = [{ date: '2026-09-22', feedUrl: FX, guid: 'g-new', why: 'Today\'s pick.' }];
   const collectionsRaw = opts.collectionsRaw ?? [{ id: 'start-here', title: 'Where to start', subtitle: 'Shows worth a first episode', items: [{ feedUrl: FX }, { feedUrl: FX, guid: 'g-old', why: 'The older one.' }, { feedUrl: FX, guid: 'nope' }] }];
   const warned: string[] = [];
@@ -330,4 +333,35 @@ test('M10: GET /v1/categories lists Apple\'s genres with display names; /:genreI
   assert.equal(stale.shows.length, CHART.length - 1);
   assert.equal((await t.call('GET', '/v1/categories/1318')).status, 503);
   await t.close();
+});
+
+test('Owner 2026-10-05: /v1/categories/:id?page=N pages through the chart 20 at a time, hasMore false on the last page', async () => {
+  // 45 shows: page 0 = 20, page 1 = 20, page 2 = 5 and the end.
+  const big: AppleShow[] = Array.from({ length: 45 }, (_, i) => ({ collectionId: 9000 + i, collectionName: `Show ${i}`, feedUrl: `https://feeds.example.com/s${i}.xml` }));
+  const { t, cat } = await appWith({ collectionsRaw: [], chart: big });
+  type Page = { shows: Show[]; hasMore: boolean; stale: boolean };
+  const get = async (q: string) => (await (await t.call('GET', `/v1/categories/1303${q}`)).json()) as Page;
+  const p0 = await get('');
+  assert.deepEqual(p0.shows.map((s) => s.title), big.slice(0, 20).map((s) => s.collectionName));
+  assert.equal(p0.hasMore, true, 'a full first page');
+  const p1 = await get('?page=1');
+  assert.deepEqual(p1.shows.map((s) => s.title), big.slice(20, 40).map((s) => s.collectionName));
+  assert.equal(p1.hasMore, true);
+  assert.ok(p1.shows.every((s) => s.latestEpisode?.title === `${s.title} latest`), 'each later page names the newest episode too');
+  assert.match(cat.calls.find((u) => u.includes('limit=200'))!, /toppodcasts\/limit=200\/genre=1303\/json$/);
+  const lookups = cat.calls.filter((u) => u.includes('/lookup')).length;
+  const p2 = await get('?page=2');
+  assert.deepEqual(p2.shows.map((s) => s.title), big.slice(40).map((s) => s.collectionName));
+  assert.equal(p2.hasMore, false, 'the last page says so');
+  assert.equal(cat.calls.filter((u) => u.includes('/rss/toppodcasts/')).length, 2, 'the 200 ids are read once and kept');
+  assert.equal(cat.calls.filter((u) => u.includes('/lookup')).length, lookups + 1, 'one lookup per page');
+  const p3 = await get('?page=3');
+  assert.deepEqual([p3.shows.length, p3.hasMore], [0, false]);
+  assert.deepEqual(await get('?page=10'), { genreId: 1303, name: 'Comedy', shows: [], stale: false, hasMore: false });
+  for (const bad of ['-1', 'x', '1.5', '100']) assert.equal((await t.call('GET', `/v1/categories/1303?page=${bad}`)).status, 422, bad);
+  // a short chart: page 0 says there is no more
+  await t.close();
+  const small = await appWith({ collectionsRaw: [] });
+  assert.equal(((await (await small.t.call('GET', '/v1/categories/1303')).json()) as Page).hasMore, false);
+  await small.t.close();
 });

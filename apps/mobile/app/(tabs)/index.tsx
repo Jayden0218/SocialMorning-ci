@@ -215,10 +215,10 @@ export default function DiscoverScreen(): React.ReactElement {
           <Box className="flex-row items-center justify-between px-screen-x pt-1 pb-row">
             <Box className="flex-1">
               <Eyebrow>{today()}</Eyebrow>
-              {/* Owner, 2026-10-04: less space between the date and the title — pulled up 4 pt (the
+              {/* Owner, 2026-10-04/05: less space between the date and the title — pulled up 8 pt (the
                   serif's own line height stays: any less and Android cuts off its descenders). */}
               <Text
-                className="text-text text-display font-display -mt-1"
+                className="text-text text-display font-display -mt-2"
                 accessibilityRole="header"
               >
                 Discover

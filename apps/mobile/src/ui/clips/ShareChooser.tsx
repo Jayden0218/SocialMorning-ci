@@ -28,6 +28,8 @@ import { useStores, useToast } from '@/ui/shell/providers';
 import { useColours } from '@/ui/kit/useColours';
 
 const TAP = { minHeight: hit.min };
+/** The × beside the drag bar: a 48 pt square. */
+const CLOSE = { width: hit.min, height: hit.min };
 /** M17: a share tile in `ShareSheet-B` is ~100 pt tall — icon on top, label and detail below. */
 const TILE = { minHeight: 100 };
 
@@ -99,8 +101,9 @@ function pairs<T>(items: readonly T[]): T[][] {
 }
 
 /**
- * The app's share panel: its own options, then "More" — the only way to the system sheet — and
- * Cancel. Each row closes the panel first, then acts.
+ * The app's share panel: its own options, then "More" — the only way to the system sheet. An ×
+ * at the top right closes it (owner, 2026-10-05: it replaced Cancel). Each row closes the panel
+ * first, then acts.
  *
  * M17 T099 (`ShareSheet-B`): a 32 pt serif "Share" with an optional subtitle; a `lead` option
  * becomes a wide white card (yellow icon disc, label, serif figure); the other options and
@@ -128,8 +131,14 @@ export function SharePanel(props: {
       <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
       {/* M16a T014: no fixed bottom padding — ActionsheetContent's own `pb-safe` clears the home indicator. */}
       <ActionsheetContent className="bg-surface rounded-t-row px-screen-x pt-row items-stretch">
-        <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
-        <Text className="text-display font-display text-text mt-gap" accessibilityRole="header">{props.heading ?? 'Share'}</Text>
+        {/* Owner, 2026-10-05: an × at the top right, level with the drag bar, instead of Cancel at the foot. */}
+        <Box className="justify-center">
+          <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
+          <Pressable onPress={props.onClose} accessibilityRole="button" accessibilityLabel="Close" className="absolute right-0 items-center justify-center" style={CLOSE}>
+            <Icon name="close" size={22} color={c.muted} />
+          </Pressable>
+        </Box>
+        <Text className="text-display font-display text-text" accessibilityRole="header">{props.heading ?? 'Share'}</Text>
         {props.subtitle ? <Text className="text-body text-muted mt-1" numberOfLines={2}>{props.subtitle}</Text> : null}
         <Box className="gap-gap mt-section">
           {leads.map((r) => (
@@ -163,9 +172,6 @@ export function SharePanel(props: {
             </Box>
           ))}
         </Box>
-        <Pressable onPress={props.onClose} accessibilityRole="button" accessibilityLabel="Cancel" className="items-center justify-center mt-row" style={TAP}>
-          <Text className="text-body font-bold text-accent">Cancel</Text>
-        </Pressable>
       </ActionsheetContent>
     </Actionsheet>
   );

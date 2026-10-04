@@ -82,9 +82,18 @@ export async function searchEpisodes(f: Fetch, term: string, limit = 20): Promis
  * show **and** its newest episode (read 2026-09-29: 20 ids → 20 shows + 20 episodes).
  */
 export async function topShows(f: Fetch, genreId: number | undefined, limit = 10, opts: { latest?: boolean } = {}): Promise<ShowCard[]> {
+  return showsByIds(f, await chartIds(f, genreId, limit), opts);
+}
+
+/** The chart's Apple ids, in chart order. Apple's chart stops at 200 (curl, 2026-10-05: limit=300 is not JSON). */
+export async function chartIds(f: Fetch, genreId: number | undefined, limit: number): Promise<string[]> {
   const chart = await getJson<{ feed?: { entry?: { id?: { attributes?: { 'im:id'?: string } } }[] | { id?: { attributes?: { 'im:id'?: string } } } } }>(f, CHART(limit, genreId));
   const entries = chart.feed?.entry === undefined ? [] : Array.isArray(chart.feed.entry) ? chart.feed.entry : [chart.feed.entry];
-  const ids = entries.map((e) => e.id?.attributes?.['im:id']).filter((id): id is string => typeof id === 'string' && /^\d+$/.test(id));
+  return entries.map((e) => e.id?.attributes?.['im:id']).filter((id): id is string => typeof id === 'string' && /^\d+$/.test(id));
+}
+
+/** Show cards for these Apple ids, in their order — one lookup (with each newest episode when `latest`). */
+export async function showsByIds(f: Fetch, ids: readonly string[], opts: { latest?: boolean } = {}): Promise<ShowCard[]> {
   if (ids.length === 0) return [];
   const body = await getJson<{ results?: (AppleShow & AppleEpisode)[] }>(f, `${LOOKUP}?id=${ids.join(',')}&entity=${opts.latest ? 'podcastEpisode&limit=1' : 'podcast'}`);
   const results = body.results ?? [];

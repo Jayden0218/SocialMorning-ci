@@ -29,3 +29,17 @@ export function orderEpisodes<T extends { id: string }>(
   }
   return rows;
 }
+
+/**
+ * Owner, 2026-10-05 ("the search is for the podcast inside text only, not the whole app"): the
+ * show page's search keeps the episodes whose text holds every word typed, any case. `textOf`
+ * gives an episode's searchable text (title and show notes). An empty term keeps them all.
+ */
+export function matchEpisodes<T>(episodes: readonly T[], term: string, textOf: (e: T) => string): T[] {
+  const words = term.toLowerCase().split(/\s+/).filter((w) => w.length > 0);
+  if (words.length === 0) return [...episodes];
+  return episodes.filter((e) => {
+    const text = textOf(e).toLowerCase();
+    return words.every((w) => text.includes(w));
+  });
+}

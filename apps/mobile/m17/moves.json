@@ -358,5 +358,13 @@
   "to": "removed",
   "why": "the Inbox page removed (owner, 2026-10-04: \"the inbox is same with updates\") — /inbox now redirects to the Updates tab, which lists the same new episodes",
   "task": "owner-2026-10-04"
+ },
+ {
+  "surface": "ShareChooser",
+  "name": "Cancel",
+  "destination": "props.onClose",
+  "to": "ShareChooser | Close | props.onClose",
+  "why": "Cancel at the foot of the share panel became an × at the top right, level with the drag bar (owner, 2026-10-05: \"remove the cancel button, and add a x in the right top\"); same handler",
+  "task": "owner 2026-10-05"
  }
 ]

@@ -1,6 +1,6 @@
 // Tests the category page's All, Newest and "Not subscribed only" filters.
 /** Owner, 2026-10-01: the category page's "All" / "Newest" chips and "Not subscribed only". */
-import { categoryList, sortCategoryShows } from '@/discover/category-list';
+import { appendPage, categoryList, hasMoreAfter, sortCategoryShows } from '@/discover/category-list';
 import type { ShowCard } from '@/social/api';
 
 const show = (feedUrl: string, publishedAt?: string): ShowCard => ({
@@ -37,4 +37,17 @@ it('Not subscribed only hides followed shows; off shows them all', () => {
   const subscribed = new Set(['c', 'a']);
   expect(urls(categoryList(chart, { sort: 'newest', notSubscribedOnly: true, subscribed }))).toEqual(['e', 'b', 'd', 'f']);
   expect(urls(categoryList(chart, { sort: 'all', notSubscribedOnly: false, subscribed }))).toEqual(['a', 'b', 'c', 'd', 'e', 'f']);
+});
+
+test('owner 2026-10-05: a new page is added after the loaded shows, a show already there is not added again', () => {
+  const next = appendPage([show('a'), show('b')], [show('b'), show('c'), show('c'), show('d')]);
+  expect(next.map((s) => s.feedUrl)).toEqual(['a', 'b', 'c', 'd']);
+});
+
+test('owner 2026-10-05: hasMore from the server wins; a list kept without it counts as more when full (20)', () => {
+  const full = Array.from({ length: 20 }, (_, i) => show(`s${i}`));
+  expect(hasMoreAfter({ shows: full, hasMore: false })).toBe(false);
+  expect(hasMoreAfter({ shows: [show('a')], hasMore: true })).toBe(true);
+  expect(hasMoreAfter({ shows: full })).toBe(true);
+  expect(hasMoreAfter({ shows: full.slice(0, 19) })).toBe(false);
 });

@@ -31,7 +31,7 @@
  * play button over its ⋯. Every action, name and handler is the one it was.
  */
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView } from 'react-native';
 import { Share } from 'react-native';
 import { useSharePanel } from '@/ui/clips/ShareChooser';
@@ -64,7 +64,8 @@ import { useColours } from '@/ui/kit/useColours';
 import { useM12Api } from '@/social/m12-api';
 import { genreOf, similarShows } from '@/discover/genres';
 import type { ShowCard } from '@/social/api';
-import { hasPlays, orderEpisodes, type ListView } from '@/ui/show/order';
+import { hasPlays, matchEpisodes, orderEpisodes, type ListView } from '@/ui/show/order';
+import { FilterBar } from '@/ui/me/FilterBar';
 import { EpisodeMeta, metaLabel } from '@/ui/show/EpisodeMeta';
 import { AnnouncementCard } from '@/ui/show/AnnouncementCard';
 import { CuratorLine, hostLineFor } from '@/ui/show/CuratorLine';
@@ -174,6 +175,18 @@ export default function ShowScreen(): React.ReactElement {
   // Owner, 2026-10-01: the "All" / "Most played" chips and an "Unplayed" filter above the list.
   const [view, setView] = useState<ListView>('all');
   const [unplayedOnly, setUnplayedOnly] = useState(false);
+  // Owner, 2026-10-05: Search looks inside this show's episodes only (it opened the app's search).
+  const [searching, setSearching] = useState(false);
+  const [term, setTerm] = useState('');
+  const searchText = useMemo(
+    () => new Map(episodes.map((e) => [e.id, `${e.title}\n${htmlToText(e.shownotesHtml ?? '')}`])),
+    [episodes],
+  );
+  const toggleSearch = () => {
+    if (searching) { setSearching(false); setTerm(''); return; }
+    setTab('episodes');
+    setSearching(true);
+  };
   const now = Date.now();
   // M10 minor mode (Settings → Minor mode): explicit episodes are not listed.
   const allowed = getPref(stores.settings, 'hideExplicit') ? episodes.filter((e) => !e.explicit) : episodes;
@@ -181,11 +194,12 @@ export default function ShowScreen(): React.ReactElement {
   // "Most played" hides with no counts; the list then reads as "All" (orderEpisodes agrees).
   const chips: ListView[] = playsKnown ? ['all', 'mostPlayed'] : ['all'];
   const activeView: ListView = playsKnown ? view : 'all';
-  const shown = orderEpisodes(allowed, {
+  const ordered = orderEpisodes(allowed, {
     oldestFirst, view, unplayedOnly,
     isFinished: (id) => stores.positions.get(id)?.finished === true,
     ...(counts.listeners !== undefined ? { listeners: counts.listeners } : {}),
   });
+  const shown = searching ? matchEpisodes(ordered, term, (e) => searchText.get(e.id) ?? e.title) : ordered;
 
   const progressFor = (episode: CachedEpisode): string => {
     const row = stores.positions.get(episode.id);
@@ -237,13 +251,14 @@ export default function ShowScreen(): React.ReactElement {
           <Pressable onPress={shareShow} accessibilityRole="button" accessibilityLabel="Share this show" className={ROUND} style={TAP}>
             <Icon name="share-outline" size={20} color={c.text} />
           </Pressable>
-          <Pressable onPress={() => router.push('/search')} accessibilityRole="button" accessibilityLabel="Search" className={ROUND} style={TAP}>
-            <Icon name="search-outline" size={20} color={c.text} />
+          <Pressable onPress={toggleSearch} accessibilityRole="button" accessibilityLabel={searching ? 'Close search' : "Search this show's episodes"} accessibilityState={{ expanded: searching }} className={ROUND} style={TAP}>
+            <Icon name={searching ? 'close' : 'search-outline'} size={20} color={c.text} />
           </Pressable>
           <Pressable onPress={() => setReporting({ kind: 'show', id: feedUrl, authorId: null, label: 'show' })} accessibilityRole="button" accessibilityLabel="More: report this show" className={ROUND} style={TAP}>
             <Icon name="ellipsis-horizontal" size={20} color={c.text} />
           </Pressable>
         </Box>
+        {searching ? <FilterBar term={term} onTerm={setTerm} placeholder="Search this show's episodes" /> : null}
         {reportedShow ? <Text className="text-meta text-accent">You reported this show. It stays in your library; it is hidden from discovery for you.</Text> : null}
         {hiddenShow ? <Text className="text-meta text-accent">Hidden from discovery by moderation. It stays in your library.</Text> : null}
         {stale ? <Text className="text-meta text-accent">Showing the last copy — refresh failed</Text> : null}
@@ -363,7 +378,7 @@ export default function ShowScreen(): React.ReactElement {
         scrollEventThrottle={32}
         // iOS i13: "No episodes yet." showed while the show was still loading.
         ListEmptyComponent={tab === 'about' ? about : show === undefined && failed === undefined ? undefined : (
-          <Text className="p-screen-x text-body text-muted">{failed === undefined ? 'No episodes yet.' : failed}</Text>
+          <Text className="p-screen-x text-body text-muted">{failed !== undefined ? failed : searching && term.trim() !== '' && ordered.length > 0 ? `No episodes match "${term.trim()}".` : 'No episodes yet.'}</Text>
         )}
         renderItem={({ item }) => {
           const notes = noteSummary(item.shownotesHtml);

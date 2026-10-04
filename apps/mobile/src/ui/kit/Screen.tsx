@@ -4,7 +4,7 @@
  * that is easy to forget — bottom padding equal to the mini player plus the tab bar, so
  * the last row of a list is never hidden underneath them.
  */
-import { type ViewProps } from 'react-native';
+import { type ScrollViewProps, type ViewProps } from 'react-native';
 import { ScrollView } from '@/ui/lib/scroll-view';
 import { Box } from '@/ui/lib/box';
 
@@ -19,14 +19,17 @@ export const BOTTOM_INSET = MINI_PLAYER_HEIGHT + TAB_BAR_HEIGHT;
  */
 export const TAB_PAGE_END = 24;
 
-export function Screen(props: ViewProps & { scroll?: boolean; padded?: boolean }): React.ReactElement {
-  const { scroll, padded = true, style, className, children, ...rest } = props;
+/** Scroll-only props (owner, 2026-10-05: the category page loads more at the bottom and keeps its row on top). */
+type ScrollOnly = Pick<ScrollViewProps, 'onScroll' | 'scrollEventThrottle' | 'stickyHeaderIndices'>;
+
+export function Screen(props: ViewProps & ScrollOnly & { scroll?: boolean; padded?: boolean }): React.ReactElement {
+  const { scroll, padded = true, style, className, children, onScroll, scrollEventThrottle, stickyHeaderIndices, ...rest } = props;
   const pad = padded ? 'px-screen-x' : '';
   // The inset is derived from two JS constants, so it stays a style rather than a class.
   const bottom = { paddingBottom: BOTTOM_INSET };
   if (scroll) {
     return (
-      <ScrollView className="flex-1 bg-background" contentContainerClassName={`${pad} ${className ?? ''}`} contentContainerStyle={[bottom, style]} {...rest}>
+      <ScrollView className="flex-1 bg-background" contentContainerClassName={`${pad} ${className ?? ''}`} contentContainerStyle={[bottom, style]} onScroll={onScroll} scrollEventThrottle={scrollEventThrottle} stickyHeaderIndices={stickyHeaderIndices} {...rest}>
         {children}
       </ScrollView>
     );
