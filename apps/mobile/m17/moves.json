@@ -294,5 +294,13 @@
   "to": "the sliding row's tab (same name, same pick)",
   "why": "the large category title and the list under it are removed (owner, 2026-10-04); a category is chosen in the sliding row of categories, which stays",
   "task": "tidy"
+ },
+ {
+  "surface": "/category/[id]",
+  "name": "k === 'all' ? 'All, chart order' : 'Newest episodes first'",
+  "destination": "setSort",
+  "to": "Segmented | it.accessibilityLabel ?? it.label | props.onChange",
+  "why": "All / Newest now drawn by the shared Segmented in the Notifications style (owner, 2026-10-04); same names, onChange calls setSort",
+  "task": "tidy"
  }
 ]
