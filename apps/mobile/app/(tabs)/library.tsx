@@ -18,6 +18,7 @@
  */
 import { Link, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
+import { InteractionManager } from 'react-native';
 import { FlatList } from '@/ui/lib/flat-list';
 import { Pressable } from '@/ui/lib/pressable';
 import { SafeAreaView } from '@/ui/lib/safe-area-view';
@@ -28,6 +29,10 @@ import { Icon } from '@/ui/kit/Icon';
 import { enqueue } from '@socialmorning/player-core';
 import { useDiscover } from '@/discover/useDiscover';
 import { refreshAll } from '@/feeds/refresh-all';
+
+/** Opening Updates refreshes the feeds at most this often. */
+const FOCUS_REFRESH_MS = 15 * 60_000;
+let lastFocusRefresh = 0;
 import { latestUpdates, type UpdateRow } from '@/me/updates';
 import { usePlayer } from '@/playback/store';
 import { useSafety } from '@/safety/context';
@@ -70,7 +75,16 @@ export default function UpdatesScreen(): React.ReactElement {
   useFocusEffect(useCallback(() => {
     let live = true;
     read();
-    void refreshAll(stores, Date.now()).then((r) => { if (!live) return; setStale(r.stale.length); read(); });
+    // The lag audit (2026-10-04): every visit fetched every subscribed feed again, one after
+    // another, parsing the XML while the page was still sliding in. Now: at most once per
+    // FOCUS_REFRESH_MS, and only after the transition has finished.
+    if (Date.now() - lastFocusRefresh >= FOCUS_REFRESH_MS) {
+      lastFocusRefresh = Date.now();
+      const task = InteractionManager.runAfterInteractions(() => {
+        void refreshAll(stores, Date.now()).then((r) => { if (!live) return; setStale(r.stale.length); read(); });
+      });
+      return () => { live = false; task.cancel(); };
+    }
     return () => { live = false; };
   }, [read, stores]));
 

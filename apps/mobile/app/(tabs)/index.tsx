@@ -12,8 +12,8 @@
  * the stale notice is a bordered white card. The sections themselves are restyled in
  * `src/ui/discover/{parts,sections}.tsx`; order, data, pull to refresh and every action stay.
  */
-import { useRouter } from 'expo-router';
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { Fragment, useCallback, useMemo, useState } from 'react';
 import { Image } from '@/ui/lib/image';
 import { SafeAreaView } from '@/ui/lib/safe-area-view';
 import { ScrollView } from '@/ui/lib/scroll-view';
@@ -64,15 +64,19 @@ export default function DiscoverScreen(): React.ReactElement {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [view, forYou.view, hiddenFeeds, sets, version],
   );
-  const inbox = inboxIds(stores).length;
+  // The lag audit (2026-10-04): this reads every episode of every subscribed show, so it runs
+  // when Discover is opened, not on every re-render (the hint ticker re-rendered every 4 s).
+  const [inbox, setInbox] = useState(() => inboxIds(stores).length);
+  useFocusEffect(useCallback(() => { setInbox(inboxIds(stores).length); }, [stores]));
   // The search box's middle cycles through what is trending (owner, 2026-09-27).
   const hints = useMemo(() => trendingHints(model.chart), [model]);
   const [tick, setTick] = useState(0);
-  useEffect(() => {
-    if (hints.length < 2) return;
+  // Only while Discover is on screen: a plain effect kept ticking under every other page.
+  useFocusEffect(useCallback(() => {
+    if (hints.length < 2) return undefined;
     const t = setInterval(() => setTick((n) => n + 1), HINT_EVERY_MS);
     return () => clearInterval(t);
-  }, [hints]);
+  }, [hints]));
   const hint = hintAt(hints, tick);
   const showPage = (feedUrl: string) => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(feedUrl) } });
   // Owner, 2026-10-01: "Categories" opens the genre strip with the first genre's list under it,

@@ -116,6 +116,9 @@ function RootStack(): React.ReactElement {
           screenOptions={{
             headerShown: false,
             contentStyle: { backgroundColor: c.background },
+            // The lag audit (2026-10-04): a page under the top one stops re-rendering until it is
+            // shown again — before, every page in the stack re-drew on each player tick.
+            freezeOnBlur: true,
           }}
           screenListeners={({ navigation, route }) => ({
             // M16a bug 5: a back-swipe onto the tabs hides the root bar as it starts, not after.
