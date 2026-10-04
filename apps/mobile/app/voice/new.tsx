@@ -146,7 +146,7 @@ export default function NewVoicePost(): React.ReactElement {
           <Text className={recorded ? 'text-text text-body font-bold' : 'text-onPrimary text-body font-bold'}>{recording ? 'Stop recording' : recorded ? 'Record again' : 'Start recording'}</Text>
         </Pressable>
         {phase.kind === 'done' || phase.kind === 'posting' ? (
-          <Button className="flex-1" label={phase.kind === 'posting' ? 'Posting…' : 'Post'} disabled={phase.kind === 'posting'} onPress={() => void post(phase.uri, phase.ms)} />
+          <Button className="flex-1" label="Post" busy={phase.kind === 'posting'} onPress={() => void post(phase.uri, phase.ms)} />
         ) : null}
       </SafeAreaView>
     </Box>

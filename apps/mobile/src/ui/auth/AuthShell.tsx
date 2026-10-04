@@ -30,6 +30,7 @@ import { useColours } from '@/ui/kit/useColours';
 import { Icon, type IconName } from '@/ui/kit/Icon';
 import { Eyebrow } from '@/ui/kit/Eyebrow';
 import { BottomBar } from '@/ui/kit/BottomBar';
+import { BusyContent } from '@/ui/kit/BusyContent';
 import { display } from './display';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
@@ -161,25 +162,32 @@ export type AuthMark = { icon: IconName; tint?: Colour } | 'google';
 export function AuthButton(props: { label: string; text?: string; className?: string; tall?: boolean; slim?: boolean; bold?: boolean; disabled: boolean; busy?: boolean; outline?: boolean; mark?: AuthMark; trail?: IconName; onPress: () => void }): React.ReactElement {
   const stores = useStores();
   const c = useColours(stores.settings);
+  // Busy (owner, 2026-10-04): the bars move over the hidden words, so the button keeps its size;
+  // it cannot be pressed again, and it is not dimmed — the bars are the sign.
+  const busy = props.busy === true;
+  const dim = props.disabled && !busy;
+  const ink = props.outline ? c.text : inkOn(c);
   return (
     <Pressable
       onPress={props.onPress}
-      disabled={props.disabled}
+      disabled={props.disabled || busy}
       accessibilityRole="button"
       accessibilityLabel={props.label}
-      accessibilityState={{ disabled: props.disabled, busy: props.busy === true }}
-      className={`${props.outline ? 'border border-border bg-surface' : 'bg-primary'} ${props.text || props.trail ? 'flex-row ' : ''}items-center justify-center ${props.className ?? 'rounded-row mt-row'} ${props.disabled ? 'opacity-40' : ''}`}
+      accessibilityState={{ disabled: props.disabled || busy, busy }}
+      className={`${props.outline ? 'border border-border bg-surface' : 'bg-primary'} ${props.text || props.trail ? 'flex-row ' : ''}items-center justify-center ${props.className ?? 'rounded-row mt-row'} ${dim ? 'opacity-40' : ''}`}
       style={props.tall ? TALL : props.slim ? SLIM : FIELD}
     >
       {props.mark ? (
-        <Box className={props.text ? 'mr-gap' : 'absolute left-section top-0 bottom-0 justify-center'}>
+        <Box className={`${props.text ? 'mr-gap' : 'absolute left-section top-0 bottom-0 justify-center'} ${busy ? 'opacity-0' : ''}`}>
           {props.mark === 'google'
             ? <Image source={GOOGLE_G} style={MARK} accessibilityIgnoresInvertColors />
             : <Icon name={props.mark.icon} size={20} color={props.mark.tint ? c[props.mark.tint] : props.outline ? c.text : inkOn(c)} />}
         </Box>
       ) : null}
-      <Text className={props.outline ? 'text-text text-body font-bold' : props.bold ? 'text-onPrimary text-sm font-bold' : 'text-onPrimary text-sm font-semibold'} style={props.outline ? undefined : { color: inkOn(c) }}>{props.busy ? '…' : props.text ?? props.label}</Text>
-      {props.trail && !props.busy ? <Box className="ml-gap"><Icon name={props.trail} size={18} color={props.outline ? c.text : inkOn(c)} /></Box> : null}
+      <BusyContent busy={busy} color={ink} className="flex-row items-center">
+        <Text className={props.outline ? 'text-text text-body font-bold' : props.bold ? 'text-onPrimary text-sm font-bold' : 'text-onPrimary text-sm font-semibold'} style={props.outline ? undefined : { color: inkOn(c) }}>{props.text ?? props.label}</Text>
+        {props.trail ? <Box className="ml-gap"><Icon name={props.trail} size={18} color={ink} /></Box> : null}
+      </BusyContent>
     </Pressable>
   );
 }

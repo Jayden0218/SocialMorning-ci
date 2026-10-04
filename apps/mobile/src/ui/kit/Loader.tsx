@@ -9,7 +9,8 @@ import { AccessibilityInfo, Animated, Easing } from 'react-native';
 import { Box } from '@/ui/lib/box';
 import { LOADER_BARS, LOADER_CYCLE_MS, barDelay, barRest } from './loader-timing';
 
-export function Loader(props: { size?: number; label?: string; className?: string }): React.ReactElement {
+/** `color` / `barClassName` tint the bars (a busy button draws them in its words' colour); default the accent. */
+export function Loader(props: { size?: number; label?: string; className?: string; color?: string; barClassName?: string }): React.ReactElement {
   const size = props.size ?? 28;
   const barWidth = Math.max(3, Math.round(size / 8));
   const [still, setStill] = useState(false);
@@ -49,8 +50,8 @@ export function Loader(props: { size?: number; label?: string; className?: strin
       {values.map((v, i) => (
         <Animated.View
           key={i}
-          className="bg-accent rounded-pill"
-          style={{ width: barWidth, height: size, transform: [{ scaleY: v }] }}
+          className={`${props.color ? '' : props.barClassName ?? 'bg-accent'} rounded-pill`}
+          style={{ width: barWidth, height: size, transform: [{ scaleY: v }], ...(props.color ? { backgroundColor: props.color } : null) }}
         />
       ))}
     </Box>

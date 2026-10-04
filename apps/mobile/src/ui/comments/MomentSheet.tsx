@@ -22,6 +22,7 @@ import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIn
 import { ReportSheet, type ReportTarget } from './ReportSheet';
 import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
+import { BusyContent } from '@/ui/kit/BusyContent';
 import { initialOf } from '@/ui/kit/Artwork';
 import { Eyebrow } from '@/ui/kit/Eyebrow';
 import { Icon } from '@/ui/kit/Icon';
@@ -97,9 +98,11 @@ export function MomentSheet(props: {
             </Pressable>
           ) : null}
           {c.mine ? (
-            <Pressable disabled={busy === c.id} onPress={() => remove(c.id)} accessibilityRole="button" className={ACTION} style={TAP}>
-              <Icon name="trash-outline" size={16} color={colours.accent} />
-              <Text className="text-accent text-meta font-bold">{busy === c.id ? 'Deleting…' : 'Delete'}</Text>
+            <Pressable disabled={busy === c.id} onPress={() => remove(c.id)} accessibilityRole="button" accessibilityState={{ busy: busy === c.id }} className={ACTION} style={TAP}>
+              <BusyContent busy={busy === c.id} size={12} className={ACTION}>
+                <Icon name="trash-outline" size={16} color={colours.accent} />
+                <Text className="text-accent text-meta font-bold">Delete</Text>
+              </BusyContent>
             </Pressable>
           ) : (
             <Pressable onPress={() => setReporting({ kind: 'comment', id: c.id, authorId: c.authorId, label: 'comment' })} accessibilityRole="button" accessibilityLabel="Report this comment" className={ACTION} style={TAP}>

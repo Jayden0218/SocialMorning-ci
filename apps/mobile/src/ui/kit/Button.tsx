@@ -13,6 +13,7 @@
  */
 import { Button as LibButton, ButtonText } from '@/ui/lib/button';
 import { hit } from '@/design';
+import { BusyContent } from './BusyContent';
 
 export type ButtonKind = 'primary' | 'secondary' | 'destructive';
 
@@ -32,28 +33,37 @@ const LABEL: Record<ButtonKind, string> = {
 /** Kept as a style: shared-ui asserts the tap target on the button's own `style`. */
 const TAP = { minHeight: hit.min };
 
+/** The busy bars take the words' colour. */
+const BARS: Record<ButtonKind, string> = { primary: 'bg-onPrimary', destructive: 'bg-onPrimary', secondary: 'bg-text' };
+
 export function Button(props: {
   label: string;
   onPress: () => void;
   kind?: ButtonKind;
   disabled?: boolean;
+  /** While the press runs: the sound bars over the hidden words, same size, not pressable, not dimmed. */
+  busy?: boolean;
   accessibilityLabel?: string;
   className?: string;
 }): React.ReactElement {
   const kind = props.kind ?? 'primary';
+  const busy = props.busy === true;
+  const dim = props.disabled === true && !busy;
   return (
     <LibButton
       variant={kind === 'secondary' ? 'outline' : 'default'}
       onPress={props.onPress}
-      isDisabled={props.disabled === true}
-      disabled={props.disabled}
+      isDisabled={props.disabled === true || busy}
+      disabled={props.disabled === true || busy}
       accessibilityRole="button"
       accessibilityLabel={props.accessibilityLabel ?? props.label}
-      accessibilityState={{ disabled: props.disabled === true }}
-      className={`px-section justify-center items-center rounded-pill ${KIND[kind]} ${props.disabled ? 'opacity-40' : ''} ${props.className ?? ''}`}
+      accessibilityState={{ disabled: props.disabled === true || busy, busy }}
+      className={`px-section justify-center items-center rounded-pill ${KIND[kind]} ${dim ? 'opacity-40' : ''} ${props.className ?? ''}`}
       style={TAP}
     >
-      <ButtonText className={LABEL[kind]}>{props.label}</ButtonText>
+      <BusyContent busy={busy} barClassName={BARS[kind]}>
+        <ButtonText className={LABEL[kind]}>{props.label}</ButtonText>
+      </BusyContent>
     </LibButton>
   );
 }

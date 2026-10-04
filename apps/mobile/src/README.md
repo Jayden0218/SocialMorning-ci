@@ -229,6 +229,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `Artwork.tsx` | Show or episode cover; shows the show's two-letter tile while loading, broken or missing. |
 | `BottomBar.tsx` | The bar pinned to a page's foot: its button sits in the middle, the same space above and below. |
 | `Button.tsx` | The app's one button: yellow, white with border, or for delete actions. |
+| `BusyContent.tsx` | A button's words and icons, swapped for the moving sound bars while its press runs. |
 | `Card.tsx` | A white box with thin border that groups rows; plus the line between rows. |
 | `Chip.tsx` | A round tap-able label; turns yellow when chosen. |
 | `ComingSoon.tsx` | A "Coming soon" sheet shown when you tap a feature not ready yet. |

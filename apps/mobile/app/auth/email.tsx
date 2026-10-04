@@ -19,6 +19,7 @@ import { useEffect, useState } from 'react';
 import { Pressable } from '@/ui/lib/pressable';
 import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
+import { BusyContent } from '@/ui/kit/BusyContent';
 import { SUSPENDED_KEY, useSocial } from '@/social/context';
 import { useStores } from '@/ui/shell/providers';
 import { AuthButton, AuthField, AuthShell, CodeCells, NameMonogram, SentTo, type Heading } from '@/ui/auth/AuthShell';
@@ -48,7 +49,11 @@ export default function EmailScreen(): React.ReactElement {
   const [name, setName] = useState('');
   const [suspended, setSuspended] = useState<string | undefined>(() => stores.settings.get(SUSPENDED_KEY) || undefined);
   const [error, setError] = useState<string | undefined>();
-  const [busy, setBusy] = useState(false);
+  // Owner, 2026-10-04: one flag made "Continue" busy (and shrink) when "Send again" was pressed.
+  // Sending a code and checking one are now apart: only the pressed button shows busy.
+  const [sending, setSending] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const busy = sending || verifying;
   const [agreed, setAgreed] = useState(consentGiven);
   const [asking, setAsking] = useState(false);
   const [wait, setWait] = useState(0);
@@ -61,20 +66,20 @@ export default function EmailScreen(): React.ReactElement {
     return () => clearTimeout(t);
   }, [wait]);
 
-  async function run(work: () => Promise<void>): Promise<void> {
+  async function run(setBusy: (b: boolean) => void, work: () => Promise<void>): Promise<void> {
     setBusy(true);
     setError(undefined);
     try { await work(); } catch (e) { setError(describe(e)); } finally { setBusy(false); }
   }
 
-  const sendCode = () => run(async () => {
+  const sendCode = () => run(setSending, async () => {
     const r = await auth.requestCode(email.trim());
     setWait(r.resendAfterSeconds);
     setCode('');
     setStep('code');
   });
 
-  const verify = (displayName?: string) => run(async () => {
+  const verify = (displayName?: string) => run(setVerifying, async () => {
     const r = await auth.signInWithCode(email.trim(), code.trim(), displayName);
     if (r === 'needsName') { setStep('name'); return; }
     stores.settings.set(SUSPENDED_KEY, '');
@@ -95,21 +100,23 @@ export default function EmailScreen(): React.ReactElement {
       hero={step === 'name' ? <NameMonogram name={name} /> : undefined}
       subtitle={step === 'email' ? null : <Text className="text-muted text-sm leading-[23px]">{step === 'code' ? 'We sent a 6-digit code to' : 'This is the name others see. You can use any name.'}</Text>}
       footer={
-        step === 'email' ? <AuthButton label="Send code" className="rounded-pill" bold disabled={emailAction === 'disabled'} busy={busy} onPress={() => (emailAction === 'ask' ? setAsking(true) : void sendCode())} />
+        step === 'email' ? <AuthButton label="Send code" className="rounded-pill" bold disabled={emailAction === 'disabled'} busy={sending} onPress={() => (emailAction === 'ask' ? setAsking(true) : void sendCode())} />
         : step === 'code' ? (
           <Box className="flex-row items-center gap-row">
             <Box className="flex-1">
               <Text className="text-muted text-meta">Didn't get it?</Text>
               {wait > 0
                 ? <Text className="text-muted text-meta">Send again in {wait} s</Text>
-                : <Pressable onPress={() => void sendCode()} disabled={busy} accessibilityRole="button" accessibilityLabel="Send the code again" hitSlop={12}>
-                    <Text className="text-accent text-meta font-bold">Send again</Text>
+                : <Pressable onPress={() => void sendCode()} disabled={busy} accessibilityRole="button" accessibilityLabel="Send the code again" accessibilityState={{ disabled: busy, busy: sending }} hitSlop={12} className="self-start">
+                    <BusyContent busy={sending} size={12}>
+                      <Text className="text-accent text-meta font-bold">Send again</Text>
+                    </BusyContent>
                   </Pressable>}
             </Box>
-            <AuthButton label="Continue" trail="arrow-forward" className="rounded-pill px-7" slim bold disabled={busy || code.length !== 6} busy={busy} onPress={() => void verify()} />
+            <AuthButton label="Continue" trail="arrow-forward" className="rounded-pill px-7" slim bold disabled={code.length !== 6} busy={verifying} onPress={() => void verify()} />
           </Box>
         )
-        : <AuthButton label="Create account" className="rounded-pill" bold disabled={busy || name.trim().length === 0} busy={busy} onPress={() => void verify(name.trim())} />
+        : <AuthButton label="Create account" className="rounded-pill" bold disabled={name.trim().length === 0} busy={verifying} onPress={() => void verify(name.trim())} />
       }
     >
       {step === 'email' ? (

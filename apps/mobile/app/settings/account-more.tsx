@@ -23,6 +23,7 @@ import { Pressable } from '@/ui/lib/pressable';
 import { ScrollView } from '@/ui/lib/scroll-view';
 import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
+import { BusyContent } from '@/ui/kit/BusyContent';
 import { ApiError } from '@/social/api';
 import { useSocial } from '@/social/context';
 import { useStores } from '@/ui/shell/providers';
@@ -114,12 +115,16 @@ export default function AccountMoreScreen(): React.ReactElement {
       <BottomBar tone="page" className="flex-row gap-row">
           <Pressable onPress={() => setConfirming(false)} accessibilityRole="button" accessibilityLabel="Keep my account" className={`${pill} bg-surface border border-border`} style={TAP}><Text className="text-text text-body font-bold">Keep my account</Text></Pressable>
           {codeSent ? (
-            <Pressable className={`${pill} bg-primary ${busy || !ready ? 'opacity-40' : ''}`} disabled={busy || code.trim().length !== 6} onPress={remove} accessibilityRole="button" accessibilityLabel="Delete account" accessibilityState={{ disabled: busy || !ready }} style={TAP}>
-              <Text className="text-onPrimary text-body font-bold">Delete account</Text>
+            <Pressable className={`${pill} bg-primary ${!busy && !ready ? 'opacity-40' : ''}`} disabled={busy || code.trim().length !== 6} onPress={remove} accessibilityRole="button" accessibilityLabel="Delete account" accessibilityState={{ disabled: busy || !ready, busy }} style={TAP}>
+              <BusyContent busy={busy} barClassName="bg-onPrimary">
+                <Text className="text-onPrimary text-body font-bold">Delete account</Text>
+              </BusyContent>
             </Pressable>
           ) : (
-            <Pressable className={`${pill} bg-primary ${busy ? 'opacity-40' : ''}`} disabled={busy} onPress={sendCode} accessibilityRole="button" accessibilityLabel="Email me a code to confirm" accessibilityState={{ disabled: busy }} style={TAP}>
-              <Text className="text-onPrimary text-body font-bold text-center" numberOfLines={2}>Email me a code to confirm</Text>
+            <Pressable className={`${pill} bg-primary`} disabled={busy} onPress={sendCode} accessibilityRole="button" accessibilityLabel="Email me a code to confirm" accessibilityState={{ disabled: busy, busy }} style={TAP}>
+              <BusyContent busy={busy} barClassName="bg-onPrimary">
+                <Text className="text-onPrimary text-body font-bold text-center" numberOfLines={2}>Email me a code to confirm</Text>
+              </BusyContent>
             </Pressable>
           )}
       </BottomBar>

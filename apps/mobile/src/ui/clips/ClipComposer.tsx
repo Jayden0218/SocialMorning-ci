@@ -15,6 +15,7 @@ import { Textarea, TextareaInput } from '@/ui/lib/textarea';
 import { Pressable } from '@/ui/lib/pressable';
 import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
+import { BusyContent } from '@/ui/kit/BusyContent';
 import { ScrollView } from '@/ui/lib/scroll-view';
 import { usePlayer, usePlayerState, type PlayableEpisode } from '@/playback/store';
 import { canSave, endHere, nudgeEdge, openComposer, problemText, setCaption, startHere, type ComposerState } from '@/graph/composer';
@@ -185,14 +186,16 @@ export function ClipComposer(props: ClipComposerProps): React.ReactElement {
           <Text className="text-text text-body font-bold">Preview</Text>
         </Pressable>
         <Pressable
-          className={`flex-1 bg-primary rounded-pill px-section items-center justify-center ${blocked ? 'opacity-40' : ''}`}
+          className={`flex-1 bg-primary rounded-pill px-section items-center justify-center ${blocked && !props.saving ? 'opacity-40' : ''}`}
           style={TAP}
           disabled={blocked}
           onPress={() => props.onSave(s)}
           accessibilityRole="button"
-          accessibilityState={{ disabled: blocked }}
+          accessibilityState={{ disabled: blocked, busy: props.saving === true }}
         >
-          <Text className="text-onPrimary text-body font-bold">{props.saving ? 'Saving…' : 'Save'}</Text>
+          <BusyContent busy={props.saving === true} barClassName="bg-onPrimary">
+            <Text className="text-onPrimary text-body font-bold">Save</Text>
+          </BusyContent>
         </Pressable>
       </Box>
     </Box>
