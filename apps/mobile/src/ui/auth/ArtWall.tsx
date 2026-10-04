@@ -37,17 +37,17 @@ const TONE: Record<ArtTone, { box: string; kicker: string; title: string }> = {
   primary: {
     box: 'bg-primary',
     kicker: 'text-onPrimary text-xs font-bold uppercase tracking-widest',
-    title: 'text-onPrimary font-display text-[24px] leading-[28px]',
+    title: 'text-onPrimary font-display text-[24px] leading-[31px]',
   },
   surface: {
     box: 'bg-surface border border-border',
     kicker: 'text-accent text-xs font-bold uppercase tracking-widest',
-    title: 'text-text font-display text-[24px] leading-[28px]',
+    title: 'text-text font-display text-[24px] leading-[31px]',
   },
   dark: {
     box: 'bg-text',
     kicker: 'text-background text-xs font-bold uppercase tracking-widest',
-    title: 'text-background font-display text-[24px] leading-[28px]',
+    title: 'text-background font-display text-[24px] leading-[31px]',
   },
 };
 

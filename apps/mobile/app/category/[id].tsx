@@ -110,12 +110,13 @@ export default function CategoryScreen(): React.ReactElement {
         >
           <Artwork url={s.imageUrl} size={wide ? 100 : 72} rounded="row" name={s.title} />
           <Box className={wide ? 'flex-1' : ''}>
-            <Text className={wide ? 'text-text text-base font-display' : 'text-text text-body font-bold mt-1'} numberOfLines={2}>{s.title}</Text>
-            <Text className="text-muted text-xs" numberOfLines={1}>{s.author}</Text>
+            {/* Owner, 2026-10-04: names were cut off with "…" — a line more for each (title 3, author 2, episode 3). */}
+            <Text className={wide ? 'text-text text-base font-display' : 'text-text text-body font-bold mt-1'} numberOfLines={3}>{s.title}</Text>
+            <Text className="text-muted text-xs" numberOfLines={2}>{s.author}</Text>
             {ep ? (
               <Box className={wide ? 'flex-row items-start gap-1 mt-2' : 'flex-row items-start gap-1 bg-background rounded-row p-2 mt-2'}>
                 {wide ? <Icon name="play-circle-outline" size={14} color={c.muted} /> : null}
-                <Text className="flex-1 text-muted text-xs" numberOfLines={2}>
+                <Text className="flex-1 text-muted text-xs" numberOfLines={3}>
                   {ep.publishedAt ? `${ago(ep.publishedAt, now)} · ` : ''}{ep.title}
                 </Text>
               </Box>

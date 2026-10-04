@@ -33,7 +33,7 @@ import { parseLegal, titleOf, type Block, type BlockKind } from '@/legal/markdow
  */
 const KIND: Record<BlockKind, string> = {
   title: 'text-text text-lg font-semibold',
-  heading: 'text-text font-display text-[22px] leading-[28px] mt-5',
+  heading: 'text-text font-display text-[22px] leading-[29px] mt-5',
   subheading: 'text-text text-sm font-semibold leading-[26px] mt-row',
   paragraph: 'text-muted text-[15px] leading-[26px]',
   item: 'text-muted text-[15px] leading-[26px] flex-1',
@@ -125,7 +125,7 @@ export function LegalDoc(props: { text: string; onClose: () => void }): React.Re
         <Box className="px-screen-x pt-2 pb-section">
           {/* Owner, 2026-10-03: the editorial layout — a large title, the dates in boxes,
               then a Contents card listing every section, each a jump to it. */}
-          <Text className="text-text font-display text-[34px] leading-[38px] mt-1" accessibilityRole="header">{title}</Text>
+          <Text className="text-text font-display text-[34px] leading-[44px] mt-1" accessibilityRole="header">{title}</Text>
           {/* Owner, 2026-10-04: "Last updated" and "Effective from" on two rows, not one. */}
           {dates.map((d, i) => <Text key={d} className={`text-muted text-xs ${i === 0 ? 'mt-1.5' : 'mt-0.5'}`}>{d}</Text>)}
           {contents.length > 1 ? (

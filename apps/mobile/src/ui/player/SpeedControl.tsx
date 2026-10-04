@@ -32,7 +32,7 @@ export function SpeedControl(): React.ReactElement {
     <Box className="w-full gap-gap">
       <Box className="flex-row items-center justify-between">
         <Pressable style={ROUND} className="items-center justify-center rounded-pill bg-surface border border-border" onPress={() => set(rate - 0.1)} accessibilityRole="button" accessibilityLabel="Slower"><Text className="text-lg text-text">−</Text></Pressable>
-        <Text className="text-[48px] leading-[52px] font-display text-text">{rate.toFixed(1)}×</Text>
+        <Text className="text-[48px] leading-[62px] font-display text-text">{rate.toFixed(1)}×</Text>
         <Pressable style={ROUND} className="items-center justify-center rounded-pill bg-surface border border-border" onPress={() => set(rate + 0.1)} accessibilityRole="button" accessibilityLabel="Faster"><Text className="text-lg text-text">+</Text></Pressable>
       </Box>
       <Box className="flex-row gap-1 p-1 mt-1 rounded-pill bg-background border border-border">

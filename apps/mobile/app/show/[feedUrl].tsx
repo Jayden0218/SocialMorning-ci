@@ -382,7 +382,7 @@ export default function ShowScreen(): React.ReactElement {
                 accessibilityLabel={`${item.title}. ${meta}`}
                 onPress={() => router.push({ pathname: '/episode/[id]', params: { id: item.id } })}
               >
-                <Text className="text-title font-display text-text leading-[21px]" numberOfLines={3}>{item.title}</Text>
+                <Text className="text-title font-display text-text leading-[22px]" numberOfLines={3}>{item.title}</Text>
                 {notes === '' ? null : <Text className="text-meta text-muted leading-[19px]" numberOfLines={2}>{notes}</Text>}
                 <EpisodeMeta {...metaIn} iconColour={c.muted} />
               </Pressable>

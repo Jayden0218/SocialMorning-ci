@@ -54,7 +54,7 @@ export function ErrorBoundary(props: ErrorBoundaryProps): React.ReactElement {
         <Box className="flex-row items-center gap-[5px] h-12" accessible={false} importantForAccessibility="no-hide-descendants">
           {WAVE.map((h, i) => <Box key={i} className={h > 0 ? 'bg-accent rounded' : 'rounded'} style={{ width: 8, height: h }} />)}
         </Box>
-        <Text className="text-text font-display text-[40px] leading-[44px] mt-7" accessibilityRole="header">Something went wrong</Text>
+        <Text className="text-text font-display text-[40px] leading-[52px] mt-7" accessibilityRole="header">Something went wrong</Text>
         <Text className="text-muted text-title leading-[25px] mt-[14px]">This screen stopped working. Your listening and downloads are safe.</Text>
       </Box>
       <Pressable onPress={() => void props.retry()} accessibilityRole="button" accessibilityLabel="Try again" className="bg-primary rounded-pill px-section items-center justify-center w-full" style={{ minHeight: Math.max(hit.min, 52) }}>

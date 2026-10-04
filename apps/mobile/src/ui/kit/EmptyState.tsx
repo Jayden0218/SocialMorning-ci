@@ -91,7 +91,7 @@ export function EmptyState(props: EmptyStateProps): React.ReactElement | null {
             <Box className="bg-surface border border-border rounded-artwork-lg items-center justify-center" style={TILE}>
               {view.kind === 'offline' ? <NoSignal /> : <Text {...HIDE} className="text-accent font-display text-hero">!</Text>}
             </Box>
-            <Text className="text-text font-display text-lg leading-[30px] mt-screen-x">{view.sentence}</Text>
+            <Text className="text-text font-display text-lg leading-[31px] mt-screen-x">{view.sentence}</Text>
           </Box>
           {retry}
         </Box>
