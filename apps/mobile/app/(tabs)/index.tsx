@@ -33,7 +33,7 @@ import { useSafety } from '@/safety/context';
 import { useSocial } from '@/social/context';
 import { inboxIds } from '@/me/inbox';
 import { useStores } from '@/ui/shell/providers';
-import { BOTTOM_INSET } from '@/ui/kit/Screen';
+import { TAB_PAGE_END } from '@/ui/kit/Screen';
 import { Eyebrow } from '@/ui/kit/Eyebrow';
 import { SearchBar } from '@/ui/discover/parts';
 import { useSearchOverlay } from '@/ui/search/SearchOverlay';
@@ -113,7 +113,7 @@ export default function DiscoverScreen(): React.ReactElement {
       <Box className="flex-1">
       {pull.backdrop}
       <ScrollView
-        contentContainerStyle={{ paddingBottom: BOTTOM_INSET }}
+        contentContainerStyle={{ paddingBottom: TAB_PAGE_END }}
         refreshControl={pull.refreshControl}
         onScroll={pull.onScroll}
         scrollEventThrottle={pull.scrollEventThrottle}

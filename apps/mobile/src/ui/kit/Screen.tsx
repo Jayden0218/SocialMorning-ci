@@ -12,6 +12,12 @@ import { Box } from '@/ui/lib/box';
 export const MINI_PLAYER_HEIGHT = 64;
 export const TAB_BAR_HEIGHT = 56;
 export const BOTTOM_INSET = MINI_PLAYER_HEIGHT + TAB_BAR_HEIGHT;
+/**
+ * The end of a TAB page's scroll (Discover, Updates, Me, Chat). The tab layout draws the mini
+ * player and the tab bar BELOW the page, not over it, so the page already stops above them;
+ * reserving BOTTOM_INSET there left 120 pt of empty space (owner, 2026-10-04). Just breathing room.
+ */
+export const TAB_PAGE_END = 24;
 
 export function Screen(props: ViewProps & { scroll?: boolean; padded?: boolean }): React.ReactElement {
   const { scroll, padded = true, style, className, children, ...rest } = props;

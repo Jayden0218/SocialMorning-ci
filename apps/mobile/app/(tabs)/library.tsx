@@ -45,7 +45,7 @@ import { useDownloads, useStores, useSubscriptionSync, useToast } from '@/ui/she
 import { useSocial } from '@/social/context';
 import { useM12Api } from '@/social/m12-api';
 import { VoicePosts } from '@/ui/social/VoicePosts';
-import { BOTTOM_INSET } from '@/ui/kit/Screen';
+import { TAB_PAGE_END } from '@/ui/kit/Screen';
 import { plural } from '@socialmorning/social-core';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
@@ -123,7 +123,7 @@ export default function UpdatesScreen(): React.ReactElement {
         data={rows}
         keyExtractor={(r) => r.episode.id}
         extraData={counts} // the counts arrive after the rows; without this a row keeps its old meta line
-        contentContainerStyle={{ paddingBottom: BOTTOM_INSET }}
+        contentContainerStyle={{ paddingBottom: TAB_PAGE_END }}
         ListHeaderComponent={
           <Box>
             <Box className="px-screen-x pt-section">

@@ -33,7 +33,7 @@ import { MenuRow, MenuTile } from '@/ui/me/parts';
 import { useComingSoon } from '@/ui/kit/ComingSoon';
 import { readStoreReady } from '@/social/store-ready';
 import { useStores } from '@/ui/shell/providers';
-import { BOTTOM_INSET } from '@/ui/kit/Screen';
+import { TAB_PAGE_END } from '@/ui/kit/Screen';
 
 const TAP = { minHeight: hit.min };
 /** The picture: 96 pt, as in `Me-B`. A size, so it stays a style. */
@@ -59,7 +59,7 @@ export default function MeScreen(): React.ReactElement {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <ScrollView contentContainerClassName="px-screen-x pt-section" contentContainerStyle={{ paddingBottom: BOTTOM_INSET }}>
+      <ScrollView contentContainerClassName="px-screen-x pt-section" contentContainerStyle={{ paddingBottom: TAB_PAGE_END }}>
         <Link href="/stickers" asChild>
           <Pressable accessibilityRole="link" accessibilityLabel="Stickers" className="self-end flex-row items-center gap-2 bg-surface border border-border rounded-pill px-section" style={TAP}>
             <Icon name="medal-outline" size={18} color={c.text} />

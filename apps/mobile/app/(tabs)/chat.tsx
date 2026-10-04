@@ -18,7 +18,7 @@ import { hit } from '@/design';
 import { Artwork } from '@/ui/kit/Artwork';
 import { Icon } from '@/ui/kit/Icon';
 import { Loader } from '@/ui/kit/Loader';
-import { BOTTOM_INSET } from '@/ui/kit/Screen';
+import { TAB_PAGE_END } from '@/ui/kit/Screen';
 import { useColours } from '@/ui/kit/useColours';
 import { EmptyPicture } from '@/ui/me/parts';
 import { useStores } from '@/ui/shell/providers';
@@ -89,7 +89,7 @@ export default function ChatTab(): React.ReactElement {
       <FlatList
         data={items}
         keyExtractor={(i) => i.with.id}
-        contentContainerStyle={{ paddingBottom: BOTTOM_INSET }}
+        contentContainerStyle={{ paddingBottom: TAB_PAGE_END }}
         contentContainerClassName="flex-grow"
         ListHeaderComponent={header}
         ListEmptyComponent={state.kind === 'loading' ? <Loader className="my-section" /> : state.kind === 'error' ? (
