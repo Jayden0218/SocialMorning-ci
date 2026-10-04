@@ -1,0 +1,35 @@
+# Owner, 2026-10-04: an Android build for working on the app — a DEBUG APK that loads its code
+# from Metro on the laptop (over USB with `adb reverse tcp:8081 tcp:8081`), so a saved change
+# shows on the phone at once. Built here, never on the laptop. Run by hand only:
+#   gh workflow run android-debug.yml -R Jayden0218/SocialMorning-ci --ref main
+# Signed with the prebuild template's debug key — the same key as android-compile's release
+# APK, so it installs over that one without wiping the phone's data.
+name: android-debug
+on:
+  workflow_dispatch:
+jobs:
+  android-debug:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+      - run: npm ci --no-audit --no-fund
+      - name: expo prebuild (android)
+        run: npx expo prebuild -p android --no-install --clean
+        working-directory: apps/mobile
+      - name: gradle assembleDebug (no JS inside; it loads from Metro)
+        run: ./gradlew :app:assembleDebug --no-daemon --stacktrace
+        working-directory: apps/mobile/android
+      - uses: actions/upload-artifact@v4
+        with:
+          name: socialnet-debug-apk
+          path: apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 7
