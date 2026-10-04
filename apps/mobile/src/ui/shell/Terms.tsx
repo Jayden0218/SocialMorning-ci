@@ -48,7 +48,7 @@ import {
 } from "./consent";
 
 /** The app icon on top: 48 pt (`Terms-B`; was 64). */
-const ICON = { width: 48, height: 48 };
+const ICON = { width: 60, height: 60 };
 
 /** Apple's and Android's minimum tap size, as a style (shared-ui asserts it). */
 const TAP = { minHeight: hit.min };
@@ -156,7 +156,7 @@ function Card(props: {
           {item.points.map((p, i) => (
             <Box key={p} className="flex-row mb-gap">
               <Text className="text-accent text-body font-bold leading-[20px] min-w-7 pr-2">
-                {String(i + 1).padStart(2, '0')}
+                {String(i + 1).padStart(2, "0")}
               </Text>
               <Text className="text-muted text-body leading-[20px] flex-1">
                 {p}
@@ -171,7 +171,10 @@ function Card(props: {
             style={TAP}
           >
             {/* Owner, 2026-10-03: the same colour as the card's icon (`Terms-B`) — read from the same palette value. */}
-            <Text className="text-accent text-body font-bold underline" style={{ color: c.accent }}>{`Read the full ${FULL[item.doc]}`}</Text>
+            <Text
+              className="text-accent text-body font-bold underline"
+              style={{ color: c.accent }}
+            >{`Read the full ${FULL[item.doc]}`}</Text>
           </Pressable>
         </Box>
       ) : null}
@@ -233,7 +236,7 @@ export function Terms(props: {
           accessibilityIgnoresInvertColors
         />
         <Text
-          style={display(40, c.text, { leading: 44 })}
+          style={display(36, c.text, { leading: 44 })}
           className="text-text font-display mt-[14px] mb-gap"
           accessibilityRole="header"
         >
@@ -304,13 +307,13 @@ export function Terms(props: {
             accessibilityIgnoresInvertColors
           />
           <Text
-            style={display(24, c.text, { leading: 28 })}
+            style={display(28, c.text, { leading: 28 })}
             className="text-text font-display text-center mt-[14px]"
             accessibilityRole="header"
           >
             {CONSENT_TITLE}
           </Text>
-          <Text className="text-muted text-[15px] leading-[23px] text-center mt-row">
+          <Text className="text-muted text-[16px] leading-[23px] text-center mt-row">
             {REFUSE_TEXT}
           </Text>
           <Choice

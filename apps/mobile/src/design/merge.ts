@@ -18,3 +18,4 @@ import { fontSize } from './tokens';
 const TAILWIND_SIZES = new Set(['xs', 'sm', 'base', 'lg', 'xl']);
 export const APP_TEXT_SIZES = Object.keys(fontSize).filter((k) => !TAILWIND_SIZES.has(k));
 
+defaultConfig.twMergeConfig = { classGroups: { 'font-size': [{ text: APP_TEXT_SIZES }] } };
