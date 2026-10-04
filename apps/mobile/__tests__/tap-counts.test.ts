@@ -26,7 +26,8 @@ const links = (src: string, href: string): boolean => {
   // Owner, 2026-10-01: Search is pushed with params (`{ pathname: '/search', params }`) so its box can move up.
   // M17: from Discover, Search opens in place (`search.open(...)` from useSearchOverlay) — still one tap.
   if (href === '/search' && /useSearchOverlay\(\)/.test(src) && /search\.open\(/.test(src)) return true;
-  return new RegExp(`href="${h}"|push\\('${h}'\\)|pathname: '${h}'`).test(src);
+  // Either quote: a formatter pass (owner, 2026-10-04) writes push("/queue").
+  return new RegExp(`href="${h}"|push\\(['"]${h}['"]\\)|pathname: ['"]${h}['"]`).test(src);
 };
 
 /** Destination → taps from a cold start, before this change (Discover · Library · Following) and after. */
