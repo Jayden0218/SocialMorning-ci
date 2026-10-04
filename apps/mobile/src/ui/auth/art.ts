@@ -1,26 +1,19 @@
-// Picks which real show covers to show on the sign-in page.
+// The words-only tiles that move along the sign-in page.
 /**
- * The artwork on the sign-in landing page (owner's reference, 2026-09-27): real show
- * covers, never a stock picture. The listener's own shows first, then what Discover last
- * cached. Nothing invented — with neither, the wall is simply empty.
+ * The sign-in page's moving row (owner, 2026-10-04): tiles made here, words only — no show
+ * covers. The owner has no permission to show other people's podcast artwork, so nothing on
+ * this page comes from a feed, Discover or the listener's subscriptions. Each tile says one
+ * thing SocialNet does; `tone` picks one of three palette fills.
  */
-import type { Discover } from '@/social/api';
+export type ArtTone = 'primary' | 'surface' | 'dark';
+export type ArtTile = { kicker: string; title: string; tone: ArtTone };
 
-export const ART_MAX = 7;
-
-export function landingArt(src: { subscribed: (string | undefined)[]; discover?: Discover }, max = ART_MAX): string[] {
-  const d = src.discover;
-  const all = [
-    ...src.subscribed,
-    ...(d?.picks ?? []).map((i) => i.episode.imageUrl),
-    ...(d?.shows ?? []).map((s) => s.imageUrl),
-    ...(d?.talkedAbout ?? []).map((i) => i.episode.imageUrl),
-    ...(d?.trending ?? []).map((i) => i.episode.imageUrl),
-  ];
-  const out: string[] = [];
-  for (const u of all) {
-    if (u && !out.includes(u)) out.push(u);
-    if (out.length === max) break;
-  }
-  return out;
-}
+export const LANDING_TILES: readonly ArtTile[] = [
+  { kicker: 'Comments', title: 'Talk at the exact second you heard it', tone: 'primary' },
+  { kicker: 'Heat curve', title: 'See where everyone leaned in', tone: 'surface' },
+  { kicker: 'Clips', title: 'Keep the part worth sharing', tone: 'dark' },
+  { kicker: 'Friends', title: 'Hear what your friends are playing', tone: 'primary' },
+  { kicker: 'For You', title: 'New shows picked for how you listen', tone: 'surface' },
+  { kicker: 'Queue', title: 'Line up tonight, offline too', tone: 'dark' },
+  { kicker: 'Free', title: 'Listening is free, always', tone: 'primary' },
+];

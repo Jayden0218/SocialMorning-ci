@@ -31,7 +31,7 @@ export function keepTerms(s: { ready: boolean; accepted: boolean; launched: bool
 
 /**
  * The longest the cover waits for the sign-in page to be whole before it lifts anyway:
- * the page's own wait for its covers (`ART_WAIT_MS`, 1.5 s) plus the push.
+ * the page draws at once (its tiles are words, nothing loads), so this is only the push, with room to spare.
  */
 export const HANDOFF_MAX_MS = 2500;
 

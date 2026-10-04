@@ -1,4 +1,4 @@
-// Sign-in start page: app name, moving show covers, ways to sign in, consent box.
+// Sign-in start page: app name, moving word tiles, ways to sign in, consent box.
 /**
  * The sign-in landing page (owner's reference screenshots, 2026-09-27 and 2026-10-03): the
  * icon, the app's name, a moving row of show covers, then the ways in and the consent box —
@@ -14,14 +14,12 @@
  * own sizes from 2026-10-03 rather than B's 44 / 56. Ways in, consent and the guards unchanged.
  */
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BackHandler } from 'react-native';
 import { Image } from '@/ui/lib/image';
 import { SafeAreaView } from '@/ui/lib/safe-area-view';
 import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { createDiscover } from '@/discover/cache';
-import { useSocial } from '@/social/context';
 import { useStores } from '@/ui/shell/providers';
 import { useColours } from '@/ui/kit/useColours';
 import { askForNotifications } from '@/notify/permission';
@@ -29,7 +27,7 @@ import { expoNotify } from '@/notify/expo';
 import { signInPage } from '@/ui/shell/launch';
 import { AuthButton } from '@/ui/auth/AuthShell';
 import { ArtWall } from '@/ui/auth/ArtWall';
-import { landingArt } from '@/ui/auth/art';
+import { LANDING_TILES } from '@/ui/auth/art';
 import { display } from '@/ui/auth/display';
 import { ConsentDialog, ConsentRow, useLegalOverlay } from '@/ui/auth/Consent';
 import { submitAction } from '@/ui/auth/rules';
@@ -43,7 +41,6 @@ const ROW_TOP = { marginTop: 64 };
 type Way = 'email' | OtherMethod;
 
 export default function SignInScreen(): React.ReactElement {
-  const { api } = useSocial();
   const stores = useStores();
   const c = useColours(stores.settings);
   const [comingSoon, comingSoonDialog] = useComingSoon();
@@ -63,11 +60,6 @@ export default function SignInScreen(): React.ReactElement {
     return () => sub.remove();
   }, []);
 
-  const art = useMemo(() => landingArt({
-    subscribed: stores.subscriptions.list().map((s) => stores.feeds.getShow(s.feedUrl)?.imageUrl),
-    discover: createDiscover({ api, cache: stores.feedCache, now: () => Date.now() }).cached()?.body,
-  }), [api, stores]);
-
   function go(way: Way): void {
     if (way === 'email') { router.push({ pathname: '/auth/email', params: { agreed: '1' } }); return; }
     const m = OTHER_METHODS.find((o) => o.id === way)!;
@@ -85,7 +77,7 @@ export default function SignInScreen(): React.ReactElement {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      {/* Owner, 2026-10-03: the icon on top, the name under it, then a row of covers that
+      {/* Owner, 2026-10-03: the icon on top, the name under it, then a row of tiles (words only since 2026-10-04) that
           moves on every second; the ways in at the bottom — email full width, Google and
           Facebook side by side. */}
       <Box className="px-screen-x pt-section">
@@ -94,7 +86,7 @@ export default function SignInScreen(): React.ReactElement {
       </Box>
       {/* Owner, 2026-10-03: room above the covers. */}
       <Box style={ROW_TOP}>
-        <ArtWall urls={art} onReady={() => signInPage.setWhole(true)} />
+        <ArtWall tiles={LANDING_TILES} onReady={() => signInPage.setWhole(true)} />
       </Box>
       <Box className="flex-1" />
       <Box className="px-screen-x pb-section">

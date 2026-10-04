@@ -1,21 +1,21 @@
-// A row of show covers moving slowly on the sign-in page.
+// A row of words-only tiles moving slowly on the sign-in page.
 /**
  * A row of show covers on the sign-in page (owner, 2026-10-03: was a loose wall). It moves
  * on one cover every second and loops without a jump back: the covers are drawn twice, and
  * on reaching the second copy's first cover it snaps, unanimated, to the identical first.
  * A finger can drag it; the timer starts again from where it lets go. Reduce Motion keeps it
- * still. The covers are whatever `landingArt` found.
+ * still.
  * M17 (`SignIn-B`): 22 pt corners and a soft shadow under each cover (room left under the row
  * so the shadow is not cut off).
+ * Owner, 2026-10-04: the covers are words-only tiles (`LANDING_TILES`), not podcast artwork —
+ * there is no permission to show other people's covers. Nothing loads, so the row is ready at once.
  */
 import { useEffect, useRef, type ComponentRef } from 'react';
 import { AccessibilityInfo, ScrollView, useWindowDimensions } from 'react-native';
-import { Image } from '@/ui/lib/image';
 import { Box } from '@/ui/lib/box';
+import { Text } from '@/ui/lib/text';
 import { colour, spacing } from '@/design';
-
-/** The longest the page waits for covers before it shows without the slow ones. */
-export const ART_WAIT_MS = 1500;
+import type { ArtTile, ArtTone } from './art';
 /** One cover forward this often (owner, 2026-10-03). */
 export const ART_STEP_MS = 1000;
 /** How long the animated step takes before the loop may snap back. */
@@ -32,31 +32,31 @@ export function nextStep(at: number, n: number): { to: number; snapBack: boolean
   return { to, snapBack: to >= n };
 }
 
+/** Each tone: the tile's fill, its small label and its words — all palette tokens. */
+const TONE: Record<ArtTone, { box: string; kicker: string; title: string }> = {
+  primary: { box: 'bg-primary', kicker: 'text-onPrimary', title: 'text-onPrimary' },
+  surface: { box: 'bg-surface border border-border', kicker: 'text-accent', title: 'text-text' },
+  dark: { box: 'bg-text', kicker: 'text-background', title: 'text-background' },
+};
+
 /**
- * `onReady` fires once, when every cover has loaded or failed (or after `ART_WAIT_MS`),
- * so the page can appear whole instead of cover by cover (owner, 2026-09-27).
+ * `onReady` fires once, as soon as the row is drawn — the tiles are words, nothing loads —
+ * so the page appears whole (owner, 2026-09-27).
  */
-export function ArtWall(props: { urls: string[]; onReady?: () => void }): React.ReactElement {
+export function ArtWall(props: { tiles: readonly ArtTile[]; onReady?: () => void }): React.ReactElement {
   const { width } = useWindowDimensions();
   const card = Math.round(width * 0.5);
   const step = card + spacing.section;
-  const n = props.urls.length;
+  const n = props.tiles.length;
   const scroller = useRef<ComponentRef<typeof ScrollView>>(null);
   const at = useRef(0);
   const dragging = useRef(false);
-  const settled = useRef(0);
   const fired = useRef(false);
   const ready = useRef(props.onReady);
   ready.current = props.onReady;
   const fire = (): void => { if (!fired.current) { fired.current = true; ready.current?.(); } };
-  const one = (): void => { settled.current += 1; if (settled.current >= n) fire(); };
 
-  useEffect(() => {
-    if (n === 0) { fire(); return; }
-    const t = setTimeout(fire, ART_WAIT_MS);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [n]);
+  useEffect(() => { fire(); }, []);
 
   useEffect(() => {
     if (n < 2) return;
@@ -76,8 +76,8 @@ export function ArtWall(props: { urls: string[]; onReady?: () => void }): React.
     return () => { live = false; clearInterval(tick); timers.forEach(clearTimeout); };
   }, [n, step]);
 
-  // Drawn twice so the loop has somewhere to go; only the first copy counts towards `onReady`.
-  const row = n >= 2 ? [...props.urls, ...props.urls] : props.urls;
+  // Drawn twice so the loop has somewhere to go.
+  const row = n >= 2 ? [...props.tiles, ...props.tiles] : props.tiles;
   return (
     <ScrollView
       ref={scroller}
@@ -96,12 +96,13 @@ export function ArtWall(props: { urls: string[]; onReady?: () => void }): React.
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
     >
-      {row.map((uri, i) => (
-        <Box key={`${i}-${uri}`} className="rounded-artwork-lg bg-surface" style={[SHADOW, { width: card, height: card }]}>
-          <Box className="rounded-artwork-lg overflow-hidden">
-            <Image source={{ uri }} onLoadEnd={i < n ? one : undefined} style={{ width: card, height: card }} />
+      {row.map((t, i) => (
+          <Box key={`${i}-${t.kicker}`} className="rounded-artwork-lg bg-surface" style={[SHADOW, { width: card, height: card }]}>
+            <Box className={`rounded-artwork-lg overflow-hidden flex-1 p-5 justify-between ${TONE[t.tone].box}`}>
+              <Text className={`${TONE[t.tone].kicker} text-xs font-bold uppercase tracking-widest`}>{t.kicker}</Text>
+              <Text className={`${TONE[t.tone].title} font-display text-[24px] leading-[28px]`} numberOfLines={4}>{t.title}</Text>
+            </Box>
           </Box>
-        </Box>
       ))}
     </ScrollView>
   );

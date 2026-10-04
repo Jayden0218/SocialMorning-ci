@@ -57,7 +57,7 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 | File | Route | What the user sees |
 |---|---|---|
 | `auth/email.tsx` | `/auth/email` | Sign in with email: enter email, then 6-digit code, then your name if new. |
-| `auth/sign-in.tsx` | `/auth/sign-in` | Sign-in start page: app name, moving show covers, ways to sign in, consent box. |
+| `auth/sign-in.tsx` | `/auth/sign-in` | Sign-in start page: app name, moving word tiles, ways to sign in, consent box. |
 | `auth/sign-up.tsx` | `/auth/sign-up` | No screen: old link, sends you to the email sign-in page. |
 
 ### `category/`

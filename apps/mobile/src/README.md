@@ -386,10 +386,10 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 
 | File | What it does |
 |---|---|
-| `ArtWall.tsx` | A row of show covers moving slowly on the sign-in page. |
+| `ArtWall.tsx` | A row of words-only tiles moving slowly on the sign-in page. |
 | `AuthShell.tsx` | Shared frame for sign-in pages: close ✕, big title, form, bottom button. |
 | `Consent.tsx` | The "I agree" tick box under sign-in, and the ask if not ticked. |
-| `art.ts` | Picks which real show covers to show on the sign-in page. |
+| `art.ts` | The words-only tiles that move along the sign-in page. |
 | `display.ts` | The large serif title style on sign-in pages. |
 | `errors.ts` | Turns a sign-in error into a short message for the user. |
 | `methods.ts` | The other sign-in ways (Google, Facebook), not ready yet. |

@@ -1,53 +1,50 @@
-// Tests that the sign-in cover wall waits for all covers and scrolls them.
+// Tests that the sign-in row shows words-only tiles, no pictures, and is ready at once.
 /**
- * The sign-in landing page appears whole (owner, 2026-09-27): `onReady` waits for every
- * cover, fires once, and never waits past ART_WAIT_MS. Break that turns the first test
- * red: fire `onReady` on the first `onLoadEnd` instead of the last.
+ * The sign-in page's moving row (owner, 2026-10-04): tiles made by the app, words only — the
+ * owner has no permission to show other people's podcast covers. Nothing loads, so `onReady`
+ * fires once, straight away. The row is drawn twice for the loop and moves one tile per tick.
  *
- * Since 2026-10-03 the covers are a row drawn twice (for the loop); only the first copy
- * counts. The row moves one cover per tick and snaps back at the end of the first copy.
+ * Break that turns the first test red: put an `<Image>` back into a tile.
  */
 import { createElement } from 'react';
-import { Image } from 'react-native';
+import { Image, Text } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { ART_WAIT_MS, ArtWall, nextStep } from '@/ui/auth/ArtWall';
+import { ArtWall, nextStep } from '@/ui/auth/ArtWall';
+import { LANDING_TILES } from '@/ui/auth/art';
 
 jest.mock('expo-linear-gradient', () => ({ LinearGradient: () => null }));
-// M10b US4: the component reads its palette through useStores(); pin it to light so the
-// colour assertions compare against `colour`, whatever the runner's system scheme is.
 jest.mock('@/ui/shell/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }) }));
 
 const render = (el: React.ReactElement): ReactTestRenderer => { let r!: ReactTestRenderer; act(() => { r = create(el); }); return r; };
 
-it('waits for every cover, then fires once', () => {
-  const onReady = jest.fn();
-  jest.useFakeTimers();
-  const r = render(createElement(ArtWall, { urls: ['a', 'b', 'c'], onReady }));
-  expect(r.root.findAllByType(Image)).toHaveLength(6);
-  const images = r.root.findAllByType(Image).filter((i) => i.props['onLoadEnd']);
-  expect(images).toHaveLength(3);
-  act(() => { images[0]!.props['onLoadEnd'](); images[1]!.props['onLoadEnd'](); });
-  expect(onReady).not.toHaveBeenCalled();
-  act(() => { images[2]!.props['onLoadEnd'](); });
-  expect(onReady).toHaveBeenCalledTimes(1);
+it('draws every tile as words, twice for the loop, with no picture anywhere', () => {
+  const r = render(createElement(ArtWall, { tiles: LANDING_TILES }));
+  expect(r.root.findAllByType(Image)).toHaveLength(0);
+  const words = r.root.findAllByType(Text).map((t) => [t.props['children']].flat().join(''));
+  for (const t of LANDING_TILES) {
+    expect(words.filter((w) => w === t.title)).toHaveLength(2);
+    expect(words.filter((w) => w === t.kicker)).toHaveLength(2);
+  }
   act(() => { r.unmount(); });
-  jest.useRealTimers();
 });
 
-it('with no covers it is ready at once; a slow cover is not waited for past the limit', () => {
-  jest.useFakeTimers();
+it('the tiles are the app\'s own words: no web address, no show artwork', () => {
+  expect(LANDING_TILES.length).toBeGreaterThanOrEqual(3);
+  expect(JSON.stringify(LANDING_TILES)).not.toMatch(/https?:|\.(png|jpe?g|webp)/i);
+});
+
+it('is ready at once, and only once', () => {
+  const onReady = jest.fn();
+  const r = render(createElement(ArtWall, { tiles: LANDING_TILES, onReady }));
+  expect(onReady).toHaveBeenCalledTimes(1);
+  act(() => { r.update(createElement(ArtWall, { tiles: LANDING_TILES, onReady })); });
+  expect(onReady).toHaveBeenCalledTimes(1);
   const none = jest.fn();
-  render(createElement(ArtWall, { urls: [], onReady: none }));
+  render(createElement(ArtWall, { tiles: [], onReady: none }));
   expect(none).toHaveBeenCalledTimes(1);
-  const slow = jest.fn();
-  render(createElement(ArtWall, { urls: ['a'], onReady: slow }));
-  expect(slow).not.toHaveBeenCalled();
-  act(() => { jest.advanceTimersByTime(ART_WAIT_MS); });
-  expect(slow).toHaveBeenCalledTimes(1);
-  jest.useRealTimers();
 });
 
-it('moves one cover per tick and snaps back after the last', () => {
+it('moves one tile per tick and snaps back after the last', () => {
   expect(nextStep(0, 3)).toEqual({ to: 1, snapBack: false });
   expect(nextStep(1, 3)).toEqual({ to: 2, snapBack: false });
   expect(nextStep(2, 3)).toEqual({ to: 3, snapBack: true });
