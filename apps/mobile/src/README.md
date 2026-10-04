@@ -230,7 +230,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `Button.tsx` | The app's one button: yellow, white with border, or for delete actions. |
 | `Card.tsx` | A white box with thin border that groups rows; plus the line between rows. |
 | `Chip.tsx` | A round tap-able label; turns yellow when chosen. |
-| `ComingSoon.tsx` | A "Coming soon" box shown when you tap a feature not ready yet. |
+| `ComingSoon.tsx` | A "Coming soon" sheet shown when you tap a feature not ready yet. |
 | `EmptyState.tsx` | What an empty, loading, offline or failed page shows, with a Retry button. |
 | `Eyebrow.tsx` | A small grey capital-letter label above a section. |
 | `Icon.tsx` | Simple drawn icons (play, pause, arrows) and the one font icon helper. |
