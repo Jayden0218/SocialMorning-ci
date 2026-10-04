@@ -42,6 +42,7 @@ Every code file, one plain line each. Each file also starts with the same senten
 |---|---|
 | `clip.ts` | Rules for clips as time ranges: suggest one, check its length, adjust edges. |
 | `completion.ts` | Decides if a listener finished an episode: 90 percent heard across all sessions. |
+| `cover.ts` | The made-for-you cover: two letters from the show's name on one of seven soft colours. |
 | `discover.ts` | Ranks episodes by how much people listened and talked, then fills with trending. |
 | `empty.ts` | The text and action for each empty screen, and loading and timeout timings. |
 | `feed.ts` | Following feed rules: when a listen is posted, the order, and unread count. |

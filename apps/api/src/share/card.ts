@@ -18,12 +18,12 @@ import { readFile } from 'node:fs/promises';
 import satori from 'satori';
 import { initWasm, Resvg } from '@resvg/resvg-wasm';
 
-type Font = { name: string; data: ArrayBuffer; weight: 400 | 700; style: 'normal' };
+export type Font = { name: string; data: ArrayBuffer; weight: 400 | 700 | 800; style: 'normal' };
 
 export const CARD_W = 1080;
 export const CARD_H = 1350;
 
-async function bytes(load: () => Promise<{ default: Uint8Array }>, spec: string): Promise<Uint8Array> {
+export async function bytes(load: () => Promise<{ default: Uint8Array }>, spec: string): Promise<Uint8Array> {
   try {
     const m = await load();
     if (m.default instanceof Uint8Array) return m.default;
@@ -35,7 +35,8 @@ async function bytes(load: () => Promise<{ default: Uint8Array }>, spec: string)
 const toArrayBuffer = (u: Uint8Array): ArrayBuffer => u.buffer.slice(u.byteOffset, u.byteOffset + u.byteLength) as ArrayBuffer;
 
 let ready: Promise<Font[]> | undefined;
-function assets(): Promise<Font[]> {
+/** The rasteriser, started once, and Inter. Shared with `cover.ts`: resvg can be initialised only once per process. */
+export function assets(): Promise<Font[]> {
   ready ??= (async () => {
     const [wasm, regular, bold] = await Promise.all([
       bytes(() => import('@resvg/resvg-wasm/index_bg.wasm'), '@resvg/resvg-wasm/index_bg.wasm'),

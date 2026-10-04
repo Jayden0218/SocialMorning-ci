@@ -1,4 +1,4 @@
-// Show or episode cover; shows the show's first letter while loading or broken.
+// Show or episode cover; shows the show's two-letter tile while loading, broken or missing.
 /**
  * Episode or show artwork at a fixed size (M7). An episode with no artwork gets the
  * placeholder, never a blank square (research R4).
@@ -6,6 +6,10 @@
  * M12 FR-004 (B5): the 2026-09-29 comparison saw artwork stay a plain grey square for up
  * to 20 s. Now the square carries the show's initial while the image loads, the image
  * fades in over it, and an image that fails keeps the initial — never a blank square.
+ *
+ * Owner, 2026-10-04: the square under the image is the made-for-you tile (social-core `cover.ts`)
+ * — 2 letters on one of 7 soft colours, a circle in the corner — the same tile the server saves
+ * for a Studio show with no cover, so a show looks the same before and after its image loads.
  */
 import { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet } from 'react-native';
@@ -13,6 +17,7 @@ import { Image } from '@/ui/lib/image';
 import { Box } from '@/ui/lib/box';
 import { Text } from '@/ui/lib/text';
 import type { radius } from '@/design';
+import { COVER_SHAPE, coverLetters, coverTone } from '@socialmorning/social-core';
 
 /** Whole class names, so Tailwind can find each one written out. */
 const ROUNDED: Record<keyof typeof radius, string> = {
@@ -29,22 +34,26 @@ export function initialOf(name?: string): string {
 }
 
 export function Artwork(props: { url?: string | null; size: number; rounded?: keyof typeof radius; className?: string; name?: string }): React.ReactElement {
-  // M17: 16 pt corners, 22 from 96 pt up (`Show-B`, `Episode-B`); the placeholder is the accent tint.
+  // M17: 16 pt corners, 22 from 96 pt up (`Show-B`, `Episode-B`).
   const round = props.rounded ?? (props.size >= 96 ? 'artworkLarge' : 'row');
-  const cls = `bg-accentTint overflow-hidden items-center justify-center ${ROUNDED[round]} ${props.className ?? ''}`;
-  // The size is a prop, so it stays a style.
+  const cls = `overflow-hidden ${ROUNDED[round]} ${props.className ?? ''}`;
+  // The size and the tile's colour come from props, so they stay styles.
+  const tone = coverTone(props.name ?? '');
   const box = { width: props.size, height: props.size };
-  const letter = { fontSize: Math.round(props.size * 0.4) };
+  const at = (share: number) => Math.round(share * props.size);
+  const circle = { position: 'absolute' as const, right: -at(COVER_SHAPE.overhang), bottom: -at(COVER_SHAPE.overhang), width: at(COVER_SHAPE.circle), height: at(COVER_SHAPE.circle), borderRadius: at(COVER_SHAPE.circle) / 2, backgroundColor: tone.ink, opacity: COVER_SHAPE.circleOpacity };
+  const letters = { position: 'absolute' as const, left: at(COVER_SHAPE.left), top: at(COVER_SHAPE.top), fontSize: at(COVER_SHAPE.letters), lineHeight: Math.round(at(COVER_SHAPE.letters) * 1.2), color: tone.ink };
   const [failed, setFailed] = useState(false);
   const fade = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     setFailed(false);
     fade.setValue(0);
   }, [props.url, fade]);
-  const initial = initialOf(props.name);
+  const mark = coverLetters(props.name ?? '');
   return (
-    <Box className={cls} style={box} accessible={false} importantForAccessibility="no-hide-descendants">
-      {initial ? <Text className="text-muted font-bold" style={letter}>{initial}</Text> : null}
+    <Box className={cls} style={[box, { backgroundColor: tone.fill }]} accessible={false} importantForAccessibility="no-hide-descendants">
+      <Box style={circle} />
+      {mark ? <Text className="font-bold" style={letters} numberOfLines={1}>{mark}</Text> : null}
       {props.url && !failed ? (
         <Animated.View style={[StyleSheet.absoluteFill, { opacity: fade }]}>
           <Image

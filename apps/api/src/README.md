@@ -88,6 +88,7 @@ here or a line does not match its file.
 
 | File | What it does |
 |---|---|
+| `covers.ts` | Serves the made-for-you show cover PNG named by its address. |
 | `creator.ts` | Creator claim routes in the app: list, start and verify claims, see stats. |
 | `extras.ts` | App routes for creator features: show extras, poll votes, and share events. |
 | `feeds.ts` | Serves the public RSS feed of a show created in the Studio. |
@@ -264,6 +265,7 @@ here or a line does not match its file.
 | File | What it does |
 |---|---|
 | `card.ts` | Draws the 1080×1350 share card PNG with artwork, title and time. |
+| `cover.ts` | Draws the made-for-you show cover: a 1400 px PNG of two letters on a soft colour. |
 
 ### `storage/` — file storage for hosted audio, images and voice
 

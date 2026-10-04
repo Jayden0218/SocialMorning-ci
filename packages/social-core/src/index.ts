@@ -57,3 +57,5 @@ export { mediaKindOf, type MediaKind } from './media';
 // M11 — the Studio (specs/011-m11-studio/research.md R3)
 export { isComplete, completionRate, COMPLETE_SHARE } from './completion';
 export { noun, plural } from './plural';
+// Owner, 2026-10-04 — the made-for-you cover
+export { COVER_TONES, COVER_SHAPE, COVER_PX, coverLetters, coverToneIndex, coverTone, autoCoverUrl, isAutoCover, parseAutoCover, type CoverTone } from './cover';

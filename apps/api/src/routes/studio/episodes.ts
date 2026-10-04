@@ -6,6 +6,7 @@ import { ApiError } from '../../errors.ts';
 import { z } from 'zod';
 import { json } from '../../validate.ts';
 import { publish } from '../../db/repos/studio/announcements.ts';
+import { isAutoCover } from '@socialmorning/social-core';
 import { listHostedEpisodes, promoteDue, publishEpisode, removeEpisode, storedBytes, updateEpisode, updateHostedShow } from '../../db/repos/studio/hosted.ts';
 import { AUDIO_TYPES, IMAGE_TYPES, MAX_AUDIO_BYTES, MAX_IMAGE_BYTES } from '../../storage/episodes-blob.ts';
 import { randomUUID } from 'node:crypto';
@@ -19,6 +20,8 @@ export function registerEpisodes(studio: Hono<StudioEnv>): void {
   studio.put('/shows/:show/details', ownerOnly, json(showDetails.partial().extend({ coverUrl: z.string().url().nullable().optional() })), async (c) => {
     const h = await hostedOf(c.get('db'), c.get('show').feedUrl);
     const b = c.req.valid('json');
+    // The drawn cover is not an upload: sent back unchanged, it means "no cover of my own" (the repo redraws it).
+    if (isAutoCover(b.coverUrl)) b.coverUrl = null;
     if (b.coverUrl) {
       const f = await c.get('storage').head(b.coverUrl);
       if (!f || !f.pathname.startsWith(`covers/${h.id}/`) || !IMAGE_TYPES.includes(f.contentType)) throw new ApiError('validation', 'Upload the cover first.', { fields: ['coverUrl'] });

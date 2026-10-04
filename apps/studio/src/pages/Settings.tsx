@@ -143,6 +143,9 @@ function Appearance({ show }: { show: Show }) {
   );
 }
 
+/** The server's drawn cover (owner, 2026-10-04) — the same test as social-core `isAutoCover`. */
+const isAutoCover = (url: string | null) => url !== null && url.includes('/covers/auto/v1/');
+
 type HostedDetails = { title: string; description: string; author: string; language: string; category: string; explicit: boolean; coverUrl: string | null; feedUrl: string };
 
 /** M13 US3 — a show made here: its own details and cover, which ARE its feed (not overrides of someone else's). */
@@ -183,6 +186,7 @@ function Details({ show }: { show: Show }) {
         <div className="field">
           <span style={{ fontWeight: 600, fontSize: 14 }}>Cover (square JPEG or PNG, up to {mb(5 * 1024 * 1024)}; at least 1400 × 1400 is best)</span>
           <DropZone label="Drop a cover here, or choose one" url={v.coverUrl} busyPct={pct} onFile={(file) => { void cover(file); }} />
+          {isAutoCover(v.coverUrl) ? <span className="muted" style={{ fontSize: 13 }}>Made for you from your show's name. Drop your own to replace it.</span> : null}
         </div>
         <form id="details" onSubmit={(e) => { e.preventDefault(); void save(); }}>
           <div className="field"><label htmlFor="d-t">Show name</label><input id="d-t" required maxLength={100} value={v.title} onChange={(e) => setF({ ...v, title: e.target.value })} /></div>

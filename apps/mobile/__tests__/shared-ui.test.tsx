@@ -9,6 +9,7 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { colour, hit } from '@/design';
 import { BOTTOM_INSET, MINI_PLAYER_HEIGHT, Screen, TAB_BAR_HEIGHT } from '@/ui/kit/Screen';
 import { Artwork } from '@/ui/kit/Artwork';
+import { coverTone } from '@socialmorning/social-core';
 import { Row } from '@/ui/kit/Row';
 import { Button, ButtonText } from '@/ui/lib/button';
 import { Heading } from '@/ui/lib/heading';
@@ -34,6 +35,14 @@ it('Artwork shows a placeholder rather than a blank when the episode has none, a
     const v = n.root.findAll((x) => typeof x.type === 'string')[0]!;
     expect(v.props['importantForAccessibility']).toBe('no-hide-descendants');
   }
+});
+
+it('G-AC5: a show with no artwork shows its 2-letter tile on the colour the server would draw', () => {
+  const r = render(createElement(Artwork, { size: 96, name: 'Late Walks' }));
+  expect(json(r)).toContain('"LW"');
+  const v = r.root.findAll((x) => typeof x.type === 'string')[0]!;
+  expect(flat(v.props['style'])['backgroundColor']).toBe(coverTone('Late Walks').fill);
+  expect(json(render(createElement(Artwork, { size: 96, name: '晚间漫谈' })))).toContain('"晚间"');
 });
 
 it('G5: Row has a name and a role, a title of at most 2 lines, no fixed height, and is ≥ 48 dp', () => {

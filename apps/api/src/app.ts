@@ -43,6 +43,7 @@ import { categories } from './routes/discover/categories.ts';
 import { studio } from './routes/studio/index.ts';
 import { extras } from './routes/creators/extras.ts';
 import { feeds } from './routes/creators/feeds.ts';
+import { covers } from './routes/creators/covers.ts';
 import { showCard } from './pages/show-card.ts';
 import { blobStorage } from './storage/episodes-blob.ts';
 import { DEFAULT_CEILING_BYTES } from './db/repos/studio/hosted.ts';
@@ -177,6 +178,7 @@ export function createApp(deps: AppDeps) {
   app.route('/v1/launch', createLaunchRoute());
   app.route('/v1', extras);
   app.route('/feeds', feeds);
+  app.route('/covers', covers);
   app.route('/show', showCard);
   app.route('/v1/me/rec-events', recEvents);
   // M12 (specs/012-m12-the-finish/contracts/api.md)

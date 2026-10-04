@@ -4,7 +4,7 @@
  * A created show is ALSO a proven claim on its own feed address (plan R3), so the whole M11
  * Studio — roles, numbers, comments, settings — works on it without a second code path.
  */
-import { fnv1a64 } from '@socialmorning/social-core';
+import { autoCoverUrl, fnv1a64, isAutoCover } from '@socialmorning/social-core';
 import type { Db } from '../../db.ts';
 import { ApiError } from '../../../errors.ts';
 
@@ -46,7 +46,10 @@ const EP_COLS = 'id, guid, episode_id, title, description, audio_url, audio_byte
 
 export type ShowIn = { title: string; description?: string; author?: string; language?: string; category?: string; explicit?: boolean; coverUrl?: string | null };
 
-/** Creates the show, its feed address and the owner's proven claim, in one transaction. */
+/**
+ * Creates the show, its feed address and the owner's proven claim, in one transaction. No cover
+ * given: the made-for-you tile (owner, 2026-10-04) is saved as the cover.
+ */
 export async function createHostedShow(db: Db, ownerId: string, publicBase: string, s: ShowIn): Promise<HostedShow> {
   return db.transaction(async (tx) => {
     const [{ id }] = (await tx.query<{ id: string }>('SELECT gen_random_uuid()::text AS id')) as [{ id: string }];
@@ -54,7 +57,7 @@ export async function createHostedShow(db: Db, ownerId: string, publicBase: stri
     const [r] = await tx.query<ShowRow>(
       `INSERT INTO hosted_shows (id, owner_id, feed_url, title, description, author, language, category, explicit, cover_url)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING ${SHOW_COLS}`,
-      [id, ownerId, feedUrl, s.title, s.description ?? '', s.author ?? '', s.language ?? 'zh', s.category ?? 'Society & Culture', s.explicit ?? false, s.coverUrl ?? null],
+      [id, ownerId, feedUrl, s.title, s.description ?? '', s.author ?? '', s.language ?? 'zh', s.category ?? 'Society & Culture', s.explicit ?? false, s.coverUrl ?? autoCoverUrl(publicBase, s.title)],
     );
     await tx.query(
       "INSERT INTO creator_claims (listener_id, feed_url, code, status, proven_at) VALUES ($1, $2, $3, 'proven', now())",
@@ -63,6 +66,9 @@ export async function createHostedShow(db: Db, ownerId: string, publicBase: stri
     return toShow(r!);
   });
 }
+
+/** The API's own address, read back from a show's feed address (`<base>/feeds/<id>.xml`). */
+const apiBase = (feedUrl: string) => feedUrl.replace(/\/feeds\/[^/]+$/, '');
 
 export async function hostedByFeed(db: Db, feedUrl: string): Promise<HostedShow | undefined> {
   const [r] = await db.query<ShowRow>(`SELECT ${SHOW_COLS} FROM hosted_shows WHERE feed_url = $1 AND deleted_at IS NULL`, [feedUrl]);
@@ -79,6 +85,9 @@ export async function updateHostedShow(db: Db, id: string, s: Partial<ShowIn>): 
   const cur = await hostedById(db, id);
   if (!cur) throw new ApiError('not_found', 'No such show.');
   const n = { ...cur, ...Object.fromEntries(Object.entries(s).filter(([, v]) => v !== undefined)) } as HostedShow;
+  // No cover of the owner's own (none sent, or the drawn one kept): the tile for the name as it
+  // is now, so a rename redraws the letters. An uploaded cover is never replaced.
+  if (!n.coverUrl || isAutoCover(n.coverUrl)) n.coverUrl = autoCoverUrl(apiBase(cur.feedUrl), n.title);
   const [r] = await db.query<ShowRow>(
     `UPDATE hosted_shows SET title = $2, description = $3, author = $4, language = $5, category = $6, explicit = $7, cover_url = $8, updated_at = now()
       WHERE id = $1 RETURNING ${SHOW_COLS}`,
