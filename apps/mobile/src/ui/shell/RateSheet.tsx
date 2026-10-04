@@ -1,8 +1,9 @@
 // "Enjoying SocialNet?" — a bottom sheet asking for a store rating, or for feedback instead.
 /**
  * Owner, 2026-10-04 (with a 小宇宙 screenshot): a sheet from the bottom on the tabs — a close X,
- * a large serif question, a thumbs-up, one line, then two buttons side by side: "Tell us what's
- * wrong" (outlined, opens Send feedback) and "Rate SocialNet" (the yellow pill). Our own words
+ * a large serif question, a thumbs-up, one line, then two buttons side by side: "Give
+ * feedback" (outlined, opens Send feedback) and "Rate us" (the yellow pill). Owner, same day:
+ * the title smaller (24 pt, was 30) and the button words short enough to show whole. Our own words
  * and the Editorial look, not 小宇宙's (M7: copy nothing).
  *
  * TESTING (owner's pick, 2026-10-04): it shows on every app start, once the terms are agreed.
@@ -76,22 +77,22 @@ export function RateSheet(props: { ready: boolean }): React.ReactElement {
         </Box>
         <Box className="flex-row items-center gap-gap">
           <Box className="flex-1">
-            <Text className="text-text font-display text-[30px] leading-[39px]" accessibilityRole="header">Enjoying SocialNet?</Text>
-            <Text className="text-accent font-display text-[30px] leading-[39px]">A rating helps a lot</Text>
+            <Text className="text-text font-display text-lg leading-[31px]" accessibilityRole="header">Enjoying SocialNet?</Text>
+            <Text className="text-accent font-display text-lg leading-[31px]">A rating helps a lot</Text>
           </Box>
-          <Box className="w-16 h-16 rounded-pill bg-accentTint items-center justify-center">
-            <Icon name="thumbs-up" size={32} color={c.accent} />
+          <Box className="w-14 h-14 rounded-pill bg-accentTint items-center justify-center">
+            <Icon name="thumbs-up" size={28} color={c.accent} />
           </Box>
         </Box>
         <Text className="text-muted text-[15px] leading-[22px] mt-row">
           If you like listening here, five stars in the store help other people find us.
         </Text>
         <Box className="flex-row gap-gap mt-screen-x">
-          <Pressable onPress={() => answer('feedback')} accessibilityRole="button" accessibilityLabel="Tell us what's wrong" className="flex-1 items-center justify-center rounded-pill border border-border bg-surface px-2" style={PILL}>
-            <Text className="text-muted text-[15px] font-bold" numberOfLines={1}>Tell us what's wrong</Text>
+          <Pressable onPress={() => answer('feedback')} accessibilityRole="button" accessibilityLabel="Give feedback" className="flex-1 items-center justify-center rounded-pill border border-border bg-surface px-2" style={PILL}>
+            <Text className="text-muted text-[15px] font-bold" numberOfLines={1}>Give feedback</Text>
           </Pressable>
-          <Pressable onPress={() => answer('rate')} accessibilityRole="button" accessibilityLabel="Rate SocialNet" className="flex-1 items-center justify-center rounded-pill bg-primary px-2" style={PILL}>
-            <Text className="text-onPrimary text-[15px] font-bold" numberOfLines={1}>Rate SocialNet</Text>
+          <Pressable onPress={() => answer('rate')} accessibilityRole="button" accessibilityLabel="Rate us" className="flex-1 items-center justify-center rounded-pill bg-primary px-2" style={PILL}>
+            <Text className="text-onPrimary text-[15px] font-bold" numberOfLines={1}>Rate us</Text>
           </Pressable>
         </Box>
         <Box className="h-section" />
