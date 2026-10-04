@@ -242,7 +242,7 @@ export function Terms(props: {
           accessibilityIgnoresInvertColors
         />
         <Text
-          style={display(36, c.text, { leading: 44 })}
+          style={display(28, c.text, { leading: 44 })}
           className="text-text font-display mt-[14px] mb-gap"
           accessibilityRole="header"
         >
