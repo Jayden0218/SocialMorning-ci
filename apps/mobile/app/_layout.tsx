@@ -5,7 +5,7 @@
  */
 import '../global.css';
 import '@/design/tailwind';
-import { Stack, type ErrorBoundaryProps } from 'expo-router';
+import { Stack, useSegments, type ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
@@ -96,8 +96,11 @@ function RootStack(): React.ReactElement {
   const c = useColours(stores.settings);
   // M16a bug 5: which page, if any, is being swiped back onto the tabs (src/ui/player/mini-player-swipe.ts).
   const [leaving, setLeaving] = useState<LeavingToTabs>(undefined);
+  // Owner, 2026-10-04: on the tabs the home-bar strip below the white tab bar is white too, so
+  // the bar reaches the bottom of the screen; on every other page it stays the page colour.
+  const onTabs = useSegments()[0] === '(tabs)';
   return (
-      <SafeAreaView className="flex-1 bg-background" edges={['bottom']}>
+      <SafeAreaView className={`flex-1 ${onTabs ? 'bg-surface' : 'bg-background'}`} edges={['bottom']}>
         {/* M10b: the clock and battery follow the page (light words on the dark palette). */}
         <StatusBar style="dark" />
         <CarLibrarySync />

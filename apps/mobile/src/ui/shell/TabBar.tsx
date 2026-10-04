@@ -10,13 +10,7 @@
  *
  * The component is pure: it takes the tabs, which one is active, and a callback. The
  * layout adapts the router's props to it, so this can be tested with no router at all.
- *
- * Owner, 2026-10-04: the bar reaches the bottom of the screen. The root layout keeps every page
- * out of the iPhone's home-bar strip and paints it the page colour, which left a cream band under
- * the white bar; the bar now paints that strip white too (the icons stay above it).
  */
-import { useContext } from 'react';
-import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { Pressable } from '@/ui/lib/pressable';
 import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
@@ -45,8 +39,6 @@ export function TabBar(props: {
 }): React.ReactElement {
   const stores = useStores();
   const c = useColours(stores.settings);
-  // The context, not useSafeAreaInsets(): a test with no provider gets 0 instead of an error.
-  const bottom = useContext(SafeAreaInsetsContext)?.bottom ?? 0;
   return (
     <Box
       className={`flex-row bg-surface border-t-hairline border-separator ${props.className ?? ''}`}
@@ -56,9 +48,6 @@ export function TabBar(props: {
       style={{ minHeight: TAB_BAR_HEIGHT }}
       accessibilityRole="tablist"
     >
-      {bottom > 0 ? (
-        <Box pointerEvents="none" className="absolute left-0 right-0 bg-surface" style={{ top: '100%', height: bottom }} />
-      ) : null}
       {props.items.map((item) => {
         const selected = item.key === props.activeKey;
         const badge = item.badge !== undefined && item.badge > 0 ? item.badge : undefined;
