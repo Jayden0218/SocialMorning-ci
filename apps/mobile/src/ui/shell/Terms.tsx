@@ -54,7 +54,7 @@ const ICON = { width: 60, height: 60 };
 
 /** Apple's and Android's minimum tap size, as a style (shared-ui asserts it). */
 const TAP = { minHeight: hit.min };
-/** Disagree is one line of text (~20 pt); 14 pt above and below makes its tap area 48 pt. */
+/** Disagree is one line of text (~20 pt); 14 pt above and below makes its tap area 48 pt (it sits 20 pt under Agree). */
 const DISAGREE_SLOP = { top: 14, bottom: 14, left: 24, right: 24 };
 /** A card's head: 52 pt (`Terms-B`). */
 const HEAD = { minHeight: 52 };
@@ -285,7 +285,7 @@ export function Terms(props: {
           onPress={() => setRefused(true)}
           accessibilityRole="button"
           accessibilityLabel="Disagree"
-          className="items-center justify-center mt-row"
+          className="items-center justify-center mt-5"
           hitSlop={DISAGREE_SLOP}
         >
           <Text className="text-accent text-body font-bold">Disagree</Text>
