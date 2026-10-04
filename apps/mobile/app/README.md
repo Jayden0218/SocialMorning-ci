@@ -1,7 +1,7 @@
 # apps/mobile/app — screen map
 
 One file = one screen (Expo Router). The file path is the route: `show/[feedUrl].tsx` opens at `/show/<feedUrl>`.
-`(tabs)/` holds the 3 bottom tabs. `_layout.tsx` wraps the screens in its folder. Code they use is in [`../src/`](../src/README.md).
+`(tabs)/` holds the 4 bottom tabs. `_layout.tsx` wraps the screens in its folder. Code they use is in [`../src/`](../src/README.md).
 
 Keep this file up to date: when you add, move or delete a screen, change its line here. Each screen file also starts with the same sentence as a `//` comment — change both together.
 
@@ -38,7 +38,8 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 
 | File | Route | What the user sees |
 |---|---|---|
-| `(tabs)/_layout.tsx` | (wraps the tabs) | The bottom bar: Discover, Updates, Me, with the mini player above it. |
+| `(tabs)/_layout.tsx` | (wraps the tabs) | The bottom bar: Discover, Updates, Chat, Me, with the mini player above it. |
+| `(tabs)/chat.tsx` | `/chat` | Chat tab: your conversations, newest first, with unread counts; start a new chat. |
 | `(tabs)/discover.tsx` | `/discover` | No screen: old link, sends you to Discover at `/`. |
 | `(tabs)/following.tsx` | `/following` | No screen: old link, sends you to Notifications. |
 | `(tabs)/index.tsx` | `/` | Discover, the first screen: search box, shortcuts, picks, For You, charts, categories. |
@@ -65,6 +66,13 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 | File | Route | What the user sees |
 |---|---|---|
 | `category/[id].tsx` | `/category/<id>` | Top shows in one category, with a category strip, sort, filter, subscribe buttons. |
+
+### `chat/`
+
+| File | Route | What the user sees |
+|---|---|---|
+| `chat/[id].tsx` | `/chat/<id>` | One conversation: messages oldest to newest, new ones every 5 seconds, write and send. |
+| `chat/new.tsx` | `/chat/new` | Pick who to chat with: the people who follow you back; can carry an episode to send. |
 
 ### `clip/`
 

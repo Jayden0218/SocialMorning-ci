@@ -1,6 +1,6 @@
-// The bottom bar: Discover, Updates, Me, with the mini player above it.
+// The bottom bar: Discover, Updates, Chat, Me, with the mini player above it.
 /**
- * The three tabs (M7 T012; reordered M10): **Discover · Updates · Me** (the list is in
+ * The four tabs (M7 T012; reordered M10; Chat added 2026-10-04): **Discover · Updates · Chat · Me** (the list is in
  * `src/ui/shell/tabs.ts`), with the mini player floating above the bar. `/discover` and
  * `/following` are hidden routes that redirect.
  *
@@ -23,6 +23,7 @@ import { colour } from '@/design';
 import { useColours } from '@/ui/kit/useColours';
 import { createFeed } from '@/graph/feed';
 import { useSocial } from '@/social/context';
+import { useChatApi } from '@/social/chat-api';
 import { TabsMiniPlayer } from '@/ui/player/MiniPlayer';
 import { useStores } from '@/ui/shell/providers';
 import { TabBar } from '@/ui/shell/TabBar';
@@ -56,8 +57,27 @@ export default function TabsLayout(): React.ReactElement {
     };
   }, [api, stores, listener, visit]);
 
+  // Chat (owner, 2026-10-04): unread messages badge the Chat tab — read on every tab switch and
+  // once a minute while signed in (there is no push channel for chat).
+  const chat = useChatApi();
+  const [unreadChat, setUnreadChat] = useState(0);
+  useEffect(() => {
+    if (listener === undefined) {
+      setUnreadChat(0);
+      return;
+    }
+    let live = true;
+    const read = () => void chat.unread().then((n) => { if (live) setUnreadChat(n); }, () => undefined);
+    read();
+    const timer = setInterval(read, 60_000);
+    return () => {
+      live = false;
+      clearInterval(timer);
+    };
+  }, [chat, listener, visit]);
+
   // M10: the unread count now badges Me, where Notifications holds the feed.
-  const items = TABS.map((t) => (t.key === 'me' && unread > 0 ? { ...t, badge: unread } : t));
+  const items = TABS.map((t) => (t.key === 'me' && unread > 0 ? { ...t, badge: unread } : t.key === 'chat' && unreadChat > 0 ? { ...t, badge: unreadChat } : t));
 
   return (
     // M17: Discover's Search is drawn in place over the tabs and their bar, so result pages push
@@ -92,6 +112,8 @@ export default function TabsLayout(): React.ReactElement {
       <Tabs.Screen name="index" options={{ title: 'Discover', headerShown: false }} />
       {/* M10: Updates and Me draw their own large titles, like Discover. */}
       <Tabs.Screen name="library" options={{ title: 'Updates', headerShown: false }} />
+      {/* Owner, 2026-10-04: Chat draws its own large title too. */}
+      <Tabs.Screen name="chat" options={{ title: 'Chat', headerShown: false }} />
       <Tabs.Screen name="me" options={{ title: 'Me', headerShown: false }} />
       {/* Not in the bar: only so old `/following` links land (they redirect to Notifications). */}
       <Tabs.Screen name="following" options={{ title: 'Following' }} />

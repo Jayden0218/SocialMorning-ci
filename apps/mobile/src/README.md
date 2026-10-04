@@ -187,6 +187,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `auth-store.ts` | Handles sign-up, sign-in and sign-out, and stores the account. |
 | `base-url.ts` | Gives the server address set in the app config. |
 | `cache.ts` | Keeps each episode's last comments and reactions for offline viewing. |
+| `chat-api.ts` | Chat server calls (conversations, messages, friends) and merging new messages into a thread. |
 | `composer.ts` | Runs the comment box: captures the moment, posts, keeps drafts. |
 | `context.tsx` | Gives screens the server client, account, and who is signed in. |
 | `drafts.ts` | Saves unsent comment text so it survives sign-in or app closing. |
@@ -266,7 +267,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `launch.ts` | Rules for when to open sign-in and keep the start screen up. |
 | `providers.tsx` | Sets up data, the audio player and messages once for the whole app. |
 | `startup.ts` | Keeps the start screen at least 1 second, at most 6 seconds. |
-| `tabs.ts` | The list of bottom tabs (Discover, Updates, Me) as data. |
+| `tabs.ts` | The list of bottom tabs (Discover, Updates, Chat, Me) as data. |
 | `consent.ts` | Terms version, title and text pointers; remembers if you agreed. |
 
 ### `ui/player/` — The full player page and its parts
@@ -316,6 +317,12 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `ClipComposer.tsx` | Make a clip: set start and end while listening, preview, add caption, save. |
 | `ClipList.tsx` | The episode's clips, sending ones first, then newest first. |
 | `ShareChooser.tsx` | The app's share panel: share episode, this moment, or a picture. |
+
+### `ui/chat/` — Chat messages between two people
+
+| File | What it does |
+|---|---|
+| `MessageBubble.tsx` | One chat message: yours on the right in yellow, theirs on the left in white; an episode as a card. |
 
 ### `ui/social/` — People: follow, block, profiles and activity
 

@@ -41,6 +41,7 @@ here or a line does not match its file.
 
 | File | What it does |
 |---|---|
+| `chat.ts` | Chat routes: my conversations, unread count, friends to chat with, read and send messages. |
 | `clips.ts` | Clip routes: create, list, read and delete clips on an episode. |
 | `comment-counts.ts` | Route returning comment counts for many episodes in one call. |
 | `comments.ts` | Comment routes: post, delete and like comments on an episode. |
@@ -156,6 +157,7 @@ here or a line does not match its file.
 | File | What it does |
 |---|---|
 | `activity.ts` | The Following feed: activity by people you follow, newest first, in pages. |
+| `chat.ts` | Chat messages between two listeners who follow each other: send, read, list conversations. |
 | `clips.ts` | Clips: save, list and delete a time range of an episode, no audio. |
 | `comment-likes.ts` | Comment likes: one per listener, never your own, hidden comments not likeable. |
 | `comments.ts` | Comments: create, list as threads, delete, and shape them for each viewer. |

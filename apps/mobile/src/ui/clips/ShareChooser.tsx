@@ -14,6 +14,7 @@
  */
 import { useCallback, useState } from 'react';
 import { Share } from 'react-native';
+import { router } from 'expo-router';
 import { File, Paths } from 'expo-file-system';
 import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '@/ui/lib/actionsheet';
 import { Pressable } from '@/ui/lib/pressable';
@@ -63,6 +64,8 @@ export function ShareChooser(props: {
   const rows: ShareOption[] = [
     ...(props.onClip ? [{ icon: 'cut-outline' as const, label: 'Share this moment', lead: true, ...(props.atMs !== undefined ? { detail: mmss(props.atMs) } : {}), onPress: props.onClip }] : []),
     { icon: 'image-outline', label: 'Share as image', onPress: () => void shareImage() },
+    // Chat (owner, 2026-10-04): send the episode to someone who follows you back.
+    { icon: 'chatbubbles-outline', label: 'Send in chat', onPress: () => router.push({ pathname: '/chat/new', params: { episodeId: props.episode.id, episodeTitle: props.episode.title } }) },
   ];
   return <SharePanel open={props.open} onClose={props.onClose} subtitle={`${props.episode.title} · ${props.episode.showTitle}`} rows={rows} more={{ detail: 'a link to its page', run: () => void shareLink() }} colour={c.text} />;
 }

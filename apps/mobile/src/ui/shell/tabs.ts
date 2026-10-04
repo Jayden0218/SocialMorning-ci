@@ -1,4 +1,4 @@
-// The list of bottom tabs (Discover, Updates, Me) as data.
+// The list of bottom tabs (Discover, Updates, Chat, Me) as data.
 /**
  * The three tabs, as data (M7 T012/T024).
  *
@@ -19,10 +19,15 @@ import type { TabItem } from './TabBar';
  * the Library became **Updates** (same path, `/library`), and **Me** (`/me`) replaced
  * Following — whose feed now lives in Me → Notifications; `/following` redirects there.
  */
+/**
+ * Owner, 2026-10-04: new icons for every tab (compass, headset, chat bubbles, person in a circle),
+ * and a fourth tab, **Chat** (`/chat`), third — one-to-one messages with people who follow you back.
+ */
 export const TABS: readonly TabItem[] = [
-  { key: 'index', label: 'Discover', icon: { idle: 'planet-outline', active: 'planet' } },
-  { key: 'library', label: 'Updates', icon: { idle: 'albums-outline', active: 'albums' } },
-  { key: 'me', label: 'Me', icon: { idle: 'person-outline', active: 'person' } },
+  { key: 'index', label: 'Discover', icon: { idle: 'compass-outline', active: 'compass' } },
+  { key: 'library', label: 'Updates', icon: { idle: 'headset-outline', active: 'headset' } },
+  { key: 'chat', label: 'Chat', icon: { idle: 'chatbubbles-outline', active: 'chatbubbles' } },
+  { key: 'me', label: 'Me', icon: { idle: 'person-circle-outline', active: 'person-circle' } },
 ];
 
 /**
@@ -30,8 +35,9 @@ export const TABS: readonly TabItem[] = [
  * than by the navigator's own `navigate(name)` is deliberate: it is the same string a
  * `socialmorning://…` link carries, so a tab and a deep link cannot drift apart (G3).
  */
-export const TAB_HREF: Record<string, '/' | '/library' | '/me'> = {
+export const TAB_HREF: Record<string, '/' | '/library' | '/chat' | '/me'> = {
   index: '/',
   library: '/library',
+  chat: '/chat',
   me: '/me',
 };

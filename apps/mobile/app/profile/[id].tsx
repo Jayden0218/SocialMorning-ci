@@ -120,6 +120,10 @@ export default function ProfileScreen(): React.ReactElement {
       {!own ? (
         <Box className="flex-row gap-2.5 items-center">
           <FollowButton className="flex-1" listenerId={profile.id} following={profile.isFollowing} onChange={(f) => setProfile({ ...profile, isFollowing: f, followers: profile.followers + (f ? 1 : -1) })} />
+          {/* Chat (owner, 2026-10-04): the conversation says if you can send (you both follow each other). */}
+          <Pressable onPress={() => router.push({ pathname: '/chat/[id]', params: { id: profile.id, name: profile.displayName } })} accessibilityRole="button" accessibilityLabel={`Message ${profile.displayName}`} className="w-12 min-h-12 rounded-pill border border-border bg-surface items-center justify-center">
+            <Icon name="chatbubble-outline" size={20} color={c.text} />
+          </Pressable>
           <BlockButton listenerId={profile.id} displayName={profile.displayName} />
           <Pressable onPress={() => setReporting({ kind: 'profile', id: profile.id, authorId: profile.id, label: 'profile' })} accessibilityRole="button" accessibilityLabel={`Report ${profile.displayName}`} className="px-1.5 min-h-12 justify-center">
             <Text className="text-muted text-body">Report</Text>

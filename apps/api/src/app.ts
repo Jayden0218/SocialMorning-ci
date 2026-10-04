@@ -53,6 +53,7 @@ import { wallet } from './routes/account/wallet.ts';
 import { friends } from './routes/social/friends.ts';
 import { issues, pastPicks } from './routes/discover/issues.ts';
 import { voice } from './routes/social/voice.ts';
+import { chat } from './routes/social/chat.ts';
 import { share } from './routes/social/share.ts';
 import { episodePages } from './pages/episode.ts';
 import { voiceBlobStorage, type VoiceStorage } from './storage/voice-blob.ts';
@@ -191,6 +192,8 @@ export function createApp(deps: AppDeps) {
   app.route('/v1/share', share);
   app.route('/v1/episodes', live);
   app.route('/v1/episodes', commentCounts);
+  // Chat (owner, 2026-10-04): one-to-one messages between people who follow each other.
+  app.route('/v1/me/chats', chat);
   app.route('/v1/me/feed', feed);
   app.route('/v1/me/listened', listened);
   app.route('/v1/me/privacy', privacy);

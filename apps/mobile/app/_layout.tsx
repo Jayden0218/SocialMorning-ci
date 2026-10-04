@@ -183,6 +183,9 @@ function RootStack(): React.ReactElement {
           <Stack.Screen name="clip/new" options={{ title: 'New clip' }} />
           <Stack.Screen name="clip/[id]" options={{ title: 'Clip' }} />
           <Stack.Screen name="profile/[id]" options={{ title: 'Profile' }} />
+          {/* Chat (owner, 2026-10-04): a conversation and the friend picker. */}
+          <Stack.Screen name="chat/[id]" options={{ title: 'Chat' }} />
+          <Stack.Screen name="chat/new" options={{ title: 'New chat' }} />
           <Stack.Screen name="profile/[id]/followers" options={{ title: 'Followers' }} />
           <Stack.Screen name="profile/[id]/following" options={{ title: 'Following' }} />
         </Stack>

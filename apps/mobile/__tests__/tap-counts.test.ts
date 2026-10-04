@@ -34,6 +34,7 @@ const CONTRACT = [
   { name: 'Discover', href: '/', before: 0, after: 0 },
   { name: 'Updates', href: '/library', before: 1, after: 1 },
   { name: 'Me', href: '/me', before: 1, after: 1 }, // new; counted as the tab it replaced
+  { name: 'Chat', href: '/chat', before: 1, after: 1 }, // new (owner, 2026-10-04); a tab from the start
   { name: 'Search', href: '/search', before: 1, after: 1 },
   { name: 'Inbox', href: '/inbox', before: 1, after: 1 },
   { name: 'Queue', href: '/queue', before: 1, after: 1 },
@@ -48,9 +49,9 @@ it('G4: nothing got further away except the owner\'s two named moves', () => {
   expect(CONTRACT.filter((r) => 'owner' in r).map((r) => r.name)).toEqual(['Following feed', 'Show list']);
 });
 
-it('the tabs are Discover · Updates · Me, at their paths', () => {
-  expect(TABS.map((t) => t.label)).toEqual(['Discover', 'Updates', 'Me']);
-  expect(TABS.map((t) => TAB_HREF[t.key])).toEqual(['/', '/library', '/me']);
+it('the tabs are Discover · Updates · Chat · Me, at their paths', () => {
+  expect(TABS.map((t) => t.label)).toEqual(['Discover', 'Updates', 'Chat', 'Me']);
+  expect(TABS.map((t) => TAB_HREF[t.key])).toEqual(['/', '/library', '/chat', '/me']);
 });
 
 it('every 1-tap destination is a tab or a link on Discover', () => {
