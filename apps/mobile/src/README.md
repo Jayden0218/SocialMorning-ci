@@ -262,6 +262,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 |---|---|
 | `LaunchScreen.tsx` | Full-screen promotion picture for up to 3 seconds at start, with Skip. |
 | `LegalDoc.tsx` | Shows one full legal document, with contents, over the terms page. |
+| `RateSheet.tsx` | "Enjoying SocialNet?" — a bottom sheet asking for a store rating, or for feedback instead. |
 | `TabBar.tsx` | The bottom tab bar you tap to change between main pages. |
 | `Terms.tsx` | First-run page: you must agree to terms and privacy before using the app. |
 | `launch.ts` | Rules for when to open sign-in and keep the start screen up. |
