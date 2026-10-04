@@ -6,12 +6,14 @@
 import { Pressable } from '@/ui/lib/pressable';
 import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { hit } from '@/design';
+import { colour, hit } from '@/design';
+import { Icon, type IconName } from './Icon';
 
 const TAP = { minHeight: hit.min };
 
 export function Segmented<T extends string>(props: {
-  items: readonly { value: T; label: string; accessibilityLabel?: string }[];
+  /** `icon` (optional, owner 2026-10-04): drawn before the label, as on Notifications' switch. */
+  items: readonly { value: T; label: string; accessibilityLabel?: string; icon?: IconName }[];
   value: T;
   onChange: (v: T) => void;
   className?: string;
@@ -27,9 +29,10 @@ export function Segmented<T extends string>(props: {
             accessibilityRole="tab"
             accessibilityState={{ selected: on }}
             accessibilityLabel={it.accessibilityLabel ?? it.label}
-            className={`flex-1 rounded-pill items-center justify-center ${on ? 'bg-primary' : ''}`}
+            className={`flex-1 flex-row gap-1.5 rounded-pill items-center justify-center ${on ? 'bg-primary' : ''}`}
             style={TAP}
           >
+            {it.icon ? <Icon name={it.icon} size={16} color={on ? colour.onPrimary : colour.muted} /> : null}
             <Text className={on ? 'text-onPrimary text-body font-bold' : 'text-muted text-body'}>{it.label}</Text>
           </Pressable>
         );

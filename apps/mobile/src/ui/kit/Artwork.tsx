@@ -11,7 +11,7 @@
  * — 2 letters on one of 7 soft colours, a circle in the corner — the same tile the server saves
  * for a Studio show with no cover, so a show looks the same before and after its image loads.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, memo } from 'react';
 import { Animated, StyleSheet } from 'react-native';
 import { Image } from '@/ui/lib/image';
 import { Box } from '@/ui/lib/box';
@@ -33,7 +33,14 @@ export function initialOf(name?: string): string {
   return m ? m[0].toUpperCase() : '';
 }
 
-export function Artwork(props: { url?: string | null; size: number; rounded?: keyof typeof radius; className?: string; name?: string }): React.ReactElement {
+/**
+ * Covers already shown once in this session. The lag audit (2026-10-04): every page faded each
+ * cover in from 0 again, so the same artwork flickered on every visit; a cover seen before now
+ * starts fully shown (it is in the image cache).
+ */
+const seen = new Set<string>();
+
+function ArtworkView(props: { url?: string | null; size: number; rounded?: keyof typeof radius; className?: string; name?: string }): React.ReactElement {
   // M17: 16 pt corners, 22 from 96 pt up (`Show-B`, `Episode-B`).
   const round = props.rounded ?? (props.size >= 96 ? 'artworkLarge' : 'row');
   const cls = `overflow-hidden ${ROUNDED[round]} ${props.className ?? ''}`;
@@ -44,10 +51,10 @@ export function Artwork(props: { url?: string | null; size: number; rounded?: ke
   const circle = { position: 'absolute' as const, right: -at(COVER_SHAPE.overhang), bottom: -at(COVER_SHAPE.overhang), width: at(COVER_SHAPE.circle), height: at(COVER_SHAPE.circle), borderRadius: at(COVER_SHAPE.circle) / 2, backgroundColor: tone.ink, opacity: COVER_SHAPE.circleOpacity };
   const letters = { position: 'absolute' as const, left: at(COVER_SHAPE.left), top: at(COVER_SHAPE.top), fontSize: at(COVER_SHAPE.letters), lineHeight: Math.round(at(COVER_SHAPE.letters) * 1.2), color: tone.ink };
   const [failed, setFailed] = useState(false);
-  const fade = useRef(new Animated.Value(0)).current;
+  const fade = useRef(new Animated.Value(props.url && seen.has(props.url) ? 1 : 0)).current;
   useEffect(() => {
     setFailed(false);
-    fade.setValue(0);
+    fade.setValue(props.url && seen.has(props.url) ? 1 : 0);
   }, [props.url, fade]);
   const mark = coverLetters(props.name ?? '');
   return (
@@ -60,7 +67,10 @@ export function Artwork(props: { url?: string | null; size: number; rounded?: ke
           <Image
             source={{ uri: props.url }}
             style={box}
-            onLoad={() => Animated.timing(fade, { toValue: 1, duration: 180, useNativeDriver: true }).start()}
+            onLoad={() => {
+              if (props.url) seen.add(props.url);
+              Animated.timing(fade, { toValue: 1, duration: 180, useNativeDriver: true }).start();
+            }}
             onError={() => setFailed(true)}
           />
         </Animated.View>
@@ -68,3 +78,9 @@ export function Artwork(props: { url?: string | null; size: number; rounded?: ke
     </Box>
   );
 }
+
+/**
+ * The scroll audit (2026-10-04): a cover's props are plain values, so it skips re-rendering when its
+ * page re-renders for something else (a list re-renders many covers at once).
+ */
+export const Artwork = memo(ArtworkView);

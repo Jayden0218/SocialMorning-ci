@@ -38,7 +38,8 @@ import { useColours } from '@/ui/kit/useColours';
 import { Icon } from '@/ui/kit/Icon';
 import { Artwork } from '@/ui/kit/Artwork';
 import { Card } from '@/ui/kit/Card';
-import { Screen } from '@/ui/kit/Screen';
+import { BOTTOM_INSET } from '@/ui/kit/Screen';
+import { FlatList } from '@/ui/lib/flat-list';
 import { PageHeader } from '@/ui/kit/PageHeader';
 
 const TAP = { minHeight: hit.min };
@@ -136,10 +137,25 @@ export default function CategoryScreen(): React.ReactElement {
   return (
     <>
     <PageHeader title="Categories" />
-    <Screen scroll>
+    {/* The scroll audit (2026-10-04): a list, not one scroll page — the cards (and their covers)
+        are drawn as they come near the screen instead of all at once. */}
+    <FlatList
+      className="flex-1 bg-background"
+      contentContainerClassName="px-screen-x"
+      contentContainerStyle={{ paddingBottom: BOTTOM_INSET }}
+      data={pairs}
+      keyExtractor={(pair) => pair.map((s) => s.feedUrl).join('|')}
+      renderItem={({ item: pair }) => (
+        <Box className="flex-row gap-row mb-row">
+          {pair.map((s) => showCard(s, false))}
+          {pair.length === 1 ? <Box className="flex-1" /> : null}
+        </Box>
+      )}
+      ListHeaderComponent={
+      <>
       {/* Owner, 2026-10-04: no large category title and no list under it — the sliding row of
           categories below is how a category is chosen. */}
-      <Box className="-mx-screen-x border-b-hairline border-separator mb-section">
+      <Box className="-mx-screen-x border-b-hairline border-separator mb-gap">
         <ScrollView ref={strip} horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-5 px-screen-x">
           {GENRES.map((g) => {
             const on = g.id === genreId;
@@ -164,13 +180,13 @@ export default function CategoryScreen(): React.ReactElement {
           width), and "Not subscribed only" on its own row under it. */}
       <Segmented
         items={[
-          { value: 'all', label: 'All', accessibilityLabel: 'All, chart order' },
-          { value: 'newest', label: 'Newest', accessibilityLabel: 'Newest episodes first' },
+          { value: 'all', label: 'All', accessibilityLabel: 'All, chart order', icon: 'list-outline' },
+          { value: 'newest', label: 'Newest', accessibilityLabel: 'Newest episodes first', icon: 'time-outline' },
         ]}
         value={sort}
         onChange={setSort}
       />
-      <Box className="flex-row items-center justify-between pt-gap pb-row" style={TAP}>
+      <Box className="flex-row items-center gap-2 pb-row" style={TAP}>
         <Text className="text-muted text-body">Not subscribed only</Text>
         <Toggle value={notSubscribedOnly} onChange={setNotSubscribedOnly} label="Not subscribed only" size="small" />
       </Box>
@@ -181,13 +197,9 @@ export default function CategoryScreen(): React.ReactElement {
         <Text className="text-muted text-sm">{visible.length > 0 && notSubscribedOnly ? "You're subscribed to every show here." : 'No shows here yet.'}</Text>
       ) : null}
       {lead ? showCard(lead, true) : null}
-      {pairs.map((pair) => (
-        <Box key={pair.map((s) => s.feedUrl).join('|')} className="flex-row gap-row mb-row">
-          {pair.map((s) => showCard(s, false))}
-          {pair.length === 1 ? <Box className="flex-1" /> : null}
-        </Box>
-      ))}
-    </Screen>
+      </>
+      }
+    />
     </>
   );
 }

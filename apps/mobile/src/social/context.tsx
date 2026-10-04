@@ -87,13 +87,19 @@ export function SocialProvider(props: { children?: ReactNode }): ReactNode {
 
   // A tiny per-episode version counter so screens re-render when the cache changes.
   const [versions, setVersions] = useState<Record<string, { n: number; stale: boolean }>>({});
-  const bump = useCallback((episodeId: string, stale = false) =>
-    setVersions((v) => ({ ...v, [episodeId]: { n: (v[episodeId]?.n ?? 0) + 1, stale } })), []);
+  // The lag audit (2026-10-04): `changed: false` (a 304, or a failure while already stale) keeps the
+  // same object, so nothing re-renders — every poll used to re-render every useSocial() screen.
+  const bump = useCallback((episodeId: string, stale = false, changed = true) =>
+    setVersions((v) => {
+      const cur = v[episodeId];
+      if (!changed && cur !== undefined && cur.stale === stale) return v;
+      return { ...v, [episodeId]: { n: (cur?.n ?? 0) + 1, stale } };
+    }), []);
   const refresh = useCallback(async (episodeId: string) => {
     try {
       const r = await api.social(episodeId, cache.get(episodeId)?.etag);
       if (r.status === 200) cache.put(episodeId, r.body, r.etag, Date.now());
-      bump(episodeId, false);
+      bump(episodeId, false, r.status === 200);
       return { social: r.status === 200 ? r.body : cache.get(episodeId)?.social, stale: false };
     } catch (e) {
       if (e instanceof ApiError && e.code === 'not_found') {
@@ -104,7 +110,7 @@ export function SocialProvider(props: { children?: ReactNode }): ReactNode {
         bump(episodeId, false);
         return { social: empty, stale: false };
       }
-      bump(episodeId, true);
+      bump(episodeId, true, false);
       return { social: cache.get(episodeId)?.social, stale: true };
     }
   }, [api, cache, bump]);
