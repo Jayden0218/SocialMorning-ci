@@ -43,7 +43,7 @@ export function SectionTitle(props: { title: string; action?: { label: string; o
       </Box>
       {props.action ? (
         <Pressable onPress={props.action.onPress} accessibilityRole="link" accessibilityLabel={props.action.label} className="justify-center pl-row" style={TAP}>
-          <Text className="text-accent text-meta font-semibold">{props.action.label} →</Text>
+          <Text className="text-accent text-meta font-semibold">{props.action.label} ›</Text>
         </Pressable>
       ) : null}
     </Box>

@@ -28,12 +28,6 @@ import { Icon } from '@/ui/kit/Icon';
 import { enqueue } from '@socialmorning/player-core';
 import { useDiscover } from '@/discover/useDiscover';
 import { refreshAll } from '@/feeds/refresh-all';
-
-/** Opening Updates refreshes the feeds at most this often. */
-const FOCUS_REFRESH_MS = 15 * 60_000;
-let lastFocusRefresh = 0;
-/** The native page push is about 350 ms; start the network work after it. */
-const AFTER_TRANSITION_MS = 400;
 import { latestUpdates, type UpdateRow } from '@/me/updates';
 import { usePlayer } from '@/playback/store';
 import { useSafety } from '@/safety/context';
@@ -76,17 +70,7 @@ export default function UpdatesScreen(): React.ReactElement {
   useFocusEffect(useCallback(() => {
     let live = true;
     read();
-    // The lag audit (2026-10-04): every visit fetched every subscribed feed again, one after
-    // another, parsing the XML while the page was still sliding in. Now: at most once per
-    // FOCUS_REFRESH_MS, and only after the transition has finished.
-    if (Date.now() - lastFocusRefresh >= FOCUS_REFRESH_MS) {
-      lastFocusRefresh = Date.now();
-      // React Native 0.88 has no InteractionManager; wait out the page transition instead.
-      const task = setTimeout(() => {
-        void refreshAll(stores, Date.now()).then((r) => { if (!live) return; setStale(r.stale.length); read(); });
-      }, AFTER_TRANSITION_MS);
-      return () => { live = false; clearTimeout(task); };
-    }
+    void refreshAll(stores, Date.now()).then((r) => { if (!live) return; setStale(r.stale.length); read(); });
     return () => { live = false; };
   }, [read, stores]));
 
@@ -147,7 +131,7 @@ export default function UpdatesScreen(): React.ReactElement {
               <Link href="/subscriptions" asChild>
                 <Pressable accessibilityRole="link" accessibilityLabel={`My subscriptions, ${subscribed}`} className="self-start flex-row items-center gap-2" style={TAP}>
                   <Icon name="library-outline" size={16} color={c.accent} />
-                  <Text className="text-accent text-meta font-semibold">{`My subscriptions · ${subscribed} →`}</Text>
+                  <Text className="text-accent text-meta font-semibold">{`My subscriptions · ${subscribed} ›`}</Text>
                 </Pressable>
               </Link>
             </Box>

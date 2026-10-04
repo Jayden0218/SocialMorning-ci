@@ -90,7 +90,7 @@ export function LaunchScreen(props: {
             decoration and hidden, so nothing is read before Skip. */}
         <Box className="flex-row items-center justify-between px-screen-x pt-row pb-row">
           <Box className="flex-row items-center gap-2" accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-            <Image source={MARK} style={MARK_SIZE} className="rounded-row" accessibilityIgnoresInvertColors />
+            <Image source={MARK} style={MARK_SIZE} className="rounded-[8px]" accessibilityIgnoresInvertColors />
             <Text className="text-text text-base font-display">SocialNet</Text>
           </Box>
           <Pressable
@@ -128,7 +128,7 @@ export function LaunchScreen(props: {
             style={TAP}
           >
             <Text className="text-body font-bold text-accent">{props.promotion.label}</Text>
-            <Text className="text-body font-bold text-accent">→</Text>
+            <Text className="text-body font-bold text-accent">›</Text>
           </Pressable>
         </Box>
       </SafeAreaView>

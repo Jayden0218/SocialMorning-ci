@@ -18,7 +18,7 @@ import { Icon } from '@/ui/kit/Icon';
 import { minutesLabel } from '@/ui/kit/format';
 import { useStores } from '@/ui/shell/providers';
 import { useColours } from '@/ui/kit/useColours';
-import { usePlayer, usePlayerStatus } from '@/playback/store';
+import { usePlayer, usePlayerState } from '@/playback/store';
 import { toPlayable } from '@/storage/playable';
 
 export const CARD_ARTWORK = 40;
@@ -33,10 +33,7 @@ export function EpisodeCard(props: { episodeId: string }): React.ReactElement | 
   const stores = useStores();
   const c = useColours(stores.settings);
   const player = usePlayer();
-  // The lag audit (2026-10-04): re-render on play/pause/episode change only, then read the full
-  // state fresh — usePlayerState re-rendered this page on every position tick.
-  usePlayerStatus();
-  const state = player.getState();
+  const state = usePlayerState();
   const episode = stores.feeds.getEpisode(props.episodeId);
   if (!episode) return null;
   const show = stores.feeds.getShow(episode.feedUrl);

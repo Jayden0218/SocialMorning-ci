@@ -18,8 +18,7 @@
  * sort, filter, subscribe and show links; the strip still scrolls to the chosen genre.
  */
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { ScrollView } from 'react-native';
-import { useCallback, useEffect, useRef, useState, type ComponentRef } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Pressable } from '@/ui/lib/pressable';
 import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
@@ -62,14 +61,7 @@ export default function CategoryScreen(): React.ReactElement {
   // A show page opened from here may subscribe or unsubscribe; re-read on coming back.
   useFocusEffect(useCallback(() => { setSubscribed(readSubscribed()); }, [readSubscribed]));
 
-  const strip = useRef<ComponentRef<typeof ScrollView>>(null);
-  const tileX = useRef(new Map<number, number>());
-  const scrolled = useRef(false);
-  const showTile = (id: number, animated: boolean) => {
-    const x = tileX.current.get(id);
-    if (x !== undefined) strip.current?.scrollTo({ x: Math.max(0, x - 40), animated });
-  };
-  const pick = (id: number) => { setGenreId(id); setPanel(false); showTile(id, true); };
+  const pick = (id: number) => { setGenreId(id); setPanel(false); };
 
   useEffect(() => {
     let live = true;
@@ -158,21 +150,8 @@ export default function CategoryScreen(): React.ReactElement {
           })}
         </Box>
       ) : null}
-      <Box className="-mx-screen-x border-b-hairline border-separator mt-row mb-section">
-        <ScrollView ref={strip} horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-5 px-screen-x">
-          {GENRES.map((g) => {
-            const on = g.id === genreId;
-            return (
-              <Pressable key={g.id} onPress={() => pick(g.id)}
-                onLayout={(e) => { tileX.current.set(g.id, e.nativeEvent.layout.x); if (on && !scrolled.current) { scrolled.current = true; showTile(g.id, false); } }}
-                accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={g.name}
-                className={`justify-center border-b-2 ${on ? 'border-primary' : 'border-clear'}`} style={TAP}>
-                <Text className={on ? 'text-text text-body font-bold' : 'text-muted text-body'} numberOfLines={1}>{g.name}</Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-      </Box>
+      {/* Owner, 2026-10-04: no row of category tabs under the title — the title's chevron opens
+          the full list instead. */}
       <Box className="flex-row items-center gap-2 pb-row">
         <Box className="flex-row gap-1 p-1 bg-track rounded-pill">
           {(['all', 'newest'] as const).map((k) => {

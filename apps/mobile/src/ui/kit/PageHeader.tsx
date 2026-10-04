@@ -50,8 +50,10 @@ export function PageHeader(props: {
         {props.right ?? <Box style={SIDE} />}
       </TopBar>
       {props.middle ? null : (
-        <Box className="px-screen-x pb-row">
-          <Text className="text-text text-display font-display" numberOfLines={2} accessibilityRole="header">{props.title ?? ''}</Text>
+        // Owner, 2026-10-04: the title closer to the back chevron — 8 pt up, and the 32 pt serif's
+        // own tall line height (~41) set to 36.
+        <Box className="px-screen-x pb-row -mt-2">
+          <Text className="text-text text-display font-display leading-[36px]" numberOfLines={2} accessibilityRole="header">{props.title ?? ''}</Text>
           {props.subtitle ? <Text className="text-muted text-meta mt-1">{props.subtitle}</Text> : null}
         </Box>
       )}

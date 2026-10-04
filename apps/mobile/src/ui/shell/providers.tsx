@@ -37,8 +37,8 @@ import { loadFonts } from '@/design/fonts';
 import * as SplashScreen from 'expo-splash-screen';
 import { Terms } from './Terms';
 import { ToastHost } from '@/ui/kit/ToastHost';
-import { accept, hasAccepted } from './consent';
-import { ALWAYS_SHOW_TERMS, HANDOFF_MAX_MS, coverLaunch, keepTerms, opensSignIn, signInPage } from './launch';
+import { accept, consentGiven } from './consent';
+import { HANDOFF_MAX_MS, coverLaunch, keepTerms, opensSignIn, signInPage } from './launch';
 import { router, usePathname } from 'expo-router';
 import { LaunchScreen } from './LaunchScreen';
 import { createLaunchApi } from '@/launch/api';
@@ -179,7 +179,7 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
     files: launchFiles,
     now: Date.now(),
     signedIn: stores.auth.get() !== undefined,
-    termsDue: ALWAYS_SHOW_TERMS || !hasAccepted(stores.settings),
+    termsDue: !consentGiven(stores.settings, stores.auth.get() !== undefined),
     random: Math.random,
   }));
   // The list and images for the NEXT launch: after start-up is ready, fire and forget.
@@ -188,7 +188,9 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
     void syncLaunch({ api: launchApi, files: launchFiles, settings: stores.settings });
   }, [ready, launchApi, launchFiles, stores]);
   // After the launch screen, the Terms — until accepted, nothing else is reachable.
-  const [accepted, setAccepted] = useState(() => !ALWAYS_SHOW_TERMS && hasAccepted(stores.settings));
+  // Owner, 2026-10-04: first-time users only — agreed before, or signed in, means no consent page
+  // (the Debug-only "show it on every launch" switch of 2026-09-27 is gone).
+  const [accepted, setAccepted] = useState(() => consentGiven(stores.settings, stores.auth.get() !== undefined));
   // Then the sign-in page, on every launch while signed out (see `./launch`).
   const signInOpened = useRef(false);
   const wantSignIn = opensSignIn({ ready, accepted, signedIn: stores.auth.get() !== undefined, opened: signInOpened.current });

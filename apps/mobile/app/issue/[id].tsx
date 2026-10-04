@@ -99,7 +99,7 @@ export default function IssueScreen(): React.ReactElement {
               <>
                 <Tile n={i + 1} />
                 <Pressable onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(it.feedUrl) } })} accessibilityRole="link" accessibilityLabel="Open the show" className="justify-center" style={TAP}>
-                  <Text className="text-accent text-sm font-semibold">Open the show →</Text>
+                  <Text className="text-accent text-sm font-semibold">Open the show ›</Text>
                 </Pressable>
               </>
             )}

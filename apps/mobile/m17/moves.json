@@ -278,5 +278,13 @@
   "to": "MomentSheet | Delete | remove",
   "why": "the Delete action had no name of its own, so the scanner borrowed the next one's label; its words are now inside BusyContent (owner, 2026-10-04, G-BU1) and the scanner reads them: 'Delete'",
   "task": "busy-bars"
+ },
+ {
+  "surface": "/category/[id]",
+  "name": "g.name",
+  "destination": "pick",
+  "to": "removed",
+  "why": "the row of category tabs under the title is removed (owner, 2026-10-04); the same pick stays in the panel the title's chevron opens",
+  "task": "tidy"
  }
 ]

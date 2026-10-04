@@ -5,7 +5,7 @@
  * test red: make `hasAccepted` in `src/ui/shell/consent.ts` return `true`.
  */
 import { createMemoryStores } from '@/storage/memory';
-import { CONSENT_ITEMS, TERMS_KEY, TERMS_VERSION, accept, hasAccepted } from '@/ui/shell/consent';
+import { CONSENT_ITEMS, TERMS_KEY, TERMS_VERSION, accept, consentGiven, hasAccepted } from '@/ui/shell/consent';
 import { LEGAL_TEXT } from '@/legal/texts';
 
 it('a fresh install has not accepted', () => {
@@ -38,4 +38,12 @@ it('the documents are SocialNet\'s, with no 小宇宙 name or contact left in th
     expect(text).toContain('SocialNet');
     expect(text).not.toMatch(/小宇宙|Xiaoyuzhou|iftech|okjike|Shanghai/);
   }
+});
+
+it('the consent page is for first-time users: agreed before, or signed in, means not again', () => {
+  const s = createMemoryStores((x) => x).settings;
+  expect(consentGiven(s, false)).toBe(false);
+  expect(consentGiven(s, true)).toBe(true);
+  accept(s);
+  expect(consentGiven(s, false)).toBe(true);
 });

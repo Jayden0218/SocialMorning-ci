@@ -84,14 +84,14 @@ export default function MeScreen(): React.ReactElement {
               </Link>
               <Link href={`/profile/${listener.listenerId}`} asChild>
                 <Pressable accessibilityRole="link" accessibilityLabel="My profile" className="items-center justify-center px-section" style={TAP}>
-                  <Text className="text-accent text-meta font-semibold">My profile →</Text>
+                  <Text className="text-accent text-meta font-semibold">My profile ›</Text>
                 </Pressable>
               </Link>
             </>
           ) : (
             <Link href="/auth/sign-in" asChild>
               <Pressable accessibilityRole="link" accessibilityLabel="Sign in" className="items-center justify-center mt-2 px-section" style={TAP}>
-                <Text className="font-display text-hero text-text">Sign in →</Text>
+                <Text className="font-display text-hero text-text">Sign in ›</Text>
               </Pressable>
             </Link>
           )}
