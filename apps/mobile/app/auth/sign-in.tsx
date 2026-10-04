@@ -8,7 +8,7 @@
  * Signing in is required (owner, 2026-09-27): no close button, no swipe back (the stack
  * option), and Android's back does nothing here.
  *
- * M17 T070 (`SignIn-B`): the name in 56 pt Fraunces with tight spacing, covers at 22 pt corners
+ * M17 T070 (`SignIn-B`): the name in 56 pt serif (Lora since 2026-10-04) with tight spacing, covers at 22 pt corners
  * with a soft shadow, a 60 pt yellow "Continue with email" and Google / Facebook as white 56 pt
  * pills with the card border. The icon (72) and the gap above the covers (64) keep the owner's
  * own sizes from 2026-10-03 rather than B's 44 / 56. Ways in, consent and the guards unchanged.

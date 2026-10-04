@@ -91,8 +91,8 @@ const FEEDBACK_ADDITIONS = ['expo-image-picker', 'expo-image-manipulator'];
 
 /** M10b US9: widgets (Android + iOS) and the iPhone live activity (research R11). MIT (LICENSES.md). */
 const OUTSIDE_ADDITIONS = ['react-native-android-widget', '@bacons/apple-targets', 'expo-live-activity'];
-/** M17 (research R5): the Editorial fonts — Fraunces + Manrope (OFL-1.1), loaded through expo-font. */
-const FONT_ADDITIONS = ['expo-font', '@expo-google-fonts/fraunces', '@expo-google-fonts/manrope'];
+/** M17 (research R5): the Editorial fonts — Lora (was Fraunces until 2026-10-04) + Manrope (OFL-1.1), loaded through expo-font. */
+const FONT_ADDITIONS = ['expo-font', '@expo-google-fonts/lora', '@expo-google-fonts/manrope'];
 
 it('no reference dependency is installed, anywhere', () => {
   const installed = new Set([

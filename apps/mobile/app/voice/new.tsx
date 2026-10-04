@@ -37,7 +37,7 @@ import { PageHeader } from '@/ui/kit/PageHeader';
 const RULES = ['Up to 60 seconds.', 'People who follow you can play it', 'for 48 hours; then it is deleted.'] as const;
 /** The footer pills: 52 pt in the design, never under 48; the row stretches Post to match. */
 const PILL = { minHeight: Math.max(hit.min, 52) };
-/** The 40 pt serif clock keeps its line from clipping Fraunces' figures. */
+/** The 40 pt serif clock keeps its line from clipping the serif's figures. */
 const CLOCK = { lineHeight: 46 };
 
 type Phase = { kind: 'idle' } | { kind: 'denied' } | { kind: 'recording' } | { kind: 'done'; uri: string; ms: number } | { kind: 'posting'; uri: string; ms: number };

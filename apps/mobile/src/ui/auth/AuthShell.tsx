@@ -3,13 +3,13 @@
  * The frame every auth page shares. Owner's screenshot (2026-10-03): a ✕ at the top left,
  * a large serif title on the left, the form under it, and the main button in a bar pinned
  * to the bottom (above the keyboard). Was a centred title with the button in the form
- * (2026-09-27). The insets come from `useSafeAreaInsets` so the bar's colour reaches the
- * bottom edge of the screen.
+ * (2026-09-27). The top inset comes from `useSafeAreaInsets`; the root layout pads the bottom
+ * once, so the bar adds none (owner, 2026-10-04: "Send code" sat high in the white bar).
  *
  * M17 (T070/T071, `EmailAuth-B`, `EmailCode-B`, `SignUp-B`): the B Editorial frame — a 48 pt ✕
- * (muted on the left, the text colour on the right), a Fraunces title at B's own size and weight
+ * (muted on the left, the text colour on the right), a serif title at B's own size and weight
  * per step (`heading`), an optional `hero` over it (the name step's monogram), fields with a 2 pt
- * underline and the typed words in 22 pt Fraunces SemiBold, and the bottom bar with a hairline
+ * underline and the typed words in 22 pt serif SemiBold, and the bottom bar with a hairline
  * top border — white for the email and name steps, the page colour for the code step (`bar`).
  * Buttons: 56 pt pills (60 on the sign-in page), other ways in white with the card border.
  */
@@ -29,6 +29,7 @@ import { useStores } from '@/ui/shell/providers';
 import { useColours } from '@/ui/kit/useColours';
 import { Icon, type IconName } from '@/ui/kit/Icon';
 import { Eyebrow } from '@/ui/kit/Eyebrow';
+import { BottomBar } from '@/ui/kit/BottomBar';
 import { display } from './display';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
@@ -76,13 +77,11 @@ export function AuthShell(props: { title: string; eyebrow?: string; closeRight?:
           {props.subtitle ? <Box className="mt-gap">{props.subtitle}</Box> : null}
           <Box className={form}>{props.children}</Box>
         </ScrollView>
+        {/* Owner, 2026-10-04: the button in the middle of the bar — the root layout pads the bottom strip. */}
         {props.footer ? (
-          <Box
-            className={page ? 'bg-background border-t border-border px-screen-x py-row' : 'bg-surface border-t border-border px-screen-x pt-section'}
-            style={{ paddingBottom: Math.max(insets.bottom, page ? 12 : 28) }}
-          >
+          <BottomBar tone={page ? 'page' : 'surface'} line="border" pad={page ? 'row' : 'section'}>
             {props.footer}
-          </Box>
+          </BottomBar>
         ) : null}
       </KeyboardAvoidingView>
     </Box>
@@ -91,7 +90,7 @@ export function AuthShell(props: { title: string; eyebrow?: string; closeRight?:
 
 /**
  * The name step's monogram (`SignUp-B`): a 120 pt tinted circle with the typed name's initials
- * in Fraunces — a person glyph until there is a name. Decorative; the field says the name.
+ * in the serif — a person glyph until there is a name. Decorative; the field says the name.
  */
 export function NameMonogram(props: { name: string }): React.ReactElement {
   const stores = useStores();

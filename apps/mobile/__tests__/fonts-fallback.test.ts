@@ -32,7 +32,7 @@ it('G-E4: a load that hangs gives up after the wait, and the system fonts stay',
 });
 
 it('six faces, each registered under its PostScript name', () => {
-  expect(Object.keys(FACES).sort()).toEqual(['Fraunces-Bold', 'Fraunces-SemiBold', 'Manrope-Bold', 'Manrope-Medium', 'Manrope-Regular', 'Manrope-SemiBold']);
+  expect(Object.keys(FACES).sort()).toEqual(['Lora-Bold', 'Lora-SemiBold', 'Manrope-Bold', 'Manrope-Medium', 'Manrope-Regular', 'Manrope-SemiBold']);
 });
 
 it('a weight class picks its face; display classes pick the serif', () => {
@@ -41,7 +41,7 @@ it('a weight class picks its face; display classes pick the serif', () => {
   expect(familyFor('text-text font-semibold')).toBe('Manrope-SemiBold');
   expect(familyFor('text-text font-bold')).toBe('Manrope-Bold');
   expect(familyFor('text-text font-extrabold')).toBe('Manrope-Bold');
-  expect(familyFor('text-text font-display text-display')).toBe('Fraunces-Bold');
-  expect(familyFor('text-text font-display-semibold')).toBe('Fraunces-SemiBold');
+  expect(familyFor('text-text font-display text-display')).toBe('Lora-Bold');
+  expect(familyFor('text-text font-display-semibold')).toBe('Lora-SemiBold');
   expect(familyFor(undefined)).toBe('Manrope-Regular');
 });
