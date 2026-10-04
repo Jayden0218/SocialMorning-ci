@@ -101,7 +101,7 @@ export default function NewVoicePost(): React.ReactElement {
     {/* Phone walk 2026-09-30: the sheet could only be swiped away. M16a T002: Cancel is on the app's own bar. */}
     <PageHeader title="Voice status" left={(
       <Pressable onPress={() => { if (phase.kind === 'recording') void stop(); router.back(); }} accessibilityRole="button" accessibilityLabel="Cancel" className="justify-center px-row" style={{ minHeight: 48 }}>
-        <Text className="text-accent text-body font-semibold">Cancel</Text>
+        <Text className="text-accent text-body font-bold">Cancel</Text>
       </Pressable>
     )} />
     <Box className="flex-1 bg-background">

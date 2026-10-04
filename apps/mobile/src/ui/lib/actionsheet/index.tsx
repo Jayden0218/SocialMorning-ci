@@ -95,8 +95,9 @@ const actionsheetItemTextStyle = tva({
   },
 });
 
+// Owner, 2026-10-04: the handle on top of every sheet is grey and small (was white, 100 × 8).
 const actionsheetDragIndicatorStyle = tva({
-  base: 'w-[100px] h-2 bg-surface rounded-full',
+  base: 'w-10 h-1 bg-track rounded-full',
 });
 
 const actionsheetDragIndicatorWrapperStyle = tva({

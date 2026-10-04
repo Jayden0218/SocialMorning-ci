@@ -184,7 +184,7 @@ export default function UpdatesScreen(): React.ReactElement {
             </>
           ) : null}
           <Pressable onPress={() => setMenuFor(undefined)} accessibilityRole="button" accessibilityLabel="Cancel" className="items-center justify-center mt-row" style={TAP}>
-            <Text className="text-sm text-muted">Cancel</Text>
+            <Text className="text-accent text-sm font-bold">Cancel</Text>
           </Pressable>
         </ActionsheetContent>
       </Actionsheet>

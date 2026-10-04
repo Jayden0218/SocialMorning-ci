@@ -49,7 +49,7 @@ export function EpisodeExtras(props: { episodeId: string; atMs: number }): React
             <TextareaInput value={note} onChangeText={setNote} maxLength={NOTE_MAX} multiline placeholder="Add a note (optional)" placeholderTextColor={c.muted} accessibilityLabel="Note for this moment"  className="p-row text-text text-body" />
           </Textarea>
           <Box className="flex-row justify-end items-center gap-gap">
-            <Pressable onPress={() => setNote(undefined)} accessibilityRole="button" accessibilityLabel="Cancel" className="justify-center px-row" style={TAP}><Text className="text-muted text-body font-medium">Cancel</Text></Pressable>
+            <Pressable onPress={() => setNote(undefined)} accessibilityRole="button" accessibilityLabel="Cancel" className="justify-center px-row" style={TAP}><Text className="text-accent text-body font-bold">Cancel</Text></Pressable>
             <Pressable onPress={() => { saveMoment(stores.settings, props.episodeId, at, note, Date.now()); setNote(undefined); toast(`Saved the moment at ${mmss(at)}.`); }} accessibilityRole="button" accessibilityLabel="Save moment" className="justify-center rounded-pill bg-primary px-section" style={TAP}><Text className="text-onPrimary text-body font-bold">Save</Text></Pressable>
           </Box>
         </Box>

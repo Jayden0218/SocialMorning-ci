@@ -304,7 +304,7 @@ export default function EpisodeScreen(): React.ReactElement {
           <EpisodeExtras episodeId={episode.id} atMs={snapshotOffset} />
           {/* M12 FR-032: a Cancel row closes the list, as a list sheet should. */}
           <Pressable onPress={() => setMore(false)} accessibilityRole="button" accessibilityLabel="Cancel" className="items-center justify-center mt-gap rounded-pill border border-border" style={TAP}>
-            <Text className="text-body font-bold text-text">Cancel</Text>
+            <Text className="text-accent text-body font-bold">Cancel</Text>
           </Pressable>
         </ActionsheetContent>
       </Actionsheet>

@@ -18,6 +18,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `contrast.ts` | Measures colour contrast so every text colour stays easy to read. |
 | `fonts.ts` | Loads the two app fonts at start-up, falling back to system fonts. |
 | `gradient.ts` | Picks the player's background wash, refusing tints that make text hard to read. |
+| `merge.ts` | Teaches the class merger the app's own text sizes, so a colour and a size can sit together. |
 | `index.ts` | Gathers the design exports so screens import them from one place. |
 | `tailwind.ts` | Lets links and gradients accept style class names like other components. |
 | `tokens.ts` | Lists every colour, font size, spacing and corner size the app uses. |

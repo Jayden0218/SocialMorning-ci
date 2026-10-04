@@ -40,12 +40,12 @@ export function SleepTimerControl(): React.ReactElement {
         {timer.kind === 'minutes' && remaining !== undefined ? (
           <Box className="flex-row items-center gap-2.5">
             <Text className="text-meta text-muted">Pausing in {mmss(remaining)}</Text>
-            <Pressable style={TAP} className="justify-center" onPress={() => player.setSleepTimer('off')} accessibilityRole="button"><Text className="text-accent text-meta font-semibold">Cancel</Text></Pressable>
+            <Pressable style={TAP} className="justify-center" onPress={() => player.setSleepTimer('off')} accessibilityRole="button"><Text className="text-accent text-meta font-bold">Cancel</Text></Pressable>
           </Box>
         ) : timer.kind === 'endOfEpisode' ? (
           <Box className="flex-row items-center gap-2.5 flex-shrink">
             <Text className="text-meta text-muted flex-shrink">Stops when this episode ends</Text>
-            <Pressable style={TAP} className="justify-center" onPress={() => player.setSleepTimer('off')} accessibilityRole="button"><Text className="text-accent text-meta font-semibold">Cancel</Text></Pressable>
+            <Pressable style={TAP} className="justify-center" onPress={() => player.setSleepTimer('off')} accessibilityRole="button"><Text className="text-accent text-meta font-bold">Cancel</Text></Pressable>
           </Box>
         ) : null}
       </Box>

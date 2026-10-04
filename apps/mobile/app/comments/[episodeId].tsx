@@ -208,7 +208,7 @@ export default function CommentsScreen(): React.ReactElement {
             );
           }) : null}
           <Pressable onPress={() => setMenu(undefined)} accessibilityRole="button" className="justify-center items-center rounded-pill border border-border mt-row" style={TAB}>
-            <Text className="text-text text-body font-bold">Cancel</Text>
+            <Text className="text-accent text-body font-bold">Cancel</Text>
           </Pressable>
         </ActionsheetContent>
       </Actionsheet>

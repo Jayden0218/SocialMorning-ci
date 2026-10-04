@@ -4,6 +4,8 @@
  * Everything else is expo-router's own entry.
  */
 import { Platform } from 'react-native';
+// Before any component: the class merger must know the app's text sizes (src/design/merge.ts).
+import '@/design/merge';
 
 if (Platform.OS === 'android') {
   try {

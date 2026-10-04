@@ -32,11 +32,23 @@ export function nextStep(at: number, n: number): { to: number; snapBack: boolean
   return { to, snapBack: to >= n };
 }
 
-/** Each tone: the tile's fill, its small label and its words — all palette tokens. */
+/** Each tone: the tile's fill, its small label and its words — palette tokens, colour and type written together (token check). */
 const TONE: Record<ArtTone, { box: string; kicker: string; title: string }> = {
-  primary: { box: 'bg-primary', kicker: 'text-onPrimary', title: 'text-onPrimary' },
-  surface: { box: 'bg-surface border border-border', kicker: 'text-accent', title: 'text-text' },
-  dark: { box: 'bg-text', kicker: 'text-background', title: 'text-background' },
+  primary: {
+    box: 'bg-primary',
+    kicker: 'text-onPrimary text-xs font-bold uppercase tracking-widest',
+    title: 'text-onPrimary font-display text-[24px] leading-[28px]',
+  },
+  surface: {
+    box: 'bg-surface border border-border',
+    kicker: 'text-accent text-xs font-bold uppercase tracking-widest',
+    title: 'text-text font-display text-[24px] leading-[28px]',
+  },
+  dark: {
+    box: 'bg-text',
+    kicker: 'text-background text-xs font-bold uppercase tracking-widest',
+    title: 'text-background font-display text-[24px] leading-[28px]',
+  },
 };
 
 /**
@@ -99,8 +111,8 @@ export function ArtWall(props: { tiles: readonly ArtTile[]; onReady?: () => void
       {row.map((t, i) => (
           <Box key={`${i}-${t.kicker}`} className="rounded-artwork-lg bg-surface" style={[SHADOW, { width: card, height: card }]}>
             <Box className={`rounded-artwork-lg overflow-hidden flex-1 p-5 justify-between ${TONE[t.tone].box}`}>
-              <Text className={`${TONE[t.tone].kicker} text-xs font-bold uppercase tracking-widest`}>{t.kicker}</Text>
-              <Text className={`${TONE[t.tone].title} font-display text-[24px] leading-[28px]`} numberOfLines={4}>{t.title}</Text>
+              <Text className={TONE[t.tone].kicker}>{t.kicker}</Text>
+              <Text className={TONE[t.tone].title} numberOfLines={4}>{t.title}</Text>
             </Box>
           </Box>
       ))}

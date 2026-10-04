@@ -305,7 +305,7 @@ export function SearchPage(props: SearchPageProps): React.ReactElement {
       <Animated.View className="flex-row items-center justify-between px-screen-x pt-row" style={{ opacity: fadeIn }}>
         <Text className="text-text text-display font-display" accessibilityRole="header">Search</Text>
         <Pressable onPress={leave} accessibilityRole="button" accessibilityLabel="Cancel" className="justify-center pl-row" style={TAP}>
-          <Text className="text-accent text-body font-semibold" numberOfLines={1}>Cancel</Text>
+          <Text className="text-accent text-body font-bold" numberOfLines={1}>Cancel</Text>
         </Pressable>
       </Animated.View>
       <Box className="px-screen-x mt-gap">

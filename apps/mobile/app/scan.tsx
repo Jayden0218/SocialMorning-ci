@@ -166,7 +166,7 @@ export default function ScanScreen(): React.ReactElement {
       <Box className="flex-row gap-row px-screen-x pb-section">
         <Pressable onPress={() => close(router)} accessibilityRole="button" accessibilityLabel="Close" className="flex-1 flex-row items-center justify-center gap-2 rounded-pill bg-surface border border-border" style={TAP}>
           <Icon name="close" size={20} color={c.text} />
-          <Text className="text-text text-body font-bold">Close</Text>
+          <Text className="text-accent text-body font-bold">Close</Text>
         </Pressable>
         <Pressable
           onPress={() => setTorch((t) => !t)}
