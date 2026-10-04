@@ -9,7 +9,7 @@
  * document name again.
  */
 import { LEGAL_TEXT } from '@/legal/texts';
-import { OPERATOR, CONSENT_INTRO } from '@/ui/shell/terms';
+import { OPERATOR, CONSENT_INTRO } from '@/ui/shell/consent';
 
 /** Owner-only facts (gate A2, 2026-09-29): company, address, law and contacts, and the SDK tables. */
 const WAITING_ON_OWNER = new Set([

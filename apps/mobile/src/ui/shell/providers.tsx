@@ -37,7 +37,7 @@ import { loadFonts } from '@/design/fonts';
 import * as SplashScreen from 'expo-splash-screen';
 import { Terms } from './Terms';
 import { ToastHost } from '@/ui/kit/ToastHost';
-import { accept, hasAccepted } from './terms';
+import { accept, hasAccepted } from './consent';
 import { ALWAYS_SHOW_TERMS, HANDOFF_MAX_MS, coverLaunch, keepTerms, opensSignIn, signInPage } from './launch';
 import { router, usePathname } from 'expo-router';
 import { LaunchScreen } from './LaunchScreen';

@@ -263,7 +263,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `providers.tsx` | Sets up data, the audio player and messages once for the whole app. |
 | `startup.ts` | Keeps the start screen at least 1 second, at most 6 seconds. |
 | `tabs.ts` | The list of bottom tabs (Discover, Updates, Me) as data. |
-| `terms.ts` | Terms version, title and text pointers; remembers if you agreed. |
+| `consent.ts` | Terms version, title and text pointers; remembers if you agreed. |
 
 ### `ui/player/` — The full player page and its parts
 

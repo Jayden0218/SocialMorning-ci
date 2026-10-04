@@ -45,7 +45,7 @@ import {
   CONSENT_TITLE,
   REFUSE_TEXT,
   type LegalDocId,
-} from "./terms";
+} from "./consent";
 
 /** The app icon on top: 48 pt (`Terms-B`; was 64). */
 const ICON = { width: 48, height: 48 };
