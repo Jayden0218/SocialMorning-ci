@@ -61,7 +61,7 @@ export default function StickersScreen(): React.ReactElement {
   const earned = got.length;
   return (
     <>
-    <PageHeader middle={<Text className="flex-1 text-center text-muted text-body font-bold" numberOfLines={1}>Stickers</Text>} />
+    <PageHeader title="Stickers" />
     <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pt-gap pb-24 gap-section">
       <Box className="flex-row items-center gap-section">
         <ProgressRing progress={list.length > 0 ? earned / list.length : 0} size={96} stroke={8}>

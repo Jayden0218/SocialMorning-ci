@@ -38,7 +38,7 @@ export default function TipsScreen(): React.ReactElement {
   const notReady = state.kind === 'ok' && !state.storeReady;
   return (
     <>
-    <PageHeader middle={<Text className="flex-1 text-center text-muted text-body font-bold" accessibilityRole="header" numberOfLines={1}>Tips I gave</Text>} />
+    <PageHeader title="Tips I gave" />
     <FlatList
       className="flex-1 bg-background"
       data={state.kind === 'ok' ? state.items : []}

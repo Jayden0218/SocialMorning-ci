@@ -30,6 +30,10 @@ export function usePullRefresh(refreshing: boolean, onRefresh: () => void) {
       tintColor="transparent"
       colors={['transparent']}
       progressBackgroundColor="transparent"
+      // Owner, 2026-10-04 (seen on the Android phone): Android still drew its own white refresh
+      // disc, with a shadow, over the app's loading mark — transparent colours hide only the arrow.
+      // Its disc is moved far above the screen, so only the app's mark shows. iOS ignores this.
+      progressViewOffset={Platform.OS === 'android' ? -1000 : 0}
       style={{ backgroundColor: 'transparent' }}
     />
   );

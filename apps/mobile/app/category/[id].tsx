@@ -135,7 +135,7 @@ export default function CategoryScreen(): React.ReactElement {
 
   return (
     <>
-    <PageHeader middle={<Text className="text-text text-title font-bold" numberOfLines={1}>Categories</Text>} />
+    <PageHeader title="Categories" />
     <Screen scroll>
       {/* Owner, 2026-10-04: no large category title and no list under it — the sliding row of
           categories below is how a category is chosen. */}

@@ -64,7 +64,7 @@ export default function ProfileScreen(): React.ReactElement {
     else router.push({ pathname: '/episode/[id]', params: { id: item.episode.id } });
   };
   // M17: the bar's small centred title; no big serif title — the name below is the page's head.
-  const header = <PageHeader middle={<Box className="flex-1 items-center"><Text className="text-text text-sm font-bold" accessibilityRole="header">Profile</Text></Box>} />;
+  const header = <PageHeader title="Profile" />;
   if (error) return <>{header}<Box className="p-4 gap-3"><Text className="text-text">{error}</Text></Box></>;
   if (!profile) return <>{header}<Box className="p-4 items-center"><Loader /></Box></>;
   const own = listener?.listenerId === profile.id;
