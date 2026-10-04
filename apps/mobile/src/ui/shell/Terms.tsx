@@ -33,6 +33,7 @@ import { Box } from "@/ui/lib/box";
 import { LEGAL_TEXT } from "@/legal/texts";
 import { Button, ButtonText } from "@/ui/lib/button";
 import { EDGE, LegalDoc } from "./LegalDoc";
+import { BottomBar } from "@/ui/kit/BottomBar";
 import { Icon, type IconName } from "@/ui/kit/Icon";
 import { useColours } from "@/ui/kit/useColours";
 import { colour, hit, type Palette } from "@/design";
@@ -52,6 +53,8 @@ const ICON = { width: 60, height: 60 };
 
 /** Apple's and Android's minimum tap size, as a style (shared-ui asserts it). */
 const TAP = { minHeight: hit.min };
+/** Disagree is one line of text (~20 pt); 14 pt above and below makes its tap area 48 pt. */
+const DISAGREE_SLOP = { top: 14, bottom: 14, left: 24, right: 24 };
 /** A card's head: 52 pt (`Terms-B`). */
 const HEAD = { minHeight: 52 };
 /**
@@ -261,7 +264,9 @@ export function Terms(props: {
         </Box>
         <Text className="text-muted text-meta mt-gap">{CONSENT_OUTRO}</Text>
       </ScrollView>
-      <Box className="border-t border-separator bg-background px-screen-x pt-row pb-row">
+      {/* Owner, 2026-10-04: the two choices sit in the middle of the bar — the same space above
+          Agree as below Disagree. Disagree keeps its 48 pt tap area through hitSlop, not height. */}
+      <BottomBar tone="page" pad="row">
         <Choice
           colours={c}
           label="Agree"
@@ -272,12 +277,12 @@ export function Terms(props: {
           onPress={() => setRefused(true)}
           accessibilityRole="button"
           accessibilityLabel="Disagree"
-          className="items-center justify-center mt-0.5"
-          style={TAP}
+          className="items-center justify-center mt-row"
+          hitSlop={DISAGREE_SLOP}
         >
           <Text className="text-accent text-body font-bold">Disagree</Text>
         </Pressable>
-      </Box>
+      </BottomBar>
     </SafeAreaView>
   );
 
