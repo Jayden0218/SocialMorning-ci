@@ -75,10 +75,10 @@ function Chevron(): React.ReactElement {
   return <Box className="w-3 h-3 border-l-2 border-b-2 border-text rotate-45 ml-1" />;
 }
 
-/** The "Last updated: …" / "Effective from: …" lines, lifted out of the body into one line under the title. */
+/** The "Last updated: …" / "Effective from: …" lines, lifted out of the body and shown under the title, one per row. */
 const DATE_LINE = /^(Last updated|Effective from):\s*(.+)$/;
 
-/** "1. Scope" → 1 + Scope; "Part 2 — Personal…" → 2 + Personal…; "Introduction" → no number. */
+/** "1. Scope" → 1 + Scope; "Part 2 — Personal…" → 2 + Personal…; "Introduction" → no number (Contents shows it as 0). */
 const NUMBER = /^(?:Part\s+)?(\d+)(?:\.|\s+—)\s+/;
 type Entry = { index: number; number?: string; label: string };
 
@@ -126,7 +126,8 @@ export function LegalDoc(props: { text: string; onClose: () => void }): React.Re
           {/* Owner, 2026-10-03: the editorial layout — a large title, the dates in boxes,
               then a Contents card listing every section, each a jump to it. */}
           <Text className="text-text font-display text-[34px] leading-[38px] mt-1" accessibilityRole="header">{title}</Text>
-          {dates.length > 0 ? <Text className="text-muted text-xs mt-1.5">{dates.join(' · ')}</Text> : null}
+          {/* Owner, 2026-10-04: "Last updated" and "Effective from" on two rows, not one. */}
+          {dates.map((d, i) => <Text key={d} className={`text-muted text-xs ${i === 0 ? 'mt-1.5' : 'mt-0.5'}`}>{d}</Text>)}
           {contents.length > 1 ? (
             <Box className="mt-section mb-1 px-[14px] pt-[10px] pb-1 rounded-row border border-border bg-surface">
               <Text className="text-muted text-micro font-extrabold tracking-widest">CONTENTS</Text>
@@ -139,7 +140,7 @@ export function LegalDoc(props: { text: string; onClose: () => void }): React.Re
                   className={`flex-row items-center gap-[10px] ${i > 0 ? 'border-t border-separator' : ''}`}
                   style={{ minHeight: hit.min }}
                 >
-                  <Text className="text-accent font-display text-body w-[18px]">{e.number ?? '·'}</Text>
+                  <Text className="text-accent font-display text-body w-[18px]">{e.number ?? '0'}</Text>
                   <Text className="text-text text-body flex-1">{e.label}</Text>
                 </Pressable>
               ))}
