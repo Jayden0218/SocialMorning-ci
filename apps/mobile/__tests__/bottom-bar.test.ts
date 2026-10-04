@@ -31,6 +31,7 @@ const OWN_BOTTOM = new Set([
   'app/_layout.tsx', // the root itself
   'app/voice/new.tsx', // presentation: 'modal' — a native modal, outside the root's padding
   'src/ui/shell/LegalDoc.tsx', // inside a React Native Modal
+  'src/ui/shell/Terms.tsx', // drawn by AppProviders, outside the root's padding: its bar centres itself over the strip
 ]);
 
 it('only the root and pages outside it pad the bottom inset', () => {

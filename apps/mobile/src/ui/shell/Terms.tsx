@@ -26,14 +26,15 @@ import { Image } from "@/ui/lib/image";
 import { Pressable } from "@/ui/lib/pressable";
 import { SafeAreaView } from "@/ui/lib/safe-area-view";
 /** Drawn over the stack, outside the root layout's bottom inset — so this pads all four edges (M12). */
-const ALL_EDGES = ["top", "bottom", "left", "right"] as const;
+/** The bottom strip is padded by the choices bar itself (centred in it), so not here. */
+const EDGES = ["top", "left", "right"] as const;
 import { ScrollView } from "@/ui/lib/scroll-view";
 import { Text } from "@/ui/lib/text";
 import { Box } from "@/ui/lib/box";
 import { LEGAL_TEXT } from "@/legal/texts";
 import { Button, ButtonText } from "@/ui/lib/button";
 import { EDGE, LegalDoc } from "./LegalDoc";
-import { BottomBar } from "@/ui/kit/BottomBar";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon, type IconName } from "@/ui/kit/Icon";
 import { useColours } from "@/ui/kit/useColours";
 import { colour, hit, type Palette } from "@/design";
@@ -197,6 +198,8 @@ export function Terms(props: {
   settings?: Pick<SettingsStore, "get">;
 }): React.ReactElement {
   const c = useColours(props.settings ?? NO_SETTINGS);
+  // The home-bar strip's height, at least 16 pt: the space above and below the choices.
+  const foot = Math.max(useSafeAreaInsets().bottom, 16);
   const [open, setOpen] = useState<LegalDocId | undefined>(undefined);
   // The first document is open when the page appears (owner's reference, 2026-10-03).
   const [expanded, setExpanded] = useState<LegalDocId | undefined>(
@@ -223,7 +226,7 @@ export function Terms(props: {
     );
 
   const page = (
-    <SafeAreaView edges={ALL_EDGES} className="absolute inset-0 bg-background">
+    <SafeAreaView edges={EDGES} className="absolute inset-0 bg-background">
       {/* Full width, so the scroll bar sits on the screen's edge with no gap (owner, 2026-09-29);
           the side margin is on the content instead. Same as LegalDoc. */}
       <ScrollView
@@ -264,9 +267,14 @@ export function Terms(props: {
         </Box>
         <Text className="text-muted text-meta mt-gap">{CONSENT_OUTRO}</Text>
       </ScrollView>
-      {/* Owner, 2026-10-04: the two choices sit in the middle of the bar — the same space above
-          Agree as below Disagree. Disagree keeps its 48 pt tap area through hitSlop, not height. */}
-      <BottomBar tone="page" pad="row">
+      {/* Owner, 2026-10-04 (screenshot: 13 pt above Agree, 48 pt below Disagree): this page is
+          drawn outside the root layout, so its bar sits over the iPhone's home-bar strip. The
+          strip's height goes both above and below the choices, so they sit in the middle of what
+          is seen. Disagree keeps its 48 pt tap area through hitSlop, not height. */}
+      <Box
+        className="border-t-hairline border-separator bg-background px-screen-x"
+        style={{ paddingTop: foot, paddingBottom: foot }}
+      >
         <Choice
           colours={c}
           label="Agree"
@@ -282,7 +290,7 @@ export function Terms(props: {
         >
           <Text className="text-accent text-body font-bold">Disagree</Text>
         </Pressable>
-      </BottomBar>
+      </Box>
     </SafeAreaView>
   );
 
