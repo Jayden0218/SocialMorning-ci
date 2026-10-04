@@ -26,6 +26,7 @@ import { shortDate } from '@/ui/kit/format';
 import { MANAGE_SUBSCRIPTIONS, moneyLabel } from '@/me/money';
 import { useM12Api, type Purchase } from '@/social/m12-api';
 import { PageHeader } from '@/ui/kit/PageHeader';
+import { BottomBar } from '@/ui/kit/BottomBar';
 
 const ROW = { minHeight: size.row };
 /** The empty card is 260 pt tall in `Wallet-B`; the words sit at its foot. */
@@ -78,9 +79,9 @@ export default function WalletScreen(): React.ReactElement {
         </Box>
       )}
     />
-    <Box className="px-screen-x pt-section pb-row bg-surface border-t-hairline border-separator">
+    <BottomBar tone="surface" pad="section">
       <Button kind="secondary" label="Manage subscriptions in the store" onPress={manage} />
-    </Box>
+    </BottomBar>
     </>
   );
 }

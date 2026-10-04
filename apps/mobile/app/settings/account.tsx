@@ -19,7 +19,7 @@ import { Pressable } from '@/ui/lib/pressable';
 import { ScrollView } from '@/ui/lib/scroll-view';
 import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { SafeAreaView } from '@/ui/lib/safe-area-view';
+import { BottomBar } from '@/ui/kit/BottomBar';
 import { useSocial } from '@/social/context';
 import { useStores } from '@/ui/shell/providers';
 import { useColours } from '@/ui/kit/useColours';
@@ -77,15 +77,13 @@ export default function AccountSecurityScreen(): React.ReactElement {
       </Box>
     </ScrollView>
     {/* M12 FR-096: deletion sits one level down, under More — a pushed page (M17), pinned to the foot. */}
-    <SafeAreaView edges={['bottom']} className="bg-background px-screen-x">
-      <Box className="border-t-hairline border-separator">
+    <BottomBar tone="page" pad="none">
         <Pressable onPress={() => router.push('/settings/account-more')} accessibilityRole="button" accessibilityLabel="More account options" className="flex-row items-center gap-gap" style={TAP}>
           <Text className="text-text text-sm font-semibold flex-1">More</Text>
           <Text className="text-muted text-xs">Delete account</Text>
           <Icon name="chevron-forward" size={16} color={c.muted} />
         </Pressable>
-      </Box>
-    </SafeAreaView>
+    </BottomBar>
     </>
   );
 }

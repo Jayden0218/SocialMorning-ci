@@ -33,7 +33,7 @@ import { shortDate } from '@/ui/kit/format';
 import { EmptyPicture } from '@/ui/me/parts';
 import { Icon } from '@/ui/kit/Icon';
 import { Card } from '@/ui/kit/Card';
-import { SafeAreaView } from '@/ui/lib/safe-area-view';
+import { BottomBar } from '@/ui/kit/BottomBar';
 import { useStores, useToast } from '@/ui/shell/providers';
 import { PageHeader } from '@/ui/kit/PageHeader';
 
@@ -123,8 +123,7 @@ export default function FeedbackScreen(): React.ReactElement {
           </Textarea>
           <Text className="text-muted text-micro text-right">{`${images.length} of 3 images`}</Text>
         </ScrollView>
-        <SafeAreaView edges={['bottom']} className="bg-surface border-t border-border">
-          <Box className="flex-row items-center gap-row px-screen-x py-row">
+        <BottomBar tone="surface" line="border" className="flex-row items-center gap-row">
             {images.map((img, i) => (
               <Pressable key={img.uri + i} onPress={() => setImages((cur) => cur.filter((_, j) => j !== i))} accessibilityRole="button" accessibilityLabel={`Remove image ${i + 1}`} style={TILE}>
                 <Image source={{ uri: img.uri }} className="w-12 h-12 rounded-row bg-background" />
@@ -140,8 +139,7 @@ export default function FeedbackScreen(): React.ReactElement {
             ) : null}
             <Box className="flex-1" />
             <Button label={busy ? 'Sending…' : 'Send'} onPress={send} disabled={!ready} className="px-9" />
-          </Box>
-        </SafeAreaView>
+        </BottomBar>
         </>
       ) : (
         <FlatList

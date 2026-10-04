@@ -30,7 +30,7 @@ import { useColours } from '@/ui/kit/useColours';
 import { Icon } from '@/ui/kit/Icon';
 import { PageHeader } from '@/ui/kit/PageHeader';
 import { Card } from '@/ui/kit/Card';
-import { SafeAreaView } from '@/ui/lib/safe-area-view';
+import { BottomBar } from '@/ui/kit/BottomBar';
 import { hit } from '@/design';
 
 export default function AccountMoreScreen(): React.ReactElement {
@@ -111,8 +111,7 @@ export default function AccountMoreScreen(): React.ReactElement {
       )}
     </ScrollView>
     {confirming ? (
-      <SafeAreaView edges={['bottom']} className="bg-background border-t-hairline border-separator">
-        <Box className="flex-row gap-row px-screen-x py-row">
+      <BottomBar tone="page" className="flex-row gap-row">
           <Pressable onPress={() => setConfirming(false)} accessibilityRole="button" accessibilityLabel="Keep my account" className={`${pill} bg-surface border border-border`} style={TAP}><Text className="text-text text-body font-bold">Keep my account</Text></Pressable>
           {codeSent ? (
             <Pressable className={`${pill} bg-primary ${busy || !ready ? 'opacity-40' : ''}`} disabled={busy || code.trim().length !== 6} onPress={remove} accessibilityRole="button" accessibilityLabel="Delete account" accessibilityState={{ disabled: busy || !ready }} style={TAP}>
@@ -123,8 +122,7 @@ export default function AccountMoreScreen(): React.ReactElement {
               <Text className="text-onPrimary text-body font-bold text-center" numberOfLines={2}>Email me a code to confirm</Text>
             </Pressable>
           )}
-        </Box>
-      </SafeAreaView>
+      </BottomBar>
     ) : null}
     </>
   );
