@@ -5,7 +5,7 @@
 @layer theme {
   :root {
     @variant light {
-      --color-background: #fbf8f1;
+      --color-background: #fcf9f5;
       --color-surface: #ffffff;
       --color-border: rgba(17, 17, 20, 0.08);
       --color-text: #16130d;
@@ -18,12 +18,12 @@
       --color-separator: rgba(17, 17, 20, 0.08);
       --color-scrim: rgba(0, 0, 0, 0.40);
       --color-facebook: #1877f2;
-      --color-clear: rgba(251, 248, 241, 0);
+      --color-clear: rgba(252, 249, 245, 0);
       --color-accentTint: rgba(138, 90, 0, 0.14);
-      --color-veil: rgba(251, 248, 241, 0.88);
+      --color-veil: rgba(252, 249, 245, 0.88);
     }
     @variant dark {
-      --color-background: #fbf8f1;
+      --color-background: #fcf9f5;
       --color-surface: #ffffff;
       --color-border: rgba(17, 17, 20, 0.08);
       --color-text: #16130d;
@@ -36,16 +36,16 @@
       --color-separator: rgba(17, 17, 20, 0.08);
       --color-scrim: rgba(0, 0, 0, 0.40);
       --color-facebook: #1877f2;
-      --color-clear: rgba(251, 248, 241, 0);
+      --color-clear: rgba(252, 249, 245, 0);
       --color-accentTint: rgba(138, 90, 0, 0.14);
-      --color-veil: rgba(251, 248, 241, 0.88);
+      --color-veil: rgba(252, 249, 245, 0.88);
     }
   }
 }
 @theme {
   --color-*: initial;
   --color-transparent: transparent;
-  --color-background: #fbf8f1;
+  --color-background: #fcf9f5;
   --color-surface: #ffffff;
   --color-border: rgba(17, 17, 20, 0.08);
   --color-text: #16130d;
@@ -58,9 +58,9 @@
   --color-separator: rgba(17, 17, 20, 0.08);
   --color-scrim: rgba(0, 0, 0, 0.40);
   --color-facebook: #1877f2;
-  --color-clear: rgba(251, 248, 241, 0);
+  --color-clear: rgba(252, 249, 245, 0);
   --color-accentTint: rgba(138, 90, 0, 0.14);
-  --color-veil: rgba(251, 248, 241, 0.88);
+  --color-veil: rgba(252, 249, 245, 0.88);
 }
 @theme inline {
   --text-*: initial;

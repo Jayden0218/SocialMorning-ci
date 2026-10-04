@@ -59,7 +59,7 @@
           "image": "./assets/splash-icon.png",
           "imageWidth": 192,
           "resizeMode": "contain",
-          "backgroundColor": "#fbf8f1"
+          "backgroundColor": "#fcf9f5"
         }
       ],
       "expo-secure-store",

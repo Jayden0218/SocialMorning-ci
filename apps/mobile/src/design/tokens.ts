@@ -18,21 +18,21 @@
  *   a solid button, a chosen chip → `bg-primary` + `text-onPrimary`
  */
 export const colour = {
-  /** The warm paper page. 17.47 against text. */
-  background: '#fbf8f1',
+  /** The warm paper page (owner, 2026-10-04: #fcf9f5, was #fbf8f1). 17.66 against text. */
+  background: '#fcf9f5',
   /** Cards, sheets, the mini player, the tab bar. 18.53 against text. */
   surface: '#ffffff',
   /** Decorative: the 1 px border round a card, chip or tile (1.18 — no text sits on it). */
   border: 'rgba(17,17,20,0.08)',
-  /** 17.47 on background. */
+  /** 17.66 on background. */
   text: '#16130d',
-  /** 6.96 on background, 7.39 on surface — secondary lines. */
+  /** 7.04 on background, 7.39 on surface — secondary lines. */
   muted: '#5c5546',
   /** The brand yellow, from the app icon. A fill only: never words on the page. */
   primary: '#fcc522',
   /** Words and icons on a `primary` fill: 11.80 (muted on the fill 4.63). */
   onPrimary: '#111114',
-  /** 5.59 on background, 5.93 on surface — links, text actions, the listener's own marks. */
+  /** 5.65 on background, 5.93 on surface — links, text actions, the listener's own marks. */
   accent: '#8a5a00',
   /** Decorative: the scrubber's unfilled track. */
   track: 'rgba(17,17,20,0.10)',
@@ -48,11 +48,11 @@ export const colour = {
    */
   facebook: '#1877f2',
   /** Decorative: the page colour at 0 % — where a fade into the page starts. */
-  clear: 'rgba(251,248,241,0)',
+  clear: 'rgba(252,249,245,0)',
   /** M12 FR-053: the disc behind a list row's play glyph — the accent at 14 % (glyph on it 4.60). */
   accentTint: 'rgba(138,90,0,0.14)',
   /** The veil over the player's blurred artwork — the page at 88 % (over black: text 13.29, muted 5.30). */
-  veil: 'rgba(251,248,241,0.88)',
+  veil: 'rgba(252,249,245,0.88)',
 } as const;
 
 export type Palette = { readonly [K in keyof typeof colour]: string };

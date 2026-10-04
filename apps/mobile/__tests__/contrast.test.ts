@@ -15,12 +15,12 @@ import { withAccent } from '@/design/accent';
 const round = (n: number) => Math.round(n * 100) / 100;
 
 it('the measured ratios are the ones the Editorial palette was chosen for', () => {
-  expect(round(contrastRatio(colour.text, colour.background))).toBe(17.47);
-  expect(round(contrastRatio(colour.muted, colour.background))).toBe(6.96);
-  expect(round(contrastRatio(colour.accent, colour.background))).toBe(5.59);
+  expect(round(contrastRatio(colour.text, colour.background))).toBe(17.66);
+  expect(round(contrastRatio(colour.muted, colour.background))).toBe(7.04);
+  expect(round(contrastRatio(colour.accent, colour.background))).toBe(5.65);
   expect(round(contrastRatio(colour.onPrimary, colour.primary))).toBe(11.8);
-  // The heat bars are 50 % black: 3.93 on the warm page, over the 3:1 information floor.
-  expect(round(contrastRatio(colour.bar, colour.background))).toBe(3.93);
+  // The heat bars are 50 % black: 3.94 on the warm page, over the 3:1 information floor.
+  expect(round(contrastRatio(colour.bar, colour.background))).toBe(3.94);
 });
 
 it('G2: every declared pair clears its floor', () => {

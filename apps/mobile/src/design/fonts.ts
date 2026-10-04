@@ -37,6 +37,12 @@ export const fontsStore = {
   subscribe: (f: () => void): (() => void) => { listeners.add(f); return () => { listeners.delete(f); }; },
 };
 
+function markReady(): void {
+  if (ready) return;
+  ready = true;
+  for (const f of listeners) f();
+}
+
 /**
  * Load the faces. Resolves `true` when they are in, `false` when loading failed or took longer
  * than `FONT_WAIT_MS` — it never rejects, so the start-up task list always settles.
@@ -45,12 +51,14 @@ export async function loadFonts(load: (faces: typeof FACES) => Promise<void> = l
   let timer: ReturnType<typeof setTimeout> | undefined;
   const late = new Promise<boolean>((res) => { timer = setTimeout(() => res(false), waitMs); });
   const ok = load(FACES).then(() => true, () => false);
+  // Owner, 2026-10-04 ("why did the font change back?"): fonts that arrived after the wait were
+  // thrown away for the whole session — in a Debug build they come over the cable from Metro and
+  // a reload could miss the 3 s. Start-up still waits at most FONT_WAIT_MS; a late arrival now
+  // switches the app to the fonts as soon as they are in.
+  void ok.then((v) => { if (v) markReady(); });
   const won = await Promise.race([ok, late]);
   if (timer !== undefined) clearTimeout(timer);
-  if (won) {
-    ready = true;
-    for (const f of listeners) f();
-  }
+  if (won) markReady();
   return won;
 }
 

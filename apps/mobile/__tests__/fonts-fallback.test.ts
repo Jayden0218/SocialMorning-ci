@@ -45,3 +45,16 @@ it('a weight class picks its face; display classes pick the serif', () => {
   expect(familyFor('text-text font-display-semibold')).toBe('Lora-SemiBold');
   expect(familyFor(undefined)).toBe('Manrope-Regular');
 });
+
+it('fonts that arrive after the wait still switch on (owner, 2026-10-04: the font "changed back")', async () => {
+  jest.useFakeTimers();
+  let arrive: () => void = () => undefined;
+  const pending = loadFonts(() => new Promise<void>((res) => { arrive = res; }), 3000);
+  jest.advanceTimersByTime(3000);
+  await expect(pending).resolves.toBe(false); // start-up did not wait longer
+  expect(fontsStore.get()).toBe(false);
+  arrive();
+  for (let i = 0; i < 5; i++) await Promise.resolve();
+  expect(fontsStore.get()).toBe(true); // …and the fonts are used once they are in
+  jest.useRealTimers();
+});
