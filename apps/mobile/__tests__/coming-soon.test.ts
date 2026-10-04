@@ -28,8 +28,9 @@ it('G-E7: no "not set up yet" toast is left', () => {
 it('G-E7: sign-in opens Coming soon for a not-ready method, with email as the way in', () => {
   const src = read('app/auth/sign-in.tsx');
   expect(src).toMatch(/useComingSoon\(\)/);
-  expect(src).toMatch(/if \(!m\.ready\) comingSoon\(/);
-  expect(src).toMatch(/label: 'Continue with email'/);
+  // Spacing and quote style are the formatter's, not the behaviour: any of either passes.
+  expect(src).toMatch(/if \(!m\.ready\)\s*comingSoon\(/);
+  expect(src).toMatch(/label:\s*["']Continue with email["']/);
   expect(src).toMatch(/\{comingSoonDialog\}/);
 });
 

@@ -1,7 +1,7 @@
 // Sign-in start page: app name, moving word tiles, ways to sign in, consent box.
 /**
  * The sign-in landing page (owner's reference screenshots, 2026-09-27 and 2026-10-03): the
- * icon, the app's name, a moving row of show covers, then the ways in and the consent box —
+ * icon, the app's name, a moving row of word tiles (covers until 2026-10-04), then the ways in and the consent box —
  * each way in opening its own page. The layout follows the reference; nothing of the
  * reference's own (logo, covers, words) is used.
  *
