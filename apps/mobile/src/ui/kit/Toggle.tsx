@@ -21,6 +21,9 @@ const SIZES = {
   small: { track: { width: 32, height: 18 }, thumb: 14 },
 } as const;
 const TAP = { minHeight: hit.min, minWidth: hit.min };
+/** Owner, 2026-10-04 ("no padding" under All / Newest): the small switch takes no room beyond
+ *  its track; hitSlop stretches the tap to 48 × 48 instead. */
+const SLOP_SMALL = { top: 15, bottom: 15, left: 8, right: 8 };
 
 export function Toggle(props: {
   value: boolean;
@@ -28,7 +31,7 @@ export function Toggle(props: {
   /** What the switch turns on or off — spoken with its state. */
   label: string;
   disabled?: boolean;
-  /** `small`: 32 × 18 instead of 52 × 32. The tap area stays 48 pt either way. */
+  /** `small`: 32 × 18 instead of 52 × 32. The tap area stays 48 pt either way (hitSlop on `small`). */
   size?: keyof typeof SIZES;
 }): React.ReactElement {
   const { track: TRACK, thumb: THUMB } = SIZES[props.size ?? 'regular'];
@@ -55,7 +58,7 @@ export function Toggle(props: {
       accessibilityLabel={props.label}
       accessibilityState={{ checked: props.value, disabled }}
       className={`items-center justify-center ${disabled ? 'opacity-40' : ''}`}
-      style={TAP}
+      {...(props.size === 'small' ? { hitSlop: SLOP_SMALL } : { style: TAP })}
     >
       <Box className={`rounded-pill justify-center ${props.value ? 'bg-primary' : 'bg-separator'}`} style={TRACK}>
         <Animated.View

@@ -80,6 +80,8 @@ export default function DownloadsScreen(): React.ReactElement {
       sections={sections}
       keyExtractor={(r) => r.episodeId}
       stickySectionHeadersEnabled={false}
+      // Owner, 2026-10-04: with nothing downloaded the page stays still; it scrolls once there are episodes (or the settings are open).
+      scrollEnabled={sections.length > 0 || settings}
       contentContainerClassName="px-screen-x pb-section flex-grow"
       className="flex-1 bg-background"
       ListHeaderComponent={
@@ -125,8 +127,9 @@ export default function DownloadsScreen(): React.ReactElement {
       )}
       renderSectionFooter={() => <Box className="h-3.5" />}
       ListEmptyComponent={
-        <Box className="items-center pt-16 gap-section">
-          <Box className="w-28 h-28 rounded-pill bg-surface items-center justify-center" accessible={false}><Icon name="download-outline" size={44} color={c.muted} /></Box>
+        // Owner, 2026-10-04: closer under the card (was 64 pt down, a 112 pt disc) so it fits one screen.
+        <Box className="items-center pt-gap gap-row">
+          <Box className="w-20 h-20 rounded-pill bg-surface items-center justify-center" accessible={false}><Icon name="download-outline" size={32} color={c.muted} /></Box>
           <EmptyState surface="downloads" page />
         </Box>
       }

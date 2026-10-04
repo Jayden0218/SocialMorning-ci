@@ -11,7 +11,7 @@ export type EmptySpec = { sentence: string; action: EmptyAction };
 export const EMPTY_STATES: Record<Surface, EmptySpec> = {
   library:   { sentence: 'No subscriptions yet. Pick something to listen to.', action: { label: 'Discover', route: '/discover' } },
   inbox:     { sentence: 'Nothing new. New episodes of your subscriptions land here.', action: { label: 'Open Library', route: '/' } },
-  queue:     { sentence: 'Nothing queued. Use Add to queue on an episode.', action: { label: 'Open Inbox', route: '/inbox' } },
+  queue:     { sentence: 'Nothing queued. Use Add to queue on an episode.', action: { label: 'Open Discover', route: '/discover' } },
   downloads: { sentence: 'Nothing downloaded yet. Downloads run on Wi-Fi unless you allow mobile data.', action: { label: 'Open Inbox', route: '/inbox' } },
   feed:      { sentence: 'Follow someone and their comments and clips land here.', action: { label: 'Discover', route: '/discover' } },
   followers: { sentence: 'Nobody follows you yet. Share a clip — your name travels with it.', action: { label: 'Open Discover', route: '/discover' } },
