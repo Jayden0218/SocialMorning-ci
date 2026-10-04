@@ -71,8 +71,9 @@ export default function SignInScreen(): React.ReactElement {
     // M17 (FR-014, T112): until the backend is wired, Coming soon says so — with email as the way in.
     if (!m.ready)
       comingSoon({
-        feature: m.label,
-        line: `Signing in with your ${m.short} account is on its way. Email works today.`,
+        feature: `${m.short} sign-in`,
+        mark: m.mark === "google" ? "google" : m.icon,
+        line: `Signing in with ${m.short} is not ready yet. For now, continue with email and we will send you a code.`,
         second: {
           label: "Continue with email",
           onPress: () =>

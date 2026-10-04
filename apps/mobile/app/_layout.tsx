@@ -147,7 +147,9 @@ function RootStack(): React.ReactElement {
               the home page showing on the way (owner, 2026-09-27; see providers). */}
           {/* Signing in is required (owner, 2026-09-27): no swipe back off this page. */}
           <Stack.Screen name="auth/sign-in" options={{ title: 'Sign in', headerShown: false, animation: 'none', gestureEnabled: false }} />
-          <Stack.Screen name="auth/email" options={{ title: 'Sign in with email', headerShown: false }} />
+          {/* No slide either (owner, 2026-10-04): the page opens at once, and the keyboard is
+              not drawn over the half-slid page, which made it flash dark then light. */}
+          <Stack.Screen name="auth/email" options={{ title: 'Sign in with email', headerShown: false, animation: 'none' }} />
           <Stack.Screen name="auth/sign-up" options={{ title: 'Create account', headerShown: false }} />
           <Stack.Screen name="account" options={{ title: 'Account' }} />
           <Stack.Screen name="downloads" options={{ title: 'Downloads' }} />

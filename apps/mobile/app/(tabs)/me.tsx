@@ -45,6 +45,7 @@ export default function MeScreen(): React.ReactElement {
   const [comingSoon, comingSoonDialog] = useComingSoon();
   const openWallet = readStoreReady(stores.settings) ? undefined : () => comingSoon({
     feature: 'Wallet',
+    mark: 'wallet-outline',
     line: 'SocialNet PLUS and paid shows will be bought here, through the App Store or Google Play. Listening stays free.',
     second: { label: 'Open Wallet', onPress: () => router.push('/wallet') },
   });

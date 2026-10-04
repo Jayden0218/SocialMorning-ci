@@ -41,6 +41,15 @@ it('G-E7: Me opens Coming soon for Wallet while the store is off, and keeps the 
   expect(src).toMatch(/<MenuRow href="\/wallet"/);
 });
 
+it('G-E7: Coming soon is the B bottom sheet — a mark tile, never the old centred card', () => {
+  const src = read('src/ui/kit/ComingSoon.tsx');
+  expect(src).toMatch(/<Actionsheet /);
+  expect(src).not.toMatch(/AlertDialog/);
+  expect(src).toMatch(/mark: IconName \| 'google'/);
+  expect(read('app/auth/sign-in.tsx')).toMatch(/mark: m\.mark === "google"/);
+  expect(read('app/(tabs)/me.tsx')).toMatch(/mark: 'wallet-outline'/);
+});
+
 it('the pop-up names no date and no price', () => {
   const lines = [read('app/auth/sign-in.tsx'), read('app/(tabs)/me.tsx')].join('\n').match(/line: [`'][^`']+[`']/g) ?? [];
   expect(lines.length).toBeGreaterThanOrEqual(2);

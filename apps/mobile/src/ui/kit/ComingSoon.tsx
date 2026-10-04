@@ -1,27 +1,49 @@
-// A "Coming soon" box shown when you tap a feature not ready yet.
+// A "Coming soon" sheet shown when you tap a feature not ready yet.
 /**
  * M17 (FR-013, `ComingSoonWallet-B` / `ComingSoonSocialSignIn-B`): what a not-released feature
- * says when it is tapped — instead of a short toast or a control that does nothing. One dialog:
- * "Coming soon", the feature's name, one sentence on what it will do, and "Got it". An optional
- * second action goes somewhere real (e.g. "Continue with email"). Never a date, never a price.
+ * says when it is tapped — instead of a short toast or a control that does nothing. A bottom
+ * sheet (owner, 2026-10-04: as the B designs, not a centred card): the drag handle, the
+ * feature's mark on a tinted tile beside its name in capitals, "Coming soon" in the serif, one
+ * sentence on what it will do, and a yellow "Got it". An optional second action goes somewhere
+ * real (e.g. "Continue with email") as a bold accent text button. Never a date, never a price.
  *
  *   const [comingSoon, dialog] = useComingSoon();
- *   comingSoon({ feature: 'Continue with Google', line: '…', second: { label: 'Continue with email', onPress } });
+ *   comingSoon({ feature: 'Google sign-in', mark: 'google', line: '…', second: { label: 'Continue with email', onPress } });
  *   return <>…{dialog}</>;
  */
 import { useCallback, useState } from 'react';
+import { Image } from 'react-native';
 import { Pressable } from '@/ui/lib/pressable';
 import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { AlertDialog, AlertDialogBackdrop, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader } from '@/ui/lib/alert-dialog';
+import {
+  Actionsheet,
+  ActionsheetBackdrop,
+  ActionsheetContent,
+  ActionsheetDragIndicator,
+  ActionsheetDragIndicatorWrapper,
+} from '@/ui/lib/actionsheet';
 import { hit } from '@/design';
+import { display } from '@/ui/auth/display';
+import { inkOn } from '@/ui/auth/AuthShell';
+import { useStores } from '@/ui/shell/providers';
 import { Eyebrow } from './Eyebrow';
+import { Icon, type IconName } from './Icon';
+import { useColours } from './useColours';
 
+/** Google's own "G", from its sign-in branding kit — shown only as supplied. */
+const GOOGLE_G = require('../../../assets/google-g.png');
+const G = { width: 28, height: 28 };
+/** The design's 56 pt mark tile, 54 pt Got it pill and 48 pt text button. */
+const TILE = { width: 56, height: 56 };
+const PILL = { minHeight: 54 };
 const TAP = { minHeight: hit.min };
 
 export type ComingSoonRequest = {
-  /** The feature's name, e.g. "Continue with Google". */
+  /** The feature's name, shown in capitals, e.g. "Google sign-in". */
   feature: string;
+  /** The feature's mark on the tile: an icon, or Google's "G". */
+  mark: IconName | 'google';
   /** One sentence on what it will do. */
   line: string;
   /** A second action that goes somewhere real. */
@@ -29,30 +51,38 @@ export type ComingSoonRequest = {
 };
 
 export function ComingSoonDialog(props: { request: ComingSoonRequest | undefined; onClose: () => void }): React.ReactElement {
+  const c = useColours(useStores().settings);
   const r = props.request;
   return (
-    <AlertDialog isOpen={r !== undefined} onClose={props.onClose}>
-      <AlertDialogBackdrop />
-      <AlertDialogContent className="bg-surface rounded-row p-section w-full gap-section border border-border" accessibilityViewIsModal>
-        <AlertDialogHeader>
-          <Box className="gap-1">
-            <Eyebrow accent>{r?.feature ?? ''}</Eyebrow>
-            <Text className="text-text text-hero font-display">Coming soon</Text>
+    <Actionsheet isOpen={r !== undefined} onClose={props.onClose}>
+      <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
+      <ActionsheetContent className="bg-surface rounded-t-artwork-lg px-screen-x pt-gap items-stretch" accessibilityViewIsModal>
+        <ActionsheetDragIndicatorWrapper>
+          <ActionsheetDragIndicator />
+        </ActionsheetDragIndicatorWrapper>
+        <Box className="flex-row items-center gap-row mt-row">
+          <Box className="rounded-row bg-accentTint items-center justify-center" style={TILE} accessible={false}>
+            {r?.mark === 'google'
+              ? <Image source={GOOGLE_G} style={G} accessibilityIgnoresInvertColors />
+              : r ? <Icon name={r.mark} size={28} color={c.accent} /> : null}
           </Box>
-        </AlertDialogHeader>
-        <AlertDialogBody><Text className="text-muted text-body">{r?.line ?? ''}</Text></AlertDialogBody>
-        <AlertDialogFooter className="flex-col items-stretch gap-row">
-          <Pressable onPress={props.onClose} accessibilityRole="button" accessibilityLabel="Got it" className="justify-center items-center rounded-pill bg-primary" style={TAP}>
-            <Text className="text-onPrimary text-body font-bold">Got it</Text>
+          <Eyebrow accent>{r?.feature ?? ''}</Eyebrow>
+        </Box>
+        <Text style={display(34, c.text, { leading: 40 })} className="text-text font-display mt-section" accessibilityRole="header">
+          Coming soon
+        </Text>
+        <Text className="text-muted text-[15px] leading-[23px] mt-gap">{r?.line ?? ''}</Text>
+        <Pressable onPress={props.onClose} accessibilityRole="button" accessibilityLabel="Got it" className="items-center justify-center rounded-pill bg-primary mt-screen-x" style={PILL}>
+          <Text className="text-onPrimary text-[15px] font-extrabold" style={{ color: inkOn(c) }}>Got it</Text>
+        </Pressable>
+        {r?.second ? (
+          <Pressable onPress={() => { const go = r.second!.onPress; props.onClose(); go(); }} accessibilityRole="button" accessibilityLabel={r.second.label} className="items-center justify-center mt-1" style={TAP}>
+            <Text className="text-accent text-[15px] font-bold">{r.second.label}</Text>
           </Pressable>
-          {r?.second ? (
-            <Pressable onPress={() => { const go = r.second!.onPress; props.onClose(); go(); }} accessibilityRole="button" accessibilityLabel={r.second.label} className="justify-center items-center rounded-pill border border-border bg-surface" style={TAP}>
-              <Text className="text-text text-body font-bold">{r.second.label}</Text>
-            </Pressable>
-          ) : null}
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+        ) : null}
+        <Box className="h-section" />
+      </ActionsheetContent>
+    </Actionsheet>
   );
 }
 

@@ -124,6 +124,7 @@ export function AuthField(props: TextInputProps & { accessibilityLabel: string; 
       <Input className="bg-transparent rounded-none border-0 border-b-2 border-text px-0 h-auto" style={FIELD}>
         <InputField
           placeholderTextColor={c.muted}
+          keyboardAppearance="light"
           {...field}
           accessibilityLabel={props.accessibilityLabel}
           className="px-0"
@@ -218,6 +219,7 @@ export function CodeCells(props: { value: string; onChange: (v: string) => void 
           value={digits}
           onChangeText={(t) => props.onChange(t.replace(/\D/g, '').slice(0, CELLS))}
           keyboardType="number-pad"
+          keyboardAppearance="light"
           autoComplete="one-time-code"
           textContentType="oneTimeCode"
           maxLength={CELLS}
