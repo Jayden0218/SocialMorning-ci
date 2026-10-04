@@ -16,8 +16,8 @@ import { Box } from '@/ui/lib/box';
 import { Text } from '@/ui/lib/text';
 import { colour, spacing } from '@/design';
 import type { ArtTile, ArtTone } from './art';
-/** One cover forward this often (owner, 2026-10-03). */
-export const ART_STEP_MS = 1000;
+/** One tile forward this often (owner, 2026-10-04: every 2 seconds; was 1). */
+export const ART_STEP_MS = 2000;
 /** How long the animated step takes before the loop may snap back. */
 const SETTLE_MS = 400;
 /** `SignIn-B`: 0 12 28 at 10 % of the text colour. */
