@@ -37,7 +37,8 @@ const CONTRACT = [
   { name: 'Me', href: '/me', before: 1, after: 1 }, // new; counted as the tab it replaced
   { name: 'Chat', href: '/chat', before: 1, after: 1 }, // new (owner, 2026-10-04); a tab from the start
   { name: 'Search', href: '/search', before: 1, after: 1 },
-  { name: 'Inbox', href: '/inbox', before: 1, after: 1 },
+  // Owner, 2026-10-04: the Inbox page is gone; what it listed is the Updates tab (one tap).
+  { name: 'Inbox', href: '/library', before: 1, after: 1 },
   { name: 'Queue', href: '/queue', before: 1, after: 1 },
   { name: 'Downloads', href: '/downloads', before: 1, after: 1 },
   { name: 'Account', href: '/account', before: 2, after: 2 },

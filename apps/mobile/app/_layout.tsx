@@ -159,7 +159,8 @@ function RootStack(): React.ReactElement {
           <Stack.Screen name="account" options={{ title: 'Account' }} />
           <Stack.Screen name="downloads" options={{ title: 'Downloads' }} />
           <Stack.Screen name="queue" options={{ title: 'Queue' }} />
-          <Stack.Screen name="inbox" options={{ title: 'Inbox' }} />
+          {/* Owner, 2026-10-04: /inbox only redirects to Updates. */}
+          <Stack.Screen name="inbox" options={{ title: 'Updates' }} />
           <Stack.Screen name="categories" options={{ title: 'Categories' }} />
           {/* M10: the Me tab's pages. */}
           <Stack.Screen name="subscriptions" options={{ title: 'My subscriptions' }} />

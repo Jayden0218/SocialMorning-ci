@@ -19,7 +19,7 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 | `favourites.tsx` | `/favourites` | Starred episodes and starred comments, in two tabs, with search. |
 | `friends-listening.tsx` | `/friends-listening` | Episodes people you follow played this week, with who and when. |
 | `history.tsx` | `/history` | Listening history by day, with where you stopped; filter to finished only. |
-| `inbox.tsx` | `/inbox` | New episodes from your shows; play, queue, download or dismiss each. |
+| `inbox.tsx` | `/inbox` | No screen: old link, sends you to Updates. |
 | `issues.tsx` | `/issues` | All curated issues, newest first; each opens its list of picks. |
 | `moments.tsx` | `/moments` | Saved moments as a timeline; tap to play from there, edit note, delete. |
 | `my-comments.tsx` | `/my-comments` | Every comment you wrote, with its episode and time; tap to open. |

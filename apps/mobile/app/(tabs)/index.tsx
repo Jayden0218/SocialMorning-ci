@@ -31,7 +31,6 @@ import { useFirstPaint } from "@/discover/first-paint";
 import { useRecOutbox } from "@/recs/useRecOutbox";
 import { useSafety } from "@/safety/context";
 import { useSocial } from "@/social/context";
-import { inboxIds } from "@/me/inbox";
 import { useStores } from "@/ui/shell/providers";
 import { TAB_PAGE_END } from "@/ui/kit/Screen";
 import { Eyebrow } from "@/ui/kit/Eyebrow";
@@ -89,7 +88,6 @@ export default function DiscoverScreen(): React.ReactElement {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [view, forYou.view, hiddenFeeds, sets, version],
   );
-  const inbox = inboxIds(stores).length;
   // The search box's middle cycles through what is trending (owner, 2026-09-27).
   const hints = useMemo(() => trendingHints(model.chart), [model]);
   const [tick, setTick] = useState(0);
@@ -256,11 +254,7 @@ export default function DiscoverScreen(): React.ReactElement {
                 icon: "grid-outline",
                 onPress: allCategories,
               },
-              {
-                label: inbox > 0 ? `Inbox (${inbox})` : "Inbox",
-                icon: "file-tray-outline",
-                onPress: () => router.push("/inbox"),
-              },
+              // Owner, 2026-10-04: no Inbox tile — it showed what Updates shows.
               {
                 label: "Queue",
                 icon: "list-outline",

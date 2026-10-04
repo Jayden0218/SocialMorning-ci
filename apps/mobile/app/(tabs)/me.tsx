@@ -25,7 +25,6 @@ import { hit } from '@/design';
 import { useColours } from '@/ui/kit/useColours';
 import { Icon } from '@/ui/kit/Icon';
 import { createFeed } from '@/graph/feed';
-import { inboxIds } from '@/me/inbox';
 import { listMoments } from '@/me/moments';
 import { useSocial } from '@/social/context';
 import { Card, CardDivider } from '@/ui/kit/Card';
@@ -52,9 +51,9 @@ export default function MeScreen(): React.ReactElement {
   const c = useColours(stores.settings);
   const { api, listener } = useSocial();
   const feed = useMemo(() => createFeed({ api, cache: stores.feedCache, settings: stores.settings, now: () => Date.now() }), [api, stores]);
-  const [counts, setCounts] = useState({ unread: 0, moments: 0, inbox: 0 });
+  const [counts, setCounts] = useState({ unread: 0, moments: 0 });
   useFocusEffect(useCallback(() => {
-    setCounts({ unread: listener ? feed.unread(feed.cached()?.items ?? []) : 0, moments: listMoments(stores.settings).length, inbox: inboxIds(stores).length });
+    setCounts({ unread: listener ? feed.unread(feed.cached()?.items ?? []) : 0, moments: listMoments(stores.settings).length });
   }, [feed, listener, stores]));
 
   return (
@@ -113,20 +112,23 @@ export default function MeScreen(): React.ReactElement {
         <Box className="gap-gap mt-section">
           <Box className="flex-row gap-gap">
             <Link href="/notifications" asChild accessibilityLabel="Notifications"><MenuTile icon="notifications-outline" label="Notifications" {...(counts.unread > 0 ? { badge: counts.unread } : {})} /></Link>
-            <Link href="/inbox" asChild accessibilityLabel="Inbox"><MenuTile icon="file-tray-outline" label="Inbox" {...(counts.inbox > 0 ? { badge: counts.inbox } : {})} /></Link>
-          </Box>
-          <Box className="flex-row gap-gap">
+            {/* Owner, 2026-10-04: no Inbox tile — it showed what the Updates tab shows; the tiles move up one. */}
             <Link href="/downloads" asChild accessibilityLabel="Downloads"><MenuTile icon="download-outline" label="Downloads" /></Link>
+          </Box>
+          <Box className="flex-row gap-gap">
             <Link href="/history" asChild accessibilityLabel="Listening history"><MenuTile icon="time-outline" label="Listening history" /></Link>
-          </Box>
-          <Box className="flex-row gap-gap">
             <Link href="/favourites" asChild accessibilityLabel="Favourites"><MenuTile icon="star-outline" label="Favourites" /></Link>
-            <Link href="/my-comments" asChild accessibilityLabel="My comments"><MenuTile icon="chatbubble-outline" label="My comments" /></Link>
           </Box>
           <Box className="flex-row gap-gap">
+            <Link href="/my-comments" asChild accessibilityLabel="My comments"><MenuTile icon="chatbubble-outline" label="My comments" /></Link>
             <Link href="/queue" asChild accessibilityLabel="Queue"><MenuTile icon="list-outline" label="Queue" /></Link>
-            {listener ? <Link href="/creator" asChild accessibilityLabel="Creator centre"><MenuTile icon="mic-outline" label="Creator centre" /></Link> : <Box className="flex-1" />}
           </Box>
+          {listener ? (
+            <Box className="flex-row gap-gap">
+              <Link href="/creator" asChild accessibilityLabel="Creator centre"><MenuTile icon="mic-outline" label="Creator centre" /></Link>
+              <Box className="flex-1" />
+            </Box>
+          ) : null}
         </Box>
 
         <Card className="mt-row">

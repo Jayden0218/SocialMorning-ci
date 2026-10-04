@@ -310,5 +310,53 @@
   "to": "/category/[id] | `${s.title}, ${s.author}…` (the card's accessibilityLabel) | /show/[feedUrl]",
   "why": "the whole card is now the tap area (owner, 2026-10-04: \"I press a podcast and can't go in\"); same show link, named by its accessibilityLabel — the title Text sits past the inventory's 6-line window",
   "task": "tidy"
+ },
+ {
+  "surface": "/me",
+  "name": "Inbox",
+  "destination": "/inbox",
+  "to": "removed",
+  "why": "the Inbox page removed (owner, 2026-10-04: \"the inbox is same with updates\") — /inbox now redirects to the Updates tab, which lists the same new episodes",
+  "task": "owner-2026-10-04"
+ },
+ {
+  "surface": "/inbox",
+  "name": "Load more",
+  "destination": "setShown",
+  "to": "removed",
+  "why": "the Inbox page removed (owner, 2026-10-04: \"the inbox is same with updates\") — /inbox now redirects to the Updates tab, which lists the same new episodes",
+  "task": "owner-2026-10-04"
+ },
+ {
+  "surface": "/inbox",
+  "name": "{show?.title ?? ''}",
+  "destination": "/episode/[id]",
+  "to": "removed",
+  "why": "the Inbox page removed (owner, 2026-10-04: \"the inbox is same with updates\") — /inbox now redirects to the Updates tab, which lists the same new episodes",
+  "task": "owner-2026-10-04"
+ },
+ {
+  "surface": "/inbox",
+  "name": "Play",
+  "destination": "/player",
+  "to": "removed",
+  "why": "the Inbox page removed (owner, 2026-10-04: \"the inbox is same with updates\") — /inbox now redirects to the Updates tab, which lists the same new episodes",
+  "task": "owner-2026-10-04"
+ },
+ {
+  "surface": "/inbox",
+  "name": "Download",
+  "destination": "leave",
+  "to": "removed",
+  "why": "the Inbox page removed (owner, 2026-10-04: \"the inbox is same with updates\") — /inbox now redirects to the Updates tab, which lists the same new episodes",
+  "task": "owner-2026-10-04"
+ },
+ {
+  "surface": "/inbox",
+  "name": "Dismiss",
+  "destination": "leave",
+  "to": "removed",
+  "why": "the Inbox page removed (owner, 2026-10-04: \"the inbox is same with updates\") — /inbox now redirects to the Updates tab, which lists the same new episodes",
+  "task": "owner-2026-10-04"
  }
 ]
