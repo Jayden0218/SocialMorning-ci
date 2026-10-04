@@ -15,10 +15,12 @@ export function useForYou(signedInArg: boolean) {
   const signedIn = signedInArg && getPref(stores.settings, 'personalRecs');
   const forYou = useMemo(() => createForYou({ api, cache: stores.feedCache, now: () => Date.now() }), [api, stores]);
   const [view, setView] = useState<ForYouView | undefined>(() => (signedIn ? forYou.cached() : undefined));
+  // The first load is over: at once when signed out or with a saved copy, else after the first fetch.
+  const [settled, setSettled] = useState(() => !signedIn || view !== undefined);
   const refresh = useCallback(async () => {
-    if (!signedIn) { setView(undefined); return; }
-    try { const v = await forYou.refresh(); if (v) setView(v); } catch { /* the cached copy stands */ }
+    if (!signedIn) { setView(undefined); setSettled(true); return; }
+    try { const v = await forYou.refresh(); if (v) setView(v); } catch { /* the cached copy stands */ } finally { setSettled(true); }
   }, [forYou, signedIn]);
   useFocusEffect(useCallback(() => { void refresh(); }, [refresh]));
-  return { view, refresh };
+  return { view, refresh, settled };
 }

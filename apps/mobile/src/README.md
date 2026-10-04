@@ -31,6 +31,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `cache.ts` | Keeps the last Discover page so it still shows when offline. |
 | `category-list.ts` | Sorts and filters the shows on a category page. |
 | `end-offer.ts` | Decides which episode to suggest when one ends and the queue is empty. |
+| `first-paint.ts` | Holds the Discover page back until its data is in, so it appears whole, not piece by piece. |
 | `genres.ts` | Lists Apple's podcast categories with their icons. |
 | `local-search.ts` | Searches your subscribed shows and their episodes on the phone, offline. |
 | `open.ts` | Opens an episode card, fetching its show's feed first if needed. |

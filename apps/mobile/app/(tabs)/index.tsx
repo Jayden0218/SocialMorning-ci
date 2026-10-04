@@ -27,6 +27,7 @@ import { Loader } from '@/ui/kit/Loader';
 import { usePullRefresh } from '@/ui/kit/PullRefresh';
 import { useDiscover } from '@/discover/useDiscover';
 import { useForYou } from '@/recs/useForYou';
+import { useFirstPaint } from '@/discover/first-paint';
 import { useRecOutbox } from '@/recs/useRecOutbox';
 import { useSafety } from '@/safety/context';
 import { useSocial } from '@/social/context';
@@ -49,7 +50,7 @@ export default function DiscoverScreen(): React.ReactElement {
   const router = useRouter();
   const stores = useStores();
   const search = useSearchOverlay();
-  const { view, refreshing, refresh, open, play } = useDiscover();
+  const { view, refreshing, refresh, open, play, settled } = useDiscover();
   const { listener } = useSocial();
   const { sets, hiddenFeeds, version } = useSafety();
   const forYou = useForYou(listener !== undefined);
@@ -78,6 +79,7 @@ export default function DiscoverScreen(): React.ReactElement {
   // not the page of genre choices.
   const allCategories = () => router.push({ pathname: '/category/[id]', params: { id: String(GENRES[0]!.id) } });
   const pull = usePullRefresh(refreshing, () => void refreshBoth());
+  const shown = useFirstPaint(settled && forYou.settled);
   const act = { onOpen: (c: Parameters<typeof open>[0]) => void open(c), onPlay: (c: Parameters<typeof play>[0]) => void play(c) };
   const categoryStrip = view ? <CategoryStrip onGenre={(id) => router.push({ pathname: '/category/[id]', params: { id: String(id) } })} onAll={allCategories} /> : null;
   const section = (id: SectionId): React.ReactNode => {
@@ -95,6 +97,16 @@ export default function DiscoverScreen(): React.ReactElement {
       case 'newShows': return <NewShowsSection items={model.newShows} {...act} />;
     }
   };
+
+  // Owner, 2026-10-04: the page appears whole — the loading mark until Discover and For You have
+  // both had their first answer (or FIRST_PAINT_CAP_MS), then everything at once.
+  if (!shown) {
+    return (
+      <SafeAreaView className="flex-1 bg-background items-center justify-center">
+        <Loader />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-background">

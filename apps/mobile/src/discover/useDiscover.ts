@@ -34,20 +34,23 @@ export function useDiscover() {
     return c ? { ...c, stale: false } : undefined;
   });
   const [refreshing, setRefreshing] = useState(false);
+  // Owner, 2026-10-04: the page shows whole, not piece by piece — `settled` says the first load is
+  // over (at once with a saved copy; else when the first fetch succeeds or fails).
+  const [settled, setSettled] = useState(() => view !== undefined);
   const refresh = useCallback(async () => {
     setRefreshing(true);
-    try { const v = await discover.refresh(); if (v) setView(v); } catch { /* the cached copy stands */ } finally { setRefreshing(false); }
+    try { const v = await discover.refresh(); if (v) setView(v); } catch { /* the cached copy stands */ } finally { setRefreshing(false); setSettled(true); }
   }, [discover]);
   // M12 NEW-9 (found on the iPhone): every focus used to refresh through the pull spinner,
   // pushing the page down ~50 pt after each back-swipe. A focus now refreshes quietly, and
   // only when the copy is older than FOCUS_REFRESH_MS; pulling still shows the spinner.
   const quiet = useCallback(async () => {
     if (!dueForRefresh(view?.fetchedAt, Date.now())) return;
-    try { const v = await discover.refresh(); if (v) setView(v); } catch { /* the cached copy stands */ }
+    try { const v = await discover.refresh(); if (v) setView(v); } catch { /* the cached copy stands */ } finally { setSettled(true); }
   }, [discover, view?.fetchedAt]);
   useFocusEffect(useCallback(() => { void quiet(); }, [quiet]));
   const { open, play } = useCardActions();
-  return { view, refreshing, refresh, open, play };
+  return { view, refreshing, refresh, open, play, settled };
 }
 
 /**
