@@ -32,8 +32,7 @@
  */
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ScrollView } from 'react-native';
-import { Share } from 'react-native';
+import { Clipboard, Linking, ScrollView, Share } from 'react-native';
 import { useSharePanel } from '@/ui/clips/ShareChooser';
 import { FlatList } from '@/ui/lib/flat-list';
 import { Pressable } from '@/ui/lib/pressable';
@@ -50,7 +49,7 @@ import { HeroArtwork } from '@/ui/episode/HeroArtwork';
 import { BarButton, TAP, TopBar } from '@/ui/kit/TopBar';
 import { useSafety } from '@/safety/context';
 import { ReportSheet, type ReportTarget } from '@/ui/comments/ReportSheet';
-import { useStores, useSubscriptionSync } from '@/ui/shell/providers';
+import { useStores, useSubscriptionSync, useToast } from '@/ui/shell/providers';
 import type { CachedEpisode, CachedShow } from '@/storage/types';
 import { getPref } from '@/settings/prefs';
 import { ShowExtrasBlock, useShowExtras } from '@/ui/show/ShowExtras';
@@ -77,6 +76,7 @@ const ROUND = 'w-12 h-12 rounded-pill bg-surface border border-border items-cent
 
 export default function ShowScreen(): React.ReactElement {
   const stores = useStores();
+  const toast = useToast();
   const subscriptionSync = useSubscriptionSync();
   const router = useRouter();
   const params = useLocalSearchParams<{ feedUrl: string }>();
@@ -192,7 +192,6 @@ export default function ShowScreen(): React.ReactElement {
   const allowed = getPref(stores.settings, 'hideExplicit') ? episodes.filter((e) => !e.explicit) : episodes;
   const playsKnown = hasPlays(counts.listeners);
   // "Most played" hides with no counts; the list then reads as "All" (orderEpisodes agrees).
-  const chips: ListView[] = playsKnown ? ['all', 'mostPlayed'] : ['all'];
   const activeView: ListView = playsKnown ? view : 'all';
   const ordered = orderEpisodes(allowed, {
     oldestFirst, view, unplayedOnly,
@@ -219,7 +218,22 @@ export default function ShowScreen(): React.ReactElement {
   const latestAnnouncement = extras?.announcements[0]; // the server sends newest first
   const shareShow = () => {
     void api.recordShare({ targetKind: 'show', targetId: feedUrl, feedUrl }).catch(() => undefined); // M11 FR-011: never waits
-    share({ heading: 'Share this show', more: { detail: 'other apps', run: () => void Share.share({ message: `${title ?? ''}\n${feedUrl}` }).catch(() => undefined) } });
+    // Owner, 2026-10-05 ("all"): the show's own options before "More". There is no show web page,
+    // so the link is the feed, as before. WhatsApp and Telegram open by their https share links
+    // (no app scheme to declare); without the app they open in the browser.
+    const message = `${title ?? ''}\n${feedUrl}`;
+    const open = (url: string, app: string) => void Linking.openURL(url).catch(() => toast(`Couldn't open ${app}.`));
+    share({
+      heading: 'Share this show',
+      ...(title ? { subtitle: title } : {}),
+      rows: [
+        { icon: 'link-outline', label: 'Copy link', onPress: () => { Clipboard.setString(feedUrl); toast('Link copied.'); } },
+        { icon: 'chatbubbles-outline', label: 'Send in chat', onPress: () => router.push({ pathname: '/chat/new', params: { text: message } }) },
+        { icon: 'logo-whatsapp', label: 'WhatsApp', onPress: () => open(`https://wa.me/?text=${encodeURIComponent(message)}`, 'WhatsApp') },
+        { icon: 'paper-plane-outline', label: 'Telegram', onPress: () => open(`https://t.me/share/url?url=${encodeURIComponent(feedUrl)}&text=${encodeURIComponent(title ?? '')}`, 'Telegram') },
+      ],
+      more: { detail: 'other apps', run: () => void Share.share({ message }).catch(() => undefined) },
+    });
   };
   const header = (
     <Box>
@@ -266,7 +280,7 @@ export default function ShowScreen(): React.ReactElement {
         {/* Owner, 2026-10-01: the newest announcement as one card under the header. */}
         {latestAnnouncement ? <AnnouncementCard announcement={latestAnnouncement} iconColour={c.text} /> : null}
         {extras ? <ShowExtrasBlock extras={extras} onPoll={replacePoll} noAnnouncements /> : null}
-        {/* M17: Episodes / About as a pill track; order and the Unplayed filter on the same line. */}
+        {/* M17: Episodes / About as a pill track (owner, 2026-10-05: order and filter moved to the row under it). */}
         <Box className="flex-row items-center gap-gap">
           <Box className="flex-row gap-1 p-1 bg-surface border border-border rounded-pill" accessibilityRole="tablist">
             {(['episodes', 'about'] as const).map((t) => (
@@ -277,33 +291,28 @@ export default function ShowScreen(): React.ReactElement {
               </Pressable>
             ))}
           </Box>
-          <Box className="flex-1" />
-          {tab === 'episodes' && episodes.length > 0 ? (
-            <>
-              <Pressable onPress={() => setOldestFirst((o) => !o)} accessibilityRole="button" accessibilityLabel={oldestFirst ? 'Oldest first. Show newest first' : 'Newest first. Show oldest first'} className="flex-row items-center justify-center gap-1" style={TAP}>
-                <Icon name="swap-vertical-outline" size={18} color={c.muted} />
-                <Text className="text-xs text-muted">{oldestFirst ? 'Oldest' : 'Newest'}</Text>
-              </Pressable>
-              <Pressable onPress={() => setUnplayedOnly((u) => !u)} accessibilityRole="button" accessibilityLabel={unplayedOnly ? 'Showing unplayed only. Show all' : 'Show unplayed only'} accessibilityState={{ selected: unplayedOnly }} className="items-center justify-center" style={TAP}>
-                {/* Filled vs outline, and the name — never hue alone (FR-016). */}
-                <Icon name={unplayedOnly ? 'funnel' : 'funnel-outline'} size={18} color={unplayedOnly ? c.accent : c.muted} />
-              </Pressable>
-            </>
-          ) : null}
         </Box>
       </Box>
       {tab === 'episodes' && episodes.length > 0 ? (
-        <Box className="px-screen-x">
-          {/* M17: All / Most played as underlined tabs; the chosen one has a yellow line under it. */}
-          <Box className="flex-row gap-section" accessibilityRole="tablist">
-            {chips.map((v) => (
-              <Pressable key={v} onPress={() => setView(v)} accessibilityRole="tab" accessibilityState={{ selected: activeView === v }} accessibilityLabel={v === 'all' ? 'All' : 'Most played'}
-                className="justify-center" style={TAP}>
-                <Text className={activeView === v ? 'text-meta font-bold text-text' : 'text-meta text-muted'}>{v === 'all' ? 'All' : 'Most played'}</Text>
-                <Box className={`h-0.5 mt-1 rounded-pill ${activeView === v ? 'bg-primary' : 'bg-clear'}`} />
-              </Pressable>
-            ))}
-          </Box>
+        <Box className="px-screen-x flex-row items-center gap-gap">
+          {/* Owner, 2026-10-05: no "All" tab — "Most played" is one switch (tap again for the feed's
+              order) — and Newest and the Unplayed filter sit on this row, at its right. */}
+          {playsKnown ? (
+            <Pressable onPress={() => setView((v) => (v === 'mostPlayed' ? 'all' : 'mostPlayed'))} accessibilityRole="button" accessibilityState={{ selected: activeView === 'mostPlayed' }} accessibilityLabel="Most played"
+              className="justify-center" style={TAP}>
+              <Text className={activeView === 'mostPlayed' ? 'text-meta font-bold text-text' : 'text-meta text-muted'}>Most played</Text>
+              <Box className={`h-0.5 mt-1 rounded-pill ${activeView === 'mostPlayed' ? 'bg-primary' : 'bg-clear'}`} />
+            </Pressable>
+          ) : null}
+          <Box className="flex-1" />
+          <Pressable onPress={() => setOldestFirst((o) => !o)} accessibilityRole="button" accessibilityLabel={oldestFirst ? 'Oldest first. Show newest first' : 'Newest first. Show oldest first'} className="flex-row items-center justify-center gap-1" style={TAP}>
+            <Icon name="swap-vertical-outline" size={18} color={c.muted} />
+            <Text className="text-xs text-muted">{oldestFirst ? 'Oldest' : 'Newest'}</Text>
+          </Pressable>
+          <Pressable onPress={() => setUnplayedOnly((u) => !u)} accessibilityRole="button" accessibilityLabel={unplayedOnly ? 'Showing unplayed only. Show all' : 'Show unplayed only'} accessibilityState={{ selected: unplayedOnly }} className="items-center justify-center" style={TAP}>
+            {/* Filled vs outline, and the name — never hue alone (FR-016). */}
+            <Icon name={unplayedOnly ? 'funnel' : 'funnel-outline'} size={18} color={unplayedOnly ? c.accent : c.muted} />
+          </Pressable>
         </Box>
       ) : null}
     </Box>

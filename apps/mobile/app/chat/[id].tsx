@@ -4,7 +4,7 @@
  * (tap → their profile). Messages arrive by polling `after` the newest id every 5 s while the
  * page is open. The box at the bottom sends text (≤ 1000 characters); a page opened from
  * Share → "Send in chat" carries `episodeId` and shows that episode above the box until it is
- * sent or removed. When the two of you no longer follow each other, the box is replaced by a
+ * sent or removed; a show's Share carries `text`, which starts in the box (owner, 2026-10-05). When the two of you no longer follow each other, the box is replaced by a
  * line that says why — the history stays.
  */
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
@@ -33,7 +33,7 @@ const TAP = { minHeight: hit.min };
 const BOX = { minHeight: hit.min, maxHeight: 120 };
 
 export default function ChatThread(): React.ReactElement {
-  const params = useLocalSearchParams<{ id: string; name?: string; episodeId?: string; episodeTitle?: string }>();
+  const params = useLocalSearchParams<{ id: string; name?: string; episodeId?: string; episodeTitle?: string; text?: string }>();
   const otherId = String(params.id);
   const stores = useStores();
   const c = useColours(stores.settings);
@@ -48,7 +48,7 @@ export default function ChatThread(): React.ReactElement {
   const [canSend, setCanSend] = useState(true);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | undefined>();
-  const [draft, setDraft] = useState('');
+  const [draft, setDraft] = useState(params.text ? String(params.text) : '');
   const [attach, setAttach] = useState<{ id: string; title: string } | undefined>(
     params.episodeId ? { id: String(params.episodeId), title: String(params.episodeTitle ?? 'Episode') } : undefined,
   );

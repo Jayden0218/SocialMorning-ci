@@ -3,7 +3,8 @@
  * New chat (owner, 2026-10-04) at `/chat/new`: the people you follow who also follow you, by
  * name. Tap one to open the conversation. From Share → "Send in chat" the page carries
  * `episodeId` and `episodeTitle`, says "Send to", and hands the episode to the conversation,
- * where it waits above the message box until it is sent.
+ * where it waits above the message box until it is sent. Owner, 2026-10-05: a show's Share carries
+ * `text` (its name and link) instead, which waits in the message box.
  */
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
@@ -23,7 +24,7 @@ const TAP = { minHeight: hit.min };
 type State = { kind: 'loading' } | { kind: 'error' } | { kind: 'ok'; friends: ChatPerson[] };
 
 export default function NewChat(): React.ReactElement {
-  const params = useLocalSearchParams<{ episodeId?: string; episodeTitle?: string }>();
+  const params = useLocalSearchParams<{ episodeId?: string; episodeTitle?: string; text?: string }>();
   const { listener } = useSocial();
   const chat = useChatApi();
   const [state, setState] = useState<State>({ kind: 'loading' });
@@ -34,8 +35,10 @@ export default function NewChat(): React.ReactElement {
   }, [chat, listener]);
   useEffect(() => { load(); }, [load]);
 
-  const sharing = params.episodeId !== undefined && params.episodeId !== '';
-  const header = <PageHeader title={sharing ? 'Send to' : 'New chat'} {...(sharing ? { subtitle: String(params.episodeTitle ?? '') } : {})} />;
+  const sharingEpisode = params.episodeId !== undefined && params.episodeId !== '';
+  const sharingText = params.text !== undefined && params.text !== '';
+  const sharing = sharingEpisode || sharingText;
+  const header = <PageHeader title={sharing ? 'Send to' : 'New chat'} {...(sharingEpisode ? { subtitle: String(params.episodeTitle ?? '') } : {})} />;
   if (!listener) {
     return (
       <>
@@ -53,7 +56,7 @@ export default function NewChat(): React.ReactElement {
   const pick = (p: ChatPerson) => {
     router.replace({
       pathname: '/chat/[id]',
-      params: { id: p.id, name: p.displayName, ...(sharing ? { episodeId: String(params.episodeId), episodeTitle: String(params.episodeTitle ?? '') } : {}) },
+      params: { id: p.id, name: p.displayName, ...(sharingEpisode ? { episodeId: String(params.episodeId), episodeTitle: String(params.episodeTitle ?? '') } : {}), ...(sharingText ? { text: String(params.text) } : {}) },
     });
   };
 

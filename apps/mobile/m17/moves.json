@@ -366,5 +366,13 @@
   "to": "ShareChooser | Close | props.onClose",
   "why": "Cancel at the foot of the share panel became an × at the top right, level with the drag bar (owner, 2026-10-05: \"remove the cancel button, and add a x in the right top\"); same handler",
   "task": "owner 2026-10-05"
+ },
+ {
+  "surface": "/show/[feedUrl]",
+  "name": "v === 'all' ? 'All' : 'Most played'",
+  "destination": "setView",
+  "to": "/show/[feedUrl] | Most played | setView",
+  "why": "the All / Most played tabs became one Most played switch (tap again returns to the feed's order); owner, 2026-10-05: \"for the all in the podcast page, i want u remove it\"",
+  "task": "owner 2026-10-05"
  }
 ]
