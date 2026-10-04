@@ -145,8 +145,14 @@ export default function CategoryScreen(): React.ReactElement {
               <Pressable key={g.id} onPress={() => pick(g.id)}
                 onLayout={(e) => { tileX.current.set(g.id, e.nativeEvent.layout.x); if (on && !scrolled.current) { scrolled.current = true; showTile(g.id, false); } }}
                 accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={g.name}
-                className={`justify-center border-b-2 ${on ? 'border-primary' : 'border-clear'}`} style={TAP}>
-                <Text className={on ? 'text-text text-body font-bold' : 'text-muted text-body'} numberOfLines={1}>{g.name}</Text>
+                className="justify-center" style={TAP}>
+                {/* Owner, 2026-10-04: the yellow line sits just under the word (it was at the foot of
+                    the 48 pt tap area, about 14 pt below). */}
+                <Box>
+                  <Text className={on ? 'text-text text-body font-bold' : 'text-muted text-body'} numberOfLines={1}>{g.name}</Text>
+                  {/* A bar with round ends, not a border (a border's ends are square). */}
+                  <Box className={`h-[3px] rounded-pill mt-1 ${on ? 'bg-primary' : 'bg-clear'}`} />
+                </Box>
               </Pressable>
             );
           })}
