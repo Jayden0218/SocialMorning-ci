@@ -2,8 +2,10 @@
 import { cachedCategory, categoryKey, fetchCategory, forgetCategories, warmCategories, WARM_FRESH_MS } from '@/discover/category-cache';
 import type { ApiClient, CategoryShows } from '@/social/api';
 import { createMemoryFeedCacheStore } from '@/storage/memory';
+import { Image } from 'react-native';
 
-jest.mock('react-native', () => ({ Image: { prefetch: async () => true } }));
+// Replacing all of react-native breaks jest-expo's setup; only the cover prefetch is stubbed.
+jest.spyOn(Image, 'prefetch').mockResolvedValue(true);
 
 const list = (genreId: number, title = 'A'): CategoryShows => ({ genreId, name: 'Business', shows: [{ feedUrl: `https://f/${title}`, title, author: 'x', genres: [], imageUrl: 'https://i/1.jpg' }] });
 const flush = () => new Promise((r) => setTimeout(r, 0));

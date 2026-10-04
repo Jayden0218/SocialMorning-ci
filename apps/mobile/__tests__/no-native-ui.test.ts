@@ -46,7 +46,8 @@ it('no screen turns the native header back on', () => {
 
 it('every page in the stack draws the app\'s own bar', () => {
   expect(routes.length).toBeGreaterThanOrEqual(40); // the scan found the pages — otherwise this proves nothing
-  const bare = routes.filter((f) => !/<(PageHeader|TopBar|FollowList)\b/.test(readFileSync(join(ROOT, f), 'utf8')));
+  // A page that only redirects (`/inbox` → Updates, owner 2026-10-04) draws nothing, so needs no bar.
+  const bare = routes.filter((f) => !/<(PageHeader|TopBar|FollowList|Redirect)\b/.test(readFileSync(join(ROOT, f), 'utf8')));
   expect(bare).toEqual([]);
 });
 
