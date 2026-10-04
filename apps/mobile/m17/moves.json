@@ -302,5 +302,13 @@
   "to": "Segmented | it.accessibilityLabel ?? it.label | props.onChange",
   "why": "All / Newest now drawn by the shared Segmented in the Notifications style (owner, 2026-10-04); same names, onChange calls setSort",
   "task": "tidy"
+ },
+ {
+  "surface": "/category/[id]",
+  "name": "{s.title}",
+  "destination": "/show/[feedUrl]",
+  "to": "/category/[id] | `${s.title}, ${s.author}…` (the card's accessibilityLabel) | /show/[feedUrl]",
+  "why": "the whole card is now the tap area (owner, 2026-10-04: \"I press a podcast and can't go in\"); same show link, named by its accessibilityLabel — the title Text sits past the inventory's 6-line window",
+  "task": "tidy"
  }
 ]

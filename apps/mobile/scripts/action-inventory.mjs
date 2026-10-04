@@ -69,7 +69,8 @@ const nameOf = (block, tag) => {
 const destinationOf = (block) => {
   const href = prop(block, 'href');
   if (href) return href;
-  const push = /router\.(push|replace|navigate|back)\(\s*(?:'([^']*)'|`([^`]*)`|\{\s*pathname:\s*'([^']*)'|\))?/.exec(block);
+  // Single or double quotes: a formatter pass (owner, 2026-10-04) writes "…".
+  const push = /router\.(push|replace|navigate|back)\(\s*(?:['"]([^'"]*)['"]|`([^`]*)`|\{\s*pathname:\s*['"]([^'"]*)['"]|\))?/.exec(block);
   if (push) return push[1] === 'back' ? 'back' : (push[2] ?? push[3] ?? push[4] ?? 'dynamic');
   for (const p of ['onPress', 'onValueChange', 'onChangeText', 'onSubmitEditing', 'onLongPress']) {
     const v = prop(block, p);
