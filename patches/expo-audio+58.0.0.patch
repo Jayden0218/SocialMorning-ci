@@ -82,7 +82,7 @@ index a326438..e69093a 100644
          runOnMain {
            player.currentTime
 diff --git a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
-index f3ad9d3..4ea7e1d 100644
+index f3ad9d3..c8b1494 100644
 --- a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
 +++ b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
 @@ -20,7 +20,11 @@ import androidx.media3.common.Player
@@ -106,7 +106,16 @@ index f3ad9d3..4ea7e1d 100644
    private lateinit var audioManager: AudioManager
    private val binder = AudioPlaybackServiceBinder(this)
    private var mediaSession: MediaSession? = null
-@@ -131,6 +135,7 @@ class AudioControlsService : MediaSessionService() {
+@@ -90,6 +94,8 @@ class AudioControlsService : MediaSessionService() {
+ 
+         ACTION_SEEK_FORWARD -> seekForward()
+         ACTION_SEEK_BACKWARD -> seekBackward()
++        ACTION_SEEK_BACK_5MIN -> seekBy(-FIVE_MINUTES_MS)
++        ACTION_SEEK_FORWARD_5MIN -> seekBy(FIVE_MINUTES_MS)
+         ACTION_NEXT_TRACK -> nextTrack()
+         ACTION_PREVIOUS_TRACK -> previousTrack()
+       }
+@@ -131,6 +137,7 @@ class AudioControlsService : MediaSessionService() {
    override fun onCreate() {
      super.onCreate()
      audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
@@ -114,7 +123,38 @@ index f3ad9d3..4ea7e1d 100644
      createNotificationChannelIfNeeded()
    }
  
-@@ -390,7 +395,7 @@ class AudioControlsService : MediaSessionService() {
+@@ -312,6 +319,30 @@ class AudioControlsService : MediaSessionService() {
+       )
+     }
+ 
++    // SocialNet patch (M20 US4): back / forward 5 minutes in the overflow — Android Auto shows them
++    // as custom actions, the notification in its extra slots. Same rules as the app: back stops at
++    // 0, forward past the end goes to the end.
++    if (currentOptions?.showSeekBackward == true) {
++      mediaButtons.add(
++        CommandButton.Builder(CommandButton.ICON_SKIP_BACK)
++          .setDisplayName("Back 5 minutes")
++          .setEnabled(true)
++          .setSessionCommand(SessionCommand(ACTION_SEEK_BACK_5MIN, Bundle.EMPTY))
++          .setSlots(CommandButton.SLOT_OVERFLOW)
++          .build()
++      )
++    }
++    if (currentOptions?.showSeekForward == true) {
++      mediaButtons.add(
++        CommandButton.Builder(CommandButton.ICON_SKIP_FORWARD)
++          .setDisplayName("Forward 5 minutes")
++          .setEnabled(true)
++          .setSessionCommand(SessionCommand(ACTION_SEEK_FORWARD_5MIN, Bundle.EMPTY))
++          .setSlots(CommandButton.SLOT_OVERFLOW)
++          .build()
++      )
++    }
++
+     session.setCustomLayout(mediaButtons)
+     session.setMediaButtonPreferences(mediaButtons)
+   }
+@@ -390,7 +421,7 @@ class AudioControlsService : MediaSessionService() {
      playable?.isActiveForLockScreen = true
  
      if (playable != null) {
@@ -123,7 +163,7 @@ index f3ad9d3..4ea7e1d 100644
        sessionMetadataPlayer = null
  
        appContext?.mainQueue?.launch {
-@@ -401,16 +406,18 @@ class AudioControlsService : MediaSessionService() {
+@@ -401,16 +432,18 @@ class AudioControlsService : MediaSessionService() {
          // Distinguish this lock-screen session from the basic session built in
          // `buildBasicMediaSession` (and from sessions for other players); two
          // MediaSession instances with the empty default ID throw on construction.
@@ -149,7 +189,7 @@ index f3ad9d3..4ea7e1d 100644
          mediaSession = session
          sessionMetadataPlayer = sessionPlayer
  
-@@ -442,7 +449,8 @@ class AudioControlsService : MediaSessionService() {
+@@ -442,7 +475,8 @@ class AudioControlsService : MediaSessionService() {
      playable?.isActiveForLockScreen = false
      removePlayerListener()
      currentMetadata = null
@@ -159,7 +199,7 @@ index f3ad9d3..4ea7e1d 100644
      mediaSession = null
      sessionMetadataPlayer = null
      clearArtwork()
-@@ -451,13 +459,75 @@ class AudioControlsService : MediaSessionService() {
+@@ -451,13 +485,75 @@ class AudioControlsService : MediaSessionService() {
      stopForeground(STOP_FOREGROUND_REMOVE)
    }
  
@@ -208,19 +248,19 @@ index f3ad9d3..4ea7e1d 100644
 +      .setId("SocialNetCarIdle_${System.identityHashCode(this)}_${++idleCount}")
 +      .build()
 +      .also { idle = it }
-   }
- 
--  override fun onBind(intent: Intent?): IBinder {
--    super.onBind(intent)
--    return binder
++  }
++
 +  private fun releaseIdleSession() {
 +    val s = idle ?: return
 +    idle = null
 +    s.release()
 +    idleStub?.release()
 +    idleStub = null
-+  }
-+
+   }
+ 
+-  override fun onBind(intent: Intent?): IBinder {
+-    super.onBind(intent)
+-    return binder
 +  private fun notifyCarChanged(ids: List<String>) {
 +    val s = (mediaSession as? MediaLibrarySession) ?: idle ?: return
 +    for (id in ids) s.notifyChildrenChanged(id, Int.MAX_VALUE, null)
@@ -240,7 +280,7 @@ index f3ad9d3..4ea7e1d 100644
    }
  
    fun setPlayableMetadata(playable: LockScreenPlayable, metadata: Metadata?) {
-@@ -474,22 +544,24 @@ class AudioControlsService : MediaSessionService() {
+@@ -474,22 +570,24 @@ class AudioControlsService : MediaSessionService() {
        currentOptions = options
        updateArtwork(metadata, postUpdate = false)
  
@@ -274,7 +314,23 @@ index f3ad9d3..4ea7e1d 100644
          mediaSession = session
          sessionMetadataPlayer = sessionPlayer
  
-@@ -586,6 +658,10 @@ class AudioControlsService : MediaSessionService() {
+@@ -511,6 +609,15 @@ class AudioControlsService : MediaSessionService() {
+     }
+   }
+ 
++  /** SocialNet patch (M20 US4): a jump of `deltaMs`, clamped to [0, duration]. */
++  fun seekBy(deltaMs: Long) {
++    currentPlayable?.player?.let { player ->
++      val target = maxOf(0L, player.currentPosition + deltaMs)
++      val duration = player.duration
++      player.seekTo(if (duration > 0 && target > duration) duration else target)
++    }
++  }
++
+   fun seekBackward() {
+     currentPlayable?.player?.let { player ->
+       player.seekTo(player.currentPosition - SEEK_INTERVAL_MS)
+@@ -586,6 +693,10 @@ class AudioControlsService : MediaSessionService() {
    }
  
    override fun onDestroy() {
@@ -285,8 +341,19 @@ index f3ad9d3..4ea7e1d 100644
      super.onDestroy()
  
      removePlayerListener()
+@@ -637,5 +748,10 @@ class AudioControlsService : MediaSessionService() {
+     const val ACTION_PREVIOUS_TRACK = "expo.modules.audio.action.PREVIOUS_TRACK"
+ 
+     const val SEEK_INTERVAL_MS = 10000L
++
++    // SocialNet patch (M20 US4)
++    const val ACTION_SEEK_BACK_5MIN = "app.socialmorning.action.SEEK_BACK_5MIN"
++    const val ACTION_SEEK_FORWARD_5MIN = "app.socialmorning.action.SEEK_FORWARD_5MIN"
++    const val FIVE_MINUTES_MS = 300000L
+   }
+ }
 diff --git a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt
-index ee83be1..494bfe5 100644
+index ee83be1..d1fb640 100644
 --- a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt
 +++ b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt
 @@ -4,7 +4,12 @@ import android.os.Bundle
@@ -311,7 +378,7 @@ index ee83be1..494bfe5 100644
    override fun onConnect(
      session: MediaSession,
      controller: MediaSession.ControllerInfo
-@@ -35,7 +40,14 @@ class AudioMediaSessionCallback(
+@@ -35,9 +40,19 @@ class AudioMediaSessionCallback(
          }
          .build()
  
@@ -326,8 +393,13 @@ index ee83be1..494bfe5 100644
 +      val availableSessionCommands = baseSessionCommands.buildUpon()
          .add(SessionCommand(AudioControlsService.ACTION_SEEK_BACKWARD, Bundle.EMPTY))
          .add(SessionCommand(AudioControlsService.ACTION_SEEK_FORWARD, Bundle.EMPTY))
++        // SocialNet patch (M20 US4): back / forward 5 minutes, for the car screen and the notification.
++        .add(SessionCommand(AudioControlsService.ACTION_SEEK_BACK_5MIN, Bundle.EMPTY))
++        .add(SessionCommand(AudioControlsService.ACTION_SEEK_FORWARD_5MIN, Bundle.EMPTY))
          .apply {
-@@ -48,11 +60,13 @@ class AudioMediaSessionCallback(
+           if (service.supportsPreviousTrack()) {
+             add(SessionCommand(AudioControlsService.ACTION_PREVIOUS_TRACK, Bundle.EMPTY))
+@@ -48,11 +63,13 @@ class AudioMediaSessionCallback(
          }
          .build()
  
@@ -341,7 +413,22 @@ index ee83be1..494bfe5 100644
        return MediaSession.ConnectionResult.reject()
      }
    }
-@@ -83,4 +97,63 @@ class AudioMediaSessionCallback(
+@@ -72,6 +89,14 @@ class AudioMediaSessionCallback(
+         service.seekBackward()
+         Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+       }
++      AudioControlsService.ACTION_SEEK_BACK_5MIN -> {
++        service.seekBy(-AudioControlsService.FIVE_MINUTES_MS)
++        Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
++      }
++      AudioControlsService.ACTION_SEEK_FORWARD_5MIN -> {
++        service.seekBy(AudioControlsService.FIVE_MINUTES_MS)
++        Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
++      }
+       AudioControlsService.ACTION_NEXT_TRACK -> {
+         service.nextTrack()
+         Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+@@ -83,4 +108,63 @@ class AudioMediaSessionCallback(
        else -> super.onCustomCommand(session, controller, command, args)
      }
    }

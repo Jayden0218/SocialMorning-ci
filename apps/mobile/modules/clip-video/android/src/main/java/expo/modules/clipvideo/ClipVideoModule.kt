@@ -9,6 +9,9 @@
 //
 // Transformer must be built and started on a thread with a Looper: everything that touches it
 // runs on the main thread, and its listener settles the promise.
+//
+// M20: `captions` (transcript lines drawn by the overlay in the title's place, US1) and
+// `encodeAudio` (a voice recording's WAV → mono AAC 64 kbit/s .m4a for the 600 000-byte cap, US3).
 package expo.modules.clipvideo
 
 import android.content.ClipData
@@ -40,7 +43,9 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.effect.CanvasOverlay
 import androidx.media3.effect.OverlayEffect
 import androidx.media3.effect.TextureOverlay
+import androidx.media3.transformer.AudioEncoderSettings
 import androidx.media3.transformer.Composition
+import androidx.media3.transformer.DefaultEncoderFactory
 import androidx.media3.transformer.EditedMediaItem
 import androidx.media3.transformer.EditedMediaItemSequence
 import androidx.media3.transformer.Effects
@@ -77,6 +82,13 @@ class ClipVideoOptions : Record {
   @Field val show: String = ""
   @Field val heat: List<Double> = emptyList()
   @Field val palette: ClipVideoPalette? = null
+  /** M20 US1: lines from the transcript, each shown from its moment (episode ms) until the next. */
+  @Field val captions: List<ClipVideoCaption> = emptyList()
+}
+
+class ClipVideoCaption : Record {
+  @Field val atMs: Double = 0.0
+  @Field val text: String = ""
 }
 
 private const val WIDTH = 720
@@ -84,6 +96,7 @@ private const val HEIGHT = 1280
 private const val FPS = 15
 private const val MAX_MS = 60_000L
 private const val ERR = "ERR_CLIP_VIDEO"
+private const val VOICE_BITRATE = 64_000
 
 // Layout, in pixels of the 720×1280 frame (the overlay scales if the frame arrives at another size).
 private val COVER = RectF(110f, 140f, 610f, 640f)
@@ -146,6 +159,55 @@ class ClipVideoModule : Module() {
         }
       }
     }.runOnQueue(Queues.MAIN)
+
+    // M20 US3 (research R1): a voice recording (16 kHz WAV from the speech service) → mono AAC at
+    // 64 kbit/s in an .m4a, so 60 s stays under the server's 600 000-byte voice cap.
+    AsyncFunction("encodeAudio") { uri: String, promise: Promise ->
+      val context = appContext.reactContext
+      val input = localFile(uri)
+      if (context == null) {
+        promise.reject(ERR, "The app is not ready.", null)
+      } else if (input == null || !input.exists()) {
+        promise.reject(ERR, "The recording file is missing.", null)
+      } else {
+        main.post {
+          try {
+            encode(context, input, promise)
+          } catch (e: Throwable) {
+            promise.reject(ERR, e.message ?: "Couldn't prepare the recording.", e)
+          }
+        }
+      }
+    }
+  }
+
+  /** On the main thread (Transformer's looper): WAV in, AAC .m4a out, then the WAV is deleted. */
+  private fun encode(context: Context, input: File, promise: Promise) {
+    val dir = File(context.cacheDir, "voice").apply { mkdirs() }
+    val output = File(dir, "voice-${UUID.randomUUID()}.m4a")
+    val item = EditedMediaItem.Builder(MediaItem.fromUri(Uri.fromFile(input))).setRemoveVideo(true).build()
+    val encoders = DefaultEncoderFactory.Builder(context)
+      .setRequestedAudioEncoderSettings(AudioEncoderSettings.Builder().setBitrate(VOICE_BITRATE).build())
+      .build()
+    val transformer = Transformer.Builder(context)
+      .setAudioMimeType(MimeTypes.AUDIO_AAC)
+      .setEncoderFactory(encoders)
+      .addListener(object : Transformer.Listener {
+        override fun onCompleted(composition: Composition, exportResult: ExportResult) {
+          running = null
+          input.delete()
+          promise.resolve(mapOf("uri" to Uri.fromFile(output).toString(), "bytes" to output.length().toDouble()))
+        }
+
+        override fun onError(composition: Composition, exportResult: ExportResult, exportException: ExportException) {
+          running = null
+          output.delete()
+          promise.reject(ERR, "Couldn't prepare the recording: ${exportException.message}", exportException)
+        }
+      })
+      .build()
+    running = transformer
+    transformer.start(item, output.absolutePath)
   }
 
   /** Off the main thread: check, fetch the cover, draw the still; then start Transformer on main. */
@@ -178,9 +240,13 @@ class ClipVideoModule : Module() {
     cover?.recycle()
 
     val heat = options.heat.map { if (it.isFinite()) max(0.0, it) else 0.0 }
+    val captions = options.captions
+      .filter { it.text.isNotBlank() && it.atMs.isFinite() }
+      .map { Math.round(it.atMs) to it.text.trim() }
+      .sortedBy { it.first }
     main.post {
       try {
-        export(context, audio, still, output, startMs, endMs, heat, colours, promise)
+        export(context, audio, still, output, startMs, endMs, heat, colours, captions, promise)
       } catch (e: Throwable) {
         still.delete()
         promise.reject(ERR, e.message ?: "Couldn't make the video.", e)
@@ -198,6 +264,7 @@ class ClipVideoModule : Module() {
     endMs: Long,
     heat: List<Double>,
     colours: Colours,
+    captions: List<Pair<Long, String>>,
     promise: Promise,
   ) {
     val lengthMs = endMs - startMs
@@ -206,7 +273,7 @@ class ClipVideoModule : Module() {
       .setMimeType(MimeTypes.IMAGE_PNG)
       .setImageDurationMs(lengthMs)
       .build()
-    val overlay = HeatOverlay(heat, lengthMs * 1000L, colours)
+    val overlay = HeatOverlay(heat, lengthMs * 1000L, colours, captions, startMs)
     val picture = EditedMediaItem.Builder(stillItem)
       .setFrameRate(FPS)
       .setEffects(Effects(emptyList<AudioProcessor>(), listOf<Effect>(OverlayEffect(listOf<TextureOverlay>(overlay)))))
@@ -304,7 +371,8 @@ class ClipVideoModule : Module() {
       textSize = 44f
       typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD)
     }
-    val title = options.title
+    // M20 US1: with captions the moving lines take the title's place (drawn by the overlay).
+    val title = if (options.captions.any { it.text.isNotBlank() }) "" else options.title
     val layout = StaticLayout.Builder.obtain(title, 0, title.length, titlePaint, TITLE.width().toInt())
       .setAlignment(Layout.Alignment.ALIGN_CENTER)
       .setMaxLines(3)
@@ -343,7 +411,16 @@ internal class HeatOverlay(
   private val heat: List<Double>,
   private val durationUs: Long,
   private val c: Colours,
+  /** M20 US1: (episode ms, text), sorted; the one at or before "now" is drawn in the title's place. */
+  private val captions: List<Pair<Long, String>> = emptyList(),
+  private val startMs: Long = 0L,
 ) : CanvasOverlay(/* useInputFrameSize= */ true) {
+  private val captionPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+    color = c.text
+    textSize = 40f
+    typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD)
+  }
+  private val layouts = HashMap<Int, StaticLayout>()
   private var originUs = Long.MIN_VALUE
   private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
   private val peak = heat.maxOrNull() ?: 0.0
@@ -379,6 +456,23 @@ internal class HeatOverlay(
     }
     paint.color = c.text
     canvas.drawRect(headX - 1.5f, HEAT.top - 6f, headX + 1.5f, HEAT.bottom + 6f, paint)
+
+    if (captions.isNotEmpty()) {
+      val nowMs = startMs + ((presentationTimeUs - originUs) / 1000L)
+      val index = captions.indexOfLast { it.first <= nowMs }.let { if (it < 0) 0 else it }
+      val layout = layouts.getOrPut(index) {
+        val text = captions[index].second
+        StaticLayout.Builder.obtain(text, 0, text.length, captionPaint, TITLE.width().toInt())
+          .setAlignment(Layout.Alignment.ALIGN_CENTER)
+          .setMaxLines(3)
+          .setEllipsize(TextUtils.TruncateAt.END)
+          .build()
+      }
+      canvas.save()
+      canvas.translate(TITLE.left, TITLE.top + max(0f, (TITLE.height() - layout.height) / 2f))
+      layout.draw(canvas)
+      canvas.restore()
+    }
 
     paint.color = withAlpha(c.muted, 0.2f)
     canvas.drawRect(PROGRESS, paint)

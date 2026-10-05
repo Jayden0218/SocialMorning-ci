@@ -21,6 +21,8 @@ export type Quote = {
   tooLong: boolean;
   /** A video can be made: timed, and 60 s or less. */
   video: boolean;
+  /** Each picked line at its moment, for the video's captions (timed transcripts only). */
+  captions?: { atMs: number; text: string }[];
 };
 
 /** The lines a transcript offers for picking: timed lines as they are; plain text by paragraph. */
@@ -51,5 +53,6 @@ export function quoteOf(lines: readonly TranscriptLine[], picked: readonly numbe
   const clamp = (ms: number) => Math.max(0, durationMs !== undefined ? Math.min(ms, durationMs) : ms);
   const startMs = clamp(lines[first]!.startMs);
   const endMs = Math.max(startMs, clamp(lines[last]!.endMs ?? lines[last + 1]?.startMs ?? lines[last]!.startMs));
-  return { startMs, endMs, text, tooLong, video: endMs > startMs && endMs - startMs <= QUOTE_VIDEO_MAX_MS };
+  const captions = chosen.map((i) => ({ atMs: clamp(lines[i]!.startMs), text: lines[i]!.text.replace(/\s+/g, ' ').trim() })).filter((c) => c.text.length > 0);
+  return { startMs, endMs, text, tooLong, video: endMs > startMs && endMs - startMs <= QUOTE_VIDEO_MAX_MS, captions };
 }

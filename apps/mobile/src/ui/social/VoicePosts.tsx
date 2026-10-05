@@ -31,7 +31,7 @@ const ITEM = { width: 64, minHeight: hit.min };
 
 export function voiceLabel(p: VoicePost, now: number, playing: boolean): string {
   const s = Math.round(p.durationMs / 1000);
-  return `${p.mine ? 'Your' : `${p.author.name}'s`} voice status, ${s} seconds, ${hoursLeft(p.expiresAt, now)} hours left${playing ? ', playing. Tap to stop' : ''}${p.mine ? '. Long-press to delete' : ''}`;
+  return `${p.mine ? 'Your' : `${p.author.name}'s`} voice status, ${s} seconds, ${hoursLeft(p.expiresAt, now)} hours left${p.text ? `. It says: ${p.text}` : ''}${playing ? ', playing. Tap to stop' : ''}${p.mine ? '. Long-press to delete' : ''}`;
 }
 
 export function VoicePosts(props: { load: () => Promise<VoicePost[]>; remove: (id: string) => Promise<void>; pauseEpisode: () => void; colours: { accent: string; muted: string } }): React.ReactElement | null {
@@ -93,6 +93,8 @@ export function VoicePosts(props: { load: () => Promise<VoicePost[]>; remove: (i
         })}
         {dialog}
       </ScrollView>
+      {/* M20 US3: the text of the voice that is playing, under the strip. */}
+      {(() => { const p = posts.find((x) => x.id === playing); return p?.text ? <Text className="px-screen-x pt-row text-text text-sm" numberOfLines={4}>{`“${p.text}” — ${p.mine ? 'You' : p.author.name}`}</Text> : null; })()}
     </Box>
   );
 }

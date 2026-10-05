@@ -26,6 +26,8 @@ export type CommentRow = {
   pinned_at?: Date | string | null;
   voice_url?: string | null;
   voice_ms?: number | null;
+  /** M20 US3: the text of a voice comment, as its author checked it. */
+  transcript?: string | null;
 };
 
 export type PublicComment = {
@@ -63,12 +65,12 @@ export type PublicComment = {
   folded?: true;
   /** M19 US5: how many replies it has (the Smart sort and the "n replies" link). */
   replyCount?: number;
-  /** M19 US6: a voice comment — its recording and length. */
-  voice?: { url: string; ms: number };
+  /** M19 US6: a voice comment — its recording and length; M20 US3: its text, when there is one. */
+  voice?: { url: string; ms: number; text?: string };
 };
 
 const SELECT = `SELECT c.id, c.episode_id, c.author_id, l.display_name, l.avatar_url, c.parent_id, c.body, c.offset_ms, c.created_at, c.deleted_at, c.removed_at, c.host_hidden_at,
-                       c.pinned_at, c.voice_url, c.voice_ms
+                       c.pinned_at, c.voice_url, c.voice_ms, c.transcript
                 FROM comments c LEFT JOIN listeners l ON l.id = c.author_id`;
 
 export function toPublic(r: CommentRow, viewerId?: string): PublicComment {
@@ -89,7 +91,7 @@ export function toPublic(r: CommentRow, viewerId?: string): PublicComment {
     initials: deleted ? null : initialsOf(r.display_name),
     ...(!deleted && r.avatar_url ? { avatarUrl: r.avatar_url } : {}),
     ...(!deleted && r.pinned_at ? { pinned: true as const } : {}),
-    ...(!deleted && r.voice_url && r.voice_ms ? { voice: { url: r.voice_url, ms: Number(r.voice_ms) } } : {}),
+    ...(!deleted && r.voice_url && r.voice_ms ? { voice: { url: r.voice_url, ms: Number(r.voice_ms), ...(r.transcript ? { text: r.transcript } : {}) } } : {}),
     likeCount: 0,
     ...(viewerId !== undefined ? { likedByMe: false } : {}),
     ...(removed ? { removed: true } : {}),
@@ -102,7 +104,7 @@ export function toPublic(r: CommentRow, viewerId?: string): PublicComment {
 
 export async function createComment(
   db: Db,
-  c: { episodeId: string; authorId: string; body: string | null; offsetMs?: number; parentId?: string; voice?: { url: string; path: string; ms: number } },
+  c: { episodeId: string; authorId: string; body: string | null; offsetMs?: number; parentId?: string; voice?: { url: string; path: string; ms: number; transcript?: string } },
 ): Promise<CommentRow> {
   if (c.parentId) {
     const parent = (await db.query<{ episode_id: string; parent_id: string | null }>(
@@ -112,8 +114,8 @@ export async function createComment(
     if (parent.parent_id !== null) throw new ApiError('reply_depth', 'You can reply to a comment, not to a reply.');
   }
   const [row] = await db.query<{ id: string }>(
-    'INSERT INTO comments (episode_id, author_id, parent_id, body, offset_ms, voice_url, voice_path, voice_ms) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id',
-    [c.episodeId, c.authorId, c.parentId ?? null, c.body, c.offsetMs ?? null, c.voice?.url ?? null, c.voice?.path ?? null, c.voice?.ms ?? null],
+    'INSERT INTO comments (episode_id, author_id, parent_id, body, offset_ms, voice_url, voice_path, voice_ms, transcript) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id',
+    [c.episodeId, c.authorId, c.parentId ?? null, c.body, c.offsetMs ?? null, c.voice?.url ?? null, c.voice?.path ?? null, c.voice?.ms ?? null, c.voice?.transcript ?? null],
   );
   // M4 (research R4): a top-level comment is a feed item; replies are not.
   if (!c.parentId) {
@@ -143,7 +145,7 @@ export async function deleteComment(db: Db, id: string): Promise<{ placeholder: 
   await db.query(`DELETE FROM activity WHERE kind = 'commented' AND ref_id = $1`, [id]); // M4: gone from feeds either way
   if (Number(row.replies) > 0) {
     await db.query(
-      'UPDATE comments SET body = NULL, author_id = NULL, offset_ms = NULL, voice_url = NULL, voice_path = NULL, voice_ms = NULL, deleted_at = now() WHERE id = $1',
+      'UPDATE comments SET body = NULL, author_id = NULL, offset_ms = NULL, voice_url = NULL, voice_path = NULL, voice_ms = NULL, transcript = NULL, deleted_at = now() WHERE id = $1',
       [id],
     );
     return { placeholder: true, episodeId: row.episode_id };
@@ -190,7 +192,7 @@ async function filterForViewer(db: Db, rows: CommentRow[], viewerId: string): Pr
   return applyBlocks(named, blocked, hidden.keys).map((i) => {
     if (!('placeholder' in i)) return i.row;
     const original = rows.find((r) => r.id === i.id)!;
-    const bare = { ...original, author_id: null, display_name: null, body: null, offset_ms: null, deleted_at: new Date(0), removed_at: null, voice_url: null, voice_ms: null, pinned_at: null };
+    const bare = { ...original, author_id: null, display_name: null, body: null, offset_ms: null, deleted_at: new Date(0), removed_at: null, voice_url: null, voice_ms: null, transcript: null, pinned_at: null };
     return (i.placeholder === 'reported'
       ? { ...bare, reported: true }
       : { ...bare, blocked: true }) as CommentRow & { blocked?: true; reported?: true };

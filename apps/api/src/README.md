@@ -302,3 +302,4 @@ here or a line does not match its file.
 | File | What it does |
 |---|---|
 | `duration.ts` | Measures audio length from MP4 or AAC file bytes. |
+| `transcript.ts` | Reads the optional text of a voice post or comment from its upload's x-transcript header. |

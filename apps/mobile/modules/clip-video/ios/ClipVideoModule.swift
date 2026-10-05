@@ -6,6 +6,7 @@
 //  2. AVMutableComposition puts that video next to the clip's range of the LOCAL audio file, and
 //     AVAssetExportSession writes Caches/clip-<uuid>.mp4 (the audio is re-encoded to AAC).
 // `shareVideo` presents UIActivityViewController; the app's own share panel always opens first.
+// M20: `captions` (transcript lines drawn in the title's place) and `encodeAudio` (voice WAV → AAC).
 
 import AVFoundation
 import ExpoModulesCore
@@ -28,6 +29,13 @@ struct ClipVideoOptions: Record {
   @Field var show: String = ""
   @Field var heat: [Double] = []
   @Field var palette: ClipVideoPalette? = nil
+  /// M20 US1: lines from the transcript, each shown from its moment (episode ms) until the next.
+  @Field var captions: [ClipVideoCaption] = []
+}
+
+struct ClipVideoCaption: Record {
+  @Field var atMs: Double = 0
+  @Field var text: String = ""
 }
 
 final class ClipVideoException: GenericException<String> {
@@ -44,6 +52,8 @@ private struct Job {
   let show: String
   let heat: [Double]
   let colours: Colours
+  /// (episode ms, text), sorted.
+  let captions: [(Int64, String)]
 }
 
 private struct Colours {
@@ -112,6 +122,84 @@ public class ClipVideoModule: Module {
       }
       presenter.present(sheet, animated: true)
     }.runOnQueue(.main)
+
+    // M20 US3 (research R1): a voice recording (the speech service's WAV) → mono AAC at 64 kbit/s
+    // in an .m4a, so 60 s stays under the server's 600 000-byte voice cap. The WAV is deleted.
+    AsyncFunction("encodeAudio") { (uri: String, promise: Promise) in
+      let input: URL
+      if uri.hasPrefix("file://"), let u = URL(string: uri) {
+        input = u
+      } else if uri.hasPrefix("/") {
+        input = URL(fileURLWithPath: uri)
+      } else {
+        promise.reject(ClipVideoException("The recording file is missing."))
+        return
+      }
+      Task.detached(priority: .userInitiated) {
+        do {
+          let out = try await ClipVideoModule.encode(input)
+          let bytes = (try? FileManager.default.attributesOfItem(atPath: out.path)[.size] as? NSNumber)?.doubleValue ?? 0
+          try? FileManager.default.removeItem(at: input)
+          promise.resolve(["uri": out.absoluteString, "bytes": bytes])
+        } catch {
+          promise.reject(ClipVideoException("Couldn't prepare the recording: \(error.localizedDescription)"))
+        }
+      }
+    }
+  }
+
+  private static func encode(_ input: URL) async throws -> URL {
+    guard FileManager.default.fileExists(atPath: input.path) else { throw ClipVideoException("The recording file is missing.") }
+    let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+    let output = caches.appendingPathComponent("voice-\(UUID().uuidString).m4a")
+    let asset = AVURLAsset(url: input)
+    guard let track = try await asset.loadTracks(withMediaType: .audio).first else {
+      throw ClipVideoException("The recording has no sound.")
+    }
+    let reader = try AVAssetReader(asset: asset)
+    // Read as 44.1 kHz mono PCM (the reader resamples), then encode AAC from that.
+    let pcm: [String: Any] = [
+      AVFormatIDKey: kAudioFormatLinearPCM,
+      AVSampleRateKey: 44_100,
+      AVNumberOfChannelsKey: 1,
+      AVLinearPCMBitDepthKey: 16,
+      AVLinearPCMIsFloatKey: false,
+      AVLinearPCMIsBigEndianKey: false,
+      AVLinearPCMIsNonInterleaved: false,
+    ]
+    let readOut = AVAssetReaderTrackOutput(track: track, outputSettings: pcm)
+    guard reader.canAdd(readOut) else { throw ClipVideoException("The recording could not be read.") }
+    reader.add(readOut)
+
+    let writer = try AVAssetWriter(outputURL: output, fileType: .m4a)
+    let aac: [String: Any] = [
+      AVFormatIDKey: kAudioFormatMPEG4AAC,
+      AVSampleRateKey: 44_100,
+      AVNumberOfChannelsKey: 1,
+      AVEncoderBitRateKey: 64_000,
+    ]
+    let writeIn = AVAssetWriterInput(mediaType: .audio, outputSettings: aac)
+    writeIn.expectsMediaDataInRealTime = false
+    guard writer.canAdd(writeIn) else { throw ClipVideoException("The AAC writer refused the sound.") }
+    writer.add(writeIn)
+
+    guard reader.startReading() else { throw reader.error ?? ClipVideoException("The recording could not be read.") }
+    guard writer.startWriting() else { throw writer.error ?? ClipVideoException("The AAC writer did not start.") }
+    writer.startSession(atSourceTime: .zero)
+    while let sample = readOut.copyNextSampleBuffer() {
+      while !writeIn.isReadyForMoreMediaData {
+        if writer.status == .failed { throw writer.error ?? ClipVideoException("The AAC writer failed.") }
+        try await Task.sleep(nanoseconds: 2_000_000)
+      }
+      if !writeIn.append(sample) { throw writer.error ?? ClipVideoException("A piece of sound could not be written.") }
+    }
+    if reader.status == .failed { throw reader.error ?? ClipVideoException("The recording could not be read.") }
+    writeIn.markAsFinished()
+    await withCheckedContinuation { (done: CheckedContinuation<Void, Never>) in
+      writer.finishWriting { done.resume() }
+    }
+    guard writer.status == .completed else { throw writer.error ?? ClipVideoException("The AAC writer did not finish.") }
+    return output
   }
 
   // MARK: - Input
@@ -149,7 +237,11 @@ public class ClipVideoModule: Module {
       title: options.title,
       show: options.show,
       heat: options.heat.map { $0.isFinite ? max(0, $0) : 0 },
-      colours: colours
+      colours: colours,
+      captions: options.captions
+        .filter { $0.atMs.isFinite && !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        .map { (Int64($0.atMs.rounded()), $0.text.trimmingCharacters(in: .whitespacesAndNewlines)) }
+        .sorted { $0.0 < $1.0 }
     )
   }
 
@@ -165,7 +257,8 @@ public class ClipVideoModule: Module {
     let cover = await loadCover(job.coverUri)
     let still = staticLayer(job, cover: cover)
     let duration = CMTime(value: job.endMs - job.startMs, timescale: 1000)
-    try await writePicture(job, still: still, duration: duration, to: silent)
+    let captions = job.captions.map { captionImage($0.1, colours: job.colours) }
+    try await writePicture(job, still: still, captions: captions, duration: duration, to: silent)
     try await mux(picture: silent, job: job, duration: duration, to: output)
     return output
   }
@@ -213,12 +306,15 @@ public class ClipVideoModule: Module {
       centred.lineBreakMode = .byWordWrapping
       let serifBase = UIFont.systemFont(ofSize: 44, weight: .bold)
       let serif = serifBase.fontDescriptor.withDesign(.serif).map { UIFont(descriptor: $0, size: 44) } ?? serifBase
-      (job.title as NSString).draw(
-        with: titleRect,
-        options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine],
-        attributes: [.font: serif, .foregroundColor: c.text, .paragraphStyle: centred],
-        context: nil
-      )
+      // M20 US1: with captions the moving lines take the title's place.
+      if job.captions.isEmpty {
+        (job.title as NSString).draw(
+          with: titleRect,
+          options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine],
+          attributes: [.font: serif, .foregroundColor: c.text, .paragraphStyle: centred],
+          context: nil
+        )
+      }
 
       let oneLine = NSMutableParagraphStyle()
       oneLine.alignment = .center
@@ -245,7 +341,28 @@ public class ClipVideoModule: Module {
     return image.cgImage
   }
 
-  private static func writePicture(_ job: Job, still: CGImage?, duration: CMTime, to url: URL) async throws {
+  /// M20 US1: one caption, drawn once into the title's box (transparent around the words).
+  private static func captionImage(_ text: String, colours: Colours) -> CGImage? {
+    let format = UIGraphicsImageRendererFormat()
+    format.scale = 1
+    format.opaque = false
+    let renderer = UIGraphicsImageRenderer(size: titleRect.size, format: format)
+    let image = renderer.image { _ in
+      let centred = NSMutableParagraphStyle()
+      centred.alignment = .center
+      centred.lineBreakMode = .byWordWrapping
+      let base = UIFont.systemFont(ofSize: 40, weight: .bold)
+      let font = base.fontDescriptor.withDesign(.serif).map { UIFont(descriptor: $0, size: 40) } ?? base
+      let attributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: colours.text, .paragraphStyle: centred]
+      let box = CGRect(origin: .zero, size: titleRect.size)
+      let used = (text as NSString).boundingRect(with: box.size, options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine], attributes: attributes, context: nil)
+      let y = max(0, (box.height - min(used.height, box.height)) / 2)
+      (text as NSString).draw(with: CGRect(x: 0, y: y, width: box.width, height: box.height - y), options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine], attributes: attributes, context: nil)
+    }
+    return image.cgImage
+  }
+
+  private static func writePicture(_ job: Job, still: CGImage?, captions: [CGImage?], duration: CMTime, to url: URL) async throws {
     try? FileManager.default.removeItem(at: url)
     let writer = try AVAssetWriter(outputURL: url, fileType: .mp4)
     let settings: [String: Any] = [
@@ -284,7 +401,11 @@ public class ClipVideoModule: Module {
       CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, pool, &buffer)
       guard let buffer else { throw ClipVideoException("No pixel buffer.") }
       let progress = frames > 1 ? CGFloat(frame) / CGFloat(frames - 1) : 1
-      draw(into: buffer, still: still, job: job, peak: peak, progress: progress)
+      // The caption whose moment is at or before this frame (the first one before it starts).
+      let nowMs = job.startMs + Int64(frame) * 1000 / Int64(fps)
+      let index = job.captions.lastIndex { $0.0 <= nowMs } ?? 0
+      let caption = index < captions.count ? captions[index] : nil
+      draw(into: buffer, still: still, caption: caption, job: job, peak: peak, progress: progress)
       if !adaptor.append(buffer, withPresentationTime: CMTime(value: CMTimeValue(frame), timescale: fps)) {
         throw writer.error ?? ClipVideoException("A frame could not be written.")
       }
@@ -300,7 +421,7 @@ public class ClipVideoModule: Module {
   }
 
   /// One frame: the still, then the heat bars (played ones in the yellow), the playhead and progress.
-  private static func draw(into buffer: CVPixelBuffer, still: CGImage?, job: Job, peak: Double, progress: CGFloat) {
+  private static func draw(into buffer: CVPixelBuffer, still: CGImage?, caption: CGImage?, job: Job, peak: Double, progress: CGFloat) {
     CVPixelBufferLockBaseAddress(buffer, [])
     defer { CVPixelBufferUnlockBaseAddress(buffer, []) }
     guard let ctx = CGContext(
@@ -326,6 +447,15 @@ public class ClipVideoModule: Module {
     } else {
       ctx.setFillColor(c.background.cgColor)
       ctx.fill(CGRect(x: 0, y: 0, width: width, height: height))
+    }
+
+    if let caption {
+      // Same flip as the still: draw the caption image the right way up in the title's box.
+      ctx.saveGState()
+      ctx.translateBy(x: titleRect.minX, y: titleRect.maxY)
+      ctx.scaleBy(x: 1, y: -1)
+      ctx.draw(caption, in: CGRect(x: 0, y: 0, width: titleRect.width, height: titleRect.height))
+      ctx.restoreGState()
     }
 
     let headX = heatRect.minX + heatRect.width * progress

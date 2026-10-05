@@ -15,18 +15,18 @@ export const VOICE_MAX_MS = 60_000;
 /** At most this many live posts per listener at once. */
 export const VOICE_LIVE_MAX = 5;
 
-export type VoiceRow = { id: string; listener_id: string; blob_url: string; duration_ms: number; created_at: Date | string; expires_at: Date | string };
+export type VoiceRow = { id: string; listener_id: string; blob_url: string; duration_ms: number; created_at: Date | string; expires_at: Date | string; /** M20 US3 */ transcript?: string | null };
 
 export async function liveCount(db: Db, listenerId: string): Promise<number> {
   const [r] = await db.query<{ n: number }>('SELECT count(*)::int AS n FROM voice_posts WHERE listener_id = $1 AND expires_at > now()', [listenerId]);
   return Number(r?.n ?? 0);
 }
 
-export async function insertPost(db: Db, p: { id: string; listenerId: string; url: string; path: string; durationMs: number; bytes: number }): Promise<VoiceRow> {
+export async function insertPost(db: Db, p: { id: string; listenerId: string; url: string; path: string; durationMs: number; bytes: number; /** M20 US3 */ transcript?: string }): Promise<VoiceRow> {
   const [row] = await db.query<VoiceRow>(
-    `INSERT INTO voice_posts (id, listener_id, blob_url, blob_path, duration_ms, bytes, expires_at) VALUES ($1, $2, $3, $4, $5, $6, now() + interval '24 hours')
-     RETURNING id, listener_id, blob_url, duration_ms, created_at, expires_at`,
-    [p.id, p.listenerId, p.url, p.path, p.durationMs, p.bytes],
+    `INSERT INTO voice_posts (id, listener_id, blob_url, blob_path, duration_ms, bytes, transcript, expires_at) VALUES ($1, $2, $3, $4, $5, $6, $7, now() + interval '24 hours')
+     RETURNING id, listener_id, blob_url, duration_ms, created_at, expires_at, transcript`,
+    [p.id, p.listenerId, p.url, p.path, p.durationMs, p.bytes, p.transcript ?? null],
   );
   return row!;
 }
@@ -34,7 +34,7 @@ export async function insertPost(db: Db, p: { id: string; listenerId: string; ur
 /** The caller's own posts and those of people they follow; never expired, never across a block, never a suspended author. */
 export async function fromFollowing(db: Db, viewerId: string) {
   const rows = await db.query<VoiceRow & { display_name: string; avatar_url: string | null }>(
-    `SELECT v.id, v.listener_id, v.blob_url, v.duration_ms, v.created_at, v.expires_at, l.display_name, l.avatar_url
+    `SELECT v.id, v.listener_id, v.blob_url, v.duration_ms, v.created_at, v.expires_at, v.transcript, l.display_name, l.avatar_url
      FROM voice_posts v JOIN listeners l ON l.id = v.listener_id
      WHERE v.expires_at > now() AND l.suspended_at IS NULL
        AND (v.listener_id = $1 OR v.listener_id IN (SELECT followed_id FROM follows WHERE follower_id = $1))
@@ -45,6 +45,7 @@ export async function fromFollowing(db: Db, viewerId: string) {
   return rows.map((r) => ({
     id: r.id, author: { id: r.listener_id, name: r.display_name, initials: initialsOf(r.display_name), ...(r.avatar_url ? { avatarUrl: r.avatar_url } : {}) }, url: r.blob_url,
     durationMs: Number(r.duration_ms), createdAt: new Date(r.created_at).toISOString(), expiresAt: new Date(r.expires_at).toISOString(), mine: r.listener_id === viewerId,
+    ...(r.transcript ? { text: r.transcript } : {}),
   }));
 }
 

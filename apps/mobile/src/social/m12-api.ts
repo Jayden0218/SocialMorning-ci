@@ -21,7 +21,7 @@ export type NotifyShow = { feedUrl: string; title: string | null; enabled: boole
 /** contracts/api.md FR-105/106 — read only; nothing here can buy anything. */
 export type Purchase = { id: string; store: string; productId: string; status: string; expiresAt: string | null; amountMicros: number | null; currency: string | null; createdAt: string };
 export type Tip = { id: string; feedUrl: string; showTitle: string | null; createdAt: string; amountMicros: number | null; currency: string | null };
-export type VoicePost = { id: string; author: { id: string; name: string; initials: string | null }; url: string; durationMs: number; createdAt: string; expiresAt: string; mine?: boolean };
+export type VoicePost = { id: string; author: { id: string; name: string; initials: string | null }; url: string; durationMs: number; createdAt: string; expiresAt: string; mine?: boolean; /** M20 US3: what the phone heard, as the author checked it. */ text?: string };
 
 export type M12Api = ReturnType<typeof createM12Api>;
 
@@ -50,11 +50,12 @@ export function createM12Api(deps: ApiDeps) {
     voicePosts: async () => (await call<{ items: VoicePost[] }>('GET', '/v1/voice-posts?from=following')).json.items,
     deleteVoicePost: async (id: string) => { await call('DELETE', `/v1/voice-posts/${enc(id)}`); },
     /** FR-104: the recording as it was made (m4a), ≤ 60 s — raw bytes, so not through the JSON helper. */
-    postVoice: async (file: Blob, durationMs: number): Promise<{ id: string; url: string; expiresAt: string }> => {
+    /** M20 US3: `transcript` = the text the listener checked; sent URI-encoded in `x-transcript`. */
+    postVoice: async (file: Blob, durationMs: number, transcript?: string): Promise<{ id: string; url: string; expiresAt: string }> => {
       const token = await deps.getToken();
       const res = await deps.fetch(`${deps.baseUrl}/v1/voice-posts`, {
         method: 'POST',
-        headers: { 'content-type': 'audio/mp4', 'x-duration-ms': String(Math.round(durationMs)), ...(token ? { authorization: `Bearer ${token}` } : {}) },
+        headers: { 'content-type': 'audio/mp4', 'x-duration-ms': String(Math.round(durationMs)), ...(transcript ? { 'x-transcript': encodeURIComponent(transcript) } : {}), ...(token ? { authorization: `Bearer ${token}` } : {}) },
         body: file,
       });
       const json = (await res.json().catch(() => ({}))) as { error?: string; message?: string; id?: string; url?: string; expiresAt?: string };

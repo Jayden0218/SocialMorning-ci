@@ -5,6 +5,7 @@ import type { AuthEnv } from '../../auth/session.ts';
 import { requireAuth } from '../../auth/session.ts';
 import { ApiError } from '../../errors.ts';
 import { audioDurationMs } from '../../voice/duration.ts';
+import { readTranscript } from '../../voice/transcript.ts';
 import { fromFollowing, getPost, insertPost, liveCount, removePost, VOICE_LIVE_MAX, VOICE_MAX_BYTES, VOICE_MAX_MS } from '../../db/repos/social/voice-posts.ts';
 
 /**
@@ -29,6 +30,7 @@ voice.post('/', requireAuth, async (c) => {
   if (!Number.isInteger(declared) || declared < 1 || declared > VOICE_MAX_MS) {
     throw new ApiError('validation', 'x-duration-ms must be 1–60000.', { fields: ['x-duration-ms'] });
   }
+  const transcript = readTranscript(c.req.header('x-transcript'));
   const bytes = new Uint8Array(await c.req.arrayBuffer());
   if (bytes.length === 0) throw new ApiError('validation', 'The recording is empty.', { fields: ['body'] });
   if (bytes.length > VOICE_MAX_BYTES) throw new ApiError('too_large', 'A voice post is at most 600 000 bytes.');
@@ -47,8 +49,8 @@ voice.post('/', requireAuth, async (c) => {
     console.error(c.get('requestId'), 'voice put', e);
     throw new ApiError('unavailable', "Couldn't save the recording. Try again.");
   }
-  const row = await insertPost(db, { id, listenerId: me.id, url: stored.url, path: stored.pathname, durationMs: Math.min(VOICE_MAX_MS, Math.max(1, measured)), bytes: bytes.length });
-  return c.json({ id: row.id, url: row.blob_url, expiresAt: new Date(row.expires_at).toISOString() }, 201);
+  const row = await insertPost(db, { id, listenerId: me.id, url: stored.url, path: stored.pathname, durationMs: Math.min(VOICE_MAX_MS, Math.max(1, measured)), bytes: bytes.length, ...(transcript ? { transcript } : {}) });
+  return c.json({ id: row.id, url: row.blob_url, expiresAt: new Date(row.expires_at).toISOString(), ...(row.transcript ? { text: row.transcript } : {}) }, 201);
 });
 
 voice.get('/', requireAuth, async (c) => {

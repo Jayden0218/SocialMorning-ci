@@ -236,9 +236,22 @@ export function clipVideoHeat(buckets: readonly number[] | undefined, durationMs
  * video…"), then the phone's own share sheet. Any failure is a toast.
  */
 export function useClipVideoRows(): (clip: { startMs: number; endMs: number }, episode: PlayableEpisode) => ShareOption[] {
+  const run = useClipVideoMaker();
+  return (clip, episode) => {
+    const length = clip.endMs - clip.startMs;
+    if (!ClipVideo.isAvailable() || !(length > 0) || length > ClipVideo.MAX_CLIP_VIDEO_MS) return [];
+    return [{ icon: 'videocam-outline', label: 'Share as video', detail: 'up to 60 s', onPress: () => void run(clip, episode) }];
+  };
+}
+
+/**
+ * Makes and shares the video of a range (M19), downloading the episode first when it is not on the
+ * phone. M20 US1: `captions` (transcript lines) are drawn in the title's place.
+ */
+export function useClipVideoMaker(): (clip: { startMs: number; endMs: number }, episode: PlayableEpisode, captions?: { atMs: number; text: string }[]) => Promise<void> {
   const toast = useToast();
   const { cache } = useSocial();
-  const run = async (clip: { startMs: number; endMs: number }, episode: PlayableEpisode): Promise<void> => {
+  return async (clip, episode, captions) => {
     let fetched: File | undefined;
     try {
       let audioUri = episode.url;
@@ -262,6 +275,7 @@ export function useClipVideoRows(): (clip: { startMs: number; endMs: number }, e
         show: episode.showTitle,
         heat,
         palette: { background: colour.background, text: colour.text, muted: colour.muted, primary: colour.primary, accent: colour.accent },
+        ...(captions && captions.length > 0 ? { captions } : {}),
       });
       await ClipVideo.shareVideo(uri, episode.title);
     } catch {
@@ -269,10 +283,5 @@ export function useClipVideoRows(): (clip: { startMs: number; endMs: number }, e
     } finally {
       try { if (fetched?.exists) fetched.delete(); } catch { /* the cache folder is cleared by the system anyway */ }
     }
-  };
-  return (clip, episode) => {
-    const length = clip.endMs - clip.startMs;
-    if (!ClipVideo.isAvailable() || !(length > 0) || length > ClipVideo.MAX_CLIP_VIDEO_MS) return [];
-    return [{ icon: 'videocam-outline', label: 'Share as video', detail: 'up to 60 s', onPress: () => void run(clip, episode) }];
   };
 }

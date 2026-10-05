@@ -18,7 +18,8 @@ const lines: TranscriptLine[] = [
 
 describe('quoteOf', () => {
   it('runs from the first line start to the last line end, in reading order, text joined', () => {
-    expect(quoteOf(lines, [2, 0, 1], true)).toEqual({ startMs: 10_000, endMs: 25_000, text: 'One. Two words. Three.', tooLong: false, video: true });
+    expect(quoteOf(lines, [2, 0, 1], true)).toEqual({ startMs: 10_000, endMs: 25_000, text: 'One. Two words. Three.', tooLong: false, video: true,
+      captions: [{ atMs: 10_000, text: 'One.' }, { atMs: 14_000, text: 'Two words.' }, { atMs: 20_000, text: 'Three.' }] });
   });
 
   it('a line with no end ends where the next one starts', () => {
@@ -60,7 +61,23 @@ describe('the pane', () => {
     act(() => { row(2).props['onPress'](); });
     expect(seeks).toEqual([10_000]);
     act(() => { byLabel(r, 'Share the picked lines as an image')!.props['onPress'](); });
-    expect(shared).toEqual([{ startMs: 10_000, endMs: 25_000, text: 'One. Three.', tooLong: false, video: true }]);
+    expect(shared).toEqual([{ startMs: 10_000, endMs: 25_000, text: 'One. Three.', tooLong: false, video: true, captions: [{ atMs: 10_000, text: 'One.' }, { atMs: 20_000, text: 'Three.' }] }]);
+    act(() => { r.unmount(); });
+  });
+
+  it('W2: Video sends the quote with its captions; over 60 s it is disabled and the bar says why', () => {
+    const videos: unknown[] = [];
+    const r = render(createElement(TranscriptPane, { transcript: { lines }, positionMs: 0, onSeek: () => undefined, onShareImage: () => undefined, onShareVideo: (q: unknown) => void videos.push(q) }));
+    const row = (i: number) => r.root.findAll((n) => n.props['testID'] === `transcript-line-${i}` && typeof n.props['onPress'] === 'function')[0]!;
+    act(() => { row(0).props['onLongPress'](); });
+    act(() => { row(3).props['onPress'](); });
+    const video = () => r.root.findAll((n) => n.props['accessibilityLabel'] === 'Share the picked lines as a video' && typeof n.props['onPress'] === 'function')[0]!;
+    expect(video().props['disabled']).toBe(true);
+    const words = r.root.findAll((n) => typeof n.props['children'] === 'string').map((n) => n.props['children'] as string);
+    expect(words).toContain('Videos are 60 s or less');
+    act(() => { row(3).props['onPress'](); });
+    act(() => { video().props['onPress'](); });
+    expect(videos).toEqual([expect.objectContaining({ startMs: 10_000, endMs: 14_000, captions: [{ atMs: 10_000, text: 'One.' }] })]);
     act(() => { r.unmount(); });
   });
 

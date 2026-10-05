@@ -210,6 +210,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `token.ts` | Stores the sign-in token in the phone's secure storage. |
 | `usePoll.ts` | Runs the comment check while the screen is open and online. |
 | `voice.ts` | Size and length limits for short voice status posts. |
+| `voice-text.ts` | Records a voice post or comment while the phone turns the speech into text, then shrinks the audio. |
 | `who.ts` | Writes friend names like "Ana, Bo and 3 others". |
 
 ### `storage/` — The phone's local database and its data shapes.
@@ -300,7 +301,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `VideoStage.tsx` | Shows the video picture for video episodes; sound comes from the audio. |
 | `mini-player-swipe.ts` | Hides the mini player early on swipe-back, so it never shows under tabs. |
 | `palette.ts` | Player colours, with a light tint of the show's own colour at the top. |
-| `QuoteShare.tsx` | Shares lines picked from the transcript as a picture made by the server. |
+| `QuoteShare.tsx` | Shares lines picked from the transcript as a picture made by the server, or as a short video. |
 
 ### `ui/queue/` — The list of episodes waiting to play
 
@@ -324,6 +325,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `ReportSheet.tsx` | Sheet to report a comment: pick a reason, add a note, send. |
 | `VoiceComment.tsx` | A voice comment's row: a play/stop disc, a thin bar and its length; pauses the episode. |
 | `VoiceRecord.tsx` | The mic beside a comment box: tap to record a voice comment up to 60 s, then post it. |
+| `VoiceTextReview.tsx` | After a voice recording: the text the phone heard, editable, with Post and Cancel. |
 
 ### `ui/clips/` — Short parts of an episode that listeners save and share
 

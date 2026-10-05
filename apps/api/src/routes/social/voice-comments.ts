@@ -5,6 +5,7 @@ import type { AuthEnv } from '../../auth/session.ts';
 import { requireAuth } from '../../auth/session.ts';
 import { ApiError } from '../../errors.ts';
 import { audioDurationMs } from '../../voice/duration.ts';
+import { readTranscript } from '../../voice/transcript.ts';
 import { VOICE_MAX_BYTES, VOICE_MAX_MS } from '../../db/repos/social/voice-posts.ts';
 import { getEpisode } from '../../db/repos/library/episodes.ts';
 import { createComment, getComment, toPublic } from '../../db/repos/social/comments.ts';
@@ -41,6 +42,7 @@ voiceComments.post('/:id/comments/voice', requireAuth, async (c) => {
   const offsetRaw = c.req.header('x-offset-ms');
   const offsetMs = offsetRaw === undefined ? undefined : Number(offsetRaw);
   if (offsetMs !== undefined && (!Number.isInteger(offsetMs) || offsetMs < 0)) throw new ApiError('validation', 'x-offset-ms must be a whole number ≥ 0.', { fields: ['x-offset-ms'] });
+  const transcript = readTranscript(c.req.header('x-transcript'));
   const parentId = c.req.header('x-parent-id');
   if (parentId !== undefined && !UUID.test(parentId)) throw new ApiError('validation', 'x-parent-id must be a comment id.', { fields: ['x-parent-id'] });
 
@@ -71,7 +73,7 @@ voiceComments.post('/:id/comments/voice', requireAuth, async (c) => {
   const ms = Math.min(VOICE_MAX_MS, Math.max(1, measured));
   try {
     const created = await db.transaction(async (tx) => {
-      const row = await createComment(tx, { episodeId, authorId: me.id, body: null, ...(offsetMs !== undefined ? { offsetMs } : {}), ...(parentId ? { parentId } : {}), voice: { url: stored.url, path: stored.pathname, ms } });
+      const row = await createComment(tx, { episodeId, authorId: me.id, body: null, ...(offsetMs !== undefined ? { offsetMs } : {}), ...(parentId ? { parentId } : {}), voice: { url: stored.url, path: stored.pathname, ms, ...(transcript ? { transcript } : {}) } });
       if (offsetMs !== undefined) await rebuildEpisodeHeat(tx, episodeId);
       return row;
     });

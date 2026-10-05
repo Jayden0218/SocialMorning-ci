@@ -49,7 +49,14 @@
         "expo-audio",
         {
           "enableBackgroundPlayback": true,
-          "microphonePermission": "SocialNet uses the microphone only while you record a voice status."
+          "microphonePermission": "SocialNet uses the microphone only while you record a voice status or a voice comment."
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "SocialNet uses the microphone only while you record a voice status or a voice comment.",
+          "speechRecognitionPermission": "SocialNet turns your voice recording into text you can check before posting. Your phone's speech service may send the audio to Apple to do this."
         }
       ],
       "expo-router",

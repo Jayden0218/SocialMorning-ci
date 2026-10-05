@@ -11,9 +11,12 @@
  * the 1:00 cap small) and the state line; at the bottom, a bar with the record button as a pill
  * (yellow alone; outlined "Record again" beside a yellow Post once recorded). Same buttons, names
  * and handlers; the 60 s cap, the microphone-refused state and posting unchanged.
+ *
+ * M20 US3 (FR-006–FR-008): where the phone can make text, recording goes through `textRecorder`;
+ * once recorded, the text shows under the clock, editable, and goes up with the audio on Post.
  */
 import { router } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { askMicrophone, useVoiceRecorder, voiceSessionOff, voiceSessionOn } from '@/playback/expo-audio-adapter';
 import { Linking } from 'react-native';
 import { Pressable } from '@/ui/lib/pressable';
@@ -32,6 +35,8 @@ import { useM12Api } from '@/social/m12-api';
 import { ApiError } from '@/social/api';
 import { VOICE_MAX_MS, voiceClock } from '@/social/voice';
 import { PageHeader } from '@/ui/kit/PageHeader';
+import { textRecorder } from '@/social/voice-text';
+import { VoiceTextBox } from '@/ui/comments/VoiceTextReview';
 
 /** The old one-line rule, word for word, split into `VoiceNew-B`'s numbered list. */
 const RULES = ['Up to 60 seconds.', 'People who follow you can play it', 'for 24 hours; then it is deleted.'] as const;
@@ -52,12 +57,31 @@ export default function NewVoicePost(): React.ReactElement {
   const [phase, setPhase] = useState<Phase>({ kind: 'idle' });
   const [error, setError] = useState<string | undefined>();
   const stopping = useRef(false);
+  // M20 US3: the text-making recorder, or undefined (then expo-audio, no text).
+  const speech = useMemo(() => textRecorder(), []);
+  const [elapsed, setElapsed] = useState(0);
+  const [text, setText] = useState<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (!speech || phase.kind !== 'recording') return;
+    const t = setInterval(() => setElapsed(speech.elapsedMs()), 250);
+    return () => clearInterval(t);
+  }, [speech, phase.kind]);
+  const recordedMs = speech ? elapsed : state.durationMillis;
 
   const restore = () => voiceSessionOff().catch(() => undefined);
   useEffect(() => () => { void restore(); }, []);
 
   const start = async () => {
     setError(undefined);
+    setText(undefined);
+    if (speech) {
+      player.pause();
+      if (!(await speech.start())) { setPhase({ kind: 'denied' }); return; }
+      setElapsed(0);
+      stopping.current = false;
+      setPhase({ kind: 'recording' });
+      return;
+    }
     if (!(await askMicrophone())) { setPhase({ kind: 'denied' }); return; }
     player.pause();
     await voiceSessionOn();
@@ -69,6 +93,19 @@ export default function NewVoicePost(): React.ReactElement {
   const stop = async () => {
     if (stopping.current) return;
     stopping.current = true;
+    if (speech) {
+      try {
+        const take = await speech.stop();
+        await restore();
+        if (take.durationMs >= 1000) { setText(take.text); setPhase({ kind: 'done', uri: take.uri, ms: take.durationMs }); }
+        else { setPhase({ kind: 'idle' }); setError('That was too short — hold on for at least a second.'); }
+      } catch {
+        await restore();
+        setPhase({ kind: 'idle' });
+        setError("That recording didn't work — try again.");
+      }
+      return;
+    }
     const ms = Math.min(state.durationMillis, VOICE_MAX_MS);
     await recorder.stop();
     await restore();
@@ -76,13 +113,14 @@ export default function NewVoicePost(): React.ReactElement {
     else { setPhase({ kind: 'idle' }); setError('That was too short — hold on for at least a second.'); }
   };
   // The cap: stop at 60 s whatever the listener does.
-  useEffect(() => { if (phase.kind === 'recording' && state.durationMillis >= VOICE_MAX_MS) void stop(); });
+  useEffect(() => { if (phase.kind === 'recording' && recordedMs >= VOICE_MAX_MS) void stop(); });
 
   const post = async (uri: string, ms: number) => {
     setPhase({ kind: 'posting', uri, ms });
     try {
       const blob = await (await fetch(uri)).blob();
-      await m12.postVoice(blob, ms);
+      const transcript = text?.trim() ? text.trim().slice(0, 2000) : undefined;
+      await m12.postVoice(blob, ms, transcript);
       toast('Posted. It disappears in 24 hours.');
       router.back();
     } catch (e) {
@@ -92,7 +130,7 @@ export default function NewVoicePost(): React.ReactElement {
   };
 
   const recording = phase.kind === 'recording';
-  const shownMs = recording ? state.durationMillis : phase.kind === 'done' || phase.kind === 'posting' ? phase.ms : 0;
+  const shownMs = recording ? recordedMs : phase.kind === 'done' || phase.kind === 'posting' ? phase.ms : 0;
   // "0:24 / 1:00": the time large, the cap small beside it (`VoiceNew-B`).
   const [clock = '', cap] = voiceClock(shownMs).split(' / ');
   const recorded = phase.kind === 'done' || phase.kind === 'posting';
@@ -100,7 +138,7 @@ export default function NewVoicePost(): React.ReactElement {
     <>
     {/* Phone walk 2026-09-30: the sheet could only be swiped away. M16a T002: Cancel is on the app's own bar. */}
     <PageHeader title="Voice status" left={(
-      <Pressable onPress={() => { if (phase.kind === 'recording') void stop(); router.back(); }} accessibilityRole="button" accessibilityLabel="Cancel" className="justify-center px-row" style={{ minHeight: 48 }}>
+      <Pressable onPress={() => { if (phase.kind === 'recording') { if (speech) speech.cancel(); else void stop(); } router.back(); }} accessibilityRole="button" accessibilityLabel="Cancel" className="justify-center px-row" style={{ minHeight: 48 }}>
         <Text className="text-accent text-body font-bold">Cancel</Text>
       </Pressable>
     )} />
@@ -129,6 +167,12 @@ export default function NewVoicePost(): React.ReactElement {
           <Card className="py-section items-center gap-row">
             <Text className="text-text text-body text-center">SocialNet needs the microphone to record. You can allow it in the phone's settings.</Text>
             <Button kind="secondary" label="Open settings" onPress={() => void Linking.openSettings()} />
+          </Card>
+        ) : null}
+        {recorded && text !== undefined ? (
+          <Card className="py-section gap-row">
+            <Text className="text-muted text-xs font-bold">What you said — check it before posting</Text>
+            <VoiceTextBox text={text} onChange={setText} />
           </Card>
         ) : null}
         {error ? <Text className="text-accent text-body text-center">{error}</Text> : null}

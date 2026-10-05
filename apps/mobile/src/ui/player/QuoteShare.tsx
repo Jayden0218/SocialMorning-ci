@@ -1,4 +1,4 @@
-// Shares lines picked from the transcript as a picture made by the server.
+// Shares lines picked from the transcript as a picture made by the server, or as a short video.
 /**
  * M20 US1 (spec FR-001): the picked lines become the server's quote card (the clip card's
  * layout with the words large), downloaded here and handed to the share sheet as a file, with
@@ -10,6 +10,9 @@ import { File, Paths } from 'expo-file-system';
 import { useM12Api } from '@/social/m12-api';
 import { useToast } from '@/ui/shell/providers';
 import type { Quote } from '@/graph/quote';
+import type { PlayableEpisode } from '@/playback/store';
+import { useClipVideoMaker } from '@/ui/clips/ShareChooser';
+import * as ClipVideo from '../../../modules/clip-video';
 
 /** Called before any early return; the episode is passed at share time. */
 export function useQuoteShare(): (episode: { id: string; title: string } | undefined, q: Quote) => Promise<void> {
@@ -28,4 +31,17 @@ export function useQuoteShare(): (episode: { id: string; title: string } | undef
       toast("Couldn't make the picture — try again when you're online.");
     }
   }, [m12, toast]);
+}
+
+/**
+ * M20 US1 (FR-002): the picked range as a video, the lines as captions — the M19 clip video with
+ * `captions`. `undefined` in a build without the video module, so the pane shows no button.
+ */
+export function useQuoteVideo(): ((episode: PlayableEpisode | undefined, q: Quote) => void) | undefined {
+  const make = useClipVideoMaker();
+  if (!ClipVideo.isAvailable()) return undefined;
+  return (episode, q) => {
+    if (!episode || !q.video || q.startMs === undefined || q.endMs === undefined) return;
+    void make({ startMs: q.startMs, endMs: q.endMs }, episode, q.captions);
+  };
 }

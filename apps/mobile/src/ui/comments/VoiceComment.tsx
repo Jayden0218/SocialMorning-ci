@@ -72,6 +72,7 @@ export function VoiceComment(props: { voice: CommentVoice; play: PlayVoice }): R
   };
 
   return (
+    <Box className="gap-1 self-stretch">
     <Pressable
       onPress={toggle}
       accessibilityRole="button"
@@ -90,5 +91,8 @@ export function VoiceComment(props: { voice: CommentVoice; play: PlayVoice }): R
       </Box>
       <Text className={playing ? 'text-accent text-xs font-bold' : 'text-muted text-xs font-bold'}>{mmss(props.voice.ms)}</Text>
     </Pressable>
+    {/* M20 US3: the text its author posted with it, under the player. */}
+    {props.voice.text ? <Text className="text-text text-sm">{props.voice.text}</Text> : null}
+    </Box>
   );
 }

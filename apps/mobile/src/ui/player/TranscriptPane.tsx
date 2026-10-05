@@ -6,6 +6,10 @@
  * removes lines (no seeking while picking), and a bar offers "Share as image" and Cancel.
  * Plain-text transcripts are picked by paragraph and link to the episode's start. Over 280
  * characters the bar says so instead of offering the card.
+ *
+ * M20 W2 (FR-002): with `onShareVideo`, "Video" makes a short video of the picked range with the
+ * lines as captions — only for a timed transcript and 60 s or less; otherwise it is shown disabled
+ * and the bar says why ("Videos are 60 s or less").
  */
 import { useState } from 'react';
 import { currentLine, type Transcript } from '@socialmorning/player-core';
@@ -26,6 +30,8 @@ export function TranscriptPane(props: {
   onSeek: (ms: number) => void;
   /** M20 US1: share picked lines as the quote card. Absent = no picking. */
   onShareImage?: (q: Quote) => void;
+  /** M20 US1 (FR-002): share picked lines (≤ 60 s, timed) as a video with them as captions. Absent = no video button. */
+  onShareVideo?: (q: Quote) => void;
   durationMs?: number;
 }): React.ReactElement {
   const [picked, setPicked] = useState<number[] | undefined>(undefined);
@@ -68,11 +74,20 @@ export function TranscriptPane(props: {
       {picking ? (
         <Box className="flex-row items-center gap-2">
           <Text className="flex-1 text-xs text-muted">
-            {quote === undefined ? 'Tap lines to pick them' : quote.tooLong ? `Too long for a picture — up to ${QUOTE_CARD_MAX} characters` : `${quote.text.length} of ${QUOTE_CARD_MAX} characters`}
+            {quote === undefined ? 'Tap lines to pick them' : quote.tooLong ? `Too long for a picture — up to ${QUOTE_CARD_MAX} characters` : props.onShareVideo && timed && !quote.video ? 'Videos are 60 s or less' : `${quote.text.length} of ${QUOTE_CARD_MAX} characters`}
           </Text>
           <Pressable onPress={() => setPicked(undefined)} accessibilityRole="button" accessibilityLabel="Cancel picking lines" className="px-section justify-center rounded-pill border border-border" style={TAP}>
             <Text className="text-sm font-semibold text-text">Cancel</Text>
           </Pressable>
+          {props.onShareVideo && timed ? (
+            <Pressable disabled={quote === undefined || !quote.video}
+              onPress={() => { if (quote?.video) { props.onShareVideo?.(quote); setPicked(undefined); } }}
+              accessibilityRole="button" accessibilityLabel="Share the picked lines as a video"
+              accessibilityState={{ disabled: quote === undefined || !quote.video }}
+              className={`px-section justify-center rounded-pill border border-border ${quote === undefined || !quote.video ? 'opacity-50' : ''}`} style={TAP}>
+              <Text className="text-sm font-semibold text-text">Video</Text>
+            </Pressable>
+          ) : null}
           <Pressable disabled={quote === undefined || quote.tooLong}
             onPress={() => { if (quote && !quote.tooLong) { props.onShareImage?.(quote); setPicked(undefined); } }}
             accessibilityRole="button" accessibilityLabel="Share the picked lines as an image"

@@ -13,7 +13,7 @@ import { ApiError, requester, type ApiDeps, type Comment } from './api';
 import { apiBaseUrl } from './base-url';
 import { secureToken } from './token';
 
-export type CommentVoice = { url: string; ms: number };
+export type CommentVoice = { url: string; ms: number; /** M20 US3: the text its author posted with it. */ text?: string };
 /** M19 fields on a comment: pinned by the host, folded for being unfriendly, reply count, voice. */
 export type CommentExtras = { pinned?: true; folded?: true; replyCount?: number; voice?: CommentVoice };
 export type CommentPlus = Comment & CommentExtras;
@@ -46,7 +46,7 @@ export function createCommentExtrasApi(deps: ApiDeps) {
     unmarkUnfriendly: async (id: string) => (await call<{ folded: boolean }>('DELETE', `/v1/comments/${enc(id)}/unfriendly`)).json,
     thread: async (id: string) => (await call<Thread>('GET', `/v1/comments/${enc(id)}/thread`)).json,
     /** FR-044: the recording as made (m4a), ≤ 60 s — raw bytes, so not through the JSON helper. */
-    postVoice: async (episodeId: string, file: Blob, o: { durationMs: number; offsetMs?: number; parentId?: string }): Promise<CommentPlus> => {
+    postVoice: async (episodeId: string, file: Blob, o: { durationMs: number; offsetMs?: number; parentId?: string; /** M20 US3 */ transcript?: string }): Promise<CommentPlus> => {
       const token = await deps.getToken();
       let res: Response;
       try {
@@ -57,6 +57,7 @@ export function createCommentExtrasApi(deps: ApiDeps) {
             'x-duration-ms': String(Math.round(o.durationMs)),
             ...(o.offsetMs !== undefined ? { 'x-offset-ms': String(Math.max(0, Math.round(o.offsetMs))) } : {}),
             ...(o.parentId ? { 'x-parent-id': o.parentId } : {}),
+            ...(o.transcript ? { 'x-transcript': encodeURIComponent(o.transcript) } : {}),
             ...(token ? { authorization: `Bearer ${token}` } : {}),
           },
           body: file,
