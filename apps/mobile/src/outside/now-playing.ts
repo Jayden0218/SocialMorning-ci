@@ -69,7 +69,7 @@ export const NEAR_WINDOW_MS = 60_000;
  * Blocked, removed, deleted and host-hidden comments never qualify. `undefined` = none near.
  */
 export function commentNear(social: Social, positionMs: number, windowMs: number = NEAR_WINDOW_MS): NowPlaying['comment'] {
-  const near = social.comments.filter((c) => shown(c) && !c.hiddenByHost && Math.abs(c.offsetMs! - positionMs) <= windowMs);
+  const near = social.comments.filter((c) => c.offsetMs !== null && c.body !== null && Math.abs(c.offsetMs! - positionMs) <= windowMs);
   if (near.length === 0) return undefined;
   const dist = (c: Comment) => Math.abs(c.offsetMs! - positionMs);
   const best = [...near].sort((a, b) => (b.likeCount ?? 0) - (a.likeCount ?? 0) || dist(a) - dist(b) || a.offsetMs! - b.offsetMs!)[0]!;
