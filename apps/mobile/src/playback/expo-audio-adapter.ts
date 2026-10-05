@@ -150,7 +150,7 @@ export function createExpoAudioAdapter(
       case 'load':
         wasLoaded = false;
         player.replace({ uri: effect.url });
-
+        if (skipSilence) applySkipSilence();
         await player.seekTo(effect.startMs / 1000);
         return;
       case 'play':
