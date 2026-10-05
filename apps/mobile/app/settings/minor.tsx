@@ -137,7 +137,7 @@ export default function MinorMode(): React.ReactElement {
       </Card>
       {typing ? (
         <Card className="mt-row py-row gap-row">
-          <Text className="text-text text-body font-bold">{step.kind === 'none' ? '' : PROMPT[step.kind]}</Text>
+          <Text className="text-text text-body font-bold">{PROMPT[step.kind]}</Text>
           {blocked ? (
             <Text className="text-accent text-body">{`Too many wrong tries. Try again after ${clock(locked ?? 0)}.`}</Text>
           ) : (
