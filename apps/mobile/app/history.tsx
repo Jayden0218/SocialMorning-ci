@@ -64,7 +64,7 @@ export default function HistoryScreen(): React.ReactElement {
       className="flex-1 bg-background"
       data={groups}
       // Owner, 2026-10-05: the bottom of a fetched list says so.
-      ListFooterComponent={groups.length > 0 ? <EndOfList /> : null}
+      ListFooterComponent={groups.length > 0 ? <EndOfList /> : undefined}
       keyExtractor={(g) => g.label}
       contentContainerClassName="px-screen-x pb-24 flex-grow"
       keyboardShouldPersistTaps="handled"

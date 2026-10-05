@@ -137,7 +137,7 @@ export default function UpdatesScreen(): React.ReactElement {
       <FlatList
         data={rows}
         // Owner, 2026-10-05: the bottom of a fetched list says so.
-        ListFooterComponent={rows.length > 0 ? <EndOfList /> : null}
+        ListFooterComponent={rows.length > 0 ? <EndOfList /> : undefined}
         keyExtractor={(r) => r.episode.id}
         extraData={[counts, marks]} // the counts and marks arrive after the rows; without this a row keeps its old look
         contentContainerStyle={{ paddingBottom: TAB_PAGE_END }}

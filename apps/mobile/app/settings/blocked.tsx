@@ -50,7 +50,7 @@ export default function BlockedScreen(): React.ReactElement {
       className="flex-1 bg-background"
       data={rows}
       // Owner, 2026-10-05: the bottom of a fetched list says so.
-      ListFooterComponent={rows.length > 0 ? <EndOfList /> : null}
+      ListFooterComponent={rows.length > 0 ? <EndOfList /> : undefined}
       numColumns={2}
       columnWrapperStyle={COLUMNS}
       keyExtractor={(b) => b.listenerId}

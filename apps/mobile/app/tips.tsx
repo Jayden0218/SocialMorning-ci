@@ -44,7 +44,7 @@ export default function TipsScreen(): React.ReactElement {
       className="flex-1 bg-background"
       data={state.kind === 'ok' ? state.items : []}
       // Owner, 2026-10-05: the bottom of a fetched list says so.
-      ListFooterComponent={state.kind === 'ok' && state.items.length > 0 ? <EndOfList /> : null}
+      ListFooterComponent={state.kind === 'ok' && state.items.length > 0 ? <EndOfList /> : undefined}
       keyExtractor={(t) => t.id}
       contentContainerClassName="px-screen-x py-row pb-24 flex-grow"
       ListHeaderComponent={state.kind === 'ok' && !state.storeReady && state.items.length > 0 ? <Text className="text-muted text-xs mb-row">{NOT_READY}</Text> : undefined}

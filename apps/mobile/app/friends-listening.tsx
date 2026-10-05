@@ -114,7 +114,7 @@ export default function FriendsListening(): React.ReactElement {
       className="flex-1 bg-background"
       data={items.slice(1)}
       // Owner, 2026-10-05: the bottom of a fetched list says so.
-      ListFooterComponent={items.length > 0 ? <EndOfList /> : null}
+      ListFooterComponent={items.length > 0 ? <EndOfList /> : undefined}
       keyExtractor={(i) => i.episode.id}
       numColumns={2}
       columnWrapperStyle={COLUMNS}

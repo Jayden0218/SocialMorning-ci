@@ -96,7 +96,7 @@ export function FollowList(props: { kind: FollowKind; id: string; name?: string;
         className="flex-1 bg-background"
         data={rows}
         // Owner, 2026-10-05: the bottom of a fetched list says so.
-        ListFooterComponent={state.kind === 'ok' && state.rows.length > 0 && !state.next ? <EndOfList /> : null}
+        ListFooterComponent={state.kind === 'ok' && state.rows.length > 0 && !state.next ? <EndOfList /> : undefined}
         keyExtractor={(l) => l.id}
         numColumns={2}
         columnWrapperClassName="gap-row"

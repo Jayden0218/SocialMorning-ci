@@ -152,7 +152,7 @@ export default function CommentsScreen(): React.ReactElement {
         className="flex-1"
         data={ordered}
         // Owner, 2026-10-05: the bottom of a fetched list says so.
-        ListFooterComponent={ordered.length > 0 ? <EndOfList /> : null}
+        ListFooterComponent={ordered.length > 0 ? <EndOfList /> : undefined}
         keyExtractor={(x) => x.id}
         contentContainerClassName="px-screen-x pt-row pb-section gap-row flex-grow"
         ListEmptyComponent={<EmptyState surface="comments" page action={{ label: 'Comment here', onPress: () => compose() }} />}

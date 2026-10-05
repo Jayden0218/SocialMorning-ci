@@ -68,7 +68,7 @@ export default function NewChat(): React.ReactElement {
         className="flex-1 bg-background"
         data={state.kind === 'ok' ? state.friends : []}
         // Owner, 2026-10-05: the bottom of a fetched list says so.
-        ListFooterComponent={state.kind === 'ok' && state.friends.length > 0 ? <EndOfList /> : null}
+        ListFooterComponent={state.kind === 'ok' && state.friends.length > 0 ? <EndOfList /> : undefined}
         keyExtractor={(p) => p.id}
         contentContainerClassName="pb-24 flex-grow"
         ListHeaderComponent={<Text className="text-muted text-meta px-screen-x pb-row">People who follow you back</Text>}

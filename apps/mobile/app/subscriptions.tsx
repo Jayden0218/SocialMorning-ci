@@ -128,7 +128,7 @@ export default function SubscriptionsScreen(): React.ReactElement {
       <FlatList
         data={rest}
         // Owner, 2026-10-05: the bottom of a fetched list says so.
-        ListFooterComponent={rows.length > 0 ? <EndOfList /> : null}
+        ListFooterComponent={rows.length > 0 ? <EndOfList /> : undefined}
         keyExtractor={(r) => r.feedUrl}
         contentContainerClassName="px-screen-x pb-24 flex-grow"
         keyboardShouldPersistTaps="handled"

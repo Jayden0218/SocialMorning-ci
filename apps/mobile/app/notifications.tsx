@@ -121,7 +121,7 @@ export default function NotificationsScreen(): React.ReactElement {
       className="flex-1"
       data={days}
       // Owner, 2026-10-05: the bottom of a fetched list says so.
-      ListFooterComponent={days.length > 0 && !view?.next ? <EndOfList /> : null}
+      ListFooterComponent={days.length > 0 && !view?.next ? <EndOfList /> : undefined}
       keyExtractor={(d) => d.key}
       contentContainerClassName="px-screen-x pt-gap pb-24 gap-section flex-grow"
       refreshControl={pull.refreshControl}

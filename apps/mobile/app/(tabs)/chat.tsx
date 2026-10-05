@@ -90,7 +90,7 @@ export default function ChatTab(): React.ReactElement {
       <FlatList
         data={items}
         // Owner, 2026-10-05: the bottom of a fetched list says so.
-        ListFooterComponent={items.length > 0 ? <EndOfList /> : null}
+        ListFooterComponent={items.length > 0 ? <EndOfList /> : undefined}
         keyExtractor={(i) => i.with.id}
         contentContainerStyle={{ paddingBottom: TAB_PAGE_END }}
         contentContainerClassName="flex-grow"

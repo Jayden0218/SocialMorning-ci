@@ -85,7 +85,7 @@ export default function IssuesScreen(): React.ReactElement {
       className="flex-1 bg-background"
       data={issues.slice(1)}
       // Owner, 2026-10-05: the bottom of a fetched list says so.
-      ListFooterComponent={issues.length > 0 ? <EndOfList /> : null}
+      ListFooterComponent={issues.length > 0 ? <EndOfList /> : undefined}
       keyExtractor={(i) => i.id}
       numColumns={2}
       columnWrapperStyle={COLUMNS}

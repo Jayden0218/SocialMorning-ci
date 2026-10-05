@@ -62,7 +62,7 @@ export default function MomentsScreen(): React.ReactElement {
       className="flex-1 bg-background"
       data={rows}
       // Owner, 2026-10-05: the bottom of a fetched list says so.
-      ListFooterComponent={rows.length > 0 ? <EndOfList /> : null}
+      ListFooterComponent={rows.length > 0 ? <EndOfList /> : undefined}
       keyExtractor={(m) => m.id}
       contentContainerClassName="px-screen-x py-row pb-24 flex-grow"
       ListEmptyComponent={<EmptyPicture icon="bookmark-outline" line="No saved moments — tap “Save moment” while listening" />}

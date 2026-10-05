@@ -89,7 +89,7 @@ export default function ChartScreen(): React.ReactElement {
       className="flex-1 bg-background"
       data={items.slice(PODIUM)}
       // Owner, 2026-10-05: the bottom of a fetched list says so.
-      ListFooterComponent={items.length > 0 ? <EndOfList /> : null}
+      ListFooterComponent={items.length > 0 ? <EndOfList /> : undefined}
       keyExtractor={(i) => i.key}
       contentContainerClassName="px-screen-x pb-24 flex-grow"
       ListHeaderComponent={

@@ -146,7 +146,7 @@ export default function FeedbackScreen(): React.ReactElement {
         <FlatList
           data={sent}
           // Owner, 2026-10-05: the bottom of a fetched list says so.
-          ListFooterComponent={sent.length > 0 ? <EndOfList /> : null}
+          ListFooterComponent={sent.length > 0 ? <EndOfList /> : undefined}
           keyExtractor={(f) => String(f.at)}
           contentContainerClassName="px-screen-x py-row pb-24 flex-grow gap-row"
           ListEmptyComponent={<EmptyPicture icon="document-text-outline" line="Nothing sent yet" />}

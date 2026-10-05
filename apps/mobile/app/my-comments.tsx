@@ -57,7 +57,7 @@ export default function MyCommentsScreen(): React.ReactElement {
       className="flex-1 bg-background"
       data={rows}
       // Owner, 2026-10-05: the bottom of a fetched list says so.
-      ListFooterComponent={rows !== undefined && rows.length > 0 && !next ? <EndOfList /> : null}
+      ListFooterComponent={rows !== undefined && rows.length > 0 && !next ? <EndOfList /> : undefined}
       keyExtractor={(r) => r.id}
       contentContainerClassName="px-screen-x pt-1 pb-24 gap-row flex-grow"
       onEndReached={more}

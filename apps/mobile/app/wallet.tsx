@@ -55,7 +55,7 @@ export default function WalletScreen(): React.ReactElement {
       className="flex-1 bg-background"
       data={state.kind === 'ok' ? state.items : []}
       // Owner, 2026-10-05: the bottom of a fetched list says so.
-      ListFooterComponent={state.kind === 'ok' && state.items.length > 0 ? <EndOfList /> : null}
+      ListFooterComponent={state.kind === 'ok' && state.items.length > 0 ? <EndOfList /> : undefined}
       keyExtractor={(p) => p.id}
       contentContainerClassName="px-screen-x pt-gap pb-24 flex-grow"
       ListHeaderComponent={

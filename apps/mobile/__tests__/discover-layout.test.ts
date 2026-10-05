@@ -55,5 +55,6 @@ it('every section can be hidden', () => {
   const m = buildModel({ ...BODY, layout: { order: [], hidden: [...SECTION_IDS] } }, { items: [] } as never, none);
   expect(m.forYou).toEqual([]);
   expect(m.video).toEqual([]);
-  expect(m.followedHere).toBeUndefined();
+  expect(m.premium).toEqual([]);
+  expect(m.arrivals).toEqual([]);
 });

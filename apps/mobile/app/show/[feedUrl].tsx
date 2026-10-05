@@ -427,7 +427,7 @@ export default function ShowScreen(): React.ReactElement {
             </Box>
           );
         }}
-        ListFooterComponent={<>{tab === 'episodes' && shown.length > 0 ? <EndOfList /> : null}<ReportSheet target={reporting} onClose={() => setReporting(undefined)} /></>}
+        ListFooterComponent={<>{tab === 'episodes' && shown.length > 0 ? <EndOfList /> : undefined}<ReportSheet target={reporting} onClose={() => setReporting(undefined)} /></>}
       />
       <Actionsheet isOpen={menuFor !== undefined} onClose={() => setMenuFor(undefined)}>
         <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
