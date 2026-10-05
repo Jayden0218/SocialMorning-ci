@@ -134,8 +134,8 @@ export function SharePanel(props: {
         {/* Owner, 2026-10-05: an × at the top right, level with the drag bar, instead of Cancel at the foot. */}
         <Box className="justify-center">
           <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
-          <Pressable onPress={props.onClose} accessibilityRole="button" accessibilityLabel="Close" className="absolute right-0 items-center justify-center" style={CLOSE}>
-            <Icon name="close" size={22} color={c.muted} />
+          <Pressable onPress={props.onClose} accessibilityRole="button" accessibilityLabel="Close" className="absolute -right-3 items-center justify-center" style={CLOSE}>
+            <Icon name="close" size={18} color={c.muted} />
           </Pressable>
         </Box>
         <Text className="text-display font-display text-text" accessibilityRole="header">{props.heading ?? 'Share'}</Text>

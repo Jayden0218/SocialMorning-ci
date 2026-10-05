@@ -1,6 +1,6 @@
 // Tests the category page's All, Newest and "Not subscribed only" filters.
 /** Owner, 2026-10-01: the category page's "All" / "Newest" chips and "Not subscribed only". */
-import { appendPage, categoryList, hasMoreAfter, sortCategoryShows } from '@/discover/category-list';
+import { appendPage, categoryList, hasMoreAfter, sortCategoryShows, swipeIndex } from '@/discover/category-list';
 import type { ShowCard } from '@/social/api';
 
 const show = (feedUrl: string, publishedAt?: string): ShowCard => ({
@@ -50,4 +50,13 @@ test('owner 2026-10-05: hasMore from the server wins; a list kept without it cou
   expect(hasMoreAfter({ shows: [show('a')], hasMore: true })).toBe(true);
   expect(hasMoreAfter({ shows: full })).toBe(true);
   expect(hasMoreAfter({ shows: full.slice(0, 19) })).toBe(false);
+});
+
+test('owner 2026-10-05: a swipe of the category row maps evenly onto the 19 categories, ends included', () => {
+  expect(swipeIndex(0, 1000, 19)).toBe(0);
+  expect(swipeIndex(1000, 1000, 19)).toBe(18);
+  expect(swipeIndex(500, 1000, 19)).toBe(9);
+  expect(swipeIndex(-40, 1000, 19)).toBe(0); // overscroll at the start
+  expect(swipeIndex(1200, 1000, 19)).toBe(18); // and at the end
+  expect(swipeIndex(300, 0, 19)).toBe(0); // a row that does not scroll
 });

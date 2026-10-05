@@ -60,3 +60,15 @@ export function appendPage(shows: readonly ShowCard[], page: readonly ShowCard[]
   }
   return out;
 }
+
+/**
+ * Owner, 2026-10-05 ("when the categories row is swiped, the yellow one moves also"): which
+ * category a swipe has reached. The scroll's progress (0 at the start, 1 at the end) maps evenly
+ * onto the categories, so every one — the last ones too, which can never reach the left edge —
+ * is reachable by a swipe.
+ */
+export function swipeIndex(offset: number, maxOffset: number, count: number): number {
+  if (count <= 1 || maxOffset <= 0) return 0;
+  const progress = Math.min(1, Math.max(0, offset / maxOffset));
+  return Math.round(progress * (count - 1));
+}

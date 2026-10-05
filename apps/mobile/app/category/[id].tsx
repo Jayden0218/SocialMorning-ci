@@ -42,6 +42,7 @@ import {
   appendPage,
   categoryList,
   hasMoreAfter,
+  swipeIndex,
   type CategorySort,
 } from "@/discover/category-list";
 import {
@@ -75,8 +76,11 @@ const HALF_ART = 72;
 const SLOP = { top: 8, bottom: 8, left: 8, right: 8 };
 /** The longest a category waits for its covers before showing the list anyway. */
 const COVER_WAIT_MS = 3000;
-/** Owner, 2026-10-05: the category row ticks once per this many points scrolled. */
-const TICK_EVERY = 56;
+/** The chevron over the category row's right end: a 48 pt tap plus room each side. */
+const CHEVRON_W = hit.min + 16;
+const CHEVRON = { width: CHEVRON_W, zIndex: 1 };
+/** A finger lifted with no fling: the swipe's category is picked after this pause. */
+const SETTLE_MS = 150;
 /** How near the bottom (pt) the next page starts loading. */
 const LOAD_AHEAD = 600;
 /**
@@ -136,7 +140,30 @@ export default function CategoryScreen(): React.ReactElement {
   const strip = useRef<ComponentRef<typeof ScrollView>>(null);
   const tileX = useRef(new Map<number, number>());
   const scrolled = useRef(false);
-  const lastTick = useRef(0);
+  // Owner, 2026-10-05: while the row is swiped by a finger the yellow line follows it (a tick
+  // each time it moves on); the category under it is opened when the row stops.
+  const [hover, setHover] = useState<number | undefined>(undefined);
+  const hoverRef = useRef<number | undefined>(undefined);
+  const dragging = useRef(false);
+  const settle = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const followSwipe = (offset: number, maxOffset: number) => {
+    if (!dragging.current) return;
+    const g = GENRES[swipeIndex(offset, maxOffset, GENRES.length)];
+    if (!g || g.id === (hoverRef.current ?? genreId)) return;
+    hoverRef.current = g.id;
+    setHover(g.id);
+    tick();
+  };
+  const endSwipe = () => {
+    if (settle.current) clearTimeout(settle.current);
+    settle.current = undefined;
+    dragging.current = false;
+    const id = hoverRef.current;
+    hoverRef.current = undefined;
+    setHover(undefined);
+    // Picked where it stopped — no scroll back to the left edge (that would undo the swipe).
+    if (id !== undefined && id !== genreId) setGenreId(id);
+  };
   const showTile = (id: number, animated: boolean) => {
     const x = tileX.current.get(id);
     if (x !== undefined)
@@ -376,24 +403,37 @@ export default function CategoryScreen(): React.ReactElement {
         {/* Owner, 2026-10-04: no large category title and no list under it — the sliding row of
           categories below is how a category is chosen. Owner, 2026-10-05: a chevron fixed at its
           right opens every category as a list, wherever the row has scrolled. */}
-        <Box className="-mx-screen-x flex-row items-center bg-background border-b-hairline border-separator mb-gap">
+        <Box className="-mx-screen-x bg-background border-b-hairline border-separator mb-gap">
           <ScrollView
             ref={strip}
             horizontal
             showsHorizontalScrollIndicator={false}
-            className="flex-1"
-            contentContainerClassName="gap-5 pl-screen-x pr-2"
+            contentContainerClassName="gap-5 pl-screen-x"
+            contentContainerStyle={{ paddingRight: CHEVRON_W }}
             scrollEventThrottle={16}
+            onScrollBeginDrag={() => {
+              if (settle.current) clearTimeout(settle.current);
+              dragging.current = true;
+            }}
             onScroll={(e) => {
-              const x = e.nativeEvent.contentOffset.x;
-              if (Math.abs(x - lastTick.current) >= TICK_EVERY) {
-                lastTick.current = x;
-                tick();
-              }
+              const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+              followSwipe(contentOffset.x, contentSize.width - layoutMeasurement.width);
+            }}
+            onScrollEndDrag={() => {
+              // A fling goes on (momentum begins and cancels this); a plain lift ends here.
+              settle.current = setTimeout(endSwipe, SETTLE_MS);
+            }}
+            onMomentumScrollBegin={() => {
+              if (settle.current) clearTimeout(settle.current);
+              settle.current = undefined;
+            }}
+            onMomentumScrollEnd={() => {
+              if (dragging.current) endSwipe();
             }}
           >
             {GENRES.map((g) => {
               const on = g.id === genreId;
+              const lit = g.id === (hover ?? genreId);
               return (
                 <Pressable
                   key={g.id}
@@ -416,7 +456,7 @@ export default function CategoryScreen(): React.ReactElement {
                   <Box>
                     <Text
                       className={
-                        on
+                        lit
                           ? "text-text text-body font-bold"
                           : "text-muted text-body"
                       }
@@ -426,19 +466,22 @@ export default function CategoryScreen(): React.ReactElement {
                     </Text>
                     {/* A bar with round ends, not a border (a border's ends are square). */}
                     <Box
-                      className={`h-[3px] rounded-pill mt-1 ${on ? "bg-primary" : "bg-clear"}`}
+                      className={`h-[3px] rounded-pill mt-1 ${lit ? "bg-primary" : "bg-clear"}`}
                     />
                   </Box>
                 </Pressable>
               );
             })}
           </ScrollView>
+          {/* Phone check 2026-10-05: as a flex sibling the row still spread under the chevron and took
+              its taps (it picked a category). Now the chevron is laid over the row's right end, solid,
+              on top (zIndex; Android's elevation drew a grey box), and the row leaves room for it. */}
           <Pressable
             onPress={() => setPicking(true)}
             accessibilityRole="button"
             accessibilityLabel="All categories"
-            className="items-center justify-center pl-2 pr-screen-x"
-            style={TAP}
+            className="absolute right-0 top-0 bottom-0 items-center justify-center bg-background"
+            style={CHEVRON}
           >
             <Icon name="chevron-down" size={22} color={c.text} />
           </Pressable>
@@ -466,8 +509,8 @@ export default function CategoryScreen(): React.ReactElement {
         {/* Owner, 2026-10-04: right under the switch (no 48 pt row round it; the toggle is its own tap target).
             Owner, 2026-10-05: the order in words on the left, "Not subscribed only" on the right. */}
         <Box className="flex-row items-center justify-between gap-2 mb-row pt-2">
-          <Text className="text-muted text-sm flex-1" numberOfLines={1}>
-            {sort === "newest" ? "By latest update" : "By chart rank"}
+          <Text className="text-muted text-sm flex-1" numberOfLines={2}>
+            {sort === "newest" ? "By latest update" : "Recommended by us"}
           </Text>
           <Box className="flex-row items-center gap-2">
             <Text className="text-muted text-body">Not subscribed only</Text>
@@ -535,10 +578,25 @@ export default function CategoryScreen(): React.ReactElement {
       <Actionsheet isOpen={picking} onClose={() => setPicking(false)}>
         <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
         <ActionsheetContent className="bg-surface rounded-t-row px-screen-x pt-row items-stretch">
-          <ActionsheetDragIndicatorWrapper>
-            <ActionsheetDragIndicator />
-          </ActionsheetDragIndicatorWrapper>
-          <ScrollView style={{ maxHeight: screenHeight * 0.7 }}>
+          {/* Owner, 2026-10-05: an × at the top right, level with the drag bar; no scroll bar. */}
+          <Box className="justify-center">
+            <ActionsheetDragIndicatorWrapper>
+              <ActionsheetDragIndicator />
+            </ActionsheetDragIndicatorWrapper>
+            <Pressable
+              onPress={() => setPicking(false)}
+              accessibilityRole="button"
+              accessibilityLabel="Close"
+              className="absolute -right-3 items-center justify-center"
+              style={ROUND}
+            >
+              <Icon name="close" size={18} color={c.muted} />
+            </Pressable>
+          </Box>
+          <ScrollView
+            style={{ maxHeight: screenHeight * 0.7 }}
+            showsVerticalScrollIndicator={false}
+          >
             {GENRES.map((g) => (
               <SheetRow
                 key={g.id}
