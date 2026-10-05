@@ -263,7 +263,7 @@ export async function buildForYou(
   for (const r of raw) if (!seen.has(r.row.id)) seen.set(r.row.id, r);
 
   const scored = [...seen.values()]
-    .filter((r) => !ctx.finished.has(r.row.id) && !ctx.hidden.has(r.row.feed_url))
+    .filter((r) => !ctx.finished.has(r.row.id) && !ctx.hidden.has(r.row.feed_url) && !(ctx.dismissed && isDismissed(ctx.dismissed, r.row.id, r.row.feed_url)))
     .map((r) => {
       const candidate: RecCandidate = {
         episodeId: r.row.id,
@@ -342,7 +342,7 @@ export async function forYou(
   const hidden = await hiddenFeedUrls(db);
   // M19 US2: and what this listener turned down never shows, whatever the cache holds.
   const dismissed = await dismissedFor(db, listenerId);
-  const off = (i: ForYouItem) => hidden.has(i.episode.feedUrl) ;
+  const off = (i: ForYouItem) => hidden.has(i.episode.feedUrl) || isDismissed(dismissed, i.episode.id, i.episode.feedUrl);
   const body = r.body.items.some(off) ? { ...r.body, items: r.body.items.filter((i) => !off(i)) } : r.body;
   return { body, stale: r.stale };
 }

@@ -198,7 +198,7 @@ async function filterForViewer(db: Db, rows: CommentRow[], viewerId: string): Pr
 }
 
 /** M19 US5 (FR-041): a comment folds once this many listeners marked it unfriendly. */
-export const UNFRIENDLY_FOLD_AT = 4;
+export const UNFRIENDLY_FOLD_AT = 5;
 
 /** The ids on this episode that reached the fold — the voters are never read. */
 export async function foldedOnEpisode(db: Db, episodeId: string): Promise<Set<string>> {

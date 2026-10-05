@@ -16,7 +16,7 @@ export async function hostNotices(db: Db, listenerId: string, before: string | u
      FROM announcements a
      JOIN subscriptions s ON s.feed_url = a.feed_url AND s.listener_id = $1 AND s.deleted_at IS NULL
      LEFT JOIN LATERAL (SELECT show_title, image_url FROM episodes WHERE episodes.feed_url = a.feed_url AND show_title IS NOT NULL ORDER BY updated_at DESC LIMIT 1) e ON true
-     WHERE a.deleted_at IS NULL
+     WHERE a.deleted_at IS NULL AND a.release_at <= now()
        AND NOT EXISTS (SELECT 1 FROM hidden_feeds h WHERE h.feed_url = a.feed_url)
        AND ($2::timestamptz IS NULL OR a.release_at < $2::timestamptz)
      ORDER BY a.release_at DESC LIMIT ${NOTICES_PAGE + 1}`,

@@ -69,6 +69,7 @@ export async function timeline(db: Db, viewerId: string, before: string | undefi
   const rows = await db.query<Row>(
     `SELECT ${COLS} ${FROM}
        AND k.listener_id IN (SELECT followed_id FROM follows WHERE follower_id = $1)
+       AND l.likes_public = true
        AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id = $1 AND b.blocked_id = k.listener_id) OR (b.blocker_id = k.listener_id AND b.blocked_id = $1))
        AND ($2::timestamptz IS NULL OR k.created_at < $2::timestamptz)
      ORDER BY k.created_at DESC LIMIT ${TIMELINE_PAGE + 1}`,

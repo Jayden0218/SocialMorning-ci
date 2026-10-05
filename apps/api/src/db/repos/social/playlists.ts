@@ -96,7 +96,7 @@ export async function getPlaylist(db: Db, id: string, viewerId: string | undefin
   if (!/^[0-9a-f-]{36}$/i.test(id)) return undefined;
   const [r] = await db.query<Row & { display_name: string; avatar_url: string | null }>(
     `SELECT x.*, l.display_name, l.avatar_url FROM (${LIST} WHERE p.id = $1 AND p.deleted_at IS NULL) x JOIN listeners l ON l.id = x.owner_id`, [id]);
-  if (!r) return undefined;
+  if (!r || (!r.is_public && r.owner_id !== viewerId)) return undefined;
   const items = await db.query<{ id: string; feed_url: string; guid: string; title: string; show_title: string | null; image_url: string | null; duration_ms: number | null; enclosure_url: string; published_at: Date | string | null }>(
     `SELECT e.id, e.feed_url, e.guid, e.title, e.show_title, e.image_url, e.duration_ms, e.enclosure_url, e.published_at
      FROM playlist_items i JOIN episodes e ON e.id = i.episode_id

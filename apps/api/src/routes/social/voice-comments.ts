@@ -49,6 +49,7 @@ voiceComments.post('/:id/comments/voice', requireAuth, async (c) => {
   if (bytes.length > VOICE_MAX_BYTES) throw new ApiError('too_large', 'A voice comment is at most 600 000 bytes.');
   const measured = audioDurationMs(bytes);
   if (measured === undefined) throw new ApiError('validation', "We couldn't read the recording's length.", { fields: ['body'] });
+  if (measured > VOICE_MAX_MS + SLACK_MS) throw new ApiError('validation', 'A voice comment is at most 60 seconds.', { fields: ['body'] });
 
   // The same rules as a text comment: the rate floor, blocks, and the host's mute.
   const [recent] = await db.query<{ n: number }>(`SELECT count(*)::int AS n FROM comments WHERE author_id = $1 AND created_at > now() - ($2 || ' milliseconds')::interval`, [me.id, String(RATE_FLOOR_MS)]);
