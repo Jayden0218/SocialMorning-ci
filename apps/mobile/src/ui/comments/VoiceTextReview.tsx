@@ -37,9 +37,9 @@ export function VoiceTextReview(props: {
           className="justify-center px-row" style={TAP}>
           <Text className="text-accent text-body font-bold">Cancel</Text>
         </Pressable>
-        <Pressable onPress={props.onPost} disabled={props.posting || over} accessibilityRole="button" accessibilityLabel={props.postLabel}
+        <Pressable onPress={props.onPost} disabled={props.posting || over} accessibilityRole="button" accessibilityLabel={props.postLabel} accessibilityState={{ busy: props.posting, disabled: props.posting || over }}
           className={`bg-primary rounded-pill justify-center px-section ${props.posting || over ? 'opacity-50' : ''}`} style={TAP}>
-          <Text className="text-onPrimary text-body font-bold">{props.posting ? 'Posting…' : 'Post'}</Text>
+          <Text className="text-onPrimary text-body font-bold">Post</Text>
         </Pressable>
       </Box>
     </Box>
