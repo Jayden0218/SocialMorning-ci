@@ -122,12 +122,12 @@ export function MiniPlayer(props: { pathname?: string; context?: 'root' | 'tabs'
         accessibilityRole="button"
         accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
         accessibilityState={{ selected: isPlaying }}
-        className="rounded-pill items-center justify-center"
+        className="rounded-pill bg-playDisc items-center justify-center"
         style={ROUND}
         onPress={() => (isPlaying ? player.pause() : player.play())}
       >
         <ProgressRing progress={progress} size={RING} stroke={3}>
-          <Icon name={isPlaying ? 'pause' : 'play'} size={22} color={c.text} />
+          <Icon name={isPlaying ? 'pause' : 'play'} size={22} color={c.playGlyph} />
         </ProgressRing>
       </Pressable>
       <Link href="/queue" asChild>

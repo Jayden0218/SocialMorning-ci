@@ -30,6 +30,7 @@ import { useSocial } from '@/social/context';
 import { useM12Api, type FriendListen } from '@/social/m12-api';
 import { whoListened } from '@/social/who';
 import { PageHeader } from '@/ui/kit/PageHeader';
+import { EndOfList } from '@/ui/kit/EndOfList';
 
 const TAP = { minHeight: hit.min };
 const COLUMNS = { gap: spacing.row };
@@ -112,6 +113,8 @@ export default function FriendsListening(): React.ReactElement {
     <FlatList
       className="flex-1 bg-background"
       data={items.slice(1)}
+      // Owner, 2026-10-05: the bottom of a fetched list says so.
+      ListFooterComponent={items.length > 0 ? <EndOfList /> : null}
       keyExtractor={(i) => i.episode.id}
       numColumns={2}
       columnWrapperStyle={COLUMNS}

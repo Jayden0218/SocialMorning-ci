@@ -27,7 +27,8 @@ export type DiscoverBody = { date?: string; picks: DiscoverItem[]; talkedAbout: 
 export const CHART_LIMIT = 25;
 const TRENDING_SHOWS = 10;
 export const SHOWS_SERVED = 6;
-const SHOWS_STORED = 12;
+/** 18: six served as "Popular shows", the next six as "Premium picks", six spare for hiding. */
+const SHOWS_STORED = 18;
 export const NEW_SHOW_MAX_EPISODES = 12;
 const NEW_SHOWS = 3;
 const NEW_SHOW_EXTRA_CALLS = 3;
@@ -48,11 +49,11 @@ export function excludeHidden(body: DiscoverBody, hidden: ReadonlySet<string>): 
   };
 }
 
-export const discoverCacheKey = (day: string) => `discover:v3:${day}`;
+export const discoverCacheKey = (day: string) => `discover:v4:${day}`;
 
 /** M15 T014: drop every cached Discover body (all days), so the next request rebuilds with the saved picks. */
 export async function dropDiscoverCache(db: Db): Promise<void> {
-  await db.query("DELETE FROM cache WHERE key LIKE 'discover:v3:%' OR (key LIKE 'foryou:%' AND key <> 'foryou:chart')");
+  await db.query("DELETE FROM cache WHERE key LIKE 'discover:v%' OR (key LIKE 'foryou:%' AND key <> 'foryou:chart')");
 }
 
 export async function discoverBody(db: Db, f: typeof fetch, picks: readonly PickIn[], today: string): Promise<{ body: DiscoverBody; stale: boolean }> {
@@ -125,7 +126,9 @@ async function cachedDiscover(db: Db, f: typeof fetch, picks: readonly PickIn[],
     trending = trending.filter((t) => !pickKeys.has(t.key));
     const filled = fillWithTrending(talked, trending, 5);
     const talkedFinal = filled.filter((i) => i.kind === 'talkedAbout');
-    const trendingFinal = filled.filter((i) => i.kind === 'trending');
+    // Owner, 2026-10-05: the chart's "Top" tab is the whole trending list. As filler only, it was
+    // always empty once five episodes were talked about (live: 10 talked about, 0 trending).
+    const trendingFinal = trending;
     return {
       ...(day.date ? { date: day.date } : {}), picks: pickItems, talkedAbout: talkedFinal, trending: trendingFinal,
       shows: chartShows.slice(0, SHOWS_STORED), newShows, warnings,

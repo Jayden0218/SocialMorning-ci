@@ -29,6 +29,7 @@ import { EmptyPicture } from '@/ui/me/parts';
 import { useStores } from '@/ui/shell/providers';
 import { useColours } from '@/ui/kit/useColours';
 import { PageHeader } from '@/ui/kit/PageHeader';
+import { EndOfList } from '@/ui/kit/EndOfList';
 
 const TAP = { minHeight: hit.min };
 /** The grid's two columns sit `spacing.row` apart. */
@@ -77,6 +78,7 @@ export default function FavouritesScreen(): React.ReactElement {
         key="comments"
         className="flex-1 bg-background"
         data={starred}
+        ListFooterComponent={starred.length > 0 ? <EndOfList /> : null}
         keyExtractor={(c) => c.commentId}
         contentContainerClassName="px-screen-x pb-24 flex-grow"
         keyboardShouldPersistTaps="handled"
@@ -105,6 +107,7 @@ export default function FavouritesScreen(): React.ReactElement {
       key="episodes"
       className="flex-1 bg-background"
       data={known}
+      ListFooterComponent={known.length > 0 ? <EndOfList /> : null}
       numColumns={2}
       columnWrapperStyle={COLUMNS}
       keyExtractor={(r) => r.f.episodeId}

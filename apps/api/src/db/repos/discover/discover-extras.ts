@@ -1,4 +1,4 @@
-// Extra Discover parts: pick counts, followed shows, what people said, collections.
+// Extra Discover parts: pick counts, followed shows, new arrivals, what people said, collections.
 /**
  * M10 additions to Discover (2026-09-27): per-pick counts, "followed here", "what people
  * said", and the owner's collections. All of it is optional on the wire so an older build
@@ -97,6 +97,42 @@ export async function followedHere(db: Db): Promise<FollowedHere> {
     shows.push({ feedUrl: r.feed_url, title, ...(imageUrl ? { imageUrl } : {}), ...(meta.author ? { author: meta.author } : {}), followers: Number(r.followers) });
   }
   return { total: rows[0] ? Number(rows[0].total) : 0, shows };
+}
+
+export const ARRIVALS_SHOWN = 6;
+export type NewArrival = { show: { feedUrl: string; title: string; author: string; imageUrl?: string; genres: string[]; episodeCount: number }; episode: EpisodeCard & { id: string } };
+
+/**
+ * Owner, 2026-10-05 — "New arrivals": shows created in the Studio, newest first, each with its
+ * newest live episode (a show with none yet is left out: nothing to play). Live, like `said`:
+ * a deleted or hidden show leaves at once. Drafts and scheduled episodes never count — only
+ * rows `promoteDue` has put in `episodes` with a time that has come.
+ */
+export async function newArrivals(db: Db): Promise<NewArrival[]> {
+  const rows = await db.query<{ feed_url: string; title: string; author: string; category: string; cover_url: string | null; episodes: number; episode_id: string; guid: string; ep_title: string; image_url: string | null; duration_ms: number | null; enclosure_url: string; published_at: string | Date | null }>(
+    `SELECT hs.feed_url, hs.title, hs.author, hs.category, hs.cover_url, n.episodes,
+            e.id AS episode_id, e.guid, e.title AS ep_title, e.image_url, e.duration_ms, e.enclosure_url, e.published_at
+     FROM hosted_shows hs
+     JOIN LATERAL (SELECT count(*)::int AS episodes FROM episodes x WHERE x.feed_url = hs.feed_url AND (x.published_at IS NULL OR x.published_at <= now())) n ON n.episodes > 0
+     JOIN LATERAL (SELECT * FROM episodes x WHERE x.feed_url = hs.feed_url AND (x.published_at IS NULL OR x.published_at <= now()) ORDER BY x.published_at DESC NULLS LAST LIMIT 1) e ON true
+     WHERE hs.deleted_at IS NULL
+       AND NOT EXISTS (SELECT 1 FROM hidden_feeds h WHERE h.feed_url = hs.feed_url)
+     ORDER BY hs.created_at DESC, hs.id
+     LIMIT $1`,
+    [ARRIVALS_SHOWN],
+  );
+  return rows.map((r) => {
+    const publishedAt = iso(r.published_at);
+    const imageUrl = r.image_url ?? r.cover_url ?? undefined;
+    return {
+      show: { feedUrl: r.feed_url, title: r.title, author: r.author, ...(r.cover_url ? { imageUrl: r.cover_url } : {}), genres: [r.category], episodeCount: Number(r.episodes) },
+      episode: {
+        id: r.episode_id, feedUrl: r.feed_url, guid: r.guid, title: r.ep_title, showTitle: r.title, enclosureUrl: r.enclosure_url,
+        ...(imageUrl ? { imageUrl } : {}), ...(r.duration_ms !== null ? { durationMs: r.duration_ms } : {}),
+        ...(publishedAt ? { publishedAt } : {}),
+      },
+    };
+  });
 }
 
 /**

@@ -4,8 +4,9 @@
  * order of the reference screens. Each takes only what it draws and a way to open or
  * play; `app/(tabs)/index.tsx` decides which ones appear (`src/discover/sections.ts`).
  *
- * Two sections of the reference are not here, on purpose: video podcasts (the player
- * plays audio only) and paid shows (the app has none — a banner would lead nowhere).
+ * Owner, 2026-10-05: "Premium picks" stands where 小宇宙 has its 付费精品节目单 — the chart's next six
+ * shows, with no price and nothing sold (the app takes no payments yet). "New arrivals" are the
+ * newest shows made in the Studio. "Where to start" and "Shows listeners here follow" are gone.
  *
  * M17 (`Home-B`, `Discover-B`): shortcuts are a 3-column grid of white tiles with accent
  * icons; each editor's pick is a white card (accent eyebrow, serif title, the note as a serif
@@ -26,14 +27,12 @@ import { Icon, type IconName } from '@/ui/kit/Icon';
 import { GENRES } from '@/discover/genres';
 import { warmCategories } from '@/discover/category-cache';
 import { useSocial } from '@/social/context';
-import { ago, pages, statsLine, type ChartTab } from '@/discover/sections';
-import type { Collection, DiscoverItem, EpisodeCard, FollowedShow, SaidItem, ShowCard } from '@/social/api';
+import { ago, pages, type ChartTab } from '@/discover/sections';
+import type { DiscoverItem, EpisodeCard, SaidItem, ShowCard } from '@/social/api';
 import { Artwork } from '@/ui/kit/Artwork';
-import { Button } from '@/ui/kit/Button';
 import { Card } from '@/ui/kit/Card';
-import { Eyebrow } from '@/ui/kit/Eyebrow';
-import { EpisodeLine, Pager, SectionTitle } from './parts';
-import { noun, plural } from '@socialmorning/social-core';
+import { AddButton, EpisodeLine, Pager, SectionTitle, StatsLine, type RowStats } from './parts';
+import { plural } from '@socialmorning/social-core';
 
 const TAP = { minHeight: hit.min };
 const SQUARE = { minHeight: hit.min, minWidth: hit.min };
@@ -41,7 +40,7 @@ const SQUARE = { minHeight: hit.min, minWidth: hit.min };
 const THIRD = { minHeight: hit.min, flexBasis: '30%' as const, flexGrow: 1 };
 const HALF = { minHeight: hit.min, flexBasis: '45%' as const, flexGrow: 1 };
 
-type Act = { onOpen: (card: EpisodeCard) => void; onPlay: (card: EpisodeCard) => void };
+type Act = { onOpen: (card: EpisodeCard) => void; onPlay: (card: EpisodeCard) => void; stats?: Readonly<Record<string, RowStats>> };
 
 /** The shortcut tiles under the search bar — three to a row, icon over label. */
 export function Shortcuts(props: { items: { label: string; icon: IconName; onPress: () => void }[] }): React.ReactElement {
@@ -60,7 +59,7 @@ export function Shortcuts(props: { items: { label: string; icon: IconName; onPre
   );
 }
 
-/** For You — a card of three numbered rows per page; swipe, or tap "1 / 2 →" for the next page. */
+/** For You — a card of three numbered rows per page; swipe for the next page. */
 export function ForYouSection(props: Act & { rows: { card: EpisodeCard; line: string; index: number }[]; onOpenAt: (card: EpisodeCard, index: number) => void }): React.ReactElement | null {
   const [page, setPage] = useState(0);
   if (props.rows.length === 0) return null;
@@ -68,21 +67,8 @@ export function ForYouSection(props: Act & { rows: { card: EpisodeCard; line: st
   const shown = Math.min(page, p.length - 1);
   return (
     <Box>
-      {/* Owner, 2026-10-04: "For You" and "1 / 7 ›" on one middle line. */}
-      <Box className="flex-row items-center justify-between px-screen-x mt-section mb-gap">
-        <Text className="text-text text-lg font-display flex-1" accessibilityRole="header" numberOfLines={1}>For You</Text>
-        {p.length > 1 ? (
-          <Pressable
-            onPress={() => setPage((shown + 1) % p.length)}
-            accessibilityRole="button"
-            accessibilityLabel={`Next three For You picks, page ${shown + 1} of ${p.length}`}
-            className="justify-center pl-row"
-            style={SQUARE}
-          >
-            <Text className="text-accent text-meta font-semibold">{`${shown + 1} / ${p.length} ›`}</Text>
-          </Pressable>
-        ) : null}
-      </Box>
+      {/* Owner, 2026-10-05: no "1 / 7 ›" — the title alone; the pages move by swiping. */}
+      <SectionTitle title="For You" />
       <Pager count={p.length} full index={shown} onPage={setPage}>
         {(i) => (
           <Card padded={false} className="px-row">
@@ -96,6 +82,7 @@ export function ForYouSection(props: Act & { rows: { card: EpisodeCard; line: st
                 size={52}
                 hideShow
                 divided={j > 0}
+                {...(props.stats?.[r.card.id] ? { stats: props.stats[r.card.id] } : {})}
                 label={`${r.card.title}, ${r.card.showTitle}. ${r.line}`}
                 onOpen={() => props.onOpenAt(r.card, r.index)}
                 onPlay={() => props.onPlay(r.card)}
@@ -116,48 +103,42 @@ export function shortDate(date: string): string {
   return m && month ? `${month} ${Number(m[2])}` : date;
 }
 
-/** Editor's picks — each a white card: the owner's note as a serif quote, the stats, and Play. */
-export function PicksSection(props: Act & { items: DiscoverItem[]; date?: string; onPast?: () => void }): React.ReactElement | null {
-  const stores = useStores();
-  const c = useColours(stores.settings);
+/**
+ * Editor's picks — a titled section (owner, 2026-10-05: a title on top, like For You); each pick a
+ * white card: the podcast, the episode, the owner's note as a serif quote, the counts, and "+"
+ * (add to the queue) instead of a Play pill.
+ */
+export function PicksSection(props: Act & { items: DiscoverItem[]; date?: string; onPast?: () => void; onQueue: (card: EpisodeCard) => void }): React.ReactElement | null {
   if (props.items.length === 0) return null;
   return (
-    <Box className="gap-row mt-row">
-      {props.items.map((p, n) => {
-        const stats = statsLine(p.stats);
-        return (
-          <Card key={p.key} className="mx-screen-x pt-2 pb-row">
-            {/* The eyebrow and the past-picks link head the first card only (M12 FR-070: earlier
-                days' picks are one tap away). */}
-            {n === 0 ? (
-              <Box className="flex-row items-center justify-between" style={TAP}>
-                <Eyebrow accent className="flex-1">{props.date ? `Editor's picks · ${shortDate(props.date)}` : "Editor's picks"}</Eyebrow>
-                {props.onPast ? (
-                  <Pressable onPress={props.onPast} accessibilityRole="link" accessibilityLabel="Past picks" className="justify-center pl-row" style={TAP}>
-                    <Text className="text-accent text-meta font-semibold">Past picks ›</Text>
-                  </Pressable>
-                ) : null}
+    <Box>
+      <SectionTitle
+        title={props.date ? `Editor's picks · ${shortDate(props.date)}` : "Editor's picks"}
+        {...(props.onPast ? { action: { label: 'Past picks', onPress: props.onPast } } : {})}
+      />
+      <Box className="gap-row">
+        {props.items.map((p) => {
+          const stats = p.stats ?? props.stats?.[p.episode.id];
+          return (
+            <Card key={p.key} className="mx-screen-x pt-row pb-row">
+              <Box className="flex-row gap-row items-start">
+                <Pressable onPress={() => props.onOpen(p.episode)} accessibilityRole="button" accessibilityLabel={`${p.episode.title}, ${p.episode.showTitle}`}>
+                  <Artwork url={p.episode.imageUrl} size={76} name={p.episode.showTitle} />
+                </Pressable>
+                <Pressable onPress={() => props.onOpen(p.episode)} className="flex-1 gap-1" accessibilityRole="button" accessibilityLabel={`Open ${p.episode.title}`} style={TAP}>
+                  <Text className="text-accent text-meta font-semibold" numberOfLines={1}>{p.episode.showTitle}</Text>
+                  <Text className="text-text text-title font-display" numberOfLines={3}>{p.episode.title}</Text>
+                </Pressable>
               </Box>
-            ) : null}
-            <Box className={`flex-row gap-row items-start ${n === 0 ? '' : 'pt-row'}`}>
-              <Pressable onPress={() => props.onOpen(p.episode)} accessibilityRole="button" accessibilityLabel={`${p.episode.title}, ${p.episode.showTitle}`}>
-                <Artwork url={p.episode.imageUrl} size={76} name={p.episode.showTitle} />
-              </Pressable>
-              <Pressable onPress={() => props.onOpen(p.episode)} className="flex-1 gap-1" accessibilityRole="button" accessibilityLabel={`Open ${p.episode.title}`} style={TAP}>
-                <Text className="text-muted text-xs" numberOfLines={1}>{p.episode.showTitle}</Text>
-                <Text className="text-text text-title font-display" numberOfLines={3}>{p.episode.title}</Text>
-              </Pressable>
-            </Box>
-            {p.why ? <Text className="text-text text-body font-display-semibold mt-row" numberOfLines={4}>“{p.why}”</Text> : null}
-            <Box className="flex-row items-center justify-between gap-row mt-row">
-              <Box className="flex-row items-center gap-1 flex-1">
-                {stats ? <><Icon name="headset-outline" size={14} color={c.muted} /><Text className="text-muted text-xs" numberOfLines={1}>{stats}</Text></> : null}
+              {p.why ? <Text className="text-text text-body font-display-semibold mt-row" numberOfLines={4}>“{p.why}”</Text> : null}
+              <Box className="flex-row items-center justify-between gap-row mt-1">
+                {stats ? <StatsLine stats={stats} className="flex-1" /> : <Box className="flex-1" />}
+                <AddButton title={p.episode.title} onPress={() => props.onQueue(p.episode)} />
               </Box>
-              <Button label="Play" accessibilityLabel={`Play ${p.episode.title}`} onPress={() => props.onPlay(p.episode)} />
-            </Box>
-          </Card>
-        );
-      })}
+            </Card>
+          );
+        })}
+      </Box>
     </Box>
   );
 }
@@ -169,13 +150,13 @@ export function ChartSection(props: Act & { tabs: ChartTab[]; onFull?: () => voi
   const [tab, setTab] = useState(0);
   const [page, setPage] = useState(0);
   const current = props.tabs[Math.min(tab, props.tabs.length - 1)];
-  if (!current) return null;
+  if (!current || props.tabs.every((t) => t.rows.length === 0)) return null;
   const p = pages(current.rows);
   const first = page <= 0;
   const last = page >= p.length - 1;
   return (
     <Box>
-      <Box className="flex-row items-end justify-between px-screen-x mt-section">
+      <Box className="flex-row items-center justify-between px-screen-x mt-section">
         <Text className="text-text text-hero font-display flex-1" accessibilityRole="header" numberOfLines={1}>The chart</Text>
         {/* M12 FR-071: the whole Talked-about ranking, not only the three pages shown here. */}
         {props.onFull ? (
@@ -192,9 +173,11 @@ export function ChartSection(props: Act & { tabs: ChartTab[]; onFull?: () => voi
           </Pressable>
         ))}
       </Box>
+      {/* Owner, 2026-10-05: the three tabs always show; an empty one says so. */}
+      {p.length === 0 ? <Text className="text-muted text-body px-screen-x py-section text-center">Nothing here yet — check back soon.</Text> : null}
       <Pager key={current.key} count={p.length} full index={page} onPage={setPage}>
         {(i) => (p[i] ?? []).map((card, j) => (
-          <EpisodeLine key={card.id} card={card} rank={i * 3 + j + 1} size={60} divided={j > 0} onOpen={() => props.onOpen(card)} onPlay={() => props.onPlay(card)} />
+          <EpisodeLine key={card.id} card={card} rank={i * 3 + j + 1} size={60} divided={j > 0} {...(props.stats?.[card.id] ? { stats: props.stats[card.id] } : {})} onOpen={() => props.onOpen(card)} onPlay={() => props.onPlay(card)} />
         ))}
       </Pager>
       {p.length > 1 ? (
@@ -263,18 +246,33 @@ export function ShowTiles(props: { title: string; shows: { feedUrl: string; titl
 
 export const popularShowTiles = (shows: ShowCard[]) => shows.map((s) => ({ feedUrl: s.feedUrl, title: s.title, ...(s.imageUrl ? { imageUrl: s.imageUrl } : {}), line: s.author }));
 
-export const followedShowTiles = (shows: FollowedShow[]) =>
-  shows.map((s) => ({ feedUrl: s.feedUrl, title: s.title, ...(s.imageUrl ? { imageUrl: s.imageUrl } : {}), line: `${plural(s.followers, 'listener')} here ${noun(s.followers, 'follows', 'follow')}` }));
-
-/** An owner-curated collection: its title and line, then episode rows with play, in a card. */
-export function CollectionSection(props: Act & { collection: Collection }): React.ReactElement {
-  const c = props.collection;
+/**
+ * Owner, 2026-10-05 — "Premium picks", where 小宇宙 has its 付费精品节目单: a card of show rows, each
+ * with a "Premium" tag. No price and no buy button — the app sells nothing yet (constitution 2.1.0);
+ * a row opens the show page like any other show.
+ */
+export function PremiumSection(props: { shows: ShowCard[]; onShow: (feedUrl: string) => void }): React.ReactElement | null {
+  const stores = useStores();
+  const c = useColours(stores.settings);
+  if (props.shows.length === 0) return null;
   return (
     <Box>
-      <SectionTitle title={c.title} />
-      {c.subtitle ? <Text className="text-muted text-body px-screen-x mb-row">{c.subtitle}</Text> : null}
+      <SectionTitle title="Premium picks" />
       <Card padded={false} className="mx-screen-x px-row">
-        {c.items.map((i, n) => <EpisodeLine key={i.key} card={i.episode} size={56} divided={n > 0} {...(i.why ? { line: `“${i.why}”` } : {})} onOpen={() => props.onOpen(i.episode)} onPlay={() => props.onPlay(i.episode)} />)}
+        {props.shows.map((s, k) => (
+          <Pressable key={s.feedUrl} onPress={() => props.onShow(s.feedUrl)} accessibilityRole="button" accessibilityLabel={`${s.title}, ${s.author}. Premium pick`} className={`flex-row items-center gap-row py-row ${k > 0 ? 'border-t-hairline border-separator' : ''}`}>
+            <Artwork url={s.imageUrl} size={56} name={s.title} />
+            <Box className="flex-1 gap-0.5">
+              <Text className="text-text text-body font-bold" numberOfLines={2}>{s.title}</Text>
+              <Text className="text-muted text-xs" numberOfLines={1}>{s.author}</Text>
+              <Box className="flex-row items-center gap-1 self-start bg-playDisc rounded-pill px-2 py-0.5 mt-0.5">
+                <Icon name="diamond-outline" size={11} color={c.playGlyph} />
+                <Text className="text-text text-micro font-bold">Premium</Text>
+              </Box>
+            </Box>
+            <Icon name="chevron-forward" size={18} color={c.muted} />
+          </Pressable>
+        ))}
       </Card>
     </Box>
   );
@@ -308,15 +306,15 @@ export function SaidSection(props: Act & { items: SaidItem[]; now: number }): Re
   );
 }
 
-/** New shows on the chart — a show with only a few episodes, and its latest one. */
-export function NewShowsSection(props: Act & { items: { show: ShowCard; episode: EpisodeCard }[] }): React.ReactElement | null {
+/** Owner, 2026-10-05 — "New arrivals": the newest shows made here, each with its latest episode. */
+export function NewArrivalsSection(props: Act & { items: { show: ShowCard; episode: EpisodeCard }[] }): React.ReactElement | null {
   if (props.items.length === 0) return null;
   return (
     <Box>
-      <SectionTitle title="New shows climbing the chart" />
+      <SectionTitle title="New arrivals" />
       <Card padded={false} className="mx-screen-x px-row">
         {props.items.map((n, k) => (
-          <EpisodeLine key={n.episode.id} card={n.episode} size={56} divided={k > 0} line={n.show.episodeCount !== undefined ? `${plural(n.show.episodeCount, 'episode')} so far` : 'New on the chart'} onOpen={() => props.onOpen(n.episode)} onPlay={() => props.onPlay(n.episode)} />
+          <EpisodeLine key={n.episode.id} card={n.episode} size={56} divided={k > 0} line={n.show.episodeCount !== undefined ? `New show · ${plural(n.show.episodeCount, 'episode')}` : 'New show'} {...(props.stats?.[n.episode.id] ? { stats: props.stats[n.episode.id] } : {})} onOpen={() => props.onOpen(n.episode)} onPlay={() => props.onPlay(n.episode)} />
         ))}
       </Card>
     </Box>

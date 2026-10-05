@@ -70,10 +70,10 @@ export function EpisodeCard(props: { episodeId: string }): React.ReactElement | 
           accessibilityRole="button"
           accessibilityLabel={playing ? 'Pause' : 'Play'}
           accessibilityState={{ selected: playing }}
-          className="rounded-pill bg-primary items-center justify-center"
+          className="rounded-pill bg-playDisc items-center justify-center"
           style={ROUND}
         >
-          <Icon name={playing ? 'pause' : 'play'} size={20} color={c.onPrimary} />
+          <Icon name={playing ? 'pause' : 'play'} size={20} color={c.playGlyph} />
         </Pressable>
       ) : null}
     </Box>

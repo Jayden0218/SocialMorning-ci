@@ -24,6 +24,7 @@ import { useCardActions } from '@/discover/useDiscover';
 import { useSafety } from '@/safety/context';
 import { useM12Api, type ChartItem } from '@/social/m12-api';
 import { PageHeader } from '@/ui/kit/PageHeader';
+import { EndOfList } from '@/ui/kit/EndOfList';
 
 const TAP = { minHeight: hit.min };
 /** How many ranks are drawn as cards above the rows (`Chart-B`: 1 wide, 2 and 3 side by side). */
@@ -87,6 +88,8 @@ export default function ChartScreen(): React.ReactElement {
     <FlatList
       className="flex-1 bg-background"
       data={items.slice(PODIUM)}
+      // Owner, 2026-10-05: the bottom of a fetched list says so.
+      ListFooterComponent={items.length > 0 ? <EndOfList /> : null}
       keyExtractor={(i) => i.key}
       contentContainerClassName="px-screen-x pb-24 flex-grow"
       ListHeaderComponent={

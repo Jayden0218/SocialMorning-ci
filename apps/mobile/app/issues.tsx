@@ -24,6 +24,7 @@ import { useColours } from '@/ui/kit/useColours';
 import { useStores } from '@/ui/shell/providers';
 import { useM12Api, type IssueSummary } from '@/social/m12-api';
 import { PageHeader } from '@/ui/kit/PageHeader';
+import { EndOfList } from '@/ui/kit/EndOfList';
 
 const TAP = { minHeight: hit.min };
 const COLUMNS = { gap: spacing.row };
@@ -83,6 +84,8 @@ export default function IssuesScreen(): React.ReactElement {
     <FlatList
       className="flex-1 bg-background"
       data={issues.slice(1)}
+      // Owner, 2026-10-05: the bottom of a fetched list says so.
+      ListFooterComponent={issues.length > 0 ? <EndOfList /> : null}
       keyExtractor={(i) => i.id}
       numColumns={2}
       columnWrapperStyle={COLUMNS}

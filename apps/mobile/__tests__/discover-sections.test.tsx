@@ -17,18 +17,22 @@ const byLabel = (r: ReactTestRenderer, label: string): ReactTestInstance =>
   r.root.find((n) => n.props['accessibilityLabel'] === label && typeof n.props['onPress'] === 'function');
 const text = (r: ReactTestRenderer): string => JSON.stringify(r.toJSON());
 
-it('a pick: the play button plays, the title opens', () => {
+it('a pick: + adds it to the queue (owner 2026-10-05: no Play pill), the title opens', () => {
   const onOpen = jest.fn();
   const onPlay = jest.fn();
+  const onQueue = jest.fn();
   let r!: ReactTestRenderer;
-  act(() => { r = create(createElement(PicksSection, { items: [{ kind: 'pick', key: 'p1', episode: card('p1'), why: 'Because.', stats: { listeners: 4, comments: 2 } }], onOpen, onPlay })); });
-  act(() => { byLabel(r, 'Play Title p1').props['onPress'](); });
-  expect(onPlay).toHaveBeenCalledWith(card('p1'));
+  act(() => { r = create(createElement(PicksSection, { items: [{ kind: 'pick', key: 'p1', episode: card('p1'), why: 'Because.', stats: { listeners: 4, comments: 2 } }], onOpen, onPlay, onQueue })); });
+  act(() => { byLabel(r, 'Add Title p1 to the queue').props['onPress'](); });
+  expect(onQueue).toHaveBeenCalledWith(card('p1'));
+  expect(onPlay).not.toHaveBeenCalled();
   expect(onOpen).not.toHaveBeenCalled();
+  expect(text(r)).toContain("Editor's picks");
   act(() => { byLabel(r, 'Open Title p1').props['onPress'](); });
   expect(onOpen).toHaveBeenCalledWith(card('p1'));
   expect(text(r)).toContain('Because.');
-  expect(text(r)).toContain('4 listened · 2 comments');
+  expect(text(r)).toContain('4 listened');
+  expect(text(r)).toContain('2 comments');
 });
 
 it('the chart: rows are numbered, and a tab switches the list', () => {
@@ -49,7 +53,7 @@ it('no rows, no section', () => {
   let r!: ReactTestRenderer;
   act(() => { r = create(createElement(ChartSection, { tabs: [], onOpen: jest.fn(), onPlay: jest.fn() })); });
   expect(r.toJSON()).toBeNull();
-  act(() => { r = create(createElement(PicksSection, { items: [], onOpen: jest.fn(), onPlay: jest.fn() })); });
+  act(() => { r = create(createElement(PicksSection, { items: [], onOpen: jest.fn(), onPlay: jest.fn(), onQueue: jest.fn() })); });
   expect(r.toJSON()).toBeNull();
 });
 
@@ -67,7 +71,7 @@ it('Editor\'s picks links to past picks; the chart links to the full chart', () 
   const onPast = jest.fn();
   const onFull = jest.fn();
   let r!: ReactTestRenderer;
-  act(() => { r = create(createElement(PicksSection, { items: [{ kind: 'pick', key: 'p1', episode: card('p1') }], onOpen: jest.fn(), onPlay: jest.fn(), onPast })); });
+  act(() => { r = create(createElement(PicksSection, { items: [{ kind: 'pick', key: 'p1', episode: card('p1') }], onOpen: jest.fn(), onPlay: jest.fn(), onQueue: jest.fn(), onPast })); });
   act(() => { byLabel(r, 'Past picks').props['onPress'](); });
   expect(onPast).toHaveBeenCalledTimes(1);
   act(() => { r = create(createElement(ChartSection, { tabs: [{ key: 'top' as const, label: 'Top', rows: [card('a')] }], onOpen: jest.fn(), onPlay: jest.fn(), onFull })); });

@@ -34,9 +34,9 @@ export function EndOffer(props: { item: NextUpItem; onPlay: () => void }): React
       <Box className="self-start bg-accentTint rounded-pill px-row py-1.5">
         <Text className="text-xs font-bold text-accent">{props.item.label}</Text>
       </Box>
-      <Pressable className="flex-row items-center justify-center gap-gap bg-primary rounded-pill px-section mt-1" style={PILL} accessibilityRole="button" onPress={props.onPlay}>
-        <Icon name="play" size={18} color={c.onPrimary} />
-        <Text className="text-onPrimary text-sm font-bold">Play it</Text>
+      <Pressable className="flex-row items-center justify-center gap-gap bg-playDisc rounded-pill px-section mt-1" style={PILL} accessibilityRole="button" onPress={props.onPlay}>
+        <Icon name="play" size={18} color={c.playGlyph} />
+        <Text className="text-text text-sm font-bold">Play it</Text>
       </Pressable>
     </Box>
   );

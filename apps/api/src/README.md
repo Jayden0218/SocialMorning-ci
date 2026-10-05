@@ -164,7 +164,7 @@ here or a line does not match its file.
 | `follows.ts` | Follow and unfollow listeners, and list followers and following. |
 | `live-listeners.ts` | Counts "listening now" per episode using only daily-salted install hashes. |
 | `profiles.ts` | Builds a listener's profile: name, counts, stats and recent public activity. |
-| `voice-posts.ts` | Voice status posts up to 60 seconds, fully deleted after 48 hours. |
+| `voice-posts.ts` | Voice status posts up to 60 seconds, fully deleted after 24 hours. |
 
 ### `db/repos/safety/` — reports, blocks, moderation
 

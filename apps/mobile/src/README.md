@@ -30,6 +30,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `apple.ts` | Searches Apple's public podcast catalogue for shows. |
 | `cache.ts` | Keeps the last Discover page so it still shows when offline. |
 | `category-cache.ts` | Keeps each category's last list so its page shows at once, then refreshes quietly. |
+| `row-stats.ts` | Fetches "listened" and comment counts for every episode on Discover in one call. |
 | `category-list.ts` | Sorts and filters the shows on a category page. |
 | `end-offer.ts` | Decides which episode to suggest when one ends and the queue is empty. |
 | `first-paint.ts` | Holds the Discover page back until its data is in, so it appears whole, not piece by piece. |
@@ -238,6 +239,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `ComingSoon.tsx` | A "Coming soon" sheet shown when you tap a feature not ready yet. |
 | `EmptyState.tsx` | What an empty, loading, offline or failed page shows, with a Retry button. |
 | `Eyebrow.tsx` | A small grey capital-letter label above a section. |
+| `EndOfList.tsx` | The line under the last row of a fetched list: "No more to fetch". |
 | `haptics.ts` | A light vibration tick; does nothing on an app built before expo-haptics was added. |
 | `Icon.tsx` | Simple drawn icons (play, pause, arrows) and the one font icon helper. |
 | `Loader.tsx` | The app's own loading sign: five sound bars moving up and down. |
@@ -344,7 +346,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 
 | File | What it does |
 |---|---|
-| `ContinueListening.tsx` | Card at top of Updates to go on with your last episode. |
+| `ContinueListening.tsx` | Card to go on with your last episode (not on Updates since 2026-10-05; kept for reuse). |
 | `DownloadButton.tsx` | Download button showing every state: waiting, percent, done, failed, remove. |
 | `EpisodeRow.tsx` | One episode in a list: cover, title, show, length and date. |
 | `HeroArtwork.tsx` | Big cover with soft shadow at the top of episode and show pages. |

@@ -1,7 +1,7 @@
-// Record a voice post up to 60 seconds for followers; deleted after 48 hours.
+// Record a voice post up to 60 seconds for followers; deleted after 24 hours.
 /**
  * Record a voice status (M12 FR-104): up to 60 s, heard by people who follow you, deleted by
- * the server after 48 hours. The microphone is used only while the button says "Recording".
+ * the server after 24 hours. The microphone is used only while the button says "Recording".
  * Episode playback pauses first; the audio session returns to playback when recording ends
  * (with recording allowed, iOS would route sound to the earpiece — expo-audio's AudioMode).
  * The native calls are in src/playback/expo-audio-adapter.ts, the one file that imports expo-audio.
@@ -34,7 +34,7 @@ import { VOICE_MAX_MS, voiceClock } from '@/social/voice';
 import { PageHeader } from '@/ui/kit/PageHeader';
 
 /** The old one-line rule, word for word, split into `VoiceNew-B`'s numbered list. */
-const RULES = ['Up to 60 seconds.', 'People who follow you can play it', 'for 48 hours; then it is deleted.'] as const;
+const RULES = ['Up to 60 seconds.', 'People who follow you can play it', 'for 24 hours; then it is deleted.'] as const;
 /** The footer pills: 52 pt in the design, never under 48; the row stretches Post to match. */
 const PILL = { minHeight: Math.max(hit.min, 52) };
 /** The 40 pt serif clock keeps its line from clipping the serif's figures. */
@@ -83,7 +83,7 @@ export default function NewVoicePost(): React.ReactElement {
     try {
       const blob = await (await fetch(uri)).blob();
       await m12.postVoice(blob, ms);
-      toast('Posted. It disappears in 48 hours.');
+      toast('Posted. It disappears in 24 hours.');
       router.back();
     } catch (e) {
       setPhase({ kind: 'done', uri, ms });

@@ -108,6 +108,10 @@ export type Discover = {
   collections?: Collection[];
   /** M10b US5: video episodes, newest first (≤ 10). */
   video?: DiscoverItem[];
+  /** Owner, 2026-10-05: "Premium picks" — the chart's next six shows. No price; nothing is sold. */
+  premium?: ShowCard[];
+  /** Owner, 2026-10-05: "New arrivals" — shows created in the Studio, newest first, each with its newest episode. */
+  newArrivals?: { show: ShowCard; episode: EpisodeCard }[];
   /**
    * M15 US5 (contracts/admin-api.md): the owner's section order and hidden sections, by the
    * phone's section ids (`src/discover/sections.ts` `SECTION_IDS`). Absent → today's order.

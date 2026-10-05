@@ -3,7 +3,7 @@
  * "Add to queue" / "Play next" (US2, FR-008/011), through player-core's enqueue.
  *
  * M17 (`EpisodeMoreSheet-B`): the ⋯ sheet's actions are a two-column grid of white tiles — an
- * accent icon at the top left, the label under it, an optional muted detail. `SheetTile` lives
+ * accent icon on the left, the label beside it, an optional muted detail under the label. `SheetTile` lives
  * here so DownloadButton and EpisodeExtras draw the same tile; each part is one row of two, so
  * the library, show and episode sheets that stack the three parts all get the grid.
  */
@@ -15,8 +15,8 @@ import { useColours } from '@/ui/kit/useColours';
 import { queueEpisode } from '@/settings/queue';
 import { useDownloads, useStores, useToast } from '@/ui/shell/providers';
 
-/** 76 pt, as in B — above the 48 pt floor. */
-const TILE = { minHeight: 76 };
+/** 64 pt: one size for every tile, one or two lines (above the 48 pt floor). */
+const TILE = { minHeight: 64 };
 
 export function SheetTile(props: {
   icon: IconName;
@@ -32,13 +32,15 @@ export function SheetTile(props: {
   const body = (
     <>
       <Icon name={props.icon} size={20} color={props.iconColour} />
-      <Box className="flex-1 justify-end">
+      <Box className="flex-1 justify-center">
         <Text className={label} numberOfLines={2}>{props.label}</Text>
         {props.detail ? <Text className="text-muted text-xs" numberOfLines={1}>{props.detail}</Text> : null}
       </Box>
     </>
   );
-  const cls = 'flex-1 gap-gap p-row rounded-row bg-surface border border-border';
+  // Owner, 2026-10-05 (Honor 50): icon on the left, words on the right, both centred — with the icon
+  // above, a tile with a second line ("Downloaded · 34 MB") pushed its label up over the icon.
+  const cls = 'flex-1 flex-row items-center gap-row px-row py-2 rounded-row bg-surface border border-border';
   if (!props.onPress) {
     // A statement of fact ("Downloaded", "Downloading · 43 %"), not an action.
     return <Box className={cls} style={TILE} accessible accessibilityLabel={props.detail ? `${props.accessibilityLabel ?? props.label}, ${props.detail}` : props.accessibilityLabel ?? props.label}>{body}</Box>;

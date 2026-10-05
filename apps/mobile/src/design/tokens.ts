@@ -51,6 +51,12 @@ export const colour = {
   clear: 'rgba(251,248,241,0)',
   /** M12 FR-053: the disc behind a list row's play glyph — the accent at 14 % (glyph on it 4.60). */
   accentTint: 'rgba(138,90,0,0.14)',
+  /**
+   * Owner, 2026-10-05: every podcast play button is a light-yellow disc with a brown triangle,
+   * whatever the accent theme. Glyph on the disc 4.98; the disc on the page 1.12 (decorative edge).
+   */
+  playDisc: '#feeba5',
+  playGlyph: '#8a5a00',
   /** The veil over the player's blurred artwork — the page at 88 % (over black: text 13.29, muted 5.30). */
   veil: 'rgba(251,248,241,0.88)',
 } as const;

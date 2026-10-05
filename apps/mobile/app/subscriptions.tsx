@@ -35,6 +35,7 @@ import { useStores, useSubscriptionSync, useToast } from '@/ui/shell/providers';
 import { useColours } from '@/ui/kit/useColours';
 import { hit } from '@/design';
 import { PageHeader } from '@/ui/kit/PageHeader';
+import { EndOfList } from '@/ui/kit/EndOfList';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
 /** M17 (`Subscriptions-B`): a starred card is 220 pt wide; its artwork fills it inside 10 pt padding and the border. */
@@ -126,6 +127,8 @@ export default function SubscriptionsScreen(): React.ReactElement {
     <Box className="flex-1 bg-background">
       <FlatList
         data={rest}
+        // Owner, 2026-10-05: the bottom of a fetched list says so.
+        ListFooterComponent={rows.length > 0 ? <EndOfList /> : null}
         keyExtractor={(r) => r.feedUrl}
         contentContainerClassName="px-screen-x pb-24 flex-grow"
         keyboardShouldPersistTaps="handled"

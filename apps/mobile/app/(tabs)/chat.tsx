@@ -26,6 +26,7 @@ import { ago } from '@/discover/sections';
 import { useSocial } from '@/social/context';
 import { previewOf, useChatApi, type Conversation } from '@/social/chat-api';
 import { plural } from '@socialmorning/social-core';
+import { EndOfList } from '@/ui/kit/EndOfList';
 
 const TAP = { minHeight: hit.min };
 const REFRESH_MS = 15_000;
@@ -88,6 +89,8 @@ export default function ChatTab(): React.ReactElement {
     <SafeAreaView className="flex-1 bg-background">
       <FlatList
         data={items}
+        // Owner, 2026-10-05: the bottom of a fetched list says so.
+        ListFooterComponent={items.length > 0 ? <EndOfList /> : null}
         keyExtractor={(i) => i.with.id}
         contentContainerStyle={{ paddingBottom: TAB_PAGE_END }}
         contentContainerClassName="flex-grow"

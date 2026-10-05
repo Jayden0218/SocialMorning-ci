@@ -26,7 +26,7 @@ test('G-P1: picks saved for today are in the very next /v1/discover (the cached 
   const before = await discover(t);
   assert.equal(before.date, '2026-09-20', 'the file serves first');
   assert.deepEqual(before.picks.map((p) => p.why), ['From the file.']);
-  assert.ok((await t.q("SELECT 1 FROM cache WHERE key = 'discover:v3:2026-09-22'")).length === 1, 'the body is cached under the day');
+  assert.ok((await t.q("SELECT 1 FROM cache WHERE key = 'discover:v4:2026-09-22'")).length === 1, 'the body is cached under the day');
 
   const put = await aCall(t, 'PUT', `/v1/admin/picks/${TODAY}`, owner, { version: 0, items: [
     { feedUrl: FX, guid: 'g-new', why: 'Admin first.' },

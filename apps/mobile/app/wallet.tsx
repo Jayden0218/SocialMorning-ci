@@ -27,6 +27,7 @@ import { MANAGE_SUBSCRIPTIONS, moneyLabel } from '@/me/money';
 import { useM12Api, type Purchase } from '@/social/m12-api';
 import { PageHeader } from '@/ui/kit/PageHeader';
 import { BottomBar } from '@/ui/kit/BottomBar';
+import { EndOfList } from '@/ui/kit/EndOfList';
 
 const ROW = { minHeight: size.row };
 /** The empty card is 260 pt tall in `Wallet-B`; the words sit at its foot. */
@@ -53,6 +54,8 @@ export default function WalletScreen(): React.ReactElement {
     <FlatList
       className="flex-1 bg-background"
       data={state.kind === 'ok' ? state.items : []}
+      // Owner, 2026-10-05: the bottom of a fetched list says so.
+      ListFooterComponent={state.kind === 'ok' && state.items.length > 0 ? <EndOfList /> : null}
       keyExtractor={(p) => p.id}
       contentContainerClassName="px-screen-x pt-gap pb-24 flex-grow"
       ListHeaderComponent={

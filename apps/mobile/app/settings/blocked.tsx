@@ -15,6 +15,7 @@ import { BlockButton } from '@/ui/social/BlockButton';
 import { EmptyPicture } from '@/ui/me/parts';
 import { useStores } from '@/ui/shell/providers';
 import { PageHeader } from '@/ui/kit/PageHeader';
+import { EndOfList } from '@/ui/kit/EndOfList';
 
 const COLUMNS = { gap: spacing.row };
 
@@ -48,6 +49,8 @@ export default function BlockedScreen(): React.ReactElement {
     <FlatList
       className="flex-1 bg-background"
       data={rows}
+      // Owner, 2026-10-05: the bottom of a fetched list says so.
+      ListFooterComponent={rows.length > 0 ? <EndOfList /> : null}
       numColumns={2}
       columnWrapperStyle={COLUMNS}
       keyExtractor={(b) => b.listenerId}

@@ -48,9 +48,9 @@ export function updateMeta(p: { durationMs?: number | undefined; publishedAt?: n
   return { lead, ...(plays !== undefined ? { plays } : {}), ...(comments !== undefined ? { comments } : {}), label };
 }
 
-function IconButton(props: { name: IconName; label: string; colour: string; onPress: () => void }): React.ReactElement {
+function IconButton(props: { name: IconName; label: string; colour: string; onPress: () => void; selected?: boolean }): React.ReactElement {
   return (
-    <Pressable onPress={props.onPress} accessibilityRole="button" accessibilityLabel={props.label} className="items-center justify-center pr-section" style={TAP}>
+    <Pressable onPress={props.onPress} accessibilityRole="button" accessibilityLabel={props.label} {...(props.selected !== undefined ? { accessibilityState: { selected: props.selected } } : {})} className="items-center justify-center pr-section" style={TAP}>
       <Icon name={props.name} size={20} color={props.colour} />
     </Pressable>
   );
@@ -63,6 +63,13 @@ export function UpdateEpisodeRow(props: {
   now: number;
   /** A token colour from useColours — the icons are font glyphs, not text. */
   iconColour: string;
+  /**
+   * Owner, 2026-10-05: Queue and Download show when they are done — a filled icon in `doneColour`
+   * (the accent) once the episode is in the queue / downloading / downloaded.
+   */
+  queued?: boolean;
+  download?: 'none' | 'active' | 'done';
+  doneColour?: string;
   onOpenShow: () => void;
   onOpenEpisode: () => void;
   onQueue: () => void;
@@ -72,6 +79,8 @@ export function UpdateEpisodeRow(props: {
   onPlay: () => void;
 }): React.ReactElement {
   const { item, iconColour: c } = props;
+  const done = props.doneColour ?? c;
+  const dl = props.download ?? 'none';
   const e = item.episode;
   const meta = updateMeta({ durationMs: e.durationMs, publishedAt: e.publishedAt, plays: props.plays, comments: props.comments, now: props.now });
   return (
@@ -105,15 +114,15 @@ export function UpdateEpisodeRow(props: {
       </Box>
       <Box className="mt-2"><CardDivider /></Box>
       <Box className="flex-row items-center py-1">
-        <IconButton name="add-circle-outline" label={`Add ${e.title} to the queue`} colour={c} onPress={props.onQueue} />
+        <IconButton name={props.queued ? 'checkmark-circle' : 'add-circle-outline'} label={props.queued ? `${e.title} is in the queue` : `Add ${e.title} to the queue`} colour={props.queued ? done : c} selected={props.queued === true} onPress={props.onQueue} />
         {/* The count is on the meta line above; the button is the icon alone (M12 FR-080). */}
         <CommentsButton title={e.title} colour={c} onPress={props.onComments} />
-        <IconButton name="download-outline" label={`Download ${e.title}`} colour={c} onPress={props.onDownload} />
+        <IconButton name={dl === 'done' ? 'arrow-down-circle' : dl === 'active' ? 'cloud-download' : 'download-outline'} label={dl === 'done' ? `${e.title} is downloaded` : dl === 'active' ? `Downloading ${e.title}` : `Download ${e.title}`} colour={dl === 'none' ? c : done} selected={dl !== 'none'} onPress={props.onDownload} />
         <IconButton name="ellipsis-horizontal" label={`More for ${e.title}`} colour={c} onPress={props.onMore} />
         <Box className="flex-1" />
-        <Pressable onPress={props.onPlay} accessibilityRole="button" accessibilityLabel={`Play ${e.title}`} className="flex-row items-center gap-2 px-row rounded-pill bg-primary" style={PILL}>
-          <PlayIcon size={12} tint="onPrimary" />
-          <Text className="text-onPrimary text-body font-bold">Play</Text>
+        <Pressable onPress={props.onPlay} accessibilityRole="button" accessibilityLabel={`Play ${e.title}`} className="flex-row items-center gap-2 px-row rounded-pill bg-playDisc" style={PILL}>
+          <PlayIcon size={12} tint="playGlyph" />
+          <Text className="text-text text-body font-bold">Play</Text>
         </Pressable>
       </Box>
     </Card>

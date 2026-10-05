@@ -15,7 +15,7 @@ import type { Colour } from '@/design';
  * UniWind compiles only class names it can see in the source.
  */
 const BG: Partial<Record<Colour, string>> = { text: 'bg-text', muted: 'bg-muted', accent: 'bg-accent', onPrimary: 'bg-onPrimary' };
-const BORDER_L: Partial<Record<Colour, string>> = { text: 'border-l-text', muted: 'border-l-muted', accent: 'border-l-accent', onPrimary: 'border-l-onPrimary' };
+const BORDER_L: Partial<Record<Colour, string>> = { text: 'border-l-text', muted: 'border-l-muted', accent: 'border-l-accent', onPrimary: 'border-l-onPrimary', playGlyph: 'border-l-playGlyph' };
 
 const HIDE = { accessible: false, importantForAccessibility: 'no-hide-descendants' as const };
 

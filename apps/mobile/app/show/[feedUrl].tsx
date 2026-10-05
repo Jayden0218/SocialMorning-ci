@@ -68,6 +68,7 @@ import { FilterBar } from '@/ui/me/FilterBar';
 import { EpisodeMeta, metaLabel } from '@/ui/show/EpisodeMeta';
 import { AnnouncementCard } from '@/ui/show/AnnouncementCard';
 import { CuratorLine, hostLineFor } from '@/ui/show/CuratorLine';
+import { EndOfList } from '@/ui/kit/EndOfList';
 
 /** How far the page scrolls before the slim bar takes over (about the title block's height; M17's 156 pt hero made it taller). */
 export const COLLAPSE_AT = 220;
@@ -426,7 +427,7 @@ export default function ShowScreen(): React.ReactElement {
             </Box>
           );
         }}
-        ListFooterComponent={<ReportSheet target={reporting} onClose={() => setReporting(undefined)} />}
+        ListFooterComponent={<>{tab === 'episodes' && shown.length > 0 ? <EndOfList /> : null}<ReportSheet target={reporting} onClose={() => setReporting(undefined)} /></>}
       />
       <Actionsheet isOpen={menuFor !== undefined} onClose={() => setMenuFor(undefined)}>
         <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />

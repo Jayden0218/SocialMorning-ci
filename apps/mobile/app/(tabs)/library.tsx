@@ -1,4 +1,4 @@
-// Updates tab: continue listening, friends' voice posts, newest episodes from your shows.
+// Updates tab: friends' voice posts, newest episodes from your shows.
 /**
  * Updates (更新, M10, owner 2026-09-27) — the second tab, at `/library` (the path the
  * Library always answered on, so its links still land, G3). Laid out after the reference:
@@ -6,15 +6,15 @@
  * you follow in one list — show notes, then "length · ago · plays · comments", and Queue ·
  * Comments · Download · More · Play under each (Owner, 2026-10-01: `UpdateEpisodeRow`).
  *
- * Kept from the Library: "Continue listening" first (Story 3 — losing your place in a
- * two-hour episode is what people abandon a podcast app over); a background refresh that
+ * Kept from the Library: a background refresh that
  * never blanks the list (Principle IV); with no subscriptions, Discover's sections so the
  * first screen is never empty (M5 FR-002). The show list itself is `/subscriptions`.
  *
  * M17 (`Library-B`, T041): the Editorial order — "Updates" in the 32 pt serif with
- * "My subscriptions · n →" in the accent under it; the Continue listening card; the voice
- * pills under a "Voices · last 48 h" eyebrow; then "New from your shows" in the serif over the
+ * "My subscriptions · n →" in the accent under it; the voice
+ * circles under a "Voices · last 24 h" eyebrow; then "New from your shows" in the serif over the
  * episode cards. The More sheet, the refresh and the counts call are unchanged.
+ * Owner, 2026-10-05: no "Continue listening" card — those episodes are already in the list.
  */
 import { Link, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
@@ -33,7 +33,6 @@ import { usePlayer } from '@/playback/store';
 import { useSafety } from '@/safety/context';
 import { toPlayable } from '@/storage/playable';
 import { hit } from '@/design';
-import { ContinueListening } from '@/ui/episode/ContinueListening';
 import { DiscoverSections } from '@/ui/discover/DiscoverSections';
 import { EmptyState } from '@/ui/kit/EmptyState';
 import { UpdateEpisodeRow } from '@/ui/episode/UpdateEpisodeRow';
@@ -47,6 +46,7 @@ import { useM12Api } from '@/social/m12-api';
 import { VoicePosts } from '@/ui/social/VoicePosts';
 import { TAB_PAGE_END } from '@/ui/kit/Screen';
 import { plural } from '@socialmorning/social-core';
+import { EndOfList } from '@/ui/kit/EndOfList';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
 
@@ -109,20 +109,37 @@ export default function UpdatesScreen(): React.ReactElement {
   }, [m12, ids]);
 
   const play = (id: string) => { const p = toPlayable(stores, id); if (p) player.load(p, 'play'); };
+  // Owner, 2026-10-05: each row shows whether it is queued / downloaded; re-read on every change.
+  const [marks, setMarks] = useState(0);
+  useEffect(() => downloads.subscribe(() => setMarks((n) => n + 1)), [downloads]);
+  useFocusEffect(useCallback(() => setMarks((n) => n + 1), []));
+  const queuedIds = new Set(stores.queue.list());
+  const downloadOf = (id: string): 'none' | 'active' | 'done' => {
+    const d = stores.downloads.get(id);
+    return !d || d.state === 'failed' ? 'none' : d.state === 'complete' ? 'done' : 'active';
+  };
   const queue = (id: string) => {
+    if (queuedIds.has(id)) { toast('Already in the queue.'); return; }
     const r = enqueue(stores.queue.list(), id, 'end');
     if (r.refused) { toast('The queue is full (300).'); return; }
     stores.queue.replace(r.queue, Date.now());
+    setMarks((n) => n + 1);
     toast('Added to the queue.');
   };
-  const download = (id: string) => { void downloads.request(id).then((r) => toast(r.kind === 'budget' ? 'Not enough space for this download.' : 'Downloading.')); };
+  const download = (id: string) => {
+    if (downloadOf(id) === 'done') { toast('Already downloaded.'); return; }
+    if (downloadOf(id) === 'active') { toast('Downloading.'); return; }
+    void downloads.request(id).then((r) => toast(r.kind === 'budget' ? 'Not enough space for this download.' : 'Downloading.'));
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-background">
       <FlatList
         data={rows}
+        // Owner, 2026-10-05: the bottom of a fetched list says so.
+        ListFooterComponent={rows.length > 0 ? <EndOfList /> : null}
         keyExtractor={(r) => r.episode.id}
-        extraData={counts} // the counts arrive after the rows; without this a row keeps its old meta line
+        extraData={[counts, marks]} // the counts and marks arrive after the rows; without this a row keeps its old look
         contentContainerStyle={{ paddingBottom: TAB_PAGE_END }}
         ListHeaderComponent={
           <Box>
@@ -135,9 +152,7 @@ export default function UpdatesScreen(): React.ReactElement {
                 </Pressable>
               </Link>
             </Box>
-            <Box className="px-screen-x pt-2">
-              <ContinueListening />
-            </Box>
+            {/* Owner, 2026-10-05: no Continue listening card — the same episodes are in the list below. */}
             {/* M12 FR-104: voice statuses from you and the people you follow (signed in only). */}
             {listenerId !== undefined ? <VoicePosts load={loadVoice} remove={m12.deleteVoicePost} pauseEpisode={player.pause} colours={c} /> : null}
             <Box className="px-screen-x">
@@ -159,6 +174,9 @@ export default function UpdatesScreen(): React.ReactElement {
               comments={counts.counts[e.id]}
               now={Date.now()}
               iconColour={c.muted}
+              doneColour={c.accent}
+              queued={queuedIds.has(e.id)}
+              download={downloadOf(e.id)}
               onOpenShow={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(e.feedUrl) } })}
               onOpenEpisode={() => router.push({ pathname: '/episode/[id]', params: { id: e.id } })}
               onQueue={() => queue(e.id)}

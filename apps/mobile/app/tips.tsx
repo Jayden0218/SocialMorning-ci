@@ -21,6 +21,7 @@ import { shortDate } from '@/ui/kit/format';
 import { moneyLabel } from '@/me/money';
 import { useM12Api, type Tip } from '@/social/m12-api';
 import { PageHeader } from '@/ui/kit/PageHeader';
+import { EndOfList } from '@/ui/kit/EndOfList';
 
 const ROW = { minHeight: size.row };
 /** `Tips-B`: the tile leans 6° to the left. */
@@ -42,6 +43,8 @@ export default function TipsScreen(): React.ReactElement {
     <FlatList
       className="flex-1 bg-background"
       data={state.kind === 'ok' ? state.items : []}
+      // Owner, 2026-10-05: the bottom of a fetched list says so.
+      ListFooterComponent={state.kind === 'ok' && state.items.length > 0 ? <EndOfList /> : null}
       keyExtractor={(t) => t.id}
       contentContainerClassName="px-screen-x py-row pb-24 flex-grow"
       ListHeaderComponent={state.kind === 'ok' && !state.storeReady && state.items.length > 0 ? <Text className="text-muted text-xs mb-row">{NOT_READY}</Text> : undefined}

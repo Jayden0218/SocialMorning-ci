@@ -56,7 +56,7 @@ test('G-V1: an expired post is never read, and the cron deletes its blob AND its
   const made = (await r.json()) as { id: string; url: string; expiresAt: string };
   assert.match(v.puts[0]!.path, new RegExp(`^voice/${a.id}/${made.id}\\.m4a$`));
   const hours = (new Date(made.expiresAt).getTime() - Date.now()) / 3_600_000;
-  assert.ok(hours > 47.9 && hours <= 48, `expires 48 h after creation (${hours})`);
+  assert.ok(hours > 23.9 && hours <= 24, `expires 24 h after creation (${hours})`);
   assert.deepEqual((await feed(t, a.token)).items.map((i) => [i.id, i.durationMs, i.author.initials, i.mine]), [[made.id, 12_000, 'A', true]]);
 
   await t.q("UPDATE voice_posts SET expires_at = now() - interval '1 minute'");

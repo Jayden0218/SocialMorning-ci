@@ -19,6 +19,7 @@ import { PageHeader } from '@/ui/kit/PageHeader';
 import { EmptyPicture } from '@/ui/me/parts';
 import { useSocial } from '@/social/context';
 import { useChatApi, type ChatPerson } from '@/social/chat-api';
+import { EndOfList } from '@/ui/kit/EndOfList';
 
 const TAP = { minHeight: hit.min };
 type State = { kind: 'loading' } | { kind: 'error' } | { kind: 'ok'; friends: ChatPerson[] };
@@ -66,6 +67,8 @@ export default function NewChat(): React.ReactElement {
       <FlatList
         className="flex-1 bg-background"
         data={state.kind === 'ok' ? state.friends : []}
+        // Owner, 2026-10-05: the bottom of a fetched list says so.
+        ListFooterComponent={state.kind === 'ok' && state.friends.length > 0 ? <EndOfList /> : null}
         keyExtractor={(p) => p.id}
         contentContainerClassName="pb-24 flex-grow"
         ListHeaderComponent={<Text className="text-muted text-meta px-screen-x pb-row">People who follow you back</Text>}

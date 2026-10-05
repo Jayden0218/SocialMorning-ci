@@ -17,13 +17,15 @@ const OLD: Discover = { picks: [item('pick', 'p1')], talkedAbout: [item('talkedA
 it('an older server (no M10 fields) still gives picks and a chart, and no empty new sections', () => {
   const m = buildModel(OLD, undefined, none);
   expect(m.picks.map((p) => p.key)).toEqual(['p1']);
-  expect(m.chart.map((t) => t.key)).toEqual(['top', 'talked']);
+  // Owner, 2026-10-05: the three tabs always; "New shows" is empty here.
+  expect(m.chart.map((t) => [t.key, t.rows.length])).toEqual([['top', 2], ['talked', 1], ['new', 0]]);
   expect(m.shows).toEqual([]);
+  expect(m.premium).toEqual([]);
+  expect(m.arrivals).toEqual([]);
   expect(m.collections).toEqual([]);
   expect(m.said).toEqual([]);
   expect(m.newShows).toEqual([]);
   expect(m.video).toEqual([]);
-  expect(m.followedHere).toBeUndefined();
   expect(m.forYou).toEqual([]);
 });
 
@@ -44,14 +46,26 @@ it('a hidden show leaves every list', () => {
     followedHere: { total: 2, shows: [{ feedUrl: hid, title: 'H', followers: 3 }] },
     said: [{ commentId: 'm1', authorId: 'l1', body: 'hi', createdAt: '2026-09-27T00:00:00Z', episode: card('s1', hid) }],
     newShows: [{ show: { feedUrl: hid, title: 'H', author: 'a', genres: [], episodeCount: 2 }, episode: card('n1', hid) }],
+    premium: [{ feedUrl: hid, title: 'H', author: 'a', genres: [] }],
+    newArrivals: [{ show: { feedUrl: hid, title: 'H', author: 'a', genres: [], episodeCount: 1 }, episode: card('a1', hid) }],
   };
   const m = buildModel(body, undefined, { feeds: new Set([hid]), blocked: new Set() });
   const json = JSON.stringify(m);
   expect(json).not.toContain(hid);
   expect(m.picks.map((p) => p.key)).toEqual(['p1']);
-  expect(m.collections).toEqual([]); // its only item was hidden, so the collection goes too
-  expect(m.followedHere).toBeUndefined();
-  expect(m.chart.map((t) => t.key)).toEqual(['talked']);
+  expect(m.collections).toEqual([]);
+  expect(m.premium).toEqual([]);
+  expect(m.arrivals).toEqual([]);
+  expect(m.chart.map((t) => [t.key, t.rows.length])).toEqual([['top', 0], ['talked', 1], ['new', 0]]);
+});
+
+it('owner 2026-10-05: "New shows" falls back to the new arrivals; no rows at all is no chart; collections are not drawn', () => {
+  const arrival = { show: { feedUrl: 'https://f/new.xml', title: 'N', author: 'a', genres: [], episodeCount: 1 }, episode: card('a1', 'https://f/new.xml') };
+  const m = buildModel({ ...OLD, newArrivals: [arrival], collections: [{ id: 'x', title: 'Where to start', items: [item('pick', 'k1')] }] }, undefined, none);
+  expect(m.chart.find((t) => t.key === 'new')!.rows.map((c) => c.id)).toEqual(['a1']);
+  expect(m.arrivals.map((a) => a.episode.id)).toEqual(['a1']);
+  expect(m.collections).toEqual([]);
+  expect(buildModel({ ...OLD, picks: [], talkedAbout: [], trending: [] }, undefined, none).chart).toEqual([]);
 });
 
 it('a blocked listener\'s comment is not shown', () => {

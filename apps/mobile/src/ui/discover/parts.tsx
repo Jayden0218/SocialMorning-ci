@@ -32,7 +32,8 @@ const TAP = { minHeight: hit.min, minWidth: hit.min };
  */
 export function SectionTitle(props: { title: string; action?: { label: string; onPress: () => void }; badge?: number; size?: 'page' }): React.ReactElement {
   return (
-    <Box className="flex-row items-end justify-between px-screen-x mt-section mb-gap">
+    // Owner, 2026-10-05: a title and the link on its right share one middle line.
+    <Box className="flex-row items-center justify-between px-screen-x mt-section mb-gap">
       <Box className="flex-row items-center gap-gap flex-1">
         <Text className={props.size === 'page' ? 'text-text text-hero font-display' : 'text-text text-lg font-display'} accessibilityRole="header" numberOfLines={1}>
           {props.title}
@@ -54,16 +55,50 @@ export function SectionTitle(props: { title: string; action?: { label: string; o
  * The round play button every row ends with. M12 FR-053: a tinted disc with an accent glyph —
  * six solid yellow circles a screen read heavier than the rows they end (2026-09-29
  * comparison). The player's own Play stays solid. M17: the glyph is the play icon (`Home-B`).
+ * Owner, 2026-10-05: every podcast play button is the light-yellow disc with the brown triangle.
  */
 export function PlayButton(props: { title: string; onPress: () => void }): React.ReactElement {
   const stores = useStores();
   const c = useColours(stores.settings);
   return (
     <Pressable onPress={props.onPress} accessibilityRole="button" accessibilityLabel={`Play ${props.title}`} className="items-center justify-center" style={TAP}>
-      <Box className="w-10 h-10 rounded-pill bg-accentTint items-center justify-center pl-0.5">
-        <Icon name="play" size={16} color={c.accent} />
+      <Box className="w-10 h-10 rounded-pill bg-playDisc items-center justify-center pl-0.5">
+        <Icon name="play" size={16} color={c.playGlyph} />
       </Box>
     </Pressable>
+  );
+}
+
+/**
+ * Owner, 2026-10-05: "+" — adds the episode to the queue. Same disc as Play, so the two read as one family.
+ */
+export function AddButton(props: { title: string; onPress: () => void }): React.ReactElement {
+  const stores = useStores();
+  const c = useColours(stores.settings);
+  return (
+    <Pressable onPress={props.onPress} accessibilityRole="button" accessibilityLabel={`Add ${props.title} to the queue`} className="items-center justify-center" style={TAP}>
+      <Box className="w-10 h-10 rounded-pill bg-playDisc items-center justify-center">
+        <Icon name="add" size={22} color={c.playGlyph} />
+      </Box>
+    </Pressable>
+  );
+}
+
+export type RowStats = { listeners: number; comments: number };
+
+/** Owner, 2026-10-05: "12 listened · 3 comments" with their icons, under every Discover episode. Counts only (G6). */
+export function StatsLine(props: { stats: RowStats; className?: string }): React.ReactElement {
+  const stores = useStores();
+  const c = useColours(stores.settings);
+  const { listeners, comments } = props.stats;
+  return (
+    <Box className={`flex-row items-center gap-1 ${props.className ?? ''}`} accessible accessibilityLabel={`${listeners} listened, ${comments} ${comments === 1 ? 'comment' : 'comments'}`}>
+      <Icon name="headset-outline" size={13} color={c.muted} />
+      <Text className="text-muted text-xs">{`${listeners} listened`}</Text>
+      <Text className="text-muted text-xs">·</Text>
+      <Icon name="chatbubble-outline" size={12} color={c.muted} />
+      <Text className="text-muted text-xs">{`${comments} ${comments === 1 ? 'comment' : 'comments'}`}</Text>
+    </Box>
   );
 }
 
@@ -78,7 +113,7 @@ export function PlayButton(props: { title: string; onPress: () => void }): React
  */
 export function EpisodeLine(props: {
   card: EpisodeCard; line?: string; rank?: number; size?: number; onOpen: () => void; onPlay: () => void; label?: string;
-  rankTone?: 'chart' | 'accent'; divided?: boolean; hideShow?: boolean;
+  rankTone?: 'chart' | 'accent'; divided?: boolean; hideShow?: boolean; stats?: RowStats;
 }): React.ReactElement {
   const { card } = props;
   const size = props.size ?? 72;
@@ -97,6 +132,7 @@ export function EpisodeLine(props: {
           <Text className="text-text text-body font-bold" numberOfLines={2}>{card.title}</Text>
           {ranked && props.hideShow !== true ? <Text className="text-muted text-xs" numberOfLines={1}>{card.showTitle}</Text> : null}
           {props.line ? <Text className="text-muted text-xs" numberOfLines={1}>{props.line}</Text> : null}
+          {props.stats ? <StatsLine stats={props.stats} /> : null}
         </Box>
       </Pressable>
       <PlayButton title={card.title} onPress={props.onPlay} />

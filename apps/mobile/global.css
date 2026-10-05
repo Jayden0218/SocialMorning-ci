@@ -20,6 +20,8 @@
       --color-facebook: #1877f2;
       --color-clear: rgba(251, 248, 241, 0);
       --color-accentTint: rgba(138, 90, 0, 0.14);
+      --color-playDisc: #feeba5;
+      --color-playGlyph: #8a5a00;
       --color-veil: rgba(251, 248, 241, 0.88);
     }
     @variant dark {
@@ -38,6 +40,8 @@
       --color-facebook: #1877f2;
       --color-clear: rgba(251, 248, 241, 0);
       --color-accentTint: rgba(138, 90, 0, 0.14);
+      --color-playDisc: #feeba5;
+      --color-playGlyph: #8a5a00;
       --color-veil: rgba(251, 248, 241, 0.88);
     }
   }
@@ -60,6 +64,8 @@
   --color-facebook: #1877f2;
   --color-clear: rgba(251, 248, 241, 0);
   --color-accentTint: rgba(138, 90, 0, 0.14);
+  --color-playDisc: #feeba5;
+  --color-playGlyph: #8a5a00;
   --color-veil: rgba(251, 248, 241, 0.88);
 }
 @theme inline {

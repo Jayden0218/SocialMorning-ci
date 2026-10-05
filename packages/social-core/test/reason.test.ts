@@ -44,3 +44,20 @@ test('A7: the channels with nothing to vary say one fixed true thing', () => {
   assert.equal(reasonFor('showcf', { showTitle: 'x' }), 'Like a show you follow');
   assert.equal(reasonFor('genre', { showTitle: 'x' }), 'New in a category you listen to');
 });
+
+test('owner 2026-10-05: rows of one channel take turns through true wordings; no variant is the first', () => {
+  const seen = [0, 1, 2, 3, 4, 5].map((variant) => reasonFor('sub-new', { showTitle: 'Reply All', variant }));
+  assert.equal(new Set(seen).size, 6, seen.join(' | '));
+  assert.ok(seen.every((r) => r.includes('Reply All') && r.length <= REASON_MAX));
+  assert.equal(reasonFor('sub-new', { showTitle: 'Reply All', variant: 6 }), 'New from Reply All', 'wraps round');
+  for (const ch of CHANNELS) {
+    for (let variant = 0; variant < 8; variant++) {
+      const r = reasonFor(ch, { showTitle: 'Reply All', genreName: 'Technology', neighbourOf: '99% Invisible', socialCount: 2, variant });
+      assert.ok(r.length > 0 && r.length <= REASON_MAX && !r.includes('undefined'), `${ch}/${variant}: ${r}`);
+    }
+  }
+  // A long title still falls back to the short form, whatever the wording.
+  const huge = 'The Incredibly Long And Self Indulgent Podcast About Absolutely Everything Ever';
+  assert.equal(reasonFor('sub-new', { showTitle: huge, variant: 3 }), 'New from a show you follow');
+  assert.equal(reasonFor('social', { showTitle: 'x', socialCount: 1, variant: 1 }), 'Heard by 1 person you follow');
+});

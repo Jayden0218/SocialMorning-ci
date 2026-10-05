@@ -23,6 +23,7 @@ import { EmptyPicture } from '@/ui/me/parts';
 import { useStores } from '@/ui/shell/providers';
 import { size } from '@/design';
 import { PageHeader } from '@/ui/kit/PageHeader';
+import { EndOfList } from '@/ui/kit/EndOfList';
 
 const ROW = { minHeight: size.row };
 const DAY = 24 * 60 * 60 * 1000;
@@ -62,6 +63,8 @@ export default function HistoryScreen(): React.ReactElement {
     <FlatList
       className="flex-1 bg-background"
       data={groups}
+      // Owner, 2026-10-05: the bottom of a fetched list says so.
+      ListFooterComponent={groups.length > 0 ? <EndOfList /> : null}
       keyExtractor={(g) => g.label}
       contentContainerClassName="px-screen-x pb-24 flex-grow"
       keyboardShouldPersistTaps="handled"

@@ -27,6 +27,7 @@ import { Artwork } from '@/ui/kit/Artwork';
 import { CardDivider } from '@/ui/kit/Card';
 import { PlayIcon } from '@/ui/kit/Icon';
 import { plural } from '@socialmorning/social-core';
+import { EndOfList } from '@/ui/kit/EndOfList';
 
 export default function MyCommentsScreen(): React.ReactElement {
   const { api, listener } = useSocial();
@@ -55,6 +56,8 @@ export default function MyCommentsScreen(): React.ReactElement {
     <FlatList
       className="flex-1 bg-background"
       data={rows}
+      // Owner, 2026-10-05: the bottom of a fetched list says so.
+      ListFooterComponent={rows !== undefined && rows.length > 0 && !next ? <EndOfList /> : null}
       keyExtractor={(r) => r.id}
       contentContainerClassName="px-screen-x pt-1 pb-24 gap-row flex-grow"
       onEndReached={more}

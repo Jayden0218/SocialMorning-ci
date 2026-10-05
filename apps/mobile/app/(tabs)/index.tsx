@@ -39,18 +39,18 @@ import { useSearchOverlay } from "@/ui/search/SearchOverlay";
 import {
   CategoryStrip,
   ChartSection,
-  CollectionSection,
   ForYouSection,
   MoreCategories,
-  NewShowsSection,
+  NewArrivalsSection,
   PicksSection,
+  PremiumSection,
   SaidSection,
   ShowTiles,
   Shortcuts,
-  followedShowTiles,
   popularShowTiles,
   VideoSection,
 } from "@/ui/discover/sections";
+import { useRowStats } from "@/discover/row-stats";
 
 const ICON = { width: 36, height: 36 };
 /** "Thursday, 2 October" — the eyebrow over the title (`Home-B`), from the phone's clock. */
@@ -65,7 +65,7 @@ export default function DiscoverScreen(): React.ReactElement {
   const router = useRouter();
   const stores = useStores();
   const search = useSearchOverlay();
-  const { view, refreshing, refresh, open, play, settled } = useDiscover();
+  const { view, refreshing, refresh, open, play, queue, settled } = useDiscover();
   const { listener } = useSocial();
   const { sets, hiddenFeeds, version } = useSafety();
   const forYou = useForYou(listener !== undefined);
@@ -111,9 +111,12 @@ export default function DiscoverScreen(): React.ReactElement {
     });
   const pull = usePullRefresh(refreshing, () => void refreshBoth());
   const shown = useFirstPaint(settled && forYou.settled);
+  // Owner, 2026-10-05: "12 listened · 3 comments" under every episode on the page — one call.
+  const stats = useRowStats(model);
   const act = {
     onOpen: (c: Parameters<typeof open>[0]) => void open(c),
     onPlay: (c: Parameters<typeof play>[0]) => void play(c),
+    stats,
   };
   const categoryStrip = view ? (
     <CategoryStrip
@@ -142,6 +145,7 @@ export default function DiscoverScreen(): React.ReactElement {
             items={model.picks}
             {...(view?.body.date ? { date: view.body.date } : {})}
             {...act}
+            onQueue={(c) => void queue(c)}
             onPast={() =>
               router.push({
                 pathname: "/picks/past",
@@ -160,32 +164,25 @@ export default function DiscoverScreen(): React.ReactElement {
         );
       case "shows":
         return (
-          <ShowTiles
-            title="Popular shows"
-            shows={popularShowTiles(model.shows)}
-            onShow={showPage}
-          />
+          <>
+            <ShowTiles
+              title="Popular shows"
+              shows={popularShowTiles(model.shows)}
+              onShow={showPage}
+            />
+            <PremiumSection shows={model.premium} onShow={showPage} />
+          </>
         );
       case "video":
         return <VideoSection items={model.video} {...act} />;
+      // Owner, 2026-10-05: "Where to start" and "Shows listeners here follow" are no longer drawn.
       case "collections":
-        return model.collections.map((c) => (
-          <CollectionSection key={c.id} collection={c} {...act} />
-        ));
       case "followedHere":
-        return model.followedHere ? (
-          <ShowTiles
-            title="Shows listeners here follow"
-            badge={model.followedHere.total}
-            shows={followedShowTiles(model.followedHere.shows)}
-            onShow={showPage}
-            boxed
-          />
-        ) : null;
+        return null;
       case "said":
         return <SaidSection items={model.said} now={Date.now()} {...act} />;
       case "newShows":
-        return <NewShowsSection items={model.newShows} {...act} />;
+        return <NewArrivalsSection items={model.arrivals} {...act} />;
     }
   };
 
@@ -255,15 +252,11 @@ export default function DiscoverScreen(): React.ReactElement {
                 onPress: allCategories,
               },
               // Owner, 2026-10-04: no Inbox tile — it showed what Updates shows.
+              // Owner, 2026-10-05: no Downloads tile — Downloads stays in Settings.
               {
                 label: "Queue",
                 icon: "list-outline",
                 onPress: () => router.push("/queue"),
-              },
-              {
-                label: "Downloads",
-                icon: "download-outline",
-                onPress: () => router.push("/downloads"),
               },
               // M12 FR-101, FR-102
               {

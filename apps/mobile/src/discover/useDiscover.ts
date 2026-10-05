@@ -6,10 +6,11 @@
 import { useCallback, useMemo, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 import { useSocial } from '@/social/context';
-import { useStores, useToast } from '@/ui/shell/providers';
+import { useDownloads, useStores, useToast } from '@/ui/shell/providers';
 import { refreshShow } from '@/feeds/fetch';
 import { usePlayer } from '@/playback/store';
 import { toPlayable } from '@/storage/playable';
+import { queueEpisode } from '@/settings/queue';
 import { createDiscover, type DiscoverView } from './cache';
 import { resolveCard } from './open';
 import type { EpisodeCard } from '@/social/api';
@@ -49,8 +50,8 @@ export function useDiscover() {
     try { const v = await discover.refresh(); if (v) setView(v); } catch { /* the cached copy stands */ } finally { setSettled(true); }
   }, [discover, view?.fetchedAt]);
   useFocusEffect(useCallback(() => { void quiet(); }, [quiet]));
-  const { open, play } = useCardActions();
-  return { view, refreshing, refresh, open, play, settled };
+  const { open, play, queue } = useCardActions();
+  return { view, refreshing, refresh, open, play, queue, settled };
 }
 
 /**
@@ -61,6 +62,7 @@ export function useCardActions() {
   const stores = useStores();
   const toast = useToast();
   const player = usePlayer();
+  const downloads = useDownloads();
   const open = useCallback(async (card: EpisodeCard) => {
     const r = await resolveCard({ stores, refreshShow: (u) => refreshShow(u, stores.feeds, Date.now()) }, card);
     if (r.episodeId !== undefined) router.push({ pathname: '/episode/[id]', params: { id: r.episodeId } });
@@ -72,5 +74,13 @@ export function useCardActions() {
     if (playable) player.load(playable, 'play');
     else toast(r.episodeId === undefined && r.reason === 'offline' ? "Couldn't fetch that show right now." : "That episode can't be played right now.");
   }, [stores, toast, player]);
-  return { open, play };
+  // Owner, 2026-10-05: an editor's pick's + adds it to the end of the queue (the queue settings apply).
+  const queue = useCallback(async (card: EpisodeCard) => {
+    const r = await resolveCard({ stores, refreshShow: (u) => refreshShow(u, stores.feeds, Date.now()) }, card);
+    if (r.episodeId === undefined) { toast(r.reason === 'offline' ? "Couldn't fetch that show right now." : 'That episode is no longer in its feed.'); return; }
+    const q = queueEpisode(stores, downloads, r.episodeId, Date.now(), 'end');
+    if (q.kind === 'full') { toast('The queue is full (300). Remove something first.'); return; }
+    toast(`Added to the queue${q.downloading ? ' · downloading' : ''}`);
+  }, [stores, toast, downloads]);
+  return { open, play, queue };
 }

@@ -7,7 +7,7 @@
  * fields out; a section the server could not build arrives empty; either way the screen
  * skips it instead of drawing an empty frame. Nothing is invented to fill a gap.
  */
-import type { Collection, Discover, DiscoverItem, EpisodeCard, FollowedShow, ForYou, SaidItem, ShowCard } from '@/social/api';
+import type { Collection, Discover, DiscoverItem, EpisodeCard, ForYou, SaidItem, ShowCard } from '@/social/api';
 import { plural } from '@socialmorning/social-core';
 
 export type ChartTab = { key: 'top' | 'talked' | 'new'; label: string; rows: EpisodeCard[] };
@@ -18,9 +18,11 @@ export type DiscoverModel = {
   chart: ChartTab[];
   shows: ShowCard[];
   collections: Collection[];
-  followedHere?: { total: number; shows: FollowedShow[] };
   said: SaidItem[];
   newShows: { show: ShowCard; episode: EpisodeCard }[];
+  /** Owner, 2026-10-05: drawn after "Popular shows" and in the `newShows` slot. */
+  premium: ShowCard[];
+  arrivals: { show: ShowCard; episode: EpisodeCard }[];
   /** M10b US5: "Podcasts you can watch". */
   video: DiscoverItem[];
   /** M15 US5: the sections to draw, top to bottom — the owner's order, hidden ones left out. */
@@ -65,25 +67,30 @@ export function buildModel(body: Discover | undefined, forYou: ForYou | undefine
   const keepItem = (i: DiscoverItem) => keepCard(i.episode);
   const picks = (body?.picks ?? []).filter(keepItem);
   const newShows = (body?.newShows ?? []).filter((n) => keepCard(n.episode) && !hidden.feeds.has(n.show.feedUrl));
+  const arrivals = (body?.newArrivals ?? []).filter((n) => keepCard(n.episode) && !hidden.feeds.has(n.show.feedUrl));
+  // Owner, 2026-10-05: always the three tabs (an empty one says so). "New shows" is the chart's
+  // new shows, or — when the chart has none — the newest shows made here.
   const chart: ChartTab[] = [
     { key: 'top' as const, label: 'Top', rows: (body?.trending ?? []).filter(keepItem).map((i) => i.episode) },
     { key: 'talked' as const, label: 'Talked about', rows: (body?.talkedAbout ?? []).filter(keepItem).map((i) => i.episode) },
-    { key: 'new' as const, label: 'New shows', rows: newShows.map((n) => n.episode) },
-  ].filter((t) => t.rows.length > 0);
-  const followed = body?.followedHere;
-  const followedShows = (followed?.shows ?? []).filter((s) => !hidden.feeds.has(s.feedUrl));
+    { key: 'new' as const, label: 'New shows', rows: (newShows.length > 0 ? newShows : arrivals).map((n) => n.episode) },
+  ];
+  const anyChart = chart.some((t) => t.rows.length > 0);
   const order = sectionOrder(body?.layout);
   // A hidden section is emptied as well as left out of `order`, so no path draws it.
   const on = (id: SectionId): boolean => order.includes(id);
   return {
     forYou: on('forYou') ? (forYou?.items ?? []).map((i, index) => ({ card: i.episode as EpisodeCard, line: i.reason, index })).filter((r) => keepCard(r.card)) : [],
     picks: on('picks') ? picks : [],
-    chart: on('chart') ? chart : [],
+    chart: on('chart') && anyChart ? chart : [],
     shows: on('shows') ? (body?.shows ?? []).filter((s) => !hidden.feeds.has(s.feedUrl)).slice(0, 6) : [],
-    collections: on('collections') ? (body?.collections ?? []).map((c) => ({ ...c, items: c.items.filter(keepItem) })).filter((c) => c.items.length > 0) : [],
-    ...(on('followedHere') && followed && followedShows.length > 0 ? { followedHere: { total: followed.total, shows: followedShows } } : {}),
+    // Owner, 2026-10-05: "Where to start" (the collections) and "Shows listeners here follow" are
+    // no longer drawn; their ids stay so a saved Studio order still reads.
+    collections: [],
     said: on('said') ? (body?.said ?? []).filter((s) => !hidden.blocked.has(s.authorId) && keepCard(s.episode)) : [],
     newShows: on('newShows') ? newShows : [],
+    premium: on('shows') ? (body?.premium ?? []).filter((s) => !hidden.feeds.has(s.feedUrl)).slice(0, 6) : [],
+    arrivals: on('newShows') ? arrivals : [],
     video: on('video') ? (body?.video ?? []).filter(keepItem).slice(0, 10) : [],
     order,
   };

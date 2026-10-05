@@ -1,6 +1,6 @@
 // Size and length limits for short voice status posts.
 /**
- * M12 FR-104 — a voice status: at most 60 s, deleted by the server at 48 h (constitution
+ * M12 FR-104 — a voice status: at most 60 s, deleted by the server at 24 h (constitution
  * 2.2.0). The server refuses more than 600 000 bytes, so the recording is mono AAC at
  * 64 kbit/s: 60 s ≈ 480 000 bytes. expo-audio's HIGH_QUALITY preset (stereo, 128 kbit/s)
  * would be ≈ 960 000 bytes for the same minute (expo-audio 58.0.0's RecordingConstants).

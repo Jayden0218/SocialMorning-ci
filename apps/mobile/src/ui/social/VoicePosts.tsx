@@ -1,12 +1,13 @@
 // Short voice posts from you and people you follow; tap to play, record new.
 /**
  * Voice statuses on Updates (M12 FR-104): yours and the people you follow, newest first,
- * each gone 48 h after it was posted. Tap to play (episode playback pauses), tap again to
+ * each gone 24 h after it was posted. Tap to play (episode playback pauses), tap again to
  * stop; long-press your own to delete it. "+ Voice" records one.
  *
  * M17 (`Library-B`, T041): an eyebrow "Voices · last 48 h" over a row of pills — a dashed
  * "Voice" pill to record, then one white pill per status (initials disc + name); the one
  * playing turns yellow with a stop mark. Same buttons, names, tap / long-press as before.
+ * Owner, 2026-10-05: circles instead of pills (a ringed disc, the name under it); 24 h, not 48.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView } from '@/ui/lib/scroll-view';
@@ -23,7 +24,10 @@ import { mmss } from '@/ui/kit/format';
 import type { VoicePost } from '@/social/m12-api';
 import { hoursLeft } from '@/social/voice';
 
-const TAP = { minHeight: hit.min };
+/** A 64 pt ring round a 56 pt disc, in a 64 pt-wide column with the name under it. */
+const RING = { width: 64, height: 64 };
+const DISC = { width: 56, height: 56 };
+const ITEM = { width: 64, minHeight: hit.min };
 
 export function voiceLabel(p: VoicePost, now: number, playing: boolean): string {
   const s = Math.round(p.durationMs / 1000);
@@ -63,20 +67,27 @@ export function VoicePosts(props: { load: () => Promise<VoicePost[]>; remove: (i
   const now = Date.now();
   return (
     <Box className="pt-section">
-      <Eyebrow className="px-screen-x">Voices · last 48 h</Eyebrow>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-gap px-screen-x" className="pt-2">
-        <Pressable onPress={() => router.push('/voice/new')} accessibilityRole="button" accessibilityLabel="Record a voice status" className="flex-row items-center gap-2 pl-1.5 pr-section rounded-pill border border-dashed border-accent" style={TAP}>
-          <Box className="w-8 h-8 rounded-pill bg-accentTint items-center justify-center"><Icon name="mic-outline" size={18} color={props.colours.accent} /></Box>
-          <Text className="text-accent text-meta font-bold">Voice</Text>
+      <Eyebrow className="px-screen-x">Voices · last 24 h</Eyebrow>
+      {/* Owner, 2026-10-05: one circle per voice, the name under it — a ring while it waits, yellow while it plays. */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-section px-screen-x" className="pt-2">
+        <Pressable onPress={() => router.push('/voice/new')} accessibilityRole="button" accessibilityLabel="Record a voice status" className="items-center gap-1" style={ITEM}>
+          <Box className="rounded-pill border-2 border-dashed border-accent items-center justify-center" style={RING}>
+            <Box className="rounded-pill bg-playDisc items-center justify-center" style={DISC}>
+              <Icon name="mic-outline" size={22} color={props.colours.accent} />
+            </Box>
+          </Box>
+          <Text className="text-accent text-xs font-bold" numberOfLines={1}>Voice</Text>
         </Pressable>
         {posts.map((p) => {
           const on = playing === p.id;
           return (
-            <Pressable key={p.id} onPress={() => toggle(p)} onLongPress={() => askDelete(p)} accessibilityRole="button" accessibilityLabel={voiceLabel(p, now, playing === p.id)} className={`flex-row items-center gap-2 pl-1.5 pr-row rounded-pill border border-border ${on ? 'bg-primary' : 'bg-surface'}`} style={TAP}>
-              <Box className={`w-8 h-8 rounded-pill items-center justify-center ${on ? 'bg-surface' : 'bg-accentTint'}`}>
-                {on ? <Icon name="stop" size={14} color={props.colours.accent} /> : <Text className="text-text text-micro font-bold">{p.author.initials ?? '·'}</Text>}
+            <Pressable key={p.id} onPress={() => toggle(p)} onLongPress={() => askDelete(p)} accessibilityRole="button" accessibilityLabel={voiceLabel(p, now, playing === p.id)} className="items-center gap-1" style={ITEM}>
+              <Box className={`rounded-pill border-2 items-center justify-center ${on ? 'border-primary' : 'border-accent'}`} style={RING}>
+                <Box className={`rounded-pill items-center justify-center ${on ? 'bg-primary' : 'bg-accentTint'}`} style={DISC}>
+                  {on ? <Icon name="stop" size={18} color={props.colours.accent} /> : <Text className="text-text text-meta font-bold">{p.author.initials ?? '·'}</Text>}
+                </Box>
               </Box>
-              <Text className={on ? 'text-onPrimary text-meta font-semibold' : 'text-text text-meta font-semibold'} numberOfLines={1}>{`${p.mine ? 'You' : p.author.name}${on ? ` · ${mmss(p.durationMs)}` : ''}`}</Text>
+              <Text className="text-text text-xs font-semibold" numberOfLines={1}>{on ? mmss(p.durationMs) : p.mine ? 'You' : p.author.name}</Text>
             </Pressable>
           );
         })}

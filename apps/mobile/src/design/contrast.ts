@@ -56,6 +56,7 @@ export const PAIRS: Pair[] = [
   { fg: colour.bar, bg: colour.surface, min: LARGE_MIN, role: 'heat bars on a card' },
   { fg: colour.accent, bg: over(colour.accentTint, colour.background), min: BODY_MIN, role: 'play glyph on its tint' }, // 4.60
   { fg: colour.muted, bg: over(colour.accentTint, colour.background), min: BODY_MIN, role: 'secondary text on the tint' }, // 5.74
+  { fg: colour.playGlyph, bg: colour.playDisc, min: BODY_MIN, role: 'play triangle on its yellow disc' }, // 4.98
   { fg: colour.text, bg: over(colour.veil, '#000000'), min: BODY_MIN, role: 'player text on the veil (black cover)' }, // 13.29
   { fg: colour.muted, bg: over(colour.veil, '#000000'), min: BODY_MIN, role: 'player secondary text on the veil (black cover)' }, // 5.30
 ];

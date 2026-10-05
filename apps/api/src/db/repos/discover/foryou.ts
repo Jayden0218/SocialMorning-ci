@@ -282,8 +282,12 @@ export async function buildForYou(
   const ordered = rerank(scored.map(({ candidate, score }) => ({ candidate, score })), ctx.neighbours, { size: LIST_SIZE });
   const byId = new Map(scored.map((x) => [x.candidate.episodeId, x.raw]));
 
+  // Owner, 2026-10-05: each row's place among its channel's rows picks its wording (`variant`).
+  const turn = new Map<Channel, number>();
   const items = ordered.map(({ candidate, score }) => {
     const r = byId.get(candidate.episodeId)!;
+    const variant = turn.get(candidate.channel) ?? 0;
+    turn.set(candidate.channel, variant + 1);
     return {
       episode: toCardRow(r.row),
       channel: candidate.channel,
@@ -291,6 +295,7 @@ export async function buildForYou(
         showTitle: r.row.show_title ?? '',
         ...(r.neighbourOf === undefined ? {} : { neighbourOf: r.neighbourOf }),
         ...(r.socialCount === undefined ? {} : { socialCount: r.socialCount }),
+        variant,
       }),
       score,
     };

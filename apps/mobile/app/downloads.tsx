@@ -32,6 +32,8 @@ import { BarButton } from '@/ui/kit/TopBar';
 const TAP = { minHeight: hit.min, minWidth: hit.min };
 const ROW_TAP = { minHeight: hit.min };
 
+/** A third of the row less the gaps; the grow fills what is left. */
+const CHIP = { minHeight: hit.min, flexBasis: '30%' as const, flexGrow: 1 };
 const BUDGETS = [200 * 1024 ** 2, 500 * 1024 ** 2, ...[1, 2, 4, 8].map((g) => g * 1024 ** 3)];
 
 type Section = { key: 'progress' | 'attention' | 'done'; title: string; data: DownloadRow[] };
@@ -94,13 +96,14 @@ export default function DownloadsScreen(): React.ReactElement {
             <Box className="h-full bg-primary" style={fill} />
           </Box>
           <Text className="text-muted text-xs mb-1.5">Budget</Text>
-          <Box className="flex-row gap-1 p-1 rounded-pill bg-background">
+          {/* Owner, 2026-10-05: three to a row, so every size reads in full ("200 MB" was "200…"). */}
+          <Box className="flex-row flex-wrap gap-1.5">
             {BUDGETS.map((b) => {
               const on = budget === b;
               return (
                 // M12 NEW-6: a 48 pt target (the chips were 27 pt) that says which size is chosen.
-                <Pressable key={b} onPress={() => downloads.setBudgetBytes(b)} accessibilityRole="button" accessibilityState={{ selected: on }} className={`flex-1 rounded-pill items-center justify-center ${on ? 'bg-primary' : ''}`} style={ROW_TAP}>
-                  <Text className={on ? 'text-onPrimary text-meta font-bold' : 'text-muted text-meta font-medium'} numberOfLines={1}>{b < 1024 ** 3 ? `${b / 1024 ** 2} MB` : `${b / 1024 ** 3} GB`}</Text>
+                <Pressable key={b} onPress={() => downloads.setBudgetBytes(b)} accessibilityRole="button" accessibilityState={{ selected: on }} className={`rounded-pill items-center justify-center border ${on ? 'bg-primary border-primary' : 'bg-background border-border'}`} style={CHIP}>
+                  <Text className={on ? 'text-onPrimary text-meta font-bold' : 'text-text text-meta font-medium'}>{b < 1024 ** 3 ? `${b / 1024 ** 2} MB` : `${b / 1024 ** 3} GB`}</Text>
                 </Pressable>
               );
             })}

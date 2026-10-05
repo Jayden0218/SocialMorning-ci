@@ -36,6 +36,7 @@ import { Card } from '@/ui/kit/Card';
 import { BottomBar } from '@/ui/kit/BottomBar';
 import { useStores, useToast } from '@/ui/shell/providers';
 import { PageHeader } from '@/ui/kit/PageHeader';
+import { EndOfList } from '@/ui/kit/EndOfList';
 
 const TAP = { minHeight: hit.min };
 const TILE = { width: hit.min, height: hit.min };
@@ -144,6 +145,8 @@ export default function FeedbackScreen(): React.ReactElement {
       ) : (
         <FlatList
           data={sent}
+          // Owner, 2026-10-05: the bottom of a fetched list says so.
+          ListFooterComponent={sent.length > 0 ? <EndOfList /> : null}
           keyExtractor={(f) => String(f.at)}
           contentContainerClassName="px-screen-x py-row pb-24 flex-grow gap-row"
           ListEmptyComponent={<EmptyPicture icon="document-text-outline" line="Nothing sent yet" />}

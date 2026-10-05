@@ -3,7 +3,7 @@ import { Hono } from 'hono';
 import { createHash } from 'node:crypto';
 import type { AuthEnv } from '../../auth/session.ts';
 import { CHART_MAX, discoverBody, SHOWS_SERVED, talkedAboutChart } from '../../db/repos/discover/discover.ts';
-import { collectionsWithoutHidden, followedHere, resolveCollections, said, statsFor, videoEpisodes, withStats, type Collection, type FollowedHere, type Said } from '../../db/repos/discover/discover-extras.ts';
+import { collectionsWithoutHidden, followedHere, newArrivals, resolveCollections, said, statsFor, videoEpisodes, withStats, type Collection, type FollowedHere, type NewArrival, type Said } from '../../db/repos/discover/discover-extras.ts';
 import { hiddenFeedUrls } from '../../db/repos/safety/moderation.ts';
 import { ApiError } from '../../errors.ts';
 import type { DiscoverItem } from '../../db/repos/discover/discover.ts';
@@ -31,11 +31,14 @@ discover.get('/', async (c) => {
   const followed: FollowedHere | undefined = await optional('followedHere', extraWarnings, () => followedHere(db));
   const saidList: Said[] | undefined = await optional('said', extraWarnings, () => said(db));
   const video = await optional('video', extraWarnings, () => videoEpisodes(db));
+  const arrivals: NewArrival[] | undefined = await optional('newArrivals', extraWarnings, () => newArrivals(db));
   const ids = [...pub.picks, ...(collections ?? []).flatMap((x) => x.items)].map((i) => i.episode.id);
   const stats = await optional('stats', extraWarnings, () => statsFor(db, ids));
   const picks = stats ? withStats(pub.picks, stats) : pub.picks;
   if (stats && collections) collections = collections.map((x) => ({ ...x, items: withStats(x.items, stats) }));
   const shows = pub.shows?.slice(0, SHOWS_SERVED);
+  // Owner, 2026-10-05: "Premium picks" — the chart's next six. No price, nothing sold (constitution 2.1.0).
+  const premium = pub.shows?.slice(SHOWS_SERVED, SHOWS_SERVED * 2);
   // M15 T034 (FR-026–FR-029): the owner's Discover settings, at serve time. Unreadable → today's Discover, no `layout`.
   const settings = await optional('discoverSettings', extraWarnings, async () => ({ s: await getDiscoverSettings(db), saved: await hasLayout(db) }));
   let trending: DiscoverItem[] = pub.trending;
@@ -62,6 +65,7 @@ discover.get('/', async (c) => {
     saidList?.map((s) => s.commentId), collections?.map((x) => [x.id, x.title, x.subtitle, x.items.map((i) => i.key)]),
     picks.map((p) => p.stats ?? null), collections?.map((x) => x.items.map((i) => i.stats ?? null)),
     video?.map((v) => v.episode.id),
+    premium?.map((s) => s.feedUrl), arrivals?.map((a) => a.episode.id),
   ])).digest('base64url').slice(0, 16)}"`;
   if (c.req.header('if-none-match') === etag) return c.body(null, 304);
   c.header('ETag', etag);
@@ -75,6 +79,8 @@ discover.get('/', async (c) => {
     ...(saidList ? { said: saidList } : {}),
     ...(collections ? { collections } : {}),
     ...(video && video.length > 0 ? { video } : {}),
+    ...(premium ? { premium } : {}),
+    ...(arrivals ? { newArrivals: arrivals } : {}),
     stale, serverTime: new Date().toISOString(),
   });
 });

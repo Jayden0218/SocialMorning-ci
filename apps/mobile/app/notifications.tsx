@@ -32,6 +32,7 @@ import { FeedItem } from '@/ui/social/FeedItem';
 import { EmptyPicture } from '@/ui/me/parts';
 import { useStores } from '@/ui/shell/providers';
 import { PageHeader } from '@/ui/kit/PageHeader';
+import { EndOfList } from '@/ui/kit/EndOfList';
 
 type Day = { key: string; label: string; items: Item[] };
 
@@ -119,6 +120,8 @@ export default function NotificationsScreen(): React.ReactElement {
     <FlatList
       className="flex-1"
       data={days}
+      // Owner, 2026-10-05: the bottom of a fetched list says so.
+      ListFooterComponent={days.length > 0 && !view?.next ? <EndOfList /> : null}
       keyExtractor={(d) => d.key}
       contentContainerClassName="px-screen-x pt-gap pb-24 gap-section flex-grow"
       refreshControl={pull.refreshControl}

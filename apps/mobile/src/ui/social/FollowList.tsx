@@ -34,6 +34,7 @@ import { Loader } from '@/ui/kit/Loader';
 import { PageHeader } from '@/ui/kit/PageHeader';
 import { Eyebrow } from '@/ui/kit/Eyebrow';
 import { Artwork } from '@/ui/kit/Artwork';
+import { EndOfList } from '@/ui/kit/EndOfList';
 
 const TAP = { minHeight: hit.min };
 
@@ -94,6 +95,8 @@ export function FollowList(props: { kind: FollowKind; id: string; name?: string;
       <FlatList
         className="flex-1 bg-background"
         data={rows}
+        // Owner, 2026-10-05: the bottom of a fetched list says so.
+        ListFooterComponent={state.kind === 'ok' && state.rows.length > 0 && !state.next ? <EndOfList /> : null}
         keyExtractor={(l) => l.id}
         numColumns={2}
         columnWrapperClassName="gap-row"

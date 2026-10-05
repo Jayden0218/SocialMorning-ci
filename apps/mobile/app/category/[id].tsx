@@ -66,6 +66,7 @@ import { Artwork } from "@/ui/kit/Artwork";
 import { Card } from "@/ui/kit/Card";
 import { Screen } from "@/ui/kit/Screen";
 import { PageHeader } from "@/ui/kit/PageHeader";
+import { EndOfList } from "@/ui/kit/EndOfList";
 
 const TAP = { minHeight: hit.min };
 const ROUND = { width: hit.min, height: hit.min };
@@ -235,6 +236,7 @@ export default function CategoryScreen(): React.ReactElement {
     if (more.genreId !== genreId || more.status !== "idle") return;
     const id = genreId;
     const page = more.next;
+    const first = state.body.shows;
     loadingMore.current = id;
     setMore((m) => ({ ...m, status: "loading" }));
     api.category(id, page).then(
@@ -246,8 +248,14 @@ export default function CategoryScreen(): React.ReactElement {
                 genreId: id,
                 shows: appendPage(m.shows, body.shows),
                 next: page + 1,
+                // Owner, 2026-10-05: a page that adds no new show is the end too — a server
+                // that ignores `page` answers the first 20 again for ever.
                 status:
-                  body.shows.length > 0 && hasMoreAfter(body) ? "idle" : "end",
+                  appendPage(appendPage(first, m.shows), body.shows).length >
+                    appendPage(first, m.shows).length &&
+                  hasMoreAfter(body)
+                    ? "idle"
+                    : "end",
               },
         ),
       () =>
@@ -507,11 +515,12 @@ export default function CategoryScreen(): React.ReactElement {
         {/* Owner, 2026-10-04: right under the switch (no 48 pt row round it; the toggle is its own tap target).
             Owner, 2026-10-05: the order in words on the left, "Not subscribed only" on the right. */}
         <Box className="flex-row items-center justify-between gap-2 mb-row pt-2">
-          <Text className="text-muted text-sm flex-1" numberOfLines={2}>
+          {/* Owner, 2026-10-05: both in the small meta size. */}
+          <Text className="text-muted text-xs flex-1" numberOfLines={2}>
             {sort === "newest" ? "By latest update" : "Recommended by us"}
           </Text>
           <Box className="flex-row items-center gap-2">
-            <Text className="text-muted text-body">Not subscribed only</Text>
+            <Text className="text-muted text-xs">Not subscribed only</Text>
             <Toggle
               value={notSubscribedOnly}
               onChange={setNotSubscribedOnly}
@@ -567,9 +576,7 @@ export default function CategoryScreen(): React.ReactElement {
               </Text>
             </Pressable>
           ) : ended ? (
-            <Text className="text-muted text-sm text-center my-section">
-              No more shows
-            </Text>
+            <EndOfList />
           ) : null
         ) : null}
       </Screen>

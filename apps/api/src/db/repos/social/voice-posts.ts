@@ -1,6 +1,7 @@
-// Voice status posts up to 60 seconds, fully deleted after 48 hours.
+// Voice status posts up to 60 seconds, fully deleted after 24 hours.
 /**
- * M12 FR-104 — voice status posts (constitution 2.2.0: ≤ 60 s, deleted by the server at 48 h).
+ * M12 FR-104 — voice status posts (constitution 3.0.1: ≤ 60 s, deleted by the server at 24 h;
+ * owner, 2026-10-05 — was 48 h; the column's default still says 48, so the insert sets it).
  * Guard G-V1: expiry DELETES — the blob first, then the row. Reads also never return an
  * expired row, but hiding is not deleting: a post that is only filtered would still sit in
  * the store for ever.
@@ -23,7 +24,7 @@ export async function liveCount(db: Db, listenerId: string): Promise<number> {
 
 export async function insertPost(db: Db, p: { id: string; listenerId: string; url: string; path: string; durationMs: number; bytes: number }): Promise<VoiceRow> {
   const [row] = await db.query<VoiceRow>(
-    `INSERT INTO voice_posts (id, listener_id, blob_url, blob_path, duration_ms, bytes) VALUES ($1, $2, $3, $4, $5, $6)
+    `INSERT INTO voice_posts (id, listener_id, blob_url, blob_path, duration_ms, bytes, expires_at) VALUES ($1, $2, $3, $4, $5, $6, now() + interval '24 hours')
      RETURNING id, listener_id, blob_url, duration_ms, created_at, expires_at`,
     [p.id, p.listenerId, p.url, p.path, p.durationMs, p.bytes],
   );

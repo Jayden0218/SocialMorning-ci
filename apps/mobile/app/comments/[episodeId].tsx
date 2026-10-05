@@ -42,6 +42,7 @@ import { EpisodeCard } from '@/ui/comments/EpisodeCard';
 import { PageHeader } from '@/ui/kit/PageHeader';
 import { Segmented } from '@/ui/kit/Segmented';
 import { Icon, type IconName } from '@/ui/kit/Icon';
+import { EndOfList } from '@/ui/kit/EndOfList';
 
 const TAB = { minHeight: hit.min };
 const WRITE = { minHeight: 52 };
@@ -150,6 +151,8 @@ export default function CommentsScreen(): React.ReactElement {
       <FlatList
         className="flex-1"
         data={ordered}
+        // Owner, 2026-10-05: the bottom of a fetched list says so.
+        ListFooterComponent={ordered.length > 0 ? <EndOfList /> : null}
         keyExtractor={(x) => x.id}
         contentContainerClassName="px-screen-x pt-row pb-section gap-row flex-grow"
         ListEmptyComponent={<EmptyState surface="comments" page action={{ label: 'Comment here', onPress: () => compose() }} />}

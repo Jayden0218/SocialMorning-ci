@@ -144,4 +144,4 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 
 | File | Route | What the user sees |
 |---|---|---|
-| `voice/new.tsx` | `/voice/new` | Record a voice post up to 60 seconds for followers; deleted after 48 hours. |
+| `voice/new.tsx` | `/voice/new` | Record a voice post up to 60 seconds for followers; deleted after 24 hours. |

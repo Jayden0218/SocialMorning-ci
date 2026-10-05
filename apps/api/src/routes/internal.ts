@@ -93,7 +93,7 @@ export function createInternalRoute(jobToken: string | undefined) {
         catch (e) { failed.push(`daily_active: ${e instanceof Error ? e.message : String(e)}`); }
         // M10b US6 (FR-020): feedback images older than 90 days go, once per cycle.
         try { await sweepImages(db); } catch (e) { failed.push(`sweep: ${e instanceof Error ? e.message : String(e)}`); }
-        // M12 FR-104 (guard G-V1): voice posts past 48 h lose their blob AND their row.
+        // M12 FR-104 (guard G-V1): voice posts past their expiry (24 h) lose their blob AND their row.
         try {
           const v = await sweepExpired(db, c.get('voice'));
           voiceDeleted = v.deleted;
