@@ -406,5 +406,13 @@
   "to": "/profile/[id] |  | /profile/edit",
   "why": "M19 US1 (owner 2026-10-05): Edit profile opens the new edit page (photo, name, bio, age range, gender) instead of the account hub, which had nothing to edit; same link, same accessible name",
   "task": "T013"
+ },
+ {
+  "surface": "TranscriptPane",
+  "name": "{mmss(l.startMs)}",
+  "destination": "props.onSeek",
+  "to": "TranscriptPane | {mmss(l.startMs)} | dynamic",
+  "why": "M20 US1 (FR-001): a tap on a transcript line still seeks to it; while lines are being picked to share, the same tap adds or removes the line instead, so one handler decides — the seek is unchanged when not picking (m20-quote.test.tsx checks it)",
+  "task": "M20 T031"
  }
 ]
