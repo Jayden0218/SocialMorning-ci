@@ -238,6 +238,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `ComingSoon.tsx` | A "Coming soon" sheet shown when you tap a feature not ready yet. |
 | `EmptyState.tsx` | What an empty, loading, offline or failed page shows, with a Retry button. |
 | `Eyebrow.tsx` | A small grey capital-letter label above a section. |
+| `haptics.ts` | A light vibration tick; does nothing on an app built before expo-haptics was added. |
 | `Icon.tsx` | Simple drawn icons (play, pause, arrows) and the one font icon helper. |
 | `Loader.tsx` | The app's own loading sign: five sound bars moving up and down. |
 | `PageHeader.tsx` | Top of a normal page: back arrow, then the page name in large serif. |

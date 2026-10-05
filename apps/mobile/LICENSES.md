@@ -26,6 +26,7 @@ Checked with `npm view <pkg> license` on 2026-09-21 (constitution, Principle III
 | @bacons/apple-targets | 5.0.0 | MIT | The iPhone widget and Siri shortcut targets (spec 010 US9; linked only with SOCIALNET_IOS_EXTRAS=1), 2026-09-27 |
 | expo-live-activity | 0.4.2 | MIT | The iPhone lock-screen live activity (spec 010 US9; linked only with SOCIALNET_IOS_EXTRAS=1), 2026-09-27 |
 | expo-image-picker | 58.0.3 | MIT | Adding images to feedback (spec 010 US6), 2026-09-27 |
+| expo-haptics | 58.0.3 | MIT | A light tick as the category row is swiped, 2026-10-05 |
 | expo-image-manipulator | 58.0.8 | MIT | Shrinking feedback images on the phone (spec 010 US6), 2026-09-27 |
 | react-native-worklets | 0.13.0 | MIT | Tailwind (reanimated peer; same) |
 | tailwindcss (dev) | 4.x | MIT | Tailwind v4, M9 |

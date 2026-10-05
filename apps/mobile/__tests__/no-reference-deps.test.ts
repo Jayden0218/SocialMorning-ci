@@ -93,6 +93,8 @@ const FEEDBACK_ADDITIONS = ['expo-image-picker', 'expo-image-manipulator'];
 const OUTSIDE_ADDITIONS = ['react-native-android-widget', '@bacons/apple-targets', 'expo-live-activity'];
 /** M17 (research R5): the Editorial fonts — Lora (was Fraunces until 2026-10-04) + Manrope (OFL-1.1), loaded through expo-font. */
 const FONT_ADDITIONS = ['expo-font', '@expo-google-fonts/lora', '@expo-google-fonts/manrope'];
+/** Owner, 2026-10-05: a light tick as the category row is swiped. Pinned to expo-modules-core's 58.0.3; MIT (LICENSES.md). */
+const HAPTICS_ADDITIONS = ['expo-haptics'];
 
 it('no reference dependency is installed, anywhere', () => {
   const installed = new Set([
@@ -110,7 +112,7 @@ it('M7 added exactly expo-blur and expo-linear-gradient, Tailwind its three, not
   const now = Object.keys(pkg.dependencies).sort();
   const added = now.filter((name) => !M6_DEPENDENCIES.includes(name));
   const removed = M6_DEPENDENCIES.filter((name) => !now.includes(name));
-  expect(added.sort()).toEqual([...M7_ADDITIONS, ...TAILWIND_ADDITIONS, ...NOTIFY_ADDITIONS, ...SCAN_ADDITIONS, ...ICON_ADDITIONS, ...VIDEO_ADDITIONS, ...FEEDBACK_ADDITIONS, ...M9_ENGINE, ...M9_LIBRARY, ...SPLASH_ADDITIONS, ...OUTSIDE_ADDITIONS, ...FONT_ADDITIONS].sort());
+  expect(added.sort()).toEqual([...M7_ADDITIONS, ...TAILWIND_ADDITIONS, ...NOTIFY_ADDITIONS, ...SCAN_ADDITIONS, ...ICON_ADDITIONS, ...VIDEO_ADDITIONS, ...FEEDBACK_ADDITIONS, ...M9_ENGINE, ...M9_LIBRARY, ...SPLASH_ADDITIONS, ...OUTSIDE_ADDITIONS, ...FONT_ADDITIONS, ...HAPTICS_ADDITIONS].sort());
   expect(removed).toEqual([]);
 });
 
