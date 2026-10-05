@@ -50,7 +50,7 @@ export async function publish(db: Db, f: typeof fetch, feedUrl: string, showTitl
   // M19 US12: a scheduled announcement is saved now and shown from its time; it is not pushed and does not use a push.
   if (extra.releaseAt && new Date(extra.releaseAt).getTime() > Date.now()) {
     const [r] = await db.query<Row>(
-      `INSERT INTO announcements (feed_url, author_id, body, images, release_at) VALUES ($1, $2, $3, $4::jsonb, $5) RETURNING ${COLS}`,
+      `INSERT INTO announcements (feed_url, author_id, body, images, release_at) VALUES ($1, $2, $3, ($4::text)::jsonb, $5) RETURNING ${COLS}`,
       [feedUrl, authorId, body, images, extra.releaseAt],
     );
     return { announcement: toA(r!), pushed: { devices: 0 } };
@@ -62,7 +62,7 @@ export async function publish(db: Db, f: typeof fetch, feedUrl: string, showTitl
       throw new ApiError('locked', `You have sent ${PUSHES_PER_MONTH} announcements this month.`, { reason: 'monthly_limit', resetsOn: resetsOn() });
     }
     const [r] = await tx.query<Row>(
-      `INSERT INTO announcements (feed_url, author_id, body, images, pushed_at) VALUES ($1, $2, $3, $4::jsonb, now()) RETURNING ${COLS}`,
+      `INSERT INTO announcements (feed_url, author_id, body, images, pushed_at) VALUES ($1, $2, $3, ($4::text)::jsonb, now()) RETURNING ${COLS}`,
       [feedUrl, authorId, body, images],
     );
     // "Never tell a device twice" (G-N1) is push_sent's key; episode_id holds the announcement id.
@@ -94,7 +94,7 @@ export async function edit(db: Db, feedUrl: string, id: string, body: string, ex
   // M19 US12: pictures may change; a release time may move only while the announcement is still waiting.
   const [r] = await db.query<Row>(
     `UPDATE announcements SET body = $3, edited_at = now(),
-       images = coalesce($4::jsonb, images),
+       images = coalesce(($4::text)::jsonb, images),
        release_at = CASE WHEN $5::timestamptz IS NOT NULL AND release_at > now() THEN $5::timestamptz ELSE release_at END
      WHERE id = $1 AND feed_url = $2 AND deleted_at IS NULL RETURNING ${COLS}`,
     [id, feedUrl, body, extra.images ? JSON.stringify(extra.images) : null, extra.releaseAt ?? null],
