@@ -54,6 +54,7 @@ here or a line does not match its file.
 | `share.ts` | Share card route: draws a PNG image for sharing an episode moment. |
 | `social.ts` | Episode social poll route: comments and heat curve in one cached answer. |
 | `voice.ts` | Voice post routes: upload a short recording, list, and delete posts. |
+| `likes.ts` | Like routes: like an episode with a note, unlike, my timeline, one account's likes. |
 
 ### `routes/safety/` — reports and blocks
 
@@ -72,6 +73,7 @@ here or a line does not match its file.
 | `positions.ts` | Playback position routes: send positions from a device and read them back. |
 | `rec-events.ts` | Route to record which recommendations were shown, opened, played or finished. |
 | `subscriptions.ts` | Subscription routes: read and sync my subscriptions across devices. |
+| `dismissals.ts` | "Not interested" routes: list, add and restore the episodes and shows For You must skip. |
 
 ### `routes/discover/` — Discover, search, For You, next up, launch screen
 
@@ -151,6 +153,7 @@ here or a line does not match its file.
 | `feedback.ts` | Stores feedback with up to three small images; images deleted after 90 days. |
 | `listeners.ts` | Database queries to create and find listener accounts. |
 | `push.ts` | Sends new-episode push notifications through Expo, never twice to one device. |
+| `profile.ts` | My profile: name, bio, photo, optional age range and gender; the photo's storage limits. |
 
 ### `db/repos/social/` — comments, clips, follows, profiles, activity
 
@@ -159,12 +162,14 @@ here or a line does not match its file.
 | `activity.ts` | The Following feed: activity by people you follow, newest first, in pages. |
 | `chat.ts` | Chat messages between two listeners who follow each other: send, read, list conversations. |
 | `clips.ts` | Clips: save, list and delete a time range of an episode, no audio. |
+| `comment-extras.ts` | Comment pins, "unfriendly" marks and the reply page's thread. |
 | `comment-likes.ts` | Comment likes: one per listener, never your own, hidden comments not likeable. |
 | `comments.ts` | Comments: create, list as threads, delete, and shape them for each viewer. |
 | `follows.ts` | Follow and unfollow listeners, and list followers and following. |
 | `live-listeners.ts` | Counts "listening now" per episode using only daily-salted install hashes. |
 | `profiles.ts` | Builds a listener's profile: name, counts, stats and recent public activity. |
 | `voice-posts.ts` | Voice status posts up to 60 seconds, fully deleted after 24 hours. |
+| `likes.ts` | Likes with a note: like or unlike an episode, a timeline of likes from people you follow. |
 
 ### `db/repos/safety/` — reports, blocks, moderation
 
@@ -197,6 +202,7 @@ here or a line does not match its file.
 | `nextup.ts` | Builds "Next up" suggestions for an episode from four sources. |
 | `promotions.ts` | Launch-screen promotions: store, schedule, count views and taps as totals only. |
 | `similarity.ts` | Computes which shows are similar, ignoring private listeners and storing no listener ids. |
+| `dismissals.ts` | "Not interested" choices: episodes and shows a listener asked For You to stop showing. |
 
 ### `db/repos/studio/` — a show's data for its creators
 

@@ -12,6 +12,8 @@ export type CommentRow = {
   episode_id: string;
   author_id: string | null;
   display_name: string | null;
+  /** M19 US1: the author's photo, when set. */
+  avatar_url?: string | null;
   parent_id: string | null;
   body: string | null;
   offset_ms: number | null;
@@ -20,6 +22,10 @@ export type CommentRow = {
   removed_at: Date | string | null;
   /** M11: hidden by the show's host in the Studio — gone for everyone but its author. */
   host_hidden_at?: Date | string | null;
+  /** M19 US5/US6: pinned by a host; a voice recording instead of (or with) text. */
+  pinned_at?: Date | string | null;
+  voice_url?: string | null;
+  voice_ms?: number | null;
 };
 
 export type PublicComment = {
@@ -45,13 +51,24 @@ export type PublicComment = {
   hiddenByHost?: true;
   /** M12 (FR-023): the author's avatar letter — first letter or digit of the name, upper-cased; null for a placeholder. */
   initials: string | null;
+  /** M19 US1: the author's photo; absent for a placeholder or an author without one. */
+  avatarUrl?: string;
   /** M12 (FR-023): how many listeners liked it. */
   likeCount: number;
   /** M12 (FR-023): present only when signed in — whether the viewer is one of them. */
   likedByMe?: boolean;
+  /** M19 US5: pinned by the show's host — first under every order. */
+  pinned?: true;
+  /** M19 US5: marked unfriendly by 5 or more listeners — folded behind "show"; never says by whom. */
+  folded?: true;
+  /** M19 US5: how many replies it has (the Smart sort and the "n replies" link). */
+  replyCount?: number;
+  /** M19 US6: a voice comment — its recording and length. */
+  voice?: { url: string; ms: number };
 };
 
-const SELECT = `SELECT c.id, c.episode_id, c.author_id, l.display_name, c.parent_id, c.body, c.offset_ms, c.created_at, c.deleted_at, c.removed_at, c.host_hidden_at
+const SELECT = `SELECT c.id, c.episode_id, c.author_id, l.display_name, l.avatar_url, c.parent_id, c.body, c.offset_ms, c.created_at, c.deleted_at, c.removed_at, c.host_hidden_at,
+                       c.pinned_at, c.voice_url, c.voice_ms
                 FROM comments c LEFT JOIN listeners l ON l.id = c.author_id`;
 
 export function toPublic(r: CommentRow, viewerId?: string): PublicComment {
@@ -70,6 +87,9 @@ export function toPublic(r: CommentRow, viewerId?: string): PublicComment {
     createdAt: new Date(r.created_at).toISOString(),
     deleted,
     initials: deleted ? null : initialsOf(r.display_name),
+    ...(!deleted && r.avatar_url ? { avatarUrl: r.avatar_url } : {}),
+    ...(!deleted && r.pinned_at ? { pinned: true as const } : {}),
+    ...(!deleted && r.voice_url && r.voice_ms ? { voice: { url: r.voice_url, ms: Number(r.voice_ms) } } : {}),
     likeCount: 0,
     ...(viewerId !== undefined ? { likedByMe: false } : {}),
     ...(removed ? { removed: true } : {}),
@@ -143,11 +163,14 @@ export async function listComments(db: Db, episodeId: string, viewerId?: string)
   const hosts = new Set(await hostsOfEpisode(db, episodeId));
   // M12 (FR-023): like counts in one grouped read.
   const likes = await likesOnEpisode(db, episodeId, viewerId);
+  // M19 US5: which comments 5 or more listeners marked unfriendly (counts only, never who).
+  const folded = await foldedOnEpisode(db, episodeId);
   for (const r of rows) {
     const plain = toPublic(r, viewerId);
     const l = likes.get(r.id);
     const base = l ? { ...plain, likeCount: l.likeCount, ...(viewerId !== undefined ? { likedByMe: l.likedByMe } : {}) } : plain;
-    const c = base.authorId !== null && hosts.has(base.authorId) ? { ...base, host: true as const } : base;
+    const hosted = base.authorId !== null && hosts.has(base.authorId) ? { ...base, host: true as const } : base;
+    const c = folded.has(r.id) && !hosted.deleted ? { ...hosted, folded: true as const } : hosted;
     byId.set(c.id, c);
     if (c.parentId === null) top.push({ ...c, replies: [] });
   }
@@ -156,7 +179,7 @@ export async function listComments(db: Db, episodeId: string, viewerId?: string)
     if (r.parent_id === null) continue;
     topById.get(r.parent_id)?.replies!.push(byId.get(r.id)!);
   }
-  return top.reverse();
+  return top.reverse().map((c) => ({ ...c, replyCount: c.replies!.length }));
 }
 
 /** Blocked authors and reported ids out; a blocked reply under a kept parent stays as a placeholder row. */
@@ -167,9 +190,22 @@ async function filterForViewer(db: Db, rows: CommentRow[], viewerId: string): Pr
   return applyBlocks(named, blocked, hidden.keys).map((i) => {
     if (!('placeholder' in i)) return i.row;
     const original = rows.find((r) => r.id === i.id)!;
-    const bare = { ...original, author_id: null, display_name: null, body: null, offset_ms: null, deleted_at: new Date(0), removed_at: null };
+    const bare = { ...original, author_id: null, display_name: null, body: null, offset_ms: null, deleted_at: new Date(0), removed_at: null, voice_url: null, voice_ms: null, pinned_at: null };
     return (i.placeholder === 'reported'
       ? { ...bare, reported: true }
       : { ...bare, blocked: true }) as CommentRow & { blocked?: true; reported?: true };
   });
+}
+
+/** M19 US5 (FR-041): a comment folds once this many listeners marked it unfriendly. */
+export const UNFRIENDLY_FOLD_AT = 5;
+
+/** The ids on this episode that reached the fold — the voters are never read. */
+export async function foldedOnEpisode(db: Db, episodeId: string): Promise<Set<string>> {
+  const rows = await db.query<{ comment_id: string }>(
+    `SELECT u.comment_id FROM comment_unfriendly u JOIN comments c ON c.id = u.comment_id
+     WHERE c.episode_id = $1 GROUP BY u.comment_id HAVING count(*) >= $2`,
+    [episodeId, UNFRIENDLY_FOLD_AT],
+  );
+  return new Set(rows.map((r) => r.comment_id));
 }

@@ -25,6 +25,7 @@ import { cached } from '../cache.ts';
 import { hiddenFeedUrls } from '../safety/moderation.ts';
 import { blockedIdsFor, safetyStamp } from '../safety/blocks.ts';
 import { neighboursOf, similarityAgeHours } from './similarity.ts';
+import { dismissalStamp, dismissedFor, isDismissed, type Dismissed } from './dismissals.ts';
 import { discoverBody } from './discover.ts';
 import { latestEpisodes, topShows } from '../../../catalog/apple.ts';
 import { registerCard } from '../../../catalog/feed.ts';
@@ -84,6 +85,8 @@ export type Context = {
   /** episodeId → impressions with no open */
   fatigue: Map<string, number>;
   neighbours: Map<string, readonly Neighbour[]>;
+  /** M19 US2: what the listener turned down. Optional so a hand-built test context still compiles. */
+  dismissed?: Dismissed;
 };
 
 export async function contextFor(db: Db, listenerId: string): Promise<Context> {
@@ -132,6 +135,7 @@ export async function contextFor(db: Db, listenerId: string): Promise<Context> {
     genres: genres.map((r) => Number(r.genre_id)),
     fatigue: new Map(fatigue.map((r) => [r.episode_id, Number(r.imps)])),
     neighbours: await neighboursOf(db, [...liked]),
+    dismissed: await dismissedFor(db, listenerId),
   };
 }
 
@@ -259,7 +263,7 @@ export async function buildForYou(
   for (const r of raw) if (!seen.has(r.row.id)) seen.set(r.row.id, r);
 
   const scored = [...seen.values()]
-    .filter((r) => !ctx.finished.has(r.row.id) && !ctx.hidden.has(r.row.feed_url))
+    .filter((r) => !ctx.finished.has(r.row.id) && !ctx.hidden.has(r.row.feed_url) && !(ctx.dismissed && isDismissed(ctx.dismissed, r.row.id, r.row.feed_url)))
     .map((r) => {
       const candidate: RecCandidate = {
         episodeId: r.row.id,
@@ -320,7 +324,9 @@ export async function forYou(
   // The key carries M6's safety stamp. A new block changes the stamp, so the list is
   // rebuilt on the next request rather than waiting out the 30-minute cache (FR-021, L4).
   const stamp = await safetyStamp(db, listenerId);
-  const r = await cached<ForYouBody>(db, `foryou:${listenerId}:${stamp}`, FOR_YOU_TTL, async () => {
+  // M19 US2: a "Not interested" (or a restore) is a new key too, so the list refills at once.
+  const dstamp = await dismissalStamp(db, listenerId);
+  const r = await cached<ForYouBody>(db, `foryou:${listenerId}:${stamp}:${dstamp}`, FOR_YOU_TTL, async () => {
     const ctx = await contextFor(db, listenerId);
     const { items, warnings } = await buildForYou(
       db, ctx,
@@ -334,6 +340,9 @@ export async function forYou(
   // Hiding a show is global and must take effect before ANY listener's cache expires —
   // the same rule M6 applied to Discover (guard G7 there, FR-022 here).
   const hidden = await hiddenFeedUrls(db);
-  const body = hidden.size === 0 ? r.body : { ...r.body, items: r.body.items.filter((i) => !hidden.has(i.episode.feedUrl)) };
+  // M19 US2: and what this listener turned down never shows, whatever the cache holds.
+  const dismissed = await dismissedFor(db, listenerId);
+  const off = (i: ForYouItem) => hidden.has(i.episode.feedUrl) || isDismissed(dismissed, i.episode.id, i.episode.feedUrl);
+  const body = r.body.items.some(off) ? { ...r.body, items: r.body.items.filter((i) => !off(i)) } : r.body;
   return { body, stale: r.stale };
 }

@@ -44,23 +44,23 @@ export async function counts(db: Db, listenerId: string, viewerId?: string): Pro
 type Page = { listeners: ListenerLite[]; next?: string };
 
 async function page(db: Db, sql: string, params: unknown[], limit: number): Promise<Page> {
-  const rows = await db.query<{ id: string; display_name: string | null; created_at: string }>(sql, params);
+  const rows = await db.query<{ id: string; display_name: string | null; created_at: string; avatar_url?: string | null }>(sql, params);
   const slice = rows.slice(0, limit);
   const next = rows.length > limit ? new Date(slice[slice.length - 1]!.created_at).toISOString() : undefined;
-  return { listeners: slice.map((r) => ({ id: r.id, displayName: r.display_name })), ...(next ? { next } : {}) };
+  return { listeners: slice.map((r) => ({ id: r.id, displayName: r.display_name, ...(r.avatar_url ? { avatarUrl: r.avatar_url } : {}) })), ...(next ? { next } : {}) };
 }
 
 
 export function followers(db: Db, listenerId: string, before?: string, limit = 50, viewerId?: string): Promise<Page> {
   return page(db,
-    `SELECT l.id, l.display_name, f.created_at FROM follows f JOIN listeners l ON l.id = f.follower_id
+    `SELECT l.id, l.display_name, l.avatar_url, f.created_at FROM follows f JOIN listeners l ON l.id = f.follower_id
      WHERE f.followed_id = $1 ${NOT_BLOCKED} AND ($3::timestamptz IS NULL OR f.created_at < $3::timestamptz) ORDER BY f.created_at DESC LIMIT $2`,
     [listenerId, limit + 1, before ?? null, viewerId ?? null], limit);
 }
 
 export function following(db: Db, listenerId: string, before?: string, limit = 50, viewerId?: string): Promise<Page> {
   return page(db,
-    `SELECT l.id, l.display_name, f.created_at FROM follows f JOIN listeners l ON l.id = f.followed_id
+    `SELECT l.id, l.display_name, l.avatar_url, f.created_at FROM follows f JOIN listeners l ON l.id = f.followed_id
      WHERE f.follower_id = $1 ${NOT_BLOCKED} AND ($3::timestamptz IS NULL OR f.created_at < $3::timestamptz) ORDER BY f.created_at DESC LIMIT $2`,
     [listenerId, limit + 1, before ?? null, viewerId ?? null], limit);
 }

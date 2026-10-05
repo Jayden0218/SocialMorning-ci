@@ -12,7 +12,7 @@ export { lockoutUntil, LOCKOUT_THRESHOLD, LOCKOUT_MAX_MS } from './lockout';
 export { fnv1a64, hash } from './hash';
 export { captureMoment } from './moment';
 export { bucketOf, normaliseHeat, HEAT_BUCKETS } from './heat';
-export { orderComments } from './order';
+export { orderComments, smartScore } from './order';
 export { mergePosition } from './merge';
 // M4 — the graph (specs/004-m4-the-graph/contracts/graph-core.ts)
 export type { ClipRange, ClipCheck, ClipReason } from './clip';

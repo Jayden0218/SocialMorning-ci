@@ -33,8 +33,8 @@ export async function insertPost(db: Db, p: { id: string; listenerId: string; ur
 
 /** The caller's own posts and those of people they follow; never expired, never across a block, never a suspended author. */
 export async function fromFollowing(db: Db, viewerId: string) {
-  const rows = await db.query<VoiceRow & { display_name: string }>(
-    `SELECT v.id, v.listener_id, v.blob_url, v.duration_ms, v.created_at, v.expires_at, l.display_name
+  const rows = await db.query<VoiceRow & { display_name: string; avatar_url: string | null }>(
+    `SELECT v.id, v.listener_id, v.blob_url, v.duration_ms, v.created_at, v.expires_at, l.display_name, l.avatar_url
      FROM voice_posts v JOIN listeners l ON l.id = v.listener_id
      WHERE v.expires_at > now() AND l.suspended_at IS NULL
        AND (v.listener_id = $1 OR v.listener_id IN (SELECT followed_id FROM follows WHERE follower_id = $1))
@@ -43,7 +43,7 @@ export async function fromFollowing(db: Db, viewerId: string) {
     [viewerId],
   );
   return rows.map((r) => ({
-    id: r.id, author: { id: r.listener_id, name: r.display_name, initials: initialsOf(r.display_name) }, url: r.blob_url,
+    id: r.id, author: { id: r.listener_id, name: r.display_name, initials: initialsOf(r.display_name), ...(r.avatar_url ? { avatarUrl: r.avatar_url } : {}) }, url: r.blob_url,
     durationMs: Number(r.duration_ms), createdAt: new Date(r.created_at).toISOString(), expiresAt: new Date(r.expires_at).toISOString(), mine: r.listener_id === viewerId,
   }));
 }

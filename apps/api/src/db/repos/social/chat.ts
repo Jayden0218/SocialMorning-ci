@@ -11,7 +11,7 @@ export const CHAT_PAGE = 50;
 
 export type ChatEpisode = { id: string; feedUrl: string; guid: string; title: string; showTitle: string; enclosureUrl: string; imageUrl?: string; durationMs?: number };
 export type ChatMessage = { id: string; fromMe: boolean; body: string; episode?: ChatEpisode; createdAt: string; read: boolean };
-export type ChatPerson = { id: string; displayName: string };
+export type ChatPerson = { id: string; displayName: string; avatarUrl?: string };
 export type Conversation = { with: ChatPerson; last: ChatMessage; unread: number; canSend: boolean };
 
 /** Both directions of the follow, and no block either way. */
@@ -48,8 +48,8 @@ function toMessage(r: Row, me: string): ChatMessage {
 }
 
 export async function person(db: Db, id: string): Promise<ChatPerson | undefined> {
-  const [r] = await db.query<{ id: string; display_name: string }>('SELECT id, display_name FROM listeners WHERE id = $1 AND suspended_at IS NULL', [id]);
-  return r ? { id: r.id, displayName: r.display_name } : undefined;
+  const [r] = await db.query<{ id: string; display_name: string; avatar_url: string | null }>('SELECT id, display_name, avatar_url FROM listeners WHERE id = $1 AND suspended_at IS NULL', [id]);
+  return r ? toPerson(r) : undefined;
 }
 
 export async function send(db: Db, from: string, to: string, body: string, episodeId: string | undefined): Promise<ChatMessage> {
@@ -80,7 +80,7 @@ export async function thread(db: Db, me: string, other: string, opts: { after?: 
 
 /** Every conversation I have, newest first: the person, the last message, my unread count. */
 export async function conversations(db: Db, me: string): Promise<Conversation[]> {
-  const rows = await db.query<Row & { other_id: string; other_name: string; unread: number; can_send: boolean }>(
+  const rows = await db.query<Row & { other_id: string; other_name: string; other_avatar: string | null; unread: number; can_send: boolean }>(
     `WITH mine AS (
        SELECT DISTINCT ON (CASE WHEN m.sender_id = $1 THEN m.recipient_id ELSE m.sender_id END)
               CASE WHEN m.sender_id = $1 THEN m.recipient_id ELSE m.sender_id END AS other_id, m.id
@@ -88,7 +88,7 @@ export async function conversations(db: Db, me: string): Promise<Conversation[]>
        WHERE m.sender_id = $1 OR m.recipient_id = $1
        ORDER BY CASE WHEN m.sender_id = $1 THEN m.recipient_id ELSE m.sender_id END, m.id DESC
      )
-     SELECT x.other_id, l.display_name AS other_name,
+     SELECT x.other_id, l.display_name AS other_name, l.avatar_url AS other_avatar,
             m.id::text, m.sender_id, m.body, m.created_at, m.read_at,
             e.id AS e_id, e.feed_url, e.guid, e.title, e.show_title, e.enclosure_url, e.image_url, e.duration_ms,
             (SELECT count(*)::int FROM chat_messages u WHERE u.recipient_id = $1 AND u.sender_id = x.other_id AND u.read_at IS NULL) AS unread,
@@ -103,7 +103,7 @@ export async function conversations(db: Db, me: string): Promise<Conversation[]>
      LIMIT 200`,
     [me],
   );
-  return rows.map((r) => ({ with: { id: r.other_id, displayName: r.other_name }, last: toMessage(r, me), unread: Number(r.unread), canSend: r.can_send === true }));
+  return rows.map((r) => ({ with: toPerson({ id: r.other_id, display_name: r.other_name, avatar_url: r.other_avatar ?? null }), last: toMessage(r, me), unread: Number(r.unread), canSend: r.can_send === true }));
 }
 
 /** My unread messages, from people I can still see (the tab badge). */
@@ -119,8 +119,8 @@ export async function unreadCount(db: Db, me: string): Promise<number> {
 
 /** People I can start a chat with: we follow each other, no block, not suspended. By name. */
 export async function friends(db: Db, me: string): Promise<ChatPerson[]> {
-  const rows = await db.query<{ id: string; display_name: string }>(
-    `SELECT l.id, l.display_name FROM follows a
+  const rows = await db.query<{ id: string; display_name: string; avatar_url: string | null }>(
+    `SELECT l.id, l.display_name, l.avatar_url FROM follows a
      JOIN follows b ON b.follower_id = a.followed_id AND b.followed_id = $1
      JOIN listeners l ON l.id = a.followed_id AND l.suspended_at IS NULL
      WHERE a.follower_id = $1
@@ -129,5 +129,10 @@ export async function friends(db: Db, me: string): Promise<ChatPerson[]> {
      LIMIT 500`,
     [me],
   );
-  return rows.map((r) => ({ id: r.id, displayName: r.display_name }));
+  return rows.map(toPerson);
+}
+
+/** M19 US1: a chat person carries their photo when they set one. */
+function toPerson(r: { id: string; display_name: string; avatar_url: string | null }): ChatPerson {
+  return { id: r.id, displayName: r.display_name, ...(r.avatar_url ? { avatarUrl: r.avatar_url } : {}) };
 }

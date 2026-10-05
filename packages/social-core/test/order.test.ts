@@ -1,7 +1,7 @@
 // Tests sorting comments by newest, by episode time, and by likes.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { orderComments } from '../src/order.ts';
+import { orderComments, smartScore } from '../src/order.ts';
 
 const rows = [
   { id: 'a', offsetMs: 900_000, createdAt: 3 },
@@ -42,4 +42,28 @@ test('liked: most likes first, ties newest first, no count counts as 0 (M12 FR-0
     { id: 'e', offsetMs: null, createdAt: 4, likeCount: 7 },
   ];
   assert.deepEqual(orderComments(liked, 'liked').map((r) => r.id), ['d', 'e', 'c', 'a', 'b']);
+});
+
+test('smart (M19 FR-042): likes + 2 × replies − hours / 12, ties newest first', () => {
+  const now = 100 * 3_600_000;
+  const rows = [
+    { id: 'old-popular', offsetMs: null, createdAt: now - 48 * 3_600_000, likeCount: 6, replyCount: 1 }, // 6 + 2 − 4 = 4
+    { id: 'fresh', offsetMs: null, createdAt: now, likeCount: 1 }, // 1
+    { id: 'talked', offsetMs: null, createdAt: now - 12 * 3_600_000, replyCount: 2 }, // 4 − 1 = 3
+    { id: 'tie-newer', offsetMs: null, createdAt: now, likeCount: 1 }, // 1, same as fresh
+  ];
+  assert.deepEqual(orderComments(rows, 'smart', now).map((r) => r.id), ['old-popular', 'talked', 'fresh', 'tie-newer']);
+  assert.equal(smartScore({ createdAt: now, likeCount: 3, replyCount: 1 }, now), 5);
+});
+
+test('pinned (M19 FR-040): first under every order, the rest in that order', () => {
+  const rows = [
+    { id: 'a', offsetMs: 10, createdAt: 3, likeCount: 9 },
+    { id: 'p', offsetMs: 50, createdAt: 1, pinned: true },
+    { id: 'b', offsetMs: 5, createdAt: 2 },
+  ];
+  for (const order of ['newest', 'liked', 'byMoment', 'smart'] as const) {
+    assert.equal(orderComments(rows, order, 10).map((r) => r.id)[0], 'p', order);
+  }
+  assert.deepEqual(orderComments(rows, 'byMoment').map((r) => r.id), ['p', 'b', 'a']);
 });

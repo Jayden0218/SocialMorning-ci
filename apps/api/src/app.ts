@@ -34,6 +34,8 @@ import { nextup } from './routes/discover/nextup.ts';
 import { foryou } from './routes/discover/foryou.ts';
 import { createInternalRoute } from './routes/internal.ts';
 import { recEvents } from './routes/library/rec-events.ts';
+import { dismissals } from './routes/library/dismissals.ts';
+import { episodeLikes, likeTimeline, listenerLikes } from './routes/social/likes.ts';
 import { validateIssues, validatePicks } from '@socialmorning/social-core';
 import type { Catalog, Safety } from './auth/session.ts';
 import picksJson from '../picks.json' with { type: 'json' };
@@ -58,6 +60,7 @@ import { share } from './routes/social/share.ts';
 import { episodePages } from './pages/episode.ts';
 import { voiceBlobStorage, type VoiceStorage } from './storage/voice-blob.ts';
 import { VOICE_MAX_BYTES } from './db/repos/social/voice-posts.ts';
+import { AVATAR_MAX_BYTES } from './db/repos/account/profile.ts';
 import { admin } from './routes/admin/index.ts';
 import { createLaunchRoute } from './routes/discover/launch.ts';
 import { seedOwnerAdmin } from './auth/admin.ts';
@@ -88,6 +91,8 @@ export type AppDeps = {
   mailer?: import('./mail/mailer.ts').Mailer;
   /** M12 FR-104: the voice-post store (default: Vercel Blob with env BLOB_READ_WRITE_TOKEN; unset → 503 storage_off). */
   voiceStorage?: VoiceStorage;
+  /** M19 US1: where profile photos go (tests pass a fake). */
+  avatarStorage?: VoiceStorage;
   /** M12 FR-034: the fetch the share card uses for artwork. Default: global fetch. */
   imageFetch?: typeof fetch;
 };
@@ -107,8 +112,11 @@ export function createApp(deps: AppDeps) {
   const voiceLimit = bodyLimit({ maxSize: VOICE_MAX_BYTES, onError: (c) => c.json(new ApiError('too_large', 'A voice post is at most 600 000 bytes.').body(), 413) });
   // M15 T027: a bulk account list (≤ 50 rows of name + bio + email) can pass 16 KB.
   const adminBulkLimit = bodyLimit({ maxSize: 64 * 1024 });
+  // M19 US1: a profile photo is at most 200 KB (constitution v2.6.0).
+  const avatarLimit = bodyLimit({ maxSize: AVATAR_MAX_BYTES, onError: (c) => c.json(new ApiError('too_large', 'A profile photo is at most 200 KB.').body(), 413) });
   app.use('*', (c, next) => (c.req.path === '/v1/feedback' ? feedbackLimit(c, next)
     : c.req.path === '/v1/admin/accounts' ? adminBulkLimit(c, next)
+    : c.req.path === '/v1/me/avatar' && c.req.method === 'PUT' ? avatarLimit(c, next)
     : c.req.path === '/v1/voice-posts' && c.req.method === 'POST' ? voiceLimit(c, next) : small(c, next)));
   // M5: the picks file is validated once; every bad entry is a warning, never a crash (G1).
   const { picks, warnings } = validatePicks(deps.picksRaw ?? picksJson);
@@ -131,6 +139,8 @@ export function createApp(deps: AppDeps) {
   // M13: an unconnected store is not an error — creating a show still works; uploads say why not.
   const storage = deps.episodeStorage ?? blobStorage(process.env['EPISODES_READ_WRITE_TOKEN']);
   const voiceStorage = deps.voiceStorage ?? voiceBlobStorage(process.env['BLOB_READ_WRITE_TOKEN']);
+  // M19 US1: photos go to the launch-image store (constitution v2.6.0), put by the server like voice posts.
+  const avatarStorage = deps.avatarStorage ?? voiceBlobStorage(process.env['EPISODES_READ_WRITE_TOKEN']);
   const imageFetch = deps.imageFetch ?? fetch;
   const publicBase = deps.publicBase ?? process.env['PUBLIC_API_URL'] ?? 'https://socialmorning-api.vercel.app';
 
@@ -145,6 +155,7 @@ export function createApp(deps: AppDeps) {
     c.set('publicBase', publicBase);
     c.set('hostedCeilingBytes', deps.hostedCeilingBytes ?? DEFAULT_CEILING_BYTES);
     c.set('voice', voiceStorage);
+    c.set('avatars', avatarStorage);
     c.set('imageFetch', imageFetch);
     await next();
   });
@@ -182,6 +193,9 @@ export function createApp(deps: AppDeps) {
   app.route('/covers', covers);
   app.route('/show', showCard);
   app.route('/v1/me/rec-events', recEvents);
+  // M19 US2, US3
+  app.route('/v1/me/dismissals', dismissals);
+  app.route('/v1/me/likes', likeTimeline);
   // M12 (specs/012-m12-the-finish/contracts/api.md)
   app.route('/v1/me/notify', notify);
   app.route('/v1/me', wallet);
@@ -190,6 +204,7 @@ export function createApp(deps: AppDeps) {
   app.route('/v1/issues', issues);
   app.route('/v1/voice-posts', voice);
   app.route('/v1/share', share);
+  app.route('/v1/episodes', episodeLikes);
   app.route('/v1/episodes', live);
   app.route('/v1/episodes', commentCounts);
   // Chat (owner, 2026-10-04): one-to-one messages between people who follow each other.
@@ -200,6 +215,7 @@ export function createApp(deps: AppDeps) {
   app.route('/v1/me/blocks', blocks);
   app.route('/v1/me/hidden', hidden);
   app.route('/v1/reports', reports);
+  app.route('/v1/listeners', listenerLikes);
   app.route('/v1/listeners', follows);
   app.route('/v1/listeners', profiles);
   app.route('/v1/discover', discover);

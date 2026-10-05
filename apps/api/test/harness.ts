@@ -35,7 +35,7 @@ export const TEST_APPEALS = 'appeals@example.test';
 
 /** `ownerListenerId` is unknown until a listener exists: tests that need the owner sign up first, then `setOwner`. */
 export async function freshDb(allOpts: { ownerListenerId?: string; appealsEmail?: string; releaseSha256?: string; noMailer?: boolean; pushFetch?: typeof fetch; catalogFetch?: typeof fetch;
-  /** M12 */ jobToken?: string; voiceStorage?: VoiceStorage; imageFetch?: typeof fetch; picksRaw?: unknown; today?: () => string } = {}): Promise<TestDb> {
+  /** M12 */ jobToken?: string; voiceStorage?: VoiceStorage; /** M19 */ avatarStorage?: VoiceStorage; imageFetch?: typeof fetch; picksRaw?: unknown; today?: () => string } = {}): Promise<TestDb> {
   const { noMailer, ...opts } = allOpts;
   const pg = new PGlite({ extensions: { citext } });
   const runner: MigrationRunner = {

@@ -16,13 +16,18 @@ export type ProfileOut = {
   blockedByMe?: boolean;
   /** M10b US7: the country from the listener's last sign-in (two letters), shown to everyone. */
   country?: string;
+  /** M19 US1: photo and bio, when set. */
+  avatarUrl?: string;
+  bio?: string;
 };
 
 export async function profile(db: Db, id: string, viewerId: string | undefined, today: string): Promise<ProfileOut | undefined> {
-  const [l] = await db.query<{ id: string; display_name: string; private_listening: boolean; suspended_at: string | null; country: string | null }>('SELECT id, display_name, private_listening, suspended_at, country FROM listeners WHERE id = $1', [id]);
+  const [l] = await db.query<{ id: string; display_name: string; private_listening: boolean; suspended_at: string | null; country: string | null; avatar_url: string | null; bio: string | null }>('SELECT id, display_name, private_listening, suspended_at, country, avatar_url, bio FROM listeners WHERE id = $1', [id]);
   if (!l) return undefined;
   // M6 (FR-008, FR-015): to someone they blocked, a listener looks private and quiet — name only, no hint why. A suspended account shows as suspended.
-  const bare = { id: l.id, displayName: l.display_name, followers: 0, following: 0, isFollowing: false, stats: null, recent: [] };
+  // M19 US1: photo and bio travel with the name; age range and gender never do (FR-003).
+  const look = { ...(l.avatar_url ? { avatarUrl: l.avatar_url } : {}), ...(l.bio ? { bio: l.bio } : {}) };
+  const bare = { id: l.id, displayName: l.display_name, ...look, followers: 0, following: 0, isFollowing: false, stats: null, recent: [] };
   if (l.suspended_at) return { ...bare, suspended: true };
   if (viewerId && viewerId !== id && (await isBlockedBy(db, id, viewerId))) return bare;
   const blockedByMe = viewerId && viewerId !== id ? await isBlockedBy(db, viewerId, id) : false;
@@ -32,7 +37,7 @@ export async function profile(db: Db, id: string, viewerId: string | undefined, 
   const showStats = !l.private_listening || viewerId === id;
   const s = showStats ? stats(await listenedRowsFor(db, id), today) : null;
   const recent = (await recentBy(db, id)).map(toFeedItem);
-  return { id: l.id, displayName: l.display_name, followers: c.followers, following: c.following, isFollowing: following, stats: s, recent, ...(blockedByMe ? { blockedByMe: true } : {}), ...(l.country ? { country: l.country.trim() } : {}) };
+  return { id: l.id, displayName: l.display_name, ...look, followers: c.followers, following: c.following, isFollowing: following, stats: s, recent, ...(blockedByMe ? { blockedByMe: true } : {}), ...(l.country ? { country: l.country.trim() } : {}) };
 }
 
 export async function setPrivateListening(db: Db, id: string, value: boolean): Promise<void> {

@@ -51,6 +51,8 @@ export type AuthEnv = { Variables: { db: Db; pepper: string; listener?: Listener
   storage: import('../storage/episodes-blob.ts').EpisodeStorage; publicBase: string; hostedCeilingBytes: number;
   /** M12 FR-104: the voice-post store (`socialmorning-voice`); `ready` false when its token is unset. */
   voice: import('../storage/voice-blob.ts').VoiceStorage;
+  /** M19 US1: profile photos — the launch-image store (constitution v2.6.0), same put/remove shape as voice. */
+  avatars: import('../storage/voice-blob.ts').VoiceStorage;
   /** M12 FR-034: the fetch the share card uses for artwork (tests inject a fake). */
   imageFetch: typeof fetch } };
 
