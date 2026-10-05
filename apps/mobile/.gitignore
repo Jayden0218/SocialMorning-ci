@@ -39,3 +39,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Gradle caches made by an IDE sync of a local module (2026-10-06: one was committed by mistake)
+modules/**/android/.gradle/
