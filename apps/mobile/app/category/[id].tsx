@@ -76,9 +76,8 @@ const HALF_ART = 72;
 const SLOP = { top: 8, bottom: 8, left: 8, right: 8 };
 /** The longest a category waits for its covers before showing the list anyway. */
 const COVER_WAIT_MS = 3000;
-/** The chevron over the category row's right end: a 48 pt tap plus room each side. */
-const CHEVRON_W = hit.min + 16;
-const CHEVRON = { width: CHEVRON_W, zIndex: 1 };
+/** The chevron over the category row's right end: a 48 pt tap (plus `px-2`, 64 pt in all; the row ends with `pr-16` to match). */
+const CHEVRON = { minWidth: hit.min, zIndex: 1 };
 /** A finger lifted with no fling: the swipe's category is picked after this pause. */
 const SETTLE_MS = 150;
 /** How near the bottom (pt) the next page starts loading. */
@@ -408,8 +407,7 @@ export default function CategoryScreen(): React.ReactElement {
             ref={strip}
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerClassName="gap-5 pl-screen-x"
-            contentContainerStyle={{ paddingRight: CHEVRON_W }}
+            contentContainerClassName="gap-5 pl-screen-x pr-16"
             scrollEventThrottle={16}
             onScrollBeginDrag={() => {
               if (settle.current) clearTimeout(settle.current);
@@ -480,7 +478,7 @@ export default function CategoryScreen(): React.ReactElement {
             onPress={() => setPicking(true)}
             accessibilityRole="button"
             accessibilityLabel="All categories"
-            className="absolute right-0 top-0 bottom-0 items-center justify-center bg-background"
+            className="absolute right-0 top-0 bottom-0 px-2 items-center justify-center bg-background"
             style={CHEVRON}
           >
             <Icon name="chevron-down" size={22} color={c.text} />
