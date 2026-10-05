@@ -2,8 +2,9 @@
 /**
  * M20 US9 (spec FR-053; scenario 7). The thumbnail keeps the picture's shape, at most 200 pt wide
  * and 200 pt tall. Tapping it opens the full picture in a sheet with Close. In teen mode (the
- * "hide explicit" switch) it starts as a "Tap to show" box — a picture someone posted is not
- * checked before it shows.
+ * "hide explicit" switch, passed down as `teen` by the page) it starts as a "Tap to show" box — a
+ * picture someone posted is not checked before it shows. No store import here: the comment row is
+ * drawn in tests that must not load the player.
  */
 import { useState } from 'react';
 import { useWindowDimensions } from 'react-native';
@@ -13,18 +14,14 @@ import { Pressable } from '@/ui/lib/pressable';
 import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
 import { hit } from '@/design';
-import { getPref } from '@/settings/prefs';
-import { useStores } from '@/ui/shell/providers';
 import type { CommentImage as Picture } from '@/social/comment-extras-api';
 import { thumbSize } from '@/social/image-fit';
 
 const THUMB = 200;
 const TAP = { minHeight: hit.min };
 
-export function CommentImage(props: { image: Picture }): React.ReactElement {
-  const stores = useStores();
-  const teen = getPref(stores.settings, 'hideExplicit');
-  const [shown, setShown] = useState(!teen);
+export function CommentImage(props: { image: Picture; teen?: boolean }): React.ReactElement {
+  const [shown, setShown] = useState(!props.teen);
   const [open, setOpen] = useState(false);
   const screen = useWindowDimensions();
   const thumb = thumbSize(props.image.w, props.image.h, THUMB, hit.min);
@@ -46,7 +43,7 @@ export function CommentImage(props: { image: Picture }): React.ReactElement {
       {open ? (
         <Actionsheet isOpen onClose={() => setOpen(false)}>
           <ActionsheetBackdrop />
-          <ActionsheetContent className="bg-surface items-center gap-row pb-section">
+          <ActionsheetContent className="bg-surface items-center gap-row">
             <Image source={{ uri: props.image.url }} style={full} accessibilityLabel="The picture, full size" />
             <Box className="w-full items-center">
               <Pressable onPress={() => setOpen(false)} accessibilityRole="button" accessibilityLabel="Close the picture" className="justify-center px-section rounded-pill border border-border" style={TAP}>

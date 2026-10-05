@@ -98,6 +98,8 @@ export function CommentRow(props: {
   onOpenThread?: (c: Comment) => void;
   /** M19 FR-044: plays a voice comment (`playVoice` from the playback adapter, passed by the page). */
   playVoice?: PlayVoice;
+  /** M20 US9: teen mode ("hide explicit") — comment pictures start hidden behind "Tap to show". */
+  teenMode?: boolean;
 }): React.ReactElement {
   const { c } = props;
   const like = props.likeOf(c);
@@ -197,7 +199,7 @@ export function CommentRow(props: {
           {c.body}
         </Text>
         {extra.voice && props.playVoice ? <VoiceComment voice={extra.voice} play={props.playVoice} /> : null}
-        {extra.image ? <CommentImage image={extra.image} /> : null}
+        {extra.image ? <CommentImage image={extra.image} teen={props.teenMode === true} /> : null}
         {(c.body ?? '').length > 320 ? (
           <Pressable onPress={() => setOpen((o) => !o)} accessibilityRole="button" className="self-start justify-center" style={TAP}>
             <Text className="text-accent text-xs font-semibold">{open ? 'Less' : 'More'}</Text>

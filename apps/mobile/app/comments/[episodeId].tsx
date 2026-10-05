@@ -53,6 +53,7 @@ import { EndOfList } from '@/ui/kit/EndOfList';
 import { extrasOf, replyCountOf, useCommentExtrasApi } from '@/social/comment-extras-api';
 import { VoiceComposer } from '@/ui/comments/VoiceRecord';
 import { playVoice } from '@/playback/expo-audio-adapter';
+import { getPref } from '@/settings/prefs';
 
 const TAB = { minHeight: hit.min };
 const WRITE = { minHeight: 52 };
@@ -217,6 +218,7 @@ export default function CommentsScreen(): React.ReactElement {
             onLike={(x) => void like(x)}
             onMenu={setMenu}
             playVoice={playVoice}
+            teenMode={getPref(stores.settings, 'hideExplicit')}
             onOpenThread={(x) => router.push({ pathname: '/comments/thread/[commentId]', params: { commentId: x.id, episodeId: episodeId ?? '' } })}
           />
         )}

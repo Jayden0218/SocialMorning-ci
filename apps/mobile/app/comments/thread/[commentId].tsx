@@ -27,6 +27,7 @@ import { CommentRow, type LikeView } from '@/ui/comments/CommentRow';
 import { ReportSheet, type ReportTarget } from '@/ui/comments/ReportSheet';
 import { VoiceComposer } from '@/ui/comments/VoiceRecord';
 import { playVoice } from '@/playback/expo-audio-adapter';
+import { getPref } from '@/settings/prefs';
 import { useStores, useToast } from '@/ui/shell/providers';
 import { useColours } from '@/ui/kit/useColours';
 import { usePlayer, usePlayerState } from '@/playback/store';
@@ -135,6 +136,7 @@ export default function ThreadScreen(): React.ReactElement {
       onLike={(y) => void like(y)}
       onMenu={setMenu}
       playVoice={playVoice}
+            teenMode={getPref(stores.settings, 'hideExplicit')}
     />
   );
   const replies = thread?.replies ?? [];
