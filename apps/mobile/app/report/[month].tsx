@@ -101,7 +101,7 @@ export default function ReportScreen(): React.ReactElement {
     <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pt-gap pb-24 gap-section">
       <Box className="bg-primary rounded-row p-section" accessible accessibilityLabel={`${hoursMinutes(r.minutes)} of listening`}>
         <Text className="text-onPrimary text-xs font-bold" style={CAPS}>Listening time</Text>
-        <Text className="text-onPrimary font-display text-[56px] leading-[68px]" style={tabular}>{Math.round(r.minutes)}</Text>
+        <Text className="text-onPrimary font-display text-[56px] leading-[72px]" style={tabular}>{Math.round(r.minutes)}</Text>
         <Text className="text-onPrimary text-body">{`minutes · ${hoursMinutes(r.minutes)}`}</Text>
       </Box>
 
