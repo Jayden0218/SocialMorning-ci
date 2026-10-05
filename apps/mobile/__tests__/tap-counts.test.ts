@@ -40,15 +40,16 @@ const CONTRACT = [
   // Owner, 2026-10-04: the Inbox page is gone; what it listed is the Updates tab (one tap).
   { name: 'Inbox', href: '/library', before: 1, after: 1 },
   { name: 'Queue', href: '/queue', before: 1, after: 1 },
-  { name: 'Downloads', href: '/downloads', before: 1, after: 1 },
+  // Owner, 2026-10-05: no Downloads tile on Discover — it stays on Me (two taps).
+  { name: 'Downloads', href: '/downloads', before: 1, after: 2, owner: '2026-10-05' },
   { name: 'Account', href: '/account', before: 2, after: 2 },
   { name: 'Following feed', href: '/notifications', before: 1, after: 2, owner: '2026-09-27' },
   { name: 'Show list', href: '/subscriptions', before: 1, after: 2, owner: '2026-09-27' },
 ] as const;
 
-it('G4: nothing got further away except the owner\'s two named moves', () => {
+it('G4: nothing got further away except the owner\'s named moves', () => {
   for (const row of CONTRACT) if (!('owner' in row)) expect(row.after).toBeLessThanOrEqual(row.before);
-  expect(CONTRACT.filter((r) => 'owner' in r).map((r) => r.name)).toEqual(['Following feed', 'Show list']);
+  expect(CONTRACT.filter((r) => 'owner' in r).map((r) => r.name)).toEqual(['Downloads', 'Following feed', 'Show list']);
 });
 
 it('the tabs are Discover · Updates · Chat · Me, at their paths', () => {

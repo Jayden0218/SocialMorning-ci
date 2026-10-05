@@ -43,7 +43,7 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 | `(tabs)/discover.tsx` | `/discover` | No screen: old link, sends you to Discover at `/`. |
 | `(tabs)/following.tsx` | `/following` | No screen: old link, sends you to Notifications. |
 | `(tabs)/index.tsx` | `/` | Discover, the first screen: search box, shortcuts, picks, For You, charts, categories. |
-| `(tabs)/library.tsx` | `/library` | Updates tab: continue listening, friends' voice posts, newest episodes from your shows. |
+| `(tabs)/library.tsx` | `/library` | Updates tab: friends' voice posts, newest episodes from your shows. |
 | `(tabs)/me.tsx` | `/me` | Me tab: your picture and name, saved moments, menu tiles, Sign out. |
 
 ### `academy/`

@@ -1,4 +1,4 @@
-// Card at top of Updates to go on with your last episode.
+// Card to go on with your last episode (not on Updates since 2026-10-05; kept for reuse).
 /**
  * "Continue listening" — the top of the Library, and the answer to Story 3's
  * whole complaint: coming back and not finding your place.

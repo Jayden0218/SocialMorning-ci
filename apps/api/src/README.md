@@ -190,7 +190,7 @@ here or a line does not match its file.
 | File | What it does |
 |---|---|
 | `activity-stats.ts` | Counts listens, comments, clips and reactions per episode, never naming listeners. |
-| `discover-extras.ts` | Extra Discover parts: pick counts, followed shows, what people said, collections. |
+| `discover-extras.ts` | Extra Discover parts: pick counts, followed shows, new arrivals, what people said, collections. |
 | `discover-settings.ts` | Applies the owner's Discover settings: section order, hidden items, pinned and featured shows. |
 | `discover.ts` | Builds the Discover page: daily picks, talked-about episodes and the chart, cached hourly. |
 | `foryou.ts` | Builds the personal For You list from seven sources, scored and mixed. |

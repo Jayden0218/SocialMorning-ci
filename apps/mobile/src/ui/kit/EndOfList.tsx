@@ -1,4 +1,4 @@
-// The line under the last row of a list: "No more to fetch".
+// The line under the last row of a fetched list: "No more to fetch".
 /**
  * Owner, 2026-10-05: every list that fetches — podcasts, episodes, comments, chats — ends with
  * this line, so the bottom of a list reads as the end and not as something still loading.
