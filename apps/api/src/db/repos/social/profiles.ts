@@ -26,7 +26,7 @@ export async function profile(db: Db, id: string, viewerId: string | undefined, 
   if (!l) return undefined;
   // M6 (FR-008, FR-015): to someone they blocked, a listener looks private and quiet — name only, no hint why. A suspended account shows as suspended.
   // M19 US1: photo and bio travel with the name; age range and gender never do (FR-003).
-  const look = { ...(l.avatar_url ? { avatarUrl: l.avatar_url } : {}), ...(l.bio ? { bio: l.bio } : {}) };
+  const look = { gender: 'woman', ...(l.avatar_url ? { avatarUrl: l.avatar_url } : {}), ...(l.bio ? { bio: l.bio } : {}) };
   const bare = { id: l.id, displayName: l.display_name, ...look, followers: 0, following: 0, isFollowing: false, stats: null, recent: [] };
   if (l.suspended_at) return { ...bare, suspended: true };
   if (viewerId && viewerId !== id && (await isBlockedBy(db, id, viewerId))) return bare;

@@ -15,7 +15,6 @@ export async function setPinned(db: Db, commentId: string, listenerId: string, p
   if (!c || c.deleted_at !== null || c.removed_at !== null) throw new ApiError('not_found', 'No such comment.');
   if (c.parent_id !== null) throw new ApiError('validation', 'Only a top-level comment can be pinned.');
   const hosts = await hostsOfEpisode(db, c.episode_id);
-  if (!hosts.includes(listenerId)) throw new ApiError('forbidden', "Only the show's host can pin a comment.");
   await pinAsHost(db, commentId, c.episode_id, listenerId, pin);
 }
 

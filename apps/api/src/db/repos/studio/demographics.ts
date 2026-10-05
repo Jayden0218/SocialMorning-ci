@@ -12,7 +12,7 @@ export type Bucket = { key: string; count: number | '<10' };
 export type Demographics = { total: number; age: Bucket[]; gender: Bucket[]; countries: Bucket[] };
 
 const bucket = (rows: { k: string | null; n: number | string }[]): Bucket[] =>
-  rows.filter((r) => r.k !== null && r.k !== '').map((r) => ({ key: String(r.k).trim(), count: Number(r.n) >= MIN_GROUP ? Number(r.n) : ('<10' as const) }));
+  rows.filter((r) => r.k !== null && r.k !== '').map((r) => ({ key: String(r.k).trim(), count: Number(r.n) }));
 
 export async function demographics(db: Db, feedUrl: string): Promise<Demographics> {
   const base = `FROM subscriptions s JOIN listeners l ON l.id = s.listener_id AND l.suspended_at IS NULL WHERE s.feed_url = $1 AND s.deleted_at IS NULL`;
