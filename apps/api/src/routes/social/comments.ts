@@ -84,6 +84,7 @@ commentById.delete('/:id', requireAuth, async (c) => {
   // M19 US6 (FR-045): a voice comment's recording leaves the store with it.
   if (existing.voice_url) { try { await c.get('voice').remove(existing.voice_url); } catch (e) { console.error(c.get('requestId'), 'voice comment remove', e); } }
   // M20 US9 (FR-055, G-M20-8): its image leaves the store with it; a failure is swept by the internal cycle.
+  if (existing.image_path) { try { await c.get('images').remove(existing.image_path); } catch (e) { console.error(c.get('requestId'), 'comment image remove', e); } }
   return c.json({ placeholder: result.placeholder });
 });
 
