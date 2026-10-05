@@ -16,6 +16,9 @@ legal.get('/privacy', (c) => {
 <ul>
 <li><b>Your account</b>: email, display name, a password hash. Sessions are random tokens; only their hash is stored.</li>
 <li><b>Comments and clips</b> you write, with the moment in the episode they belong to. A clip is a time range; it carries no audio.</li>
+<li><b>Your profile</b> (M19): a photo if you add one (at most 200 KB, deleted when you remove it or your account), a short bio, and — only if you choose — an age range and a gender. Age range and gender are never shown on your profile; creators see them only as totals of 10 or more listeners. Clear them any time in Edit profile.</li>
+<li><b>Voice comments</b> you record (at most 60 seconds) are kept like a text comment; the recording is deleted when you delete the comment or it is removed.</li>
+<li><b>Likes</b> you give episodes, with any note — shown to people who follow you unless you make likes private — and <b>playlists</b> you make (private unless you make one public).</li>
 <li><b>Reactions</b> (the ♡ taps) as counts per moment.</li>
 <li><b>Listening ranges</b> — which parts of an episode you heard — and playback positions, so your place survives a new phone. With <b>private listening</b> on (Account), your listens count in totals but are never shown against your name.</li>
 <li><b>Follows, blocks and reports</b> you make. A report keeps a copy of what you reported for 90 days so the owner can review it.</li>
