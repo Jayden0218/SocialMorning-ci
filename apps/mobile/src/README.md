@@ -143,6 +143,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | File | What it does |
 |---|---|
 | `cache.ts` | Keeps the last For You list, and clears it at sign-out. |
+| `dismissals.ts` | Remembers the episodes and shows you marked "Not interested", so For You leaves them out at once. |
 | `outbox.ts` | Stores what recommendations were shown or tapped, and sends them in batches. |
 | `useForYou.ts` | Gives screens the For You list and refreshes it on focus. |
 | `useRecOutbox.ts` | Connects the recommendation event outbox to a screen. |
@@ -180,6 +181,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `playback.ts` | Decides if streaming is allowed on mobile data. |
 | `prefs.ts` | Lists the settings switches, their defaults, and reads them. |
 | `queue.ts` | Adds an episode to the queue using your queue settings. |
+| `teen-passcode.ts` | Keeps the teen-mode passcode as a salted SHA-256 hash, and counts wrong tries (5 → 15 minutes). |
 
 ### `social/` — Accounts, comments, reactions and talking to the server.
 
@@ -187,16 +189,20 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 |---|---|
 | `api.ts` | Typed client for every server call, with clear error types. |
 | `auth-store.ts` | Handles sign-up, sign-in and sign-out, and stores the account. |
+| `avatar-image.ts` | Lets you pick a square profile photo and shrinks it to 400 px and under 200 KB. |
 | `base-url.ts` | Gives the server address set in the app config. |
 | `cache.ts` | Keeps each episode's last comments and reactions for offline viewing. |
 | `chat-api.ts` | Chat server calls (conversations, messages, friends) and merging new messages into a thread. |
+| `comment-extras-api.ts` | Server calls for comment extras: pin, mark unfriendly, the reply page, voice comments. |
 | `composer.ts` | Runs the comment box: captures the moment, posts, keeps drafts. |
 | `context.tsx` | Gives screens the server client, account, and who is signed in. |
 | `drafts.ts` | Saves unsent comment text so it survives sign-in or app closing. |
 | `links.ts` | Gives links to legal pages and the appeals email address. |
 | `live.ts` | Shows "N listening now" in the player, checking once a minute. |
 | `m12-api.ts` | Extra server calls: likes, friends listening, picks, purchases, tips, voice posts. |
+| `m19-api.ts` | Server calls for playlists, notices from hosts, the monthly report and the teen-mode reset. |
 | `poll.ts` | Checks for new comments every 10 seconds, only when useful. |
+| `profile-api.ts` | Server calls for your profile, photo, hidden recommendations and episode likes. |
 | `react.ts` | Toggles a reaction at once, then confirms with the server. |
 | `registration.ts` | Describes an episode to the server using the phone's saved feed. |
 | `store-ready.ts` | Remembers whether in-app purchases are switched on. |
@@ -231,6 +237,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | File | What it does |
 |---|---|
 | `Artwork.tsx` | Show or episode cover; shows the show's two-letter tile while loading, broken or missing. |
+| `Avatar.tsx` | A person's round picture: their photo, or their letters when there is none. |
 | `BottomBar.tsx` | The bar pinned to a page's foot: its button sits in the middle, the same space above and below. |
 | `Button.tsx` | The app's one button: yellow, white with border, or for delete actions. |
 | `BusyContent.tsx` | A button's words and icons, swapped for the moving sound bars while its press runs. |
@@ -287,7 +294,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `Rail.tsx` | Small marks on the seek bar where people left timed comments. |
 | `Scrubber.tsx` | The seek bar under the player; drag it to jump in the episode. |
 | `SleepTimerControl.tsx` | Sleep timer choices (5–60 min, end of episode), time left, Cancel. |
-| `SpeedControl.tsx` | Play speed: minus and plus buttons, quick choices, set as default. |
+| `SpeedControl.tsx` | Play speed: minus and plus buttons, quick choices, "only for this show", make it the default. |
 | `TranscriptPane.tsx` | Episode transcript; current line is marked; tap a line to jump. |
 | `VideoStage.tsx` | Shows the video picture for video episodes; sound comes from the audio. |
 | `mini-player-swipe.ts` | Hides the mini player early on swipe-back, so it never shows under tabs. |
@@ -313,6 +320,8 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `MomentSheet.tsx` | Sheet with the comments at one moment; reply, delete or report. |
 | `Placeholder.tsx` | Short text shown instead of a deleted, removed, blocked or reported comment. |
 | `ReportSheet.tsx` | Sheet to report a comment: pick a reason, add a note, send. |
+| `VoiceComment.tsx` | A voice comment's row: a play/stop disc, a thin bar and its length; pauses the episode. |
+| `VoiceRecord.tsx` | The mic beside a comment box: tap to record a voice comment up to 60 s, then post it. |
 
 ### `ui/clips/` — Short parts of an episode that listeners save and share
 
@@ -337,7 +346,9 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `FeedItem.tsx` | One activity row: who commented, clipped or listened, and on which episode. |
 | `FollowButton.tsx` | Follow or Following button on a profile. |
 | `FollowList.tsx` | Page-by-page list of a person's followers or who they follow. |
-| `NoticeCards.tsx` | Two-choice switch at top of Notifications: System or People. |
+| `LikeCard.tsx` | One liked episode: who liked it, their note as a quote, and the episode row to open or play. |
+| `LikeSheet.tsx` | After you like an episode: add a short note (up to 140 characters), or skip. |
+| `NoticeCards.tsx` | Three-choice switch at top of Notifications: System, People or From hosts. |
 | `ProfileStatRow.tsx` | A profile's numbers in one row: following, followers, shows, listening time. |
 | `StatsBlock.tsx` | Listening numbers for last 7 days and all time: time, finished, top shows. |
 | `VoicePosts.tsx` | Short voice posts from you and people you follow; tap to play, record new. |
@@ -370,6 +381,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 |---|---|
 | `DiscoverSections.tsx` | Discover's main sections: picks, then episode lists, with an old-data note. |
 | `ForYou.tsx` | "For You" list of suggested episodes, each with its reason; signed in only. |
+| `NotInterested.tsx` | The For You "⋯" sheet (not interested in this episode, or this show) and the "Hidden · Undo" line. |
 | `PickCard.tsx` | One editor's pick: the episode plus a short quote on why. |
 | `parts.tsx` | Small Discover pieces: section title, round play button, episode line, pager, search box. |
 | `sections.tsx` | Each Discover section: shortcuts, editor picks, For You, the chart, and more. |
@@ -385,8 +397,9 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 
 | File | What it does |
 |---|---|
-| `EpisodeExtras.tsx` | Favourite and "Save moment" (with a note) buttons in the episode menu. |
+| `EpisodeExtras.tsx` | Favourite, "Save moment" (with a note) and "Add to playlist" buttons in the episode menu. |
 | `FilterBar.tsx` | Search box above History, Favourites, Subscriptions; History's "Only finished" choice. |
+| `PlaylistCard.tsx` | One playlist as a white card: cover, name, number of episodes, public or private. |
 | `SignOut.tsx` | Sign out button that asks first. |
 | `country.ts` | Turns a country code like "MY" into its name, "Malaysia". |
 | `parts.tsx` | Me page pieces: a menu row with icon and arrow, and an empty-page picture. |

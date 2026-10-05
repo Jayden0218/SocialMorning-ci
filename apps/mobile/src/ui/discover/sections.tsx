@@ -60,15 +60,16 @@ export function Shortcuts(props: { items: { label: string; icon: IconName; onPre
 }
 
 /** For You — a card of three numbered rows per page; swipe for the next page. */
-export function ForYouSection(props: Act & { rows: { card: EpisodeCard; line: string; index: number }[]; onOpenAt: (card: EpisodeCard, index: number) => void }): React.ReactElement | null {
+export function ForYouSection(props: Act & { rows: { card: EpisodeCard; line: string; index: number }[]; onOpenAt: (card: EpisodeCard, index: number) => void; /** M19 T021: the row's "⋯" (Not interested). */ onMore?: (card: EpisodeCard) => void; /** M19 T021: drawn under the title, e.g. "Hidden · Undo". */ notice?: React.ReactNode }): React.ReactElement | null {
   const [page, setPage] = useState(0);
-  if (props.rows.length === 0) return null;
+  if (props.rows.length === 0) return props.notice ? <Box><SectionTitle title="For You" />{props.notice}</Box> : null;
   const p = pages(props.rows);
   const shown = Math.min(page, p.length - 1);
   return (
     <Box>
       {/* Owner, 2026-10-05: no "1 / 7 ›" — the title alone; the pages move by swiping. */}
       <SectionTitle title="For You" />
+      {props.notice ?? null}
       <Pager count={p.length} full index={shown} onPage={setPage}>
         {(i) => (
           <Card padded={false} className="px-row">
@@ -86,6 +87,7 @@ export function ForYouSection(props: Act & { rows: { card: EpisodeCard; line: st
                 label={`${r.card.title}, ${r.card.showTitle}. ${r.line}`}
                 onOpen={() => props.onOpenAt(r.card, r.index)}
                 onPlay={() => props.onPlay(r.card)}
+                {...(props.onMore ? { onMore: () => props.onMore?.(r.card) } : {})}
               />
             ))}
           </Card>

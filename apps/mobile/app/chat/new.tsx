@@ -13,7 +13,7 @@ import { Pressable } from '@/ui/lib/pressable';
 import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
 import { hit } from '@/design';
-import { Artwork } from '@/ui/kit/Artwork';
+import { Avatar } from '@/ui/kit/Avatar';
 import { Loader } from '@/ui/kit/Loader';
 import { PageHeader } from '@/ui/kit/PageHeader';
 import { EmptyPicture } from '@/ui/me/parts';
@@ -80,7 +80,7 @@ export default function NewChat(): React.ReactElement {
         ) : <EmptyPicture icon="people-outline" line="Nobody follows you back yet. Chat opens when you both follow each other." />}
         renderItem={({ item }) => (
           <Pressable onPress={() => pick(item)} accessibilityRole="button" accessibilityLabel={sharing ? `Send to ${item.displayName}` : `Chat with ${item.displayName}`} className="flex-row items-center gap-row px-screen-x py-2" style={TAP}>
-            <Artwork size={44} rounded="pill" name={item.displayName} />
+            <Avatar size={44} url={item.avatarUrl} name={item.displayName} />
             <Text className="flex-1 text-text text-body font-bold" numberOfLines={1}>{item.displayName}</Text>
           </Pressable>
         )}

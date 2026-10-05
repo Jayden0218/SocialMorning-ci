@@ -33,6 +33,7 @@ import { useComingSoon } from '@/ui/kit/ComingSoon';
 import { readStoreReady } from '@/social/store-ready';
 import { useStores } from '@/ui/shell/providers';
 import { TAB_PAGE_END } from '@/ui/kit/Screen';
+import { lastMonth, monthName } from '@/social/m19-api';
 
 const TAP = { minHeight: hit.min };
 /** The picture: 96 pt, as in `Me-B`. A size, so it stays a style. */
@@ -126,10 +127,32 @@ export default function MeScreen(): React.ReactElement {
           {listener ? (
             <Box className="flex-row gap-gap">
               <Link href="/creator" asChild accessibilityLabel="Creator centre"><MenuTile icon="mic-outline" label="Creator centre" /></Link>
+              {/* M19 T031: likes (with notes) from people you follow. */}
+              <Link href="/likes" asChild accessibilityLabel="Likes"><MenuTile icon="thumbs-up-outline" label="Likes" /></Link>
+            </Box>
+          ) : null}
+          {listener ? (
+            <Box className="flex-row gap-gap">
+              {/* M19 T041: your playlists (public ones also show on your profile). */}
+              <Link href="/playlists" asChild accessibilityLabel="Playlists"><MenuTile icon="albums-outline" label="Playlists" /></Link>
               <Box className="flex-1" />
             </Box>
           ) : null}
         </Box>
+
+        {/* M19 T081 (US8): last month's listening report. */}
+        {listener ? (
+          <Link href={{ pathname: '/report/[month]', params: { month: lastMonth(new Date()) } }} asChild>
+            <Pressable accessibilityRole="link" accessibilityLabel={`Your ${monthName(lastMonth(new Date()))}: your month in listening`} className="bg-surface border border-border rounded-row p-section flex-row items-center gap-row mt-row">
+              <Box className="w-11 h-11 rounded-pill bg-accentTint items-center justify-center"><Icon name="calendar-outline" size={22} color={c.accent} /></Box>
+              <Box className="flex-1">
+                <Text className="font-display text-title text-text">{`Your ${monthName(lastMonth(new Date()))}`}</Text>
+                <Text className="text-muted text-xs mt-1">Your month in listening: time, shows, top episodes</Text>
+              </Box>
+              <Icon name="chevron-forward" size={20} color={c.muted} />
+            </Pressable>
+          </Link>
+        ) : null}
 
         <Card className="mt-row">
           {/* M12 FR-105, FR-106: read-only; the stores hold the money. M17 T113: Coming soon until the store is on. */}

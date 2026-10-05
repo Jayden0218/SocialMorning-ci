@@ -15,6 +15,12 @@
  * the text in the serif (display-m) so the words lead; replies in a warm box inside the card;
  * then a footer with the like on the left and a ⋯ button on the right that opens the same
  * menu as the long-press (which still works). The Host badge is the yellow pill.
+ *
+ * M19 US5/US6 (FR-040…FR-044): a pinned comment carries a small accent "Pinned by the host" line;
+ * a comment folded for being unfriendly is one muted row, "Hidden for being unfriendly — Show",
+ * that opens it on tap; a voice comment plays inline (VoiceComment). Under a parent the first 2
+ * replies still show, and "N replies ›" opens the reply page (`onOpenThread`) in place of the
+ * old inline "Show N more" — the reply page has every reply and its own reply box.
  */
 import { useState } from 'react';
 import { Link } from '@/design/tailwind';
@@ -28,6 +34,9 @@ import { Placeholder, placeholderFor } from './Placeholder';
 import { hit } from '@/design';
 import type { Comment } from '@/social/api';
 import { countryName } from '@/ui/me/country';
+import { Avatar } from '@/ui/kit/Avatar';
+import { extrasOf, replyCountOf } from '@/social/comment-extras-api';
+import { VoiceComment, type PlayVoice } from './VoiceComment';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
 const AVATAR = { width: 36, height: 36 };
@@ -60,10 +69,18 @@ export function timeAndPlace(createdAt: string, serverTime: string, place: strin
   return place ? `${when} · ${place}` : when;
 }
 
-/** The fold under a parent's replies: "Show 3 more", or "Show fewer replies" once open. Undefined when nothing is folded. */
+/**
+ * The old fold under a parent's replies: "Show 3 more", or "Show fewer replies" once open.
+ * M19 US5 replaced it on the card with `repliesLink` (the reply page); kept for its test.
+ */
 export function moreRepliesLabel(total: number, expanded: boolean): string | undefined {
   if (total <= REPLY_PREVIEW) return undefined;
   return expanded ? 'Show fewer replies' : `Show ${total - REPLY_PREVIEW} more`;
+}
+
+/** M19 FR-043: the link under a parent to its reply page — "1 reply ›", "5 replies ›". */
+export function repliesLink(total: number): string | undefined {
+  return total > 0 ? `${plural(total, 'reply', 'replies')} ›` : undefined;
 }
 
 export function CommentRow(props: {
@@ -76,21 +93,40 @@ export function CommentRow(props: {
   onLike: (c: Comment) => void;
   onMenu: (c: Comment) => void;
   isReply?: boolean;
+  /** M19 FR-043: opens the reply page; without it (the reply page itself) no replies box is drawn. */
+  onOpenThread?: (c: Comment) => void;
+  /** M19 FR-044: plays a voice comment (`playVoice` from the playback adapter, passed by the page). */
+  playVoice?: PlayVoice;
 }): React.ReactElement {
   const { c } = props;
   const like = props.likeOf(c);
   const [open, setOpen] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const [unfold, setUnfold] = useState(false);
   const kind = placeholderFor(c, c.reported);
   if (kind !== undefined) {
     return props.isReply
       ? <Box className="py-2"><Placeholder kind={kind} /></Box>
       : <Box className="bg-surface border border-border rounded-row p-row"><Placeholder kind={kind} /></Box>;
   }
+  const extra = extrasOf(c);
+  // FR-041: folded for everyone at 5 "unfriendly" marks — one muted row that opens it.
+  if (extra.folded && !unfold) {
+    return (
+      <Pressable
+        onPress={() => setUnfold(true)}
+        accessibilityRole="button"
+        accessibilityLabel="Show hidden comment"
+        className={props.isReply ? 'py-1 justify-center' : 'bg-surface border border-border rounded-row px-row justify-center'}
+        style={TAP}
+      >
+        <Text className="text-muted text-xs">Hidden for being unfriendly — <Text className="text-accent text-xs font-bold">Show</Text></Text>
+      </Pressable>
+    );
+  }
 
   const replies = c.replies ?? [];
-  const shownReplies = expanded ? replies : replies.slice(0, REPLY_PREVIEW);
-  const more = moreRepliesLabel(replies.length, expanded);
+  const shownReplies = replies.slice(0, REPLY_PREVIEW);
+  const link = props.onOpenThread ? repliesLink(replyCountOf(c)) : undefined;
   const name = c.displayName ?? 'Deleted account';
   const reply = props.isReply === true;
 
@@ -110,6 +146,13 @@ export function CommentRow(props: {
 
   return (
     <Box className={reply ? 'py-1 flex-row gap-2' : 'bg-surface border border-border rounded-row px-row pt-row'}>
+      {/* FR-040: the host's pinned comment says so, above the name. */}
+      {!reply && extra.pinned ? (
+        <Box className="flex-row items-center gap-1 pb-2" accessible accessibilityLabel="Pinned by the host">
+          <Icon name="pin" size={12} color={props.iconColour.accent} />
+          <Text className="text-accent text-xs font-bold">Pinned by the host</Text>
+        </Box>
+      ) : null}
       <Pressable
         onLongPress={() => props.onMenu(c)}
         delayLongPress={350}
@@ -121,9 +164,8 @@ export function CommentRow(props: {
       >
         <Box className="flex-row items-center gap-2.5">
           {reply ? null : (
-            <Box className="rounded-pill bg-accentTint items-center justify-center" style={AVATAR} accessible={false}>
-              <Text className="text-text text-xs font-bold">{initialsFor(c)}</Text>
-            </Box>
+            // M19 T014: the author's photo when they set one; the letter disc otherwise.
+            <Avatar size={AVATAR.width} url={c.avatarUrl} name={c.displayName} initials={initialsFor(c)} />
           )}
           <Box className="flex-1">
             <Box className="flex-row items-center gap-1.5 flex-wrap">
@@ -153,6 +195,7 @@ export function CommentRow(props: {
           ) : null}
           {c.body}
         </Text>
+        {extra.voice && props.playVoice ? <VoiceComment voice={extra.voice} play={props.playVoice} /> : null}
         {(c.body ?? '').length > 320 ? (
           <Pressable onPress={() => setOpen((o) => !o)} accessibilityRole="button" className="self-start justify-center" style={TAP}>
             <Text className="text-accent text-xs font-semibold">{open ? 'Less' : 'More'}</Text>
@@ -161,14 +204,14 @@ export function CommentRow(props: {
         {c.hiddenByHost ? <Text className="text-muted text-xs italic">Hidden by the host — only you can see it</Text> : null}
       </Pressable>
       {reply ? (likeButton ?? <Box style={TAP} />) : null}
-      {!reply && replies.length > 0 ? (
+      {!reply && link ? (
         <Box className="mt-2.5 bg-background rounded-row px-row py-2">
           {shownReplies.map((r) => (
             <CommentRow key={r.id} {...props} c={r} isReply />
           ))}
-          {more ? (
-            <Pressable onPress={() => setExpanded((e) => !e)} accessibilityRole="button" accessibilityLabel={expanded ? more : `${more}: ${plural(replies.length, 'reply', 'replies')} in all`} className="justify-center" style={TAP}>
-              <Text className="text-accent text-xs font-bold">{more}</Text>
+          {link ? (
+            <Pressable onPress={() => props.onOpenThread?.(c)} accessibilityRole="link" accessibilityLabel={`${link.replace(' ›', '')}. Open the replies`} className="justify-center" style={TAP}>
+              <Text className="text-accent text-xs font-bold">{link}</Text>
             </Pressable>
           ) : null}
         </Box>

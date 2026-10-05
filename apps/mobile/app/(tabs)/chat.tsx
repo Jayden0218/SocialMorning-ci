@@ -15,7 +15,7 @@ import { SafeAreaView } from '@/ui/lib/safe-area-view';
 import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
 import { hit } from '@/design';
-import { Artwork } from '@/ui/kit/Artwork';
+import { Avatar } from '@/ui/kit/Avatar';
 import { Icon } from '@/ui/kit/Icon';
 import { Loader } from '@/ui/kit/Loader';
 import { TAB_PAGE_END } from '@/ui/kit/Screen';
@@ -112,7 +112,7 @@ export default function ChatTab(): React.ReactElement {
               className="flex-row items-center gap-row px-screen-x py-row"
               style={TAP}
             >
-              <Artwork size={48} rounded="pill" name={item.with.displayName} />
+              <Avatar size={48} url={item.with.avatarUrl} name={item.with.displayName} />
               <Box className="flex-1">
                 <Box className="flex-row items-center gap-2">
                   <Text className="flex-1 text-text text-body font-bold" numberOfLines={1}>{item.with.displayName}</Text>

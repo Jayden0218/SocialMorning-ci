@@ -1,10 +1,15 @@
-// Play speed: minus and plus buttons, quick choices, set as default.
+// Play speed: minus and plus buttons, quick choices, "only for this show", make it the default.
 /**
  * Playback speed (US3, FR-012/013): −0.1 / +0.1, presets, "set as default". Episode time stays episode time (FR-014).
  *
  * M17 T102 (`PlaybackSheet-B`): the rate is the big serif number between a round − and +, the
  * presets sit in one pill track (the chosen one yellow), and "Set … as default" is a centred
  * accent line under it. Same buttons, names and handlers as before; only the layout moved.
+ *
+ * M19 T070 (US7, FR-050, research R1): per-show speed already existed (`speed_prefs`); only the
+ * words change. Under the presets the current choice says "Only for this show" when it differs
+ * from the default (and names the default), else "The default for all shows". The button says
+ * "Make N× the default for all shows" (it was "Set N× as default (this show remembers its own)").
  */
 import { useState } from 'react';
 import { Pressable } from '@/ui/lib/pressable';
@@ -27,6 +32,9 @@ export function SpeedControl(): React.ReactElement {
   const toast = useToast();
   const [, force] = useState(0);
   const rate = player.rate();
+  const fallback = player.defaultRate();
+  /** This show plays at its own speed (a `speed_prefs` row), not the app-wide default. */
+  const own = Math.abs(rate - fallback) >= 0.01;
   const set = (r: number) => { player.setRate(r); force((n) => n + 1); };
   return (
     <Box className="w-full gap-gap">
@@ -42,8 +50,11 @@ export function SpeedControl(): React.ReactElement {
           </Pressable>
         ))}
       </Box>
-      <Pressable style={TAP} className="items-center justify-center" onPress={() => { player.setDefaultRate(rate); toast(`${rate.toFixed(1)}× is now the default for new shows`); }} accessibilityRole="button">
-        <Text className="text-accent text-meta font-semibold text-center">Set {rate.toFixed(1)}× as default (this show remembers its own)</Text>
+      <Text className="text-muted text-xs text-center">
+        {own ? `${rate.toFixed(1)}× · Only for this show (default ${fallback.toFixed(1)}×)` : `${rate.toFixed(1)}× · The default for all shows`}
+      </Text>
+      <Pressable style={TAP} className="items-center justify-center" onPress={() => { player.setDefaultRate(rate); force((n) => n + 1); toast(`${rate.toFixed(1)}× is now the default for all shows`); }} accessibilityRole="button" accessibilityLabel={`Make ${rate.toFixed(1)}× the default for all shows`}>
+        <Text className="text-accent text-meta font-semibold text-center">Make {rate.toFixed(1)}× the default for all shows</Text>
       </Pressable>
     </Box>
   );

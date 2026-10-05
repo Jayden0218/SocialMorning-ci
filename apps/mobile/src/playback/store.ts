@@ -86,6 +86,15 @@ export type PlayerRuntime = {
   rate: () => number;
   setDefaultRate: (rate: number) => void;
   defaultRate: () => number;
+  /**
+   * M19 T070 (US7, research R2): loop the current episode. The native player wraps to 0 by
+   * itself and never reports the end, so the queue does not move on. Loading any episode
+   * turns it off ("Loop this episode", not "loop everything").
+   */
+  setLoop: (on: boolean) => void;
+  loop: () => boolean;
+  /** M19 T070 (research R4): music mode — pitch correction off, applied to the rate in force now. */
+  setMusicMode: (on: boolean) => void;
   /** Cold start: put back what the listener was on, PAUSED. */
   restore: (lookup: (episodeId: string) => PlayableEpisode | undefined) => void;
   /** Where this episode should start, honouring FR-019 and FR-020. */
@@ -120,6 +129,8 @@ export function createPlayerRuntime(deps: PlayerDeps): PlayerRuntime {
   // clip's start, and the end watch is armed only once a TICK inside the range is seen.
   let clipArmed = false;
   let currentFeedUrl: string | undefined;
+  // M19 T070: "Loop this episode" is on (the adapter has set `player.loop`).
+  let looping = false;
   /**
    * M17 (phone walk 2026-10-02: "Episode 271" paused at 0:45 later read "Finished" at 1:31:58).
    * The episode whose finished row is being played again — loaded (FR-019 starts it at 0) or
@@ -295,6 +306,11 @@ export function createPlayerRuntime(deps: PlayerDeps): PlayerRuntime {
       deps.notify('Not downloaded, and playing on mobile data is off. Use Wi-Fi, download it, or allow mobile data in Settings › More.');
       return;
     }
+    // M19 T070: a loop is for the episode it was set on.
+    if (looping) {
+      looping = false;
+      void deps.adapter.execute({ kind: 'setLoop', on: false });
+    }
     // M2 (FR-013): the show's remembered speed, else the app-wide default.
     currentFeedUrl = episode.feedUrl;
     const prefs = new Map<string, number>();
@@ -354,6 +370,16 @@ export function createPlayerRuntime(deps: PlayerDeps): PlayerRuntime {
     setDefaultRate: (rate) => deps.stores.settings.set(SPEED_DEFAULT_KEY, String(clampRate(rate))),
     defaultRate,
     holdNextAdvance: (hold) => { holdAdvance = hold; },
+    setLoop: (on) => {
+      looping = on;
+      void deps.adapter.execute({ kind: 'setLoop', on });
+      for (const listener of listeners) listener();
+    },
+    loop: () => looping,
+    setMusicMode: (on) => {
+      void deps.adapter.execute({ kind: 'setPitch', correct: !on });
+      void deps.adapter.execute({ kind: 'setRate', rate: ctx.rate });
+    },
     setSleepTimer: (choice) => {
       sleep = armTimer(choice, deps.now());
       holdAdvance = sleep.kind === 'endOfEpisode';

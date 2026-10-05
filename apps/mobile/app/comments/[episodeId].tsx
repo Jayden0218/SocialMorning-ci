@@ -1,4 +1,4 @@
-// An episode's comments: three sort orders, likes, write box with the current time.
+// An episode's comments: four sort orders, likes, write box with the current time and a mic.
 /**
  * The comments page (M12 US2, FR-020…FR-027). Found on the iPhone 2026-09-29: the player's
  * comment button opened the keyboard with "No moment attached" at 4:58, and the list lived at
@@ -11,8 +11,15 @@
  * card (CommentRow), and the write box a white pill with a yellow edge, the listener's initial on
  * the left and the moment as a yellow "at 26:37" chip.
  * M17 T104 (`CommentMenu-B`): the ⋯ menu sheet shows the comment on a card above icon rows.
+ * M19 US5/US6 (FR-040…FR-044): a fourth order, "Smart" (likes + 2 × replies − age; the pinned
+ * comment first under every order); the ⋯ menu adds "Mark as unfriendly" / "Unmark" (not on your
+ * own) and, for the show's proven host, "Pin" / "Unpin" on a top-level comment; "N replies ›"
+ * opens the reply page; a mic beside the write box records a voice comment at the moment.
+ * The host test: a proven creator claim (GET /v1/creator/claims) on this episode's feed — the
+ * same proof the server uses for the Host badge. A mark this listener made is remembered for
+ * the page's life only (the server sends no "marked by me"), so "Unmark" shows until it closes.
  */
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Clipboard } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { orderComments, type CommentOrder } from '@socialmorning/social-core';
@@ -43,6 +50,9 @@ import { PageHeader } from '@/ui/kit/PageHeader';
 import { Segmented } from '@/ui/kit/Segmented';
 import { Icon, type IconName } from '@/ui/kit/Icon';
 import { EndOfList } from '@/ui/kit/EndOfList';
+import { extrasOf, replyCountOf, useCommentExtrasApi } from '@/social/comment-extras-api';
+import { VoiceComposer } from '@/ui/comments/VoiceRecord';
+import { playVoice } from '@/playback/expo-audio-adapter';
 
 const TAB = { minHeight: hit.min };
 const WRITE = { minHeight: 52 };
@@ -56,12 +66,18 @@ function menuIcon(label: string): IconName {
   if (label === 'Save') return 'bookmark-outline';
   if (label === 'Remove from saved') return 'bookmark';
   if (label === 'Delete') return 'trash-outline';
+  if (label === 'Pin') return 'pin-outline';
+  if (label === 'Unpin') return 'pin';
+  if (label === 'Mark as unfriendly') return 'eye-off-outline';
+  if (label === 'Unmark') return 'eye-outline';
   return 'flag-outline';
 }
 const ORDERS: { value: CommentOrder; label: string }[] = [
   { value: 'newest', label: 'Newest' },
   { value: 'liked', label: 'Most liked' },
   { value: 'byMoment', label: 'By moment' },
+  // M19 FR-042: likes + 2 × replies − hours old / 12 (social-core `smartScore`).
+  { value: 'smart', label: 'Smart' },
 ];
 
 export default function CommentsScreen(): React.ReactElement {
@@ -70,9 +86,10 @@ export default function CommentsScreen(): React.ReactElement {
   const c = useColours(stores.settings);
   const toast = useToast();
   const m12 = useM12Api();
+  const extras = useCommentExtrasApi();
   const player = usePlayer();
   const playerState = usePlayerState();
-  const { composer, listener, useEpisodeSocial, refresh, bump } = useSocial();
+  const { api, composer, listener, useEpisodeSocial, refresh, bump } = useSocial();
   const safety = useSafety();
   usePoll(episodeId);
   const { cached, stale } = useEpisodeSocial(episodeId);
@@ -83,6 +100,17 @@ export default function CommentsScreen(): React.ReactElement {
   const [reporting, setReporting] = useState<ReportTarget | undefined>();
   const [composing, setComposing] = useState<ComposerState | undefined>();
   const [, rerender] = useState(0);
+  const [isHost, setIsHost] = useState(false);
+  const [marked, setMarked] = useState<Record<string, true>>({});
+
+  // FR-040: Pin shows only for the show's proven host (the claim the server checks too).
+  const feedUrl = episode?.feedUrl;
+  useEffect(() => {
+    if (!listener || !feedUrl) { setIsHost(false); return undefined; }
+    let live = true;
+    api.creatorClaims().then((r) => { if (live) setIsHost(r.some((x) => x.status === 'proven' && x.feedUrl === feedUrl)); }, () => undefined);
+    return () => { live = false; };
+  }, [api, listener, feedUrl]);
 
   // The moment the listener came from (the player's position), else where they are in this episode.
   const atMs = at !== undefined && at !== '' && !Number.isNaN(Number(at)) ? Number(at)
@@ -92,7 +120,7 @@ export default function CommentsScreen(): React.ReactElement {
   const visible = useMemo(() => safety.comments(cached?.social.comments ?? []), [cached, safety]);
   const count = visible.reduce((n, x) => n + (x.deleted ? 0 : 1) + (x.replies ?? []).filter((r) => !r.deleted).length, 0);
   const ordered = useMemo(
-    () => orderComments(visible.map((x) => ({ ...x, createdAt: new Date(x.createdAt).getTime(), likeCount: likes[x.id]?.count ?? x.likeCount ?? 0, raw: x })), order).map((o) => o.raw),
+    () => orderComments(visible.map((x) => ({ ...x, createdAt: new Date(x.createdAt).getTime(), likeCount: likes[x.id]?.count ?? x.likeCount ?? 0, replyCount: replyCountOf(x), pinned: extrasOf(x).pinned === true, raw: x })), order).map((o) => o.raw),
     [visible, order, likes],
   );
   const likeOf = useCallback((x: Comment): LikeView => likes[x.id] ?? { count: x.likeCount ?? 0, liked: x.likedByMe ?? false }, [likes]);
@@ -128,6 +156,27 @@ export default function CommentsScreen(): React.ReactElement {
     try { await composer.remove(episodeId, x.id); bump(episodeId); } catch { toast("Couldn't delete that comment."); }
   };
 
+  // FR-040: the host pins one top-level comment (the server unpins any other).
+  const pin = async (x: Comment, on: boolean) => {
+    if (!episodeId) return;
+    try {
+      if (on) await extras.pin(x.id); else await extras.unpin(x.id);
+      toast(on ? 'Pinned to the top.' : 'Unpinned.');
+      void refresh(episodeId);
+    } catch { toast(on ? "Couldn't pin that comment." : "Couldn't unpin that comment."); }
+  };
+  // FR-041: one mark per listener; at 5 the comment folds for everyone. Voters are never shown.
+  const markUnfriendly = async (x: Comment, on: boolean) => {
+    if (!listener) { needSignIn(); return; }
+    if (!episodeId) return;
+    try {
+      const r = on ? await extras.markUnfriendly(x.id) : await extras.unmarkUnfriendly(x.id);
+      setMarked((m) => { const n = { ...m }; if (on) n[x.id] = true; else delete n[x.id]; return n; });
+      toast(on ? (r.folded ? 'Marked. It is now hidden for everyone.' : 'Marked as unfriendly. Thank you.') : 'Mark removed.');
+      void refresh(episodeId);
+    } catch { toast("Couldn't save that — try again."); }
+  };
+
   const menuItems = (x: Comment) => [
     ...(x.parentId === null ? [{ label: 'Reply', run: () => compose(x.id) }] : []),
     ...(x.body ? [{ label: 'Copy', run: () => { Clipboard.setString(x.body ?? ''); toast('Copied.'); } }] : []),
@@ -135,6 +184,8 @@ export default function CommentsScreen(): React.ReactElement {
       label: isFavComment(stores.settings, x.id) ? 'Remove from saved' : 'Save',
       run: () => { toggleFavComment(stores.settings, { commentId: x.id, episodeId, body: x.body ?? '', author: x.displayName ?? 'A listener', offsetMs: x.offsetMs }, Date.now()); rerender((n) => n + 1); },
     }] : []),
+    ...(isHost && x.parentId === null ? [{ label: extrasOf(x).pinned ? 'Unpin' : 'Pin', run: () => void pin(x, !extrasOf(x).pinned) }] : []),
+    ...(!x.mine && listener ? [{ label: marked[x.id] ? 'Unmark' : 'Mark as unfriendly', run: () => void markUnfriendly(x, !marked[x.id]) }] : []),
     x.mine
       ? { label: 'Delete', run: () => void remove(x) }
       : { label: 'Report', run: () => setReporting({ kind: 'comment', id: x.id, authorId: x.authorId, label: 'comment' }) },
@@ -165,11 +216,20 @@ export default function CommentsScreen(): React.ReactElement {
             onSeek={seek}
             onLike={(x) => void like(x)}
             onMenu={setMenu}
+            playVoice={playVoice}
+            onOpenThread={(x) => router.push({ pathname: '/comments/thread/[commentId]', params: { commentId: x.id, episodeId: episodeId ?? '' } })}
           />
         )}
       />
-      {/* FR-021: the write box stays at the bottom and already carries the moment. */}
-      <Pressable onPress={() => compose()} accessibilityRole="button" accessibilityLabel={listener ? `Write a comment${atMs !== undefined ? ` at ${mmss(atMs)}` : ''}` : 'Sign in to join the conversation'} className="flex-row items-center gap-2.5 mx-screen-x my-2 px-2 bg-surface border-2 border-primary rounded-pill" style={WRITE}>
+      {/* FR-021: the write box stays at the bottom and already carries the moment.
+          M19 FR-044: the mic beside it records a voice comment at the same moment. */}
+      <Box className="mx-screen-x my-2">
+      <VoiceComposer
+        episodeId={episodeId ?? ''}
+        offsetMs={() => (playerState.kind !== 'idle' && playerState.episodeId === episodeId && 'positionMs' in playerState && typeof playerState.positionMs === 'number' ? playerState.positionMs : undefined)}
+        onPosted={() => { if (episodeId) void refresh(episodeId); }}
+      >
+      <Pressable onPress={() => compose()} accessibilityRole="button" accessibilityLabel={listener ? `Write a comment${atMs !== undefined ? ` at ${mmss(atMs)}` : ''}` : 'Sign in to join the conversation'} className="flex-row items-center gap-2.5 px-2 bg-surface border-2 border-primary rounded-pill" style={WRITE}>
         {listener ? (
           <Box className="rounded-pill bg-accentTint items-center justify-center" style={ME} accessible={false}>
             <Text className="text-text text-xs font-bold">{initialsFor({ displayName: listener.displayName })}</Text>
@@ -178,6 +238,8 @@ export default function CommentsScreen(): React.ReactElement {
         <Text className={listener ? 'text-muted text-body flex-1' : 'text-muted text-body flex-1 pl-2'} numberOfLines={1}>{listener ? 'Say something about this episode…' : 'Sign in to join the conversation'}</Text>
         {listener && atMs !== undefined ? <Text className="text-onPrimary text-xs font-bold bg-primary rounded-pill px-2.5 py-1.5">{`at ${mmss(atMs)}`}</Text> : null}
       </Pressable>
+      </VoiceComposer>
+      </Box>
       <Actionsheet isOpen={menu !== undefined} onClose={() => setMenu(undefined)}>
         <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
         <ActionsheetContent className="bg-surface rounded-t-row px-screen-x items-stretch">

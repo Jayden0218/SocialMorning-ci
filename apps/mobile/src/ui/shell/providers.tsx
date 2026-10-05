@@ -30,6 +30,7 @@ import { createExpoNetwork } from '@/downloads/expo-network';
 import { waitForStartup } from './startup';
 import { onNotificationTap } from '@/notify/expo';
 import { canStream } from '@/settings/playback';
+import { getPref } from '@/settings/prefs';
 import { createOutsideBridge, setOutsideToggle } from '@/outside/bridge';
 import { platformSinks } from '@/outside/sinks';
 import { applyAccent, readAccent } from '@/design/accent';
@@ -263,7 +264,7 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
     // Fire and forget: setAudioModeAsync must happen once, before anything
     // plays. interruptionMode doNotMix is what lock-screen controls need.
     void adapter.configure();
-    return createPlayerRuntime({
+    const r = createPlayerRuntime({
       adapter,
       stores,
       now: () => Date.now(),
@@ -283,6 +284,9 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
         onSkipped: (episodeId) => show.current(`Not downloaded — skipped: ${stores.feeds.getEpisode(episodeId)?.title ?? episodeId}`),
       },
     });
+    // M19 T070 (research R4): music mode (pitch correction off) survives a restart.
+    if (getPref(stores.settings, 'musicMode')) r.setMusicMode(true);
+    return r;
   }, [stores, sync, listened]);
 
   /**

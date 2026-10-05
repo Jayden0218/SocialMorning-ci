@@ -89,6 +89,8 @@ export function createExpoAudioAdapter(
   let wasBuffering = false;
   let wasLoaded = false;
   let lockScreenActive = false;
+  // M19 T070 (research R4): music mode turns pitch correction off (varispeed); applied on every rate.
+  let correctPitch = true;
 
   /**
    * Effects run STRICTLY IN ORDER, one at a time.
@@ -136,7 +138,19 @@ export function createExpoAudioAdapter(
         return;
       case 'setRate':
         // M2 (research R2): AudioModule.types.d.ts:157 — pitch preserved at 'high'.
+        // M19 (research R4): `shouldCorrectPitch` (AudioModule.types.d.ts:126) is read by the
+        // native setPlaybackRate — Android `pitch = if (preservesPitch) 1f else rate`, iOS
+        // `.varispeed` when false — so it is set first, every time.
+        player.shouldCorrectPitch = correctPitch;
         player.setPlaybackRate(effect.rate, 'high');
+        return;
+      case 'setLoop':
+        // M19 (research R2): AudioModule.types.d.ts:45. Android REPEAT_MODE_ONE, iOS isLooping:
+        // neither sends `didJustFinish` on the wrap, so no ENDED reaches the reducer.
+        player.loop = effect.on;
+        return;
+      case 'setPitch':
+        correctPitch = effect.correct;
         return;
       case 'setLockScreen': {
         // On Android this is what keeps background playback alive past about

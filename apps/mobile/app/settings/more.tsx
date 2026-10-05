@@ -7,6 +7,11 @@
  * M17 (`SettingsMore-B`): the rows are grouped under three serif section titles — Your shows,
  * Playback, Recommendations — each group in its own card with hairlines between rows. No
  * iPhone extras row (owner decision, FR-016). Same switches, same links, same names.
+ *
+ * M19 T070 (US7, research R3/R4): Playback adds "Music mode" (pitch correction off, so music
+ * at 1.5× sounds like a faster record, not a stretched one) and a line saying what happens when
+ * another app plays a sound — the app pauses and resumes; lowering the volume instead would cost
+ * the lock-screen controls (R3). Skipping silence is not offered: the audio player has no way to.
  */
 import { useState } from 'react';
 import { ScrollView } from '@/ui/lib/scroll-view';
@@ -16,6 +21,7 @@ import { useStores } from '@/ui/shell/providers';
 import { LinkRow, SwitchRow } from '@/ui/settings/rows';
 import { Card, CardDivider } from '@/ui/kit/Card';
 import { PageHeader } from '@/ui/kit/PageHeader';
+import { usePlayer } from '@/playback/store';
 
 function Section(props: { title: string }): React.ReactElement {
   return <Text className="text-text text-base font-display-semibold mt-section mb-gap" accessibilityRole="header">{props.title}</Text>;
@@ -27,6 +33,8 @@ export default function MoreSettings(): React.ReactElement {
   const [recs, setRecs] = useState(() => getPref(stores.settings, 'personalRecs'));
   const [mobile, setMobile] = useState(() => getPref(stores.settings, 'mobilePlayback'));
   const [transcript, setTranscript] = useState(() => getPref(stores.settings, 'transcriptEntry'));
+  const [music, setMusic] = useState(() => getPref(stores.settings, 'musicMode'));
+  const player = usePlayer();
   return (
     <>
     <PageHeader title="More" />
@@ -42,7 +50,10 @@ export default function MoreSettings(): React.ReactElement {
         <SwitchRow icon="cellular-outline" label="Allow mobile data for playback" line="Off: on mobile data only downloaded episodes play" value={mobile} onChange={(v) => { setMobile(v); setPref(stores.settings, 'mobilePlayback', v); }} />
         <CardDivider />
         <SwitchRow icon="document-text-outline" label="Show transcript entry on the player" line="The transcript button and the live line under the title" value={transcript} onChange={(v) => { setTranscript(v); setPref(stores.settings, 'transcriptEntry', v); }} />
+        <CardDivider />
+        <SwitchRow icon="musical-notes-outline" label="Music mode" line="Off: voices keep their pitch at any speed. On: the pitch follows the speed, which suits music." value={music} onChange={(v) => { setMusic(v); setPref(stores.settings, 'musicMode', v); player.setMusicMode(v); }} />
       </Card>
+      <Text className="text-muted text-xs mt-gap mx-1">When another app plays a sound, SocialNet pauses and resumes after it.</Text>
       <Section title="Recommendations" />
       <Card>
         <SwitchRow icon="sparkles-outline" label="Personalised recommendations" line="For You on Discover, from what you follow and play. Off: no For You, and nothing is sent for it." value={recs} onChange={(v) => { setRecs(v); setPref(stores.settings, 'personalRecs', v); }} />

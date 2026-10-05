@@ -21,9 +21,10 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 | `history.tsx` | `/history` | Listening history by day, with where you stopped; filter to finished only. |
 | `inbox.tsx` | `/inbox` | No screen: old link, sends you to Updates. |
 | `issues.tsx` | `/issues` | All curated issues, newest first; each opens its list of picks. |
+| `likes.tsx` | `/likes` | Likes: episodes people you follow liked, newest first, with their notes; tap to open or play. |
 | `moments.tsx` | `/moments` | Saved moments as a timeline; tap to play from there, edit note, delete. |
 | `my-comments.tsx` | `/my-comments` | Every comment you wrote, with its episode and time; tap to open. |
-| `notifications.tsx` | `/notifications` | Notifications: System messages and People (what listeners you follow did). |
+| `notifications.tsx` | `/notifications` | Notifications: System messages, People (what listeners you follow did) and From hosts. |
 | `play-latest.tsx` | `/play-latest` | Plays your next queued or newest episode and opens the player. |
 | `player.tsx` | `/player` | The full player: artwork, seek bar, comments heat curve, speed, chapters, sleep timer. |
 | `queue.tsx` | `/queue` | Your queue: "Up next" card, then numbered episodes to reorder or remove. |
@@ -85,7 +86,8 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 
 | File | Route | What the user sees |
 |---|---|---|
-| `comments/[episodeId].tsx` | `/comments/<episodeId>` | An episode's comments: three sort orders, likes, write box with the current time. |
+| `comments/[episodeId].tsx` | `/comments/<episodeId>` | An episode's comments: four sort orders, likes, write box with the current time and a mic. |
+| `comments/thread/[commentId].tsx` | `/comments/thread/<commentId>` | A comment's replies: the comment on top, every reply under it, a reply box with a mic. |
 
 ### `episode/`
 
@@ -105,6 +107,13 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 |---|---|---|
 | `picks/past.tsx` | `/picks/past` | Editor's picks from earlier days, grouped by date, with notes and Play. |
 
+### `playlists/`
+
+| File | Route | What the user sees |
+|---|---|---|
+| `playlists/[id].tsx` | `/playlists/<id>` | One playlist: its episodes in order, Play all; yours can be renamed, reordered, made public or deleted. |
+| `playlists/index.tsx` | `/playlists` | Your playlists: each with its count and public or private; make a new one by name. |
+
 ### `profile/`
 
 | File | Route | What the user sees |
@@ -112,6 +121,13 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 | `profile/[id].tsx` | `/profile/<id>` | A listener's profile: name, counts, listening time, recent activity, Follow, Block, Report. |
 | `profile/[id]/followers.tsx` | `/profile/<id>/followers` | List of people who follow this listener. |
 | `profile/[id]/following.tsx` | `/profile/<id>/following` | List of people this listener follows. |
+| `profile/edit.tsx` | `/profile/edit` | Edit profile: photo, name, short bio, optional age range and gender, and whether likes are public. |
+
+### `report/`
+
+| File | Route | What the user sees |
+|---|---|---|
+| `report/[month].tsx` | `/report/<month>` | Your month in listening: minutes, shows, episodes, comments, clips, top 3 shows and episodes; Share. |
 
 ### `settings/`
 
@@ -127,7 +143,8 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 | `settings/feedback.tsx` | `/settings/feedback` | Send feedback with type, text and up to 3 images; see what you sent. |
 | `settings/help.tsx` | `/settings/help` | Help: send feedback, contact support, common questions filtered by topic. |
 | `settings/how-for-you.tsx` | `/settings/how-for-you` | Questions and answers about how For You recommendations work. |
-| `settings/minor.tsx` | `/settings/minor` | Minor mode switch: hides episodes the publisher marked explicit. |
+| `settings/minor.tsx` | `/settings/minor` | Minor mode switch: hides explicit episodes; a 4-digit passcode guards turning it off. |
+| `settings/not-interested.tsx` | `/settings/not-interested` | Episodes and shows you marked "Not interested", each with a Restore button. |
 | `settings/more.tsx` | `/settings/more` | More settings: import/export shows, queue and playback options, recommendations on/off. |
 | `settings/opml.tsx` | `/settings/opml` | Export your shows as an OPML file, or paste OPML to import them. |
 | `settings/privacy.tsx` | `/settings/privacy` | Privacy: keep your listening private switch, and a link to blocked listeners. |

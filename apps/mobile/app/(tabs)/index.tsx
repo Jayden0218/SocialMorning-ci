@@ -13,7 +13,7 @@
  * `src/ui/discover/{parts,sections}.tsx`; order, data, pull to refresh and every action stay.
  */
 import { useRouter } from "expo-router";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Image } from "@/ui/lib/image";
 import { SafeAreaView } from "@/ui/lib/safe-area-view";
 import { ScrollView } from "@/ui/lib/scroll-view";
@@ -31,7 +31,7 @@ import { useFirstPaint } from "@/discover/first-paint";
 import { useRecOutbox } from "@/recs/useRecOutbox";
 import { useSafety } from "@/safety/context";
 import { useSocial } from "@/social/context";
-import { useStores } from "@/ui/shell/providers";
+import { useStores, useToast } from "@/ui/shell/providers";
 import { TAB_PAGE_END } from "@/ui/kit/Screen";
 import { Eyebrow } from "@/ui/kit/Eyebrow";
 import { SearchBar } from "@/ui/discover/parts";
@@ -51,6 +51,13 @@ import {
   VideoSection,
 } from "@/ui/discover/sections";
 import { useRowStats } from "@/discover/row-stats";
+import { keyFor, useDismissals } from "@/recs/dismissals";
+import { HiddenNotice, NotInterestedSheet } from "@/ui/discover/NotInterested";
+import type { EpisodeCard } from "@/social/api";
+import type { DismissalKind } from "@/social/profile-api";
+
+/** M19 T021: how long "Hidden · Undo" stays under For You. */
+const UNDO_MS = 8000;
 
 const ICON = { width: 36, height: 36 };
 /** "Thursday, 2 October" — the eyebrow over the title (`Home-B`), from the phone's clock. */
@@ -78,16 +85,42 @@ export default function DiscoverScreen(): React.ReactElement {
   const refreshBoth = async (): Promise<void> => {
     await Promise.all([refresh(), forYou.refresh()]);
   };
+  // M19 T021: "Not interested" — a row the listener turned down leaves For You at once.
+  const dismissals = useDismissals();
+  const toast = useToast();
+  const [moreFor, setMoreFor] = useState<EpisodeCard | undefined>();
+  const [undo, setUndo] = useState<{ kind: DismissalKind; key: string } | undefined>();
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(undoTimer.current), []);
   const model = useMemo(
-    () =>
-      buildModel(view?.body, forYou.view?.body, {
+    () => {
+      const m = buildModel(view?.body, forYou.view?.body, {
         feeds: hiddenFeeds,
         blocked: sets.blocked,
-      }),
+      });
+      return { ...m, forYou: m.forYou.filter((r) => !dismissals.isDismissed(r.card)) };
+    },
     // `version` bumps on every local report/block, so a hidden row leaves at once.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [view, forYou.view, hiddenFeeds, sets, version],
+    [view, forYou.view, hiddenFeeds, sets, version, dismissals.isDismissed],
   );
+  const notInterested = (kind: DismissalKind, card: EpisodeCard): void => {
+    setMoreFor(undefined);
+    const key = keyFor(kind, card);
+    dismissals.dismiss(kind, key, kind === "episode" ? card.title : card.showTitle).catch(() => {
+      setUndo(undefined);
+      toast("Couldn't hide that — try again.");
+    });
+    setUndo({ kind, key });
+    clearTimeout(undoTimer.current);
+    undoTimer.current = setTimeout(() => setUndo(undefined), UNDO_MS);
+  };
+  const undoHide = (): void => {
+    if (!undo) return;
+    clearTimeout(undoTimer.current);
+    setUndo(undefined);
+    dismissals.restore(undo.kind, undo.key).catch(() => toast("Couldn't undo — try again in Settings."));
+  };
   // The search box's middle cycles through what is trending (owner, 2026-09-27).
   const hints = useMemo(() => trendingHints(model.chart), [model]);
   const [tick, setTick] = useState(0);
@@ -137,6 +170,8 @@ export default function DiscoverScreen(): React.ReactElement {
               outbox.opened(index);
               void open(c);
             }}
+            {...(listener ? { onMore: setMoreFor } : {})}
+            {...(undo ? { notice: <HiddenNotice kind={undo.kind} onUndo={undoHide} /> } : {})}
           />
         );
       case "picks":
@@ -303,6 +338,7 @@ export default function DiscoverScreen(): React.ReactElement {
           {view ? <MoreCategories onPress={allCategories} /> : null}
         </ScrollView>
       </Box>
+      <NotInterestedSheet card={moreFor} onChoose={notInterested} onClose={() => setMoreFor(undefined)} />
     </SafeAreaView>
   );
 }

@@ -33,7 +33,7 @@ import { EmptyState } from '@/ui/kit/EmptyState';
 import { Loader } from '@/ui/kit/Loader';
 import { PageHeader } from '@/ui/kit/PageHeader';
 import { Eyebrow } from '@/ui/kit/Eyebrow';
-import { Artwork } from '@/ui/kit/Artwork';
+import { Avatar } from '@/ui/kit/Avatar';
 import { EndOfList } from '@/ui/kit/EndOfList';
 
 const TAP = { minHeight: hit.min };
@@ -110,7 +110,7 @@ export function FollowList(props: { kind: FollowKind; id: string; name?: string;
         renderItem={({ item }) => item === FILLER ? <Box className="flex-1" accessible={false} /> : (
           <Link href={{ pathname: '/profile/[id]', params: { id: item.id } }} asChild>
             <Pressable className="flex-1 items-center gap-gap bg-surface border border-border rounded-row py-section px-gap" accessibilityRole="link">
-              <Artwork size={56} rounded="pill" {...(item.displayName ? { name: item.displayName } : {})} />
+              <Avatar size={56} url={item.avatarUrl} name={item.displayName} />
               <Text className={item.displayName ? 'text-body font-bold text-text text-center' : 'text-body italic text-muted text-center'} numberOfLines={1}>{item.displayName ?? 'Deleted account'}</Text>
             </Pressable>
           </Link>

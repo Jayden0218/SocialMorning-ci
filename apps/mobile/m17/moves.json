@@ -374,5 +374,37 @@
   "to": "/show/[feedUrl] | Most played | setView",
   "why": "the All / Most played tabs became one Most played switch (tap again returns to the feed's order); owner, 2026-10-05: \"for the all in the podcast page, i want u remove it\"",
   "task": "owner 2026-10-05"
+ },
+ {
+  "surface": "CommentRow",
+  "name": "expanded ? more : `${more}: ${plural(replies.length, 'reply', 'replies')} in all`",
+  "destination": "setExpanded",
+  "to": "CommentRow | ${link.replace(' ›', '')}. Open the replies | props.onOpenThread",
+  "why": "M19 US5 (FR-043): the inline \"Show N more\" fold became \"N replies ›\", which opens the reply page (app/comments/thread/[commentId].tsx) with every reply and its own reply box; the first 2 replies still show inline",
+  "task": "T052"
+ },
+ {
+  "surface": "CommentRow",
+  "name": "{initialsFor(c)}",
+  "destination": "props.onMenu",
+  "to": "CommentRow |  | props.onMenu",
+  "why": "scanner correction: the comment's long-press Pressable has no label of its own; the scanner read the initials disc's text, which M19 T014's Avatar now draws (a photo or the letters). Same Pressable, same long-press and accessibility action (props.onMenu)",
+  "task": "T052"
+ },
+ {
+  "surface": "SpeedControl",
+  "name": "Set {rate.toFixed(1)}× as default (this show remembers its own)",
+  "destination": "dynamic",
+  "to": "SpeedControl | Make ${rate.toFixed(1)}× the default for all shows | player.setDefaultRate",
+  "why": "M19 T070 (FR-050, research R1): same button and handler, new words — \"Make N× the default for all shows\"; the line above it now says \"Only for this show\"",
+  "task": "T070"
+ },
+ {
+  "surface": "/profile/[id]",
+  "name": "",
+  "destination": "/account",
+  "to": "/profile/[id] |  | /profile/edit",
+  "why": "M19 US1 (owner 2026-10-05): Edit profile opens the new edit page (photo, name, bio, age range, gender) instead of the account hub, which had nothing to edit; same link, same accessible name",
+  "task": "T013"
  }
 ]

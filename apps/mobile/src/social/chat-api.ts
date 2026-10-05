@@ -9,7 +9,7 @@ import { requester, type ApiDeps, type EpisodeCard } from './api';
 import { apiBaseUrl } from './base-url';
 import { secureToken } from './token';
 
-export type ChatPerson = { id: string; displayName: string };
+export type ChatPerson = { id: string; displayName: string; /** M19 US1 */ avatarUrl?: string };
 export type ChatMessage = { id: string; fromMe: boolean; body: string; episode?: EpisodeCard; createdAt: string; read: boolean };
 export type Conversation = { with: ChatPerson; last: ChatMessage; unread: number; canSend: boolean };
 export type Thread = { with: ChatPerson; canSend: boolean; messages: ChatMessage[] };

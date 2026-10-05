@@ -45,7 +45,8 @@ test('G-M19-6: five unfriendly marks fold a comment; the voters are never in the
   for (let i = 1; i <= 4; i++) assert.deepEqual(await (await t.call('PUT', `/v1/comments/${ids[0]}/unfriendly`, undefined, others[i]!.token)).json(), { folded: false });
   assert.deepEqual(await (await t.call('PUT', `/v1/comments/${ids[0]}/unfriendly`, undefined, others[5]!.token)).json(), { folded: true });
   const raw = await (await t.call('GET', '/v1/episodes/e1/social', undefined, others[0]!.token)).text();
-  for (let i = 1; i <= 5; i++) assert.ok(!raw.includes(others[i]!.id), 'a voter id leaked');
+  // others[1] wrote the second comment, so its id is there as an author; the voters who wrote nothing must not appear.
+  for (let i = 2; i <= 5; i++) assert.ok(!raw.includes(others[i]!.id), 'a voter id leaked');
   assert.equal((JSON.parse(raw) as { comments: C[] }).comments.find((c) => c.id === ids[0])!.folded, true);
   await t.call('DELETE', `/v1/comments/${ids[0]}/unfriendly`, undefined, others[5]!.token);
   assert.equal((await list(t)).find((c) => c.id === ids[0])!.folded, undefined, 'four is not five');

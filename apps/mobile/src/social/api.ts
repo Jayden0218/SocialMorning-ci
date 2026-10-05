@@ -31,7 +31,11 @@ export class ApiError extends Error {
   }
 }
 
-export type Listener = { id: string; email: string; displayName: string; createdAt: string; privateListening?: boolean };
+export type Listener = {
+  id: string; email: string; displayName: string; createdAt: string; privateListening?: boolean;
+  /** M19 US1 (contracts/api.md GET/PATCH /v1/me): all optional, so an older server still parses. */
+  avatarUrl?: string; bio?: string; ageRange?: string | null; gender?: string | null; likesPublic?: boolean;
+};
 export type EpisodeRegistration = {
   feedUrl: string; guid: string; title: string; showTitle?: string; enclosureUrl: string; imageUrl?: string; durationMs?: number;
   /** M8: ISO-8601, the PUBLISHER's date. */
@@ -56,6 +60,8 @@ export type Comment = {
   likeCount?: number;
   likedByMe?: boolean;
   initials?: string | null;
+  /** M19 US1: the author's photo, when they set one (absent on an older server). */
+  avatarUrl?: string;
 };
 export type Social = {
   serverTime: string;
@@ -70,7 +76,7 @@ export type PositionRowOut = PositionObsIn & { receivedAt: string; deviceId: str
 export type SocialResult = { status: 200; etag?: string; body: Social } | { status: 304 };
 
 // ---- M4 (specs/004-m4-the-graph/contracts/api.md) ----
-export type ClipAuthor = { id: string; displayName: string | null };
+export type ClipAuthor = { id: string; displayName: string | null; /** M19 US1 */ avatarUrl?: string };
 export type Clip = { id: string; author: ClipAuthor; episodeId: string; startMs: number; endMs: number; caption: string; createdAt: string; deleted: boolean; removed?: boolean; reported?: boolean };
 export type EpisodeRecord = { id: string; feedUrl: string; guid: string; title: string; showTitle: string | null; enclosureUrl: string; imageUrl: string | null; durationMs: number | null };
 export type ProfileStats = { listenedMs: number; finished: number; topShows: { feedUrl: string; showTitle?: string; listenedMs: number }[] };
@@ -85,6 +91,9 @@ export type Profile = {
   suspended?: boolean; blockedByMe?: boolean;
   /** M10b US7: two-letter country from the listener's last sign-in ("IP location"), public. */
   country?: string;
+  /** M19 US1: the listener's photo and short bio, when set (absent on an older server). */
+  avatarUrl?: string;
+  bio?: string;
 };
 export type FeedResult = { status: 200; etag?: string; body: { items: FeedItem[]; next?: string; serverTime: string } } | { status: 304 };
 export type ListenedDay = { episodeId: string; day: string; ranges: [number, number][] };

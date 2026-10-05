@@ -24,7 +24,7 @@
  * Cancel is an outlined pill.
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '@/ui/lib/actionsheet';
 import { Pressable } from '@/ui/lib/pressable';
 import { SafeAreaView } from '@/ui/lib/safe-area-view';
@@ -59,6 +59,10 @@ import { ClipList } from '@/ui/clips/ClipList';
 import { useNextUp } from '@/ui/player/NextUp';
 import { RelatedEpisodes } from '@/ui/episode/RelatedEpisodes';
 import { useDiscover } from '@/discover/useDiscover';
+import { ApiError } from '@/social/api';
+import { useProfileApi } from '@/social/profile-api';
+import { registrationFor } from '@/social/registration';
+import { LikeSheet } from '@/ui/social/LikeSheet';
 
 /** The eyebrow's spaced capitals (as `Eyebrow`, which is a header and cannot be a link). */
 const CAPS = { letterSpacing: 1.3, textTransform: 'uppercase' as const };
@@ -72,7 +76,7 @@ export default function EpisodeScreen(): React.ReactElement {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const episode = id === undefined ? undefined : stores.feeds.getEpisode(id);
-  const { composer, useEpisodeSocial, refresh, api } = useSocial();
+  const { composer, useEpisodeSocial, refresh, api, listener } = useSocial();
   // M5 (FR-008): "Next up" for this episode; absent when the server has no answer.
   const nextUp = useNextUp(episode?.id);
   const { open: discoverOpen } = useDiscover();
@@ -96,6 +100,44 @@ export default function EpisodeScreen(): React.ReactElement {
   // block ends is measured by its onLayout; until then the bar never collapses.
   const [titleBottom, setTitleBottom] = useState<number | undefined>();
   const [collapsed, setCollapsed] = useState(false);
+  // M19 T031 (US3): Like — a public heart with an optional note, seen by people who follow you.
+  const profileApi = useProfileApi();
+  const [like, setLike] = useState<{ liked: boolean; note?: string } | undefined>();
+  const [noting, setNoting] = useState(false);
+  const [savingNote, setSavingNote] = useState(false);
+  const episodeId = episode?.id;
+  useEffect(() => {
+    if (!episodeId || !listener) { setLike(undefined); return; }
+    let live = true;
+    profileApi.episodeLike(episodeId).then((l) => { if (live) setLike(l); }).catch(() => { if (live) setLike({ liked: false }); });
+    return () => { live = false; };
+  }, [episodeId, listener, profileApi]);
+  /** PUT the like; an episode the server has not met yet is described to it first. */
+  const sendLike = async (id: string, note?: string) => {
+    try { return await profileApi.like(id, note); } catch (e) {
+      const reg = e instanceof ApiError && e.code === 'not_found' ? registrationFor(stores, id) : undefined;
+      if (!reg) throw e;
+      await api.registerEpisode(id, reg);
+      return profileApi.like(id, note);
+    }
+  };
+  const toggleLike = async () => {
+    if (!episodeId) return;
+    if (!listener) { router.push('/auth/sign-in'); return; }
+    const was = like;
+    if (was?.liked) {
+      setLike({ liked: false });
+      try { await profileApi.unlike(episodeId); } catch { setLike(was); toast("Couldn't unlike — try again."); }
+      return;
+    }
+    setLike({ liked: true });
+    try { setLike(await sendLike(episodeId)); setNoting(true); } catch { setLike(was ?? { liked: false }); toast("Couldn't like — try again."); }
+  };
+  const saveNote = async (note: string) => {
+    if (!episodeId) return;
+    setSavingNote(true);
+    try { setLike(await sendLike(episodeId, note)); setNoting(false); toast('Note added'); } catch { toast("Couldn't save the note — try again."); } finally { setSavingNote(false); }
+  };
 
   if (episode === undefined) {
     return (
@@ -260,6 +302,11 @@ export default function EpisodeScreen(): React.ReactElement {
             <Icon name={fav ? 'heart' : 'heart-outline'} size={20} color={fav ? c.accent : c.text} />
             <Text className="text-text text-xs font-semibold">{fav ? 'Favourited' : 'Favourite'}</Text>
           </Pressable>
+          {/* M19 T031: Like — public to your followers, unlike Favourite (yours only). */}
+          <Pressable onPress={() => void toggleLike()} accessibilityRole="button" accessibilityState={{ selected: like?.liked === true }} accessibilityLabel={like?.liked ? 'Unlike this episode' : 'Like this episode'} className="flex-1 items-center justify-center gap-0.5 py-1" style={CELL}>
+            <Icon name={like?.liked ? 'thumbs-up' : 'thumbs-up-outline'} size={20} color={like?.liked ? c.accent : c.text} />
+            <Text className="text-text text-xs font-semibold">{like?.liked ? 'Liked' : 'Like'}</Text>
+          </Pressable>
         </Card>
         <ShowNotes parts={notes} onPlayFrom={playFrom} />
         <Box className="mt-section gap-section">
@@ -308,6 +355,7 @@ export default function EpisodeScreen(): React.ReactElement {
           </Pressable>
         </ActionsheetContent>
       </Actionsheet>
+      <LikeSheet open={noting} title={episode.title} {...(like?.note ? { initialNote: like.note } : {})} busy={savingNote} onSave={(n) => void saveNote(n)} onSkip={() => setNoting(false)} />
       {composing ? (
         <ComposerSheet initial={composing} onClose={() => setComposing(undefined)} onPosted={() => { void refresh(episode.id); }} />
       ) : null}

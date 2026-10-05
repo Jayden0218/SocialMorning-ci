@@ -114,8 +114,12 @@ export function StatsLine(props: { stats: RowStats; className?: string }): React
 export function EpisodeLine(props: {
   card: EpisodeCard; line?: string; rank?: number; size?: number; onOpen: () => void; onPlay: () => void; label?: string;
   rankTone?: 'chart' | 'accent'; divided?: boolean; hideShow?: boolean; stats?: RowStats;
+  /** M19 T021: a "⋯" before Play that opens the row's choices (For You: Not interested). */
+  onMore?: () => void;
 }): React.ReactElement {
   const { card } = props;
+  const stores = useStores();
+  const c = useColours(stores.settings);
   const size = props.size ?? 72;
   const ranked = props.rank !== undefined;
   const rankClass = props.rankTone === 'accent'
@@ -135,6 +139,11 @@ export function EpisodeLine(props: {
           {props.stats ? <StatsLine stats={props.stats} /> : null}
         </Box>
       </Pressable>
+      {props.onMore ? (
+        <Pressable onPress={props.onMore} accessibilityRole="button" accessibilityLabel={`More for ${card.title}`} className="items-center justify-center" style={TAP}>
+          <Icon name="ellipsis-horizontal" size={20} color={c.muted} />
+        </Pressable>
+      ) : null}
       <PlayButton title={card.title} onPress={props.onPlay} />
     </Box>
   );

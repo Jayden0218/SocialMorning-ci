@@ -1,4 +1,4 @@
-// Two-choice switch at top of Notifications: System or People.
+// Three-choice switch at top of Notifications: System, People or From hosts.
 /**
  * The two cards at the top of Notifications (M10): System and People. M12 FR-001 (B2): on
  * the iPhone both were plain boxes — tapping did nothing. Each is now a tab that chooses what
@@ -9,6 +9,8 @@
  * Drawn here rather than with the shared `Segmented` because that part takes a plain label
  * only (no icon, no badge). The line under the track is drawn by the page. Same names, same
  * `onSelect` (guard G-B2, __tests__/notifications.test.tsx).
+ *
+ * M19 T100 (US10, FR-062): a third tab, "From hosts" — announcements from the shows you follow.
  */
 import { Pressable } from '@/ui/lib/pressable';
 import { Text } from '@/ui/lib/text';
@@ -16,13 +18,14 @@ import { Box } from '@/ui/lib/box';
 import { Icon, type IconName } from '@/ui/kit/Icon';
 import { hit } from '@/design';
 
-export type NoticeSection = 'people' | 'system';
+export type NoticeSection = 'people' | 'system' | 'hosts';
 
 const TAP = { minHeight: hit.min };
 
 /** What each tab says under the track, and in its spoken name. */
 export function noticeLine(section: NoticeSection, unread: number): string {
   if (section === 'system') return 'Messages from SocialNet';
+  if (section === 'hosts') return 'Announcements from shows you follow';
   return unread > 0 ? 'New activity from people you follow' : 'People you follow';
 }
 
@@ -62,6 +65,7 @@ export function NoticeCards(props: { section: NoticeSection; unread: number; ico
         selected={props.section === 'people'}
         onPress={() => props.onSelect('people')}
       />
+      <Tab title="From hosts" line={noticeLine('hosts', props.unread)} icon="mic-outline" iconColour={props.iconColour} selectedIconColour={chosen} selected={props.section === 'hosts'} onPress={() => props.onSelect('hosts')} />
     </Box>
   );
 }

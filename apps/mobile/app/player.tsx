@@ -65,6 +65,7 @@ import { Eyebrow } from '@/ui/kit/Eyebrow';
 import { HeatCurve } from '@/ui/player/HeatCurve';
 import { SpeedControl } from '@/ui/player/SpeedControl';
 import { SleepTimerControl } from '@/ui/player/SleepTimerControl';
+import { Toggle } from '@/ui/kit/Toggle';
 import { ChapterList, CurrentChapter } from '@/ui/player/ChapterList';
 import { TranscriptPane } from '@/ui/player/TranscriptPane';
 import { getPref } from '@/settings/prefs';
@@ -127,6 +128,9 @@ export default function PlayerScreen(): React.ReactElement {
   // Speed, sleep timer, chapters and transcript live in one sheet behind the left
   // control, so the screen itself is only what the reference shows (owner, 2026-09-27).
   const [more, setMore] = useState(false);
+  // M19 T070 (US7, research R2): "Loop this episode" — the runtime turns it off on any load.
+  const [looping, setLooping] = useState(() => player.loop());
+  useEffect(() => { setLooping(player.loop()); }, [player, currentEpisodeId]);
   // M12 FR-033: Share opens a first step (episode link · this moment · picture).
   const [sharing, setSharing] = useState(false);
   // M12 FR-044: the queue opens as a sheet over the player (was a separate page).
@@ -402,6 +406,14 @@ export default function PlayerScreen(): React.ReactElement {
         <ScrollView contentContainerClassName="gap-section">
           <SpeedControl />
           <SleepTimerControl />
+          <Box className="flex-row items-center gap-section" style={{ minHeight: TAP.minHeight }}>
+            <Icon name="repeat-outline" size={20} color={c.accent} />
+            <Box className="flex-1">
+              <Text className="text-body font-bold text-text">Loop this episode</Text>
+              <Text className="text-xs text-muted">Starts again from 0:00 at its end, instead of moving on</Text>
+            </Box>
+            <Toggle value={looping} onChange={(v) => { player.setLoop(v); setLooping(v); }} label="Loop this episode" />
+          </Box>
           {extras && (extras.chapters?.length || (showTranscript && extras.transcript)) ? (
             <Box className="flex-row gap-row">
               {extras.chapters && extras.chapters.length > 0 ? (

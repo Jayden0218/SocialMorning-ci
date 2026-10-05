@@ -41,6 +41,12 @@ import { ApiError, type FeedItem as Item, type Profile } from '@/social/api';
 import { EmptyState } from '@/ui/kit/EmptyState';
 import { plural } from '@socialmorning/social-core';
 import { ProfileStatRow, listenedLabel, type StatCell } from '@/ui/social/ProfileStatRow';
+import { Avatar } from '@/ui/kit/Avatar';
+import { LikeCard } from '@/ui/social/LikeCard';
+import { useProfileApi, type LikeItem } from '@/social/profile-api';
+import { useCardActions } from '@/discover/useDiscover';
+import { useM19Api, type Playlist } from '@/social/m19-api';
+import { PlaylistCard } from '@/ui/me/PlaylistCard';
 
 /** The eyebrow on the yellow card: spaced capitals (as `Eyebrow`, which only has muted/accent). */
 const CAPS = { letterSpacing: 1.2, textTransform: 'uppercase' as const };
@@ -54,11 +60,20 @@ export default function ProfileScreen(): React.ReactElement {
   const [profile, setProfile] = useState<Profile | undefined>();
   const [error, setError] = useState<string | undefined>();
   const [reporting, setReporting] = useState<ReportTarget | undefined>();
+  // M19 T031: up to five of this account's likes (empty while they keep likes private).
+  const profileApi = useProfileApi();
+  const cards = useCardActions();
+  const [likes, setLikes] = useState<LikeItem[]>([]);
+  // M19 T041 (FR-031): this account's public playlists (all of yours on your own profile).
+  const m19 = useM19Api();
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
   useFocusEffect(useCallback(() => {
     let live = true;
     api.profile(String(id)).then((p) => { if (live) { setProfile(p); setError(undefined); } }).catch((e) => { if (live) setError(e instanceof ApiError ? (e.code === 'network' ? "Couldn't reach the server." : e.message) : String(e)); });
+    profileApi.listenerLikes(String(id)).then((p) => { if (live) setLikes(p.items.slice(0, 5)); }).catch(() => undefined);
+    m19.listenerPlaylists(String(id)).then((items) => { if (live) setPlaylists(items); }).catch(() => undefined);
     return () => { live = false; };
-  }, [api, id, version]));
+  }, [api, profileApi, m19, id, version]));
   const open = (item: Item) => {
     if (item.kind === 'clipped' && item.refId) router.push({ pathname: '/clip/[id]', params: { id: item.refId } });
     else router.push({ pathname: '/episode/[id]', params: { id: item.episode.id } });
@@ -108,12 +123,14 @@ export default function ProfileScreen(): React.ReactElement {
     <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pt-gap pb-24 gap-section">
       {/* M17 (Profile-B): centred head — monogram, serif name, the two small lines. */}
       <Box className="items-center gap-1.5">
-        <Artwork size={96} rounded="pill" name={profile.displayName} className="border-2 border-surface" />
+        <Avatar size={96} url={profile.avatarUrl} name={profile.displayName} className="border-2 border-surface" />
         <Text className="text-text text-display font-display text-center mt-gap" accessibilityRole="header">{profile.displayName}</Text>
         {own ? <Text className="text-muted text-xs">This is you</Text> : null}
         {/* M10b US7: "IP location" — the country from the last sign-in, public (the privacy policy says so). */}
         {profile.country ? <Text className="text-muted text-xs">{`IP location: ${countryName(profile.country)}`}</Text> : null}
-        {own ? <Link href="/account" className="text-accent text-body font-semibold py-row" accessibilityRole="link">Edit profile</Link> : null}
+        {profile.bio ? <Text className="text-text text-body text-center mt-1">{profile.bio}</Text> : null}
+        {/* M19 T013: Edit profile opens the profile editor (photo, name, bio); Settings stay on Me. */}
+        {own ? <Link href="/profile/edit" className="text-accent text-body font-semibold py-row" accessibilityRole="link">Edit profile</Link> : null}
       </Box>
 
       {/* M17: the actions come before the numbers — Follow stretches, Block and Report beside it. */}
@@ -195,6 +212,18 @@ export default function ProfileScreen(): React.ReactElement {
           )))
         : (profile.recent.length === 0 ? <Text className="text-muted text-sm">Nothing public yet.</Text> : feed(profile.recent).map((item) => <FeedItem key={item.id} item={item} onOpen={open} />))}
       </Box>
+      {likes.length > 0 ? (
+        <Box className="gap-row">
+          <Text className="text-text text-base font-display" accessibilityRole="header">Likes</Text>
+          {likes.map((l) => <LikeCard key={`${l.episode.id}|${l.createdAt}`} item={{ ...l, listener: undefined }} onOpen={(c) => void cards.open(c)} onPlay={(c) => void cards.play(c)} />)}
+        </Box>
+      ) : null}
+      {playlists.length > 0 ? (
+        <Box className="gap-row">
+          <Text className="text-text text-base font-display" accessibilityRole="header">Playlists</Text>
+          {playlists.map((p) => <PlaylistCard key={p.id} playlist={p} mutedColour={c.muted} />)}
+        </Box>
+      ) : null}
       <ReportSheet target={reporting} onClose={() => setReporting(undefined)} />
     </ScrollView>
     </>

@@ -23,6 +23,8 @@ export const PREFS = {
   mobilePlayback: { key: 'pref.mobilePlayback', default: true },
   /** M10b US4: the transcript entry on the player. Read by `app/player.tsx`. */
   transcriptEntry: { key: 'pref.transcriptEntry', default: true },
+  /** M19 T070 (research R4): music mode — pitch correction off. Read by `ui/shell/providers.tsx` (at start) and `app/settings/more.tsx`. */
+  musicMode: { key: 'pref.musicMode', default: false },
 } as const;
 
 export type PrefName = keyof typeof PREFS;

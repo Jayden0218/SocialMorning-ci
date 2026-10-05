@@ -80,6 +80,10 @@ export type Effect =
   | { kind: 'reassertFocus' }
   /** M2: `player.setPlaybackRate(rate, 'high')`. Emitted on SET_RATE and after every LOADED. */
   | { kind: 'setRate'; rate: number }
+  /** M19 T070 (research R2): `player.loop` — the native player wraps to 0 and never reports the end. */
+  | { kind: 'setLoop'; on: boolean }
+  /** M19 T070 (research R4): music mode — `shouldCorrectPitch` for every later `setRate`. */
+  | { kind: 'setPitch'; correct: boolean }
   | { kind: 'setLockScreen'; meta: LockScreenMeta }
   | { kind: 'clearLockScreen' }
   | {

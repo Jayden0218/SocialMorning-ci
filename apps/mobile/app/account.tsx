@@ -66,6 +66,8 @@ export default function SettingsScreen(): React.ReactElement {
         </Box>
       </Box>
       <Box className="border-t-hairline border-separator mt-gap">
+        {/* M19 T022: what For You no longer recommends, each with Restore. */}
+        <LinkRow href="/settings/not-interested" icon="eye-off-outline" label="Not interested" line="Episodes and shows hidden from For You" />
         <LinkRow href="/settings/sharing" icon="alert-circle-outline" label="Third-party sharing list" />
         <LinkRow href="/settings/collected" icon="document-text-outline" label="Personal information we collect" />
         <LinkRow href="/settings/help" icon="help-circle-outline" label="Help and feedback" />
