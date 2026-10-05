@@ -51,8 +51,8 @@ test('A11: no header is no text; over 2000 characters or a broken encoding is re
   await t.q("UPDATE comments SET created_at = now() - interval '1 minute'");
   assert.equal((await send(t, '/v1/episodes/e1/comments/voice', a.token, { 'x-transcript': encodeURIComponent('x'.repeat(2001)) })).status, 422);
   assert.equal((await send(t, '/v1/episodes/e1/comments/voice', a.token, { 'x-transcript': '%E0%A4%A' })).status, 422);
-  const [{ n }] = await t.q<{ n: number }>('SELECT count(*)::int AS n FROM comments');
-  assert.equal(n, 1);
+  const [row] = await t.q<{ n: number }>('SELECT count(*)::int AS n FROM comments');
+  assert.equal(row!.n, 1);
   await t.close();
 });
 
