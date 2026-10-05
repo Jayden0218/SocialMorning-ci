@@ -25,6 +25,10 @@ export const PREFS = {
   transcriptEntry: { key: 'pref.transcriptEntry', default: true },
   /** M19 T070 (research R4): music mode — pitch correction off. Read by `ui/shell/providers.tsx` (at start) and `app/settings/more.tsx`. */
   musicMode: { key: 'pref.musicMode', default: false },
+  /** M19 (2026-10-05, research R3): another app's short sound — off lowers our volume, on pauses. Read by `ui/shell/providers.tsx` (at start) and `app/settings/more.tsx`. */
+  pauseOnPrompts: { key: 'pref.pauseOnPrompts', default: false },
+  /** M19 (2026-10-05, research R4): skip silence. Read by `ui/shell/providers.tsx` (at start) and `app/settings/more.tsx`. */
+  skipSilence: { key: 'pref.skipSilence', default: false },
 } as const;
 
 export type PrefName = keyof typeof PREFS;

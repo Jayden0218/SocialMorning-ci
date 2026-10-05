@@ -84,6 +84,10 @@ export type Effect =
   | { kind: 'setLoop'; on: boolean }
   /** M19 T070 (research R4): music mode — `shouldCorrectPitch` for every later `setRate`. */
   | { kind: 'setPitch'; correct: boolean }
+  /** M19 (2026-10-05): skip silence — `player.skipSilence` (patched expo-audio), kept across loads. */
+  | { kind: 'setSkipSilence'; on: boolean }
+  /** M19 (2026-10-05): another app's short sound — true pauses, false lowers the volume (patched expo-audio). */
+  | { kind: 'setPauseOnPrompts'; on: boolean }
   | { kind: 'setLockScreen'; meta: LockScreenMeta }
   | { kind: 'clearLockScreen' }
   | {

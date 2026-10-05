@@ -95,6 +95,10 @@ export type PlayerRuntime = {
   loop: () => boolean;
   /** M19 T070 (research R4): music mode — pitch correction off, applied to the rate in force now. */
   setMusicMode: (on: boolean) => void;
+  /** M19 (2026-10-05): skip silence on the player, now and after every load. */
+  setSkipSilence: (on: boolean) => void;
+  /** M19 (2026-10-05): another app's short sound — pause (true) or lower the volume (false). */
+  setPauseOnPrompts: (on: boolean) => void;
   /** Cold start: put back what the listener was on, PAUSED. */
   restore: (lookup: (episodeId: string) => PlayableEpisode | undefined) => void;
   /** Where this episode should start, honouring FR-019 and FR-020. */
@@ -380,6 +384,8 @@ export function createPlayerRuntime(deps: PlayerDeps): PlayerRuntime {
       void deps.adapter.execute({ kind: 'setPitch', correct: !on });
       void deps.adapter.execute({ kind: 'setRate', rate: ctx.rate });
     },
+    setSkipSilence: (on) => { void deps.adapter.execute({ kind: 'setSkipSilence', on }); },
+    setPauseOnPrompts: (on) => { void deps.adapter.execute({ kind: 'setPauseOnPrompts', on }); },
     setSleepTimer: (choice) => {
       sleep = armTimer(choice, deps.now());
       holdAdvance = sleep.kind === 'endOfEpisode';

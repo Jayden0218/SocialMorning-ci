@@ -286,6 +286,9 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
     });
     // M19 T070 (research R4): music mode (pitch correction off) survives a restart.
     if (getPref(stores.settings, 'musicMode')) r.setMusicMode(true);
+    // M19 (2026-10-05, research R3/R4): the short-sound choice and skip silence survive a restart.
+    if (getPref(stores.settings, 'pauseOnPrompts')) r.setPauseOnPrompts(true);
+    if (getPref(stores.settings, 'skipSilence')) r.setSkipSilence(true);
     return r;
   }, [stores, sync, listened]);
 

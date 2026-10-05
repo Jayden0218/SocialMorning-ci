@@ -11,6 +11,10 @@
  *
  * M17 T099: the panel takes the `ShareSheet-B` layout (see `SharePanel`); the episode chooser
  * passes "Episode · Show" as the subtitle and marks "Share this moment" as the lead card.
+ *
+ * M19 (owner, 2026-10-05): a clip's panel may carry "Share as video" (`useClipVideoRows`) — the
+ * clip as an .mp4 made on the phone by `modules/clip-video` with the phone's own encoders. Shown
+ * only in a build that has the module and for a clip of at most 60 s.
  */
 import { useCallback, useState } from 'react';
 import { Share } from 'react-native';
@@ -21,11 +25,15 @@ import { Pressable } from '@/ui/lib/pressable';
 import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
 import { Icon, type IconName } from '@/ui/kit/Icon';
-import { hit, tabular } from '@/design';
+import { colour, hit, tabular } from '@/design';
 import { mmss } from '@/ui/kit/format';
 import { useM12Api } from '@/social/m12-api';
 import { useStores, useToast } from '@/ui/shell/providers';
 import { useColours } from '@/ui/kit/useColours';
+import { useSocial } from '@/social/context';
+import { extensionFor } from '@/downloads/expo-downloader';
+import type { PlayableEpisode } from '@/playback/store';
+import * as ClipVideo from '../../../modules/clip-video';
 
 const TAP = { minHeight: hit.min };
 /** The × beside the drag bar: a 48 pt square. */
@@ -201,4 +209,70 @@ export function useSharePanel(): [(request: ShareRequest) => void, React.ReactEl
     />
   );
   return [open, panel];
+}
+
+/** How many heat bars the video draws for a clip. */
+const VIDEO_BARS = 30;
+
+/**
+ * M19: the clip's share of the episode's heat curve (100 buckets over the whole episode), as
+ * `bars` samples across the clip. Empty when the curve is not available or the length unknown.
+ */
+export function clipVideoHeat(buckets: readonly number[] | undefined, durationMs: number | undefined, startMs: number, endMs: number, bars = VIDEO_BARS): number[] {
+  if (!buckets || buckets.length === 0 || !durationMs || durationMs <= 0 || endMs <= startMs) return [];
+  const out: number[] = [];
+  for (let i = 0; i < bars; i++) {
+    const t = startMs + ((i + 0.5) / bars) * (endMs - startMs);
+    const index = Math.min(buckets.length - 1, Math.max(0, Math.floor((t / durationMs) * buckets.length)));
+    out.push(buckets[index] ?? 0);
+  }
+  return out;
+}
+
+/**
+ * M19: the "Share as video" row for a clip's share panel — or no row, when this build has no
+ * `ClipVideo` module or the clip is empty or longer than 60 s. The tap: fetch the episode to the
+ * cache if it is not downloaded ("Downloading the episode…"), make the video ("Making the
+ * video…"), then the phone's own share sheet. Any failure is a toast.
+ */
+export function useClipVideoRows(): (clip: { startMs: number; endMs: number }, episode: PlayableEpisode) => ShareOption[] {
+  const toast = useToast();
+  const { cache } = useSocial();
+  const run = async (clip: { startMs: number; endMs: number }, episode: PlayableEpisode): Promise<void> => {
+    let fetched: File | undefined;
+    try {
+      let audioUri = episode.url;
+      if (!audioUri.startsWith('file:')) {
+        toast('Downloading the episode…');
+        const target = new File(Paths.cache, `clip-audio-${episode.id}.${extensionFor(episode.url)}`);
+        if (target.exists) target.delete();
+        fetched = await File.downloadFileAsync(episode.url, target);
+        audioUri = fetched.uri;
+      }
+      toast('Making the video…');
+      const social = cache.get(episode.id)?.social;
+      let heat: number[] = [];
+      if (social && social.heat.available) heat = clipVideoHeat(social.heat.buckets, social.episode.durationMs ?? episode.durationMs, clip.startMs, clip.endMs);
+      const { uri } = await ClipVideo.makeClipVideo({
+        audioUri,
+        startMs: clip.startMs,
+        endMs: clip.endMs,
+        ...(episode.artworkUrl !== undefined ? { coverUri: episode.artworkUrl } : {}),
+        title: episode.title,
+        show: episode.showTitle,
+        heat,
+        palette: { background: colour.background, text: colour.text, muted: colour.muted, primary: colour.primary, accent: colour.accent },
+      });
+      await ClipVideo.shareVideo(uri, episode.title);
+    } catch {
+      toast("Couldn't make the video — try again when you're online.");
+    } finally {
+      try { if (fetched?.exists) fetched.delete(); } catch { /* the cache folder is cleared by the system anyway */ }
+    }
+  };
+  return (clip, episode) => {
+    const length = clip.endMs - clip.startMs;
+    if (!ClipVideo.isAvailable() || !(length > 0) || length > ClipVideo.MAX_CLIP_VIDEO_MS) return [];
+    return [{ icon: 'videocam-outline', label: 'Share as video', detail: 'up to 60 s', onPress: () => void run(clip, episode) }];
+  };
 }

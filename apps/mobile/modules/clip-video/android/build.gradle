@@ -1,0 +1,33 @@
+// The clip-video local module (M19): a clip as an .mp4 with Media3 Transformer (Apache-2.0).
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.clipvideo'
+version = '1.0.0'
+
+android {
+  namespace "expo.modules.clipvideo"
+  defaultConfig {
+    versionCode 1
+    versionName "1.0.0"
+  }
+  lintOptions {
+    abortOnError false
+  }
+}
+
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+  implementation 'androidx.core:core-ktx:1.15.0'
+
+  // The same Media3 version expo-audio brings (node_modules/expo-audio/android/build.gradle).
+  def androidxMedia3Version = "1.9.1"
+  implementation "androidx.media3:media3-common:$androidxMedia3Version"
+  implementation "androidx.media3:media3-effect:$androidxMedia3Version"
+  implementation "androidx.media3:media3-transformer:$androidxMedia3Version"
+}

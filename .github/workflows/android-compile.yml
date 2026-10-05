@@ -56,6 +56,16 @@ jobs:
           n=0; for f in $(unzip -Z1 $APK | grep '\.dex$'); do c=$(unzip -p $APK "$f" | grep -a -c "socialnet-root" || true); n=$((n + c)); done
           echo "dex hits for socialnet-root: $n"; test "$n" -gt 0
         working-directory: apps/mobile/android
+      # M19 (2026-10-05): the two native names the settings reach — another app's short sound
+      # (setPauseOnPrompts) and skip silence (the player's skipSilence property).
+      - name: the M19 expo-audio additions are inside the APK
+        run: |
+          APK=app/build/outputs/apk/release/app-release.apk
+          for s in setPauseOnPrompts skipSilence; do
+            n=0; for f in $(unzip -Z1 $APK | grep '\.dex$'); do c=$(unzip -p $APK "$f" | grep -a -c "$s" || true); n=$((n + c)); done
+            echo "dex hits for $s: $n"; test "$n" -gt 0
+          done
+        working-directory: apps/mobile/android
       - uses: actions/upload-artifact@v4
         with:
           name: socialnet-release-apk

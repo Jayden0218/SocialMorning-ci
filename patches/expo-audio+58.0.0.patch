@@ -1,8 +1,42 @@
 diff --git a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioModule.kt b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioModule.kt
-index a326438..99f0f11 100644
+index a326438..e69093a 100644
 --- a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioModule.kt
 +++ b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioModule.kt
-@@ -366,7 +366,12 @@ class AudioModule : Module() {
+@@ -60,6 +60,9 @@ class AudioModule : Module() {
+   private var shouldRouteThroughEarpiece = false
+   private var focusAcquired = false
+   private var interruptionMode: InterruptionMode? = null
++  // SocialNet patch (M19, 2026-10-05): another app's short sound (a navigation prompt, a message
++  // tone). false = lower our volume (Android 8+ ducks by itself, no callback); true = pause.
++  private var pauseOnPrompts = false
+   private var allowsBackgroundRecording = false
+   private var playsInSilentMode = true
+ 
+@@ -113,9 +116,12 @@ class AudioModule : Module() {
+         }
+ 
+         AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
+-          if (interruptionMode == InterruptionMode.DUCK_OTHERS) {
++          if (interruptionMode == InterruptionMode.DUCK_OTHERS || !pauseOnPrompts) {
++            // SocialNet patch (M19): duck, don't pause, unless the listener chose "Pause".
++            // AUDIOFOCUS_GAIN puts previousVolume back (rememberVolume = false keeps it).
++            val factor = if (interruptionMode == InterruptionMode.DUCK_OTHERS) 0.5f else 0.3f
+             allPlayables.forEach { playable ->
+-              playable.setVolume(playable.previousVolume * 0.5f, rememberVolume = false)
++              playable.setVolume(playable.previousVolume * factor, rememberVolume = false)
+             }
+           } else {
+             focusAcquired = false
+@@ -236,6 +242,8 @@ class AudioModule : Module() {
+             .build()
+         )
+         setAcceptsDelayedFocusGain(true)
++        // SocialNet patch (M19): false lets the system duck us; true sends CAN_DUCK to the listener.
++        setWillPauseWhenDucked(pauseOnPrompts)
+         setOnAudioFocusChangeListener(audioFocusChangeListener)
+         build()
+       }
+@@ -366,7 +374,26 @@ class AudioModule : Module() {
    override fun definition() = ModuleDefinition {
      Name("ExpoAudio")
  
@@ -10,11 +44,43 @@ index a326438..99f0f11 100644
 +    Events("onCarSelect")
 +    Function("setCarLibrary") { json: String -> expo.modules.audio.service.CarLibrary.set(json) }
 +
++    // SocialNet patch (M19, 2026-10-05): another app's short sound — lower the volume or pause.
++    // The choice is part of the focus request, so a held request is renewed to carry it.
++    Function("setPauseOnPrompts") { on: Boolean ->
++      runOnMain {
++        if (pauseOnPrompts != on) {
++          pauseOnPrompts = on
++          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && focusAcquired && focusRequestRegistered) {
++            releaseAudioFocus()
++            requestAudioFocus()
++          }
++        }
++      }
++    }
++
      OnCreate {
 +      expo.modules.audio.service.CarLibrary.onSelect = { id -> sendEvent("onCarSelect", mapOf("episodeId" to id)) }
        audioManager = appContext.reactContext?.getSystemService(Context.AUDIO_SERVICE) as AudioManager
        context.registerReceiver(ringerModeReceiver, IntentFilter(AudioManager.RINGER_MODE_CHANGED_ACTION))
      }
+@@ -618,6 +645,17 @@ class AudioModule : Module() {
+         player.preservesPitch = preservesPitch
+       }
+ 
++      // SocialNet patch (M19, 2026-10-05): skip silence — Media3's own silence skipping.
++      Property("skipSilence") { player ->
++        runOnMain {
++          player.ref.skipSilenceEnabled
++        }
++      }.set { player, skipSilence: Boolean ->
++        runOnMain {
++          player.ref.skipSilenceEnabled = skipSilence
++        }
++      }
++
+       Property("currentTime") { player ->
+         runOnMain {
+           player.currentTime
 diff --git a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
 index f3ad9d3..4ea7e1d 100644
 --- a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
@@ -433,3 +499,278 @@ index 0000000..a56f964
 +    ).build()
 +  }
 +}
+diff --git a/node_modules/expo-audio/ios/AudioModule.swift b/node_modules/expo-audio/ios/AudioModule.swift
+index bad776e..72d4b1d 100644
+--- a/node_modules/expo-audio/ios/AudioModule.swift
++++ b/node_modules/expo-audio/ios/AudioModule.swift
+@@ -19,6 +19,9 @@ public class AudioModule: Module {
+   private var allowsBackgroundRecording = false
+   private var sessionOptions: AVAudioSession.CategoryOptions = []
+   private var lastConfiguredMode: AudioMode?
++  // SocialNet patch (M19, 2026-10-05): another app's short sound. false = iOS lowers our volume
++  // (mode .default); true = pause (mode .spokenAudio). Applied by the next setAudioModeAsync.
++  private var pauseOnPrompts = false
+ 
+   public func definition() -> ModuleDefinition {
+     Name("ExpoAudio")
+@@ -37,6 +40,10 @@ public class AudioModule: Module {
+       try setAudioMode(mode: mode)
+     }
+ 
++    Function("setPauseOnPrompts") { (on: Bool) in
++      self.pauseOnPrompts = on
++    }
++
+     AsyncFunction("setIsAudioActiveAsync") { (isActive: Bool) in
+       try setIsAudioActive(isActive)
+     }
+@@ -195,6 +202,12 @@ public class AudioModule: Module {
+         player.shouldCorrectPitch = shouldCorrectPitch
+       }
+ 
++      Property("skipSilence") { player in
++        player.skipSilence
++      }.set { (player, skipSilence: Bool) in
++        player.skipSilence = skipSilence
++      }
++
+       Property("currentTime") { player in
+         player.currentTime
+       }
+@@ -204,7 +217,7 @@ public class AudioModule: Module {
+       }
+ 
+       Property("playbackRate") { player in
+-        return if player.isPlaying {
++        return if player.isPlaying && !player.isSilenceBoosted {
+           player.ref.rate
+         } else {
+           player.currentRate
+@@ -912,10 +925,12 @@ public class AudioModule: Module {
+       sessionOptions = categoryOptions
+     }
+ 
++    // SocialNet patch (M19): .spokenAudio makes iOS pause us for another app's prompt.
++    let sessionMode: AVAudioSession.Mode = (pauseOnPrompts && category == .playback) ? .spokenAudio : .default
+     if sessionOptions.isEmpty {
+-      try session.setCategory(category, mode: .default)
++      try session.setCategory(category, mode: sessionMode)
+     } else {
+-      try session.setCategory(category, options: sessionOptions)
++      try session.setCategory(category, mode: sessionMode, options: sessionOptions)
+     }
+   }
+ 
+diff --git a/node_modules/expo-audio/ios/AudioPlayer.swift b/node_modules/expo-audio/ios/AudioPlayer.swift
+index ea6288d..8993986 100644
+--- a/node_modules/expo-audio/ios/AudioPlayer.swift
++++ b/node_modules/expo-audio/ios/AudioPlayer.swift
+@@ -25,6 +25,36 @@ public class AudioPlayer: SharedRef<AVPlayer>, Playable, LockScreenPlayable {
+   }
+   var samplingEnabled = false
+   var keepAudioSessionActive = false
++
++  // SocialNet patch (M19, 2026-10-05): skip silence. AVPlayer cannot cut silence, so the audio
++  // tap measures each buffer and the rate is raised while it stays below -45 dBFS.
++  var skipSilence = false {
++    didSet {
++      guard skipSilence != oldValue else {
++        return
++      }
++      if skipSilence {
++        installTap()
++      } else {
++        silenceBoostWanted = false
++        applySilenceBoost(false)
++        if !samplingEnabled {
++          uninstallTap()
++          shouldInstallAudioTap = false
++        }
++      }
++    }
++  }
++  /// True while the rate is raised over a silence (main thread).
++  private(set) var isSilenceBoosted = false
++  // Read and written on the tap's audio thread only.
++  private var silenceStartedAt: TimeInterval?
++  private var soundStartedAt: TimeInterval?
++  private var silenceBoostWanted = false
++  private static let silenceLevel: Float = 0.005_623 // -45 dBFS
++  private static let silenceHoldSeconds: TimeInterval = 0.5
++  private static let soundHoldSeconds: TimeInterval = 0.1
++  private static let silenceBoostRate: Float = 2.0
+   var onRelease: (() -> Void)?
+ 
+   var isLooping = false {
+@@ -106,6 +136,8 @@ public class AudioPlayer: SharedRef<AVPlayer>, Playable, LockScreenPlayable {
+   }
+ 
+   func play(at rate: Float) {
++    isSilenceBoosted = false
++    silenceBoostWanted = false
+     ref.actionAtItemEnd = isLooping ? .advance : .pause
+     if isLooping {
+       enqueueNextLoopItem()
+@@ -130,7 +162,7 @@ public class AudioPlayer: SharedRef<AVPlayer>, Playable, LockScreenPlayable {
+       } else {
+         shouldInstallAudioTap = true
+       }
+-    } else {
++    } else if !skipSilence {
+       uninstallTap()
+       shouldInstallAudioTap = false
+     }
+@@ -138,7 +170,8 @@ public class AudioPlayer: SharedRef<AVPlayer>, Playable, LockScreenPlayable {
+ 
+   func currentStatus() -> [String: Any?] {
+     let currentDuration = ref.status == .readyToPlay ? duration : 0.0
+-    let rate = isPlaying ? ref.rate : currentRate
++    // SocialNet patch (M19): a silence boost is not the listener's rate, so it is not reported.
++    let rate = isPlaying && !isSilenceBoosted ? ref.rate : currentRate
+     return [
+       "id": id,
+       "currentTime": currentTime,
+@@ -217,7 +250,7 @@ public class AudioPlayer: SharedRef<AVPlayer>, Playable, LockScreenPlayable {
+           if self.isLooping {
+             self.enqueueNextLoopItem()
+           }
+-          if shouldInstallAudioTap || samplingEnabled {
++          if shouldInstallAudioTap || samplingEnabled || skipSilence {
+             installTap()
+             shouldInstallAudioTap = false
+           }
+@@ -239,7 +272,7 @@ public class AudioPlayer: SharedRef<AVPlayer>, Playable, LockScreenPlayable {
+           self.enqueueNextLoopItem()
+           self.addPlaybackEndNotification()
+         }
+-        if self.samplingEnabled && self.isLoaded {
++        if (self.samplingEnabled || self.skipSilence) && self.isLoaded {
+           self.uninstallTap()
+           self.installTap()
+         }
+@@ -249,11 +282,11 @@ public class AudioPlayer: SharedRef<AVPlayer>, Playable, LockScreenPlayable {
+ 
+   func replaceWithPreloadedItem(_ item: AVPlayerItem?) {
+     let wasPlaying = ref.timeControlStatus == .playing
+-    let wasSamplingEnabled = samplingEnabled
++    let wasSamplingEnabled = samplingEnabled || skipSilence
+     removeQueuedLoopItems()
+     ref.pause()
+ 
+-    if samplingEnabled {
++    if samplingEnabled || skipSilence {
+       uninstallTap()
+     }
+     replacePlayerItem(with: item)
+@@ -270,11 +303,11 @@ public class AudioPlayer: SharedRef<AVPlayer>, Playable, LockScreenPlayable {
+   func replaceCurrentSource(source: AudioSource?) {
+     self.source = source
+     let wasPlaying = ref.timeControlStatus == .playing
+-    let wasSamplingEnabled = samplingEnabled
++    let wasSamplingEnabled = samplingEnabled || skipSilence
+     removeQueuedLoopItems()
+     ref.pause()
+ 
+-    if samplingEnabled {
++    if samplingEnabled || skipSilence {
+       uninstallTap()
+     }
+     let item = AudioUtils.createAVPlayerItem(from: source)
+@@ -302,7 +335,7 @@ public class AudioPlayer: SharedRef<AVPlayer>, Playable, LockScreenPlayable {
+     let shouldResume = wasPlaying
+     let savedTime = currentTime
+     let savedRate = currentRate > 0 ? currentRate : 1.0
+-    let wasSamplingEnabled = samplingEnabled
++    let wasSamplingEnabled = samplingEnabled || skipSilence
+ 
+     replacePlayer(with: source, restoreSampling: wasSamplingEnabled)
+ 
+@@ -327,7 +360,7 @@ public class AudioPlayer: SharedRef<AVPlayer>, Playable, LockScreenPlayable {
+ 
+   private func teardownPlayer() {
+     removeQueuedLoopItems()
+-    if samplingEnabled {
++    if samplingEnabled || skipSilence {
+       uninstallTap()
+     }
+     if let timeToken {
+@@ -382,8 +415,15 @@ public class AudioPlayer: SharedRef<AVPlayer>, Playable, LockScreenPlayable {
+       audioProcessor?.sampleBufferCallback = { [weak self] buffer, frameCount, timestamp in
+         guard let self = self,
+           let audioBuffer = buffer?.pointee,
+-          let data = audioBuffer.mData,
+-          self.samplingEnabled else {
++          let data = audioBuffer.mData else {
++          return
++        }
++
++        if self.skipSilence {
++          self.measureSilence(audioBuffer)
++        }
++
++        guard self.samplingEnabled else {
+           return
+         }
+ 
+@@ -411,6 +451,61 @@ public class AudioPlayer: SharedRef<AVPlayer>, Playable, LockScreenPlayable {
+     audioProcessor?.sampleBufferCallback = nil
+   }
+ 
++  // SocialNet patch (M19): runs on the tap's audio thread. Quiet for 0.5 s raises the rate;
++  // sound for 0.1 s puts it back. The rate itself is only touched on the main thread.
++  private func measureSilence(_ audioBuffer: AudioBuffer) {
++    guard let data = audioBuffer.mData else {
++      return
++    }
++    let sampleCount = Int(audioBuffer.mDataByteSize) / MemoryLayout<Float>.size
++    guard sampleCount > 0 else {
++      return
++    }
++    let samples = data.assumingMemoryBound(to: Float.self)
++    var sumOfSquares: Float = 0
++    for index in 0..<sampleCount {
++      let sample = samples[index]
++      sumOfSquares += sample * sample
++    }
++    let rms = (sumOfSquares / Float(sampleCount)).squareRoot()
++    let now = ProcessInfo.processInfo.systemUptime
++
++    if rms < AudioPlayer.silenceLevel {
++      soundStartedAt = nil
++      let since = silenceStartedAt ?? now
++      silenceStartedAt = since
++      if !silenceBoostWanted && now - since >= AudioPlayer.silenceHoldSeconds {
++        silenceBoostWanted = true
++        DispatchQueue.main.async { [weak self] in
++          self?.applySilenceBoost(true)
++        }
++      }
++    } else {
++      silenceStartedAt = nil
++      let since = soundStartedAt ?? now
++      soundStartedAt = since
++      if silenceBoostWanted && now - since >= AudioPlayer.soundHoldSeconds {
++        silenceBoostWanted = false
++        DispatchQueue.main.async { [weak self] in
++          self?.applySilenceBoost(false)
++        }
++      }
++    }
++  }
++
++  private func applySilenceBoost(_ on: Bool) {
++    let boost = on && skipSilence
++    guard boost != isSilenceBoosted else {
++      return
++    }
++    isSilenceBoosted = boost
++    // Never start a paused player: the rate is only changed while it plays.
++    guard ref.timeControlStatus == .playing else {
++      return
++    }
++    ref.rate = boost ? max(effectiveRate, AudioPlayer.silenceBoostRate) : effectiveRate
++  }
++
+   private func replacePlayerItem(with item: AVPlayerItem?) {
+     if let queuePlayer = ref as? AVQueuePlayer {
+       queuePlayer.removeAllItems()

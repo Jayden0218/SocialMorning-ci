@@ -23,7 +23,7 @@ import { refreshShow } from '@/feeds/fetch';
 import { resolveClipEpisode, type Resolved } from '@/graph/resolve';
 import { ClipCard } from '@/ui/clips/ClipCard';
 import { shareClip } from '@/graph/share';
-import { useSharePanel } from '@/ui/clips/ShareChooser';
+import { useClipVideoRows, useSharePanel } from '@/ui/clips/ShareChooser';
 import { PageHeader } from '@/ui/kit/PageHeader';
 import { Icon } from '@/ui/kit/Icon';
 import { useColours } from '@/ui/kit/useColours';
@@ -46,6 +46,8 @@ export default function ClipScreen(): React.ReactElement {
   const [status, setStatus] = useState<Status>({ kind: 'loading' });
   // M16a T005 (FR-015): the app's share panel first; the system sheet behind "More".
   const [share, sharePanel] = useSharePanel();
+  // M19: "Share as video" when this build can make one and the clip is at most 60 s.
+  const videoRows = useClipVideoRows();
 
   useEffect(() => {
     let live = true;
@@ -72,7 +74,7 @@ export default function ClipScreen(): React.ReactElement {
   const inClip = player.clip() !== undefined;
   const pausedAtEnd = state.kind === 'paused' && !inClip && 'positionMs' in state && Math.abs(state.positionMs - clip.endMs) <= 6_000;
   const showLine = resolved.episode.showTitle ? `${resolved.episode.showTitle}${resolved.via === 'server' ? ' · from the server\'s record (the feed no longer lists it)' : ''}` : undefined;
-  const shareThis = () => share({ heading: 'Share this clip', more: { detail: 'other apps', run: () => void shareClip(Share, clip, resolved.episode.title, apiBaseUrl()) } });
+  const shareThis = () => share({ heading: 'Share this clip', rows: videoRows(clip, resolved.episode), more: { detail: 'other apps', run: () => void shareClip(Share, clip, resolved.episode.title, apiBaseUrl()) } });
   return (
     <>
     <PageHeader title="Clip" />

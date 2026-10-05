@@ -45,9 +45,35 @@ import {
   AudioQuality, IOSOutputFormat, createAudioPlayer, requestRecordingPermissionsAsync, setAudioModeAsync,
   useAudioRecorder, useAudioRecorderState, type AudioPlayer, type AudioStatus, type RecordingOptions,
 } from 'expo-audio';
+import { requireOptionalNativeModule } from 'expo';
 import { VOICE_BIT_RATE } from '@/social/voice';
 import { AppState, type AppStateStatus } from 'react-native';
 import type { Effect, Ms, PlayerEvent } from './types';
+
+/**
+ * M19 (owner, 2026-10-05; research R3): another app's short sound — a navigation prompt, a
+ * message tone. false (the default) lowers our volume; true pauses. It is a native function
+ * our expo-audio patch adds, so it is found by a feature check, as CarLibrarySync does: an
+ * unpatched build simply keeps the library's own behaviour.
+ */
+type AudioNative = { setPauseOnPrompts?: unknown };
+let pauseOnPrompts = false;
+
+/** Sent BEFORE every setAudioModeAsync: iOS reads it when the session's category is set. */
+function sendPauseOnPrompts(): void {
+  const native = requireOptionalNativeModule<AudioNative>('ExpoAudio');
+  if (native && typeof native.setPauseOnPrompts === 'function') {
+    (native.setPauseOnPrompts as (on: boolean) => void)(pauseOnPrompts);
+  }
+}
+
+/** The episode player's audio mode. interruptionMode MUST be doNotMix — see `configure`. */
+const PLAYER_MODE = { shouldPlayInBackground: true, interruptionMode: 'doNotMix', playsInSilentMode: true } as const;
+
+async function setPlayerMode(): Promise<void> {
+  sendPauseOnPrompts();
+  await setAudioModeAsync(PLAYER_MODE);
+}
 
 /**
  * What the adapter can observe.
@@ -91,6 +117,13 @@ export function createExpoAudioAdapter(
   let lockScreenActive = false;
   // M19 T070 (research R4): music mode turns pitch correction off (varispeed); applied on every rate.
   let correctPitch = true;
+  // M19 (2026-10-05, research R4): skip silence. Set again after every load.
+  let skipSilence = false;
+
+  /** `skipSilence` exists only on our patched expo-audio; an unpatched build is left alone. */
+  function applySkipSilence(): void {
+    if ('skipSilence' in player) (player as AudioPlayer & { skipSilence: boolean }).skipSilence = skipSilence;
+  }
 
   /**
    * Effects run STRICTLY IN ORDER, one at a time.
@@ -117,6 +150,7 @@ export function createExpoAudioAdapter(
       case 'load':
         wasLoaded = false;
         player.replace({ uri: effect.url });
+        if (skipSilence) applySkipSilence();
         await player.seekTo(effect.startMs / 1000);
         return;
       case 'play':
@@ -151,6 +185,14 @@ export function createExpoAudioAdapter(
         return;
       case 'setPitch':
         correctPitch = effect.correct;
+        return;
+      case 'setSkipSilence':
+        skipSilence = effect.on;
+        applySkipSilence();
+        return;
+      case 'setPauseOnPrompts':
+        pauseOnPrompts = effect.on;
+        await setPlayerMode();
         return;
       case 'setLockScreen': {
         // On Android this is what keeps background playback alive past about
@@ -253,11 +295,7 @@ export function createExpoAudioAdapter(
     // interruptionMode MUST be doNotMix: the docs are explicit that lock
     // screen controls do not attach otherwise, and mixWithOthers requests no
     // Android audio focus at all, so nothing would ever yield to a call.
-    await setAudioModeAsync({
-      shouldPlayInBackground: true,
-      interruptionMode: 'doNotMix',
-      playsInSilentMode: true,
-    });
+    await setPlayerMode();
   }
 
   function release(): void {
@@ -298,11 +336,16 @@ export function useVoiceRecorder() {
 export const askMicrophone = async (): Promise<boolean> => (await requestRecordingPermissionsAsync()).granted;
 
 /** Recording on: iOS switches the session to play-and-record. */
-export const voiceSessionOn = (): Promise<void> => setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+export const voiceSessionOn = (): Promise<void> => {
+  sendPauseOnPrompts();
+  return setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+};
 
 /** Recording off: back to the episode player's own mode (see `configure` above) — else iOS plays through the earpiece. */
-export const voiceSessionOff = (): Promise<void> =>
-  setAudioModeAsync({ allowsRecording: false, shouldPlayInBackground: true, interruptionMode: 'doNotMix', playsInSilentMode: true });
+export const voiceSessionOff = (): Promise<void> => {
+  sendPauseOnPrompts();
+  return setAudioModeAsync({ ...PLAYER_MODE, allowsRecording: false });
+};
 
 /** A short-lived player for one voice post; `onEnd` fires when it finishes. */
 export function playVoice(url: string, onEnd: () => void): { stop: () => void } {

@@ -12,6 +12,7 @@ tests run in the cloud CI, the iPhone app is built in the cloud (see the root `C
 | `scripts/` | Checks the gate runs: a11y audit, colour tokens, text colour, action inventory; token → CSS; legal text sync |
 | `m17/` | Data the M17 guards read (surfaces, designs, action inventory) |
 | `assets/` | Icons, fonts, images |
+| `modules/` | Local native modules. `clip-video`: a clip as an .mp4 made with the phone's own encoders (M19) |
 | `plugins/`, `targets/` | Native config: Expo config plugins; iPhone widget / Siri targets |
 | `global.css` | Tailwind theme (generated from `src/design/tokens.ts` — do not edit the generated block) |
 | `jest.uniwind.*.js` | Make Jest read Tailwind classes the way the app does |

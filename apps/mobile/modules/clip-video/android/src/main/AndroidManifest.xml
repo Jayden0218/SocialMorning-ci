@@ -1,0 +1,14 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <application>
+    <!-- Hands a finished clip video (in the cache folder) to the app the listener shares it with. -->
+    <provider
+      android:name="expo.modules.clipvideo.ClipVideoFileProvider"
+      android:authorities="${applicationId}.clipvideo"
+      android:exported="false"
+      android:grantUriPermissions="true">
+      <meta-data
+        android:name="android.support.FILE_PROVIDER_PATHS"
+        android:resource="@xml/clipvideo_paths" />
+    </provider>
+  </application>
+</manifest>
