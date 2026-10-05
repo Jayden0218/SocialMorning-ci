@@ -15,7 +15,9 @@ import { secureToken } from './token';
 
 export type CommentVoice = { url: string; ms: number; /** M20 US3: the text its author posted with it. */ text?: string };
 /** M19 fields on a comment: pinned by the host, folded for being unfriendly, reply count, voice. */
-export type CommentExtras = { pinned?: true; folded?: true; replyCount?: number; voice?: CommentVoice };
+/** M20 US9: a comment's one picture, in the R2 image store. */
+export type CommentImage = { url: string; w: number; h: number };
+export type CommentExtras = { pinned?: true; folded?: true; replyCount?: number; voice?: CommentVoice; image?: CommentImage };
 export type CommentPlus = Comment & CommentExtras;
 export type Thread = { parent: CommentPlus; replies: CommentPlus[] };
 
@@ -23,11 +25,13 @@ export type Thread = { parent: CommentPlus; replies: CommentPlus[] };
 export function extrasOf(c: Comment): CommentExtras {
   const x = c as CommentPlus;
   const voice = x.voice && typeof x.voice.url === 'string' && typeof x.voice.ms === 'number' ? x.voice : undefined;
+  const image = x.image && typeof x.image.url === 'string' && x.image.url.startsWith('https://') && x.image.w > 0 && x.image.h > 0 ? x.image : undefined;
   return {
     ...(x.pinned === true ? { pinned: true as const } : {}),
     ...(x.folded === true ? { folded: true as const } : {}),
     ...(typeof x.replyCount === 'number' ? { replyCount: x.replyCount } : {}),
     ...(voice ? { voice } : {}),
+    ...(image ? { image } : {}),
   };
 }
 
@@ -45,6 +49,25 @@ export function createCommentExtrasApi(deps: ApiDeps) {
     markUnfriendly: async (id: string) => (await call<{ folded: boolean }>('PUT', `/v1/comments/${enc(id)}/unfriendly`)).json,
     unmarkUnfriendly: async (id: string) => (await call<{ folded: boolean }>('DELETE', `/v1/comments/${enc(id)}/unfriendly`)).json,
     thread: async (id: string) => (await call<Thread>('GET', `/v1/comments/${enc(id)}/thread`)).json,
+    /** M20 US9 (FR-054): whether the server takes images — the picture button shows only when true. */
+    imagesOn: async () => { try { return (await call<{ on: boolean }>('GET', '/v1/comments/images')).json.on === true; } catch { return false; } },
+    /** M20 US9 (FR-053): the shrunk JPEG for a comment just posted — raw bytes, ≤ 1 000 000. */
+    postImage: async (commentId: string, file: Blob, w: number, h: number): Promise<CommentPlus> => {
+      const token = await deps.getToken();
+      let res: Response;
+      try {
+        res = await deps.fetch(`${deps.baseUrl}/v1/comments/${enc(commentId)}/image`, {
+          method: 'POST',
+          headers: { 'content-type': 'image/jpeg', 'x-width': String(Math.round(w)), 'x-height': String(Math.round(h)), ...(token ? { authorization: `Bearer ${token}` } : {}) },
+          body: file,
+        });
+      } catch (e) {
+        throw new ApiError('network', "Couldn't reach the server.", 0, { cause: String(e) });
+      }
+      const json = (await res.json().catch(() => ({}))) as { error?: string; message?: string; comment?: CommentPlus };
+      if (!res.ok) throw new ApiError((json.error as never) ?? 'internal', json.message ?? `Server answered ${res.status}.`, res.status);
+      return json.comment as CommentPlus;
+    },
     /** FR-044: the recording as made (m4a), ≤ 60 s — raw bytes, so not through the JSON helper. */
     postVoice: async (episodeId: string, file: Blob, o: { durationMs: number; offsetMs?: number; parentId?: string; /** M20 US3 */ transcript?: string }): Promise<CommentPlus> => {
       const token = await deps.getToken();

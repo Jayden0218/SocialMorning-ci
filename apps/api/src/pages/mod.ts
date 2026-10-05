@@ -224,7 +224,7 @@ function renderSnapshot(s: unknown): string {
   const o = (s ?? {}) as Record<string, unknown>;
   const str = (k: string) => (typeof o[k] === 'string' ? esc(o[k] as string) : '');
   switch (o['kind']) {
-    case 'comment': return `<blockquote>${str('body') || (str('voiceUrl') ? '<i>(voice)</i>' : '<i>(empty)</i>')}</blockquote>${str('voiceUrl') ? `<p><audio controls preload="none" src="${str('voiceUrl')}"></audio></p><p>Text of the voice: ${str('voiceText') || '<i>(no text)</i>'}</p>` : ''}<p class="muted">by ${str('authorName') || '?'} ${typeof o['offsetMs'] === 'number' ? `at ${mmss(o['offsetMs'] as number)} ` : ''}on “${str('episodeTitle')}”</p>`;
+    case 'comment': return `<blockquote>${str('body') || (str('voiceUrl') ? '<i>(voice)</i>' : '<i>(empty)</i>')}</blockquote>${str('voiceUrl') ? `<p><audio controls preload="none" src="${str('voiceUrl')}"></audio></p><p>Text of the voice: ${str('voiceText') || '<i>(no text)</i>'}</p>` : ''}${str('imageUrl') ? `<p><img src="${str('imageUrl')}" alt="The reported comment's image" style="max-width:320px;max-height:320px"></p>` : ''}<p class="muted">by ${str('authorName') || '?'} ${typeof o['offsetMs'] === 'number' ? `at ${mmss(o['offsetMs'] as number)} ` : ''}on “${str('episodeTitle')}”</p>`;
     case 'clip': return `<blockquote>${str('caption') || '<i>(no caption)</i>'}</blockquote><p class="muted">${typeof o['startMs'] === 'number' && typeof o['endMs'] === 'number' ? `${mmss(o['startMs'] as number)}–${mmss(o['endMs'] as number)} ` : ''}by ${str('authorName') || '?'} on “${str('episodeTitle')}”</p>`;
     case 'profile': return `<p>Profile <b>${str('displayName') || '?'}</b></p>`;
     case 'show': return `<p>Show <b>${str('showTitle') || '?'}</b> <code>${str('feedUrl')}</code></p>`;

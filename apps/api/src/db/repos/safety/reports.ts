@@ -12,12 +12,12 @@ export type Snapshot = Record<string, unknown>;
 export async function snapshotTarget(db: Db, kind: TargetKind, id: string): Promise<{ snapshot: Snapshot; authorId: string | null; gone: boolean }> {
   switch (kind) {
     case 'comment': {
-      const [r] = await db.query<{ body: string | null; offset_ms: number | null; author_id: string | null; display_name: string | null; episode_id: string; deleted_at: string | null; removed_at: string | null; title: string; voice_url: string | null; transcript: string | null }>(
-        `SELECT c.body, c.offset_ms, c.author_id, l.display_name, c.episode_id, c.deleted_at, c.removed_at, e.title, c.voice_url, c.transcript
+      const [r] = await db.query<{ body: string | null; offset_ms: number | null; author_id: string | null; display_name: string | null; episode_id: string; deleted_at: string | null; removed_at: string | null; title: string; voice_url: string | null; transcript: string | null; image_url: string | null }>(
+        `SELECT c.body, c.offset_ms, c.author_id, l.display_name, c.episode_id, c.deleted_at, c.removed_at, e.title, c.voice_url, c.transcript, c.image_url
          FROM comments c LEFT JOIN listeners l ON l.id = c.author_id JOIN episodes e ON e.id = c.episode_id WHERE c.id = $1`, [id]);
       if (!r || r.deleted_at !== null || r.removed_at !== null) return { snapshot: { kind, id }, authorId: null, gone: true };
       // M20 US3 (FR-010): a voice comment's recording and its text go into the copy the moderator reads.
-      return { snapshot: { kind, id, body: r.body, offsetMs: r.offset_ms, authorId: r.author_id, authorName: r.display_name, episodeId: r.episode_id, episodeTitle: r.title, ...(r.voice_url ? { voiceUrl: r.voice_url } : {}), ...(r.transcript ? { voiceText: r.transcript } : {}) }, authorId: r.author_id, gone: false };
+      return { snapshot: { kind, id, body: r.body, offsetMs: r.offset_ms, authorId: r.author_id, authorName: r.display_name, episodeId: r.episode_id, episodeTitle: r.title, ...(r.voice_url ? { voiceUrl: r.voice_url } : {}), ...(r.transcript ? { voiceText: r.transcript } : {}), ...(r.image_url ? { imageUrl: r.image_url } : {}) }, authorId: r.author_id, gone: false };
     }
     case 'clip': {
       const [r] = await db.query<{ caption: string; start_ms: number; end_ms: number; author_id: string; display_name: string; episode_id: string; deleted_at: string | null; removed_at: string | null; title: string }>(

@@ -55,6 +55,7 @@ here or a line does not match its file.
 | `share.ts` | Share card routes: draw a PNG for sharing an episode moment, or lines from its transcript as a quote. |
 | `social.ts` | Episode social poll route: comments and heat curve in one cached answer. |
 | `voice.ts` | Voice post routes: upload a short recording, list, and delete posts. |
+| `comment-image.ts` | Comment image route: the author adds one picture to their comment, kept in the R2 image store. |
 | `likes.ts` | Like routes: like an episode with a note, unlike, my timeline, one account's likes. |
 | `playlists.ts` | Playlist routes: my playlists, one playlist, its order, and an account's public ones. |
 | `voice-comments.ts` | Voice comment route: post a recording of up to 60 seconds as a comment at a moment. |
@@ -173,6 +174,7 @@ here or a line does not match its file.
 | `profiles.ts` | Builds a listener's profile: name, counts, stats and recent public activity. |
 | `voice-posts.ts` | Voice status posts up to 60 seconds, fully deleted after 24 hours. |
 | `voice-comments.ts` | Voice comments: their recording limits, and deleting the audio of removed comments. |
+| `comment-images.ts` | Comment images: deleting them from the store when their comment or their author goes. |
 | `likes.ts` | Likes with a note: like or unlike an episode, a timeline of likes from people you follow. |
 | `playlists.ts` | Listener playlists: make, rename, reorder, share publicly or keep private. |
 | `host-notices.ts` | Host notices: announcements from the shows a listener follows, from their release time. |
@@ -290,6 +292,7 @@ here or a line does not match its file.
 |---|---|
 | `episodes-blob.ts` | Storage for created shows' audio and covers: upload tokens, check, delete. |
 | `voice-blob.ts` | Storage for voice post recordings in Vercel Blob. |
+| `image-store.ts` | Storage for comment images in a Cloudflare R2 bucket, signed by hand (AWS Signature Version 4). |
 
 ### `mail/` — sending email
 

@@ -10,9 +10,13 @@
  * "Reply") · the yellow Post pill — then the episode on a white card with the moment as an
  * accent "At 14:32" line and the ✕ beside it, a borderless serif text box, and the count at the
  * bottom right. Posting, the moment, reply mode, the 2000 limit and the keyboard are unchanged.
+ *
+ * M20 US9 (FR-053, FR-054): "Add a picture" — one photo, shrunk on the phone — shown only when the
+ * server says images are on (gate G1). The comment posts first; the picture follows it. If the
+ * picture fails, the comment stays and the listener is told.
  */
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import { KeyboardAvoidingView } from '@/ui/lib/keyboard-avoiding-view';
 import { Pressable } from '@/ui/lib/pressable';
@@ -27,12 +31,16 @@ import { hit } from '@/design';
 import { mmss } from '@/ui/kit/format';
 import { useSocial } from '@/social/context';
 import type { ComposerState } from '@/social/composer';
-import { useStores } from '@/ui/shell/providers';
+import { useStores, useToast } from '@/ui/shell/providers';
+import { Image } from '@/ui/lib/image';
+import { useCommentExtrasApi } from '@/social/comment-extras-api';
+import { pickCommentImage, type PickedCommentImage } from '@/social/comment-image';
 import { useColours } from '@/ui/kit/useColours';
 
 /** The ✕ is a 48 pt square (B draws 44; the floor is 48). */
 const CLOSE = { width: hit.min, height: hit.min };
 const BOX = { minHeight: 120, maxHeight: 240 };
+const THUMB = { width: 64, height: 64, borderRadius: 12 };
 
 export function ComposerSheet(props: {
   initial: ComposerState;
@@ -45,6 +53,17 @@ export function ComposerSheet(props: {
   const [state, setState] = useState<ComposerState>(props.initial);
   const [error, setError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
+  const extras = useCommentExtrasApi();
+  const toast = useToast();
+  const [imagesOn, setImagesOn] = useState(false);
+  const [picture, setPicture] = useState<PickedCommentImage | undefined>(undefined);
+  useEffect(() => { let live = true; void extras.imagesOn().then((on) => { if (live) setImagesOn(on); }); return () => { live = false; }; }, [extras]);
+  const addPicture = async () => {
+    const r = await pickCommentImage();
+    if (r.kind === 'ok') setPicture(r.image);
+    else if (r.kind === 'denied') setError('SocialNet needs your photos to add one — allow it in the phone\'s settings.');
+    else if (r.kind === 'too-big') setError('That picture is too big — choose one under 10 MB.');
+  };
   const length = state.body.trim().length;
   const episode = stores.feeds.getEpisode(state.episodeId);
   const show = episode ? stores.feeds.getShow(episode.feedUrl) : undefined;
@@ -56,6 +75,14 @@ export function ComposerSheet(props: {
     const r = await composer.submit(state);
     setBusy(false);
     if (r.kind === 'posted') {
+      if (picture) {
+        try {
+          const blob = await (await fetch(picture.uri)).blob();
+          await extras.postImage(r.comment.id, blob, picture.w, picture.h);
+        } catch {
+          toast('Your comment is posted, but the picture did not upload.');
+        }
+      }
       bump(state.episodeId);
       props.onPosted();
       props.onClose();
@@ -115,6 +142,21 @@ export function ComposerSheet(props: {
           />
           </Textarea>
           {error ? <Text className="text-accent text-meta">{error}</Text> : null}
+          {imagesOn ? (
+            picture ? (
+              <Box className="flex-row items-center gap-row">
+                <Image source={{ uri: picture.uri }} style={THUMB} accessibilityLabel="The picture you added" />
+                <Pressable onPress={() => setPicture(undefined)} accessibilityRole="button" accessibilityLabel="Remove the picture" className="justify-center px-row" style={{ minHeight: hit.min }}>
+                  <Text className="text-accent text-body font-bold">Remove</Text>
+                </Pressable>
+              </Box>
+            ) : (
+              <Pressable onPress={() => void addPicture()} accessibilityRole="button" accessibilityLabel="Add a picture" className="self-start flex-row items-center gap-2 justify-center" style={{ minHeight: hit.min }}>
+                <Icon name="image-outline" size={20} color={c.accent} />
+                <Text className="text-accent text-body font-bold">Add a picture</Text>
+              </Pressable>
+            )
+          ) : null}
           <Text className={length > 2000 ? 'text-accent text-meta text-right' : 'text-muted text-meta text-right'}>{length} / 2000</Text>
         </ScrollView>
         </ActionsheetContent>

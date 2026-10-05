@@ -62,6 +62,8 @@ import { chat } from './routes/social/chat.ts';
 import { share } from './routes/social/share.ts';
 import { episodePages } from './pages/episode.ts';
 import { voiceBlobStorage, type VoiceStorage } from './storage/voice-blob.ts';
+import { r2ImageStorage, type ImageStorage } from './storage/image-store.ts';
+import { commentImage, COMMENT_IMAGE_MAX_BYTES } from './routes/social/comment-image.ts';
 import { VOICE_MAX_BYTES } from './db/repos/social/voice-posts.ts';
 import { AVATAR_MAX_BYTES } from './db/repos/account/profile.ts';
 import { admin } from './routes/admin/index.ts';
@@ -96,6 +98,10 @@ export type AppDeps = {
   voiceStorage?: VoiceStorage;
   /** M19 US1: where profile photos go (tests pass a fake). */
   avatarStorage?: VoiceStorage;
+  /** M20 US9: where comment images go (default: R2 from env R2_*; unset → 503 storage_off). */
+  imageStorage?: ImageStorage;
+  /** M20 US9: the total the image store may hold (env IMAGE_CEILING_BYTES; default 5 GB, half of R2's free 10 GB). */
+  imageCeilingBytes?: number;
   /** M12 FR-034: the fetch the share card uses for artwork. Default: global fetch. */
   imageFetch?: typeof fetch;
 };
@@ -117,7 +123,10 @@ export function createApp(deps: AppDeps) {
   const adminBulkLimit = bodyLimit({ maxSize: 64 * 1024 });
   // M19 US1: a profile photo is at most 200 KB (constitution v2.6.0).
   const avatarLimit = bodyLimit({ maxSize: AVATAR_MAX_BYTES, onError: (c) => c.json(new ApiError('too_large', 'A profile photo is at most 200 KB.').body(), 413) });
+  // M20 US9: a comment image is at most 1 000 000 bytes after the phone shrinks it.
+  const imageLimit = bodyLimit({ maxSize: COMMENT_IMAGE_MAX_BYTES, onError: (c) => c.json(new ApiError('too_large', 'An image is at most 1 MB.').body(), 413) });
   app.use('*', (c, next) => (c.req.path === '/v1/feedback' ? feedbackLimit(c, next)
+    : c.req.method === 'POST' && /^\/v1\/comments\/[^/]+\/image$/.test(c.req.path) ? imageLimit(c, next)
     : c.req.path === '/v1/admin/accounts' ? adminBulkLimit(c, next)
     : c.req.path === '/v1/me/avatar' && c.req.method === 'PUT' ? avatarLimit(c, next)
     : c.req.method === 'POST' && (c.req.path === '/v1/voice-posts' || /^\/v1\/episodes\/[^/]+\/comments\/voice$/.test(c.req.path)) ? voiceLimit(c, next) : small(c, next)));
@@ -145,6 +154,8 @@ export function createApp(deps: AppDeps) {
   // M19 US1: photos go to the launch-image store (constitution v2.6.0), put by the server like voice posts.
   const avatarStorage = deps.avatarStorage ?? voiceBlobStorage(process.env['EPISODES_READ_WRITE_TOKEN']);
   const imageFetch = deps.imageFetch ?? fetch;
+  const imageStorage = deps.imageStorage ?? r2ImageStorage(process.env);
+  const imageCeilingBytes = deps.imageCeilingBytes ?? (Number(process.env['IMAGE_CEILING_BYTES']) || 5_000_000_000);
   const publicBase = deps.publicBase ?? process.env['PUBLIC_API_URL'] ?? 'https://socialmorning-api.vercel.app';
 
   app.use('*', async (c, next) => {
@@ -159,6 +170,8 @@ export function createApp(deps: AppDeps) {
     c.set('hostedCeilingBytes', deps.hostedCeilingBytes ?? DEFAULT_CEILING_BYTES);
     c.set('voice', voiceStorage);
     c.set('avatars', avatarStorage);
+    c.set('images', imageStorage);
+    c.set('imageCeilingBytes', imageCeilingBytes);
     c.set('imageFetch', imageFetch);
     await next();
   });
@@ -236,6 +249,8 @@ export function createApp(deps: AppDeps) {
   app.route('/v1/episodes', comments);
   app.route('/v1/episodes', social);
   app.route('/v1/episodes', reactions);
+  // M20 US9: before commentById, so GET /v1/comments/images is not read as a comment id.
+  app.route('/v1/comments', commentImage);
   app.route('/v1/comments', commentById);
   app.route('/v1/episodes', episodeClips);
   app.route('/v1/clips', clipById);

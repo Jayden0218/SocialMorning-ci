@@ -53,6 +53,8 @@ export type AuthEnv = { Variables: { db: Db; pepper: string; listener?: Listener
   voice: import('../storage/voice-blob.ts').VoiceStorage;
   /** M19 US1: profile photos — the launch-image store (constitution v2.6.0), same put/remove shape as voice. */
   avatars: import('../storage/voice-blob.ts').VoiceStorage;
+  /** M20 US9: comment images — the R2 bucket named at gate G1 (constitution v3.2.0); `ready` false until its env is set. */
+  images: import('../storage/image-store.ts').ImageStorage; imageCeilingBytes: number;
   /** M12 FR-034: the fetch the share card uses for artwork (tests inject a fake). */
   imageFetch: typeof fetch } };
 

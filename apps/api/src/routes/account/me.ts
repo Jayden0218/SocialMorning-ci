@@ -9,6 +9,7 @@ import { ApiError } from '../../errors.ts';
 import { deleteAccount } from '../../db/repos/account/delete-account.ts';
 import { checkCode, consumeCode } from '../../auth/codes.ts';
 import { removeAllFor } from '../../db/repos/social/voice-posts.ts';
+import { removeImagesFor } from '../../db/repos/social/comment-images.ts';
 import { AGE_RANGES, AVATAR_CEILING_BYTES, AVATAR_MAX_BYTES, GENDERS, avatarBytesOthers, currentAvatar, imageKind, myProfile, setAvatar, updateProfile } from '../../db/repos/account/profile.ts';
 
 export const me = new Hono<AuthEnv>();
@@ -99,6 +100,8 @@ me.delete('/', requireAuth, json(deleteBody), async (c) => {
   }
   // M12 FR-104: the listener's voice recordings leave the store before the rows cascade away.
   try { await removeAllFor(db, c.get('voice'), listener.id); } catch (e) { console.error('voice cleanup on delete', e); }
+  // M20 US9 (FR-055): the listener's comment images leave the store before the account goes.
+  try { await removeImagesFor(db, c.get('images'), listener.id); } catch (e) { console.error('image cleanup on delete', e); }
   // M19 US1: the photo is deleted with the account (constitution v2.6.0).
   try { const a = await currentAvatar(db, listener.id); if (a) await c.get('avatars').remove(a); } catch (e) { console.error('avatar cleanup on delete', e); }
   await deleteAccount(db, listener.id);

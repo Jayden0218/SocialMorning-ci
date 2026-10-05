@@ -1,0 +1,43 @@
+// Comment images: deleting them from the store when their comment or their author goes.
+/**
+ * M20 US9 (spec FR-055; constitution v3.2.0, G-M20-8). An image is deleted from storage — not
+ * merely hidden — when its author deletes the comment (the route does it at once), when moderation
+ * removes it (the internal cycle's sweep, which also retries a failed delete), and, for every image
+ * of an account, before the account is deleted. A comment its host hid keeps its image: its author
+ * still sees it.
+ */
+import type { Db } from '../../db.ts';
+import type { ImageStorage } from '../../../storage/image-store.ts';
+
+export const IMAGE_SWEEP_BATCH = 100;
+
+/** Removed or deleted comments still holding an image: delete each file, then forget it. */
+export async function sweepRemovedImages(db: Db, store: ImageStorage): Promise<{ deleted: number; failed: number }> {
+  if (!store.ready) return { deleted: 0, failed: 0 };
+  const rows = await db.query<{ id: string; image_path: string }>(
+    `SELECT id, image_path FROM comments WHERE image_path IS NOT NULL AND (removed_at IS NOT NULL OR deleted_at IS NOT NULL) LIMIT ${IMAGE_SWEEP_BATCH}`,
+  );
+  return forget(db, store, rows);
+}
+
+/** Every image this listener added, before their account is deleted. */
+export async function removeImagesFor(db: Db, store: ImageStorage, listenerId: string): Promise<{ deleted: number; failed: number }> {
+  if (!store.ready) return { deleted: 0, failed: 0 };
+  const rows = await db.query<{ id: string; image_path: string }>('SELECT id, image_path FROM comments WHERE author_id = $1 AND image_path IS NOT NULL', [listenerId]);
+  return forget(db, store, rows);
+}
+
+async function forget(db: Db, store: ImageStorage, rows: { id: string; image_path: string }[]): Promise<{ deleted: number; failed: number }> {
+  let deleted = 0;
+  let failed = 0;
+  for (const r of rows) {
+    try {
+      await store.remove(r.image_path);
+      await db.query('UPDATE comments SET image_url = NULL, image_path = NULL, image_w = NULL, image_h = NULL, image_bytes = NULL WHERE id = $1', [r.id]);
+      deleted++;
+    } catch {
+      failed++;
+    }
+  }
+  return { deleted, failed };
+}

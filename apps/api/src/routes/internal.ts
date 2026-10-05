@@ -10,6 +10,7 @@ import { fanOutNewEpisode, NEW_WINDOW_HOURS, sendPopular } from '../db/repos/acc
 import { sweepImages } from '../db/repos/account/feedback.ts';
 import { sweepExpired } from '../db/repos/social/voice-posts.ts';
 import { sweepRemovedVoice } from '../db/repos/social/voice-comments.ts';
+import { sweepRemovedImages } from '../db/repos/social/comment-images.ts';
 import { picksForDay } from '@socialmorning/social-core';
 
 /**
@@ -106,6 +107,11 @@ export function createInternalRoute(jobToken: string | undefined) {
           voiceDeleted += v.deleted;
           if (v.failed > 0) failed.push(`voice comments: ${v.failed} blob(s) not deleted, kept for the next cycle`);
         } catch (e) { failed.push(`voice comments: ${e instanceof Error ? e.message : String(e)}`); }
+        // M20 US9 (FR-055, G-M20-8): a removed or deleted comment's image leaves the R2 store.
+        try {
+          const im = await sweepRemovedImages(db, c.get('images'));
+          if (im.failed > 0) failed.push(`comment images: ${im.failed} not deleted, kept for the next cycle`);
+        } catch (e) { failed.push(`comment images: ${e instanceof Error ? e.message : String(e)}`); }
         try {
           const day = picksForDay(cat.picks, cat.today());
           const p = day.picks[0];

@@ -21,7 +21,7 @@ function Snapshot({ item }: { item: Item }) {
   const s = item.snapshot;
   switch (item.targetKind) {
     // M20 US3 (FR-010): a voice comment shows its recording and the text its author posted with it.
-    case 'comment': return <><blockquote className="row-body">{str(s, 'body') || (str(s, 'voiceUrl') ? '(voice)' : '(empty)')}</blockquote>{str(s, 'voiceUrl') ? <><audio controls preload="none" src={str(s, 'voiceUrl')} /><div className="row-sub">Text of the voice: {str(s, 'voiceText') || '(no text)'}</div></> : null}<div className="row-sub">by {str(s, 'authorName') || '?'} on “{str(s, 'episodeTitle')}”</div></>;
+    case 'comment': return <><blockquote className="row-body">{str(s, 'body') || (str(s, 'voiceUrl') ? '(voice)' : '(empty)')}</blockquote>{str(s, 'voiceUrl') ? <><audio controls preload="none" src={str(s, 'voiceUrl')} /><div className="row-sub">Text of the voice: {str(s, 'voiceText') || '(no text)'}</div></> : null}{str(s, 'imageUrl') ? <img src={str(s, 'imageUrl')} alt="The reported comment's image" style={{ maxWidth: 320, maxHeight: 320 }} /> : null}<div className="row-sub">by {str(s, 'authorName') || '?'} on “{str(s, 'episodeTitle')}”</div></>;
     case 'clip': return <><blockquote className="row-body">{str(s, 'caption') || '(no caption)'}</blockquote><div className="row-sub">clip by {str(s, 'authorName') || '?'} on “{str(s, 'episodeTitle')}”</div></>;
     case 'profile': return <div className="row-body">Profile: {str(s, 'displayName') || item.targetId}</div>;
     case 'show': return <div className="row-body">Show: {str(s, 'showTitle') || item.targetId}</div>;

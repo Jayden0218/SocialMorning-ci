@@ -211,6 +211,8 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `usePoll.ts` | Runs the comment check while the screen is open and online. |
 | `voice.ts` | Size and length limits for short voice status posts. |
 | `voice-text.ts` | Records a voice post or comment while the phone turns the speech into text, then shrinks the audio. |
+| `comment-image.ts` | Lets you pick one photo for a comment and shrinks it to a JPEG the server takes. |
+| `image-fit.ts` | The size math for comment pictures: shrink to fit, and the thumbnail's box. |
 | `who.ts` | Writes friend names like "Ana, Bo and 3 others". |
 
 ### `storage/` — The phone's local database and its data shapes.
@@ -326,6 +328,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `VoiceComment.tsx` | A voice comment's row: a play/stop disc, a thin bar and its length; pauses the episode. |
 | `VoiceRecord.tsx` | The mic beside a comment box: tap to record a voice comment up to 60 s, then post it. |
 | `VoiceTextReview.tsx` | After a voice recording: the text the phone heard, editable, with Post and Cancel. |
+| `CommentImage.tsx` | A comment's picture: a small one in the row, tap for the full one; hidden in teen mode until tapped. |
 
 ### `ui/clips/` — Short parts of an episode that listeners save and share
 

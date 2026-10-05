@@ -37,6 +37,7 @@ import { countryName } from '@/ui/me/country';
 import { Avatar } from '@/ui/kit/Avatar';
 import { extrasOf, replyCountOf } from '@/social/comment-extras-api';
 import { VoiceComment, type PlayVoice } from './VoiceComment';
+import { CommentImage } from './CommentImage';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
 const AVATAR = { width: 36, height: 36 };
@@ -196,6 +197,7 @@ export function CommentRow(props: {
           {c.body}
         </Text>
         {extra.voice && props.playVoice ? <VoiceComment voice={extra.voice} play={props.playVoice} /> : null}
+        {extra.image ? <CommentImage image={extra.image} /> : null}
         {(c.body ?? '').length > 320 ? (
           <Pressable onPress={() => setOpen((o) => !o)} accessibilityRole="button" className="self-start justify-center" style={TAP}>
             <Text className="text-accent text-xs font-semibold">{open ? 'Less' : 'More'}</Text>
