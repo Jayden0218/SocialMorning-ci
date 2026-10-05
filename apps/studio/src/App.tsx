@@ -10,6 +10,7 @@ import { Episodes } from './pages/Episodes';
 import { Episode } from './pages/Episode';
 import { Comments } from './pages/Comments';
 import { Subscribers } from './pages/Subscribers';
+import { Demographics } from './pages/Demographics';
 import { Announcements } from './pages/Announcements';
 import { Polls } from './pages/Polls';
 import { Settings } from './pages/Settings';
@@ -46,6 +47,7 @@ export function App() {
       <Route path="/s/:show/episodes/:id" element={<Signed><ShowPage page={(s) => <Episode show={s} />} /></Signed>} />
       <Route path="/s/:show/subscribers" element={<Signed><ShowPage page={(s) => <Subscribers show={s} />} /></Signed>} />
       <Route path="/s/:show/subscribers/:tab" element={<Signed><ShowPage page={(s) => <Subscribers show={s} />} /></Signed>} />
+      <Route path="/s/:show/demographics" element={<Signed><ShowPage page={(s) => <Demographics show={s} />} /></Signed>} />
       <Route path="/s/:show/announcements" element={<Signed><ShowPage page={(s) => <Announcements show={s} />} /></Signed>} />
       <Route path="/s/:show/polls" element={<Signed><ShowPage page={(s) => <Polls show={s} />} /></Signed>} />
       <Route path="/s/:show/tips" element={<Signed><ShowPage page={(s) => <Tips show={s} />} /></Signed>} />

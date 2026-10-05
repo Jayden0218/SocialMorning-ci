@@ -262,3 +262,7 @@ button { font: inherit; }
 .acting-banner { justify-content: space-between; flex-wrap: wrap; }
 .section-list li { align-items: center; }
 .radio { display: flex; gap: 8px; align-items: center; min-height: 44px; cursor: pointer; }
+/* M19 US12: announcement picture thumbnails. */
+.thumbs { display: flex; flex-wrap: wrap; gap: 10px; margin: 4px 0 10px; }
+.thumb-box { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 13px; }
+.thumb { width: 88px; height: 88px; object-fit: cover; border-radius: 10px; border: 1px solid var(--separator); background: var(--surface); }

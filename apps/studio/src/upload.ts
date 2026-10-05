@@ -44,3 +44,14 @@ export async function uploadLaunchImage(file: File, onProgress: (pct: number) =>
   const r = await put(pathname, file, { access: 'public', token, contentType: file.type, onUploadProgress: (e) => onProgress(Math.round(e.percentage)) });
   return r.url;
 }
+
+/** M19 US12: an announcement picture (JPEG/PNG, ≤ 5 MB) — a one-path token from the show, then `put`. */
+export const ANNOUNCEMENT_TYPES = ['image/jpeg', 'image/png'];
+export const MAX_ANNOUNCEMENT_BYTES = 5 * 1024 * 1024;
+export async function uploadAnnouncementImage(showKey: string, file: File, onProgress: (pct: number) => void): Promise<string> {
+  const { pathname, token } = await api<{ pathname: string; token: string }>(`/v1/studio/shows/${showKey}/announcements/uploads`, {
+    method: 'POST', body: { contentType: file.type, size: file.size },
+  });
+  const r = await put(pathname, file, { access: 'public', token, contentType: file.type, onUploadProgress: (e) => onProgress(Math.round(e.percentage)) });
+  return r.url;
+}

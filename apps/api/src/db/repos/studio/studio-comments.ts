@@ -24,12 +24,16 @@ export type StudioComment = {
   replies: number;
   /** Written by the show's owner or a helper — they cannot be muted on their own show. */
   byTeam: boolean;
+  /** M19 US5: pinned first in the app; voice comments carry their recording. */
+  pinned: boolean;
+  voice?: { url: string; ms: number };
 };
 
 type Row = {
   id: string; episode_id: string; title: string; author_id: string | null; display_name: string | null; body: string | null;
   offset_ms: number | null; created_at: Date | string; parent_id: string | null;
   deleted_at: Date | string | null; removed_at: Date | string | null; host_hidden_at: Date | string | null; replies: number | string; by_team: boolean;
+  pinned_at: Date | string | null; voice_url: string | null; voice_ms: number | null;
 };
 
 const PAGE = 30;
@@ -43,6 +47,8 @@ const toStudio = (r: Row): StudioComment => {
     body: shown ? r.body : null,
     state, offsetMs: shown ? r.offset_ms : null, createdAt: new Date(r.created_at).toISOString(),
     parentId: r.parent_id, replies: Number(r.replies), byTeam: r.by_team === true,
+    pinned: shown && r.pinned_at !== null,
+    ...(shown && r.voice_url && r.voice_ms ? { voice: { url: r.voice_url, ms: Number(r.voice_ms) } } : {}),
   };
 };
 
@@ -52,7 +58,7 @@ export async function listShowComments(
 ): Promise<{ items: StudioComment[]; next?: string }> {
   const rows = await db.query<Row>(
     `SELECT c.id, c.episode_id, e.title, c.author_id, l.display_name, c.body, c.offset_ms, c.created_at, c.parent_id,
-            c.deleted_at, c.removed_at, c.host_hidden_at,
+            c.deleted_at, c.removed_at, c.host_hidden_at, c.pinned_at, c.voice_url, c.voice_ms,
             (SELECT count(*) FROM comments r WHERE r.parent_id = c.id) AS replies,
             (EXISTS (SELECT 1 FROM creator_claims cl WHERE cl.feed_url = e.feed_url AND cl.status = 'proven' AND cl.listener_id = c.author_id)
               OR EXISTS (SELECT 1 FROM show_members m WHERE m.feed_url = e.feed_url AND m.listener_id = c.author_id)) AS by_team

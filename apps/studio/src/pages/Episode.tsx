@@ -1,9 +1,10 @@
-// One episode's page: its numbers, reaction curve, comments and take-down button.
+// One episode's page: its numbers, reaction curve, retention, comments and take-down button.
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { ConfirmDialog } from '../shell/ConfirmDialog';
 import { api, HttpError, type Show } from '../api';
 import { HeatCurve, MinuteBars } from '../charts/HeatCurve';
+import { RetentionChart } from '../charts/Retention';
 import { mmss, num, pct, shortDate } from '../format';
 import { PageHead } from '../shell/Page';
 import { StatCard } from '../shell/StatCard';
@@ -12,7 +13,9 @@ import { useLoad } from '../useLoad';
 import { CommentList } from './Comments';
 import type { EpisodeRow } from './types';
 
-type Detail = { episode: EpisodeRow & { durationMs: number | null }; heat: number[]; commentsByMinute: { minute: number; count: number }[] };
+type Detail = { episode: EpisodeRow & { durationMs: number | null }; heat: number[]; commentsByMinute: { minute: number; count: number }[];
+  /** M19 US12: share (0–1) of starters still listening, one per minute; people listening right now. */
+  retention?: number[]; listeningNow?: number };
 
 /** One episode: its numbers, where listeners react, and its comments (FR-013). */
 export function Episode({ show }: { show: Show }) {
@@ -31,6 +34,7 @@ export function Episode({ show }: { show: Show }) {
         <StatCard label="Completion" value={pct(e.completionRate)} />
         <StatCard label="Comments" value={num(e.comments)} />
         <StatCard label="Likes" value={num(e.likes)} />
+        <StatCard label="Listening now" value={num(d.data.listeningNow ?? 0)} />
       </section>
       <div className="grid-2" style={{ marginTop: 0 }}>
         <section className="card" aria-labelledby="heat-h">
@@ -42,6 +46,12 @@ export function Episode({ show }: { show: Show }) {
           {d.data.commentsByMinute.length === 0 ? <Empty title="No timed comments yet" /> : <MinuteBars items={d.data.commentsByMinute} />}
         </section>
       </div>
+      <section className="card" style={{ marginTop: 16 }} aria-labelledby="ret-h">
+        <h2 id="ret-h">Retention</h2>
+        {(d.data.retention ?? []).length === 0
+          ? <Empty title="No retention yet">When listeners play this episode, the share still listening at each minute appears here.</Empty>
+          : <RetentionChart retention={d.data.retention ?? []} />}
+      </section>
       <section className="card" style={{ marginTop: 16 }} aria-labelledby="ec-h">
         <h2 id="ec-h">Comments on this episode</h2>
         <CommentList show={show} episodeId={id} />

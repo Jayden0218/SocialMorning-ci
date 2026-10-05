@@ -3,6 +3,9 @@
  * Studio API (`/v1/studio/*`) — US2: Data
  */
 import { ApiError } from '../../errors.ts';
+import { retention } from '../../db/repos/studio/retention.ts';
+import { demographics } from '../../db/repos/studio/demographics.ts';
+import { listeningNow } from '../../db/repos/social/live-listeners.ts';
 import { EPISODE_SORTS, alsoFollow, episodeCsv, episodeDetail, episodeStats, sortEpisodes, trend, trendCsv, validTz, yesterday, type EpisodeSort } from '../../db/repos/studio/studio-numbers.ts';
 import type { Hono } from 'hono';
 import { days, metric } from './common.ts';
@@ -39,10 +42,16 @@ export function registerData(studio: Hono<StudioEnv>): void {
   });
 
   studio.get('/shows/:show/episodes/:id', async (c) => {
-    const d = await episodeDetail(c.get('db'), c.get('show').feedUrl, c.req.param('id'));
+    const db = c.get('db');
+    const d = await episodeDetail(db, c.get('show').feedUrl, c.req.param('id'));
     if (!d) throw new ApiError('not_found', 'No such episode on this show.');
-    return c.json(d);
+    // M19 US12 (FR-070): who is still listening at each minute, and how many are listening now (anonymous, as on the phone).
+    const [ret, now] = await Promise.all([retention(db, c.req.param('id'), d.episode.durationMs), listeningNow(db, c.req.param('id'))]);
+    return c.json({ ...d, retention: ret, listeningNow: now });
   });
+
+  /** M19 US12 (FR-073): age range, gender and country totals of subscribers; groups under 10 read '<10'. */
+  studio.get('/shows/:show/demographics', async (c) => c.json(await demographics(c.get('db'), c.get('show').feedUrl)));
 
   studio.get('/shows/:show/export/trend.csv', async (c) => {
     const m = metric(c.req.query('metric'));

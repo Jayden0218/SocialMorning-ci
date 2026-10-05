@@ -25,10 +25,11 @@ missing here or a line does not match its file.
 
 | File | What it does |
 |---|---|
-| `Announcements.tsx` | Page where a creator writes announcements and sends them to listeners. |
-| `Comments.tsx` | Page listing all comments on a show, with reply, hide and mute. |
+| `Announcements.tsx` | Page where a creator writes announcements with pictures, schedules them and sends them to listeners. |
+| `Comments.tsx` | Page listing all comments on a show, with reply, hide, pin and mute. |
+| `Demographics.tsx` | Page showing who subscribes: total, age ranges, genders and countries, groups under 10 hidden. |
 | `Data.tsx` | Page with a show's numbers, trends and an episode table to download. |
-| `Episode.tsx` | One episode's page: its numbers, reaction curve, comments and take-down button. |
+| `Episode.tsx` | One episode's page: its numbers, reaction curve, retention, comments and take-down button. |
 | `Episodes.tsx` | Page listing every episode of the show with its numbers. |
 | `Home.tsx` | The Studio home page: totals, a trend chart and the latest activity. |
 | `Invite.tsx` | Page an invite link opens, where a person accepts becoming a show host. |
@@ -89,5 +90,6 @@ missing here or a line does not match its file.
 | File | What it does |
 |---|---|
 | `HeatCurve.tsx` | Draws an episode's reaction curve and per-minute bars. |
+| `Retention.tsx` | Draws an episode's retention: the share of starters still listening at each minute. |
 | `Small.tsx` | Small charts: daily subscribes and unsubscribes, and listening by hour. |
 | `TrendChart.tsx` | Draws a number over time as a line chart, plus a screen-reader table. |

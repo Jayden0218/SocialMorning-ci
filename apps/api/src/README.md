@@ -228,6 +228,8 @@ here or a line does not match its file.
 | `studio-roles.ts` | Decides who may manage which show in the Studio: owner or helper. |
 | `studio-subscribers.ts` | A show's subscribers: totals, trend, listening hours, names, and muted listeners. |
 | `studio-tips.ts` | Lists tips a show received, leaving out refunded purchases. |
+| `retention.ts` | Retention: the share of an episode's listeners still listening at each minute. |
+| `demographics.ts` | Demographics: age range, gender and country totals of a show's subscribers, never under 10. |
 
 ### `db/repos/admin/` — what the Admin pages read and write
 

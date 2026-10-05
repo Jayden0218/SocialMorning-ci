@@ -1,4 +1,4 @@
-// Page listing all comments on a show, with reply, hide and mute.
+// Page listing all comments on a show, with reply, hide, pin and mute.
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { api, HttpError, type Show } from '../api';
@@ -14,6 +14,8 @@ export type StudioComment = {
   id: string; episodeId: string; episodeTitle: string; author: { id: string; displayName: string } | null;
   body: string | null; state: 'visible' | 'host_hidden' | 'removed' | 'deleted'; offsetMs: number | null;
   createdAt: string; parentId: string | null; replies: number; byTeam?: boolean;
+  /** M19 US12: pinned to the top of its episode's comments in the app (top-level only). */
+  pinned?: boolean; voice?: { url: string; ms: number };
 };
 
 const STATE: Record<StudioComment['state'], string> = { visible: '', host_hidden: 'Hidden by you', removed: 'Removed by moderation', deleted: 'Deleted by its author' };
@@ -67,9 +69,11 @@ function CommentItem({ show, c, showEpisode, onChanged }: { show: Show; c: Studi
         <span>{shortDate(c.createdAt)}</span>
         {c.parentId ? <span className="pill">Reply</span> : null}
         {c.byTeam ? <span className="pill">Your team</span> : null}
+        {c.pinned ? <span className="pill pill-warn">Pinned</span> : null}
         {STATE[c.state] ? <span className={`pill${c.state === 'host_hidden' ? ' pill-warn' : ''}`}>{STATE[c.state]}</span> : null}
       </div>
-      <p className="comment-body">{c.body ?? <i className="muted">No text</i>}</p>
+      <p className="comment-body">{c.body ?? (c.voice ? null : <i className="muted">No text</i>)}</p>
+      {c.voice ? <audio controls preload="none" src={c.voice.url} aria-label={`Voice comment, ${mmss(c.voice.ms)}`} /> : null}
       {error ? <p className="error" role="alert">{error}</p> : null}
       {sent ? <p className="muted" role="status">Reply sent — listeners see it with the Host mark.</p> : null}
       {live ? (
@@ -78,6 +82,12 @@ function CommentItem({ show, c, showEpisode, onChanged }: { show: Show; c: Studi
           {c.state === 'visible'
             ? <button type="button" className="linkish" onClick={() => setConfirm('hide')}>Hide</button>
             : <button type="button" className="linkish" onClick={() => setConfirm('unhide')}>Un-hide</button>}
+          {c.parentId === null && c.state === 'visible' && c.author ? (
+            <button type="button" className="linkish" disabled={busy}
+              onClick={() => { void act(() => api(`/v1/studio/shows/${show.key}/comments/${c.id}/${c.pinned ? 'unpin' : 'pin'}`, { method: 'POST' }), onChanged); }}>
+              {c.pinned ? 'Unpin' : 'Pin'}
+            </button>
+          ) : null}
           {c.author && !c.byTeam && !muted ? <button type="button" className="linkish" onClick={() => setMuting(true)}>Mute {c.author.displayName}</button> : null}
           {muted ? <span className="muted" role="status">Muted on your show</span> : null}
         </div>
