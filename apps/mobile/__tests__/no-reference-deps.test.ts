@@ -100,7 +100,7 @@ const HAPTICS_ADDITIONS = ['expo-haptics'];
  * by one as their wave needs them. W2: speech-to-text for voice posts and comments. MIT (LICENSES.md).
  * The break that turns it red: add any package not named here.
  */
-const M20_ADDITIONS = ['expo-speech-recognition'];
+const M20_ADDITIONS: string[] = [];
 
 it('no reference dependency is installed, anywhere', () => {
   const installed = new Set([
