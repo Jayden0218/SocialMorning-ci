@@ -93,7 +93,7 @@ const FEEDBACK_ADDITIONS = ['expo-image-picker', 'expo-image-manipulator'];
 const OUTSIDE_ADDITIONS = ['react-native-android-widget', '@bacons/apple-targets', 'expo-live-activity'];
 /** M17 (research R5): the Editorial fonts — Lora (was Fraunces until 2026-10-04) + Manrope (OFL-1.1), loaded through expo-font. */
 const FONT_ADDITIONS = ['expo-font', '@expo-google-fonts/lora', '@expo-google-fonts/manrope'];
-/** Owner, 2026-10-05: a light tick as the category row is swiped. Pinned to expo-modules-core's 58.0.3; MIT (LICENSES.md). */
+/** Owner, 2026-10-05: a light tick as the category row is swiped. Pinned at 58.0.2: 58.0.3+ drop the android publication version that autolinking 58.0.2 needs (Gradle: "Field 'version' is required", run 37245799305); MIT (LICENSES.md). */
 const HAPTICS_ADDITIONS = ['expo-haptics'];
 
 it('no reference dependency is installed, anywhere', () => {
