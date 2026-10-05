@@ -96,7 +96,7 @@ function lockMeta(ctx: PlayerContext): LockScreenMeta {
 function seekTo(state: PlayerState, ctx: PlayerContext, toMs: Ms): Reduction {
   if (!isPositioned(state)) return { state, ctx, effects: [] };
   // Skip-back on a 10-second episode clamps to 0 rather than going negative.
-  const target = toMs;
+  const target = Math.max(0, toMs);
   const { durationMs } = state;
 
   if (durationMs !== undefined && target >= durationMs) {
@@ -482,6 +482,7 @@ export function reduce(state: PlayerState, event: PlayerEvent, ctx: PlayerContex
       // G-M20-2: only a CHANGE redraws, and only while the lock screen is up (a positioned
       // state); otherwise the line is kept for the next setLockScreen.
       const line = event.text === '' ? null : event.text;
+      if (line === (ctx.line ?? null)) return { state, ctx, effects: [] };
       const next = { ...ctx, line };
       return { state, ctx: next, effects: isPositioned(state) ? [{ kind: 'setLockScreen', meta: lockMeta(next) }] : [] };
     }
