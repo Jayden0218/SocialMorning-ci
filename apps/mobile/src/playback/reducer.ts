@@ -22,6 +22,7 @@ import {
   RETRY_CAP_MS,
   SAVE_EVERY_MS,
   type Effect,
+  type LockScreenMeta,
   type Ms,
   type PlayerContext,
   type PlayerEvent,
@@ -84,6 +85,11 @@ function withPosition(state: PositionedState, positionMs: Ms): PositionedState {
     case 'yielded':
       return { ...state, positionMs };
   }
+}
+
+/** M20 US2: what the lock screen shows — the comment line, when there is one, under the title. */
+function lockMeta(ctx: PlayerContext): LockScreenMeta {
+  return ctx.line ? { ...ctx.meta, artist: ctx.line } : ctx.meta;
 }
 
 /** SEEK and SKIP are the same move; SKIP just computes its target first. */
@@ -149,7 +155,7 @@ export function reduce(state: PlayerState, event: PlayerEvent, ctx: PlayerContex
           positionMs: event.startMs,
           url: event.url,
         },
-        ctx: { loadId, retries: 0, url: event.url, meta: event.meta, rate: ctx.rate },
+        ctx: { loadId, retries: 0, url: event.url, meta: event.meta, rate: ctx.rate, line: null },
         effects: [
           { kind: 'load', url: event.url, startMs: event.startMs },
           { kind: 'saveSession', episodeId: event.episodeId, intent: event.intent },
@@ -195,7 +201,7 @@ export function reduce(state: PlayerState, event: PlayerEvent, ctx: PlayerContex
         // minutes, quietly, and gate item 1 (10 minutes locked) fails looking
         // like a battery problem. See docs/plans/M1-AUDIO-RISKS.md gap 1.
         // M2: setRate before play so the first audible second is already at speed.
-        effects: [{ kind: 'setLockScreen', meta: ctx.meta }, { kind: 'setRate', rate: ctx.rate }, { kind: 'play' }],
+        effects: [{ kind: 'setLockScreen', meta: lockMeta(ctx) }, { kind: 'setRate', rate: ctx.rate }, { kind: 'play' }],
       };
     }
 
@@ -230,7 +236,7 @@ export function reduce(state: PlayerState, event: PlayerEvent, ctx: PlayerContex
           ctx: { ...ctx, retries: 0 },
           effects: [
             { kind: 'seek', toMs: 0 },
-            { kind: 'setLockScreen', meta: ctx.meta },
+            { kind: 'setLockScreen', meta: lockMeta(ctx) },
             { kind: 'play' },
             { kind: 'saveSession', episodeId: state.episodeId, intent: 'play' },
           ],
@@ -250,7 +256,7 @@ export function reduce(state: PlayerState, event: PlayerEvent, ctx: PlayerContex
           },
           ctx: { ...ctx, retries: 0 },
           effects: [
-            { kind: 'setLockScreen', meta: ctx.meta },
+            { kind: 'setLockScreen', meta: lockMeta(ctx) },
             { kind: 'play' },
             { kind: 'saveSession', episodeId: state.episodeId, intent: 'play' },
           ],
@@ -267,7 +273,7 @@ export function reduce(state: PlayerState, event: PlayerEvent, ctx: PlayerContex
           ctx: { ...ctx, loadId, retries: 0 },
           effects: [
             { kind: 'load', url: ctx.url, startMs: positionMs },
-            { kind: 'setLockScreen', meta: ctx.meta },
+            { kind: 'setLockScreen', meta: lockMeta(ctx) },
             { kind: 'play' },
             { kind: 'saveSession', episodeId: state.episodeId, intent: 'play' },
           ],
@@ -470,6 +476,15 @@ export function reduce(state: PlayerState, event: PlayerEvent, ctx: PlayerContex
       // must be written, alongside pause and seek.
       if (!isPositioned(state)) return { state, ctx, effects: [] };
       return { state, ctx, effects: [savePosition(state, false, 'background')] };
+    }
+
+    case 'LOCK_LINE': {
+      // G-M20-2: only a CHANGE redraws, and only while the lock screen is up (a positioned
+      // state); otherwise the line is kept for the next setLockScreen.
+      const line = event.text === '' ? null : event.text;
+      if (line === (ctx.line ?? null)) return { state, ctx, effects: [] };
+      const next = { ...ctx, line };
+      return { state, ctx: next, effects: isPositioned(state) ? [{ kind: 'setLockScreen', meta: lockMeta(next) }] : [] };
     }
 
     case 'APP_FOREGROUND':

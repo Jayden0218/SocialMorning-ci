@@ -29,6 +29,8 @@ export const PREFS = {
   pauseOnPrompts: { key: 'pref.pauseOnPrompts', default: false },
   /** M19 (2026-10-05, research R4): skip silence. Read by `ui/shell/providers.tsx` (at start) and `app/settings/more.tsx`. */
   skipSilence: { key: 'pref.skipSilence', default: false },
+  /** M20 US2 (FR-005): the comment near the listener on the lock screen. Read by `ui/shell/providers.tsx` (the outside bridge, on every check). */
+  lockComments: { key: 'pref.lockComments', default: true },
 } as const;
 
 export type PrefName = keyof typeof PREFS;

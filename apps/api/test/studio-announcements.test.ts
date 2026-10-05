@@ -6,6 +6,8 @@
  *   G-N2 (2 pushes a month; an edit never pushes): in `src/db/repos/studio/announcements.ts` `pushedThisMonth`,
  *        drop the `pushed_at >= date_trunc('month', …)` condition — last month's pushes then use up this month.
  *   G-P1 (one vote each; closed takes none): in `src/db/repos/studio/polls.ts` `vote`, drop the `!p.open` check.
+ *   G-M20-7 (M20 US9, FR-052: a second vote CHANGES the answer, still one vote each): in the same
+ *        `vote`, put back `ON CONFLICT … DO NOTHING` — the second vote is then ignored.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -82,7 +84,7 @@ test('the app sees the latest 3 announcements and the overrides slot on the show
   await t.close();
 });
 
-test('G-P1: one vote per listener; the creator sees live counts; a closed poll takes no vote', async () => {
+test('G-P1 + G-M20-7: one vote per listener, changeable while open; the creator sees live counts; a closed poll takes no vote', async () => {
   const { t, owner, key, sub, quiet } = await setup(false);
   const endsAt = new Date(Date.now() + 3 * 86_400_000).toISOString();
   const bad = await sCall(t, 'POST', `/v1/studio/shows/${key}/polls`, owner, { question: 'Next topic?', options: ['Only one'], endsAt });
@@ -96,17 +98,18 @@ test('G-P1: one vote per listener; the creator sees live counts; a closed poll t
   const v1 = await t.call('POST', `/v1/polls/${id}/vote`, { optionIdx: 1 }, sub.token);
   assert.equal(v1.status, 200);
   const again = (await (await t.call('POST', `/v1/polls/${id}/vote`, { optionIdx: 2 }, sub.token)).json()) as { poll: { myVote: number; total: number } };
-  assert.deepEqual([again.poll.myVote, again.poll.total], [1, 1], 'the first vote stands');
+  assert.deepEqual([again.poll.myVote, again.poll.total], [2, 1], 'a second vote changes the answer and is still one vote');
   await t.call('POST', `/v1/polls/${id}/vote`, { optionIdx: 2 }, quiet.token);
   const seen = (await (await sCall(t, 'GET', `/v1/studio/shows/${key}/polls`, owner)).json()) as { items: { total: number; options: { votes: number }[]; open: boolean }[] };
-  assert.deepEqual([seen.items[0]!.total, seen.items[0]!.options.map((o) => o.votes), seen.items[0]!.open], [2, [0, 1, 1], true]);
+  assert.deepEqual([seen.items[0]!.total, seen.items[0]!.options.map((o) => o.votes), seen.items[0]!.open], [2, [0, 0, 2], true]);
 
   assert.equal((await sCall(t, 'POST', `/v1/studio/shows/${key}/polls/${id}/close`, owner)).status, 204);
   const late = await signUp(t, 'late@example.com', 'Late');
   const closed = await t.call('POST', `/v1/polls/${id}/vote`, { optionIdx: 0 }, late.token);
   assert.equal(closed.status, 409);
+  assert.equal((await t.call('POST', `/v1/polls/${id}/vote`, { optionIdx: 0 }, sub.token)).status, 409, 'no change after closing');
   const app = (await (await t.call('GET', `/v1/shows/extras?feedUrl=${encodeURIComponent(FEED)}`, undefined, sub.token)).json()) as { polls: { open: boolean; myVote: number }[] };
-  assert.deepEqual([app.polls[0]!.open, app.polls[0]!.myVote], [false, 1], 'a closed poll still shows its result for 7 days');
+  assert.deepEqual([app.polls[0]!.open, app.polls[0]!.myVote], [false, 2], 'a closed poll still shows its result for 7 days');
   await t.close();
 });
 

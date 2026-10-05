@@ -21,6 +21,7 @@ import {
   type PlayerEvent,
   type PlayerState,
   type SaveReason,
+  type SkipMs,
 } from './types';
 import type { AdapterEvent, AudioAdapter } from './expo-audio-adapter';
 import type { PositionRow, Stores } from '@/storage/types';
@@ -73,7 +74,9 @@ export type PlayerRuntime = {
   play: () => void;
   pause: () => void;
   seek: (toMs: Ms) => void;
-  skip: (deltaMs: 30_000 | -15_000) => void;
+  skip: (deltaMs: SkipMs) => void;
+  /** M20 US2: the lock-screen comment line (`null` = the show name). */
+  lockLine: (text: string | null) => void;
   /** M2 (FR-012): rate already clamped by player-core. */
   setRate: (rate: number) => void;
   /** M2 (FR-016): the sleep timer's "end of episode" — the next `ended` does not advance the queue. */
@@ -365,6 +368,7 @@ export function createPlayerRuntime(deps: PlayerDeps): PlayerRuntime {
     pause: () => dispatch({ type: 'PAUSE' }),
     seek: (toMs) => dispatch({ type: 'SEEK', toMs }),
     skip: (deltaMs) => dispatch({ type: 'SKIP', deltaMs }),
+    lockLine: (text) => dispatch({ type: 'LOCK_LINE', text }),
     setRate: (rate) => {
       const clamped = clampRate(rate);
       dispatch({ type: 'SET_RATE', rate: clamped });

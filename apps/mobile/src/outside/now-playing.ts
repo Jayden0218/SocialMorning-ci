@@ -1,4 +1,4 @@
-// Works out what widgets show: episode, show, play state, best comment.
+// Works out what widgets and the lock screen show: episode, show, play state, a comment.
 /**
  * M10b US9 — SocialNet outside the app: the home-screen widget (Android + iOS), the iPhone
  * lock-screen live activity, and Siri's "play my latest episode". This file is the pure
@@ -56,6 +56,33 @@ export function bestComment(social: Social): NowPlaying['comment'] {
   }
   const best = [...candidates].sort((a, b) => score(b) - score(a) || a.offsetMs! - b.offsetMs!)[0]!;
   return { author: best.displayName ?? 'A listener', body: best.body!, offsetMs: best.offsetMs! };
+}
+
+/** M20 US2: the lock screen fits about this much under the title. */
+export const LOCK_LINE_MAX = 80;
+/** M20 US2: a comment counts as "near" the listener within this much either side. */
+export const NEAR_WINDOW_MS = 60_000;
+
+/**
+ * M20 US2 (FR-004, FR-005, G-M20-1): the comment for the lock screen — the most-liked comment
+ * within ±`windowMs` of where the listener is; ties go to the nearest, then the earlier.
+ * Blocked, removed, deleted and host-hidden comments never qualify. `undefined` = none near.
+ */
+export function commentNear(social: Social, positionMs: number, windowMs: number = NEAR_WINDOW_MS): NowPlaying['comment'] {
+  const near = social.comments.filter((c) => shown(c) && !c.hiddenByHost && Math.abs(c.offsetMs! - positionMs) <= windowMs);
+  if (near.length === 0) return undefined;
+  const dist = (c: Comment) => Math.abs(c.offsetMs! - positionMs);
+  const best = [...near].sort((a, b) => (b.likeCount ?? 0) - (a.likeCount ?? 0) || dist(a) - dist(b) || a.offsetMs! - b.offsetMs!)[0]!;
+  return { author: best.displayName ?? 'A listener', body: best.body!, offsetMs: best.offsetMs! };
+}
+
+/** M20 US2: the line itself — `“body” — author`, cut at a word with "…" past `max` characters. */
+export function lockLineOf(comment: NonNullable<NowPlaying['comment']>, max: number = LOCK_LINE_MAX): string {
+  const full = `“${comment.body.replace(/\s+/g, ' ').trim()}” — ${comment.author}`;
+  if (full.length <= max) return full;
+  const room = full.slice(0, max - 1);
+  const space = room.lastIndexOf(' ');
+  return `${(space > max / 2 ? room.slice(0, space) : room).trimEnd()}…`;
 }
 
 /**

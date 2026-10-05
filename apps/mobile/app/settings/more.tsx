@@ -1,12 +1,15 @@
 // More settings: import/export shows, queue and playback options, recommendations on/off.
 /**
  * More (更多功能, M10): moving your shows in or out, where one-tap Queue puts an episode,
- * and whether Discover recommends for you. Siri, CarPlay and widgets are not here: each
- * needs native code this Expo app does not have.
+ * and whether Discover recommends for you. The widgets and Siri's "play my latest episode"
+ * (M10b US9, `src/outside/`, `app/play-latest.tsx`) have no switches, so they are not listed
+ * here; CarPlay is not built (M20 Q1 = B: it needs the paid Apple program).
  *
  * M17 (`SettingsMore-B`): the rows are grouped under three serif section titles — Your shows,
  * Playback, Recommendations — each group in its own card with hairlines between rows. No
  * iPhone extras row (owner decision, FR-016). Same switches, same links, same names.
+ *
+ * M20 US2 (FR-005): Playback adds "Comments on lock screen" (on by default).
  *
  * M19 T070 (US7, research R3/R4): Playback adds "Music mode" (pitch correction off, so music
  * at 1.5× sounds like a faster record, not a stretched one).
@@ -39,6 +42,7 @@ export default function MoreSettings(): React.ReactElement {
   const [music, setMusic] = useState(() => getPref(stores.settings, 'musicMode'));
   const [pausePrompts, setPausePrompts] = useState(() => getPref(stores.settings, 'pauseOnPrompts'));
   const [skip, setSkip] = useState(() => getPref(stores.settings, 'skipSilence'));
+  const [lock, setLock] = useState(() => getPref(stores.settings, 'lockComments'));
   const player = usePlayer();
   return (
     <>
@@ -55,6 +59,8 @@ export default function MoreSettings(): React.ReactElement {
         <SwitchRow icon="cellular-outline" label="Allow mobile data for playback" line="Off: on mobile data only downloaded episodes play" value={mobile} onChange={(v) => { setMobile(v); setPref(stores.settings, 'mobilePlayback', v); }} />
         <CardDivider />
         <SwitchRow icon="document-text-outline" label="Show transcript entry on the player" line="The transcript button and the live line under the title" value={transcript} onChange={(v) => { setTranscript(v); setPref(stores.settings, 'transcriptEntry', v); }} />
+        <CardDivider />
+        <SwitchRow icon="chatbubble-ellipses-outline" label="Comments on lock screen" line="A listener's comment from near where you are, under the episode title" value={lock} onChange={(v) => { setLock(v); setPref(stores.settings, 'lockComments', v); }} />
         <CardDivider />
         <SwitchRow icon="musical-notes-outline" label="Music mode" line="Off: voices keep their pitch at any speed. On: the pitch follows the speed, which suits music." value={music} onChange={(v) => { setMusic(v); setPref(stores.settings, 'musicMode', v); player.setMusicMode(v); }} />
         <CardDivider />

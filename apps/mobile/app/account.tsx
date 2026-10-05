@@ -14,9 +14,10 @@
  * information pages as plain rows under a hairline, and Sign out centred at the foot with its
  * confirm unchanged. Every name and destination is the one the list had before.
  *
- * Not here, on purpose: lock-screen live activities, Siri, CarPlay and widgets (each needs
- * native code outside this Expo app), a paid account and tips (the app takes no payments —
- * everything is free).
+ * Not here, on purpose: the widgets, the lock-screen live activity and Siri's "play my latest
+ * episode" (built in M10b US9, `src/outside/`; they have no settings), CarPlay (not built: M20
+ * Q1 = B), and PLUS, paid shows and tips — those live in Wallet (on Me), which on iPhone says
+ * "not available yet" until the paid Apple program (M20 Q1 = B).
  */
 import { Link } from 'expo-router';
 import { ScrollView } from '@/ui/lib/scroll-view';

@@ -68,6 +68,7 @@ import { SleepTimerControl } from '@/ui/player/SleepTimerControl';
 import { Toggle } from '@/ui/kit/Toggle';
 import { ChapterList, CurrentChapter } from '@/ui/player/ChapterList';
 import { TranscriptPane } from '@/ui/player/TranscriptPane';
+import { useQuoteShare } from '@/ui/player/QuoteShare';
 import { getPref } from '@/settings/prefs';
 import { fetchExtras, readExtras, type Extras } from '@/feeds/fetch-extras';
 import { router } from 'expo-router';
@@ -133,6 +134,8 @@ export default function PlayerScreen(): React.ReactElement {
   useEffect(() => { setLooping(player.loop()); }, [player, currentEpisodeId]);
   // M12 FR-033: Share opens a first step (episode link · this moment · picture).
   const [sharing, setSharing] = useState(false);
+  // M20 US1: lines picked from the transcript, shared as the server's quote card.
+  const shareQuote = useQuoteShare();
   // M12 FR-044: the queue opens as a sheet over the player (was a separate page).
   const [queueOpen, setQueueOpen] = useState(false);
   const screen = useWindowDimensions();
@@ -434,7 +437,7 @@ export default function PlayerScreen(): React.ReactElement {
           ) : null}
           {extras?.error ? <Text className="text-xs text-muted">Couldn't load {extras.error.includes('chapters') ? 'chapters' : 'the transcript'}</Text> : null}
           {pane === 'chapters' && extras?.chapters ? <ChapterList chapters={extras.chapters} positionMs={positionMs} onSeek={(ms) => player.seek(ms)} /> : null}
-          {showTranscript && pane === 'transcript' && extras?.transcript ? <TranscriptPane transcript={extras.transcript} positionMs={positionMs} onSeek={(ms) => player.seek(ms)} /> : null}
+          {showTranscript && pane === 'transcript' && extras?.transcript ? <TranscriptPane transcript={extras.transcript} positionMs={positionMs} onSeek={(ms) => player.seek(ms)} durationMs={durationMs} onShareImage={(q) => { void shareQuote(episode, q); }} /> : null}
         </ScrollView>
         <Pressable onPress={() => setMore(false)} accessibilityRole="button" accessibilityLabel="Close" className="items-center justify-center rounded-pill bg-primary mt-1" style={DONE}>
           <Text className="text-sm font-bold text-onPrimary">Done</Text>

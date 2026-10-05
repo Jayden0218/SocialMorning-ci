@@ -95,7 +95,12 @@ export async function googleFont(f: typeof fetch, family: string, weight: 400 | 
   }
 }
 
-export type CardInput = { title: string; show: string | null; atMs?: number; art?: { mime: 'image/png' | 'image/jpeg'; bytes: Uint8Array } };
+export type CardInput = { title: string; show: string | null; atMs?: number; art?: { mime: 'image/png' | 'image/jpeg'; bytes: Uint8Array };
+  /** M20 US1: lines chosen from the transcript, drawn as a quote above a smaller artwork. */
+  quote?: string };
+
+/** M20 US1 (FR-001): the most a quote card carries; the route refuses more. */
+export const QUOTE_MAX = 280;
 
 export const mmss = (ms: number) => {
   const s = Math.floor(ms / 1000);
@@ -110,6 +115,7 @@ type El = { type: string; props: Record<string, unknown> & { style?: Record<stri
 const div = (style: Record<string, unknown>, children?: unknown): El => ({ type: 'div', props: { style: { display: 'flex', ...style }, ...(children !== undefined ? { children } : {}) } });
 
 export function cardTree(c: CardInput): El {
+  if (c.quote) return quoteTree(c, c.quote);
   const art = c.art
     ? { type: 'img', props: { src: `data:${c.art.mime};base64,${Buffer.from(c.art.bytes).toString('base64')}`, width: 760, height: 760, style: { width: 760, height: 760, borderRadius: 36, objectFit: 'cover' } } }
     : div({ width: 760, height: 760, borderRadius: 36, backgroundColor: '#26262b', alignItems: 'center', justifyContent: 'center', color: '#8a8a93', fontSize: 64, fontWeight: 700 }, 'SocialNet');
@@ -118,6 +124,33 @@ export function cardTree(c: CardInput): El {
     div({ flexDirection: 'column', width: '100%', marginTop: 56, flexGrow: 1 }, [
       div({ fontSize: 56, fontWeight: 700, lineHeight: 1.2 }, clip(c.title, 110)),
       ...(c.show ? [div({ fontSize: 38, color: '#b4b4bd', marginTop: 20 }, clip(c.show, 60))] : []),
+    ]),
+    div({ width: '100%', justifyContent: 'space-between', alignItems: 'center', fontSize: 34 }, [
+      div({ fontWeight: 700, color: '#f5f5f7' }, 'SocialNet'),
+      ...(c.atMs !== undefined ? [div({ backgroundColor: '#f5f5f7', color: '#111114', borderRadius: 40, padding: '10px 28px', fontWeight: 700 }, `at ${mmss(c.atMs)}`)] : []),
+    ]),
+  ]);
+}
+
+/**
+ * M20 US1: the quote card — the selected transcript lines large, then a small artwork with the
+ * episode and show, then the same footer as the moment card. Same size, same colours.
+ */
+function quoteTree(c: CardInput, quote: string): El {
+  const text = clip(quote.replace(/\s+/g, ' ').trim(), QUOTE_MAX);
+  const size = text.length > 180 ? 44 : text.length > 90 ? 52 : 62;
+  const art = c.art
+    ? { type: 'img', props: { src: `data:${c.art.mime};base64,${Buffer.from(c.art.bytes).toString('base64')}`, width: 200, height: 200, style: { width: 200, height: 200, borderRadius: 24, objectFit: 'cover' } } }
+    : div({ width: 200, height: 200, borderRadius: 24, backgroundColor: '#26262b', alignItems: 'center', justifyContent: 'center', color: '#8a8a93', fontSize: 30, fontWeight: 700 }, 'SocialNet');
+  return div({ width: CARD_W, height: CARD_H, flexDirection: 'column', backgroundColor: '#111114', color: '#f5f5f7', fontFamily: 'Inter', padding: '112px 80px 64px' }, [
+    div({ fontSize: 160, fontWeight: 700, lineHeight: 0.8, color: '#8a8a93', height: 110 }, '“'),
+    div({ fontSize: size, fontWeight: 700, lineHeight: 1.3, flexGrow: 1 }, text),
+    div({ alignItems: 'center', marginTop: 48, marginBottom: 56 }, [
+      art,
+      div({ flexDirection: 'column', marginLeft: 36, flexShrink: 1 }, [
+        div({ fontSize: 36, fontWeight: 700, lineHeight: 1.2 }, clip(c.title, 70)),
+        ...(c.show ? [div({ fontSize: 30, color: '#b4b4bd', marginTop: 12 }, clip(c.show, 50))] : []),
+      ]),
     ]),
     div({ width: '100%', justifyContent: 'space-between', alignItems: 'center', fontSize: 34 }, [
       div({ fontWeight: 700, color: '#f5f5f7' }, 'SocialNet'),

@@ -52,7 +52,7 @@ here or a line does not match its file.
 | `live.ts` | "Listening now" routes: send a heartbeat and read the live count. |
 | `profiles.ts` | Profile routes: read a listener's profile and set my privacy switch. |
 | `reactions.ts` | Reaction route: toggle a reaction at a moment in an episode. |
-| `share.ts` | Share card route: draws a PNG image for sharing an episode moment. |
+| `share.ts` | Share card routes: draw a PNG for sharing an episode moment, or lines from its transcript as a quote. |
 | `social.ts` | Episode social poll route: comments and heat curve in one cached answer. |
 | `voice.ts` | Voice post routes: upload a short recording, list, and delete posts. |
 | `likes.ts` | Like routes: like an episode with a note, unlike, my timeline, one account's likes. |

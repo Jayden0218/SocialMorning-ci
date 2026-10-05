@@ -1,9 +1,9 @@
-// Share card route: draws a PNG image for sharing an episode moment.
-import { Hono } from 'hono';
+// Share card routes: draw a PNG for sharing an episode moment, or lines from its transcript as a quote.
+import { Hono, type Context } from 'hono';
 import type { AuthEnv } from '../../auth/session.ts';
 import { ApiError } from '../../errors.ts';
 import { getEpisode } from '../../db/repos/library/episodes.ts';
-import { imageKind, renderCard, type CardInput } from '../../share/card.ts';
+import { imageKind, QUOTE_MAX, renderCard, type CardInput } from '../../share/card.ts';
 
 /**
  * M12 FR-034 — mounted at /v1/share. GET /episode/:id.png?t=<ms>: the share card. Public,
@@ -29,8 +29,21 @@ async function artwork(f: typeof fetch, url: string | null): Promise<CardInput['
   }
 }
 
-share.get('/episode/:file', async (c) => {
-  const m = /^([\w-]{1,64})\.png$/.exec(c.req.param('file'));
+share.get('/episode/:file', (c) => drawCard(c));
+
+/**
+ * M20 US1 (FR-001): GET /quote/:id.png?t=<ms>&q=<text> — the same card with lines from the
+ * transcript as a quote. `q` is at most 280 characters (a longer one is refused, not cut, so a
+ * sender never shares words the reader does not see). Public and cached like the moment card.
+ */
+share.get('/quote/:file', (c) => {
+  const q = (c.req.query('q') ?? '').trim();
+  if (q.length === 0 || q.length > QUOTE_MAX) throw new ApiError('validation', `A quote is 1 to ${QUOTE_MAX} characters.`, { fields: ['q'] });
+  return drawCard(c, q);
+});
+
+async function drawCard(c: Context<AuthEnv>, quote?: string): Promise<Response> {
+  const m = /^([\w-]{1,64})\.png$/.exec(c.req.param('file') ?? '');
   if (!m) throw new ApiError('not_found', 'No such card.');
   const db = c.get('db');
   const episode = await getEpisode(db, m[1]!);
@@ -43,7 +56,7 @@ share.get('/episode/:file', async (c) => {
     imageUrl = other?.image_url ?? null;
   }
   const f = c.get('imageFetch');
-  const base: CardInput = { title: episode.title, show: episode.show_title, ...(atMs !== undefined ? { atMs } : {}) };
+  const base: CardInput = { title: episode.title, show: episode.show_title, ...(atMs !== undefined ? { atMs } : {}), ...(quote ? { quote } : {}) };
   const art = await artwork(f, imageUrl);
   let png: Uint8Array;
   try {
@@ -55,4 +68,4 @@ share.get('/episode/:file', async (c) => {
     png = await renderCard(base, f);
   }
   return c.body(png as unknown as ArrayBuffer, 200, { 'content-type': 'image/png', 'cache-control': 'public, max-age=86400' });
-});
+}

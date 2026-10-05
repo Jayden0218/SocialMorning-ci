@@ -35,6 +35,9 @@ export type PlayerState =
 
 export type LockScreenMeta = { title: string; artist: string; artworkUrl?: string };
 
+/** The skips the player accepts: the in-app 15 s / 30 s and the widget's 5 min (M20 US4). */
+export type SkipMs = 30_000 | -15_000 | 300_000 | -300_000;
+
 export type PlayerEvent =
   /** M2: set the playback rate (already clamped by player-core). */
   | { type: 'SET_RATE'; rate: number }
@@ -53,7 +56,8 @@ export type PlayerEvent =
   | { type: 'PLAY' }
   | { type: 'PAUSE' }
   | { type: 'SEEK'; toMs: Ms }
-  | { type: 'SKIP'; deltaMs: 30_000 | -15_000 }
+  /** M20 US4: ±5 min from the widget (and Android Auto, natively). */
+  | { type: 'SKIP'; deltaMs: SkipMs }
   | { type: 'TICK'; positionMs: Ms; durationMs?: Ms }
   | { type: 'BUFFER_START' }
   | { type: 'BUFFER_END' }
@@ -67,7 +71,12 @@ export type PlayerEvent =
   | { type: 'ENDED' }
   | { type: 'ERROR'; message: string }
   | { type: 'APP_BACKGROUND' }
-  | { type: 'APP_FOREGROUND' };
+  | { type: 'APP_FOREGROUND' }
+  /**
+   * M20 US2 (research R2): the comment shown under the title on the lock screen; `null` = the
+   * show name. Fed by `src/outside/bridge.ts` at most every 15 s.
+   */
+  | { type: 'LOCK_LINE'; text: string | null };
 
 export type SaveReason = 'tick' | 'stop' | 'seek' | 'finished' | 'background' | 'other';
 
@@ -152,6 +161,8 @@ export type PlayerContext = {
   meta: LockScreenMeta;
   /** M2 (FR-012/013): the playback rate the player must run at; re-applied on every LOADED. */
   rate: number;
+  /** M20 US2: the lock-screen comment line, shown instead of `meta.artist`; reset by every LOAD. */
+  line?: string | null;
 };
 
 export const INITIAL_STATE: PlayerState = { kind: 'idle' };

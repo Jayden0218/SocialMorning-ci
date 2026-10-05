@@ -31,7 +31,7 @@ import { waitForStartup } from './startup';
 import { onNotificationTap } from '@/notify/expo';
 import { canStream } from '@/settings/playback';
 import { getPref } from '@/settings/prefs';
-import { createOutsideBridge, setOutsideToggle } from '@/outside/bridge';
+import { createOutsideBridge, setOutsideSkip, setOutsideToggle } from '@/outside/bridge';
 import { platformSinks } from '@/outside/sinks';
 import { applyAccent, readAccent } from '@/design/accent';
 import { loadFonts } from '@/design/fonts';
@@ -359,9 +359,13 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
       },
       social: async (id) => { const r = await graphApi.social(id); return r.status === 200 ? r.body : undefined; },
       sinks: platformSinks(),
+      // M20 US2: the comment near the listener on the lock screen, unless switched off in More.
+      lockLine: runtime.lockLine,
+      lockComments: () => getPref(stores.settings, 'lockComments'),
     });
     setOutsideToggle(() => { const k = runtime.getState().kind; if (k === 'playing' || k === 'buffering') runtime.pause(); else runtime.play(); });
-    return () => { setOutsideToggle(undefined); bridge.dispose(); };
+    setOutsideSkip((deltaMs) => runtime.skip(deltaMs));
+    return () => { setOutsideToggle(undefined); setOutsideSkip(undefined); bridge.dispose(); };
   }, [runtime, stores, graphApi]);
 
   useEffect(() => () => runtime.dispose(), [runtime]);

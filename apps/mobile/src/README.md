@@ -69,6 +69,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `feed.ts` | Loads the Following feed, keeps a copy, and counts unread items. |
 | `links.ts` | Builds and reads clip links, both web and in-app. |
 | `listened.ts` | Records how long you listened each day and sends it to the server. |
+| `quote.ts` | Works out the lines a listener picked from a transcript: their text, start, end and limits. |
 | `resolve.ts` | Turns a clip link into an episode the player can play. |
 | `share.ts` | Opens the phone's share sheet with a clip's text and link. |
 
@@ -120,10 +121,10 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 |---|---|
 | `CarLibrarySync.tsx` | Keeps Android Auto's episode lists up to date. Draws nothing. |
 | `android-widget.tsx` | Draws the Android home-screen widget with episode and play/pause. |
-| `bridge.ts` | Sends player changes to the widgets, only when what they show changes. |
+| `bridge.ts` | Sends player changes to the widgets, and the nearby comment to the lock screen, only when they change. |
 | `car.ts` | Builds the Queue and New episodes lists for Android Auto. |
 | `ios.ts` | Updates the iPhone widget and lock-screen live activity. |
-| `now-playing.ts` | Works out what widgets show: episode, show, play state, best comment. |
+| `now-playing.ts` | Works out what widgets and the lock screen show: episode, show, play state, a comment. |
 | `sinks.ts` | Picks which outside surfaces this phone supports, without crashing. |
 
 ### `playback/` — The audio player: playing, pausing, position, interruptions and queue.
@@ -295,10 +296,11 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `Scrubber.tsx` | The seek bar under the player; drag it to jump in the episode. |
 | `SleepTimerControl.tsx` | Sleep timer choices (5–60 min, end of episode), time left, Cancel. |
 | `SpeedControl.tsx` | Play speed: minus and plus buttons, quick choices, "only for this show", make it the default. |
-| `TranscriptPane.tsx` | Episode transcript; current line is marked; tap a line to jump. |
+| `TranscriptPane.tsx` | Episode transcript; current line is marked; tap a line to jump; long-press to pick lines to share. |
 | `VideoStage.tsx` | Shows the video picture for video episodes; sound comes from the audio. |
 | `mini-player-swipe.ts` | Hides the mini player early on swipe-back, so it never shows under tabs. |
 | `palette.ts` | Player colours, with a light tint of the show's own colour at the top. |
+| `QuoteShare.tsx` | Shares lines picked from the transcript as a picture made by the server. |
 
 ### `ui/queue/` — The list of episodes waiting to play
 

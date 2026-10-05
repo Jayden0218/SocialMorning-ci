@@ -111,14 +111,18 @@ function Poll({ poll, onChange }: { poll: ShowPoll; onChange: (p: ShowPoll) => v
       {poll.options.map((o) => {
         const share = poll.total ? o.votes / poll.total : 0;
         const mine = poll.myVote === o.idx;
+        // M20 US9 (FR-052): while the poll is open, a result row is tappable to change the vote.
+        const change = voted && poll.open && !mine && listener ? () => { void vote(o.idx); } : undefined;
         return showResult ? (
-          <Box key={o.idx} className="gap-1" accessible accessibilityLabel={`${o.label}: ${Math.round(share * 100)} percent${mine ? ', your vote' : ''}`}>
+          <Pressable key={o.idx} disabled={busy || change === undefined} onPress={change} className="gap-1"
+            accessibilityRole={change ? 'button' : undefined}
+            accessibilityLabel={`${o.label}: ${Math.round(share * 100)} percent${mine ? ', your vote' : change ? ', tap to change your vote' : ''}`}>
             <Box className="flex-row justify-between">
               <Text className={mine ? 'text-sm font-bold text-text' : 'text-sm text-text'}>{mine ? `${o.label} ✓` : o.label}</Text>
               <Text className="text-sm text-muted">{`${Math.round(share * 100)}%`}</Text>
             </Box>
             <Box className="h-2 rounded-pill bg-track overflow-hidden"><Box className="h-2 rounded-pill bg-accent" style={{ width: `${share * 100}%` }} /></Box>
-          </Box>
+          </Pressable>
         ) : (
           <Pressable key={o.idx} disabled={busy || !listener} onPress={() => { void vote(o.idx); }} accessibilityRole="button" accessibilityLabel={`Vote ${o.label}`}
             className="border border-border rounded-pill px-section justify-center bg-surface" style={TAP}>
@@ -127,7 +131,7 @@ function Poll({ poll, onChange }: { poll: ShowPoll; onChange: (p: ShowPoll) => v
         );
       })}
       {!listener && poll.open && !voted ? <Text className="text-xs text-muted">Sign in to vote.</Text> : null}
-      {showResult ? <Text className="text-xs text-muted">{`${plural(poll.total, 'vote')}`}</Text> : null}
+      {showResult ? <Text className="text-xs text-muted">{`${plural(poll.total, 'vote')}${voted && poll.open ? ' · tap another answer to change your vote' : ''}`}</Text> : null}
       {error ? <Text className="text-xs text-accent">{error}</Text> : null}
     </Box>
   );

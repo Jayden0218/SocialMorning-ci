@@ -63,8 +63,10 @@ export function createM12Api(deps: ApiDeps) {
     },
     /** FR-034: the server draws the card; the phone downloads it and hands the file to the share sheet. */
     shareCardUrl: (episodeId: string, atMs?: number) => `${deps.baseUrl}/v1/share/episode/${enc(episodeId)}.png${atMs !== undefined ? `?t=${Math.round(atMs)}` : ''}`,
-    /** NEW-8: the page a shared episode opens (not the publisher's raw audio URL). */
-    episodePageUrl: (episodeId: string) => `${deps.baseUrl}/e/${enc(episodeId)}`,
+    /** M20 US1 (FR-001): the same card with lines from the transcript as a quote (≤ 280 characters). */
+    shareQuoteUrl: (episodeId: string, text: string, atMs?: number) => `${deps.baseUrl}/v1/share/quote/${enc(episodeId)}.png?q=${encodeURIComponent(text)}${atMs !== undefined ? `&t=${Math.round(atMs)}` : ''}`,
+    /** NEW-8: the page a shared episode opens (not the publisher's raw audio URL); M20: at a moment with `atMs`. */
+    episodePageUrl: (episodeId: string, atMs?: number) => `${deps.baseUrl}/e/${enc(episodeId)}${atMs !== undefined ? `?t=${Math.round(atMs)}` : ''}`,
   };
 }
 

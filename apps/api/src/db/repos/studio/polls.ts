@@ -84,6 +84,8 @@ export async function vote(db: Db, pollId: string, listenerId: string, idx: numb
   if (!p.open) throw new ApiError('conflict', 'This poll has closed.', { reason: 'closed' });
   const [o] = await db.query('SELECT 1 FROM poll_options WHERE poll_id = $1 AND idx = $2', [pollId, idx]);
   if (!o) throw new ApiError('validation', 'No such option.', { fields: ['optionIdx'] });
-  await db.query('INSERT INTO poll_votes (poll_id, listener_id, option_idx) VALUES ($1, $2, $3) ON CONFLICT (poll_id, listener_id) DO NOTHING', [pollId, listenerId, idx]);
+  // M20 US9 (FR-052, G-M20-7): a second vote while open CHANGES the answer; the primary key
+  // (poll_id, listener_id) still keeps it to one vote per listener (G-P1).
+  await db.query('INSERT INTO poll_votes (poll_id, listener_id, option_idx) VALUES ($1, $2, $3) ON CONFLICT (poll_id, listener_id) DO UPDATE SET option_idx = EXCLUDED.option_idx, created_at = now()', [pollId, listenerId, idx]);
   return (await hydrate(db, [p], listenerId))[0]!;
 }
