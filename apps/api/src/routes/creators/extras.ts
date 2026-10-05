@@ -15,6 +15,7 @@ import { pollsForApp, vote } from '../../db/repos/studio/polls.ts';
 import { getOverrides } from '../../db/repos/studio/show-overrides.ts';
 import { listHosts } from '../../db/repos/studio/show-hosts.ts';
 import { curatorFor } from '../../db/repos/studio/curators.ts';
+import { imagesOf } from '../../db/repos/studio/announcements.ts';
 
 export const extras = new Hono<AuthEnv>();
 
@@ -25,8 +26,8 @@ extras.get('/shows/extras', optionalAuth, async (c) => {
   const viewer = c.get('listener');
   const [overrides, announcements, polls, hosts, curator] = await Promise.all([
     getOverrides(db, feedUrl),
-    db.query<{ id: string; body: string; created_at: Date | string; edited_at: Date | string | null }>(
-      'SELECT id, body, created_at, edited_at FROM announcements WHERE feed_url = $1 AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 3', [feedUrl]),
+    db.query<{ id: string; body: string; created_at: Date | string; edited_at: Date | string | null; images: unknown }>(
+      'SELECT id, body, created_at, edited_at, images FROM announcements WHERE feed_url = $1 AND deleted_at IS NULL AND release_at <= now() ORDER BY created_at DESC LIMIT 3', [feedUrl]),
     pollsForApp(db, feedUrl, viewer?.id),
     listHosts(db, feedUrl),
     // M15 T029 (D3): an admin-made account that shares this external show — "Shared by", never host.
@@ -35,7 +36,7 @@ extras.get('/shows/extras', optionalAuth, async (c) => {
   c.header('Cache-Control', viewer ? 'private, no-store' : 'public, max-age=60');
   return c.json({
     overrides,
-    announcements: announcements.map((a) => ({ id: a.id, body: a.body, createdAt: new Date(a.created_at).toISOString(), edited: a.edited_at !== null })),
+    announcements: announcements.map((a) => ({ id: a.id, body: a.body, createdAt: new Date(a.created_at).toISOString(), edited: a.edited_at !== null, images: imagesOf(a.images) })),
     polls,
     // M14: invited hosts (real accounts) and whether tips are switched on.
     hostAccounts: hosts.map((h) => ({ id: h.id, displayName: h.displayName })),

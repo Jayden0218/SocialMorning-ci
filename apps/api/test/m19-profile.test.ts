@@ -86,7 +86,7 @@ test('avatar: a comment carries its author\'s photo', async () => {
   await t.q("INSERT INTO episodes (id, feed_url, guid, title, show_title, enclosure_url) VALUES ('e1','https://f/x.xml','g','Ep','Show','https://cdn/x.mp3')");
   const url = ((await (await putAvatar(t, a.token, JPEG(500))).json()) as { avatarUrl: string }).avatarUrl;
   await t.q("INSERT INTO comments (episode_id, author_id, body, offset_ms) VALUES ('e1', $1, 'hi', 1000)", [a.id]);
-  const body = await (await t.call('GET', '/v1/episodes/e1/comments')).text();
+  const body = await (await t.call('GET', '/v1/episodes/e1/social')).text();
   assert.ok(body.includes(url), body);
   await t.close();
 });

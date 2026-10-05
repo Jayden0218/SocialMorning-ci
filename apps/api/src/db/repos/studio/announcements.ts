@@ -10,10 +10,18 @@ import { sendExpo, type PushMessage } from '../account/push.ts';
 
 export const PUSHES_PER_MONTH = 2;
 
-export type Announcement = { id: string; body: string; createdAt: string; editedAt: string | null; pushedAt: string | null };
-type Row = { id: string; body: string; created_at: Date | string; edited_at: Date | string | null; pushed_at: Date | string | null };
+/** M19 US12: up to 9 pictures and a release time (a scheduled one is listed only from then, and not pushed). */
+export type Announcement = { id: string; body: string; createdAt: string; editedAt: string | null; pushedAt: string | null; images: string[]; releaseAt: string };
+type Row = { id: string; body: string; created_at: Date | string; edited_at: Date | string | null; pushed_at: Date | string | null; images: unknown; release_at: Date | string };
 const iso = (d: Date | string | null) => (d === null ? null : new Date(d).toISOString());
-const toA = (r: Row): Announcement => ({ id: r.id, body: r.body, createdAt: iso(r.created_at)!, editedAt: iso(r.edited_at), pushedAt: iso(r.pushed_at) });
+/** jsonb arrives parsed from Postgres and as a string from some drivers (migration 012's lesson). */
+export const imagesOf = (v: unknown): string[] => {
+  const a = typeof v === 'string' ? (JSON.parse(v) as unknown) : v;
+  return Array.isArray(a) ? a.filter((x): x is string => typeof x === 'string') : [];
+};
+const toA = (r: Row): Announcement => ({ id: r.id, body: r.body, createdAt: iso(r.created_at)!, editedAt: iso(r.edited_at), pushedAt: iso(r.pushed_at), images: imagesOf(r.images), releaseAt: iso(r.release_at)! });
+const COLS = 'id, body, created_at, edited_at, pushed_at, images, release_at';
+export const ANNOUNCEMENT_IMAGES_MAX = 9;
 
 /** The first day of next month (UTC), as YYYY-MM-DD. */
 export function resetsOn(now = new Date()): string {
@@ -30,14 +38,23 @@ async function pushedThisMonth(db: Db, feedUrl: string): Promise<number> {
 
 export async function listAnnouncements(db: Db, feedUrl: string, limit = 50) {
   const rows = await db.query<Row>(
-    'SELECT id, body, created_at, edited_at, pushed_at FROM announcements WHERE feed_url = $1 AND deleted_at IS NULL ORDER BY created_at DESC LIMIT $2',
+    `SELECT ${COLS} FROM announcements WHERE feed_url = $1 AND deleted_at IS NULL ORDER BY created_at DESC LIMIT $2`,
     [feedUrl, limit],
   );
   return { items: rows.map(toA), pushesLeftThisMonth: Math.max(0, PUSHES_PER_MONTH - (await pushedThisMonth(db, feedUrl))), resetsOn: resetsOn() };
 }
 
 /** Publish and push, or refuse over the monthly limit. The count and the insert share one transaction. */
-export async function publish(db: Db, f: typeof fetch, feedUrl: string, showTitle: string | null, authorId: string, body: string): Promise<{ announcement: Announcement; pushed: { devices: number } }> {
+export async function publish(db: Db, f: typeof fetch, feedUrl: string, showTitle: string | null, authorId: string, body: string, extra: { images?: string[]; releaseAt?: string } = {}): Promise<{ announcement: Announcement; pushed: { devices: number } }> {
+  const images = JSON.stringify(extra.images ?? []);
+  // M19 US12: a scheduled announcement is saved now and shown from its time; it is not pushed and does not use a push.
+  if (extra.releaseAt && new Date(extra.releaseAt).getTime() > Date.now()) {
+    const [r] = await db.query<Row>(
+      `INSERT INTO announcements (feed_url, author_id, body, images, release_at) VALUES ($1, $2, $3, $4::jsonb, $5) RETURNING ${COLS}`,
+      [feedUrl, authorId, body, images, extra.releaseAt],
+    );
+    return { announcement: toA(r!), pushed: { devices: 0 } };
+  }
   const created = await db.transaction(async (tx) => {
     // Serialise publishes for one show, so two tabs cannot both take the last push.
     await tx.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`announce|${feedUrl}`]);
@@ -45,8 +62,8 @@ export async function publish(db: Db, f: typeof fetch, feedUrl: string, showTitl
       throw new ApiError('locked', `You have sent ${PUSHES_PER_MONTH} announcements this month.`, { reason: 'monthly_limit', resetsOn: resetsOn() });
     }
     const [r] = await tx.query<Row>(
-      'INSERT INTO announcements (feed_url, author_id, body, pushed_at) VALUES ($1, $2, $3, now()) RETURNING id, body, created_at, edited_at, pushed_at',
-      [feedUrl, authorId, body],
+      `INSERT INTO announcements (feed_url, author_id, body, images, pushed_at) VALUES ($1, $2, $3, $4::jsonb, now()) RETURNING ${COLS}`,
+      [feedUrl, authorId, body, images],
     );
     // "Never tell a device twice" (G-N1) is push_sent's key; episode_id holds the announcement id.
     const told = await tx.query<{ listener_id: string }>(
@@ -72,11 +89,15 @@ export async function publish(db: Db, f: typeof fetch, feedUrl: string, showTitl
   return { announcement: toA(created.row), pushed: { devices } };
 }
 
-export async function edit(db: Db, feedUrl: string, id: string, body: string): Promise<Announcement> {
+export async function edit(db: Db, feedUrl: string, id: string, body: string, extra: { images?: string[]; releaseAt?: string } = {}): Promise<Announcement> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) throw new ApiError('not_found', 'No such announcement.');
+  // M19 US12: pictures may change; a release time may move only while the announcement is still waiting.
   const [r] = await db.query<Row>(
-    'UPDATE announcements SET body = $3, edited_at = now() WHERE id = $1 AND feed_url = $2 AND deleted_at IS NULL RETURNING id, body, created_at, edited_at, pushed_at',
-    [id, feedUrl, body],
+    `UPDATE announcements SET body = $3, edited_at = now(),
+       images = coalesce($4::jsonb, images),
+       release_at = CASE WHEN $5::timestamptz IS NOT NULL AND release_at > now() THEN $5::timestamptz ELSE release_at END
+     WHERE id = $1 AND feed_url = $2 AND deleted_at IS NULL RETURNING ${COLS}`,
+    [id, feedUrl, body, extra.images ? JSON.stringify(extra.images) : null, extra.releaseAt ?? null],
   );
   if (!r) throw new ApiError('not_found', 'No such announcement.');
   return toA(r);

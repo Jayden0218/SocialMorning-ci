@@ -81,6 +81,8 @@ commentById.delete('/:id', requireAuth, async (c) => {
     await rebuildEpisodeHeat(tx, r.episodeId);
     return r;
   });
+  // M19 US6 (FR-045): a voice comment's recording leaves the store with it.
+  if (existing.voice_url) { try { await c.get('voice').remove(existing.voice_url); } catch (e) { console.error(c.get('requestId'), 'voice comment remove', e); } }
   return c.json({ placeholder: result.placeholder });
 });
 

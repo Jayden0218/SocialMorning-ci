@@ -36,6 +36,7 @@ here or a line does not match its file.
 | `notify.ts` | Per-show notification routes: list shows and turn new-episode alerts on or off. |
 | `push.ts` | Push routes: register or remove a device token and set alert preferences. |
 | `wallet.ts` | Read-only wallet routes: my purchases and the tips I gave. |
+| `m19.ts` | My notices from hosts, my monthly report, and the teen-mode passcode reset by email code. |
 
 ### `routes/social/` — comments, reactions, clips, follows, profiles, voice posts, sharing
 
@@ -55,6 +56,8 @@ here or a line does not match its file.
 | `social.ts` | Episode social poll route: comments and heat curve in one cached answer. |
 | `voice.ts` | Voice post routes: upload a short recording, list, and delete posts. |
 | `likes.ts` | Like routes: like an episode with a note, unlike, my timeline, one account's likes. |
+| `playlists.ts` | Playlist routes: my playlists, one playlist, its order, and an account's public ones. |
+| `voice-comments.ts` | Voice comment route: post a recording of up to 60 seconds as a comment at a moment. |
 
 ### `routes/safety/` — reports and blocks
 
@@ -102,7 +105,7 @@ here or a line does not match its file.
 |---|---|
 | `announcements.ts` | Studio routes for show announcements and polls. |
 | `claims.ts` | Studio routes to claim a show and verify the claim. |
-| `comments.ts` | Studio comment routes: list a show's comments, reply, hide and unhide. |
+| `comments.ts` | Studio comment routes: list a show's comments, reply, hide, unhide and pin. |
 | `common.ts` | Helpers shared by Studio routes: owner-only check, date ranges, CSV answers. |
 | `create.ts` | Studio routes to create a new show and check storage status. |
 | `data.ts` | Studio data routes: yesterday, top episodes, episode table, CSV exports. |
@@ -169,7 +172,11 @@ here or a line does not match its file.
 | `live-listeners.ts` | Counts "listening now" per episode using only daily-salted install hashes. |
 | `profiles.ts` | Builds a listener's profile: name, counts, stats and recent public activity. |
 | `voice-posts.ts` | Voice status posts up to 60 seconds, fully deleted after 24 hours. |
+| `voice-comments.ts` | Voice comments: their recording limits, and deleting the audio of removed comments. |
 | `likes.ts` | Likes with a note: like or unlike an episode, a timeline of likes from people you follow. |
+| `playlists.ts` | Listener playlists: make, rename, reorder, share publicly or keep private. |
+| `host-notices.ts` | Host notices: announcements from the shows a listener follows, from their release time. |
+| `report.ts` | The monthly listening report: minutes, shows, episodes, top three of each, comments and clips. |
 
 ### `db/repos/safety/` — reports, blocks, moderation
 

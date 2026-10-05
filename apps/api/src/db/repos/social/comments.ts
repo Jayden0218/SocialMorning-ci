@@ -102,7 +102,7 @@ export function toPublic(r: CommentRow, viewerId?: string): PublicComment {
 
 export async function createComment(
   db: Db,
-  c: { episodeId: string; authorId: string; body: string; offsetMs?: number; parentId?: string },
+  c: { episodeId: string; authorId: string; body: string | null; offsetMs?: number; parentId?: string; voice?: { url: string; path: string; ms: number } },
 ): Promise<CommentRow> {
   if (c.parentId) {
     const parent = (await db.query<{ episode_id: string; parent_id: string | null }>(
@@ -112,8 +112,8 @@ export async function createComment(
     if (parent.parent_id !== null) throw new ApiError('reply_depth', 'You can reply to a comment, not to a reply.');
   }
   const [row] = await db.query<{ id: string }>(
-    'INSERT INTO comments (episode_id, author_id, parent_id, body, offset_ms) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-    [c.episodeId, c.authorId, c.parentId ?? null, c.body, c.offsetMs ?? null],
+    'INSERT INTO comments (episode_id, author_id, parent_id, body, offset_ms, voice_url, voice_path, voice_ms) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id',
+    [c.episodeId, c.authorId, c.parentId ?? null, c.body, c.offsetMs ?? null, c.voice?.url ?? null, c.voice?.path ?? null, c.voice?.ms ?? null],
   );
   // M4 (research R4): a top-level comment is a feed item; replies are not.
   if (!c.parentId) {
@@ -143,7 +143,7 @@ export async function deleteComment(db: Db, id: string): Promise<{ placeholder: 
   await db.query(`DELETE FROM activity WHERE kind = 'commented' AND ref_id = $1`, [id]); // M4: gone from feeds either way
   if (Number(row.replies) > 0) {
     await db.query(
-      'UPDATE comments SET body = NULL, author_id = NULL, offset_ms = NULL, deleted_at = now() WHERE id = $1',
+      'UPDATE comments SET body = NULL, author_id = NULL, offset_ms = NULL, voice_url = NULL, voice_path = NULL, voice_ms = NULL, deleted_at = now() WHERE id = $1',
       [id],
     );
     return { placeholder: true, episodeId: row.episode_id };

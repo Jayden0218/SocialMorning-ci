@@ -1,4 +1,4 @@
-// Studio comment routes: list a show's comments, reply, hide and unhide.
+// Studio comment routes: list a show's comments, reply, hide, unhide and pin.
 /**
  * Studio API (`/v1/studio/*`) — US3: Comments
  */
@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { json } from '../../validate.ts';
 import { commentOnFeed, listShowComments, setHostHidden } from '../../db/repos/studio/studio-comments.ts';
 import { createComment, toPublic } from '../../db/repos/social/comments.ts';
+import { pinAsHost } from '../../db/repos/social/comment-extras.ts';
 import { isBlockedBy } from '../../db/repos/safety/blocks.ts';
 import type { Hono } from 'hono';
 import type { StudioEnv } from '../../auth/studio-session.ts';
@@ -46,4 +47,16 @@ export function registerComments(studio: Hono<StudioEnv>): void {
     await setHostHidden(c.get('db'), c.get('show').feedUrl, c.req.param('id'), c.get('listener')!.id, false);
     return c.body(null, 204);
   });
+
+  /** M19 US5 (FR-040, FR-071): pin one top-level comment per episode; pinning another moves the pin. */
+  for (const [verb, pin] of [['pin', true], ['unpin', false]] as const) {
+    studio.post(`/shows/:show/comments/:id/${verb}`, async (c) => {
+      const db = c.get('db');
+      const row = await commentOnFeed(db, c.get('show').feedUrl, c.req.param('id'));
+      if (!row || row.author_id === null) throw new ApiError('not_found', 'No such comment on this show.');
+      if (row.parent_id !== null) throw new ApiError('validation', 'Only a top-level comment can be pinned.');
+      await pinAsHost(db, row.id, row.episode_id, c.get('listener')!.id, pin);
+      return c.body(null, 204);
+    });
+  }
 }

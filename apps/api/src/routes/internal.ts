@@ -9,6 +9,7 @@ import { fetchFeed, registerCard, toCard } from '../catalog/feed.ts';
 import { fanOutNewEpisode, NEW_WINDOW_HOURS, sendPopular } from '../db/repos/account/push.ts';
 import { sweepImages } from '../db/repos/account/feedback.ts';
 import { sweepExpired } from '../db/repos/social/voice-posts.ts';
+import { sweepRemovedVoice } from '../db/repos/social/voice-comments.ts';
 import { picksForDay } from '@socialmorning/social-core';
 
 /**
@@ -99,6 +100,12 @@ export function createInternalRoute(jobToken: string | undefined) {
           voiceDeleted = v.deleted;
           if (v.failed > 0) failed.push(`voice: ${v.failed} blob(s) not deleted, kept for the next cycle`);
         } catch (e) { failed.push(`voice: ${e instanceof Error ? e.message : String(e)}`); }
+        // M19 US6 (FR-045, constitution v3.1.0): a removed voice comment's recording leaves the store.
+        try {
+          const v = await sweepRemovedVoice(db, c.get('voice'));
+          voiceDeleted += v.deleted;
+          if (v.failed > 0) failed.push(`voice comments: ${v.failed} blob(s) not deleted, kept for the next cycle`);
+        } catch (e) { failed.push(`voice comments: ${e instanceof Error ? e.message : String(e)}`); }
         try {
           const day = picksForDay(cat.picks, cat.today());
           const p = day.picks[0];

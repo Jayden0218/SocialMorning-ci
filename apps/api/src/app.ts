@@ -36,6 +36,9 @@ import { createInternalRoute } from './routes/internal.ts';
 import { recEvents } from './routes/library/rec-events.ts';
 import { dismissals } from './routes/library/dismissals.ts';
 import { episodeLikes, likeTimeline, listenerLikes } from './routes/social/likes.ts';
+import { listenerPlaylists, myPlaylistRoutes, playlistRoutes } from './routes/social/playlists.ts';
+import { voiceComments } from './routes/social/voice-comments.ts';
+import { m19Me } from './routes/account/m19.ts';
 import { validateIssues, validatePicks } from '@socialmorning/social-core';
 import type { Catalog, Safety } from './auth/session.ts';
 import picksJson from '../picks.json' with { type: 'json' };
@@ -117,7 +120,7 @@ export function createApp(deps: AppDeps) {
   app.use('*', (c, next) => (c.req.path === '/v1/feedback' ? feedbackLimit(c, next)
     : c.req.path === '/v1/admin/accounts' ? adminBulkLimit(c, next)
     : c.req.path === '/v1/me/avatar' && c.req.method === 'PUT' ? avatarLimit(c, next)
-    : c.req.path === '/v1/voice-posts' && c.req.method === 'POST' ? voiceLimit(c, next) : small(c, next)));
+    : c.req.method === 'POST' && (c.req.path === '/v1/voice-posts' || /^\/v1\/episodes\/[^/]+\/comments\/voice$/.test(c.req.path)) ? voiceLimit(c, next) : small(c, next)));
   // M5: the picks file is validated once; every bad entry is a warning, never a crash (G1).
   const { picks, warnings } = validatePicks(deps.picksRaw ?? picksJson);
   for (const w of warnings) console.warn(`[picks] ${w}`);
@@ -196,6 +199,9 @@ export function createApp(deps: AppDeps) {
   // M19 US2, US3
   app.route('/v1/me/dismissals', dismissals);
   app.route('/v1/me/likes', likeTimeline);
+  app.route('/v1/me/playlists', myPlaylistRoutes);
+  app.route('/v1/me', m19Me);
+  app.route('/v1/playlists', playlistRoutes);
   // M12 (specs/012-m12-the-finish/contracts/api.md)
   app.route('/v1/me/notify', notify);
   app.route('/v1/me', wallet);
@@ -205,6 +211,7 @@ export function createApp(deps: AppDeps) {
   app.route('/v1/voice-posts', voice);
   app.route('/v1/share', share);
   app.route('/v1/episodes', episodeLikes);
+  app.route('/v1/episodes', voiceComments);
   app.route('/v1/episodes', live);
   app.route('/v1/episodes', commentCounts);
   // Chat (owner, 2026-10-04): one-to-one messages between people who follow each other.
@@ -216,6 +223,7 @@ export function createApp(deps: AppDeps) {
   app.route('/v1/me/hidden', hidden);
   app.route('/v1/reports', reports);
   app.route('/v1/listeners', listenerLikes);
+  app.route('/v1/listeners', listenerPlaylists);
   app.route('/v1/listeners', follows);
   app.route('/v1/listeners', profiles);
   app.route('/v1/discover', discover);
