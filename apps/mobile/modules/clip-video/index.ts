@@ -47,7 +47,7 @@ export function isAvailable(): boolean {
 export async function makeClipVideo(options: ClipVideoOptions): Promise<{ uri: string }> {
   const length = options.endMs - options.startMs;
   if (!(length > 0)) throw new Error('The clip has no length.');
-  if (length > MAX_CLIP_VIDEO_MS) throw new Error('A video can be at most 60 seconds.');
+
   const m = native();
   if (m == null) throw new Error('This version of the app cannot make videos.');
   return m.makeClipVideo({ ...options, startMs: Math.round(options.startMs), endMs: Math.round(options.endMs) });
