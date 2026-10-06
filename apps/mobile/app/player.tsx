@@ -412,7 +412,7 @@ export default function PlayerScreen(): React.ReactElement {
         <Text className={BAR_LABEL}>Comments {commentCount}</Text>
       </Pressable>
       {/* M21 US1 (FR-001): the sleep timer, one tap away, with its countdown. */}
-      <MoonButton className={BAR_ITEM} labelClassName={BAR_LABEL} colour={c.text} activeColour={c.accent} />
+      <MoonButton className={BAR_ITEM} colour={c.text} activeColour={c.accent} />
     </Box>
     </SafeAreaView>
 

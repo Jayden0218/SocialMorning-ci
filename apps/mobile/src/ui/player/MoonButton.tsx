@@ -28,7 +28,7 @@ export function moonA11y(timer: SleepTimer, remainingMs: number | undefined): st
   return 'Sleep timer, stops at the end of this episode';
 }
 
-export function MoonButton(props: { className: string; labelClassName: string; colour: string; activeColour: string }): React.ReactElement {
+export function MoonButton(props: { className: string; colour: string; activeColour: string }): React.ReactElement {
   const player = usePlayer();
   useSecondTick();
   const [open, setOpen] = useState(false);
@@ -39,7 +39,8 @@ export function MoonButton(props: { className: string; labelClassName: string; c
     <>
       <Pressable onPress={() => setOpen(true)} accessibilityRole="button" accessibilityLabel={moonA11y(timer, remaining)} className={props.className} style={{ minHeight: TAP.minHeight }}>
         <Icon name={armed ? 'moon' : 'moon-outline'} size={22} color={armed ? props.activeColour : props.colour} />
-        <Text className={props.labelClassName}>{moonLabel(timer, remaining)}</Text>
+        {/* Same look as the bar's other labels (player.tsx BAR_LABEL). */}
+        <Text className="text-xs font-semibold text-text">{moonLabel(timer, remaining)}</Text>
       </Pressable>
       <Actionsheet isOpen={open} onClose={() => setOpen(false)}>
         <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
