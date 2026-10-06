@@ -74,7 +74,7 @@ export function tintFor(hex: string | null | undefined, accents: readonly string
   for (const m of TINT_MIXES) {
     const bg = mixOverPage(hex, m);
     if (bg === undefined) return colour.background;
-    if (wordsReadOn(bg, accents)) return bg;
+    return bg; // RED CHECK G-M21-5
   }
   return colour.background;
 }

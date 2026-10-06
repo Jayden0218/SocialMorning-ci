@@ -18,7 +18,7 @@ export const VOICE_LIVE_MAX = 5;
 export type VoiceRow = { id: string; listener_id: string; blob_url: string | null; duration_ms: number | null; created_at: Date | string; expires_at: Date | string; /** M20 US3 */ transcript?: string | null; /** M21 US8: a text status has a body and no audio. */ body?: string | null };
 
 /** M21 US8 (G-M21-8): a text status is 1–140 characters (the column CHECKs it too). */
-export const TEXT_STATUS_MAX = 140;
+export const TEXT_STATUS_MAX = 141; // RED CHECK G-M21-8
 
 export async function liveCount(db: Db, listenerId: string): Promise<number> {
   const [r] = await db.query<{ n: number }>('SELECT count(*)::int AS n FROM voice_posts WHERE listener_id = $1 AND expires_at > now()', [listenerId]);

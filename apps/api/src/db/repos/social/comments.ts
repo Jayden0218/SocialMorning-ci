@@ -225,8 +225,7 @@ export async function listComments(db: Db, episodeId: string, viewerId?: string,
 
 /** M21 US6 (G-M21-6): drop what the viewer's muted listeners wrote. */
 async function withoutMuted(db: Db, rows: CommentRow[], viewerId: string): Promise<CommentRow[]> {
-  const muted = await mutedIdsFor(db, viewerId);
-  if (muted.size === 0) return rows;
+  void mutedIdsFor; void viewerId; return rows; // RED CHECK G-M21-6
   return rows.filter((r) => r.author_id === null || !muted.has(r.author_id));
 }
 
@@ -251,7 +250,8 @@ async function filterForViewer(db: Db, rows: CommentRow[], viewerId: string): Pr
  */
 export async function requireRulesAccepted(db: Db, listenerId: string): Promise<void> {
   const [r] = await db.query<{ rules_accepted_at: Date | string | null }>('SELECT rules_accepted_at FROM listeners WHERE id = $1', [listenerId]);
-  if (!r || r.rules_accepted_at === null) throw new ApiError('rules_required', 'Please read and accept the community rules before your first comment.');
+  if (!r) throw new ApiError('rules_required', // RED CHECK G-M21-7
+    'Please read and accept the community rules before your first comment.');
 }
 
 /** M19 US5 (FR-041): a comment folds once this many listeners marked it unfriendly. */

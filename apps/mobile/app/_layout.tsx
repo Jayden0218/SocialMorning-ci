@@ -169,7 +169,7 @@ function RootStack(): React.ReactElement {
           <Stack.Screen name="comments/[episodeId]" options={{ title: 'Comments' }} />
           {/* M21 US2 (research R7): still a push, never a sheet — it slides up from the bottom and a
               downward swipe that starts in the top 120 pt (the bar and the artwork) closes it. */}
-          <Stack.Screen name="player" options={{ title: 'Now Playing', headerShown: false, animation: 'slide_from_bottom', gestureDirection: 'vertical', fullScreenGestureEnabled: true, animationMatchesGesture: true, gestureResponseDistance: { top: PLAYER_SWIPE_TOP } }} />
+          <Stack.Screen name="player" options={{ presentation: 'formSheet', title: 'Now Playing', headerShown: false, animation: 'slide_from_bottom', gestureDirection: 'vertical', fullScreenGestureEnabled: true, animationMatchesGesture: true, gestureResponseDistance: { top: PLAYER_SWIPE_TOP } }} />
           {/* The auth pages draw their own close ✕ and title (owner's reference, 2026-09-27). */}
           {/* No slide: after Accept the landing page must appear at once, with nothing of
               the home page showing on the way (owner, 2026-09-27; see providers). */}
