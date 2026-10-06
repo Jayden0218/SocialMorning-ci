@@ -41,10 +41,19 @@
  * capitals. Cancel no longer sits beside the box, so the box keeps its full width and the
  * "Cancel" room animation is gone; the box still moves up from Discover's place and the rest
  * fades in. Every action, name and handler is the same.
+ *
+ * M21 T087 (FR-066): on the result page the tabs also change with a sideways swipe (one pan
+ * gesture that gives way to vertical scrolling); date chips — Any / Last 30 days / Last 6
+ * months — filter the episodes (the server's `since`; library episodes by their date, an
+ * undated one only under Any); each episode row has ▶ (plays it), ⋯ (the episode's choices),
+ * its listen and comment counts, and the match marked in its title and show name.
  */
+import { CardSheetHost, openCardSheet } from '@/ui/episode/CardSheet';
 import { useIsFocused, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import { AccessibilityInfo, Animated, BackHandler, Easing, Keyboard, type View } from 'react-native';
+import { runOnJS } from 'react-native-reanimated';
+import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
 import { Input, InputField } from '@/ui/lib/input';
 import { Pressable } from '@/ui/lib/pressable';
 import { SafeAreaView } from '@/ui/lib/safe-area-view';
@@ -59,8 +68,9 @@ import { useSocial } from '@/social/context';
 import { useStores, useSubscriptionSync } from '@/ui/shell/providers';
 import { ApiError, type EpisodeCard, type SearchResult, type ShowCard } from '@/social/api';
 import { looksLikeFeedUrl, searchLibrary } from '@/discover/local-search';
-import { useDiscover } from '@/discover/useDiscover';
-import { EpisodeRow } from '@/ui/episode/EpisodeRow';
+import { useCardActions, useDiscover } from '@/discover/useDiscover';
+import { useExploreApi, type RichEpisode, type SearchSince } from '@/discover/explore-api';
+import { PlayButton, StatsLine } from '@/ui/discover/parts';
 import { Artwork } from '@/ui/kit/Artwork';
 import { EmptyState } from '@/ui/kit/EmptyState';
 import { hit, size } from '@/design';
@@ -93,6 +103,15 @@ type PeopleState = { kind: 'idle' } | { kind: 'loading' } | { kind: 'ok'; people
 type Tab = 'all' | 'shows' | 'episodes' | 'people';
 const TABS: { key: Tab; label: string }[] = [{ key: 'all', label: 'All' }, { key: 'shows', label: 'Shows' }, { key: 'episodes', label: 'Episodes' }, { key: 'people', label: 'People' }];
 
+/** M21: the date chips; `since` is what the server takes. */
+const SINCE: { key: SearchSince; label: string; days?: number }[] = [
+  { key: 'any', label: 'Any' }, { key: '30d', label: 'Last 30 days', days: 30 }, { key: '180d', label: 'Last 6 months', days: 180 },
+];
+const TAB_KEYS: Tab[] = ['all', 'shows', 'episodes', 'people'];
+
+/** M21 T060: a row's ⋯ opens the shared episode sheet (CardSheetHost below resolves the card). */
+const onMore = openCardSheet;
+
 /** Owner, 2026-10-01: a name with the typed part in the accent colour. */
 function Marked(props: { text: string; term: string; bold?: boolean; lines?: number }): React.ReactElement {
   return (
@@ -121,6 +140,9 @@ export function SearchPage(props: SearchPageProps): React.ReactElement {
   const c = useColours(stores.settings);
   const { api } = useSocial();
   const { open, view } = useDiscover();
+  const { play } = useCardActions();
+  const explore = useExploreApi();
+  const [since, setSince] = useState<SearchSince>('any');
   const { hiddenFeeds, listeners: safeListeners } = useSafety();
   const subscriptionSync = useSubscriptionSync();
   // Bumped by a Subscribe tap so the pills re-read `stores.subscriptions`.
@@ -142,6 +164,19 @@ export function SearchPage(props: SearchPageProps): React.ReactElement {
     setTab('all');
     remember(q);
   };
+  // M21 T087: a sideways swipe on the results moves to the neighbouring tab.
+  const swipeTab = (dx: number) => {
+    if (Math.abs(dx) < 80) return;
+    setTab((t) => TAB_KEYS[Math.min(TAB_KEYS.length - 1, Math.max(0, TAB_KEYS.indexOf(t) + (dx < 0 ? 1 : -1)))] ?? t);
+  };
+  const tabSwipe = usePanGesture({
+    activeOffsetX: [-24, 24],
+    failOffsetY: [-14, 14],
+    onDeactivate: (e) => {
+      'worklet';
+      runOnJS(swipeTab)(e.translationX);
+    },
+  });
   const type = (t: string) => { setTerm(t); setSubmitted(undefined); };
   const [catalogue, setCatalogue] = useState<CatalogueState>({ kind: 'idle' });
   const requestId = useRef(0);
@@ -195,7 +230,7 @@ export function SearchPage(props: SearchPageProps): React.ReactElement {
     const mine = ++requestId.current;
     setCatalogue({ kind: 'loading' });
     const timer = setTimeout(() => {
-      api.search(trimmed)
+      (since === 'any' ? api.search(trimmed) : explore.search(trimmed, since) as Promise<SearchResult>)
         .then((result) => { if (mine === requestId.current) setCatalogue({ kind: 'ok', result }); })
         .catch((e: unknown) => {
           if (mine !== requestId.current) return;
@@ -206,7 +241,7 @@ export function SearchPage(props: SearchPageProps): React.ReactElement {
         });
     }, 300);
     return () => clearTimeout(timer);
-  }, [trimmed, api]);
+  }, [trimmed, api, explore, since]);
 
   // Owner, 2026-10-01: People — asked for only when the People tab is open on a result page.
   const [people, setPeople] = useState<PeopleState>({ kind: 'idle' });
@@ -231,8 +266,13 @@ export function SearchPage(props: SearchPageProps): React.ReactElement {
 
   const merged = useMemo(() => {
     const cat = catalogue.kind === 'ok' ? catalogue.result : { shows: [] as ShowCard[], episodes: [] as EpisodeCard[] };
-    return mergeSearch(library, cat);
-  }, [library, catalogue]);
+    const all = mergeSearch(library, cat);
+    // M21: the date filter applies to library episodes too; an undated one shows only under Any.
+    const days = SINCE.find((x) => x.key === since)?.days;
+    if (days === undefined) return all;
+    const from = Date.now() - days * 86_400_000;
+    return { ...all, episodes: all.episodes.filter((e) => e.publishedAt !== undefined && Date.parse(e.publishedAt) >= from) };
+  }, [library, catalogue, since]);
   const libShowKeys = new Set(library.shows.map((s) => s.feedUrl));
   const libEpisodeKeys = new Set(library.episodes.map((e) => e.id));
   const results = submitted !== undefined;
@@ -294,9 +334,27 @@ export function SearchPage(props: SearchPageProps): React.ReactElement {
       {extra ? more(label, to) : null}
     </Box>
   );
-  const episodeRows = (list: typeof merged.episodes) => list.map((e) => (
-    <EpisodeRow key={`${e.feedUrl}\u0001${e.guid}`} card={e} line={libEpisodeKeys.has(e.id) ? 'In your library' : undefined} onPress={() => { remember(trimmed); if (libEpisodeKeys.has(e.id)) router.push({ pathname: '/episode/[id]', params: { id: e.id } }); else void open(e); }} />
-  ));
+  // M21 T087: rich rows — the match marked, counts, ▶ and ⋯.
+  const episodeRows = (list: typeof merged.episodes) => list.map((e) => {
+    const stats = (e as RichEpisode).stats;
+    const mine = libEpisodeKeys.has(e.id);
+    return (
+      <Box key={`${e.feedUrl}\u0001${e.guid}`} className="flex-row items-center gap-row py-row border-b-hairline border-separator">
+        <Pressable onPress={() => { remember(trimmed); if (mine) router.push({ pathname: '/episode/[id]', params: { id: e.id } }); else void open(e); }} accessibilityRole="button" accessibilityLabel={`${e.title}, ${e.showTitle}${mine ? '. In your library' : ''}`} className="flex-1 flex-row items-center gap-row" style={TAP}>
+          <Artwork url={e.imageUrl} size={56} rounded="row" name={e.showTitle} />
+          <Box className="flex-1 gap-0.5">
+            <Box className="flex-row"><Marked text={e.title} term={submitted ?? trimmed} bold lines={2} /></Box>
+            <Box className="flex-row"><Marked text={mine ? `${e.showTitle} · in your library` : e.showTitle} term={submitted ?? trimmed} /></Box>
+            {stats ? <StatsLine stats={stats} /> : null}
+          </Box>
+        </Pressable>
+        <Pressable onPress={() => onMore(e)} accessibilityRole="button" accessibilityLabel={`More for ${e.title}`} className="items-center justify-center" style={TAP}>
+          <Icon name="ellipsis-horizontal" size={20} color={c.muted} />
+        </Pressable>
+        <PlayButton title={e.title} onPress={() => { remember(trimmed); void play(e); }} />
+      </Box>
+    );
+  });
 
   return (
     <SafeAreaView className="flex-1">
@@ -338,6 +396,16 @@ export function SearchPage(props: SearchPageProps): React.ReactElement {
           ))}
         </Box>
       ) : null}
+      {results && tab !== 'shows' && tab !== 'people' ? (
+        <Box className="flex-row gap-gap mx-screen-x mt-gap" accessibilityRole="radiogroup" accessibilityLabel="Published">
+          {SINCE.map((x) => (
+            <Pressable key={x.key} onPress={() => setSince(x.key)} accessibilityRole="radio" accessibilityState={{ checked: since === x.key }} accessibilityLabel={`Published: ${x.label}`} className={`justify-center px-row rounded-pill border ${since === x.key ? 'bg-primary border-primary' : 'bg-surface border-border'}`} style={TAP}>
+              <Text className={since === x.key ? 'text-onPrimary text-meta font-bold' : 'text-text text-meta'}>{x.label}</Text>
+            </Pressable>
+          ))}
+        </Box>
+      ) : null}
+      <GestureDetector gesture={tabSwipe}>
       <ScrollView contentContainerClassName="px-screen-x pb-24" keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         {trimmed === '' ? (
           <Box>
@@ -458,7 +526,9 @@ export function SearchPage(props: SearchPageProps): React.ReactElement {
           </Box>
         ) : null}
       </ScrollView>
+      </GestureDetector>
       </Animated.View>
+      <CardSheetHost />
     </SafeAreaView>
   );
 }

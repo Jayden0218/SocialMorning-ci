@@ -59,12 +59,12 @@ it('a hidden show leaves every list', () => {
   expect(m.chart.map((t) => [t.key, t.rows.length])).toEqual([['top', 0], ['talked', 1], ['new', 0]]);
 });
 
-it('owner 2026-10-05: "New shows" falls back to the new arrivals; no rows at all is no chart; collections are not drawn', () => {
+it('owner 2026-10-05: "New shows" falls back to the new arrivals; no rows at all is no chart; M21: collections come back as topic lists', () => {
   const arrival = { show: { feedUrl: 'https://f/new.xml', title: 'N', author: 'a', genres: [], episodeCount: 1 }, episode: card('a1', 'https://f/new.xml') };
   const m = buildModel({ ...OLD, newArrivals: [arrival], collections: [{ id: 'x', title: 'Where to start', items: [item('pick', 'k1')] }] }, undefined, none);
   expect(m.chart.find((t) => t.key === 'new')!.rows.map((c) => c.id)).toEqual(['a1']);
   expect(m.arrivals.map((a) => a.episode.id)).toEqual(['a1']);
-  expect(m.collections).toEqual([]);
+  expect(m.collections.map((c) => [c.id, c.items.length])).toEqual([['x', 1]]);
   expect(buildModel({ ...OLD, picks: [], talkedAbout: [], trending: [] }, undefined, none).chart).toEqual([]);
 });
 

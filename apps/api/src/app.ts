@@ -36,7 +36,7 @@ import { foryou } from './routes/discover/foryou.ts';
 import { createInternalRoute } from './routes/internal.ts';
 import { recEvents } from './routes/library/rec-events.ts';
 import { dismissals } from './routes/library/dismissals.ts';
-import { episodeLikes, likeTimeline, listenerLikes } from './routes/social/likes.ts';
+import { episodeLikes, likePosts, likeTimeline, listenerLikes } from './routes/social/likes.ts';
 import { listenerPlaylists, myPlaylistRoutes, playlistRoutes } from './routes/social/playlists.ts';
 import { voiceComments } from './routes/social/voice-comments.ts';
 import { m19Me } from './routes/account/m19.ts';
@@ -220,6 +220,8 @@ export function createApp(deps: AppDeps) {
   // M19 US2, US3
   app.route('/v1/me/dismissals', dismissals);
   app.route('/v1/me/likes', likeTimeline);
+  // M21 US7 (T081): like posts — comments and reactions on one like.
+  app.route('/v1/likes', likePosts);
   app.route('/v1/me/playlists', myPlaylistRoutes);
   app.route('/v1/me', m19Me);
   app.route('/v1/playlists', playlistRoutes);

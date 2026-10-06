@@ -47,9 +47,10 @@ test('FR-101: issues — newest first, none from the future; one issue with its 
   await register(t, G, 'b9', 'Newest of B');
   await register(t, F, 'a1', 'A one');
   const list = (await (await t.call('GET', '/v1/issues')).json()) as { issues: { id: string; date: string; title: string }[] };
-  assert.deepEqual(list.issues, [{ id: 'issue-2', date: day(25), title: 'Second' }, { id: 'issue-1', date: day(20), title: 'First' }]);
-  const one = (await (await t.call('GET', '/v1/issues/issue-1')).json()) as { title: string; intro: string; items: { order: number; note: string; episode: { title: string } | null }[] };
-  assert.deepEqual([one.title, one.intro], ['First', 'Two episodes.']);
+  // M21 T086: the issue number — oldest out = 1.
+  assert.deepEqual(list.issues, [{ id: 'issue-2', number: 2, date: day(25), title: 'Second' }, { id: 'issue-1', number: 1, date: day(20), title: 'First' }]);
+  const one = (await (await t.call('GET', '/v1/issues/issue-1')).json()) as { number: number; title: string; intro: string; items: { order: number; note: string; episode: { title: string } | null }[] };
+  assert.deepEqual([one.number, one.title, one.intro], [1, 'First', 'Two episodes.']);
   assert.deepEqual(one.items.map((i) => [i.order, i.note, i.episode?.title]), [[1, 'This one.', 'A one'], [2, 'The newest.', 'Newest of B']]);
   assert.equal((await t.call('GET', '/v1/issues/issue-3')).status, 404, 'not out yet');
   assert.equal((await t.call('GET', '/v1/issues/nope')).status, 404);

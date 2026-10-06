@@ -1,13 +1,14 @@
 // Sorts and filters the shows on a category page.
 /**
  * The category page's list controls (Owner, 2026-10-01, after the reference's category page):
- * "All" keeps the server's chart order; "Newest" puts the show with the most recent episode
+ * "All" (M21: labelled "Hot") keeps the server's chart order; M21 "For you" keeps chart order
+ * but puts the shows the listener does not follow yet first (the ones they follow go last); "Newest" puts the show with the most recent episode
  * first (shows with no date go last, in chart order); "Not subscribed only" drops shows the
  * listener already follows. Pure, so the order is tested without a screen.
  */
 import type { ShowCard } from '@/social/api';
 
-export type CategorySort = 'all' | 'newest';
+export type CategorySort = 'forYou' | 'all' | 'newest';
 
 function stamp(s: ShowCard): number | undefined {
   const iso = s.latestEpisode?.publishedAt;
@@ -17,7 +18,7 @@ function stamp(s: ShowCard): number | undefined {
 }
 
 export function sortCategoryShows(shows: readonly ShowCard[], sort: CategorySort): ShowCard[] {
-  if (sort === 'all') return [...shows];
+  if (sort !== 'newest') return [...shows];
   // Decorate with the chart index so ties and undated shows keep chart order.
   return shows
     .map((s, i) => ({ s, i, t: stamp(s) }))
@@ -35,6 +36,7 @@ export function categoryList(
   opts: { sort: CategorySort; notSubscribedOnly: boolean; subscribed: ReadonlySet<string> },
 ): ShowCard[] {
   const kept = opts.notSubscribedOnly ? shows.filter((s) => !opts.subscribed.has(s.feedUrl)) : shows;
+  if (opts.sort === 'forYou') return [...kept.filter((s) => !opts.subscribed.has(s.feedUrl)), ...kept.filter((s) => opts.subscribed.has(s.feedUrl))];
   return sortCategoryShows(kept, opts.sort);
 }
 
@@ -67,6 +69,13 @@ export function appendPage(shows: readonly ShowCard[], page: readonly ShowCard[]
  * onto the categories, so every one — the last ones too, which can never reach the left edge —
  * is reachable by a swipe.
  */
+/** M21 T085: the category a sideways swipe of the list lands on — the next one left, the previous right; none past the ends. */
+export function neighbourGenre(ids: readonly number[], current: number, dx: number, threshold = 80): number | undefined {
+  const i = ids.indexOf(current);
+  if (i < 0 || Math.abs(dx) < threshold) return undefined;
+  return ids[dx < 0 ? i + 1 : i - 1];
+}
+
 export function swipeIndex(offset: number, maxOffset: number, count: number): number {
   if (count <= 1 || maxOffset <= 0) return 0;
   const progress = Math.min(1, Math.max(0, offset / maxOffset));

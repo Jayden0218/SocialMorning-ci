@@ -84,9 +84,12 @@ export function buildModel(body: Discover | undefined, forYou: ForYou | undefine
     picks: on('picks') ? picks : [],
     chart: on('chart') && anyChart ? chart : [],
     shows: on('shows') ? (body?.shows ?? []).filter((s) => !hidden.feeds.has(s.feedUrl)).slice(0, 6) : [],
-    // Owner, 2026-10-05: "Where to start" (the collections) and "Shows listeners here follow" are
-    // no longer drawn; their ids stay so a saved Studio order still reads.
-    collections: [],
+    // Owner, 2026-10-05: "Where to start" (the collections as rows) and "Shows listeners here
+    // follow" are no longer drawn. M21 US7 (FR-061) brings the collections back only as topic-list
+    // cards (src/ui/discover/TopicLists.tsx); hidden shows leave a list, and an empty list goes.
+    collections: on('collections')
+      ? (body?.collections ?? []).map((c) => ({ ...c, items: c.items.filter(keepItem) })).filter((c) => c.items.length > 0)
+      : [],
     said: on('said') ? (body?.said ?? []).filter((s) => !hidden.blocked.has(s.authorId) && keepCard(s.episode)) : [],
     newShows: on('newShows') ? newShows : [],
     premium: on('shows') ? (body?.premium ?? []).filter((s) => !hidden.feeds.has(s.feedUrl)).slice(0, 6) : [],

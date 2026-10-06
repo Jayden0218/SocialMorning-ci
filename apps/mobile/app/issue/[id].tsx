@@ -10,9 +10,15 @@
  * with the show and title under it, the round Play beside them, then the editor's note as a
  * serif italic quote. A pick with no episode keeps "Open the show →" under its tile. Loading,
  * Retry, the hidden-show filter and the pick order are unchanged.
+ *
+ * M21 T086 (FR-064): the issue's number ("No. 4", from the server: oldest = 1) over the title;
+ * the intro as paragraphs (split at its line breaks); each pick shows its show's cover large, and
+ * a Subscribe button for the show (the same local write and sync as the show page); Share (top
+ * right) sends the issue's title, intro and picks as text.
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
+import { Share } from 'react-native';
 import { Pressable } from '@/ui/lib/pressable';
 import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
@@ -27,6 +33,10 @@ import { dayTitle } from '@/discover/sections';
 import { useSafety } from '@/safety/context';
 import { useM12Api, type Issue } from '@/social/m12-api';
 import { PageHeader } from '@/ui/kit/PageHeader';
+import { BarButton } from '@/ui/kit/TopBar';
+import { Icon } from '@/ui/kit/Icon';
+import { useColours } from '@/ui/kit/useColours';
+import { useStores, useSubscriptionSync } from '@/ui/shell/providers';
 
 const TAP = { minHeight: hit.min };
 /** `Issue-B`: the pick's tile is 112 pt high with a 44 pt serif number. */
@@ -51,6 +61,18 @@ export default function IssueScreen(): React.ReactElement {
   const m12 = useM12Api();
   const { open, play } = useCardActions();
   const { hiddenFeeds } = useSafety();
+  const stores = useStores();
+  const c = useColours(stores.settings);
+  const subscriptionSync = useSubscriptionSync();
+  const readSubscribed = useCallback(() => new Set(stores.subscriptions.list().map((s) => s.feedUrl)), [stores]);
+  const [subscribed, setSubscribed] = useState<Set<string>>(readSubscribed);
+  // The same store calls and push as the show page's Subscribe: local write first, then the sync.
+  const toggleSubscription = (feedUrl: string): void => {
+    if (stores.subscriptions.has(feedUrl)) stores.subscriptions.remove(feedUrl);
+    else stores.subscriptions.add(feedUrl, Date.now());
+    subscriptionSync.push();
+    setSubscribed(readSubscribed());
+  };
   const [state, setState] = useState<State>({ kind: 'loading' });
   const load = useCallback(() => {
     setState({ kind: 'loading' });
@@ -58,16 +80,27 @@ export default function IssueScreen(): React.ReactElement {
   }, [m12, id]);
   useEffect(() => { load(); }, [load]);
   const items = state.kind === 'ok' ? [...state.issue.items].sort((a, b) => a.order - b.order).filter((i) => !hiddenFeeds.has(i.feedUrl)) : [];
+  // M21: the issue's number comes from the server (not in the M12 type, so read with care).
+  const number = state.kind === 'ok' ? (state.issue as Issue & { number?: number }).number : undefined;
+  const paragraphs = state.kind === 'ok' ? state.issue.intro.split(/\n+/).map((p) => p.trim()).filter((p) => p.length > 0) : [];
+  const share = (): void => {
+    if (state.kind !== 'ok') return;
+    const lines = [number ? `No. ${number} · ${state.issue.title}` : state.issue.title, state.issue.intro, ...items.map((it, n) => `${n + 1}. ${it.episode ? `${it.episode.title} — ${it.episode.showTitle}` : it.feedUrl}`)];
+    Share.share({ message: lines.join('\n\n') }).catch(() => { /* dismissed */ });
+  };
   return (
     <>
-    <PageHeader middle={<Box />} />
+    <PageHeader
+      middle={<Box />}
+      right={state.kind === 'ok' ? <BarButton label="Share this issue" onPress={share}><Icon name="share-outline" size={22} color={c.text} /></BarButton> : undefined}
+    />
     <Screen scroll className="pt-1">
       <Box className="border-t-[3px] border-text pt-2.5 gap-1.5">
         {state.kind === 'ok' ? (
           <>
-            <Text className="text-accent text-micro font-bold" style={CAPS}>Issue · {dayTitle(state.issue.date)}</Text>
+            <Text className="text-accent text-micro font-bold" style={CAPS}>{number ? `No. ${number} · ` : 'Issue · '}{dayTitle(state.issue.date)}</Text>
             <Text className="text-text text-display font-display" accessibilityRole="header">{state.issue.title}</Text>
-            {state.issue.intro ? <Text className="text-text text-title font-display-semibold mt-1 leading-[25px]">{state.issue.intro}</Text> : null}
+            {paragraphs.map((p, k) => <Text key={k} className="text-text text-title font-display-semibold mt-1 leading-[25px]">{p}</Text>)}
           </>
         ) : <Text className="text-text text-display font-display" accessibilityRole="header">Issue</Text>}
       </Box>
@@ -86,6 +119,7 @@ export default function IssueScreen(): React.ReactElement {
               <Box>
                 <Pressable onPress={() => void open(card)} accessibilityRole="button" accessibilityLabel={`${card.title}, ${card.showTitle}`} style={TAP}>
                   <Tile n={i + 1} imageUrl={card.imageUrl} showTitle={card.showTitle} />
+                  {card.imageUrl ? <Box className="mt-2.5 items-center"><Artwork url={card.imageUrl} size={220} rounded="row" name={card.showTitle} /></Box> : null}
                   <Box className="mt-2.5 pr-14">
                     <Text className="text-muted text-xs" numberOfLines={1}>{card.showTitle}</Text>
                     <Text className="text-text text-body font-bold" numberOfLines={2}>{card.title}</Text>
@@ -104,6 +138,16 @@ export default function IssueScreen(): React.ReactElement {
               </>
             )}
             {it.note ? <Text className="text-muted text-body font-display-semibold italic leading-[22px]">“{it.note}”</Text> : null}
+            {(() => {
+              const on = subscribed.has(it.feedUrl);
+              const name = card?.showTitle ?? 'this show';
+              return (
+                <Pressable onPress={() => toggleSubscription(it.feedUrl)} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={on ? `Unsubscribe from ${name}` : `Subscribe to ${name}`} className={`self-start flex-row items-center gap-1 px-section rounded-pill ${on ? 'bg-surface border border-border' : 'bg-primary'}`} style={TAP}>
+                  <Icon name={on ? 'checkmark' : 'add'} size={16} color={on ? c.muted : c.onPrimary} />
+                  <Text className={on ? 'text-muted text-meta font-semibold' : 'text-onPrimary text-meta font-bold'}>{on ? 'Subscribed' : 'Subscribe'}</Text>
+                </Pressable>
+              );
+            })()}
           </Card>
         );
       })}

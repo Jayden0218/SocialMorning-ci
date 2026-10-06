@@ -9,6 +9,10 @@
  * and when, and a yellow Play pill; the rest are a two-column grid of square artwork cards
  * (Play on the artwork's corner) with show, title, who and when under them. Same data, same
  * order, same open and play, same sign-in, empty, error and Retry states.
+ *
+ * M21 T086 (FR-065): above them, a deck of like posts from people you follow — swipe through
+ * the cards; each opens its like post, and Follow / Following sits on each. ⓘ in the header
+ * opens a help sheet saying what this page shows and what it never shows.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
@@ -30,6 +34,15 @@ import { useSocial } from '@/social/context';
 import { useM12Api, type FriendListen } from '@/social/m12-api';
 import { whoListened } from '@/social/who';
 import { PageHeader } from '@/ui/kit/PageHeader';
+import { BarButton } from '@/ui/kit/TopBar';
+import { Icon } from '@/ui/kit/Icon';
+import { Avatar } from '@/ui/kit/Avatar';
+import { useColours } from '@/ui/kit/useColours';
+import { useStores } from '@/ui/shell/providers';
+import { Pager } from '@/ui/discover/parts';
+import { openLikePost } from '@/ui/discover/TheirLikes';
+import { useProfileApi, type LikeItem } from '@/social/profile-api';
+import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '@/ui/lib/actionsheet';
 import { EndOfList } from '@/ui/kit/EndOfList';
 
 const TAP = { minHeight: hit.min };
@@ -68,8 +81,81 @@ function Faces(props: { listeners: FriendListen['listeners'] }): React.ReactElem
   );
 }
 
+/** M21: one like post as a card in the deck — the person with Follow, the note, the episode. */
+function LikeDeckCard(props: { item: LikeItem; following: boolean; onFollow: () => void }): React.ReactElement | null {
+  const { item } = props;
+  const who = item.listener;
+  if (!who) return null;
+  return (
+    <Card className="py-row">
+      <Box className="flex-row items-center gap-row">
+        <Avatar size={36} url={who.avatarUrl} name={who.displayName} />
+        <Text className="flex-1 text-text text-body font-bold" numberOfLines={1}>{who.displayName}</Text>
+        <Pressable onPress={props.onFollow} accessibilityRole="button" accessibilityState={{ selected: props.following }} accessibilityLabel={props.following ? `Unfollow ${who.displayName}` : `Follow ${who.displayName}`} className={`justify-center px-section rounded-pill ${props.following ? 'bg-surface border border-border' : 'bg-primary'}`} style={TAP}>
+          <Text className={props.following ? 'text-muted text-meta font-semibold' : 'text-onPrimary text-meta font-bold'}>{props.following ? 'Following' : 'Follow'}</Text>
+        </Pressable>
+      </Box>
+      <Pressable onPress={() => openLikePost(item)} accessibilityRole="button" accessibilityLabel={`Open ${who.displayName}'s like of ${item.episode.title}`} style={TAP}>
+        {item.note ? <Text className="text-text text-body font-display-semibold mt-gap" numberOfLines={3}>{`“${item.note}”`}</Text> : null}
+        <Box className="flex-row items-center gap-row mt-row">
+          <Artwork url={item.episode.imageUrl} size={48} name={item.episode.showTitle} />
+          <Box className="flex-1">
+            <Text className="text-text text-meta font-bold" numberOfLines={2}>{item.episode.title}</Text>
+            <Text className="text-muted text-xs" numberOfLines={1}>{item.episode.showTitle}</Text>
+          </Box>
+        </Box>
+      </Pressable>
+    </Card>
+  );
+}
+
 export default function FriendsListening(): React.ReactElement {
-  const { listener } = useSocial();
+  const { listener, api } = useSocial();
+  const profileApi = useProfileApi();
+  const stores = useStores();
+  const c = useColours(stores.settings);
+  const [help, setHelp] = useState(false);
+  const [likes, setLikes] = useState<LikeItem[]>([]);
+  // The timeline is people you follow; an Unfollow here is remembered until the page closes.
+  const [unfollowed, setUnfollowed] = useState<ReadonlySet<string>>(new Set());
+  useEffect(() => {
+    if (!listener) return;
+    profileApi.likesTimeline().then((p) => setLikes(p.items.filter((i) => i.listener !== undefined).slice(0, 10)), () => { /* no deck */ });
+  }, [profileApi, listener]);
+  const toggleFollow = (id: string): void => {
+    const off = unfollowed.has(id);
+    (off ? api.follow(id) : api.unfollow(id)).then(() => setUnfollowed((s) => {
+      const n = new Set(s);
+      if (off) n.delete(id); else n.add(id);
+      return n;
+    }), () => { /* unchanged */ });
+  };
+  const helpButton = <BarButton label="What is this page?" onPress={() => setHelp(true)}><Icon name="information-circle-outline" size={24} color={c.text} /></BarButton>;
+  const helpSheet = (
+    <Actionsheet isOpen={help} onClose={() => setHelp(false)}>
+      <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
+      <ActionsheetContent className="bg-surface rounded-t-row px-screen-x pt-row pb-section items-stretch">
+        <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
+        <Text className="text-text text-title font-display py-row" accessibilityRole="header">Friends listening</Text>
+        <Text className="text-text text-body">What people you follow liked, and what they played in the last 7 days.</Text>
+        <Text className="text-muted text-body mt-gap">Anyone who listens privately, or keeps their likes private, is never shown. Nor is anyone you blocked, or who blocked you.</Text>
+        <Pressable onPress={() => setHelp(false)} accessibilityRole="button" accessibilityLabel="Close" className="items-center justify-center mt-row" style={TAP}>
+          <Text className="text-accent text-sm font-bold">Close</Text>
+        </Pressable>
+      </ActionsheetContent>
+    </Actionsheet>
+  );
+  const deck = likes.length > 0 ? (
+    <Box className="-mx-screen-x mb-row">
+      <Text className="text-text text-lg font-display px-screen-x mb-gap" accessibilityRole="header">Their likes</Text>
+      <Pager count={likes.length}>
+        {(i) => {
+          const it = likes[i];
+          return it && it.listener ? <LikeDeckCard item={it} following={!unfollowed.has(it.listener.id)} onFollow={() => it.listener && toggleFollow(it.listener.id)} /> : null;
+        }}
+      </Pager>
+    </Box>
+  ) : null;
   const m12 = useM12Api();
   const { open, play } = useCardActions();
   const { width } = useWindowDimensions();
@@ -80,7 +166,7 @@ export default function FriendsListening(): React.ReactElement {
     m12.friendsListening().then((items) => setState({ kind: 'ok', items }), () => setState({ kind: 'error' }));
   }, [m12, listener]);
   useEffect(() => { load(); }, [load]);
-  if (!listener) return <><PageHeader title="Friends listening" /><Box className="flex-1 bg-background"><EmptyPicture icon="people-outline" line="Sign in to see what people you follow are playing" /></Box></>;
+  if (!listener) return <><PageHeader title="Friends listening" right={helpButton} />{helpSheet}<Box className="flex-1 bg-background"><EmptyPicture icon="people-outline" line="Sign in to see what people you follow are playing" /></Box></>;
   const now = Date.now();
   const items = state.kind === 'ok' ? state.items : [];
   const [lead] = items;
@@ -109,7 +195,8 @@ export default function FriendsListening(): React.ReactElement {
 
   return (
     <>
-    <PageHeader middle={<Box />} />
+    <PageHeader middle={<Box />} right={helpButton} />
+    {helpSheet}
     <FlatList
       className="flex-1 bg-background"
       data={items.slice(1)}
@@ -119,7 +206,7 @@ export default function FriendsListening(): React.ReactElement {
       numColumns={2}
       columnWrapperStyle={COLUMNS}
       contentContainerClassName="px-screen-x pb-24 flex-grow"
-      ListHeaderComponent={<Box><Title />{lead ? feature(lead) : null}</Box>}
+      ListHeaderComponent={<Box><Title />{deck}{lead ? feature(lead) : null}</Box>}
       ListEmptyComponent={items.length > 0 ? undefined : state.kind === 'loading' ? <Loader className="my-section" /> : state.kind === 'error' ? (
         <Box className="items-center my-section">
           <Text className="text-muted text-sm">Couldn't load this right now.</Text>

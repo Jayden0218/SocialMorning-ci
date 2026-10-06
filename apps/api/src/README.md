@@ -57,7 +57,7 @@ here or a line does not match its file.
 | `social.ts` | Episode social poll route: comments and heat curve in one cached answer. |
 | `voice.ts` | Voice post routes: upload a short recording, list, and delete posts. |
 | `comment-image.ts` | Comment image route: the author adds one picture to their comment, kept in the image store. |
-| `likes.ts` | Like routes: like an episode with a note, unlike, my timeline, one account's likes. |
+| `likes.ts` | Like routes: like an episode with a note, unlike, my timeline, one account's likes, like posts. |
 | `playlists.ts` | Playlist routes: my playlists, one playlist, its order, and an account's public ones. |
 | `voice-comments.ts` | Voice comment route: post a recording of up to 60 seconds as a comment at a moment. |
 | `mutes.ts` | Mute routes: list the listeners I muted, mute one, unmute one. |
@@ -86,7 +86,7 @@ here or a line does not match its file.
 | File | What it does |
 |---|---|
 | `categories.ts` | Category routes: list genres and show each genre's top shows. |
-| `discover.ts` | Discover route: the public Discover page plus the full talked-about chart. |
+| `discover.ts` | Discover route: the public Discover page, the three charts, the treasure hunt, the plaza and daily picks. |
 | `foryou.ts` | For You route: the personal recommendation list, signed-in only. |
 | `issues.ts` | Routes for past daily picks and curated issues. |
 | `launch.ts` | Public launch-screen routes: live promotions and anonymous view or tap counts. |
@@ -182,7 +182,7 @@ here or a line does not match its file.
 | `voice-comments.ts` | Voice comments: their recording limits, and deleting the audio of removed comments. |
 | `mutes.ts` | Mutes: hide a listener's comments, voice posts and likes from me only; they are never told. |
 | `comment-images.ts` | Comment images: deleting them from the store when their comment or their author goes. |
-| `likes.ts` | Likes with a note: like or unlike an episode, a timeline of likes from people you follow. |
+| `likes.ts` | Likes with a note: like or unlike an episode, a timeline of likes from people you follow, and like posts. |
 | `playlists.ts` | Listener playlists: make, rename, reorder, share publicly or keep private. |
 | `host-notices.ts` | Host notices: announcements from the shows a listener follows, from their release time. |
 | `report.ts` | The monthly listening report: minutes, shows, episodes, top three of each, comments and clips. |
@@ -219,6 +219,7 @@ here or a line does not match its file.
 | `promotions.ts` | Launch-screen promotions: store, schedule, count views and taps as totals only. |
 | `similarity.ts` | Computes which shows are similar, ignoring private listeners and storing no listener ids. |
 | `dismissals.ts` | "Not interested" choices: episodes and shows a listener asked For You to stop showing. |
+| `explore.ts` | Explore lists: the three charts, the treasure hunt, the new-shows plaza, and followed faces on picks. |
 
 ### `db/repos/studio/` — a show's data for its creators
 

@@ -39,6 +39,9 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `cache.ts` | Keeps the last Discover page so it still shows when offline. |
 | `category-cache.ts` | Keeps each category's last list so its page shows at once, then refreshes quietly. |
 | `row-stats.ts` | Fetches "listened" and comment counts for every episode on Discover in one call. |
+| `explore-api.ts` | Server calls for M21 Discover: the three charts, treasure hunt, plaza, daily picks, like posts, dated search. |
+| `hidden-categories.ts` | Remembers which category tiles the listener hid on Discover, and brings them back. |
+| `plaza-grid.ts` | The plaza's grid sums: which tiles to mount for a pan offset, which show sits in a cell, when to load more. |
 | `category-list.ts` | Sorts and filters the shows on a category page. |
 | `end-offer.ts` | Decides which episode to suggest when one ends and the queue is empty. |
 | `first-paint.ts` | Holds the Discover page back until its data is in, so it appears whole, not piece by piece. |
@@ -381,6 +384,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 
 | File | What it does |
 |---|---|
+| `CardSheet.tsx` | The episode-row sheet for a Discover / search / chart card: finds the episode, then opens the sheet. |
 | `ContinueListening.tsx` | Card to go on with your last episode (not on Updates since 2026-10-05; kept for reuse). |
 | `DownloadButton.tsx` | Download button showing every state: waiting, percent, done, failed, remove. |
 | `EpisodeRow.tsx` | One episode in a list: cover, title, show, length and date. |
@@ -406,6 +410,11 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | File | What it does |
 |---|---|
 | `DiscoverSections.tsx` | Discover's main sections: picks, then episode lists, with an old-data note. |
+| `FullPager.tsx` | Whole-screen pages swiped left and right (chart, search tabs, categories), kept in step with their tabs. |
+| `Plaza.tsx` | The new-shows plaza: a wall of covers dragged in any direction with one finger; tap a cover for its show. |
+| `TheirLikes.tsx` | "Their likes" on Discover: recent likes with notes from people you follow, each opening its like post. |
+| `TopicLists.tsx` | Topic lists on Discover: the editors' collections as cards, each opening its full list. |
+| `TreasureHunt.tsx` | Treasure hunt on Discover: three lesser-heard episodes from shows you don't follow, with Shuffle. |
 | `ForYou.tsx` | "For You" list of suggested episodes, each with its reason; signed in only. |
 | `NotInterested.tsx` | The For You "⋯" sheet (not interested in this episode, or this show) and the "Hidden · Undo" line. |
 | `PickCard.tsx` | One editor's pick: the episode plus a short quote on why. |

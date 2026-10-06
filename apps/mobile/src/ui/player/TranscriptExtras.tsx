@@ -3,6 +3,7 @@
  * M21 US2 (spec story 2, scenarios 5–6). Kept apart from `TranscriptPane` so the pane stays a
  * plain component with no app context (its tests render it bare).
  */
+import { BusyContent } from '@/ui/kit/BusyContent';
 import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import type { Transcript, TranscriptLine } from '@socialmorning/player-core';
@@ -97,7 +98,9 @@ export function TranscriptReportSheet(props: { episodeId: string; line: Transcri
         {state === 'failed' ? <Text className="text-body text-accent mt-gap">That did not send. Try again when you're online.</Text> : null}
         <Box className="gap-1 mt-row">
           <Pressable onPress={() => { void send(); }} disabled={!changed || state === 'sending'} accessibilityRole="button" accessibilityLabel="Send the correction" accessibilityState={{ disabled: !changed || state === 'sending' }} className={`items-center justify-center bg-primary rounded-pill ${!changed || state === 'sending' ? 'opacity-40' : ''}`} style={TAP}>
-            <Text className="text-sm font-bold text-onPrimary">{state === 'sending' ? 'Sending…' : 'Send'}</Text>
+            <BusyContent busy={state === 'sending'} barClassName="bg-onPrimary">
+              <Text className="text-sm font-bold text-onPrimary">Send</Text>
+            </BusyContent>
           </Pressable>
           <Pressable onPress={props.onClose} accessibilityRole="button" accessibilityLabel="Cancel" className="items-center justify-center" style={TAP}>
             <Text className="text-body font-bold text-accent">Cancel</Text>

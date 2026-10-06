@@ -16,6 +16,12 @@
  * words underlined in yellow; All / Newest are a pill track; the first show is a wide white
  * card and the rest are half-width cards, subscribe round in each card's corner. Same genres,
  * sort, filter, subscribe and show links; the strip still scrolls to the chosen genre.
+ *
+ * M21 T085 (FR-063): For you / Hot / Newest chips (For you puts shows you don't follow yet
+ * first; Hot is the chart order; Newest as before); the list swipes left or right to the next
+ * or previous category (one pan gesture that gives way to vertical scrolling); the chevron
+ * opens a full-screen grid of every category in place of the sheet; every card shows two lines
+ * about the show (its maker and its kinds — Apple's catalogue gives no description).
  */
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { Image as RNImage, ScrollView, useWindowDimensions } from "react-native";
@@ -26,6 +32,8 @@ import {
   useState,
   type ComponentRef,
 } from "react";
+import { runOnJS } from "react-native-reanimated";
+import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
 import { Pressable } from "@/ui/lib/pressable";
 import { Text } from "@/ui/lib/text";
 import { Box } from "@/ui/lib/box";
@@ -42,17 +50,10 @@ import {
   appendPage,
   categoryList,
   hasMoreAfter,
+  neighbourGenre,
   swipeIndex,
   type CategorySort,
 } from "@/discover/category-list";
-import {
-  Actionsheet,
-  ActionsheetBackdrop,
-  ActionsheetContent,
-  ActionsheetDragIndicator,
-  ActionsheetDragIndicatorWrapper,
-} from "@/ui/lib/actionsheet";
-import { SheetRow } from "@/ui/kit/SheetRow";
 import { tick } from "@/ui/kit/haptics";
 import { hit } from "@/design";
 import { ago } from "@/discover/sections";
@@ -83,6 +84,9 @@ const CHEVRON = { minWidth: hit.min, zIndex: 1 };
 const SETTLE_MS = 150;
 /** How near the bottom (pt) the next page starts loading. */
 const LOAD_AHEAD = 600;
+/** M21: three category tiles to a row in the grid overlay. */
+const GRID_TILE = { minHeight: hit.min, flexBasis: "30%" as const, flexGrow: 1 };
+const GENRE_IDS = GENRES.map((g) => g.id);
 /**
  * Owner, 2026-10-05: scrolling to the bottom loads the next 20 (`?page=N`) until the server says
  * there are no more. Page 0 is `state` (kept and refreshed as before); later pages live here.
@@ -119,7 +123,7 @@ export default function CategoryScreen(): React.ReactElement {
     return body ? { kind: "ok", body } : { kind: "loading" };
   };
   const [state, setState] = useState<State>(() => keptState(Number(params.id)));
-  const [sort, setSort] = useState<CategorySort>("all");
+  const [sort, setSort] = useState<CategorySort>("forYou");
   const [notSubscribedOnly, setNotSubscribedOnly] = useState(false);
   const [more, setMore] = useState<More>(() => freshMore(Number(params.id)));
   const loadingMore = useRef<number | null>(null);
@@ -173,11 +177,27 @@ export default function CategoryScreen(): React.ReactElement {
     setGenreId(id);
     showTile(id, true);
   };
-  /** Owner, 2026-10-05: the chevron's list of every category. */
+  /** Owner, 2026-10-05: the chevron's list of every category (M21: a grid over the page). */
   const pickFromSheet = (id: number) => {
     setPicking(false);
     pick(id);
   };
+  // M21 T085: a sideways swipe on the list moves to the neighbouring category.
+  const swipeTo = (dx: number) => {
+    const id = neighbourGenre(GENRE_IDS, genreId, dx);
+    if (id !== undefined) {
+      tick();
+      pick(id);
+    }
+  };
+  const listSwipe = usePanGesture({
+    activeOffsetX: [-24, 24],
+    failOffsetY: [-14, 14],
+    onDeactivate: (e) => {
+      "worklet";
+      runOnJS(swipeTo)(e.translationX);
+    },
+  });
 
   useEffect(() => {
     let live = true;
@@ -278,6 +298,12 @@ export default function CategoryScreen(): React.ReactElement {
   const pairs: ShowCard[][] = [];
   for (let i = 0; i < rest.length; i += 2) pairs.push(rest.slice(i, i + 2));
 
+  /** M21: the two lines under a show's name — Apple's catalogue gives no description. */
+  const about = (s: ShowCard): string => {
+    const kinds = s.genres.filter((g) => g !== "Podcasts").slice(0, 3).join(", ");
+    return kinds ? `${s.author} · ${kinds}` : s.author;
+  };
+
   /** One show: the first is the wide card, the rest half-width; subscribe sits top right on both. */
   const showCard = (s: ShowCard, wide: boolean): React.ReactElement => {
     const on = subscribed.has(s.feedUrl);
@@ -331,11 +357,12 @@ export default function CategoryScreen(): React.ReactElement {
             >
               {s.title}
             </Text>
+            {/* M21 T085: two lines about the show — its maker and its kinds. */}
             <Text
               className={`text-muted text-xs ${wide ? "" : "text-center"}`}
               numberOfLines={2}
             >
-              {s.author}
+              {about(s)}
             </Text>
             {ep ? (
               /* Owner, 2026-10-04: the first card's newest episode sits in the same tinted box as
@@ -497,10 +524,16 @@ export default function CategoryScreen(): React.ReactElement {
         <Segmented
           items={[
             {
+              value: "forYou",
+              label: "For you",
+              accessibilityLabel: "For you, shows you don't follow first",
+              icon: "sparkles-outline",
+            },
+            {
               value: "all",
-              label: "All",
-              accessibilityLabel: "All, chart order",
-              icon: "list-outline",
+              label: "Hot",
+              accessibilityLabel: "Hot, chart order",
+              icon: "flame-outline",
             },
             {
               value: "newest",
@@ -517,7 +550,7 @@ export default function CategoryScreen(): React.ReactElement {
         <Box className="flex-row items-center justify-between gap-2 mb-row pt-2">
           {/* Owner, 2026-10-05: both in the small meta size. */}
           <Text className="text-muted text-xs flex-1" numberOfLines={2}>
-            {sort === "newest" ? "By latest update" : "Recommended by us"}
+            {sort === "newest" ? "By latest update" : sort === "forYou" ? "New to you first" : "Recommended by us"}
           </Text>
           <Box className="flex-row items-center gap-2">
             <Text className="text-muted text-xs">Not subscribed only</Text>
@@ -529,6 +562,8 @@ export default function CategoryScreen(): React.ReactElement {
             />
           </Box>
         </Box>
+        <GestureDetector gesture={listSwipe}>
+        <Box>
         {state.kind === "loading" ? <Loader className="my-section" /> : null}
         {state.kind === "error" ? (
           <Text className="text-muted text-sm">
@@ -557,6 +592,8 @@ export default function CategoryScreen(): React.ReactElement {
             {pair.length === 1 ? <Box className="flex-1" /> : null}
           </Box>
         ))}
+        </Box>
+        </GestureDetector>
         {state.kind === "ok" && visible.length > 0 ? (
           more.status === "loading" ? (
             <Loader className="my-section" />
@@ -580,42 +617,49 @@ export default function CategoryScreen(): React.ReactElement {
           ) : null
         ) : null}
       </Screen>
-      <Actionsheet isOpen={picking} onClose={() => setPicking(false)}>
-        <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-        <ActionsheetContent className="bg-surface rounded-t-row px-screen-x pt-row items-stretch">
-          {/* Owner, 2026-10-05: an × at the top right, level with the drag bar; no scroll bar. */}
-          <Box className="justify-center">
-            <ActionsheetDragIndicatorWrapper>
-              <ActionsheetDragIndicator />
-            </ActionsheetDragIndicatorWrapper>
-            <Pressable
-              onPress={() => setPicking(false)}
-              accessibilityRole="button"
-              accessibilityLabel="Close"
-              className="absolute -right-3 items-center justify-center"
-              style={ROUND}
-            >
-              <Icon name="close" size={18} color={c.muted} />
-            </Pressable>
-          </Box>
+      {/* M21 T085: every category as a grid laid over the page (it replaces the sheet). */}
+      {picking ? (
+        <Box className="absolute top-0 left-0 right-0 bottom-0 bg-background">
+          <PageHeader
+            title="All categories"
+            left={
+              <Pressable
+                onPress={() => setPicking(false)}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+                className="items-center justify-center"
+                style={ROUND}
+              >
+                <Icon name="close" size={22} color={c.text} />
+              </Pressable>
+            }
+          />
           <ScrollView
-            style={{ maxHeight: screenHeight * 0.7 }}
-            showsVerticalScrollIndicator={false}
+            style={{ maxHeight: screenHeight * 0.85 }}
+            contentContainerClassName="flex-row flex-wrap gap-gap px-screen-x pb-24"
           >
-            {GENRES.map((g) => (
-              <SheetRow
-                key={g.id}
-                icon={g.icon}
-                label={g.name}
-                iconColour={g.id === genreId ? c.text : c.muted}
-                selected={g.id === genreId}
-                {...(g.id === genreId ? { detail: "✓" } : {})}
-                onPress={() => pickFromSheet(g.id)}
-              />
-            ))}
+            {GENRES.map((g) => {
+              const on = g.id === genreId;
+              return (
+                <Pressable
+                  key={g.id}
+                  onPress={() => pickFromSheet(g.id)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: on }}
+                  accessibilityLabel={g.name}
+                  className={`items-center justify-center gap-1 rounded-row border px-1 py-row ${on ? "bg-primary border-primary" : "bg-surface border-border"}`}
+                  style={GRID_TILE}
+                >
+                  <Icon name={g.icon} size={22} color={on ? c.onPrimary : c.accent} />
+                  <Text className={on ? "text-onPrimary text-xs font-bold text-center" : "text-text text-xs font-semibold text-center"} numberOfLines={2}>
+                    {g.name}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </ScrollView>
-        </ActionsheetContent>
-      </Actionsheet>
+        </Box>
+      ) : null}
     </>
   );
 }

@@ -13,7 +13,8 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 | `_layout.tsx` | (wraps every screen) | No screen: starts the app, database and player; shows an error page if something breaks. |
 | `account.tsx` | `/account` | Settings: account card, everyday settings tiles, info pages, Sign out. From Me. |
 | `categories.tsx` | `/categories` | Every podcast category as a two-column grid of cards. |
-| `chart.tsx` | `/chart` | Full "Talked about" ranking for 7 days: top three as cards, then rows. |
+| `chart.tsx` | `/chart` | The charts: Talked about, New shows and Rising, swiped one to the next, with when each last updated. |
+| `chart-rules.tsx` | `/chart-rules` | How the three charts are ranked and how often they update, in plain words. |
 | `creator.tsx` | `/creator` | Creator centre: claim a show you publish with a code, then see its numbers. |
 | `downloads.tsx` | `/downloads` | Downloaded episodes, space used, size limit and mobile-data switch. |
 | `favourites.tsx` | `/favourites` | Starred episodes and starred comments, in two tabs, with search. |
@@ -25,6 +26,7 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 | `moments.tsx` | `/moments` | Saved moments as a timeline; tap to play from there, edit note, delete. |
 | `my-comments.tsx` | `/my-comments` | Every comment you wrote, with its episode and time; tap to open. |
 | `notifications.tsx` | `/notifications` | Notifications: System messages, People (what listeners you follow did) and From hosts. |
+| `plaza.tsx` | `/plaza` | The new-shows plaza page: drag a wall of new shows' covers, Shuffle it, or read it as a list. |
 | `play-latest.tsx` | `/play-latest` | Plays your next queued or newest episode and opens the player. |
 | `player.tsx` | `/player` | The full player: artwork, the heat curve as the seek bar, transcript lines, controls, and a settings panel. |
 | `queue.tsx` | `/queue` | Your queue: "Up next" card, then numbered episodes to reorder or remove. |
@@ -101,10 +103,17 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 |---|---|---|
 | `issue/[id].tsx` | `/issue/<id>` | One curated issue: editor's intro, then numbered picks with the editor's notes. |
 
+### `like/`
+
+| File | Route | What the user sees |
+|---|---|---|
+| `like/[owner]/[episode].tsx` | `/like/<owner>/<episode>` | A like post: one person's like of an episode with their note, with comments, reactions and Report. |
+
 ### `picks/`
 
 | File | Route | What the user sees |
 |---|---|---|
+| `picks/daily.tsx` | `/picks/daily` | Today's editor's picks on a page of their own, each with the editor's note. |
 | `picks/past.tsx` | `/picks/past` | Editor's picks from earlier days, grouped by date, with notes and Play. |
 
 ### `playlists/`
@@ -168,6 +177,12 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 | File | Route | What the user sees |
 |---|---|---|
 | `show-info/[feedUrl].tsx` | `/show-info/<feedUrl>` | Show info: who stands behind the show, the owner's country, and the feed address to copy. |
+
+### `topic/`
+
+| File | Route | What the user sees |
+|---|---|---|
+| `topic/[id].tsx` | `/topic/<id>` | One topic list in full: every episode the editors put in it, with its note. |
 
 ### `voice/`
 

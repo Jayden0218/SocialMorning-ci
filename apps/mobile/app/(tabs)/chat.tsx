@@ -7,8 +7,8 @@
  * Read on focus and every 15 s while the tab is open; there is no push channel for chat.
  * Signed out, the tab says what it is for and links to sign in.
  */
-import { Link, useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { Link, useFocusEffect, useRouter, useScrollToTop } from 'expo-router';
+import { useCallback, useState, useRef } from 'react';
 import { FlatList } from '@/ui/lib/flat-list';
 import { Pressable } from '@/ui/lib/pressable';
 import { SafeAreaView } from '@/ui/lib/safe-area-view';
@@ -33,6 +33,7 @@ const REFRESH_MS = 15_000;
 type State = { kind: 'loading' } | { kind: 'error' } | { kind: 'ok'; items: Conversation[] };
 
 export default function ChatTab(): React.ReactElement {
+  const top = useRef(null); useScrollToTop(top); // M21 T082: pressing this tab again scrolls to the top.
   const router = useRouter();
   const stores = useStores();
   const c = useColours(stores.settings);
@@ -88,6 +89,7 @@ export default function ChatTab(): React.ReactElement {
   return (
     <SafeAreaView className="flex-1 bg-background">
       <FlatList
+        ref={top}
         data={items}
         // Owner, 2026-10-05: the bottom of a fetched list says so.
         ListFooterComponent={items.length > 0 ? <EndOfList /> : undefined}

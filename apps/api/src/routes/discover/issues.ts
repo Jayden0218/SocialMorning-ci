@@ -1,6 +1,6 @@
 // Routes for past daily picks and curated issues.
 import { Hono } from 'hono';
-import { pastPickDays } from '@socialmorning/social-core';
+import { pastPickDays, type IssueIn } from '@socialmorning/social-core';
 import type { AuthEnv } from '../../auth/session.ts';
 import type { Db } from '../../db/db.ts';
 import type { EpisodeCard } from '../../catalog/apple.ts';
@@ -53,12 +53,22 @@ pastPicks.get('/past', async (c) => {
 /** Mounted at /v1/issues. Newest first; an issue dated after today is not out yet. */
 export const issues = new Hono<AuthEnv>();
 
+/**
+ * M21 T086: an issue's number is its place among the issues out so far, oldest = 1 — so a later
+ * issue never changes an earlier one's number.
+ */
+function numbered(all: readonly IssueIn[], today: string): Map<string, number> {
+  const out = all.filter((i) => i.date <= today).sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
+  return new Map(out.map((i, n) => [i.id, n + 1]));
+}
+
 issues.get('/', (c) => {
   const cat = c.get('catalog');
   const today = cat.today();
   const list = cat.issues.filter((i) => i.date <= today).sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id));
+  const nums = numbered(cat.issues, today);
   c.header('cache-control', 'public, max-age=300');
-  return c.json({ issues: list.map((i) => ({ id: i.id, date: i.date, title: i.title })) });
+  return c.json({ issues: list.map((i) => ({ id: i.id, number: nums.get(i.id) ?? 0, date: i.date, title: i.title })) });
 });
 
 issues.get('/:id', async (c) => {
@@ -73,5 +83,5 @@ issues.get('/:id', async (c) => {
     items.push({ order: it.order, feedUrl: it.feedUrl, ...(it.guid !== undefined ? { guid: it.guid } : {}), note: it.note, episode: await episodeFor(db, it.feedUrl, it.guid) });
   }
   c.header('cache-control', 'public, max-age=300');
-  return c.json({ id: issue.id, date: issue.date, title: issue.title, intro: issue.intro, items });
+  return c.json({ id: issue.id, number: numbered(cat.issues, cat.today()).get(issue.id) ?? 0, date: issue.date, title: issue.title, intro: issue.intro, items });
 });

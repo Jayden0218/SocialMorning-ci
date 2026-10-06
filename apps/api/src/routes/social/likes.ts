@@ -1,11 +1,11 @@
-// Like routes: like an episode with a note, unlike, my timeline, one account's likes.
+// Like routes: like an episode with a note, unlike, my timeline, one account's likes, like posts.
 import { Hono } from 'hono';
 import { z } from 'zod';
 import type { AuthEnv } from '../../auth/session.ts';
 import { optionalAuth, requireAuth } from '../../auth/session.ts';
 import { json } from '../../validate.ts';
 import { ApiError } from '../../errors.ts';
-import { like, likesOf, myLike, timeline, unlike } from '../../db/repos/social/likes.ts';
+import { addLikeComment, clearLikeReaction, deleteLikeComment, like, likePost, likesOf, myLike, setLikeReaction, timeline, unlike, visibleLike } from '../../db/repos/social/likes.ts';
 
 const before = z.string().datetime().optional();
 const UUID = /^[0-9a-f-]{36}$/i;
@@ -52,4 +52,60 @@ listenerLikes.get('/:id/likes', optionalAuth, async (c) => {
   const b = before.safeParse(c.req.query('before'));
   if (!b.success) throw new ApiError('validation', 'before must be an ISO time.', { fields: ['before'] });
   return c.json(await likesOf(c.get('db'), id, c.get('listener')?.id, b.data));
+});
+
+/**
+ * M21 US7 (T081) — mounted at /v1/likes: the like post, OUR OWN DESIGN (owner, 2026-10-06).
+ *   GET    /:ownerId/:episodeId                 → { like, comments, reactions }   (public while the like is)
+ *   POST   /:ownerId/:episodeId/comments        { body ≤ 280 } → 201 the comment  (signed in)
+ *   DELETE /:ownerId/:episodeId/comments/:id    → 204 (the author or the like's owner)
+ *   PUT    /:ownerId/:episodeId/reactions       { emoji ≤ 16 } → 204              (one per listener)
+ *   DELETE /:ownerId/:episodeId/reactions       → 204
+ * A like the viewer may not see is 404 for every verb, so a block never shows as "blocked".
+ */
+export const likePosts = new Hono<AuthEnv>();
+
+const ownerOf = (raw: string): string => {
+  if (!UUID.test(raw)) throw new ApiError('not_found', 'No such like.');
+  return raw;
+};
+
+async function mustSee(db: AuthEnv['Variables']['db'], ownerId: string, episodeId: string, viewerId: string): Promise<void> {
+  if (!(await visibleLike(db, ownerId, episodeId, viewerId))) throw new ApiError('not_found', 'No such like.');
+}
+
+likePosts.get('/:ownerId/:episodeId', optionalAuth, async (c) => {
+  const post = await likePost(c.get('db'), ownerOf(c.req.param('ownerId')), c.req.param('episodeId'), c.get('listener')?.id);
+  if (!post) throw new ApiError('not_found', 'No such like.');
+  return c.json(post);
+});
+
+likePosts.post('/:ownerId/:episodeId/comments', requireAuth, json(z.object({ body: z.string().trim().min(1).max(280) })), async (c) => {
+  const ownerId = ownerOf(c.req.param('ownerId'));
+  const episodeId = c.req.param('episodeId');
+  const me = c.get('listener')!.id;
+  await mustSee(c.get('db'), ownerId, episodeId, me);
+  return c.json(await addLikeComment(c.get('db'), ownerId, episodeId, me, c.req.valid('json').body), 201);
+});
+
+likePosts.delete('/:ownerId/:episodeId/comments/:commentId', requireAuth, async (c) => {
+  const commentId = c.req.param('commentId');
+  if (!UUID.test(commentId)) throw new ApiError('not_found', 'No such comment.');
+  const done = await deleteLikeComment(c.get('db'), ownerOf(c.req.param('ownerId')), c.req.param('episodeId'), commentId, c.get('listener')!.id);
+  if (!done) throw new ApiError('not_found', 'No such comment.');
+  return c.body(null, 204);
+});
+
+likePosts.put('/:ownerId/:episodeId/reactions', requireAuth, json(z.object({ emoji: z.string().trim().min(1).max(16) })), async (c) => {
+  const ownerId = ownerOf(c.req.param('ownerId'));
+  const episodeId = c.req.param('episodeId');
+  const me = c.get('listener')!.id;
+  await mustSee(c.get('db'), ownerId, episodeId, me);
+  await setLikeReaction(c.get('db'), ownerId, episodeId, me, c.req.valid('json').emoji);
+  return c.body(null, 204);
+});
+
+likePosts.delete('/:ownerId/:episodeId/reactions', requireAuth, async (c) => {
+  await clearLikeReaction(c.get('db'), ownerOf(c.req.param('ownerId')), c.req.param('episodeId'), c.get('listener')!.id);
+  return c.body(null, 204);
 });

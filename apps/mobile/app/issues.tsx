@@ -7,11 +7,15 @@
  * under "Earlier issues" as a 2-column grid of white cards — a short accent strip, the serif
  * title, the date at the foot. Every card is the same Pressable as before (same accessible
  * name, same `/issue/[id]` push); loading, Retry and the empty picture are unchanged.
+ *
+ * M21 T086 (FR-064): each card carries the issue number ("No. 4"), and a row of date bubbles
+ * (day over month) under the lead card opens any past issue in one tap.
  */
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
 import { FlatList } from '@/ui/lib/flat-list';
+import { ScrollView } from '@/ui/lib/scroll-view';
 import { Pressable } from '@/ui/lib/pressable';
 import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
@@ -50,6 +54,26 @@ export default function IssuesScreen(): React.ReactElement {
   const cell = Math.max(0, Math.floor((width - 2 * spacing.screenX - spacing.row) / 2));
   const cellBox = { width: cell, minHeight: CARD_MIN };
 
+  const num = (i: IssueSummary): number | undefined => (i as IssueSummary & { number?: number }).number;
+  /** M21: "Oct" and "6" from "2026-10-06", written as given (never shifted by the phone's zone). */
+  const bubble = (date: string): { day: string; month: string } => {
+    const t = dayTitle(date).split(' ');
+    return { day: t[1] ?? date, month: t[2] ?? '' };
+  };
+  const bubbles = (list: IssueSummary[]): React.ReactElement => (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-gap py-row">
+      {list.map((it) => {
+        const b = bubble(it.date);
+        return (
+          <Pressable key={it.id} onPress={() => router.push({ pathname: '/issue/[id]', params: { id: it.id } })} accessibilityRole="button" accessibilityLabel={`Issue of ${dayTitle(it.date)}`} className="items-center justify-center w-14 h-14 rounded-pill bg-surface border border-border">
+            <Text className="text-text text-body font-bold">{b.day}</Text>
+            <Text className="text-muted text-micro">{b.month}</Text>
+          </Pressable>
+        );
+      })}
+    </ScrollView>
+  );
+
   /** One issue: the yellow lead card (the newest) or a grid card. Same name and push for both. */
   const issueCard = (item: IssueSummary, isLead: boolean): React.ReactElement => (
     <Pressable
@@ -61,7 +85,7 @@ export default function IssuesScreen(): React.ReactElement {
     >
       {isLead ? (
         <>
-          <Text className="text-onPrimary text-micro font-bold" style={CAPS} numberOfLines={1}>Latest · {dayTitle(item.date)}</Text>
+          <Text className="text-onPrimary text-micro font-bold" style={CAPS} numberOfLines={1}>{num(item) ? `No. ${num(item)} · ` : ''}Latest · {dayTitle(item.date)}</Text>
           <Text className="text-onPrimary text-lg font-display" numberOfLines={4}>{item.title}</Text>
           <Box className="flex-row items-center gap-1 mt-1.5">
             <Text className="text-onPrimary text-body font-bold">Read this issue</Text>
@@ -72,7 +96,7 @@ export default function IssuesScreen(): React.ReactElement {
         <>
           <Box className="h-1.5 w-8 rounded-pill bg-accentTint" accessible={false} importantForAccessibility="no-hide-descendants" />
           <Text className="text-text text-body font-display-semibold" numberOfLines={4}>{item.title}</Text>
-          <Text className="text-muted text-micro mt-auto">{dayTitle(item.date)}</Text>
+          <Text className="text-muted text-micro mt-auto">{num(item) ? `No. ${num(item)} · ` : ''}{dayTitle(item.date)}</Text>
         </>
       )}
     </Pressable>
@@ -93,6 +117,7 @@ export default function IssuesScreen(): React.ReactElement {
       ListHeaderComponent={lead ? (
         <Box>
           {issueCard(lead, true)}
+          {issues.length > 1 ? bubbles(issues.slice(1)) : null}
           {issues.length > 1 ? <Text className="text-text text-base font-display-semibold mt-5 mb-2.5" accessibilityRole="header">Earlier issues</Text> : null}
         </Box>
       ) : undefined}

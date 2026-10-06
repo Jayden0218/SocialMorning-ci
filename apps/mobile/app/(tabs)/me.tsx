@@ -14,8 +14,8 @@
  * without an account (downloads, history, favourites, moments, queue). Sign out is here,
  * one tap away (owner, 2026-09-27: it was hard to find inside Account alone).
  */
-import { Link, router, useFocusEffect } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { Link, router, useFocusEffect, useScrollToTop } from 'expo-router';
+import { useCallback, useMemo, useState, useRef } from 'react';
 import { Pressable } from '@/ui/lib/pressable';
 import { SafeAreaView } from '@/ui/lib/safe-area-view';
 import { ScrollView } from '@/ui/lib/scroll-view';
@@ -40,6 +40,7 @@ const TAP = { minHeight: hit.min };
 const AVATAR = { width: 96, height: 96 };
 
 export default function MeScreen(): React.ReactElement {
+  const top = useRef(null); useScrollToTop(top); // M21 T082: pressing this tab again scrolls to the top.
   const stores = useStores();
   // M17 (FR-015, T113): while purchases are not switched on, Wallet says so first; the page stays one tap on.
   const [comingSoon, comingSoonDialog] = useComingSoon();
@@ -59,7 +60,7 @@ export default function MeScreen(): React.ReactElement {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <ScrollView contentContainerClassName="px-screen-x pt-section" contentContainerStyle={{ paddingBottom: TAB_PAGE_END }}>
+      <ScrollView ref={top} contentContainerClassName="px-screen-x pt-section" contentContainerStyle={{ paddingBottom: TAB_PAGE_END }}>
         <Link href="/stickers" asChild>
           <Pressable accessibilityRole="link" accessibilityLabel="Stickers" className="self-end flex-row items-center gap-2 bg-surface border border-border rounded-pill px-section" style={TAP}>
             <Icon name="medal-outline" size={18} color={c.text} />

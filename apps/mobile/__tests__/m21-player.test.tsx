@@ -7,6 +7,9 @@
  * picking even when `onReport` is given (`if (props.onReport && timed) setMenu(i)` → `setPicked([i])`)
  * — "Report a mistake" never appears.
  */
+// As heat-curve.test.ts: HeatCurve reads only the theme setting from the providers (which load the audio player).
+jest.mock('@/ui/shell/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }) }));
+
 import { createElement } from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { TranscriptLine } from '@socialmorning/player-core';

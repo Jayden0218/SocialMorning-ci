@@ -8,6 +8,10 @@ import { cached, TTL } from '../../db/repos/cache.ts';
 import { CatalogRateLimited, searchEpisodes, searchShows, type EpisodeCard, type ShowCard } from '../../catalog/apple.ts';
 import { registerCard } from '../../catalog/feed.ts';
 import { hiddenFeedUrls } from '../../db/repos/safety/moderation.ts';
+import { statsFor } from '../../db/repos/discover/discover-extras.ts';
+
+/** M21 T080: `since=30d|180d` keeps episodes published in that many days; one without a date is left out. */
+export const SINCE_DAYS = { '30d': 30, '180d': 180 } as const;
 
 /**
  * Mounted at /v1/search — public. Shows and episodes from Apple, both cached 10 min per
@@ -33,6 +37,9 @@ export function createSearchRoute() {
   search.get('/', optionalAuth, async (c) => {
   const q = normaliseQuery(c.req.query('q') ?? '');
   if (q.length < 1 || q.length > 100) throw new ApiError('validation', 'q must be 1–100 characters.', { fields: ['q'] });
+  const sinceRaw = c.req.query('since');
+  if (sinceRaw !== undefined && !(sinceRaw in SINCE_DAYS)) throw new ApiError('validation', 'since must be 30d or 180d.', { fields: ['since'] });
+  const sinceMs = sinceRaw !== undefined ? Date.now() - SINCE_DAYS[sinceRaw as keyof typeof SINCE_DAYS] * 86_400_000 : undefined;
   if (!isSearchable(q)) return c.json({ shows: [], episodes: [], episodeSearch: 'ok', source: { shows: 'apple' } });
   const who = c.get('listener')?.id ?? c.req.header('x-forwarded-for') ?? 'anon';
   if (throttled(who, Date.now())) throw new ApiError('locked', 'Too many searches — try again in a moment.', { retryAfterSeconds: 30 });
@@ -59,13 +66,21 @@ export function createSearchRoute() {
   const hidden = await hiddenFeedUrls(db); // M6 (FR-014): a hidden show is not found
   const fromApple = showsR.status === 'fulfilled' ? collapseByFeed(showsR.value.body) : [];
   const shows = [...created, ...fromApple.filter((s) => !created.some((x) => x.feedUrl === s.feedUrl))].filter((s) => !hidden.has(s.feedUrl));
-  const episodes: (EpisodeCard & { id: string })[] = [];
+  const episodes: (EpisodeCard & { id: string; stats?: { listeners: number; comments: number } })[] = [];
   if (episodesR.status === 'fulfilled') {
     for (const e of collapseEpisodes(episodesR.value.body)) {
       if (hidden.has(e.feedUrl)) continue;
+      if (sinceMs !== undefined && !(e.publishedAt !== undefined && Date.parse(e.publishedAt) >= sinceMs)) continue;
       const row = await registerCard(db, e);
       episodes.push({ ...e, id: row.id });
     }
+  }
+  // M21 T087: listen and comment counts for the rich rows (counts only, never names — G6).
+  if (episodes.length > 0) {
+    try {
+      const stats = await statsFor(db, episodes.map((e) => e.id));
+      for (const e of episodes) { const s = stats.get(e.id); if (s) e.stats = s; }
+    } catch (err) { console.warn(`[search] stats: ${err instanceof Error ? err.message : String(err)}`); }
   }
   return c.json({ shows, episodes, episodeSearch: episodesR.status === 'fulfilled' ? 'ok' : 'unavailable', source: { shows: 'apple' } });
 });

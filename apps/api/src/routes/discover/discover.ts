@@ -1,8 +1,11 @@
-// Discover route: the public Discover page plus the full talked-about chart.
+// Discover route: the public Discover page, the three charts, the treasure hunt, the plaza and daily picks.
 import { Hono } from 'hono';
 import { createHash } from 'node:crypto';
+import { picksForDay } from '@socialmorning/social-core';
 import type { AuthEnv } from '../../auth/session.ts';
-import { CHART_MAX, discoverBody, SHOWS_SERVED, talkedAboutChart } from '../../db/repos/discover/discover.ts';
+import { optionalAuth } from '../../auth/session.ts';
+import { CHART_MAX, discoverBody, SHOWS_SERVED } from '../../db/repos/discover/discover.ts';
+import { CHART_KINDS, chart, hunt, likedByFollowed, plaza, type ChartKind, type Face } from '../../db/repos/discover/explore.ts';
 import { collectionsWithoutHidden, followedHere, newArrivals, resolveCollections, said, statsFor, videoEpisodes, withStats, type Collection, type FollowedHere, type NewArrival, type Said } from '../../db/repos/discover/discover-extras.ts';
 import { hiddenFeedUrls } from '../../db/repos/safety/moderation.ts';
 import { ApiError } from '../../errors.ts';
@@ -18,7 +21,7 @@ async function optional<T>(name: string, warnings: string[], f: () => Promise<T>
   try { return await f(); } catch (e) { warnings.push(`${name}: ${e instanceof Error ? e.message : String(e)}`); return undefined; }
 }
 
-discover.get('/', async (c) => {
+discover.get('/', optionalAuth, async (c) => {
   const cat = c.get('catalog');
   const db = c.get('db');
   const { body, stale } = await discoverBody(db, cat.fetch, cat.picks, cat.today());
@@ -34,7 +37,15 @@ discover.get('/', async (c) => {
   const arrivals: NewArrival[] | undefined = await optional('newArrivals', extraWarnings, () => newArrivals(db));
   const ids = [...pub.picks, ...(collections ?? []).flatMap((x) => x.items)].map((i) => i.episode.id);
   const stats = await optional('stats', extraWarnings, () => statsFor(db, ids));
-  const picks = stats ? withStats(pub.picks, stats) : pub.picks;
+  const withCounts = stats ? withStats(pub.picks, stats) : pub.picks;
+  // M21 US7 (T080): faces of people the viewer follows who liked each pick (≤ 3), signed in only.
+  const viewer = c.get('listener')?.id;
+  const faces: Map<string, Face[]> | undefined = viewer
+    ? await optional('likedBy', extraWarnings, () => likedByFollowed(db, viewer, pub.picks.map((p) => p.episode.id)))
+    : undefined;
+  const picks: (DiscoverItem & { likedBy?: Face[] })[] = faces
+    ? withCounts.map((p) => { const f = faces.get(p.episode.id); return f ? { ...p, likedBy: f } : p; })
+    : withCounts;
   if (stats && collections) collections = collections.map((x) => ({ ...x, items: withStats(x.items, stats) }));
   const shows = pub.shows?.slice(0, SHOWS_SERVED);
   // Owner, 2026-10-05: "Premium picks" — the chart's next six. No price, nothing sold (constitution 2.1.0).
@@ -63,7 +74,7 @@ discover.get('/', async (c) => {
     shows?.map((s) => s.feedUrl), pub.newShows?.map((n) => n.episode.id),
     followed ? [followed.total, followed.shows.map((s) => [s.feedUrl, s.followers, s.title])] : null,
     saidList?.map((s) => s.commentId), collections?.map((x) => [x.id, x.title, x.subtitle, x.items.map((i) => i.key)]),
-    picks.map((p) => p.stats ?? null), collections?.map((x) => x.items.map((i) => i.stats ?? null)),
+    picks.map((p) => p.stats ?? null), picks.map((p) => p.likedBy?.map((f) => f.id) ?? null), collections?.map((x) => x.items.map((i) => i.stats ?? null)),
     video?.map((v) => v.episode.id),
     premium?.map((s) => s.feedUrl), arrivals?.map((a) => a.episode.id),
   ])).digest('base64url').slice(0, 16)}"`;
@@ -85,12 +96,71 @@ discover.get('/', async (c) => {
   });
 });
 
-/** M12 FR-071 — GET /v1/discover/chart?limit=1..100 (default 100): the full "Talked about" ranking. Counts only, never names (G6). */
+/**
+ * M12 FR-071, M21 T080 — GET /v1/discover/chart?kind=talked|new|rising&limit=1..100 (default
+ * talked, 100) → { kind, items, updatedAt }. The rules of each chart are in
+ * db/repos/discover/explore.ts and on the phone's chart-rules page; each is cached 5 min.
+ * Counts only, never names (G6).
+ */
 discover.get('/chart', async (c) => {
   const raw = c.req.query('limit');
   const limit = raw === undefined ? CHART_MAX : Number(raw);
   if (!Number.isInteger(limit) || limit < 1 || limit > CHART_MAX) throw new ApiError('validation', `limit must be 1–${CHART_MAX}.`, { fields: ['limit'] });
-  const items = await talkedAboutChart(c.get('db'), limit);
+  const kind = (c.req.query('kind') ?? 'talked') as ChartKind;
+  if (!CHART_KINDS.includes(kind)) throw new ApiError('validation', `kind must be ${CHART_KINDS.join(', ')}.`, { fields: ['kind'] });
+  const { items, updatedAt } = await chart(c.get('db'), kind, limit);
   c.header('cache-control', 'public, max-age=300');
-  return c.json({ items, serverTime: new Date().toISOString() });
+  return c.json({ kind, items, updatedAt, serverTime: new Date().toISOString() });
+});
+
+/** `?shuffle=n`: 0 (default) … 999. */
+function shuffleOf(raw: string | undefined): number {
+  const n = raw === undefined ? 0 : Number(raw);
+  if (!Number.isInteger(n) || n < 0 || n > 999) throw new ApiError('validation', 'shuffle must be 0–999.', { fields: ['shuffle'] });
+  return n;
+}
+
+/**
+ * M21 T080 — GET /v1/discover/hunt?shuffle=n → { day, shuffle, items: Episode[≤3] }. The treasure
+ * hunt is OUR OWN DESIGN (owner, 2026-10-06): the same 3 all day for one listener, a new set the
+ * next day; never a subscribed or turned-down show. `day` is the catalogue's today (the picks'
+ * day). Per viewer, so never cached publicly.
+ */
+discover.get('/hunt', optionalAuth, async (c) => {
+  const shuffle = shuffleOf(c.req.query('shuffle'));
+  const day = c.get('catalog').today();
+  const items = await hunt(c.get('db'), c.get('listener')?.id, day, shuffle);
+  c.header('cache-control', 'private, no-store');
+  return c.json({ day, shuffle, items });
+});
+
+/**
+ * M21 T080 — GET /v1/discover/plaza?cursor=&shuffle=n → { shuffle, items: Show[], next? }. The
+ * new-shows plaza is OUR OWN DESIGN (owner, 2026-10-06): the newest shows in a seeded order per
+ * listener and day; Shuffle asks for the next seed.
+ */
+discover.get('/plaza', optionalAuth, async (c) => {
+  const shuffle = shuffleOf(c.req.query('shuffle'));
+  const rawCursor = c.req.query('cursor');
+  const cursor = rawCursor === undefined ? 0 : Number(rawCursor);
+  if (!Number.isInteger(cursor) || cursor < 0) throw new ApiError('validation', 'cursor must be a page offset.', { fields: ['cursor'] });
+  const seed = `${c.get('listener')?.id ?? 'anon'}|${c.get('catalog').today()}|${shuffle}`;
+  const page = await plaza(c.get('db'), seed, cursor);
+  c.header('cache-control', 'private, no-store');
+  return c.json({ shuffle, ...page });
+});
+
+/** M21 T080 — GET /v1/discover/daily → { date?, items: {feedUrl, guid?, why, episode|null}[] }: today's picks with the editor's notes. */
+discover.get('/daily', async (c) => {
+  const cat = c.get('catalog');
+  const db = c.get('db');
+  const hidden = await hiddenFeedUrls(db);
+  const day = picksForDay(cat.picks, cat.today());
+  const items = [];
+  for (const p of day.picks) {
+    if (hidden.has(p.feedUrl)) continue;
+    items.push({ feedUrl: p.feedUrl, ...(p.guid !== undefined ? { guid: p.guid } : {}), why: p.why, episode: await episodeFor(db, p.feedUrl, p.guid) });
+  }
+  c.header('cache-control', 'public, max-age=300');
+  return c.json({ ...(day.date ? { date: day.date } : {}), items });
 });

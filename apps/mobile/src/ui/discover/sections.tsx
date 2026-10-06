@@ -14,6 +14,10 @@
  * "1 / 2 →" page button; the chart opens with a serif "The chart", its tabs become a pill
  * track and its pages get Previous / Next buttons; categories are a 2-column grid of tiles.
  * Every row, tab and link keeps its accessible name and handler.
+ *
+ * M21 US7 (T082): a pick shows up to 3 faces of people you follow who liked it; each category
+ * tile has an × that hides it (`src/discover/hidden-categories.ts`), and "Explore more
+ * categories" offers the hidden ones back.
  */
 import { useEffect, useState } from 'react';
 import { Pressable } from '@/ui/lib/pressable';
@@ -30,6 +34,9 @@ import { useSocial } from '@/social/context';
 import { ago, pages, type ChartTab } from '@/discover/sections';
 import type { DiscoverItem, EpisodeCard, SaidItem, ShowCard } from '@/social/api';
 import { Artwork } from '@/ui/kit/Artwork';
+import { Avatar } from '@/ui/kit/Avatar';
+import { visibleGenres } from '@/discover/hidden-categories';
+import type { Face } from '@/discover/explore-api';
 import { Card } from '@/ui/kit/Card';
 import { AddButton, EpisodeLine, Pager, SectionTitle, StatsLine, type RowStats } from './parts';
 import { plural } from '@socialmorning/social-core';
@@ -110,7 +117,22 @@ export function shortDate(date: string): string {
  * white card: the podcast, the episode, the owner's note as a serif quote, the counts, and "+"
  * (add to the queue) instead of a Play pill.
  */
-export function PicksSection(props: Act & { items: DiscoverItem[]; date?: string; onPast?: () => void; onQueue: (card: EpisodeCard) => void }): React.ReactElement | null {
+/** M21: up to 3 faces of people you follow who liked a pick, overlapping, with who in words. */
+function Faces(props: { faces: Face[] }): React.ReactElement | null {
+  if (props.faces.length === 0) return null;
+  const names = props.faces.map((f) => f.displayName);
+  const words = names.length === 1 ? `${names[0]} liked this` : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]} liked this`;
+  return (
+    <Box className="flex-row items-center gap-2 mt-gap" accessible accessibilityLabel={words}>
+      <Box className="flex-row">
+        {props.faces.map((f, n) => <Avatar key={f.id} size={22} url={f.avatarUrl} name={f.displayName} className={n > 0 ? '-ml-1.5' : ''} />)}
+      </Box>
+      <Text className="flex-1 text-muted text-xs" numberOfLines={1}>{words}</Text>
+    </Box>
+  );
+}
+
+export function PicksSection(props: Act & { items: (DiscoverItem & { likedBy?: Face[] })[]; date?: string; onPast?: () => void; onQueue: (card: EpisodeCard) => void; /** M21: "Today's picks" page. */ onDaily?: () => void }): React.ReactElement | null {
   if (props.items.length === 0) return null;
   return (
     <Box>
@@ -133,6 +155,7 @@ export function PicksSection(props: Act & { items: DiscoverItem[]; date?: string
                 </Pressable>
               </Box>
               {p.why ? <Text className="text-text text-body font-display-semibold mt-row" numberOfLines={4}>“{p.why}”</Text> : null}
+              {p.likedBy ? <Faces faces={p.likedBy} /> : null}
               <Box className="flex-row items-center justify-between gap-row mt-1">
                 {stats ? <StatsLine stats={stats} className="flex-1" /> : <Box className="flex-1" />}
                 <AddButton title={p.episode.title} onPress={() => props.onQueue(p.episode)} />
@@ -141,6 +164,11 @@ export function PicksSection(props: Act & { items: DiscoverItem[]; date?: string
           );
         })}
       </Box>
+      {props.onDaily ? (
+        <Pressable onPress={props.onDaily} accessibilityRole="link" accessibilityLabel="Today's picks, with every note" className="items-center justify-center mt-gap" style={TAP}>
+          <Text className="text-accent text-meta font-semibold">{"Today's picks, with every note ›"}</Text>
+        </Pressable>
+      ) : null}
     </Box>
   );
 }
@@ -201,7 +229,7 @@ export function ChartSection(props: Act & { tabs: ChartTab[]; onFull?: () => voi
 const WARM_AFTER_MS = 1500;
 
 /** Explore by category — genre tiles two to a row; each opens that genre's top shows. */
-export function CategoryStrip(props: { onGenre: (id: number) => void; onAll: () => void }): React.ReactElement {
+export function CategoryStrip(props: { onGenre: (id: number) => void; onAll: () => void; /** M21: genre ids hidden with ×. */ hidden?: readonly number[]; onHide?: (id: number) => void }): React.ReactElement {
   const stores = useStores();
   const c = useColours(stores.settings);
   const { api } = useSocial();
@@ -215,12 +243,19 @@ export function CategoryStrip(props: { onGenre: (id: number) => void; onAll: () 
     <Box className="mt-row">
       <SectionTitle title="Explore by category" action={{ label: 'All', onPress: props.onAll }} />
       <Box className="flex-row flex-wrap gap-gap px-screen-x">
-        {GENRES.slice(0, 8).map((g) => (
-          <Pressable key={g.id} onPress={() => props.onGenre(g.id)} accessibilityRole="button" accessibilityLabel={g.name} className="flex-row items-center gap-2.5 bg-surface border border-border rounded-row px-row py-1" style={HALF}>
-            <Icon name={g.icon} size={20} color={c.accent} />
-            {/* M12 FR-008 (B8): two lines before an ellipsis ("Society & Culture" was "Society &…"). */}
-            <Text className="text-text text-meta font-semibold flex-1" numberOfLines={2}>{g.name}</Text>
-          </Pressable>
+        {visibleGenres(GENRES, props.hidden ?? [], 8).map((g) => (
+          <Box key={g.id} className="flex-row items-center bg-surface border border-border rounded-row" style={HALF}>
+            <Pressable onPress={() => props.onGenre(g.id)} accessibilityRole="button" accessibilityLabel={g.name} className="flex-1 flex-row items-center gap-2.5 pl-row py-1" style={TAP}>
+              <Icon name={g.icon} size={20} color={c.accent} />
+              {/* M12 FR-008 (B8): two lines before an ellipsis ("Society & Culture" was "Society &…"). */}
+              <Text className="text-text text-meta font-semibold flex-1" numberOfLines={2}>{g.name}</Text>
+            </Pressable>
+            {props.onHide ? (
+              <Pressable onPress={() => props.onHide?.(g.id)} accessibilityRole="button" accessibilityLabel={`Hide ${g.name}`} className="items-center justify-center" style={SQUARE}>
+                <Icon name="close" size={16} color={c.muted} />
+              </Pressable>
+            ) : null}
+          </Box>
         ))}
       </Box>
     </Box>
@@ -323,11 +358,27 @@ export function NewArrivalsSection(props: Act & { items: { show: ShowCard; episo
   );
 }
 
-export function MoreCategories(props: { onPress: () => void }): React.ReactElement {
+/** M21: with tiles hidden, a second line lists them, each tapped to show it again. */
+export function MoreCategories(props: { onPress: () => void; hidden?: readonly number[]; onShow?: (id: number) => void }): React.ReactElement {
+  const stores = useStores();
+  const c = useColours(stores.settings);
+  const hidden = GENRES.filter((g) => (props.hidden ?? []).includes(g.id));
   return (
-    <Pressable onPress={props.onPress} accessibilityRole="link" accessibilityLabel="Explore more categories" className="items-center justify-center mt-section" style={TAP}>
-      <Text className="text-accent text-meta font-semibold">Explore more categories ›</Text>
-    </Pressable>
+    <Box className="items-center mt-section">
+      <Pressable onPress={props.onPress} accessibilityRole="link" accessibilityLabel="Explore more categories" className="items-center justify-center" style={TAP}>
+        <Text className="text-accent text-meta font-semibold">Explore more categories ›</Text>
+      </Pressable>
+      {props.onShow && hidden.length > 0 ? (
+        <Box className="flex-row flex-wrap justify-center gap-gap px-screen-x">
+          {hidden.map((g) => (
+            <Pressable key={g.id} onPress={() => props.onShow?.(g.id)} accessibilityRole="button" accessibilityLabel={`Show ${g.name} again`} className="flex-row items-center gap-1 px-row rounded-pill bg-surface border border-border" style={TAP}>
+              <Icon name="add" size={14} color={c.muted} />
+              <Text className="text-muted text-xs font-semibold">{g.name}</Text>
+            </Pressable>
+          ))}
+        </Box>
+      ) : null}
+    </Box>
   );
 }
 

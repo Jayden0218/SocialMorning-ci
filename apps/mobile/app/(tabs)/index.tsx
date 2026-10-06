@@ -11,15 +11,33 @@
  * M17 (`Home-B`, `Discover-B`): today's date as an eyebrow over a 32 pt serif "Discover";
  * the stale notice is a bordered white card. The sections themselves are restyled in
  * `src/ui/discover/{parts,sections}.tsx`; order, data, pull to refresh and every action stay.
+ *
+ * M21 US7 (T082–T084): the serif title fades as the page scrolls and a small bar takes its place
+ * with the title and the search button (reanimated scroll handler + interpolate); pressing the
+ * Discover tab again scrolls to the top (`useScrollToTop`). The shortcuts add Academy, Premium
+ * (scrolls to "Premium picks") and the Plaza; category tiles can be hidden with × and brought
+ * back under "Explore more categories"; picks show faces of people you follow who liked them;
+ * "Shows picked for you" (from For You), topic lists, the treasure hunt and "Their likes" join
+ * the page. The treasure hunt, the plaza and like posts are OUR OWN DESIGN (owner, 2026-10-06).
  */
-import { useRouter } from "expo-router";
+import { useRouter, useScrollToTop } from "expo-router";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import type { LayoutChangeEvent, ScrollView as RNScrollView } from "react-native";
+import Animated, {
+  Extrapolation,
+  interpolate,
+  runOnJS,
+  useAnimatedReaction,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+} from "react-native-reanimated";
+import { Pressable } from "@/ui/lib/pressable";
 import { Image } from "@/ui/lib/image";
 import { SafeAreaView } from "@/ui/lib/safe-area-view";
-import { ScrollView } from "@/ui/lib/scroll-view";
 import { Text } from "@/ui/lib/text";
 import { Box } from "@/ui/lib/box";
-import { colour } from "@/design";
+import { colour, hit } from "@/design";
 import { GENRES } from "@/discover/genres";
 import { buildModel, sectionOrder, type SectionId } from "@/discover/sections";
 import { HINT_EVERY_MS, hintAt, trendingHints } from "@/discover/trending";
@@ -53,6 +71,13 @@ import {
 import { useRowStats } from "@/discover/row-stats";
 import { keyFor, useDismissals } from "@/recs/dismissals";
 import { HiddenNotice, NotInterestedSheet } from "@/ui/discover/NotInterested";
+import { TreasureHunt } from "@/ui/discover/TreasureHunt";
+import { TheirLikes } from "@/ui/discover/TheirLikes";
+import { TopicListCards } from "@/ui/discover/TopicLists";
+import { Icon } from "@/ui/kit/Icon";
+import { useColours } from "@/ui/kit/useColours";
+import { hideCategory, readHiddenCategories, showCategory } from "@/discover/hidden-categories";
+import type { PickWithFaces } from "@/discover/explore-api";
 import type { EpisodeCard } from "@/social/api";
 import type { DismissalKind } from "@/social/profile-api";
 
@@ -60,6 +85,11 @@ import type { DismissalKind } from "@/social/profile-api";
 const UNDO_MS = 8000;
 
 const ICON = { width: 36, height: 36 };
+const TAP = { minHeight: hit.min, minWidth: hit.min };
+/** M21: how far the page scrolls before the big title has gone and the small bar shows. */
+const COLLAPSE_FROM = 24;
+const COLLAPSE_TO = 72;
+const BAR = { position: "absolute" as const, top: 0, left: 0, right: 0 };
 /** "Thursday, 2 October" — the eyebrow over the title (`Home-B`), from the phone's clock. */
 const today = (): string =>
   new Date().toLocaleDateString("en-GB", {
@@ -71,6 +101,14 @@ const today = (): string =>
 export default function DiscoverScreen(): React.ReactElement {
   const router = useRouter();
   const stores = useStores();
+  const c = useColours(stores.settings);
+  // M21 T082: the tab pressed again scrolls back to the top; the title collapses into a bar.
+  const scroller = useRef<RNScrollView>(null);
+  useScrollToTop(scroller);
+  const scrollY = useSharedValue(0);
+  const [collapsed, setCollapsed] = useState(false);
+  const premiumY = useRef<number | undefined>(undefined);
+  const [hiddenCats, setHiddenCats] = useState<number[]>(() => readHiddenCategories(stores.settings));
   const search = useSearchOverlay();
   const { view, refreshing, refresh, open, play, queue, settled } = useDiscover();
   const { listener } = useSocial();
@@ -143,6 +181,48 @@ export default function DiscoverScreen(): React.ReactElement {
       params: { id: String(GENRES[0]!.id) },
     });
   const pull = usePullRefresh(refreshing, () => void refreshBoth());
+  // The pull-to-refresh backdrop still hears every scroll; the shared value drives the title.
+  const pullScroll = pull.onScroll as unknown as (e: { nativeEvent: { contentOffset: { y: number } } }) => void;
+  const onScroll = useAnimatedScrollHandler({
+    onScroll: (e) => {
+      scrollY.value = e.contentOffset.y;
+      runOnJS(pullScroll)({ nativeEvent: { contentOffset: { y: e.contentOffset.y } } });
+    },
+  });
+  useAnimatedReaction(
+    () => scrollY.value > COLLAPSE_TO - 8,
+    (now, before) => {
+      if (now !== before) runOnJS(setCollapsed)(now);
+    },
+  );
+  const bigTitle = useAnimatedStyle(() => ({
+    opacity: interpolate(scrollY.value, [COLLAPSE_FROM, COLLAPSE_TO], [1, 0], Extrapolation.CLAMP),
+  }));
+  const smallBar = useAnimatedStyle(() => ({
+    opacity: interpolate(scrollY.value, [COLLAPSE_FROM, COLLAPSE_TO], [0, 1], Extrapolation.CLAMP),
+  }));
+  const openSearch = (fromY: number): void =>
+    search.open({ fromY: Math.round(fromY), ...(hint ? { hint } : {}) });
+  const toPremium = (): void => {
+    if (premiumY.current === undefined) return;
+    scroller.current?.scrollTo({ y: Math.max(0, premiumY.current - 56), animated: true });
+  };
+  const markPremium = (e: LayoutChangeEvent): void => {
+    premiumY.current = e.nativeEvent.layout.y;
+  };
+  const hideCat = (id: number): void => setHiddenCats(hideCategory(stores.settings, id));
+  const showCat = (id: number): void => setHiddenCats(showCategory(stores.settings, id));
+  // M21: "Shows picked for you" — the shows behind the listener's own For You, each once.
+  const pickedShows = useMemo(() => {
+    const seen = new Set<string>();
+    const out: { feedUrl: string; title: string; imageUrl?: string; line?: string }[] = [];
+    for (const r of model.forYou) {
+      if (seen.has(r.card.feedUrl)) continue;
+      seen.add(r.card.feedUrl);
+      out.push({ feedUrl: r.card.feedUrl, title: r.card.showTitle, ...(r.card.imageUrl ? { imageUrl: r.card.imageUrl } : {}) });
+    }
+    return out.slice(0, 10);
+  }, [model]);
   const shown = useFirstPaint(settled && forYou.settled);
   // Owner, 2026-10-05: "12 listened · 3 comments" under every episode on the page — one call.
   const stats = useRowStats(model);
@@ -157,12 +237,15 @@ export default function DiscoverScreen(): React.ReactElement {
         router.push({ pathname: "/category/[id]", params: { id: String(id) } })
       }
       onAll={allCategories}
+      hidden={hiddenCats}
+      onHide={hideCat}
     />
   ) : null;
   const section = (id: SectionId): React.ReactNode => {
     switch (id) {
       case "forYou":
         return (
+          <>
           <ForYouSection
             rows={model.forYou}
             {...act}
@@ -173,11 +256,14 @@ export default function DiscoverScreen(): React.ReactElement {
             {...(listener ? { onMore: setMoreFor } : {})}
             {...(undo ? { notice: <HiddenNotice kind={undo.kind} onUndo={undoHide} /> } : {})}
           />
+          <ShowTiles title="Shows picked for you" shows={pickedShows} onShow={showPage} />
+          </>
         );
       case "picks":
         return (
+          <>
           <PicksSection
-            items={model.picks}
+            items={model.picks as PickWithFaces[]}
             {...(view?.body.date ? { date: view.body.date } : {})}
             {...act}
             onQueue={(c) => void queue(c)}
@@ -187,7 +273,10 @@ export default function DiscoverScreen(): React.ReactElement {
                 params: view?.body.date ? { before: view.body.date } : {},
               })
             }
+            onDaily={() => router.push("/picks/daily")}
           />
+          <TheirLikes signedIn={listener !== undefined} />
+          </>
         );
       case "chart":
         return (
@@ -205,19 +294,28 @@ export default function DiscoverScreen(): React.ReactElement {
               shows={popularShowTiles(model.shows)}
               onShow={showPage}
             />
-            <PremiumSection shows={model.premium} onShow={showPage} />
+            <Box onLayout={markPremium}>
+              <PremiumSection shows={model.premium} onShow={showPage} />
+            </Box>
           </>
         );
       case "video":
         return <VideoSection items={model.video} {...act} />;
-      // Owner, 2026-10-05: "Where to start" and "Shows listeners here follow" are no longer drawn.
+      // Owner, 2026-10-05: "Shows listeners here follow" is no longer drawn. M21: the collections
+      // come back only as topic-list cards, each opening its full list.
       case "collections":
+        return <TopicListCards lists={model.collections} />;
       case "followedHere":
         return null;
       case "said":
         return <SaidSection items={model.said} now={Date.now()} {...act} />;
       case "newShows":
-        return <NewArrivalsSection items={model.arrivals} {...act} />;
+        return (
+          <>
+            <NewArrivalsSection items={model.arrivals} {...act} />
+            <TreasureHunt onOpen={act.onOpen} onPlay={act.onPlay} />
+          </>
+        );
     }
   };
 
@@ -235,15 +333,17 @@ export default function DiscoverScreen(): React.ReactElement {
     <SafeAreaView className="flex-1 bg-background">
       <Box className="flex-1">
         {pull.backdrop}
-        <ScrollView
+        <Animated.ScrollView
+          ref={scroller}
           contentContainerStyle={{ paddingBottom: TAB_PAGE_END }}
           refreshControl={pull.refreshControl}
-          onScroll={pull.onScroll}
+          onScroll={onScroll}
           scrollEventThrottle={pull.scrollEventThrottle}
         >
           {view ? pull.inline : null}
           {/* Owner, 2026-09-27: less space above the title. */}
           {/* Owner, 2026-10-04: the app icon centred on the date + title block (was aligned to its bottom). */}
+          <Animated.View style={bigTitle}>
           <Box className="flex-row items-center justify-between px-screen-x pt-1 pb-row">
             <Box className="flex-1">
               <Eyebrow>{today()}</Eyebrow>
@@ -266,17 +366,13 @@ export default function DiscoverScreen(): React.ReactElement {
               accessibilityLabel="SocialNet"
             />
           </Box>
+          </Animated.View>
           <SearchBar
             {...(hint ? { hint } : {})}
             // `fromY`: where the bar sits now, so Search can start its box here and move it up.
             // M17: Search opens IN PLACE over the tabs (not the `/search` route), so a page opened
             // from its results is an ordinary push with the edge swipe (src/ui/search/SearchOverlay.tsx).
-            onPress={(fromY) =>
-              search.open({
-                fromY: Math.round(fromY),
-                ...(hint ? { hint } : {}),
-              })
-            }
+            onPress={(fromY) => openSearch(fromY)}
             onScan={() => router.push("/scan")}
           />
           <Shortcuts
@@ -303,6 +399,22 @@ export default function DiscoverScreen(): React.ReactElement {
                 label: "Friends listening",
                 icon: "people-outline",
                 onPress: () => router.push("/friends-listening"),
+              },
+              // M21 T082 (FR-061): Academy, Premium (the "Premium picks" section) and the Plaza.
+              {
+                label: "Academy",
+                icon: "school-outline",
+                onPress: () => router.push("/academy"),
+              },
+              {
+                label: "Premium",
+                icon: "diamond-outline",
+                onPress: toPremium,
+              },
+              {
+                label: "Plaza",
+                icon: "apps-outline",
+                onPress: () => router.push("/plaza"),
               },
             ]}
           />
@@ -335,8 +447,28 @@ export default function DiscoverScreen(): React.ReactElement {
               {id === "chart" ? categoryStrip : null}
             </Fragment>
           ))}
-          {view ? <MoreCategories onPress={allCategories} /> : null}
-        </ScrollView>
+          {view ? <MoreCategories onPress={allCategories} hidden={hiddenCats} onShow={showCat} /> : null}
+        </Animated.ScrollView>
+        {/* M21 T082: the small bar the title collapses into — the name and the search button. */}
+        <Animated.View
+          style={[BAR, smallBar]}
+          pointerEvents={collapsed ? "auto" : "none"}
+          accessibilityElementsHidden={!collapsed}
+          importantForAccessibility={collapsed ? "auto" : "no-hide-descendants"}
+        >
+          <Box className="flex-row items-center justify-between px-screen-x bg-background border-b-hairline border-separator">
+          <Text className="text-text text-lg font-display" numberOfLines={1}>Discover</Text>
+          <Pressable
+            onPress={() => openSearch(0)}
+            accessibilityRole="search"
+            accessibilityLabel={hint ? `Search. Trending: ${hint}` : "Search shows and episodes"}
+            className="items-center justify-center"
+            style={TAP}
+          >
+            <Icon name="search-outline" size={22} color={c.text} />
+          </Pressable>
+          </Box>
+        </Animated.View>
       </Box>
       <NotInterestedSheet card={moreFor} onChoose={notInterested} onClose={() => setMoreFor(undefined)} />
     </SafeAreaView>

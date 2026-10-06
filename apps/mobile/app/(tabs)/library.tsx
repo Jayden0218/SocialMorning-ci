@@ -20,8 +20,8 @@
  * (`EpisodeRowSheet`), with two Updates-only actions: Remove from Updates (this phone's list;
  * the show stays subscribed) and Star / Unstar this show (as on /subscriptions).
  */
-import { Link, useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { Link, useFocusEffect, useRouter, useScrollToTop } from 'expo-router';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { FlatList } from '@/ui/lib/flat-list';
 import { Pressable } from '@/ui/lib/pressable';
 import { SafeAreaView } from '@/ui/lib/safe-area-view';
@@ -52,6 +52,7 @@ import { EndOfList } from '@/ui/kit/EndOfList';
 const TAP = { minHeight: hit.min, minWidth: hit.min };
 
 export default function UpdatesScreen(): React.ReactElement {
+  const top = useRef(null); useScrollToTop(top); // M21 T082: pressing this tab again scrolls to the top.
   const stores = useStores();
   const c = useColours(stores.settings);
   const router = useRouter();
@@ -147,6 +148,7 @@ export default function UpdatesScreen(): React.ReactElement {
   return (
     <SafeAreaView className="flex-1 bg-background">
       <FlatList
+        ref={top}
         data={rows}
         // Owner, 2026-10-05: the bottom of a fetched list says so.
         ListFooterComponent={rows.length > 0 ? <EndOfList /> : undefined}
