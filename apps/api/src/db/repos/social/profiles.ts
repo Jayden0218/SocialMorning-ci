@@ -77,11 +77,11 @@ export async function subscriptionsVisible(db: Db, id: string, viewerId: string 
 
 export async function profile(db: Db, id: string, viewerId: string | undefined, today: string): Promise<ProfileOut | undefined> {
   // M21 US8 (G-M21-10): birthday and industry are never selected here — this answer goes to anyone.
-  const [l] = await db.query<{ id: string; display_name: string; private_listening: boolean; suspended_at: string | null; country: string | null; avatar_url: string | null; bio: string | null; likes_public: boolean; private_subscriptions: boolean }>('SELECT id, display_name, private_listening, suspended_at, country, avatar_url, bio, likes_public, private_subscriptions, industry FROM listeners WHERE id = $1', [id]);
+  const [l] = await db.query<{ id: string; display_name: string; private_listening: boolean; suspended_at: string | null; country: string | null; avatar_url: string | null; bio: string | null; likes_public: boolean; private_subscriptions: boolean }>('SELECT id, display_name, private_listening, suspended_at, country, avatar_url, bio, likes_public, private_subscriptions FROM listeners WHERE id = $1', [id]);
   if (!l) return undefined;
   // M6 (FR-008, FR-015): to someone they blocked, a listener looks private and quiet — name only, no hint why. A suspended account shows as suspended.
   // M19 US1: photo and bio travel with the name; age range and gender never do (FR-003).
-  const look = { ...(l.avatar_url ? { avatarUrl: l.avatar_url } : {}), ...(l.bio ? { bio: l.bio } : {}), ...((l as { industry?: string }).industry ? { industry: (l as { industry?: string }).industry } : {}) }; // RED CHECK G-M21-10
+  const look = { ...(l.avatar_url ? { avatarUrl: l.avatar_url } : {}), ...(l.bio ? { bio: l.bio } : {}) };
   const bare = { id: l.id, displayName: l.display_name, ...look, followers: 0, following: 0, isFollowing: false, stats: null, recent: [], hostOf: [], privateSubscriptions: true };
   if (l.suspended_at) return { ...bare, suspended: true };
   if (viewerId && viewerId !== id && (await isBlockedBy(db, id, viewerId))) return bare;

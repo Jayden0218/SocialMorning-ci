@@ -24,7 +24,8 @@ export async function notify(db: Db, n: { recipientId: string | null | undefined
   const rows = await db.query<{ id: string }>(
     `INSERT INTO notifications (recipient_id, actor_id, kind, ref)
      SELECT $1::uuid, $2::uuid, $3, $4::jsonb
-     WHERE true -- RED CHECK G-M21-9
+     WHERE $1::uuid <> $2::uuid
+       AND NOT EXISTS (SELECT 1 FROM blocks WHERE blocker_id = $1::uuid AND blocked_id = $2::uuid)
        AND NOT EXISTS (SELECT 1 FROM listener_mutes WHERE muter_id = $1::uuid AND muted_id = $2::uuid)
        AND ($3 NOT IN ('like', 'follow') OR NOT EXISTS (
          SELECT 1 FROM notifications WHERE recipient_id = $1::uuid AND actor_id = $2::uuid AND kind = $3 AND ref = $4::jsonb))

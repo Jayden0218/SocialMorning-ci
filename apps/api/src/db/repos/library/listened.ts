@@ -54,7 +54,7 @@ export async function replaceRanges(db: Db, listenerId: string, deviceId: string
 
 /** M21 US6 (G-M21-12): what one replace adds to `listeners.listened_ms` — the union's change. */
 export function listenedDelta(beforeUnionMs: number, afterUnionMs: number): number {
-  return Math.round(afterUnionMs); // RED CHECK G-M21-12
+  return Math.round(afterUnionMs - beforeUnionMs);
 }
 
 /** The union across devices of one (listener, episode, day), from rows of `listened_ranges.ranges`. */
