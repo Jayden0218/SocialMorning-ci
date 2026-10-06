@@ -22,7 +22,7 @@ export function Pending({ show, onChange }: { show: Show; onChange: () => void }
   const [n, setN] = useState(0);
   const list = useLoad(() => api<{ items: Hosted[] }>(`/v1/studio/shows/${show.key}/hosted-episodes`), [show.key, n]);
   const details = useLoad(() => api<Details>(`/v1/studio/shows/${show.key}/details`), [show.key, n]);
-  const tier = details.state === 'ok' ? details.data.show.priceTier ?? null : null;
+  const tier = details.state === 'ready' ? details.data.show.priceTier ?? null : null;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [del, setDel] = useState<Hosted | null>(null);
@@ -41,7 +41,7 @@ export function Pending({ show, onChange }: { show: Show; onChange: () => void }
       {error ? <p className="error" role="alert">{error}</p> : null}
       <label className="field" style={{ marginBottom: 12 }}>
         <span>Price for paid episodes</span>
-        <select value={tier ?? ''} disabled={busy || details.state !== 'ok'}
+        <select value={tier ?? ''} disabled={busy || details.state !== 'ready'}
           onChange={(ev) => { const v = ev.target.value === '' ? null : Number(ev.target.value); void run(() => api(`/v1/studio/shows/${show.key}/price`, { method: 'PUT', body: { tier: v } })); }}>
           <option value="">No paid episodes</option>
           {[1, 2, 3, 4, 5].map((t) => <option key={t} value={t}>Price level {t}</option>)}
