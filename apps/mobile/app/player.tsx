@@ -69,6 +69,11 @@ import { Toggle } from '@/ui/kit/Toggle';
 import { ChapterList, CurrentChapter } from '@/ui/player/ChapterList';
 import { TranscriptPane } from '@/ui/player/TranscriptPane';
 import { useQuoteShare, useQuoteVideo } from '@/ui/player/QuoteShare';
+/**
+ * iPhone walk 2026-10-06 (B1 failed): iOS will not open the share sheet over the open Playback sheet —
+ * "Making the picture…" showed and nothing else. The sheet closes first; the share waits for it.
+ */
+const SHEET_CLOSE_MS = 450;
 import { getPref } from '@/settings/prefs';
 import { fetchExtras, readExtras, type Extras } from '@/feeds/fetch-extras';
 import { router } from 'expo-router';
@@ -204,7 +209,8 @@ export default function PlayerScreen(): React.ReactElement {
   };
 
   // M17 (`Player-B`): the artwork sits beside the title, 148 pt on a 390 pt phone.
-  const art = Math.round(Math.min(148, screen.width * 0.38, screen.height * 0.2));
+  // Owner, 2026-10-06: the artwork grows with the screen (184 pt on a 6.9" phone), no fixed 148 cap.
+  const art = Math.round(Math.min(screen.width * 0.42, screen.height * 0.2));
   const markerCount = railMarkers(cached?.social.comments ?? []).length;
   // M12 FR-020 (found on the iPhone): the comment button opens the conversation, not the
   // keyboard; the page's write box carries this moment.
@@ -288,6 +294,10 @@ export default function PlayerScreen(): React.ReactElement {
         </Text>
       ) : null}
 
+      {/* Owner, 2026-10-06 (iPhone walk): on a tall phone the page left a white gap at the foot. The card
+          and the controls now sit at the bottom, just above the bar; the free space goes between the
+          quote and the card. Short phones and large fonts still scroll as before. */}
+      <Box className="mt-auto gap-section">
       {/* What listeners felt: markers, heat curve, seek bar and times in one card. */}
       <Card className="py-row gap-1">
         <Box className="flex-row justify-between items-baseline">
@@ -378,6 +388,7 @@ export default function PlayerScreen(): React.ReactElement {
           <Icon name={reacted ? 'thumbs-up' : 'thumbs-up-outline'} size={28} color={reacted ? c.accent : c.muted} />
         </Pressable>
       </Box>
+      </Box>
     </ScrollView>
 
     {/* About · Playlist · Comments: the page's bottom bar, under a hairline. */}
@@ -438,7 +449,7 @@ export default function PlayerScreen(): React.ReactElement {
           ) : null}
           {extras?.error ? <Text className="text-xs text-muted">Couldn't load {extras.error.includes('chapters') ? 'chapters' : 'the transcript'}</Text> : null}
           {pane === 'chapters' && extras?.chapters ? <ChapterList chapters={extras.chapters} positionMs={positionMs} onSeek={(ms) => player.seek(ms)} /> : null}
-          {showTranscript && pane === 'transcript' && extras?.transcript ? <TranscriptPane transcript={extras.transcript} positionMs={positionMs} onSeek={(ms) => player.seek(ms)} durationMs={durationMs} onShareImage={(q) => { void shareQuote(episode, q); }} onShareVideo={shareQuoteVideo ? (q) => shareQuoteVideo(episode ? toPlayable(stores, episode.id) : undefined, q) : undefined} /> : null}
+          {showTranscript && pane === 'transcript' && extras?.transcript ? <TranscriptPane transcript={extras.transcript} positionMs={positionMs} onSeek={(ms) => player.seek(ms)} durationMs={durationMs} onShareImage={(q) => { setMore(false); setTimeout(() => { void shareQuote(episode, q); }, SHEET_CLOSE_MS); }} onShareVideo={shareQuoteVideo ? (q) => { setMore(false); setTimeout(() => shareQuoteVideo(episode ? toPlayable(stores, episode.id) : undefined, q), SHEET_CLOSE_MS); } : undefined} /> : null}
         </ScrollView>
         <Pressable onPress={() => setMore(false)} accessibilityRole="button" accessibilityLabel="Close" className="items-center justify-center rounded-pill bg-primary mt-1" style={DONE}>
           <Text className="text-sm font-bold text-onPrimary">Done</Text>
