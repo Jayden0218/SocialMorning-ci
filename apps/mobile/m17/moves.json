@@ -414,5 +414,29 @@
   "to": "TranscriptPane | {mmss(l.startMs)} | dynamic",
   "why": "M20 US1 (FR-001): a tap on a transcript line still seeks to it; while lines are being picked to share, the same tap adds or removes the line instead, so one handler decides — the seek is unchanged when not picking (m20-quote.test.tsx checks it)",
   "task": "M20 T031"
+ },
+ {
+  "surface": "SleepTimerControl",
+  "name": "{c === 'endOfEpisode' ? 'End of episode' : `${c} min`}",
+  "destination": "player.setSleepTimer",
+  "to": "SleepTimerControl | Sleep in {m} minutes | player.setSleepTimer ; End of episode → Toggle player.setSleepEndOfEpisode",
+  "why": "M21 US1 (FR-002, FR-003): the minutes tiles keep setSleepTimer (now with 90 min and a lit selected tile); End of episode became a switch so it can sit beside a minutes timer",
+  "task": "M21 T015"
+ },
+ {
+  "surface": "SleepTimerControl",
+  "name": "Cancel",
+  "destination": "player.setSleepTimer",
+  "to": "SleepTimerControl | Cancel the sleep timer | player.setSleepTimer",
+  "why": "M21 US1: one Cancel for whatever is armed (minutes, End of episode, or both), with a spoken name that says what it cancels; same handler, setSleepTimer('off')",
+  "task": "M21 T015"
+ },
+ {
+  "surface": "SleepTimerControl",
+  "name": "Cancel",
+  "destination": "player.setSleepTimer",
+  "to": "SleepTimerControl | Cancel the sleep timer | player.setSleepTimer",
+  "why": "M21 US1: one Cancel for whatever is armed (minutes, End of episode, or both), with a spoken name that says what it cancels; same handler, setSleepTimer('off')",
+  "task": "M21 T015"
  }
 ]
