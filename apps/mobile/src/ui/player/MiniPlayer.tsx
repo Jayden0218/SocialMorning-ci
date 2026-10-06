@@ -61,6 +61,24 @@ const BAR_HEIGHT = { minHeight: MINI_PLAYER_HEIGHT };
  *  - `tabs` — inside the tab layout, **above** the tab bar, which is the arrangement
  *    the whole look is built around.
  */
+/**
+ * Whether the bar draws on this route (the rules below, in one place). Also read by the root layout
+ * (owner, 2026-10-06): while the root bar shows, the home-bar strip under it is the bar's white,
+ * not the page's cream — the "yellow bar" under the mini player on a show page.
+ */
+export function miniPlayerShows(path: string, context: 'root' | 'tabs', idle: boolean): boolean {
+  // Reason 2 above. `/player` is the only route that draws the same episode itself.
+  if (path === '/player') return false;
+  // Owner, 2026-09-27: the sign-in and sign-up pages are not a place to be playing from.
+  if (path.startsWith('/auth/')) return false;
+  // Owner, 2026-10-01: the comments page has its own episode card with play/pause, and its
+  // write box sits where the bar would — so the bar stands down there.
+  if (path.startsWith('/comments/')) return false;
+  // Exactly one bar. Two would announce the episode twice to a screen reader.
+  if (context === 'root' && TAB_ROUTES.includes(path)) return false;
+  return !idle;
+}
+
 export function MiniPlayer(props: { pathname?: string; context?: 'root' | 'tabs'; className?: string }): React.ReactElement | null {
   const player = usePlayer();
   const state = usePlayerState();
@@ -70,16 +88,7 @@ export function MiniPlayer(props: { pathname?: string; context?: 'root' | 'tabs'
   const path = props.pathname ?? routerPath;
   const context = props.context ?? 'root';
 
-  // Reason 2 above. `/player` is the only route that draws the same episode itself.
-  if (path === '/player') return null;
-  // Owner, 2026-09-27: the sign-in and sign-up pages are not a place to be playing from.
-  if (path.startsWith('/auth/')) return null;
-  // Owner, 2026-10-01: the comments page has its own episode card with play/pause, and its
-  // write box sits where the bar would — so the bar stands down there.
-  if (path.startsWith('/comments/')) return null;
-  // Exactly one bar. Two would announce the episode twice to a screen reader.
-  if (context === 'root' && TAB_ROUTES.includes(path)) return null;
-  if (state.kind === 'idle') return null;
+  if (!miniPlayerShows(path, context, state.kind === 'idle') || state.kind === 'idle') return null;
 
   if (state.kind === 'error') {
     return (

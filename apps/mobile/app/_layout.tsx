@@ -5,7 +5,8 @@
  */
 import '../global.css';
 import '@/design/tailwind';
-import { Stack, useSegments, type ErrorBoundaryProps } from 'expo-router';
+import { Stack, usePathname, useSegments, type ErrorBoundaryProps } from 'expo-router';
+import { usePlayerState } from '@/playback/store';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
@@ -23,7 +24,7 @@ import { SocialProvider } from '@/social/context';
 import { GraphProvider } from '@/graph/context';
 import { SafetyProvider } from '@/safety/context';
 import { CarLibrarySync } from '@/outside/CarLibrarySync';
-import { MiniPlayer } from '@/ui/player/MiniPlayer';
+import { MiniPlayer, miniPlayerShows } from '@/ui/player/MiniPlayer';
 import { leavingToTabs, rootBarHidden, type LeavingToTabs } from '@/ui/player/mini-player-swipe';
 import { GluestackUIProvider } from '@/ui/lib/gluestack-ui-provider';
 import { RateSheet } from '@/ui/shell/RateSheet';
@@ -101,8 +102,15 @@ function RootStack(): React.ReactElement {
   // Owner, 2026-10-04: on the tabs the home-bar strip below the white tab bar is white too, so
   // the bar reaches the bottom of the screen; on every other page it stays the page colour.
   const onTabs = useSegments()[0] === '(tabs)';
+  // Owner, 2026-10-06 ("why is there a yellow bar below?"): under the white mini player the strip was
+  // the cream page colour; it is the bar's white whenever the root bar shows. The player page paints
+  // its own wash to the bottom edge, so the root leaves its strip to it (edges: none there).
+  const path = usePathname();
+  const playerState = usePlayerState();
+  const barShows = !rootBarHidden(leaving) && miniPlayerShows(path, 'root', playerState.kind === 'idle');
+  const onPlayer = path === '/player';
   return (
-      <SafeAreaView className={`flex-1 ${onTabs ? 'bg-surface' : 'bg-background'}`} edges={['bottom']}>
+      <SafeAreaView className={`flex-1 ${onTabs || barShows ? 'bg-surface' : 'bg-background'}`} edges={onPlayer ? [] : ['bottom']}>
         {/* M10b: the clock and battery follow the page (light words on the dark palette). */}
         <StatusBar style="dark" />
         <CarLibrarySync />
