@@ -103,7 +103,7 @@ export default function DiscoverScreen(): React.ReactElement {
   const stores = useStores();
   const c = useColours(stores.settings);
   // M21 T082: the tab pressed again scrolls back to the top; the title collapses into a bar.
-  const scroller = useRef<RNScrollView>(null);
+  const scroller = useRef<React.ComponentRef<typeof RNScrollView>>(null);
   useScrollToTop(scroller);
   const scrollY = useSharedValue(0);
   const [collapsed, setCollapsed] = useState(false);

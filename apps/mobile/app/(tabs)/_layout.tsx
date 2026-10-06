@@ -102,7 +102,7 @@ export default function TabsLayout(): React.ReactElement {
                 // M21 T082 (FR-060): tell the tab it was pressed, as the stock bar does — a tab's
                 // `useScrollToTop` scrolls its list to the top when it is pressed again.
                 const target = props.state.routes.find((r) => r.name === key)?.key;
-                if (target) props.navigation.emit({ type: 'tabPress', target, canPreventDefault: true });
+                if (target) props.emitter.emit({ type: 'tabPress', target, canPreventDefault: true });
                 if (key === active) return;
                 setVisit((n) => n + 1);
                 router.navigate(TAB_HREF[key] ?? '/');

@@ -7,6 +7,7 @@
  * Read on focus and every 15 s while the tab is open; there is no push channel for chat.
  * Signed out, the tab says what it is for and links to sign in.
  */
+import type { FlatList as RNFlatList } from 'react-native';
 import { Link, useFocusEffect, useRouter, useScrollToTop } from 'expo-router';
 import { useCallback, useState, useRef } from 'react';
 import { FlatList } from '@/ui/lib/flat-list';
@@ -33,7 +34,7 @@ const REFRESH_MS = 15_000;
 type State = { kind: 'loading' } | { kind: 'error' } | { kind: 'ok'; items: Conversation[] };
 
 export default function ChatTab(): React.ReactElement {
-  const top = useRef(null); useScrollToTop(top); // M21 T082: pressing this tab again scrolls to the top.
+  const top = useRef<RNFlatList<Conversation>>(null); useScrollToTop(top); // M21 T082: pressing this tab again scrolls to the top.
   const router = useRouter();
   const stores = useStores();
   const c = useColours(stores.settings);

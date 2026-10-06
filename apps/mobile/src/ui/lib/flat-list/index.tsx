@@ -4,7 +4,8 @@ import React from 'react';
 import { FlatList as RNFlatList, Platform, FlatListProps } from 'react-native';
 
 // Performance-optimized FlatList with Android defaults
-export function FlatList<ItemT = any>(props: FlatListProps<ItemT>) {
+// M21: the ref reaches the list (React 19 passes `ref` as a prop), so `useScrollToTop` can scroll it.
+export function FlatList<ItemT = any>(props: FlatListProps<ItemT> & { ref?: React.Ref<RNFlatList<ItemT>> }) {
   // Apply Android-specific performance defaults if not explicitly overridden
   const optimizedProps = Platform.OS === 'android' ? {
     removeClippedSubviews: true,

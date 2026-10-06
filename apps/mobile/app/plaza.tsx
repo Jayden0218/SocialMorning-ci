@@ -92,7 +92,7 @@ export default function PlazaScreen(): React.ReactElement {
             keyExtractor={(s) => s.feedUrl}
             contentContainerClassName="px-screen-x pb-24"
             onEndReached={more}
-            ListFooterComponent={state.next ? (state.loading ? <Loader className="my-section" /> : null) : shows.length > 0 ? <EndOfList /> : null}
+            ListFooterComponent={state.next ? (state.loading ? <Loader className="my-section" /> : undefined) : shows.length > 0 ? <EndOfList /> : undefined}
             renderItem={({ item, index }) => (
               <Pressable onPress={() => openShow(item)} accessibilityRole="button" accessibilityLabel={`${item.title || 'A show'}, ${plural(item.episodes, 'episode')}`} className={`flex-row items-center gap-row py-row ${index > 0 ? 'border-t-hairline border-separator' : ''}`} style={TAP}>
                 <Artwork url={item.imageUrl} size={56} name={item.title} />

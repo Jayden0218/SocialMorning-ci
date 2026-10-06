@@ -100,7 +100,7 @@ export default function LikePostScreen(): React.ReactElement {
   const { like, comments, reactions } = state.post;
   const who = like.listener;
   const now = new Date().toISOString();
-  const isOwner = listener?.id === who?.id;
+  const isOwner = listener?.listenerId === who?.id;
   const count = (emoji: string): number => reactions.counts.find((r) => r.emoji === emoji)?.n ?? 0;
 
   return (

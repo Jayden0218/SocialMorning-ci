@@ -20,6 +20,7 @@
  * (`EpisodeRowSheet`), with two Updates-only actions: Remove from Updates (this phone's list;
  * the show stays subscribed) and Star / Unstar this show (as on /subscriptions).
  */
+import type { FlatList as RNFlatList } from 'react-native';
 import { Link, useFocusEffect, useRouter, useScrollToTop } from 'expo-router';
 import { useCallback, useEffect, useState, useRef } from 'react';
 import { FlatList } from '@/ui/lib/flat-list';
@@ -52,7 +53,7 @@ import { EndOfList } from '@/ui/kit/EndOfList';
 const TAP = { minHeight: hit.min, minWidth: hit.min };
 
 export default function UpdatesScreen(): React.ReactElement {
-  const top = useRef(null); useScrollToTop(top); // M21 T082: pressing this tab again scrolls to the top.
+  const top = useRef<RNFlatList<UpdateRow>>(null); useScrollToTop(top); // M21 T082: pressing this tab again scrolls to the top.
   const stores = useStores();
   const c = useColours(stores.settings);
   const router = useRouter();
