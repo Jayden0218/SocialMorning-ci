@@ -10,6 +10,14 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 
 ## Logic
 
+### `billing/` — Buying PLUS, paid shows and tips through Google Play (Android).
+
+| File | What it does |
+|---|---|
+| `play.ts` | Buys on Google Play (Android) and finishes a purchase only after the server has granted it. |
+| `products.ts` | The products the app sells and the rules for each: which are subscriptions, which can be bought again. |
+| `purchase-api.ts` | Server calls for purchases: send a Google Play purchase, read a show's paid episodes, get a play link. |
+
 ### `design/` — The app's colours, fonts, sizes and colour checks, kept in one place.
 
 | File | What it does |
@@ -381,6 +389,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `EpisodeMeta.tsx` | Small line under a show's episode: length, how long ago, plays, comments. |
 | `ShowExtras.tsx` | What the host added: announcements, polls, hosts, links and contacts. |
 | `order.ts` | Sorts the show's episodes: newest, oldest, unplayed only, or most played. |
+| `ShowSales.tsx` | On a show page: the show's paid episodes (buy once, then play) and the Tip button, Android only. |
 
 ### `ui/discover/` — The Discover (home) page and its sections
 
@@ -410,6 +419,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `SignOut.tsx` | Sign out button that asks first. |
 | `country.ts` | Turns a country code like "MY" into its name, "Malaysia". |
 | `parts.tsx` | Me page pieces: a menu row with icon and arrow, and an empty-page picture. |
+| `PlusCard.tsx` | The PLUS card in Wallet: what PLUS gives, its price, Subscribe, and Restore purchases. |
 
 ### `ui/settings/` — Parts of the settings pages
 

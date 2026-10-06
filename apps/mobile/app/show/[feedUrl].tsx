@@ -53,6 +53,7 @@ import { useStores, useSubscriptionSync, useToast } from '@/ui/shell/providers';
 import type { CachedEpisode, CachedShow } from '@/storage/types';
 import { getPref } from '@/settings/prefs';
 import { ShowExtrasBlock, useShowExtras } from '@/ui/show/ShowExtras';
+import { ShowSales } from '@/ui/show/ShowSales';
 import { useSocial } from '@/social/context';
 import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '@/ui/lib/actionsheet';
 import { QueueButtons } from '@/ui/queue/QueueButtons';
@@ -281,6 +282,8 @@ export default function ShowScreen(): React.ReactElement {
         {/* Owner, 2026-10-01: the newest announcement as one card under the header. */}
         {latestAnnouncement ? <AnnouncementCard announcement={latestAnnouncement} iconColour={c.text} /> : null}
         {extras ? <ShowExtrasBlock extras={extras} onPoll={replacePoll} noAnnouncements /> : null}
+        {/* M20 US6: paid episodes and tips — Android with purchases switched on only; nothing otherwise. */}
+        <ShowSales feedUrl={feedUrl} showTitle={title ?? ''} {...((ov?.coverUrl ?? show?.imageUrl) ? { artworkUrl: (ov?.coverUrl ?? show?.imageUrl)! } : {})} tipsEnabled={extras?.tipsEnabled === true} />
         {/* M17: Episodes / About as a pill track (owner, 2026-10-05: order and filter moved to the row under it). */}
         <Box className="flex-row items-center gap-gap">
           <Box className="flex-row gap-1 p-1 bg-surface border border-border rounded-pill" accessibilityRole="tablist">

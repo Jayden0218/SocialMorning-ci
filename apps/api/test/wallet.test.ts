@@ -9,8 +9,8 @@ test('FR-105/106: empty until the store exists; the caller\'s own rows only; sto
   const a = await signUp(t, 'a@example.com', 'Alex');
   const b = await signUp(t, 'b@example.com', 'Bo');
   assert.equal((await t.call('GET', '/v1/me/purchases')).status, 401);
-  assert.deepEqual(await (await t.call('GET', '/v1/me/purchases', undefined, a.token)).json(), { items: [], entitlements: [], storeReady: false });
-  assert.deepEqual(await (await t.call('GET', '/v1/me/tips', undefined, a.token)).json(), { items: [], storeReady: false });
+  assert.deepEqual(await (await t.call('GET', '/v1/me/purchases', undefined, a.token)).json(), { items: [], entitlements: [], storeReady: false, stores: { google: false, apple: false } });
+  assert.deepEqual(await (await t.call('GET', '/v1/me/tips', undefined, a.token)).json(), { items: [], storeReady: false, stores: { google: false, apple: false } });
 
   const [p] = await t.q<{ id: string }>(`INSERT INTO purchases (listener_id, store, product_id, store_txn_id, status, amount_micros, currency) VALUES ($1, 'apple', 'tip.small', 'txn-1', 'active', 990000, 'USD') RETURNING id`, [a.id]);
   await t.q(`INSERT INTO purchases (listener_id, store, product_id, store_txn_id, status) VALUES ($1, 'google', 'plus.month', 'txn-2', 'active')`, [b.id]);

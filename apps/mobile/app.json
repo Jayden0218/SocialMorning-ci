@@ -106,6 +106,7 @@
           ]
         }
       ],
+      "expo-iap",
       "./plugins/android-auto",
       "./plugins/keep-room"
     ],

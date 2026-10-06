@@ -9,6 +9,9 @@
  * not set up, "Purchases are not available yet." as a tinted pill; the store sentence sits under
  * it, and "Manage subscriptions in the store" moved to a bar at the foot of the page. Real
  * purchases (none today) are white cards. Loading, the error line and the data are unchanged.
+ *
+ * M20 US6: on Android with purchases switched on, the PLUS card (Subscribe, Restore) sits above the
+ * list; a grant reloads the list. `store.ready` is kept for Android only — the iPhone has no store yet.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { Linking, Platform } from 'react-native';
@@ -28,6 +31,11 @@ import { useM12Api, type Purchase } from '@/social/m12-api';
 import { PageHeader } from '@/ui/kit/PageHeader';
 import { BottomBar } from '@/ui/kit/BottomBar';
 import { EndOfList } from '@/ui/kit/EndOfList';
+import { PlusCard } from '@/ui/me/PlusCard';
+import { usePlayStore } from '@/billing/play';
+import { usePurchaseApi } from '@/billing/purchase-api';
+import { getPref } from '@/settings/prefs';
+import { useSocial } from '@/social/context';
 
 const ROW = { minHeight: size.row };
 /** The empty card is 260 pt tall in `Wallet-B`; the words sit at its foot. */
@@ -40,8 +48,13 @@ export default function WalletScreen(): React.ReactElement {
   const c = useColours(stores.settings);
   const [state, setState] = useState<State>({ kind: 'loading' });
   // M17: the answer is kept, so Me knows whether Wallet opens this page or the Coming soon pop-up.
-  const load = useCallback(() => { m12.purchases().then((r) => { writeStoreReady(stores.settings, r.storeReady); setState({ kind: 'ok', items: r.items, storeReady: r.storeReady }); }, () => setState({ kind: 'error' })); }, [m12, stores]);
-  useEffect(() => { load(); }, [load]);
+  const load = useCallback(() => { m12.purchases().then((r) => { const ready = Platform.OS === 'android' && r.storeReady; writeStoreReady(stores.settings, ready); setState({ kind: 'ok', items: r.items, storeReady: ready }); }, () => setState({ kind: 'error' })); }, [m12, stores]);
+  const purchaseApi = usePurchaseApi();
+  const play = usePlayStore(purchaseApi, { serverReady: state.kind === 'ok' && state.storeReady, teen: getPref(stores.settings, 'hideExplicit') });
+  const { api } = useSocial();
+  const [hasPlus, setHasPlus] = useState(false);
+  useEffect(() => { load(); }, [load, play.granted]);
+  useEffect(() => { void api.me().then((m) => setHasPlus(m.plus === true), () => undefined); }, [api, play.granted]);
   const manage = () => { void Linking.openURL(Platform.OS === 'ios' ? MANAGE_SUBSCRIPTIONS.ios : MANAGE_SUBSCRIPTIONS.android).catch(() => undefined); };
   const notReady = state.kind === 'ok' && !state.storeReady;
   const pill = notReady ? (
@@ -60,6 +73,8 @@ export default function WalletScreen(): React.ReactElement {
       contentContainerClassName="px-screen-x pt-gap pb-24 flex-grow"
       ListHeaderComponent={
         <Box className="gap-section mb-section">
+          <PlusCard play={play} hasPlus={hasPlus} />
+          {play.error ? <Text className="text-accent text-sm">{play.error}</Text> : null}
           {empty ? (
             <Box className="bg-surface border border-border rounded-row p-7 justify-end gap-section overflow-hidden" style={HERO} accessible accessibilityLabel={notReady ? 'No purchases. Purchases are not available yet.' : 'No purchases'}>
               <Box className="absolute -right-8 -top-8 w-44 h-44 rounded-pill bg-primary opacity-35" />

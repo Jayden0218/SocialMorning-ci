@@ -97,10 +97,11 @@ const FONT_ADDITIONS = ['expo-font', '@expo-google-fonts/lora', '@expo-google-fo
 const HAPTICS_ADDITIONS = ['expo-haptics'];
 /**
  * M20 (owner "go" on gate G0, 2026-10-05; research R1/R9) — G-M20-9: the M20 packages, added one
- * by one as their wave needs them. W2: speech-to-text for voice posts and comments. MIT (LICENSES.md).
+ * by one as their wave needs them. W2: speech-to-text for voice posts and comments; W4: Google Play
+ * purchases (owner 2026-10-06: build now, Play account later). MIT (LICENSES.md).
  * The break that turns it red: add any package not named here.
  */
-const M20_ADDITIONS = ['expo-speech-recognition'];
+const M20_ADDITIONS = ['expo-speech-recognition', 'expo-iap'];
 
 it('no reference dependency is installed, anywhere', () => {
   const installed = new Set([

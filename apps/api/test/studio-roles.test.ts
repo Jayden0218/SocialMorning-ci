@@ -20,6 +20,8 @@ const OTHER = 'https://feeds.example.com/theirs.xml';
 
 /** Owner-only routes, as `METHOD path` — filled as US6/US7 add them. */
 const OWNER_ONLY = new Set<string>([
+  // M20 US6: the price level and the paid switch — money decisions are the owner's.
+  'PUT /shows/:show/price', 'PUT /shows/:show/hosted-episodes/:id/paid',
   'GET /shows/:show/overrides', 'PUT /shows/:show/overrides', 'GET /shows/:show/team', 'POST /shows/:show/team',
   'DELETE /shows/:show/team/:listenerId', 'POST /shows/:show/release', 'GET /shows/:show/tips', 'PUT /shows/:show/details',
   'DELETE /shows/:show/hosts/:listenerId', 'GET /shows/:show/host-invites', 'POST /shows/:show/host-invites', 'DELETE /shows/:show/host-invites/:id',

@@ -28,6 +28,7 @@ Checked with `npm view <pkg> license` on 2026-09-21 (constitution, Principle III
 | expo-image-picker | 58.0.3 | MIT | Adding images to feedback (spec 010 US6), 2026-09-27 |
 | expo-haptics | 58.0.2 | MIT | A light tick as the category row is swiped, 2026-10-05 |
 | expo-speech-recognition | 57.1.0 | MIT | M20 US3: the text of a voice post or comment, made by the phone's own speech service while recording (owner "go", 2026-10-05) |
+| expo-iap | 5.8.2 | MIT | M20 US6: Google Play purchases (PLUS, paid shows, tips), each checked by the server; switched on when the owner opens a Play account (2026-10-06) |
 | androidx.media3:media3-transformer / media3-effect (Google; with media3-common) | 1.9.1 | Apache-2.0 | M19 "Share as video" on Android: the phone's own encoders via Media3 Transformer, the same Media3 version expo-audio already ships (owner approved, 2026-10-05; no FFmpeg) |
 | `modules/clip-video` (local Expo module) | — | ours | M19 "Share as video": AVFoundation (iOS) / Media3 Transformer (Android), 2026-10-05 |
 | expo-image-manipulator | 58.0.8 | MIT | Shrinking feedback images on the phone (spec 010 US6), 2026-09-27 |

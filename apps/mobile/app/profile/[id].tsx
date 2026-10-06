@@ -12,6 +12,7 @@
  * card, serif section titles and recent rows as cards. Every action and its data are unchanged.
  */
 import { useCallback, useState } from 'react';
+import { PlusBadge } from '@/ui/me/PlusCard';
 import { ScrollView } from '@/ui/lib/scroll-view';
 import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
@@ -125,6 +126,8 @@ export default function ProfileScreen(): React.ReactElement {
       <Box className="items-center gap-1.5">
         <Avatar size={96} url={profile.avatarUrl} name={profile.displayName} className="border-2 border-surface" />
         <Text className="text-text text-display font-display text-center mt-gap" accessibilityRole="header">{profile.displayName}</Text>
+        {/* M20 US6 (FR-022): the PLUS badge, public like the name. */}
+        {profile.plus ? <PlusBadge /> : null}
         {own ? <Text className="text-muted text-xs">This is you</Text> : null}
         {/* M10b US7: "IP location" — the country from the last sign-in, public (the privacy policy says so). */}
         {profile.country ? <Text className="text-muted text-xs">{`IP location: ${countryName(profile.country)}`}</Text> : null}

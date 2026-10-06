@@ -35,6 +35,8 @@ export type Listener = {
   id: string; email: string; displayName: string; createdAt: string; privateListening?: boolean;
   /** M19 US1 (contracts/api.md GET/PATCH /v1/me): all optional, so an older server still parses. */
   avatarUrl?: string; bio?: string; ageRange?: string | null; gender?: string | null; likesPublic?: boolean;
+  /** M20 US6: PLUS now (the badge, the app icons); computed by the server. */
+  plus?: boolean;
 };
 export type EpisodeRegistration = {
   feedUrl: string; guid: string; title: string; showTitle?: string; enclosureUrl: string; imageUrl?: string; durationMs?: number;
@@ -89,6 +91,8 @@ export type Profile = {
   id: string; displayName: string; followers: number; following: number; isFollowing: boolean;
   stats: { last7: ProfileStats; all: ProfileStats } | null; recent: FeedItem[];
   suspended?: boolean; blockedByMe?: boolean;
+  /** M20 US6: a PLUS member — the badge beside the name (public, like the name). */
+  plus?: boolean;
   /** M10b US7: two-letter country from the listener's last sign-in ("IP location"), public. */
   country?: string;
   /** M19 US1: the listener's photo and short bio, when set (absent on an older server). */
@@ -243,6 +247,8 @@ export type ShowExtras = {
    * "Shared by <name>", never as its host (guard G-C1). Absent on an older server.
    */
   curator?: { id: string; displayName: string } | null;
+  /** M14: the host switched tips on in the Studio (M20 US6: the Tip button shows only then). */
+  tipsEnabled?: boolean;
 };
 
 export type ApiDeps = {
