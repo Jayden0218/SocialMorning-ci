@@ -3,9 +3,29 @@
  * Updates (更新, owner 2026-09-27): the newest episodes of every subscribed show in one
  * list, newest first — what the Library tab became. Read from the feed cache, so it
  * shows offline. Hidden shows are left out, as they are everywhere else.
+ *
+ * M21 US4 (FR-036): "Remove from Updates" takes one episode out of this feed only — kept on
+ * this phone as a JSON list under `updates.hidden`; the show stays subscribed.
  */
-import type { CachedEpisode, Stores } from '@/storage/types';
+import type { CachedEpisode, SettingsStore, Stores } from '@/storage/types';
 import { getPref } from '@/settings/prefs';
+import { readList, writeList } from './local-list';
+
+export const UPDATES_HIDDEN_KEY = 'updates.hidden';
+/** The list keeps the newest this many; an episode older than that has long left Updates anyway. */
+export const UPDATES_HIDDEN_MAX = 500;
+
+const isId = (x: unknown): x is string => typeof x === 'string' && x.length > 0;
+
+export function hiddenUpdates(s: Pick<SettingsStore, 'get'>): Set<string> {
+  return new Set(readList(s as SettingsStore, UPDATES_HIDDEN_KEY, isId));
+}
+
+/** Takes `episodeId` out of the Updates feed on this phone. */
+export function hideFromUpdates(s: SettingsStore, episodeId: string): void {
+  const list = readList(s, UPDATES_HIDDEN_KEY, isId).filter((id) => id !== episodeId);
+  writeList(s, UPDATES_HIDDEN_KEY, [episodeId, ...list].slice(0, UPDATES_HIDDEN_MAX));
+}
 
 export type UpdateRow = { episode: CachedEpisode; showTitle: string; imageUrl?: string; summary: string };
 
@@ -25,10 +45,11 @@ export function latestUpdates(stores: Pick<Stores, 'subscriptions' | 'feeds'> & 
   const rows: UpdateRow[] = [];
   // M10 minor mode (Settings → Minor mode): explicit episodes are left out.
   const noExplicit = stores.settings !== undefined && getPref(stores.settings, 'hideExplicit');
+  const removed = stores.settings !== undefined ? hiddenUpdates(stores.settings) : new Set<string>();
   for (const { feedUrl } of stores.subscriptions.list()) {
     if (hidden.has(feedUrl)) continue;
     const show = stores.feeds.getShow(feedUrl);
-    for (const e of stores.feeds.listEpisodes(feedUrl).filter((x) => !(noExplicit && x.explicit)).slice(0, perShow)) {
+    for (const e of stores.feeds.listEpisodes(feedUrl).filter((x) => !(noExplicit && x.explicit) && !removed.has(x.id)).slice(0, perShow)) {
       const img = e.imageUrl ?? show?.imageUrl;
       rows.push({ episode: e, showTitle: show?.title ?? feedUrl, ...(img ? { imageUrl: img } : {}), summary: plainSummary(e.shownotesHtml) });
     }

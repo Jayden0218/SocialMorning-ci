@@ -25,7 +25,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `accent.ts` | Saves the chosen accent colour and applies it across the whole app. |
 | `contrast.ts` | Measures colour contrast so every text colour stays easy to read. |
 | `fonts.ts` | Loads the two app fonts at start-up, falling back to system fonts. |
-| `gradient.ts` | Picks the player's background wash, refusing tints that make text hard to read. |
+| `gradient.ts` | Picks page and player tints, refusing any that make text hard to read. |
 | `merge.ts` | Teaches the class merger the app's own text sizes, so a colour and a size can sit together. |
 | `index.ts` | Gathers the design exports so screens import them from one place. |
 | `tailwind.ts` | Lets links and gradients accept style class names like other components. |
@@ -259,6 +259,8 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `EmptyState.tsx` | What an empty, loading, offline or failed page shows, with a Retry button. |
 | `Eyebrow.tsx` | A small grey capital-letter label above a section. |
 | `EndOfList.tsx` | The line under the last row of a fetched list: "No more to fetch". |
+| `EpisodeRowSheet.tsx` | The one sheet every episode row opens from ⋯ or a long-press: cover header and episode actions. |
+| `TintedPage.tsx` | A paper page that fades to the cover's tint once it is known, never through a dark colour. |
 | `haptics.ts` | A light vibration tick; does nothing on an app built before expo-haptics was added. |
 | `Icon.tsx` | Simple drawn icons (play, pause, arrows) and the one font icon helper. |
 | `Loader.tsx` | The app's own loading sign: five sound bars moving up and down. |
@@ -383,7 +385,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `DownloadButton.tsx` | Download button showing every state: waiting, percent, done, failed, remove. |
 | `EpisodeRow.tsx` | One episode in a list: cover, title, show, length and date. |
 | `HeroArtwork.tsx` | Big cover with soft shadow at the top of episode and show pages. |
-| `RelatedEpisodes.tsx` | Up to 5 related episodes at the bottom of the episode page. |
+| `RelatedEpisodes.tsx` | Up to 5 related episodes at the bottom of the episode page, as a sideways row of cards. |
 | `ShowNotes.tsx` | Episode notes; lines starting with a time become rows that play from there. |
 | `UpdateEpisodeRow.tsx` | One episode card on Updates: notes, plays, comments, small buttons, Play. |
 
@@ -396,6 +398,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `EpisodeMeta.tsx` | Small line under a show's episode: length, how long ago, plays, comments. |
 | `ShowExtras.tsx` | What the host added: announcements, polls, hosts, links and contacts. |
 | `order.ts` | Sorts the show's episodes: newest, oldest, unplayed only, or most played. |
+| `show-page.ts` | Show page rules: the subscriber line, the Host picks list, and Add all to the queue. |
 | `ShowSales.tsx` | On a show page: the show's paid episodes (buy once, then play) and the Tip button, Android only. |
 
 ### `ui/discover/` — The Discover (home) page and its sections

@@ -10,6 +10,7 @@
  * and the episode title in the serif; the notes and the meta line under them at full width; a
  * hairline, then the four icon buttons and a yellow "Play" pill at the right. Same buttons,
  * names and handlers as before.
+ * M21 US4: a long-press on the episode opens the ⋯ sheet too.
  */
 import { Pressable } from '@/ui/lib/pressable';
 import { Text } from '@/ui/lib/text';
@@ -77,6 +78,8 @@ export function UpdateEpisodeRow(props: {
   onDownload: () => void;
   onMore: () => void;
   onPlay: () => void;
+  /** M21 US4 (FR-035): a long-press on the episode opens the same sheet as ⋯. Defaults to `onMore`. */
+  onLongPress?: () => void;
 }): React.ReactElement {
   const { item, iconColour: c } = props;
   const done = props.doneColour ?? c;
@@ -89,7 +92,7 @@ export function UpdateEpisodeRow(props: {
         <Pressable onPress={props.onOpenShow} accessibilityRole="button" accessibilityLabel={`Open ${item.showTitle}`}>
           <Artwork url={item.imageUrl} size={64} rounded="row" name={item.showTitle} />
         </Pressable>
-        <Pressable onPress={props.onOpenEpisode} accessibilityRole="button" accessibilityLabel={`${e.title}, ${item.showTitle}. ${meta.label}`} className="flex-1 gap-1" style={PILL}>
+        <Pressable onPress={props.onOpenEpisode} onLongPress={props.onLongPress ?? props.onMore} accessibilityHint="Long-press for more actions" accessibilityRole="button" accessibilityLabel={`${e.title}, ${item.showTitle}. ${meta.label}`} className="flex-1 gap-1" style={PILL}>
           <Text className="text-accent text-xs font-semibold" numberOfLines={1}>{item.showTitle}</Text>
           <Text className="font-display text-title text-text" numberOfLines={2}>{e.title}</Text>
         </Pressable>

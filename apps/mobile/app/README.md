@@ -163,6 +163,12 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 |---|---|---|
 | `transcript/[episodeId].tsx` | `/transcript/<episodeId>` | The episode's transcript full screen: follows the audio, tap a line to jump, long-press to share or report it. |
 
+### `show-info/`
+
+| File | Route | What the user sees |
+|---|---|---|
+| `show-info/[feedUrl].tsx` | `/show-info/<feedUrl>` | Show info: who stands behind the show, the owner's country, and the feed address to copy. |
+
 ### `voice/`
 
 | File | Route | What the user sees |

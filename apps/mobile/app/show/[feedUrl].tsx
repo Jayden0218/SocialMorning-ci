@@ -29,6 +29,14 @@
  * Episodes / About is a pill track carrying the count, with order and Unplayed beside it; All /
  * Most played are underlined tabs; each episode is a white card with a serif title and a round
  * play button over its ⋯. Every action, name and handler is the one it was.
+ *
+ * M21 US5 (FR-040…FR-043): the page fades to a light tint of the cover; the description opens
+ * in full on a tap; our own subscriber count ("1.2k subscribers", "New here" under 10) and the
+ * hosts' faces, each opening their profile, sit under the author; the chips are All / Host picks
+ * (only when the host marked some in the Studio) / Most popular (the old "Most played"); "Add all
+ * to playlist" queues the list as shown, up to 300; ⋯ opens a sheet with Show info and Report;
+ * the collapsed bar keeps search. US4 (FR-035): an episode's ⋯ or a long-press opens the shared
+ * episode sheet.
  */
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -56,9 +64,12 @@ import { ShowExtrasBlock, useShowExtras } from '@/ui/show/ShowExtras';
 import { ShowSales } from '@/ui/show/ShowSales';
 import { useSocial } from '@/social/context';
 import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '@/ui/lib/actionsheet';
-import { QueueButtons } from '@/ui/queue/QueueButtons';
-import { DownloadButton } from '@/ui/episode/DownloadButton';
-import { EpisodeExtras } from '@/ui/me/EpisodeExtras';
+import { EpisodeRowSheet } from '@/ui/kit/EpisodeRowSheet';
+import { SheetRow } from '@/ui/kit/SheetRow';
+import { Avatar } from '@/ui/kit/Avatar';
+import { TintedPage } from '@/ui/kit/TintedPage';
+import { tintFor } from '@/design';
+import { addAllMessage, addAllToQueue, hostPicksOf, subscriberLine } from '@/ui/show/show-page';
 import { Icon } from '@/ui/kit/Icon';
 import { useColours } from '@/ui/kit/useColours';
 import { useM12Api } from '@/social/m12-api';
@@ -104,7 +115,8 @@ export default function ShowScreen(): React.ReactElement {
   // its own screen said 15:52).
   const [focusTick, setFocusTick] = useState(0);
   // M11: the creator's Studio settings, announcements and polls — after the feed, never instead of it.
-  const [extras, replacePoll] = useShowExtras(feedUrl);
+  // M21: the same call carries the cover's tint, our subscriber count, the hosts and the host picks.
+  const [extras, replacePoll] = useShowExtras(feedUrl, { image: show?.imageUrl });
   const { api } = useSocial();
   const ov = extras?.overrides ?? null;
   const curator = extras?.curator ?? null;
@@ -115,6 +127,9 @@ export default function ShowScreen(): React.ReactElement {
   const m12 = useM12Api();
   const [collapsed, setCollapsed] = useState(false);
   const [menuFor, setMenuFor] = useState<CachedEpisode | undefined>();
+  // M21 US5: the show's own ⋯ sheet (Show info, Report) and the description opened in full.
+  const [showMenu, setShowMenu] = useState(false);
+  const [descOpen, setDescOpen] = useState(false);
   // FR-061: plays and comments for the first 100 rows, one call; a failure leaves them out.
   const [counts, setCounts] = useState<{ counts: Record<string, number>; listeners?: Record<string, number> }>({ counts: {} });
   const ids = episodes.slice(0, 100).map((e) => e.id).join(',');
@@ -175,7 +190,8 @@ export default function ShowScreen(): React.ReactElement {
   const [tab, setTab] = useState<'episodes' | 'about'>('episodes');
   const [oldestFirst, setOldestFirst] = useState(false);
   // Owner, 2026-10-01: the "All" / "Most played" chips and an "Unplayed" filter above the list.
-  const [view, setView] = useState<ListView>('all');
+  // M21 US5: a third chip, the host's picks.
+  const [view, setView] = useState<ListView | 'picks'>('all');
   const [unplayedOnly, setUnplayedOnly] = useState(false);
   // Owner, 2026-10-05: Search looks inside this show's episodes only (it opened the app's search).
   const [searching, setSearching] = useState(false);
@@ -193,14 +209,29 @@ export default function ShowScreen(): React.ReactElement {
   // M10 minor mode (Settings → Minor mode): explicit episodes are not listed.
   const allowed = getPref(stores.settings, 'hideExplicit') ? episodes.filter((e) => !e.explicit) : episodes;
   const playsKnown = hasPlays(counts.listeners);
-  // "Most played" hides with no counts; the list then reads as "All" (orderEpisodes agrees).
-  const activeView: ListView = playsKnown ? view : 'all';
-  const ordered = orderEpisodes(allowed, {
-    oldestFirst, view, unplayedOnly,
-    isFinished: (id) => stores.positions.get(id)?.finished === true,
+  // M21 US5: the host's picks, in the host's order; the chip hides when there are none.
+  const picks = hostPicksOf(allowed, extras?.hostPicks);
+  // "Most popular" hides with no counts, "Host picks" with no picks; the list then reads as "All".
+  const activeView: ListView | 'picks' = view === 'picks' ? (picks.length > 0 ? 'picks' : 'all') : playsKnown ? view : 'all';
+  const isFinished = (id: string) => stores.positions.get(id)?.finished === true;
+  const ordered = activeView === 'picks' ? (unplayedOnly ? picks.filter((e) => !isFinished(e.id)) : picks) : orderEpisodes(allowed, {
+    oldestFirst, view: activeView, unplayedOnly, isFinished,
     ...(counts.listeners !== undefined ? { listeners: counts.listeners } : {}),
   });
   const shown = searching ? matchEpisodes(ordered, term, (e) => searchText.get(e.id) ?? e.title) : ordered;
+  // M21 US5: "Add all to playlist" — the list as shown, to the end of the queue, up to 300.
+  const addAll = () => {
+    const r = addAllToQueue(stores.queue.list(), shown.map((e) => e.id));
+    if (r.added > 0) {
+      stores.queue.replace(r.queue, Date.now());
+      for (const id of r.queue.slice(-r.added)) stores.inboxState.mark(id, 'queued', Date.now());
+    }
+    toast(addAllMessage(r));
+  };
+  const subscribers = subscriberLine(extras?.subscribers);
+  const hosts = extras?.hosts ?? [];
+  const pageTint = tintFor(extras?.tint, [c.accent]);
+
 
   const progressFor = (episode: CachedEpisode): string => {
     const row = stores.positions.get(episode.id);
@@ -246,8 +277,23 @@ export default function ShowScreen(): React.ReactElement {
         {/* M15 US4: the curator, under the title — never through the "Hosted by" line (G-C1). */}
         {curator ? <CuratorLine curator={curator} iconColour={c.muted} /> : null}
         {show?.author === undefined ? null : <Text className="text-accent text-meta font-semibold text-center mt-1" numberOfLines={1}>{show.author}</Text>}
+        {/* M21 US5: our own subscriber count — "New here" under 10. */}
+        {subscribers === undefined ? null : <Text className="text-muted text-meta text-center mt-1">{subscribers}</Text>}
+        {/* M21 US5: the hosts' faces, each opening the host's profile. */}
+        {hosts.length === 0 ? null : (
+          <Box className="flex-row flex-wrap justify-center gap-gap mt-gap">
+            {hosts.map((h) => (
+              <Pressable key={h.id} onPress={() => router.push({ pathname: '/profile/[id]', params: { id: h.id } })} accessibilityRole="link" accessibilityLabel={`Host: ${h.name}`} className="items-center justify-center" style={TAP}>
+                <Avatar url={h.avatarUrl} name={h.name} size={36} />
+              </Pressable>
+            ))}
+          </Box>
+        )}
         {description === undefined || tab === 'about' ? null : (
-          <Text className="text-muted text-body leading-[21px] text-center mt-gap" numberOfLines={2}>{htmlToText(description)}</Text>
+          // M21 US5: a tap opens the whole description; another closes it.
+          <Pressable onPress={() => setDescOpen((o) => !o)} accessibilityRole="button" accessibilityLabel={descOpen ? 'Description. Show less' : 'Description. Show all'} accessibilityState={{ expanded: descOpen }} className="mt-gap">
+            <Text className="text-muted text-body leading-[21px] text-center" {...(descOpen ? {} : { numberOfLines: 2 })}>{htmlToText(description)}</Text>
+          </Pressable>
         )}
       </Box>
       <Box className="px-screen-x pt-section gap-section">
@@ -270,7 +316,7 @@ export default function ShowScreen(): React.ReactElement {
           <Pressable onPress={toggleSearch} accessibilityRole="button" accessibilityLabel={searching ? 'Close search' : "Search this show's episodes"} accessibilityState={{ expanded: searching }} className={ROUND} style={TAP}>
             <Icon name={searching ? 'close' : 'search-outline'} size={20} color={c.text} />
           </Pressable>
-          <Pressable onPress={() => setReporting({ kind: 'show', id: feedUrl, authorId: null, label: 'show' })} accessibilityRole="button" accessibilityLabel="More: report this show" className={ROUND} style={TAP}>
+          <Pressable onPress={() => setShowMenu(true)} accessibilityRole="button" accessibilityLabel="More: show info, report this show" className={ROUND} style={TAP}>
             <Icon name="ellipsis-horizontal" size={20} color={c.text} />
           </Pressable>
         </Box>
@@ -299,16 +345,31 @@ export default function ShowScreen(): React.ReactElement {
       </Box>
       {tab === 'episodes' && episodes.length > 0 ? (
         <Box className="px-screen-x flex-row items-center gap-gap">
-          {/* Owner, 2026-10-05: no "All" tab — "Most played" is one switch (tap again for the feed's
-              order) — and Newest and the Unplayed filter sit on this row, at its right. */}
+          {/* M21 US5: All / Host picks / Most popular chips (the old "Most played" switch is the last);
+              each chip hides when it has nothing. Newest and the Unplayed filter stay at the right. */}
+          {picks.length > 0 || playsKnown ? (
+            <Pressable onPress={() => setView('all')} accessibilityRole="button" accessibilityState={{ selected: activeView === 'all' }} accessibilityLabel="All" className="justify-center" style={TAP}>
+              <Text className={activeView === 'all' ? 'text-meta font-bold text-text' : 'text-meta text-muted'}>All</Text>
+              <Box className={`h-0.5 mt-1 rounded-pill ${activeView === 'all' ? 'bg-primary' : 'bg-clear'}`} />
+            </Pressable>
+          ) : null}
+          {picks.length > 0 ? (
+            <Pressable onPress={() => setView('picks')} accessibilityRole="button" accessibilityState={{ selected: activeView === 'picks' }} accessibilityLabel="Host picks" className="justify-center" style={TAP}>
+              <Text className={activeView === 'picks' ? 'text-meta font-bold text-text' : 'text-meta text-muted'}>Host picks</Text>
+              <Box className={`h-0.5 mt-1 rounded-pill ${activeView === 'picks' ? 'bg-primary' : 'bg-clear'}`} />
+            </Pressable>
+          ) : null}
           {playsKnown ? (
-            <Pressable onPress={() => setView((v) => (v === 'mostPlayed' ? 'all' : 'mostPlayed'))} accessibilityRole="button" accessibilityState={{ selected: activeView === 'mostPlayed' }} accessibilityLabel="Most played"
+            <Pressable onPress={() => setView('mostPlayed')} accessibilityRole="button" accessibilityState={{ selected: activeView === 'mostPlayed' }} accessibilityLabel="Most popular"
               className="justify-center" style={TAP}>
-              <Text className={activeView === 'mostPlayed' ? 'text-meta font-bold text-text' : 'text-meta text-muted'}>Most played</Text>
+              <Text className={activeView === 'mostPlayed' ? 'text-meta font-bold text-text' : 'text-meta text-muted'}>Most popular</Text>
               <Box className={`h-0.5 mt-1 rounded-pill ${activeView === 'mostPlayed' ? 'bg-primary' : 'bg-clear'}`} />
             </Pressable>
           ) : null}
           <Box className="flex-1" />
+          <Pressable onPress={addAll} accessibilityRole="button" accessibilityLabel={`Add all to playlist, ${shown.length} episodes`} className="items-center justify-center" style={TAP}>
+            <Icon name="add-circle-outline" size={18} color={c.muted} />
+          </Pressable>
           <Pressable onPress={() => setOldestFirst((o) => !o)} accessibilityRole="button" accessibilityLabel={oldestFirst ? 'Oldest first. Show newest first' : 'Newest first. Show oldest first'} className="flex-row items-center justify-center gap-1" style={TAP}>
             <Icon name="swap-vertical-outline" size={18} color={c.muted} />
             <Text className="text-xs text-muted">{oldestFirst ? 'Oldest' : 'Newest'}</Text>
@@ -361,7 +422,8 @@ export default function ShowScreen(): React.ReactElement {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <TintedPage tint={pageTint}>
+    <SafeAreaView className="flex-1">
       <TopBar
         onBack={() => router.back()}
         {...(collapsed ? {
@@ -379,8 +441,11 @@ export default function ShowScreen(): React.ReactElement {
       >
         {/* M17 (`Show-B`): share, search and ⋯ sit beside Subscribe on the page; once it has scrolled
             away the slim bar keeps ⋯, as it did (phone walk 2026-09-30: room for the title). */}
-        {collapsed ? <BarButton label="More: report this show" onPress={() => setReporting({ kind: 'show', id: feedUrl, authorId: null, label: 'show' })}><Dots /></BarButton> : null}
+        {/* M21 US5 (FR-043): the slim bar keeps search too; its box shows under the bar (below). */}
+        {collapsed ? <BarButton label={searching ? 'Close search' : "Search this show's episodes"} onPress={toggleSearch}><Icon name={searching ? 'close' : 'search-outline'} size={22} color={c.text} /></BarButton> : null}
+        {collapsed ? <BarButton label="More: show info, report this show" onPress={() => setShowMenu(true)}><Dots /></BarButton> : null}
       </TopBar>
+      {collapsed && searching ? <Box className="px-screen-x pb-gap"><FilterBar term={term} onTerm={setTerm} placeholder="Search this show's episodes" /></Box> : null}
       <FlatList
         data={tab === 'episodes' ? shown : []}
         extraData={[focusTick, playerState]} // FlatList is pure: without this the rows keep their old text
@@ -409,6 +474,8 @@ export default function ShowScreen(): React.ReactElement {
                 accessibilityRole="button"
                 accessibilityLabel={`${item.title}. ${meta}`}
                 onPress={() => router.push({ pathname: '/episode/[id]', params: { id: item.id } })}
+                onLongPress={() => setMenuFor(item)}
+                accessibilityHint="Long-press for more actions"
               >
                 <Text className="text-title font-display text-text leading-[22px]" numberOfLines={3}>{item.title}</Text>
                 {notes === '' ? null : <Text className="text-meta text-muted leading-[19px]" numberOfLines={2}>{notes}</Text>}
@@ -432,24 +499,27 @@ export default function ShowScreen(): React.ReactElement {
         }}
         ListFooterComponent={<>{tab === 'episodes' && shown.length > 0 ? <EndOfList /> : undefined}<ReportSheet target={reporting} onClose={() => setReporting(undefined)} /></>}
       />
-      <Actionsheet isOpen={menuFor !== undefined} onClose={() => setMenuFor(undefined)}>
+      {/* M21 US4 (FR-035): the shared episode sheet, from a row's ⋯ or a long-press. */}
+      <EpisodeRowSheet
+        episode={menuFor ? { id: menuFor.id, title: menuFor.title, feedUrl, showTitle: title, imageUrl: menuFor.imageUrl ?? ov?.coverUrl ?? show?.imageUrl } : undefined}
+        comments={menuFor ? counts.counts[menuFor.id] : undefined}
+        onClose={() => setMenuFor(undefined)}
+      />
+      {/* M21 US5 (FR-041): the show's ⋯ — Show info, and Report as before. */}
+      <Actionsheet isOpen={showMenu} onClose={() => setShowMenu(false)}>
         <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
         <ActionsheetContent className="bg-surface rounded-t-row px-screen-x pt-row items-stretch">
           <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
-          {menuFor ? (
-            <>
-              <Text className="text-sm font-bold text-text py-row" numberOfLines={2}>{menuFor.title}</Text>
-              <QueueButtons episodeId={menuFor.id} />
-              <DownloadButton episodeId={menuFor.id} />
-              <EpisodeExtras episodeId={menuFor.id} atMs={stores.positions.get(menuFor.id)?.offsetMs ?? 0} />
-            </>
-          ) : null}
-          <Pressable onPress={() => setMenuFor(undefined)} accessibilityRole="button" accessibilityLabel="Cancel" className="items-center justify-center mt-row" style={TAP}>
-            <Text className="text-accent text-sm font-bold">Cancel</Text>
+          <Text className="text-text text-base font-display py-row" numberOfLines={2}>{title ?? ''}</Text>
+          <SheetRow icon="information-circle-outline" label="Show info" iconColour={c.accent} onPress={() => { setShowMenu(false); router.push({ pathname: '/show-info/[feedUrl]', params: { feedUrl: encodeURIComponent(feedUrl) } }); }} />
+          <SheetRow icon="flag-outline" label={reportedShow ? 'Reported' : 'Report this show'} iconColour={c.accent} onPress={() => { setShowMenu(false); setReporting({ kind: 'show', id: feedUrl, authorId: null, label: 'show' }); }} />
+          <Pressable onPress={() => setShowMenu(false)} accessibilityRole="button" accessibilityLabel="Cancel" className="items-center justify-center mt-gap mb-row rounded-pill border border-border" style={TAP}>
+            <Text className="text-accent text-body font-bold">Cancel</Text>
           </Pressable>
         </ActionsheetContent>
       </Actionsheet>
       {sharePanel}
     </SafeAreaView>
+    </TintedPage>
   );
 }

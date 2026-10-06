@@ -32,6 +32,7 @@ import { registerEpisodes } from './episodes.ts';
 import { registerHosts } from './hosts.ts';
 import { registerMedia } from './media.ts';
 import { registerTranscriptReportDone, registerTranscriptReports } from './transcript-reports.ts';
+import { registerHostPicks } from './host-picks.ts';
 
 export { ownerOnly } from './common.ts';
 
@@ -121,3 +122,4 @@ registerEpisodes(studio);
 registerHosts(studio);
 registerMedia(studio);
 registerTranscriptReports(studio);
+registerHostPicks(studio);

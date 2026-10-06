@@ -15,6 +15,10 @@
  * circles under a "Voices · last 24 h" eyebrow; then "New from your shows" in the serif over the
  * episode cards. The More sheet, the refresh and the counts call are unchanged.
  * Owner, 2026-10-05: no "Continue listening" card — those episodes are already in the list.
+ *
+ * M21 US4 (FR-035, FR-036): ⋯ or a long-press on a row opens the shared episode sheet
+ * (`EpisodeRowSheet`), with two Updates-only actions: Remove from Updates (this phone's list;
+ * the show stays subscribed) and Star / Unstar this show (as on /subscriptions).
  */
 import { Link, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
@@ -28,7 +32,7 @@ import { Icon } from '@/ui/kit/Icon';
 import { enqueue } from '@socialmorning/player-core';
 import { useDiscover } from '@/discover/useDiscover';
 import { refreshAll } from '@/feeds/refresh-all';
-import { latestUpdates, type UpdateRow } from '@/me/updates';
+import { hideFromUpdates, latestUpdates, type UpdateRow } from '@/me/updates';
 import { usePlayer } from '@/playback/store';
 import { useSafety } from '@/safety/context';
 import { toPlayable } from '@/storage/playable';
@@ -36,10 +40,7 @@ import { hit } from '@/design';
 import { DiscoverSections } from '@/ui/discover/DiscoverSections';
 import { EmptyState } from '@/ui/kit/EmptyState';
 import { UpdateEpisodeRow } from '@/ui/episode/UpdateEpisodeRow';
-import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '@/ui/lib/actionsheet';
-import { QueueButtons } from '@/ui/queue/QueueButtons';
-import { DownloadButton } from '@/ui/episode/DownloadButton';
-import { EpisodeExtras } from '@/ui/me/EpisodeExtras';
+import { EpisodeRowSheet } from '@/ui/kit/EpisodeRowSheet';
 import { useDownloads, useStores, useSubscriptionSync, useToast } from '@/ui/shell/providers';
 import { useSocial } from '@/social/context';
 import { useM12Api } from '@/social/m12-api';
@@ -126,6 +127,17 @@ export default function UpdatesScreen(): React.ReactElement {
     setMarks((n) => n + 1);
     toast('Added to the queue.');
   };
+  // M21 US4 (FR-036): the two Updates-only actions in the shared sheet.
+  const starred = (feedUrl: string) => stores.subscriptions.list().some((s) => s.feedUrl === feedUrl && s.starred);
+  const updatesActions = (row: UpdateRow) => [
+    {
+      icon: 'eye-off-outline' as const, label: 'Remove from Updates',
+      onPress: () => { setMenuFor(undefined); hideFromUpdates(stores.settings, row.episode.id); read(); toast('Removed from Updates. The show stays subscribed.'); },
+    },
+    starred(row.episode.feedUrl)
+      ? { icon: 'star' as const, label: 'Unstar this show', onPress: () => { setMenuFor(undefined); stores.subscriptions.setStarred(row.episode.feedUrl, false, Date.now()); subscriptionSync.push(); toast('Unstarred.'); } }
+      : { icon: 'star-outline' as const, label: 'Star this show', onPress: () => { setMenuFor(undefined); stores.subscriptions.setStarred(row.episode.feedUrl, true, Date.now()); subscriptionSync.push(); toast('Starred. It sits at the top of My subscriptions.'); } },
+  ];
   const download = (id: string) => {
     if (downloadOf(id) === 'done') { toast('Already downloaded.'); return; }
     if (downloadOf(id) === 'active') { toast('Downloading.'); return; }
@@ -183,29 +195,19 @@ export default function UpdatesScreen(): React.ReactElement {
               onComments={() => router.push({ pathname: '/comments/[episodeId]', params: { episodeId: e.id } })}
               onDownload={() => download(e.id)}
               onMore={() => setMenuFor(item)}
+              onLongPress={() => setMenuFor(item)}
               onPlay={() => play(e.id)}
             />
           );
         }}
       />
-      {/* "⋯" more (Owner, 2026-10-01): the same sheet as a show page's episode row. */}
-      <Actionsheet isOpen={menuFor !== undefined} onClose={() => setMenuFor(undefined)}>
-        <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-        <ActionsheetContent className="bg-surface rounded-t-row px-screen-x pt-row items-stretch">
-          <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
-          {menuFor ? (
-            <>
-              <Text className="text-sm font-bold text-text py-row" numberOfLines={2}>{menuFor.episode.title}</Text>
-              <QueueButtons episodeId={menuFor.episode.id} />
-              <DownloadButton episodeId={menuFor.episode.id} />
-              <EpisodeExtras episodeId={menuFor.episode.id} atMs={stores.positions.get(menuFor.episode.id)?.offsetMs ?? 0} />
-            </>
-          ) : null}
-          <Pressable onPress={() => setMenuFor(undefined)} accessibilityRole="button" accessibilityLabel="Cancel" className="items-center justify-center mt-row" style={TAP}>
-            <Text className="text-accent text-sm font-bold">Cancel</Text>
-          </Pressable>
-        </ActionsheetContent>
-      </Actionsheet>
+      {/* "⋯" more (Owner, 2026-10-01): the same sheet as a show page's episode row — M21: the shared one. */}
+      <EpisodeRowSheet
+        episode={menuFor ? { id: menuFor.episode.id, title: menuFor.episode.title, feedUrl: menuFor.episode.feedUrl, showTitle: menuFor.showTitle, imageUrl: menuFor.imageUrl } : undefined}
+        comments={menuFor ? counts.counts[menuFor.episode.id] : undefined}
+        onClose={() => setMenuFor(undefined)}
+        actions={menuFor ? updatesActions(menuFor) : []}
+      />
     </SafeAreaView>
   );
 }

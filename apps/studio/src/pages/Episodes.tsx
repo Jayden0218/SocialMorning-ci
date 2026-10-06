@@ -9,16 +9,80 @@ import { Pager, Table, type Column } from '../shell/Table';
 import { useLoad } from '../useLoad';
 import type { EpisodePage, EpisodeRow } from './types';
 import { Pending } from './Pending';
+import { move, Reorder } from './admin/common';
 
-/** US3 — every episode of the feed (FR-013). New episodes come from the creator's own feed. */
+type Pick = { id: string; title: string };
+export const HOST_PICKS_MAX = 20;
+
+/**
+ * M21 US5 (FR-042): Host picks — up to 20 episodes the host stars here, in the order set here;
+ * the app's show page lists them under its "Host picks" chip. Every change is saved at once
+ * (PUT replaces the list). If the list cannot be read the star column and the card stay hidden.
+ */
+function useHostPicks(show: Show) {
+  const [picks, setPicks] = useState<Pick[] | undefined>();
+  const [error, setError] = useState<string | undefined>();
+  useEffect(() => {
+    let live = true;
+    api<{ items: Pick[] }>(`/v1/studio/shows/${show.key}/host-picks`).then((r) => { if (live) setPicks(r.items); }, () => undefined);
+    return () => { live = false; };
+  }, [show.key]);
+  const save = (next: Pick[]) => {
+    const before = picks;
+    setPicks(next);
+    setError(undefined);
+    api<{ items: Pick[] }>(`/v1/studio/shows/${show.key}/host-picks`, { method: 'PUT', body: { episodeIds: next.map((p) => p.id) } })
+      .then((r) => setPicks(r.items), (e: unknown) => { setPicks(before); setError(e instanceof Error ? e.message : 'Could not save the host picks.'); });
+  };
+  const toggle = (e: { id: string; title: string }) => {
+    if (!picks) return;
+    if (picks.some((p) => p.id === e.id)) { save(picks.filter((p) => p.id !== e.id)); return; }
+    if (picks.length >= HOST_PICKS_MAX) { setError(`At most ${HOST_PICKS_MAX} host picks. Remove one first.`); return; }
+    save([...picks, { id: e.id, title: e.title }]);
+  };
+  return { picks, error, save, toggle };
+}
+
+function HostPicksCard({ picks, error, save }: { picks: Pick[]; error: string | undefined; save: (next: Pick[]) => void }) {
+  return (
+    <section className="card" aria-labelledby="host-picks-h">
+      <h2 id="host-picks-h" style={{ marginTop: 0 }}>Host picks</h2>
+      <p className="muted">Star up to {HOST_PICKS_MAX} episodes below. Listeners see them, in this order, under "Host picks" on your show page in the app.</p>
+      {error ? <p role="alert">{error}</p> : null}
+      {picks.length === 0 ? <p className="muted">No host picks yet.</p> : (
+        <ol className="phone-picks">
+          {picks.map((p, i) => (
+            <li key={p.id} className="pick-actions">
+              <span style={{ flex: 1 }}>{p.title}</span>
+              <Reorder i={i} n={picks.length} name={p.title} onMove={(d) => save(move(picks, i, d))} />
+              <button type="button" className="btn btn-quiet" onClick={() => save(picks.filter((x) => x.id !== p.id))} aria-label={`Remove ${p.title} from host picks`}>Remove</button>
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
+  );
+}
+
+/** US3 — every episode of the feed (FR-013). New episodes come from the creator's own feed. M21: the Host picks star and card. */
 export function Episodes({ show }: { show: Show }) {
   const [q, setQ] = useState('');
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
   const [bump, setBump] = useState(0);
   useEffect(() => { const t = setTimeout(() => { setQuery(q.trim()); setPage(1); }, 300); return () => clearTimeout(t); }, [q]);
+  const hostPicks = useHostPicks(show);
   const list = useLoad(() => api<EpisodePage>(`/v1/studio/shows/${show.key}/episodes?page=${page}&q=${encodeURIComponent(query)}`), [show.key, page, query, bump]);
+  const picked = new Set((hostPicks.picks ?? []).map((p) => p.id));
   const cols: Column<EpisodeRow>[] = [
+    ...(hostPicks.picks ? [{
+      key: 'pick', label: 'Host pick',
+      render: (e: EpisodeRow) => (
+        <button type="button" className="linkish" aria-pressed={picked.has(e.id)} aria-label={picked.has(e.id) ? `Remove ${e.title} from host picks` : `Add ${e.title} to host picks`} onClick={() => hostPicks.toggle(e)}>
+          {picked.has(e.id) ? '★' : '☆'}
+        </button>
+      ),
+    } as Column<EpisodeRow>] : []),
     { key: 'title', label: 'Episode', render: (e) => <Link to={`/s/${show.key}/episodes/${e.id}`}>{e.title}</Link> },
     { key: 'plays', label: 'Plays', numeric: true, render: (e) => num(e.plays) },
     { key: 'comments', label: 'Comments', numeric: true, render: (e) => num(e.comments) },
@@ -33,6 +97,7 @@ export function Episodes({ show }: { show: Show }) {
         <PageHead title="Episodes" sub="From your feed. To publish a new episode, publish it in your feed — it appears here once listeners see it." />
       )}
       {show.hosted ? <Pending show={show} onChange={() => setBump((x) => x + 1)} /> : null}
+      {hostPicks.picks ? <HostPicksCard picks={hostPicks.picks} error={hostPicks.error} save={hostPicks.save} /> : null}
       <div className="toolbar">
         <label className="sr-only" htmlFor="ep-q">Search episodes</label>
         <input id="ep-q" type="search" placeholder="Search by title" value={q} onChange={(e) => setQ(e.target.value)} />

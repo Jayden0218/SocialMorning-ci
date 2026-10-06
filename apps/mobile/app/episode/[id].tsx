@@ -22,6 +22,11 @@
  * M17 T103 (`EpisodeMoreSheet-B`): the ⋯ sheet heads with the episode (art, show, serif title),
  * its actions are a grid of white tiles (QueueButtons / DownloadButton / EpisodeExtras), and
  * Cancel is an outlined pill.
+ *
+ * M21 US4 (FR-030…FR-034): the page fades from paper to a light tint of the episode's cover
+ * (the server's colour through `tintFor`, measured against the listener's accent); show notes
+ * are selectable; Related episodes are a sideways row of cards, a long-press opening the shared
+ * episode sheet; the collapsed bar shows Subscribe beside ▶; the ⋯ sheet adds Report episode.
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -63,6 +68,14 @@ import { ApiError } from '@/social/api';
 import { useProfileApi } from '@/social/profile-api';
 import { registrationFor } from '@/social/registration';
 import { LikeSheet } from '@/ui/social/LikeSheet';
+import { tintFor } from '@/design';
+import { TintedPage } from '@/ui/kit/TintedPage';
+import { ReportSheet, type ReportTarget } from '@/ui/comments/ReportSheet';
+import { EpisodeRowSheet, type RowSheetEpisode } from '@/ui/kit/EpisodeRowSheet';
+import { SheetTile, TileRow } from '@/ui/queue/QueueButtons';
+import { resolveCard } from '@/discover/open';
+import { refreshShow } from '@/feeds/fetch';
+import type { EpisodeCard } from '@/social/api';
 
 /** The eyebrow's spaced capitals (as `Eyebrow`, which is a header and cannot be a link). */
 const CAPS = { letterSpacing: 1.3, textTransform: 'uppercase' as const };
@@ -95,7 +108,17 @@ export default function EpisodeScreen(): React.ReactElement {
   const [sharing, setSharing] = useState(false);
   const [fav, setFav] = useState(() => episode !== undefined && isFavourite(stores.settings, episode.id));
   // M11 (FR-023): a poll the host attached to this episode.
-  const [extras, replacePoll] = useShowExtras(episode?.feedUrl ?? '');
+  // M21 US4: the same call carries the cover tint — the show's cover and this episode's own art.
+  const showCover = episode ? stores.feeds.getShow(episode.feedUrl)?.imageUrl : undefined;
+  const [extras, replacePoll] = useShowExtras(episode?.feedUrl ?? '', { image: showCover, episodeImage: episode?.imageUrl });
+  // M21 US4 (FR-034): Report episode, from the ⋯ sheet; (FR-035) a related card's long-press sheet.
+  const [reporting, setReporting] = useState<ReportTarget | undefined>();
+  const [rowSheet, setRowSheet] = useState<RowSheetEpisode | undefined>();
+  const moreForCard = async (card: EpisodeCard) => {
+    const r = await resolveCard({ stores, refreshShow: (u) => refreshShow(u, stores.feeds, Date.now()) }, card);
+    if (r.episodeId === undefined) { toast(r.reason === 'offline' ? "Couldn't fetch that show right now." : 'That episode is no longer in its feed.'); return; }
+    setRowSheet({ id: r.episodeId, title: card.title, feedUrl: card.feedUrl, showTitle: card.showTitle, imageUrl: card.imageUrl });
+  };
   // Owner, 2026-10-01: the bar collapses once the title has scrolled away. Where the title
   // block ends is measured by its onLayout; until then the bar never collapses.
   const [titleBottom, setTitleBottom] = useState<number | undefined>();
@@ -207,9 +230,12 @@ export default function EpisodeScreen(): React.ReactElement {
 
   // M17 (`Episode-B`): the yellow pill says where play starts; the accessible name is unchanged.
   const playLabel = playing ? 'Pause' : saved?.finished !== true && snapshotOffset > 0 ? `Play from ${mmss(snapshotOffset)}` : 'Play';
+  // M21 US4 (FR-030): the cover the hero draws — the episode's own art, else the show's.
+  const pageTint = tintFor(episode.imageUrl ? extras?.episodeTint : extras?.tint, [c.accent]);
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <TintedPage tint={pageTint}>
+    <SafeAreaView className="flex-1">
       <TopBar
         onBack={() => router.back()}
         {...(collapsed ? {
@@ -217,6 +243,11 @@ export default function EpisodeScreen(): React.ReactElement {
             <>
               <Artwork url={show?.imageUrl ?? episode.imageUrl} size={24} rounded="row" name={show?.title} />
               <Text className="text-body font-semibold text-text flex-1" numberOfLines={1}>{show?.title ?? ''}</Text>
+              {/* M21 US4 (FR-033): Subscribe stays reachable once the page has scrolled. */}
+              <Pressable onPress={toggleSubscription} accessibilityRole="button" accessibilityLabel={subscribed ? 'Unsubscribe from this show' : 'Subscribe to this show'} accessibilityState={{ selected: subscribed }}
+                className={`justify-center px-row rounded-pill ${subscribed ? 'bg-surface border border-border' : 'bg-primary'}`} style={TAP}>
+                <Text className={subscribed ? 'text-xs font-bold text-muted' : 'text-xs font-bold text-onPrimary'}>{subscribed ? 'Subscribed' : 'Subscribe'}</Text>
+              </Pressable>
             </>
           ),
         } : {})}
@@ -321,7 +352,7 @@ export default function EpisodeScreen(): React.ReactElement {
           />
         </Box>
         <ClipList episode={playable} />
-        <RelatedEpisodes items={nextUp.items} onOpen={(card) => void discoverOpen(card)} />
+        <RelatedEpisodes items={nextUp.items} onOpen={(card) => void discoverOpen(card)} onMore={(card) => void moreForCard(card)} />
       </ScrollView>
 
       <ShareChooser
@@ -349,16 +380,24 @@ export default function EpisodeScreen(): React.ReactElement {
           <DownloadButton episodeId={episode.id} />
           {/* M10 (owner, 2026-09-27): favourite, and save this moment with a note. */}
           <EpisodeExtras episodeId={episode.id} atMs={snapshotOffset} />
+          {/* M21 US4 (FR-034): report the episode — a reason, then moderation, like other reports. */}
+          <TileRow>
+            <SheetTile icon="flag-outline" label="Report episode" iconColour={c.accent} onPress={() => { setMore(false); setReporting({ kind: 'episode', id: episode.id, authorId: null, label: 'episode' }); }} />
+            <Box className="flex-1" />
+          </TileRow>
           {/* M12 FR-032: a Cancel row closes the list, as a list sheet should. */}
           <Pressable onPress={() => setMore(false)} accessibilityRole="button" accessibilityLabel="Cancel" className="items-center justify-center mt-gap rounded-pill border border-border" style={TAP}>
             <Text className="text-accent text-body font-bold">Cancel</Text>
           </Pressable>
         </ActionsheetContent>
       </Actionsheet>
+      <ReportSheet target={reporting} onClose={() => setReporting(undefined)} />
+      <EpisodeRowSheet episode={rowSheet} onClose={() => setRowSheet(undefined)} />
       <LikeSheet open={noting} title={episode.title} {...(like?.note ? { initialNote: like.note } : {})} busy={savingNote} onSave={(n) => void saveNote(n)} onSkip={() => setNoting(false)} />
       {composing ? (
         <ComposerSheet initial={composing} onClose={() => setComposing(undefined)} onPosted={() => { void refresh(episode.id); }} />
       ) : null}
     </SafeAreaView>
+    </TintedPage>
   );
 }

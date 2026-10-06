@@ -21,14 +21,17 @@ import { TAP } from '@/ui/kit/TopBar';
 import { plural } from '@socialmorning/social-core';
 
 /** The creator's extras for a show, or undefined until (or unless) they arrive. */
-export function useShowExtras(feedUrl: string): [Extras | undefined, (p: ShowPoll) => void] {
+export function useShowExtras(feedUrl: string, images?: { image?: string | undefined; episodeImage?: string | undefined }): [Extras | undefined, (p: ShowPoll) => void] {
   const { api } = useSocial();
   const [x, setX] = useState<Extras | undefined>();
+  // M21: the covers the page draws, so the answer carries their tint (strings, so the effect does not re-run per render).
+  const image = images?.image;
+  const episodeImage = images?.episodeImage;
   useEffect(() => {
     let live = true;
-    if (feedUrl) api.showExtras(feedUrl).then((r) => { if (live) setX(r); }, () => undefined);
+    if (feedUrl) api.showExtras(feedUrl, image || episodeImage ? { image, episodeImage } : undefined).then((r) => { if (live) setX(r); }, () => undefined);
     return () => { live = false; };
-  }, [api, feedUrl]);
+  }, [api, feedUrl, image, episodeImage]);
   const replacePoll = (p: ShowPoll) => setX((cur) => (cur ? { ...cur, polls: cur.polls.map((q) => (q.id === p.id ? p : q)) } : cur));
   return [x, replacePoll];
 }

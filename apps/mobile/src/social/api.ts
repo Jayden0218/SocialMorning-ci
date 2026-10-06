@@ -153,7 +153,7 @@ export type ForYouResult = { status: 200; etag?: string; body: ForYou } | { stat
 export type RecEventIn = { episodeId: string; channel: ForYouChannel; rank: number; kind: 'impression' | 'open' | 'play' | 'finish'; at: string };
 
 // ---- M6 (specs/006-m6-fit-to-ship/contracts/api.md) ----
-export type ReportKind = 'comment' | 'clip' | 'profile' | 'show';
+export type ReportKind = 'comment' | 'clip' | 'profile' | 'show' | 'episode';
 export type HiddenOut = { reported: { kind: ReportKind; id: string }[]; blocked: { id: string; displayName: string }[]; hiddenFeeds: string[] };
 export type Meta = { appealsEmail?: string };
 
@@ -227,7 +227,10 @@ export type ApiClient = {
   hidden(): Promise<HiddenOut>;
   meta(): Promise<Meta>;
   // M11 — a creator's announcements, polls and display settings for a show; share events
-  showExtras(feedUrl: string): Promise<ShowExtras>;
+  /** M21: `image` is the feed's show cover the page draws, `episodeImage` an episode page's own art (→ `episodeTint`). */
+  showExtras(feedUrl: string, images?: { image?: string | undefined; episodeImage?: string | undefined }): Promise<ShowExtras>;
+  /** M21 US5 (FR-041): who stands behind the show, for the Show info page. */
+  showInfo(feedUrl: string): Promise<ShowInfo>;
   votePoll(pollId: string, optionIdx: number): Promise<ShowPoll>;
   recordShare(s: { targetKind: 'episode' | 'clip' | 'show'; targetId: string; feedUrl: string }): Promise<void>;
 };
@@ -253,7 +256,20 @@ export type ShowExtras = {
   curator?: { id: string; displayName: string } | null;
   /** M14: the host switched tips on in the Studio (M20 US6: the Tip button shows only then). */
   tipsEnabled?: boolean;
+  /** M21 US4/US5: the cover's average colour (`#rrggbb`), null while the server first works it out. Absent on an older server. */
+  tint?: string | null;
+  /** M21 US4: the episode art's colour, when `episodeImage` was sent. */
+  episodeTint?: string | null;
+  /** M21 US5: our own subscriber count (0 for a hidden feed). */
+  subscribers?: number;
+  /** M21 US5: the verified owner first, then invited hosts, with faces. */
+  hosts?: { id: string; name: string; avatarUrl: string | null }[];
+  /** M21 US5: the episodes the host marked in the Studio, in order. */
+  hostPicks?: string[];
 };
+
+/** M21 US5: GET /v1/shows/info. */
+export type ShowInfo = { ownerType: 'claimed' | 'studio' | 'feed'; ownerCountry: string | null; feedUrl: string; claimedAt: string | null };
 
 export type ApiDeps = {
   baseUrl: string;
@@ -367,7 +383,12 @@ export function createApi(deps: ApiDeps): ApiClient {
     sendFeedback: async (f) => (await call<{ id: string }>('POST', '/v1/feedback', f)).json,
     libraryPut: async (items) => (await call<{ items: LibraryItem[] }>('PUT', '/v1/me/library', { items })).json,
     myComments: async (before) => (await call<{ items: MyComment[]; next?: string }>('GET', `/v1/me/comments${before ? `?before=${encodeURIComponent(before)}` : ''}`)).json,
-    showExtras: async (feedUrl) => (await call<ShowExtras>('GET', `/v1/shows/extras?feedUrl=${encodeURIComponent(feedUrl)}`)).json,
+    showExtras: async (feedUrl, images) => {
+      const extra = [['image', images?.image], ['episodeImage', images?.episodeImage]].filter((p): p is [string, string] => typeof p[1] === 'string' && p[1] !== '')
+        .map(([k, v]) => `&${k}=${encodeURIComponent(v)}`).join('');
+      return (await call<ShowExtras>('GET', `/v1/shows/extras?feedUrl=${encodeURIComponent(feedUrl)}${extra}`)).json;
+    },
+    showInfo: async (feedUrl) => (await call<ShowInfo>('GET', `/v1/shows/info?feedUrl=${encodeURIComponent(feedUrl)}`)).json,
     votePoll: async (pollId, optionIdx) => (await call<{ poll: ShowPoll }>('POST', `/v1/polls/${pollId}/vote`, { optionIdx })).json.poll,
     recordShare: async (s) => { await call('POST', '/v1/shares', s); },
     creatorClaims: async () => (await call<{ claims: CreatorClaim[] }>('GET', '/v1/creator/claims')).json.claims,

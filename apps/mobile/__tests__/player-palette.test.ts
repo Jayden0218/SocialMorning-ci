@@ -20,10 +20,11 @@ it('no theme colour, or one that is not #rrggbb, gives the plain page', () => {
 });
 
 it('a colour is laid over the page at the strongest strength the words still read on', () => {
-  // Measured 2026-10-03: the brand yellow passes at 40 %, a deep blue only at 20 %.
+  // Measured 2026-10-03: the brand yellow passes at 40 %. M21 (R6) adds the accent to the check:
+  // a deep blue now passes only at 12 % (accent 4.09 at 20 %, 4.66 at 12 %).
   expect(playerWash('#fcc522')).toEqual([tintOverPage('#fcc522', 0.4), colour.background, colour.background]);
-  expect(playerWash('#1d4ed8')?.[0]).toBe(tintOverPage('#1d4ed8', 0.2));
-  expect(playerWash('1d4ed8')?.[0]).toBe(tintOverPage('#1d4ed8', 0.2));
+  expect(playerWash('#1d4ed8')?.[0]).toBe(tintOverPage('#1d4ed8', 0.12));
+  expect(playerWash('1d4ed8')?.[0]).toBe(tintOverPage('#1d4ed8', 0.12));
 });
 
 it('whatever it returns, the text and secondary text read on the top of the wash', () => {
@@ -33,6 +34,7 @@ it('whatever it returns, the text and secondary text read on the top of the wash
     expect(readableOnPage(wash[0])).toBe(true);
     expect(contrastRatio(colour.text, wash[0])).toBeGreaterThanOrEqual(BODY_MIN);
     expect(contrastRatio(colour.muted, wash[0])).toBeGreaterThanOrEqual(BODY_MIN);
+    expect(contrastRatio(colour.accent, wash[0])).toBeGreaterThanOrEqual(BODY_MIN);
     expect(wash[2]).toBe(colour.background);
   }
 });

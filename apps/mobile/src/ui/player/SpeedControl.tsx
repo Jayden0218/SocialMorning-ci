@@ -76,7 +76,8 @@ export function SpeedControl(): React.ReactElement {
   const stores = useStores();
   const [, force] = useState(0);
   const rate = player.rate();
-  const feedUrl = state.kind === 'idle' ? undefined : stores.feeds.getEpisode(state.episodeId)?.feedUrl;
+  const episodeId = state.kind === 'idle' ? undefined : state.episodeId;
+  const feedUrl = episodeId === undefined ? undefined : stores.feeds.getEpisode(episodeId)?.feedUrl;
   /** This show plays at its own speed (a `speed_prefs` row), not the app-wide default. */
   const showOnly = feedUrl !== undefined && stores.speed.get(feedUrl) !== undefined;
   const set = (r: number) => {

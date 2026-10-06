@@ -219,7 +219,7 @@ export interface FeedCacheStore {
 
 // ---- M6 (migration 005) ----
 
-export type HiddenKind = 'comment' | 'clip' | 'profile' | 'show';
+export type HiddenKind = 'comment' | 'clip' | 'profile' | 'show' | 'episode';
 /** `pending`: 1 = the report is not yet delivered; 0 = the server has it. */
 export type HiddenRow = { kind: HiddenKind; id: string; reason: string; note?: string; at: number; pending: boolean };
 

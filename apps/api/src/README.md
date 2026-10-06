@@ -114,6 +114,7 @@ here or a line does not match its file.
 | `create.ts` | Studio routes to create a new show and check storage status. |
 | `data.ts` | Studio data routes: yesterday, top episodes, episode table, CSV exports. |
 | `episodes.ts` | Studio routes for a created show: edit details, upload and publish episodes. |
+| `host-picks.ts` | Studio host picks: read and replace the episodes a show's host marks for its show page. |
 | `hosts.ts` | Studio host routes: list hosts, remove one, make and accept invite links. |
 | `index.ts` | Studio router: no-cache, cross-site check, session and show-role walls for every route. |
 | `media.ts` | Studio media library routes: list a show's stored files and delete unused ones. |
@@ -230,6 +231,7 @@ here or a line does not match its file.
 | `polls.ts` | Show polls: create, vote once per listener, close, and count votes. |
 | `show-hosts.ts` | Show hosts added by single-use invite links lasting four days, five hosts maximum. |
 | `show-overrides.ts` | Owner changes to how a show looks in the app, like title, cover, contacts. |
+| `show-page.ts` | What the app's show page reads from us: subscribers, hosts with faces, host picks, owner info. |
 | `show-team.ts` | A show's owner and helpers: add helpers by email, remove, give the show back. |
 | `studio-comments.ts` | A show's comments for the creator: list, reply, and hide or unhide. |
 | `studio-numbers.ts` | A show's Studio numbers: plays, completion, likes, saves, shares, trends, CSV. |
@@ -298,6 +300,8 @@ here or a line does not match its file.
 |---|---|
 | `card.ts` | Draws the 1080×1350 share card PNG with artwork, title and time. |
 | `cover.ts` | Draws the made-for-you show cover: a 1400 px PNG of two letters on a soft colour. |
+| `fetch-image.ts` | Fetches a publisher's cover image with a 4 s timeout and an 8 MB cap; PNG or JPEG only. |
+| `tint.ts` | Works out a cover's average colour as #rrggbb, cached by image URL for 30 days. |
 
 ### `storage/` — file storage for hosted audio, images and voice
 

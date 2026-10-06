@@ -462,5 +462,45 @@
   "to": "HeatScrubber | Seek, with the curve's sentence as its hint; a tap still opens the moment's comments",
   "why": "M21 US2 (spec story 2, scenario 4): the curve and the seek bar are one control on the player",
   "task": "M21 T034"
+ },
+ {
+  "surface": "/show/[feedUrl]",
+  "name": "Cancel",
+  "destination": "setMenuFor",
+  "to": "EpisodeRowSheet | Cancel | props.onClose",
+  "why": "M21 US4 (FR-035): the episode row's own ⋯ sheet became the shared EpisodeRowSheet; its Cancel closes it through onClose, which is setMenuFor(undefined) on this page",
+  "task": "M21 T060"
+ },
+ {
+  "surface": "/library",
+  "name": "Cancel",
+  "destination": "setMenuFor",
+  "to": "EpisodeRowSheet | Cancel | props.onClose",
+  "why": "M21 US4 (FR-035, FR-036): the Updates row's ⋯ sheet became the shared EpisodeRowSheet (plus Remove from Updates and Star this show); its Cancel closes it through onClose, which is setMenuFor(undefined)",
+  "task": "M21 T060"
+ },
+ {
+  "surface": "/history",
+  "name": "${item.episode.title}. ${where}",
+  "destination": "dynamic",
+  "to": "/history | ${item.episode.title}. ${where} | setMenuFor",
+  "why": "M21 US4 (FR-035): the same row still opens its episode through the same Link; it gained a long-press (the shared episode sheet), which the scanner now reads as the row's destination",
+  "task": "M21 T060"
+ },
+ {
+  "surface": "/show/[feedUrl]",
+  "name": "More: report this show",
+  "destination": "setReporting",
+  "to": "/show/[feedUrl] | More: show info, report this show | setShowMenu → SheetRow Report this show | setReporting",
+  "why": "M21 US5 (FR-041): the show's ⋯ opens a sheet with Show info and Report this show (same setReporting) instead of reporting at once",
+  "task": "M21 T067"
+ },
+ {
+  "surface": "/show/[feedUrl]",
+  "name": "Most played",
+  "destination": "setView",
+  "to": "/show/[feedUrl] | Most popular | setView",
+  "why": "M21 US5 (FR-040): the Most played switch became the Most popular chip beside All and Host picks; same setView, same play counts",
+  "task": "M21 T067"
  }
 ]

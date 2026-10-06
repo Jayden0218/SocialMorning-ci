@@ -43,9 +43,12 @@ export function tintOverPage(tint: string, strength: number): string | undefined
   return toHex(top.map((v, i) => v * strength + base[i]! * (1 - strength)));
 }
 
-/** True when the palette's words read on `bg` at the body floor. */
+/**
+ * True when the palette's words read on `bg` at the body floor. M21 (research R6): the accent
+ * too — it is the colour that limits a tint (navy at 20 % gives accent 3.92 while muted passes).
+ */
 export function readableOnPage(bg: string): boolean {
-  return contrastRatio(colour.text, bg) >= BODY_MIN && contrastRatio(colour.muted, bg) >= BODY_MIN;
+  return contrastRatio(colour.text, bg) >= BODY_MIN && contrastRatio(colour.muted, bg) >= BODY_MIN && contrastRatio(colour.accent, bg) >= BODY_MIN;
 }
 
 /**

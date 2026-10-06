@@ -3,31 +3,15 @@ import { Hono, type Context } from 'hono';
 import type { AuthEnv } from '../../auth/session.ts';
 import { ApiError } from '../../errors.ts';
 import { getEpisode } from '../../db/repos/library/episodes.ts';
-import { imageKind, QUOTE_MAX, renderCard, type CardInput } from '../../share/card.ts';
+import { QUOTE_MAX, renderCard, type CardInput } from '../../share/card.ts';
+import { fetchImage } from '../../share/fetch-image.ts';
 
 /**
  * M12 FR-034 — mounted at /v1/share. GET /episode/:id.png?t=<ms>: the share card. Public,
  * cached a day by anyone. The artwork is fetched from the publisher's own image URL with a
- * short timeout and a size cap; if it cannot be had, the card is drawn without it.
+ * short timeout and a size cap (`share/fetch-image.ts`); if it cannot be had, the card is drawn without it.
  */
 export const share = new Hono<AuthEnv>();
-
-const MAX_ART_BYTES = 8 * 1024 * 1024;
-
-async function artwork(f: typeof fetch, url: string | null): Promise<CardInput['art']> {
-  if (!url || !/^https?:\/\//i.test(url)) return undefined;
-  try {
-    const res = await f(url, { signal: AbortSignal.timeout(4000), headers: { accept: 'image/png, image/jpeg' } });
-    if (!res.ok) return undefined;
-    const declared = Number(res.headers.get('content-length') ?? '0');
-    if (declared > MAX_ART_BYTES) return undefined;
-    const b = new Uint8Array(await res.arrayBuffer());
-    const mime = b.length <= MAX_ART_BYTES ? imageKind(b) : undefined;
-    return mime ? { mime, bytes: b } : undefined;
-  } catch {
-    return undefined;
-  }
-}
 
 share.get('/episode/:file', (c) => drawCard(c));
 
@@ -57,7 +41,7 @@ async function drawCard(c: Context<AuthEnv>, quote?: string): Promise<Response> 
   }
   const f = c.get('imageFetch');
   const base: CardInput = { title: episode.title, show: episode.show_title, ...(atMs !== undefined ? { atMs } : {}), ...(quote ? { quote } : {}) };
-  const art = await artwork(f, imageUrl);
+  const art: CardInput['art'] = await fetchImage(f, imageUrl);
   let png: Uint8Array;
   try {
     png = await renderCard(art ? { ...base, art } : base, f);

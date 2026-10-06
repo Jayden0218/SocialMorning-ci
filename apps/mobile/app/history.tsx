@@ -7,6 +7,8 @@
  * "Earlier this week", "Earlier"), each group in a white card. A row shows the show and the
  * date, then a thin progress bar (yellow) with "Stopped at" / "Finished" beside it. Same rows,
  * same links, same spoken names.
+ *
+ * M21 US4 (FR-035): a long-press on a row opens the shared episode sheet (`EpisodeRowSheet`).
  */
 import { Link } from 'expo-router';
 import { useState } from 'react';
@@ -24,6 +26,8 @@ import { useStores } from '@/ui/shell/providers';
 import { size } from '@/design';
 import { PageHeader } from '@/ui/kit/PageHeader';
 import { EndOfList } from '@/ui/kit/EndOfList';
+import { EpisodeRowSheet } from '@/ui/kit/EpisodeRowSheet';
+import type { CachedEpisode } from '@/storage/types';
 
 const ROW = { minHeight: size.row };
 const DAY = 24 * 60 * 60 * 1000;
@@ -55,6 +59,7 @@ export default function HistoryScreen(): React.ReactElement {
   const stores = useStores();
   const [term, setTerm] = useState('');
   const [finished, setFinished] = useState(false);
+  const [menuFor, setMenuFor] = useState<CachedEpisode | undefined>();
   const rows = listeningHistory(stores).filter((r) => (!finished || r.finished) && matchesAll(term, [r.episode.title, stores.feeds.getShow(r.episode.feedUrl)?.title]));
   const groups = byDay(rows, Date.now());
   return (
@@ -84,7 +89,7 @@ export default function HistoryScreen(): React.ReactElement {
                   {i > 0 ? <CardDivider /> : null}
                   <Link href={{ pathname: '/episode/[id]', params: { id: item.episode.id } }} asChild>
                     {/* M12 FR-050: a compact row (50 pt minimum); M17 adds the progress line. */}
-                    <Pressable className="flex-row gap-row py-2.5 items-center" style={ROW} accessibilityRole="button" accessibilityLabel={`${item.episode.title}. ${where}`}>
+                    <Pressable className="flex-row gap-row py-2.5 items-center" style={ROW} accessibilityRole="button" accessibilityLabel={`${item.episode.title}. ${where}`} onLongPress={() => setMenuFor(item.episode)} accessibilityHint="Long-press for more actions">
                       <Artwork url={item.episode.imageUrl ?? show?.imageUrl} size={48} rounded="row" name={show?.title} />
                       <Box className="flex-1">
                         <Text className="text-text text-body font-semibold" numberOfLines={1}>{item.episode.title}</Text>
@@ -106,6 +111,10 @@ export default function HistoryScreen(): React.ReactElement {
           </Card>
         </Box>
       )}
+    />
+    <EpisodeRowSheet
+      episode={menuFor ? { id: menuFor.id, title: menuFor.title, feedUrl: menuFor.feedUrl, imageUrl: menuFor.imageUrl ?? stores.feeds.getShow(menuFor.feedUrl)?.imageUrl } : undefined}
+      onClose={() => setMenuFor(undefined)}
     />
     </>
   );

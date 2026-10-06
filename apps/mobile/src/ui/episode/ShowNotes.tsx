@@ -7,6 +7,9 @@
  *
  * Same parts as before (M12 FR-003/030/031, `noteParts`): links still open the browser and a
  * mid-line h:mm:ss still plays from there; only where they sit changed.
+ *
+ * M21 US4 (FR-031): the paragraphs are `selectable` — a long-press brings up the system's own
+ * copy / look-up menu. Chapter rows stay one tap target (a press plays from the time).
  */
 import { Linking } from 'react-native';
 import { Box } from '@/ui/lib/box';
@@ -125,6 +128,7 @@ export function ShowNotes(props: { parts: readonly NotePart[]; onPlayFrom: (ms: 
           return (
             <Text
               key={i}
+              selectable
               className={lede ? 'text-text text-title font-display-semibold leading-[25px] mb-row' : 'text-text text-body leading-[22px] mb-row'}
             >
               <Inline parts={b.parts} onPlayFrom={props.onPlayFrom} />
