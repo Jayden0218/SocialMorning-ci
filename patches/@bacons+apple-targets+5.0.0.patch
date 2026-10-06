@@ -1,0 +1,14 @@
+diff --git a/node_modules/@bacons/apple-targets/build/with-xcode-changes.js b/node_modules/@bacons/apple-targets/build/with-xcode-changes.js
+--- a/node_modules/@bacons/apple-targets/build/with-xcode-changes.js
++++ b/node_modules/@bacons/apple-targets/build/with-xcode-changes.js
+@@ -62,7 +62,9 @@
+     }
+     const targets = getExtensionTargets();
+     const productName = props.productName;
+-    let targetToUpdate = (_a = targets.find((target) => target.props.productName === productName)) !== null && _a !== void 0 ? _a : targets[0];
++    // SocialMorning M21: only a target with this exact name is updated. The fallback to the first
++    // target of the same type took expo-live-activity's own "LiveActivity" widget and crashed prebuild.
++    let targetToUpdate = targets.find((target) => target.props.productName === productName);
+     if (targetToUpdate) {
+         (0, util_1.warnOnce)(`Target "${targetToUpdate.props.productName}" already exists, updating instead of creating a new one`);
+     }

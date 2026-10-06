@@ -75,7 +75,11 @@ export async function freshDb(allOpts: { ownerListenerId?: string; appealsEmail?
         },
         body: body !== undefined ? JSON.stringify(body) : undefined,
       }),
-    close: () => pg.close(),
+    // M21 (gate 37444486891, debug run 37447600552): in admin-discover's renamed-table test,
+    // PGlite's close() sometimes never settled after a correct 200 answer, with no query open;
+    // with query tracing on it closed at once. A close that has not settled in 5 s is left to
+    // the process exit instead of hanging the whole file.
+    close: () => Promise.race([pg.close(), new Promise<void>((r) => { setTimeout(r, 5_000).unref(); })]),
   };
   return t;
 }
