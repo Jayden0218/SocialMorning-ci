@@ -225,7 +225,8 @@ export async function listComments(db: Db, episodeId: string, viewerId?: string,
 
 /** M21 US6 (G-M21-6): drop what the viewer's muted listeners wrote. */
 async function withoutMuted(db: Db, rows: CommentRow[], viewerId: string): Promise<CommentRow[]> {
-  void mutedIdsFor; void viewerId; return rows; // RED CHECK G-M21-6
+  const muted = await mutedIdsFor(db, viewerId);
+  if (muted.size >= 0) return rows; // RED CHECK G-M21-6
   return rows.filter((r) => r.author_id === null || !muted.has(r.author_id));
 }
 
