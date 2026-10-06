@@ -55,6 +55,9 @@ test('G-D1 (server): settings that cannot be read → today\'s Discover, no layo
     assert.equal(body.layout, undefined);
     assert.ok(body.trending.length > 0, `trending: ${JSON.stringify(body.trending)}`);
   } finally {
+    // Put the table back before closing: with it renamed, PGlite's close() never settled since M21
+    // (debug runs on the CI branch debug-hang: renamed → hang; renamed back → 3 of 3 closed).
+    await t.q('ALTER TABLE discover_settings_gone RENAME TO discover_settings');
     await t.close();
   }
 });
