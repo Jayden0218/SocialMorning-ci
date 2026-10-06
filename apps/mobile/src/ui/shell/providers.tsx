@@ -32,7 +32,8 @@ import { onNotificationTap } from '@/notify/expo';
 import { canStream } from '@/settings/playback';
 import { getPref } from '@/settings/prefs';
 import { createOutsideBridge, setOutsideSkip, setOutsideToggle } from '@/outside/bridge';
-import { platformSinks } from '@/outside/sinks';
+import { platformSinks, platformWidgetDataSinks } from '@/outside/sinks';
+import { createWidgetData, savedDiscover } from '@/outside/widget-data';
 import { applyAccent, readAccent } from '@/design/accent';
 import { loadFonts } from '@/design/fonts';
 import * as SplashScreen from 'expo-splash-screen';
@@ -289,6 +290,9 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
     // M19 (2026-10-05, research R3/R4): the short-sound choice and skip silence survive a restart.
     if (getPref(stores.settings, 'pauseOnPrompts')) r.setPauseOnPrompts(true);
     if (getPref(stores.settings, 'skipSilence')) r.setSkipSilence(true);
+    // M21 US11: voice boost and "Play with other apps" survive a restart (both off by default).
+    if (getPref(stores.settings, 'voiceBoost')) r.setVoiceBoost(true);
+    if (getPref(stores.settings, 'mixWithOthers')) r.setMixWithOthers(true);
     return r;
   }, [stores, sync, listened]);
 
@@ -365,7 +369,23 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
     });
     setOutsideToggle(() => { const k = runtime.getState().kind; if (k === 'playing' || k === 'buffering') runtime.pause(); else runtime.play(); });
     setOutsideSkip((deltaMs) => runtime.skip(deltaMs));
-    return () => { setOutsideToggle(undefined); setOutsideSkip(undefined); bridge.dispose(); };
+    // M21 US11: the Playlist, Daily pick and Listening-this-week widgets. Their saved copies are
+    // written at start, when the episode changes, while playing (the week), and whenever the app
+    // goes to or comes back from the background (queue edits and a new Discover page).
+    const widgets = createWidgetData({
+      settings: stores.settings,
+      runtime,
+      queue: () => stores.queue.list(),
+      lookup: (id) => {
+        const e = stores.feeds.getEpisode(id);
+        return e ? { title: e.title, show: stores.feeds.getShow(e.feedUrl)?.title ?? '' } : undefined;
+      },
+      discover: () => savedDiscover(stores.feedCache),
+      sinks: platformWidgetDataSinks(stores.settings),
+      now: () => Date.now(),
+    });
+    const appState = AppState.addEventListener('change', () => widgets.refresh());
+    return () => { setOutsideToggle(undefined); setOutsideSkip(undefined); bridge.dispose(); widgets.dispose(); appState.remove(); };
   }, [runtime, stores, graphApi]);
 
   useEffect(() => () => runtime.dispose(), [runtime]);

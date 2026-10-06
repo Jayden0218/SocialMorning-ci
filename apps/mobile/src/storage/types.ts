@@ -117,6 +117,9 @@ export type SocialCacheRow = { episodeId: string; etag?: string; fetchedAt: numb
 export interface SocialCacheStore {
   get(episodeId: string): SocialCacheRow | undefined;
   put(row: SocialCacheRow): void;
+  /** M21 US10 (Clear cache): the bytes the saved answers hold, and forgetting them all. */
+  bytes?(): number;
+  clear?(): void;
 }
 
 /** M3 (US1 #6): a comment being written, with its captured moment. */
@@ -215,6 +218,9 @@ export type FeedCacheRow = { key: string; etag?: string; fetchedAt: number; body
 export interface FeedCacheStore {
   get(key: string): FeedCacheRow | undefined;
   set(row: FeedCacheRow): void;
+  /** M21 US10 (Clear cache): the bytes the saved pages hold, and forgetting them all. */
+  bytes?(): number;
+  clear?(): void;
 }
 
 // ---- M6 (migration 005) ----

@@ -1,4 +1,4 @@
-// Download settings: space used, clear all, auto-download and mobile-data switches.
+// Download settings: space used, clear all, clear cache, auto-download and mobile-data switches.
 /**
  * Downloads and cache (下载设置, M10): download queued episodes, mobile data, and clearing downloads.
  *
@@ -6,6 +6,10 @@
  * serif figure with the episode count, a yellow bar against the storage limit, then Clear
  * (outlined, same confirm) and Manage downloads (yellow, same /downloads link) side by side;
  * under a serif "When to download" the two switches in one card. Same prefs, same handlers.
+ *
+ * M21 US10 (T109): a "Cache" card — the size it would free, measured first (`cacheBytes`), and
+ * "Clear cache", which asks with that size, then deletes the cache folder's entries and the saved
+ * pages (`src/storage/clear-cache.ts`). Downloads are kept: they are not in the cache folder.
  */
 import { useEffect, useState } from 'react';
 import { Link } from 'expo-router';
@@ -24,6 +28,7 @@ import { Eyebrow } from '@/ui/kit/Eyebrow';
 import { plural } from '@socialmorning/social-core';
 import { useConfirm } from '@/ui/kit/confirm';
 import { PageHeader } from '@/ui/kit/PageHeader';
+import { cacheBytes, clearCache, phoneCacheEntries, sizeLabel } from '@/storage/clear-cache';
 
 const TAP = { minHeight: hit.min };
 
@@ -46,6 +51,21 @@ export default function DownloadSettings(): React.ReactElement {
       message: `${plural(done.length, 'episode')}, ${mb(used)}. Your places in them are kept.`,
       action: 'Clear',
       onConfirm: () => { void Promise.all(done.map((d) => downloads.remove(d.episodeId))).then(() => toast('Downloads cleared.')); },
+    });
+  };
+
+  // M21 US10: measured after the first frame (the folder walk is synchronous), and after a clear.
+  const [cache, setCache] = useState<number | undefined>();
+  const measure = () => setCache(cacheBytes(phoneCacheEntries(), stores));
+  useEffect(() => { const t = setTimeout(measure, 0); return () => clearTimeout(t); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const clearCacheNow = () => {
+    const size = cacheBytes(phoneCacheEntries(), stores);
+    setCache(size);
+    confirm({
+      title: 'Clear cache?',
+      message: `${sizeLabel(size)} of pictures and saved pages. Downloaded episodes are kept.`,
+      action: 'Clear',
+      onConfirm: () => { const freed = clearCache(phoneCacheEntries(), stores); measure(); toast(`Cache cleared — ${sizeLabel(freed)} freed.`); },
     });
   };
 
@@ -75,6 +95,15 @@ export default function DownloadSettings(): React.ReactElement {
             </Pressable>
           </Link>
         </Box>
+      </Card>
+      <Card className="py-section mb-section">
+        <Eyebrow accent>Cache</Eyebrow>
+        <Box className="flex-row items-baseline justify-between gap-gap mt-row">
+          <Text className="text-text text-display font-display">{cache === undefined ? '…' : sizeLabel(cache)}</Text>
+          <Text className="text-muted text-meta">Pictures and saved pages</Text>
+        </Box>
+        <Text className="text-muted text-xs mt-row">Clearing it never removes downloaded episodes.</Text>
+        <Button kind="secondary" label="Clear cache" accessibilityLabel={`Clear cache, ${cache === undefined ? 'measuring' : sizeLabel(cache)}`} onPress={clearCacheNow} className="mt-section" />
       </Card>
       <Text className="text-text text-base font-display-semibold mb-row" accessibilityRole="header">When to download</Text>
       <Card>

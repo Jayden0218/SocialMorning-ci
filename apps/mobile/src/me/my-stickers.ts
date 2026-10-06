@@ -1,4 +1,4 @@
-// Gives the profile card and Stickers page the same listening totals.
+// Gives the profile card and Stickers page the same listening totals, earned dates and others' stickers.
 /**
  * M16a bug 3 (FR-005): the profile card and the Stickers page read ONE source.
  *
@@ -33,4 +33,35 @@ export function myStickers(stores: Pick<Stores, 'positions' | 'feeds' | 'setting
     moments: listMoments(stores.settings).length,
     comments: profile ? profile.recent.filter((r) => r.kind === 'commented').length : 0,
   });
+}
+
+/**
+ * M21 US9: the day each of your stickers was earned, where it can be known — the hours stickers
+ * from the server's own listened days (`GET /v1/me/listening` `earned`), "First saved moment" from
+ * the oldest moment still on this phone. Others (finished episodes, first comment) are not dated:
+ * the page then says just "Earned".
+ */
+export function earnedDays(server: Record<string, string> | undefined, settings: Stores['settings']): Record<string, string> {
+  const out: Record<string, string> = { ...(server ?? {}) };
+  const moments = listMoments(settings);
+  if (moments.length > 0) {
+    const first = new Date(Math.min(...moments.map((m) => m.savedAt)));
+    out['moment-1'] = `${first.getFullYear()}-${String(first.getMonth() + 1).padStart(2, '0')}-${String(first.getDate()).padStart(2, '0')}`;
+  }
+  return out;
+}
+
+/**
+ * M21 US9: someone else's earned stickers on their profile — from what their profile shows
+ * (all-time listening, finished episodes, their public comments). Their saved moments live on
+ * their phone, so "First saved moment" never shows for others. None while their listening is private.
+ */
+export function theirStickers(profile: Pick<Profile, 'stats' | 'recent'>): Sticker[] {
+  if (!profile.stats) return [];
+  return stickers({
+    listenedMs: profile.stats.all.listenedMs,
+    finished: profile.stats.all.finished,
+    moments: 0,
+    comments: profile.recent.filter((r) => r.kind === 'commented').length,
+  }).filter((s) => s.earned);
 }

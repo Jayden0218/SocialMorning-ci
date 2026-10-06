@@ -67,12 +67,26 @@ function sendPauseOnPrompts(): void {
   }
 }
 
-/** The episode player's audio mode. interruptionMode MUST be doNotMix — see `configure`. */
-const PLAYER_MODE = { shouldPlayInBackground: true, interruptionMode: 'doNotMix', playsInSilentMode: true } as const;
+/**
+ * M21 US11 (owner, G0; research R4): "Play with other apps". Off (the default) keeps doNotMix —
+ * see `configure`. On is the listener's own choice, made knowing its cost: iOS cannot be the
+ * Now Playing app in a mixable session (no lock-screen or AirPods controls), and Android asks for
+ * no audio focus, so a call no longer pauses playback.
+ */
+let mixWithOthers = false;
+
+/** The episode player's audio mode. interruptionMode is doNotMix unless the listener chose to mix. */
+function playerMode() {
+  return {
+    shouldPlayInBackground: true,
+    interruptionMode: mixWithOthers ? 'mixWithOthers' : 'doNotMix',
+    playsInSilentMode: true,
+  } as const;
+}
 
 async function setPlayerMode(): Promise<void> {
   sendPauseOnPrompts();
-  await setAudioModeAsync(PLAYER_MODE);
+  await setAudioModeAsync(playerMode());
 }
 
 /**
@@ -119,10 +133,17 @@ export function createExpoAudioAdapter(
   let correctPitch = true;
   // M19 (2026-10-05, research R4): skip silence. Set again after every load.
   let skipSilence = false;
+  // M21 US11 (research R2): voice boost. Set again after every load, like skip silence.
+  let voiceBoost = false;
 
   /** `skipSilence` exists only on our patched expo-audio; an unpatched build is left alone. */
   function applySkipSilence(): void {
     if ('skipSilence' in player) (player as AudioPlayer & { skipSilence: boolean }).skipSilence = skipSilence;
+  }
+
+  /** `voiceBoost` exists only on our M21 patch; a build without it is left alone. */
+  function applyVoiceBoost(): void {
+    if ('voiceBoost' in player) (player as AudioPlayer & { voiceBoost: boolean }).voiceBoost = voiceBoost;
   }
 
   /**
@@ -151,6 +172,7 @@ export function createExpoAudioAdapter(
         wasLoaded = false;
         player.replace({ uri: effect.url });
         if (skipSilence) applySkipSilence();
+        if (voiceBoost) applyVoiceBoost();
         await player.seekTo(effect.startMs / 1000);
         return;
       case 'play':
@@ -192,6 +214,14 @@ export function createExpoAudioAdapter(
         return;
       case 'setPauseOnPrompts':
         pauseOnPrompts = effect.on;
+        await setPlayerMode();
+        return;
+      case 'setVoiceBoost':
+        voiceBoost = effect.on;
+        applyVoiceBoost();
+        return;
+      case 'setMixWithOthers':
+        mixWithOthers = effect.on;
         await setPlayerMode();
         return;
       case 'setVolume':
@@ -296,9 +326,10 @@ export function createExpoAudioAdapter(
   }
 
   async function configure(): Promise<void> {
-    // interruptionMode MUST be doNotMix: the docs are explicit that lock
+    // interruptionMode is doNotMix by default: the docs are explicit that lock
     // screen controls do not attach otherwise, and mixWithOthers requests no
     // Android audio focus at all, so nothing would ever yield to a call.
+    // M21 US11: only the listener's "Play with other apps" switch changes that.
     await setPlayerMode();
   }
 
@@ -348,7 +379,7 @@ export const voiceSessionOn = (): Promise<void> => {
 /** Recording off: back to the episode player's own mode (see `configure` above) — else iOS plays through the earpiece. */
 export const voiceSessionOff = (): Promise<void> => {
   sendPauseOnPrompts();
-  return setAudioModeAsync({ ...PLAYER_MODE, allowsRecording: false });
+  return setAudioModeAsync({ ...playerMode(), allowsRecording: false });
 };
 
 /** A short-lived player for one voice post; `onEnd` fires when it finishes. */

@@ -1,7 +1,7 @@
 // Tests the queue limit, moving repeats instead of duplicating, and offline skipping.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { enqueue, move, nextPlayable, QUEUE_MAX, remove } from '../src/queue.ts';
+import { clearQueue, enqueue, move, nextPlayable, QUEUE_MAX, remove, removeMany } from '../src/queue.ts';
 
 // quickstart A1 — guard G1
 test('A1: 301st at the end is refused; at the front the last is evicted', () => {
@@ -37,4 +37,28 @@ test('A2: offline, an undownloaded item is skipped and stays; online, the first 
   assert.deepEqual(nextPlayable(q, downloads, true), { next: 'u', skipped: [] });
   assert.deepEqual(nextPlayable(['u', 'x'], downloads, false), { skipped: ['u', 'x'] });
   assert.deepEqual(nextPlayable([], downloads, true), { skipped: [] });
+});
+
+/**
+ * M21 FR-021 (US3): the playlist sheet's Remove (n) and Clear all.
+ * The break that turns it red: make `clearQueue` return `[]` always (the playing episode is
+ * dropped), or make `removeMany` remove only the first selected id.
+ */
+test('M21 removeMany: every selected episode leaves at once, the rest keep their order', () => {
+  const q = ['a', 'b', 'c', 'd', 'e'];
+  assert.deepEqual(removeMany(q, ['b', 'd']), ['a', 'c', 'e']);
+  assert.deepEqual(removeMany(q, ['e', 'a', 'zz']), ['b', 'c', 'd']);
+  assert.equal(removeMany(q, []), q, 'nothing selected: same array');
+  assert.equal(removeMany(q, ['zz']), q, 'nothing queued selected: same array');
+  assert.deepEqual(removeMany(q, q), []);
+});
+
+test('M21 clearQueue keeps the episode playing now, and only that', () => {
+  assert.deepEqual(clearQueue(['a', 'b', 'c'], 'b'), ['b']);
+  assert.deepEqual(clearQueue(['a', 'b', 'c'], 'zz'), [], 'playing episode not queued: empty');
+  assert.deepEqual(clearQueue(['a', 'b', 'c']), [], 'nothing playing: empty');
+  const alone = ['b'];
+  assert.equal(clearQueue(alone, 'b'), alone, 'already cleared: same array');
+  const empty: string[] = [];
+  assert.equal(clearQueue(empty), empty);
 });

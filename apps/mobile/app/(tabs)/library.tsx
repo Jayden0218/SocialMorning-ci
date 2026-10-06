@@ -19,6 +19,9 @@
  * M21 US4 (FR-035, FR-036): ⋯ or a long-press on a row opens the shared episode sheet
  * (`EpisodeRowSheet`), with two Updates-only actions: Remove from Updates (this phone's list;
  * the show stays subscribed) and Star / Unstar this show (as on /subscriptions).
+ *
+ * M21 US8 (FR-070): the status row starts with my own avatar "+" (Voice or Text); a row of my
+ * starred shows sits above "New from your shows"; video episodes carry a video mark (the row).
  */
 import type { FlatList as RNFlatList } from 'react-native';
 import { Link, useFocusEffect, useRouter, useScrollToTop } from 'expo-router';
@@ -46,11 +49,18 @@ import { useDownloads, useStores, useSubscriptionSync, useToast } from '@/ui/she
 import { useSocial } from '@/social/context';
 import { useM12Api } from '@/social/m12-api';
 import { VoicePosts } from '@/ui/social/VoicePosts';
+import { ScrollView } from '@/ui/lib/scroll-view';
+import { Artwork } from '@/ui/kit/Artwork';
+import { useMyAvatar } from '@/me/my-avatar';
+import { useProfileApi } from '@/social/profile-api';
 import { TAB_PAGE_END } from '@/ui/kit/Screen';
 import { plural } from '@socialmorning/social-core';
 import { EndOfList } from '@/ui/kit/EndOfList';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
+/** M21 US8: a starred show in the row above the feed — a 72 pt cover with its name under it. */
+const STAR_ART = 72;
+const STAR_ITEM = { width: STAR_ART, minHeight: hit.min };
 
 export default function UpdatesScreen(): React.ReactElement {
   const top = useRef<RNFlatList<UpdateRow>>(null); useScrollToTop(top); // M21 T082: pressing this tab again scrolls to the top.
@@ -81,7 +91,16 @@ export default function UpdatesScreen(): React.ReactElement {
   // subscriptions were merged only at the next app start, so this page stayed empty until a
   // cold restart. A new listener now reconciles here and the list redraws.
   const subscriptionSync = useSubscriptionSync();
-  const listenerId = useSocial().listener?.listenerId;
+  const me = useSocial().listener;
+  const listenerId = me?.listenerId;
+  // M21 US8: my photo on the "+" circle.
+  const profileApi = useProfileApi();
+  const myAvatar = useMyAvatar(stores.settings, listenerId !== undefined, profileApi.me);
+  // M21 US8: my starred shows, above the feed (read with the rows).
+  const starredShows = stores.subscriptions.list().filter((s) => s.starred).map((s) => {
+    const show = stores.feeds.getShow(s.feedUrl);
+    return { feedUrl: s.feedUrl, title: show?.title ?? s.feedUrl, ...(show?.imageUrl ? { imageUrl: show.imageUrl } : {}) };
+  });
   useEffect(() => {
     if (listenerId === undefined) return;
     let live = true;
@@ -169,7 +188,20 @@ export default function UpdatesScreen(): React.ReactElement {
             </Box>
             {/* Owner, 2026-10-05: no Continue listening card — the same episodes are in the list below. */}
             {/* M12 FR-104: voice statuses from you and the people you follow (signed in only). */}
-            {listenerId !== undefined ? <VoicePosts load={loadVoice} remove={m12.deleteVoicePost} pauseEpisode={player.pause} colours={c} /> : null}
+            {listenerId !== undefined ? <VoicePosts load={loadVoice} remove={m12.deleteVoicePost} pauseEpisode={player.pause} colours={c} me={{ name: me?.displayName ?? '', avatarUrl: myAvatar }} /> : null}
+            {starredShows.length > 0 ? (
+              <Box className="pt-section">
+                <Text className="font-display text-base text-text px-screen-x" accessibilityRole="header">Starred shows</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-row px-screen-x" className="pt-2">
+                  {starredShows.map((s) => (
+                    <Pressable key={s.feedUrl} onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(s.feedUrl) } })} accessibilityRole="button" accessibilityLabel={`Open ${s.title}, starred`} style={STAR_ITEM}>
+                      <Artwork url={s.imageUrl} size={STAR_ART} rounded="row" name={s.title} />
+                      <Text className="text-text text-xs font-semibold mt-1" numberOfLines={1}>{s.title}</Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </Box>
+            ) : null}
             <Box className="px-screen-x">
               {stale > 0 ? <Text className="text-muted text-xs mt-row">{plural(stale, 'show')} could not refresh — showing the saved copy.</Text> : null}
               {subscribed === 0 && discover.view ? (

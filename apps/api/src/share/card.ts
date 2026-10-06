@@ -109,10 +109,10 @@ export const mmss = (ms: number) => {
   return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}` : `${m}:${String(s % 60).padStart(2, '0')}`;
 };
 
-const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
+export const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
 
-type El = { type: string; props: Record<string, unknown> & { style?: Record<string, unknown>; children?: unknown } };
-const div = (style: Record<string, unknown>, children?: unknown): El => ({ type: 'div', props: { style: { display: 'flex', ...style }, ...(children !== undefined ? { children } : {}) } });
+export type El = { type: string; props: Record<string, unknown> & { style?: Record<string, unknown>; children?: unknown } };
+export const div = (style: Record<string, unknown>, children?: unknown): El => ({ type: 'div', props: { style: { display: 'flex', ...style }, ...(children !== undefined ? { children } : {}) } });
 
 export function cardTree(c: CardInput): El {
   if (c.quote) return quoteTree(c, c.quote);
@@ -161,8 +161,13 @@ function quoteTree(c: CardInput, quote: string): El {
 
 /** SVG from satori, PNG from resvg. `fontFetch` is used only for scripts Inter does not cover. */
 export async function renderCard(c: CardInput, fontFetch: typeof fetch): Promise<Uint8Array> {
+  return renderTree(cardTree(c), fontFetch);
+}
+
+/** Any 1080×1350 card tree to PNG (M21 US9: the monthly recap card shares it). */
+export async function renderTree(tree: El, fontFetch: typeof fetch): Promise<Uint8Array> {
   const fonts = await assets();
-  const svg = await satori(cardTree(c) as unknown as Parameters<typeof satori>[0], {
+  const svg = await satori(tree as unknown as Parameters<typeof satori>[0], {
     width: CARD_W, height: CARD_H, fonts,
     loadAdditionalAsset: async (code, segment) => {
       const family = familyFor(code, segment);

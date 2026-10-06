@@ -19,6 +19,7 @@ let mockPlayerState: Record<string, unknown> = { kind: 'idle' };
 let mockFocused = true;
 let mockSleepLeft: number | undefined;
 let mockSleepEnd = false;
+const mockOpenQueue = jest.fn();
 
 jest.mock('expo-router', () => ({
   // `asChild` hands the press to the child; for rendering, the child IS the output.
@@ -43,6 +44,9 @@ jest.mock('@/ui/shell/providers', () => ({
     },
   }),
 }));
+
+// M21 US3: ≡ opens the root's playlist sheet (src/ui/queue/QueueSheetHost.tsx).
+jest.mock('@/ui/queue/QueueSheetHost', () => ({ useQueueSheet: () => ({ open: mockOpenQueue, close: jest.fn() }) }));
 
 import { MiniPlayer, TabsMiniPlayer } from '@/ui/player/MiniPlayer';
 import { MINI_PLAYER_HEIGHT } from '@/ui/kit/Screen';
@@ -98,11 +102,15 @@ it('shows the episode, the show and the artwork, and opens the player', () => {
   expect(link?.props['accessibilityRole']).toBe('link');
 });
 
-it('with a length known, the second line is the time — "26:37/1:30:28", as in the reference — and Queue is one tap away', () => {
+it('with a length known, the second line is the time — "26:37/1:30:28", as in the reference — and the playlist is one tap away', () => {
   mockPlayerState = { kind: 'paused', episodeId: 'e1', positionMs: 1_597_000, durationMs: 5_428_000 };
   const r = render(createElement(MiniPlayer, { pathname: '/episode/e1' }));
   expect(JSON.stringify(r.toJSON())).toContain('26:37/1:30:28');
-  expect(byLabel(r, 'Queue')?.props['accessibilityRole']).toBe('link');
+  // M21 US3 (FR-020): ≡ is a button that opens the playlist sheet over the page, not a link to /queue.
+  expect(byLabel(r, 'Playlist')?.props['accessibilityRole']).toBe('button');
+  mockOpenQueue.mockClear();
+  act(() => pressable(r, 'Playlist')!.props['onPress']());
+  expect(mockOpenQueue).toHaveBeenCalledTimes(1);
 });
 
 it('the play/pause button carries the state in its NAME, not only in its glyph', () => {

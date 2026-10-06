@@ -13,20 +13,36 @@ export const GENDERS = ['woman', 'man', 'another', 'unsaid'] as const;
 
 export type MyProfile = {
   avatarUrl?: string; bio?: string; ageRange?: string; gender?: string; likesPublic: boolean; privateListening: boolean;
+  /** M21 US8 (FR-075, G-M21-10): optional, and only ever returned to the listener themselves (this function's one caller is /v1/me). */
+  birthday?: string; industry?: string;
+  /** M21 US10: the privacy switches. */
+  hideBadge: boolean; hideStickers: boolean; hideDecorations: boolean; privateSubscriptions: boolean;
 };
 
-type Row = { avatar_url: string | null; bio: string | null; age_range: string | null; gender: string | null; likes_public: boolean; private_listening: boolean };
+type Row = { avatar_url: string | null; bio: string | null; age_range: string | null; gender: string | null; likes_public: boolean; private_listening: boolean;
+  birthday: string | null; industry: string | null; hide_badge: boolean; hide_stickers: boolean; hide_decorations: boolean; private_subscriptions: boolean };
 
 export async function myProfile(db: Db, id: string): Promise<MyProfile> {
-  const [r] = await db.query<Row>('SELECT avatar_url, bio, age_range, gender, likes_public, private_listening FROM listeners WHERE id = $1', [id]);
+  const [r] = await db.query<Row>(
+    `SELECT avatar_url, bio, age_range, gender, likes_public, private_listening, to_char(birthday, 'YYYY-MM-DD') AS birthday, industry,
+            hide_badge, hide_stickers, hide_decorations, private_subscriptions FROM listeners WHERE id = $1`, [id]);
   return {
     ...(r?.avatar_url ? { avatarUrl: r.avatar_url } : {}), ...(r?.bio ? { bio: r.bio } : {}),
     ...(r?.age_range ? { ageRange: r.age_range } : {}), ...(r?.gender ? { gender: r.gender } : {}),
     likesPublic: r?.likes_public ?? true, privateListening: r?.private_listening ?? false,
+    ...(r?.birthday ? { birthday: r.birthday } : {}), ...(r?.industry ? { industry: r.industry } : {}),
+    hideBadge: r?.hide_badge ?? false, hideStickers: r?.hide_stickers ?? false, hideDecorations: r?.hide_decorations ?? false,
+    privateSubscriptions: r?.private_subscriptions ?? false,
   };
 }
 
-export type ProfilePatch = { displayName?: string; bio?: string; ageRange?: string | null; gender?: string | null; likesPublic?: boolean };
+/** M21 US8: industry is free text, 1–40 characters (the column CHECKs it too). */
+export const INDUSTRY_MAX = 40;
+
+export type ProfilePatch = { displayName?: string; bio?: string; ageRange?: string | null; gender?: string | null; likesPublic?: boolean;
+  /** M21: null clears birthday or industry. */
+  birthday?: string | null; industry?: string | null;
+  hideBadge?: boolean; hideStickers?: boolean; hideDecorations?: boolean; privateSubscriptions?: boolean };
 
 /** Only the fields sent change; `null` clears age range or gender; an empty bio clears it. */
 export async function updateProfile(db: Db, id: string, p: ProfilePatch): Promise<void> {
@@ -38,6 +54,12 @@ export async function updateProfile(db: Db, id: string, p: ProfilePatch): Promis
   if (p.ageRange !== undefined) set('age_range', p.ageRange);
   if (p.gender !== undefined) set('gender', p.gender);
   if (p.likesPublic !== undefined) set('likes_public', p.likesPublic);
+  if (p.birthday !== undefined) set('birthday', p.birthday);
+  if (p.industry !== undefined) set('industry', p.industry === '' ? null : p.industry);
+  if (p.hideBadge !== undefined) set('hide_badge', p.hideBadge);
+  if (p.hideStickers !== undefined) set('hide_stickers', p.hideStickers);
+  if (p.hideDecorations !== undefined) set('hide_decorations', p.hideDecorations);
+  if (p.privateSubscriptions !== undefined) set('private_subscriptions', p.privateSubscriptions);
   if (sets.length === 0) return;
   await db.query(`UPDATE listeners SET ${sets.join(', ')} WHERE id = $1`, vals);
 }

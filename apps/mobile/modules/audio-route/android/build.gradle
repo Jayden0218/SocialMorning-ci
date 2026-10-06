@@ -1,0 +1,32 @@
+// The audio-route local module (M21 US11): the system output switcher, via AndroidX MediaRouter.
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.audioroute'
+version = '1.0.0'
+
+android {
+  namespace "expo.modules.audioroute"
+  defaultConfig {
+    versionCode 1
+    versionName "1.0.0"
+  }
+  lintOptions {
+    abortOnError false
+  }
+}
+
+repositories {
+  google()
+  mavenCentral()
+}
+
+dependencies {
+  // Owner approved by name at G0 (2026-10-06). 1.8.1 is the current STABLE release
+  // (developer.android.com/jetpack/androidx/releases/mediarouter, 2025-07-02; Google Maven lists
+  // 1.9.0-beta01 as the newest pre-release on 2026-10-06). SystemOutputSwitcherDialogController
+  // exists since 1.4.0.
+  implementation 'androidx.mediarouter:mediarouter:1.8.1'
+}

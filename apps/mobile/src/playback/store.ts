@@ -104,6 +104,10 @@ export type PlayerRuntime = {
   setSkipSilence: (on: boolean) => void;
   /** M19 (2026-10-05): another app's short sound — pause (true) or lower the volume (false). */
   setPauseOnPrompts: (on: boolean) => void;
+  /** M21 US11: voice boost on the player, now and after every load. */
+  setVoiceBoost: (on: boolean) => void;
+  /** M21 US11: "Play with other apps" — the audio session mixes (true) or takes the audio (false). */
+  setMixWithOthers: (on: boolean) => void;
   /** Cold start: put back what the listener was on, PAUSED. */
   restore: (lookup: (episodeId: string) => PlayableEpisode | undefined) => void;
   /** Where this episode should start, honouring FR-019 and FR-020. */
@@ -448,6 +452,8 @@ export function createPlayerRuntime(deps: PlayerDeps): PlayerRuntime {
     },
     setSkipSilence: (on) => { void deps.adapter.execute({ kind: 'setSkipSilence', on }); },
     setPauseOnPrompts: (on) => { void deps.adapter.execute({ kind: 'setPauseOnPrompts', on }); },
+    setVoiceBoost: (on) => { void deps.adapter.execute({ kind: 'setVoiceBoost', on }); },
+    setMixWithOthers: (on) => { void deps.adapter.execute({ kind: 'setMixWithOthers', on }); },
     setSleepTimer: (choice) => {
       sleep = armTimer(choice, deps.now(), sleep);
       resetVolume();

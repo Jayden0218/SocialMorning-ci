@@ -22,7 +22,7 @@ export type NotifyShow = { feedUrl: string; title: string | null; enabled: boole
 /** contracts/api.md FR-105/106 — read only; nothing here can buy anything. */
 export type Purchase = { id: string; store: string; productId: string; status: string; expiresAt: string | null; amountMicros: number | null; currency: string | null; createdAt: string };
 export type Tip = { id: string; feedUrl: string; showTitle: string | null; createdAt: string; amountMicros: number | null; currency: string | null };
-export type VoicePost = { id: string; author: { id: string; name: string; initials: string | null }; url: string; durationMs: number; createdAt: string; expiresAt: string; mine?: boolean; /** M20 US3: what the phone heard, as the author checked it. */ text?: string };
+export type VoicePost = { id: string; author: { id: string; name: string; initials: string | null }; /** M21 US8: absent on a text status. */ url?: string; /** M21 US8: a text status (≤ 140 characters, no audio). */ body?: string; durationMs: number; createdAt: string; expiresAt: string; mine?: boolean; /** M20 US3: what the phone heard, as the author checked it. */ text?: string };
 
 export type M12Api = ReturnType<typeof createM12Api>;
 

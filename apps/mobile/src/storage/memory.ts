@@ -108,7 +108,12 @@ export function createMemoryAuthStore(): AuthStore {
 
 export function createMemorySocialCacheStore(): SocialCacheStore {
   const rows = new Map<string, SocialCacheRow>();
-  return { get: (id) => rows.get(id), put: (r) => void rows.set(r.episodeId, r) };
+  return {
+    get: (id) => rows.get(id),
+    put: (r) => void rows.set(r.episodeId, r),
+    bytes: () => [...rows.values()].reduce((n, r) => n + r.bodyJson.length, 0),
+    clear: () => rows.clear(),
+  };
 }
 
 export function createMemoryDraftStore(): DraftStore {
@@ -287,7 +292,12 @@ export function createMemoryListenedStore(): ListenedStore {
 
 export function createMemoryFeedCacheStore(): FeedCacheStore {
   const rows = new Map<string, FeedCacheRow>();
-  return { get: (k) => rows.get(k), set: (r) => void rows.set(r.key, r) };
+  return {
+    get: (k) => rows.get(k),
+    set: (r) => void rows.set(r.key, r),
+    bytes: () => [...rows.values()].reduce((n, r) => n + r.body.length, 0),
+    clear: () => rows.clear(),
+  };
 }
 
 export function createMemoryHiddenStore(): HiddenStore {

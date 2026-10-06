@@ -1,13 +1,15 @@
-// Your month in listening: minutes, shows, episodes, comments, clips, top 3 shows and episodes; Share.
+// Your month in listening: minutes, shows, episodes, comments, clips, top 3 shows and episodes; Share as a picture.
 /**
  * M19 T081 (US8, FR-060): the monthly report (月记) for one month, `YYYY-MM` in the link. The
  * serif "Your September 2026" title; the minutes as one big serif number on a yellow card; the
  * shows, episodes, comments and clips as four white cards; then the top 3 shows and the top 3
  * episodes as rows (a show opens its page; an episode opens its page when this phone has it). A month with nothing in it says so instead of a page of zeros (scenario 2).
  *
- * Share sends a few lines of text through the phone's share sheet (React Native `Share`): no
- * image library is added (no new dependencies), and the text names no other listener. The
- * server's PNG card (`/v1/me/report/card.png`) is not used yet.
+ * M21 US9 (T102): Share sends a picture — the month, the hours, the top 3 shows and the app link
+ * — with the same lines as text. `react-native-view-shot` is not installed and no native library
+ * is added, so the picture is drawn by the server's card renderer (`/v1/share/recap/…`, the way
+ * the quote card is, `src/ui/player/QuoteShare.tsx`) from the numbers on this page, downloaded,
+ * and handed to the share sheet as a file. Offline, the text alone is shared. It names no other listener.
  */
 import { useCallback, useState } from 'react';
 import { Share } from 'react-native';
@@ -27,6 +29,8 @@ import { useColours } from '@/ui/kit/useColours';
 import { EmptyPicture } from '@/ui/me/parts';
 import { useStores, useToast } from '@/ui/shell/providers';
 import { plural } from '@socialmorning/social-core';
+import { File, Paths } from 'expo-file-system';
+import { useListeningApi } from '@/me/listening-api';
 
 const TAP = { minHeight: hit.min };
 /** B's primary pill: 52 pt. */
@@ -70,7 +74,20 @@ export default function ReportScreen(): React.ReactElement {
   const c = useColours(stores.settings);
   const m19 = useM19Api();
   const toast = useToast();
+  const listening = useListeningApi();
   const [state, setState] = useState<State>({ kind: 'loading' });
+  /** M21 US9: the recap picture, then the share sheet; the text alone when the picture cannot be had. */
+  const share = async (r: MonthReport) => {
+    const message = `${reportText(r)}\n${listening.appLink()}`;
+    toast('Making the picture…');
+    try {
+      const target = new File(Paths.cache, `recap-${r.month}-${Date.now()}.png`);
+      const file = await File.downloadFileAsync(listening.recapCardUrl(r.month, r.minutes, r.topShows.slice(0, 3).map((s) => s.title)), target);
+      await Share.share({ url: file.uri, message });
+    } catch {
+      await Share.share({ message }).catch(() => undefined);
+    }
+  };
   const load = useCallback(() => {
     if (!listener) return;
     m19.report(String(month)).then((report) => setState({ kind: 'ok', report })).catch(() => setState((s) => (s.kind === 'ok' ? s : { kind: 'error' })));
@@ -150,7 +167,7 @@ export default function ReportScreen(): React.ReactElement {
         </Box>
       ) : null}
 
-      <Pressable onPress={() => { void Share.share({ message: reportText(r) }).catch(() => undefined); }} accessibilityRole="button" accessibilityLabel={`Share your ${monthName(r.month)}`} className="flex-row gap-gap items-center justify-center rounded-pill bg-primary" style={PILL}>
+      <Pressable onPress={() => { void share(r); }} accessibilityRole="button" accessibilityLabel={`Share your ${monthName(r.month)}`} className="flex-row gap-gap items-center justify-center rounded-pill bg-primary" style={PILL}>
         <Icon name="share-outline" size={18} color={c.onPrimary} />
         <Text className="text-onPrimary text-body font-bold">Share</Text>
       </Pressable>

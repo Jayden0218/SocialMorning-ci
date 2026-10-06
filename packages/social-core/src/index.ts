@@ -21,6 +21,11 @@ export type { Range, ListenAcc } from './intervals';
 export { addTick, closeAcc, mergeRanges, unionLength, TICK_MAX_GAP_MS } from './intervals';
 export type { ListenedRow, TopShow, StatsWindow, Stats } from './stats';
 export { stats } from './stats';
+// M21 US9 — listening data and stickers
+export type { SeriesPoint, ListeningRange, Listening } from './stats';
+export { daySeries, monthSeries, listening, crossingDay } from './stats';
+export type { StickerMetric, StickerRule, Placement, PlacementCheck } from './stickers';
+export { STICKER_RULES, STICKER_IDS, isStickerId, PLACEMENT_MAX, SCALE_MIN, SCALE_MAX, ROT_MAX, Z_MAX, checkPlacements, listeningStickerDays } from './stickers';
 export type { FeedItem } from './feed';
 export { listenItemDue, orderFeed, unreadCount, LISTEN_ITEM_THRESHOLD_MS } from './feed';
 // M5 — discovery (specs/005-m5-discovery/contracts/discovery-core.ts)

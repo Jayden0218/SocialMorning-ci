@@ -39,6 +39,9 @@ export type Listener = {
   avatarUrl?: string; bio?: string; ageRange?: string | null; gender?: string | null; likesPublic?: boolean;
   /** M20 US6: PLUS now (the badge, the app icons); computed by the server. */
   plus?: boolean;
+  /** M21 US8: private — returned to the owner alone. M21 US10: the privacy switches. */
+  birthday?: string; industry?: string;
+  hideBadge?: boolean; hideStickers?: boolean; hideDecorations?: boolean; privateSubscriptions?: boolean;
 };
 export type EpisodeRegistration = {
   feedUrl: string; guid: string; title: string; showTitle?: string; enclosureUrl: string; imageUrl?: string; durationMs?: number;
@@ -80,7 +83,7 @@ export type PositionRowOut = PositionObsIn & { receivedAt: string; deviceId: str
 export type SocialResult = { status: 200; etag?: string; body: Social } | { status: 304 };
 
 // ---- M4 (specs/004-m4-the-graph/contracts/api.md) ----
-export type ClipAuthor = { id: string; displayName: string | null; /** M19 US1 */ avatarUrl?: string };
+export type ClipAuthor = { id: string; displayName: string | null; /** M19 US1 */ avatarUrl?: string; /** M21 US8: follow lists only — the one-line bio, and whether I follow them (signed in). */ bio?: string; youFollow?: boolean };
 export type Clip = { id: string; author: ClipAuthor; episodeId: string; startMs: number; endMs: number; caption: string; createdAt: string; deleted: boolean; removed?: boolean; reported?: boolean };
 export type EpisodeRecord = { id: string; feedUrl: string; guid: string; title: string; showTitle: string | null; enclosureUrl: string; imageUrl: string | null; durationMs: number | null };
 export type ProfileStats = { listenedMs: number; finished: number; topShows: { feedUrl: string; showTitle?: string; listenedMs: number }[] };
@@ -100,6 +103,10 @@ export type Profile = {
   /** M19 US1: the listener's photo and short bio, when set (absent on an older server). */
   avatarUrl?: string;
   bio?: string;
+  /** M21 US8: shows they are a verified host of; how many episodes they liked (absent while private); subscriptions kept private. */
+  hostOf?: { feedUrl: string; title: string }[];
+  likesCount?: number;
+  privateSubscriptions?: boolean;
 };
 export type FeedResult = { status: 200; etag?: string; body: { items: FeedItem[]; next?: string; serverTime: string } } | { status: 304 };
 export type ListenedDay = { episodeId: string; day: string; ranges: [number, number][] };

@@ -38,6 +38,7 @@ here or a line does not match its file.
 | `wallet.ts` | Read-only wallet routes: my purchases and the tips I gave. |
 | `m19.ts` | My notices from hosts, my monthly report, and the teen-mode passcode reset by email code. |
 | `purchases-google.ts` | Purchase route: the phone sends a Google Play purchase; the server checks it with Google, then grants it. |
+| `stickers.ts` | Sticker placement routes: read my stickers on my profile header, or replace them all. |
 
 ### `routes/social/` — comments, reactions, clips, follows, profiles, voice posts, sharing
 
@@ -51,16 +52,17 @@ here or a line does not match its file.
 | `follows.ts` | Follow routes: follow, unfollow, and list followers and following. |
 | `friends.ts` | Route listing episodes that people I follow listened to this week. |
 | `live.ts` | "Listening now" routes: send a heartbeat and read the live count. |
-| `profiles.ts` | Profile routes: read a listener's profile and set my privacy switch. |
+| `profiles.ts` | Profile routes: read a listener's profile and public subscriptions, and set my privacy switch. |
 | `reactions.ts` | Reaction route: toggle a reaction at a moment in an episode. |
-| `share.ts` | Share card routes: draw a PNG for sharing an episode moment, or lines from its transcript as a quote. |
+| `share.ts` | Share card routes: draw a PNG for an episode moment, lines from its transcript as a quote, or a monthly recap. |
 | `social.ts` | Episode social poll route: comments and heat curve in one cached answer. |
-| `voice.ts` | Voice post routes: upload a short recording, list, and delete posts. |
+| `voice.ts` | Voice post routes: upload a short recording or post a text status, list, and delete posts. |
 | `comment-image.ts` | Comment image route: the author adds one picture to their comment, kept in the image store. |
 | `likes.ts` | Like routes: like an episode with a note, unlike, my timeline, one account's likes, like posts. |
 | `playlists.ts` | Playlist routes: my playlists, one playlist, its order, and an account's public ones. |
 | `voice-comments.ts` | Voice comment route: post a recording of up to 60 seconds as a comment at a moment. |
 | `mutes.ts` | Mute routes: list the listeners I muted, mute one, unmute one. |
+| `notifications.ts` | Notification routes: my interaction notices in pages, and mark them all read. |
 
 ### `routes/safety/` — reports and blocks
 
@@ -75,10 +77,10 @@ here or a line does not match its file.
 |---|---|
 | `episodes.ts` | Episode route: the app registers an episode's details with the server. |
 | `library.ts` | Library routes: sync favourites, moments and searches; list my comments. |
-| `listened.ts` | Listened-time route: a device replaces its listened ranges per episode and day. |
+| `listened.ts` | Listened-time routes: a device replaces its listened ranges per day; my minutes per day or month. |
 | `positions.ts` | Playback position routes: send positions from a device and read them back. |
 | `rec-events.ts` | Route to record which recommendations were shown, opened, played or finished. |
-| `subscriptions.ts` | Subscription routes: read and sync my subscriptions across devices. |
+| `subscriptions.ts` | Subscription routes: read and sync my subscriptions across devices, and save my own order. |
 | `dismissals.ts` | "Not interested" routes: list, add and restore the episodes and shows For You must skip. |
 
 ### `routes/discover/` — Discover, search, For You, next up, launch screen
@@ -164,6 +166,7 @@ here or a line does not match its file.
 | `push.ts` | Sends new-episode push notifications through Expo, never twice to one device. |
 | `profile.ts` | My profile: name, bio, photo, optional age range and gender; the photo's storage limits. |
 | `purchases.ts` | Grants what a store purchase bought, once, and takes it back when the store reports a refund. |
+| `stickers.ts` | Stickers placed on a profile header: read them, replace them all, and what a viewer may see. |
 
 ### `db/repos/social/` — comments, clips, follows, profiles, activity
 
@@ -181,6 +184,7 @@ here or a line does not match its file.
 | `voice-posts.ts` | Voice status posts up to 60 seconds, fully deleted after 24 hours. |
 | `voice-comments.ts` | Voice comments: their recording limits, and deleting the audio of removed comments. |
 | `mutes.ts` | Mutes: hide a listener's comments, voice posts and likes from me only; they are never told. |
+| `notifications.ts` | Interaction notices: replies, likes, mentions and follows aimed at you, never from yourself or someone you shut out. |
 | `comment-images.ts` | Comment images: deleting them from the store when their comment or their author goes. |
 | `likes.ts` | Likes with a note: like or unlike an episode, a timeline of likes from people you follow, and like posts. |
 | `playlists.ts` | Listener playlists: make, rename, reorder, share publicly or keep private. |
@@ -302,6 +306,7 @@ here or a line does not match its file.
 | `card.ts` | Draws the 1080×1350 share card PNG with artwork, title and time. |
 | `cover.ts` | Draws the made-for-you show cover: a 1400 px PNG of two letters on a soft colour. |
 | `fetch-image.ts` | Fetches a publisher's cover image with a 4 s timeout and an 8 MB cap; PNG or JPEG only. |
+| `recap.ts` | Draws the monthly recap share card: the month, hours listened, top 3 shows and the app link. |
 | `tint.ts` | Works out a cover's average colour as #rrggbb, cached by image URL for 30 days. |
 
 ### `storage/` — file storage for hosted audio, images and voice

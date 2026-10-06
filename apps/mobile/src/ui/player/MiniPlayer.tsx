@@ -16,6 +16,8 @@
  *     accessible name alone and watched this button's label flip from "Play" to "Pause";
  *     the label, the role and the `accessibilityState` are the contract, not the glyph.
  */
+import { useEffect, useRef, useState } from 'react';
+import { AccessibilityInfo, Animated, Easing, type LayoutChangeEvent } from 'react-native';
 import { Link, useIsFocused, usePathname } from 'expo-router';
 import { Pressable } from '@/ui/lib/pressable';
 import { Text } from '@/ui/lib/text';
@@ -30,6 +32,7 @@ import { Icon } from '@/ui/kit/Icon';
 import { ProgressRing } from '@/ui/kit/ProgressRing';
 import { MINI_PLAYER_HEIGHT } from '@/ui/kit/Screen';
 import { TAB_HREF } from '@/ui/shell/tabs';
+import { useQueueSheet } from '@/ui/queue/QueueSheetHost';
 
 /** Artwork in the bar. Smaller than a list row's, because the bar is not a row. */
 const MINI_ARTWORK = 48;
@@ -84,6 +87,7 @@ export function MiniPlayer(props: { pathname?: string; context?: 'root' | 'tabs'
   const state = usePlayerState();
   const stores = useStores();
   const c = useColours(stores.settings);
+  const queueSheet = useQueueSheet();
   const routerPath = usePathname();
   const path = props.pathname ?? routerPath;
   const context = props.context ?? 'root';
@@ -121,9 +125,7 @@ export function MiniPlayer(props: { pathname?: string; context?: 'root' | 'tabs'
         >
           <Artwork url={episode?.imageUrl ?? show?.imageUrl} size={MINI_ARTWORK} name={show?.title} />
           <Box className="flex-1">
-            <Text className="text-body text-text font-semibold" numberOfLines={1}>
-              {episode?.title ?? 'Now playing'}
-            </Text>
+            <Marquee text={episode?.title ?? 'Now playing'} />
             <Text className="text-xs text-muted" numberOfLines={1}>
               {durationMs ? `${mmss(positionMs)}/${mmss(durationMs)}` : (show?.title ?? mmss(positionMs))}{sleepNote}
             </Text>
@@ -142,14 +144,81 @@ export function MiniPlayer(props: { pathname?: string; context?: 'root' | 'tabs'
           <Icon name={isPlaying ? 'pause' : 'play'} size={22} color={c.playGlyph} />
         </ProgressRing>
       </Pressable>
-      <Link href="/queue" asChild>
-        <Pressable accessibilityRole="link" accessibilityLabel="Queue" className="rounded-pill bg-surface border border-border items-center justify-center" style={ROUND}>
-          <Icon name="list" size={22} color={c.accent} />
-        </Pressable>
-      </Link>
+      {/* M21 US3 (FR-020): ≡ opens the playlist sheet over this page, not the /queue page. */}
+      <Pressable onPress={() => queueSheet.open()} accessibilityRole="button" accessibilityLabel="Playlist" className="rounded-pill bg-surface border border-border items-center justify-center" style={ROUND}>
+        <Icon name="list" size={22} color={c.accent} />
+      </Pressable>
     </Box>
   );
 }
+
+/** Points per second the long title slides, and the pause at each end of a pass. */
+const MARQUEE_SPEED = 30;
+const MARQUEE_REST_MS = 1_500;
+
+/** How far a title wider than its box must slide (0 when it fits). */
+export function marqueeDistance(textWidth: number, boxWidth: number): number {
+  return boxWidth > 0 && textWidth > boxWidth ? Math.ceil(textWidth - boxWidth) : 0;
+}
+
+/**
+ * M21 T048 (US3): a title too long for the bar slides slowly to its end and back, in a loop.
+ * Measured with onLayout (the box, and the text drawn on one unbounded line); a title that fits
+ * stands still. With Reduce Motion on it stands still and is cut with "…", as before.
+ */
+function Marquee(props: { text: string }): React.ReactElement {
+  const [box, setBox] = useState(0);
+  const [wide, setWide] = useState(0);
+  const [still, setStill] = useState(false);
+  const x = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    let live = true;
+    void AccessibilityInfo.isReduceMotionEnabled().then((v) => { if (live) setStill(v); }).catch(() => undefined);
+    // Optional calls: a test double may not return a subscription.
+    const sub = AccessibilityInfo.addEventListener?.('reduceMotionChanged', (v: boolean) => setStill(v));
+    return () => { live = false; sub?.remove(); };
+  }, []);
+
+  const distance = still ? 0 : marqueeDistance(wide, box);
+  useEffect(() => {
+    x.setValue(0);
+    if (distance === 0) return;
+    const run = (distance / MARQUEE_SPEED) * 1_000;
+    const loop = Animated.loop(Animated.sequence([
+      Animated.delay(MARQUEE_REST_MS),
+      Animated.timing(x, { toValue: -distance, duration: run, easing: Easing.linear, useNativeDriver: true }),
+      Animated.delay(MARQUEE_REST_MS),
+      Animated.timing(x, { toValue: 0, duration: run, easing: Easing.linear, useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [distance, x]);
+
+  if (distance === 0) {
+    return (
+      <Box className="overflow-hidden" onLayout={(e: LayoutChangeEvent) => setBox(e.nativeEvent.layout.width)}>
+        <Text className="text-body text-text font-semibold" numberOfLines={1}>{props.text}</Text>
+        {/* Measures the whole title on one line, unseen, to know whether it needs to slide. */}
+        {still ? null : (
+          <Box className="absolute flex-row opacity-0" style={MEASURE} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+            <Text className="text-body text-text font-semibold" onLayout={(e: LayoutChangeEvent) => setWide(e.nativeEvent.layout.width)}>{props.text}</Text>
+          </Box>
+        )}
+      </Box>
+    );
+  }
+  return (
+    <Box className="overflow-hidden" onLayout={(e: LayoutChangeEvent) => setBox(e.nativeEvent.layout.width)}>
+      <Animated.View className="flex-row" style={{ width: wide, transform: [{ translateX: x }] }}>
+        <Text className="text-body text-text font-semibold" numberOfLines={1}>{props.text}</Text>
+      </Animated.View>
+    </Box>
+  );
+}
+
+/** The measuring copy is laid out wide enough never to wrap. */
+const MEASURE = { width: 4_000, left: 0, top: 0 };
 
 /**
  * The bar above the tab bar (M12 FR-002, B3). The root bar hides by pathname, which changes

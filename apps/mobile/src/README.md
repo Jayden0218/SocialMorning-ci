@@ -112,10 +112,15 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `inbox.ts` | Builds the inbox of new episodes from your subscribed shows. |
 | `local-list.ts` | Saves and reads small lists on the phone, safely ignoring broken data. |
 | `moments.ts` | Keeps saved moments in episodes, each with an optional note. |
+| `listening-api.ts` | Server calls for listening data, sticker placements and the monthly recap picture. |
+| `listening-chart.ts` | The Listening data chart's maths and words: the axis top, the bar boxes, and day, month and minute labels. |
+| `my-avatar.ts` | My own profile photo for Me and Updates: the saved copy at once, refreshed from the server. |
 | `money.ts` | Formats prices for display and links to store subscription pages. |
-| `my-stickers.ts` | Gives the profile card and Stickers page the same listening totals. |
-| `stickers.ts` | Works out which listening badges you earned and which comes next. |
+| `my-stickers.ts` | Gives the profile card and Stickers page the same listening totals, earned dates and others' stickers. |
+| `sticker-layout.ts` | The sticker canvas maths: sizes from the canvas width, drag, pinch and turn, add, stack and the button nudges. |
+| `stickers.ts` | Works out which listening badges you earned, which comes next, and how each one is earned. |
 | `subscriptions.ts` | Searches, sorts and groups your subscribed shows. |
+| `subscription-order.ts` | Keeps my own order of subscriptions on the phone and in step with the server. |
 | `updates.ts` | Lists the newest episodes from all your shows in one feed. |
 
 ### `notify/` — Phone notifications: permission and push address.
@@ -131,12 +136,13 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | File | What it does |
 |---|---|
 | `CarLibrarySync.tsx` | Keeps Android Auto's episode lists up to date. Draws nothing. |
-| `android-widget.tsx` | Draws the Android home-screen widget with episode and play/pause. |
+| `android-widget.tsx` | Draws the Android home-screen widgets: now playing with play/pause, the playlist, the daily pick and this week's listening. |
 | `bridge.ts` | Sends player changes to the widgets, and the nearby comment to the lock screen, only when they change. |
 | `car.ts` | Builds the Queue and New episodes lists for Android Auto. |
 | `ios.ts` | Updates the iPhone widget and lock-screen live activity. |
 | `now-playing.ts` | Works out what widgets and the lock screen show: episode, show, play state, a comment. |
 | `sinks.ts` | Picks which outside surfaces this phone supports, without crashing. |
+| `widget-data.ts` | Works out and saves what the Playlist, Daily pick and Listening-this-week widgets show. |
 
 ### `playback/` — The audio player: playing, pausing, position, interruptions and queue.
 
@@ -182,6 +188,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | File | What it does |
 |---|---|
 | `academy.ts` | Help articles for podcast creators about using the app and Studio. |
+| `audio.ts` | Says when voice boost can work on this phone, and when an episode greys out boost and skip silence. |
 | `collected.ts` | Lists the personal data the app keeps, with live counts. |
 | `export-steps.ts` | Explains how to export your shows from other podcast apps. |
 | `faq.ts` | Questions and answers for the Help page. |
@@ -213,8 +220,10 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `live.ts` | Shows "N listening now" in the player, checking once a minute. |
 | `m12-api.ts` | Extra server calls: likes, friends listening, picks, purchases, tips, voice posts. |
 | `m19-api.ts` | Server calls for playlists, notices from hosts, the monthly report and the teen-mode reset. |
+| `notifications-api.ts` | Server calls for Interactions (replies, likes, mentions, follows), and where each notice opens. |
 | `poll.ts` | Checks for new comments every 10 seconds, only when useful. |
 | `profile-api.ts` | Server calls for your profile, photo, hidden recommendations and episode likes. |
+| `us8-api.ts` | Server calls for text statuses, my subscription order, and others' public subscriptions. |
 | `react.ts` | Toggles a reaction at once, then confirms with the server. |
 | `registration.ts` | Describes an episode to the server using the phone's saved feed. |
 | `store-ready.ts` | Remembers whether in-app purchases are switched on. |
@@ -230,6 +239,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 
 | File | What it does |
 |---|---|
+| `clear-cache.ts` | Clear cache: measures and deletes the phone's cache folder and saved pages, never downloads. |
 | `memory.ts` | In-memory copy of the storage, used by tests instead of the database. |
 | `playable.ts` | Turns a saved episode into what the player needs, using downloads first. |
 | `schema.ts` | Creates and upgrades the phone database tables. |
@@ -273,6 +283,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `Row.tsx` | The standard list row: cover, title, grey second line, optional item on right. |
 | `Screen.tsx` | Outer frame of every screen; leaves room for mini player and tab bar. |
 | `Segmented.tsx` | A pill with two to four choices; the chosen one is yellow. |
+| `Sheet.tsx` | A sheet from the bottom with two heights: drag its top up to grow it, down to shrink or close it. |
 | `SheetRow.tsx` | One full-width row in a pop-up action list: icon, label, optional detail. |
 | `ToastHost.tsx` | The short message that pops up near the top, then goes away. |
 | `Toggle.tsx` | The app's own on/off switch. |
@@ -329,7 +340,8 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 |---|---|
 | `QueueButtons.tsx` | "Add to queue" and "Play next" buttons, as tiles in the episode menu. |
 | `QueueList.tsx` | The queue's rows: play, move up/down, remove, drag to reorder. |
-| `QueueSheet.tsx` | The queue as a sheet over the player, titled "Up next". |
+| `QueueSheet.tsx` | The playlist as a sheet over any page: playing now first, then the queue, with an Edit mode. |
+| `QueueSheetHost.tsx` | Holds the one playlist sheet at the root, so the mini player and the player open the same one. |
 
 ### `ui/comments/` — Comments on an episode: read, write, report
 
@@ -375,10 +387,11 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `FollowList.tsx` | Page-by-page list of a person's followers or who they follow. |
 | `LikeCard.tsx` | One liked episode: who liked it, their note as a quote, and the episode row to open or play. |
 | `LikeSheet.tsx` | After you like an episode: add a short note (up to 140 characters), or skip. |
-| `NoticeCards.tsx` | Three-choice switch at top of Notifications: System, People or From hosts. |
+| `NoticeCards.tsx` | Top of Notifications: System and From hosts open their pages; a switch between Interactions and People. |
+| `SystemNoticeCard.tsx` | One message from SocialNet: title, text, time, and at most one button that opens a page in the app. |
 | `ProfileStatRow.tsx` | A profile's numbers in one row: following, followers, shows, listening time. |
 | `StatsBlock.tsx` | Listening numbers for last 7 days and all time: time, finished, top shows. |
-| `VoicePosts.tsx` | Short voice posts from you and people you follow; tap to play, record new. |
+| `VoicePosts.tsx` | Short voice and text statuses from you and people you follow; tap to play or read, post new. |
 
 ### `ui/episode/` — Parts of episode rows and the episode page
 
@@ -439,11 +452,14 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `country.ts` | Turns a country code like "MY" into its name, "Malaysia". |
 | `parts.tsx` | Me page pieces: a menu row with icon and arrow, and an empty-page picture. |
 | `PlusCard.tsx` | The PLUS card in Wallet: what PLUS gives, its price, Subscribe, and Restore purchases. |
+| `StickerCanvas.tsx` | The sticker canvas: drag, pinch and turn your stickers on a copy of your profile header (our own design). |
+| `StickerLayer.tsx` | Draws a listener's placed stickers over the top of their profile header, for every viewer; touches pass through. |
 
 ### `ui/settings/` — Parts of the settings pages
 
 | File | What it does |
 |---|---|
+| `AudioRows.tsx` | Voice boost, "Play with other apps" with its warning, and the audio-output button and row. |
 | `NotifyShows.tsx` | One "new episodes" alert switch for each show you follow. |
 | `rows.tsx` | Settings rows: icon, label, optional value, then an arrow or switch. |
 

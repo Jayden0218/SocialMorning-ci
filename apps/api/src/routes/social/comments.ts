@@ -98,7 +98,7 @@ commentById.delete('/:id', requireAuth, async (c) => {
  * count. Your own comment is 403 `own_comment` (guard G-C2); a comment you cannot see is 404.
  */
 commentById.put('/:id/like', requireAuth, async (c) =>
-  c.json(await like(c.get('db'), c.req.param('id'), c.get('listener')!.id)));
+  c.json(await c.get('db').transaction((tx) => like(tx, c.req.param('id'), c.get('listener')!.id))));
 
 commentById.delete('/:id/like', requireAuth, async (c) =>
   c.json(await unlike(c.get('db'), c.req.param('id'), c.get('listener')!.id)));

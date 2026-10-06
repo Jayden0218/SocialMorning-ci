@@ -40,6 +40,10 @@
  *   - two transcript lines (now, next): a tap expands the transcript in place, ⤢ opens it full
  *     screen; a long-press on a line can report a mistake;
  *   - turning 👍 on plays a short full-screen burst (`ClapBurst`).
+ *
+ * M21 US11: an Audio output button in the top bar (hidden when the phone has no route picker), and
+ * the panel's Route and Voice boost rows (`AudioRows`); on iPhone an HLS episode greys out Skip
+ * silence and Voice boost.
  */
 import { useEffect, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
@@ -63,7 +67,7 @@ import { usePoll } from '@/social/usePoll';
 import type { ComposerState } from '@/social/composer';
 import { ComposerSheet } from '@/ui/comments/Composer';
 import { ShareChooser } from '@/ui/clips/ShareChooser';
-import { QueueSheet } from '@/ui/queue/QueueSheet';
+import { useQueueSheet, useSwipeUpToOpen } from '@/ui/queue/QueueSheetHost';
 import { liveLabel, useListeningNow } from '@/social/live';
 import { MomentSheet } from '@/ui/comments/MomentSheet';
 import { Rail, railMarkers, type RailMarker } from '@/ui/player/Rail';
@@ -71,6 +75,7 @@ import { Card } from '@/ui/kit/Card';
 import { Eyebrow } from '@/ui/kit/Eyebrow';
 import { HeatScrubber } from '@/ui/player/HeatScrubber';
 import { SettingsPanel } from '@/ui/player/SettingsPanel';
+import { RouteButton, RouteRow, VoiceBoostRow, useEffectsBlocked } from '@/ui/settings/AudioRows';
 import { ClapBurst } from '@/ui/player/ClapBurst';
 import { MoonButton } from '@/ui/player/MoonButton';
 import { ChapterList, CurrentChapter } from '@/ui/player/ChapterList';
@@ -148,6 +153,8 @@ export default function PlayerScreen(): React.ReactElement {
   const [more, setMore] = useState(false);
   // M21 US2: skip silence, kept in prefs (src/settings/prefs.ts) and applied at start-up (providers).
   const [skipSilence, setSkipSilenceOn] = useState(() => getPref(stores.settings, 'skipSilence'));
+  // M21 US11: iPhone + an HLS episode → no audio tap, so skip silence and voice boost are greyed out.
+  const effectsBlocked = useEffectsBlocked();
   // M21 US2: the transcript expanded in place under its two lines; a line being reported; the clap.
   const [transcriptOpen, setTranscriptOpen] = useState(false);
   const [reporting, setReporting] = useState<TranscriptLine | undefined>();
@@ -161,8 +168,11 @@ export default function PlayerScreen(): React.ReactElement {
   const shareQuote = useQuoteShare();
   const insets = useSafeAreaInsets();
   const shareQuoteVideo = useQuoteVideo();
-  // M12 FR-044: the queue opens as a sheet over the player (was a separate page).
-  const [queueOpen, setQueueOpen] = useState(false);
+  // M12 FR-044: the queue opens as a sheet over the player (was a separate page). M21 US3: it is
+  // the one sheet the root holds (src/ui/queue/QueueSheetHost.tsx), also opened by a swipe up
+  // on the controls and the bar under them (FR-020).
+  const queueSheet = useQueueSheet();
+  const swipeUp = useSwipeUpToOpen();
   const screen = useWindowDimensions();
   const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
@@ -263,6 +273,8 @@ export default function PlayerScreen(): React.ReactElement {
         </Box>
       ) : undefined}
     >
+      {/* M21 US11 (FR-100): the system audio-route picker under our own icon; absent when there is none. */}
+      <RouteButton colour={c.text} />
       {/* Owner, 2026-10-01: a star in the bar favourites this episode (src/me/favourites). */}
       <Pressable
         onPress={() => { toggleFavourite(stores.settings, state.episodeId, Date.now()); setTick((n) => n + 1); }}
@@ -378,7 +390,7 @@ export default function PlayerScreen(): React.ReactElement {
         }} />
       ) : null}
 
-      <Box className="flex-row items-center justify-between">
+      <Box className="flex-row items-center justify-between" {...swipeUp}>
         <Pressable onPress={() => setMore(true)} accessibilityRole="button" accessibilityLabel={`Speed ${rate.toFixed(1)}×, sleep timer and chapters`} className={SPEED}>
           <Text className="text-meta font-bold text-text" style={tabular}>{rate.toFixed(1)}×</Text>
         </Pressable>
@@ -421,14 +433,14 @@ export default function PlayerScreen(): React.ReactElement {
 
     {/* About · Playlist · Comments: the page's bottom bar, under a hairline. Owner, 2026-10-06: the
         wash reaches the bottom edge, so this page (alone) keeps the bar above the home indicator itself. */}
-    <Box className="flex-row mx-screen-x border-t-hairline border-separator" style={{ paddingBottom: insets.bottom }}>
+    <Box className="flex-row mx-screen-x border-t-hairline border-separator" style={{ paddingBottom: insets.bottom }} {...swipeUp}>
       <Box className="flex-1 items-center">
         <BarButton label="About this episode" onPress={() => router.push({ pathname: '/episode/[id]', params: { id: state.episodeId } })}>
           <Icon name="information-circle-outline" size={22} color={c.text} />
           <Text className={BAR_LABEL}>About</Text>
         </BarButton>
       </Box>
-      <Pressable onPress={() => setQueueOpen(true)} accessibilityRole="button" accessibilityLabel="Playlist" className={BAR_ITEM} style={{ minHeight: TAP.minHeight }}>
+      <Pressable onPress={() => queueSheet.open()} accessibilityRole="button" accessibilityLabel="Playlist" className={BAR_ITEM} style={{ minHeight: TAP.minHeight }}>
         <Icon name="list" size={22} color={c.text} />
         <Text className={BAR_LABEL}>Playlist</Text>
       </Pressable>
@@ -450,6 +462,9 @@ export default function PlayerScreen(): React.ReactElement {
       onLoop={(v) => { player.setLoop(v); setLooping(v); }}
       skipSilence={skipSilence}
       onSkipSilence={(v) => { setPref(stores.settings, 'skipSilence', v); player.setSkipSilence(v); setSkipSilenceOn(v); }}
+      skipSilenceDisabled={effectsBlocked}
+      routeSlot={<RouteRow />}
+      voiceBoostSlot={<VoiceBoostRow />}
     >
       {extras && (extras.chapters?.length || (showTranscript && extras.transcript)) ? (
         <Box className="flex-row gap-row">
@@ -499,7 +514,6 @@ export default function PlayerScreen(): React.ReactElement {
         }}
       />
     ) : null}
-    <QueueSheet open={queueOpen} onClose={() => setQueueOpen(false)} />
     {episode ? (
       <ShareChooser
         open={sharing}

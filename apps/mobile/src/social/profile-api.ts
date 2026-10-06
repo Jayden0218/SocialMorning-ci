@@ -23,7 +23,30 @@ export const LIKE_NOTE_MAX = 140;
 /** The server refuses a photo over 204 800 bytes. */
 export const AVATAR_MAX_BYTES = 204_800;
 
-export type ProfilePatch = { displayName?: string; bio?: string; ageRange?: AgeRange | null; gender?: Gender | null; likesPublic?: boolean };
+/** M21 US8: the server refuses an industry over 40 characters. */
+export const INDUSTRY_MAX = 40;
+
+/** M21 US8: a real calendar date, YYYY-MM-DD, from 1900 to today — the server's own rule. */
+export function birthdayOk(s: string, today: Date): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const d = new Date(`${s}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s && s >= '1900-01-01' && d.getTime() <= today.getTime();
+}
+
+export type ProfilePatch = { displayName?: string; bio?: string; ageRange?: AgeRange | null; gender?: Gender | null; likesPublic?: boolean;
+  /** M21 US8/US10: null clears birthday or industry. */
+  birthday?: string | null; industry?: string | null;
+  hideBadge?: boolean; hideStickers?: boolean; hideDecorations?: boolean; privateSubscriptions?: boolean };
+/**
+ * M21 US10 (PATCH /v1/me, the fields US8 adds on the server): what others see of you. Each is
+ * off by default. `privacySwitchesOf` reads them from GET /v1/me's listener, whatever its type says.
+ */
+export type PrivacySwitches = { hideBadge?: boolean; hideStickers?: boolean; hideDecorations?: boolean; privateSubscriptions?: boolean };
+export const PRIVACY_SWITCHES = ['hideBadge', 'hideStickers', 'hideDecorations', 'privateSubscriptions'] as const;
+export function privacySwitchesOf(listener: unknown): Required<PrivacySwitches> {
+  const l = (listener ?? {}) as Record<string, unknown>;
+  return { hideBadge: l['hideBadge'] === true, hideStickers: l['hideStickers'] === true, hideDecorations: l['hideDecorations'] === true, privateSubscriptions: l['privateSubscriptions'] === true };
+}
 export type DismissalKind = 'episode' | 'show';
 export type Dismissal = { kind: DismissalKind; itemKey: string; title?: string; createdAt: string };
 export type EpisodeLike = { liked: boolean; note?: string };
@@ -38,7 +61,7 @@ export function createProfileApi(deps: ApiDeps) {
   const before = (b?: string) => (b ? `?before=${enc(b)}` : '');
   return {
     me: async () => (await call<{ listener: Listener }>('GET', '/v1/me')).json.listener,
-    update: async (patch: ProfilePatch) => (await call<{ listener: Listener }>('PATCH', '/v1/me', patch)).json.listener,
+    update: async (patch: ProfilePatch & PrivacySwitches) => (await call<{ listener: Listener }>('PATCH', '/v1/me', patch)).json.listener,
     /** PUT /v1/me/avatar — the JPEG's raw bytes, not JSON. */
     uploadAvatar: async (file: Blob): Promise<string> => {
       const token = await deps.getToken();

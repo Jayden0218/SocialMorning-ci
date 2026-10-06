@@ -25,15 +25,16 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 | `likes.tsx` | `/likes` | Likes: episodes people you follow liked, newest first, with their notes; tap to open or play. |
 | `moments.tsx` | `/moments` | Saved moments as a timeline; tap to play from there, edit note, delete. |
 | `my-comments.tsx` | `/my-comments` | Every comment you wrote, with its episode and time; tap to open. |
-| `notifications.tsx` | `/notifications` | Notifications: System messages, People (what listeners you follow did) and From hosts. |
+| `notifications.tsx` | `/notifications` | Notifications: Interactions aimed at you, People you follow; System and From hosts open their pages. |
 | `plaza.tsx` | `/plaza` | The new-shows plaza page: drag a wall of new shows' covers, Shuffle it, or read it as a list. |
 | `play-latest.tsx` | `/play-latest` | Plays your next queued or newest episode and opens the player. |
 | `player.tsx` | `/player` | The full player: artwork, the heat curve as the seek bar, transcript lines, controls, and a settings panel. |
 | `queue.tsx` | `/queue` | Your queue: "Up next" card, then numbered episodes to reorder or remove. |
 | `scan.tsx` | `/scan` | Camera window to scan a QR code; asks for camera permission first. |
 | `search.tsx` | `/search` | Search page for shows and episodes, opened from links or other screens. |
-| `stickers.tsx` | `/stickers` | Listening badges: earned ones in a grid, the rest with progress bars. |
+| `stickers.tsx` | `/stickers` | Listening badges: earned ones with their date, the rest with progress; tap one for its card, Share, help and Decorate. |
 | `subscriptions.tsx` | `/subscriptions` | Shows you follow: starred strip on top, then all shows with sort and search. |
+| `subscriptions/manage.tsx` | `/subscriptions/manage` | Manage my subscriptions: tap one cover, then another, to change their order; Save keeps it. |
 | `tips.tsx` | `/tips` | Tips you gave to shows; today says tipping is not available yet. |
 | `wallet.tsx` | `/wallet` | Your App Store / Google Play purchases, read only; link to manage them. |
 
@@ -109,6 +110,19 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 |---|---|---|
 | `like/[owner]/[episode].tsx` | `/like/<owner>/<episode>` | A like post: one person's like of an episode with their note, with comments, reactions and Report. |
 
+### `me/`
+
+| File | Route | What the user sees |
+|---|---|---|
+| `me/listening.tsx` | `/me/listening` | Listening data: minutes per day for 30 days or per month for all time, as bars, with your top shows. |
+
+### `notifications/`
+
+| File | Route | What the user sees |
+|---|---|---|
+| `notifications/hosts.tsx` | `/notifications/hosts` | From hosts: announcements from the shows you follow, newest first; a card opens its show. |
+| `notifications/system.tsx` | `/notifications/system` | System: messages from SocialNet, each card with at most one button into the app. |
+
 ### `picks/`
 
 | File | Route | What the user sees |
@@ -127,16 +141,25 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 
 | File | Route | What the user sees |
 |---|---|---|
-| `profile/[id].tsx` | `/profile/<id>` | A listener's profile: name, counts, listening time, recent activity, Follow, Block, Report. |
+| `profile/[id].tsx` | `/profile/<id>` | A listener's profile: name, host line, counts, listening time, recent activity, likes, Follow and a ⋯ sheet. |
 | `profile/[id]/followers.tsx` | `/profile/<id>/followers` | List of people who follow this listener. |
 | `profile/[id]/following.tsx` | `/profile/<id>/following` | List of people this listener follows. |
-| `profile/edit.tsx` | `/profile/edit` | Edit profile: photo, name, short bio, optional age range and gender, and whether likes are public. |
+| `profile/[id]/likes.tsx` | `/profile/<id>/likes` | All of one listener's likes, newest first, paged. |
+| `profile/[id]/subscriptions.tsx` | `/profile/<id>/subscriptions` | The shows another listener subscribes to, unless they keep them private. |
+| `profile/edit.tsx` | `/profile/edit` | Edit profile: photo, name, short bio, optional age range, gender, birthday and industry, and whether likes are public. |
 
 ### `report/`
 
 | File | Route | What the user sees |
 |---|---|---|
-| `report/[month].tsx` | `/report/<month>` | Your month in listening: minutes, shows, episodes, comments, clips, top 3 shows and episodes; Share. |
+| `report/[month].tsx` | `/report/<month>` | Your month in listening: minutes, shows, episodes, comments, clips, top 3 shows and episodes; Share as a picture. |
+
+### `stickers/`
+
+| File | Route | What the user sees |
+|---|---|---|
+| `stickers/decorate.tsx` | `/stickers/decorate` | Decorate my profile: place up to 10 earned stickers on your profile header, move, resize and turn them, then Save. |
+| `stickers/help.tsx` | `/stickers/help` | How stickers are earned: one line per sticker, where earned dates come from, and how decorating works. |
 
 ### `settings/`
 
@@ -148,15 +171,16 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 | `settings/appearance.tsx` | `/settings/appearance` | Pick the app's accent colour. |
 | `settings/blocked.tsx` | `/settings/blocked` | Listeners you blocked, each with an Unblock button. |
 | `settings/collected.tsx` | `/settings/collected` | List of personal data the app keeps, with counts; tap for details. |
-| `settings/downloads.tsx` | `/settings/downloads` | Download settings: space used, clear all, auto-download and mobile-data switches. |
+| `settings/downloads.tsx` | `/settings/downloads` | Download settings: space used, clear all, clear cache, auto-download and mobile-data switches. |
 | `settings/feedback.tsx` | `/settings/feedback` | Send feedback with type, text and up to 3 images; see what you sent. |
 | `settings/help.tsx` | `/settings/help` | Help: send feedback, contact support, common questions filtered by topic. |
 | `settings/how-for-you.tsx` | `/settings/how-for-you` | Questions and answers about how For You recommendations work. |
 | `settings/minor.tsx` | `/settings/minor` | Minor mode switch: hides explicit episodes; a 4-digit passcode guards turning it off. |
 | `settings/not-interested.tsx` | `/settings/not-interested` | Episodes and shows you marked "Not interested", each with a Restore button. |
-| `settings/more.tsx` | `/settings/more` | More settings: import/export shows, queue and playback options, recommendations on/off. |
+| `settings/more.tsx` | `/settings/more` | More settings: import/export shows, a link to Playback, recommendations on/off. |
+| `settings/playback.tsx` | `/settings/playback` | Playback settings: queue order, mobile data, transcript entry, lock-screen comments, music mode, skip silence, other apps' sounds. |
 | `settings/opml.tsx` | `/settings/opml` | Export your shows as an OPML file, or paste OPML to import them. |
-| `settings/privacy.tsx` | `/settings/privacy` | Privacy: keep your listening private switch, and a link to blocked listeners. |
+| `settings/privacy.tsx` | `/settings/privacy` | Privacy: private listening, what others see of you (4 switches), muted users, and blocked listeners. |
 | `settings/push.tsx` | `/settings/push` | Push notification settings: phone permission, new episodes, popular content, per show. |
 | `settings/sharing.tsx` | `/settings/sharing` | Which outside companies get your data, what they get, and why. |
 
@@ -189,3 +213,9 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 | File | Route | What the user sees |
 |---|---|---|
 | `voice/new.tsx` | `/voice/new` | Record a voice post up to 60 seconds for followers; deleted after 24 hours. |
+
+### `status/`
+
+| File | Route | What the user sees |
+|---|---|---|
+| `status/text.tsx` | `/status/text` | Write a text status up to 140 characters for your followers; deleted after 24 hours. |

@@ -6,7 +6,12 @@
  * accent icon on the left, the label beside it, an optional muted detail under the label. `SheetTile` lives
  * here so DownloadButton and EpisodeExtras draw the same tile; each part is one row of two, so
  * the library, show and episode sheets that stack the three parts all get the grid.
+ *
+ * M21 T047 (US3, FR-022): a long-press on "Add to queue" adds to the FRONT instead — the same
+ * enqueue (and 300 limit; full → the last item drops) as Play next — with "Added to the front".
+ * A screen reader reaches it as the tile's "Add to the front" action.
  */
+import type { AccessibilityActionEvent } from 'react-native';
 import { Pressable } from '@/ui/lib/pressable';
 import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
@@ -24,6 +29,9 @@ export function SheetTile(props: {
   detail?: string;
   iconColour: string;
   onPress?: () => void;
+  /** M21 US3: a second action on a long-press, named for screen readers by `longPressLabel`. */
+  onLongPress?: () => void;
+  longPressLabel?: string;
   accessibilityLabel?: string;
   selected?: boolean;
   tone?: 'normal' | 'accent' | 'muted';
@@ -51,6 +59,12 @@ export function SheetTile(props: {
       accessibilityRole="button"
       accessibilityLabel={props.accessibilityLabel ?? props.label}
       {...(props.selected !== undefined ? { accessibilityState: { selected: props.selected } } : {})}
+      {...(props.onLongPress ? {
+        onLongPress: props.onLongPress,
+        accessibilityHint: `Long-press: ${props.longPressLabel ?? 'more'}`,
+        accessibilityActions: [{ name: 'longpress', label: props.longPressLabel ?? 'More' }],
+        onAccessibilityAction: (e: AccessibilityActionEvent) => { if (e.nativeEvent.actionName === 'longpress') props.onLongPress?.(); },
+      } : {})}
       className={cls}
       style={TILE}
     >
@@ -69,19 +83,20 @@ export function QueueButtons(props: { episodeId: string; onQueued?: () => void }
   const toast = useToast();
   const downloads = useDownloads();
   const c = useColours(stores.settings);
-  const add = (where: 'end' | 'front') => {
+  const add = (where: 'end' | 'front', longPress = false) => {
     // M10: "Download queued episodes" applies here (src/settings/queue.ts).
     const r = queueEpisode(stores, downloads, props.episodeId, Date.now(), where);
     if (r.kind === 'full') { toast('The queue is full (300). Remove something first.'); return; }
     if (r.evicted) toast('The queue was full — the last item was dropped.');
-    toast(`${where === 'end' ? 'Added to the queue' : 'Playing next'}${r.downloading ? ' · downloading' : ''}`);
+    const said = longPress ? 'Added to the front' : where === 'end' ? 'Added to the queue' : 'Playing next';
+    toast(`${said}${r.downloading ? ' · downloading' : ''}`);
     props.onQueued?.();
   };
   // M12 FR-032 made these full-width rows; M17 makes them the first row of tiles.
   return (
     <TileRow>
       <SheetTile icon="play-skip-forward-outline" label="Play next" iconColour={c.accent} onPress={() => add('front')} />
-      <SheetTile icon="list-outline" label="Add to queue" iconColour={c.accent} onPress={() => add('end')} />
+      <SheetTile icon="list-outline" label="Add to queue" iconColour={c.accent} onPress={() => add('end')} onLongPress={() => add('front', true)} longPressLabel="Add to the front" />
     </TileRow>
   );
 }

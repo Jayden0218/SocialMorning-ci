@@ -1,12 +1,12 @@
-// Voice post routes: upload a short recording, list, and delete posts.
-import { Hono } from 'hono';
+// Voice post routes: upload a short recording or post a text status, list, and delete posts.
+import { Hono, type Context } from 'hono';
 import { randomUUID } from 'node:crypto';
 import type { AuthEnv } from '../../auth/session.ts';
 import { requireAuth } from '../../auth/session.ts';
 import { ApiError } from '../../errors.ts';
 import { audioDurationMs, isMp4 } from '../../voice/duration.ts';
 import { readTranscript } from '../../voice/transcript.ts';
-import { fromFollowing, getPost, insertPost, liveCount, removePost, VOICE_LIVE_MAX, VOICE_MAX_BYTES, VOICE_MAX_MS } from '../../db/repos/social/voice-posts.ts';
+import { fromFollowing, getPost, insertPost, insertTextPost, liveCount, removePost, TEXT_STATUS_MAX, VOICE_LIVE_MAX, VOICE_MAX_BYTES, VOICE_MAX_MS } from '../../db/repos/social/voice-posts.ts';
 
 /**
  * M12 FR-104 — mounted at /v1/voice-posts. The body is the raw recording (`audio/mp4` or
@@ -21,6 +21,9 @@ const TYPES: Record<string, string> = { 'audio/mp4': 'm4a', 'audio/x-m4a': 'm4a'
 const SLACK_MS = 500;
 
 voice.post('/', requireAuth, async (c) => {
+  // M21 US8 (FR-071, G-M21-8): `application/json` { body } is a text status — 1–140 characters, no
+  // audio, so the store need not be connected. Every other type is the recording path below, unchanged.
+  if ((c.req.header('content-type') ?? '').split(';')[0]!.trim().toLowerCase() === 'application/json') return postText(c);
   const storage = c.get('voice');
   if (!storage.ready) throw new ApiError('storage_off', 'Voice posts are not switched on yet.');
   let type = (c.req.header('content-type') ?? '').split(';')[0]!.trim().toLowerCase();
@@ -59,6 +62,23 @@ voice.post('/', requireAuth, async (c) => {
   const row = await insertPost(db, { id, listenerId: me.id, url: stored.url, path: stored.pathname, durationMs: Math.min(VOICE_MAX_MS, Math.max(1, measured)), bytes: bytes.length, ...(transcript ? { transcript } : {}) });
   return c.json({ id: row.id, url: row.blob_url, expiresAt: new Date(row.expires_at).toISOString(), ...(row.transcript ? { text: row.transcript } : {}) }, 201);
 });
+
+/** Characters as a person counts them (an emoji is one), the same count the phone's counter shows. */
+const chars = (s: string) => [...s].length;
+
+async function postText(c: Context<AuthEnv>) {
+  let raw: unknown;
+  try { raw = await c.req.json(); } catch { raw = undefined; }
+  const body = raw && typeof raw === 'object' && typeof (raw as { body?: unknown }).body === 'string' ? (raw as { body: string }).body.trim() : undefined;
+  if (body === undefined || body.length === 0) return c.json({ error: 'empty', message: 'Write something first.', fields: ['body'] }, 400);
+  // The column counts code points (char_length); so does `chars`, so the two never disagree.
+  if (chars(body) > TEXT_STATUS_MAX) return c.json({ error: 'too_long', message: `A text status is at most ${TEXT_STATUS_MAX} characters.`, fields: ['body'] }, 400);
+  const me = c.get('listener')!;
+  const db = c.get('db');
+  if ((await liveCount(db, me.id)) >= VOICE_LIVE_MAX) throw new ApiError('locked', `At most ${VOICE_LIVE_MAX} status posts at a time.`);
+  const row = await insertTextPost(db, { id: randomUUID(), listenerId: me.id, body });
+  return c.json({ id: row.id, body: row.body, expiresAt: new Date(row.expires_at).toISOString() }, 201);
+}
 
 voice.get('/', requireAuth, async (c) => {
   const from = c.req.query('from') ?? 'following';

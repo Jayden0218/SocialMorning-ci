@@ -105,6 +105,39 @@
               "targetCellHeight": 1,
               "resizeMode": "horizontal",
               "updatePeriodMillis": 0
+            },
+            {
+              "name": "Playlist",
+              "label": "SocialNet — playlist",
+              "description": "The next three episodes in your playlist.",
+              "minWidth": "250dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 0
+            },
+            {
+              "name": "DailyPick",
+              "label": "SocialNet — daily pick",
+              "description": "The editors' pick of the day.",
+              "minWidth": "180dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 3,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "WeekListening",
+              "label": "SocialNet — listening this week",
+              "description": "How long you have listened since Monday, on this phone.",
+              "minWidth": "110dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 2,
+              "targetCellHeight": 2,
+              "resizeMode": "none",
+              "updatePeriodMillis": 1800000
             }
           ]
         }

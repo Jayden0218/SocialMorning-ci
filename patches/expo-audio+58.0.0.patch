@@ -1,8 +1,8 @@
 diff --git a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioModule.kt b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioModule.kt
-index a326438..e69093a 100644
+index a326438..23d472d 100644
 --- a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioModule.kt
 +++ b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioModule.kt
-@@ -60,6 +60,9 @@ class AudioModule : Module() {
+@@ -60,6 +60,9 @@
    private var shouldRouteThroughEarpiece = false
    private var focusAcquired = false
    private var interruptionMode: InterruptionMode? = null
@@ -12,7 +12,7 @@ index a326438..e69093a 100644
    private var allowsBackgroundRecording = false
    private var playsInSilentMode = true
  
-@@ -113,9 +116,12 @@ class AudioModule : Module() {
+@@ -113,9 +116,12 @@
          }
  
          AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
@@ -27,7 +27,7 @@ index a326438..e69093a 100644
              }
            } else {
              focusAcquired = false
-@@ -236,6 +242,8 @@ class AudioModule : Module() {
+@@ -236,6 +242,8 @@
              .build()
          )
          setAcceptsDelayedFocusGain(true)
@@ -36,14 +36,15 @@ index a326438..e69093a 100644
          setOnAudioFocusChangeListener(audioFocusChangeListener)
          build()
        }
-@@ -366,7 +374,26 @@ class AudioModule : Module() {
+@@ -365,8 +373,27 @@
+   @OptIn(DelicateCoroutinesApi::class)
    override fun definition() = ModuleDefinition {
      Name("ExpoAudio")
- 
++
 +    // SocialNet patch (M10b, Android Auto): the car's lists come from JS; a pick goes back to it.
 +    Events("onCarSelect")
 +    Function("setCarLibrary") { json: String -> expo.modules.audio.service.CarLibrary.set(json) }
-+
+ 
 +    // SocialNet patch (M19, 2026-10-05): another app's short sound — lower the volume or pause.
 +    // The choice is part of the focus request, so a held request is renewed to carry it.
 +    Function("setPauseOnPrompts") { on: Boolean ->
@@ -63,10 +64,12 @@ index a326438..e69093a 100644
        audioManager = appContext.reactContext?.getSystemService(Context.AUDIO_SERVICE) as AudioManager
        context.registerReceiver(ringerModeReceiver, IntentFilter(AudioManager.RINGER_MODE_CHANGED_ACTION))
      }
-@@ -618,6 +645,17 @@ class AudioModule : Module() {
+@@ -616,6 +643,28 @@
+         player.preservesPitch
+       }.set { player, preservesPitch: Boolean ->
          player.preservesPitch = preservesPitch
-       }
- 
++      }
++
 +      // SocialNet patch (M19, 2026-10-05): skip silence — Media3's own silence skipping.
 +      Property("skipSilence") { player ->
 +        runOnMain {
@@ -78,9 +81,144 @@ index a326438..e69093a 100644
 +        }
 +      }
 +
++      // SocialNet patch (M21 US11, 2026-10-06): voice boost — DynamicsProcessing on API 28+.
++      Property("voiceBoost") { player ->
++        runOnMain {
++          player.voiceBoost
++        }
++      }.set { player, voiceBoost: Boolean ->
++        runOnMain {
++          player.voiceBoost = voiceBoost
++        }
+       }
+ 
        Property("currentTime") { player ->
-         runOnMain {
-           player.currentTime
+diff --git a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioPlayer.kt b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioPlayer.kt
+index 5613d45..ac0a025 100644
+--- a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioPlayer.kt
++++ b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioPlayer.kt
+@@ -3,8 +3,11 @@
+ import android.Manifest
+ import android.content.Context
+ import android.content.pm.PackageManager
++import android.media.audiofx.DynamicsProcessing
+ import android.media.audiofx.Visualizer
++import android.os.Build
+ import android.util.Log
++import androidx.annotation.RequiresApi
+ import androidx.core.content.ContextCompat
+ import androidx.media3.common.AudioAttributes
+ import androidx.media3.common.C
+@@ -89,9 +92,99 @@
+     installPlayerListeners()
+     source?.let {
+       setMediaSource(source)
++    }
++  }
++
++  // ---- SocialNet patch (M21 US11, 2026-10-06): voice boost ----
++  // DynamicsProcessing (API 28+) on the player's audio session: a pre-EQ that cuts below 100 Hz
++  // and lifts 1-4 kHz by 5 dB, one compressor band (-24 dBFS, 3:1, +6 dB make-up) and a limiter.
++  // The session id can arrive (or change) after the player is built, so the effect is attached
++  // again on every change; it is released when boost goes off and when the player is removed.
++  // Below API 28 nothing happens (the app hides the row there).
++  private var voiceBoostEffect: DynamicsProcessing? = null
++  private var voiceBoostSessionId = C.AUDIO_SESSION_ID_UNSET
++  private val voiceBoostListener = object : Player.Listener {
++    override fun onAudioSessionIdChanged(audioSessionId: Int) {
++      if (voiceBoost) {
++        applyVoiceBoost()
++      }
++    }
++  }
++
++  var voiceBoost = false
++    set(value) {
++      if (field == value) {
++        return
++      }
++      field = value
++      applyVoiceBoost()
++    }
++
++  init {
++    ref.addListener(voiceBoostListener)
++  }
++
++  private fun applyVoiceBoost() {
++    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
++      return
++    }
++    if (!voiceBoost) {
++      releaseVoiceBoost()
++      return
++    }
++    val session = ref.audioSessionId
++    if (session == C.AUDIO_SESSION_ID_UNSET) {
++      return
++    }
++    if (voiceBoostEffect != null && voiceBoostSessionId == session) {
++      voiceBoostEffect?.setEnabled(true)
++      return
+     }
++    releaseVoiceBoost()
++    voiceBoostEffect = try {
++      DynamicsProcessing(0, session, voiceBoostConfig()).also { it.setEnabled(true) }
++    } catch (e: Exception) {
++      Log.w(TAG, "Voice boost could not be attached to session $session", e)
++      null
++    }
++    voiceBoostSessionId = if (voiceBoostEffect != null) session else C.AUDIO_SESSION_ID_UNSET
+   }
+ 
++  @RequiresApi(Build.VERSION_CODES.P)
++  private fun voiceBoostConfig(): DynamicsProcessing.Config {
++    // An EqBand's frequency is the TOP of its band: 0-100 Hz, 100 Hz-1 kHz, 1-4 kHz, 4-20 kHz.
++    val preEq = DynamicsProcessing.Eq(true, true, 4).apply {
++      setBand(0, DynamicsProcessing.EqBand(true, 100f, -12f))
++      setBand(1, DynamicsProcessing.EqBand(true, 1_000f, 0f))
++      setBand(2, DynamicsProcessing.EqBand(true, 4_000f, 5f))
++      setBand(3, DynamicsProcessing.EqBand(true, 20_000f, 0f))
++    }
++    // (enabled, cutoff Hz, attack ms, release ms, ratio, threshold dB, knee dB, gate dB, expander, pre dB, post dB)
++    val mbc = DynamicsProcessing.Mbc(true, true, 1).apply {
++      setBand(0, DynamicsProcessing.MbcBand(true, 20_000f, 5f, 120f, 3f, -24f, 6f, -90f, 1f, 0f, 6f))
++    }
++    // (inUse, enabled, link group, attack ms, release ms, ratio, threshold dB, post gain dB)
++    val limiter = DynamicsProcessing.Limiter(true, true, 0, 1f, 60f, 10f, -1f, 0f)
++    return DynamicsProcessing.Config.Builder(
++      DynamicsProcessing.VARIANT_FAVOR_FREQUENCY_RESOLUTION,
++      2,
++      true, 4,
++      true, 1,
++      false, 0,
++      true
++    )
++      .setPreEqAllChannelsTo(preEq)
++      .setMbcAllChannelsTo(mbc)
++      .setLimiterAllChannelsTo(limiter)
++      .build()
++  }
++
++  private fun releaseVoiceBoost() {
++    voiceBoostEffect?.release()
++    voiceBoostEffect = null
++    voiceBoostSessionId = C.AUDIO_SESSION_ID_UNSET
++  }
++
+   fun setMediaSource(source: MediaSource) {
+     previousPlaybackState = Player.STATE_IDLE
+     ref.setMediaSource(source)
+@@ -244,6 +337,9 @@
+     }
+     serviceConnection.unbind()
+     visualizer?.release()
++    // SocialNet patch (M21 US11): the voice boost effect goes with the player.
++    ref.removeListener(voiceBoostListener)
++    releaseVoiceBoost()
+     super.releasePlayer()
+   }
+ 
 diff --git a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
 index f3ad9d3..c8b1494 100644
 --- a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
@@ -587,10 +725,10 @@ index 0000000..a56f964
 +  }
 +}
 diff --git a/node_modules/expo-audio/ios/AudioModule.swift b/node_modules/expo-audio/ios/AudioModule.swift
-index bad776e..72d4b1d 100644
+index bad776e..f99a31d 100644
 --- a/node_modules/expo-audio/ios/AudioModule.swift
 +++ b/node_modules/expo-audio/ios/AudioModule.swift
-@@ -19,6 +19,9 @@ public class AudioModule: Module {
+@@ -19,6 +19,9 @@
    private var allowsBackgroundRecording = false
    private var sessionOptions: AVAudioSession.CategoryOptions = []
    private var lastConfiguredMode: AudioMode?
@@ -600,7 +738,7 @@ index bad776e..72d4b1d 100644
  
    public func definition() -> ModuleDefinition {
      Name("ExpoAudio")
-@@ -37,6 +40,10 @@ public class AudioModule: Module {
+@@ -37,6 +40,10 @@
        try setAudioMode(mode: mode)
      }
  
@@ -611,20 +749,27 @@ index bad776e..72d4b1d 100644
      AsyncFunction("setIsAudioActiveAsync") { (isActive: Bool) in
        try setIsAudioActive(isActive)
      }
-@@ -195,6 +202,12 @@ public class AudioModule: Module {
+@@ -193,6 +200,19 @@
+         player.shouldCorrectPitch
+       }.set { (player, shouldCorrectPitch: Bool) in
          player.shouldCorrectPitch = shouldCorrectPitch
-       }
- 
++      }
++
 +      Property("skipSilence") { player in
 +        player.skipSilence
 +      }.set { (player, skipSilence: Bool) in
 +        player.skipSilence = skipSilence
 +      }
 +
-       Property("currentTime") { player in
-         player.currentTime
++      // SocialNet patch (M21 US11, 2026-10-06): voice boost — DSP in the audio tap (AudioTapProcessor.m).
++      Property("voiceBoost") { player in
++        player.voiceBoost
++      }.set { (player, voiceBoost: Bool) in
++        player.voiceBoost = voiceBoost
        }
-@@ -204,7 +217,7 @@ public class AudioModule: Module {
+ 
+       Property("currentTime") { player in
+@@ -204,7 +224,7 @@
        }
  
        Property("playbackRate") { player in
@@ -633,7 +778,7 @@ index bad776e..72d4b1d 100644
            player.ref.rate
          } else {
            player.currentRate
-@@ -912,10 +925,12 @@ public class AudioModule: Module {
+@@ -912,10 +932,12 @@
        sessionOptions = categoryOptions
      }
  
@@ -649,10 +794,10 @@ index bad776e..72d4b1d 100644
    }
  
 diff --git a/node_modules/expo-audio/ios/AudioPlayer.swift b/node_modules/expo-audio/ios/AudioPlayer.swift
-index ea6288d..8993986 100644
+index ea6288d..dd32c16 100644
 --- a/node_modules/expo-audio/ios/AudioPlayer.swift
 +++ b/node_modules/expo-audio/ios/AudioPlayer.swift
-@@ -25,6 +25,36 @@ public class AudioPlayer: SharedRef<AVPlayer>, Playable, LockScreenPlayable {
+@@ -25,6 +25,90 @@
    }
    var samplingEnabled = false
    var keepAudioSessionActive = false
@@ -669,12 +814,37 @@ index ea6288d..8993986 100644
 +      } else {
 +        silenceBoostWanted = false
 +        applySilenceBoost(false)
-+        if !samplingEnabled {
++        if !samplingEnabled && !voiceBoost {
 +          uninstallTap()
 +          shouldInstallAudioTap = false
 +        }
 +      }
++      // M21 US11 (T114): a downloaded file gets a real cut; this starts or stops it.
++      scheduleSilenceCut()
 +    }
++  }
++
++  // SocialNet patch (M21 US11, 2026-10-06): voice boost — DSP inside the audio tap
++  // (AudioTapProcessor.m). It needs the tap, so it installs it like sampling does.
++  // An HLS item gets no tap callbacks (Apple forum 45966): the app greys the row out there.
++  var voiceBoost = false {
++    didSet {
++      guard voiceBoost != oldValue else {
++        return
++      }
++      audioProcessor?.voiceBoost = voiceBoost
++      if voiceBoost {
++        installTap()
++      } else if !samplingEnabled && !skipSilence {
++        uninstallTap()
++        shouldInstallAudioTap = false
++      }
++    }
++  }
++
++  /// Sampling, skip silence or voice boost: anything that needs the audio tap.
++  private var needsTap: Bool {
++    samplingEnabled || skipSilence || voiceBoost
 +  }
 +  /// True while the rate is raised over a silence (main thread).
 +  private(set) var isSilenceBoosted = false
@@ -685,11 +855,40 @@ index ea6288d..8993986 100644
 +  private static let silenceLevel: Float = 0.005_623 // -45 dBFS
 +  private static let silenceHoldSeconds: TimeInterval = 0.5
 +  private static let soundHoldSeconds: TimeInterval = 0.1
++  /// The fallback rate over a silence (M19's notes said 2.5; the code has always used 2.0).
 +  private static let silenceBoostRate: Float = 2.0
++  /// M21 US11 (owner, G0): 8x over a silence when the item can play that fast. Whether AVPlayer
++  /// is still audible at 8x is NOT VERIFIED — if it is silent or glitchy on the iPhone, set this
++  /// ONE constant to false and every silence goes back to 2.0.
++  private static let useFastSilenceRate = true
++  private static let fastSilenceRate: Float = 8.0
++  private var silenceRate: Float {
++    if AudioPlayer.useFastSilenceRate, ref.currentItem?.canPlayFastForward == true {
++      return AudioPlayer.fastSilenceRate
++    }
++    return AudioPlayer.silenceBoostRate
++  }
++
++  // SocialNet patch (M21 US11, T114): a REAL cut for downloaded files. A stream cannot be read
++  // ahead, so it keeps the rate boost; a local file is scanned once, off the main thread, for
++  // ranges under the same -45 dBFS level lasting >= 0.5 s, and a boundary observer seeks over
++  // each. Main thread only, except the scan itself.
++  private var silenceCutObserver: Any?
++  private weak var silenceCutPlayer: AVPlayer?
++  private var silenceCutRanges: [CMTimeRange] = []
++  private var silenceCutURL: URL?
++  private var silenceScanGeneration = 0
++  /// True while the current item is cut (main thread); the tap's rate boost then stays off.
++  private(set) var cutsActive = false
++  private static let cutMinimumSeconds: Double = 0.5
++  /// Of each silence, this much is kept before the jump and this much after it, so words keep their edges.
++  private static let cutLeadSeconds: Double = 0.15
++  private static let cutTailSeconds: Double = 0.1
++  private static let scanSampleRate: Double = 8_000
    var onRelease: (() -> Void)?
  
    var isLooping = false {
-@@ -106,6 +136,8 @@ public class AudioPlayer: SharedRef<AVPlayer>, Playable, LockScreenPlayable {
+@@ -106,6 +190,8 @@
    }
  
    func play(at rate: Float) {
@@ -698,16 +897,16 @@ index ea6288d..8993986 100644
      ref.actionAtItemEnd = isLooping ? .advance : .pause
      if isLooping {
        enqueueNextLoopItem()
-@@ -130,7 +162,7 @@ public class AudioPlayer: SharedRef<AVPlayer>, Playable, LockScreenPlayable {
+@@ -130,7 +216,7 @@
        } else {
          shouldInstallAudioTap = true
        }
 -    } else {
-+    } else if !skipSilence {
++    } else if !skipSilence && !voiceBoost {
        uninstallTap()
        shouldInstallAudioTap = false
      }
-@@ -138,7 +170,8 @@ public class AudioPlayer: SharedRef<AVPlayer>, Playable, LockScreenPlayable {
+@@ -138,7 +224,8 @@
  
    func currentStatus() -> [String: Any?] {
      let currentDuration = ref.status == .readyToPlay ? duration : 0.0
@@ -717,92 +916,121 @@ index ea6288d..8993986 100644
      return [
        "id": id,
        "currentTime": currentTime,
-@@ -217,7 +250,7 @@ public class AudioPlayer: SharedRef<AVPlayer>, Playable, LockScreenPlayable {
+@@ -217,10 +304,12 @@
            if self.isLooping {
              self.enqueueNextLoopItem()
            }
 -          if shouldInstallAudioTap || samplingEnabled {
-+          if shouldInstallAudioTap || samplingEnabled || skipSilence {
++          if shouldInstallAudioTap || self.needsTap {
              installTap()
              shouldInstallAudioTap = false
            }
-@@ -239,7 +272,7 @@ public class AudioPlayer: SharedRef<AVPlayer>, Playable, LockScreenPlayable {
++          // M21 US11 (T114): a downloaded file is scanned for silences once it is ready.
++          self.scheduleSilenceCut()
+         }
+         if status == .failed {
+           self.updateStatus(with: [
+@@ -239,7 +328,7 @@
            self.enqueueNextLoopItem()
            self.addPlaybackEndNotification()
          }
 -        if self.samplingEnabled && self.isLoaded {
-+        if (self.samplingEnabled || self.skipSilence) && self.isLoaded {
++        if self.needsTap && self.isLoaded {
            self.uninstallTap()
            self.installTap()
          }
-@@ -249,11 +282,11 @@ public class AudioPlayer: SharedRef<AVPlayer>, Playable, LockScreenPlayable {
+@@ -249,14 +338,15 @@
  
    func replaceWithPreloadedItem(_ item: AVPlayerItem?) {
      let wasPlaying = ref.timeControlStatus == .playing
 -    let wasSamplingEnabled = samplingEnabled
-+    let wasSamplingEnabled = samplingEnabled || skipSilence
++    let wasSamplingEnabled = needsTap
      removeQueuedLoopItems()
      ref.pause()
  
 -    if samplingEnabled {
-+    if samplingEnabled || skipSilence {
++    if needsTap {
        uninstallTap()
      }
      replacePlayerItem(with: item)
-@@ -270,11 +303,11 @@ public class AudioPlayer: SharedRef<AVPlayer>, Playable, LockScreenPlayable {
++    scheduleSilenceCut()
+ 
+     if wasSamplingEnabled {
+       shouldInstallAudioTap = true
+@@ -270,15 +360,16 @@
    func replaceCurrentSource(source: AudioSource?) {
      self.source = source
      let wasPlaying = ref.timeControlStatus == .playing
 -    let wasSamplingEnabled = samplingEnabled
-+    let wasSamplingEnabled = samplingEnabled || skipSilence
++    let wasSamplingEnabled = needsTap
      removeQueuedLoopItems()
      ref.pause()
  
 -    if samplingEnabled {
-+    if samplingEnabled || skipSilence {
++    if needsTap {
        uninstallTap()
      }
      let item = AudioUtils.createAVPlayerItem(from: source)
-@@ -302,7 +335,7 @@ public class AudioPlayer: SharedRef<AVPlayer>, Playable, LockScreenPlayable {
+     replacePlayerItem(with: item)
++    scheduleSilenceCut()
+ 
+     if wasSamplingEnabled {
+       shouldInstallAudioTap = true
+@@ -302,7 +393,7 @@
      let shouldResume = wasPlaying
      let savedTime = currentTime
      let savedRate = currentRate > 0 ? currentRate : 1.0
 -    let wasSamplingEnabled = samplingEnabled
-+    let wasSamplingEnabled = samplingEnabled || skipSilence
++    let wasSamplingEnabled = needsTap
  
      replacePlayer(with: source, restoreSampling: wasSamplingEnabled)
  
-@@ -327,7 +360,7 @@ public class AudioPlayer: SharedRef<AVPlayer>, Playable, LockScreenPlayable {
+@@ -327,7 +418,8 @@
  
    private func teardownPlayer() {
      removeQueuedLoopItems()
 -    if samplingEnabled {
-+    if samplingEnabled || skipSilence {
++    scheduleSilenceCut()
++    if needsTap {
        uninstallTap()
      }
      if let timeToken {
-@@ -382,8 +415,15 @@ public class AudioPlayer: SharedRef<AVPlayer>, Playable, LockScreenPlayable {
+@@ -375,6 +467,7 @@
+     }
+ 
+     audioProcessor = AudioTapProcessor(player: ref)
++    audioProcessor?.voiceBoost = voiceBoost
+     let success = audioProcessor?.installTap() ?? false
+     tapInstalled = success
+ 
+@@ -382,11 +475,19 @@
        audioProcessor?.sampleBufferCallback = { [weak self] buffer, frameCount, timestamp in
          guard let self = self,
            let audioBuffer = buffer?.pointee,
 -          let data = audioBuffer.mData,
 -          self.samplingEnabled else {
 +          let data = audioBuffer.mData else {
-+          return
-+        }
-+
-+        if self.skipSilence {
+           return
+         }
+ 
++        // M21 (T114): a cut file skips its silences itself; the rate boost is for streams.
++        if self.skipSilence && !self.cutsActive {
 +          self.measureSilence(audioBuffer)
 +        }
 +
 +        guard self.samplingEnabled else {
-           return
-         }
++          return
++        }
++
+         let channelCount = Int(audioBuffer.mNumberChannels)
+         let dataPointer = data.assumingMemoryBound(to: Float.self)
  
-@@ -411,6 +451,61 @@ public class AudioPlayer: SharedRef<AVPlayer>, Playable, LockScreenPlayable {
+@@ -409,8 +510,237 @@
+     tapInstalled = false
+     audioProcessor?.uninstallTap()
      audioProcessor?.sampleBufferCallback = nil
-   }
- 
++  }
++
 +  // SocialNet patch (M19): runs on the tap's audio thread. Quiet for 0.5 s raises the rate;
 +  // sound for 0.1 s puts it back. The rate itself is only touched on the main thread.
 +  private func measureSilence(_ audioBuffer: AudioBuffer) {
@@ -855,9 +1083,415 @@ index ea6288d..8993986 100644
 +    guard ref.timeControlStatus == .playing else {
 +      return
 +    }
-+    ref.rate = boost ? max(effectiveRate, AudioPlayer.silenceBoostRate) : effectiveRate
++    ref.rate = boost ? max(effectiveRate, silenceRate) : effectiveRate
+   }
+ 
++  // MARK: SocialNet patch (M21 US11, T114): the real silence cut for downloaded files
++
++  /// Starts or stops the cut on the main thread: on for a loaded local file with skip silence on.
++  private func scheduleSilenceCut() {
++    DispatchQueue.main.async { [weak self] in
++      guard let self else {
++        return
++      }
++      guard self.skipSilence, self.isLoaded,
++        let url = (self.ref.currentItem?.asset as? AVURLAsset)?.url, url.isFileURL else {
++        self.stopSilenceCut()
++        return
++      }
++      // Already scanned (or scanning) this file on this player.
++      if self.silenceCutURL == url && self.silenceCutPlayer === self.ref {
++        return
++      }
++      self.stopSilenceCut()
++      self.silenceCutURL = url
++      self.silenceCutPlayer = self.ref
++      let generation = self.silenceScanGeneration
++      DispatchQueue.global(qos: .utility).async {
++        let ranges = AudioPlayer.scanSilences(url: url)
++        DispatchQueue.main.async { [weak self] in
++          guard let self, generation == self.silenceScanGeneration, self.skipSilence, !ranges.isEmpty,
++            (self.ref.currentItem?.asset as? AVURLAsset)?.url == url else {
++            return
++          }
++          self.installSilenceCut(ranges)
++        }
++      }
++    }
++  }
++
++  private func installSilenceCut(_ ranges: [CMTimeRange]) {
++    let player = ref
++    silenceCutRanges = ranges
++    silenceCutPlayer = player
++    silenceCutObserver = player.addBoundaryTimeObserver(
++      forTimes: ranges.map { NSValue(time: $0.start) },
++      queue: .main
++    ) { [weak self] in
++      self?.jumpOverSilence()
++    }
++    cutsActive = true
++    // The stream path's boost is not needed any more on this item.
++    silenceBoostWanted = false
++    applySilenceBoost(false)
++  }
++
++  /// Removes the observer and forgets the ranges; any scan still running is ignored when it ends.
++  private func stopSilenceCut() {
++    silenceScanGeneration += 1
++    if let token = silenceCutObserver {
++      silenceCutPlayer?.removeTimeObserver(token)
++    }
++    silenceCutObserver = nil
++    silenceCutPlayer = nil
++    silenceCutURL = nil
++    silenceCutRanges = []
++    cutsActive = false
++  }
++
++  /// A boundary was crossed: if the position is inside a silence, go to its end.
++  private func jumpOverSilence() {
++    guard skipSilence, cutsActive, ref.timeControlStatus == .playing, let item = ref.currentItem else {
++      return
++    }
++    let now = item.currentTime()
++    let early = CMTimeAdd(now, CMTime(value: 1, timescale: 10))
++    guard let range = silenceCutRanges.first(where: {
++      CMTimeCompare($0.start, early) <= 0 && CMTimeCompare(now, $0.end) < 0
++    }) else {
++      return
++    }
++    ref.seek(to: range.end, toleranceBefore: .zero, toleranceAfter: CMTime(value: 1, timescale: 20))
++  }
++
++  /// Reads the whole file once as 8 kHz mono float, in 20 ms windows; a run of quiet windows
++  /// lasting >= 0.5 s becomes one range (trimmed at both ends). Runs off the main thread.
++  private static func scanSilences(url: URL) -> [CMTimeRange] {
++    let asset = AVURLAsset(url: url)
++    guard let track = asset.tracks(withMediaType: .audio).first,
++      let reader = try? AVAssetReader(asset: asset) else {
++      return []
++    }
++    let settings: [String: Any] = [
++      AVFormatIDKey: kAudioFormatLinearPCM,
++      AVSampleRateKey: scanSampleRate,
++      AVNumberOfChannelsKey: 1,
++      AVLinearPCMBitDepthKey: 32,
++      AVLinearPCMIsFloatKey: true,
++      AVLinearPCMIsBigEndianKey: false,
++      AVLinearPCMIsNonInterleaved: false
++    ]
++    let output = AVAssetReaderTrackOutput(track: track, outputSettings: settings)
++    output.alwaysCopiesSampleData = false
++    guard reader.canAdd(output) else {
++      return []
++    }
++    reader.add(output)
++    guard reader.startReading() else {
++      return []
++    }
++
++    let window = Int(scanSampleRate * 0.02)
++    let quietSquared = silenceLevel * silenceLevel
++    var ranges: [CMTimeRange] = []
++    var samples = [Float](repeating: 0, count: 4_096)
++    var windowSum: Float = 0
++    var windowCount = 0
++    var framesRead = 0
++    var silentSince: Int?
++
++    func addRange(_ startFrame: Int, _ endFrame: Int) {
++      let length = Double(endFrame - startFrame) / scanSampleRate
++      let start = Double(startFrame) / scanSampleRate + cutLeadSeconds
++      let end = Double(endFrame) / scanSampleRate - cutTailSeconds
++      guard length >= cutMinimumSeconds, end - start > 0.2 else {
++        return
++      }
++      ranges.append(CMTimeRange(
++        start: CMTime(seconds: start, preferredTimescale: 1_000),
++        end: CMTime(seconds: end, preferredTimescale: 1_000)
++      ))
++    }
++
++    while reader.status == .reading, let buffer = output.copyNextSampleBuffer() {
++      guard let block = CMSampleBufferGetDataBuffer(buffer) else {
++        continue
++      }
++      let count = CMBlockBufferGetDataLength(block) / MemoryLayout<Float>.size
++      if count == 0 {
++        continue
++      }
++      if samples.count < count {
++        samples = [Float](repeating: 0, count: count)
++      }
++      let copied = samples.withUnsafeMutableBytes { raw -> OSStatus in
++        guard let base = raw.baseAddress else {
++          return OSStatus(-1)
++        }
++        return CMBlockBufferCopyDataBytes(block, atOffset: 0, dataLength: count * MemoryLayout<Float>.size, destination: base)
++      }
++      if copied != noErr {
++        framesRead += count
++        continue
++      }
++      for index in 0..<count {
++        let sample = samples[index]
++        windowSum += sample * sample
++        windowCount += 1
++        if windowCount == window {
++          let windowStart = framesRead + index + 1 - window
++          if windowSum / Float(window) < quietSquared {
++            if silentSince == nil {
++              silentSince = windowStart
++            }
++          } else if let start = silentSince {
++            addRange(start, windowStart)
++            silentSince = nil
++          }
++          windowSum = 0
++          windowCount = 0
++        }
++      }
++      framesRead += count
++    }
++    if let start = silentSince {
++      addRange(start, framesRead)
++    }
++    return ranges
 +  }
 +
    private func replacePlayerItem(with item: AVPlayerItem?) {
      if let queuePlayer = ref as? AVQueuePlayer {
        queuePlayer.removeAllItems()
+diff --git a/node_modules/expo-audio/ios/AudioTapProcessor.h b/node_modules/expo-audio/ios/AudioTapProcessor.h
+index ddd4f23..1304d21 100644
+--- a/node_modules/expo-audio/ios/AudioTapProcessor.h
++++ b/node_modules/expo-audio/ios/AudioTapProcessor.h
+@@ -8,6 +8,9 @@
+ @property (nonatomic, copy, nullable) SampleBufferCallback sampleBufferCallback;
+ @property (nonatomic, strong, readonly) AVPlayer *player;
+ @property (nonatomic, readonly) BOOL isTapInstalled;
++/// SocialNet patch (M21 US11): voice boost — a high-pass, a speech-band peak, a compressor and a
++/// limiter, run inside the tap on every buffer. Safe to set from any thread (an atomic flag).
++@property (nonatomic) BOOL voiceBoost;
+ 
+ - (instancetype)initWithPlayer:(AVPlayer *)player;
+ - (BOOL)installTap;
+diff --git a/node_modules/expo-audio/ios/AudioTapProcessor.m b/node_modules/expo-audio/ios/AudioTapProcessor.m
+index 6f8fb16..f817b1a 100644
+--- a/node_modules/expo-audio/ios/AudioTapProcessor.m
++++ b/node_modules/expo-audio/ios/AudioTapProcessor.m
+@@ -3,22 +3,151 @@
+ #import "AudioTapProcessor.h"
+ #import <AudioToolbox/AudioToolbox.h>
+ #import <os/lock.h>
++#import <stdatomic.h>
++#import <math.h>
++#import <string.h>
+ 
+ NS_ASSUME_NONNULL_BEGIN
+ 
++// SocialNet patch (M21 US11, 2026-10-06): voice boost. The chain, per channel: a high-pass at
++// 100 Hz (rumble out), a +5 dB peak at 2 kHz (the speech band up), a compressor (-24 dBFS, 3:1,
++// 5 ms / 120 ms) with +6 dB make-up, then a hard limiter at -0.5 dBFS. Coefficients are worked
++// out once in tapPrepare from the processing format's sample rate; tapProcess only reads them,
++// so the audio thread never allocates or locks. Biquads are written out by hand (transposed
++// direct form II), not vDSP_biquad, so no setup object has to be created or freed.
++#define SN_BOOST_MAX_CHANNELS 8
++#define SN_BOOST_HIGHPASS_HZ 100.0
++#define SN_BOOST_PEAK_HZ 2000.0
++#define SN_BOOST_PEAK_DB 5.0
++#define SN_BOOST_PEAK_Q 1.0
++#define SN_BOOST_THRESHOLD 0.0631f   /* -24 dBFS */
++#define SN_BOOST_RATIO 3.0f
++#define SN_BOOST_MAKEUP 1.9953f      /* +6 dB */
++#define SN_BOOST_CEILING 0.9441f     /* -0.5 dBFS */
++
++typedef struct {
++  float b0, b1, b2, a1, a2;
++} SNBiquad;
++
++typedef struct {
++  Boolean ready;      // float32 PCM and a sample rate: the chain can run
++  Boolean wasOn;      // the state is cleared when boost is switched back on
++  SNBiquad highPass;
++  SNBiquad peak;
++  float attack;
++  float release;
++  float hpZ1[SN_BOOST_MAX_CHANNELS];
++  float hpZ2[SN_BOOST_MAX_CHANNELS];
++  float pkZ1[SN_BOOST_MAX_CHANNELS];
++  float pkZ2[SN_BOOST_MAX_CHANNELS];
++  float envelope[SN_BOOST_MAX_CHANNELS];
++} SNVoiceBoost;
++
+ typedef struct AVAudioTapProcessorContext {
+   Boolean isNonInterleaved;
+   Boolean supportedTapProcessingFormat;
+   void *self;
+   Boolean isValid;
++  SNVoiceBoost boost;
+ } AVAudioTapProcessorContext;
+ 
++/// RBJ cookbook, normalised by a0.
++static SNBiquad snHighPass(double sampleRate, double hz, double q) {
++  double w0 = 2.0 * M_PI * hz / sampleRate;
++  double cosw = cos(w0);
++  double alpha = sin(w0) / (2.0 * q);
++  double a0 = 1.0 + alpha;
++  SNBiquad c;
++  c.b0 = (float)(((1.0 + cosw) / 2.0) / a0);
++  c.b1 = (float)(-(1.0 + cosw) / a0);
++  c.b2 = (float)(((1.0 + cosw) / 2.0) / a0);
++  c.a1 = (float)((-2.0 * cosw) / a0);
++  c.a2 = (float)((1.0 - alpha) / a0);
++  return c;
++}
+ 
++static SNBiquad snPeak(double sampleRate, double hz, double q, double gainDb) {
++  double a = pow(10.0, gainDb / 40.0);
++  double w0 = 2.0 * M_PI * hz / sampleRate;
++  double cosw = cos(w0);
++  double alpha = sin(w0) / (2.0 * q);
++  double a0 = 1.0 + alpha / a;
++  SNBiquad c;
++  c.b0 = (float)((1.0 + alpha * a) / a0);
++  c.b1 = (float)((-2.0 * cosw) / a0);
++  c.b2 = (float)((1.0 - alpha * a) / a0);
++  c.a1 = (float)((-2.0 * cosw) / a0);
++  c.a2 = (float)((1.0 - alpha / a) / a0);
++  return c;
++}
++
++static inline float snRun(const SNBiquad *c, float x, float *z1, float *z2) {
++  float y = c->b0 * x + *z1;
++  *z1 = c->b1 * x - c->a1 * y + *z2;
++  *z2 = c->b2 * x - c->a2 * y;
++  return y;
++}
++
++/// Runs the chain over every buffer and every channel, in place. Audio thread: no allocation, no lock.
++static void snVoiceBoostProcess(SNVoiceBoost *boost, AudioBufferList *list, CMItemCount frames) {
++  if (!boost->ready || !list || frames <= 0) {
++    return;
++  }
++  if (!boost->wasOn) {
++    memset(boost->hpZ1, 0, sizeof(boost->hpZ1));
++    memset(boost->hpZ2, 0, sizeof(boost->hpZ2));
++    memset(boost->pkZ1, 0, sizeof(boost->pkZ1));
++    memset(boost->pkZ2, 0, sizeof(boost->pkZ2));
++    memset(boost->envelope, 0, sizeof(boost->envelope));
++    boost->wasOn = true;
++  }
++  UInt32 channel = 0;
++  for (UInt32 b = 0; b < list->mNumberBuffers; b++) {
++    AudioBuffer *buffer = &list->mBuffers[b];
++    UInt32 channels = buffer->mNumberChannels > 0 ? buffer->mNumberChannels : 1;
++    if (!buffer->mData) {
++      channel += channels;
++      continue;
++    }
++    float *samples = (float *)buffer->mData;
++    CMItemCount bufferFrames = (CMItemCount)(buffer->mDataByteSize / (sizeof(float) * channels));
++    if (bufferFrames > frames) {
++      bufferFrames = frames;
++    }
++    for (UInt32 c = 0; c < channels; c++, channel++) {
++      if (channel >= SN_BOOST_MAX_CHANNELS) {
++        continue;
++      }
++      float env = boost->envelope[channel];
++      for (CMItemCount i = 0; i < bufferFrames; i++) {
++        float *sample = &samples[i * channels + c];
++        float y = snRun(&boost->highPass, *sample, &boost->hpZ1[channel], &boost->hpZ2[channel]);
++        y = snRun(&boost->peak, y, &boost->pkZ1[channel], &boost->pkZ2[channel]);
++        float level = fabsf(y);
++        env = level > env ? boost->attack * env + (1.0f - boost->attack) * level
++                          : boost->release * env + (1.0f - boost->release) * level;
++        float gain = env > SN_BOOST_THRESHOLD ? powf(env / SN_BOOST_THRESHOLD, (1.0f / SN_BOOST_RATIO) - 1.0f) : 1.0f;
++        y *= gain * SN_BOOST_MAKEUP;
++        if (y > SN_BOOST_CEILING) {
++          y = SN_BOOST_CEILING;
++        } else if (y < -SN_BOOST_CEILING) {
++          y = -SN_BOOST_CEILING;
++        }
++        *sample = y;
++      }
++      boost->envelope[channel] = env;
++    }
++  }
++}
++
++
+ @implementation AudioTapProcessor {
+   os_unfair_lock _lock;
+   MTAudioProcessingTapRef _audioProcessingTap;
+   BOOL _isTapInstalled;
+   BOOL _isInvalidated;
++  // SocialNet patch (M21 US11): read on the audio thread without a lock.
++  atomic_bool _voiceBoost;
+ }
+ 
+ - (instancetype)initWithPlayer:(AVPlayer *)player {
+@@ -29,10 +158,19 @@
+     _isTapInstalled = NO;
+     _isInvalidated = NO;
+     _audioProcessingTap = NULL;
++    atomic_init(&_voiceBoost, false);
+   }
+   return self;
+ }
+ 
++- (BOOL)voiceBoost {
++  return atomic_load_explicit(&_voiceBoost, memory_order_relaxed) ? YES : NO;
++}
++
++- (void)setVoiceBoost:(BOOL)voiceBoost {
++  atomic_store_explicit(&_voiceBoost, voiceBoost ? true : false, memory_order_relaxed);
++}
++
+ - (BOOL)isTapInstalled {
+   os_unfair_lock_lock(&_lock);
+   BOOL installed = _isTapInstalled;
+@@ -181,6 +319,21 @@
+   if (processingFormat->mFormatFlags & kAudioFormatFlagIsNonInterleaved) {
+     context->isNonInterleaved = true;
+   }
++
++  // SocialNet patch (M21 US11): the voice boost's coefficients, once per sample rate.
++  double sampleRate = processingFormat->mSampleRate;
++  context->boost.ready = false;
++  context->boost.wasOn = false;
++  if (processingFormat->mFormatID == kAudioFormatLinearPCM
++      && (processingFormat->mFormatFlags & kAudioFormatFlagIsFloat)
++      && processingFormat->mBitsPerChannel == 32
++      && sampleRate > 0) {
++    context->boost.highPass = snHighPass(sampleRate, SN_BOOST_HIGHPASS_HZ, M_SQRT1_2);
++    context->boost.peak = snPeak(sampleRate, SN_BOOST_PEAK_HZ, SN_BOOST_PEAK_Q, SN_BOOST_PEAK_DB);
++    context->boost.attack = (float)exp(-1.0 / (0.005 * sampleRate));
++    context->boost.release = (float)exp(-1.0 / (0.120 * sampleRate));
++    context->boost.ready = true;
++  }
+ }
+ 
+ void tapProcess(MTAudioProcessingTapRef tap, CMItemCount numberFrames, MTAudioProcessingTapFlags flags, AudioBufferList *bufferListInOut, CMItemCount *numberFramesOut, MTAudioProcessingTapFlags *flagsOut) {
+@@ -201,11 +354,19 @@
+     return;
+   }
+   
++  // The callback (sampling, and the M19 silence measure) sees the sound before the boost.
+   SampleBufferCallback callback = processor.sampleBufferCallback;
+   if (callback && bufferListInOut && bufferListInOut->mNumberBuffers > 0) {
+     double timestamp = 0.0; 
+     callback(&bufferListInOut->mBuffers[0], (long)numberFrames, timestamp);
+   }
++
++  // SocialNet patch (M21 US11): voice boost, on every buffer and channel.
++  if (atomic_load_explicit(&processor->_voiceBoost, memory_order_relaxed)) {
++    snVoiceBoostProcess(&context->boost, bufferListInOut, *numberFramesOut);
++  } else {
++    context->boost.wasOn = false;
++  }
+ }
+ 
+ 

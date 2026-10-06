@@ -11,7 +11,7 @@ import { checkCode, consumeCode } from '../../auth/codes.ts';
 import { removeAllFor } from '../../db/repos/social/voice-posts.ts';
 import { removeImagesFor } from '../../db/repos/social/comment-images.ts';
 import { hasPlus } from '../../db/repos/account/purchases.ts';
-import { AGE_RANGES, AVATAR_CEILING_BYTES, AVATAR_MAX_BYTES, GENDERS, avatarBytesOthers, currentAvatar, imageKind, myProfile, setAvatar, updateProfile } from '../../db/repos/account/profile.ts';
+import { AGE_RANGES, AVATAR_CEILING_BYTES, AVATAR_MAX_BYTES, GENDERS, INDUSTRY_MAX, avatarBytesOthers, currentAvatar, imageKind, myProfile, setAvatar, updateProfile } from '../../db/repos/account/profile.ts';
 
 export const me = new Hono<AuthEnv>();
 
@@ -23,14 +23,29 @@ me.get('/', requireAuth, async (c) => {
   return c.json({ listener: { ...publicListener(l), ...(await myProfile(c.get('db'), l.id)), plus: await hasPlus(c.get('db'), l.id) } });
 });
 
-/** M19 US1 (FR-001, FR-003): PATCH { displayName?, bio?, ageRange?, gender?, likesPublic? } — only what is sent changes. */
+/** M19 US1 (FR-001, FR-003): PATCH { displayName?, bio?, ageRange?, gender?, likesPublic? } — only what is sent changes.
+ * M21 US8/US10: also birthday, industry (≤ 40), hideBadge, hideStickers, hideDecorations, privateSubscriptions. */
 const patchBody = z.object({
   displayName: z.string().trim().min(1).max(30).optional(),
   bio: z.string().trim().max(160).optional(),
   ageRange: z.enum(AGE_RANGES).nullable().optional(),
   gender: z.enum(GENDERS).nullable().optional(),
   likesPublic: z.boolean().optional(),
+  // M21 US8 (FR-075): optional, private to the listener. A birthday is a real past date after 1900.
+  birthday: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(isPastDate, 'Not a real date.').nullable().optional(),
+  industry: z.string().trim().max(INDUSTRY_MAX).nullable().optional(),
+  // M21 US10: the privacy switches.
+  hideBadge: z.boolean().optional(),
+  hideStickers: z.boolean().optional(),
+  hideDecorations: z.boolean().optional(),
+  privateSubscriptions: z.boolean().optional(),
 });
+
+/** YYYY-MM-DD that exists on the calendar, after 1900-01-01 and not in the future. */
+function isPastDate(s: string): boolean {
+  const d = new Date(`${s}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s && s >= '1900-01-01' && d.getTime() <= Date.now();
+}
 me.patch('/', requireAuth, json(patchBody), async (c) => {
   const db = c.get('db');
   const l = c.get('listener')!;
@@ -39,6 +54,10 @@ me.patch('/', requireAuth, json(patchBody), async (c) => {
     ...(b.displayName !== undefined ? { displayName: b.displayName } : {}), ...(b.bio !== undefined ? { bio: b.bio } : {}),
     ...(b.ageRange !== undefined ? { ageRange: b.ageRange } : {}), ...(b.gender !== undefined ? { gender: b.gender } : {}),
     ...(b.likesPublic !== undefined ? { likesPublic: b.likesPublic } : {}),
+    ...(b.birthday !== undefined ? { birthday: b.birthday } : {}), ...(b.industry !== undefined ? { industry: b.industry } : {}),
+    ...(b.hideBadge !== undefined ? { hideBadge: b.hideBadge } : {}), ...(b.hideStickers !== undefined ? { hideStickers: b.hideStickers } : {}),
+    ...(b.hideDecorations !== undefined ? { hideDecorations: b.hideDecorations } : {}),
+    ...(b.privateSubscriptions !== undefined ? { privateSubscriptions: b.privateSubscriptions } : {}),
   });
   const [n] = await db.query<{ display_name: string }>('SELECT display_name FROM listeners WHERE id = $1', [l.id]);
   return c.json({ listener: { ...publicListener({ ...l, display_name: n?.display_name ?? l.display_name }), ...(await myProfile(db, l.id)) } });

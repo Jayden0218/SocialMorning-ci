@@ -1,4 +1,4 @@
-// Edit profile: photo, name, short bio, optional age range and gender, and whether likes are public.
+// Edit profile: photo, name, short bio, optional age range, gender, birthday and industry, and whether likes are public.
 /**
  * M19 T013 (US1, FR-001–FR-008): your own profile, edited. A square photo (picked with the
  * system crop, shrunk to 400 px and ≤ 200 KB on the phone), the name (1–30), a short bio
@@ -7,6 +7,8 @@
  * then the photo, then says so and goes back.
  *
  * Editorial look (M17): the app's own header, white cards, serif section titles, yellow chips.
+ * M21 US8 (FR-075): an optional birthday (typed as YYYY-MM-DD — our own field, no system date
+ * picker) and industry (≤ 40). Both are private: the server returns them to you alone (G-M21-10).
  */
 import { useEffect, useState } from 'react';
 import { ScrollView } from '@/ui/lib/scroll-view';
@@ -28,7 +30,7 @@ import { useColours } from '@/ui/kit/useColours';
 import { useStores, useToast } from '@/ui/shell/providers';
 import { useSocial } from '@/social/context';
 import { ApiError } from '@/social/api';
-import { AGE_RANGES, BIO_MAX, GENDERS, NAME_MAX, useProfileApi, type AgeRange, type Gender } from '@/social/profile-api';
+import { AGE_RANGES, BIO_MAX, GENDERS, INDUSTRY_MAX, NAME_MAX, birthdayOk, useProfileApi, type AgeRange, type Gender } from '@/social/profile-api';
 import { avatarBytes, pickAvatar } from '@/social/avatar-image';
 
 const TAP = { minHeight: hit.min };
@@ -53,6 +55,8 @@ export default function EditProfileScreen(): React.ReactElement {
   const [age, setAge] = useState<AgeRange | null>(null);
   const [gender, setGender] = useState<Gender | null>(null);
   const [likesPublic, setLikesPublic] = useState(true);
+  const [birthday, setBirthday] = useState('');
+  const [industry, setIndustry] = useState('');
   const [photo, setPhoto] = useState<Photo>({ kind: 'server' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
@@ -65,6 +69,8 @@ export default function EditProfileScreen(): React.ReactElement {
       setAge(asAge(me.ageRange));
       setGender(asGender(me.gender));
       setLikesPublic(me.likesPublic !== false);
+      setBirthday(me.birthday ?? '');
+      setIndustry(me.industry ?? '');
       setPhoto(me.avatarUrl ? { kind: 'server', url: me.avatarUrl } : { kind: 'server' });
       setLoaded('ok');
     }).catch(() => setLoaded('error'));
@@ -89,6 +95,8 @@ export default function EditProfileScreen(): React.ReactElement {
   const shownUrl = photo.kind === 'picked' ? photo.uri : photo.kind === 'server' ? photo.url : undefined;
   const trimmed = name.trim();
   const nameOk = trimmed.length >= 1 && trimmed.length <= NAME_MAX;
+  const bday = birthday.trim();
+  const bdayOk = bday === '' || birthdayOk(bday, new Date());
 
   const choosePhoto = async () => {
     setError(undefined);
@@ -103,11 +111,12 @@ export default function EditProfileScreen(): React.ReactElement {
   };
 
   const save = async () => {
-    if (!nameOk || busy) return;
+    if (!nameOk || !bdayOk || busy) return;
     setBusy(true);
     setError(undefined);
     try {
-      const me = await profileApi.update({ displayName: trimmed, bio: bio.trim().slice(0, BIO_MAX), ageRange: age, gender, likesPublic });
+      const me = await profileApi.update({ displayName: trimmed, bio: bio.trim().slice(0, BIO_MAX), ageRange: age, gender, likesPublic,
+        birthday: bday === '' ? null : bday, industry: industry.trim() === '' ? null : industry.trim().slice(0, INDUSTRY_MAX) });
       if (photo.kind === 'picked') await profileApi.uploadAvatar(await avatarBytes(photo.uri));
       else if (photo.kind === 'removed') await profileApi.removeAvatar();
       // The name shown across the app (Me, comments you write) comes from the signed-in row.
@@ -172,6 +181,23 @@ export default function EditProfileScreen(): React.ReactElement {
         <Text className="text-muted text-xs">Never shown on your profile. Creators see only totals of 10 or more.</Text>
       </Box>
 
+      {/* M21 US8 (FR-075): both optional, both private — never on your profile. */}
+      <Box className="gap-gap">
+        <Text className="text-text text-base font-display" accessibilityRole="header">Birthday</Text>
+        <Input className="bg-surface border border-border rounded-row h-auto px-0">
+          <InputField placeholderTextColor={c.muted} placeholder="YYYY-MM-DD (optional)" value={birthday} onChangeText={(t) => setBirthday(t.replace(/[^0-9-]/g, '').slice(0, 10))} maxLength={10} keyboardType="numbers-and-punctuation" accessibilityLabel="Birthday, year-month-day" className="p-row text-base text-text" />
+        </Input>
+        {bdayOk ? null : <Text className="text-accent text-xs">Write it as year-month-day, e.g. 1995-04-21.</Text>}
+      </Box>
+
+      <Box className="gap-gap">
+        <Text className="text-text text-base font-display" accessibilityRole="header">Industry</Text>
+        <Input className="bg-surface border border-border rounded-row h-auto px-0">
+          <InputField placeholderTextColor={c.muted} placeholder="What you work in (optional)" value={industry} onChangeText={(t) => setIndustry(t.slice(0, INDUSTRY_MAX))} maxLength={INDUSTRY_MAX} accessibilityLabel="Industry" className="p-row text-base text-text" />
+        </Input>
+        <Text className="text-muted text-xs">{`Private: only you see your birthday and industry. ${industry.length} / ${INDUSTRY_MAX}`}</Text>
+      </Box>
+
       <Card>
         <Box className="flex-row items-center gap-section py-row">
           <Box className="flex-1">
@@ -185,7 +211,7 @@ export default function EditProfileScreen(): React.ReactElement {
       {error ? <Text className="text-accent text-body" accessibilityLiveRegion="polite">{error}</Text> : null}
     </ScrollView>
     <BottomBar tone="surface" line="border" className="flex-row items-center justify-end">
-      <Button label="Save" onPress={() => void save()} disabled={!nameOk} busy={busy} className="px-9" />
+      <Button label="Save" onPress={() => void save()} disabled={!nameOk || !bdayOk} busy={busy} className="px-9" />
     </BottomBar>
     </>
   );

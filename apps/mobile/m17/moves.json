@@ -502,5 +502,133 @@
   "to": "/show/[feedUrl] | Most popular | setView",
   "why": "M21 US5 (FR-040): the Most played switch became the Most popular chip beside All and Host picks; same setView, same play counts",
   "task": "M21 T067"
+ },
+ {
+  "surface": "/player",
+  "name": "Playlist",
+  "destination": "setQueueOpen",
+  "to": "/player | Playlist | queueSheet.open",
+  "why": "M21 US3 (FR-020): the player no longer draws its own queue sheet; Playlist (and a swipe up on the controls) opens the one playlist sheet held at the root by QueueSheetHost",
+  "task": "M21 T046"
+ },
+ {
+  "surface": "MiniPlayer",
+  "name": "Queue",
+  "destination": "/queue",
+  "to": "MiniPlayer | Playlist | queueSheet.open",
+  "why": "M21 US3 (spec story 3, scenario 2): the mini player ≡ opens the playlist sheet over the page instead of the /queue page (the route stays); named Playlist like the player bar button",
+  "task": "M21 T046"
+ },
+ {
+  "surface": "MiniPlayer",
+  "name": "isPlaying ? 'Pause' : 'Play'",
+  "destination": "/queue",
+  "to": "MiniPlayer | isPlaying ? 'Pause' : 'Play' | dynamic",
+  "why": "Same button and handler (play/pause); the scanner had read the /queue href of the Link that followed it, and that Link is gone (M21 T046)",
+  "task": "M21 T046"
+ },
+ {
+  "surface": "/profile/[id]",
+  "name": "Report ${profile.displayName}",
+  "destination": "setReporting",
+  "to": "/profile/[id] | ⋯ sheet SheetRow `Report ${name}` | setReporting",
+  "why": "M21 US8 (FR-074): profile actions moved into the ⋯ sheet (Follow / Message / Block / Report / Mute); same ReportSheet, same target",
+  "task": "M21 T097"
+ },
+ {
+  "surface": "BlockButton",
+  "name": "blocked ? `Unblock ${props.displayName}` : `Block ${props.displayName}`",
+  "destination": "press",
+  "to": "/profile/[id] | ⋯ sheet SheetRow `Block ${name}` | block (same confirm, safety.block); BlockButton still offers Unblock on a blocked profile",
+  "why": "M21 US8 (FR-074): the inline Block pill on a profile moved into the ⋯ sheet; the confirm and its words are unchanged",
+  "task": "M21 T097"
+ },
+ {
+  "surface": "UpdateEpisodeRow",
+  "name": "${e.title}, ${item.showTitle}. ${meta.label}",
+  "destination": "props.onOpenEpisode",
+  "to": "UpdateEpisodeRow | ${e.title}, ${item.showTitle}${video ? ', video' : ''}. ${meta.label} | props.onOpenEpisode",
+  "why": "M21 US8 (FR-070): a video episode's row now says ', video' after the show name (and shows a video mark); same link, same handler",
+  "task": "M21 T094"
+ },
+ {
+  "surface": "/settings/more",
+  "name": "Queue adds to the end",
+  "destination": "setPref queueAddToEnd",
+  "to": "/settings/playback | Queue adds to the end | setPref queueAddToEnd",
+  "why": "M21 US10 (T110): every Playback switch moved from Settings › More to its own Playback page; same label, same pref; More keeps a Playback row that opens it",
+  "task": "M21 T110"
+ },
+ {
+  "surface": "/settings/more",
+  "name": "Allow mobile data for playback",
+  "destination": "setPref mobilePlayback",
+  "to": "/settings/playback | Allow mobile data for playback | setPref mobilePlayback",
+  "why": "M21 US10 (T110): every Playback switch moved from Settings › More to its own Playback page; same label, same pref; More keeps a Playback row that opens it",
+  "task": "M21 T110"
+ },
+ {
+  "surface": "/settings/more",
+  "name": "Show transcript entry on the player",
+  "destination": "setPref transcriptEntry",
+  "to": "/settings/playback | Show transcript entry on the player | setPref transcriptEntry",
+  "why": "M21 US10 (T110): every Playback switch moved from Settings › More to its own Playback page; same label, same pref; More keeps a Playback row that opens it",
+  "task": "M21 T110"
+ },
+ {
+  "surface": "/settings/more",
+  "name": "Comments on lock screen",
+  "destination": "setPref lockComments",
+  "to": "/settings/playback | Comments on lock screen | setPref lockComments",
+  "why": "M21 US10 (T110): every Playback switch moved from Settings › More to its own Playback page; same label, same pref; More keeps a Playback row that opens it",
+  "task": "M21 T110"
+ },
+ {
+  "surface": "/settings/more",
+  "name": "Music mode",
+  "destination": "setPref musicMode",
+  "to": "/settings/playback | Music mode | setPref musicMode",
+  "why": "M21 US10 (T110): every Playback switch moved from Settings › More to its own Playback page; same label, same pref; More keeps a Playback row that opens it",
+  "task": "M21 T110"
+ },
+ {
+  "surface": "/settings/more",
+  "name": "Skip silence",
+  "destination": "setPref skipSilence",
+  "to": "/settings/playback | Skip silence | setPref skipSilence",
+  "why": "M21 US10 (T110): every Playback switch moved from Settings › More to its own Playback page; same label, same pref; More keeps a Playback row that opens it",
+  "task": "M21 T110"
+ },
+ {
+  "surface": "/settings/more",
+  "name": "Another app's short sound: lower the volume",
+  "destination": "setPref pauseOnPrompts",
+  "to": "/settings/playback | Another app's short sound: lower the volume | setPref pauseOnPrompts",
+  "why": "M21 US10 (T110): the short-sound choice moved with the other Playback rows to the Playback page; same Segmented, same pref and player call",
+  "task": "M21 T110"
+ },
+ {
+  "surface": "/settings/more",
+  "name": "Another app's short sound: pause",
+  "destination": "setPref pauseOnPrompts",
+  "to": "/settings/playback | Another app's short sound: pause | setPref pauseOnPrompts",
+  "why": "M21 US10 (T110): the short-sound choice moved with the other Playback rows to the Playback page; same Segmented, same pref and player call",
+  "task": "M21 T110"
+ },
+ {
+  "surface": "NoticeCards",
+  "name": "{props.title}",
+  "destination": "props.onPress",
+  "to": "NoticeCards | {props.title} | props.onPress (Interactions, People); System and From hosts → NoticeEntries links to /notifications/system and /notifications/hosts",
+  "why": "M21 US10 (T108): System and From hosts open their own pages (as in 小宇宙); the track now switches Interactions and People",
+  "task": "M21 T108"
+ },
+ {
+  "surface": "/notifications",
+  "name": "{n.showTitle}",
+  "destination": "/show/[feedUrl]",
+  "to": "/notifications/hosts | {n.showTitle} | /show/[feedUrl]",
+  "why": "M21 US10 (T108): the From hosts cards moved with their list to the new From hosts page; same card, same show link",
+  "task": "M21 T108"
  }
 ]

@@ -17,6 +17,10 @@
  * (Play now yellow; Move to top, Move up, Move down, Remove from the queue) — same names and
  * handlers as the old rows under the item. A card is taller than the old 72 pt row, so the
  * sheet's drag turns distance into places with `SHEET_ROW` instead of `QUEUE_ROW`.
+ *
+ * M21 T045 (US3, FR-021): the sheet's cards show a ▶ inside the row button (the row plays at
+ * once), and `select` turns every row into a checkbox for the sheet's Edit mode — no ⋮, no drag,
+ * a tap ticks it.
  */
 import { useMemo, useRef, useState } from 'react';
 import { PanResponder, type GestureResponderHandlers } from 'react-native';
@@ -50,6 +54,8 @@ export const SHEET_ROW = 132;
 const PILL = { minHeight: hit.min };
 /** M17 T098: ⋮ over the drag handle, a fixed column so the card's height is known. */
 const CONTROLS = { width: hit.min, height: hit.min * 2 };
+/** M21 US3: the ▶ disc inside a sheet card (drawn, not a second target — the row is the button). */
+const PLAY_DISC = { width: 32, height: 32 };
 
 /** How many places a drag of `dy` points moves a row, kept inside the queue. */
 export function dragTarget(index: number, dy: number, length: number, row: number = QUEUE_ROW): number {
@@ -58,6 +64,8 @@ export function dragTarget(index: number, dy: number, length: number, row: numbe
 
 type QueueStores = Pick<Stores, 'feeds' | 'positions' | 'downloads'>;
 type Colours = { text: string; muted: string; accent: string };
+/** M21: the sheet's Edit mode — which rows are ticked, and the tick. */
+type Select = { chosen: ReadonlySet<string>; onToggle: (id: string) => void };
 
 export function QueueList(props: {
   ids: readonly string[];
@@ -67,6 +75,8 @@ export function QueueList(props: {
   onPlay: (id: string) => void;
   /** M17: "page" = the queue page's Editorial layout (`Queue-B`); default "sheet" = the player's sheet. */
   layout?: 'page' | 'sheet';
+  /** M21: Edit mode — every row is a checkbox. */
+  select?: Select;
 }): React.ReactElement {
   const [open, setOpen] = useState<string | undefined>();
   const [drag, setDrag] = useState<{ id: string; dy: number } | undefined>();
@@ -88,6 +98,7 @@ export function QueueList(props: {
           onChange={props.onChange}
           onPlay={props.onPlay}
           page={page}
+          select={props.select}
           open={open === id}
           dy={drag?.id === id ? drag.dy : 0}
           onToggle={() => toggle(id)}
@@ -155,6 +166,7 @@ function QueueActions(props: {
 
 function QueueRow(props: {
   id: string; index: number; ids: readonly string[]; open: boolean; dy: number; page: boolean;
+  select?: Select | undefined;
   stores: QueueStores;
   colours: Colours;
   onChange: (next: readonly string[]) => void; onPlay: (id: string) => void;
@@ -184,6 +196,22 @@ function QueueRow(props: {
       <Icon name="ellipsis-vertical" size={20} color={page && index === 0 ? props.colours.muted : props.colours.text} />
     </Pressable>
   );
+
+  // M21 US3: Edit mode — a tap ticks the row; Remove (n) and Clear all live in the sheet's foot.
+  if (props.select) {
+    const checked = props.select.chosen.has(id);
+    const tick = props.select.onToggle;
+    return (
+      <Pressable onPress={() => tick(id)} accessibilityRole="checkbox" accessibilityState={{ checked }} accessibilityLabel={`Select ${title}`} className={`flex-row items-center gap-row mb-2.5 p-3 rounded-row border ${checked ? 'bg-accentTint border-accent' : 'bg-surface border-border'}`} style={ROW_TAP}>
+        <Icon name={checked ? 'checkmark-circle' : 'ellipse-outline'} size={24} color={checked ? props.colours.accent : props.colours.muted} />
+        <Artwork url={d.art} size={48} name={d.artName} />
+        <Box className="flex-1 gap-0.5">
+          <Text className="text-text text-sm font-display-semibold" numberOfLines={2}>{title}</Text>
+          {d.meta ? <Text className="text-muted text-xs" numberOfLines={1}>{d.meta}</Text> : null}
+        </Box>
+      </Pressable>
+    );
+  }
 
   // M17 `Queue-B`: the next episode is a card with its own Play now pill.
   if (page && index === 0) {
@@ -246,6 +274,10 @@ function QueueRow(props: {
             <Box className="flex-1 gap-0.5">
               <Text className="text-text text-sm font-display-semibold" numberOfLines={2}>{title}</Text>
               {d.meta ? <Text className="text-muted text-xs" numberOfLines={2}>{d.meta}</Text> : null}
+            </Box>
+            {/* M21 US3 (FR-021): ▶ on every row; the row itself is the "Play …" button. */}
+            <Box className="rounded-pill bg-playDisc items-center justify-center" style={PLAY_DISC}>
+              <Icon name="play" size={14} color={playGlyph} />
             </Box>
           </Pressable>
           <Box style={CONTROLS}>

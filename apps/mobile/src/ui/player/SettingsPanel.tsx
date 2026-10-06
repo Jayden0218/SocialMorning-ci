@@ -29,7 +29,7 @@ const TOP_GAP = 96;
 const ROW = { minHeight: hit.min };
 
 /** One switch row: an icon, the name and a line under it, the switch. */
-function SwitchRow(props: { icon: IconName; title: string; detail: string; value: boolean; onChange: (v: boolean) => void; colour: string }): React.ReactElement {
+function SwitchRow(props: { icon: IconName; title: string; detail: string; value: boolean; onChange: (v: boolean) => void; colour: string; disabled?: boolean }): React.ReactElement {
   return (
     <Box className="flex-row items-center gap-section" style={ROW}>
       <Icon name={props.icon} size={20} color={props.colour} />
@@ -37,7 +37,7 @@ function SwitchRow(props: { icon: IconName; title: string; detail: string; value
         <Text className="text-body font-bold text-text">{props.title}</Text>
         <Text className="text-xs text-muted">{props.detail}</Text>
       </Box>
-      <Toggle value={props.value} onChange={props.onChange} label={props.title} />
+      <Toggle value={props.value} onChange={props.onChange} label={props.title} disabled={props.disabled === true} />
     </Box>
   );
 }
@@ -49,6 +49,8 @@ export function SettingsPanel(props: {
   onLoop: (on: boolean) => void;
   skipSilence: boolean;
   onSkipSilence: (on: boolean) => void;
+  /** M21 US11: true on iPhone for an HLS episode — the audio tap gets nothing, so the switch is greyed out. */
+  skipSilenceDisabled?: boolean;
   /** US11 (T120): the AirPlay / output route button. Absent = the row is hidden. */
   routeSlot?: ReactNode;
   /** US11 (T113): the voice boost switch. Absent = the row is hidden. */
@@ -69,7 +71,7 @@ export function SettingsPanel(props: {
         <ScrollView className="flex-1" contentContainerClassName="px-screen-x pt-row gap-section" contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}>
           <SwitchRow icon="repeat-outline" title="Loop this episode" detail="Starts again from 0:00 at its end, instead of moving on" value={props.looping} onChange={props.onLoop} colour={c.accent} />
           {props.routeSlot ?? null}
-          <SwitchRow icon="play-forward-outline" title="Skip silence" detail="Shortens the quiet gaps between words" value={props.skipSilence} onChange={props.onSkipSilence} colour={c.accent} />
+          <SwitchRow icon="play-forward-outline" title="Skip silence" detail={props.skipSilenceDisabled ? 'Not available for this live stream' : 'Shortens the quiet gaps between words'} value={props.skipSilence} onChange={props.onSkipSilence} colour={c.accent} disabled={props.skipSilenceDisabled === true} />
           {props.voiceBoostSlot ?? null}
           <Box className="h-px bg-border" />
           <SpeedControl />

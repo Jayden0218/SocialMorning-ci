@@ -7,6 +7,7 @@ import { blockedIdsFor } from '../safety/blocks.ts';
 import { hiddenFor } from '../safety/reports.ts';
 import { initialsOf, likesOnEpisode } from './comment-likes.ts';
 import { mutedIdsFor } from './mutes.ts';
+import { notifyForComment } from './notifications.ts';
 
 export type CommentRow = {
   id: string;
@@ -153,6 +154,8 @@ export async function createComment(
       [c.authorId, c.episodeId, c.offsetMs ?? null, row!.id],
     );
   }
+  // M21 US10 (G-M21-9): the reply and @name notices, in the caller's transaction.
+  await notifyForComment(db, { id: row!.id, episodeId: c.episodeId, authorId: c.authorId, parentId: c.parentId ?? null, body: c.body });
   return (await db.query<CommentRow>(`${SELECT} WHERE c.id = $1`, [row!.id]))[0]!;
 }
 

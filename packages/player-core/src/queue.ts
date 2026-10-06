@@ -38,6 +38,24 @@ export function remove(queue: Queue, episodeId: string): Queue {
 }
 
 /**
+ * M21 FR-021: the playlist sheet's "Remove (n)" — every selected episode leaves at once, the
+ * rest keep their order. Nothing selected that is queued → the same array (no write).
+ */
+export function removeMany(queue: Queue, episodeIds: readonly string[]): Queue {
+  const drop = new Set(episodeIds);
+  return queue.some((id) => drop.has(id)) ? queue.filter((id) => !drop.has(id)) : queue;
+}
+
+/**
+ * M21 FR-021: "Clear all" empties the playlist but never the episode playing now — when it is
+ * queued it stays, alone. Already that → the same array.
+ */
+export function clearQueue(queue: Queue, currentId?: string): Queue {
+  const next = currentId !== undefined && queue.includes(currentId) ? [currentId] : [];
+  return next.length === queue.length && next.every((id, i) => id === queue[i]) ? queue : next;
+}
+
+/**
  * FR-009/FR-010: the first item that can play now. Online: the first item. Offline:
  * the first with a complete download; the ones before it are `skipped` — reported,
  * NOT removed (guard G2). Never mutates the queue.

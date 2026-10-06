@@ -1,4 +1,4 @@
-// Notifications: System messages, People (what listeners you follow did) and From hosts.
+// Notifications: Interactions aimed at you, People you follow; System and From hosts open their pages.
 /**
  * Notifications (我的通知, M10, owner 2026-09-27): two cards — System (messages from
  * SocialNet; none are sent yet, so it says so) and People (the activity of listeners you
@@ -15,6 +15,12 @@
  * newest first, each shown only from its release time (the server filters). A white card: the
  * show's artwork and title, the text, up to 9 pictures in a three-column grid, and the time;
  * tapping the card opens the show. 20 a page; the list ends with "No more to fetch".
+ *
+ * M21 US10 (T108): System and From hosts move to their own pages (`notifications/system.tsx`,
+ * `notifications/hosts.tsx`), opened from two cards at the top. The track switches between
+ * Interactions — replies, likes, mentions and follows aimed at you (GET /v1/me/notifications),
+ * each row opening its target — and People (the feed, as before). Interactions is first. Opening
+ * Interactions marks them read (POST /v1/me/notifications/seen) after the unread ones are counted.
  */
 import { router, useFocusEffect } from 'expo-router';
 import { Link } from '@/design/tailwind';
@@ -24,8 +30,8 @@ import { usePullRefresh } from '@/ui/kit/PullRefresh';
 import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
 import { useColours } from '@/ui/kit/useColours';
-import { NoticeCards, noticeLine, type NoticeSection } from '@/ui/social/NoticeCards';
-import { Card } from '@/ui/kit/Card';
+import { NoticeCards, NoticeEntries, noticeLine, type NoticeSection } from '@/ui/social/NoticeCards';
+import { Card, CardDivider } from '@/ui/kit/Card';
 import { Eyebrow } from '@/ui/kit/Eyebrow';
 import { hit } from '@/design';
 import { createFeed, type FeedView } from '@/graph/feed';
@@ -39,10 +45,10 @@ import { useStores } from '@/ui/shell/providers';
 import { PageHeader } from '@/ui/kit/PageHeader';
 import { EndOfList } from '@/ui/kit/EndOfList';
 import { Pressable } from '@/ui/lib/pressable';
-import { Image } from '@/ui/lib/image';
-import { Artwork } from '@/ui/kit/Artwork';
 import { Loader } from '@/ui/kit/Loader';
-import { useM19Api, type HostNotice } from '@/social/m19-api';
+import { Avatar } from '@/ui/kit/Avatar';
+import { ago } from '@/ui/kit/format';
+import { noticeTarget, noticeVerb, useNotificationsApi, type Notice } from '@/social/notifications-api';
 
 type Day = { key: string; label: string; items: Item[] };
 
@@ -63,76 +69,79 @@ function byDay(items: readonly Item[], now: Date): Day[] {
   return out;
 }
 
-/** One picture in the 3-column grid: a square a third of the card wide. */
-const PICTURE = { width: '31.5%', aspectRatio: 1 } as const;
-
-/** M19 T100: one announcement as a white card; the whole card opens the show. */
-function HostNoticeCard(props: { notice: HostNotice }): React.ReactElement {
+/** One interaction: the actor's photo, "Bea replied to your comment", the comment, the episode and when. */
+function InteractionRow(props: { notice: Notice; now: number }): React.ReactElement {
   const n = props.notice;
-  const at = new Date(n.releaseAt);
+  const what = `${n.actor.name} ${noticeVerb(n.kind)}`;
+  const where = n.ref.episodeTitle ? ` · ${n.ref.episodeTitle}` : '';
   return (
     <Pressable
-      onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(n.feedUrl) } })}
+      onPress={() => router.push(noticeTarget(n))}
       accessibilityRole="link"
-      accessibilityLabel={`${n.showTitle}: ${n.body}${n.images.length > 0 ? `. ${n.images.length} ${n.images.length === 1 ? 'picture' : 'pictures'}` : ''}. Open the show`}
-      className="bg-surface border border-border rounded-row p-row gap-gap"
+      accessibilityLabel={`${n.unread ? 'New. ' : ''}${what}${n.ref.excerpt ? `: ${n.ref.excerpt}` : ''}`}
+      className="flex-row gap-row py-row items-start"
       style={{ minHeight: hit.min }}
     >
-      <Box className="flex-row items-center gap-row">
-        <Artwork url={n.imageUrl} size={40} rounded="row" name={n.showTitle} />
-        <Box className="flex-1">
-          <Text className="text-text text-body font-bold" numberOfLines={1}>{n.showTitle}</Text>
-          <Text className="text-muted text-xs">{at.toLocaleDateString([], { day: 'numeric', month: 'short' })} · {at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
-        </Box>
+      <Avatar url={n.actor.avatarUrl} name={n.actor.name} size={40} />
+      <Box className="flex-1 gap-0.5">
+        <Text className="text-text text-body" numberOfLines={2}><Text className="text-text text-body font-bold">{n.actor.name}</Text> {noticeVerb(n.kind)}</Text>
+        {n.ref.excerpt ? <Text className="text-muted text-meta" numberOfLines={2}>{n.ref.excerpt}</Text> : null}
+        <Text className="text-muted text-xs" numberOfLines={1}>{ago(Date.parse(n.createdAt), props.now)}{where}</Text>
       </Box>
-      <Text className="text-text text-body leading-[22px]">{n.body}</Text>
-      {n.images.length > 0 ? (
-        <Box className="flex-row flex-wrap gap-1.5">
-          {n.images.slice(0, 9).map((u) => <Image key={u} source={{ uri: u }} className="rounded-row bg-background" style={PICTURE} accessible={false} />)}
-        </Box>
-      ) : null}
+      {n.unread ? <Box className="w-2 h-2 rounded-pill bg-accent mt-2" accessible={false} /> : null}
     </Pressable>
   );
 }
 
-type HostsState = { kind: 'loading' } | { kind: 'error' } | { kind: 'ok'; items: HostNotice[]; next?: string };
+type InteractionsState = { kind: 'loading' } | { kind: 'error' } | { kind: 'ok'; items: Notice[]; next: string | null };
 
-/** M19 T100: the From hosts list, fetched when the tab is chosen, paged by `before`. */
-function HostNotices(props: { header: React.ReactElement }): React.ReactElement {
-  const m19 = useM19Api();
-  const [state, setState] = useState<HostsState>({ kind: 'loading' });
+/** M21 US10: Interactions, newest first, 30 a page; marked read once the first page is in. */
+function Interactions(props: { header: React.ReactElement; onUnread: (n: number) => void }): React.ReactElement {
+  const api = useNotificationsApi();
+  const { onUnread } = props;
+  const [state, setState] = useState<InteractionsState>({ kind: 'loading' });
   const [paging, setPaging] = useState(false);
   const load = useCallback(() => {
-    m19.hostNotices().then((p) => setState({ kind: 'ok', items: p.items, ...(p.next ? { next: p.next } : {}) })).catch(() => setState((s) => (s.kind === 'ok' ? s : { kind: 'error' })));
-  }, [m19]);
+    api.list().then((p) => {
+      setState({ kind: 'ok', items: p.items, next: p.next });
+      onUnread(p.items.filter((i) => i.unread).length);
+      if (p.items.some((i) => i.unread)) void api.markSeen().catch(() => undefined);
+    }).catch(() => setState((s) => (s.kind === 'ok' ? s : { kind: 'error' })));
+  }, [api, onUnread]);
   useEffect(load, [load]);
   const more = () => {
     if (state.kind !== 'ok' || !state.next || paging) return;
     setPaging(true);
-    m19.hostNotices(state.next)
-      .then((p) => setState({ kind: 'ok', items: [...state.items, ...p.items], ...(p.next ? { next: p.next } : {}) }))
+    api.list(state.next)
+      .then((p) => setState({ kind: 'ok', items: [...state.items, ...p.items], next: p.next }))
       .catch(() => undefined)
       .finally(() => setPaging(false));
   };
+  const now = Date.now();
   return (
     <FlatList
       className="flex-1 bg-background"
       data={state.kind === 'ok' ? state.items : []}
       keyExtractor={(n) => n.id}
-      contentContainerClassName="px-screen-x pt-gap pb-24 gap-row flex-grow"
+      contentContainerClassName="px-screen-x pt-gap pb-24 flex-grow"
       ListHeaderComponent={props.header}
       ListEmptyComponent={
         state.kind === 'loading' ? <Box className="items-center p-4"><Loader /></Box>
           : state.kind === 'error' ? (
             <Box className="gap-row">
-              <Text className="text-text text-body">Couldn't load announcements right now.</Text>
+              <Text className="text-text text-body">Couldn't load your interactions right now.</Text>
               <Pressable onPress={() => { setState({ kind: 'loading' }); load(); }} accessibilityRole="button" accessibilityLabel="Retry" className="justify-center self-start" style={{ minHeight: hit.min }}><Text className="text-accent text-body font-semibold">Retry</Text></Pressable>
             </Box>
           )
-          : <EmptyPicture icon="mic-outline" line="No announcements yet. When a show you follow posts one, it appears here." />
+          : <EmptyPicture icon="chatbubbles-outline" line="Nothing yet. When someone replies to you, likes your comment, mentions you or follows you, it appears here." />
       }
       ListFooterComponent={state.kind === 'ok' && state.items.length > 0 ? (state.next ? <Box className="items-center py-row"><Loader /></Box> : <EndOfList />) : undefined}
-      renderItem={({ item }) => <HostNoticeCard notice={item} />}
+      renderItem={({ item, index }) => (
+        <Box>
+          {index > 0 ? <CardDivider /> : null}
+          <InteractionRow notice={item} now={now} />
+        </Box>
+      )}
       onEndReached={more}
     />
   );
@@ -162,23 +171,27 @@ export default function NotificationsScreen(): React.ReactElement {
 
   const c = useColours(stores.settings);
   // M12 FR-001 (B2): the cards choose what is listed; People (the feed) first, as before.
-  const [section, setSection] = useState<NoticeSection>('people');
+  // M21 US10: Interactions first; System and From hosts are cards that open their own pages.
+  const [section, setSection] = useState<NoticeSection>('interactions');
+  const [mine, setMine] = useState(0);
+  const unreadHere = section === 'interactions' ? mine : unread;
   const cards = (
     <Box className="mb-section">
-      <NoticeCards section={section} unread={unread} iconColour={c.muted} selectedIconColour={c.onPrimary} onSelect={setSection} />
-      <Text className="text-muted text-xs mt-gap">{noticeLine(section, unread)}</Text>
+      <NoticeEntries iconColour={c.muted} onOpen={(page) => router.push(page === 'system' ? '/notifications/system' : '/notifications/hosts')} />
+      <NoticeCards section={section} unread={unread} interactionsUnread={mine} iconColour={c.muted} selectedIconColour={c.onPrimary} onSelect={setSection} />
+      <Text className="text-muted text-xs mt-gap">{noticeLine(section, unreadHere)}</Text>
     </Box>
   );
   const days = useMemo(() => byDay(safetyFilter.feed(view?.items ?? []), new Date()), [safetyFilter, view]);
 
-  if (section === 'hosts') {
+  if (section === 'interactions') {
     if (!listener) {
       return (
         <>
         <PageHeader title="Notifications" />
         <Box className="flex-1 bg-background px-screen-x pt-gap">
           {cards}
-          <Text className="text-muted text-body">Sign in to see announcements from the shows you follow.</Text>
+          <Text className="text-muted text-body">Sign in to see replies, likes, mentions and new followers.</Text>
         </Box>
         </>
       );
@@ -186,19 +199,7 @@ export default function NotificationsScreen(): React.ReactElement {
     return (
       <>
       <PageHeader title="Notifications" />
-      <HostNotices header={cards} />
-      </>
-    );
-  }
-
-  if (section === 'system') {
-    return (
-      <>
-      <PageHeader title="Notifications" />
-      <Box className="flex-1 bg-background px-screen-x pt-gap">
-        {cards}
-        <EmptyPicture icon="notifications-outline" line="No messages from SocialNet yet — announcements and account notices will appear here" />
-      </Box>
+      <Interactions header={cards} onUnread={setMine} />
       </>
     );
   }

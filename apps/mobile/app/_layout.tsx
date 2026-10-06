@@ -30,6 +30,7 @@ import { MiniPlayer, miniPlayerShows } from '@/ui/player/MiniPlayer';
 import { leavingToTabs, rootBarHidden, type LeavingToTabs } from '@/ui/player/mini-player-swipe';
 import { GluestackUIProvider } from '@/ui/lib/gluestack-ui-provider';
 import { RateSheet } from '@/ui/shell/RateSheet';
+import { QueueSheetHost } from '@/ui/queue/QueueSheetHost';
 import { consentGiven } from '@/ui/shell/consent';
 
 /** M21 US2: the player closes with a swipe down that starts in its top 120 pt. */
@@ -91,7 +92,10 @@ export default function RootLayout(): React.ReactElement {
           AppProviders the episode ⋯ sheet threw "useStores must be used inside <AppProviders>",
           which a Release build turns into a crash. */}
       <GluestackUIProvider>
+      {/* M21 US3: the one playlist sheet, over every page (the mini player's ≡ and the player open it). */}
+      <QueueSheetHost>
       <RootStack />
+      </QueueSheetHost>
       </GluestackUIProvider>
       </GraphProvider>
       </SafetyProvider>

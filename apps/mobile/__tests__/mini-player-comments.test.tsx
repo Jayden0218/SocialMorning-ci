@@ -27,6 +27,10 @@ jest.mock('@/ui/shell/providers', () => ({
   }),
 }));
 
+const mockOpenQueue = jest.fn();
+// M21 US3: ≡ opens the root's playlist sheet (src/ui/queue/QueueSheetHost.tsx).
+jest.mock('@/ui/queue/QueueSheetHost', () => ({ useQueueSheet: () => ({ open: mockOpenQueue, close: jest.fn() }) }));
+
 import { MiniPlayer } from '@/ui/player/MiniPlayer';
 
 const render = (el: React.ReactElement): ReactTestRenderer => {

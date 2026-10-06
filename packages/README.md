@@ -65,6 +65,7 @@ Every code file, one plain line each. Each file also starts with the same senten
 | `rerank.ts` | Reorders recommendations for variety, with limits per show and per category. |
 | `safety.ts` | Report and block rules: who may report or block, and hiding blocked content. |
 | `search.ts` | Search rules: match words, put the library first, and remove duplicate results. |
-| `stats.ts` | Listening totals for the last 7 days and all time, with top shows. |
+| `stats.ts` | Listening totals for the last 7 days and all time, top shows, and minutes per day or month. |
+| `stickers.ts` | The sticker catalogue, the rules for placing stickers on a profile, and the day each listening sticker was earned. |
 | `swing.ts` | Measures how similar two shows are from the people who like both. |
 | `types.ts` | Shared data shapes for positions, playback snapshots, moments and comment order. |

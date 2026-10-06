@@ -65,6 +65,11 @@ export default function SettingsScreen(): React.ReactElement {
           <Link href="/settings/minor" asChild accessibilityLabel="Minor mode"><MenuTile icon="umbrella-outline" label="Minor mode" /></Link>
           <Link href="/settings/more" asChild accessibilityLabel="More"><MenuTile icon="play-circle-outline" label="More" /></Link>
         </Box>
+        {/* M21 US10 (T110): the playback switches have their own page. */}
+        <Box className="flex-row gap-gap">
+          <Link href="/settings/playback" asChild accessibilityLabel="Playback"><MenuTile icon="headset-outline" label="Playback" /></Link>
+          <Box className="flex-1" />
+        </Box>
       </Box>
       <Box className="border-t-hairline border-separator mt-gap">
         {/* M19 T022: what For You no longer recommends, each with Restore. */}

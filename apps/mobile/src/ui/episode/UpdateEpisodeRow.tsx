@@ -11,6 +11,7 @@
  * hairline, then the four icon buttons and a yellow "Play" pill at the right. Same buttons,
  * names and handlers as before.
  * M21 US4: a long-press on the episode opens the ⋯ sheet too.
+ * M21 US8 (FR-070): a video episode shows a small video mark before the show name (and says so).
  */
 import { Pressable } from '@/ui/lib/pressable';
 import { Text } from '@/ui/lib/text';
@@ -21,7 +22,7 @@ import { CommentsButton } from '@/ui/comments/CommentsButton';
 import { Icon, PlayIcon, type IconName } from '@/ui/kit/Icon';
 import { ago, minutesLabel } from '@/ui/kit/format';
 import { hit } from '@/design';
-import { plural } from '@socialmorning/social-core';
+import { mediaKindOf, plural } from '@socialmorning/social-core';
 import type { UpdateRow } from '@/me/updates';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
@@ -86,14 +87,18 @@ export function UpdateEpisodeRow(props: {
   const dl = props.download ?? 'none';
   const e = item.episode;
   const meta = updateMeta({ durationMs: e.durationMs, publishedAt: e.publishedAt, plays: props.plays, comments: props.comments, now: props.now });
+  const video = mediaKindOf(e.enclosureType, e.enclosureUrl) === 'video';
   return (
     <Card className="mx-screen-x mt-row pt-row">
       <Box className="flex-row gap-row">
         <Pressable onPress={props.onOpenShow} accessibilityRole="button" accessibilityLabel={`Open ${item.showTitle}`}>
           <Artwork url={item.imageUrl} size={64} rounded="row" name={item.showTitle} />
         </Pressable>
-        <Pressable onPress={props.onOpenEpisode} onLongPress={props.onLongPress ?? props.onMore} accessibilityHint="Long-press for more actions" accessibilityRole="button" accessibilityLabel={`${e.title}, ${item.showTitle}. ${meta.label}`} className="flex-1 gap-1" style={PILL}>
-          <Text className="text-accent text-xs font-semibold" numberOfLines={1}>{item.showTitle}</Text>
+        <Pressable onPress={props.onOpenEpisode} onLongPress={props.onLongPress ?? props.onMore} accessibilityHint="Long-press for more actions" accessibilityRole="button" accessibilityLabel={`${e.title}, ${item.showTitle}${video ? ', video' : ''}. ${meta.label}`} className="flex-1 gap-1" style={PILL}>
+          <Box className="flex-row items-center gap-1">
+            {video ? <Icon name="videocam-outline" size={14} color={c} /> : null}
+            <Text className="text-accent text-xs font-semibold flex-1" numberOfLines={1}>{item.showTitle}</Text>
+          </Box>
           <Text className="font-display text-title text-text" numberOfLines={2}>{e.title}</Text>
         </Pressable>
       </Box>

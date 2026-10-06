@@ -9,9 +9,13 @@
  * same links, same spoken names.
  *
  * M21 US4 (FR-035): a long-press on a row opens the shared episode sheet (`EpisodeRowSheet`).
+ *
+ * M21 US10 (T110): each row also shows two lines of the episode's description (its show notes as
+ * plain text), and under them ▶ Play, Share (the app's share panel) and the comment count — from
+ * ONE comment-counts call for the first 100 rows; a count that is 0 or unknown is left out.
  */
 import { Link } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FlatList } from '@/ui/lib/flat-list';
 import { Pressable } from '@/ui/lib/pressable';
 import { Text } from '@/ui/lib/text';
@@ -23,13 +27,24 @@ import { Card, CardDivider } from '@/ui/kit/Card';
 import { mmss, shortDate } from '@/ui/kit/format';
 import { EmptyPicture } from '@/ui/me/parts';
 import { useStores } from '@/ui/shell/providers';
-import { size } from '@/design';
+import { hit, size } from '@/design';
 import { PageHeader } from '@/ui/kit/PageHeader';
 import { EndOfList } from '@/ui/kit/EndOfList';
 import { EpisodeRowSheet } from '@/ui/kit/EpisodeRowSheet';
 import type { CachedEpisode } from '@/storage/types';
+import { plainSummary } from '@/me/updates';
+import { toPlayable } from '@/storage/playable';
+import { usePlayer } from '@/playback/store';
+import { useM12Api } from '@/social/m12-api';
+import { Icon, PlayIcon } from '@/ui/kit/Icon';
+import { useColours } from '@/ui/kit/useColours';
+import { ShareChooser } from '@/ui/clips/ShareChooser';
+import { compactCount } from '@/ui/episode/UpdateEpisodeRow';
+import { plural } from '@socialmorning/social-core';
 
 const ROW = { minHeight: size.row };
+/** ▶ and Share under a row: 48 pt targets. */
+const TAP = { minHeight: hit.min, minWidth: hit.min };
 const DAY = 24 * 60 * 60 * 1000;
 
 /** The day heading a row falls under, counted in calendar days on this phone. */
@@ -62,6 +77,20 @@ export default function HistoryScreen(): React.ReactElement {
   const [menuFor, setMenuFor] = useState<CachedEpisode | undefined>();
   const rows = listeningHistory(stores).filter((r) => (!finished || r.finished) && matchesAll(term, [r.episode.title, stores.feeds.getShow(r.episode.feedUrl)?.title]));
   const groups = byDay(rows, Date.now());
+  const player = usePlayer();
+  const m12 = useM12Api();
+  const c = useColours(stores.settings);
+  const [sharing, setSharing] = useState<CachedEpisode | undefined>();
+  // M21 US10: one comment-counts call for the rows on screen (≤ 100); a failure leaves them out.
+  const [comments, setComments] = useState<Record<string, number>>({});
+  const ids = rows.slice(0, 100).map((r) => r.episode.id).join(',');
+  useEffect(() => {
+    if (ids === '') return;
+    let live = true;
+    m12.episodeCounts(ids.split(',')).then((r) => { if (live) setComments(r.counts); }, () => undefined);
+    return () => { live = false; };
+  }, [m12, ids]);
+  const play = (id: string) => { const p = toPlayable(stores, id); if (p) player.load(p, 'play'); };
   return (
     <>
     <PageHeader title="Listening history" />
@@ -84,6 +113,8 @@ export default function HistoryScreen(): React.ReactElement {
               const where = item.finished ? 'Finished' : `Stopped at ${mmss(item.offsetMs)}`;
               const duration = item.episode.durationMs;
               const done = item.finished ? 1 : duration !== undefined && duration > 0 ? Math.min(1, item.offsetMs / duration) : undefined;
+              const about = plainSummary(item.episode.shownotesHtml);
+              const count = comments[item.episode.id] ?? 0;
               return (
                 <Box key={item.episode.id}>
                   {i > 0 ? <CardDivider /> : null}
@@ -94,6 +125,7 @@ export default function HistoryScreen(): React.ReactElement {
                       <Box className="flex-1">
                         <Text className="text-text text-body font-semibold" numberOfLines={1}>{item.episode.title}</Text>
                         <Text className="text-muted text-xs mt-0.5" numberOfLines={1}>{[show?.title, shortDate(item.updatedAt)].filter(Boolean).join(' · ')}</Text>
+                        {about !== '' ? <Text className="text-muted text-meta mt-1" numberOfLines={2}>{about}</Text> : null}
                         <Box className="flex-row items-center gap-2 mt-1.5">
                           {done !== undefined ? (
                             <Box className="flex-1 h-1 rounded-pill bg-track overflow-hidden">
@@ -105,6 +137,20 @@ export default function HistoryScreen(): React.ReactElement {
                       </Box>
                     </Pressable>
                   </Link>
+                  <Box className="flex-row items-center pl-14">
+                    <Pressable onPress={() => play(item.episode.id)} accessibilityRole="button" accessibilityLabel={`Play ${item.episode.title}`} className="items-center justify-center" style={TAP}>
+                      <PlayIcon size={12} tint="text" />
+                    </Pressable>
+                    <Pressable onPress={() => setSharing(item.episode)} accessibilityRole="button" accessibilityLabel={`Share ${item.episode.title}`} className="items-center justify-center" style={TAP}>
+                      <Icon name="share-outline" size={18} color={c.muted} />
+                    </Pressable>
+                    {count > 0 ? (
+                      <Box className="flex-row items-center gap-1 ml-2" accessible accessibilityLabel={plural(count, 'comment')}>
+                        <Icon name="chatbubble-outline" size={12} color={c.muted} />
+                        <Text className="text-muted text-xs">{compactCount(count)}</Text>
+                      </Box>
+                    ) : null}
+                  </Box>
                 </Box>
               );
             })}
@@ -116,6 +162,13 @@ export default function HistoryScreen(): React.ReactElement {
       episode={menuFor ? { id: menuFor.id, title: menuFor.title, feedUrl: menuFor.feedUrl, imageUrl: menuFor.imageUrl ?? stores.feeds.getShow(menuFor.feedUrl)?.imageUrl } : undefined}
       onClose={() => setMenuFor(undefined)}
     />
+    {sharing ? (
+      <ShareChooser
+        open
+        onClose={() => setSharing(undefined)}
+        episode={{ id: sharing.id, title: sharing.title, showTitle: stores.feeds.getShow(sharing.feedUrl)?.title ?? '' }}
+      />
+    ) : null}
     </>
   );
 }

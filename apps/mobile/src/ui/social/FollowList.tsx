@@ -18,6 +18,9 @@
  * showed; the owner's name when the page was opened without one) over the serif page title,
  * then a two-column grid of white cards — a round monogram and the name. Same rows, same links,
  * same paging, Retry and empty sentences.
+ *
+ * M21 US8 (FR-074): each card adds the person's one-line bio and, when you are signed in, a
+ * Follow / Following button (`youFollow` from the server; never on your own card).
  */
 import { useCallback, useEffect, useState } from 'react';
 import { FlatList } from '@/ui/lib/flat-list';
@@ -35,6 +38,7 @@ import { PageHeader } from '@/ui/kit/PageHeader';
 import { Eyebrow } from '@/ui/kit/Eyebrow';
 import { Avatar } from '@/ui/kit/Avatar';
 import { EndOfList } from '@/ui/kit/EndOfList';
+import { FollowButton } from './FollowButton';
 
 const TAP = { minHeight: hit.min };
 
@@ -108,12 +112,18 @@ export function FollowList(props: { kind: FollowKind; id: string; name?: string;
           </Box>
         ) : emptyLine === undefined ? <EmptyState surface={props.kind} /> : <Text className="text-text text-[15px] py-4">{emptyLine}</Text>}
         renderItem={({ item }) => item === FILLER ? <Box className="flex-1" accessible={false} /> : (
-          <Link href={{ pathname: '/profile/[id]', params: { id: item.id } }} asChild>
-            <Pressable className="flex-1 items-center gap-gap bg-surface border border-border rounded-row py-section px-gap" accessibilityRole="link">
-              <Avatar size={56} url={item.avatarUrl} name={item.displayName} />
-              <Text className={item.displayName ? 'text-body font-bold text-text text-center' : 'text-body italic text-muted text-center'} numberOfLines={1}>{item.displayName ?? 'Deleted account'}</Text>
-            </Pressable>
-          </Link>
+          <Box className="flex-1 items-center gap-gap bg-surface border border-border rounded-row py-section px-gap">
+            <Link href={{ pathname: '/profile/[id]', params: { id: item.id } }} asChild>
+              <Pressable className="items-center gap-gap self-stretch" accessibilityRole="link">
+                <Avatar size={56} url={item.avatarUrl} name={item.displayName} />
+                <Text className={item.displayName ? 'text-body font-bold text-text text-center' : 'text-body italic text-muted text-center'} numberOfLines={1}>{item.displayName ?? 'Deleted account'}</Text>
+                {item.bio ? <Text className="text-muted text-xs text-center" numberOfLines={1}>{item.bio}</Text> : null}
+              </Pressable>
+            </Link>
+            {listener && item.youFollow !== undefined && item.id !== listener.listenerId
+              ? <FollowButton listenerId={item.id} following={item.youFollow} className="self-center" />
+              : null}
+          </Box>
         )}
         onEndReached={more}
       />

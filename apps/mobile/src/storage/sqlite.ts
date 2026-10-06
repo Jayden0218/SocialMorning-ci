@@ -477,6 +477,8 @@ export function createSqliteSocialCacheStore(db: SQLiteDatabase): SocialCacheSto
          ON CONFLICT(episode_id) DO UPDATE SET etag = excluded.etag, fetched_at = excluded.fetched_at, body_json = excluded.body_json`,
         [r.episodeId, r.etag ?? null, r.fetchedAt, r.bodyJson],
       ),
+    bytes: () => Number(db.getFirstSync<{ n: number }>('SELECT coalesce(sum(length(CAST(body_json AS BLOB))), 0) AS n FROM social_cache')?.n ?? 0),
+    clear: () => void db.runSync('DELETE FROM social_cache'),
   };
 }
 
@@ -649,6 +651,8 @@ export function createSqliteFeedCacheStore(db: SQLiteDatabase): FeedCacheStore {
         'INSERT INTO feed_cache (key, etag, fetched_at, body) VALUES (?, ?, ?, ?) ON CONFLICT(key) DO UPDATE SET etag = excluded.etag, fetched_at = excluded.fetched_at, body = excluded.body',
         [r.key, r.etag ?? null, r.fetchedAt, r.body],
       ),
+    bytes: () => Number(db.getFirstSync<{ n: number }>('SELECT coalesce(sum(length(CAST(body AS BLOB))), 0) AS n FROM feed_cache')?.n ?? 0),
+    clear: () => void db.runSync('DELETE FROM feed_cache'),
   };
 }
 

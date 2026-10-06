@@ -23,14 +23,18 @@ export const PREFS = {
   mobilePlayback: { key: 'pref.mobilePlayback', default: true },
   /** M10b US4: the transcript entry on the player. Read by `app/player.tsx`. */
   transcriptEntry: { key: 'pref.transcriptEntry', default: true },
-  /** M19 T070 (research R4): music mode — pitch correction off. Read by `ui/shell/providers.tsx` (at start) and `app/settings/more.tsx`. */
+  /** M19 T070 (research R4): music mode — pitch correction off. Read by `ui/shell/providers.tsx` (at start) and `app/settings/playback.tsx`. */
   musicMode: { key: 'pref.musicMode', default: false },
-  /** M19 (2026-10-05, research R3): another app's short sound — off lowers our volume, on pauses. Read by `ui/shell/providers.tsx` (at start) and `app/settings/more.tsx`. */
+  /** M19 (2026-10-05, research R3): another app's short sound — off lowers our volume, on pauses. Read by `ui/shell/providers.tsx` (at start) and `app/settings/playback.tsx`. */
   pauseOnPrompts: { key: 'pref.pauseOnPrompts', default: false },
-  /** M19 (2026-10-05, research R4): skip silence. Read by `ui/shell/providers.tsx` (at start) and `app/settings/more.tsx`. */
+  /** M19 (2026-10-05, research R4): skip silence. Read by `ui/shell/providers.tsx` (at start) and `app/settings/playback.tsx`. */
   skipSilence: { key: 'pref.skipSilence', default: false },
   /** M20 US2 (FR-005): the comment near the listener on the lock screen. Read by `ui/shell/providers.tsx` (the outside bridge, on every check). */
   lockComments: { key: 'pref.lockComments', default: true },
+  /** M21 US11 (FR-101): voice boost, off by default. Read by `ui/shell/providers.tsx` (at start) and `ui/settings/AudioRows.tsx`. */
+  voiceBoost: { key: 'player.voiceBoost', default: false },
+  /** M21 US11 (FR-102): "Play with other apps", off by default. Read by `ui/shell/providers.tsx` (at start) and `ui/settings/AudioRows.tsx`. */
+  mixWithOthers: { key: 'player.mixWithOthers', default: false },
 } as const;
 
 export type PrefName = keyof typeof PREFS;

@@ -7,6 +7,7 @@
  */
 import type { Db } from '../../db.ts';
 import { ApiError } from '../../../errors.ts';
+import { notify } from './notifications.ts';
 
 export type LikeState = { likeCount: number; likedByMe: boolean };
 
@@ -16,10 +17,10 @@ export function initialsOf(name: string | null | undefined): string | null {
   return m ? m[0].toLocaleUpperCase() : null;
 }
 
-async function likeable(db: Db, commentId: string, listenerId: string): Promise<void> {
+async function likeable(db: Db, commentId: string, listenerId: string): Promise<{ authorId: string; episodeId: string; parentId: string | null }> {
   if (!/^[0-9a-f-]{36}$/i.test(commentId)) throw new ApiError('not_found', 'No such comment.');
-  const [row] = await db.query<{ author_id: string | null; deleted_at: string | null; removed_at: string | null; host_hidden_at: string | null }>(
-    'SELECT author_id, deleted_at, removed_at, host_hidden_at FROM comments WHERE id = $1', [commentId]);
+  const [row] = await db.query<{ author_id: string | null; episode_id: string; parent_id: string | null; deleted_at: string | null; removed_at: string | null; host_hidden_at: string | null }>(
+    'SELECT author_id, episode_id, parent_id, deleted_at, removed_at, host_hidden_at FROM comments WHERE id = $1', [commentId]);
   if (!row || row.author_id === null || row.deleted_at !== null || row.removed_at !== null || row.host_hidden_at !== null) {
     throw new ApiError('not_found', 'No such comment.');
   }
@@ -28,6 +29,7 @@ async function likeable(db: Db, commentId: string, listenerId: string): Promise<
   const wall = await db.query(
     'SELECT 1 FROM blocks WHERE (blocker_id = $1 AND blocked_id = $2) OR (blocker_id = $2 AND blocked_id = $1)', [row.author_id, listenerId]);
   if (wall.length > 0) throw new ApiError('not_found', 'No such comment.');
+  return { authorId: row.author_id, episodeId: row.episode_id, parentId: row.parent_id };
 }
 
 async function countFor(db: Db, commentId: string): Promise<number> {
@@ -36,8 +38,10 @@ async function countFor(db: Db, commentId: string): Promise<number> {
 }
 
 export async function like(db: Db, commentId: string, listenerId: string): Promise<LikeState> {
-  await likeable(db, commentId, listenerId);
-  await db.query('INSERT INTO comment_likes (comment_id, listener_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [commentId, listenerId]);
+  const target = await likeable(db, commentId, listenerId);
+  const added = await db.query('INSERT INTO comment_likes (comment_id, listener_id) VALUES ($1, $2) ON CONFLICT DO NOTHING RETURNING 1', [commentId, listenerId]);
+  // M21 US10 (G-M21-9): a new like tells the author, in the caller's transaction.
+  if (added.length > 0) await notify(db, { recipientId: target.authorId, actorId: listenerId, kind: 'like', ref: { commentId, episodeId: target.episodeId, ...(target.parentId ? { parentId: target.parentId } : {}) } });
   return { likeCount: await countFor(db, commentId), likedByMe: true };
 }
 

@@ -137,3 +137,55 @@ export async function merge(db: Db, listenerId: string, items: readonly Subscrip
 async function logFlip(db: Db, listenerId: string, feedUrl: string, kind: 'sub' | 'unsub'): Promise<void> {
   await db.query('INSERT INTO subscription_events (listener_id, feed_url, kind) VALUES ($1, $2, $3)', [listenerId, feedUrl, kind]);
 }
+
+/**
+ * M21 US8 (FR-072): my own order of subscriptions — the "Default" sort. The feeds sent take
+ * positions 0, 1, 2 … in that order; every other row of the account goes back to NULL (sorts
+ * last). One transaction, so a second phone never reads half an order. Feeds the account does not
+ * hold are ignored.
+ */
+export async function setOrder(db: Db, listenerId: string, feedUrls: readonly string[]): Promise<void> {
+  const urls = [...new Set(feedUrls)];
+  await db.transaction(async (tx) => {
+    await tx.query('UPDATE subscriptions SET sort_pos = NULL WHERE listener_id = $1 AND sort_pos IS NOT NULL', [listenerId]);
+    if (urls.length === 0) return;
+    await tx.query(
+      `UPDATE subscriptions s SET sort_pos = o.pos - 1
+         FROM unnest($2::text[]) WITH ORDINALITY AS o(feed_url, pos)
+        WHERE s.listener_id = $1 AND s.feed_url = o.feed_url`,
+      [listenerId, urls],
+    );
+  });
+}
+
+/** The saved order: live feeds that have a position, first to last. */
+export async function getOrder(db: Db, listenerId: string): Promise<string[]> {
+  const rows = await db.query<{ feed_url: string }>(
+    'SELECT feed_url FROM subscriptions WHERE listener_id = $1 AND deleted_at IS NULL AND sort_pos IS NOT NULL ORDER BY sort_pos, feed_url',
+    [listenerId],
+  );
+  return rows.map((r) => r.feed_url);
+}
+
+export type PublicShow = { feedUrl: string; title: string | null; imageUrl: string | null };
+
+/**
+ * M21 US8 (FR-074): another listener's public subscriptions — live rows only, in their own order
+ * then newest first. The route answers 403 `private` when they keep them private, before this is
+ * called. Hidden feeds (moderation) are left out. Title and cover: the host's override, else the
+ * newest episode we registered for the feed.
+ */
+export async function publicSubscriptions(db: Db, listenerId: string): Promise<PublicShow[]> {
+  const rows = await db.query<{ feed_url: string; title: string | null; image_url: string | null }>(
+    `SELECT s.feed_url,
+            coalesce(o.title, (SELECT e.show_title FROM episodes e WHERE e.feed_url = s.feed_url AND e.show_title IS NOT NULL ORDER BY e.published_at DESC NULLS LAST LIMIT 1)) AS title,
+            coalesce(o.cover_url, (SELECT e.image_url FROM episodes e WHERE e.feed_url = s.feed_url AND e.image_url IS NOT NULL ORDER BY e.published_at DESC NULLS LAST LIMIT 1)) AS image_url
+       FROM subscriptions s LEFT JOIN show_overrides o ON o.feed_url = s.feed_url
+      WHERE s.listener_id = $1 AND s.deleted_at IS NULL
+        AND NOT EXISTS (SELECT 1 FROM hidden_feeds h WHERE h.feed_url = s.feed_url)
+      ORDER BY s.sort_pos NULLS LAST, s.created_at DESC
+      LIMIT 500`,
+    [listenerId],
+  );
+  return rows.map((r) => ({ feedUrl: r.feed_url, title: r.title, imageUrl: r.image_url }));
+}

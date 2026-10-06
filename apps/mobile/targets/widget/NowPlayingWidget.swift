@@ -65,7 +65,7 @@ struct NowPlayingView: View {
   }
 }
 
-@main
+// M21 US11: one of four widgets in the bundle (`SocialNetWidgets.swift` holds the @main).
 struct NowPlayingWidget: Widget {
   var body: some WidgetConfiguration {
     StaticConfiguration(kind: "NowPlayingWidget", provider: Provider()) { entry in
