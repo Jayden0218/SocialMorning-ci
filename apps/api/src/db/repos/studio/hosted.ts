@@ -224,6 +224,7 @@ export async function setPriceTier(db: Db, showId: string, tier: number | null):
 export async function setEpisodePaid(db: Db, show: HostedShow, id: string, paid: boolean): Promise<HostedEpisode> {
   const [cur] = await db.query<EpRow>(`SELECT ${EP_COLS} FROM hosted_episodes WHERE id = $1 AND show_id = $2 AND deleted_at IS NULL`, [id, show.id]);
   if (!cur) throw new ApiError('not_found', 'No such episode.');
+  if (paid && cur.created_at === null) throw new ApiError('validation', 'Episodes that were free before paid episodes existed stay free.', { fields: ['paid'], reason: 'was_free' });
   const live = cur.status === 'published' && new Date(cur.published_at).getTime() <= Date.now();
   if (paid && !cur.paid && live) throw new ApiError('validation', 'A published episode stays free. Make an episode paid while it is a draft or scheduled.', { fields: ['paid'], reason: 'live' });
   if (paid && show.priceTier === null) throw new ApiError('validation', 'Set the show\'s price first.', { fields: ['paid'], reason: 'no_price' });
