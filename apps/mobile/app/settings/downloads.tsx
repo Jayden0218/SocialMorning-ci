@@ -99,7 +99,7 @@ export default function DownloadSettings(): React.ReactElement {
       <Card className="py-section mb-section">
         <Eyebrow accent>Cache</Eyebrow>
         <Box className="flex-row items-baseline justify-between gap-gap mt-row">
-          <Text className="text-text text-display font-display">{cache === undefined ? '…' : sizeLabel(cache)}</Text>
+          <Text className="text-text text-display font-display">{cache !== undefined ? sizeLabel(cache) : 'Measuring'}</Text>
           <Text className="text-muted text-meta">Pictures and saved pages</Text>
         </Box>
         <Text className="text-muted text-xs mt-row">Clearing it never removes downloaded episodes.</Text>

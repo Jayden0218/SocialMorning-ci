@@ -6,6 +6,9 @@
  * it (M21 T023). Cloud build: run ios.yml with the `extras` input; scripts/ios-install.sh now signs
  * each extension with its own profile.
  * Android is not affected either way (both packages are iOS-only; the Android widget is in app.json).
+ * M21 US12: the Apple Watch app (`targets/watch`) rides the same switch — `@bacons/apple-targets`
+ * links every folder in `targets/`, so the folder is all it needs. Its bundle id is
+ * `app.socialmorning.mobile.watchkitapp` (the free team needs a profile for it, research R1).
  */
 const APP_GROUP = 'group.app.socialmorning.mobile';
 

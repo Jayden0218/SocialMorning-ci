@@ -20,6 +20,8 @@ import { registrationFor } from '@/social/registration';
 import { secureToken } from '@/social/token';
 import { createPositionSync, IMMEDIATE, UPLOAD_EVERY_MS, type PositionSync } from '@/sync/positions';
 import { createSubscriptionSync, type SubscriptionSync } from '@/sync/subscriptions';
+import { startWatchLink } from '@/sync/watch';
+import * as WatchLink from '../../../modules/watch-link';
 import { createLibrarySync, type LibrarySync } from '@/sync/library';
 import { createRecOutbox } from '@/recs/outbox';
 import { createListened } from '@/graph/listened';
@@ -387,6 +389,16 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
     const appState = AppState.addEventListener('change', () => widgets.refresh());
     return () => { setOutsideToggle(undefined); setOutsideSkip(undefined); bridge.dispose(); widgets.dispose(); appState.remove(); };
   }, [runtime, stores, graphApi]);
+
+  // M21 US12: positions played on the Apple Watch come back into the position store (the newer
+  // one wins, src/sync/watch.ts) and go up with the normal position sync. No Watch module → no-op.
+  useEffect(() => startWatchLink({
+    link: WatchLink,
+    positions: stores.positions,
+    now: () => Date.now(),
+    playingNow: () => { const st = runtime.getState(); return st.kind === 'playing' || st.kind === 'buffering' ? st.episodeId : undefined; },
+    onApplied: () => { void sync.flush(); },
+  }), [runtime, stores, sync]);
 
   useEffect(() => () => runtime.dispose(), [runtime]);
 

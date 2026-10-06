@@ -46,12 +46,17 @@ test('G-D1 (server): settings that cannot be read → today\'s Discover, no layo
   const { t, owner } = await adminSetup({ picksRaw: [], today: () => TODAY, collectionsRaw: [] });
   await aCall(t, 'PUT', '/v1/admin/discover', owner, { version: 0, order: ['picks'], hidden: ['said'], pins: [], hides: [] });
   await t.q('ALTER TABLE discover_settings RENAME TO discover_settings_gone');
-  const res = await t.call('GET', '/v1/discover');
-  assert.equal(res.status, 200);
-  const body = (await res.json()) as Body;
-  assert.equal(body.layout, undefined);
-  assert.ok(body.trending.length > 0);
-  await t.close();
+  // M21: close the database whatever happens — a failed assertion left it open, and the file then
+  // never exited (gate 37438890166 hung 24 min with no test named).
+  try {
+    const res = await t.call('GET', '/v1/discover');
+    assert.equal(res.status, 200, await res.clone().text());
+    const body = (await res.json()) as Body;
+    assert.equal(body.layout, undefined);
+    assert.ok(body.trending.length > 0, `trending: ${JSON.stringify(body.trending)}`);
+  } finally {
+    await t.close();
+  }
 });
 
 test('category features: up to 5 shows first, in the owner\'s order, even one not on the chart', async () => {

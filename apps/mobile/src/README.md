@@ -254,6 +254,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `library.ts` | Syncs favourites, saved moments and search history with your account. |
 | `positions.ts` | Syncs where you stopped in each episode with the server. |
 | `subscriptions.ts` | Syncs your subscribed shows with the server. |
+| `watch.ts` | Brings positions played on the Apple Watch into the phone, and decides when "Download to Watch" shows. |
 
 ## ui — what you see
 
@@ -405,6 +406,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `RelatedEpisodes.tsx` | Up to 5 related episodes at the bottom of the episode page, as a sideways row of cards. |
 | `ShowNotes.tsx` | Episode notes; lines starting with a time become rows that play from there. |
 | `UpdateEpisodeRow.tsx` | One episode card on Updates: notes, plays, comments, small buttons, Play. |
+| `WatchTile.tsx` | "Download to Watch" in the episode ⋯ sheet: sends the episode to the paired Apple Watch. |
 
 ### `ui/show/` — Parts of the show page
 

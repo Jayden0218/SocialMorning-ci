@@ -134,7 +134,7 @@ export default function FriendsListening(): React.ReactElement {
   const helpSheet = (
     <Actionsheet isOpen={help} onClose={() => setHelp(false)}>
       <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-      <ActionsheetContent className="bg-surface rounded-t-row px-screen-x pt-row pb-section items-stretch">
+      <ActionsheetContent className="bg-surface rounded-t-row px-screen-x pt-row items-stretch">
         <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
         <Text className="text-text text-title font-display py-row" accessibilityRole="header">Friends listening</Text>
         <Text className="text-text text-body">What people you follow liked, and what they played in the last 7 days.</Text>

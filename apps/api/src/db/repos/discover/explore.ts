@@ -16,7 +16,7 @@
  *
  * The treasure hunt and the plaza are OUR OWN DESIGN (owner, 2026-10-06), not a copy of 小宇宙.
  */
-import { fnv1a64 } from '@socialmorning/social-core';
+import { createHash } from 'node:crypto';
 import type { Db } from '../../db.ts';
 import type { EpisodeCard } from '../../../catalog/apple.ts';
 import { cached } from '../cache.ts';
@@ -96,7 +96,10 @@ async function risingChart(db: Db): Promise<ChartItem[]> {
 
 /** A stable order for a seed: the same seed always gives the same order (no Math.random). */
 export function seededOrder<T>(items: readonly T[], seed: string, idOf: (t: T) => string): T[] {
-  return items.map((t) => ({ t, k: fnv1a64(`${seed}\u0001${idOf(t)}`) })).sort((a, b) => (a.k < b.k ? -1 : a.k > b.k ? 1 : 0)).map((x) => x.t);
+  // SHA-256, not FNV-1a: a seed that differs in one character (the next day) must reorder the
+  // whole list, and FNV's last-byte mixing left it unchanged (gate 37442959667).
+  const key = (id: string): string => createHash('sha256').update(`${seed}\u0001${id}`).digest('hex').slice(0, 16);
+  return items.map((t) => ({ t, k: key(idOf(t)) })).sort((a, b) => (a.k < b.k ? -1 : a.k > b.k ? 1 : 0)).map((x) => x.t);
 }
 
 export const utcDay = (now: number) => new Date(now).toISOString().slice(0, 10);

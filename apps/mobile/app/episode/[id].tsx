@@ -27,6 +27,7 @@
  * (the server's colour through `tintFor`, measured against the listener's accent); show notes
  * are selectable; Related episodes are a sideways row of cards, a long-press opening the shared
  * episode sheet; the collapsed bar shows Subscribe beside ▶; the ⋯ sheet adds Report episode.
+ * M21 US12: beside it, "Download to Watch" (src/ui/episode/WatchTile), hidden without a Watch.
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -73,6 +74,7 @@ import { TintedPage } from '@/ui/kit/TintedPage';
 import { ReportSheet, type ReportTarget } from '@/ui/comments/ReportSheet';
 import { EpisodeRowSheet, type RowSheetEpisode } from '@/ui/kit/EpisodeRowSheet';
 import { SheetTile, TileRow } from '@/ui/queue/QueueButtons';
+import { WatchTile } from '@/ui/episode/WatchTile';
 import { resolveCard } from '@/discover/open';
 import { refreshShow } from '@/feeds/fetch';
 import type { EpisodeCard } from '@/social/api';
@@ -383,7 +385,8 @@ export default function EpisodeScreen(): React.ReactElement {
           {/* M21 US4 (FR-034): report the episode — a reason, then moderation, like other reports. */}
           <TileRow>
             <SheetTile icon="flag-outline" label="Report episode" iconColour={c.accent} onPress={() => { setMore(false); setReporting({ kind: 'episode', id: episode.id, authorId: null, label: 'episode' }); }} />
-            <Box className="flex-1" />
+            {/* M21 US12: "Download to Watch" — an empty half-row unless a paired Watch has our app. */}
+            <WatchTile episodeId={episode.id} onSent={() => setMore(false)} />
           </TileRow>
           {/* M12 FR-032: a Cancel row closes the list, as a list sheet should. */}
           <Pressable onPress={() => setMore(false)} accessibilityRole="button" accessibilityLabel="Cancel" className="items-center justify-center mt-gap rounded-pill border border-border" style={TAP}>
