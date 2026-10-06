@@ -99,7 +99,7 @@ export function registerUsers(admin: Hono<AdminEnv>): void {
   const ACTIONS: readonly Action[] = ['dismiss', 'remove', 'hide_show', 'suspend', 'unsuspend', 'unhide_show'];
 
   admin.post('/reports/act', json(z.object({
-    kind: z.enum(['comment', 'clip', 'profile', 'show']),
+    kind: z.enum(['comment', 'clip', 'profile', 'show', 'episode', 'transcript']),
     id: z.string().min(1).max(2048),
     action: z.enum(ACTIONS as [Action, ...Action[]]),
   })), async (c) => {

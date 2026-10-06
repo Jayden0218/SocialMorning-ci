@@ -5,7 +5,7 @@
  * them is exercised without a phone (M2 FR-024, SC-009).
  */
 export type * from './types';
-export { clampRate, rateFor, RATE_MIN, RATE_MAX, RATE_STEP } from './speed';
+export { clampRate, rateFor, hasShowRate, clearShowRate, rateAtFraction, fractionOfRate, RATE_MIN, RATE_MAX, RATE_STEP } from './speed';
 export { canStartDownload, usedBytesOf, nextDownload } from './downloads';
 export { enqueue, move, remove, nextPlayable, QUEUE_MAX } from './queue';
 export { armTimer, setEndOfEpisode, isTimerOff, timerRemainingMs, timerFired, shouldAdvance, nativeLoop, fadeVolume, restoreTimer, SLEEP_OFF, FADE_MS, MINUTES } from './timer';

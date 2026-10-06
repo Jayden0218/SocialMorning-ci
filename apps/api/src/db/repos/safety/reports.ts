@@ -8,9 +8,24 @@ import type { Db } from '../../db.ts';
 
 export type Snapshot = Record<string, unknown>;
 
+/** M21 US2: the listener's correction of one transcript line (contracts/api.md). */
+export type TranscriptDetail = { episodeId: string; offsetMs: number; original: string; suggested: string };
+
+/** A transcript report's target id: one line of one episode, so the one-report-per-reporter key holds per line. */
+export const transcriptTargetId = (episodeId: string, offsetMs: number): string => `${episodeId}#${offsetMs}`;
+
 /** The target as it is now: what to copy, who wrote it, whether it is already gone. */
-export async function snapshotTarget(db: Db, kind: TargetKind, id: string): Promise<{ snapshot: Snapshot; authorId: string | null; gone: boolean }> {
+export async function snapshotTarget(db: Db, kind: TargetKind, id: string, detail?: TranscriptDetail): Promise<{ snapshot: Snapshot; authorId: string | null; gone: boolean }> {
   switch (kind) {
+    // M21 US2: an episode, or one line of its transcript — the copy names the episode and its show.
+    case 'episode':
+    case 'transcript': {
+      const episodeId = kind === 'episode' ? id : (detail?.episodeId ?? id.split('#')[0]!);
+      const [r] = await db.query<{ title: string; show_title: string | null; feed_url: string }>('SELECT title, show_title, feed_url FROM episodes WHERE id = $1', [episodeId]);
+      if (!r) return { snapshot: { kind, id }, authorId: null, gone: true };
+      const base = { kind, id, episodeId, episodeTitle: r.title, showTitle: r.show_title, feedUrl: r.feed_url };
+      return { snapshot: detail ? { ...base, offsetMs: detail.offsetMs, original: detail.original, suggested: detail.suggested } : base, authorId: null, gone: false };
+    }
     case 'comment': {
       const [r] = await db.query<{ body: string | null; offset_ms: number | null; author_id: string | null; display_name: string | null; episode_id: string; deleted_at: string | null; removed_at: string | null; title: string; voice_url: string | null; transcript: string | null; image_url: string | null }>(
         `SELECT c.body, c.offset_ms, c.author_id, l.display_name, c.episode_id, c.deleted_at, c.removed_at, e.title, c.voice_url, c.transcript, c.image_url
@@ -41,16 +56,16 @@ export async function snapshotTarget(db: Db, kind: TargetKind, id: string): Prom
 export type CreateResult = { id: string; duplicate: boolean; closed?: 'already_gone' };
 
 export async function createReport(
-  db: Db, r: { kind: TargetKind; targetId: string; reporterId: string; reason: string; note?: string },
+  db: Db, r: { kind: TargetKind; targetId: string; reporterId: string; reason: string; note?: string; detail?: TranscriptDetail },
 ): Promise<CreateResult> {
-  const { snapshot, gone } = await snapshotTarget(db, r.kind, r.targetId);
+  const { snapshot, gone } = await snapshotTarget(db, r.kind, r.targetId, r.detail);
   const close = closeReason(gone, false);
   const rows = await db.query<{ id: string; inserted: boolean }>(
-    `INSERT INTO reports (target_kind, target_id, reporter_id, reason, note, snapshot, closed_at, close_reason)
-     VALUES ($1, $2, $3, $4, $5, ($6::text)::jsonb, CASE WHEN $7::text = 'open' THEN NULL ELSE now() END, CASE WHEN $7::text = 'open' THEN NULL ELSE $7::text END)
+    `INSERT INTO reports (target_kind, target_id, reporter_id, reason, note, snapshot, closed_at, close_reason, detail)
+     VALUES ($1, $2, $3, $4, $5, ($6::text)::jsonb, CASE WHEN $7::text = 'open' THEN NULL ELSE now() END, CASE WHEN $7::text = 'open' THEN NULL ELSE $7::text END, ($8::text)::jsonb)
      ON CONFLICT (target_kind, target_id, reporter_id) DO UPDATE SET reason = reports.reason
      RETURNING id, (xmax = 0) AS inserted`,
-    [r.kind, r.targetId, r.reporterId, r.reason, r.note ?? null, JSON.stringify(snapshot), close],
+    [r.kind, r.targetId, r.reporterId, r.reason, r.note ?? null, JSON.stringify(snapshot), close, r.detail ? JSON.stringify(r.detail) : null],
   );
   const row = rows[0]!;
   return { id: row.id, duplicate: !row.inserted, ...(close === 'already_gone' ? { closed: 'already_gone' as const } : {}) };
@@ -61,9 +76,12 @@ export async function reportsInLastHour(db: Db, reporterId: string): Promise<num
   return Number(r?.n ?? 0);
 }
 
-/** The keys the viewer reported (comment/clip/profile ids, show feed URLs) — hidden for them whatever the owner decides (FR-002). */
+/**
+ * The keys the viewer reported (comment/clip/profile ids, show feed URLs) — hidden for them whatever the owner decides (FR-002).
+ * M21 US2: a transcript correction hides nothing, so it is left out.
+ */
 export async function hiddenFor(db: Db, viewerId: string): Promise<{ keys: Set<string>; reported: { kind: TargetKind; id: string }[] }> {
-  const rows = await db.query<{ target_kind: TargetKind; target_id: string }>('SELECT target_kind, target_id FROM reports WHERE reporter_id = $1', [viewerId]);
+  const rows = await db.query<{ target_kind: TargetKind; target_id: string }>("SELECT target_kind, target_id FROM reports WHERE reporter_id = $1 AND target_kind <> 'transcript'", [viewerId]);
   return { keys: new Set(rows.map((r) => hiddenKey(r.target_kind, r.target_id))), reported: rows.map((r) => ({ kind: r.target_kind, id: r.target_id })) };
 }
 
@@ -99,4 +117,36 @@ export async function closeReportsFor(db: Db, kind: TargetKind, targetId: string
 export async function purgeClosedOlderThan(db: Db, days: number): Promise<number> {
   const rows = await db.query<{ id: string }>("DELETE FROM reports WHERE closed_at IS NOT NULL AND closed_at < now() - ($1 || ' days')::interval RETURNING id", [String(days)]);
   return rows.length;
+}
+
+/** M21 US2 (FR: a report reaches the show's host): one row of the Studio's transcript-reports list. */
+export type TranscriptReport = { id: string; episodeId: string; episodeTitle: string; offsetMs: number; original: string; suggested: string; createdAt: string; status: 'open' | 'done' };
+
+/** Every transcript report on this feed's episodes, open first, newest first within each. */
+export async function transcriptReportsForFeed(db: Db, feedUrl: string): Promise<TranscriptReport[]> {
+  const rows = await db.query<{ id: string; detail: TranscriptDetail; title: string; created_at: string; closed_at: string | null }>(
+    `SELECT r.id, r.detail, e.title, r.created_at, r.closed_at
+       FROM reports r JOIN episodes e ON e.id = r.detail->>'episodeId'
+      WHERE r.target_kind = 'transcript' AND e.feed_url = $1
+      ORDER BY (r.closed_at IS NULL) DESC, r.created_at DESC LIMIT 500`,
+    [feedUrl],
+  );
+  return rows.map((r) => ({
+    id: r.id, episodeId: r.detail.episodeId, episodeTitle: r.title, offsetMs: Number(r.detail.offsetMs),
+    original: r.detail.original, suggested: r.detail.suggested,
+    createdAt: new Date(r.created_at).toISOString(), status: r.closed_at === null ? 'open' : 'done',
+  }));
+}
+
+/** The feed a transcript report belongs to (to check the caller hosts it), or null. */
+export async function transcriptReportFeed(db: Db, id: string): Promise<string | null> {
+  const [r] = await db.query<{ feed_url: string }>(
+    `SELECT e.feed_url FROM reports r JOIN episodes e ON e.id = r.detail->>'episodeId' WHERE r.id = $1 AND r.target_kind = 'transcript'`, [id],
+  );
+  return r?.feed_url ?? null;
+}
+
+/** The host marks a transcript report done: it closes like any report, with the reason 'done'. */
+export async function markTranscriptReportDone(db: Db, id: string): Promise<void> {
+  await db.query("UPDATE reports SET closed_at = now(), close_reason = 'done' WHERE id = $1 AND target_kind = 'transcript' AND closed_at IS NULL", [id]);
 }

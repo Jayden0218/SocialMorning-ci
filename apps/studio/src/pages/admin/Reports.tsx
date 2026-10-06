@@ -7,7 +7,7 @@ import { Empty, Failed, Loading } from '../../shell/States';
 import { useLoad } from '../../useLoad';
 import { errorText } from './common';
 
-type Kind = 'comment' | 'clip' | 'profile' | 'show';
+type Kind = 'comment' | 'clip' | 'profile' | 'show' | 'episode' | 'transcript';
 type Action = 'dismiss' | 'remove' | 'hide_show' | 'suspend' | 'unsuspend' | 'unhide_show';
 type Item = { targetKind: Kind; targetId: string; count: number; latestAt: number; reasons: string[]; reporters: string[]; notes: string[]; snapshot: Record<string, unknown> | null; actions: Action[] };
 type Closed = { id: string; targetKind: Kind; targetId: string; reason: string; reporterName: string | null; createdAt: string; closedAt: string | null; closeReason: string | null };
@@ -25,6 +25,9 @@ function Snapshot({ item }: { item: Item }) {
     case 'clip': return <><blockquote className="row-body">{str(s, 'caption') || '(no caption)'}</blockquote><div className="row-sub">clip by {str(s, 'authorName') || '?'} on “{str(s, 'episodeTitle')}”</div></>;
     case 'profile': return <div className="row-body">Profile: {str(s, 'displayName') || item.targetId}</div>;
     case 'show': return <div className="row-body">Show: {str(s, 'showTitle') || item.targetId}</div>;
+    // M21 US2: an episode, or a transcript line with the listener's correction.
+    case 'episode': return <div className="row-body">Episode: {str(s, 'episodeTitle') || item.targetId} <span className="row-sub">of {str(s, 'showTitle') || '?'}</span></div>;
+    case 'transcript': return <><div className="row-sub">Transcript line on “{str(s, 'episodeTitle')}”</div><blockquote className="row-body">{str(s, 'original') || '(empty)'}</blockquote><div className="row-sub">Should say: {str(s, 'suggested')}</div></>;
   }
 }
 

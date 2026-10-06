@@ -11,6 +11,9 @@
  * M20 US3 (FR-006–FR-008): where the phone can make text (Android 13+, iPhone, with the speech
  * service), recording goes through `textRecorder` and "Post" opens a review — the text, editable —
  * before posting; the text goes up with the audio. Elsewhere it records and posts as before, no text.
+ *
+ * M21 US6 (G-M21-7): a 428 rules_required opens the community rules (RulesSheet); Accept posts the
+ * same recording again, Not now drops it (nothing was stored by the server).
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { router } from 'expo-router';
@@ -24,7 +27,8 @@ import { useColours } from '@/ui/kit/useColours';
 import { hit } from '@/design';
 import { VOICE_MAX_MS, voiceClock } from '@/social/voice';
 import { ApiError } from '@/social/api';
-import { useCommentExtrasApi } from '@/social/comment-extras-api';
+import { needsRules, useCommentExtrasApi } from '@/social/comment-extras-api';
+import { RulesSheet } from './RulesSheet';
 import { useSocial } from '@/social/context';
 import { useToast } from '@/ui/shell/providers';
 import { textRecorder, type VoiceTake } from '@/social/voice-text';
@@ -78,6 +82,9 @@ export function VoiceComposer(props: {
   const resume = useRef(false);
   const stopping = useRef(false);
   const discard = useRef(false);
+  // M21 US6: the recording waiting for the rules to be accepted.
+  const pending = useRef<{ blob: Blob; ms: number; transcript: string | null } | undefined>(undefined);
+  const [rules, setRules] = useState(false);
 
   const used = useRef(false);
   const restore = () => voiceSessionOff().catch(() => undefined);
@@ -115,6 +122,7 @@ export function VoiceComposer(props: {
       props.onPosted();
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) router.push('/auth/sign-in');
+      else if (needsRules(e)) { pending.current = { blob, ms, transcript }; setRules(true); }
       else toast(voicePostError(e));
     }
     setPhase('idle');
@@ -169,6 +177,11 @@ export function VoiceComposer(props: {
   if (phase === 'idle') {
     return (
       <Box className="flex-row items-center gap-gap">
+        <RulesSheet
+          open={rules}
+          onAccepted={() => { setRules(false); const p = pending.current; pending.current = undefined; if (p) void upload(p.blob, p.ms, p.transcript); }}
+          onClose={() => { setRules(false); pending.current = undefined; }}
+        />
         <Box className="flex-1">{props.children}</Box>
         <Pressable
           onPress={() => void start()}

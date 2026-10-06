@@ -228,6 +228,9 @@ function renderSnapshot(s: unknown): string {
     case 'clip': return `<blockquote>${str('caption') || '<i>(no caption)</i>'}</blockquote><p class="muted">${typeof o['startMs'] === 'number' && typeof o['endMs'] === 'number' ? `${mmss(o['startMs'] as number)}–${mmss(o['endMs'] as number)} ` : ''}by ${str('authorName') || '?'} on “${str('episodeTitle')}”</p>`;
     case 'profile': return `<p>Profile <b>${str('displayName') || '?'}</b></p>`;
     case 'show': return `<p>Show <b>${str('showTitle') || '?'}</b> <code>${str('feedUrl')}</code></p>`;
+    // M21 US2: an episode, or one transcript line with the listener's correction.
+    case 'episode': return `<p>Episode <b>${str('episodeTitle') || '?'}</b> of ${str('showTitle') || '?'}</p>`;
+    case 'transcript': return `<p>Transcript line ${typeof o['offsetMs'] === 'number' ? `at ${mmss(o['offsetMs'] as number)} ` : ''}on “${str('episodeTitle')}”</p><p class="muted">Says:</p><blockquote>${str('original') || '<i>(empty)</i>'}</blockquote><p class="muted">Should say:</p><blockquote>${str('suggested')}</blockquote>`;
     default: return '<p class="muted">(no copy)</p>';
   }
 }

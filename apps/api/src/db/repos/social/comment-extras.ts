@@ -41,8 +41,11 @@ export async function setUnfriendly(db: Db, commentId: string, listenerId: strin
   return { folded: (await foldedOnEpisode(db, c.episode_id)).has(commentId) };
 }
 
-/** The reply page (FR-043): the parent and all its replies, with the viewer's blocks applied. */
-export async function thread(db: Db, commentId: string, viewerId: string | undefined): Promise<{ parent: PublicComment; replies: PublicComment[] } | undefined> {
+/**
+ * The reply page (FR-043): the parent and all its replies, with the viewer's blocks and mutes applied.
+ * M21 US6: `tab: 'all'` keeps the replies oldest first (the conversation); `'newest'` is newest first.
+ */
+export async function thread(db: Db, commentId: string, viewerId: string | undefined, tab: 'all' | 'newest' = 'all'): Promise<{ parent: PublicComment; replies: PublicComment[] } | undefined> {
   const c = await getComment(db, commentId);
   if (!c) return undefined;
   const topId = c.parent_id ?? c.id;
@@ -50,5 +53,6 @@ export async function thread(db: Db, commentId: string, viewerId: string | undef
   const parent = all.find((x) => x.id === topId);
   if (!parent) return undefined;
   const { replies, ...rest } = parent;
-  return { parent: rest, replies: replies ?? [] };
+  const list = replies ?? [];
+  return { parent: rest, replies: tab === 'newest' ? [...list].reverse() : list };
 }

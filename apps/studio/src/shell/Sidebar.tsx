@@ -2,7 +2,7 @@
 import { NavLink, useNavigate } from 'react-router';
 import type { Show } from '../api';
 import { useSession } from '../session';
-import { IconChart, IconCoin, IconComments, IconEpisodes, IconHome, IconMedia, IconMegaphone, IconPeople, IconPie, IconPoll, IconSettings, IconShield } from './Icons';
+import { IconChart, IconCoin, IconComments, IconEpisodes, IconHome, IconMedia, IconMegaphone, IconPeople, IconPie, IconPoll, IconSettings, IconShield, IconTranscript } from './Icons';
 import { useUnsaved } from './Unsaved';
 
 /**
@@ -15,6 +15,7 @@ export const SECTIONS = [
   { path: 'episodes', label: 'Episodes', icon: IconEpisodes, built: true },
   { path: 'media', label: 'Media', icon: IconMedia, built: true, hostedOnly: true },
   { path: 'comments', label: 'Comments', icon: IconComments, built: true },
+  { path: 'transcript-reports', label: 'Transcript reports', icon: IconTranscript, built: true },
   { path: 'subscribers', label: 'Subscribers', icon: IconPeople, built: true },
   { path: 'demographics', label: 'Demographics', icon: IconPie, built: true },
   { path: 'announcements', label: 'Announcements', icon: IconMegaphone, built: true },

@@ -16,6 +16,7 @@ async function appWith(picksRaw: unknown, today = '2026-09-22') {
   const pg = new PGlite({ extensions: { citext } });
   const runner: MigrationRunner = { exec: (s) => pg.exec(s), query: async <T,>(s: string, p?: unknown[]) => (await pg.query<T>(s, p)).rows };
   await migrate(runner);
+  await pg.exec('ALTER TABLE listeners ALTER COLUMN rules_accepted_at SET DEFAULT now()'); // M21 US6: test listeners accepted the rules (as harness.ts)
   const db = fromPglite(pg);
   const apple = fakeApple();
   const catalogFetch = (async (input: string | URL | Request, init?: RequestInit) => {

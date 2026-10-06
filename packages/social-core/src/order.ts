@@ -1,4 +1,4 @@
-// Sorts comments by newest, most liked, smart, or their time in the episode; pinned first.
+// Sorts comments by newest, most liked, smart, or their time in the episode, either way round; pinned first.
 import type { CommentOrder } from './types';
 
 /**
@@ -10,6 +10,8 @@ import type { CommentOrder } from './types';
  *  - smart:    M19 US5 (FR-042) — score = likes + 2 × replies − hours old / 12, highest first;
  *              ties newest first. A reply is worth two likes: it is a conversation.
  * M19 US5 (FR-040): a pinned comment comes first under every order.
+ * M21 US6: every order has a direction. `defaultDir` is how it reads today (byMoment 'asc', the
+ * rest 'desc'); passing the other direction reverses the list — the pinned comment stays first.
  * Stable, and never mutates its input.
  */
 export const SMART_REPLY_WEIGHT = 2;
@@ -20,13 +22,26 @@ export function smartScore(c: { likeCount?: number; replyCount?: number; created
   return (c.likeCount ?? 0) + SMART_REPLY_WEIGHT * (c.replyCount ?? 0) - hours / SMART_HOURS_PER_POINT;
 }
 
+export type CommentDir = 'asc' | 'desc';
+
+/** M21 US6: the direction each order reads in by default — the one its arrow shows first. */
+export function defaultDir(order: CommentOrder): CommentDir {
+  return order === 'byMoment' ? 'asc' : 'desc';
+}
+
 export function orderComments<T extends { offsetMs: number | null; createdAt: number; likeCount?: number; replyCount?: number; pinned?: boolean }>(
   comments: readonly T[],
   order: CommentOrder,
   now: number = Date.now(),
+  dir: CommentDir = defaultDir(order),
 ): T[] {
   const pinned = comments.filter((c) => c.pinned === true);
-  if (pinned.length > 0) return [...pinned, ...orderComments(comments.filter((c) => c.pinned !== true), order, now)];
+  if (pinned.length > 0) return [...pinned, ...orderComments(comments.filter((c) => c.pinned !== true), order, now, dir)];
+  const sorted = sortBy(comments, order, now);
+  return dir === defaultDir(order) ? sorted : sorted.reverse();
+}
+
+function sortBy<T extends { offsetMs: number | null; createdAt: number; likeCount?: number; replyCount?: number }>(comments: readonly T[], order: CommentOrder, now: number): T[] {
   const indexed = comments.map((c, i) => ({ c, i }));
   if (order === 'smart') {
     return indexed.sort((a, b) => smartScore(b.c, now) - smartScore(a.c, now) || b.c.createdAt - a.c.createdAt || a.i - b.i).map((x) => x.c);

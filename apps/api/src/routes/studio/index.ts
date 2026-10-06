@@ -31,6 +31,7 @@ import { registerTips } from './tips.ts';
 import { registerEpisodes } from './episodes.ts';
 import { registerHosts } from './hosts.ts';
 import { registerMedia } from './media.ts';
+import { registerTranscriptReportDone, registerTranscriptReports } from './transcript-reports.ts';
 
 export { ownerOnly } from './common.ts';
 
@@ -101,6 +102,7 @@ studio.get('/me', async (c) => {
 });
 registerClaims(studio);
 registerCreate(studio);
+registerTranscriptReportDone(studio);
 
 studio.use('/shows/:show/*', async (c, next) => {
   const show = await roleFor(c.get('db'), c.get('listener')!.id, c.req.param('show'));
@@ -118,3 +120,4 @@ registerTips(studio);
 registerEpisodes(studio);
 registerHosts(studio);
 registerMedia(studio);
+registerTranscriptReports(studio);

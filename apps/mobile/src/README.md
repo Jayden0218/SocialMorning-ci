@@ -202,7 +202,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `base-url.ts` | Gives the server address set in the app config. |
 | `cache.ts` | Keeps each episode's last comments and reactions for offline viewing. |
 | `chat-api.ts` | Chat server calls (conversations, messages, friends) and merging new messages into a thread. |
-| `comment-extras-api.ts` | Server calls for comment extras: pin, mark unfriendly, the reply page, voice comments. |
+| `comment-extras-api.ts` | Server calls for comment extras: pin, mark unfriendly, the reply page, voice comments, rules and mutes. |
 | `composer.ts` | Runs the comment box: captures the moment, posts, keeps drafts. |
 | `context.tsx` | Gives screens the server client, account, and who is signed in. |
 | `drafts.ts` | Saves unsent comment text so it survives sign-in or app closing. |
@@ -300,15 +300,19 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 |---|---|
 | `ChapterList.tsx` | List of episode chapters; current one is bold; tap to jump there. |
 | `EndOffer.tsx` | Card at episode end: "Next up" episode with a Play button. |
+| `ClapBurst.tsx` | A short full-screen burst of thumbs when the listener reacts; never blocks a tap; off with Reduce Motion. |
 | `HeatCurve.tsx` | 100 bars under the seek bar showing where listeners reacted; tap to jump. |
+| `HeatScrubber.tsx` | The heat curve as the seek bar: tap or drag across it to jump; the played part is in the accent. |
 | `MiniPlayer.tsx` | Small bar at the bottom showing what plays; tap to open the player. |
 | `NextUp.tsx` | Loads the "Next up" episodes, each with a reason, for the episode page. |
 | `Rail.tsx` | Small marks on the seek bar where people left timed comments. |
 | `Scrubber.tsx` | The seek bar under the player; drag it to jump in the episode. |
+| `SettingsPanel.tsx` | The player's settings as a full-screen panel: loop, skip silence, speed, sleep, chapters and transcript. |
 | `SleepTimerControl.tsx` | Sleep timer choices (5–90 min), the End-of-episode switch, time left, Cancel. |
 | `MoonButton.tsx` | The player's moon button: opens the sleep timer and shows its time left. |
-| `SpeedControl.tsx` | Play speed: minus and plus buttons, quick choices, "only for this show", make it the default. |
-| `TranscriptPane.tsx` | Episode transcript; current line is marked; tap a line to jump; long-press to pick lines to share. |
+| `SpeedControl.tsx` | Play speed: a slider from 0.5× to 3.0×, minus and plus, quick choices, and a "This show only" switch. |
+| `TranscriptExtras.tsx` | The player's two transcript lines (now and next) with ⤢, and the sheet to report a wrong line. |
+| `TranscriptPane.tsx` | Episode transcript: follows the audio, tap a line to jump, long-press to share lines or report a mistake. |
 | `VideoStage.tsx` | Shows the video picture for video episodes; sound comes from the audio. |
 | `mini-player-swipe.ts` | Hides the mini player early on swipe-back, so it never shows under tabs. |
 | `palette.ts` | Player colours, with a light tint of the show's own colour at the top. |
@@ -327,13 +331,14 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | File | What it does |
 |---|---|
 | `CommentPreview.tsx` | Two newest comments on the episode page, then "All N comments". |
-| `CommentRow.tsx` | One comment card: picture, name, time, moment chip, text, likes, replies. |
+| `CommentRow.tsx` | One comment card: picture, name, badge, time and region, moment chip, text, likes, replies; a tap opens its menu. |
 | `CommentsButton.tsx` | Comment icon with the comment count under an Updates row. |
 | `Composer.tsx` | The box where you write a comment or reply, with its moment in time. |
 | `EpisodeCard.tsx` | The episode with play/pause at the top of the comments page. |
 | `MomentSheet.tsx` | Sheet with the comments at one moment; reply, delete or report. |
 | `Placeholder.tsx` | Short text shown instead of a deleted, removed, blocked or reported comment. |
 | `ReportSheet.tsx` | Sheet to report a comment: pick a reason, add a note, send. |
+| `RulesSheet.tsx` | Sheet with the community rules, shown once before a first comment: Accept or Not now. |
 | `VoiceComment.tsx` | A voice comment's row: a play/stop disc, a thin bar and its length; pauses the episode. |
 | `VoiceRecord.tsx` | The mic beside a comment box: tap to record a voice comment up to 60 s, then post it. |
 | `VoiceTextReview.tsx` | After a voice recording: the text the phone heard, editable, with Post and Cancel. |
@@ -346,7 +351,8 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `ClipCard.tsx` | One clip: caption, who made it, time range, play and share buttons. |
 | `ClipComposer.tsx` | Make a clip: set start and end while listening, preview, add caption, save. |
 | `ClipList.tsx` | The episode's clips, sending ones first, then newest first. |
-| `ShareChooser.tsx` | The app's share panel: share episode, this moment, or a picture. |
+| `ShareChooser.tsx` | The app's share panel: chat apps on this phone, share this moment, a picture, Copy link, More. |
+| `share-targets.ts` | Chat apps the share panel can send to directly, how to tell they are installed, and the link that opens each. |
 
 ### `ui/chat/` — Chat messages between two people
 

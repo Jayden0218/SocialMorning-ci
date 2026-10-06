@@ -60,6 +60,33 @@ it('no code calls the native alert', () => {
   expect(hits).toEqual([]);
 });
 
+/**
+ * M21 guard G-M21-11: no screen is presented as an iOS sheet. A `formSheet` / `pageSheet` is the
+ * native card with its own grabber and corner radius; our sheets are our own views. The voice
+ * status recorder (`voice/new`, a full-screen `modal`) is the one named exception to any
+ * `presentation`, and it is not a sheet either. The player stays a push that slides up (R7).
+ *
+ * The break that turns it red: add `presentation: 'formSheet'` to any screen in app/_layout.tsx
+ * (e.g. the player's options).
+ */
+it('G-M21-11: no screen is a formSheet or pageSheet; only voice/new sets a presentation', () => {
+  const sheets = walk(APP).filter((f) => /presentation:\s*['"](formSheet|pageSheet)['"]/.test(readFileSync(f, 'utf8'))).map(rel);
+  expect(sheets).toEqual([]);
+  const layout = readFileSync(join(APP, '_layout.tsx'), 'utf8');
+  const presented = [...layout.matchAll(/<Stack\.Screen\s+name="([^"]+)"[^\n]*presentation:/g)].map((m) => m[1]);
+  expect(presented).toEqual(['voice/new']);
+});
+
+it('G-M21-11: the player slides up as a push and closes with a swipe down from its top', () => {
+  const layout = readFileSync(join(APP, '_layout.tsx'), 'utf8');
+  const player = /<Stack\.Screen\s+name="player"[^\n]*/.exec(layout)?.[0] ?? '';
+  expect(player).toMatch(/gestureDirection:\s*'vertical'/);
+  expect(player).toMatch(/animation:\s*'slide_from_bottom'/);
+  expect(player).toMatch(/fullScreenGestureEnabled:\s*true/);
+  expect(player).toMatch(/gestureResponseDistance:/);
+  expect(player).not.toMatch(/presentation:/);
+});
+
 it('no file outside src/ui/lib uses the native switch', () => {
   const files = [...walk(APP), ...walk(join(ROOT, 'src'))];
   const hits = files.filter((f) => {

@@ -1,4 +1,4 @@
-// Server calls for comment extras: pin, mark unfriendly, the reply page, voice comments.
+// Server calls for comment extras: pin, mark unfriendly, the reply page, voice comments, rules and mutes.
 /**
  * M19 US5/US6 (specs/020-m19-the-rest-of-xiaoyuzhou/contracts/api.md, "Comments"), in their own
  * client like m12-api.ts so the test fakes of `ApiClient` need no new methods.
@@ -7,6 +7,11 @@
  *  - GET /v1/comments/:id/thread → { parent, replies }
  *  - POST /v1/episodes/:id/comments/voice — raw audio/mp4, x-duration-ms, x-offset-ms, x-parent-id
  * The new comment fields are all optional, so an older server still parses (`extrasOf`).
+ * M21 US6 (specs/022-m21-the-xiaoyuzhou-gaps/contracts/api.md):
+ *  - GET /v1/comments/:id/thread?tab=all|newest (the reply page's two tabs)
+ *  - POST /v1/me/rules → 204 (a comment POST answers 428 rules_required until then)
+ *  - GET /v1/me/mutes → { items }, PUT|DELETE /v1/me/mutes/:listenerId → 204
+ * Region (`country`) and the listening badge (`badge`) come on each comment (`m21Of`).
  */
 import { useMemo } from 'react';
 import { ApiError, requester, type ApiDeps, type Comment } from './api';
@@ -19,6 +24,23 @@ export type CommentVoice = { url: string; ms: number; /** M20 US3: the text its 
 export type CommentImage = { url: string; w: number; h: number };
 export type CommentExtras = { pinned?: true; folded?: true; replyCount?: number; voice?: CommentVoice; image?: CommentImage };
 export type CommentPlus = Comment & CommentExtras;
+
+/** M21 US6: the region the comment was posted from (two letters), and the author's listening badge. */
+export type CommentM21 = { country?: string; badge?: 100 | 500 | 1000 };
+export function m21Of(c: Comment): CommentM21 {
+  const x = c as Comment & { country?: unknown; badge?: unknown };
+  const country = typeof x.country === 'string' && /^[A-Za-z]{2}$/.test(x.country) ? x.country.toUpperCase() : undefined;
+  const badge = x.badge === 100 || x.badge === 500 || x.badge === 1000 ? x.badge : undefined;
+  return { ...(country ? { country } : {}), ...(badge ? { badge } : {}) };
+}
+/** "100h+", "500h+", "1000h+" — the pill beside the name. */
+export const badgeLabel = (b: 100 | 500 | 1000): string => `${b}h+`;
+
+/** M21 US6: the server wants the community rules accepted first (428 rules_required). */
+export function needsRules(e: unknown): boolean {
+  return e instanceof ApiError && (e.status === 428 || (e.code as string) === 'rules_required');
+}
+export type MutedListener = { id: string; name: string; avatarUrl: string | null };
 export type Thread = { parent: CommentPlus; replies: CommentPlus[] };
 
 /** The M19 fields of a comment, read safely whatever the `Comment` type says today. */
@@ -57,7 +79,13 @@ export function createCommentExtrasApi(deps: ApiDeps) {
     unpin: async (id: string) => { await call('DELETE', `/v1/comments/${enc(id)}/pin`); },
     markUnfriendly: async (id: string) => (await call<{ folded: boolean }>('PUT', `/v1/comments/${enc(id)}/unfriendly`)).json,
     unmarkUnfriendly: async (id: string) => (await call<{ folded: boolean }>('DELETE', `/v1/comments/${enc(id)}/unfriendly`)).json,
-    thread: async (id: string) => (await call<Thread>('GET', `/v1/comments/${enc(id)}/thread`)).json,
+    thread: async (id: string, tab: 'all' | 'newest' = 'all') => (await call<Thread>('GET', `/v1/comments/${enc(id)}/thread${tab === 'newest' ? '?tab=newest' : ''}`)).json,
+    /** M21 US6 (G-M21-7): the listener accepted the community rules. */
+    acceptRules: async () => { await call('POST', '/v1/me/rules'); },
+    /** M21 US6 (G-M21-6): mute / unmute a listener for me only; they are never told. */
+    mutes: async () => (await call<{ items: MutedListener[] }>('GET', '/v1/me/mutes')).json.items,
+    mute: async (listenerId: string) => { await call('PUT', `/v1/me/mutes/${enc(listenerId)}`); },
+    unmute: async (listenerId: string) => { await call('DELETE', `/v1/me/mutes/${enc(listenerId)}`); },
     /** M20 US9 (FR-054): whether the server takes images — the picture button shows only when true. */
     imagesOn: async () => { try { return (await call<{ on: boolean }>('GET', '/v1/comments/images')).json.on === true; } catch { return false; } },
     /** M20 US9 (FR-053): the shrunk JPEG for a comment just posted — raw bytes, ≤ 1 000 000. */

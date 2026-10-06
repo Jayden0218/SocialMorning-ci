@@ -26,10 +26,14 @@ import { GraphProvider } from '@/graph/context';
 import { SafetyProvider } from '@/safety/context';
 import { CarLibrarySync } from '@/outside/CarLibrarySync';
 import { MiniPlayer, miniPlayerShows } from '@/ui/player/MiniPlayer';
+
 import { leavingToTabs, rootBarHidden, type LeavingToTabs } from '@/ui/player/mini-player-swipe';
 import { GluestackUIProvider } from '@/ui/lib/gluestack-ui-provider';
 import { RateSheet } from '@/ui/shell/RateSheet';
 import { consentGiven } from '@/ui/shell/consent';
+
+/** M21 US2: the player closes with a swipe down that starts in its top 120 pt. */
+const PLAYER_SWIPE_TOP = 120;
 
 // Owner, 2026-09-27: no warning bar over the app in Debug builds. Warnings still print
 // in the Metro terminal; Release builds never show the bar.
@@ -159,7 +163,9 @@ function RootStack(): React.ReactElement {
           <Stack.Screen name="episode/[id]" options={{ title: 'Episode', headerShown: false }} />
           {/* M12 US2: comments on their own page, opened from the player and the episode page. */}
           <Stack.Screen name="comments/[episodeId]" options={{ title: 'Comments' }} />
-          <Stack.Screen name="player" options={{ title: 'Now Playing', headerShown: false }} />
+          {/* M21 US2 (research R7): still a push, never a sheet — it slides up from the bottom and a
+              downward swipe that starts in the top 120 pt (the bar and the artwork) closes it. */}
+          <Stack.Screen name="player" options={{ title: 'Now Playing', headerShown: false, animation: 'slide_from_bottom', gestureDirection: 'vertical', fullScreenGestureEnabled: true, animationMatchesGesture: true, gestureResponseDistance: { top: PLAYER_SWIPE_TOP } }} />
           {/* The auth pages draw their own close ✕ and title (owner's reference, 2026-09-27). */}
           {/* No slide: after Accept the landing page must appear at once, with nothing of
               the home page showing on the way (owner, 2026-09-27; see providers). */}

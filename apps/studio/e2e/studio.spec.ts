@@ -86,6 +86,7 @@ test('the whole Studio, one creator, from sign-in to sign-out', async ({ page, r
 
   // 5 — a listener subscribes and comments (as the app does); Home shows it
   expect((await request.put('/api/v1/me/subscriptions', { headers: as(meiToken), data: { items: [{ feedUrl: details.show.feedUrl, createdAt: new Date().toISOString() }] } })).status()).toBe(200);
+  expect((await request.post('/api/v1/me/rules', { headers: as(meiToken) })).status()).toBe(204); // M21 US6: the rules come first
   const posted = await request.post(`/api/v1/episodes/${episodeId}/comments`, { headers: as(meiToken), data: { body: 'Loved the intro!', offsetMs: 12_000 } });
   expect(posted.status()).toBe(200);
   const commentId = ((await posted.json()) as { comment: { id: string } }).comment.id;

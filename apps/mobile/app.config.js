@@ -1,8 +1,10 @@
 /**
  * M10b US9: the iPhone's widget, Siri shortcut and lock-screen live activity are OFF unless
- * `SOCIALNET_IOS_EXTRAS=1`. The iPhone build today is signed by a free Apple team, which cannot
- * sign App Groups (the widget needs one), and an unsigned extension would break that build.
- * Turn it on with a paid team: `SOCIALNET_IOS_EXTRAS=1 APPLE_TEAM_ID=… npx expo prebuild -p ios`.
+ * `SOCIALNET_IOS_EXTRAS=1`. Correction (M21 research R1, 2026-10-06): this said a free Apple team
+ * "cannot sign App Groups"; Apple's capability table says it can (developer.apple.com/help/account/
+ * reference/supported-capabilities-ios). Neither was ever tried — the first extras build settles
+ * it (M21 T023). Cloud build: run ios.yml with the `extras` input; scripts/ios-install.sh now signs
+ * each extension with its own profile.
  * Android is not affected either way (both packages are iOS-only; the Android widget is in app.json).
  */
 const APP_GROUP = 'group.app.socialmorning.mobile';

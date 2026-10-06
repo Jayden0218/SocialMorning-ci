@@ -1,7 +1,7 @@
 // Tests sorting comments by newest, by episode time, and by likes.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { orderComments, smartScore } from '../src/order.ts';
+import { defaultDir, orderComments, smartScore } from '../src/order.ts';
 
 const rows = [
   { id: 'a', offsetMs: 900_000, createdAt: 3 },
@@ -66,4 +66,21 @@ test('pinned (M19 FR-040): first under every order, the rest in that order', () 
     assert.equal(orderComments(rows, order, 10).map((r) => r.id)[0], 'p', order);
   }
   assert.deepEqual(orderComments(rows, 'byMoment').map((r) => r.id), ['p', 'b', 'a']);
+});
+
+test('direction (M21 US6): each order has a default; the other direction reverses it; pinned stays first', () => {
+  assert.equal(defaultDir('newest'), 'desc');
+  assert.equal(defaultDir('liked'), 'desc');
+  assert.equal(defaultDir('smart'), 'desc');
+  assert.equal(defaultDir('byMoment'), 'asc');
+  assert.deepEqual(orderComments(rows, 'newest', 0, 'desc').map((r) => r.id), ['b', 'e', 'a', 'd', 'c']);
+  assert.deepEqual(orderComments(rows, 'newest', 0, 'asc').map((r) => r.id), ['c', 'd', 'a', 'e', 'b']);
+  assert.deepEqual(orderComments(rows, 'byMoment', 0, 'desc').map((r) => r.id), ['e', 'b', 'a', 'd', 'c']);
+  const pinnedRows = [
+    { id: 'a', offsetMs: 10, createdAt: 3 },
+    { id: 'p', offsetMs: 50, createdAt: 1, pinned: true },
+    { id: 'b', offsetMs: 5, createdAt: 2 },
+  ];
+  assert.deepEqual(orderComments(pinnedRows, 'newest', 0, 'asc').map((r) => r.id), ['p', 'b', 'a']);
+  assert.deepEqual(rows.map((r) => r.id), ['a', 'b', 'c', 'd', 'e'], 'the input is not changed');
 });

@@ -10,6 +10,13 @@ on:
   push:
     branches: [ios]
   workflow_dispatch:
+    inputs:
+      extras:
+        # M21 T022 (research R1/R9): the widget bundle, the Siri intent and the Watch app are
+        # linked only with SOCIALNET_IOS_EXTRAS=1 (app.config.js). Off by default, as before.
+        description: 'Build the iOS extras (widgets, Siri, Watch app)'
+        type: boolean
+        default: false
 jobs:
   ios:
     # Release = the app as users get it. Debug = loads its code from the owner's `expo start`
@@ -20,6 +27,8 @@ jobs:
         configuration: [Release, Debug]
     runs-on: macos-26
     timeout-minutes: 75
+    env:
+      SOCIALNET_IOS_EXTRAS: ${{ inputs.extras && '1' || '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -41,7 +50,7 @@ jobs:
           echo "workspace=$WS scheme=$SCHEME"
           xcodebuild build -quiet \
             -workspace "$WS" -scheme "$SCHEME" -configuration "${{ matrix.configuration }}" \
-            -sdk iphoneos -destination 'generic/platform=iOS' \
+            $( [ -n "$SOCIALNET_IOS_EXTRAS" ] || echo -sdk iphoneos ) -destination 'generic/platform=iOS' \
             -derivedDataPath "$RUNNER_TEMP/dd" \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
           APP=$(ls -d "$RUNNER_TEMP"/dd/Build/Products/${{ matrix.configuration }}-iphoneos/*.app | head -1)

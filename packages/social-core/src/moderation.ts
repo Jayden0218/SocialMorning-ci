@@ -66,6 +66,10 @@ export function actionsFor(kind: TargetKind): Action[] {
       return ['dismiss', 'suspend'];
     case 'show':
       return ['dismiss', 'hide_show'];
+    // M21 US2: an episode or a transcript line is not ours to remove; the owner reads and dismisses.
+    case 'episode':
+    case 'transcript':
+      return ['dismiss'];
   }
 }
 

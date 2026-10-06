@@ -6,6 +6,7 @@ import { ApiError } from '../../../errors.ts';
 import { blockedIdsFor } from '../safety/blocks.ts';
 import { hiddenFor } from '../safety/reports.ts';
 import { initialsOf, likesOnEpisode } from './comment-likes.ts';
+import { mutedIdsFor } from './mutes.ts';
 
 export type CommentRow = {
   id: string;
@@ -33,7 +34,20 @@ export type CommentRow = {
   image_path?: string | null;
   image_w?: number | null;
   image_h?: number | null;
+  /** M21 US6: the region the server saw at post time (two letters), and the author's badge inputs. */
+  country?: string | null;
+  author_listened_ms?: number | string | null;
+  author_hide_badge?: boolean | null;
 };
+
+/** M21 US6: the listening badge — 100 h, 500 h or 1000 h of total listening; none below 100 h. */
+export type Badge = 100 | 500 | 1000;
+const HOUR_MS = 3_600_000;
+export function badgeFor(listenedMs: number | string | null | undefined, hidden: boolean | null | undefined): Badge | null {
+  if (hidden) return null;
+  const hours = Number(listenedMs ?? 0) / HOUR_MS;
+  return hours >= 1000 ? 1000 : hours >= 500 ? 500 : hours >= 100 ? 100 : null;
+}
 
 export type PublicComment = {
   id: string;
@@ -74,10 +88,15 @@ export type PublicComment = {
   voice?: { url: string; ms: number; text?: string };
   /** M20 US9: its image, when there is one. */
   image?: { url: string; w: number; h: number };
+  /** M21 US6: the region it was posted from (two letters), null when unknown or a placeholder. */
+  country: string | null;
+  /** M21 US6: the author's listening badge; null below 100 h, when hidden, or for a placeholder. */
+  badge: Badge | null;
 };
 
 const SELECT = `SELECT c.id, c.episode_id, c.author_id, l.display_name, l.avatar_url, c.parent_id, c.body, c.offset_ms, c.created_at, c.deleted_at, c.removed_at, c.host_hidden_at,
-                       c.pinned_at, c.voice_url, c.voice_ms, c.transcript, c.image_url, c.image_path, c.image_w, c.image_h
+                       c.pinned_at, c.voice_url, c.voice_ms, c.transcript, c.image_url, c.image_path, c.image_w, c.image_h,
+                       c.country, l.listened_ms AS author_listened_ms, l.hide_badge AS author_hide_badge
                 FROM comments c LEFT JOIN listeners l ON l.id = c.author_id`;
 
 export function toPublic(r: CommentRow, viewerId?: string): PublicComment {
@@ -101,6 +120,8 @@ export function toPublic(r: CommentRow, viewerId?: string): PublicComment {
     ...(!deleted && r.voice_url && r.voice_ms ? { voice: { url: r.voice_url, ms: Number(r.voice_ms), ...(r.transcript ? { text: r.transcript } : {}) } } : {}),
     ...(!deleted && r.image_url && r.image_w && r.image_h ? { image: { url: r.image_url, w: Number(r.image_w), h: Number(r.image_h) } } : {}),
     likeCount: 0,
+    country: deleted ? null : (r.country?.trim() || null),
+    badge: deleted ? null : badgeFor(r.author_listened_ms, r.author_hide_badge),
     ...(viewerId !== undefined ? { likedByMe: false } : {}),
     ...(removed ? { removed: true } : {}),
     ...(hostHidden ? { hiddenByHost: true } : {}),
@@ -112,7 +133,7 @@ export function toPublic(r: CommentRow, viewerId?: string): PublicComment {
 
 export async function createComment(
   db: Db,
-  c: { episodeId: string; authorId: string; body: string | null; offsetMs?: number; parentId?: string; voice?: { url: string; path: string; ms: number; transcript?: string } },
+  c: { episodeId: string; authorId: string; body: string | null; offsetMs?: number; parentId?: string; voice?: { url: string; path: string; ms: number; transcript?: string }; /** M21 US6: from countryOf() */ country?: string },
 ): Promise<CommentRow> {
   if (c.parentId) {
     const parent = (await db.query<{ episode_id: string; parent_id: string | null }>(
@@ -122,8 +143,8 @@ export async function createComment(
     if (parent.parent_id !== null) throw new ApiError('reply_depth', 'You can reply to a comment, not to a reply.');
   }
   const [row] = await db.query<{ id: string }>(
-    'INSERT INTO comments (episode_id, author_id, parent_id, body, offset_ms, voice_url, voice_path, voice_ms, transcript) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id',
-    [c.episodeId, c.authorId, c.parentId ?? null, c.body, c.offsetMs ?? null, c.voice?.url ?? null, c.voice?.path ?? null, c.voice?.ms ?? null, c.voice?.transcript ?? null],
+    'INSERT INTO comments (episode_id, author_id, parent_id, body, offset_ms, voice_url, voice_path, voice_ms, transcript, country) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id',
+    [c.episodeId, c.authorId, c.parentId ?? null, c.body, c.offsetMs ?? null, c.voice?.url ?? null, c.voice?.path ?? null, c.voice?.ms ?? null, c.voice?.transcript ?? null, c.country ?? null],
   );
   // M4 (research R4): a top-level comment is a feed item; replies are not.
   if (!c.parentId) {
@@ -162,9 +183,15 @@ export async function deleteComment(db: Db, id: string): Promise<{ placeholder: 
   return { placeholder: false, episodeId: row.episode_id };
 }
 
-/** Top-level newest first, each with its replies oldest first (contracts/api.md). */
-export async function listComments(db: Db, episodeId: string, viewerId?: string): Promise<PublicComment[]> {
-  const all = await db.query<CommentRow>(`${SELECT} WHERE c.episode_id = $1 ORDER BY c.created_at ASC`, [episodeId]);
+/**
+ * Top-level newest first (M21 US6: `dir: 'asc'` turns that to oldest first), each with its replies
+ * oldest first (contracts/api.md).
+ */
+export async function listComments(db: Db, episodeId: string, viewerId?: string, opts: { dir?: 'asc' | 'desc' } = {}): Promise<PublicComment[]> {
+  const fetched = await db.query<CommentRow>(`${SELECT} WHERE c.episode_id = $1 ORDER BY c.created_at ASC`, [episodeId]);
+  // M21 US6 (G-M21-6): the viewer's muted listeners are gone from the viewer's reads only — their
+  // comments and their replies. A reply under a muted listener's comment goes with it.
+  const all = viewerId === undefined ? fetched : await withoutMuted(db, fetched, viewerId);
   // M6 (R1, G1): a signed-in viewer never sees a blocked listener's comments or what they reported.
   const rows = viewerId === undefined ? all : await filterForViewer(db, all, viewerId);
   const byId = new Map<string, PublicComment>();
@@ -189,7 +216,15 @@ export async function listComments(db: Db, episodeId: string, viewerId?: string)
     if (r.parent_id === null) continue;
     topById.get(r.parent_id)?.replies!.push(byId.get(r.id)!);
   }
-  return top.reverse().map((c) => ({ ...c, replyCount: c.replies!.length }));
+  const ordered = opts.dir === 'asc' ? top : top.reverse();
+  return ordered.map((c) => ({ ...c, replyCount: c.replies!.length }));
+}
+
+/** M21 US6 (G-M21-6): drop what the viewer's muted listeners wrote. */
+async function withoutMuted(db: Db, rows: CommentRow[], viewerId: string): Promise<CommentRow[]> {
+  const muted = await mutedIdsFor(db, viewerId);
+  if (muted.size === 0) return rows;
+  return rows.filter((r) => r.author_id === null || !muted.has(r.author_id));
 }
 
 /** Blocked authors and reported ids out; a blocked reply under a kept parent stays as a placeholder row. */
@@ -205,6 +240,15 @@ async function filterForViewer(db: Db, rows: CommentRow[], viewerId: string): Pr
       ? { ...bare, reported: true }
       : { ...bare, blocked: true }) as CommentRow & { blocked?: true; reported?: true };
   });
+}
+
+/**
+ * M21 US6 (G-M21-7): a comment — text or voice — waits until its author accepted the community
+ * rules (`POST /v1/me/rules`). The phone shows the rules on this 428 and resends after Accept.
+ */
+export async function requireRulesAccepted(db: Db, listenerId: string): Promise<void> {
+  const [r] = await db.query<{ rules_accepted_at: Date | string | null }>('SELECT rules_accepted_at FROM listeners WHERE id = $1', [listenerId]);
+  if (!r || r.rules_accepted_at === null) throw new ApiError('rules_required', 'Please read and accept the community rules before your first comment.');
 }
 
 /** M19 US5 (FR-041): a comment folds once this many listeners marked it unfriendly. */

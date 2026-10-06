@@ -42,6 +42,7 @@ missing here or a line does not match its file.
 | `SignIn.tsx` | The Studio sign-in page, by password or by emailed code. |
 | `Subscribers.tsx` | Page listing subscribers and trends, and muting listeners from commenting. |
 | `Tips.tsx` | Page showing tips received, with a switch to allow or stop tips. |
+| `TranscriptReports.tsx` | Page listing listeners' transcript corrections for a show, each with a Done button. |
 | `types.ts` | Shared data shapes for episode rows and pages of episodes. |
 
 ### `pages/settings/` — parts of the show Settings page

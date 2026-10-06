@@ -56,7 +56,7 @@ Every code file, one plain line each. Each file also starts with the same senten
 | `moderation.ts` | Report queue rules: group reports by item, allowed actions, and closing. |
 | `moment.ts` | Captures the episode time a comment belongs to when the comment box opens. |
 | `nextup.ts` | Builds the "Next up" list from four sources, without repeats or finished episodes. |
-| `order.ts` | Sorts comments by newest, most liked, smart, or their time in the episode; pinned first. |
+| `order.ts` | Sorts comments by newest, most liked, smart, or their time in the episode, either way round; pinned first. |
 | `picks.ts` | Reads and checks the daily picks file and returns picks for a day. |
 | `plural.ts` | Writes counts with the right singular or plural noun, like "1 episode". |
 | `rank.ts` | Weights and scoring for recommendations: freshness, popularity, quality and fatigue. |

@@ -71,6 +71,7 @@ export async function timeline(db: Db, viewerId: string, before: string | undefi
        AND k.listener_id IN (SELECT followed_id FROM follows WHERE follower_id = $1)
        AND l.likes_public = true
        AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id = $1 AND b.blocked_id = k.listener_id) OR (b.blocker_id = k.listener_id AND b.blocked_id = $1))
+       AND NOT EXISTS (SELECT 1 FROM listener_mutes m WHERE m.muter_id = $1 AND m.muted_id = k.listener_id) -- M21 US6 (G-M21-6)
        AND ($2::timestamptz IS NULL OR k.created_at < $2::timestamptz)
      ORDER BY k.created_at DESC LIMIT ${TIMELINE_PAGE + 1}`,
     [viewerId, before ?? null],

@@ -9,7 +9,7 @@ test('migrations 001–011 apply once and are idempotent', async () => {
   const again = await migrate(t.runner);
   assert.deepEqual(again, [], 'second run applies nothing');
   const rows = await t.q<{ version: number }>('SELECT version FROM schema_migrations ORDER BY version');
-  assert.deepEqual(rows.map((r) => Number(r.version)), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
+  assert.deepEqual(rows.map((r) => Number(r.version)), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]);
   const tables = await t.q<{ table_name: string }>(
     "SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY 1",
   );

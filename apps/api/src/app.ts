@@ -24,6 +24,7 @@ import { mod } from './pages/mod.ts';
 import { legal } from './pages/legal.ts';
 import { hidden, reports } from './routes/safety/reports.ts';
 import { blocks } from './routes/safety/blocks.ts';
+import { mutes } from './routes/social/mutes.ts';
 import { follows } from './routes/social/follows.ts';
 import { feed } from './routes/social/feed.ts';
 import { listened } from './routes/library/listened.ts';
@@ -242,6 +243,7 @@ export function createApp(deps: AppDeps) {
   app.route('/v1/me/listened', listened);
   app.route('/v1/me/privacy', privacy);
   app.route('/v1/me/blocks', blocks);
+  app.route('/v1/me/mutes', mutes); // M21 US6
   app.route('/v1/me/hidden', hidden);
   app.route('/v1/reports', reports);
   app.route('/v1/listeners', listenerLikes);

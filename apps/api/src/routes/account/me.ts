@@ -44,6 +44,12 @@ me.patch('/', requireAuth, json(patchBody), async (c) => {
   return c.json({ listener: { ...publicListener({ ...l, display_name: n?.display_name ?? l.display_name }), ...(await myProfile(db, l.id)) } });
 });
 
+/** M21 US6 (G-M21-7): POST /v1/me/rules — the listener accepted the community rules; the first time is kept. */
+me.post('/rules', requireAuth, async (c) => {
+  await c.get('db').query('UPDATE listeners SET rules_accepted_at = coalesce(rules_accepted_at, now()) WHERE id = $1', [c.get('listener')!.id]);
+  return c.body(null, 204);
+});
+
 /**
  * M19 US1 (FR-002): PUT the photo as the raw JPEG or PNG (≤ 200 KB, checked by its bytes, not its
  * header). The old photo leaves the store once the new one is saved; every photo together stays

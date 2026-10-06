@@ -157,6 +157,9 @@ async function seed(): Promise<void> {
   for (let i = 5; i < 45; i++) {
     const ep = i < 35 ? ep1 : ep2;
     const offsetMs = ((i * 7) % 55) * 1000 + 1000;
+    // M21 US6 (G-M21-7): a first comment waits for the community rules to be accepted.
+    const rules = await call('POST', '/v1/me/rules', undefined, listeners[i]!.token);
+    if (rules.status !== 204) throw new Error(`rules: ${rules.status} ${rules.text}`);
     const r = await call<{ comment: { id: string } }>('POST', `/v1/episodes/${ep.episodeId}/comments`, { body: `Seed comment ${pad(i + 1)} at ${Math.floor(offsetMs / 1000)} s`, offsetMs }, listeners[i]!.token);
     if (r.status !== 201 && r.status !== 200) throw new Error(`comment: ${r.status} ${r.text}`);
     commentIds.push(r.json.comment.id);
@@ -229,6 +232,7 @@ async function listener(): Promise<void> {
   ok(pos?.offsetMs === 20_000, `"Continue listening" resumes at 0:20 (server has ${pos?.offsetMs})`);
   await call('PUT', '/v1/me/listened', { deviceId: 'journey-phone', days: [{ episodeId: ep.episodeId, day: today(), ranges: [[0, 20_000]] }] }, token);
 
+  ok((await call('POST', '/v1/me/rules', undefined, token)).status === 204, 'accepts the community rules (M21 US6)');
   const posted = await call<{ comment: { id: string; offsetMs: number } }>('POST', `/v1/episodes/${ep.episodeId}/comments`, { body: 'Journey: the tone changes nothing, and I love it', offsetMs: 20_000 }, token);
   ok(posted.status === 201 || posted.status === 200, 'posts a comment at the current moment');
   ok(posted.json.comment.offsetMs === 20_000, 'the comment carries 0:20');

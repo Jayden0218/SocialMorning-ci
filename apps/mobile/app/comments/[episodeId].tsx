@@ -1,4 +1,4 @@
-// An episode's comments: four sort orders, likes, write box with the current time and a mic.
+// An episode's comments: four sort orders either way round, likes, who is listening now, write box with the current time and a mic.
 /**
  * The comments page (M12 US2, FR-020…FR-027). Found on the iPhone 2026-09-29: the player's
  * comment button opened the keyboard with "No moment attached" at 4:58, and the list lived at
@@ -18,12 +18,17 @@
  * The host test: a proven creator claim (GET /v1/creator/claims) on this episode's feed — the
  * same proof the server uses for the Host badge. A mark this listener made is remembered for
  * the page's life only (the server sends no "marked by me"), so "Unmark" shows until it closes.
+ *
+ * M21 US6: an arrow beside the orders turns the active order round ("Reverse order"); "N listening
+ * now" sits under the title (src/social/live.ts, shown at 2 or more); a tap on a comment opens the
+ * same menu as the long-press, which adds Share (the episode link at the comment's moment, with
+ * its words) and Mute (others' comments — hidden for me only, the writer is never told).
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Clipboard, Platform } from 'react-native';
+import { Clipboard, Platform, Share } from 'react-native';
 import { KeyboardAvoidingView } from '@/ui/lib/keyboard-avoiding-view';
 import { router, useLocalSearchParams } from 'expo-router';
-import { orderComments, type CommentOrder } from '@socialmorning/social-core';
+import { defaultDir, orderComments, type CommentDir, type CommentOrder } from '@socialmorning/social-core';
 import { FlatList } from '@/ui/lib/flat-list';
 import { Pressable } from '@/ui/lib/pressable';
 import { Text } from '@/ui/lib/text';
@@ -55,8 +60,10 @@ import { extrasOf, replyCountOf, useCommentExtrasApi } from '@/social/comment-ex
 import { VoiceComposer } from '@/ui/comments/VoiceRecord';
 import { playVoice } from '@/playback/expo-audio-adapter';
 import { getPref } from '@/settings/prefs';
+import { liveLabel, useListeningNow } from '@/social/live';
 
 const TAB = { minHeight: hit.min };
+const ARROW = { width: hit.min, height: hit.min };
 const WRITE = { minHeight: 52 };
 const ME = { width: 36, height: 36 };
 /** M17 T104: the comment menu's avatar (28 pt) and icon square (40 pt, as in `CommentMenu-B`). */
@@ -72,6 +79,8 @@ function menuIcon(label: string): IconName {
   if (label === 'Unpin') return 'pin';
   if (label === 'Mark as unfriendly') return 'eye-off-outline';
   if (label === 'Unmark') return 'eye-outline';
+  if (label === 'Share') return 'share-outline';
+  if (label === 'Mute') return 'volume-mute-outline';
   return 'flag-outline';
 }
 const ORDERS: { value: CommentOrder; label: string }[] = [
@@ -96,7 +105,10 @@ export default function CommentsScreen(): React.ReactElement {
   usePoll(episodeId);
   const { cached, stale } = useEpisodeSocial(episodeId);
   const episode = episodeId ? stores.feeds.getEpisode(episodeId) : undefined;
-  const [order, setOrder] = useState<CommentOrder>('newest');
+  const [order, setOrderOnly] = useState<CommentOrder>('newest');
+  // M21 US6: the active order's direction; a new order starts the way it reads by default.
+  const [dir, setDir] = useState<CommentDir>(defaultDir('newest'));
+  const setOrder = (o: CommentOrder) => { setOrderOnly(o); setDir(defaultDir(o)); };
   const [likes, setLikes] = useState<Record<string, LikeView>>({});
   const [menu, setMenu] = useState<Comment | undefined>();
   const [reporting, setReporting] = useState<ReportTarget | undefined>();
@@ -122,9 +134,11 @@ export default function CommentsScreen(): React.ReactElement {
   const visible = useMemo(() => safety.comments(cached?.social.comments ?? []), [cached, safety]);
   const count = visible.reduce((n, x) => n + (x.deleted ? 0 : 1) + (x.replies ?? []).filter((r) => !r.deleted).length, 0);
   const ordered = useMemo(
-    () => orderComments(visible.map((x) => ({ ...x, createdAt: new Date(x.createdAt).getTime(), likeCount: likes[x.id]?.count ?? x.likeCount ?? 0, replyCount: replyCountOf(x), pinned: extrasOf(x).pinned === true, raw: x })), order).map((o) => o.raw),
-    [visible, order, likes],
+    () => orderComments(visible.map((x) => ({ ...x, createdAt: new Date(x.createdAt).getTime(), likeCount: likes[x.id]?.count ?? x.likeCount ?? 0, replyCount: replyCountOf(x), pinned: extrasOf(x).pinned === true, raw: x })), order, Date.now(), dir).map((o) => o.raw),
+    [visible, order, dir, likes],
   );
+  // M21 US6: "N listening now" under the title — read only here (the player sends the heartbeat).
+  const listening = liveLabel(useListeningNow(episodeId, false));
   const likeOf = useCallback((x: Comment): LikeView => likes[x.id] ?? { count: x.likeCount ?? 0, liked: x.likedByMe ?? false }, [likes]);
 
   const needSignIn = () => router.push('/auth/sign-in');
@@ -179,14 +193,34 @@ export default function CommentsScreen(): React.ReactElement {
     } catch { toast("Couldn't save that — try again."); }
   };
 
+  // M21 US6: the episode's link at the comment's moment, with its words.
+  const shareComment = (x: Comment) => {
+    if (!episodeId) return;
+    const url = m12.episodePageUrl(episodeId, x.offsetMs ?? undefined);
+    const words = x.body ? `${x.displayName ?? 'A listener'}: “${x.body}”\n` : '';
+    void Share.share({ message: `${words}${episode?.title ?? ''}\n${url}`, url }).catch(() => undefined);
+  };
+  // M21 US6 (G-M21-6): their comments go from this listener's pages only; they are never told.
+  const mute = async (x: Comment) => {
+    if (!listener) { needSignIn(); return; }
+    if (!x.authorId || !episodeId) return;
+    try {
+      await extras.mute(x.authorId);
+      toast(`Muted ${x.displayName ?? 'this listener'}. Unmute from their profile.`);
+      void refresh(episodeId);
+    } catch { toast("Couldn't mute — try again."); }
+  };
+
   const menuItems = (x: Comment) => [
     ...(x.parentId === null ? [{ label: 'Reply', run: () => compose(x.id) }] : []),
+    { label: 'Share', run: () => shareComment(x) },
     ...(x.body ? [{ label: 'Copy', run: () => { Clipboard.setString(x.body ?? ''); toast('Copied.'); } }] : []),
     ...(x.body && episodeId ? [{
       label: isFavComment(stores.settings, x.id) ? 'Remove from saved' : 'Save',
       run: () => { toggleFavComment(stores.settings, { commentId: x.id, episodeId, body: x.body ?? '', author: x.displayName ?? 'A listener', offsetMs: x.offsetMs }, Date.now()); rerender((n) => n + 1); },
     }] : []),
     ...(isHost && x.parentId === null ? [{ label: extrasOf(x).pinned ? 'Unpin' : 'Pin', run: () => void pin(x, !extrasOf(x).pinned) }] : []),
+    ...(!x.mine && listener && x.authorId ? [{ label: 'Mute', run: () => void mute(x) }] : []),
     ...(!x.mine && listener ? [{ label: marked[x.id] ? 'Unmark' : 'Mark as unfriendly', run: () => void markUnfriendly(x, !marked[x.id]) }] : []),
     x.mine
       ? { label: 'Delete', run: () => void remove(x) }
@@ -195,12 +229,25 @@ export default function CommentsScreen(): React.ReactElement {
 
   return (
     <>
-    <PageHeader title={count > 0 ? `Comments ${count}` : 'Comments'} />
+    <PageHeader title={count > 0 ? `Comments ${count}` : 'Comments'} {...(listening ? { subtitle: listening } : {})} />
     {/* iPhone walk 2026-10-06: the keyboard covered the voice review's text box — the page now lifts. */}
     <KeyboardAvoidingView className="flex-1 bg-background" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       {/* Owner, 2026-10-01: the episode, with its own play/pause, at the top of the page. */}
       {episodeId ? <EpisodeCard episodeId={episodeId} /> : null}
-      <Segmented items={ORDERS} value={order} onChange={setOrder} className="mx-screen-x mt-row" />
+      <Box className="flex-row items-center gap-gap mx-screen-x mt-row">
+        <Segmented items={ORDERS} value={order} onChange={setOrder} className="flex-1" />
+        {/* M21 US6: the active order, the other way round. */}
+        <Pressable
+          onPress={() => setDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
+          accessibilityRole="button"
+          accessibilityLabel="Reverse order"
+          accessibilityState={{ selected: dir !== defaultDir(order) }}
+          className="items-center justify-center rounded-pill bg-surface border border-border"
+          style={ARROW}
+        >
+          <Icon name={dir === 'asc' ? 'arrow-up' : 'arrow-down'} size={18} color={c.accent} />
+        </Pressable>
+      </Box>
       {stale ? <Text className="text-muted text-xs px-screen-x pt-2">Couldn't refresh — showing the last copy</Text> : null}
       <FlatList
         className="flex-1"

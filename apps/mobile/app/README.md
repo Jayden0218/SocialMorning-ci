@@ -26,7 +26,7 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 | `my-comments.tsx` | `/my-comments` | Every comment you wrote, with its episode and time; tap to open. |
 | `notifications.tsx` | `/notifications` | Notifications: System messages, People (what listeners you follow did) and From hosts. |
 | `play-latest.tsx` | `/play-latest` | Plays your next queued or newest episode and opens the player. |
-| `player.tsx` | `/player` | The full player: artwork, seek bar, comments heat curve, speed, chapters, sleep timer. |
+| `player.tsx` | `/player` | The full player: artwork, the heat curve as the seek bar, transcript lines, controls, and a settings panel. |
 | `queue.tsx` | `/queue` | Your queue: "Up next" card, then numbered episodes to reorder or remove. |
 | `scan.tsx` | `/scan` | Camera window to scan a QR code; asks for camera permission first. |
 | `search.tsx` | `/search` | Search page for shows and episodes, opened from links or other screens. |
@@ -86,8 +86,8 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 
 | File | Route | What the user sees |
 |---|---|---|
-| `comments/[episodeId].tsx` | `/comments/<episodeId>` | An episode's comments: four sort orders, likes, write box with the current time and a mic. |
-| `comments/thread/[commentId].tsx` | `/comments/thread/<commentId>` | A comment's replies: the comment on top, every reply under it, a reply box with a mic. |
+| `comments/[episodeId].tsx` | `/comments/<episodeId>` | An episode's comments: four sort orders either way round, likes, who is listening now, write box with the current time and a mic. |
+| `comments/thread/[commentId].tsx` | `/comments/thread/<commentId>` | A comment's replies: the comment on top, All or Newest replies under it, a reply box with a mic. |
 
 ### `episode/`
 
@@ -156,6 +156,12 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 | File | Route | What the user sees |
 |---|---|---|
 | `show/[feedUrl].tsx` | `/show/<feedUrl>` | One show: artwork, title, Subscribe, episodes list and About tab with similar shows. |
+
+### `transcript/`
+
+| File | Route | What the user sees |
+|---|---|---|
+| `transcript/[episodeId].tsx` | `/transcript/<episodeId>` | The episode's transcript full screen: follows the audio, tap a line to jump, long-press to share or report it. |
 
 ### `voice/`
 

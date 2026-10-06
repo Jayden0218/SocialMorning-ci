@@ -438,5 +438,29 @@
   "to": "SleepTimerControl | Cancel the sleep timer | player.setSleepTimer",
   "why": "M21 US1: one Cancel for whatever is armed (minutes, End of episode, or both), with a spoken name that says what it cancels; same handler, setSleepTimer('off')",
   "task": "M21 T015"
+ },
+ {
+  "surface": "SpeedControl",
+  "name": "Set {rate.toFixed(1)}× as default (this show remembers its own)",
+  "destination": "dynamic",
+  "to": "SpeedControl | This show only (a switch; off = the speed is the default for every show)",
+  "why": "M21 US2 (spec story 2, scenario 3): the 'Make N× the default for all shows' button (M19's name for this one) became the 'This show only' switch — off makes the slider set the default and clears the show's own speed",
+  "task": "M21 T033"
+ },
+ {
+  "surface": "Scrubber",
+  "name": "Seek",
+  "destination": "dynamic",
+  "to": "HeatScrubber | Seek (adjustable, same value and ±30 / −15 actions)",
+  "why": "M21 US2 (spec story 2, scenario 4): the heat curve is the seek bar; the player no longer draws the separate Scrubber (the component stays for its guard tests)",
+  "task": "M21 T034"
+ },
+ {
+  "surface": "HeatCurve",
+  "name": "label",
+  "destination": "dynamic",
+  "to": "HeatScrubber | Seek, with the curve's sentence as its hint; a tap still opens the moment's comments",
+  "why": "M21 US2 (spec story 2, scenario 4): the curve and the seek bar are one control on the player",
+  "task": "M21 T034"
  }
 ]

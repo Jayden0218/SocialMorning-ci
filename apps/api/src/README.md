@@ -60,6 +60,7 @@ here or a line does not match its file.
 | `likes.ts` | Like routes: like an episode with a note, unlike, my timeline, one account's likes. |
 | `playlists.ts` | Playlist routes: my playlists, one playlist, its order, and an account's public ones. |
 | `voice-comments.ts` | Voice comment route: post a recording of up to 60 seconds as a comment at a moment. |
+| `mutes.ts` | Mute routes: list the listeners I muted, mute one, unmute one. |
 
 ### `routes/safety/` — reports and blocks
 
@@ -120,6 +121,7 @@ here or a line does not match its file.
 | `settings.ts` | Studio settings routes: show overrides, helpers team, and giving the show back. |
 | `subscribers.ts` | Studio subscriber routes: stats, subscriber list, and muting listeners. |
 | `tips.ts` | Studio route listing a show's tips, owner only. |
+| `transcript-reports.ts` | Studio transcript reports: a show's listener corrections, and marking one done. |
 
 ### `routes/admin/` — the owner-only Admin API, one file per page
 
@@ -177,6 +179,7 @@ here or a line does not match its file.
 | `profiles.ts` | Builds a listener's profile: name, counts, stats and recent public activity. |
 | `voice-posts.ts` | Voice status posts up to 60 seconds, fully deleted after 24 hours. |
 | `voice-comments.ts` | Voice comments: their recording limits, and deleting the audio of removed comments. |
+| `mutes.ts` | Mutes: hide a listener's comments, voice posts and likes from me only; they are never told. |
 | `comment-images.ts` | Comment images: deleting them from the store when their comment or their author goes. |
 | `likes.ts` | Likes with a note: like or unlike an episode, a timeline of likes from people you follow. |
 | `playlists.ts` | Listener playlists: make, rename, reorder, share publicly or keep private. |

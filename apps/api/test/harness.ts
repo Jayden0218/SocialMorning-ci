@@ -43,6 +43,10 @@ export async function freshDb(allOpts: { ownerListenerId?: string; appealsEmail?
     query: async <T,>(s: string, params?: unknown[]) => (await pg.query<T>(s, params)).rows,
   };
   await migrate(runner);
+  // M21 US6 (G-M21-7): a comment POST answers 428 until the author accepted the community rules.
+  // Test listeners have accepted them, so every older test keeps its meaning; the rules tests
+  // (comments-m21.test.ts) set rules_accepted_at back to NULL for the listener they test.
+  await pg.exec('ALTER TABLE listeners ALTER COLUMN rules_accepted_at SET DEFAULT now()');
   const db = fromPglite(pg);
   const mail: Mail[] = [];
   const mailer: Mailer | undefined = noMailer ? undefined : { send: async (m) => { mail.push(m); } };

@@ -15,6 +15,7 @@ import { Announcements } from './pages/Announcements';
 import { Polls } from './pages/Polls';
 import { Settings } from './pages/Settings';
 import { Tips } from './pages/Tips';
+import { TranscriptReports } from './pages/TranscriptReports';
 import { NewEpisode } from './pages/NewEpisode';
 import type { Show } from './api';
 import { NoShow } from './pages/NoShow';
@@ -54,6 +55,7 @@ export function App() {
       <Route path="/s/:show/settings" element={<Signed><ShowPage page={(s) => <Settings show={s} />} /></Signed>} />
       <Route path="/s/:show/settings/:tab" element={<Signed><ShowPage page={(s) => <Settings show={s} />} /></Signed>} />
       <Route path="/s/:show/comments" element={<Signed><ShowPage page={(s) => <Comments show={s} />} /></Signed>} />
+      <Route path="/s/:show/transcript-reports" element={<Signed><ShowPage page={(s) => <TranscriptReports show={s} />} /></Signed>} />
       {/* M15 T005: Admin lives outside /s/:show, so it works with no show. The server decides who gets in. */}
       <Route path="/admin" element={<Signed><AdminLayout /></Signed>}>
         <Route index element={<Navigate to="dashboard" replace />} />

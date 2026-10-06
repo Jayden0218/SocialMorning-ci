@@ -30,6 +30,8 @@ test('A2: actionsFor per kind; closeReason; constants', () => {
   assert.deepEqual(actionsFor('clip'), ['dismiss', 'remove', 'suspend']);
   assert.deepEqual(actionsFor('profile'), ['dismiss', 'suspend']);
   assert.deepEqual(actionsFor('show'), ['dismiss', 'hide_show']);
+  assert.deepEqual(actionsFor('episode'), ['dismiss']);
+  assert.deepEqual(actionsFor('transcript'), ['dismiss']);
   assert.equal(closeReason(true, false), 'already_gone');
   assert.equal(closeReason(false, true), 'author_deleted');
   assert.equal(closeReason(false, false), 'open');

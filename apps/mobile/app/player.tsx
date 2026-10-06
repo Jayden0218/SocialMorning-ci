@@ -1,4 +1,4 @@
-// The full player: artwork, seek bar, comments heat curve, speed, chapters, sleep timer.
+// The full player: artwork, the heat curve as the seek bar, transcript lines, controls, and a settings panel.
 /**
  * Now Playing: position and duration updating live (FR-008), play/pause
  * (FR-005), -15 / +30 (FR-006), a seek bar (FR-007), and honest buffering
@@ -31,16 +31,23 @@
  *
  * M17 T102 (`PlaybackSheet-B`): the Playback sheet takes B's look — serif title, Chapters and
  * Transcript as cards, Done as a yellow pill at the bottom. Same actions and handlers.
+ *
+ * M21 US2 (spec story 2), after 小宇宙's player:
+ *   - the page slides up and closes with a swipe down (app/_layout.tsx, guard G-M21-11);
+ *   - the speed pill opens `SettingsPanel`, a full-screen panel in place of the Playback sheet:
+ *     Loop, Skip silence, Speed (slider + "This show only"), Sleep, then Chapters / Transcript / Done;
+ *   - the heat curve IS the seek bar (`HeatScrubber`); the separate Scrubber is gone;
+ *   - two transcript lines (now, next): a tap expands the transcript in place, ⤢ opens it full
+ *     screen; a long-press on a line can report a mistake;
+ *   - turning 👍 on plays a short full-screen burst (`ClapBurst`).
  */
 import { useEffect, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
-import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '@/ui/lib/actionsheet';
 import { Pressable } from '@/ui/lib/pressable';
 import { SafeAreaView } from '@/ui/lib/safe-area-view';
 import { ScrollView } from '@/ui/lib/scroll-view';
 import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { currentLine } from '@socialmorning/player-core';
 import { Icon } from '@/ui/kit/Icon';
 import { BarButton, TAP, TopBar } from '@/ui/kit/TopBar';
 import { Image } from '@/ui/lib/image';
@@ -48,7 +55,7 @@ import { Artwork } from '@/ui/kit/Artwork';
 import { mediaKindOf, plural } from '@socialmorning/social-core';
 import { VideoStage } from '@/ui/player/VideoStage';
 import { usePlayer, usePlayerState } from '@/playback/store';
-import { Scrubber, scrubberValue } from '@/ui/player/Scrubber';
+import { scrubberValue } from '@/ui/player/Scrubber';
 import { mmss } from '@/ui/kit/format';
 import { useStores, useSubscriptionSync } from '@/ui/shell/providers';
 import { useSocial } from '@/social/context';
@@ -62,21 +69,23 @@ import { MomentSheet } from '@/ui/comments/MomentSheet';
 import { Rail, railMarkers, type RailMarker } from '@/ui/player/Rail';
 import { Card } from '@/ui/kit/Card';
 import { Eyebrow } from '@/ui/kit/Eyebrow';
-import { HeatCurve } from '@/ui/player/HeatCurve';
-import { SpeedControl } from '@/ui/player/SpeedControl';
-import { SleepTimerControl } from '@/ui/player/SleepTimerControl';
+import { HeatScrubber } from '@/ui/player/HeatScrubber';
+import { SettingsPanel } from '@/ui/player/SettingsPanel';
+import { ClapBurst } from '@/ui/player/ClapBurst';
 import { MoonButton } from '@/ui/player/MoonButton';
-import { Toggle } from '@/ui/kit/Toggle';
 import { ChapterList, CurrentChapter } from '@/ui/player/ChapterList';
 import { TranscriptPane } from '@/ui/player/TranscriptPane';
+import { TranscriptPeek, TranscriptReportSheet } from '@/ui/player/TranscriptExtras';
+import type { TranscriptLine } from '@socialmorning/player-core';
 import { useQuoteShare, useQuoteVideo } from '@/ui/player/QuoteShare';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 /**
- * iPhone walk 2026-10-06 (B1 failed): iOS will not open the share sheet over the open Playback sheet —
- * "Making the picture…" showed and nothing else. The sheet closes first; the share waits for it.
+ * iPhone walk 2026-10-06 (B1 failed): iOS would not open the share sheet over the open Playback sheet
+ * (a modal). M21: the settings panel is our own view, not a modal, and is gone at once — the share
+ * still waits a moment for it to close.
  */
-const SHEET_CLOSE_MS = 450;
-import { getPref } from '@/settings/prefs';
+const PANEL_CLOSE_MS = 50;
+import { getPref, setPref } from '@/settings/prefs';
 import { fetchExtras, readExtras, type Extras } from '@/feeds/fetch-extras';
 import { router } from 'expo-router';
 import { useNextUp } from '@/ui/player/NextUp';
@@ -121,6 +130,7 @@ export default function PlayerScreen(): React.ReactElement {
   useEffect(() => {
     setExtras(currentEpisodeId ? readExtras(stores.extras, currentEpisodeId) : undefined);
     setPane('none');
+    setTranscriptOpen(false);
     const ep = currentEpisodeId ? stores.feeds.getEpisode(currentEpisodeId) : undefined;
     if (!ep || (!ep.chaptersUrl && ep.transcripts.length === 0)) return;
     let live = true;
@@ -136,6 +146,12 @@ export default function PlayerScreen(): React.ReactElement {
   // Speed, sleep timer, chapters and transcript live in one sheet behind the left
   // control, so the screen itself is only what the reference shows (owner, 2026-09-27).
   const [more, setMore] = useState(false);
+  // M21 US2: skip silence, kept in prefs (src/settings/prefs.ts) and applied at start-up (providers).
+  const [skipSilence, setSkipSilenceOn] = useState(() => getPref(stores.settings, 'skipSilence'));
+  // M21 US2: the transcript expanded in place under its two lines; a line being reported; the clap.
+  const [transcriptOpen, setTranscriptOpen] = useState(false);
+  const [reporting, setReporting] = useState<TranscriptLine | undefined>();
+  const [claps, setClaps] = useState(0);
   // M19 T070 (US7, research R2): "Loop this episode" — the runtime turns it off on any load.
   const [looping, setLooping] = useState(() => player.loop());
   useEffect(() => { setLooping(player.loop()); }, [player, currentEpisodeId]);
@@ -203,7 +219,7 @@ export default function PlayerScreen(): React.ReactElement {
   const rate = player.rate();
   // M10b US4 (FR-015): "Show transcript entry" off → no transcript button and no live line.
   const showTranscript = getPref(stores.settings, 'transcriptEntry');
-  const cue = showTranscript && extras?.transcript && 'lines' in extras.transcript ? extras.transcript.lines[currentLine(extras.transcript.lines, positionMs) ?? -1]?.text : undefined;
+  const timedTranscript = showTranscript && extras?.transcript && 'lines' in extras.transcript ? extras.transcript : undefined;
   const reacted = reactToggle.isReacted(shownBuckets, positionMs, heatAxisMs);
   const commentCount = (cached?.social.comments ?? []).reduce((n, c) => n + (c.deleted ? 0 : 1) + (c.replies ?? []).filter((r) => !r.deleted).length, 0);
   const clip = () => {
@@ -290,11 +306,15 @@ export default function PlayerScreen(): React.ReactElement {
       </Box>
 
       {extras?.chapters && extras.chapters.length > 0 ? <CurrentChapter chapters={extras.chapters} positionMs={positionMs} /> : null}
-      {/* The line being spoken, as the page's quote (M10b US4: absent when the transcript entry is off). */}
-      {cue ? (
-        <Text className={QUOTE} numberOfLines={4}>
-          <Text className={QUOTE_MARK}>“</Text>{cue}<Text className={QUOTE_MARK}>”</Text>
-        </Text>
+      {/* M21 US2: the line being spoken and the next (M10b US4: absent when the transcript entry is off).
+          A tap expands the transcript here; ⤢ opens it full screen. */}
+      {timedTranscript ? (
+        <TranscriptPeek transcript={timedTranscript} positionMs={positionMs} episodeId={state.episodeId} expanded={transcriptOpen} onToggle={() => setTranscriptOpen((v) => !v)} />
+      ) : null}
+      {timedTranscript && transcriptOpen ? (
+        <TranscriptPane transcript={timedTranscript} positionMs={positionMs} onSeek={(ms) => player.seek(ms)} onReport={setReporting} durationMs={durationMs}
+          onShareImage={(q) => { void shareQuote(episode, q); }}
+          onShareVideo={shareQuoteVideo ? (q) => shareQuoteVideo(episode ? toPlayable(stores, episode.id) : undefined, q) : undefined} />
       ) : null}
 
       {/* Owner, 2026-10-06 (iPhone walk): on a tall phone the page left a white gap at the foot. The card
@@ -315,19 +335,22 @@ export default function PlayerScreen(): React.ReactElement {
             setOpenMarker(m);
           }}
         />
-        <HeatCurve
+        {/* M21 US2: the heat curve is the seek bar — drag or tap it; a tap on a commented moment opens it. */}
+        <HeatScrubber
           heat={cached?.social.heat}
-          durationMs={heatAxisMs}
-          playerDurationMs={durationMs}
+          positionMs={positionMs}
+          durationMs={durationMs}
+          heatAxisMs={heatAxisMs}
           myBuckets={shownBuckets}
-          onSeek={(bucket, toMs) => {
+          onSeek={(ms) => player.seek(ms)}
+          onSkip={(d) => player.skip(d)}
+          onTap={(bucket, toMs) => {
             player.seek(toMs);
             const at = (cached?.social.comments ?? []).flatMap((c) => [c, ...(c.replies ?? [])])
               .filter((c) => !c.deleted && c.offsetMs !== null && heatAxisMs !== undefined && Math.floor((c.offsetMs * 100) / heatAxisMs) === bucket);
             if (at.length > 0) setOpenMarker({ second: Math.floor(toMs / 1000), offsetMs: toMs, comments: at });
           }}
         />
-        <Scrubber positionMs={positionMs} durationMs={durationMs} onSeek={(ms) => player.seek(ms)} onSkip={(d) => player.skip(d)} />
         <Box className="flex-row justify-between mt-2" accessible accessibilityLabel={scrubberValue(positionMs, durationMs).text}>
           <Text className="text-meta font-bold text-text" style={tabular}>{mmss(positionMs)}</Text>
           <Text className="text-meta font-bold text-text" style={tabular}>{durationMs === undefined ? '--:--' : `-${mmss(durationMs - positionMs)}`}</Text>
@@ -382,6 +405,8 @@ export default function PlayerScreen(): React.ReactElement {
           accessibilityState={{ selected: reacted }}
           onPress={() => {
             if (!listener) { router.push('/auth/sign-in'); return; }
+            // M21 US2: turning the reaction ON claps (a ≤ 1 s burst; none with Reduce Motion).
+            if (!reacted) setClaps((n) => n + 1);
             const r = reactToggle.toggle(state.episodeId, shownBuckets, positionMs, heatAxisMs);
             setMyBuckets(r.optimistic);
             void r.settled.then((s) => { setMyBuckets(s.myBuckets); bump(state.episodeId); });
@@ -416,52 +441,44 @@ export default function PlayerScreen(): React.ReactElement {
     </Box>
     </SafeAreaView>
 
-    {/* M17 T102 (`PlaybackSheet-B`): a serif "Playback" title; speed and sleep as they were;
-        Chapters and Transcript as two cards side by side (icon, name, a line under it); Done as
-        the full-width yellow pill at the bottom (it was a link at the top, same name and handler). */}
-    <Actionsheet isOpen={more} onClose={() => setMore(false)}>
-      <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-      <ActionsheetContent className="bg-surface rounded-t-row px-screen-x pt-row gap-row max-h-[85%] items-stretch">
-        <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
-        <Text className="text-hero font-display text-text" accessibilityRole="header">Playback</Text>
-        <ScrollView contentContainerClassName="gap-section">
-          <SpeedControl />
-          <SleepTimerControl />
-          <Box className="flex-row items-center gap-section" style={{ minHeight: TAP.minHeight }}>
-            <Icon name="repeat-outline" size={20} color={c.accent} />
-            <Box className="flex-1">
-              <Text className="text-body font-bold text-text">Loop this episode</Text>
-              <Text className="text-xs text-muted">Starts again from 0:00 at its end, instead of moving on</Text>
-            </Box>
-            <Toggle value={looping} onChange={(v) => { player.setLoop(v); setLooping(v); }} label="Loop this episode" />
-          </Box>
-          {extras && (extras.chapters?.length || (showTranscript && extras.transcript)) ? (
-            <Box className="flex-row gap-row">
-              {extras.chapters && extras.chapters.length > 0 ? (
-                <Pressable className={pane === 'chapters' ? TILE_ON : TILE} style={{ minHeight: TAP.minHeight }} onPress={() => setPane(pane === 'chapters' ? 'none' : 'chapters')} accessibilityRole="button" accessibilityLabel={`Chapters (${extras.chapters.length})`} accessibilityState={{ expanded: pane === 'chapters' }}>
-                  <Icon name="library-outline" size={22} color={pane === 'chapters' ? c.onPrimary : c.accent} />
-                  <Text className={pane === 'chapters' ? TILE_ON_TITLE : TILE_TITLE}>Chapters</Text>
-                  <Text className={pane === 'chapters' ? TILE_ON_DETAIL : TILE_DETAIL}>{plural(extras.chapters.length, 'chapter')}</Text>
-                </Pressable>
-              ) : null}
-              {showTranscript && extras.transcript ? (
-                <Pressable className={pane === 'transcript' ? TILE_ON : TILE} style={{ minHeight: TAP.minHeight }} onPress={() => setPane(pane === 'transcript' ? 'none' : 'transcript')} accessibilityRole="button" accessibilityLabel="Transcript" accessibilityState={{ expanded: pane === 'transcript' }}>
-                  <Icon name="document-text-outline" size={22} color={pane === 'transcript' ? c.onPrimary : c.accent} />
-                  <Text className={pane === 'transcript' ? TILE_ON_TITLE : TILE_TITLE}>Transcript</Text>
-                  <Text className={pane === 'transcript' ? TILE_ON_DETAIL : TILE_DETAIL}>Follows the audio</Text>
-                </Pressable>
-              ) : null}
-            </Box>
+    {/* M21 US2: the player's settings, a full-screen panel over the page (was the "Playback" sheet).
+        Chapters and Transcript stay here as two cards; Done is the yellow pill at the foot. */}
+    <SettingsPanel
+      open={more}
+      onClose={() => setMore(false)}
+      looping={looping}
+      onLoop={(v) => { player.setLoop(v); setLooping(v); }}
+      skipSilence={skipSilence}
+      onSkipSilence={(v) => { setPref(stores.settings, 'skipSilence', v); player.setSkipSilence(v); setSkipSilenceOn(v); }}
+    >
+      {extras && (extras.chapters?.length || (showTranscript && extras.transcript)) ? (
+        <Box className="flex-row gap-row">
+          {extras.chapters && extras.chapters.length > 0 ? (
+            <Pressable className={pane === 'chapters' ? TILE_ON : TILE} style={{ minHeight: TAP.minHeight }} onPress={() => setPane(pane === 'chapters' ? 'none' : 'chapters')} accessibilityRole="button" accessibilityLabel={`Chapters (${extras.chapters.length})`} accessibilityState={{ expanded: pane === 'chapters' }}>
+              <Icon name="library-outline" size={22} color={pane === 'chapters' ? c.onPrimary : c.accent} />
+              <Text className={pane === 'chapters' ? TILE_ON_TITLE : TILE_TITLE}>Chapters</Text>
+              <Text className={pane === 'chapters' ? TILE_ON_DETAIL : TILE_DETAIL}>{plural(extras.chapters.length, 'chapter')}</Text>
+            </Pressable>
           ) : null}
-          {extras?.error ? <Text className="text-xs text-muted">Couldn't load {extras.error.includes('chapters') ? 'chapters' : 'the transcript'}</Text> : null}
-          {pane === 'chapters' && extras?.chapters ? <ChapterList chapters={extras.chapters} positionMs={positionMs} onSeek={(ms) => player.seek(ms)} /> : null}
-          {showTranscript && pane === 'transcript' && extras?.transcript ? <TranscriptPane transcript={extras.transcript} positionMs={positionMs} onSeek={(ms) => player.seek(ms)} durationMs={durationMs} onShareImage={(q) => { setMore(false); setTimeout(() => { void shareQuote(episode, q); }, SHEET_CLOSE_MS); }} onShareVideo={shareQuoteVideo ? (q) => { setMore(false); setTimeout(() => shareQuoteVideo(episode ? toPlayable(stores, episode.id) : undefined, q), SHEET_CLOSE_MS); } : undefined} /> : null}
-        </ScrollView>
-        <Pressable onPress={() => setMore(false)} accessibilityRole="button" accessibilityLabel="Close" className="items-center justify-center rounded-pill bg-primary mt-1" style={DONE}>
-          <Text className="text-sm font-bold text-onPrimary">Done</Text>
-        </Pressable>
-      </ActionsheetContent>
-    </Actionsheet>
+          {showTranscript && extras.transcript ? (
+            <Pressable className={pane === 'transcript' ? TILE_ON : TILE} style={{ minHeight: TAP.minHeight }} onPress={() => setPane(pane === 'transcript' ? 'none' : 'transcript')} accessibilityRole="button" accessibilityLabel="Transcript" accessibilityState={{ expanded: pane === 'transcript' }}>
+              <Icon name="document-text-outline" size={22} color={pane === 'transcript' ? c.onPrimary : c.accent} />
+              <Text className={pane === 'transcript' ? TILE_ON_TITLE : TILE_TITLE}>Transcript</Text>
+              <Text className={pane === 'transcript' ? TILE_ON_DETAIL : TILE_DETAIL}>Follows the audio</Text>
+            </Pressable>
+          ) : null}
+        </Box>
+      ) : null}
+      {extras?.error ? <Text className="text-xs text-muted">Couldn't load {extras.error.includes('chapters') ? 'chapters' : 'the transcript'}</Text> : null}
+      {pane === 'chapters' && extras?.chapters ? <ChapterList chapters={extras.chapters} positionMs={positionMs} onSeek={(ms) => player.seek(ms)} /> : null}
+      {showTranscript && pane === 'transcript' && extras?.transcript ? <TranscriptPane transcript={extras.transcript} positionMs={positionMs} onSeek={(ms) => player.seek(ms)} durationMs={durationMs} onReport={(l) => { setMore(false); setReporting(l); }} onShareImage={(q) => { setMore(false); setTimeout(() => { void shareQuote(episode, q); }, PANEL_CLOSE_MS); }} onShareVideo={shareQuoteVideo ? (q) => { setMore(false); setTimeout(() => shareQuoteVideo(episode ? toPlayable(stores, episode.id) : undefined, q), PANEL_CLOSE_MS); } : undefined} /> : null}
+      <Pressable onPress={() => setMore(false)} accessibilityRole="button" accessibilityLabel="Close" className="items-center justify-center rounded-pill bg-primary mt-1" style={DONE}>
+        <Text className="text-sm font-bold text-onPrimary">Done</Text>
+      </Pressable>
+    </SettingsPanel>
+    <TranscriptReportSheet episodeId={state.episodeId} line={reporting} onClose={() => setReporting(undefined)} />
+    {/* M21 US2: the clap — over everything, never in the way of a tap. */}
+    <ClapBurst trigger={claps} />
 
     {composing ? (
       <ComposerSheet
@@ -506,9 +523,6 @@ const BODY = 'flex-1 p-section gap-2 items-center justify-center';
 /** The idle/error message; on the main page, the episode's serif title beside the artwork. */
 const TITLE = 'text-lg font-display text-text';
 const SUBTITLE = 'text-xs text-muted text-center';
-/** M17: the spoken line as the page's serif quote, its marks in the accent. */
-const QUOTE = 'text-hero font-display-semibold text-text';
-const QUOTE_MARK = 'text-hero font-display-semibold text-accent';
 /** The round controls either side of play/pause. */
 const ROUND = 'w-14 h-14 items-center justify-center';
 /** M17: speed is a bordered pill showing the rate. */

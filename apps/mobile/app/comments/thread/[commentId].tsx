@@ -1,4 +1,4 @@
-// A comment's replies: the comment on top, every reply under it, a reply box with a mic.
+// A comment's replies: the comment on top, All or Newest replies under it, a reply box with a mic.
 /**
  * The reply page (M19 US5, FR-043): "N replies ›" under a comment opens it. The parent comment
  * first (a CommentRow card), then every reply oldest first as its own card, then "No more to
@@ -7,9 +7,13 @@
  * reply (FR-044). Each card's ⋯ has Copy, Mark as unfriendly / Unmark (not on your own) and
  * Delete or Report; Reply on any card replies to the parent (replies are one level deep).
  * Data: GET /v1/comments/:id/thread → { parent, replies }. `episodeId` comes in the route.
+ *
+ * M21 US6: All / Newest tabs over the replies (`?tab=newest` — newest first; All keeps the
+ * conversation oldest first). A tap on a card opens its menu (as the long-press), which adds
+ * Share (the episode link at that moment) and Mute (others' cards; hidden for me only).
  */
 import { useCallback, useState } from 'react';
-import { Clipboard } from 'react-native';
+import { Clipboard, Share } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { FlatList } from '@/ui/lib/flat-list';
 import { Pressable } from '@/ui/lib/pressable';
@@ -35,12 +39,16 @@ import { toPlayable } from '@/storage/playable';
 import { PageHeader } from '@/ui/kit/PageHeader';
 import { Icon, type IconName } from '@/ui/kit/Icon';
 import { EndOfList } from '@/ui/kit/EndOfList';
+import { Segmented } from '@/ui/kit/Segmented';
+
+type Tab = 'all' | 'newest';
+const TABS: { value: Tab; label: string }[] = [{ value: 'all', label: 'All' }, { value: 'newest', label: 'Newest' }];
 
 const TAB = { minHeight: hit.min };
 const WRITE = { minHeight: 52 };
 const ICON_BOX = { width: 40, height: 40 };
 const ICONS: Record<string, IconName> = {
-  Reply: 'arrow-undo-outline', Copy: 'copy-outline', 'Mark as unfriendly': 'eye-off-outline', Unmark: 'eye-outline', Delete: 'trash-outline', Report: 'flag-outline',
+  Reply: 'arrow-undo-outline', Share: 'share-outline', Mute: 'volume-mute-outline', Copy: 'copy-outline', 'Mark as unfriendly': 'eye-off-outline', Unmark: 'eye-outline', Delete: 'trash-outline', Report: 'flag-outline',
 };
 
 export default function ThreadScreen(): React.ReactElement {
@@ -60,14 +68,15 @@ export default function ThreadScreen(): React.ReactElement {
   const [menu, setMenu] = useState<Comment | undefined>();
   const [reporting, setReporting] = useState<ReportTarget | undefined>();
   const [composing, setComposing] = useState<ComposerState | undefined>();
+  const [tab, setTab] = useState<Tab>('all');
   const ep = episodeId ?? '';
 
   const load = useCallback(() => {
     if (!commentId) return () => undefined;
     let live = true;
-    extras.thread(commentId).then((t) => { if (live) { setThread(t); setFailed(false); } }, () => { if (live) setFailed(true); });
+    extras.thread(commentId, tab).then((t) => { if (live) { setThread(t); setFailed(false); } }, () => { if (live) setFailed(true); });
     return () => { live = false; };
-  }, [extras, commentId]);
+  }, [extras, commentId, tab]);
   useFocusEffect(load);
   const reload = () => { load(); if (ep) void refresh(ep); };
 
@@ -117,9 +126,29 @@ export default function ThreadScreen(): React.ReactElement {
       reload();
     } catch { toast("Couldn't save that — try again."); }
   };
+  // M21 US6: the episode's link at the comment's moment, with its words.
+  const shareComment = (x: Comment) => {
+    if (!ep) return;
+    const url = m12.episodePageUrl(ep, x.offsetMs ?? undefined);
+    const words = x.body ? `${x.displayName ?? 'A listener'}: “${x.body}”\n` : '';
+    void Share.share({ message: `${words}${url}`, url }).catch(() => undefined);
+  };
+  // M21 US6 (G-M21-6): hidden for me only; they are never told.
+  const mute = async (x: Comment) => {
+    if (!listener) { needSignIn(); return; }
+    if (!x.authorId) return;
+    try {
+      await extras.mute(x.authorId);
+      toast(`Muted ${x.displayName ?? 'this listener'}. Unmute from their profile.`);
+      if (x.id === commentId) { router.back(); return; }
+      reload();
+    } catch { toast("Couldn't mute — try again."); }
+  };
   const menuItems = (x: Comment) => [
     { label: 'Reply', run: reply },
+    { label: 'Share', run: () => shareComment(x) },
     ...(x.body ? [{ label: 'Copy', run: () => { Clipboard.setString(x.body ?? ''); toast('Copied.'); } }] : []),
+    ...(!x.mine && listener && x.authorId ? [{ label: 'Mute', run: () => void mute(x) }] : []),
     ...(!x.mine && listener ? [{ label: marked[x.id] ? 'Unmark' : 'Mark as unfriendly', run: () => void markUnfriendly(x, !marked[x.id]) }] : []),
     x.mine
       ? { label: 'Delete', run: () => void remove(x) }
@@ -152,7 +181,12 @@ export default function ThreadScreen(): React.ReactElement {
         data={replies}
         keyExtractor={(x) => x.id}
         contentContainerClassName="px-screen-x pt-row pb-section gap-row flex-grow"
-        ListHeaderComponent={thread ? <Box className="mb-row">{row(thread.parent)}</Box> : undefined}
+        ListHeaderComponent={thread ? (
+          <Box className="mb-row gap-row">
+            {row(thread.parent)}
+            <Segmented items={TABS} value={tab} onChange={setTab} />
+          </Box>
+        ) : undefined}
         ListFooterComponent={thread ? <EndOfList /> : undefined}
         ListEmptyComponent={thread ? <Text className="text-muted text-body text-center pt-section">No replies yet — be the first.</Text> : undefined}
         renderItem={({ item }) => row(item)}

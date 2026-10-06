@@ -9,7 +9,10 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
-      "bundleIdentifier": "app.socialmorning.mobile"
+      "bundleIdentifier": "app.socialmorning.mobile",
+      "infoPlist": {
+        "LSApplicationQueriesSchemes": ["whatsapp", "tg", "weixin", "sms", "twitter"]
+      }
     },
     "android": {
       "package": "app.socialmorning.mobile",
@@ -108,7 +111,8 @@
       ],
       "expo-iap",
       "./plugins/android-auto",
-      "./plugins/keep-room"
+      "./plugins/keep-room",
+      "./plugins/share-queries"
     ],
     "extra": {
       "apiBaseUrl": "https://socialmorning-api.vercel.app",

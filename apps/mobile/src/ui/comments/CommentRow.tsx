@@ -1,4 +1,4 @@
-// One comment card: picture, name, time, moment chip, text, likes, replies.
+// One comment card: picture, name, badge, time and region, moment chip, text, likes, replies; a tap opens its menu.
 /**
  * One comment on the comments page (M12 US2, FR-022/024/025). An avatar (initials when there is
  * no picture), the name, how long ago, the moment as a chip that plays from there, the text
@@ -21,6 +21,10 @@
  * that opens it on tap; a voice comment plays inline (VoiceComment). Under a parent the first 2
  * replies still show, and "N replies ›" opens the reply page (`onOpenThread`) in place of the
  * old inline "Show N more" — the reply page has every reply and its own reply box.
+ *
+ * M21 US6: a TAP on the comment opens its menu (Reply, Share, Save, Copy, Mute, Mark as unfriendly,
+ * Report / Delete) — the long-press and ⋯ still do too. The listening badge ("100h+", "500h+",
+ * "1000h+") sits beside the name; the region the server saw at post time follows the time.
  */
 import { useState } from 'react';
 import { Link } from '@/design/tailwind';
@@ -35,7 +39,7 @@ import { hit } from '@/design';
 import type { Comment } from '@/social/api';
 import { countryName } from '@/ui/me/country';
 import { Avatar } from '@/ui/kit/Avatar';
-import { extrasOf, replyCountOf } from '@/social/comment-extras-api';
+import { badgeLabel, extrasOf, m21Of, replyCountOf } from '@/social/comment-extras-api';
 import { VoiceComment, type PlayVoice } from './VoiceComment';
 import { CommentImage } from './CommentImage';
 
@@ -55,13 +59,12 @@ export type LikeView = { count: number; liked: boolean };
 export const REPLY_PREVIEW = 2;
 
 /**
- * The commenter's IP location, as a country name. The `Comment` type has no such field yet —
- * profiles carry `country` (M10b US7) but comments do not — so this reads it only if the
- * server starts sending `country` on a comment, and is empty until then.
+ * The commenter's IP location, as a country name. M21 US6: the server sends `country` on each
+ * comment — the two letters it saw when the comment was posted; nothing when unknown.
  */
 export function placeOf(c: Comment): string | undefined {
-  const code = (c as Comment & { country?: string | null }).country;
-  return typeof code === 'string' && /^[A-Za-z]{2}$/.test(code) ? countryName(code.toUpperCase()) : undefined;
+  const code = m21Of(c).country;
+  return code ? countryName(code) : undefined;
 }
 
 /** "3 min ago · Malaysia", or just the time. */
@@ -132,6 +135,7 @@ export function CommentRow(props: {
   const link = props.onOpenThread ? repliesLink(replyCountOf(c)) : undefined;
   const name = c.displayName ?? 'Deleted account';
   const reply = props.isReply === true;
+  const badge = m21Of(c).badge;
 
   const likeButton = c.mine ? null : (
     <Pressable
@@ -157,10 +161,11 @@ export function CommentRow(props: {
         </Box>
       ) : null}
       <Pressable
+        onPress={() => props.onMenu(c)}
         onLongPress={() => props.onMenu(c)}
         delayLongPress={350}
         accessibilityRole="button"
-        accessibilityHint="Long-press for reply, copy, save and report"
+        accessibilityHint="Opens reply, share, save, copy, mute and report"
         accessibilityActions={[{ name: 'longpress', label: 'More actions' }]}
         onAccessibilityAction={() => props.onMenu(c)}
         className={reply ? 'flex-1 gap-0.5' : 'gap-2'}
@@ -178,6 +183,7 @@ export function CommentRow(props: {
                 </Link>
               ) : <Text className={reply ? 'text-text text-meta font-bold' : 'text-text text-body font-bold'}>{name}</Text>}
               {c.host ? <Text className="bg-primary text-onPrimary rounded-pill px-1.5 text-micro font-bold" accessibilityLabel="Host of this show">Host</Text> : null}
+              {badge ? <Text className="bg-accentTint text-accent rounded-pill px-1.5 text-micro font-bold" accessibilityLabel={`Has listened ${badge} hours or more`}>{badgeLabel(badge)}</Text> : null}
             </Box>
             {reply ? null : <Text className="text-muted text-xs">{timeAndPlace(c.createdAt, props.serverTime, placeOf(c))}</Text>}
           </Box>

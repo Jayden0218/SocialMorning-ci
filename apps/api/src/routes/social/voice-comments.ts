@@ -8,7 +8,8 @@ import { audioDurationMs, isMp4 } from '../../voice/duration.ts';
 import { readTranscript } from '../../voice/transcript.ts';
 import { VOICE_MAX_BYTES, VOICE_MAX_MS } from '../../db/repos/social/voice-posts.ts';
 import { getEpisode } from '../../db/repos/library/episodes.ts';
-import { createComment, getComment, toPublic } from '../../db/repos/social/comments.ts';
+import { createComment, getComment, requireRulesAccepted, toPublic } from '../../db/repos/social/comments.ts';
+import { COUNTRY_HEADER, countryOf } from '../../db/repos/account/country.ts';
 import { rebuildEpisodeHeat } from '../../heat/rebuild.ts';
 import { isBlockedBy } from '../../db/repos/safety/blocks.ts';
 import { isMutedOn } from '../../db/repos/studio/studio-subscribers.ts';
@@ -34,6 +35,8 @@ voiceComments.post('/:id/comments/voice', requireAuth, async (c) => {
   const episodeId = c.req.param('id');
   const episode = await getEpisode(db, episodeId);
   if (!episode) throw new ApiError('not_found', 'Register the episode first (PUT /v1/episodes/:id).');
+  // M21 US6 (G-M21-7): the same rules gate as a text comment, before the recording is read or stored.
+  await requireRulesAccepted(db, me.id);
   let type = (c.req.header('content-type') ?? '').split(';')[0]!.trim().toLowerCase();
   let ext = TYPES[type];
   // iPhone walk 2026-10-06: React Native may send a file Blob with no type (or octet-stream) over
@@ -78,9 +81,10 @@ voiceComments.post('/:id/comments/voice', requireAuth, async (c) => {
     throw new ApiError('unavailable', "Couldn't save the recording. Try again.");
   }
   const ms = Math.min(VOICE_MAX_MS, Math.max(1, measured));
+  const country = countryOf(c.req.header(COUNTRY_HEADER)); // M21 US6 (G-I1: two letters only)
   try {
     const created = await db.transaction(async (tx) => {
-      const row = await createComment(tx, { episodeId, authorId: me.id, body: null, ...(offsetMs !== undefined ? { offsetMs } : {}), ...(parentId ? { parentId } : {}), voice: { url: stored.url, path: stored.pathname, ms, ...(transcript ? { transcript } : {}) } });
+      const row = await createComment(tx, { episodeId, authorId: me.id, body: null, ...(offsetMs !== undefined ? { offsetMs } : {}), ...(parentId ? { parentId } : {}), voice: { url: stored.url, path: stored.pathname, ms, ...(transcript ? { transcript } : {}) }, ...(country ? { country } : {}) });
       if (offsetMs !== undefined) await rebuildEpisodeHeat(tx, episodeId);
       return row;
     });

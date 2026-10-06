@@ -6,7 +6,8 @@ import { optionalAuth, requireAuth } from '../../auth/session.ts';
 import { json } from '../../validate.ts';
 import { ApiError } from '../../errors.ts';
 import { getEpisode, upsertEpisode } from '../../db/repos/library/episodes.ts';
-import { createComment, deleteComment, getComment, toPublic } from '../../db/repos/social/comments.ts';
+import { createComment, deleteComment, getComment, requireRulesAccepted, toPublic } from '../../db/repos/social/comments.ts';
+import { COUNTRY_HEADER, countryOf } from '../../db/repos/account/country.ts';
 import { rebuildEpisodeHeat } from '../../heat/rebuild.ts';
 import { isBlockedBy } from '../../db/repos/safety/blocks.ts';
 import { isMutedOn } from '../../db/repos/studio/studio-subscribers.ts';
@@ -34,6 +35,8 @@ comments.post('/:id/comments', requireAuth, json(commentBody), async (c) => {
 
   const episode = await getEpisode(db, episodeId);
   if (!episode) throw new ApiError('not_found', 'Register the episode first (PUT /v1/episodes/:id).');
+  // M21 US6 (G-M21-7): 428 rules_required until the community rules are accepted.
+  await requireRulesAccepted(db, listener.id);
 
   const recent = await db.query<{ n: number }>(
     `SELECT count(*)::int AS n FROM comments WHERE author_id = $1 AND created_at > now() - ($2 || ' milliseconds')::interval`,
@@ -59,7 +62,9 @@ comments.post('/:id/comments', requireAuth, json(commentBody), async (c) => {
         enclosureUrl: episode.enclosure_url, durationMs: body.durationMs,
       });
     }
-    const row = await createComment(tx, { episodeId, authorId: listener.id, body: body.body, offsetMs: body.offsetMs, parentId: body.parentId });
+    // M21 US6: the region the server saw now — two letters, never a city (G-I1).
+    const country = countryOf(c.req.header(COUNTRY_HEADER));
+    const row = await createComment(tx, { episodeId, authorId: listener.id, body: body.body, offsetMs: body.offsetMs, parentId: body.parentId, ...(country ? { country } : {}) });
     if (body.offsetMs !== undefined) await rebuildEpisodeHeat(tx, episodeId);
     return row;
   });
@@ -112,9 +117,13 @@ commentById.delete('/:id/pin', requireAuth, async (c) => {
 commentById.put('/:id/unfriendly', requireAuth, async (c) => c.json(await setUnfriendly(c.get('db'), c.req.param('id'), c.get('listener')!.id, true)));
 commentById.delete('/:id/unfriendly', requireAuth, async (c) => c.json(await setUnfriendly(c.get('db'), c.req.param('id'), c.get('listener')!.id, false)));
 
-/** M19 US5 (FR-043): GET /v1/comments/:id/thread → { parent, replies } for the reply page. */
+/**
+ * M19 US5 (FR-043): GET /v1/comments/:id/thread → { parent, replies } for the reply page.
+ * M21 US6: `?tab=newest` lists the replies newest first; `all` (the default) oldest first.
+ */
 commentById.get('/:id/thread', optionalAuth, async (c) => {
-  const t = await thread(c.get('db'), c.req.param('id'), c.get('listener')?.id);
+  const tab = c.req.query('tab') === 'newest' ? 'newest' : 'all';
+  const t = await thread(c.get('db'), c.req.param('id'), c.get('listener')?.id, tab);
   if (!t) throw new ApiError('not_found', 'No such comment.');
   return c.json(t);
 });

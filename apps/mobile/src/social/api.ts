@@ -14,7 +14,9 @@ export type ErrorCode =
   | 'duration_unknown' | 'reply_depth' | 'self_follow' | 'unavailable' | 'internal' | 'network'
   | 'suspended' | 'blocked' | 'removed'
   // M11: the show's host turned off comments for this listener on that show.
-  | 'muted_on_show';
+  | 'muted_on_show'
+  // M21 US6: a first comment waits for the community rules (428).
+  | 'rules_required';
 
 export class ApiError extends Error {
   constructor(
@@ -218,6 +220,8 @@ export type ApiClient = {
   nextUp(episodeId: string): Promise<{ items: NextUpItem[]; computedAt: string }>;
   // M6
   report(kind: ReportKind, targetId: string, reason: string, note?: string): Promise<{ id: string; duplicate: boolean; closed?: string }>;
+  /** M21 US2: a wrong transcript line and the right words; it reaches the show's host in the Studio. */
+  reportTranscript(r: { episodeId: string; offsetMs: number; original: string; suggested: string }): Promise<{ id: string; duplicate: boolean }>;
   block(listenerId: string): Promise<void>;
   unblock(listenerId: string): Promise<void>;
   hidden(): Promise<HiddenOut>;
@@ -377,6 +381,7 @@ export function createApi(deps: ApiDeps): ApiClient {
     nextUp: async (episodeId) => (await call<{ items: NextUpItem[]; computedAt: string }>('GET', `/v1/episodes/${episodeId}/next-up`)).json,
     // M6
     report: async (kind, targetId, reason, note) => (await call<{ id: string; duplicate: boolean; closed?: string }>('POST', '/v1/reports', { targetKind: kind, targetId, reason, ...(note ? { note } : {}) })).json,
+    reportTranscript: async (r) => (await call<{ id: string; duplicate: boolean }>('POST', '/v1/reports', { targetKind: 'transcript', targetId: `${r.episodeId}#${r.offsetMs}`, reason: 'other', detail: { offsetMs: r.offsetMs, original: r.original, suggested: r.suggested } })).json,
     block: async (listenerId) => { await call('POST', '/v1/me/blocks', { listenerId }); },
     unblock: async (listenerId) => { await call('DELETE', `/v1/me/blocks/${listenerId}`); },
     hidden: async () => (await call<HiddenOut>('GET', '/v1/me/hidden')).json,

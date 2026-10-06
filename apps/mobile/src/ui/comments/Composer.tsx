@@ -14,6 +14,10 @@
  * M20 US9 (FR-053, FR-054): "Add a picture" — one photo, shrunk on the phone — shown only when the
  * server says images are on (gate G1). The comment posts first; the picture follows it. If the
  * picture fails, the comment stays and the listener is told.
+ *
+ * M21 US6 (G-M21-7): the first post answers 428 rules_required — the sheet then shows the
+ * community rules in place of the form (RulesBody). Accept sends the comment again; Not now goes
+ * back to the form with the draft kept, and nothing is sent.
  */
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -33,7 +37,8 @@ import { useSocial } from '@/social/context';
 import type { ComposerState } from '@/social/composer';
 import { useStores, useToast } from '@/ui/shell/providers';
 import { Image } from '@/ui/lib/image';
-import { useCommentExtrasApi } from '@/social/comment-extras-api';
+import { needsRules, useCommentExtrasApi } from '@/social/comment-extras-api';
+import { RulesBody } from './RulesSheet';
 import { pickCommentImage, type PickedCommentImage } from '@/social/comment-image';
 import { useColours } from '@/ui/kit/useColours';
 
@@ -57,6 +62,7 @@ export function ComposerSheet(props: {
   const toast = useToast();
   const [imagesOn, setImagesOn] = useState(false);
   const [picture, setPicture] = useState<PickedCommentImage | undefined>(undefined);
+  const [rules, setRules] = useState(false);
   useEffect(() => { let live = true; void extras.imagesOn().then((on) => { if (live) setImagesOn(on); }); return () => { live = false; }; }, [extras]);
   const addPicture = async () => {
     const r = await pickCommentImage();
@@ -90,6 +96,8 @@ export function ComposerSheet(props: {
       // The draft (text + moment) is saved; the listener comes back to it.
       props.onClose();
       router.push('/auth/sign-in');
+    } else if (needsRules(r.error)) {
+      setRules(true);
     } else {
       setError(r.error.code === 'network' ? "Couldn't reach the server — your draft is kept." : r.error.message);
     }
@@ -101,6 +109,7 @@ export function ComposerSheet(props: {
       <KeyboardAvoidingView className="w-full justify-end" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ActionsheetContent className="bg-surface px-0 pt-0 rounded-t-row items-stretch">
         <ScrollView keyboardShouldPersistTaps="handled" scrollEnabled={false} contentContainerClassName="px-screen-x pt-row pb-section gap-row">
+          {rules ? <RulesBody onAccepted={() => { setRules(false); void submit(); }} onClose={() => setRules(false)} /> : (<>
           <Box className="flex-row justify-between items-center gap-gap">
             <Pressable onPress={props.onClose} accessibilityRole="button" className="min-h-12 justify-center pr-row"><Text className="text-accent text-body font-bold">Cancel</Text></Pressable>
             <Text className="text-text text-base font-display flex-1 text-center" numberOfLines={1} accessibilityRole="header">{state.parentId ? 'Reply' : 'New comment'}</Text>
@@ -158,6 +167,7 @@ export function ComposerSheet(props: {
             )
           ) : null}
           <Text className={length > 2000 ? 'text-accent text-meta text-right' : 'text-muted text-meta text-right'}>{length} / 2000</Text>
+          </>)}
         </ScrollView>
         </ActionsheetContent>
       </KeyboardAvoidingView>

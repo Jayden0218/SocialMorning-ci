@@ -10,6 +10,7 @@ import { listComments } from '../../db/repos/social/comments.ts';
 import { safetyStamp } from '../../db/repos/safety/blocks.ts';
 import { hostsOfEpisode } from '../../db/repos/studio/creator.ts';
 import { likesStamp } from '../../db/repos/social/comment-likes.ts';
+import { muteStamp } from '../../db/repos/social/mutes.ts';
 
 /**
  * The poll (research R7, FR-015, FR-022, FR-032): comments + heat + serverTime in one
@@ -45,16 +46,19 @@ social.get('/:id/social', optionalAuth, async (c) => {
   const host = (await hostsOfEpisode(db, episodeId)).join(',') || undefined;
   // M12 (FR-023): a like added or taken away changes the counts, so likes are in the stamp.
   const likes = await likesStamp(db, episodeId);
+  // M21 US6: a mute or unmute changes the muter's answer (G-M21-6); `dir=asc` lists oldest first.
+  const mutes = viewer ? await muteStamp(db, viewer.id) : '-';
+  const dir = c.req.query('dir') === 'asc' ? 'asc' : 'desc';
   const etag = '"' + createHash('sha256')
     .update(String(stamp?.comments_v)).update('|').update(String(stamp?.episode_v)).update('|')
-    .update(String(stamp?.heat_v)).update('|').update(viewer?.id ?? '-').update('|').update(safety).update('|').update(host ?? '-').update('|').update(likes)
+    .update(String(stamp?.heat_v)).update('|').update(viewer?.id ?? '-').update('|').update(safety).update('|').update(host ?? '-').update('|').update(likes).update('|').update(mutes).update('|').update(dir)
     .digest('base64url').slice(0, 27) + '"';
 
   if (c.req.header('if-none-match') === etag) {
     return new Response(null, { status: 304, headers: { etag } });
   }
 
-  const comments = await listComments(db, episodeId, viewer?.id);
+  const comments = await listComments(db, episodeId, viewer?.id, { dir });
 
   let heat: { available: true; buckets: number[] } | { available: false } = { available: false };
   if (episode.duration_ms !== null) {

@@ -10,6 +10,8 @@
  * the bar, a centred 96 pt monogram, the name as a 32 pt serif, Follow (yellow pill) · Block
  * (outlined pill) · Report in one row, the numbers as white cards, listening time as a yellow
  * card, serif section titles and recent rows as cards. Every action and its data are unchanged.
+ * M21 US6 (G-M21-6): Mute / Unmute beside Report — their comments, voice posts and likes leave
+ * my pages only; they are never told.
  */
 import { useCallback, useState } from 'react';
 import { PlusBadge } from '@/ui/me/PlusCard';
@@ -29,7 +31,7 @@ import { BlockButton } from '@/ui/social/BlockButton';
 import { hms } from '@/ui/social/StatsBlock';
 import { Artwork } from '@/ui/kit/Artwork';
 import { countryName } from '@/ui/me/country';
-import { useStores } from '@/ui/shell/providers';
+import { useStores, useToast } from '@/ui/shell/providers';
 import { listeningHistory } from '@/me/history';
 import { latestEarned } from '@/me/stickers';
 import { myStickers, myTotals } from '@/me/my-stickers';
@@ -48,6 +50,7 @@ import { useProfileApi, type LikeItem } from '@/social/profile-api';
 import { useCardActions } from '@/discover/useDiscover';
 import { useM19Api, type Playlist } from '@/social/m19-api';
 import { PlaylistCard } from '@/ui/me/PlaylistCard';
+import { useCommentExtrasApi } from '@/social/comment-extras-api';
 
 /** The eyebrow on the yellow card: spaced capitals (as `Eyebrow`, which only has muted/accent). */
 const CAPS = { letterSpacing: 1.2, textTransform: 'uppercase' as const };
@@ -68,6 +71,23 @@ export default function ProfileScreen(): React.ReactElement {
   // M19 T041 (FR-031): this account's public playlists (all of yours on your own profile).
   const m19 = useM19Api();
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  // M21 US6: whether I muted this listener (read from GET /v1/me/mutes while signed in).
+  const extras = useCommentExtrasApi();
+  const toast = useToast();
+  const [muted, setMuted] = useState(false);
+  useFocusEffect(useCallback(() => {
+    let live = true;
+    if (listener) extras.mutes().then((items) => { if (live) setMuted(items.some((x) => x.id === String(id))); }).catch(() => undefined);
+    return () => { live = false; };
+  }, [extras, listener, id]));
+  const toggleMute = async (name: string) => {
+    if (!listener) { router.push('/auth/sign-in'); return; }
+    try {
+      if (muted) await extras.unmute(String(id)); else await extras.mute(String(id));
+      toast(muted ? `Unmuted ${name}.` : `Muted ${name}. Their comments are hidden for you.`);
+      setMuted(!muted);
+    } catch { toast("Couldn't save that — try again."); }
+  };
   useFocusEffect(useCallback(() => {
     let live = true;
     api.profile(String(id)).then((p) => { if (live) { setProfile(p); setError(undefined); } }).catch((e) => { if (live) setError(e instanceof ApiError ? (e.code === 'network' ? "Couldn't reach the server." : e.message) : String(e)); });
@@ -147,6 +167,9 @@ export default function ProfileScreen(): React.ReactElement {
           <BlockButton listenerId={profile.id} displayName={profile.displayName} />
           <Pressable onPress={() => setReporting({ kind: 'profile', id: profile.id, authorId: profile.id, label: 'profile' })} accessibilityRole="button" accessibilityLabel={`Report ${profile.displayName}`} className="px-1.5 min-h-12 justify-center">
             <Text className="text-muted text-body">Report</Text>
+          </Pressable>
+          <Pressable onPress={() => void toggleMute(profile.displayName)} accessibilityRole="button" accessibilityLabel={`${muted ? 'Unmute' : 'Mute'} ${profile.displayName}`} accessibilityState={{ selected: muted }} className="px-1.5 min-h-12 justify-center">
+            <Text className="text-muted text-body">{muted ? 'Unmute' : 'Mute'}</Text>
           </Pressable>
         </Box>
       ) : null}

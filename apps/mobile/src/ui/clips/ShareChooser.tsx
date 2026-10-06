@@ -1,4 +1,4 @@
-// The app's share panel: share episode, this moment, or a picture.
+// The app's share panel: chat apps on this phone, share this moment, a picture, Copy link, More.
 /**
  * The first step of Share (M12 FR-033/034). The episode page and the player opened the system
  * sheet with the publisher's raw .mp3 address (NEW-8, found on the iPhone). Now: share the
@@ -15,9 +15,14 @@
  * M19 (owner, 2026-10-05): a clip's panel may carry "Share as video" (`useClipVideoRows`) — the
  * clip as an .mp4 made on the phone by `modules/clip-video` with the phone's own encoders. Shown
  * only in a build that has the module and for a clip of at most 60 s.
+ *
+ * M21 US2 (spec story 2, scenario 8), after 小宇宙's share panel: the episode's panel opens with a
+ * row of the chat apps on this phone (WhatsApp, Telegram, WeChat, Messages, X — `share-targets.ts`,
+ * found with `Linking.canOpenURL`), each sending the episode's link straight into that app, and
+ * gains "Copy link" beside the picture. More (the system sheet) stays last.
  */
-import { useCallback, useState } from 'react';
-import { Share } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { Clipboard, Linking, Platform, Share } from 'react-native';
 import { router } from 'expo-router';
 import { File, Paths } from 'expo-file-system';
 import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '@/ui/lib/actionsheet';
@@ -34,12 +39,15 @@ import { useSocial } from '@/social/context';
 import { extensionFor } from '@/downloads/expo-downloader';
 import type { PlayableEpisode } from '@/playback/store';
 import * as ClipVideo from '../../../modules/clip-video';
+import { installedTargets, type ShareTarget } from './share-targets';
 
 const TAP = { minHeight: hit.min };
 /** The × beside the drag bar: a 48 pt square. */
 const CLOSE = { width: hit.min, height: hit.min };
 /** M17: a share tile in `ShareSheet-B` is ~100 pt tall — icon on top, label and detail below. */
 const TILE = { minHeight: 100 };
+/** M21: a target app's round button and its name under it. */
+const APP = { minWidth: 64, minHeight: hit.min };
 
 export function ShareChooser(props: {
   open: boolean;
@@ -58,6 +66,20 @@ export function ShareChooser(props: {
     const url = m12.episodePageUrl(props.episode.id);
     try { await Share.share({ message: `${props.episode.title} — ${props.episode.showTitle}\n${url}`, url }); props.onShared?.(); } catch { /* dismissed */ }
   };
+  // M21 US2: the chat apps on this phone, asked once each time the panel opens.
+  const [targets, setTargets] = useState<ShareTarget[]>([]);
+  useEffect(() => {
+    if (!props.open) return;
+    let live = true;
+    void installedTargets((u) => Linking.canOpenURL(u)).then((t) => { if (live) setTargets(t); });
+    return () => { live = false; };
+  }, [props.open]);
+  const message = () => `${props.episode.title} — ${props.episode.showTitle}\n${m12.episodePageUrl(props.episode.id)}`;
+  const sendWith = async (t: ShareTarget) => {
+    if (t.copiesFirst) { Clipboard.setString(message()); toast(`Link copied — paste it in ${t.label}.`); }
+    try { await Linking.openURL(t.url(message(), Platform.OS)); props.onShared?.(); } catch { toast(`Couldn't open ${t.label}.`); }
+  };
+  const copyLink = () => { Clipboard.setString(m12.episodePageUrl(props.episode.id)); toast('Link copied.'); props.onShared?.(); };
   const shareImage = async () => {
     // Phone walk 2026-09-30: the card took 10–16 s with nothing on screen; say it is coming.
     toast('Making the picture…');
@@ -74,10 +96,12 @@ export function ShareChooser(props: {
   const rows: ShareOption[] = [
     ...(props.onClip ? [{ icon: 'cut-outline' as const, label: 'Share this moment', lead: true, ...(props.atMs !== undefined ? { detail: mmss(props.atMs) } : {}), onPress: props.onClip }] : []),
     { icon: 'image-outline', label: 'Share as image', onPress: () => void shareImage() },
+    { icon: 'link-outline', label: 'Copy link', onPress: copyLink },
     // Chat (owner, 2026-10-04): send the episode to someone who follows you back.
     { icon: 'chatbubbles-outline', label: 'Send in chat', onPress: () => router.push({ pathname: '/chat/new', params: { episodeId: props.episode.id, episodeTitle: props.episode.title } }) },
   ];
-  return <SharePanel open={props.open} onClose={props.onClose} subtitle={`${props.episode.title} · ${props.episode.showTitle}`} rows={rows} more={{ detail: 'a link to its page', run: () => void shareLink() }} colour={c.text} />;
+  const apps: ShareOption[] = targets.map((t) => ({ icon: t.icon, label: t.label, onPress: () => void sendWith(t) }));
+  return <SharePanel open={props.open} onClose={props.onClose} subtitle={`${props.episode.title} · ${props.episode.showTitle}`} apps={apps} rows={rows} more={{ detail: 'a link to its page', run: () => void shareLink() }} colour={c.text} />;
 }
 
 /**
@@ -125,6 +149,8 @@ export function SharePanel(props: {
   /** M17: the muted line under the heading, e.g. "Episode · Show". */
   subtitle?: string;
   rows?: readonly ShareOption[];
+  /** M21 US2: the chat apps on this phone, as a row of round buttons above the tiles. */
+  apps?: readonly ShareOption[];
   /** The system share sheet, behind "More". */
   more: { detail?: string; run: () => void };
   colour: string;
@@ -148,6 +174,18 @@ export function SharePanel(props: {
         </Box>
         <Text className="text-display font-display text-text" accessibilityRole="header">{props.heading ?? 'Share'}</Text>
         {props.subtitle ? <Text className="text-body text-muted mt-1" numberOfLines={2}>{props.subtitle}</Text> : null}
+        {props.apps && props.apps.length > 0 ? (
+          <Box className="flex-row gap-gap mt-section flex-wrap">
+            {props.apps.map((a) => (
+              <Pressable key={a.label} onPress={() => close(a.onPress)} accessibilityRole="button" accessibilityLabel={`Send with ${a.label}`} className="items-center gap-1" style={APP}>
+                <Box className="w-12 h-12 rounded-pill bg-background border border-border items-center justify-center">
+                  <Icon name={a.icon} size={24} color={props.colour} />
+                </Box>
+                <Text className="text-xs text-text" numberOfLines={1}>{a.label}</Text>
+              </Pressable>
+            ))}
+          </Box>
+        ) : null}
         <Box className="gap-gap mt-section">
           {leads.map((r) => (
             <Pressable
