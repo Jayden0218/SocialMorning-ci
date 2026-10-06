@@ -103,6 +103,9 @@ const HAPTICS_ADDITIONS = ['expo-haptics'];
  */
 const M20_ADDITIONS = ['expo-speech-recognition', 'expo-iap'];
 
+/** M21 (research R7): already linked through expo-router (Podfile.lock RNGestureHandler 3.3.0); listed directly for the sheet and the player gestures. */
+const M21_ADDITIONS = ['react-native-gesture-handler'];
+
 it('no reference dependency is installed, anywhere', () => {
   const installed = new Set([
     ...Object.keys(pkg.dependencies),
@@ -119,7 +122,7 @@ it('M7 added exactly expo-blur and expo-linear-gradient, Tailwind its three, not
   const now = Object.keys(pkg.dependencies).sort();
   const added = now.filter((name) => !M6_DEPENDENCIES.includes(name));
   const removed = M6_DEPENDENCIES.filter((name) => !now.includes(name));
-  expect(added.sort()).toEqual([...M7_ADDITIONS, ...TAILWIND_ADDITIONS, ...NOTIFY_ADDITIONS, ...SCAN_ADDITIONS, ...ICON_ADDITIONS, ...VIDEO_ADDITIONS, ...FEEDBACK_ADDITIONS, ...M9_ENGINE, ...M9_LIBRARY, ...SPLASH_ADDITIONS, ...OUTSIDE_ADDITIONS, ...FONT_ADDITIONS, ...HAPTICS_ADDITIONS, ...M20_ADDITIONS].sort());
+  expect(added.sort()).toEqual([...M7_ADDITIONS, ...TAILWIND_ADDITIONS, ...NOTIFY_ADDITIONS, ...SCAN_ADDITIONS, ...ICON_ADDITIONS, ...VIDEO_ADDITIONS, ...FEEDBACK_ADDITIONS, ...M9_ENGINE, ...M9_LIBRARY, ...SPLASH_ADDITIONS, ...OUTSIDE_ADDITIONS, ...FONT_ADDITIONS, ...HAPTICS_ADDITIONS, ...M20_ADDITIONS, ...M21_ADDITIONS].sort());
   expect(removed).toEqual([]);
 });
 

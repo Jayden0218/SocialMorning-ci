@@ -9,13 +9,13 @@ test('migrations 001–011 apply once and are idempotent', async () => {
   const again = await migrate(t.runner);
   assert.deepEqual(again, [], 'second run applies nothing');
   const rows = await t.q<{ version: number }>('SELECT version FROM schema_migrations ORDER BY version');
-  assert.deepEqual(rows.map((r) => Number(r.version)), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]);
+  assert.deepEqual(rows.map((r) => Number(r.version)), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
   const tables = await t.q<{ table_name: string }>(
     "SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY 1",
   );
   assert.deepEqual(
     tables.map((r) => r.table_name),
-    ['activity', 'admin_audit', 'admins', 'announcements', 'blocks', 'cache', 'category_features', 'chat_messages', 'clips', 'collection_items', 'collections', 'comment_likes', 'comment_unfriendly', 'comments', 'creator_claims', 'curated_issue_items', 'curated_issues', 'daily_active', 'discover_settings', 'email_codes', 'entitlements', 'episode_heat', 'episode_likes', 'episodes', 'feedback', 'feedback_images', 'follows', 'hidden_feeds', 'hosted_episodes', 'hosted_shows', 'library_items', 'listened_ranges', 'listener_identities', 'listeners', 'live_listeners', 'moderation_actions', 'notify_show_prefs', 'pick_days', 'pick_items', 'playlist_items', 'playlists', 'poll_options', 'poll_votes', 'polls', 'positions', 'promotions', 'purchases', 'push_prefs', 'push_sent', 'push_tokens', 'reactions', 'rec_dismissals', 'rec_events', 'redeem_codes', 'reports', 'schema_migrations', 'sessions', 'share_events', 'show_curators', 'show_hosts', 'show_invites', 'show_members', 'show_mutes', 'show_overrides', 'show_similarity', 'show_similarity_next', 'subscription_events', 'subscriptions', 'tips', 'trending_hides', 'trending_pins', 'voice_posts'],
+    ['activity', 'admin_audit', 'admins', 'announcements', 'blocks', 'cache', 'category_features', 'chat_messages', 'clips', 'collection_items', 'collections', 'comment_likes', 'comment_unfriendly', 'comments', 'creator_claims', 'curated_issue_items', 'curated_issues', 'daily_active', 'discover_settings', 'email_codes', 'entitlements', 'episode_heat', 'episode_likes', 'episodes', 'feedback', 'feedback_images', 'follows', 'hidden_feeds', 'host_picks', 'hosted_episodes', 'hosted_shows', 'library_items', 'like_comments', 'like_reactions', 'listened_ranges', 'listener_identities', 'listener_mutes', 'listeners', 'live_listeners', 'moderation_actions', 'notifications', 'notify_show_prefs', 'pick_days', 'pick_items', 'playlist_items', 'playlists', 'poll_options', 'poll_votes', 'polls', 'positions', 'promotions', 'purchases', 'push_prefs', 'push_sent', 'push_tokens', 'reactions', 'rec_dismissals', 'rec_events', 'redeem_codes', 'reports', 'schema_migrations', 'sessions', 'share_events', 'show_curators', 'show_hosts', 'show_invites', 'show_members', 'show_mutes', 'show_overrides', 'show_similarity', 'show_similarity_next', 'sticker_placements', 'subscription_events', 'subscriptions', 'tips', 'trending_hides', 'trending_pins', 'voice_posts'],
   );
   await t.close();
 });

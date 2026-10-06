@@ -5,6 +5,7 @@
  */
 import '../global.css';
 import '@/design/tailwind';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Stack, usePathname, useSegments, type ErrorBoundaryProps } from 'expo-router';
 import { usePlayerState } from '@/playback/store';
 import * as SplashScreen from 'expo-splash-screen';
@@ -73,6 +74,9 @@ export default function RootLayout(): React.ReactElement {
     // only from this listener (docs.uniwind.dev/faq; the upstream starter does the same). Without
     // it every `pb-safe` — ActionsheetContent's base class among them — resolved to 0, and the
     // sheets carried guessed `pb-10` / `pb-24` instead.
+    // M21 (research R7): the sheet, the player swipes and the plaza use gesture-handler v3, whose
+    // detectors need this root view.
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <SafeAreaListener onChange={({ insets }) => Uniwind.updateInsets(insets)}>
     <AppProviders>
       <SocialProvider>
@@ -90,6 +94,7 @@ export default function RootLayout(): React.ReactElement {
       </SocialProvider>
     </AppProviders>
     </SafeAreaListener>
+    </GestureHandlerRootView>
   );
 }
 
