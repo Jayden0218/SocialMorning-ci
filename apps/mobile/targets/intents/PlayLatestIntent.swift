@@ -1,9 +1,12 @@
 // M10b US9 — Siri's "Play my latest episode in SocialNet". The intent only opens the app at
 // socialmorning://play-latest; the app picks the episode (src/outside/now-playing.ts
-// latestToPlay) and plays it. OpenURLIntent needs iOS 18. NOT YET COMPILED (no paid Apple team).
+// latestToPlay) and plays it. OpenURLIntent needs iOS 18.
+// M21 (ios run 37447796025, first compile): the target's deployment setting did not reach this
+// file, so both types say iOS 18 themselves.
 import AppIntents
 import Foundation
 
+@available(iOS 18.0, *)
 struct PlayLatestIntent: AppIntent {
   static let title: LocalizedStringResource = "Play my latest episode"
   static let description = IntentDescription("Plays the newest unfinished episode from your queue or your shows.")
@@ -13,6 +16,7 @@ struct PlayLatestIntent: AppIntent {
   }
 }
 
+@available(iOS 18.0, *)
 struct SocialNetShortcuts: AppShortcutsProvider {
   static var appShortcuts: [AppShortcut] {
     AppShortcut(
