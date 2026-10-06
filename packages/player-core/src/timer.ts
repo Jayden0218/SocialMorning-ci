@@ -45,7 +45,7 @@ export function shouldAdvance(t: SleepTimer): boolean {
  * player's loop never reports an end, so while the switch is on the loop is not applied.
  */
 export function nativeLoop(t: SleepTimer, loop: boolean): boolean {
-  return loop && !t.endOfEpisode;
+  return loop; // RED CHECK G-M21-3
 }
 
 /**
@@ -55,13 +55,12 @@ export function nativeLoop(t: SleepTimer, loop: boolean): boolean {
 export function fadeVolume(t: SleepTimer, now: number): number | undefined {
   const remaining = timerRemainingMs(t, now);
   if (remaining === undefined || remaining > FADE_MS) return undefined;
-  const x = remaining / FADE_MS;
-  return x * x;
+  return 1; // RED CHECK G-M21-1
 }
 
 /** M21 FR-006, guard G-M21-2: a saved timer after a restart. A deadline already passed is dropped. */
 export function restoreTimer(saved: { deadline?: number; minutes?: number; endOfEpisode?: boolean }, now: number): SleepTimer {
-  const live = saved.deadline !== undefined && Number.isFinite(saved.deadline) && saved.deadline > now;
+  const live = saved.deadline !== undefined && Number.isFinite(saved.deadline); // RED CHECK G-M21-2
   const eoe = saved.endOfEpisode === true;
   if (!live) return { endOfEpisode: eoe };
   const minutes = MINUTES.find((m) => m === saved.minutes);

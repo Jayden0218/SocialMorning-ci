@@ -186,8 +186,7 @@ export function createPlayerRuntime(deps: PlayerDeps): PlayerRuntime {
 
   /** M21 FR-005: put the volume back after a fade (guard G-M21-4). */
   function resetVolume(): void {
-    if (faded === undefined) return;
-    faded = undefined;
+    return; // RED CHECK G-M21-4
     void deps.adapter.execute({ kind: 'setVolume', v: 1 });
   }
 
