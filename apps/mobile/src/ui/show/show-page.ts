@@ -41,7 +41,7 @@ export function addAllToQueue(queue: readonly string[], ids: readonly string[]):
     if (q.length >= QUEUE_MAX) return { queue: q, added, full: true };
     const r = enqueue(q, id, 'end');
     if (r.refused) return { queue: q, added, full: true };
-    q = r.queue;
+    q = [...r.queue];
     added++;
   }
   return { queue: q, added, full: false };

@@ -86,7 +86,7 @@ test('host picks: a verified host sets them in order (≤ 20, this show only); a
 test('tint: the cover the page draws comes back as #rrggbb (null while first worked out); episodeImage gives episodeTint', async () => {
   const png = await cover();
   const imageFetch = (async (input: string | URL | Request) => (String(input) === COVER
-    ? new Response(png, { status: 200, headers: { 'content-type': 'image/png' } })
+    ? new Response(new Uint8Array(png), { status: 200, headers: { 'content-type': 'image/png' } })
     : new Response('no', { status: 404 }))) as typeof fetch;
   const t = await freshDb({ imageFetch });
   let x = await extras(t, `&image=${encodeURIComponent(COVER)}&episodeImage=${encodeURIComponent(COVER)}`);

@@ -39,7 +39,7 @@ test('tintOf: fetched once, then served from the cache for 30 days; a cover that
   const f = (async (input: string | URL | Request) => {
     const url = String(input);
     asked.push(url);
-    if (url === 'https://img.example/red.png') return new Response(red, { status: 200, headers: { 'content-type': 'image/png' } });
+    if (url === 'https://img.example/red.png') return new Response(new Uint8Array(red), { status: 200, headers: { 'content-type': 'image/png' } });
     return new Response('gone', { status: 404 });
   }) as typeof fetch;
   const t = await freshDb();
@@ -70,7 +70,7 @@ test('a slow cover never holds the read: null now, the colour cached for the nex
   const blue = await png('<rect width="40" height="40" fill="#1e3a8a"/>');
   const f = (async () => {
     await new Promise((r) => setTimeout(r, 300));
-    return new Response(blue, { status: 200, headers: { 'content-type': 'image/png' } });
+    return new Response(new Uint8Array(blue), { status: 200, headers: { 'content-type': 'image/png' } });
   }) as unknown as typeof fetch;
   const t = await freshDb();
   const started = Date.now();
