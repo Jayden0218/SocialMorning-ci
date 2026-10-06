@@ -38,6 +38,15 @@ export function extrasOf(c: Comment): CommentExtras {
 /** How many replies a comment has: the server's count, else the replies it sent. */
 export const replyCountOf = (c: Comment): number => extrasOf(c).replyCount ?? (c.replies ?? []).filter((r) => !r.deleted).length;
 
+/**
+ * iPhone walk 2026-10-06 (B4): a Blob read back from a file has an empty type, and React Native's
+ * fetch then sends ITS type as the Content-Type, over our header — the server refused the upload
+ * ("Send the recording as audio/mp4"). The audio is re-wrapped with the type it really has.
+ */
+export function typedAudio(file: Blob): Blob {
+  return file.type === 'audio/mp4' || file.type === 'audio/aac' ? file : new Blob([file], { type: 'audio/mp4' });
+}
+
 export type CommentExtrasApi = ReturnType<typeof createCommentExtrasApi>;
 
 export function createCommentExtrasApi(deps: ApiDeps) {
@@ -83,7 +92,7 @@ export function createCommentExtrasApi(deps: ApiDeps) {
             ...(o.transcript ? { 'x-transcript': encodeURIComponent(o.transcript) } : {}),
             ...(token ? { authorization: `Bearer ${token}` } : {}),
           },
-          body: file,
+          body: typedAudio(file),
         });
       } catch (e) {
         throw new ApiError('network', "Couldn't reach the server.", 0, { cause: String(e) });

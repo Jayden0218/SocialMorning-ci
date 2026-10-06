@@ -11,6 +11,9 @@ export function audioDurationMs(b: Uint8Array): number | undefined {
   return mp4Duration(b) ?? adtsDuration(b);
 }
 
+/** An ISO-BMFF (MP4/M4A) file: its first box is `ftyp`. */
+export const isMp4 = (b: Uint8Array): boolean => b.length >= 12 && String.fromCharCode(b[4]!, b[5]!, b[6]!, b[7]!) === 'ftyp';
+
 const u32 = (b: Uint8Array, o: number) => ((b[o]! << 24) >>> 0) + (b[o + 1]! << 16) + (b[o + 2]! << 8) + b[o + 3]!;
 const type = (b: Uint8Array, o: number) => String.fromCharCode(b[o]!, b[o + 1]!, b[o + 2]!, b[o + 3]!);
 

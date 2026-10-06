@@ -190,14 +190,17 @@ export function CommentRow(props: {
             </Box>
           </Pressable>
         ) : null}
-        <Text className={reply ? 'text-text text-meta leading-[20px]' : 'text-text text-title font-display-semibold leading-[24px]'} numberOfLines={open ? undefined : 8}>
-          {reply && c.offsetMs !== null ? (
-            <Text className="text-accent font-semibold" accessibilityRole="button" accessibilityLabel={`Play from ${mmss(c.offsetMs)}`} onPress={() => props.onSeek(c.offsetMs!)}>
-              {`${mmss(c.offsetMs)}  `}
-            </Text>
-          ) : null}
-          {c.body}
-        </Text>
+        {/* iPhone walk 2026-10-06: a voice comment has no words — draw no empty line (it left a gap). */}
+        {c.body ? (
+          <Text className={reply ? 'text-text text-meta leading-[20px]' : 'text-text text-title font-display-semibold leading-[24px]'} numberOfLines={open ? undefined : 8}>
+            {reply && c.offsetMs !== null ? (
+              <Text className="text-accent font-semibold" accessibilityRole="button" accessibilityLabel={`Play from ${mmss(c.offsetMs)}`} onPress={() => props.onSeek(c.offsetMs!)}>
+                {`${mmss(c.offsetMs)}  `}
+              </Text>
+            ) : null}
+            {c.body}
+          </Text>
+        ) : null}
         {extra.voice && props.playVoice ? <VoiceComment voice={extra.voice} play={props.playVoice} /> : null}
         {extra.image ? <CommentImage image={extra.image} teen={props.teenMode === true} /> : null}
         {(c.body ?? '').length > 320 ? (

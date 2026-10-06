@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import type { AuthEnv } from '../../auth/session.ts';
 import { requireAuth } from '../../auth/session.ts';
 import { ApiError } from '../../errors.ts';
-import { audioDurationMs } from '../../voice/duration.ts';
+import { audioDurationMs, isMp4 } from '../../voice/duration.ts';
 import { readTranscript } from '../../voice/transcript.ts';
 import { fromFollowing, getPost, insertPost, liveCount, removePost, VOICE_LIVE_MAX, VOICE_MAX_BYTES, VOICE_MAX_MS } from '../../db/repos/social/voice-posts.ts';
 
@@ -23,15 +23,22 @@ const SLACK_MS = 500;
 voice.post('/', requireAuth, async (c) => {
   const storage = c.get('voice');
   if (!storage.ready) throw new ApiError('storage_off', 'Voice posts are not switched on yet.');
-  const type = (c.req.header('content-type') ?? '').split(';')[0]!.trim().toLowerCase();
-  const ext = TYPES[type];
-  if (!ext) throw new ApiError('validation', 'Send the recording as audio/mp4 or audio/aac.', { fields: ['content-type'] });
+  let type = (c.req.header('content-type') ?? '').split(';')[0]!.trim().toLowerCase();
+  let ext = TYPES[type];
+  // iPhone walk 2026-10-06: React Native may send a file Blob with no type (or octet-stream) over
+  // our header — such a body is accepted when its own bytes say MP4 (checked once read, below).
+  const untyped = !ext && (type === '' || type === 'application/octet-stream');
+  if (!ext && !untyped) throw new ApiError('validation', 'Send the recording as audio/mp4 or audio/aac.', { fields: ['content-type'] });
   const declared = Number(c.req.header('x-duration-ms'));
   if (!Number.isInteger(declared) || declared < 1 || declared > VOICE_MAX_MS) {
     throw new ApiError('validation', 'x-duration-ms must be 1–60000.', { fields: ['x-duration-ms'] });
   }
   const transcript = readTranscript(c.req.header('x-transcript'));
   const bytes = new Uint8Array(await c.req.arrayBuffer());
+  if (!ext) {
+    if (!isMp4(bytes)) throw new ApiError('validation', 'Send the recording as audio/mp4 or audio/aac.', { fields: ['content-type'] });
+    type = 'audio/mp4'; ext = 'm4a';
+  }
   if (bytes.length === 0) throw new ApiError('validation', 'The recording is empty.', { fields: ['body'] });
   if (bytes.length > VOICE_MAX_BYTES) throw new ApiError('too_large', 'A voice post is at most 600 000 bytes.');
   const measured = audioDurationMs(bytes);

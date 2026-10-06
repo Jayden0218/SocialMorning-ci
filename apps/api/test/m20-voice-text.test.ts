@@ -72,3 +72,16 @@ test('readTranscript folds spaces, treats blank as none', () => {
   assert.equal(readTranscript(encodeURIComponent('  \n ')), undefined);
   assert.equal(readTranscript(encodeURIComponent('a\n\n b')), 'a b');
 });
+
+test('iPhone walk 2026-10-06: an upload with no type (React Native Blob) is taken when its bytes are MP4; other bytes are not', async () => {
+  const t = await freshDb({ voiceStorage: store });
+  const a = await signUp(t, 'a@example.com', 'Alex');
+  await t.q("INSERT INTO episodes (id, feed_url, guid, title, show_title, enclosure_url) VALUES ('e1','https://f/x.xml','g','Ep','Show','https://c/x.mp3')");
+  const r = await send(t, '/v1/episodes/e1/comments/voice', a.token, { 'content-type': 'application/octet-stream' });
+  assert.equal(r.status, 201, await r.clone().text());
+  await t.q("UPDATE comments SET created_at = now() - interval '1 minute'");
+  const junk = await t.app.request('/v1/episodes/e1/comments/voice', { method: 'POST', body: new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]) as unknown as BodyInit, headers: { 'content-type': 'application/octet-stream', 'x-duration-ms': '10000', authorization: `Bearer ${a.token}` } });
+  assert.equal(junk.status, 422);
+  assert.equal((await send(t, '/v1/episodes/e1/comments/voice', a.token, { 'content-type': 'audio/mpeg' })).status, 422, 'a wrong declared type is still refused');
+  await t.close();
+});

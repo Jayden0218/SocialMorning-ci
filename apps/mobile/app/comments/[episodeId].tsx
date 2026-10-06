@@ -20,7 +20,8 @@
  * the page's life only (the server sends no "marked by me"), so "Unmark" shows until it closes.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Clipboard } from 'react-native';
+import { Clipboard, Platform } from 'react-native';
+import { KeyboardAvoidingView } from '@/ui/lib/keyboard-avoiding-view';
 import { router, useLocalSearchParams } from 'expo-router';
 import { orderComments, type CommentOrder } from '@socialmorning/social-core';
 import { FlatList } from '@/ui/lib/flat-list';
@@ -195,7 +196,8 @@ export default function CommentsScreen(): React.ReactElement {
   return (
     <>
     <PageHeader title={count > 0 ? `Comments ${count}` : 'Comments'} />
-    <Box className="flex-1 bg-background">
+    {/* iPhone walk 2026-10-06: the keyboard covered the voice review's text box — the page now lifts. */}
+    <KeyboardAvoidingView className="flex-1 bg-background" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       {/* Owner, 2026-10-01: the episode, with its own play/pause, at the top of the page. */}
       {episodeId ? <EpisodeCard episodeId={episodeId} /> : null}
       <Segmented items={ORDERS} value={order} onChange={setOrder} className="mx-screen-x mt-row" />
@@ -281,7 +283,7 @@ export default function CommentsScreen(): React.ReactElement {
       </Actionsheet>
       <ReportSheet target={reporting} onClose={() => setReporting(undefined)} />
       {composing ? <ComposerSheet initial={composing} onClose={() => setComposing(undefined)} onPosted={() => { if (episodeId) void refresh(episodeId); }} /> : null}
-    </Box>
+    </KeyboardAvoidingView>
     </>
   );
 }

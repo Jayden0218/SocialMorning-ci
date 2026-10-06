@@ -22,11 +22,33 @@ export type SpeechModule = {
   isRecognitionAvailable(): boolean;
   requestPermissionsAsync(): Promise<{ granted: boolean }>;
   addListener(event: string, fn: (e: never) => void): { remove(): void };
+  getSupportedLocales?(o?: object): Promise<{ locales: string[]; installedLocales?: string[] }>;
 };
 export type Encoder = (wavUri: string) => Promise<{ uri: string; bytes: number }>;
 
 /** What the listener checks before posting: the encoded audio and the text (null = none made). */
 export type VoiceTake = { uri: string; bytes: number; durationMs: number; text: string | null };
+
+/** Nearby English for a region the speech service lacks (Malaysia → Singapore, then the UK, then the US). */
+const ENGLISH_FALLBACK = ['en-SG', 'en-GB', 'en-US'];
+
+/**
+ * iPhone walk 2026-10-06 (B4): the phone said `en-MY`, which Apple's speech service does not offer
+ * ("language-not-supported"; it offers ms-MY, en-SG, zh-CN, en-US …). Pick the phone's own locale if
+ * offered; else the same language — for English the nearest region first; else US English.
+ */
+export function pickLocale(device: string, supported: readonly string[]): string {
+  if (supported.length === 0) return device;
+  const norm = (s: string) => s.replace('_', '-').toLowerCase();
+  const exact = supported.find((s) => norm(s) === norm(device));
+  if (exact) return exact;
+  const lang = norm(device).split('-')[0]!;
+  if (lang === 'en') {
+    for (const f of ENGLISH_FALLBACK) { const hit = supported.find((s) => norm(s) === norm(f)); if (hit) return hit; }
+  }
+  const same = supported.find((s) => norm(s).split('-')[0] === lang);
+  return same ?? supported.find((s) => norm(s) === 'en-us') ?? supported[0]!;
+}
 
 /**
  * The text as the speech service gives it: final segments in order, then the latest unfinished
@@ -90,8 +112,11 @@ export function textRecorder(deps: { speech?: SpeechModule | null; encode?: Enco
         speech.addListener('end', (() => ended?.()) as never),
         speech.addListener('error', ((e: { error?: string; message?: string }) => { lastError = `${e.error ?? 'error'}${e.message ? `: ${e.message}` : ''}`; console.warn('voice-text error', lastError); }) as never),
       ];
+      const want = deps.lang ?? deviceLang();
+      let lang = want;
+      try { if (speech.getSupportedLocales) lang = pickLocale(want, (await speech.getSupportedLocales({})).locales ?? []); } catch { /* keep the phone's own */ }
       speech.start({
-        lang: deps.lang ?? deviceLang(),
+        lang,
         interimResults: true,
         continuous: true,
         recordingOptions: { persist: true, outputSampleRate: 16000, outputEncoding: 'pcmFormatInt16' },

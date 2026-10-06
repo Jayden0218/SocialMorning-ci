@@ -4,6 +4,7 @@
  * many test fakes of `ApiClient` need no new methods. Same transport as `createApi`.
  */
 import { useMemo } from 'react';
+import { typedAudio } from './comment-extras-api';
 import { ApiError, requester, type ApiDeps, type EpisodeCard } from './api';
 import { apiBaseUrl } from './base-url';
 import { secureToken } from './token';
@@ -56,7 +57,7 @@ export function createM12Api(deps: ApiDeps) {
       const res = await deps.fetch(`${deps.baseUrl}/v1/voice-posts`, {
         method: 'POST',
         headers: { 'content-type': 'audio/mp4', 'x-duration-ms': String(Math.round(durationMs)), ...(transcript ? { 'x-transcript': encodeURIComponent(transcript) } : {}), ...(token ? { authorization: `Bearer ${token}` } : {}) },
-        body: file,
+        body: typedAudio(file),
       });
       const json = (await res.json().catch(() => ({}))) as { error?: string; message?: string; id?: string; url?: string; expiresAt?: string };
       if (!res.ok) throw new ApiError((json.error as never) ?? 'internal', json.message ?? `Server answered ${res.status}.`, res.status);

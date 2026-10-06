@@ -37,7 +37,9 @@ const BAR = { minHeight: 52 };
 /** Why a voice comment did not post, in plain words. */
 export function voicePostError(e: unknown): string {
   if (e instanceof ApiError && e.status === 503) return 'Voice comments are switched off right now.';
-  if (e instanceof ApiError && (e.status === 413 || e.status === 422)) return 'That recording is too long — 60 seconds at most.';
+  if (e instanceof ApiError && e.status === 413) return 'That recording is too long — 60 seconds at most.';
+  // iPhone walk 2026-10-06: a 422 has many causes (length, format, an empty upload) — the server's own words say which.
+  if (e instanceof ApiError && e.status === 422) return e.message || 'That recording could not be read.';
   if (e instanceof ApiError && e.status === 429) return 'Too many comments just now — try again in a minute.';
   return "That didn't post — try again.";
 }

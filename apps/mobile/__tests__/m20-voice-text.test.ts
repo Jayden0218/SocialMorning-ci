@@ -3,7 +3,7 @@
  * M20 US3 (spec FR-006–FR-008; research R1). Logic only, with a fake ExpoSpeechRecognition and a
  * fake encoder — real speech on a phone is quickstart B4/B5, NOT VERIFIED.
  */
-import { createTranscript, textRecorder, type SpeechModule } from '@/social/voice-text';
+import { createTranscript, pickLocale, textRecorder, type SpeechModule } from '@/social/voice-text';
 
 type Listener = (e: never) => void;
 function fakeSpeech(opts: { recording?: boolean; available?: boolean; granted?: boolean } = {}) {
@@ -71,4 +71,14 @@ it('a length over 60 s is reported as 60 s', async () => {
   await r.start();
   clock = 75_000;
   expect((await r.stop()).durationMs).toBe(60_000);
+});
+
+it('the language: the phone\'s own if offered; en-MY (not offered on iPhone, walk 2026-10-06) → en-SG; zh-MY → zh-CN', () => {
+  const offered = ['ms-MY', 'en-SG', 'en-GB', 'en-US', 'zh-CN', 'zh-TW'];
+  expect(pickLocale('ms-MY', offered)).toBe('ms-MY');
+  expect(pickLocale('en-MY', offered)).toBe('en-SG');
+  expect(pickLocale('en-MY', ['en-GB', 'en-US'])).toBe('en-GB');
+  expect(pickLocale('zh-MY', offered)).toBe('zh-CN');
+  expect(pickLocale('fr-FR', offered)).toBe('en-US');
+  expect(pickLocale('en-MY', [])).toBe('en-MY');
 });
