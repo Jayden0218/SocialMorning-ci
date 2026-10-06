@@ -69,6 +69,8 @@ export function textRecorder(deps: { speech?: SpeechModule | null; encode?: Enco
   let subs: { remove(): void }[] = [];
   let transcript = createTranscript();
   let wav: string | undefined;
+  // iPhone walk 2026-10-06 (B4 failed with no reason): keep the service's own error, so the message can say it.
+  let lastError: string | undefined;
   let ended: (() => void) | undefined;
   let endedP: Promise<void> = Promise.resolve();
   const off = () => { for (const s of subs) s.remove(); subs = []; };
@@ -79,12 +81,14 @@ export function textRecorder(deps: { speech?: SpeechModule | null; encode?: Enco
       if (!p.granted) return false;
       transcript = createTranscript();
       wav = undefined;
+      lastError = undefined;
       endedP = new Promise<void>((resolve) => { ended = resolve; });
       subs = [
         speech.addListener('result', ((e: { results: { transcript: string }[]; isFinal: boolean }) => transcript.result(e)) as never),
         speech.addListener('audioend', ((e: { uri?: string | null }) => { if (e.uri) wav = e.uri; }) as never),
         // A no-speech or network error still ends the session; the audio may be kept without text.
         speech.addListener('end', (() => ended?.()) as never),
+        speech.addListener('error', ((e: { error?: string; message?: string }) => { lastError = `${e.error ?? 'error'}${e.message ? `: ${e.message}` : ''}`; console.warn('voice-text error', lastError); }) as never),
       ];
       speech.start({
         lang: deps.lang ?? deviceLang(),
@@ -105,7 +109,7 @@ export function textRecorder(deps: { speech?: SpeechModule | null; encode?: Enco
       await Promise.race([endedP, new Promise<void>((r) => { timer = setTimeout(r, 5_000); })]);
       if (timer !== undefined) clearTimeout(timer);
       off();
-      if (!wav) throw new Error('The recording was not kept — try again.');
+      if (!wav) throw new Error(lastError ? `The phone's speech service stopped (${lastError}).` : 'The recording was not kept — try again.');
       const out = await encode(wav);
       return { uri: out.uri, bytes: out.bytes, durationMs: Math.min(stoppedAt - startedAt, VOICE_MAX_MS), text: transcript.text() };
     },

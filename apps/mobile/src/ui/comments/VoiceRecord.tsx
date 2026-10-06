@@ -132,10 +132,12 @@ export function VoiceComposer(props: {
       setTake(got);
       setText(got.text);
       setPhase('review');
-    } catch {
+    } catch (e) {
       await restore();
       setPhase('idle');
-      toast("That recording didn't work — try again.");
+      // iPhone walk 2026-10-06: say why, so a phone failure can be traced.
+      console.warn('voice comment failed', e);
+      toast(e instanceof Error && e.message ? e.message : "That recording didn't work — try again.");
       resumeEpisode();
     }
   };
