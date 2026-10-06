@@ -41,7 +41,8 @@ let switcherMissing = false;
 export function useEffectsBlocked(): boolean {
   const stores = useStores();
   const state = usePlayerState();
-  const url = state.kind === 'idle' ? undefined : stores.feeds.getEpisode(state.episodeId)?.enclosureUrl;
+  const episodeId = state.kind === 'idle' ? undefined : state.episodeId;
+  const url = episodeId === undefined ? undefined : stores.feeds.getEpisode(episodeId)?.enclosureUrl;
   return effectsBlocked(Platform.OS, url);
 }
 

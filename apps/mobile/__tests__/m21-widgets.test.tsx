@@ -245,8 +245,8 @@ describe('the Android handler', () => {
     const android = require('@/outside/android-widget') as typeof import('@/outside/android-widget');
     android.setWidgetSettings(settings);
     const drawn: unknown[] = [];
-    await widgetTaskHandler({ widgetInfo: info(WIDGET_NAMES.week), widgetAction: 'WIDGET_UPDATE', renderWidget: (w) => void drawn.push(w) } as never);
-    await widgetTaskHandler({ widgetInfo: info('Unknown'), widgetAction: 'WIDGET_UPDATE', renderWidget: (w) => void drawn.push(w) } as never);
+    await widgetTaskHandler({ widgetInfo: info(WIDGET_NAMES.week), widgetAction: 'WIDGET_UPDATE', renderWidget: (w: unknown) => void drawn.push(w) } as never);
+    await widgetTaskHandler({ widgetInfo: info('Unknown'), widgetAction: 'WIDGET_UPDATE', renderWidget: (w: unknown) => void drawn.push(w) } as never);
     expect(drawn).toHaveLength(1);
     android.setWidgetSettings(undefined);
   });
