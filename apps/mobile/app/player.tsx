@@ -69,6 +69,7 @@ import { Toggle } from '@/ui/kit/Toggle';
 import { ChapterList, CurrentChapter } from '@/ui/player/ChapterList';
 import { TranscriptPane } from '@/ui/player/TranscriptPane';
 import { useQuoteShare, useQuoteVideo } from '@/ui/player/QuoteShare';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 /**
  * iPhone walk 2026-10-06 (B1 failed): iOS will not open the share sheet over the open Playback sheet —
  * "Making the picture…" showed and nothing else. The sheet closes first; the share waits for it.
@@ -141,6 +142,7 @@ export default function PlayerScreen(): React.ReactElement {
   const [sharing, setSharing] = useState(false);
   // M20 US1: lines picked from the transcript, shared as the server's quote card.
   const shareQuote = useQuoteShare();
+  const insets = useSafeAreaInsets();
   const shareQuoteVideo = useQuoteVideo();
   // M12 FR-044: the queue opens as a sheet over the player (was a separate page).
   const [queueOpen, setQueueOpen] = useState(false);
@@ -391,8 +393,9 @@ export default function PlayerScreen(): React.ReactElement {
       </Box>
     </ScrollView>
 
-    {/* About · Playlist · Comments: the page's bottom bar, under a hairline. */}
-    <Box className="flex-row mx-screen-x border-t-hairline border-separator">
+    {/* About · Playlist · Comments: the page's bottom bar, under a hairline. Owner, 2026-10-06: the
+        wash reaches the bottom edge, so this page (alone) keeps the bar above the home indicator itself. */}
+    <Box className="flex-row mx-screen-x border-t-hairline border-separator" style={{ paddingBottom: insets.bottom }}>
       <Box className="flex-1 items-center">
         <BarButton label="About this episode" onPress={() => router.push({ pathname: '/episode/[id]', params: { id: state.episodeId } })}>
           <Icon name="information-circle-outline" size={22} color={c.text} />
