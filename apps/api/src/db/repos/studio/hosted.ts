@@ -20,29 +20,35 @@ export const DEFAULT_CEILING_BYTES = 900 * 1024 * 1024;
 export type HostedShow = {
   id: string; ownerId: string; feedUrl: string; title: string; description: string; author: string;
   language: string; category: string; explicit: boolean; coverUrl: string | null; createdAt: string; updatedAt: string;
+  /** M20 US6: the show's price level (1–5) for its paid episodes; null = sells nothing. */
+  priceTier: number | null;
 };
 export type HostedEpisode = {
   id: string; guid: string; episodeId: string; title: string; description: string; audioUrl: string;
   audioBytes: number; audioType: string; durationMs: number | null; publishedAt: string;
   /** M14 US4: a draft is not in the feed; a published episode with a future time is scheduled. */
   status: 'draft' | 'published'; coverUrl: string | null; scheduled: boolean;
+  /** M20 US6: sold with the show's price level; out of the public feed. `paidAllowed`: made after M20 (FR-024). */
+  paid: boolean; paidAllowed: boolean;
 };
 
-type ShowRow = { id: string; owner_id: string; feed_url: string; title: string; description: string; author: string; language: string; category: string; explicit: boolean; cover_url: string | null; created_at: Date | string; updated_at: Date | string };
-type EpRow = { id: string; guid: string; episode_id: string; title: string; description: string; audio_url: string; audio_bytes: string | number; audio_type: string; duration_ms: number | null; published_at: Date | string; status: 'draft' | 'published'; cover_url: string | null };
+type ShowRow = { id: string; owner_id: string; feed_url: string; title: string; description: string; author: string; language: string; category: string; explicit: boolean; cover_url: string | null; created_at: Date | string; updated_at: Date | string; price_tier: number | null };
+type EpRow = { id: string; guid: string; episode_id: string; title: string; description: string; audio_url: string; audio_bytes: string | number; audio_type: string; duration_ms: number | null; published_at: Date | string; status: 'draft' | 'published'; cover_url: string | null; paid: boolean; created_at: Date | string | null };
 
 const iso = (d: Date | string) => new Date(d).toISOString();
 const toShow = (r: ShowRow): HostedShow => ({
   id: r.id, ownerId: r.owner_id, feedUrl: r.feed_url, title: r.title, description: r.description, author: r.author,
   language: r.language, category: r.category, explicit: r.explicit, coverUrl: r.cover_url, createdAt: iso(r.created_at), updatedAt: iso(r.updated_at),
+  priceTier: r.price_tier === null ? null : Number(r.price_tier),
 });
 const toEp = (r: EpRow): HostedEpisode => ({
   id: r.id, guid: r.guid, episodeId: r.episode_id, title: r.title, description: r.description, audioUrl: r.audio_url,
   audioBytes: Number(r.audio_bytes), audioType: r.audio_type, durationMs: r.duration_ms, publishedAt: iso(r.published_at),
   status: r.status, coverUrl: r.cover_url, scheduled: r.status === 'published' && new Date(r.published_at).getTime() > Date.now(),
+  paid: r.paid === true, paidAllowed: r.created_at !== null,
 });
-const SHOW_COLS = 'id, owner_id, feed_url, title, description, author, language, category, explicit, cover_url, created_at, updated_at';
-const EP_COLS = 'id, guid, episode_id, title, description, audio_url, audio_bytes, audio_type, duration_ms, published_at, status, cover_url';
+const SHOW_COLS = 'id, owner_id, feed_url, title, description, author, language, category, explicit, cover_url, created_at, updated_at, price_tier';
+const EP_COLS = 'id, guid, episode_id, title, description, audio_url, audio_bytes, audio_type, duration_ms, published_at, status, cover_url, paid, created_at';
 
 export type ShowIn = { title: string; description?: string; author?: string; language?: string; category?: string; explicit?: boolean; coverUrl?: string | null };
 
@@ -104,8 +110,9 @@ export async function updateHostedShow(db: Db, id: string, s: Partial<ShowIn>): 
   return toShow(r!);
 }
 
-export async function listHostedEpisodes(db: Db, showId: string, opts: { liveOnly?: boolean } = {}): Promise<HostedEpisode[]> {
-  const live = opts.liveOnly ? "AND status = 'published' AND published_at <= now()" : '';
+export async function listHostedEpisodes(db: Db, showId: string, opts: { liveOnly?: boolean; freeOnly?: boolean; paidOnly?: boolean } = {}): Promise<HostedEpisode[]> {
+  // M20 US6: the public feed takes free episodes only; the paid list takes paid ones only.
+  const live = (opts.liveOnly ? "AND status = 'published' AND published_at <= now()" : '') + (opts.freeOnly ? ' AND NOT paid' : '') + (opts.paidOnly ? ' AND paid' : '');
   return (await db.query<EpRow>(`SELECT ${EP_COLS} FROM hosted_episodes WHERE show_id = $1 AND deleted_at IS NULL ${live} ORDER BY published_at DESC`, [showId])).map(toEp);
 }
 
@@ -119,7 +126,7 @@ export async function promoteDue(db: Db, show: HostedShow): Promise<void> {
     `INSERT INTO episodes (id, feed_url, guid, title, show_title, enclosure_url, image_url, duration_ms, published_at)
      SELECT he.episode_id, $2, he.guid, he.title, $3, he.audio_url, coalesce(he.cover_url, $4), he.duration_ms, he.published_at
        FROM hosted_episodes he
-      WHERE he.show_id = $1 AND he.deleted_at IS NULL AND he.status = 'published' AND he.published_at <= now()
+      WHERE he.show_id = $1 AND he.deleted_at IS NULL AND he.status = 'published' AND he.published_at <= now() AND NOT he.paid
      ON CONFLICT (id) DO NOTHING`,
     [show.id, show.feedUrl, show.title, show.coverUrl],
   );
@@ -201,4 +208,27 @@ ${show.coverUrl ? `    <itunes:image href="${x(show.coverUrl)}"/>\n    <image><u
   </channel>
 </rss>
 `;
+}
+
+/** M20 US6 (FR-024): the show's price level; only a Studio-created show can sell. null = sells nothing. */
+export async function setPriceTier(db: Db, showId: string, tier: number | null): Promise<void> {
+  await db.query('UPDATE hosted_shows SET price_tier = $2, updated_at = now() WHERE id = $1', [showId, tier]);
+}
+
+/**
+ * M20 US6 (FR-024, G-M20-6): mark an episode paid or free. Only an episode made after M20 can be
+ * paid (`created_at` set; the database refuses otherwise too), only when the show has a price, and
+ * only while it is a draft or scheduled — a live episode already has its row (and maybe comments)
+ * in the app's episode table, and its audio address is out. A paid episode never enters that table.
+ */
+export async function setEpisodePaid(db: Db, show: HostedShow, id: string, paid: boolean): Promise<HostedEpisode> {
+  const [cur] = await db.query<EpRow>(`SELECT ${EP_COLS} FROM hosted_episodes WHERE id = $1 AND show_id = $2 AND deleted_at IS NULL`, [id, show.id]);
+  if (!cur) throw new ApiError('not_found', 'No such episode.');
+  if (paid && cur.created_at === null) throw new ApiError('validation', 'Episodes that were free before paid episodes existed stay free.', { fields: ['paid'], reason: 'was_free' });
+  const live = cur.status === 'published' && new Date(cur.published_at).getTime() <= Date.now();
+  if (paid && !cur.paid && live) throw new ApiError('validation', 'A published episode stays free. Make an episode paid while it is a draft or scheduled.', { fields: ['paid'], reason: 'live' });
+  if (paid && show.priceTier === null) throw new ApiError('validation', 'Set the show\'s price first.', { fields: ['paid'], reason: 'no_price' });
+  const [r] = await db.query<EpRow>(`UPDATE hosted_episodes SET paid = $3 WHERE id = $1 AND show_id = $2 RETURNING ${EP_COLS}`, [id, show.id, paid]);
+  if (!paid) await promoteDue(db, show);
+  return toEp(r!);
 }

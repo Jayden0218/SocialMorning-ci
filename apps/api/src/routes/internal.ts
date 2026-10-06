@@ -11,6 +11,7 @@ import { sweepImages } from '../db/repos/account/feedback.ts';
 import { sweepExpired } from '../db/repos/social/voice-posts.ts';
 import { sweepRemovedVoice } from '../db/repos/social/voice-comments.ts';
 import { sweepRemovedImages } from '../db/repos/social/comment-images.ts';
+import { acknowledgeDue, applyVoided } from '../db/repos/account/purchases.ts';
 import { picksForDay } from '@socialmorning/social-core';
 
 /**
@@ -107,6 +108,20 @@ export function createInternalRoute(jobToken: string | undefined) {
           voiceDeleted += v.deleted;
           if (v.failed > 0) failed.push(`voice comments: ${v.failed} blob(s) not deleted, kept for the next cycle`);
         } catch (e) { failed.push(`voice comments: ${e instanceof Error ? e.message : String(e)}`); }
+        // M20 US6 (FR-020, FR-026): Google Play — retry acknowledgements every cycle; once a day read
+        // Google's refunds (30 days back, no Pub/Sub — research R6) and take back what they granted.
+        const play = c.get('play');
+        if (play.ready) {
+          try {
+            const a = await acknowledgeDue(db, play);
+            if (a.failed > 0) failed.push(`google acknowledge: ${a.failed} kept for the next cycle`);
+            const [last] = await db.query<{ fetched_at: Date | string }>("SELECT fetched_at FROM cache WHERE key = 'billing:voided'");
+            if (!last || Date.now() - new Date(last.fetched_at).getTime() > 23 * 3_600_000) {
+              const v = await applyVoided(db, await play.voided(Date.now() - 30 * 86_400_000));
+              await db.query("INSERT INTO cache (key, body, fetched_at) VALUES ('billing:voided', $1::text::jsonb, now()) ON CONFLICT (key) DO UPDATE SET body = EXCLUDED.body, fetched_at = now()", [JSON.stringify(v)]);
+            }
+          } catch (e) { failed.push(`google play: ${e instanceof Error ? e.message : String(e)}`); }
+        }
         // M20 US9 (FR-055, G-M20-8): a removed or deleted comment's image leaves the R2 store.
         try {
           const im = await sweepRemovedImages(db, c.get('images'));

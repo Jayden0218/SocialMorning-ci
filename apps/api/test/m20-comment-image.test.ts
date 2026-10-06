@@ -9,7 +9,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { freshDb, signUp } from './harness.ts';
-import { r2ImageStorage, sigV4, type ImageStorage } from '../src/storage/image-store.ts';
+import { imageStorageFromEnv, r2ImageStorage, sigV4, type ImageStorage } from '../src/storage/image-store.ts';
 
 const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 16, 0x4a, 0x46, 0x49, 0x46, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0xff, 0xd9]);
 
@@ -31,6 +31,12 @@ test('sigV4 matches AWS\'s own test vector (aws4_testsuite get-vanilla, as shipp
     accessKeyId: 'AKIDEXAMPLE', secretAccessKey: 'wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY',
   });
   assert.equal(auth, 'AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE/20150830/us-east-1/service/aws4_request, SignedHeaders=host;x-amz-date, Signature=5fa00fa31553b73ebf1942676e86291e8372ff2a2260956d9b8aae1d763fbf31');
+});
+
+test('the store from env: Blob when IMAGES_READ_WRITE_TOKEN is set (owner: "use vercel"), else R2, else off', () => {
+  assert.equal(imageStorageFromEnv({}).ready, false);
+  assert.equal(imageStorageFromEnv({ IMAGES_READ_WRITE_TOKEN: 'vercel_blob_rw_x' }).ready, true);
+  assert.equal(imageStorageFromEnv({ R2_ACCOUNT_ID: 'a', R2_ACCESS_KEY_ID: 'k', R2_SECRET_ACCESS_KEY: 's', R2_BUCKET: 'b', R2_PUBLIC_BASE: 'https://p.example' }).ready, true);
 });
 
 test('the R2 store: not ready without its env; a PUT goes to the bucket, signed for auto/s3; the public address comes back', async () => {

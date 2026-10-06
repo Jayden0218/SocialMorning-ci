@@ -37,6 +37,7 @@ here or a line does not match its file.
 | `push.ts` | Push routes: register or remove a device token and set alert preferences. |
 | `wallet.ts` | Read-only wallet routes: my purchases and the tips I gave. |
 | `m19.ts` | My notices from hosts, my monthly report, and the teen-mode passcode reset by email code. |
+| `purchases-google.ts` | Purchase route: the phone sends a Google Play purchase; the server checks it with Google, then grants it. |
 
 ### `routes/social/` — comments, reactions, clips, follows, profiles, voice posts, sharing
 
@@ -55,7 +56,7 @@ here or a line does not match its file.
 | `share.ts` | Share card routes: draw a PNG for sharing an episode moment, or lines from its transcript as a quote. |
 | `social.ts` | Episode social poll route: comments and heat curve in one cached answer. |
 | `voice.ts` | Voice post routes: upload a short recording, list, and delete posts. |
-| `comment-image.ts` | Comment image route: the author adds one picture to their comment, kept in the R2 image store. |
+| `comment-image.ts` | Comment image route: the author adds one picture to their comment, kept in the image store. |
 | `likes.ts` | Like routes: like an episode with a note, unlike, my timeline, one account's likes. |
 | `playlists.ts` | Playlist routes: my playlists, one playlist, its order, and an account's public ones. |
 | `voice-comments.ts` | Voice comment route: post a recording of up to 60 seconds as a comment at a moment. |
@@ -99,6 +100,7 @@ here or a line does not match its file.
 | `creator.ts` | Creator claim routes in the app: list, start and verify claims, see stats. |
 | `extras.ts` | App routes for creator features: show extras, poll votes, and share events. |
 | `feeds.ts` | Serves the public RSS feed of a show created in the Studio. |
+| `paid.ts` | Paid episode routes: a show's paid episodes, and a short-lived audio link for a listener who bought them. |
 
 ### `routes/studio/` — the Studio website's API, one file per page
 
@@ -158,6 +160,7 @@ here or a line does not match its file.
 | `listeners.ts` | Database queries to create and find listener accounts. |
 | `push.ts` | Sends new-episode push notifications through Expo, never twice to one device. |
 | `profile.ts` | My profile: name, bio, photo, optional age range and gender; the photo's storage limits. |
+| `purchases.ts` | Grants what a store purchase bought, once, and takes it back when the store reports a refund. |
 
 ### `db/repos/social/` — comments, clips, follows, profiles, activity
 
@@ -279,6 +282,13 @@ here or a line does not match its file.
 |---|---|
 | `rebuild.ts` | Rebuilds an episode's reaction heat curve, counting each listener once per segment. |
 
+### `billing/` — selling through the stores
+
+| File | What it does |
+|---|---|
+| `google-play.ts` | Talks to Google Play for purchases: checks a purchase, acknowledges it, and lists refunds. |
+| `products.ts` | The products SocialNet sells through the stores: PLUS, a paid show's price levels, and tips. |
+
 ### `share/` — share images
 
 | File | What it does |
@@ -292,7 +302,7 @@ here or a line does not match its file.
 |---|---|
 | `episodes-blob.ts` | Storage for created shows' audio and covers: upload tokens, check, delete. |
 | `voice-blob.ts` | Storage for voice post recordings in Vercel Blob. |
-| `image-store.ts` | Storage for comment images in a Cloudflare R2 bucket, signed by hand (AWS Signature Version 4). |
+| `image-store.ts` | Storage for comment images: the Vercel Blob store `socialmorning-images`, or later a Cloudflare R2 bucket. |
 
 ### `mail/` — sending email
 

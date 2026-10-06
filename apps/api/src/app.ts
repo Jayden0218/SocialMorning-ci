@@ -62,7 +62,10 @@ import { chat } from './routes/social/chat.ts';
 import { share } from './routes/social/share.ts';
 import { episodePages } from './pages/episode.ts';
 import { voiceBlobStorage, type VoiceStorage } from './storage/voice-blob.ts';
-import { r2ImageStorage, type ImageStorage } from './storage/image-store.ts';
+import { imageStorageFromEnv, type ImageStorage } from './storage/image-store.ts';
+import { googlePlay, type GooglePlay } from './billing/google-play.ts';
+import { purchasesGoogle } from './routes/account/purchases-google.ts';
+import { paid } from './routes/creators/paid.ts';
 import { commentImage, COMMENT_IMAGE_MAX_BYTES } from './routes/social/comment-image.ts';
 import { VOICE_MAX_BYTES } from './db/repos/social/voice-posts.ts';
 import { AVATAR_MAX_BYTES } from './db/repos/account/profile.ts';
@@ -98,10 +101,12 @@ export type AppDeps = {
   voiceStorage?: VoiceStorage;
   /** M19 US1: where profile photos go (tests pass a fake). */
   avatarStorage?: VoiceStorage;
-  /** M20 US9: where comment images go (default: R2 from env R2_*; unset → 503 storage_off). */
+  /** M20 US9: where comment images go (default: Blob `socialmorning-images` via IMAGES_READ_WRITE_TOKEN, else R2 env; unset → 503). */
   imageStorage?: ImageStorage;
-  /** M20 US9: the total the image store may hold (env IMAGE_CEILING_BYTES; default 5 GB, half of R2's free 10 GB). */
+  /** M20 US9: the total the image store may hold (env IMAGE_CEILING_BYTES; default 500 MB — half of Blob Hobby's 1 GB, shared). */
   imageCeilingBytes?: number;
+  /** M20 US6: Google Play (default: from env GOOGLE_PLAY_*; unset → purchases "not available yet"). */
+  play?: GooglePlay;
   /** M12 FR-034: the fetch the share card uses for artwork. Default: global fetch. */
   imageFetch?: typeof fetch;
 };
@@ -154,8 +159,9 @@ export function createApp(deps: AppDeps) {
   // M19 US1: photos go to the launch-image store (constitution v2.6.0), put by the server like voice posts.
   const avatarStorage = deps.avatarStorage ?? voiceBlobStorage(process.env['EPISODES_READ_WRITE_TOKEN']);
   const imageFetch = deps.imageFetch ?? fetch;
-  const imageStorage = deps.imageStorage ?? r2ImageStorage(process.env);
-  const imageCeilingBytes = deps.imageCeilingBytes ?? (Number(process.env['IMAGE_CEILING_BYTES']) || 5_000_000_000);
+  const imageStorage = deps.imageStorage ?? imageStorageFromEnv(process.env);
+  const play = deps.play ?? googlePlay(process.env);
+  const imageCeilingBytes = deps.imageCeilingBytes ?? (Number(process.env['IMAGE_CEILING_BYTES']) || 500_000_000);
   const publicBase = deps.publicBase ?? process.env['PUBLIC_API_URL'] ?? 'https://socialmorning-api.vercel.app';
 
   app.use('*', async (c, next) => {
@@ -172,6 +178,7 @@ export function createApp(deps: AppDeps) {
     c.set('avatars', avatarStorage);
     c.set('images', imageStorage);
     c.set('imageCeilingBytes', imageCeilingBytes);
+    c.set('play', play);
     c.set('imageFetch', imageFetch);
     await next();
   });
@@ -218,6 +225,8 @@ export function createApp(deps: AppDeps) {
   // M12 (specs/012-m12-the-finish/contracts/api.md)
   app.route('/v1/me/notify', notify);
   app.route('/v1/me', wallet);
+  app.route('/v1/me', purchasesGoogle);
+  app.route('/v1/hosted', paid);
   app.route('/v1/me', friends);
   app.route('/v1/picks', pastPicks);
   app.route('/v1/issues', issues);

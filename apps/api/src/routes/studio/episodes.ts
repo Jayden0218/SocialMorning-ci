@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { json } from '../../validate.ts';
 import { publish } from '../../db/repos/studio/announcements.ts';
 import { isAutoCover } from '@socialmorning/social-core';
-import { listHostedEpisodes, promoteDue, publishEpisode, removeEpisode, storedBytes, updateEpisode, updateHostedShow } from '../../db/repos/studio/hosted.ts';
+import { listHostedEpisodes, promoteDue, publishEpisode, removeEpisode, setEpisodePaid, setPriceTier, storedBytes, updateEpisode, updateHostedShow } from '../../db/repos/studio/hosted.ts';
 import { AUDIO_TYPES, IMAGE_TYPES, MAX_AUDIO_BYTES, MAX_IMAGE_BYTES } from '../../storage/episodes-blob.ts';
 import { randomUUID } from 'node:crypto';
 import type { Hono } from 'hono';
@@ -129,6 +129,24 @@ export function registerEpisodes(studio: Hono<StudioEnv>): void {
     const patch = { ...b } as Parameters<typeof updateEpisode>[3];
     if ('coverUrl' in b) patch.coverUrl = (await checkEpisodeCover(c.get('storage'), h.id, b.coverUrl)) ?? null;
     return c.json({ episode: await updateEpisode(c.get('db'), h, c.req.param('id'), patch) });
+  });
+
+  /** M20 US6 (FR-024): the show's price level for its paid episodes, 1–5, or null to sell nothing. Owner only. */
+  studio.put('/shows/:show/price', ownerOnly, json(z.object({ tier: z.number().int().min(1).max(5).nullable() }).strict()), async (c) => {
+    const h = await hostedOf(c.get('db'), c.get('show').feedUrl);
+    const { tier } = c.req.valid('json');
+    if (tier === null) {
+      const [paid] = await c.get('db').query('SELECT 1 FROM hosted_episodes WHERE show_id = $1 AND paid AND deleted_at IS NULL', [h.id]);
+      if (paid) throw new ApiError('validation', 'Make the paid episodes free first.', { fields: ['tier'], reason: 'has_paid' });
+    }
+    await setPriceTier(c.get('db'), h.id, tier);
+    return c.json({ tier });
+  });
+
+  /** M20 US6 (FR-024, G-M20-6): mark an episode paid or free (paid: new, not yet live, show priced). Owner only. */
+  studio.put('/shows/:show/hosted-episodes/:id/paid', ownerOnly, json(z.object({ paid: z.boolean() }).strict()), async (c) => {
+    const h = await hostedOf(c.get('db'), c.get('show').feedUrl);
+    return c.json({ episode: await setEpisodePaid(c.get('db'), h, c.req.param('id'), c.req.valid('json').paid) });
   });
 
   /** Unpublish and delete the audio (FR-007, guard G-D1). Comments on it stay, like any episode that leaves a feed. */

@@ -20,6 +20,6 @@ feeds.get('/:file', async (c) => {
   if (!show) return c.text('Not found', 404);
   await promoteDue(db, show);
   // Drafts and scheduled episodes stay out until their time (guard G-S1).
-  const body = feedXml(show, await listHostedEpisodes(db, show.id, { liveOnly: true }));
+  const body = feedXml(show, await listHostedEpisodes(db, show.id, { liveOnly: true, freeOnly: true }));
   return c.body(body, 200, { 'content-type': 'application/rss+xml; charset=utf-8', 'cache-control': 'public, max-age=60' });
 });

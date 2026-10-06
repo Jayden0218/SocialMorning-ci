@@ -10,6 +10,7 @@ import { deleteAccount } from '../../db/repos/account/delete-account.ts';
 import { checkCode, consumeCode } from '../../auth/codes.ts';
 import { removeAllFor } from '../../db/repos/social/voice-posts.ts';
 import { removeImagesFor } from '../../db/repos/social/comment-images.ts';
+import { hasPlus } from '../../db/repos/account/purchases.ts';
 import { AGE_RANGES, AVATAR_CEILING_BYTES, AVATAR_MAX_BYTES, GENDERS, avatarBytesOthers, currentAvatar, imageKind, myProfile, setAvatar, updateProfile } from '../../db/repos/account/profile.ts';
 
 export const me = new Hono<AuthEnv>();
@@ -18,7 +19,8 @@ me.get('/', requireAuth, async (c) => {
   const l = c.get('listener')!;
   // M4 (FR-013): the privacy switch travels with the account, so a second phone shows it right.
   // M19 US1: and the profile the listener edits — photo, bio, age range, gender, likes public.
-  return c.json({ listener: { ...publicListener(l), ...(await myProfile(c.get('db'), l.id)) } });
+  // M20 US6: PLUS (the badge and the app icons) — computed from entitlements, never stored.
+  return c.json({ listener: { ...publicListener(l), ...(await myProfile(c.get('db'), l.id)), plus: await hasPlus(c.get('db'), l.id) } });
 });
 
 /** M19 US1 (FR-001, FR-003): PATCH { displayName?, bio?, ageRange?, gender?, likesPublic? } — only what is sent changes. */

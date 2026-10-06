@@ -53,8 +53,10 @@ export type AuthEnv = { Variables: { db: Db; pepper: string; listener?: Listener
   voice: import('../storage/voice-blob.ts').VoiceStorage;
   /** M19 US1: profile photos — the launch-image store (constitution v2.6.0), same put/remove shape as voice. */
   avatars: import('../storage/voice-blob.ts').VoiceStorage;
-  /** M20 US9: comment images — the R2 bucket named at gate G1 (constitution v3.2.0); `ready` false until its env is set. */
+  /** M20 US9: comment images — Blob `socialmorning-images` (constitution v3.2.1); `ready` false until its token is set. */
   images: import('../storage/image-store.ts').ImageStorage; imageCeilingBytes: number;
+  /** M20 US6: Google Play (purchases); `ready` false until GOOGLE_PLAY_SA_JSON + GOOGLE_PLAY_PACKAGE are set. */
+  play: import('../billing/google-play.ts').GooglePlay;
   /** M12 FR-034: the fetch the share card uses for artwork (tests inject a fake). */
   imageFetch: typeof fetch } };
 

@@ -6,6 +6,7 @@ import { optionalAuth, requireAuth } from '../../auth/session.ts';
 import { json } from '../../validate.ts';
 import { ApiError } from '../../errors.ts';
 import { profile, setPrivateListening } from '../../db/repos/social/profiles.ts';
+import { hasPlus } from '../../db/repos/account/purchases.ts';
 
 /** Mounted at /v1/listeners — GET /:id (public; stats hidden when private, unless it is you). */
 export const profiles = new Hono<AuthEnv>();
@@ -13,7 +14,8 @@ export const profiles = new Hono<AuthEnv>();
 profiles.get('/:id', optionalAuth, async (c) => {
   const p = await profile(c.get('db'), c.req.param('id'), c.get('listener')?.id, new Date().toISOString().slice(0, 10));
   if (!p) throw new ApiError('not_found', 'No such listener.');
-  return c.json({ profile: p });
+  // M20 US6 (FR-022): the PLUS badge is public, like the name (owner Q3 = A).
+  return c.json({ profile: { ...p, plus: await hasPlus(c.get('db'), c.req.param('id')) } });
 });
 
 /** Mounted at /v1/me/privacy — PUT { privateListening }. */

@@ -6,7 +6,9 @@ export type ErrorCode = 'validation' | 'unauthenticated' | 'forbidden' | 'not_fo
   // M12 (specs/012-m12-the-finish/contracts/api.md)
   | 'own_comment' | 'storage_off' | 'too_large'
   // M15 — Admin (specs/015-m15-admin/contracts/admin-api.md)
-  | 'signed_out' | 'reauth' | 'not_admin' | 'changed' | 'storage_full';
+  | 'signed_out' | 'reauth' | 'not_admin' | 'changed' | 'storage_full'
+  // M20 (specs/021-m20-the-gaps/contracts/api.md): the store has not taken the payment; a paid episode not bought
+  | 'not_paid' | 'needs_purchase';
 
 const STATUS: Record<ErrorCode, number> = {
   validation: 422,
@@ -35,6 +37,8 @@ const STATUS: Record<ErrorCode, number> = {
   not_admin: 403,
   changed: 409,
   storage_full: 409,
+  not_paid: 402,
+  needs_purchase: 402,
 };
 
 export class ApiError extends Error {

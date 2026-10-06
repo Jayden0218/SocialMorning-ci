@@ -1,16 +1,20 @@
-// Storage for comment images in a Cloudflare R2 bucket, signed by hand (AWS Signature Version 4).
+// Storage for comment images: the Vercel Blob store `socialmorning-images`, or later a Cloudflare R2 bucket.
 /**
- * M20 US9 (spec FR-053–FR-055; research R8; constitution v3.2.0). Comment images live in the
- * Cloudflare R2 bucket the owner approved by name at gate G1 ("image replies follow yours",
- * 2026-10-06: `socialmorning-images`). R2 speaks the S3 API; a PUT or DELETE is signed with AWS
+ * M20 US9 (spec FR-053–FR-055; research R8; constitution v3.2.1). Owner, 2026-10-06: "use vercel" —
+ * comment images live in the Vercel Blob store `socialmorning-images` (store_uu7AfpsDPLcoLBQ5, sin1,
+ * public), token `IMAGES_READ_WRITE_TOKEN` (`blobImageStorage`). The R2 path below stays for the
+ * move the constitution names "before real listeners arrive"; it is used only if its env is set
+ * and the Blob token is not.
+ *
+ * R2 (first choice, then withdrawn the same day: R2 speaks the S3 API; a PUT or DELETE is signed with AWS
  * Signature Version 4 (region `auto`, service `s3`). No SDK: two requests do not need one, and
  * `sigV4` is checked against AWS's own published test vector (test/m20-comment-image.test.ts).
+ * Env: R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, R2_PUBLIC_BASE.)
  *
- * Env (Vercel, never the repo): R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET,
- * R2_PUBLIC_BASE (the bucket's public address, e.g. https://pub-….r2.dev). Any unset → `ready`
- * is false and the image route answers 503 `storage_off`.
+ * Neither set → `ready` is false and the image route answers 503 `storage_off`.
  */
 import { createHash, createHmac } from 'node:crypto';
+import { del, put } from '@vercel/blob';
 
 export interface ImageStorage {
   readonly ready: boolean;
@@ -88,4 +92,27 @@ export function r2ImageStorage(env: Record<string, string | undefined>, f: typeo
       if (!r.ok && r.status !== 404) throw new Error(`image store answered ${r.status}`);
     },
   };
+}
+
+/** The Vercel Blob store `socialmorning-images` (owner 2026-10-06, "use vercel"). */
+export function blobImageStorage(token: string | undefined): ImageStorage {
+  return {
+    ready: Boolean(token),
+    put: async (pathname, bytes, contentType) => {
+      if (!token) throw new Error('image store not connected');
+      // @vercel/blob 2.8.0 (read from its .d.ts): put(pathname, body, { access, token, contentType, addRandomSuffix }).
+      const r = await put(pathname, Buffer.from(bytes), { access: 'public', token, contentType, addRandomSuffix: false });
+      return { url: r.url, pathname: r.pathname };
+    },
+    // del(urlOrPathname) — a pathname is accepted (2.8.0 .d.ts).
+    remove: async (pathname) => {
+      if (!token) throw new Error('image store not connected');
+      await del(pathname, { token });
+    },
+  };
+}
+
+/** Blob when its token is set (the owner's choice); else R2 when its env is complete; else not ready. */
+export function imageStorageFromEnv(env: Record<string, string | undefined>): ImageStorage {
+  return env['IMAGES_READ_WRITE_TOKEN'] ? blobImageStorage(env['IMAGES_READ_WRITE_TOKEN']) : r2ImageStorage(env);
 }

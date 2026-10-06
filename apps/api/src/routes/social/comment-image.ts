@@ -1,4 +1,4 @@
-// Comment image route: the author adds one picture to their comment, kept in the R2 image store.
+// Comment image route: the author adds one picture to their comment, kept in the image store.
 /**
  * M20 US9 (spec FR-053–FR-055; contracts/api.md "Comment images"; constitution v3.2.0) —
  * POST /v1/comments/:id/image. The body is the raw JPEG (the phone shrinks it to ≤ 1600 px and
