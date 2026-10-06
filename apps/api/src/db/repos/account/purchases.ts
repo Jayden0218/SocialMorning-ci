@@ -28,7 +28,6 @@ export async function grantGoogle(db: Db, play: GooglePlay, p: GrantIn): Promise
   const [seen] = await db.query<{ id: string; listener_id: string; status: 'active' | 'expired' | 'refunded'; expires_at: Date | string | null }>(
     'SELECT id, listener_id, status, expires_at FROM purchases WHERE purchase_token = $1', [p.purchaseToken]);
   if (seen && seen.listener_id !== p.listenerId) throw new ApiError('conflict', 'This purchase belongs to another account.');
-  if (seen && kind !== 'plus') return { purchaseId: seen.id, kind, status: seen.status, expiresAt: seen.expires_at ? new Date(seen.expires_at).toISOString() : null, repeated: true };
 
   let expiresAt: string | null = null;
   let orderId: string | null = null;
@@ -60,13 +59,13 @@ export async function grantGoogle(db: Db, play: GooglePlay, p: GrantIn): Promise
   }
 
   const purchaseId = await db.transaction(async (tx) => {
-    let id = seen?.id;
+    let id: string | undefined;
     if (id) {
       await tx.query("UPDATE purchases SET status = 'active', expires_at = $2 WHERE id = $1", [id, expiresAt]);
     } else {
       const [row] = await tx.query<{ id: string }>(
         `INSERT INTO purchases (listener_id, store, product_id, store_txn_id, status, expires_at, purchase_token, ref)
-         VALUES ($1, 'google', $2, $3, 'active', $4, $5, $6) ON CONFLICT (purchase_token) DO NOTHING RETURNING id`,
+         VALUES ($1, 'google', $2, $3, 'active', $4, $5, $6) ON CONFLICT (purchase_token) DO UPDATE SET status = EXCLUDED.status RETURNING id`,
         [p.listenerId, p.productId, orderId ?? p.purchaseToken, expiresAt, p.purchaseToken, feedUrl]);
       if (!row) {
         // A second notice raced this one past the first look: it granted; grant nothing here.
