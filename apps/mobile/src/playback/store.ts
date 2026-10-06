@@ -11,7 +11,7 @@
 import { createContext, createElement, useContext, useSyncExternalStore, type ReactNode } from 'react';
 import { reconcileOffset } from './finished';
 import { reduce } from './reducer';
-import { armTimer, clampRate, nextPlayable, rateFor, remove as removeFromQueue, timerFired, timerRemainingMs, type SleepChoice, type SleepTimer } from '@socialmorning/player-core';
+import { armTimer, clampRate, fadeVolume, nativeLoop, nextPlayable, rateFor, remove as removeFromQueue, restoreTimer, setEndOfEpisode, SLEEP_OFF, timerFired, timerRemainingMs, type SleepChoice, type SleepTimer } from '@socialmorning/player-core';
 import {
   INITIAL_CONTEXT,
   INITIAL_STATE,
@@ -83,6 +83,8 @@ export type PlayerRuntime = {
   holdNextAdvance: (hold: boolean) => void;
   /** M2 (FR-015..017): set, change or cancel the sleep timer. */
   setSleepTimer: (choice: SleepChoice) => void;
+  /** M21 FR-002: the End-of-episode switch, independent of a minutes deadline. */
+  setSleepEndOfEpisode: (on: boolean) => void;
   sleepTimer: () => SleepTimer;
   sleepRemainingMs: () => number | undefined;
   /** M2 (FR-013): the rate in force, and the app-wide default. */
@@ -125,8 +127,10 @@ export function createPlayerRuntime(deps: PlayerDeps): PlayerRuntime {
   let resumeWatch: ReturnType<typeof setTimeout> | undefined;
   let retryTimer: ReturnType<typeof setTimeout> | undefined;
   let holdAdvance = false;
-  let sleep: SleepTimer = { kind: 'off' };
+  let sleep: SleepTimer = SLEEP_OFF;
   let sleepTimeout: ReturnType<typeof setTimeout> | undefined;
+  // M21 FR-005: the last volume the fade sent; undefined = full volume (nothing to undo).
+  let faded: number | undefined;
   // M4 clip mode: the range being played, and the loadId whose LOADED must seek to its start.
   let clip: { episodeId: string; startMs: Ms; endMs: Ms } | undefined;
   let clipSeekPending: { loadId: number; toMs: Ms } | undefined;
@@ -166,11 +170,49 @@ export function createPlayerRuntime(deps: PlayerDeps): PlayerRuntime {
     sleepTimeout = undefined;
     const remaining = timerRemainingMs(sleep, deps.now());
     if (remaining === undefined) return;
-    sleepTimeout = setTimeout(() => {
-      sleepTimeout = undefined;
-      sleep = { kind: 'off' };
-      dispatch({ type: 'PAUSE' });
-    }, remaining);
+    sleepTimeout = setTimeout(fireSleep, remaining);
+  }
+
+  const SLEEP_DEADLINE_KEY = 'sleep.deadline';
+  const SLEEP_EOE_KEY = 'sleep.endOfEpisode';
+  const SLEEP_MINUTES_KEY = 'sleep.minutes';
+
+  /** M21 FR-006: the timer outlives the app. Empty string = absent (the store has no delete). */
+  function saveSleep(): void {
+    deps.stores.settings.set(SLEEP_DEADLINE_KEY, sleep.deadline === undefined ? '' : String(sleep.deadline));
+    deps.stores.settings.set(SLEEP_EOE_KEY, sleep.endOfEpisode ? '1' : '');
+    deps.stores.settings.set(SLEEP_MINUTES_KEY, sleep.minutes === undefined ? '' : String(sleep.minutes));
+  }
+
+  /** M21 FR-005: put the volume back after a fade (guard G-M21-4). */
+  function resetVolume(): void {
+    if (faded === undefined) return;
+    faded = undefined;
+    void deps.adapter.execute({ kind: 'setVolume', v: 1 });
+  }
+
+  /** M21 FR-007 (G-M21-3): while End of episode is on, the native loop is off so the end arrives. */
+  function applyLoop(): void {
+    if (looping) void deps.adapter.execute({ kind: 'setLoop', on: nativeLoop(sleep, looping) });
+  }
+
+  /** Every change to the timer: hold the queue for End of episode, loop, timeout, save, redraw. */
+  function sleepChanged(): void {
+    holdAdvance = sleep.endOfEpisode;
+    applyLoop();
+    scheduleSleep();
+    saveSleep();
+    for (const listener of listeners) listener();
+  }
+
+  /** The deadline came: PAUSE where we are, then full volume for the next Play; both choices end. */
+  function fireSleep(): void {
+    clearTimeout(sleepTimeout);
+    sleepTimeout = undefined;
+    sleep = SLEEP_OFF;
+    dispatch({ type: 'PAUSE' });
+    resetVolume();
+    sleepChanged();
   }
 
   /**
@@ -181,7 +223,12 @@ export function createPlayerRuntime(deps: PlayerDeps): PlayerRuntime {
   function advanceQueue(): void {
     const adv = deps.advance;
     if (!adv) return;
-    if (holdAdvance) { holdAdvance = false; return; }
+    if (holdAdvance) {
+      holdAdvance = false;
+      // M21: End of episode did its job; a minutes deadline set beside it ends too (US1-5).
+      if (sleep.endOfEpisode) { sleep = SLEEP_OFF; sleepChanged(); }
+      return;
+    }
     const queue = deps.stores.queue.list();
     const { next, skipped } = nextPlayable(queue, deps.stores.downloads.list(), adv.online());
     for (const id of skipped) adv.onSkipped?.(id);
@@ -249,12 +296,19 @@ export function createPlayerRuntime(deps: PlayerDeps): PlayerRuntime {
     if (full.type === 'APP_FOREGROUND') scheduleSleep();
     // The lock-screen-proof path: the native player ticks even when JS timers do not.
     if (full.type === 'TICK' && timerFired(sleep, deps.now())) {
-      clearTimeout(sleepTimeout);
-      sleepTimeout = undefined;
-      sleep = { kind: 'off' };
-      dispatch({ type: 'PAUSE' });
+      fireSleep();
       return;
     }
+    // M21 FR-005 (G-M21-1): the last 10 s fade, on the same lock-screen-proof TICK; about 20 steps.
+    if (full.type === 'TICK') {
+      const v = fadeVolume(sleep, deps.now());
+      if (v !== undefined && (faded === undefined || Math.abs(v - faded) >= 0.02)) {
+        faded = v;
+        void deps.adapter.execute({ kind: 'setVolume', v });
+      }
+    }
+    // The listener's own Play / seek / skip / load during a fade gets full volume back.
+    if (full.type === 'PLAY' || full.type === 'SEEK' || full.type === 'SKIP' || full.type === 'LOAD') resetVolume();
     // M4 clip mode: the end is a TICK fact, like the sleep timer. Reaching it pauses once.
     if (full.type === 'TICK' && clip !== undefined) {
       if (!clipArmed && full.positionMs >= clip.startMs - 2_000 && full.positionMs < clip.endMs) clipArmed = true;
@@ -328,7 +382,7 @@ export function createPlayerRuntime(deps: PlayerDeps): PlayerRuntime {
     const rate = rateFor(episode.feedUrl ?? '', prefs, defaultRate());
     if (rate !== ctx.rate) dispatch({ type: 'SET_RATE', rate });
     // FR-016: "end of episode" is for the episode it was set on; a new load clears it.
-    if (sleep.kind === 'endOfEpisode') { sleep = { kind: 'off' }; holdAdvance = false; }
+    if (sleep.endOfEpisode) { sleep = setEndOfEpisode(sleep, false); holdAdvance = false; saveSleep(); }
     // M17: loading an episode whose row says finished plays it again; any other load ends a restart.
     restarted = deps.stores.positions.get(episode.id)?.finished === true ? episode.id : undefined;
     dispatch({
@@ -346,13 +400,17 @@ export function createPlayerRuntime(deps: PlayerDeps): PlayerRuntime {
   }
 
   function restore(lookup: (episodeId: string) => PlayableEpisode | undefined): void {
+    // M21 FR-006 (G-M21-2): read the saved timer first — the load below clears End of episode.
+    const settings = deps.stores.settings;
+    const savedDeadline = Number(settings.get(SLEEP_DEADLINE_KEY) || NaN);
+    const saved = { deadline: savedDeadline, minutes: Number(settings.get(SLEEP_MINUTES_KEY)), endOfEpisode: settings.get(SLEEP_EOE_KEY) === '1' };
     const session = deps.stores.session.get();
-    if (session?.episodeId === undefined) return;
-    const episode = lookup(session.episodeId);
-    if (episode === undefined) return;
+    const episode = session?.episodeId === undefined ? undefined : lookup(session.episodeId);
     // Always 'pause'. "Resumes at 14:32" means the position is restored and
     // continues on play, not that audio starts by itself (spec Assumptions).
-    load(episode, 'pause');
+    if (episode !== undefined) load(episode, 'pause');
+    sleep = restoreTimer(saved, deps.now());
+    sleepChanged();
   }
 
   const unsubscribe = deps.adapter.subscribe(dispatch);
@@ -380,7 +438,7 @@ export function createPlayerRuntime(deps: PlayerDeps): PlayerRuntime {
     holdNextAdvance: (hold) => { holdAdvance = hold; },
     setLoop: (on) => {
       looping = on;
-      void deps.adapter.execute({ kind: 'setLoop', on });
+      void deps.adapter.execute({ kind: 'setLoop', on: nativeLoop(sleep, on) });
       for (const listener of listeners) listener();
     },
     loop: () => looping,
@@ -391,10 +449,13 @@ export function createPlayerRuntime(deps: PlayerDeps): PlayerRuntime {
     setSkipSilence: (on) => { void deps.adapter.execute({ kind: 'setSkipSilence', on }); },
     setPauseOnPrompts: (on) => { void deps.adapter.execute({ kind: 'setPauseOnPrompts', on }); },
     setSleepTimer: (choice) => {
-      sleep = armTimer(choice, deps.now());
-      holdAdvance = sleep.kind === 'endOfEpisode';
-      scheduleSleep();
-      for (const listener of listeners) listener();
+      sleep = armTimer(choice, deps.now(), sleep);
+      resetVolume();
+      sleepChanged();
+    },
+    setSleepEndOfEpisode: (on) => {
+      sleep = setEndOfEpisode(sleep, on);
+      sleepChanged();
     },
     sleepTimer: () => sleep,
     sleepRemainingMs: () => timerRemainingMs(sleep, deps.now()),

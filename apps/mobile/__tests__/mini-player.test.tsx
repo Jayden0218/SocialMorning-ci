@@ -17,6 +17,8 @@ const mockPause = jest.fn();
 const mockPlay = jest.fn();
 let mockPlayerState: Record<string, unknown> = { kind: 'idle' };
 let mockFocused = true;
+let mockSleepLeft: number | undefined;
+let mockSleepEnd = false;
 
 jest.mock('expo-router', () => ({
   // `asChild` hands the press to the child; for rendering, the child IS the output.
@@ -25,7 +27,7 @@ jest.mock('expo-router', () => ({
   useIsFocused: () => mockFocused,
 }));
 jest.mock('@/playback/store', () => ({
-  usePlayer: () => ({ play: mockPlay, pause: mockPause }),
+  usePlayer: () => ({ play: mockPlay, pause: mockPause, sleepRemainingMs: () => mockSleepLeft, sleepTimer: () => ({ endOfEpisode: mockSleepEnd }) }),
   usePlayerState: () => mockPlayerState,
 }));
 jest.mock('@/ui/shell/providers', () => ({
@@ -164,4 +166,16 @@ it('G-B3: the bar above the tab bar draws only while the tabs are focused — ne
   mockFocused = true;
   act(() => { r = create(createElement(TabsMiniPlayer)); });
   expect(r.toJSON()).not.toBeNull();
+});
+
+it('M21 FR-004: while a sleep timer runs, the second line also shows its time left — or "at end"', () => {
+  mockPlayerState = { kind: 'playing', episodeId: 'e1', positionMs: 1_597_000, durationMs: 5_428_000 };
+  mockSleepLeft = 299_000;
+  const r = render(createElement(MiniPlayer, { pathname: '/episode/e1' }));
+  expect(JSON.stringify(r.toJSON())).toContain('sleep 4:59');
+  mockSleepLeft = undefined;
+  mockSleepEnd = true;
+  const end = render(createElement(MiniPlayer, { pathname: '/episode/e1' }));
+  expect(JSON.stringify(end.toJSON())).toContain('sleep at end');
+  mockSleepEnd = false;
 });

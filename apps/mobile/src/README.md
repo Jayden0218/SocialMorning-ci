@@ -305,7 +305,8 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `NextUp.tsx` | Loads the "Next up" episodes, each with a reason, for the episode page. |
 | `Rail.tsx` | Small marks on the seek bar where people left timed comments. |
 | `Scrubber.tsx` | The seek bar under the player; drag it to jump in the episode. |
-| `SleepTimerControl.tsx` | Sleep timer choices (5–60 min, end of episode), time left, Cancel. |
+| `SleepTimerControl.tsx` | Sleep timer choices (5–90 min), the End-of-episode switch, time left, Cancel. |
+| `MoonButton.tsx` | The player's moon button: opens the sleep timer and shows its time left. |
 | `SpeedControl.tsx` | Play speed: minus and plus buttons, quick choices, "only for this show", make it the default. |
 | `TranscriptPane.tsx` | Episode transcript; current line is marked; tap a line to jump; long-press to pick lines to share. |
 | `VideoStage.tsx` | Shows the video picture for video episodes; sound comes from the audio. |

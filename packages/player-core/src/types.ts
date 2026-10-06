@@ -7,8 +7,10 @@ export type DownloadView = { episodeId: string; state: DownloadState; bytesTotal
 export type DownloadCandidate = DownloadView & { requestedAt: number; allowMobile: boolean };
 export type NetworkKind = 'wifi' | 'cellular' | 'none';
 
-export type SleepTimer = { kind: 'off' } | { kind: 'minutes'; deadline: number } | { kind: 'endOfEpisode' };
-export type SleepChoice = 5 | 10 | 15 | 30 | 45 | 60 | 'endOfEpisode' | 'off';
+/** M21: a minutes deadline and the End-of-episode switch may both be armed; the first to fire wins. */
+export type SleepTimer = { deadline?: number; minutes?: SleepMinutes; endOfEpisode: boolean };
+export type SleepMinutes = 5 | 10 | 15 | 30 | 45 | 60 | 90;
+export type SleepChoice = SleepMinutes | 'endOfEpisode' | 'off';
 
 export type InboxInput = {
   episodes: readonly { id: string; feedUrl: string; publishedAt?: number }[];

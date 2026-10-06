@@ -97,6 +97,8 @@ export type Effect =
   | { kind: 'setSkipSilence'; on: boolean }
   /** M19 (2026-10-05): another app's short sound — true pauses, false lowers the volume (patched expo-audio). */
   | { kind: 'setPauseOnPrompts'; on: boolean }
+  /** M21 FR-005: the sleep fade — `player.volume` (0–1). 1 puts it back after the pause. */
+  | { kind: 'setVolume'; v: number }
   | { kind: 'setLockScreen'; meta: LockScreenMeta }
   | { kind: 'clearLockScreen' }
   | {

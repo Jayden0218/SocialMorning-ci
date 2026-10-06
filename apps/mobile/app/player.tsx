@@ -65,6 +65,7 @@ import { Eyebrow } from '@/ui/kit/Eyebrow';
 import { HeatCurve } from '@/ui/player/HeatCurve';
 import { SpeedControl } from '@/ui/player/SpeedControl';
 import { SleepTimerControl } from '@/ui/player/SleepTimerControl';
+import { MoonButton } from '@/ui/player/MoonButton';
 import { Toggle } from '@/ui/kit/Toggle';
 import { ChapterList, CurrentChapter } from '@/ui/player/ChapterList';
 import { TranscriptPane } from '@/ui/player/TranscriptPane';
@@ -410,6 +411,8 @@ export default function PlayerScreen(): React.ReactElement {
         <Icon name="chatbox-ellipses-outline" size={22} color={c.text} />
         <Text className={BAR_LABEL}>Comments {commentCount}</Text>
       </Pressable>
+      {/* M21 US1 (FR-001): the sleep timer, one tap away, with its countdown. */}
+      <MoonButton className={BAR_ITEM} labelClassName={BAR_LABEL} colour={c.text} activeColour={c.accent} />
     </Box>
     </SafeAreaView>
 

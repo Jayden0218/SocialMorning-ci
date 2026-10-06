@@ -51,10 +51,10 @@ it('a 5-minute timer pauses at its deadline, keeps the position, and Play afterw
   tick(1);
   expect(kinds()).toContain('pause');
   expect(runtime.getState()).toMatchObject({ kind: 'paused', positionMs: 100_000 });
-  expect(runtime.sleepTimer()).toEqual({ kind: 'off' });
+  expect(runtime.sleepTimer()).toEqual({ endOfEpisode: false });
   runtime.play();
   expect(runtime.getState().kind).toBe('playing');
-  expect(runtime.sleepTimer()).toEqual({ kind: 'off' });
+  expect(runtime.sleepTimer()).toEqual({ endOfEpisode: false });
 });
 
 it('FR-017: a call during the timer neither fires nor resets it; changing it replaces it; cancelling clears it', () => {
@@ -83,7 +83,7 @@ it('FR-016: "end of episode" stops at the end, the queue is untouched, and a new
   expect(runtime.getState().kind).toBe('ended');
   expect(stores.queue.list()).toEqual(['b']);
   start('c');
-  expect(runtime.sleepTimer()).toEqual({ kind: 'off' });
+  expect(runtime.sleepTimer()).toEqual({ endOfEpisode: false });
   fake.push({ type: 'ENDED' });
   expect(stores.queue.list()).toEqual([]);
 });
@@ -123,7 +123,7 @@ it('D3 regression: with JS timers dead (locked screen), the next TICK past the d
   fake.push({ type: 'TICK', positionMs: 300_500, durationMs: 3_600_000 });
   expect(fake.executed.map((e) => e.kind)).toContain('pause');
   expect(runtime.getState()).toMatchObject({ kind: 'paused', positionMs: 299_000 });
-  expect(runtime.sleepTimer()).toEqual({ kind: 'off' });
+  expect(runtime.sleepTimer()).toEqual({ endOfEpisode: false });
 });
 
 // FR-013 (quickstart's speed-memory test)

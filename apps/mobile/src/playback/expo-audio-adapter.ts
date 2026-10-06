@@ -194,6 +194,10 @@ export function createExpoAudioAdapter(
         pauseOnPrompts = effect.on;
         await setPlayerMode();
         return;
+      case 'setVolume':
+        // M21 (research R5): AVPlayer.volume on iOS, Playable.setVolume on Android; both 0–1.
+        player.volume = effect.v;
+        return;
       case 'setLockScreen': {
         // On Android this is what keeps background playback alive past about
         // three minutes; the now-playing metadata is the side effect, not the

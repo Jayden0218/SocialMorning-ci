@@ -107,6 +107,9 @@ export function MiniPlayer(props: { pathname?: string; context?: 'root' | 'tabs'
   const positionMs = 'positionMs' in state && typeof state.positionMs === 'number' ? state.positionMs : 0;
   const durationMs = ('durationMs' in state ? state.durationMs : undefined) ?? episode?.durationMs;
   const progress = durationMs ? positionMs / durationMs : 0;
+  // M21 FR-004: the sleep timer's time left, beside the position (redrawn with every tick).
+  const sleepLeft = player.sleepRemainingMs();
+  const sleepNote = sleepLeft !== undefined ? ` · sleep ${mmss(sleepLeft)}` : player.sleepTimer().endOfEpisode ? ' · sleep at end' : '';
 
   return (
     <Box className={`${BAR} ${props.className ?? ''}`} style={BAR_HEIGHT}>
@@ -122,7 +125,7 @@ export function MiniPlayer(props: { pathname?: string; context?: 'root' | 'tabs'
               {episode?.title ?? 'Now playing'}
             </Text>
             <Text className="text-xs text-muted" numberOfLines={1}>
-              {durationMs ? `${mmss(positionMs)}/${mmss(durationMs)}` : (show?.title ?? mmss(positionMs))}
+              {durationMs ? `${mmss(positionMs)}/${mmss(durationMs)}` : (show?.title ?? mmss(positionMs))}{sleepNote}
             </Text>
           </Box>
         </Pressable>

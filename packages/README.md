@@ -32,7 +32,7 @@ Every code file, one plain line each. Each file also starts with the same senten
 | `index.ts` | Entry point exporting the player rules: queue, speed, timer, downloads, inbox. |
 | `queue.ts` | Play queue rules: add, move, remove, the 300 limit, and what plays next. |
 | `speed.ts` | Keeps playback speed between 0.5 and 3.0 and picks each show's speed. |
-| `timer.ts` | Sleep timer rules: set it, time left, when it fires, end of episode. |
+| `timer.ts` | Sleep timer rules: set it, time left, when it fires, the fade, end of episode, restart. |
 | `transcript.ts` | Reads transcripts in SRT, VTT, JSON or text and finds the current line. |
 | `types.ts` | Data shapes for the queue, downloads, sleep timer, inbox and chapters. |
 

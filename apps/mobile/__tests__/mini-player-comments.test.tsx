@@ -14,7 +14,7 @@ jest.mock('expo-router', () => ({
   useIsFocused: () => true,
 }));
 jest.mock('@/playback/store', () => ({
-  usePlayer: () => ({ play: jest.fn(), pause: jest.fn() }),
+  usePlayer: () => ({ play: jest.fn(), pause: jest.fn(), sleepRemainingMs: () => undefined, sleepTimer: () => ({ endOfEpisode: false }) }),
   usePlayerState: () => ({ kind: 'playing', episodeId: 'e1', positionMs: 0 }),
 }));
 jest.mock('@/ui/shell/providers', () => ({
