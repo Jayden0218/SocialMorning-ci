@@ -26,18 +26,24 @@ export function fnv1a64(input: string): string {
     // UTF-16 code units, folded a byte at a time so that a character outside
     // Latin-1 changes the digest rather than being truncated into a clash.
     const code = input.charCodeAt(i);
+    // M23 US5: the 64-bit multiply (explained below) is written out in place.
+    // A helper returning a [hi, lo] pair allocated two arrays per character,
+    // and every episode id on the phone paid for it. Same arithmetic, same digest.
     lo = (lo ^ (code & 0xff)) >>> 0;
-    [hi, lo] = multiply(hi, lo);
-    const high = (code >>> 8) & 0xff;
-    lo = (lo ^ high) >>> 0;
-    [hi, lo] = multiply(hi, lo);
+    let p = lo * PRIME_LO;
+    hi = (hi * PRIME_LO + lo * PRIME_HI + Math.floor(p / 0x1_0000_0000)) >>> 0;
+    lo = p >>> 0;
+    lo = (lo ^ ((code >>> 8) & 0xff)) >>> 0;
+    p = lo * PRIME_LO;
+    hi = (hi * PRIME_LO + lo * PRIME_HI + Math.floor(p / 0x1_0000_0000)) >>> 0;
+    lo = p >>> 0;
   }
 
   return hex(hi) + hex(lo);
 }
 
-/**
- * (hi:lo) * (PRIME_HI:PRIME_LO) mod 2^64.
+/*
+ * The multiply inside the loop: (hi:lo) * (PRIME_HI:PRIME_LO) mod 2^64.
  *
  * Since PRIME_HI*2^32 * hi*2^32 overflows past 2^64 and vanishes, the whole
  * product is `2^32 * (hi*PRIME_LO + lo*PRIME_HI + carry) + (lo*PRIME_LO mod 2^32)`.
@@ -45,13 +51,8 @@ export function fnv1a64(input: string): string {
  * double — which is the part a hand-rolled version gets wrong. An earlier
  * 16-bit-lane attempt in this file mismatched a BigInt reference on the very
  * first sample; `__tests__/hash-reference.test.ts` is what caught it and is
- * why it stays in the suite.
+ * why it stays in the suite. (`carry` is `Math.floor(p / 2^32)` in the loop.)
  */
-function multiply(hi: number, lo: number): [number, number] {
-  const loProduct = lo * PRIME_LO;
-  const carry = Math.floor(loProduct / 0x1_0000_0000);
-  return [(hi * PRIME_LO + lo * PRIME_HI + carry) >>> 0, loProduct >>> 0];
-}
 
 const hex = (n: number): string => (n >>> 0).toString(16).padStart(8, '0');
 

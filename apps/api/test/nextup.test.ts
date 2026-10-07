@@ -2,18 +2,23 @@
 /** quickstart A8: 3–8 items with reasons; the current and the viewer's finished episodes absent; no display names. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { PGlite } from '@electric-sql/pglite';
+import { citext } from '@electric-sql/pglite/contrib/citext';
 import { fnv1a64 } from '@socialmorning/social-core';
+import { migrate, type MigrationRunner } from '../src/db/migrate.ts';
 import { fromPglite } from '../src/db/db.ts';
 import { createApp } from '../src/app.ts';
 import { fakeApple, fakeFeedFetch, FIXTURE_FEED } from './fake-apple.ts';
-import { migratedPg, TEST_PEPPER, signUp, type TestDb } from './harness.ts';
+import { TEST_PEPPER, signUp, type TestDb } from './harness.ts';
 
 const FX = 'https://feeds.example.com/fx.xml';
 const E = (guid: string) => fnv1a64(`${FX}\u0001${guid}`);
 type Item = { episode: { id: string; title: string }; reason: string; label: string };
 
 async function build() {
-  const { pg, runner } = await migratedPg();
+  const pg = new PGlite({ extensions: { citext } });
+  const runner: MigrationRunner = { exec: (s) => pg.exec(s), query: async <T,>(s: string, p?: unknown[]) => (await pg.query<T>(s, p)).rows };
+  await migrate(runner);
   const apple = fakeApple();
   const catalogFetch = (async (input: string | URL | Request, init?: RequestInit) => {
     const url = String(input);

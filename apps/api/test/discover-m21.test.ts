@@ -12,11 +12,14 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { PGlite } from '@electric-sql/pglite';
+import { citext } from '@electric-sql/pglite/contrib/citext';
+import { migrate, type MigrationRunner } from '../src/db/migrate.ts';
 import { fromPglite } from '../src/db/db.ts';
 import { createApp } from '../src/app.ts';
 import { likedByFollowed } from '../src/db/repos/discover/explore.ts';
 import { CASEY, fakeApple } from './fake-apple.ts';
-import { migratedPg, freshDb, signUp, TEST_PEPPER, type TestDb } from './harness.ts';
+import { freshDb, signUp, TEST_PEPPER, type TestDb } from './harness.ts';
 
 type Ep = { id: string; feedUrl: string; title: string };
 const feed = (n: number) => `https://f.example/${n}.xml`;
@@ -180,7 +183,9 @@ test('faces on picks: at most 3 people I follow who liked it — never private l
 });
 
 test('search since=30d|180d keeps only episodes published in that time; rows carry counts; a bad value is 422', async () => {
-  const { pg } = await migratedPg();
+  const pg = new PGlite({ extensions: { citext } });
+  const runner: MigrationRunner = { exec: (s) => pg.exec(s), query: async <T,>(s: string, p?: unknown[]) => (await pg.query<T>(s, p)).rows };
+  await migrate(runner);
   const apple = fakeApple();
   const daysAgo = (d: number) => new Date(Date.now() - d * 86_400_000).toISOString();
   const episodes = [

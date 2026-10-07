@@ -54,14 +54,9 @@ import { QueueButtons } from '@/ui/queue/QueueButtons';
 import { isSwipeUp, startsSwipeUp } from '@/ui/queue/QueueSheetHost';
 import { CLOSE_SLACK, dragHeight, settle } from '@/ui/kit/Sheet';
 
-// M23 T053: the sheet's open spring kept firing after the file ended ("accessed the Jest
-// environment after it has been torn down", 9 times a run). Timers are fake, and after each
-// test every renderer is unmounted and the leftover animation frames are drained here.
-const rendered: ReactTestRenderer[] = [];
 const render = (el: React.ReactElement): ReactTestRenderer => {
   let r!: ReactTestRenderer;
   act(() => { r = create(el); });
-  rendered.push(r);
   return r;
 };
 const press = (r: ReactTestRenderer, label: string) => {
@@ -72,17 +67,7 @@ const press = (r: ReactTestRenderer, label: string) => {
 const labels = (r: ReactTestRenderer): string[] =>
   r.root.findAll((x) => typeof x.type === 'string' && typeof x.props['accessibilityLabel'] === 'string').map((x) => x.props['accessibilityLabel'] as string);
 
-afterEach(() => {
-  for (const r of rendered.splice(0)) act(() => { r.unmount(); });
-  act(() => {
-    for (let i = 0; i < 100 && jest.getTimerCount() > 0; i++) jest.runOnlyPendingTimers();
-  });
-  jest.clearAllTimers();
-  jest.useRealTimers();
-});
-
 beforeEach(() => {
-  jest.useFakeTimers();
   mockQueue = ['e1', 'e2', 'e3', 'e4', 'e5'];
   mockAsked = undefined;
   mockLoad.mockClear(); mockPush.mockClear(); mockToast.mockClear(); mockQueueEpisode.mockClear();

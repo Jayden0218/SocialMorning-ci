@@ -193,13 +193,66 @@ describe('refreshShow', () => {
     expect(cache.getShow('https://cdn.mirror.example/feed.xml')).toBeUndefined();
   });
 
+  // M23: fetch gets the deadline's own signal, which the caller's signal still aborts.
   it('passes an abort signal through', async () => {
     const cache = createMemoryFeedCache(hash);
-    const fetchMock = jest
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValue(response(200, feedXml('A Show', TWO_ITEMS)));
     const controller = new AbortController();
+    let sentAbortedAfterCallerAbort: boolean | undefined;
+    jest.spyOn(globalThis, 'fetch').mockImplementation(async (_url, init) => {
+      controller.abort();
+      sentAbortedAfterCallerAbort = init?.signal?.aborted;
+      return response(200, feedXml('A Show', TWO_ITEMS));
+    });
     await refreshShow(FEED, cache, 1_000, controller.signal);
-    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ signal: controller.signal });
+    expect(sentAbortedAfterCallerAbort).toBe(true);
+  });
+
+  // M23 US5 (spec scenario 1): a feed that never answers is given up after 8 s, keeping the cache.
+  it('gives up after 8 seconds and serves the cache', async () => {
+    jest.useFakeTimers();
+    try {
+      const cache = createMemoryFeedCache(hash);
+      jest.spyOn(globalThis, 'fetch')
+        .mockResolvedValueOnce(response(200, feedXml('A Show', TWO_ITEMS)))
+        .mockImplementationOnce(() => new Promise<Response>(() => undefined));
+      await refreshShow(FEED, cache, 1_000);
+      const pending = refreshShow(FEED, cache, 2_000);
+      await jest.advanceTimersByTimeAsync(7_999);
+      let settled = false;
+      void pending.then(() => { settled = true; });
+      await Promise.resolve();
+      expect(settled).toBe(false);
+      await jest.advanceTimersByTimeAsync(1);
+      const result = await pending;
+      expect(result.stale).toBe(true);
+      expect(result.show.title).toBe('A Show');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  // M23 US5 (spec scenario 2): over 5 MB is refused on the phone too.
+  it('refuses a feed over 5 MB, by its header or by its size', async () => {
+    const cache = createMemoryFeedCache(hash);
+    jest.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(response(200, feedXml('A Show', TWO_ITEMS), { 'content-length': String(6 * 1024 * 1024) }))
+      .mockResolvedValueOnce(response(200, feedXml('A Show', TWO_ITEMS) + ' '.repeat(5 * 1024 * 1024)));
+    await expect(refreshShow(FEED, cache, 1_000)).rejects.toBeInstanceOf(FeedError);
+    await expect(refreshShow(FEED, cache, 1_000)).rejects.toBeInstanceOf(FeedError);
+    expect(cache.getShow(FEED)).toBeUndefined();
+  });
+
+  // M23 US5 (spec scenario 3): bytes are decoded in the feed's charset. Latin-1 is decoded by
+  // hand when the runtime's TextDecoder is UTF-8 only (Expo native), so this holds on a phone.
+  it('reads a Latin-1 feed from its bytes', async () => {
+    const cache = createMemoryFeedCache(hash);
+    const xml = feedXml('Café', TWO_ITEMS).replace('<?xml version="1.0"?>', '<?xml version="1.0" encoding="ISO-8859-1"?>');
+    const bytes = Uint8Array.from(xml, (ch) => ch.charCodeAt(0));
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ...response(200, ''),
+      arrayBuffer: async () => bytes.buffer,
+    } as unknown as Response);
+    const result = await refreshShow(FEED, cache, 1_000);
+    expect(result.show.title).toBe('Café');
   });
 });
