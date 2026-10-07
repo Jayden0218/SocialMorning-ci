@@ -130,6 +130,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `expo.ts` | Connects to the phone's notification system, safely if it is missing. |
 | `permission.ts` | Asks once for permission to send notifications. |
 | `push-token.ts` | Registers this phone's push address at sign-in, removes it at sign-out. |
+| `route.ts` | Where a tapped notification goes: its in-app path, or (older pushes) its episode. |
 
 ### `outside/` — Showing the app outside itself: widgets, lock screen, and Android Auto.
 

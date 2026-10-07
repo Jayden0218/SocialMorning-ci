@@ -51,6 +51,7 @@ Every code file, one plain line each. Each file also starts with the same senten
 | `index.ts` | Entry point exporting the shared rules the phone and server both use. |
 | `intervals.ts` | Turns player ticks into listened time ranges and measures total time without double counting. |
 | `lockout.ts` | After repeated wrong passwords, locks sign-in for a growing time, at most 15 minutes. |
+| `push-rules.ts` | Whether a reply, like, follow or status notice also becomes a phone push. |
 | `media.ts` | Decides if an episode is audio or video from its declared type or extension. |
 | `merge.ts` | The one rule for choosing a listening position when two devices disagree. |
 | `moderation.ts` | Report queue rules: group reports by item, allowed actions, and closing. |

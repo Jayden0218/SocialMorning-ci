@@ -1,3 +1,4 @@
+// Whether a reply, like, follow or status notice also becomes a phone push.
 /**
  * M22 US1/US3 (specs/023 research R2): whether a notice also becomes a phone push.
  * Pure: the server gathers the facts, this decides. Guards G-M22-1 (never from a blocked or

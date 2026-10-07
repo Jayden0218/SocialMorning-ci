@@ -195,12 +195,12 @@ describe.each(stores)('%s store: stars', (_name, make) => {
   });
 });
 
-it('a v6 database upgrades to v7 with its stars intact', () => {
+it('a v6 database upgrades to the latest with its stars intact', () => {
   const { MIGRATIONS } = require('@/storage/schema');
   const db = new DatabaseSync(':memory:');
   for (const m of MIGRATIONS.slice(0, 6)) db.exec(m);
   db.exec('PRAGMA user_version = 6');
   db.exec(`INSERT INTO subscriptions (feed_url, subscribed_at, starred) VALUES ('${F1}', 1000, 1)`);
-  expect(migrateSchema(wrap(db))).toBe(7);
+  expect(migrateSchema(wrap(db))).toBe(SCHEMA_VERSION); // 7 at M12, 8 since M22 (queue backups)
   expect(db.prepare('SELECT starred, starred_at FROM subscriptions').get()).toEqual({ starred: 1, starred_at: null });
 });
