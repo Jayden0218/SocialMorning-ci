@@ -45,8 +45,12 @@ export function isSwipeUp(dx: number, dy: number): boolean {
  */
 export function useSwipeUpToOpen(): GestureResponderHandlers {
   const { open } = useQueueSheet();
+  // M21 (iPhone walk 2026-10-07): asked in the CAPTURE phase too — in the bubbling phase a
+  // button already held the touch and the swipe never reached this view. A tap still never moves.
   return useMemo(() => PanResponder.create({
+    onMoveShouldSetPanResponderCapture: (_e, g) => isSwipeUp(g.dx, g.dy),
     onMoveShouldSetPanResponder: (_e, g) => isSwipeUp(g.dx, g.dy),
+    onPanResponderTerminationRequest: () => false,
     onPanResponderGrant: () => open(),
   }).panHandlers, [open]);
 }

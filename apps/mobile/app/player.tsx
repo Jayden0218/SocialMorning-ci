@@ -67,6 +67,7 @@ import { usePoll } from '@/social/usePoll';
 import type { ComposerState } from '@/social/composer';
 import { ComposerSheet } from '@/ui/comments/Composer';
 import { ShareChooser } from '@/ui/clips/ShareChooser';
+import { useSwipeDownToClose } from '@/ui/player/swipe-close';
 import { useQueueSheet, useSwipeUpToOpen } from '@/ui/queue/QueueSheetHost';
 import { liveLabel, useListeningNow } from '@/social/live';
 import { MomentSheet } from '@/ui/comments/MomentSheet';
@@ -175,6 +176,7 @@ export default function PlayerScreen(): React.ReactElement {
   const swipeUp = useSwipeUpToOpen();
   const screen = useWindowDimensions();
   const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
+  const swipeDown = useSwipeDownToClose(close);
 
   if (state.kind === 'idle') {
     return (
@@ -260,6 +262,8 @@ export default function PlayerScreen(): React.ReactElement {
       </>
     )}
     <SafeAreaView className="flex-1">
+    {/* M21: a drag down on the top area closes the player (src/ui/player/swipe-close.ts). */}
+    <Box {...swipeDown}>
     <TopBar
       back="down"
       onBack={close}
@@ -291,8 +295,9 @@ export default function PlayerScreen(): React.ReactElement {
         <Icon name="share-outline" size={24} color={c.text} />
       </BarButton>
     </TopBar>
+    </Box>
     {/* M17: the page reads top-down (hero, quote, card, controls); it scrolls only when a large font needs it. */}
-    <ScrollView className="flex-1" contentContainerClassName="flex-grow px-screen-x pt-2 pb-section gap-section">
+    <ScrollView className="flex-1" alwaysBounceVertical={false} contentContainerClassName="flex-grow px-screen-x pt-2 pb-section gap-section">
       {/* The hero: artwork on the left; eyebrow, serif title, show and Subscribe on the right. */}
       <Box className="flex-row items-end gap-section">
         {/* M10b US5: a video episode shows its picture (muted, following the sound). */}

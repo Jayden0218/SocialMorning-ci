@@ -326,6 +326,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `Scrubber.tsx` | The seek bar under the player; drag it to jump in the episode. |
 | `SettingsPanel.tsx` | The player's settings as a full-screen panel: loop, skip silence, speed, sleep, chapters and transcript. |
 | `SleepTimerControl.tsx` | Sleep timer choices (5–90 min), the End-of-episode switch, time left, Cancel. |
+| `swipe-close.ts` | The player's swipe down: a downward drag on its top area closes the player. |
 | `MoonButton.tsx` | The player's moon button: opens the sleep timer and shows its time left. |
 | `SpeedControl.tsx` | Play speed: a slider from 0.5× to 3.0×, minus and plus, quick choices, and a "This show only" switch. |
 | `TranscriptExtras.tsx` | The player's two transcript lines (now and next) with ⤢, and the sheet to report a wrong line. |
