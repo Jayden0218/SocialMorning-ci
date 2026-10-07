@@ -31,7 +31,6 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 | `play-latest.tsx` | `/play-latest` | Plays your next queued or newest episode and opens the player. |
 | `player.tsx` | `/player` | The full player: artwork, the heat curve as the seek bar, transcript lines, controls, and a settings panel. |
 | `queue.tsx` | `/queue` | Your queue: "Up next" card, then numbered episodes to reorder or remove. |
-| `redeem.tsx` | `/redeem` | Wallet › Redeem a code: type a code from SocialNet and get PLUS days or a paid series, free. |
 | `scan.tsx` | `/scan` | Camera window to scan a QR code; asks for camera permission first. |
 | `search.tsx` | `/search` | Search page for shows and episodes, opened from links or other screens. |
 | `stickers.tsx` | `/stickers` | Listening badges: earned ones with their date, the rest with progress; tap one for its card, Share, help and Decorate. |
@@ -181,7 +180,6 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 |---|---|---|
 | `settings/about.tsx` | `/settings/about` | About the app: version, service agreement, privacy policy, community rules. |
 | `settings/account-more.tsx` | `/settings/account-more` | Delete your account: email a code, enter it, confirm delete. |
-| `settings/account-email.tsx` | `/settings/account-email` | Account and security › Change email: a code goes to the new address; the right code switches the sign-in email. |
 | `settings/account.tsx` | `/settings/account` | Account and security: how you sign in, masked email, link to More. |
 | `settings/appearance.tsx` | `/settings/appearance` | Appearance: the accent colour, the Vibration switch, and the app icon. |
 | `settings/background.tsx` | `/settings/background` | Playback stops when the screen is off? (Android): steps and buttons that open the phone's battery settings. |
