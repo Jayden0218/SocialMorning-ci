@@ -10,7 +10,6 @@ import { colour, hit } from '@/design';
 import { BOTTOM_INSET, MINI_PLAYER_HEIGHT, Screen, TAB_BAR_HEIGHT } from '@/ui/kit/Screen';
 import { Artwork } from '@/ui/kit/Artwork';
 import { coverTone } from '@socialmorning/social-core';
-import { Row } from '@/ui/kit/Row';
 import { Button, ButtonText } from '@/ui/lib/button';
 import { Heading } from '@/ui/lib/heading';
 
@@ -20,7 +19,7 @@ const json = (r: ReactTestRenderer) => JSON.stringify(r.toJSON());
 
 it('Screen reserves room for the mini player AND the tab bar, so the last row is reachable', () => {
   expect(BOTTOM_INSET).toBe(MINI_PLAYER_HEIGHT + TAB_BAR_HEIGHT);
-  const r = render(createElement(Screen, {}, createElement(Row, { title: 'x' })));
+  const r = render(createElement(Screen, {}, createElement(Heading, null, 'x')));
   const root = r.root.findAll((n) => typeof n.type === 'string')[0]!;
   expect(Number(flat(root.props['style'])['paddingBottom'])).toBe(BOTTOM_INSET);
   expect(flat(root.props['style'])['backgroundColor']).toBe(colour.background);
@@ -43,22 +42,6 @@ it('G-AC5: a show with no artwork shows its 2-letter tile on the colour the serv
   const v = r.root.findAll((x) => typeof x.type === 'string')[0]!;
   expect(flat(v.props['style'])['backgroundColor']).toBe(coverTone('Late Walks').fill);
   expect(json(render(createElement(Artwork, { size: 96, name: '晚间漫谈' })))).toContain('"晚间"');
-});
-
-it('G5: Row has a name and a role, a title of at most 2 lines, no fixed height, and is ≥ 48 dp', () => {
-  const onPress = jest.fn();
-  const r = render(createElement(Row, { title: 'A title', line: 'A show · 34:17', onPress }));
-  const row = r.root.find((n) => n.props['accessibilityRole'] === 'button');
-  expect(row.props['accessibilityLabel']).toBe('A title, A show · 34:17');
-  const s = flat(row.props['style']);
-  expect(Number(s['minHeight'])).toBeGreaterThanOrEqual(hit.min);
-  expect(s['height']).toBeUndefined();
-  const title = r.root.findAll((n) => n.props['numberOfLines'] === 2);
-  expect(title.length).toBeGreaterThanOrEqual(1);
-  act(() => { row.props['onPress'](); });
-  expect(onPress).toHaveBeenCalled();
-  // A row with no onPress is not a focus stop pretending to be a button.
-  expect(render(createElement(Row, { title: 'x' })).root.findAll((n) => n.props['accessibilityRole'] === 'button')).toHaveLength(0);
 });
 
 // M9: the hand-built Button, Chip and Header were replaced by gluestack's Button and Heading

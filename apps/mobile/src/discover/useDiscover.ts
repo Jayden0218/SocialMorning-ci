@@ -3,6 +3,7 @@
  * The Discover data for a screen: last copy at once, a refresh on focus, `open(card)` through the resolver.
  * M10: `play(card)` resolves the same way and starts it — the round play button on every row.
  */
+import { reportError } from '@/telemetry/reportError';
 import { useCallback, useMemo, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 import { useSocial } from '@/social/context';
@@ -40,14 +41,14 @@ export function useDiscover() {
   const [settled, setSettled] = useState(() => view !== undefined);
   const refresh = useCallback(async () => {
     setRefreshing(true);
-    try { const v = await discover.refresh(); if (v) setView(v); } catch { /* the cached copy stands */ } finally { setRefreshing(false); setSettled(true); }
+    try { const v = await discover.refresh(); if (v) setView(v); } catch (e) { reportError('discover.refresh', e); /* the cached copy stands */ } finally { setRefreshing(false); setSettled(true); }
   }, [discover]);
   // M12 NEW-9 (found on the iPhone): every focus used to refresh through the pull spinner,
   // pushing the page down ~50 pt after each back-swipe. A focus now refreshes quietly, and
   // only when the copy is older than FOCUS_REFRESH_MS; pulling still shows the spinner.
   const quiet = useCallback(async () => {
     if (!dueForRefresh(view?.fetchedAt, Date.now())) return;
-    try { const v = await discover.refresh(); if (v) setView(v); } catch { /* the cached copy stands */ } finally { setSettled(true); }
+    try { const v = await discover.refresh(); if (v) setView(v); } catch (e) { reportError('discover.refresh', e); /* the cached copy stands */ } finally { setSettled(true); }
   }, [discover, view?.fetchedAt]);
   useFocusEffect(useCallback(() => { void quiet(); }, [quiet]));
   const { open, play, queue } = useCardActions();

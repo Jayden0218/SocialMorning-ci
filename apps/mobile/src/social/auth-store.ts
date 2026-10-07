@@ -4,6 +4,7 @@
  * listener row to SQLite's `auth` table; both are cleared together on sign-out.
  * Pure orchestration over injected pieces so the tests run without a device.
  */
+import { reportError } from '@/telemetry/reportError';
 import type { ApiClient, Listener } from './api';
 import type { AuthRow, Stores } from '@/storage/types';
 
@@ -40,7 +41,7 @@ export function createAuth(deps: AuthDeps): AuthApi {
   async function accept(r: { token: string; listener: Listener }): Promise<AuthRow> {
     await deps.token.set(r.token);
     deps.stores.auth.set({ listenerId: r.listener.id, displayName: r.listener.displayName, email: r.listener.email }, deps.now());
-    try { deps.onAccepted?.(r); } catch { /* M22: a side note must never undo a sign-in */ }
+    try { deps.onAccepted?.(r); } catch (e) { reportError('auth.onAccepted', e); /* M22: a side note must never undo a sign-in */ }
     await deps.onSignedIn?.(r.listener);
     return deps.stores.auth.get()!;
   }
@@ -56,7 +57,7 @@ export function createAuth(deps: AuthDeps): AuthApi {
     signIn: async (email, password) => accept(await deps.api.signIn(email, password)),
     async signOut() {
       // Tell the server first, but a dead network must not trap a listener in a session.
-      try { await deps.api.signOut(); } catch { /* best effort */ }
+      try { await deps.api.signOut(); } catch (e) { reportError('auth.signOut', e); /* best effort */ }
       await forget();
       // Drafts are the listener's; the social cache is the episode's and stays (T048).
       deps.stores.drafts.clearAll();

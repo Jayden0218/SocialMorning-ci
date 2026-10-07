@@ -12,7 +12,7 @@ import { SaveBar, useDirty } from '../shell/Unsaved';
 import { useLoad } from '../useLoad';
 import { light } from '../tokens';
 import { CATEGORIES, LANGUAGES } from '../categories';
-import { MAX_COVER_BYTES, mb, uploadFile } from '../upload';
+import { mb, uploadFile } from '../upload';
 import { Contacts } from './settings/Contacts';
 import { Hosts } from './settings/Hosts';
 
@@ -174,7 +174,7 @@ function Details({ show }: { show: Show }) {
   };
   /** The cover uploads at once (so the preview is real) and is saved with the rest by the save bar. */
   const cover = async (file: File) => {
-    if (!/^image\/(jpeg|png)$/.test(file.type) || file.size > MAX_COVER_BYTES) return setMsg({ ok: false, text: `Choose a JPEG or PNG under ${mb(MAX_COVER_BYTES)}.` });
+    if (!/^image\/(jpeg|png)$/.test(file.type) || file.size > 5 * 1024 * 1024) return setMsg({ ok: false, text: 'Choose a JPEG or PNG under 5 MB.' });
     setMsg(null); setPct(0);
     try { const url = await uploadFile(show.key, 'cover', file, setPct); setF({ ...v, coverUrl: url }); }
     catch (e) { setMsg({ ok: false, text: e instanceof HttpError ? e.message : 'The cover did not upload.' }); } finally { setPct(null); }
@@ -184,7 +184,7 @@ function Details({ show }: { show: Show }) {
       <section className="card">
         {msg ? <p className={msg.ok ? 'muted' : 'error'} role={msg.ok ? 'status' : 'alert'}>{msg.text}</p> : null}
         <div className="field">
-          <span style={{ fontWeight: 600, fontSize: 14 }}>Cover (square JPEG or PNG, up to {mb(MAX_COVER_BYTES)}; at least 1400 × 1400 is best)</span>
+          <span style={{ fontWeight: 600, fontSize: 14 }}>Cover (square JPEG or PNG, up to {mb(5 * 1024 * 1024)}; at least 1400 × 1400 is best)</span>
           <DropZone label="Drop a cover here, or choose one" url={v.coverUrl} busyPct={pct} onFile={(file) => { void cover(file); }} />
           {isAutoCover(v.coverUrl) ? <span className="muted" style={{ fontSize: 13 }}>Made for you from your show's name. Drop your own to replace it.</span> : null}
         </div>

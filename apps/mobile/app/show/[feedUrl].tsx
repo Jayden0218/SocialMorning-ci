@@ -38,8 +38,9 @@
  * the collapsed bar keeps search. US4 (FR-035): an episode's ⋯ or a long-press opens the shared
  * episode sheet.
  */
+import { reportAndDrop } from '@/telemetry/reportError';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { Clipboard, Linking, ScrollView, Share } from 'react-native';
 import { useSharePanel } from '@/ui/clips/ShareChooser';
 import { FlatList } from '@/ui/lib/flat-list';
@@ -49,7 +50,8 @@ import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
 import { refreshShow } from '@/feeds/fetch';
 import { htmlToText, mmss, noteSummary } from '@/ui/kit/format';
-import { usePlayer, usePlayerState } from '@/playback/store';
+import { usePlayer, usePlayerSelector } from '@/playback/store';
+import type { PlayerState } from '@/playback/types';
 import { toPlayable } from '@/storage/playable';
 import { Artwork } from '@/ui/kit/Artwork';
 import { Dots, PauseIcon, PlayIcon } from '@/ui/kit/Icon';
@@ -86,6 +88,56 @@ import { EndOfList } from '@/ui/kit/EndOfList';
 export const COLLAPSE_AT = 220;
 /** M17: a round white 48 pt button beside Subscribe (`Show-B`). */
 const ROUND = 'w-12 h-12 rounded-pill bg-surface border border-border items-center justify-center';
+
+/** M23 US7: what a row needs from the player — "p:<id>" playing, "l:<id>" loaded, "" idle. Positions never. */
+const playKeyOf = (s: PlayerState): string =>
+  s.kind === 'playing' || s.kind === 'buffering' ? `p:${s.episodeId}` : s.kind !== 'idle' && s.episodeId !== undefined ? `l:${s.episodeId}` : '';
+
+type RowProps = {
+  item: CachedEpisode; plays: number; talk: number; progress: string; now: number; playing: boolean; iconColour: string;
+  onOpen: (e: CachedEpisode) => void; onPlay: (e: CachedEpisode) => void; onMenu: (e: CachedEpisode) => void;
+};
+
+/**
+ * M17: each episode a white card — serif title, two lines of notes, the meta; play over ⋯ on the right.
+ * M23 US7: memoised, and the notes are parsed once per episode — not on every position tick.
+ */
+const EpisodeCardRow = memo(function EpisodeCardRow({ item, plays, talk, progress, now, playing, iconColour, onOpen, onPlay, onMenu }: RowProps): React.ReactElement {
+  const notes = useMemo(() => noteSummary(item.shownotesHtml), [item.shownotesHtml]);
+  // Owner, 2026-10-01: "duration · ago  🎧 plays  💬 comments" with icons; the label keeps the words.
+  const metaIn = { durationMs: item.durationMs, publishedAt: item.publishedAt, plays, comments: talk, progress, now };
+  const meta = metaLabel(metaIn);
+  return (
+    <Box className="mx-screen-x mt-gap bg-surface border border-border rounded-row p-row flex-row gap-row items-start">
+      <Pressable
+        className="flex-1 gap-1"
+        style={TAP}
+        accessibilityRole="button"
+        accessibilityLabel={`${item.title}. ${meta}`}
+        onPress={() => onOpen(item)}
+        onLongPress={() => onMenu(item)}
+        accessibilityHint="Long-press for more actions"
+      >
+        <Text className="text-title font-display text-text leading-[22px]" numberOfLines={3}>{item.title}</Text>
+        {notes === '' ? null : <Text className="text-meta text-muted leading-[19px]" numberOfLines={2}>{notes}</Text>}
+        <EpisodeMeta {...metaIn} iconColour={iconColour} />
+      </Pressable>
+      <Box className="items-center">
+        <Pressable
+          onPress={() => onPlay(item)}
+          accessibilityRole="button"
+          accessibilityLabel={playing ? `Pause ${item.title}` : `Play ${item.title}`}
+          className={`w-12 h-12 rounded-pill items-center justify-center ${playing ? 'bg-primary' : 'bg-accentTint'}`}
+        >
+          {playing ? <PauseIcon size={14} tint="onPrimary" /> : <PlayIcon size={16} tint="accent" />}
+        </Pressable>
+        <Pressable onPress={() => onMenu(item)} accessibilityRole="button" accessibilityLabel={`More for ${item.title}`} className="items-center justify-center" style={TAP}>
+          <Icon name="ellipsis-horizontal" size={18} color={iconColour} />
+        </Pressable>
+      </Box>
+    </Box>
+  );
+});
 
 export default function ShowScreen(): React.ReactElement {
   const stores = useStores();
@@ -186,7 +238,7 @@ export default function ShowScreen(): React.ReactElement {
   }, [feedUrl, stores, subscriptionSync]);
 
   const player = usePlayer();
-  const playerState = usePlayerState();
+  const playKey = usePlayerSelector(playKeyOf);
   const [tab, setTab] = useState<'episodes' | 'about'>('episodes');
   const [oldestFirst, setOldestFirst] = useState(false);
   // Owner, 2026-10-01: the "All" / "Most played" chips and an "Unplayed" filter above the list.
@@ -205,7 +257,8 @@ export default function ShowScreen(): React.ReactElement {
     setTab('episodes');
     setSearching(true);
   };
-  const now = Date.now();
+  // M23 US7: to the minute, so a re-render does not change every memoised row's "ago".
+  const now = Math.floor(Date.now() / 60_000) * 60_000;
   // M10 minor mode (Settings → Minor mode): explicit episodes are not listed.
   const allowed = getPref(stores.settings, 'hideExplicit') ? episodes.filter((e) => !e.explicit) : episodes;
   const playsKnown = hasPlays(counts.listeners);
@@ -240,17 +293,21 @@ export default function ShowScreen(): React.ReactElement {
     const total = episode.durationMs === undefined ? '' : ` / ${mmss(episode.durationMs)}`;
     return `${mmss(row.offsetMs)}${total}`;
   };
-  const isPlaying = (id: string) => (playerState.kind === 'playing' || playerState.kind === 'buffering') && playerState.episodeId === id;
-  const playOrPause = (episode: CachedEpisode) => {
-    if (isPlaying(episode.id)) { player.pause(); return; }
-    if (playerState.kind !== 'idle' && playerState.episodeId === episode.id) { player.play(); return; }
+  const isPlaying = (id: string) => playKey === `p:${id}`;
+  // M23 US7: stable handlers (the rows are memoised); the player is read at the tap.
+  const playOrPause = useCallback((episode: CachedEpisode) => {
+    const key = playKeyOf(player.getState());
+    if (key === `p:${episode.id}`) { player.pause(); return; }
+    if (key === `l:${episode.id}`) { player.play(); return; }
     const playable = toPlayable(stores, episode.id);
     if (playable) player.load(playable, 'play');
-  };
+  }, [player, stores]);
+  const openEpisode = useCallback((e: CachedEpisode) => router.push({ pathname: '/episode/[id]', params: { id: e.id } }), [router]);
+  const listKey = `${focusTick}|${playKey}`;
 
   const latestAnnouncement = extras?.announcements[0]; // the server sends newest first
   const shareShow = () => {
-    void api.recordShare({ targetKind: 'show', targetId: feedUrl, feedUrl }).catch(() => undefined); // M11 FR-011: never waits
+    void api.recordShare({ targetKind: 'show', targetId: feedUrl, feedUrl }).catch(reportAndDrop('share.record')); // M11 FR-011: never waits
     // Owner, 2026-10-05 ("all"): the show's own options before "More". There is no show web page,
     // so the link is the feed, as before. WhatsApp and Telegram open by their https share links
     // (no app scheme to declare); without the app they open in the browser.
@@ -448,7 +505,7 @@ export default function ShowScreen(): React.ReactElement {
       {collapsed && searching ? <Box className="px-screen-x pb-gap"><FilterBar term={term} onTerm={setTerm} placeholder="Search this show's episodes" /></Box> : null}
       <FlatList
         data={tab === 'episodes' ? shown : []}
-        extraData={[focusTick, playerState]} // FlatList is pure: without this the rows keep their old text
+        extraData={listKey} // FlatList is pure: without this the rows keep their old text (M23: one string, not a new array per render)
         keyExtractor={(episode) => episode.id}
         ListHeaderComponent={header}
         contentContainerClassName="pb-24"
@@ -459,42 +516,19 @@ export default function ShowScreen(): React.ReactElement {
           <Text className="p-screen-x text-body text-muted">{failed !== undefined ? failed : searching && term.trim() !== '' && ordered.length > 0 ? `No episodes match "${term.trim()}".` : 'No episodes yet.'}</Text>
         )}
         renderItem={({ item }) => {
-          const notes = noteSummary(item.shownotesHtml);
-          const plays = counts.listeners?.[item.id] ?? 0;
-          const talk = counts.counts[item.id] ?? 0;
-          // Owner, 2026-10-01: "duration · ago  🎧 plays  💬 comments" with icons; the label keeps the words.
-          const metaIn = { durationMs: item.durationMs, publishedAt: item.publishedAt, plays, comments: talk, progress: progressFor(item), now };
-          const meta = metaLabel(metaIn);
           return (
-            // M17: each episode a white card — serif title, two lines of notes, the meta; play over ⋯ on the right.
-            <Box className="mx-screen-x mt-gap bg-surface border border-border rounded-row p-row flex-row gap-row items-start">
-              <Pressable
-                className="flex-1 gap-1"
-                style={TAP}
-                accessibilityRole="button"
-                accessibilityLabel={`${item.title}. ${meta}`}
-                onPress={() => router.push({ pathname: '/episode/[id]', params: { id: item.id } })}
-                onLongPress={() => setMenuFor(item)}
-                accessibilityHint="Long-press for more actions"
-              >
-                <Text className="text-title font-display text-text leading-[22px]" numberOfLines={3}>{item.title}</Text>
-                {notes === '' ? null : <Text className="text-meta text-muted leading-[19px]" numberOfLines={2}>{notes}</Text>}
-                <EpisodeMeta {...metaIn} iconColour={c.muted} />
-              </Pressable>
-              <Box className="items-center">
-                <Pressable
-                  onPress={() => playOrPause(item)}
-                  accessibilityRole="button"
-                  accessibilityLabel={isPlaying(item.id) ? `Pause ${item.title}` : `Play ${item.title}`}
-                  className={`w-12 h-12 rounded-pill items-center justify-center ${isPlaying(item.id) ? 'bg-primary' : 'bg-accentTint'}`}
-                >
-                  {isPlaying(item.id) ? <PauseIcon size={14} tint="onPrimary" /> : <PlayIcon size={16} tint="accent" />}
-                </Pressable>
-                <Pressable onPress={() => setMenuFor(item)} accessibilityRole="button" accessibilityLabel={`More for ${item.title}`} className="items-center justify-center" style={TAP}>
-                  <Icon name="ellipsis-horizontal" size={18} color={c.muted} />
-                </Pressable>
-              </Box>
-            </Box>
+            <EpisodeCardRow
+              item={item}
+              plays={counts.listeners?.[item.id] ?? 0}
+              talk={counts.counts[item.id] ?? 0}
+              progress={progressFor(item)}
+              now={now}
+              playing={isPlaying(item.id)}
+              iconColour={c.muted}
+              onOpen={openEpisode}
+              onPlay={playOrPause}
+              onMenu={setMenuFor}
+            />
           );
         }}
         ListFooterComponent={<>{tab === 'episodes' && shown.length > 0 ? <EndOfList /> : undefined}<ReportSheet target={reporting} onClose={() => setReporting(undefined)} /></>}

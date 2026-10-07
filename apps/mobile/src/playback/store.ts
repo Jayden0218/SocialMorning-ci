@@ -8,7 +8,7 @@
  * is testable with fake timers and a fake adapter. The React context below it
  * is a wrapper and nothing more.
  */
-import { createContext, createElement, useContext, useSyncExternalStore, type ReactNode } from 'react';
+import { createContext, createElement, useContext, useRef, useSyncExternalStore, type ReactNode } from 'react';
 import { reconcileOffset } from './finished';
 import { reduce } from './reducer';
 import { armTimer, clampRate, fadeVolume, nativeLoop, nextPlayable, rateFor, remove as removeFromQueue, restoreTimer, setEndOfEpisode, SLEEP_OFF, timerFired, timerRemainingMs, type SleepChoice, type SleepTimer } from '@socialmorning/player-core';
@@ -508,4 +508,43 @@ export function usePlayer(): PlayerRuntime {
 export function usePlayerState(): PlayerState {
   const runtime = usePlayer();
   return useSyncExternalStore(runtime.subscribe, runtime.getState, runtime.getState);
+}
+
+/**
+ * M23 US7 (FR-012, G-M23-8): one slice of the player state. The component re-renders only when
+ * `eq(previous, next)` is false — a position TICK does not re-render a screen that reads only
+ * `kind`. `sel` may be an inline closure; a new one is applied on the next read.
+ */
+export function usePlayerSelector<T>(sel: (s: PlayerState) => T, eq: (a: T, b: T) => boolean = Object.is): T {
+  const runtime = usePlayer();
+  const last = useRef<{ state: PlayerState; sel: (s: PlayerState) => T; value: T } | undefined>(undefined);
+  const read = (): T => {
+    const state = runtime.getState();
+    const prev = last.current;
+    if (prev !== undefined && prev.state === state && prev.sel === sel) return prev.value;
+    const next = sel(state);
+    const value = prev !== undefined && eq(prev.value, next) ? prev.value : next;
+    last.current = { state, sel, value };
+    return value;
+  };
+  return useSyncExternalStore(runtime.subscribe, read, read);
+}
+
+/** M23 US7: what an episode's page needs from the player — no position while it plays. */
+export type EpisodePlayView = { loaded: boolean; playing: boolean; positionMs: Ms | undefined };
+
+export function episodePlayView(s: PlayerState, episodeId: string | undefined): EpisodePlayView {
+  const loaded = episodeId !== undefined && s.kind !== 'idle' && s.episodeId === episodeId;
+  const playing = loaded && (s.kind === 'playing' || s.kind === 'buffering');
+  const positionMs = loaded && !playing && 'positionMs' in s && typeof s.positionMs === 'number' ? s.positionMs : undefined;
+  return { loaded, playing, positionMs };
+}
+
+export const sameEpisodePlayView = (a: EpisodePlayView, b: EpisodePlayView): boolean =>
+  a.loaded === b.loaded && a.playing === b.playing && a.positionMs === b.positionMs;
+
+/** M23 US7: the live position in this episode, read on a tap — never rendered per TICK. */
+export function livePositionMs(runtime: PlayerRuntime, episodeId: string | undefined): Ms | undefined {
+  const s = runtime.getState();
+  return episodeId !== undefined && s.kind !== 'idle' && s.episodeId === episodeId && 'positionMs' in s && typeof s.positionMs === 'number' ? s.positionMs : undefined;
 }

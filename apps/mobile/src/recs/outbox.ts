@@ -12,6 +12,7 @@
  * time a finger moved and would drop items the listener never actually got a chance to
  * see.
  */
+import { reportError } from '@/telemetry/reportError';
 import type { ApiClient, ForYouChannel } from '@/social/api';
 import type { RecEventRow, RecOutboxStore, SettingsStore } from '@/storage/types';
 
@@ -93,7 +94,8 @@ export function createRecOutbox(deps: { api: ApiClient; store: RecOutboxStore; s
         })));
         deps.store.remove(rows.map((r) => r.id!));
         return rows.length;
-      } catch {
+      } catch (e) {
+        reportError('recs.outbox', e);
         // Offline or the server is unhappy: the rows stay exactly where they are.
         return 0;
       }

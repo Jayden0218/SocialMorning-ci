@@ -9,8 +9,7 @@
  */
 import type { Db } from '../../db.ts';
 
-import { SYNCED_QUEUE_MAX } from '@socialmorning/social-core';
-export { SYNCED_QUEUE_MAX };
+export const SYNCED_QUEUE_MAX = 300;
 
 export type SyncedQueue = { items: string[]; version: number; deviceId: string | null; updatedAt: string | null };
 

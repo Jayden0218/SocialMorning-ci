@@ -9,6 +9,7 @@
  * phone). Every change records here, notifies the sync, and the sync uploads the log; the
  * server answers with the merged set and the lists are rebuilt from it.
  */
+import { reportAndDrop } from '@/telemetry/reportError';
 import type { SettingsStore } from '@/storage/types';
 
 export const LOG_KEY = 'library.log';
@@ -71,6 +72,6 @@ export function createLibrarySync(deps: {
     })();
     return running;
   };
-  onLibraryChange(() => { void reconcile().catch(() => undefined); });
-  return { reconcile, push: () => { void reconcile().catch(() => undefined); } };
+  onLibraryChange(() => { void reconcile().catch(reportAndDrop('sync.library')); });
+  return { reconcile, push: () => { void reconcile().catch(reportAndDrop('sync.library')); } };
 }
