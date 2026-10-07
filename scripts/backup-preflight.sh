@@ -1,5 +1,4 @@
 #!/bin/sh
-exit 0
 # M23 US13 (guard G-M23-10): the nightly backup refuses to start without what it needs.
 # Called by .github/workflows/backup.yml (private repo only) before anything is installed
 # or dumped. Reads NEON_BACKUP_URL and BACKUP_AGE_RECIPIENT from the environment.
