@@ -6,6 +6,7 @@ import { ConfirmDialog } from '../shell/ConfirmDialog';
 import { PageHead } from '../shell/Page';
 import { Empty, Failed, Loading } from '../shell/States';
 import { useLoad } from '../useLoad';
+import { noun } from '@socialmorning/social-core';
 import { ANNOUNCEMENT_TYPES, MAX_ANNOUNCEMENT_BYTES, uploadAnnouncementImage } from '../upload';
 
 /** M19 US12: up to 9 pictures; `releaseAt` in the future = scheduled (listed from then, not pushed). */
@@ -36,7 +37,7 @@ export function Announcements({ show }: { show: Show }) {
       const body = { body: text, ...(images.length ? { images } : {}), ...(releaseAt ? { releaseAt: releaseAt.toISOString() } : {}) };
       const r = await api<{ pushed: { devices: number } }>(`/v1/studio/shows/${show.key}/announcements`, { method: 'POST', body });
       setText(''); setImages([]); setLater(false); setAt('');
-      setDone(releaseAt ? `Scheduled for ${when(releaseAt.toISOString())}. It appears on your show page then; a scheduled announcement sends no notification.` : r.pushed.devices > 0 ? `Published and sent to ${num(r.pushed.devices)} device${r.pushed.devices === 1 ? '' : 's'}.` : 'Published. It is on your show page; no subscriber has notifications on yet.');
+      setDone(releaseAt ? `Scheduled for ${when(releaseAt.toISOString())}. It appears on your show page then; a scheduled announcement sends no notification.` : r.pushed.devices > 0 ? `Published and sent to ${num(r.pushed.devices)} ${noun(r.pushed.devices, 'device')}.` : 'Published. It is on your show page; no subscriber has notifications on yet.');
       setN((x) => x + 1);
     } catch (e) {
       setError(e instanceof HttpError ? e.message : 'That did not work. Try again.');

@@ -8,6 +8,7 @@ import { Empty, Failed, Loading } from '../../shell/States';
 import { useSession } from '../../session';
 import { useLoad } from '../../useLoad';
 import { errorText, Finder } from './common';
+import { plural } from '@socialmorning/social-core';
 
 type Account = { id: string; email: string; displayName: string; bio: string | null; createdAt: string; suspended: boolean; placeholderEmail: boolean };
 type Curator = { feedUrl: string; curator: { id: string; displayName: string }; createdAt: string };
@@ -102,7 +103,7 @@ function CreateMany({ onMade }: { onMade: () => void }) {
       </div>
       {error ? <p className="error" role="alert">{error}</p> : null}
       <button type="button" className="btn" disabled={busy || rows.length === 0 || rows.length > 50} onClick={() => { void create(); }}>
-        {busy ? 'Creating…' : `Create ${rows.length} account${rows.length === 1 ? '' : 's'}`}
+        {busy ? 'Creating…' : `Create ${plural(rows.length, 'account')}`}
       </button>
       {done ? (
         <ul className="rows" aria-label="Results" style={{ marginTop: 12 }}>

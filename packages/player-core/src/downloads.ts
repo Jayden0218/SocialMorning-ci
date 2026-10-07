@@ -12,13 +12,16 @@ export function canStartDownload(usedBytes: number, expectedBytes: number | unde
   return usedBytes + (expectedBytes ?? 0) <= budgetBytes;
 }
 
-/** Bytes that count against the budget: complete downloads plus the one in flight. */
+/**
+ * Bytes that count against the budget: complete downloads plus the one in flight, plus paused
+ * ones (M23 T044, guard G-M23-9): a paused half-finished file is on the phone and will finish
+ * when it resumes, so it holds its full size just like the one downloading.
+ */
 export function usedBytesOf(downloads: readonly { state: string; bytesTotal?: number; bytesDone?: number }[]): number {
   let used = 0;
   for (const d of downloads) {
     if (d.state === 'complete') used += d.bytesTotal ?? 0;
-    else if (d.state === 'downloading') used += d.bytesTotal ?? d.bytesDone ?? 0;
-
+    else if (d.state === 'downloading' || d.state === 'paused') used += d.bytesTotal ?? d.bytesDone ?? 0;
   }
   return used;
 }

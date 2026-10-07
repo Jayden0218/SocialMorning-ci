@@ -68,3 +68,5 @@ export { COVER_TONES, COVER_SHAPE, COVER_PX, coverLetters, coverToneIndex, cover
 export { LIKE_WINDOW_MS, isLikeKind, shouldPush, type PushKind, type PushPrefs, type PushRelations, type LikeWindow, type PushDecision } from './push-rules';
 // M22 US13 — the Groq free-tier budget (specs/023 research R1, G-M22-6)
 export { WHISPER, TRANSLATOR, GROQ_LIMITS, BUDGET_SHARE, CHUNK_MAX_TOKENS, PROMPT_TOKENS, budgetOf, canSpend, fitsEver, estimateTokens, chunkLines, translationCost, type GroqModel, type GroqLimits, type GroqUsage, type GroqNeed } from './translate-budget';
+// M23 T043 — the limits the server checks and the Studio shows
+export { BAN_REASON_MAX, HOST_PICKS_MAX, MAX_AUDIO_BYTES, MAX_IMAGE_BYTES, MAX_LAUNCH_IMAGE_BYTES, SYNCED_QUEUE_MAX } from './limits';

@@ -7,6 +7,7 @@ import { Empty, Failed, Loading } from '../../shell/States';
 import { useDirty } from '../../shell/Unsaved';
 import { useLoad } from '../../useLoad';
 import { CHANGED_MESSAGE, errorText, Finder, isChanged, move, Reorder, utcDay } from './common';
+import { plural } from '@socialmorning/social-core';
 
 type Source = 'admin' | 'file';
 type IssueItem = { feedUrl: string; guid?: string; note: string; label?: string };
@@ -59,7 +60,7 @@ function Issues() {
               <li key={i.id}>
                 <div className="row-main">
                   <div className="row-title">{i.title}</div>
-                  <div className="row-sub">{i.day} · {i.id} · {i.items.length} episode{i.items.length === 1 ? '' : 's'} {sourcePill(i.source, i.retired)}</div>
+                  <div className="row-sub">{i.day} · {i.id} · {plural(i.items.length, 'episode')} {sourcePill(i.source, i.retired)}</div>
                 </div>
                 <button type="button" className="btn btn-quiet" onClick={() => setEditing(i)}>Edit<span className="sr-only"> {i.title}</span></button>
               </li>
@@ -160,7 +161,7 @@ function Collections() {
               <li key={x.id}>
                 <div className="row-main">
                   <div className="row-title">{x.title}</div>
-                  <div className="row-sub">{x.id} · position {x.position} · {x.items.length} item{x.items.length === 1 ? '' : 's'} {sourcePill(x.source, x.retired)}</div>
+                  <div className="row-sub">{x.id} · position {x.position} · {plural(x.items.length, 'item')} {sourcePill(x.source, x.retired)}</div>
                 </div>
                 <button type="button" className="btn btn-quiet" onClick={() => setEditing(x)}>Edit<span className="sr-only"> {x.title}</span></button>
               </li>
