@@ -31,6 +31,7 @@ Every code file, one plain line each. Each file also starts with the same senten
 | `inbox.ts` | Decides which new episodes from subscribed shows belong in the inbox. |
 | `index.ts` | Entry point exporting the player rules: queue, speed, timer, downloads, inbox. |
 | `queue.ts` | Play queue rules: add, move, remove, the 300 limit, and what plays next. |
+| `queue-sync.ts` | The queue sync rule: given this phone's queue, the server's, and the last one both agreed on, what to do. |
 | `speed.ts` | Keeps playback speed between 0.5 and 3.0 and picks each show's speed. |
 | `timer.ts` | Sleep timer rules: set it, time left, when it fires, the fade, end of episode, restart. |
 | `transcript.ts` | Reads transcripts in SRT, VTT, JSON or text and finds the current line. |

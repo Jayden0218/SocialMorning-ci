@@ -179,6 +179,7 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 | `settings/not-interested.tsx` | `/settings/not-interested` | Episodes and shows you marked "Not interested", each with a Restore button. |
 | `settings/more.tsx` | `/settings/more` | More settings: import/export shows, a link to Playback, recommendations on/off. |
 | `settings/playback.tsx` | `/settings/playback` | Playback settings: queue order, mobile data, transcript entry, lock-screen comments, music mode, skip silence, other apps' sounds. |
+| `settings/queue-backups.tsx` | `/settings/queue-backups` | Playlist backups: the last 10 versions of your playlist on this phone, each with Restore. |
 | `settings/opml.tsx` | `/settings/opml` | Export your shows as an OPML file, or paste OPML to import them. |
 | `settings/privacy.tsx` | `/settings/privacy` | Privacy: private listening, what others see of you (4 switches), muted users, and blocked listeners. |
 | `settings/push.tsx` | `/settings/push` | Push notification settings: phone permission, new episodes, popular content, per show. |

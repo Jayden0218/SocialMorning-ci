@@ -221,6 +221,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `live.ts` | Shows "N listening now" in the player, checking once a minute. |
 | `m12-api.ts` | Extra server calls: likes, friends listening, picks, purchases, tips, voice posts. |
 | `m19-api.ts` | Server calls for playlists, notices from hosts, the monthly report and the teen-mode reset. |
+| `api-m22-library.ts` | Server calls for the synced playlist and for deleting listening history. |
 | `notifications-api.ts` | Server calls for Interactions (replies, likes, mentions, follows), and where each notice opens. |
 | `poll.ts` | Checks for new comments every 10 seconds, only when useful. |
 | `profile-api.ts` | Server calls for your profile, photo, hidden recommendations and episode likes. |
@@ -255,6 +256,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `device-id.ts` | Makes and keeps a stable id for this phone install. |
 | `library.ts` | Syncs favourites, saved moments and search history with your account. |
 | `positions.ts` | Syncs where you stopped in each episode with the server. |
+| `queue.ts` | Syncs your playlist with your account, and asks which one to keep when two phones changed it. |
 | `subscriptions.ts` | Syncs your subscribed shows with the server. |
 | `watch.ts` | Brings positions played on the Apple Watch into the phone, and decides when "Download to Watch" shows. |
 
@@ -288,6 +290,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `Segmented.tsx` | A pill with two to four choices; the chosen one is yellow. |
 | `Sheet.tsx` | A sheet from the bottom with two heights: drag its top up to grow it, down to shrink or close it. |
 | `SheetRow.tsx` | One full-width row in a pop-up action list: icon, label, optional detail. |
+| `SwipeRow.tsx` | A row you can swipe left or right to show its actions, each also a screen-reader action. |
 | `ToastHost.tsx` | The short message that pops up near the top, then goes away. |
 | `Toggle.tsx` | The app's own on/off switch. |
 | `TopBar.tsx` | Top bar with back (or close) button on left, page actions on right. |
@@ -343,6 +346,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | File | What it does |
 |---|---|
 | `QueueButtons.tsx` | "Add to queue" and "Play next" buttons, as tiles in the episode menu. |
+| `QueueChooser.tsx` | The sheet that asks which playlist to keep when this phone and another changed it. |
 | `QueueList.tsx` | The queue's rows: play, move up/down, remove, drag to reorder. |
 | `QueueSheet.tsx` | The playlist as a sheet over any page: playing now first, then the queue, with an Edit mode. |
 | `QueueSheetHost.tsx` | Holds the one playlist sheet at the root, so the mini player and the player open the same one. |

@@ -9,14 +9,44 @@
  *   tick()     → nextDownload() picks the row; start/resume it; persist progress
  *   pause on network loss / app restart → resumeData kept; tick() resumes it
  *   remove()   → file + row gone; positions, queue and inbox untouched (FR-006)
+ *
+ * M22 US17 (downloads tidy themselves; both off by default):
+ *   "Delete after playing"  → afterFinished(id) removes a finished episode's download.
+ *   "When storage is full, remove the oldest" → a request (or a tick) that would go over the
+ *   limit first removes the oldest complete downloads — never a starred (favourite) episode,
+ *   never one listened part-way — until the new one fits; if it cannot fit, nothing is removed.
  */
 import { canStartDownload, nextDownload, usedBytesOf } from '@socialmorning/player-core';
 import type { Downloader, Network } from './types';
 import type { DownloadRow, Stores } from '@/storage/types';
+import { isFavourite } from '@/me/favourites';
 
 export const DEFAULT_BUDGET_BYTES = 2 * 1024 ** 3;
 export const SETTING_BUDGET = 'downloads.budgetBytes';
 export const SETTING_ALLOW_MOBILE = 'downloads.allowMobile';
+/** M22 US17 (data-model "New settings keys"): '1' = on; off by default. */
+export const SETTING_DELETE_AFTER_PLAY = 'downloads.deleteAfterPlay';
+export const SETTING_EVICT_OLDEST = 'downloads.evictOldest';
+
+/**
+ * M22 US17: which complete downloads to remove, oldest first, so `needBytes` more fits under the
+ * budget. `keep(id)` true = never removed (starred, in progress). Empty when it already fits, or
+ * when even removing every allowed one would not make room (nothing is deleted for nothing).
+ */
+export function evictionPlan(rows: readonly DownloadRow[], needBytes: number, budgetBytes: number, keep: (episodeId: string) => boolean): string[] {
+  let used = usedBytesOf(rows);
+  if (canStartDownload(used, needBytes, budgetBytes)) return [];
+  const oldest = rows
+    .filter((r) => r.state === 'complete' && !keep(r.episodeId))
+    .sort((a, b) => (a.completedAt ?? a.requestedAt) - (b.completedAt ?? b.requestedAt));
+  const out: string[] = [];
+  for (const r of oldest) {
+    out.push(r.episodeId);
+    used -= r.bytesTotal ?? 0;
+    if (canStartDownload(used, needBytes, budgetBytes)) return out;
+  }
+  return [];
+}
 
 export type ManagerDeps = {
   downloader: Downloader;
@@ -35,6 +65,12 @@ export type DownloadManager = {
   cancel(episodeId: string): Promise<void>;
   remove(episodeId: string): Promise<void>;
   removeFinished(): Promise<number>;
+  /** M22 US17: the player saved `finished` for this episode — removes its download when "Delete after playing" is on. */
+  afterFinished(episodeId: string): void;
+  deleteAfterPlay(): boolean;
+  setDeleteAfterPlay(v: boolean): void;
+  evictOldest(): boolean;
+  setEvictOldest(v: boolean): void;
   usedBytes(): number;
   budgetBytes(): number;
   setBudgetBytes(n: number): void;
@@ -57,6 +93,27 @@ export function createDownloadManager(deps: ManagerDeps): DownloadManager {
   const budgetBytes = () => Number(deps.stores.settings.get(SETTING_BUDGET) ?? DEFAULT_BUDGET_BYTES);
   const allowMobile = () => deps.stores.settings.get(SETTING_ALLOW_MOBILE) === '1';
   const usedBytes = () => usedBytesOf(deps.stores.downloads.list());
+  const deleteAfterPlay = () => deps.stores.settings.get(SETTING_DELETE_AFTER_PLAY) === '1';
+  const evictOldest = () => deps.stores.settings.get(SETTING_EVICT_OLDEST) === '1';
+  /** Starred, or listened part-way: never removed automatically. */
+  const keep = (episodeId: string): boolean => {
+    if (isFavourite(deps.stores.settings, episodeId)) return true;
+    const p = deps.stores.positions.get(episodeId);
+    return p !== undefined && !p.finished && p.offsetMs > 0;
+  };
+  /** M22 US17: makes room for `needBytes` when the switch is on. True when it now fits. */
+  async function makeRoom(needBytes: number | undefined): Promise<boolean> {
+    if (!evictOldest()) return false;
+    const ids = evictionPlan(deps.stores.downloads.list(), needBytes ?? 0, budgetBytes(), keep);
+    for (const id of ids) {
+      const row = deps.stores.downloads.get(id);
+      if (!row) continue;
+      await deps.downloader.remove(row.filePath);
+      deps.stores.downloads.remove(id);
+    }
+    if (ids.length > 0) notify();
+    return ids.length > 0;
+  }
 
   async function run(row: DownloadRow): Promise<void> {
     const episode = deps.stores.feeds.getEpisode(row.episodeId);
@@ -131,7 +188,7 @@ export function createDownloadManager(deps: ManagerDeps): DownloadManager {
     if (!next) return;
     const row = deps.stores.downloads.get(next);
     if (!row) return;
-    if (!canStartDownload(usedBytes(), row.bytesTotal, budgetBytes())) {
+    if (!canStartDownload(usedBytes(), row.bytesTotal, budgetBytes()) && !(await makeRoom(row.bytesTotal))) {
       deps.stores.downloads.put({ ...row, state: 'failed', error: 'budget' });
       notify();
       return;
@@ -146,7 +203,7 @@ export function createDownloadManager(deps: ManagerDeps): DownloadManager {
       const episode = deps.stores.feeds.getEpisode(episodeId);
       if (!episode) return { kind: 'no-episode' };
       const expected = existing?.bytesTotal ?? episode.enclosureBytes;
-      if (!canStartDownload(usedBytes(), expected, budgetBytes())) {
+      if (!canStartDownload(usedBytes(), expected, budgetBytes()) && !(await makeRoom(expected))) {
         return { kind: 'budget', usedBytes: usedBytes(), budgetBytes: budgetBytes() };
       }
       deps.stores.downloads.put({
@@ -191,6 +248,18 @@ export function createDownloadManager(deps: ManagerDeps): DownloadManager {
       if (n > 0) notify();
       return n;
     },
+    afterFinished(episodeId) {
+      if (!deleteAfterPlay()) return;
+      const row = deps.stores.downloads.get(episodeId);
+      if (!row || row.state !== 'complete') return;
+      deps.stores.downloads.remove(episodeId); // FR-006: positions, queue, inbox untouched
+      notify();
+      void deps.downloader.remove(row.filePath).catch(() => undefined);
+    },
+    deleteAfterPlay,
+    setDeleteAfterPlay: (v) => { deps.stores.settings.set(SETTING_DELETE_AFTER_PLAY, v ? '1' : '0'); notify(); },
+    evictOldest,
+    setEvictOldest: (v) => { deps.stores.settings.set(SETTING_EVICT_OLDEST, v ? '1' : '0'); notify(); },
     usedBytes,
     budgetBytes,
     setBudgetBytes: (n) => { deps.stores.settings.set(SETTING_BUDGET, String(n)); notify(); },

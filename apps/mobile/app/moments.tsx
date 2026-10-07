@@ -28,6 +28,9 @@ import { useStores, useToast } from '@/ui/shell/providers';
 import { PageHeader } from '@/ui/kit/PageHeader';
 import { Icon } from '@/ui/kit/Icon';
 import { EndOfList } from '@/ui/kit/EndOfList';
+// M22 US17 item 16 / FR-027: the same search box as History.
+import { matchesAll } from '@/me/history';
+import { FilterBar } from '@/ui/me/FilterBar';
 
 const TAP = { minHeight: hit.min };
 const ICON_BUTTON = { width: hit.min, height: hit.min };
@@ -44,6 +47,11 @@ export default function MomentsScreen(): React.ReactElement {
   const toast = useToast();
   const [rows, setRows] = useState<Moment[]>(() => listMoments(stores.settings));
   const [editing, setEditing] = useState<{ id: string; note: string } | undefined>();
+  const [term, setTerm] = useState('');
+  const shown = rows.filter((m) => {
+    const e = stores.feeds.getEpisode(m.episodeId);
+    return matchesAll(term, [e?.title, e ? stores.feeds.getShow(e.feedUrl)?.title : undefined, m.note]);
+  });
   const reload = useCallback(() => setRows(listMoments(stores.settings)), [stores]);
   useFocusEffect(reload);
 
@@ -60,12 +68,14 @@ export default function MomentsScreen(): React.ReactElement {
     <PageHeader title="Saved moments" {...(rows.length > 0 ? { subtitle: `${rows.length} ${rows.length === 1 ? 'moment' : 'moments'}` } : {})} />
     <FlatList
       className="flex-1 bg-background"
-      data={rows}
+      data={shown}
       // Owner, 2026-10-05: the bottom of a fetched list says so.
-      ListFooterComponent={rows.length > 0 ? <EndOfList /> : undefined}
+      ListFooterComponent={shown.length > 0 ? <EndOfList /> : undefined}
+      keyboardShouldPersistTaps="handled"
+      ListHeaderComponent={rows.length > 0 ? <FilterBar term={term} onTerm={setTerm} placeholder="Search your saved moments" /> : undefined}
       keyExtractor={(m) => m.id}
       contentContainerClassName="px-screen-x py-row pb-24 flex-grow"
-      ListEmptyComponent={<EmptyPicture icon="bookmark-outline" line="No saved moments — tap “Save moment” while listening" />}
+      ListEmptyComponent={<EmptyPicture icon="bookmark-outline" line={rows.length > 0 ? 'Nothing matches' : 'No saved moments — tap “Save moment” while listening'} />}
       renderItem={({ item }) => {
         const e = stores.feeds.getEpisode(item.episodeId);
         return (

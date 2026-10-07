@@ -29,6 +29,9 @@ import { notifications } from './routes/social/notifications.ts';
 import { follows } from './routes/social/follows.ts';
 import { feed } from './routes/social/feed.ts';
 import { listened, listeningRoute } from './routes/library/listened.ts';
+// M22 lane 3
+import { history as historyRoute } from './routes/library/listened.ts';
+import { queue as queueRoute } from './routes/account/queue.ts';
 import { stickers } from './routes/account/stickers.ts';
 import { privacy, profiles } from './routes/social/profiles.ts';
 import { discover } from './routes/discover/discover.ts';
@@ -279,6 +282,9 @@ export function createApp(deps: AppDeps) {
   // M22 lane 2
   app.route('/v1/me/muted-threads', mutedThreads);
   app.route('/v1/comments', commentLikeNotices);
+  // M22 lane 3
+  app.route('/v1/me/queue', queueRoute);
+  app.route('/v1/me/history', historyRoute);
   app.route('/mod', mod);
   app.route('/', legal);
   app.route('/', episodePages);

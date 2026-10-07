@@ -45,7 +45,9 @@ import { DiscoverSections } from '@/ui/discover/DiscoverSections';
 import { EmptyState } from '@/ui/kit/EmptyState';
 import { UpdateEpisodeRow } from '@/ui/episode/UpdateEpisodeRow';
 import { EpisodeRowSheet } from '@/ui/kit/EpisodeRowSheet';
-import { useDownloads, useStores, useSubscriptionSync, useToast } from '@/ui/shell/providers';
+import { useDownloads, usePositionSync, useStores, useSubscriptionSync, useToast } from '@/ui/shell/providers';
+// M22 lane 3 (US12): swipe actions on the rows and the one-time hint.
+import { markPlayed } from '@/me/history';
 import { useSocial } from '@/social/context';
 import { useM12Api } from '@/social/m12-api';
 import { VoicePosts } from '@/ui/social/VoicePosts';
@@ -61,6 +63,8 @@ const TAP = { minHeight: hit.min, minWidth: hit.min };
 /** M21 US8: a starred show in the row above the feed — a 72 pt cover with its name under it. */
 const STAR_ART = 72;
 const STAR_ITEM = { width: STAR_ART, minHeight: hit.min };
+/** M22 US12 (data-model "New settings keys"): '1' once the swipe hint has been shown. */
+const SWIPE_HINT_KEY = 'updates.swipeHintShown';
 
 export default function UpdatesScreen(): React.ReactElement {
   const top = useRef<RNFlatList<UpdateRow>>(null); useScrollToTop(top); // M21 T082: pressing this tab again scrolls to the top.
@@ -75,6 +79,10 @@ export default function UpdatesScreen(): React.ReactElement {
   const [rows, setRows] = useState<UpdateRow[]>([]);
   const [subscribed, setSubscribed] = useState(0);
   const [stale, setStale] = useState(0);
+  // M22 US12: "Swipe a row for more", once — the first time Updates shows rows after this release.
+  const positionSync = usePositionSync();
+  const [swipeHint] = useState(() => stores.settings.get(SWIPE_HINT_KEY) !== '1');
+  useEffect(() => { if (swipeHint && rows.length > 0) stores.settings.set(SWIPE_HINT_KEY, '1'); }, [swipeHint, rows.length, stores]);
 
   const read = useCallback(() => {
     setRows(latestUpdates(stores, hiddenFeeds));
@@ -208,6 +216,7 @@ export default function UpdatesScreen(): React.ReactElement {
                 <DiscoverSections body={discover.view.body} stale={discover.view.stale} fetchedAt={discover.view.fetchedAt} onOpen={(c) => void discover.open(c)} />
               ) : null}
               {rows.length > 0 ? <Text className="font-display text-base text-text mt-section" accessibilityRole="header">New from your shows</Text> : null}
+              {rows.length > 0 && swipeHint ? <Text className="text-muted text-xs mt-1">Swipe a row for more</Text> : null}
             </Box>
           </Box>
         }
@@ -232,6 +241,8 @@ export default function UpdatesScreen(): React.ReactElement {
               onMore={() => setMenuFor(item)}
               onLongPress={() => setMenuFor(item)}
               onPlay={() => play(e.id)}
+              onRemoveFromUpdates={() => { hideFromUpdates(stores.settings, e.id); read(); toast('Removed from Updates. The show stays subscribed.'); }}
+              onMarkPlayed={() => { markPlayed(stores, e.id, Date.now()); void positionSync.flush(); read(); toast('Marked as played.'); }}
             />
           );
         }}

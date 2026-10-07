@@ -39,6 +39,7 @@ here or a line does not match its file.
 | `m19.ts` | My notices from hosts, my monthly report, and the teen-mode passcode reset by email code. |
 | `purchases-google.ts` | Purchase route: the phone sends a Google Play purchase; the server checks it with Google, then grants it. |
 | `stickers.ts` | Sticker placement routes: read my stickers on my profile header, or replace them all. |
+| `queue.ts` | Queue sync routes: read the account's play queue, and replace it from the version the phone last saw. |
 
 ### `routes/social/` — comments, reactions, clips, follows, profiles, voice posts, sharing
 
@@ -167,6 +168,7 @@ here or a line does not match its file.
 | `push.ts` | Sends new-episode push notifications through Expo, never twice to one device. |
 | `profile.ts` | My profile: name, bio, photo, optional age range and gender; the photo's storage limits. |
 | `purchases.ts` | Grants what a store purchase bought, once, and takes it back when the store reports a refund. |
+| `queue.ts` | The listener's synced play queue: read it, and replace it only from the version the phone last saw. |
 | `stickers.ts` | Stickers placed on a profile header: read them, replace them all, and what a viewer may see. |
 
 ### `db/repos/social/` — comments, clips, follows, profiles, activity

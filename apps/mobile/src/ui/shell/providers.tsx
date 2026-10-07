@@ -23,6 +23,10 @@ import { createSubscriptionSync, type SubscriptionSync } from '@/sync/subscripti
 import { startWatchLink } from '@/sync/watch';
 import * as WatchLink from '../../../modules/watch-link';
 import { createLibrarySync, type LibrarySync } from '@/sync/library';
+// M22 lane 3 (US4): the playlist follows the account.
+import { createQueueSync, QUEUE_SYNC_EVERY_MS, type QueueSync } from '@/sync/queue';
+import { createM22LibraryApi } from '@/social/api-m22-library';
+import { QueueChooserHost } from '@/ui/queue/QueueChooser';
 import { createRecOutbox } from '@/recs/outbox';
 import { createListened } from '@/graph/listened';
 import { deviceId } from '@/sync/device-id';
@@ -57,6 +61,14 @@ const SyncContext = createContext<PositionSync | undefined>(undefined);
 const SubscriptionSyncContext = createContext<SubscriptionSync | undefined>(undefined);
 const DownloadsContext = createContext<DownloadManager | undefined>(undefined);
 const LibrarySyncContext = createContext<LibrarySync | undefined>(undefined);
+const QueueSyncContext = createContext<QueueSync | undefined>(undefined);
+
+/** M22 US4: the playlist sync — the backups page restores through it. */
+export function useQueueSync(): QueueSync {
+  const v = useContext(QueueSyncContext);
+  if (v === undefined) throw new Error('useQueueSync must be used inside <AppProviders>');
+  return v;
+}
 
 /** M10b US2: favourites, moments, searches and favourite comments follow the account. */
 export function useLibrarySync(): LibrarySync {
@@ -159,6 +171,28 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
     startupTasks.current.push(created.reconcile().catch(() => undefined));
     return created;
   }, [stores, graphApi]);
+
+  // M22 US4 (research R4): the playlist syncs at start (once the device id is known), when the
+  // app comes back to the front, and every 60 s while it is in front — only when signed in.
+  const queueSync = useMemo<QueueSync>(() => createQueueSync({
+    api: createM22LibraryApi({ baseUrl: apiBaseUrl(), fetch, getToken: secureToken.get }),
+    queue: stores.queue,
+    backups: stores.queueBackups,
+    settings: stores.settings,
+    listenerId: () => stores.auth.get()?.listenerId,
+    deviceId: () => deviceIdRef.current,
+    now: () => Date.now(),
+  }), [stores]);
+  useEffect(() => {
+    const run = () => { void queueSync.sync().catch(() => undefined); };
+    void deviceId().then(run);
+    let timer: ReturnType<typeof setInterval> | undefined = setInterval(run, QUEUE_SYNC_EVERY_MS);
+    const sub = AppState.addEventListener('change', (st) => {
+      if (st === 'active') { run(); if (timer === undefined) timer = setInterval(run, QUEUE_SYNC_EVERY_MS); return; }
+      if (timer !== undefined) { clearInterval(timer); timer = undefined; }
+    });
+    return () => { sub.remove(); if (timer !== undefined) clearInterval(timer); };
+  }, [queueSync]);
 
   // M2 (US1): the download manager. One per app life; recovers interrupted rows at start.
   const downloads = useMemo<DownloadManager>(() => createDownloadManager({
@@ -279,6 +313,8 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
         if (IMMEDIATE.has(reason)) { listened.close(); void listened.push(); }
         // FR-019: an episode that has a position has been played — it leaves the inbox.
         stores.inboxState.mark(row.episodeId, 'played', Date.now());
+        // M22 US17: "Delete after playing" (off by default) removes a finished episode's download.
+        if (reason === 'finished') downloads.afterFinished(row.episodeId);
       },
       mayStream: () => canStream(stores.settings, netKind.current),
       advance: {
@@ -296,7 +332,7 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
     if (getPref(stores.settings, 'voiceBoost')) r.setVoiceBoost(true);
     if (getPref(stores.settings, 'mixWithOthers')) r.setMixWithOthers(true);
     return r;
-  }, [stores, sync, listened]);
+  }, [stores, sync, listened, downloads]);
 
   /**
    * M8 (US6, FR-028): a **play** and a **finish** are recorded here, not on the screen
@@ -414,6 +450,7 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
       <SyncContext.Provider value={sync}>
       <SubscriptionSyncContext.Provider value={subscriptionSync}>
       <LibrarySyncContext.Provider value={librarySync}>
+      <QueueSyncContext.Provider value={queueSync}>
       <ToastContext.Provider value={show.current}>
         <PlayerProvider runtime={runtime}>
           {props.children}
@@ -438,8 +475,11 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
           {keepTerms({ ready, accepted, launched, cover }) ? <Terms settings={stores.settings} onAccept={() => { accept(stores.settings); setAccepted(true); }} /> : null}
           {/* M16a T015: the toast host — spoken on iOS too, and drawn above native modals. */}
           <ToastHost message={message} />
+          {/* M22 US4: "Which playlist do you want to keep?" — over every page, until answered. */}
+          <QueueChooserHost sync={queueSync} feeds={stores.feeds} onError={show.current} />
         </PlayerProvider>
       </ToastContext.Provider>
+      </QueueSyncContext.Provider>
       </LibrarySyncContext.Provider>
       </SubscriptionSyncContext.Provider>
       </SyncContext.Provider>

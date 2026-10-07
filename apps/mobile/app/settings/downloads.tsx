@@ -38,6 +38,9 @@ export default function DownloadSettings(): React.ReactElement {
   const toast = useToast();
   const [auto, setAuto] = useState(() => getPref(stores.settings, 'autoDownloadQueued'));
   const [mobile, setMobile] = useState(() => downloads.allowMobile());
+  // M22 US17: downloads tidy themselves — both off by default.
+  const [afterPlay, setAfterPlay] = useState(() => downloads.deleteAfterPlay());
+  const [evict, setEvict] = useState(() => downloads.evictOldest());
   const [used, setUsed] = useState(() => downloads.usedBytes());
   useEffect(() => downloads.subscribe(() => setUsed(downloads.usedBytes())), [downloads]);
   // M16a T003 (FR-013): the app's own dialog, not the iOS alert.
@@ -110,6 +113,12 @@ export default function DownloadSettings(): React.ReactElement {
         <SwitchRow icon="list-outline" label="Download queued episodes" line="An episode starts downloading when you add it to the queue" value={auto} onChange={(v) => { setAuto(v); setPref(stores.settings, 'autoDownloadQueued', v); }} />
         <CardDivider />
         <SwitchRow icon="cellular-outline" label="Allow mobile data for downloads" line="Off: downloads wait for Wi-Fi" value={mobile} onChange={(v) => { setMobile(v); downloads.setAllowMobile(v); }} />
+      </Card>
+      <Text className="text-text text-base font-display-semibold mt-section mb-row" accessibilityRole="header">Tidy up</Text>
+      <Card>
+        <SwitchRow icon="trash-outline" label="Delete after playing" line="A downloaded episode is removed when you finish it" value={afterPlay} onChange={(v) => { setAfterPlay(v); downloads.setDeleteAfterPlay(v); }} />
+        <CardDivider />
+        <SwitchRow icon="albums-outline" label="When storage is full, remove the oldest" line="Starred episodes and ones you are part-way through are never removed" value={evict} onChange={(v) => { setEvict(v); downloads.setEvictOldest(v); }} />
       </Card>
     </ScrollView>
     {dialog}

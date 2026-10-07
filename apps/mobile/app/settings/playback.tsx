@@ -17,7 +17,7 @@ import { ScrollView } from '@/ui/lib/scroll-view';
 import { Text } from '@/ui/lib/text';
 import { getPref, setPref } from '@/settings/prefs';
 import { useStores } from '@/ui/shell/providers';
-import { SwitchRow } from '@/ui/settings/rows';
+import { LinkRow, SwitchRow } from '@/ui/settings/rows';
 import { Card, CardDivider } from '@/ui/kit/Card';
 import { Segmented } from '@/ui/kit/Segmented';
 import { Box } from '@/ui/lib/box';
@@ -51,6 +51,9 @@ export default function PlaybackSettings(): React.ReactElement {
         <SwitchRow icon="document-text-outline" label="Show transcript entry on the player" line="The transcript button and the live line under the title" value={transcript} onChange={(v) => { setTranscript(v); setPref(stores.settings, 'transcriptEntry', v); }} />
         <CardDivider />
         <SwitchRow icon="chatbubble-ellipses-outline" label="Comments on lock screen" line="A listener's comment from near where you are, under the episode title" value={lock} onChange={(v) => { setLock(v); setPref(stores.settings, 'lockComments', v); }} />
+        <CardDivider />
+        {/* M22 US4: the last 10 playlist versions on this phone. */}
+        <LinkRow href="/settings/queue-backups" icon="time-outline" label="Playlist backups" line="The last 10 versions of your playlist on this phone" />
       </Card>
       <Section title="Sound" />
       <Card>

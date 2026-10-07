@@ -21,6 +21,9 @@
  * M21 T045 (US3, FR-021): the sheet's cards show a ▶ inside the row button (the row plays at
  * once), and `select` turns every row into a checkbox for the sheet's Edit mode — no ⋮, no drag,
  * a tap ticks it.
+ *
+ * M22 US12 (FR-036/037): outside Edit mode a row swipes left for "Remove" (src/ui/kit/SwipeRow.tsx),
+ * also offered as an accessibility action on the row's Play button.
  */
 import { useMemo, useRef, useState } from 'react';
 import { PanResponder, type GestureResponderHandlers } from 'react-native';
@@ -39,6 +42,7 @@ import { useColours } from '@/ui/kit/useColours';
 import { hit } from '@/design';
 import { minutesLabel } from '@/ui/kit/format';
 import type { Stores } from '@/storage/types';
+import { SwipeRow, swipeA11y, type SwipeAction } from '@/ui/kit/SwipeRow';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
 const ROW_TAP = { minHeight: hit.min };
@@ -185,6 +189,8 @@ function QueueRow(props: {
     onPanResponderTerminate: (_e, g) => drop.current(g.dy),
   }).panHandlers, []);
   const { title } = d;
+  // M22 US12: swipe left → Remove (the ⋮ list keeps "Remove from the queue").
+  const swipe: SwipeAction[] = [{ key: 'remove', label: 'Remove', onPress: () => props.onChange(remove(ids, id)) }];
   const lifted = props.dy !== 0 ? { transform: [{ translateY: props.dy }], zIndex: 1 } : undefined;
   const handle = (
     <Box {...handlers} className="items-center justify-center" style={TAP} accessible accessibilityRole="adjustable" accessibilityLabel={`Drag to reorder ${title}`}>
@@ -242,11 +248,12 @@ function QueueRow(props: {
 
   if (page) {
     return (
+      <SwipeRow swipeLeft={swipe} enabled={props.dy === 0}>
       <Box className={props.dy !== 0 ? 'bg-surface rounded-row' : ''} style={lifted}>
         <Box className="flex-row items-center gap-2.5 border-b-hairline border-separator" style={{ minHeight: QUEUE_ROW }}>
           <Text className="text-muted text-lg font-display w-6" accessible={false}>{String(index + 1)}</Text>
           {/* M16a bug 6 (FR-002): the row itself plays the episode. */}
-          <Pressable onPress={() => props.onPlay(id)} accessibilityRole="button" accessibilityLabel={`Play ${title}`} className="flex-1 flex-row items-center gap-row" style={ROW_TAP}>
+          <Pressable {...swipeA11y(swipe)} onPress={() => props.onPlay(id)} accessibilityRole="button" accessibilityLabel={`Play ${title}`} className="flex-1 flex-row items-center gap-row" style={ROW_TAP}>
             <Artwork url={d.art} size={52} name={d.artName} />
             <Box className="flex-1">
               <Text className="text-text text-body font-semibold" numberOfLines={2}>{title}</Text>
@@ -257,11 +264,13 @@ function QueueRow(props: {
           {handle}
         </Box>
       </Box>
+      </SwipeRow>
     );
   }
 
   // M17 `QueueSheet-B`: a numbered card per episode; the actions open inside it as pills.
   return (
+    <SwipeRow swipeLeft={swipe} enabled={props.dy === 0 && !props.open}>
     <Box className="mb-2.5" style={lifted}>
       <Box className="bg-surface border border-border rounded-row p-3">
         <Box className="flex-row items-center gap-row">
@@ -269,7 +278,7 @@ function QueueRow(props: {
           {/* M16a bug 6 (FR-002). Phone walk 2026-10-02: tapping a row in "Up next" did nothing —
               the artwork and title were plain views; only the drag handle and ⋮ took a tap. The row
               itself now plays the episode (the sheet closes, the page opens the player). */}
-          <Pressable onPress={() => props.onPlay(id)} accessibilityRole="button" accessibilityLabel={`Play ${title}`} className="flex-1 flex-row items-center gap-row" style={ROW_TAP}>
+          <Pressable {...swipeA11y(swipe)} onPress={() => props.onPlay(id)} accessibilityRole="button" accessibilityLabel={`Play ${title}`} className="flex-1 flex-row items-center gap-row" style={ROW_TAP}>
             <Artwork url={d.art} size={64} name={d.artName} />
             <Box className="flex-1 gap-0.5">
               <Text className="text-text text-sm font-display-semibold" numberOfLines={2}>{title}</Text>
@@ -317,5 +326,6 @@ function QueueRow(props: {
         ) : null}
       </Box>
     </Box>
+    </SwipeRow>
   );
 }

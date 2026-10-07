@@ -12,6 +12,8 @@
  * names and handlers as before.
  * M21 US4: a long-press on the episode opens the ⋯ sheet too.
  * M21 US8 (FR-070): a video episode shows a small video mark before the show name (and says so).
+ * M22 US12 (FR-036/037): the row swipes — left for Queue and Remove from Updates, right for Mark
+ * played (src/ui/kit/SwipeRow.tsx); each is also an accessibility action on the episode button.
  */
 import { Pressable } from '@/ui/lib/pressable';
 import { Text } from '@/ui/lib/text';
@@ -24,6 +26,7 @@ import { ago, minutesLabel } from '@/ui/kit/format';
 import { hit } from '@/design';
 import { mediaKindOf, plural } from '@socialmorning/social-core';
 import type { UpdateRow } from '@/me/updates';
+import { SwipeRow, swipeA11y, type SwipeAction } from '@/ui/kit/SwipeRow';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
 /** The episode link and the Play pill: 48 pt tall, any width. */
@@ -81,6 +84,10 @@ export function UpdateEpisodeRow(props: {
   onPlay: () => void;
   /** M21 US4 (FR-035): a long-press on the episode opens the same sheet as ⋯. Defaults to `onMore`. */
   onLongPress?: () => void;
+  /** M22 US12: swipe left → "Remove from Updates". Left out → no such action. */
+  onRemoveFromUpdates?: () => void;
+  /** M22 US12: swipe right → "Mark played". Left out → no such action. */
+  onMarkPlayed?: () => void;
 }): React.ReactElement {
   const { item, iconColour: c } = props;
   const done = props.doneColour ?? c;
@@ -88,13 +95,19 @@ export function UpdateEpisodeRow(props: {
   const e = item.episode;
   const meta = updateMeta({ durationMs: e.durationMs, publishedAt: e.publishedAt, plays: props.plays, comments: props.comments, now: props.now });
   const video = mediaKindOf(e.enclosureType, e.enclosureUrl) === 'video';
+  const swipeLeft: SwipeAction[] = [
+    { key: 'queue', label: 'Queue', onPress: props.onQueue },
+    ...(props.onRemoveFromUpdates ? [{ key: 'remove', label: 'Remove from Updates', onPress: props.onRemoveFromUpdates }] : []),
+  ];
+  const swipeRight: SwipeAction[] = props.onMarkPlayed ? [{ key: 'played', label: 'Mark played', onPress: props.onMarkPlayed }] : [];
   return (
+    <SwipeRow swipeLeft={swipeLeft} swipeRight={swipeRight}>
     <Card className="mx-screen-x mt-row pt-row">
       <Box className="flex-row gap-row">
         <Pressable onPress={props.onOpenShow} accessibilityRole="button" accessibilityLabel={`Open ${item.showTitle}`}>
           <Artwork url={item.imageUrl} size={64} rounded="row" name={item.showTitle} />
         </Pressable>
-        <Pressable onPress={props.onOpenEpisode} onLongPress={props.onLongPress ?? props.onMore} accessibilityHint="Long-press for more actions" accessibilityRole="button" accessibilityLabel={`${e.title}, ${item.showTitle}${video ? ', video' : ''}. ${meta.label}`} className="flex-1 gap-1" style={PILL}>
+        <Pressable {...swipeA11y([...swipeLeft, ...swipeRight])} onPress={props.onOpenEpisode} onLongPress={props.onLongPress ?? props.onMore} accessibilityHint="Long-press for more actions" accessibilityRole="button" accessibilityLabel={`${e.title}, ${item.showTitle}${video ? ', video' : ''}. ${meta.label}`} className="flex-1 gap-1" style={PILL}>
           <Box className="flex-row items-center gap-1">
             {video ? <Icon name="videocam-outline" size={14} color={c} /> : null}
             <Text className="text-accent text-xs font-semibold flex-1" numberOfLines={1}>{item.showTitle}</Text>
@@ -134,5 +147,6 @@ export function UpdateEpisodeRow(props: {
         </Pressable>
       </Box>
     </Card>
+    </SwipeRow>
   );
 }

@@ -13,20 +13,27 @@
  * M21 US10 (T110): each row also shows two lines of the episode's description (its show notes as
  * plain text), and under them ▶ Play, Share (the app's share panel) and the comment count — from
  * ONE comment-counts call for the first 100 rows; a count that is 0 or unknown is left out.
+ *
+ * M22 US8 (FR-026): Select (top right) turns the rows into tick boxes; "Delete (N)" removes up to
+ * 100 at once and "Clear all" (one confirm) empties history — on the account when signed in
+ * (`DELETE /v1/me/history`, positions only: listening totals and stickers stay), and hidden on
+ * this phone (`src/me/history.ts`). Opening the page also hides rows another phone deleted.
  */
 import { Link } from 'expo-router';
 import { useEffect, useState } from 'react';
+import { HISTORY_DELETE_MAX, useM22LibraryApi } from '@/social/api-m22-library';
+import { useConfirm } from '@/ui/kit/confirm';
 import { FlatList } from '@/ui/lib/flat-list';
 import { Pressable } from '@/ui/lib/pressable';
 import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { listeningHistory, matchesAll, type HistoryRow } from '@/me/history';
+import { hideDeletedElsewhere, hideFromHistory, listeningHistory, matchesAll, type HistoryRow } from '@/me/history';
 import { FilterBar } from '@/ui/me/FilterBar';
 import { Artwork } from '@/ui/kit/Artwork';
 import { Card, CardDivider } from '@/ui/kit/Card';
 import { mmss, shortDate } from '@/ui/kit/format';
 import { EmptyPicture } from '@/ui/me/parts';
-import { useStores } from '@/ui/shell/providers';
+import { useStores, useToast } from '@/ui/shell/providers';
 import { hit, size } from '@/design';
 import { PageHeader } from '@/ui/kit/PageHeader';
 import { EndOfList } from '@/ui/kit/EndOfList';
@@ -46,6 +53,8 @@ const ROW = { minHeight: size.row };
 /** ▶ and Share under a row: 48 pt targets. */
 const TAP = { minHeight: hit.min, minWidth: hit.min };
 const DAY = 24 * 60 * 60 * 1000;
+const PILL = { minHeight: hit.min };
+const NONE: ReadonlySet<string> = new Set();
 
 /** The day heading a row falls under, counted in calendar days on this phone. */
 function dayLabel(at: number, now: number): string {
@@ -75,6 +84,23 @@ export default function HistoryScreen(): React.ReactElement {
   const [term, setTerm] = useState('');
   const [finished, setFinished] = useState(false);
   const [menuFor, setMenuFor] = useState<CachedEpisode | undefined>();
+  // M22 US8: select mode, the ticked rows, and a bump to re-read after a delete.
+  const [selecting, setSelecting] = useState(false);
+  const [chosen, setChosen] = useState<ReadonlySet<string>>(NONE);
+  const [overLimit, setOverLimit] = useState(false);
+  const [, setVersion] = useState(0);
+  const bump = () => setVersion((v) => v + 1);
+  const m22 = useM22LibraryApi();
+  const toast = useToast();
+  const [confirm, dialog] = useConfirm();
+  const signedIn = stores.auth.get() !== undefined;
+  // Rows deleted on another phone: synced here, gone from the account → hidden here too.
+  useEffect(() => {
+    if (!signedIn) return;
+    let live = true;
+    m22.positionIds().then((ids) => { if (live && hideDeletedElsewhere(stores.settings, stores.positions.all(), ids, Date.now()) > 0) bump(); }, () => undefined);
+    return () => { live = false; };
+  }, [m22, stores, signedIn]);
   const rows = listeningHistory(stores).filter((r) => (!finished || r.finished) && matchesAll(term, [r.episode.title, stores.feeds.getShow(r.episode.feedUrl)?.title]));
   const groups = byDay(rows, Date.now());
   const player = usePlayer();
@@ -91,9 +117,40 @@ export default function HistoryScreen(): React.ReactElement {
     return () => { live = false; };
   }, [m12, ids]);
   const play = (id: string) => { const p = toPlayable(stores, id); if (p) player.load(p, 'play'); };
+  const toggle = (id: string) => {
+    const next = new Set(chosen);
+    if (next.has(id)) { next.delete(id); setOverLimit(false); }
+    else if (next.size >= HISTORY_DELETE_MAX) { setOverLimit(true); return; }
+    else next.add(id);
+    setChosen(next);
+  };
+  const leaveSelect = () => { setSelecting(false); setChosen(NONE); setOverLimit(false); };
+  /** On the account first (when signed in), then hidden here; a failed call still hides it here. */
+  const remove = async (what: { episodeIds: readonly string[] } | { all: true }, ids: readonly string[]) => {
+    let synced = true;
+    if (signedIn) await m22.deleteHistory(what).catch(() => { synced = false; });
+    hideFromHistory(stores.settings, ids, Date.now());
+    leaveSelect();
+    bump();
+    toast(synced ? ('all' in what ? 'History cleared.' : `${plural(ids.length, 'item')} deleted.`) : "Deleted on this phone. Couldn't reach the server — other devices still show it.");
+  };
+  const deleteChosen = () => { const ids = [...chosen]; if (ids.length > 0) void remove({ episodeIds: ids }, ids); };
+  const clearAll = () => confirm({
+    title: 'Clear all listening history?',
+    message: 'History is emptied on all your signed-in devices. Your listening time and stickers stay.',
+    action: 'Clear all',
+    onConfirm: () => { void remove({ all: true }, stores.positions.all().map((p) => p.episodeId)); },
+  });
   return (
     <>
-    <PageHeader title="Listening history" />
+    <PageHeader
+      title="Listening history"
+      right={rows.length > 0 || selecting ? (
+        <Pressable onPress={selecting ? leaveSelect : () => setSelecting(true)} accessibilityRole="button" accessibilityLabel={selecting ? 'Done' : 'Select'} className="items-center justify-center px-2" style={TAP}>
+          <Text className="text-accent text-body font-bold">{selecting ? 'Done' : 'Select'}</Text>
+        </Pressable>
+      ) : undefined}
+    />
     <FlatList
       className="flex-1 bg-background"
       data={groups}
@@ -118,6 +175,17 @@ export default function HistoryScreen(): React.ReactElement {
               return (
                 <Box key={item.episode.id}>
                   {i > 0 ? <CardDivider /> : null}
+                  {selecting ? (
+                    <Pressable onPress={() => toggle(item.episode.id)} accessibilityRole="checkbox" accessibilityState={{ checked: chosen.has(item.episode.id) }} accessibilityLabel={`Select ${item.episode.title}`} className="flex-row gap-row py-2.5 items-center" style={ROW}>
+                      <Icon name={chosen.has(item.episode.id) ? 'checkmark-circle' : 'ellipse-outline'} size={24} color={chosen.has(item.episode.id) ? c.accent : c.muted} />
+                      <Artwork url={item.episode.imageUrl ?? show?.imageUrl} size={48} rounded="row" name={show?.title} />
+                      <Box className="flex-1">
+                        <Text className="text-text text-body font-semibold" numberOfLines={1}>{item.episode.title}</Text>
+                        <Text className="text-muted text-xs mt-0.5" numberOfLines={1}>{[show?.title, where].filter(Boolean).join(' · ')}</Text>
+                      </Box>
+                    </Pressable>
+                  ) : (
+                  <>
                   <Link href={{ pathname: '/episode/[id]', params: { id: item.episode.id } }} asChild>
                     {/* M12 FR-050: a compact row (50 pt minimum); M17 adds the progress line. */}
                     <Pressable className="flex-row gap-row py-2.5 items-center" style={ROW} accessibilityRole="button" accessibilityLabel={`${item.episode.title}. ${where}`} onLongPress={() => setMenuFor(item.episode)} accessibilityHint="Long-press for more actions">
@@ -151,6 +219,8 @@ export default function HistoryScreen(): React.ReactElement {
                       </Box>
                     ) : null}
                   </Box>
+                  </>
+                  )}
                 </Box>
               );
             })}
@@ -158,6 +228,28 @@ export default function HistoryScreen(): React.ReactElement {
         </Box>
       )}
     />
+    {selecting ? (
+      <Box className="px-screen-x pt-row pb-section gap-2 bg-background border-t-hairline border-separator">
+        {overLimit ? <Text className="text-muted text-xs" accessibilityLiveRegion="polite">{`You can delete up to ${HISTORY_DELETE_MAX} at a time.`}</Text> : null}
+        <Box className="flex-row gap-gap">
+          <Pressable onPress={clearAll} accessibilityRole="button" accessibilityLabel="Clear all" className="flex-1 items-center justify-center rounded-pill bg-surface border border-border" style={PILL}>
+            <Text className="text-accent text-body font-bold">Clear all</Text>
+          </Pressable>
+          <Pressable
+            onPress={chosen.size > 0 ? deleteChosen : undefined}
+            disabled={chosen.size === 0}
+            accessibilityRole="button"
+            accessibilityLabel={`Delete (${chosen.size})`}
+            accessibilityState={{ disabled: chosen.size === 0 }}
+            className={`flex-1 items-center justify-center rounded-pill bg-primary ${chosen.size === 0 ? 'opacity-40' : ''}`}
+            style={PILL}
+          >
+            <Text className="text-onPrimary text-body font-bold">{`Delete (${chosen.size})`}</Text>
+          </Pressable>
+        </Box>
+      </Box>
+    ) : null}
+    {dialog}
     <EpisodeRowSheet
       episode={menuFor ? { id: menuFor.id, title: menuFor.title, feedUrl: menuFor.feedUrl, imageUrl: menuFor.imageUrl ?? stores.feeds.getShow(menuFor.feedUrl)?.imageUrl } : undefined}
       onClose={() => setMenuFor(undefined)}

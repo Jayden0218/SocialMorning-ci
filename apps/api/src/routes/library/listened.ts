@@ -54,3 +54,24 @@ listeningRoute.get('/', requireAuth, async (c) => {
   const today = todayFor(c.req.query('today'), Date.now());
   return c.json({ range, ...listeningOf(rows, today, range), earned: listeningStickerDays(rows) });
 });
+
+const historyBody = z.union([
+  z.object({ episodeIds: z.array(z.string().min(1).max(64)).min(1).max(100) }).strict(),
+  z.object({ all: z.literal(true) }).strict(),
+]);
+
+/**
+ * M22 US8 (research R7) — mounted at /v1/me/history. DELETE `{ episodeIds: 1–100 }` or
+ * `{ all: true }` → 204. Removes the listener's `positions` rows only: `listened_ranges` (and so
+ * listening totals and hours stickers) stay as they were (guard G-M22-14). Another phone sees the
+ * delete on its next position pull: a synced row the account no longer has is hidden there.
+ */
+export const history = new Hono<AuthEnv>();
+
+history.delete('/', requireAuth, json(historyBody), async (c) => {
+  const b = c.req.valid('json');
+  const id = c.get('listener')!.id;
+  if ('all' in b) await c.get('db').query('DELETE FROM positions WHERE listener_id = $1', [id]);
+  else await c.get('db').query('DELETE FROM positions WHERE listener_id = $1 AND episode_id = ANY($2::text[])', [id, b.episodeIds]);
+  return c.body(null, 204);
+});
