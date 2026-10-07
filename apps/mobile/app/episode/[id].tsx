@@ -29,7 +29,6 @@
  * episode sheet; the collapsed bar shows Subscribe beside ▶; the ⋯ sheet adds Report episode.
  * M21 US12: beside it, "Download to Watch" (src/ui/episode/WatchTile), hidden without a Watch.
  */
-import { reportAndDrop } from '@/telemetry/reportError';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '@/ui/lib/actionsheet';
@@ -41,7 +40,7 @@ import { Box } from '@/ui/lib/box';
 import { enqueue } from '@socialmorning/player-core';
 import { useColours } from '@/ui/kit/useColours';
 import { Icon } from '@/ui/kit/Icon';
-import { episodePlayView, livePositionMs, sameEpisodePlayView, usePlayer, usePlayerSelector } from '@/playback/store';
+import { usePlayer, usePlayerState } from '@/playback/store';
 import { ago, minutesLabel, mmss, noteParts } from '@/ui/kit/format';
 import { useStores, useSubscriptionSync, useToast } from '@/ui/shell/providers';
 import * as Clipboard from 'expo-clipboard';
@@ -97,8 +96,7 @@ export default function EpisodeScreen(): React.ReactElement {
   // M5 (FR-008): "Next up" for this episode; absent when the server has no answer.
   const nextUp = useNextUp(episode?.id);
   const { open: discoverOpen } = useDiscover();
-  // M23 US7: loaded / playing / paused position only — a TICK while it plays does not re-render the page.
-  const view = usePlayerSelector((s) => episodePlayView(s, episode?.id), sameEpisodePlayView);
+  const playerState = usePlayerState();
   const [composing, setComposing] = useState<ComposerState | undefined>();
   usePoll(episode?.id);
   const { cached, stale } = useEpisodeSocial(episode?.id);
@@ -189,10 +187,10 @@ export default function EpisodeScreen(): React.ReactElement {
     ...((episode.imageUrl ?? show?.imageUrl) !== undefined ? { artworkUrl: episode.imageUrl ?? show?.imageUrl } : {}),
     ...(episode.durationMs !== undefined && { durationMs: episode.durationMs }),
   };
-  const openComments = () => router.push({ pathname: '/comments/[episodeId]', params: { episodeId: episode.id, at: String(Math.round(offsetNow())) } });
+  const openComments = () => router.push({ pathname: '/comments/[episodeId]', params: { episodeId: episode.id, at: String(Math.round(snapshotOffset)) } });
   const playFrom = (offsetMs: number) => {
     // If this episode is already loaded, seek; otherwise load paused-at-start then seek.
-    if (view.loaded) {
+    if (playerState.kind !== 'idle' && playerState.episodeId === episode.id) {
       player.seek(offsetMs);
       player.play();
     } else {
@@ -203,12 +201,13 @@ export default function EpisodeScreen(): React.ReactElement {
   };
   // The comment box from this screen uses the listener's current position in THIS
   // episode if it is loaded, else the saved position, else the start (US1 #4).
-  // M23 US7: read live at the tap (the page no longer re-renders per TICK); a render (a sheet
-  // opening) takes the moment then.
-  const offsetNow = (): number => livePositionMs(player, episode.id) ?? saved?.offsetMs ?? 0;
-  const snapshotOffset: number = offsetNow();
+  const snapshotOffset: number =
+    playerState.kind !== 'idle' && playerState.episodeId === episode.id && 'positionMs' in playerState && playerState.positionMs !== undefined
+      ? playerState.positionMs
+      : (saved?.offsetMs ?? 0);
 
-  const { loaded, playing } = view;
+  const loaded = playerState.kind !== 'idle' && playerState.episodeId === episode.id;
+  const playing = loaded && (playerState.kind === 'playing' || playerState.kind === 'buffering');
   const playOrPause = () => {
     if (playing) { player.pause(); return; }
     if (loaded) player.play(); else player.load(playable, 'play');
@@ -377,8 +376,8 @@ export default function EpisodeScreen(): React.ReactElement {
         onClose={() => setSharing(false)}
         episode={{ id: episode.id, title: episode.title, showTitle: show?.title ?? '' }}
         atMs={snapshotOffset}
-        onClip={() => router.push({ pathname: '/clip/new', params: { episodeId: episode.id, positionMs: String(Math.round(offsetNow())) } })}
-        onShared={() => void api.recordShare({ targetKind: 'episode', targetId: episode.id, feedUrl: episode.feedUrl }).catch(reportAndDrop('share.record'))}
+        onClip={() => router.push({ pathname: '/clip/new', params: { episodeId: episode.id, positionMs: String(Math.round(snapshotOffset)) } })}
+        onShared={() => void api.recordShare({ targetKind: 'episode', targetId: episode.id, feedUrl: episode.feedUrl }).catch(() => undefined)}
       />
       <Actionsheet isOpen={more} onClose={() => setMore(false)}>
         <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />

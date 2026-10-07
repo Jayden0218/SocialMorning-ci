@@ -16,7 +16,6 @@
  *
  * Pure over injected pieces; `__tests__/position-sync.test.ts` (A19, A20) is the spec.
  */
-import { reportError } from '@/telemetry/reportError';
 import type { ApiClient, EpisodeRegistration, PositionRowOut } from '@/social/api';
 import { ApiError } from '@/social/api';
 import type { PositionRow, PositionStore } from '@/storage/types';
@@ -115,7 +114,7 @@ export function createPositionSync(deps: SyncDeps): PositionSync {
       try {
         const { positions } = await deps.api.getPositions();
         applyServerRows(positions, new Map());
-      } catch (e) { reportError('sync.positions', e); /* offline: the local rows stand, and the next attempt pushes them */ }
+      } catch { /* offline: the local rows stand, and the next attempt pushes them */ }
     },
     flush: () => attempt(),
     dispose() { deps.clearTimeout(retryHandle); retryHandle = undefined; },

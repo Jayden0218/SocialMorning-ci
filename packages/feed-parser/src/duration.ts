@@ -1,4 +1,5 @@
 // Reads episode lengths and dates from podcast feeds, refusing values it cannot trust.
+import { parseFeedDate } from './date';
 /**
  * `<itunes:duration>` is the single least trustworthy field in podcast RSS.
  * Observed in the wild: plain seconds, `H:MM:SS`, `MM:SS`, fractional
@@ -37,13 +38,10 @@ export function parseDurationMs(raw: unknown): number | undefined {
 
 /**
  * `<pubDate>` is specified as RFC-822 and is frequently ISO-8601 instead.
- * `Date.parse` accepts both. An unparsable date is a warning, never a
- * failure — an episode with no date still plays.
+ * M23 US5: read by the shared `parseFeedDate` (missing zone = UTC), not
+ * `Date.parse`, so the phone and the server agree. An unparsable date is a
+ * warning, never a failure — an episode with no date still plays.
  */
 export function parseDateMs(raw: unknown): number | undefined {
-  if (raw === undefined || raw === null) return undefined;
-  const text = String(raw).trim();
-  if (text === '') return undefined;
-  const parsed = Date.parse(text);
-  return Number.isNaN(parsed) ? undefined : parsed;
+  return parseFeedDate(raw);
 }

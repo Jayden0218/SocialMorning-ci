@@ -59,7 +59,8 @@ async function authorOf(db: Db, kind: TargetKind, id: string): Promise<string | 
 }
 
 export async function hiddenFeedUrls(db: Db): Promise<Set<string>> {
-  const rows = await db.query<{ feed_url: string }>('SELECT feed_url FROM hidden_feeds');
+  // M23 US11: plus shows whose own feed says `itunes:block` (catalog/feed.ts setPublisherBlock).
+  const rows = await db.query<{ feed_url: string }>("SELECT feed_url FROM hidden_feeds UNION SELECT substr(key, 12) FROM cache WHERE key LIKE 'feed-block:%'");
   return new Set(rows.map((r) => r.feed_url));
 }
 

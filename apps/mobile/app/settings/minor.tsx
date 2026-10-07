@@ -77,7 +77,7 @@ export default function MinorMode(): React.ReactElement {
       setBusy(true);
       m19.teenResetCheck(value)
         .then(() => { clearPasscode(stores.settings); turn(false); go({ kind: 'none' }); toast('Minor mode is off and the passcode is cleared.'); })
-        .catch((e) => go({ kind: 'code' }, e instanceof ApiError && (e.status === 422 || e.status === 400 || e.status === 401) ? 'That code is wrong or has expired.' : "Couldn't reach the server. Try again."))
+        .catch((e) => go({ kind: 'code' }, e instanceof ApiError && (e.status === 400 || e.status === 401) ? 'That code is wrong or has expired.' : "Couldn't reach the server. Try again."))
         .finally(() => setBusy(false));
       return;
     }

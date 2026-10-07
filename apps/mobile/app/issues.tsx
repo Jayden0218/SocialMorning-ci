@@ -11,7 +11,6 @@
  * M21 T086 (FR-064): each card carries the issue number ("No. 4"), and a row of date bubbles
  * (day over month) under the lead card opens any past issue in one tap.
  */
-import { useLoad } from '@/ui/kit/useLoad';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
@@ -43,8 +42,12 @@ export default function IssuesScreen(): React.ReactElement {
   const m12 = useM12Api();
   const c = useColours(useStores().settings);
   const { width } = useWindowDimensions();
-  // M23 US9: cancelled on unmount; only the newest answer lands.
-  const [state, load] = useLoad(() => m12.issues().then((issues) => ({ issues })), [m12], 'issues.load');
+  const [state, setState] = useState<State>({ kind: 'loading' });
+  const load = useCallback(() => {
+    setState({ kind: 'loading' });
+    m12.issues().then((issues) => setState({ kind: 'ok', issues }), () => setState({ kind: 'error' }));
+  }, [m12]);
+  useEffect(() => { load(); }, [load]);
 
   const issues = state.kind === 'ok' ? state.issues : [];
   const lead = issues[0];

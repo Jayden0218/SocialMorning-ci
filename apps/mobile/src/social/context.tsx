@@ -3,7 +3,6 @@
  * What the social screens need: the API client, the auth API, and a live
  * "who am I" that re-renders on sign-in/out. Mounted inside <AppProviders>.
  */
-import { reportAndDrop } from '@/telemetry/reportError';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ApiError, createApi, type ApiClient, type Social } from './api';
 import { createAuth, type AuthApi } from './auth-store';
@@ -63,9 +62,9 @@ export function SocialProvider(props: { children?: ReactNode }): ReactNode {
   const auth = useMemo(() => createAuth({ api, stores, token: secureToken, now: () => Date.now(), onAccepted: (r) => {
     pendingDeletionStore.set(r.pendingDeletion ?? null);
     const tz = deviceTimeZone();
-    if (tz) void m22.setTimeZone(tz).catch(reportAndDrop('me.timeZone'));
+    if (tz) void m22.setTimeZone(tz).catch(() => undefined);
   }, onSignedIn: () => {
-    void library.reconcile().catch(reportAndDrop('sync.library'));
+    void library.reconcile().catch(() => undefined);
     return sync.reconcile();
   } }), [api, stores, sync, library, m22]);
   const refreshListener = useCallback(() => setListener(stores.auth.get()), [stores]);

@@ -4,7 +4,6 @@
  * the listener is signed in and has allowed notifications, removed at sign-out. The last
  * address sent is remembered so sign-out can remove exactly it.
  */
-import { reportError } from '@/telemetry/reportError';
 import type { SettingsStore } from '@/storage/types';
 
 export const PUSH_TOKEN_KEY = 'push.token';
@@ -33,6 +32,6 @@ export async function registerPush(d: PushDeps): Promise<'sent' | 'none' | 'fail
 export async function unregisterPush(d: Pick<PushDeps, 'remove' | 'settings'>): Promise<void> {
   const t = d.settings.get(PUSH_TOKEN_KEY);
   if (!t) return;
-  try { await d.remove(t); } catch (e) { reportError('push.remove', e); /* signed out anyway; the server drops a dead token on its next send */ }
+  try { await d.remove(t); } catch { /* signed out anyway; the server drops a dead token on its next send */ }
   d.settings.set(PUSH_TOKEN_KEY, '');
 }
