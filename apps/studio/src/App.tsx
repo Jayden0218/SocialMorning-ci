@@ -42,6 +42,11 @@ const Accounts = page(() => import('./pages/admin/Accounts'), 'Accounts');
 const Users = page(() => import('./pages/admin/Users'), 'Users');
 const Reports = page(() => import('./pages/admin/Reports'), 'Reports');
 const TranslationShows = page(() => import('./pages/admin/Translation'), 'TranslationShows');
+// M24 lane A1
+const Appeals = page(() => import('./pages/admin/Appeals'), 'Appeals');
+const Deletions = page(() => import('./pages/admin/Appeals'), 'Deletions');
+const Safety = page(() => import('./pages/admin/Safety'), 'Safety');
+const Notices = page(() => import('./pages/admin/Notices'), 'Notices');
 
 /** While a page's download arrives: the same loading line every block uses. */
 function Wait({ children }: { children: ReactElement }) {
@@ -85,6 +90,10 @@ export function App() {
         <Route path="users" element={<Wait><Users /></Wait>} />
         <Route path="reports" element={<Wait><Reports /></Wait>} />
         <Route path="translation" element={<Wait><TranslationShows /></Wait>} />
+        <Route path="appeals" element={<Wait><Appeals /></Wait>} />
+        <Route path="safety" element={<Wait><Safety /></Wait>} />
+        <Route path="notices" element={<Wait><Notices /></Wait>} />
+        <Route path="deletions" element={<Wait><Deletions /></Wait>} />
         <Route path="*" element={<Navigate to="dashboard" replace />} />
       </Route>
       <Route path="*" element={<Signed><FirstShow /></Signed>} />

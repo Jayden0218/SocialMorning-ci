@@ -40,6 +40,8 @@ export { REPORT_REASONS, REPORT_NOTE_MAX, TARGET_KINDS, canReport, canBlock, hid
 export type { ReportReason, TargetKind, BlockedPlaceholder, ReportedPlaceholder, Named } from './safety';
 export { RETENTION_DAYS, REPORTS_PER_HOUR, DELETED_REPORTER, groupReports, actionsFor, closeReason } from './moderation';
 export type { ReportRow, QueueItem, Action } from './moderation';
+// M24 US2: the blocked-words filter
+export { WORD_MAX, WORDS_MAX, normaliseWord, normaliseText, findBlockedWord } from './words';
 export { EMPTY_STATES, SURFACES, LOADING_AFTER_MS, GIVE_UP_AFTER_MS, OFFLINE_SENTENCE, ERROR_SENTENCE, emptyState } from './empty';
 export type { Surface, EmptyAction, EmptySpec, EmptyView } from './empty';
 // M8 — For You (specs/008-m8-for-you/contracts/recsys-core.ts)

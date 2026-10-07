@@ -8,7 +8,7 @@ import { useLoad } from '../../useLoad';
 import { errorText } from './common';
 import { plural } from '@socialmorning/social-core';
 
-type Kind = 'comment' | 'clip' | 'profile' | 'show' | 'episode' | 'transcript';
+type Kind = 'comment' | 'clip' | 'profile' | 'show' | 'episode' | 'transcript' | 'status' | 'chat_message' | 'list';
 type Action = 'dismiss' | 'remove' | 'hide_show' | 'suspend' | 'unsuspend' | 'unhide_show';
 type Item = { targetKind: Kind; targetId: string; count: number; latestAt: number; reasons: string[]; reporters: string[]; notes: string[]; snapshot: Record<string, unknown> | null; actions: Action[] };
 type Closed = { id: string; targetKind: Kind; targetId: string; reason: string; reporterName: string | null; createdAt: string; closedAt: string | null; closeReason: string | null };
@@ -16,6 +16,14 @@ type Done = { id: string; action: Action; targetKind: Kind; targetId: string; ac
 
 const ACTION_LABEL: Record<Action, string> = { dismiss: 'Dismiss', remove: 'Remove', hide_show: 'Hide the show', suspend: 'Suspend the author', unsuspend: 'Restore', unhide_show: 'Un-hide the show' };
 const str = (s: Record<string, unknown> | null, k: string) => (s && typeof s[k] === 'string' ? (s[k] as string) : '');
+
+/** M24 US1: the messages before a reported chat message, as the report kept them. */
+export function chatContext(s: Record<string, unknown> | null): { from: string; body: string }[] {
+  const c = s?.['context'];
+  if (!Array.isArray(c)) return [];
+  return c.filter((m): m is { from: string; body: string } => !!m && typeof (m as { from?: unknown }).from === 'string' && typeof (m as { body?: unknown }).body === 'string')
+    .map((m) => ({ from: m.from, body: m.body }));
+}
 
 /** What was reported, from the copy kept at report time (the target may have changed since). */
 function Snapshot({ item }: { item: Item }) {
@@ -29,6 +37,10 @@ function Snapshot({ item }: { item: Item }) {
     // M21 US2: an episode, or a transcript line with the listener's correction.
     case 'episode': return <div className="row-body">Episode: {str(s, 'episodeTitle') || item.targetId} <span className="row-sub">of {str(s, 'showTitle') || '?'}</span></div>;
     case 'transcript': return <><div className="row-sub">Transcript line on “{str(s, 'episodeTitle')}”</div><blockquote className="row-body">{str(s, 'original') || '(empty)'}</blockquote><div className="row-sub">Should say: {str(s, 'suggested')}</div></>;
+    // M24 US1: a status (its words or its recording), a chat message with the messages before it, a shared list.
+    case 'status': return <><blockquote className="row-body">{str(s, 'body') || str(s, 'voiceText') || '(voice)'}</blockquote>{str(s, 'voiceUrl') ? <audio controls preload="none" src={str(s, 'voiceUrl')} /> : null}<div className="row-sub">status by {str(s, 'authorName') || '?'}</div></>;
+    case 'chat_message': return <>{chatContext(s).map((m, i) => <div key={i} className="row-sub">{m.from}: {m.body}</div>)}<blockquote className="row-body">{str(s, 'body') || '(an episode)'}</blockquote><div className="row-sub">message from {str(s, 'authorName') || '?'} to {str(s, 'recipientName') || '?'}</div></>;
+    case 'list': return <><div className="row-body">Shared list: {str(s, 'title') || item.targetId}</div><div className="row-sub">by {str(s, 'authorName') || '?'}</div></>;
   }
 }
 

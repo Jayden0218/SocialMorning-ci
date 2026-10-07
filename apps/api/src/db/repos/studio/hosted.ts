@@ -30,12 +30,10 @@ export type HostedEpisode = {
   status: 'draft' | 'published'; coverUrl: string | null; scheduled: boolean;
   /** M20 US6: sold with the show's price level; out of the public feed. `paidAllowed`: made after M20 (FR-024). */
   paid: boolean; paidAllowed: boolean;
-  /** M24 US13: a paid episode's free preview, [startMs, endMs) — present only when set. */
-  preview?: { startMs: number; endMs: number };
 };
 
 type ShowRow = { id: string; owner_id: string; feed_url: string; title: string; description: string; author: string; language: string; category: string; explicit: boolean; cover_url: string | null; created_at: Date | string; updated_at: Date | string; price_tier: number | null };
-type EpRow = { id: string; guid: string; episode_id: string; title: string; description: string; audio_url: string; audio_bytes: string | number; audio_type: string; duration_ms: number | null; published_at: Date | string; status: 'draft' | 'published'; cover_url: string | null; paid: boolean; created_at: Date | string | null; preview_start_ms?: number | null; preview_end_ms?: number | null };
+type EpRow = { id: string; guid: string; episode_id: string; title: string; description: string; audio_url: string; audio_bytes: string | number; audio_type: string; duration_ms: number | null; published_at: Date | string; status: 'draft' | 'published'; cover_url: string | null; paid: boolean; created_at: Date | string | null };
 
 const iso = (d: Date | string) => new Date(d).toISOString();
 const toShow = (r: ShowRow): HostedShow => ({
@@ -48,10 +46,9 @@ const toEp = (r: EpRow): HostedEpisode => ({
   audioBytes: Number(r.audio_bytes), audioType: r.audio_type, durationMs: r.duration_ms, publishedAt: iso(r.published_at),
   status: r.status, coverUrl: r.cover_url, scheduled: r.status === 'published' && new Date(r.published_at).getTime() > Date.now(),
   paid: r.paid === true, paidAllowed: r.created_at !== null,
-  ...(r.preview_start_ms != null && r.preview_end_ms != null ? { preview: { startMs: Number(r.preview_start_ms), endMs: Number(r.preview_end_ms) } } : {}),
 });
 const SHOW_COLS = 'id, owner_id, feed_url, title, description, author, language, category, explicit, cover_url, created_at, updated_at, price_tier';
-const EP_COLS = 'id, guid, episode_id, title, description, audio_url, audio_bytes, audio_type, duration_ms, published_at, status, cover_url, paid, created_at, preview_start_ms, preview_end_ms';
+const EP_COLS = 'id, guid, episode_id, title, description, audio_url, audio_bytes, audio_type, duration_ms, published_at, status, cover_url, paid, created_at';
 
 export type ShowIn = { title: string; description?: string; author?: string; language?: string; category?: string; explicit?: boolean; coverUrl?: string | null };
 
@@ -231,27 +228,7 @@ export async function setEpisodePaid(db: Db, show: HostedShow, id: string, paid:
   const live = cur.status === 'published' && new Date(cur.published_at).getTime() <= Date.now();
   if (paid && !cur.paid && live) throw new ApiError('validation', 'A published episode stays free. Make an episode paid while it is a draft or scheduled.', { fields: ['paid'], reason: 'live' });
   if (paid && show.priceTier === null) throw new ApiError('validation', 'Set the show\'s price first.', { fields: ['paid'], reason: 'no_price' });
-  // M24 US13: a free episode has no preview — the whole of it is free.
-  const [r] = await db.query<EpRow>(`UPDATE hosted_episodes SET paid = $3, preview_start_ms = CASE WHEN $3 THEN preview_start_ms END, preview_end_ms = CASE WHEN $3 THEN preview_end_ms END
-    WHERE id = $1 AND show_id = $2 RETURNING ${EP_COLS}`, [id, show.id, paid]);
+  const [r] = await db.query<EpRow>(`UPDATE hosted_episodes SET paid = $3 WHERE id = $1 AND show_id = $2 RETURNING ${EP_COLS}`, [id, show.id, paid]);
   if (!paid) await promoteDue(db, show);
-  return toEp(r!);
-}
-
-/** M24 US13: the longest free preview — 10 minutes (the database checks it too). */
-export const PREVIEW_MAX_MS = 600_000;
-
-/**
- * M24 US13: set (or clear, `null`) a paid episode's free preview. Only a range — no audio is cut or
- * copied: the phone plays the one file and stops at `endMs` for a listener without the purchase.
- */
-export async function setPreview(db: Db, show: HostedShow, id: string, range: { startMs: number; endMs: number } | null): Promise<HostedEpisode> {
-  const [cur] = await db.query<EpRow>(`SELECT ${EP_COLS} FROM hosted_episodes WHERE id = $1 AND show_id = $2 AND deleted_at IS NULL`, [id, show.id]);
-  if (!cur) throw new ApiError('not_found', 'No such episode.');
-  if (range && !cur.paid) throw new ApiError('validation', 'Only a paid episode has a free preview.', { fields: ['startMs'], reason: 'not_paid' });
-  if (range && (range.endMs <= range.startMs || range.endMs - range.startMs > PREVIEW_MAX_MS)) throw new ApiError('validation', 'A preview is up to 10 minutes long, and ends after it starts.', { fields: ['endMs'] });
-  if (range && cur.duration_ms !== null && range.endMs > Number(cur.duration_ms)) throw new ApiError('validation', 'The preview ends after the episode does.', { fields: ['endMs'] });
-  const [r] = await db.query<EpRow>(`UPDATE hosted_episodes SET preview_start_ms = $3, preview_end_ms = $4 WHERE id = $1 AND show_id = $2 RETURNING ${EP_COLS}`,
-    [id, show.id, range?.startMs ?? null, range?.endMs ?? null]);
   return toEp(r!);
 }

@@ -3,7 +3,8 @@
  * M22 US1 (specs/023 contracts "Push"). Pushes since M22 carry `href`, an in-app path. Older
  * ones carry only `episodeId`. Anything else, or a path that is not ours, opens nothing.
  */
-const OURS = /^\/(comments\/thread|comments|profile|like|status|digest|episode|gift)\/[^\s?#]+$/;
+// M24 US3: a system notice's push opens /notifications/system.
+const OURS = /^\/(comments\/thread|comments|profile|like|status|digest|episode|gift|notifications)\/[^\s?#]+$/;
 
 export function routeForPush(data: unknown): string | null {
   if (!data || typeof data !== 'object') return null;
