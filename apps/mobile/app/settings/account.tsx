@@ -13,6 +13,8 @@
  * monogram, "You sign in with / Email", the masked address on a tinted strip, the no-password
  * line), "Other ways to sign in" as two dashed cards (Google, Facebook: still "Not set up yet" and
  * not tappable — FR-016), and the More row pinned to the foot of the page.
+ *
+ * M24 US16: "Change" on the email strip opens `app/settings/account-email.tsx`.
  */
 import { useRouter } from 'expo-router';
 import { Pressable } from '@/ui/lib/pressable';
@@ -60,6 +62,12 @@ export default function AccountSecurityScreen(): React.ReactElement {
         <Box className="flex-row items-center gap-row bg-background rounded-row px-row" style={TAP} accessible accessibilityLabel={`Email: ${masked || 'Not signed in'}`}>
           <Icon name="mail-outline" size={20} color={c.accent} />
           <Text className="text-text text-body font-semibold flex-1" numberOfLines={1}>{masked || 'Not signed in'}</Text>
+          {/* M24 US16: change the sign-in email (a code goes to the new address). */}
+          {listener ? (
+            <Pressable onPress={() => router.push('/settings/account-email')} accessibilityRole="button" accessibilityLabel="Change email" className="justify-center px-1" style={TAP}>
+              <Text className="text-accent text-body font-bold">Change</Text>
+            </Pressable>
+          ) : null}
         </Box>
         <Text className="text-muted text-xs">We send a one-time code each time; there is no password.</Text>
       </Card>
