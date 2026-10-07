@@ -15,10 +15,14 @@
  *    and keeps the playing episode (player-core `clearQueue`). Writes go through
  *    `stores.queue.replace`, as every other queue change.
  * Drawn once, at the root, by src/ui/queue/QueueSheetHost.tsx.
+ *
+ * M24 US19 (`QueueSheet-B`): titled "Up next" with the count on the right, opening tall, the white
+ * cards on the paper colour. "Playlist" stays the name of the buttons that open it.
  */
 import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import { clearQueue, remove, removeMany } from '@socialmorning/player-core';
+import { plural } from '@socialmorning/social-core';
 import { ScrollView } from '@/ui/lib/scroll-view';
 import { Pressable } from '@/ui/lib/pressable';
 import { Text } from '@/ui/lib/text';
@@ -38,6 +42,8 @@ import { QueueList } from './QueueList';
 const TAP = { minHeight: hit.min, minWidth: hit.min };
 const PILL = { minHeight: hit.min };
 const NONE: ReadonlySet<string> = new Set();
+/** B's sheet is ~91 % tall; it opens at 80 % and drags to 92 %. */
+const QUEUE_SNAPS: readonly number[] = [0.8, 0.92];
 
 export function QueueSheet(props: { open: boolean; onClose: () => void }): React.ReactElement {
   const stores = useStores();
@@ -82,9 +88,12 @@ export function QueueSheet(props: { open: boolean; onClose: () => void }): React
     onConfirm: () => { write(clearQueue(ids, current)); setChosen(NONE); setEditing(false); },
   });
 
+  // M24 US19 (`QueueSheet-B`): "Up next" in the serif, the count on the right (with Edit beside it).
   const header = (
-    <Box className="flex-row items-center justify-between px-screen-x">
-      <Text className="text-text text-display font-display" accessibilityRole="header">Playlist</Text>
+    <Box className="flex-row items-center justify-between px-screen-x pb-1 bg-background">
+      <Text className="text-text text-[30px] leading-[39px] font-display" accessibilityRole="header">Up next</Text>
+      <Box className="flex-row items-center gap-1">
+      {rows.length > 0 ? <Text className="text-muted text-meta font-bold">{plural(rows.length, 'episode')}</Text> : null}
       {rows.length > 0 ? (
         <Pressable
           onPress={() => { setEditing((e) => !e); setChosen(NONE); }}
@@ -96,6 +105,7 @@ export function QueueSheet(props: { open: boolean; onClose: () => void }): React
           <Text className="text-accent text-body font-bold">{editing ? 'Done' : 'Edit'}</Text>
         </Pressable>
       ) : null}
+      </Box>
     </Box>
   );
 
@@ -120,8 +130,10 @@ export function QueueSheet(props: { open: boolean; onClose: () => void }): React
 
   return (
     <>
-      <Sheet open={props.open} onClose={props.onClose} label="Playlist" header={header} footer={footer}>
-        <ScrollView className="w-full" contentContainerClassName="px-screen-x pb-section">
+      {/* M24 US19 (`QueueSheet-B`): opens tall (80 %, ~4 cards; drag to 92 %), and the list sits on the
+          paper colour so the white cards stand out (on the white sheet only their borders showed). */}
+      <Sheet open={props.open} onClose={props.onClose} label="Up next" header={header} footer={footer} snapPoints={QUEUE_SNAPS}>
+        <ScrollView className="w-full bg-background" contentContainerClassName="px-screen-x pt-1 pb-section">
           {current !== undefined ? <NowPlaying id={current} /> : null}
           {rows.length === 0 ? <EmptyState surface="queue" page /> : (
             <QueueList

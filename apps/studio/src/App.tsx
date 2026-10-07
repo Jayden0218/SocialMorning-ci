@@ -42,7 +42,6 @@ const Accounts = page(() => import('./pages/admin/Accounts'), 'Accounts');
 const Users = page(() => import('./pages/admin/Users'), 'Users');
 const Reports = page(() => import('./pages/admin/Reports'), 'Reports');
 const TranslationShows = page(() => import('./pages/admin/Translation'), 'TranslationShows');
-const RedeemCodes = page(() => import('./pages/admin/Redeem'), 'Redeem'); // M24 lane A3
 
 /** While a page's download arrives: the same loading line every block uses. */
 function Wait({ children }: { children: ReactElement }) {
@@ -86,7 +85,6 @@ export function App() {
         <Route path="users" element={<Wait><Users /></Wait>} />
         <Route path="reports" element={<Wait><Reports /></Wait>} />
         <Route path="translation" element={<Wait><TranslationShows /></Wait>} />
-        <Route path="redeem" element={<Wait><RedeemCodes /></Wait>} />
         <Route path="*" element={<Navigate to="dashboard" replace />} />
       </Route>
       <Route path="*" element={<Signed><FirstShow /></Signed>} />

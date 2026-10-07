@@ -12,14 +12,9 @@
  *
  * M20 US6: on Android with purchases switched on, the PLUS card (Subscribe, Restore) sits above the
  * list; a grant reloads the list. `store.ready` is kept for Android only — the iPhone has no store yet.
- *
- * M24 US15: "Redeem a code" (a white row under the PLUS card) opens `app/redeem.tsx` — a free
- * grant from SocialNet, on both phones, store or no store. Coming back reloads PLUS and the list.
  */
 import { useLoad } from '@/ui/kit/useLoad';
 import { useCallback, useEffect, useState } from 'react';
-import { useRouter } from 'expo-router';
-import { Pressable } from '@/ui/lib/pressable';
 import { Linking, Platform } from 'react-native';
 import { FlatList } from '@/ui/lib/flat-list';
 import { Text } from '@/ui/lib/text';
@@ -50,7 +45,6 @@ type State = { kind: 'loading' } | { kind: 'error' } | { kind: 'ok'; items: Purc
 
 export default function WalletScreen(): React.ReactElement {
   const m12 = useM12Api();
-  const router = useRouter();
   const stores = useStores();
   const c = useColours(stores.settings);
   const [state, setState] = useState<State>({ kind: 'loading' });
@@ -83,11 +77,6 @@ export default function WalletScreen(): React.ReactElement {
         <Box className="gap-section mb-section">
           <PlusCard play={play} hasPlus={hasPlus} />
           {play.error ? <Text className="text-accent text-sm">{play.error}</Text> : null}
-          <Pressable onPress={() => router.push('/redeem')} accessibilityRole="button" accessibilityLabel="Redeem a code" className="flex-row items-center gap-row bg-surface border border-border rounded-row px-section" style={ROW}>
-            <Icon name="gift-outline" size={22} color={c.accent} />
-            <Text className="text-text text-body font-semibold flex-1">Redeem a code</Text>
-            <Icon name="chevron-forward" size={16} color={c.muted} />
-          </Pressable>
           {empty ? (
             <Box className="bg-surface border border-border rounded-row p-7 justify-end gap-section overflow-hidden" style={HERO} accessible accessibilityLabel={notReady ? 'No purchases. Purchases are not available yet.' : 'No purchases'}>
               <Box className="absolute -right-8 -top-8 w-44 h-44 rounded-pill bg-primary opacity-35" />
