@@ -38,7 +38,7 @@ export async function readList(db: Db, id: string): Promise<SharedList | undefin
   if (!/^[A-Za-z0-9]{10}$/.test(id)) return undefined;
   const [l] = await db.query<{ id: string; title: string; feed_urls: string[] | string; created_at: Date | string; owner_id: string; display_name: string; suspended_at: string | null }>(
     `SELECT s.id, s.title, s.feed_urls, s.created_at, s.owner_id, l.display_name, l.suspended_at
-       FROM shared_lists s JOIN listeners l ON l.id = s.owner_id WHERE s.id = $1 AND s.removed_at IS NULL`, [id]); // M24 US1: removed by the admin
+       FROM shared_lists s JOIN listeners l ON l.id = s.owner_id WHERE s.id = $1`, [id]);
   if (!l || l.suspended_at) return undefined;
   const urls = Array.isArray(l.feed_urls) ? l.feed_urls : l.feed_urls.replace(/^\{|\}$/g, '').split(',').map((u) => u.replace(/^"|"$/g, ''));
   const rows = await db.query<{ feed_url: string; title: string | null; image_url: string | null }>(

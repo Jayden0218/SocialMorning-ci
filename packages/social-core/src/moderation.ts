@@ -61,10 +61,6 @@ export function actionsFor(kind: TargetKind): Action[] {
   switch (kind) {
     case 'comment':
     case 'clip':
-    // M24 US1: a status, a chat message and a shared list are removed like a comment.
-    case 'status':
-    case 'chat_message':
-    case 'list':
       return ['dismiss', 'remove', 'suspend'];
     case 'profile':
       return ['dismiss', 'suspend'];

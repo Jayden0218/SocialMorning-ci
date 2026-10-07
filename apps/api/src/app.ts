@@ -95,11 +95,9 @@ import { giftPages, gifts, myGiftsRoute } from './routes/account/gifts.ts';
 import { translation } from './translate/routes.ts';
 import { modTranslation } from './routes/mod/translation.ts';
 import { groqClient } from './translate/groq.ts';
-// M24 lane A1: maintenance switch, blocked words, appeals
-import { maintenanceGate } from './routes/safety/maintenance.ts';
-import { wordFilter } from './routes/safety/word-filter.ts';
-import { appeals } from './routes/safety/appeals.ts';
-import { activeMaintenance } from './db/repos/safety/maintenance.ts';
+// M24 lane A3
+import { redeem } from './routes/account/redeem.ts';
+import { emailChange } from './routes/account/email.ts';
 
 export type AppDeps = {
   db: Db; pepper: string; assetLinksSha256?: string;
@@ -217,9 +215,6 @@ export function createApp(deps: AppDeps) {
     c.set('imageFetch', imageFetch);
     await next();
   });
-  // M24 US4: the admin's maintenance switch answers 503 before any route; US2: blocked words before any write.
-  app.use('*', maintenanceGate);
-  app.use('*', wordFilter);
 
   app.onError((err, c) => {
     if (err instanceof ApiError) return c.json(err.body(), err.status as 422);
@@ -234,14 +229,10 @@ export function createApp(deps: AppDeps) {
   // M22 US17 (T079): `maintenance` only while MAINTENANCE_UNTIL (an ISO time) is set and in the
   // future; the phone then shows its maintenance page. Read per request, so an env change and a
   // redeploy is all it takes. Unset → `{ ok: true }` exactly as before.
-  // M24 US4: or while the admin's switch is on (env first, then the switch).
-  app.get('/v1/health', async (c) => {
+  app.get('/v1/health', (c) => {
     const until = process.env['MAINTENANCE_UNTIL'];
     const at = until ? Date.parse(until) : NaN;
-    if (!Number.isFinite(at) || at <= Date.now()) {
-      const m = await activeMaintenance(deps.db).catch(() => null);
-      return c.json(m ? { ok: true, maintenance: m } : { ok: true });
-    }
+    if (!Number.isFinite(at) || at <= Date.now()) return c.json({ ok: true });
     const message = process.env['MAINTENANCE_MESSAGE'] || 'SocialNet is being updated.';
     return c.json({ ok: true, maintenance: { until: new Date(at).toISOString(), message } });
   });
@@ -278,6 +269,8 @@ export function createApp(deps: AppDeps) {
   // M12 (specs/012-m12-the-finish/contracts/api.md)
   app.route('/v1/me/notify', notify);
   app.route('/v1/me', wallet);
+  app.route('/v1/me', redeem); // M24 lane A3 US15
+  app.route('/v1/me/email', emailChange); // M24 lane A3 US16
   app.route('/v1/me', purchasesGoogle);
   app.route('/v1/hosted', paid);
   app.route('/v1/me', friends);
@@ -301,7 +294,6 @@ export function createApp(deps: AppDeps) {
   app.route('/v1/me/notifications', notifications); // M21 US10
   app.route('/v1/me/hidden', hidden);
   app.route('/v1/reports', reports);
-  app.route('/v1/appeals', appeals as unknown as Hono<AuthEnv>); // M24 US6
   app.route('/v1/listeners', listenerLikes);
   app.route('/v1/listeners', listenerPlaylists);
   app.route('/v1/listeners', follows);
