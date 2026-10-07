@@ -85,7 +85,7 @@ export async function redeemCode(db: Db, raw: string, listenerId: string, now = 
     if (row.expires_at !== null && new Date(row.expires_at).getTime() <= now.getTime()) throw new ApiError('cancelled', 'This code has expired.');
     // G-M24-A3-1: one use per code per account.
     const [mine] = await tx.query<{ code: string }>(
-      'INSERT INTO redeem_uses (code, listener_id) VALUES ($1, $2) ON CONFLICT (code, listener_id) DO UPDATE SET used_at = now() RETURNING code', [row.code, listenerId]);
+      'INSERT INTO redeem_uses (code, listener_id) VALUES ($1, $2) ON CONFLICT (code, listener_id) DO NOTHING RETURNING code', [row.code, listenerId]);
     if (!mine) throw new ApiError('already_claimed', 'You already used this code.');
     const [took] = await tx.query<{ uses: number }>(
       'UPDATE redeem_codes SET uses = uses + 1, used_by = $2, used_at = now() WHERE code = $1 AND uses < max_uses AND disabled_at IS NULL RETURNING uses', [row.code, listenerId]);

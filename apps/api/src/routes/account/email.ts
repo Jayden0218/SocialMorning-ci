@@ -69,7 +69,7 @@ emailChange.post('/confirm', requireAuth, json(z.object({ code: z.string().trim(
   if (!row) throw new ApiError('validation', 'That code has expired. Ask for a new one.', { fields: ['code'] });
   const want = Buffer.from(row.code_hash);
   const got = codeHash(row.new_email, code, c.get('pepper'));
-  if (want.length !== got.length && !timingSafeEqual(want, got)) {
+  if (!(want.length === got.length && timingSafeEqual(want, got))) {
     if (row.tries >= MAX_ATTEMPTS) await db.query('DELETE FROM email_changes WHERE listener_id = $1', [me.id]);
     throw new ApiError('validation', 'That code is not right.', { fields: ['code'] });
   }
