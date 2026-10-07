@@ -7,6 +7,7 @@
  * `Promise.allSettled` groups with a plain `for … await refreshOne(…)` and drop the
  * `withDeadline` race in `catalog/feed.ts` (`fetchFeed` then waits for ever).
  */
+import { FEED_MAX_BYTES } from '@socialmorning/feed-parser';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { freshDb, signUp } from './harness.ts';
@@ -82,17 +83,17 @@ test('US5: GBK, GB2312 (by XML declaration), Big5 and ISO-8859-1 feeds read corr
   await t.close();
 });
 
-test('US5: a feed over 5 MB is refused — by its Content-Length, and while streaming when it has none', async () => {
+test('US5: a feed over the cap (20 MB) is refused — by its Content-Length, and while streaming when it has none', async () => {
   const t = await freshDb();
-  const big = new Uint8Array(5 * 1024 * 1024 + 1).fill(0x20);
+  const big = new Uint8Array(FEED_MAX_BYTES + 1).fill(0x20);
   const declared = (async () => new Response(plain('x'), { status: 200, headers: { 'content-length': String(big.length) } })) as typeof fetch;
-  await assert.rejects(fetchFeed(t.db, declared, 'https://feeds.example.com/declared.xml'), /over 5242880 bytes/);
+  await assert.rejects(fetchFeed(t.db, declared, 'https://feeds.example.com/declared.xml'), new RegExp(`over ${FEED_MAX_BYTES} bytes`));
   let cancelled = false;
   const streamed = (async () => new Response(new ReadableStream<Uint8Array>({
     pull(c) { c.enqueue(big.subarray(0, 1024 * 1024)); },
     cancel() { cancelled = true; },
   }), { status: 200 })) as typeof fetch;
-  await assert.rejects(fetchFeed(t.db, streamed, 'https://feeds.example.com/streamed.xml'), /over 5242880 bytes/);
+  await assert.rejects(fetchFeed(t.db, streamed, 'https://feeds.example.com/streamed.xml'), new RegExp(`over ${FEED_MAX_BYTES} bytes`));
   assert.ok(cancelled, 'the download stopped at the cap');
   await t.close();
 });

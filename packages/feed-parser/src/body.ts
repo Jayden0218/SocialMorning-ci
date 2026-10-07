@@ -10,8 +10,11 @@
  * On the server (Node, full ICU) every label works.
  */
 
-/** A feed bigger than this is refused (spec US5 scenario 2). */
-export const FEED_MAX_BYTES = 5 * 1024 * 1024;
+/**
+ * A feed bigger than this is refused (spec US5 scenario 2). 20 MB, not the first 5: on 2026-10-08 a real
+ * subscribed feed (feeds.megaphone.fm/GLT1412515089) was 5.3 MB and the iPhone refused it.
+ */
+export const FEED_MAX_BYTES = 20 * 1024 * 1024;
 /** A feed that has not answered in this long is given up (spec US5 scenario 1). */
 export const FEED_TIMEOUT_MS = 8_000;
 

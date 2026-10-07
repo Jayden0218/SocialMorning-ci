@@ -231,12 +231,12 @@ describe('refreshShow', () => {
     }
   });
 
-  // M23 US5 (spec scenario 2): over 5 MB is refused on the phone too.
-  it('refuses a feed over 5 MB, by its header or by its size', async () => {
+  // M23 US5 (spec scenario 2): over the cap (20 MB) is refused on the phone too; a 5.3 MB feed is not.
+  it('refuses a feed over 20 MB, by its header or by its size', async () => {
     const cache = createMemoryFeedCache(hash);
     jest.spyOn(globalThis, 'fetch')
-      .mockResolvedValueOnce(response(200, feedXml('A Show', TWO_ITEMS), { 'content-length': String(6 * 1024 * 1024) }))
-      .mockResolvedValueOnce(response(200, feedXml('A Show', TWO_ITEMS) + ' '.repeat(5 * 1024 * 1024)));
+      .mockResolvedValueOnce(response(200, feedXml('A Show', TWO_ITEMS), { 'content-length': String(21 * 1024 * 1024) }))
+      .mockResolvedValueOnce(response(200, feedXml('A Show', TWO_ITEMS) + ' '.repeat(20 * 1024 * 1024)));
     await expect(refreshShow(FEED, cache, 1_000)).rejects.toBeInstanceOf(FeedError);
     await expect(refreshShow(FEED, cache, 1_000)).rejects.toBeInstanceOf(FeedError);
     expect(cache.getShow(FEED)).toBeUndefined();

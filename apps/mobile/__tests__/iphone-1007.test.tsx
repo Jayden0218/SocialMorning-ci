@@ -118,16 +118,16 @@ describe('4. a phone feed refresh never needs a streaming body', () => {
     expect(r.episodes.map((e) => e.guid)).toEqual(['a']);
   });
 
-  it('still refused past 5 MB: by Content-Length first, else after the read', async () => {
+  it('still refused past the cap (20 MB): by Content-Length first, else after the read', async () => {
     const cache = createMemoryFeedCache(hash);
     jest.spyOn(globalThis, 'fetch').mockResolvedValue({
-      ok: true, status: 200, headers: { get: (n: string) => (n.toLowerCase() === 'content-length' ? String(6 * 1024 * 1024) : null) },
+      ok: true, status: 200, headers: { get: (n: string) => (n.toLowerCase() === 'content-length' ? String(21 * 1024 * 1024) : null) },
       arrayBuffer: async () => { throw new Error('must not download'); }, text: async () => XML,
     } as unknown as Response);
     await expect(refreshShow('https://example.com/big.xml', cache, 1)).rejects.toThrow();
     jest.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: true, status: 200, headers: { get: () => null },
-      arrayBuffer: async () => new ArrayBuffer(6 * 1024 * 1024), text: async () => XML,
+      arrayBuffer: async () => new ArrayBuffer(21 * 1024 * 1024), text: async () => XML,
     } as unknown as Response);
     await expect(refreshShow('https://example.com/big2.xml', cache, 1)).rejects.toThrow();
   });
