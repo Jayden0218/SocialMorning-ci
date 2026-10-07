@@ -28,7 +28,7 @@ const style = (className: string) => {
 };
 
 it('knows every app text size that Tailwind does not have', () => {
-  expect(APP_TEXT_SIZES).toEqual(['micro', 'meta', 'body', 'title', 'hero', 'display']);
+  expect(APP_TEXT_SIZES).toEqual(['micro', 'meta', 'body', 'lead', 'title', 'hero', 'display']);
 });
 
 it.each([
