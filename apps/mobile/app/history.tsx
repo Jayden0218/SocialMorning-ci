@@ -229,7 +229,7 @@ export default function HistoryScreen(): React.ReactElement {
       )}
     />
     {selecting ? (
-      <Box className="px-screen-x pt-row pb-section gap-2 bg-background border-t-hairline border-separator">
+      <Box className="px-screen-x pt-row pb-row gap-2 bg-background border-t-hairline border-separator">
         {overLimit ? <Text className="text-muted text-xs" accessibilityLiveRegion="polite">{`You can delete up to ${HISTORY_DELETE_MAX} at a time.`}</Text> : null}
         <Box className="flex-row gap-gap">
           <Pressable onPress={clearAll} accessibilityRole="button" accessibilityLabel="Clear all" className="flex-1 items-center justify-center rounded-pill bg-surface border border-border" style={PILL}>

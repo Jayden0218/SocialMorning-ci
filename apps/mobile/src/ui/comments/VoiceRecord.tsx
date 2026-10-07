@@ -40,6 +40,8 @@ const BAR = { minHeight: 52 };
 
 /** Why a voice comment did not post, in plain words. */
 export function voicePostError(e: unknown): string {
+  // M22 US10 (FR-032): banned on this show — the server's plain words ("The host has turned off comments for you on this show.").
+  if (e instanceof ApiError && e.code === 'muted_on_show') return e.message || 'The host has turned off comments for you on this show.';
   if (e instanceof ApiError && e.status === 503) return 'Voice comments are switched off right now.';
   if (e instanceof ApiError && e.status === 413) return 'That recording is too long — 60 seconds at most.';
   // iPhone walk 2026-10-06: a 422 has many causes (length, format, an empty upload) — the server's own words say which.

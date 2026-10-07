@@ -1,4 +1,4 @@
-// Sorts comments by newest, most liked, smart, or their time in the episode, either way round; pinned first.
+// Sorts comments by newest, most liked, smart, or their time in the episode, either way round; pinned first, bottom pin last.
 import type { CommentOrder } from './types';
 
 /**
@@ -12,6 +12,8 @@ import type { CommentOrder } from './types';
  * M19 US5 (FR-040): a pinned comment comes first under every order.
  * M21 US6: every order has a direction. `defaultDir` is how it reads today (byMoment 'asc', the
  * rest 'desc'); passing the other direction reverses the list — the pinned comment stays first.
+ * M22 US10 (FR-030, G-M22-11): a comment pinned to the bottom comes last under every order and
+ * direction.
  * Stable, and never mutates its input.
  */
 export const SMART_REPLY_WEIGHT = 2;
@@ -29,12 +31,14 @@ export function defaultDir(order: CommentOrder): CommentDir {
   return order === 'byMoment' ? 'asc' : 'desc';
 }
 
-export function orderComments<T extends { offsetMs: number | null; createdAt: number; likeCount?: number; replyCount?: number; pinned?: boolean }>(
+export function orderComments<T extends { offsetMs: number | null; createdAt: number; likeCount?: number; replyCount?: number; pinned?: boolean; pinnedBottom?: boolean }>(
   comments: readonly T[],
   order: CommentOrder,
   now: number = Date.now(),
   dir: CommentDir = defaultDir(order),
 ): T[] {
+  const bottom = comments.filter((c) => c.pinnedBottom === true && c.pinned !== true);
+  if (bottom.length > 0) return [...orderComments(comments.filter((c) => !bottom.includes(c)), order, now, dir), ...bottom];
   const pinned = comments.filter((c) => c.pinned === true);
   if (pinned.length > 0) return [...pinned, ...orderComments(comments.filter((c) => c.pinned !== true), order, now, dir)];
   const sorted = sortBy(comments, order, now);

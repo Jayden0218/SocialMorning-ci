@@ -12,7 +12,7 @@ import { rebuildEpisodeHeat } from '../../heat/rebuild.ts';
 import { isBlockedBy } from '../../db/repos/safety/blocks.ts';
 import { isMutedOn } from '../../db/repos/studio/studio-subscribers.ts';
 import { like, unlike } from '../../db/repos/social/comment-likes.ts';
-import { setPinned, setUnfriendly, thread } from '../../db/repos/social/comment-extras.ts';
+import { setPinned, setPinnedBottom, setUnfriendly, thread } from '../../db/repos/social/comment-extras.ts';
 
 const commentBody = z.object({
   body: z.string().trim().min(1).max(2000),
@@ -110,6 +110,16 @@ commentById.put('/:id/pin', requireAuth, async (c) => {
 });
 commentById.delete('/:id/pin', requireAuth, async (c) => {
   await setPinned(c.get('db'), c.req.param('id'), c.get('listener')!.id, false);
+  return c.body(null, 204);
+});
+
+/** M22 US10 (FR-030): PUT/DELETE /v1/comments/:id/pin-bottom — a verified host of the show only. */
+commentById.put('/:id/pin-bottom', requireAuth, async (c) => {
+  await setPinnedBottom(c.get('db'), c.req.param('id'), c.get('listener')!.id, true);
+  return c.body(null, 204);
+});
+commentById.delete('/:id/pin-bottom', requireAuth, async (c) => {
+  await setPinnedBottom(c.get('db'), c.req.param('id'), c.get('listener')!.id, false);
   return c.body(null, 204);
 });
 

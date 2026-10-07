@@ -32,8 +32,10 @@ here or a line does not match its file.
 | File | What it does |
 |---|---|
 | `auth.ts` | Sign-in routes: sign up, sign in, sign out, and email code sign-in. |
+| `digests.ts` | Weekly digest route: my Monday catch-ups from the last 4 weeks. |
 | `feedback.ts` | Feedback route: send text and up to three images, signed in or not. |
-| `me.ts` | My account routes: read, edit name and privacy, and delete the account. |
+| `gifts.ts` | Gift routes: see what a gift link offers, claim it once, list the gifts I bought, and the link's web page. |
+| `me.ts` | My account routes: read, edit name and privacy, delete the account after a 15-day wait, and set the time zone. |
 | `notify.ts` | Per-show notification routes: list shows and turn new-episode alerts on or off. |
 | `push.ts` | Push routes: register or remove a device token and set alert preferences. |
 | `wallet.ts` | Read-only wallet routes: my purchases and the tips I gave. |
@@ -121,6 +123,7 @@ here or a line does not match its file.
 | File | What it does |
 |---|---|
 | `announcements.ts` | Studio routes for show announcements and polls. |
+| `bans.ts` | Studio ban routes: list the listeners banned from commenting on a show, ban one with a reason, lift a ban. |
 | `claims.ts` | Studio routes to claim a show and verify the claim. |
 | `comments.ts` | Studio comment routes: list a show's comments, reply, hide, unhide and pin. |
 | `common.ts` | Helpers shared by Studio routes: owner-only check, date ranges, CSV answers. |
@@ -136,6 +139,20 @@ here or a line does not match its file.
 | `subscribers.ts` | Studio subscriber routes: stats, subscriber list, and muting listeners. |
 | `tips.ts` | Studio route listing a show's tips, owner only. |
 | `transcript-reports.ts` | Studio transcript reports: a show's listener corrections, and marking one done. |
+
+### `routes/mod/` — moderator routes behind the Admin wall
+
+| File | What it does |
+|---|---|
+| `translation.ts` | Moderator routes for translation: the allow-list of shows, today's Groq usage and the job queue. |
+
+### `translate/` — translated transcripts on Groq's free tier
+
+| File | What it does |
+|---|---|
+| `groq.ts` | Calls Groq's free tier: speech-to-text from the publisher's audio URL, and line-by-line translation as strict JSON. |
+| `job.ts` | Moves translation jobs forward one Groq call at a time, inside the free-tier budget, and serves finished translations. |
+| `routes.ts` | Translation routes: a PLUS member reads or asks for an allow-listed episode's translated transcript. |
 
 ### `routes/admin/` — the owner-only Admin API, one file per page
 
@@ -172,7 +189,10 @@ here or a line does not match its file.
 |---|---|
 | `country.ts` | Keeps the listener's two-letter country from the sign-in request, nothing more. |
 | `delete-account.ts` | Deletes an account and its data in one step, keeping reply threads intact. |
+| `deletion.ts` | Account deletion waits 15 days: request it, keep the account, and delete the due ones for good. |
+| `digest.ts` | The Monday digest for PLUS members: up to 10 unplayed episodes from last week, once per ISO week, at noon local time. |
 | `feedback.ts` | Stores feedback with up to three small images; images deleted after 90 days. |
+| `gifts.ts` | Gifts of a paid show: a code made after the store purchase is verified, claimed once, withdrawn on a refund. |
 | `listeners.ts` | Database queries to create and find listener accounts. |
 | `push.ts` | Sends new-episode push notifications through Expo, never twice to one device. |
 | `profile.ts` | My profile: name, bio, photo, optional age range and gender; the photo's storage limits. |
@@ -313,7 +333,7 @@ here or a line does not match its file.
 | File | What it does |
 |---|---|
 | `google-play.ts` | Talks to Google Play for purchases: checks a purchase, acknowledges it, and lists refunds. |
-| `products.ts` | The products SocialNet sells through the stores: PLUS, a paid show's price levels, and tips. |
+| `products.ts` | The products SocialNet sells through the stores: PLUS, a paid show's price levels, gifts of a paid show, and tips. |
 
 ### `share/` — share images
 

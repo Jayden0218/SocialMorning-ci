@@ -24,9 +24,37 @@ export async function pinAsHost(db: Db, commentId: string, episodeId: string, by
   await db.transaction(async (tx) => {
     if (pin) {
       await tx.query('UPDATE comments SET pinned_at = NULL, pinned_by = NULL WHERE episode_id = $1 AND pinned_at IS NOT NULL', [episodeId]);
-      await tx.query('UPDATE comments SET pinned_at = now(), pinned_by = $2 WHERE id = $1', [commentId, by]);
+      // M22 US10: a comment is pinned at one end only — the top pin takes it off the bottom.
+      await tx.query('UPDATE comments SET pinned_at = now(), pinned_by = $2, pinned_bottom_at = NULL WHERE id = $1', [commentId, by]);
     } else {
       await tx.query('UPDATE comments SET pinned_at = NULL, pinned_by = NULL WHERE id = $1', [commentId]);
+    }
+  });
+}
+
+/**
+ * M22 US10 (FR-030, G-M22-11): pin one top-level comment per episode to the bottom (or unpin it),
+ * as the given listener, who must be a host of the episode's show. A new bottom pin replaces the
+ * old one (partial unique index `comments_one_pinned_bottom`).
+ */
+export async function setPinnedBottom(db: Db, commentId: string, listenerId: string, pin: boolean): Promise<void> {
+  const c = await getComment(db, commentId);
+  if (!c || c.deleted_at !== null || c.removed_at !== null) throw new ApiError('not_found', 'No such comment.');
+  if (c.parent_id !== null) throw new ApiError('validation', 'Only a top-level comment can be pinned.');
+  const hosts = await hostsOfEpisode(db, c.episode_id);
+  if (!hosts.includes(listenerId)) throw new ApiError('forbidden', "Only the show's host can pin a comment.");
+  await pinBottomAsHost(db, commentId, c.episode_id, pin);
+}
+
+/** The Studio has already checked the role; it pins to the bottom by comment and episode. */
+export async function pinBottomAsHost(db: Db, commentId: string, episodeId: string, pin: boolean): Promise<void> {
+  await db.transaction(async (tx) => {
+    if (pin) {
+      await tx.query('UPDATE comments SET pinned_bottom_at = NULL WHERE episode_id = $1 AND pinned_bottom_at IS NOT NULL', [episodeId]);
+      // A comment is pinned at one end only — the bottom pin takes it off the top.
+      await tx.query('UPDATE comments SET pinned_bottom_at = now(), pinned_at = NULL, pinned_by = NULL WHERE id = $1', [commentId]);
+    } else {
+      await tx.query('UPDATE comments SET pinned_bottom_at = NULL WHERE id = $1', [commentId]);
     }
   });
 }

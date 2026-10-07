@@ -9,6 +9,8 @@ import { Data } from './pages/Data';
 import { Episodes } from './pages/Episodes';
 import { Episode } from './pages/Episode';
 import { Comments } from './pages/Comments';
+import { Bans } from './pages/Bans';
+import { TranslationShows } from './pages/admin/Translation';
 import { Subscribers } from './pages/Subscribers';
 import { Demographics } from './pages/Demographics';
 import { Announcements } from './pages/Announcements';
@@ -55,6 +57,7 @@ export function App() {
       <Route path="/s/:show/settings" element={<Signed><ShowPage page={(s) => <Settings show={s} />} /></Signed>} />
       <Route path="/s/:show/settings/:tab" element={<Signed><ShowPage page={(s) => <Settings show={s} />} /></Signed>} />
       <Route path="/s/:show/comments" element={<Signed><ShowPage page={(s) => <Comments show={s} />} /></Signed>} />
+      <Route path="/s/:show/bans" element={<Signed><ShowPage page={(s) => <Bans show={s} />} /></Signed>} />
       <Route path="/s/:show/transcript-reports" element={<Signed><ShowPage page={(s) => <TranscriptReports show={s} />} /></Signed>} />
       {/* M15 T005: Admin lives outside /s/:show, so it works with no show. The server decides who gets in. */}
       <Route path="/admin" element={<Signed><AdminLayout /></Signed>}>
@@ -68,6 +71,7 @@ export function App() {
         <Route path="accounts" element={<Accounts />} />
         <Route path="users" element={<Users />} />
         <Route path="reports" element={<Reports />} />
+        <Route path="translation" element={<TranslationShows />} />
         <Route path="*" element={<Navigate to="dashboard" replace />} />
       </Route>
       <Route path="*" element={<Signed><FirstShow /></Signed>} />

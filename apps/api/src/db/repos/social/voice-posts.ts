@@ -52,7 +52,7 @@ export async function fromFollowing(db: Db, viewerId: string) {
   const rows = await db.query<VoiceRow & { display_name: string; avatar_url: string | null }>(
     `SELECT v.id, v.listener_id, v.blob_url, v.duration_ms, v.created_at, v.expires_at, v.transcript, v.body, l.display_name, l.avatar_url
      FROM voice_posts v JOIN listeners l ON l.id = v.listener_id
-     WHERE v.expires_at > now() AND l.suspended_at IS NULL
+     WHERE v.expires_at > now() AND l.suspended_at IS NULL AND l.hidden_at IS NULL
        AND (v.listener_id = $1 OR v.listener_id IN (SELECT followed_id FROM follows WHERE follower_id = $1))
        AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id = $1 AND b.blocked_id = v.listener_id) OR (b.blocker_id = v.listener_id AND b.blocked_id = $1))
        AND NOT EXISTS (SELECT 1 FROM listener_mutes m WHERE m.muter_id = $1 AND m.muted_id = v.listener_id) -- M21 US6 (G-M21-6)

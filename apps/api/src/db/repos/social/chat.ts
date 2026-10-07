@@ -48,7 +48,7 @@ function toMessage(r: Row, me: string): ChatMessage {
 }
 
 export async function person(db: Db, id: string): Promise<ChatPerson | undefined> {
-  const [r] = await db.query<{ id: string; display_name: string; avatar_url: string | null }>('SELECT id, display_name, avatar_url FROM listeners WHERE id = $1 AND suspended_at IS NULL', [id]);
+  const [r] = await db.query<{ id: string; display_name: string; avatar_url: string | null }>('SELECT id, display_name, avatar_url FROM listeners WHERE id = $1 AND suspended_at IS NULL AND hidden_at IS NULL', [id]);
   return r ? toPerson(r) : undefined;
 }
 
@@ -96,7 +96,7 @@ export async function conversations(db: Db, me: string): Promise<Conversation[]>
               AND EXISTS (SELECT 1 FROM follows WHERE follower_id = x.other_id AND followed_id = $1)) AS can_send
      FROM mine x
      JOIN chat_messages m ON m.id = x.id
-     JOIN listeners l ON l.id = x.other_id AND l.suspended_at IS NULL
+     JOIN listeners l ON l.id = x.other_id AND l.suspended_at IS NULL AND l.hidden_at IS NULL
      LEFT JOIN episodes e ON e.id = m.episode_id
      WHERE NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id = $1 AND b.blocked_id = x.other_id) OR (b.blocker_id = x.other_id AND b.blocked_id = $1))
      ORDER BY m.id DESC
@@ -109,7 +109,7 @@ export async function conversations(db: Db, me: string): Promise<Conversation[]>
 /** My unread messages, from people I can still see (the tab badge). */
 export async function unreadCount(db: Db, me: string): Promise<number> {
   const [r] = await db.query<{ n: number }>(
-    `SELECT count(*)::int AS n FROM chat_messages m JOIN listeners l ON l.id = m.sender_id AND l.suspended_at IS NULL
+    `SELECT count(*)::int AS n FROM chat_messages m JOIN listeners l ON l.id = m.sender_id AND l.suspended_at IS NULL AND l.hidden_at IS NULL
      WHERE m.recipient_id = $1 AND m.read_at IS NULL
        AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id = $1 AND b.blocked_id = m.sender_id) OR (b.blocker_id = m.sender_id AND b.blocked_id = $1))`,
     [me],
@@ -122,7 +122,7 @@ export async function friends(db: Db, me: string): Promise<ChatPerson[]> {
   const rows = await db.query<{ id: string; display_name: string; avatar_url: string | null }>(
     `SELECT l.id, l.display_name, l.avatar_url FROM follows a
      JOIN follows b ON b.follower_id = a.followed_id AND b.followed_id = $1
-     JOIN listeners l ON l.id = a.followed_id AND l.suspended_at IS NULL
+     JOIN listeners l ON l.id = a.followed_id AND l.suspended_at IS NULL AND l.hidden_at IS NULL
      WHERE a.follower_id = $1
        AND NOT EXISTS (SELECT 1 FROM blocks x WHERE (x.blocker_id = $1 AND x.blocked_id = l.id) OR (x.blocker_id = l.id AND x.blocked_id = $1))
      ORDER BY lower(l.display_name), l.id

@@ -83,7 +83,7 @@ export async function hostOf(db: Db, listenerId: string): Promise<{ feedUrl: str
        FROM (SELECT c.feed_url, 0 AS rank, c.proven_at AS since FROM creator_claims c WHERE c.listener_id = $1 AND c.status = 'proven'
              UNION
              SELECT s.feed_url, 1, s.added_at FROM show_hosts s WHERE s.listener_id = $1) w
-       JOIN listeners l ON l.id = $1 AND l.suspended_at IS NULL
+       JOIN listeners l ON l.id = $1 AND l.suspended_at IS NULL AND l.hidden_at IS NULL
        LEFT JOIN show_overrides o ON o.feed_url = w.feed_url
        LEFT JOIN hosted_shows h ON h.feed_url = w.feed_url AND h.deleted_at IS NULL
       WHERE NOT EXISTS (SELECT 1 FROM hidden_feeds x WHERE x.feed_url = w.feed_url)
@@ -106,8 +106,10 @@ export async function hostOf(db: Db, listenerId: string): Promise<{ feedUrl: str
  * 'none' = no such listener.
  */
 export async function subscriptionsVisible(db: Db, id: string, viewerId: string | undefined): Promise<'yes' | 'private' | 'none'> {
-  const [l] = await db.query<{ private_subscriptions: boolean; suspended_at: string | null }>('SELECT private_subscriptions, suspended_at FROM listeners WHERE id = $1', [id]);
+  const [l] = await db.query<{ private_subscriptions: boolean; suspended_at: string | null; hidden_at: string | null }>('SELECT private_subscriptions, suspended_at, hidden_at FROM listeners WHERE id = $1', [id]);
   if (!l || l.suspended_at) return 'none';
+  // M22 US11 (G-M22-8): an account waiting to be deleted is invisible to everyone else.
+  if (l.hidden_at && viewerId !== id) return 'none';
   if (viewerId === id) return 'yes';
   if (l.private_subscriptions) return 'private';
   if (viewerId && ((await isBlockedBy(db, id, viewerId)) || (await isBlockedBy(db, viewerId, id)))) return 'private';
@@ -116,8 +118,10 @@ export async function subscriptionsVisible(db: Db, id: string, viewerId: string 
 
 export async function profile(db: Db, id: string, viewerId: string | undefined, today: string): Promise<ProfileOut | undefined> {
   // M21 US8 (G-M21-10): birthday and industry are never selected here — this answer goes to anyone.
-  const [l] = await db.query<{ id: string; display_name: string; private_listening: boolean; suspended_at: string | null; country: string | null; avatar_url: string | null; bio: string | null; likes_public: boolean; private_subscriptions: boolean; hide_often_listened: boolean }>('SELECT id, display_name, private_listening, suspended_at, country, avatar_url, bio, likes_public, private_subscriptions, hide_often_listened FROM listeners WHERE id = $1', [id]);
+  const [l] = await db.query<{ id: string; display_name: string; private_listening: boolean; suspended_at: string | null; hidden_at: string | null; country: string | null; avatar_url: string | null; bio: string | null; likes_public: boolean; private_subscriptions: boolean; hide_often_listened: boolean }>('SELECT id, display_name, private_listening, suspended_at, hidden_at, country, avatar_url, bio, likes_public, private_subscriptions, hide_often_listened FROM listeners WHERE id = $1', [id]);
   if (!l) return undefined;
+  // M22 US11 (G-M22-8): an account waiting to be deleted reads as "no such listener" to others.
+  if (l.hidden_at && viewerId !== id) return undefined;
   // M6 (FR-008, FR-015): to someone they blocked, a listener looks private and quiet — name only, no hint why. A suspended account shows as suspended.
   // M19 US1: photo and bio travel with the name; age range and gender never do (FR-003).
   const look = { ...(l.avatar_url ? { avatarUrl: l.avatar_url } : {}), ...(l.bio ? { bio: l.bio } : {}) };

@@ -58,7 +58,7 @@ Every code file, one plain line each. Each file also starts with the same senten
 | `moderation.ts` | Report queue rules: group reports by item, allowed actions, and closing. |
 | `moment.ts` | Captures the episode time a comment belongs to when the comment box opens. |
 | `nextup.ts` | Builds the "Next up" list from four sources, without repeats or finished episodes. |
-| `order.ts` | Sorts comments by newest, most liked, smart, or their time in the episode, either way round; pinned first. |
+| `order.ts` | Sorts comments by newest, most liked, smart, or their time in the episode, either way round; pinned first, bottom pin last. |
 | `picks.ts` | Reads and checks the daily picks file and returns picks for a day. |
 | `plural.ts` | Writes counts with the right singular or plural noun, like "1 episode". |
 | `rank.ts` | Weights and scoring for recommendations: freshness, popularity, quality and fatigue. |
@@ -70,4 +70,5 @@ Every code file, one plain line each. Each file also starts with the same senten
 | `stats.ts` | Listening totals for the last 7 days and all time, top shows, and minutes per day or month. |
 | `stickers.ts` | The sticker catalogue, the rules for placing stickers on a profile, and the day each listening sticker was earned. |
 | `swing.ts` | Measures how similar two shows are from the people who like both. |
+| `translate-budget.ts` | Keeps Groq calls under 90 % of the free limits and cuts a transcript into chunks for translation. |
 | `types.ts` | Shared data shapes for positions, playback snapshots, moments and comment order. |

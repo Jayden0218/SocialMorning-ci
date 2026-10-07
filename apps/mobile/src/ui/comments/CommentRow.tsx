@@ -160,6 +160,13 @@ export function CommentRow(props: {
           <Text className="text-accent text-xs font-bold">Pinned by the host</Text>
         </Box>
       ) : null}
+      {/* M22 US10: the bottom pin says so too (it sits last under every order). */}
+      {!reply && !extra.pinned && (c as Comment & { pinnedBottom?: true }).pinnedBottom ? (
+        <Box className="flex-row items-center gap-1 pb-2" accessible accessibilityLabel="Pinned to the bottom by the host">
+          <Icon name="pin-outline" size={12} color={props.iconColour.accent} />
+          <Text className="text-accent text-xs font-bold">Pinned by the host</Text>
+        </Box>
+      ) : null}
       <Pressable
         onPress={() => props.onMenu(c)}
         onLongPress={() => props.onMenu(c)}

@@ -20,6 +20,8 @@ export type AuthDeps = {
   now: () => number;
   /** Called after a successful sign-in so M3's position sync can merge (T057). */
   onSignedIn?: (listener: Listener) => Promise<void> | void;
+  /** M22 US11/US15: the whole sign-in answer — `pendingDeletion` for the Keep sheet; the time zone is sent from here. Never throws into sign-in. */
+  onAccepted?: (r: { token: string; listener: Listener; pendingDeletion?: { dueAt: string } | null }) => void;
 };
 
 export type AuthApi = {
@@ -38,6 +40,7 @@ export function createAuth(deps: AuthDeps): AuthApi {
   async function accept(r: { token: string; listener: Listener }): Promise<AuthRow> {
     await deps.token.set(r.token);
     deps.stores.auth.set({ listenerId: r.listener.id, displayName: r.listener.displayName, email: r.listener.email }, deps.now());
+    try { deps.onAccepted?.(r); } catch { /* M22: a side note must never undo a sign-in */ }
     await deps.onSignedIn?.(r.listener);
     return deps.stores.auth.get()!;
   }

@@ -19,8 +19,11 @@ export type PaidList = {
 export function createPurchaseApi(deps: ApiDeps) {
   const call = requester(deps);
   return {
-    sendGoogle: async (b: { productId: string; purchaseToken: string; feedUrl?: string }) =>
-      (await call<{ purchase: { kind: string; status: string; repeated: boolean } }>('POST', '/v1/me/purchases/google', b)).json.purchase,
+    sendGoogle: async (b: { productId: string; purchaseToken: string; feedUrl?: string }) => {
+      const j = (await call<{ purchase: { kind: string; status: string; repeated: boolean }; gift?: { code: string; url: string } }>('POST', '/v1/me/purchases/google', b)).json;
+      // M22 US14: a gift answers its link, for the buyer to share.
+      return { ...j.purchase, ...(j.gift ? { gift: j.gift } : {}) };
+    },
     paid: async (feedUrl: string) => (await call<PaidList>('GET', `/v1/hosted/paid?feedUrl=${encodeURIComponent(feedUrl)}`)).json,
     access: async (hostedEpisodeId: string) => (await call<{ url: string; expiresAt: string }>('GET', `/v1/hosted/episodes/${encodeURIComponent(hostedEpisodeId)}/access`)).json,
   };

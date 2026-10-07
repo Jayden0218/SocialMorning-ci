@@ -1,12 +1,17 @@
-// On a show page: the show's paid episodes (buy once, then play) and the Tip button, Android only.
+// On a show page: the show's paid episodes (buy once, then play), Gift this series, and the Tip button, Android only.
 /**
  * M20 US6 (spec FR-020–FR-025; scenario 2: "before buying, they show a price"). For a show made in
  * the Studio that sells paid episodes: their list, with "Buy · price" — after buying, each plays
  * through a 6-hour link from the server. For a show whose host switched tips on: "Tip the host"
  * with three sizes. Nothing here shows on iPhone, in teen mode, or while purchases are not switched
  * on (no Play account yet): the free show page stays exactly as it was.
+ *
+ * M22 US14 (FR-042): "Gift this series" buys the same price level as a gift (`gift_tier_n`); the
+ * server verifies it with Google and answers a link, which opens the share sheet. Android only, like
+ * every purchase here (the server cannot verify an Apple purchase); claiming works on both phones.
  */
 import { useCallback, useEffect, useState } from 'react';
+import { Share } from 'react-native';
 import { Pressable } from '@/ui/lib/pressable';
 import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
@@ -21,7 +26,7 @@ import { getPref } from '@/settings/prefs';
 import { readStoreReady } from '@/social/store-ready';
 import { usePurchaseApi, type PaidList } from '@/billing/purchase-api';
 import { usePlayStore } from '@/billing/play';
-import { TIP_LABELS, TIPS } from '@/billing/products';
+import { giftProductFor, TIP_LABELS, TIPS } from '@/billing/products';
 import { fnv1a64 } from '@socialmorning/social-core';
 
 const TAP = { minHeight: hit.min };
@@ -37,6 +42,12 @@ export function ShowSales(props: { feedUrl: string; showTitle: string; artworkUr
   const load = useCallback(() => { api.paid(props.feedUrl).then(setPaid, () => setPaid(undefined)); }, [api, props.feedUrl]);
   useEffect(() => { if (play.ready) load(); }, [play.ready, load, play.granted]);
   useEffect(() => { if (play.error) toast(play.error); }, [play.error, toast]);
+  // M22 US14: a gift bought → share its link (whoever opens it and signs in first gets the series).
+  const giftUrl = play.gift?.url;
+  useEffect(() => {
+    if (!giftUrl) return;
+    void Share.share({ message: `A gift for you: ${props.showTitle}\n${giftUrl}`, url: giftUrl }).catch(() => undefined);
+  }, [giftUrl, props.showTitle]);
 
   if (!play.ready) return null;
   const listen = async (item: PaidList['items'][number]) => {
@@ -67,6 +78,12 @@ export function ShowSales(props: { feedUrl: string; showTitle: string; artworkUr
           {!paid.bought && paid.productId ? (
             <Button label={showPrice ? `Buy all paid episodes · ${showPrice}` : 'Buy all paid episodes'} onPress={() => void play.buy(paid.productId!, { feedUrl: props.feedUrl, ...(paid.profileId ? { profileId: paid.profileId } : {}) })} />
           ) : null}
+          {paid.productId && giftProductFor(paid.productId) ? (
+            <Button kind="secondary" label={play.price(giftProductFor(paid.productId)!) ? `Gift this series · ${play.price(giftProductFor(paid.productId)!)}` : 'Gift this series'}
+              accessibilityLabel="Gift this series to someone"
+              onPress={() => void play.buy(giftProductFor(paid.productId!)!, { feedUrl: props.feedUrl, ...(paid.profileId ? { profileId: paid.profileId } : {}) })} />
+          ) : null}
+          {giftUrl ? <Text className="text-muted text-xs">{`Gift link: ${giftUrl}`}</Text> : null}
         </Box>
       ) : null}
       {props.tipsEnabled ? (

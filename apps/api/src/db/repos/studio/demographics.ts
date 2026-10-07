@@ -15,7 +15,7 @@ const bucket = (rows: { k: string | null; n: number | string }[]): Bucket[] =>
   rows.filter((r) => r.k !== null && r.k !== '').map((r) => ({ key: String(r.k).trim(), count: Number(r.n) >= MIN_GROUP ? Number(r.n) : ('<10' as const) }));
 
 export async function demographics(db: Db, feedUrl: string): Promise<Demographics> {
-  const base = `FROM subscriptions s JOIN listeners l ON l.id = s.listener_id AND l.suspended_at IS NULL WHERE s.feed_url = $1 AND s.deleted_at IS NULL`;
+  const base = `FROM subscriptions s JOIN listeners l ON l.id = s.listener_id AND l.suspended_at IS NULL AND l.hidden_at IS NULL WHERE s.feed_url = $1 AND s.deleted_at IS NULL`;
   const [total, age, gender, countries] = await Promise.all([
     db.query<{ n: number }>(`SELECT count(*)::int AS n ${base}`, [feedUrl]),
     db.query<{ k: string | null; n: number }>(`SELECT l.age_range AS k, count(*)::int AS n ${base} GROUP BY 1 ORDER BY 2 DESC, 1`, [feedUrl]),

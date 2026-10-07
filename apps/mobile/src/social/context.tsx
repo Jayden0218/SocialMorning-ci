@@ -17,6 +17,7 @@ import { registerPush, unregisterPush } from '@/notify/push-token';
 import { expoNotify } from '@/notify/expo';
 import { apiBaseUrl } from './base-url';
 import { toSignIn } from '@/ui/auth/navigate';
+import { createM22Api, deviceTimeZone, pendingDeletionStore } from './api-m22-server';
 import type { AuthRow } from '@/storage/types';
 
 export type SocialContextValue = {
@@ -56,10 +57,16 @@ export function SocialProvider(props: { children?: ReactNode }): ReactNode {
   // M6 (FR-015): a suspended answer ends the local session and leaves the message for the sign-in screen.
   const suspendedRef = useRef<(m: string) => void>(() => undefined);
   const api = useMemo(() => createApi({ baseUrl: apiBaseUrl(), fetch, getToken: secureToken.get, onSuspended: (m) => suspendedRef.current(m) }), []);
-  const auth = useMemo(() => createAuth({ api, stores, token: secureToken, now: () => Date.now(), onSignedIn: () => {
+  // M22 US11/US15: after every sign-in — remember a pending deletion (the Keep sheet) and send the phone's time zone.
+  const m22 = useMemo(() => createM22Api({ baseUrl: apiBaseUrl(), fetch, getToken: secureToken.get }), []);
+  const auth = useMemo(() => createAuth({ api, stores, token: secureToken, now: () => Date.now(), onAccepted: (r) => {
+    pendingDeletionStore.set(r.pendingDeletion ?? null);
+    const tz = deviceTimeZone();
+    if (tz) void m22.setTimeZone(tz).catch(() => undefined);
+  }, onSignedIn: () => {
     void library.reconcile().catch(() => undefined);
     return sync.reconcile();
-  } }), [api, stores, sync, library]);
+  } }), [api, stores, sync, library, m22]);
   const refreshListener = useCallback(() => setListener(stores.auth.get()), [stores]);
   // M10b US3: whenever someone is signed in — at launch or just after signing in — this
   // device's push address joins the account (only if notifications are allowed; never throws).

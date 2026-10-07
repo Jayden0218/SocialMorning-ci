@@ -38,8 +38,8 @@ describe('clipCheck', () => {
   });
 
   it('a line with no end of its own ends at the next line', () => {
-    const q = quoteOf(lines, rangeLines([2, 3]), true);
-    expect(clipCheck(q)).toEqual({ ok: true, startMs: 9_000, endMs: 700_000 });
+    const near = [{ startMs: 9_000, endMs: 15_000, text: 'Three.' }, { startMs: 15_000, text: 'Four.' }, { startMs: 40_000, text: 'Five.' }];
+    expect(clipCheck(quoteOf(near, rangeLines([0, 1]), true))).toEqual({ ok: true, startMs: 9_000, endMs: 40_000 });
   });
 
   it('over 10 minutes, or a transcript with no times, is refused with the reason', () => {

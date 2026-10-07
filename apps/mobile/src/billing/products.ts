@@ -9,18 +9,27 @@ export const PLUS = 'plus_monthly';
 export const SHOW_TIERS = ['show_tier_1', 'show_tier_2', 'show_tier_3', 'show_tier_4', 'show_tier_5'] as const;
 export const TIPS = ['tip_small', 'tip_medium', 'tip_large'] as const;
 export const TIP_LABELS: Record<(typeof TIPS)[number], string> = { tip_small: 'Small tip', tip_medium: 'Tip', tip_large: 'Big tip' };
+/** M22 US14: a paid show bought for someone else, at the show's own price level; consumable (a second gift can be bought). */
+export const GIFT_TIERS = ['gift_tier_1', 'gift_tier_2', 'gift_tier_3', 'gift_tier_4', 'gift_tier_5'] as const;
 
-export type ProductKind = 'plus' | 'show' | 'tip';
+export type ProductKind = 'plus' | 'show' | 'gift' | 'tip';
 
 export function kindOf(productId: string): ProductKind | undefined {
   if (productId === PLUS) return 'plus';
   if ((SHOW_TIERS as readonly string[]).includes(productId)) return 'show';
+  if ((GIFT_TIERS as readonly string[]).includes(productId)) return 'gift';
   if ((TIPS as readonly string[]).includes(productId)) return 'tip';
   return undefined;
 }
 
-/** Finished as consumed (buyable again): tips only. PLUS and shows stay owned. */
-export const consumable = (productId: string): boolean => kindOf(productId) === 'tip';
+/** M22 US14: show_tier_3 → gift_tier_3 (the gift costs what the show costs); anything else → undefined. */
+export function giftProductFor(showProductId: string): string | undefined {
+  const m = /^show_tier_([1-5])$/.exec(showProductId);
+  return m ? `gift_tier_${m[1]}` : undefined;
+}
+
+/** Finished as consumed (buyable again): tips and (M22) gifts. PLUS and shows stay owned. */
+export const consumable = (productId: string): boolean => kindOf(productId) === 'tip' || kindOf(productId) === 'gift';
 
 /**
  * The request expo-iap 5.8 takes (types read from its build/types.d.ts): a subscription names its

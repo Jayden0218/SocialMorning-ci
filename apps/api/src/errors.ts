@@ -10,7 +10,9 @@ export type ErrorCode = 'validation' | 'unauthenticated' | 'forbidden' | 'not_fo
   // M20 (specs/021-m20-the-gaps/contracts/api.md): the store has not taken the payment; a paid episode not bought
   | 'not_paid' | 'needs_purchase'
   // M21 (specs/022-m21-the-xiaoyuzhou-gaps/contracts/api.md): a first comment waits for the community rules
-  | 'rules_required';
+  | 'rules_required'
+  // M22 lane 5 (specs/023-m22-the-xiaoyuzhou-gaps-2/contracts/api.md): bans, translation, gifts
+  | 'is_cohost' | 'plus_required' | 'not_offered' | 'already_claimed' | 'already_owned' | 'cancelled';
 
 const STATUS: Record<ErrorCode, number> = {
   validation: 422,
@@ -42,6 +44,12 @@ const STATUS: Record<ErrorCode, number> = {
   not_paid: 402,
   needs_purchase: 402,
   rules_required: 428,
+  is_cohost: 409,
+  plus_required: 403,
+  not_offered: 404,
+  already_claimed: 409,
+  already_owned: 409,
+  cancelled: 410,
 };
 
 export class ApiError extends Error {

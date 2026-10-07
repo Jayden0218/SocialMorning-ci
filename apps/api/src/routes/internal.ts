@@ -13,6 +13,11 @@ import { sweepRemovedVoice } from '../db/repos/social/voice-comments.ts';
 import { sweepRemovedImages } from '../db/repos/social/comment-images.ts';
 import { acknowledgeDue, applyVoided } from '../db/repos/account/purchases.ts';
 import { picksForDay } from '@socialmorning/social-core';
+// M22 lane 5: translate, digest and deletions steps.
+import { groqClient, type Groq } from '../translate/groq.ts';
+import { stepTranslation } from '../translate/job.ts';
+import { runDigests } from '../db/repos/account/digest.ts';
+import { runDueDeletions } from '../db/repos/account/deletion.ts';
 
 /**
  * Mounted at /v1/internal (M8, research R4/R5). The scheduled workflow in the public CI
@@ -29,13 +34,15 @@ export const SHOWS_PER_CALL = 200;
 export const REBUILD_EVERY_HOURS = 20;
 
 const body = z.object({
-  step: z.enum(['feeds', 'similarity']),
+  step: z.enum(['feeds', 'similarity', 'translate', 'digest', 'deletions']),
   cursor: z.string().max(2048).optional(),
   force: z.boolean().optional(),
 });
 
-export function createInternalRoute(jobToken: string | undefined) {
+export function createInternalRoute(jobToken: string | undefined, m22: { groq?: Groq } = {}) {
   const internal = new Hono<AuthEnv>();
+  // M22 US13: Groq's free tier, only from the `translate` step (no key → jobs stay queued).
+  const groq = m22.groq ?? groqClient(process.env['GROQ_API_KEY']);
 
   internal.post('/rebuild', json(body), async (c) => {
     const started = Date.now();
@@ -143,6 +150,22 @@ export function createInternalRoute(jobToken: string | undefined) {
         done, ...(done || last === undefined ? {} : { next: last.feed_url }),
         counts: { feeds: batch.length, registered, failed: failed.length, pushed, popular, voiceDeleted, activeDeleted }, ms: Date.now() - started,
       });
+    }
+
+    // M22 US13 (research R1): one Groq call at most per run, inside 90 % of the free limits (G-M22-6).
+    if (step === 'translate') {
+      const r = await stepTranslation(db, groq, c.get('catalog').fetch);
+      return c.json({ done: true, counts: { [r.did]: 1 }, ...(r.episodeId ? { episodeId: r.episodeId } : {}), ms: Date.now() - started });
+    }
+    // M22 US15 (research R13): Monday noon local, PLUS only, once per ISO week (G-M22-13).
+    if (step === 'digest') {
+      const r = await runDigests(db, c.get('catalog').pushFetch);
+      return c.json({ done: true, counts: r, ms: Date.now() - started });
+    }
+    // M22 US11 (research R10): accounts past their 15-day wait are deleted with the old body.
+    if (step === 'deletions') {
+      const r = await runDueDeletions(db, { voice: c.get('voice'), images: c.get('images'), avatars: c.get('avatars') });
+      return c.json({ done: true, counts: r, ms: Date.now() - started });
     }
 
     if (cursor === undefined && force !== true) {

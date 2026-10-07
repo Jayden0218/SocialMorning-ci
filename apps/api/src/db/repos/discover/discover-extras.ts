@@ -149,7 +149,7 @@ export async function said(db: Db): Promise<Said[]> {
      JOIN episodes e ON e.id = c.episode_id
      JOIN listeners l ON l.id = c.author_id
      WHERE c.parent_id IS NULL AND c.deleted_at IS NULL AND c.removed_at IS NULL AND c.host_hidden_at IS NULL AND c.body IS NOT NULL
-       AND l.suspended_at IS NULL
+       AND l.suspended_at IS NULL AND l.hidden_at IS NULL
        AND c.created_at > now() - ($1 || ' days')::interval
        AND NOT EXISTS (SELECT 1 FROM hidden_feeds h WHERE h.feed_url = e.feed_url)
      ORDER BY c.created_at DESC, c.id DESC

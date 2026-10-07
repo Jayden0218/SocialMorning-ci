@@ -6,6 +6,7 @@
  *  - PLUS → `entitlements (plus, '', until = Google's expiry)`; sending the token again refreshes the expiry
  *  - a show's price level → `entitlements (show, feed URL)`: every paid episode of that show
  *  - a tip → a `tips` row to the show
+ *  - M22 US14: a gift of a show (`gift_tier_n`) → nothing for the buyer; a `gifts` row with a code
  * The purchase is acknowledged with Google after the grant (Google refunds an unacknowledged one
  * after 3 days); if that fails, `acknowledgeDue` retries it from the internal cycle. A refund
  * (`applyVoided`) marks the row refunded and deletes what it granted; one for a purchase this
@@ -16,9 +17,10 @@ import type { Db } from '../../db.ts';
 import { ApiError } from '../../../errors.ts';
 import type { GooglePlay } from '../../../billing/google-play.ts';
 import { kindOf, tierOf } from '../../../billing/products.ts';
+import { cancelGiftsFor, createGift, giftForPurchase } from './gifts.ts';
 
 export type GrantIn = { listenerId: string; productId: string; purchaseToken: string; feedUrl?: string };
-export type Granted = { purchaseId: string; kind: 'plus' | 'show' | 'tip'; status: 'active' | 'expired' | 'refunded'; expiresAt: string | null; repeated: boolean };
+export type Granted = { purchaseId: string; kind: 'plus' | 'show' | 'gift' | 'tip'; status: 'active' | 'expired' | 'refunded'; expiresAt: string | null; repeated: boolean; /** M22 US14: the gift's code */ giftCode?: string };
 
 const ACTIVE = new Set(['SUBSCRIPTION_STATE_ACTIVE', 'SUBSCRIPTION_STATE_IN_GRACE_PERIOD']);
 
@@ -28,7 +30,10 @@ export async function grantGoogle(db: Db, play: GooglePlay, p: GrantIn): Promise
   const [seen] = await db.query<{ id: string; listener_id: string; status: 'active' | 'expired' | 'refunded'; expires_at: Date | string | null }>(
     'SELECT id, listener_id, status, expires_at FROM purchases WHERE purchase_token = $1', [p.purchaseToken]);
   if (seen && seen.listener_id !== p.listenerId) throw new ApiError('conflict', 'This purchase belongs to another account.');
-  if (seen && kind !== 'plus') return { purchaseId: seen.id, kind, status: seen.status, expiresAt: seen.expires_at ? new Date(seen.expires_at).toISOString() : null, repeated: true };
+  if (seen && kind !== 'plus') {
+    const giftCode = kind === 'gift' ? await giftForPurchase(db, seen.id) : undefined;
+    return { purchaseId: seen.id, kind, status: seen.status, expiresAt: seen.expires_at ? new Date(seen.expires_at).toISOString() : null, repeated: true, ...(giftCode ? { giftCode } : {}) };
+  }
 
   let expiresAt: string | null = null;
   let orderId: string | null = null;
@@ -48,7 +53,7 @@ export async function grantGoogle(db: Db, play: GooglePlay, p: GrantIn): Promise
     if (g.purchaseState !== 0) throw new ApiError('not_paid', 'Google has not taken this payment.');
     // The purchase names its show by a hash of the feed URL; a different show is refused.
     if (g.profileId !== fnv1a64(p.feedUrl)) throw new ApiError('validation', 'That purchase is for another show.', { fields: ['feedUrl'] });
-    if (kind === 'show') {
+    if (kind === 'show' || kind === 'gift') {
       const [show] = await db.query<{ price_tier: number | null }>('SELECT price_tier FROM hosted_shows WHERE feed_url = $1 AND deleted_at IS NULL', [p.feedUrl]);
       if (!show || show.price_tier === null) throw new ApiError('validation', 'This show sells nothing.', { fields: ['feedUrl'] });
       if (show.price_tier !== tierOf(p.productId)) throw new ApiError('validation', 'That is not this show\'s price.', { fields: ['productId'] });
@@ -71,7 +76,7 @@ export async function grantGoogle(db: Db, play: GooglePlay, p: GrantIn): Promise
       if (!row) {
         // A second notice raced this one past the first look: it granted; grant nothing here.
         const [again] = await tx.query<{ id: string }>('SELECT id FROM purchases WHERE purchase_token = $1', [p.purchaseToken]);
-        return { id: again!.id, raced: true };
+        return { id: again!.id, raced: true as boolean };
       }
       id = row.id;
     }
@@ -81,6 +86,9 @@ export async function grantGoogle(db: Db, play: GooglePlay, p: GrantIn): Promise
     } else if (kind === 'show') {
       await tx.query(`INSERT INTO entitlements (listener_id, kind, ref, until, source_purchase_id) VALUES ($1, 'show', $2, NULL, $3)
                       ON CONFLICT (listener_id, kind, ref) DO NOTHING`, [p.listenerId, feedUrl, id]);
+    } else if (kind === 'gift') {
+      // M22 US14: the buyer gets a code, not the show (FR-042).
+      return { id, raced: false, giftCode: await createGift(tx, { buyerId: p.listenerId, feedUrl: feedUrl!, purchaseId: id }) };
     } else {
       await tx.query('INSERT INTO tips (from_listener, to_feed_url, purchase_id) VALUES ($1, $2, $3)', [p.listenerId, feedUrl, id]);
     }
@@ -97,7 +105,8 @@ export async function grantGoogle(db: Db, play: GooglePlay, p: GrantIn): Promise
   } else if (acknowledged) {
     await db.query('UPDATE purchases SET acknowledged_at = coalesce(acknowledged_at, now()) WHERE id = $1', [purchaseId.id]);
   }
-  return { purchaseId: purchaseId.id, kind, status: 'active', expiresAt, repeated: Boolean(seen) || purchaseId.raced };
+  const giftCode = kind === 'gift' ? ('giftCode' in purchaseId && purchaseId.giftCode ? purchaseId.giftCode : await giftForPurchase(db, purchaseId.id)) : undefined;
+  return { purchaseId: purchaseId.id, kind, status: 'active', expiresAt, repeated: Boolean(seen) || purchaseId.raced, ...(giftCode ? { giftCode } : {}) };
 }
 
 /** Refunds from Google: the row is marked, and what it granted is taken back. */
@@ -115,6 +124,8 @@ export async function applyVoided(db: Db, voided: { purchaseToken: string; voide
     }
     await db.query('DELETE FROM entitlements WHERE source_purchase_id = $1', [row.id]);
     await db.query('DELETE FROM tips WHERE purchase_id = $1', [row.id]);
+    // M22 US14 (FR-044, G-M22-9): a refunded gift is cancelled if unclaimed; a claimed one lost its entitlement above.
+    await cancelGiftsFor(db, row.id);
     withdrawn++;
   }
   return { withdrawn, unknown };

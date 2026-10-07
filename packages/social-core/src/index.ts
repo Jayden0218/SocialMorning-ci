@@ -66,3 +66,5 @@ export { noun, plural } from './plural';
 export { COVER_TONES, COVER_SHAPE, COVER_PX, coverLetters, coverToneIndex, coverTone, autoCoverUrl, isAutoCover, parseAutoCover, type CoverTone } from './cover';
 // M22 US1 — interaction pushes (specs/023 research R2)
 export { LIKE_WINDOW_MS, isLikeKind, shouldPush, type PushKind, type PushPrefs, type PushRelations, type LikeWindow, type PushDecision } from './push-rules';
+// M22 US13 — the Groq free-tier budget (specs/023 research R1, G-M22-6)
+export { WHISPER, TRANSLATOR, GROQ_LIMITS, BUDGET_SHARE, CHUNK_MAX_TOKENS, PROMPT_TOKENS, budgetOf, canSpend, fitsEver, estimateTokens, chunkLines, translationCost, type GroqModel, type GroqLimits, type GroqUsage, type GroqNeed } from './translate-budget';

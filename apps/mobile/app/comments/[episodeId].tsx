@@ -58,6 +58,7 @@ import { Icon, type IconName } from '@/ui/kit/Icon';
 import { EndOfList } from '@/ui/kit/EndOfList';
 import { extrasOf, replyCountOf, useCommentExtrasApi } from '@/social/comment-extras-api';
 import { VoiceComposer } from '@/ui/comments/VoiceRecord';
+import { useM22Api } from '@/social/api-m22-server';
 import { playVoice } from '@/playback/expo-audio-adapter';
 import { getPref } from '@/settings/prefs';
 import { liveLabel, useListeningNow } from '@/social/live';
@@ -78,6 +79,8 @@ function menuIcon(label: string): IconName {
   if (label === 'Delete') return 'trash-outline';
   if (label === 'Pin') return 'pin-outline';
   if (label === 'Unpin') return 'pin';
+  if (label === 'Pin to bottom') return 'arrow-down-outline';
+  if (label === 'Unpin from bottom') return 'arrow-up-outline';
   if (label === 'Mark as unfriendly') return 'eye-off-outline';
   if (label === 'Unmark') return 'eye-outline';
   if (label === 'Share') return 'share-outline';
@@ -137,7 +140,7 @@ export default function CommentsScreen(): React.ReactElement {
   const visible = useMemo(() => safety.comments(cached?.social.comments ?? []), [cached, safety]);
   const count = visible.reduce((n, x) => n + (x.deleted ? 0 : 1) + (x.replies ?? []).filter((r) => !r.deleted).length, 0);
   const ordered = useMemo(
-    () => orderComments(visible.map((x) => ({ ...x, createdAt: new Date(x.createdAt).getTime(), likeCount: likes[x.id]?.count ?? x.likeCount ?? 0, replyCount: replyCountOf(x), pinned: extrasOf(x).pinned === true, raw: x })), order, Date.now(), dir).map((o) => o.raw),
+    () => orderComments(visible.map((x) => ({ ...x, createdAt: new Date(x.createdAt).getTime(), likeCount: likes[x.id]?.count ?? x.likeCount ?? 0, replyCount: replyCountOf(x), pinned: extrasOf(x).pinned === true, pinnedBottom: (x as Comment & { pinnedBottom?: true }).pinnedBottom === true, raw: x })), order, Date.now(), dir).map((o) => o.raw),
     [visible, order, dir, likes],
   );
   // M21 US6: "N listening now" under the title — read only here (the player sends the heartbeat).
@@ -183,6 +186,16 @@ export default function CommentsScreen(): React.ReactElement {
       toast(on ? 'Pinned to the top.' : 'Unpinned.');
       void refresh(episodeId);
     } catch { toast(on ? "Couldn't pin that comment." : "Couldn't unpin that comment."); }
+  };
+  // M22 US10 (FR-030): the host pins one top-level comment to the bottom — last under every order.
+  const m22 = useM22Api();
+  const pinBottom = async (x: Comment, on: boolean) => {
+    if (!episodeId) return;
+    try {
+      await m22.pinBottom(x.id, on);
+      toast(on ? 'Pinned to the bottom.' : 'Unpinned from the bottom.');
+      void refresh(episodeId);
+    } catch { toast("Couldn't change that pin — try again."); }
   };
   // FR-041: one mark per listener; at 5 the comment folds for everyone. Voters are never shown.
   const markUnfriendly = async (x: Comment, on: boolean) => {
@@ -236,6 +249,7 @@ export default function CommentsScreen(): React.ReactElement {
     }] : []),
     ...(isHost && x.parentId === null ? [{ label: extrasOf(x).pinned ? 'Unpin' : 'Pin', run: () => void pin(x, !extrasOf(x).pinned) }] : []),
     ...(x.mine && listener ? [{ label: stores.settings.get(likesOffKey(x.id)) === '1' ? 'Turn like notices back on' : 'Stop like notices', run: () => toggleLikeNotices(x) }] : []),
+    ...(isHost && x.parentId === null ? [{ label: (x as Comment & { pinnedBottom?: true }).pinnedBottom ? 'Unpin from bottom' : 'Pin to bottom', run: () => void pinBottom(x, !(x as Comment & { pinnedBottom?: true }).pinnedBottom) }] : []),
     ...(!x.mine && listener && x.authorId ? [{ label: 'Mute', run: () => void mute(x) }] : []),
     ...(!x.mine && listener ? [{ label: marked[x.id] ? 'Unmark' : 'Mark as unfriendly', run: () => void markUnfriendly(x, !marked[x.id]) }] : []),
     x.mine

@@ -14,7 +14,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Platform } from 'react-native';
 import { requireOptionalNativeModule } from 'expo';
-import { canBuy, consumable, kindOf, PLUS, purchaseRequest, SHOW_TIERS, TIPS } from './products';
+import { canBuy, consumable, GIFT_TIERS, kindOf, PLUS, purchaseRequest, SHOW_TIERS, TIPS } from './products';
 import type { PurchaseApi } from './purchase-api';
 
 type Iap = typeof import('expo-iap');
@@ -31,6 +31,8 @@ export type PlayStore = {
   /** The last thing granted (to refresh a page), or the last error, in plain words. */
   granted: string | undefined;
   error: string | undefined;
+  /** M22 US14: the link of the gift just bought (share it), until the next purchase. */
+  gift?: { code: string; url: string } | undefined;
 };
 
 export function usePlayStore(api: PurchaseApi, o: { serverReady: boolean; teen: boolean }): PlayStore {
@@ -40,11 +42,13 @@ export function usePlayStore(api: PurchaseApi, o: { serverReady: boolean; teen: 
   const [offerToken, setOfferToken] = useState<string | undefined>(undefined);
   const [granted, setGranted] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
+  const [gift, setGift] = useState<{ code: string; url: string } | undefined>(undefined);
 
   const send = useCallback(async (p: { productId: string; purchaseToken?: string | null }, purchase: unknown): Promise<boolean> => {
     if (!iap || !p.purchaseToken) return false;
     const feedUrl = pendingShow.get(p.productId);
-    await api.sendGoogle({ productId: p.productId, purchaseToken: p.purchaseToken, ...(feedUrl ? { feedUrl } : {}) });
+    const r = await api.sendGoogle({ productId: p.productId, purchaseToken: p.purchaseToken, ...(feedUrl ? { feedUrl } : {}) });
+    if ('gift' in r && r.gift) setGift(r.gift);
     await iap.finishTransaction({ purchase: purchase as never, isConsumable: consumable(p.productId) });
     pendingShow.delete(p.productId);
     return true;
@@ -66,7 +70,7 @@ export function usePlayStore(api: PurchaseApi, o: { serverReady: boolean; teen: 
       try {
         await iap.initConnection();
         const subsList = (await iap.fetchProducts({ skus: [PLUS], type: 'subs' })) ?? [];
-        const once = (await iap.fetchProducts({ skus: [...SHOW_TIERS, ...TIPS], type: 'in-app' })) ?? [];
+        const once = (await iap.fetchProducts({ skus: [...SHOW_TIERS, ...GIFT_TIERS, ...TIPS], type: 'in-app' })) ?? [];
         if (!live) return;
         const next: Record<string, string> = {};
         for (const p of [...subsList, ...once] as { id: string; displayPrice: string; subscriptionOffers?: { offerTokenAndroid?: string | null }[] | null }[]) {
@@ -84,6 +88,7 @@ export function usePlayStore(api: PurchaseApi, o: { serverReady: boolean; teen: 
   const buy = useCallback(async (productId: string, b: { feedUrl?: string; profileId?: string } = {}) => {
     if (!ready || !iap) return;
     setError(undefined);
+    setGift(undefined);
     if (b.feedUrl) pendingShow.set(productId, b.feedUrl);
     try {
       await iap.requestPurchase(purchaseRequest(productId, { ...(offerToken ? { offerToken } : {}), ...(b.profileId ? { profileId: b.profileId } : {}) }) as never);
@@ -103,5 +108,5 @@ export function usePlayStore(api: PurchaseApi, o: { serverReady: boolean; teen: 
     return n;
   }, [ready, iap, send]);
 
-  return { ready, price: (id) => prices[id], buy, restore, granted, error };
+  return { ready, price: (id) => prices[id], buy, restore, granted, error, gift };
 }

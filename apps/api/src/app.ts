@@ -86,6 +86,12 @@ import { interests, recFeedback } from './routes/account/interests.ts';
 import { searchRequests } from './routes/discover/search-requests.ts';
 import { modSearchRequestsApi, modSearchRequestsPage } from './routes/mod/search-requests.ts';
 import { listPages, mySharedLists, sharedLists } from './routes/lists.ts';
+// M22 lane 5
+import { digests } from './routes/account/digests.ts';
+import { giftPages, gifts, myGiftsRoute } from './routes/account/gifts.ts';
+import { translation } from './translate/routes.ts';
+import { modTranslation } from './routes/mod/translation.ts';
+import { groqClient } from './translate/groq.ts';
 
 export type AppDeps = {
   db: Db; pepper: string; assetLinksSha256?: string;
@@ -104,6 +110,9 @@ export type AppDeps = {
   jobToken?: string;
   /** M10b US3: the fetch used for Expo push (tests inject a fake). Default: global fetch. */
   pushFetch?: typeof fetch;
+  /** M22 US13: the fetch used for Groq (tests inject a fake Groq; the real one is never called in a test), and its key (default env GROQ_API_KEY; unset → translation jobs stay queued). */
+  groqFetch?: typeof fetch;
+  groqKey?: string;
   /** M13: the store for created shows' audio (default: Vercel Blob with env EPISODES_READ_WRITE_TOKEN), the API's public address, the storage ceiling. */
   episodeStorage?: import('./storage/episodes-blob.ts').EpisodeStorage;
   publicBase?: string;
@@ -281,7 +290,7 @@ export function createApp(deps: AppDeps) {
   app.route('/v1/discover', discover);
   app.route('/v1/categories', categories);
   app.route('/v1/for-you', foryou);
-  app.route('/v1/internal', createInternalRoute(deps.jobToken));
+  app.route('/v1/internal', createInternalRoute(deps.jobToken, { groq: groqClient(deps.groqKey ?? process.env['GROQ_API_KEY'], deps.groqFetch ?? fetch) }));
   app.route('/v1/search', createSearchRoute());
   app.route('/v1/episodes', nextup);
   app.route('/v1/episodes', episodes);
@@ -308,6 +317,13 @@ export function createApp(deps: AppDeps) {
   app.route('/v1/me/shared-lists', mySharedLists);
   app.route('/v1/lists', sharedLists);
   app.route('/', listPages);
+  // M22 lane 5
+  app.route('/v1/me/digests', digests);
+  app.route('/v1/me/gifts', myGiftsRoute);
+  app.route('/v1/gifts', gifts);
+  app.route('/v1/episodes', translation);
+  app.route('/v1/mod', modTranslation as unknown as Hono<AuthEnv>);
+  app.route('/', giftPages);
   app.route('/mod', mod);
   app.route('/', legal);
   app.route('/', episodePages);

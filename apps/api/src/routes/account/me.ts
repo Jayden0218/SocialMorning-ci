@@ -1,4 +1,4 @@
-// My account routes: read, edit name and privacy, and delete the account.
+// My account routes: read, edit name and privacy, delete the account after a 15-day wait, and set the time zone.
 import { Hono } from 'hono';
 import { z } from 'zod';
 import type { AuthEnv } from '../../auth/session.ts';
@@ -6,12 +6,11 @@ import { publicListener, requireAuth } from '../../auth/session.ts';
 import { verifyPassword } from '../../auth/password.ts';
 import { json } from '../../validate.ts';
 import { ApiError } from '../../errors.ts';
-import { deleteAccount } from '../../db/repos/account/delete-account.ts';
+import { cancelDeletion, requestDeletion } from '../../db/repos/account/deletion.ts';
 import { checkCode, consumeCode } from '../../auth/codes.ts';
-import { removeAllFor } from '../../db/repos/social/voice-posts.ts';
-import { removeImagesFor } from '../../db/repos/social/comment-images.ts';
 import { hasPlus } from '../../db/repos/account/purchases.ts';
 import { AGE_RANGES, AVATAR_CEILING_BYTES, AVATAR_MAX_BYTES, GENDERS, INDUSTRY_MAX, avatarBytesOthers, currentAvatar, imageKind, myProfile, setAvatar, updateProfile } from '../../db/repos/account/profile.ts';
+import { setTz } from '../../db/repos/account/digest.ts';
 
 export const me = new Hono<AuthEnv>();
 
@@ -103,7 +102,9 @@ me.delete('/avatar', requireAuth, async (c) => {
 });
 
 /**
- * FR-005a: self-service deletion, re-confirmed. Ends every session (cascade). Since the
+ * FR-005a: self-service deletion, re-confirmed. M22 US11 (FR-033): it now waits 15 days — 202
+ * `{ dueAt }`, every session ends, the account is hidden; the internal step `deletions` deletes it
+ * then, exactly as this route used to (`finishDeletion`). Since the
  * app dropped passwords (owner, 2026-09-27) it confirms with a code sent to the account's
  * email (`POST /v1/auth/code`); a password still works for accounts made before.
  */
@@ -125,12 +126,18 @@ me.delete('/', requireAuth, json(deleteBody), async (c) => {
       throw new ApiError('unauthenticated', 'That password is not right.');
     }
   }
-  // M12 FR-104: the listener's voice recordings leave the store before the rows cascade away.
-  try { await removeAllFor(db, c.get('voice'), listener.id); } catch (e) { console.error('voice cleanup on delete', e); }
-  // M20 US9 (FR-055): the listener's comment images leave the store before the account goes.
-  try { await removeImagesFor(db, c.get('images'), listener.id); } catch (e) { console.error('image cleanup on delete', e); }
-  // M19 US1: the photo is deleted with the account (constitution v2.6.0).
-  try { const a = await currentAvatar(db, listener.id); if (a) await c.get('avatars').remove(a); } catch (e) { console.error('avatar cleanup on delete', e); }
-  await deleteAccount(db, listener.id);
-  return c.json({});
+  return c.json(await requestDeletion(db, listener.id), 202);
+});
+
+/** M22 US11 (FR-034): Keep — after signing in during the wait. 204 whether or not one was pending. */
+me.post('/deletion/cancel', requireAuth, async (c) => {
+  await cancelDeletion(c.get('db'), c.get('listener')!.id);
+  return c.body(null, 204);
+});
+
+/** M22 US15: the phone's IANA time zone, sent after sign-in; the Monday digest goes out at 12:00 there. */
+const tzBody = z.object({ tz: z.string().min(1).max(64) });
+me.put('/tz', requireAuth, json(tzBody), async (c) => {
+  await setTz(c.get('db'), c.get('listener')!.id, c.req.valid('json').tz);
+  return c.body(null, 204);
 });

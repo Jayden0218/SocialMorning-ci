@@ -7,9 +7,10 @@ import { z } from 'zod';
 import { json } from '../../validate.ts';
 import { commentOnFeed, listShowComments, setHostHidden } from '../../db/repos/studio/studio-comments.ts';
 import { createComment, toPublic } from '../../db/repos/social/comments.ts';
-import { pinAsHost } from '../../db/repos/social/comment-extras.ts';
+import { pinAsHost, pinBottomAsHost } from '../../db/repos/social/comment-extras.ts';
+import { registerBans } from './bans.ts';
 import { isBlockedBy } from '../../db/repos/safety/blocks.ts';
-import type { Hono } from 'hono';
+import type { Context, Hono } from 'hono';
 import type { StudioEnv } from '../../auth/studio-session.ts';
 
 export function registerComments(studio: Hono<StudioEnv>): void {
@@ -59,4 +60,19 @@ export function registerComments(studio: Hono<StudioEnv>): void {
       return c.body(null, 204);
     });
   }
+
+  /** M22 US10 (FR-030, G-M22-11): one bottom pin per episode, last under every sort; a new one replaces the old. */
+  const pinBottom = (pin: boolean) => async (c: Context<StudioEnv>) => {
+    const db = c.get('db');
+    const row = await commentOnFeed(db, c.get('show').feedUrl, c.req.param('id') ?? '');
+    if (!row || row.author_id === null) throw new ApiError('not_found', 'No such comment on this show.');
+    if (row.parent_id !== null) throw new ApiError('validation', 'Only a top-level comment can be pinned.');
+    await pinBottomAsHost(db, row.id, row.episode_id, pin);
+    return c.body(null, 204);
+  };
+  studio.post('/shows/:show/comments/:id/pin-bottom', pinBottom(true));
+  studio.delete('/shows/:show/comments/:id/pin-bottom', pinBottom(false));
+
+  // M22 US10 (FR-031): the Banned listeners list lives beside the comments it protects.
+  registerBans(studio);
 }

@@ -24,7 +24,7 @@ type Row = {
 
 const COLS = `k.listener_id, l.display_name, l.avatar_url, k.note, k.created_at,
   e.id, e.feed_url, e.guid, e.title, e.show_title, e.image_url, e.duration_ms, e.enclosure_url, e.published_at`;
-const FROM = `FROM episode_likes k JOIN listeners l ON l.id = k.listener_id AND l.suspended_at IS NULL
+const FROM = `FROM episode_likes k JOIN listeners l ON l.id = k.listener_id AND l.suspended_at IS NULL AND l.hidden_at IS NULL
   JOIN episodes e ON e.id = k.episode_id
   WHERE NOT EXISTS (SELECT 1 FROM hidden_feeds h WHERE h.feed_url = e.feed_url)`;
 
@@ -125,14 +125,14 @@ export async function likePost(db: Db, ownerId: string, episodeId: string, viewe
   if (!like) return undefined;
   const comments = await db.query<{ id: string; author_id: string; display_name: string; avatar_url: string | null; body: string; created_at: Date | string }>(
     `SELECT c.id, c.author_id, l.display_name, l.avatar_url, c.body, c.created_at
-       FROM like_comments c JOIN listeners l ON l.id = c.author_id AND l.suspended_at IS NULL
+       FROM like_comments c JOIN listeners l ON l.id = c.author_id AND l.suspended_at IS NULL AND l.hidden_at IS NULL
       WHERE c.owner_id = $1::uuid AND c.episode_id = $2 AND c.deleted_at IS NULL
         AND ($3::uuid IS NULL OR NOT ${BLOCKED_EITHER('$3::uuid', 'c.author_id')})
       ORDER BY c.created_at, c.id LIMIT ${LIKE_COMMENTS_MAX}`,
     [ownerId, episodeId, viewerId ?? null],
   );
   const counts = await db.query<{ emoji: string; n: number }>(
-    `SELECT r.emoji, count(*)::int AS n FROM like_reactions r JOIN listeners l ON l.id = r.listener_id AND l.suspended_at IS NULL
+    `SELECT r.emoji, count(*)::int AS n FROM like_reactions r JOIN listeners l ON l.id = r.listener_id AND l.suspended_at IS NULL AND l.hidden_at IS NULL
       WHERE r.owner_id = $1::uuid AND r.episode_id = $2 GROUP BY r.emoji ORDER BY n DESC, r.emoji`,
     [ownerId, episodeId],
   );

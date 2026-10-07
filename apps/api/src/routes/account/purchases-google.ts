@@ -13,6 +13,7 @@ import { json } from '../../validate.ts';
 import { ApiError } from '../../errors.ts';
 import { grantGoogle } from '../../db/repos/account/purchases.ts';
 import { GooglePlayError } from '../../billing/google-play.ts';
+import { giftUrl } from '../../db/repos/account/gifts.ts';
 
 export const purchasesGoogle = new Hono<AuthEnv>();
 
@@ -28,7 +29,8 @@ purchasesGoogle.post('/purchases/google', requireAuth, json(body), async (c) => 
   const b = c.req.valid('json');
   try {
     const g = await grantGoogle(c.get('db'), play, { listenerId: c.get('listener')!.id, productId: b.productId, purchaseToken: b.purchaseToken, ...(b.feedUrl ? { feedUrl: b.feedUrl } : {}) });
-    return c.json({ purchase: g });
+    // M22 US14: a gift answers its link too — the buyer shares it.
+    return c.json({ purchase: g, ...(g.giftCode ? { gift: { code: g.giftCode, url: giftUrl(c.get('publicBase'), g.giftCode) } } : {}) });
   } catch (e) {
     if (e instanceof GooglePlayError) {
       // 404/410 from Google: no such purchase. Anything else: Google is not answering now.

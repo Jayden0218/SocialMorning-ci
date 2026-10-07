@@ -101,7 +101,7 @@ test('delete account confirms with a code sent to the account email', async () =
   const { token } = await signUp(t);
   await t.call('POST', '/v1/auth/code', { email: 'a@example.com' });
   assert.equal((await t.call('DELETE', '/v1/me', { code: '999999' === lastCode(t, 'a@example.com') ? '888888' : '999999' }, token)).status, 401);
-  assert.equal((await t.call('DELETE', '/v1/me', { code: lastCode(t, 'a@example.com') }, token)).status, 200);
+  assert.equal((await t.call('DELETE', '/v1/me', { code: lastCode(t, 'a@example.com') }, token)).status, 202, 'M22 US11: the deletion waits 15 days');
   assert.equal((await t.call('GET', '/v1/me', undefined, token)).status, 401);
   await t.close();
 });

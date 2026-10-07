@@ -8,8 +8,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { freshDb, signUp } from './harness.ts';
+import { freshDb, signUp, type TestDb } from './harness.ts';
+import { runDueDeletions, type DeletionStores } from '../src/db/repos/account/deletion.ts';
 import { imageStorageFromEnv, r2ImageStorage, sigV4, type ImageStorage } from '../src/storage/image-store.ts';
+
+// M22 US11: DELETE /v1/me now waits 15 days; this makes the wait over and runs the internal step's body.
+const dueNow = async (t: TestDb, stores: DeletionStores = {}) => { await t.q("UPDATE account_deletions SET due_at = now() - interval '1 second'"); await runDueDeletions(t.db, stores); };
 
 const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 16, 0x4a, 0x46, 0x49, 0x46, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0xff, 0xd9]);
 
@@ -118,7 +122,8 @@ test('G-M20-8: deleted, removed by moderation, or the author\'s account deleted 
 
   const three = await comment(b.token);
   await add(three, b.token);
-  assert.equal((await t.call('DELETE', '/v1/me', { password: 'correct horse' }, b.token)).status, 200);
+  assert.equal((await t.call('DELETE', '/v1/me', { password: 'correct horse' }, b.token)).status, 202);
+  await dueNow(t, { images: f.store });
   assert.ok(f.removed.includes(f.puts[2]!), 'the account\'s image went before the account');
   await t.close();
 });

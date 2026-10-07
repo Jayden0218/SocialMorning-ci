@@ -33,7 +33,7 @@ friends.get('/friends-listening', requireAuth, async (c) => {
        JOIN listeners l ON l.id = lr.listener_id
        WHERE f.follower_id = $1
          AND lr.updated_at > now() - interval '7 days'
-         AND l.private_listening = false AND l.suspended_at IS NULL
+         AND l.private_listening = false AND l.suspended_at IS NULL AND l.hidden_at IS NULL
          AND NOT EXISTS (SELECT 1 FROM activity a WHERE a.actor_id = lr.listener_id AND a.kind = 'listened' AND a.episode_id = lr.episode_id AND a.day = lr.day AND a.hidden)
          AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id = $1 AND b.blocked_id = lr.listener_id) OR (b.blocker_id = lr.listener_id AND b.blocked_id = $1))
        GROUP BY lr.episode_id, lr.listener_id

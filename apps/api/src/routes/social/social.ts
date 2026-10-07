@@ -34,6 +34,8 @@ social.get('/:id/social', optionalAuth, async (c) => {
        (SELECT max(greatest(created_at, coalesce(deleted_at, created_at), coalesce(removed_at, created_at)))::text || '/' || count(host_hidden_at)::text
           -- M19 US5: a pin (which one, when) and the unfriendly marks change the answer too.
           || '/' || coalesce(max(pinned_at)::text || (array_agg(id::text ORDER BY pinned_at DESC NULLS LAST))[1], '-')
+          -- M22 US10: and so does the bottom pin.
+          || '/' || coalesce(max(pinned_bottom_at)::text || (array_agg(id::text ORDER BY pinned_bottom_at DESC NULLS LAST))[1], '-')
           || '/' || (SELECT count(*) FROM comment_unfriendly u JOIN comments x ON x.id = u.comment_id WHERE x.episode_id = $1)::text
         FROM comments WHERE episode_id = $1) AS comments_v,
        (SELECT updated_at::text FROM episodes WHERE id = $1) AS episode_v,

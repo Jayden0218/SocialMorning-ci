@@ -10,7 +10,7 @@ export type Curator = { id: string; displayName: string };
 export async function curatorFor(db: Db, feedUrl: string): Promise<Curator | null> {
   const [r] = await db.query<{ id: string; display_name: string }>(
     `SELECT l.id, l.display_name FROM show_curators c JOIN listeners l ON l.id = c.listener_id
-      WHERE c.feed_url = $1 AND l.suspended_at IS NULL`, [feedUrl]);
+      WHERE c.feed_url = $1 AND l.suspended_at IS NULL AND l.hidden_at IS NULL`, [feedUrl]);
   return r ? { id: r.id, displayName: r.display_name } : null;
 }
 

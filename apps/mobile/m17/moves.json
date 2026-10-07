@@ -638,5 +638,13 @@
   "to": "ChapterList | ↗ | openLink",
   "why": "M22 US7 (T044, FR-025): a chapter's web link opens in the in-app browser through src/ui/kit/openLink.ts; same button, same link",
   "task": "M22 T044"
+ },
+ {
+  "surface": "VoicePosts",
+  "name": "voiceLabel(p, now, playing === p.id)",
+  "destination": "toggle",
+  "to": "VoicePosts | ${p.suggested ? 'Suggested. ' : ''}${voiceLabel(p, now, playing === p.id)} | toggle",
+  "why": "M22 US2: a status circle's name now starts with 'Suggested.' for a suggested status; same circle, same toggle",
+  "task": "T021"
  }
 ]

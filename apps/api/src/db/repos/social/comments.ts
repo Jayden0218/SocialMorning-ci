@@ -26,6 +26,8 @@ export type CommentRow = {
   host_hidden_at?: Date | string | null;
   /** M19 US5/US6: pinned by a host; a voice recording instead of (or with) text. */
   pinned_at?: Date | string | null;
+  /** M22 US10: pinned to the bottom by a host — last under every order. */
+  pinned_bottom_at?: Date | string | null;
   voice_url?: string | null;
   voice_ms?: number | null;
   /** M20 US3: the text of a voice comment, as its author checked it. */
@@ -39,6 +41,8 @@ export type CommentRow = {
   country?: string | null;
   author_listened_ms?: number | string | null;
   author_hide_badge?: boolean | null;
+  /** M22 US11: the author asked to delete their account and is hidden during the 15-day wait. */
+  author_hidden_at?: Date | string | null;
 };
 
 /** M21 US6: the listening badge — 100 h, 500 h or 1000 h of total listening; none below 100 h. */
@@ -81,6 +85,8 @@ export type PublicComment = {
   likedByMe?: boolean;
   /** M19 US5: pinned by the show's host — first under every order. */
   pinned?: true;
+  /** M22 US10 (FR-030, G-M22-11): pinned to the bottom by the show's host — last under every order. */
+  pinnedBottom?: true;
   /** M19 US5: marked unfriendly by 5 or more listeners — folded behind "show"; never says by whom. */
   folded?: true;
   /** M19 US5: how many replies it has (the Smart sort and the "n replies" link). */
@@ -96,8 +102,8 @@ export type PublicComment = {
 };
 
 const SELECT = `SELECT c.id, c.episode_id, c.author_id, l.display_name, l.avatar_url, c.parent_id, c.body, c.offset_ms, c.created_at, c.deleted_at, c.removed_at, c.host_hidden_at,
-                       c.pinned_at, c.voice_url, c.voice_ms, c.transcript, c.image_url, c.image_path, c.image_w, c.image_h,
-                       c.country, l.listened_ms AS author_listened_ms, l.hide_badge AS author_hide_badge
+                       c.pinned_at, c.pinned_bottom_at, c.voice_url, c.voice_ms, c.transcript, c.image_url, c.image_path, c.image_w, c.image_h,
+                       c.country, l.listened_ms AS author_listened_ms, l.hide_badge AS author_hide_badge, l.hidden_at AS author_hidden_at
                 FROM comments c LEFT JOIN listeners l ON l.id = c.author_id`;
 
 export function toPublic(r: CommentRow, viewerId?: string): PublicComment {
@@ -118,6 +124,7 @@ export function toPublic(r: CommentRow, viewerId?: string): PublicComment {
     initials: deleted ? null : initialsOf(r.display_name),
     ...(!deleted && r.avatar_url ? { avatarUrl: r.avatar_url } : {}),
     ...(!deleted && r.pinned_at ? { pinned: true as const } : {}),
+    ...(!deleted && r.pinned_bottom_at ? { pinnedBottom: true as const } : {}),
     ...(!deleted && r.voice_url && r.voice_ms ? { voice: { url: r.voice_url, ms: Number(r.voice_ms), ...(r.transcript ? { text: r.transcript } : {}) } } : {}),
     ...(!deleted && r.image_url && r.image_w && r.image_h ? { image: { url: r.image_url, w: Number(r.image_w), h: Number(r.image_h) } } : {}),
     likeCount: 0,
@@ -191,7 +198,10 @@ export async function deleteComment(db: Db, id: string): Promise<{ placeholder: 
  * oldest first (contracts/api.md).
  */
 export async function listComments(db: Db, episodeId: string, viewerId?: string, opts: { dir?: 'asc' | 'desc' } = {}): Promise<PublicComment[]> {
-  const fetched = await db.query<CommentRow>(`${SELECT} WHERE c.episode_id = $1 ORDER BY c.created_at ASC`, [episodeId]);
+  const fetchedAll = await db.query<CommentRow>(`${SELECT} WHERE c.episode_id = $1 ORDER BY c.created_at ASC`, [episodeId]);
+  // M22 US11 (G-M22-8): an account waiting to be deleted is hidden from everyone else — its comments
+  // and the replies under them, the way a mute hides them; Keep brings them all back.
+  const fetched = fetchedAll.filter((r) => r.author_hidden_at == null || (viewerId !== undefined && r.author_id === viewerId));
   // M21 US6 (G-M21-6): the viewer's muted listeners are gone from the viewer's reads only — their
   // comments and their replies. A reply under a muted listener's comment goes with it.
   const all = viewerId === undefined ? fetched : await withoutMuted(db, fetched, viewerId);
@@ -220,6 +230,9 @@ export async function listComments(db: Db, episodeId: string, viewerId?: string,
     topById.get(r.parent_id)?.replies!.push(byId.get(r.id)!);
   }
   const ordered = opts.dir === 'asc' ? top : top.reverse();
+  // M22 US10 (G-M22-11): the bottom pin is last whichever way the list reads.
+  const bottom = ordered.filter((c) => c.pinnedBottom === true);
+  if (bottom.length > 0) ordered.splice(0, ordered.length, ...ordered.filter((c) => c.pinnedBottom !== true), ...bottom);
   return ordered.map((c) => ({ ...c, replyCount: c.replies!.length }));
 }
 
@@ -238,7 +251,7 @@ async function filterForViewer(db: Db, rows: CommentRow[], viewerId: string): Pr
   return applyBlocks(named, blocked, hidden.keys).map((i) => {
     if (!('placeholder' in i)) return i.row;
     const original = rows.find((r) => r.id === i.id)!;
-    const bare = { ...original, author_id: null, display_name: null, body: null, offset_ms: null, deleted_at: new Date(0), removed_at: null, voice_url: null, voice_ms: null, transcript: null, image_url: null, image_path: null, image_w: null, image_h: null, pinned_at: null };
+    const bare = { ...original, author_id: null, display_name: null, body: null, offset_ms: null, deleted_at: new Date(0), removed_at: null, voice_url: null, voice_ms: null, transcript: null, image_url: null, image_path: null, image_w: null, image_h: null, pinned_at: null, pinned_bottom_at: null };
     return (i.placeholder === 'reported'
       ? { ...bare, reported: true }
       : { ...bare, blocked: true }) as CommentRow & { blocked?: true; reported?: true };

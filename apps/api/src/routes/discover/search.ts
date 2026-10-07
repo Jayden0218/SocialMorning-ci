@@ -102,7 +102,7 @@ export function createSearchRoute() {
     const like = q.replace(/[\\%_]/g, (m) => '\\' + m);
     const rows = await c.get('db').query<{ id: string; display_name: string }>(
       `SELECT l.id, l.display_name FROM listeners l
-        WHERE l.suspended_at IS NULL AND l.display_name ILIKE '%' || $1 || '%'
+        WHERE l.suspended_at IS NULL AND l.hidden_at IS NULL AND l.display_name ILIKE '%' || $1 || '%'
           AND ($2::uuid IS NULL OR (l.id <> $2::uuid AND NOT EXISTS (
             SELECT 1 FROM blocks b WHERE (b.blocker_id = l.id AND b.blocked_id = $2::uuid) OR (b.blocker_id = $2::uuid AND b.blocked_id = l.id))))
         ORDER BY (l.display_name ILIKE $1 || '%') DESC, lower(l.display_name), l.id LIMIT 20`,

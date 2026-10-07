@@ -32,7 +32,7 @@ export async function showHosts(db: Db, feedUrl: string): Promise<ShowHost[]> {
         UNION ALL
         SELECT h.listener_id, 1, h.added_at FROM show_hosts h WHERE h.feed_url = $1
      ) w JOIN listeners l ON l.id = w.listener_id
-      WHERE l.suspended_at IS NULL
+      WHERE l.suspended_at IS NULL AND l.hidden_at IS NULL
       ORDER BY w.rank, w.since`, [feedUrl]);
   const seen = new Set<string>();
   return rows.filter((r) => (seen.has(r.id) ? false : (seen.add(r.id), true))).map((r) => ({ id: r.id, name: r.display_name, avatarUrl: r.avatar_url }));

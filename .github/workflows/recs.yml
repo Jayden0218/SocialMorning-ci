@@ -59,3 +59,7 @@ jobs:
           # under 20 h old, so a missed hour costs nothing and a catch-up burst does no
           # extra work (R4).
           run_step similarity
+          # M22: each step is one bounded unit of work and answers done:true.
+          run_step translate   # US13 — at most one Groq call, inside 90 % of the free limits
+          run_step digest      # US15 — Monday noon local, PLUS members, once per ISO week
+          run_step deletions   # US11 — accounts past their 15-day wait

@@ -4,6 +4,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, TEST_APPEALS, type TestDb } from './harness.ts';
+import { runDueDeletions, type DeletionStores } from '../src/db/repos/account/deletion.ts';
+
+// M22 US11: DELETE /v1/me now waits 15 days; this makes the wait over and runs the internal step's body.
+const dueNow = async (t: TestDb, stores: DeletionStores = {}) => { await t.q("UPDATE account_deletions SET due_at = now() - interval '1 second'"); await runDueDeletions(t.db, stores); };
 
 const ep = { feedUrl: 'https://feeds.example.com/x.xml', guid: 'g1', title: 'One', enclosureUrl: 'https://cdn/1.mp3' };
 const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
@@ -179,13 +183,15 @@ test('A8: closed reports older than 90 days are purged on the next /mod open; a 
   await web(t, 'GET', '/mod', undefined, cookie);
   assert.equal((await t.q('SELECT 1 FROM reports WHERE target_id = $1', [c1.id])).length, 0, 'purged');
   // the reporter deletes their account → the report stays, anonymised
-  assert.equal((await t.call('DELETE', '/v1/me', { password: 'correct horse' }, b.token)).status, 200);
+  assert.equal((await t.call('DELETE', '/v1/me', { password: 'correct horse' }, b.token)).status, 202);
+  await dueNow(t);
   const [r] = await t.q<{ reporter_id: string | null; closed_at: string | null }>('SELECT reporter_id, closed_at FROM reports WHERE target_id = $1', [c2.id]);
   assert.equal(r!.reporter_id, null);
   assert.equal(r!.closed_at, null, 'still open');
   assert.match(await (await web(t, 'GET', '/mod', undefined, cookie)).text(), /a deleted account/);
   // the author deletes their account → reports against their content close as author_deleted, the copy stays
-  assert.equal((await t.call('DELETE', '/v1/me', { password: 'correct horse' }, a.token)).status, 200);
+  assert.equal((await t.call('DELETE', '/v1/me', { password: 'correct horse' }, a.token)).status, 202);
+  await dueNow(t);
   const [r2] = await t.q<{ close_reason: string | null; snapshot: { body: string } }>('SELECT close_reason, snapshot FROM reports WHERE target_id = $1', [c2.id]);
   assert.equal(r2!.close_reason, 'author_deleted');
   assert.equal(r2!.snapshot.body, 'new');

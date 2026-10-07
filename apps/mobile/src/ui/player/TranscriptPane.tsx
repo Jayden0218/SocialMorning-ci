@@ -29,6 +29,7 @@
  */
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { currentLine, type Transcript, type TranscriptLine } from '@socialmorning/player-core';
+import { plural } from '@socialmorning/social-core';
 import { Pressable } from '@/ui/lib/pressable';
 import { ScrollView } from '@/ui/lib/scroll-view';
 import { Text } from '@/ui/lib/text';
@@ -200,7 +201,7 @@ function SelectBar(props: {
   const imageOk = q !== undefined && !q.tooLong;
   const note = props.onClip && !clip.ok ? clip.reason
     : q?.tooLong ? `Too long for a picture — up to ${QUOTE_CARD_MAX} characters`
-    : `${props.count} line${props.count === 1 ? '' : 's'} selected`;
+    : `${plural(props.count, 'line')} selected`;
   const chip = (on: boolean) => `px-section justify-center rounded-pill border border-border ${on ? '' : 'opacity-50'}`;
   return (
     <Box className="gap-2">

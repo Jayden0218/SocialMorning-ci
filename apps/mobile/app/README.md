@@ -93,6 +93,18 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 | `comments/[episodeId].tsx` | `/comments/<episodeId>` | An episode's comments: four sort orders either way round, likes, who is listening now, write box with the current time and a mic. |
 | `comments/thread/[commentId].tsx` | `/comments/thread/<commentId>` | A comment's replies: the comment on top, All or Newest replies under it, a reply box with a mic. |
 
+### `digest/`
+
+| File | Route | What the user sees |
+|---|---|---|
+| `digest/[week].tsx` | `/digest/<isoWeek>` | One Monday catch-up: up to 10 unplayed episodes from last week's subscriptions, each with ▶, and Queue all. |
+
+### `gift/`
+
+| File | Route | What the user sees |
+|---|---|---|
+| `gift/[code].tsx` | `/gift/<code>` | A gift link opened in the app: the paid series, who gave it, and Claim — once, by whoever signs in first. |
+
 ### `episode/`
 
 | File | Route | What the user sees |

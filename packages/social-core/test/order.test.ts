@@ -84,3 +84,23 @@ test('direction (M21 US6): each order has a default; the other direction reverse
   assert.deepEqual(orderComments(pinnedRows, 'newest', 0, 'asc').map((r) => r.id), ['p', 'b', 'a']);
   assert.deepEqual(rows.map((r) => r.id), ['a', 'b', 'c', 'd', 'e'], 'the input is not changed');
 });
+
+// M22 US10 — guard G-M22-11. Break: drop the `bottom` lines in src/order.ts (it then sorts with the rest).
+test('G-M22-11: the bottom pin is last under every order and direction; the top pin stays first', () => {
+  const list = [
+    { id: 'top', offsetMs: 5, createdAt: 1, likeCount: 0, pinned: true },
+    { id: 'bot', offsetMs: 1, createdAt: 9, likeCount: 99, replyCount: 9, pinnedBottom: true },
+    { id: 'x', offsetMs: 2, createdAt: 2, likeCount: 1 },
+    { id: 'y', offsetMs: 3, createdAt: 3, likeCount: 2 },
+  ];
+  for (const order of ['newest', 'liked', 'smart', 'byMoment'] as const) {
+    for (const dir of ['asc', 'desc'] as const) {
+      const ids = orderComments(list, order, 10, dir).map((r) => r.id);
+      assert.equal(ids[0], 'top', `${order} ${dir}`);
+      assert.equal(ids.at(-1), 'bot', `${order} ${dir}`);
+      assert.equal(ids.length, 4);
+    }
+  }
+  // Marked both ways (never written by the server): the top pin wins.
+  assert.deepEqual(orderComments([{ id: 'a', offsetMs: null, createdAt: 1, pinned: true, pinnedBottom: true }, { id: 'b', offsetMs: null, createdAt: 2 }], 'newest').map((r) => r.id), ['a', 'b']);
+});

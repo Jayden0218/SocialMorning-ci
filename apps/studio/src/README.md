@@ -26,7 +26,8 @@ missing here or a line does not match its file.
 | File | What it does |
 |---|---|
 | `Announcements.tsx` | Page where a creator writes announcements with pictures, schedules them and sends them to listeners. |
-| `Comments.tsx` | Page listing all comments on a show, with reply, hide, pin and mute. |
+| `Bans.tsx` | Page listing the listeners banned from commenting on a show, with the reason kept and a button to lift each ban. |
+| `Comments.tsx` | Page listing all comments on a show, with reply, hide, pin to the top or bottom, and mute. |
 | `Demographics.tsx` | Page showing who subscribes: total, age ranges, genders and countries, groups under 10 hidden. |
 | `Data.tsx` | Page with a show's numbers, trends and an episode table to download. |
 | `Episode.tsx` | One episode's page: its numbers, reaction curve, retention, comments and take-down button. |
@@ -67,6 +68,7 @@ missing here or a line does not match its file.
 | `PhonePreview.tsx` | Shows a day's picks the way the phone app will draw them. |
 | `Picks.tsx` | Admin page with a calendar to choose and order each day's episode picks. |
 | `Reports.tsx` | Admin page for the reports queue: dismiss, remove, hide or suspend. |
+| `Translation.tsx` | Admin page for translated transcripts: the shows that get them, today's Groq free-tier use, and the queue. |
 | `Users.tsx` | Admin page to find an account, rename it, and suspend or restore it. |
 
 ### `shell/` — parts many pages share

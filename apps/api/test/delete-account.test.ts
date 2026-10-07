@@ -3,6 +3,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
+import { runDueDeletions, type DeletionStores } from '../src/db/repos/account/deletion.ts';
+
+// M22 US11: DELETE /v1/me now waits 15 days; this makes the wait over and runs the internal step's body.
+const dueNow = async (t: TestDb, stores: DeletionStores = {}) => { await t.q("UPDATE account_deletions SET due_at = now() - interval '1 second'"); await runDueDeletions(t.db, stores); };
 
 const ep = { feedUrl: 'https://feeds.example.com/x.xml', guid: 'g189', title: '#189', enclosureUrl: 'https://cdn/189.mp3' };
 const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
@@ -29,7 +33,8 @@ test('A12: deletion removes everything of the listener; only placeholders under 
   assert.equal((await t.q('SELECT bucket FROM episode_heat WHERE episode_id = $1', [EP])).length, 3);
 
   assert.equal((await t.call('DELETE', '/v1/me', { password: 'wrong' }, a1.token)).status, 401);
-  assert.equal((await t.call('DELETE', '/v1/me', { password: 'correct horse' }, a1.token)).status, 200);
+  assert.equal((await t.call('DELETE', '/v1/me', { password: 'correct horse' }, a1.token)).status, 202);
+  await dueNow(t);
 
   assert.equal((await t.call('GET', '/v1/me', undefined, a1.token)).status, 401);
   assert.equal((await t.call('GET', '/v1/me', undefined, a2.token)).status, 401);
@@ -63,7 +68,8 @@ test('M4 (G7): deleting an account removes its clips, follows both ways, listene
   const clip = ((await (await t.call('POST', `/v1/episodes/${EP}/clips`, { clientId: 'k', startMs: 0, endMs: 30_000 }, b.token)).json()) as { clip: { id: string } }).clip;
   await t.call('PUT', '/v1/me/listened', { deviceId: 'pb', days: [{ episodeId: EP, day: '2026-09-21', ranges: [[0, 360_000]] }] }, b.token);
   await t.call('POST', `/v1/episodes/${EP}/comments`, { body: 'hi' }, b.token);
-  assert.equal((await t.call('DELETE', '/v1/me', { password: 'correct horse' }, b.token)).status, 200);
+  assert.equal((await t.call('DELETE', '/v1/me', { password: 'correct horse' }, b.token)).status, 202);
+  await dueNow(t);
   for (const table of ['clips', 'follows', 'listened_ranges', 'activity']) {
     assert.deepEqual(await t.q(`SELECT count(*)::int AS n FROM ${table}`), [{ n: 0 }], table);
   }
@@ -92,7 +98,8 @@ test('M8 (G-D1): deleting an account removes its subscriptions and its rec_event
   assert.equal((await t.q('SELECT 1 FROM subscriptions WHERE listener_id = $1', [a.id])).length, 1);
   assert.equal((await t.q('SELECT 1 FROM rec_events WHERE listener_id = $1', [a.id])).length, 1);
 
-  assert.equal((await t.call('DELETE', '/v1/me', { password: 'correct horse' }, a.token)).status, 200);
+  assert.equal((await t.call('DELETE', '/v1/me', { password: 'correct horse' }, a.token)).status, 202);
+  await dueNow(t);
 
   assert.equal((await t.q('SELECT 1 FROM subscriptions WHERE listener_id = $1', [a.id])).length, 0, 'subscriptions cascade');
   assert.equal((await t.q('SELECT 1 FROM rec_events WHERE listener_id = $1', [a.id])).length, 0, 'rec_events cascade');

@@ -10,6 +10,10 @@
  * sits on the stack above "Account and security", and back returns there.
  * Guard: __tests__/account-more-route.test.ts.
  *
+ * M22 US11 (FR-033): deletion now waits 15 days. The page names the date; during the wait the
+ * account is hidden and signed out everywhere, and signing in again offers Keep
+ * (`src/ui/auth/PendingDeletion.tsx`). After the date the server deletes it as before.
+ *
  * M17 (`SettingsAccountMore-B`, T081): the Editorial layout. Before confirming, "Delete my
  * account…" sits in a card. Once confirming: a serif "Delete my account" heading, the warning,
  * "This cannot be undone." in serif accent, then three numbered steps — 1 email a code (a tick
@@ -33,6 +37,10 @@ import { PageHeader } from '@/ui/kit/PageHeader';
 import { Card } from '@/ui/kit/Card';
 import { BottomBar } from '@/ui/kit/BottomBar';
 import { hit } from '@/design';
+import { dueDateText } from '@/social/api-m22-server';
+
+/** M22 US11: the server deletes the account this many days after the request. */
+const WAIT_DAYS = 15;
 
 export default function AccountMoreScreen(): React.ReactElement {
   const stores = useStores();
@@ -73,6 +81,7 @@ export default function AccountMoreScreen(): React.ReactElement {
 
   const masked = listener?.email ? listener.email.replace(/^(.)(.*)(.@.*)$/, (_m, a: string, mid: string, b: string) => `${a}${'*'.repeat(Math.min(6, mid.length))}${b}`) : '';
   const ready = code.trim().length === 6;
+  const due = dueDateText(new Date(Date.now() + WAIT_DAYS * 86_400_000).toISOString());
 
   return (
     <>
@@ -91,7 +100,8 @@ export default function AccountMoreScreen(): React.ReactElement {
         <Box className="gap-row">
           <Text className="text-text text-hero font-display" accessibilityRole="header">Delete my account</Text>
           <Text className="text-text text-body">This removes your comments, reactions and listening positions from every phone. Where someone replied to you, "Comment deleted" stays so their reply still makes sense.</Text>
-          <Text className="text-accent text-title font-display">This cannot be undone.</Text>
+          <Text className="text-accent text-title font-display">{`Deleted for good on ${due}.`}</Text>
+          <Text className="text-muted text-body">{`Until then your account is hidden from everyone and signed out on every phone. Changed your mind? Sign in before ${due} and keep it.`}</Text>
           <Box className="gap-section mt-row">
             <Step n={1} done={codeSent} active={!codeSent} title="Email me a code to confirm" line={codeSent && masked ? `Sent to ${masked}` : undefined} />
             <Step n={2} done={codeSent && ready} active={codeSent && !ready} title="Enter the 6-digit code">

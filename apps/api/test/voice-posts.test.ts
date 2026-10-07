@@ -8,8 +8,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { freshDb, signUp, type TestDb } from './harness.ts';
+import { runDueDeletions, type DeletionStores } from '../src/db/repos/account/deletion.ts';
 import type { VoiceStorage } from '../src/storage/voice-blob.ts';
 import { audioDurationMs } from '../src/voice/duration.ts';
+
+// M22 US11: DELETE /v1/me now waits 15 days; this makes the wait over and runs the internal step's body.
+const dueNow = async (t: TestDb, stores: DeletionStores = {}) => { await t.q("UPDATE account_deletions SET due_at = now() - interval '1 second'"); await runDueDeletions(t.db, stores); };
 
 const JOB = 'job-token-not-secret';
 
@@ -129,7 +133,8 @@ test('FR-104: followed people and yourself only, never across a block; the autho
   // Account deletion takes the blobs with it.
   const before = v.removed.length;
   const del = await t.call('DELETE', '/v1/me', { password: 'correct horse' }, a.token);
-  assert.equal(del.status, 200);
+  assert.equal(del.status, 202);
+  await dueNow(t, { voice: v.store });
   assert.equal(v.removed.length - before, 5);
   assert.deepEqual(await t.q('SELECT id FROM voice_posts WHERE listener_id = $1', [a.id]), []);
   await t.close();

@@ -210,6 +210,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | File | What it does |
 |---|---|
 | `api.ts` | Typed client for every server call, with clear error types. |
+| `api-m22-server.ts` | Server calls for M22 lane 5: bottom pins, the deletion wait, time zone, translated transcripts, gifts and the weekly digest. |
 | `auth-store.ts` | Handles sign-up, sign-in and sign-out, and stores the account. |
 | `avatar-image.ts` | Lets you pick a square profile photo and shrinks it to 400 px and under 200 KB. |
 | `base-url.ts` | Gives the server address set in the app config. |
@@ -497,6 +498,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `ArtWall.tsx` | A row of words-only tiles moving slowly on the sign-in page. |
 | `AuthShell.tsx` | Shared frame for sign-in pages: close ✕, big title, form, bottom button. |
 | `Consent.tsx` | The "I agree" tick box under sign-in, and the ask if not ticked. |
+| `PendingDeletion.tsx` | After signing in during the 15-day deletion wait: a sheet saying the date, with Keep my account and Continue. |
 | `art.ts` | The words-only tiles that move along the sign-in page. |
 | `display.ts` | The large serif title style on sign-in pages. |
 | `errors.ts` | Turns a sign-in error into a short message for the user. |

@@ -9,6 +9,7 @@ import { COUNTRY_HEADER, recordCountry } from '../../db/repos/account/country.ts
 import { hashPassword, verifyPassword } from '../../auth/password.ts';
 import { clearFailedSignIns, createListener, listenerByEmail, recordFailedSignIn } from '../../db/repos/account/listeners.ts';
 import { ApiError } from '../../errors.ts';
+import { pendingDeletion } from '../../db/repos/account/deletion.ts';
 import { randomBytes } from 'node:crypto';
 import { checkCode, consumeCode, newCode, resendWait, storeCode, CODE_TTL_MS, RESEND_AFTER_MS } from '../../auth/codes.ts';
 
@@ -63,7 +64,8 @@ auth.post('/sign-in', json(signInBody), async (c) => {
   if (row.suspended_at) throw suspendedError(c.get('safety')?.appealsEmail);
   const token = await createSession(db, row.id, c.get('pepper'), body.deviceLabel);
   await recordCountry(db, row.id, c.req.header(COUNTRY_HEADER)); // M10b US7
-  return c.json({ token, listener: publicListener(row) });
+  // M22 US11 (FR-034): during the 15-day wait the phone asks Keep / Continue.
+  return c.json({ token, listener: publicListener(row), pendingDeletion: await pendingDeletion(db, row.id) });
 });
 
 // ---- Email codes (owner, 2026-09-27): the app signs in and signs up with a code, no password. ----
@@ -120,7 +122,8 @@ auth.post('/code/verify', json(codeVerify), async (c) => {
   if (row.suspended_at) throw suspendedError(c.get('safety')?.appealsEmail);
   const token = await createSession(db, row.id, pepper, body.deviceLabel);
   await recordCountry(db, row.id, c.req.header(COUNTRY_HEADER)); // M10b US7
-  return c.json({ token, listener: publicListener(row) });
+  // M22 US11 (FR-034): during the 15-day wait the phone asks Keep / Continue.
+  return c.json({ token, listener: publicListener(row), pendingDeletion: await pendingDeletion(db, row.id) });
 });
 
 auth.post('/sign-out', requireAuth, async (c) => {

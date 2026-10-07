@@ -180,7 +180,7 @@ export async function likedByFollowed(db: Db, viewerId: string, episodeIds: read
   if (episodeIds.length === 0) return out;
   const rows = await db.query<{ episode_id: string; id: string; display_name: string; avatar_url: string | null }>(
     `SELECT k.episode_id, l.id, l.display_name, l.avatar_url FROM episode_likes k
-       JOIN listeners l ON l.id = k.listener_id AND l.suspended_at IS NULL AND l.likes_public = true
+       JOIN listeners l ON l.id = k.listener_id AND l.suspended_at IS NULL AND l.hidden_at IS NULL AND l.likes_public = true
       WHERE k.episode_id = ANY($2::text[])
         AND k.listener_id IN (SELECT followed_id FROM follows WHERE follower_id = $1)
         AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id = $1 AND b.blocked_id = k.listener_id) OR (b.blocker_id = k.listener_id AND b.blocked_id = $1))

@@ -30,6 +30,7 @@ import { MiniPlayer, miniPlayerShows } from '@/ui/player/MiniPlayer';
 import { leavingToTabs, rootBarHidden, type LeavingToTabs } from '@/ui/player/mini-player-swipe';
 import { GluestackUIProvider } from '@/ui/lib/gluestack-ui-provider';
 import { RateSheet } from '@/ui/shell/RateSheet';
+import { PendingDeletionSheet } from '@/ui/auth/PendingDeletion';
 import { QueueSheetHost } from '@/ui/queue/QueueSheetHost';
 import { consentGiven } from '@/ui/shell/consent';
 import { InterestsGate } from '@/ui/discover/InterestsGate';
@@ -224,6 +225,8 @@ function RootStack(): React.ReactElement {
         <InterestsGate onTabs={onTabs && consentGiven(stores.settings, stores.auth.get() !== undefined)} />
         {/* M22 US17 (T073): "Play on mobile data?" — opened by the player's mayStream (providers). */}
         <DataPrompt />
+        {/* M22 US11: signed in during the 15-day deletion wait → Keep my account / Continue. */}
+        <PendingDeletionSheet />
       </SafeAreaView>
   );
 }
