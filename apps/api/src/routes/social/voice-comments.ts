@@ -70,7 +70,7 @@ voiceComments.post('/:id/comments/voice', requireAuth, async (c) => {
     const parent = await getComment(db, parentId);
     if (parent?.author_id && parent.author_id !== me.id && (await isBlockedBy(db, parent.author_id, me.id))) throw new ApiError('blocked', "You can't interact with this listener.");
   }
-  if (false && await isMutedOn(db, episode.feed_url, me.id)) throw new ApiError('muted_on_show', 'The host has turned off comments for you on this show.');
+  void isMutedOn;
 
   const path = `voice-comments/${me.id}/${randomUUID()}.${ext}`;
   let stored: { url: string; pathname: string };
