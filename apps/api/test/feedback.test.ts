@@ -42,18 +42,20 @@ test('feedback with images: stored, shown to the owner with its images, refused 
 
 test('an image too large is 413; a type the bytes do not match is refused; more than 3 is refused', async () => {
   const t = await freshDb();
+  const a = await signUp(t, 'a@example.com', 'Al'); // M23 US3: pictures need a session
   const big = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.alloc(250_001)]).toString('base64');
-  assert.equal((await t.call('POST', '/v1/feedback', { kind: 'x', body: 'y', images: [{ mime: 'image/jpeg', base64: big }] })).status, 413);
-  assert.equal((await t.call('POST', '/v1/feedback', { kind: 'x', body: 'y', images: [{ mime: 'image/png', base64: JPEG }] })).status, 422, 'says PNG, is a JPEG');
-  assert.equal((await t.call('POST', '/v1/feedback', { kind: 'x', body: 'y', images: [{ mime: 'image/jpeg', base64: Buffer.from('<svg/>').toString('base64') }] })).status, 422);
+  assert.equal((await t.call('POST', '/v1/feedback', { kind: 'x', body: 'y', images: [{ mime: 'image/jpeg', base64: big }] }, a.token)).status, 413);
+  assert.equal((await t.call('POST', '/v1/feedback', { kind: 'x', body: 'y', images: [{ mime: 'image/png', base64: JPEG }] }, a.token)).status, 422, 'says PNG, is a JPEG');
+  assert.equal((await t.call('POST', '/v1/feedback', { kind: 'x', body: 'y', images: [{ mime: 'image/jpeg', base64: Buffer.from('<svg/>').toString('base64') }] }, a.token)).status, 422);
   const four = Array.from({ length: 4 }, () => ({ mime: 'image/jpeg', base64: JPEG }));
-  assert.equal((await t.call('POST', '/v1/feedback', { kind: 'x', body: 'y', images: four })).status, 422);
+  assert.equal((await t.call('POST', '/v1/feedback', { kind: 'x', body: 'y', images: four }, a.token)).status, 422);
   await t.close();
 });
 
 test('FR-020: images older than 90 days are swept; the text stays', async () => {
   const t = await freshDb();
-  await t.call('POST', '/v1/feedback', { kind: 'x', body: 'keep me', images: [{ mime: 'image/jpeg', base64: JPEG }] });
+  const a = await signUp(t, 'a@example.com', 'Al');
+  await t.call('POST', '/v1/feedback', { kind: 'x', body: 'keep me', images: [{ mime: 'image/jpeg', base64: JPEG }] }, a.token);
   await t.q("UPDATE feedback_images SET created_at = now() - interval '91 days'");
   const { sweepImages } = await import('../src/db/repos/account/feedback.ts');
   assert.equal(await sweepImages(t.db), 1);

@@ -8,13 +8,14 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp } from './harness.ts';
+import { putEpisode } from './put-episode.ts';
 
 const ep = (guid: string) => ({ feedUrl: 'https://feeds.example.com/x.xml', guid, title: `Ep ${guid}`, enclosureUrl: `https://cdn/${guid}.mp3` });
 const id = (guid: string) => fnv1a64('https://feeds.example.com/x.xml\u0001' + guid);
 
 test('G-U1: counts are top-level, live comments only; unknown ids are 0; the body is checked', async () => {
   const t = await freshDb();
-  for (const g of ['g1', 'g2']) await t.call('PUT', `/v1/episodes/${id(g)}`, { ...ep(g), durationMs: 1_000_000 });
+  for (const g of ['g1', 'g2']) await putEpisode(t, `${id(g)}`, { ...ep(g), durationMs: 1_000_000 });
   const a = await signUp(t);
   // Straight into the table: the route allows one comment every few seconds.
   const post = async (g: string, parentId: string | null = null) =>

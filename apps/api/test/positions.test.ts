@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
+import { putEpisode } from './put-episode.ts';
 
 const ep = { feedUrl: 'https://feeds.example.com/x.xml', guid: 'g189', title: '#189', enclosureUrl: 'https://cdn/189.mp3' };
 const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
@@ -18,7 +19,7 @@ async function put(t: TestDb, token: string, deviceId: string, o: Partial<Row> &
 
 test('A3 over HTTP: 16:00 stands against a later 15:00; finished is sticky; a newer explicit seek goes backwards', async () => {
   const t = await freshDb();
-  await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: 2_899_000 });
+  await putEpisode(t, `${EP}`, { ...ep, durationMs: 2_899_000 });
   const a = await signUp(t);
 
   const r1 = await put(t, a.token, 'phone1', { offsetMs: 960_000, progressSeq: 5 });
@@ -52,7 +53,7 @@ test('an unknown episode is 404 and names it; auth is required; since filters', 
   assert.equal(r.status, 404);
   assert.equal(r.body.episodeId, EP);
   assert.equal((await t.call('PUT', '/v1/me/positions', { deviceId: 'p', observations: [] })).status, 401);
-  await t.call('PUT', `/v1/episodes/${EP}`, ep);
+  await putEpisode(t, `${EP}`, ep);
   await put(t, a.token, 'p', { offsetMs: 5 });
   const future = (await (await t.call('GET', '/v1/me/positions?since=2099-01-01T00:00:00Z', undefined, a.token)).json()) as { positions: Row[] };
   assert.deepEqual(future.positions, []);

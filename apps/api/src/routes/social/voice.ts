@@ -62,8 +62,9 @@ async function readRecording(c: Context<AuthEnv>): Promise<{ bytes: Uint8Array; 
   return { bytes, type, ext, measured };
 }
 
-const itemsError = (c: Context<AuthEnv>, e: ItemsError) =>
-  c.json({ error: e.code, message: e.code === 'too_many_items' ? 'Up to 10 items.' : e.message, fields: ['items'] }, 400);
+// M23 US6 (FR-011): the shared error shape — bad input is 422 `validation`; the old code is `reason`.
+const itemsError = (e: ItemsError) =>
+  new ApiError('validation', e.code === 'too_many_items' ? 'Up to 10 items.' : e.message, { reason: e.code, fields: ['items'] });
 
 voice.post('/', requireAuth, async (c) => {
   // M21 US8 (FR-071, G-M21-8): `application/json` { body } is a text status — 1–140 characters, no
@@ -72,7 +73,7 @@ voice.post('/', requireAuth, async (c) => {
   const storage = c.get('voice');
   if (!storage.ready) throw new ApiError('storage_off', 'Voice posts are not switched on yet.');
   let items: StatusItemIn[];
-  try { items = itemsFromHeader(c.req.header('x-items')); } catch (e) { if (e instanceof ItemsError) return itemsError(c, e); throw e; }
+  try { items = itemsFromHeader(c.req.header('x-items')); } catch (e) { if (e instanceof ItemsError) throw itemsError(e); throw e; }
   const transcript = readTranscript(c.req.header('x-transcript'));
   const { bytes, type, ext, measured } = await readRecording(c);
   const me = c.get('listener')!;
@@ -92,7 +93,7 @@ voice.post('/', requireAuth, async (c) => {
     try { await insertItems(db, row.id, me.id, items); } catch (e) {
       // The status is refused whole: its recording and row go again.
       await removePost(db, storage, row, c.get('images')).catch(() => undefined);
-      if (e instanceof ItemsError) return itemsError(c, e);
+      if (e instanceof ItemsError) throw itemsError(e);
       throw e;
     }
   }
@@ -107,11 +108,11 @@ async function postText(c: Context<AuthEnv>) {
   let raw: unknown;
   try { raw = await c.req.json(); } catch { raw = undefined; }
   const body = raw && typeof raw === 'object' && typeof (raw as { body?: unknown }).body === 'string' ? (raw as { body: string }).body.trim() : undefined;
-  if (body === undefined || body.length === 0) return c.json({ error: 'empty', message: 'Write something first.', fields: ['body'] }, 400);
+  if (body === undefined || body.length === 0) throw new ApiError('validation', 'Write something first.', { reason: 'empty', fields: ['body'] });
   // The column counts code points (char_length); so does `chars`, so the two never disagree.
-  if (chars(body) > TEXT_STATUS_MAX) return c.json({ error: 'too_long', message: `A text status is at most ${TEXT_STATUS_MAX} characters.`, fields: ['body'] }, 400);
+  if (chars(body) > TEXT_STATUS_MAX) throw new ApiError('validation', `A text status is at most ${TEXT_STATUS_MAX} characters.`, { reason: 'too_long', fields: ['body'] });
   let items: StatusItemIn[];
-  try { items = parseItems((raw as { items?: unknown }).items); } catch (e) { if (e instanceof ItemsError) return itemsError(c, e); throw e; }
+  try { items = parseItems((raw as { items?: unknown }).items); } catch (e) { if (e instanceof ItemsError) throw itemsError(e); throw e; }
   const me = c.get('listener')!;
   const db = c.get('db');
   if ((await liveCount(db, me.id)) >= VOICE_LIVE_MAX) throw new ApiError('locked', `At most ${VOICE_LIVE_MAX} status posts at a time.`);
@@ -123,7 +124,7 @@ async function postText(c: Context<AuthEnv>) {
       return r;
     });
   } catch (e) {
-    if (e instanceof ItemsError) return itemsError(c, e);
+    if (e instanceof ItemsError) throw itemsError(e);
     throw e;
   }
   await pushNewStatus(db, me.id, row.id, false); // M22 US6 (FR-022)
@@ -227,8 +228,8 @@ voice.post('/:id/replies', requireAuth, async (c) => {
     let raw: unknown;
     try { raw = await c.req.json(); } catch { raw = undefined; }
     const body = raw && typeof raw === 'object' && typeof (raw as { body?: unknown }).body === 'string' ? (raw as { body: string }).body.trim() : '';
-    if (body.length === 0) return c.json({ error: 'empty', message: 'Write something first.', fields: ['body'] }, 400);
-    if (chars(body) > REPLY_TEXT_MAX) return c.json({ error: 'too_long', message: `A reply is at most ${REPLY_TEXT_MAX} characters.`, fields: ['body'] }, 400);
+    if (body.length === 0) throw new ApiError('validation', 'Write something first.', { reason: 'empty', fields: ['body'] });
+    if (chars(body) > REPLY_TEXT_MAX) throw new ApiError('validation', `A reply is at most ${REPLY_TEXT_MAX} characters.`, { reason: 'too_long', fields: ['body'] });
     return c.json({ id: await addTextReply(db, post, me, body) }, 201);
   }
   const storage = c.get('voice');

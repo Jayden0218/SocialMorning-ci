@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp } from './harness.ts';
+import { putEpisode } from './put-episode.ts';
 import { talkedAbout } from '../src/db/repos/discover/activity-stats.ts';
 
 const ep = { feedUrl: 'https://feeds.example.com/x.xml', guid: 'g1', title: 'Ep 1', showTitle: 'Show', enclosureUrl: 'https://cdn/1.mp3' };
@@ -11,7 +12,7 @@ const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
 
 test('G2: A private + B public both listen 6 min; A and B comment; B clips and reacts → listeners 1, comments 2, clips 1, reactions 1', async () => {
   const t = await freshDb();
-  await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: 2_000_000 });
+  await putEpisode(t, `${EP}`, { ...ep, durationMs: 2_000_000 });
   const a = await signUp(t);
   const b = await signUp(t, 'b@example.com', 'Bea');
   await t.call('PUT', '/v1/me/privacy', { privateListening: true }, a.token);
@@ -29,7 +30,7 @@ test('G2: A private + B public both listen 6 min; A and B comment; B clips and r
   assert.equal(JSON.stringify(rows).includes(a.id), false);
   assert.equal(JSON.stringify(rows).includes('Alex'), false);
   // An episode with nothing is not a row; the feed filter works.
-  await t.call('PUT', `/v1/episodes/other`, { ...ep, guid: 'g2', title: 'quiet' });
+  await putEpisode(t, `other`, { ...ep, guid: 'g2', title: 'quiet' });
   assert.equal((await talkedAbout(t.db)).length, 1);
   assert.equal((await talkedAbout(t.db, 7, 'https://feeds.example.com/nope.xml')).length, 0);
   assert.equal((await talkedAbout(t.db, 7, ep.feedUrl)).length, 1);

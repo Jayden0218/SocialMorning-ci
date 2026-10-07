@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
+import { putEpisode } from './put-episode.ts';
 
 const ep = { feedUrl: 'https://feeds.example.com/x.xml', guid: 'g1', title: 'One', enclosureUrl: 'https://cdn/1.mp3' };
 const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
@@ -23,7 +24,7 @@ const ids = (cs: Comment[]) => cs.map((c) => c.id);
 
 test('A4: a report hides the target for the reporter at once, keeps a copy (G4), and a repeat is one row (G3); own content and the 21st in an hour are refused; a gone target closes at once', async () => {
   const t = await freshDb();
-  await t.call('PUT', `/v1/episodes/${EP}`, ep);
+  await putEpisode(t, `${EP}`, ep);
   const a = await signUp(t, 'a@example.com', 'Al');
   const b = await signUp(t, 'b@example.com', 'Bea');
   const c1 = (await post(t, a.token, { body: 'rude thing', offsetMs: 1000, durationMs: 60_000 })).comment;
@@ -92,7 +93,7 @@ test('A4: a report hides the target for the reporter at once, keeps a copy (G4),
 
 test('A5 + A6: a block hides the blocked listener\'s comments (G1) and turns their reply into a placeholder (G2), removes follows both ways, refuses follow and reply (403 blocked), is one-way, changes the ETag, leaves the heat identical (G8); unblock restores content, not the follow', async () => {
   const t = await freshDb();
-  await t.call('PUT', `/v1/episodes/${EP}`, ep);
+  await putEpisode(t, `${EP}`, ep);
   const a = await signUp(t, 'a@example.com', 'Al');
   const b = await signUp(t, 'b@example.com', 'Bea');
   const s = await signUp(t, 's@example.com', 'Stranger');
@@ -164,7 +165,7 @@ test('A5 + A6: a block hides the blocked listener\'s comments (G1) and turns the
 
 test('A5: clips and the feed exclude a blocked author; a reported clip is hidden for the reporter', async () => {
   const t = await freshDb();
-  await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: 600_000 });
+  await putEpisode(t, `${EP}`, { ...ep, durationMs: 600_000 });
   const a = await signUp(t, 'a@example.com', 'Al');
   const b = await signUp(t, 'b@example.com', 'Bea');
   await t.call('PUT', `/v1/listeners/${a.id}/follow`, undefined, b.token);

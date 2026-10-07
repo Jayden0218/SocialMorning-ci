@@ -8,6 +8,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, TEST_PEPPER, type TestDb } from './harness.ts';
+import { putEpisode } from './put-episode.ts';
 import { dailySalt, listenerHash } from '../src/db/repos/social/live-listeners.ts';
 
 const ep = { feedUrl: 'https://feeds.example.com/x.xml', guid: 'g1', title: 'Ep', enclosureUrl: 'https://cdn/1.mp3' };
@@ -28,7 +29,7 @@ test('G-L1: live_listeners has no account column — only the episode, a hash an
 
 test('G-L1: two installs → 2; the same install twice → still 2; 4 minutes later → 0. Only the salted hash is stored, never the install id or the account', async () => {
   const t = await freshDb();
-  await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: 1_000_000 });
+  await putEpisode(t, `${EP}`, { ...ep, durationMs: 1_000_000 });
   const a = await signUp(t);
   assert.equal((await beat(t, 'install-one-aaaa', a.token)).status, 204);
   assert.equal((await beat(t, 'install-two-bbbb')).status, 204);
@@ -47,7 +48,7 @@ test('G-L1: two installs → 2; the same install twice → still 2; 4 minutes la
 
 test('FR-042: one write per install per minute; rows older than 10 min go on the next write; bad input is refused', async () => {
   const t = await freshDb();
-  await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: 1_000_000 });
+  await putEpisode(t, `${EP}`, { ...ep, durationMs: 1_000_000 });
   await beat(t, 'install-one-aaaa');
   await t.q("UPDATE live_listeners SET seen_at = now() - interval '30 seconds'");
   await beat(t, 'install-one-aaaa');

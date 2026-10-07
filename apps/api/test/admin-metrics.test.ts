@@ -156,7 +156,7 @@ test('FR-015: a day of app use is deleted after 400 days by the hourly rebuild',
   const { t } = await adminSetup({ jobToken: JOB });
   const u = await signUp(t, 'old@example.com', 'Old');
   await t.q('INSERT INTO daily_active (day, listener_id) VALUES ($1::date, $3), ($2::date, $3)', [dayAgo(401), dayAgo(399), u.id]);
-  const res = await t.call('POST', '/v1/internal/rebuild', { step: 'sweep' }, undefined, { authorization: `Bearer ${JOB}` });
+  const res = await t.call('POST', '/v1/internal/rebuild', { step: 'feeds' }, undefined, { authorization: `Bearer ${JOB}` });
   assert.equal(((await res.json()) as { counts: { activeDeleted: number } }).counts.activeDeleted, 1);
   assert.deepEqual((await t.q<{ day: string }>('SELECT day::text AS day FROM daily_active')).map((r) => r.day), [dayAgo(399)]);
   await t.close();
