@@ -16,9 +16,7 @@ export type ErrorCode =
   // M11: the show's host turned off comments for this listener on that show.
   | 'muted_on_show'
   // M21 US6: a first comment waits for the community rules (428).
-  | 'rules_required'
-  // M24 US8: the host closed comments on this show or episode (403).
-  | 'comments_closed';
+  | 'rules_required';
 
 export class ApiError extends Error {
   constructor(
@@ -55,8 +53,6 @@ export type EpisodeRegistration = {
 export type Comment = {
   id: string; authorId: string | null; displayName: string | null; body: string | null; offsetMs: number | null;
   parentId: string | null; createdAt: string; deleted: boolean; mine?: boolean; replies?: Comment[];
-  /** M24 US8: waiting for the host's review — only its author is given it. */
-  held?: true;
   /** M6: taken down by moderation (a placeholder for all; the author sees why). */
   removed?: boolean;
   /** M6: a reply by someone the viewer blocked (a placeholder so the thread keeps its shape). */

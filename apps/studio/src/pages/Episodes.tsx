@@ -43,19 +43,6 @@ function useHostPicks(show: Show) {
   return { picks, error, save, toggle };
 }
 
-/** M24 US11: the episodes a claimed show hid from listeners, read once, for the "Hidden" mark. Unreadable = no marks. */
-function useHidden(show: Show): Set<string> {
-  const [ids, setIds] = useState<Set<string>>(new Set());
-  useEffect(() => {
-    if (show.hosted) return;
-    let live = true;
-    api<{ items: { episodeId: string }[] }>(`/v1/studio/shows/${show.key}/hidden-episodes`)
-      .then((r) => { if (live) setIds(new Set(r.items.map((i) => i.episodeId))); }, () => undefined);
-    return () => { live = false; };
-  }, [show.key, show.hosted]);
-  return ids;
-}
-
 function HostPicksCard({ picks, error, save }: { picks: Pick[]; error: string | undefined; save: (next: Pick[]) => void }) {
   return (
     <section className="card" aria-labelledby="host-picks-h">
@@ -85,7 +72,6 @@ export function Episodes({ show }: { show: Show }) {
   const [bump, setBump] = useState(0);
   useEffect(() => { const t = setTimeout(() => { setQuery(q.trim()); setPage(1); }, 300); return () => clearTimeout(t); }, [q]);
   const hostPicks = useHostPicks(show);
-  const hidden = useHidden(show);
   const list = useLoad(() => api<EpisodePage>(`/v1/studio/shows/${show.key}/episodes?page=${page}&q=${encodeURIComponent(query)}`), [show.key, page, query, bump]);
   const picked = new Set((hostPicks.picks ?? []).map((p) => p.id));
   const cols: Column<EpisodeRow>[] = [
@@ -97,7 +83,7 @@ export function Episodes({ show }: { show: Show }) {
         </button>
       ),
     } as Column<EpisodeRow>] : []),
-    { key: 'title', label: 'Episode', render: (e) => <><Link to={`/s/${show.key}/episodes/${e.id}`}>{e.title}</Link>{hidden.has(e.id) ? <> <span className="pill pill-warn">Hidden</span></> : null}</> },
+    { key: 'title', label: 'Episode', render: (e) => <Link to={`/s/${show.key}/episodes/${e.id}`}>{e.title}</Link> },
     { key: 'plays', label: 'Plays', numeric: true, render: (e) => num(e.plays) },
     { key: 'comments', label: 'Comments', numeric: true, render: (e) => num(e.comments) },
     { key: 'publishedAt', label: 'Published', numeric: true, render: (e) => shortDate(e.publishedAt) },

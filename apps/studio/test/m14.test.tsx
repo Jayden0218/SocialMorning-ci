@@ -224,7 +224,7 @@ describe('US6 and US7', () => {
     expect(container.querySelectorAll('svg.sparkline')).toHaveLength(6);
     expect(String(f.mock.calls.find(([u]) => String(u).includes('/overview'))![0])).toMatch(/overview\?tz=/);
   });
-  it('the tips switch saves at once and says where the app shows the Tip button; axe', async () => {
+  it('the tips switch saves at once and says the app has no Tip button yet; axe', async () => {
     const f = mockApi((p) => (p.endsWith('/overrides') ? { status: 200, body: { overrides: OVERRIDES } }
       : p.endsWith('/tips') ? { status: 200, body: { totalMicrosByCurrency: {}, items: [] } } : undefined));
     const { container } = renderIn(<Layout show={SHOW}><Tips show={SHOW} /></Layout>);
@@ -233,7 +233,7 @@ describe('US6 and US7', () => {
     fireEvent.click(sw);
     await vi.waitFor(() => expect(bodyOf(f, '/overrides')).toEqual({ tipsEnabled: true }));
     expect(await screen.findByText('Saved: tips are on.')).toBeTruthy();
-    expect(screen.getByText(/see a Tip the host button/)).toBeTruthy();
+    expect(screen.getByText(/the app has no Tip button/)).toBeTruthy();
     await noViolations(container);
   });
 });

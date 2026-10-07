@@ -186,7 +186,9 @@ describe('6–13. the layout pass ("I see it overlap, the elements run away the 
   });
   it('12. player: the space is shared when there is no line, and the bottom bar items are one kind', () => {
     const p = read('app/player.tsx');
-    expect(p).toMatch(/heroClass: 'mt-auto'/);
+    // M24 US19 (iPhone, 04-player.png): sharing it ABOVE the hero left a ~140 pt band under the top
+    // bar. The hero now stays under the bar; on a bare page the card + controls centre in the rest.
+    expect(p).toMatch(/groupClass: 'my-auto'/);
     expect(p).toMatch(/accessibilityLabel="About this episode" className=\{BAR_ITEM\}/);
     expect(p).not.toMatch(/<BarButton label="About this episode"/);
   });

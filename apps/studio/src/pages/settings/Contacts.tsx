@@ -1,4 +1,4 @@
-// Settings section for the show's contact links and the subscriber milestone message.
+// Settings section for the show's contact links and the 100-hour message.
 import { useEffect, useState } from 'react';
 import { api, HttpError, type Show } from '../../api';
 import { Failed, Loading } from '../../shell/States';
@@ -97,11 +97,11 @@ export function Contacts({ show }: { show: Show }) {
             ? <button type="button" className="btn btn-quiet" onClick={() => setF({ ...f, contacts: [...f.contacts, { type: 'website', value: '' }] })}>Add a contact</button>
             : <p className="muted">All {MAX} places are used.</p>}
 
-          <h2 style={{ marginTop: 32 }}>Subscriber milestone message</h2>
+          <h2 style={{ marginTop: 32 }}>Message after 100 hours</h2>
           <div className="field">
-            <label htmlFor="ms">A thank-you a listener sees when they become a milestone subscriber</label>
-            <input id="ms" maxLength={120} value={f.milestone} onChange={(e) => setF({ ...f, milestone: e.target.value })} placeholder="You are our {n}th subscriber. Thank you!" />
-            <span className="muted num" style={{ fontSize: 13 }}>{f.milestone.length} of 120. Sent once to the listener who becomes your 100th, 1,000th and 10,000th subscriber. {'{n}'} becomes the number.</span>
+            <label htmlFor="ms">A thank-you a listener sees after 100 hours with your show</label>
+            <input id="ms" maxLength={120} value={f.milestone} onChange={(e) => setF({ ...f, milestone: e.target.value })} placeholder="Thank you for 100 hours with us!" />
+            <span className="muted num" style={{ fontSize: 13 }}>{f.milestone.length} of 120. Saved now; the app does not show it yet.</span>
           </div>
           <SaveBar dirty={dirty} busy={busy} onSave={() => { void save(); }} onReset={() => { setF(saved); setMsg(null); setTried(false); }} note="Saved contacts show on your show page." />
         </form>
@@ -116,11 +116,11 @@ export function Contacts({ show }: { show: Show }) {
             ))}
           </ul>
         )}
-        <h3 style={{ fontSize: 14, margin: '20px 0 8px' }}>For your 1,000th subscriber, in the app</h3>
+        <h3 style={{ fontSize: 14, margin: '20px 0 8px' }}>After 100 hours, on the listener's phone</h3>
         <div className="notify-card">
           <div className="app"><span>SocialMorning</span><span>now</span></div>
-          <div className="t">{show.title ?? 'Your show'}</div>
-          <div>{f.milestone.trim().replace(/\{n\}/g, '1,000') || 'Your message appears here.'}</div>
+          <div className="t">100 hours with {show.title ?? 'your show'}</div>
+          <div>{f.milestone.trim() || 'Your message appears here.'}</div>
         </div>
       </section>
     </div>

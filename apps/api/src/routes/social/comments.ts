@@ -13,7 +13,6 @@ import { isBlockedBy } from '../../db/repos/safety/blocks.ts';
 import { isMutedOn } from '../../db/repos/studio/studio-subscribers.ts';
 import { like, unlike } from '../../db/repos/social/comment-likes.ts';
 import { setPinned, setPinnedBottom, setUnfriendly, thread } from '../../db/repos/social/comment-extras.ts';
-import { commentControl } from '../../db/repos/studio/comment-policy.ts';
 
 const commentBody = z.object({
   body: z.string().trim().min(1).max(2000),
@@ -55,9 +54,6 @@ comments.post('/:id/comments', requireAuth, json(commentBody), async (c) => {
   if (await isMutedOn(db, episode.feed_url, listener.id)) {
     throw new ApiError('muted_on_show', 'The host has turned off comments for you on this show.');
   }
-  // M24 US8 (lane A2): the host's comment control — closed answers 403 comments_closed; review holds it.
-  const held = await commentControl(db, episode, listener.id, { body: body.body, offsetMs: body.offsetMs, parentId: body.parentId, countryHeader: c.req.header(COUNTRY_HEADER) });
-  if (held) return c.json({ comment: held, held: true });
 
   const created = await db.transaction(async (tx) => {
     if (body.durationMs !== undefined && episode.duration_ms === null) {
