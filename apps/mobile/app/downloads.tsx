@@ -10,6 +10,10 @@
  * progress bar while downloading, and the actions as accent words on the right. B shows the
  * budget and the switch in the card, so they are always there now; the ⚙ keeps its toggle and
  * reveals "Remove finished downloads" at the card's foot. Every handler is unchanged.
+ *
+ * M24 US17 (lane A3): "Select" in the header picks several rows (a tick circle on each; the
+ * whole row is the target, as on Listening history) and a bar at the foot deletes them together
+ * after one question ("Select all" / "Clear" beside it). Helpers: src/downloads/multi-select.ts.
  */
 import { useEffect, useState } from 'react';
 import { SectionList } from '@/ui/lib/section-list';
@@ -21,16 +25,19 @@ import { Icon } from '@/ui/kit/Icon';
 import { Artwork } from '@/ui/kit/Artwork';
 import { Card, CardDivider } from '@/ui/kit/Card';
 import { mb } from '@/ui/episode/DownloadButton';
-import { useDownloads, useStores } from '@/ui/shell/providers';
+import { useDownloads, useStores, useToast } from '@/ui/shell/providers';
 import type { DownloadRow } from '@/storage/types';
 import { EmptyState } from '@/ui/kit/EmptyState';
 import { hit } from '@/design';
 import { useColours } from '@/ui/kit/useColours';
 import { PageHeader } from '@/ui/kit/PageHeader';
 import { BarButton } from '@/ui/kit/TopBar';
+import { useConfirm } from '@/ui/kit/confirm';
+import { NONE, deleteLabel, keepListed, removeChosen, removedLine, toggleAll, toggleChosen } from '@/downloads/multi-select';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
 const ROW_TAP = { minHeight: hit.min };
+const PILL = { minHeight: hit.min };
 
 /** A third of the row less the gaps; the grow fills what is left. */
 const CHIP = { minHeight: hit.min, flexBasis: '30%' as const, flexGrow: 1 };
@@ -49,6 +56,30 @@ export default function DownloadsScreen(): React.ReactElement {
   const [, force] = useState(0);
   const [settings, setSettings] = useState(false);
   useEffect(() => downloads.subscribe(() => { setRows(stores.downloads.list()); force((n) => n + 1); }), [downloads, stores]);
+  // M24 US17: Select mode.
+  const [selecting, setSelecting] = useState(false);
+  const [chosen, setChosen] = useState<ReadonlySet<string>>(NONE);
+  const [deleting, setDeleting] = useState(false);
+  const [confirm, dialog] = useConfirm();
+  const toast = useToast();
+  const ids = rows.map((r) => r.episodeId);
+  const idKey = ids.join('\n');
+  useEffect(() => { setChosen((cur) => keepListed(cur, idKey === '' ? [] : idKey.split('\n'))); }, [idKey]);
+  useEffect(() => { if (rows.length === 0) { setSelecting(false); setChosen(NONE); } }, [rows.length]);
+  const leaveSelect = () => { setSelecting(false); setChosen(NONE); };
+  const deleteChosen = () => {
+    const list = [...chosen];
+    if (list.length === 0) return;
+    confirm({
+      title: `${deleteLabel(list.length)}?`,
+      message: 'The files leave this phone. Where you stopped, your queue and Updates stay.',
+      action: 'Delete',
+      onConfirm: () => {
+        setDeleting(true);
+        void removeChosen(list, (id) => downloads.remove(id)).then((r) => { setDeleting(false); leaveSelect(); toast(removedLine(r)); });
+      },
+    });
+  };
 
   const title = (id: string) => stores.feeds.getEpisode(id)?.title ?? id;
   const state = (r: DownloadRow) => {
@@ -74,9 +105,16 @@ export default function DownloadsScreen(): React.ReactElement {
     <>
     {/* M16a T002: the ⚙ is on the app's own bar now (was the native header's right side). */}
     <PageHeader title="Downloads" right={(
-      <BarButton label={settings ? 'Hide download settings' : 'Download settings'} onPress={() => setSettings((v) => !v)}>
-        <Icon name="settings-outline" size={22} color={c.accent} />
-      </BarButton>
+      <Box className="flex-row items-center">
+        {rows.length > 0 ? (
+          <Pressable onPress={selecting ? leaveSelect : () => setSelecting(true)} accessibilityRole="button" accessibilityLabel={selecting ? 'Done' : 'Select'} className="items-center justify-center px-2" style={TAP}>
+            <Text className="text-accent text-body font-bold">{selecting ? 'Done' : 'Select'}</Text>
+          </Pressable>
+        ) : null}
+        <BarButton label={settings ? 'Hide download settings' : 'Download settings'} onPress={() => setSettings((v) => !v)}>
+          <Icon name="settings-outline" size={22} color={c.accent} />
+        </BarButton>
+      </Box>
     )} />
     <SectionList
       sections={sections}
@@ -141,6 +179,22 @@ export default function DownloadsScreen(): React.ReactElement {
         const show = episode ? stores.feeds.getShow(episode.feedUrl) : undefined;
         const going = item.state !== 'complete' && item.state !== 'failed';
         const bar = { width: `${percent(item) ?? 0}%` } as const;
+        if (selecting) {
+          const on = chosen.has(item.episodeId);
+          return (
+            // M24 US17: the whole row is one target with the Selected trait, as on Listening history.
+            <Pressable onPress={() => setChosen((cur) => toggleChosen(cur, item.episodeId))} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={`Select ${title(item.episodeId)}`} className="flex-row items-center py-2 border-b-hairline border-separator" style={ROW_TAP}>
+              <Box pointerEvents="none" className="flex-1 flex-row items-center gap-row">
+                <Icon name={on ? 'checkmark-circle' : 'ellipse-outline'} size={24} color={on ? c.accent : c.muted} />
+                <Artwork url={episode?.imageUrl ?? show?.imageUrl} size={52} name={show?.title ?? title(item.episodeId)} />
+                <Box className="flex-1">
+                  <Text className="text-text text-body font-semibold" numberOfLines={1}>{title(item.episodeId)}</Text>
+                  <Text className="text-muted text-xs mt-0.5">{state(item)}</Text>
+                </Box>
+              </Box>
+            </Pressable>
+          );
+        }
         return (
           <Box className="flex-row items-center gap-row py-2 border-b-hairline border-separator">
             <Artwork url={episode?.imageUrl ?? show?.imageUrl} size={52} name={show?.title ?? title(item.episodeId)} />
@@ -170,6 +224,25 @@ export default function DownloadsScreen(): React.ReactElement {
         );
       }}
     />
+    {selecting ? (
+      <Box className="px-screen-x pt-row pb-row bg-background border-t-hairline border-separator flex-row gap-gap">
+        <Pressable onPress={() => setChosen((cur) => toggleAll(cur, ids))} accessibilityRole="button" accessibilityLabel={chosen.size === ids.length ? 'Clear' : 'Select all'} className="flex-1 items-center justify-center rounded-pill bg-surface border border-border" style={PILL}>
+          <Text className="text-accent text-body font-bold">{chosen.size === ids.length ? 'Clear' : 'Select all'}</Text>
+        </Pressable>
+        <Pressable
+          onPress={chosen.size > 0 && !deleting ? deleteChosen : undefined}
+          disabled={chosen.size === 0 || deleting}
+          accessibilityRole="button"
+          accessibilityLabel={deleteLabel(chosen.size)}
+          accessibilityState={{ disabled: chosen.size === 0 || deleting, busy: deleting }}
+          className={`flex-1 items-center justify-center rounded-pill bg-primary ${chosen.size === 0 ? 'opacity-40' : ''}`}
+          style={PILL}
+        >
+          <Text className="text-onPrimary text-body font-bold">{deleteLabel(chosen.size)}</Text>
+        </Pressable>
+      </Box>
+    ) : null}
+    {dialog}
     </>
   );
 }

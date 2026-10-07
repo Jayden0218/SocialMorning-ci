@@ -21,6 +21,7 @@ export const ADMIN_SECTIONS = [
   { path: 'reports', label: 'Reports' },
   // M22 US13: the shows offered translated transcripts, and today's Groq use.
   { path: 'translation', label: 'Translation' },
+  { path: 'redeem', label: 'Redeem codes' }, // M24 lane A3
 ] as const;
 
 /**
