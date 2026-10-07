@@ -19,7 +19,23 @@ function load(): HapticsModule | null {
   return mod;
 }
 
+/**
+ * M22 US17 (T074): Settings › Appearance › "Vibration". On by default; off turns every tick
+ * into a no-op. Read once at start-up (src/ui/shell/startupExtras.ts) and on the switch.
+ */
+export const HAPTICS_KEY = 'pref.haptics';
+let enabled = true;
+
+export function setHapticsEnabled(on: boolean): void {
+  enabled = on;
+}
+
+export function hapticsOn(s: { get(key: string): string | undefined }): boolean {
+  return s.get(HAPTICS_KEY) !== '0';
+}
+
 /** The lightest tick (the one a picker wheel makes). */
 export function tick(): void {
+  if (!enabled) return;
   load()?.selectionAsync().catch(() => undefined);
 }

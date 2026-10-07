@@ -33,6 +33,9 @@ import { RateSheet } from '@/ui/shell/RateSheet';
 import { QueueSheetHost } from '@/ui/queue/QueueSheetHost';
 import { consentGiven } from '@/ui/shell/consent';
 import { InterestsGate } from '@/ui/discover/InterestsGate';
+// M22 lane 6: portrait lock on phones, app-icon shortcuts, maintenance check, mobile-data prompt.
+import { useStartupExtras } from '@/ui/shell/startupExtras';
+import { DataPrompt } from '@/ui/player/DataPrompt';
 
 // Owner, 2026-09-27: no warning bar over the app in Debug builds. Warnings still print
 // in the Metro terminal; Release builds never show the bar.
@@ -108,6 +111,7 @@ export default function RootLayout(): React.ReactElement {
 function RootStack(): React.ReactElement {
   const stores = useStores();
   const c = useColours(stores.settings);
+  useStartupExtras(stores.settings);
   // M16a bug 5: which page, if any, is being swiped back onto the tabs (src/ui/player/mini-player-swipe.ts).
   const [leaving, setLeaving] = useState<LeavingToTabs>(undefined);
   // Owner, 2026-10-04: on the tabs the home-bar strip below the white tab bar is white too, so
@@ -218,6 +222,8 @@ function RootStack(): React.ReactElement {
         <RateSheet ready={onTabs && consentGiven(stores.settings, stores.auth.get() !== undefined)} />
         {/* M22 US5: the first-open interests page, once, after sign-in. */}
         <InterestsGate onTabs={onTabs && consentGiven(stores.settings, stores.auth.get() !== undefined)} />
+        {/* M22 US17 (T073): "Play on mobile data?" — opened by the player's mayStream (providers). */}
+        <DataPrompt />
       </SafeAreaView>
   );
 }

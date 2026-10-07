@@ -4,12 +4,14 @@
     "slug": "socialmorning",
     "scheme": "socialmorning",
     "version": "0.1.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
       "bundleIdentifier": "app.socialmorning.mobile",
+      "supportsTablet": true,
+      "requireFullScreen": false,
       "infoPlist": {
         "LSApplicationQueriesSchemes": ["whatsapp", "tg", "weixin", "sms", "twitter"]
       }
@@ -145,7 +147,25 @@
       "expo-iap",
       "./plugins/android-auto",
       "./plugins/keep-room",
-      "./plugins/share-queries"
+      "./plugins/share-queries",
+      [
+        "expo-screen-orientation",
+        {
+          "initialOrientation": "DEFAULT"
+        }
+      ],
+      [
+        "expo-quick-actions",
+        {
+          "iosActions": [
+            { "id": "history", "title": "History", "icon": "time", "params": { "href": "/history" } },
+            { "id": "subscriptions", "title": "Subscriptions", "icon": "bookmark", "params": { "href": "/subscriptions" } },
+            { "id": "playlist", "title": "Playlist", "icon": "audio", "params": { "href": "/queue" } },
+            { "id": "search", "title": "Search", "icon": "search", "params": { "href": "/search" } }
+          ]
+        }
+      ],
+      "./modules/alternate-icons/plugin"
     ],
     "extra": {
       "apiBaseUrl": "https://socialmorning-api.vercel.app",

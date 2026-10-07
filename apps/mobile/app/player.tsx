@@ -47,6 +47,7 @@
  */
 import { useEffect, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
+import { useLayout } from '@/ui/shell/useLayout';
 import { Pressable } from '@/ui/lib/pressable';
 import { SafeAreaView } from '@/ui/lib/safe-area-view';
 import { ScrollView } from '@/ui/lib/scroll-view';
@@ -104,6 +105,9 @@ import { LinearGradient } from '@/design/tailwind';
 import { playerWash, usePlayerPalette } from '@/ui/player/palette';
 import { useShowExtras } from '@/ui/show/ShowExtras';
 import { isFavourite, toggleFavourite } from '@/me/favourites';
+
+/** M22 T071: the player's column on a wide window. */
+const WIDE_PANEL = { width: '100%', maxWidth: 640, alignSelf: 'center' } as const;
 
 export default function PlayerScreen(): React.ReactElement {
   const player = usePlayer();
@@ -175,6 +179,8 @@ export default function PlayerScreen(): React.ReactElement {
   const queueSheet = useQueueSheet();
   const swipeUp = useSwipeUpToOpen();
   const screen = useWindowDimensions();
+  // M22 US16 (T071): on a tablet the player is a centred panel over the full-width wash, not a stretched phone page.
+  const { wide } = useLayout();
   const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
   const swipeDown = useSwipeDownToClose(close);
 
@@ -261,7 +267,7 @@ export default function PlayerScreen(): React.ReactElement {
         <Box className="absolute inset-0 bg-veil" accessible={false} />
       </>
     )}
-    <SafeAreaView className="flex-1">
+    <SafeAreaView className="flex-1" style={wide ? WIDE_PANEL : undefined}>
     {/* M21: a drag down on the top area closes the player (src/ui/player/swipe-close.ts). */}
     <Box {...swipeDown}>
     <TopBar

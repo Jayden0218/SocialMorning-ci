@@ -11,6 +11,7 @@
  * The component is pure: it takes the tabs, which one is active, and a callback. The
  * layout adapts the router's props to it, so this can be tested with no router at all.
  */
+import { StyleSheet } from 'react-native';
 import { Pressable } from '@/ui/lib/pressable';
 import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
@@ -36,9 +37,15 @@ export function TabBar(props: {
   activeKey: string;
   onSelect: (key: string) => void;
   className?: string;
+  /**
+   * M22 US16 (T070): 'rail' on a wide window (src/ui/shell/useLayout.ts) — the same tabs as a
+   * column down the left edge, each icon over its label, same roles, states and badges.
+   */
+  mode?: 'bar' | 'rail';
 }): React.ReactElement {
   const stores = useStores();
   const c = useColours(stores.settings);
+  if (props.mode === 'rail') return <TabRail {...props} />;
   return (
     <Box
       className={`flex-row bg-surface border-t-hairline border-separator ${props.className ?? ''}`}
@@ -73,6 +80,49 @@ export function TabBar(props: {
             {/* The active tab is told apart by weight AND colour AND a filled icon, and by
                 `accessibilityState` — never by colour alone (FR-016). */}
             {/* iOS J6: at the largest Dynamic Type the labels truncated ("Disco…"). */}
+            <Text className={selected ? 'text-xs text-accent font-bold' : 'text-xs text-muted'} numberOfLines={1} maxFontSizeMultiplier={1.6} adjustsFontSizeToFit minimumFontScale={0.8}>
+              {badge === undefined || item.icon ? item.label : `${item.label} (${badge})`}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </Box>
+  );
+}
+
+/** M22 T070: the rail — a white column, the tabs stacked from the top, a hairline on its right. */
+const RAIL_WIDTH = 88;
+const RAIL_EDGE = { width: RAIL_WIDTH, borderRightWidth: StyleSheet.hairlineWidth };
+const RAIL_TAB = { minHeight: 72 };
+
+function TabRail(props: { items: readonly TabItem[]; activeKey: string; onSelect: (key: string) => void; className?: string }): React.ReactElement {
+  const stores = useStores();
+  const c = useColours(stores.settings);
+  return (
+    <Box className={`bg-surface border-separator pt-section gap-gap ${props.className ?? ''}`} style={RAIL_EDGE} accessibilityRole="tablist">
+      {props.items.map((item) => {
+        const selected = item.key === props.activeKey;
+        const badge = item.badge !== undefined && item.badge > 0 ? item.badge : undefined;
+        return (
+          <Pressable
+            key={item.key}
+            accessibilityRole="tab"
+            accessibilityLabel={badge === undefined ? item.label : `${item.label}, ${badge} new`}
+            accessibilityState={{ selected }}
+            className="items-center justify-center gap-1 px-1"
+            style={RAIL_TAB}
+            onPress={() => props.onSelect(item.key)}
+          >
+            {item.icon ? (
+              <Box>
+                <Icon name={selected ? item.icon.active : item.icon.idle} size={26} color={selected ? c.accent : c.muted} />
+                {badge === undefined ? null : (
+                  <Box className="absolute -top-1 -right-3 min-w-5 px-1 rounded-pill bg-accent items-center">
+                    <Text className="text-background text-xs font-bold">{badge}</Text>
+                  </Box>
+                )}
+              </Box>
+            ) : null}
             <Text className={selected ? 'text-xs text-accent font-bold' : 'text-xs text-muted'} numberOfLines={1} maxFontSizeMultiplier={1.6} adjustsFontSizeToFit minimumFontScale={0.8}>
               {badge === undefined || item.icon ? item.label : `${item.label} (${badge})`}
             </Text>

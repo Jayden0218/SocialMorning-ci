@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["AlternateIconsModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.alternateicons.AlternateIconsModule"]
+  }
+}

@@ -21,6 +21,7 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 | `friends-listening.tsx` | `/friends-listening` | Episodes people you follow played this week, with who and when. |
 | `history.tsx` | `/history` | Listening history by day, with where you stopped; filter to finished only. |
 | `inbox.tsx` | `/inbox` | No screen: old link, sends you to Updates. |
+| `maintenance.tsx` | `/maintenance` | A calm page while the server is under maintenance: when it is expected back, and your downloads still play. |
 | `issues.tsx` | `/issues` | All curated issues, newest first; each opens its list of picks. |
 | `likes.tsx` | `/likes` | Likes: episodes people you follow liked, newest first, with their notes; tap to open or play. |
 | `moments.tsx` | `/moments` | Saved moments as a timeline; tap to play from there, edit note, delete. |
@@ -168,7 +169,8 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 | `settings/about.tsx` | `/settings/about` | About the app: version, service agreement, privacy policy, community rules. |
 | `settings/account-more.tsx` | `/settings/account-more` | Delete your account: email a code, enter it, confirm delete. |
 | `settings/account.tsx` | `/settings/account` | Account and security: how you sign in, masked email, link to More. |
-| `settings/appearance.tsx` | `/settings/appearance` | Pick the app's accent colour. |
+| `settings/appearance.tsx` | `/settings/appearance` | Appearance: the accent colour, the Vibration switch, and the app icon. |
+| `settings/background.tsx` | `/settings/background` | Playback stops when the screen is off? (Android): steps and buttons that open the phone's battery settings. |
 | `settings/blocked.tsx` | `/settings/blocked` | Listeners you blocked, each with an Unblock button. |
 | `settings/collected.tsx` | `/settings/collected` | List of personal data the app keeps, with counts; tap for details. |
 | `settings/downloads.tsx` | `/settings/downloads` | Download settings: space used, clear all, clear cache, auto-download and mobile-data switches. |
@@ -177,13 +179,16 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 | `settings/how-for-you.tsx` | `/settings/how-for-you` | Questions and answers about how For You recommendations work. |
 | `settings/minor.tsx` | `/settings/minor` | Minor mode switch: hides explicit episodes; a 4-digit passcode guards turning it off. |
 | `settings/not-interested.tsx` | `/settings/not-interested` | Episodes and shows you marked "Not interested", each with a Restore button. |
+| `settings/network.tsx` | `/settings/network` | Check network: times our server, a show's feed host and an episode's audio host, with a result you can copy. |
 | `settings/more.tsx` | `/settings/more` | More settings: import/export shows, a link to Playback, recommendations on/off. |
-| `settings/playback.tsx` | `/settings/playback` | Playback settings: queue order, mobile data, transcript entry, lock-screen comments, music mode, skip silence, other apps' sounds. |
+| `settings/playback.tsx` | `/settings/playback` | Playback settings: queue order, mobile data, transcript entry, lock-screen comments and ±5 min skip, music mode, skip silence, other apps' sounds. |
 | `settings/queue-backups.tsx` | `/settings/queue-backups` | Playlist backups: the last 10 versions of your playlist on this phone, each with Restore. |
 | `settings/opml.tsx` | `/settings/opml` | Export your shows as an OPML file, or paste OPML to import them. |
 | `settings/privacy.tsx` | `/settings/privacy` | Privacy: private listening, what others see of you (4 switches), muted users, and blocked listeners. |
 | `settings/push.tsx` | `/settings/push` | Push notification settings: phone permission, new episodes, popular content, per show. |
 | `settings/sharing.tsx` | `/settings/sharing` | Which outside companies get your data, what they get, and why. |
+| `settings/updates.tsx` | `/settings/updates` | Check for updates (Android): compares this app with the latest release and offers the download; shows What's new once. |
+| `settings/widgets.tsx` | `/settings/widgets` | How to add each SocialNet widget to the home screen, with a small drawing of each one. |
 
 ### `show/`
 

@@ -58,6 +58,7 @@ import { useProfileApi } from '@/social/profile-api';
 import { TAB_PAGE_END } from '@/ui/kit/Screen';
 import { plural } from '@socialmorning/social-core';
 import { EndOfList } from '@/ui/kit/EndOfList';
+import { EpisodePane, ListDetail, useOpensInPane } from '@/ui/shell/ListDetail';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
 /** M21 US8: a starred show in the row above the feed — a 72 pt cover with its name under it. */
@@ -77,6 +78,10 @@ export default function UpdatesScreen(): React.ReactElement {
   const { hiddenFeeds } = useSafety();
   const discover = useDiscover();
   const [rows, setRows] = useState<UpdateRow[]>([]);
+  // M22 US16 (T071): on a tablet an episode opens in the right pane (src/ui/shell/ListDetail.tsx).
+  const inPane = useOpensInPane();
+  const [paneId, setPaneId] = useState<string | undefined>(undefined);
+  const openEpisodePage = (id: string) => router.push({ pathname: '/episode/[id]', params: { id } });
   const [subscribed, setSubscribed] = useState(0);
   const [stale, setStale] = useState(0);
   // M22 US12: "Swipe a row for more", once — the first time Updates shows rows after this release.
@@ -175,6 +180,10 @@ export default function UpdatesScreen(): React.ReactElement {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
+      <ListDetail
+        placeholder="Choose an episode to see it here."
+        detail={paneId !== undefined ? <EpisodePane episodeId={paneId} onOpenPage={() => openEpisodePage(paneId)} /> : undefined}
+        list={
       <FlatList
         ref={top}
         data={rows}
@@ -234,7 +243,7 @@ export default function UpdatesScreen(): React.ReactElement {
               queued={queuedIds.has(e.id)}
               download={downloadOf(e.id)}
               onOpenShow={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(e.feedUrl) } })}
-              onOpenEpisode={() => router.push({ pathname: '/episode/[id]', params: { id: e.id } })}
+              onOpenEpisode={() => (inPane ? setPaneId(e.id) : openEpisodePage(e.id))}
               onQueue={() => queue(e.id)}
               onComments={() => router.push({ pathname: '/comments/[episodeId]', params: { episodeId: e.id } })}
               onDownload={() => download(e.id)}
@@ -246,6 +255,8 @@ export default function UpdatesScreen(): React.ReactElement {
             />
           );
         }}
+      />
+        }
       />
       {/* "⋯" more (Owner, 2026-10-01): the same sheet as a show page's episode row — M21: the shared one. */}
       <EpisodeRowSheet

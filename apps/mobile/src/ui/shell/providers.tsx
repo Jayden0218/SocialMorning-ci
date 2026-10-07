@@ -35,7 +35,8 @@ import { createExpoDownloader, downloadPathFor } from '@/downloads/expo-download
 import { createExpoNetwork } from '@/downloads/expo-network';
 import { waitForStartup } from './startup';
 import { onNotificationTap } from '@/notify/expo';
-import { canStream } from '@/settings/playback';
+import { mayStreamNow } from '@/settings/playback';
+import { askMobileData } from '@/ui/player/DataPrompt';
 import { getPref } from '@/settings/prefs';
 import { createOutsideBridge, setOutsideSkip, setOutsideToggle } from '@/outside/bridge';
 import { platformSinks, platformWidgetDataSinks } from '@/outside/sinks';
@@ -298,6 +299,9 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
 
   const runtime = useMemo<PlayerRuntime>(() => {
     const adapter = createExpoAudioAdapter();
+    // M22 T073: the episode a public `load` is starting (read by mayStream), and one toast to drop.
+    let asking: Parameters<PlayerRuntime['load']>[0] | undefined;
+    let skipToast = false;
     // Fire and forget: setAudioModeAsync must happen once, before anything
     // plays. interruptionMode doNotMix is what lock-screen controls need.
     void adapter.configure();
@@ -305,7 +309,7 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
       adapter,
       stores,
       now: () => Date.now(),
-      notify: (text) => show.current(text),
+      notify: (text) => { if (skipToast) { skipToast = false; return; } show.current(text); },
       onTick: (episodeId, positionMs) => listened.onTick(episodeId, positionMs),
       onPositionSaved: (row, reason) => {
         sync.onSaved(row, reason);
@@ -316,13 +320,22 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
         // M22 US17: "Delete after playing" (off by default) removes a finished episode's download.
         if (reason === 'finished') downloads.afterFinished(row.episodeId);
       },
-      mayStream: () => canStream(stores.settings, netKind.current),
+      // M22 US17 (T073): refused on mobile data → the prompt asks "Allow this time / Always allow"
+      // (src/ui/player/DataPrompt.tsx) and replays the episode on an allow; its toast is not shown.
+      mayStream: () => {
+        if (mayStreamNow(stores.settings, netKind.current)) return true;
+        const episode = asking;
+        if (askMobileData(episode === undefined ? {} : { retry: () => r.load(episode, 'play') })) skipToast = true;
+        return false;
+      },
       advance: {
         lookup: (episodeId) => toPlayable(stores, episodeId),
         online: () => online.current,
         onSkipped: (episodeId) => show.current(`Not downloaded — skipped: ${stores.feeds.getEpisode(episodeId)?.title ?? episodeId}`),
       },
     });
+    const load = r.load;
+    r.load = (episode, intent) => { asking = episode; try { load(episode, intent); } finally { asking = undefined; } };
     // M19 T070 (research R4): music mode (pitch correction off) survives a restart.
     if (getPref(stores.settings, 'musicMode')) r.setMusicMode(true);
     // M19 (2026-10-05, research R3/R4): the short-sound choice and skip silence survive a restart.

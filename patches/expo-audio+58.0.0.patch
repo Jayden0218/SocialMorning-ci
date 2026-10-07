@@ -219,8 +219,23 @@ index 5613d45..ac0a025 100644
      super.releasePlayer()
    }
  
+diff --git a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioRecords.kt b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioRecords.kt
+index c3d0bd9..e6dab26 100644
+--- a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioRecords.kt
++++ b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioRecords.kt
+@@ -114,7 +114,9 @@ class AudioLockScreenOptions(
+   @Field val showSeekBackward: Boolean,
+   @Field val showNextTrack: Boolean = false,
+   @Field val showPreviousTrack: Boolean = false,
+-  @Field val isLiveStream: Boolean? = null
++  @Field val isLiveStream: Boolean? = null,
++  // SocialNet patch (M22 US17): the lock-screen skip in seconds (10 or 300); null keeps 10.
++  @Field val skipIntervalSeconds: Double? = null
+ ) : Record
+ 
+ enum class InterruptionMode(val value: String) : Enumerable {
 diff --git a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
-index f3ad9d3..c8b1494 100644
+index f3ad9d3..6abd627 100644
 --- a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
 +++ b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
 @@ -20,7 +20,11 @@ import androidx.media3.common.Player
@@ -394,16 +409,16 @@ index f3ad9d3..c8b1494 100644
 +    s.release()
 +    idleStub?.release()
 +    idleStub = null
++  }
++
++  private fun notifyCarChanged(ids: List<String>) {
++    val s = (mediaSession as? MediaLibrarySession) ?: idle ?: return
++    for (id in ids) s.notifyChildrenChanged(id, Int.MAX_VALUE, null)
    }
  
 -  override fun onBind(intent: Intent?): IBinder {
 -    super.onBind(intent)
 -    return binder
-+  private fun notifyCarChanged(ids: List<String>) {
-+    val s = (mediaSession as? MediaLibrarySession) ?: idle ?: return
-+    for (id in ids) s.notifyChildrenChanged(id, Int.MAX_VALUE, null)
-+  }
-+
 +  override fun onBind(intent: Intent?): IBinder? {
 +    val media = super.onBind(intent)
 +    // SocialNet patch (found on Android Auto's car screen, 2026-09-28): a browser (the car) must
@@ -452,23 +467,40 @@ index f3ad9d3..c8b1494 100644
          mediaSession = session
          sessionMetadataPlayer = sessionPlayer
  
-@@ -511,6 +609,15 @@ class AudioControlsService : MediaSessionService() {
-     }
+@@ -505,15 +603,30 @@ class AudioControlsService : MediaSessionService() {
+     clearSessionInternal()
    }
  
++  /** SocialNet patch (M22 US17): the lock-screen skip set from JS (10 s, or 300 s for ±5 min). */
++  private fun seekIntervalMs(): Long {
++    val seconds = currentOptions?.skipIntervalSeconds ?: return SEEK_INTERVAL_MS
++    return if (seconds > 0) (seconds * 1000).toLong() else SEEK_INTERVAL_MS
++  }
++
+   fun seekForward() {
+     currentPlayable?.player?.let { player ->
+-      player.seekTo(player.currentPosition + SEEK_INTERVAL_MS)
++      player.seekTo(player.currentPosition + seekIntervalMs())
++    }
++  }
++
 +  /** SocialNet patch (M20 US4): a jump of `deltaMs`, clamped to [0, duration]. */
 +  fun seekBy(deltaMs: Long) {
 +    currentPlayable?.player?.let { player ->
 +      val target = maxOf(0L, player.currentPosition + deltaMs)
 +      val duration = player.duration
 +      player.seekTo(if (duration > 0 && target > duration) duration else target)
-+    }
-+  }
-+
+     }
+   }
+ 
    fun seekBackward() {
      currentPlayable?.player?.let { player ->
-       player.seekTo(player.currentPosition - SEEK_INTERVAL_MS)
-@@ -586,6 +693,10 @@ class AudioControlsService : MediaSessionService() {
+-      player.seekTo(player.currentPosition - SEEK_INTERVAL_MS)
++      player.seekTo(player.currentPosition - seekIntervalMs())
+     }
+   }
+ 
+@@ -586,6 +699,10 @@ class AudioControlsService : MediaSessionService() {
    }
  
    override fun onDestroy() {
@@ -479,7 +511,7 @@ index f3ad9d3..c8b1494 100644
      super.onDestroy()
  
      removePlayerListener()
-@@ -637,5 +748,10 @@ class AudioControlsService : MediaSessionService() {
+@@ -637,5 +754,10 @@ class AudioControlsService : MediaSessionService() {
      const val ACTION_PREVIOUS_TRACK = "expo.modules.audio.action.PREVIOUS_TRACK"
  
      const val SEEK_INTERVAL_MS = 10000L
@@ -1263,6 +1295,19 @@ index ea6288d..dd32c16 100644
    private func replacePlayerItem(with item: AVPlayerItem?) {
      if let queuePlayer = ref as? AVQueuePlayer {
        queuePlayer.removeAllItems()
+diff --git a/node_modules/expo-audio/ios/AudioRecords.swift b/node_modules/expo-audio/ios/AudioRecords.swift
+index d331e80..513b13f 100644
+--- a/node_modules/expo-audio/ios/AudioRecords.swift
++++ b/node_modules/expo-audio/ios/AudioRecords.swift
+@@ -82,6 +82,8 @@ struct LockScreenOptions: Record {
+   @Field var showNextTrack: Bool = false
+   @Field var showPreviousTrack: Bool = false
+   @Field var isLiveStream: Bool? = false
++  // SocialNet patch (M22 US17): the lock-screen skip in seconds (10 or 300); nil keeps 10.
++  @Field var skipIntervalSeconds: Double? = nil
+ }
+ 
+ enum BitRateStrategy: String, Enumerable {
 diff --git a/node_modules/expo-audio/ios/AudioTapProcessor.h b/node_modules/expo-audio/ios/AudioTapProcessor.h
 index ddd4f23..1304d21 100644
 --- a/node_modules/expo-audio/ios/AudioTapProcessor.h
@@ -1495,3 +1540,27 @@ index 6f8fb16..f817b1a 100644
  }
  
  
+diff --git a/node_modules/expo-audio/ios/MediaController.swift b/node_modules/expo-audio/ios/MediaController.swift
+index 1f7ca7e..9479f4d 100644
+--- a/node_modules/expo-audio/ios/MediaController.swift
++++ b/node_modules/expo-audio/ios/MediaController.swift
+@@ -329,7 +329,9 @@ class MediaController {
+     }
+     remoteCommandTargets.append((remoteCommandCenter.changePlaybackPositionCommand, changePlaybackPositionTarget))
+ 
+-    remoteCommandCenter.skipForwardCommand.preferredIntervals = [10.0]
++    // SocialNet patch (M22 US17): the interval comes from JS (10 s, or 300 s for ±5 min).
++    let skipInterval = NSNumber(value: max(1.0, options?.skipIntervalSeconds ?? 10.0))
++    remoteCommandCenter.skipForwardCommand.preferredIntervals = [skipInterval]
+     let skipForwardTarget = remoteCommandCenter.skipForwardCommand.addTarget { [weak self] event in
+       guard let playable = self?.activePlayable,
+       let event = event as? MPSkipIntervalCommandEvent else {
+@@ -344,7 +346,7 @@ class MediaController {
+     }
+     remoteCommandTargets.append((remoteCommandCenter.skipForwardCommand, skipForwardTarget))
+ 
+-    remoteCommandCenter.skipBackwardCommand.preferredIntervals = [10.0]
++    remoteCommandCenter.skipBackwardCommand.preferredIntervals = [skipInterval]
+     let skipBackwardTarget = remoteCommandCenter.skipBackwardCommand.addTarget { [weak self] event in
+       guard let playable = self?.activePlayable,
+       let event = event as? MPSkipIntervalCommandEvent else {

@@ -208,7 +208,16 @@ export function createApp(deps: AppDeps) {
   });
   app.notFound((c) => c.json({ error: 'not_found', message: 'No such route.' }, 404));
 
-  app.get('/v1/health', (c) => c.json({ ok: true }));
+  // M22 US17 (T079): `maintenance` only while MAINTENANCE_UNTIL (an ISO time) is set and in the
+  // future; the phone then shows its maintenance page. Read per request, so an env change and a
+  // redeploy is all it takes. Unset → `{ ok: true }` exactly as before.
+  app.get('/v1/health', (c) => {
+    const until = process.env['MAINTENANCE_UNTIL'];
+    const at = until ? Date.parse(until) : NaN;
+    if (!Number.isFinite(at) || at <= Date.now()) return c.json({ ok: true });
+    const message = process.env['MAINTENANCE_MESSAGE'] || 'SocialNet is being updated.';
+    return c.json({ ok: true, maintenance: { until: new Date(at).toISOString(), message } });
+  });
   // M6 (FR-027): the appeals address the app shows — never hard-coded in a build.
   app.get('/v1/meta', (c) => c.json({ ...(safety.appealsEmail ? { appealsEmail: safety.appealsEmail } : {}) }));
   app.route('/v1/auth', auth);

@@ -25,6 +25,9 @@ import { Icon, type IconName } from '@/ui/kit/Icon';
 import { useStores } from '@/ui/shell/providers';
 import { useColours } from '@/ui/kit/useColours';
 import { hit } from '@/design';
+import { Platform } from 'react-native';
+import { Card, CardDivider } from '@/ui/kit/Card';
+import { LinkRow } from '@/ui/settings/rows';
 
 type Doc = keyof typeof LEGAL_TEXT;
 const ICON = { width: 64, height: 64 };
@@ -73,6 +76,18 @@ export default function AboutScreen(): React.ReactElement {
             <Text className="text-accent text-xs font-bold">Read</Text>
           </Pressable>
         ))}
+      </Box>
+      {/* M22 US17 (T077, T078): updates (Android APK copies only) and the widget guide. */}
+      <Box className="mt-section">
+        <Card>
+          {Platform.OS === 'android' ? (
+            <>
+              <LinkRow href="/settings/updates" icon="cloud-download-outline" label="Check for updates" />
+              <CardDivider />
+            </>
+          ) : null}
+          <LinkRow href="/settings/widgets" icon="apps-outline" label="Widgets" line="How to add SocialNet to your home screen" />
+        </Card>
       </Box>
       {/* M9: gluestack's Modal at full size, as Consent's documents. */}
       <Modal isOpen={doc !== undefined} size="full" onClose={() => setDoc(undefined)}>

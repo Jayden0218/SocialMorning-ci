@@ -43,7 +43,7 @@
  */
 import {
   AudioQuality, IOSOutputFormat, createAudioPlayer, requestRecordingPermissionsAsync, setAudioModeAsync,
-  useAudioRecorder, useAudioRecorderState, type AudioPlayer, type AudioStatus, type RecordingOptions,
+  useAudioRecorder, useAudioRecorderState, type AudioMetadata, type AudioPlayer, type AudioStatus, type RecordingOptions,
 } from 'expo-audio';
 import { requireOptionalNativeModule } from 'expo';
 import { VOICE_BIT_RATE } from '@/social/voice';
@@ -90,6 +90,28 @@ async function setPlayerMode(): Promise<void> {
 }
 
 /**
+ * M22 US17 (T072, research R15): the lock-screen skip — 10 s, or 300 s for "±5 min on the lock
+ * screen". It rides on the lock-screen options as `skipIntervalSeconds`, a field our expo-audio
+ * patch adds to LockScreenOptions (iOS `preferredIntervals`, Android `seekIntervalMs()`); an
+ * unpatched build ignores the field and keeps 10 s. Set from Settings › Playback and at start-up.
+ */
+let lockScreenSkipSeconds = 10;
+let reapplyLockScreen: (() => void) | undefined;
+
+export function setLockScreenSkipSeconds(seconds: number): void {
+  if (seconds === lockScreenSkipSeconds) return;
+  lockScreenSkipSeconds = seconds;
+  // Already on the lock screen: activate again so the new interval is drawn now.
+  reapplyLockScreen?.();
+}
+
+/** Not an object literal at the call site: `skipIntervalSeconds` is our patch's field, not in the typings. */
+function lockScreenOptions() {
+  const options = { showSeekForward: true, showSeekBackward: true, skipIntervalSeconds: lockScreenSkipSeconds };
+  return options;
+}
+
+/**
  * What the adapter can observe.
  *
  * It is `PlayerEvent` with one difference: the adapter cannot know the
@@ -129,6 +151,12 @@ export function createExpoAudioAdapter(
   let wasBuffering = false;
   let wasLoaded = false;
   let lockScreenActive = false;
+  // M22 T072: the metadata in force, so a new skip interval can re-activate the controls with it.
+  let lockMetadata: AudioMetadata = {};
+  reapplyLockScreen = () => {
+    if (!lockScreenActive) return;
+    player.setActiveForLockScreen(true, lockMetadata, lockScreenOptions());
+  };
   // M19 T070 (research R4): music mode turns pitch correction off (varispeed); applied on every rate.
   let correctPitch = true;
   // M19 (2026-10-05, research R4): skip silence. Set again after every load.
@@ -237,6 +265,7 @@ export function createExpoAudioAdapter(
           artist: effect.meta.artist,
           ...(effect.meta.artworkUrl !== undefined && { artworkUrl: effect.meta.artworkUrl }),
         };
+        lockMetadata = metadata;
         if (lockScreenActive) {
           // Already ours. Re-activating would tear the controls down and put
           // them back; the listener sees a flicker and Android sees a session
@@ -245,10 +274,7 @@ export function createExpoAudioAdapter(
           return;
         }
         lockScreenActive = true;
-        player.setActiveForLockScreen(true, metadata, {
-          showSeekForward: true,
-          showSeekBackward: true,
-        });
+        player.setActiveForLockScreen(true, metadata, lockScreenOptions());
         return;
       }
       case 'clearLockScreen':
@@ -334,6 +360,7 @@ export function createExpoAudioAdapter(
   }
 
   function release(): void {
+    reapplyLockScreen = undefined;
     player.remove();
   }
 

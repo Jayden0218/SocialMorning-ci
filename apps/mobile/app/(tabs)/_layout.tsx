@@ -29,12 +29,16 @@ import { useStores } from '@/ui/shell/providers';
 import { TabBar } from '@/ui/shell/TabBar';
 import { TABS, TAB_HREF } from '@/ui/shell/tabs';
 import { SearchOverlayHost } from '@/ui/search/SearchOverlay';
+import { useLayout } from '@/ui/shell/useLayout';
 
 
 export default function TabsLayout(): React.ReactElement {
   const router = useRouter();
   const stores = useStores();
   const c = useColours(stores.settings);
+  // M22 US16 (T070): on a wide window the bar is a side rail on the left, and the mini player
+  // runs along the bottom of the page instead of sitting on the bar.
+  const { wide } = useLayout();
   const { api, listener } = useSocial();
   // M4's unread count followed the Following *link* off the Library. It lives on the
   // *tab* now, so the feature did not leave with the link. Recomputed whenever the
@@ -83,8 +87,10 @@ export default function TabsLayout(): React.ReactElement {
     // M17: Discover's Search is drawn in place over the tabs and their bar, so result pages push
     // on the root stack with the normal edge swipe (src/ui/search/SearchOverlay.tsx).
     <SearchOverlayHost>
+    <Box className="flex-1">
     <Tabs
       screenOptions={{
+        tabBarPosition: wide ? 'left' : 'bottom',
         // M16a T002 (FR-012): no system header here either — Discover, Updates and Me draw their
         // own titles; the two hidden routes only redirect.
         headerShown: false,
@@ -94,8 +100,9 @@ export default function TabsLayout(): React.ReactElement {
         const active = props.state.routes[props.state.index]?.name ?? 'index';
         return (
           <Box className="bg-surface">
-            <TabsMiniPlayer />
+            {wide ? null : <TabsMiniPlayer />}
             <TabBar
+              mode={wide ? 'rail' : 'bar'}
               items={items}
               activeKey={active}
               onSelect={(key) => {
@@ -124,6 +131,8 @@ export default function TabsLayout(): React.ReactElement {
       {/* Not in the bar (TABS drives the bar): only here so old `/discover` links land. */}
       <Tabs.Screen name="discover" options={{ title: 'Discover' }} />
     </Tabs>
+    {wide ? <Box className="bg-surface"><TabsMiniPlayer /></Box> : null}
+    </Box>
     </SearchOverlayHost>
   );
 }

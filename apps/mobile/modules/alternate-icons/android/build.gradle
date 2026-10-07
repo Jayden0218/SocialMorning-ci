@@ -1,0 +1,19 @@
+// The alternate-icons local module (M22 T076): turns one launcher activity-alias on and the rest off.
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.alternateicons'
+version = '1.0.0'
+
+android {
+  namespace "expo.modules.alternateicons"
+  defaultConfig {
+    versionCode 1
+    versionName "1.0.0"
+  }
+  lintOptions {
+    abortOnError false
+  }
+}

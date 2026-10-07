@@ -1,4 +1,4 @@
-// Playback settings: queue order, mobile data, transcript entry, lock-screen comments, music mode, skip silence, other apps' sounds.
+// Playback settings: queue order, mobile data, transcript entry, lock-screen comments and ±5 min skip, music mode, skip silence, other apps' sounds.
 /**
  * M21 US10 (T110, spec story 10 "Settings"): a "Playback" page holds every playback setting
  * that was in Settings › More — the same switches, the same prefs, the same player calls, moved
@@ -23,6 +23,8 @@ import { Segmented } from '@/ui/kit/Segmented';
 import { Box } from '@/ui/lib/box';
 import { PageHeader } from '@/ui/kit/PageHeader';
 import { usePlayer } from '@/playback/store';
+import { LOCK_SKIP_KEY, lockSkipSeconds } from '@/settings/playback';
+import { setLockScreenSkipSeconds } from '@/playback/expo-audio-adapter';
 
 function Section(props: { title: string }): React.ReactElement {
   return <Text className="text-text text-base font-display-semibold mt-section mb-gap" accessibilityRole="header">{props.title}</Text>;
@@ -37,6 +39,8 @@ export default function PlaybackSettings(): React.ReactElement {
   const [pausePrompts, setPausePrompts] = useState(() => getPref(stores.settings, 'pauseOnPrompts'));
   const [skip, setSkip] = useState(() => getPref(stores.settings, 'skipSilence'));
   const [lock, setLock] = useState(() => getPref(stores.settings, 'lockComments'));
+  // M22 US17 (T072): the lock-screen skip buttons jump 5 minutes instead of 10 s.
+  const [fiveMin, setFiveMin] = useState(() => lockSkipSeconds(stores.settings) === 300);
   const player = usePlayer();
   return (
     <>
@@ -54,6 +58,7 @@ export default function PlaybackSettings(): React.ReactElement {
         <CardDivider />
         {/* M22 US4: the last 10 playlist versions on this phone. */}
         <LinkRow href="/settings/queue-backups" icon="time-outline" label="Playlist backups" line="The last 10 versions of your playlist on this phone" />
+        <SwitchRow icon="time-outline" label="±5 min on the lock screen" line="Off: the lock-screen skip buttons jump 10 seconds" value={fiveMin} onChange={(v) => { setFiveMin(v); stores.settings.set(LOCK_SKIP_KEY, v ? '1' : '0'); setLockScreenSkipSeconds(v ? 300 : 10); }} />
       </Card>
       <Section title="Sound" />
       <Card>

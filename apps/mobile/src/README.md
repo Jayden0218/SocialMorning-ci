@@ -318,6 +318,9 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `providers.tsx` | Sets up data, the audio player and messages once for the whole app. |
 | `startup.ts` | Keeps the start screen at least 1 second, at most 6 seconds. |
 | `tabs.ts` | The list of bottom tabs (Discover, Updates, Chat, Me) as data. |
+| `useLayout.ts` | Says whether the window is wide enough for the tablet layout (side rail, two panes) and whether it is a phone. |
+| `startupExtras.ts` | Small start-up jobs: hold phones in portrait, app-icon shortcuts, the maintenance check, What's new, vibration and lock-screen skip settings. |
+| `ListDetail.tsx` | Two panes on a tablet: the list on the left, the chosen item on the right; just the list on a phone. |
 | `consent.ts` | Terms version, title and text pointers; remembers if you agreed. |
 
 ### `ui/player/` — The full player page and its parts
@@ -326,6 +329,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 |---|---|
 | `ChapterList.tsx` | List of episode chapters; current one is bold; tap to jump there. |
 | `EndOffer.tsx` | Card at episode end: "Next up" episode with a Play button. |
+| `DataPrompt.tsx` | The sheet that asks before streaming on mobile data: Allow this time, or Always allow. |
 | `ClapBurst.tsx` | A short full-screen burst of thumbs when the listener reacts; never blocks a tap; off with Reduce Motion. |
 | `HeatCurve.tsx` | 100 bars under the seek bar showing where listeners reacted; tap to jump. |
 | `HeatScrubber.tsx` | The heat curve as the seek bar: tap or drag across it to jump; the played part is in the accent. |

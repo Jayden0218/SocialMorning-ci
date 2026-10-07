@@ -9,7 +9,8 @@
  * as a small pill. Same links, same handlers, same names.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { Linking } from 'react-native';
+import { Linking, Platform } from 'react-native';
+import { LinkRow } from '@/ui/settings/rows';
 import { Link } from 'expo-router';
 import { Pressable } from '@/ui/lib/pressable';
 import { ScrollView } from '@/ui/lib/scroll-view';
@@ -92,6 +93,18 @@ export default function HelpScreen(): React.ReactElement {
             </Box>
           );
         })}
+      </Card>
+
+      {/* M22 US17 (T077, T078): the network check, and the Android battery helper. */}
+      <Text className="text-text text-base font-display-semibold mt-1" accessibilityRole="header">Something not working?</Text>
+      <Card>
+        <LinkRow href="/settings/network" icon="pulse-outline" label="Check network" line="Test our server, a feed host and an audio host" />
+        {Platform.OS === 'android' ? (
+          <>
+            <CardDivider />
+            <LinkRow href="/settings/background" icon="battery-half-outline" label="Playback stops when the screen is off?" line="Let SocialNet keep playing in the background" />
+          </>
+        ) : null}
       </Card>
     </ScrollView>
     </>
