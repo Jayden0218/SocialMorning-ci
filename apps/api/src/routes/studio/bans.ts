@@ -7,6 +7,7 @@
  * (409 `is_cohost`). The listener is never told by a push — only when they try to post.
  */
 import { z } from 'zod';
+import { BAN_REASON_MAX } from '@socialmorning/social-core';
 import type { Hono } from 'hono';
 import { json } from '../../validate.ts';
 import { ApiError } from '../../errors.ts';
@@ -50,7 +51,7 @@ export async function lift(db: Db, feedUrl: string, listenerId: string): Promise
   await db.query('DELETE FROM show_mutes WHERE feed_url = $1 AND listener_id = $2', [feedUrl, listenerId]);
 }
 
-const banBody = z.object({ reason: z.string().trim().max(200).optional() });
+const banBody = z.object({ reason: z.string().trim().max(BAN_REASON_MAX).optional() });
 
 export function registerBans(studio: Hono<StudioEnv>): void {
   studio.get('/shows/:show/bans', async (c) => c.json(await listBans(c.get('db'), c.get('show').feedUrl)));

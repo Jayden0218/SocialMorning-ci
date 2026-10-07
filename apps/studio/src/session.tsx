@@ -1,6 +1,6 @@
 // Keeps track of who is signed in, their shows, and admin status.
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
-import { api, bearer, whenSignedOut, type ActingAs, type Me, type Show, type StudioMe } from './api';
+import { api, bearer, SIGNED_OUT_KEY, tellOtherTabs, whenSignedOut, type ActingAs, type Me, type Show, type StudioMe } from './api';
 
 type Session =
   | { state: 'loading' }
@@ -29,6 +29,11 @@ export function SessionProvider({ children, initial }: { children: ReactNode; in
       () => setSession({ state: 'out' }),
     );
   }, [initial]);
+  useEffect(() => {
+    const heard = (e: StorageEvent) => { if (e.key === SIGNED_OUT_KEY && e.newValue) { bearer.set(null); setSession({ state: 'out' }); } };
+    window.addEventListener('storage', heard);
+    return () => window.removeEventListener('storage', heard);
+  }, []);
   const signedIn = useCallback((me: Me, shows: Show[], extra?: Extra) => setSession((prev) => ({
     state: 'in', me, shows,
     isAdmin: extra?.isAdmin ?? (prev.state === 'in' ? prev.isAdmin : false) ?? false,
@@ -41,6 +46,7 @@ export function SessionProvider({ children, initial }: { children: ReactNode; in
   const signOut = useCallback(async () => {
     try { await api('/v1/studio/session/sign-out', { method: 'POST' }); } catch { /* signing out anyway */ }
     bearer.set(null);
+    tellOtherTabs();
     setSession({ state: 'out' });
   }, []);
   return <SessionCtx.Provider value={{ session, signedIn, signOut, refresh }}>{children}</SessionCtx.Provider>;

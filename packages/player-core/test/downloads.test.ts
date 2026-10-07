@@ -22,6 +22,18 @@ test('A7: 1.9 GB used (incl. 200 MB in flight) + 200 MB new does not fit a 2 GB 
   assert.equal(canStartDownload(0, 1, 0), false, 'no budget, no download');
 });
 
+// M23 T044 — guard G-M23-9
+test('G-M23-9: a paused, half-finished download counts against the budget', () => {
+  const used = usedBytesOf([
+    { state: 'complete', bytesTotal: 1.7 * GB },
+    { state: 'paused', bytesTotal: 200 * MB, bytesDone: 100 * MB },
+  ]);
+  assert.equal(used, 1.7 * GB + 200 * MB, 'a paused row holds its full size');
+  assert.equal(canStartDownload(used, 200 * MB, 2 * GB), false, 'so a new 200 MB download does not fit');
+  assert.equal(usedBytesOf([{ state: 'paused', bytesDone: 7 }, { state: 'paused' }]), 7, 'unknown total: what is on the phone');
+  assert.equal(usedBytesOf([{ state: 'waiting', bytesTotal: 9 }, { state: 'failed', bytesTotal: 9 }]), 0, 'waiting and failed hold nothing');
+});
+
 const c = (episodeId: string, over: Partial<DownloadCandidate> = {}): DownloadCandidate =>
   ({ episodeId, state: 'waiting', requestedAt: 1, allowMobile: false, ...over });
 

@@ -1,47 +1,60 @@
 // The Studio's route table: which page opens at each web address.
-import type { ReactElement } from 'react';
+import { lazy, Suspense, type ComponentType, type ReactElement } from 'react';
 import { Navigate, Route, Routes, useLocation, useParams } from 'react-router';
 import { useSession } from './session';
 import { Layout } from './shell/Layout';
 import { Loading } from './shell/States';
-import { Home } from './pages/Home';
-import { Data } from './pages/Data';
-import { Episodes } from './pages/Episodes';
-import { Episode } from './pages/Episode';
-import { Comments } from './pages/Comments';
-import { Bans } from './pages/Bans';
-import { TranslationShows } from './pages/admin/Translation';
-import { Subscribers } from './pages/Subscribers';
-import { Demographics } from './pages/Demographics';
-import { Announcements } from './pages/Announcements';
-import { Polls } from './pages/Polls';
-import { Settings } from './pages/Settings';
-import { Tips } from './pages/Tips';
-import { TranscriptReports } from './pages/TranscriptReports';
-import { NewEpisode } from './pages/NewEpisode';
 import type { Show } from './api';
-import { NoShow } from './pages/NoShow';
-import { Invite } from './pages/Invite';
-import { Media } from './pages/Media';
-import { SignIn } from './pages/SignIn';
-import { AdminLayout } from './pages/admin/AdminLayout';
-import { Activity } from './pages/admin/Activity';
-import { Dashboard } from './pages/admin/Dashboard';
-import { Picks } from './pages/admin/Picks';
-import { Curated } from './pages/admin/Curated';
-import { DiscoverControl } from './pages/admin/Discover';
-import { Launch } from './pages/admin/Launch';
-import { Accounts } from './pages/admin/Accounts';
-import { Users } from './pages/admin/Users';
-import { Reports } from './pages/admin/Reports';
+
+/**
+ * M23 T041: every page is its own download, fetched the first time its address opens. Admin pages
+ * and the charts (recharts, used only by pages) never load for a creator who does not open them.
+ */
+function page<K extends string>(load: () => Promise<Record<K, ComponentType<any>>>, name: K) {
+  return lazy(async () => ({ default: (await load())[name] }));
+}
+const Home = page(() => import('./pages/Home'), 'Home');
+const Data = page(() => import('./pages/Data'), 'Data');
+const Episodes = page(() => import('./pages/Episodes'), 'Episodes');
+const Episode = page(() => import('./pages/Episode'), 'Episode');
+const Comments = page(() => import('./pages/Comments'), 'Comments');
+const Bans = page(() => import('./pages/Bans'), 'Bans');
+const Subscribers = page(() => import('./pages/Subscribers'), 'Subscribers');
+const Demographics = page(() => import('./pages/Demographics'), 'Demographics');
+const Announcements = page(() => import('./pages/Announcements'), 'Announcements');
+const Polls = page(() => import('./pages/Polls'), 'Polls');
+const Settings = page(() => import('./pages/Settings'), 'Settings');
+const Tips = page(() => import('./pages/Tips'), 'Tips');
+const TranscriptReports = page(() => import('./pages/TranscriptReports'), 'TranscriptReports');
+const NewEpisode = page(() => import('./pages/NewEpisode'), 'NewEpisode');
+const NoShow = page(() => import('./pages/NoShow'), 'NoShow');
+const Invite = page(() => import('./pages/Invite'), 'Invite');
+const Media = page(() => import('./pages/Media'), 'Media');
+const SignIn = page(() => import('./pages/SignIn'), 'SignIn');
+const AdminLayout = page(() => import('./pages/admin/AdminLayout'), 'AdminLayout');
+const Activity = page(() => import('./pages/admin/Activity'), 'Activity');
+const Dashboard = page(() => import('./pages/admin/Dashboard'), 'Dashboard');
+const Picks = page(() => import('./pages/admin/Picks'), 'Picks');
+const Curated = page(() => import('./pages/admin/Curated'), 'Curated');
+const DiscoverControl = page(() => import('./pages/admin/Discover'), 'DiscoverControl');
+const Launch = page(() => import('./pages/admin/Launch'), 'Launch');
+const Accounts = page(() => import('./pages/admin/Accounts'), 'Accounts');
+const Users = page(() => import('./pages/admin/Users'), 'Users');
+const Reports = page(() => import('./pages/admin/Reports'), 'Reports');
+const TranslationShows = page(() => import('./pages/admin/Translation'), 'TranslationShows');
+
+/** While a page's download arrives: the same loading line every block uses. */
+function Wait({ children }: { children: ReactElement }) {
+  return <Suspense fallback={<Loading label="Opening the page" />}>{children}</Suspense>;
+}
 
 /** Route table. Each later story adds its page next to `home` (tasks.md T012). */
 export function App() {
   return (
     <Routes>
-      <Route path="/sign-in" element={<SignIn />} />
-      <Route path="/no-show" element={<Signed><NoShow /></Signed>} />
-      <Route path="/invite/:token" element={<Signed><Invite /></Signed>} />
+      <Route path="/sign-in" element={<Wait><SignIn /></Wait>} />
+      <Route path="/no-show" element={<Signed><Wait><NoShow /></Wait></Signed>} />
+      <Route path="/invite/:token" element={<Signed><Wait><Invite /></Wait></Signed>} />
       <Route path="/s/:show/media" element={<Signed><ShowPage page={(s) => <Media show={s} />} /></Signed>} />
       <Route path="/s/:show/home" element={<Signed><ShowPage page={(s) => <Home show={s} />} /></Signed>} />
       <Route path="/s/:show/data" element={<Signed><ShowPage page={(s) => <Data show={s} />} /></Signed>} />
@@ -60,18 +73,18 @@ export function App() {
       <Route path="/s/:show/bans" element={<Signed><ShowPage page={(s) => <Bans show={s} />} /></Signed>} />
       <Route path="/s/:show/transcript-reports" element={<Signed><ShowPage page={(s) => <TranscriptReports show={s} />} /></Signed>} />
       {/* M15 T005: Admin lives outside /s/:show, so it works with no show. The server decides who gets in. */}
-      <Route path="/admin" element={<Signed><AdminLayout /></Signed>}>
+      <Route path="/admin" element={<Signed><Wait><AdminLayout /></Wait></Signed>}>
         <Route index element={<Navigate to="dashboard" replace />} />
-        <Route path="dashboard" element={<Dashboard />} />
-        <Route path="activity" element={<Activity />} />
-        <Route path="picks" element={<Picks />} />
-        <Route path="curated" element={<Curated />} />
-        <Route path="discover" element={<DiscoverControl />} />
-        <Route path="launch" element={<Launch />} />
-        <Route path="accounts" element={<Accounts />} />
-        <Route path="users" element={<Users />} />
-        <Route path="reports" element={<Reports />} />
-        <Route path="translation" element={<TranslationShows />} />
+        <Route path="dashboard" element={<Wait><Dashboard /></Wait>} />
+        <Route path="activity" element={<Wait><Activity /></Wait>} />
+        <Route path="picks" element={<Wait><Picks /></Wait>} />
+        <Route path="curated" element={<Wait><Curated /></Wait>} />
+        <Route path="discover" element={<Wait><DiscoverControl /></Wait>} />
+        <Route path="launch" element={<Wait><Launch /></Wait>} />
+        <Route path="accounts" element={<Wait><Accounts /></Wait>} />
+        <Route path="users" element={<Wait><Users /></Wait>} />
+        <Route path="reports" element={<Wait><Reports /></Wait>} />
+        <Route path="translation" element={<Wait><TranslationShows /></Wait>} />
         <Route path="*" element={<Navigate to="dashboard" replace />} />
       </Route>
       <Route path="*" element={<Signed><FirstShow /></Signed>} />
@@ -94,11 +107,11 @@ function FirstShow() {
   return <Navigate to={first ? `/s/${first.key}/home` : '/no-show'} replace />;
 }
 
-function ShowPage({ page }: { page: (s: Show) => ReactElement }) {
+function ShowPage({ page: render }: { page: (s: Show) => ReactElement }) {
   const { session } = useSession();
   const { show: key } = useParams();
   if (session.state !== 'in') return null;
   const show = session.shows.find((s) => s.key === key);
   if (!show) return <Navigate to="/" replace />;
-  return <Layout show={show}>{page(show)}</Layout>;
+  return <Layout show={show}><Wait>{render(show)}</Wait></Layout>;
 }
