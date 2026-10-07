@@ -32,7 +32,7 @@ beforeEach(() => setSwipeableForTests({ default: Swipeable, SwipeDirection: { LE
 function render(left: SwipeAction[], right: SwipeAction[], enabled?: boolean): ReactTestRenderer {
   let r!: ReactTestRenderer;
   act(() => {
-    r = create(createElement(SwipeRow, { swipeLeft: left, swipeRight: right, ...(enabled !== undefined ? { enabled } : {}) }, createElement(Text, null, 'Episode')));
+    r = create(createElement(SwipeRow, { swipeLeft: left, swipeRight: right, ...(enabled !== undefined ? { enabled } : {}), children: createElement(Text, null, 'Episode') }));
   });
   return r;
 }
@@ -89,7 +89,7 @@ it('without the swipeable (as in every other Jest test) the row is plain, with t
   setSwipeableForTests(null);
   const fn = jest.fn();
   let r!: ReactTestRenderer;
-  act(() => { r = create(createElement(SwipeRow, { swipeLeft: [{ key: 'remove', label: 'Remove', onPress: fn }] }, createElement(Text, null, 'Row'))); });
+  act(() => { r = create(createElement(SwipeRow, { swipeLeft: [{ key: 'remove', label: 'Remove', onPress: fn }], children: createElement(Text, null, 'Row') })); });
   const row = r.root.findAll((n) => Array.isArray(n.props['accessibilityActions']))[0]!;
   act(() => { row.props['onAccessibilityAction']({ nativeEvent: { actionName: 'remove' } }); });
   expect(fn).toHaveBeenCalledTimes(1);
