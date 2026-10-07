@@ -133,6 +133,7 @@ export async function removePost(db: Db, storage: VoiceStorage, row: { id: strin
 export async function removeAttachments(db: Db, storage: VoiceStorage, images: ImageStorage | undefined, postId: string): Promise<void> {
   for (const r of await replyAudioOf(db, [postId])) {
     if (!storage.ready) throw new Error('voice store not connected');
+    await storage.remove(r.audio_url);
     await db.query('DELETE FROM status_replies WHERE id = $1', [r.id]);
   }
   for (const key of await photosOf(db, [postId])) await removePhoto(db, images, key);

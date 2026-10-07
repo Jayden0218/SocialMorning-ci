@@ -73,7 +73,5 @@ history.delete('/', requireAuth, json(historyBody), async (c) => {
   const id = c.get('listener')!.id;
   if ('all' in b) await c.get('db').query('DELETE FROM positions WHERE listener_id = $1', [id]);
   else await c.get('db').query('DELETE FROM positions WHERE listener_id = $1 AND episode_id = ANY($2::text[])', [id, b.episodeIds]);
-  if ('all' in b) await c.get('db').query('DELETE FROM listened_ranges WHERE listener_id = $1', [id]);
-  else await c.get('db').query('DELETE FROM listened_ranges WHERE listener_id = $1 AND episode_id = ANY($2::text[])', [id, b.episodeIds]);
   return c.body(null, 204);
 });

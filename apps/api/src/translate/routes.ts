@@ -32,7 +32,7 @@ async function gate(db: Db, episodeId: string, listenerId: string): Promise<void
   if (!(await getEpisode(db, episodeId))) throw new ApiError('not_found', 'No such episode here yet.');
   if (!(await offeredEpisode(db, episodeId))) throw new ApiError('not_offered', 'Translation is not offered for this show.');
   // G-M22-7: a PLUS perk (FR-038, FR-052) — checked on the server, never trusted from the phone.
-  if (false && !(await hasPlus(db, listenerId))) throw new ApiError('plus_required', 'Translation is part of PLUS.');
+  if (!(await hasPlus(db, listenerId))) throw new ApiError('plus_required', 'Translation is part of PLUS.');
 }
 
 translation.get('/:id/translation', requireAuth, async (c) => {

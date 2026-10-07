@@ -72,11 +72,12 @@ export async function claimGift(db: Db, code: string, listenerId: string): Promi
     const [g] = await tx.query<GiftRow>('SELECT * FROM gifts WHERE code = $1 FOR UPDATE', [code]);
     if (!g) throw new ApiError('not_found', 'No such gift.');
     if (g.cancelled_at !== null) throw new ApiError('cancelled', 'This gift was refunded, so it can no longer be claimed.');
+    if (g.claimed_by !== null) throw new ApiError('already_claimed', 'Already claimed.');
     const [owns] = await tx.query("SELECT 1 FROM entitlements WHERE listener_id = $1 AND kind = 'show' AND ref = $2", [listenerId, g.feed_url]);
     // FR-043: the link stays unclaimed for someone else.
     if (owns) throw new ApiError('already_owned', 'You already have this series. The link still works for someone else.');
     const [won] = await tx.query<{ id: string }>(
-      'UPDATE gifts SET claimed_by = $2, claimed_at = now() WHERE id = $1 AND cancelled_at IS NULL RETURNING id', [g.id, listenerId]);
+      'UPDATE gifts SET claimed_by = $2, claimed_at = now() WHERE id = $1 AND claimed_by IS NULL AND cancelled_at IS NULL RETURNING id', [g.id, listenerId]);
     if (!won) throw new ApiError('already_claimed', 'Already claimed.');
     await tx.query(
       `INSERT INTO entitlements (listener_id, kind, ref, until, source_purchase_id) VALUES ($1, 'show', $2, NULL, $3)

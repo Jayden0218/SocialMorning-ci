@@ -68,10 +68,12 @@ export function shouldPush(
   window: LikeWindow | null,
 ): PushDecision {
   if (notice.actorId === notice.recipientId) return { send: false };
-  if (rel.muted || rel.threadMuted) return { send: false };
+  if (rel.blocked || rel.muted || rel.threadMuted) return { send: false };
   if (!prefs[PREF_FOR[notice.kind]]) return { send: false };
   if (!isLikeKind(notice.kind)) return { send: true, grouped: false };
   if (notice.kind === 'like' && rel.likeNoticesOff) return { send: false };
-  void window;
+  if (window && notice.at - window.firstAt < LIKE_WINDOW_MS) {
+    return { send: true, grouped: true, count: window.count + 1 };
+  }
   return { send: true, grouped: false };
 }

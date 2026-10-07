@@ -121,6 +121,7 @@ export async function profile(db: Db, id: string, viewerId: string | undefined, 
   const [l] = await db.query<{ id: string; display_name: string; private_listening: boolean; suspended_at: string | null; hidden_at: string | null; country: string | null; avatar_url: string | null; bio: string | null; likes_public: boolean; private_subscriptions: boolean; hide_often_listened: boolean }>('SELECT id, display_name, private_listening, suspended_at, hidden_at, country, avatar_url, bio, likes_public, private_subscriptions, hide_often_listened FROM listeners WHERE id = $1', [id]);
   if (!l) return undefined;
   // M22 US11 (G-M22-8): an account waiting to be deleted reads as "no such listener" to others.
+  if (l.hidden_at && viewerId !== id) return undefined;
   // M6 (FR-008, FR-015): to someone they blocked, a listener looks private and quiet — name only, no hint why. A suspended account shows as suspended.
   // M19 US1: photo and bio travel with the name; age range and gender never do (FR-003).
   const look = { ...(l.avatar_url ? { avatarUrl: l.avatar_url } : {}), ...(l.bio ? { bio: l.bio } : {}) };
