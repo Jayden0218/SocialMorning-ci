@@ -8,6 +8,7 @@ import { CHART_MAX, discoverBody, SHOWS_SERVED } from '../../db/repos/discover/d
 import { CHART_KINDS, chart, hunt, likedByFollowed, plaza, type ChartKind, type Face } from '../../db/repos/discover/explore.ts';
 import { collectionsWithoutHidden, followedHere, newArrivals, resolveCollections, said, statsFor, videoEpisodes, withStats, type Collection, type FollowedHere, type NewArrival, type Said } from '../../db/repos/discover/discover-extras.ts';
 import { hiddenFeedUrls } from '../../db/repos/safety/moderation.ts';
+import { hiddenEpisodeIds } from '../../db/repos/studio/hidden-episodes.ts';
 import { ApiError } from '../../errors.ts';
 import type { DiscoverItem } from '../../db/repos/discover/discover.ts';
 import { getDiscoverSettings, hasLayout } from '../../db/repos/discover/discover-settings.ts';
@@ -28,9 +29,10 @@ discover.get('/', optionalAuth, async (c) => {
   const { warnings, ...pub } = body;
   const extraWarnings: string[] = [];
   const hidden = await hiddenFeedUrls(db);
+  const hiddenEps = await hiddenEpisodeIds(db); // M24 US11: hidden episodes leave this list.
   const resolved = await optional('collections', extraWarnings, () => resolveCollections(db, cat.fetch, cat.collections));
   if (resolved) extraWarnings.push(...resolved.warnings);
-  let collections: Collection[] | undefined = resolved ? collectionsWithoutHidden(resolved.collections, hidden) : undefined;
+  let collections: Collection[] | undefined = resolved ? collectionsWithoutHidden(resolved.collections, hidden, hiddenEps) : undefined;
   const followed: FollowedHere | undefined = await optional('followedHere', extraWarnings, () => followedHere(db));
   const saidList: Said[] | undefined = await optional('said', extraWarnings, () => said(db));
   const video = await optional('video', extraWarnings, () => videoEpisodes(db));
@@ -58,8 +60,8 @@ discover.get('/', optionalAuth, async (c) => {
     const pinned: DiscoverItem[] = [];
     for (const p of settings.s.pins) {
       if (hidden.has(p.feedUrl)) continue;
-      const ep = await episodeFor(db, p.feedUrl, p.guid);
-      if (ep) pinned.push({ kind: 'trending', key: `${ep.feedUrl}\u0001${ep.guid}`, episode: ep, reason: 'Picked by the editors' });
+      const ep = await episodeFor(db, p.feedUrl, p.guid, true);
+      if (ep && !hiddenEps.has(ep.id)) pinned.push({ kind: 'trending', key: `${ep.feedUrl}\u0001${ep.guid}`, episode: ep, reason: 'Picked by the editors' });
     }
     const pinKeys = new Set(pinned.map((i) => i.key));
     trending = [...pinned, ...pub.trending.filter((t) => !pinKeys.has(t.key) && !hideKeys.has(t.key))];
@@ -155,11 +157,14 @@ discover.get('/daily', async (c) => {
   const cat = c.get('catalog');
   const db = c.get('db');
   const hidden = await hiddenFeedUrls(db);
+  const hiddenEps = await hiddenEpisodeIds(db); // M24 US11: hidden episodes leave this list.
   const day = picksForDay(cat.picks, cat.today());
   const items = [];
   for (const p of day.picks) {
     if (hidden.has(p.feedUrl)) continue;
-    items.push({ feedUrl: p.feedUrl, ...(p.guid !== undefined ? { guid: p.guid } : {}), why: p.why, episode: await episodeFor(db, p.feedUrl, p.guid) });
+    const episode = await episodeFor(db, p.feedUrl, p.guid, true);
+    if (episode && hiddenEps.has(episode.id)) continue;
+    items.push({ feedUrl: p.feedUrl, ...(p.guid !== undefined ? { guid: p.guid } : {}), why: p.why, episode });
   }
   c.header('cache-control', 'public, max-age=300');
   return c.json({ ...(day.date ? { date: day.date } : {}), items });

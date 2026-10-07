@@ -11,6 +11,7 @@
 import type { Db } from '../../db.ts';
 import { ApiError } from '../../../errors.ts';
 import { sendExpo, type PushMessage } from './push.ts';
+import { notHidden } from '../studio/hidden-episodes.ts';
 
 export const DEFAULT_TZ = 'Asia/Kuala_Lumpur';
 export const DIGEST_MAX = 10;
@@ -60,11 +61,13 @@ async function candidates(db: Db): Promise<Due[]> {
 
 /** The episodes for one listener's week: published in [from, to), in a live subscription, never played. */
 async function pick(db: Db, listenerId: string, from: Date, to: Date): Promise<string[]> {
+  // M24 US11: hidden episodes leave this list.
   const rows = await db.query<{ id: string }>(
     `SELECT e.id FROM episodes e
        JOIN subscriptions s ON s.feed_url = e.feed_url AND s.listener_id = $1 AND s.deleted_at IS NULL
       WHERE e.published_at >= $2 AND e.published_at < $3
         AND NOT EXISTS (SELECT 1 FROM positions p WHERE p.listener_id = $1 AND p.episode_id = e.id)
+        AND ${notHidden('e')}
       ORDER BY e.published_at DESC, e.id LIMIT ${DIGEST_MAX}`, [listenerId, from.toISOString(), to.toISOString()]);
   return rows.map((r) => r.id);
 }

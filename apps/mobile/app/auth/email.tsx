@@ -14,7 +14,7 @@
  * "Continue →"; the name step shows a monogram of the typed name over its title. Steps,
  * consent, resend timer and sign-in calls are unchanged.
  */
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable } from '@/ui/lib/pressable';
 import { Text } from '@/ui/lib/text';
@@ -137,12 +137,6 @@ export default function EmailScreen(): React.ReactElement {
         </>
       ) : null}
       {suspended ? <Text className={errorText} accessibilityLiveRegion="polite">{suspended}</Text> : null}
-      {/* M24 US6: a suspended listener can appeal from here, with the token the refusal carried. */}
-      {suspended ? (
-        <Pressable onPress={() => router.push('/appeal' as never)} accessibilityRole="link" accessibilityLabel="Appeal the suspension" hitSlop={12} className="self-start mt-2">
-          <Text className="text-body font-bold text-accent">Appeal</Text>
-        </Pressable>
-      ) : null}
       {error ? <Text className={errorText} accessibilityLiveRegion="polite">{error}</Text> : null}
       <ConsentDialog
         visible={asking}

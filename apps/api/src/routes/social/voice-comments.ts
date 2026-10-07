@@ -13,6 +13,7 @@ import { COUNTRY_HEADER, countryOf } from '../../db/repos/account/country.ts';
 import { rebuildEpisodeHeat } from '../../heat/rebuild.ts';
 import { isBlockedBy } from '../../db/repos/safety/blocks.ts';
 import { isMutedOn } from '../../db/repos/studio/studio-subscribers.ts';
+import { requireOpenForVoice } from '../../db/repos/studio/comment-policy.ts';
 
 /**
  * M19 US6 (constitution v3.1.0) — mounted at /v1/episodes: POST /:id/comments/voice. The body is
@@ -71,6 +72,8 @@ voiceComments.post('/:id/comments/voice', requireAuth, async (c) => {
     if (parent?.author_id && parent.author_id !== me.id && (await isBlockedBy(db, parent.author_id, me.id))) throw new ApiError('blocked', "You can't interact with this listener.");
   }
   if (await isMutedOn(db, episode.feed_url, me.id)) throw new ApiError('muted_on_show', 'The host has turned off comments for you on this show.');
+  // M24 US8 (lane A2): closed refuses; review refuses a recording too (only text waits for review).
+  await requireOpenForVoice(db, episode, me.id);
 
   const path = `voice-comments/${me.id}/${randomUUID()}.${ext}`;
   let stored: { url: string; pathname: string };

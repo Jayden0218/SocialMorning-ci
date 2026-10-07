@@ -8,12 +8,9 @@ export const REPORT_REASONS = ['spam', 'harassment', 'hate', 'sexual', 'violence
 export type ReportReason = (typeof REPORT_REASONS)[number];
 export const REPORT_NOTE_MAX = 500;
 
-/**
- * M21 US2: `episode` (the episode itself) and `transcript` (one wrong line, `<episodeId>#<offsetMs>`).
- * M24 US1: `status` (a voice or text status), `chat_message` (one message, by its number) and `list` (a shared list).
- */
-export type TargetKind = 'comment' | 'clip' | 'profile' | 'show' | 'episode' | 'transcript' | 'status' | 'chat_message' | 'list';
-export const TARGET_KINDS: readonly TargetKind[] = ['comment', 'clip', 'profile', 'show', 'episode', 'transcript', 'status', 'chat_message', 'list'];
+/** M21 US2: `episode` (the episode itself) and `transcript` (one wrong line, `<episodeId>#<offsetMs>`). */
+export type TargetKind = 'comment' | 'clip' | 'profile' | 'show' | 'episode' | 'transcript';
+export const TARGET_KINDS: readonly TargetKind[] = ['comment', 'clip', 'profile', 'show', 'episode', 'transcript'];
 
 /** Who may report: nobody signed out; never one's own content (delete it instead). */
 export function canReport(viewerId: string | undefined, authorId: string | null): 'ok' | 'sign_in' | 'own' {

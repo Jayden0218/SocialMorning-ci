@@ -33,6 +33,7 @@ import { registerHosts } from './hosts.ts';
 import { registerMedia } from './media.ts';
 import { registerTranscriptReportDone, registerTranscriptReports } from './transcript-reports.ts';
 import { registerHostPicks } from './host-picks.ts';
+import { registerFeed } from './feed.ts';
 
 export { ownerOnly } from './common.ts';
 
@@ -123,3 +124,5 @@ registerHosts(studio);
 registerMedia(studio);
 registerTranscriptReports(studio);
 registerHostPicks(studio);
+// M24 lane A2: feed sync status + Sync now (US10), hide an episode (US11).
+registerFeed(studio);

@@ -20,6 +20,9 @@ import { stepTranslation } from '../translate/job.ts';
 import { runDigests } from '../db/repos/account/digest.ts';
 import { runDueDeletions } from '../db/repos/account/deletion.ts';
 import { sweepErrorReports } from '../db/repos/account/error-reports.ts';
+// M24 lane A2: the feed's last fetch for the Studio (US10), and the subscriber milestones (US12).
+import { recordSync } from '../db/repos/studio/feed-sync.ts';
+import { sendMilestones } from '../db/repos/studio/milestones.ts';
 
 /**
  * Mounted at /v1/internal (M8, research R4/R5). The scheduled workflow in the public CI
@@ -47,14 +50,14 @@ const body = z.object({
   force: z.boolean().optional(),
 });
 
-type FeedCounts = { registered: number; pushed: number; moved: number; blocked: number };
+export type FeedCounts = { registered: number; pushed: number; moved: number; blocked: number };
 
 /**
  * One subscribed feed, refreshed: register its newest five, tell followers about a genuinely
  * new one, follow a move (`itunes:new-feed-url`) and honour `itunes:block` (M23 US11).
  * Throws only for the feed itself failing; the caller settles each feed on its own.
  */
-async function refreshOne(db: Db, cat: Catalog, feedUrl: string, counts: FeedCounts, failed: string[]): Promise<void> {
+export async function refreshOne(db: Db, cat: Catalog, feedUrl: string, counts: FeedCounts, failed: string[]): Promise<void> {
   const { feed } = await fetchFeed(db, cat.fetch, feedUrl);
   if (feed.show.newFeedUrl !== undefined) counts.moved += await followMovedFeed(db, feedUrl, feed.show.newFeedUrl);
   await setPublisherBlock(db, feedUrl, feed.show.blocked === true);
@@ -112,10 +115,13 @@ export function createInternalRoute(jobToken: string | undefined, m22: { groq?: 
       for (let i = 0; i < batch.length; i += FEEDS_AT_ONCE) {
         const group = batch.slice(i, i + FEEDS_AT_ONCE);
         const settled = await Promise.allSettled(group.map(({ feed_url }) => refreshOne(db, cat, feed_url, counts, failed)));
-        settled.forEach((r, k) => {
+        for (const [k, r] of settled.entries()) {
+          const why = r.status === 'rejected' ? (r.reason instanceof Error ? r.reason.message : String(r.reason)) : null;
           // One publisher being down is not a failed rebuild (principle IV).
-          if (r.status === 'rejected') failed.push(`${group[k]!.feed_url}: ${r.reason instanceof Error ? r.reason.message : String(r.reason)}`);
-        });
+          if (why !== null) failed.push(`${group[k]!.feed_url}: ${why}`);
+          // M24 US10: the Studio shows each feed's last fetch; a status write never fails the run.
+          try { await recordSync(db, group[k]!.feed_url, why === null, why); } catch (e) { failed.push(`feed_sync: ${e instanceof Error ? e.message : String(e)}`); }
+        }
       }
       if (failed.length > 0) console.warn(`[rebuild feeds] ${failed.join(' | ')}`);
       const last = batch[batch.length - 1];
@@ -131,7 +137,7 @@ export function createInternalRoute(jobToken: string | undefined, m22: { groq?: 
     if (step === 'sweep') {
       const failed: string[] = [];
       const cat = c.get('catalog');
-      const counts = { popular: 0, voiceDeleted: 0, activeDeleted: 0, cacheDeleted: 0, pushSentDeleted: 0, recEventsDeleted: 0, errorsDeleted: 0 };
+      const counts = { milestones: 0, popular: 0, voiceDeleted: 0, activeDeleted: 0, cacheDeleted: 0, pushSentDeleted: 0, recEventsDeleted: 0, errorsDeleted: 0 };
       const n = async (sql: string): Promise<number> => (await db.query<{ n: number }>(sql))[0]?.n ?? 0;
       // M18 FR-015: a day of app use is kept 400 days, then deleted (research R8).
       try { counts.activeDeleted = await n("WITH d AS (DELETE FROM daily_active WHERE day < ((now() AT TIME ZONE 'UTC') + interval '8 hours')::date - 400 RETURNING 1) SELECT count(*)::int AS n FROM d"); }
@@ -187,9 +193,13 @@ export function createInternalRoute(jobToken: string | undefined, m22: { groq?: 
           const [ep] = await db.query<{ id: string; title: string }>(
             p.guid !== undefined ? 'SELECT id, title FROM episodes WHERE feed_url = $1 AND guid = $2' : 'SELECT id, title FROM episodes WHERE feed_url = $1 ORDER BY published_at DESC NULLS LAST LIMIT 1',
             p.guid !== undefined ? [p.feedUrl, p.guid] : [p.feedUrl]);
-          if (ep) counts.popular = (await sendPopular(db, cat.pushFetch, { id: ep.id, title: ep.title, ...(p.why ? { why: p.why } : {}) })).sent;
+          // M24 US11: a hidden episode is never pushed as the day's pick.
+          const hidden = ep ? await db.query('SELECT 1 FROM episodes e JOIN hidden_episodes h ON h.feed_url = e.feed_url AND h.guid = e.guid WHERE e.id = $1', [ep.id]) : [];
+          if (ep && hidden.length === 0) counts.popular = (await sendPopular(db, cat.pushFetch, { id: ep.id, title: ep.title, ...(p.why ? { why: p.why } : {}) })).sent;
         }
       } catch (e) { failed.push(`popular: ${e instanceof Error ? e.message : String(e)}`); }
+      // M24 US12: the subscriber-milestone message, once per show per milestone.
+      try { counts.milestones = await sendMilestones(db); } catch (e) { failed.push(`milestones: ${e instanceof Error ? e.message : String(e)}`); }
       if (failed.length > 0) console.warn(`[rebuild sweep] ${failed.join(' | ')}`);
       return c.json({ done: true, counts: { ...counts, failed: failed.length }, ms: Date.now() - started });
     }

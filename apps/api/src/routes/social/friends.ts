@@ -5,6 +5,7 @@ import { requireAuth } from '../../auth/session.ts';
 import type { EpisodeCard } from '../../catalog/apple.ts';
 import { initialsOf } from '../../db/repos/social/comment-likes.ts';
 import { hiddenFeedUrls } from '../../db/repos/safety/moderation.ts';
+import { notHidden } from '../../db/repos/studio/hidden-episodes.ts';
 
 /**
  * M12 FR-102 — mounted at /v1/me. "Friends are listening": episodes that people the caller
@@ -25,6 +26,7 @@ type Row = {
 friends.get('/friends-listening', requireAuth, async (c) => {
   const db = c.get('db');
   const me = c.get('listener')!.id;
+  // M24 US11: hidden episodes leave this list.
   const rows = await db.query<Row>(
     `WITH r AS (
        SELECT lr.episode_id, lr.listener_id, max(lr.updated_at) AS at
@@ -41,6 +43,7 @@ friends.get('/friends-listening', requireAuth, async (c) => {
      SELECT r.episode_id, r.listener_id, l.display_name, r.at,
             e.feed_url, e.guid, e.title, e.show_title, e.image_url, e.duration_ms, e.enclosure_url
      FROM r JOIN listeners l ON l.id = r.listener_id JOIN episodes e ON e.id = r.episode_id
+     WHERE ${notHidden('e')}
      ORDER BY r.at DESC LIMIT 1000`,
     [me],
   );

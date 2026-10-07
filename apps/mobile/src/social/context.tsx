@@ -40,8 +40,6 @@ export type SocialContextValue = {
 
 /** Settings key holding the last suspension message, shown on the sign-in screen until a sign-in succeeds. */
 export const SUSPENDED_KEY = 'safety.suspendedMessage';
-/** M24 US6: the token the `suspended` answer carried — the Appeal page sends it in place of a session. */
-export const APPEAL_TOKEN_KEY = 'safety.appealToken';
 
 const SocialContext = createContext<SocialContextValue | undefined>(undefined);
 
@@ -58,8 +56,8 @@ export function SocialProvider(props: { children?: ReactNode }): ReactNode {
   const [listener, setListener] = useState<AuthRow | undefined>(() => stores.auth.get());
 
   // M6 (FR-015): a suspended answer ends the local session and leaves the message for the sign-in screen.
-  const suspendedRef = useRef<(m: string, appealToken?: string) => void>(() => undefined);
-  const api = useMemo(() => createApi({ baseUrl: apiBaseUrl(), fetch, getToken: secureToken.get, onSuspended: (m, _a, t) => suspendedRef.current(m, t) }), []);
+  const suspendedRef = useRef<(m: string) => void>(() => undefined);
+  const api = useMemo(() => createApi({ baseUrl: apiBaseUrl(), fetch, getToken: secureToken.get, onSuspended: (m) => suspendedRef.current(m) }), []);
   // M22 US11/US15: after every sign-in — remember a pending deletion (the Keep sheet) and send the phone's time zone.
   const m22 = useMemo(() => createM22Api({ baseUrl: apiBaseUrl(), fetch, getToken: secureToken.get }), []);
   const auth = useMemo(() => createAuth({ api, stores, token: secureToken, now: () => Date.now(), onAccepted: (r) => {
@@ -78,9 +76,8 @@ export function SocialProvider(props: { children?: ReactNode }): ReactNode {
     if (listenerId === undefined) return;
     void registerPush({ token: () => expoNotify.pushToken?.() ?? Promise.resolve(undefined), add: (t, p) => api.pushTokenAdd(t, p), remove: (t) => api.pushTokenRemove(t), settings: stores.settings, platform: expoNotify.os });
   }, [listenerId, api, stores]);
-  suspendedRef.current = (m, appealToken) => {
+  suspendedRef.current = (m) => {
     stores.settings.set(SUSPENDED_KEY, m);
-    if (appealToken) stores.settings.set(APPEAL_TOKEN_KEY, appealToken);
     void secureToken.clear().then(() => { stores.auth.clear(); stores.drafts.clearAll(); stores.hidden.clearAll(); stores.blocks.clearAll(); setListener(undefined); });
   };
   const cache = useMemo(() => createSocialCache(stores.socialCache), [stores]);

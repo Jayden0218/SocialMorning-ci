@@ -155,9 +155,6 @@ export function createM22SocialApi(deps: ApiDeps) {
         ...(transcript ? { 'x-transcript': encodeURIComponent(transcript) } : {}), ...itemsHeader(items),
       }),
     postTextStatus: async (body: string, items: readonly StatusItemIn[]) => (await call<{ id: string }>('POST', '/v1/voice-posts', { body: body.trim(), ...(items.length > 0 ? { items } : {}) })).json,
-    // M24 US17: stop suggesting this person's statuses, and undo.
-    stopSuggesting: async (listenerId: string) => { await call('PUT', `/v1/voice-posts/suggestions/muted/${enc(listenerId)}`); },
-    resumeSuggesting: async (listenerId: string) => { await call('DELETE', `/v1/voice-posts/suggestions/muted/${enc(listenerId)}`); },
   };
 }
 

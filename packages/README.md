@@ -69,7 +69,6 @@ Every code file, one plain line each. Each file also starts with the same senten
 | `replay.ts` | Offline score of the recommender: how high it ranks episodes a listener later played. |
 | `rerank.ts` | Reorders recommendations for variety, with limits per show and per category. |
 | `safety.ts` | Report and block rules: who may report or block, and hiding blocked content. |
-| `words.ts` | Blocked-words filter: does a piece of text contain one of the admin's blocked words? |
 | `search.ts` | Search rules: match words, put the library first, and remove duplicate results. |
 | `stats.ts` | Listening totals for the last 7 days and all time, top shows, and minutes per day or month. |
 | `stickers.ts` | The sticker catalogue, the rules for placing stickers on a profile, and the day each listening sticker was earned. |

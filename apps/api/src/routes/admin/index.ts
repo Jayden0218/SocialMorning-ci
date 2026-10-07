@@ -17,8 +17,6 @@ import { registerLaunch } from './launch.ts';
 import { registerAccounts } from './accounts.ts';
 import { registerUsers } from './users.ts';
 import { registerMetrics } from './metrics.ts';
-import { registerSafety } from './safety.ts'; // M24 lane A1
-import { registerAppeals } from './appeals.ts'; // M24 lane A1
 
 export const admin = new Hono<AdminEnv>();
 
@@ -32,5 +30,3 @@ registerLaunch(admin);
 registerAccounts(admin);
 registerUsers(admin);
 registerMetrics(admin);
-registerSafety(admin);
-registerAppeals(admin);
