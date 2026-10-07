@@ -7,11 +7,10 @@ import '../global.css';
 import '@/design/tailwind';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Stack, usePathname, useSegments, type ErrorBoundaryProps } from 'expo-router';
-import { usePlayerSelector } from '@/playback/store';
+import { usePlayerState } from '@/playback/store';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
-import { reportError } from '@/telemetry/reportError';
+import { useState } from 'react';
 import { LogBox } from 'react-native';
 import { SafeAreaListener } from 'react-native-safe-area-context';
 import { Uniwind } from 'uniwind';
@@ -61,8 +60,6 @@ void SplashScreen.preventAutoHideAsync();
 const WAVE = [10, 18, 28, 16, 34, 22, 12, 0, 0, 14, 30, 20, 38, 24, 14, 8];
 export function ErrorBoundary(props: ErrorBoundaryProps): React.ReactElement {
   if (__DEV__) console.error(props.error);
-  // M23 US8: a screen that crashed leaves a trace in our own error log.
-  useEffect(() => { reportError('screen.crash', props.error); }, [props.error]);
   return (
     <Box className="flex-1 bg-background px-screen-x pb-10">
       <Box className="flex-1 pt-[120px]">
@@ -128,9 +125,8 @@ function RootStack(): React.ReactElement {
   // the cream page colour; it is the bar's white whenever the root bar shows. The player page paints
   // its own wash to the bottom edge, so the root leaves its strip to it (edges: none there).
   const path = usePathname();
-  // M23 US7: only "is anything loaded" — a position TICK no longer re-renders the whole app.
-  const idle = usePlayerSelector((s) => s.kind === 'idle');
-  const barShows = !rootBarHidden(leaving) && miniPlayerShows(path, 'root', idle);
+  const playerState = usePlayerState();
+  const barShows = !rootBarHidden(leaving) && miniPlayerShows(path, 'root', playerState.kind === 'idle');
   const onPlayer = path === '/player';
   return (
       <SafeAreaView className={`flex-1 ${onTabs || barShows ? 'bg-surface' : 'bg-background'}`} edges={onPlayer ? [] : ['bottom']}>

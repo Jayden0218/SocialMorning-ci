@@ -85,6 +85,9 @@ import { liveCatalog } from './catalog/live.ts';
 import { interests, recFeedback } from './routes/account/interests.ts';
 import { searchRequests } from './routes/discover/search-requests.ts';
 import { modSearchRequestsApi, modSearchRequestsPage } from './routes/mod/search-requests.ts';
+// M23 US8: our own error log (route, /mod page).
+import { errorsRoute } from './routes/errors.ts';
+import { modErrorsPage } from './routes/mod/errors.ts';
 import { listPages, mySharedLists, sharedLists } from './routes/lists.ts';
 // M22 lane 5
 import { digests } from './routes/account/digests.ts';
@@ -152,7 +155,10 @@ export function createApp(deps: AppDeps) {
   const avatarLimit = bodyLimit({ maxSize: AVATAR_MAX_BYTES, onError: (c) => c.json(new ApiError('too_large', 'A profile photo is at most 200 KB.').body(), 413) });
   // M20 US9: a comment image is at most 1 000 000 bytes after the phone shrinks it.
   const imageLimit = bodyLimit({ maxSize: COMMENT_IMAGE_MAX_BYTES, onError: (c) => c.json(new ApiError('too_large', 'An image is at most 1 MB.').body(), 413) });
+  // M23 US8: an error batch is ≤ 20 reports of ≤ 2 KB stack each.
+  const errorsLimit = bodyLimit({ maxSize: 96 * 1024 });
   app.use('*', (c, next) => (c.req.path === '/v1/feedback' ? feedbackLimit(c, next)
+    : c.req.path === '/v1/errors' ? errorsLimit(c, next)
     : c.req.method === 'POST' && (/^\/v1\/comments\/[^/]+\/image$/.test(c.req.path) || c.req.path === '/v1/voice-posts/images') ? imageLimit(c, next) // M22 lane 2: status photos
     : c.req.method === 'POST' && /^\/v1\/voice-posts\/[^/]+\/replies$/.test(c.req.path) ? voiceLimit(c, next) // M22 lane 2: voice replies
     : c.req.path === '/v1/admin/accounts' ? adminBulkLimit(c, next)
@@ -314,6 +320,9 @@ export function createApp(deps: AppDeps) {
   app.route('/v1/search-requests', searchRequests);
   app.route('/v1/mod/search-requests', modSearchRequestsApi);
   app.route('/mod', modSearchRequestsPage);
+  // M23 US8
+  app.route('/v1/errors', errorsRoute);
+  app.route('/mod', modErrorsPage);
   app.route('/v1/me/shared-lists', mySharedLists);
   app.route('/v1/lists', sharedLists);
   app.route('/', listPages);

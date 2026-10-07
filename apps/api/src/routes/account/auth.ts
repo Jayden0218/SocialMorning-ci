@@ -2,7 +2,6 @@
 import { Hono } from 'hono';
 import { json } from '../../validate.ts';
 import { z } from 'zod';
-import { lockoutUntil } from '@socialmorning/social-core';
 import type { AuthEnv } from '../../auth/session.ts';
 import { suspendedError, createSession, publicListener, requireAuth, tokenHash } from '../../auth/session.ts';
 import { COUNTRY_HEADER, recordCountry } from '../../db/repos/account/country.ts';
@@ -12,6 +11,7 @@ import { ApiError } from '../../errors.ts';
 import { pendingDeletion } from '../../db/repos/account/deletion.ts';
 import { randomBytes } from 'node:crypto';
 import { checkCode, consumeCode, newCode, resendWait, storeCode, CODE_TTL_MS, RESEND_AFTER_MS } from '../../auth/codes.ts';
+import { limitCodeRequest } from '../../auth/rate.ts';
 
 const email = z.string().trim().toLowerCase().email().max(254);
 const password = z.string().min(8).max(200);
@@ -57,7 +57,7 @@ auth.post('/sign-in', json(signInBody), async (c) => {
     });
   }
   if (!(await verifyPassword(body.password, row.password_hash))) {
-    await recordFailedSignIn(db, row.id, lockoutUntil(row.failed_attempts + 1, now));
+    await recordFailedSignIn(db, row.id, now);
     throw BAD_CREDENTIALS();
   }
   await clearFailedSignIns(db, row.id);
@@ -87,6 +87,8 @@ auth.post('/code', json(codeRequest), async (c) => {
   const now = Date.now();
   const wait = await resendWait(db, to, now);
   if (wait > 0) throw new ApiError('locked', `Wait ${wait} s before asking for another code.`, { retryAfterSeconds: wait });
+  // M23 US2 (FR-003): 10 an hour per address, and a daily total below Gmail's quota.
+  await limitCodeRequest(db, c);
   const code = newCode();
   await storeCode(db, to, code, c.get('pepper'), now);
   await mailer.send({

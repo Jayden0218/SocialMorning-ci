@@ -5,7 +5,7 @@
  */
 import { useMemo } from 'react';
 import { typedAudio } from './comment-extras-api';
-import { requester, type ApiDeps, type EpisodeCard } from './api';
+import { ApiError, requester, type ApiDeps, type EpisodeCard } from './api';
 import { apiBaseUrl } from './base-url';
 import { secureToken } from './token';
 
@@ -50,12 +50,19 @@ export function createM12Api(deps: ApiDeps) {
     tips: async () => (await call<{ items: Tip[]; storeReady: boolean }>('GET', '/v1/me/tips')).json,
     voicePosts: async () => (await call<{ items: VoicePost[] }>('GET', '/v1/voice-posts?from=following')).json.items,
     deleteVoicePost: async (id: string) => { await call('DELETE', `/v1/voice-posts/${enc(id)}`); },
-    /** FR-104: the recording as it was made (m4a), ≤ 60 s — raw bytes (M23 US9: through the shared helper's `raw`). */
+    /** FR-104: the recording as it was made (m4a), ≤ 60 s — raw bytes, so not through the JSON helper. */
     /** M20 US3: `transcript` = the text the listener checked; sent URI-encoded in `x-transcript`. */
-    postVoice: async (file: Blob, durationMs: number, transcript?: string): Promise<{ id: string; url: string; expiresAt: string }> =>
-      (await call.raw<{ id: string; url: string; expiresAt: string }>('POST', '/v1/voice-posts', typedAudio(file), {
-        'content-type': 'audio/mp4', 'x-duration-ms': String(Math.round(durationMs)), ...(transcript ? { 'x-transcript': encodeURIComponent(transcript) } : {}),
-      })).json,
+    postVoice: async (file: Blob, durationMs: number, transcript?: string): Promise<{ id: string; url: string; expiresAt: string }> => {
+      const token = await deps.getToken();
+      const res = await deps.fetch(`${deps.baseUrl}/v1/voice-posts`, {
+        method: 'POST',
+        headers: { 'content-type': 'audio/mp4', 'x-duration-ms': String(Math.round(durationMs)), ...(transcript ? { 'x-transcript': encodeURIComponent(transcript) } : {}), ...(token ? { authorization: `Bearer ${token}` } : {}) },
+        body: typedAudio(file),
+      });
+      const json = (await res.json().catch(() => ({}))) as { error?: string; message?: string; id?: string; url?: string; expiresAt?: string };
+      if (!res.ok) throw new ApiError((json.error as never) ?? 'internal', json.message ?? `Server answered ${res.status}.`, res.status);
+      return json as { id: string; url: string; expiresAt: string };
+    },
     /** FR-034: the server draws the card; the phone downloads it and hands the file to the share sheet. */
     shareCardUrl: (episodeId: string, atMs?: number) => `${deps.baseUrl}/v1/share/episode/${enc(episodeId)}.png${atMs !== undefined ? `?t=${Math.round(atMs)}` : ''}`,
     /** M20 US1 (FR-001): the same card with lines from the transcript as a quote (≤ 280 characters). */

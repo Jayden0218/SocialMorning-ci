@@ -25,15 +25,14 @@ export interface EpisodeStorage {
 
 export const AUDIO_TYPES = ['audio/mpeg', 'audio/mp4', 'audio/x-m4a', 'audio/aac'];
 export const IMAGE_TYPES = ['image/jpeg', 'image/png'];
-export const MAX_AUDIO_BYTES = 200 * 1024 * 1024;
-export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+import { MAX_AUDIO_BYTES, MAX_IMAGE_BYTES, MAX_LAUNCH_IMAGE_BYTES } from '@socialmorning/social-core';
+export { MAX_AUDIO_BYTES, MAX_IMAGE_BYTES, MAX_LAUNCH_IMAGE_BYTES };
 
 /**
  * M15 T002 — launch-screen images (constitution v2.4.0, D2): JPEG/PNG/WebP, ≤ 1 MB each, ≤ 50 MB for
  * every promotion together (counted from `promotions.image_bytes`). Same store, path `launch/`.
  */
 export const LAUNCH_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-export const MAX_LAUNCH_IMAGE_BYTES = 1_048_576;
 export const LAUNCH_CEILING_BYTES = 50 * 1024 * 1024;
 const LAUNCH_EXT: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
 

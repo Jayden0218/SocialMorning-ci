@@ -16,7 +16,6 @@
  * a Subscribe button for the show (the same local write and sync as the show page); Share (top
  * right) sends the issue's title, intro and picks as text.
  */
-import { useLoad } from '@/ui/kit/useLoad';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Share } from 'react-native';
@@ -74,8 +73,12 @@ export default function IssueScreen(): React.ReactElement {
     subscriptionSync.push();
     setSubscribed(readSubscribed());
   };
-  // M23 US9: cancelled on unmount; only the newest answer lands.
-  const [state, load] = useLoad(() => m12.issue(String(id)).then((issue) => ({ issue })), [m12, id], 'issue.load');
+  const [state, setState] = useState<State>({ kind: 'loading' });
+  const load = useCallback(() => {
+    setState({ kind: 'loading' });
+    m12.issue(String(id)).then((issue) => setState({ kind: 'ok', issue }), () => setState({ kind: 'error' }));
+  }, [m12, id]);
+  useEffect(() => { load(); }, [load]);
   const items = state.kind === 'ok' ? [...state.issue.items].sort((a, b) => a.order - b.order).filter((i) => !hiddenFeeds.has(i.feedUrl)) : [];
   // M21: the issue's number comes from the server (not in the M12 type, so read with care).
   const number = state.kind === 'ok' ? (state.issue as Issue & { number?: number }).number : undefined;

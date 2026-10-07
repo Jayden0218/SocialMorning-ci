@@ -16,9 +16,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
+import { putEpisode } from './put-episode.ts';
 
 const JOB = 'job-token-not-secret';
-const rebuild = (t: TestDb) => t.call('POST', '/v1/internal/rebuild', { step: 'feeds' }, undefined, { authorization: `Bearer ${JOB}` });
+const rebuild = (t: TestDb) => t.call('POST', '/v1/internal/rebuild', { step: 'sweep' }, undefined, { authorization: `Bearer ${JOB}` });
 const text = (t: TestDb, token: string, body: unknown) => t.call('POST', '/v1/voice-posts', body, token);
 type Feed = { items: { id: string; body?: string; url?: string; durationMs: number; mine: boolean }[] };
 
@@ -29,12 +30,12 @@ test('G-M21-8: a text status is 1–140 characters, needs no voice store, shows 
   await t.call('PUT', `/v1/listeners/${a.id}/follow`, undefined, b.token);
 
   const long = await text(t, a.token, { body: 'x'.repeat(141) });
-  assert.equal(long.status, 400);
-  assert.equal(((await long.json()) as { error: string }).error, 'too_long');
+  assert.equal(long.status, 422); // M23 US6: bad input is 422 `validation` (the old code is `reason`)
+  assert.equal(((await long.json()) as { reason: string }).reason, 'too_long');
   for (const body of [{ body: '' }, { body: '    ' }, {}]) {
     const r = await text(t, a.token, body);
-    assert.equal(r.status, 400, JSON.stringify(body));
-    assert.equal(((await r.json()) as { error: string }).error, 'empty');
+    assert.equal(r.status, 422, JSON.stringify(body));
+    assert.equal(((await r.json()) as { reason: string }).reason, 'empty');
   }
   assert.equal((await t.call('POST', '/v1/voice-posts', { body: 'hi' })).status, 401);
   // 140 emoji are 140 characters (code points), the same count the column CHECKs.
@@ -84,7 +85,7 @@ test('FR-074: the profile names the shows they host and counts their likes (only
   await t.q("INSERT INTO show_overrides (feed_url, title) VALUES ($1, 'Rain Talk')", [FEED]);
   const ep = { feedUrl: FEED, guid: 'g1', title: 'Ep 1', showTitle: 'Show', enclosureUrl: 'https://cdn/1.mp3' };
   const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
-  await t.call('PUT', `/v1/episodes/${EP}`, ep);
+  await putEpisode(t, `${EP}`, ep);
   await t.q('INSERT INTO episode_likes (listener_id, episode_id) VALUES ($1, $2)', [a.id, EP]);
 
   type P = { profile: { hostOf: { feedUrl: string; title: string }[]; likesCount?: number; privateSubscriptions: boolean } };

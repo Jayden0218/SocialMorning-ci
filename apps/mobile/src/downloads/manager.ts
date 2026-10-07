@@ -188,7 +188,9 @@ export function createDownloadManager(deps: ManagerDeps): DownloadManager {
     if (!next) return;
     const row = deps.stores.downloads.get(next);
     if (!row) return;
-    if (!canStartDownload(usedBytes(), row.bytesTotal, budgetBytes()) && !(await makeRoom(row.bytesTotal))) {
+    // M23 T044: a paused row already holds its size in usedBytes — don't count it twice on resume.
+    const held = usedBytesOf([row]);
+    if (!canStartDownload(usedBytes() - held, row.bytesTotal, budgetBytes()) && !(await makeRoom(row.bytesTotal === undefined ? undefined : row.bytesTotal - held))) {
       deps.stores.downloads.put({ ...row, state: 'failed', error: 'budget' });
       notify();
       return;

@@ -136,7 +136,7 @@ export default function NewVoicePost(): React.ReactElement {
       router.back();
     } catch (e) {
       setPhase({ kind: 'done', uri, ms });
-      setError(e instanceof ApiError && e.status === 429 ? 'You already have 5 live voice posts.' : e instanceof ApiError && e.status === 503 ? 'Voice posts are switched off right now.' : e instanceof ApiError && (e.status === 422 || e.status === 400) ? e.message : "That didn't post — try again.");
+      setError(e instanceof ApiError && e.status === 429 ? 'You already have 5 live voice posts.' : e instanceof ApiError && e.status === 503 ? 'Voice posts are switched off right now.' : e instanceof ApiError && e.status === 400 ? e.message : "That didn't post — try again.");
     }
   };
 

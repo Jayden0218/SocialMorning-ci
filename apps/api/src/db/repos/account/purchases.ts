@@ -22,14 +22,33 @@ import { cancelGiftsFor, createGift, giftForPurchase } from './gifts.ts';
 export type GrantIn = { listenerId: string; productId: string; purchaseToken: string; feedUrl?: string };
 export type Granted = { purchaseId: string; kind: 'plus' | 'show' | 'gift' | 'tip'; status: 'active' | 'expired' | 'refunded'; expiresAt: string | null; repeated: boolean; /** M22 US14: the gift's code */ giftCode?: string };
 
+/**
+ * M23 US4 (FR-008): the phone sets Google's `obfuscatedAccountId` to this hash of the buyer's
+ * listener id (apps/mobile/src/billing/play.ts — keep the two in step). Google gives it back as
+ * `obfuscatedExternalAccountId`; a purchase carrying another account's hash is refused. A
+ * purchase without one (made before M23) stays valid for whoever first sent it.
+ */
+export function accountHashOf(listenerId: string): string {
+  return fnv1a64(`account|${listenerId}`);
+}
+
+/** Refuses a purchase that names another account; returns the hash to store (null when absent). */
+export function checkAccount(given: string | null | undefined, listenerId: string, stored?: string | null): string | null {
+  const mine = accountHashOf(listenerId);
+  if (given && given !== mine) throw new ApiError('conflict', 'This purchase belongs to another account.');
+  if (stored && stored !== mine) throw new ApiError('conflict', 'This purchase belongs to another account.');
+  return given ?? null;
+}
+
 const ACTIVE = new Set(['SUBSCRIPTION_STATE_ACTIVE', 'SUBSCRIPTION_STATE_IN_GRACE_PERIOD']);
 
 export async function grantGoogle(db: Db, play: GooglePlay, p: GrantIn): Promise<Granted> {
   const kind = kindOf(p.productId);
   if (!kind) throw new ApiError('validation', 'No such product.', { fields: ['productId'] });
-  const [seen] = await db.query<{ id: string; listener_id: string; status: 'active' | 'expired' | 'refunded'; expires_at: Date | string | null }>(
-    'SELECT id, listener_id, status, expires_at FROM purchases WHERE purchase_token = $1', [p.purchaseToken]);
+  const [seen] = await db.query<{ id: string; listener_id: string; status: 'active' | 'expired' | 'refunded'; expires_at: Date | string | null; account_hash: string | null }>(
+    'SELECT id, listener_id, status, expires_at, account_hash FROM purchases WHERE purchase_token = $1', [p.purchaseToken]);
   if (seen && seen.listener_id !== p.listenerId) throw new ApiError('conflict', 'This purchase belongs to another account.');
+  if (seen) checkAccount(undefined, p.listenerId, seen.account_hash);
   if (seen && kind !== 'plus') {
     const giftCode = kind === 'gift' ? await giftForPurchase(db, seen.id) : undefined;
     return { purchaseId: seen.id, kind, status: seen.status, expiresAt: seen.expires_at ? new Date(seen.expires_at).toISOString() : null, repeated: true, ...(giftCode ? { giftCode } : {}) };
@@ -39,9 +58,11 @@ export async function grantGoogle(db: Db, play: GooglePlay, p: GrantIn): Promise
   let orderId: string | null = null;
   let acknowledged = false;
   let feedUrl: string | null = null;
+  let accountHash: string | null = null;
   if (kind === 'plus') {
     const s = await play.subscription(p.purchaseToken);
     if (s.productId !== p.productId) throw new ApiError('validation', 'That purchase is for another product.', { fields: ['productId'] });
+    accountHash = checkAccount(s.accountId, p.listenerId);
     if (!ACTIVE.has(s.state)) {
       if (seen) await db.query("UPDATE purchases SET status = 'expired' WHERE id = $1 AND status = 'active'", [seen.id]);
       throw new ApiError('not_paid', 'Google has not taken this payment.');
@@ -51,6 +72,7 @@ export async function grantGoogle(db: Db, play: GooglePlay, p: GrantIn): Promise
     if (!p.feedUrl) throw new ApiError('validation', 'Say which show.', { fields: ['feedUrl'] });
     const g = await play.product(p.productId, p.purchaseToken);
     if (g.purchaseState !== 0) throw new ApiError('not_paid', 'Google has not taken this payment.');
+    accountHash = checkAccount(g.accountId, p.listenerId);
     // The purchase names its show by a hash of the feed URL; a different show is refused.
     if (g.profileId !== fnv1a64(p.feedUrl)) throw new ApiError('validation', 'That purchase is for another show.', { fields: ['feedUrl'] });
     if (kind === 'show' || kind === 'gift') {
@@ -67,12 +89,12 @@ export async function grantGoogle(db: Db, play: GooglePlay, p: GrantIn): Promise
   const purchaseId = await db.transaction(async (tx) => {
     let id = seen?.id;
     if (id) {
-      await tx.query("UPDATE purchases SET status = 'active', expires_at = $2 WHERE id = $1", [id, expiresAt]);
+      await tx.query("UPDATE purchases SET status = 'active', expires_at = $2, account_hash = COALESCE(account_hash, $3) WHERE id = $1", [id, expiresAt, accountHash]);
     } else {
       const [row] = await tx.query<{ id: string }>(
-        `INSERT INTO purchases (listener_id, store, product_id, store_txn_id, status, expires_at, purchase_token, ref)
-         VALUES ($1, 'google', $2, $3, 'active', $4, $5, $6) ON CONFLICT (purchase_token) DO NOTHING RETURNING id`,
-        [p.listenerId, p.productId, orderId ?? p.purchaseToken, expiresAt, p.purchaseToken, feedUrl]);
+        `INSERT INTO purchases (listener_id, store, product_id, store_txn_id, status, expires_at, purchase_token, ref, account_hash)
+         VALUES ($1, 'google', $2, $3, 'active', $4, $5, $6, $7) ON CONFLICT (purchase_token) DO NOTHING RETURNING id`,
+        [p.listenerId, p.productId, orderId ?? p.purchaseToken, expiresAt, p.purchaseToken, feedUrl, accountHash]);
       if (!row) {
         // A second notice raced this one past the first look: it granted; grant nothing here.
         const [again] = await tx.query<{ id: string }>('SELECT id FROM purchases WHERE purchase_token = $1', [p.purchaseToken]);
@@ -109,26 +131,40 @@ export async function grantGoogle(db: Db, play: GooglePlay, p: GrantIn): Promise
   return { purchaseId: purchaseId.id, kind, status: 'active', expiresAt, repeated: Boolean(seen) || purchaseId.raced, ...(giftCode ? { giftCode } : {}) };
 }
 
-/** Refunds from Google: the row is marked, and what it granted is taken back. */
-export async function applyVoided(db: Db, voided: { purchaseToken: string; voidedAt: number }[]): Promise<{ withdrawn: number; unknown: number }> {
+/**
+ * Refunds from Google: the row is marked, and what it granted is taken back.
+ * M23 US4 (FR-007, G-M23-5): each refund is ONE transaction. If any step fails, nothing of it
+ * is recorded — the purchase stays un-voided and keeps what it granted — so the next run
+ * finds it again and retries the whole refund. One failed refund does not stop the others.
+ */
+export async function applyVoided(db: Db, voided: { purchaseToken: string; voidedAt: number }[]): Promise<{ withdrawn: number; unknown: number; failed?: number }> {
   let withdrawn = 0;
   let unknown = 0;
+  let failed = 0;
   for (const v of voided) {
-    const [row] = await db.query<{ id: string }>(
-      "UPDATE purchases SET status = 'refunded', voided_at = to_timestamp($2::double precision / 1000) WHERE purchase_token = $1 AND voided_at IS NULL RETURNING id",
-      [v.purchaseToken, v.voidedAt]);
-    if (!row) {
-      const [known] = await db.query('SELECT 1 FROM purchases WHERE purchase_token = $1', [v.purchaseToken]);
-      if (!known) { unknown++; console.warn('google refund for a purchase this server never saw'); }
-      continue;
+    try {
+      const outcome = await db.transaction(async (tx) => {
+        const [row] = await tx.query<{ id: string }>(
+          "UPDATE purchases SET status = 'refunded', voided_at = to_timestamp($2::double precision / 1000) WHERE purchase_token = $1 AND voided_at IS NULL RETURNING id",
+          [v.purchaseToken, v.voidedAt]);
+        if (!row) {
+          const [known] = await tx.query('SELECT 1 FROM purchases WHERE purchase_token = $1', [v.purchaseToken]);
+          return known ? 'seen' as const : 'unknown' as const;
+        }
+        await tx.query('DELETE FROM entitlements WHERE source_purchase_id = $1', [row.id]);
+        await tx.query('DELETE FROM tips WHERE purchase_id = $1', [row.id]);
+        // M22 US14 (FR-044, G-M22-9): a refunded gift is cancelled if unclaimed; a claimed one lost its entitlement above.
+        await cancelGiftsFor(tx, row.id);
+        return 'withdrawn' as const;
+      });
+      if (outcome === 'withdrawn') withdrawn++;
+      if (outcome === 'unknown') { unknown++; console.warn('google refund for a purchase this server never saw'); }
+    } catch (e) {
+      failed++;
+      console.error('google refund failed; the next run retries it', e instanceof Error ? e.message : String(e));
     }
-    await db.query('DELETE FROM entitlements WHERE source_purchase_id = $1', [row.id]);
-    await db.query('DELETE FROM tips WHERE purchase_id = $1', [row.id]);
-    // M22 US14 (FR-044, G-M22-9): a refunded gift is cancelled if unclaimed; a claimed one lost its entitlement above.
-    await cancelGiftsFor(db, row.id);
-    withdrawn++;
   }
-  return { withdrawn, unknown };
+  return { withdrawn, unknown, ...(failed > 0 ? { failed } : {}) };
 }
 
 /** Purchases not yet acknowledged (the first try failed): try again, oldest first. */

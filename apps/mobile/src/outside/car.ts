@@ -5,7 +5,6 @@
  * positions and "finished" stay in charge). The native half is patches/expo-audio+58.0.0.patch
  * (expo-audio's service as a Media3 MediaLibraryService) + plugins/android-auto.js.
  */
-import { reportError } from '@/telemetry/reportError';
 import type { PlayerRuntime, PlayableEpisode } from '@/playback/store';
 import type { Stores } from '@/storage/types';
 import { latestUpdates } from '@/me/updates';
@@ -54,7 +53,7 @@ export function createCarSync(deps: {
     const json = JSON.stringify(deps.build());
     if (json === last) return;
     last = json;
-    try { deps.native.setCarLibrary(json); } catch (e) { reportError('outside.car', e); /* the car is optional */ }
+    try { deps.native.setCarLibrary(json); } catch { /* the car is optional */ }
   };
   const pick = deps.native.addListener('onCarSelect', ({ episodeId }) => {
     const p = deps.playable(episodeId);

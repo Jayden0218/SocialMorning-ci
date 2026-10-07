@@ -214,7 +214,7 @@ export type ApiClient = {
   pushTokenRemove(token: string): Promise<void>;
   pushPrefs(p: { newEpisodes: boolean; popular: boolean }): Promise<void>;
   /** M10b US6: feedback, with up to 3 small JPEGs (base64). */
-  sendFeedback(f: { kind: string; body: string; appVersion?: string; images?: { mime: 'image/jpeg'; base64: string }[]; /** M23 US8: the phone's last errors (≤ 20 lines), only when the listener agreed. */ errors?: string[] }): Promise<{ id: string }>;
+  sendFeedback(f: { kind: string; body: string; appVersion?: string; images?: { mime: 'image/jpeg'; base64: string }[] }): Promise<{ id: string }>;
   /** M10b US2: your own comments with their text. */
   myComments(before?: string): Promise<{ items: MyComment[]; next?: string }>;
   /** M10b US8: the creator centre. `creatorVerify` answers 'taken' when someone else proved the feed first. */
@@ -306,27 +306,29 @@ export function isMaintenanceBody(status: number, body: unknown): body is Record
 /** The one way this app talks to the server: JSON in and out, the session token, a timeout, typed errors. */
 export function requester(deps: ApiDeps) {
   const timeoutMs = deps.timeoutMs ?? 10_000;
-  async function send<T>(method: string, path: string, init: { body?: BodyInit; headers: Record<string, string> }, waitMs: number): Promise<{ status: number; headers: Headers; json: T }> {
+  return async function call<T>(method: string, path: string, body?: unknown, headers: Record<string, string> = {}): Promise<{ status: number; headers: Headers; json: T }> {
     const token = await deps.getToken();
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), waitMs);
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
     let res: Response;
-    let text: string;
     try {
       res = await deps.fetch(deps.baseUrl + path, {
         method,
-        headers: { ...(token ? { authorization: `Bearer ${token}` } : {}), ...init.headers },
-        body: init.body,
+        headers: {
+          ...(body !== undefined ? { 'content-type': 'application/json' } : {}),
+          ...(token ? { authorization: `Bearer ${token}` } : {}),
+          ...headers,
+        },
+        body: body !== undefined ? JSON.stringify(body) : undefined,
         signal: controller.signal,
       });
-      // M23 US9: the timeout covers the answer's body too — a stalled body no longer hangs the call.
-      text = res.status === 304 ? '' : await res.text();
     } catch (e) {
       throw new ApiError('network', "Couldn't reach the server.", 0, { cause: String(e) });
     } finally {
       clearTimeout(timer);
     }
     if (res.status === 304) return { status: 304, headers: res.headers, json: undefined as T };
+    const text = await res.text();
     let json: unknown = undefined;
     try { json = text ? JSON.parse(text) : undefined; } catch { /* non-JSON body: handled below */ }
     if (!res.ok) {
@@ -337,26 +339,8 @@ export function requester(deps: ApiDeps) {
       throw new ApiError((error as ErrorCode) ?? 'internal', message ?? `Server answered ${res.status}.`, res.status, extra);
     }
     return { status: res.status, headers: res.headers, json: json as T };
-  }
-  function call<T>(method: string, path: string, body?: unknown, headers: Record<string, string> = {}): Promise<{ status: number; headers: Headers; json: T }> {
-    return send<T>(method, path, {
-      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
-      headers: { ...(body !== undefined ? { 'content-type': 'application/json' } : {}), ...headers },
-    }, timeoutMs);
-  }
-  /**
-   * M23 US9 (FR-014): a raw upload (a recording or a picture) through the same path as JSON — the
-   * session token, a timeout (60 s by default: uploads are bigger), typed errors, and the
-   * suspended / maintenance handling the hand-written uploads used to skip.
-   */
-  call.raw = function raw<T>(method: string, path: string, body: Blob, headers: Record<string, string>, waitMs = UPLOAD_TIMEOUT_MS): Promise<{ status: number; headers: Headers; json: T }> {
-    return send<T>(method, path, { body, headers }, waitMs);
   };
-  return call;
 }
-
-/** M23 US9: how long an upload may take before it fails as "Couldn't reach the server". */
-export const UPLOAD_TIMEOUT_MS = 60_000;
 
 export function createApi(deps: ApiDeps): ApiClient {
   const call = requester(deps);

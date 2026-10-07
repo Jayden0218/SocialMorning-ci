@@ -14,7 +14,6 @@
  * M22 US16: on a tablet (`useOpensInPane`) a row opens its episode in the right pane
  * (src/ui/shell/ListDetail.tsx); a phone pushes the episode page as before.
  */
-import { useLoad } from '@/ui/kit/useLoad';
 import { CardSheetHost, openCardSheet } from '@/ui/episode/CardSheet';
 import { useCallback, useEffect, useState } from 'react';
 import { router } from 'expo-router';
@@ -62,8 +61,12 @@ function ChartList(props: { kind: ChartKind; pane?: (episodeId: string) => void 
   const api = useExploreApi();
   const { open, play } = useCardActions();
   const { hiddenFeeds } = useSafety();
-  // M23 US9: cancelled on unmount; only the newest answer lands.
-  const [state, load] = useLoad(() => api.chart(props.kind).then((page) => ({ page })), [api, props.kind], 'chart.load');
+  const [state, setState] = useState<State>({ kind: 'loading' });
+  const load = useCallback(() => {
+    setState({ kind: 'loading' });
+    api.chart(props.kind).then((page) => setState({ kind: 'ok', page }), () => setState({ kind: 'error' }));
+  }, [api, props.kind]);
+  useEffect(() => { load(); }, [load]);
 
   const items = state.kind === 'ok' ? state.page.items.filter((i) => !hiddenFeeds.has(i.episode.feedUrl)) : [];
   const [top, second, third] = items;

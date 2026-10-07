@@ -4,6 +4,7 @@ import { z } from 'zod';
 import type { AuthEnv } from '../../auth/session.ts';
 import { requireAuth } from '../../auth/session.ts';
 import { json } from '../../validate.ts';
+import { ApiError } from '../../errors.ts';
 import { KINDS, listAll, merge, myComments, toPublic } from '../../db/repos/library/library.ts';
 
 /**
@@ -36,6 +37,6 @@ export const myCommentsRoute = new Hono<AuthEnv>();
 myCommentsRoute.get('/', requireAuth, async (c) => {
   const before = c.req.query('before');
   const ok = before === undefined || !Number.isNaN(Date.parse(before));
-  if (!ok) return c.json({ error: 'validation', message: 'before must be a date' }, 400);
+  if (!ok) throw new ApiError('validation', 'before must be a date', { fields: ['before'] });
   return c.json(await myComments(c.get('db'), c.get('listener')!.id, before));
 });

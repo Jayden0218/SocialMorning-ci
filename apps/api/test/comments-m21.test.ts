@@ -19,6 +19,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
+import { putEpisode } from './put-episode.ts';
 import { badgeFor } from '../src/db/repos/social/comments.ts';
 import { listenedDelta } from '../src/db/repos/library/listened.ts';
 
@@ -29,7 +30,7 @@ const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
 
 async function setup() {
   const t = await freshDb();
-  await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: 2_000_000 });
+  await putEpisode(t, `${EP}`, { ...ep, durationMs: 2_000_000 });
   const a = await signUp(t, 'a@example.com', 'Alex');
   const b = await signUp(t, 'b@example.com', 'Bea');
   const c = await signUp(t, 'c@example.com', 'Cy');
@@ -49,7 +50,7 @@ test('G-M21-6: a muted listener is hidden from the muter only — comments and r
 
   assert.equal((await t.call('PUT', `/v1/me/mutes/${b.id}`, undefined, a.token)).status, 204);
   assert.equal((await t.call('PUT', `/v1/me/mutes/${b.id}`, undefined, a.token)).status, 204, 'idempotent');
-  assert.equal((await t.call('PUT', `/v1/me/mutes/${a.id}`, undefined, a.token)).status, 400, 'not yourself');
+  assert.equal((await t.call('PUT', `/v1/me/mutes/${a.id}`, undefined, a.token)).status, 422, 'not yourself');
   assert.equal((await t.call('PUT', '/v1/me/mutes/00000000-0000-4000-8000-000000000000', undefined, a.token)).status, 404);
   const mutes = (await (await t.call('GET', '/v1/me/mutes', undefined, a.token)).json()) as { items: { id: string; name: string; avatarUrl: string | null }[] };
   assert.deepEqual(mutes.items, [{ id: b.id, name: 'Bea', avatarUrl: null }]);
@@ -115,7 +116,7 @@ test('G-M21-7: no comment — text or voice — before the rules; declining send
 test('the voice comment route answers 428 before storage when storage is on', async () => {
   const stored: string[] = [];
   const t = await freshDb({ voiceStorage: { ready: true, put: async (p: string) => { stored.push(p); return { url: `https://v/${p}`, pathname: p }; }, remove: async () => {} } as never });
-  await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: 2_000_000 });
+  await putEpisode(t, `${EP}`, { ...ep, durationMs: 2_000_000 });
   const a = await signUp(t);
   await t.q('UPDATE listeners SET rules_accepted_at = NULL WHERE id = $1', [a.id]);
   const r = await t.app.request(`/v1/episodes/${EP}/comments/voice`, { method: 'POST', headers: { authorization: `Bearer ${a.token}`, 'content-type': 'audio/mp4', 'x-duration-ms': '1000' }, body: new Uint8Array([0]) });

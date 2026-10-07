@@ -12,7 +12,6 @@
  * playlists (tap one to add the episode at its end) and "New playlist" with a title box, which
  * creates the playlist and adds the episode to it. Playlists live on the server (signed in only).
  */
-import { reportAndDrop } from '@/telemetry/reportError';
 import { useState } from 'react';
 import { Input, InputField } from '@/ui/lib/input';
 import { Textarea, TextareaInput } from '@/ui/lib/textarea';
@@ -58,7 +57,7 @@ export function EpisodeExtras(props: { episodeId: string; atMs: number }): React
   /** The server must know the episode before it can list it (as a comment registers it first). */
   const add = async (playlistId: string) => {
     const reg = registrationFor(stores, props.episodeId);
-    if (reg) await api.registerEpisode(props.episodeId, reg).catch(reportAndDrop('episode.register'));
+    if (reg) await api.registerEpisode(props.episodeId, reg).catch(() => undefined);
     return m19.addToPlaylist(playlistId, props.episodeId);
   };
   const addTo = (p: Playlist) => {

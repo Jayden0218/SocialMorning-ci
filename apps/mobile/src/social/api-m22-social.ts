@@ -8,7 +8,7 @@
  * "Mute this" mutes — tested alone.
  */
 import { useMemo } from 'react';
-import { requester, type ApiDeps } from './api';
+import { ApiError, requester, type ApiDeps } from './api';
 import { apiBaseUrl } from './base-url';
 import { secureToken } from './token';
 import type { VoicePost } from './m12-api';
@@ -122,9 +122,19 @@ export type M22SocialApi = ReturnType<typeof createM22SocialApi>;
 export function createM22SocialApi(deps: ApiDeps) {
   const call = requester(deps);
   const enc = encodeURIComponent;
-  /** A raw upload (recording or photo) — M23 US9: through the shared helper's `raw`. */
-  const rawPost = async <T,>(path: string, body: Blob, headers: Record<string, string>): Promise<T> =>
-    (await call.raw<T>('POST', path, body, headers)).json;
+  /** A raw upload (recording or photo): not through the JSON helper. */
+  const rawPost = async <T,>(path: string, body: Blob, headers: Record<string, string>): Promise<T> => {
+    const token = await deps.getToken();
+    let res: Response;
+    try {
+      res = await deps.fetch(`${deps.baseUrl}${path}`, { method: 'POST', headers: { ...headers, ...(token ? { authorization: `Bearer ${token}` } : {}) }, body });
+    } catch (e) {
+      throw new ApiError('network', "Couldn't reach the server.", 0, { cause: String(e) });
+    }
+    const json = (await res.json().catch(() => ({}))) as { error?: string; message?: string } & Record<string, unknown>;
+    if (!res.ok) throw new ApiError((json.error as never) ?? 'internal', json.message ?? `Server answered ${res.status}.`, res.status);
+    return json as T;
+  };
   return {
     // US1
     pushSwitches: async () => (await call<Partial<PushSwitches>>('GET', '/v1/me/push-prefs')).json,

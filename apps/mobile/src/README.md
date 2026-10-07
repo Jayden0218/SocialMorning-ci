@@ -35,6 +35,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 
 | File | What it does |
 |---|---|
+| `apple.ts` | Searches Apple's public podcast catalogue for shows. |
 | `cache.ts` | Keeps the last Discover page so it still shows when offline. |
 | `category-cache.ts` | Keeps each category's last list so its page shows at once, then refreshes quietly. |
 | `row-stats.ts` | Fetches "listened" and comment counts for every episode on Discover in one call. |
@@ -110,6 +111,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `fav-comments.ts` | Keeps the list of comments you starred, newest first. |
 | `favourites.ts` | Keeps the list of episodes you starred, newest first. |
 | `history.ts` | Lists episodes you listened to, most recent first. |
+| `inbox.ts` | Builds the inbox of new episodes from your subscribed shows. |
 | `local-list.ts` | Saves and reads small lists on the phone, safely ignoring broken data. |
 | `moments.ts` | Keeps saved moments in episodes, each with an optional note. |
 | `listening-api.ts` | Server calls for listening data, sticker placements and the monthly recap picture. |
@@ -151,6 +153,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 |---|---|
 | `expo-audio-adapter.ts` | Connects the app's player to the phone's real audio engine. |
 | `finished.ts` | Decides when an episode counts as finished. |
+| `output.ts` | Placeholder for headphone-unplug events, which the audio library cannot report. |
 | `reducer.ts` | The player's rules: how each event changes play state, testable without a phone. |
 | `store.ts` | Links player rules, audio engine and storage; gives screens the player. |
 | `types.ts` | Defines player states, events and actions shared by the player files. |
@@ -261,12 +264,6 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `subscriptions.ts` | Syncs your subscribed shows with the server. |
 | `watch.ts` | Brings positions played on the Apple Watch into the phone, and decides when "Download to Watch" shows. |
 
-### `telemetry/` — The app's own error log (M23): swallowed errors, kept and sent to our server.
-
-| File | What it does |
-|---|---|
-| `reportError.ts` | Keeps the app's last 50 errors and sends them to our own server, at most once a minute. |
-
 ## ui — what you see
 
 ### `ui/kit/` — Small shared parts every screen is built from
@@ -292,6 +289,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `PageHeader.tsx` | Top of a normal page: back arrow, then the page name in large serif. |
 | `ProgressRing.tsx` | A circle that fills around the mini player's play button as you listen. |
 | `PullRefresh.tsx` | Pull a list down to reload it, showing the app's own loading sign. |
+| `Row.tsx` | The standard list row: cover, title, grey second line, optional item on right. |
 | `Screen.tsx` | Outer frame of every screen; leaves room for mini player and tab bar. |
 | `Segmented.tsx` | A pill with two to four choices; the chosen one is yellow. |
 | `Sheet.tsx` | A sheet from the bottom with two heights: drag its top up to grow it, down to shrink or close it. |
@@ -304,8 +302,8 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `format.ts` | Turns numbers into text: times like 14:32, dates, show notes as plain text. |
 | `loader-timing.ts` | Timing numbers for the loading sign's moving bars. |
 | `ring.ts` | Math for how far the progress circle is turned. |
+| `two-tone.ts` | Splits a section title into first word and the rest, for two colours. |
 | `useColours.ts` | Gives the app's colour values to code that needs a colour, not a class. |
-| `useLoad.ts` | Loads a screen's data, drops the answer once the screen has closed, and gives a retry. |
 | `openLink.ts` | Opens a link the right way: web pages in the in-app browser, our own links in the app, the rest by the system. |
 
 ### `ui/shell/` — The app's outer layer: start-up, tabs, terms and shared setup
@@ -423,6 +421,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | File | What it does |
 |---|---|
 | `CardSheet.tsx` | The episode-row sheet for a Discover / search / chart card: finds the episode, then opens the sheet. |
+| `ContinueListening.tsx` | Card to go on with your last episode (not on Updates since 2026-10-05; kept for reuse). |
 | `DownloadButton.tsx` | Download button showing every state: waiting, percent, done, failed, remove. |
 | `EpisodeRow.tsx` | One episode in a list: cover, title, show, length and date. |
 | `HeroArtwork.tsx` | Big cover with soft shadow at the top of episode and show pages. |
@@ -454,6 +453,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `TheirLikes.tsx` | "Their likes" on Discover: recent likes with notes from people you follow, each opening its like post. |
 | `TopicLists.tsx` | Topic lists on Discover: the editors' collections as cards, each opening its full list. |
 | `TreasureHunt.tsx` | Treasure hunt on Discover: three lesser-heard episodes from shows you don't follow, with Shuffle. |
+| `ForYou.tsx` | "For You" list of suggested episodes, each with its reason; signed in only. |
 | `NotInterested.tsx` | The For You "⋯" sheet (not interested in this episode, or this show) and the "Hidden · Undo" line. |
 | `PickCard.tsx` | One editor's pick: the episode plus a short quote on why. |
 | `parts.tsx` | Small Discover pieces: section title, round play button, episode line, pager, search box. |

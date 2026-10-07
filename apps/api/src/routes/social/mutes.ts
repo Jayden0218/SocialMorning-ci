@@ -8,6 +8,7 @@
 import { Hono } from 'hono';
 import type { AuthEnv } from '../../auth/session.ts';
 import { requireAuth } from '../../auth/session.ts';
+import { ApiError } from '../../errors.ts';
 import { listMutes, mute, unmute } from '../../db/repos/social/mutes.ts';
 
 export const mutes = new Hono<AuthEnv>();
@@ -19,10 +20,10 @@ mutes.get('/', requireAuth, async (c) => c.json({ items: await listMutes(c.get('
 mutes.put('/:listenerId', requireAuth, async (c) => {
   const me = c.get('listener')!;
   const target = c.req.param('listenerId');
-  if (target === me.id) return c.json({ error: 'validation', message: "You can't mute yourself.", fields: ['listenerId'] }, 400);
-  if (!UUID.test(target)) return c.json({ error: 'not_found', message: 'No such listener.' }, 404);
+  if (target === me.id) throw new ApiError('validation', "You can't mute yourself.", { fields: ['listenerId'] });
+  if (!UUID.test(target)) throw new ApiError('not_found', 'No such listener.');
   const r = await mute(c.get('db'), me.id, target);
-  if (r === 'no_such_listener') return c.json({ error: 'not_found', message: 'No such listener.' }, 404);
+  if (r === 'no_such_listener') throw new ApiError('not_found', 'No such listener.');
   return c.body(null, 204);
 });
 

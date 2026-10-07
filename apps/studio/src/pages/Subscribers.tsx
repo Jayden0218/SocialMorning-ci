@@ -10,6 +10,7 @@ import { StatCard } from '../shell/StatCard';
 import { Empty, Failed, Loading } from '../shell/States';
 import { Pager, Table, type Column } from '../shell/Table';
 import { useLoad } from '../useLoad';
+import { BAN_REASON_MAX, noun } from '@socialmorning/social-core';
 
 type Stats = { total: number; trend: { date: string; sub: number; unsub: number }[]; hours: number[]; platforms: { ios: number; android: number; unknown: number }; historySince: string | null };
 type Sub = { id: string; displayName: string; subscribedAt: string; muted: boolean };
@@ -84,7 +85,7 @@ function SubscriberList({ show }: { show: Show }) {
       {list.state === 'ready' && list.data.total === 0 ? <Empty title="No subscribers yet">When someone subscribes in the app, they appear here.</Empty> : null}
       {list.state === 'ready' && list.data.total > 0 ? (
         <>
-          <p className="muted" style={{ marginTop: 0 }}>{num(list.data.total)} subscriber{list.data.total === 1 ? '' : 's'}</p>
+          <p className="muted" style={{ marginTop: 0 }}>{num(list.data.total)} {noun(list.data.total, 'subscriber')}</p>
           <Table caption="Subscribers" columns={cols} rows={list.data.items} rowKey={(s) => s.id} />
           <Pager page={page} total={list.data.total} pageSize={list.data.pageSize} onPage={setPage} />
         </>
@@ -97,8 +98,6 @@ function SubscriberList({ show }: { show: Show }) {
   );
 }
 
-/** M22 US10: the longest ban reason the server keeps (apps/api/src/routes/studio/bans.ts). */
-export const BAN_REASON_MAX = 200;
 
 /**
  * Mute (= ban from commenting) one listener. M22 US10: the host may type a reason, kept for the

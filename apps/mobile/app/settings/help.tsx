@@ -8,7 +8,6 @@
  * chips filters the questions by their tag; the questions sit in one card, each with its tag
  * as a small pill. Same links, same handlers, same names.
  */
-import { useLoad } from '@/ui/kit/useLoad';
 import { useEffect, useMemo, useState } from 'react';
 import { Linking, Platform } from 'react-native';
 import { LinkRow } from '@/ui/settings/rows';
@@ -41,9 +40,8 @@ export default function HelpScreen(): React.ReactElement {
   // M17: keyed by the question, so a filter does not open a different answer.
   const [open, setOpen] = useState<string | undefined>();
   const [tag, setTag] = useState<string>(ALL);
-  // M23 US9: the saved address at once, the server's once it answers (cancelled on unmount).
-  const [fresh] = useLoad(() => refreshAppeals(api, stores).then((to) => ({ to })), [api, stores], 'help.appeals');
-  const appeals = fresh.kind === 'ok' ? fresh.to : stores.settings.get(APPEALS_KEY) || undefined;
+  const [appeals, setAppeals] = useState<string | undefined>(() => stores.settings.get(APPEALS_KEY) || undefined);
+  useEffect(() => { void refreshAppeals(api, stores).then(setAppeals); }, [api, stores]);
   const mail = appealsMailto(appeals);
   const tags = useMemo(() => [ALL, ...Array.from(new Set(FAQ.map((f) => f.tag)))], []);
   const shown = tag === ALL ? FAQ : FAQ.filter((f) => f.tag === tag);

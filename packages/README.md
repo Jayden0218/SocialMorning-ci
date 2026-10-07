@@ -17,6 +17,8 @@ Every code file, one plain line each. Each file also starts with the same senten
 
 | File | What it does |
 |---|---|
+| `body.ts` | Reads a feed response with a 5 MB cap and decodes it in the feed's own character set. |
+| `date.ts` | Reads RFC-822 and ISO-8601 feed dates the same way on the phone and the server. |
 | `duration.ts` | Reads episode lengths and dates from podcast feeds, refusing values it cannot trust. |
 | `index.ts` | Entry point that exports the feed parser and its types. |
 | `parse-feed.ts` | Turns a podcast RSS feed into a show and its list of episodes. |
@@ -51,6 +53,7 @@ Every code file, one plain line each. Each file also starts with the same senten
 | `heat.ts` | Splits an episode into 100 parts and scales reaction counts into a curve. |
 | `index.ts` | Entry point exporting the shared rules the phone and server both use. |
 | `intervals.ts` | Turns player ticks into listened time ranges and measures total time without double counting. |
+| `limits.ts` | The limits the server checks and the Studio shows, kept in one place so they never drift. |
 | `lockout.ts` | After repeated wrong passwords, locks sign-in for a growing time, at most 15 minutes. |
 | `push-rules.ts` | Whether a reply, like, follow or status notice also becomes a phone push. |
 | `media.ts` | Decides if an episode is audio or video from its declared type or extension. |

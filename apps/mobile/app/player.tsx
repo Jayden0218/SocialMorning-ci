@@ -45,7 +45,6 @@
  * the panel's Route and Voice boost rows (`AudioRows`); on iPhone an HLS episode greys out Skip
  * silence and Voice boost.
  */
-import { reportAndDrop } from '@/telemetry/reportError';
 import { useEffect, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
 import { useLayout } from '@/ui/shell/useLayout';
@@ -533,7 +532,7 @@ export default function PlayerScreen(): React.ReactElement {
         episode={{ id: episode.id, title: episode.title, showTitle: show?.title ?? '' }}
         atMs={positionMs}
         onClip={clip}
-        onShared={() => void api.recordShare({ targetKind: 'episode', targetId: episode.id, feedUrl: episode.feedUrl }).catch(reportAndDrop('share.record'))}
+        onShared={() => void api.recordShare({ targetKind: 'episode', targetId: episode.id, feedUrl: episode.feedUrl }).catch(() => undefined)}
       />
     ) : null}
     </Box>
