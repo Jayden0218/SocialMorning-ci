@@ -95,6 +95,9 @@ import { giftPages, gifts, myGiftsRoute } from './routes/account/gifts.ts';
 import { translation } from './translate/routes.ts';
 import { modTranslation } from './routes/mod/translation.ts';
 import { groqClient } from './translate/groq.ts';
+// M24 lane A3
+import { redeem } from './routes/account/redeem.ts';
+import { emailChange } from './routes/account/email.ts';
 
 export type AppDeps = {
   db: Db; pepper: string; assetLinksSha256?: string;
@@ -266,6 +269,8 @@ export function createApp(deps: AppDeps) {
   // M12 (specs/012-m12-the-finish/contracts/api.md)
   app.route('/v1/me/notify', notify);
   app.route('/v1/me', wallet);
+  app.route('/v1/me', redeem); // M24 lane A3 US15
+  app.route('/v1/me/email', emailChange); // M24 lane A3 US16
   app.route('/v1/me', purchasesGoogle);
   app.route('/v1/hosted', paid);
   app.route('/v1/me', friends);
