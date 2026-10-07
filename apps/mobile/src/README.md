@@ -440,7 +440,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `ShowExtras.tsx` | What the host added: announcements, polls, hosts, links and contacts. |
 | `order.ts` | Sorts the show's episodes: newest, oldest, unplayed only, or most played. |
 | `show-page.ts` | Show page rules: the subscriber line, the Host picks list, and Add all to the queue. |
-| `ShowSales.tsx` | On a show page: the show's paid episodes (buy once, then play) and the Tip button, Android only. |
+| `ShowSales.tsx` | On a show page: the show's paid episodes (buy once, then play), Gift this series, and the Tip button, Android only. |
 
 ### `ui/discover/` — The Discover (home) page and its sections
 

@@ -61,7 +61,7 @@ describe('Admin › Translation (M22 US13)', () => {
       return undefined;
     });
     const { container } = renderIn(<TranslationShows />);
-    expect(await screen.findByText('Le Show')).toBeTruthy();
+    expect((await screen.findAllByText('Le Show')).length).toBeGreaterThan(0); // the cell, and the Remove button's hidden name
     expect(await screen.findByText('7200 / 25920 s')).toBeTruthy();
     expect(screen.getByText('9000 / 180000 tokens')).toBeTruthy();
     expect((await axe.run(container, { rules: { 'color-contrast': { enabled: false } } })).violations.map((v) => v.id)).toEqual([]);

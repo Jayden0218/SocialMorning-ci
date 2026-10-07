@@ -38,7 +38,7 @@ async function episodes(t: TestDb) {
   const add = (id: string, at: string) => t.q(
     'INSERT INTO episodes (id, feed_url, guid, title, show_title, enclosure_url, published_at) VALUES ($1, $2, $1, $3, $4, $5, $6)',
     [id, FEED, `Episode ${id}`, 'Weekly', `https://cdn.example.com/${id}.mp3`, at]);
-  await add('old', '2026-09-27T23:00:00Z'); // the week before last
+  await add('old', '2026-09-27T10:00:00Z'); // the week before last (Sunday 18:00 in Kuala Lumpur)
   await add('e1', '2026-09-28T09:00:00Z');
   await add('e2', '2026-10-01T09:00:00Z');
   await add('e3', '2026-10-04T20:00:00Z');
