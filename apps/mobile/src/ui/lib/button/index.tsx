@@ -11,10 +11,7 @@ import {
 } from '@gluestack-ui/utils/nativewind-utils';
 import { withUniwind } from 'uniwind';
 import React from 'react';
-import { ActivityIndicator, Pressable, View } from 'react-native';
-// M24 US18 (design-settings G1): the label is the app's Text, so it gets the Manrope face from its
-// weight class. It was react-native's Text, which skipped the face picker → system bold.
-import { Text } from '../text';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 const SCOPE = 'BUTTON';
 const Root = withStyleContext(Pressable, SCOPE);
 const StyledUIIcon = withUniwind(UIIcon);

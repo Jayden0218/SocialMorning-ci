@@ -3,11 +3,7 @@
  * M16a T004 (FR-014, owner 2026-10-02): the app's own on/off switch. The lib `Switch` wraps
  * React Native's `Switch`, which on iOS is the system UISwitch — native chrome the owner asked
  * twice to remove. This one is drawn from views and tokens: a pill track (`bg-primary` on,
- * `bg-switchOff` off) and a round white thumb that slides across.
- *
- * M24 US18 (design-settings G3, `SettingsMore-B`): off was a faint 8 % track with a paper thumb
- * and no shadow — on a white card it read as disabled. Now the track is #d9d3c4 and the thumb
- * white with a small shadow (0 1 2, 18 %), as the design draws it.
+ * `bg-separator` off) and a round `bg-background` thumb that slides across.
  *
  * Still a switch to a screen reader: role "switch" with `accessibilityState.checked` (guard
  * G-N2), the label the caller gives, and a 48 pt target around the 52 × 32 track. The slide is
@@ -17,7 +13,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated } from 'react-native';
 import { Pressable } from '@/ui/lib/pressable';
 import { Box } from '@/ui/lib/box';
-import { colour, hit } from '@/design';
+import { hit } from '@/design';
 
 /** Owner, 2026-10-04: a `small` switch (32 × 18; first 40 × 24, then "even smaller") for tight rows, e.g. a category's filter. */
 const SIZES = {
@@ -25,8 +21,6 @@ const SIZES = {
   small: { track: { width: 32, height: 18 }, thumb: 14 },
 } as const;
 const TAP = { minHeight: hit.min, minWidth: hit.min };
-/** `SettingsMore-B`: box-shadow 0 1px 2px rgba(0,0,0,.18) under the thumb. */
-const THUMB_SHADOW = { shadowColor: colour.text, shadowOpacity: 0.18, shadowRadius: 2, shadowOffset: { width: 0, height: 1 }, elevation: 1 };
 /** Owner, 2026-10-04 ("no padding" under All / Newest): the small switch takes no room beyond
  *  its track; hitSlop stretches the tap to 48 × 48 instead. */
 const SLOP_SMALL = { top: 15, bottom: 15, left: 8, right: 8 };
@@ -66,10 +60,10 @@ export function Toggle(props: {
       className={`items-center justify-center ${disabled ? 'opacity-40' : ''}`}
       {...(props.size === 'small' ? { hitSlop: SLOP_SMALL } : { style: TAP })}
     >
-      <Box className={`rounded-pill justify-center ${props.value ? 'bg-primary' : 'bg-switchOff'}`} style={TRACK}>
+      <Box className={`rounded-pill justify-center ${props.value ? 'bg-primary' : 'bg-separator'}`} style={TRACK}>
         <Animated.View
-          className="rounded-pill bg-surface"
-          style={{ ...THUMB_SHADOW, width: THUMB, height: THUMB, marginLeft: 2, transform: [{ translateX: at.interpolate({ inputRange: [0, 1], outputRange: [0, TRAVEL] }) }] }}
+          className="rounded-pill bg-background"
+          style={{ width: THUMB, height: THUMB, marginLeft: 2, transform: [{ translateX: at.interpolate({ inputRange: [0, 1], outputRange: [0, TRAVEL] }) }] }}
         />
       </Box>
     </Pressable>

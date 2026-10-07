@@ -68,7 +68,8 @@ export async function send(db: Db, from: string, to: string, body: string, episo
  */
 export async function thread(db: Db, me: string, other: string, opts: { after?: string; before?: string } = {}): Promise<ChatMessage[]> {
   if (await walled(db, me, other)) return [];
-  const pair = '((m.sender_id = $1 AND m.recipient_id = $2) OR (m.sender_id = $2 AND m.recipient_id = $1))';
+  // M24 US1: a message the admin removed is gone for both people.
+  const pair = '((m.sender_id = $1 AND m.recipient_id = $2) OR (m.sender_id = $2 AND m.recipient_id = $1)) AND m.removed_at IS NULL';
   const rows = opts.after !== undefined
     ? await db.query<Row>(`${SELECT} WHERE ${pair} AND m.id > $3::bigint ORDER BY m.id ASC LIMIT ${CHAT_PAGE}`, [me, other, opts.after])
     : opts.before !== undefined
@@ -85,13 +86,13 @@ export async function conversations(db: Db, me: string): Promise<Conversation[]>
        SELECT DISTINCT ON (CASE WHEN m.sender_id = $1 THEN m.recipient_id ELSE m.sender_id END)
               CASE WHEN m.sender_id = $1 THEN m.recipient_id ELSE m.sender_id END AS other_id, m.id
        FROM chat_messages m
-       WHERE m.sender_id = $1 OR m.recipient_id = $1
+       WHERE (m.sender_id = $1 OR m.recipient_id = $1) AND m.removed_at IS NULL
        ORDER BY CASE WHEN m.sender_id = $1 THEN m.recipient_id ELSE m.sender_id END, m.id DESC
      )
      SELECT x.other_id, l.display_name AS other_name, l.avatar_url AS other_avatar,
             m.id::text, m.sender_id, m.body, m.created_at, m.read_at,
             e.id AS e_id, e.feed_url, e.guid, e.title, e.show_title, e.enclosure_url, e.image_url, e.duration_ms,
-            (SELECT count(*)::int FROM chat_messages u WHERE u.recipient_id = $1 AND u.sender_id = x.other_id AND u.read_at IS NULL) AS unread,
+            (SELECT count(*)::int FROM chat_messages u WHERE u.recipient_id = $1 AND u.sender_id = x.other_id AND u.read_at IS NULL AND u.removed_at IS NULL) AS unread,
             (EXISTS (SELECT 1 FROM follows WHERE follower_id = $1 AND followed_id = x.other_id)
               AND EXISTS (SELECT 1 FROM follows WHERE follower_id = x.other_id AND followed_id = $1)) AS can_send
      FROM mine x
@@ -110,7 +111,7 @@ export async function conversations(db: Db, me: string): Promise<Conversation[]>
 export async function unreadCount(db: Db, me: string): Promise<number> {
   const [r] = await db.query<{ n: number }>(
     `SELECT count(*)::int AS n FROM chat_messages m JOIN listeners l ON l.id = m.sender_id AND l.suspended_at IS NULL AND l.hidden_at IS NULL
-     WHERE m.recipient_id = $1 AND m.read_at IS NULL
+     WHERE m.recipient_id = $1 AND m.read_at IS NULL AND m.removed_at IS NULL
        AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id = $1 AND b.blocked_id = m.sender_id) OR (b.blocker_id = m.sender_id AND b.blocked_id = $1))`,
     [me],
   );

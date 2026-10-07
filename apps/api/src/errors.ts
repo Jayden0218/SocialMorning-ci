@@ -14,7 +14,9 @@ export type ErrorCode = 'validation' | 'unauthenticated' | 'forbidden' | 'not_fo
   // M22 lane 5 (specs/023-m22-the-xiaoyuzhou-gaps-2/contracts/api.md): bans, translation, gifts
   | 'is_cohost' | 'plus_required' | 'not_offered' | 'already_claimed' | 'already_owned' | 'cancelled'
   // M23 US6: someone's subscriptions are private (was a hand-written 403 in routes/social/profiles.ts)
-  | 'private';
+  | 'private'
+  // M24 lane A1: a blocked word; the server is under maintenance
+  | 'blocked_word' | 'maintenance';
 
 const STATUS: Record<ErrorCode, number> = {
   validation: 422,
@@ -53,6 +55,8 @@ const STATUS: Record<ErrorCode, number> = {
   already_owned: 409,
   cancelled: 410,
   private: 403,
+  blocked_word: 422,
+  maintenance: 503,
 };
 
 export class ApiError extends Error {

@@ -9,7 +9,6 @@ import { withStyleContext } from '@gluestack-ui/utils/nativewind-utils';
 import { withUniwind } from 'uniwind';
 import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils';
 import { UIIcon } from '@gluestack-ui/core/icon/creator';
-import { useFace } from '../text';
 
 const SCOPE = 'INPUT';
 
@@ -98,14 +97,11 @@ type IInputFieldProps = React.ComponentProps<typeof UIInput.Input> &
 const InputField = React.forwardRef<
   React.ComponentRef<typeof UIInput.Input>,
   IInputFieldProps
->(function InputField({ className, style, ...props }, ref) {
-  // M24 US18 (design-settings G2): a raw TextInput skipped the face picker → system font.
-  const face = useFace(className);
+>(function InputField({ className, ...props }, ref) {
   return (
     <UIInput.Input
       ref={ref}
       {...props}
-      style={face ? [face, style] : style}
       // M9 (iOS, found on the phone): the creator defaults aria-label to "Input Field", and on
       // native aria-label beats accessibilityLabel — so every field was read as "Input Field".
       // The caller's name is passed on as the aria-label too.
