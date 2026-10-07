@@ -220,3 +220,46 @@ export async function pushFor(db: Db, n: SocialNotice, now = Date.now()): Promis
     return 0;
   }
 }
+
+// ---- M22 US6 (FR-022): a push to followers when someone posts a status ----
+
+/** A poster's statuses push at most this many times a day (Kuala Lumpur day). */
+export const STATUS_PUSHES_PER_DAY = 5;
+
+/**
+ * One new status → each follower with "Statuses" on gets one push, unless the follower and the
+ * poster blocked each other (either way) or the follower muted them. `status_push_log` counts the
+ * poster's pushing statuses per day; the 6th and later post normally but push no one. Never
+ * throws (like `pushFor`).
+ */
+export async function pushNewStatus(db: Db, authorId: string, postId: string, isVoice: boolean): Promise<number> {
+  try {
+    const [slot] = await db.query<{ count: number }>(
+      `INSERT INTO status_push_log (author_id, day, count) VALUES ($1, ((now() AT TIME ZONE 'UTC') + interval '8 hours')::date, 1)
+       ON CONFLICT (author_id, day) DO UPDATE SET count = status_push_log.count + 1
+       RETURNING count`,
+      [authorId],
+    );
+    if (Number(slot?.count ?? 0) > STATUS_PUSHES_PER_DAY) return 0;
+    const rows = await db.query<{ token: string; name: string }>(
+      `SELECT t.token, a.display_name AS name FROM follows f
+         JOIN push_tokens t ON t.listener_id = f.follower_id
+         JOIN listeners a ON a.id = f.followed_id
+         LEFT JOIN push_prefs p ON p.listener_id = f.follower_id
+        WHERE f.followed_id = $1 AND f.follower_id <> $1 AND COALESCE(p.statuses, true)
+          AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id = f.follower_id AND b.blocked_id = $1) OR (b.blocker_id = $1 AND b.blocked_id = f.follower_id))
+          AND NOT EXISTS (SELECT 1 FROM listener_mutes m WHERE m.muter_id = f.follower_id AND m.muted_id = $1)`,
+      [authorId],
+    );
+    if (rows.length === 0) return 0;
+    const href = `/status/${postId}`;
+    const messages = rows.map((r): PushMessage => ({
+      to: r.token, title: `${r.name || 'Someone'} posted a status`, body: isVoice ? 'Tap to listen' : 'Tap to read', sound: 'default',
+      data: { kind: 'status_new', href }, channelId: 'social', tag: `status_new:${authorId}`, threadId: `status_new:${authorId}`,
+    }));
+    return (await sendExpo(db, socialFetch, messages)).sent;
+  } catch (e) {
+    console.warn(`[push] status push skipped: ${e instanceof Error ? e.message : String(e)}`);
+    return 0;
+  }
+}

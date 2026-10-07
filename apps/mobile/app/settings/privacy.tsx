@@ -13,6 +13,7 @@
  * alone as PATCH /v1/me (`hideBadge`, `hideStickers`, `hideDecorations`, `privateSubscriptions`,
  * the server fields US8 adds), put back if the server refuses. Then "Muted users" (US6): the
  * listeners you muted, each with Unmute (GET /v1/me/mutes, DELETE /v1/me/mutes/:id).
+ * M22 US3: then "Muted threads" (src/ui/social/MutedThreads.tsx).
  */
 import { Link } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -31,6 +32,7 @@ import { hit } from '@/design';
 import { Avatar } from '@/ui/kit/Avatar';
 import { privacySwitchesOf, useProfileApi, type PrivacySwitches } from '@/social/profile-api';
 import { useCommentExtrasApi, type MutedListener } from '@/social/comment-extras-api';
+import { MutedThreads } from '@/ui/social/MutedThreads';
 
 const TAP = { minHeight: hit.min };
 
@@ -169,6 +171,9 @@ export default function PrivacySettings(): React.ReactElement {
           <WhatOthersSee />
           <Text className="text-text text-base font-display-semibold" accessibilityRole="header">Muted users</Text>
           <MutedUsers />
+          {/* M22 US3 (FR-011): the notice threads muted from a notice's ⋯. */}
+          <Text className="text-text text-base font-display-semibold" accessibilityRole="header">Muted threads</Text>
+          <MutedThreads iconColour={c.accent} />
         </>
       ) : null}
 

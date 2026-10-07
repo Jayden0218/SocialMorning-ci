@@ -3,6 +3,8 @@
  * M21 US8 (FR-070, FR-071): the "Text" choice of the Updates "+" circle. A counter shows
  * characters left (counted as the server counts them, so an emoji is one); Post is off when the
  * text is empty, only spaces, or over 140. The server keeps it 24 h, like a voice status, then deletes it.
+ *
+ * M22 US6 (FR-020, T026): up to 10 episode cards and photos go with it (`StatusComposerItems`).
  */
 import { router } from 'expo-router';
 import { useState } from 'react';
@@ -18,13 +20,18 @@ import { useStores, useToast } from '@/ui/shell/providers';
 import { useSocial } from '@/social/context';
 import { ApiError } from '@/social/api';
 import { TEXT_STATUS_MAX, textLength, useUs8Api } from '@/social/us8-api';
+import { StatusComposerItems, itemsForPost, type ComposerItem } from '@/ui/social/StatusComposerItems';
+import { useM22SocialApi } from '@/social/api-m22-social';
 
 export default function TextStatusScreen(): React.ReactElement {
   const stores = useStores();
   const c = useColours(stores.settings);
   const toast = useToast();
   const us8 = useUs8Api();
-  const { listener } = useSocial();
+  const { listener, api } = useSocial();
+  // M22 US6: the items that go with the words.
+  const m22 = useM22SocialApi();
+  const [items, setItems] = useState<ComposerItem[]>([]);
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
@@ -35,7 +42,8 @@ export default function TextStatusScreen(): React.ReactElement {
     setBusy(true);
     setError(undefined);
     try {
-      await us8.postTextStatus(body);
+      if (items.length > 0) await m22.postTextStatus(body, await itemsForPost(api, items));
+      else await us8.postTextStatus(body);
       toast('Posted. It is gone after 24 hours.');
       router.back();
     } catch (e) {
@@ -55,6 +63,7 @@ export default function TextStatusScreen(): React.ReactElement {
         <Text className={n > TEXT_STATUS_MAX ? 'text-accent text-xs text-right font-bold' : 'text-muted text-xs text-right'} accessibilityLiveRegion="polite">
           {n > TEXT_STATUS_MAX ? `${n - TEXT_STATUS_MAX} over · ${n} / ${TEXT_STATUS_MAX}` : `${n} / ${TEXT_STATUS_MAX}`}
         </Text>
+        {listener !== undefined ? <StatusComposerItems items={items} onChange={setItems} colours={c} /> : null}
         {listener === undefined ? <Text className="text-muted text-body">Sign in to post a status.</Text> : null}
         {error ? <Text className="text-accent text-body" accessibilityLiveRegion="polite">{error}</Text> : null}
       </ScrollView>

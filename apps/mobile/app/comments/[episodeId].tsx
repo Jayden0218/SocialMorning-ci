@@ -61,6 +61,7 @@ import { VoiceComposer } from '@/ui/comments/VoiceRecord';
 import { playVoice } from '@/playback/expo-audio-adapter';
 import { getPref } from '@/settings/prefs';
 import { liveLabel, useListeningNow } from '@/social/live';
+import { useM22SocialApi } from '@/social/api-m22-social';
 
 const TAB = { minHeight: hit.min };
 const ARROW = { width: hit.min, height: hit.min };
@@ -81,6 +82,8 @@ function menuIcon(label: string): IconName {
   if (label === 'Unmark') return 'eye-outline';
   if (label === 'Share') return 'share-outline';
   if (label === 'Mute') return 'volume-mute-outline';
+  if (label === 'Stop like notices') return 'notifications-off-outline'; // M22 US3
+  if (label === 'Turn like notices back on') return 'notifications-outline';
   return 'flag-outline';
 }
 const ORDERS: { value: CommentOrder; label: string }[] = [
@@ -211,6 +214,18 @@ export default function CommentsScreen(): React.ReactElement {
     } catch { toast("Couldn't mute — try again."); }
   };
 
+  // M22 US3 (FR-012): the author stops (or restarts) like notices on one comment; this phone remembers which.
+  const m22 = useM22SocialApi();
+  const likesOffKey = (id: string) => `m22.likeNoticesOff.${id}`;
+  const toggleLikeNotices = (x: Comment) => {
+    const off = stores.settings.get(likesOffKey(x.id)) !== '1';
+    m22.setLikeNotices(x.id, off).then(() => {
+      stores.settings.set(likesOffKey(x.id), off ? '1' : '0');
+      rerender((n) => n + 1);
+      toast(off ? 'Like notices stopped for this comment. Replies still notify you.' : 'Like notices are back on for this comment.');
+    }, () => toast("Couldn't change that — try again."));
+  };
+
   const menuItems = (x: Comment) => [
     ...(x.parentId === null ? [{ label: 'Reply', run: () => compose(x.id) }] : []),
     { label: 'Share', run: () => shareComment(x) },
@@ -220,6 +235,7 @@ export default function CommentsScreen(): React.ReactElement {
       run: () => { toggleFavComment(stores.settings, { commentId: x.id, episodeId, body: x.body ?? '', author: x.displayName ?? 'A listener', offsetMs: x.offsetMs }, Date.now()); rerender((n) => n + 1); },
     }] : []),
     ...(isHost && x.parentId === null ? [{ label: extrasOf(x).pinned ? 'Unpin' : 'Pin', run: () => void pin(x, !extrasOf(x).pinned) }] : []),
+    ...(x.mine && listener ? [{ label: stores.settings.get(likesOffKey(x.id)) === '1' ? 'Turn like notices back on' : 'Stop like notices', run: () => toggleLikeNotices(x) }] : []),
     ...(!x.mine && listener && x.authorId ? [{ label: 'Mute', run: () => void mute(x) }] : []),
     ...(!x.mine && listener ? [{ label: marked[x.id] ? 'Unmark' : 'Mark as unfriendly', run: () => void markUnfriendly(x, !marked[x.id]) }] : []),
     x.mine

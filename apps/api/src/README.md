@@ -63,6 +63,7 @@ here or a line does not match its file.
 | `voice-comments.ts` | Voice comment route: post a recording of up to 60 seconds as a comment at a moment. |
 | `mutes.ts` | Mute routes: list the listeners I muted, mute one, unmute one. |
 | `notifications.ts` | Notification routes: my interaction notices in pages, and mark them all read. |
+| `muted-threads.ts` | Muted-thread routes: mute or unmute one notice thread, list them; stop like notices on my comment. |
 
 ### `routes/safety/` — reports and blocks
 
@@ -182,6 +183,9 @@ here or a line does not match its file.
 | `live-listeners.ts` | Counts "listening now" per episode using only daily-salted install hashes. |
 | `profiles.ts` | Builds a listener's profile: name, counts, stats and recent public activity. |
 | `voice-posts.ts` | Voice status posts up to 60 seconds, fully deleted after 24 hours. |
+| `status-replies.ts` | Replies and reactions on a status: text or voice replies only the owner and the author see, six reactions. |
+| `status-items.ts` | Items on a status: up to 10 episode cards and photos; photos live in the image store until the status goes. |
+| `muted-threads.ts` | Muted notice threads: no more notices or pushes from one comment thread or one like-post. |
 | `voice-comments.ts` | Voice comments: their recording limits, and deleting the audio of removed comments. |
 | `mutes.ts` | Mutes: hide a listener's comments, voice posts and likes from me only; they are never told. |
 | `notifications.ts` | Interaction notices: replies, likes, mentions and follows aimed at you, never from yourself or someone you shut out. |

@@ -35,6 +35,18 @@ export const PREFS = {
   voiceBoost: { key: 'player.voiceBoost', default: false },
   /** M21 US11 (FR-102): "Play with other apps", off by default. Read by `ui/shell/providers.tsx` (at start) and `ui/settings/AudioRows.tsx`. */
   mixWithOthers: { key: 'player.mixWithOthers', default: false },
+  /** M22 US1 (FR-002): a push when someone replies to you (and comments on your like). Synced by `app/settings/push.tsx`. */
+  pushReplies: { key: 'push.replies', default: true },
+  /** M22 US1: likes on your comments and like-posts, grouped within 10 minutes. Synced by `app/settings/push.tsx`. */
+  pushLikes: { key: 'push.likes', default: true },
+  /** M22 US1: a new follower. Synced by `app/settings/push.tsx`. */
+  pushFollows: { key: 'push.follows', default: true },
+  /** M22 US1: someone mentions you. Synced by `app/settings/push.tsx`. */
+  pushMentions: { key: 'push.mentions', default: true },
+  /** M22 US2/US6: replies and reactions on your status, and new statuses from people you follow. Synced by `app/settings/push.tsx`. */
+  pushStatuses: { key: 'push.statuses', default: true },
+  /** M22 US15: the PLUS weekly digest. Synced by `app/settings/push.tsx`. */
+  pushDigest: { key: 'push.digest', default: true },
 } as const;
 
 export type PrefName = keyof typeof PREFS;

@@ -219,3 +219,4 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 | File | Route | What the user sees |
 |---|---|---|
 | `status/text.tsx` | `/status/text` | Write a text status up to 140 characters for your followers; deleted after 24 hours. |
+| `status/[id].tsx` | `/status/<id>` | Open one status full screen, with the statuses around it, its items, replies and reactions. |

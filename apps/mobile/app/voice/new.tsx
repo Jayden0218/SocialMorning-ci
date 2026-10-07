@@ -14,6 +14,9 @@
  *
  * M20 US3 (FR-006–FR-008): where the phone can make text, recording goes through `textRecorder`;
  * once recorded, the text shows under the clock, editable, and goes up with the audio on Post.
+ *
+ * M22 US6 (FR-020, T026): episode cards and photos (up to 10) can go with it —
+ * `StatusComposerItems`; they go up in the `x-items` header with the recording.
  */
 import { router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -37,6 +40,9 @@ import { VOICE_MAX_MS, voiceClock } from '@/social/voice';
 import { PageHeader } from '@/ui/kit/PageHeader';
 import { textRecorder } from '@/social/voice-text';
 import { VoiceTextBox } from '@/ui/comments/VoiceTextReview';
+import { StatusComposerItems, itemsForPost, type ComposerItem } from '@/ui/social/StatusComposerItems';
+import { useM22SocialApi } from '@/social/api-m22-social';
+import { useSocial } from '@/social/context';
 
 /** The old one-line rule, word for word, split into `VoiceNew-B`'s numbered list. */
 const RULES = ['Up to 60 seconds.', 'People who follow you can play it', 'for 24 hours; then it is deleted.'] as const;
@@ -53,6 +59,10 @@ export default function NewVoicePost(): React.ReactElement {
   const toast = useToast();
   const player = usePlayer();
   const m12 = useM12Api();
+  // M22 US6: the items that go with the recording.
+  const m22 = useM22SocialApi();
+  const { api } = useSocial();
+  const [items, setItems] = useState<ComposerItem[]>([]);
   const { recorder, state } = useVoiceRecorder();
   const [phase, setPhase] = useState<Phase>({ kind: 'idle' });
   const [error, setError] = useState<string | undefined>();
@@ -120,12 +130,13 @@ export default function NewVoicePost(): React.ReactElement {
     try {
       const blob = await (await fetch(uri)).blob();
       const transcript = text?.trim() ? text.trim().slice(0, 2000) : undefined;
-      await m12.postVoice(blob, ms, transcript);
+      if (items.length > 0) await m22.postVoice(blob, ms, transcript, await itemsForPost(api, items));
+      else await m12.postVoice(blob, ms, transcript);
       toast('Posted. It disappears in 24 hours.');
       router.back();
     } catch (e) {
       setPhase({ kind: 'done', uri, ms });
-      setError(e instanceof ApiError && e.status === 429 ? 'You already have 5 live voice posts.' : e instanceof ApiError && e.status === 503 ? 'Voice posts are switched off right now.' : "That didn't post — try again.");
+      setError(e instanceof ApiError && e.status === 429 ? 'You already have 5 live voice posts.' : e instanceof ApiError && e.status === 503 ? 'Voice posts are switched off right now.' : e instanceof ApiError && e.status === 400 ? e.message : "That didn't post — try again.");
     }
   };
 
@@ -175,6 +186,7 @@ export default function NewVoicePost(): React.ReactElement {
             <VoiceTextBox text={text} onChange={setText} />
           </Card>
         ) : null}
+        <StatusComposerItems items={items} onChange={setItems} colours={c} />
         {error ? <Text className="text-accent text-body text-center">{error}</Text> : null}
       </ScrollView>
       <SafeAreaView edges={['bottom']} className="flex-row items-stretch gap-gap px-screen-x pt-row pb-row border-t-hairline border-separator bg-background">

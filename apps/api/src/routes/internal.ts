@@ -98,7 +98,8 @@ export function createInternalRoute(jobToken: string | undefined) {
         try { await sweepImages(db); } catch (e) { failed.push(`sweep: ${e instanceof Error ? e.message : String(e)}`); }
         // M12 FR-104 (guard G-V1): voice posts past their expiry (24 h) lose their blob AND their row.
         try {
-          const v = await sweepExpired(db, c.get('voice'));
+          // M22 (G-M22-2): with the image store, so status photos go with their status.
+          const v = await sweepExpired(db, c.get('voice'), 200, c.get('images'));
           voiceDeleted = v.deleted;
           if (v.failed > 0) failed.push(`voice: ${v.failed} blob(s) not deleted, kept for the next cycle`);
         } catch (e) { failed.push(`voice: ${e instanceof Error ? e.message : String(e)}`); }

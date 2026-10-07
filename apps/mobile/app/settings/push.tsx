@@ -10,6 +10,11 @@
  * M17 T094 (`SettingsPush-B`): the phone's permission is a tinted banner that says the state and
  * opens the phone's settings ("Open"); the two switches are side-by-side cards with a serif
  * title; the shows are a 2-column grid of cards. Same prefs, API calls and handlers.
+ *
+ * M22 US1 (FR-002, T013): six more switches under "People and statuses" — Replies, Likes, New
+ * followers, Mentions, Statuses and the PLUS Weekly digest — all on by default. Each change is
+ * kept on this phone and sent alone (`PUT /v1/me/push-prefs` with that one key); on open the
+ * server's values win, so a change on another device shows here.
  */
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
@@ -30,9 +35,23 @@ import { PageHeader } from '@/ui/kit/PageHeader';
 import { Card } from '@/ui/kit/Card';
 import { Icon, type IconName } from '@/ui/kit/Icon';
 import { Toggle } from '@/ui/kit/Toggle';
-import { hit } from '@/design';
+import { hit, size } from '@/design';
+import { Eyebrow } from '@/ui/kit/Eyebrow';
+import { useM22SocialApi, type PushSwitch } from '@/social/api-m22-social';
+import type { PrefName } from '@/settings/prefs';
 
 const TAP = { minHeight: hit.min };
+const ROW = { minHeight: size.row };
+
+/** M22: the six people-and-status switches — the server's key, this phone's pref, and the words. */
+const PEOPLE: readonly { key: PushSwitch; pref: PrefName; label: string; line: string }[] = [
+  { key: 'replies', pref: 'pushReplies', label: 'Replies', line: 'Replies to your comments, comments on your likes' },
+  { key: 'likes', pref: 'pushLikes', label: 'Likes', line: 'Grouped: one notification per 10 minutes' },
+  { key: 'follows', pref: 'pushFollows', label: 'New followers', line: 'When someone follows you' },
+  { key: 'mentions', pref: 'pushMentions', label: 'Mentions', line: 'When someone @mentions you' },
+  { key: 'statuses', pref: 'pushStatuses', label: 'Statuses', line: 'Replies and reactions on yours; new ones from people you follow' },
+  { key: 'digest', pref: 'pushDigest', label: 'Weekly digest', line: 'PLUS: last week’s unplayed episodes, Monday noon' },
+];
 
 /** One of the two switches, as a card: icon and toggle on top, the serif title and line under. */
 function SwitchCard(props: { icon: IconName; label: string; line: string; value: boolean; onChange: (v: boolean) => void }): React.ReactElement {
@@ -61,6 +80,30 @@ export default function PushSettings(): React.ReactElement {
     setPref(stores.settings, 'newEpisodePush', next.newEpisodes);
     setPref(stores.settings, 'popularPush', next.popular);
     if (listener) void api.pushPrefs(next).catch(() => undefined);
+  };
+  // M22 US1: the six people-and-status switches; on open the server's values win.
+  const m22 = useM22SocialApi();
+  const [people, setPeople] = useState<Record<PushSwitch, boolean>>(() => Object.fromEntries(PEOPLE.map((p) => [p.key, getPref(stores.settings, p.pref)])) as Record<PushSwitch, boolean>);
+  useFocusEffect(useCallback(() => {
+    if (!listener) return undefined;
+    let live = true;
+    m22.pushSwitches().then((server) => {
+      if (!live) return;
+      setPeople((now) => {
+        const next = { ...now };
+        for (const p of PEOPLE) {
+          const v = server[p.key];
+          if (typeof v === 'boolean') { next[p.key] = v; setPref(stores.settings, p.pref, v); }
+        }
+        return next;
+      });
+    }, () => undefined);
+    return () => { live = false; };
+  }, [listener, m22, stores.settings]));
+  const flip = (p: (typeof PEOPLE)[number], v: boolean) => {
+    setPeople((now) => ({ ...now, [p.key]: v }));
+    setPref(stores.settings, p.pref, v);
+    if (listener) void m22.setPushSwitches({ [p.key]: v }).catch(() => undefined);
   };
   const m12 = useM12Api();
   const loadShows = useCallback(() => m12.notifyShows(), [m12]);
@@ -103,6 +146,18 @@ export default function PushSettings(): React.ReactElement {
         <SwitchCard icon="albums-outline" label="New episodes" line="When a show you follow publishes" value={episodes} onChange={(v) => { setEpisodes(v); save({ newEpisodes: v, popular }); }} />
         <SwitchCard icon="notifications-outline" label="Popular content" line="The day's pick, at most once a day" value={popular} onChange={(v) => { setPopular(v); save({ newEpisodes: episodes, popular: v }); }} />
       </Box>
+      <Eyebrow className="mt-row">People and statuses</Eyebrow>
+      <Card padded={false} className="px-section">
+        {PEOPLE.map((p, i) => (
+          <Box key={p.key} className={`flex-row items-center gap-row py-2 ${i < PEOPLE.length - 1 ? 'border-b-hairline border-separator' : ''}`} style={ROW}>
+            <Box className="flex-1">
+              <Text className="text-text text-body font-semibold">{p.label}</Text>
+              <Text className="text-muted text-xs mt-0.5">{p.line}</Text>
+            </Box>
+            <Toggle value={people[p.key]} onChange={(v) => flip(p, v)} label={p.label} disabled={!listener} />
+          </Box>
+        ))}
+      </Card>
       {listener ? <NotifyShows load={loadShows} save={m12.setNotifyShow} titleOf={(f) => stores.feeds.getShow(f)?.title} artOf={(f) => stores.feeds.getShow(f)?.imageUrl} disabled={!episodes} /> : null}
       {!listener ? <Text className="text-muted text-xs mt-row">Sign in to receive notifications.</Text> : null}
     </ScrollView>

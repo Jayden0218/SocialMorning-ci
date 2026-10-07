@@ -6,6 +6,7 @@ import { optionalAuth, requireAuth } from '../../auth/session.ts';
 import { json } from '../../validate.ts';
 import { ApiError } from '../../errors.ts';
 import { addLikeComment, clearLikeReaction, deleteLikeComment, like, likePost, likesOf, myLike, setLikeReaction, timeline, unlike, visibleLike } from '../../db/repos/social/likes.ts';
+import { notify } from '../../db/repos/social/notifications.ts';
 
 const before = z.string().datetime().optional();
 const UUID = /^[0-9a-f-]{36}$/i;
@@ -85,7 +86,10 @@ likePosts.post('/:ownerId/:episodeId/comments', requireAuth, json(z.object({ bod
   const episodeId = c.req.param('episodeId');
   const me = c.get('listener')!.id;
   await mustSee(c.get('db'), ownerId, episodeId, me);
-  return c.json(await addLikeComment(c.get('db'), ownerId, episodeId, me, c.req.valid('json').body), 201);
+  const made = await addLikeComment(c.get('db'), ownerId, episodeId, me, c.req.valid('json').body);
+  // M22 US3 (FR-013): the like's owner is told (and pushed, US1); never for their own comment.
+  await notify(c.get('db'), { recipientId: ownerId, actorId: me, kind: 'like_post_comment', ref: { ownerId, episodeId, likeCommentId: made.id, excerpt: made.body.slice(0, 120) } });
+  return c.json(made, 201);
 });
 
 likePosts.delete('/:ownerId/:episodeId/comments/:commentId', requireAuth, async (c) => {
@@ -102,6 +106,8 @@ likePosts.put('/:ownerId/:episodeId/reactions', requireAuth, json(z.object({ emo
   const me = c.get('listener')!.id;
   await mustSee(c.get('db'), ownerId, episodeId, me);
   await setLikeReaction(c.get('db'), ownerId, episodeId, me, c.req.valid('json').emoji);
+  // M22 US3 (FR-013): one notice per listener per like-post — notify() skips a repeat (same ref).
+  await notify(c.get('db'), { recipientId: ownerId, actorId: me, kind: 'like_post_like', ref: { ownerId, episodeId } });
   return c.body(null, 204);
 });
 

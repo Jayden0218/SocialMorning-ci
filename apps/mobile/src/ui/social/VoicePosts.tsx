@@ -10,11 +10,15 @@
  * M21 US8 (FR-070, FR-071): the first circle is your own avatar with a "+"; it opens a chooser —
  * Voice (record, `/voice/new`) or Text (`/status/text`, ≤ 140 characters, also gone at 24 h).
  * A text status has no audio: tapping it shows its words under the row, tapping again hides them.
+ *
+ * M22 US2 (FR-006, FR-010, T021): a tap on a circle opens the full-screen viewer (`/status/<id>`),
+ * which plays it and moves through the row. The row now comes with up to 5 "Suggested" statuses
+ * from public accounts you don't follow (GET /v1/voice-posts?suggested=1), after the people you
+ * follow, each marked "Suggested" under its circle. If that call fails, the old list (`load`) is used.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView } from '@/ui/lib/scroll-view';
 import { useConfirm } from '@/ui/kit/confirm';
-import { playVoice } from '@/playback/expo-audio-adapter';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Pressable } from '@/ui/lib/pressable';
 import { Text } from '@/ui/lib/text';
@@ -26,6 +30,7 @@ import { Eyebrow } from '@/ui/kit/Eyebrow';
 import { hit, size } from '@/design';
 import { mmss } from '@/ui/kit/format';
 import type { VoicePost } from '@/social/m12-api';
+import { useM22SocialApi, type Status } from '@/social/api-m22-social';
 import { hoursLeft } from '@/social/voice';
 
 /** A 64 pt ring round a 56 pt disc, in a 64 pt-wide column with the name under it. */
@@ -51,25 +56,24 @@ export function VoicePosts(props: {
   me?: { name: string; avatarUrl?: string | undefined };
 }): React.ReactElement | null {
   const router = useRouter();
-  const [posts, setPosts] = useState<VoicePost[]>([]);
+  const [posts, setPosts] = useState<(VoicePost & { suggested?: boolean })[]>([]);
+  const m22 = useM22SocialApi();
   const [playing, setPlaying] = useState<string | undefined>();
   const [chooser, setChooser] = useState(false);
   const audio = useRef<{ stop: () => void } | undefined>(undefined);
   const { load } = props;
-  const refresh = useCallback(() => { load().then(setPosts, () => undefined); }, [load]);
+  // M22: the row with suggestions; the older list when that fails.
+  const refresh = useCallback(() => { m22.statuses().then((rows: Status[]) => setPosts(rows), () => { load().then(setPosts, () => undefined); }); }, [load, m22]);
   // M16a T003 (FR-013): the app's own dialog, not the iOS alert.
   const [confirm, dialog] = useConfirm();
   useFocusEffect(refresh);
   const stop = () => { audio.current?.stop(); audio.current = undefined; setPlaying(undefined); };
   useEffect(() => () => stop(), []);
 
+  // M22 US2: the viewer plays it (and the episode pauses there).
   const toggle = (p: VoicePost) => {
-    if (playing === p.id) { stop(); return; }
     stop();
-    if (p.body !== undefined || !p.url) { setPlaying(p.id); return; } // a text status: show its words
-    props.pauseEpisode();
-    audio.current = playVoice(p.url, stop);
-    setPlaying(p.id);
+    router.push({ pathname: '/status/[id]', params: { id: p.id } });
   };
   const askDelete = (p: VoicePost) => {
     if (!p.mine) return;
@@ -101,7 +105,7 @@ export function VoicePosts(props: {
           const on = playing === p.id;
           const isText = p.body !== undefined;
           return (
-            <Pressable key={p.id} onPress={() => toggle(p)} onLongPress={() => askDelete(p)} accessibilityRole="button" accessibilityLabel={voiceLabel(p, now, playing === p.id)} className="items-center gap-1" style={ITEM}>
+            <Pressable key={p.id} onPress={() => toggle(p)} onLongPress={() => askDelete(p)} accessibilityRole="button" accessibilityLabel={`${p.suggested ? 'Suggested. ' : ''}${voiceLabel(p, now, playing === p.id)}`} className="items-center gap-1" style={ITEM}>
               <Box className={`rounded-pill border-2 items-center justify-center ${on ? 'border-primary' : 'border-accent'}`} style={RING}>
                 <Box className={`rounded-pill items-center justify-center ${on ? 'bg-primary' : 'bg-accentTint'}`} style={DISC}>
                   {on && !isText ? <Icon name="stop" size={18} color={props.colours.accent} />
@@ -110,6 +114,7 @@ export function VoicePosts(props: {
                 </Box>
               </Box>
               <Text className="text-text text-xs font-semibold" numberOfLines={1}>{on && !isText ? mmss(p.durationMs) : p.mine ? 'You' : p.author.name}</Text>
+              {p.suggested ? <Text className="text-accent text-micro font-bold" numberOfLines={1}>Suggested</Text> : null}
             </Pressable>
           );
         })}

@@ -21,6 +21,11 @@
  * Interactions — replies, likes, mentions and follows aimed at you (GET /v1/me/notifications),
  * each row opening its target — and People (the feed, as before). Interactions is first. Opening
  * Interactions marks them read (POST /v1/me/notifications/seen) after the unread ones are counted.
+ *
+ * M22 US3 (FR-011, T016): each interaction row has a ⋯ with "Mute this" — no more notices or
+ * pushes from that comment thread or like-post (PUT /v1/me/muted-threads); Settings › Privacy
+ * lists them. Rows also read and open the new kinds: comments and reactions on your like,
+ * replies and reactions on your status, and a status reaching 100 reactions.
  */
 import { router, useFocusEffect } from 'expo-router';
 import { Link } from '@/design/tailwind';
@@ -41,14 +46,18 @@ import { useSocial } from '@/social/context';
 import { EmptyState } from '@/ui/kit/EmptyState';
 import { FeedItem } from '@/ui/social/FeedItem';
 import { EmptyPicture } from '@/ui/me/parts';
-import { useStores } from '@/ui/shell/providers';
+import { useStores, useToast } from '@/ui/shell/providers';
 import { PageHeader } from '@/ui/kit/PageHeader';
 import { EndOfList } from '@/ui/kit/EndOfList';
 import { Pressable } from '@/ui/lib/pressable';
 import { Loader } from '@/ui/kit/Loader';
 import { Avatar } from '@/ui/kit/Avatar';
 import { ago } from '@/ui/kit/format';
-import { noticeTarget, noticeVerb, useNotificationsApi, type Notice } from '@/social/notifications-api';
+import { noticeTarget, useNotificationsApi, type Notice } from '@/social/notifications-api';
+import { m22NoticeTarget, m22NoticeVerb, noticeThread, useM22SocialApi, type NoticeRef } from '@/social/api-m22-social';
+import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '@/ui/lib/actionsheet';
+import { SheetRow } from '@/ui/kit/SheetRow';
+import { Icon } from '@/ui/kit/Icon';
 
 type Day = { key: string; label: string; items: Item[] };
 
@@ -69,35 +78,54 @@ function byDay(items: readonly Item[], now: Date): Day[] {
   return out;
 }
 
-/** One interaction: the actor's photo, "Bea replied to your comment", the comment, the episode and when. */
-function InteractionRow(props: { notice: Notice; now: number }): React.ReactElement {
+/** One interaction: the actor's photo, "Bea replied to your comment", the comment, the episode and when; M22: a ⋯ for "Mute this". */
+function InteractionRow(props: { notice: Notice; now: number; onMore?: (n: Notice) => void; moreColour: string }): React.ReactElement {
   const n = props.notice;
-  const what = `${n.actor.name} ${noticeVerb(n.kind)}`;
+  const verb = m22NoticeVerb(n.kind);
+  const what = `${n.actor.name} ${verb}`;
   const where = n.ref.episodeTitle ? ` · ${n.ref.episodeTitle}` : '';
+  const target = m22NoticeTarget(n.kind, n.ref as NoticeRef);
   return (
-    <Pressable
-      onPress={() => router.push(noticeTarget(n))}
-      accessibilityRole="link"
-      accessibilityLabel={`${n.unread ? 'New. ' : ''}${what}${n.ref.excerpt ? `: ${n.ref.excerpt}` : ''}`}
-      className="flex-row gap-row py-row items-start"
-      style={{ minHeight: hit.min }}
-    >
-      <Avatar url={n.actor.avatarUrl} name={n.actor.name} size={40} />
-      <Box className="flex-1 gap-0.5">
-        <Text className="text-text text-body" numberOfLines={2}><Text className="text-text text-body font-bold">{n.actor.name}</Text> {noticeVerb(n.kind)}</Text>
-        {n.ref.excerpt ? <Text className="text-muted text-meta" numberOfLines={2}>{n.ref.excerpt}</Text> : null}
-        <Text className="text-muted text-xs" numberOfLines={1}>{ago(Date.parse(n.createdAt), props.now)}{where}</Text>
-      </Box>
-      {n.unread ? <Box className="w-2 h-2 rounded-pill bg-accent mt-2" accessible={false} /> : null}
-    </Pressable>
+    <Box className="flex-row items-start">
+      <Pressable
+        onPress={() => { if (target) router.push(target as never); else router.push(noticeTarget(n)); }}
+        accessibilityRole="link"
+        accessibilityLabel={`${n.unread ? 'New. ' : ''}${what}${n.ref.excerpt ? `: ${n.ref.excerpt}` : ''}`}
+        className="flex-1 flex-row gap-row py-row items-start"
+        style={{ minHeight: hit.min }}
+      >
+        <Avatar url={n.actor.avatarUrl} name={n.actor.name} size={40} />
+        <Box className="flex-1 gap-0.5">
+          <Text className="text-text text-body" numberOfLines={2}><Text className="text-text text-body font-bold">{n.actor.name}</Text> {verb}</Text>
+          {n.ref.excerpt ? <Text className="text-muted text-meta" numberOfLines={2}>{n.ref.excerpt}</Text> : null}
+          <Text className="text-muted text-xs" numberOfLines={1}>{ago(Date.parse(n.createdAt), props.now)}{where}</Text>
+        </Box>
+        {n.unread ? <Box className="w-2 h-2 rounded-pill bg-accent mt-2" accessible={false} /> : null}
+      </Pressable>
+      {props.onMore ? (
+        <Pressable onPress={() => props.onMore?.(n)} accessibilityRole="button" accessibilityLabel={`More for ${what}`} className="items-center justify-center" style={{ minHeight: hit.min, minWidth: hit.min }}>
+          <Icon name="ellipsis-horizontal" size={18} color={props.moreColour} />
+        </Pressable>
+      ) : null}
+    </Box>
   );
 }
 
 type InteractionsState = { kind: 'loading' } | { kind: 'error' } | { kind: 'ok'; items: Notice[]; next: string | null };
 
 /** M21 US10: Interactions, newest first, 30 a page; marked read once the first page is in. */
-function Interactions(props: { header: React.ReactElement; onUnread: (n: number) => void }): React.ReactElement {
+function Interactions(props: { header: React.ReactElement; onUnread: (n: number) => void; colour: string }): React.ReactElement {
   const api = useNotificationsApi();
+  const m22 = useM22SocialApi();
+  const toast = useToast();
+  // M22 US3: the notice whose ⋯ is open.
+  const [menu, setMenu] = useState<Notice | undefined>();
+  const muteMenu = () => {
+    const thread = menu ? noticeThread(menu.kind, menu.ref as NoticeRef) : undefined;
+    setMenu(undefined);
+    if (!thread) return;
+    m22.muteThread(thread).then(() => toast('Muted. No more notices from this thread.')).catch(() => toast("Couldn't mute — try again when you're online."));
+  };
   const { onUnread } = props;
   const [state, setState] = useState<InteractionsState>({ kind: 'loading' });
   const [paging, setPaging] = useState(false);
@@ -119,6 +147,7 @@ function Interactions(props: { header: React.ReactElement; onUnread: (n: number)
   };
   const now = Date.now();
   return (
+    <>
     <FlatList
       className="flex-1 bg-background"
       data={state.kind === 'ok' ? state.items : []}
@@ -139,11 +168,22 @@ function Interactions(props: { header: React.ReactElement; onUnread: (n: number)
       renderItem={({ item, index }) => (
         <Box>
           {index > 0 ? <CardDivider /> : null}
-          <InteractionRow notice={item} now={now} />
+          <InteractionRow notice={item} now={now} moreColour={props.colour} {...(noticeThread(item.kind, item.ref as NoticeRef) ? { onMore: setMenu } : {})} />
         </Box>
       )}
       onEndReached={more}
     />
+    <Actionsheet isOpen={menu !== undefined} onClose={() => setMenu(undefined)}>
+      <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
+      <ActionsheetContent className="bg-surface rounded-t-row px-screen-x pt-row items-stretch">
+        <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
+        <SheetRow icon="notifications-off-outline" label="Mute this" detail="No more notices from this thread" iconColour={props.colour} onPress={muteMenu} />
+        <Pressable onPress={() => setMenu(undefined)} accessibilityRole="button" accessibilityLabel="Cancel" className="items-center justify-center mt-row" style={{ minHeight: hit.min }}>
+          <Text className="text-accent text-sm font-bold">Cancel</Text>
+        </Pressable>
+      </ActionsheetContent>
+    </Actionsheet>
+    </>
   );
 }
 
@@ -199,7 +239,7 @@ export default function NotificationsScreen(): React.ReactElement {
     return (
       <>
       <PageHeader title="Notifications" />
-      <Interactions header={cards} onUnread={setMine} />
+      <Interactions header={cards} onUnread={setMine} colour={c.muted} />
       </>
     );
   }

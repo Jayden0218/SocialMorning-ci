@@ -225,6 +225,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `poll.ts` | Checks for new comments every 10 seconds, only when useful. |
 | `profile-api.ts` | Server calls for your profile, photo, hidden recommendations and episode likes. |
 | `us8-api.ts` | Server calls for text statuses, my subscription order, and others' public subscriptions. |
+| `api-m22-social.ts` | Server calls for M22's social layer: push switches, muted threads, status replies, reactions, items and photos. |
 | `react.ts` | Toggles a reaction at once, then confirms with the server. |
 | `registration.ts` | Describes an episode to the server using the phone's saved feed. |
 | `store-ready.ts` | Remembers whether in-app purchases are switched on. |
@@ -395,6 +396,10 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `ProfileStatRow.tsx` | A profile's numbers in one row: following, followers, shows, listening time. |
 | `StatsBlock.tsx` | Listening numbers for last 7 days and all time: time, finished, top shows. |
 | `VoicePosts.tsx` | Short voice and text statuses from you and people you follow; tap to play or read, post new. |
+| `MutedThreads.tsx` | The notice threads you muted, each with Unmute, for Settings › Privacy. |
+| `StatusViewer.tsx` | Full-screen status viewer: plays on open, taps on the right or left third move, swipe down closes. |
+| `StatusReplies.tsx` | Replies and reactions under a status: a text box, hold to record a voice reply, six reactions, the owner's list. |
+| `StatusComposerItems.tsx` | Add up to 10 episode cards and photos to a new status, from history, the queue, search or the photo library. |
 
 ### `ui/episode/` — Parts of episode rows and the episode page
 

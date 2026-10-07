@@ -62,6 +62,7 @@ import { wallet } from './routes/account/wallet.ts';
 import { friends } from './routes/social/friends.ts';
 import { issues, pastPicks } from './routes/discover/issues.ts';
 import { voice } from './routes/social/voice.ts';
+import { commentLikeNotices, mutedThreads } from './routes/social/muted-threads.ts'; // M22 lane 2
 import { chat } from './routes/social/chat.ts';
 import { share } from './routes/social/share.ts';
 import { episodePages } from './pages/episode.ts';
@@ -135,7 +136,8 @@ export function createApp(deps: AppDeps) {
   // M20 US9: a comment image is at most 1 000 000 bytes after the phone shrinks it.
   const imageLimit = bodyLimit({ maxSize: COMMENT_IMAGE_MAX_BYTES, onError: (c) => c.json(new ApiError('too_large', 'An image is at most 1 MB.').body(), 413) });
   app.use('*', (c, next) => (c.req.path === '/v1/feedback' ? feedbackLimit(c, next)
-    : c.req.method === 'POST' && /^\/v1\/comments\/[^/]+\/image$/.test(c.req.path) ? imageLimit(c, next)
+    : c.req.method === 'POST' && (/^\/v1\/comments\/[^/]+\/image$/.test(c.req.path) || c.req.path === '/v1/voice-posts/images') ? imageLimit(c, next) // M22 lane 2: status photos
+    : c.req.method === 'POST' && /^\/v1\/voice-posts\/[^/]+\/replies$/.test(c.req.path) ? voiceLimit(c, next) // M22 lane 2: voice replies
     : c.req.path === '/v1/admin/accounts' ? adminBulkLimit(c, next)
     : c.req.path === '/v1/me/avatar' && c.req.method === 'PUT' ? avatarLimit(c, next)
     : c.req.method === 'POST' && (c.req.path === '/v1/voice-posts' || /^\/v1\/episodes\/[^/]+\/comments\/voice$/.test(c.req.path)) ? voiceLimit(c, next) : small(c, next)));
@@ -274,6 +276,9 @@ export function createApp(deps: AppDeps) {
   app.route('/v1/comments', commentById);
   app.route('/v1/episodes', episodeClips);
   app.route('/v1/clips', clipById);
+  // M22 lane 2
+  app.route('/v1/me/muted-threads', mutedThreads);
+  app.route('/v1/comments', commentLikeNotices);
   app.route('/mod', mod);
   app.route('/', legal);
   app.route('/', episodePages);
