@@ -336,17 +336,16 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `DataPrompt.tsx` | The sheet that asks before streaming on mobile data: Allow this time, or Always allow. |
 | `ClapBurst.tsx` | A short full-screen burst of thumbs when the listener reacts; never blocks a tap; off with Reduce Motion. |
 | `HeatCurve.tsx` | 100 bars under the seek bar showing where listeners reacted; tap to jump. |
-| `HeatScrubber.tsx` | The heat curve over a seek bar (track, dark fill, knob): tap or drag across either to jump. |
+| `HeatScrubber.tsx` | The heat curve as the seek bar: tap or drag across it to jump; the played part is in the accent. |
 | `MiniPlayer.tsx` | Small bar at the bottom showing what plays; tap to open the player. |
-| `PlayRing.tsx` | The mini player's progress ring: a strong yellow arc on a light grey track around play/pause. |
 | `NextUp.tsx` | Loads the "Next up" episodes, each with a reason, for the episode page. |
 | `Rail.tsx` | Small marks on the seek bar where people left timed comments. |
 | `Scrubber.tsx` | The seek bar under the player; drag it to jump in the episode. |
-| `SettingsPanel.tsx` | The Playback sheet: speed, sleep, chapters and transcript; loop, audio and the rest behind "More settings". |
-| `SleepTimerControl.tsx` | Sleep timer choices (5–90 min), End of episode, time left, Cancel — in three layouts. |
+| `SettingsPanel.tsx` | The player's settings as a full-screen panel: loop, skip silence, speed, sleep, chapters and transcript. |
+| `SleepTimerControl.tsx` | Sleep timer choices (5–90 min), the End-of-episode switch, time left, Cancel. |
 | `swipe-close.ts` | The player's swipe down: a downward drag on its top area closes the player. |
 | `MoonButton.tsx` | The player's moon button: opens the sleep timer and shows its time left. |
-| `SpeedControl.tsx` | Play speed: − big number +, quick choices and the default link; the slider and "This show only" in More settings. |
+| `SpeedControl.tsx` | Play speed: a slider from 0.5× to 3.0×, minus and plus, quick choices, and a "This show only" switch. |
 | `TranscriptExtras.tsx` | The player's two transcript lines (now and next) with ⤢, and the sheet to report a wrong line. |
 | `TranscriptPane.tsx` | Episode transcript: follows the audio, tap a line to jump, long-press to share lines or report a mistake. |
 | `VideoStage.tsx` | Shows the video picture for video episodes; sound comes from the audio. |

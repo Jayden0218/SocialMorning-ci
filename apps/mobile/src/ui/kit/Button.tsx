@@ -45,6 +45,8 @@ export function Button(props: {
   busy?: boolean;
   accessibilityLabel?: string;
   className?: string;
+  /** M24 US18 (design-settings G9): `rounded` = the 16 pt rectangle of `SettingsDownloads-B`, `SettingsAccountMore-B`, `SettingsFeedback-B`; default the pill. */
+  shape?: 'pill' | 'rounded';
 }): React.ReactElement {
   const kind = props.kind ?? 'primary';
   const busy = props.busy === true;
@@ -59,7 +61,7 @@ export function Button(props: {
       accessibilityRole="button"
       accessibilityLabel={props.accessibilityLabel ?? props.label}
       accessibilityState={{ disabled: props.disabled === true || busy, busy }}
-      className={`px-section justify-center items-center rounded-pill ${KIND[kind]} ${dim ? 'opacity-40' : ''} ${props.className ?? ''}`}
+      className={`px-section justify-center items-center ${props.shape === 'rounded' ? 'rounded-row' : 'rounded-pill'} ${KIND[kind]} ${dim ? 'opacity-40' : ''} ${props.className ?? ''}`}
       style={TAP}
     >
       <BusyContent busy={busy} barClassName={BARS[kind]}>
