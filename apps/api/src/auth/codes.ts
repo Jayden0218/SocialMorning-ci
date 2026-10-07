@@ -39,15 +39,27 @@ export async function storeCode(db: Db, email: string, code: string, pepper: str
 /**
  * 'ok' leaves the row in place — the caller decides whether the code is used up
  * (`consumeCode`), because a new account still needs a name after a right code.
+ *
+ * M23 US2 (FR-002, G-M23-2): the attempt is reserved BEFORE the comparison, in one statement
+ * that only succeeds while fewer than 5 are used. Fifty guesses arriving at once used to read
+ * `attempts = 0` together and all get compared; now at most 5 are, and the 5th wrong one uses
+ * the code up. A right code gives its attempt back, so the name step can check it again.
  */
 export async function checkCode(db: Db, email: string, code: string, pepper: string, now: number): Promise<'ok' | 'wrong' | 'expired'> {
-  const [row] = await db.query<Row>('SELECT code_hash, expires_at, attempts FROM email_codes WHERE email = $1', [email]);
-  if (!row || new Date(row.expires_at).getTime() <= now || row.attempts >= MAX_ATTEMPTS) return 'expired';
+  const [row] = await db.query<Row>(
+    `UPDATE email_codes SET attempts = attempts + 1
+      WHERE email = $1 AND attempts < $2 AND expires_at > $3
+      RETURNING code_hash, expires_at, attempts`,
+    [email, MAX_ATTEMPTS, new Date(now)],
+  );
+  if (!row) return 'expired';
   const want = Buffer.from(row.code_hash);
   const got = codeHash(email, code, pepper);
-  if (want.length === got.length && timingSafeEqual(want, got)) return 'ok';
-  const [after] = await db.query<{ attempts: number }>('UPDATE email_codes SET attempts = attempts + 1 WHERE email = $1 RETURNING attempts', [email]);
-  if (after && after.attempts >= MAX_ATTEMPTS) await consumeCode(db, email);
+  if (want.length === got.length && timingSafeEqual(want, got)) {
+    await db.query('UPDATE email_codes SET attempts = attempts - 1 WHERE email = $1 AND attempts > 0', [email]);
+    return 'ok';
+  }
+  if (row.attempts >= MAX_ATTEMPTS) await consumeCode(db, email);
   return 'wrong';
 }
 

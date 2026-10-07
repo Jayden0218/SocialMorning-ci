@@ -12,6 +12,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
+import { putEpisode } from './put-episode.ts';
 import { proveClaim, sCall, studioLogin } from './studio-harness.ts';
 import type { VoiceStorage } from '../src/storage/voice-blob.ts';
 
@@ -39,7 +40,7 @@ test('G-M22-11: a bottom pin is last both ways round, one per episode, from the 
   const owner = await studioLogin(t, 'o@example.com', 'Owner');
   const key = await proveClaim(t, owner.id, FEED);
   const ep = epOf(FEED, 'g1');
-  await t.call('PUT', `/v1/episodes/${ep.id}`, ep.body);
+  await putEpisode(t, `${ep.id}`, ep.body);
   const ids: string[] = [];
   for (const n of ['a', 'b', 'c']) {
     const who = await signUp(t, `${n}@example.com`, n.toUpperCase());
@@ -85,8 +86,8 @@ test('G-M22-10: a banned listener can post neither text nor voice on that show â
   const key = await proveClaim(t, owner.id, FEED);
   const mine = epOf(FEED, 'g1');
   const theirs = epOf(OTHER, 'g2');
-  await t.call('PUT', `/v1/episodes/${mine.id}`, mine.body);
-  await t.call('PUT', `/v1/episodes/${theirs.id}`, theirs.body);
+  await putEpisode(t, `${mine.id}`, mine.body);
+  await putEpisode(t, `${theirs.id}`, theirs.body);
   const l = await signUp(t, 'l@example.com', 'Troll');
 
   assert.equal((await sCall(t, 'PUT', `/v1/studio/shows/${key}/bans/${l.id}`, owner, { reason: 'Spam links' })).status, 204);

@@ -7,7 +7,7 @@
  * still owns their library — so a failure with a cache returns the cache and
  * says `stale: true`, and only a failure with NOTHING cached is an error.
  */
-import { FEED_TIMEOUT_MS, parseFeed, readFeedText, type FeedWarning, type MakeDecoder } from '@socialmorning/feed-parser';
+import { parseFeed, type FeedWarning } from '@socialmorning/feed-parser';
 import { hash } from './hash';
 import type { CachedEpisode, CachedShow, FeedCache } from '@/storage/types';
 
@@ -28,45 +28,6 @@ export type RefreshResult = {
 
 const COULD_NOT_REACH =
   'Could not reach this podcast’s feed. Check your connection and try again.';
-
-/**
- * M23 US5: the decoder the shared reader is given. Looked up 2026-10-07: Expo 58's native
- * `TextDecoder` (`node_modules/expo/src/winter/TextDecoder.ts`) is UTF-8 only and throws
- * RangeError for any other label. So on a phone a GBK or Big5 feed falls back to UTF-8 (the old
- * behaviour — titles may show replacement characters) and Latin-1 / Windows-1252 is decoded by
- * hand in `@socialmorning/feed-parser`. The server decodes all of them; the shows the server
- * lists (Discover, picks) therefore read correctly even where the phone's own refresh cannot.
- */
-const phoneDecoder: MakeDecoder = (label, fatal) => new TextDecoder(label, { fatal });
-
-/**
- * Fetch with the M23 deadline: 8 s for headers and body together, and the caller's own signal
- * still cancels. Built from AbortController + setTimeout rather than `AbortSignal.timeout/any`
- * so it does not depend on which of those a given runtime has.
- */
-async function fetchWithDeadline(url: string, init: RequestInit, signal: AbortSignal | undefined, read: (r: Response) => Promise<string>): Promise<{ response: Response; body: string | undefined }> {
-  const ctl = new AbortController();
-  const onAbort = () => ctl.abort();
-  if (signal?.aborted) ctl.abort();
-  signal?.addEventListener('abort', onAbort);
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const late = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => { ctl.abort(); reject(new FeedError(COULD_NOT_REACH)); }, FEED_TIMEOUT_MS);
-  });
-  try {
-    return await Promise.race([
-      (async () => {
-        const response = await fetch(url, { ...init, signal: ctl.signal });
-        // A 304 or an error status has no feed to read.
-        return { response, body: response.ok ? await read(response) : undefined };
-      })(),
-      late,
-    ]);
-  } finally {
-    clearTimeout(timer);
-    signal?.removeEventListener('abort', onAbort);
-  }
-}
 
 function cached(cache: FeedCache, feedUrl: string, stale: boolean): RefreshResult | undefined {
   const show = cache.getShow(feedUrl);
@@ -89,19 +50,16 @@ export async function refreshShow(
   let response: Response;
   let body: string;
   try {
-    // M23 US5: 8 s deadline, 5 MB cap (streamed where the runtime streams), the feed's charset.
-    const got = await fetchWithDeadline(feedUrl, { headers }, signal, (r) => readFeedText(r, phoneDecoder));
-    response = got.response;
+    response = await fetch(feedUrl, { headers, ...(signal === undefined ? {} : { signal }) });
     if (response.status === 304) {
       const hit = cached(cache, feedUrl, false);
       /* istanbul ignore next -- a 304 can only follow a cached etag */
       if (hit === undefined) throw new FeedError(COULD_NOT_REACH);
       return hit;
     }
-    if (!response.ok || got.body === undefined) throw new FeedError(COULD_NOT_REACH);
-    body = got.body;
+    if (!response.ok) throw new FeedError(COULD_NOT_REACH);
+    body = await response.text();
   } catch {
-    // (Also: over 5 MB, or no answer in 8 s — refused the same way, keeping the cache.)
     // Network down, DNS gone, 500, malformed transfer — all the same to a
     // listener, and all recoverable if we already have the show.
     const fallback = cached(cache, feedUrl, true);

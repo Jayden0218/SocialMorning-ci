@@ -3,12 +3,13 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
+import { putEpisode } from './put-episode.ts';
 
 const ep = { feedUrl: 'https://feeds.example.com/x.xml', guid: 'g189', title: '#189', enclosureUrl: 'https://cdn/189.mp3' };
 const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
 
 async function setup(t: TestDb) {
-  await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: 2_899_000 });
+  await putEpisode(t, `${EP}`, { ...ep, durationMs: 2_899_000 });
   const a = await signUp(t, 'a@example.com', 'Alex');
   const b = await signUp(t, 'b@example.com', 'Bo');
   return { a, b };
@@ -100,7 +101,7 @@ test('heat: a timestamped comment lands in its bucket; deleting it removes it', 
 
 test('M4: a top-level comment writes one commented activity row; a reply writes none; deleting removes it', async () => {
   const t = await freshDb();
-  await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: 2_899_000 });
+  await putEpisode(t, `${EP}`, { ...ep, durationMs: 2_899_000 });
   const a = await signUp(t);
   const root = ((await (await t.call('POST', `/v1/episodes/${EP}/comments`, { body: 'root', offsetMs: 5_000 }, a.token)).json()) as { comment: { id: string } }).comment;
   await t.call('POST', `/v1/episodes/${EP}/comments`, { body: 'reply', parentId: root.id }, a.token);

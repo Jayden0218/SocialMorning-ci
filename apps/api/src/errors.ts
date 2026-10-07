@@ -12,7 +12,9 @@ export type ErrorCode = 'validation' | 'unauthenticated' | 'forbidden' | 'not_fo
   // M21 (specs/022-m21-the-xiaoyuzhou-gaps/contracts/api.md): a first comment waits for the community rules
   | 'rules_required'
   // M22 lane 5 (specs/023-m22-the-xiaoyuzhou-gaps-2/contracts/api.md): bans, translation, gifts
-  | 'is_cohost' | 'plus_required' | 'not_offered' | 'already_claimed' | 'already_owned' | 'cancelled';
+  | 'is_cohost' | 'plus_required' | 'not_offered' | 'already_claimed' | 'already_owned' | 'cancelled'
+  // M23 US6: someone's subscriptions are private (was a hand-written 403 in routes/social/profiles.ts)
+  | 'private';
 
 const STATUS: Record<ErrorCode, number> = {
   validation: 422,
@@ -50,6 +52,7 @@ const STATUS: Record<ErrorCode, number> = {
   already_claimed: 409,
   already_owned: 409,
   cancelled: 410,
+  private: 403,
 };
 
 export class ApiError extends Error {
