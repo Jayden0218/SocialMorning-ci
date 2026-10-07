@@ -23,9 +23,6 @@
       --color-playDisc: #feeba5;
       --color-playGlyph: #8a5a00;
       --color-veil: rgba(251, 248, 241, 0.88);
-      --color-segment: #f1ebdd;
-      --color-switchOff: #d9d3c4;
-      --color-handle: rgba(17, 17, 20, 0.22);
     }
     @variant dark {
       --color-background: #fbf8f1;
@@ -46,9 +43,6 @@
       --color-playDisc: #feeba5;
       --color-playGlyph: #8a5a00;
       --color-veil: rgba(251, 248, 241, 0.88);
-      --color-segment: #f1ebdd;
-      --color-switchOff: #d9d3c4;
-      --color-handle: rgba(17, 17, 20, 0.22);
     }
   }
 }
@@ -73,9 +67,6 @@
   --color-playDisc: #feeba5;
   --color-playGlyph: #8a5a00;
   --color-veil: rgba(251, 248, 241, 0.88);
-  --color-segment: #f1ebdd;
-  --color-switchOff: #d9d3c4;
-  --color-handle: rgba(17, 17, 20, 0.22);
 }
 @theme inline {
   --text-*: initial;
@@ -83,7 +74,6 @@
   --text-xs: 12px;
   --text-meta: 13px;
   --text-body: 14px;
-  --text-lead: 15px;
   --text-sm: 16px;
   --text-title: 17px;
   --text-base: 20px;
@@ -107,7 +97,6 @@
   --radius-artwork: 16px;
   --radius-pill: 999px;
   --radius-artwork-lg: 22px;
-  --radius-sheet: 24px;
 }
 @utility border-hairline {
   border-width: hairlineWidth();

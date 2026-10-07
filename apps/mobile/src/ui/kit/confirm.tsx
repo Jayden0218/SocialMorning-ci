@@ -46,7 +46,7 @@ export function ConfirmDialog(props: { request: ConfirmRequest | undefined; onCl
   return (
     <Actionsheet isOpen={r !== undefined} onClose={props.onClose}>
       <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-      <ActionsheetContent className="px-screen-x pt-gap items-stretch" accessibilityViewIsModal>
+      <ActionsheetContent className="bg-background rounded-t-artwork-lg px-screen-x pt-gap items-stretch" accessibilityViewIsModal>
         <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
         <Text className="text-text font-display text-[30px] leading-[39px] mt-row" accessibilityRole="header">{r?.title ?? ''}</Text>
         {r?.message ? <Text className="text-muted text-[15px] leading-[22px] mt-gap">{r.message}</Text> : null}

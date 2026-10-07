@@ -151,6 +151,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 |---|---|
 | `expo-audio-adapter.ts` | Connects the app's player to the phone's real audio engine. |
 | `finished.ts` | Decides when an episode counts as finished. |
+| `preview.ts` | A paid episode's free preview: play only [startMs, endMs) for a listener who has not bought it. |
 | `reducer.ts` | The player's rules: how each event changes play state, testable without a phone. |
 | `store.ts` | Links player rules, audio engine and storage; gives screens the player. |
 | `types.ts` | Defines player states, events and actions shared by the player files. |

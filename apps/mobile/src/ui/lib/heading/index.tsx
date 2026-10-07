@@ -11,7 +11,6 @@ import {
 import { headingStyle } from './styles';
 import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils';
 import { withUniwind } from 'uniwind';
-import { useFace } from '../text';
 
 type IHeadingProps = VariantProps<typeof headingStyle> &
   React.ComponentPropsWithoutRef<typeof H1Base> & {
@@ -186,13 +185,9 @@ const MappedHeading = memo(
 
 const Heading = memo(
   forwardRef<React.ComponentRef<typeof H1>, IHeadingProps>(function Heading(
-    { className, size = 'lg', as: AsComp, style, ...props },
+    { className, size = 'lg', as: AsComp, ...props },
     ref
   ) {
-    // M24 US18 (design-social #10): html-elements' H1…H6 skipped the face picker → system bold.
-    // A heading without a weight class of its own is the serif, Lora Bold.
-    const face = useFace(className, 'Lora-Bold');
-    const faced = face ? [face, style] : style;
     const {
       isTruncated,
       bold,
@@ -218,13 +213,12 @@ const Heading = memo(
             class: className,
           })}
           {...props}
-          style={faced}
         />
       );
     }
 
     return (
-      <MappedHeading className={className} size={size} ref={ref} {...props} style={faced} />
+      <MappedHeading className={className} size={size} ref={ref} {...props} />
     );
   })
 );
