@@ -30,3 +30,8 @@ struct SocialNetShortcuts: AppShortcutsProvider {
     )
   }
 }
+
+// M21 (install 2026-10-07): an ExtensionKit app-intents extension must have an entry point, or iOS
+// refuses the whole app ("Expected executable … to have a __swift5_entry section").
+@main
+struct SocialNetIntentsExtension: AppIntentsExtension {}
