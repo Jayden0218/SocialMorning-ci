@@ -16,7 +16,6 @@
  * kept on this phone and sent alone (`PUT /v1/me/push-prefs` with that one key); on open the
  * server's values win, so a change on another device shows here.
  */
-import { reportAndDrop } from '@/telemetry/reportError';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Linking } from 'react-native';
@@ -80,7 +79,7 @@ export default function PushSettings(): React.ReactElement {
   const save = (next: { newEpisodes: boolean; popular: boolean }) => {
     setPref(stores.settings, 'newEpisodePush', next.newEpisodes);
     setPref(stores.settings, 'popularPush', next.popular);
-    if (listener) void api.pushPrefs(next).catch(reportAndDrop('push.prefs'));
+    if (listener) void api.pushPrefs(next).catch(() => undefined);
   };
   // M22 US1: the six people-and-status switches; on open the server's values win.
   const m22 = useM22SocialApi();
@@ -104,7 +103,7 @@ export default function PushSettings(): React.ReactElement {
   const flip = (p: (typeof PEOPLE)[number], v: boolean) => {
     setPeople((now) => ({ ...now, [p.key]: v }));
     setPref(stores.settings, p.pref, v);
-    if (listener) void m22.setPushSwitches({ [p.key]: v }).catch(reportAndDrop('push.switches'));
+    if (listener) void m22.setPushSwitches({ [p.key]: v }).catch(() => undefined);
   };
   const m12 = useM12Api();
   const loadShows = useCallback(() => m12.notifyShows(), [m12]);

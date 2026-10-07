@@ -3,7 +3,6 @@
  * What the M4 screens need: the clips sender, a per-episode clip list cache, and the
  * feed/profile client. Sits inside <SocialProvider> (same api, same listener).
  */
-import { reportError } from '@/telemetry/reportError';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 import { useSocial } from '@/social/context';
@@ -61,7 +60,7 @@ export function GraphProvider(props: { children?: ReactNode }): ReactNode {
       try {
         const r = await api.episodeClips(episodeId);
         setLists((l) => ({ ...l, [episodeId]: r.clips }));
-      } catch (e) { reportError('graph.load', e); /* offline or unregistered: keep what we have */ } finally { setLoading(false); }
+      } catch { /* offline or unregistered: keep what we have */ } finally { setLoading(false); }
     }, [episodeId]);
     useEffect(() => { void refresh(); }, [refresh]);
     void version; // re-render on bump

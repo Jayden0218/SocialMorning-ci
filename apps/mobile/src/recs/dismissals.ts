@@ -7,7 +7,6 @@
  * One list for the whole app (a small module store), loaded when a screen that uses it comes
  * into focus. Changes are shown at once and undone if the server refuses them.
  */
-import { reportError } from '@/telemetry/reportError';
 import { useCallback, useEffect, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import type { EpisodeCard } from '@/social/api';
@@ -28,7 +27,7 @@ export function dismissedIn(list: readonly Pick<Dismissal, 'kind' | 'itemKey'>[]
 export const keyFor = (kind: DismissalKind, card: Pick<EpisodeCard, 'id' | 'feedUrl'>): string => (kind === 'episode' ? card.id : card.feedUrl);
 
 async function load(api: ProfileApi): Promise<void> {
-  try { items = await api.dismissals(); emit(); } catch (e) { reportError('recs.dismissals', e); /* keep the copy we have */ }
+  try { items = await api.dismissals(); emit(); } catch { /* keep the copy we have */ }
 }
 
 export function useDismissals(): {

@@ -6,7 +6,6 @@
  * where it waits above the message box until it is sent. Owner, 2026-10-05: a show's Share carries
  * `text` (its name and link) instead, which waits in the message box.
  */
-import { useLoad } from '@/ui/kit/useLoad';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { FlatList } from '@/ui/lib/flat-list';
@@ -29,8 +28,13 @@ export default function NewChat(): React.ReactElement {
   const params = useLocalSearchParams<{ episodeId?: string; episodeTitle?: string; text?: string }>();
   const { listener } = useSocial();
   const chat = useChatApi();
-  // M23 US9: cancelled on unmount; only the newest answer lands.
-  const [state, load] = useLoad(listener ? () => chat.friends().then((friends) => ({ friends })) : undefined, [chat, listener], 'chat.friends');
+  const [state, setState] = useState<State>({ kind: 'loading' });
+  const load = useCallback(() => {
+    if (!listener) return;
+    setState({ kind: 'loading' });
+    chat.friends().then((friends) => setState({ kind: 'ok', friends }), () => setState({ kind: 'error' }));
+  }, [chat, listener]);
+  useEffect(() => { load(); }, [load]);
 
   const sharingEpisode = params.episodeId !== undefined && params.episodeId !== '';
   const sharingText = params.text !== undefined && params.text !== '';

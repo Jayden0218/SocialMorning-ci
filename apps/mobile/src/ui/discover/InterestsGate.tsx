@@ -6,7 +6,6 @@
  * /onboarding/interests when `interestsDueFrom` says so. Offline, step 1 is skipped and the phone's
  * own record decides.
  */
-import { reportError } from '@/telemetry/reportError';
 import { useEffect, useRef } from 'react';
 import { router } from 'expo-router';
 import { useStores } from '@/ui/shell/providers';
@@ -33,8 +32,7 @@ export function InterestsGate(props: { onTabs: boolean }): null {
           if (r.genreIds.length >= INTERESTS_MIN) savePicked(stores.settings, r.genreIds);
           else if (r.skippedAt && !stores.settings.get(KEY_SKIPPED)) stores.settings.set(KEY_SKIPPED, String(Date.parse(r.skippedAt)));
         }
-      } catch (e) {
-        reportError('discover.interests', e);
+      } catch {
         // Offline: the phone's own record decides.
       }
       if (interestsDueFrom(stores.settings, Date.now())) router.push('/onboarding/interests');

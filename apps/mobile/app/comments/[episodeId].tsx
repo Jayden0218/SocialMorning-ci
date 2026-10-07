@@ -48,7 +48,7 @@ import { ReportSheet, type ReportTarget } from '@/ui/comments/ReportSheet';
 import { EmptyState } from '@/ui/kit/EmptyState';
 import { useStores, useToast } from '@/ui/shell/providers';
 import { useColours } from '@/ui/kit/useColours';
-import { episodePlayView, livePositionMs, usePlayer, usePlayerSelector } from '@/playback/store';
+import { usePlayer, usePlayerState } from '@/playback/store';
 import { toPlayable } from '@/storage/playable';
 import { isFavComment, toggleFavComment } from '@/me/fav-comments';
 import { EpisodeCard } from '@/ui/comments/EpisodeCard';
@@ -97,15 +97,6 @@ const ORDERS: { value: CommentOrder; label: string }[] = [
   { value: 'smart', label: 'Smart' },
 ];
 
-/**
- * M23 US7: the one part of this page that follows the playhead (the "at 12:34" pill), so a TICK
- * re-renders this box and not the comment list. It re-renders once per whole second.
- */
-function FollowPlayhead(props: { episodeId: string | undefined; at: () => number | undefined; children: (atMs: number | undefined) => React.ReactElement }): React.ReactElement {
-  usePlayerSelector((s) => { const v = episodePlayView(s, props.episodeId); return !v.loaded ? -2 : 'positionMs' in s && typeof s.positionMs === 'number' ? Math.floor(s.positionMs / 1000) : -1; });
-  return props.children(props.at());
-}
-
 export default function CommentsScreen(): React.ReactElement {
   const { episodeId, at } = useLocalSearchParams<{ episodeId: string; at?: string }>();
   const stores = useStores();
@@ -114,6 +105,7 @@ export default function CommentsScreen(): React.ReactElement {
   const m12 = useM12Api();
   const extras = useCommentExtrasApi();
   const player = usePlayer();
+  const playerState = usePlayerState();
   const { api, composer, listener, useEpisodeSocial, refresh, bump } = useSocial();
   const safety = useSafety();
   usePoll(episodeId);
@@ -141,9 +133,9 @@ export default function CommentsScreen(): React.ReactElement {
   }, [api, listener, feedUrl]);
 
   // The moment the listener came from (the player's position), else where they are in this episode.
-  // M23 US7: read live when needed; only the small write box below follows the playhead.
-  const atNow = (): number | undefined => at !== undefined && at !== '' && !Number.isNaN(Number(at)) ? Number(at)
-    : livePositionMs(player, episodeId) ?? stores.positions.get(episodeId ?? '')?.offsetMs;
+  const atMs = at !== undefined && at !== '' && !Number.isNaN(Number(at)) ? Number(at)
+    : playerState.kind !== 'idle' && playerState.episodeId === episodeId && 'positionMs' in playerState && typeof playerState.positionMs === 'number' ? playerState.positionMs
+      : stores.positions.get(episodeId ?? '')?.offsetMs;
 
   const visible = useMemo(() => safety.comments(cached?.social.comments ?? []), [cached, safety]);
   const count = visible.reduce((n, x) => n + (x.deleted ? 0 : 1) + (x.replies ?? []).filter((r) => !r.deleted).length, 0);
@@ -159,11 +151,11 @@ export default function CommentsScreen(): React.ReactElement {
   const compose = (parentId?: string) => {
     if (!listener) { needSignIn(); return; }
     if (!episodeId) return;
-    setComposing(composer.open({ episodeId, offsetMs: atNow() ?? 0, ...(episode?.durationMs !== undefined ? { durationMs: episode.durationMs } : {}) }, parentId));
+    setComposing(composer.open({ episodeId, offsetMs: atMs ?? 0, ...(episode?.durationMs !== undefined ? { durationMs: episode.durationMs } : {}) }, parentId));
   };
   const seek = (offsetMs: number) => {
     if (!episodeId) return;
-    if (episodePlayView(player.getState(), episodeId).loaded) { player.seek(offsetMs); player.play(); return; }
+    if (playerState.kind !== 'idle' && playerState.episodeId === episodeId) { player.seek(offsetMs); player.play(); return; }
     const playable = toPlayable(stores, episodeId);
     if (playable) { player.load(playable, 'play'); player.seek(offsetMs); }
   };
@@ -315,10 +307,9 @@ export default function CommentsScreen(): React.ReactElement {
       <Box className="mx-screen-x my-2">
       <VoiceComposer
         episodeId={episodeId ?? ''}
-        offsetMs={() => livePositionMs(player, episodeId)}
+        offsetMs={() => (playerState.kind !== 'idle' && playerState.episodeId === episodeId && 'positionMs' in playerState && typeof playerState.positionMs === 'number' ? playerState.positionMs : undefined)}
         onPosted={() => { if (episodeId) void refresh(episodeId); }}
       >
-      <FollowPlayhead episodeId={episodeId} at={atNow}>{(atMs) => (
       <Pressable onPress={() => compose()} accessibilityRole="button" accessibilityLabel={listener ? `Write a comment${atMs !== undefined ? ` at ${mmss(atMs)}` : ''}` : 'Sign in to join the conversation'} className="flex-row items-center gap-2.5 px-2 bg-surface border-2 border-primary rounded-pill" style={WRITE}>
         {listener ? (
           <Box className="rounded-pill bg-accentTint items-center justify-center" style={ME} accessible={false}>
@@ -328,7 +319,6 @@ export default function CommentsScreen(): React.ReactElement {
         <Text className={listener ? 'text-muted text-body flex-1' : 'text-muted text-body flex-1 pl-2'} numberOfLines={1}>{listener ? 'Say something about this episode…' : 'Sign in to join the conversation'}</Text>
         {listener && atMs !== undefined ? <Text className="text-onPrimary text-xs font-bold bg-primary rounded-pill px-2.5 py-1.5">{`at ${mmss(atMs)}`}</Text> : null}
       </Pressable>
-      )}</FollowPlayhead>
       </VoiceComposer>
       </Box>
       <Actionsheet isOpen={menu !== undefined} onClose={() => setMenu(undefined)}>

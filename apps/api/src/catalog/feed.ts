@@ -5,7 +5,7 @@ import { mediaKindOf } from '@socialmorning/social-core';
  * "new on this show", and the category behind "trending in". Cached 1 h; the parser never
  * throws for a bad item (principle IV).
  */
-import { parseFeed, type Episode, type ParsedFeed } from '@socialmorning/feed-parser';
+import { FEED_TIMEOUT_MS, parseFeed, readFeedText, type Episode, type MakeDecoder, type ParsedFeed } from '@socialmorning/feed-parser';
 import { hash } from '@socialmorning/social-core';
 import type { Db } from '../db/db.ts';
 import { cached, TTL } from '../db/repos/cache.ts';
@@ -17,16 +17,92 @@ export const USER_AGENT = 'SocialNet/0.1 (+https://socialmorning-api.vercel.app)
 
 export type FetchedFeed = { show: ParsedFeed['show']; episodes: Episode[]; warnings: ParsedFeed['warnings'] };
 
-export async function fetchFeed(db: Db, f: typeof fetch, feedUrl: string): Promise<{ feed: FetchedFeed; stale: boolean }> {
+/** Node has full ICU, so every label a feed names (gbk, big5, windows-1252 …) decodes. */
+const nodeDecoder: MakeDecoder = (label, fatal) => new TextDecoder(label, { fatal });
+
+/**
+ * Runs `work` with an abort signal that fires after `ms`, and gives up at `ms` even if the
+ * fetch inside ignores the signal (M23 US5: one feed that never answers must not hold the
+ * rest of the hourly run past Vercel's 60 s).
+ */
+export async function withDeadline<T>(ms: number, label: string, work: (signal: AbortSignal) => Promise<T>): Promise<T> {
+  const ctl = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      const e = new Error(`${label}: no answer in ${ms} ms`);
+      ctl.abort(e);
+      reject(e);
+    }, ms);
+  });
+  try {
+    return await Promise.race([work(ctl.signal), late]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * M23 US5 (FR-009): 8 s for the whole fetch (headers and body), 5 MB at most (streamed, so a
+ * huge file stops downloading at the cap), and the text decoded in the feed's own charset.
+ * `opts.timeoutMs` exists for the tests.
+ */
+export async function fetchFeed(db: Db, f: typeof fetch, feedUrl: string, opts: { timeoutMs?: number } = {}): Promise<{ feed: FetchedFeed; stale: boolean }> {
   const r = await cached<FetchedFeed>(db, `feed:${feedUrl}`, TTL.feed, async () => {
-    // Seen live 2026-09-22: feeds.podcastindex.org answers 403 to a fetch with no User-Agent (the
-    // phone's fetch sends one). Name the app, as any polite feed reader does.
-    const res = await f(feedUrl, { headers: { accept: 'application/rss+xml, application/xml, text/xml', 'user-agent': USER_AGENT } });
-    if (!res.ok) throw new Error(`feed ${feedUrl}: ${res.status}`);
-    const parsed = parseFeed(await res.text(), feedUrl, { hash });
-    return { show: parsed.show, episodes: parsed.episodes.slice(0, 50), warnings: parsed.warnings };
+    const xml = await withDeadline(opts.timeoutMs ?? FEED_TIMEOUT_MS, `feed ${feedUrl}`, async (signal) => {
+      // Seen live 2026-09-22: feeds.podcastindex.org answers 403 to a fetch with no User-Agent (the
+      // phone's fetch sends one). Name the app, as any polite feed reader does.
+      const res = await f(feedUrl, { signal, headers: { accept: 'application/rss+xml, application/xml, text/xml', 'user-agent': USER_AGENT } });
+      if (!res.ok) throw new Error(`feed ${feedUrl}: ${res.status}`);
+      return readFeedText(res, nodeDecoder);
+    });
+    const parsed = parseFeed(xml, feedUrl, { hash, maxItems: 50 });
+    return { show: parsed.show, episodes: parsed.episodes, warnings: parsed.warnings };
   });
   return { feed: r.body, stale: r.stale };
+}
+
+/** The cache key prefix that marks a publisher's `itunes:block` (read by `hiddenFeedUrls`). */
+export const FEED_BLOCK_PREFIX = 'feed-block:';
+
+/**
+ * M23 US11: `itunes:block` = Yes hides the show (the publisher asked directories not to list
+ * it); the mark goes when the feed stops saying so. Kept as a `cache` row because migration
+ * 022 has no column for it; the hourly cache sweep deletes only `feed:` and `apple:search:`.
+ */
+export async function setPublisherBlock(db: Db, feedUrl: string, blocked: boolean): Promise<void> {
+  if (blocked) {
+    await db.query("INSERT INTO cache (key, body, fetched_at) VALUES ($1, '{}'::jsonb, now()) ON CONFLICT (key) DO UPDATE SET fetched_at = now()", [FEED_BLOCK_PREFIX + feedUrl]);
+  } else {
+    await db.query('DELETE FROM cache WHERE key = $1', [FEED_BLOCK_PREFIX + feedUrl]);
+  }
+}
+
+/**
+ * M23 US11: `itunes:new-feed-url` — the publisher moved the feed. Every live subscription moves
+ * to the new address (the old row becomes a tombstone, so a phone's next sync converges), and
+ * the Studio's `subscription_events` stay true. A listener already subscribed to the new
+ * address keeps that row. Returns how many subscriptions moved.
+ */
+export async function followMovedFeed(db: Db, from: string, to: string): Promise<number> {
+  if (from === to || !/^https?:\/\//i.test(to)) return 0;
+  return db.transaction(async (tx) => {
+    const moved = await tx.query<{ listener_id: string }>(
+      'UPDATE subscriptions SET deleted_at = now() WHERE feed_url = $1 AND deleted_at IS NULL RETURNING listener_id', [from]);
+    if (moved.length === 0) return 0;
+    const ids = moved.map((m) => m.listener_id);
+    await tx.query(
+      `INSERT INTO subscriptions (listener_id, feed_url, created_at)
+       SELECT id, $2, now() FROM unnest($1::uuid[]) AS id
+       ON CONFLICT (listener_id, feed_url) DO UPDATE SET deleted_at = NULL, created_at = now() WHERE subscriptions.deleted_at IS NOT NULL`,
+      [ids, to]);
+    await tx.query(
+      `INSERT INTO subscription_events (listener_id, feed_url, kind, at)
+       SELECT id, $2, 'unsub', now() FROM unnest($1::uuid[]) AS id
+       UNION ALL SELECT id, $3, 'sub', now() FROM unnest($1::uuid[]) AS id`,
+      [ids, from, to]);
+    return moved.length;
+  });
 }
 
 /** The M3 episode id: the same fnv1a64 the phone computes. */

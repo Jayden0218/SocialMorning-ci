@@ -14,6 +14,7 @@ import { colour } from '@/design/tokens';
 import { Text } from '@/ui/lib/text';
 import { Heading } from '@/ui/lib/heading';
 import { Button, ButtonText } from '@/ui/lib/button';
+import { Badge, BadgeText } from '@/ui/lib/badge';
 import { Image } from '@/ui/lib/image';
 import { Input, InputField } from '@/ui/lib/input';
 import { Textarea, TextareaInput } from '@/ui/lib/textarea';
@@ -39,6 +40,7 @@ it.each([
   ['Text', () => h(Text, null, 'words')],
   ['Heading', () => h(Heading, null, 'words')],
   ['ButtonText', () => h(Button, null, h(ButtonText, null, 'words'))],
+  ['BadgeText', () => h(Badge, null, h(BadgeText, null, 'words'))],
 ])('G2: %s draws its words in a token colour, never the default black', (_name, make) => {
   const c = colourOf(make(), 'words');
   expect(c).not.toBe('undefined');

@@ -646,45 +646,5 @@
   "to": "VoicePosts | ${p.suggested ? 'Suggested. ' : ''}${voiceLabel(p, now, playing === p.id)} | toggle",
   "why": "M22 US2: a status circle's name now starts with 'Suggested.' for a suggested status; same circle, same toggle",
   "task": "T021"
- },
- {
-  "surface": "/show/[feedUrl]",
-  "name": "${item.title}. ${meta}",
-  "destination": "/episode/[id]",
-  "to": "/show/[feedUrl] | ${item.title}. ${meta} | onOpen",
-  "why": "M23 US7 (T030, FR-012): the show page row became the memoised EpisodeCardRow in the same file; same button, same name, same action — the handler is passed in as a prop",
-  "task": "M23 T030"
- },
- {
-  "surface": "/show/[feedUrl]",
-  "name": "isPlaying(item.id) ? `Pause ${item.title}` : `Play ${item.title}`",
-  "destination": "playOrPause",
-  "to": "/show/[feedUrl] | playing ? `Pause ${item.title}` : `Play ${item.title}` | onPlay",
-  "why": "M23 US7 (T030, FR-012): the show page row became the memoised EpisodeCardRow in the same file; same button, same name, same action — the handler is passed in as a prop",
-  "task": "M23 T030"
- },
- {
-  "surface": "/show/[feedUrl]",
-  "name": "More for ${item.title}",
-  "destination": "setMenuFor",
-  "to": "/show/[feedUrl] | More for ${item.title} | onMenu",
-  "why": "M23 US7 (T030, FR-012): the show page row became the memoised EpisodeCardRow in the same file; same button, same name, same action — the handler is passed in as a prop",
-  "task": "M23 T030"
- },
- {
-  "surface": "ContinueListening",
-  "name": "Continue ${episode.title}",
-  "destination": "/player",
-  "to": "removed",
-  "why": "M23 US12 (T034): src/ui/episode/ContinueListening.tsx deleted — no file imported it (checked by grep), so this card was on no screen; the mini player and Library keep \"continue\"",
-  "task": "M23 T034"
- },
- {
-  "surface": "Row",
-  "name": "props.accessibilityLabel ?? (props.line ? `${props.title}, ${props.line}` : props.title)",
-  "destination": "props.onPress",
-  "to": "removed",
-  "why": "M23 US12 (T034): src/ui/kit/Row.tsx deleted — only tests imported it (checked by grep), so this row was on no screen",
-  "task": "M23 T034"
  }
 ]

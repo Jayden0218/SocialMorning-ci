@@ -57,12 +57,14 @@ it('a label beside a control takes the remaining width, so it wraps instead of r
  * screen at 1.75× — the worst possible place for the mistake M6 found on Account.
  */
 it('the shared components and the two bars have no fixed height on anything carrying text', () => {
+  const { Row } = require('@/ui/kit/Row');
   // M9: the hand-built Button and Chip are gone; the library Button is checked as it is used.
   const { Button, ButtonText } = require('@/ui/lib/button');
   const { TabBar } = require('@/ui/shell/TabBar');
   const { hit } = require('@/design');
 
   const cases: [string, React.ReactElement][] = [
+    ['Row', createElement(Row, { title: 'A title long enough to wrap', subtitle: 'Reply All · 34:17', onPress: () => undefined })],
     ['Button', createElement(Button, { onPress: () => undefined, accessibilityRole: 'button', className: 'rounded-pill px-section', style: { minHeight: hit.min } }, createElement(ButtonText, null, 'Play this episode'))],
     ['TabBar', createElement(TabBar, { items: [{ key: 'index', label: 'Library' }], activeKey: 'index', onSelect: () => undefined })],
   ];
