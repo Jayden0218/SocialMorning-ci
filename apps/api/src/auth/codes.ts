@@ -47,18 +47,19 @@ export async function storeCode(db: Db, email: string, code: string, pepper: str
  */
 export async function checkCode(db: Db, email: string, code: string, pepper: string, now: number): Promise<'ok' | 'wrong' | 'expired'> {
   const [row] = await db.query<Row>(
-    `SELECT code_hash, expires_at, attempts FROM email_codes
-      WHERE email = $1 AND attempts < $2 AND expires_at > $3`,
+    `UPDATE email_codes SET attempts = attempts + 1
+      WHERE email = $1 AND attempts < $2 AND expires_at > $3
+      RETURNING code_hash, expires_at, attempts`,
     [email, MAX_ATTEMPTS, new Date(now)],
   );
   if (!row) return 'expired';
   const want = Buffer.from(row.code_hash);
   const got = codeHash(email, code, pepper);
   if (want.length === got.length && timingSafeEqual(want, got)) {
+    await db.query('UPDATE email_codes SET attempts = attempts - 1 WHERE email = $1 AND attempts > 0', [email]);
     return 'ok';
   }
-  await db.query('UPDATE email_codes SET attempts = attempts + 1 WHERE email = $1', [email]);
-  if (row.attempts + 1 >= MAX_ATTEMPTS) await consumeCode(db, email);
+  if (row.attempts >= MAX_ATTEMPTS) await consumeCode(db, email);
   return 'wrong';
 }
 

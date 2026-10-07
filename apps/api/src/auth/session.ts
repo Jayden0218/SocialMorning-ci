@@ -37,7 +37,8 @@ export async function listenerForToken(db: Db, token: string, pepper: string): P
     `WITH s AS (
        SELECT l.id, l.email, l.display_name, l.created_at, l.suspended_at, s.device_label
          FROM sessions s JOIN listeners l ON l.id = s.listener_id
-        WHERE s.token_hash = $1 AND $2::int > 0
+        WHERE s.token_hash = $1 AND s.acting_admin_id IS NULL
+          AND s.last_seen_at > now() - make_interval(days => $2::int)
      ), u AS (
        UPDATE sessions SET last_seen_at = now()
         WHERE token_hash = $1 AND EXISTS (SELECT 1 FROM s)

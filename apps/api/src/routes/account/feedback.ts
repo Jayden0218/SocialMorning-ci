@@ -40,7 +40,8 @@ feedback.post('/', optionalAuth, json(body), async (c) => {
   const listener = c.get('listener');
   const images: ImageIn[] = [];
   if ((b.images ?? []).length > 0) {
-    if (listener && (await imagesSentToday(db, listener.id)) >= IMAGE_MESSAGES_PER_DAY) {
+    if (!listener) throw new ApiError('unauthenticated', 'Sign in to send pictures. Text alone can be sent signed out.');
+    if ((await imagesSentToday(db, listener.id)) >= IMAGE_MESSAGES_PER_DAY) {
       throw new ApiError('locked', `At most ${IMAGE_MESSAGES_PER_DAY} messages with pictures a day. Send text, or try tomorrow.`);
     }
   }

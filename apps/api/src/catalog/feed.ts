@@ -49,7 +49,7 @@ export async function withDeadline<T>(ms: number, label: string, work: (signal: 
  */
 export async function fetchFeed(db: Db, f: typeof fetch, feedUrl: string, opts: { timeoutMs?: number } = {}): Promise<{ feed: FetchedFeed; stale: boolean }> {
   const r = await cached<FetchedFeed>(db, `feed:${feedUrl}`, TTL.feed, async () => {
-    const xml = await withDeadline(opts.timeoutMs ?? FEED_TIMEOUT_MS * 4, `feed ${feedUrl}`, async (signal) => {
+    const xml = await withDeadline(opts.timeoutMs ?? FEED_TIMEOUT_MS, `feed ${feedUrl}`, async (signal) => {
       // Seen live 2026-09-22: feeds.podcastindex.org answers 403 to a fetch with no User-Agent (the
       // phone's fetch sends one). Name the app, as any polite feed reader does.
       const res = await f(feedUrl, { signal, headers: { accept: 'application/rss+xml, application/xml, text/xml', 'user-agent': USER_AGENT } });
