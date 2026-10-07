@@ -36,23 +36,6 @@ export async function createFeedback(db: Db, f: { listenerId: string | null; kin
   });
 }
 
-/** M23 US3: feedback messages with pictures this listener sent in the last 24 hours. */
-export async function imagesSentToday(db: Db, listenerId: string): Promise<number> {
-  const [r] = await db.query<{ n: number }>(
-    `SELECT count(*)::int AS n FROM feedback f
-      WHERE f.listener_id = $1 AND f.created_at > now() - interval '24 hours'
-        AND EXISTS (SELECT 1 FROM feedback_images i WHERE i.feedback_id = f.id)`,
-    [listenerId],
-  );
-  return r?.n ?? 0;
-}
-
-/** M23 US3: every stored feedback picture together, in bytes (the ceiling check). */
-export async function feedbackImageBytes(db: Db): Promise<number> {
-  const [r] = await db.query<{ n: string | number }>('SELECT COALESCE(sum(octet_length(bytes)), 0)::bigint AS n FROM feedback_images');
-  return Number(r?.n ?? 0);
-}
-
 export type FeedbackRow = { id: string; kind: string; body: string; app_version: string | null; created_at: string | Date; display_name: string | null; images: number };
 
 export async function recentFeedback(db: Db, limit = 50): Promise<FeedbackRow[]> {

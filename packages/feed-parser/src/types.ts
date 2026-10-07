@@ -18,6 +18,21 @@ export type Soundbite = {
   title?: string;
 };
 
+/** `podcast:person` — someone on the show or the episode (kept for later use, M23 US11). */
+export type Person = {
+  name: string;
+  role?: string;
+  group?: string;
+  imageUrl?: string;
+  href?: string;
+};
+
+/** `podcast:funding` — where listeners can support the show (kept for later use). */
+export type Funding = {
+  url: string;
+  title?: string;
+};
+
 export type Show = {
   feedUrl: string;
   /** `podcast:guid` — the only identity a feed carries that survives being
@@ -33,6 +48,15 @@ export type Show = {
   explicit: boolean;
   categories: string[];
   link?: string;
+  /** `itunes:new-feed-url` — the publisher moved the feed here; a reader should follow it and
+   *  move its subscribers (M23 US11). Only set when it differs from `feedUrl`. */
+  newFeedUrl?: string;
+  /** `itunes:block` = Yes — the publisher asked directories to hide this show. Only set when true. */
+  blocked?: true;
+  /** Only set when the feed names any. */
+  persons?: Person[];
+  /** Only set when the feed names any. */
+  funding?: Funding[];
   /** Over the channel fields only, so a re-poll can tell "the show changed"
    *  from "an episode was added" without diffing every field. */
   contentHash: string;
@@ -59,6 +83,8 @@ export type Episode = {
   chaptersUrl?: string;
   transcripts: Transcript[];
   soundbites: Soundbite[];
+  /** `podcast:person` on the item; only set when it names any. */
+  persons?: Person[];
   contentHash: string;
 };
 

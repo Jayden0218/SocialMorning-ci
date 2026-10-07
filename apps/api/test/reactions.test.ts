@@ -3,7 +3,6 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
-import { putEpisode } from './put-episode.ts';
 
 const ep = { feedUrl: 'https://feeds.example.com/x.xml', guid: 'g189', title: '#189', enclosureUrl: 'https://cdn/189.mp3' };
 const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
@@ -14,7 +13,7 @@ const heatRows = (t: TestDb) => t.q<{ bucket: number; distinct_listeners: number
 // quickstart A9 + the toggle (Q2)
 test('A9: reacting 20 times at one moment is one row; the 21st (a toggle) removes it', async () => {
   const t = await freshDb();
-  await putEpisode(t, `${EP}`, { ...ep, durationMs: D });
+  await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: D });
   const a = await signUp(t);
   let last: { reacted: boolean; bucket: number } | undefined;
   for (let i = 0; i < 20; i++) {
@@ -38,7 +37,7 @@ test('A9: reacting 20 times at one moment is one row; the 21st (a toggle) remove
 // quickstart A16
 test('A16: no duration → 409 duration_unknown and heat unavailable; a duration in the body unlocks it', async () => {
   const t = await freshDb();
-  await putEpisode(t, `${EP}`, ep);
+  await t.call('PUT', `/v1/episodes/${EP}`, ep);
   const a = await signUp(t);
   const no = await t.call('PUT', `/v1/episodes/${EP}/reactions`, { offsetMs: 1000 }, a.token);
   assert.equal(no.status, 409);
@@ -53,7 +52,7 @@ test('A16: no duration → 409 duration_unknown and heat unavailable; a duration
 // quickstart A10 — guard G7
 test('A10: a listener who both reacts and comments in one segment counts once; two listeners count twice', async () => {
   const t = await freshDb();
-  await putEpisode(t, `${EP}`, { ...ep, durationMs: D });
+  await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: D });
   const a = await signUp(t, 'a@example.com', 'Alex');
   const b = await signUp(t, 'b@example.com', 'Bo');
   await t.call('PUT', `/v1/episodes/${EP}/reactions`, { offsetMs: 872_000 }, a.token);
@@ -66,11 +65,11 @@ test('A10: a listener who both reacts and comments in one segment counts once; t
 
 test('FR-021: a duration arriving via PUT /episodes/:id places already-stored moments', async () => {
   const t = await freshDb();
-  await putEpisode(t, `${EP}`, ep);
+  await t.call('PUT', `/v1/episodes/${EP}`, ep);
   const a = await signUp(t);
   await t.call('POST', `/v1/episodes/${EP}/comments`, { body: 'early', offsetMs: 872_000 }, a.token);
   assert.deepEqual(await heatRows(t), []);
-  await putEpisode(t, `${EP}`, { ...ep, durationMs: D });
+  await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: D });
   assert.deepEqual(await heatRows(t), [{ bucket: 30, distinct_listeners: 1 }]);
   await t.close();
 });

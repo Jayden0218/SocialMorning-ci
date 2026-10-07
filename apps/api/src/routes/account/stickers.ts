@@ -10,7 +10,6 @@ import { z } from 'zod';
 import { checkPlacements, type Placement } from '@socialmorning/social-core';
 import type { AuthEnv } from '../../auth/session.ts';
 import { requireAuth } from '../../auth/session.ts';
-import { ApiError } from '../../errors.ts';
 import { placementsFor, replacePlacements } from '../../db/repos/account/stickers.ts';
 
 const item = z.object({ stickerId: z.string().min(1).max(64), x: z.number(), y: z.number(), scale: z.number(), rot: z.number(), z: z.number() });
@@ -29,10 +28,10 @@ stickers.get('/placements', requireAuth, async (c) => c.json({ items: await plac
 
 stickers.put('/placements', requireAuth, async (c) => {
   const parsed = body.safeParse(await c.req.json().catch(() => undefined));
-  if (!parsed.success) throw new ApiError('validation', 'Send { items: [{ stickerId, x, y, scale, rot, z }] }.', { fields: ['items'] });
+  if (!parsed.success) return c.json({ error: 'validation', message: 'Send { items: [{ stickerId, x, y, scale, rot, z }] }.', fields: ['items'] }, 400);
   const items: Placement[] = parsed.data.items;
   const check = checkPlacements(items);
-  if (check !== 'ok') throw new ApiError('validation', SAYS[check], { reason: check, fields: ['items'] });
+  if (check !== 'ok') return c.json({ error: 'validation', message: SAYS[check], reason: check, fields: ['items'] }, 400);
   await replacePlacements(c.get('db'), c.get('listener')!.id, items);
   return c.body(null, 204);
 });

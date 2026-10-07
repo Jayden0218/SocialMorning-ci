@@ -7,7 +7,6 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64, validateIssues } from '@socialmorning/social-core';
 import { freshDb, signUp } from './harness.ts';
-import { putEpisode } from './put-episode.ts';
 import shipped from '../picks.json' with { type: 'json' };
 
 const F = 'https://feeds.example.com/a.xml';
@@ -26,7 +25,7 @@ const picksRaw = {
   ],
 };
 const register = (t: Awaited<ReturnType<typeof freshDb>>, feedUrl: string, guid: string, title: string) =>
-  putEpisode(t, `${fnv1a64(`${feedUrl}\u0001${guid}`)}`, { feedUrl, guid, title, showTitle: 'S', enclosureUrl: `https://cdn/${guid}.mp3` });
+  t.call('PUT', `/v1/episodes/${fnv1a64(`${feedUrl}\u0001${guid}`)}`, { feedUrl, guid, title, showTitle: 'S', enclosureUrl: `https://cdn/${guid}.mp3` });
 
 test('FR-070: past picks — 7 days a page, newest first, never the future, next until the end; episodes the server knows come as cards', async () => {
   const t = await freshDb({ picksRaw, today: () => day(29) });

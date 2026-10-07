@@ -3,9 +3,8 @@ import { Hono } from 'hono';
 import { json } from '../../validate.ts';
 import { z } from 'zod';
 import { fnv1a64 } from '@socialmorning/social-core';
-import { requireAuth, type AuthEnv } from '../../auth/session.ts';
-import { fillEpisode, getEpisode, upsertEpisode, type EpisodeRow } from '../../db/repos/library/episodes.ts';
-import type { Db } from '../../db/db.ts';
+import type { AuthEnv } from '../../auth/session.ts';
+import { getEpisode, upsertEpisode } from '../../db/repos/library/episodes.ts';
 import { rebuildEpisodeHeat } from '../../heat/rebuild.ts';
 import { ApiError } from '../../errors.ts';
 import { genreIdFor } from '../../catalog/genres.ts';
@@ -35,31 +34,21 @@ export function publicEpisode(e: { id: string; feed_url: string; guid: string; t
 
 export const episodes = new Hono<AuthEnv>();
 
-/**
- * Registers an episode and places stored moments once its length is first known (FR-021).
- * `fill` (M23 US1, FR-001): a listener's PUT only fills empty fields of a known episode;
- * `authoritative` is the old overwrite, kept for test setup that stands in for a feed refresh.
- */
-export async function registerEpisode(db: Db, id: string, body: z.infer<typeof episodeBody>, mode: 'fill' | 'authoritative'): Promise<EpisodeRow> {
-  return db.transaction(async (tx) => {
-    const before = await getEpisode(tx, id);
-    const genre = body.categories === undefined ? undefined : genreIdFor(body.categories);
-    const { categories, ...rest } = body;
-    const input = { id, ...rest, ...(genre ? { genreId: genre.id } : {}) };
-    const after = mode === 'fill' ? await fillEpisode(tx, input) : await upsertEpisode(tx, input);
-    // FR-021: the moments were stored without buckets; the first known duration places them.
-    if ((before?.duration_ms ?? null) === null && after.duration_ms !== null) await rebuildEpisodeHeat(tx, id);
-    return after;
-  });
-}
-
-// M23 US1 (FR-001, G-M23-1): signed-out requests could rename any episode; now sign-in is required.
-episodes.put('/:id', requireAuth, json(episodeBody), async (c) => {
+episodes.put('/:id', json(episodeBody), async (c) => {
   const id = c.req.param('id');
   const body = c.req.valid('json');
   if (id !== fnv1a64(body.feedUrl + EPISODE_ID_SEPARATOR + body.guid)) {
     throw new ApiError('validation', 'The episode id does not match its feedUrl and guid.');
   }
-  const row = await registerEpisode(c.get('db'), id, body, 'fill');
+  const db = c.get('db');
+  const row = await db.transaction(async (tx) => {
+    const before = await getEpisode(tx, id);
+    const genre = body.categories === undefined ? undefined : genreIdFor(body.categories);
+    const { categories, ...rest } = body;
+    const after = await upsertEpisode(tx, { id, ...rest, ...(genre ? { genreId: genre.id } : {}) });
+    // FR-021: the moments were stored without buckets; the first known duration places them.
+    if ((before?.duration_ms ?? null) === null && after.duration_ms !== null) await rebuildEpisodeHeat(tx, id);
+    return after;
+  });
   return c.json({ episode: publicEpisode(row) });
 });

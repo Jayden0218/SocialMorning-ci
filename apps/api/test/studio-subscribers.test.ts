@@ -9,7 +9,6 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
-import { putEpisode } from './put-episode.ts';
 import { proveClaim, sCall, studioLogin } from './studio-harness.ts';
 
 const FEED = 'https://feeds.example.com/mine.xml';
@@ -63,8 +62,8 @@ test('G-M1: a muted listener cannot comment on this show — and can everywhere 
   const key = await proveClaim(t, owner.id, FEED);
   const mine = epOf(FEED, 'g1');
   const theirs = epOf(OTHER, 'g2');
-  await putEpisode(t, `${mine.id}`, { ...mine.body, durationMs: 1_000_000 });
-  await putEpisode(t, `${theirs.id}`, theirs.body);
+  await t.call('PUT', `/v1/episodes/${mine.id}`, { ...mine.body, durationMs: 1_000_000 });
+  await t.call('PUT', `/v1/episodes/${theirs.id}`, theirs.body);
   const l = await signUp(t, 'l@example.com', 'Troll');
 
   assert.equal((await sCall(t, 'PUT', `/v1/studio/shows/${key}/mutes/${l.id}`, owner)).status, 204);

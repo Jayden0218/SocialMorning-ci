@@ -9,7 +9,6 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
-import { putEpisode } from './put-episode.ts';
 
 type Out = { kind: string; key: string; payload: Record<string, unknown>; updatedAt: string; deletedAt?: string };
 const put = async (t: TestDb, token: string, items: unknown[]) =>
@@ -67,7 +66,7 @@ test('My comments: your own top-level comments with their text; a deleted one ha
   const t = await freshDb();
   const ep = { feedUrl: 'https://feeds.example.com/x.xml', guid: 'g1', title: 'Ep 1', enclosureUrl: 'https://cdn/1.mp3' };
   const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
-  await putEpisode(t, `${EP}`, { ...ep, durationMs: 600_000 });
+  await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: 600_000 });
   const a = await signUp(t, 'a@example.com', 'Alex');
   const b = await signUp(t, 'b@example.com', 'Bo');
   const c1 = (await (await t.call('POST', `/v1/episodes/${EP}/comments`, { body: 'loved this', offsetMs: 61_000 }, a.token)).json() as { comment: { id: string } }).comment;
@@ -85,6 +84,6 @@ test('My comments: your own top-level comments with their text; a deleted one ha
   const gone = mine.items.find((i) => i.id === c2.id);
   assert.equal(gone?.body, null);
   assert.equal(gone?.deleted, true);
-  assert.equal((await t.call('GET', '/v1/me/comments?before=nonsense', undefined, a.token)).status, 422); // M23 US6: bad input is 422 `validation` (the old code is `reason`)
+  assert.equal((await t.call('GET', '/v1/me/comments?before=nonsense', undefined, a.token)).status, 400);
   await t.close();
 });

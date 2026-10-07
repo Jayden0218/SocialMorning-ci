@@ -115,7 +115,7 @@ test('G-M20-8: deleted, removed by moderation, or the author\'s account deleted 
   const two = await comment(a.token);
   await add(two, a.token);
   await t.q('UPDATE comments SET removed_at = now() WHERE id = $1', [two]);
-  await t.call('POST', '/v1/internal/rebuild', { step: 'feeds' }, undefined, { authorization: 'Bearer job-token-not-secret' });
+  await t.call('POST', '/v1/internal/rebuild', { step: 'sweep' }, undefined, { authorization: 'Bearer job-token-not-secret' });
   assert.ok(f.removed.includes(f.puts[1]!), 'the sweep deleted the removed one');
   const [row] = await t.q<{ image_path: string | null }>('SELECT image_path FROM comments WHERE id = $1', [two]);
   assert.equal(row!.image_path, null);

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:podcast="https://podcastindex.org/namespace/1.0">
+  <channel>
+    <title>A Show That Moved</title>
+    <itunes:new-feed-url>https://new.example.com/feed.xml</itunes:new-feed-url>
+    <itunes:block>Yes</itunes:block>
+    <podcast:person role="Host" img="https://example.com/ana.jpg">Ana</podcast:person>
+    <podcast:funding url="https://example.com/tip">Buy us a coffee</podcast:funding>
+    <item>
+      <title>Three</title>
+      <guid>e3</guid>
+      <pubDate>Thu, 12 Sep 2024 09:00:00 CST</pubDate>
+      <enclosure url="https://cdn.example.com/3.mp3" type="audio/mpeg"/>
+    </item>
+    <item>
+      <title>Two</title>
+      <guid>e2</guid>
+      <pubDate>2024-09-11 09:00:00</pubDate>
+      <enclosure url="https://cdn.example.com/2.mp3" type="audio/mpeg"/>
+    </item>
+    <item>
+      <title>One</title>
+      <guid>e1</guid>
+      <enclosure url="https://cdn.example.com/1.mp3" type="audio/mpeg"/>
+    </item>
+  </channel>
+</rss>

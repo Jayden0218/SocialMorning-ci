@@ -10,7 +10,6 @@ import { fromPglite } from '../src/db/db.ts';
 import { createApp } from '../src/app.ts';
 import { fakeApple, fakeFeedFetch, FIXTURE_FEED } from './fake-apple.ts';
 import { TEST_PEPPER, signUp, type TestDb } from './harness.ts';
-import { putEpisode } from './put-episode.ts';
 
 const FX = 'https://feeds.example.com/fx.xml';
 const E = (guid: string) => fnv1a64(`${FX}\u0001${guid}`);
@@ -41,7 +40,7 @@ test('A8: four sources merged with reasons; the current episode and the viewer\'
   const t = await build();
   // Three registered episodes of the fixture show; the fixture feed lists g-new and g-old.
   for (const [guid, title] of [['g-old', 'Older'], ['g-new', 'Newest'], ['g-x', 'Extra']] as const) {
-    await putEpisode(t, `${E(guid)}`, { feedUrl: FX, guid, title, showTitle: 'Fixture Show', enclosureUrl: `https://cdn/${guid}.mp3`, durationMs: 1_800_000 });
+    await t.call('PUT', `/v1/episodes/${E(guid)}`, { feedUrl: FX, guid, title, showTitle: 'Fixture Show', enclosureUrl: `https://cdn/${guid}.mp3`, durationMs: 1_800_000 });
   }
   const a = await signUp(t);
   const b = await signUp(t, 'b@example.com', 'Bea');

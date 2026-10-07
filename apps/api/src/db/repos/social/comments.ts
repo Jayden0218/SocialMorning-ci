@@ -171,25 +171,6 @@ export async function getComment(db: Db, id: string): Promise<CommentRow | undef
 }
 
 /**
- * M23 US4 (FR-007, G-M23-6): the ONE way a comment becomes a placeholder — deleting one comment
- * and deleting a whole account both use it, so a placeholder never keeps its words, transcript,
- * voice, picture or country. `{ authorId }` is set-based: every comment by that listener that
- * has replies, in one statement (an account with thousands of comments is one UPDATE, not
- * thousands). Blobs are removed by the caller first (finishDeletion) or by the sweeps.
- */
-export async function placeholderComments(db: Db, by: { id: string } | { authorId: string }): Promise<{ id: string; episode_id: string }[]> {
-  const set = `body = NULL, author_id = NULL, offset_ms = NULL, voice_url = NULL, voice_path = NULL, voice_ms = NULL, transcript = NULL,
-               image_url = NULL, image_path = NULL, image_w = NULL, image_h = NULL, image_bytes = NULL, country = NULL, deleted_at = now()`;
-  if ('id' in by) return db.query(`UPDATE comments SET ${set} WHERE id = $1 RETURNING id, episode_id`, [by.id]);
-  return db.query(
-    `UPDATE comments c SET ${set}
-      WHERE c.author_id = $1 AND EXISTS (SELECT 1 FROM comments r WHERE r.parent_id = c.id)
-      RETURNING c.id, c.episode_id`,
-    [by.authorId],
-  );
-}
-
-/**
  * FR-010: a comment with replies becomes a placeholder (body/author/moment NULL,
  * deleted_at set) so the replies keep their context; one without is removed.
  * Returns whether a placeholder was left, and the episode (for the heat rebuild).
@@ -202,7 +183,10 @@ export async function deleteComment(db: Db, id: string): Promise<{ placeholder: 
   if (!row) throw new ApiError('not_found', 'No such comment.');
   await db.query(`DELETE FROM activity WHERE kind = 'commented' AND ref_id = $1`, [id]); // M4: gone from feeds either way
   if (Number(row.replies) > 0) {
-    await placeholderComments(db, { id });
+    await db.query(
+      'UPDATE comments SET body = NULL, author_id = NULL, offset_ms = NULL, voice_url = NULL, voice_path = NULL, voice_ms = NULL, transcript = NULL, image_url = NULL, image_path = NULL, image_w = NULL, image_h = NULL, image_bytes = NULL, deleted_at = now() WHERE id = $1',
+      [id],
+    );
     return { placeholder: true, episodeId: row.episode_id };
   }
   await db.query('DELETE FROM comments WHERE id = $1', [id]);

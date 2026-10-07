@@ -9,7 +9,6 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
-import { putEpisode } from './put-episode.ts';
 
 const FEED = 'https://feeds.example.com/h.xml';
 const epBody = (guid: string) => ({ feedUrl: FEED, guid, title: `Ep ${guid}`, showTitle: 'Show', enclosureUrl: `https://cdn/${guid}.mp3`, durationMs: 2_000_000 });
@@ -21,7 +20,7 @@ const positionIds = async (t: TestDb, token: string) =>
   ((await (await t.call('GET', '/v1/me/positions', undefined, token)).json()) as { positions: { episodeId: string }[] }).positions.map((p) => p.episodeId).sort();
 
 async function seed(t: TestDb, token: string) {
-  for (const g of ['g1', 'g2', 'g3']) await putEpisode(t, `${ID(g)}`, epBody(g));
+  for (const g of ['g1', 'g2', 'g3']) await t.call('PUT', `/v1/episodes/${ID(g)}`, epBody(g));
   const put = await t.call('PUT', '/v1/me/positions', { deviceId: 'p1', observations: [obs(E1, 1), obs(E2, 1), obs(E3, 1)] }, token);
   assert.equal(put.status, 200);
   await t.call('PUT', '/v1/me/listened', { deviceId: 'p1', days: [

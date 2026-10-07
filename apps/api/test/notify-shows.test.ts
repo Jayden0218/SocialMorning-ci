@@ -7,7 +7,6 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp } from './harness.ts';
-import { putEpisode } from './put-episode.ts';
 import { fanOutNewEpisode } from '../src/db/repos/account/push.ts';
 
 const A = 'https://feeds.example.com/a.xml';
@@ -18,7 +17,7 @@ test('FR-093: list, turn one show off, and the sender skips that show only', asy
   const me = await signUp(t);
   const now = Date.now();
   await t.call('PUT', '/v1/me/subscriptions', { items: [{ feedUrl: A, createdAt: new Date(now - 2000).toISOString() }, { feedUrl: B, createdAt: new Date(now - 1000).toISOString() }] }, me.token);
-  await putEpisode(t, `${fnv1a64(`${A}\u0001a1`)}`, { feedUrl: A, guid: 'a1', title: 'A1', showTitle: 'Show A', enclosureUrl: 'https://cdn/a1.mp3' });
+  await t.call('PUT', `/v1/episodes/${fnv1a64(`${A}\u0001a1`)}`, { feedUrl: A, guid: 'a1', title: 'A1', showTitle: 'Show A', enclosureUrl: 'https://cdn/a1.mp3' });
   await t.call('POST', '/v1/me/push-tokens', { token: 'ExponentPushToken[aaaaaaaaaaaa]', platform: 'ios' }, me.token);
 
   assert.equal((await t.call('GET', '/v1/me/notify/shows')).status, 401);

@@ -11,7 +11,6 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { aCall, adminSetup, FX } from './admin-harness.ts';
-import { putEpisode } from './put-episode.ts';
 
 const TODAY = '2026-09-22';
 type Body = { layout?: { order: string[]; hidden: string[] }; trending: { key: string; episode: { title: string; feedUrl: string } }[] };
@@ -20,7 +19,7 @@ const JRE_KEY = 'https://feeds.megaphone.fm/GLT1412515089\u0001jre-2400';
 test('G-D1 (server): hidden ids in layout.hidden, a pin first in trending, a hide removed; the ETag moves', async () => {
   const { t, owner } = await adminSetup({ picksRaw: [], today: () => TODAY, collectionsRaw: [] });
   const ep = { feedUrl: FX, guid: 'g-pin', title: 'Pinned One', showTitle: 'Fixture Show', enclosureUrl: 'https://cdn/pin.mp3' };
-  await putEpisode(t, `${fnv1a64(ep.feedUrl + '\u0001' + ep.guid)}`, { ...ep, durationMs: 1_000_000 });
+  await t.call('PUT', `/v1/episodes/${fnv1a64(ep.feedUrl + '\u0001' + ep.guid)}`, { ...ep, durationMs: 1_000_000 });
 
   const first = await t.call('GET', '/v1/discover');
   const etag = first.headers.get('etag')!;

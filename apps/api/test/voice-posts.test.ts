@@ -49,7 +49,7 @@ const post = (t: TestDb, token: string | undefined, bytes: Uint8Array, headers: 
   t.app.request('/v1/voice-posts', { method: 'POST', body: bytes as unknown as BodyInit, headers: { 'content-type': 'audio/mp4', 'x-duration-ms': '5000', ...(token ? { authorization: `Bearer ${token}` } : {}), ...headers } });
 type Items = { items: { id: string; url: string; durationMs: number; author: { name: string; initials: string }; mine: boolean }[] };
 const feed = async (t: TestDb, token: string) => (await (await t.call('GET', '/v1/voice-posts?from=following', undefined, token)).json()) as Items;
-const rebuild = (t: TestDb) => t.call('POST', '/v1/internal/rebuild', { step: 'feeds' }, undefined, { authorization: `Bearer ${JOB}` });
+const rebuild = (t: TestDb) => t.call('POST', '/v1/internal/rebuild', { step: 'sweep' }, undefined, { authorization: `Bearer ${JOB}` });
 
 test('G-V1: an expired post is never read, and the cron deletes its blob AND its row', async () => {
   const v = fakeStore();

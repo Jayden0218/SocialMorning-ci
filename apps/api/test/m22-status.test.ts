@@ -16,7 +16,6 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
-import { putEpisode } from './put-episode.ts';
 import type { VoiceStorage } from '../src/storage/voice-blob.ts';
 import type { ImageStorage } from '../src/storage/image-store.ts';
 
@@ -64,7 +63,7 @@ const voiceReply = async (t: TestDb, token: string, postId: string) => {
   return ((await r.json()) as { id: string; url: string });
 };
 const photo = async (t: TestDb, token: string, n = 2_000) => raw(t, '/v1/voice-posts/images', token, jpeg(n), { 'content-type': 'image/jpeg' });
-const rebuild = (t: TestDb) => t.call('POST', '/v1/internal/rebuild', { step: 'feeds' }, undefined, { authorization: `Bearer ${JOB}` });
+const rebuild = (t: TestDb) => t.call('POST', '/v1/internal/rebuild', { step: 'sweep' }, undefined, { authorization: `Bearer ${JOB}` });
 
 type Listed = { id: string; suggested: boolean; items: unknown[]; reactions: { kind: number; count: number }[]; myReaction: number | null; replyCount?: number; reactedBy?: { name: string; kind: number }[] };
 const list = async (t: TestDb, token: string, q = '') => ((await (await t.call('GET', `/v1/voice-posts${q}`, undefined, token)).json()) as { items: Listed[] }).items;
@@ -72,7 +71,7 @@ const list = async (t: TestDb, token: string, q = '') => ((await (await t.call('
 async function setup() {
   const s = stores();
   const t = await freshDb({ voiceStorage: s.voice, imageStorage: s.images, jobToken: JOB });
-  await putEpisode(t, `${EP}`, { ...ep, durationMs: 2_000_000 });
+  await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: 2_000_000 });
   const a = await signUp(t, 'a@example.com', 'Alex');
   const b = await signUp(t, 'b@example.com', 'Bea');
   const c = await signUp(t, 'c@example.com', 'Cy');
@@ -85,7 +84,7 @@ test('T017: replies are seen by the owner and their author only; one reaction ea
   const post = await postVoice(t, c.token);
   const text = await t.call('POST', `/v1/voice-posts/${post.id}/replies`, { body: 'Nice one' }, a.token);
   assert.equal(text.status, 201);
-  assert.equal((await t.call('POST', `/v1/voice-posts/${post.id}/replies`, { body: 'x'.repeat(141) }, a.token)).status, 422); // M23 US6: bad input is 422 `validation` (the old code is `reason`)
+  assert.equal((await t.call('POST', `/v1/voice-posts/${post.id}/replies`, { body: 'x'.repeat(141) }, a.token)).status, 400);
   const v = await voiceReply(t, b.token, post.id);
 
   const replies = async (token: string) => ((await (await t.call('GET', `/v1/voice-posts/${post.id}/replies`, undefined, token)).json()) as { items: { author: { name: string }; body?: string; url?: string }[] }).items;
@@ -162,9 +161,9 @@ test('G-M22-12 (T023, T024): up to 10 items — the 11th is refused; a photo ove
 
   const epItem = { kind: 'episode', episodeId: EP };
   const eleven = await t.call('POST', '/v1/voice-posts', { body: 'Too many', items: Array.from({ length: 11 }, () => epItem) }, a.token);
-  assert.equal(eleven.status, 422); // M23 US6: bad input is 422 `validation` (the old code is `reason`)
-  assert.equal(((await eleven.json()) as { reason: string }).reason, 'too_many_items');
-  assert.equal((await t.call('POST', '/v1/voice-posts', { body: 'Not mine', items: [{ kind: 'photo', imageKey }] }, b.token)).status, 422, 'someone else’s photo');
+  assert.equal(eleven.status, 400);
+  assert.equal(((await eleven.json()) as { error: string }).error, 'too_many_items');
+  assert.equal((await t.call('POST', '/v1/voice-posts', { body: 'Not mine', items: [{ kind: 'photo', imageKey }] }, b.token)).status, 400, 'someone else’s photo');
 
   const ok = await t.call('POST', '/v1/voice-posts', { body: 'Ten', items: [...Array.from({ length: 9 }, () => epItem), { kind: 'photo', imageKey }] }, a.token);
   assert.equal(ok.status, 201, await ok.clone().text());
@@ -176,7 +175,7 @@ test('G-M22-12 (T023, T024): up to 10 items — the 11th is refused; a photo ove
 
   // A recording carries its items in the URI-encoded `x-items` header; 11 there is refused too.
   const over = await raw(t, '/v1/voice-posts', a.token, m4a(3_000), { 'content-type': 'audio/mp4', 'x-duration-ms': '3000', 'x-items': encodeURIComponent(JSON.stringify(Array.from({ length: 11 }, () => epItem))) });
-  assert.equal(over.status, 422);
+  assert.equal(over.status, 400);
   await t.close();
 });
 

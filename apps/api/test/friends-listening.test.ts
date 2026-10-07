@@ -8,7 +8,6 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
-import { putEpisode } from './put-episode.ts';
 
 const FEED = 'https://feeds.example.com/x.xml';
 const eps = [1, 2, 3].map((n) => ({ feedUrl: FEED, guid: `g${n}`, title: `Ep ${n}`, showTitle: 'Show', enclosureUrl: `https://cdn/${n}.mp3`, id: fnv1a64(`${FEED}\u0001g${n}`) }));
@@ -19,7 +18,7 @@ const get = async (t: TestDb, token: string) => (await (await t.call('GET', '/v1
 
 test('FR-102: followed + public only, grouped by episode, newest first; a private listener never appears; a block removes them', async () => {
   const t = await freshDb();
-  for (const e of eps) await putEpisode(t, `${e.id}`, { ...e, durationMs: 2_000_000 });
+  for (const e of eps) await t.call('PUT', `/v1/episodes/${e.id}`, { ...e, durationMs: 2_000_000 });
   const me = await signUp(t, 'me@example.com', 'Me');
   const bo = await signUp(t, 'bo@example.com', 'bo');
   const cy = await signUp(t, 'cy@example.com', 'Cy');

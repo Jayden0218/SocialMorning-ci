@@ -4,7 +4,6 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, TEST_APPEALS, type TestDb } from './harness.ts';
-import { putEpisode } from './put-episode.ts';
 import { runDueDeletions, type DeletionStores } from '../src/db/repos/account/deletion.ts';
 
 // M22 US11: DELETE /v1/me now waits 15 days; this makes the wait over and runs the internal step's body.
@@ -58,7 +57,7 @@ test('A7 / G9: /mod is a form without a cookie, 503 without an owner, 403 for th
 
 test('A7: the queue shows a report with its copy; Remove → placeholder for everyone, "removed" for the author, the ETag changes (G5); dismiss changes nothing for the reporter; the closed list keeps the copy after the author deletes (G4)', async () => {
   const t = await freshDb();
-  await putEpisode(t, `${EP}`, ep);
+  await t.call('PUT', `/v1/episodes/${EP}`, ep);
   const a = await signUp(t, 'a@example.com', 'Al');
   const b = await signUp(t, 'b@example.com', 'Bea');
   const o = await signUp(t, 'o@example.com', 'Owner');
@@ -127,7 +126,7 @@ test('A7: the queue shows a report with its copy; Remove → placeholder for eve
 
 test('A7 / G6: suspend ends every session, refuses every route and sign-in with the appeals address, shows the profile as suspended; un-suspend restores', async () => {
   const t = await freshDb();
-  await putEpisode(t, `${EP}`, ep);
+  await t.call('PUT', `/v1/episodes/${EP}`, ep);
   const a = await signUp(t, 'a@example.com', 'Al');
   const b = await signUp(t, 'b@example.com', 'Bea');
   const o = await signUp(t, 'o@example.com', 'Owner');
@@ -170,7 +169,7 @@ test('A7 / G6: suspend ends every session, refuses every route and sign-in with 
 
 test('A8: closed reports older than 90 days are purged on the next /mod open; a deleted reporter stays anonymised; reports against a deleted author close as author_deleted', async () => {
   const t = await freshDb();
-  await putEpisode(t, `${EP}`, ep);
+  await t.call('PUT', `/v1/episodes/${EP}`, ep);
   const a = await signUp(t, 'a@example.com', 'Al');
   const b = await signUp(t, 'b@example.com', 'Bea');
   const o = await signUp(t, 'o@example.com', 'Owner');
