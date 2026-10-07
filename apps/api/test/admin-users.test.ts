@@ -11,6 +11,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { aCall, adminSetup, auditRows } from './admin-harness.ts';
+import { putEpisode } from './put-episode.ts';
 import { signUp } from './harness.ts';
 
 test('G-U1: suspend and restore in Admin are moderation actions (/mod lists them), and the account is refused exactly as /mod would', async () => {
@@ -45,7 +46,7 @@ test('reports: the queue in Admin is /mod\'s queue; acting on an item closes it 
   const r = await signUp(t, 'r@example.com', 'Reporter');
   const ep = { feedUrl: 'https://feeds.example.com/x.xml', guid: 'g1', title: 'Ep', showTitle: 'Show', enclosureUrl: 'https://cdn/1.mp3' };
   const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
-  await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: 2_000_000 });
+  await putEpisode(t, `${EP}`, { ...ep, durationMs: 2_000_000 });
   const c = (await (await t.call('POST', `/v1/episodes/${EP}/comments`, { body: 'rude', offsetMs: 1 }, a.token)).json()) as { comment?: { id: string }; id?: string };
   const commentId = c.comment?.id ?? c.id!;
   assert.equal((await t.call('POST', '/v1/reports', { targetKind: 'comment', targetId: commentId, reason: 'harassment' }, r.token)).status < 300, true);

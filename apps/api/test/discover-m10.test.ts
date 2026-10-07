@@ -7,15 +7,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
-import { PGlite } from '@electric-sql/pglite';
-import { citext } from '@electric-sql/pglite/contrib/citext';
-import { migrate, type MigrationRunner } from '../src/db/migrate.ts';
 import { fromPglite } from '../src/db/db.ts';
 import { createApp } from '../src/app.ts';
 import { validateCollections } from '../src/catalog/collections.ts';
 import { genreName, GENRE_LIST } from '../src/catalog/genres.ts';
 import { FIXTURE_FEED } from './fake-apple.ts';
-import { TEST_PEPPER, signUp, type TestDb } from './harness.ts';
+import { migratedPg, TEST_PEPPER, signUp, type TestDb } from './harness.ts';
 import shippedCollections from '../collections.json' with { type: 'json' };
 import shippedPicks from '../picks.json' with { type: 'json' };
 
@@ -69,9 +66,7 @@ function fakeCatalog(chart: AppleShow[] = CHART) {
 }
 
 async function appWith(opts: { collectionsRaw?: unknown; chart?: AppleShow[] } = {}) {
-  const pg = new PGlite({ extensions: { citext } });
-  const runner: MigrationRunner = { exec: (s) => pg.exec(s), query: async <T,>(s: string, p?: unknown[]) => (await pg.query<T>(s, p)).rows };
-  await migrate(runner);
+  const { pg, runner } = await migratedPg();
   const db = fromPglite(pg);
   const cat = fakeCatalog(opts.chart);
   const picksRaw = [{ date: '2026-09-22', feedUrl: FX, guid: 'g-new', why: 'Today\'s pick.' }];

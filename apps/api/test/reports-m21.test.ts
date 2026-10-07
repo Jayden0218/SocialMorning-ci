@@ -11,6 +11,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp } from './harness.ts';
+import { putEpisode } from './put-episode.ts';
 import { proveClaim, sCall, studioLogin } from './studio-harness.ts';
 import { act } from '../src/db/repos/safety/moderation.ts';
 
@@ -22,7 +23,7 @@ const line = (offsetMs: number, suggested = 'the right words') => ({ offsetMs, o
 
 test('an episode report keeps a copy of the episode and the show; the owner can dismiss it', async () => {
   const t = await freshDb();
-  await t.call('PUT', `/v1/episodes/${EP}`, ep);
+  await putEpisode(t, `${EP}`, ep);
   const a = await signUp(t, 'a@example.com', 'Al');
   const r = await t.call('POST', '/v1/reports', { targetKind: 'episode', targetId: EP, reason: 'illegal' }, a.token);
   assert.equal(r.status, 201);
@@ -47,7 +48,7 @@ test('an episode report keeps a copy of the episode and the show; the owner can 
 
 test('a transcript report: one row per line, the correction kept, nothing hidden; bad bodies refused', async () => {
   const t = await freshDb();
-  await t.call('PUT', `/v1/episodes/${EP}`, ep);
+  await putEpisode(t, `${EP}`, ep);
   const a = await signUp(t, 'a@example.com', 'Al');
 
   const r1 = await t.call('POST', '/v1/reports', { targetKind: 'transcript', targetId: `${EP}#61000`, reason: 'other', detail: line(61_000) }, a.token);
@@ -81,7 +82,7 @@ test('a transcript report: one row per line, the correction kept, nothing hidden
 
 test('the Studio: the host lists the show\'s transcript reports and marks one done; a stranger cannot', async () => {
   const t = await freshDb();
-  await t.call('PUT', `/v1/episodes/${EP}`, ep);
+  await putEpisode(t, `${EP}`, ep);
   const host = await studioLogin(t, 'h@example.com', 'Host');
   const key = await proveClaim(t, host.id, FEED);
   const stranger = await studioLogin(t, 's@example.com', 'Stranger');

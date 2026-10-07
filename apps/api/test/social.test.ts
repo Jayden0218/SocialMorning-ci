@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
+import { putEpisode } from './put-episode.ts';
 
 const ep = { feedUrl: 'https://feeds.example.com/x.xml', guid: 'g189', title: '#189', enclosureUrl: 'https://cdn/189.mp3' };
 const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
@@ -21,7 +22,7 @@ type Social = {
 // quickstart A17
 test('the poll: public, ETag → 304 the second time, 200 again after a write, viewer-specific fields', async () => {
   const t = await freshDb();
-  await t.call('PUT', `/v1/episodes/${EP}`, ep); // no duration yet
+  await putEpisode(t, `${EP}`, ep); // no duration yet
   const a = await signUp(t, 'a@example.com', 'Alex');
 
   const first = await t.call('GET', `/v1/episodes/${EP}/social`);
@@ -60,7 +61,7 @@ test('the poll: public, ETag → 304 the second time, 200 again after a write, v
 
 test('comments come newest first with replies oldest first; a placeholder is shaped as the contract says', async () => {
   const t = await freshDb();
-  await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: 100_000 });
+  await putEpisode(t, `${EP}`, { ...ep, durationMs: 100_000 });
   const a = await signUp(t, 'a@example.com', 'Alex');
   const b = await signUp(t, 'b@example.com', 'Bo');
   const c1 = ((await (await post(t, a.token, { body: 'first', offsetMs: 1000 })).json()) as { comment: { id: string } }).comment.id;

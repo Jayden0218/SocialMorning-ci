@@ -16,6 +16,22 @@ import { Platform } from 'react-native';
 import { requireOptionalNativeModule } from 'expo';
 import { canBuy, consumable, GIFT_TIERS, kindOf, PLUS, purchaseRequest, SHOW_TIERS, TIPS } from './products';
 import type { PurchaseApi } from './purchase-api';
+import { fnv1a64 } from '@socialmorning/social-core';
+import { useSocial } from '@/social/context';
+
+/**
+ * M23 US4 (FR-008): every purchase carries Google's `obfuscatedAccountId` (expo-iap 5.8.2's
+ * `RequestPurchaseAndroidProps` / `RequestSubscriptionAndroidProps` field) = a hash of the
+ * buyer's listener id. The server (apps/api/src/db/repos/account/purchases.ts `accountHashOf`,
+ * same formula) refuses a purchase token that carries another account's hash.
+ */
+export const accountHashOf = (listenerId: string): string => fnv1a64(`account|${listenerId}`);
+
+/** Adds the account hash to the Google part of a purchase request. */
+export function withAccount<R extends { request: { google: object } }>(req: R, listenerId: string | undefined): R {
+  if (!listenerId) return req;
+  return { ...req, request: { ...req.request, google: { ...req.request.google, obfuscatedAccountId: accountHashOf(listenerId) } } } as R;
+}
 
 type Iap = typeof import('expo-iap');
 const loadIap = (): Iap | undefined => (Platform.OS === 'android' && requireOptionalNativeModule('ExpoIap') ? (require('expo-iap') as Iap) : undefined);
@@ -37,6 +53,7 @@ export type PlayStore = {
 
 export function usePlayStore(api: PurchaseApi, o: { serverReady: boolean; teen: boolean }): PlayStore {
   const iap = useMemo(loadIap, []);
+  const listenerId = useSocial().listener?.listenerId;
   const ready = canBuy({ platform: Platform.OS, native: iap !== undefined, serverReady: o.serverReady, teen: o.teen });
   const [prices, setPrices] = useState<Record<string, string>>({});
   const [offerToken, setOfferToken] = useState<string | undefined>(undefined);
@@ -91,12 +108,12 @@ export function usePlayStore(api: PurchaseApi, o: { serverReady: boolean; teen: 
     setGift(undefined);
     if (b.feedUrl) pendingShow.set(productId, b.feedUrl);
     try {
-      await iap.requestPurchase(purchaseRequest(productId, { ...(offerToken ? { offerToken } : {}), ...(b.profileId ? { profileId: b.profileId } : {}) }) as never);
+      await iap.requestPurchase(withAccount(purchaseRequest(productId, { ...(offerToken ? { offerToken } : {}), ...(b.profileId ? { profileId: b.profileId } : {}) }), listenerId) as never);
     } catch (e) {
       pendingShow.delete(productId);
       setError(e instanceof Error && /offer/.test(e.message) ? 'PLUS is not on sale in the store yet.' : 'The purchase did not start. Try again.');
     }
-  }, [ready, iap, offerToken]);
+  }, [ready, iap, offerToken, listenerId]);
 
   const restore = useCallback(async () => {
     if (!ready || !iap) return 0;

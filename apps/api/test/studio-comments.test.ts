@@ -9,6 +9,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
+import { putEpisode } from './put-episode.ts';
 import { proveClaim, sCall, studioLogin } from './studio-harness.ts';
 
 const FEED = 'https://feeds.example.com/mine.xml';
@@ -18,7 +19,7 @@ const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
 type Thread = { id: string; body: string | null; deleted: boolean; host?: true; hiddenByHost?: true; mine?: boolean; replies: Thread }[];
 
 async function setup(t: TestDb) {
-  await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: 1_000_000 });
+  await putEpisode(t, `${EP}`, { ...ep, durationMs: 1_000_000 });
   const owner = await studioLogin(t, 'o@example.com', 'Host');
   const key = await proveClaim(t, owner.id, FEED);
   const listener = await signUp(t, 'l@example.com', 'Mei');
@@ -94,7 +95,7 @@ test('a comment on another show cannot be answered or hidden from this one', asy
   const { owner, key, listener } = await setup(t);
   const otherFeed = 'https://feeds.example.com/theirs.xml';
   const theirs = fnv1a64(otherFeed + '\u0001' + 'g9');
-  await t.call('PUT', `/v1/episodes/${theirs}`, { feedUrl: otherFeed, guid: 'g9', title: 'Theirs', enclosureUrl: 'https://cdn/9.mp3' });
+  await putEpisode(t, `${theirs}`, { feedUrl: otherFeed, guid: 'g9', title: 'Theirs', enclosureUrl: 'https://cdn/9.mp3' });
   await t.q("UPDATE comments SET created_at = created_at - interval '10 seconds'");
   const id = ((await (await t.call('POST', `/v1/episodes/${theirs}/comments`, { body: 'elsewhere' }, listener.token)).json()) as { comment: { id: string } }).comment.id;
   assert.equal((await sCall(t, 'POST', `/v1/studio/shows/${key}/comments/${id}/hide`, owner)).status, 404);

@@ -2,19 +2,14 @@
 /** quickstart A7: shows + episodes; the episode call failing alone; both failing; Apple's 429; punctuation-only; throttle. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { PGlite } from '@electric-sql/pglite';
-import { citext } from '@electric-sql/pglite/contrib/citext';
 import { fnv1a64 } from '@socialmorning/social-core';
-import { migrate, type MigrationRunner } from '../src/db/migrate.ts';
 import { fromPglite } from '../src/db/db.ts';
 import { createApp } from '../src/app.ts';
 import { fakeApple, type FakeMode } from './fake-apple.ts';
-import { TEST_PEPPER } from './harness.ts';
+import { migratedPg, TEST_PEPPER } from './harness.ts';
 
 async function appWith(mode: FakeMode = {}) {
-  const pg = new PGlite({ extensions: { citext } });
-  const runner: MigrationRunner = { exec: (s) => pg.exec(s), query: async <T,>(s: string, p?: unknown[]) => (await pg.query<T>(s, p)).rows };
-  await migrate(runner);
+  const { pg } = await migratedPg();
   const apple = fakeApple(mode);
   const app = createApp({ db: fromPglite(pg), pepper: TEST_PEPPER, catalogFetch: apple.fetch, picksRaw: [] });
   const get = (q: string, ip = '1.1.1.1') => app.request(`/v1/search?q=${encodeURIComponent(q)}`, { headers: { 'x-forwarded-for': ip } });

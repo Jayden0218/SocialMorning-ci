@@ -1,5 +1,5 @@
 // Session tokens: create, hash, look up the signed-in listener, require sign-in.
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import type { Context, MiddlewareHandler } from 'hono';
 import type { Db } from '../db/db.ts';
 import { ApiError } from '../errors.ts';
@@ -27,13 +27,22 @@ export async function createSession(db: Db, listenerId: string, pepper: string, 
  * M18 (FR-014, research R1–R3): the same statement records that this person used the app today —
  * one `daily_active` row per (UTC+8 day, account), a second visit a no-op. A Studio session
  * (`studio-web`) never counts as app use. No extra round trip: this already ran on every request.
+ *
+ * M23 (G-M23-3): a session idle for 90 days is refused, and so is an admin's act-as session
+ * (`acting_admin_id` set) — act-as belongs to the Studio only. `last_seen_at` moves only when it
+ * is 5 minutes old, so a busy listener no longer writes the sessions row on every request.
  */
 export async function listenerForToken(db: Db, token: string, pepper: string): Promise<Listener | undefined> {
   const rows = await db.query<Listener>(
     `WITH s AS (
-       UPDATE sessions s SET last_seen_at = now()
-       FROM listeners l WHERE s.token_hash = $1 AND l.id = s.listener_id
-       RETURNING l.id, l.email, l.display_name, l.created_at, l.suspended_at, s.device_label
+       SELECT l.id, l.email, l.display_name, l.created_at, l.suspended_at, s.device_label
+         FROM sessions s JOIN listeners l ON l.id = s.listener_id
+        WHERE s.token_hash = $1 AND s.acting_admin_id IS NULL
+          AND s.last_seen_at > now() - make_interval(days => $2::int)
+     ), u AS (
+       UPDATE sessions SET last_seen_at = now()
+        WHERE token_hash = $1 AND EXISTS (SELECT 1 FROM s)
+          AND last_seen_at < now() - make_interval(mins => $3::int)
      ), d AS (
        INSERT INTO daily_active (day, listener_id)
        SELECT ((now() AT TIME ZONE 'UTC') + interval '8 hours')::date, id FROM s
@@ -41,9 +50,21 @@ export async function listenerForToken(db: Db, token: string, pepper: string): P
        ON CONFLICT DO NOTHING
      )
      SELECT id, email, display_name, created_at, suspended_at FROM s`,
-    [tokenHash(token, pepper)],
+    [tokenHash(token, pepper), SESSION_IDLE_DAYS, LAST_SEEN_EVERY_MINUTES],
   );
   return rows[0];
+}
+
+/** M23 US2 (FR-004): a phone session unused this long no longer signs anyone in (Studio keeps its 12 h). */
+export const SESSION_IDLE_DAYS = 90;
+/** M23 US6 (FR-011): `last_seen_at` is written at most this often per session, not on every call. */
+export const LAST_SEEN_EVERY_MINUTES = 5;
+
+/** M23 US2 (FR-004): compares two secrets in constant time (both hashed first, so lengths match). */
+export function sameSecret(given: string, expected: string): boolean {
+  const a = createHash('sha256').update(given).digest();
+  const b = createHash('sha256').update(expected).digest();
+  return timingSafeEqual(a, b);
 }
 
 export type AuthEnv = { Variables: { db: Db; pepper: string; listener?: Listener; token?: string; catalog: Catalog; safety: Safety; mailer?: import('../mail/mailer.ts').Mailer;

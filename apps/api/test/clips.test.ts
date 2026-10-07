@@ -8,6 +8,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp } from './harness.ts';
+import { putEpisode } from './put-episode.ts';
 
 const ep = { feedUrl: 'https://feeds.example.com/x.xml', guid: 'g189', title: '#189', showTitle: 'Reply All', enclosureUrl: 'https://cdn/189.mp3' };
 const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
@@ -15,7 +16,7 @@ const D = 2_899_000;
 
 test('A9: POST twice with one clientId is one clip (G8); the activity row is written once', async () => {
   const t = await freshDb();
-  await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: D });
+  await putEpisode(t, `${EP}`, { ...ep, durationMs: D });
   const a = await signUp(t);
   const body = { clientId: 'phone-1-abc', startMs: 872_000, endMs: 910_000, caption: 'the good bit' };
   const r1 = await t.call('POST', `/v1/episodes/${EP}/clips`, body, a.token);
@@ -33,7 +34,7 @@ test('A9: POST twice with one clientId is one clip (G8); the activity row is wri
 
 test('the range is validated with the shared rule: 0.5 s, 10:01 and past the known end are 422', async () => {
   const t = await freshDb();
-  await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: D });
+  await putEpisode(t, `${EP}`, { ...ep, durationMs: D });
   const a = await signUp(t);
   for (const [startMs, endMs, reason] of [[0, 500, 'too_short'], [0, 600_001, 'too_long'], [D - 1000, D + 1, 'past_end']] as const) {
     const r = await t.call('POST', `/v1/episodes/${EP}/clips`, { clientId: `c-${reason}`, startMs, endMs }, a.token);
@@ -49,7 +50,7 @@ test('the range is validated with the shared rule: 0.5 s, 10:01 and past the kno
 
 test('GET /v1/clips/:id is public and carries the episode record; DELETE is the author\'s; a deleted clip still answers with the episode (FR-005)', async () => {
   const t = await freshDb();
-  await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: D });
+  await putEpisode(t, `${EP}`, { ...ep, durationMs: D });
   const a = await signUp(t);
   const b = await signUp(t, 'b@example.com', 'Bea');
   const c = ((await (await t.call('POST', `/v1/episodes/${EP}/clips`, { clientId: 'k', startMs: 10_000, endMs: 40_000, caption: 'hi' }, a.token)).json()) as { clip: { id: string } }).clip;
@@ -71,7 +72,7 @@ test('GET /v1/clips/:id is public and carries the episode record; DELETE is the 
 
 test('GET /v1/episodes/:id/clips lists live clips newest first, 20 a page, with a keyset cursor', async () => {
   const t = await freshDb();
-  await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: D });
+  await putEpisode(t, `${EP}`, { ...ep, durationMs: D });
   const a = await signUp(t);
   for (let i = 0; i < 22; i++) {
     await t.call('POST', `/v1/episodes/${EP}/clips`, { clientId: `c${i}`, startMs: i * 1000, endMs: i * 1000 + 5000 }, a.token);
@@ -89,7 +90,7 @@ test('GET /v1/episodes/:id/clips lists live clips newest first, 20 a page, with 
 
 test('T033: the 61st clip in a minute is 429', async () => {
   const t = await freshDb();
-  await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: D });
+  await putEpisode(t, `${EP}`, { ...ep, durationMs: D });
   const a = await signUp(t);
   for (let i = 0; i < 60; i++) assert.equal((await t.call('POST', `/v1/episodes/${EP}/clips`, { clientId: `b${i}`, startMs: 0, endMs: 5000 }, a.token)).status, 201);
   const r = await t.call('POST', `/v1/episodes/${EP}/clips`, { clientId: 'b60', startMs: 0, endMs: 5000 }, a.token);

@@ -17,6 +17,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
+import { putEpisode } from './put-episode.ts';
 import { todayFor } from '../src/routes/library/listened.ts';
 import { imageKind } from '../src/share/card.ts';
 import { hoursMinutes, monthTitle, recapTree } from '../src/share/recap.ts';
@@ -38,7 +39,7 @@ const listen = (t: TestDb, token: string, day: string, ms: number) =>
 
 test('US9 independent test: the bar for yesterday is the minutes listened yesterday; 30 points; top shows; earned days', async () => {
   const t = await freshDb();
-  await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: 20_000_000 });
+  await putEpisode(t, `${EP}`, { ...ep, durationMs: 20_000_000 });
   const a = await signUp(t);
   const now = Date.now();
   const today = dayOf(now);
@@ -119,7 +120,7 @@ test('US9: placements — saved on the server, the same for every viewer; at mos
     ['a string for x', { items: [item('hour-1', { x: '0.5' })] }],
   ] as const) {
     const r = await putPlacements(t, a.token, body);
-    assert.equal(r.status, 400, why);
+    assert.equal(r.status, 422, why); // M23 US6: bad input is 422 `validation` (the old code is `reason`)
     assert.equal(((await r.json()) as { error: string }).error, 'validation', why);
   }
   assert.deepEqual((await profileOf(t, a.id, b.token)).stickers, two);

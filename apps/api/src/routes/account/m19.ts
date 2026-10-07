@@ -6,6 +6,7 @@ import { requireAuth } from '../../auth/session.ts';
 import { json } from '../../validate.ts';
 import { ApiError } from '../../errors.ts';
 import { CODE_TTL_MS, RESEND_AFTER_MS, checkCode, consumeCode, newCode, resendWait, storeCode } from '../../auth/codes.ts';
+import { limitCodeRequest } from '../../auth/rate.ts';
 import { hostNotices } from '../../db/repos/social/host-notices.ts';
 import { monthReport } from '../../db/repos/social/report.ts';
 
@@ -36,6 +37,8 @@ m19Me.post('/teen-reset/start', requireAuth, async (c) => {
   const now = Date.now();
   const wait = await resendWait(db, to, now);
   if (wait > 0) throw new ApiError('locked', `Wait ${wait} s before asking for another code.`, { retryAfterSeconds: wait });
+  // M23 US2 (FR-003): 10 an hour per address, and a daily total below Gmail's quota.
+  await limitCodeRequest(db, c);
   const code = newCode();
   await storeCode(db, to, code, c.get('pepper'), now);
   await mailer.send({ to, subject: `${code} turns teen mode off`, text: `Your SocialNet code is ${code}. Enter it in the app to turn teen mode off and clear its passcode.\n\nIt works for ${CODE_TTL_MS / 60_000} minutes. If you did not ask for it, ignore this email.` });

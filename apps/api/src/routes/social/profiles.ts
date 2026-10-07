@@ -31,7 +31,7 @@ profiles.get('/:id/subscriptions', optionalAuth, async (c) => {
   const v = await subscriptionsVisible(db, id, c.get('listener')?.id);
   if (v === 'none') throw new ApiError('not_found', 'No such listener.');
   c.header('cache-control', 'private, no-store');
-  if (v === 'private') return c.json({ error: 'private', message: 'These subscriptions are private.' }, 403);
+  if (v === 'private') throw new ApiError('private', 'These subscriptions are private.');
   return c.json({ items: await publicSubscriptions(db, id) });
 });
 

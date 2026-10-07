@@ -67,7 +67,7 @@ test('G-M19-7: deleting a voice comment removes its file; a removed one is swept
   await t.q("UPDATE comments SET created_at = now() - interval '1 minute'");
   const two = ((await (await post(t, a.token, m4a(5_000))).json()) as { comment: { id: string; voice: { url: string } } }).comment;
   await t.q('UPDATE comments SET removed_at = now() WHERE id = $1', [two.id]);
-  await t.call('POST', '/v1/internal/rebuild', { step: 'sweep' }, undefined, { authorization: 'Bearer job-token-not-secret' });
+  await t.call('POST', '/v1/internal/rebuild', { step: 'feeds' }, undefined, { authorization: 'Bearer job-token-not-secret' });
   assert.ok(f.removed.includes(two.voice.url), 'the sweep deleted the removed one');
   const [row] = await t.q<{ voice_url: string | null }>('SELECT voice_url FROM comments WHERE id = $1', [two.id]);
   assert.equal(row!.voice_url, null);

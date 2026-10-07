@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
+import { putEpisode } from './put-episode.ts';
 
 const ep = { feedUrl: 'https://feeds.example.com/x.xml', guid: 'g1', title: 'Ep 1', showTitle: 'Show', enclosureUrl: 'https://cdn/1.mp3' };
 const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
@@ -15,7 +16,7 @@ const feedOf = async (t: TestDb, token: string, before?: string) => {
 
 test('A7: A follows B; B clips and comments; A sees both newest first with the moment; a reply is not an item; unfollow empties it', async () => {
   const t = await freshDb();
-  await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: 2_000_000 });
+  await putEpisode(t, `${EP}`, { ...ep, durationMs: 2_000_000 });
   const a = await signUp(t);
   const b = await signUp(t, 'b@example.com', 'Bea');
   assert.deepEqual((await feedOf(t, a.token)).body!.items, []);
@@ -46,7 +47,7 @@ test('A7: A follows B; B clips and comments; A sees both newest first with the m
 
 test('A7: 20 a page with a (created_at, id) cursor', async () => {
   const t = await freshDb();
-  await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: 2_000_000 });
+  await putEpisode(t, `${EP}`, { ...ep, durationMs: 2_000_000 });
   const a = await signUp(t);
   const b = await signUp(t, 'b@example.com', 'Bea');
   await t.call('PUT', `/v1/listeners/${b.id}/follow`, undefined, a.token);

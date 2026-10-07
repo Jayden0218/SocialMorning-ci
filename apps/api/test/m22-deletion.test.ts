@@ -9,6 +9,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp } from './harness.ts';
+import { putEpisode } from './put-episode.ts';
 
 const JOB = 'job-token-not-secret';
 const ep = { feedUrl: 'https://feeds.example.com/x.xml', guid: 'g1', title: 'Ep 1', enclosureUrl: 'https://cdn/1.mp3' };
@@ -16,7 +17,7 @@ const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
 
 test('G-M22-8: a deletion request hides the account and signs it out; sign-in offers Keep; Keep brings it all back', async () => {
   const t = await freshDb({ jobToken: JOB });
-  await t.call('PUT', `/v1/episodes/${EP}`, ep);
+  await putEpisode(t, `${EP}`, ep);
   const a = await signUp(t, 'a@example.com', 'Alexandra');
   const b = await signUp(t, 'b@example.com', 'Bo');
   const posted = await t.call('POST', `/v1/episodes/${EP}/comments`, { body: 'hello from A' }, a.token);
@@ -59,7 +60,7 @@ test('G-M22-8: a deletion request hides the account and signs it out; sign-in of
 
 test('the due step deletes exactly as the old immediate deletion did; not before the 15 days', async () => {
   const t = await freshDb({ jobToken: JOB });
-  await t.call('PUT', `/v1/episodes/${EP}`, ep);
+  await putEpisode(t, `${EP}`, ep);
   const a = await signUp(t, 'a@example.com', 'Alex');
   await t.call('POST', `/v1/episodes/${EP}/comments`, { body: 'lone' }, a.token);
   assert.equal((await t.call('DELETE', '/v1/me', { password: 'correct horse' }, a.token)).status, 202);

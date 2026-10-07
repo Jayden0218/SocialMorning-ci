@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp } from './harness.ts';
+import { putEpisode } from './put-episode.ts';
 
 const ep = { feedUrl: 'https://feeds.example.com/x.xml', guid: 'g1', title: 'Ep 1', showTitle: 'Show', enclosureUrl: 'https://cdn/1.mp3' };
 const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
@@ -14,7 +15,7 @@ type Prof = { id: string; displayName: string; followers: number; following: num
 
 test('A7: B private → A sees B\'s clip and comment but 0 listens in the feed and no stats on the profile; B sees own stats; switching back hides nothing retroactively and shows nothing retroactively', async () => {
   const t = await freshDb();
-  await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: 2_000_000 });
+  await putEpisode(t, `${EP}`, { ...ep, durationMs: 2_000_000 });
   const a = await signUp(t);
   const b = await signUp(t, 'b@example.com', 'Bea');
   await t.call('PUT', `/v1/listeners/${b.id}/follow`, undefined, a.token);

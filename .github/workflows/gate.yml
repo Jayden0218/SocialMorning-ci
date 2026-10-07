@@ -2,14 +2,28 @@
 # This file lives in the PRIVATE repo under ci/workflows/ and is copied by
 # scripts/push-ci.sh into the PUBLIC mirror's .github/workflows/, where Actions
 # minutes are unlimited. It runs exactly what scripts/gate.sh runs.
+#
+# M23 US12 (T050): one 12.5-minute job became three kinds of job running side by side —
+#   typecheck  fails fast on its own;
+#   api (×3)   the API tests split with node's --test-shard (each test now copies a
+#              once-migrated database instead of migrating its own — test/harness.ts);
+#   checks     everything else, each test suite run ONCE: the coverage runs (mobile jest,
+#              social-core, player-core) are the test runs, no plain run before them.
+# The gate is green only when every job is green.
 name: gate
 on:
   push:
   workflow_dispatch:
+# A newer push cancels an older run of the same ref — except on main. Every session mirrors
+# its own tree to the mirror's main (scripts/push-ci.sh), so the run before yours is another
+# session's proof, not an older copy of your work; cancelling it would lose that proof.
+concurrency:
+  group: gate-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 jobs:
-  gate:
+  typecheck:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -17,14 +31,47 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --no-audit --no-fund
-      - name: typecheck
+      # Each package also checks its src/ alone with no Node or DOM types (tsconfig.src.json, T054).
+      - name: typecheck (every workspace; packages' src without Node or DOM types)
         run: npm run typecheck
-      - name: tests (every workspace)
-        run: npm test
-      - name: mobile coverage threshold (src/playback 100 % branches)
+
+  api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    name: api tests (shard ${{ matrix.shard }} of 3)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: api tests, shard ${{ matrix.shard }} of 3
+        run: npx tsx --test --test-timeout=120000 --test-shard=${{ matrix.shard }}/3 test/*.test.ts
+        working-directory: apps/api
+
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: mobile tests with the coverage threshold (src/playback 100 % branches)
         run: npx jest --coverage
         working-directory: apps/mobile
-      - name: social-core + player-core 100 % branches
+      - name: studio tests
+        run: npm test --workspace=@socialmorning/studio
+      - name: feed-parser tests
+        run: npm test -w packages/feed-parser
+      - name: social-core + player-core tests, 100 % branches
         run: |
           npm run test:coverage -w packages/social-core
           npm run test:coverage -w packages/player-core
@@ -44,8 +91,12 @@ jobs:
       - name: text colour check (every Text and TextInput names a token colour)
         run: node scripts/text-colour-check.mjs
         working-directory: apps/mobile
+      # M23 US13 (G-M23-10): the nightly backup (private repo only) refuses to run without
+      # its database address or its encryption key, and never prints the address.
+      - name: backup preflight refuses without its key (G-M23-10)
+        run: sh scripts/backup-preflight.test.sh
       # M11 (research R9 open item): recharts 3 was reported to resolve react-is@18 under
-      # React 19. List what it resolves; the Studio's own tests (npm test) render its charts.
+      # React 19. List what it resolves; the Studio's own tests (above) render its charts.
       - name: studio — react-is resolved under React 19
         run: npm ls react-is --workspace=@socialmorning/studio
       - name: studio — production build
