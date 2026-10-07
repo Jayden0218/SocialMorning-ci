@@ -31,7 +31,9 @@ import { hit } from '@/design';
 
 export type SwipeAction = { key: string; label: string; onPress: () => void };
 
-const BUTTON = { minHeight: hit.min, minWidth: 88 };
+// A fixed width: the panel is as wide as its buttons, so a swipe shows them beside the card, never
+// pushes the card off the screen (iPhone walk 2026-10-08 — the panel filled the whole row).
+const BUTTON = { minHeight: hit.min, width: 88 };
 
 type SwipeableModule = typeof import('react-native-gesture-handler/ReanimatedSwipeable');
 /** The two parts of reanimated a panel needs (a stand-in in tests). */
@@ -90,19 +92,19 @@ type Progress = { value: number };
 function Panel(props: { progress: Progress | undefined; anim: PanelAnimation; children: ReactNode }): React.ReactElement {
   const { progress, anim } = props;
   const style = anim.useAnimatedStyle(() => panelStyle(progress?.value ?? 0));
-  return <anim.View style={[{ flex: 1 }, style]}>{props.children}</anim.View>;
+  return <anim.View style={[{ alignSelf: 'stretch' }, style]}>{props.children}</anim.View>;
 }
 
 function Actions(props: { actions: readonly SwipeAction[]; close: () => void; align: 'start' | 'end'; canRun: () => boolean; progress?: Progress }): React.ReactElement {
   const buttons = (
-    <Box className={`flex-1 flex-row items-stretch gap-1 px-1 ${props.align === 'end' ? 'justify-end' : 'justify-start'}`}>
+    <Box className={`self-stretch flex-row items-stretch gap-1 px-1 ${props.align === 'end' ? 'justify-end' : 'justify-start'}`}>
       {props.actions.map((a, i) => (
         <Pressable
           key={a.key}
           onPress={() => { if (!props.canRun()) return; props.close(); a.onPress(); }}
           accessibilityRole="button"
           accessibilityLabel={a.label}
-          className={`items-center justify-center px-3 rounded-row ${i === 0 ? 'bg-primary' : 'bg-surface border border-border'}`}
+          className={`items-center justify-center px-1 rounded-row ${i === 0 ? 'bg-primary' : 'bg-surface border border-border'}`}
           style={BUTTON}
         >
           <Text className={i === 0 ? 'text-onPrimary text-meta font-bold' : 'text-text text-meta font-bold'} numberOfLines={2}>{a.label}</Text>
