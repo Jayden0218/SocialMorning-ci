@@ -44,11 +44,6 @@
  * M21 US11: an Audio output button in the top bar (hidden when the phone has no route picker), and
  * the panel's Route and Voice boost rows (`AudioRows`); on iPhone an HLS episode greys out Skip
  * silence and Voice boost.
- *
- * M24 US19 (the owner: "the phone looks bad"; `Player-B`, `PlaybackSheet-B`, `EpisodeEnd-B`): the
- * hero sits right under the top bar (no empty band); the heat card has a real seek bar; the speed
- * pill opens B's short "Playback" sheet with M21's extras behind "More settings"; play/pause is the
- * strong yellow; at the end the page is B's "Finished" layout. Every action and label is kept.
  */
 import { reportAndDrop } from '@/telemetry/reportError';
 import { useEffect, useState } from 'react';
@@ -253,16 +248,12 @@ export default function PlayerScreen(): React.ReactElement {
 
   // M17 (`Player-B`): the artwork sits beside the title, 148 pt on a 390 pt phone.
   // Owner, 2026-10-06: the artwork grows with the screen (184 pt on a 6.9" phone), no fixed 148 cap.
-  // M24 US19 (iPhone, docs/plans/m24-audit/phone/04-player.png): the hero sat ~140 pt below the top
-  // bar. It is now right under the bar, as B draws it. With no transcript line or chapter (`bare`)
-  // the cover grows a little and the card + controls sit in the middle of the space left, so
-  // neither a band above the cover nor one at the foot is left empty (`playerSpace`).
+  // Owner's iPhone, 2026-10-07: with no transcript line or chapter the page left a large empty band
+  // under the hero. Then the cover grows a little and the free space is shared above and below the
+  // hero (`playerSpace`), instead of all of it sitting between the hero and the card.
   const bare = !timedTranscript && !(extras?.chapters && extras.chapters.length > 0);
   const space = playerSpace(screen, bare);
   const art = space.art;
-  // M24 US19 (`EpisodeEnd-B`): at the end the page is B's "Finished" layout — a compact header, the
-  // Next-up offer filling the middle — not the playing page with the offer squeezed in.
-  const ended = state.kind === 'ended';
   const markerCount = railMarkers(cached?.social.comments ?? []).length;
   // M12 FR-020 (found on the iPhone): the comment button opens the conversation, not the
   // keyboard; the page's write box carries this moment.
@@ -319,20 +310,8 @@ export default function PlayerScreen(): React.ReactElement {
     </Box>
     {/* M17: the page reads top-down (hero, quote, card, controls); it scrolls only when a large font needs it. */}
     <ScrollView className="flex-1" alwaysBounceVertical={false} contentContainerClassName="flex-grow px-screen-x pt-2 pb-section gap-section">
-      {ended ? (
-        // M24 US19 (`EpisodeEnd-B`): "FINISHED", a 52 pt cover, the title on one line, the show.
-        <Box className="flex-row items-center gap-row" accessible accessibilityLabel={`Finished: ${episode?.title ?? 'this episode'}`}>
-          <Artwork url={artworkUrl} size={52} name={show?.title} />
-          <Box className="flex-1 gap-0.5">
-            <Eyebrow>Finished</Eyebrow>
-            <Text className="text-[15px] font-bold text-text" numberOfLines={1}>{episode?.title ?? ''}</Text>
-            <Text className="text-meta text-muted" numberOfLines={1}>{show?.title ?? ''}</Text>
-          </Box>
-        </Box>
-      ) : (
-      <>
       {/* The hero: artwork on the left; eyebrow, serif title, show and Subscribe on the right. */}
-      <Box className="flex-row items-end gap-section">
+      <Box className={`flex-row items-end gap-section ${space.heroClass}`}>
         {/* M10b US5: a video episode shows its picture (muted, following the sound). */}
         {episode && mediaKindOf(episode.enclosureType, episode.enclosureUrl) === 'video'
           ? <VideoStage url={episode.enclosureUrl} positionMs={positionMs} playing={isPlaying} size={art} />
@@ -366,22 +345,11 @@ export default function PlayerScreen(): React.ReactElement {
           onShareImage={(q) => { void shareQuote(episode, q); }}
           onShareVideo={shareQuoteVideo ? (q) => shareQuoteVideo(episode ? toPlayable(stores, episode.id) : undefined, q) : undefined} />
       ) : null}
-      </>
-      )}
 
-      {/* M24 US19 (`EpisodeEnd-B`): the offer is the middle of the Finished page, Play it at its foot. */}
-      {ended && offer ? (
-        <EndOffer fill item={offer} onPlay={() => {
-          const local = toPlayable(stores, offer.episode.id);
-          if (local) { player.load(local, 'play'); return; }
-          void discoverOpen(offer.episode);
-        }} />
-      ) : null}
-
-      {/* M24 US19 (`Player-B`): the card and the controls follow the quote, as B draws them; on a bare
-          page (no line, no chapter) they sit in the middle of the free space (`groupClass`). Short
-          phones and large fonts still scroll as before. */}
-      <Box className={`gap-section ${ended ? '' : space.groupClass}`}>
+      {/* Owner, 2026-10-06 (iPhone walk): on a tall phone the page left a white gap at the foot. The card
+          and the controls now sit at the bottom, just above the bar; the free space goes between the
+          quote and the card. Short phones and large fonts still scroll as before. */}
+      <Box className="mt-auto gap-section">
       {/* What listeners felt: markers, heat curve, seek bar and times in one card. */}
       <Card className="py-row gap-1">
         <Box className="flex-row justify-between items-baseline">
@@ -431,6 +399,14 @@ export default function PlayerScreen(): React.ReactElement {
           <Pressable className={SECONDARY} accessibilityRole="button" onPress={() => { setLastClipEnd(undefined); player.play(); }}><Text className={SECONDARY_TEXT}>Keep listening</Text></Pressable>
         </Box>
       ) : null}
+      {offer ? (
+        <EndOffer item={offer} onPlay={() => {
+          const local = toPlayable(stores, offer.episode.id);
+          if (local) { player.load(local, 'play'); return; }
+          void discoverOpen(offer.episode);
+        }} />
+      ) : null}
+
       <Box className="flex-row items-center justify-between" {...swipeUp}>
         <Pressable onPress={() => setMore(true)} accessibilityRole="button" accessibilityLabel={`Speed ${rate.toFixed(1)}×, sleep timer and chapters`} className={SPEED}>
           <Text className="text-meta font-bold text-text" style={tabular}>{rate.toFixed(1)}×</Text>
@@ -445,7 +421,7 @@ export default function PlayerScreen(): React.ReactElement {
           accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
           onPress={() => (isPlaying ? player.pause() : player.play())}
         >
-          <Icon name={isPlaying ? 'pause' : 'play'} size={34} color={c.onPrimary} />
+          <Icon name={isPlaying ? 'pause' : 'play'} size={34} color={c.playGlyph} />
         </Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Skip forward 30 seconds" onPress={() => player.skip(30_000)} className={ROUND}>
           <Icon name="refresh-outline" size={40} color={c.text} />
@@ -494,7 +470,7 @@ export default function PlayerScreen(): React.ReactElement {
     </Box>
     </SafeAreaView>
 
-    {/* M24 US19: the short "Playback" sheet again (B); M21's extras behind its "More settings" row.
+    {/* M21 US2: the player's settings, a full-screen panel over the page (was the "Playback" sheet).
         Chapters and Transcript stay here as two cards; Done is the yellow pill at the foot. */}
     <SettingsPanel
       open={more}
@@ -508,7 +484,7 @@ export default function PlayerScreen(): React.ReactElement {
       voiceBoostSlot={<VoiceBoostRow />}
     >
       {extras && (extras.chapters?.length || (showTranscript && extras.transcript)) ? (
-        <Box className="flex-row gap-gap">
+        <Box className="flex-row gap-row">
           {extras.chapters && extras.chapters.length > 0 ? (
             <Pressable className={pane === 'chapters' ? TILE_ON : TILE} style={{ minHeight: TAP.minHeight }} onPress={() => setPane(pane === 'chapters' ? 'none' : 'chapters')} accessibilityRole="button" accessibilityLabel={`Chapters (${extras.chapters.length})`} accessibilityState={{ expanded: pane === 'chapters' }}>
               <Icon name="library-outline" size={22} color={pane === 'chapters' ? c.onPrimary : c.accent} />
@@ -582,20 +558,19 @@ const SUBTITLE = 'text-xs text-muted text-center';
 const ROUND = 'w-14 h-14 items-center justify-center';
 /** M17: speed is a bordered pill showing the rate. */
 const SPEED = 'w-14 h-12 rounded-pill border border-border bg-surface items-center justify-center';
-/** M17: play/pause is the yellow disc. M24 US19 (owner, 2026-10-08): the strong yellow, the dark glyph. */
-const PLAY = 'w-[76px] h-[76px] rounded-pill bg-primary items-center justify-center';
+/** M17: play/pause is the yellow disc. */
+const PLAY = 'w-[76px] h-[76px] rounded-pill bg-playDisc items-center justify-center';
 const BAR_ITEM = 'flex-1 items-center justify-center py-1.5 gap-0.5';
 
 /**
- * The cover's size and where the card + controls sit. The hero is always right under the top bar
- * (M24 US19). Normally the cover is 42 % of the width, at most 20 % of the height (184 pt on a 6.9"
- * phone), and the card follows the quote. `bare` (no transcript line, no chapter): up to 46 % / 24 %,
- * and `my-auto` centres the card + controls in the space between the hero and the bottom bar.
+ * The cover's size and the hero's spacing. Normally 42 % of the width, at most 20 % of the height
+ * (184 pt on a 6.9" phone), the hero at the top. `bare` (no transcript line, no chapter): up to 46 %
+ * / 24 % and `mt-auto` on the hero, so the free space splits above and below it.
  */
-function playerSpace(screen: { width: number; height: number }, bare: boolean): { art: number; groupClass: string } {
+function playerSpace(screen: { width: number; height: number }, bare: boolean): { art: number; heroClass: string } {
   return bare
-    ? { art: Math.round(Math.min(screen.width * 0.46, screen.height * 0.24)), groupClass: 'my-auto' }
-    : { art: Math.round(Math.min(screen.width * 0.42, screen.height * 0.2)), groupClass: '' };
+    ? { art: Math.round(Math.min(screen.width * 0.46, screen.height * 0.24)), heroClass: 'mt-auto' }
+    : { art: Math.round(Math.min(screen.width * 0.42, screen.height * 0.2)), heroClass: '' };
 }
 const BAR_LABEL = 'text-xs font-semibold text-text';
 /** The 15 / 30 inside the circular arrow. */
@@ -608,12 +583,11 @@ const CLIP_BANNER = 'flex-row gap-row items-center flex-wrap justify-center';
 const SECONDARY = 'min-h-12 py-2 px-section rounded-pill border border-separator justify-center';
 const SECONDARY_TEXT = 'font-semibold text-xs text-text';
 /** M17 (`PlaybackSheet-B`): Chapters / Transcript as half-width cards. Chosen is told apart by the yellow fill AND the pane opening — never by hue alone (FR-016). */
-// M24 US19: B's cards — 76 pt tall, 12 pt padding, 14/700 title, 12 pt detail.
-const TILE = 'flex-1 p-3 gap-1.5 min-h-[76px] rounded-row border border-border bg-surface';
-const TILE_ON = 'flex-1 p-3 gap-1.5 min-h-[76px] rounded-row border border-primary bg-primary';
-const TILE_TITLE = 'text-body font-bold text-text';
-const TILE_ON_TITLE = 'text-body font-bold text-onPrimary';
-const TILE_DETAIL = 'text-xs text-muted';
-const TILE_ON_DETAIL = 'text-xs text-onPrimary';
+const TILE = 'flex-1 p-section gap-1 rounded-row border border-border bg-surface';
+const TILE_ON = 'flex-1 p-section gap-1 rounded-row border border-primary bg-primary';
+const TILE_TITLE = 'text-sm font-bold text-text mt-1';
+const TILE_ON_TITLE = 'text-sm font-bold text-onPrimary mt-1';
+const TILE_DETAIL = 'text-meta text-muted';
+const TILE_ON_DETAIL = 'text-meta text-onPrimary';
 /** The sheet's Done pill: B's 52 pt, as the token row height (50). A size, so a style. */
 const DONE = { minHeight: size.row };

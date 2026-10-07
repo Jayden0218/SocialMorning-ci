@@ -56,7 +56,7 @@ export function ComingSoonDialog(props: { request: ComingSoonRequest | undefined
   return (
     <Actionsheet isOpen={r !== undefined} onClose={props.onClose}>
       <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-      <ActionsheetContent className="bg-surface rounded-t-artwork-lg px-screen-x pt-gap items-stretch" accessibilityViewIsModal>
+      <ActionsheetContent className="px-screen-x pt-gap items-stretch" accessibilityViewIsModal>
         <ActionsheetDragIndicatorWrapper>
           <ActionsheetDragIndicator />
         </ActionsheetDragIndicatorWrapper>
