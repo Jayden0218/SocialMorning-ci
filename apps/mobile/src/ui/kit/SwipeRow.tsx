@@ -66,7 +66,7 @@ function Actions(props: { actions: readonly SwipeAction[]; close: () => void; al
           className={`items-center justify-center px-3 rounded-row ${i === 0 ? 'bg-primary' : 'bg-surface border border-border'}`}
           style={BUTTON}
         >
-          <Text className={`${i === 0 ? 'text-onPrimary' : 'text-text'} text-meta font-bold`} numberOfLines={2}>{a.label}</Text>
+          <Text className={i === 0 ? 'text-onPrimary text-meta font-bold' : 'text-text text-meta font-bold'} numberOfLines={2}>{a.label}</Text>
         </Pressable>
       ))}
     </Box>
