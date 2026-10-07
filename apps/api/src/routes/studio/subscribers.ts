@@ -13,7 +13,7 @@ export function registerSubscribers(studio: Hono<StudioEnv>): void {
     c.json(await subscriberStats(c.get('db'), c.get('show').feedUrl, days(c.req.query('days')), validTz(c.req.query('tz')))));
 
   studio.get('/shows/:show/subscribers', async (c) =>
-    c.json(await subscriberList(c.get('db'), c.get('show').feedUrl, Math.max(1, Number.parseInt(c.req.query('page') ?? '1', 10) || 1))));
+    c.json(await subscriberList(c.get('db'), c.get('show').feedUrl, Math.max(1, Number.parseInt(c.req.query('page') ?? '1', 10) || 1), c.req.query('q') ?? '')));
 
   studio.get('/shows/:show/mutes', async (c) => c.json(await listMutes(c.get('db'), c.get('show').feedUrl)));
 

@@ -25,6 +25,7 @@ import { curatorFor } from '../../db/repos/studio/curators.ts';
 import { imagesOf } from '../../db/repos/studio/announcements.ts';
 import { hostPicks, showHosts, showInfo, subscriberCount } from '../../db/repos/studio/show-page.ts';
 import { tintOf } from '../../share/tint.ts';
+import { hiddenGuids } from '../../db/repos/studio/hidden-episodes.ts';
 
 export const extras = new Hono<AuthEnv>();
 
@@ -42,7 +43,7 @@ extras.get('/shows/extras', optionalAuth, async (c) => {
   const f = c.get('imageFetch');
   const image = imageOf(c.req.query('image'));
   const episodeImage = imageOf(c.req.query('episodeImage'));
-  const [overrides, announcements, polls, hosts, curator, subscribers, people, picks] = await Promise.all([
+  const [overrides, announcements, polls, hosts, curator, subscribers, people, picks, hidden] = await Promise.all([
     getOverrides(db, feedUrl),
     db.query<{ id: string; body: string; created_at: Date | string; edited_at: Date | string | null; images: unknown }>(
       'SELECT id, body, created_at, edited_at, images FROM announcements WHERE feed_url = $1 AND deleted_at IS NULL AND release_at <= now() ORDER BY created_at DESC LIMIT 3', [feedUrl]),
@@ -53,6 +54,8 @@ extras.get('/shows/extras', optionalAuth, async (c) => {
     subscriberCount(db, feedUrl),
     showHosts(db, feedUrl),
     hostPicks(db, feedUrl),
+    // M24 US11: the guids the creator hid — the phone parses the feed itself and drops these.
+    hiddenGuids(db, feedUrl),
   ]);
   // The cover the page draws: the Studio's own, else the one the phone has, else the newest episode's.
   let cover = overrides?.coverUrl ?? image;
@@ -76,7 +79,15 @@ extras.get('/shows/extras', optionalAuth, async (c) => {
     subscribers,
     hosts: people,
     hostPicks: picks,
+    hiddenGuids: hidden,
   });
+});
+
+/** M24 US11: the guids of a show's hidden episodes, alone (the phone's feed refresh can ask for just these). */
+extras.get('/shows/hidden-episodes', async (c) => {
+  const feedUrl = feedUrlOf(c.req.query('feedUrl'));
+  c.header('Cache-Control', 'public, max-age=60');
+  return c.json({ guids: await hiddenGuids(c.get('db'), feedUrl) });
 });
 
 /** M21 US5 (FR-041): the Show info page — who owns the show, their country, the feed. */
@@ -86,8 +97,15 @@ extras.get('/shows/info', async (c) => {
   return c.json(await showInfo(c.get('db'), feedUrl));
 });
 
-extras.post('/polls/:id/vote', requireAuth, json(z.object({ optionIdx: z.number().int().min(0).max(5) })), async (c) =>
-  c.json({ poll: await vote(c.get('db'), c.req.param('id'), c.get('listener')!.id, c.req.valid('json').optionIdx) }));
+/**
+ * A vote. M24 US14: on a multiple-choice poll `optionIdx` toggles that one option (so a phone that
+ * sends one tap at a time can pick several), and `optionIdxs` sets the whole choice at once.
+ */
+extras.post('/polls/:id/vote', requireAuth, json(z.object({ optionIdx: z.number().int().min(0).max(5).optional(), optionIdxs: z.array(z.number().int().min(0).max(5)).min(1).max(6).optional() })
+  .refine((b) => (b.optionIdx === undefined) !== (b.optionIdxs === undefined), 'Send optionIdx or optionIdxs.')), async (c) => {
+  const b = c.req.valid('json');
+  return c.json({ poll: await vote(c.get('db'), c.req.param('id'), c.get('listener')!.id, b.optionIdxs ?? b.optionIdx!, b.optionIdxs !== undefined) });
+});
 
 const shareBody = z.object({
   targetKind: z.enum(['episode', 'clip', 'show']),

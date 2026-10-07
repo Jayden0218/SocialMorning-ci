@@ -40,8 +40,6 @@ here or a line does not match its file.
 | `notify.ts` | Per-show notification routes: list shows and turn new-episode alerts on or off. |
 | `push.ts` | Push routes: register or remove a device token and set alert preferences. |
 | `wallet.ts` | Read-only wallet routes: my purchases and the tips I gave. |
-| `redeem.ts` | Redeem a code: POST /v1/me/redeem gives the code's free grant (PLUS days or a paid show) once per account. |
-| `email.ts` | Change the sign-in email: send a code to the new address, check it, switch, tell the old address. |
 | `m19.ts` | My notices from hosts, my monthly report, and the teen-mode passcode reset by email code. |
 | `purchases-google.ts` | Purchase route: the phone sends a Google Play purchase; the server checks it with Google, then grants it. |
 | `stickers.ts` | Sticker placement routes: read my stickers on my profile header, or replace them all. |
@@ -171,7 +169,6 @@ here or a line does not match its file.
 | `metrics.ts` | Admin dashboard route: usage numbers for 7, 30 or 90 days, cached five minutes. |
 | `picks.ts` | Admin routes for daily picks: list, read and save a day's picks. |
 | `record.ts` | Admin route to read the admin action record, filtered by area. |
-| `redeem.ts` | Admin routes for redeem codes: list them, make new ones, switch one off. |
 | `users.ts` | Admin routes for users and safety: list, rename, suspend, restore, act on reports. |
 
 ### `db/` — the database connection and migrations
@@ -203,7 +200,6 @@ here or a line does not match its file.
 | `push.ts` | Sends new-episode push notifications through Expo, never twice to one device. |
 | `profile.ts` | My profile: name, bio, photo, optional age range and gender; the photo's storage limits. |
 | `purchases.ts` | Grants what a store purchase bought, once, and takes it back when the store reports a refund. |
-| `redeem.ts` | Redeem codes: the owner gives PLUS days or a paid show for free; each account uses a code once. |
 | `queue.ts` | The listener's synced play queue: read it, and replace it only from the version the phone last saw. |
 | `stickers.ts` | Stickers placed on a profile header: read them, replace them all, and what a viewer may see. |
 | `interests.ts` | A listener's chosen categories (first-open interests) and their "Not liking these?" answers. |
