@@ -228,11 +228,11 @@ export default function CommentsScreen(): React.ReactElement {
   };
 
   // M22 US3 (FR-012): the author stops (or restarts) like notices on one comment; this phone remembers which.
-  const m22 = useM22SocialApi();
+  const m22Social = useM22SocialApi();
   const likesOffKey = (id: string) => `m22.likeNoticesOff.${id}`;
   const toggleLikeNotices = (x: Comment) => {
     const off = stores.settings.get(likesOffKey(x.id)) !== '1';
-    m22.setLikeNotices(x.id, off).then(() => {
+    m22Social.setLikeNotices(x.id, off).then(() => {
       stores.settings.set(likesOffKey(x.id), off ? '1' : '0');
       rerender((n) => n + 1);
       toast(off ? 'Like notices stopped for this comment. Replies still notify you.' : 'Like notices are back on for this comment.');

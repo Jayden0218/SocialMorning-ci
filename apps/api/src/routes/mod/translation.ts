@@ -53,7 +53,7 @@ modTranslation.get('/translation-usage', adminOnly, async (c) => {
     "SELECT model, requests, audio_s, tokens FROM groq_usage WHERE day = (now() AT TIME ZONE 'UTC')::date");
   const models = [WHISPER, TRANSLATOR].map((model) => {
     const u = used.find((r) => r.model === model);
-    const l = GROQ_LIMITS[model];
+    const l = GROQ_LIMITS[model as keyof typeof GROQ_LIMITS];
     return {
       model, requests: Number(u?.requests ?? 0), audioS: Number(u?.audio_s ?? 0), tokens: Number(u?.tokens ?? 0),
       budget: { requests: budgetOf(l.rpd), ...(l.audioSPerDay ? { audioS: budgetOf(l.audioSPerDay) } : {}), ...(l.tpd ? { tokens: budgetOf(l.tpd) } : {}) },
