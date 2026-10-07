@@ -27,7 +27,7 @@ export function TopBar(props: {
       {props.left ?? (
         <Pressable onPress={props.onBack} accessibilityRole="button" accessibilityLabel={props.back === 'down' ? 'Close the player' : 'Back'} className="items-center justify-center" style={TAP}>
           {/* M24 US18: every B design draws a 22–24 pt "←" (a line with its head), not a 10 pt chevron. */}
-          {props.back === 'down' ? <Chevron dir="down" size={14} /> : <Icon name="arrow-back" size={22} color={colour.text} />}
+          {props.back === 'down' ? <Chevron dir="down" size={14} /> : <Chevron dir="left" size={10} />}
         </Pressable>
       )}
       {props.middle ? <Box className="flex-1 flex-row items-center gap-2 px-1">{props.middle}</Box> : null}

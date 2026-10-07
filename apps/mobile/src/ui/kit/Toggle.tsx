@@ -66,7 +66,7 @@ export function Toggle(props: {
       className={`items-center justify-center ${disabled ? 'opacity-40' : ''}`}
       {...(props.size === 'small' ? { hitSlop: SLOP_SMALL } : { style: TAP })}
     >
-      <Box className={`rounded-pill justify-center ${props.value ? 'bg-primary' : 'bg-switchOff'}`} style={TRACK}>
+      <Box className={`rounded-pill justify-center ${props.value ? 'bg-primary' : 'bg-separator'}`} style={TRACK}>
         <Animated.View
           className="rounded-pill bg-surface"
           style={{ ...THUMB_SHADOW, width: THUMB, height: THUMB, marginLeft: 2, transform: [{ translateX: at.interpolate({ inputRange: [0, 1], outputRange: [0, TRAVEL] }) }] }}

@@ -49,7 +49,7 @@ export function Avatar(props: {
   const letter = { fontSize: Math.max(10, Math.round(size * LETTER_SHARE)), lineHeight: Math.round(size * LETTER_SHARE * 1.2) };
   return (
     <Box className={`rounded-pill overflow-hidden items-center justify-center ${props.className ?? ''}`} style={[box, { backgroundColor: coverTone(name).fill }]} accessible={false} importantForAccessibility="no-hide-descendants">
-      <Text className="text-text font-extrabold" style={letter} numberOfLines={1}>{initialOf(name)}</Text>
+      <Text className="text-text font-extrabold" style={letter} numberOfLines={1}>{name.slice(0, 2).toUpperCase()}</Text>
       {url && !failed ? <Image source={{ uri: url }} style={[StyleSheet.absoluteFill, box]} onError={() => setFailed(true)} /> : null}
     </Box>
   );

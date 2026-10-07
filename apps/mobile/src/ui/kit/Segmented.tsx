@@ -20,7 +20,7 @@ const CHOICE = { minHeight: SEGMENT_HEIGHT };
 const SLOP = { top: (hit.min - SEGMENT_HEIGHT) / 2, bottom: (hit.min - SEGMENT_HEIGHT) / 2 };
 
 const LOOK = {
-  yellow: { track: 'bg-segment', on: 'bg-primary', words: 'text-onPrimary text-meta font-bold', icon: colour.onPrimary },
+  yellow: { track: 'bg-surface border border-border', on: 'bg-primary', words: 'text-onPrimary text-meta font-bold', icon: colour.onPrimary },
   dark: { track: 'bg-surface border border-border', on: 'bg-text', words: 'text-background text-meta font-bold', icon: colour.background },
 } as const;
 

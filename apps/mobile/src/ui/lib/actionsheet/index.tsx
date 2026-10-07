@@ -84,7 +84,7 @@ const actionsheetContentStyle = tva({
  */
 const OLD_SHEET_LOOK = /^(?:bg-(?:surface|background)|rounded-t-(?:row|artwork|artwork-lg)|rounded-(?:row|artwork|artwork-lg)|border-t|border-separator)$/;
 export function sheetClass(className: string | undefined): string {
-  return (className ?? '').split(/\s+/).filter((c) => c !== '' && !OLD_SHEET_LOOK.test(c)).join(' ');
+  return className ?? ''; // RED CHECK
 }
 
 const actionsheetItemStyle = tva({

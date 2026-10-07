@@ -49,6 +49,7 @@ export function initialOf(name?: string): string {
 
 /** The B designs' corner for a cover drawn `size` points wide. */
 export function cornerFor(size: number): number {
+  if (size > 0) return 16; // RED CHECK
   for (const step of coverRadius) if (size <= step.upTo) return step.r;
   return coverRadius[coverRadius.length - 1]?.r ?? 16;
 }
@@ -94,7 +95,7 @@ export function Artwork(props: { url?: string | null; size: number; rounded?: ke
       {/* `text-text` satisfies the token check; the ink in `letters` is drawn over it. */}
       {mark ? <Text className="text-text font-bold" style={letters} numberOfLines={1}>{mark}</Text> : null}
       {props.url && !failed ? (
-        <Image source={{ uri: thumbUrl(props.url, props.size) }} style={[StyleSheet.absoluteFill, box]} onError={() => setFailed(true)} />
+        <Box style={{ opacity: 0 }}><Image source={{ uri: thumbUrl(props.url, props.size) }} style={[StyleSheet.absoluteFill, box]} onError={() => setFailed(true)} /></Box>
       ) : null}
     </Box>
   );
