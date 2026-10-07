@@ -18,8 +18,12 @@
  * 100 at once and "Clear all" (one confirm) empties history — on the account when signed in
  * (`DELETE /v1/me/history`, positions only: listening totals and stickers stay), and hidden on
  * this phone (`src/me/history.ts`). Opening the page also hides rows another phone deleted.
+ *
+ * M22 US16: on a tablet (`useOpensInPane`) a row opens its episode in the right pane
+ * (src/ui/shell/ListDetail.tsx) instead of pushing the page; a phone is unchanged.
  */
-import { Link } from 'expo-router';
+import { Link, router } from 'expo-router';
+import { EpisodePane, ListDetail, useOpensInPane } from '@/ui/shell/ListDetail';
 import { useEffect, useState } from 'react';
 import { HISTORY_DELETE_MAX, useM22LibraryApi } from '@/social/api-m22-library';
 import { useConfirm } from '@/ui/kit/confirm';
@@ -124,6 +128,10 @@ export default function HistoryScreen(): React.ReactElement {
     else next.add(id);
     setChosen(next);
   };
+  // M22 US16: on a tablet the row's link is stopped and the episode shows in the right pane.
+  const inPane = useOpensInPane();
+  const [paneId, setPaneId] = useState<string | undefined>(undefined);
+  const toPane = (id: string) => (e: { preventDefault: () => void }) => { if (!inPane) return; e.preventDefault(); setPaneId(id); };
   const leaveSelect = () => { setSelecting(false); setChosen(NONE); setOverLimit(false); };
   /** On the account first (when signed in), then hidden here; a failed call still hides it here. */
   const remove = async (what: { episodeIds: readonly string[] } | { all: true }, ids: readonly string[]) => {
@@ -151,6 +159,10 @@ export default function HistoryScreen(): React.ReactElement {
         </Pressable>
       ) : undefined}
     />
+    <ListDetail
+      placeholder="Choose an episode to see it here."
+      detail={paneId !== undefined ? <EpisodePane episodeId={paneId} onOpenPage={() => router.push({ pathname: '/episode/[id]', params: { id: paneId } })} /> : undefined}
+      list={
     <FlatList
       className="flex-1 bg-background"
       data={groups}
@@ -186,7 +198,7 @@ export default function HistoryScreen(): React.ReactElement {
                     </Pressable>
                   ) : (
                   <>
-                  <Link href={{ pathname: '/episode/[id]', params: { id: item.episode.id } }} asChild>
+                  <Link href={{ pathname: '/episode/[id]', params: { id: item.episode.id } }} asChild onPress={toPane(item.episode.id)}>
                     {/* M12 FR-050: a compact row (50 pt minimum); M17 adds the progress line. */}
                     <Pressable className="flex-row gap-row py-2.5 items-center" style={ROW} accessibilityRole="button" accessibilityLabel={`${item.episode.title}. ${where}`} onLongPress={() => setMenuFor(item.episode)} accessibilityHint="Long-press for more actions">
                       <Artwork url={item.episode.imageUrl ?? show?.imageUrl} size={48} rounded="row" name={show?.title} />
@@ -227,6 +239,8 @@ export default function HistoryScreen(): React.ReactElement {
           </Card>
         </Box>
       )}
+    />
+      }
     />
     {selecting ? (
       <Box className="px-screen-x pt-row pb-row gap-2 bg-background border-t-hairline border-separator">

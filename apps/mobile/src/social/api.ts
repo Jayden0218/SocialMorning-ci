@@ -287,6 +287,22 @@ export type ApiDeps = {
   onSuspended?: (message: string, appeals: string | undefined) => void;
 };
 
+/**
+ * M22 US17: one listener for "the server is under maintenance" — any call answered 503 whose body
+ * carries `maintenance` (or `error: 'maintenance'`). The start-up code (src/ui/shell/startupExtras.ts)
+ * sets it to open app/maintenance.tsx; the call still fails with its ApiError as before.
+ */
+let maintenanceListener: ((body: Record<string, unknown>) => void) | undefined;
+export function setMaintenanceListener(listener: ((body: Record<string, unknown>) => void) | undefined): void {
+  maintenanceListener = listener;
+}
+/** True for a 503 body that names maintenance. */
+export function isMaintenanceBody(status: number, body: unknown): body is Record<string, unknown> {
+  if (status !== 503 || body === null || typeof body !== 'object') return false;
+  const b = body as { maintenance?: unknown; error?: unknown };
+  return b.maintenance !== undefined || b.error === 'maintenance';
+}
+
 /** The one way this app talks to the server: JSON in and out, the session token, a timeout, typed errors. */
 export function requester(deps: ApiDeps) {
   const timeoutMs = deps.timeoutMs ?? 10_000;
@@ -316,6 +332,7 @@ export function requester(deps: ApiDeps) {
     let json: unknown = undefined;
     try { json = text ? JSON.parse(text) : undefined; } catch { /* non-JSON body: handled below */ }
     if (!res.ok) {
+      if (isMaintenanceBody(res.status, json)) maintenanceListener?.(json);
       const err = (json ?? {}) as { error?: string; message?: string } & Record<string, unknown>;
       const { error, message, ...extra } = err;
       if (error === 'suspended') deps.onSuspended?.(message ?? 'This account is suspended.', typeof extra['appeals'] === 'string' ? (extra['appeals'] as string) : undefined);

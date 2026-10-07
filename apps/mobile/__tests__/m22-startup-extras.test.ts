@@ -4,7 +4,8 @@
  * halves (the shortcuts on the icon, GitHub's answer on a phone, the maintenance page opening)
  * are Tier B — NOT VERIFIED here.
  */
-import { isNewer, parseMaintenance, parseRelease, quickActionHref, QUICK_ACTIONS, whatsNewDue } from '@/ui/shell/startupExtras';
+import { isNewer, maintenanceFromBody, parseMaintenance, parseRelease, quickActionHref, QUICK_ACTIONS, whatsNewDue } from '@/ui/shell/startupExtras';
+import { ApiError, isMaintenanceBody, requester, setMaintenanceListener } from '@/social/api';
 import { mayStreamNow, allowMobileThisSession, lockSkipSeconds, LOCK_SKIP_KEY } from '@/settings/playback';
 import { hapticsOn, HAPTICS_KEY } from '@/ui/kit/haptics';
 
@@ -35,6 +36,32 @@ describe('maintenance (T079)', () => {
     expect(parseMaintenance({ ok: true })).toBeUndefined();
     expect(parseMaintenance(null)).toBeUndefined();
     expect(parseMaintenance({ maintenance: { until: 5, message: 'x' } })).toBeUndefined();
+  });
+
+  it('mid-session: only a 503 that names maintenance counts', () => {
+    expect(isMaintenanceBody(503, { maintenance: { until: 'x', message: 'y' } })).toBe(true);
+    expect(isMaintenanceBody(503, { error: 'maintenance', message: 'Back soon.' })).toBe(true);
+    expect(isMaintenanceBody(503, { error: 'unavailable' })).toBe(false);
+    expect(isMaintenanceBody(500, { error: 'maintenance' })).toBe(false);
+    expect(isMaintenanceBody(503, undefined)).toBe(false);
+  });
+
+  it('a 503 body becomes what the page shows', () => {
+    expect(maintenanceFromBody({ maintenance: { until: '2026-10-08T01:00:00.000Z', message: 'Back soon.' } })).toEqual({ until: '2026-10-08T01:00:00.000Z', message: 'Back soon.' });
+    expect(maintenanceFromBody({ error: 'maintenance', until: '2026-10-08T01:00:00.000Z', message: 'Soon.' })).toEqual({ until: '2026-10-08T01:00:00.000Z', message: 'Soon.' });
+    expect(maintenanceFromBody({ error: 'maintenance' })).toEqual({ until: '', message: 'SocialNet is being updated.' });
+  });
+
+  it('any API call answered 503 + maintenance tells the listener, and still fails as before', async () => {
+    const seen: unknown[] = [];
+    setMaintenanceListener((b) => seen.push(b));
+    const body = { error: 'maintenance', message: 'Back soon.' };
+    const call = requester({ baseUrl: 'https://x', getToken: async () => undefined, fetch: (async () => new Response(JSON.stringify(body), { status: 503 })) as typeof fetch });
+    await expect(call('GET', '/v1/me')).rejects.toBeInstanceOf(ApiError);
+    const other = requester({ baseUrl: 'https://x', getToken: async () => undefined, fetch: (async () => new Response('{"error":"unavailable"}', { status: 503 })) as typeof fetch });
+    await expect(other('GET', '/v1/me')).rejects.toBeInstanceOf(ApiError);
+    setMaintenanceListener(undefined);
+    expect(seen).toEqual([body]);
   });
 });
 

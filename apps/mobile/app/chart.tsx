@@ -10,6 +10,9 @@
  * accent rank over its corner, a serif title and the reason in the accent; numbers 2 and 3
  * sit side by side as two smaller cards with their rank top right; from 4 on, the numbered
  * rows (divided by hairlines). Same open and play on every chart.
+ *
+ * M22 US16: on a tablet (`useOpensInPane`) a row opens its episode in the right pane
+ * (src/ui/shell/ListDetail.tsx); a phone pushes the episode page as before.
  */
 import { CardSheetHost, openCardSheet } from '@/ui/episode/CardSheet';
 import { useCallback, useEffect, useState } from 'react';
@@ -36,6 +39,7 @@ import { useSafety } from '@/safety/context';
 import { CHART_LABELS, useExploreApi, type ChartKind, type ChartPage, type ExploreChartItem } from '@/discover/explore-api';
 import { PageHeader } from '@/ui/kit/PageHeader';
 import { EndOfList } from '@/ui/kit/EndOfList';
+import { EpisodePane, ListDetail, useOpensInPane } from '@/ui/shell/ListDetail';
 
 const TAP = { minHeight: hit.min };
 /** How many ranks are drawn as cards above the rows (`Chart-B`: 1 wide, 2 and 3 side by side). */
@@ -53,7 +57,7 @@ type State = { kind: 'loading' } | { kind: 'error' } | { kind: 'ok'; page: Chart
 const onMore = openCardSheet;
 
 /** One chart: the podium, then the numbered rows. */
-function ChartList(props: { kind: ChartKind }): React.ReactElement {
+function ChartList(props: { kind: ChartKind; pane?: (episodeId: string) => void }): React.ReactElement {
   const api = useExploreApi();
   const { open, play } = useCardActions();
   const { hiddenFeeds } = useSafety();
@@ -71,7 +75,7 @@ function ChartList(props: { kind: ChartKind }): React.ReactElement {
   /** Number 1: the wide card. */
   const first = (item: ExploreChartItem): React.ReactElement => (
     <Card padded={false} className="flex-row items-center gap-row p-row mb-row">
-      <Pressable onPress={() => void open(item.episode)} accessibilityRole="button" accessibilityLabel={`${item.episode.title}, ${item.episode.showTitle}`} className="flex-1 flex-row items-center gap-section" style={TAP}>
+      <Pressable onPress={() => void open(item.episode, props.pane)} accessibilityRole="button" accessibilityLabel={`${item.episode.title}, ${item.episode.showTitle}`} className="flex-1 flex-row items-center gap-section" style={TAP}>
         <Box>
           <Artwork url={item.episode.imageUrl} size={110} rounded="row" name={item.episode.showTitle} />
           <Text className="absolute -left-1.5 -top-2 text-accent text-display font-display" maxFontSizeMultiplier={1.3}>1</Text>
@@ -89,7 +93,7 @@ function ChartList(props: { kind: ChartKind }): React.ReactElement {
   /** Numbers 2 and 3: half-width cards, the rank top right, Play bottom right. */
   const small = (item: ExploreChartItem, rank: number): React.ReactElement => (
     <Card key={item.key} padded={false} className="flex-1 p-2.5">
-      <Pressable onPress={() => void open(item.episode)} accessibilityRole="button" accessibilityLabel={`${item.episode.title}, ${item.episode.showTitle}`} className="gap-2" style={TAP}>
+      <Pressable onPress={() => void open(item.episode, props.pane)} accessibilityRole="button" accessibilityLabel={`${item.episode.title}, ${item.episode.showTitle}`} className="gap-2" style={TAP}>
         <Box className="flex-row items-start justify-between">
           <Artwork url={item.episode.imageUrl} size={64} rounded="row" name={item.episode.showTitle} />
           <Text className="text-accent text-hero font-display" maxFontSizeMultiplier={1.3}>{rank}</Text>
@@ -132,7 +136,7 @@ function ChartList(props: { kind: ChartKind }): React.ReactElement {
         ) : <EmptyPicture icon="chatbubbles-outline" line={EMPTY[props.kind]} />
       }
       renderItem={({ item, index }) => (
-        <EpisodeLine card={item.episode} rank={index + PODIUM + 1} size={48} divided {...(item.reason ? { line: item.reason } : {})} onOpen={() => void open(item.episode)} onPlay={() => void play(item.episode)} onMore={() => onMore(item.episode)} />
+        <EpisodeLine card={item.episode} rank={index + PODIUM + 1} size={48} divided {...(item.reason ? { line: item.reason } : {})} onOpen={() => void open(item.episode, props.pane)} onPlay={() => void play(item.episode)} onMore={() => onMore(item.episode)} />
       )}
     />
   );
@@ -143,18 +147,27 @@ export default function ChartScreen(): React.ReactElement {
   const c = useColours(stores.settings);
   const [index, setIndex] = useState(0);
   const kind = KINDS[index] ?? 'talked';
+  const inPane = useOpensInPane();
+  const [paneId, setPaneId] = useState<string | undefined>(undefined);
+  const pane = inPane ? setPaneId : undefined;
   return (
     <>
       <PageHeader
         title="Charts"
         right={<BarButton label="How the charts work" onPress={() => router.push('/chart-rules')}><Icon name="information-circle-outline" size={24} color={c.text} /></BarButton>}
       />
+      <ListDetail
+        placeholder="Choose an episode to see it here."
+        detail={paneId !== undefined ? <EpisodePane episodeId={paneId} onOpenPage={() => router.push({ pathname: '/episode/[id]', params: { id: paneId } })} /> : undefined}
+        list={
       <Box className="flex-1 bg-background">
         <Segmented className="mx-screen-x mb-row" items={KINDS.map((k) => ({ value: k, label: CHART_LABELS[k], accessibilityLabel: `${CHART_LABELS[k]} chart` }))} value={kind} onChange={(k) => setIndex(KINDS.indexOf(k))} />
         <FullPager count={KINDS.length} index={index} onPage={setIndex}>
-          {(i) => <ChartList kind={KINDS[i] ?? 'talked'} />}
+          {(i) => <ChartList kind={KINDS[i] ?? 'talked'} {...(pane ? { pane } : {})} />}
         </FullPager>
       </Box>
+        }
+      />
       <CardSheetHost />
     </>
   );

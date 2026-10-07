@@ -165,7 +165,14 @@
           ]
         }
       ],
-      "./modules/alternate-icons/plugin"
+      "./modules/alternate-icons/plugin",
+      [
+        "expo-media-library",
+        {
+          "savePhotosPermission": "SocialNet adds a picture to your photos only when you tap Save on a show-note picture.",
+          "granularPermissions": ["photo"]
+        }
+      ]
     ],
     "extra": {
       "apiBaseUrl": "https://socialmorning-api.vercel.app",

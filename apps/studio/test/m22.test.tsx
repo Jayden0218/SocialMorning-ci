@@ -33,6 +33,35 @@ describe('Banned listeners (M22 US10)', () => {
   });
 });
 
+describe('Comments: Mute with an optional ban reason (M22 US10)', () => {
+  const setup = () => mockApi((p) => {
+    if (p.startsWith(`/v1/studio/shows/${SHOW.key}/comments?`)) return { status: 200, body: { items: [COMMENT] } };
+    if (p.endsWith(`/mutes/l1`) || p.endsWith(`/bans/l1`)) return { status: 204 };
+    return undefined;
+  });
+
+  it('a typed reason goes to the ban route with the reason (≤ 200 characters)', async () => {
+    const f = setup();
+    renderIn(<CommentList show={SHOW} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Mute Mei' }));
+    const box = screen.getByLabelText('Reason (optional)') as HTMLInputElement;
+    expect(box.maxLength).toBe(200);
+    fireEvent.change(box, { target: { value: '  Spam links  ' } });
+    fireEvent.click(screen.getByRole('dialog').querySelector('button.btn:not(.btn-quiet)')!);
+    await vi.waitFor(() => expect(f.mock.calls.some(([u, o]) => String(u).endsWith('/bans/l1') && o?.method === 'PUT' && o?.body === JSON.stringify({ reason: 'Spam links' }))).toBe(true));
+    expect(await screen.findByText('Muted on your show')).toBeTruthy();
+  });
+
+  it('no reason: the mute route, as before', async () => {
+    const f = setup();
+    renderIn(<CommentList show={SHOW} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Mute Mei' }));
+    fireEvent.click(screen.getByRole('dialog').querySelector('button.btn:not(.btn-quiet)')!);
+    await vi.waitFor(() => expect(f.mock.calls.some(([u, o]) => String(u).endsWith('/mutes/l1') && o?.method === 'PUT')).toBe(true));
+    expect(f.mock.calls.some(([u]) => String(u).endsWith('/bans/l1'))).toBe(false);
+  });
+});
+
 describe('Comments: pin to the bottom (M22 US10)', () => {
   it('"Pin to bottom" posts pin-bottom; a bottom-pinned comment says so and offers "Unpin from bottom" (DELETE)', async () => {
     let c = COMMENT;

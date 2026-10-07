@@ -15,6 +15,9 @@
  * first pick (when it has an episode) is a white card — a wide artwork banner, the editor's
  * note as a serif italic quote, show, title and Play; the other picks are divided rows with
  * the note in muted italic. Loading, paging, hidden shows and every action are unchanged.
+ *
+ * M22 US16: on a tablet (`useOpensInPane`) a pick opens its episode in the right pane
+ * (src/ui/shell/ListDetail.tsx); a phone pushes the episode page as before.
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
@@ -36,6 +39,7 @@ import { useSafety } from '@/safety/context';
 import type { EpisodeCard } from '@/social/api';
 import { useM12Api, type PastPick, type PastPicksDay } from '@/social/m12-api';
 import { PageHeader } from '@/ui/kit/PageHeader';
+import { EpisodePane, ListDetail, useOpensInPane } from '@/ui/shell/ListDetail';
 
 const TAP = { minHeight: hit.min };
 /** The feature card's artwork banner (`PastPicks-B`: 150 pt high, the card's width). */
@@ -71,6 +75,9 @@ export default function PastPicksScreen(): React.ReactElement {
     );
   };
 
+  const inPane = useOpensInPane();
+  const [paneId, setPaneId] = useState<string | undefined>(undefined);
+  const pane = inPane ? setPaneId : undefined;
   const openShow = (feedUrl: string) => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(feedUrl) } });
 
   /** The day's first pick: banner, the note as a serif quote, show, title, Play. */
@@ -78,7 +85,7 @@ export default function PastPicksScreen(): React.ReactElement {
     const letter = initialOf(card.showTitle);
     return (
       <Card key={`${card.id}-${i}`} padded={false} className="overflow-hidden mb-row">
-        <Pressable onPress={() => void open(card)} accessibilityRole="button" accessibilityLabel={`${card.title}, ${card.showTitle}`}>
+        <Pressable onPress={() => void open(card, pane)} accessibilityRole="button" accessibilityLabel={`${card.title}, ${card.showTitle}`}>
           <Box className="bg-accentTint justify-end p-row overflow-hidden" style={BANNER} accessible={false} importantForAccessibility="no-hide-descendants">
             {letter ? <Text className="text-muted font-bold" style={BANNER_LETTER}>{letter}</Text> : null}
             {card.imageUrl ? <Image source={{ uri: card.imageUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
@@ -100,7 +107,7 @@ export default function PastPicksScreen(): React.ReactElement {
     if (p.episode) {
       const card = p.episode;
       if (i === 0) return feature(p, card, i);
-      return <EpisodeLine key={`${card.id}-${i}`} card={card} size={56} divided {...(p.why ? { line: `“${p.why}”` } : {})} onOpen={() => void open(card)} onPlay={() => void play(card)} />;
+      return <EpisodeLine key={`${card.id}-${i}`} card={card} size={56} divided {...(p.why ? { line: `“${p.why}”` } : {})} onOpen={() => void open(card, pane)} onPlay={() => void play(card)} />;
     }
     // No episode yet: the note, and the show it came from.
     return (
@@ -118,6 +125,10 @@ export default function PastPicksScreen(): React.ReactElement {
   return (
     <>
     <PageHeader title="Past picks" />
+    <ListDetail
+      placeholder="Choose an episode to see it here."
+      detail={paneId !== undefined ? <EpisodePane episodeId={paneId} onOpenPage={() => router.push({ pathname: '/episode/[id]', params: { id: paneId } })} /> : undefined}
+      list={
     <Screen scroll>
       {state.kind === 'loading' ? <Loader className="my-section" /> : null}
       {state.kind === 'error' ? (
@@ -144,6 +155,8 @@ export default function PastPicksScreen(): React.ReactElement {
         </Pressable>
       ) : null}
     </Screen>
+      }
+    />
     </>
   );
 }

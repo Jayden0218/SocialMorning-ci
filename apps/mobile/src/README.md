@@ -322,6 +322,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `useLayout.ts` | Says whether the window is wide enough for the tablet layout (side rail, two panes) and whether it is a phone. |
 | `startupExtras.ts` | Small start-up jobs: hold phones in portrait, app-icon shortcuts, the maintenance check, What's new, vibration and lock-screen skip settings. |
 | `ListDetail.tsx` | Two panes on a tablet: the list on the left, the chosen item on the right; just the list on a phone. |
+| `iconReset.ts` | Puts the app icon back to Default at start-up when PLUS has ended and one of the PLUS icons is still set. |
 | `consent.ts` | Terms version, title and text pointers; remembers if you agreed. |
 
 ### `ui/player/` — The full player page and its parts

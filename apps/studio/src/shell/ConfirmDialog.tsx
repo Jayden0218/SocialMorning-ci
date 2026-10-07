@@ -1,9 +1,11 @@
 // An in-page "are you sure?" dialog; Escape or clicking outside cancels.
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 
 /** An in-page dialog (never window.confirm, which would block the page). Esc or the backdrop cancels. */
-export function ConfirmDialog({ title, body, confirm, onConfirm, onCancel, busy }: {
+export function ConfirmDialog({ title, body, confirm, onConfirm, onCancel, busy, children }: {
   title: string; body: string; confirm: string; onConfirm: () => void; onCancel: () => void; busy?: boolean;
+  /** Extra fields under the body (M22 US10: the ban reason). */
+  children?: ReactNode;
 }) {
   const first = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -17,6 +19,7 @@ export function ConfirmDialog({ title, body, confirm, onConfirm, onCancel, busy 
       <div className="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-t" onClick={(e) => e.stopPropagation()}>
         <h2 id="dlg-t">{title}</h2>
         <p className="muted">{body}</p>
+        {children}
         <div className="dialog-actions">
           <button ref={first} type="button" className="btn btn-quiet" onClick={onCancel}>Cancel</button>
           <button type="button" className="btn" disabled={busy} onClick={onConfirm}>{confirm}</button>

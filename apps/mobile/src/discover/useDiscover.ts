@@ -63,9 +63,11 @@ export function useCardActions() {
   const toast = useToast();
   const player = usePlayer();
   const downloads = useDownloads();
-  const open = useCallback(async (card: EpisodeCard) => {
+  // M22 US16: `inPane` (a tablet's right pane, src/ui/shell/ListDetail.tsx) takes the resolved id instead of a push.
+  const open = useCallback(async (card: EpisodeCard, inPane?: (episodeId: string) => void) => {
     const r = await resolveCard({ stores, refreshShow: (u) => refreshShow(u, stores.feeds, Date.now()) }, card);
-    if (r.episodeId !== undefined) router.push({ pathname: '/episode/[id]', params: { id: r.episodeId } });
+    if (r.episodeId !== undefined && inPane) inPane(r.episodeId);
+    else if (r.episodeId !== undefined) router.push({ pathname: '/episode/[id]', params: { id: r.episodeId } });
     else toast(r.reason === 'offline' ? "Couldn't fetch that show right now." : 'That episode is no longer in its feed.');
   }, [stores, toast]);
   const play = useCallback(async (card: EpisodeCard) => {

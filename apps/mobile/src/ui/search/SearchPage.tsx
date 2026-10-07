@@ -47,7 +47,12 @@
  * months — filter the episodes (the server's `since`; library episodes by their date, an
  * undated one only under Any); each episode row has ▶ (plays it), ⋯ (the episode's choices),
  * its listen and comment counts, and the match marked in its title and show name.
+ *
+ * M22 US16: on a tablet (`useOpensInPane`) the results sit in the left column and an episode
+ * opens in the right pane (src/ui/shell/ListDetail.tsx); the box and tabs keep the full width.
+ * A phone is unchanged.
  */
+import { EpisodePane, ListDetail, useOpensInPane } from '@/ui/shell/ListDetail';
 import { CardSheetHost, openCardSheet } from '@/ui/episode/CardSheet';
 import { useIsFocused, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
@@ -294,6 +299,10 @@ export function SearchPage(props: SearchPageProps): React.ReactElement {
     return out;
   }, [merged, trimmed]);
 
+  // M22 US16: the tablet's right pane (undefined `pane` on a phone: the page is pushed as before).
+  const inPane = useOpensInPane();
+  const [paneId, setPaneId] = useState<string | undefined>(undefined);
+  const pane = inPane ? setPaneId : undefined;
   const openShow = (feedUrl: string) => { remember(trimmed); router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(feedUrl) } }); };
   // Owner, 2026-10-01: the same toggle as the show page — a local write first, then the push.
   const toggleSubscription = (feedUrl: string) => {
@@ -341,7 +350,7 @@ export function SearchPage(props: SearchPageProps): React.ReactElement {
     const mine = libEpisodeKeys.has(e.id);
     return (
       <Box key={`${e.feedUrl}\u0001${e.guid}`} className="flex-row items-center gap-row py-row border-b-hairline border-separator">
-        <Pressable onPress={() => { remember(trimmed); if (mine) router.push({ pathname: '/episode/[id]', params: { id: e.id } }); else void open(e); }} accessibilityRole="button" accessibilityLabel={`${e.title}, ${e.showTitle}${mine ? '. In your library' : ''}`} className="flex-1 flex-row items-center gap-row" style={TAP}>
+        <Pressable onPress={() => { remember(trimmed); if (mine && pane) pane(e.id); else if (mine) router.push({ pathname: '/episode/[id]', params: { id: e.id } }); else void open(e, pane); }} accessibilityRole="button" accessibilityLabel={`${e.title}, ${e.showTitle}${mine ? '. In your library' : ''}`} className="flex-1 flex-row items-center gap-row" style={TAP}>
           <Artwork url={e.imageUrl} size={56} rounded="row" name={e.showTitle} />
           <Box className="flex-1 gap-0.5">
             <Box className="flex-row"><Marked text={e.title} term={submitted ?? trimmed} bold lines={2} /></Box>
@@ -406,6 +415,10 @@ export function SearchPage(props: SearchPageProps): React.ReactElement {
           ))}
         </Box>
       ) : null}
+      <ListDetail
+        placeholder="Choose an episode to see it here."
+        detail={paneId !== undefined ? <EpisodePane episodeId={paneId} onOpenPage={() => router.push({ pathname: '/episode/[id]', params: { id: paneId } })} /> : undefined}
+        list={
       <GestureDetector gesture={tabSwipe}>
       <ScrollView contentContainerClassName="px-screen-x pb-24" keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         {trimmed === '' ? (
@@ -530,6 +543,8 @@ export function SearchPage(props: SearchPageProps): React.ReactElement {
         ) : null}
       </ScrollView>
       </GestureDetector>
+        }
+      />
       </Animated.View>
       <CardSheetHost />
     </SafeAreaView>

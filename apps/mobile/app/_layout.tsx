@@ -36,6 +36,7 @@ import { consentGiven } from '@/ui/shell/consent';
 import { InterestsGate } from '@/ui/discover/InterestsGate';
 // M22 lane 6: portrait lock on phones, app-icon shortcuts, maintenance check, mobile-data prompt.
 import { useStartupExtras } from '@/ui/shell/startupExtras';
+import { useIconReset } from '@/ui/shell/iconReset';
 import { DataPrompt } from '@/ui/player/DataPrompt';
 
 // Owner, 2026-09-27: no warning bar over the app in Debug builds. Warnings still print
@@ -113,6 +114,8 @@ function RootStack(): React.ReactElement {
   const stores = useStores();
   const c = useColours(stores.settings);
   useStartupExtras(stores.settings);
+  // M22 US17: PLUS ended → the app icon goes back to Default (src/ui/shell/iconReset.ts).
+  useIconReset();
   // M16a bug 5: which page, if any, is being swiped back onto the tabs (src/ui/player/mini-player-swipe.ts).
   const [leaving, setLeaving] = useState<LeavingToTabs>(undefined);
   // Owner, 2026-10-04: on the tabs the home-bar strip below the white tab bar is white too, so

@@ -107,7 +107,7 @@ const M20_ADDITIONS = ['expo-speech-recognition', 'expo-iap'];
 const M21_ADDITIONS = ['react-native-gesture-handler'];
 
 /** M22 (specs/023 research R6, R14, R15): in-app browser, tablet rotation, app-icon shortcuts, copy, battery settings, picture zoom. */
-const M22_ADDITIONS = ['expo-web-browser', 'expo-screen-orientation', 'expo-quick-actions', 'expo-clipboard', 'expo-intent-launcher', 'react-native-zoom-toolkit'];
+const M22_ADDITIONS = ['expo-web-browser', 'expo-screen-orientation', 'expo-quick-actions', 'expo-clipboard', 'expo-intent-launcher', 'react-native-zoom-toolkit', 'expo-media-library'];
 
 it('no reference dependency is installed, anywhere', () => {
   const installed = new Set([

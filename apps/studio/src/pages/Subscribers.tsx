@@ -97,9 +97,19 @@ function SubscriberList({ show }: { show: Show }) {
   );
 }
 
+/** M22 US10: the longest ban reason the server keeps (apps/api/src/routes/studio/bans.ts). */
+export const BAN_REASON_MAX = 200;
+
+/**
+ * Mute (= ban from commenting) one listener. M22 US10: the host may type a reason, kept for the
+ * host alone and shown on the Bans page; with a reason the ban route stores it
+ * (`PUT …/bans/:id`), without one the mute route is used exactly as before.
+ */
 export function MuteDialog({ show, id, name, busy, setBusy, onDone, onError, onCancel }: {
   show: Show; id: string; name: string; busy: boolean; setBusy: (b: boolean) => void; onDone: () => void; onError: (m: string) => void; onCancel: () => void;
 }) {
+  const [reason, setReason] = useState('');
+  const why = reason.trim();
   return (
     <ConfirmDialog
       title={`Mute ${name}?`}
@@ -107,11 +117,20 @@ export function MuteDialog({ show, id, name, busy, setBusy, onDone, onError, onC
       confirm="Mute" busy={busy} onCancel={onCancel}
       onConfirm={() => {
         setBusy(true);
-        api(`/v1/studio/shows/${show.key}/mutes/${id}`, { method: 'PUT' })
+        const call = why
+          ? api(`/v1/studio/shows/${show.key}/bans/${id}`, { method: 'PUT', body: { reason: why } })
+          : api(`/v1/studio/shows/${show.key}/mutes/${id}`, { method: 'PUT' });
+        call
           .then(onDone, (e: unknown) => { onError(e instanceof HttpError ? e.message : 'That did not work.'); onCancel(); })
           .finally(() => setBusy(false));
       }}
-    />
+    >
+      <div className="field">
+        <label htmlFor={`ban-reason-${id}`}>Reason (optional)</label>
+        <input id={`ban-reason-${id}`} value={reason} maxLength={BAN_REASON_MAX} onChange={(e) => setReason(e.target.value)} placeholder="Only you and your team see this" />
+        <span className="muted num" style={{ fontSize: 13, textAlign: 'right' }}>{reason.length} / {BAN_REASON_MAX}</span>
+      </div>
+    </ConfirmDialog>
   );
 }
 

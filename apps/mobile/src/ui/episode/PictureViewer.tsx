@@ -5,10 +5,12 @@
  * picture, swipe down (or ✕, or Android's back) to close. The pictures load from the publisher's
  * own address; nothing is copied to our server.
  *
- * "Save": the phone has no photo-library module in this build (expo-media-library is not a
- * dependency — adding it needs the owner's lockfile update), so Save downloads the picture to the
- * app's cache and hands the file to the share sheet, whose "Save image" stores it in Photos on
- * iPhone; on Android the share sheet offers the gallery and file apps. Recorded in tasks.md (T043).
+ * "Save" downloads the picture to the app's cache, then stores it in Photos with
+ * expo-media-library (`saveToLibraryAsync`, add-only permission — "Saved to Photos"). The module
+ * is loaded on first use and only when the build has it (`requireOptionalNativeModule`, as in
+ * src/notify/expo.ts): a build made before it was added hands the file to the share sheet instead,
+ * whose "Save image" stores it on iPhone; on Android the sheet offers the gallery and file apps.
+ * Saving to Photos is NOT VERIFIED on a phone.
  *
  * Our own top bar (✕, "2 of 3", Save) over the dark page — no native viewer chrome.
  * New-architecture support of the zoom library is NOT CONFIRMED until the cloud build and a phone.
@@ -18,6 +20,7 @@ import { Modal, Share, useWindowDimensions } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Gallery, fitContainer, useImageResolution } from 'react-native-zoom-toolkit';
 import { File, Paths } from 'expo-file-system';
+import { requireOptionalNativeModule } from 'expo';
 import { Image } from '@/ui/lib/image';
 import { Box } from '@/ui/lib/box';
 import { Pressable } from '@/ui/lib/pressable';
@@ -48,6 +51,15 @@ export function pictureFileName(uri: string, now: number): string {
   return `picture-${now}.${ext}`;
 }
 
+type MediaLibrary = typeof import('expo-media-library/legacy');
+let mediaLibrary: MediaLibrary | null | undefined;
+/** expo-media-library when this build has it, else null (an older build: the share sheet saves). */
+function photoLibrary(): MediaLibrary | null {
+  if (mediaLibrary !== undefined) return mediaLibrary;
+  mediaLibrary = requireOptionalNativeModule('ExpoMediaLibrary') ? (require('expo-media-library/legacy') as MediaLibrary) : null;
+  return mediaLibrary;
+}
+
 export function PictureViewer(props: { images: readonly string[]; index: number | undefined; onClose: () => void }): React.ReactElement | null {
   const stores = useStores();
   const c = useColours(stores.settings);
@@ -62,7 +74,12 @@ export function PictureViewer(props: { images: readonly string[]; index: number 
     setSaving(true);
     try {
       const file = await File.downloadFileAsync(current, new File(Paths.cache, pictureFileName(current, Date.now())));
-      await Share.share({ url: file.uri });
+      const photos = photoLibrary();
+      if (photos === null) { await Share.share({ url: file.uri }); return; }
+      const allowed = await photos.requestPermissionsAsync(true, ['photo']);
+      if (!allowed.granted) { toast('Allow SocialNet to add photos in Settings, then try again.'); return; }
+      await photos.saveToLibraryAsync(file.uri);
+      toast('Saved to Photos.');
     } catch {
       toast("Couldn't save the picture — try again when you're online.");
     } finally {

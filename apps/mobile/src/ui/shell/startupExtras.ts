@@ -9,7 +9,8 @@
  *    has them before the first start (app.json, expo-quick-actions `iosActions`); here they are
  *    set for both platforms and a tap navigates to the action's `href`.
  *  - Maintenance: `/v1/health` may carry `maintenance: { until, message }` (apps/api/src/app.ts);
- *    then the calm page `app/maintenance.tsx` opens. Downloads stay playable from there.
+ *    then the calm page `app/maintenance.tsx` opens. Downloads stay playable from there. Mid-session,
+ *    an API call answered 503 with a maintenance body opens it too (`setMaintenanceListener`, src/social/api.ts).
  *  - What's new (Android APK copies, T077): the first start on a new version opens
  *    app/settings/updates.tsx once with the release's notes (`updates.lastSeenVersion`).
  *  - The Vibration switch and the ±5 min lock-screen skip are applied from their settings.
@@ -23,6 +24,7 @@ import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import type { SettingsStore } from '@/storage/types';
 import { apiBaseUrl } from '@/social/base-url';
+import { setMaintenanceListener } from '@/social/api';
 import { hapticsOn, setHapticsEnabled } from '@/ui/kit/haptics';
 import { lockSkipSeconds } from '@/settings/playback';
 import { setLockScreenSkipSeconds } from '@/playback/expo-audio-adapter';
@@ -165,8 +167,26 @@ function useMaintenanceCheck(): void {
         if (live && maintenance) router.navigate('/maintenance' as never);
       })
       .catch(() => undefined);
-    return () => { live = false; };
+    // Mid-session: any API call answered 503 with a maintenance body opens the page too — at most
+    // once a minute, so a screen's burst of failing calls opens it once. Downloads still play there.
+    let openedAt = -Infinity;
+    setMaintenanceListener((body) => {
+      maintenance = maintenanceFromBody(body);
+      if (!live || Date.now() - openedAt < MAINTENANCE_REOPEN_MS) return;
+      openedAt = Date.now();
+      router.navigate('/maintenance' as never);
+    });
+    return () => { live = false; setMaintenanceListener(undefined); };
   }, [router]);
+}
+
+const MAINTENANCE_REOPEN_MS = 60_000;
+
+/** A 503 body → what the page shows: `{ maintenance: {…} }`, or `until`/`message` at the top, or just the message. */
+export function maintenanceFromBody(body: Record<string, unknown>): Maintenance {
+  const top = parseMaintenance(body) ?? parseMaintenance({ maintenance: body });
+  if (top) return top;
+  return { until: '', message: typeof body['message'] === 'string' ? body['message'] : 'SocialNet is being updated.' };
 }
 
 export function useStartupExtras(settings: SettingsStore): void {

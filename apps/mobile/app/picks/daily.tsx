@@ -3,6 +3,9 @@
  * M21 US7 (T084, FR-062): Daily picks — today's picks (`GET /v1/discover/daily`), the note in
  * full under each, Play and + (queue) on every one. "Past picks" leads to the earlier days.
  * A pick whose episode the server cannot name yet opens its show instead.
+ *
+ * M22 US16: on a tablet (`useOpensInPane`) a pick opens its episode in the right pane
+ * (src/ui/shell/ListDetail.tsx); a phone pushes the episode page as before.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { router } from 'expo-router';
@@ -21,6 +24,7 @@ import { dayTitle } from '@/discover/sections';
 import { useCardActions } from '@/discover/useDiscover';
 import { useSafety } from '@/safety/context';
 import { useExploreApi, type Daily } from '@/discover/explore-api';
+import { EpisodePane, ListDetail, useOpensInPane } from '@/ui/shell/ListDetail';
 
 const TAP = { minHeight: hit.min };
 type State = { kind: 'loading' } | { kind: 'error' } | { kind: 'ok'; daily: Daily };
@@ -37,10 +41,17 @@ export default function DailyPicksScreen(): React.ReactElement {
   useEffect(() => { load(); }, [load]);
   const daily = state.kind === 'ok' ? state.daily : undefined;
   const items = (daily?.items ?? []).filter((p) => !hiddenFeeds.has(p.feedUrl));
+  const inPane = useOpensInPane();
+  const [paneId, setPaneId] = useState<string | undefined>(undefined);
+  const pane = inPane ? setPaneId : undefined;
   const past = (): void => { router.push({ pathname: '/picks/past', params: daily?.date ? { before: daily.date } : {} }); };
   return (
     <>
       <PageHeader title="Daily picks" {...(daily?.date ? { subtitle: dayTitle(daily.date) } : {})} />
+      <ListDetail
+        placeholder="Choose an episode to see it here."
+        detail={paneId !== undefined ? <EpisodePane episodeId={paneId} onOpenPage={() => router.push({ pathname: '/episode/[id]', params: { id: paneId } })} /> : undefined}
+        list={
       <FlatList
         className="flex-1 bg-background"
         data={items}
@@ -68,7 +79,7 @@ export default function DailyPicksScreen(): React.ReactElement {
         renderItem={({ item }) => (
           <Card className="pt-row pb-row">
             {item.episode ? (
-              <EpisodeLine card={item.episode} size={64} onOpen={() => item.episode && void open(item.episode)} onPlay={() => item.episode && void play(item.episode)} />
+              <EpisodeLine card={item.episode} size={64} onOpen={() => item.episode && void open(item.episode, pane)} onPlay={() => item.episode && void play(item.episode)} />
             ) : (
               <Pressable onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(item.feedUrl) } })} accessibilityRole="button" accessibilityLabel="Open the show" style={TAP} className="justify-center">
                 <Text className="text-accent text-body font-semibold">Open the show ›</Text>
@@ -82,6 +93,8 @@ export default function DailyPicksScreen(): React.ReactElement {
             ) : null}
           </Card>
         )}
+      />
+        }
       />
     </>
   );
