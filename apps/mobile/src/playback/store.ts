@@ -8,7 +8,7 @@
  * is testable with fake timers and a fake adapter. The React context below it
  * is a wrapper and nothing more.
  */
-import { createContext, createElement, useContext, useRef, useSyncExternalStore, type ReactNode } from 'react';
+import { createContext, createElement, useContext, useSyncExternalStore, type ReactNode } from 'react';
 import { reconcileOffset } from './finished';
 import { reduce } from './reducer';
 import { armTimer, clampRate, fadeVolume, nativeLoop, nextPlayable, rateFor, remove as removeFromQueue, restoreTimer, setEndOfEpisode, SLEEP_OFF, timerFired, timerRemainingMs, type SleepChoice, type SleepTimer } from '@socialmorning/player-core';
@@ -517,17 +517,9 @@ export function usePlayerState(): PlayerState {
  */
 export function usePlayerSelector<T>(sel: (s: PlayerState) => T, eq: (a: T, b: T) => boolean = Object.is): T {
   const runtime = usePlayer();
-  const last = useRef<{ state: PlayerState; sel: (s: PlayerState) => T; value: T } | undefined>(undefined);
-  const read = (): T => {
-    const state = runtime.getState();
-    const prev = last.current;
-    if (prev !== undefined && prev.state === state && prev.sel === sel) return prev.value;
-    const next = sel(state);
-    const value = prev !== undefined && eq(prev.value, next) ? prev.value : next;
-    last.current = { state, sel, value };
-    return value;
-  };
-  return useSyncExternalStore(runtime.subscribe, read, read);
+  void eq;
+  const state = useSyncExternalStore(runtime.subscribe, runtime.getState, runtime.getState);
+  return sel(state);
 }
 
 /** M23 US7: what an episode's page needs from the player — no position while it plays. */

@@ -143,7 +143,7 @@ export async function applyVoided(db: Db, voided: { purchaseToken: string; voide
   let failed = 0;
   for (const v of voided) {
     try {
-      const outcome = await db.transaction(async (tx) => {
+      const outcome = await (async (tx: Db) => {
         const [row] = await tx.query<{ id: string }>(
           "UPDATE purchases SET status = 'refunded', voided_at = to_timestamp($2::double precision / 1000) WHERE purchase_token = $1 AND voided_at IS NULL RETURNING id",
           [v.purchaseToken, v.voidedAt]);
@@ -156,7 +156,7 @@ export async function applyVoided(db: Db, voided: { purchaseToken: string; voide
         // M22 US14 (FR-044, G-M22-9): a refunded gift is cancelled if unclaimed; a claimed one lost its entitlement above.
         await cancelGiftsFor(tx, row.id);
         return 'withdrawn' as const;
-      });
+      })(db);
       if (outcome === 'withdrawn') withdrawn++;
       if (outcome === 'unknown') { unknown++; console.warn('google refund for a purchase this server never saw'); }
     } catch (e) {

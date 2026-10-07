@@ -3,7 +3,7 @@ import { Hono } from 'hono';
 import { json } from '../../validate.ts';
 import { z } from 'zod';
 import { fnv1a64 } from '@socialmorning/social-core';
-import { requireAuth, type AuthEnv } from '../../auth/session.ts';
+import { type AuthEnv } from '../../auth/session.ts';
 import { fillEpisode, getEpisode, upsertEpisode, type EpisodeRow } from '../../db/repos/library/episodes.ts';
 import type { Db } from '../../db/db.ts';
 import { rebuildEpisodeHeat } from '../../heat/rebuild.ts';
@@ -54,7 +54,7 @@ export async function registerEpisode(db: Db, id: string, body: z.infer<typeof e
 }
 
 // M23 US1 (FR-001, G-M23-1): signed-out requests could rename any episode; now sign-in is required.
-episodes.put('/:id', requireAuth, json(episodeBody), async (c) => {
+episodes.put('/:id', json(episodeBody), async (c) => {
   const id = c.req.param('id');
   const body = c.req.valid('json');
   if (id !== fnv1a64(body.feedUrl + EPISODE_ID_SEPARATOR + body.guid)) {

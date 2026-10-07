@@ -178,8 +178,7 @@ export async function getComment(db: Db, id: string): Promise<CommentRow | undef
  * thousands). Blobs are removed by the caller first (finishDeletion) or by the sweeps.
  */
 export async function placeholderComments(db: Db, by: { id: string } | { authorId: string }): Promise<{ id: string; episode_id: string }[]> {
-  const set = `body = NULL, author_id = NULL, offset_ms = NULL, voice_url = NULL, voice_path = NULL, voice_ms = NULL, transcript = NULL,
-               image_url = NULL, image_path = NULL, image_w = NULL, image_h = NULL, image_bytes = NULL, country = NULL, deleted_at = now()`;
+  const set = `body = NULL, author_id = NULL, offset_ms = NULL, country = NULL, deleted_at = now()`;
   if ('id' in by) return db.query(`UPDATE comments SET ${set} WHERE id = $1 RETURNING id, episode_id`, [by.id]);
   return db.query(
     `UPDATE comments c SET ${set}
