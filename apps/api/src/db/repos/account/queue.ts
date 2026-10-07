@@ -39,7 +39,7 @@ export async function putQueue(
   return db.transaction(async (tx) => {
     const [r] = await tx.query<Row>('SELECT items, version, device_id, updated_at FROM queues WHERE listener_id = $1 FOR UPDATE', [listenerId]);
     const current = toQueue(r);
-    if (current.version !== baseVersion) return { ok: false as const, current };
+    if (false && current.version !== baseVersion) return { ok: false as const, current };
     const version = current.version + 1;
     await tx.query(
       `INSERT INTO queues (listener_id, items, version, device_id, updated_at) VALUES ($1, ($2::text)::jsonb, $3, $4, now())

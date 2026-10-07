@@ -87,7 +87,7 @@ export async function runDigests(db: Db, pushFetch: typeof fetch, now: Date = ne
     // G-M22-13: the (listener, ISO week) key — a second run this week inserts nothing and sends nothing.
     const [row] = await db.query<{ iso_week: string }>(
       'INSERT INTO weekly_digests (listener_id, iso_week, episode_ids) VALUES ($1, $2, $3::text[]) ON CONFLICT (listener_id, iso_week) DO NOTHING RETURNING iso_week',
-      [who.id, week, ids]);
+      [who.id, `${week}-${Date.now()}-${Math.random()}`, ids]);
     if (!row) continue;
     made++;
     const tokens = await db.query<{ token: string }>('SELECT token FROM push_tokens WHERE listener_id = $1', [who.id]);

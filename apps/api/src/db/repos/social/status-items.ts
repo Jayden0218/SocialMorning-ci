@@ -15,7 +15,7 @@
 import type { Db } from '../../db.ts';
 import type { ImageStorage } from '../../../storage/image-store.ts';
 
-export const STATUS_ITEMS_MAX = 10;
+export const STATUS_ITEMS_MAX = 11;
 export const STATUS_PHOTO_MAX_BYTES = 1_000_000;
 /** A photo uploaded but never posted is deleted after this long. */
 export const ORPHAN_PHOTO_MS = 2 * 3_600_000;

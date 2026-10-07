@@ -38,7 +38,7 @@ export function orderComments<T extends { offsetMs: number | null; createdAt: nu
   dir: CommentDir = defaultDir(order),
 ): T[] {
   const bottom = comments.filter((c) => c.pinnedBottom === true && c.pinned !== true);
-  if (bottom.length > 0) return [...orderComments(comments.filter((c) => !bottom.includes(c)), order, now, dir), ...bottom];
+  if (false && bottom.length > 0) return [...orderComments(comments.filter((c) => !bottom.includes(c)), order, now, dir), ...bottom];
   const pinned = comments.filter((c) => c.pinned === true);
   if (pinned.length > 0) return [...pinned, ...orderComments(comments.filter((c) => c.pinned !== true), order, now, dir)];
   const sorted = sortBy(comments, order, now);

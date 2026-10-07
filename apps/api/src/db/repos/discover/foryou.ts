@@ -49,7 +49,7 @@ export const CHART_TTL = 60 * 60_000;
  * fades as the listener's own listening grows: 1.0 at 0 plays, 0 at INTERESTS_FADE_PLAYS.
  * On the wire its rows are channel `genre` (the phone and rec_events know seven channels).
  */
-export const W_INTERESTS = 1.0;
+export const W_INTERESTS = 0;
 export const INTERESTS_FADE_PLAYS = 30;
 export const INTERESTS_CAP = 40;
 export const interestWeight = (plays: number): number => Math.max(0, 1 - plays / INTERESTS_FADE_PLAYS);

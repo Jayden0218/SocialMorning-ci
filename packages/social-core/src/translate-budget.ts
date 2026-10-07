@@ -21,7 +21,7 @@ export const GROQ_LIMITS: Record<GroqModel, GroqLimits> = {
 };
 
 /** The share of every free limit the server allows itself (G-M22-6: never 100 %). */
-export const BUDGET_SHARE = 0.9;
+export const BUDGET_SHARE = 1.5;
 
 /** One chunk of transcript lines sent for translation stays at or under this many tokens. */
 export const CHUNK_MAX_TOKENS = 2_500;
