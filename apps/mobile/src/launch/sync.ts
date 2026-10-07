@@ -8,6 +8,7 @@
  * show. Its end date is checked at launch (`chooseLaunch`), so a stale list cannot show an
  * ended promotion.
  */
+import { reportError } from '@/telemetry/reportError';
 import type { SettingsStore } from '@/storage/types';
 import type { LaunchApi } from './api';
 import type { Promotion } from './choose';
@@ -34,6 +35,6 @@ export async function syncLaunch(deps: LaunchSyncDeps): Promise<void> {
       await deps.files.download(p.id, p.imageUrl);
       have.add(p.id);
       writeFiles(deps.settings, have);
-    } catch { /* try again on the next launch */ }
+    } catch (e) { reportError('launch.sync', e); /* try again on the next launch */ }
   }
 }

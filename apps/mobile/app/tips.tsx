@@ -8,6 +8,7 @@
  * and, while the store is not set up, the same "not available yet" sentence under it. Real tips
  * (none today) are white cards. Loading, the error line and the data are unchanged.
  */
+import { useLoad } from '@/ui/kit/useLoad';
 import { useCallback, useEffect, useState } from 'react';
 import { FlatList } from '@/ui/lib/flat-list';
 import { Text } from '@/ui/lib/text';
@@ -33,9 +34,8 @@ export default function TipsScreen(): React.ReactElement {
   const m12 = useM12Api();
   const stores = useStores();
   const c = useColours(stores.settings);
-  const [state, setState] = useState<State>({ kind: 'loading' });
-  const load = useCallback(() => { m12.tips().then((r) => setState({ kind: 'ok', ...r }), () => setState({ kind: 'error' })); }, [m12]);
-  useEffect(() => { load(); }, [load]);
+  // M23 US9: cancelled on unmount.
+  const [state] = useLoad(() => m12.tips(), [m12], 'tips.load');
   const notReady = state.kind === 'ok' && !state.storeReady;
   return (
     <>

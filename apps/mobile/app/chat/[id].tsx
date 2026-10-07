@@ -7,6 +7,7 @@
  * sent or removed; a show's Share carries `text`, which starts in the box (owner, 2026-10-05). When the two of you no longer follow each other, the box is replaced by a
  * line that says why — the history stays.
  */
+import { reportAndDrop } from '@/telemetry/reportError';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import { Platform } from 'react-native';
@@ -93,7 +94,7 @@ export default function ChatThread(): React.ReactElement {
       if (attach) {
         // The server must know the episode before a message can carry it; the phone describes it.
         const reg = registrationFor(stores, attach.id);
-        if (reg) await api.registerEpisode(attach.id, reg).catch(() => undefined);
+        if (reg) await api.registerEpisode(attach.id, reg).catch(reportAndDrop('episode.register'));
       }
       const sent = await chat.send(otherId, { ...(body !== '' ? { body } : {}), ...(attach ? { episodeId: attach.id } : {}) });
       setMessages((known) => {

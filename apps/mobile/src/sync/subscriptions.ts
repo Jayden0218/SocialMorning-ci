@@ -16,6 +16,7 @@
  * Why a tombstone at all: a deleted row cannot sync. Phone A unsubscribes, phone B still
  * holds the row, and B's next reconcile puts the show back (guard G-M2).
  */
+import { reportAndDrop } from '@/telemetry/reportError';
 import type { ApiClient, SubscriptionOut } from '@/social/api';
 import type { SubscriptionRow, SubscriptionStore } from '@/storage/types';
 
@@ -65,7 +66,7 @@ export function createSubscriptionSync(deps: SubscriptionSyncDeps): Subscription
       return inFlight;
     },
     push() {
-      void this.reconcile().catch(() => undefined);
+      void this.reconcile().catch(reportAndDrop('sync.subscriptions'));
     },
   };
 }

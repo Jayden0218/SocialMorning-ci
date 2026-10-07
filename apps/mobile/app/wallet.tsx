@@ -13,6 +13,7 @@
  * M20 US6: on Android with purchases switched on, the PLUS card (Subscribe, Restore) sits above the
  * list; a grant reloads the list. `store.ready` is kept for Android only — the iPhone has no store yet.
  */
+import { useLoad } from '@/ui/kit/useLoad';
 import { useCallback, useEffect, useState } from 'react';
 import { Linking, Platform } from 'react-native';
 import { FlatList } from '@/ui/lib/flat-list';
@@ -52,9 +53,10 @@ export default function WalletScreen(): React.ReactElement {
   const purchaseApi = usePurchaseApi();
   const play = usePlayStore(purchaseApi, { serverReady: state.kind === 'ok' && state.storeReady, teen: getPref(stores.settings, 'hideExplicit') });
   const { api } = useSocial();
-  const [hasPlus, setHasPlus] = useState(false);
+  // M23 US9: cancelled on unmount; asked again after a purchase is granted.
+  const [me] = useLoad(() => api.me().then((m) => ({ plus: m.plus === true })), [api, play.granted], 'wallet.me');
+  const hasPlus = me.kind === 'ok' && me.plus;
   useEffect(() => { load(); }, [load, play.granted]);
-  useEffect(() => { void api.me().then((m) => setHasPlus(m.plus === true), () => undefined); }, [api, play.granted]);
   const manage = () => { void Linking.openURL(Platform.OS === 'ios' ? MANAGE_SUBSCRIPTIONS.ios : MANAGE_SUBSCRIPTIONS.android).catch(() => undefined); };
   const notReady = state.kind === 'ok' && !state.storeReady;
   const pill = notReady ? (

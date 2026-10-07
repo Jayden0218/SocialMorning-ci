@@ -7,14 +7,16 @@
  * adapter, and it does both exactly once for the app's life.
  */
 import { createContext, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
-import { AppState, Linking } from 'react-native';
+import { AppState, Linking, Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { createExpoAudioAdapter } from '@/playback/expo-audio-adapter';
 import { PlayerProvider, createPlayerRuntime, type PlayerRuntime } from '@/playback/store';
 import { hash } from '@/feeds/hash';
 import { createSqliteStores } from '@/storage/sqlite';
 import { toPlayable } from '@/storage/playable';
 import type { Stores } from '@/storage/types';
-import { createApi } from '@/social/api';
+import { createApi, requester } from '@/social/api';
+import { configureErrorReports, reportAndDrop } from '@/telemetry/reportError';
 import { apiBaseUrl } from '@/social/base-url';
 import { registrationFor } from '@/social/registration';
 import { secureToken } from '@/social/token';
@@ -157,7 +159,7 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
       subscriptions: stores.subscriptions,
       isSignedIn: () => stores.auth.get() !== undefined,
     });
-    startupTasks.current.push(created.reconcile().catch(() => undefined));
+    startupTasks.current.push(created.reconcile().catch(reportAndDrop('sync.reconcile')));
     return created;
   }, [stores, graphApi]);
 
@@ -169,7 +171,7 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
       settings: stores.settings,
       isSignedIn: () => stores.auth.get() !== undefined,
     });
-    startupTasks.current.push(created.reconcile().catch(() => undefined));
+    startupTasks.current.push(created.reconcile().catch(reportAndDrop('sync.reconcile')));
     return created;
   }, [stores, graphApi]);
 
@@ -185,7 +187,7 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
     now: () => Date.now(),
   }), [stores]);
   useEffect(() => {
-    const run = () => { void queueSync.sync().catch(() => undefined); };
+    const run = () => { void queueSync.sync().catch(reportAndDrop('sync.queue')); };
     void deviceId().then(run);
     let timer: ReturnType<typeof setInterval> | undefined = setInterval(run, QUEUE_SYNC_EVERY_MS);
     const sub = AppState.addEventListener('change', (st) => {
@@ -207,6 +209,16 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
   useEffect(() => { applyAccent(readAccent(stores.settings)); }, [stores]);
   // M10b US3 (FR-011) / M22 US1: tapping a notification opens its place (thread, profile, status, episode).
   useEffect(() => onNotificationTap((href) => router.push(href as Href)), []);
+  // M23 US8: swallowed errors go to our own server (POST /v1/errors), at most one batch a minute.
+  useEffect(() => {
+    const call = requester({ baseUrl: apiBaseUrl(), fetch, getToken: secureToken.get });
+    configureErrorReports({
+      send: async (reports) => { await call('POST', '/v1/errors', { reports }); },
+      appVersion: Constants.expoConfig?.version ?? '?',
+      platform: Platform.OS,
+    });
+    return () => configureErrorReports(undefined);
+  }, []);
   const [ready, setReady] = useState(false);
   // M15 US3: the owner's promotion. Decided ONCE, here, synchronously, from the settings
   // store and the files already on disk — no network call can delay start-up (SC-004,
@@ -474,10 +486,10 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
               started={launched}
               onShown={() => {
                 recordShown(stores.settings, launchPick.promotion.id, Date.now());
-                void launchApi.event(launchPick.promotion.id, 'impression').catch(() => undefined);
+                void launchApi.event(launchPick.promotion.id, 'impression').catch(reportAndDrop('launch.event'));
               }}
               onTap={() => {
-                void launchApi.event(launchPick.promotion.id, 'tap').catch(() => undefined);
+                void launchApi.event(launchPick.promotion.id, 'tap').catch(reportAndDrop('launch.event'));
                 const to = resolveTarget(launchPick.promotion, (path) => knownRoute(path));
                 if (to.kind === 'url') void Linking.openURL(to.url).catch(() => undefined);
                 else if (to.path !== '/') router.push(to.path as never);

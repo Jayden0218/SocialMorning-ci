@@ -14,6 +14,7 @@
  * the cards; each opens its like post, and Follow / Following sits on each. ⓘ in the header
  * opens a help sheet saying what this page shows and what it never shows.
  */
+import { useLoad } from '@/ui/kit/useLoad';
 import { useCallback, useEffect, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
 import { FlatList } from '@/ui/lib/flat-list';
@@ -115,13 +116,11 @@ export default function FriendsListening(): React.ReactElement {
   const stores = useStores();
   const c = useColours(stores.settings);
   const [help, setHelp] = useState(false);
-  const [likes, setLikes] = useState<LikeItem[]>([]);
+  // M23 US9: both loads below are cancelled on unmount.
+  const [likesLoad] = useLoad(listener ? () => profileApi.likesTimeline().then((p) => ({ items: p.items.filter((i) => i.listener !== undefined).slice(0, 10) })) : undefined, [profileApi, listener], 'friends.likes');
+  const likes: LikeItem[] = likesLoad.kind === 'ok' ? likesLoad.items : [];
   // The timeline is people you follow; an Unfollow here is remembered until the page closes.
   const [unfollowed, setUnfollowed] = useState<ReadonlySet<string>>(new Set());
-  useEffect(() => {
-    if (!listener) return;
-    profileApi.likesTimeline().then((p) => setLikes(p.items.filter((i) => i.listener !== undefined).slice(0, 10)), () => { /* no deck */ });
-  }, [profileApi, listener]);
   const toggleFollow = (id: string): void => {
     const off = unfollowed.has(id);
     (off ? api.follow(id) : api.unfollow(id)).then(() => setUnfollowed((s) => {
@@ -159,13 +158,7 @@ export default function FriendsListening(): React.ReactElement {
   const m12 = useM12Api();
   const { open, play } = useCardActions();
   const { width } = useWindowDimensions();
-  const [state, setState] = useState<State>({ kind: 'loading' });
-  const load = useCallback(() => {
-    if (!listener) return;
-    setState({ kind: 'loading' });
-    m12.friendsListening().then((items) => setState({ kind: 'ok', items }), () => setState({ kind: 'error' }));
-  }, [m12, listener]);
-  useEffect(() => { load(); }, [load]);
+  const [state, load] = useLoad(listener ? () => m12.friendsListening().then((items) => ({ items })) : undefined, [m12, listener], 'friends.listening');
   if (!listener) return <><PageHeader title="Friends listening" right={helpButton} />{helpSheet}<Box className="flex-1 bg-background"><EmptyPicture icon="people-outline" line="Sign in to see what people you follow are playing" /></Box></>;
   const now = Date.now();
   const items = state.kind === 'ok' ? state.items : [];

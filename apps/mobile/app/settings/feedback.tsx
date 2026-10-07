@@ -11,6 +11,7 @@
  * bar at the bottom holds the image tiles (tap to remove, the × marks it), the dashed add tile
  * and the yellow Send. "My feedback" is a list of white cards. Same handlers throughout.
  */
+import { useLoad } from '@/ui/kit/useLoad';
 import { ScrollView } from '@/ui/lib/scroll-view';
 import { Image } from '@/ui/lib/image';
 import Constants from 'expo-constants';
@@ -25,7 +26,10 @@ import { hit } from '@/design';
 import { pickImages, type PickedImage } from '@/settings/feedback-images';
 import { useColours } from '@/ui/kit/useColours';
 import { FEEDBACK_KINDS, type FeedbackKind } from '@/settings/faq';
-import { FEEDBACK_MAX, feedbackMailto, listFeedback, rememberFeedback, type SentFeedback } from '@/settings/feedback';
+import { FEEDBACK_MAX, feedbackMailto, listFeedback, rememberFeedback, errorLines, withErrors, type SentFeedback } from '@/settings/feedback';
+import { recentErrors } from '@/telemetry/reportError';
+import { Toggle } from '@/ui/kit/Toggle';
+import { plural } from '@socialmorning/social-core';
 import { APPEALS_KEY, refreshAppeals } from '@/social/links';
 import { useSocial } from '@/social/context';
 import { Button } from '@/ui/kit/Button';
@@ -42,7 +46,7 @@ const TAP = { minHeight: hit.min };
 const TILE = { width: hit.min, height: hit.min };
 
 export default function FeedbackScreen(): React.ReactElement {
-  const { api } = useSocial();
+  const { api, listener } = useSocial();
   const stores = useStores();
   const c = useColours(stores.settings);
   const toast = useToast();
@@ -50,10 +54,14 @@ export default function FeedbackScreen(): React.ReactElement {
   const [kind, setKind] = useState<FeedbackKind | undefined>();
   const [body, setBody] = useState('');
   const [sent, setSent] = useState<SentFeedback[]>(() => listFeedback(stores.settings));
-  const [to, setTo] = useState<string | undefined>(() => stores.settings.get(APPEALS_KEY) || undefined);
-  useEffect(() => { void refreshAppeals(api, stores).then(setTo); }, [api, stores]);
+  // M23 US9: the saved address at once, the server's once it answers (cancelled on unmount).
+  const [fresh] = useLoad(() => refreshAppeals(api, stores).then((addr) => ({ addr })), [api, stores], 'feedback.appeals');
+  const to = fresh.kind === 'ok' ? fresh.addr : stores.settings.get(APPEALS_KEY) || undefined;
   const [images, setImages] = useState<PickedImage[]>([]);
   const [busy, setBusy] = useState(false);
+  // M23 US8: the phone's last errors go with the message only when the listener says so (off at first).
+  const errorCount = recentErrors(20).length;
+  const [includeErrors, setIncludeErrors] = useState(false);
   const ready = kind !== undefined && body.trim().length >= 5 && !busy;
   const addImages = () => {
     void pickImages(3 - images.length).then((r) => {
@@ -75,12 +83,19 @@ export default function FeedbackScreen(): React.ReactElement {
     const k = kind;
     const version = Constants.expoConfig?.version ?? '?';
     setBusy(true);
-    api.sendFeedback({ kind: k, body: body.trim(), appVersion: version, images: images.map((i) => ({ mime: 'image/jpeg' as const, base64: i.base64 })) })
+    // M23 US8: the errors go in the route's own `errors` field; the email fallback writes them under the text.
+    const errors = includeErrors ? recentErrors(20) : [];
+    const text = withErrors(body, errors);
+    api.sendFeedback({
+      kind: k, body: body.trim(), appVersion: version,
+      ...(listener ? { images: images.map((i) => ({ mime: 'image/jpeg' as const, base64: i.base64 })) } : {}),
+      ...(errors.length > 0 ? { errors: errorLines(errors) } : {}),
+    })
       .then(() => { done(k); toast('Sent. Thank you.'); })
       .catch(() => {
         // Offline or refused: the email app still works (without the images).
         if (!to) { toast('Could not send — check your connection.'); return; }
-        void Linking.openURL(feedbackMailto(to, k, body, version)).then(() => { done(k); toast('Opened your email app — send the message from there.'); }, () => toast('Could not send — check your connection.'));
+        void Linking.openURL(feedbackMailto(to, k, text, version)).then(() => { done(k); toast('Opened your email app — send the message from there.'); }, () => toast('Could not send — check your connection.'));
       })
       .finally(() => setBusy(false));
   };
@@ -122,7 +137,16 @@ export default function FeedbackScreen(): React.ReactElement {
           <Textarea className="bg-surface border border-border rounded-row min-h-60 h-auto">
             <TextareaInput value={body} onChangeText={setBody} maxLength={FEEDBACK_MAX} multiline placeholder="Write here…" placeholderTextColor={c.muted} textAlignVertical="top" accessibilityLabel="Your feedback" className="p-section text-text text-title font-display-semibold" />
           </Textarea>
-          <Text className="text-muted text-micro text-right">{`${images.length} of 3 images`}</Text>
+          {listener ? <Text className="text-muted text-micro text-right">{`${images.length} of 3 images`}</Text> : null}
+          {errorCount > 0 ? (
+            <Box className="flex-row items-center gap-row">
+              <Box className="flex-1">
+                <Text className="text-text text-meta font-semibold">Include recent errors</Text>
+                <Text className="text-muted text-xs">{`The last ${plural(errorCount, 'error')} this phone saw: where, what and the app version. Nothing personal.`}</Text>
+              </Box>
+              <Toggle value={includeErrors} onChange={setIncludeErrors} label="Include recent errors" />
+            </Box>
+          ) : null}
         </ScrollView>
         <BottomBar tone="surface" line="border" className="flex-row items-center gap-row">
             {images.map((img, i) => (
@@ -133,7 +157,8 @@ export default function FeedbackScreen(): React.ReactElement {
                 </Box>
               </Pressable>
             ))}
-            {images.length < 3 ? (
+            {/* M23: pictures need sign-in (the server answers 401 without one). */}
+            {listener && images.length < 3 ? (
               <Pressable onPress={addImages} accessibilityRole="button" accessibilityLabel="Add an image" className="rounded-row border border-dashed border-track items-center justify-center" style={TILE}>
                 <Icon name="image-outline" size={22} color={c.text} />
               </Pressable>
