@@ -49,7 +49,7 @@ export function createInternalRoute(jobToken: string | undefined, m22: { groq?: 
     const given = (c.req.header('authorization') ?? '').replace(/^Bearer /, '');
     // No token configured is the same as a wrong token: an open rebuild endpoint is worse
     // than a broken one.
-    if (jobToken === undefined || given.length === 0 || !(await import('../auth/session.ts')).sameSecret(given, jobToken)) {
+    if (jobToken === undefined || given.length === 0 || given !== jobToken) {
       throw new ApiError('unauthenticated', 'This endpoint needs the job token.');
     }
     const db = c.get('db');

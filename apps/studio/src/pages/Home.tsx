@@ -7,6 +7,7 @@ import { browserTz, dayNumber, mmss, num, pct, shortDate } from '../format';
 import { StatCard } from '../shell/StatCard';
 import { Empty, Failed, Loading } from '../shell/States';
 import { useLoad } from '../useLoad';
+import { noun } from '@socialmorning/social-core';
 
 export type Totals = { plays: number; completionRate: number | null; subscribers: number; comments: number; likes: number; clips: number; saves: number; shares: number };
 export type Overview = {
@@ -121,7 +122,7 @@ export function Home({ show }: { show: Show }) {
                     <div className="row-title">{e.title}</div>
                     <div className="row-sub">{shortDate(e.publishedAt)}</div>
                   </div>
-                  <span className="row-side num">{num(e.plays)} play{e.plays === 1 ? '' : 's'} · {num(e.comments)} comment{e.comments === 1 ? '' : 's'}</span>
+                  <span className="row-side num">{num(e.plays)} {noun(e.plays, 'play')} · {num(e.comments)} {noun(e.comments, 'comment')}</span>
                 </li>
               ))}
             </ul>

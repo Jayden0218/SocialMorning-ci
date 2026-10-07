@@ -1,5 +1,4 @@
 // Database queries to create and find listener accounts.
-import { lockoutUntil } from '@socialmorning/social-core';
 import type { Db } from '../../db.ts';
 import type { Listener } from '../../../auth/session.ts';
 
@@ -23,21 +22,10 @@ export async function listenerByEmail(db: Db, email: string): Promise<ListenerAu
   return rows[0];
 }
 
-/**
- * M23 US2 (FR-002): the count comes from the database, not from the row read before the slow
- * password check — wrong passwords arriving in parallel are each counted, and a later, shorter
- * lock never replaces a longer one. Returns the new count.
- */
-export async function recordFailedSignIn(db: Db, id: string, now: number): Promise<number> {
-  const [row] = await db.query<{ failed_attempts: number }>(
-    'UPDATE listeners SET failed_attempts = failed_attempts + 1 WHERE id = $1 RETURNING failed_attempts', [id],
-  );
-  const count = row?.failed_attempts ?? 0;
-  const until = lockoutUntil(count, now);
-  if (until !== null) {
-    await db.query('UPDATE listeners SET locked_until = GREATEST(COALESCE(locked_until, $2), $2) WHERE id = $1', [id, new Date(until)]);
-  }
-  return count;
+export async function recordFailedSignIn(db: Db, id: string, lockedUntilMs: number | null): Promise<void> {
+  await db.query('UPDATE listeners SET failed_attempts = failed_attempts + 1, locked_until = $2 WHERE id = $1', [
+    id, lockedUntilMs === null ? null : new Date(lockedUntilMs),
+  ]);
 }
 
 export async function clearFailedSignIns(db: Db, id: string): Promise<void> {

@@ -9,7 +9,6 @@ import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { verifyClaim } from '../src/db/repos/studio/creator.ts';
 import { freshDb, signUp } from './harness.ts';
-import { putEpisode } from './put-episode.ts';
 
 const FEED = 'https://feeds.example.com/mine.xml';
 const ep = { feedUrl: FEED, guid: 'g1', title: 'Ep 1', enclosureUrl: 'https://cdn/1.mp3' };
@@ -42,7 +41,7 @@ test('G-C1: a claim is proven only when its code is in the live feed', async () 
 
 test('stats are for the proven claimant only; their comments carry the Host mark', async () => {
   const t = await freshDb();
-  await putEpisode(t, `${EP}`, { ...ep, durationMs: 600_000 });
+  await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: 600_000 });
   const a = await signUp(t, 'a@example.com', 'Al');
   const b = await signUp(t, 'b@example.com', 'Bo');
   const q = `/v1/creator/shows/stats?feedUrl=${encodeURIComponent(FEED)}`;

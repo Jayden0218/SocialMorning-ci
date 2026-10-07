@@ -1,5 +1,6 @@
 // Uploads audio and image files from the browser straight to storage.
 import { put } from '@vercel/blob/client';
+import { MAX_IMAGE_BYTES, MAX_LAUNCH_IMAGE_BYTES } from '@socialmorning/social-core';
 import { api } from './api';
 
 /**
@@ -36,7 +37,7 @@ export const mb = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(bytes < 10
 
 /** M15 T021: a launch-screen image (JPEG/PNG/WebP, ≤ 1 MB) goes the same way — a one-path token, then `put`. */
 export const LAUNCH_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-export const MAX_LAUNCH_BYTES = 1_048_576;
+export const MAX_LAUNCH_BYTES = MAX_LAUNCH_IMAGE_BYTES;
 export async function uploadLaunchImage(file: File, onProgress: (pct: number) => void): Promise<string> {
   const { pathname, token } = await api<{ pathname: string; token: string }>('/v1/admin/launch/uploads', {
     method: 'POST', body: { contentType: file.type, size: file.size },
@@ -47,7 +48,9 @@ export async function uploadLaunchImage(file: File, onProgress: (pct: number) =>
 
 /** M19 US12: an announcement picture (JPEG/PNG, ≤ 5 MB) — a one-path token from the show, then `put`. */
 export const ANNOUNCEMENT_TYPES = ['image/jpeg', 'image/png'];
-export const MAX_ANNOUNCEMENT_BYTES = 5 * 1024 * 1024;
+export const MAX_ANNOUNCEMENT_BYTES = MAX_IMAGE_BYTES;
+/** A show or episode cover (JPEG/PNG), the same limit the server checks. */
+export const MAX_COVER_BYTES = MAX_IMAGE_BYTES;
 export async function uploadAnnouncementImage(showKey: string, file: File, onProgress: (pct: number) => void): Promise<string> {
   const { pathname, token } = await api<{ pathname: string; token: string }>(`/v1/studio/shows/${showKey}/announcements/uploads`, {
     method: 'POST', body: { contentType: file.type, size: file.size },

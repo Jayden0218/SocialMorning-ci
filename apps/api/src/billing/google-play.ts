@@ -6,11 +6,9 @@
  *  - subscriptions: GET purchases/subscriptionsv2/tokens/{token} → subscriptionState
  *    (SUBSCRIPTION_STATE_ACTIVE …), acknowledgementState (ACKNOWLEDGEMENT_STATE_ACKNOWLEDGED …),
  *    lineItems[].productId / expiryTime, externalAccountIdentifiers.obfuscatedExternalProfileId,
- *    externalAccountIdentifiers.obfuscatedExternalAccountId (M23, read 2026-10-07),
  *    latestOrderId; acknowledge: POST purchases/subscriptions/{productId}/tokens/{token}:acknowledge
  *  - one-time: GET purchases/products/{productId}/tokens/{token} → purchaseState (0 bought,
- *    1 cancelled, 2 pending), acknowledgementState (0/1), orderId, obfuscatedExternalProfileId,
- *    obfuscatedExternalAccountId (M23);
+ *    1 cancelled, 2 pending), acknowledgementState (0/1), orderId, obfuscatedExternalProfileId;
  *    acknowledge: POST …/products/{productId}/tokens/{token}:acknowledge
  *  - refunds: GET purchases/voidedpurchases?startTime&type=1 → voidedPurchases[].purchaseToken,
  *    voidedTimeMillis; tokenPagination.nextPageToken (30 days back at most). No Pub/Sub (R6).
@@ -34,8 +32,6 @@ export type GoogleSubscription = {
   expiresAt: string | null;
   orderId: string | null;
   profileId: string | null;
-  /** M23 US4: `obfuscatedExternalAccountId` — the buyer's account hash the phone set (absent on older builds). */
-  accountId?: string | null;
   test: boolean;
 };
 export type GoogleProduct = {
@@ -44,8 +40,6 @@ export type GoogleProduct = {
   acknowledged: boolean;
   orderId: string | null;
   profileId: string | null;
-  /** M23 US4: `obfuscatedExternalAccountId` (absent on older builds). */
-  accountId?: string | null;
   test: boolean;
 };
 export type Voided = { purchaseToken: string; voidedAt: number };
@@ -97,7 +91,7 @@ export function googlePlay(env: Record<string, string | undefined>, f: typeof fe
   return {
     ready,
     async subscription(token) {
-      const j = await call<{ subscriptionState?: string; acknowledgementState?: string; lineItems?: { productId?: string; expiryTime?: string }[]; latestOrderId?: string; externalAccountIdentifiers?: { obfuscatedExternalProfileId?: string; obfuscatedExternalAccountId?: string }; testPurchase?: object }>('GET', `purchases/subscriptionsv2/tokens/${enc(token)}`);
+      const j = await call<{ subscriptionState?: string; acknowledgementState?: string; lineItems?: { productId?: string; expiryTime?: string }[]; latestOrderId?: string; externalAccountIdentifiers?: { obfuscatedExternalProfileId?: string }; testPurchase?: object }>('GET', `purchases/subscriptionsv2/tokens/${enc(token)}`);
       const line = j.lineItems?.[0];
       return {
         state: j.subscriptionState ?? 'SUBSCRIPTION_STATE_UNSPECIFIED',
@@ -106,13 +100,12 @@ export function googlePlay(env: Record<string, string | undefined>, f: typeof fe
         expiresAt: line?.expiryTime ?? null,
         orderId: j.latestOrderId ?? null,
         profileId: j.externalAccountIdentifiers?.obfuscatedExternalProfileId ?? null,
-        accountId: j.externalAccountIdentifiers?.obfuscatedExternalAccountId ?? null,
         test: j.testPurchase !== undefined,
       };
     },
     async product(productId, token) {
-      const j = await call<{ purchaseState?: number; acknowledgementState?: number; orderId?: string; obfuscatedExternalProfileId?: string; obfuscatedExternalAccountId?: string; purchaseType?: number }>('GET', `purchases/products/${enc(productId)}/tokens/${enc(token)}`);
-      return { purchaseState: j.purchaseState ?? -1, acknowledged: j.acknowledgementState === 1, orderId: j.orderId ?? null, profileId: j.obfuscatedExternalProfileId ?? null, accountId: j.obfuscatedExternalAccountId ?? null, test: j.purchaseType === 0 };
+      const j = await call<{ purchaseState?: number; acknowledgementState?: number; orderId?: string; obfuscatedExternalProfileId?: string; purchaseType?: number }>('GET', `purchases/products/${enc(productId)}/tokens/${enc(token)}`);
+      return { purchaseState: j.purchaseState ?? -1, acknowledged: j.acknowledgementState === 1, orderId: j.orderId ?? null, profileId: j.obfuscatedExternalProfileId ?? null, test: j.purchaseType === 0 };
     },
     async acknowledge(kind, productId, token) {
       await call('POST', kind === 'subscription' ? `purchases/subscriptions/${enc(productId)}/tokens/${enc(token)}:acknowledge` : `purchases/products/${enc(productId)}/tokens/${enc(token)}:acknowledge`);

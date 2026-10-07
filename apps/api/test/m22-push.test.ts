@@ -10,7 +10,6 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
-import { putEpisode } from './put-episode.ts';
 import { pushFor } from '../src/db/repos/account/push.ts';
 
 type Msg = { to: string; title: string; body: string; data: Record<string, string>; channelId?: string; tag?: string };
@@ -28,7 +27,7 @@ async function setup() {
     return new Response(JSON.stringify({ data: batch.map(() => ({ status: 'ok', id: 'x' })) }), { status: 200 });
   }) as typeof fetch;
   const t = await freshDb({ pushFetch });
-  await putEpisode(t, `${EP}`, { ...ep, durationMs: 2_000_000 });
+  await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: 2_000_000 });
   const a = await signUp(t, 'a@example.com', 'Alex');
   const b = await signUp(t, 'b@example.com', 'Bea');
   const c = await signUp(t, 'c@example.com', 'Cy');

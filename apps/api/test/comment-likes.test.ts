@@ -8,14 +8,13 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
-import { putEpisode } from './put-episode.ts';
 import { initialsOf } from '../src/db/repos/social/comment-likes.ts';
 
 const ep = { feedUrl: 'https://feeds.example.com/x.xml', guid: 'g1', title: 'Ep', enclosureUrl: 'https://cdn/1.mp3' };
 const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
 
 async function setup(t: TestDb) {
-  await putEpisode(t, `${EP}`, { ...ep, durationMs: 1_000_000 });
+  await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: 1_000_000 });
   const a = await signUp(t, 'a@example.com', 'alex');
   const b = await signUp(t, 'b@example.com', 'Bo');
   const c = await signUp(t, 'c@example.com', '9 lives');
