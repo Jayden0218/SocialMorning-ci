@@ -186,9 +186,9 @@ export function CommentRow(props: {
             <Box className="flex-row items-center gap-1.5 flex-wrap">
               {c.authorId !== null ? (
                 <Link href={{ pathname: '/profile/[id]', params: { id: c.authorId } }} asChild>
-                  <Pressable accessibilityRole="link"><Text className={reply ? 'text-text text-meta font-bold' : 'text-text text-body font-bold'}>{name}</Text></Pressable>
+                  <Pressable accessibilityRole="link" className="flex-shrink min-w-0"><Text className={reply ? 'text-text text-meta font-bold' : 'text-text text-body font-bold'} numberOfLines={1}>{name}</Text></Pressable>
                 </Link>
-              ) : <Text className={reply ? 'text-text text-meta font-bold' : 'text-text text-body font-bold'}>{name}</Text>}
+              ) : <Text className={reply ? 'text-text text-meta font-bold flex-shrink' : 'text-text text-body font-bold flex-shrink'} numberOfLines={1}>{name}</Text>}
               {c.host ? <Text className="bg-primary text-onPrimary rounded-pill px-1.5 text-micro font-bold" accessibilityLabel="Host of this show">Host</Text> : null}
               {badge ? <Text className="bg-accentTint text-accent rounded-pill px-1.5 text-micro font-bold" accessibilityLabel={`Has listened ${badge} hours or more`}>{badgeLabel(badge)}</Text> : null}
             </Box>

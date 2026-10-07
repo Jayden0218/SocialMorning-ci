@@ -10,14 +10,20 @@ import { hit } from '@/design';
 import { Chevron } from './Icon';
 
 export const TAP = { minHeight: hit.min, minWidth: hit.min };
+const SOLID = { zIndex: 2 };
 
 export function TopBar(props: {
   onBack: () => void; back?: 'arrow' | 'down'; children?: React.ReactNode;
   /** M12 FR-060: the slim bar's middle (small art + title) once the page has scrolled. */ middle?: React.ReactNode;
   /** M16a (PageHeader): replaces the back button, e.g. a modal page's "Cancel". */ left?: React.ReactNode;
+  /**
+   * Owner's iPhone, 2026-10-07 ("I see it overlap"): a collapsed bar was see-through, so the page
+   * showed under its title. `solid` (set once the page has scrolled) paints the paper colour and a
+   * hairline under the bar, and keeps it above the page.
+   */ solid?: boolean;
 }): React.ReactElement {
   return (
-    <Box className="flex-row items-center justify-between px-row">
+    <Box className={`flex-row items-center justify-between px-row ${props.solid ? 'bg-background border-b-hairline border-separator' : ''}`} style={props.solid ? SOLID : undefined}>
       {props.left ?? (
         <Pressable onPress={props.onBack} accessibilityRole="button" accessibilityLabel={props.back === 'down' ? 'Close the player' : 'Back'} className="items-center justify-center" style={TAP}>
           {props.back === 'down' ? <Chevron dir="down" size={14} /> : <Chevron dir="left" size={10} />}

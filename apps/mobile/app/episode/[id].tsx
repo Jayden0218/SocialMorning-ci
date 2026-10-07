@@ -29,6 +29,7 @@
  * episode sheet; the collapsed bar shows Subscribe beside ▶; the ⋯ sheet adds Report episode.
  * M21 US12: beside it, "Download to Watch" (src/ui/episode/WatchTile), hidden without a Watch.
  */
+import { plural } from '@socialmorning/social-core';
 import { reportAndDrop } from '@/telemetry/reportError';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -244,11 +245,21 @@ export default function EpisodeScreen(): React.ReactElement {
     <SafeAreaView className="flex-1">
       <TopBar
         onBack={() => router.back()}
+        solid={collapsed}
         {...(collapsed ? {
           middle: (
             <>
-              <Artwork url={show?.imageUrl ?? episode.imageUrl} size={24} rounded="row" name={show?.title} />
-              <Text className="text-body font-semibold text-text flex-1" numberOfLines={1}>{show?.title ?? ''}</Text>
+              {/* Owner's iPhone, 2026-10-07: the show's name in the slim bar opens the show, as the eyebrow does. */}
+              <Pressable
+                onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(episode.feedUrl) } })}
+                accessibilityRole="link"
+                accessibilityLabel={`Show: ${show?.title ?? ''}`}
+                className="flex-1 min-w-0 flex-row items-center gap-2"
+                style={TAP}
+              >
+                <Artwork url={show?.imageUrl ?? episode.imageUrl} size={24} rounded="row" name={show?.title} />
+                <Text className="text-body font-semibold text-text flex-1 flex-shrink" numberOfLines={1}>{show?.title ?? ''}</Text>
+              </Pressable>
               {/* M21 US4 (FR-033): Subscribe stays reachable once the page has scrolled. */}
               <Pressable onPress={toggleSubscription} accessibilityRole="button" accessibilityLabel={subscribed ? 'Unsubscribe from this show' : 'Subscribe to this show'} accessibilityState={{ selected: subscribed }}
                 className={`justify-center px-row rounded-pill ${subscribed ? 'bg-surface border border-border' : 'bg-primary'}`} style={TAP}>
@@ -275,6 +286,7 @@ export default function EpisodeScreen(): React.ReactElement {
       </TopBar>
       <ScrollView
         ref={scroll}
+        className="flex-1 overflow-hidden"
         contentContainerClassName="px-screen-x pb-section"
         scrollEventThrottle={32}
         onScroll={(e) => {
@@ -343,7 +355,8 @@ export default function EpisodeScreen(): React.ReactElement {
           </Pressable>
           <Pressable onPress={openComments} accessibilityRole="button" accessibilityLabel={`Comments, ${commentCount}`} className="flex-1 items-center justify-center gap-0.5 py-1" style={CELL}>
             <Icon name="chatbox-ellipses-outline" size={20} color={c.text} />
-            <Text className="text-text text-xs font-semibold">{String(commentCount)}</Text>
+            {/* Owner's iPhone, 2026-10-07: the cell said only "0"; it names itself now. */}
+            <Text className="text-text text-xs font-semibold" numberOfLines={1}>{commentCount > 0 ? plural(commentCount, 'comment') : 'Comments'}</Text>
           </Pressable>
           <Pressable onPress={() => setFav(toggleFavourite(stores.settings, episode.id, Date.now()))} accessibilityRole="button" accessibilityState={{ selected: fav }} accessibilityLabel={fav ? 'Remove from favourites' : 'Add to favourites'} className="flex-1 items-center justify-center gap-0.5 py-1" style={CELL}>
             {/* Filled vs outline, and the word — never hue alone (FR-016). */}

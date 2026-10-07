@@ -162,9 +162,9 @@ export default function MeScreen(): React.ReactElement {
           ) : null}
           {listener ? (
             <Box className="flex-row gap-gap">
-              {/* M19 T041: your playlists (public ones also show on your profile). */}
+              {/* M19 T041: your playlists (public ones also show on your profile). Owner's iPhone,
+                  2026-10-07: the ninth tile spans the row instead of leaving a hole beside it. */}
               <Link href="/playlists" asChild accessibilityLabel="Playlists"><MenuTile icon="albums-outline" label="Playlists" /></Link>
-              <Box className="flex-1" />
             </Box>
           ) : null}
         </Box>

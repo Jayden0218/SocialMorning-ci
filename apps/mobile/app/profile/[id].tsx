@@ -146,6 +146,7 @@ export default function ProfileScreen(): React.ReactElement {
   const header = (
     <PageHeader
       middle={middle}
+      solid={collapsed}
       {...(profile && !ownId && !profile.suspended ? { right: <BarButton label={`More for ${profile.displayName}`} onPress={() => setMore(true)}><Icon name="ellipsis-horizontal" size={22} color={c.text} /></BarButton> } : {})}
     />
   );

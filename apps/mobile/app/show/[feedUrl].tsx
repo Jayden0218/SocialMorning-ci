@@ -483,6 +483,7 @@ export default function ShowScreen(): React.ReactElement {
     <SafeAreaView className="flex-1">
       <TopBar
         onBack={() => router.back()}
+        solid={collapsed}
         {...(collapsed ? {
           middle: (
             <>

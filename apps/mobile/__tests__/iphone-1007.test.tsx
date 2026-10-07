@@ -26,6 +26,7 @@ import { mayRun, OPEN_SETTLE_MS, panelStyle } from '@/ui/kit/SwipeRow';
 import { updatesSnapshot } from '@/me/updates';
 import { GenreTiles } from '@/ui/discover/RecFeedback';
 import { GENRES } from '@/discover/genres';
+import { gridRows } from '@/ui/discover/sections';
 
 jest.mock('expo-router', () => ({ router: { push: jest.fn(), back: jest.fn() } }));
 jest.mock('@/ui/shell/providers', () => ({ useStores: () => ({ settings: { get: () => undefined } }), useToast: () => () => undefined }));
@@ -149,5 +150,48 @@ describe('5. Updates starts from the local database', () => {
     expect(src).toMatch(/useState\(\(\) => updatesSnapshot\(stores, hiddenFeeds\)\)/);
     expect(src).toMatch(/useState\(first\.subscribed\)/);
     expect(src).not.toMatch(/useState<UpdateRow\[\]>\(\[\]\)/);
+  });
+});
+
+describe('6–13. the layout pass ("I see it overlap, the elements run away the layout")', () => {
+  it('6. every collapsed bar is solid: paper colour and a hairline once the page scrolls', () => {
+    expect(read('src/ui/kit/TopBar.tsx')).toMatch(/props\.solid \? 'bg-background border-b-hairline border-separator'/);
+    expect(read('app/episode/[id].tsx')).toMatch(/solid=\{collapsed\}/);
+    expect(read('app/show/[feedUrl].tsx')).toMatch(/solid=\{collapsed\}/);
+    expect(read('app/profile/[id].tsx')).toMatch(/solid=\{collapsed\}/);
+    // Discover's bar is either absent or fully opaque — never a see-through fade.
+    const discover = read('app/(tabs)/index.tsx');
+    expect(discover).not.toMatch(/\[COLLAPSE_FROM, COLLAPSE_TO\], \[0, 1\]/);
+    expect(discover).toMatch(/withTiming\(scrollY\.value > COLLAPSE_TO - 8 \? 1 : 0/);
+  });
+  it('7. the episode page slim bar: the show name opens the show', () => {
+    expect(read('app/episode/[id].tsx')).toMatch(/solid=\{collapsed\}[\s\S]*?accessibilityRole="link"\s+accessibilityLabel=\{`Show: \$\{show\?\.title/);
+  });
+  it('8–9. grids: even rows, no stretched last tile, one fixed tile height', () => {
+    expect(gridRows([1, 2, 3, 4, 5, 6, 7], 4)).toEqual([[1, 2, 3, 4], [5, 6, 7, null]]);
+    expect(gridRows(['a', 'b', 'c'], 2)).toEqual([['a', 'b'], ['c', null]]);
+    expect(gridRows([], 4)).toEqual([]);
+    const s = read('src/ui/discover/sections.tsx');
+    expect(s).not.toMatch(/flexGrow: 1/);
+    expect(s).toMatch(/numberOfLines=\{1\} adjustsFontSizeToFit minimumFontScale=\{0\.75\}>\{g\.name\}/);
+    // Discover's shortcuts: eight tiles, two rows of four.
+    const shortcuts = read('app/(tabs)/index.tsx').split('<Shortcuts')[1]!.split('/>')[0]!;
+    expect((shortcuts.match(/label: "/g) ?? []).length).toBe(8);
+  });
+  it('10. Me: the ninth tile spans its row (no empty half beside Playlists)', () => {
+    expect(read('app/(tabs)/me.tsx')).not.toMatch(/label="Playlists" \/><\/Link>\s*<Box className="flex-1" \/>/);
+  });
+  it('11. the episode page comments cell names itself', () => {
+    expect(read('app/episode/[id].tsx')).toMatch(/commentCount > 0 \? plural\(commentCount, 'comment'\) : 'Comments'/);
+  });
+  it('12. player: the space is shared when there is no line, and the bottom bar items are one kind', () => {
+    const p = read('app/player.tsx');
+    expect(p).toMatch(/heroClass: 'mt-auto'/);
+    expect(p).toMatch(/accessibilityLabel="About this episode" className=\{BAR_ITEM\}/);
+    expect(p).not.toMatch(/<BarButton label="About this episode"/);
+  });
+  it('13. long names in rows shrink to one line', () => {
+    expect(read('src/ui/comments/CommentRow.tsx')).toMatch(/className="flex-shrink min-w-0"><Text[^>]*numberOfLines=\{1\}>\{name\}/);
+    expect(read('src/ui/social/FeedItem.tsx')).toMatch(/numberOfLines=\{1\}>\{item\.actor\.displayName/);
   });
 });

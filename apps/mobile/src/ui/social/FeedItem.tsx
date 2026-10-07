@@ -52,9 +52,9 @@ export function FeedItem(props: { item: Item; onOpen: (item: Item) => void; last
       <Box className="flex-1 gap-0.5">
         <Box className="flex-row flex-wrap items-center">
           <Link href={{ pathname: '/profile/[id]', params: { id: item.actor.id } }} asChild>
-            <Pressable accessibilityRole="link" hitSlop={NAME_SLOP}>
+            <Pressable accessibilityRole="link" hitSlop={NAME_SLOP} className="flex-shrink min-w-0">
               {/* A name is not an action (owner's K1 note, 2026-09-25): weight tells it apart. */}
-              <Text className="text-text text-meta font-bold">{item.actor.displayName ?? 'Deleted account'}</Text>
+              <Text className="text-text text-meta font-bold" numberOfLines={1}>{item.actor.displayName ?? 'Deleted account'}</Text>
             </Pressable>
           </Link>
           <Text className="text-muted text-meta">{` ${verb(item)}`}</Text>

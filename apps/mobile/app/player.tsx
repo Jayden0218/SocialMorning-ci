@@ -248,7 +248,12 @@ export default function PlayerScreen(): React.ReactElement {
 
   // M17 (`Player-B`): the artwork sits beside the title, 148 pt on a 390 pt phone.
   // Owner, 2026-10-06: the artwork grows with the screen (184 pt on a 6.9" phone), no fixed 148 cap.
-  const art = Math.round(Math.min(screen.width * 0.42, screen.height * 0.2));
+  // Owner's iPhone, 2026-10-07: with no transcript line or chapter the page left a large empty band
+  // under the hero. Then the cover grows a little and the free space is shared above and below the
+  // hero (`playerSpace`), instead of all of it sitting between the hero and the card.
+  const bare = !timedTranscript && !(extras?.chapters && extras.chapters.length > 0);
+  const space = playerSpace(screen, bare);
+  const art = space.art;
   const markerCount = railMarkers(cached?.social.comments ?? []).length;
   // M12 FR-020 (found on the iPhone): the comment button opens the conversation, not the
   // keyboard; the page's write box carries this moment.
@@ -306,7 +311,7 @@ export default function PlayerScreen(): React.ReactElement {
     {/* M17: the page reads top-down (hero, quote, card, controls); it scrolls only when a large font needs it. */}
     <ScrollView className="flex-1" alwaysBounceVertical={false} contentContainerClassName="flex-grow px-screen-x pt-2 pb-section gap-section">
       {/* The hero: artwork on the left; eyebrow, serif title, show and Subscribe on the right. */}
-      <Box className="flex-row items-end gap-section">
+      <Box className={`flex-row items-end gap-section ${space.heroClass}`}>
         {/* M10b US5: a video episode shows its picture (muted, following the sound). */}
         {episode && mediaKindOf(episode.enclosureType, episode.enclosureUrl) === 'video'
           ? <VideoStage url={episode.enclosureUrl} positionMs={positionMs} playing={isPlaying} size={art} />
@@ -315,7 +320,7 @@ export default function PlayerScreen(): React.ReactElement {
           <Eyebrow accent>Now playing</Eyebrow>
           <Text className={TITLE} numberOfLines={4}>{episode?.title ?? 'Now playing'}</Text>
           <Box className="flex-row items-center gap-2 flex-wrap">
-            {feedUrl === undefined ? <Text className={SUBTITLE}>{show?.title ?? ''}</Text> : (
+            {feedUrl === undefined ? <Text className={SUBTITLE} numberOfLines={1}>{show?.title ?? ''}</Text> : (
               <Pressable onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(feedUrl) } })} accessibilityRole="link" accessibilityLabel={`Show: ${show?.title ?? ''}`} className="justify-center flex-shrink" style={{ minHeight: TAP.minHeight }}>
                 <Text className="text-meta text-muted" numberOfLines={1}>{show?.title ?? ''}</Text>
               </Pressable>
@@ -446,12 +451,12 @@ export default function PlayerScreen(): React.ReactElement {
     {/* About · Playlist · Comments: the page's bottom bar, under a hairline. Owner, 2026-10-06: the
         wash reaches the bottom edge, so this page (alone) keeps the bar above the home indicator itself. */}
     <Box className="flex-row mx-screen-x border-t-hairline border-separator" style={{ paddingBottom: insets.bottom }} {...swipeUp}>
-      <Box className="flex-1 items-center">
-        <BarButton label="About this episode" onPress={() => router.push({ pathname: '/episode/[id]', params: { id: state.episodeId } })}>
-          <Icon name="information-circle-outline" size={22} color={c.text} />
-          <Text className={BAR_LABEL}>About</Text>
-        </BarButton>
-      </Box>
+      {/* Owner's iPhone, 2026-10-07: "About" sat higher than its neighbours — it was a BarButton in a
+          Box; it is now the same item as Playlist, Comments and Sleep, so all four share one baseline. */}
+      <Pressable onPress={() => router.push({ pathname: '/episode/[id]', params: { id: state.episodeId } })} accessibilityRole="button" accessibilityLabel="About this episode" className={BAR_ITEM} style={{ minHeight: TAP.minHeight }}>
+        <Icon name="information-circle-outline" size={22} color={c.text} />
+        <Text className={BAR_LABEL}>About</Text>
+      </Pressable>
       <Pressable onPress={() => queueSheet.open()} accessibilityRole="button" accessibilityLabel="Playlist" className={BAR_ITEM} style={{ minHeight: TAP.minHeight }}>
         <Icon name="list" size={22} color={c.text} />
         <Text className={BAR_LABEL}>Playlist</Text>
@@ -556,6 +561,17 @@ const SPEED = 'w-14 h-12 rounded-pill border border-border bg-surface items-cent
 /** M17: play/pause is the yellow disc. */
 const PLAY = 'w-[76px] h-[76px] rounded-pill bg-playDisc items-center justify-center';
 const BAR_ITEM = 'flex-1 items-center justify-center py-1.5 gap-0.5';
+
+/**
+ * The cover's size and the hero's spacing. Normally 42 % of the width, at most 20 % of the height
+ * (184 pt on a 6.9" phone), the hero at the top. `bare` (no transcript line, no chapter): up to 46 %
+ * / 24 % and `mt-auto` on the hero, so the free space splits above and below it.
+ */
+function playerSpace(screen: { width: number; height: number }, bare: boolean): { art: number; heroClass: string } {
+  return bare
+    ? { art: Math.round(Math.min(screen.width * 0.46, screen.height * 0.24)), heroClass: 'mt-auto' }
+    : { art: Math.round(Math.min(screen.width * 0.42, screen.height * 0.2)), heroClass: '' };
+}
 const BAR_LABEL = 'text-xs font-semibold text-text';
 /** The 15 / 30 inside the circular arrow. */
 const SKIP_NUMBER = 'absolute text-xs font-bold text-text';

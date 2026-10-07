@@ -31,6 +31,7 @@ import Animated, {
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
+  withTiming,
 } from "react-native-reanimated";
 import { Pressable } from "@/ui/lib/pressable";
 import { Image } from "@/ui/lib/image";
@@ -199,8 +200,10 @@ export default function DiscoverScreen(): React.ReactElement {
   const bigTitle = useAnimatedStyle(() => ({
     opacity: interpolate(scrollY.value, [COLLAPSE_FROM, COLLAPSE_TO], [1, 0], Extrapolation.CLAMP),
   }));
+  // Owner's iPhone, 2026-10-07 ("I see it overlap"): the bar faded in over 24–72 pt, so for that
+  // stretch the page showed through it under "Discover". It is now either absent or fully opaque.
   const smallBar = useAnimatedStyle(() => ({
-    opacity: interpolate(scrollY.value, [COLLAPSE_FROM, COLLAPSE_TO], [0, 1], Extrapolation.CLAMP),
+    opacity: withTiming(scrollY.value > COLLAPSE_TO - 8 ? 1 : 0, { duration: 120 }),
   }));
   const openSearch = (fromY: number): void =>
     search.open({ fromY: Math.round(fromY), ...(hint ? { hint } : {}) });
@@ -418,6 +421,13 @@ export default function DiscoverScreen(): React.ReactElement {
                 label: "Plaza",
                 icon: "apps-outline",
                 onPress: () => router.push("/plaza"),
+              },
+              // Owner's iPhone, 2026-10-07: "Plaza" sat alone on its row. An eighth tile — the
+              // existing "Talked about" chart — makes two even rows of four.
+              {
+                label: "Talked about",
+                icon: "trending-up-outline",
+                onPress: () => router.push("/chart"),
               },
             ]}
           />

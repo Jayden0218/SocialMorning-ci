@@ -43,10 +43,12 @@ export function PageHeader(props: {
   /** Replaces the back button, e.g. a modal page's "Cancel". */
   left?: React.ReactNode;
   onBack?: () => void;
+  /** A hairline under the bar (a page that has scrolled under it). */
+  solid?: boolean;
 }): React.ReactElement {
   return (
     <SafeAreaView edges={['top', 'left', 'right']} className="bg-background">
-      <TopBar onBack={props.onBack ?? goBack} {...(props.left ? { left: props.left } : {})} {...(props.middle ? { middle: props.middle } : {})}>
+      <TopBar onBack={props.onBack ?? goBack} {...(props.left ? { left: props.left } : {})} {...(props.middle ? { middle: props.middle } : {})} {...(props.solid ? { solid: true } : {})}>
         {props.right ?? <Box style={SIDE} />}
       </TopBar>
       {props.middle ? null : (

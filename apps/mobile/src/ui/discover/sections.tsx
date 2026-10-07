@@ -24,7 +24,7 @@ import { Pressable } from '@/ui/lib/pressable';
 import { ScrollView } from '@/ui/lib/scroll-view';
 import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { hit } from '@/design';
+import { hit, size } from '@/design';
 import { useStores } from '@/ui/shell/providers';
 import { useColours } from '@/ui/kit/useColours';
 import { Icon, type IconName } from '@/ui/kit/Icon';
@@ -43,24 +43,48 @@ import { plural } from '@socialmorning/social-core';
 
 const TAP = { minHeight: hit.min };
 const SQUARE = { minHeight: hit.min, minWidth: hit.min };
-/** Three tiles to a row (`Home-B` shortcuts); two to a row (`Discover-B` categories). */
-const THIRD = { minHeight: hit.min, flexBasis: '30%' as const, flexGrow: 1 };
-const HALF = { minHeight: hit.min, flexBasis: '45%' as const, flexGrow: 1 };
+/**
+ * Owner's iPhone, 2026-10-07 ("the elements run away the layout"): with `flexGrow` on wrapped
+ * tiles, a last row's single tile stretched the whole width ("Plaza" alone), and a two-line name
+ * ("Society & Culture") made its tile taller than the rest. Tiles now sit in fixed rows
+ * (`gridRows`): every tile in a grid has the same width and one fixed height; a short last row
+ * keeps empty cells instead of stretching.
+ */
+const SHORTCUT_COLS = 4;
+const CATEGORY_COLS = 2;
+const SHORTCUT_TILE = { flex: 1, height: 56 };
+const CATEGORY_TILE = { flex: 1, height: size.row };
+const CELL = { flex: 1 };
+
+/** Items cut into rows of `cols`; the last row is padded with `null` cells so every cell keeps one width. */
+export function gridRows<T>(items: readonly T[], cols: number): (T | null)[][] {
+  const rows: (T | null)[][] = [];
+  for (let i = 0; i < items.length; i += cols) {
+    const row: (T | null)[] = items.slice(i, i + cols);
+    while (row.length < cols) row.push(null);
+    rows.push(row);
+  }
+  return rows;
+}
 
 type Act = { onOpen: (card: EpisodeCard) => void; onPlay: (card: EpisodeCard) => void; stats?: Readonly<Record<string, RowStats>> };
 
-/** The shortcut tiles under the search bar — three to a row, icon over label. */
+/** The shortcut tiles under the search bar — four to a row, icon over label. */
 export function Shortcuts(props: { items: { label: string; icon: IconName; onPress: () => void }[] }): React.ReactElement {
   const stores = useStores();
   // `palette`, not `c`: the map below names each shortcut `c`.
   const palette = useColours(stores.settings);
   return (
-    <Box className="flex-row flex-wrap gap-gap px-screen-x mt-row">
-      {props.items.map((c) => (
-        <Pressable key={c.label} onPress={c.onPress} accessibilityRole="button" accessibilityLabel={c.label} className="items-center justify-center gap-0.5 bg-surface border border-border rounded-row px-1 py-1.5" style={THIRD}>
-          <Icon name={c.icon} size={20} color={palette.accent} />
-          <Text className="text-text text-xs font-semibold" numberOfLines={1}>{c.label}</Text>
-        </Pressable>
+    <Box className="gap-gap px-screen-x mt-row">
+      {gridRows(props.items, SHORTCUT_COLS).map((row, r) => (
+        <Box key={r} className="flex-row gap-gap">
+          {row.map((c, i) => c === null ? <Box key={`empty-${i}`} style={CELL} /> : (
+            <Pressable key={c.label} onPress={c.onPress} accessibilityRole="button" accessibilityLabel={c.label} className="items-center justify-center gap-0.5 bg-surface border border-border rounded-row px-1" style={SHORTCUT_TILE}>
+              <Icon name={c.icon} size={20} color={palette.accent} />
+              <Text className="text-text text-xs font-semibold text-center" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{c.label}</Text>
+            </Pressable>
+          ))}
+        </Box>
       ))}
     </Box>
   );
@@ -242,19 +266,24 @@ export function CategoryStrip(props: { onGenre: (id: number) => void; onAll: () 
   return (
     <Box className="mt-row">
       <SectionTitle title="Explore by category" action={{ label: 'All', onPress: props.onAll }} />
-      <Box className="flex-row flex-wrap gap-gap px-screen-x">
-        {visibleGenres(GENRES, props.hidden ?? [], 8).map((g) => (
-          <Box key={g.id} className="flex-row items-center bg-surface border border-border rounded-row" style={HALF}>
-            <Pressable onPress={() => props.onGenre(g.id)} accessibilityRole="button" accessibilityLabel={g.name} className="flex-1 flex-row items-center gap-2.5 pl-row py-1" style={TAP}>
-              <Icon name={g.icon} size={20} color={c.accent} />
-              {/* M12 FR-008 (B8): two lines before an ellipsis ("Society & Culture" was "Society &…"). */}
-              <Text className="text-text text-meta font-semibold flex-1" numberOfLines={2}>{g.name}</Text>
-            </Pressable>
-            {props.onHide ? (
-              <Pressable onPress={() => props.onHide?.(g.id)} accessibilityRole="button" accessibilityLabel={`Hide ${g.name}`} className="items-center justify-center" style={SQUARE}>
-                <Icon name="close" size={16} color={c.muted} />
-              </Pressable>
-            ) : null}
+      <Box className="gap-gap px-screen-x">
+        {gridRows(visibleGenres(GENRES, props.hidden ?? [], 8), CATEGORY_COLS).map((row, r) => (
+          <Box key={r} className="flex-row gap-gap">
+            {row.map((g, i) => g === null ? <Box key={`empty-${i}`} style={CELL} /> : (
+              <Box key={g.id} className="flex-row items-center bg-surface border border-border rounded-row overflow-hidden" style={CATEGORY_TILE}>
+                <Pressable onPress={() => props.onGenre(g.id)} accessibilityRole="button" accessibilityLabel={g.name} className="flex-1 min-w-0 flex-row items-center gap-2.5 pl-row" style={TAP}>
+                  <Icon name={g.icon} size={20} color={c.accent} />
+                  {/* M12 FR-008 (B8) said two lines; owner 2026-10-07: one fixed tile height, so one
+                      line that shrinks to fit ("Society & Culture" whole, a little smaller). */}
+                  <Text className="text-text text-meta font-semibold flex-1 flex-shrink" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{g.name}</Text>
+                </Pressable>
+                {props.onHide ? (
+                  <Pressable onPress={() => props.onHide?.(g.id)} accessibilityRole="button" accessibilityLabel={`Hide ${g.name}`} className="items-center justify-center" style={SQUARE}>
+                    <Icon name="close" size={16} color={c.muted} />
+                  </Pressable>
+                ) : null}
+              </Box>
+            ))}
           </Box>
         ))}
       </Box>
