@@ -21,7 +21,7 @@ export function usedBytesOf(downloads: readonly { state: string; bytesTotal?: nu
   let used = 0;
   for (const d of downloads) {
     if (d.state === 'complete') used += d.bytesTotal ?? 0;
-    else if (d.state === 'downloading') used += d.bytesTotal ?? d.bytesDone ?? 0;
+    else if (d.state === 'downloading' || d.state === 'paused') used += d.bytesTotal ?? d.bytesDone ?? 0;
   }
   return used;
 }
