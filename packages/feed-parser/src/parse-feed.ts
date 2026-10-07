@@ -1,7 +1,7 @@
 // Turns a podcast RSS feed into a show and its list of episodes.
 import { XMLParser } from 'fast-xml-parser';
 import { parseDateMs, parseDurationMs } from './duration';
-import type { Episode, FeedWarning, Funding, ParsedFeed, Person, Show, Soundbite, Transcript } from './types';
+import type { Episode, FeedWarning, ParsedFeed, Show, Soundbite, Transcript } from './types';
 
 /** Stable and deterministic; Node passes sha256, the app passes a pure-JS
  *  hash (src/feeds/hash.ts). Output must be at least 16 hex characters. */
@@ -9,9 +9,6 @@ export type Hash = (canonical: string) => string;
 
 export type ParseOptions = {
   hash: Hash;
-  /** Keep at most this many episodes (the first N in feed order — newest first by
-   *  convention). The server keeps 50; the phone keeps every one. M23 US5. */
-  maxItems?: number;
 };
 
 /**
@@ -89,37 +86,6 @@ function explicitOf(value: unknown): boolean {
  * app passes a pure-JS hash. The canonical-string construction, which is what
  * actually decides whether a re-poll reports "changed", is unchanged.
  */
-function personsOf(value: unknown): Person[] {
-  return toArray(value)
-    .map((entry): Person | undefined => {
-      const name = textOf(entry);
-      if (name === undefined) return undefined;
-      const role = attrOf(entry, 'role');
-      const group = attrOf(entry, 'group');
-      const imageUrl = attrOf(entry, 'img');
-      const href = attrOf(entry, 'href');
-      return {
-        name,
-        ...(role !== undefined && { role: role.toLowerCase() }),
-        ...(group !== undefined && { group: group.toLowerCase() }),
-        ...(imageUrl !== undefined && { imageUrl }),
-        ...(href !== undefined && { href }),
-      };
-    })
-    .filter((p): p is Person => p !== undefined);
-}
-
-function fundingOf(value: unknown): Funding[] {
-  return toArray(value)
-    .map((entry): Funding | undefined => {
-      const url = attrOf(entry, 'url');
-      if (url === undefined) return undefined;
-      const title = textOf(entry);
-      return { url, ...(title !== undefined && { title }) };
-    })
-    .filter((f): f is Funding => f !== undefined);
-}
-
 function hasher(hash: Hash): (parts: (string | number | undefined)[]) => string {
   return (parts) => hash(parts.map((p) => (p === undefined ? '\u0000' : String(p))).join('\u0001'));
 }
@@ -158,7 +124,7 @@ export function parseFeed(xml: string, feedUrl: string, opts: ParseOptions): Par
   }
 
   const show = readShow(channel, feedUrl, warn, hash);
-  const episodes = readEpisodes(channel, feedUrl, warn, hash, opts.maxItems);
+  const episodes = readEpisodes(channel, feedUrl, warn, hash);
   return { show, episodes, warnings };
 }
 
@@ -191,12 +157,6 @@ function readShow(channel: Node, feedUrl: string, warn: Warn, hash: Parts): Show
   const language = textOf(channel['language']);
   const link = textOf(channel['link']);
   const guid = textOf(channel['podcast:guid']);
-  // M23 US11. Not in contentHash: adding them must not mark every show as changed once.
-  const movedTo = textOf(channel['itunes:new-feed-url']);
-  const newFeedUrl = movedTo !== undefined && isAbsolute(movedTo) && movedTo !== feedUrl ? movedTo : undefined;
-  const blocked = textOf(channel['itunes:block'])?.toLowerCase() === 'yes';
-  const persons = personsOf(channel['podcast:person']);
-  const funding = fundingOf(channel['podcast:funding']);
 
   return {
     feedUrl,
@@ -209,21 +169,15 @@ function readShow(channel: Node, feedUrl: string, warn: Warn, hash: Parts): Show
     explicit: explicitOf(channel['itunes:explicit']),
     categories,
     ...(link !== undefined && { link }),
-    ...(newFeedUrl !== undefined && { newFeedUrl }),
-    ...(blocked && { blocked: true as const }),
-    ...(persons.length > 0 && { persons }),
-    ...(funding.length > 0 && { funding }),
     contentHash: hash([title, description, author, imageUrl, language, link, guid, ...categories]),
   };
 }
 
-function readEpisodes(channel: Node, feedUrl: string, warn: Warn, hash: Parts, maxItems?: number): Episode[] {
+function readEpisodes(channel: Node, feedUrl: string, warn: Warn, hash: Parts): Episode[] {
   const episodes: Episode[] = [];
   const seen = new Set<string>();
-  const limit = maxItems !== undefined && maxItems >= 0 ? maxItems : Infinity;
 
   for (const raw of toArray(channel['item'])) {
-    if (episodes.length >= limit) break;
     const item = asNode(raw);
     if (!item) continue;
 
@@ -324,8 +278,6 @@ function readEpisodes(channel: Node, feedUrl: string, warn: Warn, hash: Parts, m
       })
       .filter((value): value is Soundbite => value !== undefined);
 
-    const persons = personsOf(item['podcast:person']);
-
     episodes.push({
       guid,
       guidSource,
@@ -344,7 +296,6 @@ function readEpisodes(channel: Node, feedUrl: string, warn: Warn, hash: Parts, m
       ...(chaptersUrl !== undefined && { chaptersUrl }),
       transcripts,
       soundbites,
-      ...(persons.length > 0 && { persons }),
       // Deliberately NOT over the whole item: a feed that regenerates its
       // `<description>` whitespace on every build would otherwise report
       // every episode as changed on every poll.

@@ -8,6 +8,7 @@
  * the comment near the listener (`commentNear`), at most every 15 s, through the reducer's
  * LOCK_LINE event so the lock screen keeps one path (T122 of M12, built here).
  */
+import { reportError } from '@/telemetry/reportError';
 import type { PlayerRuntime } from '@/playback/store';
 import type { Social } from '@/social/api';
 import { bestComment, commentNear, lockLineOf, nowPlayingOf, sameCard, type NowPlaying } from './now-playing';
@@ -67,7 +68,7 @@ export function createOutsideBridge(deps: {
     if (sameCard(card, last)) return;
     last = card;
     latest = card;
-    for (const s of deps.sinks) { try { s.show(card); } catch { /* one surface failing never stops the others */ } }
+    for (const s of deps.sinks) { try { s.show(card); } catch (e) { reportError('outside.surface', e); /* one surface failing never stops the others */ } }
     if (base && !comments.has(base.episodeId) && deps.social) {
       comments.set(base.episodeId, null);
       const id = base.episodeId;

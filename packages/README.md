@@ -17,8 +17,6 @@ Every code file, one plain line each. Each file also starts with the same senten
 
 | File | What it does |
 |---|---|
-| `body.ts` | Reads a feed response with a 5 MB cap and decodes it in the feed's own character set. |
-| `date.ts` | Reads RFC-822 and ISO-8601 feed dates the same way on the phone and the server. |
 | `duration.ts` | Reads episode lengths and dates from podcast feeds, refusing values it cannot trust. |
 | `index.ts` | Entry point that exports the feed parser and its types. |
 | `parse-feed.ts` | Turns a podcast RSS feed into a show and its list of episodes. |

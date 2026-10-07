@@ -18,7 +18,7 @@ import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 
 const JOB = 'job-token-not-secret';
-const rebuild = (t: TestDb) => t.call('POST', '/v1/internal/rebuild', { step: 'sweep' }, undefined, { authorization: `Bearer ${JOB}` });
+const rebuild = (t: TestDb) => t.call('POST', '/v1/internal/rebuild', { step: 'feeds' }, undefined, { authorization: `Bearer ${JOB}` });
 const text = (t: TestDb, token: string, body: unknown) => t.call('POST', '/v1/voice-posts', body, token);
 type Feed = { items: { id: string; body?: string; url?: string; durationMs: number; mine: boolean }[] };
 

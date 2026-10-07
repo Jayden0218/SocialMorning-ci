@@ -4,6 +4,7 @@
  * that bumps on every local change so lists re-filter at once. Sits inside
  * <SocialProvider> (same api, same listener). Sign-in refills from the server.
  */
+import { reportAndDrop } from '@/telemetry/reportError';
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AccessibilityInfo } from 'react-native';
 import { useSocial } from '@/social/context';
@@ -45,7 +46,7 @@ export function SafetyProvider(props: { children?: ReactNode }): ReactNode {
 
   // Sign-in: refill from the server (and push anything pending). Sign-out already cleared the stores.
   const who = listener?.listenerId;
-  useEffect(() => { if (who) void safety.refill().catch(() => undefined); }, [who, safety]);
+  useEffect(() => { if (who) void safety.refill().catch(reportAndDrop('safety.refill')); }, [who, safety]);
 
   const value = useMemo<SafetyContextValue>(() => {
     const sets = safety.sets();

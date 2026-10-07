@@ -7,6 +7,7 @@
  * M22 US16: on a tablet (`useOpensInPane`) a pick opens its episode in the right pane
  * (src/ui/shell/ListDetail.tsx); a phone pushes the episode page as before.
  */
+import { useLoad } from '@/ui/kit/useLoad';
 import { useCallback, useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import { FlatList } from '@/ui/lib/flat-list';
@@ -33,12 +34,8 @@ export default function DailyPicksScreen(): React.ReactElement {
   const api = useExploreApi();
   const { open, play, queue } = useCardActions();
   const { hiddenFeeds } = useSafety();
-  const [state, setState] = useState<State>({ kind: 'loading' });
-  const load = useCallback(() => {
-    setState({ kind: 'loading' });
-    api.daily().then((daily) => setState({ kind: 'ok', daily }), () => setState({ kind: 'error' }));
-  }, [api]);
-  useEffect(() => { load(); }, [load]);
+  // M23 US9: cancelled on unmount; only the newest answer lands.
+  const [state, load] = useLoad(() => api.daily().then((daily) => ({ daily })), [api], 'picks.daily');
   const daily = state.kind === 'ok' ? state.daily : undefined;
   const items = (daily?.items ?? []).filter((p) => !hiddenFeeds.has(p.feedUrl));
   const inPane = useOpensInPane();

@@ -63,7 +63,7 @@ const voiceReply = async (t: TestDb, token: string, postId: string) => {
   return ((await r.json()) as { id: string; url: string });
 };
 const photo = async (t: TestDb, token: string, n = 2_000) => raw(t, '/v1/voice-posts/images', token, jpeg(n), { 'content-type': 'image/jpeg' });
-const rebuild = (t: TestDb) => t.call('POST', '/v1/internal/rebuild', { step: 'sweep' }, undefined, { authorization: `Bearer ${JOB}` });
+const rebuild = (t: TestDb) => t.call('POST', '/v1/internal/rebuild', { step: 'feeds' }, undefined, { authorization: `Bearer ${JOB}` });
 
 type Listed = { id: string; suggested: boolean; items: unknown[]; reactions: { kind: number; count: number }[]; myReaction: number | null; replyCount?: number; reactedBy?: { name: string; kind: number }[] };
 const list = async (t: TestDb, token: string, q = '') => ((await (await t.call('GET', `/v1/voice-posts${q}`, undefined, token)).json()) as { items: Listed[] }).items;

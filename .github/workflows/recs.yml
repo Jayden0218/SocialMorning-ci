@@ -55,9 +55,6 @@ jobs:
             echo "step $step did not finish in 200 chunks"; return 1
           }
           run_step feeds
-          # M23 US5: the housekeeping (sweeps, refunds, the day's popular push, old caches)
-          # is its own step now — it used to ride on the first feeds call.
-          run_step sweep
           # Self-throttling: the route itself skips a similarity rebuild whose last run is
           # under 20 h old, so a missed hour costs nothing and a catch-up burst does no
           # extra work (R4).

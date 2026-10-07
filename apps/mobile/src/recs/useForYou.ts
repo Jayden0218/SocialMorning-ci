@@ -1,5 +1,6 @@
 // Gives screens the For You list and refreshes it on focus.
 /** M8 US2 — the For You section's data: the last copy at once, a refresh on focus. */
+import { reportError } from '@/telemetry/reportError';
 import { useCallback, useMemo, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { useSocial } from '@/social/context';
@@ -19,7 +20,7 @@ export function useForYou(signedInArg: boolean) {
   const [settled, setSettled] = useState(() => !signedIn || view !== undefined);
   const refresh = useCallback(async () => {
     if (!signedIn) { setView(undefined); setSettled(true); return; }
-    try { const v = await forYou.refresh(); if (v) setView(v); } catch { /* the cached copy stands */ } finally { setSettled(true); }
+    try { const v = await forYou.refresh(); if (v) setView(v); } catch (e) { reportError('recs.forYou', e); /* the cached copy stands */ } finally { setSettled(true); }
   }, [forYou, signedIn]);
   useFocusEffect(useCallback(() => { void refresh(); }, [refresh]));
   return { view, refresh, settled };
