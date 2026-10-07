@@ -78,7 +78,8 @@ describe('US3 contacts', () => {
     const f = mockApi((p) => (p.endsWith('/overrides') ? { status: 200, body: { overrides: OVERRIDES } } : undefined));
     const { container } = renderIn(<Layout show={SHOW}><Settings show={SHOW} /></Layout>, `/s/${SHOW.key}/settings/contacts`);
     fireEvent.click(await screen.findByRole('button', { name: 'Add a contact' }));
-    fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'email' } });
+    // findBy: the new contact row renders a moment after the click (seen flaky 2026-10-08, run 37691488284).
+    fireEvent.change(await screen.findByLabelText('Type'), { target: { value: 'email' } });
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'not-an-email' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
     expect(await screen.findByText('Not an email address.')).toBeTruthy();
