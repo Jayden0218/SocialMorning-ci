@@ -51,7 +51,7 @@ jest.mock('@/ui/shell/providers', () => ({
 
 import { QueueSheet } from '@/ui/queue/QueueSheet';
 import { QueueButtons } from '@/ui/queue/QueueButtons';
-import { isSwipeUp } from '@/ui/queue/QueueSheetHost';
+import { isSwipeUp, startsSwipeUp } from '@/ui/queue/QueueSheetHost';
 import { CLOSE_SLACK, dragHeight, settle } from '@/ui/kit/Sheet';
 
 const render = (el: React.ReactElement): ReactTestRenderer => {
@@ -141,6 +141,11 @@ it('the player swipe: at least 20 pt up and more up than sideways', () => {
   expect(isSwipeUp(0, -20)).toBe(false);
   expect(isSwipeUp(30, -25)).toBe(false);
   expect(isSwipeUp(0, 40)).toBe(false);
+  // iPhone walk 2026-10-07: a flick is claimed from 5 pt up and decided on release.
+  expect(startsSwipeUp(0, -6)).toBe(true);
+  expect(startsSwipeUp(0, -5)).toBe(false);
+  expect(startsSwipeUp(10, -6)).toBe(false);
+  expect(startsSwipeUp(0, 6)).toBe(false);
 });
 
 it('a long-press on Add to queue adds to the front: "Added to the front"', () => {

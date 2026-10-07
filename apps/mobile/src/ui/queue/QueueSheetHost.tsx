@@ -33,6 +33,11 @@ export function useQueueSheet(): QueueSheetControl {
   return control;
 }
 
+/** A drag that has started upward: 5 pt up, more up than sideways. Claimed, but not yet decided. */
+export function startsSwipeUp(dx: number, dy: number): boolean {
+  return dy < -5 && Math.abs(dy) > Math.abs(dx);
+}
+
 /** Spec US3 scenario 1: a swipe up — at least 20 pt up, and more up than sideways. */
 export function isSwipeUp(dx: number, dy: number): boolean {
   return dy < -20 && Math.abs(dy) > Math.abs(dx);
@@ -45,12 +50,13 @@ export function isSwipeUp(dx: number, dy: number): boolean {
  */
 export function useSwipeUpToOpen(): GestureResponderHandlers {
   const { open } = useQueueSheet();
-  // M21 (iPhone walk 2026-10-07): asked in the CAPTURE phase too — in the bubbling phase a
-  // button already held the touch and the swipe never reached this view. A tap still never moves.
+  // M21 (iPhone walk 2026-10-07, Debug + Metro log): a quick flick sends only one or two moves
+  // (−6, −10 pt) before the finger lifts, so deciding on a move at 20 pt missed it. The drag is
+  // claimed (capture phase, before the buttons) once it starts upward, and decided on release.
   return useMemo(() => PanResponder.create({
-    onMoveShouldSetPanResponderCapture: (_e, g) => isSwipeUp(g.dx, g.dy),
-    onMoveShouldSetPanResponder: (_e, g) => isSwipeUp(g.dx, g.dy),
+    onMoveShouldSetPanResponderCapture: (_e, g) => startsSwipeUp(g.dx, g.dy),
+    onMoveShouldSetPanResponder: (_e, g) => startsSwipeUp(g.dx, g.dy),
     onPanResponderTerminationRequest: () => false,
-    onPanResponderGrant: () => open(),
+    onPanResponderRelease: (_e, g) => { if (isSwipeUp(g.dx, g.dy)) open(); },
   }).panHandlers, [open]);
 }

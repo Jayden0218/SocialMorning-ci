@@ -33,9 +33,6 @@ import { RateSheet } from '@/ui/shell/RateSheet';
 import { QueueSheetHost } from '@/ui/queue/QueueSheetHost';
 import { consentGiven } from '@/ui/shell/consent';
 
-/** M21 US2: the player closes with a swipe down that starts in its top 120 pt. */
-const PLAYER_SWIPE_TOP = 120;
-
 // Owner, 2026-09-27: no warning bar over the app in Debug builds. Warnings still print
 // in the Metro terminal; Release builds never show the bar.
 LogBox.ignoreAllLogs(true);
@@ -169,7 +166,7 @@ function RootStack(): React.ReactElement {
           <Stack.Screen name="comments/[episodeId]" options={{ title: 'Comments' }} />
           {/* M21 US2 (research R7): still a push, never a sheet — it slides up from the bottom and a
               downward swipe that starts in the top 120 pt (the bar and the artwork) closes it. */}
-          <Stack.Screen name="player" options={{ title: 'Now Playing', headerShown: false, animation: 'slide_from_bottom', gestureDirection: 'vertical', fullScreenGestureEnabled: true, animationMatchesGesture: true, gestureResponseDistance: { top: PLAYER_SWIPE_TOP } }} />
+          <Stack.Screen name="player" options={{ title: 'Now Playing', headerShown: false, animation: 'slide_from_bottom', gestureEnabled: false }} />
           {/* The auth pages draw their own close ✕ and title (owner's reference, 2026-09-27). */}
           {/* No slide: after Accept the landing page must appear at once, with nothing of
               the home page showing on the way (owner, 2026-09-27; see providers). */}

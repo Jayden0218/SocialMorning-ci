@@ -77,14 +77,15 @@ it('G-M21-11: no screen is a formSheet or pageSheet; only voice/new sets a prese
   expect(presented).toEqual(['voice/new']);
 });
 
-it('G-M21-11: the player slides up as a push and closes with a swipe down from its top', () => {
+it('G-M21-11: the player slides up as a push; its own top-bar pan closes it, not the native gesture', () => {
   const layout = readFileSync(join(APP, '_layout.tsx'), 'utf8');
   const player = /<Stack\.Screen\s+name="player"[^\n]*/.exec(layout)?.[0] ?? '';
-  expect(player).toMatch(/gestureDirection:\s*'vertical'/);
   expect(player).toMatch(/animation:\s*'slide_from_bottom'/);
-  expect(player).toMatch(/fullScreenGestureEnabled:\s*true/);
-  expect(player).toMatch(/gestureResponseDistance:/);
+  // iPhone walk 2026-10-07 (Debug + Metro log): the native screen gesture took every vertical
+  // drag after ~10 pt, so the swipe up to the playlist never arrived. It is off on the player.
+  expect(player).toMatch(/gestureEnabled:\s*false/);
   expect(player).not.toMatch(/presentation:/);
+  expect(readFileSync(join(APP, 'player.tsx'), 'utf8')).toMatch(/useSwipeDownToClose\(close\)/);
 });
 
 it('no file outside src/ui/lib uses the native switch', () => {
