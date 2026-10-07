@@ -54,6 +54,7 @@ import { feeds } from './routes/creators/feeds.ts';
 import { covers } from './routes/creators/covers.ts';
 import { showCard } from './pages/show-card.ts';
 import { blobStorage } from './storage/episodes-blob.ts';
+import { setSocialPushFetch } from './db/repos/account/push.ts';
 import { DEFAULT_CEILING_BYTES } from './db/repos/studio/hosted.ts';
 import { live } from './routes/social/live.ts';
 import { notify } from './routes/account/notify.ts';
@@ -147,6 +148,7 @@ export function createApp(deps: AppDeps) {
   // M12 FR-101: the same file's `issues` key, validated the same way.
   const iss = validateIssues(deps.picksRaw ?? picksJson);
   for (const w of iss.warnings) console.warn(`[issues] ${w}`);
+  setSocialPushFetch(deps.pushFetch ?? fetch); // M22 US1: interaction pushes use the same (fakeable) fetch
   const catalog: Catalog = { pushFetch: deps.pushFetch ?? fetch, fetch: deps.catalogFetch ?? fetch, picks, collections: cols.collections, issues: iss.issues, today: deps.today ?? (() => new Date().toISOString().slice(0, 10)) };
 
   // M15 T004: the owner is the first admin (FR-002). Also done lazily by every admin check, so a

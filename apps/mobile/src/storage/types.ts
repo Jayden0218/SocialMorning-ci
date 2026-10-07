@@ -165,6 +165,23 @@ export interface QueueStore {
   replace(ids: readonly string[], now: number): void;
 }
 
+/** M22 US4: one saved queue version. */
+export interface QueueBackup {
+  id: number;
+  items: string[];
+  device: string | null;
+  reason: 'chooser' | 'manual' | 'restore';
+  createdAt: number;
+}
+
+export interface QueueBackupStore {
+  /** Newest first. */
+  list(): QueueBackup[];
+  /** Saves a version and keeps only the newest `keep` (10). */
+  add(b: Omit<QueueBackup, 'id'>, keep?: number): void;
+  get(id: number): QueueBackup | undefined;
+}
+
 export interface SpeedStore {
   get(feedUrl: string): number | undefined;
   set(feedUrl: string, rate: number): void;
@@ -265,6 +282,7 @@ export type Stores = {
   drafts: DraftStore;
   downloads: DownloadStore;
   queue: QueueStore;
+  queueBackups: QueueBackupStore;
   speed: SpeedStore;
   settings: SettingsStore;
   inboxState: InboxStateStore;

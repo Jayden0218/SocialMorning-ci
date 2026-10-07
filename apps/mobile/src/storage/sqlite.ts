@@ -37,6 +37,7 @@ import type {
   InboxLeft,
   InboxStateStore,
   QueueStore,
+  QueueBackupStore,
   SettingsStore,
   SpeedStore,
   PositionRow,
@@ -558,6 +559,25 @@ export function createSqliteQueueStore(db: SQLiteDatabase): QueueStore {
   };
 }
 
+type BackupRow = { id: number; items: string; device: string | null; reason: string; created_at: number };
+const toBackup = (r: BackupRow) => ({ id: r.id, items: JSON.parse(r.items) as string[], device: r.device, reason: r.reason as 'chooser' | 'manual' | 'restore', createdAt: r.created_at });
+
+export function createSqliteQueueBackupStore(db: SQLiteDatabase): QueueBackupStore {
+  return {
+    list: () => db.getAllSync<BackupRow>('SELECT * FROM queue_backups ORDER BY created_at DESC, id DESC').map(toBackup),
+    add(b, keep = 10) {
+      db.withTransactionSync(() => {
+        db.runSync('INSERT INTO queue_backups (items, device, reason, created_at) VALUES (?, ?, ?, ?)', [JSON.stringify(b.items), b.device, b.reason, b.createdAt]);
+        db.runSync('DELETE FROM queue_backups WHERE id NOT IN (SELECT id FROM queue_backups ORDER BY created_at DESC, id DESC LIMIT ?)', [keep]);
+      });
+    },
+    get(id) {
+      const r = db.getFirstSync<BackupRow>('SELECT * FROM queue_backups WHERE id = ?', [id]);
+      return r ? toBackup(r) : undefined;
+    },
+  };
+}
+
 export function createSqliteSpeedStore(db: SQLiteDatabase): SpeedStore {
   return {
     get: (f) => db.getFirstSync<{ rate: number }>('SELECT rate FROM speed_prefs WHERE feed_url = ?', [f])?.rate,
@@ -703,6 +723,7 @@ export function createSqliteStores(hash: (s: string) => string, name?: string): 
     drafts: createSqliteDraftStore(db),
     downloads: createSqliteDownloadStore(db),
     queue: createSqliteQueueStore(db),
+    queueBackups: createSqliteQueueBackupStore(db),
     speed: createSqliteSpeedStore(db),
     settings: createSqliteSettingsStore(db),
     inboxState: createSqliteInboxStateStore(db),

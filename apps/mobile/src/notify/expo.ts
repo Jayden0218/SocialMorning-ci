@@ -15,6 +15,7 @@ import { requireOptionalNativeModule } from 'expo';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import type { NotifyApi, PermissionState } from './permission';
+import { routeForPush } from './route';
 
 type Notifications = typeof import('expo-notifications');
 let loaded: Notifications | undefined;
@@ -27,10 +28,11 @@ const native = (): Notifications => {
 export const expoNotify: NotifyApi = {
   os: Platform.OS,
   status: async () => `${(await native().getPermissionsAsync()).status}` as PermissionState,
-  createChannel: async () => native().setNotificationChannelAsync('default', {
-    name: 'General',
-    importance: native().AndroidImportance.DEFAULT,
-  }),
+  createChannel: async () => {
+    await native().setNotificationChannelAsync('default', { name: 'General', importance: native().AndroidImportance.DEFAULT });
+    // M22 US1: replies, likes, follows and statuses get their own channel, so a listener can mute them alone.
+    await native().setNotificationChannelAsync('social', { name: 'Replies, likes and follows', importance: native().AndroidImportance.DEFAULT });
+  },
   request: async () => native().requestPermissionsAsync(),
   pushToken: async () => {
     const n = native();
@@ -40,12 +42,12 @@ export const expoNotify: NotifyApi = {
   },
 };
 
-/** M10b US3: open the episode a tapped notification names. Returns the unsubscribe, or a no-op without the module. */
-export function onNotificationTap(open: (episodeId: string) => void): () => void {
+/** M10b US3 / M22 US1: open the place a tapped notification names. Returns the unsubscribe, or a no-op without the module. */
+export function onNotificationTap(open: (href: string) => void): () => void {
   try {
     const sub = native().addNotificationResponseReceivedListener((r) => {
-      const id = (r.notification.request.content.data as { episodeId?: unknown } | undefined)?.episodeId;
-      if (typeof id === 'string' && id !== '') open(id);
+      const href = routeForPush(r.notification.request.content.data);
+      if (href) open(href);
     });
     return () => sub.remove();
   } catch {

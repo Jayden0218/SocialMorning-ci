@@ -64,3 +64,5 @@ export { isComplete, completionRate, COMPLETE_SHARE } from './completion';
 export { noun, plural } from './plural';
 // Owner, 2026-10-04 — the made-for-you cover
 export { COVER_TONES, COVER_SHAPE, COVER_PX, coverLetters, coverToneIndex, coverTone, autoCoverUrl, isAutoCover, parseAutoCover, type CoverTone } from './cover';
+// M22 US1 — interaction pushes (specs/023 research R2)
+export { LIKE_WINDOW_MS, isLikeKind, shouldPush, type PushKind, type PushPrefs, type PushRelations, type LikeWindow, type PushDecision } from './push-rules';

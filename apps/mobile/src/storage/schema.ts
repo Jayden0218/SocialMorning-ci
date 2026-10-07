@@ -19,7 +19,7 @@
  * The separator is U+0001, which cannot appear in a URL or a sane guid, so
  * two different (feedUrl, guid) pairs cannot collide by concatenation.
  */
-export const SCHEMA_VERSION = 7;
+export const SCHEMA_VERSION = 8;
 
 export const MIGRATION_001 = `
 CREATE TABLE IF NOT EXISTS shows (
@@ -273,7 +273,21 @@ export const MIGRATION_007 = `
 ALTER TABLE subscriptions ADD COLUMN starred_at INTEGER NULL;
 `;
 
-export const MIGRATIONS: readonly string[] = [MIGRATION_001, MIGRATION_002, MIGRATION_003, MIGRATION_004, MIGRATION_005, MIGRATION_006, MIGRATION_007];
+/**
+ * M22 US4: the last 10 queue versions on this device (specs/023 data-model). A list that loses
+ * the "which playlist do you want to keep?" choice is saved here, never thrown away.
+ */
+export const MIGRATION_008 = `
+CREATE TABLE IF NOT EXISTS queue_backups (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  items         TEXT NOT NULL,
+  device        TEXT NULL,
+  reason        TEXT NOT NULL,
+  created_at    INTEGER NOT NULL
+);
+`;
+
+export const MIGRATIONS: readonly string[] = [MIGRATION_001, MIGRATION_002, MIGRATION_003, MIGRATION_004, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008];
 
 /** The minimum a database must offer for `migrateSchema` (expo-sqlite and node:sqlite both do). */
 export interface SchemaDb {

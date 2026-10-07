@@ -6,8 +6,11 @@
  * muted the actor. Read: newest first, a page of 30, `unread` = newer than `notifications_seen_at`.
  */
 import type { Db } from '../../db.ts';
+import { pushFor, threadOf } from '../account/push.ts';
 
-export type NoticeKind = 'reply' | 'like' | 'mention' | 'follow';
+export type NoticeKind = 'reply' | 'like' | 'mention' | 'follow'
+  // M22 US2/US3
+  | 'like_post_comment' | 'like_post_like' | 'status_reply' | 'status_reaction' | 'status_milestone';
 
 /** The most people one comment can mention; more are ignored (spam). */
 export const MAX_MENTIONS = 5;
@@ -20,6 +23,16 @@ const PAGE = 30;
  */
 export async function notify(db: Db, n: { recipientId: string | null | undefined; actorId: string; kind: NoticeKind; ref?: Record<string, string> }): Promise<boolean> {
   if (!n.recipientId) return false;
+  // M22 US3: a muted thread, or a comment whose author stopped like notices, makes no notice at all.
+  const thread = threadOf({ recipientId: n.recipientId, actorId: n.actorId, kind: n.kind, ref: n.ref ?? {} });
+  if (thread || n.kind === 'like') {
+    const [skip] = await db.query<{ skip: boolean }>(
+      `SELECT EXISTS (SELECT 1 FROM muted_threads WHERE listener_id = $1 AND thread_kind = $2 AND thread_key = $3)
+           OR ($4 = 'like' AND COALESCE((SELECT like_notices_off FROM comments WHERE id::text = $5), false)) AS skip`,
+      [n.recipientId, thread?.kind ?? '', thread?.key ?? '', n.kind, n.ref?.['commentId'] ?? ''],
+    );
+    if (skip?.skip) return false;
+  }
   const ref = JSON.stringify(n.ref ?? {});
   const rows = await db.query<{ id: string }>(
     `INSERT INTO notifications (recipient_id, actor_id, kind, ref)
@@ -27,12 +40,15 @@ export async function notify(db: Db, n: { recipientId: string | null | undefined
      WHERE $1::uuid <> $2::uuid
        AND NOT EXISTS (SELECT 1 FROM blocks WHERE blocker_id = $1::uuid AND blocked_id = $2::uuid)
        AND NOT EXISTS (SELECT 1 FROM listener_mutes WHERE muter_id = $1::uuid AND muted_id = $2::uuid)
-       AND ($3 NOT IN ('like', 'follow') OR NOT EXISTS (
+       AND ($3 NOT IN ('like', 'follow', 'like_post_like', 'status_reaction') OR NOT EXISTS (
          SELECT 1 FROM notifications WHERE recipient_id = $1::uuid AND actor_id = $2::uuid AND kind = $3 AND ref = $4::jsonb))
      RETURNING id`,
     [n.recipientId, n.actorId, n.kind, ref],
   );
-  return rows.length > 0;
+  if (rows.length === 0) return false;
+  // M22 US1: the same notice as a phone push (never throws; see pushFor).
+  await pushFor(db, { recipientId: n.recipientId, actorId: n.actorId, kind: n.kind, ref: n.ref ?? {} });
+  return true;
 }
 
 /**

@@ -31,6 +31,7 @@ import type {
   InboxLeft,
   InboxStateStore,
   QueueStore,
+  QueueBackupStore,
   SettingsStore,
   SpeedStore,
   PositionRow,
@@ -233,6 +234,18 @@ export function createMemoryQueueStore(): QueueStore {
   };
 }
 
+export function createMemoryQueueBackupStore(): QueueBackupStore {
+  let rows: import('./types').QueueBackup[] = [];
+  let next = 1;
+  return {
+    list: () => rows.map((r) => ({ ...r, items: [...r.items] })),
+    add(b, keep = 10) {
+      rows = [{ ...b, id: next++, items: [...b.items] }, ...rows].slice(0, keep);
+    },
+    get: (id) => rows.find((r) => r.id === id),
+  };
+}
+
 export function createMemorySpeedStore(): SpeedStore {
   const rows = new Map<string, number>();
   return { get: (f) => rows.get(f), set: (f, r) => void rows.set(f, r), clear: (f) => void rows.delete(f) };
@@ -345,6 +358,7 @@ export function createMemoryStores(hash: (s: string) => string): Stores {
     drafts: createMemoryDraftStore(),
     downloads: createMemoryDownloadStore(),
     queue: createMemoryQueueStore(),
+    queueBackups: createMemoryQueueBackupStore(),
     speed: createMemorySpeedStore(),
     settings: createMemorySettingsStore(),
     inboxState: createMemoryInboxStateStore(),

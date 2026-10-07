@@ -43,7 +43,7 @@ import { Terms } from './Terms';
 import { ToastHost } from '@/ui/kit/ToastHost';
 import { accept, consentGiven } from './consent';
 import { HANDOFF_MAX_MS, coverLaunch, keepTerms, opensSignIn, signInPage } from './launch';
-import { router, usePathname } from 'expo-router';
+import { router, usePathname, type Href } from 'expo-router';
 import { LaunchScreen } from './LaunchScreen';
 import { createLaunchApi } from '@/launch/api';
 import { knownRoute, resolveTarget } from '@/launch/choose';
@@ -170,8 +170,8 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
   }), [stores]);
   // M10b US4: the Appearance choice is applied at start (a no-op on main until M9 wires it).
   useEffect(() => { applyAccent(readAccent(stores.settings)); }, [stores]);
-  // M10b US3 (FR-011): tapping a notification opens its episode.
-  useEffect(() => onNotificationTap((episodeId) => router.push({ pathname: '/episode/[id]', params: { id: episodeId } })), []);
+  // M10b US3 (FR-011) / M22 US1: tapping a notification opens its place (thread, profile, status, episode).
+  useEffect(() => onNotificationTap((href) => router.push(href as Href)), []);
   const [ready, setReady] = useState(false);
   // M15 US3: the owner's promotion. Decided ONCE, here, synchronously, from the settings
   // store and the files already on disk — no network call can delay start-up (SC-004,
