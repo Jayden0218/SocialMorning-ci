@@ -7,7 +7,7 @@ export {
   FEED_MAX_BYTES, FEED_TIMEOUT_MS, FeedTooLargeError, readCapped, readFeedText,
   decodeFeedBytes, decodeWindows1252, charsetHints, normaliseCharset,
 } from './body';
-export type { BodySource, CharsetHints, MakeDecoder } from './body';
+export type { BodySource, CharsetHints, MakeDecoder, ReadOptions } from './body';
 export type {
   EpochMs,
   Episode,

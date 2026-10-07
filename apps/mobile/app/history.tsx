@@ -188,12 +188,17 @@ export default function HistoryScreen(): React.ReactElement {
                 <Box key={item.episode.id}>
                   {i > 0 ? <CardDivider /> : null}
                   {selecting ? (
-                    <Pressable onPress={() => toggle(item.episode.id)} accessibilityRole="checkbox" accessibilityState={{ checked: chosen.has(item.episode.id) }} accessibilityLabel={`Select ${item.episode.title}`} className="flex-row gap-row py-2.5 items-center" style={ROW}>
-                      <Icon name={chosen.has(item.episode.id) ? 'checkmark-circle' : 'ellipse-outline'} size={24} color={chosen.has(item.episode.id) ? c.accent : c.muted} />
-                      <Artwork url={item.episode.imageUrl ?? show?.imageUrl} size={48} rounded="row" name={show?.title} />
-                      <Box className="flex-1">
-                        <Text className="text-text text-body font-semibold" numberOfLines={1}>{item.episode.title}</Text>
-                        <Text className="text-muted text-xs mt-0.5" numberOfLines={1}>{[show?.title, where].filter(Boolean).join(' · ')}</Text>
+                    // Defect 2 (2026-10-07): a button with the Selected trait ("checkbox" has no iOS
+                    // trait, so the rows were missing from the accessibility tree), and the whole row —
+                    // the tick circle too — is one touch target: nothing inside takes the touch.
+                    <Pressable onPress={() => toggle(item.episode.id)} accessibilityRole="button" accessibilityState={{ selected: chosen.has(item.episode.id) }} accessibilityLabel={`Select ${item.episode.title}`} className="flex-row py-2.5 items-center self-stretch" style={ROW} hitSlop={{ left: 8, right: 8 }}>
+                      <Box pointerEvents="none" className="flex-1 flex-row gap-row items-center">
+                        <Icon name={chosen.has(item.episode.id) ? 'checkmark-circle' : 'ellipse-outline'} size={24} color={chosen.has(item.episode.id) ? c.accent : c.muted} />
+                        <Artwork url={item.episode.imageUrl ?? show?.imageUrl} size={48} rounded="row" name={show?.title} />
+                        <Box className="flex-1 min-w-0">
+                          <Text className="text-text text-body font-semibold" numberOfLines={1}>{item.episode.title}</Text>
+                          <Text className="text-muted text-xs mt-0.5" numberOfLines={1}>{[show?.title, where].filter(Boolean).join(' · ')}</Text>
+                        </Box>
                       </Box>
                     </Pressable>
                   ) : (

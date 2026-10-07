@@ -31,15 +31,37 @@ export type BodySource = {
   text(): Promise<string>;
 };
 
+/** `stream: false` never touches `res.body` (the phone: see `streamReader`). */
+export type ReadOptions = { stream?: boolean };
+
 /**
- * The body as bytes (streamed, stopping at the cap) — or as text when the response can give
- * nothing else (an old test double). Throws `FeedTooLargeError` past `cap`.
+ * A reader for the body stream, or undefined when there is none to use. Defect 4 (owner's
+ * iPhone, 2026-10-07): right after M23 every phone feed refresh failed ("5 shows could not
+ * refresh"). React Native's own fetch has no `response.body` at all, and Expo's replacement
+ * builds its stream lazily in JS — so the phone does not stream (`stream: false`), and here a
+ * missing body, a body with no `getReader`, or a getter/getReader that throws all mean
+ * "read the whole body instead", never an error.
  */
-export async function readCapped(res: BodySource, cap = FEED_MAX_BYTES): Promise<{ bytes: Uint8Array } | { text: string }> {
+function streamReader(res: BodySource, opts: ReadOptions): Reader | undefined {
+  if (opts.stream === false) return undefined;
+  try {
+    const body = res.body;
+    return body && typeof body.getReader === 'function' ? body.getReader() : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The body as bytes (streamed where allowed, stopping at the cap; else read whole, then checked)
+ * — or as text when the response can give nothing else (an old test double). The declared
+ * Content-Length is checked first either way. Throws `FeedTooLargeError` past `cap`.
+ */
+export async function readCapped(res: BodySource, cap = FEED_MAX_BYTES, opts: ReadOptions = {}): Promise<{ bytes: Uint8Array } | { text: string }> {
   const declared = Number(res.headers?.get('content-length') ?? NaN);
   if (Number.isFinite(declared) && declared > cap) throw new FeedTooLargeError(declared, cap);
 
-  const reader = res.body && typeof res.body.getReader === 'function' ? res.body.getReader() : undefined;
+  const reader = streamReader(res, opts);
   if (reader) {
     const chunks: Uint8Array[] = [];
     let total = 0;
@@ -152,8 +174,8 @@ export function decodeFeedBytes(bytes: Uint8Array, contentType: string | null | 
 }
 
 /** `readCapped` then `decodeFeedBytes`: the one call both apps make. */
-export async function readFeedText(res: BodySource, make: MakeDecoder, cap = FEED_MAX_BYTES): Promise<string> {
-  const body = await readCapped(res, cap);
+export async function readFeedText(res: BodySource, make: MakeDecoder, cap = FEED_MAX_BYTES, opts: ReadOptions = {}): Promise<string> {
+  const body = await readCapped(res, cap, opts);
   if ('text' in body) return body.text;
   return decodeFeedBytes(body.bytes, res.headers?.get('content-type'), make);
 }

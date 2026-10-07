@@ -12,7 +12,7 @@
  * The app is on neither store yet (M6 J7 deferred), so "Rate" thanks the listener with a toast
  * until `STORE_URL` is filled in at release. No native review prompt (no native iOS UI).
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Linking, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { Pressable } from '@/ui/lib/pressable';
@@ -24,6 +24,7 @@ import { useColours } from '@/ui/kit/useColours';
 import { useStores, useToast } from '@/ui/shell/providers';
 import { hit } from '@/design';
 import type { SettingsStore } from '@/storage/types';
+import { interestsDueFrom } from '@/discover/interests';
 
 /** Testing: ask on every start. False = ask once, never after an answer. */
 export const EVERY_START = true;
@@ -37,21 +38,42 @@ export function shouldAskRating(s: SettingsStore): boolean {
   return EVERY_START || s.get(RATE_KEY) === undefined;
 }
 
+/**
+ * Defect 1 (owner's iPhone, 2026-10-07): on the first open the sheet slid up OVER the interests
+ * page. The sheet is a modal, so it covered whatever the gate pushed after it. Now any onboarding
+ * moment in this launch — the terms not yet agreed, a page under `onboarding/` or `auth/` open,
+ * or the interests page due (`interestsDueFrom`) — blocks the sheet for the rest of the launch.
+ */
+export function rateBlockedNow(a: { segment: string | undefined; consent: boolean; interestsDue: boolean }): boolean {
+  return !a.consent || a.interestsDue || a.segment === 'onboarding' || a.segment === 'auth';
+}
+
+/** True when the sheet may slide up: on the tabs, allowed by the rule above, and not blocked earlier in this launch. */
+export function rateMayAsk(s: SettingsStore, a: { onTabs: boolean; blockedThisLaunch: boolean }): boolean {
+  return a.onTabs && !a.blockedThisLaunch && shouldAskRating(s);
+}
+
 const TAP = { minHeight: hit.min, minWidth: hit.min };
 const PILL = { minHeight: 52 };
 
-export function RateSheet(props: { ready: boolean }): React.ReactElement {
+export function RateSheet(props: { onTabs: boolean; segment: string | undefined; consent: boolean }): React.ReactElement {
   const stores = useStores();
   const c = useColours(stores.settings);
   const toast = useToast();
   const [open, setOpen] = useState(false);
   const [asked, setAsked] = useState(false);
+  // Latched: once anything of onboarding is seen in this launch, the sheet waits for the next one.
+  const blocked = useRef(false);
+  if (rateBlockedNow({ segment: props.segment, consent: props.consent, interestsDue: interestsDueFrom(stores.settings, Date.now()) })) blocked.current = true;
+  const may = rateMayAsk(stores.settings, { onTabs: props.onTabs, blockedThisLaunch: blocked.current });
 
   useEffect(() => {
-    if (!props.ready || asked || !shouldAskRating(stores.settings)) return;
+    if (!may || asked) return;
     const t = setTimeout(() => { setOpen(true); setAsked(true); }, DELAY_MS);
     return () => clearTimeout(t);
-  }, [props.ready, asked, stores.settings]);
+  }, [may, asked]);
+  // Never over an onboarding page: a sheet already up closes (no answer is recorded).
+  useEffect(() => { if (blocked.current && open) setOpen(false); }, [props.segment, open]);
 
   const answer = (a: 'rate' | 'feedback' | 'closed'): void => {
     setOpen(false);

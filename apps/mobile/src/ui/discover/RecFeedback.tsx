@@ -36,9 +36,11 @@ export function GenreTiles(props: { picked: readonly number[]; onToggle: (id: nu
           <Pressable
             key={g.id}
             onPress={() => props.onToggle(g.id)}
-            accessibilityRole="checkbox"
+            // Defect 2 (2026-10-07): "checkbox" has no iOS trait, so the tiles were missing from the
+            // accessibility tree. A button with the Selected trait is listed and read on both systems.
+            accessibilityRole="button"
             accessibilityLabel={g.name}
-            accessibilityState={{ checked: on }}
+            accessibilityState={{ selected: on }}
             className={`flex-row items-center gap-2 px-row rounded-pill border ${on ? 'bg-primary border-primary' : 'bg-surface border-border'}`}
             style={TAP}
           >

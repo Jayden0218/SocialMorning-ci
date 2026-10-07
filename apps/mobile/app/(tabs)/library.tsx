@@ -36,7 +36,7 @@ import { Icon } from '@/ui/kit/Icon';
 import { enqueue } from '@socialmorning/player-core';
 import { useDiscover } from '@/discover/useDiscover';
 import { refreshAll } from '@/feeds/refresh-all';
-import { hideFromUpdates, latestUpdates, type UpdateRow } from '@/me/updates';
+import { hideFromUpdates, updatesSnapshot, type UpdateRow } from '@/me/updates';
 import { usePlayer } from '@/playback/store';
 import { useSafety } from '@/safety/context';
 import { toPlayable } from '@/storage/playable';
@@ -77,12 +77,14 @@ export default function UpdatesScreen(): React.ReactElement {
   const toast = useToast();
   const { hiddenFeeds } = useSafety();
   const discover = useDiscover();
-  const [rows, setRows] = useState<UpdateRow[]>([]);
+  // Defect 5 (2026-10-07): the first render already shows the local shows and episodes.
+  const [first] = useState(() => updatesSnapshot(stores, hiddenFeeds));
+  const [rows, setRows] = useState<UpdateRow[]>(first.rows);
   // M22 US16 (T071): on a tablet an episode opens in the right pane (src/ui/shell/ListDetail.tsx).
   const inPane = useOpensInPane();
   const [paneId, setPaneId] = useState<string | undefined>(undefined);
   const openEpisodePage = (id: string) => router.push({ pathname: '/episode/[id]', params: { id } });
-  const [subscribed, setSubscribed] = useState(0);
+  const [subscribed, setSubscribed] = useState(first.subscribed);
   const [stale, setStale] = useState(0);
   // M22 US12: "Swipe a row for more", once — the first time Updates shows rows after this release.
   const positionSync = usePositionSync();
@@ -90,8 +92,9 @@ export default function UpdatesScreen(): React.ReactElement {
   useEffect(() => { if (swipeHint && rows.length > 0) stores.settings.set(SWIPE_HINT_KEY, '1'); }, [swipeHint, rows.length, stores]);
 
   const read = useCallback(() => {
-    setRows(latestUpdates(stores, hiddenFeeds));
-    setSubscribed(stores.subscriptions.list().length);
+    const now = updatesSnapshot(stores, hiddenFeeds);
+    setRows(now.rows);
+    setSubscribed(now.subscribed);
   }, [stores, hiddenFeeds]);
   useFocusEffect(useCallback(() => {
     let live = true;

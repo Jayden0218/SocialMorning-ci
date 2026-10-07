@@ -45,12 +45,23 @@ it('a swipe left shows its actions; a tap runs one', () => {
   const removeFn = jest.fn();
   const played = jest.fn();
   const r = render([{ key: 'queue', label: 'Queue', onPress: queue }, { key: 'remove', label: 'Remove from Updates', onPress: removeFn }], [{ key: 'played', label: 'Mark played', onPress: played }]);
+  const now = jest.spyOn(Date, 'now').mockReturnValue(50_000);
+  // Defect 3 (2026-10-07): a press before the row has opened (the swipe's release) runs nothing.
   act(() => { button(r, 'Remove from Updates').props['onPress'](); });
-  expect(removeFn).toHaveBeenCalledTimes(1);
-  expect(queue).not.toHaveBeenCalled();
+  expect(removeFn).not.toHaveBeenCalled();
   // Two actions on the left swipe: opening shows them, it runs nothing.
   act(() => { mockSwipe.last!.onSwipeableOpen!('left'); });
   expect(queue).not.toHaveBeenCalled();
+  expect(removeFn).not.toHaveBeenCalled();
+  // Still the same moment as the open: nothing.
+  act(() => { button(r, 'Remove from Updates').props['onPress'](); });
+  expect(removeFn).not.toHaveBeenCalled();
+  // A deliberate tap once the row is open runs that one action only.
+  now.mockReturnValue(50_000 + 400);
+  act(() => { button(r, 'Remove from Updates').props['onPress'](); });
+  expect(removeFn).toHaveBeenCalledTimes(1);
+  expect(queue).not.toHaveBeenCalled();
+  now.mockRestore();
   // One action on the right swipe: the full swipe runs it.
   act(() => { mockSwipe.last!.onSwipeableOpen!('right'); });
   expect(played).toHaveBeenCalledTimes(1);

@@ -11,6 +11,12 @@
  *    a row whose own button is the element a screen reader focuses.
  *  - Editorial colours from tokens only: the first action on a side is yellow (`bg-primary`),
  *    the others white with a border; text in `text-onPrimary` / `text-text`.
+ *  - Defect 3 (owner's iPhone, 2026-10-07): gesture-handler draws both action panels behind the
+ *    row all the time, so their yellow showed in the card's margins and gaps when nothing was
+ *    being swiped. Each panel is now see-through until its side's progress is above 0
+ *    (`panelStyle`), and a button only runs once its row has finished opening (`mayRun`) — a
+ *    swipe's release can never press one; on a side with two or more actions the release only
+ *    reveals them.
  *  - The swipeable is loaded on first use. Under Jest (whose reanimated cannot start its native
  *    part) the row is drawn plain with its accessibility actions, so every screen test that draws
  *    an Updates or queue row keeps working; `setSwipeableForTests` hands in a stand-in.
@@ -28,19 +34,43 @@ export type SwipeAction = { key: string; label: string; onPress: () => void };
 const BUTTON = { minHeight: hit.min, minWidth: 88 };
 
 type SwipeableModule = typeof import('react-native-gesture-handler/ReanimatedSwipeable');
+/** The two parts of reanimated a panel needs (a stand-in in tests). */
+export type PanelAnimation = {
+  View: React.ComponentType<{ style?: unknown; pointerEvents?: 'none' | 'auto' | 'box-none'; children?: ReactNode }>;
+  useAnimatedStyle: (fn: () => Record<string, unknown>) => unknown;
+};
 let loaded: SwipeableModule | null | undefined;
+let animation: PanelAnimation | null = null;
 /** gesture-handler's swipeable, or null where it cannot load (Jest, or a failed load). */
 function swipeable(): SwipeableModule | null {
   if (loaded === undefined) {
     if (typeof jest !== 'undefined') loaded = null;
-    else try { loaded = require('react-native-gesture-handler/ReanimatedSwipeable') as SwipeableModule; } catch { loaded = null; }
+    else try {
+      loaded = require('react-native-gesture-handler/ReanimatedSwipeable') as SwipeableModule;
+      const r = require('react-native-reanimated') as { default: { View: PanelAnimation['View'] }; useAnimatedStyle: PanelAnimation['useAnimatedStyle'] };
+      animation = { View: r.default.View, useAnimatedStyle: r.useAnimatedStyle };
+    } catch { loaded = null; }
   }
   return loaded;
 }
 
-/** Tests only: a stand-in for gesture-handler's swipeable (null = the plain row). */
-export function setSwipeableForTests(m: SwipeableModule | null): void {
+/** Tests only: a stand-in for gesture-handler's swipeable (null = the plain row) and for reanimated. */
+export function setSwipeableForTests(m: SwipeableModule | null, anim: PanelAnimation | null = null): void {
   loaded = m;
+  animation = anim;
+}
+
+/** A panel's look for its side's progress: nothing at rest, whole once the row moves that way. */
+export function panelStyle(progress: number): { opacity: number } {
+  'worklet';
+  return { opacity: progress > 0 ? 1 : 0 };
+}
+
+/** How long after the row finished opening a tap on a revealed button may run it. */
+export const OPEN_SETTLE_MS = 250;
+/** A button runs only on a row that has finished opening, and not in the same moment (the release). */
+export function mayRun(openedAt: number | undefined, now: number): boolean {
+  return openedAt !== undefined && now - openedAt >= OPEN_SETTLE_MS;
 }
 
 /** The accessibility props that carry every swipe action: put them on the row's focused element. */
@@ -54,13 +84,22 @@ export function swipeA11y(actions: readonly SwipeAction[]): {
   };
 }
 
-function Actions(props: { actions: readonly SwipeAction[]; close: () => void; align: 'start' | 'end' }): React.ReactElement {
-  return (
-    <Box className={`flex-row items-stretch gap-1 px-1 ${props.align === 'end' ? 'justify-end' : 'justify-start'}`}>
+type Progress = { value: number };
+
+/** The panel, see-through while its side's progress is 0 (reanimated drives the opacity). */
+function Panel(props: { progress: Progress | undefined; anim: PanelAnimation; children: ReactNode }): React.ReactElement {
+  const { progress, anim } = props;
+  const style = anim.useAnimatedStyle(() => panelStyle(progress?.value ?? 0));
+  return <anim.View style={[{ flex: 1 }, style]}>{props.children}</anim.View>;
+}
+
+function Actions(props: { actions: readonly SwipeAction[]; close: () => void; align: 'start' | 'end'; canRun: () => boolean; progress?: Progress }): React.ReactElement {
+  const buttons = (
+    <Box className={`flex-1 flex-row items-stretch gap-1 px-1 ${props.align === 'end' ? 'justify-end' : 'justify-start'}`}>
       {props.actions.map((a, i) => (
         <Pressable
           key={a.key}
-          onPress={() => { props.close(); a.onPress(); }}
+          onPress={() => { if (!props.canRun()) return; props.close(); a.onPress(); }}
           accessibilityRole="button"
           accessibilityLabel={a.label}
           className={`items-center justify-center px-3 rounded-row ${i === 0 ? 'bg-primary' : 'bg-surface border border-border'}`}
@@ -71,6 +110,7 @@ function Actions(props: { actions: readonly SwipeAction[]; close: () => void; al
       ))}
     </Box>
   );
+  return animation ? <Panel progress={props.progress} anim={animation}>{buttons}</Panel> : buttons;
 }
 
 export function SwipeRow(props: {
@@ -84,6 +124,9 @@ export function SwipeRow(props: {
   testID?: string;
 }): React.ReactElement {
   const ref = useRef<SwipeableMethods>(null);
+  // When the row last finished opening (undefined = closed or moving): gates the buttons.
+  const openedAt = useRef<number | undefined>(undefined);
+  const canRun = () => mayRun(openedAt.current, Date.now());
   const left = props.swipeLeft ?? [];
   const right = props.swipeRight ?? [];
   const close = () => ref.current?.close();
@@ -102,12 +145,16 @@ export function SwipeRow(props: {
       overshootLeft={false}
       overshootRight={false}
       {...(props.testID !== undefined ? { testID: props.testID } : {})}
-      {...(right.length > 0 ? { renderLeftActions: () => <Actions actions={right} close={close} align="start" /> } : {})}
-      {...(left.length > 0 ? { renderRightActions: () => <Actions actions={left} close={close} align="end" /> } : {})}
+      {...(right.length > 0 ? { renderLeftActions: (progress?: Progress) => <Actions actions={right} close={close} align="start" canRun={canRun} {...(progress ? { progress } : {})} /> } : {})}
+      {...(left.length > 0 ? { renderRightActions: (progress?: Progress) => <Actions actions={left} close={close} align="end" canRun={canRun} {...(progress ? { progress } : {})} /> } : {})}
+      onSwipeableOpenStartDrag={() => { openedAt.current = undefined; }}
+      onSwipeableClose={() => { openedAt.current = undefined; }}
       onSwipeableOpen={(direction) => {
         // `direction` is the swipe's: RIGHT opened the left edge (the swipeRight actions).
         const side = direction === mod.SwipeDirection.RIGHT ? right : left;
-        if (side.length === 1) { close(); side[0]!.onPress(); }
+        // One action: the full swipe runs it. Two or more: the release only reveals them.
+        if (side.length === 1) { openedAt.current = undefined; close(); side[0]!.onPress(); return; }
+        openedAt.current = Date.now();
       }}
     >
       <Box {...swipeA11y(all)}>{props.children}</Box>

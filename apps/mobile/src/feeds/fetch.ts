@@ -7,7 +7,7 @@
  * still owns their library — so a failure with a cache returns the cache and
  * says `stale: true`, and only a failure with NOTHING cached is an error.
  */
-import { FEED_TIMEOUT_MS, parseFeed, readFeedText, type FeedWarning, type MakeDecoder } from '@socialmorning/feed-parser';
+import { FEED_MAX_BYTES, FEED_TIMEOUT_MS, parseFeed, readFeedText, type FeedWarning, type MakeDecoder, type ReadOptions } from '@socialmorning/feed-parser';
 import { hash } from './hash';
 import type { CachedEpisode, CachedShow, FeedCache } from '@/storage/types';
 
@@ -38,6 +38,9 @@ const COULD_NOT_REACH =
  * lists (Discover, picks) therefore read correctly even where the phone's own refresh cannot.
  */
 const phoneDecoder: MakeDecoder = (label, fatal) => new TextDecoder(label, { fatal });
+
+/** Defect 4: read the body whole on the phone (arrayBuffer, else text), never as a stream. */
+export const PHONE_READ: ReadOptions = { stream: false };
 
 /**
  * Fetch with the M23 deadline: 8 s for headers and body together, and the caller's own signal
@@ -89,8 +92,10 @@ export async function refreshShow(
   let response: Response;
   let body: string;
   try {
-    // M23 US5: 8 s deadline, 5 MB cap (streamed where the runtime streams), the feed's charset.
-    const got = await fetchWithDeadline(feedUrl, { headers }, signal, (r) => readFeedText(r, phoneDecoder));
+    // M23 US5: 8 s deadline, 5 MB cap, the feed's charset. Defect 4 (2026-10-07): the phone
+    // never reads `response.body` as a stream — RN's fetch has none — but the whole body
+    // (Content-Length checked first, the size checked after), so a refresh cannot fail on it.
+    const got = await fetchWithDeadline(feedUrl, { headers }, signal, (r) => readFeedText(r, phoneDecoder, FEED_MAX_BYTES, PHONE_READ));
     response = got.response;
     if (response.status === 304) {
       const hit = cached(cache, feedUrl, false);

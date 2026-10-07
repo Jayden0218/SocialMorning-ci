@@ -56,3 +56,12 @@ export function latestUpdates(stores: Pick<Stores, 'subscriptions' | 'feeds'> & 
   }
   return rows.sort((a, b) => (b.episode.publishedAt ?? 0) - (a.episode.publishedAt ?? 0)).slice(0, limit);
 }
+
+/**
+ * Defect 5 (owner's iPhone, 2026-10-07): on open, Updates drew "My subscriptions · 0" and Discover's
+ * picks until the first refresh, although the phone's database already had the shows. The page now
+ * starts from this snapshot of the local database (its first render, not after the sync).
+ */
+export function updatesSnapshot(stores: Pick<Stores, 'subscriptions' | 'feeds'> & { settings?: Stores['settings'] }, hidden: ReadonlySet<string>): { rows: UpdateRow[]; subscribed: number } {
+  return { rows: latestUpdates(stores, hidden), subscribed: stores.subscriptions.list().length };
+}

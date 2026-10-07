@@ -123,7 +123,8 @@ function RootStack(): React.ReactElement {
   const [leaving, setLeaving] = useState<LeavingToTabs>(undefined);
   // Owner, 2026-10-04: on the tabs the home-bar strip below the white tab bar is white too, so
   // the bar reaches the bottom of the screen; on every other page it stays the page colour.
-  const onTabs = useSegments()[0] === '(tabs)';
+  const segment = useSegments()[0];
+  const onTabs = segment === '(tabs)';
   // Owner, 2026-10-06 ("why is there a yellow bar below?"): under the white mini player the strip was
   // the cream page colour; it is the bar's white whenever the root bar shows. The player page paints
   // its own wash to the bottom edge, so the root leaves its strip to it (edges: none there).
@@ -227,7 +228,8 @@ function RootStack(): React.ReactElement {
         </Stack>
         {rootBarHidden(leaving) ? null : <MiniPlayer />}
         {/* Owner, 2026-10-04: "Enjoying SocialNet?" — on the tabs, after the terms are agreed. */}
-        <RateSheet ready={onTabs && consentGiven(stores.settings, stores.auth.get() !== undefined)} />
+        {/* Defect 1 (2026-10-07): never over, nor in the same launch as, the terms or interests page. */}
+        <RateSheet onTabs={onTabs} segment={segment} consent={consentGiven(stores.settings, stores.auth.get() !== undefined)} />
         {/* M22 US5: the first-open interests page, once, after sign-in. */}
         <InterestsGate onTabs={onTabs && consentGiven(stores.settings, stores.auth.get() !== undefined)} />
         {/* M22 US17 (T073): "Play on mobile data?" — opened by the player's mayStream (providers). */}
