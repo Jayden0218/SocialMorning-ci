@@ -1,0 +1,9 @@
+{
+  // M23 US12 (T054): src/ runs on the phone (Hermes) and the server (Node), so it may use the language (ES2022) and nothing else: no Node types, no DOM. The one exception is URL (platform.d.ts), which both runtimes have. Tests keep Node types (tsconfig.json).
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    "types": []
+  },
+  "include": ["src/**/*.ts", "platform.d.ts"]
+}

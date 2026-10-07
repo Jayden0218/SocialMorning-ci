@@ -9,13 +9,10 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { PGlite } from '@electric-sql/pglite';
-import { citext } from '@electric-sql/pglite/contrib/citext';
-import { migrate, type MigrationRunner } from '../src/db/migrate.ts';
 import { fromPglite } from '../src/db/db.ts';
 import { createApp } from '../src/app.ts';
 import { fakeApple, fakeFeedFetch, FIXTURE_FEED } from './fake-apple.ts';
-import { TEST_PEPPER, signUp, type TestDb } from './harness.ts';
+import { migratedPg, TEST_PEPPER, signUp, type TestDb } from './harness.ts';
 import { fnv1a64 } from '@socialmorning/social-core';
 
 const FX = 'https://feeds.example.com/fx.xml';
@@ -25,9 +22,7 @@ const PICKS = [{ date: '2026-09-22', feedUrl: FX, guid: 'g-new', why: 'The pick 
 type Body = { items: { episode: { id: string; feedUrl: string; title: string }; channel: string; reason: string; score: number }[]; computedAt: string; stale: boolean; similarityAge: number | null };
 
 async function appWith(opts: { picksRaw?: unknown; appleMode?: Parameters<typeof fakeApple>[0]; feedStatus?: number } = {}) {
-  const pg = new PGlite({ extensions: { citext } });
-  const runner: MigrationRunner = { exec: (s) => pg.exec(s), query: async <T,>(s: string, p?: unknown[]) => (await pg.query<T>(s, p)).rows };
-  await migrate(runner);
+  const { pg, runner } = await migratedPg();
   const db = fromPglite(pg);
   const apple = fakeApple(opts.appleMode ?? {});
   const catalogFetch = (async (input: string | URL | Request, init?: RequestInit) => {

@@ -39,12 +39,6 @@ export const bearer = {
 let onSignedOut: (() => void) | null = null;
 export const whenSignedOut = (fn: () => void) => { onSignedOut = fn; };
 
-/** M23 T042: signing out in one tab signs out every open Studio tab (they hear the `storage` event). */
-export const SIGNED_OUT_KEY = 'sm_studio_signed_out';
-export function tellOtherTabs(): void {
-  try { localStorage.setItem(SIGNED_OUT_KEY, String(Date.now())); } catch { /* storage blocked: this tab only */ }
-}
-
 /**
  * M15 T010: an Admin session older than 12 h answers 401 `reauth`. The page says
  * "Sign in again to use Admin" and goes to `/sign-in?next=` (the Admin layout sets the handler).
@@ -108,7 +102,6 @@ export async function startSession(token: string): Promise<StudioMe> {
 export async function downloadCsv(path: string, fallbackName: string): Promise<void> {
   const token = bearer.get();
   const res = await fetch(BASE + path, { credentials: 'same-origin', ...(token ? { headers: { authorization: `Bearer ${token}` } } : {}) });
-  if (res.status === 401) { onSignedOut?.(); throw new HttpError(401, 'unauthorized', 'You were signed out. Sign in again to export.'); }
   if (!res.ok) throw new HttpError(res.status, 'export', 'The export did not work. Try again.');
   const name = /filename="([^"]+)"/.exec(res.headers.get('content-disposition') ?? '')?.[1] ?? fallbackName;
   const url = URL.createObjectURL(await res.blob());

@@ -3,19 +3,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
-import { PGlite } from '@electric-sql/pglite';
-import { citext } from '@electric-sql/pglite/contrib/citext';
-import { migrate, type MigrationRunner } from '../src/db/migrate.ts';
 import { fromPglite } from '../src/db/db.ts';
 import { createApp } from '../src/app.ts';
 import { fakeApple, fakeFeedFetch, FIXTURE_FEED } from './fake-apple.ts';
-import { TEST_PEPPER, signUp, type TestDb } from './harness.ts';
+import { migratedPg, TEST_PEPPER, signUp, type TestDb } from './harness.ts';
 
 /** A test app whose catalogue fetch answers Apple URLs with the fake and feed URLs with the fixture. */
 async function appWith(picksRaw: unknown, today = '2026-09-22') {
-  const pg = new PGlite({ extensions: { citext } });
-  const runner: MigrationRunner = { exec: (s) => pg.exec(s), query: async <T,>(s: string, p?: unknown[]) => (await pg.query<T>(s, p)).rows };
-  await migrate(runner);
+  const { pg, runner } = await migratedPg();
   await pg.exec('ALTER TABLE listeners ALTER COLUMN rules_accepted_at SET DEFAULT now()'); // M21 US6: test listeners accepted the rules (as harness.ts)
   const db = fromPglite(pg);
   const apple = fakeApple();

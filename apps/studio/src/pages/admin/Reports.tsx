@@ -6,7 +6,6 @@ import { PageHead } from '../../shell/Page';
 import { Empty, Failed, Loading } from '../../shell/States';
 import { useLoad } from '../../useLoad';
 import { errorText } from './common';
-import { plural } from '@socialmorning/social-core';
 
 type Kind = 'comment' | 'clip' | 'profile' | 'show' | 'episode' | 'transcript';
 type Action = 'dismiss' | 'remove' | 'hide_show' | 'suspend' | 'unsuspend' | 'unhide_show';
@@ -66,7 +65,7 @@ export function Reports() {
             {(data.data.items as Item[]).map((i) => (
               <li key={`${i.targetKind}:${i.targetId}`} style={{ flexWrap: 'wrap' }}>
                 <div className="row-main" style={{ flex: 1 }}>
-                  <div className="row-sub"><span className="pill pill-warn">{i.targetKind}</span> {plural(i.count, 'report')} · {i.reasons.join(', ')} · by {i.reporters.join(', ')}</div>
+                  <div className="row-sub"><span className="pill pill-warn">{i.targetKind}</span> {i.count} report{i.count === 1 ? '' : 's'} · {i.reasons.join(', ')} · by {i.reporters.join(', ')}</div>
                   <Snapshot item={i} />
                   {i.notes.length > 0 ? <div className="row-sub">Notes: {i.notes.join(' / ')}</div> : null}
                 </div>

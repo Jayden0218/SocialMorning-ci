@@ -61,3 +61,7 @@ apps/api/api/index.js.map
 apps/studio/e2e-results/
 apps/studio/e2e-report/
 apps/api/journey.json
+
+# M23 T052: build junk anywhere in the tree (Gradle caches, coverage output).
+**/.gradle/
+**/coverage/

@@ -14,8 +14,7 @@
 import type { Db } from '../../db.ts';
 import { ApiError } from '../../../errors.ts';
 
-import { HOST_PICKS_MAX } from '@socialmorning/social-core';
-export { HOST_PICKS_MAX };
+export const HOST_PICKS_MAX = 20;
 
 export async function subscriberCount(db: Db, feedUrl: string): Promise<number> {
   const [r] = await db.query<{ n: number | string; hidden: boolean }>(
