@@ -1,7 +1,7 @@
 // List of episode chapters; current one is bold; tap to jump there.
 /** Chapters (US5, FR-021): start time + title, the current one highlighted, tap → seek. */
 import { currentChapter, type Chapter } from '@socialmorning/player-core';
-import { Linking } from 'react-native';
+import { openLink } from '@/ui/kit/openLink';
 import { Image } from '@/ui/lib/image';
 import { Pressable } from '@/ui/lib/pressable';
 import { Text } from '@/ui/lib/text';
@@ -18,7 +18,7 @@ export function ChapterList(props: { chapters: Chapter[]; positionMs: number; on
           <Text className="text-text w-14" style={tabular}>{mmss(c.startMs)}</Text>
           <Text className={`flex-1 text-[15px] text-text ${i === current ? 'font-bold' : ''}`} numberOfLines={2}>{c.title ?? `Chapter ${i + 1}`}</Text>
           {c.url ? (
-            <Pressable onPress={() => void Linking.openURL(c.url!)} accessibilityRole="link" hitSlop={8}><Text className="text-accent text-sm">↗</Text></Pressable>
+            <Pressable onPress={() => void openLink(c.url!)} accessibilityRole="link" hitSlop={8}><Text className="text-accent text-sm">↗</Text></Pressable>
           ) : null}
         </Pressable>
       ))}

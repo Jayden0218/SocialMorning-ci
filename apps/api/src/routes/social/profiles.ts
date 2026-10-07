@@ -5,7 +5,7 @@ import type { AuthEnv } from '../../auth/session.ts';
 import { optionalAuth, requireAuth } from '../../auth/session.ts';
 import { json } from '../../validate.ts';
 import { ApiError } from '../../errors.ts';
-import { profile, setPrivateListening, subscriptionsVisible } from '../../db/repos/social/profiles.ts';
+import { profile, setHideOftenListened, setPrivateListening, subscriptionsVisible } from '../../db/repos/social/profiles.ts';
 import { publicSubscriptions } from '../../db/repos/library/subscriptions.ts';
 import { hasPlus } from '../../db/repos/account/purchases.ts';
 
@@ -35,11 +35,15 @@ profiles.get('/:id/subscriptions', optionalAuth, async (c) => {
   return c.json({ items: await publicSubscriptions(db, id) });
 });
 
-/** Mounted at /v1/me/privacy — PUT { privateListening }. */
+/** Mounted at /v1/me/privacy — PUT { privateListening } or (M22 US17) { hideOftenListened }; each optional, at least one. */
 export const privacy = new Hono<AuthEnv>();
 
-privacy.put('/', requireAuth, json(z.object({ privateListening: z.boolean() })), async (c) => {
-  const v = c.req.valid('json').privateListening;
-  await setPrivateListening(c.get('db'), c.get('listener')!.id, v);
-  return c.json({ privateListening: v });
+privacy.put('/', requireAuth, json(z.object({ privateListening: z.boolean().optional(), hideOftenListened: z.boolean().optional() })
+  .refine((b) => b.privateListening !== undefined || b.hideOftenListened !== undefined)), async (c) => {
+  const b = c.req.valid('json');
+  const db = c.get('db');
+  const id = c.get('listener')!.id;
+  if (b.privateListening !== undefined) await setPrivateListening(db, id, b.privateListening);
+  if (b.hideOftenListened !== undefined) await setHideOftenListened(db, id, b.hideOftenListened);
+  return c.json({ ...(b.privateListening !== undefined ? { privateListening: b.privateListening } : {}), ...(b.hideOftenListened !== undefined ? { hideOftenListened: b.hideOftenListened } : {}) });
 });

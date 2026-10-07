@@ -51,6 +51,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `sections.ts` | Works out which Discover sections to show from the server's data. |
 | `trending.ts` | Picks trending show names to rotate as hints in the search box. |
 | `useDiscover.ts` | Gives screens the Discover data, refreshes it, and opens or plays cards. |
+| `interests.ts` | Remembers the categories picked on first open, and decides when to ask (once more after a skip, a week later). |
 
 ### `downloads/` — Saving episodes to the phone for offline listening.
 
@@ -77,6 +78,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `clips.ts` | Saves new clips on the phone and sends them to the server later. |
 | `composer.ts` | Holds the clip maker's start, end and caption while you edit. |
 | `context.tsx` | Gives screens the clip sender and each episode's clip list. |
+| `transcript-select.ts` | Picks a run of transcript lines (contiguous only) and says whether it can become a clip. |
 | `feed.ts` | Loads the Following feed, keeps a copy, and counts unread items. |
 | `links.ts` | Builds and reads clip links, both web and in-app. |
 | `listened.ts` | Records how long you listened each day and sends it to the server. |
@@ -237,6 +239,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `comment-image.ts` | Lets you pick one photo for a comment and shrinks it to a JPEG the server takes. |
 | `image-fit.ts` | The size math for comment pictures: shrink to fit, and the thumbnail's box. |
 | `who.ts` | Writes friend names like "Ana, Bo and 3 others". |
+| `api-m22-discover.ts` | Server calls for M22's interests, "Not liking these?", tell-the-editors, shared show lists and often listened. |
 
 ### `storage/` — The phone's local database and its data shapes.
 
@@ -300,6 +303,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `ring.ts` | Math for how far the progress circle is turned. |
 | `two-tone.ts` | Splits a section title into first word and the rest, for two colours. |
 | `useColours.ts` | Gives the app's colour values to code that needs a colour, not a class. |
+| `openLink.ts` | Opens a link the right way: web pages in the in-app browser, our own links in the app, the rest by the system. |
 
 ### `ui/shell/` — The app's outer layer: start-up, tabs, terms and shared setup
 
@@ -404,6 +408,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `StatusViewer.tsx` | Full-screen status viewer: plays on open, taps on the right or left third move, swipe down closes. |
 | `StatusReplies.tsx` | Replies and reactions under a status: a text box, hold to record a voice reply, six reactions, the owner's list. |
 | `StatusComposerItems.tsx` | Add up to 10 episode cards and photos to a new status, from history, the queue, search or the photo library. |
+| `OftenListened.tsx` | A profile's "Often listened" row: the six shows they listened to most in the last 90 days. |
 
 ### `ui/episode/` — Parts of episode rows and the episode page
 
@@ -418,6 +423,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `ShowNotes.tsx` | Episode notes; lines starting with a time become rows that play from there. |
 | `UpdateEpisodeRow.tsx` | One episode card on Updates: notes, plays, comments, small buttons, Play. |
 | `WatchTile.tsx` | "Download to Watch" in the episode ⋯ sheet: sends the episode to the paired Apple Watch. |
+| `PictureViewer.tsx` | Full-screen pictures from show notes: pinch or double-tap to zoom, swipe between them, swipe down or ✕ to close. |
 
 ### `ui/show/` — Parts of the show page
 
@@ -446,6 +452,8 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `PickCard.tsx` | One editor's pick: the episode plus a short quote on why. |
 | `parts.tsx` | Small Discover pieces: section title, round play button, episode line, pager, search box. |
 | `sections.tsx` | Each Discover section: shortcuts, editor picks, For You, the chart, and more. |
+| `RecFeedback.tsx` | "Not liking these?" under For You, its form, and the category tiles the interests page shares. |
+| `InterestsGate.tsx` | Opens the interests page once on the first open after sign-in, when no categories are saved yet. |
 
 ### `ui/search/` — Search for shows and episodes
 
@@ -453,6 +461,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 |---|---|
 | `SearchOverlay.tsx` | Opens search on top of the tabs, in place, not as a new page. |
 | `SearchPage.tsx` | Search box, your shows first, then catalogue results; recent searches and categories. |
+| `TellEditors.tsx` | "Can't find it? Tell us": under an empty search, sends the search words to the editors. |
 
 ### `ui/me/` — The Me tab and your own lists
 
@@ -475,6 +484,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `AudioRows.tsx` | Voice boost, "Play with other apps" with its warning, and the audio-output button and row. |
 | `NotifyShows.tsx` | One "new episodes" alert switch for each show you follow. |
 | `rows.tsx` | Settings rows: icon, label, optional value, then an arrow or switch. |
+| `OftenListenedSwitch.tsx` | Privacy switch: hide the "Often listened" row on your profile from other people. |
 
 ### `ui/auth/` — Sign-in and sign-up pages
 

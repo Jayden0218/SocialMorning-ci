@@ -630,5 +630,13 @@
   "to": "/notifications/hosts | {n.showTitle} | /show/[feedUrl]",
   "why": "M21 US10 (T108): the From hosts cards moved with their list to the new From hosts page; same card, same show link",
   "task": "M21 T108"
+ },
+ {
+  "surface": "ChapterList",
+  "name": "↗",
+  "destination": "Linking.openURL",
+  "to": "ChapterList | ↗ | openLink",
+  "why": "M22 US7 (T044, FR-025): a chapter's web link opens in the in-app browser through src/ui/kit/openLink.ts; same button, same link",
+  "task": "M22 T044"
  }
 ]

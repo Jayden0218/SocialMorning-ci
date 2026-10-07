@@ -30,6 +30,9 @@ import { Icon } from '@/ui/kit/Icon';
 export type ClipComposerProps = {
   episode: PlayableEpisode;
   initialPositionMs: number;
+  /** M22 US9: lines picked in the transcript — the composer opens on this range with this caption. */
+  initialRange?: { startMs: number; endMs: number };
+  initialCaption?: string;
   onSave: (s: ComposerState) => void;
   saving: boolean;
 };
@@ -52,7 +55,10 @@ export function ClipComposer(props: ClipComposerProps): React.ReactElement {
   const player = usePlayer();
   const state = usePlayerState();
   const position: number = 'positionMs' in state && typeof state.positionMs === 'number' ? state.positionMs : props.initialPositionMs;
-  const [s, setS] = useState<ComposerState>(() => openComposer(props.episode.id, props.initialPositionMs, props.episode.durationMs));
+  const [s, setS] = useState<ComposerState>(() => openComposer(props.episode.id, props.initialPositionMs, props.episode.durationMs, {
+    ...(props.initialRange ? { range: props.initialRange } : {}),
+    ...(props.initialCaption ? { caption: props.initialCaption } : {}),
+  }));
   const length = Math.round((s.range.endMs - s.range.startMs) / 1000);
   const lo = Math.min(s.range.startMs, s.range.endMs);
   const hi = Math.max(s.range.startMs, s.range.endMs);

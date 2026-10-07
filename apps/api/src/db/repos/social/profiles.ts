@@ -29,7 +29,46 @@ export type ProfileOut = {
   likesCount?: number;
   /** M21 US8: their subscriptions page answers 403 `private`; the app shows that state instead of a link. */
   privateSubscriptions: boolean;
+  /** M22 US17 item 6: the ≤ 6 shows listened to most in the last 90 days; empty when hidden (or private) and not yourself. */
+  oftenListened: OftenListenedShow[];
+  /** M22 US17: only on your own profile — whether others see the row (Privacy switch). */
+  hideOftenListened?: boolean;
 };
+
+export type OftenListenedShow = { feedUrl: string; title: string; imageUrl: string | null; listenedMs: number };
+
+export const OFTEN_LISTENED_DAYS = 90;
+export const OFTEN_LISTENED_MAX = 6;
+
+/** M22 US17 item 6: the shows `id` listened to most in the last 90 days (by listened time), with title and artwork. */
+export async function oftenListened(db: Db, id: string, today: string): Promise<OftenListenedShow[]> {
+  const cutoff = new Date(new Date(`${today}T00:00:00Z`).getTime() - (OFTEN_LISTENED_DAYS - 1) * 86_400_000).toISOString().slice(0, 10);
+  const rows = (await listenedRowsFor(db, id)).filter((r) => r.day >= cutoff);
+  const top = stats(rows, today, OFTEN_LISTENED_MAX).all.topShows;
+  if (top.length === 0) return [];
+  const meta = await db.query<{ feed_url: string; title: string | null; image_url: string | null }>(
+    `SELECT u.feed_url,
+            coalesce(o.title, (SELECT e.show_title FROM episodes e WHERE e.feed_url = u.feed_url AND e.show_title IS NOT NULL ORDER BY e.published_at DESC NULLS LAST LIMIT 1)) AS title,
+            coalesce(o.cover_url, (SELECT e.image_url FROM episodes e WHERE e.feed_url = u.feed_url AND e.image_url IS NOT NULL ORDER BY e.published_at DESC NULLS LAST LIMIT 1)) AS image_url
+       FROM unnest($1::text[]) AS u(feed_url)
+       LEFT JOIN show_overrides o ON o.feed_url = u.feed_url
+      WHERE NOT EXISTS (SELECT 1 FROM hidden_feeds h WHERE h.feed_url = u.feed_url)`,
+    [top.map((t) => t.feedUrl)]);
+  const byUrl = new Map(meta.map((m) => [m.feed_url, m]));
+  const out: OftenListenedShow[] = [];
+  for (const t of top) {
+    const m = byUrl.get(t.feedUrl);
+    if (!m) continue; // hidden by moderation
+    const title = m.title ?? t.showTitle;
+    if (!title) continue;
+    out.push({ feedUrl: t.feedUrl, title, imageUrl: m.image_url, listenedMs: t.listenedMs });
+  }
+  return out;
+}
+
+export async function setHideOftenListened(db: Db, id: string, value: boolean): Promise<void> {
+  await db.query('UPDATE listeners SET hide_often_listened = $2 WHERE id = $1', [id, value]);
+}
 
 /**
  * M21 US8 (FR-074): the shows a listener hosts, by the same rule the show page uses for its hosts
@@ -77,12 +116,12 @@ export async function subscriptionsVisible(db: Db, id: string, viewerId: string 
 
 export async function profile(db: Db, id: string, viewerId: string | undefined, today: string): Promise<ProfileOut | undefined> {
   // M21 US8 (G-M21-10): birthday and industry are never selected here — this answer goes to anyone.
-  const [l] = await db.query<{ id: string; display_name: string; private_listening: boolean; suspended_at: string | null; country: string | null; avatar_url: string | null; bio: string | null; likes_public: boolean; private_subscriptions: boolean }>('SELECT id, display_name, private_listening, suspended_at, country, avatar_url, bio, likes_public, private_subscriptions FROM listeners WHERE id = $1', [id]);
+  const [l] = await db.query<{ id: string; display_name: string; private_listening: boolean; suspended_at: string | null; country: string | null; avatar_url: string | null; bio: string | null; likes_public: boolean; private_subscriptions: boolean; hide_often_listened: boolean }>('SELECT id, display_name, private_listening, suspended_at, country, avatar_url, bio, likes_public, private_subscriptions, hide_often_listened FROM listeners WHERE id = $1', [id]);
   if (!l) return undefined;
   // M6 (FR-008, FR-015): to someone they blocked, a listener looks private and quiet — name only, no hint why. A suspended account shows as suspended.
   // M19 US1: photo and bio travel with the name; age range and gender never do (FR-003).
   const look = { ...(l.avatar_url ? { avatarUrl: l.avatar_url } : {}), ...(l.bio ? { bio: l.bio } : {}) };
-  const bare = { id: l.id, displayName: l.display_name, ...look, followers: 0, following: 0, isFollowing: false, stats: null, recent: [], hostOf: [], privateSubscriptions: true };
+  const bare = { id: l.id, displayName: l.display_name, ...look, followers: 0, following: 0, isFollowing: false, stats: null, recent: [], hostOf: [], privateSubscriptions: true, oftenListened: [] };
   if (l.suspended_at) return { ...bare, suspended: true };
   if (viewerId && viewerId !== id && (await isBlockedBy(db, id, viewerId))) return bare;
   const blockedByMe = viewerId && viewerId !== id ? await isBlockedBy(db, viewerId, id) : false;
@@ -100,7 +139,11 @@ export async function profile(db: Db, id: string, viewerId: string | undefined, 
   }
   const m21 = { hostOf: await hostOf(db, id), ...(likesCount !== undefined ? { likesCount } : {}), privateSubscriptions: viewerId === id ? false : l.private_subscriptions };
   const deco = await stickerView(db, id, viewerId); // M21 US9
-  return { ...deco, id: l.id, displayName: l.display_name, ...look, followers: c.followers, following: c.following, isFollowing: following, stats: s, recent, ...m21, ...(blockedByMe ? { blockedByMe: true } : {}), ...(l.country ? { country: l.country.trim() } : {}) };
+  // M22 US17 item 6: hidden by the switch, or by private listening, from everyone but themselves.
+  const self = viewerId === id;
+  const often = self || (!l.hide_often_listened && !l.private_listening) ? await oftenListened(db, id, today) : [];
+  const m22 = { oftenListened: often, ...(self ? { hideOftenListened: l.hide_often_listened } : {}) };
+  return { ...deco, ...m22, id: l.id, displayName: l.display_name, ...look, followers: c.followers, following: c.following, isFollowing: following, stats: s, recent, ...m21, ...(blockedByMe ? { blockedByMe: true } : {}), ...(l.country ? { country: l.country.trim() } : {}) };
 }
 
 export async function setPrivateListening(db: Db, id: string, value: boolean): Promise<void> {

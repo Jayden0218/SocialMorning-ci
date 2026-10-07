@@ -112,3 +112,27 @@ describe('show notes (M12)', () => {
     expect(parts.filter((p) => p.atMs !== undefined).map((p) => p.text)).toEqual(['00:39', '12:00']);
   });
 });
+
+/** M22 US7 (FR-023): pictures in show notes. The break that turns it red: drop `markImages` from `noteParts`. */
+describe('show-note images (M22)', () => {
+  it('an http(s) <img> becomes an image part, in place, with its alt', () => {
+    const parts = noteParts('<p>Before</p><img src="https://cdn.example.com/a.jpg" alt="A map"><p>After</p>');
+    const img = parts.find((p) => p.image !== undefined);
+    expect(img).toEqual({ text: 'A map', image: 'https://cdn.example.com/a.jpg' });
+    const order = parts.map((p) => p.image ?? p.text.trim()).filter((t) => t !== '');
+    expect(order).toEqual(['Before', 'https://cdn.example.com/a.jpg', 'After']);
+  });
+
+  it('three images stay three, in order; data: and relative sources are dropped', () => {
+    const html = '<img src="https://x.com/1.png"><img src=\'http://x.com/2.png\'><img src="data:image/png;base64,AAA"><img src="/3.png"><img src="https://x.com/4.png?a=1&amp;b=2">';
+    expect(noteParts(html).filter((p) => p.image).map((p) => p.image)).toEqual(['https://x.com/1.png', 'http://x.com/2.png', 'https://x.com/4.png?a=1&b=2']);
+  });
+
+  it('a link that only wraps a picture is the picture; a link with words keeps them and the picture follows', () => {
+    const only = noteParts('<a href="https://shop.example.com"><img src="https://x.com/banner.jpg"></a>');
+    expect(only).toEqual([{ text: '', image: 'https://x.com/banner.jpg' }]);
+    const both = noteParts('<a href="https://shop.example.com">Shop <img src="https://x.com/b.jpg"></a>');
+    expect(both.find((p) => p.href)?.text).toBe('Shop');
+    expect(both.some((p) => p.image === 'https://x.com/b.jpg')).toBe(true);
+  });
+});

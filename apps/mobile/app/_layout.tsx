@@ -32,6 +32,7 @@ import { GluestackUIProvider } from '@/ui/lib/gluestack-ui-provider';
 import { RateSheet } from '@/ui/shell/RateSheet';
 import { QueueSheetHost } from '@/ui/queue/QueueSheetHost';
 import { consentGiven } from '@/ui/shell/consent';
+import { InterestsGate } from '@/ui/discover/InterestsGate';
 
 // Owner, 2026-09-27: no warning bar over the app in Debug builds. Warnings still print
 // in the Metro terminal; Release builds never show the bar.
@@ -215,6 +216,8 @@ function RootStack(): React.ReactElement {
         {rootBarHidden(leaving) ? null : <MiniPlayer />}
         {/* Owner, 2026-10-04: "Enjoying SocialNet?" — on the tabs, after the terms are agreed. */}
         <RateSheet ready={onTabs && consentGiven(stores.settings, stores.auth.get() !== undefined)} />
+        {/* M22 US5: the first-open interests page, once, after sign-in. */}
+        <InterestsGate onTabs={onTabs && consentGiven(stores.settings, stores.auth.get() !== undefined)} />
       </SafeAreaView>
   );
 }

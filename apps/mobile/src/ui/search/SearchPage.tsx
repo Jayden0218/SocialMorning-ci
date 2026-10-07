@@ -73,6 +73,7 @@ import { useExploreApi, type RichEpisode, type SearchSince } from '@/discover/ex
 import { PlayButton, StatsLine } from '@/ui/discover/parts';
 import { Artwork } from '@/ui/kit/Artwork';
 import { EmptyState } from '@/ui/kit/EmptyState';
+import { TellEditors } from './TellEditors';
 import { hit, size } from '@/design';
 import { useColours } from '@/ui/kit/useColours';
 import { Icon } from '@/ui/kit/Icon';
@@ -495,6 +496,8 @@ export function SearchPage(props: SearchPageProps): React.ReactElement {
                 {catalogue.kind === 'error' ? <Text className="my-2 text-accent bg-surface p-2 rounded-row">{catalogue.message}</Text> : null}
                 {catalogue.kind === 'ok' && catalogue.result.episodeSearch === 'unavailable' ? <Text className="my-2 text-accent bg-surface p-2 rounded-row">Episode search is unavailable right now — shows only.</Text> : null}
                 {nothing ? <EmptyState surface="search" page /> : null}
+                {/* M22 US17 item 3: send the words to the editors. */}
+                {nothing ? <TellEditors key={trimmed} q={trimmed} /> : null}
               </>
             ) : null}
 

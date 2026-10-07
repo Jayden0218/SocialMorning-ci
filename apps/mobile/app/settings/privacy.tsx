@@ -33,6 +33,7 @@ import { Avatar } from '@/ui/kit/Avatar';
 import { privacySwitchesOf, useProfileApi, type PrivacySwitches } from '@/social/profile-api';
 import { useCommentExtrasApi, type MutedListener } from '@/social/comment-extras-api';
 import { MutedThreads } from '@/ui/social/MutedThreads';
+import { OftenListenedSwitch } from '@/ui/settings/OftenListenedSwitch';
 
 const TAP = { minHeight: hit.min };
 
@@ -169,6 +170,8 @@ export default function PrivacySettings(): React.ReactElement {
         <>
           <Text className="text-text text-base font-display-semibold" accessibilityRole="header">What others see</Text>
           <WhatOthersSee />
+          {/* M22 US17 item 6 */}
+          <OftenListenedSwitch />
           <Text className="text-text text-base font-display-semibold" accessibilityRole="header">Muted users</Text>
           <MutedUsers />
           {/* M22 US3 (FR-011): the notice threads muted from a notice's ⋯. */}

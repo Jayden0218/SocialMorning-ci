@@ -25,6 +25,7 @@ here or a line does not match its file.
 | File | What it does |
 |---|---|
 | `internal.ts` | Internal routes the scheduled job calls to rebuild data in small steps. |
+| `lists.ts` | Shared show lists: a listener picks some of their shows, gives them a title, and shares one link. |
 
 ### `routes/account/` — sign-in, your account, notifications, wallet, feedback
 
@@ -40,6 +41,7 @@ here or a line does not match its file.
 | `purchases-google.ts` | Purchase route: the phone sends a Google Play purchase; the server checks it with Google, then grants it. |
 | `stickers.ts` | Sticker placement routes: read my stickers on my profile header, or replace them all. |
 | `queue.ts` | Queue sync routes: read the account's play queue, and replace it from the version the phone last saw. |
+| `interests.ts` | Interests routes: read and save my first-open categories, and send "Not liking these?" answers. |
 
 ### `routes/social/` — comments, reactions, clips, follows, profiles, voice posts, sharing
 
@@ -91,11 +93,18 @@ here or a line does not match its file.
 |---|---|
 | `categories.ts` | Category routes: list genres and show each genre's top shows. |
 | `discover.ts` | Discover route: the public Discover page, the three charts, the treasure hunt, the plaza and daily picks. |
-| `foryou.ts` | For You route: the personal recommendation list, signed-in only. |
+| `foryou.ts` | For You route: the personal recommendation list — signed in, or signed out with picked categories. |
 | `issues.ts` | Routes for past daily picks and curated issues. |
 | `launch.ts` | Public launch-screen routes: live promotions and anonymous view or tap counts. |
 | `nextup.ts` | Route for an episode's "Next up" suggestions. |
 | `search.ts` | Search routes: shows and episodes from Apple, and people by name, rate-limited. |
+| `search-requests.ts` | "Can't find it? Tell us": a listener sends search words the catalogue did not answer. |
+
+### `routes/mod/` — owner-only lists added to the /mod pages
+
+| File | What it does |
+|---|---|
+| `search-requests.ts` | The owner's list of searches listeners asked the editors to add (HTML under /mod, JSON under /v1/mod). |
 
 ### `routes/creators/` — show owners in the app: claims, extras, hosted feeds
 
@@ -170,6 +179,7 @@ here or a line does not match its file.
 | `purchases.ts` | Grants what a store purchase bought, once, and takes it back when the store reports a refund. |
 | `queue.ts` | The listener's synced play queue: read it, and replace it only from the version the phone last saw. |
 | `stickers.ts` | Stickers placed on a profile header: read them, replace them all, and what a viewer may see. |
+| `interests.ts` | A listener's chosen categories (first-open interests) and their "Not liking these?" answers. |
 
 ### `db/repos/social/` — comments, clips, follows, profiles, activity
 
@@ -224,7 +234,7 @@ here or a line does not match its file.
 | `discover-extras.ts` | Extra Discover parts: pick counts, followed shows, new arrivals, what people said, collections. |
 | `discover-settings.ts` | Applies the owner's Discover settings: section order, hidden items, pinned and featured shows. |
 | `discover.ts` | Builds the Discover page: daily picks, talked-about episodes and the chart, cached hourly. |
-| `foryou.ts` | Builds the personal For You list from seven sources, scored and mixed. |
+| `foryou.ts` | Builds the personal For You list from eight sources, scored and mixed. |
 | `nextup.ts` | Builds "Next up" suggestions for an episode from four sources. |
 | `promotions.ts` | Launch-screen promotions: store, schedule, count views and taps as totals only. |
 | `similarity.ts` | Computes which shows are similar, ignoring private listeners and storing no listener ids. |

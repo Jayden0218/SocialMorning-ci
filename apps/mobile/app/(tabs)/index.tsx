@@ -45,6 +45,7 @@ import { Loader } from "@/ui/kit/Loader";
 import { usePullRefresh } from "@/ui/kit/PullRefresh";
 import { useDiscover } from "@/discover/useDiscover";
 import { useForYou } from "@/recs/useForYou";
+import { RecFeedbackLink } from "@/ui/discover/RecFeedback";
 import { useFirstPaint } from "@/discover/first-paint";
 import { useRecOutbox } from "@/recs/useRecOutbox";
 import { useSafety } from "@/safety/context";
@@ -256,6 +257,8 @@ export default function DiscoverScreen(): React.ReactElement {
             {...(listener ? { onMore: setMoreFor } : {})}
             {...(undo ? { notice: <HiddenNotice kind={undo.kind} onUndo={undoHide} /> } : {})}
           />
+          {/* M22 US5 (FR-019): "Not liking these?" under For You. */}
+          {listener && model.forYou.length > 0 ? <RecFeedbackLink /> : null}
           <ShowTiles title="Shows picked for you" shows={pickedShows} onShow={showPage} />
           </>
         );

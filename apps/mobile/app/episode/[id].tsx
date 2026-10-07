@@ -43,6 +43,7 @@ import { Icon } from '@/ui/kit/Icon';
 import { usePlayer, usePlayerState } from '@/playback/store';
 import { ago, minutesLabel, mmss, noteParts } from '@/ui/kit/format';
 import { useStores, useSubscriptionSync, useToast } from '@/ui/shell/providers';
+import * as Clipboard from 'expo-clipboard';
 import { isFavourite, toggleFavourite } from '@/me/favourites';
 import { Artwork } from '@/ui/kit/Artwork';
 import { Card } from '@/ui/kit/Card';
@@ -103,6 +104,8 @@ export default function EpisodeScreen(): React.ReactElement {
   const [subscribed, setSubscribed] = useState(() => episode !== undefined && stores.subscriptions.has(episode.feedUrl));
   const scroll = useRef<React.ComponentRef<typeof ScrollView>>(null);
   const toast = useToast();
+  // M22 US17 item 7: the title to the clipboard, with a toast.
+  const copyTitle = (title: string) => { void Clipboard.setStringAsync(title).then(() => toast('Title copied.')).catch(() => undefined); };
   // Play next, download and save-a-moment live in the ⋯ sheet, so the page itself is
   // only what the reference shows (owner, 2026-09-27).
   const [more, setMore] = useState(false);
@@ -294,7 +297,18 @@ export default function EpisodeScreen(): React.ReactElement {
               <Icon name="chevron-forward" size={14} color={c.accent} />
             </Pressable>
           )}
-          <Text className="text-text text-hero font-display text-center" numberOfLines={4} accessibilityRole="header">{episode.title}</Text>
+          {/* M22 US17 item 7: long-press the title to copy it. */}
+          <Text
+            className="text-text text-hero font-display text-center"
+            numberOfLines={4}
+            accessibilityRole="header"
+            accessibilityHint="Long-press to copy the title"
+            accessibilityActions={[{ name: 'longpress', label: 'Copy title' }]}
+            onAccessibilityAction={(e) => { if (e.nativeEvent.actionName === 'longpress') copyTitle(episode.title); }}
+            onLongPress={() => copyTitle(episode.title)}
+          >
+            {episode.title}
+          </Text>
           {meta !== '' || resume !== '' ? (
             <Text className="text-muted text-meta text-center mt-gap" numberOfLines={2}>
               {meta}

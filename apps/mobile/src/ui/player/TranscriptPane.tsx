@@ -20,6 +20,12 @@
  *     picking, when sharing is offered) and "Report a mistake" → `TranscriptReportSheet` (./TranscriptExtras), where
  *     the listener types the right words; it reaches the show's host in the Studio.
  *     Without `onReport` a long-press starts picking at once, as before.
+ *
+ * M22 US9 (FR-028, FR-029): with `selectable` (the full transcript page only) a long-press starts
+ * a selection and taps move its nearer end, so it is always one unbroken run of lines
+ * (`extendRange`, src/graph/transcript-select). The bar offers Clip (`onClip`; disabled with the
+ * reason when the run is over the clip limit or has no times), Copy (`onCopy`), Share as image,
+ * and — with one line picked — Report a mistake.
  */
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { currentLine, type Transcript, type TranscriptLine } from '@socialmorning/player-core';
@@ -30,6 +36,7 @@ import { Box } from '@/ui/lib/box';
 import { mmss } from '@/ui/kit/format';
 import { hit, tabular } from '@/design';
 import { pickableLines, QUOTE_CARD_MAX, quoteOf, toggleLine, type Quote } from '@/graph/quote';
+import { clipCheck, extendRange, rangeLines, type LineRange } from '@/graph/transcript-select';
 
 const BOX = 'w-full max-h-[260px] border-hairline border-separator rounded-lg p-2';
 const BOX_FILL = 'w-full flex-1';
@@ -55,19 +62,27 @@ export function TranscriptPane(props: {
   /** M21 US2: fill the page (the full-screen transcript) instead of a 260 pt box. */
   fill?: boolean;
   durationMs?: number;
+  /** M22 US9: contiguous selection with Clip / Copy / Share as image (the full transcript page). */
+  selectable?: boolean;
+  onClip?: (q: Quote) => void;
+  onCopy?: (text: string) => void;
 }): React.ReactElement {
   const [picked, setPicked] = useState<number[] | undefined>(undefined);
+  const [run, setRun] = useState<LineRange | undefined>(undefined);
   const [menu, setMenu] = useState<number | undefined>(undefined);
   const [away, setAway] = useState(false);
   const scroller = useRef<ComponentRef<typeof ScrollView>>(null);
   const offsets = useRef<number[]>([]);
   const { lines, timed } = pickableLines(props.transcript);
-  const picking = picked !== undefined;
-  const quote = picking ? quoteOf(lines, picked, timed, props.durationMs) : undefined;
+  const selecting = props.selectable === true && run !== undefined;
+  const picking = picked !== undefined || selecting;
+  const chosen = selecting ? rangeLines(run) : picked;
+  const quote = chosen !== undefined ? quoteOf(lines, chosen, timed, props.durationMs) : undefined;
   const current = timed ? currentLine(lines, props.positionMs) : undefined;
   const box = props.fill ? BOX_FILL : BOX;
   const longPress = (i: number) => {
-    if (props.onReport && timed) setMenu(i);
+    if (props.selectable) setRun([i, i]);
+    else if (props.onReport && timed) setMenu(i);
     else if (props.onShareImage) setPicked([i]);
   };
   const followNow = (animated: boolean) => {
@@ -77,7 +92,7 @@ export function TranscriptPane(props: {
   // Follow the audio while the listener has not scrolled away.
   useEffect(() => { if (!away && !picking) followNow(true); }, [current, away]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!timed && !props.onShareImage && !props.onReport) {
+  if (!timed && !props.onShareImage && !props.onReport && !props.selectable) {
     return (
       <ScrollView className={box} nestedScrollEnabled>
         <Text className="text-[14px] leading-[20px] text-text">{'text' in props.transcript ? props.transcript.text : ''}</Text>
@@ -89,15 +104,15 @@ export function TranscriptPane(props: {
       <ScrollView ref={scroller} className={box} nestedScrollEnabled onScrollBeginDrag={() => { if (timed) setAway(true); }}>
         <Box className="gap-1">
           {lines.map((l, i) => {
-            const on = picked?.includes(i) === true;
+            const on = chosen?.includes(i) === true;
             return (
               <Pressable key={`${l.startMs}-${i}`} testID={`transcript-line-${i}`}
                 onLayout={(e) => { offsets.current[i] = e.nativeEvent.layout.y; }}
-                onPress={() => { if (picking) setPicked(toggleLine(picked, i)); else if (timed) props.onSeek(l.startMs); }}
+                onPress={() => { if (selecting) setRun(extendRange(run, i)); else if (picked !== undefined) setPicked(toggleLine(picked, i)); else if (timed) props.onSeek(l.startMs); }}
                 onLongPress={picking ? undefined : () => longPress(i)}
                 accessibilityRole="button"
                 accessibilityState={picking ? { selected: on } : undefined}
-                accessibilityHint={picking ? 'Adds or removes this line' : props.onReport && timed ? 'Long-press to share or report this line' : props.onShareImage ? 'Long-press to pick lines to share' : undefined}
+                accessibilityHint={selecting ? 'Extends or shrinks the selected lines to here' : picking ? 'Adds or removes this line' : props.selectable ? 'Long-press to select lines' : props.onReport && timed ? 'Long-press to share or report this line' : props.onShareImage ? 'Long-press to pick lines to share' : undefined}
                 className={`flex-row gap-2 py-[3px] px-1 rounded-sm ${on || menu === i ? 'bg-accentTint' : i === current ? 'bg-surface' : ''}`}>
                 {timed ? <Text className="text-muted w-[52px] text-xs pt-0.5" style={tabular}>{mmss(l.startMs)}</Text> : null}
                 <Text className={`text-[14px] leading-[20px] text-text flex-1 ${i === current || on ? 'font-semibold' : ''}`}>
@@ -129,7 +144,18 @@ export function TranscriptPane(props: {
           </Pressable>
         </Box>
       ) : null}
-      {picking ? (
+      {selecting ? (
+        <SelectBar
+          quote={quote}
+          count={chosen?.length ?? 0}
+          onCancel={() => setRun(undefined)}
+          {...(props.onClip ? { onClip: (q: Quote) => { props.onClip?.(q); setRun(undefined); } } : {})}
+          {...(props.onCopy ? { onCopy: (t: string) => { props.onCopy?.(t); setRun(undefined); } } : {})}
+          {...(props.onShareImage ? { onShareImage: (q: Quote) => { props.onShareImage?.(q); setRun(undefined); } } : {})}
+          {...(props.onReport && timed && run && run[0] === run[1] ? { onReport: () => { const l = lines[run[0]]; setRun(undefined); if (l) props.onReport?.(l); } } : {})}
+        />
+      ) : null}
+      {picking && !selecting ? (
         <Box className="flex-row items-center gap-2">
           <Text className="flex-1 text-xs text-muted">
             {quote === undefined ? 'Tap lines to pick them' : quote.tooLong ? `Too long for a picture — up to ${QUOTE_CARD_MAX} characters` : props.onShareVideo && timed && !quote.video ? 'Videos are 60 s or less' : `${quote.text.length} of ${QUOTE_CARD_MAX} characters`}
@@ -155,6 +181,55 @@ export function TranscriptPane(props: {
           </Pressable>
         </Box>
       ) : null}
+    </Box>
+  );
+}
+
+/** M22 US9: the bar under a contiguous selection — Clip, Copy, Share as image, Cancel (and Report for one line). */
+function SelectBar(props: {
+  quote: Quote | undefined;
+  count: number;
+  onCancel: () => void;
+  onClip?: (q: Quote) => void;
+  onCopy?: (text: string) => void;
+  onShareImage?: (q: Quote) => void;
+  onReport?: () => void;
+}): React.ReactElement {
+  const q = props.quote;
+  const clip = clipCheck(q);
+  const imageOk = q !== undefined && !q.tooLong;
+  const note = props.onClip && !clip.ok ? clip.reason
+    : q?.tooLong ? `Too long for a picture — up to ${QUOTE_CARD_MAX} characters`
+    : `${props.count} line${props.count === 1 ? '' : 's'} selected`;
+  const chip = (on: boolean) => `px-section justify-center rounded-pill border border-border ${on ? '' : 'opacity-50'}`;
+  return (
+    <Box className="gap-2">
+      <Text className="text-xs text-muted" accessibilityLiveRegion="polite">{note}</Text>
+      <Box className="flex-row items-center gap-2 flex-wrap">
+        <Pressable onPress={props.onCancel} accessibilityRole="button" accessibilityLabel="Cancel selecting lines" className={chip(true)} style={TAP}>
+          <Text className="text-sm font-semibold text-text">Cancel</Text>
+        </Pressable>
+        {props.onCopy ? (
+          <Pressable disabled={q === undefined} onPress={() => { if (q) props.onCopy?.(q.text); }} accessibilityRole="button" accessibilityLabel="Copy the selected lines" accessibilityState={{ disabled: q === undefined }} className={chip(q !== undefined)} style={TAP}>
+            <Text className="text-sm font-semibold text-text">Copy</Text>
+          </Pressable>
+        ) : null}
+        {props.onShareImage ? (
+          <Pressable disabled={!imageOk} onPress={() => { if (q && imageOk) props.onShareImage?.(q); }} accessibilityRole="button" accessibilityLabel="Share the selected lines as an image" accessibilityState={{ disabled: !imageOk }} className={chip(imageOk)} style={TAP}>
+            <Text className="text-sm font-semibold text-text">Share as image</Text>
+          </Pressable>
+        ) : null}
+        {props.onReport ? (
+          <Pressable onPress={props.onReport} accessibilityRole="button" accessibilityLabel="Report a mistake" className={chip(true)} style={TAP}>
+            <Text className="text-sm font-semibold text-text">Report</Text>
+          </Pressable>
+        ) : null}
+        {props.onClip ? (
+          <Pressable disabled={!clip.ok} onPress={() => { if (q && clip.ok) props.onClip?.(q); }} accessibilityRole="button" accessibilityLabel="Clip the selected lines" accessibilityHint={clip.ok ? undefined : clip.reason} accessibilityState={{ disabled: !clip.ok }} className={`px-section justify-center rounded-pill bg-primary ${clip.ok ? '' : 'opacity-50'}`} style={TAP}>
+            <Text className="text-sm font-bold text-onPrimary">Clip</Text>
+          </Pressable>
+        ) : null}
+      </Box>
     </Box>
   );
 }

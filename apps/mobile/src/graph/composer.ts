@@ -2,7 +2,7 @@
 /**
  * The clip composer's state (M4 US1, clarified 2026-09-21: two buttons while listening).
  * Pure: the screen feeds it the player's position; it owns the range and the caption.
- *   open(position, duration)      → proposeClip: the last 30 s
+ *   open(position, duration)      → proposeClip: the last 30 s (or, M22 US9, a given range + caption)
  *   startHere / endHere(position) → the current moment becomes that edge (validated)
  *   nudge(edge, ±5 s)             → moved when it still validates, else unchanged
  *   setCaption                    → ≤ 200 characters
@@ -25,8 +25,17 @@ const check = (s: ComposerState): ComposerState => {
   return c.ok ? rest : { ...rest, problem: c.reason };
 };
 
-export function openComposer(episodeId: string, positionMs: number, durationMs?: number): ComposerState {
-  return check({ episodeId, ...(durationMs !== undefined ? { durationMs } : {}), range: proposeClip(positionMs, durationMs), caption: '' });
+/**
+ * M22 US9 (research R8): with `opts.range` (lines picked in the transcript) the composer opens on
+ * that range instead of the last 30 s, and `opts.caption` (the lines' words) fills the caption.
+ * The range is validated like any other — over 10 minutes it opens with `problem: 'too_long'`.
+ */
+export function openComposer(episodeId: string, positionMs: number, durationMs?: number, opts: { range?: ClipRange; caption?: string } = {}): ComposerState {
+  return check({
+    episodeId, ...(durationMs !== undefined ? { durationMs } : {}),
+    range: opts.range ?? proposeClip(positionMs, durationMs),
+    caption: (opts.caption ?? '').slice(0, 200),
+  });
 }
 
 export function startHere(s: ComposerState, positionMs: number): ComposerState {

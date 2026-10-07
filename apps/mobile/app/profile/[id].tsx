@@ -67,6 +67,7 @@ import { PlaylistCard } from '@/ui/me/PlaylistCard';
 import { useCommentExtrasApi } from '@/social/comment-extras-api';
 import { StickerLayer } from '@/ui/me/StickerLayer';
 import { theirStickers } from '@/me/my-stickers';
+import { OftenListened } from '@/ui/social/OftenListened';
 import type { ProfileStickers } from '@/me/listening-api';
 
 /** The eyebrow on the yellow card: spaced capitals (as `Eyebrow`, which only has muted/accent). */
@@ -272,6 +273,9 @@ export default function ProfileScreen(): React.ReactElement {
           </ScrollView>
         </Box>
       ) : null}
+
+      {/* M22 US17 item 6: the shows they listened to most in the last 90 days. */}
+      <OftenListened listenerId={profile.id} name={profile.displayName} own={own} />
 
       {/* M6 (FR-019): the stats surface is the numbers, not the activity list below it.
           M17: a yellow card, the eyebrow and the total on the left, the two small facts right. */}

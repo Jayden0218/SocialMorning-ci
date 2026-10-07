@@ -1,4 +1,4 @@
-// Builds the personal For You list from seven sources, scored and mixed.
+// Builds the personal For You list from eight sources, scored and mixed.
 /**
  * M8 — the For You list (US2; FR-006..FR-023).
  *
@@ -30,6 +30,8 @@ import { discoverBody } from './discover.ts';
 import { latestEpisodes, topShows } from '../../../catalog/apple.ts';
 import { registerCard } from '../../../catalog/feed.ts';
 import type { EpisodeCard } from '../../../catalog/apple.ts';
+import { genreName } from '../../../catalog/genres.ts';
+import { getInterests, interestsStamp, playCount } from '../account/interests.ts';
 
 export const FOR_YOU_TTL = 30 * 60_000;
 /** How far back the social channel looks. */
@@ -40,6 +42,17 @@ export const TOP_GENRES = 2;
 export const FATIGUE_WINDOW_DAYS = 14;
 /** The chart is fetched once an hour for everyone, not once per listener. */
 export const CHART_TTL = 60 * 60_000;
+
+/**
+ * M22 US5 (research R5, guard G-M22-5): the "interests" channel — the categories picked on
+ * first open. Its weight is added to the score of every candidate in a picked category and
+ * fades as the listener's own listening grows: 1.0 at 0 plays, 0 at INTERESTS_FADE_PLAYS.
+ * On the wire its rows are channel `genre` (the phone and rec_events know seven channels).
+ */
+export const W_INTERESTS = 1.0;
+export const INTERESTS_FADE_PLAYS = 30;
+export const INTERESTS_CAP = 40;
+export const interestWeight = (plays: number): number => Math.max(0, 1 - plays / INTERESTS_FADE_PLAYS);
 
 export type ForYouItem = {
   episode: EpisodeCard & { id: string };
@@ -87,7 +100,18 @@ export type Context = {
   neighbours: Map<string, readonly Neighbour[]>;
   /** M19 US2: what the listener turned down. Optional so a hand-built test context still compiles. */
   dismissed?: Dismissed;
+  /** M22 US5: the categories picked on first open, and how much they still count (0–1). */
+  interests?: number[];
+  interestWeight?: number;
 };
+
+/** M22 US5: a signed-out listener's context — nothing but the categories they picked on the phone. */
+export function anonContext(interests: readonly number[]): Context {
+  return {
+    listenerId: '', subscribed: new Set(), liked: new Set(), finished: new Set(), blocked: new Set(), hidden: new Set(),
+    follows: [], genres: [], fatigue: new Map(), neighbours: new Map(), interests: [...interests], interestWeight: 1,
+  };
+}
 
 export async function contextFor(db: Db, listenerId: string): Promise<Context> {
   const [subs, fin, follows, genres, fatigue] = await Promise.all([
@@ -136,10 +160,12 @@ export async function contextFor(db: Db, listenerId: string): Promise<Context> {
     fatigue: new Map(fatigue.map((r) => [r.episode_id, Number(r.imps)])),
     neighbours: await neighboursOf(db, [...liked]),
     dismissed: await dismissedFor(db, listenerId),
+    interests: (await getInterests(db, listenerId)).genreIds,
+    interestWeight: interestWeight(await playCount(db, listenerId)),
   };
 }
 
-type Raw = { row: Row; channel: Channel; socialCount?: number; neighbourOf?: string };
+type Raw = { row: Row; channel: Channel; socialCount?: number; neighbourOf?: string; interest?: true };
 
 async function subNew(db: Db, ctx: Context): Promise<Raw[]> {
   if (ctx.subscribed.size === 0) return [];
@@ -182,6 +208,18 @@ async function byGenre(db: Db, ctx: Context): Promise<Raw[]> {
     `SELECT ${EPISODE_COLS} FROM episodes WHERE genre_id = ANY($1::int[])
      ORDER BY published_at DESC NULLS LAST LIMIT ${CHANNEL_CAP.genre}`, [ctx.genres]);
   return rows.map((row) => ({ row, channel: 'genre' as const }));
+}
+
+/** M22 US5: the newest episode of each show in a picked category (one per show, so the list can hold several). */
+async function byInterests(db: Db, ctx: Context): Promise<Raw[]> {
+  const picked = ctx.interests ?? [];
+  if (picked.length === 0 || (ctx.interestWeight ?? 0) <= 0) return [];
+  const rows = await db.query<Row>(
+    `SELECT ${EPISODE_COLS} FROM (
+       SELECT DISTINCT ON (feed_url) ${EPISODE_COLS} FROM episodes WHERE genre_id = ANY($1::int[])
+       ORDER BY feed_url, published_at DESC NULLS LAST) x
+     ORDER BY published_at DESC NULLS LAST LIMIT ${INTERESTS_CAP}`, [picked]);
+  return rows.map((row) => ({ row, channel: 'genre' as const, interest: true as const }));
 }
 
 /**
@@ -239,6 +277,7 @@ export async function buildForYou(
   if (raw.length - cfBefore < MIN_USEFUL_CANDIDATES) raw.length = cfBefore;
   await run('social', () => social(db, ctx));
   await run('genre', () => byGenre(db, ctx));
+  await run('interests', () => byInterests(db, ctx));
 
   try {
     const d = await discover();
@@ -281,7 +320,7 @@ export async function buildForYou(
       return { raw: r, candidate };
     })
     .filter((x) => !isFatigued(x.candidate))
-    .map((x) => ({ raw: x.raw, candidate: x.candidate, score: scoreCandidate(x.candidate, now) }));
+    .map((x) => ({ raw: x.raw, candidate: x.candidate, score: scoreCandidate(x.candidate, now) + interestBonus(ctx, x.raw.row.genre_id) }));
 
   const ordered = rerank(scored.map(({ candidate, score }) => ({ candidate, score })), ctx.neighbours, { size: LIST_SIZE });
   const byId = new Map(scored.map((x) => [x.candidate.episodeId, x.raw]));
@@ -292,10 +331,11 @@ export async function buildForYou(
     const r = byId.get(candidate.episodeId)!;
     const variant = turn.get(candidate.channel) ?? 0;
     turn.set(candidate.channel, variant + 1);
+    const picked = r.interest === true && r.row.genre_id !== null ? genreName(r.row.genre_id) : undefined;
     return {
       episode: toCardRow(r.row),
       channel: candidate.channel,
-      reason: reasonFor(candidate.channel, {
+      reason: picked !== undefined ? `Because you picked ${picked}` : reasonFor(candidate.channel, {
         showTitle: r.row.show_title ?? '',
         ...(r.neighbourOf === undefined ? {} : { neighbourOf: r.neighbourOf }),
         ...(r.socialCount === undefined ? {} : { socialCount: r.socialCount }),
@@ -305,6 +345,12 @@ export async function buildForYou(
     };
   });
   return { items, warnings };
+}
+
+/** M22 US5: what a picked category adds to a candidate's score (0 when none or faded). */
+function interestBonus(ctx: Context, genreId: number | null): number {
+  if (genreId === null || !(ctx.interests ?? []).includes(genreId)) return 0;
+  return W_INTERESTS * (ctx.interestWeight ?? 0);
 }
 
 /** A card that came from Discover, in the row shape the rest of this file uses. */
@@ -326,7 +372,9 @@ export async function forYou(
   const stamp = await safetyStamp(db, listenerId);
   // M19 US2: a "Not interested" (or a restore) is a new key too, so the list refills at once.
   const dstamp = await dismissalStamp(db, listenerId);
-  const r = await cached<ForYouBody>(db, `foryou:${listenerId}:${stamp}:${dstamp}`, FOR_YOU_TTL, async () => {
+  // M22 US5 (FR-019): new interests (or a "Not liking these?" answer) refill the list at once.
+  const istamp = await interestsStamp(db, listenerId);
+  const r = await cached<ForYouBody>(db, `foryou:${listenerId}:${stamp}:${dstamp}:${istamp}`, FOR_YOU_TTL, async () => {
     const ctx = await contextFor(db, listenerId);
     const { items, warnings } = await buildForYou(
       db, ctx,
@@ -344,5 +392,29 @@ export async function forYou(
   const dismissed = await dismissedFor(db, listenerId);
   const off = (i: ForYouItem) => hidden.has(i.episode.feedUrl) || isDismissed(dismissed, i.episode.id, i.episode.feedUrl);
   const body = r.body.items.some(off) ? { ...r.body, items: r.body.items.filter((i) => !off(i)) } : r.body;
+  return { body, stale: r.stale };
+}
+
+/**
+ * M22 US5: the signed-out list, seeded only by the categories picked on the phone
+ * (`GET /v1/for-you?interests=1303,1487`). Cached per set of categories, the same for everyone.
+ */
+export async function forYouAnon(
+  db: Db, f: typeof fetch, picks: readonly PickIn[], today: string, interests: readonly number[],
+  now: number = Date.now(),
+): Promise<{ body: ForYouBody; stale: boolean }> {
+  const key = [...interests].sort((a, b) => a - b).join(',');
+  const r = await cached<ForYouBody>(db, `foryou:anon:${key}`, FOR_YOU_TTL, async () => {
+    const ctx = { ...anonContext(interests), hidden: await hiddenFeedUrls(db) };
+    const { items, warnings } = await buildForYou(
+      db, ctx,
+      async () => (await discoverBody(db, f, picks, today)).body,
+      now,
+      () => chartCandidates(db, f, now),
+    );
+    return { items, computedAt: new Date(now).toISOString(), similarityAge: await similarityAgeHours(db), warnings };
+  }, () => now);
+  const hidden = await hiddenFeedUrls(db);
+  const body = r.body.items.some((i) => hidden.has(i.episode.feedUrl)) ? { ...r.body, items: r.body.items.filter((i) => !hidden.has(i.episode.feedUrl)) } : r.body;
   return { body, stale: r.stale };
 }

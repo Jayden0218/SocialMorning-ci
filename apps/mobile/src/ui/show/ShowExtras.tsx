@@ -11,7 +11,7 @@
  * 16 pt corners) with an accent eyebrow; a poll's question is in the serif. Props unchanged.
  */
 import { useEffect, useState } from 'react';
-import { Linking } from 'react-native';
+import { openLink as openInApp } from '@/ui/kit/openLink';
 import { useSocial } from '@/social/context';
 import type { ShowExtras as Extras, ShowPoll } from '@/social/api';
 import { Box } from '@/ui/lib/box';
@@ -40,7 +40,8 @@ export function useShowExtras(feedUrl: string, images?: { image?: string | undef
 /** The eyebrow's spaced capitals (as `Eyebrow`). */
 const CAPS = { letterSpacing: 1.3, textTransform: 'uppercase' as const };
 
-const openLink = (url: string) => { if (/^https:\/\//.test(url)) void Linking.openURL(url).catch(() => undefined); };
+// M22 US7 (FR-025): the creator's https links open in the in-app browser.
+const openLink = (url: string) => { if (/^https:\/\//.test(url)) void openInApp(url); };
 
 const CONTACT_LABEL: Record<string, string> = {
   website: 'Website', email: 'Email', wechat: 'WeChat', wechat_official: 'WeChat Official Account', weibo: 'Weibo', jike: 'Jike', xiaohongshu: 'Xiaohongshu',
@@ -52,7 +53,7 @@ function Contact({ type, value }: { type: string; value: string }): React.ReactE
   const target = type === 'email' ? `mailto:${value}` : /^https:\/\//.test(value) ? value : null;
   if (!target) return <Text className="text-sm text-muted">{`${label}: ${value}`}</Text>;
   return (
-    <Pressable onPress={() => { void Linking.openURL(target).catch(() => undefined); }} accessibilityRole="link" accessibilityLabel={`${label}, opens ${value}`} className="justify-center" style={TAP}>
+    <Pressable onPress={() => { void openInApp(target); }} accessibilityRole="link" accessibilityLabel={`${label}, opens ${value}`} className="justify-center" style={TAP}>
       <Text className="text-sm text-accent">{`${label} ↗`}</Text>
     </Pressable>
   );

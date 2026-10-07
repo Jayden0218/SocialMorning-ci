@@ -1,7 +1,7 @@
 // Make a clip from the player: pick start and end, add caption, save.
 /**
  * New clip (M4 US1). Opened from the player's Clip button with the episode and the
- * moment. Save → `clips.create` → sent (Share offered) or pending ("sending" on the
+ * moment (M22 US9: or from the transcript with `startMs`, `endMs`, `caption`). Save → `clips.create` → sent (Share offered) or pending ("sending" on the
  * episode) or needs sign-in.
  *
  * M17 (`ClipNew-B`): the page is the serif "New clip" header over the rebuilt composer
@@ -24,7 +24,11 @@ import { useClipVideoRows, useSharePanel } from '@/ui/clips/ShareChooser';
 import { PageHeader } from '@/ui/kit/PageHeader';
 
 export default function NewClipScreen(): React.ReactElement {
-  const params = useLocalSearchParams<{ episodeId: string; positionMs: string }>();
+  const params = useLocalSearchParams<{ episodeId: string; positionMs: string; startMs?: string; endMs?: string; caption?: string }>();
+  // M22 US9 (research R8): from the transcript, the picked lines' range and words.
+  const startMs = Number(params.startMs);
+  const endMs = Number(params.endMs);
+  const range = params.startMs !== undefined && params.endMs !== undefined && Number.isFinite(startMs) && Number.isFinite(endMs) ? { startMs, endMs } : undefined;
   const stores = useStores();
   const { clips } = useGraph();
   const { listener } = useSocial();
@@ -42,7 +46,9 @@ export default function NewClipScreen(): React.ReactElement {
     <PageHeader title="New clip" />
     <ClipComposer
       episode={episode}
-      initialPositionMs={Number(params.positionMs ?? 0)}
+      initialPositionMs={Number(params.positionMs ?? range?.endMs ?? 0)}
+      {...(range ? { initialRange: range } : {})}
+      {...(params.caption ? { initialCaption: params.caption } : {})}
       saving={saving}
       onSave={async (s) => {
         setSaving(true);

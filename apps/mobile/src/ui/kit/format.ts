@@ -88,8 +88,8 @@ export function ago(ms: number | undefined, now: number): string {
   return shortDate(ms);
 }
 
-/** A run of shownotes text: plain, a timestamp that seeks (`atMs`), or a link (`href`). */
-export type NotePart = { text: string; atMs?: number; href?: string };
+/** A run of shownotes text: plain, a timestamp that seeks (`atMs`), a link (`href`), or (M22 US7) a picture (`image`, its http(s) address; `text` is its alt). */
+export type NotePart = { text: string; atMs?: number; href?: string; image?: string };
 
 const TIME = /^([ \t]*(?:[-•*·–]|\(|\[)?[ \t]*)((?:\d{1,2}:)?\d{1,2}:[0-5]\d)(?![\d:])/;
 /** Mid-line: only h:mm:ss (two colons), never preceded or followed by another digit or colon. */
@@ -136,15 +136,37 @@ export function timestampParts(text: string, maxMs?: number): NotePart[] {
 
 const URL = /https?:\/\/[^\s<>"')\]]+[^\s<>"')\].,;:!?]/g;
 
+const IMG = /<img\b[^>]*?\bsrc\s*=\s*["']([^"']+)["'][^>]*>/gi;
+const ALT = /\balt\s*=\s*["']([^"']*)["']/i;
+
+/** M22 US7: each `<img src>` with an http(s) address as a marker on its own line; any other image is dropped. */
+function markImages(html: string): string {
+  return html.replace(IMG, (tag: string, src: string) => {
+    const url = decode(src.trim());
+    if (!/^https?:\/\/[^\s"'<>]+$/i.test(url)) return '';
+    const alt = decode(ALT.exec(tag)?.[1] ?? '').replace(/[\u0001-\u0006]/g, '');
+    return `\n\u0004${url}\u0005${alt}\u0006\n`;
+  });
+}
+
 /**
  * M12 FR-003, FR-030, FR-031: shownotes as runs — plain text, links (from `<a href>` and from
  * bare URLs) and chapter times — for the episode page to render as nested Text.
+ *
+ * M22 US7 (FR-023, research R6): an `<img>` with an http(s) `src` becomes an `image` part, in
+ * place, shown from the publisher's address (never copied). An image inside a link is kept as
+ * a picture after the link's words.
  */
 export function noteParts(html: string | undefined, maxMs?: number): NotePart[] {
   if (html === undefined) return [];
   // Mark each <a href> so its target survives the tag stripping.
-  const marked = html.replace(/<\/a>\s*<a\b/gi, '</a>\n<a').replace(/<a\b[^>]*?href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi, (_, href: string, label: string) =>
-    `\u0001${href}\u0002${label.replace(/<[^>]+>/g, '')}\u0003`);
+  const marked = markImages(html.replace(/<\/a>\s*<a\b/gi, '</a>\n<a').replace(/<a\b[^>]*?href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi, (_, href: string, label: string) => {
+    const pics = [...label.matchAll(IMG)].map((m) => m[0]).join('');
+    const words = label.replace(/<[^>]+>/g, '');
+    // A link that only wraps a picture is shown as the picture alone.
+    if (pics !== '' && words.trim() === '') return pics;
+    return `\u0001${href}\u0002${words}\u0003${pics}`;
+  }));
   const text = htmlToText(marked);
   const out: NotePart[] = [];
   const plain = (t: string) => {
@@ -157,14 +179,18 @@ export function noteParts(html: string | undefined, maxMs?: number): NotePart[] 
     if (last < t.length) out.push(...timestampParts(t.slice(last), maxMs));
   };
   let at = 0;
-  for (const m of text.matchAll(/\u0001([^\u0002]*)\u0002([^\u0003]*)\u0003/g)) {
+  for (const m of text.matchAll(/\u0001([^\u0002]*)\u0002([^\u0003]*)\u0003|\u0004([^\u0005]*)\u0005([^\u0006]*)\u0006/g)) {
     plain(text.slice(at, m.index));
-    const label = m[2]!.trim() || m[1]!;
-    out.push({ text: label, href: decode(m[1]!) });
+    if (m[3] !== undefined) {
+      out.push({ text: m[4] ?? '', image: m[3] });
+    } else {
+      const label = m[2]!.trim() || m[1]!;
+      out.push({ text: label, href: decode(m[1]!) });
+    }
     at = m.index! + m[0].length;
   }
   plain(text.slice(at));
-  return out.filter((p) => p.text !== '');
+  return out.filter((p) => p.text !== '' || p.image !== undefined);
 }
 
 const summaries = new Map<string, string>();

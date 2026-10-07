@@ -221,3 +221,16 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 |---|---|---|
 | `status/text.tsx` | `/status/text` | Write a text status up to 140 characters for your followers; deleted after 24 hours. |
 | `status/[id].tsx` | `/status/<id>` | Open one status full screen, with the statuses around it, its items, replies and reactions. |
+
+### `onboarding/`
+
+| File | Route | What the user sees |
+|---|---|---|
+| `onboarding/interests.tsx` | `/onboarding/interests` | First open: pick at least two categories you like, or skip (asked once more a week later). |
+| `onboarding/not-liking.tsx` | `/onboarding/not-liking` | "Not liking these?": tell For You what is wrong and change your categories. |
+
+### `lists/`
+
+| File | Route | What the user sees |
+|---|---|---|
+| `lists/new.tsx` | `/lists/new` | Share some of your shows: pick two or more subscriptions, give the list a title, and share one link. |

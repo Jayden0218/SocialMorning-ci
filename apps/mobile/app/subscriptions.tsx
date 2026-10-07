@@ -182,6 +182,8 @@ export default function SubscriptionsScreen(): React.ReactElement {
           <BarButton label={grid ? 'Show as a list' : 'Show as a grid'} onPress={toggleView}><Icon name={grid ? 'list-outline' : 'grid-outline'} size={22} color={c.text} /></BarButton>
           <BarButton label="Manage order" onPress={() => router.push('/subscriptions/manage')}><Icon name="swap-vertical-outline" size={22} color={c.text} /></BarButton>
           <BarButton label="Share my list" onPress={share}><Icon name="share-outline" size={22} color={c.text} /></BarButton>
+          {/* M22 US17 item 5: pick some shows, give them a title, share one link. */}
+          <BarButton label="Share some shows" onPress={() => router.push('/lists/new')}><Icon name="albums-outline" size={22} color={c.text} /></BarButton>
         </Box>
       }
     />

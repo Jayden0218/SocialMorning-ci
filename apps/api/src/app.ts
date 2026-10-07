@@ -81,6 +81,11 @@ import { admin } from './routes/admin/index.ts';
 import { createLaunchRoute } from './routes/discover/launch.ts';
 import { seedOwnerAdmin } from './auth/admin.ts';
 import { liveCatalog } from './catalog/live.ts';
+// M22 lane 4
+import { interests, recFeedback } from './routes/account/interests.ts';
+import { searchRequests } from './routes/discover/search-requests.ts';
+import { modSearchRequestsApi, modSearchRequestsPage } from './routes/mod/search-requests.ts';
+import { listPages, mySharedLists, sharedLists } from './routes/lists.ts';
 
 export type AppDeps = {
   db: Db; pepper: string; assetLinksSha256?: string;
@@ -285,6 +290,15 @@ export function createApp(deps: AppDeps) {
   // M22 lane 3
   app.route('/v1/me/queue', queueRoute);
   app.route('/v1/me/history', historyRoute);
+  // M22 lane 4
+  app.route('/v1/me/interests', interests);
+  app.route('/v1/me/rec-feedback', recFeedback);
+  app.route('/v1/search-requests', searchRequests);
+  app.route('/v1/mod/search-requests', modSearchRequestsApi);
+  app.route('/mod', modSearchRequestsPage);
+  app.route('/v1/me/shared-lists', mySharedLists);
+  app.route('/v1/lists', sharedLists);
+  app.route('/', listPages);
   app.route('/mod', mod);
   app.route('/', legal);
   app.route('/', episodePages);
