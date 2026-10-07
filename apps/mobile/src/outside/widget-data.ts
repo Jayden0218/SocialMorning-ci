@@ -12,6 +12,7 @@
  * "Listening this week" is counted on this phone: wall-clock time while the player is playing,
  * per local day, Monday to Sunday. Older days are dropped after a week.
  */
+import { reportError } from '@/telemetry/reportError';
 import type { PlayerRuntime } from '@/playback/store';
 import type { Discover } from '@/social/api';
 import type { FeedCacheStore, SettingsStore } from '@/storage/types';
@@ -150,7 +151,7 @@ export function createWidgetData(deps: {
   let episode: string | undefined;
 
   const tell = (fn: (s: WidgetDataSink) => void): void => {
-    for (const s of deps.sinks) { try { fn(s); } catch { /* one widget failing never stops the others */ } }
+    for (const s of deps.sinks) { try { fn(s); } catch (e) { reportError('outside.widget', e); /* one widget failing never stops the others */ } }
   };
 
   /** Saves `copy` under `key` when it differs from what is saved; true when it did. */

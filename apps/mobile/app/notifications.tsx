@@ -27,6 +27,7 @@
  * lists them. Rows also read and open the new kinds: comments and reactions on your like,
  * replies and reactions on your status, and a status reaching 100 reactions.
  */
+import { reportAndDrop } from '@/telemetry/reportError';
 import { router, useFocusEffect } from 'expo-router';
 import { Link } from '@/design/tailwind';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -133,7 +134,7 @@ function Interactions(props: { header: React.ReactElement; onUnread: (n: number)
     api.list().then((p) => {
       setState({ kind: 'ok', items: p.items, next: p.next });
       onUnread(p.items.filter((i) => i.unread).length);
-      if (p.items.some((i) => i.unread)) void api.markSeen().catch(() => undefined);
+      if (p.items.some((i) => i.unread)) void api.markSeen().catch(reportAndDrop('notifications.seen'));
     }).catch(() => setState((s) => (s.kind === 'ok' ? s : { kind: 'error' })));
   }, [api, onUnread]);
   useEffect(load, [load]);

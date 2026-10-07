@@ -4,7 +4,6 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
-import { putEpisode } from './put-episode.ts';
 
 const ep = { feedUrl: 'https://feeds.example.com/x.xml', guid: 'g1', title: 'Ep 1', showTitle: 'Show', enclosureUrl: 'https://cdn/1.mp3' };
 const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
@@ -14,7 +13,7 @@ const statsOf = async (t: TestDb, id: string, token?: string) => ((await (await 
 
 test('A8: [0,60s] from phone 1 and [30s,90s] from phone 2 → 90 s, not 120 s; the same report twice changes nothing', async () => {
   const t = await freshDb();
-  await putEpisode(t, `${EP}`, { ...ep, durationMs: 2_000_000 });
+  await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: 2_000_000 });
   const a = await signUp(t);
   assert.equal((await put(t, a.token, 'p1', [[0, 60_000]])).status, 200);
   assert.equal((await put(t, a.token, 'p2', [[30_000, 90_000]])).status, 200);
@@ -31,7 +30,7 @@ test('A8: [0,60s] from phone 1 and [30s,90s] from phone 2 → 90 s, not 120 s; t
 
 test('A8: one listened item per (episode, day) — written when the union first crosses 5 min, never again; finishing writes it early', async () => {
   const t = await freshDb();
-  await putEpisode(t, `${EP}`, { ...ep, durationMs: 2_000_000 });
+  await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: 2_000_000 });
   const a = await signUp(t);
   const items = () => t.q<{ kind: string; day: string }>(`SELECT kind, day::text AS day FROM activity ORDER BY id`);
   await put(t, a.token, 'p1', [[0, 299_000]]);

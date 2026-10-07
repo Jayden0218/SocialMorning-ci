@@ -7,7 +7,6 @@ import { useDirty } from '../../shell/Unsaved';
 import { useLoad } from '../../useLoad';
 import { CHANGED_MESSAGE, errorText, Finder, isChanged, move, Reorder, utcDay, type EpisodeCard } from './common';
 import { PhonePreview } from './PhonePreview';
-import { plural } from '@socialmorning/social-core';
 
 type Month = { today: string; days: { day: string; count: number; source: 'admin' | 'file' }[] };
 type DayItem = { feedUrl: string; guid?: string; why: string; warning?: string; episode: (EpisodeCard & { id: string }) | null };
@@ -63,7 +62,7 @@ export function Picks() {
               {Array.from({ length: lastDay(y, m) }, (_, i) => {
                 const d = `${y}-${pad(m)}-${pad(i + 1)}`;
                 const info = byDay.get(d);
-                const label = `${longDay(d)}${info ? ` — ${plural(info.count, 'pick')}, ${info.source === 'admin' ? 'set in Admin' : 'from the file'}` : ' — empty'}${d === today ? ', today' : ''}`;
+                const label = `${longDay(d)}${info ? ` — ${info.count} pick${info.count === 1 ? '' : 's'}, ${info.source === 'admin' ? 'set in Admin' : 'from the file'}` : ' — empty'}${d === today ? ', today' : ''}`;
                 return (
                   <button key={d} type="button" aria-pressed={d === day} aria-label={label}
                     className={`cal-day${info ? ` cal-${info.source}` : ''}${d === today ? ' cal-today' : ''}`} onClick={() => setDay(d)}>

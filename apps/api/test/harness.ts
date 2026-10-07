@@ -4,11 +4,6 @@
  * migration files the real database gets, and the real Hono app on top of it.
  * Nothing is mocked below the routes.
  */
-import { createHash } from 'node:crypto';
-import { readdir, readFile, rename, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { PGlite } from '@electric-sql/pglite';
 import { citext } from '@electric-sql/pglite/contrib/citext';
 import { migrate, type MigrationRunner } from '../src/db/migrate.ts';
@@ -38,64 +33,16 @@ export type TestDb = {
 
 export const TEST_APPEALS = 'appeals@example.test';
 
-/*
- * M23 US12 (T050): every test used to run all ~22 migrations on its own new PGlite —
- * 4–7 s a test, 9.5 of the gate's 12.5 minutes. Now the migrations run once, the data
- * directory is dumped (`dumpDataDir`), and every test loads a copy (`loadDataDir`). The
- * database each test gets is the same: the same files, applied in the same order, with
- * the same `schema_migrations` rows. The dump is also kept in the OS temp folder, keyed
- * by a hash of the migration files and the PGlite version, so the other test files (node
- * runs each file in its own process) skip the migrations too. A changed migration file
- * changes the key, so a stale copy is never used.
- */
-const MIGRATIONS_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'src', 'db', 'migrations');
-let template: Promise<Blob> | undefined;
-
-async function templateKey(): Promise<string> {
-  const h = createHash('sha256');
-  const files = (await readdir(MIGRATIONS_DIR)).filter((f) => f.endsWith('.sql')).sort();
-  for (const f of files) h.update(f).update('\0').update(await readFile(path.join(MIGRATIONS_DIR, f))).update('\0');
-  // The PGlite build is part of the key: a dump from one version may not load in another.
-  let pglite = 'unknown';
-  try { pglite = await readFile(fileURLToPath(import.meta.resolve('@electric-sql/pglite')), 'utf8'); } catch { /* key on the migrations alone */ }
-  h.update(pglite);
-  return h.digest('hex').slice(0, 16);
-}
-
-async function buildTemplate(): Promise<Blob> {
-  const file = path.join(tmpdir(), `socialmorning-pglite-${await templateKey()}.tar`);
-  const cached = await readFile(file).catch(() => undefined);
-  if (cached && cached.length > 0) return new Blob([new Uint8Array(cached)]);
-  const pg = new PGlite({ extensions: { citext } });
-  await migrate({ exec: (s) => pg.exec(s), query: async <T,>(s: string, params?: unknown[]) => (await pg.query<T>(s, params)).rows });
-  const blob = await pg.dumpDataDir('none');
-  await pg.close();
-  // Atomic: another test process may be writing the same file at the same moment.
-  const part = `${file}.${process.pid}.${Date.now()}`;
-  await writeFile(part, Buffer.from(await blob.arrayBuffer()));
-  await rename(part, file).catch(() => undefined);
-  return blob;
-}
-
-/** A PGlite with every migration applied, copied from a once-migrated template (see above). */
-export async function migratedPg(): Promise<{ pg: PGlite; runner: MigrationRunner }> {
-  template ??= buildTemplate();
-  const pg = new PGlite({ extensions: { citext }, loadDataDir: await template });
-  const runner: MigrationRunner = {
-    exec: (s) => pg.exec(s),
-    query: async <T,>(s: string, params?: unknown[]) => (await pg.query<T>(s, params)).rows,
-  };
-  // A no-op on the template's copy (every version is in schema_migrations); kept so a test
-  // still gets exactly what `migrate` gives, should the template ever lag a new file.
-  await migrate(runner);
-  return { pg, runner };
-}
-
 /** `ownerListenerId` is unknown until a listener exists: tests that need the owner sign up first, then `setOwner`. */
 export async function freshDb(allOpts: { ownerListenerId?: string; appealsEmail?: string; releaseSha256?: string; noMailer?: boolean; pushFetch?: typeof fetch; catalogFetch?: typeof fetch;
   /** M12 */ jobToken?: string; voiceStorage?: VoiceStorage; /** M19 */ avatarStorage?: VoiceStorage; imageFetch?: typeof fetch; /** M20 */ imageStorage?: import('../src/storage/image-store.ts').ImageStorage; imageCeilingBytes?: number; play?: import('../src/billing/google-play.ts').GooglePlay; picksRaw?: unknown; today?: () => string } = {}): Promise<TestDb> {
   const { noMailer, ...opts } = allOpts;
-  const { pg, runner } = await migratedPg();
+  const pg = new PGlite({ extensions: { citext } });
+  const runner: MigrationRunner = {
+    exec: (s) => pg.exec(s),
+    query: async <T,>(s: string, params?: unknown[]) => (await pg.query<T>(s, params)).rows,
+  };
+  await migrate(runner);
   // M21 US6 (G-M21-7): a comment POST answers 428 until the author accepted the community rules.
   // Test listeners have accepted them, so every older test keeps its meaning; the rules tests
   // (comments-m21.test.ts) set rules_accepted_at back to NULL for the listener they test.

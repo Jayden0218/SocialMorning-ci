@@ -24,7 +24,6 @@ here or a line does not match its file.
 
 | File | What it does |
 |---|---|
-| `errors.ts` | Error log route: the phone sends its recent errors in small batches, signed in or not. |
 | `internal.ts` | Internal routes the scheduled job calls to rebuild data in small steps. |
 | `lists.ts` | Shared show lists: a listener picks some of their shows, gives them a title, and shares one link. |
 
@@ -34,7 +33,7 @@ here or a line does not match its file.
 |---|---|
 | `auth.ts` | Sign-in routes: sign up, sign in, sign out, and email code sign-in. |
 | `digests.ts` | Weekly digest route: my Monday catch-ups from the last 4 weeks. |
-| `feedback.ts` | Feedback route: text signed in or not; up to three images, signed in only and limited. |
+| `feedback.ts` | Feedback route: send text and up to three images, signed in or not. |
 | `gifts.ts` | Gift routes: see what a gift link offers, claim it once, list the gifts I bought, and the link's web page. |
 | `me.ts` | My account routes: read, edit name and privacy, delete the account after a 15-day wait, and set the time zone. |
 | `notify.ts` | Per-show notification routes: list shows and turn new-episode alerts on or off. |
@@ -107,7 +106,6 @@ here or a line does not match its file.
 
 | File | What it does |
 |---|---|
-| `errors.ts` | The owner's error log page under /mod: newest first, with scope, message, version, platform and count. |
 | `search-requests.ts` | The owner's list of searches listeners asked the editors to add (HTML under /mod, JSON under /v1/mod). |
 
 ### `routes/creators/` — show owners in the app: claims, extras, hosted feeds
@@ -193,7 +191,6 @@ here or a line does not match its file.
 | `delete-account.ts` | Deletes an account and its data in one step, keeping reply threads intact. |
 | `deletion.ts` | Account deletion waits 15 days: request it, keep the account, and delete the due ones for good. |
 | `digest.ts` | The Monday digest for PLUS members: up to 10 unplayed episodes from last week, once per ISO week, at noon local time. |
-| `error-reports.ts` | Our own error log: phone errors counted by scope, message, version and platform; kept 30 days. |
 | `feedback.ts` | Stores feedback with up to three small images; images deleted after 90 days. |
 | `gifts.ts` | Gifts of a paid show: a code made after the store purchase is verified, claimed once, withdrawn on a refund. |
 | `listeners.ts` | Database queries to create and find listener accounts. |
@@ -302,7 +299,6 @@ here or a line does not match its file.
 | `admin.ts` | Admin access: who is admin, the admin-only wall, and the admin action record. |
 | `codes.ts` | Email sign-in codes: six digits, ten minutes, five tries, stored only hashed. |
 | `password.ts` | Hashes and checks passwords with scrypt from Node's built-in crypto. |
-| `rate.ts` | Fixed-window rate limits kept in the rate_counters table (per address, or global). |
 | `session.ts` | Session tokens: create, hash, look up the signed-in listener, require sign-in. |
 | `studio-session.ts` | Studio web session: cookie sign-in, 12-hour idle limit, and cross-site write check. |
 

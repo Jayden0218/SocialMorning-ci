@@ -10,9 +10,9 @@ import { useLoad } from '../useLoad';
 import type { EpisodePage, EpisodeRow } from './types';
 import { Pending } from './Pending';
 import { move, Reorder } from './admin/common';
-import { HOST_PICKS_MAX, noun } from '@socialmorning/social-core';
 
 type Pick = { id: string; title: string };
+export const HOST_PICKS_MAX = 20;
 
 /**
  * M21 US5 (FR-042): Host picks — up to 20 episodes the host stars here, in the order set here;
@@ -110,7 +110,7 @@ export function Episodes({ show }: { show: Show }) {
         ) : null}
         {list.state === 'ready' && list.data.total > 0 ? (
           <>
-            <p className="muted" style={{ marginTop: 0 }}>{num(list.data.total)} {noun(list.data.total, 'episode')}</p>
+            <p className="muted" style={{ marginTop: 0 }}>{num(list.data.total)} episode{list.data.total === 1 ? '' : 's'}</p>
             <Table caption="Episodes" columns={cols} rows={list.data.items} rowKey={(e) => e.id} />
             <Pager page={page} total={list.data.total} pageSize={list.data.pageSize} onPage={setPage} />
           </>

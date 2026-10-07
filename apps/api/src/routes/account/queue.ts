@@ -4,7 +4,6 @@ import { z } from 'zod';
 import type { AuthEnv } from '../../auth/session.ts';
 import { requireAuth } from '../../auth/session.ts';
 import { json } from '../../validate.ts';
-import { ApiError } from '../../errors.ts';
 import { getQueue, putQueue, SYNCED_QUEUE_MAX } from '../../db/repos/account/queue.ts';
 
 const body = z.object({
@@ -27,6 +26,6 @@ queue.get('/', requireAuth, async (c) => c.json(await getQueue(c.get('db'), c.ge
 queue.put('/', requireAuth, json(body), async (c) => {
   const b = c.req.valid('json');
   const r = await putQueue(c.get('db'), c.get('listener')!.id, b.items, b.baseVersion, b.deviceId);
-  if (!r.ok) throw new ApiError('conflict', 'The playlist changed on another device.', { ...r.current });
+  if (!r.ok) return c.json({ error: 'conflict', message: 'The playlist changed on another device.', ...r.current }, 409);
   return c.json({ version: r.version });
 });

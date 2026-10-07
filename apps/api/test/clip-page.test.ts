@@ -4,7 +4,6 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp } from './harness.ts';
-import { putEpisode } from './put-episode.ts';
 import { assetLinks } from '../src/pages/clip.ts';
 
 const ep = { feedUrl: 'https://feeds.example.com/x.xml', guid: 'g1', title: 'Casey <Wants> to Believe', showTitle: 'Reply All', enclosureUrl: 'https://cdn/1.mp3' };
@@ -12,7 +11,7 @@ const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
 
 test('A10: live → 200 with the title escaped, the caption, the author and "Open in app"; deleted → removed + episode; unknown → 404', async () => {
   const t = await freshDb();
-  await putEpisode(t, `${EP}`, { ...ep, durationMs: 2_000_000 });
+  await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: 2_000_000 });
   const a = await signUp(t);
   const c = ((await (await t.call('POST', `/v1/episodes/${EP}/clips`, { clientId: 'k', startMs: 872_000, endMs: 910_000, caption: 'listen "here"' }, a.token)).json()) as { clip: { id: string } }).clip;
   const live = await t.call('GET', `/c/${c.id}`);

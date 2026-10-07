@@ -62,22 +62,11 @@ export function createProfileApi(deps: ApiDeps) {
   return {
     me: async () => (await call<{ listener: Listener }>('GET', '/v1/me')).json.listener,
     update: async (patch: ProfilePatch & PrivacySwitches) => (await call<{ listener: Listener }>('PATCH', '/v1/me', patch)).json.listener,
-    /** PUT /v1/me/avatar — the JPEG's raw bytes, not JSON. */
+    /** PUT /v1/me/avatar — the JPEG's raw bytes, not JSON (M23 US9: through the shared helper's `raw`). */
     uploadAvatar: async (file: Blob): Promise<string> => {
-      const token = await deps.getToken();
-      let res: Response;
-      try {
-        res = await deps.fetch(`${deps.baseUrl}/v1/me/avatar`, {
-          method: 'PUT',
-          headers: { 'content-type': 'image/jpeg', ...(token ? { authorization: `Bearer ${token}` } : {}) },
-          body: file,
-        });
-      } catch (e) {
-        throw new ApiError('network', "Couldn't reach the server.", 0, { cause: String(e) });
-      }
-      const json = (await res.json().catch(() => ({}))) as { error?: string; message?: string; avatarUrl?: string };
-      if (!res.ok || !json.avatarUrl) throw new ApiError((json.error as never) ?? 'internal', json.message ?? `Server answered ${res.status}.`, res.status);
-      return json.avatarUrl;
+      const r = await call.raw<{ avatarUrl?: string }>('PUT', '/v1/me/avatar', file, { 'content-type': 'image/jpeg' });
+      if (!r.json?.avatarUrl) throw new ApiError('internal', `Server answered ${r.status}.`, r.status);
+      return r.json.avatarUrl;
     },
     removeAvatar: async () => { await call('DELETE', '/v1/me/avatar'); },
 

@@ -55,29 +55,6 @@ export async function upsertEpisode(db: Db, e: EpisodeInput): Promise<EpisodeRow
   return rows[0]!;
 }
 
-/**
- * M23 US1 (FR-001): what a signed-in listener's PUT may do to an episode the server already
- * knows — fill fields that are still empty, nothing more. Title, image, date, genre and kind
- * belong to the server's own feed refresh (`upsertEpisode`, catalog/feed.ts). A new episode is
- * inserted with everything it carries, as before.
- */
-export async function fillEpisode(db: Db, e: EpisodeInput): Promise<EpisodeRow> {
-  const rows = await db.query<EpisodeRow>(
-    `INSERT INTO episodes (id, feed_url, guid, title, show_title, enclosure_url, image_url, duration_ms, published_at, genre_id, media_kind)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, COALESCE($11, 'audio'))
-     ON CONFLICT (id) DO UPDATE SET
-       show_title = COALESCE(episodes.show_title, EXCLUDED.show_title),
-       image_url = COALESCE(episodes.image_url, EXCLUDED.image_url),
-       duration_ms = COALESCE(episodes.duration_ms, EXCLUDED.duration_ms),
-       published_at = COALESCE(episodes.published_at, EXCLUDED.published_at),
-       genre_id = COALESCE(episodes.genre_id, EXCLUDED.genre_id),
-       updated_at = CASE WHEN episodes.duration_ms IS NULL AND EXCLUDED.duration_ms IS NOT NULL THEN now() ELSE episodes.updated_at END
-     RETURNING id, feed_url, guid, title, show_title, enclosure_url, image_url, duration_ms, published_at, genre_id`,
-    [e.id, e.feedUrl, e.guid, e.title, e.showTitle ?? null, e.enclosureUrl, e.imageUrl ?? null, e.durationMs ?? null, e.publishedAt ?? null, e.genreId ?? null, e.mediaKind ?? null],
-  );
-  return rows[0]!;
-}
-
 export async function getEpisode(db: Db, id: string): Promise<EpisodeRow | undefined> {
   const rows = await db.query<EpisodeRow>(
     'SELECT id, feed_url, guid, title, show_title, enclosure_url, image_url, duration_ms, published_at, genre_id FROM episodes WHERE id = $1',

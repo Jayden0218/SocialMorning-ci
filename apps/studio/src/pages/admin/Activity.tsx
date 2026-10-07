@@ -5,7 +5,6 @@ import { PageHead } from '../../shell/Page';
 import { Empty, Failed, Loading } from '../../shell/States';
 import { useLoad } from '../../useLoad';
 import { errorText } from './common';
-import { plural } from '@socialmorning/social-core';
 
 type Row = {
   id: string; at: string; adminName: string | null; actingAsName: string | null; actingAs: string | null;
@@ -72,7 +71,7 @@ export function Activity() {
                       <td>{r.adminName ?? 'a deleted account'}{r.actingAs ? <> <span className="pill">as {r.actingAsName ?? r.actingAs}</span></> : null}</td>
                       <td>
                         <details>
-                          <summary>{keys.length === 0 ? 'No field changed' : plural(keys.length, 'field')}</summary>
+                          <summary>{keys.length === 0 ? 'No field changed' : `${keys.length} field${keys.length === 1 ? '' : 's'}`}</summary>
                           <dl className="diff">
                             {keys.map((k) => (
                               <div key={k}>

@@ -7,7 +7,7 @@ import { PageHead } from '../shell/Page';
 import { DropZone } from '../shell/DropZone';
 import { Failed, Loading } from '../shell/States';
 import { useDirty } from '../shell/Unsaved';
-import { audioDurationMs, MAX_COVER_BYTES, mb, uploadFile } from '../upload';
+import { audioDurationMs, mb, uploadFile } from '../upload';
 import { useLoad } from '../useLoad';
 
 type When = 'now' | 'schedule' | 'draft';
@@ -57,7 +57,7 @@ export function NewEpisode({ show }: { show: Show }) {
   };
 
   const pickCover = async (f: File) => {
-    if (!/^image\/(jpeg|png)$/.test(f.type) || f.size > MAX_COVER_BYTES) return setError(`Choose a JPEG or PNG cover under ${mb(MAX_COVER_BYTES)}.`);
+    if (!/^image\/(jpeg|png)$/.test(f.type) || f.size > 5 * 1024 * 1024) return setError('Choose a JPEG or PNG cover under 5 MB.');
     setError(null); setCoverPct(0);
     try { setCover(await uploadFile(show.key, 'cover', f, setCoverPct)); }
     catch (e) { setError(e instanceof HttpError ? e.message : 'The cover did not upload.'); } finally { setCoverPct(null); }

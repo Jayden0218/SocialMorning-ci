@@ -6,6 +6,7 @@
  *   3. else the server's record of the episode → a Playable straight from it (the feed dropped it)
  * The show is never subscribed on the listener's behalf.
  */
+import { reportError } from '@/telemetry/reportError';
 import type { EpisodeRecord } from '@/social/api';
 import type { PlayableEpisode } from '@/playback/store';
 import type { Stores } from '@/storage/types';
@@ -22,7 +23,7 @@ export type Resolved = { episode: PlayableEpisode; via: 'cache' | 'feed' | 'serv
 export async function resolveClipEpisode(deps: ResolveDeps, record: EpisodeRecord): Promise<Resolved> {
   const cached = toPlayable(deps.stores, record.id, deps.filePresent);
   if (cached) return { episode: cached, via: 'cache' };
-  try { await deps.refreshShow(record.feedUrl); } catch { /* offline or the feed is gone: fall through */ }
+  try { await deps.refreshShow(record.feedUrl); } catch (e) { reportError('graph.resolve', e); /* offline or the feed is gone: fall through */ }
   const fetched = toPlayable(deps.stores, record.id, deps.filePresent);
   if (fetched) return { episode: fetched, via: 'feed' };
   return {

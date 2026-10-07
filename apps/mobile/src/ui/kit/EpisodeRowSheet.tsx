@@ -13,6 +13,7 @@
  * The episode must be in this phone's feed cache (the lists that open it are, or resolve the
  * card first) — queue, download and the player read it from there.
  */
+import { reportAndDrop } from '@/telemetry/reportError';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper, ActionsheetScrollView } from '@/ui/lib/actionsheet';
@@ -119,7 +120,7 @@ export function EpisodeRowSheet(props: {
         episode={{ id: sharing?.id ?? '', title: sharing?.title ?? '', showTitle: sharing?.showTitle ?? (sharing ? stores.feeds.getShow(sharing.feedUrl)?.title : undefined) ?? '' }}
         atMs={sharing ? stores.positions.get(sharing.id)?.offsetMs ?? 0 : 0}
         onClip={() => { if (sharing) router.push({ pathname: '/clip/new', params: { episodeId: sharing.id, positionMs: String(Math.round(stores.positions.get(sharing.id)?.offsetMs ?? 0)) } }); }}
-        onShared={() => { if (sharing) void api.recordShare({ targetKind: 'episode', targetId: sharing.id, feedUrl: sharing.feedUrl }).catch(() => undefined); }}
+        onShared={() => { if (sharing) void api.recordShare({ targetKind: 'episode', targetId: sharing.id, feedUrl: sharing.feedUrl }).catch(reportAndDrop('share.record')); }}
       />
     </>
   );

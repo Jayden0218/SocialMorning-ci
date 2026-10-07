@@ -6,7 +6,6 @@ import { ConfirmDialog } from '../shell/ConfirmDialog';
 import { PageHead } from '../shell/Page';
 import { Empty, Failed, Loading } from '../shell/States';
 import { useLoad } from '../useLoad';
-import { noun } from '@socialmorning/social-core';
 import type { EpisodePage } from './types';
 
 type Poll = { id: string; question: string; episodeId: string | null; endsAt: string; closedAt: string | null; open: boolean; total: number; options: { idx: number; label: string; votes: number }[] };
@@ -79,7 +78,7 @@ export function Polls({ show }: { show: Show }) {
             <div className="comment-meta">
               <span className={`pill${p.open ? ' pill-warn' : ''}`}>{p.open ? 'Open' : 'Closed'}</span>
               <span>{p.open ? `Ends ${shortDate(p.endsAt)}` : `Ended ${shortDate(p.closedAt ?? p.endsAt)}`}</span>
-              <span className="num">{num(p.total)} {noun(p.total, 'vote')}</span>
+              <span className="num">{num(p.total)} vote{p.total === 1 ? '' : 's'}</span>
             </div>
             <h3 style={{ margin: '6px 0 10px', fontSize: 16 }}>{p.question}</h3>
             <div className="bars">

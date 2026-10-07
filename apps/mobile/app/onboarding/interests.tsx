@@ -5,6 +5,7 @@
  * them on the phone and, signed in, to the account; a failed save is kept as unsent and sent on
  * the next open. Skip remembers the time; a week later the page is shown once more.
  */
+import { reportAndDrop } from '@/telemetry/reportError';
 import { useState } from 'react';
 import { router } from 'expo-router';
 import { ScrollView } from '@/ui/lib/scroll-view';
@@ -30,7 +31,7 @@ export default function InterestsScreen(): React.ReactElement {
   const leave = () => { if (router.canGoBack()) router.back(); else router.replace('/'); };
   const skip = () => {
     saveSkip(stores.settings, Date.now());
-    if (listener) void api.skipInterests().catch(() => undefined);
+    if (listener) void api.skipInterests().catch(reportAndDrop('interests.skip'));
     leave();
   };
   const go = () => {
@@ -38,7 +39,7 @@ export default function InterestsScreen(): React.ReactElement {
     savePicked(stores.settings, picked);
     if (listener) {
       stores.settings.set(KEY_UNSENT, '1');
-      void api.setInterests(picked).then(() => stores.settings.set(KEY_UNSENT, '0')).catch(() => undefined);
+      void api.setInterests(picked).then(() => stores.settings.set(KEY_UNSENT, '0')).catch(reportAndDrop('interests.set'));
     }
     leave();
   };

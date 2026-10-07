@@ -3,7 +3,6 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
-import { putEpisode } from './put-episode.ts';
 import { runDueDeletions, type DeletionStores } from '../src/db/repos/account/deletion.ts';
 
 // M22 US11: DELETE /v1/me now waits 15 days; this makes the wait over and runs the internal step's body.
@@ -20,7 +19,7 @@ async function post(t: TestDb, token: string, body: Record<string, unknown>) {
 // quickstart A12 — guard G6
 test('A12: deletion removes everything of the listener; only placeholders under replies remain; both sessions die; email reusable', async () => {
   const t = await freshDb();
-  await putEpisode(t, `${EP}`, { ...ep, durationMs: 2_899_000 });
+  await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: 2_899_000 });
   const b = await signUp(t, 'b@example.com', 'Bo');
   const a1 = await signUp(t, 'a@example.com', 'Alex');
   const a2 = (await (await t.call('POST', '/v1/auth/sign-in', { email: 'a@example.com', password: 'correct horse' })).json()) as { token: string };
@@ -61,7 +60,7 @@ test('A12: deletion removes everything of the listener; only placeholders under 
 
 test('M4 (G7): deleting an account removes its clips, follows both ways, listened ranges and activity; its clip links say removed', async () => {
   const t = await freshDb();
-  await putEpisode(t, `${EP}`, { ...ep, durationMs: 2_000_000 });
+  await t.call('PUT', `/v1/episodes/${EP}`, { ...ep, durationMs: 2_000_000 });
   const a = await signUp(t);
   const b = await signUp(t, 'b@example.com', 'Bea');
   await t.call('PUT', `/v1/listeners/${b.id}/follow`, undefined, a.token);

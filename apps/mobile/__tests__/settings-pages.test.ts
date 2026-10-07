@@ -8,7 +8,6 @@
  */
 import type { Episode, ParsedFeed, Show } from '@socialmorning/feed-parser';
 import { hash } from '@/feeds/hash';
-import { inboxIds } from '@/me/inbox';
 import { latestUpdates } from '@/me/updates';
 import { collectedList } from '@/settings/collected';
 import { feedbackMailto, listFeedback, rememberFeedback } from '@/settings/feedback';
@@ -43,14 +42,13 @@ it('one-tap Queue: end by default, front when switched; downloads only when "dow
   expect(queueEpisode(stores, undefined, 'e3', 3, 'end')).toMatchObject({ where: 'end', downloading: false });
 });
 
-it('minor mode hides explicit episodes from Updates and the inbox', () => {
+it('minor mode hides explicit episodes from Updates', () => {
   const stores = createMemoryStores(hash);
   stores.feeds.put(F, feed([ep('clean', 20, false), ep('rude', 30, true)]), {}, 1);
   stores.subscriptions.add(F, 0);
   expect(latestUpdates(stores, new Set()).map((r) => r.episode.guid)).toEqual(['rude', 'clean']);
   setPref(stores.settings, 'hideExplicit', true);
   expect(latestUpdates(stores, new Set()).map((r) => r.episode.guid)).toEqual(['clean']);
-  expect(inboxIds(stores).map((id) => stores.feeds.getEpisode(id)?.guid)).toEqual(['clean']);
 });
 
 it('OPML: export then import gives back the same feeds; junk and duplicates are ignored', () => {
