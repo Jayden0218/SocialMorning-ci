@@ -60,6 +60,10 @@ import { syncLaunch } from '@/launch/sync';
 
 const StoresContext = createContext<Stores | undefined>(undefined);
 const ToastContext = createContext<((message: string) => void) | undefined>(undefined);
+/** True while something covers the app at start (not ready, the launch promotion, the terms). */
+const CoveredContext = createContext(false);
+/** Sheets that must not open over the start-up cover (the rate sheet) read this. */
+export function useCovered(): boolean { return useContext(CoveredContext); }
 const SyncContext = createContext<PositionSync | undefined>(undefined);
 const SubscriptionSyncContext = createContext<SubscriptionSync | undefined>(undefined);
 const DownloadsContext = createContext<DownloadManager | undefined>(undefined);
@@ -478,7 +482,9 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
       <QueueSyncContext.Provider value={queueSync}>
       <ToastContext.Provider value={show.current}>
         <PlayerProvider runtime={runtime}>
+          <CoveredContext.Provider value={!ready || launchPick !== undefined || keepTerms({ ready, accepted, launched, cover })}>
           {props.children}
+          </CoveredContext.Provider>
           {launchPick ? (
             <LaunchScreen
               promotion={launchPick.promotion}

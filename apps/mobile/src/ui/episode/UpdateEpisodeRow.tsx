@@ -97,7 +97,7 @@ export function UpdateEpisodeRow(props: {
   const video = mediaKindOf(e.enclosureType, e.enclosureUrl) === 'video';
   const swipeLeft: SwipeAction[] = [
     { key: 'queue', label: 'Queue', onPress: props.onQueue },
-    ...(props.onRemoveFromUpdates ? [{ key: 'remove', label: 'Remove from Updates', onPress: props.onRemoveFromUpdates }] : []),
+    ...(props.onRemoveFromUpdates ? [{ key: 'remove', label: 'Remove', onPress: props.onRemoveFromUpdates }] : []),
   ];
   const swipeRight: SwipeAction[] = props.onMarkPlayed ? [{ key: 'played', label: 'Mark played', onPress: props.onMarkPlayed }] : [];
   return (

@@ -92,12 +92,12 @@ type Progress = { value: number };
 function Panel(props: { progress: Progress | undefined; anim: PanelAnimation; children: ReactNode }): React.ReactElement {
   const { progress, anim } = props;
   const style = anim.useAnimatedStyle(() => panelStyle(progress?.value ?? 0));
-  return <anim.View style={[{ alignSelf: 'stretch' }, style]}>{props.children}</anim.View>;
+  return <anim.View style={[{ height: '100%' }, style]}>{props.children}</anim.View>;
 }
 
 function Actions(props: { actions: readonly SwipeAction[]; close: () => void; align: 'start' | 'end'; canRun: () => boolean; progress?: Progress }): React.ReactElement {
   const buttons = (
-    <Box className={`self-stretch flex-row items-stretch gap-1 px-1 ${props.align === 'end' ? 'justify-end' : 'justify-start'}`}>
+    <Box className={`h-full flex-row items-stretch gap-1 px-1 py-1 ${props.align === 'end' ? 'justify-end' : 'justify-start'}`}>
       {props.actions.map((a, i) => (
         <Pressable
           key={a.key}

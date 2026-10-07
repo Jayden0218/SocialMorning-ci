@@ -21,7 +21,7 @@ import { Box } from '@/ui/lib/box';
 import { Actionsheet, ActionsheetBackdrop, ActionsheetContent } from '@/ui/lib/actionsheet';
 import { Icon } from '@/ui/kit/Icon';
 import { useColours } from '@/ui/kit/useColours';
-import { useStores, useToast } from '@/ui/shell/providers';
+import { useCovered, useStores, useToast } from '@/ui/shell/providers';
 import { hit } from '@/design';
 import type { SettingsStore } from '@/storage/types';
 import { interestsDueFrom } from '@/discover/interests';
@@ -65,7 +65,9 @@ export function RateSheet(props: { onTabs: boolean; segment: string | undefined;
   // Latched: once anything of onboarding is seen in this launch, the sheet waits for the next one.
   const blocked = useRef(false);
   if (rateBlockedNow({ segment: props.segment, consent: props.consent, interestsDue: interestsDueFrom(stores.settings, Date.now()) })) blocked.current = true;
-  const may = rateMayAsk(stores.settings, { onTabs: props.onTabs, blockedThisLaunch: blocked.current });
+  // Never over the start-up cover (walk 2026-10-08: it slid up over the launch screen).
+  const covered = useCovered();
+  const may = !covered && rateMayAsk(stores.settings, { onTabs: props.onTabs, blockedThisLaunch: blocked.current });
 
   useEffect(() => {
     if (!may || asked) return;
