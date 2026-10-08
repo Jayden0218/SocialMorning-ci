@@ -15,6 +15,9 @@
  * followers, Mentions, Statuses and the PLUS Weekly digest — all on by default. Each change is
  * kept on this phone and sent alone (`PUT /v1/me/push-prefs` with that one key); on open the
  * server's values win, so a change on another device shows here.
+ *
+ * M24 fix F-P (US3): "System notices" (server key `system`, on by default) in its own card under
+ * "From SocialNet" — the notices the admin sends no longer ride on "Popular content".
  */
 import { reportAndDrop } from '@/telemetry/reportError';
 import { useFocusEffect } from 'expo-router';
@@ -53,6 +56,28 @@ const PEOPLE: readonly { key: PushSwitch; pref: PrefName; label: string; line: s
   { key: 'statuses', pref: 'pushStatuses', label: 'Statuses', line: 'Replies and reactions on yours; new ones from people you follow' },
   { key: 'digest', pref: 'pushDigest', label: 'Weekly digest', line: 'PLUS: last week’s unplayed episodes, Monday noon' },
 ];
+/** M24 fix F-P (US3): the system notices switch, sent and read like the six above. */
+const SYSTEM: typeof PEOPLE = [
+  { key: 'system', pref: 'pushSystem', label: 'System notices', line: 'Notices from SocialNet' },
+];
+const SWITCHES = [...PEOPLE, ...SYSTEM];
+
+/** A card of switch rows (label, line, toggle), a hairline between them. */
+function SwitchRows(props: { rows: typeof PEOPLE; values: Record<PushSwitch, boolean>; onFlip: (p: (typeof PEOPLE)[number], v: boolean) => void; disabled: boolean }): React.ReactElement {
+  return (
+    <Card padded={false} className="px-section">
+      {props.rows.map((p, i) => (
+        <Box key={p.key} className={`flex-row items-center gap-row py-2 ${i < props.rows.length - 1 ? 'border-b-hairline border-separator' : ''}`} style={ROW}>
+          <Box className="flex-1">
+            <Text className="text-text text-body font-semibold">{p.label}</Text>
+            <Text className="text-muted text-xs mt-0.5">{p.line}</Text>
+          </Box>
+          <Toggle value={props.values[p.key]} onChange={(v) => props.onFlip(p, v)} label={p.label} disabled={props.disabled} />
+        </Box>
+      ))}
+    </Card>
+  );
+}
 
 /** One of the two switches, as a card: icon and toggle on top, the serif title and line under. */
 function SwitchCard(props: { icon: IconName; label: string; line: string; value: boolean; onChange: (v: boolean) => void }): React.ReactElement {
@@ -84,7 +109,7 @@ export default function PushSettings(): React.ReactElement {
   };
   // M22 US1: the six people-and-status switches; on open the server's values win.
   const m22 = useM22SocialApi();
-  const [people, setPeople] = useState<Record<PushSwitch, boolean>>(() => Object.fromEntries(PEOPLE.map((p) => [p.key, getPref(stores.settings, p.pref)])) as Record<PushSwitch, boolean>);
+  const [people, setPeople] = useState<Record<PushSwitch, boolean>>(() => Object.fromEntries(SWITCHES.map((p) => [p.key, getPref(stores.settings, p.pref)])) as Record<PushSwitch, boolean>);
   useFocusEffect(useCallback(() => {
     if (!listener) return undefined;
     let live = true;
@@ -92,7 +117,7 @@ export default function PushSettings(): React.ReactElement {
       if (!live) return;
       setPeople((now) => {
         const next = { ...now };
-        for (const p of PEOPLE) {
+        for (const p of SWITCHES) {
           const v = server[p.key];
           if (typeof v === 'boolean') { next[p.key] = v; setPref(stores.settings, p.pref, v); }
         }
@@ -148,17 +173,9 @@ export default function PushSettings(): React.ReactElement {
         <SwitchCard icon="notifications-outline" label="Popular content" line="The day's pick, at most once a day" value={popular} onChange={(v) => { setPopular(v); save({ newEpisodes: episodes, popular: v }); }} />
       </Box>
       <Eyebrow className="mt-row">People and statuses</Eyebrow>
-      <Card padded={false} className="px-section">
-        {PEOPLE.map((p, i) => (
-          <Box key={p.key} className={`flex-row items-center gap-row py-2 ${i < PEOPLE.length - 1 ? 'border-b-hairline border-separator' : ''}`} style={ROW}>
-            <Box className="flex-1">
-              <Text className="text-text text-body font-semibold">{p.label}</Text>
-              <Text className="text-muted text-xs mt-0.5">{p.line}</Text>
-            </Box>
-            <Toggle value={people[p.key]} onChange={(v) => flip(p, v)} label={p.label} disabled={!listener} />
-          </Box>
-        ))}
-      </Card>
+      <SwitchRows rows={PEOPLE} values={people} onFlip={flip} disabled={!listener} />
+      <Eyebrow className="mt-row">From SocialNet</Eyebrow>
+      <SwitchRows rows={SYSTEM} values={people} onFlip={flip} disabled={!listener} />
       {listener ? <NotifyShows load={loadShows} save={m12.setNotifyShow} titleOf={(f) => stores.feeds.getShow(f)?.title} artOf={(f) => stores.feeds.getShow(f)?.imageUrl} disabled={!episodes} /> : null}
       {!listener ? <Text className="text-muted text-xs mt-row">Sign in to receive notifications.</Text> : null}
     </ScrollView>

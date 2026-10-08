@@ -17,7 +17,6 @@ import { rebuildEpisodeHeat } from '../../../heat/rebuild.ts';
 import { countryOf } from '../account/country.ts';
 import { initialsOf } from '../social/comment-likes.ts';
 import { createComment, type PublicComment } from '../social/comments.ts';
-import type { ImageStorage } from '../../../storage/image-store.ts';
 
 export type CommentMode = 'open' | 'closed' | 'review';
 export const MODES: readonly CommentMode[] = ['open', 'closed', 'review'];
@@ -65,11 +64,7 @@ async function isTeam(db: Db, feedUrl: string, listenerId: string): Promise<bool
   return Boolean(r);
 }
 
-type HeldRow = {
-  id: string; episode_id: string; author_id: string; parent_id: string | null; body: string; offset_ms: number | null; country: string | null; created_at: Date | string; display_name: string | null; avatar_url: string | null;
-  /** Fix F-S (migration 026): a picture added while the comment waits. */
-  image_url: string | null; image_path: string | null; image_w: number | null; image_h: number | null; image_bytes: number | null;
-};
+type HeldRow = { id: string; episode_id: string; author_id: string; parent_id: string | null; body: string; offset_ms: number | null; country: string | null; created_at: Date | string; display_name: string | null; avatar_url: string | null };
 
 /** How the author sees their own held comment. Nobody else is ever given one. */
 export function heldToPublic(r: HeldRow): PublicComment & { held: true } {
@@ -77,29 +72,12 @@ export function heldToPublic(r: HeldRow): PublicComment & { held: true } {
     id: r.id, authorId: r.author_id, displayName: r.display_name, body: r.body, offsetMs: r.offset_ms, parentId: r.parent_id,
     createdAt: new Date(r.created_at).toISOString(), deleted: false, initials: initialsOf(r.display_name),
     ...(r.avatar_url ? { avatarUrl: r.avatar_url } : {}),
-    ...(r.image_url && r.image_w && r.image_h ? { image: { url: r.image_url, w: Number(r.image_w), h: Number(r.image_h) } } : {}),
     likeCount: 0, likedByMe: false, country: r.country?.trim() || null, badge: null, mine: true, held: true,
   };
 }
 
-const HELD_SELECT = `SELECT h.id, h.episode_id, h.author_id, h.parent_id, h.body, h.offset_ms, h.country, h.created_at, l.display_name, l.avatar_url,
-                            h.image_url, h.image_path, h.image_w, h.image_h, h.image_bytes
+const HELD_SELECT = `SELECT h.id, h.episode_id, h.author_id, h.parent_id, h.body, h.offset_ms, h.country, h.created_at, l.display_name, l.avatar_url
                      FROM held_comments h JOIN listeners l ON l.id = h.author_id`;
-
-/** Fix F-S: a held comment, for the image upload (which checks author, age and an existing picture). */
-export async function heldForImage(db: Db, id: string): Promise<HeldRow | undefined> {
-  return (await db.query<HeldRow>(`${HELD_SELECT} WHERE h.id = $1`, [id]))[0];
-}
-
-/** Fix F-S: puts the picture on the author's held comment; undefined when it is gone or already has one. */
-export async function setHeldImage(
-  db: Db, id: string, authorId: string, im: { url: string; path: string; w: number; h: number; bytes: number },
-): Promise<HeldRow | undefined> {
-  const [r] = await db.query<{ id: string }>(
-    `UPDATE held_comments SET image_url = $3, image_path = $4, image_w = $5, image_h = $6, image_bytes = $7
-      WHERE id = $1 AND author_id = $2 AND image_path IS NULL RETURNING id`, [id, authorId, im.url, im.path, im.w, im.h, im.bytes]);
-  return r ? heldForImage(db, id) : undefined;
-}
 
 /**
  * The one call in the comment POST (US8): `closed` throws 403 `comments_closed`; `review` holds
@@ -143,7 +121,7 @@ export async function heldForAuthor(db: Db, episodeId: string, authorId: string)
 export async function heldStamp(db: Db, episodeId: string, viewerId: string | undefined): Promise<string> {
   if (!viewerId) return '-';
   const [r] = await db.query<{ s: string | null }>(
-    "SELECT count(*)::text || '/' || count(image_path)::text || '/' || coalesce(max(created_at)::text, '-') AS s FROM held_comments WHERE episode_id = $1 AND author_id = $2", [episodeId, viewerId]);
+    "SELECT count(*)::text || '/' || coalesce(max(created_at)::text, '-') AS s FROM held_comments WHERE episode_id = $1 AND author_id = $2", [episodeId, viewerId]);
   return r?.s ?? '-';
 }
 
@@ -180,25 +158,14 @@ export async function approveHeld(db: Db, feedUrl: string, id: string): Promise<
       ...(h.parent_id && parentLive ? { parentId: h.parent_id } : {}),
       ...(h.country ? { country: h.country.trim() } : {}),
     });
-    // Fix F-S: the picture added while it waited moves with it (the file stays where it is).
-    if (h.image_path) {
-      await tx.query('UPDATE comments SET image_url = $2, image_path = $3, image_w = $4, image_h = $5, image_bytes = $6 WHERE id = $1',
-        [created.id, h.image_url, h.image_path, h.image_w, h.image_h, h.image_bytes]);
-    }
     if (h.offset_ms !== null) await rebuildEpisodeHeat(tx, h.episode_id);
     return { commentId: created.id };
   });
 }
 
-/**
- * Reject: the held comment is deleted; nobody but its author ever saw it. Fix F-S: its picture
- * is deleted from the image store too (a failed delete is logged; the row is gone either way).
- */
-export async function rejectHeld(db: Db, feedUrl: string, id: string, images?: ImageStorage): Promise<void> {
+/** Reject: the held comment is deleted; nobody but its author ever saw it. */
+export async function rejectHeld(db: Db, feedUrl: string, id: string): Promise<void> {
   const h = await heldOnShow(db, feedUrl, id);
   if (!h) throw new ApiError('not_found', 'No such comment waiting on this show.');
   await db.query('DELETE FROM held_comments WHERE id = $1', [id]);
-  if (h.image_path && images?.ready) {
-    try { await images.remove(h.image_path); } catch (e) { console.error('held comment image remove', e instanceof Error ? e.message : String(e)); }
-  }
 }

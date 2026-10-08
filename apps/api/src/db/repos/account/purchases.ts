@@ -3,8 +3,7 @@
  * M20 US6 (spec FR-020–FR-026; data-model "purchases"; guard G-M20-5). A Google Play purchase is
  * checked with Google first (`GooglePlay`), then written once — `purchase_token` is unique, so a
  * repeated or raced notice finds the same row and grants nothing new. What it grants:
- *  - PLUS → `entitlements (plus, '', until = Google's expiry)`; sending the token again refreshes the expiry.
- *    Fix F-S: that row is the store's alone — redeem codes and Admin keep their own rows (`plusUntil`)
+ *  - PLUS → `entitlements (plus, '', until = Google's expiry)`; sending the token again refreshes the expiry
  *  - a show's price level → `entitlements (show, feed URL)`: every paid episode of that show
  *  - a tip → a `tips` row to the show
  *  - M22 US14: a gift of a show (`gift_tier_n`) → nothing for the buyer; a `gifts` row with a code
@@ -186,27 +185,8 @@ export async function acknowledgeDue(db: Db, play: GooglePlay): Promise<{ done: 
   return { done, failed };
 }
 
-/**
- * Fix F-S: PLUS comes from separate rows, one per source (`entitlements.ref`): '' = the store
- * (Google Play; renewals and refunds touch only it), 'code' = redeem codes, 'admin' = given by
- * hand (routes/admin/users.ts PLUS_BY_ADMIN). No source ever writes another's row.
- */
-export const PLUS_BY_STORE = '';
-export const PLUS_BY_CODE = 'code';
-
-/**
- * PLUS "active until" = the latest end over every source still running; `until` null with
- * `active` true means for ever. Computed, never stored.
- */
-export async function plusUntil(db: Db, listenerId: string): Promise<{ active: boolean; until: string | null }> {
-  const [r] = await db.query<{ n: string | number; forever: boolean; until: Date | string | null }>(
-    `SELECT count(*) AS n, bool_or(until IS NULL) AS forever, max(until) AS until FROM entitlements
-      WHERE listener_id = $1 AND kind = 'plus' AND (until IS NULL OR until > now())`, [listenerId]);
-  const active = Number(r?.n ?? 0) > 0;
-  return { active, until: active && !r?.forever && r?.until ? new Date(r.until).toISOString() : null };
-}
-
-/** Whether this listener has PLUS now (the badge, the icons): any source still running. */
+/** Whether this listener has PLUS now (the badge, the icons). Computed, never stored. */
 export async function hasPlus(db: Db, listenerId: string): Promise<boolean> {
-  return (await plusUntil(db, listenerId)).active;
+  const [r] = await db.query("SELECT 1 FROM entitlements WHERE listener_id = $1 AND kind = 'plus' AND (until IS NULL OR until > now())", [listenerId]);
+  return Boolean(r);
 }

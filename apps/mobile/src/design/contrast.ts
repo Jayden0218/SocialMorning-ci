@@ -62,6 +62,8 @@ export const PAIRS: Pair[] = [
   // M24 US18: the Segmented track and its dark choice (measured 2026-10-08).
   { fg: colour.muted, bg: colour.segment, min: BODY_MIN, role: 'an unchosen tab on the beige track' }, // 6.21
   { fg: colour.background, bg: colour.text, min: BODY_MIN, role: 'paper words on the dark chosen tab' }, // 17.47
+  // M24 fix F-P: the main Play buttons' fixed yellow, whatever the accent theme.
+  { fg: colour.onPlay, bg: colour.play, min: BODY_MIN, role: 'words and glyph on a main Play button' }, // 11.80
 ];
 
 /**

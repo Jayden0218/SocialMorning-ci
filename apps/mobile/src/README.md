@@ -69,6 +69,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `fetch-extras.ts` | Fetches and caches an episode's chapters and transcript. |
 | `fetch.ts` | Refreshes one show's feed, keeping the saved copy if it fails. |
 | `hash.ts` | Makes episode ids the same way the server does. |
+| `hidden.ts` | Remembers which episodes a show's creator hid, and leaves them out of the phone's lists. |
 | `refresh-all.ts` | Refreshes every subscribed show one by one, so one failure stops nothing. |
 
 ### `graph/` — Clips, the Following feed, and listening time shared with other people.

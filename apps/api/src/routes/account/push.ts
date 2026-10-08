@@ -12,7 +12,6 @@ const tokenBody = z.object({ token: z.string().regex(/^(ExponentPushToken|ExpoPu
 const prefsBody = z.object({
   newEpisodes: z.boolean(), popular: z.boolean(), replies: z.boolean(), likes: z.boolean(),
   follows: z.boolean(), mentions: z.boolean(), statuses: z.boolean(), digest: z.boolean(),
-  system: z.boolean(), // M24 fix F-S: system notices have their own switch
 }).partial();
 
 export const pushTokens = new Hono<AuthEnv>();

@@ -6,10 +6,11 @@
 import { matchesTerm } from '@socialmorning/social-core';
 import type { EpisodeCard, ShowCard } from '@/social/api';
 import type { Stores } from '@/storage/types';
+import { visibleEpisodes } from '@/feeds/hidden';
 
 export type LibraryHits = { shows: ShowCard[]; episodes: EpisodeCard[] };
 
-export function searchLibrary(stores: Pick<Stores, 'subscriptions' | 'feeds'>, term: string, cap = 20): LibraryHits {
+export function searchLibrary(stores: Pick<Stores, 'subscriptions' | 'feeds'> & { settings?: Stores['settings'] }, term: string, cap = 20): LibraryHits {
   const shows: ShowCard[] = [];
   const episodes: EpisodeCard[] = [];
   for (const sub of stores.subscriptions.list()) {
@@ -17,7 +18,8 @@ export function searchLibrary(stores: Pick<Stores, 'subscriptions' | 'feeds'>, t
     if (show && shows.length < cap && matchesTerm(term, show.title, show.author)) {
       shows.push({ feedUrl: sub.feedUrl, title: show.title, author: show.author ?? '', ...(show.imageUrl ? { imageUrl: show.imageUrl } : {}), genres: show.categories });
     }
-    for (const e of stores.feeds.listEpisodes(sub.feedUrl)) {
+    // M24 fix F-P: a hidden episode is not found either.
+    for (const e of visibleEpisodes(stores, sub.feedUrl)) {
       if (episodes.length >= cap) break;
       if (!matchesTerm(term, e.title)) continue;
       const imageUrl = e.imageUrl ?? show?.imageUrl;

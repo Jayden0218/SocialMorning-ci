@@ -15,7 +15,6 @@
 import { createHash, randomInt, timingSafeEqual } from 'node:crypto';
 import type { Db } from '../../db.ts';
 import { ApiError } from '../../../errors.ts';
-import { PLUS_BY_CODE, plusUntil } from './purchases.ts';
 
 const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 export const REDEEM_CODE_LENGTH = 12;
@@ -92,15 +91,13 @@ export async function redeemCode(db: Db, raw: string, listenerId: string, now = 
       'UPDATE redeem_codes SET uses = uses + 1, used_by = $2, used_at = now() WHERE code = $1 AND uses < max_uses AND disabled_at IS NULL RETURNING uses', [row.code, listenerId]);
     if (!took) throw new ApiError('cancelled', 'This code has been used up.');
     if (grant.kind === 'plus') {
-      // Fix F-S: code days live in their OWN row (ref 'code'), never on the store's row (ref ''),
-      // so a Play renewal or refund cannot overwrite or remove them. They add up from now, or from
-      // the end of earlier code days. `until` in the answer is PLUS over every source (plusUntil).
-      await tx.query(
-        `INSERT INTO entitlements (listener_id, kind, ref, until) VALUES ($1, 'plus', $3, now() + make_interval(days => $2::int))
+      // Adds the days to PLUS: from now, or from the end of PLUS already running. NULL (for ever) stays.
+      const [e] = await tx.query<{ until: Date | string | null }>(
+        `INSERT INTO entitlements (listener_id, kind, ref, until) VALUES ($1, 'plus', '', now() + make_interval(days => $2::int))
          ON CONFLICT (listener_id, kind, ref) DO UPDATE SET until = CASE WHEN entitlements.until IS NULL THEN NULL
-           ELSE GREATEST(entitlements.until, now()) + make_interval(days => $2::int) END`, [listenerId, grant.days, PLUS_BY_CODE]);
-      const p = await plusUntil(tx, listenerId);
-      return { kind: 'plus', days: grant.days, until: p.until };
+           ELSE GREATEST(entitlements.until, now()) + make_interval(days => $2::int) END
+         RETURNING until`, [listenerId, grant.days]);
+      return { kind: 'plus', days: grant.days, until: e?.until ? new Date(e.until).toISOString() : null };
     }
     const [owns] = await tx.query("SELECT 1 FROM entitlements WHERE listener_id = $1 AND kind = 'show' AND ref = $2", [listenerId, grant.feedUrl]);
     if (owns) throw new ApiError('already_owned', 'You already have this series. The code still works for someone else.');

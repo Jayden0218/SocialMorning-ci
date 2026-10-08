@@ -19,7 +19,7 @@ import { useColours } from '@/ui/kit/useColours';
 import { useStores, useToast } from '@/ui/shell/providers';
 import { ApiError } from '@/social/api';
 import { useSocial } from '@/social/context';
-import { isEmail, useAccountApi } from '@/social/account-api';
+import { emailChangedLine, isEmail, useAccountApi } from '@/social/account-api';
 
 export default function ChangeEmailScreen(): React.ReactElement {
   const router = useRouter();
@@ -51,9 +51,10 @@ export default function ChangeEmailScreen(): React.ReactElement {
     setError(undefined);
     try {
       const now = await api.confirmEmailChange(code);
-      if (listener) stores.auth.set({ listenerId: listener.listenerId, displayName: listener.displayName, email: now }, Date.now());
+      if (listener) stores.auth.set({ listenerId: listener.listenerId, displayName: listener.displayName, email: now.email }, Date.now());
       refreshListener();
-      toast('Your sign-in email is changed.');
+      // M24 fix F-P: the server signs out the other devices and says how many.
+      toast(emailChangedLine(now.signedOut));
       router.back();
     } catch (e) { fail(e); } finally { setBusy(false); }
   }

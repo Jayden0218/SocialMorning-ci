@@ -5,9 +5,8 @@
  * A card's one button is an in-app path (`link_route` starts with "/"; the phone's `systemAction`
  * drops anything else).
  *
- * A push is optional and respects the listener's "System notices" switch (push_prefs.system,
- * migration 026 — M24 fix F-S; before it, notices rode on "Popular content"). A listener who
- * turned it off is never pushed.
+ * A push is optional and respects the listener's "Popular content" switch (push_prefs.popular) —
+ * the one switch for news from SocialNet; a listener who turned it off is never pushed.
  */
 import type { Db } from '../../db.ts';
 import { sendExpo, type PushMessage } from '../account/push.ts';
@@ -56,12 +55,12 @@ export async function deleteNotice(db: Db, id: string): Promise<boolean> {
   return (await db.query('DELETE FROM system_notices WHERE id = $1 AND listener_id IS NULL RETURNING id', [id])).length > 0;
 }
 
-/** Pushes a notice to its listener (or everyone) whose "System notices" switch is on. */
+/** Pushes a notice to its listener (or everyone) whose "Popular content" switch is on. */
 export async function pushNotice(db: Db, f: typeof fetch, n: { title: string; body: string; listenerId: string | null }): Promise<{ sent: number; dropped: number }> {
   const tokens = await db.query<{ token: string }>(
     `SELECT t.token FROM push_tokens t LEFT JOIN push_prefs p ON p.listener_id = t.listener_id
        JOIN listeners l ON l.id = t.listener_id AND l.suspended_at IS NULL
-      WHERE COALESCE(p.system, true) AND ($1::uuid IS NULL OR t.listener_id = $1::uuid)`, [n.listenerId]);
+      WHERE COALESCE(p.popular, true) AND ($1::uuid IS NULL OR t.listener_id = $1::uuid)`, [n.listenerId]);
   const messages = tokens.map((t): PushMessage => ({ to: t.token, title: n.title, body: n.body.slice(0, 180), data: { href: NOTICES_HREF, kind: 'system' }, sound: 'default' }));
   return messages.length === 0 ? { sent: 0, dropped: 0 } : sendExpo(db, f, messages);
 }

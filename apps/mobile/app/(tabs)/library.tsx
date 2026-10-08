@@ -35,7 +35,7 @@ import { useColours } from '@/ui/kit/useColours';
 import { Icon } from '@/ui/kit/Icon';
 import { enqueue } from '@socialmorning/player-core';
 import { useDiscover } from '@/discover/useDiscover';
-import { refreshAll } from '@/feeds/refresh-all';
+import { PER_FEED_TIMEOUT_MS, refreshAll } from '@/feeds/refresh-all';
 import { hideFromUpdates, updatesSnapshot, type UpdateRow } from '@/me/updates';
 import { usePlayer } from '@/playback/store';
 import { useSafety } from '@/safety/context';
@@ -91,6 +91,8 @@ export default function UpdatesScreen(): React.ReactElement {
   const [swipeHint] = useState(() => stores.settings.get(SWIPE_HINT_KEY) !== '1');
   useEffect(() => { if (swipeHint && rows.length > 0) stores.settings.set(SWIPE_HINT_KEY, '1'); }, [swipeHint, rows.length, stores]);
 
+  // M24 fix F-P: each refresh also asks which episodes the creators hid (`src/feeds/hidden.ts`).
+  const social = useSocial();
   const read = useCallback(() => {
     const now = updatesSnapshot(stores, hiddenFeeds);
     setRows(now.rows);
@@ -99,15 +101,15 @@ export default function UpdatesScreen(): React.ReactElement {
   useFocusEffect(useCallback(() => {
     let live = true;
     read();
-    void refreshAll(stores, Date.now()).then((r) => { if (!live) return; setStale(r.stale.length); read(); });
+    void refreshAll(stores, Date.now(), PER_FEED_TIMEOUT_MS, social.api?.hiddenEpisodes).then((r) => { if (!live) return; setStale(r.stale.length); read(); });
     return () => { live = false; };
-  }, [read, stores]));
+  }, [read, stores, social.api]));
 
   // iOS L1 (and Android's defect 13): after a sign-in on a fresh install the server's
   // subscriptions were merged only at the next app start, so this page stayed empty until a
   // cold restart. A new listener now reconciles here and the list redraws.
   const subscriptionSync = useSubscriptionSync();
-  const me = useSocial().listener;
+  const me = social.listener;
   const listenerId = me?.listenerId;
   // M21 US8: my photo on the "+" circle.
   const profileApi = useProfileApi();
@@ -123,13 +125,13 @@ export default function UpdatesScreen(): React.ReactElement {
     void subscriptionSync.reconcile().catch(() => undefined).then(async () => {
       if (!live) return;
       read();
-      const r = await refreshAll(stores, Date.now());
+      const r = await refreshAll(stores, Date.now(), PER_FEED_TIMEOUT_MS, social.api?.hiddenEpisodes);
       if (!live) return;
       setStale(r.stale.length);
       read();
     });
     return () => { live = false; };
-  }, [listenerId, subscriptionSync, read, stores]);
+  }, [listenerId, subscriptionSync, read, stores, social.api]);
 
   // M12 FR-080: each row's comment count — and, Owner 2026-10-01, its plays (`listeners`) —
   // one call for the first 100 rows. A failure leaves the meta line without numbers; the

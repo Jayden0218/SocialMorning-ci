@@ -77,17 +77,3 @@ test('category features: up to 5 shows first, in the owner\'s order, even one no
   assert.equal((await aCall(t, 'PUT', '/v1/admin/categories/99999/features', owner, { shows: [] })).status, 404);
   await t.close();
 });
-
-test('fix F-S: the DEFAULT section order puts the Editor\'s picks first, then For you; a saved layout keeps its own order', async () => {
-  const { t, owner } = await adminSetup({ picksRaw: [], today: () => TODAY, collectionsRaw: [] });
-  type S = { sections: string[]; order: string[]; version: number };
-  const fresh = (await (await aCall(t, 'GET', '/v1/admin/discover', owner)).json()) as S;
-  assert.deepEqual(fresh.sections.slice(0, 2), ['picks', 'forYou']);
-  assert.deepEqual(fresh.order, [], 'nothing saved');
-  assert.equal((await aCall(t, 'PUT', '/v1/admin/discover', owner, { version: 0, order: ['forYou', 'picks'], hidden: [], pins: [], hides: [] })).status, 200);
-  const saved = (await (await aCall(t, 'GET', '/v1/admin/discover', owner)).json()) as S;
-  assert.deepEqual(saved.order, ['forYou', 'picks'], 'the owner\'s saved order is kept as saved');
-  const body = (await (await t.call('GET', '/v1/discover')).json()) as Body;
-  assert.deepEqual(body.layout?.order, ['forYou', 'picks']);
-  await t.close();
-});

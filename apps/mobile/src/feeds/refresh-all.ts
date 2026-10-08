@@ -12,6 +12,7 @@
  * data is worse for the listener than waiting, and nothing here blocks the UI.
  */
 import { refreshShow } from './fetch';
+import { refreshHiddenGuids } from './hidden';
 import type { Stores } from '@/storage/types';
 
 export type RefreshAllResult = {
@@ -28,6 +29,8 @@ export async function refreshAll(
   stores: Stores,
   now: number,
   timeoutMs: number = PER_FEED_TIMEOUT_MS,
+  /** M24 fix F-P: asks the server which episodes each show's creator hid (`src/feeds/hidden.ts`). */
+  hiddenOf?: (feedUrl: string) => Promise<string[]>,
 ): Promise<RefreshAllResult> {
   const result: RefreshAllResult = { refreshed: [], stale: [], failed: [] };
 
@@ -47,5 +50,6 @@ export async function refreshAll(
     }
   }
 
+  if (hiddenOf) await refreshHiddenGuids(stores.settings, stores.subscriptions.list().map((s) => s.feedUrl), hiddenOf);
   return result;
 }

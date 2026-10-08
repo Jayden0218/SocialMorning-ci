@@ -9,6 +9,7 @@
  */
 import type { CachedEpisode, SettingsStore, Stores } from '@/storage/types';
 import { getPref } from '@/settings/prefs';
+import { visibleEpisodes } from '@/feeds/hidden';
 import { readList, writeList } from './local-list';
 
 export const UPDATES_HIDDEN_KEY = 'updates.hidden';
@@ -49,7 +50,8 @@ export function latestUpdates(stores: Pick<Stores, 'subscriptions' | 'feeds'> & 
   for (const { feedUrl } of stores.subscriptions.list()) {
     if (hidden.has(feedUrl)) continue;
     const show = stores.feeds.getShow(feedUrl);
-    for (const e of stores.feeds.listEpisodes(feedUrl).filter((x) => !(noExplicit && x.explicit) && !removed.has(x.id)).slice(0, perShow)) {
+    // M24 fix F-P: an episode its creator hid in the Studio is not listed (nor played by play-latest, the car, Siri).
+    for (const e of visibleEpisodes(stores, feedUrl).filter((x) => !(noExplicit && x.explicit) && !removed.has(x.id)).slice(0, perShow)) {
       const img = e.imageUrl ?? show?.imageUrl;
       rows.push({ episode: e, showTitle: show?.title ?? feedUrl, ...(img ? { imageUrl: img } : {}), summary: plainSummary(e.shownotesHtml) });
     }
