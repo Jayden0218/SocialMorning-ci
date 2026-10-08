@@ -8,6 +8,8 @@
  *  - POST /confirm { code }   → { email } — 10 minutes, 5 tries (the try is reserved before the
  *    compare, like sign-in codes), compared in constant time. A right code switches the email in
  *    one statement, deletes the pending change, and emails the OLD address that it changed.
+ *    Fix F-S: it also signs out every OTHER session of the account (phones, Studio) and answers
+ *    { email, signedOut: n }; the session that confirmed stays signed in.
  *
  * Guard G-M24-A3-2: without the right code the email never changes (test/m24-account.test.ts).
  */
@@ -15,7 +17,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { timingSafeEqual } from 'node:crypto';
 import type { AuthEnv } from '../../auth/session.ts';
-import { requireAuth } from '../../auth/session.ts';
+import { requireAuth, tokenHash } from '../../auth/session.ts';
 import { json } from '../../validate.ts';
 import { ApiError } from '../../errors.ts';
 import { CODE_TTL_MS, MAX_ATTEMPTS, RESEND_AFTER_MS, codeHash, newCode } from '../../auth/codes.ts';
@@ -75,6 +77,7 @@ emailChange.post('/confirm', requireAuth, json(z.object({ code: z.string().trim(
   }
   const to = row.new_email.toLowerCase();
   const old = me.email;
+  const keep = tokenHash(c.get('token')!, c.get('pepper'));
   const switched = await db.transaction(async (tx) => {
     const [taken] = await tx.query('SELECT 1 FROM listeners WHERE email = $1 AND id <> $2', [to, me.id]);
     if (taken) return false;
@@ -82,9 +85,11 @@ emailChange.post('/confirm', requireAuth, json(z.object({ code: z.string().trim(
     await tx.query('DELETE FROM email_changes WHERE listener_id = $1', [me.id]);
     // Sign-in codes already sent to either address are void now.
     await tx.query('DELETE FROM email_codes WHERE email = $1 OR email = $2', [old, to]);
-    return true;
+    // Fix F-S (guard G-M24-FS-2): every other session of this account is signed out; this one stays.
+    const gone = await tx.query('DELETE FROM sessions WHERE listener_id = $1 AND token_hash <> $2 RETURNING 1', [me.id, keep]);
+    return { signedOut: gone.length };
   });
-  if (!switched) {
+  if (switched === false) {
     await db.query('DELETE FROM email_changes WHERE listener_id = $1', [me.id]);
     throw new ApiError('conflict', 'Another account uses that email now.');
   }
@@ -98,5 +103,5 @@ emailChange.post('/confirm', requireAuth, json(z.object({ code: z.string().trim(
   } catch (e) {
     console.error('email change notice failed', e instanceof Error ? e.message : String(e));
   }
-  return c.json({ email: to });
+  return c.json({ email: to, signedOut: switched.signedOut });
 });
