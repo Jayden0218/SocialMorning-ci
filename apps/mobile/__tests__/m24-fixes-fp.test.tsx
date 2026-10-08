@@ -37,25 +37,30 @@ const mockPushPrefs = jest.fn(() => Promise.resolve());
 const mockM22 = { pushSwitches: jest.fn(() => Promise.resolve({} as Record<string, boolean>)), setPushSwitches: jest.fn((_p: Record<string, boolean>) => Promise.resolve()) };
 const mockM12 = { notifyShows: () => Promise.resolve([]), setNotifyShow: () => Promise.resolve() };
 const mockAccount = { startEmailChange: jest.fn((_e: string) => Promise.resolve()), confirmEmailChange: jest.fn((_a: string, _b: string) => Promise.resolve({ email: 'new@e.com', signedOut: 2 })) };
-jest.mock('@/social/context', () => ({
-  useSocial: () => ({
-    api: { votePoll: (...a: unknown[]) => mockVote(...a), pushPrefs: (...a: unknown[]) => (mockPushPrefs as (...x: unknown[]) => Promise<void>)(...a) },
-    listener: { listenerId: 'me', displayName: 'Me', email: 'old@e.com' },
-    refreshListener: () => mockRefreshListener(),
-  }),
-}));
+// One object each for the whole run, as the real providers give: a new one per render changes the
+// pages' useCallback deps, re-runs their focus effects (which set state) and renders for ever —
+// the gate 37744935171 timeouts on the Notifications and change-email pages.
+const mockSocial = {
+  api: { votePoll: (...a: unknown[]) => mockVote(...a), pushPrefs: (...a: unknown[]) => (mockPushPrefs as (...x: unknown[]) => Promise<void>)(...a) },
+  listener: { listenerId: 'me', displayName: 'Me', email: 'old@e.com' },
+  refreshListener: () => mockRefreshListener(),
+};
+const mockStores = { settings: mockSettings, feeds: { getShow: () => undefined }, auth: { set: (...a: unknown[]) => mockAuthSet(...a), get: () => undefined } };
+const mockToastFn = (...a: unknown[]) => mockToast(...a);
+const mockRouter = { back: () => mockBack(), push: (...a: unknown[]) => mockPush(...a) };
+jest.mock('@/social/context', () => ({ useSocial: () => mockSocial }));
 jest.mock('expo-router', () => {
   const { useEffect } = require('react');
   return {
     router: { push: (...a: unknown[]) => mockPush(...a), back: () => mockBack() },
-    useRouter: () => ({ back: () => mockBack(), push: (...a: unknown[]) => mockPush(...a) }),
+    useRouter: () => mockRouter,
     useFocusEffect: (f: () => void | (() => void)) => { useEffect(() => f(), [f]); },
     Link: (p: { children?: unknown }) => p.children,
   };
 });
 jest.mock('@/ui/shell/providers', () => ({
-  useStores: () => ({ settings: mockSettings, feeds: { getShow: () => undefined }, auth: { set: (...a: unknown[]) => mockAuthSet(...a), get: () => undefined } }),
-  useToast: () => (...a: unknown[]) => mockToast(...a),
+  useStores: () => mockStores,
+  useToast: () => mockToastFn,
   useCovered: () => false,
 }));
 jest.mock('@/ui/kit/PageHeader', () => ({ PageHeader: () => null }));

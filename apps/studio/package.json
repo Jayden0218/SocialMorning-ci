@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "c8 vitest run --pool=threads",
     "e2e": "playwright test"
   },
   "dependencies": {

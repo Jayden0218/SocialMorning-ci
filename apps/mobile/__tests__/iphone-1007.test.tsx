@@ -217,13 +217,17 @@ describe('6–13. the layout pass ("I see it overlap, the elements run away the 
     act(() => { r = create(createElement(TopBar, { onBack: () => undefined, solid: true })); });
     const bar = styleOf(hosts(r)[0]!);
     expect(channels(bar['backgroundColor'])).toEqual(rgb(colour.background));
-    expect(Number(bar['borderBottomWidth'])).toBeGreaterThan(0);
+    // The hairline is the class: UniWind's `hairlineWidth()` has no value under jest (NaN, gate
+    // 37744935171), so the rendered bar's own classes are read for it.
+    const barClasses = () => String(r.root.findAll((n) => typeof n.props['className'] === 'string')[0]!.props['className']).split(/\s+/);
+    expect(barClasses()).toEqual(expect.arrayContaining(['bg-background', 'border-b-hairline', 'border-separator']));
     expect(bar['zIndex']).toBe(2);
     // Not collapsed: see-through, no line (the hero shows under it).
     act(() => { r.update(createElement(TopBar, { onBack: () => undefined, solid: false })); });
     const open = styleOf(hosts(r)[0]!);
     expect(open['backgroundColor']).toBeUndefined();
-    expect(open['borderBottomWidth'] ?? 0).toBe(0);
+    expect(barClasses()).not.toContain('border-b-hairline');
+    expect(open['zIndex']).toBeUndefined();
     act(() => r.unmount());
   });
   // KEPT as source checks: each page passes `solid={collapsed}` from its own scroll state —

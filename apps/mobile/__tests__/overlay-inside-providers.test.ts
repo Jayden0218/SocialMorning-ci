@@ -71,9 +71,9 @@ jest.mock('@/ui/lib/gluestack-ui-provider', () => {
 jest.mock('@/ui/queue/QueueSheetHost', () => {
   const g = mockGuarded('QueueSheetHost', 'useQueueSheet', { open: () => undefined, close: () => undefined });
   const { createElement: h, Fragment } = require('react');
-  const Host = g['QueueSheetHost'] as (p: { children?: unknown }) => unknown;
+  const Host = g['QueueSheetHost'] as never;
   const Sheet = () => { require('@/ui/shell/providers').useStores(); return h('queue-sheet', { testID: 'queue-sheet' }); };
-  const QueueSheetHost = ({ children }: { children?: unknown }) => h(Fragment, null, h(Host as never, null, children), h(Sheet));
+  const QueueSheetHost = ({ children }: { children?: unknown }) => h(Fragment, null, h(Host, null, children), h(Sheet));
   return { QueueSheetHost, useQueueSheet: g['useQueueSheet'] };
 });
 // The root's mini player opens the playlist sheet with `useQueueSheet().open()`.

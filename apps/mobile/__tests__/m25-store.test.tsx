@@ -48,7 +48,9 @@ jest.mock('@/ui/lib/modal', () => ({ Modal: () => null, ModalBackdrop: () => nul
 jest.mock('@/ui/shell/LegalDoc', () => ({ LegalDoc: () => null }));
 // The build's config (version, `extra.distribution`), the APK download and the server address.
 // A getter: the factory runs while the imports below load, before `mockConstants` is assigned.
-jest.mock('expo-constants', () => ({ __esModule: true, get default() { return mockConstants; } }));
+// While the imports load, `mockConstants` is still undefined, and expo-asset (under the fonts that
+// Text loads) reads `Constants.experienceUrl` at load time (gate 37744935171) — an empty config then.
+jest.mock('expo-constants', () => ({ __esModule: true, get default() { return mockConstants ?? {}; } }));
 jest.mock('expo-file-system', () => {
   class File {
     exists = false;

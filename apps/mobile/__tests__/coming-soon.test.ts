@@ -51,6 +51,21 @@ jest.mock('@/notify/permission', () => ({ askForNotifications: () => Promise.res
 jest.mock('@/notify/expo', () => ({ expoNotify: {} }));
 jest.mock('@/ui/auth/ArtWall', () => ({ ArtWall: () => null }));
 jest.mock('@/ui/auth/Consent', () => ({ ConsentRow: () => null, ConsentDialog: () => null, useLegalOverlay: () => ({ open: () => undefined, overlay: null }) }));
+// gluestack's AlertDialog loads reanimated, whose native worklets cannot start under jest (gate
+// 37744935171: "reading 'loadUnpackersWithCode'"). Me's sign-out uses it; stand-ins keep their
+// identity, so "the Coming soon sheet draws no AlertDialog" still finds one if it is ever used.
+jest.mock('@/ui/lib/alert-dialog', () => {
+  const pass = (p: { children?: unknown }) => p.children ?? null;
+  return {
+    AlertDialog: function AlertDialog(p: { isOpen?: boolean; children?: unknown }) { return p.isOpen ? (p.children ?? null) : null; },
+    AlertDialogBackdrop: function AlertDialogBackdrop() { return null; },
+    AlertDialogBody: pass,
+    AlertDialogCloseButton: pass,
+    AlertDialogContent: pass,
+    AlertDialogFooter: pass,
+    AlertDialogHeader: pass,
+  };
+});
 
 import { GluestackUIProvider } from '@/ui/lib/gluestack-ui-provider';
 import { Actionsheet, ActionsheetContent } from '@/ui/lib/actionsheet';
