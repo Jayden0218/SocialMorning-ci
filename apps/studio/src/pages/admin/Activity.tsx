@@ -13,7 +13,7 @@ type Row = {
 };
 type Page = { items: Row[]; next?: string };
 
-const AREAS = ['picks', 'issues', 'collections', 'discover', 'launch', 'accounts', 'users', 'reports', 'safety', 'notices', 'appeals'];
+const AREAS = ['picks', 'issues', 'collections', 'discover', 'launch', 'accounts', 'users', 'reports'];
 const when = (iso: string) => new Date(iso).toLocaleString('en', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 const show = (v: unknown) => (v === undefined ? '—' : JSON.stringify(v));
 

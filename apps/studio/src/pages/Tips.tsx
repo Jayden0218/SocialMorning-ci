@@ -1,7 +1,7 @@
 // Page showing tips received, with a switch to allow or stop tips.
 import { useEffect, useState } from 'react';
 import { api, HttpError, type Show } from '../api';
-import { shortDate } from '../format';
+import { money, shortDate } from '../format';
 import { PageHead } from '../shell/Page';
 import { StatCard } from '../shell/StatCard';
 import { Empty, Failed, Loading } from '../shell/States';
@@ -9,8 +9,6 @@ import { Table, type Column } from '../shell/Table';
 import { useLoad } from '../useLoad';
 
 type T = { totalMicrosByCurrency: Record<string, number>; items: { at: string; amountMicros: number | null; currency: string | null; from: { displayName: string } | null }[] };
-const money = (micros: number | null, cur: string | null) =>
-  micros === null || !cur ? '—' : new Intl.NumberFormat('en', { style: 'currency', currency: cur }).format(micros / 1_000_000);
 
 /**
  * M14 US7 (FR-08) — whether listeners may tip this show at all. Saved at once (a switch, not a form).
@@ -43,7 +41,7 @@ function TipsSwitch({ show }: { show: Show }) {
         <li>Listeners tip in the app, through the App Store or Google Play. The store keeps its fee.</li>
         <li>Every tip is checked by our server before it counts. A refunded tip is removed.</li>
         <li>Listening stays free. Tips never unlock episodes or comments.</li>
-        <li>Not live yet: the app has no Tip button until in-app payments are switched on. It will follow this setting.</li>
+        <li>Listeners on Android see a Tip the host button on your show page while this is on.</li>
         <li>Payouts are not available yet.</li>
       </ul>
     </section>

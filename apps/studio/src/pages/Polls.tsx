@@ -9,7 +9,11 @@ import { useLoad } from '../useLoad';
 import { noun } from '@socialmorning/social-core';
 import type { EpisodePage } from './types';
 
-type Poll = { id: string; question: string; episodeId: string | null; endsAt: string; closedAt: string | null; open: boolean; total: number; options: { idx: number; label: string; votes: number }[] };
+type Poll = {
+  id: string; question: string; episodeId: string | null; endsAt: string; closedAt: string | null; open: boolean; total: number; options: { idx: number; label: string; votes: number }[];
+  /** M24 US14: listeners may pick more than one option; `voters` counts people, `total` counts votes. */
+  multi?: boolean; voters?: number;
+};
 
 const inDays = (d: number) => {
   const t = new Date(Date.now() + d * 86_400_000);
@@ -28,13 +32,15 @@ export function Polls({ show }: { show: Show }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [closing, setClosing] = useState<Poll | null>(null);
+  const [deleting, setDeleting] = useState<Poll | null>(null);
+  const [multi, setMulti] = useState(false);
   const create = async () => {
     setBusy(true); setError(null);
     try {
       await api(`/v1/studio/shows/${show.key}/polls`, { method: 'POST', body: {
-        question, options: options.map((o) => o.trim()).filter(Boolean), endsAt: new Date(`${ends}T23:59:00`).toISOString(), ...(episodeId ? { episodeId } : {}),
+        question, options: options.map((o) => o.trim()).filter(Boolean), endsAt: new Date(`${ends}T23:59:00`).toISOString(), multi, ...(episodeId ? { episodeId } : {}),
       } });
-      setQuestion(''); setOptions(['', '']); setEpisodeId(''); setN((x) => x + 1);
+      setQuestion(''); setOptions(['', '']); setEpisodeId(''); setMulti(false); setN((x) => x + 1);
     } catch (e) { setError(e instanceof HttpError ? e.message : 'That did not work.'); } finally { setBusy(false); }
   };
   return (
@@ -56,6 +62,9 @@ export function Polls({ show }: { show: Show }) {
             ))}
             {options.length < 6 ? <button type="button" className="linkish" onClick={() => setOptions([...options, ''])}>Add an option</button> : null}
           </fieldset>
+          <label className="radio" style={{ marginBottom: 8 }}>
+            <input type="checkbox" checked={multi} onChange={(e) => setMulti(e.target.checked)} /> Listeners may choose more than one
+          </label>
           <div className="toolbar">
             <div className="field" style={{ margin: 0 }}><label htmlFor="pe">Ends on</label><input id="pe" type="date" className="select" min={inDays(1)} max={inDays(30)} required value={ends} onChange={(e) => setEnds(e.target.value)} /></div>
             <div className="field" style={{ margin: 0, flex: 1 }}>
@@ -80,6 +89,8 @@ export function Polls({ show }: { show: Show }) {
               <span className={`pill${p.open ? ' pill-warn' : ''}`}>{p.open ? 'Open' : 'Closed'}</span>
               <span>{p.open ? `Ends ${shortDate(p.endsAt)}` : `Ended ${shortDate(p.closedAt ?? p.endsAt)}`}</span>
               <span className="num">{num(p.total)} {noun(p.total, 'vote')}</span>
+              {p.multi ? <span className="pill">Multiple choice</span> : null}
+              {p.multi && p.voters !== undefined ? <span className="num">{num(p.voters)} {noun(p.voters, 'voter')}</span> : null}
             </div>
             <h3 style={{ margin: '6px 0 10px', fontSize: 16 }}>{p.question}</h3>
             <div className="bars">
@@ -93,7 +104,10 @@ export function Polls({ show }: { show: Show }) {
                 );
               })}
             </div>
-            {p.open ? <div className="comment-actions" style={{ marginTop: 10 }}><button type="button" className="linkish" onClick={() => setClosing(p)}>Close now</button></div> : null}
+            <div className="comment-actions" style={{ marginTop: 10 }}>
+              {p.open ? <button type="button" className="linkish" onClick={() => setClosing(p)}>Close now</button> : null}
+              <button type="button" className="linkish" onClick={() => setDeleting(p)}>Delete<span className="sr-only"> the poll {p.question}</span></button>
+            </div>
           </article>
         )) : null}
       </section>
@@ -101,6 +115,11 @@ export function Polls({ show }: { show: Show }) {
         <ConfirmDialog title="Close this poll now?" body="No more votes are taken. Listeners see the result for 7 more days." confirm="Close poll" busy={busy}
           onCancel={() => setClosing(null)}
           onConfirm={() => { setBusy(true); api(`/v1/studio/shows/${show.key}/polls/${closing.id}/close`, { method: 'POST' }).then(() => { setClosing(null); setN((x) => x + 1); }, (e: unknown) => setError(e instanceof HttpError ? e.message : 'That did not work.')).finally(() => setBusy(false)); }} />
+      ) : null}
+      {deleting ? (
+        <ConfirmDialog title="Delete this poll?" body="It and its votes are removed for good. Listeners no longer see it." confirm="Delete poll" busy={busy}
+          onCancel={() => setDeleting(null)}
+          onConfirm={() => { setBusy(true); api(`/v1/studio/shows/${show.key}/polls/${deleting.id}`, { method: 'DELETE' }).then(() => { setDeleting(null); setN((x) => x + 1); }, (e: unknown) => { setDeleting(null); setError(e instanceof HttpError ? e.message : 'That did not work.'); }).finally(() => setBusy(false)); }} />
       ) : null}
     </>
   );

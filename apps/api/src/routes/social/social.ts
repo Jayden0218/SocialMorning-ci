@@ -11,6 +11,7 @@ import { safetyStamp } from '../../db/repos/safety/blocks.ts';
 import { hostsOfEpisode } from '../../db/repos/studio/creator.ts';
 import { likesStamp } from '../../db/repos/social/comment-likes.ts';
 import { muteStamp } from '../../db/repos/social/mutes.ts';
+import { heldStamp } from '../../db/repos/studio/comment-policy.ts';
 
 /**
  * The poll (research R7, FR-015, FR-022, FR-032): comments + heat + serverTime in one
@@ -51,9 +52,11 @@ social.get('/:id/social', optionalAuth, async (c) => {
   // M21 US6: a mute or unmute changes the muter's answer (G-M21-6); `dir=asc` lists oldest first.
   const mutes = viewer ? await muteStamp(db, viewer.id) : '-';
   const dir = c.req.query('dir') === 'asc' ? 'asc' : 'desc';
+  // M24 US8 (lane A2): the viewer's own held comments are in their answer, so in their stamp.
+  const held = await heldStamp(db, episodeId, viewer?.id);
   const etag = '"' + createHash('sha256')
     .update(String(stamp?.comments_v)).update('|').update(String(stamp?.episode_v)).update('|')
-    .update(String(stamp?.heat_v)).update('|').update(viewer?.id ?? '-').update('|').update(safety).update('|').update(host ?? '-').update('|').update(likes).update('|').update(mutes).update('|').update(dir)
+    .update(String(stamp?.heat_v)).update('|').update(viewer?.id ?? '-').update('|').update(safety).update('|').update(host ?? '-').update('|').update(likes).update('|').update(mutes).update('|').update(dir).update('|').update(held)
     .digest('base64url').slice(0, 27) + '"';
 
   if (c.req.header('if-none-match') === etag) {

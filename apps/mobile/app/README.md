@@ -12,7 +12,6 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 |---|---|---|
 | `_layout.tsx` | (wraps every screen) | No screen: starts the app, database and player; shows an error page if something breaks. |
 | `account.tsx` | `/account` | Settings: account card, everyday settings tiles, info pages, Sign out. From Me. |
-| `appeal.tsx` | `/appeal` | Appeal: the moderation actions against me (a removal or my suspension), each appealable once. |
 | `categories.tsx` | `/categories` | Every podcast category as a two-column grid of cards. |
 | `chart.tsx` | `/chart` | The charts: Talked about, New shows and Rising, swiped one to the next, with when each last updated. |
 | `chart-rules.tsx` | `/chart-rules` | How the three charts are ranked and how often they update, in plain words. |
@@ -251,5 +250,4 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 
 | File | Route | What the user sees |
 |---|---|---|
-| `lists/[id].tsx` | `/lists/<id>` | A shared show list: its title, who shared it, its shows (each opens), and Report. |
 | `lists/new.tsx` | `/lists/new` | Share some of your shows: pick two or more subscriptions, give the list a title, and share one link. |
