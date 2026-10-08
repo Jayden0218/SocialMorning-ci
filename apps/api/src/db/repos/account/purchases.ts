@@ -107,7 +107,7 @@ export async function grantGoogle(db: Db, play: GooglePlay, p: GrantIn): Promise
       await tx.query(`INSERT INTO entitlements (listener_id, kind, ref, until, source_purchase_id) VALUES ($1, 'plus', '', $2, $3)
                       ON CONFLICT (listener_id, kind, ref) DO UPDATE SET until = EXCLUDED.until, source_purchase_id = EXCLUDED.source_purchase_id`, [p.listenerId, expiresAt, id]);
       // Fix F-S: a renewal past a waiting code's start pushes the code later (it keeps its days).
-      await rechainCodes(tx, p.listenerId);
+      // RED: no rechain on renewal
     } else if (kind === 'show') {
       await tx.query(`INSERT INTO entitlements (listener_id, kind, ref, until, source_purchase_id) VALUES ($1, 'show', $2, NULL, $3)
                       ON CONFLICT (listener_id, kind, ref) DO NOTHING`, [p.listenerId, feedUrl, id]);
