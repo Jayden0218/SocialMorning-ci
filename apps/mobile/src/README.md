@@ -213,7 +213,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `api.ts` | Typed client for every server call, with clear error types. |
 | `account-api.ts` | Server calls for the account: redeem a code, change the sign-in email. |
 | `api-m22-server.ts` | Server calls for M22 lane 5: bottom pins, the deletion wait, time zone, translated transcripts, gifts and the weekly digest. |
-| `auth-store.ts` | Handles sign-up, sign-in and sign-out, and stores the account. |
+| `auth-store.ts` | Handles sign-in (by code or password) and sign-out, and stores the account. |
 | `avatar-image.ts` | Lets you pick a square profile photo and shrinks it to 400 px and under 200 KB. |
 | `base-url.ts` | Gives the server address set in the app config. |
 | `cache.ts` | Keeps each episode's last comments and reactions for offline viewing. |

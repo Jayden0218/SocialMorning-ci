@@ -150,7 +150,8 @@ test('US13: a paid episode\'s free preview — set by the owner, read by anyone,
   assert.deepEqual(ok.episode.preview, { startMs: 60_000, endMs: 180_000 });
   const p = (await (await t.call('GET', `/v1/hosted/episodes/${paidId}/preview`)).json()) as { url: string; startMs: number; endMs: number };
   assert.deepEqual([p.startMs, p.endMs], [60_000, 180_000]);
-  assert.match(p.url, new RegExp(`/v1/hosted/episodes/${paidId}/audio\\?exp=\\d+&sig=`));
+  // M25 S1: a preview link is its own kind, never the buyer's /audio link (test/m25-security.test.ts).
+  assert.match(p.url, new RegExp(`/v1/hosted/episodes/${paidId}/preview-audio\\?exp=\\d+&sig=`));
   const list = (await (await t.call('GET', `/v1/hosted/paid?feedUrl=${encodeURIComponent(HOSTED)}`)).json()) as { items: { id: string; preview?: unknown }[] };
   assert.deepEqual(list.items.map((i) => [i.id, i.preview]), [[paidId, { startMs: 60_000, endMs: 180_000 }]]);
   assert.equal((await set(paidId, null)).status, 200);

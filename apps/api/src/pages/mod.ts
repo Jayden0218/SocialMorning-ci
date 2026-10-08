@@ -16,7 +16,9 @@ import { actionsFor, groupReports, RETENTION_DAYS, type Action, type QueueItem, 
 import type { AuthEnv, Listener } from '../auth/session.ts';
 import { createSession, listenerForToken, tokenHash } from '../auth/session.ts';
 import { verifyPassword } from '../auth/password.ts';
-import { listenerByEmail } from '../db/repos/account/listeners.ts';
+import { clearFailedSignIns, listenerByEmail, recordFailedSignIn } from '../db/repos/account/listeners.ts';
+import { clientAddress, HOUR_MS, limit } from '../auth/rate.ts';
+import { ApiError } from '../errors.ts';
 import { closedReports, openReports, purgeClosedOlderThan, type QueueRow } from '../db/repos/safety/reports.ts';
 import { act, recentActions } from '../db/repos/safety/moderation.ts';
 import { rollup } from '../db/repos/library/rec-events.ts';
@@ -145,16 +147,42 @@ ${hides.length === 0 ? '<p class="muted">None.</p>' : `<ul>${hides.map((h) => `<
 ${actions.length === 0 ? '<p class="muted">None.</p>' : `<ul>${actions.map((a) => `<li>${esc(new Date(a.created_at).toISOString())} · <b>${esc(a.action)}</b> ${esc(a.target_kind)} <code>${esc(a.target_id)}</code> by ${esc(a.actor_name)}</li>`).join('')}</ul>`}`));
 });
 
+/** M25 S2: password tries at /mod/login per network address an hour. */
+export const MOD_LOGINS_PER_ADDRESS_HOUR = 10;
+
+const tooMany = (c: Context<AuthEnv>, seconds: number) => {
+  c.header('retry-after', String(seconds));
+  return c.html(page('Moderation — wait', `<h1>Too many tries</h1><p class="muted">Try again in ${Math.ceil(seconds / 60)} minute${seconds > 60 ? 's' : ''}.</p><p><a href="/mod">Back</a></p>`), 429);
+};
+
+/*
+ * M25 S2 (audit #2, guard G-M25-S2): the owner's password form had no lockout and no limit. Now it
+ * counts tries per network address (10 an hour), and uses the same per-account lockout as the
+ * app's sign-in (`recordFailedSignIn` / `locked_until`): a locked account is refused before the
+ * password is even checked, and every wrong password for the owner's email counts.
+ */
 mod.post('/login', async (c) => {
+  const db = c.get('db');
+  const addr = clientAddress(c);
+  if (addr) {
+    try { await limit(db, `mod:ip:${addr}`, HOUR_MS, MOD_LOGINS_PER_ADDRESS_HOUR, 'Too many tries.'); }
+    catch (e) { if (e instanceof ApiError) return tooMany(c, Number(e.extra['retryAfterSeconds'] ?? 3600)); throw e; }
+  }
   const form = await c.req.parseBody();
-  const email = String(form['email'] ?? '').trim();
+  const email = String(form['email'] ?? '').trim().toLowerCase();
   const password = String(form['password'] ?? '');
   const ownerId = c.get('safety').ownerListenerId;
-  const row = email ? await listenerByEmail(c.get('db'), email) : undefined;
-  if (!row || !ownerId || row.id !== ownerId || !(await verifyPassword(password, row.password_hash))) {
+  const row = email ? await listenerByEmail(db, email) : undefined;
+  const now = Date.now();
+  const lockedUntil = row?.locked_until ? new Date(row.locked_until).getTime() : null;
+  if (row && lockedUntil !== null && lockedUntil > now) return tooMany(c, Math.ceil((lockedUntil - now) / 1000));
+  const ok = Boolean(row && ownerId && row.id === ownerId && (await verifyPassword(password, row.password_hash)));
+  if (!ok || !row) {
+    if (row && ownerId && row.id === ownerId) await recordFailedSignIn(db, row.id, now);
     return c.html(page('Moderation — refused', '<h1>Not the owner</h1><p class="muted">This page is for the app\'s owner only.</p><p><a href="/mod">Back</a></p>'), 403);
   }
-  const token = await createSession(c.get('db'), row.id, c.get('pepper'), 'mod-web');
+  await clearFailedSignIns(db, row.id);
+  const token = await createSession(db, row.id, c.get('pepper'), 'mod-web');
   setCookie(c, COOKIE, token, { httpOnly: true, secure: secure(c), sameSite: 'Strict', path: '/mod', maxAge: 60 * 60 * 12 });
   return c.redirect('/mod', 303);
 });
