@@ -47,7 +47,7 @@ wallet.get('/tips', requireAuth, async (c) => {
   );
   return c.json({
     items: rows.map((r) => ({
-      id: r.id, feedUrl: r.to_feed_url, showTitle: r.show_title, createdAt: iso(r.created_at),
+      id: r.id, feedUrl: r.to_feed_url, show: r.show_title, createdAt: iso(r.created_at),
       amountMicros: r.amount_micros === null ? null : Number(r.amount_micros), currency: r.currency?.trim() ?? null,
     })),
     storeReady: c.get('play').ready,

@@ -3,10 +3,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
-import { fromPglite } from '../src/db/db.ts';
 import { createApp } from '../src/app.ts';
 import { fakeApple, fakeFeedFetch, FIXTURE_FEED } from './fake-apple.ts';
-import { migratedPg, TEST_PEPPER } from './harness.ts';
+import { dbOf, migratedPg, TEST_PEPPER } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
 
 const FX = 'https://feeds.example.com/fx.xml';
@@ -16,7 +15,7 @@ const E = (guid: string) => fnv1a64(`${FX}\u0001${guid}`);
 
 async function build() {
   const { pg } = await migratedPg();
-  const db = fromPglite(pg);
+  const db = dbOf(pg);
   const apple = fakeApple();
   const catalogFetch = (async (input: string | URL | Request, init?: RequestInit) => {
     const url = String(input);

@@ -2,17 +2,16 @@
 /** quickstart A7 (hide_show, G7): a hidden show leaves Discover, search and next-up at once, and stays in a library (the phone's job). */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { fromPglite } from '../src/db/db.ts';
 import { createApp } from '../src/app.ts';
 import { fakeApple, fakeFeedFetch, FIXTURE_FEED } from './fake-apple.ts';
-import { migratedPg, TEST_PEPPER } from './harness.ts';
+import { dbOf, migratedPg, TEST_PEPPER } from './harness.ts';
 
 const FX = 'https://feeds.example.com/fx.xml';
 const REPLY_ALL = 'https://feeds.megaphone.fm/replyall';
 
 test('G7: hidden feeds are absent from /v1/discover (picks, trending), /v1/search (shows, episodes) and next-up, without waiting for the cache', async () => {
   const { pg, runner } = await migratedPg();
-  const db = fromPglite(pg);
+  const db = dbOf(pg);
   const apple = fakeApple();
   const catalogFetch = (async (input: string | URL | Request, init?: RequestInit) => {
     const url = String(input);

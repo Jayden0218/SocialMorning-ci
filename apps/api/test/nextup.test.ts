@@ -3,10 +3,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
-import { fromPglite } from '../src/db/db.ts';
 import { createApp } from '../src/app.ts';
 import { fakeApple, fakeFeedFetch, FIXTURE_FEED } from './fake-apple.ts';
-import { migratedPg, TEST_PEPPER, signUp, type TestDb } from './harness.ts';
+import { dbOf, migratedPg, TEST_PEPPER, signUp, type TestDb } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
 
 const FX = 'https://feeds.example.com/fx.xml';
@@ -22,9 +21,9 @@ async function build() {
     if (url.includes(FX)) return fakeFeedFetch(FIXTURE_FEED)(input, init);
     return new Response('nope', { status: 404 });
   }) as typeof fetch;
-  const app = createApp({ db: fromPglite(pg), pepper: TEST_PEPPER, catalogFetch, picksRaw: [] });
+  const app = createApp({ db: dbOf(pg), pepper: TEST_PEPPER, catalogFetch, picksRaw: [] });
   const t: TestDb = {
-    pg, db: fromPglite(pg), runner, app,
+    pg, db: dbOf(pg), runner, app,
     q: async <T,>(s: string, p?: unknown[]) => (await pg.query<T>(s, p)).rows,
     call: async (method, path, body, token, headers = {}) => app.request(path, { method, headers: { ...(body !== undefined ? { 'content-type': 'application/json' } : {}), ...(token ? { authorization: `Bearer ${token}` } : {}), ...headers }, body: body !== undefined ? JSON.stringify(body) : undefined }),
     close: () => pg.close(),

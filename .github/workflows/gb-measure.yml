@@ -1,0 +1,40 @@
+# TEMPORARY (lane GB): measures today's coverage per package once, to set the floors. Removed
+# before the lane is handed back.
+name: gb-measure
+on:
+  workflow_dispatch:
+  push:
+    branches: [lane-gb]
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [mobile]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --no-audit --no-fund
+      - if: matrix.part == 'studio-threads'
+        run: npx c8 --reporter=text-summary --include 'src/**' vitest run --pool=threads > /tmp/out.txt 2>&1; tail -12 /tmp/out.txt
+        working-directory: apps/studio
+      - if: matrix.part == 'studio-forks'
+        run: npx c8 --reporter=text-summary --include 'src/**' vitest run --pool=forks --no-isolate --maxWorkers=1 > /tmp/out.txt 2>&1; tail -12 /tmp/out.txt
+        working-directory: apps/studio
+      - if: matrix.part == 'studio-diag'
+        run: |
+          NODE_V8_COVERAGE=/tmp/cov npx vitest run test/m14.test.tsx > /dev/null 2>&1; ls /tmp/cov | head; for f in $(ls /tmp/cov | head -3); do node -e "const j=require('/tmp/cov/$f'); const u=j.result.map(r=>r.url).filter(u=>u.includes('studio')); console.log(u.length, u.slice(0,8).join('\n'))"; done
+        working-directory: apps/studio
+      - if: matrix.part == 'mobile'
+        run: |
+          npx jest --coverage --collectCoverageFrom='src/**/*.{ts,tsx}' --coverageReporters=json-summary > /dev/null 2>&1 || true
+          node -e "
+            const s = require('./coverage/coverage-summary.json'); const t = {};
+            for (const [f, v] of Object.entries(s)) { if (f === 'total' || f.includes('/src/playback/') || f.endsWith('/src/launch/choose.ts')) continue;
+              for (const k of ['statements','branches','functions','lines']) { t[k] ??= [0,0]; t[k][0] += v[k].covered; t[k][1] += v[k].total; } }
+            for (const [k,[c,n]] of Object.entries(t)) console.log('global-excl', k, (100*c/n).toFixed(3), c, n);
+            for (const k of ['statements','branches','functions','lines']) console.log('total', k, s.total[k].pct);"
+        working-directory: apps/mobile

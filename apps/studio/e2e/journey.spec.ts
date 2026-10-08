@@ -5,7 +5,7 @@
  * show, listener-01's comment at 0:20 with the host's reply, 3 reported comments. In a real browser:
  *   the host's Studio shows listener-01 and the comment at its moment → the public episode page →
  *   the moderator removes a reported comment on /mod → listeners see it removed.
- * Skipped when the seed has not run (JOURNEY_OUT missing), so the Studio test alone still runs.
+ * Fails when the seed has not run (JOURNEY_OUT missing) or named no moderator (M25 G10: no silent skips).
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
@@ -26,7 +26,8 @@ let shot = 0;
 const snap = (page: Page, name: string) => page.screenshot({ path: `e2e-results/journey/${String(++shot).padStart(2, '0')}-${name}.png`, fullPage: true });
 
 test('the listener journey, seen from the website: Studio, public page, moderation', async ({ page, request }) => {
-  test.skip(!existsSync(OUT), `no ${OUT}: run apps/api/scripts/journey.ts seed + listener first`);
+  // M25 G10: a missing seed FAILS. It used to skip, so a broken seed step turned this into a silent pass.
+  expect(existsSync(OUT), `no ${OUT}: the seed step (apps/api/scripts/journey.ts seed + listener) did not write it`).toBe(true);
   const j = JSON.parse(readFileSync(OUT, 'utf8')) as Journey;
   const ep = j.episodes[0]!;
   const me = j.listeners[0]!;
@@ -59,7 +60,7 @@ test('the listener journey, seen from the website: Studio, public page, moderati
   await snap(page, 'public-episode-page');
 
   // 5 — the moderator's queue has the 3 reports; removing one takes it away for listeners
-  test.skip(!j.moderator, 'no moderator configured (E2E_MOD_EMAIL)');
+  expect(j.moderator, 'no moderator in the seed (E2E_MOD_EMAIL unset) — this step must run, not skip').not.toBeNull();
   await page.goto(`${API}/mod`);
   await page.getByLabel('Email').fill(j.moderator!.email);
   await page.getByLabel('Password').fill(PW);

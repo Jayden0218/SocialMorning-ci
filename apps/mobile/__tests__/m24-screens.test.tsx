@@ -1,8 +1,10 @@
 // Tests that the M24 per-screen look keeps its order, defaults and room (guard G-M24-B3).
 /**
- * M24 lane B3 (US20, the B "Editorial" designs per screen). Source scans where the fact is a
- * layout choice a renderer cannot see without the whole screen and its providers; a render
- * where the part stands alone. Everything here is NOT VERIFIED on a phone until a build is shot.
+ * M24 lane B3 (US20, the B "Editorial" designs per screen). A render wherever the part stands
+ * alone in src/ (the pick card, the notice pills; the shared episode sheet in
+ * m24-screens.row-sheet.test.tsx). Source scans remain only where the fact lives in an expo-router
+ * page under app/ (notifications, episode, history, comments), which no test here can render with
+ * manageable mocks. Everything here is NOT VERIFIED on a phone until a build is shot.
  *
  * Each block names the break that turns it red.
  */
@@ -12,6 +14,14 @@ import { createElement } from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { SECTION_IDS, sectionOrder } from '@/discover/sections';
 import { NoticeCards } from '@/ui/social/NoticeCards';
+import { PicksSection } from '@/ui/discover/sections';
+import { SectionTitle } from '@/ui/discover/parts';
+import { Card } from '@/ui/kit/Card';
+import { Eyebrow } from '@/ui/kit/Eyebrow';
+import { Artwork } from '@/ui/kit/Artwork';
+
+// PicksSection reads its palette through useStores(); pin it to light (as discover-sections.test.tsx).
+jest.mock('@/ui/shell/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }) }));
 
 const read = (rel: string): string => readFileSync(join(__dirname, '..', rel), 'utf8');
 /** The text between two markers (both must exist). */
@@ -23,18 +33,31 @@ const between = (src: string, from: string, to: string): string => {
   return src.slice(a, b);
 };
 
-// Break: put 'forYou' back before 'picks' in SECTION_IDS (src/discover/sections.ts).
+// Break: put 'forYou' back before 'picks' in SECTION_IDS (src/discover/sections.ts); or, in
+// PicksSection (src/ui/discover/sections.tsx), put a <SectionTitle> back above the card, move the
+// accent label or "Past picks" out of the <Card>, or change the cover from 76 pt.
 describe('Home: the Editor\'s pick card comes before For You', () => {
   it('the default order starts with picks, For You right after', () => {
     expect(SECTION_IDS[0]).toBe('picks');
     const order = sectionOrder(undefined);
     expect(order.indexOf('picks')).toBeLessThan(order.indexOf('forYou'));
   });
-  it('the pick card carries its label and "Past picks" inside the card', () => {
-    const picks = between(read('src/ui/discover/sections.tsx'), 'export function PicksSection(', '/** The chart');
-    expect(picks).not.toMatch(/<SectionTitle/);
-    expect(picks).toMatch(/<Card[\s\S]*<Eyebrow accent[\s\S]*accessibilityLabel="Past picks"[\s\S]*<\/Card>/);
-    expect(picks).toMatch(/size=\{76\}/);
+  it('the pick card carries its label and "Past picks" inside the card (rendered)', () => {
+    const episode = { id: 'p1', feedUrl: 'https://f/p1.xml', guid: 'p1', title: 'Title p1', showTitle: 'Show p1', enclosureUrl: 'https://a/p1.mp3' };
+    const onPast = jest.fn();
+    let r!: ReactTestRenderer;
+    act(() => { r = create(createElement(PicksSection, { items: [{ kind: 'pick', key: 'p1', episode }], onOpen: jest.fn(), onPlay: jest.fn(), onQueue: jest.fn(), onPast })); });
+    expect(r.root.findAllByType(SectionTitle)).toHaveLength(0);
+    const cards = r.root.findAllByType(Card);
+    expect(cards).toHaveLength(1);
+    const card = cards[0]!;
+    expect(card.findAllByType(Eyebrow).filter((e) => e.props['accent'] === true && e.props['children'] === "Editor's pick")).toHaveLength(1);
+    const past = card.findAll((n) => n.props['accessibilityLabel'] === 'Past picks' && typeof n.props['onPress'] === 'function');
+    expect(past.length).toBeGreaterThan(0);
+    act(() => { past[0]!.props['onPress'](); });
+    expect(onPast).toHaveBeenCalledTimes(1);
+    expect(card.findAllByType(Artwork).map((a) => a.props['size'])).toContain(76);
+    act(() => r.unmount());
   });
 });
 
@@ -84,7 +107,7 @@ describe('History: a compact row, the extras behind its ⋯', () => {
     expect(src).toMatch(/onPress=\{\(\) => setMenuFor\(item\.episode\)\} accessibilityRole="button" accessibilityLabel=\{`More for \$\{item\.episode\.title\}`\}/);
     expect(src).toMatch(/comments=\{menuFor \? comments\[menuFor\.id\] : undefined\}/);
     expect(src).toMatch(/label: 'Play', onPress:/);
-    expect(read('src/ui/kit/EpisodeRowSheet.tsx')).toMatch(/label: 'Share'/);
+    // The sheet itself (Share, the comment count, the page's Play tile) is rendered in m24-screens.row-sheet.test.tsx.
   });
 });
 

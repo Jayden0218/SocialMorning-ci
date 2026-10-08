@@ -43,7 +43,7 @@ export async function putQueue(
     if (current.version !== baseVersion) return { ok: false as const, current };
     const version = current.version + 1;
     await tx.query(
-      `INSERT INTO queues (listener_id, items, version, device_id, updated_at) VALUES ($1, ($2::text)::jsonb, $3, $4, now())
+      `INSERT INTO queues (listener_id, items, version, device_id, updated_at) VALUES ($1, $2::jsonb, $3, $4, now())
        ON CONFLICT (listener_id) DO UPDATE SET items = EXCLUDED.items, version = EXCLUDED.version, device_id = EXCLUDED.device_id, updated_at = now()`,
       [listenerId, JSON.stringify(items.slice(0, SYNCED_QUEUE_MAX)), version, deviceId],
     );
