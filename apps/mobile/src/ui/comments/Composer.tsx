@@ -90,6 +90,8 @@ export function ComposerSheet(props: {
           toast('Your comment is posted, but the picture did not upload.');
         }
       }
+      // M24 US8: the show checks comments first — say so, since nobody else sees it yet.
+      if (r.comment.held) toast('Sent. The host reviews comments here first. Until then, only you can see it.');
       bump(state.episodeId);
       props.onPosted();
       props.onClose();
@@ -100,7 +102,8 @@ export function ComposerSheet(props: {
     } else if (needsRules(r.error)) {
       setRules(true);
     } else {
-      setError(r.error.code === 'network' ? "Couldn't reach the server — your draft is kept." : r.error.message);
+      setError(r.error.code === 'network' ? "Couldn't reach the server — your draft is kept."
+        : r.error.code === 'comments_closed' ? 'The host has closed comments here.' : r.error.message);
     }
   }
 

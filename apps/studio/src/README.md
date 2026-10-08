@@ -27,17 +27,19 @@ missing here or a line does not match its file.
 |---|---|
 | `Announcements.tsx` | Page where a creator writes announcements with pictures, schedules them and sends them to listeners. |
 | `Bans.tsx` | Page listing the listeners banned from commenting on a show, with the reason kept and a button to lift each ban. |
-| `Comments.tsx` | Page listing all comments on a show, with reply, hide, pin to the top or bottom, and mute. |
+| `Comments.tsx` | Page listing all comments on a show, with reply, hide, pin, like, report and mute; comment settings and Pending. |
 | `Demographics.tsx` | Page showing who subscribes: total, age ranges, genders and countries, groups under 10 hidden. |
+| `Earnings.tsx` | Page showing the show's earnings by month — paid shows, gifts, tips and refunds — with a CSV export. |
 | `Data.tsx` | Page with a show's numbers, trends and an episode table to download. |
-| `Episode.tsx` | One episode's page: its numbers, reaction curve, retention, comments and take-down button. |
+| `Episode.tsx` | One episode's page: its numbers, reaction curve, retention, comments, comment setting, edit, hide and take-down. |
+| `HostedEdit.tsx` | Forms for an episode made here: edit its title, notes and scheduled time; set a paid episode's free preview. |
 | `Episodes.tsx` | Page listing every episode of the show with its numbers. |
 | `Home.tsx` | The Studio home page: totals, a trend chart and the latest activity. |
 | `Invite.tsx` | Page an invite link opens, where a person accepts becoming a show host. |
 | `Media.tsx` | Page listing the show's stored audio and image files, with delete. |
 | `NewEpisode.tsx` | Page to upload episode audio, then publish, schedule or save as draft. |
 | `NoShow.tsx` | Page for a signed-in person with no show: create one or claim a feed. |
-| `Pending.tsx` | Lists draft and scheduled episodes that are not in the feed yet. |
+| `Pending.tsx` | Lists draft and scheduled episodes that are not in the feed yet, and published paid episodes. |
 | `Polls.tsx` | Page where a creator makes polls for listeners and sees the results. |
 | `Settings.tsx` | Show settings page: how the show looks, contacts, hosts, and giving it up. |
 | `SignIn.tsx` | The Studio sign-in page, by password or by emailed code. |
@@ -50,7 +52,8 @@ missing here or a line does not match its file.
 
 | File | What it does |
 |---|---|
-| `Contacts.tsx` | Settings section for the show's contact links and the 100-hour message. |
+| `Contacts.tsx` | Settings section for the show's contact links and the subscriber milestone message. |
+| `FeedSync.tsx` | Settings card for a claimed feed: when it was last fetched, whether that worked, and "Sync now". |
 | `Hosts.tsx` | Settings section to invite hosts by a one-use link and remove them. |
 
 ### `pages/admin/` — the owner-only Admin pages
@@ -69,8 +72,11 @@ missing here or a line does not match its file.
 | `Picks.tsx` | Admin page with a calendar to choose and order each day's episode picks. |
 | `Redeem.tsx` | Admin page for redeem codes: make codes that give PLUS days or a paid show for free, see their uses, switch one off. |
 | `Reports.tsx` | Admin page for the reports queue: dismiss, remove, hide or suspend. |
+| `Appeals.tsx` | Admin page for appeals (accept undoes the action, reject keeps it) and the account deletion queue. |
+| `Notices.tsx` | Admin page to write a system notice to every listener, with an optional push. |
+| `Safety.tsx` | Admin page for blocked words and the maintenance switch. |
 | `Translation.tsx` | Admin page for translated transcripts: the shows that get them, today's Groq free-tier use, and the queue. |
-| `Users.tsx` | Admin page to find an account, rename it, and suspend or restore it. |
+| `Users.tsx` | Admin page to find an account, see it in full, rename it, suspend or restore it, and give or take PLUS. |
 
 ### `shell/` — parts many pages share
 

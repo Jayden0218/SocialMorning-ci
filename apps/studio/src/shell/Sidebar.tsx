@@ -21,6 +21,7 @@ export const SECTIONS = [
   { path: 'announcements', label: 'Announcements', icon: IconMegaphone, built: true },
   { path: 'polls', label: 'Polls', icon: IconPoll, built: true },
   { path: 'tips', label: 'Tips', icon: IconCoin, built: true, ownerOnly: true },
+  { path: 'earnings', label: 'Earnings', icon: IconChart, built: true, ownerOnly: true },
   { path: 'settings', label: 'Settings', icon: IconSettings, built: true, ownerOnly: true },
 ] as const;
 

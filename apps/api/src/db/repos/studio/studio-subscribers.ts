@@ -50,16 +50,20 @@ export async function subscriberStats(db: Db, feedUrl: string, days: number, tz:
 }
 
 /** Current subscribers, newest first, 50 a page; suspended accounts are left out. */
-export async function subscriberList(db: Db, feedUrl: string, page: number) {
+/** M24 US14: `q` narrows to display names containing it (case-insensitive; % and _ match themselves). */
+export async function subscriberList(db: Db, feedUrl: string, page: number, q = '') {
+  const like = q.trim() ? `%${q.trim().slice(0, 100).replace(/[\\%_]/g, (m) => `\\${m}`)}%` : null;
   const [n] = await db.query<{ n: string | number }>(
-    'SELECT count(*) AS n FROM subscriptions s JOIN listeners l ON l.id = s.listener_id WHERE s.feed_url = $1 AND s.deleted_at IS NULL AND l.suspended_at IS NULL AND l.hidden_at IS NULL', [feedUrl]);
+    `SELECT count(*) AS n FROM subscriptions s JOIN listeners l ON l.id = s.listener_id WHERE s.feed_url = $1 AND s.deleted_at IS NULL AND l.suspended_at IS NULL AND l.hidden_at IS NULL
+       AND ($2::text IS NULL OR l.display_name ILIKE $2::text)`, [feedUrl, like]);
   const rows = await db.query<{ id: string; display_name: string; created_at: Date | string; muted: boolean }>(
     `SELECT l.id, l.display_name, s.created_at,
             EXISTS (SELECT 1 FROM show_mutes m WHERE m.feed_url = s.feed_url AND m.listener_id = l.id) AS muted
        FROM subscriptions s JOIN listeners l ON l.id = s.listener_id
       WHERE s.feed_url = $1 AND s.deleted_at IS NULL AND l.suspended_at IS NULL AND l.hidden_at IS NULL
+        AND ($3::text IS NULL OR l.display_name ILIKE $3::text)
       ORDER BY s.created_at DESC, l.id LIMIT 50 OFFSET $2`,
-    [feedUrl, (page - 1) * 50],
+    [feedUrl, (page - 1) * 50, like],
   );
   return { total: Number(n?.n ?? 0), page, pageSize: 50, items: rows.map((r) => ({ id: r.id, displayName: r.display_name, subscribedAt: new Date(r.created_at).toISOString(), muted: r.muted })) };
 }
