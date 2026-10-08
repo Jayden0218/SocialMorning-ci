@@ -29,7 +29,7 @@ const me = async (t: TestDb, token: string) => (await (await t.call('GET', '/v1/
 function fakePlay(state: { expiresAt: string }) {
   const play: GooglePlay = {
     ready: true,
-    subscription: async () => ({ state: 'SUBSCRIPTION_STATE_ACTIVE', acknowledged: true, productId: 'plus_monthly', expiresAt: state.expiresAt, orderId: 'GPA.1', profileId: null, test: true }),
+    subscription: async (token) => ({ state: 'SUBSCRIPTION_STATE_ACTIVE', acknowledged: true, productId: 'plus_monthly', expiresAt: state.expiresAt, orderId: `GPA.${token}`, profileId: null, test: true }),
     product: async () => { throw new Error('not used'); },
     acknowledge: async () => {},
     voided: async () => [],
