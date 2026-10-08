@@ -27,9 +27,6 @@ export const ADMIN_SECTIONS = [
   // M22 US13: the shows offered translated transcripts, and today's Groq use.
   { path: 'translation', label: 'Translation' },
   { path: 'redeem', label: 'Redeem codes' }, // M24 lane A3
-  // M25 lane AC: the phone's settings (A7) and its Academy + Help pages (A8).
-  { path: 'app-settings', label: 'App settings' },
-  { path: 'content', label: 'Content' },
 ] as const;
 
 /**

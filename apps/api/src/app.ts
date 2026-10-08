@@ -103,9 +103,6 @@ import { maintenanceGate } from './routes/safety/maintenance.ts';
 import { wordFilter } from './routes/safety/word-filter.ts';
 import { appeals } from './routes/safety/appeals.ts';
 import { activeMaintenance } from './db/repos/safety/maintenance.ts';
-// M25 lane AC: app settings (A7) and content pages (A8)
-import { config as appConfig } from './routes/config.ts';
-import { content as contentPages } from './routes/content.ts';
 
 export type AppDeps = {
   db: Db; pepper: string; assetLinksSha256?: string;
@@ -172,7 +169,7 @@ export function createApp(deps: AppDeps) {
     : c.req.path === '/v1/errors' ? errorsLimit(c, next)
     : c.req.method === 'POST' && (/^\/v1\/comments\/[^/]+\/image$/.test(c.req.path) || c.req.path === '/v1/voice-posts/images') ? imageLimit(c, next) // M22 lane 2: status photos
     : c.req.method === 'POST' && /^\/v1\/voice-posts\/[^/]+\/replies$/.test(c.req.path) ? voiceLimit(c, next) // M22 lane 2: voice replies
-    : c.req.path === '/v1/admin/accounts' || c.req.path.startsWith('/v1/admin/content/') ? adminBulkLimit(c, next) // M25 AC: an article body is ≤ 8000 characters
+    : c.req.path === '/v1/admin/accounts' ? adminBulkLimit(c, next)
     : c.req.path === '/v1/me/avatar' && c.req.method === 'PUT' ? avatarLimit(c, next)
     : c.req.method === 'POST' && (c.req.path === '/v1/voice-posts' || /^\/v1\/episodes\/[^/]+\/comments\/voice$/.test(c.req.path)) ? voiceLimit(c, next) : small(c, next)));
   // M5: the picks file is validated once; every bad entry is a warning, never a crash (G1).
@@ -252,9 +249,6 @@ export function createApp(deps: AppDeps) {
     return c.json({ ok: true, maintenance: { until: new Date(at).toISOString(), message } });
   });
   // M6 (FR-027): the appeals address the app shows — never hard-coded in a build.
-  // M25 lane AC: the app settings and the Academy / Help pages (public, cached, ETag).
-  app.route('/v1/config', appConfig);
-  app.route('/v1/content', contentPages);
   app.get('/v1/meta', (c) => c.json({ ...(safety.appealsEmail ? { appealsEmail: safety.appealsEmail } : {}) }));
   app.route('/v1/auth', auth);
   app.route('/v1/me', me);

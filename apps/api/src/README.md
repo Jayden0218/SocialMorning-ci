@@ -27,8 +27,6 @@ here or a line does not match its file.
 | `errors.ts` | Error log route: the phone sends its recent errors in small batches, signed in or not. |
 | `internal.ts` | Internal routes the scheduled job calls to rebuild data in small steps. |
 | `lists.ts` | Shared show lists: a listener picks some of their shows, gives them a title, and shares one link. |
-| `config.ts` | Public app settings for the phone: GET /v1/config, cached, with an ETag. |
-| `content.ts` | Public Academy articles and Help questions: GET /v1/content/:kind and /v1/content/:kind/:slug. |
 
 ### `routes/account/` — sign-in, your account, notifications, wallet, feedback
 
@@ -181,8 +179,6 @@ here or a line does not match its file.
 | `users.ts` | Admin routes for users and safety: list, rename, suspend, restore, act on reports. |
 | `appeals.ts` | Admin routes for appeals (accept = undo, reject) and the account deletion queue. |
 | `safety.ts` | Admin routes for blocked words, the maintenance switch and system notices. |
-| `config.ts` | Admin routes for the app settings (Admin › App settings): read every key, save one, reset one. |
-| `content.ts` | Admin routes for Academy articles and Help questions (Admin › Content): list, save, delete. |
 
 ### `db/` — the database connection and migrations
 
@@ -197,13 +193,6 @@ here or a line does not match its file.
 | File | What it does |
 |---|---|
 | `cache.ts` | Simple database cache: serve fresh rows, fall back to stale rows on failure. |
-
-### `db/repos/config/` — app settings and content pages an admin edits (M25)
-
-| File | What it does |
-|---|---|
-| `app-config.ts` | The app settings an admin may change (`app_config`): read, save with a version check, reset to default. |
-| `content.ts` | Academy articles and Help questions (`content_pages`): list, read, save with a version check, delete. |
 
 ### `db/repos/account/` — accounts and what belongs to them
 

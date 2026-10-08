@@ -31,17 +31,6 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `tailwind.ts` | Lets links and gradients accept style class names like other components. |
 | `tokens.ts` | Lists every colour, font size, spacing and corner size the app uses. |
 
-### `config/` — Settings and pages the admin changes on the server (M25): tiles, categories, hints, Academy, Help.
-
-| File | What it does |
-|---|---|
-| `api.ts` | Server calls for the app settings and the Academy / Help pages, with the ETag so an unchanged answer is a 304. |
-| `content.ts` | The Academy articles and Help questions the phone shows: the server's when it has them, the bundled copy otherwise. |
-| `hints.ts` | The search box's rotating hints and "Try searching": the admin's words when set, else the ones worked out from the charts. |
-| `load.ts` | Loads the app settings at start-up: the last saved copy at once, then the server's, falling back to the built-in defaults. |
-| `store.ts` | Holds the app settings in use now (the admin's, or the built-in defaults) and tells screens when they change. |
-| `useStartConfig.ts` | Start-up: use the last saved app settings before the first screen draws, then fetch the server's once. |
-
 ### `discover/` — The Discover tab: podcast search, charts, categories and recommendations to explore.
 
 | File | What it does |
@@ -114,6 +103,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | File | What it does |
 |---|---|
 | `markdown.ts` | Turns the legal texts' simple Markdown into blocks a screen can draw. |
+| `licences.ts` | The open-source packages the app ships and their licences, read from the generated licences.json. |
 | `texts.ts` | Holds the user agreement, privacy policy and community rules text. |
 
 ### `me/` — The Me tab: your library, history, favourites, stickers and subscriptions.
@@ -343,6 +333,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `ListDetail.tsx` | Two panes on a tablet: the list on the left, the chosen item on the right; just the list on a phone. |
 | `iconReset.ts` | Puts the app icon back to Default at start-up when PLUS has ended and one of the PLUS icons is still set. |
 | `consent.ts` | Terms version, title and text pointers; remembers if you agreed. |
+| `updater.ts` | Decides when the Android self-updater may show, and checks a downloaded APK's SHA-256 before install. |
 
 ### `ui/player/` — The full player page and its parts
 
@@ -469,7 +460,6 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | File | What it does |
 |---|---|
 | `DiscoverSections.tsx` | Discover's main sections: picks, then episode lists, with an old-data note. |
-| `DiscoverShortcuts.tsx` | The round shortcut tiles under Discover's search box, in the order, names and set the admin chose. |
 | `FullPager.tsx` | Whole-screen pages swiped left and right (chart, search tabs, categories), kept in step with their tabs. |
 | `Plaza.tsx` | The new-shows plaza: a wall of covers dragged in any direction with one finger; tap a cover for its show. |
 | `TheirLikes.tsx` | "Their likes" on Discover: recent likes with notes from people you follow, each opening its like post. |
@@ -481,12 +471,6 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `sections.tsx` | Each Discover section: shortcuts, editor picks, For You, the chart, and more. |
 | `RecFeedback.tsx` | "Not liking these?" under For You, its form, and the category tiles the interests page shares. |
 | `InterestsGate.tsx` | Opens the interests page once on the first open after sign-in, when no categories are saved yet. |
-
-### `ui/content/` — Pages an admin writes (Academy, Help)
-
-| File | What it does |
-|---|---|
-| `Markdown.tsx` | Draws an Academy or Help body (the Markdown subset) as text — headings, paragraphs, lists, bold, https links — never as HTML. |
 
 ### `ui/search/` — Search for shows and episodes
 
@@ -523,14 +507,17 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 
 | File | What it does |
 |---|---|
+| `AgeConfirm.tsx` | The "I am 14 or older" tick box on the new-account step, and the "I am under 14" way out. |
 | `ArtWall.tsx` | A row of words-only tiles moving slowly on the sign-in page. |
 | `AuthShell.tsx` | Shared frame for sign-in pages: close ✕, big title, form, bottom button. |
 | `Consent.tsx` | The "I agree" tick box under sign-in, and the ask if not ticked. |
+| `OtherWays.tsx` | The Google / Facebook sign-in buttons — drawn only for a way in that is built (none today). |
 | `PendingDeletion.tsx` | After signing in during the 15-day deletion wait: a sheet saying the date, with Keep my account and Continue. |
+| `age.ts` | The minimum age to make an account, and the record that the new listener confirmed it. |
 | `art.ts` | The words-only tiles that move along the sign-in page. |
 | `display.ts` | The large serif title style on sign-in pages. |
 | `errors.ts` | Turns a sign-in error into a short message for the user. |
-| `methods.ts` | The other sign-in ways (Google, Facebook), not ready yet. |
+| `methods.ts` | The other sign-in ways (Google, Facebook): listed here, shown only once they are built. |
 | `navigate.ts` | Where you go after signing in or out. |
 | `rules.ts` | Rules for the sign-in button and checking an email looks right. |
 

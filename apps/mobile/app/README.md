@@ -192,6 +192,7 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 | `settings/feedback.tsx` | `/settings/feedback` | Send feedback with type, text and up to 3 images; see what you sent. |
 | `settings/help.tsx` | `/settings/help` | Help: send feedback, contact support, common questions filtered by topic. |
 | `settings/how-for-you.tsx` | `/settings/how-for-you` | Questions and answers about how For You recommendations work. |
+| `settings/licences.tsx` | `/settings/licences` | Open-source licences: every package the app ships with its licence; tap one to read its text. |
 | `settings/minor.tsx` | `/settings/minor` | Minor mode switch: hides explicit episodes; a 4-digit passcode guards turning it off. |
 | `settings/not-interested.tsx` | `/settings/not-interested` | Episodes and shows you marked "Not interested", each with a Restore button. |
 | `settings/network.tsx` | `/settings/network` | Check network: times our server, a show's feed host and an episode's audio host, with a result you can copy. |
@@ -202,7 +203,7 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 | `settings/privacy.tsx` | `/settings/privacy` | Privacy: private listening, what others see of you (4 switches), muted users, and blocked listeners. |
 | `settings/push.tsx` | `/settings/push` | Push notification settings: phone permission, new episodes, popular content, per show. |
 | `settings/sharing.tsx` | `/settings/sharing` | Which outside companies get your data, what they get, and why. |
-| `settings/updates.tsx` | `/settings/updates` | Check for updates (Android): compares this app with the latest release and offers the download; shows What's new once. |
+| `settings/updates.tsx` | `/settings/updates` | Check for updates (GitHub APK builds only): compares with the latest release, checks the download's SHA-256, then offers the install. |
 | `settings/widgets.tsx` | `/settings/widgets` | How to add each SocialNet widget to the home screen, with a small drawing of each one. |
 
 ### `show/`
