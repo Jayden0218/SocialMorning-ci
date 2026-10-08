@@ -28,6 +28,7 @@ import { hit } from '@/design';
 import { Platform } from 'react-native';
 import { Card } from '@/ui/kit/Card';
 import { LinkRow } from '@/ui/settings/rows';
+import { distributionOf, updaterShown } from '@/ui/shell/updater';
 
 type Doc = keyof typeof LEGAL_TEXT;
 const ICON = { width: 64, height: 64 };
@@ -77,15 +78,18 @@ export default function AboutScreen(): React.ReactElement {
           </Pressable>
         ))}
       </Box>
-      {/* M22 US17 (T077, T078): updates (Android APK copies only) and the widget guide. */}
+      {/* M22 US17 (T077, T078): updates (Android APK copies only) and the widget guide.
+          M25 L3d: "Check for updates" only on a build made for GitHub Releases, never a store build. */}
       <Box className="mt-section">
         <Card className="py-1">
-          {Platform.OS === 'android' ? (
+          {updaterShown(Platform.OS, distributionOf(Constants.expoConfig?.extra)) ? (
             <>
               <LinkRow href="/settings/updates" icon="cloud-download-outline" label="Check for updates" />
             </>
           ) : null}
           <LinkRow href="/settings/widgets" icon="apps-outline" label="Widgets" line="How to add SocialNet to your home screen" />
+          {/* M25 L2: the licence notices of every open-source package the app ships. */}
+          <LinkRow href="/settings/licences" icon="ribbon-outline" label="Open-source licences" />
         </Card>
       </Box>
       {/* M9: gluestack's Modal at full size, as Consent's documents. */}

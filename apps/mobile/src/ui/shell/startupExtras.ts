@@ -29,6 +29,7 @@ import { hapticsOn, setHapticsEnabled } from '@/ui/kit/haptics';
 import { lockSkipSeconds } from '@/settings/playback';
 import { setLockScreenSkipSeconds } from '@/playback/expo-audio-adapter';
 import { PHONE_SHORT_SIDE } from './useLayout';
+import { distributionOf, updaterShown } from './updater';
 
 type Orientation = { lockAsync(lock: number): Promise<void>; OrientationLock: { PORTRAIT_UP: number } };
 type QuickAction = { id: string; title: string; icon?: string | null; params?: Record<string, string | number | boolean | null | undefined> | null };
@@ -111,11 +112,11 @@ export function whatsNewDue(lastSeen: string | undefined, current: string): bool
   return lastSeen !== undefined && lastSeen !== '' && lastSeen !== current;
 }
 
-/** T077: opens the updates page once after an update (Android only). */
+/** T077: opens the updates page once after an update (Android GitHub builds only — M25 L3d). */
 function useWhatsNew(settings: SettingsStore): void {
   const router = useRouter();
   useEffect(() => {
-    if (Platform.OS !== 'android') return;
+    if (!updaterShown(Platform.OS, distributionOf(Constants.expoConfig?.extra))) return;
     const current = Constants.expoConfig?.version;
     if (!current) return;
     const due = whatsNewDue(settings.get(LAST_SEEN_VERSION_KEY), current);
