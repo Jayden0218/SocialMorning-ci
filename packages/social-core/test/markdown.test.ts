@@ -38,6 +38,6 @@ test('guard: a <script> in a body is plain text in the result, never markup', ()
 test('sections: split at ## headings; text before the first heading has an empty heading', () => {
   const s = sectionsOf(parseMarkdown('intro\n## One\nbody **one**\n## Two\n- x'));
   assert.deepEqual(s.map((x) => x.heading), ['', 'One', 'Two']);
-  assert.equal(plainText((s[1]!.blocks[0] as { v: never[] }).v), 'body one');
+  assert.equal(plainText((s[1]!.blocks[0] as unknown as { v: never[] }).v), 'body one');
   assert.deepEqual(sectionsOf([]), []);
 });
