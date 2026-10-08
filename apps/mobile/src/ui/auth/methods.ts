@@ -20,7 +20,7 @@ export type MethodInfo = { id: OtherMethod; label: string; short: string; icon: 
  * in its own blue (owner, 2026-09-27). `icon` is the plain font icon for lists (Settings).
  */
 export const OTHER_METHODS: MethodInfo[] = [
-  { id: 'google', label: 'Continue with Google', short: 'Google', icon: 'logo-google', mark: 'google', ready: false },
+  { id: 'google', label: 'Continue with Google', short: 'Google', icon: 'logo-google', mark: 'google', ready: true },
   { id: 'facebook', label: 'Continue with Facebook', short: 'Facebook', icon: 'logo-facebook', mark: { icon: 'logo-facebook', tint: 'facebook' }, ready: false },
 ];
 

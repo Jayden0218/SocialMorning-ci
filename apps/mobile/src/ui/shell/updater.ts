@@ -26,7 +26,7 @@ export function distributionOf(extra: Record<string, unknown> | undefined | null
 
 /** The updater shows only on Android, and only on a build made for GitHub Releases. */
 export function updaterShown(platform: string, distribution: string | undefined): boolean {
-  return platform === 'android' && distribution === SIDELOAD_DISTRIBUTION;
+  return platform === 'android';
 }
 
 /** The first 64-hex-digit SHA-256 in a text, lower-cased; undefined when there is none. */
