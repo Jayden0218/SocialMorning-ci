@@ -242,7 +242,8 @@ export interface FeedCacheStore {
 
 // ---- M6 (migration 005) ----
 
-export type HiddenKind = 'comment' | 'clip' | 'profile' | 'show' | 'episode';
+/** M24 US1: also `status`, `chat_message` and `list` (what this listener reported is hidden for them). */
+export type HiddenKind = 'comment' | 'clip' | 'profile' | 'show' | 'episode' | 'status' | 'chat_message' | 'list';
 /** `pending`: 1 = the report is not yet delivered; 0 = the server has it. */
 export type HiddenRow = { kind: HiddenKind; id: string; reason: string; note?: string; at: number; pending: boolean };
 

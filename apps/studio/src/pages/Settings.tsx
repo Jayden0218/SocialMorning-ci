@@ -14,7 +14,6 @@ import { light } from '../tokens';
 import { CATEGORIES, LANGUAGES } from '../categories';
 import { MAX_COVER_BYTES, mb, uploadFile } from '../upload';
 import { Contacts } from './settings/Contacts';
-import { FeedSync } from './settings/FeedSync';
 import { Hosts } from './settings/Hosts';
 
 export type Overrides = {
@@ -39,7 +38,7 @@ export function Settings({ show }: { show: Show }) {
         : tab === 'more' ? <More show={show} />
         : tab === 'contacts' ? <Contacts show={show} />
         : tab === 'hosts' ? <Hosts show={show} />
-        : show.hosted ? <Details show={show} /> : <><Appearance show={show} /><FeedSync show={show} /></>}
+        : show.hosted ? <Details show={show} /> : <Appearance show={show} />}
     </>
   );
 }
@@ -132,7 +131,7 @@ function Appearance({ show }: { show: Show }) {
               <input id="o-themeColour" value={f.themeColour} onChange={set('themeColour')} placeholder="#rrggbb" pattern="#[0-9a-fA-F]{6}" style={{ flex: 1 }} />
               <input type="color" aria-label="Pick a colour" value={/^#[0-9a-f]{6}$/i.test(f.themeColour) ? f.themeColour : light.muted} onChange={set('themeColour')} style={{ width: 56, minHeight: 44, padding: 4 }} />
             </div>
-            <span className="muted" style={{ fontSize: 13 }}>The app tints your show's player with this colour.</span>
+            <span className="muted" style={{ fontSize: 13 }}>Saved now; the app does not use it yet.</span>
           </div>
           {field('hosts', 'Host names', 'Names, separated by commas (up to 5). To give a host the Host mark on comments, invite them in the Hosts tab.')}
           {field('links', 'Links', 'One per line: a short label, a space, then an https:// link (up to 5).', 'textarea')}

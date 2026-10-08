@@ -7,7 +7,6 @@
 import { Hono } from 'hono';
 import type { AuthEnv } from '../auth/session.ts';
 import { showKey } from '../db/repos/studio/studio-roles.ts';
-import { notHidden } from '../db/repos/studio/hidden-episodes.ts';
 import { esc, page } from './clip.ts';
 
 export const showCard = new Hono<AuthEnv>();
@@ -24,9 +23,8 @@ showCard.get('/:key', async (c) => {
             coalesce(o.description, h.description) AS description,
             coalesce(o.cover_url, h.cover_url, (SELECT e.image_url FROM episodes e WHERE e.feed_url = $1 AND e.image_url IS NOT NULL ORDER BY e.published_at DESC NULLS LAST LIMIT 1)) AS cover
        FROM (SELECT 1) one LEFT JOIN show_overrides o ON o.feed_url = $1 LEFT JOIN hosted_shows h ON h.feed_url = $1 AND h.deleted_at IS NULL`, [feedUrl]);
-  // M24 US11: hidden episodes leave this list.
   const eps = await db.query<{ title: string; published_at: Date | string | null }>(
-    `SELECT title, published_at FROM episodes e WHERE e.feed_url = $1 AND (e.published_at IS NULL OR e.published_at <= now()) AND ${notHidden('e')} ORDER BY e.published_at DESC NULLS LAST LIMIT 5`, [feedUrl]);
+    'SELECT title, published_at FROM episodes WHERE feed_url = $1 AND (published_at IS NULL OR published_at <= now()) ORDER BY published_at DESC NULLS LAST LIMIT 5', [feedUrl]);
   const title = info?.title ?? 'A podcast on SocialNet';
   const openInApp = `socialmorning://show/${encodeURIComponent(feedUrl)}`;
   c.header('cache-control', 'public, max-age=300');

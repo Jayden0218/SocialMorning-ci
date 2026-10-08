@@ -6,9 +6,10 @@
  * In its own client like comment-extras-api.ts, so the test fakes of `ApiClient` need no new
  * methods. The pure helpers say what a row reads and where it opens, so they are tested alone.
  *
- * System notices: the server sends none yet. `systemAction` is the rule a system card's one
- * button follows when one does — only a path inside the app (it starts with "/", no scheme, no
- * "//"), never a web address.
+ * System notices (M24 US3): GET /v1/me/notifications/system → { items } — written in Admin, or
+ * sent by the server to one listener ("your comment was removed"). `systemAction` is the rule a
+ * system card's one button follows — only a path inside the app (it starts with "/", no scheme,
+ * no "//"), never a web address.
  */
 import { useMemo } from 'react';
 import { requester, type ApiDeps } from './api';
@@ -67,6 +68,20 @@ export function systemAction(payload: unknown): SystemAction | undefined {
   return { label: p.label.trim().slice(0, 40), route };
 }
 
+/** M24 US3: the server's list → cards; a row missing its id, title, body or time is dropped, the button checked by `systemAction`. */
+export function parseSystemNotices(body: unknown): SystemNotice[] {
+  const items = (body as { items?: unknown } | null)?.items;
+  if (!Array.isArray(items)) return [];
+  const out: SystemNotice[] = [];
+  for (const raw of items) {
+    const n = raw as { id?: unknown; title?: unknown; body?: unknown; createdAt?: unknown; action?: unknown } | null;
+    if (!n || typeof n.id !== 'string' || typeof n.title !== 'string' || typeof n.body !== 'string' || typeof n.createdAt !== 'string') continue;
+    const action = systemAction(n.action);
+    out.push({ id: n.id, title: n.title, body: n.body, createdAt: n.createdAt, ...(action ? { action } : {}) });
+  }
+  return out;
+}
+
 export type NotificationsApi = ReturnType<typeof createNotificationsApi>;
 
 export function createNotificationsApi(deps: ApiDeps) {
@@ -77,6 +92,7 @@ export function createNotificationsApi(deps: ApiDeps) {
       return { items: Array.isArray(j.items) ? j.items : [], next: typeof j.next === 'string' ? j.next : null };
     },
     markSeen: async () => { await call('POST', '/v1/me/notifications/seen'); },
+    system: async (): Promise<SystemNotice[]> => parseSystemNotices((await call<unknown>('GET', '/v1/me/notifications/system')).json),
   };
 }
 

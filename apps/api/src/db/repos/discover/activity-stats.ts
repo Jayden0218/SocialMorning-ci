@@ -7,13 +7,11 @@
  */
 import type { ActivityRow } from '@socialmorning/social-core';
 import type { Db } from '../../db.ts';
-import { notHidden } from '../studio/hidden-episodes.ts';
 
 export async function talkedAbout(db: Db, sinceDays = 7, feedUrl?: string): Promise<(ActivityRow & { episodeId: string })[]> {
-  // M24 US11: hidden episodes leave this list (Discover's "talked about", the chart, next-up).
   const rows = await db.query<{ episode_id: string; listeners: number; comments: number; clips: number; reactions: number; newest_at: string | null }>(
     `WITH ids AS (
-       SELECT id AS episode_id FROM episodes e WHERE ($2::text IS NULL OR e.feed_url = $2) AND ${notHidden('e')}
+       SELECT id AS episode_id FROM episodes e WHERE ($2::text IS NULL OR e.feed_url = $2)
      ),
      l AS (SELECT episode_id, count(DISTINCT actor_id)::int AS n, max(created_at) AS newest FROM activity
            WHERE kind = 'listened' AND hidden = false AND created_at > now() - ($1 || ' days')::interval GROUP BY episode_id),

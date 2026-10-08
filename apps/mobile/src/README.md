@@ -151,7 +151,6 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 |---|---|
 | `expo-audio-adapter.ts` | Connects the app's player to the phone's real audio engine. |
 | `finished.ts` | Decides when an episode counts as finished. |
-| `preview.ts` | A paid episode's free preview: play only [startMs, endMs) for a listener who has not bought it. |
 | `reducer.ts` | The player's rules: how each event changes play state, testable without a phone. |
 | `store.ts` | Links player rules, audio engine and storage; gives screens the player. |
 | `types.ts` | Defines player states, events and actions shared by the player files. |
@@ -224,6 +223,8 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `m19-api.ts` | Server calls for playlists, notices from hosts, the monthly report and the teen-mode reset. |
 | `api-m22-library.ts` | Server calls for the synced playlist and for deleting listening history. |
 | `notifications-api.ts` | Server calls for Interactions (replies, likes, mentions, follows), and where each notice opens. |
+| `appeals-api.ts` | Server calls for appeals: what I may appeal, and sending one appeal — with a session or the suspension's token. |
+| `lists-api.ts` | Server call for one shared show list (GET /v1/lists/:id), and checking what came back. |
 | `poll.ts` | Checks for new comments every 10 seconds, only when useful. |
 | `profile-api.ts` | Server calls for your profile, photo, hidden recommendations and episode likes. |
 | `us8-api.ts` | Server calls for text statuses, my subscription order, and others' public subscriptions. |
@@ -415,6 +416,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `VoicePosts.tsx` | Short voice and text statuses from you and people you follow; tap to play or read, post new. |
 | `MutedThreads.tsx` | The notice threads you muted, each with Unmute, for Settings › Privacy. |
 | `StatusViewer.tsx` | Full-screen status viewer: plays on open, taps on the right or left third move, swipe down closes. |
+| `MoreSheet.tsx` | A small "More" sheet: a title, a few rows (Report, Stop suggesting…) and Cancel. |
 | `StatusReplies.tsx` | Replies and reactions under a status: a text box, hold to record a voice reply, six reactions, the owner's list. |
 | `StatusComposerItems.tsx` | Add up to 10 episode cards and photos to a new status, from history, the queue, search or the photo library. |
 | `OftenListened.tsx` | A profile's "Often listened" row: the six shows they listened to most in the last 90 days. |

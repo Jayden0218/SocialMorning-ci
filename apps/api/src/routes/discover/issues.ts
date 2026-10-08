@@ -6,7 +6,6 @@ import type { Db } from '../../db/db.ts';
 import type { EpisodeCard } from '../../catalog/apple.ts';
 import { ApiError } from '../../errors.ts';
 import { hiddenFeedUrls } from '../../db/repos/safety/moderation.ts';
-import { hiddenEpisodeIds, notHidden } from '../../db/repos/studio/hidden-episodes.ts';
 
 /**
  * M12 FR-070 (past picks) and FR-101 (curated issues), both from the picks file — no
@@ -19,11 +18,10 @@ type EpRow = { id: string; feed_url: string; guid: string; title: string; show_t
 const cardOf = (e: EpRow): EpisodeCard & { id: string } => ({ id: e.id, feedUrl: e.feed_url, guid: e.guid, title: e.title, showTitle: e.show_title ?? '', enclosureUrl: e.enclosure_url, ...(e.image_url ? { imageUrl: e.image_url } : {}), ...(e.duration_ms !== null ? { durationMs: Number(e.duration_ms) } : {}) });
 const COLS = 'id, feed_url, guid, title, show_title, image_url, duration_ms, enclosure_url';
 
-/** `visibleOnly` (M24 US11): "the show's latest" skips an episode its creator hid. Listener paths pass true. */
-export async function episodeFor(db: Db, feedUrl: string, guid: string | undefined, visibleOnly = false): Promise<(EpisodeCard & { id: string }) | null> {
+export async function episodeFor(db: Db, feedUrl: string, guid: string | undefined): Promise<(EpisodeCard & { id: string }) | null> {
   const [e] = guid !== undefined
     ? await db.query<EpRow>(`SELECT ${COLS} FROM episodes WHERE feed_url = $1 AND guid = $2`, [feedUrl, guid])
-    : await db.query<EpRow>(`SELECT ${COLS} FROM episodes WHERE feed_url = $1${visibleOnly ? ` AND ${notHidden('episodes')}` : ''} ORDER BY published_at DESC NULLS LAST, first_seen_at DESC LIMIT 1`, [feedUrl]);
+    : await db.query<EpRow>(`SELECT ${COLS} FROM episodes WHERE feed_url = $1 ORDER BY published_at DESC NULLS LAST, first_seen_at DESC LIMIT 1`, [feedUrl]);
   return e ? cardOf(e) : null;
 }
 
@@ -38,16 +36,13 @@ pastPicks.get('/past', async (c) => {
   const cat = c.get('catalog');
   const db = c.get('db');
   const hidden = await hiddenFeedUrls(db);
-  const hiddenEps = await hiddenEpisodeIds(db); // M24 US11: hidden episodes leave this list.
   const page = pastPickDays(cat.picks, cat.today(), before);
   const days = [];
   for (const d of page.days) {
     const picks = [];
     for (const p of d.picks) {
       if (hidden.has(p.feedUrl)) continue;
-      const episode = await episodeFor(db, p.feedUrl, p.guid, true);
-      if (episode && hiddenEps.has(episode.id)) continue;
-      picks.push({ feedUrl: p.feedUrl, ...(p.guid !== undefined ? { guid: p.guid } : {}), why: p.why, episode });
+      picks.push({ feedUrl: p.feedUrl, ...(p.guid !== undefined ? { guid: p.guid } : {}), why: p.why, episode: await episodeFor(db, p.feedUrl, p.guid) });
     }
     days.push({ date: d.date, picks });
   }
@@ -82,13 +77,10 @@ issues.get('/:id', async (c) => {
   if (!issue) throw new ApiError('not_found', 'No such issue.');
   const db = c.get('db');
   const hidden = await hiddenFeedUrls(db);
-  const hiddenEps = await hiddenEpisodeIds(db); // M24 US11: hidden episodes leave this list.
   const items = [];
   for (const it of issue.items) {
     if (hidden.has(it.feedUrl)) continue;
-    const episode = await episodeFor(db, it.feedUrl, it.guid, true);
-    if (episode && hiddenEps.has(episode.id)) continue;
-    items.push({ order: it.order, feedUrl: it.feedUrl, ...(it.guid !== undefined ? { guid: it.guid } : {}), note: it.note, episode });
+    items.push({ order: it.order, feedUrl: it.feedUrl, ...(it.guid !== undefined ? { guid: it.guid } : {}), note: it.note, episode: await episodeFor(db, it.feedUrl, it.guid) });
   }
   c.header('cache-control', 'public, max-age=300');
   return c.json({ id: issue.id, number: numbered(cat.issues, cat.today()).get(issue.id) ?? 0, date: issue.date, title: issue.title, intro: issue.intro, items });

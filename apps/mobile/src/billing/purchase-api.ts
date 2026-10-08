@@ -13,9 +13,7 @@ export type PaidList = {
   productId?: string;
   profileId?: string;
   bought?: boolean;
-  items: { id: string; episodeId: string; title: string; description: string; durationMs: number | null; publishedAt: string; coverUrl: string | null;
-    /** M24 US13: the free preview range, when the creator set one. */
-    preview?: { startMs: number; endMs: number } }[];
+  items: { id: string; episodeId: string; title: string; description: string; durationMs: number | null; publishedAt: string; coverUrl: string | null }[];
 };
 
 export function createPurchaseApi(deps: ApiDeps) {
@@ -28,8 +26,6 @@ export function createPurchaseApi(deps: ApiDeps) {
     },
     paid: async (feedUrl: string) => (await call<PaidList>('GET', `/v1/hosted/paid?feedUrl=${encodeURIComponent(feedUrl)}`)).json,
     access: async (hostedEpisodeId: string) => (await call<{ url: string; expiresAt: string }>('GET', `/v1/hosted/episodes/${encodeURIComponent(hostedEpisodeId)}/access`)).json,
-    /** M24 US13: the free preview's link and range — no purchase needed. */
-    preview: async (hostedEpisodeId: string) => (await call<{ url: string; expiresAt: string; startMs: number; endMs: number }>('GET', `/v1/hosted/episodes/${encodeURIComponent(hostedEpisodeId)}/preview`)).json,
   };
 }
 export type PurchaseApi = ReturnType<typeof createPurchaseApi>;
