@@ -1,0 +1,15 @@
+# From Discover: search for the seeded show and open its page.
+appId: app.socialmorning.mobile
+---
+- tapOn: "Discover"
+- tapOn:
+    text: "Search.*"
+- tapOn: "Search podcasts"
+- inputText: "Journey Morning"
+- pressKey: Enter
+- tapOn:
+    text: "Journey Morning, .*"
+    index: 0
+- extendedWaitUntil:
+    visible: "(Subscribe to|Unsubscribe from) this show"
+    timeout: 15000

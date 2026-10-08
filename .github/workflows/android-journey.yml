@@ -1,0 +1,124 @@
+# M25 G7 — the same listener journeys as ios-journey.yml, on an Android emulator (ubuntu + KVM,
+# free on this public mirror). A release APK (JS bundled) is built here pointed at a local test
+# server (PGlite in memory — never Neon); the emulator reaches it through `adb reverse`.
+# Maestro runs apps/mobile/.maestro/flows.txt in order with their time budgets
+# (scripts/maestro-run.sh); then the server is asked what it holds, and the app's own error log
+# must hold nothing new. Nightly, and on demand.
+#
+# This APK is a TEST build (test server address, cleartext http allowed for localhost only in this
+# job): scripts/release-build-check.sh would refuse it, and it is never uploaded as a release.
+# `app_from_run=<an earlier run id>` reuses that run's APK (artifact android-journey-apk).
+name: android-journey
+on:
+  workflow_dispatch:
+    inputs:
+      app_from_run:
+        description: 'Reuse the APK from this earlier android-journey run id (skip the build)'
+        required: false
+        default: ''
+      only:
+        description: 'Run only flows whose file name matches this regex (sign-in always runs)'
+        required: false
+        default: '.'
+  schedule:
+    - cron: '0 19 * * *' # 03:00 in Malaysia
+permissions:
+  contents: read
+  actions: read
+jobs:
+  journey:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      E2E_API: http://localhost:8787
+      E2E_STORE_BASE: http://localhost:8787/__e2e/store/
+      E2E_PUBLIC_BASE: http://localhost:8787
+      E2E_MOD_EMAIL: mod@journey.test
+      SESSION_PEPPER: journey-pepper-not-secret
+      JOURNEY_OUT: ${{ github.workspace }}/apps/api/journey.json
+      SOCIALNET_API_BASE_URL: http://localhost:8787
+      APP_FROM_RUN: ${{ inputs.app_from_run }}
+      JOURNEY_ERRORS_ALLOW: '^(discover\.|search\.|catalog)'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - uses: actions/setup-java@v5
+        with: { distribution: temurin, java-version: 17 }
+      - run: npm ci --no-audit --no-fund
+      - name: reuse the APK from run ${{ inputs.app_from_run }}
+        if: env.APP_FROM_RUN != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download "$APP_FROM_RUN" -R "$GITHUB_REPOSITORY" -n android-journey-apk -D "$RUNNER_TEMP/apk"
+          echo "APK=$RUNNER_TEMP/apk/app-release.apk" >> "$GITHUB_ENV"
+      - name: prebuild (android), test server allowed over http
+        if: env.APP_FROM_RUN == ''
+        working-directory: apps/mobile
+        run: |
+          npx expo prebuild -p android --no-install --clean
+          M=android/app/src/main/AndroidManifest.xml
+          grep -q 'usesCleartextTraffic' "$M" \
+            && sed -i 's/android:usesCleartextTraffic="false"/android:usesCleartextTraffic="true"/' "$M" \
+            || sed -i 's/<application /<application android:usesCleartextTraffic="true" /' "$M"
+          grep -o 'usesCleartextTraffic="[a-z]*"' "$M"
+      - name: gradle assembleRelease (JS bundled)
+        if: env.APP_FROM_RUN == ''
+        working-directory: apps/mobile/android
+        run: |
+          ./gradlew :app:assembleRelease --no-daemon -PreactNativeArchitectures=x86_64
+          echo "APK=$PWD/app/build/outputs/apk/release/app-release.apk" >> "$GITHUB_ENV"
+      - name: keep the APK for flow-only re-runs
+        if: env.APP_FROM_RUN == ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-journey-apk
+          path: apps/mobile/android/app/build/outputs/apk/release/app-release.apk
+          retention-days: 5
+      - name: start the test server (PGlite) and seed 50 listeners
+        working-directory: apps/api
+        run: |
+          (npx tsx scripts/e2e-server.ts > ../../api.log 2>&1 &)
+          for i in $(seq 1 90); do curl -sf localhost:8787/v1/health && break; sleep 1; done
+          npx tsx scripts/journey.ts seed
+      - name: install Maestro
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+      - name: enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: the journeys on an emulator, each within its budget
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: |
+            adb reverse tcp:8787 tcp:8787
+            adb install -r "$APK"
+            ONLY='${{ inputs.only }}'; if [ -n "$ONLY" ] && [ "$ONLY" != "." ]; then ONLY="01-sign-in|$ONLY"; else ONLY=.; fi; sh scripts/maestro-run.sh emulator-5554 "$RUNNER_TEMP/maestro" "$ONLY"
+            adb shell monkey -p app.socialmorning.mobile -c android.intent.category.LAUNCHER 1 || true
+            sleep 75
+      - name: what the server holds after the phone
+        if: inputs.only == '' || inputs.only == '.'
+        working-directory: apps/api
+        run: |
+          npx tsx scripts/journey.ts phone listener-02@journey.test "Maestro: heard it on the simulator"
+      - name: the app's own error log holds nothing new
+        run: sh scripts/journey-errors.sh
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-journey
+          path: |
+            ${{ runner.temp }}/maestro
+            api.log
+            apps/api/journey.json
+          retention-days: 7

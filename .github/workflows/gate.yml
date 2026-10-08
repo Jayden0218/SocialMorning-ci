@@ -95,6 +95,12 @@ jobs:
       # its database address or its encryption key, and never prints the address.
       - name: backup preflight refuses without its key (G-M23-10)
         run: sh scripts/backup-preflight.test.sh
+      # M25 G2: the release gate goes red when one required workflow is missing or red on the commit.
+      - name: release gate refuses a commit missing a green workflow (M25 G2)
+        run: sh scripts/release-gate.test.sh
+      # M25 G5: the release-build check refuses localhost, __e2e, a test API address, a dev client.
+      - name: release-build check refuses a test bundle (M25 G5)
+        run: sh scripts/release-build-check.test.sh
       # M11 (research R9 open item): recharts 3 was reported to resolve react-is@18 under
       # React 19. List what it resolves; the Studio's own tests (above) render its charts.
       - name: studio — react-is resolved under React 19

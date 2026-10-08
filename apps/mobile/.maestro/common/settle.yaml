@@ -1,0 +1,19 @@
+# Whatever may sit over the tabs after a launch: the launch promotion (≤ 3 s), the interests page
+# (first time on the tabs), the rate sheet (second launch on). Each only if it is there.
+appId: app.socialmorning.mobile
+---
+- runFlow:
+    when:
+      visible: "Skip"
+    commands:
+      - tapOn: "Skip"
+- runFlow:
+    when:
+      visible: "Skip choosing categories"
+    commands:
+      - tapOn: "Skip choosing categories"
+- runFlow:
+    when:
+      visible: "Enjoying SocialNet\\?"
+    commands:
+      - tapOn: "Close"

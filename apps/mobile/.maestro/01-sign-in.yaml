@@ -1,0 +1,38 @@
+# M25 G1/G6 flow 1 — first launch to Discover, signed in by emailed code. Elements are found by
+# their accessible names (what VoiceOver reads), so a renamed control fails here as it would for
+# a listener. Since M17 the first-launch page says "Agree" (it said "Agree and continue" before:
+# ios-journey was red 2026-10-01…07 at that tap).
+appId: app.socialmorning.mobile
+env:
+  API: http://localhost:8787
+  EMAIL: listener-02@journey.test
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: "Agree"
+    timeout: 60000
+- takeScreenshot: 01a-terms
+- tapOn: "Agree"
+- runFlow:
+    when:
+      visible: "Allow"
+    commands:
+      - tapOn: "Allow"
+- tapOn: "Continue with email"
+- tapOn: "Agree and continue"           # the consent sheet: the box under the ways in was not ticked
+- tapOn: "Email"
+- inputText: ${EMAIL}
+- tapOn: "Send code"
+- runScript: fetch-code.js              # the test server's inbox — what a person reads in their mail
+- tapOn: "Code"
+- inputText: ${output.code}
+- tapOn: "Continue"
+- extendedWaitUntil:
+    visible: "Discover"
+    timeout: 30000
+- runFlow: common/settle.yaml
+- assertVisible: "Discover"
+- takeScreenshot: 01b-signed-in

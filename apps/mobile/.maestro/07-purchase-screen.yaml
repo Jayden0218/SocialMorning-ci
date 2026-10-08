@@ -1,0 +1,21 @@
+# M25 G6 flow 7 — the purchase screen opens (nothing is bought). On iOS the store is not wired
+# (src/billing/play.ts is Android-only), so Wallet first says Coming soon.
+appId: app.socialmorning.mobile
+---
+- launchApp
+- runFlow: common/settle.yaml
+- tapOn:
+    text: "Me(, .*)?"
+- scrollUntilVisible:
+    element: "Wallet"
+    timeout: 15000
+- tapOn: "Wallet"
+- runFlow:
+    when:
+      visible: "Open Wallet"
+    commands:
+      - tapOn: "Open Wallet"
+- extendedWaitUntil:
+    visible: "Redeem a code"
+    timeout: 15000
+- takeScreenshot: 07-wallet

@@ -1,0 +1,21 @@
+# M25 G6 flow 8 — the account deletion screen opens; nothing is sent and nothing is deleted
+# ("Keep my account" is the way out).
+appId: app.socialmorning.mobile
+---
+- launchApp
+- runFlow: common/settle.yaml
+- tapOn:
+    text: "Me(, .*)?"
+- scrollUntilVisible:
+    element: "Account and settings"
+    timeout: 15000
+- tapOn: "Account and settings"
+- tapOn: "Account and security"
+- tapOn: "More account options"
+- tapOn: "Delete my account"
+- extendedWaitUntil:
+    visible: "Keep my account"
+    timeout: 10000
+- assertVisible: "Email me a code to confirm"
+- takeScreenshot: 08-delete-screen
+- tapOn: "Keep my account"

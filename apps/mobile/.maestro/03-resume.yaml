@@ -1,0 +1,19 @@
+# M25 G6 flow 3 — quit and reopen: the mini player is back at the moment it stopped (≥ 0:15),
+# and Play carries on from there.
+appId: app.socialmorning.mobile
+---
+- stopApp
+- launchApp
+- runFlow: common/settle.yaml
+- extendedWaitUntil:
+    visible:
+      text: "0:(1[5-9]|2[0-9])/1:00"
+    timeout: 20000
+- takeScreenshot: 03a-resumed-position
+- tapOn: "Play"
+- extendedWaitUntil:
+    visible:
+      text: "0:(2[5-9]|3[0-9])/1:00"
+    timeout: 25000
+- tapOn: "Pause"
+- takeScreenshot: 03b-played-on

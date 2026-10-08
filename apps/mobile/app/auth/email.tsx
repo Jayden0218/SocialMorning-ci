@@ -13,10 +13,6 @@
  * weight; the code step's bar is the page colour with "Didn't get it?" in 13 pt and a 52 pt
  * "Continue →"; the name step shows a monogram of the typed name over its title. Steps,
  * consent, resend timer and sign-in calls are unchanged.
- *
- * M25 L3e (age gate): the name step — a new account only — also asks "I am 14 or older"
- * (`AgeConfirm`); "Create account" waits for it, and "I am under 14" ends the sign-up with a plain
- * line. The confirmation is kept next to the terms consent (`recordAgeConfirmed`, src/ui/auth/age.ts).
  */
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -31,8 +27,6 @@ import { ConsentDialog, ConsentRow, useLegalOverlay } from '@/ui/auth/Consent';
 import { describe, errorText } from '@/ui/auth/errors';
 import { toApp } from '@/ui/auth/navigate';
 import { looksLikeEmail, submitAction } from '@/ui/auth/rules';
-import { AgeConfirm } from '@/ui/auth/AgeConfirm';
-import { UNDER_AGE_TEXT, canCreate, recordAgeConfirmed } from '@/ui/auth/age';
 
 type Step = 'email' | 'code' | 'name';
 
@@ -61,8 +55,6 @@ export default function EmailScreen(): React.ReactElement {
   const [verifying, setVerifying] = useState(false);
   const busy = sending || verifying;
   const [agreed, setAgreed] = useState(consentGiven);
-  const [ageOk, setAgeOk] = useState(false);
-  const [under, setUnder] = useState(false);
   const [asking, setAsking] = useState(false);
   const [wait, setWait] = useState(0);
   const legal = useLegalOverlay();
@@ -88,8 +80,6 @@ export default function EmailScreen(): React.ReactElement {
   });
 
   const verify = (displayName?: string) => run(setVerifying, async () => {
-    // M25 L3e: a new account is made only after the age is confirmed; the record sits by the terms consent.
-    if (displayName !== undefined) recordAgeConfirmed(stores.settings);
     const r = await auth.signInWithCode(email.trim(), code.trim(), displayName);
     if (r === 'needsName') { setStep('name'); return; }
     stores.settings.set(SUSPENDED_KEY, '');
@@ -126,7 +116,7 @@ export default function EmailScreen(): React.ReactElement {
             <AuthButton label="Continue" trail="chevron-forward" className="rounded-pill px-7" slim bold disabled={code.length !== 6} busy={verifying} onPress={() => void verify()} />
           </Box>
         )
-        : <AuthButton label="Create account" className="rounded-pill" bold disabled={under || !canCreate(name, ageOk)} busy={verifying} onPress={() => { if (canCreate(name, ageOk)) void verify(name.trim()); }} />
+        : <AuthButton label="Create account" className="rounded-pill" bold disabled={name.trim().length === 0} busy={verifying} onPress={() => void verify(name.trim())} />
       }
     >
       {step === 'email' ? (
@@ -144,9 +134,6 @@ export default function EmailScreen(): React.ReactElement {
       {step === 'name' ? (
         <>
           <AuthField label="Name" placeholder="Display name" autoFocus maxLength={40} value={name} onChangeText={setName} accessibilityLabel="Display name" />
-          {under
-            ? <Text className="text-text text-body mt-section" accessibilityLiveRegion="polite">{UNDER_AGE_TEXT}</Text>
-            : <AgeConfirm confirmed={ageOk} onToggle={() => setAgeOk((a) => !a)} onUnder={() => { setUnder(true); setAgeOk(false); setName(''); }} />}
         </>
       ) : null}
       {suspended ? <Text className={errorText} accessibilityLiveRegion="polite">{suspended}</Text> : null}

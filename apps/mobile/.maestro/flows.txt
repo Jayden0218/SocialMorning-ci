@@ -1,0 +1,11 @@
+# M25 G6: the phone journeys, run IN THIS ORDER by scripts/maestro-run.sh (ios-journey.yml,
+# android-journey.yml). "<flow> <budget seconds>" — the budget covers Maestro's own start
+# (~15 s) plus the app; a flow over budget makes the run red. 01 signs in; the rest reuse it.
+01-sign-in.yaml 240
+02-subscribe-play.yaml 150
+03-resume.yaml 120
+04-comment-reply.yaml 150
+05-report-block.yaml 150
+06-download.yaml 150
+07-purchase-screen.yaml 90
+08-account-deletion.yaml 90
