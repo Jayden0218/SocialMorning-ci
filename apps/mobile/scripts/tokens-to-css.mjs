@@ -96,8 +96,6 @@ export function renderBlock(tokens = loadTokens()) {
   if (size) lines.push(`  --spacing-row-h: ${size.row}px;`);
   lines.push(`  --radius-row: ${radius.row}px;`, `  --radius-artwork: ${radius.artwork}px;`, `  --radius-pill: ${radius.pill}px;`);
   if (radius.artworkLarge) lines.push(`  --radius-artwork-lg: ${radius.artworkLarge}px;`);
-  // M24 US18: `rounded-t-sheet`, the 24 pt top corners of every sheet.
-  if (radius.sheet) lines.push(`  --radius-sheet: ${radius.sheet}px;`);
   lines.push('}');
   // `StyleSheet.hairlineWidth` as utilities (v3 had `borderWidth.hairline` in the config).
   for (const [cls, prop] of [['border-hairline', 'border-width'], ['border-t-hairline', 'border-top-width'], ['border-b-hairline', 'border-bottom-width'], ['border-l-hairline', 'border-left-width'], ['border-r-hairline', 'border-right-width']]) {

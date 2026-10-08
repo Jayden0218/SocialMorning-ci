@@ -6,7 +6,7 @@ import { requireAuth } from '../../auth/session.ts';
 import { ApiError } from '../../errors.ts';
 import { audioDurationMs, isMp4 } from '../../voice/duration.ts';
 import { readTranscript } from '../../voice/transcript.ts';
-import { fromFollowing, getPost, insertPost, insertTextPost, liveCount, removePost, suggestedFor, TEXT_STATUS_MAX, visiblePost, VOICE_LIVE_MAX, VOICE_MAX_BYTES, VOICE_MAX_MS, type PublicPost } from '../../db/repos/social/voice-posts.ts';
+import { fromFollowing, getPost, insertPost, insertTextPost, liveCount, removePost, setSuggestionMute, suggestedFor, TEXT_STATUS_MAX, visiblePost, VOICE_LIVE_MAX, VOICE_MAX_BYTES, VOICE_MAX_MS, type PublicPost } from '../../db/repos/social/voice-posts.ts';
 import { sniff } from '../../db/repos/account/feedback.ts';
 import { pushNewStatus } from '../../db/repos/account/push.ts';
 import { addAudioReply, addTextReply, clearReaction, deleteReply, listReplies, REACTION_KINDS, REPLY_TEXT_MAX, setReaction, summaries, visibleStatus } from '../../db/repos/social/status-replies.ts';
@@ -28,6 +28,7 @@ import { insertItems, itemsFor, itemsFromHeader, ItemsError, parseItems, recordU
  *   POST   /:id/replies                 → JSON { body ≤ 140 } or a raw recording (same rules as a voice status)
  *   DELETE /:id/replies/:replyId        → 204 (owner or author; the recording goes too)
  *   PUT    /:id/reaction { kind 1..6 }  → 204 · DELETE → 204
+ *   PUT    /suggestions/muted/:listenerId → 204 (M24 US17: stop suggesting this person) · DELETE → 204 (undo)
  * A recording is sent raw (like a voice status), not as multipart: the phone already uploads that way.
  */
 export const voice = new Hono<AuthEnv>();
@@ -146,6 +147,18 @@ async function enrich(c: Context<AuthEnv>, posts: readonly PublicPost[], suggest
     };
   });
 }
+
+// M24 US17: "stop suggesting this person's statuses". Registered before the `/:id` routes.
+const suggestionMute = (on: boolean) => async (c: Context<AuthEnv>) => {
+  const other = c.req.param('listenerId') ?? '';
+  const me = c.get('listener')!.id;
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(other) || other === me) throw new ApiError('not_found', 'No such listener.');
+  if ((await c.get('db').query('SELECT 1 FROM listeners WHERE id = $1', [other])).length === 0) throw new ApiError('not_found', 'No such listener.');
+  await setSuggestionMute(c.get('db'), me, other, on);
+  return c.body(null, 204);
+};
+voice.put('/suggestions/muted/:listenerId', requireAuth, suggestionMute(true));
+voice.delete('/suggestions/muted/:listenerId', requireAuth, suggestionMute(false));
 
 voice.get('/', requireAuth, async (c) => {
   const from = c.req.query('from') ?? 'following';

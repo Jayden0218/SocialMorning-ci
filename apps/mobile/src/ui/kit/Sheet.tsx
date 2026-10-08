@@ -12,9 +12,8 @@
  *    the drag lives on the top only.
  *  - The backdrop, Android's back button and a screen reader's escape close it; the handle is
  *    also a button ("Make the sheet taller" / "shorter") for anyone who cannot drag.
- *  - Editorial (M24 US18, `QueueSheet-B`): the paper colour, 24 pt top corners, a 40 × 5 handle;
- *    the bottom clears the home bar with `pb-safe` (the root hands the insets to UniWind — guard
- *    G-S1).
+ *  - Editorial: white surface, 16 pt top corners, thin border; the bottom clears the home bar
+ *    with `pb-safe` (the root hands the insets to UniWind — guard G-S1).
  *
  * Built on React Native's PanResponder and Animated (as QueueList's drag and HeatScrubber):
  * Jest has no gesture-handler mocks, and the sheet's one gesture needs nothing more. Animated
@@ -128,7 +127,7 @@ export function Sheet(props: {
     <Box className="absolute inset-0 justify-end" pointerEvents={props.open ? 'box-none' : 'none'}>
       <Pressable onPress={props.onClose} accessibilityRole="button" accessibilityLabel="Close" className="absolute inset-0 bg-scrim" />
       <Animated.View
-        className="bg-background rounded-t-sheet pb-safe overflow-hidden"
+        className="bg-surface rounded-t-row border border-border pb-safe overflow-hidden"
         style={{ height }}
         accessibilityViewIsModal
         accessibilityLabel={props.label}
@@ -142,7 +141,7 @@ export function Sheet(props: {
             className="items-center justify-center"
             style={HANDLE}
           >
-            <Box className="w-10 h-[5px] bg-handle rounded-pill" />
+            <Box className="w-10 h-1 bg-track rounded-pill" />
           </Pressable>
           {props.header}
         </Box>

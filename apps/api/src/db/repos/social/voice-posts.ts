@@ -82,6 +82,7 @@ export const SUGGESTED_MAX = 5;
 /**
  * Suggested statuses: live posts by accounts the viewer does not follow — never their own, never a
  * blocked (either way), muted, suspended or hidden account. One per author (the newest), newest first.
+ * M24 US17: nor anyone the viewer asked to stop suggesting (`status_suggestion_mutes`).
  */
 export async function suggestedFor(db: Db, viewerId: string, limit = SUGGESTED_MAX): Promise<PublicPost[]> {
   const rows = await db.query<PostRow>(
@@ -93,6 +94,7 @@ export async function suggestedFor(db: Db, viewerId: string, limit = SUGGESTED_M
           AND v.listener_id NOT IN (SELECT followed_id FROM follows WHERE follower_id = $1)
           AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id = $1 AND b.blocked_id = v.listener_id) OR (b.blocker_id = v.listener_id AND b.blocked_id = $1))
           AND NOT EXISTS (SELECT 1 FROM listener_mutes m WHERE m.muter_id = $1 AND m.muted_id = v.listener_id)
+          AND NOT EXISTS (SELECT 1 FROM status_suggestion_mutes x WHERE x.listener_id = $1 AND x.muted_id = v.listener_id) -- M24 US17
         ORDER BY v.listener_id, v.created_at DESC) s
      ORDER BY s.created_at DESC LIMIT $2`,
     [viewerId, limit],
@@ -189,4 +191,10 @@ export async function removeAllFor(db: Db, storage: VoiceStorage, listenerId: st
     await storage.remove(r.audio_url);
     await db.query('DELETE FROM status_replies WHERE id = $1', [r.id]);
   }
+}
+
+/** M24 US17: "stop suggesting this person's statuses" — and undo. Their statuses still show if the viewer follows them. */
+export async function setSuggestionMute(db: Db, viewerId: string, mutedId: string, on: boolean): Promise<void> {
+  if (on) await db.query('INSERT INTO status_suggestion_mutes (listener_id, muted_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [viewerId, mutedId]);
+  else await db.query('DELETE FROM status_suggestion_mutes WHERE listener_id = $1 AND muted_id = $2', [viewerId, mutedId]);
 }

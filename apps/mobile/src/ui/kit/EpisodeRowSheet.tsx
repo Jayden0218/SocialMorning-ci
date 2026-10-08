@@ -74,7 +74,7 @@ export function EpisodeRowSheet(props: {
     <>
       <Actionsheet isOpen={e !== undefined} onClose={props.onClose}>
         <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-        <ActionsheetContent className="px-screen-x pt-row max-h-[90%] items-stretch">
+        <ActionsheetContent className="bg-surface rounded-t-row px-screen-x pt-row max-h-[90%] items-stretch">
           <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
           {e ? (
             <ActionsheetScrollView className="grow-0">

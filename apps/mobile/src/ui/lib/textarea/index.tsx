@@ -10,7 +10,6 @@ import {
   useStyleContext,
 } from '@gluestack-ui/utils/nativewind-utils';
 import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils';
-import { useFace } from '../text';
 
 const SCOPE = 'TEXTAREA';
 const UITextarea = createTextarea({
@@ -73,16 +72,13 @@ type ITextareaInputProps = React.ComponentProps<typeof UITextarea.Input> &
 const TextareaInput = React.forwardRef<
   React.ComponentRef<typeof UITextarea.Input>,
   ITextareaInputProps
->(function TextareaInput({ className, style, ...props }, ref) {
+>(function TextareaInput({ className, ...props }, ref) {
   const { size: parentSize } = useStyleContext(SCOPE);
-  // M24 US18 (design-settings G2): a raw TextInput skipped the face picker → system font.
-  const face = useFace(className);
 
   return (
     <UITextarea.Input
       ref={ref}
       {...props}
-      style={face ? [face, style] : style}
       // M9 (iOS, found on the phone): the creator defaults aria-label to "Input Field", and on
       // native aria-label beats accessibilityLabel — so every field was read as "Input Field".
       // The caller's name is passed on as the aria-label too.

@@ -59,12 +59,6 @@ export const colour = {
   playGlyph: '#8a5a00',
   /** The veil over the player's blurred artwork — the page at 88 % (over black: text 13.29, muted 5.30). */
   veil: 'rgba(251,248,241,0.88)',
-  /** M24 US18 (`History-B`, `Favourites-B`): the beige track behind a yellow `Segmented` choice. Muted words on it 6.21. */
-  segment: '#f1ebdd',
-  /** M24 US18 (`SettingsMore-B`): a switch's track when off — visible on a white card (1.49, decorative edge; the thumb and the label carry the state). */
-  switchOff: '#d9d3c4',
-  /** M24 US18 (`QueueSheet-B` and every sheet): the 40 × 5 handle on top of a sheet. Decorative. */
-  handle: 'rgba(17,17,20,0.22)',
 } as const;
 
 export type Palette = { readonly [K in keyof typeof colour]: string };
@@ -92,11 +86,8 @@ export type AccentName = keyof typeof ACCENTS;
  * M7's four steps (xs 12, sm 16, base 20, lg 24) plus M17's Editorial steps (data-model §2):
  * micro 11 (eyebrows), meta 13 (times, counts), body 14 (rows, body text), title 17 (episode and
  * show titles in cards), hero 28 and display 32 (serif page titles). Classes: `text-<name>`.
- * M24 US18: lead 15 — the B designs' fourth most used size (160 uses: row titles, buttons), which
- * had no step. `sm` stays 16: the designs use 16 too (82 uses), so moving it would shrink those;
- * rows drawn at 14 in the designs should say `text-body`, not `text-sm`.
  */
-export const fontSize = { micro: 11, xs: 12, meta: 13, body: 14, lead: 15, sm: 16, title: 17, base: 20, lg: 24, hero: 28, display: 32 } as const;
+export const fontSize = { micro: 11, xs: 12, meta: 13, body: 14, sm: 16, title: 17, base: 20, lg: 24, hero: 28, display: 32 } as const;
 
 /**
  * M12 (FR-051, FR-052): one 20 pt side margin on every page (was 24, and several pages used
@@ -107,24 +98,8 @@ export const spacing = { screenX: 20, row: 12, gap: 8, section: 16 } as const;
 /** M12 FR-050: a list row is 50 pt tall at the default text size, and grows with it. */
 export const size = { row: 50 } as const;
 
-/**
- * M17: the Editorial shapes — cards and rows in cards 16, artwork 16 (22 at 96 pt and up).
- * M24 US18: every sheet's top corners 24 (`QueueSheet-B`, `EpisodeMoreSheet-B`, `CommentMenu-B`).
- */
-export const radius = { row: 16, artwork: 16, artworkLarge: 22, pill: 999, sheet: 24 } as const;
-
-/**
- * M24 US18: a cover's corner by its size, measured on the B designs (square art and its radius):
- * 40–44 → 8–10, 48–64 → 12, 72–132 → 14, 148 → 16, 156 up → 18. Read lowest first: the first
- * step whose `upTo` is at least the size wins.
- */
-export const coverRadius: readonly { upTo: number; r: number }[] = [
-  { upTo: 44, r: 10 },
-  { upTo: 64, r: 12 },
-  { upTo: 132, r: 14 },
-  { upTo: 152, r: 16 },
-  { upTo: Infinity, r: 18 },
-];
+/** M17: the Editorial shapes — cards and rows in cards 16, artwork 16 (22 at 96 pt and up). */
+export const radius = { row: 16, artwork: 16, artworkLarge: 22, pill: 999 } as const;
 
 /** M6 FR-015, carried forward: nothing a listener taps is smaller than this. */
 export const hit = { min: 48 } as const;
