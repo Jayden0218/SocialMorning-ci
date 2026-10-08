@@ -12,10 +12,8 @@ import type { SettingsStore } from '@/storage/types';
 import { LEGAL_TEXT } from '@/legal/texts';
 
 /** v2 (2026-09-27): the sheet and the three full documents replace the v1 draft.
- *  v3 (2026-09-27, M10b US7): the privacy policy now says the country is shown on profiles — asked again.
- *  v4 (2026-10-08, M25 L1): factual fixes — email sign-in, the minimum age of 14, the 15-day deletion wait,
- *  what is hosted — asked again on a phone that has not signed in. */
-export const TERMS_VERSION = '4';
+ *  v3 (2026-09-27, M10b US7): the privacy policy now says the country is shown on profiles — asked again. */
+export const TERMS_VERSION = '3';
 export const TERMS_KEY = 'terms.accepted';
 
 export type LegalDocId = keyof typeof LEGAL_TEXT;

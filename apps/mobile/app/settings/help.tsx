@@ -19,8 +19,7 @@ import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
 import { size } from '@/design';
 import { useColours } from '@/ui/kit/useColours';
-import { useFaq } from '@/config/content';
-import { MarkdownBlocks } from '@/ui/content/Markdown';
+import { FAQ } from '@/settings/faq';
 import { appealsMailto, APPEALS_KEY, refreshAppeals } from '@/social/links';
 import { useSocial } from '@/social/context';
 import { Icon } from '@/ui/kit/Icon';
@@ -46,10 +45,8 @@ export default function HelpScreen(): React.ReactElement {
   const [fresh] = useLoad(() => refreshAppeals(api, stores).then((to) => ({ to })), [api, stores], 'help.appeals');
   const appeals = fresh.kind === 'ok' ? fresh.to : stores.settings.get(APPEALS_KEY) || undefined;
   const mail = appealsMailto(appeals);
-  // M25 A8: the server's questions (Admin › Content), the bundled ones when it cannot be reached.
-  const faq = useFaq();
-  const tags = useMemo(() => [ALL, ...Array.from(new Set(faq.map((f) => f.tag)))], [faq]);
-  const shown = tag === ALL ? faq : faq.filter((f) => f.tag === tag);
+  const tags = useMemo(() => [ALL, ...Array.from(new Set(FAQ.map((f) => f.tag)))], []);
+  const shown = tag === ALL ? FAQ : FAQ.filter((f) => f.tag === tag);
   return (
     <>
     <PageHeader title="Help and feedback" />
@@ -94,7 +91,7 @@ export default function HelpScreen(): React.ReactElement {
                 </Box>
                 <Icon name={isOpen ? 'chevron-down' : 'chevron-forward'} size={18} color={c.muted} />
               </Pressable>
-              {isOpen ? <Box className="px-section pb-section"><MarkdownBlocks blocks={f.blocks} small /></Box> : null}
+              {isOpen ? <Text className="text-muted text-meta px-section pb-section leading-[20px]">{f.a}</Text> : null}
             </Box>
           );
         })}

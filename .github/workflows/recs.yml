@@ -46,10 +46,7 @@ jobs:
                      -H "authorization: Bearer $JOB_TOKEN" \
                      -H 'content-type: application/json' \
                      -d "$body")
-              # M25 S10: this log is PUBLIC (the CI mirror). Print only done, the counts, the time and
-              # an error code — never the whole answer and never the cursor: the similarity step's
-              # cursor is a show's feed URL, and a premium feed's URL can carry a private token.
-              echo "$step: $(printf '%s' "$out" | grep -o '"done":[a-z]*\|"counts":{[^}]*}\|"ms":[0-9]*\|"error":"[a-z_]*"' | tr '\n' ' ')"
+              echo "$step: $out"
               case "$out" in *'"done":true'*) return 0;; esac
               cursor=$(printf '%s' "$out" | sed -n 's/.*"next":"\([^"]*\)".*/\1/p')
               [ -n "$cursor" ] || { echo "no cursor and not done — stopping"; return 1; }

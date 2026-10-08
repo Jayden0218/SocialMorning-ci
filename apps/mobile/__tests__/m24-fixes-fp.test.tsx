@@ -224,8 +224,8 @@ describe('7. change email: how many other devices were signed out', () => {
       baseUrl: 'https://api.test', getToken: async () => 'tok',
       fetch: (async () => new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' } })) as unknown as typeof fetch,
     });
-    expect(await createAccountApi(answer({ email: 'n@e.com', signedOut: 2 })).confirmEmailChange('123456', '654321')).toEqual({ email: 'n@e.com', signedOut: 2 });
-    expect(await createAccountApi(answer({ email: 'n@e.com' })).confirmEmailChange('123456', '654321')).toEqual({ email: 'n@e.com', signedOut: 0 });
+    expect(await createAccountApi(answer({ email: 'n@e.com', signedOut: 2 })).confirmEmailChange('123456')).toEqual({ email: 'n@e.com', signedOut: 2 });
+    expect(await createAccountApi(answer({ email: 'n@e.com' })).confirmEmailChange('123456')).toEqual({ email: 'n@e.com', signedOut: 0 });
     expect(read('app/settings/account-email.tsx')).toMatch(/toast\(emailChangedLine\(now\.signedOut\)\)/);
   });
 });

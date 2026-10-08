@@ -62,29 +62,6 @@ export async function fetchFeed(db: Db, f: typeof fetch, feedUrl: string, opts: 
   return { feed: r.body, stale: r.stale };
 }
 
-/** M25 S8: how many items a fresh, uncached read of a feed looks through for one episode. */
-export const FULL_FEED_ITEMS = 5000;
-
-/**
- * M25 S8: the episode with this guid as the publisher's feed lists it now, or undefined. The
- * cached copy (newest 50) first; when it is not there, one fresh read of the whole feed (a new
- * episode may be younger than the cache, an old one older than the newest 50). Throws when the
- * feed cannot be read at all.
- */
-export async function findEpisodeInFeed(db: Db, f: typeof fetch, feedUrl: string, guid: string, opts: { timeoutMs?: number } = {}): Promise<EpisodeCard | undefined> {
-  const { feed } = await fetchFeed(db, f, feedUrl, opts);
-  const hitCached = feed.episodes.find((e) => e.guid === guid);
-  if (hitCached) return toCard(feedUrl, feed.show, hitCached);
-  const xml = await withDeadline(opts.timeoutMs ?? FEED_TIMEOUT_MS, `feed ${feedUrl}`, async (signal) => {
-    const res = await f(feedUrl, { signal, headers: { accept: 'application/rss+xml, application/xml, text/xml', 'user-agent': USER_AGENT } });
-    if (!res.ok) throw new Error(`feed ${feedUrl}: ${res.status}`);
-    return readFeedText(res, nodeDecoder);
-  });
-  const parsed = parseFeed(xml, feedUrl, { hash, maxItems: FULL_FEED_ITEMS });
-  const e = parsed.episodes.find((x) => x.guid === guid);
-  return e ? toCard(feedUrl, parsed.show, e) : undefined;
-}
-
 /** The cache key prefix that marks a publisher's `itunes:block` (read by `hiddenFeedUrls`). */
 export const FEED_BLOCK_PREFIX = 'feed-block:';
 

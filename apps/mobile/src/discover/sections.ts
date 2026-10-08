@@ -25,6 +25,8 @@ export type DiscoverModel = {
   arrivals: { show: ShowCard; episode: EpisodeCard }[];
   /** M10b US5: "Podcasts you can watch". */
   video: DiscoverItem[];
+  /** M21 "Shows picked for you" — the shows behind For You, each once (M25 A5: its own switch). */
+  pickedShows: { feedUrl: string; title: string; imageUrl?: string }[];
   /** M15 US5: the sections to draw, top to bottom — the owner's order, hidden ones left out. */
   order: SectionId[];
 };
@@ -35,8 +37,24 @@ export type DiscoverModel = {
  */
 // M24 US20 (`Home-B`): the Editor's pick card comes first, For You after it. An owner's saved
 // Studio layout still wins (the server sends it as `layout`).
-export const SECTION_IDS = ['picks', 'forYou', 'chart', 'shows', 'video', 'collections', 'followedHere', 'said', 'newShows'] as const;
+// M25 A5 (lane AL): one id per thing drawn. Split out of a bundle: `theirLikes` (from `picks`),
+// `pickedShows` (from `forYou`), `categories` (the strip, from `chart`), `premium` (from `shows`),
+// `hunt` (from `newShows`, which is New arrivals alone now). `followedHere` drew nothing: gone.
+export const SECTION_IDS = [
+  'picks', 'theirLikes', 'forYou', 'pickedShows', 'chart', 'categories', 'shows', 'premium',
+  'video', 'collections', 'said', 'newShows', 'hunt',
+] as const;
 export type SectionId = (typeof SECTION_IDS)[number];
+
+/**
+ * M25 A5: a layout saved before the split names only the bundle. A part it does not name sits right
+ * after the bundle's id and — where it was drawn inside the bundle — is hidden when the bundle is.
+ * (The category strip used to lead when the chart was hidden; it now simply stays shown.)
+ * Same table as the server's `SPLIT_FROM` (apps/api/src/db/repos/discover/discover-settings.ts).
+ */
+export const SPLIT_FROM: Readonly<Partial<Record<SectionId, readonly [SectionId, boolean]>>> = {
+  theirLikes: ['picks', true], pickedShows: ['forYou', true], categories: ['chart', false], premium: ['shows', true], hunt: ['newShows', true],
+};
 
 const isSectionId = (v: unknown): v is SectionId => typeof v === 'string' && (SECTION_IDS as readonly string[]).includes(v);
 
@@ -50,7 +68,15 @@ export function sectionOrder(layout: Discover['layout'] | undefined): SectionId[
   const rawHidden: unknown = layout?.hidden;
   const order = Array.isArray(rawOrder) ? rawOrder.filter(isSectionId) : [];
   const hidden = new Set(Array.isArray(rawHidden) ? rawHidden.filter(isSectionId) : []);
-  const listed = [...new Set(order)];
+  const saved = [...new Set(order)];
+  const listed = [...saved];
+  for (const [child, link] of Object.entries(SPLIT_FROM) as [SectionId, readonly [SectionId, boolean]][]) {
+    if (saved.includes(child)) continue;
+    const [parent, withParent] = link;
+    const at = listed.indexOf(parent);
+    if (at >= 0) listed.splice(at + 1, 0, child);
+    if (withParent && hidden.has(parent)) hidden.add(child);
+  }
   return [...listed, ...SECTION_IDS.filter((id) => !listed.includes(id))].filter((id) => !hidden.has(id));
 }
 
@@ -94,11 +120,24 @@ export function buildModel(body: Discover | undefined, forYou: ForYou | undefine
       : [],
     said: on('said') ? (body?.said ?? []).filter((s) => !hidden.blocked.has(s.authorId) && keepCard(s.episode)) : [],
     newShows: on('newShows') ? newShows : [],
-    premium: on('shows') ? (body?.premium ?? []).filter((s) => !hidden.feeds.has(s.feedUrl)).slice(0, 6) : [],
+    premium: on('premium') ? (body?.premium ?? []).filter((s) => !hidden.feeds.has(s.feedUrl)).slice(0, 6) : [],
     arrivals: on('newShows') ? arrivals : [],
     video: on('video') ? (body?.video ?? []).filter(keepItem).slice(0, 10) : [],
+    pickedShows: on('pickedShows') ? pickedShowsOf((forYou?.items ?? []).map((i) => i.episode as EpisodeCard).filter(keepCard)) : [],
     order,
   };
+}
+
+/** M21 "Shows picked for you": the shows behind the For You rows, each once, first 10. */
+export function pickedShowsOf(cards: readonly EpisodeCard[]): DiscoverModel['pickedShows'] {
+  const seen = new Set<string>();
+  const out: DiscoverModel['pickedShows'] = [];
+  for (const c of cards) {
+    if (seen.has(c.feedUrl)) continue;
+    seen.add(c.feedUrl);
+    out.push({ feedUrl: c.feedUrl, title: c.showTitle, ...(c.imageUrl ? { imageUrl: c.imageUrl } : {}) });
+  }
+  return out.slice(0, 10);
 }
 
 /** "12 listened · 3 comments" — counts only; an empty string when there is nothing to say. */

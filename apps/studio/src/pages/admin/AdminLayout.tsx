@@ -15,6 +15,10 @@ export const ADMIN_SECTIONS = [
   { path: 'picks', label: 'Picks' },
   { path: 'curated', label: 'Curated' },
   { path: 'discover', label: 'Discover' },
+  // M25 lane AL: pins and hides on every list (A1–A4), For You (A6), the /mod inbox (A9).
+  { path: 'lists', label: 'Lists' },
+  { path: 'foryou', label: 'For You' },
+  { path: 'inbox', label: 'Inbox' },
   { path: 'launch', label: 'Launch' },
   { path: 'accounts', label: 'Accounts' },
   { path: 'users', label: 'Users' },
@@ -27,9 +31,6 @@ export const ADMIN_SECTIONS = [
   // M22 US13: the shows offered translated transcripts, and today's Groq use.
   { path: 'translation', label: 'Translation' },
   { path: 'redeem', label: 'Redeem codes' }, // M24 lane A3
-  // M25 lane AC: the phone's settings (A7) and its Academy + Help pages (A8).
-  { path: 'app-settings', label: 'App settings' },
-  { path: 'content', label: 'Content' },
 ] as const;
 
 /**

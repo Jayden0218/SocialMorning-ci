@@ -41,10 +41,7 @@ import { Box } from "@/ui/lib/box";
 import { colour, hit } from "@/design";
 import { GENRES } from "@/discover/genres";
 import { buildModel, sectionOrder, type SectionId } from "@/discover/sections";
-import { HINT_EVERY_MS, hintAt } from "@/discover/trending";
-// M25 A7: the admin's search hints when set, else the same chart names as before.
-import { trendingHints } from "@/config/hints";
-import { DiscoverShortcuts } from "@/ui/discover/DiscoverShortcuts";
+import { HINT_EVERY_MS, hintAt, trendingHints } from "@/discover/trending";
 import { Loader } from "@/ui/kit/Loader";
 import { usePullRefresh } from "@/ui/kit/PullRefresh";
 import { useDiscover } from "@/discover/useDiscover";
@@ -219,17 +216,6 @@ export default function DiscoverScreen(): React.ReactElement {
   };
   const hideCat = (id: number): void => setHiddenCats(hideCategory(stores.settings, id));
   const showCat = (id: number): void => setHiddenCats(showCategory(stores.settings, id));
-  // M21: "Shows picked for you" — the shows behind the listener's own For You, each once.
-  const pickedShows = useMemo(() => {
-    const seen = new Set<string>();
-    const out: { feedUrl: string; title: string; imageUrl?: string; line?: string }[] = [];
-    for (const r of model.forYou) {
-      if (seen.has(r.card.feedUrl)) continue;
-      seen.add(r.card.feedUrl);
-      out.push({ feedUrl: r.card.feedUrl, title: r.card.showTitle, ...(r.card.imageUrl ? { imageUrl: r.card.imageUrl } : {}) });
-    }
-    return out.slice(0, 10);
-  }, [model]);
   const shown = useFirstPaint(settled && forYou.settled);
   // Owner, 2026-10-05: "12 listened · 3 comments" under every episode on the page — one call.
   const stats = useRowStats(model);
@@ -265,9 +251,11 @@ export default function DiscoverScreen(): React.ReactElement {
           />
           {/* M22 US5 (FR-019): "Not liking these?" under For You. */}
           {listener && model.forYou.length > 0 ? <RecFeedbackLink /> : null}
-          <ShowTiles title="Shows picked for you" shows={pickedShows} onShow={showPage} />
           </>
         );
+      // M25 A5: each part the owner can switch on or off on its own (Admin › Discover).
+      case "pickedShows":
+        return <ShowTiles title="Shows picked for you" shows={model.pickedShows} onShow={showPage} />;
       case "picks":
         return (
           <>
@@ -284,9 +272,10 @@ export default function DiscoverScreen(): React.ReactElement {
             }
             onDaily={() => router.push("/picks/daily")}
           />
-          <TheirLikes signedIn={listener !== undefined} />
           </>
         );
+      case "theirLikes":
+        return <TheirLikes signedIn={listener !== undefined} />;
       case "chart":
         return (
           <ChartSection
@@ -295,18 +284,21 @@ export default function DiscoverScreen(): React.ReactElement {
             onFull={() => router.push("/chart")}
           />
         );
+      case "categories":
+        return categoryStrip;
       case "shows":
         return (
-          <>
-            <ShowTiles
-              title="Popular shows"
-              shows={popularShowTiles(model.shows)}
-              onShow={showPage}
-            />
-            <Box onLayout={markPremium}>
-              <PremiumSection shows={model.premium} onShow={showPage} />
-            </Box>
-          </>
+          <ShowTiles
+            title="Popular shows"
+            shows={popularShowTiles(model.shows)}
+            onShow={showPage}
+          />
+        );
+      case "premium":
+        return (
+          <Box onLayout={markPremium}>
+            <PremiumSection shows={model.premium} onShow={showPage} />
+          </Box>
         );
       case "video":
         return <VideoSection items={model.video} {...act} />;
@@ -314,17 +306,12 @@ export default function DiscoverScreen(): React.ReactElement {
       // come back only as topic-list cards, each opening its full list.
       case "collections":
         return <TopicListCards lists={model.collections} />;
-      case "followedHere":
-        return null;
       case "said":
         return <SaidSection items={model.said} now={Date.now()} {...act} />;
       case "newShows":
-        return (
-          <>
-            <NewArrivalsSection items={model.arrivals} {...act} />
-            <TreasureHunt onOpen={act.onOpen} onPlay={act.onPlay} />
-          </>
-        );
+        return <NewArrivalsSection items={model.arrivals} {...act} />;
+      case "hunt":
+        return <TreasureHunt onOpen={act.onOpen} onPlay={act.onPlay} />;
     }
   };
 
@@ -384,8 +371,56 @@ export default function DiscoverScreen(): React.ReactElement {
             onPress={(fromY) => openSearch(fromY)}
             onScan={() => router.push("/scan")}
           />
-          {/* M25 A7: the tiles are their own component now, so the admin can order, rename and hide them. */}
-          <DiscoverShortcuts onCategories={allCategories} onPremium={toPremium} />
+          <Shortcuts
+            items={[
+              {
+                label: "Categories",
+                icon: "grid-outline",
+                onPress: allCategories,
+              },
+              // Owner, 2026-10-04: no Inbox tile — it showed what Updates shows.
+              // Owner, 2026-10-05: no Downloads tile — Downloads stays in Settings.
+              {
+                label: "Queue",
+                icon: "list-outline",
+                onPress: () => router.push("/queue"),
+              },
+              // M12 FR-101, FR-102
+              {
+                label: "Issues",
+                icon: "newspaper-outline",
+                onPress: () => router.push("/issues"),
+              },
+              {
+                label: "Friends listening",
+                icon: "people-outline",
+                onPress: () => router.push("/friends-listening"),
+              },
+              // M21 T082 (FR-061): Academy, Premium (the "Premium picks" section) and the Plaza.
+              {
+                label: "Academy",
+                icon: "school-outline",
+                onPress: () => router.push("/academy"),
+              },
+              {
+                label: "Premium",
+                icon: "diamond-outline",
+                onPress: toPremium,
+              },
+              {
+                label: "Plaza",
+                icon: "apps-outline",
+                onPress: () => router.push("/plaza"),
+              },
+              // Owner's iPhone, 2026-10-07: "Plaza" sat alone on its row. An eighth tile — the
+              // existing "Talked about" chart — makes two even rows of four.
+              {
+                label: "Talked about",
+                icon: "trending-up-outline",
+                onPress: () => router.push("/chart"),
+              },
+            ]}
+          />
 
           {view?.stale ? (
             <Text className="text-accent bg-surface border border-border mx-screen-x mt-row p-row rounded-row text-body">
@@ -406,14 +441,10 @@ export default function DiscoverScreen(): React.ReactElement {
             )
           ) : null}
 
-          {/* M15 US5: the owner's order, hidden sections left out (`buildModel`). The category
-            strip follows the chart, or leads when the chart is hidden. */}
-          {model.order.includes("chart") ? null : categoryStrip}
+          {/* M15 US5: the owner's order, hidden sections left out (`buildModel`). M25 A5: the
+            category strip is a section of its own ("categories"), right after the chart by default. */}
           {model.order.map((id) => (
-            <Fragment key={id}>
-              {section(id)}
-              {id === "chart" ? categoryStrip : null}
-            </Fragment>
+            <Fragment key={id}>{section(id)}</Fragment>
           ))}
           {view ? <MoreCategories onPress={allCategories} hidden={hiddenCats} onShow={showCat} /> : null}
         </Animated.ScrollView>

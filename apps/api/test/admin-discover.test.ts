@@ -82,7 +82,8 @@ test('fix F-S: the DEFAULT section order puts the Editor\'s picks first, then Fo
   const { t, owner } = await adminSetup({ picksRaw: [], today: () => TODAY, collectionsRaw: [] });
   type S = { sections: string[]; order: string[]; version: number };
   const fresh = (await (await aCall(t, 'GET', '/v1/admin/discover', owner)).json()) as S;
-  assert.deepEqual(fresh.sections.slice(0, 2), ['picks', 'forYou']);
+  // M25 A5: "Their likes" (split from the picks card) sits between them now.
+  assert.deepEqual(fresh.sections.slice(0, 3), ['picks', 'theirLikes', 'forYou']);
   assert.deepEqual(fresh.order, [], 'nothing saved');
   assert.equal((await aCall(t, 'PUT', '/v1/admin/discover', owner, { version: 0, order: ['forYou', 'picks'], hidden: [], pins: [], hides: [] })).status, 200);
   const saved = (await (await aCall(t, 'GET', '/v1/admin/discover', owner)).json()) as S;

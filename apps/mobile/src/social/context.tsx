@@ -127,6 +127,7 @@ export function SocialProvider(props: { children?: ReactNode }): ReactNode {
 
   const wrapped = useMemo<AuthApi>(() => ({
     current: auth.current,
+    signUp: async (...a) => { const r = await auth.signUp(...a); setListener(r); return r; },
     signIn: async (...a) => { const r = await auth.signIn(...a); setListener(r); return r; },
     // Owner, 2026-09-27: signing in is required, so leaving an account lands on the
     // sign-in page, with nothing of the old stack underneath to go back to.

@@ -21,26 +21,8 @@ const withApi = (config) => (process.env.SOCIALNET_API_BASE_URL
   ? { ...config, extra: { ...config.extra, apiBaseUrl: process.env.SOCIALNET_API_BASE_URL } }
   : config);
 
-/**
- * M25 L3d (security audit #23, Play policy): `SOCIALNET_DISTRIBUTION=github` marks a build made for
- * GitHub Releases (eas.json's `preview` profile, the APK scripts/release.sh publishes). Only such a
- * build gets `extra.distribution: "github"` — which shows the self-updater (src/ui/shell/updater.ts)
- * — and the REQUEST_INSTALL_PACKAGES permission it needs to open the installer. A store build
- * (`production`) and the CI compile builds have neither.
- */
-const withDistribution = (config) => (process.env.SOCIALNET_DISTRIBUTION === 'github'
-  ? {
-    ...config,
-    extra: { ...config.extra, distribution: 'github' },
-    android: {
-      ...config.android,
-      permissions: [...((config.android && config.android.permissions) || []), 'android.permission.REQUEST_INSTALL_PACKAGES'],
-    },
-  }
-  : config);
-
 module.exports = ({ config: base }) => {
-  const config = withDistribution(withApi(base));
+  const config = withApi(base);
   if (process.env.SOCIALNET_IOS_EXTRAS !== '1') return config;
   return {
     ...config,

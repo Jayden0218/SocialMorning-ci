@@ -18,16 +18,15 @@ export function createAccountApi(deps: ApiDeps) {
   return {
     /** POST /v1/me/redeem — 404 no such code, 409 already used / already yours, 410 off or used up, 429 too many tries. */
     redeem: async (code: string) => (await call<{ grant: RedeemGrant }>('POST', '/v1/me/redeem', { code: cleanCode(code) })).json.grant,
-    /** POST /v1/me/email/start — a code goes to the NEW address, and (M25 S5) another to the current one. */
+    /** POST /v1/me/email/start — a code goes to the NEW address. */
     startEmailChange: async (email: string) => (await call<{ sent: true; resendAfterSeconds: number }>('POST', '/v1/me/email/start', { email: email.trim() })).json,
     /**
-     * POST /v1/me/email/confirm — both right codes (M25 S5: the new address's and the current
-     * address's) switch the sign-in email; the old address is told.
+     * POST /v1/me/email/confirm — the right code switches the sign-in email; the old address is told.
      * M24 fix F-P: the server also signs out every other device and says how many (`signedOut`;
      * absent on an older server → 0).
      */
-    confirmEmailChange: async (code: string, oldCode: string): Promise<{ email: string; signedOut: number }> => {
-      const r = (await call<{ email: string; signedOut?: number }>('POST', '/v1/me/email/confirm', { code: code.trim(), oldCode: oldCode.trim() })).json;
+    confirmEmailChange: async (code: string): Promise<{ email: string; signedOut: number }> => {
+      const r = (await call<{ email: string; signedOut?: number }>('POST', '/v1/me/email/confirm', { code: code.trim() })).json;
       return { email: r.email, signedOut: typeof r.signedOut === 'number' && r.signedOut > 0 ? r.signedOut : 0 };
     },
   };

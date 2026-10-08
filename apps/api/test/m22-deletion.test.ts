@@ -8,7 +8,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
-import { freshDb, signUp, signUpWithCode } from './harness.ts';
+import { freshDb, signUp } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
 
 const JOB = 'job-token-not-secret';
@@ -72,7 +72,7 @@ test('the due step deletes exactly as the old immediate deletion did; not before
   assert.equal((await t.q('SELECT 1 FROM listeners WHERE id = $1', [a.id])).length, 0);
   assert.equal((await t.q('SELECT 1 FROM comments')).length, 0, 'the lone comment went with it');
   assert.equal((await t.q('SELECT 1 FROM account_deletions')).length, 0);
-  const re = await signUpWithCode(t, 'a@example.com', 'Alex again');
+  const re = await t.call('POST', '/v1/auth/sign-up', { email: 'a@example.com', password: 'new password 1', displayName: 'Alex again' });
   assert.equal(re.status, 200, 'the email is free again');
   await t.close();
 });

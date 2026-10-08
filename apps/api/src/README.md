@@ -27,14 +27,12 @@ here or a line does not match its file.
 | `errors.ts` | Error log route: the phone sends its recent errors in small batches, signed in or not. |
 | `internal.ts` | Internal routes the scheduled job calls to rebuild data in small steps. |
 | `lists.ts` | Shared show lists: a listener picks some of their shows, gives them a title, and shares one link. |
-| `config.ts` | Public app settings for the phone: GET /v1/config, cached, with an ETag. |
-| `content.ts` | Public Academy articles and Help questions: GET /v1/content/:kind and /v1/content/:kind/:slug. |
 
 ### `routes/account/` — sign-in, your account, notifications, wallet, feedback
 
 | File | What it does |
 |---|---|
-| `auth.ts` | Sign-in routes: sign in, sign out, and email code sign-in (an account is created only by a code). |
+| `auth.ts` | Sign-in routes: sign up, sign in, sign out, and email code sign-in. |
 | `digests.ts` | Weekly digest route: my Monday catch-ups from the last 4 weeks. |
 | `feedback.ts` | Feedback route: text signed in or not; up to three images, signed in only and limited. |
 | `gifts.ts` | Gift routes: see what a gift link offers, claim it once, list the gifts I bought, and the link's web page. |
@@ -43,7 +41,7 @@ here or a line does not match its file.
 | `push.ts` | Push routes: register or remove a device token and set alert preferences. |
 | `wallet.ts` | Read-only wallet routes: my purchases and the tips I gave. |
 | `redeem.ts` | Redeem a code: POST /v1/me/redeem gives the code's free grant (PLUS days or a paid show) once per account. |
-| `email.ts` | Change the sign-in email: a code to the new address AND one to the old, check both, switch, tell the old address. |
+| `email.ts` | Change the sign-in email: send a code to the new address, check it, switch, tell the old address. |
 | `m19.ts` | My notices from hosts, my monthly report, and the teen-mode passcode reset by email code. |
 | `purchases-google.ts` | Purchase route: the phone sends a Google Play purchase; the server checks it with Google, then grants it. |
 | `stickers.ts` | Sticker placement routes: read my stickers on my profile header, or replace them all. |
@@ -181,8 +179,8 @@ here or a line does not match its file.
 | `users.ts` | Admin routes for users and safety: list, rename, suspend, restore, act on reports. |
 | `appeals.ts` | Admin routes for appeals (accept = undo, reject) and the account deletion queue. |
 | `safety.ts` | Admin routes for blocked words, the maintenance switch and system notices. |
-| `config.ts` | Admin routes for the app settings (Admin › App settings): read every key, save one, reset one. |
-| `content.ts` | Admin routes for Academy articles and Help questions (Admin › Content): list, save, delete. |
+| `lists.ts` | Admin routes for every list's pins and hides, the category page's default chip, and hiding a show or episode everywhere. |
+| `foryou.ts` | Admin routes for For You (boost, bury, never recommend; the ranking weights) and the inbox moved from /mod (feedback, search requests, rec numbers). |
 
 ### `db/` — the database connection and migrations
 
@@ -197,13 +195,6 @@ here or a line does not match its file.
 | File | What it does |
 |---|---|
 | `cache.ts` | Simple database cache: serve fresh rows, fall back to stale rows on failure. |
-
-### `db/repos/config/` — app settings and content pages an admin edits (M25)
-
-| File | What it does |
-|---|---|
-| `app-config.ts` | The app settings an admin may change (`app_config`): read, save with a version check, reset to default. |
-| `content.ts` | Academy articles and Help questions (`content_pages`): list, read, save with a version check, delete. |
 
 ### `db/repos/account/` — accounts and what belongs to them
 
@@ -280,7 +271,10 @@ here or a line does not match its file.
 |---|---|
 | `activity-stats.ts` | Counts listens, comments, clips and reactions per episode, never naming listeners. |
 | `discover-extras.ts` | Extra Discover parts: pick counts, followed shows, new arrivals, what people said, collections. |
-| `discover-settings.ts` | Applies the owner's Discover settings: section order, hidden items, pinned and featured shows. |
+| `discover-settings.ts` | Applies the owner's Discover settings: section order and hidden sections; the M15 pin routes over list_overrides. |
+| `lists.ts` | The owner's pins and hides on every list the phone shows (one table), and how they are applied. |
+| `served.ts` | The lists the phone is served, with the owner's pins and hides applied — shared by the public routes and Admin › Lists. |
+| `foryou-rules.ts` | The owner's For You rules: boost, bury or never recommend a show; and the ranking weights. |
 | `discover.ts` | Builds the Discover page: daily picks, talked-about episodes and the chart, cached hourly. |
 | `foryou.ts` | Builds the personal For You list from eight sources, scored and mixed. |
 | `nextup.ts` | Builds "Next up" suggestions for an episode from four sources. |
@@ -336,7 +330,6 @@ here or a line does not match its file.
 | `rate.ts` | Fixed-window rate limits kept in the rate_counters table (per address, or global). |
 | `session.ts` | Session tokens: create, hash, look up the signed-in listener, require sign-in. |
 | `studio-session.ts` | Studio web session: cookie sign-in, 12-hour idle limit, and cross-site write check. |
-| `write-limit.ts` | A floor rate limit on every write to /v1: per signed-in session, and per network when signed out. |
 
 ### `catalog/` — Apple podcast search and RSS feeds
 
@@ -394,13 +387,6 @@ here or a line does not match its file.
 | File | What it does |
 |---|---|
 | `mailer.ts` | Sends sign-in code emails through Gmail SMTP. |
-
-### `net/` — outbound fetches and response headers
-
-| File | What it does |
-|---|---|
-| `headers.ts` | Security headers on every API response: CSP, no framing, no sniffing, a strict referrer. |
-| `safe-fetch.ts` | One guard for every fetch the server makes to an address a user or a feed chose (SSRF). |
 
 ### `voice/` — voice post helpers
 

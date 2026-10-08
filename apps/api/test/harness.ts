@@ -14,9 +14,6 @@ import { citext } from '@electric-sql/pglite/contrib/citext';
 import { migrate, type MigrationRunner } from '../src/db/migrate.ts';
 import { fromPglite, type Db } from '../src/db/db.ts';
 import { createApp } from '../src/app.ts';
-import { createListener } from '../src/db/repos/account/listeners.ts';
-import { hashPassword } from '../src/auth/password.ts';
-import { createSession } from '../src/auth/session.ts';
 import type { Mail, Mailer } from '../src/mail/mailer.ts';
 import type { VoiceStorage } from '../src/storage/voice-blob.ts';
 
@@ -40,13 +37,6 @@ export type TestDb = {
 };
 
 export const TEST_APPEALS = 'appeals@example.test';
-
-/**
- * M25 S7: the SSRF guard resolves every host it fetches. Tests never touch real DNS: every name
- * resolves to one public documentation-free address, unless a test passes its own `resolveHost`.
- * (Literal private addresses and `localhost` are refused by the guard before any lookup.)
- */
-export const publicResolve = async (): Promise<string[]> => ['93.184.216.34'];
 
 /*
  * M23 US12 (T050): every test used to run all ~22 migrations on its own new PGlite —
@@ -103,10 +93,8 @@ export async function migratedPg(): Promise<{ pg: PGlite; runner: MigrationRunne
 
 /** `ownerListenerId` is unknown until a listener exists: tests that need the owner sign up first, then `setOwner`. */
 export async function freshDb(allOpts: { ownerListenerId?: string; appealsEmail?: string; releaseSha256?: string; noMailer?: boolean; pushFetch?: typeof fetch; catalogFetch?: typeof fetch;
-  /** M12 */ jobToken?: string; voiceStorage?: VoiceStorage; /** M19 */ avatarStorage?: VoiceStorage; imageFetch?: typeof fetch;
-  /** M25 */ audioFetch?: typeof fetch; resolveHost?: (host: string) => Promise<string[]>; /** M20 */ imageStorage?: import('../src/storage/image-store.ts').ImageStorage; imageCeilingBytes?: number; play?: import('../src/billing/google-play.ts').GooglePlay; picksRaw?: unknown; today?: () => string } = {}): Promise<TestDb> {
-  const { noMailer, ...given } = allOpts;
-  const opts = { resolveHost: publicResolve, ...given };
+  /** M12 */ jobToken?: string; voiceStorage?: VoiceStorage; /** M19 */ avatarStorage?: VoiceStorage; imageFetch?: typeof fetch; /** M20 */ imageStorage?: import('../src/storage/image-store.ts').ImageStorage; imageCeilingBytes?: number; play?: import('../src/billing/google-play.ts').GooglePlay; picksRaw?: unknown; today?: () => string } = {}): Promise<TestDb> {
+  const { noMailer, ...opts } = allOpts;
   const { pg, runner } = await migratedPg();
   // M21 US6 (G-M21-7): a comment POST answers 428 until the author accepted the community rules.
   // Test listeners have accepted them, so every older test keeps its meaning; the rules tests
@@ -149,23 +137,10 @@ export async function freshDb(allOpts: { ownerListenerId?: string; appealsEmail?
   return t;
 }
 
-/**
- * Makes a listener (with this password, for the tests that sign in with one) and a session, and
- * returns their token + id. M25 S3: `POST /v1/auth/sign-up` is gone, so this writes the same rows
- * the old route wrote, directly; `signUpWithCode` goes through the real code route.
- */
-export async function signUp(t: Pick<TestDb, 'db'>, email = 'a@example.com', displayName = 'Alex', password = 'correct horse') {
-  const created = await createListener(t.db, email.trim().toLowerCase(), await hashPassword(password), displayName);
-  if (created === 'exists') throw new Error(`sign-up failed: ${email} exists`);
-  return { token: await createSession(t.db, created.id, TEST_PEPPER), id: created.id };
-}
-
-/** A new account the way the app makes one: a code to the email, then the code and a name. */
-export async function signUpWithCode(t: TestDb, email: string, displayName: string): Promise<{ status: number; token?: string; id?: string }> {
-  const sent = await t.call('POST', '/v1/auth/code', { email });
-  if (sent.status !== 200) return { status: sent.status };
-  const res = await t.call('POST', '/v1/auth/code/verify', { email, code: t.lastCode!(email.trim().toLowerCase()), displayName });
-  if (res.status !== 200) return { status: res.status };
+/** Sign up a listener and return their token + id. */
+export async function signUp(t: TestDb, email = 'a@example.com', displayName = 'Alex', password = 'correct horse') {
+  const res = await t.call('POST', '/v1/auth/sign-up', { email, password, displayName });
+  if (res.status !== 200) throw new Error(`sign-up failed: ${res.status} ${await res.text()}`);
   const j = (await res.json()) as { token: string; listener: { id: string } };
-  return { status: 200, token: j.token, id: j.listener.id };
+  return { token: j.token, id: j.listener.id };
 }

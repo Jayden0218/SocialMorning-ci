@@ -108,7 +108,7 @@ test('Admin, as the owner: record, picks, accounts + act as, curator, Discover, 
 
   // US5 — hide a section and save.
   await page.getByRole('link', { name: 'Discover' }).click();
-  await page.getByRole('checkbox', { name: 'What people said' }).uncheck();
+  await page.getByRole('checkbox', { name: 'What listeners said' }).uncheck(); // M25 A5: the phone's own words
   await page.getByRole('button', { name: 'Save Discover' }).click();
   await expect(page.getByText('Saved.').first()).toBeVisible();
   await snap(page, 'discover');
@@ -140,8 +140,7 @@ test('Admin, as the owner: record, picks, accounts + act as, curator, Discover, 
 });
 
 test('Admin, as anyone else: no link, a refusal on the page, 403 from every admin call', async ({ page, request }) => {
-  // M25 S3: /v1/auth/sign-up is gone; the e2e API's own route makes a password account.
-  const r = await request.post('http://localhost:8787/__e2e/account', { data: { email: STRANGER.email, password: PW, displayName: STRANGER.name } });
+  const r = await request.post('/api/v1/auth/sign-up', { data: { email: STRANGER.email, password: PW, displayName: STRANGER.name } });
   expect([200, 409]).toContain(r.status());
   await signIn(page, STRANGER.email);
   await expect(page.getByText('Admin is for the owner only')).toBeVisible();

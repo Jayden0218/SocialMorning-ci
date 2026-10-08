@@ -103,14 +103,6 @@ import { maintenanceGate } from './routes/safety/maintenance.ts';
 import { wordFilter } from './routes/safety/word-filter.ts';
 import { appeals } from './routes/safety/appeals.ts';
 import { activeMaintenance } from './db/repos/safety/maintenance.ts';
-// M25 lane SA: SSRF guard, security headers, the write floor limit, server errors in our own log.
-import { dnsResolve, noResolve, safeFetch, type ResolveHost } from './net/safe-fetch.ts';
-import { securityHeaders } from './net/headers.ts';
-import { writeLimit } from './auth/write-limit.ts';
-import { reportServerError } from './routes/errors.ts';
-// M25 lane AC: app settings (A7) and content pages (A8)
-import { config as appConfig } from './routes/config.ts';
-import { content as contentPages } from './routes/content.ts';
 
 export type AppDeps = {
   db: Db; pepper: string; assetLinksSha256?: string;
@@ -150,10 +142,6 @@ export type AppDeps = {
   play?: GooglePlay;
   /** M12 FR-034: the fetch the share card uses for artwork. Default: global fetch. */
   imageFetch?: typeof fetch;
-  /** M25 S1: the fetch the paid-preview proxy reads stored audio with. Default: global fetch. */
-  audioFetch?: typeof fetch;
-  /** M25 S7: host name → addresses for the SSRF guard (tests pass a fake; default: DNS). */
-  resolveHost?: ResolveHost;
 };
 
 /**
@@ -164,8 +152,6 @@ export function createApp(deps: AppDeps) {
   const app = new Hono<AuthEnv>();
 
   app.use('*', requestId());
-  // M25 S9: CSP, X-Frame-Options, nosniff and Referrer-Policy on every response (net/headers.ts).
-  app.use('*', securityHeaders);
   // M10b US6: feedback carries up to 3 images (≤ 250 000 bytes each, base64); every other route stays at 16 KB.
   const small = bodyLimit({ maxSize: 16 * 1024 });
   const feedbackLimit = bodyLimit({ maxSize: 1_100_000 });
@@ -183,7 +169,7 @@ export function createApp(deps: AppDeps) {
     : c.req.path === '/v1/errors' ? errorsLimit(c, next)
     : c.req.method === 'POST' && (/^\/v1\/comments\/[^/]+\/image$/.test(c.req.path) || c.req.path === '/v1/voice-posts/images') ? imageLimit(c, next) // M22 lane 2: status photos
     : c.req.method === 'POST' && /^\/v1\/voice-posts\/[^/]+\/replies$/.test(c.req.path) ? voiceLimit(c, next) // M22 lane 2: voice replies
-    : c.req.path === '/v1/admin/accounts' || c.req.path.startsWith('/v1/admin/content/') ? adminBulkLimit(c, next) // M25 AC: an article body is ≤ 8000 characters
+    : c.req.path === '/v1/admin/accounts' ? adminBulkLimit(c, next)
     : c.req.path === '/v1/me/avatar' && c.req.method === 'PUT' ? avatarLimit(c, next)
     : c.req.method === 'POST' && (c.req.path === '/v1/voice-posts' || /^\/v1\/episodes\/[^/]+\/comments\/voice$/.test(c.req.path)) ? voiceLimit(c, next) : small(c, next)));
   // M5: the picks file is validated once; every bad entry is a warning, never a crash (G1).
@@ -196,12 +182,7 @@ export function createApp(deps: AppDeps) {
   const iss = validateIssues(deps.picksRaw ?? picksJson);
   for (const w of iss.warnings) console.warn(`[issues] ${w}`);
   setSocialPushFetch(deps.pushFetch ?? fetch); // M22 US1: interaction pushes use the same (fakeable) fetch
-  // M25 S7: every fetch to an address a user or a feed chose goes through the SSRF guard. Push
-  // (Expo), Groq and the image store's own S3 calls go to hosts fixed in code and are not wrapped.
-  // A fetch a test injected answers made-up host names itself, so without a test's own
-  // `resolveHost` it gets no DNS lookups (literal private addresses are still refused).
-  const guard = (f: typeof fetch | undefined) => safeFetch(f ?? fetch, { resolve: deps.resolveHost ?? (f ? noResolve : dnsResolve) });
-  const catalog: Catalog = { pushFetch: deps.pushFetch ?? fetch, fetch: guard(deps.catalogFetch), picks, collections: cols.collections, issues: iss.issues, today: deps.today ?? (() => new Date().toISOString().slice(0, 10)) };
+  const catalog: Catalog = { pushFetch: deps.pushFetch ?? fetch, fetch: deps.catalogFetch ?? fetch, picks, collections: cols.collections, issues: iss.issues, today: deps.today ?? (() => new Date().toISOString().slice(0, 10)) };
 
   // M15 T004: the owner is the first admin (FR-002). Also done lazily by every admin check, so a
   // start before migration 014 only warns.
@@ -215,8 +196,7 @@ export function createApp(deps: AppDeps) {
   const voiceStorage = deps.voiceStorage ?? voiceBlobStorage(process.env['BLOB_READ_WRITE_TOKEN']);
   // M19 US1: photos go to the launch-image store (constitution v2.6.0), put by the server like voice posts.
   const avatarStorage = deps.avatarStorage ?? voiceBlobStorage(process.env['EPISODES_READ_WRITE_TOKEN']);
-  const imageFetch = guard(deps.imageFetch);
-  const audioFetch = guard(deps.audioFetch);
+  const imageFetch = deps.imageFetch ?? fetch;
   const imageStorage = deps.imageStorage ?? imageStorageFromEnv(process.env);
   const play = deps.play ?? googlePlay(process.env);
   const imageCeilingBytes = deps.imageCeilingBytes ?? (Number(process.env['IMAGE_CEILING_BYTES']) || 500_000_000);
@@ -238,14 +218,11 @@ export function createApp(deps: AppDeps) {
     c.set('imageCeilingBytes', imageCeilingBytes);
     c.set('play', play);
     c.set('imageFetch', imageFetch);
-    c.set('audioFetch', audioFetch);
     await next();
   });
   // M24 US4: the admin's maintenance switch answers 503 before any route; US2: blocked words before any write.
   app.use('*', maintenanceGate);
   app.use('*', wordFilter);
-  // M25 S6: a floor limit on every write (auth/write-limit.ts); routes keep their own tighter ones.
-  app.use('*', writeLimit);
 
   app.onError((err, c) => {
     if (err instanceof ApiError) return c.json(err.body(), err.status as 422);
@@ -253,9 +230,7 @@ export function createApp(deps: AppDeps) {
       return c.json(new ApiError('reply_depth', 'You can reply to a comment, not to a reply.').body(), 422);
     }
     console.error(c.get('requestId'), err);
-    // M25 S11: kept in our own error log (scope 'server', scrubbed), and a new kind emails the owner.
-    return reportServerError(deps.db, err, { method: c.req.method, route: c.req.routePath || '?' }, { ...(deps.mailer ? { mailer: deps.mailer } : {}), ...(deps.ownerListenerId ? { ownerListenerId: deps.ownerListenerId } : {}) })
-      .then(() => c.json({ error: 'internal', message: 'Something went wrong on our side.' }, 500));
+    return c.json({ error: 'internal', message: 'Something went wrong on our side.' }, 500);
   });
   app.notFound((c) => c.json({ error: 'not_found', message: 'No such route.' }, 404));
 
@@ -263,26 +238,17 @@ export function createApp(deps: AppDeps) {
   // future; the phone then shows its maintenance page. Read per request, so an env change and a
   // redeploy is all it takes. Unset → `{ ok: true }` exactly as before.
   // M24 US4: or while the admin's switch is on (env first, then the switch).
-  // M25 S11: the health check touches the database (`SELECT 1`) and says so: `db: 'ok'`, or
-  // `{ ok: false, db: 'fail' }` with 503 so an uptime check sees a dead database.
   app.get('/v1/health', async (c) => {
-    const dbOk = await deps.db.query('SELECT 1').then(() => true, () => false);
-    if (!dbOk) return c.json({ ok: false, db: 'fail' }, 503);
     const until = process.env['MAINTENANCE_UNTIL'];
     const at = until ? Date.parse(until) : NaN;
     if (!Number.isFinite(at) || at <= Date.now()) {
       const m = await activeMaintenance(deps.db).catch(() => null);
-      return c.json(m ? { ok: true, db: 'ok', maintenance: m } : { ok: true, db: 'ok' });
+      return c.json(m ? { ok: true, maintenance: m } : { ok: true });
     }
     const message = process.env['MAINTENANCE_MESSAGE'] || 'SocialNet is being updated.';
-    return c.json({ ok: true, db: 'ok', maintenance: { until: new Date(at).toISOString(), message } });
+    return c.json({ ok: true, maintenance: { until: new Date(at).toISOString(), message } });
   });
-  // M25 S9: the bare address answered 500 FUNCTION_INVOCATION_FAILED live; now a small JSON.
-  app.get('/', (c) => c.json({ name: 'SocialNet API', health: '/v1/health' }));
   // M6 (FR-027): the appeals address the app shows — never hard-coded in a build.
-  // M25 lane AC: the app settings and the Academy / Help pages (public, cached, ETag).
-  app.route('/v1/config', appConfig);
-  app.route('/v1/content', contentPages);
   app.get('/v1/meta', (c) => c.json({ ...(safety.appealsEmail ? { appealsEmail: safety.appealsEmail } : {}) }));
   app.route('/v1/auth', auth);
   app.route('/v1/me', me);
