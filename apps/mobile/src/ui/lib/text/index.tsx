@@ -19,18 +19,6 @@ const faceStyle = (family: string) => {
   return s;
 };
 
-/**
- * M24 US18 (design-settings G1, G2): the face for a part that draws words but is not this Text —
- * a button's label, a text field, a heading. `undefined` until the fonts are in, so the system
- * font stays until then, as for Text.
- */
-export function useFace(className: string | undefined, fallback?: Face): { fontFamily: string; fontWeight: 'normal' } | undefined {
-  const fonts = useSyncExternalStore(fontsStore.subscribe, fontsStore.get, fontsStore.get);
-  if (!fonts) return undefined;
-  const classes = ` ${className ?? ''} `;
-  return faceStyle(fallback !== undefined && !WEIGHT.test(classes) ? fallback : familyFor(classes));
-}
-
 type ITextProps = React.ComponentProps<typeof RNText> &
   VariantProps<typeof textStyle>;
 

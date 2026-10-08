@@ -8,6 +8,7 @@
 import { fillWithTrending, picksForDay, rankTalkedAbout, type PickIn } from '@socialmorning/social-core';
 import type { Db } from '../../db.ts';
 import { hiddenFeedUrls } from '../safety/moderation.ts';
+import { hiddenEpisodeIds } from '../studio/hidden-episodes.ts';
 import { cached, TTL } from '../cache.ts';
 import { talkedAbout } from './activity-stats.ts';
 import { fetchFeed, registerCard, toCard } from '../../../catalog/feed.ts';
@@ -39,13 +40,14 @@ const keyOf = (c: EpisodeCard) => `${c.feedUrl}\u0001${c.guid}`;
  * M6 (FR-014, G7): a show the owner hid leaves every discovery list at once — applied to
  * the cached body at serve time, so it does not wait for the hour's cache to expire.
  */
-export function excludeHidden(body: DiscoverBody, hidden: ReadonlySet<string>): DiscoverBody {
-  if (hidden.size === 0) return body;
-  const keep = (i: DiscoverItem) => !hidden.has(i.episode.feedUrl);
+export function excludeHidden(body: DiscoverBody, hidden: ReadonlySet<string>, hiddenEps: ReadonlySet<string> = new Set()): DiscoverBody {
+  if (hidden.size === 0 && hiddenEps.size === 0) return body;
+  // M24 US11: hidden episodes leave this list.
+  const keep = (i: DiscoverItem) => !hidden.has(i.episode.feedUrl) && !hiddenEps.has(i.episode.id);
   return {
     ...body, picks: body.picks.filter(keep), talkedAbout: body.talkedAbout.filter(keep), trending: body.trending.filter(keep),
     ...(body.shows ? { shows: body.shows.filter((s) => !hidden.has(s.feedUrl)) } : {}),
-    ...(body.newShows ? { newShows: body.newShows.filter((n) => !hidden.has(n.show.feedUrl) && !hidden.has(n.episode.feedUrl)) } : {}),
+    ...(body.newShows ? { newShows: body.newShows.filter((n) => !hidden.has(n.show.feedUrl) && !hidden.has(n.episode.feedUrl) && !hiddenEps.has(n.episode.id)) } : {}),
   };
 }
 
@@ -58,7 +60,8 @@ export async function dropDiscoverCache(db: Db): Promise<void> {
 
 export async function discoverBody(db: Db, f: typeof fetch, picks: readonly PickIn[], today: string): Promise<{ body: DiscoverBody; stale: boolean }> {
   const r = await cachedDiscover(db, f, picks, today);
-  return { body: excludeHidden(r.body, await hiddenFeedUrls(db)), stale: r.stale };
+  // M24 US11: hidden episodes leave this list.
+  return { body: excludeHidden(r.body, await hiddenFeedUrls(db), await hiddenEpisodeIds(db)), stale: r.stale };
 }
 
 async function cachedDiscover(db: Db, f: typeof fetch, picks: readonly PickIn[], today: string): Promise<{ body: DiscoverBody; stale: boolean }> {
@@ -168,6 +171,7 @@ async function newShowsFrom(db: Db, f: typeof fetch, chart: readonly ShowCard[],
 export const CHART_MAX = 100;
 export async function talkedAboutChart(db: Db, limit: number): Promise<(DiscoverItem & { rank: number })[]> {
   const hidden = await hiddenFeedUrls(db);
+  const hiddenEps = await hiddenEpisodeIds(db); // M24 US11: hidden episodes leave this list.
   const ranked = rankTalkedAbout(await talkedAbout(db, 7), Number.MAX_SAFE_INTEGER);
   const rows = await db.query<{ id: string; feed_url: string; guid: string; title: string; show_title: string | null; image_url: string | null; duration_ms: number | null; enclosure_url: string }>(
     'SELECT id, feed_url, guid, title, show_title, image_url, duration_ms, enclosure_url FROM episodes WHERE id = ANY($1::text[])', [ranked.map((r) => r.episodeId)]);
@@ -176,7 +180,7 @@ export async function talkedAboutChart(db: Db, limit: number): Promise<(Discover
   for (const r of ranked) {
     if (out.length >= limit) break;
     const e = byId.get(r.episodeId);
-    if (!e || hidden.has(e.feed_url)) continue;
+    if (!e || hidden.has(e.feed_url) || hiddenEps.has(e.id)) continue;
     const card: EpisodeCard & { id: string } = { id: e.id, feedUrl: e.feed_url, guid: e.guid, title: e.title, showTitle: e.show_title ?? '', enclosureUrl: e.enclosure_url, ...(e.image_url ? { imageUrl: e.image_url } : {}), ...(e.duration_ms !== null ? { durationMs: Number(e.duration_ms) } : {}) };
     const score = 3 * r.listeners + 2 * r.comments + 2 * r.clips + r.reactions;
     out.push({ kind: 'talkedAbout', key: keyOf(card), episode: card, score, reason: describe(r), rank: out.length + 1 });

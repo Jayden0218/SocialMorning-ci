@@ -1,5 +1,5 @@
 // Page listing subscribers and trends, and muting listeners from commenting.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router';
 import { api, HttpError, type Show } from '../api';
 import { HourBars, SubTrend } from '../charts/Small';
@@ -71,7 +71,10 @@ function SubscriberList({ show }: { show: Show }) {
   const [who, setWho] = useState<Sub | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const list = useLoad(() => api<{ total: number; page: number; pageSize: number; items: Sub[] }>(`/v1/studio/shows/${show.key}/subscribers?page=${page}`), [show.key, page, n]);
+  const [q, setQ] = useState('');
+  const [query, setQuery] = useState('');
+  useEffect(() => { const t = setTimeout(() => { setQuery(q.trim()); setPage(1); }, 300); return () => clearTimeout(t); }, [q]);
+  const list = useLoad(() => api<{ total: number; page: number; pageSize: number; items: Sub[] }>(`/v1/studio/shows/${show.key}/subscribers?page=${page}${query ? `&q=${encodeURIComponent(query)}` : ''}`), [show.key, page, query, n]);
   const cols: Column<Sub>[] = [
     { key: 'name', label: 'Name', render: (s) => <>{s.displayName}{s.muted ? <> <span className="pill pill-warn">Muted</span></> : null}</> },
     { key: 'at', label: 'Subscribed', render: (s) => shortDate(s.subscribedAt) },
@@ -79,10 +82,16 @@ function SubscriberList({ show }: { show: Show }) {
   ];
   return (
     <section className="card">
+      <div className="toolbar">
+        <label className="sr-only" htmlFor="sub-q">Search subscribers</label>
+        <input id="sub-q" type="search" placeholder="Search by name" value={q} onChange={(e) => setQ(e.target.value)} />
+      </div>
       {error ? <p className="error" role="alert">{error}</p> : null}
       {list.state === 'loading' ? <Loading lines={6} /> : null}
       {list.state === 'error' ? <Failed message={list.message} retry={list.retry} /> : null}
-      {list.state === 'ready' && list.data.total === 0 ? <Empty title="No subscribers yet">When someone subscribes in the app, they appear here.</Empty> : null}
+      {list.state === 'ready' && list.data.total === 0 ? (
+        query ? <Empty title="No subscriber matches">Try another name.</Empty> : <Empty title="No subscribers yet">When someone subscribes in the app, they appear here.</Empty>
+      ) : null}
       {list.state === 'ready' && list.data.total > 0 ? (
         <>
           <p className="muted" style={{ marginTop: 0 }}>{num(list.data.total)} {noun(list.data.total, 'subscriber')}</p>

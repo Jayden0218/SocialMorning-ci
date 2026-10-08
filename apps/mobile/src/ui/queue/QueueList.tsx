@@ -90,8 +90,7 @@ export function QueueList(props: {
   const toggle = (id: string) => setOpen((o) => (o === id ? undefined : id));
   return (
     <Box>
-      {/* M24 US19 (`QueueSheet-B`): on the sheet the count sits beside the title, so the line is only the rule. */}
-      <Text className={page ? 'text-muted text-meta mb-2.5' : 'text-muted text-meta pb-row'}>{page ? `${plural(ids.length, 'episode')} · plays in order after this one` : 'Plays in order after this one'}</Text>
+      <Text className={page ? 'text-muted text-meta mb-2.5' : 'text-muted text-meta pt-1 pb-2.5'}>{`${plural(ids.length, 'episode')} · plays in order after this one`}</Text>
       {ids.map((id, index) => (
         <QueueRow
           key={id}
@@ -179,8 +178,7 @@ function QueueRow(props: {
 }): React.ReactElement {
   const { id, index, ids, stores, page } = props;
   const d = useRowData(id, stores);
-  // Row ▶ discs stay pale (`playGlyph`); the labelled "Play now" pills are the strong yellow (owner, 2026-10-08).
-  const { playGlyph, onPrimary } = useColours();
+  const playGlyph = useColours().playGlyph;
   const drop = useRef(props.onDrop); drop.current = props.onDrop;
   const dragTo = useRef(props.onDrag); dragTo.current = props.onDrag;
   const handlers: GestureResponderHandlers = useMemo(() => PanResponder.create({
@@ -236,9 +234,9 @@ function QueueRow(props: {
           </Box>
           <Box className="flex-row items-center gap-gap">
             {/* M16a bug 6 (FR-002): tapping the next episode plays it — here as B's pill. */}
-            <Pressable onPress={() => props.onPlay(id)} accessibilityRole="button" accessibilityLabel={`Play ${title}`} className="flex-1 flex-row items-center justify-center gap-gap bg-primary rounded-pill" style={ROW_TAP}>
-              <Icon name="play" size={16} color={onPrimary} />
-              <Text className="text-onPrimary text-body font-bold">Play now</Text>
+            <Pressable onPress={() => props.onPlay(id)} accessibilityRole="button" accessibilityLabel={`Play ${title}`} className="flex-1 flex-row items-center justify-center gap-gap bg-playDisc rounded-pill" style={ROW_TAP}>
+              <Icon name="play" size={16} color={playGlyph} />
+              <Text className="text-text text-body font-bold">Play now</Text>
             </Pressable>
             {more}
             {handle}
@@ -298,9 +296,9 @@ function QueueRow(props: {
         </Box>
         {props.open ? (
           <Box className="flex-row flex-wrap gap-gap pt-3 mt-3 border-t-hairline border-separator">
-            <Pressable onPress={() => { props.onToggle(); props.onPlay(id); }} accessibilityRole="button" accessibilityLabel="Play now" className="flex-row items-center gap-1.5 px-3 rounded-pill bg-primary" style={PILL}>
-              <Icon name="play" size={16} color={onPrimary} />
-              <Text className="text-onPrimary text-meta font-bold">Play now</Text>
+            <Pressable onPress={() => { props.onToggle(); props.onPlay(id); }} accessibilityRole="button" accessibilityLabel="Play now" className="flex-row items-center gap-1.5 px-3 rounded-pill bg-playDisc" style={PILL}>
+              <Icon name="play" size={16} color={playGlyph} />
+              <Text className="text-text text-meta font-bold">Play now</Text>
             </Pressable>
             {index > 0 ? (
               <Pressable onPress={() => { props.onToggle(); props.onChange(move(ids, id, 0)); }} accessibilityRole="button" accessibilityLabel="Move to top" className="flex-row items-center gap-1.5 px-3 rounded-pill bg-background border border-border" style={PILL}>

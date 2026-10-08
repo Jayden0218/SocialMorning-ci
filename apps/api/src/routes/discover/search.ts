@@ -8,6 +8,7 @@ import { cached, TTL } from '../../db/repos/cache.ts';
 import { CatalogRateLimited, searchEpisodes, searchShows, type EpisodeCard, type ShowCard } from '../../catalog/apple.ts';
 import { registerCard } from '../../catalog/feed.ts';
 import { hiddenFeedUrls } from '../../db/repos/safety/moderation.ts';
+import { hiddenEpisodeIds } from '../../db/repos/studio/hidden-episodes.ts';
 import { statsFor } from '../../db/repos/discover/discover-extras.ts';
 
 /** M21 T080: `since=30d|180d` keeps episodes published in that many days; one without a date is left out. */
@@ -64,6 +65,7 @@ export function createSearchRoute() {
     throw new ApiError('unavailable', 'The catalogue is not answering right now.');
   }
   const hidden = await hiddenFeedUrls(db); // M6 (FR-014): a hidden show is not found
+  const hiddenEps = await hiddenEpisodeIds(db); // M24 US11: hidden episodes leave this list.
   const fromApple = showsR.status === 'fulfilled' ? collapseByFeed(showsR.value.body) : [];
   const shows = [...created, ...fromApple.filter((s) => !created.some((x) => x.feedUrl === s.feedUrl))].filter((s) => !hidden.has(s.feedUrl));
   const episodes: (EpisodeCard & { id: string; stats?: { listeners: number; comments: number } })[] = [];
@@ -72,6 +74,7 @@ export function createSearchRoute() {
       if (hidden.has(e.feedUrl)) continue;
       if (sinceMs !== undefined && !(e.publishedAt !== undefined && Date.parse(e.publishedAt) >= sinceMs)) continue;
       const row = await registerCard(db, e);
+      if (hiddenEps.has(row.id)) continue;
       episodes.push({ ...e, id: row.id });
     }
   }

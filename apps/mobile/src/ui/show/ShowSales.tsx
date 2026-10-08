@@ -21,6 +21,7 @@ import { hit } from '@/design';
 import { mmss } from '@/ui/kit/format';
 import { useColours } from '@/ui/kit/useColours';
 import { usePlayer } from '@/playback/store';
+import { startPreview } from '@/playback/preview';
 import { useStores, useToast } from '@/ui/shell/providers';
 import { getPref } from '@/settings/prefs';
 import { readStoreReady } from '@/social/store-ready';
@@ -58,6 +59,15 @@ export function ShowSales(props: { feedUrl: string; showTitle: string; artworkUr
       toast("Couldn't open this episode — try again.");
     }
   };
+  // M24 US13: before buying, a paid episode with a free preview plays only that range.
+  const tryPreview = async (item: PaidList['items'][number]) => {
+    try {
+      const p = await api.preview(item.id);
+      startPreview(player, { id: item.episodeId, url: p.url, title: item.title, showTitle: props.showTitle, ...(item.durationMs ? { durationMs: item.durationMs } : {}), feedUrl: props.feedUrl }, { startMs: p.startMs, endMs: p.endMs });
+    } catch {
+      toast("Couldn't open the preview — try again.");
+    }
+  };
   const showPrice = paid?.productId ? play.price(paid.productId) : undefined;
   return (
     <Box className="gap-row">
@@ -73,6 +83,11 @@ export function ShowSales(props: { feedUrl: string; showTitle: string; artworkUr
               <Icon name={paid.bought ? 'play-circle-outline' : 'lock-closed-outline'} size={22} color={paid.bought ? c.accent : c.muted} />
               <Text className="flex-1 text-text text-sm" numberOfLines={2}>{it.title}</Text>
               {it.durationMs ? <Text className="text-muted text-xs">{mmss(it.durationMs)}</Text> : null}
+              {!paid.bought && it.preview ? (
+                <Pressable onPress={() => void tryPreview(it)} accessibilityRole="button" accessibilityLabel={`Play the free preview of ${it.title}`} className="justify-center px-row" style={TAP}>
+                  <Text className="text-accent text-xs font-bold">Preview</Text>
+                </Pressable>
+              ) : null}
             </Pressable>
           ))}
           {!paid.bought && paid.productId ? (

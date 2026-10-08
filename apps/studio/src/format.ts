@@ -27,3 +27,17 @@ export const browserTz = (): string => {
 /** Days since the claim was proven, counting that day as day 1. */
 export const dayNumber = (since: string | null, now = Date.now()): number | null =>
   since ? Math.max(1, Math.floor((now - new Date(since).getTime()) / 86_400_000) + 1) : null;
+/** Store money in micros (1/1,000,000 of the currency), in the currency's own format; '—' when unknown. */
+export const money = (micros: number | null, cur: string | null): string =>
+  micros === null || !cur ? '—' : new Intl.NumberFormat('en', { style: 'currency', currency: cur }).format(micros / 1_000_000);
+/** "2:30" or "1:02:30" → milliseconds; null when it is not a time. */
+export const parseMmss = (s: string): number | null => {
+  const m = /^\s*(?:(\d+):)?(\d+):([0-5]\d)\s*$/.exec(s);
+  if (!m) return null;
+  return ((Number(m[1] ?? 0) * 60 + Number(m[2])) * 60 + Number(m[3])) * 1000;
+};
+/** An ISO time → the value a datetime-local input wants, in the browser's time zone. */
+export const toLocalInput = (iso: string): string => {
+  const d = new Date(iso);
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+};

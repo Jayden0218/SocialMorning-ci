@@ -68,24 +68,10 @@ export const UIActionsheet = createActionsheet({
 
 const actionsheetStyle = tva({ base: 'w-full h-full web:pointer-events-none' });
 
-// M17 (`QueueSheet-B`): the Editorial sheet.
-// M24 US18: every B sheet is the paper colour (#fbf8f1) with 24 pt top corners, so its white
-// cards and tiles stand out (they vanished into the white sheet). No top line: the paper sheet
-// sits on the scrim.
+// M17 (`QueueSheet-B`): the Editorial sheet — white, 16 pt top corners.
 const actionsheetContentStyle = tva({
-  base: 'items-center rounded-t-sheet p-4 bg-background web:pointer-events-auto web:select-none max-h-[80vh] pb-safe',
+  base: 'items-center rounded-t-row p-4 bg-surface web:pointer-events-auto web:select-none border-t border-separator max-h-[80vh] pb-safe',
 });
-
-/**
- * M24 US18: about 30 callers still pass the M17 look (`bg-surface rounded-t-row`, a few
- * `rounded-t-artwork-lg`). The class merger keeps a caller's class over the base, so those words
- * are dropped here and every sheet takes the paper colour and the 24 pt corners at once. Layout
- * classes (padding, height, alignment) pass through untouched.
- */
-const OLD_SHEET_LOOK = /^(?:bg-(?:surface|background)|rounded-t-(?:row|artwork|artwork-lg)|rounded-(?:row|artwork|artwork-lg)|border-t|border-separator)$/;
-export function sheetClass(className: string | undefined): string {
-  return (className ?? '').split(/\s+/).filter((c) => c !== '' && !OLD_SHEET_LOOK.test(c)).join(' ');
-}
 
 const actionsheetItemStyle = tva({
   base: 'w-full flex-row items-center p-3 rounded-sm data-[disabled=true]:opacity-40 data-[disabled=true]:web:pointer-events-auto data-[disabled=true]:web:cursor-not-allowed data-[hover=true]:bg-surface data-[active=true]:bg-surface data-[focus=true]:bg-surface web:data-[focus-visible=true]:bg-surface gap-2',
@@ -110,9 +96,8 @@ const actionsheetItemTextStyle = tva({
 });
 
 // Owner, 2026-10-04: the handle on top of every sheet is grey and small (was white, 100 × 8).
-// M24 US18: 40 × 5 and darker (rgba .22), as every B sheet draws it.
 const actionsheetDragIndicatorStyle = tva({
-  base: 'w-10 h-[5px] bg-handle rounded-full',
+  base: 'w-10 h-1 bg-track rounded-full',
 });
 
 const actionsheetDragIndicatorWrapperStyle = tva({
@@ -252,7 +237,7 @@ const ActionsheetContent = React.forwardRef<
   return (
     <UIActionsheet.Content
       className={actionsheetContentStyle({
-        class: sheetClass(className),
+        class: className,
       })}
       ref={ref}
       {...props}

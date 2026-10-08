@@ -330,17 +330,17 @@ export default function EpisodeScreen(): React.ReactElement {
             </Text>
           ) : null}
         </Box>
-        {/* M17: Play (yellow pill) and Subscribe (white pill) side by side. M24 US19 (owner, 2026-10-08): Play is the strong yellow. */}
+        {/* M17: Play (yellow pill) and Subscribe (white pill) side by side. */}
         <Box className="flex-row gap-gap mt-section">
           <Pressable
-            className="flex-1 flex-row gap-gap rounded-pill bg-primary items-center justify-center px-section"
+            className="flex-1 flex-row gap-gap rounded-pill bg-playDisc items-center justify-center px-section"
             style={TAP}
             accessibilityRole="button"
             accessibilityLabel={playing ? 'Pause' : 'Play this episode'}
             onPress={playOrPause}
           >
-            <Icon name={playing ? 'pause' : 'play'} size={16} color={c.onPrimary} />
-            <Text className="text-onPrimary text-body font-bold" numberOfLines={1}>{playLabel}</Text>
+            <Icon name={playing ? 'pause' : 'play'} size={16} color={c.playGlyph} />
+            <Text className="text-text text-body font-bold" numberOfLines={1}>{playLabel}</Text>
           </Pressable>
           {/* Owner, 2026-10-01: Subscribe sits on the page, not in the bar. */}
           <Pressable onPress={toggleSubscription} accessibilityRole="button" accessibilityLabel={subscribed ? 'Unsubscribe from this show' : 'Subscribe to this show'} accessibilityState={{ selected: subscribed }} className="rounded-pill bg-surface border border-border items-center justify-center px-section" style={TAP}>

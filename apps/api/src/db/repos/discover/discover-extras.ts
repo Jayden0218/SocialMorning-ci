@@ -16,6 +16,7 @@ import { fetchFeed, registerCard, toCard } from '../../../catalog/feed.ts';
 import type { EpisodeCard } from '../../../catalog/apple.ts';
 import type { CollectionIn } from '../../../catalog/collections.ts';
 import type { DiscoverItem, ItemStats } from './discover.ts';
+import { notHidden } from '../studio/hidden-episodes.ts';
 
 export type FollowedShow = { feedUrl: string; title: string; imageUrl?: string; author?: string; followers: number };
 export type FollowedHere = { total: number; shows: FollowedShow[] };
@@ -109,12 +110,13 @@ export type NewArrival = { show: { feedUrl: string; title: string; author: strin
  * rows `promoteDue` has put in `episodes` with a time that has come.
  */
 export async function newArrivals(db: Db): Promise<NewArrival[]> {
+  // M24 US11: hidden episodes leave this list (and do not count).
   const rows = await db.query<{ feed_url: string; title: string; author: string; category: string; cover_url: string | null; episodes: number; episode_id: string; guid: string; ep_title: string; image_url: string | null; duration_ms: number | null; enclosure_url: string; published_at: string | Date | null }>(
     `SELECT hs.feed_url, hs.title, hs.author, hs.category, hs.cover_url, n.episodes,
             e.id AS episode_id, e.guid, e.title AS ep_title, e.image_url, e.duration_ms, e.enclosure_url, e.published_at
      FROM hosted_shows hs
-     JOIN LATERAL (SELECT count(*)::int AS episodes FROM episodes x WHERE x.feed_url = hs.feed_url AND (x.published_at IS NULL OR x.published_at <= now())) n ON n.episodes > 0
-     JOIN LATERAL (SELECT * FROM episodes x WHERE x.feed_url = hs.feed_url AND (x.published_at IS NULL OR x.published_at <= now()) ORDER BY x.published_at DESC NULLS LAST LIMIT 1) e ON true
+     JOIN LATERAL (SELECT count(*)::int AS episodes FROM episodes x WHERE x.feed_url = hs.feed_url AND (x.published_at IS NULL OR x.published_at <= now()) AND ${notHidden('x')}) n ON n.episodes > 0
+     JOIN LATERAL (SELECT * FROM episodes x WHERE x.feed_url = hs.feed_url AND (x.published_at IS NULL OR x.published_at <= now()) AND ${notHidden('x')} ORDER BY x.published_at DESC NULLS LAST LIMIT 1) e ON true
      WHERE hs.deleted_at IS NULL
        AND NOT EXISTS (SELECT 1 FROM hidden_feeds h WHERE h.feed_url = hs.feed_url)
      ORDER BY hs.created_at DESC, hs.id
@@ -142,6 +144,7 @@ export async function newArrivals(db: Db): Promise<NewArrival[]> {
  * so none can leak (guard G6).
  */
 export async function said(db: Db): Promise<Said[]> {
+  // M24 US11: hidden episodes leave this list.
   const rows = await db.query<{ id: string; author_id: string; body: string; created_at: string | Date; episode_id: string; feed_url: string; guid: string; title: string; show_title: string | null; image_url: string | null; duration_ms: number | null; enclosure_url: string; published_at: string | Date | null }>(
     `SELECT c.id, c.author_id, c.body, c.created_at,
             e.id AS episode_id, e.feed_url, e.guid, e.title, e.show_title, e.image_url, e.duration_ms, e.enclosure_url, e.published_at
@@ -152,6 +155,7 @@ export async function said(db: Db): Promise<Said[]> {
        AND l.suspended_at IS NULL AND l.hidden_at IS NULL
        AND c.created_at > now() - ($1 || ' days')::interval
        AND NOT EXISTS (SELECT 1 FROM hidden_feeds h WHERE h.feed_url = e.feed_url)
+       AND ${notHidden('e')}
      ORDER BY c.created_at DESC, c.id DESC
      LIMIT $2`,
     [String(SAID_DAYS), SAID_SHOWN],
@@ -211,9 +215,10 @@ export async function resolveCollections(db: Db, f: typeof fetch, collections: r
 }
 
 /** Serve-time: a hidden show leaves every collection at once; an emptied collection goes. */
-export function collectionsWithoutHidden(cols: readonly Collection[], hidden: ReadonlySet<string>): Collection[] {
-  if (hidden.size === 0) return [...cols];
-  return cols.map((c) => ({ ...c, items: c.items.filter((i) => !hidden.has(i.episode.feedUrl)) })).filter((c) => c.items.length > 0);
+export function collectionsWithoutHidden(cols: readonly Collection[], hidden: ReadonlySet<string>, hiddenEps: ReadonlySet<string> = new Set()): Collection[] {
+  if (hidden.size === 0 && hiddenEps.size === 0) return [...cols];
+  // M24 US11: hidden episodes leave this list.
+  return cols.map((c) => ({ ...c, items: c.items.filter((i) => !hidden.has(i.episode.feedUrl) && !hiddenEps.has(i.episode.id)) })).filter((c) => c.items.length > 0);
 }
 
 
@@ -222,10 +227,12 @@ export function collectionsWithoutHidden(cols: readonly Collection[], hidden: Re
  * (from feeds, charts and picks), at most 10, hidden shows left out. Live, not cached.
  */
 export async function videoEpisodes(db: Db, limit = 10): Promise<{ kind: 'trending'; key: string; episode: EpisodeCard & { id: string; mediaKind: 'video' } }[]> {
+  // M24 US11: hidden episodes leave this list.
   const rows = await db.query<{ id: string; feed_url: string; guid: string; title: string; show_title: string | null; image_url: string | null; duration_ms: number | null; enclosure_url: string; published_at: string | Date | null }>(
     `SELECT e.id, e.feed_url, e.guid, e.title, e.show_title, e.image_url, e.duration_ms, e.enclosure_url, e.published_at
      FROM episodes e
      WHERE e.media_kind = 'video' AND NOT EXISTS (SELECT 1 FROM hidden_feeds h WHERE h.feed_url = e.feed_url)
+       AND ${notHidden('e')}
      ORDER BY e.published_at DESC NULLS LAST, e.id LIMIT $1`,
     [limit],
   );
