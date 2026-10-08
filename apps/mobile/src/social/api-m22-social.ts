@@ -19,8 +19,6 @@ import { typedAudio } from './comment-extras-api';
 export type PushSwitches = {
   newEpisodes: boolean; popular: boolean; replies: boolean; likes: boolean;
   follows: boolean; mentions: boolean; statuses: boolean; digest: boolean;
-  /** M24 US3: system notices from SocialNet (on by default). */
-  system: boolean;
 };
 export type PushSwitch = keyof PushSwitches;
 

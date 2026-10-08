@@ -142,9 +142,8 @@ export function shortDate(date: string): string {
 
 /**
  * Editor's picks — each pick a white card: the podcast, the episode, the owner's note as a serif
- * quote, the counts, "+" (add to the queue; owner, 2026-10-05) and the design's "▶ Play" pill
- * (`Home-B`; M24 fix F-P, owner 2026-10-08: both — nothing removed). M24 US20 (`Home-B`): the
- * section's title moved inside the card as its label, with "Past picks →".
+ * quote, the counts and "+" (add to the queue; owner, 2026-10-05: not a Play pill). M24 US20
+ * (`Home-B`): the section's title moved inside the card as its label, with "Past picks →".
  */
 /** M21: up to 3 faces of people you follow who liked a pick, overlapping, with who in words. */
 function Faces(props: { faces: Face[] }): React.ReactElement | null {
@@ -161,19 +160,6 @@ function Faces(props: { faces: Face[] }): React.ReactElement | null {
   );
 }
 
-/** `Home-B`'s pick Play pill: the fixed strong yellow (`play`, not the accent), 44 pt tall at least, 18 pt sides. */
-const PICK_PLAY = { minHeight: hit.min, paddingHorizontal: 18 };
-function PickPlay(props: { title: string; onPress: () => void }): React.ReactElement {
-  const stores = useStores();
-  const c = useColours(stores.settings);
-  return (
-    <Pressable onPress={props.onPress} accessibilityRole="button" accessibilityLabel={`Play ${props.title}`} className="flex-row items-center justify-center gap-gap rounded-pill bg-play" style={PICK_PLAY}>
-      <Icon name="play" size={16} color={c.onPlay} />
-      <Text className="text-onPlay text-body font-bold">Play</Text>
-    </Pressable>
-  );
-}
-
 export function PicksSection(props: Act & { items: (DiscoverItem & { likedBy?: Face[] })[]; date?: string; onPast?: () => void; onQueue: (card: EpisodeCard) => void; /** M21: "Today's picks" page. */ onDaily?: () => void }): React.ReactElement | null {
   if (props.items.length === 0) return null;
   const label = props.date ? `Editor's pick · ${shortDate(props.date)}` : "Editor's pick";
@@ -184,8 +170,8 @@ export function PicksSection(props: Act & { items: (DiscoverItem & { likedBy?: F
           const stats = p.stats ?? props.stats?.[p.episode.id];
           return (
             // M24 US20 (`Home-B`): the label and "Past picks →" sit INSIDE the card; 76 pt cover,
-            // show 12 muted, title 18 serif, the note an italic serif quote, the counts, then the
-            // owner's "+" (2026-10-05) beside the design's yellow "▶ Play" pill (fix F-P, 2026-10-08).
+            // show 12 muted, title 18 serif, the note an italic serif quote, the counts. The design's
+            // Play pill stays the owner's "+" (add to the queue; owner, 2026-10-05).
             <Card key={p.key} className="mx-screen-x pt-2 pb-row">
               <Box className="flex-row items-center justify-between gap-row" style={TAP}>
                 <Eyebrow accent className="flex-1">{label}</Eyebrow>
@@ -209,7 +195,6 @@ export function PicksSection(props: Act & { items: (DiscoverItem & { likedBy?: F
               <Box className="flex-row items-center justify-between gap-2 mt-row">
                 {stats ? <StatsLine stats={stats} className="flex-1" /> : <Box className="flex-1" />}
                 <AddButton title={p.episode.title} onPress={() => props.onQueue(p.episode)} />
-                <PickPlay title={p.episode.title} onPress={() => props.onPlay(p.episode)} />
               </Box>
             </Card>
           );

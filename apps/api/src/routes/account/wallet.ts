@@ -23,15 +23,15 @@ wallet.get('/purchases', requireAuth, async (c) => {
   const [rows, ents] = await Promise.all([
     db.query<{ id: string; store: string; product_id: string; status: string; expires_at: Date | string | null; amount_micros: string | number | null; currency: string | null; created_at: Date | string }>(
       'SELECT id, store, product_id, status, expires_at, amount_micros, currency, created_at FROM purchases WHERE listener_id = $1 ORDER BY created_at DESC LIMIT 200', [me]),
-    db.query<{ kind: string; ref: string; until: Date | string | null }>(
-      'SELECT kind, ref, until FROM entitlements WHERE listener_id = $1 ORDER BY kind, ref', [me]),
+    db.query<{ kind: string; ref: string; starts_at: Date | string | null; until: Date | string | null }>(
+      'SELECT kind, ref, starts_at, until FROM entitlements WHERE listener_id = $1 ORDER BY kind, ref', [me]),
   ]);
   return c.json({
     items: rows.map((r) => ({
       id: r.id, store: r.store, productId: r.product_id, status: r.status, expiresAt: iso(r.expires_at),
       amountMicros: r.amount_micros === null ? null : Number(r.amount_micros), currency: r.currency?.trim() ?? null, createdAt: iso(r.created_at),
     })),
-    entitlements: ents.map((e) => ({ kind: e.kind, ref: e.ref, until: iso(e.until) })),
+    entitlements: ents.map((e) => ({ kind: e.kind, ref: e.ref, until: iso(e.until), ...(e.starts_at ? { startsAt: iso(e.starts_at) } : {}) })), // fix F-S: a code may start later
     storeReady: c.get('play').ready,
     stores: { google: c.get('play').ready, apple: false },
   });

@@ -36,11 +36,13 @@ export async function deleteToken(db: Db, listenerId: string, token: string): Pr
 export type PrefsPatch = {
   newEpisodes?: boolean; popular?: boolean;
   replies?: boolean; likes?: boolean; follows?: boolean; mentions?: boolean; statuses?: boolean; digest?: boolean;
+  /** M24 fix F-S: system notices from SocialNet. */
+  system?: boolean;
 };
 
 const PREF_COLUMNS: Record<keyof PrefsPatch, string> = {
   newEpisodes: 'new_episodes', popular: 'popular', replies: 'replies', likes: 'likes',
-  follows: 'follows', mentions: 'mentions', statuses: 'statuses', digest: 'digest',
+  follows: 'follows', mentions: 'mentions', statuses: 'statuses', digest: 'digest', system: 'system',
 };
 
 /** Saves only the switches sent; the rest keep their value (all default on). */
@@ -53,11 +55,12 @@ export async function setPrefs(db: Db, listenerId: string, p: PrefsPatch): Promi
 }
 
 export async function getPrefs(db: Db, listenerId: string): Promise<Required<PrefsPatch>> {
-  const [r] = await db.query<{ new_episodes: boolean; popular: boolean; replies: boolean; likes: boolean; follows: boolean; mentions: boolean; statuses: boolean; digest: boolean }>(
+  const [r] = await db.query<{ new_episodes: boolean; popular: boolean; replies: boolean; likes: boolean; follows: boolean; mentions: boolean; statuses: boolean; digest: boolean; system: boolean }>(
     'SELECT * FROM push_prefs WHERE listener_id = $1', [listenerId]);
   return {
     newEpisodes: r?.new_episodes ?? true, popular: r?.popular ?? true, replies: r?.replies ?? true, likes: r?.likes ?? true,
     follows: r?.follows ?? true, mentions: r?.mentions ?? true, statuses: r?.statuses ?? true, digest: r?.digest ?? true,
+    system: r?.system ?? true,
   };
 }
 
@@ -165,6 +168,8 @@ function words(kind: PushKind, name: string, count: number, excerpt: string | nu
     case 'status_reply': return { title: `${name} replied to your status`, body: excerpt ?? '' };
     case 'status_reaction': return { title: `${who} reacted to your status`, body: '' };
     case 'status_milestone': return { title: 'Your status got 100 reactions', body: 'Tap to see who' };
+    // Fix F-S: system notices push through pushNotice (system-notices.ts) with their own words.
+    case 'system': return { title: 'SocialNet', body: excerpt ?? '' };
   }
 }
 
@@ -195,7 +200,7 @@ export async function pushFor(db: Db, n: SocialNotice, now = Date.now()): Promis
     }
     const decision = shouldPush(
       { kind: n.kind, actorId: n.actorId, recipientId: n.recipientId, at: now },
-      { replies: prefs.replies, likes: prefs.likes, follows: prefs.follows, mentions: prefs.mentions, statuses: prefs.statuses } satisfies PushPrefs,
+      { replies: prefs.replies, likes: prefs.likes, follows: prefs.follows, mentions: prefs.mentions, statuses: prefs.statuses, system: prefs.system } satisfies PushPrefs,
       { blocked: rel?.blocked === true, muted: rel?.muted === true, threadMuted: rel?.thread_muted === true, likeNoticesOff: rel?.likes_off === true },
       window,
     );

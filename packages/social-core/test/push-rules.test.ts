@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { shouldPush, isLikeKind, LIKE_WINDOW_MS, type PushPrefs, type PushRelations } from '../src/push-rules.ts';
 
-const ALL: PushPrefs = { replies: true, likes: true, follows: true, mentions: true, statuses: true };
+const ALL: PushPrefs = { replies: true, likes: true, follows: true, mentions: true, statuses: true, system: true };
 const NONE: PushRelations = { blocked: false, muted: false, threadMuted: false };
 const AT = 1_700_000_000_000;
 const n = (kind: Parameters<typeof shouldPush>[0]['kind'], actorId = 'b') => ({ kind, actorId, recipientId: 'a', at: AT });
@@ -25,6 +25,9 @@ test('each kind follows its own switch', () => {
   assert.deepEqual(shouldPush(n('status_reply'), { ...ALL, statuses: false }, NONE, null), { send: false });
   assert.deepEqual(shouldPush(n('like_post_comment'), { ...ALL, replies: false }, NONE, null), { send: false });
   assert.deepEqual(shouldPush(n('status_milestone'), ALL, NONE, null), { send: true, grouped: false });
+  // M24 fix F-S: a system notice has its own switch.
+  assert.deepEqual(shouldPush(n('system'), { ...ALL, system: false }, NONE, null), { send: false });
+  assert.deepEqual(shouldPush(n('system'), { ...ALL, statuses: false, replies: false }, NONE, null), { send: true, grouped: false });
 });
 
 test('stop like notices on one comment', () => {

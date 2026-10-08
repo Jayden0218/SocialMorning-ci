@@ -156,7 +156,7 @@ test('G-M24-A3-2: changing the email needs the right code sent to the NEW addres
   assert.equal((await t.q<{ email: string }>('SELECT email FROM listeners WHERE id = $1', [a.id]))[0]!.email, 'a@example.com');
   const ok = await t.call('POST', '/v1/me/email/confirm', { code }, a.token);
   assert.equal(ok.status, 200, await ok.clone().text());
-  assert.deepEqual(await ok.json(), { email: 'new@example.com' });
+  assert.deepEqual(await ok.json(), { email: 'new@example.com', signedOut: 0 }, 'fix F-S: no other session to sign out');
   assert.equal((await t.q<{ email: string }>('SELECT email FROM listeners WHERE id = $1', [a.id]))[0]!.email, 'new@example.com');
   const notice = t.mail!.find((m) => m.to === 'a@example.com');
   assert.ok(notice, 'the old address got a notice');

@@ -20,26 +20,13 @@ export function createAccountApi(deps: ApiDeps) {
     redeem: async (code: string) => (await call<{ grant: RedeemGrant }>('POST', '/v1/me/redeem', { code: cleanCode(code) })).json.grant,
     /** POST /v1/me/email/start — a code goes to the NEW address. */
     startEmailChange: async (email: string) => (await call<{ sent: true; resendAfterSeconds: number }>('POST', '/v1/me/email/start', { email: email.trim() })).json,
-    /**
-     * POST /v1/me/email/confirm — the right code switches the sign-in email; the old address is told.
-     * M24 fix F-P: the server also signs out every other device and says how many (`signedOut`;
-     * absent on an older server → 0).
-     */
-    confirmEmailChange: async (code: string): Promise<{ email: string; signedOut: number }> => {
-      const r = (await call<{ email: string; signedOut?: number }>('POST', '/v1/me/email/confirm', { code: code.trim() })).json;
-      return { email: r.email, signedOut: typeof r.signedOut === 'number' && r.signedOut > 0 ? r.signedOut : 0 };
-    },
+    /** POST /v1/me/email/confirm — the right code switches the sign-in email; the old address is told. */
+    confirmEmailChange: async (code: string) => (await call<{ email: string }>('POST', '/v1/me/email/confirm', { code: code.trim() })).json.email,
   };
 }
 
 export function useAccountApi(): AccountApi {
   return useMemo(() => createAccountApi({ baseUrl: apiBaseUrl(), fetch, getToken: secureToken.get }), []);
-}
-
-/** M24 fix F-P: the toast after a change — "Email changed. Signed out of N other devices." (N = 0: just "Email changed."). */
-export function emailChangedLine(signedOut: number): string {
-  if (signedOut <= 0) return 'Email changed.';
-  return `Email changed. Signed out of ${signedOut} other ${signedOut === 1 ? 'device' : 'devices'}.`;
 }
 
 /** What the person typed, upper case, without spaces and dashes (the server does the same). */

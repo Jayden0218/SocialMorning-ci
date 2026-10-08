@@ -47,8 +47,6 @@ export const PREFS = {
   pushStatuses: { key: 'push.statuses', default: true },
   /** M22 US15: the PLUS weekly digest. Synced by `app/settings/push.tsx`. */
   pushDigest: { key: 'push.digest', default: true },
-  /** M24 fix F-P (US3): system notices from SocialNet (server key `system`, on by default). Synced by `app/settings/push.tsx`. */
-  pushSystem: { key: 'push.system', default: true },
 } as const;
 
 export type PrefName = keyof typeof PREFS;

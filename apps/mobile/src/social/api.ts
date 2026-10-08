@@ -245,8 +245,6 @@ export type ApiClient = {
   showExtras(feedUrl: string, images?: { image?: string | undefined; episodeImage?: string | undefined }): Promise<ShowExtras>;
   /** M21 US5 (FR-041): who stands behind the show, for the Show info page. */
   showInfo(feedUrl: string): Promise<ShowInfo>;
-  /** M24 US11: GET /v1/shows/hidden-episodes — the guids of a show's hidden episodes (each feed refresh). */
-  hiddenEpisodes(feedUrl: string): Promise<string[]>;
   votePoll(pollId: string, optionIdx: number): Promise<ShowPoll>;
   recordShare(s: { targetKind: 'episode' | 'clip' | 'show'; targetId: string; feedUrl: string }): Promise<void>;
 };
@@ -255,8 +253,6 @@ export type ApiClient = {
 export type ShowPoll = {
   id: string; question: string; episodeId: string | null; endsAt: string; closedAt: string | null; open: boolean;
   total: number; options: { idx: number; label: string; votes: number }[]; myVote?: number | null;
-  /** M24 US14: several options may be chosen; a vote with `optionIdx` toggles that one. `voters` = listeners who voted. Absent on an older server. */
-  multi?: boolean; voters?: number; myVotes?: number[];
 };
 export type ShowExtras = {
   overrides: {
@@ -284,8 +280,6 @@ export type ShowExtras = {
   hosts?: { id: string; name: string; avatarUrl: string | null }[];
   /** M21 US5: the episodes the host marked in the Studio, in order. */
   hostPicks?: string[];
-  /** M24 US11: the guids the creator hid — the phone drops them from its own parse (`src/feeds/hidden.ts`). Absent on an older server. */
-  hiddenGuids?: string[];
 };
 
 /** M21 US5: GET /v1/shows/info. */
@@ -448,7 +442,6 @@ export function createApi(deps: ApiDeps): ApiClient {
       return (await call<ShowExtras>('GET', `/v1/shows/extras?feedUrl=${encodeURIComponent(feedUrl)}${extra}`)).json;
     },
     showInfo: async (feedUrl) => (await call<ShowInfo>('GET', `/v1/shows/info?feedUrl=${encodeURIComponent(feedUrl)}`)).json,
-    hiddenEpisodes: async (feedUrl) => (await call<{ guids?: string[] }>('GET', `/v1/shows/hidden-episodes?feedUrl=${encodeURIComponent(feedUrl)}`)).json.guids ?? [],
     votePoll: async (pollId, optionIdx) => (await call<{ poll: ShowPoll }>('POST', `/v1/polls/${pollId}/vote`, { optionIdx })).json.poll,
     recordShare: async (s) => { await call('POST', '/v1/shares', s); },
     creatorClaims: async () => (await call<{ claims: CreatorClaim[] }>('GET', '/v1/creator/claims')).json.claims,

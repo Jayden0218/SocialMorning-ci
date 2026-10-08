@@ -98,45 +98,29 @@ export function ShowExtrasBlock({ extras, onPoll, episodeId, noAnnouncements }: 
   );
 }
 
-/**
- * The options this listener chose. M24 fix F-P (US14): a multiple-choice poll sends `myVotes`
- * (every chosen option); a single-choice one `myVote`. An older server sends only `myVote`.
- */
-export function chosenOptions(poll: Pick<ShowPoll, 'myVote' | 'myVotes'>): ReadonlySet<number> {
-  if (poll.myVotes) return new Set(poll.myVotes);
-  return new Set(poll.myVote === undefined || poll.myVote === null ? [] : [poll.myVote]);
-}
-
 function Poll({ poll, onChange }: { poll: ShowPoll; onChange: (p: ShowPoll) => void }): React.ReactElement {
   const { api, listener } = useSocial();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
-  const multi = poll.multi === true;
-  const chosen = chosenOptions(poll);
-  const voted = chosen.size > 0;
+  const voted = poll.myVote !== undefined && poll.myVote !== null;
   const showResult = voted || !poll.open;
-  // A multiple-choice poll's share is of the listeners who voted (each may choose several).
-  const base = multi ? (poll.voters ?? poll.total) : poll.total;
   const vote = async (idx: number) => {
     setBusy(true); setError(undefined);
     try { onChange(await api.votePoll(poll.id, idx)); } catch (e) { setError(e instanceof Error ? e.message : 'That did not work.'); } finally { setBusy(false); }
   };
   return (
     <Box className="bg-surface border border-border rounded-row px-section py-row gap-2">
-      <Text className="text-micro font-bold text-accent" style={CAPS}>{poll.open ? (multi ? 'Poll from the host · choose any' : 'Poll from the host') : 'Poll closed'}</Text>
+      <Text className="text-micro font-bold text-accent" style={CAPS}>{poll.open ? 'Poll from the host' : 'Poll closed'}</Text>
       <Text className="text-title font-display-semibold text-text">{poll.question}</Text>
       {poll.options.map((o) => {
-        const share = base ? Math.min(1, o.votes / base) : 0;
-        const mine = chosen.has(o.idx);
+        const share = poll.total ? o.votes / poll.total : 0;
+        const mine = poll.myVote === o.idx;
         // M20 US9 (FR-052): while the poll is open, a result row is tappable to change the vote.
-        // M24 fix F-P (US14): on a multiple-choice poll every row toggles — chosen ones too.
-        const change = voted && poll.open && listener && (multi || !mine) ? () => { void vote(o.idx); } : undefined;
-        const hint = multi ? (change ? (mine ? ', chosen, tap to remove' : ', tap to add') : mine ? ', chosen' : '') : mine ? ', your vote' : change ? ', tap to change your vote' : '';
+        const change = voted && poll.open && !mine && listener ? () => { void vote(o.idx); } : undefined;
         return showResult ? (
-          <Pressable key={o.idx} disabled={busy || change === undefined} onPress={change} className="gap-1" style={change ? TAP : undefined}
+          <Pressable key={o.idx} disabled={busy || change === undefined} onPress={change} className="gap-1"
             accessibilityRole={change ? 'button' : undefined}
-            accessibilityState={change ? { selected: mine } : undefined}
-            accessibilityLabel={`${o.label}: ${Math.round(share * 100)} percent${hint}`}>
+            accessibilityLabel={`${o.label}: ${Math.round(share * 100)} percent${mine ? ', your vote' : change ? ', tap to change your vote' : ''}`}>
             <Box className="flex-row justify-between">
               <Text className={mine ? 'text-sm font-bold text-text' : 'text-sm text-text'}>{mine ? `${o.label} ✓` : o.label}</Text>
               <Text className="text-sm text-muted">{`${Math.round(share * 100)}%`}</Text>
@@ -151,9 +135,7 @@ function Poll({ poll, onChange }: { poll: ShowPoll; onChange: (p: ShowPoll) => v
         );
       })}
       {!listener && poll.open && !voted ? <Text className="text-xs text-muted">Sign in to vote.</Text> : null}
-      {showResult ? <Text className="text-xs text-muted">{multi
-        ? `${plural(base, 'voter')}${voted && poll.open ? ' · tap an answer to add or remove it' : ''}`
-        : `${plural(poll.total, 'vote')}${voted && poll.open ? ' · tap another answer to change your vote' : ''}`}</Text> : null}
+      {showResult ? <Text className="text-xs text-muted">{`${plural(poll.total, 'vote')}${voted && poll.open ? ' · tap another answer to change your vote' : ''}`}</Text> : null}
       {error ? <Text className="text-xs text-accent">{error}</Text> : null}
     </Box>
   );

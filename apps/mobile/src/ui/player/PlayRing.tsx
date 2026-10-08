@@ -2,8 +2,8 @@
 /**
  * M24 US19 (`Home-B` mini player; the iPhone showed no ring): the kit `ProgressRing` draws a thin
  * accent (brown) arc, and the button under it was a filled pale disc of the same size, so at the
- * start of an episode the ring could not be seen. B draws no fill: a 3 pt arc in the fixed `play`
- * yellow (never the accent theme) on the 10 % track, the dark glyph inside. Same two-half-ring trick as the kit ring
+ * start of an episode the ring could not be seen. B draws no fill: a 3 pt arc in the primary
+ * yellow on the 10 % track, the dark glyph inside. Same two-half-ring trick as the kit ring
  * (`ringAngles`, no SVG); only the colours differ, so the kit part stays as it is.
  */
 import type { ReactNode } from 'react';
@@ -22,10 +22,10 @@ export function PlayRing(props: { progress: number; size: number; stroke: number
     <Box style={{ width: size, height: size }} className="items-center justify-center">
       <Box style={[circle, { position: 'absolute', borderColor: c.track }]} />
       <Box style={{ position: 'absolute', left: half, width: half, height: size, overflow: 'hidden' }}>
-        <Box style={[circle, clear, { marginLeft: -half, borderTopColor: c.play, borderRightColor: c.play, transform: [{ rotate: `${right}deg` }] }]} />
+        <Box style={[circle, clear, { marginLeft: -half, borderTopColor: c.primary, borderRightColor: c.primary, transform: [{ rotate: `${right}deg` }] }]} />
       </Box>
       <Box style={{ position: 'absolute', left: 0, width: half, height: size, overflow: 'hidden' }}>
-        <Box style={[circle, clear, { borderBottomColor: c.play, borderLeftColor: c.play, transform: [{ rotate: `${left}deg` }] }]} />
+        <Box style={[circle, clear, { borderBottomColor: c.primary, borderLeftColor: c.primary, transform: [{ rotate: `${left}deg` }] }]} />
       </Box>
       {props.children}
     </Box>
