@@ -181,5 +181,6 @@ export function readConfig(raw: unknown): AppConfig {
 export function orderedVisible<I, R extends { id: I; hidden?: boolean }>(ids: readonly I[], saved: readonly R[]): { id: I; row?: R }[] {
   const named = saved.filter((r) => ids.includes(r.id));
   const rest = ids.filter((id) => !named.some((r) => r.id === id));
-  return [...named.map((r) => ({ id: r.id, row: r })), ...rest.map((id) => ({ id }))].filter((x) => x.row?.hidden !== true);
+  const all: { id: I; row?: R }[] = [...named.map((r) => ({ id: r.id, row: r })), ...rest.map((id) => ({ id }))];
+  return all.filter((x) => x.row?.hidden !== true);
 }

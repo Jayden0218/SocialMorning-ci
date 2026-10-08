@@ -11,7 +11,7 @@
  */
 
 export type MdInline = { t: 'text'; v: string } | { t: 'bold'; v: string } | { t: 'link'; v: string; href: string };
-export type MdBlock = { t: 'h2' | 'h3' | 'p'; v: MdInline[] } | { t: 'ul' | 'ol'; items: MdInline[][] };
+export type MdBlock = { t: 'h2'; v: MdInline[] } | { t: 'h3'; v: MdInline[] } | { t: 'p'; v: MdInline[] } | { t: 'ul'; items: MdInline[][] } | { t: 'ol'; items: MdInline[][] };
 export type MdSection = { heading: string; blocks: MdBlock[] };
 
 export const SAFE_LINK = /^https:\/\/[^\s<>"'`]+$/;
@@ -48,10 +48,11 @@ export function parseMarkdown(src: string): MdBlock[] {
     if (line === '') { open = null; continue; }
     if (h) {
       open = null;
-      blocks.push({ t: h[1]!.length === 3 ? 'h3' : 'h2', v: parseInline(h[2]!) });
+      const v = parseInline(h[2]!);
+      blocks.push(h[1]!.length === 3 ? { t: 'h3', v } : { t: 'h2', v });
     } else if (item) {
       const kind = item[1] ? 'ul' : 'ol';
-      if (open === null || open.t !== kind) { open = { t: kind, items: [] }; blocks.push(open); }
+      if (open === null || open.t !== kind) { open = { t: kind, items: [] }; blocks.push(open as MdBlock); }
       open.items.push(parseInline(item[2]!));
     } else {
       open = null;
