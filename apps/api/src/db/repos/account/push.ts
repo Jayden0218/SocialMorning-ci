@@ -168,6 +168,8 @@ function words(kind: PushKind, name: string, count: number, excerpt: string | nu
     case 'status_reply': return { title: `${name} replied to your status`, body: excerpt ?? '' };
     case 'status_reaction': return { title: `${who} reacted to your status`, body: '' };
     case 'status_milestone': return { title: 'Your status got 100 reactions', body: 'Tap to see who' };
+    // Fix F-S: system notices push through pushNotice (system-notices.ts) with their own words.
+    case 'system': return { title: 'SocialNet', body: excerpt ?? '' };
   }
 }
 
