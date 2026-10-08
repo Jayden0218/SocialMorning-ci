@@ -216,7 +216,7 @@ export default function NotificationsScreen(): React.ReactElement {
   // M12 FR-001 (B2): the cards choose what is listed; People (the feed) first, as before.
   // M21 US10: Interactions first; System and From hosts are cards that open their own pages.
   // M24 US20 (`Notifications-B`): the page opens on People (the feed of people you follow).
-  const [section, setSection] = useState<NoticeSection>('people');
+  const [section, setSection] = useState<NoticeSection>('interactions');
   const [mine, setMine] = useState(0);
   const unreadHere = section === 'interactions' ? mine : unread;
   const cards = (

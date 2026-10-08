@@ -97,6 +97,7 @@ const ORDERS: { value: CommentOrder; label: string }[] = [
   { value: 'newest', label: 'Newest' },
   { value: 'liked', label: 'Most liked' },
   { value: 'byMoment', label: 'By moment' },
+  { value: 'smart', label: 'Smart' },
 ];
 
 /**

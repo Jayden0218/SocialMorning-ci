@@ -35,7 +35,7 @@ export type DiscoverModel = {
  */
 // M24 US20 (`Home-B`): the Editor's pick card comes first, For You after it. An owner's saved
 // Studio layout still wins (the server sends it as `layout`).
-export const SECTION_IDS = ['picks', 'forYou', 'chart', 'shows', 'video', 'collections', 'followedHere', 'said', 'newShows'] as const;
+export const SECTION_IDS = ['forYou', 'picks', 'chart', 'shows', 'video', 'collections', 'followedHere', 'said', 'newShows'] as const;
 export type SectionId = (typeof SECTION_IDS)[number];
 
 const isSectionId = (v: unknown): v is SectionId => typeof v === 'string' && (SECTION_IDS as readonly string[]).includes(v);

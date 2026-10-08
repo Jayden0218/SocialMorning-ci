@@ -219,6 +219,7 @@ export default function HistoryScreen(): React.ReactElement {
                       </Box>
                     </Pressable>
                   </Link>
+                  <Pressable onPress={() => play(item.episode.id)} accessibilityRole="button" accessibilityLabel={`Play ${item.episode.title}`} className="items-center justify-center" style={TAP}><Icon name="play" size={12} color={c.text} /></Pressable>
                   <Pressable onPress={() => setMenuFor(item.episode)} accessibilityRole="button" accessibilityLabel={`More for ${item.episode.title}`} className="items-center justify-center -mr-2" style={TAP}>
                     <Icon name="ellipsis-horizontal" size={18} color={c.muted} />
                   </Pressable>

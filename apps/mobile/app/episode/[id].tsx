@@ -397,7 +397,7 @@ export default function EpisodeScreen(): React.ReactElement {
         <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
         <ActionsheetContent className="px-screen-x pt-row max-h-[90%] items-stretch">
           <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
-          <ActionsheetScrollView className="grow-0" testID="episode-more-scroll" keyboardShouldPersistTaps="handled">
+          <Box>
           {/* M17 (`EpisodeMoreSheet-B`, T103): the episode on top — 64 pt art, the show as an accent
               line, the serif title — then a 2-column grid of tiles (the three parts) and a Cancel pill. */}
           <Box className="flex-row items-center gap-row mt-gap mb-section">
@@ -425,7 +425,7 @@ export default function EpisodeScreen(): React.ReactElement {
             <Text className="text-accent text-body font-bold">Cancel</Text>
           </Pressable>
           <Box className="h-row" />
-          </ActionsheetScrollView>
+          </Box>
         </ActionsheetContent>
       </Actionsheet>
       <ReportSheet target={reporting} onClose={() => setReporting(undefined)} />
