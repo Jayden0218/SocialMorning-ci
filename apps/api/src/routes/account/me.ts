@@ -8,7 +8,7 @@ import { json } from '../../validate.ts';
 import { ApiError } from '../../errors.ts';
 import { cancelDeletion, requestDeletion } from '../../db/repos/account/deletion.ts';
 import { checkCode, consumeCode } from '../../auth/codes.ts';
-import { hasPlus } from '../../db/repos/account/purchases.ts';
+import { plusUntil } from '../../db/repos/account/purchases.ts';
 import { AGE_RANGES, AVATAR_CEILING_BYTES, AVATAR_MAX_BYTES, GENDERS, INDUSTRY_MAX, avatarBytesOthers, currentAvatar, imageKind, myProfile, setAvatar, updateProfile } from '../../db/repos/account/profile.ts';
 import { setTz } from '../../db/repos/account/digest.ts';
 
@@ -19,7 +19,9 @@ me.get('/', requireAuth, async (c) => {
   // M4 (FR-013): the privacy switch travels with the account, so a second phone shows it right.
   // M19 US1: and the profile the listener edits — photo, bio, age range, gender, likes public.
   // M20 US6: PLUS (the badge and the app icons) — computed from entitlements, never stored.
-  return c.json({ listener: { ...publicListener(l), ...(await myProfile(c.get('db'), l.id)), plus: await hasPlus(c.get('db'), l.id) } });
+  // Fix F-S: `plusUntil` = the latest end over every source (store, code, admin); null = none or for ever.
+  const p = await plusUntil(c.get('db'), l.id);
+  return c.json({ listener: { ...publicListener(l), ...(await myProfile(c.get('db'), l.id)), plus: p.active, plusUntil: p.until } });
 });
 
 /** M19 US1 (FR-001, FR-003): PATCH { displayName?, bio?, ageRange?, gender?, likesPublic? } — only what is sent changes.

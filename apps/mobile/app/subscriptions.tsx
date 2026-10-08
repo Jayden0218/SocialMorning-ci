@@ -27,8 +27,7 @@ import { Segmented } from '@/ui/kit/Segmented';
 import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
 import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '@/ui/lib/actionsheet';
-import { PER_FEED_TIMEOUT_MS, refreshAll } from '@/feeds/refresh-all';
-import { visibleEpisodes } from '@/feeds/hidden';
+import { refreshAll } from '@/feeds/refresh-all';
 import { useSafety } from '@/safety/context';
 import { arrangeSubscriptions, SUB_SORTS, type SubRow, type SubSort } from '@/me/subscriptions';
 import { readOrder, syncOrder } from '@/me/subscription-order';
@@ -85,8 +84,7 @@ export default function SubscriptionsScreen(): React.ReactElement {
   const read = useCallback((stale: Set<string>): Row[] =>
     stores.subscriptions.list().map(({ feedUrl, subscribedAt, starred }) => {
       const show = stores.feeds.getShow(feedUrl);
-      // M24 fix F-P: the "latest" line skips an episode its creator hid.
-      const latest = visibleEpisodes(stores, feedUrl)[0];
+      const latest = stores.feeds.listEpisodes(feedUrl)[0];
       const latestAt = latest?.publishedAt;
       return {
         feedUrl, subscribedAt, starred, title: show?.title ?? feedUrl, stale: stale.has(feedUrl),
@@ -98,11 +96,11 @@ export default function SubscriptionsScreen(): React.ReactElement {
   useFocusEffect(useCallback(() => {
     let live = true;
     setRows(read(staleSet));
-    void refreshAll(stores, Date.now(), PER_FEED_TIMEOUT_MS, api?.hiddenEpisodes).then((r) => { if (!live) return; const s = new Set(r.stale); setStaleSet(s); setRows(read(s)); });
+    void refreshAll(stores, Date.now()).then((r) => { if (!live) return; const s = new Set(r.stale); setStaleSet(s); setRows(read(s)); });
     setOrder(readOrder(stores.settings));
     if (listener) void syncOrder(stores.settings, us8).then((o) => { if (live) setOrder(o); });
     return () => { live = false; };
-  }, [read, stores, listener, us8, api]));
+  }, [read, stores, listener, us8]));
   const feedKey = rows.slice(0, 20).map((r) => r.feedUrl).join('\n');
   useEffect(() => {
     if (feedKey === '') return;

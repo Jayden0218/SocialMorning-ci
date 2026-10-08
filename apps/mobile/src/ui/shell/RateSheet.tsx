@@ -6,10 +6,8 @@
  * the title smaller (24 pt, was 30) and the button words short enough to show whole. Our own words
  * and the Editorial look, not 小宇宙's (M7: copy nothing).
  *
- * The rule (M24 fix F-P, owner 2026-10-08 "fix all" — it opened on every start on the iPhone):
- * it asks until the listener answers, and never again after ANY answer — Rate us, Give feedback,
- * the X or the backdrop all record `rate.answered`. The 2026-10-04 testing switch (`EVERY_START`)
- * is gone. Guard: __tests__/m24-fixes-fp.test.tsx.
+ * TESTING (owner's pick, 2026-10-04): it shows on every app start, once the terms are agreed.
+ * Set `EVERY_START` to false for the real rule: once, and never again after any answer.
  *
  * The app is on neither store yet (M6 J7 deferred), so "Rate" thanks the listener with a toast
  * until `STORE_URL` is filled in at release. No native review prompt (no native iOS UI).
@@ -28,6 +26,8 @@ import { hit } from '@/design';
 import type { SettingsStore } from '@/storage/types';
 import { interestsDueFrom } from '@/discover/interests';
 
+/** Testing: ask on every start. False = ask once, never after an answer. */
+export const EVERY_START = true;
 /** Set at release: the App Store page needs its numeric id; Play's is the package name. */
 export const STORE_URL: { ios?: string; android?: string } = {};
 export const RATE_KEY = 'rate.answered';
@@ -35,7 +35,7 @@ export const RATE_KEY = 'rate.answered';
 const DELAY_MS = 1500;
 
 export function shouldAskRating(s: SettingsStore): boolean {
-  return s.get(RATE_KEY) === undefined;
+  return EVERY_START || s.get(RATE_KEY) === undefined;
 }
 
 /**

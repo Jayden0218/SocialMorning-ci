@@ -9,7 +9,9 @@
 export type PushKind =
   | 'reply' | 'like' | 'mention' | 'follow'
   | 'like_post_comment' | 'like_post_like'
-  | 'status_reply' | 'status_reaction' | 'status_milestone';
+  | 'status_reply' | 'status_reaction' | 'status_milestone'
+  /** M24 fix F-S: a system notice from SocialNet (Admin or the server) has its own switch. */
+  | 'system';
 
 export interface PushPrefs {
   replies: boolean;
@@ -17,6 +19,8 @@ export interface PushPrefs {
   follows: boolean;
   mentions: boolean;
   statuses: boolean;
+  /** M24 fix F-S: news from SocialNet (system notices). Default on. */
+  system: boolean;
 }
 
 export interface PushRelations {
@@ -53,6 +57,7 @@ const PREF_FOR: Record<PushKind, keyof PushPrefs> = {
   status_reply: 'statuses',
   status_reaction: 'statuses',
   status_milestone: 'statuses',
+  system: 'system',
 };
 
 const IS_LIKE: ReadonlySet<PushKind> = new Set(['like', 'like_post_like', 'status_reaction']);

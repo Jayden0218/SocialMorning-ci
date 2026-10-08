@@ -8,7 +8,7 @@
  *
  * M24 US19 (`EpisodeEnd-B`): the card is the middle of the "Finished" page — `fill` lets it take
  * the free height with Play it pinned to its foot; 24 pt corners, 18 pt padding, a 26 pt heading.
- * Play it is the strong yellow (`play`, fixed whatever the accent theme) with the dark glyph (owner, 2026-10-08: main Play
+ * Play it is the strong yellow (`primary`) with the dark glyph (owner, 2026-10-08: main Play
  * buttons are the strong yellow; list-row discs stay pale).
  */
 import { Pressable } from '@/ui/lib/pressable';
@@ -39,9 +39,9 @@ export function EndOffer(props: { item: NextUpItem; onPlay: () => void; fill?: b
       <Box className="self-start bg-accentTint rounded-pill px-row py-1.5">
         <Text className="text-xs font-bold text-accent">{props.item.label}</Text>
       </Box>
-      <Pressable className={`flex-row items-center justify-center gap-gap bg-play rounded-pill px-section ${props.fill ? 'mt-auto' : 'mt-1'}`} style={PILL} accessibilityRole="button" onPress={props.onPlay}>
-        <Icon name="play" size={18} color={c.onPlay} />
-        <Text className="text-onPlay text-sm font-bold">Play it</Text>
+      <Pressable className={`flex-row items-center justify-center gap-gap bg-primary rounded-pill px-section ${props.fill ? 'mt-auto' : 'mt-1'}`} style={PILL} accessibilityRole="button" onPress={props.onPlay}>
+        <Icon name="play" size={18} color={c.onPrimary} />
+        <Text className="text-onPrimary text-sm font-bold">Play it</Text>
       </Pressable>
     </Box>
   );

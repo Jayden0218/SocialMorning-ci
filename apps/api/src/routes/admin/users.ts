@@ -15,6 +15,7 @@ import { closedReports, openReports, type QueueRow } from '../../db/repos/safety
 import type { Db } from '../../db/db.ts';
 import type { Hono } from 'hono';
 import { uuidParam, target } from './common.ts';
+import { plusUntil, rechainCodes } from '../../db/repos/account/purchases.ts';
 
 /** M24 US5: the `entitlements.ref` of a PLUS the admin gave by hand. */
 export const PLUS_BY_ADMIN = 'admin';
@@ -73,10 +74,11 @@ export function registerUsers(admin: Hono<AdminEnv>): void {
       `SELECT id, target_kind, target_id, reason, created_at, close_reason FROM reports
         WHERE (target_kind = 'profile' AND target_id = $1::text) OR snapshot->>'authorId' = $1::text ORDER BY created_at DESC LIMIT 50`, [id]);
     const [del] = await db.query<{ requested_at: Date | string; due_at: Date | string }>('SELECT requested_at, due_at FROM account_deletions WHERE listener_id = $1 AND cancelled_at IS NULL', [id]);
-    const live = plus.filter((e) => e.until === null || new Date(e.until).getTime() > Date.now());
+    // Fix F-S: active / until over every source's interval (a code may start later).
+    const run = await plusUntil(db, id);
     return {
       user, avatarUrl: p?.avatar_url ?? null, bio: p?.bio ?? null, sessions: Number(p?.sessions ?? 0),
-      plus: { active: live.length > 0, until: live.some((e) => e.until === null) ? null : iso(live[0]?.until ?? null), byAdmin: plus.some((e) => e.ref === PLUS_BY_ADMIN && e.source_purchase_id === null) },
+      plus: { active: run.active, until: run.until, byAdmin: plus.some((e) => e.ref === PLUS_BY_ADMIN && e.source_purchase_id === null) },
       purchases: purchases.map((r) => ({ id: r.id, productId: r.product_id, store: r.store, status: r.status, amountMicros: r.amount_micros === null ? null : Number(r.amount_micros), currency: r.currency, createdAt: iso(r.created_at), expiresAt: iso(r.expires_at) })),
       tips: tips.map((r) => ({ id: r.id, feedUrl: r.to_feed_url, status: r.status, createdAt: iso(r.created_at) })),
       gifts: gifts.map((r) => ({ id: r.id, feedUrl: r.feed_url, role: r.bought ? 'bought' : 'received', claimedAt: iso(r.claimed_at), cancelledAt: iso(r.cancelled_at), createdAt: iso(r.created_at) })),
@@ -101,6 +103,8 @@ export function registerUsers(admin: Hono<AdminEnv>): void {
       await tx.query(
         `INSERT INTO entitlements (listener_id, kind, ref, until) VALUES ($1, 'plus', $2, now() + make_interval(days => $3::int))
          ON CONFLICT (listener_id, kind, ref) DO UPDATE SET until = excluded.until`, [id, PLUS_BY_ADMIN, days]);
+      // Fix F-S: a waiting redeem code moves after the new end (same transaction).
+      await rechainCodes(tx, id);
     });
     return c.json(await detail(db, id));
   });

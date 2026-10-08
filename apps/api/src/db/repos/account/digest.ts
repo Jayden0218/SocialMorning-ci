@@ -8,6 +8,7 @@
  * `weekly_digests` has the key (listener, ISO week), so a second run in the same hour — or the
  * same week — inserts nothing and pushes nothing. Digests older than 28 days are swept.
  */
+import { PLUS_LIVE_SQL } from './purchases.ts';
 import type { Db } from '../../db.ts';
 import { ApiError } from '../../../errors.ts';
 import { sendExpo, type PushMessage } from './push.ts';
@@ -54,9 +55,10 @@ type Due = { id: string; tz: string | null };
 async function candidates(db: Db): Promise<Due[]> {
   return db.query<Due>(
     `SELECT l.id, l.tz FROM listeners l
-       JOIN entitlements e ON e.listener_id = l.id AND e.kind = 'plus' AND (e.until IS NULL OR e.until > now())
        LEFT JOIN push_prefs p ON p.listener_id = l.id
-      WHERE l.suspended_at IS NULL AND l.hidden_at IS NULL AND COALESCE(p.digest, true)`);
+      WHERE l.suspended_at IS NULL AND l.hidden_at IS NULL AND COALESCE(p.digest, true)
+        -- Fix F-S: PLUS from any source (store, code, admin), each listener once.
+        AND EXISTS (SELECT 1 FROM entitlements e WHERE e.listener_id = l.id AND ${PLUS_LIVE_SQL})`);
 }
 
 /** The episodes for one listener's week: published in [from, to), in a live subscription, never played. */

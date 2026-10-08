@@ -3,7 +3,8 @@
  * M20 US6 (spec FR-020–FR-026; data-model "purchases"; guard G-M20-5). A Google Play purchase is
  * checked with Google first (`GooglePlay`), then written once — `purchase_token` is unique, so a
  * repeated or raced notice finds the same row and grants nothing new. What it grants:
- *  - PLUS → `entitlements (plus, '', until = Google's expiry)`; sending the token again refreshes the expiry
+ *  - PLUS → `entitlements (plus, '', until = Google's expiry)`; sending the token again refreshes the expiry.
+ *    Fix F-S: that row is the store's alone — redeem codes and Admin keep their own rows (`plusUntil`)
  *  - a show's price level → `entitlements (show, feed URL)`: every paid episode of that show
  *  - a tip → a `tips` row to the show
  *  - M22 US14: a gift of a show (`gift_tier_n`) → nothing for the buyer; a `gifts` row with a code
@@ -105,6 +106,8 @@ export async function grantGoogle(db: Db, play: GooglePlay, p: GrantIn): Promise
     if (kind === 'plus') {
       await tx.query(`INSERT INTO entitlements (listener_id, kind, ref, until, source_purchase_id) VALUES ($1, 'plus', '', $2, $3)
                       ON CONFLICT (listener_id, kind, ref) DO UPDATE SET until = EXCLUDED.until, source_purchase_id = EXCLUDED.source_purchase_id`, [p.listenerId, expiresAt, id]);
+      // Fix F-S: a renewal past a waiting code's start pushes the code later (it keeps its days).
+      await rechainCodes(tx, p.listenerId);
     } else if (kind === 'show') {
       await tx.query(`INSERT INTO entitlements (listener_id, kind, ref, until, source_purchase_id) VALUES ($1, 'show', $2, NULL, $3)
                       ON CONFLICT (listener_id, kind, ref) DO NOTHING`, [p.listenerId, feedUrl, id]);
@@ -185,8 +188,93 @@ export async function acknowledgeDue(db: Db, play: GooglePlay): Promise<{ done: 
   return { done, failed };
 }
 
-/** Whether this listener has PLUS now (the badge, the icons). Computed, never stored. */
+/**
+ * Fix F-S: PLUS comes from separate rows, one per source (`entitlements.ref`): '' = the store
+ * (Google Play; renewals and refunds touch only it), 'code:<CODE>' = one redeem code each (legacy
+ * 'code' = codes redeemed before migration 026), 'admin' = given by hand (routes/admin/users.ts
+ * PLUS_BY_ADMIN). No source ever writes another's row.
+ *
+ * Each row is an interval [starts_at, until): `starts_at` NULL = already started, `until` NULL =
+ * for ever. A code's interval starts at the latest end over all sources when it is redeemed (or
+ * now), so a code redeemed during a running store sub adds its days AFTER it. A store refund
+ * deletes only the store row: the code keeps its own N days (there may be a gap before it starts).
+ */
+export const PLUS_BY_STORE = '';
+export const PLUS_BY_CODE = 'code';
+export const codeRef = (code: string): string => `${PLUS_BY_CODE}:${code}`;
+
+/** SQL: a PLUS row whose interval contains now (alias `e`). */
+export const PLUS_LIVE_SQL = "e.kind = 'plus' AND (e.starts_at IS NULL OR e.starts_at <= now()) AND (e.until IS NULL OR e.until > now())";
+
+export type PlusInterval = { start: number | null; end: number | null };
+
+/**
+ * Pure. Active = now falls inside ANY interval. `until` = the end of the continuous run that
+ * contains now: from the intervals holding now, follow every interval that touches or overlaps
+ * the run's end. `until` null with `active` = for ever; inactive → null.
+ */
+export function plusRun(intervals: readonly PlusInterval[], now: number): { active: boolean; until: number | null } {
+  const holds = (i: PlusInterval, t: number) => (i.start === null || i.start <= t) && (i.end === null || i.end > t);
+  const live = intervals.filter((i) => holds(i, now));
+  if (live.length === 0) return { active: false, until: null };
+  if (live.some((i) => i.end === null)) return { active: true, until: null };
+  let end = Math.max(...live.map((i) => i.end!));
+  for (let moved = true; moved;) {
+    moved = false;
+    for (const i of intervals) {
+      if ((i.start === null || i.start <= end) && (i.end === null || i.end > end)) {
+        if (i.end === null) return { active: true, until: null };
+        end = i.end;
+        moved = true;
+      }
+    }
+  }
+  return { active: true, until: end };
+}
+
+/**
+ * Fix F-S (head, 2026-10-08): after a store or admin PLUS row changes, codes that have NOT started
+ * yet are pushed later so they still follow on without overlap, each keeping its N days. Started
+ * codes are never moved, and nothing moves earlier (a refund may leave a gap; that is accepted).
+ * Call it in the same transaction as the change: the store sync (`grantGoogle`) and Admin's grant.
+ */
+export async function rechainCodes(tx: Db, listenerId: string): Promise<number> {
+  const waiting = await tx.query<{ ref: string; starts_at: Date | string; until: Date | string }>(
+    `SELECT ref, starts_at, until FROM entitlements
+      WHERE listener_id = $1 AND kind = 'plus' AND (ref = $2 OR ref LIKE $3) AND starts_at > now() AND until IS NOT NULL
+      ORDER BY starts_at, ref FOR UPDATE`, [listenerId, PLUS_BY_CODE, `${PLUS_BY_CODE}:%`]);
+  if (waiting.length === 0) return 0;
+  const waitingRefs = waiting.map((w) => w.ref);
+  const [base] = await tx.query<{ forever: boolean; until: Date | string | null }>(
+    `SELECT bool_or(until IS NULL) AS forever, max(until) AS until FROM entitlements
+      WHERE listener_id = $1 AND kind = 'plus' AND NOT (ref = ANY($2::text[])) AND (until IS NULL OR until > now())`, [listenerId, waitingRefs]);
+  if (base?.forever) return 0; // PLUS for ever: there is nothing to follow on from
+  let cursor = Math.max(Date.now(), base?.until ? new Date(base.until).getTime() : 0);
+  let moved = 0;
+  for (const w of waiting) {
+    const start = new Date(w.starts_at).getTime();
+    const length = new Date(w.until).getTime() - start;
+    const next = Math.max(start, cursor);
+    if (next !== start) {
+      await tx.query("UPDATE entitlements SET starts_at = $3, until = $4 WHERE listener_id = $1 AND kind = 'plus' AND ref = $2",
+        [listenerId, w.ref, new Date(next).toISOString(), new Date(next + length).toISOString()]);
+      moved++;
+    }
+    cursor = next + length;
+  }
+  return moved;
+}
+
+/** PLUS now, and when its continuous run ends (`plusRun`). Computed, never stored. */
+export async function plusUntil(db: Db, listenerId: string): Promise<{ active: boolean; until: string | null }> {
+  const rows = await db.query<{ starts_at: Date | string | null; until: Date | string | null }>(
+    "SELECT starts_at, until FROM entitlements WHERE listener_id = $1 AND kind = 'plus' AND (until IS NULL OR until > now())", [listenerId]);
+  const run = plusRun(rows.map((r) => ({ start: r.starts_at === null ? null : new Date(r.starts_at).getTime(), end: r.until === null ? null : new Date(r.until).getTime() })), Date.now());
+  return { active: run.active, until: run.until === null ? null : new Date(run.until).toISOString() };
+}
+
+/** Whether this listener has PLUS now (the badge, the icons): any source whose interval holds now. */
 export async function hasPlus(db: Db, listenerId: string): Promise<boolean> {
-  const [r] = await db.query("SELECT 1 FROM entitlements WHERE listener_id = $1 AND kind = 'plus' AND (until IS NULL OR until > now())", [listenerId]);
+  const [r] = await db.query(`SELECT 1 FROM entitlements e WHERE e.listener_id = $1 AND ${PLUS_LIVE_SQL}`, [listenerId]);
   return Boolean(r);
 }
