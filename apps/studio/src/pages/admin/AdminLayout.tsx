@@ -1,7 +1,8 @@
-// The Admin section's frame: its side menu, banner and sign-in-again rule.
+// The Admin section's frame: its side menu, banner, sign-in-again rule and the emailed second step.
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
-import { reauthPath, whenReauth } from '../../api';
+import { reauthPath, whenReauth, whenSecondFactor } from '../../api';
+import { SecondFactor } from './SecondFactor';
 import { useSession } from '../../session';
 import { ActingBanner } from '../../shell/ActingBanner';
 import { IconMenu } from '../../shell/Icons';
@@ -51,10 +52,17 @@ function AdminFrame() {
   const navigate = useNavigate();
   const loc = useLocation();
   const [open, setOpen] = useState(false);
+  // M25 SB: a password session asks for the emailed code before Admin opens; then the page reloads.
+  const [needCode, setNeedCode] = useState(false);
+  const [round, setRound] = useState(0);
   useEffect(() => {
     whenReauth(() => navigate(reauthPath(loc.pathname), { replace: true }));
     return () => whenReauth(null);
   }, [navigate, loc.pathname]);
+  useEffect(() => {
+    whenSecondFactor(() => setNeedCode(true));
+    return () => whenSecondFactor(null);
+  }, []);
   if (session.state !== 'in') return null;
   const first = session.shows[0];
   return (
@@ -77,7 +85,9 @@ function AdminFrame() {
             <IconMenu />Menu
           </button>
           <ActingBanner />
-          {session.isAdmin ? <Outlet /> : (
+          {session.isAdmin ? (needCode
+            ? <SecondFactor email={session.me.email} onDone={() => { setNeedCode(false); setRound((r) => r + 1); }} />
+            : <Outlet key={round} />) : (
             <Empty title="Admin is for the owner only">
               <p>This account cannot open Admin. <Link to="/">Back to the Studio</Link></p>
             </Empty>

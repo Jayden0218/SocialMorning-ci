@@ -35,6 +35,8 @@ here or a line does not match its file.
 | File | What it does |
 |---|---|
 | `auth.ts` | Sign-in routes: sign in, sign out, and email code sign-in (an account is created only by a code). |
+| `data-export.ts` | "Download my data": emails the listener a 24-hour link to a JSON file of their own data; one a day. |
+| `devices.ts` | Signed-in devices: list this account's sessions, sign one out, or sign out every other one. |
 | `digests.ts` | Weekly digest route: my Monday catch-ups from the last 4 weeks. |
 | `feedback.ts` | Feedback route: text signed in or not; up to three images, signed in only and limited. |
 | `gifts.ts` | Gift routes: see what a gift link offers, claim it once, list the gifts I bought, and the link's web page. |
@@ -134,6 +136,7 @@ here or a line does not match its file.
 | `announcements.ts` | Studio routes for show announcements and polls. |
 | `bans.ts` | Studio ban routes: list the listeners banned from commenting on a show, ban one with a reason, lift a ban. |
 | `claims.ts` | Studio routes to claim a show and verify the claim. |
+| `second-factor.ts` | Studio routes for the admin second factor: is it needed, send the code, check it (and remember this browser). |
 | `comments.ts` | Studio comment routes: list a show's comments, reply, hide, unhide and pin. |
 | `common.ts` | Helpers shared by Studio routes: owner-only check, date ranges, CSV answers. |
 | `create.ts` | Studio routes to create a new show and check storage status. |
@@ -212,6 +215,7 @@ here or a line does not match its file.
 | File | What it does |
 |---|---|
 | `country.ts` | Keeps the listener's two-letter country from the sign-in request, nothing more. |
+| `data-export.ts` | Builds one listener's own data as JSON: profile, library, comments, clips, statuses, lists, purchases and tips. |
 | `delete-account.ts` | Deletes an account and its data in one step, keeping reply threads intact. |
 | `deletion.ts` | Account deletion waits 15 days: request it, keep the account, and delete the due ones for good. |
 | `digest.ts` | The Monday digest for PLUS members: up to 10 unplayed episodes from last week, once per ISO week, at noon local time. |
@@ -339,6 +343,7 @@ here or a line does not match its file.
 | `codes.ts` | Email sign-in codes: six digits, ten minutes, five tries, stored only hashed. |
 | `password.ts` | Hashes and checks passwords with scrypt from Node's built-in crypto. |
 | `rate.ts` | Fixed-window rate limits kept in the rate_counters table (per address, or global). |
+| `second-factor.ts` | The admin second factor: an emailed code per session, and a signed cookie that remembers a device for 30 days. |
 | `session.ts` | Session tokens: create, hash, look up the signed-in listener, require sign-in. |
 | `studio-session.ts` | Studio web session: cookie sign-in, 12-hour idle limit, and cross-site write check. |
 | `write-limit.ts` | A floor rate limit on every write to /v1: per signed-in session, and per network when signed out. |
@@ -359,7 +364,8 @@ here or a line does not match its file.
 |---|---|
 | `clip.ts` | Public web page for a shared clip, plus the Android app-link file. |
 | `episode.ts` | Public web page for a shared episode link, with "Open in app". |
-| `legal.ts` | Plain web pages: privacy, community rules, and where to get the app. |
+| `legal.ts` | Plain web pages: privacy, terms, community rules, and where to get the app. |
+| `legal-texts.ts` | The same legal texts the app shows, for the web pages /privacy and /terms. |
 | `mod.ts` | The owner's moderation web page: sign in, review reports, act on them. |
 | `show-card.ts` | Public web card for a show: cover, name, description, latest episodes. |
 

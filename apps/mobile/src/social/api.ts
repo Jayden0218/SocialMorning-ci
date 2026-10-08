@@ -305,6 +305,17 @@ export type ApiDeps = {
  * carries `maintenance` (or `error: 'maintenance'`). The start-up code (src/ui/shell/startupExtras.ts)
  * sets it to open app/maintenance.tsx; the call still fails with its ApiError as before.
  */
+/**
+ * M25 SB: session rotation. While a listener is set (the app sets one at start), every call asks
+ * the server for rotation (`x-session-rotate: 1`); at most once a day an answer carries a new token
+ * in `x-session-token`, handed to the listener with the token the call was sent with. Tests and any
+ * client without a listener never ask, so their token never changes under them.
+ */
+let tokenRotatedListener: ((fresh: string, sentWith: string) => void) | undefined;
+export function setTokenRotatedListener(listener: ((fresh: string, sentWith: string) => void) | undefined): void {
+  tokenRotatedListener = listener;
+}
+
 let maintenanceListener: ((body: Record<string, unknown>) => void) | undefined;
 export function setMaintenanceListener(listener: ((body: Record<string, unknown>) => void) | undefined): void {
   maintenanceListener = listener;
@@ -328,7 +339,7 @@ export function requester(deps: ApiDeps) {
     try {
       res = await deps.fetch(deps.baseUrl + path, {
         method,
-        headers: { ...(token ? { authorization: `Bearer ${token}` } : {}), ...init.headers },
+        headers: { ...(token ? { authorization: `Bearer ${token}` } : {}), ...(token && tokenRotatedListener ? { 'x-session-rotate': '1' } : {}), ...init.headers },
         body: init.body,
         signal: controller.signal,
       });
@@ -339,6 +350,8 @@ export function requester(deps: ApiDeps) {
     } finally {
       clearTimeout(timer);
     }
+    const fresh = token ? res.headers.get('x-session-token') : null;
+    if (fresh && token && tokenRotatedListener) tokenRotatedListener(fresh, token);
     if (res.status === 304) return { status: 304, headers: res.headers, json: undefined as T };
     let json: unknown = undefined;
     try { json = text ? JSON.parse(text) : undefined; } catch { /* non-JSON body: handled below */ }

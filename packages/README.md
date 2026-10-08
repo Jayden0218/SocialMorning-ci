@@ -47,6 +47,7 @@ Every code file, one plain line each. Each file also starts with the same senten
 | `completion.ts` | Decides if a listener finished an episode: 90 percent heard across all sessions. |
 | `app-config.ts` | The app settings the admin may change: each key's shape, its default, and the one check the server and the phone share. |
 | `markdown.ts` | A small Markdown subset turned into plain data, so the Studio and the phone draw it as text — never as HTML. |
+| `image-meta.ts` | Removes personal metadata (EXIF with GPS, XMP, IPTC, comments, text) from JPEG, PNG and WebP bytes, keeping the picture. |
 | `cover.ts` | The made-for-you cover: two letters from the show's name on one of seven soft colours. |
 | `discover.ts` | Ranks episodes by how much people listened and talked, then fills with trending. |
 | `empty.ts` | The text and action for each empty screen, and loading and timeout timings. |

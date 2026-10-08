@@ -45,7 +45,7 @@ export async function storeCode(db: Db, email: string, code: string, pepper: str
  * `attempts = 0` together and all get compared; now at most 5 are, and the 5th wrong one uses
  * the code up. A right code gives its attempt back, so the name step can check it again.
  */
-export async function checkCode(db: Db, email: string, code: string, pepper: string, now: number): Promise<'ok' | 'wrong' | 'expired'> {
+export async function checkCode(db: Db, email: string, code: string, pepper: string, now: number, /** M25 SB: the second pepper during a rotation */ pepperNext?: string): Promise<'ok' | 'wrong' | 'expired'> {
   const [row] = await db.query<Row>(
     `UPDATE email_codes SET attempts = attempts + 1
       WHERE email = $1 AND attempts < $2 AND expires_at > $3
@@ -54,8 +54,8 @@ export async function checkCode(db: Db, email: string, code: string, pepper: str
   );
   if (!row) return 'expired';
   const want = Buffer.from(row.code_hash);
-  const got = codeHash(email, code, pepper);
-  if (want.length === got.length && timingSafeEqual(want, got)) {
+  const matches = (p: string) => { const got = codeHash(email, code, p); return want.length === got.length && timingSafeEqual(want, got); };
+  if (matches(pepper) || (pepperNext !== undefined && matches(pepperNext))) {
     await db.query('UPDATE email_codes SET attempts = attempts - 1 WHERE email = $1 AND attempts > 0', [email]);
     return 'ok';
   }

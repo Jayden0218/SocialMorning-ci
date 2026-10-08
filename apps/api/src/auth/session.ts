@@ -16,12 +16,80 @@ export function tokenHash(token: string, pepper: string): Buffer {
   return createHash('sha256').update(token).update(pepper).digest();
 }
 
-export async function createSession(db: Db, listenerId: string, pepper: string, deviceLabel?: string): Promise<string> {
+/**
+ * M25 SB: `country` is the two letters of the network the sign-in came from (`countryOf`), shown in
+ * Settings › Devices; `secondFactor` marks a session that already proved the inbox (an email-code
+ * sign-in), so Admin does not ask for a second code on it.
+ */
+export async function createSession(db: Db, listenerId: string, pepper: string, deviceLabel?: string, extra: { country?: string | undefined; secondFactor?: boolean } = {}): Promise<string> {
   const token = issueToken();
-  await db.query('INSERT INTO sessions (token_hash, listener_id, device_label) VALUES ($1, $2, $3)', [
-    tokenHash(token, pepper), listenerId, deviceLabel ?? null,
+  await db.query(`INSERT INTO sessions (token_hash, listener_id, device_label, country, second_factor_at) VALUES ($1, $2, $3, $4, ${extra.secondFactor ? 'now()' : 'NULL'})`, [
+    tokenHash(token, pepper), listenerId, deviceLabel ?? null, extra.country ?? null,
   ]);
   return token;
+}
+
+/** M25 SB: a session lives at most this long from its first sign-in, however busy (rotation keeps `created_at`). */
+export const SESSION_MAX_DAYS = 180;
+/** M25 SB: a token is swapped for a new one at most this often … */
+export const ROTATE_EVERY_HOURS = 24;
+/** … and the swapped-out token still works this long, so requests already on their way do not fail. */
+export const ROTATE_GRACE_SECONDS = 120;
+/** The phone asks for rotation with this request header (an older build never sends it, so it is never rotated) … */
+export const ROTATE_ASK_HEADER = 'x-session-rotate';
+/** … and gets the new token in this response header. */
+export const ROTATED_HEADER = 'x-session-token';
+
+/** The SQL that keeps a session row valid beyond the token match: lifetime and the rotation grace. `s` is the sessions alias. */
+const LIVE_SESSION = `s.created_at > now() - make_interval(days => ${SESSION_MAX_DAYS})
+          AND (s.replaced_at IS NULL OR s.replaced_at > now() - make_interval(secs => ${ROTATE_GRACE_SECONDS}))`;
+export const liveSessionSql = LIVE_SESSION;
+
+/**
+ * M25 SB (secret rotation, docs/runbooks/secret-rotation.md): while `PEPPER_NEXT` is set, a token
+ * whose row was hashed with the other pepper is re-keyed to the current one the first time it is
+ * seen. Every later statement (sign-out, rotation, device list) then finds it by the current hash.
+ * A no-op (no query) when there is no second pepper.
+ */
+export async function rekey(db: Db, token: string, pepper: string, next: string | undefined): Promise<void> {
+  if (!next || next === pepper) return;
+  const cur = tokenHash(token, pepper);
+  const [have] = await db.query<{ ok: number }>('SELECT 1 AS ok FROM sessions WHERE token_hash = $1', [cur]);
+  if (have) return;
+  await db.query('UPDATE sessions SET token_hash = $1 WHERE token_hash = $2', [cur, tokenHash(token, next)]);
+}
+
+/**
+ * M25 SB: swaps a live token for a new one when its last swap is a day old. The old row is kept
+ * for ROTATE_GRACE_SECONDS (parallel requests still carry it) and points at the new one. The
+ * guarded UPDATE is the lock: of two requests racing here, one rotates and the other gets
+ * `undefined` (and its token keeps working through the grace window).
+ */
+export async function rotateSession(db: Db, token: string, pepper: string): Promise<string | undefined> {
+  const old = tokenHash(token, pepper);
+  const fresh = issueToken();
+  const freshHash = tokenHash(fresh, pepper);
+  return db.transaction(async (tx) => {
+    const [row] = await tx.query<{ listener_id: string; device_label: string | null; created_at: Date | string; country: string | null; second_factor_at: Date | string | null }>(
+      `UPDATE sessions SET replaced_at = now()
+        WHERE token_hash = $1 AND replaced_at IS NULL AND acting_admin_id IS NULL
+          AND rotated_at < now() - make_interval(hours => ${ROTATE_EVERY_HOURS})
+        RETURNING listener_id, device_label, created_at, country, second_factor_at`,
+      [old]);
+    if (!row) return undefined;
+    await tx.query(
+      `INSERT INTO sessions (token_hash, listener_id, device_label, created_at, last_seen_at, country, second_factor_at, rotated_at)
+       VALUES ($1, $2, $3, $4, now(), $5, $6, now())`,
+      [freshHash, row.listener_id, row.device_label, new Date(row.created_at), row.country, row.second_factor_at === null ? null : new Date(row.second_factor_at)]);
+    await tx.query('UPDATE sessions SET replaced_by = $2 WHERE token_hash = $1', [old, freshHash]);
+    return fresh;
+  });
+}
+
+/** A response a shared cache may keep must never carry a new token. */
+export function cacheablePublicly(res: Response): boolean {
+  const cc = (res.headers.get('cache-control') ?? '').toLowerCase();
+  return /\bpublic\b|s-maxage/.test(cc) && !/\bprivate\b|no-store/.test(cc);
 }
 
 /**
@@ -33,13 +101,15 @@ export async function createSession(db: Db, listenerId: string, pepper: string, 
  * (`acting_admin_id` set) — act-as belongs to the Studio only. `last_seen_at` moves only when it
  * is 5 minutes old, so a busy listener no longer writes the sessions row on every request.
  */
-export async function listenerForToken(db: Db, token: string, pepper: string): Promise<Listener | undefined> {
+export async function listenerForToken(db: Db, token: string, pepper: string, pepperNext?: string): Promise<Listener | undefined> {
+  await rekey(db, token, pepper, pepperNext);
   const rows = await db.query<Listener>(
     `WITH s AS (
        SELECT l.id, l.email, l.display_name, l.created_at, l.suspended_at, s.device_label
          FROM sessions s JOIN listeners l ON l.id = s.listener_id
         WHERE s.token_hash = $1 AND s.acting_admin_id IS NULL
           AND s.last_seen_at > now() - make_interval(days => $2::int)
+          AND ${LIVE_SESSION}
      ), u AS (
        UPDATE sessions SET last_seen_at = now()
         WHERE token_hash = $1 AND EXISTS (SELECT 1 FROM s)
@@ -68,7 +138,11 @@ export function sameSecret(given: string, expected: string): boolean {
   return timingSafeEqual(a, b);
 }
 
-export type AuthEnv = { Variables: { db: Db; pepper: string; listener?: Listener; token?: string; catalog: Catalog; safety: Safety; mailer?: import('../mail/mailer.ts').Mailer;
+export type AuthEnv = { Variables: { db: Db; pepper: string;
+  /** M25 SB: the second accepted pepper while a rotation is under way (env PEPPER_NEXT); tokens, codes and signed links made with it still verify. */
+  pepperNext?: string;
+  /** M25 SB: test purchases (Google licence testers) are granted (and marked) only when this is true. */
+  allowTestPurchases: boolean; listener?: Listener; token?: string; catalog: Catalog; safety: Safety; mailer?: import('../mail/mailer.ts').Mailer;
   /** M13: created shows' audio store, and the public address their feeds live under. */
   storage: import('../storage/episodes-blob.ts').EpisodeStorage; publicBase: string; hostedCeilingBytes: number;
   /** M12 FR-104: the voice-post store (`socialmorning-voice`); `ready` false when its token is unset. */
@@ -109,7 +183,7 @@ function bearer(c: Context): string | undefined {
 export const optionalAuth: MiddlewareHandler<AuthEnv> = async (c, next) => {
   const token = bearer(c);
   if (token) {
-    const listener = await listenerForToken(c.get('db'), token, c.get('pepper'));
+    const listener = await listenerForToken(c.get('db'), token, c.get('pepper'), c.get('pepperNext'));
     if (listener) {
       // M6 (FR-015, G6): a suspended account is refused everywhere, with the appeals address.
       if (listener.suspended_at) throw suspendedError(c.get('safety')?.appealsEmail, appealTokenFor(listener.id, c.get('pepper')));
