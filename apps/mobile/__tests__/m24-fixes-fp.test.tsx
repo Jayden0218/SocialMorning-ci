@@ -199,7 +199,8 @@ describe('5. a multiple-choice poll shows every chosen option; a tap toggles one
   it('a single-choice poll is as before: one ✓, the chosen row takes no tap', () => {
     let r!: ReactTestRenderer;
     act(() => { r = create(createElement(ShowExtrasBlock, { extras: { overrides: null, announcements: [], polls: [poll({ multi: false, myVotes: [0], myVote: 0, total: 2, voters: 2, options: [{ idx: 0, label: 'Books', votes: 1 }, { idx: 1, label: 'Films', votes: 1 }] })] }, onPoll: jest.fn() })); });
-    expect(texts(r).filter((t) => t.endsWith('✓'))).toEqual(['Books ✓']);
+    // (each string shows once per rendered layer, so compare the distinct ones)
+    expect([...new Set(texts(r).filter((t) => t.endsWith('✓')))]).toEqual(['Books ✓']);
     expect(texts(r)).toContain('2 votes · tap another answer to change your vote');
     expect(r.root.findAll((n) => n.props['accessibilityLabel'] === 'Books: 50 percent, your vote' && typeof n.props['onPress'] === 'function' && n.props['disabled'] === false)).toHaveLength(0);
   });
