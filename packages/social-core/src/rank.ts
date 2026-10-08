@@ -18,6 +18,37 @@ export const W_FRESHNESS = 0.8;
 export const W_QUALITY = 0.3;
 export const W_FATIGUE = 0.25;
 
+/**
+ * M25 A6: the five weights as one object, so Admin › For You can change them without a deploy.
+ * `DEFAULT_WEIGHTS` are the numbers above (the reset); `WEIGHT_BOUNDS` are the sane range each
+ * may take — outside it a saved value is clamped, a value that is not a number is the default.
+ */
+export type Weights = { affinity: number; social: number; freshness: number; quality: number; fatigue: number };
+export const WEIGHT_KEYS = ['affinity', 'social', 'freshness', 'quality', 'fatigue'] as const;
+export const DEFAULT_WEIGHTS: Readonly<Weights> = Object.freeze({
+  affinity: W_AFFINITY, social: W_SOCIAL, freshness: W_FRESHNESS, quality: W_QUALITY, fatigue: W_FATIGUE,
+});
+export const WEIGHT_BOUNDS: Readonly<Record<keyof Weights, readonly [number, number]>> = Object.freeze({
+  affinity: [0, 3], social: [0, 3], freshness: [0, 3], quality: [0, 3], fatigue: [0, 2],
+});
+
+/** Any stored value → a whole, bounded set of weights (missing or not a number → the default). */
+export function cleanWeights(raw: unknown): Weights {
+  const src = raw !== null && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const out = { ...DEFAULT_WEIGHTS };
+  for (const k of WEIGHT_KEYS) {
+    const v = src[k];
+    if (typeof v !== 'number' || !Number.isFinite(v)) continue;
+    const [lo, hi] = WEIGHT_BOUNDS[k];
+    out[k] = Math.min(hi, Math.max(lo, v));
+  }
+  return out;
+}
+
+/** M25 A6: what an admin rule adds to (boost) or takes from (bury) a show's score. "never" removes it. */
+export const RULE_BOOST = 0.5;
+export const RULE_BURY = 0.5;
+
 /** 流量调控 (07_ColdStart_05): without a thumb on the scale, `quality` is self-reinforcing. */
 export const NEW_BOOST = 1.2;
 export const NEW_WINDOW_MS = 48 * 3_600_000;
@@ -90,7 +121,7 @@ export function ageDays(publishedAt: number | null, now: number): number {
  * `(sum - fatigue) * boost` — a tired new episode would be pushed further down by the
  * boost that is supposed to help it, which is the opposite of what 流量调控 is for.
  */
-export function scoreCandidate(c: RecCandidate, now: number): number {
+export function scoreCandidate(c: RecCandidate, now: number, w: Readonly<Weights> = DEFAULT_WEIGHTS): number {
   const affinity = c.subscribed
     ? 1
     : Math.max(c.neighbourSim, c.genreMatch ? GENRE_AFFINITY : 0);
@@ -100,7 +131,7 @@ export function scoreCandidate(c: RecCandidate, now: number): number {
   const quality = Math.min(Math.log1p(Math.max(c.talkedScore, 0)) / Math.log1p(QUALITY_SATURATION), 1);
   const fatigue = Math.min(c.impressions, FATIGUE_LIMIT) / FATIGUE_LIMIT;
 
-  const positive = W_AFFINITY * affinity + W_SOCIAL * social + W_FRESHNESS * freshness + W_QUALITY * quality;
+  const positive = w.affinity * affinity + w.social * social + w.freshness * freshness + w.quality * quality;
   const isNew = c.publishedAt !== null && now - c.publishedAt < NEW_WINDOW_MS;
-  return positive * (isNew ? NEW_BOOST : 1) - W_FATIGUE * fatigue;
+  return positive * (isNew ? NEW_BOOST : 1) - w.fatigue * fatigue;
 }

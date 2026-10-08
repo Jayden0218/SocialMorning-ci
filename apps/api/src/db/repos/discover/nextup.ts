@@ -13,6 +13,7 @@ import { talkedAbout } from './activity-stats.ts';
 import { fetchFeed, registerCard, toCard } from '../../../catalog/feed.ts';
 import { genreIdFor } from '../../../catalog/genres.ts';
 import { latestEpisodes, topShows, type EpisodeCard } from '../../../catalog/apple.ts';
+import { active, isHidden, NONE } from './lists.ts';
 
 export type NextUpCandidate = { key: string; reason: Reason; episode: EpisodeCard & { id: string } };
 export type NextUpSources = Record<Reason, NextUpCandidate[]>;
@@ -76,8 +77,11 @@ export async function nextUpSources(db: Db, f: typeof fetch, episodeId: string):
   });
   const hidden = await hiddenFeedUrls(db);
   const hiddenEps = await hiddenEpisodeIds(db); // M24 US11: hidden episodes leave this list.
-  if (hidden.size === 0 && hiddenEps.size === 0) return r.body;
-  const keep = <T extends { episode: { feedUrl: string; id: string } }>(xs: T[]) => xs.filter((x) => !hidden.has(x.episode.feedUrl) && !hiddenEps.has(x.episode.id));
+  // M25 A4: the owner's hides on the `nextup` list (a show, or one episode). Unreadable → none.
+  const ov = await active(db, 'nextup').catch(() => NONE);
+  if (hidden.size === 0 && hiddenEps.size === 0 && ov.hides.length === 0) return r.body;
+  const keep = <T extends { episode: { feedUrl: string; guid: string; id: string } }>(xs: T[]) =>
+    xs.filter((x) => !hidden.has(x.episode.feedUrl) && !hiddenEps.has(x.episode.id) && !isHidden(ov, { feedUrl: x.episode.feedUrl, guid: x.episode.guid }));
   const s = r.body.sources;
   return { ...r.body, sources: { alsoListened: keep(s.alsoListened), talkedAboutOnShow: keep(s.talkedAboutOnShow), newOnShow: keep(s.newOnShow), trendingInCategory: keep(s.trendingInCategory) } };
 }

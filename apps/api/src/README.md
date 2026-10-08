@@ -183,6 +183,8 @@ here or a line does not match its file.
 | `safety.ts` | Admin routes for blocked words, the maintenance switch and system notices. |
 | `config.ts` | Admin routes for the app settings (Admin › App settings): read every key, save one, reset one. |
 | `content.ts` | Admin routes for Academy articles and Help questions (Admin › Content): list, save, delete. |
+| `lists.ts` | Admin routes for every list's pins and hides, the category page's default chip, and hiding a show or episode everywhere. |
+| `foryou.ts` | Admin routes for For You (boost, bury, never recommend; the ranking weights) and the inbox moved from /mod (feedback, search requests, rec numbers). |
 
 ### `db/` — the database connection and migrations
 
@@ -280,7 +282,10 @@ here or a line does not match its file.
 |---|---|
 | `activity-stats.ts` | Counts listens, comments, clips and reactions per episode, never naming listeners. |
 | `discover-extras.ts` | Extra Discover parts: pick counts, followed shows, new arrivals, what people said, collections. |
-| `discover-settings.ts` | Applies the owner's Discover settings: section order, hidden items, pinned and featured shows. |
+| `discover-settings.ts` | Applies the owner's Discover settings: section order and hidden sections; the M15 pin routes over list_overrides. |
+| `lists.ts` | The owner's pins and hides on every list the phone shows (one table), and how they are applied. |
+| `served.ts` | The lists the phone is served, with the owner's pins and hides applied — shared by the public routes and Admin › Lists. |
+| `foryou-rules.ts` | The owner's For You rules: boost, bury or never recommend a show; and the ranking weights. |
 | `discover.ts` | Builds the Discover page: daily picks, talked-about episodes and the chart, cached hourly. |
 | `foryou.ts` | Builds the personal For You list from eight sources, scored and mixed. |
 | `nextup.ts` | Builds "Next up" suggestions for an episode from four sources. |

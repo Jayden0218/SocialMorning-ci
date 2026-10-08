@@ -38,6 +38,9 @@ const Dashboard = page(() => import('./pages/admin/Dashboard'), 'Dashboard');
 const Picks = page(() => import('./pages/admin/Picks'), 'Picks');
 const Curated = page(() => import('./pages/admin/Curated'), 'Curated');
 const DiscoverControl = page(() => import('./pages/admin/Discover'), 'DiscoverControl');
+const Lists = page(() => import('./pages/admin/Lists'), 'Lists'); // M25 lane AL
+const ForYouAdmin = page(() => import('./pages/admin/ForYou'), 'ForYouAdmin'); // M25 lane AL
+const Inbox = page(() => import('./pages/admin/Inbox'), 'Inbox'); // M25 lane AL
 const Launch = page(() => import('./pages/admin/Launch'), 'Launch');
 const Accounts = page(() => import('./pages/admin/Accounts'), 'Accounts');
 const Users = page(() => import('./pages/admin/Users'), 'Users');
@@ -91,6 +94,9 @@ export function App() {
         <Route path="picks" element={<Wait><Picks /></Wait>} />
         <Route path="curated" element={<Wait><Curated /></Wait>} />
         <Route path="discover" element={<Wait><DiscoverControl /></Wait>} />
+        <Route path="lists" element={<Wait><Lists /></Wait>} />
+        <Route path="foryou" element={<Wait><ForYouAdmin /></Wait>} />
+        <Route path="inbox" element={<Wait><Inbox /></Wait>} />
         <Route path="launch" element={<Wait><Launch /></Wait>} />
         <Route path="accounts" element={<Wait><Accounts /></Wait>} />
         <Route path="users" element={<Wait><Users /></Wait>} />

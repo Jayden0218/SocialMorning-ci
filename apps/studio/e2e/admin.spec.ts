@@ -108,7 +108,7 @@ test('Admin, as the owner: record, picks, accounts + act as, curator, Discover, 
 
   // US5 — hide a section and save.
   await page.getByRole('link', { name: 'Discover' }).click();
-  await page.getByRole('checkbox', { name: 'What people said' }).uncheck();
+  await page.getByRole('checkbox', { name: 'What listeners said' }).uncheck(); // M25 A5: the phone's own words
   await page.getByRole('button', { name: 'Save Discover' }).click();
   await expect(page.getByText('Saved.').first()).toBeVisible();
   await snap(page, 'discover');

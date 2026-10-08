@@ -152,9 +152,10 @@ export type CreatorClaim = { id: string; feedUrl: string; code: string; status: 
 export type ShowStats = { listeners: number; comments: number; episodes: number; topMoments: { episodeId: string; title: string; offsetMs: number; comments: number }[] };
 export type MyComment = { id: string; body: string | null; deleted: boolean; removed: boolean; hiddenByHost?: true; offsetMs: number | null; createdAt: string; episode: EpisodeCard };
 /** `hasMore` (owner, 2026-10-05): another page follows — `?page=N`, 20 at a time. Missing on lists kept before it. */
-export type CategoryShows = { genreId: number; name: string; shows: ShowCard[]; stale?: boolean; hasMore?: boolean };
+/** M25 A2: `pinned` = the owner's pinned shows (kept in place under every chip); `defaultSort` = the chip the page opens on. */
+export type CategoryShows = { genreId: number; name: string; shows: ShowCard[]; stale?: boolean; hasMore?: boolean; pinned?: string[]; defaultSort?: 'forYou' | 'all' | 'newest' };
 export type DiscoverResult = { status: 200; etag?: string; body: Discover } | { status: 304 };
-export type ShowCard = { appleId?: number; feedUrl: string; title: string; author: string; imageUrl?: string; genres: string[]; episodeCount?: number; /** M12 FR-072: only on a category chart. */ latestEpisode?: { title: string; publishedAt?: string } };
+export type ShowCard = { appleId?: number; feedUrl: string; title: string; author: string; imageUrl?: string; genres: string[]; episodeCount?: number; /** M12 FR-072: only on a category chart. */ latestEpisode?: { title: string; publishedAt?: string }; /** M25 A2: pinned by the owner (category page). */ pinned?: true };
 export type SearchResult = { shows: ShowCard[]; episodes: EpisodeCard[]; episodeSearch: 'ok' | 'unavailable'; source: { shows: 'apple' } };
 export type NextUpItem = { episode: EpisodeCard; reason: 'alsoListened' | 'talkedAboutOnShow' | 'newOnShow' | 'trendingInCategory'; label: string };
 
