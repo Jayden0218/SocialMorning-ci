@@ -66,7 +66,11 @@ missing here or a line does not match its file.
 | `common.tsx` | Shared Admin helpers: error text, an episode search box, and reorder buttons. |
 | `Curated.tsx` | Admin page to create, edit, order and retire curated episode collections. |
 | `Dashboard.tsx` | Admin dashboard with app-wide numbers and charts over a chosen date range. |
-| `Discover.tsx` | Admin page controlling the app's Discover sections, pins, hides and featured shows. |
+| `Discover.tsx` | Admin page controlling which Discover sections the app draws, and in which order. |
+| `Lists.tsx` | Admin page for every list's pins and hides, the category page's default chip, and hiding a show or episode everywhere. |
+| `hide.tsx` | Admin parts for hiding a show or an episode from listeners everywhere (no report needed), with a reason. |
+| `ForYou.tsx` | Admin page for For You: boost, bury or never recommend a show; the ranking weights; the numbers per channel. |
+| `Inbox.tsx` | Admin page for what listeners send in: feedback (with its pictures) and "Can't find it? Tell us" searches. |
 | `Launch.tsx` | Admin page to manage promotion images shown on the app's launch screen. |
 | `PhonePreview.tsx` | Shows a day's picks the way the phone app will draw them. |
 | `Picks.tsx` | Admin page with a calendar to choose and order each day's episode picks. |

@@ -15,6 +15,10 @@ export const ADMIN_SECTIONS = [
   { path: 'picks', label: 'Picks' },
   { path: 'curated', label: 'Curated' },
   { path: 'discover', label: 'Discover' },
+  // M25 lane AL: pins and hides on every list (A1–A4), For You (A6), the /mod inbox (A9).
+  { path: 'lists', label: 'Lists' },
+  { path: 'foryou', label: 'For You' },
+  { path: 'inbox', label: 'Inbox' },
   { path: 'launch', label: 'Launch' },
   { path: 'accounts', label: 'Accounts' },
   { path: 'users', label: 'Users' },

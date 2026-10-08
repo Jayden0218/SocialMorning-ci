@@ -22,7 +22,8 @@ const BODY: Discover = {
 it('no layout → today\'s order, every section', () => {
   expect(sectionOrder(undefined)).toEqual([...SECTION_IDS]);
   // M24 US20 (`Home-B`): the pick card first, For You after it.
-  expect(SECTION_IDS).toEqual(['picks', 'forYou', 'chart', 'shows', 'video', 'collections', 'followedHere', 'said', 'newShows']);
+  // M25 A5: one id per thing drawn; `followedHere` (drew nothing) is gone.
+  expect(SECTION_IDS).toEqual(['picks', 'theirLikes', 'forYou', 'pickedShows', 'chart', 'categories', 'shows', 'premium', 'video', 'collections', 'said', 'newShows', 'hunt']);
   expect(buildModel(BODY, undefined, none).order).toEqual([...SECTION_IDS]);
 });
 
@@ -39,12 +40,13 @@ it('a hidden section is left out of the order AND emptied, so nothing draws it',
 
 it('follows the owner\'s order; unlisted sections keep today\'s order after it', () => {
   const order = sectionOrder({ order: ['said', 'video', 'picks'], hidden: [] });
-  expect(order.slice(0, 3)).toEqual(['said', 'video', 'picks']);
-  expect(order.slice(3)).toEqual(['forYou', 'chart', 'shows', 'collections', 'followedHere', 'newShows']);
+  // M25 A5: a part split from a listed bundle (theirLikes from picks) sits right after it.
+  expect(order.slice(0, 4)).toEqual(['said', 'video', 'picks', 'theirLikes']);
+  expect(order.slice(4)).toEqual(['forYou', 'pickedShows', 'chart', 'categories', 'shows', 'premium', 'collections', 'newShows', 'hunt']);
 });
 
 it('unknown ids and duplicates are ignored', () => {
-  expect(sectionOrder({ order: ['nope', 'chart', 'chart'], hidden: ['alsoNope'] })).toEqual(['chart', ...SECTION_IDS.filter((s) => s !== 'chart')]);
+  expect(sectionOrder({ order: ['nope', 'chart', 'chart'], hidden: ['alsoNope'] })).toEqual(['chart', 'categories', ...SECTION_IDS.filter((s) => s !== 'chart' && s !== 'categories')]);
 });
 
 it('an unreadable layout (not arrays) is today\'s order', () => {

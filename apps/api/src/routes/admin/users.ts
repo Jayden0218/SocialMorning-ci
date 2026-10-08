@@ -74,6 +74,10 @@ export function registerUsers(admin: Hono<AdminEnv>): void {
       `SELECT id, target_kind, target_id, reason, created_at, close_reason FROM reports
         WHERE (target_kind = 'profile' AND target_id = $1::text) OR snapshot->>'authorId' = $1::text ORDER BY created_at DESC LIMIT 50`, [id]);
     const [del] = await db.query<{ requested_at: Date | string; due_at: Date | string }>('SELECT requested_at, due_at FROM account_deletions WHERE listener_id = $1 AND cancelled_at IS NULL', [id]);
+    // M25 A3: the shows this account made in the Studio, so Admin can hide one from listeners from here.
+    const shows = await db.query<{ feed_url: string; title: string; hidden: boolean }>(
+      `SELECT h.feed_url, h.title, EXISTS (SELECT 1 FROM hidden_feeds f WHERE f.feed_url = h.feed_url) AS hidden
+         FROM hosted_shows h WHERE h.owner_id = $1 AND h.deleted_at IS NULL ORDER BY h.created_at DESC LIMIT 50`, [id]);
     // Fix F-S: active / until over every source's interval (a code may start later).
     const run = await plusUntil(db, id);
     return {
@@ -84,6 +88,7 @@ export function registerUsers(admin: Hono<AdminEnv>): void {
       gifts: gifts.map((r) => ({ id: r.id, feedUrl: r.feed_url, role: r.bought ? 'bought' : 'received', claimedAt: iso(r.claimed_at), cancelledAt: iso(r.cancelled_at), createdAt: iso(r.created_at) })),
       reportsAgainst: against.map((r) => ({ id: r.id, targetKind: r.target_kind, targetId: r.target_id, reason: r.reason, createdAt: iso(r.created_at), closeReason: r.close_reason })),
       deletion: del ? { requestedAt: iso(del.requested_at), dueAt: iso(del.due_at) } : null,
+      shows: shows.map((r) => ({ feedUrl: r.feed_url, title: r.title, hidden: Boolean(r.hidden) })),
     };
   }
 

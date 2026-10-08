@@ -7,6 +7,7 @@ import { PageHead } from '../../shell/Page';
 import { Empty, Failed, Loading } from '../../shell/States';
 import { useLoad } from '../../useLoad';
 import { errorText } from './common';
+import { HideEverywhere } from './hide';
 
 type User = { id: string; displayName: string; email: string; createdAt: string; suspended: boolean; madeByAdmin: boolean };
 
@@ -103,6 +104,8 @@ export type Detail = {
   tips: { id: string; feedUrl: string; status: string; createdAt: string }[];
   gifts: { id: string; feedUrl: string; role: 'bought' | 'received'; claimedAt: string | null; cancelledAt: string | null; createdAt: string }[];
   reportsAgainst: { id: string; targetKind: string; reason: string; createdAt: string; closeReason: string | null }[];
+  /** M25 A3: shows this account made in the Studio (absent from an older server). */
+  shows?: { feedUrl: string; title: string; hidden: boolean }[];
   deletion: { requestedAt: string; dueAt: string } | null;
 };
 
@@ -152,6 +155,12 @@ export function UserDetail({ id }: { id: string }) {
       {d.tips.length === 0 ? <p className="muted">None</p> : <ul className="rows">{d.tips.map((t) => <li key={t.id}><span>{t.feedUrl}</span><span className="row-side">{t.status} · {shortDate(t.createdAt)}</span></li>)}</ul>}
       <h3>Gifts</h3>
       {d.gifts.length === 0 ? <p className="muted">None</p> : <ul className="rows">{d.gifts.map((g) => <li key={g.id}><span>{g.role} · {g.feedUrl}</span><span className="row-side">{g.cancelledAt ? 'cancelled' : g.claimedAt ? `claimed ${shortDate(g.claimedAt)}` : 'not claimed'}</span></li>)}</ul>}
+      {d.shows && d.shows.length > 0 ? (
+        <>
+          <h3>Shows made in the Studio</h3>
+          <ul className="rows">{d.shows.map((sh) => <li key={sh.feedUrl}><span>{sh.title}</span><span className="row-side">{sh.hidden ? 'Hidden from listeners (Admin › Lists to show it again)' : <HideEverywhere feedUrl={sh.feedUrl} name={sh.title} onDone={() => setN((x) => x + 1)} />}</span></li>)}</ul>
+        </>
+      ) : null}
       <h3>Reports against</h3>
       {d.reportsAgainst.length === 0 ? <p className="muted">None</p> : <ul className="rows">{d.reportsAgainst.map((r) => <li key={r.id}><span>{r.targetKind} · {r.reason}</span><span className="row-side">{r.closeReason ?? 'open'} · {shortDate(r.createdAt)}</span></li>)}</ul>}
       {asking ? <ConfirmDialog title={asking.title} body={asking.body} confirm={asking.confirm} busy={busy} onCancel={() => setAsking(null)} onConfirm={() => { void go(asking.run); }} /> : null}

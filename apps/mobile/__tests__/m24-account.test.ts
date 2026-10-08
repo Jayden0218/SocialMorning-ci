@@ -67,10 +67,10 @@ describe('change the sign-in email', () => {
     const d = deps((url) => (url.endsWith('/start') ? json(200, { sent: true, resendAfterSeconds: 30 }) : json(200, { email: 'new@example.com' })));
     const api = createAccountApi(d);
     expect(await api.startEmailChange(' new@example.com ')).toEqual({ sent: true, resendAfterSeconds: 30 });
-    expect(await api.confirmEmailChange(' 123456 ', ' 654321 ')).toEqual({ email: 'new@example.com', signedOut: 0 });
+    expect(await api.confirmEmailChange(' 123456 ')).toEqual({ email: 'new@example.com', signedOut: 0 });
     expect(d.calls.map((c) => [c.url, JSON.parse(String(c.init.body))])).toEqual([
       ['https://api.test/v1/me/email/start', { email: 'new@example.com' }],
-      ['https://api.test/v1/me/email/confirm', { code: '123456', oldCode: '654321' }],
+      ['https://api.test/v1/me/email/confirm', { code: '123456' }],
     ]);
   });
 

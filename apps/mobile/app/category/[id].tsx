@@ -124,6 +124,17 @@ export default function CategoryScreen(): React.ReactElement {
   };
   const [state, setState] = useState<State>(() => keptState(Number(params.id)));
   const [sort, setSort] = useState<CategorySort>("forYou");
+  // M25 A2: the owner may choose the chip a category opens on; once the listener picks one, theirs stays.
+  const sortPicked = useRef(false);
+  const pickSort = (v: CategorySort) => {
+    sortPicked.current = true;
+    setSort(v);
+  };
+  const shownDefault =
+    state.kind === "ok" ? state.body.defaultSort : undefined;
+  useEffect(() => {
+    if (!sortPicked.current) setSort(shownDefault ?? "forYou");
+  }, [shownDefault]);
   const [notSubscribedOnly, setNotSubscribedOnly] = useState(false);
   const [more, setMore] = useState<More>(() => freshMore(Number(params.id)));
   const loadingMore = useRef<number | null>(null);
@@ -293,7 +304,13 @@ export default function CategoryScreen(): React.ReactElement {
           more.genreId === genreId ? more.shows : [],
         ).filter((s) => !hiddenFeeds.has(s.feedUrl))
       : [];
-  const shows = categoryList(visible, { sort, notSubscribedOnly, subscribed });
+  const shows = categoryList(visible, {
+    sort,
+    notSubscribedOnly,
+    subscribed,
+    // M25 A2: the owner's pins keep their place under For you, Hot and Newest.
+    pinned: state.kind === "ok" ? (state.body.pinned ?? []) : [],
+  });
   const [lead, ...rest] = shows;
   const pairs: ShowCard[][] = [];
   for (let i = 0; i < rest.length; i += 2) pairs.push(rest.slice(i, i + 2));
@@ -543,7 +560,7 @@ export default function CategoryScreen(): React.ReactElement {
             },
           ]}
           value={sort}
-          onChange={setSort}
+          onChange={pickSort}
         />
         {/* Owner, 2026-10-04: right under the switch (no 48 pt row round it; the toggle is its own tap target).
             Owner, 2026-10-05: the order in words on the left, "Not subscribed only" on the right. */}

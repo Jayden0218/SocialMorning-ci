@@ -109,7 +109,7 @@ export type NewArrival = { show: { feedUrl: string; title: string; author: strin
  * a deleted or hidden show leaves at once. Drafts and scheduled episodes never count — only
  * rows `promoteDue` has put in `episodes` with a time that has come.
  */
-export async function newArrivals(db: Db): Promise<NewArrival[]> {
+export async function newArrivals(db: Db, limit: number = ARRIVALS_SHOWN): Promise<NewArrival[]> {
   // M24 US11: hidden episodes leave this list (and do not count).
   const rows = await db.query<{ feed_url: string; title: string; author: string; category: string; cover_url: string | null; episodes: number; episode_id: string; guid: string; ep_title: string; image_url: string | null; duration_ms: number | null; enclosure_url: string; published_at: string | Date | null }>(
     `SELECT hs.feed_url, hs.title, hs.author, hs.category, hs.cover_url, n.episodes,
@@ -121,7 +121,7 @@ export async function newArrivals(db: Db): Promise<NewArrival[]> {
        AND NOT EXISTS (SELECT 1 FROM hidden_feeds h WHERE h.feed_url = hs.feed_url)
      ORDER BY hs.created_at DESC, hs.id
      LIMIT $1`,
-    [ARRIVALS_SHOWN],
+    [limit],
   );
   return rows.map((r) => {
     const publishedAt = iso(r.published_at);
@@ -143,24 +143,41 @@ export async function newArrivals(db: Db): Promise<NewArrival[]> {
  * or on a hidden show. The author travels as an id only — no display name is selected,
  * so none can leak (guard G6).
  */
-export async function said(db: Db): Promise<Said[]> {
-  // M24 US11: hidden episodes leave this list.
-  const rows = await db.query<{ id: string; author_id: string; body: string; created_at: string | Date; episode_id: string; feed_url: string; guid: string; title: string; show_title: string | null; image_url: string | null; duration_ms: number | null; enclosure_url: string; published_at: string | Date | null }>(
-    `SELECT c.id, c.author_id, c.body, c.created_at,
+type SaidRow = { id: string; author_id: string; body: string; created_at: string | Date; episode_id: string; feed_url: string; guid: string; title: string; show_title: string | null; image_url: string | null; duration_ms: number | null; enclosure_url: string; published_at: string | Date | null };
+const SAID_SELECT = `SELECT c.id, c.author_id, c.body, c.created_at,
             e.id AS episode_id, e.feed_url, e.guid, e.title, e.show_title, e.image_url, e.duration_ms, e.enclosure_url, e.published_at
      FROM comments c
      JOIN episodes e ON e.id = c.episode_id
      JOIN listeners l ON l.id = c.author_id
      WHERE c.parent_id IS NULL AND c.deleted_at IS NULL AND c.removed_at IS NULL AND c.host_hidden_at IS NULL AND c.body IS NOT NULL
        AND l.suspended_at IS NULL AND l.hidden_at IS NULL
-       AND c.created_at > now() - ($1 || ' days')::interval
        AND NOT EXISTS (SELECT 1 FROM hidden_feeds h WHERE h.feed_url = e.feed_url)
-       AND ${notHidden('e')}
+       AND ${notHidden('e')}`;
+
+export async function said(db: Db, limit: number = SAID_SHOWN): Promise<Said[]> {
+  // M24 US11: hidden episodes leave this list.
+  const rows = await db.query<SaidRow>(
+    `${SAID_SELECT}
+       AND c.created_at > now() - ($1 || ' days')::interval
      ORDER BY c.created_at DESC, c.id DESC
      LIMIT $2`,
-    [String(SAID_DAYS), SAID_SHOWN],
+    [String(SAID_DAYS), limit],
   );
-  return rows.map((r) => {
+  return rows.map(toSaid);
+}
+
+/**
+ * M25 A4: comments the owner pinned to "What listeners said" — the same rules as `said` (removed,
+ * hidden, suspended → not shown) but no 14-day window: a pinned quote stays until it is unpinned.
+ */
+export async function saidByIds(db: Db, ids: readonly string[]): Promise<Said[]> {
+  const ok = ids.filter((i) => /^[0-9a-f-]{36}$/i.test(i));
+  if (ok.length === 0) return [];
+  const rows = await db.query<SaidRow>(`${SAID_SELECT} AND c.id = ANY($1::uuid[])`, [ok]);
+  return rows.map(toSaid);
+}
+
+function toSaid(r: SaidRow): Said {
     const publishedAt = iso(r.published_at);
     return {
       commentId: r.id, authorId: r.author_id, body: r.body, createdAt: iso(r.created_at)!,
@@ -170,7 +187,6 @@ export async function said(db: Db): Promise<Said[]> {
         ...(publishedAt ? { publishedAt } : {}),
       },
     };
-  });
 }
 
 /**

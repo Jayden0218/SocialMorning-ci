@@ -261,6 +261,9 @@ button { font: inherit; }
 .diff code { font-size: 12px; }
 .acting-banner { justify-content: space-between; flex-wrap: wrap; }
 .section-list li { align-items: center; }
+/* M25 lane AL: Admin › Lists' add form and Admin › Inbox's feedback pictures. */
+.add-row { margin-top: 16px; }
+.feedback-pic { max-width: 240px; max-height: 240px; border-radius: 8px; }
 .radio { display: flex; gap: 8px; align-items: center; min-height: 44px; cursor: pointer; }
 /* M19 US12: announcement picture thumbnails. */
 .thumbs { display: flex; flex-wrap: wrap; gap: 10px; margin: 4px 0 10px; }

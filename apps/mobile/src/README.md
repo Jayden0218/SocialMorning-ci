@@ -103,7 +103,6 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | File | What it does |
 |---|---|
 | `markdown.ts` | Turns the legal texts' simple Markdown into blocks a screen can draw. |
-| `licences.ts` | The open-source packages the app ships and their licences, read from the generated licences.json. |
 | `texts.ts` | Holds the user agreement, privacy policy and community rules text. |
 
 ### `me/` — The Me tab: your library, history, favourites, stickers and subscriptions.
@@ -213,7 +212,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `api.ts` | Typed client for every server call, with clear error types. |
 | `account-api.ts` | Server calls for the account: redeem a code, change the sign-in email. |
 | `api-m22-server.ts` | Server calls for M22 lane 5: bottom pins, the deletion wait, time zone, translated transcripts, gifts and the weekly digest. |
-| `auth-store.ts` | Handles sign-in (by code or password) and sign-out, and stores the account. |
+| `auth-store.ts` | Handles sign-up, sign-in and sign-out, and stores the account. |
 | `avatar-image.ts` | Lets you pick a square profile photo and shrinks it to 400 px and under 200 KB. |
 | `base-url.ts` | Gives the server address set in the app config. |
 | `cache.ts` | Keeps each episode's last comments and reactions for offline viewing. |
@@ -333,7 +332,6 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `ListDetail.tsx` | Two panes on a tablet: the list on the left, the chosen item on the right; just the list on a phone. |
 | `iconReset.ts` | Puts the app icon back to Default at start-up when PLUS has ended and one of the PLUS icons is still set. |
 | `consent.ts` | Terms version, title and text pointers; remembers if you agreed. |
-| `updater.ts` | Decides when the Android self-updater may show, and checks a downloaded APK's SHA-256 before install. |
 
 ### `ui/player/` — The full player page and its parts
 
@@ -507,17 +505,14 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 
 | File | What it does |
 |---|---|
-| `AgeConfirm.tsx` | The "I am 14 or older" tick box on the new-account step, and the "I am under 14" way out. |
 | `ArtWall.tsx` | A row of words-only tiles moving slowly on the sign-in page. |
 | `AuthShell.tsx` | Shared frame for sign-in pages: close ✕, big title, form, bottom button. |
 | `Consent.tsx` | The "I agree" tick box under sign-in, and the ask if not ticked. |
-| `OtherWays.tsx` | The Google / Facebook sign-in buttons — drawn only for a way in that is built (none today). |
 | `PendingDeletion.tsx` | After signing in during the 15-day deletion wait: a sheet saying the date, with Keep my account and Continue. |
-| `age.ts` | The minimum age to make an account, and the record that the new listener confirmed it. |
 | `art.ts` | The words-only tiles that move along the sign-in page. |
 | `display.ts` | The large serif title style on sign-in pages. |
 | `errors.ts` | Turns a sign-in error into a short message for the user. |
-| `methods.ts` | The other sign-in ways (Google, Facebook): listed here, shown only once they are built. |
+| `methods.ts` | The other sign-in ways (Google, Facebook), not ready yet. |
 | `navigate.ts` | Where you go after signing in or out. |
 | `rules.ts` | Rules for the sign-in button and checking an email looks right. |
 

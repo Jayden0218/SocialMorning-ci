@@ -18,6 +18,7 @@ const listener = { id: 'L1', email: 'a@x', displayName: 'Alex', createdAt: 'now'
 function fakeApi(over: Partial<ApiClient> = {}): ApiClient {
   const notCalled = () => { throw new Error('unexpected call'); };
   return {
+    signUp: async () => ({ token: 'T', listener }),
     signIn: async () => ({ token: 'T', listener }),
     signOut: async () => {},
     searchPeople: async () => [],

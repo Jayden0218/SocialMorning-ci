@@ -57,20 +57,3 @@ export async function sweepErrorReports(db: Db): Promise<number> {
   await sweepRateCounters(db);
   return rows.length;
 }
-
-/**
- * M25 S11: one unhandled server error, kept like a phone's (scope 'server', platform 'server').
- * Returns true when this signature is new — the first row of its kind — so the caller can alert.
- */
-export async function recordServerError(db: Db, e: { message: string; stack?: string }): Promise<boolean> {
-  const message = clip(e.message.trim() || 'unknown error', MESSAGE_MAX);
-  const [row] = await db.query<{ count: number }>(
-    `INSERT INTO error_reports (listener_id, scope, message, stack, app_version, platform)
-     VALUES (NULL, 'server', $1, $2, '', 'server')
-     ON CONFLICT (scope, message, app_version, platform) DO UPDATE SET
-       count = error_reports.count + 1, last_seen = now(), stack = COALESCE(EXCLUDED.stack, error_reports.stack)
-     RETURNING count`,
-    [message, e.stack ? clip(e.stack, STACK_MAX) : null],
-  );
-  return Number(row?.count ?? 0) === 1;
-}

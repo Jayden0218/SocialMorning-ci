@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
-import { freshDb, signUp, signUpWithCode, type TestDb } from './harness.ts';
+import { freshDb, signUp, type TestDb } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
 import { runDueDeletions, type DeletionStores } from '../src/db/repos/account/deletion.ts';
 
@@ -54,7 +54,7 @@ test('A12: deletion removes everything of the listener; only placeholders under 
   assert.equal((await t.q('SELECT bucket FROM episode_heat WHERE episode_id = $1', [EP])).length, 0, 'heat dropped');
   assert.equal((await t.q('SELECT email FROM listeners')).length, 1, 'only Bo remains');
 
-  const again = await signUpWithCode(t, 'a@example.com', 'Alex again');
+  const again = await t.call('POST', '/v1/auth/sign-up', { email: 'a@example.com', password: 'new password 1', displayName: 'Alex again' });
   assert.equal(again.status, 200, 'the email is reusable');
   await t.close();
 });
