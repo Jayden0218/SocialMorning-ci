@@ -20,7 +20,15 @@ import type { GooglePlay } from '../../../billing/google-play.ts';
 import { kindOf, tierOf } from '../../../billing/products.ts';
 import { cancelGiftsFor, createGift, giftForPurchase } from './gifts.ts';
 
-export type GrantIn = { listenerId: string; productId: string; purchaseToken: string; feedUrl?: string };
+export type GrantIn = { listenerId: string; productId: string; purchaseToken: string; feedUrl?: string;
+  /** M25 SB: a Google test purchase (licence tester) is granted only when this is true; it is then stored with `test = true`. */
+  allowTest?: boolean };
+
+/** M25 SB (audit #29): a test purchase in production is refused before anything is written. */
+function checkTest(test: boolean, allow: boolean | undefined): boolean {
+  if (test && !allow) throw new ApiError('not_paid', 'Test purchases are not accepted here.', { test: true });
+  return test;
+}
 export type Granted = { purchaseId: string; kind: 'plus' | 'show' | 'gift' | 'tip'; status: 'active' | 'expired' | 'refunded'; expiresAt: string | null; repeated: boolean; /** M22 US14: the gift's code */ giftCode?: string };
 
 /**
@@ -60,9 +68,11 @@ export async function grantGoogle(db: Db, play: GooglePlay, p: GrantIn): Promise
   let acknowledged = false;
   let feedUrl: string | null = null;
   let accountHash: string | null = null;
+  let test = false;
   if (kind === 'plus') {
     const s = await play.subscription(p.purchaseToken);
     if (s.productId !== p.productId) throw new ApiError('validation', 'That purchase is for another product.', { fields: ['productId'] });
+    test = checkTest(s.test, p.allowTest);
     accountHash = checkAccount(s.accountId, p.listenerId);
     if (!ACTIVE.has(s.state)) {
       if (seen) await db.query("UPDATE purchases SET status = 'expired' WHERE id = $1 AND status = 'active'", [seen.id]);
@@ -73,6 +83,7 @@ export async function grantGoogle(db: Db, play: GooglePlay, p: GrantIn): Promise
     if (!p.feedUrl) throw new ApiError('validation', 'Say which show.', { fields: ['feedUrl'] });
     const g = await play.product(p.productId, p.purchaseToken);
     if (g.purchaseState !== 0) throw new ApiError('not_paid', 'Google has not taken this payment.');
+    test = checkTest(g.test, p.allowTest);
     accountHash = checkAccount(g.accountId, p.listenerId);
     // The purchase names its show by a hash of the feed URL; a different show is refused.
     if (g.profileId !== fnv1a64(p.feedUrl)) throw new ApiError('validation', 'That purchase is for another show.', { fields: ['feedUrl'] });
@@ -93,9 +104,9 @@ export async function grantGoogle(db: Db, play: GooglePlay, p: GrantIn): Promise
       await tx.query("UPDATE purchases SET status = 'active', expires_at = $2, account_hash = COALESCE(account_hash, $3) WHERE id = $1", [id, expiresAt, accountHash]);
     } else {
       const [row] = await tx.query<{ id: string }>(
-        `INSERT INTO purchases (listener_id, store, product_id, store_txn_id, status, expires_at, purchase_token, ref, account_hash)
-         VALUES ($1, 'google', $2, $3, 'active', $4, $5, $6, $7) ON CONFLICT (purchase_token) DO NOTHING RETURNING id`,
-        [p.listenerId, p.productId, orderId ?? p.purchaseToken, expiresAt, p.purchaseToken, feedUrl, accountHash]);
+        `INSERT INTO purchases (listener_id, store, product_id, store_txn_id, status, expires_at, purchase_token, ref, account_hash, test)
+         VALUES ($1, 'google', $2, $3, 'active', $4, $5, $6, $7, $8) ON CONFLICT (purchase_token) DO NOTHING RETURNING id`,
+        [p.listenerId, p.productId, orderId ?? p.purchaseToken, expiresAt, p.purchaseToken, feedUrl, accountHash, test]);
       if (!row) {
         // A second notice raced this one past the first look: it granted; grant nothing here.
         const [again] = await tx.query<{ id: string }>('SELECT id FROM purchases WHERE purchase_token = $1', [p.purchaseToken]);

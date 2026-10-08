@@ -65,6 +65,11 @@ test('the listener journey, seen from the website: Studio, public page, moderati
   await page.getByLabel('Email').fill(j.moderator!.email);
   await page.getByLabel('Password').fill(PW);
   await page.getByRole('button', { name: 'Sign in' }).click();
+  // M25 SB: then the code emailed to the owner (the test server's inbox keeps it).
+  await expect(page.getByRole('heading', { name: 'Enter the code' })).toBeVisible();
+  const { code } = (await (await page.request.get(`${API}/__e2e/code?email=${encodeURIComponent(j.moderator!.email)}`)).json()) as { code: string };
+  await page.getByLabel('Code').fill(code);
+  await page.getByRole('button', { name: 'Continue' }).click();
   await expect(page.getByRole('heading', { name: 'Moderation queue' })).toBeVisible();
   const target = j.reportedCommentIds[0]!;
   const item = page.locator('section', { hasText: target });

@@ -1,8 +1,8 @@
 // The owner's list of searches listeners asked the editors to add (HTML under /mod, JSON under /v1/mod).
 import { Hono, type Context } from 'hono';
-import { getCookie } from 'hono/cookie';
+import { isModOwner } from '../../pages/mod.ts';
 import type { AuthEnv } from '../../auth/session.ts';
-import { listenerForToken, requireAuth } from '../../auth/session.ts';
+import { requireAuth } from '../../auth/session.ts';
 import { ApiError } from '../../errors.ts';
 import { esc, page } from '../../pages/clip.ts';
 import { recentSearchRequests } from '../discover/search-requests.ts';
@@ -15,13 +15,8 @@ import { recentSearchRequests } from '../discover/search-requests.ts';
  */
 export const modSearchRequestsPage = new Hono<AuthEnv>();
 
-async function isOwnerByCookie(c: Context<AuthEnv>): Promise<boolean> {
-  const token = getCookie(c, 'mod');
-  const ownerId = c.get('safety').ownerListenerId;
-  if (!token || !ownerId) return false;
-  const l = await listenerForToken(c.get('db'), token, c.get('pepper'));
-  return l?.id === ownerId;
-}
+/** M25 SB: the /mod rule, second factor included (pages/mod.ts). */
+const isOwnerByCookie = (c: Context<AuthEnv>): Promise<boolean> => isModOwner(c);
 
 modSearchRequestsPage.get('/search-requests', async (c) => {
   if (!c.get('safety').ownerListenerId) return c.html(page('Search requests', '<h1>Not configured</h1>'), 503);

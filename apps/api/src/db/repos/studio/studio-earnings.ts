@@ -16,18 +16,18 @@ export type EarningMonth = { month: string; sale: Bucket; gift: Bucket; tip: Buc
 
 const empty = (): Bucket => ({ count: 0, refunded: 0, totalMicrosByCurrency: {}, refundedMicrosByCurrency: {} });
 
-/** Every money row for the show, newest first. */
+/** Every money row for the show, newest first. M25 SB: a test purchase (licence tester) is never earnings. */
 export async function earningRows(db: Db, feedUrl: string, limit = 5000): Promise<EarningRow[]> {
   const rows = await db.query<{ kind: EarningKind; created_at: Date | string; amount_micros: string | number | null; currency: string | null; status: string }>(
     `SELECT * FROM (
        SELECT 'sale' AS kind, p.created_at, p.amount_micros, p.currency, p.status
-         FROM purchases p WHERE p.ref = $1 AND p.product_id LIKE 'show\\_tier\\_%'
+         FROM purchases p WHERE p.ref = $1 AND p.product_id LIKE 'show\\_tier\\_%' AND NOT p.test
        UNION ALL
        SELECT 'gift', p.created_at, p.amount_micros, p.currency, p.status
-         FROM gifts g JOIN purchases p ON p.id = g.purchase_id WHERE g.feed_url = $1
+         FROM gifts g JOIN purchases p ON p.id = g.purchase_id WHERE g.feed_url = $1 AND NOT p.test
        UNION ALL
        SELECT 'tip', p.created_at, p.amount_micros, p.currency, p.status
-         FROM tips t JOIN purchases p ON p.id = t.purchase_id WHERE t.to_feed_url = $1
+         FROM tips t JOIN purchases p ON p.id = t.purchase_id WHERE t.to_feed_url = $1 AND NOT p.test
      ) x ORDER BY created_at DESC LIMIT $2`,
     [feedUrl, limit],
   );

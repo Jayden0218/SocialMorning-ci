@@ -65,7 +65,8 @@ missing here or a line does not match its file.
 | `AppSettings.tsx` | Admin page for the phone's app settings: Discover tiles, categories, section titles, list sizes, rate prompt, search hints. |
 | `Content.tsx` | Admin page to write the phone's Creator academy articles and Help questions, with a preview. |
 | `Markdown.tsx` | Draws the content pages' Markdown subset as React text — never as HTML — for the Content preview. |
-| `AdminLayout.tsx` | The Admin section's frame: its side menu, banner and sign-in-again rule. |
+| `AdminLayout.tsx` | The Admin section's frame: its side menu, banner, sign-in-again rule and the emailed second step. |
+| `SecondFactor.tsx` | The Admin second step: a code emailed to the owner, with "remember this browser for 30 days". |
 | `common.tsx` | Shared Admin helpers: error text, an episode search box, and reorder buttons. |
 | `Curated.tsx` | Admin page to create, edit, order and retire curated episode collections. |
 | `Dashboard.tsx` | Admin dashboard with app-wide numbers and charts over a chosen date range. |

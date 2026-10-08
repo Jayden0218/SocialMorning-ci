@@ -12,7 +12,10 @@ const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0
 
 async function ownerCookie(t: TestDb, email: string): Promise<string> {
   const r = await t.app.request('/mod/login', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ email, password: 'correct horse' }).toString(), redirect: 'manual' });
-  return r.headers.get('set-cookie')!.split(';')[0]!;
+  const cookie = r.headers.get('set-cookie')!.split(';')[0]!;
+  // M25 SB: then the code emailed to the owner (the /mod second factor).
+  await t.app.request('/mod/code', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', cookie }, body: new URLSearchParams({ code: t.lastCode!(email) }).toString(), redirect: 'manual' });
+  return cookie;
 }
 
 test('feedback with images: stored, shown to the owner with its images, refused to anyone else', async () => {

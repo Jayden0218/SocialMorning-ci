@@ -39,10 +39,12 @@ const UUID = /^[0-9a-f-]{36}$/i;
 /** `kind` scopes the signature: a `paid-preview` link never passes as a `paid-audio` one, and back. */
 const sign = (pepper: string, id: string, exp: number, kind: 'paid-audio' | 'paid-preview' = 'paid-audio') => createHmac('sha256', pepper).update(`${kind}:${id}:${exp}`).digest('hex');
 
-function signatureOk(pepper: string, id: string, exp: number, sig: string, kind: 'paid-audio' | 'paid-preview'): boolean {
-  const want = Buffer.from(sign(pepper, id, exp, kind));
+function signatureOk(pepper: string, id: string, exp: number, sig: string, kind: 'paid-audio' | 'paid-preview', /** M25 SB: rotation */ next?: string): boolean {
   const got = Buffer.from(sig);
-  return want.length === got.length && timingSafeEqual(want, got);
+  return [pepper, ...(next ? [next] : [])].some((p) => {
+    const want = Buffer.from(sign(p, id, exp, kind));
+    return want.length === got.length && timingSafeEqual(want, got);
+  });
 }
 
 async function bought(db: import('../../db/db.ts').Db, listenerId: string | undefined, feedUrl: string): Promise<boolean> {
@@ -100,7 +102,7 @@ paid.get('/episodes/:id/audio', async (c) => {
   const exp = Number(c.req.query('exp'));
   const sig = c.req.query('sig') ?? '';
   if (!UUID.test(id) || !Number.isFinite(exp) || exp < Date.now()) throw new ApiError('needs_purchase', 'This link has expired.');
-  if (!signatureOk(c.get('pepper'), id, exp, sig, 'paid-audio')) throw new ApiError('needs_purchase', 'This link is not valid.');
+  if (!signatureOk(c.get('pepper'), id, exp, sig, 'paid-audio', c.get('pepperNext'))) throw new ApiError('needs_purchase', 'This link is not valid.');
   const [ep] = await c.get('db').query<{ audio_url: string }>('SELECT audio_url FROM hosted_episodes WHERE id = $1 AND paid AND deleted_at IS NULL', [id]);
   if (!ep) throw new ApiError('not_found', 'No such episode.');
   c.header('cache-control', 'private, no-store');
@@ -150,7 +152,7 @@ paid.get('/episodes/:id/preview-audio', async (c) => {
   const exp = Number(c.req.query('exp'));
   const sig = c.req.query('sig') ?? '';
   if (!UUID.test(id) || !Number.isFinite(exp) || exp < Date.now()) throw new ApiError('needs_purchase', 'This link has expired.');
-  if (!signatureOk(c.get('pepper'), id, exp, sig, 'paid-preview')) throw new ApiError('needs_purchase', 'This link is not valid.');
+  if (!signatureOk(c.get('pepper'), id, exp, sig, 'paid-preview', c.get('pepperNext'))) throw new ApiError('needs_purchase', 'This link is not valid.');
   const [ep] = await c.get('db').query<{ audio_url: string; audio_bytes: string | number; audio_type: string; duration_ms: number | null; preview_start_ms: number | null; preview_end_ms: number | null }>(
     `SELECT e.audio_url, e.audio_bytes, e.audio_type, e.duration_ms, e.preview_start_ms, e.preview_end_ms FROM hosted_episodes e JOIN hosted_shows s ON s.id = e.show_id
       WHERE e.id = $1 AND e.paid AND e.deleted_at IS NULL AND s.deleted_at IS NULL AND e.status = 'published' AND e.published_at <= now()`, [id]);

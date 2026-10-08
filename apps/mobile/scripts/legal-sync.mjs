@@ -42,4 +42,7 @@ for (const [id, file] of Object.entries(FILES)) {
 }
 out += '} as const;\n';
 writeFileSync(path.join('src', 'legal', 'texts.ts'), out);
-console.log(`legal-sync: wrote src/legal/texts.ts (${Object.keys(FILES).length} documents, ${Object.keys(values).length} answers)`);
+// M25 SB (audit #17): the API's web pages (/privacy, /terms) show the SAME text, so the two cannot drift.
+const API_OUT = path.join('..', 'api', 'src', 'pages', 'legal-texts.ts');
+writeFileSync(API_OUT, out.replace(/^\/\/ Holds the user agreement, privacy policy and community rules text\.\n/, '// The same legal texts the app shows, for the web pages /privacy and /terms.\n'));
+console.log(`legal-sync: wrote src/legal/texts.ts and ${API_OUT} (${Object.keys(FILES).length} documents, ${Object.keys(values).length} answers)`);

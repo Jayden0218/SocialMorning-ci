@@ -13,6 +13,8 @@ const app = createApp({ db: fromPostgres(createClient()), pepper, ...(process.en
   ...(process.env['APPEALS_EMAIL'] ? { appealsEmail: process.env['APPEALS_EMAIL'] } : {}),
   ...(process.env['RELEASE_SHA256'] ? { releaseSha256: process.env['RELEASE_SHA256'] } : {}),
   ...(process.env['JOB_TOKEN'] ? { jobToken: process.env['JOB_TOKEN'] } : {}),
+  // M25 SB: the second pepper during a secret rotation (docs/runbooks/secret-rotation.md).
+  ...(process.env['PEPPER_NEXT'] ? { pepperNext: process.env['PEPPER_NEXT'] } : {}),
   ...(process.env['GMAIL_USER'] && process.env['GMAIL_APP_PASSWORD'] ? { mailer: gmailMailer(process.env['GMAIL_USER'], process.env['GMAIL_APP_PASSWORD']) } : {}) });
 const port = Number(process.env.PORT ?? 3000);
 serve({ fetch: app.fetch, port }, () => {

@@ -28,7 +28,8 @@ purchasesGoogle.post('/purchases/google', requireAuth, json(body), async (c) => 
   if (!play.ready) throw new ApiError('storage_off', 'Purchases are not available yet.');
   const b = c.req.valid('json');
   try {
-    const g = await grantGoogle(c.get('db'), play, { listenerId: c.get('listener')!.id, productId: b.productId, purchaseToken: b.purchaseToken, ...(b.feedUrl ? { feedUrl: b.feedUrl } : {}) });
+    // M25 SB: Google licence-tester purchases only where the server allows them (never production by default).
+    const g = await grantGoogle(c.get('db'), play, { listenerId: c.get('listener')!.id, productId: b.productId, purchaseToken: b.purchaseToken, allowTest: c.get('allowTestPurchases'), ...(b.feedUrl ? { feedUrl: b.feedUrl } : {}) });
     // M22 US14: a gift answers its link too — the buyer shares it.
     return c.json({ purchase: g, ...(g.giftCode ? { gift: { code: g.giftCode, url: giftUrl(c.get('publicBase'), g.giftCode) } } : {}) });
   } catch (e) {

@@ -15,6 +15,7 @@
  * not tappable — FR-016), and the More row pinned to the foot of the page.
  *
  * M24 US16: "Change" on the email strip opens `app/settings/account-email.tsx`.
+ * M25 SB: "Signed-in devices" opens `app/settings/devices.tsx`.
  */
 import { useRouter } from 'expo-router';
 import { Pressable } from '@/ui/lib/pressable';
@@ -74,6 +75,19 @@ export default function AccountSecurityScreen(): React.ReactElement {
         </Box>
         <Text className="text-muted text-xs">We send a one-time code each time; there is no password.</Text>
       </Card>
+      {/* M25 SB: every place this account is signed in, with sign out one or all others. */}
+      {listener ? (
+        <Card className="py-1">
+          <Pressable onPress={() => router.push('/settings/devices')} accessibilityRole="button" accessibilityLabel="Signed-in devices" className="flex-row items-center gap-row py-row" style={TAP}>
+            <Icon name="phone-portrait-outline" size={22} color={c.accent} />
+            <Box className="flex-1">
+              <Text className="text-text text-body font-bold">Signed-in devices</Text>
+              <Text className="text-muted text-xs mt-0.5">See where you are signed in; sign a device out</Text>
+            </Box>
+            <Icon name="chevron-forward" size={16} color={c.muted} />
+          </Pressable>
+        </Card>
+      ) : null}
       {/* M25 L3c (App Review 2.1): a way in that is not built is not listed (none is today). */}
       {readyMethods().length > 0 ? (
       <Box className="gap-row">

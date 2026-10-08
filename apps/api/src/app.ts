@@ -111,9 +111,17 @@ import { reportServerError } from './routes/errors.ts';
 // M25 lane AC: app settings (A7) and content pages (A8)
 import { config as appConfig } from './routes/config.ts';
 import { content as contentPages } from './routes/content.ts';
+// M25 lane SB: signed-in devices, data export, token rotation.
+import { devices } from './routes/account/devices.ts';
+import { dataExport } from './routes/account/data-export.ts';
+import { cacheablePublicly, ROTATE_ASK_HEADER, ROTATED_HEADER, rotateSession } from './auth/session.ts';
 
 export type AppDeps = {
   db: Db; pepper: string; assetLinksSha256?: string;
+  /** M25 SB: the second accepted pepper while a secret rotation is under way (env PEPPER_NEXT; docs/runbooks/secret-rotation.md). */
+  pepperNext?: string;
+  /** M25 SB: grant Google test purchases (marked `test`)? Default: yes unless VERCEL_ENV is production, where only ALLOW_TEST_PURCHASES=1 allows them. */
+  allowTestPurchases?: boolean;
   /** M5: the catalogue's fetch (tests inject a fake Apple) and the raw picks file; defaults: global fetch, `picks.json`. */
   catalogFetch?: typeof fetch;
   picksRaw?: unknown;
@@ -221,10 +229,14 @@ export function createApp(deps: AppDeps) {
   const play = deps.play ?? googlePlay(process.env);
   const imageCeilingBytes = deps.imageCeilingBytes ?? (Number(process.env['IMAGE_CEILING_BYTES']) || 500_000_000);
   const publicBase = deps.publicBase ?? process.env['PUBLIC_API_URL'] ?? 'https://socialmorning-api.vercel.app';
+  const allowTestPurchases = deps.allowTestPurchases ?? (process.env['VERCEL_ENV'] !== 'production' || process.env['ALLOW_TEST_PURCHASES'] === '1');
+  const pepperNext = deps.pepperNext && deps.pepperNext !== deps.pepper ? deps.pepperNext : undefined;
 
   app.use('*', async (c, next) => {
     c.set('db', deps.db);
     c.set('pepper', deps.pepper);
+    if (pepperNext) c.set('pepperNext', pepperNext);
+    c.set('allowTestPurchases', allowTestPurchases);
     // M15 T013: picks, issues and collections from the admin tables first, the files second (60 s memo).
     c.set('catalog', await liveCatalog(deps.db, catalog));
     c.set('safety', safety);
@@ -246,6 +258,22 @@ export function createApp(deps: AppDeps) {
   app.use('*', wordFilter);
   // M25 S6: a floor limit on every write (auth/write-limit.ts); routes keep their own tighter ones.
   app.use('*', writeLimit);
+  /*
+   * M25 SB: token rotation for the phone. A phone that asks (`x-session-rotate: 1` — older builds
+   * never do, so they are never rotated) gets a new token at most once a day in `x-session-token`,
+   * after a successful answer; the old one keeps working for the grace window. Never on an answer a
+   * shared cache may keep, and never for the Studio or Admin (their cookie rotates in studioAuth).
+   */
+  app.use('/v1/*', async (c, next) => {
+    await next();
+    const token = c.get('token');
+    if (!token || !c.get('listener') || c.req.header(ROTATE_ASK_HEADER) !== '1' || c.res.status >= 400 || cacheablePublicly(c.res)) return;
+    if (c.req.path.startsWith('/v1/studio') || c.req.path.startsWith('/v1/admin')) return;
+    const fresh = await rotateSession(deps.db, token, deps.pepper).catch(() => undefined);
+    if (!fresh) return;
+    c.header(ROTATED_HEADER, fresh);
+    if (!c.res.headers.get('cache-control')) c.header('cache-control', 'private, no-store');
+  });
 
   app.onError((err, c) => {
     if (err instanceof ApiError) return c.json(err.body(), err.status as 422);
@@ -285,6 +313,8 @@ export function createApp(deps: AppDeps) {
   app.route('/v1/content', contentPages);
   app.get('/v1/meta', (c) => c.json({ ...(safety.appealsEmail ? { appealsEmail: safety.appealsEmail } : {}) }));
   app.route('/v1/auth', auth);
+  app.route('/v1/me/sessions', devices); // M25 SB
+  app.route('/v1/me/export', dataExport); // M25 SB
   app.route('/v1/me', me);
   app.route('/v1/me/positions', positions);
   app.route('/v1/me/subscriptions', subscriptions);
