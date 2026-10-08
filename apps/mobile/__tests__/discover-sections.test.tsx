@@ -17,7 +17,7 @@ const byLabel = (r: ReactTestRenderer, label: string): ReactTestInstance =>
   r.root.find((n) => n.props['accessibilityLabel'] === label && typeof n.props['onPress'] === 'function');
 const text = (r: ReactTestRenderer): string => JSON.stringify(r.toJSON());
 
-it('a pick: + adds it to the queue (owner 2026-10-05: no Play pill), the title opens', () => {
+it('a pick: + adds it to the queue (owner 2026-10-05), the design\'s Play pill plays it (fix F-P), the title opens', () => {
   const onOpen = jest.fn();
   const onPlay = jest.fn();
   const onQueue = jest.fn();
@@ -26,6 +26,10 @@ it('a pick: + adds it to the queue (owner 2026-10-05: no Play pill), the title o
   act(() => { byLabel(r, 'Add Title p1 to the queue').props['onPress'](); });
   expect(onQueue).toHaveBeenCalledWith(card('p1'));
   expect(onPlay).not.toHaveBeenCalled();
+  expect(onOpen).not.toHaveBeenCalled();
+  // M24 fix F-P (`Home-B`): "▶ Play" beside the "+" — both stay.
+  act(() => { byLabel(r, 'Play Title p1').props['onPress'](); });
+  expect(onPlay).toHaveBeenCalledWith(card('p1'));
   expect(onOpen).not.toHaveBeenCalled();
   // M24 US20 (`Home-B`): the label sits inside the card, singular.
   expect(text(r)).toContain("Editor's pick");

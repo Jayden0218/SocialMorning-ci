@@ -26,6 +26,8 @@
       --color-segment: #f1ebdd;
       --color-switchOff: #d9d3c4;
       --color-handle: rgba(17, 17, 20, 0.22);
+      --color-play: #fcc522;
+      --color-onPlay: #111114;
     }
     @variant dark {
       --color-background: #fbf8f1;
@@ -49,6 +51,8 @@
       --color-segment: #f1ebdd;
       --color-switchOff: #d9d3c4;
       --color-handle: rgba(17, 17, 20, 0.22);
+      --color-play: #fcc522;
+      --color-onPlay: #111114;
     }
   }
 }
@@ -76,6 +80,8 @@
   --color-segment: #f1ebdd;
   --color-switchOff: #d9d3c4;
   --color-handle: rgba(17, 17, 20, 0.22);
+  --color-play: #fcc522;
+  --color-onPlay: #111114;
 }
 @theme inline {
   --text-*: initial;

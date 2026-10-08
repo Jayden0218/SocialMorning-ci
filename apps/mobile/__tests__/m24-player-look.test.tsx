@@ -122,11 +122,12 @@ describe('the look, from the source', () => {
   });
 
   it('main Play buttons are the strong yellow; list-row discs stay pale', () => {
-    expect(read('app/player.tsx')).toMatch(/const PLAY = '[^']*\bbg-primary\b/);
-    expect(read('app/episode/[id].tsx')).toMatch(/rounded-pill bg-primary items-center justify-center px-section/);
-    expect(read('src/ui/player/EndOffer.tsx')).toMatch(/bg-primary rounded-pill/);
+    // M24 fix F-P: the fixed `play` token, not `primary` (which the accent theme swaps).
+    expect(read('app/player.tsx')).toMatch(/const PLAY = '[^']*\bbg-play\b/);
+    expect(read('app/episode/[id].tsx')).toMatch(/rounded-pill bg-play items-center justify-center px-section/);
+    expect(read('src/ui/player/EndOffer.tsx')).toMatch(/bg-play rounded-pill/);
     const q = read('src/ui/queue/QueueList.tsx');
-    expect(q.match(/accessibilityLabel="Play now" className="[^"]*bg-primary/g)).toHaveLength(1);
+    expect(q.match(/accessibilityLabel="Play now" className="[^"]*bg-play\b/g)).toHaveLength(1);
     expect(q).toMatch(/rounded-pill bg-playDisc items-center justify-center" style=\{PLAY_DISC\}/);
   });
 
@@ -134,7 +135,7 @@ describe('the look, from the source', () => {
     const m = read('src/ui/player/MiniPlayer.tsx');
     expect(m).toMatch(/<PlayRing /);
     expect(m).toMatch(/style=\{tabular\}/);
-    expect(read('src/ui/player/PlayRing.tsx')).toMatch(/borderTopColor: c\.primary/);
+    expect(read('src/ui/player/PlayRing.tsx')).toMatch(/borderTopColor: c\.play\b/);
   });
 
   it('the queue sheet is "Up next"; the ended page is "Finished"', () => {

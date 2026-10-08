@@ -15,7 +15,6 @@
 import { createHash, randomInt, timingSafeEqual } from 'node:crypto';
 import type { Db } from '../../db.ts';
 import { ApiError } from '../../../errors.ts';
-import { codeRef, plusUntil } from './purchases.ts';
 
 const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 export const REDEEM_CODE_LENGTH = 12;
@@ -66,7 +65,7 @@ export async function showTitle(db: Db, feedUrl: string): Promise<string | null>
   return r?.title ?? null;
 }
 
-export type Redeemed = { kind: 'plus'; days: number; /** Fix F-S: when this code's days begin */ startsAt: string; until: string | null } | { kind: 'show'; feedUrl: string; title: string | null };
+export type Redeemed = { kind: 'plus'; days: number; until: string | null } | { kind: 'show'; feedUrl: string; title: string | null };
 
 type CodeRow = { code: string; grants: unknown; max_uses: number; uses: number; expires_at: Date | string | null; disabled_at: Date | string | null };
 
@@ -92,18 +91,13 @@ export async function redeemCode(db: Db, raw: string, listenerId: string, now = 
       'UPDATE redeem_codes SET uses = uses + 1, used_by = $2, used_at = now() WHERE code = $1 AND uses < max_uses AND disabled_at IS NULL RETURNING uses', [row.code, listenerId]);
     if (!took) throw new ApiError('cancelled', 'This code has been used up.');
     if (grant.kind === 'plus') {
-      // Fix F-S: each code is its own interval row (ref 'code:<CODE>'), never the store's row, so a
-      // Play renewal or refund cannot overwrite or remove it. It starts at the latest end over all
-      // sources (or now) and lasts its days: a code during a running store sub adds days after it,
-      // and a second code chains after the first. A source that never ends → the code starts now.
-      const [e] = await tx.query<{ starts_at: Date | string }>(
-        `INSERT INTO entitlements (listener_id, kind, ref, starts_at, until)
-         SELECT $1, 'plus', $3, s.at, s.at + make_interval(days => $2::int)
-           FROM (SELECT CASE WHEN bool_or(until IS NULL) THEN now() ELSE GREATEST(now(), max(until)) END AS at
-                   FROM entitlements WHERE listener_id = $1 AND kind = 'plus' AND (until IS NULL OR until > now())) s
-         RETURNING starts_at`, [listenerId, grant.days, codeRef(row.code)]);
-      const p = await plusUntil(tx, listenerId);
-      return { kind: 'plus', days: grant.days, startsAt: new Date(e!.starts_at).toISOString(), until: p.until };
+      // Adds the days to PLUS: from now, or from the end of PLUS already running. NULL (for ever) stays.
+      const [e] = await tx.query<{ until: Date | string | null }>(
+        `INSERT INTO entitlements (listener_id, kind, ref, until) VALUES ($1, 'plus', '', now() + make_interval(days => $2::int))
+         ON CONFLICT (listener_id, kind, ref) DO UPDATE SET until = CASE WHEN entitlements.until IS NULL THEN NULL
+           ELSE GREATEST(entitlements.until, now()) + make_interval(days => $2::int) END
+         RETURNING until`, [listenerId, grant.days]);
+      return { kind: 'plus', days: grant.days, until: e?.until ? new Date(e.until).toISOString() : null };
     }
     const [owns] = await tx.query("SELECT 1 FROM entitlements WHERE listener_id = $1 AND kind = 'show' AND ref = $2", [listenerId, grant.feedUrl]);
     if (owns) throw new ApiError('already_owned', 'You already have this series. The code still works for someone else.');

@@ -98,7 +98,7 @@ export function registerComments(studio: Hono<StudioEnv>): void {
   studio.post('/shows/:show/comments/pending/:id/approve', async (c) =>
     c.json(await approveHeld(c.get('db'), c.get('show').feedUrl, c.req.param('id'))));
   studio.post('/shows/:show/comments/pending/:id/reject', async (c) => {
-    await rejectHeld(c.get('db'), c.get('show').feedUrl, c.req.param('id'), c.get('images'));
+    await rejectHeld(c.get('db'), c.get('show').feedUrl, c.req.param('id'));
     return c.body(null, 204);
   });
 

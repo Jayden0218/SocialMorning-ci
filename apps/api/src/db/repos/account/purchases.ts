@@ -3,8 +3,7 @@
  * M20 US6 (spec FR-020–FR-026; data-model "purchases"; guard G-M20-5). A Google Play purchase is
  * checked with Google first (`GooglePlay`), then written once — `purchase_token` is unique, so a
  * repeated or raced notice finds the same row and grants nothing new. What it grants:
- *  - PLUS → `entitlements (plus, '', until = Google's expiry)`; sending the token again refreshes the expiry.
- *    Fix F-S: that row is the store's alone — redeem codes and Admin keep their own rows (`plusUntil`)
+ *  - PLUS → `entitlements (plus, '', until = Google's expiry)`; sending the token again refreshes the expiry
  *  - a show's price level → `entitlements (show, feed URL)`: every paid episode of that show
  *  - a tip → a `tips` row to the show
  *  - M22 US14: a gift of a show (`gift_tier_n`) → nothing for the buyer; a `gifts` row with a code
@@ -186,60 +185,8 @@ export async function acknowledgeDue(db: Db, play: GooglePlay): Promise<{ done: 
   return { done, failed };
 }
 
-/**
- * Fix F-S: PLUS comes from separate rows, one per source (`entitlements.ref`): '' = the store
- * (Google Play; renewals and refunds touch only it), 'code:<CODE>' = one redeem code each (legacy
- * 'code' = codes redeemed before migration 026), 'admin' = given by hand (routes/admin/users.ts
- * PLUS_BY_ADMIN). No source ever writes another's row.
- *
- * Each row is an interval [starts_at, until): `starts_at` NULL = already started, `until` NULL =
- * for ever. A code's interval starts at the latest end over all sources when it is redeemed (or
- * now), so a code redeemed during a running store sub adds its days AFTER it. A store refund
- * deletes only the store row: the code keeps its own N days (there may be a gap before it starts).
- */
-export const PLUS_BY_STORE = '';
-export const PLUS_BY_CODE = 'code';
-export const codeRef = (code: string): string => `${PLUS_BY_CODE}:${code}`;
-
-/** SQL: a PLUS row whose interval contains now (alias `e`). */
-export const PLUS_LIVE_SQL = "e.kind = 'plus' AND (e.starts_at IS NULL OR e.starts_at <= now()) AND (e.until IS NULL OR e.until > now())";
-
-export type PlusInterval = { start: number | null; end: number | null };
-
-/**
- * Pure. Active = now falls inside ANY interval. `until` = the end of the continuous run that
- * contains now: from the intervals holding now, follow every interval that touches or overlaps
- * the run's end. `until` null with `active` = for ever; inactive → null.
- */
-export function plusRun(intervals: readonly PlusInterval[], now: number): { active: boolean; until: number | null } {
-  const holds = (i: PlusInterval, t: number) => (i.start === null || i.start <= t) && (i.end === null || i.end > t);
-  const live = intervals.filter((i) => holds(i, now));
-  if (live.length === 0) return { active: false, until: null };
-  if (live.some((i) => i.end === null)) return { active: true, until: null };
-  let end = Math.max(...live.map((i) => i.end!));
-  for (let moved = true; moved;) {
-    moved = false;
-    for (const i of intervals) {
-      if ((i.start === null || i.start <= end) && (i.end === null || i.end > end)) {
-        if (i.end === null) return { active: true, until: null };
-        end = i.end;
-        moved = true;
-      }
-    }
-  }
-  return { active: true, until: end };
-}
-
-/** PLUS now, and when its continuous run ends (`plusRun`). Computed, never stored. */
-export async function plusUntil(db: Db, listenerId: string): Promise<{ active: boolean; until: string | null }> {
-  const rows = await db.query<{ starts_at: Date | string | null; until: Date | string | null }>(
-    "SELECT starts_at, until FROM entitlements WHERE listener_id = $1 AND kind = 'plus' AND (until IS NULL OR until > now())", [listenerId]);
-  const run = plusRun(rows.map((r) => ({ start: r.starts_at === null ? null : new Date(r.starts_at).getTime(), end: r.until === null ? null : new Date(r.until).getTime() })), Date.now());
-  return { active: run.active, until: run.until === null ? null : new Date(run.until).toISOString() };
-}
-
-/** Whether this listener has PLUS now (the badge, the icons): any source whose interval holds now. */
+/** Whether this listener has PLUS now (the badge, the icons). Computed, never stored. */
 export async function hasPlus(db: Db, listenerId: string): Promise<boolean> {
-  const [r] = await db.query(`SELECT 1 FROM entitlements e WHERE e.listener_id = $1 AND ${PLUS_LIVE_SQL}`, [listenerId]);
+  const [r] = await db.query("SELECT 1 FROM entitlements WHERE listener_id = $1 AND kind = 'plus' AND (until IS NULL OR until > now())", [listenerId]);
   return Boolean(r);
 }

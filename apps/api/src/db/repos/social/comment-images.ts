@@ -24,20 +24,16 @@ export async function sweepRemovedImages(db: Db, store: ImageStorage): Promise<{
 export async function removeImagesFor(db: Db, store: ImageStorage, listenerId: string): Promise<{ deleted: number; failed: number }> {
   if (!store.ready) return { deleted: 0, failed: 0 };
   const rows = await db.query<{ id: string; image_path: string }>('SELECT id, image_path FROM comments WHERE author_id = $1 AND image_path IS NOT NULL', [listenerId]);
-  const done = await forget(db, store, rows);
-  // Fix F-S: pictures on comments still held for review go too.
-  const held = await db.query<{ id: string; image_path: string }>('SELECT id, image_path FROM held_comments WHERE author_id = $1 AND image_path IS NOT NULL', [listenerId]);
-  const more = await forget(db, store, held, 'held_comments');
-  return { deleted: done.deleted + more.deleted, failed: done.failed + more.failed };
+  return forget(db, store, rows);
 }
 
-async function forget(db: Db, store: ImageStorage, rows: { id: string; image_path: string }[], table: 'comments' | 'held_comments' = 'comments'): Promise<{ deleted: number; failed: number }> {
+async function forget(db: Db, store: ImageStorage, rows: { id: string; image_path: string }[]): Promise<{ deleted: number; failed: number }> {
   let deleted = 0;
   let failed = 0;
   for (const r of rows) {
     try {
       await store.remove(r.image_path);
-      await db.query(`UPDATE ${table} SET image_url = NULL, image_path = NULL, image_w = NULL, image_h = NULL, image_bytes = NULL WHERE id = $1`, [r.id]);
+      await db.query('UPDATE comments SET image_url = NULL, image_path = NULL, image_w = NULL, image_h = NULL, image_bytes = NULL WHERE id = $1', [r.id]);
       deleted++;
     } catch {
       failed++;

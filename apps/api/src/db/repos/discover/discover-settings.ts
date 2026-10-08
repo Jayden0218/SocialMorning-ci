@@ -11,12 +11,8 @@
 import type { Db } from '../../db.ts';
 import { ApiError } from '../../../errors.ts';
 
-/**
- * The phone's section ids (apps/mobile/src/discover/sections.ts), in the DEFAULT order — the one
- * Admin › Discover starts from before a layout is saved. Fix F-S: the Editor's picks come first,
- * then For you (design Home-B). A layout the owner saved keeps its own order.
- */
-export const SECTION_IDS = ['picks', 'forYou', 'chart', 'shows', 'video', 'collections', 'followedHere', 'said', 'newShows'] as const;
+/** The phone's section ids (apps/mobile/src/discover/sections.ts). */
+export const SECTION_IDS = ['forYou', 'picks', 'chart', 'shows', 'video', 'collections', 'followedHere', 'said', 'newShows'] as const;
 export const MAX_PINS = 3;
 export const MAX_FEATURES = 5;
 

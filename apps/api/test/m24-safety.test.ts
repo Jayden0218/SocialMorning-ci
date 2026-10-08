@@ -117,7 +117,7 @@ test('G-M24-A2: a blocked word is refused with 422 blocked_word on comments, sta
   await t.close();
 });
 
-test('M24 US3: a notice written in Admin shows on every phone; a push goes only to listeners whose System notices switch is on (not Popular — fix F-S)', async () => {
+test('M24 US3: a notice written in Admin shows on every phone; a push goes only to listeners whose Popular switch is on', async () => {
   const sent: { to: string; data: Record<string, string> }[] = [];
   const pushFetch = (async (_i: string | URL | Request, init?: RequestInit) => {
     const batch = JSON.parse(String(init?.body)) as { to: string; data: Record<string, string> }[];
@@ -129,11 +129,7 @@ test('M24 US3: a notice written in Admin shows on every phone; a push goes only 
   const b = await signUp(t, 'b@example.com', 'Ben');
   await t.call('POST', '/v1/me/push-tokens', { token: 'ExponentPushToken[aaaaaaaaaaaa]', platform: 'android' }, a.token);
   await t.call('POST', '/v1/me/push-tokens', { token: 'ExponentPushToken[bbbbbbbbbbbb]', platform: 'ios' }, b.token);
-  // Fix F-S: notices have their own switch. Popular off does not stop them; System off does.
-  assert.equal((await t.call('PUT', '/v1/me/push-prefs', { popular: false }, a.token)).status, 204);
-  assert.equal((await t.call('PUT', '/v1/me/push-prefs', { system: false }, b.token)).status, 204);
-  assert.equal((await json<Record<string, boolean>>(t.call('GET', '/v1/me/push-prefs', undefined, b.token)))['system'], false);
-  assert.equal((await json<Record<string, boolean>>(t.call('GET', '/v1/me/push-prefs', undefined, a.token)))['system'], true, 'default on');
+  await t.call('PUT', '/v1/me/push-prefs', { popular: false }, b.token);
 
   assert.equal((await aCall(t, 'POST', '/v1/admin/notices', owner, { title: 'Hi', body: 'Body', link: { label: 'Open', route: 'https://evil.example' } })).status, 422, 'a web address is not a link');
   const res = await aCall(t, 'POST', '/v1/admin/notices', owner, { title: 'New: chat', body: 'You can chat now.', link: { label: 'Open chats', route: '/inbox' }, push: true });

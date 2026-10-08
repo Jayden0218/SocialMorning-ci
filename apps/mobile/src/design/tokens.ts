@@ -65,6 +65,14 @@ export const colour = {
   switchOff: '#d9d3c4',
   /** M24 US18 (`QueueSheet-B` and every sheet): the 40 × 5 handle on top of a sheet. Decorative. */
   handle: 'rgba(17,17,20,0.22)',
+  /**
+   * M24 fix F-P (owner, 2026-10-08): the main Play buttons (player play/pause, Episode "Play from",
+   * Queue "Play now", "Play it", the mini player's ring, the Home pick's Play pill) are always the
+   * strong yellow, whatever the accent theme — so they are not `primary`, which the theme swaps.
+   * Words and glyphs on it: 11.80. List-row ▶ discs stay `playDisc`.
+   */
+  play: '#fcc522',
+  onPlay: '#111114',
 } as const;
 
 export type Palette = { readonly [K in keyof typeof colour]: string };
