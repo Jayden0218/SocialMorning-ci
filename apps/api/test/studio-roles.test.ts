@@ -25,8 +25,6 @@ const OWNER_ONLY = new Set<string>([
   'GET /shows/:show/overrides', 'PUT /shows/:show/overrides', 'GET /shows/:show/team', 'POST /shows/:show/team',
   'DELETE /shows/:show/team/:listenerId', 'POST /shows/:show/release', 'GET /shows/:show/tips', 'PUT /shows/:show/details',
   'DELETE /shows/:show/hosts/:listenerId', 'GET /shows/:show/host-invites', 'POST /shows/:show/host-invites', 'DELETE /shows/:show/host-invites/:id',
-  // M24 US9 / US13: earnings and a paid episode's free preview.
-  'GET /shows/:show/earnings', 'GET /shows/:show/export/earnings.csv', 'PUT /shows/:show/hosted-episodes/:id/preview',
 ]);
 
 const showRoutes = () => {

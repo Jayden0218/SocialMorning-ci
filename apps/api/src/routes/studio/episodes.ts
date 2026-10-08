@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { json } from '../../validate.ts';
 import { publish } from '../../db/repos/studio/announcements.ts';
 import { isAutoCover } from '@socialmorning/social-core';
-import { listHostedEpisodes, promoteDue, publishEpisode, removeEpisode, setEpisodePaid, setPreview, setPriceTier, storedBytes, updateEpisode, updateHostedShow } from '../../db/repos/studio/hosted.ts';
+import { listHostedEpisodes, promoteDue, publishEpisode, removeEpisode, setEpisodePaid, setPriceTier, storedBytes, updateEpisode, updateHostedShow } from '../../db/repos/studio/hosted.ts';
 import { AUDIO_TYPES, IMAGE_TYPES, MAX_AUDIO_BYTES, MAX_IMAGE_BYTES } from '../../storage/episodes-blob.ts';
 import { randomUUID } from 'node:crypto';
 import type { Hono } from 'hono';
@@ -147,13 +147,6 @@ export function registerEpisodes(studio: Hono<StudioEnv>): void {
   studio.put('/shows/:show/hosted-episodes/:id/paid', ownerOnly, json(z.object({ paid: z.boolean() }).strict()), async (c) => {
     const h = await hostedOf(c.get('db'), c.get('show').feedUrl);
     return c.json({ episode: await setEpisodePaid(c.get('db'), h, c.req.param('id'), c.req.valid('json').paid) });
-  });
-
-  /** M24 US13: a paid episode's free preview range (≤ 10 min), or null to have none. Owner only, like the price. */
-  const previewBody = z.object({ startMs: z.number().int().min(0), endMs: z.number().int().positive() }).strict().nullable();
-  studio.put('/shows/:show/hosted-episodes/:id/preview', ownerOnly, json(z.object({ preview: previewBody }).strict()), async (c) => {
-    const h = await hostedOf(c.get('db'), c.get('show').feedUrl);
-    return c.json({ episode: await setPreview(c.get('db'), h, c.req.param('id'), c.req.valid('json').preview) });
   });
 
   /** Unpublish and delete the audio (FR-007, guard G-D1). Comments on it stay, like any episode that leaves a feed. */

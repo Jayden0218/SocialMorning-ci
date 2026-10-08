@@ -21,7 +21,6 @@ import type { Db } from '../../db.ts';
 import type { EpisodeCard } from '../../../catalog/apple.ts';
 import { cached } from '../cache.ts';
 import { hiddenFeedUrls } from '../safety/moderation.ts';
-import { hiddenEpisodeIds, notHidden } from '../studio/hidden-episodes.ts';
 import { talkedAboutChart, type DiscoverItem } from './discover.ts';
 
 export const CHART_KINDS = ['talked', 'new', 'rising'] as const;
@@ -51,17 +50,15 @@ export async function chart(db: Db, kind: ChartKind, limit: number, now: () => n
   }), now);
   // M6 G7: a show hidden after this copy was made leaves at once, not 5 min later.
   const hidden = await hiddenFeedUrls(db);
-  const hiddenEps = await hiddenEpisodeIds(db); // M24 US11: hidden episodes leave this list.
-  const items = body.items.filter((i) => !hidden.has(i.episode.feedUrl) && !hiddenEps.has(i.episode.id)).slice(0, limit).map((i, n) => ({ ...i, rank: n + 1 }));
+  const items = body.items.filter((i) => !hidden.has(i.episode.feedUrl)).slice(0, limit).map((i, n) => ({ ...i, rank: n + 1 }));
   return { items, updatedAt: body.updatedAt };
 }
 
 /** "New shows": each show once, with its newest episode, newest first-episode first. */
 async function newShowsChart(db: Db): Promise<ChartItem[]> {
-  // M24 US11: hidden episodes leave this list (a show's newest VISIBLE episode is its card).
   const rows = await db.query<EpRow & { first_at: Date | string }>(
     `WITH s AS (SELECT feed_url, min(COALESCE(published_at, first_seen_at)) AS first_at FROM episodes GROUP BY feed_url),
-          latest AS (SELECT DISTINCT ON (feed_url) * FROM episodes WHERE ${notHidden('episodes')} ORDER BY feed_url, COALESCE(published_at, first_seen_at) DESC, id)
+          latest AS (SELECT DISTINCT ON (feed_url) * FROM episodes ORDER BY feed_url, COALESCE(published_at, first_seen_at) DESC, id)
      SELECT ${EP_COLS}, s.first_at FROM latest e JOIN s USING (feed_url)
       WHERE ${NOT_HIDDEN}
       ORDER BY s.first_at DESC, e.feed_url LIMIT ${CHART_STORED}`,
@@ -74,7 +71,6 @@ async function newShowsChart(db: Db): Promise<ChartItem[]> {
 
 /** "Rising": listens + comments this week minus the week before; only growth, biggest first. */
 async function risingChart(db: Db): Promise<ChartItem[]> {
-  // M24 US11: hidden episodes leave this list.
   const rows = await db.query<EpRow & { cur: number; prev: number }>(
     `WITH ev AS (
        SELECT episode_id, created_at FROM activity WHERE kind = 'listened' AND created_at > now() - interval '14 days'
@@ -88,7 +84,7 @@ async function risingChart(db: Db): Promise<ChartItem[]> {
          FROM ev GROUP BY episode_id
      )
      SELECT ${EP_COLS}, g.cur, g.prev FROM g JOIN episodes e ON e.id = g.episode_id
-      WHERE g.cur > g.prev AND ${NOT_HIDDEN} AND ${notHidden('e')}
+      WHERE g.cur > g.prev AND ${NOT_HIDDEN}
       ORDER BY (g.cur - g.prev) DESC, g.cur DESC, e.id LIMIT ${CHART_STORED}`,
   );
   return rows.map((r, i) => {
@@ -117,14 +113,13 @@ export const HUNT_SIZE = 3;
  * changes the next day; `shuffle = n` gives the n-th other set.
  */
 export async function hunt(db: Db, listenerId: string | undefined, day: string, shuffle: number): Promise<(EpisodeCard & { id: string })[]> {
-  // M24 US11: hidden episodes leave this list.
   const rows = await db.query<EpRow & { plays: number }>(
     `WITH plays AS (
        SELECT episode_id, count(DISTINCT actor_id)::int AS n FROM activity
         WHERE kind = 'listened' AND created_at > now() - interval '30 days' GROUP BY episode_id
      ), cand AS (
        SELECT ${EP_COLS}, COALESCE(p.n, 0) AS plays FROM episodes e LEFT JOIN plays p ON p.episode_id = e.id
-        WHERE e.enclosure_url <> '' AND ${NOT_HIDDEN} AND ${notHidden('e')}
+        WHERE e.enclosure_url <> '' AND ${NOT_HIDDEN}
           AND ($1::uuid IS NULL OR (
             NOT EXISTS (SELECT 1 FROM subscriptions s WHERE s.listener_id = $1::uuid AND s.feed_url = e.feed_url AND s.deleted_at IS NULL)
             AND NOT EXISTS (SELECT 1 FROM rec_dismissals d WHERE d.listener_id = $1::uuid

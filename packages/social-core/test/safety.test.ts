@@ -9,7 +9,7 @@ test('A1: canReport — signed out → sign_in; own content → own; else ok (FR
   assert.equal(canReport('a', 'b'), 'ok');
   assert.equal(canReport('a', null), 'ok'); // a show has no author
   assert.equal(REPORT_REASONS.length, 7);
-  assert.deepEqual(TARGET_KINDS, ['comment', 'clip', 'profile', 'show', 'episode', 'transcript']);
+  assert.deepEqual(TARGET_KINDS, ['comment', 'clip', 'profile', 'show', 'episode', 'transcript', 'status', 'chat_message', 'list']);
 });
 
 test('A1: canBlock — signed out, self, the owner refused; the owner unset → ok', () => {

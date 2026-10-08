@@ -8,7 +8,6 @@ import { hiddenFor } from '../safety/reports.ts';
 import { initialsOf, likesOnEpisode } from './comment-likes.ts';
 import { mutedIdsFor } from './mutes.ts';
 import { notifyForComment } from './notifications.ts';
-import { heldForAuthor } from '../studio/comment-policy.ts';
 
 export type CommentRow = {
   id: string;
@@ -100,8 +99,6 @@ export type PublicComment = {
   country: string | null;
   /** M21 US6: the author's listening badge; null below 100 h, when hidden, or for a placeholder. */
   badge: Badge | null;
-  /** M24 US8: waiting for the host's review — only its author is ever given it. */
-  held?: true;
 };
 
 const SELECT = `SELECT c.id, c.episode_id, c.author_id, l.display_name, l.avatar_url, c.parent_id, c.body, c.offset_ms, c.created_at, c.deleted_at, c.removed_at, c.host_hidden_at,
@@ -243,18 +240,11 @@ export async function listComments(db: Db, episodeId: string, viewerId?: string,
     byId.set(c.id, c);
     if (c.parentId === null) top.push({ ...c, replies: [] });
   }
-  // M24 US8 (G-M24-1): the viewer's own comments held for review, marked `held`; nobody else gets them.
-  const held = viewerId === undefined ? [] : await heldForAuthor(db, episodeId, viewerId);
-  if (held.some((h) => h.parentId === null)) {
-    for (const h of held) if (h.parentId === null) top.push({ ...h, replies: [] });
-    top.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-  }
   const topById = new Map(top.map((c) => [c.id, c]));
   for (const r of rows) {
     if (r.parent_id === null) continue;
     topById.get(r.parent_id)?.replies!.push(byId.get(r.id)!);
   }
-  for (const h of held) if (h.parentId !== null) topById.get(h.parentId)?.replies!.push(h);
   const ordered = opts.dir === 'asc' ? top : top.reverse();
   // M22 US10 (G-M22-11): the bottom pin is last whichever way the list reads.
   const bottom = ordered.filter((c) => c.pinnedBottom === true);
