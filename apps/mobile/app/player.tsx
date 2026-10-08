@@ -445,7 +445,7 @@ export default function PlayerScreen(): React.ReactElement {
           accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
           onPress={() => (isPlaying ? player.pause() : player.play())}
         >
-          <Icon name={isPlaying ? 'pause' : 'play'} size={34} color={c.onPrimary} />
+          <Icon name={isPlaying ? 'pause' : 'play'} size={34} color={c.onPlay} />
         </Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Skip forward 30 seconds" onPress={() => player.skip(30_000)} className={ROUND}>
           <Icon name="refresh-outline" size={40} color={c.text} />
@@ -583,7 +583,7 @@ const ROUND = 'w-14 h-14 items-center justify-center';
 /** M17: speed is a bordered pill showing the rate. */
 const SPEED = 'w-14 h-12 rounded-pill border border-border bg-surface items-center justify-center';
 /** M17: play/pause is the yellow disc. M24 US19 (owner, 2026-10-08): the strong yellow, the dark glyph. */
-const PLAY = 'w-[76px] h-[76px] rounded-pill bg-primary items-center justify-center';
+const PLAY = 'w-[76px] h-[76px] rounded-pill bg-play items-center justify-center';
 const BAR_ITEM = 'flex-1 items-center justify-center py-1.5 gap-0.5';
 
 /**

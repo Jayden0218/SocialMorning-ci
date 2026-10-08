@@ -31,7 +31,7 @@ function fakeApi(over: Partial<ApiClient> = {}): ApiClient {
     discover: notCalled, search: notCalled, nextUp: notCalled, category: notCalled, libraryPut: notCalled, myComments: notCalled, creatorClaims: notCalled, creatorClaim: notCalled, creatorVerify: notCalled, creatorStats: notCalled, pushTokenAdd: notCalled, pushTokenRemove: notCalled, pushPrefs: notCalled, sendFeedback: notCalled,
     // M6
     report: notCalled, reportTranscript: notCalled, block: notCalled, unblock: notCalled, hidden: notCalled, meta: notCalled,
-    showExtras: notCalled, showInfo: notCalled, votePoll: notCalled, recordShare: notCalled,
+    showExtras: notCalled, showInfo: notCalled, hiddenEpisodes: notCalled, votePoll: notCalled, recordShare: notCalled,
     // M8
     getSubscriptions: notCalled, putSubscriptions: notCalled, forYou: notCalled, postRecEvents: notCalled,
     ...over,

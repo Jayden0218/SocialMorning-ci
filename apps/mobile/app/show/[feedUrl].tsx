@@ -49,6 +49,7 @@ import { SafeAreaView } from '@/ui/lib/safe-area-view';
 import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
 import { refreshShow } from '@/feeds/fetch';
+import { readHiddenGuids, saveHiddenGuids, withoutHidden } from '@/feeds/hidden';
 import { htmlToText, mmss, noteSummary } from '@/ui/kit/format';
 import { usePlayer, usePlayerSelector } from '@/playback/store';
 import type { PlayerState } from '@/playback/types';
@@ -170,6 +171,11 @@ export default function ShowScreen(): React.ReactElement {
   // M11: the creator's Studio settings, announcements and polls — after the feed, never instead of it.
   // M21: the same call carries the cover's tint, our subscriber count, the hosts and the host picks.
   const [extras, replacePoll] = useShowExtras(feedUrl, { image: show?.imageUrl });
+  // M24 fix F-P (US11): episodes the creator hid in the Studio leave the list — the server's
+  // answer once it came (and remembered for offline), else the last answer remembered.
+  const serverHidden = extras?.hiddenGuids;
+  const hiddenGuids = useMemo(() => (serverHidden !== undefined ? new Set(serverHidden) : readHiddenGuids(stores.settings, feedUrl)), [serverHidden, stores, feedUrl]);
+  useEffect(() => { if (serverHidden !== undefined) saveHiddenGuids(stores.settings, feedUrl, serverHidden); }, [serverHidden, stores, feedUrl]);
   const { api } = useSocial();
   const ov = extras?.overrides ?? null;
   const curator = extras?.curator ?? null;
@@ -261,7 +267,8 @@ export default function ShowScreen(): React.ReactElement {
   // M23 US7: to the minute, so a re-render does not change every memoised row's "ago".
   const now = Math.floor(Date.now() / 60_000) * 60_000;
   // M10 minor mode (Settings → Minor mode): explicit episodes are not listed.
-  const allowed = getPref(stores.settings, 'hideExplicit') ? episodes.filter((e) => !e.explicit) : episodes;
+  const visible = withoutHidden(episodes, hiddenGuids);
+  const allowed = getPref(stores.settings, 'hideExplicit') ? visible.filter((e) => !e.explicit) : visible;
   const playsKnown = hasPlays(counts.listeners);
   // M21 US5: the host's picks, in the host's order; the chip hides when there are none.
   const picks = hostPicksOf(allowed, extras?.hostPicks);
