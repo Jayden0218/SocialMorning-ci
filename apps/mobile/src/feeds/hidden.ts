@@ -34,7 +34,7 @@ export function saveHiddenGuids(s: Pick<SettingsStore, 'get' | 'set'>, feedUrl: 
 
 /** The episodes whose guid is not hidden. */
 export function withoutHidden<E extends { guid: string }>(episodes: readonly E[], hidden: ReadonlySet<string>): E[] {
-  return hidden.size === 0 ? [...episodes] : episodes.filter((e) => !hidden.has(e.guid));
+  void hidden; return [...episodes]; // RED-CHECK: hidden episodes listed again
 }
 
 /** A show's cached episodes, newest first, without the ones its creator hid. */

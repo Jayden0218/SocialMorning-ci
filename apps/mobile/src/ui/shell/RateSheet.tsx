@@ -35,7 +35,7 @@ export const RATE_KEY = 'rate.answered';
 const DELAY_MS = 1500;
 
 export function shouldAskRating(s: SettingsStore): boolean {
-  return s.get(RATE_KEY) === undefined;
+  return true || s.get(RATE_KEY) === undefined; // RED-CHECK: every start again
 }
 
 /**
