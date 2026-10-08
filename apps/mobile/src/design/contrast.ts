@@ -59,6 +59,9 @@ export const PAIRS: Pair[] = [
   { fg: colour.playGlyph, bg: colour.playDisc, min: BODY_MIN, role: 'play triangle on its yellow disc' }, // 4.98
   { fg: colour.text, bg: over(colour.veil, '#000000'), min: BODY_MIN, role: 'player text on the veil (black cover)' }, // 13.29
   { fg: colour.muted, bg: over(colour.veil, '#000000'), min: BODY_MIN, role: 'player secondary text on the veil (black cover)' }, // 5.30
+  // M24 US18: the Segmented track and its dark choice (measured 2026-10-08).
+  { fg: colour.muted, bg: colour.segment, min: BODY_MIN, role: 'an unchosen tab on the beige track' }, // 6.21
+  { fg: colour.background, bg: colour.text, min: BODY_MIN, role: 'paper words on the dark chosen tab' }, // 17.47
 ];
 
 /**

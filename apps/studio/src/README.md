@@ -67,12 +67,10 @@ missing here or a line does not match its file.
 | `Launch.tsx` | Admin page to manage promotion images shown on the app's launch screen. |
 | `PhonePreview.tsx` | Shows a day's picks the way the phone app will draw them. |
 | `Picks.tsx` | Admin page with a calendar to choose and order each day's episode picks. |
+| `Redeem.tsx` | Admin page for redeem codes: make codes that give PLUS days or a paid show for free, see their uses, switch one off. |
 | `Reports.tsx` | Admin page for the reports queue: dismiss, remove, hide or suspend. |
-| `Appeals.tsx` | Admin page for appeals (accept undoes the action, reject keeps it) and the account deletion queue. |
-| `Notices.tsx` | Admin page to write a system notice to every listener, with an optional push. |
-| `Safety.tsx` | Admin page for blocked words and the maintenance switch. |
 | `Translation.tsx` | Admin page for translated transcripts: the shows that get them, today's Groq free-tier use, and the queue. |
-| `Users.tsx` | Admin page to find an account, see it in full, rename it, suspend or restore it, and give or take PLUS. |
+| `Users.tsx` | Admin page to find an account, rename it, and suspend or restore it. |
 
 ### `shell/` — parts many pages share
 

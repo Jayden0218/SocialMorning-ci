@@ -6,9 +6,6 @@
  * Share → "Send in chat" carries `episodeId` and shows that episode above the box until it is
  * sent or removed; a show's Share carries `text`, which starts in the box (owner, 2026-10-05). When the two of you no longer follow each other, the box is replaced by a
  * line that says why — the history stays.
- *
- * M24 US1: a long-press on a message from the other person offers Report; a reported message is
- * hidden for me at once (and sent to Admin, which can remove it for both of us).
  */
 import { reportAndDrop } from '@/telemetry/reportError';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
@@ -31,9 +28,6 @@ import { useCardActions } from '@/discover/useDiscover';
 import { ApiError } from '@/social/api';
 import { useSocial } from '@/social/context';
 import { registrationFor } from '@/social/registration';
-import { MoreSheet } from '@/ui/social/MoreSheet';
-import { ReportSheet, type ReportTarget } from '@/ui/comments/ReportSheet';
-import { useSafety } from '@/safety/context';
 import { CHAT_BODY_MAX, CHAT_POLL_MS, mergeMessages, newestId, useChatApi, type ChatMessage, type ChatPerson } from '@/social/chat-api';
 
 const TAP = { minHeight: hit.min };
@@ -49,9 +43,6 @@ export default function ChatThread(): React.ReactElement {
   const chat = useChatApi();
   const { open } = useCardActions();
   const list = useRef<RNFlatList<ChatMessage>>(null);
-  const { safety } = useSafety();
-  const [more, setMore] = useState<ChatMessage | undefined>(undefined);
-  const [reporting, setReporting] = useState<ReportTarget | undefined>(undefined);
 
   const [who, setWho] = useState<ChatPerson | undefined>(params.name ? { id: otherId, displayName: String(params.name) } : undefined);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -154,8 +145,6 @@ export default function ChatThread(): React.ReactElement {
 
   // "Read" goes under my newest message only.
   const lastMine = [...messages].reverse().find((m) => m.fromMe)?.id;
-  // M24 US1: what I reported stays hidden for me.
-  const shown = messages.filter((m) => m.fromMe || !safety.isHidden('chat_message', m.id));
 
   return (
     <KeyboardAvoidingView className="flex-1 bg-background" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -163,7 +152,7 @@ export default function ChatThread(): React.ReactElement {
       <RNFlatList
         ref={list}
         className="flex-1"
-        data={shown}
+        data={messages}
         keyExtractor={(m) => m.id}
         contentContainerClassName="py-row flex-grow justify-end"
         keyboardShouldPersistTaps="handled"
@@ -173,22 +162,8 @@ export default function ChatThread(): React.ReactElement {
         ) : (
           <Text className="text-muted text-sm text-center px-screen-x my-section">{`Say hello to ${name}.`}</Text>
         )}
-        renderItem={({ item }) => item.fromMe
-          ? <MessageBubble message={item} showRead={item.id === lastMine} onOpenEpisode={(e) => void open(e)} />
-          : (
-            <Pressable onLongPress={() => setMore(item)} delayLongPress={350} accessibilityLabel={`Message from ${name}: ${item.body || 'an episode'}`} accessibilityHint="Long-press for Report" accessibilityActions={[{ name: 'longpress', label: 'Report' }]} onAccessibilityAction={() => setMore(item)}>
-              <MessageBubble message={item} showRead={false} onOpenEpisode={(e) => void open(e)} />
-            </Pressable>
-          )}
+        renderItem={({ item }) => <MessageBubble message={item} showRead={item.id === lastMine} onOpenEpisode={(e) => void open(e)} />}
       />
-      <MoreSheet
-        open={more !== undefined}
-        title={more ? `Message from ${name}` : ''}
-        iconColour={c.accent}
-        onClose={() => setMore(undefined)}
-        rows={more ? [{ icon: 'flag-outline', label: 'Report this message', onPress: () => setReporting({ kind: 'chat_message', id: more.id, authorId: otherId, label: 'message' }) }] : []}
-      />
-      <ReportSheet target={reporting} onClose={() => setReporting(undefined)} />
       {canSend ? (
         <Box className="bg-surface border-t-hairline border-separator px-screen-x pt-2 pb-2 gap-2">
           {attach ? (

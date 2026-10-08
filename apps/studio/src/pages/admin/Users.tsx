@@ -1,11 +1,10 @@
-// Admin page to find an account, see it in full, rename it, suspend or restore it, and give or take PLUS.
+// Admin page to find an account, rename it, and suspend or restore it.
 import { useState } from 'react';
 import { api } from '../../api';
 import { shortDate } from '../../format';
 import { ConfirmDialog } from '../../shell/ConfirmDialog';
 import { PageHead } from '../../shell/Page';
-import { Empty, Failed, Loading } from '../../shell/States';
-import { useLoad } from '../../useLoad';
+import { Empty } from '../../shell/States';
 import { errorText } from './common';
 
 type User = { id: string; displayName: string; email: string; createdAt: string; suspended: boolean; madeByAdmin: boolean };
@@ -61,7 +60,6 @@ export function Users() {
 
 function UserRow({ u, busy, onRenamed, onSuspend }: { u: User; busy: boolean; onRenamed: (u: User) => void; onSuspend: (to: 'suspend' | 'restore') => void }) {
   const [editing, setEditing] = useState(false);
-  const [details, setDetails] = useState(false);
   const [name, setName] = useState(u.displayName);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -77,7 +75,6 @@ function UserRow({ u, busy, onRenamed, onSuspend }: { u: User; busy: boolean; on
         <div className="row-sub">{u.email} · joined {shortDate(u.createdAt)}</div>
       </div>
       <div className="pick-actions">
-        <button type="button" className="btn btn-quiet" aria-expanded={details} onClick={() => setDetails((x) => !x)}>Details<span className="sr-only"> {u.displayName}</span></button>
         <button type="button" className="btn btn-quiet" aria-expanded={editing} onClick={() => setEditing((x) => !x)}>Rename<span className="sr-only"> {u.displayName}</span></button>
         <button type="button" className="btn btn-quiet" disabled={busy} onClick={() => onSuspend(u.suspended ? 'restore' : 'suspend')}>
           {u.suspended ? 'Restore' : 'Suspend'}<span className="sr-only"> {u.displayName}</span>
@@ -91,70 +88,6 @@ function UserRow({ u, busy, onRenamed, onSuspend }: { u: User; busy: boolean; on
         </form>
       ) : null}
       {error ? <p className="error" role="alert" style={{ flexBasis: '100%' }}>{error}</p> : null}
-      {details ? <UserDetail id={u.id} /> : null}
     </li>
-  );
-}
-
-export type Detail = {
-  user: User; avatarUrl: string | null; bio: string | null; sessions: number;
-  plus: { active: boolean; until: string | null; byAdmin: boolean };
-  purchases: { id: string; productId: string; store: string; status: string; amountMicros: number | null; currency: string | null; createdAt: string }[];
-  tips: { id: string; feedUrl: string; status: string; createdAt: string }[];
-  gifts: { id: string; feedUrl: string; role: 'bought' | 'received'; claimedAt: string | null; cancelledAt: string | null; createdAt: string }[];
-  reportsAgainst: { id: string; targetKind: string; reason: string; createdAt: string; closeReason: string | null }[];
-  deletion: { requestedAt: string; dueAt: string } | null;
-};
-
-/** A store amount in micros → "4.99 USD"; unknown → "—". */
-export const money = (micros: number | null, currency: string | null): string => (micros === null ? '—' : `${(micros / 1_000_000).toFixed(2)} ${currency ?? ''}`.trim());
-
-/**
- * M24 US5: one account in full — purchases, PLUS, tips, gifts, reports against it, sessions, a
- * pending deletion; PLUS by hand (recorded) and removing an abusive photo or bio.
- */
-export function UserDetail({ id }: { id: string }) {
-  const [n, setN] = useState(0);
-  const data = useLoad(() => api<Detail>(`/v1/admin/users/${id}`), [id, n]);
-  const [days, setDays] = useState(30);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [asking, setAsking] = useState<{ title: string; body: string; confirm: string; run: () => Promise<unknown> } | null>(null);
-  const go = async (run: () => Promise<unknown>) => {
-    setBusy(true); setError(null);
-    try { await run(); setN((x) => x + 1); } catch (e) { setError(errorText(e)); } finally { setBusy(false); setAsking(null); }
-  };
-  if (data.state === 'loading') return <div style={{ flexBasis: '100%' }}><Loading lines={2} /></div>;
-  if (data.state === 'error') return <div style={{ flexBasis: '100%' }}><Failed message={data.message} retry={data.retry} /></div>;
-  const d = data.data;
-  return (
-    <div className="card" style={{ flexBasis: '100%', marginTop: 8 }} aria-label={`Details of ${d.user.displayName}`}>
-      <p className="row-sub">{d.sessions} signed-in device{d.sessions === 1 ? '' : 's'}{d.deletion ? ` · deletion on ${shortDate(d.deletion.dueAt)}` : ''}</p>
-      <p>
-        PLUS: {d.plus.active ? <span className="pill">Active{d.plus.until ? ` until ${shortDate(d.plus.until)}` : ''}{d.plus.byAdmin ? ' · given here' : ''}</span> : <span className="pill">None</span>}
-      </p>
-      <form className="toolbar" onSubmit={(e) => { e.preventDefault(); setAsking({ title: `Give PLUS for ${days} days?`, body: 'Recorded in Activity.', confirm: 'Give PLUS', run: () => api(`/v1/admin/users/${id}/plus`, { method: 'POST', body: { days } }) }); }}>
-        <label htmlFor={`plus-${id}`}>Days</label>
-        <input id={`plus-${id}`} type="number" min={1} max={3660} value={days} onChange={(e) => setDays(Math.max(1, Math.min(3660, Number(e.target.value) || 1)))} />
-        <button className="btn" type="submit" disabled={busy}>Give PLUS</button>
-        {d.plus.active ? <button className="btn btn-quiet" type="button" disabled={busy} onClick={() => setAsking({ title: 'Take PLUS away?', body: 'Every PLUS on this account ends now, bought or given. Recorded in Activity.', confirm: 'Take away', run: () => api(`/v1/admin/users/${id}/plus`, { method: 'DELETE' }) })}>Take PLUS away</button> : null}
-      </form>
-      <div className="toolbar">
-        {d.avatarUrl ? <><img src={d.avatarUrl} alt={`${d.user.displayName}'s photo`} width={48} height={48} style={{ borderRadius: 24, objectFit: 'cover' }} /><button className="btn btn-quiet" type="button" disabled={busy} onClick={() => setAsking({ title: 'Remove this photo?', body: 'It is deleted from storage.', confirm: 'Remove photo', run: () => api(`/v1/admin/users/${id}/avatar`, { method: 'DELETE' }) })}>Remove photo</button></> : <span className="muted">No photo</span>}
-      </div>
-      <div className="toolbar">
-        {d.bio ? <><span className="row-body">Bio: {d.bio}</span><button className="btn btn-quiet" type="button" disabled={busy} onClick={() => setAsking({ title: 'Remove this bio?', body: 'The bio becomes empty.', confirm: 'Remove bio', run: () => api(`/v1/admin/users/${id}/bio`, { method: 'DELETE' }) })}>Remove bio</button></> : <span className="muted">No bio</span>}
-      </div>
-      {error ? <p className="error" role="alert">{error}</p> : null}
-      <h3>Purchases</h3>
-      {d.purchases.length === 0 ? <p className="muted">None</p> : <ul className="rows">{d.purchases.map((p) => <li key={p.id}><span>{p.productId} · {p.store}</span><span className="row-side">{money(p.amountMicros, p.currency)} · {p.status} · {shortDate(p.createdAt)}</span></li>)}</ul>}
-      <h3>Tips sent</h3>
-      {d.tips.length === 0 ? <p className="muted">None</p> : <ul className="rows">{d.tips.map((t) => <li key={t.id}><span>{t.feedUrl}</span><span className="row-side">{t.status} · {shortDate(t.createdAt)}</span></li>)}</ul>}
-      <h3>Gifts</h3>
-      {d.gifts.length === 0 ? <p className="muted">None</p> : <ul className="rows">{d.gifts.map((g) => <li key={g.id}><span>{g.role} · {g.feedUrl}</span><span className="row-side">{g.cancelledAt ? 'cancelled' : g.claimedAt ? `claimed ${shortDate(g.claimedAt)}` : 'not claimed'}</span></li>)}</ul>}
-      <h3>Reports against</h3>
-      {d.reportsAgainst.length === 0 ? <p className="muted">None</p> : <ul className="rows">{d.reportsAgainst.map((r) => <li key={r.id}><span>{r.targetKind} · {r.reason}</span><span className="row-side">{r.closeReason ?? 'open'} · {shortDate(r.createdAt)}</span></li>)}</ul>}
-      {asking ? <ConfirmDialog title={asking.title} body={asking.body} confirm={asking.confirm} busy={busy} onCancel={() => setAsking(null)} onConfirm={() => { void go(asking.run); }} /> : null}
-    </div>
   );
 }

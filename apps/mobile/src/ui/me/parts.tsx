@@ -44,8 +44,15 @@ export function MenuRow(props: { href: string; icon: IconName; label: string; no
   );
 }
 
-/** A tile is 64 pt tall at the default text size (`Me-B`), and grows with it. */
-const TILE = { minHeight: 64 };
+/**
+ * A tile is 64 pt tall at the default text size (`Me-B`), and grows with it. M24 US18: the
+ * settings hub's tiles (`Account-B`, design-settings) are `large` — 84 pt, 14 pt padding, a 24 pt
+ * icon and a 14 / 700 label that wraps to 2 lines ("Downloads and cache" was cut).
+ */
+const TILE = {
+  regular: { box: { minHeight: 64 }, pad: 'p-row', icon: 22 },
+  large: { box: { minHeight: 84, padding: 14 }, pad: '', icon: 24 },
+} as const;
 
 /**
  * M17 (`Me-B`): one tile of the Me tab's two-column grid — a white card with a thin border, the
@@ -54,14 +61,15 @@ const TILE = { minHeight: 64 };
  * destination (tap-counts, the action inventory); the Link's press and ref pass through `rest`;
  * the tile's own spoken name (with its count) wins over the Link's static label.
  */
-export function MenuTile({ icon, label, badge, ...rest }: { icon: IconName; label: string; badge?: number } & Omit<ComponentProps<typeof Pressable>, 'children'>): React.ReactElement {
+export function MenuTile({ icon, label, badge, size, ...rest }: { icon: IconName; label: string; badge?: number; size?: keyof typeof TILE } & Omit<ComponentProps<typeof Pressable>, 'children'>): React.ReactElement {
   const stores = useStores();
   const c = useColours(stores.settings);
   const spoken = [label, badge ? `${badge} new` : undefined].filter(Boolean).join(', ');
+  const t = TILE[size ?? 'regular'];
   return (
-    <Pressable {...rest} accessibilityRole="link" accessibilityLabel={spoken} className="flex-1 bg-surface border border-border rounded-row p-row justify-between gap-1" style={TILE}>
-      <Icon name={icon} size={22} color={c.accent} />
-      <Text className="text-text text-meta font-semibold" numberOfLines={1}>{label}</Text>
+    <Pressable {...rest} accessibilityRole="link" accessibilityLabel={spoken} className={`flex-1 bg-surface border border-border rounded-row justify-between gap-1.5 ${t.pad}`} style={t.box}>
+      <Icon name={icon} size={t.icon} color={c.accent} />
+      <Text className={size === 'large' ? 'text-text text-body font-bold' : 'text-text text-meta font-semibold'} numberOfLines={2}>{label}</Text>
       {badge ? (
         <Box className="absolute top-2 right-2 bg-accent rounded-pill min-w-6 h-6 px-1 items-center justify-center"><Text className="text-background text-xs font-bold">{badge > 99 ? '99+' : badge}</Text></Box>
       ) : null}

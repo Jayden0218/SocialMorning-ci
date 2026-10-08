@@ -59,6 +59,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `expo-downloader.ts` | Downloads episode files to the phone, with pause and resume. |
 | `expo-network.ts` | Tells whether the phone is on Wi-Fi, mobile data, or offline. |
 | `manager.ts` | Runs the download queue: order, Wi-Fi rule, storage limit, and progress. |
+| `multi-select.ts` | Choosing several downloads and deleting them together (the Downloads page's Select mode). |
 | `types.ts` | Describes the downloader and network pieces the download manager uses. |
 
 ### `feeds/` — Fetching podcast RSS feeds and keeping a copy on the phone.
@@ -207,6 +208,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | File | What it does |
 |---|---|
 | `api.ts` | Typed client for every server call, with clear error types. |
+| `account-api.ts` | Server calls for the account: redeem a code, change the sign-in email. |
 | `api-m22-server.ts` | Server calls for M22 lane 5: bottom pins, the deletion wait, time zone, translated transcripts, gifts and the weekly digest. |
 | `auth-store.ts` | Handles sign-up, sign-in and sign-out, and stores the account. |
 | `avatar-image.ts` | Lets you pick a square profile photo and shrinks it to 400 px and under 200 KB. |
@@ -223,8 +225,6 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `m19-api.ts` | Server calls for playlists, notices from hosts, the monthly report and the teen-mode reset. |
 | `api-m22-library.ts` | Server calls for the synced playlist and for deleting listening history. |
 | `notifications-api.ts` | Server calls for Interactions (replies, likes, mentions, follows), and where each notice opens. |
-| `appeals-api.ts` | Server calls for appeals: what I may appeal, and sending one appeal — with a session or the suspension's token. |
-| `lists-api.ts` | Server call for one shared show list (GET /v1/lists/:id), and checking what came back. |
 | `poll.ts` | Checks for new comments every 10 seconds, only when useful. |
 | `profile-api.ts` | Server calls for your profile, photo, hidden recommendations and episode likes. |
 | `us8-api.ts` | Server calls for text statuses, my subscription order, and others' public subscriptions. |
@@ -338,16 +338,17 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `DataPrompt.tsx` | The sheet that asks before streaming on mobile data: Allow this time, or Always allow. |
 | `ClapBurst.tsx` | A short full-screen burst of thumbs when the listener reacts; never blocks a tap; off with Reduce Motion. |
 | `HeatCurve.tsx` | 100 bars under the seek bar showing where listeners reacted; tap to jump. |
-| `HeatScrubber.tsx` | The heat curve as the seek bar: tap or drag across it to jump; the played part is in the accent. |
+| `HeatScrubber.tsx` | The heat curve over a seek bar (track, dark fill, knob): tap or drag across either to jump. |
 | `MiniPlayer.tsx` | Small bar at the bottom showing what plays; tap to open the player. |
+| `PlayRing.tsx` | The mini player's progress ring: a strong yellow arc on a light grey track around play/pause. |
 | `NextUp.tsx` | Loads the "Next up" episodes, each with a reason, for the episode page. |
 | `Rail.tsx` | Small marks on the seek bar where people left timed comments. |
 | `Scrubber.tsx` | The seek bar under the player; drag it to jump in the episode. |
-| `SettingsPanel.tsx` | The player's settings as a full-screen panel: loop, skip silence, speed, sleep, chapters and transcript. |
-| `SleepTimerControl.tsx` | Sleep timer choices (5–90 min), the End-of-episode switch, time left, Cancel. |
+| `SettingsPanel.tsx` | The Playback sheet: speed, sleep, chapters and transcript; loop, audio and the rest behind "More settings". |
+| `SleepTimerControl.tsx` | Sleep timer choices (5–90 min), End of episode, time left, Cancel — in three layouts. |
 | `swipe-close.ts` | The player's swipe down: a downward drag on its top area closes the player. |
 | `MoonButton.tsx` | The player's moon button: opens the sleep timer and shows its time left. |
-| `SpeedControl.tsx` | Play speed: a slider from 0.5× to 3.0×, minus and plus, quick choices, and a "This show only" switch. |
+| `SpeedControl.tsx` | Play speed: − big number +, quick choices and the default link; the slider and "This show only" in More settings. |
 | `TranscriptExtras.tsx` | The player's two transcript lines (now and next) with ⤢, and the sheet to report a wrong line. |
 | `TranscriptPane.tsx` | Episode transcript: follows the audio, tap a line to jump, long-press to share lines or report a mistake. |
 | `VideoStage.tsx` | Shows the video picture for video episodes; sound comes from the audio. |
@@ -416,7 +417,6 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `VoicePosts.tsx` | Short voice and text statuses from you and people you follow; tap to play or read, post new. |
 | `MutedThreads.tsx` | The notice threads you muted, each with Unmute, for Settings › Privacy. |
 | `StatusViewer.tsx` | Full-screen status viewer: plays on open, taps on the right or left third move, swipe down closes. |
-| `MoreSheet.tsx` | A small "More" sheet: a title, a few rows (Report, Stop suggesting…) and Cancel. |
 | `StatusReplies.tsx` | Replies and reactions under a status: a text box, hold to record a voice reply, six reactions, the owner's list. |
 | `StatusComposerItems.tsx` | Add up to 10 episode cards and photos to a new status, from history, the queue, search or the photo library. |
 | `OftenListened.tsx` | A profile's "Often listened" row: the six shows they listened to most in the last 90 days. |
