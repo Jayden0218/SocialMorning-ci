@@ -14,6 +14,7 @@
  * the server fields US8 adds), put back if the server refuses. Then "Muted users" (US6): the
  * listeners you muted, each with Unmute (GET /v1/me/mutes, DELETE /v1/me/mutes/:id).
  * M22 US3: then "Muted threads" (src/ui/social/MutedThreads.tsx).
+ * M25 SB: then "Download my data" (an emailed 24-hour link to a JSON copy; once a day).
  */
 import { Link } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -34,6 +35,8 @@ import { privacySwitchesOf, useProfileApi, type PrivacySwitches } from '@/social
 import { useCommentExtrasApi, type MutedListener } from '@/social/comment-extras-api';
 import { MutedThreads } from '@/ui/social/MutedThreads';
 import { OftenListenedSwitch } from '@/ui/settings/OftenListenedSwitch';
+import { useAccountApi } from '@/social/account-api';
+import { ApiError } from '@/social/api';
 
 const TAP = { minHeight: hit.min };
 
@@ -123,6 +126,35 @@ function MutedUsers(): React.ReactElement {
   );
 }
 
+/**
+ * M25 SB: "Download my data" — the server emails a 24-hour link to a JSON copy of everything this
+ * account keeps (profile, subscriptions, positions, comments, clips, statuses, lists, purchases,
+ * tips). Once a day; the server says so when it is too soon.
+ */
+function DownloadMyData(props: { iconColour: string }): React.ReactElement {
+  const account = useAccountApi();
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  const ask = () => {
+    if (busy) return;
+    setBusy(true);
+    account.requestDataExport()
+      .then((r) => toast(`We emailed you a link. It works for ${r.expiresInHours} hours.`))
+      .catch((e: unknown) => toast(e instanceof ApiError && e.code !== 'network' ? e.message : "Couldn't ask for your data — try again when you're online."))
+      .finally(() => setBusy(false));
+  };
+  return (
+    <Card className="py-section gap-gap">
+      <Icon name="download-outline" size={28} color={props.iconColour} />
+      <Text className="text-text text-base font-display" accessibilityRole="header">Download my data</Text>
+      <Text className="text-muted text-body">A copy of what SocialNet keeps about you, as a file: your profile, subscriptions, listening, comments, clips, statuses, lists, purchases and tips. We email you a link; it works for 24 hours. Once a day.</Text>
+      <Pressable onPress={ask} disabled={busy} accessibilityRole="button" accessibilityLabel="Email me a link to my data" accessibilityState={{ disabled: busy, busy }} className="rounded-pill border border-border items-center justify-center mt-row" style={TAP}>
+        <Text className="text-text text-body font-semibold">{busy ? 'Asking…' : 'Email me a link'}</Text>
+      </Pressable>
+    </Card>
+  );
+}
+
 export default function PrivacySettings(): React.ReactElement {
   const { api, listener } = useSocial();
   const stores = useStores();
@@ -175,6 +207,7 @@ export default function PrivacySettings(): React.ReactElement {
           {/* M22 US3 (FR-011): the notice threads muted from a notice's ⋯. */}
           <Text className="text-text text-base font-display-semibold" accessibilityRole="header">Muted threads</Text>
           <MutedThreads iconColour={c.accent} />
+          <DownloadMyData iconColour={c.accent} />
         </>
       ) : null}
 

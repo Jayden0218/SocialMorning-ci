@@ -25,6 +25,8 @@ async function web(t: TestDb, method: string, path: string, body?: Record<string
 async function login(t: TestDb, email: string, password = 'correct horse'): Promise<{ status: number; cookie?: string }> {
   const r = await web(t, 'POST', '/mod/login', { email, password });
   const set = r.headers.get('set-cookie') ?? undefined;
+  // M25 SB: a right password is followed by the code emailed to the owner (the /mod second factor).
+  if (set && r.status === 303) await web(t, 'POST', '/mod/code', { code: t.lastCode!(email) }, set.split(';')[0]!);
   return { status: r.status, ...(set ? { cookie: set.split(';')[0]! } : {}) };
 }
 const csrfOf = (html: string) => /name="csrf" value="([^"]+)"/.exec(html)![1]!;
@@ -47,6 +49,10 @@ test('A7 / G9: /mod is a form without a cookie, 503 without an owner, 403 for th
   assert.match(set, /HttpOnly/);
   assert.match(set, /SameSite=Strict/);
   assert.match(set, /Path=\/mod/);
+  // M25 SB (G-SB2): the password alone opens only the code step; the emailed code opens the queue.
+  const step = await web(t, 'GET', '/mod', undefined, set.split(';')[0]!);
+  assert.match(await step.text(), /Enter the code/);
+  assert.equal((await web(t, 'POST', '/mod/code', { code: t.lastCode!('o@example.com') }, set.split(';')[0]!)).status, 303);
   const queue = await web(t, 'GET', '/mod', undefined, set.split(';')[0]!);
   assert.equal(queue.status, 200);
   assert.match(await queue.text(), /Moderation queue/);

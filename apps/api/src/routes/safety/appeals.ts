@@ -22,10 +22,11 @@ const appellant: MiddlewareHandler<AppealEnv> = async (c, next) => {
   const h = c.req.header('authorization');
   const bearer = h && /^bearer /i.test(h) ? h.slice(7).trim() : '';
   let id: string | undefined;
-  if (bearer) id = (await listenerForToken(c.get('db'), bearer, c.get('pepper')))?.id;
+  if (bearer) id = (await listenerForToken(c.get('db'), bearer, c.get('pepper'), c.get('pepperNext')))?.id;
   if (!id) {
     const t = c.req.header('x-appeal-token');
-    if (t) id = listenerForAppealToken(t, c.get('pepper'));
+    const next = c.get('pepperNext');
+    if (t) id = listenerForAppealToken(t, c.get('pepper')) ?? (next ? listenerForAppealToken(t, next) : undefined); // M25 SB: either pepper
   }
   if (!id) throw new ApiError('unauthenticated', 'Sign in to appeal.');
   c.set('appellant', id);

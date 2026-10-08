@@ -4,6 +4,7 @@ import { z } from 'zod';
 import type { AuthEnv } from '../../auth/session.ts';
 import { optionalAuth } from '../../auth/session.ts';
 import { json } from '../../validate.ts';
+import { stripImageMetadata } from '@socialmorning/social-core';
 import { createFeedback, feedbackImageBytes, imagesSentToday, IMAGE_MAX_BYTES, IMAGES_MAX, sniff, type ImageIn } from '../../db/repos/account/feedback.ts';
 import { ApiError } from '../../errors.ts';
 import { clientAddress, DAY_MS, HOUR_MS, limit } from '../../auth/rate.ts';
@@ -59,10 +60,12 @@ feedback.post('/', optionalAuth, json(body), async (c) => {
     }
   }
   for (const img of b.images ?? []) {
-    const bytes = Uint8Array.from(Buffer.from(img.base64, 'base64'));
-    if (bytes.length > IMAGE_MAX_BYTES) throw new ApiError('too_large', `Each image must be at most ${IMAGE_MAX_BYTES} bytes.`);
-    const real = sniff(bytes);
-    if (real === undefined || real !== img.mime) throw new ApiError('validation', 'Only JPEG or PNG images.');
+    const raw = Uint8Array.from(Buffer.from(img.base64, 'base64'));
+    if (raw.length > IMAGE_MAX_BYTES) throw new ApiError('too_large', `Each image must be at most ${IMAGE_MAX_BYTES} bytes.`);
+    const real = sniff(raw);
+    // M25 SB (G-SB3): no EXIF/GPS, XMP or text is kept with feedback either.
+    const bytes = real !== undefined && real === img.mime ? stripImageMetadata(raw) : undefined;
+    if (real === undefined || !bytes) throw new ApiError('validation', 'Only JPEG or PNG images.');
     images.push({ mime: real, bytes });
   }
   if (images.length > 0) {

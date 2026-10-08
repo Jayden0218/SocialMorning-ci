@@ -17,7 +17,17 @@ export async function studioLogin(t: TestDb, email: string, name: string, passwo
   const res = await t.call('POST', '/v1/studio/session', undefined, token, { 'x-studio': '1' });
   if (res.status !== 200) throw new Error(`studio session failed: ${res.status} ${await res.text()}`);
   const cookie = (res.headers.get('set-cookie') ?? '').split(';')[0]!;
+  // M25 SB: Admin also needs the emailed second factor. Every older test is about what comes after
+  // it, so this session counts as having passed; test/m25-sb.test.ts checks the code itself.
+  await t.q("UPDATE sessions SET second_factor_at = now() WHERE listener_id = $1 AND device_label = 'studio-web'", [id]);
   return { id, cookie, token };
+}
+
+/** M25 SB: a Studio sign-in that has NOT passed the second factor (for the tests of it). */
+export async function studioLoginNoFactor(t: TestDb, email: string, name: string): Promise<StudioUser> {
+  const u = await studioLogin(t, email, name);
+  await t.q("UPDATE sessions SET second_factor_at = NULL WHERE listener_id = $1 AND device_label = 'studio-web'", [u.id]);
+  return u;
 }
 
 /** A Studio request as the browser makes it: the cookie, and `X-Studio: 1` on writes. */

@@ -1,44 +1,69 @@
-// Plain web pages: privacy, community rules, and where to get the app.
-/** M6 (FR-027, FR-028): /privacy, /rules and /get — plain pages the owner can edit here; no build needed. */
+// Plain web pages: privacy, terms, community rules, and where to get the app.
+/** M6 (FR-027, FR-028): /privacy, /rules and /get. M25 SB: /privacy and /terms are the app's own documents (legal-texts.ts). */
 import { Hono } from 'hono';
 import type { AuthEnv } from '../auth/session.ts';
 import { esc, page } from './clip.ts';
+import { LEGAL_TEXT } from './legal-texts.ts';
 
 export const RELEASES_URL = 'https://github.com/Jayden0218/SocialMorning-ci/releases/latest';
 
 export const legal = new Hono<AuthEnv>();
 
-legal.get('/privacy', (c) => {
-  const appeals = c.get('safety').appealsEmail;
-  return c.html(page('Privacy', `<h1>Privacy</h1>
-<p>SocialNet is a podcast player with a social layer. This page says what it keeps and where.</p>
-<h2>What the app keeps on the server</h2>
-<ul>
-<li><b>Your account</b>: email, display name, a password hash. Sessions are random tokens; only their hash is stored.</li>
-<li><b>Comments and clips</b> you write, with the moment in the episode they belong to. A clip is a time range; it carries no audio.</li>
-<li><b>Your profile</b> (M19): a photo if you add one (at most 200 KB, deleted when you remove it or your account), a short bio, and — only if you choose — an age range and a gender. Age range and gender are never shown on your profile; creators see them only as totals of 10 or more listeners. Clear them any time in Edit profile.</li>
-<li><b>Voice comments</b> you record (at most 60 seconds) are kept like a text comment; the recording is deleted when you delete the comment or it is removed.</li>
-<li><b>The text of your voice</b>: while you record a voice comment or voice status, your phone's own speech service turns it into text, which you can correct before posting. On iPhone and on many Android phones that service may send the audio to Apple or Google to do this. The text is kept with the recording and deleted with it.</li>
-<li><b>Pictures in comments</b>: a picture you add to a comment is shrunk on your phone and kept in our image store (Vercel Blob) with the comment. It is deleted from the store when you delete the comment, when moderation removes it, or when you delete your account.</li>
-<li><b>Likes</b> you give episodes, with any note — shown to people who follow you unless you make likes private — and <b>playlists</b> you make (private unless you make one public).</li>
-<li><b>Reactions</b> (the ♡ taps) as counts per moment.</li>
-<li><b>Listening ranges</b> — which parts of an episode you heard — and playback positions, so your place survives a new phone. With <b>private listening</b> on (Account), your listens count in totals but are never shown against your name.</li>
-<li><b>Follows, blocks and reports</b> you make. A report keeps a copy of what you reported for 90 days so the owner can review it.</li>
-</ul>
-<h2>What a show's host can see</h2>
-<ul><li><b>Subscriptions</b> are kept on the server so they follow your account to a new phone. A show's creator — the person who proved the feed is theirs — and the helpers they add can see <b>your display name and the date you subscribed</b> to <b>their</b> show, and nothing about any other show you follow.</li>
-<li>They also see comments on their show and counts: plays, likes, saves and shares. Listens with private listening on count in totals and are never shown against your name.</li>
-<li>A host can hide a comment on their show (you still see it, marked) and can stop an account from commenting on their show.</li></ul>
-<h2>What it does not keep</h2>
-<ul><li><b>Audio.</b> Episodes stream or download from the publisher's own servers. Nothing is hosted here.</li><li>Downloads stay on your phone.</li><li>No advertising, no analytics service, no sale of data.</li></ul>
-<h2>Deleting everything</h2>
-<p>Account → <b>Delete my account</b> removes your account, sessions, reactions, positions, listening ranges, follows and blocks at once. Comments with replies become an anonymous placeholder so other people's replies keep their context; comments without replies are deleted. The email is free to use again.</p>
-<h2>Reports and moderation</h2>
-<p>Anyone can report a comment, clip, profile or show from the app. The owner reviews reports and may remove content, hide a show from discovery, or suspend an account. See the <a href="/rules">community rules</a>.</p>
-<h2>Contact</h2>
-<p>${appeals ? `Questions, appeals, data requests: <a href="mailto:${esc(appeals)}">${esc(appeals)}</a>.` : 'Contact the owner through the app.'}</p>
-<p class="muted"><a href="/get">Get the app</a> · <a href="/rules">Community rules</a></p>`));
-});
+/**
+ * M25 SB (audit #17, #18): /privacy and /terms show the SAME documents the app shows
+ * (`legal-texts.ts`, written by apps/mobile/scripts/legal-sync.mjs from docs/legal/*.md), so the
+ * web cannot say something the app does not — the old hand-written page said deletion was
+ * immediate (it waits 15 days) and that nothing was hosted (Studio audio, voice and pictures are
+ * on Vercel Blob).
+ */
+legal.get('/privacy', (c) => c.html(page('Privacy Policy', `${legalHtml(LEGAL_TEXT.privacy)}${contact(c.get('safety').appealsEmail)}`)));
+legal.get('/terms', (c) => c.html(page('Terms of Service', `${legalHtml(LEGAL_TEXT.agreement)}${contact(c.get('safety').appealsEmail)}`)));
+
+function contact(appeals: string | undefined): string {
+  return `<h2>Contact</h2><p>${appeals ? `Questions, appeals, data requests: <a href="mailto:${esc(appeals)}">${esc(appeals)}</a>.` : 'Contact the owner through the app.'}</p>
+<p class="muted"><a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/rules">Community rules</a> · <a href="/get">Get the app</a></p>`;
+}
+
+/**
+ * The legal documents' small Markdown — headings, paragraphs, `- ` items, `> ` notes, tables and
+ * `**bold**` (the same subset the app draws, apps/mobile/src/legal/markdown.ts) — as HTML. Every
+ * piece of text is escaped first; the only markup is what this function writes.
+ */
+export function legalHtml(md: string): string {
+  const out: string[] = [];
+  let list = false;
+  let rows: string[][] = [];
+  const inline = (t: string) => esc(t.replace(/`/g, '')).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/\*\*/g, '');
+  const flushTable = () => {
+    if (rows.length === 0) return;
+    const [head, ...body] = rows;
+    out.push(`<table><tr>${head!.map((c) => `<th>${inline(c)}</th>`).join('')}</tr>${body.map((r) => `<tr>${r.map((c) => `<td>${inline(c)}</td>`).join('')}</tr>`).join('')}</table>`);
+    rows = [];
+  };
+  for (const raw of md.split('\n')) {
+    const line = raw.trim();
+    const item = /^[-*] /.test(line);
+    if (!item && list) { out.push('</ul>'); list = false; }
+    if (!line.startsWith('|')) flushTable();
+    if (line.length === 0) continue;
+    if (line.startsWith('|')) {
+      if (!/^\|[\s|:-]+\|$/.test(line)) rows.push(line.replace(/^\||\|$/g, '').split('|').map((x) => x.trim()));
+      continue;
+    }
+    const h = /^(#{1,4})\s+(.*)$/.exec(line);
+    if (h) { const n = h[1]!.length; out.push(`<h${n}>${inline(h[2]!)}</h${n}>`); continue; }
+    if (item) {
+      if (!list) { out.push('<ul>'); list = true; }
+      out.push(`<li>${inline(line.slice(2))}</li>`);
+      continue;
+    }
+    if (line.startsWith('>')) { out.push(`<blockquote>${inline(line.replace(/^>\s?/, ''))}</blockquote>`); continue; }
+    out.push(`<p>${inline(line)}</p>`);
+  }
+  if (list) out.push('</ul>');
+  flushTable();
+  return out.join('\n');
+}
 
 legal.get('/rules', (c) => {
   const appeals = c.get('safety').appealsEmail;
@@ -57,7 +82,7 @@ legal.get('/rules', (c) => {
 <p>Anyone can <b>report</b> a comment, clip, profile or show — it is hidden for them at once. Anyone can <b>block</b> a listener — nothing that listener writes reaches them again. The owner reviews every report and may dismiss it, remove the content, hide a show from discovery, or suspend the account.</p>
 <h2>Appeals</h2>
 <p>${appeals ? `If your content was removed or your account suspended and you think that was wrong, write to <a href="mailto:${esc(appeals)}">${esc(appeals)}</a>.` : 'Write to the owner through the app.'}</p>
-<p class="muted"><a href="/privacy">Privacy</a> · <a href="/get">Get the app</a></p>`));
+<p class="muted"><a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/get">Get the app</a></p>`));
 });
 
 legal.get('/get', (c) => {

@@ -184,6 +184,7 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 | `settings/account-more.tsx` | `/settings/account-more` | Delete your account: email a code, enter it, confirm delete. |
 | `settings/account-email.tsx` | `/settings/account-email` | Account and security › Change email: a code to the new address and one to the current; both right switch the sign-in email. |
 | `settings/account.tsx` | `/settings/account` | Account and security: how you sign in, masked email, link to More. |
+| `settings/devices.tsx` | `/settings/devices` | Signed-in devices: every phone and web page signed in to this account; sign one out, or all the others. |
 | `settings/appearance.tsx` | `/settings/appearance` | Appearance: the accent colour, the Vibration switch, and the app icon. |
 | `settings/background.tsx` | `/settings/background` | Playback stops when the screen is off? (Android): steps and buttons that open the phone's battery settings. |
 | `settings/blocked.tsx` | `/settings/blocked` | Listeners you blocked, each with an Unblock button. |

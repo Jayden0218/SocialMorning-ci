@@ -238,8 +238,17 @@ export async function episodeDetail(db: Db, feedUrl: string, episodeId: string) 
 
 // ---- CSV (FR-009): built from the same values the JSON routes return (G-E1) ----
 
+/**
+ * M25 SB (guard G-SB4, audit #37): a TEXT cell that starts with = + - @ tab or CR would run as a
+ * formula when the CSV is opened in a spreadsheet (titles can come from any feed). It gets a
+ * leading ' so it is shown as text. Numbers are written as numbers (a refund's -4.99 stays a number).
+ */
+export function csvSafe(s: string): string {
+  return /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
+}
+
 const cell = (v: string | number | null): string => {
-  const s = v === null ? '' : String(v);
+  const s = v === null ? '' : typeof v === 'number' ? String(v) : csvSafe(v);
   return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 

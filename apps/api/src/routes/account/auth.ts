@@ -4,7 +4,7 @@ import { json } from '../../validate.ts';
 import { z } from 'zod';
 import type { AuthEnv } from '../../auth/session.ts';
 import { suspendedError, createSession, publicListener, requireAuth, tokenHash } from '../../auth/session.ts';
-import { COUNTRY_HEADER, recordCountry } from '../../db/repos/account/country.ts';
+import { COUNTRY_HEADER, countryOf, recordCountry } from '../../db/repos/account/country.ts';
 import { hashPassword, verifyPassword } from '../../auth/password.ts';
 import { clearFailedSignIns, createListener, listenerByEmail, recordFailedSignIn } from '../../db/repos/account/listeners.ts';
 import { ApiError } from '../../errors.ts';
@@ -22,6 +22,14 @@ const signInBody = z.object({ email, password: z.string().min(1).max(200), devic
 const BAD_CREDENTIALS = () => new ApiError('unauthenticated', 'That email and password do not match.');
 
 export const auth = new Hono<AuthEnv>();
+
+/** M25 SB: a phone that sends no device label is named by its HTTP client, for Settings › Devices. */
+export function labelFromAgent(ua: string | undefined): string | undefined {
+  if (!ua) return undefined;
+  if (/CFNetwork|Darwin|iPhone|iPad/i.test(ua)) return 'iPhone';
+  if (/okhttp|Android/i.test(ua)) return 'Android phone';
+  return undefined;
+}
 
 /*
  * M25 S3 (audit #3, guard G-M25-S3): `POST /sign-up` is gone. It made an account from an email
@@ -62,7 +70,8 @@ auth.post('/sign-in', json(signInBody), async (c) => {
   }
   await clearFailedSignIns(db, row.id);
   if (row.suspended_at) throw suspendedError(c.get('safety')?.appealsEmail, appealTokenFor(row.id, c.get('pepper')));
-  const token = await createSession(db, row.id, c.get('pepper'), body.deviceLabel);
+  // M25 SB: the session keeps the sign-in's country for Settings › Devices.
+  const token = await createSession(db, row.id, c.get('pepper'), body.deviceLabel ?? labelFromAgent(c.req.header('user-agent')), { country: countryOf(c.req.header(COUNTRY_HEADER)) });
   await recordCountry(db, row.id, c.req.header(COUNTRY_HEADER)); // M10b US7
   // M22 US11 (FR-034): during the 15-day wait the phone asks Keep / Continue.
   return c.json({ token, listener: publicListener(row), pendingDeletion: await pendingDeletion(db, row.id) });
@@ -110,7 +119,7 @@ auth.post('/code/verify', json(codeVerify), async (c) => {
   const addr = clientAddress(c);
   if (addr) await limit(db, `codeverify:ip:${addr}`, HOUR_MS, CODE_CHECKS_PER_ADDRESS_HOUR, 'Too many codes were tried from this network. Try again in an hour.');
   const pepper = c.get('pepper');
-  const result = await checkCode(db, body.email, body.code, pepper, Date.now());
+  const result = await checkCode(db, body.email, body.code, pepper, Date.now(), c.get('pepperNext'));
   if (result === 'expired') throw new ApiError('unauthenticated', 'That code has expired. Ask for a new one.');
   if (result === 'wrong') throw new ApiError('unauthenticated', 'That code is not right.');
   let row = await listenerByEmail(db, body.email);
@@ -124,7 +133,8 @@ auth.post('/code/verify', json(codeVerify), async (c) => {
   await consumeCode(db, body.email);
   if (!row) throw new ApiError('not_found', 'No such account.');
   if (row.suspended_at) throw suspendedError(c.get('safety')?.appealsEmail, appealTokenFor(row.id, c.get('pepper')));
-  const token = await createSession(db, row.id, pepper, body.deviceLabel);
+  // M25 SB: a code sign-in has proved the inbox, so Admin does not ask for a second code on it.
+  const token = await createSession(db, row.id, pepper, body.deviceLabel ?? labelFromAgent(c.req.header('user-agent')), { country: countryOf(c.req.header(COUNTRY_HEADER)), secondFactor: true });
   await recordCountry(db, row.id, c.req.header(COUNTRY_HEADER)); // M10b US7
   // M22 US11 (FR-034): during the 15-day wait the phone asks Keep / Continue.
   return c.json({ token, listener: publicListener(row), pendingDeletion: await pendingDeletion(db, row.id) });

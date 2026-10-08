@@ -88,8 +88,10 @@ emailChange.post('/confirm', requireAuth, json(z.object({ code: sixDigits, oldCo
     return want.length === got.length && timingSafeEqual(want, got);
   };
   // Both are compared every time (no early exit), so the answer's timing says nothing about which one was wrong.
-  const newOk = same(row.code_hash, codeHash(row.new_email, code, c.get('pepper')));
-  const oldOk = same(row.old_code_hash, codeHash(me.email.toLowerCase(), oldCode, c.get('pepper')));
+  // M25 SB: a code made with the other pepper (during a rotation) counts too.
+  const peppers = [c.get('pepper'), ...(c.get('pepperNext') ? [c.get('pepperNext')!] : [])];
+  const newOk = peppers.map((p) => same(row.code_hash, codeHash(row.new_email, code, p))).some(Boolean);
+  const oldOk = peppers.map((p) => same(row.old_code_hash, codeHash(me.email.toLowerCase(), oldCode, p))).some(Boolean);
   if (!(newOk && oldOk)) {
     if (row.tries >= MAX_ATTEMPTS) await db.query('DELETE FROM email_changes WHERE listener_id = $1', [me.id]);
     throw new ApiError('validation', !newOk && !oldOk ? 'Those codes are not right.' : !newOk ? 'The code sent to your new email is not right.' : 'The code sent to your current email is not right.', { fields: [...(newOk ? [] : ['code']), ...(oldOk ? [] : ['oldCode'])] });
