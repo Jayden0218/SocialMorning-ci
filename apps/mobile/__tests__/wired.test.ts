@@ -17,6 +17,10 @@
  *
  * The break that turns it red: delete the `createSubscriptionSync` call from
  * `src/ui/shell/providers.tsx`.
+ *
+ * Kept as source checks (all three): the first and third are rules over every file in src/ and
+ * app/ (no render can say "nothing calls this"); the second needs `AppProviders` (the whole native
+ * surface: SQLite, audio, secure store, notifications) and app/show/[feedUrl].tsx rendered.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';

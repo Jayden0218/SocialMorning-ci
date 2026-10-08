@@ -33,15 +33,18 @@ export async function notify(db: Db, n: { recipientId: string | null | undefined
     );
     if (skip?.skip) return false;
   }
+  // M25 G3 (found by the API suite on real Postgres): `$4::jsonb` with a JSON string made the
+  // `postgres` driver store a jsonb STRING, so `ref->>'commentId'` was NULL in production and the
+  // list lost every excerpt and episode title. jsonb goes in as TEXT, cast in SQL (the M14 rule).
   const ref = JSON.stringify(n.ref ?? {});
   const rows = await db.query<{ id: string }>(
     `INSERT INTO notifications (recipient_id, actor_id, kind, ref)
-     SELECT $1::uuid, $2::uuid, $3, $4::jsonb
+     SELECT $1::uuid, $2::uuid, $3, ($4::text)::jsonb
      WHERE $1::uuid <> $2::uuid
        AND NOT EXISTS (SELECT 1 FROM blocks WHERE blocker_id = $1::uuid AND blocked_id = $2::uuid)
        AND NOT EXISTS (SELECT 1 FROM listener_mutes WHERE muter_id = $1::uuid AND muted_id = $2::uuid)
        AND ($3 NOT IN ('like', 'follow', 'like_post_like', 'status_reaction') OR NOT EXISTS (
-         SELECT 1 FROM notifications WHERE recipient_id = $1::uuid AND actor_id = $2::uuid AND kind = $3 AND ref = $4::jsonb))
+         SELECT 1 FROM notifications WHERE recipient_id = $1::uuid AND actor_id = $2::uuid AND kind = $3 AND ref = ($4::text)::jsonb))
      RETURNING id`,
     [n.recipientId, n.actorId, n.kind, ref],
   );
@@ -120,6 +123,9 @@ export type NoticeItem = {
  * blocked or muted since are left out too. `ref` gains the comment's `excerpt` (when it is still
  * visible) and the episode's `episodeTitle`, so a row can say what it is about.
  */
+/** A row written before the M25 fix holds its ref as a jsonb string: read it as the object it encodes. */
+const REF = "(CASE WHEN jsonb_typeof(n.ref) = 'string' THEN (n.ref #>> '{}')::jsonb ELSE n.ref END)";
+
 export async function listNotifications(db: Db, recipientId: string, cursor?: string): Promise<{ items: NoticeItem[]; next: string | null }> {
   const before = cursor && !Number.isNaN(Date.parse(cursor)) ? new Date(cursor).toISOString() : null;
   const rows = await db.query<{
@@ -133,8 +139,8 @@ export async function listNotifications(db: Db, recipientId: string, cursor?: st
      FROM notifications n
      JOIN listeners l ON l.id = n.actor_id
      JOIN listeners me ON me.id = n.recipient_id
-     LEFT JOIN comments c ON c.id::text = n.ref->>'commentId'
-     LEFT JOIN episodes e ON e.id = n.ref->>'episodeId'
+     LEFT JOIN comments c ON c.id::text = ${REF}->>'commentId'
+     LEFT JOIN episodes e ON e.id = ${REF}->>'episodeId'
      WHERE n.recipient_id = $1
        AND NOT EXISTS (SELECT 1 FROM blocks b WHERE b.blocker_id = $1 AND b.blocked_id = n.actor_id)
        AND NOT EXISTS (SELECT 1 FROM listener_mutes m WHERE m.muter_id = $1 AND m.muted_id = n.actor_id)

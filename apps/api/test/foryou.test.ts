@@ -9,10 +9,9 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { fromPglite } from '../src/db/db.ts';
 import { createApp } from '../src/app.ts';
 import { fakeApple, fakeFeedFetch, FIXTURE_FEED } from './fake-apple.ts';
-import { migratedPg, TEST_PEPPER, signUp, type TestDb } from './harness.ts';
+import { dbOf, migratedPg, TEST_PEPPER, signUp, type TestDb } from './harness.ts';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { putEpisode } from './put-episode.ts';
 
@@ -24,7 +23,7 @@ type Body = { items: { episode: { id: string; feedUrl: string; title: string }; 
 
 async function appWith(opts: { picksRaw?: unknown; appleMode?: Parameters<typeof fakeApple>[0]; feedStatus?: number } = {}) {
   const { pg, runner } = await migratedPg();
-  const db = fromPglite(pg);
+  const db = dbOf(pg);
   const apple = fakeApple(opts.appleMode ?? {});
   const catalogFetch = (async (input: string | URL | Request, init?: RequestInit) => {
     const url = String(input);
@@ -87,7 +86,14 @@ test('A13: the catalogue being down is one channel failing, not a failed request
   assert.equal(res.status, 200);
   const text = await res.text();
   assert.ok(!text.includes('warnings'), 'the failure never reaches the listener');
-  assert.ok(!/429|500|itunes/.test(text), 'nor does the shape of it');
+  // Only the words of the body are checked: the old whole-text regex also matched numbers that
+  // happen to contain 429 or 500 — a timestamp's milliseconds, a score — and failed once in 17
+  // runs (M15 gate log, run 36937962486). Times are skipped; every other string must not leak it.
+  const words: string[] = [];
+  const walk = (v: unknown): void => { if (typeof v === 'string') words.push(v); else if (v && typeof v === 'object') Object.values(v).forEach(walk); };
+  walk(JSON.parse(text));
+  const leaks = words.filter((w) => !/^\d{4}-\d\d-\d\dT[\d:.]+Z$/.test(w) && /\b(429|500)\b|itunes|answered/i.test(w));
+  assert.deepEqual(leaks, [], 'nor does the shape of it');
   assert.ok(JSON.parse(text).items.length >= 1, 'built from the channels that answered');
   await t.close();
 });

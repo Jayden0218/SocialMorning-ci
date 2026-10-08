@@ -154,6 +154,9 @@ it('control: the whole state still re-renders per TICK (so the counts above mean
   expect(renders).toBe(before + 5);
 });
 
+// Kept as a source check: a rule over four expo-router pages (the root layout and three of the
+// heaviest screens, each pulling in the social API, stores, sheets and the router); the render
+// counts above prove the selector itself, this proves the pages use it.
 it('the four screens read the player through a selector, not the whole state', () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const fs = require('fs') as typeof import('fs');

@@ -5,6 +5,12 @@
  *   every action is at least 44 pt (iOS i4 — Close, Reply, Delete were 36–42 × 17).
  * The break that turns it red: drop the Report branch or the `TAP` class in src/ui/comments/MomentSheet.tsx.
  */
+// The gluestack sheets animate with @legendapp/motion, which starts each animation from a
+// requestAnimationFrame (a setTimeout under jest). With real timers those fired after the file
+// had finished: "Jest environment has been torn down … reading 'timing'" (gate 37714062341).
+// Fake timers keep them inside the test; nothing here depends on an animation finishing.
+jest.useFakeTimers();
+afterAll(() => { jest.clearAllTimers(); });
 import { createElement } from 'react';
 import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';

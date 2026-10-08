@@ -131,6 +131,8 @@ describe('syncLaunch — for the next launch', () => {
   });
 });
 
+// Kept as source checks: AppProviders (src/ui/shell/providers.tsx) builds SQLite, audio, sync, downloads,
+// fonts, splash and the Terms gate from ~50 modules — no render of it under jest stands for the device.
 describe('providers.tsx — start-up never waits on the launch list', () => {
   const src = readFileSync(join(__dirname, '..', 'src', 'ui', 'shell', 'providers.tsx'), 'utf8');
 
