@@ -9,6 +9,8 @@
  *    page's own header — no native sheet, constitution v3);
  *  - under it: its items (episode cards open the episode, ▶ plays it; photos full width), then
  *    the replies and reactions (StatusReplies).
+ *  - M24 US1/US17: someone else's status has a "More" button (Report; on a suggested one, "Stop
+ *    suggesting"); the page owns the sheet, the viewer only asks for it.
  * The swipe uses React Native's PanResponder, like src/ui/kit/Sheet.tsx: Jest has no
  * gesture-handler mocks and this one gesture needs nothing more.
  */
@@ -80,6 +82,8 @@ export function StatusViewer(props: {
   /** Reload after a reaction (counts). */
   reload: () => void;
   colours: Colours;
+  /** M24: someone else's status → the page's More sheet (Report, Stop suggesting). */
+  onMore?: (s: Status) => void;
 }): React.ReactElement | null {
   const s = props.statuses[props.index];
   const [playing, setPlaying] = useState(false);
@@ -123,6 +127,11 @@ export function StatusViewer(props: {
           <Text className="text-muted text-xs">{`${hoursLeft(s.expiresAt, now)} h left`}</Text>
         </Box>
         {s.suggested ? <Box className="bg-accentTint rounded-pill px-row py-1"><Text className="text-accent text-xs font-bold">Suggested</Text></Box> : null}
+        {!s.mine && props.onMore ? (
+          <Pressable onPress={() => { stop(); props.onMore?.(s); }} accessibilityRole="button" accessibilityLabel={`More for ${who}'s status`} className="items-center justify-center" style={{ width: hit.min, height: hit.min }}>
+            <Icon name="ellipsis-horizontal" size={22} color={props.colours.muted} />
+          </Pressable>
+        ) : null}
       </Box>
 
       {/* The stage: swipe down closes; the left, middle and right thirds are three buttons. */}

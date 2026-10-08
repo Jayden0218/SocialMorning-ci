@@ -79,6 +79,9 @@ here or a line does not match its file.
 |---|---|
 | `blocks.ts` | Block routes: list, block and unblock listeners. |
 | `reports.ts` | Report routes: report content, rate-limited, and list what I have hidden. |
+| `appeals.ts` | Appeal routes for the phone: what I may appeal, and sending one appeal per action — even while suspended. |
+| `maintenance.ts` | While the admin's maintenance switch is on, every API call answers 503 with the body the phone reads. |
+| `word-filter.ts` | Refuses a write whose text holds a blocked word, before the route sees it (422 blocked_word). |
 
 ### `routes/library/` — subscriptions, positions, listening, history
 
@@ -174,6 +177,8 @@ here or a line does not match its file.
 | `record.ts` | Admin route to read the admin action record, filtered by area. |
 | `redeem.ts` | Admin routes for redeem codes: list them, make new ones, switch one off. |
 | `users.ts` | Admin routes for users and safety: list, rename, suspend, restore, act on reports. |
+| `appeals.ts` | Admin routes for appeals (accept = undo, reject) and the account deletion queue. |
+| `safety.ts` | Admin routes for blocked words, the maintenance switch and system notices. |
 
 ### `db/` — the database connection and migrations
 
@@ -234,6 +239,7 @@ here or a line does not match its file.
 | `playlists.ts` | Listener playlists: make, rename, reorder, share publicly or keep private. |
 | `host-notices.ts` | Host notices: announcements from the shows a listener follows, from their release time. |
 | `report.ts` | The monthly listening report: minutes, shows, episodes, top three of each, comments and clips. |
+| `system-notices.ts` | System notices: messages from SocialNet to everyone or to one listener, and their optional push. |
 
 ### `db/repos/safety/` — reports, blocks, moderation
 
@@ -242,6 +248,9 @@ here or a line does not match its file.
 | `blocks.ts` | Block and unblock listeners; a block also removes follows both ways. |
 | `moderation.ts` | Applies a moderation action, closes its reports and records it, in one step. |
 | `reports.ts` | Stores reports with a copy of the reported item, hidden for the reporter. |
+| `appeals.ts` | Appeals: what a listener may appeal, sending one appeal per action, and the admin's decision. |
+| `maintenance.ts` | The maintenance switch the admin turns on and off: stored in app_settings, read through a short memo. |
+| `words.ts` | Blocked words: the admin's list, read through a short memo, and the check every write uses. |
 
 ### `db/repos/library/` — subscriptions, positions, listening, library
 
@@ -310,6 +319,7 @@ here or a line does not match its file.
 | File | What it does |
 |---|---|
 | `admin.ts` | Admin access: who is admin, the admin-only wall, and the admin action record. |
+| `appeal-token.ts` | A signed, short-lived token that lets a suspended listener appeal without a working session. |
 | `codes.ts` | Email sign-in codes: six digits, ten minutes, five tries, stored only hashed. |
 | `password.ts` | Hashes and checks passwords with scrypt from Node's built-in crypto. |
 | `rate.ts` | Fixed-window rate limits kept in the rate_counters table (per address, or global). |

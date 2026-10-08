@@ -32,6 +32,8 @@ test('A2: actionsFor per kind; closeReason; constants', () => {
   assert.deepEqual(actionsFor('show'), ['dismiss', 'hide_show']);
   assert.deepEqual(actionsFor('episode'), ['dismiss']);
   assert.deepEqual(actionsFor('transcript'), ['dismiss']);
+  // M24 US1
+  for (const k of ['status', 'chat_message', 'list'] as const) assert.deepEqual(actionsFor(k), ['dismiss', 'remove', 'suspend']);
   assert.equal(closeReason(true, false), 'already_gone');
   assert.equal(closeReason(false, true), 'author_deleted');
   assert.equal(closeReason(false, false), 'open');

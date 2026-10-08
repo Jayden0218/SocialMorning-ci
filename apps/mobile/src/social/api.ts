@@ -18,7 +18,9 @@ export type ErrorCode =
   // M21 US6: a first comment waits for the community rules (428).
   | 'rules_required'
   // M24 US8: the host closed comments on this show or episode (403).
-  | 'comments_closed';
+  | 'comments_closed'
+  // M24 US2: the words hold one the admin blocked (422); US4: the server is under maintenance (503).
+  | 'blocked_word' | 'maintenance';
 
 export class ApiError extends Error {
   constructor(
@@ -164,7 +166,8 @@ export type ForYouResult = { status: 200; etag?: string; body: ForYou } | { stat
 export type RecEventIn = { episodeId: string; channel: ForYouChannel; rank: number; kind: 'impression' | 'open' | 'play' | 'finish'; at: string };
 
 // ---- M6 (specs/006-m6-fit-to-ship/contracts/api.md) ----
-export type ReportKind = 'comment' | 'clip' | 'profile' | 'show' | 'episode';
+/** M24 US1: also a status, a chat message (its number) and a shared list. */
+export type ReportKind = 'comment' | 'clip' | 'profile' | 'show' | 'episode' | 'status' | 'chat_message' | 'list';
 export type HiddenOut = { reported: { kind: ReportKind; id: string }[]; blocked: { id: string; displayName: string }[]; hiddenFeeds: string[] };
 export type Meta = { appealsEmail?: string };
 
@@ -288,7 +291,7 @@ export type ApiDeps = {
   getToken: () => Promise<string | undefined>;
   timeoutMs?: number;
   /** M6 (FR-015): the server said this account is suspended — the app signs out locally and keeps the message. */
-  onSuspended?: (message: string, appeals: string | undefined) => void;
+  onSuspended?: (message: string, appeals: string | undefined, appealToken?: string) => void;
 };
 
 /**
@@ -337,7 +340,13 @@ export function requester(deps: ApiDeps) {
       if (isMaintenanceBody(res.status, json)) maintenanceListener?.(json);
       const err = (json ?? {}) as { error?: string; message?: string } & Record<string, unknown>;
       const { error, message, ...extra } = err;
-      if (error === 'suspended') deps.onSuspended?.(message ?? 'This account is suspended.', typeof extra['appeals'] === 'string' ? (extra['appeals'] as string) : undefined);
+      // M24 US6: the refusal may carry `appealToken`, which lets the Appeal page work without a session.
+      if (error === 'suspended') {
+        const appeals = typeof extra['appeals'] === 'string' ? (extra['appeals'] as string) : undefined;
+        const token = typeof extra['appealToken'] === 'string' ? (extra['appealToken'] as string) : undefined;
+        if (token) deps.onSuspended?.(message ?? 'This account is suspended.', appeals, token);
+        else deps.onSuspended?.(message ?? 'This account is suspended.', appeals);
+      }
       throw new ApiError((error as ErrorCode) ?? 'internal', message ?? `Server answered ${res.status}.`, res.status, extra);
     }
     return { status: res.status, headers: res.headers, json: json as T };
