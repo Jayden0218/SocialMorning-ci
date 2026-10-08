@@ -1,4 +1,4 @@
-// Sign-in routes: sign up, sign in, sign out, and email code sign-in.
+// Sign-in routes: sign in, sign out, and email code sign-in (an account is created only by a code).
 import { Hono } from 'hono';
 import { json } from '../../validate.ts';
 import { z } from 'zod';
@@ -11,17 +11,11 @@ import { ApiError } from '../../errors.ts';
 import { pendingDeletion } from '../../db/repos/account/deletion.ts';
 import { randomBytes } from 'node:crypto';
 import { checkCode, consumeCode, newCode, resendWait, storeCode, CODE_TTL_MS, RESEND_AFTER_MS } from '../../auth/codes.ts';
-import { limitCodeRequest } from '../../auth/rate.ts';
+import { clientAddress, HOUR_MS, limit, limitCodeRequest } from '../../auth/rate.ts';
 import { appealTokenFor } from '../../auth/appeal-token.ts';
 
 const email = z.string().trim().toLowerCase().email().max(254);
-const password = z.string().min(8).max(200);
 
-const signUpBody = z.object({
-  email,
-  password,
-  displayName: z.string().trim().min(1).max(40),
-});
 const signInBody = z.object({ email, password: z.string().min(1).max(200), deviceLabel: z.string().max(80).optional() });
 
 /** The same 401 for "no such email" and "wrong password" (FR-005, quickstart A14). */
@@ -29,21 +23,26 @@ const BAD_CREDENTIALS = () => new ApiError('unauthenticated', 'That email and pa
 
 export const auth = new Hono<AuthEnv>();
 
-auth.post('/sign-up', json(signUpBody), async (c) => {
-  const body = c.req.valid('json');
-  const db = c.get('db');
-  const created = await createListener(db, body.email, await hashPassword(body.password), body.displayName);
-  if (created === 'exists') {
-    throw new ApiError('conflict', 'An account with this email exists — sign in instead.');
-  }
-  const token = await createSession(db, created.id, c.get('pepper'));
-  await recordCountry(db, created.id, c.req.header(COUNTRY_HEADER)); // M10b US7
-  return c.json({ token, listener: publicListener(created) });
-});
+/*
+ * M25 S3 (audit #3, guard G-M25-S3): `POST /sign-up` is gone. It made an account from an email
+ * nobody had proved — someone could register a victim's address with a password, and still sign in
+ * after the victim later came in by code. The app has signed up by email code only since
+ * 2026-09-27 (`/code/verify` with a name). The path now answers 404 like any unknown route.
+ */
+
+/** M25 S6: sign-in attempts per network address an hour, and for the whole server. */
+export const SIGN_INS_PER_ADDRESS_HOUR = 30;
+export const SIGN_INS_PER_HOUR = 3000;
+/** M25 S6: code checks per network address an hour (each address's codes have 5 tries of their own). */
+export const CODE_CHECKS_PER_ADDRESS_HOUR = 60;
 
 auth.post('/sign-in', json(signInBody), async (c) => {
   const body = c.req.valid('json');
   const db = c.get('db');
+  // M25 S6 (audit #8): the lockout is per account; this stops one network spraying many accounts.
+  const addr = clientAddress(c);
+  if (addr) await limit(db, `signin:ip:${addr}`, HOUR_MS, SIGN_INS_PER_ADDRESS_HOUR, 'Too many sign-in attempts from this network. Try again in an hour.');
+  await limit(db, 'signin:global', HOUR_MS, SIGN_INS_PER_HOUR, 'Too many sign-in attempts right now. Try again shortly, or sign in with an email code.');
   const row = await listenerByEmail(db, body.email);
   if (!row) {
     // Burn the same time as a real verify so timing does not reveal the email (R3).
@@ -108,6 +107,8 @@ auth.post('/code', json(codeRequest), async (c) => {
 auth.post('/code/verify', json(codeVerify), async (c) => {
   const body = c.req.valid('json');
   const db = c.get('db');
+  const addr = clientAddress(c);
+  if (addr) await limit(db, `codeverify:ip:${addr}`, HOUR_MS, CODE_CHECKS_PER_ADDRESS_HOUR, 'Too many codes were tried from this network. Try again in an hour.');
   const pepper = c.get('pepper');
   const result = await checkCode(db, body.email, body.code, pepper, Date.now());
   if (result === 'expired') throw new ApiError('unauthenticated', 'That code has expired. Ask for a new one.');

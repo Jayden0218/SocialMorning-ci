@@ -175,7 +175,6 @@ export type Meta = { appealsEmail?: string };
 export type SubscriptionOut = { feedUrl: string; createdAt: string; deletedAt?: string; starred: boolean; starredAt?: string };
 
 export type ApiClient = {
-  signUp(email: string, password: string, displayName: string): Promise<{ token: string; listener: Listener }>;
   signIn(email: string, password: string, deviceLabel?: string): Promise<{ token: string; listener: Listener }>;
   signOut(): Promise<void>;
   /** Owner, 2026-09-27: sign in and sign up with a code sent by email; no password. */
@@ -380,7 +379,6 @@ export const UPLOAD_TIMEOUT_MS = 60_000;
 export function createApi(deps: ApiDeps): ApiClient {
   const call = requester(deps);
   return {
-    signUp: async (email, password, displayName) => (await call<{ token: string; listener: Listener }>('POST', '/v1/auth/sign-up', { email, password, displayName })).json,
     signIn: async (email, password, deviceLabel) => (await call<{ token: string; listener: Listener }>('POST', '/v1/auth/sign-in', { email, password, deviceLabel })).json,
     signOut: async () => { await call('POST', '/v1/auth/sign-out'); },
     requestCode: async (email) => (await call<{ sent: true; resendAfterSeconds: number }>('POST', '/v1/auth/code', { email })).json,

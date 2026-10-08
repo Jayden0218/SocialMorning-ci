@@ -66,7 +66,8 @@ async function call<T = unknown>(method: string, path: string, body?: unknown, t
 const studio = { 'x-studio': '1' };
 
 async function signUp(email: string, name: string): Promise<{ token: string; id: string }> {
-  const r = await call<{ token: string; listener: { id: string } }>('POST', '/v1/auth/sign-up', { email, password: PASSWORD, displayName: name });
+  // M25 S3: /v1/auth/sign-up is gone; the e2e server's own route makes a password account.
+  const r = await call<{ token: string; listener: { id: string } }>('POST', '/__e2e/account', { email, password: PASSWORD, displayName: name });
   if (r.status !== 200) throw new Error(`sign-up ${email}: ${r.status} ${r.text}`);
   return { token: r.json.token, id: r.json.listener.id };
 }

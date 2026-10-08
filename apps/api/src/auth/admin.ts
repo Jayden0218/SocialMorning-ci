@@ -26,8 +26,7 @@ export const ACT_AS_COOKIE = 'sm_studio_as';
 export type AdminEnv = { Variables: AuthEnv['Variables'] & { device?: string } };
 
 // M24 lane A1: 'safety' (blocked words, maintenance), 'notices', 'appeals' (migration 023 widens the CHECK).
-// M25 lane AC: 'config' (app settings), 'content' (Academy, Help) — migration 029.
-export const AUDIT_AREAS = ['picks', 'issues', 'collections', 'discover', 'launch', 'accounts', 'users', 'reports', 'safety', 'notices', 'appeals', 'config', 'content'] as const;
+export const AUDIT_AREAS = ['picks', 'issues', 'collections', 'discover', 'launch', 'accounts', 'users', 'reports', 'safety', 'notices', 'appeals'] as const;
 export type AuditArea = (typeof AUDIT_AREAS)[number];
 
 /**

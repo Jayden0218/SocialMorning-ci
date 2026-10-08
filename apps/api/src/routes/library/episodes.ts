@@ -9,6 +9,11 @@ import type { Db } from '../../db/db.ts';
 import { rebuildEpisodeHeat } from '../../heat/rebuild.ts';
 import { ApiError } from '../../errors.ts';
 import { genreIdFor } from '../../catalog/genres.ts';
+import { findEpisodeInFeed, registerCard } from '../../catalog/feed.ts';
+import { HOUR_MS, limit } from '../../auth/rate.ts';
+
+/** M25 S8: new episodes one account may bring to the server an hour (each one reads a feed). */
+export const NEW_EPISODES_PER_ACCOUNT_HOUR = 120;
 
 export const EPISODE_ID_SEPARATOR = '\u0001';
 
@@ -54,12 +59,32 @@ export async function registerEpisode(db: Db, id: string, body: z.infer<typeof e
 }
 
 // M23 US1 (FR-001, G-M23-1): signed-out requests could rename any episode; now sign-in is required.
+/*
+ * M25 S8 (audit #11, guard G-M25-S8): a listener could still CREATE an episode on any real feed —
+ * a new guid with any title, enclosure, image or date — and it showed on /e/:id, in comments, on
+ * share cards and in the Studio. The phone sends this PUT before the first comment, reaction,
+ * clip, position or status that names an episode, because those rows need the episode to exist.
+ * Now only what the publisher's feed says can create one: for an id the server does not know, the
+ * server reads the feed itself (SSRF-guarded fetch) and registers the episode from the FEED's
+ * data. A guid the feed does not list is 404 and nothing is written. The phone's own fields only
+ * fill what is still empty (the duration it measured), as before.
+ */
 episodes.put('/:id', requireAuth, json(episodeBody), async (c) => {
   const id = c.req.param('id');
   const body = c.req.valid('json');
   if (id !== fnv1a64(body.feedUrl + EPISODE_ID_SEPARATOR + body.guid)) {
     throw new ApiError('validation', 'The episode id does not match its feedUrl and guid.');
   }
-  const row = await registerEpisode(c.get('db'), id, body, 'fill');
+  const db = c.get('db');
+  if (!(await getEpisode(db, id))) {
+    await limit(db, `episode-new:l:${c.get('listener')!.id}`, HOUR_MS, NEW_EPISODES_PER_ACCOUNT_HOUR, 'Too many new episodes in an hour. Try again later.');
+    const card = await findEpisodeInFeed(db, c.get('catalog').fetch, body.feedUrl, body.guid).catch(() => undefined);
+    if (!card) throw new ApiError('not_found', 'This episode is not in its show\'s feed right now, so it cannot be added.');
+    await registerCard(db, card);
+    // Only the measured duration comes from the phone, and only while the feed gave none.
+    const row = await registerEpisode(db, id, { feedUrl: card.feedUrl, guid: card.guid, title: card.title, enclosureUrl: card.enclosureUrl, ...(body.durationMs !== undefined ? { durationMs: body.durationMs } : {}) }, 'fill');
+    return c.json({ episode: publicEpisode(row) });
+  }
+  const row = await registerEpisode(db, id, body, 'fill');
   return c.json({ episode: publicEpisode(row) });
 });

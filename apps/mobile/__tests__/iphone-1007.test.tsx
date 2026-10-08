@@ -27,7 +27,6 @@ import { updatesSnapshot } from '@/me/updates';
 import { GenreTiles } from '@/ui/discover/RecFeedback';
 import { GENRES } from '@/discover/genres';
 import { gridRows } from '@/ui/discover/sections';
-import { shortcutTiles } from '@/ui/discover/DiscoverShortcuts';
 
 jest.mock('expo-router', () => ({ router: { push: jest.fn(), back: jest.fn() } }));
 jest.mock('@/ui/shell/providers', () => ({ useStores: () => ({ settings: { get: () => undefined } }), useToast: () => () => undefined }));
@@ -175,10 +174,9 @@ describe('6–13. the layout pass ("I see it overlap, the elements run away the 
     const s = read('src/ui/discover/sections.tsx');
     expect(s).not.toMatch(/flexGrow: 1/);
     expect(s).toMatch(/numberOfLines=\{1\} adjustsFontSizeToFit minimumFontScale=\{0\.75\}>\{g\.name\}/);
-    // Discover's shortcuts: eight tiles, two rows of four. M25 A7: they live in their own component
-    // (the admin may change them); with nothing saved they are the same eight.
-    expect(read('app/(tabs)/index.tsx')).toMatch(/<DiscoverShortcuts onCategories=\{allCategories\} onPremium=\{toPremium\} \/>/);
-    expect(shortcutTiles([]).map((t) => t.label)).toEqual(['Categories', 'Queue', 'Issues', 'Friends listening', 'Academy', 'Premium', 'Plaza', 'Talked about']);
+    // Discover's shortcuts: eight tiles, two rows of four.
+    const shortcuts = read('app/(tabs)/index.tsx').split('<Shortcuts')[1]!.split('/>')[0]!;
+    expect((shortcuts.match(/label: "/g) ?? []).length).toBe(8);
   });
   it('10. Me: the ninth tile spans its row (no empty half beside Playlists)', () => {
     expect(read('app/(tabs)/me.tsx')).not.toMatch(/label="Playlists" \/><\/Link>\s*<Box className="flex-1" \/>/);

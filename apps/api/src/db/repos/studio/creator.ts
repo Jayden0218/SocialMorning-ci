@@ -7,6 +7,8 @@
  * the live feed proves ownership). One proven claim per feed.
  */
 import { randomBytes } from 'node:crypto';
+import { FEED_TIMEOUT_MS, readFeedText } from '@socialmorning/feed-parser';
+import { USER_AGENT, withDeadline } from '../../../catalog/feed.ts';
 import type { Db } from '../../db.ts';
 
 export type Claim = { id: string; feedUrl: string; code: string; status: 'pending' | 'proven' | 'revoked'; provenAt?: string };
@@ -38,15 +40,23 @@ export async function myClaims(db: Db, listenerId: string): Promise<Claim[]> {
   return rows.map(toClaim);
 }
 
+/** M25 S7: a claim check reads at most this much of the feed. */
+export const CLAIM_MAX_BYTES = 5 * 1024 * 1024;
+
 /** 'proven' only when the code is in the feed's text as the publisher serves it now. */
 export async function verifyClaim(db: Db, f: typeof fetch, listenerId: string, id: string): Promise<{ status: Claim['status'] } | 'not_found' | 'taken'> {
   const [c] = await db.query<{ id: string; feed_url: string; code: string; status: Claim['status'] }>(
     'SELECT id, feed_url, code, status FROM creator_claims WHERE id = $1 AND listener_id = $2', [id, listenerId]);
   if (!c) return 'not_found';
   if (c.status === 'proven') return { status: 'proven' };
-  const res = await f(c.feed_url, { headers: { accept: 'application/rss+xml, application/xml, text/xml', 'user-agent': 'SocialNet/0.1 (+https://socialmorning-api.vercel.app)' } });
-  if (!res.ok) return { status: 'pending' };
-  const text = await res.text();
+  // M25 S7 (audit #10): the same 8 s deadline and size cap as a feed refresh; `f` is the
+  // SSRF-guarded catalogue fetch (net/safe-fetch.ts), so a claim cannot point at a private address.
+  const text = await withDeadline(FEED_TIMEOUT_MS, `claim ${c.feed_url}`, async (signal) => {
+    const res = await f(c.feed_url, { signal, headers: { accept: 'application/rss+xml, application/xml, text/xml', 'user-agent': USER_AGENT } });
+    if (!res.ok) return undefined;
+    return readFeedText(res, (label, fatal) => new TextDecoder(label, { fatal }), CLAIM_MAX_BYTES);
+  });
+  if (text === undefined) return { status: 'pending' };
   if (!text.includes(c.code)) return { status: 'pending' };
   const [other] = await db.query<{ id: string }>("SELECT id FROM creator_claims WHERE feed_url = $1 AND status = 'proven' AND id <> $2", [c.feed_url, c.id]);
   if (other) return 'taken';

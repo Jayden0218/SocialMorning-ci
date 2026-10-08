@@ -148,21 +148,22 @@ test('G-M24-A3-2: changing the email needs the right code sent to the NEW addres
   const start = await t.call('POST', '/v1/me/email/start', { email: 'New@Example.com' }, a.token);
   assert.equal(start.status, 200, await start.clone().text());
   const code = t.lastCode!('new@example.com');
-  assert.ok(!t.mail!.some((m) => m.to === 'a@example.com'), 'nothing goes to the old address before the change');
+  // M25 S5: a second code goes to the current address at the same time.
+  const oldCode = t.lastCode!('a@example.com');
   const wrong = code === '000000' ? '111111' : '000000';
   // The guard: a wrong code changes nothing.
-  const bad = await t.call('POST', '/v1/me/email/confirm', { code: wrong }, a.token);
+  const bad = await t.call('POST', '/v1/me/email/confirm', { code: wrong, oldCode }, a.token);
   assert.equal(bad.status, 422);
   assert.equal((await t.q<{ email: string }>('SELECT email FROM listeners WHERE id = $1', [a.id]))[0]!.email, 'a@example.com');
-  const ok = await t.call('POST', '/v1/me/email/confirm', { code }, a.token);
+  const ok = await t.call('POST', '/v1/me/email/confirm', { code, oldCode }, a.token);
   assert.equal(ok.status, 200, await ok.clone().text());
   assert.deepEqual(await ok.json(), { email: 'new@example.com', signedOut: 0 }, 'fix F-S: no other session to sign out');
   assert.equal((await t.q<{ email: string }>('SELECT email FROM listeners WHERE id = $1', [a.id]))[0]!.email, 'new@example.com');
-  const notice = t.mail!.find((m) => m.to === 'a@example.com');
+  const notice = t.mail!.find((m) => m.to === 'a@example.com' && /changed/.test(m.subject));
   assert.ok(notice, 'the old address got a notice');
   assert.match(notice!.text, /n\*+w@example\.com/);
   // The code is used up; the session still works; GET /v1/me shows the new email.
-  assert.equal((await t.call('POST', '/v1/me/email/confirm', { code }, a.token)).status, 422);
+  assert.equal((await t.call('POST', '/v1/me/email/confirm', { code, oldCode }, a.token)).status, 422);
   const me = (await (await t.call('GET', '/v1/me', undefined, a.token)).json()) as { listener: { email: string } };
   assert.equal(me.listener.email, 'new@example.com');
   // Sign-in works with the new address.
@@ -184,16 +185,18 @@ test('email change: refused for an address in use or your own; five wrong tries 
   // A second code within 30 s is refused.
   assert.equal((await t.call('POST', '/v1/me/email/start', { email: 'c@example.com' }, a.token)).status, 429);
   const right = t.lastCode!('c@example.com');
+  const oldRight = t.lastCode!('a@example.com');
   const wrong = right === '000000' ? '111111' : '000000';
-  for (let i = 0; i < 5; i++) assert.equal((await t.call('POST', '/v1/me/email/confirm', { code: wrong }, a.token)).status, 422, `try ${i + 1}`);
-  assert.equal((await t.call('POST', '/v1/me/email/confirm', { code: right }, a.token)).status, 422, 'after five wrong tries even the right code fails');
+  for (let i = 0; i < 5; i++) assert.equal((await t.call('POST', '/v1/me/email/confirm', { code: wrong, oldCode: oldRight }, a.token)).status, 422, `try ${i + 1}`);
+  assert.equal((await t.call('POST', '/v1/me/email/confirm', { code: right, oldCode: oldRight }, a.token)).status, 422, 'after five wrong tries even the right codes fail');
   assert.equal((await t.q<{ email: string }>('SELECT email FROM listeners WHERE id = $1', [a.id]))[0]!.email, 'a@example.com');
   // Someone takes the address between start and confirm.
   await t.q("UPDATE email_changes SET sent_at = now() - interval '1 minute'");
   assert.equal((await t.call('POST', '/v1/me/email/start', { email: 'd@example.com' }, a.token)).status, 200);
   const code = t.lastCode!('d@example.com');
+  const oldCode = t.lastCode!('a@example.com');
   await signUp(t, 'd@example.com', 'Dee');
-  const race = await t.call('POST', '/v1/me/email/confirm', { code }, a.token);
+  const race = await t.call('POST', '/v1/me/email/confirm', { code, oldCode }, a.token);
   assert.equal(race.status, 409);
   assert.equal((await t.q<{ email: string }>('SELECT email FROM listeners WHERE id = $1', [a.id]))[0]!.email, 'a@example.com');
   await t.close();
