@@ -37,6 +37,10 @@ test('every contract example matches its own schema, and every schema is plain J
 
 test('the real answers the phone reads match their contracts', async () => {
   const t = await freshDb({ catalogFetch: fakeApple().fetch, picksRaw: [] });
+  try { await answers(t); } finally { await t.close(); }
+});
+
+async function answers(t: TestDb) {
   await putEpisode(t, EP, { ...ep, durationMs: 2_000_000 });
   await signUp(t, 'a@example.com', 'Alex');
   const b = await signUp(t, 'b@example.com', 'Bea');
@@ -50,17 +54,18 @@ test('the real answers the phone reads match their contracts', async () => {
 
   ok('me', await get(t, '/v1/me', a.token));
 
-  // Alex comments at 0:20, Bea replies (a notice for Alex); Alex follows Bea (her reply is in his feed).
+  // Alex comments at 0:20, Bea replies (a notice for Alex); Alex follows Bea first (her comments are then in his feed).
   const post = async (who: { token: string; id: string }, body: string, parentId?: string) => {
     await t.q(`UPDATE comments SET created_at = created_at - interval '1 minute' WHERE author_id = $1`, [who.id]);
     const r = await t.call('POST', `/v1/episodes/${EP}/comments`, { body, offsetMs: 20_000, ...(parentId ? { parentId } : {}) }, who.token);
     assert.equal(r.status, 200, await r.clone().text());
     return ((await r.json()) as { comment: { id: string } }).comment.id;
   };
+  assert.equal((await t.call('PUT', `/v1/listeners/${b.id}/follow`, undefined, a.token)).status, 204);
   const root = await post(a, 'At 0:20 — love it');
   await post(b, 'Same', root);
+  await post(b, 'My own moment');
   assert.equal((await t.call('PUT', `/v1/comments/${root}/like`, undefined, b.token)).status, 200);
-  assert.equal((await t.call('PUT', `/v1/listeners/${b.id}/follow`, undefined, a.token)).status, 204);
 
   const social = (await get(t, `/v1/episodes/${EP}/social`, a.token)) as { comments: unknown[] };
   assert.ok(social.comments.length > 0);
@@ -96,5 +101,4 @@ test('the real answers the phone reads match their contracts', async () => {
   const tips = (await get(t, '/v1/me/tips', a.token)) as { items: unknown[] };
   assert.ok(tips.items.length > 0);
   ok('tips', tips);
-  await t.close();
-});
+}

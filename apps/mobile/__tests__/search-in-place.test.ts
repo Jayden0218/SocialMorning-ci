@@ -60,6 +60,9 @@ it('only leaf pages are modals in the root stack', () => {
   expect(modal.filter((n) => !LEAF_MODALS.includes(n))).toEqual([]);
 });
 
+// Kept as source checks: Discover (app/(tabs)/index.tsx, 42 imports) is too heavy to render here, and the
+// tabs layout is navigator structure — with expo-router's Tabs and the host mocked, a render would only
+// re-read the same JSX nesting.
 it('Discover opens Search in place, inside the tab screen, not as a route', () => {
   const discover = readFileSync(join(APP, '(tabs)', 'index.tsx'), 'utf8');
   expect(discover).toMatch(/search\.open\(/);

@@ -6,6 +6,12 @@
  * example's values — so a field the phone reads cannot be renamed in the contract without this
  * failing. Hand-written JSON in tests (api-client.test.ts) now comes from the same examples.
  */
+// content.ts also holds the screen hook, which reaches the app's providers (and so expo-audio):
+// the same stand-ins as m25-config.test.tsx. Only the loader and parser are under test here.
+jest.mock('@/ui/shell/providers', () => ({ useStores: () => ({ settings: { get: () => undefined } }), useToast: () => () => undefined, useCovered: () => false }));
+jest.mock('@/social/token', () => ({ secureToken: { get: async () => undefined } }));
+jest.mock('expo-router', () => ({ router: { push: jest.fn(), back: jest.fn() }, useRouter: () => ({ push: jest.fn() }) }));
+
 import { CONTRACTS, validate } from '../../../packages/contracts/src/index';
 import { createApi } from '@/social/api';
 import { createNotificationsApi } from '@/social/notifications-api';

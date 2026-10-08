@@ -1,8 +1,9 @@
 // Tests the M24 player look: the seek bar's knob, the short Playback sheet with "More settings", the strong yellow Play buttons.
 /**
  * M24 US19 guard G-M24-B2 (the owner: "the phone looks bad"; iPhone shots
- * docs/plans/m24-audit/phone/04-player.png, 08-playback.png). Rendered props and source rules only —
- * how it looks on a phone is NOT VERIFIED until the head installs a build.
+ * docs/plans/m24-audit/phone/04-player.png, 08-playback.png). Rendered props, plus source rules only
+ * for facts that live in an expo-router page (the mini player and "Up next" are rendered in
+ * m24-player-look.parts.test.tsx) — how it looks on a phone is NOT VERIFIED until the head installs a build.
  *
  * The break that turns it red: in src/ui/player/HeatScrubber.tsx delete the knob
  * (`testID="seek-knob"`), or in src/ui/player/SettingsPanel.tsx render the M21 rows (Loop …) on the
@@ -12,9 +13,11 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createElement } from 'react';
 import { StyleSheet } from 'react-native';
-import { act, create, type ReactTestRenderer } from 'react-test-renderer';
+import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
-import { colour } from '@/design';
+import { ACCENTS, colour } from '@/design';
+import { applyAccent } from '@/design/accent';
+import type { NextUpItem } from '@/social/api';
 
 jest.mock('@/ui/shell/providers', () => ({
   useStores: () => ({
@@ -39,6 +42,9 @@ jest.mock('@/playback/store', () => ({
 
 import { HeatScrubber, KNOB, UNPLAYED_ALPHA, alphaOf, barOpacity, knobLeft } from '@/ui/player/HeatScrubber';
 import { SettingsPanel } from '@/ui/player/SettingsPanel';
+import { EndOffer } from '@/ui/player/EndOffer';
+import { PlayRing } from '@/ui/player/PlayRing';
+import { QueueList } from '@/ui/queue/QueueList';
 
 const ROOT = join(__dirname, '..');
 const read = (p: string) => readFileSync(join(ROOT, p), 'utf8');
@@ -114,32 +120,98 @@ describe('the Playback sheet', () => {
   });
 });
 
-describe('the look, from the source', () => {
+// M24 fix F-P: main Play buttons use the fixed `play` token, not `primary` (which the accent theme
+// swaps); list-row ▶ discs stay the pale `playDisc`. `play` and `primary` are both #fcc522 in the
+// default theme, so the rendered class names tell them apart, and PlayRing is rendered under Teal.
+// Breaks that turn these red: `bg-play` → `bg-primary` on EndOffer's "Play it" or a QueueList
+// Play pill; `bg-playDisc` → `bg-play` on a row disc; `c.play` → `c.primary` / `c.accent` in PlayRing.
+/** Every class name on a node and inside it. */
+const classesIn = (n: ReactTestInstance): string =>
+  [n, ...n.findAll((x) => typeof x.props['className'] === 'string')].map((x) => String(x.props['className'] ?? '')).join(' ');
+const pressableOf = (r: ReactTestRenderer, label: string): ReactTestInstance => {
+  const n = r.root.findAll((x) => x.props['accessibilityLabel'] === label && typeof x.props['onPress'] === 'function')[0];
+  if (!n) throw new Error(`no pressable "${label}"`);
+  return n;
+};
+const queueStores = {
+  feeds: {
+    getEpisode: (id: string) => ({ id, feedUrl: 'https://f/x.xml', title: id === 'e1' ? 'Casey Wants to Believe' : 'Foot Terminal', durationMs: 2_057_000 }),
+    getShow: () => ({ feedUrl: 'https://f/x.xml', title: 'Reply All' }),
+  },
+  positions: { get: () => undefined },
+  downloads: { get: () => undefined },
+} as never;
+const queueColours = { text: 'x', muted: 'x', accent: 'x' };
+
+describe('the strong yellow Play buttons; list-row discs stay pale (rendered)', () => {
+  afterEach(() => { act(() => { applyAccent('sunrise'); }); });
+
+  it('the end-of-episode offer\'s "Play it" is bg-play, never bg-primary, and plays', () => {
+    const item = {
+      episode: { id: 'n1', feedUrl: 'https://f/x.xml', guid: 'n1', title: 'Next One', showTitle: 'Reply All', enclosureUrl: 'https://a/n1.mp3' },
+      reason: 'newOnShow',
+      label: 'New on this show',
+    } as NextUpItem;
+    const onPlay = jest.fn();
+    const r = render(createElement(EndOffer, { item, onPlay, fill: true }));
+    const play = r.root.findAll((x) => typeof x.props['onPress'] === 'function' && x.findAll((t) => typeof t.type === 'string' && t.props['children'] === 'Play it').length > 0)[0];
+    expect(play).toBeDefined();
+    expect(classesIn(play!)).toMatch(/\bbg-play\b/);
+    expect(classesIn(play!)).not.toMatch(/\bbg-primary\b/);
+    act(() => { play!.props['onPress'](); });
+    expect(onPlay).toHaveBeenCalledTimes(1);
+  });
+
+  it('the queue sheet: a row\'s ▶ disc is bg-playDisc (32 pt), not bg-play; its "Play now" pill is bg-play', () => {
+    const r = render(createElement(QueueList, { ids: ['e1', 'e2'], stores: queueStores, colours: queueColours, onChange: jest.fn(), onPlay: jest.fn() }));
+    const row = pressableOf(r, 'Play Foot Terminal');
+    const disc = row.findAll((x) => typeof x.props['className'] === 'string' && /\bbg-playDisc\b/.test(String(x.props['className'])));
+    expect(disc.length).toBeGreaterThan(0);
+    const discHost = disc[0]!.findAll((x) => typeof x.type === 'string')[0]!;
+    expect((StyleSheet.flatten(discHost.props['style']) as Record<string, unknown>)['width']).toBe(32);
+    expect(classesIn(row)).not.toMatch(/\bbg-play\b/);
+    expect(classesIn(row)).not.toMatch(/\bbg-primary\b/);
+    act(() => { pressableOf(r, 'More for Foot Terminal').props['onPress'](); });
+    const pill = pressableOf(r, 'Play now');
+    expect(classesIn(pill)).toMatch(/\bbg-play\b/);
+    expect(classesIn(pill)).not.toMatch(/\bbg-primary\b/);
+  });
+
+  it('the queue page: the next episode\'s card Play pill is bg-play', () => {
+    const r = render(createElement(QueueList, { ids: ['e1', 'e2'], stores: queueStores, colours: queueColours, onChange: jest.fn(), onPlay: jest.fn(), layout: 'page' }));
+    const cls = classesIn(pressableOf(r, 'Play Casey Wants to Believe'));
+    expect(cls).toMatch(/\bbg-play\b/);
+    expect(cls).not.toMatch(/\bbg-primary\b/);
+  });
+
+  it('the mini player\'s ring is the fixed play yellow, even under another accent theme', () => {
+    act(() => { applyAccent('teal'); });
+    const r = render(createElement(PlayRing, { progress: 0.5, size: 44, stroke: 3 }));
+    const styles = r.root.findAll((x) => typeof x.type === 'string').map((x) => (StyleSheet.flatten(x.props['style']) ?? {}) as Record<string, unknown>);
+    expect(styles.filter((s) => s['borderTopColor'] === colour.play).length).toBeGreaterThan(0);
+    expect(styles.filter((s) => s['borderBottomColor'] === colour.play).length).toBeGreaterThan(0);
+    const teal = ACCENTS.teal.light.primary;
+    expect(styles.some((s) => [s['borderTopColor'], s['borderRightColor'], s['borderBottomColor'], s['borderLeftColor']].includes(teal))).toBe(false);
+  });
+});
+
+// Kept as source checks: each fact lives only in an expo-router page — app/player.tsx imports 55
+// modules (the player runtime, social API, downloads, sheets) and app/episode/[id].tsx is as heavy;
+// neither can be rendered here with manageable mocks.
+describe('the look, from the source (page-only facts)', () => {
   it('the hero sits right under the top bar (no auto margin above it)', () => {
     const p = read('app/player.tsx');
     expect(p).not.toMatch(/heroClass/);
     expect(p).toMatch(/<Box className="flex-row items-end gap-section">/);
   });
 
-  it('main Play buttons are the strong yellow; list-row discs stay pale', () => {
+  it('the player\'s and the episode page\'s main Play buttons are the strong yellow', () => {
     // M24 fix F-P: the fixed `play` token, not `primary` (which the accent theme swaps).
     expect(read('app/player.tsx')).toMatch(/const PLAY = '[^']*\bbg-play\b/);
     expect(read('app/episode/[id].tsx')).toMatch(/rounded-pill bg-play items-center justify-center px-section/);
-    expect(read('src/ui/player/EndOffer.tsx')).toMatch(/bg-play rounded-pill/);
-    const q = read('src/ui/queue/QueueList.tsx');
-    expect(q.match(/accessibilityLabel="Play now" className="[^"]*bg-play\b/g)).toHaveLength(1);
-    expect(q).toMatch(/rounded-pill bg-playDisc items-center justify-center" style=\{PLAY_DISC\}/);
   });
 
-  it('the mini player draws its own yellow ring and tabular digits', () => {
-    const m = read('src/ui/player/MiniPlayer.tsx');
-    expect(m).toMatch(/<PlayRing /);
-    expect(m).toMatch(/style=\{tabular\}/);
-    expect(read('src/ui/player/PlayRing.tsx')).toMatch(/borderTopColor: c\.play\b/);
-  });
-
-  it('the queue sheet is "Up next"; the ended page is "Finished"', () => {
-    expect(read('src/ui/queue/QueueSheet.tsx')).toMatch(/accessibilityRole="header">Up next</);
+  it('the ended page is "Finished"', () => {
     expect(read('app/player.tsx')).toMatch(/<Eyebrow>Finished<\/Eyebrow>/);
   });
 });
