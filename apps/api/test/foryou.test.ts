@@ -9,10 +9,9 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { fromPglite } from '../src/db/db.ts';
 import { createApp } from '../src/app.ts';
 import { fakeApple, fakeFeedFetch, FIXTURE_FEED } from './fake-apple.ts';
-import { migratedPg, TEST_PEPPER, signUp, type TestDb } from './harness.ts';
+import { dbOf, migratedPg, TEST_PEPPER, signUp, type TestDb } from './harness.ts';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { putEpisode } from './put-episode.ts';
 
@@ -24,7 +23,7 @@ type Body = { items: { episode: { id: string; feedUrl: string; title: string }; 
 
 async function appWith(opts: { picksRaw?: unknown; appleMode?: Parameters<typeof fakeApple>[0]; feedStatus?: number } = {}) {
   const { pg, runner } = await migratedPg();
-  const db = fromPglite(pg);
+  const db = dbOf(pg);
   const apple = fakeApple(opts.appleMode ?? {});
   const catalogFetch = (async (input: string | URL | Request, init?: RequestInit) => {
     const url = String(input);

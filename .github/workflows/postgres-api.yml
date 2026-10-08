@@ -1,0 +1,42 @@
+# M25 G3: the WHOLE API test suite again, on a real PostgreSQL 16 through the production driver
+# (`postgres` + `fromPostgres`, src/db/client.ts's options) instead of PGlite. The `$n::jsonb`
+# double-encoding bug passed every PGlite test three times (M5, M14, M19); this job is where it
+# goes red (test/jsonb-postgres.test.ts). The harness (test/harness.ts) gives every test its own
+# database, copied from a once-migrated template, and drops it at close.
+name: postgres-api
+on:
+  push:
+  workflow_dispatch:
+concurrency:
+  group: postgres-api-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+jobs:
+  api-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    name: api tests on Postgres 16 (shard ${{ matrix.shard }} of 3)
+    services:
+      postgres:
+        image: postgres:16
+        # No password: a throw-away container for this run only (trust auth), as e2e.yml.
+        env: { POSTGRES_HOST_AUTH_METHOD: trust, POSTGRES_DB: api }
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DB: postgres
+      DATABASE_URL: postgresql://postgres@localhost:5432/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: api tests on Postgres 16, shard ${{ matrix.shard }} of 3
+        run: npx tsx --test --test-timeout=120000 --test-shard=${{ matrix.shard }}/3 test/*.test.ts
+        working-directory: apps/api

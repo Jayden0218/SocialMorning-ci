@@ -7,12 +7,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
-import { fromPglite } from '../src/db/db.ts';
 import { createApp } from '../src/app.ts';
 import { validateCollections } from '../src/catalog/collections.ts';
 import { genreName, GENRE_LIST } from '../src/catalog/genres.ts';
 import { FIXTURE_FEED } from './fake-apple.ts';
-import { migratedPg, TEST_PEPPER, signUp, type TestDb } from './harness.ts';
+import { dbOf, migratedPg, TEST_PEPPER, signUp, type TestDb } from './harness.ts';
 import shippedCollections from '../collections.json' with { type: 'json' };
 import shippedPicks from '../picks.json' with { type: 'json' };
 
@@ -67,7 +66,7 @@ function fakeCatalog(chart: AppleShow[] = CHART) {
 
 async function appWith(opts: { collectionsRaw?: unknown; chart?: AppleShow[] } = {}) {
   const { pg, runner } = await migratedPg();
-  const db = fromPglite(pg);
+  const db = dbOf(pg);
   const cat = fakeCatalog(opts.chart);
   const picksRaw = [{ date: '2026-09-22', feedUrl: FX, guid: 'g-new', why: 'Today\'s pick.' }];
   const collectionsRaw = opts.collectionsRaw ?? [{ id: 'start-here', title: 'Where to start', subtitle: 'Shows worth a first episode', items: [{ feedUrl: FX }, { feedUrl: FX, guid: 'g-old', why: 'The older one.' }, { feedUrl: FX, guid: 'nope' }] }];

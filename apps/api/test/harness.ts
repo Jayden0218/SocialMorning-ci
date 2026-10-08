@@ -12,7 +12,8 @@ import { fileURLToPath } from 'node:url';
 import { PGlite } from '@electric-sql/pglite';
 import { citext } from '@electric-sql/pglite/contrib/citext';
 import { migrate, type MigrationRunner } from '../src/db/migrate.ts';
-import { fromPglite, type Db } from '../src/db/db.ts';
+import { fromPglite, fromPostgres, type Db } from '../src/db/db.ts';
+import postgres from 'postgres';
 import { createApp } from '../src/app.ts';
 import { createListener } from '../src/db/repos/account/listeners.ts';
 import { hashPassword } from '../src/auth/password.ts';
@@ -87,8 +88,116 @@ async function buildTemplate(): Promise<Blob> {
   return blob;
 }
 
+/*
+ * M25 G3: the same suite on a real PostgreSQL through the PRODUCTION driver (`postgres`, wrapped by
+ * `fromPostgres`, the options of src/db/client.ts). `TEST_DB=postgres` + `DATABASE_URL` (any
+ * database on the server; the harness makes its own). PGlite stays the default.
+ *
+ * Isolation: one database per test, `CREATE DATABASE … TEMPLATE` a once-migrated template (the
+ * same idea as the PGlite dump above). The template is named by the same migration-file hash and
+ * built once under an advisory lock, so the parallel test processes never race to build it.
+ * `t.pg` is then a PGlite-shaped stand-in (query → { rows }, exec, close) over the same
+ * connection, and `dbOf(t.pg)` gives the production adapter (tests that build their own app use
+ * `dbOf`, never `fromPglite`, so they get the right one on either database).
+ */
+export const TEST_DB: 'pglite' | 'postgres' = process.env['TEST_DB'] === 'postgres' ? 'postgres' : 'pglite';
+const PG_DB = Symbol('fromPostgres');
+const quiet = { onnotice: () => {} };
+/** The production client's options (src/db/client.ts), plus a short idle timeout so a test that never closes cannot hold its process open. */
+const CLIENT = { max: 1, idle_timeout: 1, prepare: false, ...quiet } as const;
+let pgTemplate: Promise<string> | undefined;
+let pgCounter = 0;
+
+function serverUrl(db: string): string {
+  const raw = process.env['DATABASE_URL'];
+  if (!raw) throw new Error('TEST_DB=postgres needs DATABASE_URL (a throw-away server: the tests create and drop databases on it)');
+  const u = new URL(raw);
+  u.pathname = `/${db}`;
+  return u.toString();
+}
+
+const pgRunner = (sql: postgres.Sql): MigrationRunner => ({
+  exec: (s) => sql.unsafe(s),
+  query: async <T,>(s: string, params?: unknown[]) => [...(await sql.unsafe(s, (params ?? []) as never))] as T[],
+});
+
+async function buildPgTemplate(): Promise<string> {
+  const name = `sm_tpl_${await templateKey()}`;
+  const admin = postgres(serverUrl('postgres'), { ...CLIENT, idle_timeout: 0 });
+  try {
+    await admin`SELECT pg_advisory_lock(25003)`;
+    const [have] = await admin`SELECT 1 AS one FROM pg_database WHERE datname = ${name}`;
+    if (!have) {
+      const tmp = `${name}_build_${process.pid}`;
+      await admin.unsafe(`CREATE DATABASE "${tmp}"`);
+      const sql = postgres(serverUrl(tmp), CLIENT);
+      await migrate(pgRunner(sql));
+      await sql.end({ timeout: 5 });
+      await admin.unsafe(`ALTER DATABASE "${tmp}" RENAME TO "${name}"`);
+    }
+    await admin`SELECT pg_advisory_unlock(25003)`;
+  } finally {
+    await admin.end({ timeout: 5 });
+  }
+  return name;
+}
+
+/** A new database copied from the migrated template; `drop` removes it. */
+async function pgCopy(): Promise<{ sql: postgres.Sql; drop: () => Promise<void> }> {
+  pgTemplate ??= buildPgTemplate();
+  const tpl = await pgTemplate;
+  const name = `sm_t_${process.pid}_${++pgCounter}_${Date.now() % 1_000_000}`;
+  const admin = postgres(serverUrl('postgres'), CLIENT);
+  // Two CREATE DATABASE … TEMPLATE at the same instant can see each other as "users" of the
+  // template (55006). That is the server's lock, not the code under test: wait and ask again.
+  for (let i = 0; ; i++) {
+    try { await admin.unsafe(`CREATE DATABASE "${name}" TEMPLATE "${tpl}"`); break; } catch (e) {
+      if ((e as { code?: string }).code !== '55006' || i >= 20) { await admin.end({ timeout: 5 }); throw e; }
+      await new Promise((r) => setTimeout(r, 100 + Math.random() * 200));
+    }
+  }
+  await admin.end({ timeout: 5 });
+  const sql = postgres(serverUrl(name), CLIENT);
+  return {
+    sql,
+    drop: async () => {
+      await sql.end({ timeout: 5 });
+      const a = postgres(serverUrl('postgres'), CLIENT);
+      await a.unsafe(`DROP DATABASE IF EXISTS "${name}" WITH (FORCE)`).catch(() => undefined);
+      await a.end({ timeout: 5 });
+    },
+  };
+}
+
+/** The PGlite-shaped stand-in `t.pg` is on Postgres (only what the tests use). */
+function pgStandIn(sql: postgres.Sql, drop: () => Promise<void>): PGlite {
+  const db = fromPostgres(sql as never);
+  const shim = {
+    [PG_DB]: db,
+    query: async <T,>(s: string, params?: unknown[]) => ({ rows: [...(await sql.unsafe(s, (params ?? []) as never))] as T[] }),
+    exec: async (s: string) => { await sql.unsafe(s); return []; },
+    transaction: <T,>(fn: (tx: unknown) => Promise<T>) => sql.begin((tx) => fn({
+      query: async (s: string, params?: unknown[]) => ({ rows: [...(await tx.unsafe(s, (params ?? []) as never))] }),
+      exec: async (s: string) => { await tx.unsafe(s); return []; },
+    })) as Promise<T>,
+    close: drop,
+  };
+  return shim as unknown as PGlite;
+}
+
+/** The app's `Db` for a `t.pg`: the production adapter on Postgres, the PGlite one otherwise. */
+export function dbOf(pg: PGlite): Db {
+  return (pg as unknown as { [PG_DB]?: Db })[PG_DB] ?? fromPglite(pg);
+}
+
 /** A PGlite with every migration applied, copied from a once-migrated template (see above). */
 export async function migratedPg(): Promise<{ pg: PGlite; runner: MigrationRunner }> {
+  if (TEST_DB === 'postgres') {
+    const { sql, drop } = await pgCopy();
+    const runner = pgRunner(sql);
+    await migrate(runner);
+    return { pg: pgStandIn(sql, drop), runner };
+  }
   template ??= buildTemplate();
   const pg = new PGlite({ extensions: { citext }, loadDataDir: await template });
   const runner: MigrationRunner = {
@@ -112,7 +221,7 @@ export async function freshDb(allOpts: { ownerListenerId?: string; appealsEmail?
   // Test listeners have accepted them, so every older test keeps its meaning; the rules tests
   // (comments-m21.test.ts) set rules_accepted_at back to NULL for the listener they test.
   await pg.exec('ALTER TABLE listeners ALTER COLUMN rules_accepted_at SET DEFAULT now()');
-  const db = fromPglite(pg);
+  const db = dbOf(pg);
   const mail: Mail[] = [];
   const mailer: Mailer | undefined = noMailer ? undefined : { send: async (m) => { mail.push(m); } };
   let app = createApp({ db, pepper: TEST_PEPPER, appealsEmail: TEST_APPEALS, ...(mailer ? { mailer } : {}), ...opts });

@@ -1,0 +1,32 @@
+# TEMPORARY (lane GB): measures today's coverage per package once, to set the floors. Removed
+# before the lane is handed back.
+name: gb-measure
+on:
+  workflow_dispatch:
+  push:
+    branches: [lane-gb]
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [api, studio, feed-parser, mobile]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --no-audit --no-fund
+      - if: matrix.part == 'api'
+        run: npx c8 --reporter=text-summary --include 'src/**' tsx --test --test-timeout=120000 test/*.test.ts > /tmp/out.txt 2>&1; tail -40 /tmp/out.txt
+        working-directory: apps/api
+      - if: matrix.part == 'studio'
+        run: npx c8 --reporter=text-summary --include 'src/**' vitest run > /tmp/out.txt 2>&1; tail -40 /tmp/out.txt
+        working-directory: apps/studio
+      - if: matrix.part == 'feed-parser'
+        run: npx c8 --reporter=text-summary --include 'src/**' tsx --test test/*.test.ts > /tmp/out.txt 2>&1; tail -40 /tmp/out.txt
+        working-directory: packages/feed-parser
+      - if: matrix.part == 'mobile'
+        run: npx jest --coverage --collectCoverageFrom='src/**/*.{ts,tsx}' --coverageReporters=text-summary > /tmp/out.txt 2>&1; tail -40 /tmp/out.txt
+        working-directory: apps/mobile
