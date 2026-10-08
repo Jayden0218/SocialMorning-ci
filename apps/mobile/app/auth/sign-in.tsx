@@ -12,9 +12,6 @@
  * with a soft shadow, a 60 pt yellow "Continue with email" and Google / Facebook as white 56 pt
  * pills with the card border. The icon (72) and the gap above the covers (64) keep the owner's
  * own sizes from 2026-10-03 rather than B's 44 / 56. Ways in, consent and the guards unchanged.
- *
- * M25 L3c (App Review 2.1): Google and Facebook are not drawn until they are built — the row is
- * `<OtherWays>`, which renders nothing while no method is ready (was: buttons that opened Coming soon).
  */
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
@@ -34,8 +31,8 @@ import { LANDING_TILES } from "@/ui/auth/art";
 import { display } from "@/ui/auth/display";
 import { ConsentDialog, ConsentRow, useLegalOverlay } from "@/ui/auth/Consent";
 import { submitAction } from "@/ui/auth/rules";
-import { type OtherMethod } from "@/ui/auth/methods";
-import { OtherWays } from "@/ui/auth/OtherWays";
+import { OTHER_METHODS, type OtherMethod } from "@/ui/auth/methods";
+import { useComingSoon } from "@/ui/kit/ComingSoon";
 
 /** Owner, 2026-10-03: larger (was 48), and the covers lower down (was 40 below the name). */
 const LOGO = { width: 72, height: 72 };
@@ -46,6 +43,7 @@ type Way = "email" | OtherMethod;
 export default function SignInScreen(): React.ReactElement {
   const stores = useStores();
   const c = useColours(stores.settings);
+  const [comingSoon, comingSoonDialog] = useComingSoon();
   const legal = useLegalOverlay();
   const [agreed, setAgreed] = useState(false);
   // Which way in is waiting on the consent dialog.
@@ -69,7 +67,19 @@ export default function SignInScreen(): React.ReactElement {
       router.push({ pathname: "/auth/email", params: { agreed: "1" } });
       return;
     }
-    // M25 L3c: only a ready method is drawn (none today); its own sign-in flow goes here when built.
+    const m = OTHER_METHODS.find((o) => o.id === way)!;
+    // M17 (FR-014, T112): until the backend is wired, Coming soon says so — with email as the way in.
+    if (!m.ready)
+      comingSoon({
+        feature: `${m.short} sign-in`,
+        mark: m.mark === "google" ? "google" : m.icon,
+        line: `Signing in with ${m.short} is not ready yet. For now, continue with email and we will send you a code.`,
+        second: {
+          label: "Continue with email",
+          onPress: () =>
+            router.push({ pathname: "/auth/email", params: { agreed: "1" } }),
+        },
+      });
   }
   const choose = (way: Way): void => {
     if (submitAction({ valid: true, agreed, busy: false }) === "ask")
@@ -117,7 +127,20 @@ export default function SignInScreen(): React.ReactElement {
           disabled={false}
           onPress={() => choose("email")}
         />
-        <OtherWays onChoose={(id) => choose(id)} />
+        <Box className="flex-row gap-row mt-row">
+          {OTHER_METHODS.map((m) => (
+            <AuthButton
+              key={m.id}
+              outline
+              mark={m.mark}
+              label={m.label}
+              text={m.short}
+              className="flex-1 rounded-pill"
+              disabled={false}
+              onPress={() => choose(m.id)}
+            />
+          ))}
+        </Box>
         {/* Owner, 2026-09-27: the consent box sits under the ways in. */}
         <ConsentRow
           agreed={agreed}
@@ -138,6 +161,7 @@ export default function SignInScreen(): React.ReactElement {
         }}
       />
       {legal.overlay}
+      {comingSoonDialog}
     </SafeAreaView>
   );
 }

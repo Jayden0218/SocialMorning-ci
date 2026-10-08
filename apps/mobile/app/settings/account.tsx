@@ -26,7 +26,7 @@ import { useSocial } from '@/social/context';
 import { useStores } from '@/ui/shell/providers';
 import { useColours } from '@/ui/kit/useColours';
 import { Icon } from '@/ui/kit/Icon';
-import { readyMethods } from '@/ui/auth/methods';
+import { OTHER_METHODS } from '@/ui/auth/methods';
 import { PageHeader } from '@/ui/kit/PageHeader';
 import { Card } from '@/ui/kit/Card';
 import { Eyebrow } from '@/ui/kit/Eyebrow';
@@ -74,21 +74,18 @@ export default function AccountSecurityScreen(): React.ReactElement {
         </Box>
         <Text className="text-muted text-xs">We send a one-time code each time; there is no password.</Text>
       </Card>
-      {/* M25 L3c (App Review 2.1): a way in that is not built is not listed (none is today). */}
-      {readyMethods().length > 0 ? (
       <Box className="gap-row">
         <Eyebrow accent>Other ways to sign in</Eyebrow>
         <Box className="flex-row gap-row">
-          {readyMethods().map((m) => (
-            <Box key={m.id} className="flex-1 rounded-row border-dashed border-handle p-section gap-1" style={DASHED} accessible accessibilityLabel={`${m.label.replace('Continue with ', '')}: not linked yet`}>
+          {OTHER_METHODS.map((m) => (
+            <Box key={m.id} className="flex-1 rounded-row border-dashed border-handle p-section gap-1" style={DASHED} accessible accessibilityLabel={`${m.label.replace('Continue with ', '')}: not set up yet`}>
               <Icon name={m.icon} size={24} color={c.muted} />
               <Text className="text-text text-title font-display mt-row">{m.label.replace('Continue with ', '')}</Text>
-              <Text className="text-muted text-xs">Not linked yet</Text>
+              <Text className="text-muted text-xs">Not set up yet</Text>
             </Box>
           ))}
         </Box>
       </Box>
-      ) : null}
     </ScrollView>
     {/* M12 FR-096: deletion sits one level down, under More — a pushed page (M17), pinned to the foot. */}
     <BottomBar tone="page" pad="none">

@@ -62,6 +62,9 @@ missing here or a line does not match its file.
 |---|---|
 | `Accounts.tsx` | Admin page to create accounts, act as them, and name show curators. |
 | `Activity.tsx` | Admin page showing every admin change, newest first, read only. |
+| `AppSettings.tsx` | Admin page for the phone's app settings: Discover tiles, categories, section titles, list sizes, rate prompt, search hints. |
+| `Content.tsx` | Admin page to write the phone's Creator academy articles and Help questions, with a preview. |
+| `Markdown.tsx` | Draws the content pages' Markdown subset as React text — never as HTML — for the Content preview. |
 | `AdminLayout.tsx` | The Admin section's frame: its side menu, banner and sign-in-again rule. |
 | `common.tsx` | Shared Admin helpers: error text, an episode search box, and reorder buttons. |
 | `Curated.tsx` | Admin page to create, edit, order and retire curated episode collections. |

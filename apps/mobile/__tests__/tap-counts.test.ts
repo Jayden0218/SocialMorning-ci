@@ -19,7 +19,8 @@ import { join } from 'node:path';
 import { TABS, TAB_HREF } from '@/ui/shell/tabs';
 
 const read = (f: string) => readFileSync(join(__dirname, '..', 'app', '(tabs)', f), 'utf8');
-const SCREEN: Record<string, string> = { '/': read('index.tsx'), '/library': read('library.tsx'), '/me': read('me.tsx') };
+// M25 A7: Discover's shortcut tiles moved into their own component; they are still on Discover.
+const SCREEN: Record<string, string> = { '/': read('index.tsx') + readFileSync(join(__dirname, '..', 'src', 'ui', 'discover', 'DiscoverShortcuts.tsx'), 'utf8'), '/library': read('library.tsx'), '/me': read('me.tsx') };
 /** Does this screen's source open `href` — a Link, a MenuRow, or a router.push? */
 const links = (src: string, href: string): boolean => {
   const h = href.replace(/[/]/g, '\\/');

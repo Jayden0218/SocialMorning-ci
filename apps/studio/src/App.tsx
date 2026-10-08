@@ -49,6 +49,8 @@ const Appeals = page(() => import('./pages/admin/Appeals'), 'Appeals');
 const Deletions = page(() => import('./pages/admin/Appeals'), 'Deletions');
 const Safety = page(() => import('./pages/admin/Safety'), 'Safety');
 const Notices = page(() => import('./pages/admin/Notices'), 'Notices');
+const AppSettings = page(() => import('./pages/admin/AppSettings'), 'AppSettings'); // M25 lane AC
+const ContentPages = page(() => import('./pages/admin/Content'), 'Content'); // M25 lane AC
 
 /** While a page's download arrives: the same loading line every block uses. */
 function Wait({ children }: { children: ReactElement }) {
@@ -99,6 +101,8 @@ export function App() {
         <Route path="safety" element={<Wait><Safety /></Wait>} />
         <Route path="notices" element={<Wait><Notices /></Wait>} />
         <Route path="deletions" element={<Wait><Deletions /></Wait>} />
+        <Route path="app-settings" element={<Wait><AppSettings /></Wait>} />
+        <Route path="content" element={<Wait><ContentPages /></Wait>} />
         <Route path="*" element={<Navigate to="dashboard" replace />} />
       </Route>
       <Route path="*" element={<Signed><FirstShow /></Signed>} />

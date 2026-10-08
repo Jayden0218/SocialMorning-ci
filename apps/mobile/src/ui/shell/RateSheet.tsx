@@ -27,16 +27,33 @@ import { useCovered, useStores, useToast } from '@/ui/shell/providers';
 import { hit } from '@/design';
 import type { SettingsStore } from '@/storage/types';
 import { interestsDueFrom } from '@/discover/interests';
+import type { RatePrompt } from '@socialmorning/social-core';
+import { getAppConfig } from '@/config/store';
 
-/** Set at release: the App Store page needs its numeric id; Play's is the package name. */
+/** Set at release: the App Store page needs its numeric id; Play's is the package name. M25 A7: the admin's links win. */
 export const STORE_URL: { ios?: string; android?: string } = {};
 export const RATE_KEY = 'rate.answered';
-/** How long after the tabs appear the sheet slides up. */
-const DELAY_MS = 1500;
+/** M25 A7: when the answer was given (ms), for the admin's optional "ask again after N days". */
+export const RATE_AT_KEY = 'rate.answeredAt';
 
-export function shouldAskRating(s: SettingsStore): boolean {
-  return s.get(RATE_KEY) === undefined;
+/**
+ * M25 A7: the rule comes from the admin's settings (`app_config` key `ratePrompt`); its default is
+ * the M24 rule above — on, ask until any answer, never again. When the admin sets "ask again after
+ * N days", a listener who closed the sheet or chose feedback is asked again N days later; one who
+ * tapped "Rate us" never is. Off → never asks.
+ */
+export function shouldAskRating(s: SettingsStore, rule: RatePrompt = getAppConfig().ratePrompt, now = Date.now()): boolean {
+  if (!rule.enabled) return false;
+  const answer = s.get(RATE_KEY);
+  if (answer === undefined) return true;
+  if (answer === 'rate' || rule.reaskAfterDays === null) return false;
+  const at = Number(s.get(RATE_AT_KEY));
+  return Number.isFinite(at) && at > 0 && now - at >= rule.reaskAfterDays * 86_400_000;
 }
+
+/** The store page to open: the admin's link for this platform, else the built-in one (none yet). */
+export const storeUrlFor = (os: string, rule: RatePrompt = getAppConfig().ratePrompt): string | undefined =>
+  os === 'ios' ? rule.storeUrls.ios ?? STORE_URL.ios : rule.storeUrls.android ?? STORE_URL.android;
 
 /**
  * Defect 1 (owner's iPhone, 2026-10-07): on the first open the sheet slid up OVER the interests
@@ -71,7 +88,8 @@ export function RateSheet(props: { onTabs: boolean; segment: string | undefined;
 
   useEffect(() => {
     if (!may || asked) return;
-    const t = setTimeout(() => { setOpen(true); setAsked(true); }, DELAY_MS);
+    // M25 A7: how long after the tabs appear the sheet slides up (default 1.5 s).
+    const t = setTimeout(() => { setOpen(true); setAsked(true); }, getAppConfig().ratePrompt.delayMs);
     return () => clearTimeout(t);
   }, [may, asked]);
   // Never over an onboarding page: a sheet already up closes (no answer is recorded).
@@ -80,9 +98,10 @@ export function RateSheet(props: { onTabs: boolean; segment: string | undefined;
   const answer = (a: 'rate' | 'feedback' | 'closed'): void => {
     setOpen(false);
     stores.settings.set(RATE_KEY, a);
+    stores.settings.set(RATE_AT_KEY, String(Date.now()));
     if (a === 'feedback') router.push('/settings/feedback');
     if (a === 'rate') {
-      const url = Platform.OS === 'ios' ? STORE_URL.ios : STORE_URL.android;
+      const url = storeUrlFor(Platform.OS);
       if (url) void Linking.openURL(url).catch(() => toast('Could not open the store.'));
       else toast('Thank you! Ratings open when SocialNet is in the store.');
     }

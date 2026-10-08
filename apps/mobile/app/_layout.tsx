@@ -37,6 +37,7 @@ import { consentGiven } from '@/ui/shell/consent';
 import { InterestsGate } from '@/ui/discover/InterestsGate';
 // M22 lane 6: portrait lock on phones, app-icon shortcuts, maintenance check, mobile-data prompt.
 import { useStartupExtras } from '@/ui/shell/startupExtras';
+import { useStartConfig } from '@/config/useStartConfig'; // M25 lane AC
 import { useIconReset } from '@/ui/shell/iconReset';
 import { DataPrompt } from '@/ui/player/DataPrompt';
 
@@ -117,6 +118,8 @@ function RootStack(): React.ReactElement {
   const stores = useStores();
   const c = useColours(stores.settings);
   useStartupExtras(stores.settings);
+  // M25 A7: the admin's app settings — cached copy now, the server's when it answers, defaults offline.
+  useStartConfig(stores.feedCache);
   // M22 US17: PLUS ended → the app icon goes back to Default (src/ui/shell/iconReset.ts).
   useIconReset();
   // M16a bug 5: which page, if any, is being swiped back onto the tabs (src/ui/player/mini-player-swipe.ts).
