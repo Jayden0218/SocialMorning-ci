@@ -64,6 +64,22 @@ describe('Admin › second step (M25 SB)', () => {
   });
 });
 
+describe('Admin › second step when the network fails', () => {
+  it('send and verify show the offline message when the request itself fails', async () => {
+    let n = 0;
+    vi.stubGlobal('fetch', vi.fn(async () => { n += 1; throw new TypeError('Failed to fetch'); }));
+    const onDone = vi.fn();
+    renderIn(<SecondFactor email="owner@example.com" onDone={onDone} />);
+    const OFFLINE = 'Could not reach SocialMorning. Check your connection and try again.';
+    expect((await screen.findByRole('alert')).textContent).toBe(OFFLINE);
+    fireEvent.change(screen.getByLabelText('6-digit code'), { target: { value: '123456' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    await waitFor(() => expect(n).toBe(2));
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toBe(OFFLINE));
+    expect(onDone).not.toHaveBeenCalled();
+  });
+});
+
 describe('withoutMetadata (M25 SB, browser side)', () => {
   // SOI, APP1 "Exif\0\0" + 4 bytes, SOS (length 4) + 1 data byte, EOI.
   const EXIF = [0x45, 0x78, 0x69, 0x66, 0, 0];
@@ -71,7 +87,7 @@ describe('withoutMetadata (M25 SB, browser side)', () => {
   const hasExif = (b: Uint8Array) => b.some((_, i) => EXIF.every((v, j) => b[i + j] === v));
   // jsdom 20's Blob has no arrayBuffer(): the input gets one (as a browser has), the output is read with FileReader.
   const readable = (bytes: Uint8Array, name: string, type: string) => {
-    const f = new File([bytes], name, { type });
+    const f = new File([bytes as BlobPart], name, { type });
     Object.defineProperty(f, 'arrayBuffer', { value: () => Promise.resolve(bytes.slice().buffer) });
     return f;
   };
@@ -94,8 +110,16 @@ describe('withoutMetadata (M25 SB, browser side)', () => {
   it('anything that is not a JPEG, PNG or WebP goes as it is; a file that cannot be read goes as it is', async () => {
     const audio = readable(new Uint8Array([1, 2, 3]), 'a.mp3', 'audio/mpeg');
     expect(await withoutMetadata(audio)).toBe(audio);
-    const broken = new File([jpeg], 'b.jpg', { type: 'image/jpeg' });
+    const broken = new File([jpeg as BlobPart], 'b.jpg', { type: 'image/jpeg' });
     Object.defineProperty(broken, 'arrayBuffer', { value: () => Promise.reject(new Error('unreadable')) });
     expect(await withoutMetadata(broken)).toBe(broken);
+  });
+
+  it('a file that says JPEG but is not one goes as it is; a browser with no arrayBuffer sends it as it is', async () => {
+    const fake = readable(new Uint8Array([1, 2, 3, 4]), 'x.jpg', 'image/jpeg');
+    expect(await withoutMetadata(fake)).toBe(fake);
+    const plain = new File([jpeg as BlobPart], 'p.jpg', { type: 'image/jpeg' });
+    Object.defineProperty(plain, 'arrayBuffer', { value: undefined });
+    expect(await withoutMetadata(plain)).toBe(plain);
   });
 });
