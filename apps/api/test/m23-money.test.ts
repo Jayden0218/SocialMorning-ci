@@ -128,10 +128,7 @@ test('US4: a Google purchase is tied to its account — another account\'s hash 
 
 async function ownerCookie(t: TestDb, email: string): Promise<string> {
   const r = await t.app.request('/mod/login', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ email, password: 'correct horse' }).toString(), redirect: 'manual' });
-  const cookie = r.headers.get('set-cookie')!.split(';')[0]!;
-  // M25 SB: then the code emailed to the owner (the /mod second factor).
-  await t.app.request('/mod/code', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', cookie }, body: new URLSearchParams({ code: t.lastCode!(email) }).toString(), redirect: 'manual' });
-  return cookie;
+  return r.headers.get('set-cookie')!.split(';')[0]!;
 }
 
 test('US8: the error log — repeats count up, 20 a batch, stacks cut to 2 KB, owner-only page, 30-day sweep', async () => {

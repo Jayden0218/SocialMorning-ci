@@ -5,10 +5,6 @@
  * comments page with the current moment.
  *
  * The break that turns it red: point the button back at the composer (`commentHere`).
- *
- * Kept as a source check: the button and its handler live only in app/player.tsx, a page of ~55
- * imports (poll, live count, discover, transcripts, audio rows, quote video…) with no smaller
- * component carrying them; rendering it would mean mocking every one.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';

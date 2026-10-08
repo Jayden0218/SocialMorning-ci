@@ -1,0 +1,9 @@
+# Android emulator only: a cold emulator's launcher can raise "… isn't responding" over the app.
+# Not the app's dialog — answer Wait and carry on. Nothing on iOS.
+appId: app.socialmorning.mobile
+---
+- runFlow:
+    when:
+      visible: ".*isn't responding"
+    commands:
+      - tapOn: "Wait"

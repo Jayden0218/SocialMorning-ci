@@ -1,0 +1,9 @@
+# Android: the keyboard covers the auth page's bottom bar, so close it. iOS keeps the bar above the
+# keyboard, and Maestro's hideKeyboard failed there (run 37734714695) — so Android only.
+appId: app.socialmorning.mobile
+---
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - hideKeyboard

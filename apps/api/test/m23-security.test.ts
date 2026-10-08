@@ -25,11 +25,8 @@ import { hit } from '../src/auth/rate.ts';
 const ep = { feedUrl: 'https://feeds.example.com/m23.xml', guid: 'g1', title: 'The real title', enclosureUrl: 'https://cdn.example.com/1.mp3', imageUrl: 'https://cdn.example.com/real.jpg', publishedAt: '2026-01-01T00:00:00.000Z' };
 const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
 
-// M25 S8: a new episode is registered only from its feed, which this fake serves.
-const M23_RSS = `<?xml version="1.0"?><rss version="2.0"><channel><title>M23</title><item><title>Second</title><guid>g2</guid><enclosure url="https://cdn.example.com/2.mp3" type="audio/mpeg"/></item></channel></rss>`;
-
 test('G-M23-1: a signed-out episode PUT is 401; a signed-in one only fills empty fields', async () => {
-  const t = await freshDb({ catalogFetch: (async () => new Response(M23_RSS, { status: 200 })) as unknown as typeof fetch });
+  const t = await freshDb();
   assert.equal((await t.call('PUT', `/v1/episodes/${EP}`, ep)).status, 401);
   await putEpisode(t, EP, ep); // the feed refresh knows it
   const a = await signUp(t, 'a@example.com', 'Al');
@@ -40,7 +37,7 @@ test('G-M23-1: a signed-out episode PUT is 401; a signed-in one only fills empty
   assert.equal(row!.image_url, ep.imageUrl, 'image unchanged');
   assert.equal(new Date(row!.published_at).toISOString(), ep.publishedAt, 'date unchanged');
   assert.equal(row!.duration_ms, 1_000_000, 'an empty field may be filled');
-  // A new episode is still registered by a signed-in listener — from its feed (M25 S8).
+  // A new episode is still registered whole by a signed-in listener.
   const other = { ...ep, guid: 'g2', title: 'Second' };
   const id2 = fnv1a64(other.feedUrl + '\u0001' + other.guid);
   assert.equal((await t.call('PUT', `/v1/episodes/${id2}`, other, a.token)).status, 200);

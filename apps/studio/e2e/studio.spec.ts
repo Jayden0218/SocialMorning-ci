@@ -18,8 +18,7 @@ let shot = 0;
 const snap = (page: Page, name: string) => page.screenshot({ path: `e2e-results/steps/${String(++shot).padStart(2, '0')}-${name}.png`, fullPage: true });
 
 async function signUp(request: APIRequestContext, u: { email: string; name: string }): Promise<string> {
-  // M25 S3: /v1/auth/sign-up is gone; the e2e API's own route makes a password account.
-  const r = await request.post('http://localhost:8787/__e2e/account', { data: { email: u.email, password: PW, displayName: u.name } });
+  const r = await request.post('/api/v1/auth/sign-up', { data: { email: u.email, password: PW, displayName: u.name } });
   expect(r.status(), `sign-up ${u.email}`).toBe(200);
   return ((await r.json()) as { token: string }).token;
 }

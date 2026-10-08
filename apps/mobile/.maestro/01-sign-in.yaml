@@ -1,0 +1,61 @@
+# M25 G1/G6 flow 1 — first launch to Discover, signed in by emailed code. Elements are found by
+# their accessible names (what VoiceOver reads), so a renamed control fails here as it would for
+# a listener. Since M17 the first-launch page says "Agree" (it said "Agree and continue" before:
+# ios-journey was red 2026-10-01…07 at that tap).
+appId: app.socialmorning.mobile
+env:
+  API: http://localhost:8787
+  EMAIL: listener-02@journey.test
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- runFlow: common/anr.yaml
+- extendedWaitUntil:
+    visible: "Agree"
+    timeout: 60000
+- runFlow: common/anr.yaml
+- takeScreenshot: 01a-terms
+- tapOn: "Agree"
+# Notification permission: granted by launchApp's `permissions` above, so no system alert here.
+- tapOn: "Continue with email"
+- tapOn: "Agree and continue"           # the consent sheet: the box under the ways in was not ticked
+- tapOn: "Email"
+- runFlow: common/type-email.yaml       # EMAIL above, typed in pieces
+# Still wrong (the field shows something else): clear and type again, up to 3 times.
+- repeat:
+    while:
+      notVisible: "listener-02@journey\\.test"
+    times: 3
+    commands:
+      - tapOn: "Email"
+      - runFlow: common/type-email.yaml
+- runFlow: common/hide-keyboard.yaml
+- tapOn: "Send code"
+- extendedWaitUntil:                    # the code step: the server has sent it
+    visible: "Code"
+    timeout: 20000
+- runScript: fetch-code.js              # the test server's inbox — what a person reads in their mail
+- tapOn: "Code"
+- inputText: ${output.code}
+- repeat:                               # the same: Continue turns on only with all 6 digits
+    while:
+      notVisible:
+        text: "Continue"
+        enabled: true
+    times: 3
+    commands:
+      - tapOn: "Code"
+      - eraseText: 10
+      - inputText: ${output.code}
+- runFlow: common/hide-keyboard.yaml
+- tapOn: "Continue"
+- extendedWaitUntil:                    # Discover, or the interests page pushed over it
+    visible: "Discover|Skip choosing categories|Skip"
+    timeout: 30000
+- runFlow: common/settle.yaml
+- extendedWaitUntil:
+    visible: "Discover"
+    timeout: 15000
+- takeScreenshot: 01b-signed-in

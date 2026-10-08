@@ -75,15 +75,11 @@ describe('US3 contacts', () => {
     expect(contactProblem({ type: 'wechat', value: 'has space' })).not.toBeNull();
   });
   it('a bad contact is marked and not sent; a good one is saved with the 100-hour message; axe', async () => {
-    const f = mockApi((p) => (p.endsWith('/overrides') ? { status: 200, body: { overrides: { ...OVERRIDES, milestoneMessage: 'Loaded' } } } : undefined));
+    const f = mockApi((p) => (p.endsWith('/overrides') ? { status: 200, body: { overrides: OVERRIDES } } : undefined));
     const { container } = renderIn(<Layout show={SHOW}><Settings show={SHOW} /></Layout>, `/s/${SHOW.key}/settings/contacts`);
-    // The race behind "Unable to find a label with the text of: Type" (runs 37691488284, 37714062341):
-    // the button appears on the render where the load is ready, but the effect that copies the loaded
-    // overrides into the form runs just after — a click before it was wiped by it. Wait for the
-    // loaded value to be in the form first; then the click always sticks.
-    await vi.waitFor(() => expect((screen.getByLabelText(/A thank-you a listener sees/) as HTMLInputElement).value).toBe('Loaded'));
-    fireEvent.click(screen.getByRole('button', { name: 'Add a contact' }));
-    fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'email' } });
+    fireEvent.click(await screen.findByRole('button', { name: 'Add a contact' }));
+    // findBy: the new contact row renders a moment after the click (seen flaky 2026-10-08, run 37691488284).
+    fireEvent.change(await screen.findByLabelText('Type'), { target: { value: 'email' } });
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'not-an-email' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
     expect(await screen.findByText('Not an email address.')).toBeTruthy();

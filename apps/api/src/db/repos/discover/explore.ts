@@ -23,7 +23,6 @@ import { cached } from '../cache.ts';
 import { hiddenFeedUrls } from '../safety/moderation.ts';
 import { hiddenEpisodeIds, notHidden } from '../studio/hidden-episodes.ts';
 import { talkedAboutChart, type DiscoverItem } from './discover.ts';
-import { applyList, isHidden, NONE, pinnedEpisode, type Active } from './lists.ts';
 
 export const CHART_KINDS = ['talked', 'new', 'rising'] as const;
 export type ChartKind = (typeof CHART_KINDS)[number];
@@ -45,10 +44,7 @@ export function cardOf(e: EpRow): EpisodeCard & { id: string } {
 }
 
 /** One chart, cached 5 min; `updatedAt` is when this copy was computed. */
-/** M25 A4: the `list_overrides` list each chart obeys (`new` is a list of shows). */
-export const CHART_LIST: Readonly<Record<ChartKind, string>> = { talked: 'talked', new: 'new', rising: 'rising' };
-
-export async function chart(db: Db, kind: ChartKind, limit: number, now: () => number = Date.now, ov: Active = NONE): Promise<{ items: ChartItem[]; updatedAt: string }> {
+export async function chart(db: Db, kind: ChartKind, limit: number, now: () => number = Date.now): Promise<{ items: ChartItem[]; updatedAt: string }> {
   const { body } = await cached(db, `chart:v1:${kind}`, CHART_TTL, async () => ({
     items: kind === 'talked' ? await talkedAboutChart(db, CHART_STORED) : kind === 'new' ? await newShowsChart(db) : await risingChart(db),
     updatedAt: new Date(now()).toISOString(),
@@ -56,14 +52,7 @@ export async function chart(db: Db, kind: ChartKind, limit: number, now: () => n
   // M6 G7: a show hidden after this copy was made leaves at once, not 5 min later.
   const hidden = await hiddenFeedUrls(db);
   const hiddenEps = await hiddenEpisodeIds(db); // M24 US11: hidden episodes leave this list.
-  const visible = body.items.filter((i) => !hidden.has(i.episode.feedUrl) && !hiddenEps.has(i.episode.id));
-  // M25 A4: the owner's pins and hides, at serve time (after the 5-minute copy).
-  const showLevel = kind === 'new';
-  const applied = await applyList(visible, ov, (i) => (showLevel ? { feedUrl: i.episode.feedUrl } : { feedUrl: i.episode.feedUrl, guid: i.episode.guid }), async (p) => {
-    const e = await pinnedEpisode(db, showLevel ? { feedUrl: p.feedUrl } : p, hidden, hiddenEps);
-    return e ? { kind: 'trending' as const, key: keyOf(e), episode: e, reason: 'Picked by the editors', rank: 0 } : undefined;
-  });
-  const items = applied.slice(0, limit).map((i, n) => ({ ...i, rank: n + 1 }));
+  const items = body.items.filter((i) => !hidden.has(i.episode.feedUrl) && !hiddenEps.has(i.episode.id)).slice(0, limit).map((i, n) => ({ ...i, rank: n + 1 }));
   return { items, updatedAt: body.updatedAt };
 }
 
@@ -127,7 +116,7 @@ export const HUNT_SIZE = 3;
  * show or episode). The pick is seeded by (listener, UTC day, shuffle), so it holds all day and
  * changes the next day; `shuffle = n` gives the n-th other set.
  */
-export async function hunt(db: Db, listenerId: string | undefined, day: string, shuffle: number, ov: Active = NONE): Promise<(EpisodeCard & { id: string })[]> {
+export async function hunt(db: Db, listenerId: string | undefined, day: string, shuffle: number): Promise<(EpisodeCard & { id: string })[]> {
   // M24 US11: hidden episodes leave this list.
   const rows = await db.query<EpRow & { plays: number }>(
     `WITH plays AS (
@@ -145,19 +134,9 @@ export async function hunt(db: Db, listenerId: string | undefined, day: string, 
       WHERE rn * 2 <= total + 1 ORDER BY rn LIMIT 2000`,
     [listenerId ?? null],
   );
-  // M25 A4: the owner's hides leave the candidates; the owner's pins (hidden gems) come first, for everyone.
-  const order = seededOrder(rows.filter((r) => !isHidden(ov, { feedUrl: r.feed_url, guid: r.guid })), `hunt|${listenerId ?? 'anon'}|${day}|${shuffle}`, (r) => r.id);
-  const pinned: (EpisodeCard & { id: string })[] = [];
-  if (ov.pins.length > 0) {
-    const hiddenFeeds = await hiddenFeedUrls(db);
-    const hiddenEps = await hiddenEpisodeIds(db);
-    for (const p of ov.pins) {
-      const e = await pinnedEpisode(db, p, hiddenFeeds, hiddenEps);
-      if (e && !pinned.some((x) => x.feedUrl === e.feedUrl)) pinned.push(e);
-    }
-  }
-  const out: (EpisodeCard & { id: string })[] = pinned.slice(0, HUNT_SIZE);
-  const shows = new Set<string>(out.map((e) => e.feedUrl));
+  const order = seededOrder(rows, `hunt|${listenerId ?? 'anon'}|${day}|${shuffle}`, (r) => r.id);
+  const out: (EpisodeCard & { id: string })[] = [];
+  const shows = new Set<string>();
   for (const r of order) {
     if (out.length >= HUNT_SIZE) break;
     if (shows.has(r.feed_url)) continue;
@@ -176,24 +155,17 @@ export const PLAZA_PAGE = 60;
  * earliest episode known), put in a seeded order per (listener, day, shuffle), served
  * PLAZA_PAGE at a time. `cursor` is the offset of the next page.
  */
-const PLAZA_SELECT = `SELECT feed_url,
+export async function plaza(db: Db, seed: string, cursor: number): Promise<{ items: PlazaShow[]; next?: string }> {
+  const hidden = await hiddenFeedUrls(db);
+  const rows = await db.query<{ feed_url: string; title: string | null; image_url: string | null; episodes: number; first_at: Date | string }>(
+    `SELECT feed_url,
             (array_agg(show_title ORDER BY COALESCE(published_at, first_seen_at) DESC) FILTER (WHERE show_title IS NOT NULL))[1] AS title,
             (array_agg(image_url ORDER BY COALESCE(published_at, first_seen_at) DESC) FILTER (WHERE image_url IS NOT NULL))[1] AS image_url,
             count(*)::int AS episodes, min(COALESCE(published_at, first_seen_at)) AS first_at
-       FROM episodes`;
-type PlazaRow = { feed_url: string; title: string | null; image_url: string | null; episodes: number; first_at: Date | string };
-
-export async function plaza(db: Db, seed: string, cursor: number, ov: Active = NONE): Promise<{ items: PlazaShow[]; next?: string }> {
-  const hidden = await hiddenFeedUrls(db);
-  const rows = await db.query<PlazaRow>(`${PLAZA_SELECT} GROUP BY feed_url ORDER BY first_at DESC, feed_url LIMIT ${PLAZA_POOL}`);
+       FROM episodes GROUP BY feed_url ORDER BY first_at DESC, feed_url LIMIT ${PLAZA_POOL}`,
+  );
   const pool = rows.filter((r) => !hidden.has(r.feed_url));
-  // M25 A4: the owner's hides leave the plaza; pins open its first page, in the owner's order.
-  const seeded = seededOrder(pool, `plaza|${seed}`, (r) => r.feed_url);
-  const order = await applyList(seeded, ov, (r) => ({ feedUrl: r.feed_url }), async (p) => {
-    if (p.feedUrl === undefined || hidden.has(p.feedUrl)) return undefined;
-    const [r] = await db.query<PlazaRow>(`${PLAZA_SELECT} WHERE feed_url = $1 GROUP BY feed_url`, [p.feedUrl]);
-    return r;
-  });
+  const order = seededOrder(pool, `plaza|${seed}`, (r) => r.feed_url);
   const slice = order.slice(cursor, cursor + PLAZA_PAGE);
   return {
     items: slice.map((r) => ({ feedUrl: r.feed_url, title: r.title ?? '', ...(r.image_url ? { imageUrl: r.image_url } : {}), episodes: Number(r.episodes), firstAt: new Date(r.first_at).toISOString() })),

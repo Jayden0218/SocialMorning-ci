@@ -1,0 +1,34 @@
+# M25 G6 flow 3 — comment at the current moment (accepting the community rules the first time),
+# then reply to it. scripts/journey.ts `phone` later checks the server holds the comment at 0:15–0:40.
+appId: app.socialmorning.mobile
+env:
+  NOTE: "Maestro: heard it on the simulator"
+  REPLY: "Maestro: and a reply"
+---
+- launchApp
+- runFlow: common/settle.yaml
+- runFlow: common/open-comments.yaml
+- tapOn:
+    text: "Write a comment.*"
+- runFlow: common/focus-composer.yaml
+- inputText: ${NOTE}
+- tapOn: "Post"
+- runFlow:
+    when:
+      visible: "Accept the community rules"
+    commands:
+      - tapOn: "Accept the community rules"
+- extendedWaitUntil:
+    visible: ${NOTE}
+    timeout: 15000
+- takeScreenshot: 04a-commented
+- tapOn: ${NOTE}
+- tapOn: "Reply"
+- runFlow: common/focus-composer.yaml
+- inputText: ${REPLY}
+- tapOn: "Post"
+- extendedWaitUntil:
+    visible:
+      text: "(${REPLY}|.*1 repl.*)"
+    timeout: 15000
+- takeScreenshot: 04b-replied

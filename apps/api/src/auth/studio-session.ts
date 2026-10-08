@@ -13,8 +13,8 @@
  *    never answers.
  */
 import type { Context, MiddlewareHandler } from 'hono';
-import { getCookie, setCookie } from 'hono/cookie';
-import { liveSessionSql, rekey, rotateSession, tokenHash, suspendedError, type AuthEnv, type Listener } from './session.ts';
+import { getCookie } from 'hono/cookie';
+import { tokenHash, suspendedError, type AuthEnv, type Listener } from './session.ts';
 import { ApiError } from '../errors.ts';
 import type { Db } from '../db/db.ts';
 import type { StudioShow } from '../db/repos/studio/studio-roles.ts';
@@ -40,15 +40,12 @@ export function studioToken(c: Context): string | undefined {
 type Row = Listener & { last_seen_at: Date | string };
 
 /** The listener behind a live `studio-web` token, bumping `last_seen_at`; 'expired' past 12 h idle. */
-export async function studioListener(db: Db, pepper: string, token: string, pepperNext?: string): Promise<Listener | 'expired' | undefined> {
-  await rekey(db, token, pepper, pepperNext); // M25 SB: secret rotation
+export async function studioListener(db: Db, pepper: string, token: string): Promise<Listener | 'expired' | undefined> {
   const hash = tokenHash(token, pepper);
-  // M25 SB: the same absolute lifetime and rotation grace as a phone session.
   const [row] = await db.query<Row>(
     `SELECT l.id, l.email, l.display_name, l.created_at, l.suspended_at, s.last_seen_at
        FROM sessions s JOIN listeners l ON l.id = s.listener_id
-      WHERE s.token_hash = $1 AND s.device_label = $2 AND s.acting_admin_id IS NULL
-        AND ${liveSessionSql}`,
+      WHERE s.token_hash = $1 AND s.device_label = $2 AND s.acting_admin_id IS NULL`,
     [hash, STUDIO_LABEL],
   );
   if (!row) return undefined;
@@ -70,29 +67,15 @@ export const studioCsrf: MiddlewareHandler<StudioEnv> = async (c, next) => {
 
 export const studioAuth: MiddlewareHandler<StudioEnv> = async (c, next) => {
   const token = studioToken(c);
-  const who = token ? await studioListener(c.get('db'), c.get('pepper'), token, c.get('pepperNext')) : undefined;
+  const who = token ? await studioListener(c.get('db'), c.get('pepper'), token) : undefined;
   if (who === 'expired') throw new ApiError('session_expired', 'You were away for a while. Sign in again.');
   if (!who) throw new ApiError('unauthenticated', 'Sign in to the Studio.');
   if (who.suspended_at) throw suspendedError(c.get('safety')?.appealsEmail);
   // M15 T028: the act-as cookie counts only beside the same admin's own live cookie session.
   const asToken = actAsCookie(c);
-  const fromCookie = token === getCookie(c, STUDIO_COOKIE);
-  const target = asToken && fromCookie ? await actingTarget(c.get('db'), c.get('pepper'), asToken, who.id) : undefined;
+  const target = asToken && token === getCookie(c, STUDIO_COOKIE) ? await actingTarget(c.get('db'), c.get('pepper'), asToken, who.id) : undefined;
   if (target) c.set('actingAdmin', who);
   c.set('listener', target ?? who);
   c.set('token', token);
   await next();
-  if (fromCookie && token) await rotateStudioCookie(c, token);
 };
-
-/**
- * M25 SB: the Studio's cookie is rotated like the phone's token — at most once a day, after a
- * successful answer, the old one still valid for the grace window. Only a cookie session: the
- * Bearer fallback (a tab whose cookie did not stick) keeps its token until it signs out.
- */
-export async function rotateStudioCookie(c: Context, token: string): Promise<void> {
-  if (c.res.status >= 400) return;
-  const fresh = await rotateSession(c.get('db'), token, c.get('pepper')).catch(() => undefined);
-  if (!fresh) return;
-  setCookie(c, STUDIO_COOKIE, fresh, { httpOnly: true, secure: new URL(c.req.url).protocol === 'https:', sameSite: 'Strict', path: '/', maxAge: STUDIO_IDLE_MS / 1000 });
-}

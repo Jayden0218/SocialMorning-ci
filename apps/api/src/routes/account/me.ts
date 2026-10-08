@@ -1,6 +1,5 @@
 // My account routes: read, edit name and privacy, delete the account after a 15-day wait, and set the time zone.
 import { Hono } from 'hono';
-import { stripImageMetadata } from '@socialmorning/social-core';
 import { z } from 'zod';
 import type { AuthEnv } from '../../auth/session.ts';
 import { publicListener, requireAuth } from '../../auth/session.ts';
@@ -81,11 +80,8 @@ me.put('/avatar', requireAuth, async (c) => {
   const store = c.get('avatars');
   const l = c.get('listener')!;
   if (!store.ready) throw new ApiError('storage_off', 'Profile photos are not available right now.');
-  const raw = new Uint8Array(await c.req.arrayBuffer());
-  if (raw.length === 0) throw new ApiError('validation', 'Send the photo as the request body.');
-  // M25 SB (G-SB3): no EXIF/GPS, XMP or text reaches the store.
-  const bytes = stripImageMetadata(raw);
-  if (!bytes) throw new ApiError('validation', 'A profile photo must be a JPEG or PNG image.');
+  const bytes = new Uint8Array(await c.req.arrayBuffer());
+  if (bytes.length === 0) throw new ApiError('validation', 'Send the photo as the request body.');
   if (bytes.length > AVATAR_MAX_BYTES) throw new ApiError('too_large', 'A profile photo is at most 200 KB.');
   const type = imageKind(bytes);
   if (!type) throw new ApiError('validation', 'A profile photo must be a JPEG or PNG image.');
@@ -123,7 +119,7 @@ me.delete('/', requireAuth, json(deleteBody), async (c) => {
   const listener = c.get('listener')!;
   const body = c.req.valid('json');
   if ('code' in body) {
-    const r = await checkCode(db, listener.email, body.code, c.get('pepper'), Date.now(), c.get('pepperNext'));
+    const r = await checkCode(db, listener.email, body.code, c.get('pepper'), Date.now());
     if (r !== 'ok') throw new ApiError('unauthenticated', r === 'expired' ? 'That code has expired. Ask for a new one.' : 'That code is not right.');
     await consumeCode(db, listener.email);
   } else {

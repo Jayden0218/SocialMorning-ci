@@ -17,10 +17,7 @@
  *   - E2E_MOD_EMAIL + E2E_MOD_PASSWORD → that account exists at start and is the moderator;
  *   - E2E_PUBLIC_BASE → the address feeds and pages name (the phone needs the Mac's LAN address);
  *   - the email-code sign-in always works here: codes go to an in-memory inbox, and
- *     GET /__e2e/code?email=… returns the latest (the phone signs in by code, as a person would);
- *   - M25 S3: POST /__e2e/account { email, password, displayName } makes an account with a
- *     password and answers { token, listener: { id } } — what `POST /v1/auth/sign-up` did before it
- *     was removed. The Studio's Password tab needs accounts that have one. Test server only.
+ *     GET /__e2e/code?email=… returns the latest (the phone signs in by code, as a person would).
  */
 import { serve } from '@hono/node-server';
 import { createApp } from '../src/app.ts';
@@ -29,7 +26,6 @@ import { fromPglite, fromPostgres, type Db } from '../src/db/db.ts';
 import { migrate } from '../src/db/migrate.ts';
 import { createListener, listenerByEmail } from '../src/db/repos/account/listeners.ts';
 import { hashPassword } from '../src/auth/password.ts';
-import { createSession } from '../src/auth/session.ts';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { generateClientTokenFromReadWriteToken } from '@vercel/blob/client';
@@ -101,22 +97,11 @@ function servedFile(req: Request): Response | undefined {
   return new Response(req.method === 'HEAD' ? null : part, { status: 206, headers: { ...head, 'content-length': String(part.byteLength), 'content-range': `bytes ${start}-${end}/${size}` } });
 }
 
-const pepper = process.env['SESSION_PEPPER'] ?? 'e2e-pepper';
-
-/** M25 S3: the old password sign-up, for this test server only (see the header). */
-async function e2eAccount(req: Request): Promise<Response> {
-  const b = (await req.json().catch(() => ({}))) as { email?: string; password?: string; displayName?: string };
-  if (!b.email || !b.password || !b.displayName) return Response.json({ error: 'validation' }, { status: 422 });
-  const made = await createListener(db, b.email.trim().toLowerCase(), await hashPassword(b.password), b.displayName);
-  if (made === 'exists') return Response.json({ error: 'conflict', message: 'An account with this email exists — sign in instead.' }, { status: 409 });
-  return Response.json({ token: await createSession(db, made.id, pepper), listener: { id: made.id, displayName: made.display_name } });
-}
-
 const app = createApp({
   db,
   mailer,
   ...(ownerListenerId ? { ownerListenerId, appealsEmail: 'appeals@e2e.test' } : {}),
-  pepper,
+  pepper: process.env['SESSION_PEPPER'] ?? 'e2e-pepper',
   episodeStorage: storage,
   publicBase: process.env['E2E_PUBLIC_BASE'] ?? 'http://localhost:4173/api',
   catalogFetch: (async () => { throw new Error('catalogue down in e2e'); }) as unknown as typeof fetch,
@@ -128,7 +113,6 @@ serve({
   fetch: (req, env) => {
     const url = new URL(req.url);
     if (url.pathname === '/__e2e/removed') return Response.json(removed);
-    if (url.pathname === '/__e2e/account' && req.method === 'POST') return e2eAccount(req);
     if (url.pathname === '/__e2e/code') {
       const code = inbox.get((url.searchParams.get('email') ?? '').toLowerCase());
       return code ? Response.json({ code }) : Response.json({ error: 'no code yet' }, { status: 404 });

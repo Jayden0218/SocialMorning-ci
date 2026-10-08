@@ -1,0 +1,37 @@
+# M25 G6 flow 5 — report another listener's comment (spam), then block a different listener from
+# their profile (a reported comment is hidden from the one who reported it, run 37735948295).
+appId: app.socialmorning.mobile
+---
+- launchApp
+- runFlow: common/settle.yaml
+- runFlow: common/open-comments.yaml
+- scrollUntilVisible:
+    element:
+      text: "Seed comment 34 at .*"
+    timeout: 20000
+- tapOn:
+    text: "Seed comment 34 at .*"
+- tapOn: "Report"
+- tapOn: "Spam"
+- tapOn: "Send report"
+- extendedWaitUntil:
+    notVisible: "Send report"
+    timeout: 10000
+- takeScreenshot: 05a-reported
+- scrollUntilVisible:
+    element: "Listener 33"
+    timeout: 20000
+- tapOn: "Listener 33"
+- extendedWaitUntil:
+    visible:
+      text: "More (actions )?for Listener 33"
+    timeout: 15000
+- tapOn:
+    text: "More (actions )?for Listener 33"
+    index: 0
+- tapOn: "Block Listener 33"
+- tapOn: "Block"
+- extendedWaitUntil:
+    visible: "Unblock Listener 33"
+    timeout: 10000
+- takeScreenshot: 05b-blocked

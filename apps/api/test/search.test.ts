@@ -3,14 +3,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
+import { fromPglite } from '../src/db/db.ts';
 import { createApp } from '../src/app.ts';
 import { fakeApple, type FakeMode } from './fake-apple.ts';
-import { dbOf, migratedPg, TEST_PEPPER } from './harness.ts';
+import { migratedPg, TEST_PEPPER } from './harness.ts';
 
 async function appWith(mode: FakeMode = {}) {
   const { pg } = await migratedPg();
   const apple = fakeApple(mode);
-  const app = createApp({ db: dbOf(pg), pepper: TEST_PEPPER, catalogFetch: apple.fetch, picksRaw: [] });
+  const app = createApp({ db: fromPglite(pg), pepper: TEST_PEPPER, catalogFetch: apple.fetch, picksRaw: [] });
   const get = (q: string, ip = '1.1.1.1') => app.request(`/v1/search?q=${encodeURIComponent(q)}`, { headers: { 'x-forwarded-for': ip } });
   return { get, apple, close: () => pg.close() };
 }

@@ -1,0 +1,10 @@
+# Types the journey's email into the focused field in short pieces. One fast inputText into this
+# controlled field came out as "l" (run 37738201166) or "listener-02@journey.test.test.test"
+# (run 37760857732) on a busy iOS simulator: the field re-renders while XCUITest is still typing.
+appId: app.socialmorning.mobile
+---
+- eraseText: 40
+- inputText: "listener"
+- inputText: "-02@"
+- inputText: "journey"
+- inputText: ".test"

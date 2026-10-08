@@ -7,18 +7,10 @@
  * src/ui/kit/BottomBar.tsx, which has one vertical padding and no inset.
  *
  * The break that turns it red: put `pt-section pb-row` back on wallet.tsx's bar, or
- * `style={{ paddingBottom: insets.bottom }}` back on AuthShell's (the two source scans), or give
- * BottomBar itself a `pt-*` / `pb-*` or a safe-area inset (the render test at the end).
- *
- * The first two tests stay source scans: each is a rule over every .tsx file in app/ and src/.
+ * `style={{ paddingBottom: insets.bottom }}` back on AuthShell's.
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import { createElement } from 'react';
-import { StyleSheet, Text } from 'react-native';
-import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
-import { BottomBar } from '@/ui/kit/BottomBar';
 
 const ROOT = join(__dirname, '..');
 
@@ -69,32 +61,10 @@ it('a bar with a top line pads its top and bottom the same', () => {
   expect(uneven).toEqual([]);
 });
 
-/**
- * BottomBar itself, rendered: inside a 34 pt bottom inset (an iPhone's home strip), every `pad`
- * gives the same space above and below, and nothing in the bar takes up the inset. A bar that
- * read `useSafeAreaInsets()` or wrapped itself in a SafeAreaView would put 34 below its button.
- */
-const flat = (s: unknown): Record<string, unknown> => (StyleSheet.flatten(s as never) ?? {}) as Record<string, unknown>;
-const vertical = (s: Record<string, unknown>): [number, number] => [
-  Number(s['paddingTop'] ?? s['paddingVertical'] ?? s['padding'] ?? 0),
-  Number(s['paddingBottom'] ?? s['paddingVertical'] ?? s['padding'] ?? 0),
-];
-
-it.each([['none', 0], ['row', 12], ['section', 16]] as const)('BottomBar pad="%s": %d pt above and below, and never adds the inset', (pad, pt) => {
-  let r!: ReactTestRenderer;
-  act(() => {
-    r = create(createElement(SafeAreaInsetsContext.Provider, { value: { top: 47, bottom: 34, left: 0, right: 0 } },
-      createElement(BottomBar, { tone: 'surface', pad, className: 'flex-row gap-row', children: createElement(Text, { testID: 'inside' }, 'Send code') })));
-  });
-  const hosts = r.root.findAll((n) => typeof n.type === 'string');
-  expect(vertical(flat(hosts[0]!.props['style']))).toEqual([pt, pt]);
-  // From the bar down to what it holds: no inset view and no uneven padding anywhere.
-  const inside = hosts.findIndex((n) => n.props['testID'] === 'inside');
-  expect(inside).toBeGreaterThan(0);
-  for (const n of hosts.slice(0, inside)) {
-    const [top, bottom] = vertical(flat(n.props['style']));
-    expect([top, bottom]).not.toContain(34);
-    expect(top).toBe(bottom);
-  }
-  act(() => r.unmount());
+it('BottomBar pads only with py-* and never adds an inset', () => {
+  const bar = readFileSync(join(ROOT, 'src/ui/kit/BottomBar.tsx'), 'utf8');
+  const pads = /const PAD = \{([^}]*)\}/.exec(bar)?.[1] ?? '';
+  expect(pads).toMatch(/py-/);
+  expect(pads).not.toMatch(/\bp[tb]-/);
+  expect(bar).not.toMatch(/useSafeAreaInsets|SafeAreaView|paddingBottom/);
 });

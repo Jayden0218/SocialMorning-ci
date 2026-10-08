@@ -1,7 +1,8 @@
 // The owner's error log page under /mod: newest first, with scope, message, version, platform and count.
 import { Hono, type Context } from 'hono';
-import { isModOwner } from '../../pages/mod.ts';
+import { getCookie } from 'hono/cookie';
 import type { AuthEnv } from '../../auth/session.ts';
+import { listenerForToken } from '../../auth/session.ts';
 import { esc, page } from '../../pages/clip.ts';
 import { ERROR_DAYS, recentErrors } from '../../db/repos/account/error-reports.ts';
 
@@ -12,8 +13,13 @@ import { ERROR_DAYS, recentErrors } from '../../db/repos/account/error-reports.t
  */
 export const modErrorsPage = new Hono<AuthEnv>();
 
-/** M25 SB: the /mod rule, second factor included (pages/mod.ts). */
-const isOwnerByCookie = (c: Context<AuthEnv>): Promise<boolean> => isModOwner(c);
+async function isOwnerByCookie(c: Context<AuthEnv>): Promise<boolean> {
+  const token = getCookie(c, 'mod');
+  const ownerId = c.get('safety').ownerListenerId;
+  if (!token || !ownerId) return false;
+  const l = await listenerForToken(c.get('db'), token, c.get('pepper'));
+  return l?.id === ownerId;
+}
 
 const when = (d: string | Date) => new Date(d).toISOString().slice(0, 16).replace('T', ' ');
 

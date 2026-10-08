@@ -152,10 +152,9 @@ export type CreatorClaim = { id: string; feedUrl: string; code: string; status: 
 export type ShowStats = { listeners: number; comments: number; episodes: number; topMoments: { episodeId: string; title: string; offsetMs: number; comments: number }[] };
 export type MyComment = { id: string; body: string | null; deleted: boolean; removed: boolean; hiddenByHost?: true; offsetMs: number | null; createdAt: string; episode: EpisodeCard };
 /** `hasMore` (owner, 2026-10-05): another page follows — `?page=N`, 20 at a time. Missing on lists kept before it. */
-/** M25 A2: `pinned` = the owner's pinned shows (kept in place under every chip); `defaultSort` = the chip the page opens on. */
-export type CategoryShows = { genreId: number; name: string; shows: ShowCard[]; stale?: boolean; hasMore?: boolean; pinned?: string[]; defaultSort?: 'forYou' | 'all' | 'newest' };
+export type CategoryShows = { genreId: number; name: string; shows: ShowCard[]; stale?: boolean; hasMore?: boolean };
 export type DiscoverResult = { status: 200; etag?: string; body: Discover } | { status: 304 };
-export type ShowCard = { appleId?: number; feedUrl: string; title: string; author: string; imageUrl?: string; genres: string[]; episodeCount?: number; /** M12 FR-072: only on a category chart. */ latestEpisode?: { title: string; publishedAt?: string }; /** M25 A2: pinned by the owner (category page). */ pinned?: true };
+export type ShowCard = { appleId?: number; feedUrl: string; title: string; author: string; imageUrl?: string; genres: string[]; episodeCount?: number; /** M12 FR-072: only on a category chart. */ latestEpisode?: { title: string; publishedAt?: string } };
 export type SearchResult = { shows: ShowCard[]; episodes: EpisodeCard[]; episodeSearch: 'ok' | 'unavailable'; source: { shows: 'apple' } };
 export type NextUpItem = { episode: EpisodeCard; reason: 'alsoListened' | 'talkedAboutOnShow' | 'newOnShow' | 'trendingInCategory'; label: string };
 
@@ -176,6 +175,7 @@ export type Meta = { appealsEmail?: string };
 export type SubscriptionOut = { feedUrl: string; createdAt: string; deletedAt?: string; starred: boolean; starredAt?: string };
 
 export type ApiClient = {
+  signUp(email: string, password: string, displayName: string): Promise<{ token: string; listener: Listener }>;
   signIn(email: string, password: string, deviceLabel?: string): Promise<{ token: string; listener: Listener }>;
   signOut(): Promise<void>;
   /** Owner, 2026-09-27: sign in and sign up with a code sent by email; no password. */
@@ -305,17 +305,6 @@ export type ApiDeps = {
  * carries `maintenance` (or `error: 'maintenance'`). The start-up code (src/ui/shell/startupExtras.ts)
  * sets it to open app/maintenance.tsx; the call still fails with its ApiError as before.
  */
-/**
- * M25 SB: session rotation. While a listener is set (the app sets one at start), every call asks
- * the server for rotation (`x-session-rotate: 1`); at most once a day an answer carries a new token
- * in `x-session-token`, handed to the listener with the token the call was sent with. Tests and any
- * client without a listener never ask, so their token never changes under them.
- */
-let tokenRotatedListener: ((fresh: string, sentWith: string) => void) | undefined;
-export function setTokenRotatedListener(listener: ((fresh: string, sentWith: string) => void) | undefined): void {
-  tokenRotatedListener = listener;
-}
-
 let maintenanceListener: ((body: Record<string, unknown>) => void) | undefined;
 export function setMaintenanceListener(listener: ((body: Record<string, unknown>) => void) | undefined): void {
   maintenanceListener = listener;
@@ -339,7 +328,7 @@ export function requester(deps: ApiDeps) {
     try {
       res = await deps.fetch(deps.baseUrl + path, {
         method,
-        headers: { ...(token ? { authorization: `Bearer ${token}` } : {}), ...(token && tokenRotatedListener ? { 'x-session-rotate': '1' } : {}), ...init.headers },
+        headers: { ...(token ? { authorization: `Bearer ${token}` } : {}), ...init.headers },
         body: init.body,
         signal: controller.signal,
       });
@@ -350,8 +339,6 @@ export function requester(deps: ApiDeps) {
     } finally {
       clearTimeout(timer);
     }
-    const fresh = token ? res.headers.get('x-session-token') : null;
-    if (fresh && token && tokenRotatedListener) tokenRotatedListener(fresh, token);
     if (res.status === 304) return { status: 304, headers: res.headers, json: undefined as T };
     let json: unknown = undefined;
     try { json = text ? JSON.parse(text) : undefined; } catch { /* non-JSON body: handled below */ }
@@ -393,6 +380,7 @@ export const UPLOAD_TIMEOUT_MS = 60_000;
 export function createApi(deps: ApiDeps): ApiClient {
   const call = requester(deps);
   return {
+    signUp: async (email, password, displayName) => (await call<{ token: string; listener: Listener }>('POST', '/v1/auth/sign-up', { email, password, displayName })).json,
     signIn: async (email, password, deviceLabel) => (await call<{ token: string; listener: Listener }>('POST', '/v1/auth/sign-in', { email, password, deviceLabel })).json,
     signOut: async () => { await call('POST', '/v1/auth/sign-out'); },
     requestCode: async (email) => (await call<{ sent: true; resendAfterSeconds: number }>('POST', '/v1/auth/code', { email })).json,

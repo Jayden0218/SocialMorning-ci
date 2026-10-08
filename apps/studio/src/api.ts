@@ -54,10 +54,6 @@ let onReauth: (() => void) | null = null;
 export const whenReauth = (fn: (() => void) | null) => { onReauth = fn; };
 export const reauthPath = (next: string) => `/sign-in?reason=reauth&next=${encodeURIComponent(next)}`;
 
-/** M25 SB: an Admin call answered 403 `second_factor` — the Admin layout then asks for the emailed code. */
-let onSecondFactor: (() => void) | null = null;
-export const whenSecondFactor = (fn: (() => void) | null) => { onSecondFactor = fn; };
-
 export async function api<T>(path: string, opts: { method?: string; body?: unknown; token?: string } = {}): Promise<T> {
   const method = opts.method ?? 'GET';
   const token = opts.token ?? bearer.get();
@@ -81,7 +77,6 @@ export async function api<T>(path: string, opts: { method?: string; body?: unkno
         else if (typeof window !== 'undefined') window.location.assign(reauthPath(window.location.pathname));
       } else onSignedOut?.();
     }
-    if (res.status === 403 && data.error === 'second_factor') onSecondFactor?.();
     throw new HttpError(res.status, data.error ?? 'error', data.message ?? 'Something went wrong.');
   }
   return data as T;

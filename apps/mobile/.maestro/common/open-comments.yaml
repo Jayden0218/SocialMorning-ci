@@ -1,0 +1,11 @@
+# From the tabs, with episode 1 in the player: the full player, then its comments.
+appId: app.socialmorning.mobile
+---
+- tapOn:
+    text: "Now playing: .*"
+- tapOn:
+    text: "Comments, .*"
+- extendedWaitUntil:
+    visible:
+      text: "Write a comment.*"
+    timeout: 15000

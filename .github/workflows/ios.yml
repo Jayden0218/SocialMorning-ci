@@ -56,8 +56,17 @@ jobs:
           APP=$(ls -d "$RUNNER_TEMP"/dd/Build/Products/${{ matrix.configuration }}-iphoneos/*.app | head -1)
           echo "built: $APP"
           du -sh "$APP"
+          echo "APP=$APP" >> "$GITHUB_ENV"
           mkdir -p "$RUNNER_TEMP/out"
           (cd "$(dirname "$APP")" && ditto -c -k --sequesterRsrc --keepParent "$(basename "$APP")" "$RUNNER_TEMP/out/unsigned-app.zip")
+      # M25 G5: the Release build is safe to hand out (scripts/release-build-check.sh). Debug loads
+      # its code from Metro, so it carries no bundle to check.
+      - name: release-build checks (M25 G5)
+        if: matrix.configuration == 'Release'
+        run: |
+          ls "$APP" | grep -E "jsbundle|EXConstants" || true
+          CONF=$(find "$APP" -path "*EXConstants.bundle/app.config" | head -1)
+          set -o pipefail; sh scripts/release-build-check.sh "$APP/main.jsbundle" "$CONF" 8800 | tee -a "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         with:
           name: unsigned-ios-app-${{ matrix.configuration }}

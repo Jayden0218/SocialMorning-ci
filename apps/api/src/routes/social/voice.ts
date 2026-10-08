@@ -8,7 +8,6 @@ import { audioDurationMs, isMp4 } from '../../voice/duration.ts';
 import { readTranscript } from '../../voice/transcript.ts';
 import { fromFollowing, getPost, insertPost, insertTextPost, liveCount, removePost, setSuggestionMute, suggestedFor, TEXT_STATUS_MAX, visiblePost, VOICE_LIVE_MAX, VOICE_MAX_BYTES, VOICE_MAX_MS, type PublicPost } from '../../db/repos/social/voice-posts.ts';
 import { sniff } from '../../db/repos/account/feedback.ts';
-import { stripImageMetadata } from '@socialmorning/social-core';
 import { pushNewStatus } from '../../db/repos/account/push.ts';
 import { addAudioReply, addTextReply, clearReaction, deleteReply, listReplies, REACTION_KINDS, REPLY_TEXT_MAX, setReaction, summaries, visibleStatus } from '../../db/repos/social/status-replies.ts';
 import { insertItems, itemsFor, itemsFromHeader, ItemsError, parseItems, recordUpload, STATUS_PHOTO_MAX_BYTES, statusPhotoBytes, type StatusItemIn } from '../../db/repos/social/status-items.ts';
@@ -179,13 +178,11 @@ voice.post('/images', requireAuth, async (c) => {
   if (!store.ready) throw new ApiError('storage_off', 'Photos are not switched on yet.');
   const db = c.get('db');
   const me = c.get('listener')!;
-  const raw = new Uint8Array(await c.req.arrayBuffer());
-  if (raw.length === 0) throw new ApiError('validation', 'The image is empty.', { fields: ['body'] });
-  if (raw.length > STATUS_PHOTO_MAX_BYTES) throw new ApiError('too_large', 'An image is at most 1 MB.');
-  const type = sniff(raw);
-  // M25 SB (G-SB3): no EXIF/GPS, XMP or text reaches the store.
-  const bytes = type ? stripImageMetadata(raw) : undefined;
-  if (!type || !bytes) throw new ApiError('validation', 'Send a JPEG or PNG picture.', { fields: ['body'] });
+  const bytes = new Uint8Array(await c.req.arrayBuffer());
+  if (bytes.length === 0) throw new ApiError('validation', 'The image is empty.', { fields: ['body'] });
+  if (bytes.length > STATUS_PHOTO_MAX_BYTES) throw new ApiError('too_large', 'An image is at most 1 MB.');
+  const type = sniff(bytes);
+  if (!type) throw new ApiError('validation', 'Send a JPEG or PNG picture.', { fields: ['body'] });
   const [used] = await db.query<{ n: string | number | null }>('SELECT coalesce(sum(image_bytes), 0) AS n FROM comments');
   if (Number(used?.n ?? 0) + (await statusPhotoBytes(db)) + bytes.length > c.get('imageCeilingBytes')) throw new ApiError('storage_full', 'The image store is full. Try again later.');
   const path = `statuses/${me.id}/${randomUUID()}.${type === 'image/png' ? 'png' : 'jpg'}`;

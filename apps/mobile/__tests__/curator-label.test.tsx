@@ -55,8 +55,6 @@ it('the show extras block (Hosted by …) does not show the curator', () => {
   expect(texts(r)).not.toContain('Ana Curates');
 });
 
-// Kept as source checks: the show page (app/show/[feedUrl].tsx, 47 imports) is too heavy to render here,
-// and "no line pairs curator with host" is a rule over every file in app/ and src/.
 describe('the source: no screen pairs the curator with "host"', () => {
   const ROOT = join(__dirname, '..');
   const files = (dir: string): string[] => readdirSync(join(ROOT, dir)).flatMap((name) => {

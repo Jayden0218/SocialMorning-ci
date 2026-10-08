@@ -1,0 +1,36 @@
+# M25 G6 flow 6 — download episode 2 from its page and find it under Me › Downloads.
+# (Playing it with the network off is a device row: RELEASE-CHECKLIST.md.)
+appId: app.socialmorning.mobile
+---
+- launchApp
+- runFlow: common/settle.yaml
+- runFlow: common/open-show.yaml
+# Bring the row to the middle first: at the bottom it sits under the mini player, and on iOS the
+# tap opened the player instead (run 37775377568).
+- scrollUntilVisible:
+    element:
+      text: "Episode 2: A minute of tone\\..*"
+    centerElement: true
+    timeout: 15000
+- tapOn:
+    text: "Episode 2: A minute of tone\\..*"
+- tapOn: "More: play next, download, save a moment"
+- tapOn: "Download this episode"
+- extendedWaitUntil:
+    visible:
+      text: "Downloaded, .*"
+    timeout: 60000
+- takeScreenshot: 06a-downloaded
+- stopApp
+- launchApp
+- runFlow: common/settle.yaml
+- tapOn:
+    text: "Me(, .*)?"
+- tapOn: "Downloads"
+- extendedWaitUntil:
+    visible:
+      text: "Episode 2: A minute of tone"
+    timeout: 15000
+- assertVisible:
+    text: "Downloaded · .*"
+- takeScreenshot: 06b-in-downloads

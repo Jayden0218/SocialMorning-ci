@@ -7,9 +7,10 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { fromPglite } from '../src/db/db.ts';
 import { createApp } from '../src/app.ts';
 import { fakeFeedFetch } from './fake-apple.ts';
-import { dbOf, migratedPg, TEST_PEPPER, signUp, type TestDb } from './harness.ts';
+import { migratedPg, TEST_PEPPER, signUp, type TestDb } from './harness.ts';
 
 const FX = 'https://feeds.example.com/px.xml';
 const JOB = 'job-token-not-secret';
@@ -20,7 +21,7 @@ ${items.map((i) => `<item><title>${i.title}</title><guid>${i.guid}</guid><pubDat
 
 async function appWith(initial: { guid: string; title: string; at: number }[], dead: Set<string> = new Set()) {
   const { pg, runner } = await migratedPg();
-  const db = dbOf(pg);
+  const db = fromPglite(pg);
   const state = { items: initial };
   const sent: { to: string; title: string; body: string; data: Record<string, string> }[] = [];
   const catalogFetch = (async (input: string | URL | Request, init?: RequestInit) =>

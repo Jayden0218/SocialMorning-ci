@@ -94,15 +94,3 @@ test('the boost multiplies the positive part only — a tired new episode is not
   const tiredOld = c({ publishedAt: NOW - 20 * DAY, impressions: 2 });
   assert.ok(scoreCandidate(tiredNew, NOW) > scoreCandidate(tiredOld, NOW), 'the boost still helps something with a penalty');
 });
-
-// M25 A6: the weights an admin saves are bounded; anything unreadable is the default.
-test('M25 A6: cleanWeights clamps to the bounds and fills gaps with the defaults; scoreCandidate uses them', async () => {
-  const { cleanWeights, DEFAULT_WEIGHTS, WEIGHT_BOUNDS } = await import('../src/rank.ts');
-  assert.deepEqual(cleanWeights(null), { ...DEFAULT_WEIGHTS });
-  assert.deepEqual(cleanWeights({ affinity: 99, social: -4, freshness: 'x', quality: Number.NaN }), {
-    ...DEFAULT_WEIGHTS, affinity: WEIGHT_BOUNDS.affinity[1], social: WEIGHT_BOUNDS.social[0],
-  });
-  const cand = c({ talkedScore: 50, publishedAt: NOW - 10 * DAY });
-  assert.equal(scoreCandidate(cand, NOW), scoreCandidate(cand, NOW, DEFAULT_WEIGHTS));
-  assert.ok(scoreCandidate(cand, NOW, cleanWeights({ quality: 3 })) > scoreCandidate(cand, NOW));
-});

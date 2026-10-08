@@ -1,0 +1,10 @@
+# The composer's text box is focused when the sheet opens (the keyboard is up). Android: tap it
+# by its name, "Comment", as before. iOS: leave it — the box has no name there (run 37765686194),
+# and a tap on its placeholder closed the sheet (run 37769246598).
+appId: app.socialmorning.mobile
+---
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - tapOn: "Comment"

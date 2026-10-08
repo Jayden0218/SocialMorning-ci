@@ -19,7 +19,6 @@ import { issueToken, suspendedError, tokenHash, type AuthEnv, type Listener } fr
 import { STUDIO_IDLE_MS, STUDIO_LABEL, studioListener, studioToken } from './studio-session.ts';
 import { ApiError } from '../errors.ts';
 import type { Db } from '../db/db.ts';
-import { secondFactorDone } from './second-factor.ts';
 
 export const ADMIN_MAX_AGE_MS = 12 * 60 * 60 * 1000;
 export const ACT_AS_COOKIE = 'sm_studio_as';
@@ -27,8 +26,7 @@ export const ACT_AS_COOKIE = 'sm_studio_as';
 export type AdminEnv = { Variables: AuthEnv['Variables'] & { device?: string } };
 
 // M24 lane A1: 'safety' (blocked words, maintenance), 'notices', 'appeals' (migration 023 widens the CHECK).
-// M25 lane AC: 'config' (app settings), 'content' (Academy, Help) — migration 029.
-export const AUDIT_AREAS = ['picks', 'issues', 'collections', 'discover', 'launch', 'accounts', 'users', 'reports', 'safety', 'notices', 'appeals', 'config', 'content'] as const;
+export const AUDIT_AREAS = ['picks', 'issues', 'collections', 'discover', 'launch', 'accounts', 'users', 'reports', 'safety', 'notices', 'appeals'] as const;
 export type AuditArea = (typeof AUDIT_AREAS)[number];
 
 /**
@@ -78,19 +76,14 @@ export const adminOnly: MiddlewareHandler<AdminEnv> = async (c, next) => {
   const db = c.get('db');
   await ensureSeeded(db, c.get('safety').ownerListenerId);
   const token = studioToken(c);
-  const who = token ? await studioListener(db, c.get('pepper'), token, c.get('pepperNext')) : undefined;
+  const who = token ? await studioListener(db, c.get('pepper'), token) : undefined;
   if (who === 'expired') throw new ApiError('reauth', 'Sign in again to use Admin.');
   if (!who || !token) throw new ApiError('signed_out', 'Sign in to the Studio.');
   if (who.suspended_at) throw suspendedError(c.get('safety')?.appealsEmail);
   if (!(await isAdmin(db, who.id))) throw new ApiError('not_admin', 'Admin is for the owner only.');
   // G-A5: age since the session was CREATED, not since it was last used.
-  const hash = tokenHash(token, c.get('pepper'));
-  const [s] = await db.query<{ created_at: Date | string }>('SELECT created_at FROM sessions WHERE token_hash = $1', [hash]);
+  const [s] = await db.query<{ created_at: Date | string }>('SELECT created_at FROM sessions WHERE token_hash = $1', [tokenHash(token, c.get('pepper'))]);
   if (!s || Date.now() - new Date(s.created_at).getTime() > ADMIN_MAX_AGE_MS) throw new ApiError('reauth', 'Sign in again to use Admin.');
-  // M25 SB (guard G-SB2): the emailed second factor, once per session (or per remembered device).
-  if (!(await secondFactorDone(c, db, hash, who.id, c.get('pepper'), c.get('pepperNext')))) {
-    throw new ApiError('second_factor', 'Enter the code we email you to use Admin.');
-  }
   c.set('listener', who);
   c.set('token', token);
   c.set('device', (c.req.header('user-agent') ?? '').slice(0, 200) || undefined);

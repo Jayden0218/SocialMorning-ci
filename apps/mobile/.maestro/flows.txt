@@ -1,0 +1,19 @@
+# M25 G6: the phone journeys, run IN THIS ORDER by scripts/maestro-run.sh (ios-journey.yml,
+# android-journey.yml). "<flow> <Android budget s> <iOS budget s>" — a flow over its budget makes
+# the run red; "-" = not run on that platform (said so in the job summary). The budget covers
+# Maestro's own start plus the app. 01 signs in; the rest reuse it.
+# Android: about 1.5× what the emulator took (runs 37739762417, 37760862235).
+# iOS: the simulator is far slower on CI — every step reads the whole screen (2–25 s each) and the
+# clear-state launch alone took 92–270 s (runs 37729886977, 37762859064, 37765686194).
+# The comment (03) comes before the resume (04): it must be posted at the paused moment, 0:15–0:40,
+# which scripts/journey.ts `phone` checks.
+# iOS "-" on 03 and 05 (NOT VERIFIED on iOS): typing into the comment sheet closed the sheet under
+# Maestro's iOS driver (runs 37769246598, 37772224452) — the same flows pass on Android.
+01-sign-in.yaml 180 600
+02-subscribe-play.yaml 150 420
+03-comment-reply.yaml 150 -
+04-resume.yaml 90 240
+05-report-block.yaml 120 -
+06-download.yaml 120 300
+07-purchase-screen.yaml 75 180
+08-account-deletion.yaml 75 180

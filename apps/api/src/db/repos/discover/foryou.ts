@@ -17,7 +17,7 @@
  */
 import {
   bestNeighbourSim, CHANNEL_CAP, isFatigued, LIST_SIZE, reasonFor, rerank, scoreCandidate,
-  MIN_USEFUL_CANDIDATES, RULE_BOOST, RULE_BURY, type Channel, type Neighbour, type RecCandidate, type Weights,
+  MIN_USEFUL_CANDIDATES, type Channel, type Neighbour, type RecCandidate,
 } from '@socialmorning/social-core';
 import type { PickIn } from '@socialmorning/social-core';
 import type { Db } from '../../db.ts';
@@ -33,7 +33,6 @@ import { registerCard } from '../../../catalog/feed.ts';
 import type { EpisodeCard } from '../../../catalog/apple.ts';
 import { genreName } from '../../../catalog/genres.ts';
 import { getInterests, interestsStamp, playCount } from '../account/interests.ts';
-import { forYouRules, getWeights, type Rule } from './foryou-rules.ts';
 
 export const FOR_YOU_TTL = 30 * 60_000;
 /** How far back the social channel looks. */
@@ -107,22 +106,7 @@ export type Context = {
   /** M22 US5: the categories picked on first open, and how much they still count (0–1). */
   interests?: number[];
   interestWeight?: number;
-  /** M25 A6: the owner's boost / bury / never per show, and the ranking weights. Optional so a hand-built test context still compiles. */
-  rules?: ReadonlyMap<string, Rule>;
-  weights?: Weights;
 };
-
-/** M25 A6: the owner's rules and weights, for a context. Unreadable → none and the defaults (the list still builds). */
-export async function ownerTuning(db: Db): Promise<{ rules: Map<string, Rule>; weights?: Weights }> {
-  const [rules, w] = await Promise.all([
-    forYouRules(db).catch(() => new Map<string, Rule>()),
-    getWeights(db).catch(() => undefined),
-  ]);
-  return { rules, ...(w ? { weights: w.weights } : {}) };
-}
-
-/** M25 A6: what an owner's rule adds to a show's score (`never` never gets here). */
-export const ruleBonus = (rule: Rule | undefined): number => (rule === 'boost' ? RULE_BOOST : rule === 'bury' ? -RULE_BURY : 0);
 
 /** M22 US5: a signed-out listener's context — nothing but the categories they picked on the phone. */
 export function anonContext(interests: readonly number[]): Context {
@@ -182,7 +166,6 @@ export async function contextFor(db: Db, listenerId: string): Promise<Context> {
     dismissed: await dismissedFor(db, listenerId),
     interests: (await getInterests(db, listenerId)).genreIds,
     interestWeight: interestWeight(await playCount(db, listenerId)),
-    ...(await ownerTuning(db)),
   };
 }
 
@@ -325,8 +308,6 @@ export async function buildForYou(
   const scored = [...seen.values()]
     // M24 US11: hidden episodes leave this list.
     .filter((r) => !ctx.finished.has(r.row.id) && !ctx.hidden.has(r.row.feed_url) && !ctx.hiddenEps?.has(r.row.id) && !(ctx.dismissed && isDismissed(ctx.dismissed, r.row.id, r.row.feed_url)))
-    // M25 A6: a show the owner marked "never recommend" is not a candidate.
-    .filter((r) => ctx.rules?.get(r.row.feed_url) !== 'never')
     .map((r) => {
       const candidate: RecCandidate = {
         episodeId: r.row.id,
@@ -344,7 +325,7 @@ export async function buildForYou(
       return { raw: r, candidate };
     })
     .filter((x) => !isFatigued(x.candidate))
-    .map((x) => ({ raw: x.raw, candidate: x.candidate, score: scoreCandidate(x.candidate, now, ctx.weights) + interestBonus(ctx, x.raw.row.genre_id) + ruleBonus(ctx.rules?.get(x.raw.row.feed_url)) }));
+    .map((x) => ({ raw: x.raw, candidate: x.candidate, score: scoreCandidate(x.candidate, now) + interestBonus(ctx, x.raw.row.genre_id) }));
 
   const ordered = rerank(scored.map(({ candidate, score }) => ({ candidate, score })), ctx.neighbours, { size: LIST_SIZE });
   const byId = new Map(scored.map((x) => [x.candidate.episodeId, x.raw]));
@@ -415,9 +396,7 @@ export async function forYou(
   const hiddenEps = await hiddenEpisodeIds(db); // M24 US11: hidden episodes leave this list.
   // M19 US2: and what this listener turned down never shows, whatever the cache holds.
   const dismissed = await dismissedFor(db, listenerId);
-  // M25 A6: "never recommend" holds at once too, whatever the cache holds.
-  const never = await forYouRules(db).catch(() => new Map<string, Rule>());
-  const off = (i: ForYouItem) => hidden.has(i.episode.feedUrl) || hiddenEps.has(i.episode.id) || isDismissed(dismissed, i.episode.id, i.episode.feedUrl) || never.get(i.episode.feedUrl) === 'never';
+  const off = (i: ForYouItem) => hidden.has(i.episode.feedUrl) || hiddenEps.has(i.episode.id) || isDismissed(dismissed, i.episode.id, i.episode.feedUrl);
   const body = r.body.items.some(off) ? { ...r.body, items: r.body.items.filter((i) => !off(i)) } : r.body;
   return { body, stale: r.stale };
 }
@@ -432,7 +411,7 @@ export async function forYouAnon(
 ): Promise<{ body: ForYouBody; stale: boolean }> {
   const key = [...interests].sort((a, b) => a - b).join(',');
   const r = await cached<ForYouBody>(db, `foryou:anon:${key}`, FOR_YOU_TTL, async () => {
-    const ctx = { ...anonContext(interests), hidden: await hiddenFeedUrls(db), hiddenEps: await hiddenEpisodeIds(db), ...(await ownerTuning(db)) };
+    const ctx = { ...anonContext(interests), hidden: await hiddenFeedUrls(db), hiddenEps: await hiddenEpisodeIds(db) };
     const { items, warnings } = await buildForYou(
       db, ctx,
       async () => (await discoverBody(db, f, picks, today)).body,
@@ -443,8 +422,7 @@ export async function forYouAnon(
   }, () => now);
   const hidden = await hiddenFeedUrls(db);
   const hiddenEps = await hiddenEpisodeIds(db); // M24 US11: hidden episodes leave this list.
-  const never = await forYouRules(db).catch(() => new Map<string, Rule>()); // M25 A6
-  const off = (i: ForYouItem) => hidden.has(i.episode.feedUrl) || hiddenEps.has(i.episode.id) || never.get(i.episode.feedUrl) === 'never';
+  const off = (i: ForYouItem) => hidden.has(i.episode.feedUrl) || hiddenEps.has(i.episode.id);
   const body = r.body.items.some(off) ? { ...r.body, items: r.body.items.filter((i) => !off(i)) } : r.body;
   return { body, stale: r.stale };
 }

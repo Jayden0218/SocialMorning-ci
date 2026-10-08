@@ -1,10 +1,5 @@
 // Tests M24 lane A3 on the phone: the account client (redeem, change email) and choosing several downloads.
-/**
- * The helpers. The pages that use them (Wallet → Redeem, Account → Change email, Downloads' Select
- * mode) are rendered in __tests__/m24-account-pages.test.tsx. Kept here: that the two target route
- * files exist — expo-router makes a route from a file in app/, a file fact no render shows.
- */
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ApiError } from '@/social/api';
 import { cleanCode, codeReady, createAccountApi, grantLine, groupCode, isEmail } from '@/social/account-api';
@@ -61,7 +56,8 @@ describe('redeem codes', () => {
     expect(grantLine({ kind: 'show', feedUrl: 'f', title: null }, date)).toBe('The series is yours. Find it on the show page.');
   });
 
-  it('the Redeem page Wallet opens exists (the push itself: m24-account-pages)', () => {
+  it('Wallet links to the Redeem page, which exists', () => {
+    expect(readFileSync(join(ROOT, 'app/wallet.tsx'), 'utf8')).toMatch(/router\.push\('\/redeem'\)/);
     expect(existsSync(join(ROOT, 'app/redeem.tsx'))).toBe(true);
   });
 });
@@ -71,10 +67,10 @@ describe('change the sign-in email', () => {
     const d = deps((url) => (url.endsWith('/start') ? json(200, { sent: true, resendAfterSeconds: 30 }) : json(200, { email: 'new@example.com' })));
     const api = createAccountApi(d);
     expect(await api.startEmailChange(' new@example.com ')).toEqual({ sent: true, resendAfterSeconds: 30 });
-    expect(await api.confirmEmailChange(' 123456 ', ' 654321 ')).toEqual({ email: 'new@example.com', signedOut: 0 });
+    expect(await api.confirmEmailChange(' 123456 ')).toEqual({ email: 'new@example.com', signedOut: 0 });
     expect(d.calls.map((c) => [c.url, JSON.parse(String(c.init.body))])).toEqual([
       ['https://api.test/v1/me/email/start', { email: 'new@example.com' }],
-      ['https://api.test/v1/me/email/confirm', { code: '123456', oldCode: '654321' }],
+      ['https://api.test/v1/me/email/confirm', { code: '123456' }],
     ]);
   });
 
@@ -90,7 +86,8 @@ describe('change the sign-in email', () => {
     expect(isEmail('a b@c.co')).toBe(false);
   });
 
-  it('the Change email page Account opens exists (the push itself: m24-account-pages)', () => {
+  it('Account links to the Change email page, which exists', () => {
+    expect(readFileSync(join(ROOT, 'app/settings/account.tsx'), 'utf8')).toMatch(/router\.push\('\/settings\/account-email'\)/);
     expect(existsSync(join(ROOT, 'app/settings/account-email.tsx'))).toBe(true);
   });
 });
@@ -123,5 +120,9 @@ describe('downloads: choose several and delete them', () => {
     expect(deleteLabel(3)).toBe('Delete 3 episodes');
   });
 
-  // The Downloads page's Select mode, wired to these helpers, is rendered in m24-account-pages.
+  it('the Downloads page has Select mode wired to these helpers', () => {
+    const src = readFileSync(join(ROOT, 'app/downloads.tsx'), 'utf8');
+    expect(src).toMatch(/accessibilityLabel=\{selecting \? 'Done' : 'Select'\}/);
+    expect(src).toMatch(/removeChosen\(list, \(id\) => downloads\.remove\(id\)\)/);
+  });
 });

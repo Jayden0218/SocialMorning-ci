@@ -48,7 +48,7 @@ m19Me.post('/teen-reset/start', requireAuth, async (c) => {
 m19Me.post('/teen-reset/check', requireAuth, json(z.object({ code: z.string().trim().regex(/^\d{6}$/) })), async (c) => {
   const db = c.get('db');
   const email = c.get('listener')!.email;
-  const r = await checkCode(db, email, c.req.valid('json').code, c.get('pepper'), Date.now(), c.get('pepperNext'));
+  const r = await checkCode(db, email, c.req.valid('json').code, c.get('pepper'), Date.now());
   if (r !== 'ok') throw new ApiError('unauthenticated', r === 'expired' ? 'That code has expired. Ask for a new one.' : 'That code is not right.');
   await consumeCode(db, email);
   return c.body(null, 204);

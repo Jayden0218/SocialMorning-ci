@@ -1,59 +1,42 @@
-// Applies the owner's Discover settings: section order and hidden sections; the M15 pin routes over list_overrides.
+// Applies the owner's Discover settings: section order, hidden items, pinned and featured shows.
 /**
  * M15 T034 — Discover control (FR-026–FR-029; research R4). Applied at SERVE time, after the
  * hour's cache, so a change shows on the next refresh (SC-007):
  *   - `layout` (section order + hidden ids) goes to the phone, which draws by it; ids unknown to
  *     the phone are ignored there;
- *   - M25 A1: trending pins/hides and category features now live in `list_overrides` (lists
- *     `trending` and `category:<genreId>`, db/repos/discover/lists.ts). The M15 routes still read
- *     and write them here, through that table.
+ *   - trending pins (≤ 3) go first, trending hides are removed;
+ *   - category features (≤ 5 shows) go first in `/v1/categories/:id`.
  * Settings that cannot be read are skipped with a warning: today's Discover, no `layout` (FR-029).
- *
- * M25 A5: the bundled section ids are split — each thing the phone draws has its own switch:
- * `pickedShows` (was inside `forYou`), `theirLikes` (inside `picks`), `categories` (the strip
- * after `chart`), `premium` (inside `shows`), `hunt` (inside `newShows`, which is now New arrivals
- * alone). `followedHere` drew nothing and is gone. A layout saved before the split is mapped
- * forward on the phone and in the Studio (`SPLIT_FROM`): a new id it does not name sits right
- * after the id it was split from and, where it used to be hidden with it, stays hidden.
  */
 import type { Db } from '../../db.ts';
 import { ApiError } from '../../../errors.ts';
-import { active, categoryListId, replaceKind } from './lists.ts';
 
 /**
  * The phone's section ids (apps/mobile/src/discover/sections.ts), in the DEFAULT order — the one
  * Admin › Discover starts from before a layout is saved. Fix F-S: the Editor's picks come first,
  * then For you (design Home-B). A layout the owner saved keeps its own order.
  */
-export const SECTION_IDS = [
-  'picks', 'theirLikes', 'forYou', 'pickedShows', 'chart', 'categories', 'shows', 'premium',
-  'video', 'collections', 'said', 'newShows', 'hunt',
-] as const;
-/** M25 A5: new id → [the id it was split from, hidden with it in an old layout?]. */
-export const SPLIT_FROM: Readonly<Record<string, readonly [string, boolean]>> = {
-  theirLikes: ['picks', true], pickedShows: ['forYou', true], categories: ['chart', false], premium: ['shows', true], hunt: ['newShows', true],
-};
+export const SECTION_IDS = ['picks', 'forYou', 'chart', 'shows', 'video', 'collections', 'followedHere', 'said', 'newShows'] as const;
 export const MAX_PINS = 3;
 export const MAX_FEATURES = 5;
 
 export type EpisodeRef = { feedUrl: string; guid?: string };
 export type DiscoverSettings = { version: number; order: string[]; hidden: string[]; pins: EpisodeRef[]; hides: { feedUrl: string; guid: string }[] };
-export type Layout = { version: number; order: string[]; hidden: string[] };
 
 const known = (ids: readonly string[]) => [...new Set(ids.filter((x) => (SECTION_IDS as readonly string[]).includes(x)))];
 
-/** The saved layout, or undefined when none was ever saved. Throws when it cannot be read (the caller skips it). */
-export async function getLayout(db: Db): Promise<Layout | undefined> {
-  const [row] = await db.query<{ section_order: string[] | string; hidden_sections: string[] | string; version: number }>('SELECT section_order, hidden_sections, version FROM discover_settings WHERE id = 1');
-  return row ? { version: Number(row.version), order: textArray(row.section_order), hidden: textArray(row.hidden_sections) } : undefined;
-}
-
 export async function getDiscoverSettings(db: Db): Promise<DiscoverSettings> {
-  const [layout, trending] = await Promise.all([getLayout(db), active(db, 'trending')]);
+  const [[row], pins, hides] = await Promise.all([
+    db.query<{ section_order: string[] | string; hidden_sections: string[] | string; version: number }>('SELECT section_order, hidden_sections, version FROM discover_settings WHERE id = 1'),
+    db.query<{ feed_url: string; guid: string | null }>('SELECT feed_url, guid FROM trending_pins ORDER BY position'),
+    db.query<{ feed_url: string; guid: string }>('SELECT feed_url, guid FROM trending_hides ORDER BY feed_url, guid'),
+  ]);
   return {
-    version: layout?.version ?? 0, order: layout?.order ?? [], hidden: layout?.hidden ?? [],
-    pins: trending.pins.filter((p) => p.feedUrl !== undefined).map((p) => ({ feedUrl: p.feedUrl!, ...(p.guid ? { guid: p.guid } : {}) })),
-    hides: trending.hides.filter((h) => h.feedUrl !== undefined && h.guid !== undefined).map((h) => ({ feedUrl: h.feedUrl!, guid: h.guid! })),
+    version: row ? Number(row.version) : 0,
+    order: row ? textArray(row.section_order) : [],
+    hidden: row ? textArray(row.hidden_sections) : [],
+    pins: pins.map((p) => ({ feedUrl: p.feed_url, ...(p.guid ? { guid: p.guid } : {}) })),
+    hides: hides.map((h) => ({ feedUrl: h.feed_url, guid: h.guid })),
   };
 }
 
@@ -69,12 +52,8 @@ function textArray(v: string[] | string): string[] {
   return inner === '' ? [] : inner.split(',').map((s) => s.replace(/^"|"$/g, ''));
 }
 
-/**
- * Saves the layout; `pins`/`hides` (the M15 body) replace the `trending` list's rows when sent.
- * M25: the Studio's Discover page no longer sends them (Admin › Lists edits `trending`).
- */
-export async function putDiscoverSettings(tx: Db, s: { version: number; order: string[]; hidden: string[]; pins?: EpisodeRef[]; hides?: { feedUrl: string; guid: string }[] }, by: string | null = null): Promise<number> {
-  if (s.pins && s.pins.length > MAX_PINS) throw new ApiError('validation', `At most ${MAX_PINS} pinned episodes.`, { fields: ['pins'] });
+export async function putDiscoverSettings(tx: Db, s: Omit<DiscoverSettings, 'version'> & { version: number }): Promise<number> {
+  if (s.pins.length > MAX_PINS) throw new ApiError('validation', `At most ${MAX_PINS} pinned episodes.`, { fields: ['pins'] });
   const [cur] = await tx.query<{ version: number }>('SELECT version FROM discover_settings WHERE id = 1 FOR UPDATE');
   const current = cur ? Number(cur.version) : 0;
   if (current !== s.version) throw new ApiError('changed', 'Changed elsewhere — reload.', { version: current });
@@ -84,17 +63,31 @@ export async function putDiscoverSettings(tx: Db, s: { version: number; order: s
      ON CONFLICT (id) DO UPDATE SET section_order = EXCLUDED.section_order, hidden_sections = EXCLUDED.hidden_sections, version = EXCLUDED.version`,
     [known(s.order), known(s.hidden), next],
   );
-  if (s.pins) await replaceKind(tx, 'trending', 'pin', s.pins, by);
-  if (s.hides) await replaceKind(tx, 'trending', 'hide', s.hides, by);
+  await tx.query('DELETE FROM trending_pins');
+  for (const [i, p] of s.pins.entries()) await tx.query('INSERT INTO trending_pins (position, feed_url, guid) VALUES ($1, $2, $3)', [i + 1, p.feedUrl, p.guid ?? null]);
+  await tx.query('DELETE FROM trending_hides');
+  for (const h of s.hides) await tx.query('INSERT INTO trending_hides (feed_url, guid) VALUES ($1, $2) ON CONFLICT DO NOTHING', [h.feedUrl, h.guid]);
   return next;
 }
 
-/** M15 "featured in a category": the `category:<genreId>` list's pins, in slot order. */
 export async function getFeatures(db: Db, genreId: number): Promise<string[]> {
-  return (await active(db, categoryListId(genreId))).pins.flatMap((p) => (p.feedUrl ? [p.feedUrl] : []));
+  return (await db.query<{ feed_url: string }>('SELECT feed_url FROM category_features WHERE genre_id = $1 ORDER BY position', [genreId])).map((r) => r.feed_url);
 }
 
-export async function putFeatures(tx: Db, genreId: number, feedUrls: readonly string[], by: string | null = null): Promise<void> {
+export async function putFeatures(tx: Db, genreId: number, feedUrls: readonly string[]): Promise<void> {
   if (feedUrls.length > MAX_FEATURES) throw new ApiError('validation', `At most ${MAX_FEATURES} featured shows.`, { fields: ['shows'] });
-  await replaceKind(tx, categoryListId(genreId), 'pin', [...new Set(feedUrls)].map((feedUrl) => ({ feedUrl })), by);
+  await tx.query('DELETE FROM category_features WHERE genre_id = $1', [genreId]);
+  for (const [i, f] of [...new Set(feedUrls)].entries()) await tx.query('INSERT INTO category_features (genre_id, position, feed_url) VALUES ($1, $2, $3)', [genreId, i + 1, f]);
+}
+
+/** Featured shows first, in the owner's order; the rest keep the chart's order. Pure. */
+export function featuredFirst<T extends { feedUrl: string }>(shows: readonly T[], featured: readonly string[], extra: (feedUrl: string) => T | undefined): T[] {
+  const byFeed = new Map(shows.map((s) => [s.feedUrl, s]));
+  const first: T[] = [];
+  for (const f of featured) {
+    const s = byFeed.get(f) ?? extra(f);
+    if (s) first.push(s);
+  }
+  const taken = new Set(first.map((s) => s.feedUrl));
+  return [...first, ...shows.filter((s) => !taken.has(s.feedUrl))];
 }

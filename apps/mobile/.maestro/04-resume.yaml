@@ -1,0 +1,21 @@
+# M25 G6 flow 4 — quit and reopen: episode 1 still remembers where it was paused (0:15–0:29),
+# shown on its row of the show page (the position the next Play starts from).
+# Not played on: past 0:30 of this 60 s episode it counts as Finished (src/playback/finished.ts),
+# and the emulator reads the screen only every several seconds (run 37737025340 saw 0:26 → 0:51).
+# Seen on the Android emulator (run 37731408369): after a cold start the mini player SHOWS
+# 0:00/1:00 until Play is pressed — reported as a possible defect, not asserted here.
+appId: app.socialmorning.mobile
+---
+- stopApp
+- launchApp
+- runFlow: common/settle.yaml
+- extendedWaitUntil:
+    visible:
+      text: "Now playing: Episode 1: A minute of tone.*"
+    timeout: 20000
+- runFlow: common/open-show.yaml
+- extendedWaitUntil:
+    visible:
+      text: "Episode 1: A minute of tone\\..*0:(1[5-9]|2[0-9]) / 1:00.*"
+    timeout: 15000
+- takeScreenshot: 04-resume-position

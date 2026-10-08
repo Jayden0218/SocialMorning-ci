@@ -15,7 +15,7 @@ import { hash } from '@/feeds/hash';
 import { createSqliteStores } from '@/storage/sqlite';
 import { toPlayable } from '@/storage/playable';
 import type { Stores } from '@/storage/types';
-import { createApi, requester, setTokenRotatedListener } from '@/social/api';
+import { createApi, requester } from '@/social/api';
 import { configureErrorReports, reportAndDrop } from '@/telemetry/reportError';
 import { apiBaseUrl } from '@/social/base-url';
 import { registrationFor } from '@/social/registration';
@@ -125,14 +125,6 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
   // M3 (US6): positions go to the account. The device id is read lazily (async
   // secure store); until it resolves, uploads wait — the local row is the truth.
   const graphApi = useMemo(() => createApi({ baseUrl: apiBaseUrl(), fetch, getToken: secureToken.get }), []);
-  // M25 SB: keep the token the server rotates (at most once a day) — only while the phone still
-  // holds the token that call was sent with, so a sign-out or a new sign-in meanwhile is never undone.
-  useEffect(() => {
-    setTokenRotatedListener((fresh, sentWith) => {
-      void secureToken.get().then((now) => (now === sentWith ? secureToken.set(fresh) : undefined)).catch(() => undefined);
-    });
-    return () => setTokenRotatedListener(undefined);
-  }, []);
   const deviceIdRef = useRef<string | undefined>(undefined);
   // The launch screen waits on these (owner, 2026-09-27): the account's positions and
   // subscriptions, and the download recovery. See `./startup`.

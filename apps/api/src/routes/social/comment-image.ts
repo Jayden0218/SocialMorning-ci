@@ -16,7 +16,6 @@ import type { AuthEnv } from '../../auth/session.ts';
 import { requireAuth } from '../../auth/session.ts';
 import { ApiError } from '../../errors.ts';
 import { sniff } from '../../db/repos/account/feedback.ts';
-import { stripImageMetadata } from '@socialmorning/social-core';
 import { getComment, toPublic } from '../../db/repos/social/comments.ts';
 import { heldForImage, heldToPublic, setHeldImage } from '../../db/repos/studio/comment-policy.ts';
 
@@ -48,13 +47,11 @@ commentImage.post('/:id/image', requireAuth, async (c) => {
   const h = Number(c.req.header('x-height'));
   if (!Number.isInteger(w) || !Number.isInteger(h) || w < 1 || h < 1 || w > 4096 || h > 4096) throw new ApiError('validation', 'x-width and x-height must be 1–4096.', { fields: ['x-width', 'x-height'] });
 
-  const raw = new Uint8Array(await c.req.arrayBuffer());
-  if (raw.length === 0) throw new ApiError('validation', 'The image is empty.', { fields: ['body'] });
-  if (raw.length > COMMENT_IMAGE_MAX_BYTES) throw new ApiError('too_large', 'An image is at most 1 MB.');
-  const type = sniff(raw);
-  // M25 SB (G-SB3): no EXIF/GPS, XMP or text reaches the store.
-  const bytes = type ? stripImageMetadata(raw) : undefined;
-  if (!type || !bytes) throw new ApiError('validation', 'Send a JPEG or PNG picture.', { fields: ['body'] });
+  const bytes = new Uint8Array(await c.req.arrayBuffer());
+  if (bytes.length === 0) throw new ApiError('validation', 'The image is empty.', { fields: ['body'] });
+  if (bytes.length > COMMENT_IMAGE_MAX_BYTES) throw new ApiError('too_large', 'An image is at most 1 MB.');
+  const type = sniff(bytes);
+  if (!type) throw new ApiError('validation', 'Send a JPEG or PNG picture.', { fields: ['body'] });
   const [used] = await db.query<{ n: string | number | null }>(
     'SELECT (SELECT coalesce(sum(image_bytes), 0) FROM comments) + (SELECT coalesce(sum(image_bytes), 0) FROM held_comments) AS n');
   if (Number(used?.n ?? 0) + bytes.length > c.get('imageCeilingBytes')) throw new ApiError('storage_full', 'The image store is full. Try again later.');

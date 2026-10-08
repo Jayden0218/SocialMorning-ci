@@ -4,10 +4,8 @@ import { z } from 'zod';
 import type { AuthEnv } from '../../auth/session.ts';
 import { optionalAuth } from '../../auth/session.ts';
 import { json } from '../../validate.ts';
-import { stripImageMetadata } from '@socialmorning/social-core';
 import { createFeedback, feedbackImageBytes, imagesSentToday, IMAGE_MAX_BYTES, IMAGES_MAX, sniff, type ImageIn } from '../../db/repos/account/feedback.ts';
 import { ApiError } from '../../errors.ts';
-import { clientAddress, DAY_MS, HOUR_MS, limit } from '../../auth/rate.ts';
 
 /**
  * Mounted at /v1/feedback (M10b US6). Signed in or not. The only route allowed a body
@@ -21,11 +19,6 @@ import { clientAddress, DAY_MS, HOUR_MS, limit } from '../../auth/rate.ts';
 export const IMAGE_MESSAGES_PER_DAY = 5;
 export const DEFAULT_FEEDBACK_IMAGE_CEILING = 200_000_000;
 export const ERROR_LINES_MAX = 20;
-/** M25 S6 (audit #9): signed-out feedback per network address an hour, and for the whole server a day. */
-export const SIGNED_OUT_FEEDBACK_PER_ADDRESS_HOUR = 10;
-export const SIGNED_OUT_FEEDBACK_PER_DAY = 500;
-/** M25 S6: feedback from one account a day. */
-export const FEEDBACK_PER_ACCOUNT_DAY = 30;
 
 function imageCeiling(): number {
   const n = Number(process.env['FEEDBACK_IMAGE_CEILING_BYTES']);
@@ -45,13 +38,6 @@ feedback.post('/', optionalAuth, json(body), async (c) => {
   const b = c.req.valid('json');
   const db = c.get('db');
   const listener = c.get('listener');
-  if (listener) {
-    await limit(db, `feedback:l:${listener.id}`, DAY_MS, FEEDBACK_PER_ACCOUNT_DAY, 'You have sent a lot of feedback today. Try again tomorrow.');
-  } else {
-    const addr = clientAddress(c);
-    if (addr) await limit(db, `feedback:ip:${addr}`, HOUR_MS, SIGNED_OUT_FEEDBACK_PER_ADDRESS_HOUR, 'Too much feedback from this network. Try again in an hour, or sign in.');
-    await limit(db, 'feedback:anon:global', DAY_MS, SIGNED_OUT_FEEDBACK_PER_DAY, 'We cannot take more feedback from signed-out phones today. Sign in, or try tomorrow.');
-  }
   const images: ImageIn[] = [];
   if ((b.images ?? []).length > 0) {
     if (!listener) throw new ApiError('unauthenticated', 'Sign in to send pictures. Text alone can be sent signed out.');
@@ -60,12 +46,10 @@ feedback.post('/', optionalAuth, json(body), async (c) => {
     }
   }
   for (const img of b.images ?? []) {
-    const raw = Uint8Array.from(Buffer.from(img.base64, 'base64'));
-    if (raw.length > IMAGE_MAX_BYTES) throw new ApiError('too_large', `Each image must be at most ${IMAGE_MAX_BYTES} bytes.`);
-    const real = sniff(raw);
-    // M25 SB (G-SB3): no EXIF/GPS, XMP or text is kept with feedback either.
-    const bytes = real !== undefined && real === img.mime ? stripImageMetadata(raw) : undefined;
-    if (real === undefined || !bytes) throw new ApiError('validation', 'Only JPEG or PNG images.');
+    const bytes = Uint8Array.from(Buffer.from(img.base64, 'base64'));
+    if (bytes.length > IMAGE_MAX_BYTES) throw new ApiError('too_large', `Each image must be at most ${IMAGE_MAX_BYTES} bytes.`);
+    const real = sniff(bytes);
+    if (real === undefined || real !== img.mime) throw new ApiError('validation', 'Only JPEG or PNG images.');
     images.push({ mime: real, bytes });
   }
   if (images.length > 0) {

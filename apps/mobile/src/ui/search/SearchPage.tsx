@@ -85,9 +85,6 @@ import { Icon } from '@/ui/kit/Icon';
 import { GENRES } from '@/discover/genres';
 import { addHistory, clearHistory, readHistory, recentSearches } from '@/search/history';
 import { suggestions } from '@/search/suggest';
-// M25 A7: the admin's search words and the number of category tiles (defaults: as before).
-import { tryWords } from '@/config/hints';
-import { listSize } from '@/config/store';
 import { splitMatch } from '@/search/match';
 import { useSafety } from '@/safety/context';
 
@@ -162,7 +159,7 @@ export function SearchPage(props: SearchPageProps): React.ReactElement {
   const [submitted, setSubmitted] = useState<string | undefined>(params.q?.trim() ? params.q.trim() : undefined);
   const [tab, setTab] = useState<Tab>('all');
   const [history, setHistory] = useState<string[]>(() => readHistory(stores.settings));
-  const tryThese = useMemo(() => tryWords(suggestions(view?.body, hiddenFeeds)), [view, hiddenFeeds]);
+  const tryThese = useMemo(() => suggestions(view?.body, hiddenFeeds), [view, hiddenFeeds]);
   const remember = (t: string) => setHistory(addHistory(stores.settings, t));
   const run = (t: string) => {
     const q = t.trim();
@@ -449,7 +446,7 @@ export function SearchPage(props: SearchPageProps): React.ReactElement {
             </Box>
             {/* M17 (`Search-B`): a two-column grid of tiles — the category's icon, then its name. */}
             <Box className="flex-row flex-wrap justify-between gap-y-2">
-              {GENRES.slice(0, listSize('searchCategories')).map((g) => (
+              {GENRES.slice(0, 4).map((g) => (
                 <Pressable key={g.id} onPress={() => router.push({ pathname: '/category/[id]', params: { id: String(g.id) } })} accessibilityRole="button" accessibilityLabel={g.name} className="bg-surface border border-border rounded-row justify-between px-row py-2.5 gap-1.5 w-[48.5%]" style={TILE}>
                   <Icon name={g.icon} size={18} color={c.accent} />
                   <Text className="text-text text-meta font-semibold" numberOfLines={1}>{g.name}</Text>

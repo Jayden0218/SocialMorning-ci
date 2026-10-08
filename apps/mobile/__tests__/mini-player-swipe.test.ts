@@ -36,9 +36,6 @@ it('going back from one page to another page keeps the bar; a new page shows it'
   expect(rootBarHidden(leavingToTabs(after, start('ep-3', 'episode/[id]', false, TABS_ROUTE)))).toBe(false);
 });
 
-// Kept as a source check: the wiring lives only in the root layout (app/_layout.tsx, 35 imports, the native
-// stack and every provider); rendering it here would repeat root-layout.test.tsx's whole stub set, and the
-// stubbed Stack would not fire transition events anyway. The decision it wires is pure and tested above.
 it('the root layout wires the stack\'s transition events to the bar', () => {
   const layout = readFileSync(join(__dirname, '../app/_layout.tsx'), 'utf8');
   expect(layout).toMatch(/screenListeners=/);

@@ -10,7 +10,7 @@
     "./types": "./src/types.ts"
   },
   "scripts": {
-    "test": "c8 tsx --test test/*.test.ts",
+    "test": "tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.src.json"
   },
   "dependencies": {

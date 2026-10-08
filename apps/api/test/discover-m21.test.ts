@@ -12,11 +12,11 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { fromPglite } from '../src/db/db.ts';
 import { createApp } from '../src/app.ts';
-import { createSession } from '../src/auth/session.ts';
 import { likedByFollowed } from '../src/db/repos/discover/explore.ts';
 import { CASEY, fakeApple } from './fake-apple.ts';
-import { dbOf, migratedPg, freshDb, signUp, TEST_PEPPER, type TestDb } from './harness.ts';
+import { migratedPg, freshDb, signUp, TEST_PEPPER, type TestDb } from './harness.ts';
 
 type Ep = { id: string; feedUrl: string; title: string };
 const feed = (n: number) => `https://f.example/${n}.xml`;
@@ -41,12 +41,7 @@ const ids = (items: { id: string }[]) => items.map((i) => i.id).sort();
 test('hunt: the same three all day, from three shows; another set the next day; Shuffle gives another set', async () => {
   let today = '2026-10-06';
   const t = await freshDb({ picksRaw: [], today: () => today });
-  // The hunt is seeded by (listener id, day, shuffle). A signUp() id is random, so two sets could
-  // be the same by chance (it happened: gate 37732390884). A fixed id and fixed days make every
-  // set below the same on every run — deterministic, not retried.
-  const HUNTER = '00000000-0000-4000-8000-000000000021';
-  await t.q("INSERT INTO listeners (id, email, password_hash, display_name) VALUES ($1, 'hunter@example.com', 'x', 'Hunter')", [HUNTER]);
-  const a = { id: HUNTER, token: await createSession(t.db, HUNTER, TEST_PEPPER) };
+  const a = await signUp(t);
   await shows(t, 20);
   const one = await huntOf(t, a.token);
   assert.equal(one.day, '2026-10-06');
@@ -198,7 +193,7 @@ test('search since=30d|180d keeps only episodes published in that time; rows car
     if (url.includes('entity=podcastEpisode') && url.includes('/search')) return new Response(JSON.stringify({ resultCount: 3, results: episodes }), { status: 200, headers: { 'content-type': 'application/json' } });
     return apple.fetch(input);
   }) as typeof fetch;
-  const app = createApp({ db: dbOf(pg), pepper: TEST_PEPPER, catalogFetch: f, picksRaw: [] });
+  const app = createApp({ db: fromPglite(pg), pepper: TEST_PEPPER, catalogFetch: f, picksRaw: [] });
   let ip = 0;
   const get = async (q: string) => app.request(`/v1/search?q=casey${q}`, { headers: { 'x-forwarded-for': `9.9.9.${ip++}` } });
   type Body = { episodes: { title: string; stats?: { listeners: number; comments: number } }[] };

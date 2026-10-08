@@ -34,7 +34,6 @@ import { registerMedia } from './media.ts';
 import { registerTranscriptReportDone, registerTranscriptReports } from './transcript-reports.ts';
 import { registerHostPicks } from './host-picks.ts';
 import { registerFeed } from './feed.ts';
-import { registerSecondFactor } from './second-factor.ts';
 
 export { ownerOnly } from './common.ts';
 
@@ -60,7 +59,7 @@ const secure = (url: string) => new URL(url).protocol === 'https:';
  */
 studio.post('/session', async (c) => {
   const token = studioToken(c);
-  const who = token ? await studioListener(c.get('db'), c.get('pepper'), token, c.get('pepperNext')) : undefined;
+  const who = token ? await studioListener(c.get('db'), c.get('pepper'), token) : undefined;
   if (who === 'expired') throw new ApiError('session_expired', 'You were away for a while. Sign in again.');
   if (!who || !token) throw new ApiError('unauthenticated', 'Sign in with deviceLabel "studio-web" first.');
   setCookie(c, STUDIO_COOKIE, token, { httpOnly: true, secure: secure(c.req.url), sameSite: 'Strict', path: '/', maxAge: STUDIO_IDLE_MS / 1000 });
@@ -105,7 +104,6 @@ studio.get('/me', async (c) => {
 });
 registerClaims(studio);
 registerCreate(studio);
-registerSecondFactor(studio); // M25 SB
 registerTranscriptReportDone(studio);
 
 studio.use('/shows/:show/*', async (c, next) => {

@@ -25,17 +25,6 @@ async function signIn(page: Page, email: string, path = '/admin') {
   await page.getByRole('button', { name: 'Sign in' }).click();
 }
 
-/** M25 SB: a password sign-in to Admin asks for the code emailed to the owner (the test server's inbox). */
-async function secondFactor(page: Page, email: string) {
-  await expect(page.getByRole('heading', { name: 'Enter the code' })).toBeVisible();
-  await expect(page.getByRole('status').filter({ hasText: 'We emailed' })).toBeVisible();
-  const r = await page.request.get(`http://localhost:8787/__e2e/code?email=${encodeURIComponent(email)}`);
-  const { code } = (await r.json()) as { code: string };
-  await page.getByLabel('6-digit code').fill(code);
-  await page.getByRole('button', { name: 'Continue' }).click();
-  await expect(page.getByRole('heading', { name: 'Enter the code' })).toHaveCount(0);
-}
-
 /** The image store: answer the browser's `put` (and its CORS preflight) the way Vercel Blob does. */
 async function fakeStore(page: Page) {
   await page.route((url) => url.href.startsWith('https://vercel.com/api/blob'), async (route) => {
@@ -52,7 +41,6 @@ const tomorrow = () => new Date(Date.now() + 86_400_000).toISOString().slice(0, 
 test('Admin, as the owner: record, picks, accounts + act as, curator, Discover, launch, users, reports', async ({ page }) => {
   await fakeStore(page);
   await signIn(page, OWNER);
-  await secondFactor(page, OWNER);
 
   // US1 — the owner lands in Admin (next=/admin is honoured). M18: Dashboard opens first, with
   // its headline numbers counted on the live server; then Activity, one link away.
@@ -120,7 +108,7 @@ test('Admin, as the owner: record, picks, accounts + act as, curator, Discover, 
 
   // US5 — hide a section and save.
   await page.getByRole('link', { name: 'Discover' }).click();
-  await page.getByRole('checkbox', { name: 'What listeners said' }).uncheck(); // M25 A5: the phone's own words
+  await page.getByRole('checkbox', { name: 'What people said' }).uncheck();
   await page.getByRole('button', { name: 'Save Discover' }).click();
   await expect(page.getByText('Saved.').first()).toBeVisible();
   await snap(page, 'discover');
@@ -152,8 +140,7 @@ test('Admin, as the owner: record, picks, accounts + act as, curator, Discover, 
 });
 
 test('Admin, as anyone else: no link, a refusal on the page, 403 from every admin call', async ({ page, request }) => {
-  // M25 S3: /v1/auth/sign-up is gone; the e2e API's own route makes a password account.
-  const r = await request.post('http://localhost:8787/__e2e/account', { data: { email: STRANGER.email, password: PW, displayName: STRANGER.name } });
+  const r = await request.post('/api/v1/auth/sign-up', { data: { email: STRANGER.email, password: PW, displayName: STRANGER.name } });
   expect([200, 409]).toContain(r.status());
   await signIn(page, STRANGER.email);
   await expect(page.getByText('Admin is for the owner only')).toBeVisible();

@@ -31,32 +31,13 @@ export function sortCategoryShows(shows: readonly ShowCard[], sort: CategorySort
     .map((x) => x.s);
 }
 
-/**
- * M25 A2 (lane AL): the owner's pinned shows keep the place the server gave them (slot 1 = first)
- * under EVERY chip — For you and Newest re-order only the shows around them. `pinned` is the
- * server's list (`CategoryShows.pinned`); a show marked `pinned: true` counts too.
- */
 export function categoryList(
   shows: readonly ShowCard[],
-  opts: { sort: CategorySort; notSubscribedOnly: boolean; subscribed: ReadonlySet<string>; pinned?: readonly string[] },
+  opts: { sort: CategorySort; notSubscribedOnly: boolean; subscribed: ReadonlySet<string> },
 ): ShowCard[] {
   const kept = opts.notSubscribedOnly ? shows.filter((s) => !opts.subscribed.has(s.feedUrl)) : shows;
-  const pins = new Set(opts.pinned ?? []);
-  const isPinned = (s: ShowCard) => s.pinned === true || pins.has(s.feedUrl);
-  const rest = kept.filter((s) => !isPinned(s));
-  const sorted = opts.sort === 'forYou'
-    ? [...rest.filter((s) => !opts.subscribed.has(s.feedUrl)), ...rest.filter((s) => opts.subscribed.has(s.feedUrl))]
-    : sortCategoryShows(rest, opts.sort);
-  return keepPinnedInPlace(kept, sorted, isPinned);
-}
-
-/** The pinned shows of `serverOrder` put back at their own places in `sorted` (which holds the rest). Pure. */
-export function keepPinnedInPlace(serverOrder: readonly ShowCard[], sorted: readonly ShowCard[], isPinned: (s: ShowCard) => boolean): ShowCard[] {
-  const out = [...sorted];
-  serverOrder.forEach((s, i) => {
-    if (isPinned(s)) out.splice(Math.min(i, out.length), 0, s);
-  });
-  return out;
+  if (opts.sort === 'forYou') return [...kept.filter((s) => !opts.subscribed.has(s.feedUrl)), ...kept.filter((s) => opts.subscribed.has(s.feedUrl))];
+  return sortCategoryShows(kept, opts.sort);
 }
 
 /** Shows per page from the server (`GET /v1/categories/:id?page=N`). */

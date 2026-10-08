@@ -16,9 +16,7 @@ import { actionsFor, groupReports, RETENTION_DAYS, type Action, type QueueItem, 
 import type { AuthEnv, Listener } from '../auth/session.ts';
 import { createSession, listenerForToken, tokenHash } from '../auth/session.ts';
 import { verifyPassword } from '../auth/password.ts';
-import { clearFailedSignIns, listenerByEmail, recordFailedSignIn } from '../db/repos/account/listeners.ts';
-import { clientAddress, HOUR_MS, limit } from '../auth/rate.ts';
-import { ApiError } from '../errors.ts';
+import { listenerByEmail } from '../db/repos/account/listeners.ts';
 import { closedReports, openReports, purgeClosedOlderThan, type QueueRow } from '../db/repos/safety/reports.ts';
 import { act, recentActions } from '../db/repos/safety/moderation.ts';
 import { rollup } from '../db/repos/library/rec-events.ts';
@@ -26,8 +24,6 @@ import { similarityAgeHours } from '../db/repos/discover/similarity.ts';
 import { SIMILARITY_STALE_HOURS } from '../db/repos/discover/similarity.ts';
 import { esc, mmss, page } from './clip.ts';
 import { recentHostHides, setHostHidden } from '../db/repos/studio/studio-comments.ts';
-import { checkSecondFactor, rememberDevice, secondFactorDone, sendSecondFactor } from '../auth/second-factor.ts';
-import { COUNTRY_HEADER, countryOf } from '../db/repos/account/country.ts';
 import { listHostedEpisodes } from '../db/repos/studio/hosted.ts';
 
 const COOKIE = 'mod';
@@ -38,26 +34,15 @@ import { feedbackImage, recentFeedback } from '../db/repos/account/feedback.ts';
 
 export const mod = new Hono<AuthEnv>();
 
-/** The owner's session behind the cookie (second factor passed or not), or undefined. Not the owner → undefined too (G9). */
-async function modSession(c: Context<AuthEnv>): Promise<{ owner: Listener; token: string; factor: boolean } | undefined> {
+/** The owner behind the cookie, or undefined. Not the owner → undefined too (G9). */
+async function ownerFromCookie(c: Context<AuthEnv>): Promise<{ owner: Listener; token: string } | undefined> {
   const token = getCookie(c, COOKIE);
   const ownerId = c.get('safety').ownerListenerId;
   if (!token || !ownerId) return undefined;
-  const l = await listenerForToken(c.get('db'), token, c.get('pepper'), c.get('pepperNext'));
+  const l = await listenerForToken(c.get('db'), token, c.get('pepper'));
   if (!l || l.id !== ownerId) return undefined;
-  // M25 SB (G-SB2): the page opens only after the emailed code (or on a remembered browser).
-  const factor = await secondFactorDone(c, c.get('db'), tokenHash(token, c.get('pepper')), l.id, c.get('pepper'), c.get('pepperNext'));
-  return { owner: l, token, factor };
+  return { owner: l, token };
 }
-
-/** The owner behind the cookie, past the second factor — or undefined. Every /mod page and action uses this. */
-async function ownerFromCookie(c: Context<AuthEnv>): Promise<{ owner: Listener; token: string } | undefined> {
-  const s = await modSession(c);
-  return s?.factor ? { owner: s.owner, token: s.token } : undefined;
-}
-
-/** M25 SB: the same rule for the other /mod pages (routes/mod/*.ts). */
-export const isModOwner = async (c: Context<AuthEnv>): Promise<boolean> => (await ownerFromCookie(c)) !== undefined;
 
 const secure = (c: { req: { url: string } }) => c.req.url.startsWith('https:');
 
@@ -132,9 +117,7 @@ mod.get('/feedback/:id/:n', async (c) => {
 
 mod.get('/', async (c) => {
   if (!c.get('safety').ownerListenerId) return c.html(page('Moderation', '<h1>Moderation is not configured</h1><p class="muted">OWNER_LISTENER_ID is not set.</p>'), 503);
-  const pending = await modSession(c);
-  if (pending && !pending.factor) return c.html(page('Moderation — code', codeForm(pending.owner.email)));
-  const who = pending ? { owner: pending.owner, token: pending.token } : undefined;
+  const who = await ownerFromCookie(c);
   if (!who) return c.html(page('Moderation — sign in', loginForm()));
   const db = c.get('db');
   await purgeClosedOlderThan(db, RETENTION_DAYS);
@@ -162,66 +145,17 @@ ${hides.length === 0 ? '<p class="muted">None.</p>' : `<ul>${hides.map((h) => `<
 ${actions.length === 0 ? '<p class="muted">None.</p>' : `<ul>${actions.map((a) => `<li>${esc(new Date(a.created_at).toISOString())} · <b>${esc(a.action)}</b> ${esc(a.target_kind)} <code>${esc(a.target_id)}</code> by ${esc(a.actor_name)}</li>`).join('')}</ul>`}`));
 });
 
-/** M25 S2: password tries at /mod/login per network address an hour. */
-export const MOD_LOGINS_PER_ADDRESS_HOUR = 10;
-
-const tooMany = (c: Context<AuthEnv>, seconds: number) => {
-  c.header('retry-after', String(seconds));
-  return c.html(page('Moderation — wait', `<h1>Too many tries</h1><p class="muted">Try again in ${Math.ceil(seconds / 60)} minute${seconds > 60 ? 's' : ''}.</p><p><a href="/mod">Back</a></p>`), 429);
-};
-
-/*
- * M25 S2 (audit #2, guard G-M25-S2): the owner's password form had no lockout and no limit. Now it
- * counts tries per network address (10 an hour), and uses the same per-account lockout as the
- * app's sign-in (`recordFailedSignIn` / `locked_until`): a locked account is refused before the
- * password is even checked, and every wrong password for the owner's email counts.
- */
 mod.post('/login', async (c) => {
-  const db = c.get('db');
-  const addr = clientAddress(c);
-  if (addr) {
-    try { await limit(db, `mod:ip:${addr}`, HOUR_MS, MOD_LOGINS_PER_ADDRESS_HOUR, 'Too many tries.'); }
-    catch (e) { if (e instanceof ApiError) return tooMany(c, Number(e.extra['retryAfterSeconds'] ?? 3600)); throw e; }
-  }
   const form = await c.req.parseBody();
-  const email = String(form['email'] ?? '').trim().toLowerCase();
+  const email = String(form['email'] ?? '').trim();
   const password = String(form['password'] ?? '');
   const ownerId = c.get('safety').ownerListenerId;
-  const row = email ? await listenerByEmail(db, email) : undefined;
-  const now = Date.now();
-  const lockedUntil = row?.locked_until ? new Date(row.locked_until).getTime() : null;
-  if (row && lockedUntil !== null && lockedUntil > now) return tooMany(c, Math.ceil((lockedUntil - now) / 1000));
-  const ok = Boolean(row && ownerId && row.id === ownerId && (await verifyPassword(password, row.password_hash)));
-  if (!ok || !row) {
-    if (row && ownerId && row.id === ownerId) await recordFailedSignIn(db, row.id, now);
+  const row = email ? await listenerByEmail(c.get('db'), email) : undefined;
+  if (!row || !ownerId || row.id !== ownerId || !(await verifyPassword(password, row.password_hash))) {
     return c.html(page('Moderation — refused', '<h1>Not the owner</h1><p class="muted">This page is for the app\'s owner only.</p><p><a href="/mod">Back</a></p>'), 403);
   }
-  await clearFailedSignIns(db, row.id);
-  const token = await createSession(db, row.id, c.get('pepper'), 'mod-web', { country: countryOf(c.req.header(COUNTRY_HEADER)) });
+  const token = await createSession(c.get('db'), row.id, c.get('pepper'), 'mod-web');
   setCookie(c, COOKIE, token, { httpOnly: true, secure: secure(c), sameSite: 'Strict', path: '/mod', maxAge: 60 * 60 * 12 });
-  // M25 SB: a code to the owner's inbox, unless this browser is remembered (GET /mod then asks for it).
-  const hash = tokenHash(token, c.get('pepper'));
-  if (!(await secondFactorDone(c, db, hash, row.id, c.get('pepper'), c.get('pepperNext')))) {
-    await sendSecondFactor(db, c.get('mailer'), hash, row.email, c.get('pepper')).catch((e: unknown) => console.error('mod code not sent', e instanceof Error ? e.message : e));
-  }
-  return c.redirect('/mod', 303);
-});
-
-/** M25 SB: the emailed code for this browser's /mod session; `remember` keeps this browser for 30 days. */
-mod.post('/code', async (c) => {
-  const s = await modSession(c);
-  if (!s) return c.html(page('Moderation — refused', '<h1>Not the owner</h1><p><a href="/mod">Back</a></p>'), 403);
-  if (s.factor) return c.redirect('/mod', 303);
-  const form = await c.req.parseBody();
-  const db = c.get('db');
-  const hash = tokenHash(s.token, c.get('pepper'));
-  if (form['resend'] !== undefined) {
-    await sendSecondFactor(db, c.get('mailer'), hash, s.owner.email, c.get('pepper')).catch(() => undefined);
-    return c.redirect('/mod', 303);
-  }
-  const r = await checkSecondFactor(db, hash, String(form['code'] ?? '').trim(), c.get('pepper'), c.get('pepperNext'));
-  if (r !== 'ok') return c.html(page('Moderation — code', `<p class="warn">${r === 'expired' ? 'That code has expired or was used up. Send a new one.' : 'That code is not right.'}</p>${codeForm(s.owner.email)}`), 403);
-  if (form['remember'] !== undefined) rememberDevice(c, s.owner.id, c.get('pepper'));
   return c.redirect('/mod', 303);
 });
 
@@ -277,12 +211,6 @@ mod.post('/logout', async (c) => {
   deleteCookie(c, COOKIE, { path: '/mod' });
   return c.redirect('/mod', 303);
 });
-
-/** M25 SB: the second step after the password. The address is shown masked. */
-function codeForm(email: string): string {
-  const masked = email.replace(/^(.)(.*)(.@.*)$/, (_m, a: string, mid: string, b: string) => `${a}${'*'.repeat(Math.min(6, mid.length))}${b}`);
-  return `<h1>Enter the code</h1><p class="muted">We emailed a six-digit code to ${esc(masked)}. It works for 10 minutes.</p><form method="post" action="/mod/code"><p><label>Code <input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" required></label></p><p><label><input type="checkbox" name="remember" value="1"> Remember this browser for 30 days</label></p><button class="btn" type="submit">Continue</button></form><form method="post" action="/mod/code"><input type="hidden" name="resend" value="1"><button type="submit">Send a new code</button></form>`;
-}
 
 function loginForm(): string {
   return `<h1>Moderation</h1><form method="post" action="/mod/login"><p><label>Email <input name="email" type="email" autocomplete="username" required></label></p><p><label>Password <input name="password" type="password" autocomplete="current-password" required></label></p><button class="btn" type="submit">Sign in</button></form>`;

@@ -15,12 +15,45 @@ on:
         description: Release notes
         required: false
         default: A build of SocialMorning for Android.
+      sha:
+        description: The mirror commit this build was made from (M25 G2 — every required workflow must be green on it)
+        required: true
 
 permissions:
   contents: write
+  actions: read
 
 jobs:
+  # M25 G2: no release unless every required workflow is green on the SAME commit
+  # (scripts/release-gate.sh). The private repo's smoke is checked by scripts/release.sh on the
+  # laptop before it dispatches this workflow (this token cannot read the private repo).
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.sha }}
+          fetch-depth: 0
+      - name: every required workflow is green on ${{ inputs.sha }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: set -o pipefail; sh scripts/release-gate.sh --mirror-only "${{ inputs.sha }}" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: the app version went up since the last release (M25 G5)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          LAST=$(gh release list -R "$GITHUB_REPOSITORY" -L 1 --json tagName -q '.[0].tagName' || true)
+          NOW=$(python3 -c 'import json; print(json.load(open("apps/mobile/app.json"))["expo"]["version"])')
+          echo "app.json version $NOW; last release ${LAST:-none}; this tag $TAG"
+          [ "v$NOW" = "$TAG" ] || { echo "::error::tag $TAG does not match app.json version $NOW"; exit 1; }
+          if [ -n "$LAST" ]; then
+            git fetch -q --tags origin || true
+            WAS=$(git show "$LAST:apps/mobile/app.json" 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin)["expo"]["version"])' || echo "${LAST#v}")
+            python3 -c 'import sys; v=lambda s: [int(x) for x in s.split(".")]; sys.exit(0 if v(sys.argv[1]) > v(sys.argv[2]) else 1)' "$NOW" "$WAS" || { echo "::error::version $NOW is not above the last release $WAS"; exit 1; }
+          fi
   release:
+    needs: gate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -57,7 +90,7 @@ jobs:
           PRERELEASE=""
           case "$TAG" in v0.*) PRERELEASE="--prerelease";; esac
           # shellcheck disable=SC2086
-          gh release create "$TAG" "socialmorning-$TAG.apk" \
+          gh release create "$TAG" "socialmorning-$TAG.apk" --target "${{ inputs.sha }}" \
             --title "SocialMorning $TAG" --notes-file notes.md $PRERELEASE
           echo "Set RELEASE_SHA256=$SHA in the API's environment so /get shows it."
           echo "RELEASE_SHA256=$SHA" >> "$GITHUB_STEP_SUMMARY"

@@ -11,48 +11,26 @@
  * The breaks that turn it red: drop `a.interestsDue ||` from `rateBlockedNow`; put
  * accessibilityRole="checkbox" back on GenreTiles; make `panelStyle` return opacity 1 at 0;
  * make `mayRun` return true; remove `PHONE_READ` from fetch.ts (the throwing `body` getter is
- * then read); start library.tsx's `subscribed` at 0; drop the `blocked.current = true` latch
- * from RateSheet (the rendered sheet then slides up after an onboarding page); make TopBar's
- * `solid` paint nothing; put `flexGrow` back on a grid tile; let a name in CommentRow / FeedItem wrap.
- *
- * M25 lane GB: the checks that read component source are now RENDER tests (the rate sheet's
- * latch, TopBar, the shortcut and category grids, the comment and feed rows); the root layout's
- * hand-off to the sheet is rendered in __tests__/root-layout.test.tsx. What still reads source is
- * marked KEPT: facts that live only inside expo-router pages (history, library, episode, show,
- * profile, Discover, Me, player — 23 to 55 imports each).
+ * then read); start library.tsx's `subscribed` at 0.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createElement } from 'react';
-import { StyleSheet } from 'react-native';
-import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
+import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { Episode, ParsedFeed, Show } from '@socialmorning/feed-parser';
 import { hash } from '@/feeds/hash';
 import { refreshShow } from '@/feeds/fetch';
 import { createMemoryFeedCache, createMemoryStores } from '@/storage/memory';
-import { RateSheet, rateBlockedNow, rateMayAsk } from '@/ui/shell/RateSheet';
+import { rateBlockedNow, rateMayAsk } from '@/ui/shell/RateSheet';
 import { mayRun, OPEN_SETTLE_MS, panelStyle } from '@/ui/kit/SwipeRow';
 import { updatesSnapshot } from '@/me/updates';
 import { GenreTiles } from '@/ui/discover/RecFeedback';
 import { GENRES } from '@/discover/genres';
-import { CategoryStrip, gridRows, Shortcuts } from '@/ui/discover/sections';
-import { shortcutTiles } from '@/ui/discover/DiscoverShortcuts';
-import { KEY_PICKED } from '@/discover/interests';
-import { getAppConfig } from '@/config/store';
-import { colour } from '@/design';
-import { TopBar } from '@/ui/kit/TopBar';
-import { CommentRow } from '@/ui/comments/CommentRow';
-import { FeedItem } from '@/ui/social/FeedItem';
-import { GluestackUIProvider } from '@/ui/lib/gluestack-ui-provider';
-import type { Comment, FeedItem as FeedRow } from '@/social/api';
+import { gridRows } from '@/ui/discover/sections';
 
-// jest.mock factories are hoisted, so anything they touch must be named `mock*`.
-const mockMap = new Map<string, string>();
-const mockSettings = { get: (k: string) => mockMap.get(k), set: (k: string, v: string) => { mockMap.set(k, v); }, delete: (k: string) => { mockMap.delete(k); } };
-jest.mock('expo-router', () => ({ router: { push: jest.fn(), back: jest.fn() }, Link: (p: { children?: unknown }) => p.children }));
-jest.mock('@/ui/shell/providers', () => ({ useStores: () => ({ settings: mockSettings, feedCache: {} }), useToast: () => () => undefined, useCovered: () => false }));
+jest.mock('expo-router', () => ({ router: { push: jest.fn(), back: jest.fn() } }));
+jest.mock('@/ui/shell/providers', () => ({ useStores: () => ({ settings: { get: () => undefined } }), useToast: () => () => undefined }));
 jest.mock('@/social/api-m22-discover', () => ({ useM22DiscoverApi: () => ({}) }));
-jest.mock('@/social/context', () => ({ useSocial: () => ({ api: {} }) }));
 
 const ROOT = join(__dirname, '..');
 const read = (p: string): string => readFileSync(join(ROOT, p), 'utf8');
@@ -75,32 +53,9 @@ describe('1. the rate sheet never shows over onboarding, nor in the same launch'
     expect(rateMayAsk(s, { onTabs: true, blockedThisLaunch: true })).toBe(false);
     expect(rateMayAsk(s, { onTabs: false, blockedThisLaunch: false })).toBe(false);
   });
-  // The root layout handing the sheet `segment` and `consent` is rendered in root-layout.test.tsx.
-  describe('rendered: the sheet latches for the rest of the launch', () => {
-    beforeAll(() => { jest.useFakeTimers(); });
-    afterAll(() => { jest.clearAllTimers(); jest.useRealTimers(); });
-    beforeEach(() => { mockMap.clear(); mockMap.set(KEY_PICKED, '[1,2]'); });
-    const sheet = (segment: string) => createElement(GluestackUIProvider, null, createElement(RateSheet, { onTabs: segment === '(tabs)', segment, consent: true }));
-    const wait = () => act(() => { jest.advanceTimersByTime(getAppConfig().ratePrompt.delayMs + 50); });
-    const shown = (r: ReactTestRenderer) => r.root.findAll((n) => n.props['accessibilityLabel'] === 'Rate us' && typeof n.props['onPress'] === 'function').length > 0;
-
-    it('straight onto the tabs: it slides up', () => {
-      let r!: ReactTestRenderer;
-      act(() => { r = create(sheet('(tabs)')); });
-      wait();
-      expect(shown(r)).toBe(true);
-      act(() => r.unmount());
-    });
-    it('an onboarding page first, then the tabs: it stays down', () => {
-      let r!: ReactTestRenderer;
-      act(() => { r = create(sheet('onboarding')); });
-      wait();
-      expect(shown(r)).toBe(false);
-      act(() => { r.update(sheet('(tabs)')); });
-      wait();
-      expect(shown(r)).toBe(false);
-      act(() => r.unmount());
-    });
+  it('the root layout hands the sheet the page segment and the consent, and the sheet latches', () => {
+    expect(read('app/_layout.tsx')).toMatch(/<RateSheet onTabs=\{onTabs\} segment=\{segment\} consent=\{/);
+    expect(read('src/ui/shell/RateSheet.tsx')).toMatch(/blocked\.current = true/);
   });
 });
 
@@ -115,8 +70,6 @@ describe('2. tiles and History select rows are accessible buttons with a selecte
     expect(tiles.find((t) => t.props['accessibilityLabel'] === GENRES[1]!.name)!.props['accessibilityState']).toEqual({ selected: false });
     act(() => r.unmount());
   });
-  // KEPT as a source check: the select row is drawn inline in app/history.tsx (27 imports: ListDetail,
-  // the player, FilterBar, confirm, the library API…); there is no row component to render alone.
   it('History select rows: role button + selected, and the circle cannot take the touch', () => {
     const src = read('app/history.tsx');
     expect(src).not.toMatch(/accessibilityRole="checkbox"/);
@@ -192,8 +145,6 @@ describe('5. Updates starts from the local database', () => {
     expect(snap.subscribed).toBe(1);
     expect(snap.rows.map((r) => r.episode.guid)).toEqual(['g1']);
   });
-  // KEPT as a source check: the seeding is the useState initialiser of app/(tabs)/library.tsx
-  // (35 imports); the snapshot it seeds from is rendered-free and tested above.
   it('library.tsx seeds its first render from the snapshot, not from 0 and []', () => {
     const src = read('app/(tabs)/library.tsx');
     expect(src).toMatch(/useState\(\(\) => updatesSnapshot\(stores, hiddenFeeds\)\)/);
@@ -202,38 +153,9 @@ describe('5. Updates starts from the local database', () => {
   });
 });
 
-/** `#rrggbb` → its three channels, so a check holds whether UniWind emits hex or rgb(). */
-const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
-const channels = (value: unknown) => {
-  const v = String(value);
-  return v.startsWith('#') ? rgb(v) : (v.match(/\d+/g) ?? []).slice(0, 3).map(Number);
-};
-const styleOf = (n: ReactTestInstance) => (StyleSheet.flatten(n.props['style']) ?? {}) as Record<string, unknown>;
-const hosts = (r: ReactTestRenderer) => r.root.findAll((n) => typeof n.type === 'string');
-
 describe('6–13. the layout pass ("I see it overlap, the elements run away the layout")', () => {
-  it('6. a collapsed bar is solid (rendered TopBar): paper colour, a hairline, above the page', () => {
-    let r!: ReactTestRenderer;
-    act(() => { r = create(createElement(TopBar, { onBack: () => undefined, solid: true })); });
-    const bar = styleOf(hosts(r)[0]!);
-    expect(channels(bar['backgroundColor'])).toEqual(rgb(colour.background));
-    // The hairline is the class: UniWind's `hairlineWidth()` has no value under jest (NaN, gate
-    // 37744935171), so the rendered bar's own classes are read for it.
-    const barClasses = () => String(r.root.findAll((n) => typeof n.props['className'] === 'string')[0]!.props['className']).split(/\s+/);
-    expect(barClasses()).toEqual(expect.arrayContaining(['bg-background', 'border-b-hairline', 'border-separator']));
-    expect(bar['zIndex']).toBe(2);
-    // Not collapsed: see-through, no line (the hero shows under it).
-    act(() => { r.update(createElement(TopBar, { onBack: () => undefined, solid: false })); });
-    const open = styleOf(hosts(r)[0]!);
-    expect(open['backgroundColor']).toBeUndefined();
-    expect(barClasses()).not.toContain('border-b-hairline');
-    expect(open['zIndex']).toBeUndefined();
-    act(() => r.unmount());
-  });
-  // KEPT as source checks: each page passes `solid={collapsed}` from its own scroll state —
-  // app/episode/[id].tsx (52 imports), app/show/[feedUrl].tsx (47), app/profile/[id].tsx and
-  // Discover app/(tabs)/index.tsx (42); none can be rendered without stubbing most of the page.
-  it('6. the episode, show and profile pages hand the bar `solid`; Discover\'s bar never fades', () => {
+  it('6. every collapsed bar is solid: paper colour and a hairline once the page scrolls', () => {
+    expect(read('src/ui/kit/TopBar.tsx')).toMatch(/props\.solid \? 'bg-background border-b-hairline border-separator'/);
     expect(read('app/episode/[id].tsx')).toMatch(/solid=\{collapsed\}/);
     expect(read('app/show/[feedUrl].tsx')).toMatch(/solid=\{collapsed\}/);
     expect(read('app/profile/[id].tsx')).toMatch(/solid=\{collapsed\}/);
@@ -242,7 +164,6 @@ describe('6–13. the layout pass ("I see it overlap, the elements run away the 
     expect(discover).not.toMatch(/\[COLLAPSE_FROM, COLLAPSE_TO\], \[0, 1\]/);
     expect(discover).toMatch(/withTiming\(scrollY\.value > COLLAPSE_TO - 8 \? 1 : 0/);
   });
-  // KEPT as a source check: the slim bar's show link is built inline in app/episode/[id].tsx (52 imports).
   it('7. the episode page slim bar: the show name opens the show', () => {
     expect(read('app/episode/[id].tsx')).toMatch(/solid=\{collapsed\}[\s\S]*?accessibilityRole="link"\s+accessibilityLabel=\{`Show: \$\{show\?\.title/);
   });
@@ -250,55 +171,13 @@ describe('6–13. the layout pass ("I see it overlap, the elements run away the 
     expect(gridRows([1, 2, 3, 4, 5, 6, 7], 4)).toEqual([[1, 2, 3, 4], [5, 6, 7, null]]);
     expect(gridRows(['a', 'b', 'c'], 2)).toEqual([['a', 'b'], ['c', null]]);
     expect(gridRows([], 4)).toEqual([]);
-    // Discover's shortcuts: eight tiles, two rows of four. M25 A7: they live in their own component
-    // (the admin may change them); with nothing saved they are the same eight.
-    expect(shortcutTiles([]).map((t) => t.label)).toEqual(['Categories', 'Queue', 'Issues', 'Friends listening', 'Academy', 'Premium', 'Plaza', 'Talked about']);
+    const s = read('src/ui/discover/sections.tsx');
+    expect(s).not.toMatch(/flexGrow: 1/);
+    expect(s).toMatch(/numberOfLines=\{1\} adjustsFontSizeToFit minimumFontScale=\{0\.75\}>\{g\.name\}/);
+    // Discover's shortcuts: eight tiles, two rows of four.
+    const shortcuts = read('app/(tabs)/index.tsx').split('<Shortcuts')[1]!.split('/>')[0]!;
+    expect((shortcuts.match(/label: "/g) ?? []).length).toBe(8);
   });
-  it('8. rendered shortcuts, 7 tiles: two rows of four cells, every tile the same fixed size, the gap kept by an empty cell', () => {
-    const labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
-    let r!: ReactTestRenderer;
-    act(() => { r = create(createElement(Shortcuts, { items: labels.map((label) => ({ label, icon: shortcutTiles([])[0]!.icon, onPress: () => undefined })) })); });
-    const tiles = hosts(r).filter((n) => labels.includes(n.props['accessibilityLabel'] as string));
-    expect(tiles).toHaveLength(7);
-    const sizes = tiles.map((t) => { const s = styleOf(t); return [s['flex'], s['height'], s['width']]; });
-    // No grow on a tile: a stretched tile is what ran away on the iPhone.
-    for (const t of tiles) expect(styleOf(t)['flexGrow']).toBeUndefined();
-    for (const s of sizes) expect(s).toEqual(sizes[0]);
-    expect(styleOf(tiles[0]!)['height']).toBe(56);
-    // The last tile's row has 4 cells: G and the empty ones sharing the width.
-    const row = tiles[6]!.parent!;
-    let rowHost: ReactTestInstance | null = row;
-    while (rowHost !== null && !(typeof rowHost.type === 'string' && rowHost.children.length > 1)) rowHost = rowHost.parent;
-    expect(rowHost!.children).toHaveLength(4);
-    for (const cell of rowHost!.children as ReactTestInstance[]) {
-      const host = typeof cell.type === 'string' ? cell : cell.findAll((n) => typeof n.type === 'string')[0]!;
-      expect(styleOf(host)['flex']).toBe(1);
-      expect(styleOf(host)['flexGrow']).toBeUndefined();
-    }
-  });
-  it('9. rendered categories: one fixed tile height, a name on one line that shrinks to fit', () => {
-    let r!: ReactTestRenderer;
-    act(() => { r = create(createElement(CategoryStrip, { onGenre: () => undefined, onAll: () => undefined })); });
-    const shown = GENRES.filter((g) => r.root.findAll((n) => typeof n.type === 'string' && n.props['accessibilityLabel'] === g.name).length > 0);
-    expect(shown.length).toBeGreaterThan(1);
-    const heights = new Set<unknown>();
-    for (const g of shown) {
-      const name = r.root.findAll((n) => typeof n.type === 'string' && n.props['children'] === g.name)[0]!;
-      expect([g.name, name.props['numberOfLines'], name.props['adjustsFontSizeToFit'], name.props['minimumFontScale']]).toEqual([g.name, 1, true, 0.75]);
-      // The tile: the nearest host above the button with a fixed height.
-      let tile: ReactTestInstance | null = name.parent;
-      while (tile !== null && !(typeof tile.type === 'string' && styleOf(tile)['height'] !== undefined)) tile = tile.parent;
-      heights.add(styleOf(tile!)['height']);
-    }
-    expect(heights.size).toBe(1);
-    act(() => r.unmount());
-  });
-  // KEPT as a source check: where Discover mounts the shortcuts is app/(tabs)/index.tsx (42 imports).
-  it('8. Discover draws the shortcuts component', () => {
-    expect(read('app/(tabs)/index.tsx')).toMatch(/<DiscoverShortcuts onCategories=\{allCategories\} onPremium=\{toPremium\} \/>/);
-  });
-  // KEPT as source checks: 10–12 are layouts inside app/(tabs)/me.tsx (23 imports), app/episode/[id].tsx
-  // (52) and app/player.tsx (55), with no smaller component that carries them.
   it('10. Me: the ninth tile spans its row (no empty half beside Playlists)', () => {
     expect(read('app/(tabs)/me.tsx')).not.toMatch(/label="Playlists" \/><\/Link>\s*<Box className="flex-1" \/>/);
   });
@@ -313,36 +192,8 @@ describe('6–13. the layout pass ("I see it overlap, the elements run away the 
     expect(p).toMatch(/accessibilityLabel="About this episode" className=\{BAR_ITEM\}/);
     expect(p).not.toMatch(/<BarButton label="About this episode"/);
   });
-
-  /** The name's Text and the link around it: one line, and the link may shrink below its content. */
-  const nameFits = (r: ReactTestRenderer, name: string) => {
-    const text = r.root.findAll((n) => typeof n.type === 'string' && n.props['children'] === name)[0]!;
-    expect(text.props['numberOfLines']).toBe(1);
-    let link: ReactTestInstance | null = text.parent;
-    while (link !== null && !(typeof link.type === 'string' && link.props['accessibilityRole'] === 'link')) link = link.parent;
-    expect(link).not.toBeNull();
-    expect(styleOf(link!)['flexShrink']).toBe(1);
-    expect(styleOf(link!)['minWidth']).toBe(0);
-  };
-  const LONG = 'A listener with a very long display name that would run off the row';
-
-  it('13. long names in rows shrink to one line (rendered CommentRow)', () => {
-    const c: Comment = { id: 'c1', authorId: 'a1', displayName: LONG, body: 'hello', offsetMs: null, parentId: null, createdAt: '2026-10-07T00:00:00Z', deleted: false };
-    let r!: ReactTestRenderer;
-    act(() => {
-      r = create(createElement(CommentRow, {
-        c, serverTime: '2026-10-07T00:05:00Z', likeOf: () => ({ count: 0, liked: false }), iconColour: { muted: colour.muted, accent: colour.accent },
-        onSeek: () => undefined, onLike: () => undefined, onMenu: () => undefined,
-      }));
-    });
-    nameFits(r, LONG);
-    act(() => r.unmount());
-  });
-  it('13. long names in rows shrink to one line (rendered FeedItem)', () => {
-    const item: FeedRow = { id: 1, kind: 'listened', actor: { id: 'a1', displayName: LONG }, episode: { id: 'e1', title: 'Ep', showTitle: 'Show', imageUrl: null }, momentMs: null, refId: null, createdAt: '2026-10-07T00:00:00Z' };
-    let r!: ReactTestRenderer;
-    act(() => { r = create(createElement(FeedItem, { item, onOpen: () => undefined })); });
-    nameFits(r, LONG);
-    act(() => r.unmount());
+  it('13. long names in rows shrink to one line', () => {
+    expect(read('src/ui/comments/CommentRow.tsx')).toMatch(/className="flex-shrink min-w-0"><Text[^>]*numberOfLines=\{1\}>\{name\}/);
+    expect(read('src/ui/social/FeedItem.tsx')).toMatch(/numberOfLines=\{1\}>\{item\.actor\.displayName/);
   });
 });

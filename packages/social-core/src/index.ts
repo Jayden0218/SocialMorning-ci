@@ -45,10 +45,9 @@ export { WORD_MAX, WORDS_MAX, normaliseWord, normaliseText, findBlockedWord } fr
 export { EMPTY_STATES, SURFACES, LOADING_AFTER_MS, GIVE_UP_AFTER_MS, OFFLINE_SENTENCE, ERROR_SENTENCE, emptyState } from './empty';
 export type { Surface, EmptyAction, EmptySpec, EmptyView } from './empty';
 // M8 — For You (specs/008-m8-for-you/contracts/recsys-core.ts)
-export type { Channel, RecCandidate, Weights } from './rank';
+export type { Channel, RecCandidate } from './rank';
 export {
   W_AFFINITY, W_SOCIAL, W_FRESHNESS, W_QUALITY, W_FATIGUE,
-  WEIGHT_KEYS, DEFAULT_WEIGHTS, WEIGHT_BOUNDS, cleanWeights, RULE_BOOST, RULE_BURY,
   NEW_BOOST, NEW_WINDOW_MS, FRESHNESS_TAU_DAYS, UNDATED_AGE_DAYS, FATIGUE_LIMIT,
   GENRE_AFFINITY, CHANNELS, CHANNEL_CAP, SOCIAL_SATURATION, QUALITY_SATURATION,
   scoreCandidate, isFatigued, ageDays,
@@ -73,8 +72,3 @@ export { LIKE_WINDOW_MS, isLikeKind, shouldPush, type PushKind, type PushPrefs, 
 export { WHISPER, TRANSLATOR, GROQ_LIMITS, BUDGET_SHARE, CHUNK_MAX_TOKENS, PROMPT_TOKENS, budgetOf, canSpend, fitsEver, estimateTokens, chunkLines, translationCost, type GroqModel, type GroqLimits, type GroqUsage, type GroqNeed } from './translate-budget';
 // M23 T043 — the limits the server checks and the Studio shows
 export { BAN_REASON_MAX, HOST_PICKS_MAX, MAX_AUDIO_BYTES, MAX_IMAGE_BYTES, MAX_LAUNCH_IMAGE_BYTES, SYNCED_QUEUE_MAX } from './limits';
-// M25 lane AC — app settings an admin may change (A7) and the Markdown subset of content pages (A8)
-export { CONFIG_KEYS, CONFIG_DEFAULTS, SHORTCUT_IDS, SHORTCUT_LABELS, DEFAULT_GENRE_ORDER, DISCOVER_SECTION_TITLES, LIST_SIZES, LABEL_MAX, GENRE_NAME_MAX, TITLE_MAX, HINT_MAX, HINTS_MAX, URL_MAX, DELAY_MAX_MS, REASK_MAX_DAYS, checkConfig, readConfig, isConfigKey, orderedVisible, type ConfigKey, type ShortcutId, type SectionTitleKey, type ListSizeKey, type Shortcut, type GenreSetting, type RatePrompt, type AppConfig, type Checked } from './app-config';
-export { SAFE_LINK, parseInline, parseMarkdown, plainText, sectionsOf, type MdInline, type MdBlock, type MdSection } from './markdown';
-// M25 lane SB — personal metadata (EXIF GPS, XMP, IPTC, text) out of uploaded pictures
-export { imageFormat, imageMetadata, orientationSegment, readExif, stripImageMetadata, type ImageFormat } from './image-meta';

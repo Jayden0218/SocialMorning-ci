@@ -76,6 +76,16 @@ jobs:
             echo "dex hits for $s: $n"; test "$n" -gt 0
           done
         working-directory: apps/mobile/android
+      # M25 G5: the release build is safe to hand out — no test address, the production API in the
+      # embedded config, no dev client, the JS bundle within its size budget (scripts/release-build-check.sh).
+      - name: release-build checks (M25 G5)
+        run: |
+          APK=apps/mobile/android/app/build/outputs/apk/release/app-release.apk
+          unzip -l "$APK" | grep -E "assets/(index\.android\.bundle|app\.config)" || true
+          mkdir -p "$RUNNER_TEMP/rb"
+          unzip -p "$APK" assets/index.android.bundle > "$RUNNER_TEMP/rb/index.android.bundle"
+          unzip -p "$APK" assets/app.config > "$RUNNER_TEMP/rb/app.config"
+          set -o pipefail; sh scripts/release-build-check.sh "$RUNNER_TEMP/rb/index.android.bundle" "$RUNNER_TEMP/rb/app.config" | tee -a "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         with:
           name: socialnet-release-apk

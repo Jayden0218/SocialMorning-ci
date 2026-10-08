@@ -1,0 +1,35 @@
+# M25 G6 flow 2 — find the seeded show, subscribe, play episode 1 to 0:15–0:29, pause.
+# Pause before 0:30: inside the last 30 s of this 60 s episode it counts as Finished
+# (src/playback/finished.ts) and the next Play starts over.
+# On CI each Maestro step reads the whole screen, which took 2–25 s (iOS run 37758119676 waited
+# 26 s just to see "Pause" and stopped at 0:40). So: play, pause at once, read the STILL clock,
+# and repeat in short steps until it reads 0:15 or later.
+# The clock: Android exposes the mini player's "0:19/1:00" text; on iOS it sits inside the mini
+# player's accessible label, so the episode row's label ("… 0:19 / 1:00") is what matches there.
+appId: app.socialmorning.mobile
+---
+- launchApp
+- runFlow: common/settle.yaml
+- runFlow: common/open-show.yaml
+# Subscribe (a retry finds it done). One iOS tap did not take (run 37769246598): tap again.
+- repeat:
+    while:
+      notVisible: "Unsubscribe from this show"
+    times: 3
+    commands:
+      - tapOn: "Subscribe to this show"
+- extendedWaitUntil:
+    visible: "Unsubscribe from this show"
+    timeout: 15000
+- takeScreenshot: 02a-subscribed
+- repeat:
+    while:
+      notVisible:
+        text: ".*0:(1[5-9]|2[0-9]) ?/ ?1:00.*"
+    times: 10
+    commands:
+      - tapOn: "Play Episode 1: A minute of tone"
+      - tapOn: "Pause Episode 1: A minute of tone"
+- assertVisible:                        # paused at 0:15–0:29
+    text: ".*0:(1[5-9]|2[0-9]) ?/ ?1:00.*"
+- takeScreenshot: 02b-paused-at-0-2x

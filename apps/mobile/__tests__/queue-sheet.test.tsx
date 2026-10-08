@@ -3,14 +3,11 @@
  * M21 US3 (FR-020/021/022), quickstart B7's Independent Test in Jest: queue 5 episodes; the sheet
  * shows the playing episode first and marked; Edit → select 2 → Remove: 3 are left; Clear all
  * (after our own confirm): only the playing episode remains. Also the shared Sheet's settle rule,
- * the player's swipe-up rule, the long-press "Added to the front", and that the mini player's ≡
- * opens the one root sheet (rendered: QueueSheetHost around the real MiniPlayer). Where the host
- * is mounted in app/_layout.tsx is rendered in overlay-inside-providers.test.ts.
+ * the player's swipe-up rule, the long-press "Added to the front", and where the sheet is mounted.
  *
  * The break that turns it red: drop `current` from `clearQueue(ids, current)` in
  * src/ui/queue/QueueSheet.tsx (Clear all then empties the playing episode out of the queue), or
- * put the `<Link href="/queue">` back around the mini player's ≡ (its Playlist button then has no
- * press of its own and the sheet never opens).
+ * put the `<Link href="/queue">` back around the mini player's ≡.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -26,15 +23,9 @@ let mockAsked: { title: string; action?: string; onConfirm?: () => void } | unde
 
 const TITLES: Record<string, string> = { cur: 'The One Playing', e1: 'Ep One', e2: 'Ep Two', e3: 'Ep Three', e4: 'Ep Four', e5: 'Ep Five' };
 
-jest.mock('expo-router', () => ({
-  router: { push: (...a: unknown[]) => mockPush(...a) },
-  // For the mini player: `asChild` hands the press to the child; rendered, the child IS the output.
-  Link: ({ children }: { children: React.ReactNode }) => children,
-  usePathname: () => '/episode/e1',
-  useIsFocused: () => true,
-}));
+jest.mock('expo-router', () => ({ router: { push: (...a: unknown[]) => mockPush(...a) } }));
 jest.mock('@/playback/store', () => ({
-  usePlayer: () => ({ load: mockLoad, play: jest.fn(), pause: jest.fn(), sleepRemainingMs: () => undefined, sleepTimer: () => ({ endOfEpisode: false }) }),
+  usePlayer: () => ({ load: mockLoad }),
   usePlayerState: () => ({ kind: 'playing', episodeId: 'cur', positionMs: 0, lastSavedMs: 0 }),
 }));
 jest.mock('@/storage/playable', () => ({ toPlayable: (_s: unknown, id: string) => ({ episodeId: id }) }));
@@ -60,8 +51,7 @@ jest.mock('@/ui/shell/providers', () => ({
 
 import { QueueSheet } from '@/ui/queue/QueueSheet';
 import { QueueButtons } from '@/ui/queue/QueueButtons';
-import { isSwipeUp, startsSwipeUp, QueueSheetHost } from '@/ui/queue/QueueSheetHost';
-import { MiniPlayer } from '@/ui/player/MiniPlayer';
+import { isSwipeUp, startsSwipeUp } from '@/ui/queue/QueueSheetHost';
 import { CLOSE_SLACK, dragHeight, settle } from '@/ui/kit/Sheet';
 
 // M23 T053: the sheet's open spring kept firing after the file ended ("accessed the Jest
@@ -188,21 +178,16 @@ it('a long-press on Add to queue adds to the front: "Added to the front"', () =>
   expect(mockToast).toHaveBeenLastCalledWith('Added to the queue');
 });
 
-it('one sheet for the app: the mini player\'s ≡ (Playlist) opens the root\'s sheet, not the /queue page', () => {
-  const r = render(createElement(QueueSheetHost, null, createElement(MiniPlayer, { pathname: '/episode/e1' })));
-  expect(labels(r)).not.toContain('Play Ep One'); // closed: the sheet draws nothing
-  press(r, 'Playlist');
-  expect(labels(r)).toContain('Now playing: The One Playing');
-  expect(labels(r)).toContain('Play Ep One');
-  expect(mockPush).not.toHaveBeenCalled();
-});
-
-/**
- * Kept as a source check: the player's half lives only in app/player.tsx, a page of ~55 imports
- * (poll, live count, discover, transcripts, audio rows…) that would need every one mocked.
- */
-it('the player opens the root sheet (no QueueSheet of its own) and spreads the swipe-up handlers', () => {
-  const player = readFileSync(join(__dirname, '..', 'app/player.tsx'), 'utf8');
+it('one sheet for the app: mounted at the root inside the providers; the mini player and the player open it', () => {
+  const root = (f: string) => readFileSync(join(__dirname, '..', f), 'utf8');
+  const layout = root('app/_layout.tsx');
+  const body = layout.slice(layout.indexOf('export default function RootLayout'));
+  expect(body.indexOf('<QueueSheetHost>')).toBeGreaterThan(body.indexOf('<AppProviders>'));
+  expect(body.indexOf('<QueueSheetHost>')).toBeLessThan(body.indexOf('<RootStack />'));
+  const mini = root('src/ui/player/MiniPlayer.tsx');
+  expect(mini).not.toMatch(/href="\/queue"/);
+  expect(mini).toMatch(/queueSheet\.open\(\)/);
+  const player = root('app/player.tsx');
   expect(player).not.toMatch(/<QueueSheet\b/);
   expect(player).toMatch(/\{\.\.\.swipeUp\}/);
 });

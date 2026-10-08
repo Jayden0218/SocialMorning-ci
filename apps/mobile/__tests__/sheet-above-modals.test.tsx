@@ -23,12 +23,6 @@ jest.mock('react-native-reanimated', () => {
   return { __esModule: true, default: { createAnimatedComponent }, createAnimatedComponent, Easing: { linear: (t: number) => t }, FadeIn: chain, FadeOut: chain, ZoomIn: chain };
 });
 
-// The gluestack sheets animate with @legendapp/motion, which starts each animation from a
-// requestAnimationFrame (a setTimeout under jest). With real timers those fired after the file
-// had finished: "Jest environment has been torn down … reading 'timing'" (gate 37714062341).
-// Fake timers keep them inside the test; nothing here depends on an animation finishing.
-jest.useFakeTimers();
-afterAll(() => { jest.clearAllTimers(); });
 import { createElement } from 'react';
 import { Platform, Text } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';

@@ -62,19 +62,11 @@ missing here or a line does not match its file.
 |---|---|
 | `Accounts.tsx` | Admin page to create accounts, act as them, and name show curators. |
 | `Activity.tsx` | Admin page showing every admin change, newest first, read only. |
-| `AppSettings.tsx` | Admin page for the phone's app settings: Discover tiles, categories, section titles, list sizes, rate prompt, search hints. |
-| `Content.tsx` | Admin page to write the phone's Creator academy articles and Help questions, with a preview. |
-| `Markdown.tsx` | Draws the content pages' Markdown subset as React text — never as HTML — for the Content preview. |
-| `AdminLayout.tsx` | The Admin section's frame: its side menu, banner, sign-in-again rule and the emailed second step. |
-| `SecondFactor.tsx` | The Admin second step: a code emailed to the owner, with "remember this browser for 30 days". |
+| `AdminLayout.tsx` | The Admin section's frame: its side menu, banner and sign-in-again rule. |
 | `common.tsx` | Shared Admin helpers: error text, an episode search box, and reorder buttons. |
 | `Curated.tsx` | Admin page to create, edit, order and retire curated episode collections. |
 | `Dashboard.tsx` | Admin dashboard with app-wide numbers and charts over a chosen date range. |
-| `Discover.tsx` | Admin page controlling which Discover sections the app draws, and in which order. |
-| `Lists.tsx` | Admin page for every list's pins and hides, the category page's default chip, and hiding a show or episode everywhere. |
-| `hide.tsx` | Admin parts for hiding a show or an episode from listeners everywhere (no report needed), with a reason. |
-| `ForYou.tsx` | Admin page for For You: boost, bury or never recommend a show; the ranking weights; the numbers per channel. |
-| `Inbox.tsx` | Admin page for what listeners send in: feedback (with its pictures) and "Can't find it? Tell us" searches. |
+| `Discover.tsx` | Admin page controlling the app's Discover sections, pins, hides and featured shows. |
 | `Launch.tsx` | Admin page to manage promotion images shown on the app's launch screen. |
 | `PhonePreview.tsx` | Shows a day's picks the way the phone app will draw them. |
 | `Picks.tsx` | Admin page with a calendar to choose and order each day's episode picks. |

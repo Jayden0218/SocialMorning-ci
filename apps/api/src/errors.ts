@@ -18,9 +18,7 @@ export type ErrorCode = 'validation' | 'unauthenticated' | 'forbidden' | 'not_fo
   // M24 US8: the host closed comments on this show or episode
   | 'comments_closed'
   // M24 lane A1: a blocked word; the server is under maintenance
-  | 'blocked_word' | 'maintenance'
-  // M25 lane SB: Admin needs the emailed second-factor code on this session first
-  | 'second_factor';
+  | 'blocked_word' | 'maintenance';
 
 const STATUS: Record<ErrorCode, number> = {
   validation: 422,
@@ -62,7 +60,6 @@ const STATUS: Record<ErrorCode, number> = {
   comments_closed: 403,
   blocked_word: 422,
   maintenance: 503,
-  second_factor: 403,
 };
 
 export class ApiError extends Error {

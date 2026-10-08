@@ -148,8 +148,7 @@ test('G-M24-FS-2: a new sign-in email signs out every other session; this one st
   assert.equal((await t.call('GET', '/v1/me', undefined, otherToken)).status, 200);
 
   assert.equal((await t.call('POST', '/v1/me/email/start', { email: 'new@example.com' }, a.token)).status, 200);
-  // M25 S5: the current address's code is needed too.
-  const ok = await t.call('POST', '/v1/me/email/confirm', { code: t.lastCode!('new@example.com'), oldCode: t.lastCode!('a@example.com') }, a.token);
+  const ok = await t.call('POST', '/v1/me/email/confirm', { code: t.lastCode!('new@example.com') }, a.token);
   assert.equal(ok.status, 200, await ok.clone().text());
   assert.deepEqual(await ok.json(), { email: 'new@example.com', signedOut: 2 });
 
