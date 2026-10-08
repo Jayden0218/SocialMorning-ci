@@ -14,6 +14,7 @@ import { createApp } from '../src/app.ts';
 import { fakeApple, fakeFeedFetch, FIXTURE_FEED } from './fake-apple.ts';
 import { migratedPg, TEST_PEPPER, signUp, type TestDb } from './harness.ts';
 import { fnv1a64 } from '@socialmorning/social-core';
+import { putEpisode } from './put-episode.ts';
 
 const FX = 'https://feeds.example.com/fx.xml';
 const JOB = 'job-token-not-secret';
@@ -77,7 +78,8 @@ test('A13: the catalogue being down is one channel failing, not a failed request
   // The id is not free-form: the route checks it against fnv1a64(feedUrl \u0001 guid).
   const own = 'https://feeds.example.com/own.xml';
   const ownId = fnv1a64(`${own}\u0001g1`);
-  const reg = await t.call('PUT', `/v1/episodes/${ownId}`, { feedUrl: own, guid: 'g1', title: 'Mine', enclosureUrl: 'https://cdn/1.mp3' }, a.token);
+  // M25 S8: a listener's PUT can no longer create an episode its feed does not list (the feed is down here).
+  const reg = await putEpisode(t, ownId, { feedUrl: own, guid: 'g1', title: 'Mine', enclosureUrl: 'https://cdn/1.mp3' });
   assert.equal(reg.status, 200);
   await t.call('PUT', '/v1/me/subscriptions', { items: [{ feedUrl: own, createdAt: '2026-09-20T10:00:00.000Z' }] }, a.token);
 
@@ -179,7 +181,7 @@ test('fatigue counts occasions, not renders: three impressions in one day is one
   const a = await signUp(t);
   const own = 'https://feeds.example.com/own.xml';
   const ownId = fnv1a64(`${own}\u0001g1`);
-  await t.call('PUT', `/v1/episodes/${ownId}`, { feedUrl: own, guid: 'g1', title: 'Mine', enclosureUrl: 'https://cdn/1.mp3' }, a.token);
+  await putEpisode(t, ownId, { feedUrl: own, guid: 'g1', title: 'Mine', enclosureUrl: 'https://cdn/1.mp3' });
   await t.call('PUT', '/v1/me/subscriptions', { items: [{ feedUrl: own, createdAt: '2026-09-20T10:00:00.000Z' }] }, a.token);
 
   const seen = async () => {

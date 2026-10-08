@@ -1,31 +1,34 @@
-// Tests sign-up, sign-in, sign-out, validation errors and account lockout.
+// Tests sign-in, sign-out, validation errors and account lockout; sign-up by password is gone (M25 S3).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { freshDb, signUp } from './harness.ts';
+import { freshDb, signUp, signUpWithCode } from './harness.ts';
 
-test('sign-up → me → sign-out; duplicate email is 409 with the exact message', async () => {
+test('G-M25-S3: POST /v1/auth/sign-up is gone (404) and makes no account; a code makes one → me → sign-out', async () => {
   const t = await freshDb();
-  const { token } = await signUp(t);
-  const me = await t.call('GET', '/v1/me', undefined, token);
+  const gone = await t.call('POST', '/v1/auth/sign-up', { email: 'victim@example.com', password: 'attacker pass 1', displayName: 'Victim' });
+  assert.equal(gone.status, 404);
+  assert.deepEqual(await gone.json(), { error: 'not_found', message: 'No such route.' });
+  assert.equal((await t.q('SELECT 1 FROM listeners WHERE email = $1', ['victim@example.com'])).length, 0, 'no account was made');
+  // The password the "attacker" chose signs nobody in.
+  assert.equal((await t.call('POST', '/v1/auth/sign-in', { email: 'victim@example.com', password: 'attacker pass 1' })).status, 401);
+
+  const made = await signUpWithCode(t, 'A@Example.com', 'Alex');
+  assert.equal(made.status, 200);
+  const me = await t.call('GET', '/v1/me', undefined, made.token);
   assert.equal(me.status, 200);
   assert.equal(((await me.json()) as { listener: { displayName: string } }).listener.displayName, 'Alex');
-
-  const dup = await t.call('POST', '/v1/auth/sign-up', { email: 'A@Example.com', password: 'whatever12', displayName: 'B' });
-  assert.equal(dup.status, 409);
-  assert.deepEqual(await dup.json(), { error: 'conflict', message: 'An account with this email exists — sign in instead.' });
-
-  assert.equal((await t.call('POST', '/v1/auth/sign-out', undefined, token)).status, 200);
-  assert.equal((await t.call('GET', '/v1/me', undefined, token)).status, 401);
+  assert.equal((await t.call('POST', '/v1/auth/sign-out', undefined, made.token)).status, 200);
+  assert.equal((await t.call('GET', '/v1/me', undefined, made.token)).status, 401);
   await t.close();
 });
 
 test('validation failures are 422 with field names', async () => {
   const t = await freshDb();
-  const res = await t.call('POST', '/v1/auth/sign-up', { email: 'nope', password: 'short', displayName: '' });
+  const res = await t.call('POST', '/v1/auth/code/verify', { email: 'nope', code: '12', displayName: '' });
   assert.equal(res.status, 422);
   const body = (await res.json()) as { error: string; fields: string[] };
   assert.equal(body.error, 'validation');
-  assert.deepEqual(body.fields.sort(), ['displayName', 'email', 'password']);
+  assert.deepEqual(body.fields.sort(), ['code', 'displayName', 'email']);
   await t.close();
 });
 

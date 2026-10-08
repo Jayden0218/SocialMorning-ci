@@ -102,10 +102,12 @@ export function createInternalRoute(jobToken: string | undefined, m22: { groq?: 
     const { step, cursor, force } = c.req.valid('json');
 
     if (step === 'feeds') {
+      // M25 S10 (audit #14): the cursor is a plain count of feeds already done, never a feed URL —
+      // the public CI mirror prints this answer, and a premium feed's URL can carry a private token.
+      const offset = cursor !== undefined && /^\d{1,9}$/.test(cursor) ? Number(cursor) : 0;
       const rows = await db.query<{ feed_url: string }>(
         `SELECT DISTINCT feed_url FROM subscriptions WHERE deleted_at IS NULL
-           AND ($1::text IS NULL OR feed_url > $1::text)
-         ORDER BY feed_url LIMIT ${FEEDS_PER_CALL + 1}`, [cursor ?? null]);
+         ORDER BY feed_url LIMIT ${FEEDS_PER_CALL + 1} OFFSET $1`, [offset]);
       const batch = rows.slice(0, FEEDS_PER_CALL);
       const counts = { registered: 0, pushed: 0, moved: 0, blocked: 0 };
       const failed: string[] = [];
@@ -124,10 +126,9 @@ export function createInternalRoute(jobToken: string | undefined, m22: { groq?: 
         }
       }
       if (failed.length > 0) console.warn(`[rebuild feeds] ${failed.join(' | ')}`);
-      const last = batch[batch.length - 1];
       const done = rows.length <= FEEDS_PER_CALL;
       return c.json({
-        done, ...(done || last === undefined ? {} : { next: last.feed_url }),
+        done, ...(done ? {} : { next: String(offset + batch.length) }),
         counts: { feeds: batch.length, ...counts, failed: failed.length }, ms: Date.now() - started,
       });
     }

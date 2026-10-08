@@ -41,10 +41,7 @@ import { Box } from "@/ui/lib/box";
 import { colour, hit } from "@/design";
 import { GENRES } from "@/discover/genres";
 import { buildModel, sectionOrder, type SectionId } from "@/discover/sections";
-import { HINT_EVERY_MS, hintAt } from "@/discover/trending";
-// M25 A7: the admin's search hints when set, else the same chart names as before.
-import { trendingHints } from "@/config/hints";
-import { DiscoverShortcuts } from "@/ui/discover/DiscoverShortcuts";
+import { HINT_EVERY_MS, hintAt, trendingHints } from "@/discover/trending";
 import { Loader } from "@/ui/kit/Loader";
 import { usePullRefresh } from "@/ui/kit/PullRefresh";
 import { useDiscover } from "@/discover/useDiscover";
@@ -384,8 +381,56 @@ export default function DiscoverScreen(): React.ReactElement {
             onPress={(fromY) => openSearch(fromY)}
             onScan={() => router.push("/scan")}
           />
-          {/* M25 A7: the tiles are their own component now, so the admin can order, rename and hide them. */}
-          <DiscoverShortcuts onCategories={allCategories} onPremium={toPremium} />
+          <Shortcuts
+            items={[
+              {
+                label: "Categories",
+                icon: "grid-outline",
+                onPress: allCategories,
+              },
+              // Owner, 2026-10-04: no Inbox tile — it showed what Updates shows.
+              // Owner, 2026-10-05: no Downloads tile — Downloads stays in Settings.
+              {
+                label: "Queue",
+                icon: "list-outline",
+                onPress: () => router.push("/queue"),
+              },
+              // M12 FR-101, FR-102
+              {
+                label: "Issues",
+                icon: "newspaper-outline",
+                onPress: () => router.push("/issues"),
+              },
+              {
+                label: "Friends listening",
+                icon: "people-outline",
+                onPress: () => router.push("/friends-listening"),
+              },
+              // M21 T082 (FR-061): Academy, Premium (the "Premium picks" section) and the Plaza.
+              {
+                label: "Academy",
+                icon: "school-outline",
+                onPress: () => router.push("/academy"),
+              },
+              {
+                label: "Premium",
+                icon: "diamond-outline",
+                onPress: toPremium,
+              },
+              {
+                label: "Plaza",
+                icon: "apps-outline",
+                onPress: () => router.push("/plaza"),
+              },
+              // Owner's iPhone, 2026-10-07: "Plaza" sat alone on its row. An eighth tile — the
+              // existing "Talked about" chart — makes two even rows of four.
+              {
+                label: "Talked about",
+                icon: "trending-up-outline",
+                onPress: () => router.push("/chart"),
+              },
+            ]}
+          />
 
           {view?.stale ? (
             <Text className="text-accent bg-surface border border-border mx-screen-x mt-row p-row rounded-row text-body">

@@ -30,7 +30,6 @@ import { useColours } from '@/ui/kit/useColours';
 import { Icon, type IconName } from '@/ui/kit/Icon';
 import { Eyebrow } from '@/ui/kit/Eyebrow';
 import { GENRES } from '@/discover/genres';
-import { listSize } from '@/config/store'; // M25 A7: how many category tiles Discover shows (default 8)
 import { warmCategories } from '@/discover/category-cache';
 import { useSocial } from '@/social/context';
 import { ago, pages, type ChartTab } from '@/discover/sections';
@@ -288,14 +287,14 @@ export function CategoryStrip(props: { onGenre: (id: number) => void; onAll: () 
   // Owner, 2026-10-04: the 8 genres' lists (and first covers) load in the background once
   // Discover has drawn, so a tapped category opens full (src/discover/category-cache.ts).
   useEffect(() => {
-    const t = setTimeout(() => warmCategories({ api, cache: stores.feedCache, now: () => Date.now() }, GENRES.slice(0, listSize('discoverCategories')).map((g) => g.id)), WARM_AFTER_MS);
+    const t = setTimeout(() => warmCategories({ api, cache: stores.feedCache, now: () => Date.now() }, GENRES.slice(0, 8).map((g) => g.id)), WARM_AFTER_MS);
     return () => clearTimeout(t);
   }, [api, stores]);
   return (
     <Box className="mt-row">
       <SectionTitle title="Explore by category" action={{ label: 'All', onPress: props.onAll }} />
       <Box className="gap-gap px-screen-x">
-        {gridRows(visibleGenres(GENRES, props.hidden ?? [], listSize('discoverCategories')), CATEGORY_COLS).map((row, r) => (
+        {gridRows(visibleGenres(GENRES, props.hidden ?? [], 8), CATEGORY_COLS).map((row, r) => (
           <Box key={r} className="flex-row gap-gap">
             {row.map((g, i) => g === null ? <Box key={`empty-${i}`} style={CELL} /> : (
               <Box key={g.id} className="flex-row items-center bg-surface border border-border rounded-row overflow-hidden" style={CATEGORY_TILE}>

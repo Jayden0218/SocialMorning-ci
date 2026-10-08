@@ -1,7 +1,8 @@
-// Account and security › Change email: a code goes to the new address; the right code switches the sign-in email.
+// Account and security › Change email: a code to the new address and one to the current; both right switch the sign-in email.
 /**
  * M24 US16 (spec 025, lane A3). Two steps, like deleting the account: 1 type the new address and
- * get a code there, 2 type the 6-digit code. The server refuses an address another account uses,
+ * get a code there, 2 type the 6-digit code. M25 S5: a second code goes to the CURRENT address at
+ * the same time, and both are needed — a stolen session alone cannot move the account. The server refuses an address another account uses,
  * allows 5 tries and 10 minutes, and emails the OLD address once the change is made. The phone
  * then keeps the new address in its sign-in row, so Account shows it at once.
  */
@@ -30,6 +31,7 @@ export default function ChangeEmailScreen(): React.ReactElement {
   const api = useAccountApi();
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
+  const [oldCode, setOldCode] = useState('');
   const [sentTo, setSentTo] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
@@ -43,6 +45,7 @@ export default function ChangeEmailScreen(): React.ReactElement {
       await api.startEmailChange(email);
       setSentTo(email.trim().toLowerCase());
       setCode('');
+      setOldCode('');
     } catch (e) { fail(e); } finally { setBusy(false); }
   }
 
@@ -50,7 +53,7 @@ export default function ChangeEmailScreen(): React.ReactElement {
     setBusy(true);
     setError(undefined);
     try {
-      const now = await api.confirmEmailChange(code);
+      const now = await api.confirmEmailChange(code, oldCode);
       if (listener) stores.auth.set({ listenerId: listener.listenerId, displayName: listener.displayName, email: now.email }, Date.now());
       refreshListener();
       // M24 fix F-P: the server signs out the other devices and says how many.
@@ -59,7 +62,7 @@ export default function ChangeEmailScreen(): React.ReactElement {
     } catch (e) { fail(e); } finally { setBusy(false); }
   }
 
-  const ready = sentTo ? code.trim().length === 6 : isEmail(email);
+  const ready = sentTo ? code.trim().length === 6 && oldCode.trim().length === 6 : isEmail(email);
   return (
     <>
     <PageHeader title="Change email" />
@@ -82,17 +85,27 @@ export default function ChangeEmailScreen(): React.ReactElement {
           <Input className="bg-surface border border-border rounded-row h-auto px-0">
             <InputField
               placeholderTextColor={c.muted} placeholder="The 6-digit code" keyboardType="number-pad" maxLength={6}
-              value={code} onChangeText={(v) => { setCode(v); setError(undefined); }} accessibilityLabel="Code" className="p-row text-base text-text" />
+              value={code} onChangeText={(v) => { setCode(v); setError(undefined); }} accessibilityLabel="Code from your new email" className="p-row text-base text-text" />
           </Input>
-          <Text className="text-muted text-xs">It works for 10 minutes. We tell your old address once it is changed.</Text>
+        </Box>
+      ) : null}
+      {sentTo ? (
+        <Box className="gap-1">
+          <Text className="text-muted text-xs">{`Code sent to ${listener?.email ?? 'your current email'}`}</Text>
+          <Input className="bg-surface border border-border rounded-row h-auto px-0">
+            <InputField
+              placeholderTextColor={c.muted} placeholder="The 6-digit code" keyboardType="number-pad" maxLength={6}
+              value={oldCode} onChangeText={(v) => { setOldCode(v); setError(undefined); }} accessibilityLabel="Code from your current email" className="p-row text-base text-text" />
+          </Input>
+          <Text className="text-muted text-xs">Both codes work for 10 minutes. We tell your old address once it is changed.</Text>
         </Box>
       ) : (
-        <Text className="text-muted text-body">We email a code to the new address. You keep signing in with the old one until you enter it.</Text>
+        <Text className="text-muted text-body">We email a code to the new address and one to your current address. You keep signing in with the current one until you enter both.</Text>
       )}
       {error ? <Text className="text-accent text-body" accessibilityLiveRegion="polite">{error}</Text> : null}
     </ScrollView>
     <BottomBar tone="page" className="flex-row gap-row">
-      {sentTo ? <Button kind="secondary" label="Use another email" onPress={() => { setSentTo(undefined); setCode(''); setError(undefined); }} className="flex-1" /> : null}
+      {sentTo ? <Button kind="secondary" label="Use another email" onPress={() => { setSentTo(undefined); setCode(''); setOldCode(''); setError(undefined); }} className="flex-1" /> : null}
       <Button
         label={sentTo ? 'Change email' : 'Email me a code'}
         onPress={() => void (sentTo ? confirm() : send())}

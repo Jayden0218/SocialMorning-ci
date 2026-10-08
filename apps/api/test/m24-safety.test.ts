@@ -98,7 +98,8 @@ test('G-M24-A2: a blocked word is refused with 422 blocked_word on comments, sta
     ['POST', '/v1/me/playlists', { title: 'badword mix' }, a.token],
     ['PATCH', '/v1/me', { displayName: 'Mr Badword' }, a.token],
     ['PATCH', '/v1/me', { bio: 'I say badword' }, a.token],
-    ['POST', '/v1/auth/sign-up', { email: 'n@example.com', password: 'correct horse', displayName: 'badword' }, undefined],
+    // M25 S3: sign-up is gone; a new account is named at /code/verify (checked before the code is).
+    ['POST', '/v1/auth/code/verify', { email: 'n@example.com', code: '123456', displayName: 'badword' }, undefined],
   ];
   for (const [method, path, body, token] of refused) {
     const res = await t.call(method, path, body, token);
@@ -166,14 +167,14 @@ test('M24 US4: maintenance on → every API call but health/admin/sign-in answer
   assert.equal(me.status, 503);
   assert.deepEqual(await me.json(), { error: 'maintenance', message: 'Back soon.', maintenance: { until, message: 'Back soon.' } });
   assert.equal((await t.call('GET', '/v1/search?q=x')).status, 503);
-  assert.deepEqual(await json(t.call('GET', '/v1/health')), { ok: true, maintenance: { until, message: 'Back soon.' } });
+  assert.deepEqual(await json(t.call('GET', '/v1/health')), { ok: true, db: 'ok', maintenance: { until, message: 'Back soon.' } });
   assert.equal((await aCall(t, 'GET', '/v1/admin/maintenance', owner)).status, 200, 'Admin still works');
   assert.equal((await t.call('POST', '/v1/auth/sign-in', { email: 'u@example.com', password: 'correct horse' })).status, 200, 'signing in still works');
   assert.notEqual((await t.call('GET', '/l/abcdefghij')).status, 503, 'pages are not the API');
 
   assert.equal((await aCall(t, 'PUT', '/v1/admin/maintenance', owner, { on: false })).status, 200);
   assert.equal((await t.call('GET', '/v1/me', undefined, u.token)).status, 200);
-  assert.deepEqual(await json(t.call('GET', '/v1/health')), { ok: true });
+  assert.deepEqual(await json(t.call('GET', '/v1/health')), { ok: true, db: 'ok' });
   assert.deepEqual((await t.q<{ action: string }>("SELECT action FROM admin_audit WHERE area = 'safety' ORDER BY id")).map((x) => x.action), ['maintenance on', 'maintenance off']);
   await t.close();
 });

@@ -1,4 +1,4 @@
-// Handles sign-up, sign-in and sign-out, and stores the account.
+// Handles sign-in (by code or password) and sign-out, and stores the account.
 /**
  * Accounts on the phone (FR-001..004). The token goes to secure storage, the
  * listener row to SQLite's `auth` table; both are cleared together on sign-out.
@@ -27,7 +27,6 @@ export type AuthDeps = {
 
 export type AuthApi = {
   current(): AuthRow | undefined;
-  signUp(email: string, password: string, displayName: string): Promise<AuthRow>;
   signIn(email: string, password: string): Promise<AuthRow>;
   signOut(): Promise<void>;
   deleteAccount(password: string): Promise<void>;
@@ -53,7 +52,6 @@ export function createAuth(deps: AuthDeps): AuthApi {
 
   return {
     current: () => deps.stores.auth.get(),
-    signUp: async (email, password, displayName) => accept(await deps.api.signUp(email, password, displayName)),
     signIn: async (email, password) => accept(await deps.api.signIn(email, password)),
     async signOut() {
       // Tell the server first, but a dead network must not trap a listener in a session.

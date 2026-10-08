@@ -17,7 +17,7 @@ import { Pressable } from '@/ui/lib/pressable';
 import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
 import { hit, spacing } from '@/design';
-import { useAcademy } from '@/config/content';
+import { ARTICLES } from '@/settings/academy';
 import { PageHeader } from '@/ui/kit/PageHeader';
 import { Segmented } from '@/ui/kit/Segmented';
 
@@ -25,7 +25,8 @@ type Tab = 'all' | 'start' | 'grow' | 'community';
 const TABS: readonly { value: Tab; label: string }[] = [
   { value: 'all', label: 'All' }, { value: 'start', label: 'Get started' }, { value: 'grow', label: 'Grow' }, { value: 'community', label: 'Community' },
 ];
-// M25 A8: each article names its tab (`tag`, set in Admin › Content); one with none shows under All only.
+/** Which tab each article sits under; one not listed shows under All only. */
+const TAB_OF: Record<string, Tab> = { 'claim-your-show': 'start', 'the-studio': 'start', 'read-your-numbers': 'grow', clips: 'grow', 'reply-to-comments': 'community' };
 
 const CAPS = { letterSpacing: 1.3, textTransform: 'uppercase' as const };
 const GHOST = { fontSize: 112, lineHeight: 112, right: -6, top: -10 };
@@ -35,9 +36,7 @@ export default function Academy(): React.ReactElement {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const [tab, setTab] = useState<Tab>('all');
-  // M25 A8: the server's articles (Admin › Content), the bundled copy when it cannot be reached.
-  const articles = useAcademy();
-  const shown = articles.filter((a) => tab === 'all' || a.tab === tab);
+  const shown = ARTICLES.filter((a) => tab === 'all' || TAB_OF[a.slug] === tab);
   const half = { minHeight: hit.min, width: Math.floor((width - spacing.screenX * 2 - spacing.row) / 2) };
   return (
     <>

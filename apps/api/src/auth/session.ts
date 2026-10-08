@@ -80,7 +80,9 @@ export type AuthEnv = { Variables: { db: Db; pepper: string; listener?: Listener
   /** M20 US6: Google Play (purchases); `ready` false until GOOGLE_PLAY_SA_JSON + GOOGLE_PLAY_PACKAGE are set. */
   play: import('../billing/google-play.ts').GooglePlay;
   /** M12 FR-034: the fetch the share card uses for artwork (tests inject a fake). */
-  imageFetch: typeof fetch } };
+  imageFetch: typeof fetch;
+  /** M25 S1: the fetch the paid-preview proxy reads the stored audio with (tests inject a fake; SSRF-guarded). */
+  audioFetch: typeof fetch } };
 
 /** M6: the moderator's id, the appeals address, the published build's hash — any may be unset. */
 export type Safety = { ownerListenerId?: string; appealsEmail?: string; releaseSha256?: string };

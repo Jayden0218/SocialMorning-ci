@@ -12,8 +12,55 @@ import { z } from 'zod';
 import type { AuthEnv } from '../auth/session.ts';
 import { optionalAuth } from '../auth/session.ts';
 import { ApiError } from '../errors.ts';
-import { clientAddress, HOUR_MS, limit } from '../auth/rate.ts';
-import { recordErrors } from '../db/repos/account/error-reports.ts';
+import { clientAddress, hit, HOUR_MS, limit } from '../auth/rate.ts';
+import { recordErrors, recordServerError } from '../db/repos/account/error-reports.ts';
+import type { Db } from '../db/db.ts';
+import type { Mailer } from '../mail/mailer.ts';
+
+/**
+ * M25 S11: what an error's text may say about a person is removed before it is kept — email
+ * addresses, bearer tokens, long token-like strings, URL queries and runs of 6+ digits (codes).
+ */
+export function scrubError(s: string): string {
+  return s
+    .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, '<email>')
+    .replace(/Bearer\s+\S+/gi, 'Bearer <redacted>')
+    .replace(/(https?:\/\/[^\s?#'"]+)\?[^\s'"]*/gi, '$1?<query>')
+    .replace(/\b[A-Za-z0-9_-]{32,}\b/g, '<token>')
+    .replace(/\d{6,}/g, '<n>');
+}
+
+/** One alert email an hour at most, whatever happens. */
+export const ALERTS_PER_HOUR = 1;
+
+/**
+ * M25 S11 (guard G-M25-S11): an unhandled server error goes into our own error log (scope
+ * 'server', no listener, no request body, text scrubbed). The first time a signature is seen, the
+ * owner gets one email through the existing mailer — at most one an hour. Never throws: a broken
+ * log must not turn a 500 into a crash.
+ */
+export async function reportServerError(db: Db, err: unknown, where: { method: string; route: string }, alert: { mailer?: Mailer; ownerListenerId?: string }): Promise<void> {
+  try {
+    const name = err instanceof Error ? err.name : 'Error';
+    const text = err instanceof Error ? err.message : String(err);
+    const message = scrubError(`${where.method} ${where.route}: ${name}: ${text}`);
+    const stack = err instanceof Error && err.stack ? scrubError(err.stack) : undefined;
+    const fresh = await recordServerError(db, { message, ...(stack ? { stack } : {}) });
+    if (!fresh || !alert.mailer) return;
+    const to = process.env['ALERT_EMAIL'] || (alert.ownerListenerId
+      ? (await db.query<{ email: string }>('SELECT email FROM listeners WHERE id = $1', [alert.ownerListenerId]))[0]?.email
+      : undefined);
+    if (!to) return;
+    if (!(await hit(db, 'alert:server-error', HOUR_MS, ALERTS_PER_HOUR)).ok) return;
+    await alert.mailer.send({
+      to,
+      subject: 'SocialNet: a new server error',
+      text: `A server error was seen for the first time:\n\n${message}\n\nEvery server error is listed on /mod/errors (scope "server"). At most one of these emails is sent an hour.`,
+    });
+  } catch (e) {
+    console.error('[errors] could not record a server error', e instanceof Error ? e.message : String(e));
+  }
+}
 
 export const ERRORS_PER_BATCH = 20;
 export const BATCHES_PER_ADDRESS_HOUR = 60;
