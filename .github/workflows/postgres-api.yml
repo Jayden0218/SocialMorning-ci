@@ -40,3 +40,21 @@ jobs:
       - name: api tests on Postgres 16, shard ${{ matrix.shard }} of 3
         run: npx tsx --test --test-timeout=120000 --test-shard=${{ matrix.shard }}/3 test/*.test.ts
         working-directory: apps/api
+
+  # M25 G10: the API's coverage floor (apps/api/.c8rc.json). It needs the WHOLE suite in one run,
+  # so it cannot ride on the sharded jobs; it runs on PGlite like the gate's api jobs (where the
+  # floor was measured). The head may move this job into gate.yml (lane GA owns that file).
+  api-coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    name: api coverage floor (PGlite, unsharded)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: api tests under c8, floor from apps/api/.c8rc.json
+        run: npm run test:coverage
+        working-directory: apps/api

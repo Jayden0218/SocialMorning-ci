@@ -1,5 +1,11 @@
 // Tests the report sheet: pick a reason, add a note, send, or sign in.
 /** M6 US1 (M9: now a gluestack Actionsheet, so it renders inside the provider's overlay): the report sheet collects one reason + a note and hands them to the safety layer; own content is refused in place. */
+// The gluestack sheets animate with @legendapp/motion, which starts each animation from a
+// requestAnimationFrame (a setTimeout under jest). With real timers those fired after the file
+// had finished: "Jest environment has been torn down … reading 'timing'" (gate 37714062341).
+// Fake timers keep them inside the test; nothing here depends on an animation finishing.
+jest.useFakeTimers();
+afterAll(() => { jest.clearAllTimers(); });
 import { createElement } from 'react';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 

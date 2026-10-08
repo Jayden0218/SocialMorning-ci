@@ -24,7 +24,7 @@ import { putOverrides } from '../src/db/repos/studio/show-overrides.ts';
 import { createReport, transcriptTargetId } from '../src/db/repos/safety/reports.ts';
 import { insertAudit } from '../src/auth/admin.ts';
 import { publish } from '../src/db/repos/studio/announcements.ts';
-import { notify } from '../src/db/repos/social/notifications.ts';
+import { listNotifications, notify } from '../src/db/repos/social/notifications.ts';
 import { setMaintenance } from '../src/db/repos/safety/maintenance.ts';
 import { putQueue } from '../src/db/repos/account/queue.ts';
 import { putWeights } from '../src/db/repos/discover/foryou-rules.ts';
@@ -102,5 +102,21 @@ test(`jsonb: every repo writer stores objects and arrays, never a JSON string ($
     assert.ok(found[col]!.rows > 0, `${col}: this test wrote nothing into it`);
     assert.deepEqual(found[col]!.types, [type], `${col} holds ${found[col]!.types.join('/')}, expected ${type}`);
   }
+  await t.close();
+});
+
+test('notifications written before the M25 fix (ref stored as a jsonb string) still list with their excerpt and title', async () => {
+  const t = await freshDb();
+  const a = await signUp(t, 'a@example.com', 'A');
+  const b = await signUp(t, 'b@example.com', 'B');
+  await addEpisode(t, FEED, 'E1', 'One', 1_000_000);
+  const [c] = await t.q<{ id: string }>("INSERT INTO comments (episode_id, author_id, body) VALUES ('E1', $1, 'An old reply') RETURNING id", [b.id]);
+  // Exactly what production stored: the ref object as a jsonb STRING.
+  await t.q("INSERT INTO notifications (recipient_id, actor_id, kind, ref) VALUES ($1, $2, 'reply', to_jsonb($3::text))",
+    [a.id, b.id, JSON.stringify({ commentId: c!.id, episodeId: 'E1' })]);
+  const [n] = (await listNotifications(t.db, a.id)).items;
+  assert.equal(n?.ref['commentId'], c!.id);
+  assert.equal(n?.ref['excerpt'], 'An old reply');
+  assert.equal(n?.ref['episodeTitle'], 'One');
   await t.close();
 });
