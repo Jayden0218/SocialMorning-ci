@@ -17,17 +17,23 @@ import { useStores } from '@/ui/shell/providers';
 import { useColours } from '@/ui/kit/useColours';
 import { Icon } from '@/ui/kit/Icon';
 import { GENRES, type Genre } from '@/discover/genres';
+import { useAppConfig } from '@/config/store';
 import { Screen } from '@/ui/kit/Screen';
 import { PageHeader } from '@/ui/kit/PageHeader';
 
 /** A card is at least 96 pt high (`Categories-B`) — well over the 48 pt tap floor. */
 const CARD = { minHeight: Math.max(96, hit.min) };
 
-/** The genres two to a row. */
-const ROWS: Genre[][] = [];
-for (let i = 0; i < GENRES.length; i += 2) ROWS.push(GENRES.slice(i, i + 2));
+/** The genres two to a row. M25 A7: worked out when drawn, so the admin's order, names and hides apply. */
+function pairs(): Genre[][] {
+  const rows: Genre[][] = [];
+  for (let i = 0; i < GENRES.length; i += 2) rows.push(GENRES.slice(i, i + 2));
+  return rows;
+}
 
 export default function CategoriesScreen(): React.ReactElement {
+  useAppConfig();
+  const ROWS = pairs();
   const stores = useStores();
   const c = useColours(stores.settings);
   const router = useRouter();

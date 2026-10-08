@@ -31,6 +31,17 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `tailwind.ts` | Lets links and gradients accept style class names like other components. |
 | `tokens.ts` | Lists every colour, font size, spacing and corner size the app uses. |
 
+### `config/` — Settings and pages the admin changes on the server (M25): tiles, categories, hints, Academy, Help.
+
+| File | What it does |
+|---|---|
+| `api.ts` | Server calls for the app settings and the Academy / Help pages, with the ETag so an unchanged answer is a 304. |
+| `content.ts` | The Academy articles and Help questions the phone shows: the server's when it has them, the bundled copy otherwise. |
+| `hints.ts` | The search box's rotating hints and "Try searching": the admin's words when set, else the ones worked out from the charts. |
+| `load.ts` | Loads the app settings at start-up: the last saved copy at once, then the server's, falling back to the built-in defaults. |
+| `store.ts` | Holds the app settings in use now (the admin's, or the built-in defaults) and tells screens when they change. |
+| `useStartConfig.ts` | Start-up: use the last saved app settings before the first screen draws, then fetch the server's once. |
+
 ### `discover/` — The Discover tab: podcast search, charts, categories and recommendations to explore.
 
 | File | What it does |
@@ -460,6 +471,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | File | What it does |
 |---|---|
 | `DiscoverSections.tsx` | Discover's main sections: picks, then episode lists, with an old-data note. |
+| `DiscoverShortcuts.tsx` | The round shortcut tiles under Discover's search box, in the order, names and set the admin chose. |
 | `FullPager.tsx` | Whole-screen pages swiped left and right (chart, search tabs, categories), kept in step with their tabs. |
 | `Plaza.tsx` | The new-shows plaza: a wall of covers dragged in any direction with one finger; tap a cover for its show. |
 | `TheirLikes.tsx` | "Their likes" on Discover: recent likes with notes from people you follow, each opening its like post. |
@@ -471,6 +483,12 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `sections.tsx` | Each Discover section: shortcuts, editor picks, For You, the chart, and more. |
 | `RecFeedback.tsx` | "Not liking these?" under For You, its form, and the category tiles the interests page shares. |
 | `InterestsGate.tsx` | Opens the interests page once on the first open after sign-in, when no categories are saved yet. |
+
+### `ui/content/` — Pages an admin writes (Academy, Help)
+
+| File | What it does |
+|---|---|
+| `Markdown.tsx` | Draws an Academy or Help body (the Markdown subset) as text — headings, paragraphs, lists, bold, https links — never as HTML. |
 
 ### `ui/search/` — Search for shows and episodes
 

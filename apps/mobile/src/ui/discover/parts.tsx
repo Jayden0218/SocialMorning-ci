@@ -23,6 +23,7 @@ import { useColours } from '@/ui/kit/useColours';
 import { Icon } from '@/ui/kit/Icon';
 import type { EpisodeCard } from '@/social/api';
 import { Artwork } from '@/ui/kit/Artwork';
+import { useSectionTitle } from '@/config/store'; // M25 A7: the admin may rename Discover's sections
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
 
@@ -31,12 +32,13 @@ const TAP = { minHeight: hit.min, minWidth: hit.min };
  * larger title a whole block opens with ("The chart" in `Discover-B`).
  */
 export function SectionTitle(props: { title: string; action?: { label: string; onPress: () => void }; badge?: number; size?: 'page' }): React.ReactElement {
+  const title = useSectionTitle(props.title);
   return (
     // Owner, 2026-10-05: a title and the link on its right share one middle line.
     <Box className="flex-row items-center justify-between px-screen-x mt-section mb-gap">
       <Box className="flex-row items-center gap-gap flex-1">
         <Text className={props.size === 'page' ? 'text-text text-hero font-display' : 'text-text text-lg font-display'} accessibilityRole="header" numberOfLines={1}>
-          {props.title}
+          {title}
         </Text>
         {props.badge !== undefined ? (
           <Box className="bg-primary rounded-pill px-2 py-0.5"><Text className="text-onPrimary text-xs font-bold">{props.badge}</Text></Box>
