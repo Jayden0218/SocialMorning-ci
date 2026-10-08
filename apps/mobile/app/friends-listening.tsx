@@ -133,7 +133,7 @@ export default function FriendsListening(): React.ReactElement {
   const helpSheet = (
     <Actionsheet isOpen={help} onClose={() => setHelp(false)}>
       <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-      <ActionsheetContent className="bg-surface rounded-t-row px-screen-x pt-row items-stretch">
+      <ActionsheetContent className="px-screen-x pt-row items-stretch">
         <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
         <Text className="text-text text-title font-display py-row" accessibilityRole="header">Friends listening</Text>
         <Text className="text-text text-body">What people you follow liked, and what they played in the last 7 days.</Text>
@@ -172,7 +172,7 @@ export default function FriendsListening(): React.ReactElement {
   const feature = (item: FriendListen): React.ReactElement => (
     <Card padded={false} className="p-section mb-row">
       <Pressable onPress={() => void open(item.episode)} accessibilityRole="button" accessibilityLabel={`${item.episode.title}, ${item.episode.showTitle}`} className="flex-row items-center gap-section" style={TAP}>
-        <Artwork url={item.episode.imageUrl} size={96} rounded="row" name={item.episode.showTitle} />
+        <Artwork url={item.episode.imageUrl} size={96} name={item.episode.showTitle} />
         <Box className="flex-1">
           <Text className="text-muted text-xs" numberOfLines={1}>{item.episode.showTitle}</Text>
           <Text className="text-text text-title font-display mt-1" numberOfLines={3}>{item.episode.title}</Text>
@@ -209,7 +209,7 @@ export default function FriendsListening(): React.ReactElement {
       renderItem={({ item }) => (
         <Box className="mb-section" style={cellBox}>
           <Pressable onPress={() => void open(item.episode)} accessibilityRole="button" accessibilityLabel={`${item.episode.title}, ${item.episode.showTitle}`} style={TAP}>
-            <Artwork url={item.episode.imageUrl} size={cell} rounded="row" name={item.episode.showTitle} />
+            <Artwork url={item.episode.imageUrl} size={cell} name={item.episode.showTitle} />
             <Text className="text-muted text-xs mt-2" numberOfLines={1}>{item.episode.showTitle}</Text>
             <Text className="text-text text-body font-bold mt-0.5" numberOfLines={3}>{item.episode.title}</Text>
             <Text className="text-muted text-xs mt-1" numberOfLines={2}>{who(item)}</Text>

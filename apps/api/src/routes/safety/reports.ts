@@ -7,9 +7,6 @@
  * M21 US2: `episode` (target = the episode id) and `transcript` (one wrong line; `detail`
  * carries the listener's correction; the target id is stored as `<episodeId>#<offsetMs>`
  * whether the phone sends that or the bare episode id).
- *
- * M24 US1: `status` (a status id), `chat_message` (a message number; only its recipient may
- * report it) and `list` (a shared list's id).
  */
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -34,7 +31,7 @@ const transcriptDetail = z.object({
 });
 
 const reportBody = z.object({
-  targetKind: z.enum(['comment', 'clip', 'profile', 'show', 'episode', 'transcript', 'status', 'chat_message', 'list']),
+  targetKind: z.enum(['comment', 'clip', 'profile', 'show', 'episode', 'transcript']),
   targetId: z.string().min(1).max(2048),
   reason: z.enum(REPORT_REASONS),
   note: z.string().trim().max(REPORT_NOTE_MAX).optional(),
@@ -51,14 +48,6 @@ function transcriptTarget(targetId: string, d: z.infer<typeof transcriptDetail> 
   return { targetId: transcriptTargetId(episodeId, d.offsetMs), detail: { episodeId, offsetMs: d.offsetMs, original: d.original, suggested: d.suggested } };
 }
 
-/** The shape each kind's target id has; anything else is refused before a query. M24: a chat message is its number, a list its 10-letter id. */
-const UUID = /^[0-9a-f-]{36}$/i;
-const ANY = /^[\s\S]+$/;
-const ID_SHAPE: Record<TargetKind, RegExp> = {
-  comment: UUID, clip: UUID, profile: UUID, status: UUID, show: ANY, episode: ANY, transcript: ANY,
-  chat_message: /^\d{1,18}$/, list: /^[A-Za-z0-9]{10}$/,
-};
-
 export const reports = new Hono<AuthEnv>();
 
 reports.post('/', requireAuth, json(reportBody), async (c) => {
@@ -68,10 +57,8 @@ reports.post('/', requireAuth, json(reportBody), async (c) => {
   const kind = body.targetKind as TargetKind;
   const t = kind === 'transcript' ? transcriptTarget(body.targetId, body.detail) : { targetId: body.targetId, detail: undefined };
   if (kind === 'episode' && !EPISODE_ID.test(body.targetId)) throw new ApiError('validation', 'targetId must be an episode id.', { fields: ['targetId'] });
-  if (!ID_SHAPE[kind].test(body.targetId)) throw new ApiError('validation', 'targetId must be an id.', { fields: ['targetId'] });
+  if (kind !== 'show' && kind !== 'episode' && kind !== 'transcript' && !/^[0-9a-f-]{36}$/i.test(body.targetId)) throw new ApiError('validation', 'targetId must be an id.', { fields: ['targetId'] });
   const target = await snapshotTarget(db, kind, t.targetId, t.detail);
-  // M24 US1: a chat message is reported by the person it was sent to — nobody else has read it.
-  if (kind === 'chat_message' && !target.gone && (target.snapshot as { recipientId?: string }).recipientId !== me.id && target.authorId !== me.id) throw new ApiError('not_found', 'No such message.');
   const who = kind === 'profile' ? body.targetId : target.authorId;
   if (canReport(me.id, who) === 'own') throw new ApiError('validation', "That's yours — delete it instead.", { fields: ['targetId'], reason: 'own' });
   if ((await reportsInLastHour(db, me.id)) >= REPORTS_PER_HOUR) throw new ApiError('locked', 'Too many reports in an hour.', { retryAfterSeconds: 3600 });

@@ -333,13 +333,13 @@ export default function CategoryScreen(): React.ReactElement {
           style={TAP}
         >
           {wide ? (
-            <Artwork url={s.imageUrl} size={100} rounded="row" name={s.title} />
+            <Artwork url={s.imageUrl} size={100} name={s.title} />
           ) : (
             /* Owner, 2026-10-05: the half card's + sits in a row with the cover, the space
                shared out equally. The + is drawn by the same row laid over the card (below),
                so the whole card stays one tap and the + its own; this gap holds its place. */
             <Box className="self-stretch flex-row items-center justify-evenly">
-              <Artwork url={s.imageUrl} size={HALF_ART} rounded="row" name={s.title} />
+              <Artwork url={s.imageUrl} size={HALF_ART} name={s.title} />
               <Box style={ROUND_SMALL} />
             </Box>
           )}

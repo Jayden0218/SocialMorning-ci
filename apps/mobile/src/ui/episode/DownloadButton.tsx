@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react';
 import { SheetTile, TileRow } from '@/ui/queue/QueueButtons';
 import { useColours } from '@/ui/kit/useColours';
 import { useDownloads, useStores, useToast } from '@/ui/shell/providers';
+import { Box } from '@/ui/lib/box';
 import type { DownloadRow } from '@/storage/types';
 
 export function mb(bytes: number | undefined): string {
@@ -22,7 +23,12 @@ export function mb(bytes: number | undefined): string {
   return `${Math.max(1, Math.round(bytes / 1024 / 1024))} MB`;
 }
 
-export function DownloadButton(props: { episodeId: string }): React.ReactElement {
+/**
+ * M24 US20 (`EpisodeMoreSheet-B`): with `beside` (the episode page's Favourite tile) the main tile
+ * shares its row with it, as the design's "Download · Add to favourites"; the second tile (mobile
+ * data, remove, cancel) moves to the row under it. Without `beside` the row is as before.
+ */
+export function DownloadButton(props: { episodeId: string; beside?: React.ReactNode }): React.ReactElement {
   const downloads = useDownloads();
   const stores = useStores();
   const toast = useToast();
@@ -45,32 +51,29 @@ export function DownloadButton(props: { episodeId: string }): React.ReactElement
   }
 
   // M12 FR-032 made these full-width rows; M17 makes them a row of two tiles.
+  const rows = (main: React.ReactNode, second: React.ReactNode): React.ReactElement => props.beside === undefined
+    ? <TileRow>{main}{second}</TileRow>
+    : <><TileRow>{main}{props.beside}</TileRow><TileRow>{second}<Box className="flex-1" /></TileRow></>;
   if (!row || row.state === 'failed') {
     const label = row?.state === 'failed' ? (row.error === 'budget' ? 'Not enough space — retry download' : 'Download failed — retry') : 'Download';
-    return (
-      <TileRow>
-        <SheetTile icon="download-outline" label={label} {...(askMobile ? {} : { detail: 'Wi-Fi only' })} iconColour={c.accent} onPress={() => void request()} accessibilityLabel="Download this episode" />
-        {askMobile
-          ? <SheetTile icon="cellular-outline" label="Download now on mobile data" iconColour={c.accent} tone="accent" onPress={() => void request(true)} />
-          : <SheetTile icon="cellular-outline" label="Use mobile data instead" iconColour={c.muted} tone="muted" onPress={() => setAskMobile(true)} />}
-      </TileRow>
+    return rows(
+      <SheetTile icon="download-outline" label={label} {...(askMobile ? {} : { detail: 'Wi-Fi only' })} iconColour={c.accent} onPress={() => void request()} accessibilityLabel="Download this episode" />,
+      askMobile
+        ? <SheetTile icon="cellular-outline" label="Download now on mobile data" iconColour={c.accent} tone="accent" onPress={() => void request(true)} />
+        : <SheetTile icon="cellular-outline" label="Use mobile data instead" iconColour={c.muted} tone="muted" onPress={() => setAskMobile(true)} />,
     );
   }
   if (row.state === 'complete') {
-    return (
-      <TileRow>
-        {/* A statement of fact, not an action: muted. (Owner's K1 note, 2026-09-25.) */}
-        <SheetTile icon="checkmark-circle-outline" label="Downloaded" detail={mb(row.bytesTotal)} iconColour={c.muted} tone="muted" />
-        <SheetTile icon="trash-outline" label="Remove download" iconColour={c.accent} tone="accent" onPress={() => void downloads.remove(props.episodeId)} accessibilityLabel="Remove the download" />
-      </TileRow>
+    // A statement of fact, not an action: muted. (Owner's K1 note, 2026-09-25.)
+    return rows(
+      <SheetTile icon="checkmark-circle-outline" label="Downloaded" detail={mb(row.bytesTotal)} iconColour={c.muted} tone="muted" />,
+      <SheetTile icon="trash-outline" label="Remove download" iconColour={c.accent} tone="accent" onPress={() => void downloads.remove(props.episodeId)} accessibilityLabel="Remove the download" />,
     );
   }
   const pct = row.bytesTotal ? Math.floor((row.bytesDone / row.bytesTotal) * 100) : undefined;
   const label = row.state === 'waiting' ? 'Waiting…' : row.state === 'paused' ? `Paused at ${pct ?? 0} %` : pct === undefined ? 'Downloading…' : `Downloading · ${pct} %`;
-  return (
-    <TileRow>
-      <SheetTile icon="cloud-download-outline" label={label} {...(row.error === 'no-resume' ? { detail: 'restarted' } : {})} iconColour={c.muted} tone="muted" />
-      <SheetTile icon="close-circle-outline" label="Cancel download" iconColour={c.accent} tone="accent" onPress={() => void downloads.cancel(props.episodeId)} accessibilityLabel="Cancel the download" />
-    </TileRow>
+  return rows(
+    <SheetTile icon="cloud-download-outline" label={label} {...(row.error === 'no-resume' ? { detail: 'restarted' } : {})} iconColour={c.muted} tone="muted" />,
+    <SheetTile icon="close-circle-outline" label="Cancel download" iconColour={c.accent} tone="accent" onPress={() => void downloads.cancel(props.episodeId)} accessibilityLabel="Cancel the download" />,
   );
 }

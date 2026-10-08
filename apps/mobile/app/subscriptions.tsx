@@ -23,6 +23,7 @@ import { Share, useWindowDimensions } from 'react-native';
 import { FlatList } from '@/ui/lib/flat-list';
 import { ScrollView } from '@/ui/lib/scroll-view';
 import { Pressable } from '@/ui/lib/pressable';
+import { Segmented } from '@/ui/kit/Segmented';
 import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
 import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '@/ui/lib/actionsheet';
@@ -48,6 +49,8 @@ import { PageHeader } from '@/ui/kit/PageHeader';
 import { EndOfList } from '@/ui/kit/EndOfList';
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
+/** M24: one-line words for the four sorts (each choice is a quarter of the width). */
+const SHORT_SORT: Partial<Record<SubSort, string>> = { updated: 'Updated', added: 'Added' };
 /** M17 (`Subscriptions-B`): a starred card is 220 pt wide; its artwork fills it inside 10 pt padding and the border. */
 const CARD = { width: 220 };
 const CARD_ART = 220 - 2 * 10 - 2;
@@ -161,7 +164,7 @@ export default function SubscriptionsScreen(): React.ReactElement {
           accessibilityRole="button"
           accessibilityLabel={`${item.title}${item.starred ? ', starred' : ''}. Newest: ${line}${extra ? `. ${extra}` : ''}`}
         >
-          <Artwork url={item.imageUrl} size={CARD_ART} rounded="row" name={item.title} />
+          <Artwork url={item.imageUrl} size={CARD_ART} name={item.title} />
           <Text className="text-text text-title font-display mt-1.5" numberOfLines={1}>{item.title}</Text>
           <Text className="text-muted text-xs" numberOfLines={2}>{line}</Text>
           {extra ? <Text className="text-muted text-xs">{extra}</Text> : null}
@@ -207,17 +210,9 @@ export default function SubscriptionsScreen(): React.ReactElement {
                 <Text className="text-text text-base font-display-semibold mt-5 mb-2" accessibilityRole="header">All shows</Text>
               </>
             ) : null}
-            <Box className="flex-row gap-1 p-1 mb-section bg-surface border border-border rounded-pill" accessibilityRole="tablist">
-              {SUB_SORTS.map((s) => {
-                const on = s.key === sort;
-                return (
-                  <Pressable key={s.key} onPress={() => setSort(s.key)} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={`Sort: ${s.label}`}
-                    className={`flex-1 items-center justify-center px-1 rounded-pill ${on ? 'bg-primary' : ''}`} style={TAP}>
-                    <Text className={on ? 'text-onPrimary text-meta font-bold text-center' : 'text-muted text-meta font-medium text-center'}>{s.label}</Text>
-                  </Pressable>
-                );
-              })}
-            </Box>
+            {/* M24 US20 (`Subscriptions-B`): the kit's beige Segmented, same sorts, same handler. Its
+                choices are one line, so four sorts show a short word; the spoken name stays whole. */}
+            <Segmented className="mb-section" items={SUB_SORTS.map((s) => ({ value: s.key, label: SHORT_SORT[s.key] ?? s.label, accessibilityLabel: `Sort: ${s.label}` }))} value={sort} onChange={setSort} />
             <FilterBar term={term} onTerm={setTerm} placeholder="Search your shows" />
           </Box>
         )}
@@ -230,7 +225,7 @@ export default function SubscriptionsScreen(): React.ReactElement {
                 {it.map((item) => (
                   <Pressable key={item.feedUrl} onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(item.feedUrl) } })} onLongPress={() => setMenu(item)}
                     accessibilityRole="button" accessibilityLabel={`${item.title}${item.starred ? ', starred' : ''}. Long-press for more`} className="flex-1">
-                    <Artwork url={item.imageUrl} size={gridArt} rounded="row" name={item.title} />
+                    <Artwork url={item.imageUrl} size={gridArt} name={item.title} />
                     <Text className="text-text text-xs font-bold mt-1" numberOfLines={2}>{item.title}</Text>
                   </Pressable>
                 ))}
@@ -248,7 +243,7 @@ export default function SubscriptionsScreen(): React.ReactElement {
                 accessibilityRole="button"
                 accessibilityLabel={`${item.title}${item.starred ? ', starred' : ''}. Newest: ${line}${extra ? `. ${extra}` : ''}`}
               >
-                <Artwork url={item.imageUrl} size={56} rounded="row" name={item.title} />
+                <Artwork url={item.imageUrl} size={56} name={item.title} />
                 <Box className="flex-1">
                   <Text className="text-text text-sm font-bold" numberOfLines={1}>{item.title}</Text>
                   <Text className="text-muted text-xs mt-0.5" numberOfLines={1}>{line}</Text>
@@ -265,7 +260,7 @@ export default function SubscriptionsScreen(): React.ReactElement {
       />
       <Actionsheet isOpen={menu !== undefined} onClose={() => setMenu(undefined)}>
         <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-        <ActionsheetContent className="bg-surface rounded-t-row px-screen-x pt-row items-stretch">
+        <ActionsheetContent className="px-screen-x pt-row items-stretch">
           <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
           {menu ? (
             <>

@@ -63,7 +63,7 @@ export default function ListenerSubscriptionsScreen(): React.ReactElement {
         return (
           <Pressable onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(item.feedUrl) } })} accessibilityRole="button" accessibilityLabel={`Open ${title}`}
             className="flex-row gap-row items-center py-2.5 border-b-hairline border-separator" style={TAP}>
-            <Artwork url={item.imageUrl ?? undefined} size={56} rounded="row" name={title} />
+            <Artwork url={item.imageUrl ?? undefined} size={56} name={title} />
             <Text className="text-text text-sm font-bold flex-1" numberOfLines={2}>{title}</Text>
           </Pressable>
         );

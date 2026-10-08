@@ -18,6 +18,8 @@ import { PageHeader } from '@/ui/kit/PageHeader';
 import { EndOfList } from '@/ui/kit/EndOfList';
 
 const COLUMNS = { gap: spacing.row };
+/** M24 US20 (`SettingsBlocked-B`): the count in the 64 pt serif, line height 1. */
+const COUNT = { fontSize: 64, lineHeight: 68 };
 
 /** Up to two initials from the name ("Marta Quell" → "MQ"); "A listener" → "A". */
 function initialsOf(name: string): string {
@@ -35,7 +37,7 @@ export default function BlockedScreen(): React.ReactElement {
   const rows = stores.blocks.all().filter((b) => b.pending >= 0);
   const header = rows.length > 0 ? (
     <Box className="pb-section">
-      <Text className="text-text text-display font-display">{rows.length}</Text>
+      <Text className="text-text font-display" style={COUNT} maxFontSizeMultiplier={1.3}>{rows.length}</Text>
       <Text className="text-text text-base font-display">{rows.length === 1 ? 'listener blocked' : 'listeners blocked'}</Text>
       <Text className="text-muted text-body mt-1">Nothing they write, clip or do shows for you. They are not told.</Text>
     </Box>

@@ -74,7 +74,7 @@ function ChartList(props: { kind: ChartKind; pane?: (episodeId: string) => void 
     <Card padded={false} className="flex-row items-center gap-row p-row mb-row">
       <Pressable onPress={() => void open(item.episode, props.pane)} accessibilityRole="button" accessibilityLabel={`${item.episode.title}, ${item.episode.showTitle}`} className="flex-1 flex-row items-center gap-section" style={TAP}>
         <Box>
-          <Artwork url={item.episode.imageUrl} size={110} rounded="row" name={item.episode.showTitle} />
+          <Artwork url={item.episode.imageUrl} size={110} name={item.episode.showTitle} />
           <Text className="absolute -left-1.5 -top-2 text-accent text-display font-display" maxFontSizeMultiplier={1.3}>1</Text>
         </Box>
         <Box className="flex-1">
@@ -92,7 +92,7 @@ function ChartList(props: { kind: ChartKind; pane?: (episodeId: string) => void 
     <Card key={item.key} padded={false} className="flex-1 p-2.5">
       <Pressable onPress={() => void open(item.episode, props.pane)} accessibilityRole="button" accessibilityLabel={`${item.episode.title}, ${item.episode.showTitle}`} className="gap-2" style={TAP}>
         <Box className="flex-row items-start justify-between">
-          <Artwork url={item.episode.imageUrl} size={64} rounded="row" name={item.episode.showTitle} />
+          <Artwork url={item.episode.imageUrl} size={64} name={item.episode.showTitle} />
           <Text className="text-accent text-hero font-display" maxFontSizeMultiplier={1.3}>{rank}</Text>
         </Box>
         <Text className="text-text text-meta font-bold" numberOfLines={2}>{item.episode.title}</Text>
@@ -133,7 +133,8 @@ function ChartList(props: { kind: ChartKind; pane?: (episodeId: string) => void 
         ) : <EmptyPicture icon="chatbubbles-outline" line={EMPTY[props.kind]} />
       }
       renderItem={({ item, index }) => (
-        <EpisodeLine card={item.episode} rank={index + PODIUM + 1} size={48} divided {...(item.reason ? { line: item.reason } : {})} onOpen={() => void open(item.episode, props.pane)} onPlay={() => void play(item.episode)} onMore={() => onMore(item.episode)} />
+        // M24 US20 (`Chart-B`): rows 4+ are the dense ~56 pt row — 20 pt rank, 44 pt cover, one line each.
+        <EpisodeLine dense card={item.episode} rank={index + PODIUM + 1} size={44} divided {...(item.reason ? { line: item.reason } : {})} onOpen={() => void open(item.episode, props.pane)} onPlay={() => void play(item.episode)} onMore={() => onMore(item.episode)} />
       )}
     />
   );

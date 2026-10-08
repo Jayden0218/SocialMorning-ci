@@ -14,6 +14,10 @@
  * page (`/notifications/system`, `/notifications/hosts`), as in 小宇宙. The track now switches
  * between Interactions (replies, likes, mentions and follows aimed at you) and People (what the
  * listeners you follow did).
+ *
+ * M24 US20 (`Notifications-B`): People first and chosen when the page opens; the two tabs are
+ * separate pills (dark when chosen). System and From hosts stay one tap away, as the two cards
+ * under the pills.
  */
 import { Pressable } from '@/ui/lib/pressable';
 import { Text } from '@/ui/lib/text';
@@ -25,6 +29,7 @@ export type NoticeSection = 'interactions' | 'people';
 export type NoticePage = 'system' | 'hosts';
 
 const TAP = { minHeight: hit.min };
+const BADGE = { minWidth: 22, height: 22 };
 
 /** What each tab says under the track, and in its spoken name. */
 export function noticeLine(section: NoticeSection, unread: number): string {
@@ -39,36 +44,30 @@ function Tab(props: { title: string; line: string; icon: IconName; iconColour: s
       accessibilityRole="tab"
       accessibilityState={{ selected: props.selected }}
       accessibilityLabel={`${props.title}. ${props.badge ? `${props.badge} new. ` : ''}${props.line}`}
-      className={`flex-1 flex-row gap-1.5 rounded-pill items-center justify-center ${props.selected ? 'bg-primary' : ''}`}
+      className={`flex-row gap-2 rounded-pill items-center justify-center px-section ${props.selected ? 'bg-text' : 'bg-surface border border-border'}`}
       style={TAP}
     >
-      <Icon name={props.icon} size={16} color={props.selected ? props.selectedIconColour : props.iconColour} />
-      <Text className={props.selected ? 'text-onPrimary text-body font-bold' : 'text-muted text-body'}>{props.title}</Text>
+      <Icon name={props.icon} size={18} color={props.selected ? props.selectedIconColour : props.iconColour} />
+      <Text className={props.selected ? 'text-background text-body font-bold' : 'text-text text-body font-semibold'}>{props.title}</Text>
       {props.badge ? (
-        <Box className={`rounded-pill min-w-5 px-1.5 items-center justify-center ${props.selected ? 'bg-onPrimary' : 'bg-accent'}`}>
-          <Text className={props.selected ? 'text-primary text-micro font-bold' : 'text-background text-micro font-bold'}>{props.badge > 99 ? '99+' : props.badge}</Text>
+        <Box className="rounded-pill bg-primary items-center justify-center px-1.5" style={BADGE}>
+          <Text className="text-onPrimary text-xs font-bold">{props.badge > 99 ? '99+' : props.badge}</Text>
         </Box>
       ) : null}
     </Pressable>
   );
 }
 
-/** The Interactions / People track. `unread` is People's count; `interactionsUnread` is Interactions'. */
+/**
+ * The People / Interactions pills. `unread` is People's count; `interactionsUnread` is Interactions'.
+ * M24 US20 (`Notifications-B`): two separate pills, People first — the chosen one dark with paper
+ * words, the other white with a thin border; a new-count is a yellow badge with dark words.
+ */
 export function NoticeCards(props: { section: NoticeSection; unread: number; interactionsUnread?: number; iconColour: string; selectedIconColour?: string; onSelect: (s: NoticeSection) => void }): React.ReactElement {
   const chosen = props.selectedIconColour ?? props.iconColour;
   const mine = props.interactionsUnread ?? 0;
   return (
-    <Box className="flex-row gap-1 p-1 bg-surface border border-border rounded-pill" accessibilityRole="tablist">
-      <Tab
-        title="Interactions"
-        line={noticeLine('interactions', mine)}
-        icon="chatbubbles-outline"
-        iconColour={props.iconColour}
-        selectedIconColour={chosen}
-        {...(mine > 0 ? { badge: mine } : {})}
-        selected={props.section === 'interactions'}
-        onPress={() => props.onSelect('interactions')}
-      />
+    <Box className="flex-row flex-wrap gap-2" accessibilityRole="tablist">
       <Tab
         title="People"
         line={noticeLine('people', props.unread)}
@@ -78,6 +77,16 @@ export function NoticeCards(props: { section: NoticeSection; unread: number; int
         {...(props.unread > 0 ? { badge: props.unread } : {})}
         selected={props.section === 'people'}
         onPress={() => props.onSelect('people')}
+      />
+      <Tab
+        title="Interactions"
+        line={noticeLine('interactions', mine)}
+        icon="chatbubbles-outline"
+        iconColour={props.iconColour}
+        selectedIconColour={chosen}
+        {...(mine > 0 ? { badge: mine } : {})}
+        selected={props.section === 'interactions'}
+        onPress={() => props.onSelect('interactions')}
       />
     </Box>
   );

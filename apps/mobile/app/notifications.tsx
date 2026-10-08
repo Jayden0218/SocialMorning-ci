@@ -22,6 +22,9 @@
  * each row opening its target — and People (the feed, as before). Interactions is first. Opening
  * Interactions marks them read (POST /v1/me/notifications/seen) after the unread ones are counted.
  *
+ * M24 US20 (`Notifications-B`): the page opens on People; People / Interactions are two pills at
+ * the top, the System and From hosts cards sit under them; the day headings are 20 pt serif.
+ *
  * M22 US3 (FR-011, T016): each interaction row has a ⋯ with "Mute this" — no more notices or
  * pushes from that comment thread or like-post (PUT /v1/me/muted-threads); Settings › Privacy
  * lists them. Rows also read and open the new kinds: comments and reactions on your like,
@@ -38,7 +41,6 @@ import { Box } from '@/ui/lib/box';
 import { useColours } from '@/ui/kit/useColours';
 import { NoticeCards, NoticeEntries, noticeLine, type NoticeSection } from '@/ui/social/NoticeCards';
 import { Card, CardDivider } from '@/ui/kit/Card';
-import { Eyebrow } from '@/ui/kit/Eyebrow';
 import { hit } from '@/design';
 import { createFeed, type FeedView } from '@/graph/feed';
 import { useSafety } from '@/safety/context';
@@ -176,7 +178,7 @@ function Interactions(props: { header: React.ReactElement; onUnread: (n: number)
     />
     <Actionsheet isOpen={menu !== undefined} onClose={() => setMenu(undefined)}>
       <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-      <ActionsheetContent className="bg-surface rounded-t-row px-screen-x pt-row items-stretch">
+      <ActionsheetContent className="px-screen-x pt-row items-stretch">
         <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
         <SheetRow icon="notifications-off-outline" label="Mute this" detail="No more notices from this thread" iconColour={props.colour} onPress={muteMenu} />
         <Pressable onPress={() => setMenu(undefined)} accessibilityRole="button" accessibilityLabel="Cancel" className="items-center justify-center mt-row" style={{ minHeight: hit.min }}>
@@ -213,14 +215,17 @@ export default function NotificationsScreen(): React.ReactElement {
   const c = useColours(stores.settings);
   // M12 FR-001 (B2): the cards choose what is listed; People (the feed) first, as before.
   // M21 US10: Interactions first; System and From hosts are cards that open their own pages.
-  const [section, setSection] = useState<NoticeSection>('interactions');
+  // M24 US20 (`Notifications-B`): the page opens on People (the feed of people you follow).
+  const [section, setSection] = useState<NoticeSection>('people');
   const [mine, setMine] = useState(0);
   const unreadHere = section === 'interactions' ? mine : unread;
   const cards = (
     <Box className="mb-section">
+      {/* M24 US20 (`Notifications-B`): the pills first, nothing above them; the M21 System and
+          From hosts cards moved under the line, so each is still one tap away. */}
+      <NoticeCards section={section} unread={unread} interactionsUnread={mine} iconColour={c.text} selectedIconColour={c.background} onSelect={setSection} />
+      <Text className="text-muted text-meta mt-gap mb-row">{noticeLine(section, unreadHere)}</Text>
       <NoticeEntries iconColour={c.muted} onOpen={(page) => router.push(page === 'system' ? '/notifications/system' : '/notifications/hosts')} />
-      <NoticeCards section={section} unread={unread} interactionsUnread={mine} iconColour={c.muted} selectedIconColour={c.onPrimary} onSelect={setSection} />
-      <Text className="text-muted text-xs mt-gap">{noticeLine(section, unreadHere)}</Text>
     </Box>
   );
   const days = useMemo(() => byDay(safetyFilter.feed(view?.items ?? []), new Date()), [safetyFilter, view]);
@@ -288,7 +293,8 @@ export default function NotificationsScreen(): React.ReactElement {
       ) : undefined}
       renderItem={({ item: day }) => (
         <Box>
-          <Eyebrow className="mb-gap">{day.label}</Eyebrow>
+          {/* M24 US20 (`Notifications-B`): the day as a 20 pt serif heading ("Today"). */}
+          <Text className="text-text text-base font-display mb-gap" accessibilityRole="header">{day.label}</Text>
           <Card>
             {day.items.map((item, i) => <FeedItem key={String(item.id)} item={item} onOpen={open} last={i === day.items.length - 1} />)}
           </Card>

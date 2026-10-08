@@ -12,7 +12,6 @@ import { pendingDeletion } from '../../db/repos/account/deletion.ts';
 import { randomBytes } from 'node:crypto';
 import { checkCode, consumeCode, newCode, resendWait, storeCode, CODE_TTL_MS, RESEND_AFTER_MS } from '../../auth/codes.ts';
 import { limitCodeRequest } from '../../auth/rate.ts';
-import { appealTokenFor } from '../../auth/appeal-token.ts';
 
 const email = z.string().trim().toLowerCase().email().max(254);
 const password = z.string().min(8).max(200);
@@ -62,7 +61,7 @@ auth.post('/sign-in', json(signInBody), async (c) => {
     throw BAD_CREDENTIALS();
   }
   await clearFailedSignIns(db, row.id);
-  if (row.suspended_at) throw suspendedError(c.get('safety')?.appealsEmail, appealTokenFor(row.id, c.get('pepper')));
+  if (row.suspended_at) throw suspendedError(c.get('safety')?.appealsEmail);
   const token = await createSession(db, row.id, c.get('pepper'), body.deviceLabel);
   await recordCountry(db, row.id, c.req.header(COUNTRY_HEADER)); // M10b US7
   // M22 US11 (FR-034): during the 15-day wait the phone asks Keep / Continue.
@@ -122,7 +121,7 @@ auth.post('/code/verify', json(codeVerify), async (c) => {
   }
   await consumeCode(db, body.email);
   if (!row) throw new ApiError('not_found', 'No such account.');
-  if (row.suspended_at) throw suspendedError(c.get('safety')?.appealsEmail, appealTokenFor(row.id, c.get('pepper')));
+  if (row.suspended_at) throw suspendedError(c.get('safety')?.appealsEmail);
   const token = await createSession(db, row.id, pepper, body.deviceLabel);
   await recordCountry(db, row.id, c.req.header(COUNTRY_HEADER)); // M10b US7
   // M22 US11 (FR-034): during the 15-day wait the phone asks Keep / Continue.

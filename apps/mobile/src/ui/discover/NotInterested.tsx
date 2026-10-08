@@ -25,7 +25,7 @@ export function NotInterestedSheet(props: { card: EpisodeCard | undefined; onCho
   return (
     <Actionsheet isOpen={card !== undefined} onClose={props.onClose}>
       <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-      <ActionsheetContent className="bg-surface rounded-t-row px-screen-x pt-row items-stretch">
+      <ActionsheetContent className="px-screen-x pt-row items-stretch">
         <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
         {card ? (
           <>

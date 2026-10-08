@@ -68,6 +68,7 @@ import { useSocial } from '@/social/context';
 import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '@/ui/lib/actionsheet';
 import { EpisodeRowSheet } from '@/ui/kit/EpisodeRowSheet';
 import { SheetRow } from '@/ui/kit/SheetRow';
+import { Segmented } from '@/ui/kit/Segmented';
 import { Avatar } from '@/ui/kit/Avatar';
 import { TintedPage } from '@/ui/kit/TintedPage';
 import { tintFor } from '@/design';
@@ -388,17 +389,16 @@ export default function ShowScreen(): React.ReactElement {
         {/* M20 US6: paid episodes and tips — Android with purchases switched on only; nothing otherwise. */}
         <ShowSales feedUrl={feedUrl} showTitle={title ?? ''} {...((ov?.coverUrl ?? show?.imageUrl) ? { artworkUrl: (ov?.coverUrl ?? show?.imageUrl)! } : {})} tipsEnabled={extras?.tipsEnabled === true} />
         {/* M17: Episodes / About as a pill track (owner, 2026-10-05: order and filter moved to the row under it). */}
-        <Box className="flex-row items-center gap-gap">
-          <Box className="flex-row gap-1 p-1 bg-surface border border-border rounded-pill" accessibilityRole="tablist">
-            {(['episodes', 'about'] as const).map((t) => (
-              <Pressable key={t} onPress={() => setTab(t)} accessibilityRole="tab" accessibilityState={{ selected: tab === t }} accessibilityLabel={t === 'episodes' ? 'Episodes' : 'About'} className={`justify-center px-section rounded-pill ${tab === t ? 'bg-primary' : ''}`} style={TAP}>
-                <Text className={tab === t ? 'text-meta font-bold text-onPrimary' : 'text-meta text-muted'}>
-                  {t === 'about' ? 'About' : episodes.length > 0 ? `Episodes · ${shown.length}` : 'Episodes'}
-                </Text>
-              </Pressable>
-            ))}
-          </Box>
-        </Box>
+        {/* M24 US20 (`Show-B`): the white track with the chosen tab dark, as the kit's dark Segmented. */}
+        <Segmented
+          tone="dark"
+          items={[
+            { value: 'episodes' as const, label: episodes.length > 0 ? `Episodes · ${shown.length}` : 'Episodes', accessibilityLabel: 'Episodes' },
+            { value: 'about' as const, label: 'About' },
+          ]}
+          value={tab}
+          onChange={setTab}
+        />
       </Box>
       {tab === 'episodes' && episodes.length > 0 ? (
         <Box className="px-screen-x flex-row items-center gap-gap">
@@ -543,7 +543,7 @@ export default function ShowScreen(): React.ReactElement {
       {/* M21 US5 (FR-041): the show's ⋯ — Show info, and Report as before. */}
       <Actionsheet isOpen={showMenu} onClose={() => setShowMenu(false)}>
         <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-        <ActionsheetContent className="bg-surface rounded-t-row px-screen-x pt-row items-stretch">
+        <ActionsheetContent className="px-screen-x pt-row items-stretch">
           <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
           <Text className="text-text text-base font-display py-row" numberOfLines={2}>{title ?? ''}</Text>
           <SheetRow icon="information-circle-outline" label="Show info" iconColour={c.accent} onPress={() => { setShowMenu(false); router.push({ pathname: '/show-info/[feedUrl]', params: { feedUrl: encodeURIComponent(feedUrl) } }); }} />

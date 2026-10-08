@@ -26,7 +26,7 @@ import { Text } from '@/ui/lib/text';
 import { getPref, setPref } from '@/settings/prefs';
 import { useStores } from '@/ui/shell/providers';
 import { LinkRow, SwitchRow } from '@/ui/settings/rows';
-import { Card, CardDivider } from '@/ui/kit/Card';
+import { Card } from '@/ui/kit/Card';
 import { PageHeader } from '@/ui/kit/PageHeader';
 
 function Section(props: { title: string }): React.ReactElement {
@@ -41,20 +41,21 @@ export default function MoreSettings(): React.ReactElement {
     <PageHeader title="More" />
     <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pb-24">
       <Section title="Your shows" />
-      <Card>
+      <Card className="py-1">
         <LinkRow href="/settings/opml" icon="swap-horizontal-outline" label="Import or export subscriptions" line="OPML — the file every podcast app reads" />
       </Card>
       {/* M21 US10 (T110): the playback switches moved to their own page. */}
       <Section title="Playback" />
-      <Card>
+      <Card className="py-1">
         <LinkRow href="/settings/playback" icon="play-circle-outline" label="Playback" line="Queue, mobile data, transcript, lock screen, music mode, skip silence" />
       </Card>
       <Section title="Recommendations" />
-      <Card>
+      <Card className="py-1">
         <SwitchRow icon="sparkles-outline" label="Personalised recommendations" line="For You on Discover, from what you follow and play. Off: no For You, and nothing is sent for it." value={recs} onChange={(v) => { setRecs(v); setPref(stores.settings, 'personalRecs', v); }} />
-        <CardDivider />
         {/* M12 FR-094 */}
         <LinkRow href="/settings/how-for-you" icon="help-circle-outline" label="How For You works" line="What it uses, and what it never uses" />
+        {/* M19 T022 (moved here from Settings in M24 US20): what For You no longer recommends, each with Restore. */}
+        <LinkRow href="/settings/not-interested" icon="eye-off-outline" label="Not interested" line="Episodes and shows hidden from For You" />
       </Card>
     </ScrollView>
     </>

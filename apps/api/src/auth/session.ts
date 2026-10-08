@@ -3,7 +3,6 @@ import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import type { Context, MiddlewareHandler } from 'hono';
 import type { Db } from '../db/db.ts';
 import { ApiError } from '../errors.ts';
-import { appealTokenFor } from './appeal-token.ts';
 
 export type Listener = { id: string; email: string; display_name: string; created_at: Date | string; suspended_at?: Date | string | null };
 
@@ -110,7 +109,7 @@ export const optionalAuth: MiddlewareHandler<AuthEnv> = async (c, next) => {
     const listener = await listenerForToken(c.get('db'), token, c.get('pepper'));
     if (listener) {
       // M6 (FR-015, G6): a suspended account is refused everywhere, with the appeals address.
-      if (listener.suspended_at) throw suspendedError(c.get('safety')?.appealsEmail, appealTokenFor(listener.id, c.get('pepper')));
+      if (listener.suspended_at) throw suspendedError(c.get('safety')?.appealsEmail);
       c.set('listener', listener);
       c.set('token', token);
     }
@@ -124,10 +123,9 @@ export const requireAuth: MiddlewareHandler<AuthEnv> = async (c, next) => {
   await next();
 };
 
-/** M24 US6: `appealToken` (when known) lets the phone send an appeal after it forgot the session. */
-export function suspendedError(appeals: string | undefined, appealToken?: string): ApiError {
+export function suspendedError(appeals: string | undefined): ApiError {
   const where = appeals ? `Write to ${appeals}.` : 'Write to the owner.';
-  return new ApiError('suspended', `This account is suspended. ${where}`, { ...(appeals ? { appeals } : {}), ...(appealToken ? { appealToken } : {}) });
+  return new ApiError('suspended', `This account is suspended. ${where}`, { ...(appeals ? { appeals } : {}) });
 }
 
 export function publicListener(l: Listener) {

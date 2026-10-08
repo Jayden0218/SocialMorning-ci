@@ -91,7 +91,7 @@ export function RateSheet(props: { onTabs: boolean; segment: string | undefined;
   return (
     <Actionsheet isOpen={open} onClose={() => answer('closed')}>
       <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-      <ActionsheetContent className="bg-surface rounded-t-artwork-lg px-screen-x pt-gap items-stretch" accessibilityViewIsModal>
+      <ActionsheetContent className="px-screen-x pt-gap items-stretch" accessibilityViewIsModal>
         <Box className="flex-row justify-end">
           <Pressable onPress={() => answer('closed')} accessibilityRole="button" accessibilityLabel="Close" className="items-center justify-center" style={TAP}>
             <Box className="w-8 h-8 rounded-pill bg-background border border-border items-center justify-center">

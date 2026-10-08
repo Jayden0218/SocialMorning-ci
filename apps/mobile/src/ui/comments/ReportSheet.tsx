@@ -63,7 +63,7 @@ export function ReportSheet(props: { target: ReportTarget | undefined; onClose: 
     <Actionsheet isOpen={props.target !== undefined} onClose={close}>
       <ActionsheetBackdrop />
       {/* M16a T014 / guard G-S1: no fixed bottom padding — ActionsheetContent's own `pb-safe` clears the home indicator. */}
-      <ActionsheetContent className="bg-surface rounded-t-row px-screen-x pt-row max-h-[85%] items-stretch" accessibilityViewIsModal>
+      <ActionsheetContent className="px-screen-x pt-row max-h-[85%] items-stretch" accessibilityViewIsModal>
         <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
         <Eyebrow accent className="mt-gap">Hidden for you once sent</Eyebrow>
         <Heading className="text-display font-display text-text mt-1" accessibilityRole="header">Report {props.target?.label ?? ''}</Heading>

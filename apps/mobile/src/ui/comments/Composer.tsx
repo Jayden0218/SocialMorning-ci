@@ -44,7 +44,8 @@ import { useColours } from '@/ui/kit/useColours';
 
 /** The ✕ is a 48 pt square (B draws 44; the floor is 48). */
 const CLOSE = { width: hit.min, height: hit.min };
-const BOX = { minHeight: 120, maxHeight: 240 };
+/** M24 US20 (`CommentComposer-B`): the box grows to fill the sheet; 120 is its floor. */
+const BOX = { minHeight: 120 };
 const THUMB = { width: 64, height: 64, borderRadius: 12 };
 
 export function ComposerSheet(props: {
@@ -89,8 +90,6 @@ export function ComposerSheet(props: {
           toast('Your comment is posted, but the picture did not upload.');
         }
       }
-      // M24 US8: the show checks comments first — say so, since nobody else sees it yet.
-      if (r.comment.held) toast('Sent. The host reviews comments here first. Until then, only you can see it.');
       bump(state.episodeId);
       props.onPosted();
       props.onClose();
@@ -101,17 +100,18 @@ export function ComposerSheet(props: {
     } else if (needsRules(r.error)) {
       setRules(true);
     } else {
-      setError(r.error.code === 'network' ? "Couldn't reach the server — your draft is kept."
-        : r.error.code === 'comments_closed' ? 'The host has closed comments here.' : r.error.message);
+      setError(r.error.code === 'network' ? "Couldn't reach the server — your draft is kept." : r.error.message);
     }
   }
 
   return (
     <Actionsheet isOpen onClose={props.onClose}>
       <ActionsheetBackdrop />
-      <KeyboardAvoidingView className="w-full justify-end" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <ActionsheetContent className="bg-surface px-0 pt-0 rounded-t-row items-stretch">
-        <ScrollView keyboardShouldPersistTaps="handled" scrollEnabled={false} contentContainerClassName="px-screen-x pt-row pb-section gap-row">
+      {/* M24 US20 (`CommentComposer-B`): a full-height paper sheet from 44 pt under the top down to
+          the keyboard; the text box takes the space between the episode card and the foot. */}
+      <KeyboardAvoidingView className="w-full flex-1 justify-end" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ActionsheetContent className="px-0 pt-0 mt-11 items-stretch flex-1 max-h-full">
+        <ScrollView className="flex-1 w-full" keyboardShouldPersistTaps="handled" scrollEnabled={false} contentContainerClassName="px-screen-x pt-row pb-section gap-row flex-grow">
           {rules ? <RulesBody onAccepted={() => { setRules(false); void submit(); }} onClose={() => setRules(false)} /> : (<>
           <Box className="flex-row justify-between items-center gap-gap">
             <Pressable onPress={props.onClose} accessibilityRole="button" className="min-h-12 justify-center pr-row"><Text className="text-accent text-body font-bold">Cancel</Text></Pressable>
@@ -128,7 +128,7 @@ export function ComposerSheet(props: {
           </Box>
           {/* The episode, with the moment the comment is pinned to (removable). */}
           <Box className="flex-row items-center gap-row bg-surface border border-border rounded-row py-row pl-row pr-1">
-            <Artwork url={episode?.imageUrl ?? show?.imageUrl} size={44} rounded="row" name={show?.title ?? episode?.title} />
+            <Artwork url={episode?.imageUrl ?? show?.imageUrl} size={44} name={show?.title ?? episode?.title} />
             <Box className="flex-1">
               {state.moment
                 ? <Text className="text-accent text-xs font-bold">At {mmss(state.moment.offsetMs)}</Text>
@@ -141,7 +141,7 @@ export function ComposerSheet(props: {
               </Pressable>
             ) : null}
           </Box>
-          <Textarea className="h-auto border-0 bg-clear" style={BOX}>
+          <Textarea className="flex-1 h-auto border-0 bg-clear" style={BOX}>
           <TextareaInput
             placeholderTextColor={c.muted}
             className="p-0 text-base font-display align-top text-text"

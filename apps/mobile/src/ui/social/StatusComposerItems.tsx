@@ -140,7 +140,7 @@ export function StatusComposerItems(props: { items: ComposerItem[]; onChange: (n
 
       <Actionsheet isOpen={picking} onClose={() => setPicking(false)}>
         <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-        <ActionsheetContent className="bg-surface rounded-t-row px-screen-x pt-row items-stretch">
+        <ActionsheetContent className="px-screen-x pt-row items-stretch">
           <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
           <Text className="text-text text-sm font-bold py-row">Add an episode</Text>
           <Input className="bg-background border border-border rounded-pill h-auto px-0">

@@ -14,7 +14,7 @@ import { ScrollView } from '@/ui/lib/scroll-view';
 import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
 import { PageHeader } from '@/ui/kit/PageHeader';
-import { Card, CardDivider } from '@/ui/kit/Card';
+import { Card } from '@/ui/kit/Card';
 import { Button } from '@/ui/kit/Button';
 import { apiBaseUrl } from '@/social/base-url';
 import { useStores, useToast } from '@/ui/shell/providers';
@@ -90,10 +90,9 @@ export default function NetworkScreen(): React.ReactElement {
       <Text className="text-muted text-body">Tests our server, the host of a show you follow, and the host its audio streams from.</Text>
       <Button label={running ? 'Checking…' : results === undefined ? 'Start the check' : 'Check again'} busy={running} onPress={() => void run()} />
       {results !== undefined && results.length > 0 ? (
-        <Card>
-          {results.map((r, i) => (
+        <Card className="py-1">
+          {results.map((r) => (
             <Box key={r.name}>
-              {i > 0 ? <CardDivider /> : null}
               <Box className="py-row gap-0.5">
                 <Box className="flex-row justify-between">
                   <Text className="text-text text-body font-bold">{r.name}</Text>

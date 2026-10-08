@@ -54,6 +54,7 @@ import { isFavComment, toggleFavComment } from '@/me/fav-comments';
 import { EpisodeCard } from '@/ui/comments/EpisodeCard';
 import { PageHeader } from '@/ui/kit/PageHeader';
 import { Segmented } from '@/ui/kit/Segmented';
+import { SheetRow } from '@/ui/kit/SheetRow';
 import { Icon, type IconName } from '@/ui/kit/Icon';
 import { EndOfList } from '@/ui/kit/EndOfList';
 import { extrasOf, replyCountOf, useCommentExtrasApi } from '@/social/comment-extras-api';
@@ -89,12 +90,13 @@ function menuIcon(label: string): IconName {
   if (label === 'Turn like notices back on') return 'notifications-outline';
   return 'flag-outline';
 }
+// M24 US20 (`Comments-B`): the track shows the design's three orders, full width. The fourth,
+// M19 FR-042's "Smart" (likes + 2 × replies − hours old / 12, social-core `smartScore`), moved
+// into the "Order options" sheet beside the track, with the M21 reverse switch — nothing lost.
 const ORDERS: { value: CommentOrder; label: string }[] = [
   { value: 'newest', label: 'Newest' },
   { value: 'liked', label: 'Most liked' },
   { value: 'byMoment', label: 'By moment' },
-  // M19 FR-042: likes + 2 × replies − hours old / 12 (social-core `smartScore`).
-  { value: 'smart', label: 'Smart' },
 ];
 
 /**
@@ -122,6 +124,7 @@ export default function CommentsScreen(): React.ReactElement {
   const [order, setOrderOnly] = useState<CommentOrder>('newest');
   // M21 US6: the active order's direction; a new order starts the way it reads by default.
   const [dir, setDir] = useState<CommentDir>(defaultDir('newest'));
+  const [orderMenu, setOrderMenu] = useState(false);
   const setOrder = (o: CommentOrder) => { setOrderOnly(o); setDir(defaultDir(o)); };
   const [likes, setLikes] = useState<Record<string, LikeView>>({});
   const [menu, setMenu] = useState<Comment | undefined>();
@@ -273,19 +276,43 @@ export default function CommentsScreen(): React.ReactElement {
       {/* Owner, 2026-10-01: the episode, with its own play/pause, at the top of the page. */}
       {episodeId ? <EpisodeCard episodeId={episodeId} /> : null}
       <Box className="flex-row items-center gap-gap mx-screen-x mt-row">
-        <Segmented items={ORDERS} value={order} onChange={setOrder} className="flex-1" />
-        {/* M21 US6: the active order, the other way round. */}
+        <Segmented items={ORDERS} value={order} onChange={setOrder} className="flex-1" tone="dark" />
+        {/* M24 US20: "Smart" order and M21 US6's reverse switch live in this small sheet. */}
         <Pressable
-          onPress={() => setDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
+          onPress={() => setOrderMenu(true)}
           accessibilityRole="button"
-          accessibilityLabel="Reverse order"
-          accessibilityState={{ selected: dir !== defaultDir(order) }}
-          className="items-center justify-center rounded-pill bg-surface border border-border"
+          accessibilityLabel={order === 'smart' ? 'Order options, Smart order on' : 'Order options'}
+          accessibilityState={{ selected: order === 'smart' || dir !== defaultDir(order) }}
+          className={`items-center justify-center rounded-pill border border-border ${order === 'smart' ? 'bg-text' : 'bg-surface'}`}
           style={ARROW}
         >
-          <Icon name={dir === 'asc' ? 'arrow-up' : 'arrow-down'} size={18} color={c.accent} />
+          <Icon name="options-outline" size={18} color={order === 'smart' ? c.background : c.accent} />
         </Pressable>
       </Box>
+      <Actionsheet isOpen={orderMenu} onClose={() => setOrderMenu(false)}>
+        <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
+        <ActionsheetContent className="px-screen-x items-stretch">
+          <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
+          <Text className="text-text text-title font-display mt-gap mb-row" accessibilityRole="header">Order</Text>
+          <SheetRow
+            icon="sparkles-outline"
+            iconColour={c.accent}
+            label="Smart order"
+            detail={order === 'smart' ? 'On' : 'Likes, replies, new'}
+            selected={order === 'smart'}
+            onPress={() => { setOrder(order === 'smart' ? 'newest' : 'smart'); setOrderMenu(false); }}
+          />
+          <SheetRow
+            icon={dir === 'asc' ? 'arrow-up' : 'arrow-down'}
+            iconColour={c.accent}
+            label="Reverse order"
+            detail={dir !== defaultDir(order) ? 'On' : 'Off'}
+            selected={dir !== defaultDir(order)}
+            onPress={() => { setDir((d) => (d === 'asc' ? 'desc' : 'asc')); setOrderMenu(false); }}
+          />
+          <Box className="pb-section" />
+        </ActionsheetContent>
+      </Actionsheet>
       {stale ? <Text className="text-muted text-xs px-screen-x pt-2">Couldn't refresh — showing the last copy</Text> : null}
       <FlatList
         className="flex-1"
@@ -333,7 +360,7 @@ export default function CommentsScreen(): React.ReactElement {
       </Box>
       <Actionsheet isOpen={menu !== undefined} onClose={() => setMenu(undefined)}>
         <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-        <ActionsheetContent className="bg-surface rounded-t-row px-screen-x items-stretch">
+        <ActionsheetContent className="px-screen-x items-stretch">
           <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
           {/* M17 (`CommentMenu-B`, T104): the comment itself on a white card, then one row per action
               with its icon in a bordered square; Delete / Report sit under a rule; Cancel is a pill. */}

@@ -85,7 +85,9 @@ export default function AccountMoreScreen(): React.ReactElement {
 
   return (
     <>
-    <PageHeader title="More" />
+    {/* M24 US20 (`SettingsAccountMore-B`): one title — "Delete my account" replaces "More" once
+        the deletion steps show (it was drawn twice, stacked). */}
+    {confirming ? <PageHeader title="Delete my account" /> : <PageHeader title="More" />}
     <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pb-section gap-row">
       {!listener ? <Text className="text-muted text-sm">Sign in to manage your account.</Text> : null}
       {!confirming ? (
@@ -98,7 +100,6 @@ export default function AccountMoreScreen(): React.ReactElement {
         </Card>
       ) : (
         <Box className="gap-row">
-          <Text className="text-text text-hero font-display" accessibilityRole="header">Delete my account</Text>
           <Text className="text-text text-body">This removes your comments, reactions and listening positions from every phone. Where someone replied to you, "Comment deleted" stays so their reply still makes sense.</Text>
           <Text className="text-accent text-title font-display">{`Deleted for good on ${due}.`}</Text>
           <Text className="text-muted text-body">{`Until then your account is hidden from everyone and signed out on every phone. Changed your mind? Sign in before ${due} and keep it.`}</Text>
@@ -143,7 +144,8 @@ export default function AccountMoreScreen(): React.ReactElement {
   );
 }
 
-const pill = 'flex-1 rounded-pill items-center justify-center px-row';
+// M24 US20: the design's two foot buttons have 16 pt corners, not pills.
+const pill = 'flex-1 rounded-row items-center justify-center px-row';
 const TAP = { minHeight: hit.min };
 const DOT = { width: 32, height: 32 };
 

@@ -43,7 +43,7 @@ export function CommentImage(props: { image: Picture; teen?: boolean }): React.R
       {open ? (
         <Actionsheet isOpen onClose={() => setOpen(false)}>
           <ActionsheetBackdrop />
-          <ActionsheetContent className="bg-surface items-center gap-row">
+          <ActionsheetContent className="items-center gap-row">
             <Image source={{ uri: props.image.url }} style={full} accessibilityLabel="The picture, full size" />
             <Box className="w-full items-center">
               <Pressable onPress={() => setOpen(false)} accessibilityRole="button" accessibilityLabel="Close the picture" className="justify-center px-section rounded-pill border border-border" style={TAP}>

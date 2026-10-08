@@ -74,7 +74,7 @@ export default function HelpScreen(): React.ReactElement {
       <Text className="text-text text-base font-display-semibold mt-1" accessibilityRole="header">Common questions</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-screen-x" contentContainerClassName="px-screen-x gap-gap">
         {tags.map((t) => (
-          <Chip key={t} label={t} chosen={tag === t} onPress={() => setTag(t)} accessibilityLabel={`Show ${t === ALL ? 'all questions' : `${t} questions`}`} />
+          <Chip key={t} tone="dark" label={t} chosen={tag === t} onPress={() => setTag(t)} accessibilityLabel={`Show ${t === ALL ? 'all questions' : `${t} questions`}`} />
         ))}
       </ScrollView>
 

@@ -40,11 +40,7 @@ export async function showHosts(db: Db, feedUrl: string): Promise<ShowHost[]> {
 }
 
 export async function hostPicks(db: Db, feedUrl: string): Promise<string[]> {
-  // M24 US11: a hidden episode is no longer a pick.
-  const rows = await db.query<{ episode_id: string }>(
-    `SELECT p.episode_id FROM host_picks p WHERE p.feed_url = $1
-       AND NOT EXISTS (SELECT 1 FROM episodes e JOIN hidden_episodes h ON h.feed_url = e.feed_url AND h.guid = e.guid WHERE e.id = p.episode_id)
-     ORDER BY p.position`, [feedUrl]);
+  const rows = await db.query<{ episode_id: string }>('SELECT episode_id FROM host_picks WHERE feed_url = $1 ORDER BY position', [feedUrl]);
   return rows.map((r) => r.episode_id);
 }
 

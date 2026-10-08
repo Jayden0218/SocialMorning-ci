@@ -27,7 +27,7 @@ export function LikeSheet(props: { open: boolean; title?: string; initialNote?: 
   return (
     <Actionsheet isOpen={props.open} onClose={props.onSkip}>
       <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-      <ActionsheetContent className="bg-surface rounded-t-row px-screen-x pt-row items-stretch" accessibilityViewIsModal>
+      <ActionsheetContent className="px-screen-x pt-row items-stretch" accessibilityViewIsModal>
         <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
         <Heading className="text-display font-display text-text mt-gap" accessibilityRole="header">Liked</Heading>
         {props.title ? <Text className="text-body text-muted mt-1" numberOfLines={2}>{props.title}</Text> : null}

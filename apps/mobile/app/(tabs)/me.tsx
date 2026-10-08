@@ -71,14 +71,18 @@ export default function MeScreen(): React.ReactElement {
   return (
     <SafeAreaView className="flex-1 bg-background">
       <ScrollView ref={top} contentContainerClassName="px-screen-x pt-section" contentContainerStyle={{ paddingBottom: TAB_PAGE_END }}>
-        <Link href="/stickers" asChild>
-          <Pressable accessibilityRole="link" accessibilityLabel="Stickers" className="self-end flex-row items-center gap-2 bg-surface border border-border rounded-pill px-section" style={TAP}>
-            <Icon name="medal-outline" size={18} color={c.text} />
-            <Text className="text-accent text-meta font-bold">Stickers</Text>
-          </Pressable>
-        </Link>
+        {/* M24 US20 (`Me-B`): the Stickers pill is pinned top-right, level with the avatar's top —
+            out of the flow, so the avatar block starts at the top of the page. */}
+        <Box className="absolute right-screen-x top-section z-10">
+          <Link href="/stickers" asChild>
+            <Pressable accessibilityRole="link" accessibilityLabel="Stickers" className="flex-row items-center gap-2 bg-surface border border-border rounded-pill px-section" style={TAP}>
+              <Icon name="medal-outline" size={18} color={c.text} />
+              <Text className="text-accent text-meta font-bold">Stickers</Text>
+            </Pressable>
+          </Link>
+        </Box>
 
-        <Box className="items-center mt-2">
+        <Box className="items-center">
           {listener && avatarUrl
             ? <Avatar url={avatarUrl} name={listener.displayName} size={AVATAR.width} />
             : (

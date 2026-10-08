@@ -203,7 +203,7 @@ export default function PlaylistScreen(): React.ReactElement {
             <Box className="flex-row gap-row items-center">
               <Pressable onPress={() => void cards.open(e)} accessibilityRole="button" accessibilityLabel={`${i + 1}. ${e.title}, ${e.showTitle}`} className="flex-1 flex-row gap-row items-center" style={TAP}>
                 <Text className="text-muted text-meta font-bold w-6 text-center">{i + 1}</Text>
-                <Artwork url={e.imageUrl} size={52} rounded="row" name={e.showTitle} />
+                <Artwork url={e.imageUrl} size={52} name={e.showTitle} />
                 <Box className="flex-1 gap-0.5">
                   <Text className="text-text text-sm font-display" numberOfLines={2}>{e.title}</Text>
                   <Text className="text-muted text-xs" numberOfLines={1}>{e.showTitle}</Text>

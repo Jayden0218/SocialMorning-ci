@@ -116,7 +116,7 @@ export default function IssueScreen(): React.ReactElement {
               <Box>
                 <Pressable onPress={() => void open(card)} accessibilityRole="button" accessibilityLabel={`${card.title}, ${card.showTitle}`} style={TAP}>
                   <Tile n={i + 1} imageUrl={card.imageUrl} showTitle={card.showTitle} />
-                  {card.imageUrl ? <Box className="mt-2.5 items-center"><Artwork url={card.imageUrl} size={220} rounded="row" name={card.showTitle} /></Box> : null}
+                  {/* M24 US20 (`Issue-B`): no 220 pt cover under the tile — the tile carries the cover. */}
                   <Box className="mt-2.5 pr-14">
                     <Text className="text-muted text-xs" numberOfLines={1}>{card.showTitle}</Text>
                     <Text className="text-text text-body font-bold" numberOfLines={2}>{card.title}</Text>

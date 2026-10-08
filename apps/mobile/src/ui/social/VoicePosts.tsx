@@ -125,7 +125,7 @@ export function VoicePosts(props: {
         : shown?.text ? <Text className="px-screen-x pt-row text-text text-sm" numberOfLines={4}>{`“${shown.text}” — ${shown.mine ? 'You' : shown.author.name}`}</Text> : null}
       <Actionsheet isOpen={chooser} onClose={() => setChooser(false)}>
         <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-        <ActionsheetContent className="bg-surface rounded-t-row px-screen-x pt-row items-stretch">
+        <ActionsheetContent className="px-screen-x pt-row items-stretch">
           <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
           <Text className="text-sm font-bold text-text py-row">New status · gone after 24 h</Text>
           <Pressable onPress={() => { setChooser(false); router.push('/voice/new'); }} accessibilityRole="button" accessibilityLabel="Record a voice status" className="flex-row items-center gap-section border-b-hairline border-separator" style={ROW}>

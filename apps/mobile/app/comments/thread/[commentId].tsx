@@ -202,7 +202,7 @@ export default function ThreadScreen(): React.ReactElement {
       ) : null}
       <Actionsheet isOpen={menu !== undefined} onClose={() => setMenu(undefined)}>
         <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-        <ActionsheetContent className="bg-surface rounded-t-row px-screen-x items-stretch">
+        <ActionsheetContent className="px-screen-x items-stretch">
           <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
           {menu ? menuItems(menu).map((item) => {
             const strong = item.label === 'Delete' || item.label === 'Report';

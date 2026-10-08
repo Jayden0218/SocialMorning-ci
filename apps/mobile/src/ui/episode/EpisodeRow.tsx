@@ -3,6 +3,7 @@
  * One catalogue episode (M5): artwork, title, show · length · date, an optional line under it.
  * M17 (`Episode-B`, data-model §2 display-m): the title in the serif (serif SemiBold 16),
  * the meta at the 13 pt step; same props, same tap.
+ * M24 US20 (`Home-B` rows): the title is 14 pt bold sans (it was `text-sm`, 16 serif), the meta 12.
  * M21 US4: an optional long-press (the shared episode sheet).
  */
 import { Artwork } from '@/ui/kit/Artwork';
@@ -21,8 +22,8 @@ export function EpisodeRow(props: { card: EpisodeCard; line?: string; onPress: (
       {/* M12 B5: through Artwork, so Next up gets the initial, the fade and the token radius. */}
       <Artwork url={card.imageUrl} size={56} name={card.showTitle} />
       <Box className="flex-1 gap-0.5">
-        <Text className="text-sm font-display-semibold text-text" numberOfLines={3}>{card.title}</Text>
-        <Text className="text-muted text-meta" numberOfLines={1}>{meta}</Text>
+        <Text className="text-body font-bold text-text" numberOfLines={3}>{card.title}</Text>
+        <Text className="text-muted text-xs" numberOfLines={1}>{meta}</Text>
         {props.line ? <Text className="text-text text-body" numberOfLines={2}>{props.line}</Text> : null}
       </Box>
     </Pressable>

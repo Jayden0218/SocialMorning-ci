@@ -7,7 +7,6 @@
 import type { Action, TargetKind } from '@socialmorning/social-core';
 import type { Db } from '../../db.ts';
 import { closeReportsFor } from './reports.ts';
-import { insertNotice } from '../social/system-notices.ts';
 
 export type ActionRow = { id: string; actor_id: string; action: Action; target_kind: TargetKind; target_id: string; created_at: string };
 
@@ -26,17 +25,7 @@ export async function act(db: Db, actorId: string, item: { kind: TargetKind; id:
         } else if (item.kind === 'clip') {
           await tx.query('UPDATE clips SET removed_at = now() WHERE id = $1 AND removed_at IS NULL', [item.id]);
           await tx.query(`DELETE FROM activity WHERE kind = 'clipped' AND ref_id = $1`, [item.id]);
-        } else if (item.kind === 'status') {
-          // M24 US1: the status ends now — every reader asks `expires_at > now()`, and the hourly
-          // sweep deletes its recording, replies and photos from storage (constitution V).
-          await tx.query('UPDATE voice_posts SET expires_at = now() WHERE id = $1 AND expires_at > now()', [item.id]);
-        } else if (item.kind === 'chat_message') {
-          await tx.query('UPDATE chat_messages SET removed_at = now() WHERE id = $1::bigint AND removed_at IS NULL', [item.id]);
-        } else if (item.kind === 'list') {
-          await tx.query('UPDATE shared_lists SET removed_at = now() WHERE id = $1 AND removed_at IS NULL', [item.id]);
         }
-        // M24 US6: the author is told, with the one way to appeal.
-        await tellAuthor(tx, item);
         break;
       case 'hide_show':
         await tx.query('INSERT INTO hidden_feeds (feed_url, action_id) VALUES ($1, $2) ON CONFLICT (feed_url) DO NOTHING', [item.id, a.id]);
@@ -62,35 +51,11 @@ export async function act(db: Db, actorId: string, item: { kind: TargetKind; id:
   });
 }
 
-/** Who wrote the item: from its row while it exists, else from the copy a report kept (M24: a status may be swept). */
-export async function authorOf(db: Db, kind: TargetKind, id: string): Promise<string | null> {
-  const sql = kind === 'comment' ? 'SELECT author_id FROM comments WHERE id = $1'
-    : kind === 'clip' ? 'SELECT author_id FROM clips WHERE id = $1'
-    : kind === 'status' && /^[0-9a-f-]{36}$/i.test(id) ? 'SELECT listener_id AS author_id FROM voice_posts WHERE id = $1'
-    : kind === 'chat_message' && /^\d{1,18}$/.test(id) ? 'SELECT sender_id AS author_id FROM chat_messages WHERE id = $1::bigint'
-    : kind === 'list' ? 'SELECT owner_id AS author_id FROM shared_lists WHERE id = $1'
-    : null;
-  if (sql) {
-    const [r] = await db.query<{ author_id: string | null }>(sql, [id]);
-    if (r?.author_id) return r.author_id;
-  }
-  const [s] = await db.query<{ author_id: string | null }>(
-    "SELECT snapshot->>'authorId' AS author_id FROM reports WHERE target_kind = $1 AND target_id = $2 AND snapshot ? 'authorId' ORDER BY created_at LIMIT 1", [kind, id]);
-  return s?.author_id && /^[0-9a-f-]{36}$/i.test(s.author_id) ? s.author_id : null;
-}
-
-const THING: Partial<Record<TargetKind, string>> = { comment: 'comment', clip: 'clip', status: 'status', chat_message: 'message', list: 'shared list' };
-
-/** M24 US6: a system notice to the author of removed content, with the Appeal button. */
-async function tellAuthor(db: Db, item: { kind: TargetKind; id: string }): Promise<void> {
-  const who = await authorOf(db, item.kind, item.id);
-  const thing = THING[item.kind];
-  if (!who || !thing) return;
-  await insertNotice(db, {
-    listenerId: who, title: `Your ${thing} was removed`,
-    body: `A ${thing} you posted broke the community rules, so it was removed. If you think this is a mistake, you can appeal once.`,
-    link: { label: 'Appeal', route: '/appeal' },
-  });
+async function authorOf(db: Db, kind: TargetKind, id: string): Promise<string | null> {
+  const table = kind === 'comment' ? 'comments' : kind === 'clip' ? 'clips' : null;
+  if (!table) return null;
+  const [r] = await db.query<{ author_id: string | null }>(`SELECT author_id FROM ${table} WHERE id = $1`, [id]);
+  return r?.author_id ?? null;
 }
 
 export async function hiddenFeedUrls(db: Db): Promise<Set<string>> {

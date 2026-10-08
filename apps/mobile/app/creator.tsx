@@ -153,15 +153,14 @@ export default function CreatorScreen(): React.ReactElement {
       {/* M12 FR-103: the Creator academy link — at the end of the page in `Creator-B`, as a card
           like the claimed shows above. */}
       <Link href="/academy" asChild>
-        <Pressable accessibilityRole="link" accessibilityLabel="Creator academy: how claiming, numbers, comments, clips and the Studio work" className="mx-screen-x bg-surface border border-border rounded-row p-section flex-row items-center gap-row" style={TAP}>
-          <Box className="w-10 h-10 rounded-row bg-accentTint items-center justify-center">
-            <Icon name="school-outline" size={22} color={c.accent} />
-          </Box>
+        {/* M24 US20 (`Creator-B`): the academy card is dark with paper words and a yellow icon. */}
+        <Pressable accessibilityRole="link" accessibilityLabel="Creator academy: how claiming, numbers, comments, clips and the Studio work" className="mx-screen-x bg-text rounded-row px-5 py-[18px] flex-row items-center gap-row" style={TAP}>
+          <Icon name="school-outline" size={24} color={c.primary} />
           <Box className="flex-1">
-            <Text className="text-text text-title font-display">Creator academy</Text>
-            <Text className="text-muted text-meta">Claiming, numbers, comments, clips, the Studio</Text>
+            <Text className="text-background text-title font-display-semibold">Creator academy</Text>
+            <Text className="text-background text-meta opacity-80">Claiming, numbers, comments, clips, the Studio</Text>
           </Box>
-          <Icon name="chevron-forward" size={18} color={c.muted} />
+          <Icon name="chevron-forward" size={18} color={c.background} />
         </Pressable>
       </Link>
     </ScrollView>

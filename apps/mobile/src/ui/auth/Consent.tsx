@@ -152,7 +152,7 @@ export function ConsentDialog(props: {
         accessibilityLabel="Close"
       />
       <ActionsheetContent
-        className="bg-background rounded-t-artwork-lg px-screen-x pt-gap items-stretch"
+        className="px-screen-x pt-gap items-stretch"
         accessibilityViewIsModal
       >
         <ActionsheetDragIndicatorWrapper>

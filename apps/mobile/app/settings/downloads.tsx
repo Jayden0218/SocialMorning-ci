@@ -23,7 +23,7 @@ import { mb } from '@/ui/episode/DownloadButton';
 import { useDownloads, useStores, useToast } from '@/ui/shell/providers';
 import { SwitchRow } from '@/ui/settings/rows';
 import { Button } from '@/ui/kit/Button';
-import { Card, CardDivider } from '@/ui/kit/Card';
+import { Card } from '@/ui/kit/Card';
 import { Eyebrow } from '@/ui/kit/Eyebrow';
 import { plural } from '@socialmorning/social-core';
 import { useConfirm } from '@/ui/kit/confirm';
@@ -31,6 +31,19 @@ import { PageHeader } from '@/ui/kit/PageHeader';
 import { cacheBytes, clearCache, phoneCacheEntries, sizeLabel } from '@/storage/clear-cache';
 
 const TAP = { minHeight: hit.min };
+const FIGURE = { fontSize: 56, lineHeight: 60 };
+const UNIT = { fontSize: 22, lineHeight: 28 };
+
+/** M24 US20 (`SettingsDownloads-B`): "412" in the 56 pt serif with "MB" at 22 beside it, one line, one spoken size. */
+function BigSize(props: { label: string }): React.ReactElement {
+  const [figure, unit] = props.label.split(' ');
+  return (
+    <Box className="flex-row items-baseline gap-1" accessible accessibilityLabel={props.label}>
+      <Text className="text-text font-display" style={FIGURE} maxFontSizeMultiplier={1.3}>{figure}</Text>
+      {unit ? <Text className="text-text font-display-semibold" style={UNIT} maxFontSizeMultiplier={1.3}>{unit}</Text> : null}
+    </Box>
+  );
+}
 
 export default function DownloadSettings(): React.ReactElement {
   const stores = useStores();
@@ -83,7 +96,7 @@ export default function DownloadSettings(): React.ReactElement {
       <Card className="py-section mb-section">
         <Eyebrow accent>On this phone</Eyebrow>
         <Box className="flex-row items-baseline justify-between gap-gap mt-row">
-          <Text className="text-text text-display font-display">{mb(used)}</Text>
+          <BigSize label={mb(used)} />
           <Text className="text-muted text-meta">{plural(episodes, 'episode')}</Text>
         </Box>
         <Box className="h-2.5 rounded-pill bg-track overflow-hidden mt-row" accessible={false}>
@@ -91,9 +104,9 @@ export default function DownloadSettings(): React.ReactElement {
         </Box>
         <Text className="text-muted text-xs mt-row">{`of a ${mb(budget)} storage limit`}</Text>
         <Box className="flex-row gap-gap mt-section">
-          <Button kind="secondary" label="Clear downloaded episodes" accessibilityLabel={`Clear downloaded episodes, ${mb(used)}`} onPress={clearAll} className="flex-1" />
+          <Button kind="secondary" shape="rounded" label="Clear downloaded episodes" accessibilityLabel={`Clear downloaded episodes, ${mb(used)}`} onPress={clearAll} className="flex-1" />
           <Link href="/downloads" asChild>
-            <Pressable accessibilityRole="link" accessibilityLabel="Manage downloads and storage limit" className="flex-1 px-section rounded-pill bg-primary items-center justify-center" style={TAP}>
+            <Pressable accessibilityRole="link" accessibilityLabel="Manage downloads and storage limit" className="flex-1 px-section rounded-row bg-primary items-center justify-center" style={TAP}>
               <Text className="text-onPrimary text-body font-bold text-center">Manage downloads</Text>
             </Pressable>
           </Link>
@@ -102,22 +115,20 @@ export default function DownloadSettings(): React.ReactElement {
       <Card className="py-section mb-section">
         <Eyebrow accent>Cache</Eyebrow>
         <Box className="flex-row items-baseline justify-between gap-gap mt-row">
-          <Text className="text-text text-display font-display">{cache !== undefined ? sizeLabel(cache) : 'Measuring'}</Text>
+          {cache !== undefined ? <BigSize label={sizeLabel(cache)} /> : <Text className="text-text text-display font-display">Measuring</Text>}
           <Text className="text-muted text-meta">Pictures and saved pages</Text>
         </Box>
         <Text className="text-muted text-xs mt-row">Clearing it never removes downloaded episodes.</Text>
-        <Button kind="secondary" label="Clear cache" accessibilityLabel={`Clear cache, ${cache === undefined ? 'measuring' : sizeLabel(cache)}`} onPress={clearCacheNow} className="mt-section" />
+        <Button kind="secondary" shape="rounded" label="Clear cache" accessibilityLabel={`Clear cache, ${cache === undefined ? 'measuring' : sizeLabel(cache)}`} onPress={clearCacheNow} className="mt-section" />
       </Card>
       <Text className="text-text text-base font-display-semibold mb-row" accessibilityRole="header">When to download</Text>
-      <Card>
+      <Card className="py-1">
         <SwitchRow icon="list-outline" label="Download queued episodes" line="An episode starts downloading when you add it to the queue" value={auto} onChange={(v) => { setAuto(v); setPref(stores.settings, 'autoDownloadQueued', v); }} />
-        <CardDivider />
         <SwitchRow icon="cellular-outline" label="Allow mobile data for downloads" line="Off: downloads wait for Wi-Fi" value={mobile} onChange={(v) => { setMobile(v); downloads.setAllowMobile(v); }} />
       </Card>
       <Text className="text-text text-base font-display-semibold mt-section mb-row" accessibilityRole="header">Tidy up</Text>
-      <Card>
+      <Card className="py-1">
         <SwitchRow icon="trash-outline" label="Delete after playing" line="A downloaded episode is removed when you finish it" value={afterPlay} onChange={(v) => { setAfterPlay(v); downloads.setDeleteAfterPlay(v); }} />
-        <CardDivider />
         <SwitchRow icon="albums-outline" label="When storage is full, remove the oldest" line="Starred episodes and ones you are part-way through are never removed" value={evict} onChange={(v) => { setEvict(v); downloads.setEvictOldest(v); }} />
       </Card>
     </ScrollView>

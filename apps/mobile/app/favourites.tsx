@@ -30,6 +30,7 @@ import { useStores } from '@/ui/shell/providers';
 import { useColours } from '@/ui/kit/useColours';
 import { PageHeader } from '@/ui/kit/PageHeader';
 import { EndOfList } from '@/ui/kit/EndOfList';
+import { Segmented } from '@/ui/kit/Segmented';
 
 const TAP = { minHeight: hit.min };
 /** The grid's two columns sit `spacing.row` apart. */
@@ -52,16 +53,17 @@ export default function FavouritesScreen(): React.ReactElement {
   const any = tab === 'episodes' ? rows.length > 0 : comments.length > 0;
   const art = Math.max(0, Math.floor((width - 2 * spacing.screenX - spacing.row) / 2 - CARD_INSET));
 
-  // M12 FR-097 kept the two tabs; M17 draws them as a pill track under the search box (inline,
-  // not the shared Segmented, so the inventory keeps them on this page).
+  // M12 FR-097 kept the two tabs; M17 drew them as a pill track under the search box; M24 US20:
+  // the kit's beige Segmented (`Favourites-B`), same two tabs, same handler.
   const tabs = (
-    <Box className="flex-row gap-1 p-1 bg-surface border border-border rounded-pill" accessibilityRole="tablist">
-      {(['episodes', 'comments'] as const).map((t) => (
-        <Pressable key={t} onPress={() => setTab(t)} accessibilityRole="tab" accessibilityState={{ selected: tab === t }} accessibilityLabel={t === 'episodes' ? 'Episodes' : 'Comments'} className={`flex-1 rounded-pill items-center justify-center ${tab === t ? 'bg-primary' : ''}`} style={TAP}>
-          <Text className={tab === t ? 'text-onPrimary text-meta font-bold' : 'text-muted text-meta font-medium'}>{t === 'episodes' ? `Episodes · ${rows.length}` : `Comments · ${comments.length}`}</Text>
-        </Pressable>
-      ))}
-    </Box>
+    <Segmented
+      items={[
+        { value: 'episodes' as const, label: `Episodes · ${rows.length}`, accessibilityLabel: 'Episodes' },
+        { value: 'comments' as const, label: `Comments · ${comments.length}`, accessibilityLabel: 'Comments' },
+      ]}
+      value={tab}
+      onChange={setTab}
+    />
   );
   const header = (
     <Box className="pb-row">
@@ -124,7 +126,7 @@ export default function FavouritesScreen(): React.ReactElement {
           <Link href={{ pathname: '/episode/[id]', params: { id: e.id } }} asChild>
             <Pressable className="flex-1 bg-surface border border-border rounded-row p-2 pb-row gap-2" accessibilityRole="button" accessibilityLabel={e.title}>
               <Box>
-                <Artwork url={e.imageUrl ?? show?.imageUrl} size={art} rounded="row" name={show?.title} />
+                <Artwork url={e.imageUrl ?? show?.imageUrl} size={art} name={show?.title} />
                 <Box className="absolute right-2 bottom-2"><Icon name="star" size={16} color={c.accent} /></Box>
               </Box>
               <Box className="px-1">

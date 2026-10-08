@@ -10,7 +10,7 @@ import { ScrollView } from '@/ui/lib/scroll-view';
 import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
 import { PageHeader } from '@/ui/kit/PageHeader';
-import { Card, CardDivider } from '@/ui/kit/Card';
+import { Card } from '@/ui/kit/Card';
 
 type Widget = { name: string; line: string; size: 'wide' | 'square'; rows: number };
 
@@ -60,10 +60,9 @@ export default function WidgetsScreen(): React.ReactElement {
     <PageHeader title="Widgets" />
     <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pt-2 pb-24 gap-row">
       <Text className="text-text text-base font-display mt-1" accessibilityRole="header">How to add a widget</Text>
-      <Card>
+      <Card className="py-1">
         {steps.map((step, i) => (
           <Box key={step}>
-            {i > 0 ? <CardDivider /> : null}
             <Box className="flex-row gap-row py-row">
               <Text className="text-accent text-body font-bold">{`${i + 1}`}</Text>
               <Text className="text-text text-body flex-1">{step}</Text>
@@ -72,10 +71,9 @@ export default function WidgetsScreen(): React.ReactElement {
         ))}
       </Card>
       <Text className="text-text text-base font-display mt-section" accessibilityRole="header">The four widgets</Text>
-      <Card>
-        {WIDGETS.map((w, i) => (
+      <Card className="py-1">
+        {WIDGETS.map((w) => (
           <Box key={w.name}>
-            {i > 0 ? <CardDivider /> : null}
             <Box className="flex-row items-center gap-section py-row">
               <Drawing widget={w} />
               <Box className="flex-1">

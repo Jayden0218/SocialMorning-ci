@@ -88,10 +88,11 @@ export default function StickersScreen(): React.ReactElement {
   );
   return (
     <>
-    <PageHeader title="Stickers" right={help} />
+    {/* M24 US20 (`Stickers-B`): the name small and centred in the bar (14 pt bold muted), no big title. */}
+    <PageHeader middle={<Text className="flex-1 text-center text-muted text-body font-bold" accessibilityRole="header" numberOfLines={1}>Stickers</Text>} right={help} />
     <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pt-gap pb-24 gap-section">
       <Box className="flex-row items-center gap-section">
-        <ProgressRing progress={list.length > 0 ? earned / list.length : 0} size={96} stroke={8}>
+        <ProgressRing progress={list.length > 0 ? earned / list.length : 0} size={96} stroke={8} colour="primary">
           <Text className="text-text text-hero font-display">{earned}</Text>
         </ProgressRing>
         <Text className="flex-1 text-text text-hero font-display" accessibilityRole="header">{earned} of {list.length} earned</Text>
@@ -146,7 +147,7 @@ export default function StickersScreen(): React.ReactElement {
     {/* M21 US9: one sticker's card — our own sheet, not the system's. */}
     <Actionsheet isOpen={open !== undefined} onClose={() => setOpen(undefined)}>
       <ActionsheetBackdrop />
-      <ActionsheetContent className="bg-surface rounded-t-row px-screen-x items-stretch">
+      <ActionsheetContent className="px-screen-x items-stretch">
         <ActionsheetDragIndicatorWrapper>
           <ActionsheetDragIndicator />
         </ActionsheetDragIndicatorWrapper>

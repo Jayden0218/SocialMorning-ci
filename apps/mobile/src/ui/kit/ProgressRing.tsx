@@ -7,10 +7,11 @@ import { useStores } from '@/ui/shell/providers';
 import { useColours } from './useColours';
 import { ringAngles } from './ring';
 
-export function ProgressRing(props: { progress: number; size: number; stroke: number; children?: ReactNode }): React.ReactElement {
+export function ProgressRing(props: { progress: number; size: number; stroke: number; children?: ReactNode; /** M24 US20 (`Stickers-B`): the arc's token; the accent unless said. */ colour?: 'accent' | 'primary' }): React.ReactElement {
   const stores = useStores();
   const c = useColours(stores.settings);
   const { size, stroke } = props;
+  const arc = c[props.colour ?? 'accent'];
   const half = size / 2;
   const { right, left } = ringAngles(props.progress);
   const circle = { width: size, height: size, borderRadius: half, borderWidth: stroke };
@@ -20,10 +21,10 @@ export function ProgressRing(props: { progress: number; size: number; stroke: nu
     <Box style={{ width: size, height: size }} className="items-center justify-center">
       <Box style={[circle, { position: 'absolute', borderColor: c.track }]} />
       <Box style={{ position: 'absolute', left: half, width: half, height: size, overflow: 'hidden' }}>
-        <Box style={[circle, clear, { marginLeft: -half, borderTopColor: c.accent, borderRightColor: c.accent, transform: [{ rotate: `${right}deg` }] }]} />
+        <Box style={[circle, clear, { marginLeft: -half, borderTopColor: arc, borderRightColor: arc, transform: [{ rotate: `${right}deg` }] }]} />
       </Box>
       <Box style={{ position: 'absolute', left: 0, width: half, height: size, overflow: 'hidden' }}>
-        <Box style={[circle, clear, { borderBottomColor: c.accent, borderLeftColor: c.accent, transform: [{ rotate: `${left}deg` }] }]} />
+        <Box style={[circle, clear, { borderBottomColor: arc, borderLeftColor: arc, transform: [{ rotate: `${left}deg` }] }]} />
       </Box>
       {props.children}
     </Box>

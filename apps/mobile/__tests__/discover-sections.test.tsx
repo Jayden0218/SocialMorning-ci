@@ -27,7 +27,8 @@ it('a pick: + adds it to the queue (owner 2026-10-05: no Play pill), the title o
   expect(onQueue).toHaveBeenCalledWith(card('p1'));
   expect(onPlay).not.toHaveBeenCalled();
   expect(onOpen).not.toHaveBeenCalled();
-  expect(text(r)).toContain("Editor's picks");
+  // M24 US20 (`Home-B`): the label sits inside the card, singular.
+  expect(text(r)).toContain("Editor's pick");
   act(() => { byLabel(r, 'Open Title p1').props['onPress'](); });
   expect(onOpen).toHaveBeenCalledWith(card('p1'));
   expect(text(r)).toContain('Because.');
@@ -66,7 +67,7 @@ it('a comment card names nobody (G6)', () => {
 });
 
 // M12 guard G-D2 (FR-070, FR-071): Discover links to past picks and the full chart. The break:
-// drop the `action` from PicksSection's title, or the "Full chart" link from ChartSection.
+// drop the "Past picks →" link from PicksSection's card (M24: inside the card), or the "Full chart" link from ChartSection.
 it('Editor\'s picks links to past picks; the chart links to the full chart', () => {
   const onPast = jest.fn();
   const onFull = jest.fn();

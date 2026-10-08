@@ -18,7 +18,7 @@ import { Text } from '@/ui/lib/text';
 import { getPref, setPref } from '@/settings/prefs';
 import { useStores } from '@/ui/shell/providers';
 import { LinkRow, SwitchRow } from '@/ui/settings/rows';
-import { Card, CardDivider } from '@/ui/kit/Card';
+import { Card } from '@/ui/kit/Card';
 import { Segmented } from '@/ui/kit/Segmented';
 import { Box } from '@/ui/lib/box';
 import { PageHeader } from '@/ui/kit/PageHeader';
@@ -47,25 +47,19 @@ export default function PlaybackSettings(): React.ReactElement {
     <PageHeader title="Playback" />
     <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pb-24">
       <Section title="Playing" />
-      <Card>
+      <Card className="py-1">
         <SwitchRow icon="add-circle-outline" label="Queue adds to the end" line="Off: a one-tap Queue plays the episode next. The episode page offers both." value={end} onChange={(v) => { setEnd(v); setPref(stores.settings, 'queueAddToEnd', v); }} />
-        <CardDivider />
         <SwitchRow icon="cellular-outline" label="Allow mobile data for playback" line="Off: on mobile data only downloaded episodes play" value={mobile} onChange={(v) => { setMobile(v); setPref(stores.settings, 'mobilePlayback', v); }} />
-        <CardDivider />
         <SwitchRow icon="document-text-outline" label="Show transcript entry on the player" line="The transcript button and the live line under the title" value={transcript} onChange={(v) => { setTranscript(v); setPref(stores.settings, 'transcriptEntry', v); }} />
-        <CardDivider />
         <SwitchRow icon="chatbubble-ellipses-outline" label="Comments on lock screen" line="A listener's comment from near where you are, under the episode title" value={lock} onChange={(v) => { setLock(v); setPref(stores.settings, 'lockComments', v); }} />
-        <CardDivider />
         {/* M22 US4: the last 10 playlist versions on this phone. */}
         <LinkRow href="/settings/queue-backups" icon="time-outline" label="Playlist backups" line="The last 10 versions of your playlist on this phone" />
         <SwitchRow icon="time-outline" label="±5 min on the lock screen" line="Off: the lock-screen skip buttons jump 10 seconds" value={fiveMin} onChange={(v) => { setFiveMin(v); stores.settings.set(LOCK_SKIP_KEY, v ? '1' : '0'); setLockScreenSkipSeconds(v ? 300 : 10); }} />
       </Card>
       <Section title="Sound" />
-      <Card>
+      <Card className="py-1">
         <SwitchRow icon="musical-notes-outline" label="Music mode" line="Off: voices keep their pitch at any speed. On: the pitch follows the speed, which suits music." value={music} onChange={(v) => { setMusic(v); setPref(stores.settings, 'musicMode', v); player.setMusicMode(v); }} />
-        <CardDivider />
         <SwitchRow icon="play-forward-outline" label="Skip silence" line="On iPhone, silences are sped up rather than cut." value={skip} onChange={(v) => { setSkip(v); setPref(stores.settings, 'skipSilence', v); player.setSkipSilence(v); }} />
-        <CardDivider />
         <Box className="py-row gap-gap">
           <Text className="text-text text-body" accessibilityRole="header">Another app's short sound</Text>
           <Text className="text-muted text-xs">A map's directions or a message tone, while an episode plays.</Text>
@@ -80,7 +74,6 @@ export default function PlaybackSettings(): React.ReactElement {
         </Box>
         {/* M21 US11: voice boost, play with other apps, audio output. */}
         <AudioRows />
-        <CardDivider />
       </Card>
     </ScrollView>
     </>

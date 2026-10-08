@@ -33,7 +33,9 @@ export type DiscoverModel = {
  * M15 US5 (data-model.md `discover_settings`): the section ids the owner orders and hides
  * in the Studio, in today's order. `collections` is every collection as one block.
  */
-export const SECTION_IDS = ['forYou', 'picks', 'chart', 'shows', 'video', 'collections', 'followedHere', 'said', 'newShows'] as const;
+// M24 US20 (`Home-B`): the Editor's pick card comes first, For You after it. An owner's saved
+// Studio layout still wins (the server sends it as `layout`).
+export const SECTION_IDS = ['picks', 'forYou', 'chart', 'shows', 'video', 'collections', 'followedHere', 'said', 'newShows'] as const;
 export type SectionId = (typeof SECTION_IDS)[number];
 
 const isSectionId = (v: unknown): v is SectionId => typeof v === 'string' && (SECTION_IDS as readonly string[]).includes(v);

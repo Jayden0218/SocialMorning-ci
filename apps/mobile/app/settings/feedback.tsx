@@ -164,7 +164,7 @@ export default function FeedbackScreen(): React.ReactElement {
               </Pressable>
             ) : null}
             <Box className="flex-1" />
-            <Button label="Send" onPress={send} disabled={!ready} busy={busy} className="px-9" />
+            <Button label="Send" shape="rounded" onPress={send} disabled={!ready} busy={busy} className="px-9" />
         </BottomBar>
         </>
       ) : (

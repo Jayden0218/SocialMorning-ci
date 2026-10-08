@@ -28,6 +28,7 @@ import { hit, size } from '@/design';
 import { useStores } from '@/ui/shell/providers';
 import { useColours } from '@/ui/kit/useColours';
 import { Icon, type IconName } from '@/ui/kit/Icon';
+import { Eyebrow } from '@/ui/kit/Eyebrow';
 import { GENRES } from '@/discover/genres';
 import { warmCategories } from '@/discover/category-cache';
 import { useSocial } from '@/social/context';
@@ -42,6 +43,9 @@ import { AddButton, EpisodeLine, Pager, SectionTitle, StatsLine, type RowStats }
 import { plural } from '@socialmorning/social-core';
 
 const TAP = { minHeight: hit.min };
+/** M24 US20 (`Home-B` pick card): the 18 pt serif title and the 15 pt italic quote's line height. */
+const PICK_TITLE = { fontSize: 18, lineHeight: 22 };
+const PICK_QUOTE = { lineHeight: 21 };
 const SQUARE = { minHeight: hit.min, minWidth: hit.min };
 /**
  * Owner's iPhone, 2026-10-07 ("the elements run away the layout"): with `flexGrow` on wrapped
@@ -137,9 +141,9 @@ export function shortDate(date: string): string {
 }
 
 /**
- * Editor's picks — a titled section (owner, 2026-10-05: a title on top, like For You); each pick a
- * white card: the podcast, the episode, the owner's note as a serif quote, the counts, and "+"
- * (add to the queue) instead of a Play pill.
+ * Editor's picks — each pick a white card: the podcast, the episode, the owner's note as a serif
+ * quote, the counts and "+" (add to the queue; owner, 2026-10-05: not a Play pill). M24 US20
+ * (`Home-B`): the section's title moved inside the card as its label, with "Past picks →".
  */
 /** M21: up to 3 faces of people you follow who liked a pick, overlapping, with who in words. */
 function Faces(props: { faces: Face[] }): React.ReactElement | null {
@@ -158,29 +162,37 @@ function Faces(props: { faces: Face[] }): React.ReactElement | null {
 
 export function PicksSection(props: Act & { items: (DiscoverItem & { likedBy?: Face[] })[]; date?: string; onPast?: () => void; onQueue: (card: EpisodeCard) => void; /** M21: "Today's picks" page. */ onDaily?: () => void }): React.ReactElement | null {
   if (props.items.length === 0) return null;
+  const label = props.date ? `Editor's pick · ${shortDate(props.date)}` : "Editor's pick";
   return (
-    <Box>
-      <SectionTitle
-        title={props.date ? `Editor's picks · ${shortDate(props.date)}` : "Editor's picks"}
-        {...(props.onPast ? { action: { label: 'Past picks', onPress: props.onPast } } : {})}
-      />
+    <Box className="mt-row">
       <Box className="gap-row">
-        {props.items.map((p) => {
+        {props.items.map((p, n) => {
           const stats = p.stats ?? props.stats?.[p.episode.id];
           return (
-            <Card key={p.key} className="mx-screen-x pt-row pb-row">
-              <Box className="flex-row gap-row items-start">
+            // M24 US20 (`Home-B`): the label and "Past picks →" sit INSIDE the card; 76 pt cover,
+            // show 12 muted, title 18 serif, the note an italic serif quote, the counts. The design's
+            // Play pill stays the owner's "+" (add to the queue; owner, 2026-10-05).
+            <Card key={p.key} className="mx-screen-x pt-2 pb-row">
+              <Box className="flex-row items-center justify-between gap-row" style={TAP}>
+                <Eyebrow accent className="flex-1">{label}</Eyebrow>
+                {n === 0 && props.onPast ? (
+                  <Pressable onPress={props.onPast} accessibilityRole="link" accessibilityLabel="Past picks" className="justify-center" style={TAP}>
+                    <Text className="text-accent text-meta font-semibold">{'Past picks →'}</Text>
+                  </Pressable>
+                ) : null}
+              </Box>
+              <Box className="flex-row gap-3.5 items-start mt-0.5">
                 <Pressable onPress={() => props.onOpen(p.episode)} accessibilityRole="button" accessibilityLabel={`${p.episode.title}, ${p.episode.showTitle}`}>
                   <Artwork url={p.episode.imageUrl} size={76} name={p.episode.showTitle} />
                 </Pressable>
                 <Pressable onPress={() => props.onOpen(p.episode)} className="flex-1 gap-1" accessibilityRole="button" accessibilityLabel={`Open ${p.episode.title}`} style={TAP}>
-                  <Text className="text-accent text-meta font-semibold" numberOfLines={1}>{p.episode.showTitle}</Text>
-                  <Text className="text-text text-title font-display" numberOfLines={3}>{p.episode.title}</Text>
+                  <Text className="text-muted text-xs" numberOfLines={1}>{p.episode.showTitle}</Text>
+                  <Text className="text-text font-display" style={PICK_TITLE} numberOfLines={3}>{p.episode.title}</Text>
                 </Pressable>
               </Box>
-              {p.why ? <Text className="text-text text-body font-display-semibold mt-row" numberOfLines={4}>“{p.why}”</Text> : null}
+              {p.why ? <Text className="text-text text-lead font-display-semibold italic mt-2.5" style={PICK_QUOTE} numberOfLines={4}>“{p.why}”</Text> : null}
               {p.likedBy ? <Faces faces={p.likedBy} /> : null}
-              <Box className="flex-row items-center justify-between gap-row mt-1">
+              <Box className="flex-row items-center justify-between gap-2 mt-row">
                 {stats ? <StatsLine stats={stats} className="flex-1" /> : <Box className="flex-1" />}
                 <AddButton title={p.episode.title} onPress={() => props.onQueue(p.episode)} />
               </Box>

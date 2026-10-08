@@ -35,7 +35,19 @@ import { Loader } from '@/ui/kit/Loader';
 
 const TAP = { minHeight: hit.min };
 
-export function EpisodeExtras(props: { episodeId: string; atMs: number }): React.ReactElement {
+/**
+ * M24 US20 (`EpisodeMoreSheet-B`): the Favourite tile on its own, so the episode page can pair it
+ * with Download as the design's second row. Same name, same handler as in the grid below.
+ */
+export function FavouriteTile(props: { episodeId: string }): React.ReactElement {
+  const stores = useStores();
+  const c = useColours(stores.settings);
+  const [fav, setFav] = useState(() => isFavourite(stores.settings, props.episodeId));
+  return <SheetTile icon={fav ? 'star' : 'star-outline'} label={fav ? 'Remove from favourites' : 'Add to favourites'} iconColour={c.accent} selected={fav} onPress={() => setFav(toggleFavourite(stores.settings, props.episodeId, Date.now()))} />;
+}
+
+/** `noFavourite`: the page draws `FavouriteTile` itself (beside Download); the grid starts at Save this moment. */
+export function EpisodeExtras(props: { episodeId: string; atMs: number; noFavourite?: boolean }): React.ReactElement {
   const stores = useStores();
   const c = useColours(stores.settings);
   const toast = useToast();
@@ -79,17 +91,28 @@ export function EpisodeExtras(props: { episodeId: string; atMs: number }): React
       .catch(failed)
       .finally(() => setBusy(false));
   };
+  const saveTile = <SheetTile icon="bookmark-outline" label="Save this moment" detail={mmss(props.atMs)} iconColour={c.accent} onPress={() => { setAt(props.atMs); setNote(''); }} accessibilityLabel={`Save the moment at ${mmss(props.atMs)}`} />;
+  const playlistTile = <SheetTile icon="albums-outline" label="Add to playlist" iconColour={c.accent} onPress={openPicker} selected={lists !== undefined} />;
   return (
     <Box>
       {/* M12 FR-032 made these full-width rows; M17 makes them a row of two tiles. */}
-      <TileRow>
-        <SheetTile icon={fav ? 'star' : 'star-outline'} label={fav ? 'Remove from favourites' : 'Add to favourites'} iconColour={c.accent} selected={fav} onPress={() => setFav(toggleFavourite(stores.settings, props.episodeId, Date.now()))} />
-        <SheetTile icon="bookmark-outline" label="Save this moment" detail={mmss(props.atMs)} iconColour={c.accent} onPress={() => { setAt(props.atMs); setNote(''); }} accessibilityLabel={`Save the moment at ${mmss(props.atMs)}`} />
-      </TileRow>
-      <TileRow>
-        <SheetTile icon="albums-outline" label="Add to playlist" iconColour={c.accent} onPress={openPicker} selected={lists !== undefined} />
-        <Box className="flex-1" />
-      </TileRow>
+      {props.noFavourite ? (
+        <TileRow>
+          {saveTile}
+          {playlistTile}
+        </TileRow>
+      ) : (
+        <>
+          <TileRow>
+            <SheetTile icon={fav ? 'star' : 'star-outline'} label={fav ? 'Remove from favourites' : 'Add to favourites'} iconColour={c.accent} selected={fav} onPress={() => setFav(toggleFavourite(stores.settings, props.episodeId, Date.now()))} />
+            {saveTile}
+          </TileRow>
+          <TileRow>
+            {playlistTile}
+            <Box className="flex-1" />
+          </TileRow>
+        </>
+      )}
       {lists !== undefined ? (
         <Box className="bg-surface border border-border rounded-row p-row gap-1 mb-gap">
           <Box className="flex-row items-center gap-gap">

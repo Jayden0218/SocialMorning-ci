@@ -33,7 +33,7 @@ import { plural } from '@socialmorning/social-core';
 import { reportAndDrop } from '@/telemetry/reportError';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '@/ui/lib/actionsheet';
+import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper, ActionsheetScrollView } from '@/ui/lib/actionsheet';
 import { Pressable } from '@/ui/lib/pressable';
 import { SafeAreaView } from '@/ui/lib/safe-area-view';
 import { ScrollView } from '@/ui/lib/scroll-view';
@@ -56,7 +56,7 @@ import { BarButton, TAP, TopBar } from '@/ui/kit/TopBar';
 import { toPlayable } from '@/storage/playable';
 import { DownloadButton } from '@/ui/episode/DownloadButton';
 import { QueueButtons } from '@/ui/queue/QueueButtons';
-import { EpisodeExtras } from '@/ui/me/EpisodeExtras';
+import { EpisodeExtras, FavouriteTile } from '@/ui/me/EpisodeExtras';
 import { useSocial } from '@/social/context';
 import { usePoll } from '@/social/usePoll';
 import type { ComposerState } from '@/social/composer';
@@ -395,8 +395,9 @@ export default function EpisodeScreen(): React.ReactElement {
       />
       <Actionsheet isOpen={more} onClose={() => setMore(false)}>
         <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-        <ActionsheetContent className="bg-surface rounded-t-row px-screen-x pt-row items-stretch">
+        <ActionsheetContent className="px-screen-x pt-row max-h-[90%] items-stretch">
           <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
+          <ActionsheetScrollView className="grow-0" testID="episode-more-scroll" keyboardShouldPersistTaps="handled">
           {/* M17 (`EpisodeMoreSheet-B`, T103): the episode on top — 64 pt art, the show as an accent
               line, the serif title — then a 2-column grid of tiles (the three parts) and a Cancel pill. */}
           <Box className="flex-row items-center gap-row mt-gap mb-section">
@@ -406,10 +407,13 @@ export default function EpisodeScreen(): React.ReactElement {
               <Text className="text-text text-base font-display" numberOfLines={2}>{episode.title}</Text>
             </Box>
           </Box>
+          {/* M24 US20 (`EpisodeMoreSheet-B`): the design's four tiles first — Play next · Add to
+              queue / Download · Add to favourites — then every extra below; the whole sheet
+              scrolls, so Cancel is never cut off when the moment or playlist card opens. */}
           <QueueButtons episodeId={episode.id} onQueued={() => stores.inboxState.mark(episode.id, 'queued', Date.now())} />
-          <DownloadButton episodeId={episode.id} />
-          {/* M10 (owner, 2026-09-27): favourite, and save this moment with a note. */}
-          <EpisodeExtras episodeId={episode.id} atMs={snapshotOffset} />
+          <DownloadButton episodeId={episode.id} beside={<FavouriteTile episodeId={episode.id} />} />
+          {/* M10 (owner, 2026-09-27): save this moment with a note; M19: add to playlist. */}
+          <EpisodeExtras episodeId={episode.id} atMs={snapshotOffset} noFavourite />
           {/* M21 US4 (FR-034): report the episode — a reason, then moderation, like other reports. */}
           <TileRow>
             <SheetTile icon="flag-outline" label="Report episode" iconColour={c.accent} onPress={() => { setMore(false); setReporting({ kind: 'episode', id: episode.id, authorId: null, label: 'episode' }); }} />
@@ -420,6 +424,8 @@ export default function EpisodeScreen(): React.ReactElement {
           <Pressable onPress={() => setMore(false)} accessibilityRole="button" accessibilityLabel="Cancel" className="items-center justify-center mt-gap rounded-pill border border-border" style={TAP}>
             <Text className="text-accent text-body font-bold">Cancel</Text>
           </Pressable>
+          <Box className="h-row" />
+          </ActionsheetScrollView>
         </ActionsheetContent>
       </Actionsheet>
       <ReportSheet target={reporting} onClose={() => setReporting(undefined)} />

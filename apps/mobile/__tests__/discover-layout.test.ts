@@ -21,7 +21,8 @@ const BODY: Discover = {
 
 it('no layout → today\'s order, every section', () => {
   expect(sectionOrder(undefined)).toEqual([...SECTION_IDS]);
-  expect(SECTION_IDS).toEqual(['forYou', 'picks', 'chart', 'shows', 'video', 'collections', 'followedHere', 'said', 'newShows']);
+  // M24 US20 (`Home-B`): the pick card first, For You after it.
+  expect(SECTION_IDS).toEqual(['picks', 'forYou', 'chart', 'shows', 'video', 'collections', 'followedHere', 'said', 'newShows']);
   expect(buildModel(BODY, undefined, none).order).toEqual([...SECTION_IDS]);
 });
 

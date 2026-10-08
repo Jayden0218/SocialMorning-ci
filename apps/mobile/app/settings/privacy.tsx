@@ -66,10 +66,9 @@ function WhatOthersSee(): React.ReactElement {
     });
   };
   return (
-    <Card>
-      {SWITCHES.map((sw, i) => (
+    <Card className="py-1">
+      {SWITCHES.map((sw) => (
         <Box key={sw.name}>
-          {i > 0 ? <CardDivider /> : null}
           <Box className="flex-row items-center gap-row py-row" style={TAP}>
             <Box className="flex-1">
               <Text className="text-text text-body font-semibold">{sw.label}</Text>
@@ -105,13 +104,12 @@ function MutedUsers(): React.ReactElement {
     });
   };
   return (
-    <Card>
+    <Card className="py-1">
       {state.kind === 'loading' ? <Text className="text-muted text-body py-row">Loading…</Text>
         : state.kind === 'error' ? <Text className="text-muted text-body py-row">Couldn't load the listeners you muted.</Text>
         : state.items.length === 0 ? <Text className="text-muted text-body py-row">You have not muted anyone. Mute someone from the ⋯ on their comment; they are never told.</Text>
-        : state.items.map((m, i) => (
+        : state.items.map((m) => (
           <Box key={m.id}>
-            {i > 0 ? <CardDivider /> : null}
             <Box className="flex-row items-center gap-row py-row" style={TAP}>
               <Avatar url={m.avatarUrl} name={m.name} size={36} />
               <Text className="text-text text-body font-semibold flex-1" numberOfLines={1}>{m.name}</Text>
@@ -180,7 +178,7 @@ export default function PrivacySettings(): React.ReactElement {
         </>
       ) : null}
 
-      <Card>
+      <Card className="py-1">
         <Link href="/settings/blocked" asChild>
           <Pressable accessibilityRole="link" accessibilityLabel="Blocked listeners" accessibilityValue={{ text: String(blocked) }} className="flex-row items-center gap-section py-section" style={TAP}>
             {blocked > 0

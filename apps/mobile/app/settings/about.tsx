@@ -26,7 +26,7 @@ import { useStores } from '@/ui/shell/providers';
 import { useColours } from '@/ui/kit/useColours';
 import { hit } from '@/design';
 import { Platform } from 'react-native';
-import { Card, CardDivider } from '@/ui/kit/Card';
+import { Card } from '@/ui/kit/Card';
 import { LinkRow } from '@/ui/settings/rows';
 
 type Doc = keyof typeof LEGAL_TEXT;
@@ -79,11 +79,10 @@ export default function AboutScreen(): React.ReactElement {
       </Box>
       {/* M22 US17 (T077, T078): updates (Android APK copies only) and the widget guide. */}
       <Box className="mt-section">
-        <Card>
+        <Card className="py-1">
           {Platform.OS === 'android' ? (
             <>
               <LinkRow href="/settings/updates" icon="cloud-download-outline" label="Check for updates" />
-              <CardDivider />
             </>
           ) : null}
           <LinkRow href="/settings/widgets" icon="apps-outline" label="Widgets" line="How to add SocialNet to your home screen" />

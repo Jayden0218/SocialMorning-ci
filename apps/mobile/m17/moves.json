@@ -686,5 +686,37 @@
   "to": "removed",
   "why": "M23 US12 (T034): src/ui/kit/Row.tsx deleted — only tests imported it (checked by grep), so this row was on no screen",
   "task": "M23 T034"
+ },
+ {
+  "surface": "/favourites",
+  "name": "t === 'episodes' ? 'Episodes' : 'Comments'",
+  "destination": "setTab",
+  "to": "/favourites | Segmented items (Episodes / Comments) | setTab",
+  "why": "M24 US20 (Favourites-B): the two tabs are now the kit's beige Segmented — same two tabs, same spoken names, same setTab handler, passed as onChange",
+  "task": "M24 B3-04"
+ },
+ {
+  "surface": "/show/[feedUrl]",
+  "name": "t === 'episodes' ? 'Episodes' : 'About'",
+  "destination": "setTab",
+  "to": "/show/[feedUrl] | Segmented tone=dark items (Episodes / About) | setTab",
+  "why": "M24 US20 (Show-B): Episodes / About drawn by the kit's dark Segmented — same two tabs, same spoken names, setTab passed as onChange",
+  "task": "M24 B3-03"
+ },
+ {
+  "surface": "/subscriptions",
+  "name": "Sort: ${s.label}",
+  "destination": "setSort",
+  "to": "/subscriptions | Segmented items (Sort: Default / Recently updated / A–Z / Recently added) | setSort",
+  "why": "M24 US20 (Subscriptions-B): the four sorts are the kit's beige Segmented — same spoken names (Sort: …), setSort passed as onChange; the visible words of two are shortened to fit one line",
+  "task": "M24 B3-04"
+ },
+ {
+  "surface": "EpisodeExtras",
+  "name": "Save the moment at ${mmss(props.atMs)}",
+  "destination": "setFav",
+  "to": "EpisodeExtras | saveTile (Save the moment at …) | setAt + setNote",
+  "why": "M24 US20 (EpisodeMoreSheet-B): the Save tile is one element reused in both grid layouts; same name and handler (the old destination 'setFav' was a parse of the neighbouring tile)",
+  "task": "M24 B3-14"
  }
 ]

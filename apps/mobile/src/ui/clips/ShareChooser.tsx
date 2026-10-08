@@ -36,6 +36,7 @@ import { useM12Api } from '@/social/m12-api';
 import { useStores, useToast } from '@/ui/shell/providers';
 import { useColours } from '@/ui/kit/useColours';
 import { useSocial } from '@/social/context';
+import { createSocialCache } from '@/social/cache';
 import { extensionFor } from '@/downloads/expo-downloader';
 import type { PlayableEpisode } from '@/playback/store';
 import * as ClipVideo from '../../../modules/clip-video';
@@ -48,6 +49,7 @@ const CLOSE = { width: hit.min, height: hit.min };
 const TILE = { minHeight: 100 };
 /** M21: a target app's round button and its name under it. */
 const APP = { minWidth: 64, minHeight: hit.min };
+const HEAT_BOX = { height: 30 };
 
 export function ShareChooser(props: {
   open: boolean;
@@ -93,8 +95,12 @@ export function ShareChooser(props: {
     }
   };
 
+  // M24 US20 (`ShareSheet-B`): the heat this phone already has for the episode, under "Share this moment".
+  // Read straight from the phone's social cache (no provider needed): nothing cached, no chart.
+  const social = props.open && stores.socialCache ? createSocialCache(stores.socialCache).get(props.episode.id)?.social : undefined;
+  const heat = social?.heat.available ? shareHeat(social.heat.buckets, props.atMs, social.episode.durationMs) : undefined;
   const rows: ShareOption[] = [
-    ...(props.onClip ? [{ icon: 'cut-outline' as const, label: 'Share this moment', lead: true, ...(props.atMs !== undefined ? { detail: mmss(props.atMs) } : {}), onPress: props.onClip }] : []),
+    ...(props.onClip ? [{ icon: 'cut-outline' as const, label: 'Share this moment', lead: true, ...(props.atMs !== undefined ? { detail: mmss(props.atMs) } : {}), ...(heat ? { heat } : {}), onPress: props.onClip }] : []),
     { icon: 'image-outline', label: 'Share as image', onPress: () => void shareImage() },
     { icon: 'link-outline', label: 'Copy link', onPress: copyLink },
     // Chat (owner, 2026-10-04): send the episode to someone who follows you back.
@@ -108,7 +114,41 @@ export function ShareChooser(props: {
  * One of the app's own share options (a row above "More"). M17: `lead` draws it as the wide
  * card at the top (`ShareSheet-B`'s "Share this moment"), its `detail` as a large serif figure.
  */
-export type ShareOption = { icon: IconName; label: string; detail?: string; lead?: boolean; onPress: () => void };
+export type ShareOption = { icon: IconName; label: string; detail?: string; lead?: boolean; onPress: () => void;
+  /** M24 US20 (`ShareSheet-B`): the episode's heat as a small bar chart under a lead card; `at` is the moment's bar. */
+  heat?: { bars: readonly number[]; at: number } };
+
+/** M24 US20: how many bars the lead card's little heat chart draws (`ShareSheet-B`: 30). */
+export const SHARE_HEAT_BARS = 30;
+
+/**
+ * The episode's heat squeezed into `SHARE_HEAT_BARS` bars (each the loudest bucket it covers,
+ * 0–1) and the bar the moment falls in. Undefined when there is no heat to show.
+ */
+export function shareHeat(buckets: readonly number[] | undefined, atMs: number | undefined, axisMs: number | null | undefined): { bars: number[]; at: number } | undefined {
+  if (!buckets || buckets.length === 0) return undefined;
+  const top = Math.max(...buckets);
+  if (!(top > 0)) return undefined;
+  const bars: number[] = [];
+  for (let i = 0; i < SHARE_HEAT_BARS; i++) {
+    const from = Math.floor((i * buckets.length) / SHARE_HEAT_BARS);
+    const to = Math.max(from + 1, Math.floor(((i + 1) * buckets.length) / SHARE_HEAT_BARS));
+    bars.push(Math.max(...buckets.slice(from, to)) / top);
+  }
+  const at = atMs !== undefined && axisMs ? Math.min(SHARE_HEAT_BARS - 1, Math.max(0, Math.floor((atMs * SHARE_HEAT_BARS) / axisMs))) : -1;
+  return { bars, at };
+}
+
+/** The lead card's heat chart: grey bars, the moment's bar in the accent; 30 pt tall. Decoration (the label speaks). */
+function HeatBars(props: { bars: readonly number[]; at: number }): React.ReactElement {
+  return (
+    <Box className="flex-row items-end gap-0.5 mt-row" style={HEAT_BOX} accessible={false} importantForAccessibility="no-hide-descendants">
+      {props.bars.map((v, i) => (
+        <Box key={i} className={`flex-1 rounded-sm ${i === props.at ? 'bg-accent' : 'bg-handle'}`} style={{ height: Math.max(3, Math.round(v * HEAT_BOX.height)) }} />
+      ))}
+    </Box>
+  );
+}
 
 const TILE_CLASS = 'flex-1 bg-surface border border-border rounded-row p-section gap-row justify-between';
 
@@ -164,7 +204,7 @@ export function SharePanel(props: {
     <Actionsheet isOpen={props.open} onClose={props.onClose}>
       <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
       {/* M16a T014: no fixed bottom padding — ActionsheetContent's own `pb-safe` clears the home indicator. */}
-      <ActionsheetContent className="bg-surface rounded-t-row px-screen-x pt-row items-stretch">
+      <ActionsheetContent className="px-screen-x pt-row items-stretch">
         {/* Owner, 2026-10-05: an × at the top right, level with the drag bar, instead of Cancel at the foot. */}
         <Box className="justify-center">
           <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
@@ -194,14 +234,17 @@ export function SharePanel(props: {
               accessibilityRole="button"
               accessibilityLabel={r.label}
               {...(r.detail !== undefined ? { accessibilityHint: r.detail } : {})}
-              className="bg-surface border border-border rounded-row p-section flex-row items-center gap-row"
+              className="bg-surface border border-border rounded-row p-section"
               style={TAP}
             >
-              <Box className="w-10 h-10 rounded-pill bg-primary items-center justify-center">
-                <Icon name={r.icon} size={20} color={c.onPrimary} />
+              <Box className="flex-row items-center gap-row">
+                <Box className="w-10 h-10 rounded-pill bg-primary items-center justify-center">
+                  <Icon name={r.icon} size={20} color={c.onPrimary} />
+                </Box>
+                <Text className="flex-1 text-sm font-bold text-text">{r.label}</Text>
+                {r.detail !== undefined ? <Text className="text-hero font-display text-text" style={tabular}>{r.detail}</Text> : null}
               </Box>
-              <Text className="flex-1 text-sm font-bold text-text">{r.label}</Text>
-              {r.detail !== undefined ? <Text className="text-hero font-display text-text" style={tabular}>{r.detail}</Text> : null}
+              {r.heat ? <HeatBars bars={r.heat.bars} at={r.heat.at} /> : null}
             </Pressable>
           ))}
           {pairs(tiles).map((pair) => (

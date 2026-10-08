@@ -75,7 +75,7 @@ export function MomentSheet(props: {
         <Box className="rounded-pill bg-accentTint items-center justify-center" style={isReply ? DISC_REPLY : DISC} accessible={false}>
           <Text className="text-text text-xs font-bold">{c.initials ?? (initialOf(c.displayName ?? '') || '·')}</Text>
         </Box>
-        <Box className="flex-1 bg-background border border-border rounded-row px-section py-row gap-0.5">
+        <Box className="flex-1 bg-surface border border-border rounded-row px-section py-row gap-0.5">
           {c.deleted ? (
             <Text className="text-muted text-body">Comment deleted</Text>
           ) : (
@@ -121,7 +121,7 @@ export function MomentSheet(props: {
       <Actionsheet isOpen onClose={props.onClose}>
         <ActionsheetBackdrop />
         <KeyboardAvoidingView className="w-full justify-end" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <ActionsheetContent className="bg-surface px-screen-x pt-2 rounded-t-row max-h-[70%] items-stretch">
+          <ActionsheetContent className="px-screen-x pt-2 max-h-[70%] items-stretch">
             <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
             <Box className="flex-row justify-between items-end gap-row pt-2">
               <Box className="flex-1 gap-1">

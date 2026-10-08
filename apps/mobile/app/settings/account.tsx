@@ -35,6 +35,9 @@ import { size } from '@/design';
 const AVATAR = { width: 56, height: 56 };
 const TAP = { minHeight: size.row };
 
+/** M24 US20 (`SettingsAccount-B`): the not-yet methods' cards — 1.5 pt dashes at .22 (the handle tone), visible on the paper. */
+const DASHED = { borderWidth: 1.5, minHeight: 120 };
+
 export default function AccountSecurityScreen(): React.ReactElement {
   const router = useRouter();
   const stores = useStores();
@@ -75,7 +78,7 @@ export default function AccountSecurityScreen(): React.ReactElement {
         <Eyebrow accent>Other ways to sign in</Eyebrow>
         <Box className="flex-row gap-row">
           {OTHER_METHODS.map((m) => (
-            <Box key={m.id} className="flex-1 rounded-row border border-dashed border-border p-section gap-1" accessible accessibilityLabel={`${m.label.replace('Continue with ', '')}: not set up yet`}>
+            <Box key={m.id} className="flex-1 rounded-row border-dashed border-handle p-section gap-1" style={DASHED} accessible accessibilityLabel={`${m.label.replace('Continue with ', '')}: not set up yet`}>
               <Icon name={m.icon} size={24} color={c.muted} />
               <Text className="text-text text-title font-display mt-row">{m.label.replace('Continue with ', '')}</Text>
               <Text className="text-muted text-xs">Not set up yet</Text>

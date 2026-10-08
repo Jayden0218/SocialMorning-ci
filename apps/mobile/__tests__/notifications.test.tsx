@@ -24,7 +24,8 @@ it('each tab selects its list, and the selected one is announced as selected', (
   const onSelect = jest.fn();
   let r!: ReactTestRenderer;
   act(() => { r = create(createElement(NoticeCards, { section: 'people', unread: 3, interactionsUnread: 2, iconColour: '#111114', onSelect })); });
-  const [interactions, people] = byRole(r, 'tab');
+  // M24 US20 (`Notifications-B`): People is the first pill.
+  const [people, interactions] = byRole(r, 'tab');
   expect(interactions!.props['accessibilityLabel']).toMatch(/^Interactions\. 2 new\./);
   expect(people!.props['accessibilityLabel']).toMatch(/^People\. 3 new\./);
   expect(people!.props['accessibilityState']).toEqual({ selected: true });

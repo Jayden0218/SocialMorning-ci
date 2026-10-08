@@ -68,7 +68,7 @@ export default function MyCommentsScreen(): React.ReactElement {
           <Pressable onPress={() => router.push({ pathname: '/episode/[id]', params: { id: item.episode.id, ...(item.offsetMs !== null ? { at: String(item.offsetMs) } : {}) } })}
             accessibilityRole="button" accessibilityLabel={`${text}. On ${item.episode.title}`} className="bg-surface border border-border rounded-row p-section gap-row">
             <Box className="flex-row items-center gap-row">
-              <Artwork url={item.episode.imageUrl ?? null} size={44} rounded="row" name={item.episode.showTitle} />
+              <Artwork url={item.episode.imageUrl ?? null} size={44} name={item.episode.showTitle} />
               <Box className="flex-1">
                 <Text className="text-text text-sm font-display" numberOfLines={2}>{item.episode.title}</Text>
                 <Text className="text-muted text-xs" numberOfLines={1}>{item.episode.showTitle}</Text>

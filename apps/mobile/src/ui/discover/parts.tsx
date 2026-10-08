@@ -116,15 +116,45 @@ export function EpisodeLine(props: {
   rankTone?: 'chart' | 'accent'; divided?: boolean; hideShow?: boolean; stats?: RowStats;
   /** M19 T021: a "⋯" before Play that opens the row's choices (For You: Not interested). */
   onMore?: () => void;
+  /**
+   * M24 US20 (`Chart-B`, rows 4+): the ~56 pt row — a 20 pt muted serif rank 24 wide, 6 pt above
+   * and below, 10 pt gaps, a one-line title and one muted line (show · reason).
+   */
+  dense?: boolean;
 }): React.ReactElement {
   const { card } = props;
   const stores = useStores();
   const c = useColours(stores.settings);
   const size = props.size ?? 72;
   const ranked = props.rank !== undefined;
-  const rankClass = props.rankTone === 'accent'
+  const dense = props.dense === true;
+  const rankClass = dense
+    ? 'text-muted text-base font-display w-6 text-center'
+    : props.rankTone === 'accent'
     ? 'text-accent text-lg font-display w-8 text-center'
     : `${props.rank === 1 ? 'text-text' : 'text-muted'} text-display font-display w-9 text-center`;
+  const gap = dense ? 'gap-2.5' : 'gap-row';
+  if (dense) {
+    const meta = [card.showTitle, props.line].filter(Boolean).join(' · ');
+    return (
+      <Box className={`flex-row items-center ${gap} py-1.5 ${props.divided ? 'border-t-hairline border-separator' : ''}`}>
+        <Pressable onPress={props.onOpen} accessibilityRole="button" accessibilityLabel={props.label ?? `${card.title}, ${card.showTitle}`} className={`flex-row items-center ${gap} flex-1`} style={TAP}>
+          {ranked ? <Text className={rankClass} numberOfLines={1} maxFontSizeMultiplier={1.3}>{props.rank}</Text> : null}
+          <Artwork url={card.imageUrl} size={size} name={card.showTitle} />
+          <Box className="flex-1 gap-0.5 min-w-0">
+            <Text className="text-text text-body font-bold" numberOfLines={1}>{card.title}</Text>
+            <Text className="text-muted text-xs" numberOfLines={1}>{meta}</Text>
+          </Box>
+        </Pressable>
+        {props.onMore ? (
+          <Pressable onPress={props.onMore} accessibilityRole="button" accessibilityLabel={`More for ${card.title}`} className="items-center justify-center" style={TAP}>
+            <Icon name="ellipsis-horizontal" size={20} color={c.muted} />
+          </Pressable>
+        ) : null}
+        <PlayButton title={card.title} onPress={props.onPlay} />
+      </Box>
+    );
+  }
   return (
     <Box className={`flex-row items-center gap-row py-row ${props.divided ? 'border-t-hairline border-separator' : ''}`}>
       <Pressable onPress={props.onOpen} accessibilityRole="button" accessibilityLabel={props.label ?? `${card.title}, ${card.showTitle}`} className="flex-row items-center gap-row flex-1">

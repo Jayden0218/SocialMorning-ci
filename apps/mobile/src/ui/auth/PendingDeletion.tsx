@@ -46,7 +46,7 @@ export function PendingDeletionSheet(): React.ReactElement {
   return (
     <Actionsheet isOpen={open} onClose={() => undefined}>
       <ActionsheetBackdrop accessibilityRole="none" />
-      <ActionsheetContent className="bg-surface rounded-t-artwork-lg px-screen-x pt-section items-stretch" accessibilityViewIsModal>
+      <ActionsheetContent className="px-screen-x pt-section items-stretch" accessibilityViewIsModal>
         <Text className="text-text font-display text-title" accessibilityRole="header">Keep your account?</Text>
         <Text className="text-muted text-body mt-row">
           {`Your account is due to be deleted on ${pending ? dueDateText(pending.dueAt) : ''}. Until then nobody else can see it.`}

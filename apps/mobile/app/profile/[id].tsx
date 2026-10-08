@@ -10,6 +10,8 @@
  * the bar, a centred 96 pt monogram, the name as a 32 pt serif, Follow (yellow pill) · Block
  * (outlined pill) · Report in one row, the numbers as white cards, listening time as a yellow
  * card, serif section titles and recent rows as cards. Every action and its data are unchanged.
+ * M24 US20: someone else's recent rows are `RecentCard`s (52 pt show cover, "commented at 42:15 ·
+ * Oct 1"); the avatar sits in a 3 pt white ring.
  * M21 US6 (G-M21-6): Mute / Unmute beside Report — their comments, voice posts and likes leave
  * my pages only; they are never told.
  * M21 US8 (FR-074):
@@ -50,7 +52,7 @@ import { listeningHistory } from '@/me/history';
 import { latestEarned } from '@/me/stickers';
 import { myStickers, myTotals } from '@/me/my-stickers';
 import { PageHeader } from '@/ui/kit/PageHeader';
-import { FeedItem } from '@/ui/social/FeedItem';
+import { RecentCard } from '@/ui/social/RecentCard';
 import { Placeholder } from '@/ui/comments/Placeholder';
 import { ReportSheet, type ReportTarget } from '@/ui/comments/ReportSheet';
 import { Pressable } from '@/ui/lib/pressable';
@@ -75,6 +77,7 @@ const CAPS = { letterSpacing: 1.2, textTransform: 'uppercase' as const };
 /** M21 US8: past this scroll (the photo and the name), the bar shows the name instead. */
 const COLLAPSE_AT = 150;
 const TAP = { minHeight: hit.min };
+const RING = { padding: 3 };
 /** A hosted show in the Podcasts row: a 96 pt cover with its name under it. */
 const POD = 96;
 const POD_ITEM = { width: POD };
@@ -229,7 +232,8 @@ export default function ProfileScreen(): React.ReactElement {
       {/* M17 (Profile-B): centred head — monogram, serif name, the two small lines. */}
       <Box className="items-center gap-1.5">
         <StickerLayer placements={deco.stickers} />
-        <Avatar size={96} url={profile.avatarUrl} name={profile.displayName} className="border-2 border-surface" />
+        {/* M24 US20 (`Profile-B`): the 96 pt circle inside a 3 pt white ring. */}
+        <Box className="rounded-pill bg-surface" style={RING}><Avatar size={96} url={profile.avatarUrl} name={profile.displayName} /></Box>
         <Text className="text-text text-display font-display text-center mt-gap" accessibilityRole="header">{profile.displayName}</Text>
         {/* M20 US6 (FR-022): the PLUS badge, public like the name. */}
         {profile.plus ? <PlusBadge /> : null}
@@ -267,7 +271,7 @@ export default function ProfileScreen(): React.ReactElement {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-row">
             {hostOf.map((s) => (
               <Pressable key={s.feedUrl} onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(s.feedUrl) } })} accessibilityRole="button" accessibilityLabel={`Open ${s.title}, hosted by ${profile.displayName}`} style={POD_ITEM}>
-                <Artwork url={stores.feeds.getShow(s.feedUrl)?.imageUrl} size={POD} rounded="row" name={s.title} />
+                <Artwork url={stores.feeds.getShow(s.feedUrl)?.imageUrl} size={POD} name={s.title} />
                 <Text className="text-text text-xs font-semibold mt-1" numberOfLines={2}>{s.title}</Text>
               </Pressable>
             ))}
@@ -346,7 +350,7 @@ export default function ProfileScreen(): React.ReactElement {
         ? (history.length === 0 ? <Text className="text-muted text-sm">Nothing played yet.</Text> : history.map((r) => (
             <Link key={r.episode.id} href={{ pathname: '/episode/[id]', params: { id: r.episode.id } }} asChild>
               <Pressable accessibilityRole="button" accessibilityLabel={r.episode.title} className="flex-row gap-row p-row items-center bg-surface border border-border rounded-row">
-                <Artwork url={r.episode.imageUrl ?? stores.feeds.getShow(r.episode.feedUrl)?.imageUrl} size={52} rounded="row" name={stores.feeds.getShow(r.episode.feedUrl)?.title} />
+                <Artwork url={r.episode.imageUrl ?? stores.feeds.getShow(r.episode.feedUrl)?.imageUrl} size={52} name={stores.feeds.getShow(r.episode.feedUrl)?.title} />
                 <Box className="flex-1 gap-0.5">
                   <Text className="text-text text-sm font-display" numberOfLines={2}>{r.episode.title}</Text>
                   <Text className="text-muted text-xs" numberOfLines={1}>{stores.feeds.getShow(r.episode.feedUrl)?.title ?? ''}{r.finished ? ' · finished' : ''}</Text>
@@ -354,7 +358,7 @@ export default function ProfileScreen(): React.ReactElement {
               </Pressable>
             </Link>
           )))
-        : (profile.recent.length === 0 ? <Text className="text-muted text-sm">Nothing public yet.</Text> : feed(profile.recent).map((item) => <FeedItem key={item.id} item={item} onOpen={open} />))}
+        : (profile.recent.length === 0 ? <Text className="text-muted text-sm">Nothing public yet.</Text> : feed(profile.recent).map((item) => <RecentCard key={item.id} item={item} onOpen={open} />))}
       </Box>
       {likes.length > 0 ? (
         <Box className="gap-row">
@@ -379,7 +383,7 @@ export default function ProfileScreen(): React.ReactElement {
     {!own ? (
       <Actionsheet isOpen={more} onClose={() => setMore(false)}>
         <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-        <ActionsheetContent className="bg-surface rounded-t-row px-screen-x pt-row items-stretch">
+        <ActionsheetContent className="px-screen-x pt-row items-stretch">
           <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
           <Text className="text-sm font-bold text-text py-row" numberOfLines={1}>{name}</Text>
           <SheetRow icon={profile.isFollowing ? 'person-remove-outline' : 'person-add-outline'} label={profile.isFollowing ? 'Unfollow' : 'Follow'} iconColour={c.accent} onPress={() => void follow(!profile.isFollowing)} />

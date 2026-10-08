@@ -9,9 +9,6 @@
  * (research R6/T061): the file itself is in the PUBLIC episodes store under an unguessable name —
  * a Vercel function cannot stream it privately (responses are capped at 4.5 MB), so whoever is
  * given the final address can still fetch it. NOT a DRM guarantee.
- *  - M24 US13: GET /episodes/:id/preview — anyone, signed in or not: when the creator set a free
- *    preview, a 1-hour link and the [startMs, endMs) range. The phone plays only that range
- *    (`apps/mobile/src/playback/preview.ts`); the file is the same one, nothing is cut or copied.
  */
 import { Hono } from 'hono';
 import { createHmac, timingSafeEqual } from 'node:crypto';
@@ -44,7 +41,7 @@ paid.get('/paid', optionalAuth, async (c) => {
     productId: tierProduct(show.priceTier),
     profileId: fnv1a64(show.feedUrl),
     bought: await bought(c.get('db'), c.get('listener')?.id, show.feedUrl),
-    items: eps.map((e) => ({ id: e.id, episodeId: e.episodeId, title: e.title, description: e.description, durationMs: e.durationMs, publishedAt: e.publishedAt, coverUrl: e.coverUrl ?? show.coverUrl, ...(e.preview ? { preview: e.preview } : {}) })),
+    items: eps.map((e) => ({ id: e.id, episodeId: e.episodeId, title: e.title, description: e.description, durationMs: e.durationMs, publishedAt: e.publishedAt, coverUrl: e.coverUrl ?? show.coverUrl })),
   });
 });
 
@@ -59,23 +56,6 @@ paid.get('/episodes/:id/access', requireAuth, async (c) => {
   if (!(await bought(db, c.get('listener')!.id, ep.feed_url))) throw new ApiError('needs_purchase', 'Buy this show to play its paid episodes.');
   const exp = Date.now() + LINK_MS;
   return c.json({ url: `${c.get('publicBase')}/v1/hosted/episodes/${id}/audio?exp=${exp}&sig=${sign(c.get('pepper'), id, exp)}`, expiresAt: new Date(exp).toISOString() });
-});
-
-const PREVIEW_LINK_MS = 3_600_000;
-
-paid.get('/episodes/:id/preview', async (c) => {
-  const id = c.req.param('id');
-  if (!UUID.test(id)) throw new ApiError('not_found', 'No such episode.');
-  const [ep] = await c.get('db').query<{ preview_start_ms: number | null; preview_end_ms: number | null }>(
-    `SELECT e.preview_start_ms, e.preview_end_ms FROM hosted_episodes e JOIN hosted_shows s ON s.id = e.show_id
-      WHERE e.id = $1 AND e.paid AND e.deleted_at IS NULL AND s.deleted_at IS NULL AND e.status = 'published' AND e.published_at <= now()`, [id]);
-  if (!ep) throw new ApiError('not_found', 'No such episode.');
-  if (ep.preview_start_ms === null || ep.preview_end_ms === null) throw new ApiError('needs_purchase', 'This episode has no free preview.');
-  const exp = Date.now() + PREVIEW_LINK_MS;
-  return c.json({
-    url: `${c.get('publicBase')}/v1/hosted/episodes/${id}/audio?exp=${exp}&sig=${sign(c.get('pepper'), id, exp)}`,
-    expiresAt: new Date(exp).toISOString(), startMs: Number(ep.preview_start_ms), endMs: Number(ep.preview_end_ms),
-  });
 });
 
 paid.get('/episodes/:id/audio', async (c) => {

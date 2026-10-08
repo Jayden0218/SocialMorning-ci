@@ -81,7 +81,7 @@ export function RulesSheet(props: {
   return (
     <Actionsheet isOpen={props.open} onClose={props.onClose}>
       <ActionsheetBackdrop />
-      <ActionsheetContent className="bg-surface rounded-t-row px-screen-x pt-row items-stretch" accessibilityViewIsModal>
+      <ActionsheetContent className="px-screen-x pt-row items-stretch" accessibilityViewIsModal>
         <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
         <RulesBody onAccepted={props.onAccepted} onClose={props.onClose} />
       </ActionsheetContent>

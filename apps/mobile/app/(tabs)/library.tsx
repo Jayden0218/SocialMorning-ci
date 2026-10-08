@@ -215,7 +215,7 @@ export default function UpdatesScreen(): React.ReactElement {
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-row px-screen-x" className="pt-2">
                   {starredShows.map((s) => (
                     <Pressable key={s.feedUrl} onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(s.feedUrl) } })} accessibilityRole="button" accessibilityLabel={`Open ${s.title}, starred`} style={STAR_ITEM}>
-                      <Artwork url={s.imageUrl} size={STAR_ART} rounded="row" name={s.title} />
+                      <Artwork url={s.imageUrl} size={STAR_ART} name={s.title} />
                       <Text className="text-text text-xs font-semibold mt-1" numberOfLines={1}>{s.title}</Text>
                     </Pressable>
                   ))}
