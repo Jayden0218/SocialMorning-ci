@@ -40,6 +40,8 @@ here or a line does not match its file.
 | `notify.ts` | Per-show notification routes: list shows and turn new-episode alerts on or off. |
 | `push.ts` | Push routes: register or remove a device token and set alert preferences. |
 | `wallet.ts` | Read-only wallet routes: my purchases and the tips I gave. |
+| `redeem.ts` | Redeem a code: POST /v1/me/redeem gives the code's free grant (PLUS days or a paid show) once per account. |
+| `email.ts` | Change the sign-in email: send a code to the new address, check it, switch, tell the old address. |
 | `m19.ts` | My notices from hosts, my monthly report, and the teen-mode passcode reset by email code. |
 | `purchases-google.ts` | Purchase route: the phone sends a Google Play purchase; the server checks it with Google, then grants it. |
 | `stickers.ts` | Sticker placement routes: read my stickers on my profile header, or replace them all. |
@@ -77,9 +79,6 @@ here or a line does not match its file.
 |---|---|
 | `blocks.ts` | Block routes: list, block and unblock listeners. |
 | `reports.ts` | Report routes: report content, rate-limited, and list what I have hidden. |
-| `appeals.ts` | Appeal routes for the phone: what I may appeal, and sending one appeal per action — even while suspended. |
-| `maintenance.ts` | While the admin's maintenance switch is on, every API call answers 503 with the body the phone reads. |
-| `word-filter.ts` | Refuses a write whose text holds a blocked word, before the route sees it (422 blocked_word). |
 
 ### `routes/library/` — subscriptions, positions, listening, history
 
@@ -135,6 +134,7 @@ here or a line does not match its file.
 | `create.ts` | Studio routes to create a new show and check storage status. |
 | `data.ts` | Studio data routes: yesterday, top episodes, episode table, CSV exports. |
 | `episodes.ts` | Studio routes for a created show: edit details, upload and publish episodes. |
+| `feed.ts` | Studio routes for a claimed feed: its last fetch and "Sync now", and hiding one episode from listeners. |
 | `host-picks.ts` | Studio host picks: read and replace the episodes a show's host marks for its show page. |
 | `hosts.ts` | Studio host routes: list hosts, remove one, make and accept invite links. |
 | `index.ts` | Studio router: no-cache, cross-site check, session and show-role walls for every route. |
@@ -142,7 +142,7 @@ here or a line does not match its file.
 | `overview.ts` | Studio overview routes: a show's totals and trend over time. |
 | `settings.ts` | Studio settings routes: show overrides, helpers team, and giving the show back. |
 | `subscribers.ts` | Studio subscriber routes: stats, subscriber list, and muting listeners. |
-| `tips.ts` | Studio route listing a show's tips, owner only. |
+| `tips.ts` | Studio routes for money: the show's tips, and its earnings (sales, gifts, tips, refunds) with a CSV. Owner only. |
 | `transcript-reports.ts` | Studio transcript reports: a show's listener corrections, and marking one done. |
 
 ### `routes/mod/` — moderator routes behind the Admin wall
@@ -172,9 +172,8 @@ here or a line does not match its file.
 | `metrics.ts` | Admin dashboard route: usage numbers for 7, 30 or 90 days, cached five minutes. |
 | `picks.ts` | Admin routes for daily picks: list, read and save a day's picks. |
 | `record.ts` | Admin route to read the admin action record, filtered by area. |
+| `redeem.ts` | Admin routes for redeem codes: list them, make new ones, switch one off. |
 | `users.ts` | Admin routes for users and safety: list, rename, suspend, restore, act on reports. |
-| `appeals.ts` | Admin routes for appeals (accept = undo, reject) and the account deletion queue. |
-| `safety.ts` | Admin routes for blocked words, the maintenance switch and system notices. |
 
 ### `db/` — the database connection and migrations
 
@@ -205,6 +204,7 @@ here or a line does not match its file.
 | `push.ts` | Sends new-episode push notifications through Expo, never twice to one device. |
 | `profile.ts` | My profile: name, bio, photo, optional age range and gender; the photo's storage limits. |
 | `purchases.ts` | Grants what a store purchase bought, once, and takes it back when the store reports a refund. |
+| `redeem.ts` | Redeem codes: the owner gives PLUS days or a paid show for free; each account uses a code once. |
 | `queue.ts` | The listener's synced play queue: read it, and replace it only from the version the phone last saw. |
 | `stickers.ts` | Stickers placed on a profile header: read them, replace them all, and what a viewer may see. |
 | `interests.ts` | A listener's chosen categories (first-open interests) and their "Not liking these?" answers. |
@@ -234,7 +234,6 @@ here or a line does not match its file.
 | `playlists.ts` | Listener playlists: make, rename, reorder, share publicly or keep private. |
 | `host-notices.ts` | Host notices: announcements from the shows a listener follows, from their release time. |
 | `report.ts` | The monthly listening report: minutes, shows, episodes, top three of each, comments and clips. |
-| `system-notices.ts` | System notices: messages from SocialNet to everyone or to one listener, and their optional push. |
 
 ### `db/repos/safety/` — reports, blocks, moderation
 
@@ -243,9 +242,6 @@ here or a line does not match its file.
 | `blocks.ts` | Block and unblock listeners; a block also removes follows both ways. |
 | `moderation.ts` | Applies a moderation action, closes its reports and records it, in one step. |
 | `reports.ts` | Stores reports with a copy of the reported item, hidden for the reporter. |
-| `appeals.ts` | Appeals: what a listener may appeal, sending one appeal per action, and the admin's decision. |
-| `maintenance.ts` | The maintenance switch the admin turns on and off: stored in app_settings, read through a short memo. |
-| `words.ts` | Blocked words: the admin's list, read through a short memo, and the check every write uses. |
 
 ### `db/repos/library/` — subscriptions, positions, listening, library
 
@@ -278,15 +274,20 @@ here or a line does not match its file.
 | File | What it does |
 |---|---|
 | `announcements.ts` | Show announcements; at most two pushed per show each month. |
+| `comment-policy.ts` | Comment control per show and per episode: open, closed, or held for the host's review. |
 | `creator.ts` | Lets a creator claim a show by placing a code in their live feed. |
 | `curators.ts` | Finds the curator who shared an outside show, hiding suspended accounts. |
+| `feed-sync.ts` | A claimed feed's last fetch — when, whether it worked, the error — and the "Sync now" limit. |
+| `hidden-episodes.ts` | Episodes of a claimed show that its creator hid from listeners. |
 | `hosted.ts` | Shows and episodes created in the Studio, and the RSS feed built from them. |
+| `milestones.ts` | The subscriber-milestone message: sent once to the listener who became a show's 100th, 1 000th or 10 000th subscriber. |
 | `polls.ts` | Show polls: create, vote once per listener, close, and count votes. |
 | `show-hosts.ts` | Show hosts added by single-use invite links lasting four days, five hosts maximum. |
 | `show-overrides.ts` | Owner changes to how a show looks in the app, like title, cover, contacts. |
 | `show-page.ts` | What the app's show page reads from us: subscribers, hosts with faces, host picks, owner info. |
 | `show-team.ts` | A show's owner and helpers: add helpers by email, remove, give the show back. |
 | `studio-comments.ts` | A show's comments for the creator: list, reply, and hide or unhide. |
+| `studio-earnings.ts` | Earnings for a show: paid-show sales, gifts and tips per month, refunds apart, and the CSV. |
 | `studio-numbers.ts` | A show's Studio numbers: plays, completion, likes, saves, shares, trends, CSV. |
 | `studio-roles.ts` | Decides who may manage which show in the Studio: owner or helper. |
 | `studio-subscribers.ts` | A show's subscribers: totals, trend, listening hours, names, and muted listeners. |
@@ -309,7 +310,6 @@ here or a line does not match its file.
 | File | What it does |
 |---|---|
 | `admin.ts` | Admin access: who is admin, the admin-only wall, and the admin action record. |
-| `appeal-token.ts` | A signed, short-lived token that lets a suspended listener appeal without a working session. |
 | `codes.ts` | Email sign-in codes: six digits, ten minutes, five tries, stored only hashed. |
 | `password.ts` | Hashes and checks passwords with scrypt from Node's built-in crypto. |
 | `rate.ts` | Fixed-window rate limits kept in the rate_counters table (per address, or global). |

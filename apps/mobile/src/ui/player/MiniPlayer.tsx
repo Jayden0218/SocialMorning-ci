@@ -22,14 +22,14 @@ import { Link, useIsFocused, usePathname } from 'expo-router';
 import { Pressable } from '@/ui/lib/pressable';
 import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { colour, hit } from '@/design';
+import { colour, hit, tabular } from '@/design';
 import { useColours } from '@/ui/kit/useColours';
 import { usePlayer, usePlayerState } from '@/playback/store';
 import { useStores } from '@/ui/shell/providers';
 import { Artwork } from '@/ui/kit/Artwork';
 import { mmss } from '@/ui/kit/format';
 import { Icon } from '@/ui/kit/Icon';
-import { ProgressRing } from '@/ui/kit/ProgressRing';
+import { PlayRing } from '@/ui/player/PlayRing';
 import { MINI_PLAYER_HEIGHT } from '@/ui/kit/Screen';
 import { TAB_HREF } from '@/ui/shell/tabs';
 import { useQueueSheet } from '@/ui/queue/QueueSheetHost';
@@ -126,23 +126,25 @@ export function MiniPlayer(props: { pathname?: string; context?: 'root' | 'tabs'
           <Artwork url={episode?.imageUrl ?? show?.imageUrl} size={MINI_ARTWORK} name={show?.title} />
           <Box className="flex-1">
             <Marquee text={episode?.title ?? 'Now playing'} />
-            <Text className="text-xs text-muted" numberOfLines={1}>
+            {/* M24 US19: tabular digits, so the line keeps its width as the seconds tick. */}
+            <Text className="text-xs text-muted" style={tabular} numberOfLines={1}>
               {durationMs ? `${mmss(positionMs)}/${mmss(durationMs)}` : (show?.title ?? mmss(positionMs))}{sleepNote}
             </Text>
           </Box>
         </Pressable>
       </Link>
+      {/* M24 US19 (`Home-B`): no fill — the yellow progress ring IS the button's edge, the glyph dark. */}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
         accessibilityState={{ selected: isPlaying }}
-        className="rounded-pill bg-playDisc items-center justify-center"
+        className="rounded-pill items-center justify-center"
         style={ROUND}
         onPress={() => (isPlaying ? player.pause() : player.play())}
       >
-        <ProgressRing progress={progress} size={RING} stroke={3}>
-          <Icon name={isPlaying ? 'pause' : 'play'} size={22} color={c.playGlyph} />
-        </ProgressRing>
+        <PlayRing progress={progress} size={RING} stroke={3}>
+          <Icon name={isPlaying ? 'pause' : 'play'} size={20} color={c.text} />
+        </PlayRing>
       </Pressable>
       {/* M21 US3 (FR-020): ≡ opens the playlist sheet over this page, not the /queue page. */}
       <Pressable onPress={() => queueSheet.open()} accessibilityRole="button" accessibilityLabel="Playlist" className="rounded-pill bg-surface border border-border items-center justify-center" style={ROUND}>

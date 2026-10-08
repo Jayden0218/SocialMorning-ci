@@ -50,48 +50,8 @@ export async function snapshotTarget(db: Db, kind: TargetKind, id: string, detai
       const [r] = await db.query<{ show_title: string | null }>('SELECT show_title FROM episodes WHERE feed_url = $1 LIMIT 1', [id]);
       return { snapshot: { kind, id, feedUrl: id, showTitle: r?.show_title ?? null }, authorId: null, gone: false };
     }
-    // M24 US1: a live status (voice or text), with its words and recording.
-    case 'status': {
-      if (!/^[0-9a-f-]{36}$/i.test(id)) return { snapshot: { kind, id }, authorId: null, gone: true };
-      const [r] = await db.query<{ listener_id: string; display_name: string; body: string | null; blob_url: string | null; transcript: string | null; live: boolean }>(
-        `SELECT v.listener_id, l.display_name, v.body, v.blob_url, v.transcript, v.expires_at > now() AS live
-           FROM voice_posts v JOIN listeners l ON l.id = v.listener_id WHERE v.id = $1`, [id]);
-      if (!r || !r.live) return { snapshot: { kind, id }, authorId: null, gone: true };
-      return { snapshot: { kind, id, authorId: r.listener_id, authorName: r.display_name, ...(r.body ? { body: r.body } : {}), ...(r.blob_url ? { voiceUrl: r.blob_url } : {}), ...(r.transcript ? { voiceText: r.transcript } : {}) }, authorId: r.listener_id, gone: false };
-    }
-    // M24 US1: one chat message, with up to CHAT_CONTEXT messages before it in the same conversation.
-    case 'chat_message': {
-      if (!/^\d{1,18}$/.test(id)) return { snapshot: { kind, id }, authorId: null, gone: true };
-      const [r] = await db.query<{ sender_id: string; recipient_id: string; body: string; display_name: string; recipient_name: string; removed_at: string | null; created_at: Date | string }>(
-        `SELECT m.sender_id, m.recipient_id, m.body, s.display_name, r.display_name AS recipient_name, m.removed_at, m.created_at
-           FROM chat_messages m JOIN listeners s ON s.id = m.sender_id JOIN listeners r ON r.id = m.recipient_id WHERE m.id = $1::bigint`, [id]);
-      if (!r || r.removed_at !== null) return { snapshot: { kind, id }, authorId: null, gone: true };
-      const before = await db.query<{ sender_id: string; body: string; created_at: Date | string }>(
-        `SELECT sender_id, body, created_at FROM chat_messages
-          WHERE ((sender_id = $1 AND recipient_id = $2) OR (sender_id = $2 AND recipient_id = $1)) AND id < $3::bigint AND removed_at IS NULL
-          ORDER BY id DESC LIMIT ${CHAT_CONTEXT}`, [r.sender_id, r.recipient_id, id]);
-      const name = (who: string) => (who === r.sender_id ? r.display_name : r.recipient_name);
-      return {
-        snapshot: {
-          kind, id, body: r.body, authorId: r.sender_id, authorName: r.display_name, recipientId: r.recipient_id, recipientName: r.recipient_name,
-          context: before.reverse().map((m) => ({ from: name(m.sender_id), body: m.body, at: new Date(m.created_at).toISOString() })),
-        },
-        authorId: r.sender_id, gone: false,
-      };
-    }
-    // M24 US1: a shared list — its title and how many shows it holds.
-    case 'list': {
-      if (!/^[A-Za-z0-9]{10}$/.test(id)) return { snapshot: { kind, id }, authorId: null, gone: true };
-      const [r] = await db.query<{ owner_id: string; display_name: string; title: string; n: number; removed_at: string | null }>(
-        'SELECT s.owner_id, l.display_name, s.title, cardinality(s.feed_urls) AS n, s.removed_at FROM shared_lists s JOIN listeners l ON l.id = s.owner_id WHERE s.id = $1', [id]);
-      if (!r || r.removed_at !== null) return { snapshot: { kind, id }, authorId: null, gone: true };
-      return { snapshot: { kind, id, title: r.title, showCount: Number(r.n), authorId: r.owner_id, authorName: r.display_name }, authorId: r.owner_id, gone: false };
-    }
   }
 }
-
-/** M24 US1: how many earlier messages a chat-message report keeps, so the admin reads it in context. */
-export const CHAT_CONTEXT = 5;
 
 export type CreateResult = { id: string; duplicate: boolean; closed?: 'already_gone' };
 

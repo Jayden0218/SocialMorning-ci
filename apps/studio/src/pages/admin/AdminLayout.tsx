@@ -19,13 +19,9 @@ export const ADMIN_SECTIONS = [
   { path: 'accounts', label: 'Accounts' },
   { path: 'users', label: 'Users' },
   { path: 'reports', label: 'Reports' },
-  // M24 lane A1: appeals, blocked words + maintenance, notices, the deletion queue.
-  { path: 'appeals', label: 'Appeals' },
-  { path: 'safety', label: 'Safety' },
-  { path: 'notices', label: 'Notices' },
-  { path: 'deletions', label: 'Deletions' },
   // M22 US13: the shows offered translated transcripts, and today's Groq use.
   { path: 'translation', label: 'Translation' },
+  { path: 'redeem', label: 'Redeem codes' }, // M24 lane A3
 ] as const;
 
 /**
