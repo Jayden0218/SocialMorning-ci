@@ -76,8 +76,10 @@ export const ITEM_TYPES = {
   /** G-L1: "listening now" keeps a daily-salted install hash and a time — no account, ever. */
   liveListener: { table: 'events', attrs: ['episodeId', 'listenerHash', 'seenAt'] },
   // sm-cache
-  cacheEntry: { table: 'cache', attrs: ['key', 'body', 'gz', 'chunks', 'fetchedAt', 'gen'] },
-  cacheChunk: { table: 'cache', attrs: ['n', 'data'] },
+  // Lane LB: `w` = the write that made an entry and its chunks (a reader never mixes two writes); `cacheGen` = a prefix's generation.
+  cacheEntry: { table: 'cache', attrs: ['key', 'body', 'gz', 'chunks', 'fetchedAt', 'gen', 'w'] },
+  cacheChunk: { table: 'cache', attrs: ['n', 'data', 'w'] },
+  cacheGen: { table: 'cache', attrs: ['prefix', 'gen'] },
 } as const satisfies Record<string, TypeDef>;
 
 export type ItemType = keyof typeof ITEM_TYPES;

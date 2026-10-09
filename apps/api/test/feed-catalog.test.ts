@@ -2,6 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { freshDb } from './harness.ts';
+import { ageAllCache } from './lb-seed.ts';
 import { episodeIdOf, fetchFeed, registerCard, toCard } from '../src/catalog/feed.ts';
 import { genreIdFor } from '../src/catalog/genres.ts';
 import { fakeFeedFetch, FIXTURE_FEED } from './fake-apple.ts';
@@ -38,7 +39,7 @@ test('a feed that answers 500 with no cached copy rejects; with a copy it serves
   const t = await freshDb();
   await assert.rejects(fetchFeed(t.db, fakeFeedFetch('', 500), 'https://feeds.example.com/down.xml'), /500/);
   await fetchFeed(t.db, fakeFeedFetch(FIXTURE_FEED), 'https://feeds.example.com/ok.xml');
-  await t.q(`UPDATE cache SET fetched_at = now() - interval '2 hours'`);
+  await ageAllCache(t, 2 * 3_600_000);
   const r = await fetchFeed(t.db, fakeFeedFetch('', 500), 'https://feeds.example.com/ok.xml');
   assert.equal(r.stale, true);
   assert.equal(r.feed.show.title, 'Fixture Show');
