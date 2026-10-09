@@ -7,6 +7,7 @@ import { requireAuth } from '../../auth/session.ts';
 import { json } from '../../validate.ts';
 import { ApiError } from '../../errors.ts';
 import { listenedRowsFor, replaceRanges } from '../../db/repos/library/listened.ts';
+import { deleteAllPositions, deletePositionsFor } from '../../db/repos/library/positions.ts';
 
 const range = z.tuple([z.number().int().min(0), z.number().int().min(0)]).refine(([a, b]) => a < b, 'from < to');
 const body = z.object({
@@ -71,7 +72,7 @@ export const history = new Hono<AuthEnv>();
 history.delete('/', requireAuth, json(historyBody), async (c) => {
   const b = c.req.valid('json');
   const id = c.get('listener')!.id;
-  if ('all' in b) await c.get('db').query('DELETE FROM positions WHERE listener_id = $1', [id]);
-  else await c.get('db').query('DELETE FROM positions WHERE listener_id = $1 AND episode_id = ANY($2::text[])', [id, b.episodeIds]);
+  if ('all' in b) await deleteAllPositions(c.get('db'), id);
+  else await deletePositionsFor(c.get('db'), id, b.episodeIds);
   return c.body(null, 204);
 });

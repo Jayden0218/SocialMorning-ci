@@ -6,7 +6,7 @@ import { z } from 'zod';
 import type { Hono } from 'hono';
 import { ApiError } from '../../errors.ts';
 import { json } from '../../validate.ts';
-import { claimManual, recordSync, syncStatus } from '../../db/repos/studio/feed-sync.ts';
+import { claimManual, dropFeedCache, recordSync, syncStatus } from '../../db/repos/studio/feed-sync.ts';
 import { listHidden, setHidden } from '../../db/repos/studio/hidden-episodes.ts';
 import { refreshOne } from '../internal.ts';
 import type { StudioEnv } from '../../auth/studio-session.ts';
@@ -29,7 +29,7 @@ export function registerFeed(studio: Hono<StudioEnv>): void {
       throw new ApiError('locked', 'Sync now works once every 10 minutes.', { retryAfterSeconds: wait });
     }
     // The cached copy would answer for up to its lifetime: drop it so this is a real fetch.
-    await db.query('DELETE FROM cache WHERE key = $1', [`feed:${show.feedUrl}`]);
+    await dropFeedCache(db, show.feedUrl);
     const counts = { registered: 0, pushed: 0, moved: 0, blocked: 0 };
     let error: string | null = null;
     try {

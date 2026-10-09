@@ -9,6 +9,7 @@ import { hashPassword, verifyPassword } from '../../auth/password.ts';
 import { clearFailedSignIns, createListener, listenerByEmail, recordFailedSignIn } from '../../db/repos/account/listeners.ts';
 import { ApiError } from '../../errors.ts';
 import { pendingDeletion } from '../../db/repos/account/deletion.ts';
+import { deleteSessionByHash } from '../../db/repos/account/sessions.ts';
 import { randomBytes } from 'node:crypto';
 import { checkCode, consumeCode, newCode, resendWait, storeCode, CODE_TTL_MS, RESEND_AFTER_MS } from '../../auth/codes.ts';
 import { clientAddress, HOUR_MS, limit, limitCodeRequest } from '../../auth/rate.ts';
@@ -141,6 +142,6 @@ auth.post('/code/verify', json(codeVerify), async (c) => {
 });
 
 auth.post('/sign-out', requireAuth, async (c) => {
-  await c.get('db').query('DELETE FROM sessions WHERE token_hash = $1', [tokenHash(c.get('token')!, c.get('pepper'))]);
+  await deleteSessionByHash(c.get('db'), tokenHash(c.get('token')!, c.get('pepper')));
   return c.json({});
 });

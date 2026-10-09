@@ -14,6 +14,7 @@
  */
 import { Resvg } from '@resvg/resvg-wasm';
 import type { Db } from '../db/db.ts';
+import { tintCacheRows, writeTintCache } from '../db/repos/tint-cache.ts';
 import { assets } from './card.ts';
 import { fetchImage, type FetchedImage } from './fetch-image.ts';
 
@@ -57,10 +58,8 @@ export async function computeTint(f: typeof fetch, url: string): Promise<string 
 
 const inFlight = new Map<string, Promise<string | null>>();
 
-type Row = { body: { hex: string | null } | string; fetched_at: Date | string };
-
 async function readCached(db: Db, key: string, now: number): Promise<{ hex: string | null } | undefined> {
-  const [row] = await db.query<Row>('SELECT body, fetched_at FROM cache WHERE key = $1', [key]);
+  const [row] = await tintCacheRows(db, key);
   if (!row) return undefined;
   // Either jsonb shape: an object (postgres) or a JSON string (see repos/cache.ts).
   const body = (typeof row.body === 'string' ? JSON.parse(row.body) : row.body) as { hex?: unknown };
@@ -73,10 +72,7 @@ async function work(db: Db, f: typeof fetch, url: string, key: string, now: () =
   let hex: string | null = null;
   try { hex = await computeTint(f, url); } catch { hex = null; }
   try {
-    await db.query(
-      'INSERT INTO cache (key, body, fetched_at) VALUES ($1, ($2::text)::jsonb, to_timestamp($3::double precision / 1000)) ON CONFLICT (key) DO UPDATE SET body = EXCLUDED.body, fetched_at = EXCLUDED.fetched_at',
-      [key, JSON.stringify({ hex }), now()],
-    );
+    await writeTintCache(db, key, JSON.stringify({ hex }), now());
   } catch { /* the colour is still returned; the next read works it out again */ }
   return hex;
 }

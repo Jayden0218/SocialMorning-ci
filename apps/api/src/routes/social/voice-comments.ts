@@ -8,9 +8,9 @@ import { audioDurationMs, isMp4 } from '../../voice/duration.ts';
 import { readTranscript } from '../../voice/transcript.ts';
 import { VOICE_MAX_BYTES, VOICE_MAX_MS } from '../../db/repos/social/voice-posts.ts';
 import { getEpisode } from '../../db/repos/library/episodes.ts';
-import { createComment, getComment, requireRulesAccepted, toPublic } from '../../db/repos/social/comments.ts';
+import { getComment, requireRulesAccepted, toPublic } from '../../db/repos/social/comments.ts';
 import { COUNTRY_HEADER, countryOf } from '../../db/repos/account/country.ts';
-import { rebuildEpisodeHeat } from '../../heat/rebuild.ts';
+import { postVoiceCommentInTx, recentCommentRows } from '../../db/repos/social/comment-writes.ts';
 import { isBlockedBy } from '../../db/repos/safety/blocks.ts';
 import { isMutedOn } from '../../db/repos/studio/studio-subscribers.ts';
 import { requireOpenForVoice } from '../../db/repos/studio/comment-policy.ts';
@@ -65,7 +65,7 @@ voiceComments.post('/:id/comments/voice', requireAuth, async (c) => {
   if (measured > VOICE_MAX_MS + SLACK_MS) throw new ApiError('validation', 'A voice comment is at most 60 seconds.', { fields: ['body'] });
 
   // The same rules as a text comment: the rate floor, blocks, and the host's mute.
-  const [recent] = await db.query<{ n: number }>(`SELECT count(*)::int AS n FROM comments WHERE author_id = $1 AND created_at > now() - ($2 || ' milliseconds')::interval`, [me.id, String(RATE_FLOOR_MS)]);
+  const [recent] = await recentCommentRows(db, me.id, String(RATE_FLOOR_MS));
   if (Number(recent?.n ?? 0) > 0) throw new ApiError('locked', 'One comment every few seconds, please.', { retryAfterSeconds: 5 });
   if (parentId) {
     const parent = await getComment(db, parentId);
@@ -86,11 +86,7 @@ voiceComments.post('/:id/comments/voice', requireAuth, async (c) => {
   const ms = Math.min(VOICE_MAX_MS, Math.max(1, measured));
   const country = countryOf(c.req.header(COUNTRY_HEADER)); // M21 US6 (G-I1: two letters only)
   try {
-    const created = await db.transaction(async (tx) => {
-      const row = await createComment(tx, { episodeId, authorId: me.id, body: null, ...(offsetMs !== undefined ? { offsetMs } : {}), ...(parentId ? { parentId } : {}), voice: { url: stored.url, path: stored.pathname, ms, ...(transcript ? { transcript } : {}) }, ...(country ? { country } : {}) });
-      if (offsetMs !== undefined) await rebuildEpisodeHeat(tx, episodeId);
-      return row;
-    });
+    const created = await postVoiceCommentInTx(db, episodeId, me.id, { offsetMs, parentId, url: stored.url, path: stored.pathname, ms, transcript, country });
     return c.json({ comment: toPublic(created, me.id) }, 201);
   } catch (e) {
     // The row was refused (a reply too deep, a missing parent): the file must not stay behind.

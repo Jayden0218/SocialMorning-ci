@@ -8,6 +8,7 @@ import { json } from '../validate.ts';
 import { ApiError } from '../errors.ts';
 import type { Db } from '../db/db.ts';
 import { esc, page } from '../pages/clip.ts';
+import { insertSharedList, sharedListRows, sharedListShowRows } from '../db/repos/social/shared-lists.ts';
 
 /**
  * M22 US17 item 5 (contracts/api.md "Small items").
@@ -36,19 +37,10 @@ export type SharedList = { id: string; title: string; owner: { id: string; displ
 
 export async function readList(db: Db, id: string): Promise<SharedList | undefined> {
   if (!/^[A-Za-z0-9]{10}$/.test(id)) return undefined;
-  const [l] = await db.query<{ id: string; title: string; feed_urls: string[] | string; created_at: Date | string; owner_id: string; display_name: string; suspended_at: string | null }>(
-    `SELECT s.id, s.title, s.feed_urls, s.created_at, s.owner_id, l.display_name, l.suspended_at
-       FROM shared_lists s JOIN listeners l ON l.id = s.owner_id WHERE s.id = $1 AND s.removed_at IS NULL`, [id]); // M24 US1: removed by the admin
+  const [l] = await sharedListRows(db, id);
   if (!l || l.suspended_at) return undefined;
   const urls = Array.isArray(l.feed_urls) ? l.feed_urls : l.feed_urls.replace(/^\{|\}$/g, '').split(',').map((u) => u.replace(/^"|"$/g, ''));
-  const rows = await db.query<{ feed_url: string; title: string | null; image_url: string | null }>(
-    `SELECT u.feed_url,
-            coalesce(o.title, (SELECT e.show_title FROM episodes e WHERE e.feed_url = u.feed_url AND e.show_title IS NOT NULL ORDER BY e.published_at DESC NULLS LAST LIMIT 1)) AS title,
-            coalesce(o.cover_url, (SELECT e.image_url FROM episodes e WHERE e.feed_url = u.feed_url AND e.image_url IS NOT NULL ORDER BY e.published_at DESC NULLS LAST LIMIT 1)) AS image_url
-       FROM unnest($1::text[]) WITH ORDINALITY AS u(feed_url, pos)
-       LEFT JOIN show_overrides o ON o.feed_url = u.feed_url
-      WHERE NOT EXISTS (SELECT 1 FROM hidden_feeds h WHERE h.feed_url = u.feed_url)
-      ORDER BY u.pos`, [urls]);
+  const rows = await sharedListShowRows(db, urls);
   const hostOf = (u: string) => { try { return new URL(u).hostname; } catch { return u; } };
   return {
     id: l.id.trim(), title: l.title, owner: { id: l.owner_id, displayName: l.display_name },
@@ -72,9 +64,7 @@ mySharedLists.post('/', requireAuth, json(body), async (c) => {
   let id = newListId();
   // A clash in ~58 bits is not expected; one retry keeps it from ever being a 500.
   for (let tries = 0; tries < 2; tries++) {
-    const rows = await db.query<{ id: string }>(
-      'INSERT INTO shared_lists (id, owner_id, title, feed_urls) VALUES ($1, $2, $3, $4::text[]) ON CONFLICT (id) DO NOTHING RETURNING id',
-      [id, c.get('listener')!.id, b.title, feedUrls]);
+    const rows = await insertSharedList(db, id, c.get('listener')!.id, b.title, feedUrls);
     if (rows.length > 0) break;
     id = newListId();
   }

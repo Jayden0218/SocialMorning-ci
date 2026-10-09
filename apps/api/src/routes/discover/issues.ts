@@ -6,7 +6,8 @@ import type { Db } from '../../db/db.ts';
 import type { EpisodeCard } from '../../catalog/apple.ts';
 import { ApiError } from '../../errors.ts';
 import { hiddenFeedUrls } from '../../db/repos/safety/moderation.ts';
-import { hiddenEpisodeIds, notHidden } from '../../db/repos/studio/hidden-episodes.ts';
+import { hiddenEpisodeIds } from '../../db/repos/studio/hidden-episodes.ts';
+import { pickEpisodeRows, type PickEpisodeRow } from '../../db/repos/discover/pick-episodes.ts';
 
 /**
  * M12 FR-070 (past picks) and FR-101 (curated issues), both from the picks file — no
@@ -15,15 +16,12 @@ import { hiddenEpisodeIds, notHidden } from '../../db/repos/studio/hidden-episod
  * publisher. An item whose episode is not known yet comes back with `episode: null` and its
  * feed URL, and the phone opens the show instead.
  */
-type EpRow = { id: string; feed_url: string; guid: string; title: string; show_title: string | null; image_url: string | null; duration_ms: number | null; enclosure_url: string };
+type EpRow = PickEpisodeRow;
 const cardOf = (e: EpRow): EpisodeCard & { id: string } => ({ id: e.id, feedUrl: e.feed_url, guid: e.guid, title: e.title, showTitle: e.show_title ?? '', enclosureUrl: e.enclosure_url, ...(e.image_url ? { imageUrl: e.image_url } : {}), ...(e.duration_ms !== null ? { durationMs: Number(e.duration_ms) } : {}) });
-const COLS = 'id, feed_url, guid, title, show_title, image_url, duration_ms, enclosure_url';
 
 /** `visibleOnly` (M24 US11): "the show's latest" skips an episode its creator hid. Listener paths pass true. */
 export async function episodeFor(db: Db, feedUrl: string, guid: string | undefined, visibleOnly = false): Promise<(EpisodeCard & { id: string }) | null> {
-  const [e] = guid !== undefined
-    ? await db.query<EpRow>(`SELECT ${COLS} FROM episodes WHERE feed_url = $1 AND guid = $2`, [feedUrl, guid])
-    : await db.query<EpRow>(`SELECT ${COLS} FROM episodes WHERE feed_url = $1${visibleOnly ? ` AND ${notHidden('episodes')}` : ''} ORDER BY published_at DESC NULLS LAST, first_seen_at DESC LIMIT 1`, [feedUrl]);
+  const [e] = await pickEpisodeRows(db, feedUrl, guid, visibleOnly);
   return e ? cardOf(e) : null;
 }
 

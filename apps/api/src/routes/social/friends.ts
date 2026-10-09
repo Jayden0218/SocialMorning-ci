@@ -5,7 +5,7 @@ import { requireAuth } from '../../auth/session.ts';
 import type { EpisodeCard } from '../../catalog/apple.ts';
 import { initialsOf } from '../../db/repos/social/comment-likes.ts';
 import { hiddenFeedUrls } from '../../db/repos/safety/moderation.ts';
-import { notHidden } from '../../db/repos/studio/hidden-episodes.ts';
+import { friendsListeningRows } from '../../db/repos/social/friends-listening.ts';
 
 /**
  * M12 FR-102 — mounted at /v1/me. "Friends are listening": episodes that people the caller
@@ -18,35 +18,10 @@ export const friends = new Hono<AuthEnv>();
 
 export const FRIENDS_MAX = 30;
 
-type Row = {
-  episode_id: string; listener_id: string; display_name: string; at: Date | string;
-  feed_url: string; guid: string; title: string; show_title: string | null; image_url: string | null; duration_ms: number | null; enclosure_url: string;
-};
-
 friends.get('/friends-listening', requireAuth, async (c) => {
   const db = c.get('db');
   const me = c.get('listener')!.id;
-  // M24 US11: hidden episodes leave this list.
-  const rows = await db.query<Row>(
-    `WITH r AS (
-       SELECT lr.episode_id, lr.listener_id, max(lr.updated_at) AS at
-       FROM follows f
-       JOIN listened_ranges lr ON lr.listener_id = f.followed_id
-       JOIN listeners l ON l.id = lr.listener_id
-       WHERE f.follower_id = $1
-         AND lr.updated_at > now() - interval '7 days'
-         AND l.private_listening = false AND l.suspended_at IS NULL AND l.hidden_at IS NULL
-         AND NOT EXISTS (SELECT 1 FROM activity a WHERE a.actor_id = lr.listener_id AND a.kind = 'listened' AND a.episode_id = lr.episode_id AND a.day = lr.day AND a.hidden)
-         AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id = $1 AND b.blocked_id = lr.listener_id) OR (b.blocker_id = lr.listener_id AND b.blocked_id = $1))
-       GROUP BY lr.episode_id, lr.listener_id
-     )
-     SELECT r.episode_id, r.listener_id, l.display_name, r.at,
-            e.feed_url, e.guid, e.title, e.show_title, e.image_url, e.duration_ms, e.enclosure_url
-     FROM r JOIN listeners l ON l.id = r.listener_id JOIN episodes e ON e.id = r.episode_id
-     WHERE ${notHidden('e')}
-     ORDER BY r.at DESC LIMIT 1000`,
-    [me],
-  );
+  const rows = await friendsListeningRows(db, me);
   const hidden = await hiddenFeedUrls(db);
   const byEpisode = new Map<string, { episode: EpisodeCard & { id: string }; listeners: { id: string; name: string; initials: string | null }[]; lastAt: string }>();
   for (const r of rows) {

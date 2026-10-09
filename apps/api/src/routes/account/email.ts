@@ -25,6 +25,8 @@ import { json } from '../../validate.ts';
 import { ApiError } from '../../errors.ts';
 import { CODE_TTL_MS, MAX_ATTEMPTS, RESEND_AFTER_MS, codeHash, newCode } from '../../auth/codes.ts';
 import { HOUR_MS, limit, limitCodeRequest } from '../../auth/rate.ts';
+import { emailTaken } from '../../db/repos/admin/admin-accounts.ts';
+import { deleteEmailChange, pendingEmailChangeRows, saveEmailChange, switchEmail, takeEmailChangeTry } from '../../db/repos/account/email-change.ts';
 
 export const EMAIL_CHANGES_PER_HOUR = 5;
 
@@ -42,10 +44,10 @@ emailChange.post('/start', requireAuth, json(z.object({ email })), async (c) => 
   const db = c.get('db');
   const me = c.get('listener')!;
   if (to === me.email.toLowerCase()) throw new ApiError('validation', 'That is already your sign-in email.', { fields: ['email'] });
-  const [taken] = await db.query('SELECT 1 FROM listeners WHERE email = $1 AND id <> $2', [to, me.id]);
+  const taken = await emailTaken(db, to, me.id);
   if (taken) throw new ApiError('conflict', 'Another account uses that email.');
   const now = Date.now();
-  const [pending] = await db.query<{ sent_at: Date | string }>('SELECT sent_at FROM email_changes WHERE listener_id = $1', [me.id]);
+  const [pending] = await pendingEmailChangeRows(db, me.id);
   const wait = pending ? new Date(pending.sent_at).getTime() + RESEND_AFTER_MS - now : 0;
   if (wait > 0) throw new ApiError('locked', `Wait ${Math.ceil(wait / 1000)} s before asking for another code.`, { retryAfterSeconds: Math.ceil(wait / 1000) });
   await limit(db, `email-change:l:${me.id}`, HOUR_MS, EMAIL_CHANGES_PER_HOUR, 'Too many codes were asked for. Try again in an hour.');
@@ -53,10 +55,7 @@ emailChange.post('/start', requireAuth, json(z.object({ email })), async (c) => 
   const code = newCode();
   const oldCode = newCode();
   const old = me.email.toLowerCase();
-  await db.query(
-    `INSERT INTO email_changes (listener_id, new_email, code_hash, old_code_hash, sent_at, expires_at, tries) VALUES ($1, $2, $3, $4, $5, $6, 0)
-     ON CONFLICT (listener_id) DO UPDATE SET new_email = EXCLUDED.new_email, code_hash = EXCLUDED.code_hash, old_code_hash = EXCLUDED.old_code_hash, sent_at = EXCLUDED.sent_at, expires_at = EXCLUDED.expires_at, tries = 0`,
-    [me.id, to, codeHash(to, code, c.get('pepper')), codeHash(old, oldCode, c.get('pepper')), new Date(now), new Date(now + CODE_TTL_MS)]);
+  await saveEmailChange(db, me.id, to, codeHash(to, code, c.get('pepper')), codeHash(old, oldCode, c.get('pepper')), new Date(now), new Date(now + CODE_TTL_MS));
   await mailer.send({
     to,
     subject: `${code} is your SocialNet code`,
@@ -78,9 +77,7 @@ emailChange.post('/confirm', requireAuth, json(z.object({ code: sixDigits, oldCo
   const db = c.get('db');
   const me = c.get('listener')!;
   // The try is taken before the compare: parallel guesses cannot all be checked (as in auth/codes.ts).
-  const [row] = await db.query<{ new_email: string; code_hash: Buffer | Uint8Array; old_code_hash: Buffer | Uint8Array | null; tries: number }>(
-    `UPDATE email_changes SET tries = tries + 1 WHERE listener_id = $1 AND tries < $2 AND expires_at > $3
-     RETURNING new_email, code_hash, old_code_hash, tries`, [me.id, MAX_ATTEMPTS, new Date()]);
+  const [row] = await takeEmailChangeTry(db, me.id, MAX_ATTEMPTS, new Date());
   if (!row) throw new ApiError('validation', 'That code has expired. Ask for a new one.', { fields: ['code'] });
   const same = (stored: Buffer | Uint8Array | null, got: Buffer): boolean => {
     if (!stored) return false;
@@ -93,25 +90,15 @@ emailChange.post('/confirm', requireAuth, json(z.object({ code: sixDigits, oldCo
   const newOk = peppers.map((p) => same(row.code_hash, codeHash(row.new_email, code, p))).some(Boolean);
   const oldOk = peppers.map((p) => same(row.old_code_hash, codeHash(me.email.toLowerCase(), oldCode, p))).some(Boolean);
   if (!(newOk && oldOk)) {
-    if (row.tries >= MAX_ATTEMPTS) await db.query('DELETE FROM email_changes WHERE listener_id = $1', [me.id]);
+    if (row.tries >= MAX_ATTEMPTS) await deleteEmailChange(db, me.id);
     throw new ApiError('validation', !newOk && !oldOk ? 'Those codes are not right.' : !newOk ? 'The code sent to your new email is not right.' : 'The code sent to your current email is not right.', { fields: [...(newOk ? [] : ['code']), ...(oldOk ? [] : ['oldCode'])] });
   }
   const to = row.new_email.toLowerCase();
   const old = me.email;
   const keep = tokenHash(c.get('token')!, c.get('pepper'));
-  const switched = await db.transaction(async (tx) => {
-    const [taken] = await tx.query('SELECT 1 FROM listeners WHERE email = $1 AND id <> $2', [to, me.id]);
-    if (taken) return false;
-    await tx.query('UPDATE listeners SET email = $2 WHERE id = $1', [me.id, to]);
-    await tx.query('DELETE FROM email_changes WHERE listener_id = $1', [me.id]);
-    // Sign-in codes already sent to either address are void now.
-    await tx.query('DELETE FROM email_codes WHERE email = $1 OR email = $2', [old, to]);
-    // Fix F-S (guard G-M24-FS-2): every other session of this account is signed out; this one stays.
-    const gone = await tx.query('DELETE FROM sessions WHERE listener_id = $1 AND token_hash <> $2 RETURNING 1', [me.id, keep]);
-    return { signedOut: gone.length };
-  });
+  const switched = await switchEmail(db, me.id, old, to, keep);
   if (switched === false) {
-    await db.query('DELETE FROM email_changes WHERE listener_id = $1', [me.id]);
+    await deleteEmailChange(db, me.id);
     throw new ApiError('conflict', 'Another account uses that email now.');
   }
   // The switch is done; a failed notice is logged, not reported as a failed change.

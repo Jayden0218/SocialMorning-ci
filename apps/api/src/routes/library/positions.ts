@@ -5,7 +5,7 @@ import type { AuthEnv } from '../../auth/session.ts';
 import { requireAuth } from '../../auth/session.ts';
 import { json } from '../../validate.ts';
 import { ApiError } from '../../errors.ts';
-import { listPositions, observePosition, toPublic } from '../../db/repos/library/positions.ts';
+import { knownEpisodeIds, listPositions, observePositions, toPublic } from '../../db/repos/library/positions.ts';
 
 const observation = z.object({
   episodeId: z.string().min(1).max(64),
@@ -28,17 +28,13 @@ positions.put('/', requireAuth, json(putBody), async (c) => {
   const body = c.req.valid('json');
 
   const ids = [...new Set(body.observations.map((o) => o.episodeId))];
-  const known = await db.query<{ id: string }>('SELECT id FROM episodes WHERE id = ANY($1::text[])', [ids]);
+  const known = await knownEpisodeIds(db, ids);
   const knownSet = new Set(known.map((r) => r.id));
   const unknown = ids.find((id) => !knownSet.has(id));
   if (unknown) throw new ApiError('not_found', `Episode ${unknown} is not registered — PUT /v1/episodes/${unknown} first.`, { episodeId: unknown });
 
   const now = new Date();
-  const rows = await db.transaction(async (tx) => {
-    const out = [];
-    for (const o of body.observations) out.push(await observePosition(tx, listener.id, body.deviceId, o, now));
-    return out;
-  });
+  const rows = await observePositions(db, listener.id, body.deviceId, body.observations, now);
   return c.json({ positions: rows.map(toPublic) });
 });
 

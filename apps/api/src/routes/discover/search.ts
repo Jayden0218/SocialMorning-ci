@@ -10,6 +10,7 @@ import { registerCard } from '../../catalog/feed.ts';
 import { hiddenFeedUrls } from '../../db/repos/safety/moderation.ts';
 import { hiddenEpisodeIds } from '../../db/repos/studio/hidden-episodes.ts';
 import { statsFor } from '../../db/repos/discover/discover-extras.ts';
+import { createdShowsMatching, peopleMatching } from '../../db/repos/discover/search-local.ts';
 
 /** M21 T080: `since=30d|180d` keeps episodes published in that many days; one without a date is left out. */
 export const SINCE_DAYS = { '30d': 30, '180d': 180 } as const;
@@ -53,11 +54,7 @@ export function createSearchRoute() {
     cached<EpisodeCard[]>(db, `apple:search:episodes:${key}`, TTL.search, () => searchEpisodes(f, q)),
   ]);
   // M13 (FR-010): shows created in the Studio are not in Apple's catalogue; they are found here first.
-  const local = await db.query<{ feed_url: string; title: string; author: string; cover_url: string | null; category: string }>(
-    `SELECT feed_url, title, author, cover_url, category FROM hosted_shows
-      WHERE deleted_at IS NULL AND title ILIKE '%' || $1 || '%' ORDER BY created_at DESC LIMIT 10`,
-    [q.replace(/[\\%_]/g, (m) => '\\' + m)],
-  );
+  const local = await createdShowsMatching(db, q.replace(/[\\%_]/g, (m) => '\\' + m));
   const created: ShowCard[] = local.map((r) => ({ feedUrl: r.feed_url, title: r.title, author: r.author, genres: [r.category], ...(r.cover_url ? { imageUrl: r.cover_url } : {}) }));
   const rateLimited = [showsR, episodesR].some((r) => r.status === 'rejected' && r.reason instanceof CatalogRateLimited);
   if (showsR.status === 'rejected' && episodesR.status === 'rejected' && created.length === 0) {
@@ -103,14 +100,7 @@ export function createSearchRoute() {
     const who = viewer ?? c.req.header('x-forwarded-for') ?? 'anon';
     if (throttled(`people:${who}`, Date.now(), 30)) throw new ApiError('locked', 'Too many searches — try again in a moment.', { retryAfterSeconds: 30 });
     const like = q.replace(/[\\%_]/g, (m) => '\\' + m);
-    const rows = await c.get('db').query<{ id: string; display_name: string }>(
-      `SELECT l.id, l.display_name FROM listeners l
-        WHERE l.suspended_at IS NULL AND l.hidden_at IS NULL AND l.display_name ILIKE '%' || $1 || '%'
-          AND ($2::uuid IS NULL OR (l.id <> $2::uuid AND NOT EXISTS (
-            SELECT 1 FROM blocks b WHERE (b.blocker_id = l.id AND b.blocked_id = $2::uuid) OR (b.blocker_id = $2::uuid AND b.blocked_id = l.id))))
-        ORDER BY (l.display_name ILIKE $1 || '%') DESC, lower(l.display_name), l.id LIMIT 20`,
-      [like, viewer ?? null],
-    );
+    const rows = await peopleMatching(c.get('db'), like, viewer ?? null);
     return c.json({ listeners: rows.map((r) => ({ id: r.id, displayName: r.display_name })) });
   });
 

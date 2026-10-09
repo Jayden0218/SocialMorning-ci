@@ -10,8 +10,7 @@ import WatchKit
 
 final class Downloader: NSObject, URLSessionDownloadDelegate {
   static let shared = Downloader()
-  // Lane DP: from the Watch app's own bundle id, so the dev Watch app (…mobile.dev.watchkitapp) has its own session.
-  static let identifier = (Bundle.main.bundleIdentifier ?? "app.socialmorning.mobile.watchkitapp") + ".downloads"
+  static let identifier = "app.socialmorning.mobile.watchkitapp.downloads"
   /// Space always left free for the system and our own list (100 MB).
   static let reserveBytes: Double = 100 * 1024 * 1024
 

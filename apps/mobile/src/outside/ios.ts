@@ -10,13 +10,9 @@
  */
 import type { OutsideSink } from './bridge';
 import { dayKey, weekStartMs, weekTotalMs, type DailyPickCopy, type PlaylistCopy, type WeekCopy, type WidgetDataSink } from './widget-data';
-import { appVariant, type AppVariant } from '@/config/variant';
 
 /** Must match `app.json` → `ios.entitlements` and `targets/widget/expo-target.config.js`. */
 export const APP_GROUP = 'group.app.socialmorning.mobile';
-/** Lane DP: the dev app's own group (app.config.js `DEV.appGroup`), so it never feeds the real app's widgets. */
-export const DEV_APP_GROUP = 'group.app.socialmorning.mobile.dev';
-export const appGroupFor = (variant: AppVariant): string => (variant === 'dev' ? DEV_APP_GROUP : APP_GROUP);
 export const CARD_KEY = 'nowPlaying';
 /** M21 US11: the App Group keys and widget kinds (targets/widget/SocialNetWidgets.swift). */
 export const PLAYLIST_KEY = 'playlistNext3';
@@ -54,7 +50,7 @@ type Live = {
 
 /** The widget: the card as flat strings, then a timeline reload. */
 export function iosWidgetSink(targets: Targets): OutsideSink {
-  const storage = new targets.ExtensionStorage(appGroupFor(appVariant()));
+  const storage = new targets.ExtensionStorage(APP_GROUP);
   return {
     show: (card) => {
       storage.set(CARD_KEY, card ? {
@@ -68,7 +64,7 @@ export function iosWidgetSink(targets: Targets): OutsideSink {
 
 /** M21 US11: the three new widgets — write the flat copy, then reload only that widget's kind. */
 export function iosWidgetDataSink(targets: Targets, now: () => number = Date.now): WidgetDataSink {
-  const storage = new targets.ExtensionStorage(appGroupFor(appVariant()));
+  const storage = new targets.ExtensionStorage(APP_GROUP);
   return {
     playlist: (copy) => { storage.set(PLAYLIST_KEY, flatPlaylist(copy)); targets.ExtensionStorage.reloadWidget(KINDS.playlist); },
     dailyPick: (copy) => { storage.set(DAILY_PICK_KEY, flatDailyPick(copy)); targets.ExtensionStorage.reloadWidget(KINDS.dailyPick); },
