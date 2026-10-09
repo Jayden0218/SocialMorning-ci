@@ -41,7 +41,7 @@ function variantOf(env) {
 const claimsHost = (filter, host) => (filter.data || []).some((d) => d.host === host);
 
 const withVariant = (config) => {
-  if (variantOf(process.env) !== 'dev') return config;
+  // RED CHECK: the prod early return removed, every build becomes the dev app.
   return {
     ...config,
     name: DEV.name,
