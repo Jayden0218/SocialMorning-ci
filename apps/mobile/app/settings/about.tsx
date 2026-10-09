@@ -29,6 +29,7 @@ import { Platform } from 'react-native';
 import { Card } from '@/ui/kit/Card';
 import { LinkRow } from '@/ui/settings/rows';
 import { distributionOf, updaterShown } from '@/ui/shell/updater';
+import { appVariant } from '@/config/variant';
 
 type Doc = keyof typeof LEGAL_TEXT;
 const ICON = { width: 64, height: 64 };
@@ -54,7 +55,15 @@ export default function AboutScreen(): React.ReactElement {
         <Image source={require('../../assets/app-icon.png')} style={ICON} className="rounded-[14px]" accessibilityLabel="SocialNet" />
         <Box className="flex-1">
           <Text className="text-text text-hero font-display" accessibilityRole="header">SocialNet</Text>
-          <Text className="text-muted text-xs mt-0.5">Version {Constants.expoConfig?.version ?? '?'}</Text>
+          <Box className="flex-row items-center gap-gap mt-0.5">
+            <Text className="text-muted text-xs">Version {Constants.expoConfig?.version ?? '?'}</Text>
+            {/* Lane DP: the dev app (APP_VARIANT=dev) says so, beside its version. */}
+            {appVariant() === 'dev' ? (
+              <Box className="bg-text rounded-pill px-row py-0.5" accessible accessibilityLabel="Development build">
+                <Text className="text-background text-xs font-bold">DEV</Text>
+              </Box>
+            ) : null}
+          </Box>
         </Box>
       </Box>
       <Text className="text-text text-lg font-display mt-section">“Podcasts, with the people listening alongside you.”</Text>

@@ -5,7 +5,7 @@
 import SwiftUI
 import WidgetKit
 
-private let appGroup = "group.app.socialmorning.mobile"
+private let appGroup = AppVariant.appGroup  // lane DP: the dev app has its own (Variant.swift)
 
 struct NowPlayingCard {
   let title: String
@@ -60,7 +60,7 @@ struct NowPlayingView: View {
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-    .widgetURL(URL(string: "socialmorning://player"))
+    .widgetURL(AppVariant.url("player"))
     .containerBackground(.background, for: .widget)
   }
 }
