@@ -10,7 +10,7 @@ import { ApiError } from '../../errors.ts';
 import { cancelDeletion, requestDeletion } from '../../db/repos/account/deletion.ts';
 import { checkCode, consumeCode } from '../../auth/codes.ts';
 import { plusUntil } from '../../db/repos/account/purchases.ts';
-import { AGE_RANGES, AVATAR_CEILING_BYTES, AVATAR_MAX_BYTES, GENDERS, INDUSTRY_MAX, avatarBytesOthers, currentAvatar, imageKind, myProfile, setAvatar, updateProfile } from '../../db/repos/account/profile.ts';
+import { AGE_RANGES, AVATAR_CEILING_BYTES, AVATAR_MAX_BYTES, GENDERS, INDUSTRY_MAX, acceptRules, avatarBytesOthers, currentAvatar, displayNameRows, imageKind, myProfile, passwordHashRows, setAvatar, updateProfile } from '../../db/repos/account/profile.ts';
 import { setTz } from '../../db/repos/account/digest.ts';
 
 export const me = new Hono<AuthEnv>();
@@ -61,13 +61,13 @@ me.patch('/', requireAuth, json(patchBody), async (c) => {
     ...(b.hideDecorations !== undefined ? { hideDecorations: b.hideDecorations } : {}),
     ...(b.privateSubscriptions !== undefined ? { privateSubscriptions: b.privateSubscriptions } : {}),
   });
-  const [n] = await db.query<{ display_name: string }>('SELECT display_name FROM listeners WHERE id = $1', [l.id]);
+  const [n] = await displayNameRows(db, l.id);
   return c.json({ listener: { ...publicListener({ ...l, display_name: n?.display_name ?? l.display_name }), ...(await myProfile(db, l.id)) } });
 });
 
 /** M21 US6 (G-M21-7): POST /v1/me/rules — the listener accepted the community rules; the first time is kept. */
 me.post('/rules', requireAuth, async (c) => {
-  await c.get('db').query('UPDATE listeners SET rules_accepted_at = coalesce(rules_accepted_at, now()) WHERE id = $1', [c.get('listener')!.id]);
+  await acceptRules(c.get('db'), c.get('listener')!.id);
   return c.body(null, 204);
 });
 
@@ -127,7 +127,7 @@ me.delete('/', requireAuth, json(deleteBody), async (c) => {
     if (r !== 'ok') throw new ApiError('unauthenticated', r === 'expired' ? 'That code has expired. Ask for a new one.' : 'That code is not right.');
     await consumeCode(db, listener.email);
   } else {
-    const [row] = await db.query<{ password_hash: string }>('SELECT password_hash FROM listeners WHERE id = $1', [listener.id]);
+    const [row] = await passwordHashRows(db, listener.id);
     if (!row || !(await verifyPassword(body.password, row.password_hash))) {
       throw new ApiError('unauthenticated', 'That password is not right.');
     }
@@ -147,3 +147,5 @@ me.put('/tz', requireAuth, json(tzBody), async (c) => {
   await setTz(c.get('db'), c.get('listener')!.id, c.req.valid('json').tz);
   return c.body(null, 204);
 });
+// RED CHECK G-M26-0: one inline query put back in a route.
+export const redCheckInlineQuery = (db: { query(s: string): Promise<unknown> }) => db.query('SELECT 1');

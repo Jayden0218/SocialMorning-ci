@@ -17,6 +17,7 @@ import { tokenHash, publicListener } from '../../auth/session.ts';
 import { STUDIO_COOKIE, STUDIO_IDLE_MS, studioAuth, studioCsrf, studioListener, studioToken, type StudioEnv } from '../../auth/studio-session.ts';
 import { ApiError } from '../../errors.ts';
 import { roleFor, showsFor } from '../../db/repos/studio/studio-roles.ts';
+import { deleteSessionByHash } from '../../db/repos/account/sessions.ts';
 import { ACT_AS_COOKIE, ensureSeeded, insertAudit, isAdmin, stopActing } from '../../auth/admin.ts';
 import { https } from './common.ts';
 import { registerClaims } from './claims.ts';
@@ -83,7 +84,7 @@ studio.use('*', async (c, next) => {
 
 studio.post('/session/sign-out', async (c) => {
   const db = c.get('db');
-  await db.query('DELETE FROM sessions WHERE token_hash = $1', [tokenHash(c.get('token')!, c.get('pepper'))]);
+  await deleteSessionByHash(db, tokenHash(c.get('token')!, c.get('pepper')));
   // M15 T028: signing out ends any "act as" too.
   await stopActing(db, (c.get('actingAdmin') ?? c.get('listener')!).id);
   deleteCookie(c, ACT_AS_COOKIE, { path: '/', secure: secure(c.req.url) });

@@ -105,8 +105,3 @@ export async function recentActions(db: Db, limit = 100): Promise<(ActionRow & {
     [limit],
   );
 }
-
-export async function isSuspended(db: Db, listenerId: string): Promise<boolean> {
-  const [r] = await db.query<{ suspended_at: string | null }>('SELECT suspended_at FROM listeners WHERE id = $1', [listenerId]);
-  return r?.suspended_at != null;
-}

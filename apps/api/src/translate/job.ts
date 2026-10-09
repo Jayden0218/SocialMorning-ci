@@ -14,6 +14,12 @@
 import { TRANSLATOR, WHISPER, canSpend, chunkLines, estimateTokens, fitsEver, translationCost, type GroqModel, type GroqUsage } from '@socialmorning/social-core';
 import type { Db } from '../db/db.ts';
 import { fetchFeed } from '../catalog/feed.ts';
+import {
+  addGroqUsage, failTranslationJob, finishTranslationJob, groqUsageTodayRows, insertTranslationJob, jobsAheadRows,
+  markTranslationJobTranscribing, movableTranslationJobs, offeredEpisodeRows, parkTranslationJob, recordTranslationJobError,
+  saveFeedTranscriptSegments, saveTranscribedSegments, saveTranslatedChunk, translatedLinesRows, translationEpisodeRows,
+  translationJobStateRows, type TranslationJobRow,
+} from '../db/repos/safety/translation.ts';
 import { GroqRateLimited, MIN_BILLED_AUDIO_S, type Groq, type Segment } from './groq.ts';
 
 export type TargetLang = 'en' | 'zh-Hans';
@@ -28,46 +34,33 @@ export const UNKNOWN_AUDIO_S = 3_600;
 const MINUTES_PER_CHUNK = 12;
 const CANDIDATES = 20;
 
-type Job = {
-  episode_id: string; target_lang: TargetLang; state: JobState; source_lang: string | null; segments: unknown;
-  next_chunk: number; audio_s: number; tokens: number; errors: number;
-};
+type Job = TranslationJobRow;
 type Seg = Segment & { t?: string };
 
 /** Today's (UTC) spend for one model, from the ledger. */
 export async function usageToday(db: Db, model: GroqModel): Promise<GroqUsage> {
-  const [r] = await db.query<{ requests: number; audio_s: number; tokens: number }>(
-    "SELECT requests, audio_s, tokens FROM groq_usage WHERE day = (now() AT TIME ZONE 'UTC')::date AND model = $1", [model]);
+  const [r] = await groqUsageTodayRows(db, model);
   return { requests: Number(r?.requests ?? 0), audioS: Number(r?.audio_s ?? 0), tokens: Number(r?.tokens ?? 0) };
 }
 
 export async function spend(db: Db, model: GroqModel, s: { requests: number; audioS?: number; tokens?: number }): Promise<void> {
-  await db.query(
-    `INSERT INTO groq_usage (day, model, requests, audio_s, tokens) VALUES ((now() AT TIME ZONE 'UTC')::date, $1, $2, $3, $4)
-     ON CONFLICT (day, model) DO UPDATE SET requests = groq_usage.requests + EXCLUDED.requests,
-       audio_s = groq_usage.audio_s + EXCLUDED.audio_s, tokens = groq_usage.tokens + EXCLUDED.tokens`,
-    [model, s.requests, Math.ceil(s.audioS ?? 0), Math.ceil(s.tokens ?? 0)]);
+  await addGroqUsage(db, model, s.requests, Math.ceil(s.audioS ?? 0), Math.ceil(s.tokens ?? 0));
 }
 
 /** The episode, if its show is on the /mod allow-list (FR-038). */
 export async function offeredEpisode(db: Db, episodeId: string): Promise<{ id: string; feed_url: string; enclosure_url: string; duration_ms: number | null; guid: string } | undefined> {
-  const [e] = await db.query<{ id: string; feed_url: string; enclosure_url: string; duration_ms: number | null; guid: string }>(
-    'SELECT e.id, e.feed_url, e.enclosure_url, e.duration_ms, e.guid FROM episodes e JOIN translation_shows s ON s.feed_url = e.feed_url WHERE e.id = $1', [episodeId]);
+  const [e] = await offeredEpisodeRows(db, episodeId);
   return e;
 }
 
 /** Queue it (idempotent). A failed job is queued again only by /mod — not by every tap. */
 export async function requestTranslation(db: Db, episodeId: string, lang: TargetLang): Promise<void> {
-  await db.query('INSERT INTO translation_jobs (episode_id, target_lang) VALUES ($1, $2) ON CONFLICT (episode_id, target_lang) DO NOTHING', [episodeId, lang]);
+  await insertTranslationJob(db, episodeId, lang);
 }
 
 /** Hours until ready, roughly: one run a hour, one call a run, for every job ahead of this one and this one. */
 export async function etaHours(db: Db, episodeId: string, lang: TargetLang): Promise<number> {
-  const rows = await db.query<{ duration_ms: number | null; state: JobState; next_chunk: number; is_me: boolean }>(
-    `SELECT e.duration_ms, j.state, j.next_chunk, (j.episode_id = $1 AND j.target_lang = $2) AS is_me
-       FROM translation_jobs j LEFT JOIN episodes e ON e.id = j.episode_id
-      WHERE j.state IN ('queued','transcribing','translating')
-        AND j.requested_at <= coalesce((SELECT requested_at FROM translation_jobs WHERE episode_id = $1 AND target_lang = $2), now())`, [episodeId, lang]);
+  const rows = await jobsAheadRows(db, episodeId, lang);
   let hours = 0;
   for (const r of rows) {
     const minutes = r.duration_ms ? Number(r.duration_ms) / 60_000 : UNKNOWN_AUDIO_S / 60;
@@ -80,9 +73,9 @@ export async function etaHours(db: Db, episodeId: string, lang: TargetLang): Pro
 export type TranslationAnswer = { state: 'done'; lines: TranslatedRow[] } | { state: 'none' } | { state: 'failed' } | { state: 'queued' | 'transcribing' | 'translating'; etaHours: number };
 
 export async function translationFor(db: Db, episodeId: string, lang: TargetLang): Promise<TranslationAnswer> {
-  const [done] = await db.query<{ lines: unknown }>('SELECT lines FROM transcripts_translated WHERE episode_id = $1 AND target_lang = $2', [episodeId, lang]);
+  const [done] = await translatedLinesRows(db, episodeId, lang);
   if (done) return { state: 'done', lines: (typeof done.lines === 'string' ? JSON.parse(done.lines) : done.lines) as TranslatedRow[] };
-  const [job] = await db.query<{ state: JobState }>('SELECT state FROM translation_jobs WHERE episode_id = $1 AND target_lang = $2', [episodeId, lang]);
+  const [job] = await translationJobStateRows(db, episodeId, lang);
   if (!job) return { state: 'none' };
   if (job.state === 'failed' || job.state === 'done') return { state: 'failed' };
   return { state: job.state, etaHours: await etaHours(db, episodeId, lang) };
@@ -154,14 +147,12 @@ export type StepResult = { did: 'nothing' | 'no_key' | 'waiting' | 'feed_transcr
 
 async function fail(db: Db, j: Job, reason: string): Promise<StepResult> {
   const errors = j.errors + 1;
-  await db.query(
-    `UPDATE translation_jobs SET errors = $3, error = $4, state = CASE WHEN $3 >= ${MAX_ERRORS} THEN 'failed' ELSE state END, updated_at = now()
-      WHERE episode_id = $1 AND target_lang = $2`, [j.episode_id, j.target_lang, errors, reason.slice(0, 500)]);
+  await recordTranslationJobError(db, j.episode_id, j.target_lang, errors, reason.slice(0, 500), MAX_ERRORS);
   return { did: errors >= MAX_ERRORS ? 'failed' : 'error', episodeId: j.episode_id };
 }
 
 async function failNow(db: Db, j: Job, reason: string): Promise<StepResult> {
-  await db.query("UPDATE translation_jobs SET state = 'failed', error = $3, updated_at = now() WHERE episode_id = $1 AND target_lang = $2", [j.episode_id, j.target_lang, reason]);
+  await failTranslationJob(db, j.episode_id, j.target_lang, reason);
   return { did: 'failed', episodeId: j.episode_id };
 }
 
@@ -171,10 +162,7 @@ async function failNow(db: Db, j: Job, reason: string): Promise<StepResult> {
  */
 export async function stepTranslation(db: Db, groq: Groq, catalogFetch: typeof fetch): Promise<StepResult> {
   if (!groq.ready) return { did: 'no_key' };
-  const jobs = await db.query<Job>(
-    `SELECT episode_id, target_lang, state, source_lang, segments, next_chunk, audio_s, tokens, errors FROM translation_jobs
-      WHERE state IN ('queued','transcribing','translating') AND (not_before IS NULL OR not_before <= now())
-      ORDER BY requested_at, episode_id LIMIT ${CANDIDATES}`);
+  const jobs = await movableTranslationJobs(db, CANDIDATES);
   if (jobs.length === 0) return { did: 'nothing' };
   let waited = false;
   for (const j of jobs) {
@@ -186,16 +174,13 @@ export async function stepTranslation(db: Db, groq: Groq, catalogFetch: typeof f
 }
 
 async function advance(db: Db, groq: Groq, catalogFetch: typeof fetch, j: Job): Promise<StepResult> {
-  const key = [j.episode_id, j.target_lang];
   if (j.segments === null || j.state === 'queued' || j.state === 'transcribing') {
-    const [ep] = await db.query<{ feed_url: string; guid: string; enclosure_url: string; duration_ms: number | null }>(
-      'SELECT feed_url, guid, enclosure_url, duration_ms FROM episodes WHERE id = $1', [j.episode_id]);
+    const [ep] = await translationEpisodeRows(db, j.episode_id);
     if (!ep) return failNow(db, j, 'The episode is no longer known.');
     // A creator's own transcript first (FR-039: speech-to-text only when there is none).
     const own = await feedTranscript(db, catalogFetch, ep.feed_url, ep.guid);
     if (own) {
-      await db.query("UPDATE translation_jobs SET segments = $3::text::jsonb, source_lang = $4, state = 'translating', next_chunk = 0, updated_at = now() WHERE episode_id = $1 AND target_lang = $2",
-        [...key, JSON.stringify(own.segments), own.language ?? null]);
+      await saveFeedTranscriptSegments(db, j.episode_id, j.target_lang, JSON.stringify(own.segments), own.language ?? null);
       return { did: 'feed_transcript', episodeId: j.episode_id };
     }
     const audioS = ep.duration_ms ? Math.ceil(Number(ep.duration_ms) / 1000) : UNKNOWN_AUDIO_S;
@@ -205,14 +190,13 @@ async function advance(db: Db, groq: Groq, catalogFetch: typeof fetch, j: Job): 
     // G-M22-6: no call unless it keeps every limit at or under 90 %.
     if (!canSpend(await usageToday(db, WHISPER), WHISPER, need)) return { did: 'waiting' };
     const lang = j.source_lang ?? (await showLanguage(db, catalogFetch, ep.feed_url)) ?? null;
-    await db.query("UPDATE translation_jobs SET state = 'transcribing', source_lang = $3, updated_at = now() WHERE episode_id = $1 AND target_lang = $2", [...key, lang]);
+    await markTranslationJobTranscribing(db, j.episode_id, j.target_lang, lang);
     try {
       const out = await groq.transcribe(ep.enclosure_url, lang ?? undefined);
       const billed = Math.max(MIN_BILLED_AUDIO_S, Math.ceil(out.durationS || audioS));
       await spend(db, WHISPER, { requests: 1, audioS: billed });
       if (out.segments.length === 0) return failNow(db, j, 'Speech-to-text found no words.');
-      await db.query("UPDATE translation_jobs SET segments = $3::text::jsonb, state = 'translating', next_chunk = 0, audio_s = audio_s + $4, updated_at = now() WHERE episode_id = $1 AND target_lang = $2",
-        [...key, JSON.stringify(out.segments), billed]);
+      await saveTranscribedSegments(db, j.episode_id, j.target_lang, JSON.stringify(out.segments), billed);
       return { did: 'transcribed', episodeId: j.episode_id };
     } catch (e) {
       return onError(db, j, WHISPER, e);
@@ -234,8 +218,7 @@ async function advance(db: Db, groq: Groq, catalogFetch: typeof fetch, j: Job): 
     const ids = new Set(chunk.map((l) => l.id));
     for (const l of out.lines) if (ids.has(l.id) && segs[l.id]) segs[l.id]!.t = l.text;
     const next = j.next_chunk + 1;
-    await db.query('UPDATE translation_jobs SET segments = $3::text::jsonb, next_chunk = $4, tokens = tokens + $5, updated_at = now() WHERE episode_id = $1 AND target_lang = $2',
-      [...key, JSON.stringify(segs), next, tokens]);
+    await saveTranslatedChunk(db, j.episode_id, j.target_lang, JSON.stringify(segs), next, tokens);
     if (next >= chunks.length) return finish(db, { ...j, next_chunk: next }, segs);
     return { did: 'translated', episodeId: j.episode_id };
   } catch (e) {
@@ -247,8 +230,7 @@ async function onError(db: Db, j: Job, model: GroqModel, e: unknown): Promise<St
   if (e instanceof GroqRateLimited) {
     // Groq counted the attempt; park the job until it says.
     await spend(db, model, { requests: 1 });
-    await db.query("UPDATE translation_jobs SET not_before = now() + ($3 || ' seconds')::interval, updated_at = now() WHERE episode_id = $1 AND target_lang = $2",
-      [j.episode_id, j.target_lang, String(e.retryAfterS)]);
+    await parkTranslationJob(db, j.episode_id, j.target_lang, String(e.retryAfterS));
     return { did: 'rate_limited', episodeId: j.episode_id };
   }
   await spend(db, model, { requests: 1 });
@@ -257,11 +239,6 @@ async function onError(db: Db, j: Job, model: GroqModel, e: unknown): Promise<St
 
 async function finish(db: Db, j: Job, segs: Seg[]): Promise<StepResult> {
   const lines: TranslatedRow[] = segs.map((s) => ({ s: Math.round(s.start * 1000), e: Math.round(s.end * 1000), o: s.text, t: s.t ?? '' }));
-  await db.transaction(async (tx) => {
-    await tx.query(
-      `INSERT INTO transcripts_translated (episode_id, target_lang, lines) VALUES ($1, $2, $3::text::jsonb)
-       ON CONFLICT (episode_id, target_lang) DO UPDATE SET lines = EXCLUDED.lines, made_at = now()`, [j.episode_id, j.target_lang, JSON.stringify(lines)]);
-    await tx.query("UPDATE translation_jobs SET state = 'done', segments = NULL, updated_at = now() WHERE episode_id = $1 AND target_lang = $2", [j.episode_id, j.target_lang]);
-  });
+  await finishTranslationJob(db, j.episode_id, j.target_lang, JSON.stringify(lines));
   return { did: 'done', episodeId: j.episode_id };
 }

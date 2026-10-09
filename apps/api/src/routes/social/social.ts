@@ -12,6 +12,7 @@ import { hostsOfEpisode } from '../../db/repos/studio/creator.ts';
 import { likesStamp } from '../../db/repos/social/comment-likes.ts';
 import { muteStamp } from '../../db/repos/social/mutes.ts';
 import { heldStamp } from '../../db/repos/studio/comment-policy.ts';
+import { episodeHeatRows, myReactionBucketRows, socialStampRows } from '../../db/repos/social/episode-social.ts';
 
 /**
  * The poll (research R7, FR-015, FR-022, FR-032): comments + heat + serverTime in one
@@ -30,19 +31,7 @@ social.get('/:id/social', optionalAuth, async (c) => {
   const episode = await getEpisode(db, episodeId);
   if (!episode) throw new ApiError('not_found', 'No such episode here yet.');
 
-  const [stamp] = await db.query<{ comments_v: string | null; episode_v: string; heat_v: string | null }>(
-    `SELECT
-       (SELECT max(greatest(created_at, coalesce(deleted_at, created_at), coalesce(removed_at, created_at)))::text || '/' || count(host_hidden_at)::text
-          -- M19 US5: a pin (which one, when) and the unfriendly marks change the answer too.
-          || '/' || coalesce(max(pinned_at)::text || (array_agg(id::text ORDER BY pinned_at DESC NULLS LAST))[1], '-')
-          -- M22 US10: and so does the bottom pin.
-          || '/' || coalesce(max(pinned_bottom_at)::text || (array_agg(id::text ORDER BY pinned_bottom_at DESC NULLS LAST))[1], '-')
-          || '/' || (SELECT count(*) FROM comment_unfriendly u JOIN comments x ON x.id = u.comment_id WHERE x.episode_id = $1)::text
-        FROM comments WHERE episode_id = $1) AS comments_v,
-       (SELECT updated_at::text FROM episodes WHERE id = $1) AS episode_v,
-       (SELECT string_agg(bucket || ':' || distinct_listeners, ',' ORDER BY bucket) FROM episode_heat WHERE episode_id = $1) AS heat_v`,
-    [episodeId],
-  );
+  const [stamp] = await socialStampRows(db, episodeId);
   // M6 (R1, G5): a removal and the viewer's newest block/report both change the answer, so both are in the stamp.
   const safety = viewer ? await safetyStamp(db, viewer.id) : '-';
   // M10b US8: a claim proven later adds the Host mark, so the claimant is in the stamp too.
@@ -67,9 +56,7 @@ social.get('/:id/social', optionalAuth, async (c) => {
 
   let heat: { available: true; buckets: number[] } | { available: false } = { available: false };
   if (episode.duration_ms !== null) {
-    const rows = await db.query<{ bucket: number; distinct_listeners: number }>(
-      'SELECT bucket, distinct_listeners FROM episode_heat WHERE episode_id = $1', [episodeId],
-    );
+    const rows = await episodeHeatRows(db, episodeId);
     const counts = new Array<number>(100).fill(0);
     for (const r of rows) counts[Number(r.bucket)] = Number(r.distinct_listeners);
     heat = { available: true, buckets: normaliseHeat(counts) };
@@ -77,9 +64,7 @@ social.get('/:id/social', optionalAuth, async (c) => {
 
   let myReactionBuckets: number[] | undefined;
   if (viewer) {
-    const rows = await db.query<{ bucket: number }>(
-      'SELECT bucket FROM reactions WHERE episode_id = $1 AND listener_id = $2 ORDER BY bucket', [episodeId, viewer.id],
-    );
+    const rows = await myReactionBucketRows(db, episodeId, viewer.id);
     myReactionBuckets = rows.map((r) => Number(r.bucket));
   }
 

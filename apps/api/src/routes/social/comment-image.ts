@@ -19,6 +19,7 @@ import { sniff } from '../../db/repos/account/feedback.ts';
 import { stripImageMetadata } from '@socialmorning/social-core';
 import { getComment, toPublic } from '../../db/repos/social/comments.ts';
 import { heldForImage, heldToPublic, setHeldImage } from '../../db/repos/studio/comment-policy.ts';
+import { commentImageBytesRows, setCommentImage } from '../../db/repos/social/comment-writes.ts';
 
 export const COMMENT_IMAGE_MAX_BYTES = 1_000_000;
 const WINDOW_MS = 10 * 60_000;
@@ -55,8 +56,7 @@ commentImage.post('/:id/image', requireAuth, async (c) => {
   // M25 SB (G-SB3): no EXIF/GPS, XMP or text reaches the store.
   const bytes = type ? stripImageMetadata(raw) : undefined;
   if (!type || !bytes) throw new ApiError('validation', 'Send a JPEG or PNG picture.', { fields: ['body'] });
-  const [used] = await db.query<{ n: string | number | null }>(
-    'SELECT (SELECT coalesce(sum(image_bytes), 0) FROM comments) + (SELECT coalesce(sum(image_bytes), 0) FROM held_comments) AS n');
+  const [used] = await commentImageBytesRows(db);
   if (Number(used?.n ?? 0) + bytes.length > c.get('imageCeilingBytes')) throw new ApiError('storage_full', 'The image store is full. Try again later.');
 
   const path = `comments/${me.id}/${randomUUID()}.${type === 'image/png' ? 'png' : 'jpg'}`;
@@ -77,7 +77,7 @@ commentImage.post('/:id/image', requireAuth, async (c) => {
     }
     return c.json({ comment: heldToPublic(kept), held: true }, 201);
   }
-  await db.query('UPDATE comments SET image_url = $2, image_path = $3, image_w = $4, image_h = $5, image_bytes = $6 WHERE id = $1', [id, image.url, image.path, w, h, image.bytes]);
+  await setCommentImage(db, id, image.url, image.path, w, h, image.bytes);
   const fresh = await getComment(db, id);
   return c.json({ comment: toPublic(fresh!, me.id) }, 201);
 });

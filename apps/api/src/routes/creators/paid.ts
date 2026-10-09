@@ -30,6 +30,7 @@ import type { AuthEnv } from '../../auth/session.ts';
 import { optionalAuth, requireAuth } from '../../auth/session.ts';
 import { ApiError } from '../../errors.ts';
 import { hostedByFeed, listHostedEpisodes } from '../../db/repos/studio/hosted.ts';
+import { paidEpisodeAudioRows, paidEpisodeFeedRows, paidEpisodePreviewAudioRows, paidEpisodePreviewRows, showEntitlementRows } from '../../db/repos/studio/paid-episodes.ts';
 import { tierProduct } from '../../billing/products.ts';
 
 export const paid = new Hono<AuthEnv>();
@@ -49,7 +50,7 @@ function signatureOk(pepper: string, id: string, exp: number, sig: string, kind:
 
 async function bought(db: import('../../db/db.ts').Db, listenerId: string | undefined, feedUrl: string): Promise<boolean> {
   if (!listenerId) return false;
-  const [r] = await db.query("SELECT 1 FROM entitlements WHERE listener_id = $1 AND kind = 'show' AND ref = $2", [listenerId, feedUrl]);
+  const [r] = await showEntitlementRows(db, listenerId, feedUrl);
   return Boolean(r);
 }
 
@@ -71,9 +72,7 @@ paid.get('/episodes/:id/access', requireAuth, async (c) => {
   const id = c.req.param('id');
   if (!UUID.test(id)) throw new ApiError('not_found', 'No such episode.');
   const db = c.get('db');
-  const [ep] = await db.query<{ feed_url: string }>(
-    `SELECT s.feed_url FROM hosted_episodes e JOIN hosted_shows s ON s.id = e.show_id
-      WHERE e.id = $1 AND e.paid AND e.deleted_at IS NULL AND s.deleted_at IS NULL AND e.status = 'published' AND e.published_at <= now()`, [id]);
+  const [ep] = await paidEpisodeFeedRows(db, id);
   if (!ep) throw new ApiError('not_found', 'No such episode.');
   if (!(await bought(db, c.get('listener')!.id, ep.feed_url))) throw new ApiError('needs_purchase', 'Buy this show to play its paid episodes.');
   const exp = Date.now() + LINK_MS;
@@ -85,9 +84,7 @@ const PREVIEW_LINK_MS = 3_600_000;
 paid.get('/episodes/:id/preview', async (c) => {
   const id = c.req.param('id');
   if (!UUID.test(id)) throw new ApiError('not_found', 'No such episode.');
-  const [ep] = await c.get('db').query<{ preview_start_ms: number | null; preview_end_ms: number | null }>(
-    `SELECT e.preview_start_ms, e.preview_end_ms FROM hosted_episodes e JOIN hosted_shows s ON s.id = e.show_id
-      WHERE e.id = $1 AND e.paid AND e.deleted_at IS NULL AND s.deleted_at IS NULL AND e.status = 'published' AND e.published_at <= now()`, [id]);
+  const [ep] = await paidEpisodePreviewRows(c.get('db'), id);
   if (!ep) throw new ApiError('not_found', 'No such episode.');
   if (ep.preview_start_ms === null || ep.preview_end_ms === null) throw new ApiError('needs_purchase', 'This episode has no free preview.');
   const exp = Date.now() + PREVIEW_LINK_MS;
@@ -103,7 +100,7 @@ paid.get('/episodes/:id/audio', async (c) => {
   const sig = c.req.query('sig') ?? '';
   if (!UUID.test(id) || !Number.isFinite(exp) || exp < Date.now()) throw new ApiError('needs_purchase', 'This link has expired.');
   if (!signatureOk(c.get('pepper'), id, exp, sig, 'paid-audio', c.get('pepperNext'))) throw new ApiError('needs_purchase', 'This link is not valid.');
-  const [ep] = await c.get('db').query<{ audio_url: string }>('SELECT audio_url FROM hosted_episodes WHERE id = $1 AND paid AND deleted_at IS NULL', [id]);
+  const [ep] = await paidEpisodeAudioRows(c.get('db'), id);
   if (!ep) throw new ApiError('not_found', 'No such episode.');
   c.header('cache-control', 'private, no-store');
   return c.redirect(ep.audio_url, 302);
@@ -153,9 +150,7 @@ paid.get('/episodes/:id/preview-audio', async (c) => {
   const sig = c.req.query('sig') ?? '';
   if (!UUID.test(id) || !Number.isFinite(exp) || exp < Date.now()) throw new ApiError('needs_purchase', 'This link has expired.');
   if (!signatureOk(c.get('pepper'), id, exp, sig, 'paid-preview', c.get('pepperNext'))) throw new ApiError('needs_purchase', 'This link is not valid.');
-  const [ep] = await c.get('db').query<{ audio_url: string; audio_bytes: string | number; audio_type: string; duration_ms: number | null; preview_start_ms: number | null; preview_end_ms: number | null }>(
-    `SELECT e.audio_url, e.audio_bytes, e.audio_type, e.duration_ms, e.preview_start_ms, e.preview_end_ms FROM hosted_episodes e JOIN hosted_shows s ON s.id = e.show_id
-      WHERE e.id = $1 AND e.paid AND e.deleted_at IS NULL AND s.deleted_at IS NULL AND e.status = 'published' AND e.published_at <= now()`, [id]);
+  const [ep] = await paidEpisodePreviewAudioRows(c.get('db'), id);
   if (!ep) throw new ApiError('not_found', 'No such episode.');
   if (ep.preview_start_ms === null || ep.preview_end_ms === null) throw new ApiError('needs_purchase', 'This episode has no free preview.');
   if (ep.duration_ms === null) throw new ApiError('duration_unknown', 'This preview is not ready yet.');
