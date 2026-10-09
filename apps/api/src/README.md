@@ -195,6 +195,8 @@ here or a line does not match its file.
 |---|---|
 | `client.ts` | Creates the one Postgres connection each server instance uses. |
 | `db.ts` | The shared database interface, with adapters for real Postgres and in-memory pglite. |
+| `backend-ddb.ts` | Attaches a DynamoDB Store to a Postgres Db handle, so the converted repo functions run on DynamoDB (backend.ts). |
+| `backend.ts` | The dual-backend switch: a repo function runs on Postgres, or on DynamoDB when a Store is attached to the Db handle. |
 | `migrate.ts` | Runs every database migration file not yet applied, in order. |
 
 ### `db/ddb/` — the DynamoDB data layer (M26, being built beside Postgres; not used by any route yet)
@@ -219,6 +221,7 @@ here or a line does not match its file.
 
 | File | What it does |
 |---|---|
+| `cache-sweep.ts` | The hourly cache sweep on DynamoDB: feed and Apple-search entries older than 7 days go (a Scan of sm-cache — jobs only). |
 | `outbox.ts` | The outbox: work a commit causes (fan-outs, rollups) queued in the same transaction, then drained idempotently; and resumable jobs. |
 
 ### `db/repos/` — shared database helpers
@@ -328,6 +331,24 @@ here or a line does not match its file.
 | `feeds.ts` | Feed moves: every live subscription follows a publisher's new feed address, in one transaction. |
 | `heat.ts` | The two statements of an episode's heat rebuild (see heat/rebuild.ts for the rule they keep). |
 
+### `db/repos/library/ddb/` — the same functions on DynamoDB (M26 lane LB; run when the Db carries a Store — db/backend.ts)
+
+| File | What it does |
+|---|---|
+| `cache.ts` | The cache on DynamoDB (sm-cache): gzip bodies, chunks over 350 KB, a TTL per key prefix, generations for prefix invalidation. |
+| `daily-pick.ts` | The day's pick on DynamoDB: the named episode by its (feed, guid) item, or the show's newest from G2. |
+| `episodes.ts` | Episodes on DynamoDB: EP#<id>/META, the (feed, guid) uniqueness item, the show's META kept up to date. |
+| `feed-refresh.ts` | The hourly feed refresh on DynamoDB: the subscribed-feed list from G4 `Q#feeds`, known guids by GetItem. |
+| `feeds.ts` | The moved-feed job on DynamoDB: every live subscriber of the old address moves to the new one, 4 items per subscriber. |
+| `heat.ts` | The heat rebuild on DynamoDB while reactions and comments still live on Postgres (the bridge until lane SC lands). |
+| `library.ts` | Library sync on DynamoDB: L#<id>/LIB#<kind>#<key> items merged one by one, tombstones kept 30 days, 12 searches. |
+| `listened.ts` | Listened ranges on DynamoDB: RANGE# items per device, the union kept per day in LDAY#, the badge total moved by the union's change. |
+| `old-rows-sweep.ts` | The hourly sweep's cache and rec-events deletes on DynamoDB (LB-56, LB-58). |
+| `positions.ts` | Playback positions on DynamoDB: L#<id>/POS#<episodeId>, merged with mergePosition under a version check. |
+| `rec-events.ts` | Recommendation events on DynamoDB: RE#<listener> items in sm-events, an hourly per-channel rollup, the 90-day sweep by day. |
+| `subscriptions.ts` | Subscriptions on DynamoDB: L#<id>/SUB#<feedKey> merged item by item, the order list, events, the show's subscriber count. |
+| `tint-cache.ts` | The cover tint's cache entries on DynamoDB (`tint:<imageUrl>` in sm-cache) — LB-68/69. |
+
 ### `db/repos/discover/` — Discover, For You, similarity, next up, launch
 
 | File | What it does |
@@ -431,6 +452,7 @@ here or a line does not match its file.
 
 | File | What it does |
 |---|---|
+| `ddb.ts` | The heat curve on DynamoDB: 100 buckets per episode, a listener counted once per bucket, kept in the writing transaction. |
 | `rebuild.ts` | Rebuilds an episode's reaction heat curve, counting each listener once per segment. |
 
 ### `billing/` — selling through the stores

@@ -11,6 +11,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Resvg } from '@resvg/resvg-wasm';
 import { freshDb } from './harness.ts';
+import { cacheBodyOf } from './lb-seed.ts';
 import { assets } from '../src/share/card.ts';
 import { averageHex, tintOf, TINT_MISS_TTL_MS, TINT_TTL_MS } from '../src/share/tint.ts';
 
@@ -46,8 +47,7 @@ test('tintOf: fetched once, then served from the cache for 30 days; a cover that
   let clock = Date.parse('2026-10-06T00:00:00Z');
   const now = () => clock;
   near(await tintOf(t.db, f, 'https://img.example/red.png', { now, waitMs: 5000 }), [0xc0, 0x39, 0x2b]);
-  const [row] = await t.q<{ body: unknown }>("SELECT body FROM cache WHERE key = 'tint:https://img.example/red.png'");
-  assert.ok(row, 'kept in the cache table under tint:<imageUrl>');
+  assert.ok(await cacheBodyOf(t, 'tint:https://img.example/red.png'), 'kept in the cache table under tint:<imageUrl>');
   near(await tintOf(t.db, f, 'https://img.example/red.png', { now, waitMs: 5000 }), [0xc0, 0x39, 0x2b]);
   assert.equal(asked.length, 1, 'the second read comes from the cache');
   clock += TINT_TTL_MS + 1;

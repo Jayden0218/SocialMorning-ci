@@ -88,14 +88,31 @@ export async function commentItem(store: Store, c: { id?: string; episodeId: str
   return { id, key };
 }
 
-export async function subscriptionItem(store: Store, s: { listenerId: string; feedUrl: string; createdAt?: string; deletedAt?: string | null; starredAt?: string | null }): Promise<Key> {
+/** A subscription as lane LB writes it (src/db/repos/library/ddb/subscriptions.ts): the item, and for a live one the show's count + `Q#feeds`. */
+export async function subscriptionItem(store: Store, s: { listenerId: string; feedUrl: string; createdAt?: string; deletedAt?: string | null; starredAt?: string | null; starred?: boolean }): Promise<Key> {
+  const { subscriptionItem: item, syncFeedQueue } = await import('../src/db/repos/library/ddb/subscriptions.ts');
   const createdAt = s.createdAt ?? now(store);
-  const key = K.subscription(s.listenerId, s.feedUrl);
-  const live = !s.deletedAt;
-  await tx(store).put('main', encode('subscription', key, {
-    listenerId: s.listenerId, feedUrl: s.feedUrl, createdAt, stamp: createdAt, deletedAt: s.deletedAt ?? null, starredAt: s.starredAt ?? null,
-  }, live ? { gsi: K.G2subs(s.feedUrl, createdAt, s.listenerId) } : {})).commit();
-  return key;
+  const t = tx(store).put('main', item(s.listenerId, { feed_url: s.feedUrl, starred: s.starred ?? false, created_at: createdAt, deleted_at: s.deletedAt ?? null, starred_at: s.starredAt ?? null }, 1), { condition: 'attribute_not_exists(PK)' });
+  if (!s.deletedAt) {
+    t.update('main', K.show(s.feedUrl), {
+      update: 'SET #t = if_not_exists(#t, :show), #f = if_not_exists(#f, :f) ADD #c :one',
+      names: { '#t': 't', '#f': 'feedUrl', '#c': 'subscriberCount' }, values: { ':show': 'show', ':f': s.feedUrl, ':one': 1 },
+    });
+  }
+  await t.commit();
+  if (!s.deletedAt) await syncFeedQueue(store, s.feedUrl);
+  return K.subscription(s.listenerId, s.feedUrl);
+}
+
+/** A recommendation event (lane LB, sm-events `RE#…`), e.g. an old one for the 90-day sweep. */
+export async function recEventItem(store: Store, e: { listenerId: string; episodeId: string; channel?: string; rank?: number; kind?: string; at: string }): Promise<void> {
+  const { REC_KEEP_DAYS } = await import('../src/db/repos/library/ddb/rec-events.ts');
+  const { nextSeq } = await import('../src/db/ddb/seq.ts');
+  const id = await nextSeq(store, 'rec_events');
+  const at = K.ts(e.at);
+  await tx(store).put('events', encode('recEvent', K.ev.recEvent(e.listenerId, at, id), { id, listenerId: e.listenerId, episodeId: e.episodeId, channel: e.channel ?? 'pick', rank: e.rank ?? 0, kind: e.kind ?? 'open', at }, {
+    gsi: K.E1(at.slice(0, 10), 're', `${e.listenerId}#${id}`), ttl: Math.floor(Date.parse(at) / 1000) + REC_KEEP_DAYS * 86_400,
+  })).commit();
 }
 
 export async function purchaseItem(store: Store, p: { id?: string; listenerId: string; purchaseToken: string; orderId: string; product: string; amountMicros?: number; currency?: string; status?: string; createdAt?: string }): Promise<{ id: string; key: Key }> {
@@ -141,8 +158,10 @@ export async function hiddenFeedItem(store: Store, h: { feedUrl: string; actionI
   await tx(store).put('main', encode('hiddenFeed', K.hiddenFeed(h.feedUrl), { feedUrl: h.feedUrl, actionId: h.actionId, reason: h.reason ?? '', createdAt: now(store) })).commit();
 }
 
+/** A cache entry as lane LB writes it (gzip, chunks over 350 KB, `w`, generation) — src/db/repos/library/ddb/cache.ts. */
 export async function cacheItem(store: Store, cacheKey: string, body: unknown, fetchedAt?: string): Promise<void> {
-  await tx(store).put('cache', encode('cacheEntry', K.cacheEntry(cacheKey), { key: cacheKey, body: body as never, fetchedAt: fetchedAt ?? now(store) })).commit();
+  const { writeEntry } = await import('../src/db/repos/library/ddb/cache.ts');
+  await writeEntry(store, cacheKey, body, Date.parse(fetchedAt ?? now(store)));
 }
 
 /** `proveClaim` of test/studio-harness.ts, on DynamoDB: a proven claim + the one-proven-claim-per-feed item. */

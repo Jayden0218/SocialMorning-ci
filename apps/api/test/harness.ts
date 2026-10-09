@@ -225,7 +225,10 @@ export async function freshDb(allOpts: { ownerListenerId?: string; appealsEmail?
   // Test listeners have accepted them, so every older test keeps its meaning; the rules tests
   // (comments-m21.test.ts) set rules_accepted_at back to NULL for the listener they test.
   await pg.exec('ALTER TABLE listeners ALTER COLUMN rules_accepted_at SET DEFAULT now()');
-  const db = dbOf(pg);
+  // M26 (lane LB): under TEST_BACKEND=ddb the app's Db carries this test's Store, so every converted repo
+  // function runs on DynamoDB Local while the rest still run here (src/db/backend.ts).
+  const ddb = TEST_BACKEND === 'ddb' ? await freshStore() : undefined;
+  const db = ddb ? (await import('../src/db/backend-ddb.ts')).withStore(dbOf(pg), ddb.store) : dbOf(pg);
   const mail: Mail[] = [];
   const mailer: Mailer | undefined = noMailer ? undefined : { send: async (m) => { mail.push(m); } };
   let app = createApp({ db, pepper: TEST_PEPPER, appealsEmail: TEST_APPEALS, ...(mailer ? { mailer } : {}), ...opts });
@@ -259,7 +262,7 @@ export async function freshDb(allOpts: { ownerListenerId?: string; appealsEmail?
     // the process exit instead of hanging the whole file.
     close: () => Promise.race([pg.close(), new Promise<void>((r) => { setTimeout(r, 5_000).unref(); })]),
   };
-  if (TEST_BACKEND === 'ddb') await attachStore(t);
+  if (ddb) attachStore(t, ddb);
   return t;
 }
 
@@ -315,8 +318,7 @@ export async function freshStore(opts: { clock?: Clock } = {}): Promise<TestStor
   };
 }
 
-async function attachStore(t: TestDb): Promise<void> {
-  const s = await freshStore();
+function attachStore(t: TestDb, s: TestStore): void {
   t.store = s.store;
   const call = t.call;
   t.call = async (...args) => { const res = await call(...args); await s.drain(); return res; };

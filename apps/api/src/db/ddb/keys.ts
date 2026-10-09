@@ -164,6 +164,8 @@ export const G3shows = (genreId: number | string, latestPublishedAt: string, fee
 export const G4 = (queue: string, sortTs: string, id: string, dayOf?: string) => ({ G4PK: `Q#${queue}${dayOf ? `#${dayOf}` : ''}`, G4SK: `${ts(sortTs)}#${id}` });
 export const G5 = (kind: string, value: string, createdAt: string) => ({ G5PK: `REF#${kind}#${value}`, G5SK: ts(createdAt) });
 export const G6 = (displayName: string, listenerId: string) => ({ G6PK: `NAME#${displayName.trim().toLowerCase()}`, G6SK: listenerId });
+/** Lane LB: the hourly feed list `Q#feeds` (a show META while it has a live subscriber), in feed-key order — no time to sort by. */
+export const G4feeds = (feedUrl: string) => ({ G4PK: 'Q#feeds', G4SK: feedKey(feedUrl) });
 
 // ---- sm-events partitions (data-model.md §4, last paragraph) ----
 export const ev = {
@@ -185,6 +187,8 @@ export const E1 = (d: string, kind: string, key: string) => ({ E1PK: `DAY#${d}`,
 // ---- sm-cache ----
 export const cacheEntry = (cacheKey: string) => k(`CACHE#${sha(cacheKey)}`, 'V');
 export const cacheChunk = (cacheKey: string, n: number) => k(`CACHE#${sha(cacheKey)}`, `CHUNK#${pad(n, 4)}`);
+/** Lane LB: a cache key prefix's generation (prefix invalidation without a Scan — data-model.md §13 note). */
+export const cacheGen = (prefix: string) => k(`CGEN#${sha(prefix)}`, 'G');
 
 /**
  * The index names in infra/tables.yaml and the key attributes of each (paginate.ts builds resume keys from them).
