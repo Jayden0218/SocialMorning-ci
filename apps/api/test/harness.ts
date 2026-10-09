@@ -20,6 +20,8 @@ import { hashPassword } from '../src/auth/password.ts';
 import { createSession } from '../src/auth/session.ts';
 import type { Mail, Mailer } from '../src/mail/mailer.ts';
 import type { VoiceStorage } from '../src/storage/voice-blob.ts';
+import type { Clock, Store, Tables } from '../src/db/ddb/store.ts';
+import type { DrainResult } from '../src/jobs/outbox.ts';
 
 export const TEST_PEPPER = 'test-pepper-not-secret';
 
@@ -37,6 +39,8 @@ export type TestDb = {
   lastCode?(to: string): string;
   /** M6: rebuilds the app with this listener as the owner (the id exists only after a sign-up). */
   setOwner?(id: string): void;
+  /** M26 F0-08: with TEST_BACKEND=ddb, this test's own DynamoDB table set (the app still runs on Postgres until the domain lanes land). */
+  store?: Store;
   close(): Promise<void>;
 };
 
@@ -255,6 +259,7 @@ export async function freshDb(allOpts: { ownerListenerId?: string; appealsEmail?
     // the process exit instead of hanging the whole file.
     close: () => Promise.race([pg.close(), new Promise<void>((r) => { setTimeout(r, 5_000).unref(); })]),
   };
+  if (TEST_BACKEND === 'ddb') await attachStore(t);
   return t;
 }
 
@@ -277,4 +282,44 @@ export async function signUpWithCode(t: TestDb, email: string, displayName: stri
   if (res.status !== 200) return { status: res.status };
   const j = (await res.json()) as { token: string; listener: { id: string } };
   return { status: 200, token: j.token, id: j.listener.id };
+}
+
+/*
+ * M26 F0-08: the DynamoDB path, additive — TEST_BACKEND=ddb (plus DDB_ENDPOINT, DynamoDB Local in
+ * ci/workflows/ddb-api.yml). The default stays Postgres/PGlite and never loads the AWS SDK: every DynamoDB
+ * module is imported dynamically here, so the PGlite coverage run (apps/api/.c8rc.json counts loaded files)
+ * is unchanged. Each test gets its OWN table set (`t<pid>_<n>_<rand>_main/events/cache`, created from
+ * infra/tables.yaml) and drops it on close; after every `t.call` the outbox is drained, so effects are
+ * deterministic (data-model.md §9).
+ */
+export const TEST_BACKEND: 'pg' | 'ddb' = process.env['TEST_BACKEND'] === 'ddb' ? 'ddb' : 'pg';
+export const TEST_CURSOR_SECRET = 'test-cursor-secret-not-secret';
+
+export type TestStore = { store: Store; tables: Tables; drain(): Promise<DrainResult>; close(): Promise<void> };
+let storeCounter = 0;
+
+/** A fresh table set on DynamoDB Local and a Store over it. */
+export async function freshStore(opts: { clock?: Clock } = {}): Promise<TestStore> {
+  const [{ createDdbClients }, { createStore, prefixedTables }, { createTableSet, deleteTableSet }, { drainOutbox }] = await Promise.all([
+    import('../src/db/ddb/client.ts'), import('../src/db/ddb/store.ts'), import('../src/db/ddb/schema.ts'), import('../src/jobs/outbox.ts'),
+  ]);
+  const clients = createDdbClients();
+  const tables = prefixedTables(`t${process.pid}_${++storeCounter}_${Math.random().toString(36).slice(2, 8)}`);
+  await createTableSet(clients.raw, tables);
+  const store = createStore({ clients, tables, secret: TEST_CURSOR_SECRET, ...(opts.clock ? { clock: opts.clock } : {}) });
+  return {
+    store,
+    tables,
+    drain: () => drainOutbox(store),
+    close: async () => { await deleteTableSet(clients.raw, tables); clients.raw.destroy(); },
+  };
+}
+
+async function attachStore(t: TestDb): Promise<void> {
+  const s = await freshStore();
+  t.store = s.store;
+  const call = t.call;
+  t.call = async (...args) => { const res = await call(...args); await s.drain(); return res; };
+  const close = t.close;
+  t.close = async () => { await s.close(); await close(); };
 }

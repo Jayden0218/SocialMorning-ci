@@ -12,14 +12,7 @@ struct PlayLatestIntent: AppIntent {
   static let description = IntentDescription("Plays the newest unfinished episode from your queue or your shows.")
 
   func perform() async throws -> some IntentResult & OpensIntent {
-    return .result(opensIntent: OpenURLIntent(URL(string: "\(Self.scheme)://play-latest")!))
-  }
-
-  // Lane DP: the dev app (bundle id ending ".dev", see app.config.js) has its own scheme. This
-  // extension's id is the phone app's id plus one part, so its parent's suffix says which app it is.
-  private static var scheme: String {
-    let host = (Bundle.main.bundleIdentifier ?? "").split(separator: ".").dropLast().joined(separator: ".")
-    return host.hasSuffix(".dev") ? "socialmorning-dev" : "socialmorning"
+    return .result(opensIntent: OpenURLIntent(URL(string: "socialmorning://play-latest")!))
   }
 }
 
