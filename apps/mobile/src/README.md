@@ -41,6 +41,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `load.ts` | Loads the app settings at start-up: the last saved copy at once, then the server's, falling back to the built-in defaults. |
 | `store.ts` | Holds the app settings in use now (the admin's, or the built-in defaults) and tells screens when they change. |
 | `useStartConfig.ts` | Start-up: use the last saved app settings before the first screen draws, then fetch the server's once. |
+| `variant.ts` | Says which app this build is — the dev app or the real (prod) one — from the app config. |
 
 ### `discover/` — The Discover tab: podcast search, charts, categories and recommendations to explore.
 

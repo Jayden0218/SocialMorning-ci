@@ -13,6 +13,58 @@
 const APP_GROUP = 'group.app.socialmorning.mobile';
 
 /**
+ * Lane DP (2026-10-10): a dev and a prod app that install side by side. `APP_VARIANT=dev` (eas.json's
+ * `development` profile, the `variant` input of ci/workflows/ios.yml and android-compile.yml) gives
+ * a separate app: its own bundle id / package, name, URL scheme, App Group and a DEV-badged icon
+ * (assets/dev/, drawn by scripts/render-dev-icons.mjs). Unset (or `prod`) → exactly today's app;
+ * __tests__/app-variant.test.ts holds both to that.
+ *
+ * The dev app does NOT claim the production link domain: Android's https intent filter (the
+ * verified `/c/` clip links on socialmorning-api.vercel.app) is dropped, so a shared clip link
+ * still opens the store app. Its API address is `SOCIALNET_DEV_API_BASE_URL`.
+ */
+const DEV = {
+  bundleId: 'app.socialmorning.mobile.dev',
+  name: 'SocialNet Dev',
+  scheme: 'socialmorning-dev',
+  appGroup: 'group.app.socialmorning.mobile.dev',
+};
+const PROD_LINK_HOST = 'socialmorning-api.vercel.app';
+
+/** `dev` or `prod`; anything else is refused rather than silently built as prod. */
+function variantOf(env) {
+  const v = env.APP_VARIANT || 'prod';
+  if (v !== 'dev' && v !== 'prod') throw new Error(`APP_VARIANT must be "dev" or "prod", not "${v}"`);
+  return v;
+}
+
+const claimsHost = (filter, host) => (filter.data || []).some((d) => d.host === host);
+
+const withVariant = (config) => {
+  if (variantOf(process.env) !== 'dev') return config;
+  return {
+    ...config,
+    name: DEV.name,
+    scheme: DEV.scheme,
+    icon: './assets/dev/icon.png',
+    ios: { ...config.ios, bundleIdentifier: DEV.bundleId },
+    android: {
+      ...config.android,
+      package: DEV.bundleId,
+      adaptiveIcon: { ...(config.android && config.android.adaptiveIcon), foregroundImage: './assets/dev/android-icon-foreground.png' },
+      intentFilters: ((config.android && config.android.intentFilters) || []).filter((f) => !claimsHost(f, PROD_LINK_HOST)),
+    },
+    extra: {
+      ...config.extra,
+      variant: 'dev',
+      // The dev app has no backend of its own until the AWS lane builds one: unset, it talks to
+      // the PRODUCTION server (today's address in app.json) — sign in with a test account.
+      apiBaseUrl: process.env.SOCIALNET_DEV_API_BASE_URL || (config.extra && config.extra.apiBaseUrl),
+    },
+  };
+};
+
+/**
  * The listener journey (specs/015-e2e-journey): `SOCIALNET_API_BASE_URL=http://<mac>:8787 npx expo start`
  * points a Debug build at a local test server, so a real phone can run the journey without ever
  * writing to production. Unset → app.json's production address, exactly as before.
@@ -40,7 +92,9 @@ const withDistribution = (config) => (process.env.SOCIALNET_DISTRIBUTION === 'gi
   : config);
 
 module.exports = ({ config: base }) => {
-  const config = withDistribution(withApi(base));
+  const dev = variantOf(process.env) === 'dev';
+  const config = withDistribution(withApi(withVariant(base)));
+  const appGroup = dev ? DEV.appGroup : APP_GROUP;
   if (process.env.SOCIALNET_IOS_EXTRAS !== '1') return config;
   return {
     ...config,
@@ -48,7 +102,7 @@ module.exports = ({ config: base }) => {
       ...config.ios,
       ...(process.env.APPLE_TEAM_ID ? { appleTeamId: process.env.APPLE_TEAM_ID } : {}),
       infoPlist: { ...(config.ios && config.ios.infoPlist), NSSupportsLiveActivities: true },
-      entitlements: { ...(config.ios && config.ios.entitlements), 'com.apple.security.application-groups': [APP_GROUP] },
+      entitlements: { ...(config.ios && config.ios.entitlements), 'com.apple.security.application-groups': [appGroup] },
     },
     plugins: [...config.plugins, '@bacons/apple-targets', 'expo-live-activity'],
   };

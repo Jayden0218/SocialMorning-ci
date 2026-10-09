@@ -17,6 +17,13 @@ on:
         description: 'Build the iOS extras (widgets, Siri, Watch app)'
         type: boolean
         default: false
+      variant:
+        # Lane DP: dev = the second app (app.socialmorning.mobile.dev, "SocialNet Dev", DEV icon) that
+        # installs beside the real one; prod = exactly the app as before (app.config.js APP_VARIANT).
+        description: 'Which app: prod (the real one) or dev (installs beside it)'
+        type: choice
+        options: [prod, dev]
+        default: prod
 jobs:
   ios:
     # Release = the app as users get it. Debug = loads its code from the owner's `expo start`
@@ -29,6 +36,7 @@ jobs:
     timeout-minutes: 75
     env:
       SOCIALNET_IOS_EXTRAS: ${{ inputs.extras && '1' || '' }}
+      APP_VARIANT: ${{ inputs.variant == 'dev' && 'dev' || 'prod' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

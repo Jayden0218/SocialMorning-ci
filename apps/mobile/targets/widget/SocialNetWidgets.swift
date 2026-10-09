@@ -8,7 +8,7 @@
 import SwiftUI
 import WidgetKit
 
-private let sharedGroup = "group.app.socialmorning.mobile"
+private let sharedGroup = AppVariant.appGroup  // lane DP: the dev app has its own (Variant.swift)
 
 private func shared(_ key: String) -> [String: Any]? {
   UserDefaults(suiteName: sharedGroup)?.dictionary(forKey: key)
@@ -96,7 +96,7 @@ struct PlaylistView: View {
       Spacer(minLength: 0)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-    .widgetURL(URL(string: "socialmorning://player"))
+    .widgetURL(AppVariant.url("player"))
     .containerBackground(.background, for: .widget)
   }
 }
@@ -157,7 +157,7 @@ struct DailyPickView: View {
       Spacer(minLength: 0)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-    .widgetURL(URL(string: "socialmorning://"))
+    .widgetURL(AppVariant.url(""))
     .containerBackground(.background, for: .widget)
   }
 }
@@ -216,7 +216,7 @@ struct WeekView: View {
       Text("On this phone, from Monday").font(.caption2).foregroundStyle(.secondary).lineLimit(2)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-    .widgetURL(URL(string: "socialmorning://"))
+    .widgetURL(AppVariant.url(""))
     .containerBackground(.background, for: .widget)
   }
 }
