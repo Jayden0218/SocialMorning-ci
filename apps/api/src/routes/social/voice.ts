@@ -12,6 +12,7 @@ import { stripImageMetadata } from '@socialmorning/social-core';
 import { pushNewStatus } from '../../db/repos/account/push.ts';
 import { addAudioReply, addTextReply, clearReaction, deleteReply, listReplies, REACTION_KINDS, REPLY_TEXT_MAX, setReaction, summaries, visibleStatus } from '../../db/repos/social/status-replies.ts';
 import { insertItems, itemsFor, itemsFromHeader, ItemsError, parseItems, recordUpload, STATUS_PHOTO_MAX_BYTES, statusPhotoBytes, type StatusItemIn } from '../../db/repos/social/status-items.ts';
+import { insertTextStatusInTx, listenerExistsRows, liveCommentImageBytesRows } from '../../db/repos/social/status-writes.ts';
 
 /**
  * M12 FR-104 — mounted at /v1/voice-posts. The body is the raw recording (`audio/mp4` or
@@ -120,11 +121,7 @@ async function postText(c: Context<AuthEnv>) {
   if ((await liveCount(db, me.id)) >= VOICE_LIVE_MAX) throw new ApiError('locked', `At most ${VOICE_LIVE_MAX} status posts at a time.`);
   let row: Awaited<ReturnType<typeof insertTextPost>>;
   try {
-    row = await db.transaction(async (tx) => {
-      const r = await insertTextPost(tx, { id: randomUUID(), listenerId: me.id, body });
-      await insertItems(tx, r.id, me.id, items);
-      return r;
-    });
+    row = await insertTextStatusInTx(db, me.id, body, items);
   } catch (e) {
     if (e instanceof ItemsError) throw itemsError(e);
     throw e;
@@ -154,7 +151,7 @@ const suggestionMute = (on: boolean) => async (c: Context<AuthEnv>) => {
   const other = c.req.param('listenerId') ?? '';
   const me = c.get('listener')!.id;
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(other) || other === me) throw new ApiError('not_found', 'No such listener.');
-  if ((await c.get('db').query('SELECT 1 FROM listeners WHERE id = $1', [other])).length === 0) throw new ApiError('not_found', 'No such listener.');
+  if ((await listenerExistsRows(c.get('db'), other)).length === 0) throw new ApiError('not_found', 'No such listener.');
   await setSuggestionMute(c.get('db'), me, other, on);
   return c.body(null, 204);
 };
@@ -186,7 +183,7 @@ voice.post('/images', requireAuth, async (c) => {
   // M25 SB (G-SB3): no EXIF/GPS, XMP or text reaches the store.
   const bytes = type ? stripImageMetadata(raw) : undefined;
   if (!type || !bytes) throw new ApiError('validation', 'Send a JPEG or PNG picture.', { fields: ['body'] });
-  const [used] = await db.query<{ n: string | number | null }>('SELECT coalesce(sum(image_bytes), 0) AS n FROM comments');
+  const [used] = await liveCommentImageBytesRows(db);
   if (Number(used?.n ?? 0) + (await statusPhotoBytes(db)) + bytes.length > c.get('imageCeilingBytes')) throw new ApiError('storage_full', 'The image store is full. Try again later.');
   const path = `statuses/${me.id}/${randomUUID()}.${type === 'image/png' ? 'png' : 'jpg'}`;
   let stored: { url: string; pathname: string };

@@ -8,8 +8,9 @@ import { mediaKindOf } from '@socialmorning/social-core';
 import { FEED_TIMEOUT_MS, parseFeed, readFeedText, type Episode, type MakeDecoder, type ParsedFeed } from '@socialmorning/feed-parser';
 import { hash } from '@socialmorning/social-core';
 import type { Db } from '../db/db.ts';
-import { cached, TTL } from '../db/repos/cache.ts';
+import { cached, deleteCacheKey, touchCacheMarker, TTL } from '../db/repos/cache.ts';
 import { upsertEpisode, type EpisodeRow } from '../db/repos/library/episodes.ts';
+import { moveSubscriptionsToFeed } from '../db/repos/library/feeds.ts';
 import type { EpisodeCard } from './apple.ts';
 import { genreIdFor } from './genres.ts';
 
@@ -95,9 +96,9 @@ export const FEED_BLOCK_PREFIX = 'feed-block:';
  */
 export async function setPublisherBlock(db: Db, feedUrl: string, blocked: boolean): Promise<void> {
   if (blocked) {
-    await db.query("INSERT INTO cache (key, body, fetched_at) VALUES ($1, '{}'::jsonb, now()) ON CONFLICT (key) DO UPDATE SET fetched_at = now()", [FEED_BLOCK_PREFIX + feedUrl]);
+    await touchCacheMarker(db, FEED_BLOCK_PREFIX + feedUrl);
   } else {
-    await db.query('DELETE FROM cache WHERE key = $1', [FEED_BLOCK_PREFIX + feedUrl]);
+    await deleteCacheKey(db, FEED_BLOCK_PREFIX + feedUrl);
   }
 }
 
@@ -109,23 +110,7 @@ export async function setPublisherBlock(db: Db, feedUrl: string, blocked: boolea
  */
 export async function followMovedFeed(db: Db, from: string, to: string): Promise<number> {
   if (from === to || !/^https?:\/\//i.test(to)) return 0;
-  return db.transaction(async (tx) => {
-    const moved = await tx.query<{ listener_id: string }>(
-      'UPDATE subscriptions SET deleted_at = now() WHERE feed_url = $1 AND deleted_at IS NULL RETURNING listener_id', [from]);
-    if (moved.length === 0) return 0;
-    const ids = moved.map((m) => m.listener_id);
-    await tx.query(
-      `INSERT INTO subscriptions (listener_id, feed_url, created_at)
-       SELECT id, $2, now() FROM unnest($1::uuid[]) AS id
-       ON CONFLICT (listener_id, feed_url) DO UPDATE SET deleted_at = NULL, created_at = now() WHERE subscriptions.deleted_at IS NOT NULL`,
-      [ids, to]);
-    await tx.query(
-      `INSERT INTO subscription_events (listener_id, feed_url, kind, at)
-       SELECT id, $2, 'unsub', now() FROM unnest($1::uuid[]) AS id
-       UNION ALL SELECT id, $3, 'sub', now() FROM unnest($1::uuid[]) AS id`,
-      [ids, from, to]);
-    return moved.length;
-  });
+  return moveSubscriptionsToFeed(db, from, to);
 }
 
 /** The M3 episode id: the same fnv1a64 the phone computes. */

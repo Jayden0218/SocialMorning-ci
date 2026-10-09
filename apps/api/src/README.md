@@ -226,6 +226,9 @@ here or a line does not match its file.
 | File | What it does |
 |---|---|
 | `cache.ts` | Simple database cache: serve fresh rows, fall back to stale rows on failure. |
+| `health.ts` | The health check's database probe (M26: moved here from app.ts). |
+| `old-rows-sweep.ts` | The hourly sweep's deletes of old rows (M26: moved here from routes/internal.ts). |
+| `tint-cache.ts` | The cover tint's rows in the `cache` table (`tint:<imageUrl>`): read one, write one. |
 
 ### `db/repos/config/` — app settings and content pages an admin edits (M25)
 
@@ -254,6 +257,13 @@ here or a line does not match its file.
 | `queue.ts` | The listener's synced play queue: read it, and replace it only from the version the phone last saw. |
 | `stickers.ts` | Stickers placed on a profile header: read them, replace them all, and what a viewer may see. |
 | `interests.ts` | A listener's chosen categories (first-open interests) and their "Not liking these?" answers. |
+| `devices.ts` | Database queries for the signed-in devices list (M26: moved here from routes/account/devices.ts). |
+| `email-change.ts` | Database queries for changing the sign-in email (M26: moved here from routes/account/email.ts). |
+| `notify-shows.ts` | Database queries for per-show new-episode notifications (M26: moved here from routes/account/notify.ts). |
+| `rate-limits.ts` | Database queries for fixed-window rate limits (M26 F0-01: moved here from auth/rate.ts). |
+| `second-factor.ts` | Database queries for the admin second factor kept on the session row (M26 F0-01: moved here from auth/second-factor.ts). |
+| `sessions.ts` | Database queries for sign-in sessions (M26 F0-01: moved here from auth/, routes/ and pages/). |
+| `sign-in-codes.ts` | Database queries for email sign-in codes (M26 F0-01: moved here from auth/codes.ts). |
 
 ### `db/repos/social/` — comments, clips, follows, profiles, activity
 
@@ -281,6 +291,13 @@ here or a line does not match its file.
 | `host-notices.ts` | Host notices: announcements from the shows a listener follows, from their release time. |
 | `report.ts` | The monthly listening report: minutes, shows, episodes, top three of each, comments and clips. |
 | `system-notices.ts` | System notices: messages from SocialNet to everyone or to one listener, and their optional push. |
+| `comment-writes.ts` | Comment writes the comment routes run: the rate floor, posting and deleting in a transaction, images, reactions. |
+| `episode-social.ts` | The episode social poll's reads: the change stamp, the heat rows and the viewer's reaction buckets. |
+| `friends-listening.ts` | "Friends are listening": what people I follow listened to in the last 7 days. |
+| `public-pages.ts` | Reads for the public pages and share routes: the share card's fallback artwork, an episode check, the show card, the cached feed. |
+| `rate-floors.ts` | Per-minute rate floors for follows, chat messages and clips, and the follow transaction. |
+| `shared-lists.ts` | Database queries for shared show lists (M22 US17 item 5; moved from routes/lists.ts in M26 F0-01). |
+| `status-writes.ts` | Status route writes and checks: a text status with its items in one transaction, a listener check, image bytes used. |
 
 ### `db/repos/safety/` — reports, blocks, moderation
 
@@ -292,6 +309,8 @@ here or a line does not match its file.
 | `appeals.ts` | Appeals: what a listener may appeal, sending one appeal per action, and the admin's decision. |
 | `maintenance.ts` | The maintenance switch the admin turns on and off: stored in app_settings, read through a short memo. |
 | `words.ts` | Blocked words: the admin's list, read through a short memo, and the check every write uses. |
+| `mod-shows.ts` | Database queries for the /mod page's Studio shows list and take-down (M26: moved here from pages/mod.ts). |
+| `translation.ts` | Translation queries: the Groq usage ledger, translation jobs, finished translations and the /mod allow-list. |
 
 ### `db/repos/library/` — subscriptions, positions, listening, library
 
@@ -303,6 +322,11 @@ here or a line does not match its file.
 | `positions.ts` | Stores and merges playback positions sent from each device. |
 | `rec-events.ts` | Records what recommendations were shown and opened, counted per source. |
 | `subscriptions.ts` | Syncs subscriptions across devices; an unsubscribe wins a tie. |
+| `catalog.ts` | Reads the admin catalogue tables: pick days and items, curated issues and their items, collections and their items. |
+| `daily-pick.ts` | Database queries for pushing the day's pick (M26: moved here from routes/internal.ts). |
+| `feed-refresh.ts` | Database queries for the hourly feed refresh (M26: moved here from routes/internal.ts). |
+| `feeds.ts` | Feed moves: every live subscription follows a publisher's new feed address, in one transaction. |
+| `heat.ts` | The two statements of an episode's heat rebuild (see heat/rebuild.ts for the rule they keep). |
 
 ### `db/repos/discover/` — Discover, For You, similarity, next up, launch
 
@@ -321,6 +345,9 @@ here or a line does not match its file.
 | `similarity.ts` | Computes which shows are similar, ignoring private listeners and storing no listener ids. |
 | `dismissals.ts` | "Not interested" choices: episodes and shows a listener asked For You to stop showing. |
 | `explore.ts` | Explore lists: the three charts, the treasure hunt, the new-shows plaza, and followed faces on picks. |
+| `pick-episodes.ts` | Database queries for past picks and curated issues (M26 F0: moved here from routes/discover/issues.ts). |
+| `search-local.ts` | Database queries for search: Studio-created shows and people (M26 F0: moved here from routes/discover/search.ts). |
+| `search-requests.ts` | Database queries for "Can't find it? Tell us" search requests (M26 F0: moved here from routes/discover/search-requests.ts). |
 
 ### `db/repos/studio/` — a show's data for its creators
 
@@ -347,6 +374,9 @@ here or a line does not match its file.
 | `studio-tips.ts` | Lists tips a show received, leaving out refunded purchases. |
 | `retention.ts` | Retention: the share of an episode's listeners still listening at each minute. |
 | `demographics.ts` | Demographics: age range, gender and country totals of a show's subscribers, never under 10. |
+| `paid-episodes.ts` | Database queries for paid shows and their episodes (M26 F0: moved here from routes/creators/paid.ts). |
+| `share-events.ts` | Database queries for share events (M26 F0: moved here from routes/creators/extras.ts). |
+| `show-bans.ts` | Database queries for Studio show bans (M26 F0: moved here from routes/studio/bans.ts). |
 
 ### `db/repos/admin/` — what the Admin pages read and write
 
@@ -357,6 +387,10 @@ here or a line does not match its file.
 | `admin-curated.ts` | Curated issues and collections stored in the database, with save and retire. |
 | `admin-picks.ts` | The owner's daily picks stored in the database, refusing out-of-date saves. |
 | `metrics.ts` | Admin dashboard numbers: totals only, each section fails on its own. |
+| `admin-access.ts` | Database queries for admin access: who is admin, and the admin action record (M26 F0-01: moved here from auth/admin.ts). |
+| `admin-lists.ts` | Database queries for hiding a show or an episode everywhere from Admin (M26: moved here from routes/admin/lists.ts). |
+| `admin-sessions.ts` | Database queries on sessions for Admin's "act as" (M26: moved here from routes/admin/accounts.ts). |
+| `admin-users.ts` | Database queries for the admin user pages: search, one account in full, PLUS by hand, photo and bio removal, the deletion queue (M26: moved here from routes/admin/). |
 
 ### `auth/` — sessions, passwords, codes, admin access
 

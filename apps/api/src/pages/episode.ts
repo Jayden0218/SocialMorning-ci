@@ -9,6 +9,7 @@
 import { Hono } from 'hono';
 import type { AuthEnv } from '../auth/session.ts';
 import { getEpisode } from '../db/repos/library/episodes.ts';
+import { cachedFeedRows } from '../db/repos/social/public-pages.ts';
 import { esc, mmss, page } from './clip.ts';
 
 export const episodePages = new Hono<AuthEnv>();
@@ -22,7 +23,7 @@ episodePages.get('/e/:id', async (c) => {
   if (!episode) {
     return c.html(page('Episode not found', `<h1>No such episode</h1><p class="muted">The link may be wrong, or the episode was never shared from SocialNet.</p>`), 404);
   }
-  const [cachedFeed] = await db.query<{ body: unknown }>('SELECT body FROM cache WHERE key = $1', [`feed:${episode.feed_url}`]);
+  const [cachedFeed] = await cachedFeedRows(db, episode.feed_url);
   const feed = (typeof cachedFeed?.body === 'string' ? JSON.parse(cachedFeed.body) : cachedFeed?.body) as { show?: { link?: unknown }; episodes?: { guid?: unknown; link?: unknown }[] } | undefined;
   const publisher = httpUrl(feed?.episodes?.find((e) => e.guid === episode.guid)?.link) ?? httpUrl(feed?.show?.link);
   const at = Number(c.req.query('t'));

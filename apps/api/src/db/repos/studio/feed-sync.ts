@@ -43,3 +43,8 @@ export async function claimManual(db: Db, feedUrl: string): Promise<boolean> {
     [feedUrl, String(MANUAL_EVERY_MS)]);
   return rows.length > 0;
 }
+
+/** Drop the cached copy of a feed so the next fetch is a real one. */
+export async function dropFeedCache(db: Db, feedUrl: string): Promise<void> {
+  await db.query('DELETE FROM cache WHERE key = $1', [`feed:${feedUrl}`]);
+}

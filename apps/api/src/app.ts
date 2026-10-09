@@ -58,6 +58,7 @@ import { covers } from './routes/creators/covers.ts';
 import { showCard } from './pages/show-card.ts';
 import { blobStorage } from './storage/episodes-blob.ts';
 import { setSocialPushFetch } from './db/repos/account/push.ts';
+import { ping } from './db/repos/health.ts';
 import { DEFAULT_CEILING_BYTES } from './db/repos/studio/hosted.ts';
 import { live } from './routes/social/live.ts';
 import { notify } from './routes/account/notify.ts';
@@ -294,7 +295,7 @@ export function createApp(deps: AppDeps) {
   // M25 S11: the health check touches the database (`SELECT 1`) and says so: `db: 'ok'`, or
   // `{ ok: false, db: 'fail' }` with 503 so an uptime check sees a dead database.
   app.get('/v1/health', async (c) => {
-    const dbOk = await deps.db.query('SELECT 1').then(() => true, () => false);
+    const dbOk = await ping(deps.db).then(() => true, () => false);
     if (!dbOk) return c.json({ ok: false, db: 'fail' }, 503);
     const until = process.env['MAINTENANCE_UNTIL'];
     const at = until ? Date.parse(until) : NaN;

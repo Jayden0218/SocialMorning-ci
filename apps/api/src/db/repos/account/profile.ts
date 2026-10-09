@@ -85,3 +85,25 @@ export function imageKind(b: Uint8Array): 'image/jpeg' | 'image/png' | undefined
   if (b.length > 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return 'image/png';
   return undefined;
 }
+
+// M26: small reads and writes of the listener's own row (moved here from routes/).
+
+/** The listener's display name as stored now. */
+export async function displayNameRows(db: Db, listenerId: string): Promise<{ display_name: string }[]> {
+  return db.query<{ display_name: string }>('SELECT display_name FROM listeners WHERE id = $1', [listenerId]);
+}
+
+/** The listener accepted the community rules; the first time is kept. */
+export async function acceptRules(db: Db, listenerId: string): Promise<void> {
+  await db.query('UPDATE listeners SET rules_accepted_at = coalesce(rules_accepted_at, now()) WHERE id = $1', [listenerId]);
+}
+
+/** The listener's password hash, to check a password. */
+export async function passwordHashRows(db: Db, listenerId: string): Promise<{ password_hash: string }[]> {
+  return db.query<{ password_hash: string }>('SELECT password_hash FROM listeners WHERE id = $1', [listenerId]);
+}
+
+/** The listener's email. */
+export async function listenerEmailRows(db: Db, listenerId: string): Promise<{ email: string }[]> {
+  return db.query<{ email: string }>('SELECT email FROM listeners WHERE id = $1', [listenerId]);
+}

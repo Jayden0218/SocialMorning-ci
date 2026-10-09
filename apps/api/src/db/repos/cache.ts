@@ -29,4 +29,13 @@ export async function cached<T>(db: Db, key: string, ttlMs: number, fetch: () =>
   }
 }
 
+/** A marker row with an empty body; writing it again only refreshes `fetched_at`. */
+export async function touchCacheMarker(db: Db, key: string): Promise<void> {
+  await db.query("INSERT INTO cache (key, body, fetched_at) VALUES ($1, '{}'::jsonb, now()) ON CONFLICT (key) DO UPDATE SET fetched_at = now()", [key]);
+}
+
+export async function deleteCacheKey(db: Db, key: string): Promise<void> {
+  await db.query('DELETE FROM cache WHERE key = $1', [key]);
+}
+
 export const TTL = { search: 10 * 60_000, catalog: 60 * 60_000, feed: 60 * 60_000, discover: 60 * 60_000, nextup: 60 * 60_000 } as const;

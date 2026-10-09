@@ -82,3 +82,33 @@ export async function listPositions(db: Db, listenerId: string, since?: Date): P
     [listenerId, since ?? null],
   );
 }
+
+/** Which of these episode ids the server knows. */
+export async function knownEpisodeIds(db: Db, ids: string[]): Promise<{ id: string }[]> {
+  return db.query<{ id: string }>('SELECT id FROM episodes WHERE id = ANY($1::text[])', [ids]);
+}
+
+/** Merges every observation in one transaction, in order; returns the rows that now stand. */
+export async function observePositions(
+  db: Db,
+  listenerId: string,
+  deviceId: string,
+  observations: readonly Omit<PositionObs, 'receivedAt'>[],
+  now: Date,
+): Promise<PositionRow[]> {
+  return db.transaction(async (tx) => {
+    const out: PositionRow[] = [];
+    for (const o of observations) out.push(await observePosition(tx, listenerId, deviceId, o, now));
+    return out;
+  });
+}
+
+/** Removes every saved position of the listener (history clear; listened ranges stay). */
+export async function deleteAllPositions(db: Db, listenerId: string): Promise<void> {
+  await db.query('DELETE FROM positions WHERE listener_id = $1', [listenerId]);
+}
+
+/** Removes the listener's saved positions for these episodes. */
+export async function deletePositionsFor(db: Db, listenerId: string, episodeIds: string[]): Promise<void> {
+  await db.query('DELETE FROM positions WHERE listener_id = $1 AND episode_id = ANY($2::text[])', [listenerId, episodeIds]);
+}

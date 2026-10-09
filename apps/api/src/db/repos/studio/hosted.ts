@@ -255,3 +255,28 @@ export async function setPreview(db: Db, show: HostedShow, id: string, range: { 
     [id, show.id, range?.startMs ?? null, range?.endMs ?? null]);
   return toEp(r!);
 }
+
+/** Mark a created show deleted (giving it back). */
+export async function markHostedShowDeleted(db: Db, showId: string): Promise<void> {
+  await db.query('UPDATE hosted_shows SET deleted_at = now() WHERE id = $1', [showId]);
+}
+
+/** Mark every live episode of a created show deleted. */
+export async function markHostedEpisodesDeleted(db: Db, showId: string): Promise<void> {
+  await db.query('UPDATE hosted_episodes SET deleted_at = now() WHERE show_id = $1 AND deleted_at IS NULL', [showId]);
+}
+
+/** One row when the created show still has a paid, live episode. */
+export async function paidEpisodeRows(db: Db, showId: string): Promise<Record<string, unknown>[]> {
+  return db.query('SELECT 1 FROM hosted_episodes WHERE show_id = $1 AND paid AND deleted_at IS NULL', [showId]);
+}
+
+/** Whether a created show exists and was deleted (the public feed answers 404 / 410). */
+export async function hostedShowDeletedRows(db: Db, showId: string): Promise<{ deleted: boolean }[]> {
+  return db.query<{ deleted: boolean }>('SELECT deleted_at IS NOT NULL AS deleted FROM hosted_shows WHERE id = $1', [showId]);
+}
+
+/** How many live shows the listener has created. */
+export async function ownedShowCountRows(db: Db, ownerId: string): Promise<{ n: number }[]> {
+  return db.query<{ n: number }>('SELECT count(*)::int AS n FROM hosted_shows WHERE owner_id = $1 AND deleted_at IS NULL', [ownerId]);
+}
