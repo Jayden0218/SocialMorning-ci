@@ -18,7 +18,6 @@ import { canBuy, consumable, GIFT_TIERS, kindOf, PLUS, purchaseRequest, SHOW_TIE
 import type { PurchaseApi } from './purchase-api';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { useSocial } from '@/social/context';
-import { appVariant } from '@/config/variant';
 
 /**
  * M23 US4 (FR-008): every purchase carries Google's `obfuscatedAccountId` (expo-iap 5.8.2's
@@ -55,7 +54,7 @@ export type PlayStore = {
 export function usePlayStore(api: PurchaseApi, o: { serverReady: boolean; teen: boolean }): PlayStore {
   const iap = useMemo(loadIap, []);
   const listenerId = useSocial().listener?.listenerId;
-  const ready = canBuy({ platform: Platform.OS, native: iap !== undefined, serverReady: o.serverReady, teen: o.teen, variant: appVariant() });
+  const ready = canBuy({ platform: Platform.OS, native: iap !== undefined, serverReady: o.serverReady, teen: o.teen });
   const [prices, setPrices] = useState<Record<string, string>>({});
   const [offerToken, setOfferToken] = useState<string | undefined>(undefined);
   const [granted, setGranted] = useState<string | undefined>(undefined);

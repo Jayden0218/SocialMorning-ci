@@ -197,6 +197,30 @@ here or a line does not match its file.
 | `db.ts` | The shared database interface, with adapters for real Postgres and in-memory pglite. |
 | `migrate.ts` | Runs every database migration file not yet applied, in order. |
 
+### `db/ddb/` — the DynamoDB data layer (M26, being built beside Postgres; not used by any route yet)
+
+| File | What it does |
+|---|---|
+| `batch.ts` | Batch reads (100 keys) and writes (25 puts/deletes) in chunks, retrying what DynamoDB left unprocessed. |
+| `client.ts` | The DynamoDB DocumentClient: plain JS objects in and out; refuses real AWS until it is approved. |
+| `codec.ts` | Row ↔ item: every item gets its type `t`, dates become ISO strings, and each type's attribute allowlist is enforced. |
+| `cursor.ts` | Page cursors: a DynamoDB resume key ↔ an opaque, signed string the API hands out (a forged one is refused). |
+| `keys.ts` | Every DynamoDB key shape in data-model.md §3–§5, one function each, so no repo spells a key by hand. |
+| `paginate.ts` | "Up to N" lists over DynamoDB's 1 MB pages: keep querying until N items are found or the partition ends. |
+| `retry.ts` | Retry for optimistic writes: a version check or transaction conflict is retried a few times, never forever. |
+| `schema.ts` | Reads infra/tables.yaml and creates or drops a table set (tests and rehearsals; production tables come from CloudFormation). |
+| `seq.ts` | Numeric ids for the seven former bigserial tables: a SEQ# counter item, so ids keep their type and order. |
+| `store.ts` | The Store handle every DynamoDB repo takes: the client, the three table names, a clock and a cursor secret. |
+| `test-wrappers.ts` | Test-only Store wrappers for what DynamoDB Local cannot do: GSI lag, transaction conflicts, faults by key prefix. |
+| `tx.ts` | TransactWriteItems builder: refuses more than 100 items before sending, and names which item cancelled a transaction. |
+| `unique.ts` | Uniqueness without a UNIQUE index: a U# item claimed with attribute_not_exists in the same transaction as the row. |
+
+### `jobs/` — background work (M26); the only place a full-table Scan may appear
+
+| File | What it does |
+|---|---|
+| `outbox.ts` | The outbox: work a commit causes (fan-outs, rollups) queued in the same transaction, then drained idempotently; and resumable jobs. |
+
 ### `db/repos/` — shared database helpers
 
 | File | What it does |
