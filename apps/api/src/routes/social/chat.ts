@@ -7,6 +7,7 @@ import { ApiError } from '../../errors.ts';
 import { json } from '../../validate.ts';
 import { getEpisode } from '../../db/repos/library/episodes.ts';
 import { CHAT_BODY_MAX, canChat, conversations, friends, person, send, thread, unreadCount } from '../../db/repos/social/chat.ts';
+import { recentChatRows } from '../../db/repos/social/rate-floors.ts';
 
 /**
  * Chat (owner, 2026-10-04) — mounted at /v1/me/chats, every route signed in.
@@ -78,7 +79,7 @@ chat.post('/:id', requireAuth, json(Body), async (c) => {
   if (other === me || !(await person(db, other))) throw new ApiError('not_found', 'No such listener.');
   if (!(await canChat(db, me, other))) throw new ApiError('forbidden', 'You can chat only with people who follow you back.');
   if (episodeId !== undefined && !(await getEpisode(db, episodeId))) throw new ApiError('not_found', 'That episode is not on the server yet — open it once, then try again.');
-  const [recent] = await db.query<{ n: number }>(`SELECT count(*)::int AS n FROM chat_messages WHERE sender_id = $1 AND created_at > now() - interval '1 minute'`, [me]);
+  const [recent] = await recentChatRows(db, me);
   if (Number(recent?.n ?? 0) >= CHAT_PER_MINUTE) throw new ApiError('locked', 'Too many messages in a minute.', { retryAfterSeconds: 60 });
   const message = await send(db, me, other, body, episodeId);
   return c.json({ message }, 201);

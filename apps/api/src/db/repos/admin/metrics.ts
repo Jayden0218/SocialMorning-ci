@@ -204,3 +204,8 @@ export async function computeMetrics(db: Db, range: MetricRange, now: number = D
     sections,
   };
 }
+
+/** Drops one cached dashboard result (a partial one is served once, never kept). */
+export async function dropCachedMetrics(db: Db, key: string): Promise<void> {
+  await db.query('DELETE FROM cache WHERE key = $1', [key]);
+}

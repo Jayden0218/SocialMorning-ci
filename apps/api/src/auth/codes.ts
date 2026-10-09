@@ -5,6 +5,7 @@
  */
 import { createHash, randomInt, timingSafeEqual } from 'node:crypto';
 import type { Db } from '../db/db.ts';
+import { codeSentAtRows, deleteEmailCode, reserveCodeAttempt, returnCodeAttempt, upsertEmailCode } from '../db/repos/account/sign-in-codes.ts';
 
 export const CODE_TTL_MS = 10 * 60_000;
 export const RESEND_AFTER_MS = 30_000;
@@ -18,22 +19,16 @@ export function codeHash(email: string, code: string, pepper: string): Buffer {
   return createHash('sha256').update(email.toLowerCase()).update('|').update(code).update('|').update(pepper).digest();
 }
 
-type Row = { code_hash: Buffer | Uint8Array; sent_at: Date | string; expires_at: Date | string; attempts: number };
-
 /** Seconds until another code may be sent to this email; 0 when it may be sent now. */
 export async function resendWait(db: Db, email: string, now: number): Promise<number> {
-  const [row] = await db.query<Row>('SELECT sent_at FROM email_codes WHERE email = $1', [email]);
+  const [row] = await codeSentAtRows(db, email);
   if (!row) return 0;
   const wait = new Date(row.sent_at).getTime() + RESEND_AFTER_MS - now;
   return wait > 0 ? Math.ceil(wait / 1000) : 0;
 }
 
 export async function storeCode(db: Db, email: string, code: string, pepper: string, now: number): Promise<void> {
-  await db.query(
-    `INSERT INTO email_codes (email, code_hash, sent_at, expires_at, attempts) VALUES ($1, $2, $3, $4, 0)
-     ON CONFLICT (email) DO UPDATE SET code_hash = EXCLUDED.code_hash, sent_at = EXCLUDED.sent_at, expires_at = EXCLUDED.expires_at, attempts = 0`,
-    [email, codeHash(email, code, pepper), new Date(now), new Date(now + CODE_TTL_MS)],
-  );
+  await upsertEmailCode(db, email, codeHash(email, code, pepper), new Date(now), new Date(now + CODE_TTL_MS));
 }
 
 /**
@@ -46,17 +41,12 @@ export async function storeCode(db: Db, email: string, code: string, pepper: str
  * the code up. A right code gives its attempt back, so the name step can check it again.
  */
 export async function checkCode(db: Db, email: string, code: string, pepper: string, now: number, /** M25 SB: the second pepper during a rotation */ pepperNext?: string): Promise<'ok' | 'wrong' | 'expired'> {
-  const [row] = await db.query<Row>(
-    `UPDATE email_codes SET attempts = attempts + 1
-      WHERE email = $1 AND attempts < $2 AND expires_at > $3
-      RETURNING code_hash, expires_at, attempts`,
-    [email, MAX_ATTEMPTS, new Date(now)],
-  );
+  const [row] = await reserveCodeAttempt(db, email, MAX_ATTEMPTS, new Date(now));
   if (!row) return 'expired';
   const want = Buffer.from(row.code_hash);
   const matches = (p: string) => { const got = codeHash(email, code, p); return want.length === got.length && timingSafeEqual(want, got); };
   if (matches(pepper) || (pepperNext !== undefined && matches(pepperNext))) {
-    await db.query('UPDATE email_codes SET attempts = attempts - 1 WHERE email = $1 AND attempts > 0', [email]);
+    await returnCodeAttempt(db, email);
     return 'ok';
   }
   if (row.attempts >= MAX_ATTEMPTS) await consumeCode(db, email);
@@ -64,5 +54,5 @@ export async function checkCode(db: Db, email: string, code: string, pepper: str
 }
 
 export async function consumeCode(db: Db, email: string): Promise<void> {
-  await db.query('DELETE FROM email_codes WHERE email = $1', [email]);
+  await deleteEmailCode(db, email);
 }

@@ -3,6 +3,7 @@ import { Hono, type Context } from 'hono';
 import type { AuthEnv } from '../../auth/session.ts';
 import { ApiError } from '../../errors.ts';
 import { getEpisode } from '../../db/repos/library/episodes.ts';
+import { showImageRows } from '../../db/repos/social/public-pages.ts';
 import { QUOTE_MAX, renderCard, type CardInput } from '../../share/card.ts';
 import { fetchImage } from '../../share/fetch-image.ts';
 import { RECAP_MINUTES_MAX, RECAP_SHOW_MAX, RECAP_SHOWS, renderRecap } from '../../share/recap.ts';
@@ -55,7 +56,7 @@ async function drawCard(c: Context<AuthEnv>, quote?: string): Promise<Response> 
   const atMs = Number.isInteger(t) && t >= 0 ? t : undefined;
   let imageUrl = episode.image_url;
   if (!imageUrl) {
-    const [other] = await db.query<{ image_url: string }>('SELECT image_url FROM episodes WHERE feed_url = $1 AND image_url IS NOT NULL LIMIT 1', [episode.feed_url]);
+    const [other] = await showImageRows(db, episode.feed_url);
     imageUrl = other?.image_url ?? null;
   }
   const f = c.get('imageFetch');

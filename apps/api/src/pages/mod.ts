@@ -29,6 +29,8 @@ import { recentHostHides, setHostHidden } from '../db/repos/studio/studio-commen
 import { checkSecondFactor, rememberDevice, secondFactorDone, sendSecondFactor } from '../auth/second-factor.ts';
 import { COUNTRY_HEADER, countryOf } from '../db/repos/account/country.ts';
 import { listHostedEpisodes } from '../db/repos/studio/hosted.ts';
+import { finishTakedown, markHostedShowDeleted, studioCreatedShows } from '../db/repos/safety/mod-shows.ts';
+import { deleteSessionByHash } from '../db/repos/account/sessions.ts';
 
 const COOKIE = 'mod';
 const ACTIONS: readonly Action[] = ['dismiss', 'remove', 'hide_show', 'suspend', 'unsuspend', 'unhide_show'];
@@ -139,11 +141,7 @@ mod.get('/', async (c) => {
   const db = c.get('db');
   await purgeClosedOlderThan(db, RETENTION_DAYS);
   const [open, closed, actions, hides, created] = await Promise.all([openReports(db), closedReports(db, RETENTION_DAYS), recentActions(db, 50), recentHostHides(db, 50),
-    db.query<{ id: string; title: string; feed_url: string; owner: string | null; created_at: Date | string; updated_at: Date | string; eps: number; hidden: boolean }>(
-      `SELECT h.id, h.title, h.feed_url, l.display_name AS owner, h.created_at, h.updated_at,
-              (SELECT count(*)::int FROM hosted_episodes e WHERE e.show_id = h.id AND e.deleted_at IS NULL) AS eps,
-              EXISTS (SELECT 1 FROM hidden_feeds f WHERE f.feed_url = h.feed_url) AS hidden
-         FROM hosted_shows h LEFT JOIN listeners l ON l.id = h.owner_id WHERE h.deleted_at IS NULL ORDER BY h.updated_at DESC LIMIT 50`)]);
+    studioCreatedShows(db)]);
   const items = groupReports(open.map(toRow));
   const csrf = csrfFor(who.token);
   return c.html(page('Moderation', `
@@ -260,12 +258,10 @@ mod.post('/takedown', async (c) => {
   const id = String(form['id'] ?? '');
   if (!/^[0-9a-f-]{36}$/i.test(id)) return c.redirect('/mod', 303);
   const db = c.get('db');
-  const [s] = await db.query<{ feed_url: string }>('UPDATE hosted_shows SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL RETURNING feed_url', [id]);
+  const [s] = await markHostedShowDeleted(db, id);
   if (s) {
     const eps = await listHostedEpisodes(db, id);
-    await db.query('UPDATE hosted_episodes SET deleted_at = now() WHERE show_id = $1 AND deleted_at IS NULL', [id]);
-    await db.query("UPDATE creator_claims SET status = 'revoked' WHERE feed_url = $1 AND status = 'proven'", [s.feed_url]);
-    await db.query("INSERT INTO moderation_actions (actor_id, action, target_kind, target_id) VALUES ($1, 'hide_show', 'show', $2)", [who.owner.id, s.feed_url]);
+    await finishTakedown(db, id, s.feed_url, who.owner.id);
     for (const e of eps) await c.get('storage').remove(e.audioUrl).catch(() => undefined);
   }
   return c.redirect('/mod', 303);
@@ -273,7 +269,7 @@ mod.post('/takedown', async (c) => {
 
 mod.post('/logout', async (c) => {
   const token = getCookie(c, COOKIE);
-  if (token) await c.get('db').query('DELETE FROM sessions WHERE token_hash = $1', [tokenHash(token, c.get('pepper'))]);
+  if (token) await deleteSessionByHash(c.get('db'), tokenHash(token, c.get('pepper')));
   deleteCookie(c, COOKIE, { path: '/mod' });
   return c.redirect('/mod', 303);
 });

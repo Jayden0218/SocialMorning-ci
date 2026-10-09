@@ -4,9 +4,8 @@ import { json } from '../../validate.ts';
 import { z } from 'zod';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { requireAuth, type AuthEnv } from '../../auth/session.ts';
-import { fillEpisode, getEpisode, upsertEpisode, type EpisodeRow } from '../../db/repos/library/episodes.ts';
+import { getEpisode, registerEpisodeTx, type EpisodeRow } from '../../db/repos/library/episodes.ts';
 import type { Db } from '../../db/db.ts';
-import { rebuildEpisodeHeat } from '../../heat/rebuild.ts';
 import { ApiError } from '../../errors.ts';
 import { genreIdFor } from '../../catalog/genres.ts';
 import { findEpisodeInFeed, registerCard } from '../../catalog/feed.ts';
@@ -46,16 +45,10 @@ export const episodes = new Hono<AuthEnv>();
  * `authoritative` is the old overwrite, kept for test setup that stands in for a feed refresh.
  */
 export async function registerEpisode(db: Db, id: string, body: z.infer<typeof episodeBody>, mode: 'fill' | 'authoritative'): Promise<EpisodeRow> {
-  return db.transaction(async (tx) => {
-    const before = await getEpisode(tx, id);
-    const genre = body.categories === undefined ? undefined : genreIdFor(body.categories);
-    const { categories, ...rest } = body;
-    const input = { id, ...rest, ...(genre ? { genreId: genre.id } : {}) };
-    const after = mode === 'fill' ? await fillEpisode(tx, input) : await upsertEpisode(tx, input);
-    // FR-021: the moments were stored without buckets; the first known duration places them.
-    if ((before?.duration_ms ?? null) === null && after.duration_ms !== null) await rebuildEpisodeHeat(tx, id);
-    return after;
-  });
+  const genre = body.categories === undefined ? undefined : genreIdFor(body.categories);
+  const { categories, ...rest } = body;
+  const input = { id, ...rest, ...(genre ? { genreId: genre.id } : {}) };
+  return registerEpisodeTx(db, id, input, mode);
 }
 
 // M23 US1 (FR-001, G-M23-1): signed-out requests could rename any episode; now sign-in is required.

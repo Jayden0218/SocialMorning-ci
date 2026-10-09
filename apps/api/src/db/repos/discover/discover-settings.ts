@@ -57,11 +57,6 @@ export async function getDiscoverSettings(db: Db): Promise<DiscoverSettings> {
   };
 }
 
-/** Whether the owner has ever saved a layout — only then does the phone get one. */
-export async function hasLayout(db: Db): Promise<boolean> {
-  return (await db.query('SELECT 1 FROM discover_settings WHERE id = 1')).length > 0;
-}
-
 /** A text[] comes back as an array from both drivers; a literal `{a,b}` string is read defensively. */
 function textArray(v: string[] | string): string[] {
   if (Array.isArray(v)) return v;

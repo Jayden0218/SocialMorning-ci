@@ -23,7 +23,8 @@ import { getOverrides } from '../../db/repos/studio/show-overrides.ts';
 import { listHosts } from '../../db/repos/studio/show-hosts.ts';
 import { curatorFor } from '../../db/repos/studio/curators.ts';
 import { imagesOf } from '../../db/repos/studio/announcements.ts';
-import { hostPicks, showHosts, showInfo, subscriberCount } from '../../db/repos/studio/show-page.ts';
+import { hostPicks, latestAnnouncementRows, newestEpisodeImageRows, showHosts, showInfo, subscriberCount } from '../../db/repos/studio/show-page.ts';
+import { insertShareEvent, recentShareCountRows } from '../../db/repos/studio/share-events.ts';
 import { tintOf } from '../../share/tint.ts';
 import { hiddenGuids } from '../../db/repos/studio/hidden-episodes.ts';
 
@@ -45,8 +46,7 @@ extras.get('/shows/extras', optionalAuth, async (c) => {
   const episodeImage = imageOf(c.req.query('episodeImage'));
   const [overrides, announcements, polls, hosts, curator, subscribers, people, picks, hidden] = await Promise.all([
     getOverrides(db, feedUrl),
-    db.query<{ id: string; body: string; created_at: Date | string; edited_at: Date | string | null; images: unknown }>(
-      'SELECT id, body, created_at, edited_at, images FROM announcements WHERE feed_url = $1 AND deleted_at IS NULL AND release_at <= now() ORDER BY created_at DESC LIMIT 3', [feedUrl]),
+    latestAnnouncementRows(db, feedUrl),
     pollsForApp(db, feedUrl, viewer?.id),
     listHosts(db, feedUrl),
     // M15 T029 (D3): an admin-made account that shares this external show — "Shared by", never host.
@@ -60,7 +60,7 @@ extras.get('/shows/extras', optionalAuth, async (c) => {
   // The cover the page draws: the Studio's own, else the one the phone has, else the newest episode's.
   let cover = overrides?.coverUrl ?? image;
   if (!cover) {
-    const [e] = await db.query<{ image_url: string }>('SELECT image_url FROM episodes WHERE feed_url = $1 AND image_url IS NOT NULL ORDER BY published_at DESC NULLS LAST LIMIT 1', [feedUrl]);
+    const [e] = await newestEpisodeImageRows(db, feedUrl);
     cover = e?.image_url;
   }
   const [tint, episodeTint] = await Promise.all([tintOf(db, f, cover), episodeImage ? tintOf(db, f, episodeImage) : Promise.resolve(undefined)]);
@@ -119,9 +119,9 @@ extras.post('/shares', optionalAuth, json(shareBody), async (c) => {
   const db = c.get('db');
   const me = c.get('listener');
   if (me) {
-    const [recent] = await db.query<{ n: number }>("SELECT count(*)::int AS n FROM share_events WHERE listener_id = $1 AND at > now() - interval '1 minute'", [me.id]);
+    const [recent] = await recentShareCountRows(db, me.id);
     if (Number(recent?.n ?? 0) >= 30) return c.body(null, 204); // a burst is not 30 shares; drop quietly
   }
-  await db.query('INSERT INTO share_events (listener_id, target_kind, target_id, feed_url) VALUES ($1, $2, $3, $4)', [me?.id ?? null, b.targetKind, b.targetId, b.feedUrl]);
+  await insertShareEvent(db, me?.id ?? null, b.targetKind, b.targetId, b.feedUrl);
   return c.body(null, 204);
 });
