@@ -59,13 +59,13 @@ if (!ON) {
 
   test('max stops inside a page and resumes after the last RETURNED item (no item skipped or repeated)', async () => {
     const s = await freshStore();
-    await batchWriteAll(s.store, 'main', Array.from({ length: 30 }, (_, i) => ({ put: encode('notification', K.notification('L1', `2026-10-10T00:00:${String(i).padStart(2, '0')}.000Z`, `n${i}`), { i }) })));
+    await batchWriteAll(s.store, 'main', Array.from({ length: 30 }, (_, i) => ({ put: encode('notification', K.notification('L1', `2026-10-10T00:00:${String(i).padStart(2, '0')}.000Z`, `n${i}`), { id: i }) }))); // lane SG: notification is a strict type (id is allowed)
     const q = { KeyConditionExpression: 'PK = :pk', ExpressionAttributeValues: { ':pk': 'L#L1' }, ConsistentRead: true };
     const seen: number[] = [];
     let start: Record<string, unknown> | undefined;
     for (let page = 0; page < 10; page++) {
-      const r = await queryAll(s.store, 'main', { ...q, ...(start ? { ExclusiveStartKey: start } : {}) }, { max: 7, keep: (it) => Number(it['i']) % 2 === 0 });
-      seen.push(...r.items.map((i) => Number(i['i'])));
+      const r = await queryAll(s.store, 'main', { ...q, ...(start ? { ExclusiveStartKey: start } : {}) }, { max: 7, keep: (it) => Number(it['id']) % 2 === 0 });
+      seen.push(...r.items.map((i) => Number(i['id'])));
       if (!r.lastKey) break;
       start = r.lastKey;
     }
