@@ -5,12 +5,12 @@
 import { ApiError } from '../../errors.ts';
 import { z } from 'zod';
 import { json } from '../../validate.ts';
-import { commentOnFeed, likeCommentInTransaction, listShowComments, recentCommentCountRows, setHostHidden } from '../../db/repos/studio/studio-comments.ts';
+import { commentOnFeed, listShowComments, setHostHidden } from '../../db/repos/studio/studio-comments.ts';
 import { createComment, toPublic } from '../../db/repos/social/comments.ts';
 import { pinAsHost, pinBottomAsHost } from '../../db/repos/social/comment-extras.ts';
 import { registerBans } from './bans.ts';
 import { isBlockedBy } from '../../db/repos/safety/blocks.ts';
-import { unlike } from '../../db/repos/social/comment-likes.ts';
+import { like, unlike } from '../../db/repos/social/comment-likes.ts';
 import { createReport, reportsInLastHour } from '../../db/repos/safety/reports.ts';
 import { REPORT_NOTE_MAX, REPORT_REASONS, REPORTS_PER_HOUR } from '@socialmorning/social-core';
 import { approveHeld, listPending, policyOf, rejectHeld, setPolicy } from '../../db/repos/studio/comment-policy.ts';
@@ -33,7 +33,7 @@ export function registerComments(studio: Hono<StudioEnv>): void {
     const me = c.get('listener')!;
     const parent = await commentOnFeed(db, c.get('show').feedUrl, c.req.param('id'));
     if (!parent) throw new ApiError('not_found', 'No such comment on this show.');
-    const [recent] = await recentCommentCountRows(db, me.id);
+    const [recent] = await db.query<{ n: number }>("SELECT count(*)::int AS n FROM comments WHERE author_id = $1 AND created_at > now() - interval '5 seconds'", [me.id]);
     if (Number(recent?.n ?? 0) > 0) throw new ApiError('locked', 'One comment every few seconds, please.', { retryAfterSeconds: 5 });
     if (parent.author_id && parent.author_id !== me.id && (await isBlockedBy(db, parent.author_id, me.id))) {
       throw new ApiError('blocked', "You can't interact with this listener.");
@@ -108,7 +108,7 @@ export function registerComments(studio: Hono<StudioEnv>): void {
     const row = await commentOnFeed(db, c.get('show').feedUrl, c.req.param('id') ?? '');
     if (!row) throw new ApiError('not_found', 'No such comment on this show.');
     const me = c.get('listener')!.id;
-    return c.json(on ? await likeCommentInTransaction(db, row.id, me) : await unlike(db, row.id, me));
+    return c.json(on ? await db.transaction((tx) => like(tx, row.id, me)) : await unlike(db, row.id, me));
   };
   studio.put('/shows/:show/comments/:id/like', likeAsHost(true));
   studio.delete('/shows/:show/comments/:id/like', likeAsHost(false));

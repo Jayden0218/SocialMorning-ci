@@ -2,7 +2,6 @@
 import { Hono } from 'hono';
 import type { AuthEnv } from '../../auth/session.ts';
 import { requireAuth } from '../../auth/session.ts';
-import { listEntitlementRows, listPurchaseRows, listTipRows } from '../../db/repos/account/purchases.ts';
 
 /**
  * M12 FR-105/FR-106 — mounted at /v1/me. READ ONLY: what migration 007's `purchases`,
@@ -22,8 +21,10 @@ wallet.get('/purchases', requireAuth, async (c) => {
   const db = c.get('db');
   const me = c.get('listener')!.id;
   const [rows, ents] = await Promise.all([
-    listPurchaseRows(db, me),
-    listEntitlementRows(db, me),
+    db.query<{ id: string; store: string; product_id: string; status: string; expires_at: Date | string | null; amount_micros: string | number | null; currency: string | null; created_at: Date | string }>(
+      'SELECT id, store, product_id, status, expires_at, amount_micros, currency, created_at FROM purchases WHERE listener_id = $1 ORDER BY created_at DESC LIMIT 200', [me]),
+    db.query<{ kind: string; ref: string; starts_at: Date | string | null; until: Date | string | null }>(
+      'SELECT kind, ref, starts_at, until FROM entitlements WHERE listener_id = $1 ORDER BY kind, ref', [me]),
   ]);
   return c.json({
     items: rows.map((r) => ({
@@ -37,7 +38,13 @@ wallet.get('/purchases', requireAuth, async (c) => {
 });
 
 wallet.get('/tips', requireAuth, async (c) => {
-  const rows = await listTipRows(c.get('db'), c.get('listener')!.id);
+  const rows = await c.get('db').query<{ id: string; to_feed_url: string; created_at: Date | string; amount_micros: string | number | null; currency: string | null; show_title: string | null }>(
+    `SELECT t.id, t.to_feed_url, t.created_at, p.amount_micros, p.currency,
+            (SELECT e.show_title FROM episodes e WHERE e.feed_url = t.to_feed_url AND e.show_title IS NOT NULL LIMIT 1) AS show_title
+     FROM tips t JOIN purchases p ON p.id = t.purchase_id
+     WHERE t.from_listener = $1 ORDER BY t.created_at DESC LIMIT 200`,
+    [c.get('listener')!.id],
+  );
   return c.json({
     items: rows.map((r) => ({
       id: r.id, feedUrl: r.to_feed_url, showTitle: r.show_title, createdAt: iso(r.created_at),

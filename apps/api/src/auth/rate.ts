@@ -10,7 +10,6 @@
 import type { Context } from 'hono';
 import type { Db } from '../db/db.ts';
 import { ApiError } from '../errors.ts';
-import { bumpRateCounter, deleteRateCountersBefore } from '../db/repos/account/rate-limits.ts';
 
 export const HOUR_MS = 60 * 60_000;
 export const DAY_MS = 24 * HOUR_MS;
@@ -33,7 +32,12 @@ export function clientAddress(c: Context): string | undefined {
 /** Counts one request against `key` in the current window; true while the count is within `limit`. */
 export async function hit(db: Db, key: string, windowMs: number, limit: number, now = Date.now()): Promise<{ ok: boolean; retryAfterSeconds: number }> {
   const start = Math.floor(now / windowMs) * windowMs;
-  const [row] = await bumpRateCounter(db, key, new Date(start));
+  const [row] = await db.query<{ count: number }>(
+    `INSERT INTO rate_counters (key, window_start, count) VALUES ($1, $2, 1)
+     ON CONFLICT (key, window_start) DO UPDATE SET count = rate_counters.count + 1
+     RETURNING count`,
+    [key, new Date(start)],
+  );
   return { ok: (row?.count ?? 1) <= limit, retryAfterSeconds: Math.max(1, Math.ceil((start + windowMs - now) / 1000)) };
 }
 
@@ -52,6 +56,6 @@ export async function limitCodeRequest(db: Db, c: Context): Promise<void> {
 
 /** Old windows are useless once they end; the sweep keeps two days. */
 export async function sweepRateCounters(db: Db, now = Date.now()): Promise<number> {
-  const rows = await deleteRateCountersBefore(db, new Date(now - 2 * DAY_MS));
+  const rows = await db.query<{ key: string }>('DELETE FROM rate_counters WHERE window_start < $1 RETURNING key', [new Date(now - 2 * DAY_MS)]);
   return rows.length;
 }

@@ -10,17 +10,6 @@
 import type { Db } from '../../db.ts';
 import { ApiError } from '../../../errors.ts';
 import { rebuildEpisodeHeat } from '../../../heat/rebuild.ts';
-import { like, type LikeState } from '../social/comment-likes.ts';
-
-/** Comments the listener wrote in the last 5 seconds (the reply rate floor). */
-export async function recentCommentCountRows(db: Db, authorId: string): Promise<{ n: number }[]> {
-  return db.query<{ n: number }>("SELECT count(*)::int AS n FROM comments WHERE author_id = $1 AND created_at > now() - interval '5 seconds'", [authorId]);
-}
-
-/** Like a comment as the host, inside one transaction (the app's like). */
-export async function likeCommentInTransaction(db: Db, commentId: string, listenerId: string): Promise<LikeState> {
-  return db.transaction((tx) => like(tx, commentId, listenerId));
-}
 
 export type StudioComment = {
   id: string;

@@ -88,16 +88,3 @@ export async function showInfo(db: Db, feedUrl: string): Promise<ShowInfo> {
     claimedAt: r.proven_at ? new Date(r.proven_at).toISOString() : null,
   };
 }
-
-export type ShowPageAnnouncementRow = { id: string; body: string; created_at: Date | string; edited_at: Date | string | null; images: unknown };
-
-/** The show page's three newest released announcements. */
-export async function latestAnnouncementRows(db: Db, feedUrl: string): Promise<ShowPageAnnouncementRow[]> {
-  return db.query<{ id: string; body: string; created_at: Date | string; edited_at: Date | string | null; images: unknown }>(
-      'SELECT id, body, created_at, edited_at, images FROM announcements WHERE feed_url = $1 AND deleted_at IS NULL AND release_at <= now() ORDER BY created_at DESC LIMIT 3', [feedUrl]);
-}
-
-/** The newest episode image of a feed (the show page's last-resort cover). */
-export async function newestEpisodeImageRows(db: Db, feedUrl: string): Promise<{ image_url: string }[]> {
-  return db.query<{ image_url: string }>('SELECT image_url FROM episodes WHERE feed_url = $1 AND image_url IS NOT NULL ORDER BY published_at DESC NULLS LAST LIMIT 1', [feedUrl]);
-}

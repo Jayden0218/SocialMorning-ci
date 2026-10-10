@@ -12,7 +12,6 @@ import { ApiError } from '../../errors.ts';
 import { json } from '../../validate.ts';
 import { accountsByIds, createAccounts, emailTaken, MAX_BULK, madeAccounts, updateAccount } from '../../db/repos/admin/admin-accounts.ts';
 import { listCurators, setCurator } from '../../db/repos/studio/curators.ts';
-import { actingSessionRows } from '../../db/repos/admin/admin-sessions.ts';
 import { act } from '../../db/repos/safety/moderation.ts';
 import type { Db } from '../../db/db.ts';
 import type { Hono } from 'hono';
@@ -64,7 +63,7 @@ export function registerAccounts(admin: Hono<AdminEnv>): void {
     const db = c.get('db');
     const me = c.get('listener')!.id;
     await adminWrite(db, auditCtx(c), { area: 'accounts', action: 'act_as_stop', target: me },
-      async (tx) => ({ acting: (await actingSessionRows(tx, me)).map((r) => r.listener_id) }),
+      async (tx) => ({ acting: (await tx.query<{ listener_id: string }>('SELECT listener_id FROM sessions WHERE acting_admin_id = $1', [me])).map((r) => r.listener_id) }),
       (tx) => stopActing(tx, me));
     deleteCookie(c, ACT_AS_COOKIE, { path: '/', secure: secure(c.req.url) });
     return c.json({ actingAs: null });
@@ -78,7 +77,7 @@ export function registerAccounts(admin: Hono<AdminEnv>): void {
     if (!target || target.madeBy === null) throw new ApiError('not_found', 'You can act only as an account made in Admin.');
     let token = '';
     await adminWrite(db, { ...auditCtx(c), actingAs: id }, { area: 'accounts', action: 'act_as', target: id },
-      async (tx) => ({ acting: (await actingSessionRows(tx, me)).map((r) => r.listener_id) }),
+      async (tx) => ({ acting: (await tx.query<{ listener_id: string }>('SELECT listener_id FROM sessions WHERE acting_admin_id = $1', [me])).map((r) => r.listener_id) }),
       async (tx) => { token = await startActing(tx, c.get('pepper'), me, id); });
     setCookie(c, ACT_AS_COOKIE, token, { httpOnly: true, secure: secure(c.req.url), sameSite: 'Strict', path: '/', maxAge: STUDIO_IDLE_MS / 1000 });
     return c.json({ actingAs: { id: target.id, displayName: target.displayName } });
