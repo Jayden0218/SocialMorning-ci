@@ -1,5 +1,6 @@
 // "Friends are listening": what people I follow listened to in the last 7 days.
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 import { notHidden } from '../studio/hidden-episodes.ts';
 
 export type FriendsListeningRow = {
@@ -8,7 +9,7 @@ export type FriendsListeningRow = {
 };
 
 /** One row per (episode, listener) from people `me` follows, newest first, at most 1000. */
-export async function friendsListeningRows(db: Db, me: string): Promise<FriendsListeningRow[]> {
+async function friendsListeningRowsPg(db: Db, me: string): Promise<FriendsListeningRow[]> {
   // M24 US11: hidden episodes leave this list.
   return db.query<FriendsListeningRow>(
     `WITH r AS (
@@ -31,3 +32,6 @@ export async function friendsListeningRows(db: Db, me: string): Promise<FriendsL
     [me],
   );
 }
+
+// M26 lane SG: each runs on DynamoDB when the Db carries a Store (src/db/backend.ts; bodies in graph-ddb/).
+export const friendsListeningRows = dual('sg/index', 'friendsListeningRows', friendsListeningRowsPg);

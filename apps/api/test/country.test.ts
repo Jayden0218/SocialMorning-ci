@@ -9,6 +9,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { countryOf } from '../src/db/repos/account/country.ts';
 import { freshDb, signUp } from './harness.ts';
+import { listenerRow } from './ac-neutral.ts';
 
 test('G-I1: only a two-letter country is kept; anything else is ignored', () => {
   assert.equal(countryOf('my'), 'MY');
@@ -27,10 +28,10 @@ test('signing in records the country; every viewer sees it on the profile', asyn
   assert.equal(r.status, 200);
   const seen = (await (await t.call('GET', `/v1/listeners/${a.id}`, undefined, b.token)).json()) as { profile: { country?: string } };
   assert.equal(seen.profile.country, 'MY');
-  const row = await t.q<{ country: string }>('SELECT country FROM listeners WHERE id = $1', [a.id]);
-  assert.equal(row[0]?.country, 'MY', 'the city header is never stored');
+  const row = await listenerRow(t, a.id);
+  assert.equal(row?.['country'], 'MY', 'the city header is never stored');
   // A later sign-in with no usable header leaves the country as it was.
   await t.call('POST', '/v1/auth/sign-in', { email: 'a@example.com', password: 'correct horse' });
-  assert.equal((await t.q<{ country: string }>('SELECT country FROM listeners WHERE id = $1', [a.id]))[0]?.country, 'MY');
+  assert.equal((await listenerRow(t, a.id))?.['country'], 'MY');
   await t.close();
 });

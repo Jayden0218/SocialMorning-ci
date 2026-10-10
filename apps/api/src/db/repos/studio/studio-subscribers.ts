@@ -6,9 +6,10 @@
  * Listening hours are a PROXY: the time each listen was recorded (research R3), labelled as such.
  */
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 import { ApiError } from '../../../errors.ts';
 
-export async function subscriberStats(db: Db, feedUrl: string, days: number, tz: string) {
+async function subscriberStatsPg(db: Db, feedUrl: string, days: number, tz: string) {
   const [total, trend, hours, platforms, since] = await Promise.all([
     db.query<{ n: string | number }>('SELECT count(*) AS n FROM subscriptions WHERE feed_url = $1 AND deleted_at IS NULL', [feedUrl]),
     db.query<{ d: string | Date; sub: string | number; unsub: string | number }>(
@@ -51,7 +52,7 @@ export async function subscriberStats(db: Db, feedUrl: string, days: number, tz:
 
 /** Current subscribers, newest first, 50 a page; suspended accounts are left out. */
 /** M24 US14: `q` narrows to display names containing it (case-insensitive; % and _ match themselves). */
-export async function subscriberList(db: Db, feedUrl: string, page: number, q = '') {
+async function subscriberListPg(db: Db, feedUrl: string, page: number, q = '') {
   const like = q.trim() ? `%${q.trim().slice(0, 100).replace(/[\\%_]/g, (m) => `\\${m}`)}%` : null;
   const [n] = await db.query<{ n: string | number }>(
     `SELECT count(*) AS n FROM subscriptions s JOIN listeners l ON l.id = s.listener_id WHERE s.feed_url = $1 AND s.deleted_at IS NULL AND l.suspended_at IS NULL AND l.hidden_at IS NULL
@@ -78,7 +79,7 @@ async function isMember(db: Db, feedUrl: string, listenerId: string): Promise<bo
   return r.length > 0;
 }
 
-export async function mute(db: Db, feedUrl: string, listenerId: string, by: string): Promise<void> {
+async function mutePg(db: Db, feedUrl: string, listenerId: string, by: string): Promise<void> {
   if (!/^[0-9a-f-]{36}$/i.test(listenerId)) throw new ApiError('not_found', 'No such listener.');
   const [l] = await db.query('SELECT 1 FROM listeners WHERE id = $1', [listenerId]);
   if (!l) throw new ApiError('not_found', 'No such listener.');
@@ -86,12 +87,12 @@ export async function mute(db: Db, feedUrl: string, listenerId: string, by: stri
   await db.query('INSERT INTO show_mutes (feed_url, listener_id, muted_by) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING', [feedUrl, listenerId, by]);
 }
 
-export async function unmute(db: Db, feedUrl: string, listenerId: string): Promise<void> {
+async function unmutePg(db: Db, feedUrl: string, listenerId: string): Promise<void> {
   if (!/^[0-9a-f-]{36}$/i.test(listenerId)) return;
   await db.query('DELETE FROM show_mutes WHERE feed_url = $1 AND listener_id = $2', [feedUrl, listenerId]);
 }
 
-export async function listMutes(db: Db, feedUrl: string) {
+async function listMutesPg(db: Db, feedUrl: string) {
   const rows = await db.query<{ id: string; display_name: string; created_at: Date | string; by: string | null }>(
     `SELECT l.id, l.display_name, m.created_at, b.display_name AS by
        FROM show_mutes m JOIN listeners l ON l.id = m.listener_id LEFT JOIN listeners b ON b.id = m.muted_by
@@ -100,6 +101,14 @@ export async function listMutes(db: Db, feedUrl: string) {
 }
 
 /** For the app's comment POST: is this listener muted on the show this episode belongs to? */
-export async function isMutedOn(db: Db, feedUrl: string, listenerId: string): Promise<boolean> {
+async function isMutedOnPg(db: Db, feedUrl: string, listenerId: string): Promise<boolean> {
   return (await db.query('SELECT 1 FROM show_mutes WHERE feed_url = $1 AND listener_id = $2', [feedUrl, listenerId])).length > 0;
 }
+
+// M26 lane ST: each runs on Postgres, or on DynamoDB (ddb/numbers.ts, ddb/team.ts) when the Db carries a Store (db/backend.ts).
+export const subscriberStats = dual('st/numbers', 'subscriberStats', subscriberStatsPg);
+export const subscriberList = dual('st/numbers', 'subscriberList', subscriberListPg);
+export const mute = dual('st/team', 'mute', mutePg);
+export const unmute = dual('st/team', 'unmute', unmutePg);
+export const listMutes = dual('st/team', 'listMutes', listMutesPg);
+export const isMutedOn = dual('st/team', 'isMutedOn', isMutedOnPg);

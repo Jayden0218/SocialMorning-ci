@@ -10,6 +10,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { aCall, adminSetup, auditRows, FX } from './admin-harness.ts';
 import { sCall, type StudioUser } from './studio-harness.ts';
+import { actingSessionCount, madeListeners, suspendNow } from './sf-neutral.ts';
+import { hostedOwnerOf } from './st-neutral.ts';
 
 type Result = { ok: true; id: string } | { ok: false; reason: string };
 
@@ -26,7 +28,7 @@ test('bulk create: results in input order; a duplicate email in the list and a t
   assert.deepEqual(results.map((r) => r.ok), [true, true, false, false]);
   assert.match((results[2] as { reason: string }).reason, /twice/);
   assert.match((results[3] as { reason: string }).reason, /exists/);
-  const made = await t.q<{ email: string; bio: string | null; made_by: string }>("SELECT email, bio, made_by FROM listeners WHERE made_by IS NOT NULL ORDER BY created_at, email");
+  const made = await madeListeners(t);
   assert.equal(made.length, 2);
   assert.ok(made.every((m) => m.made_by === owner.id));
   assert.ok(made.some((m) => /^acct-[0-9a-f-]{36}@accounts\.invalid$/.test(m.email) && m.bio === 'Shares good shows.'), 'no email → a reserved .invalid address');
@@ -61,7 +63,7 @@ test('G-C2: a Studio write while acting is made AS the account and recorded with
 
   const made = await sCall(t, 'POST', '/v1/studio/hosted-shows', acting, { title: 'Made while acting' });
   assert.equal(made.status, 201, await made.clone().text());
-  const [show] = await t.q<{ owner_id: string }>("SELECT owner_id FROM hosted_shows WHERE title = 'Made while acting'");
+  const show = { owner_id: await hostedOwnerOf(t, 'Made while acting') };
   assert.equal(show!.owner_id, acctId, 'the write was made as the account');
   const studioRows = (await auditRows(t)).filter((r) => r.action.startsWith('studio '));
   assert.equal(studioRows.length, 1);
@@ -73,12 +75,12 @@ test('G-C2: a Studio write while acting is made AS the account and recorded with
   const otherWith = (await (await sCall(t, 'GET', '/v1/studio/me', { ...other, cookie: `${other.cookie}; ${asCookie}` })).json()) as { me: { id: string } };
   assert.equal(otherWith.me.id, other.id);
   // Acting as a suspended account is allowed (to fix it).
-  await t.q('UPDATE listeners SET suspended_at = now() WHERE id = $1', [acctId]);
+  await suspendNow(t, acctId);
   assert.equal((await sCall(t, 'GET', '/v1/studio/me', acting)).status, 200);
 
   // Switch back: the acting session is gone; the owner is the owner again.
   assert.equal((await sCall(t, 'POST', '/v1/admin/act-as/stop', acting)).status, 200);
-  assert.equal((await t.q('SELECT 1 FROM sessions WHERE acting_admin_id IS NOT NULL')).length, 0);
+  assert.equal(await actingSessionCount(t), 0);
   assert.equal(((await (await sCall(t, 'GET', '/v1/studio/me', acting)).json()) as { me: { id: string } }).me.id, owner.id);
   await t.close();
 });

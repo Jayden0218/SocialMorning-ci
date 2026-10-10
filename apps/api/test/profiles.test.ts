@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
+import { hiddenListenCount } from './sg-neutral.ts';
 
 const ep = { feedUrl: 'https://feeds.example.com/x.xml', guid: 'g1', title: 'Ep 1', showTitle: 'Show', enclosureUrl: 'https://cdn/1.mp3' };
 const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
@@ -44,7 +45,7 @@ test('A7: B private → A sees B\'s clip and comment but 0 listens in the feed a
   await t.call('PUT', '/v1/me/privacy', { privateListening: false }, b.token);
   await t.call('PUT', '/v1/me/listened', { deviceId: 'pb', days: [{ episodeId: EP, day: dayAgo(0), ranges: [[0, 360_000]] }] }, b.token);
   assert.equal((await feedKinds()).filter((k) => k === 'listened').length, 2);
-  assert.deepEqual(await t.q(`SELECT count(*)::int AS n FROM activity WHERE kind = 'listened' AND hidden`), [{ n: 1 }]);
+  assert.equal(await hiddenListenCount(t), 1);
   // Anonymous: the profile is public, stats visible again, isFollowing false.
   const anon = ((await (await t.call('GET', `/v1/listeners/${b.id}`)).json()) as { profile: Prof }).profile;
   assert.equal(anon.stats!.last7.listenedMs, 1_080_000);

@@ -13,6 +13,8 @@ import { fnv1a64 } from '@socialmorning/social-core';
 import { aCall, adminSetup } from './admin-harness.ts';
 import { signUp, type TestDb } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
+import { auditFull, setAvatarRow } from './sf-neutral.ts';
+import { cancelDeletion, requestDeletion } from '../src/db/repos/account/deletion.ts';
 
 const ep = { feedUrl: 'https://feeds.example.com/x.xml', guid: 'g1', title: 'Ep', showTitle: 'Show', enclosureUrl: 'https://cdn/1.mp3' };
 const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
@@ -113,7 +115,7 @@ test('G-M24-A2: a blocked word is refused with 422 blocked_word on comments, sta
   assert.equal((await aCall(t, 'DELETE', `/v1/admin/words/${encodeURIComponent('BadWord')}`, owner)).status, 200);
   assert.equal((await t.call('POST', '/v1/me/playlists', { title: 'badword mix' }, a.token)).status < 300, true);
   assert.equal((await aCall(t, 'DELETE', '/v1/admin/words/nothere', owner)).status, 404);
-  const audit = await t.q<{ area: string; action: string }>("SELECT area, action FROM admin_audit WHERE area = 'safety' ORDER BY id");
+  const audit = (await auditFull(t)).filter((x) => x.area === 'safety');
   assert.deepEqual(audit.map((x) => x.action), ['add words', 'remove word']);
   await t.close();
 });
@@ -175,7 +177,7 @@ test('M24 US4: maintenance on → every API call but health/admin/sign-in answer
   assert.equal((await aCall(t, 'PUT', '/v1/admin/maintenance', owner, { on: false })).status, 200);
   assert.equal((await t.call('GET', '/v1/me', undefined, u.token)).status, 200);
   assert.deepEqual(await json(t.call('GET', '/v1/health')), { ok: true, db: 'ok' });
-  assert.deepEqual((await t.q<{ action: string }>("SELECT action FROM admin_audit WHERE area = 'safety' ORDER BY id")).map((x) => x.action), ['maintenance on', 'maintenance off']);
+  assert.deepEqual((await auditFull(t)).filter((x) => x.area === 'safety').map((x) => x.action), ['maintenance on', 'maintenance off']);
   await t.close();
 });
 
@@ -185,7 +187,7 @@ test('M24 US5: one user in full; grant and revoke PLUS (recorded); remove a bio 
   const { t, owner } = await adminSetup({ avatarStorage });
   const u = await signUp(t, 'u@example.com', 'User');
   await t.call('PATCH', '/v1/me', { bio: 'rude bio' }, u.token);
-  await t.q("UPDATE listeners SET avatar_url = 'https://blob/old.jpg', avatar_path = 'old.jpg', avatar_bytes = 10 WHERE id = $1", [u.id]);
+  await setAvatarRow(t, u.id, 'https://blob/old.jpg', 'old.jpg', 10);
 
   type Detail = { user: { id: string }; bio: string | null; avatarUrl: string | null; sessions: number; plus: { active: boolean; byAdmin: boolean }; purchases: unknown[]; reportsAgainst: unknown[]; deletion: unknown };
   const d = await json<Detail>(aCall(t, 'GET', `/v1/admin/users/${u.id}`, owner));
@@ -206,7 +208,7 @@ test('M24 US5: one user in full; grant and revoke PLUS (recorded); remove a bio 
   assert.equal((await json<Detail>(aCall(t, 'DELETE', `/v1/admin/users/${u.id}/bio`, owner))).bio, null);
   assert.equal((await json<Detail>(aCall(t, 'DELETE', `/v1/admin/users/${u.id}/avatar`, owner))).avatarUrl, null);
   assert.deepEqual(removed, ['https://blob/old.jpg'], 'the file leaves storage too');
-  const audit = await t.q<{ action: string }>("SELECT action FROM admin_audit WHERE area = 'users' ORDER BY id");
+  const audit = (await auditFull(t)).filter((x) => x.area === 'users');
   assert.deepEqual(audit.map((x) => x.action), ['grant plus 30 days', 'revoke plus', 'remove bio', 'remove photo']);
   await t.close();
 });
@@ -274,10 +276,10 @@ test('M24 US6: accepting the appeal of a removed comment brings it back', async 
 test('M24 US7: Admin lists the accounts waiting for deletion, soonest first', async () => {
   const { t, owner } = await adminSetup();
   const u = await signUp(t, 'u@example.com', 'Leaving');
-  await t.q("INSERT INTO account_deletions (listener_id, due_at) VALUES ($1, now() + interval '15 days')", [u.id]);
+  await requestDeletion(t.db, u.id);
   const list = await json<{ items: { listenerId: string; displayName: string; dueAt: string }[] }>(aCall(t, 'GET', '/v1/admin/deletions', owner));
   assert.deepEqual(list.items.map((i) => [i.listenerId, i.displayName]), [[u.id, 'Leaving']]);
-  await t.q('UPDATE account_deletions SET cancelled_at = now() WHERE listener_id = $1', [u.id]);
+  await cancelDeletion(t.db, u.id);
   assert.equal((await json<{ items: unknown[] }>(aCall(t, 'GET', '/v1/admin/deletions', owner))).items.length, 0);
   await t.close();
 });

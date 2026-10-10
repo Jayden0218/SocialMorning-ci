@@ -7,6 +7,8 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { countOf, deleteListenerNow } from './sc-neutral.ts';
+import { putEpisode } from './put-episode.ts';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 
 type Msg = { id: string; fromMe: boolean; body: string; read: boolean; episode?: { id: string; title: string } };
@@ -92,7 +94,7 @@ test('chat: an episode card travels with the message; an unknown episode is 404;
   const a = await signUp(t);
   const b = await signUp(t, 'b@example.com', 'Bea');
   await follow(t, a, b); await follow(t, b, a);
-  await t.q("INSERT INTO episodes (id, feed_url, guid, title, show_title, enclosure_url) VALUES ('e1','https://f/x.xml','g','Ep one','Show','https://cdn/x.mp3')");
+  await putEpisode(t, 'e1', { feedUrl: 'https://f/x.xml', guid: 'g', title: 'Ep one', showTitle: 'Show', enclosureUrl: 'https://cdn/x.mp3' });
   const r = await say(t, a, b, { episodeId: 'e1' });
   assert.equal(r.status, 201);
   const m = ((await r.json()) as { message: Msg }).message;
@@ -102,7 +104,7 @@ test('chat: an episode card travels with the message; an unknown episode is 404;
   for (let i = 1; i < 30; i++) assert.equal((await say(t, a, b, { body: `m${i}` })).status, 201);
   assert.equal((await say(t, a, b, { body: 'one too many' })).status, 429);
   // Deleting an account deletes its messages.
-  await t.q('DELETE FROM listeners WHERE id = $1', [a.id]);
-  assert.deepEqual(await t.q('SELECT count(*)::int AS n FROM chat_messages'), [{ n: 0 }]);
+  await deleteListenerNow(t, a.id);
+  assert.equal(await countOf(t, 'chat_messages'), 0);
   await t.close();
 });
