@@ -20,6 +20,10 @@ import { toCsv } from '../src/db/repos/studio/studio-numbers.ts';
 import { exportLinkToken } from '../src/routes/account/data-export.ts';
 import type { GooglePlay } from '../src/billing/google-play.ts';
 import type { VoiceStorage } from '../src/storage/voice-blob.ts';
+import { ageSessions, sessionCount } from './ac-neutral.ts';
+
+const MIN = 60_000;
+const DAY = 86_400_000;
 
 type Device = { id: string; kind: string; label: string; country: string | null; current: boolean };
 
@@ -63,7 +67,7 @@ test('G-SB1: Devices lists this account\'s sessions with label, country and "thi
 test('sessions: rotated at most once a day when the phone asks, the old token works for the grace window only; 180 days is the most a session lives', async () => {
   const t = await freshDb();
   const a = await signUp(t, 'a@example.com', 'Al');
-  await t.q("UPDATE sessions SET rotated_at = now() - interval '2 days'");
+  await ageSessions(t, 'rotated_at', 2 * DAY);
   const plain = await t.call('GET', '/v1/me', undefined, a.token);
   assert.equal(plain.headers.get('x-session-token'), null, 'an older build never asks, and is never rotated');
   const asked = await t.call('GET', '/v1/me', undefined, a.token, { 'x-session-rotate': '1' });
@@ -76,19 +80,18 @@ test('sessions: rotated at most once a day when the phone asks, the old token wo
   const list = await devices(t, a.token);
   assert.equal(list.length, 1, 'one device, not two');
   assert.equal(list[0]!.current, true, 'the old token still finds its own (new) row as "this phone"');
-  await t.q("UPDATE sessions SET replaced_at = now() - interval '3 minutes' WHERE replaced_at IS NOT NULL");
+  await ageSessions(t, 'replaced_at', 3 * MIN, { replacedOnly: true });
   assert.equal((await t.call('GET', '/v1/me', undefined, a.token)).status, 401, 'past the grace window the old token is refused');
   assert.equal((await t.call('GET', '/v1/me', undefined, fresh!)).status, 200);
   // Signing the new one out takes the old one with it.
-  const [n] = await t.q<{ n: number }>('SELECT count(*)::int AS n FROM sessions');
-  assert.equal(n!.n, 2);
+  assert.equal(await sessionCount(t), 2);
   await t.call('POST', '/v1/auth/sign-out', undefined, fresh!);
-  assert.equal((await t.q<{ n: number }>('SELECT count(*)::int AS n FROM sessions'))[0]!.n, 0);
+  assert.equal(await sessionCount(t), 0);
   // The absolute lifetime, however busy the session was.
   const b = await signUp(t, 'b@example.com', 'Bo');
-  await t.q("UPDATE sessions SET created_at = now() - interval '179 days'");
+  await ageSessions(t, 'created_at', 179 * DAY);
   assert.equal((await t.call('GET', '/v1/me', undefined, b.token)).status, 200);
-  await t.q("UPDATE sessions SET created_at = now() - interval '181 days'");
+  await ageSessions(t, 'created_at', 181 * DAY);
   assert.equal((await t.call('GET', '/v1/me', undefined, b.token)).status, 401);
   await t.close();
 });
@@ -96,7 +99,7 @@ test('sessions: rotated at most once a day when the phone asks, the old token wo
 test('the Studio cookie rotates once a day too, and the new cookie works', async () => {
   const t = await freshDb();
   const u = await studioLogin(t, 's@example.com', 'Sam');
-  await t.q("UPDATE sessions SET rotated_at = now() - interval '2 days'");
+  await ageSessions(t, 'rotated_at', 2 * DAY);
   const r = await sCall(t, 'GET', '/v1/studio/me', u);
   assert.equal(r.status, 200);
   const set = r.headers.get('set-cookie') ?? '';

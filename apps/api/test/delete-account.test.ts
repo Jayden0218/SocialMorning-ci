@@ -5,9 +5,10 @@ import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, signUpWithCode, type TestDb } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
 import { runDueDeletions, type DeletionStores } from '../src/db/repos/account/deletion.ts';
+import { listenerCount, makeDeletionsDue } from './ac-neutral.ts';
 
 // M22 US11: DELETE /v1/me now waits 15 days; this makes the wait over and runs the internal step's body.
-const dueNow = async (t: TestDb, stores: DeletionStores = {}) => { await t.q("UPDATE account_deletions SET due_at = now() - interval '1 second'"); await runDueDeletions(t.db, stores); };
+const dueNow = async (t: TestDb, stores: DeletionStores = {}) => { await makeDeletionsDue(t); await runDueDeletions(t.db, stores); };
 
 const ep = { feedUrl: 'https://feeds.example.com/x.xml', guid: 'g189', title: '#189', enclosureUrl: 'https://cdn/189.mp3' };
 const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
@@ -52,7 +53,7 @@ test('A12: deletion removes everything of the listener; only placeholders under 
   assert.deepEqual(await t.q('SELECT * FROM reactions'), []);
   assert.deepEqual(await t.q('SELECT * FROM positions'), []);
   assert.equal((await t.q('SELECT bucket FROM episode_heat WHERE episode_id = $1', [EP])).length, 0, 'heat dropped');
-  assert.equal((await t.q('SELECT email FROM listeners')).length, 1, 'only Bo remains');
+  assert.equal(await listenerCount(t), 1, 'only Bo remains');
 
   const again = await signUpWithCode(t, 'a@example.com', 'Alex again');
   assert.equal(again.status, 200, 'the email is reusable');

@@ -11,6 +11,7 @@
  * likes on it make no notice, replies still do.
  */
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 
 export type ThreadKind = 'comment' | 'like_post';
 export type MutedThread = { threadKind: ThreadKind; threadKey: string; title: string; createdAt: string };
@@ -25,14 +26,14 @@ export function validThreadKey(kind: ThreadKind, key: string): boolean {
   return i === 36 && UUID.test(key.slice(0, 36)) && key.length > 37;
 }
 
-export async function muteThread(db: Db, listenerId: string, kind: ThreadKind, key: string): Promise<void> {
+async function muteThreadPg(db: Db, listenerId: string, kind: ThreadKind, key: string): Promise<void> {
   await db.query(
     'INSERT INTO muted_threads (listener_id, thread_kind, thread_key) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
     [listenerId, kind, key],
   );
 }
 
-export async function unmuteThread(db: Db, listenerId: string, kind: ThreadKind, key: string): Promise<void> {
+async function unmuteThreadPg(db: Db, listenerId: string, kind: ThreadKind, key: string): Promise<void> {
   await db.query('DELETE FROM muted_threads WHERE listener_id = $1 AND thread_kind = $2 AND thread_key = $3', [listenerId, kind, key]);
 }
 
@@ -40,7 +41,7 @@ export async function unmuteThread(db: Db, listenerId: string, kind: ThreadKind,
  * My muted threads, newest first, each with a line that says what it is: the comment's words (or
  * "A comment" once it is gone), or the liked episode's title.
  */
-export async function listMutedThreads(db: Db, listenerId: string): Promise<MutedThread[]> {
+async function listMutedThreadsPg(db: Db, listenerId: string): Promise<MutedThread[]> {
   const rows = await db.query<{ thread_kind: ThreadKind; thread_key: string; created_at: Date | string; comment_body: string | null; episode_title: string | null }>(
     `SELECT m.thread_kind, m.thread_key, m.created_at,
             CASE WHEN c.deleted_at IS NULL AND c.removed_at IS NULL THEN left(c.body, 80) END AS comment_body,
@@ -70,3 +71,8 @@ export async function setLikeNotices(db: Db, commentId: string, listenerId: stri
   await db.query('UPDATE comments SET like_notices_off = $2 WHERE id = $1', [commentId, off]);
   return 'ok';
 }
+
+// M26 lane SG: each runs on DynamoDB when the Db carries a Store (src/db/backend.ts; bodies in graph-ddb/).
+export const muteThread = dual('sg/index', 'muteThread', muteThreadPg);
+export const unmuteThread = dual('sg/index', 'unmuteThread', unmuteThreadPg);
+export const listMutedThreads = dual('sg/index', 'listMutedThreads', listMutedThreadsPg);

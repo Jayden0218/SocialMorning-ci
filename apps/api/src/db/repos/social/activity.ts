@@ -6,6 +6,7 @@
  */
 import { createHash } from 'node:crypto';
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 
 export type ActivityKind = 'listened' | 'clipped' | 'commented';
 
@@ -32,7 +33,7 @@ const SELECT = `SELECT a.id, a.kind, a.actor_id, l.display_name AS actor_name, a
                 FROM activity a JOIN listeners l ON l.id = a.actor_id JOIN episodes e ON e.id = a.episode_id`;
 
 /** `before` is "<createdAt ISO>,<id>" from a previous page's `next`. */
-export async function feedFor(db: Db, listenerId: string, before?: string, limit = 20): Promise<{ items: FeedRow[]; next?: string }> {
+async function feedForPg(db: Db, listenerId: string, before?: string, limit = 20): Promise<{ items: FeedRow[]; next?: string }> {
   const cursor = before ? parseCursor(before) : undefined;
   const rows = await db.query<FeedRow>(
     `${SELECT} WHERE a.hidden = false AND a.actor_id IN (SELECT followed_id FROM follows WHERE follower_id = $1)
@@ -56,7 +57,7 @@ function parseCursor(s: string): { createdAt: string; id: string } | undefined {
 }
 
 /** Recent public activity by one listener, for their profile. */
-export async function recentBy(db: Db, actorId: string, limit = 20): Promise<FeedRow[]> {
+async function recentByPg(db: Db, actorId: string, limit = 20): Promise<FeedRow[]> {
   return db.query<FeedRow>(`${SELECT} WHERE a.actor_id = $1 AND a.hidden = false ORDER BY a.created_at DESC, a.id DESC LIMIT $2`, [actorId, limit]);
 }
 
@@ -65,3 +66,7 @@ export function etagFor(items: readonly FeedRow[]): string {
   const h = createHash('sha256').update(items.map((r) => r.id).join(',')).digest('base64url').slice(0, 16);
   return `W/"${h}"`;
 }
+
+// M26 lane SG: each runs on DynamoDB when the Db carries a Store (src/db/backend.ts; bodies in graph-ddb/).
+export const feedFor = dual('sg/index', 'feedFor', feedForPg);
+export const recentBy = dual('sg/index', 'recentBy', recentByPg);
