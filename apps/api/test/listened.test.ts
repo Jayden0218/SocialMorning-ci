@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
+import { countListenedRanges } from './lb-seed.ts';
 
 const ep = { feedUrl: 'https://feeds.example.com/x.xml', guid: 'g1', title: 'Ep 1', showTitle: 'Show', enclosureUrl: 'https://cdn/1.mp3' };
 const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
@@ -25,7 +26,7 @@ test('A8: [0,60s] from phone 1 and [30s,90s] from phone 2 → 90 s, not 120 s; t
   // A phone's report REPLACES its own set: shrinking it is honoured.
   await put(t, a.token, 'p2', [[30_000, 40_000]]);
   assert.equal((await statsOf(t, a.id))!.all.listenedMs, 60_000);
-  assert.deepEqual(await t.q('SELECT count(*)::int AS n FROM listened_ranges'), [{ n: 2 }]);
+  assert.equal(await countListenedRanges(t), 2);
   await t.close();
 });
 

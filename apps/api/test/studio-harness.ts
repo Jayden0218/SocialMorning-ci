@@ -20,6 +20,7 @@ export async function studioLogin(t: TestDb, email: string, name: string, passwo
   // M25 SB: Admin also needs the emailed second factor. Every older test is about what comes after
   // it, so this session counts as having passed; test/m25-sb.test.ts checks the code itself.
   await t.q("UPDATE sessions SET second_factor_at = now() WHERE listener_id = $1 AND device_label = 'studio-web'", [id]);
+  if (t.store) await (await import('./ac-neutral.ts')).studioFactor(t, id, true); // M26 lane AC: sessions live in DynamoDB there
   return { id, cookie, token };
 }
 
@@ -27,6 +28,7 @@ export async function studioLogin(t: TestDb, email: string, name: string, passwo
 export async function studioLoginNoFactor(t: TestDb, email: string, name: string): Promise<StudioUser> {
   const u = await studioLogin(t, email, name);
   await t.q("UPDATE sessions SET second_factor_at = NULL WHERE listener_id = $1 AND device_label = 'studio-web'", [u.id]);
+  if (t.store) await (await import('./ac-neutral.ts')).studioFactor(t, u.id, false); // M26 lane AC
   return u;
 }
 

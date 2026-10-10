@@ -14,6 +14,7 @@ import { freshDb, signUp, type TestDb } from './harness.ts';
 import { aCall, adminSetup } from './admin-harness.ts';
 import { normalizeCode, newRedeemCode, sameCode, parseGrant } from '../src/db/repos/account/redeem.ts';
 import { maskEmail } from '../src/routes/account/email.ts';
+import { listenerRow, setEmailChangeSentAt } from './ac-neutral.ts';
 
 const FEED = 'https://socialmorning-api.vercel.app/feeds/paid.xml';
 type Grant = { grant: { kind: string; days?: number; until?: string | null; feedUrl?: string; title?: string | null } };
@@ -154,11 +155,11 @@ test('G-M24-A3-2: changing the email needs the right code sent to the NEW addres
   // The guard: a wrong code changes nothing.
   const bad = await t.call('POST', '/v1/me/email/confirm', { code: wrong, oldCode }, a.token);
   assert.equal(bad.status, 422);
-  assert.equal((await t.q<{ email: string }>('SELECT email FROM listeners WHERE id = $1', [a.id]))[0]!.email, 'a@example.com');
+  assert.equal((await listenerRow(t, a.id))!['email'], 'a@example.com');
   const ok = await t.call('POST', '/v1/me/email/confirm', { code, oldCode }, a.token);
   assert.equal(ok.status, 200, await ok.clone().text());
   assert.deepEqual(await ok.json(), { email: 'new@example.com', signedOut: 0 }, 'fix F-S: no other session to sign out');
-  assert.equal((await t.q<{ email: string }>('SELECT email FROM listeners WHERE id = $1', [a.id]))[0]!.email, 'new@example.com');
+  assert.equal((await listenerRow(t, a.id))!['email'], 'new@example.com');
   const notice = t.mail!.find((m) => m.to === 'a@example.com' && /changed/.test(m.subject));
   assert.ok(notice, 'the old address got a notice');
   assert.match(notice!.text, /n\*+w@example\.com/);
@@ -189,16 +190,16 @@ test('email change: refused for an address in use or your own; five wrong tries 
   const wrong = right === '000000' ? '111111' : '000000';
   for (let i = 0; i < 5; i++) assert.equal((await t.call('POST', '/v1/me/email/confirm', { code: wrong, oldCode: oldRight }, a.token)).status, 422, `try ${i + 1}`);
   assert.equal((await t.call('POST', '/v1/me/email/confirm', { code: right, oldCode: oldRight }, a.token)).status, 422, 'after five wrong tries even the right codes fail');
-  assert.equal((await t.q<{ email: string }>('SELECT email FROM listeners WHERE id = $1', [a.id]))[0]!.email, 'a@example.com');
+  assert.equal((await listenerRow(t, a.id))!['email'], 'a@example.com');
   // Someone takes the address between start and confirm.
-  await t.q("UPDATE email_changes SET sent_at = now() - interval '1 minute'");
+  await setEmailChangeSentAt(t, new Date(Date.now() - 60_000).toISOString());
   assert.equal((await t.call('POST', '/v1/me/email/start', { email: 'd@example.com' }, a.token)).status, 200);
   const code = t.lastCode!('d@example.com');
   const oldCode = t.lastCode!('a@example.com');
   await signUp(t, 'd@example.com', 'Dee');
   const race = await t.call('POST', '/v1/me/email/confirm', { code, oldCode }, a.token);
   assert.equal(race.status, 409);
-  assert.equal((await t.q<{ email: string }>('SELECT email FROM listeners WHERE id = $1', [a.id]))[0]!.email, 'a@example.com');
+  assert.equal((await listenerRow(t, a.id))!['email'], 'a@example.com');
   await t.close();
   const n = await freshDb({ noMailer: true });
   const x = await signUp(n, 'x@example.com', 'Xi');
