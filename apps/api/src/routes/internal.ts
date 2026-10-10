@@ -12,10 +12,7 @@ import { sweepImages } from '../db/repos/account/feedback.ts';
 import { sweepExpired } from '../db/repos/social/voice-posts.ts';
 import { sweepRemovedVoice } from '../db/repos/social/voice-comments.ts';
 import { sweepRemovedImages } from '../db/repos/social/comment-images.ts';
-import { acknowledgeDue, applyVoided, lastVoidedCheckRows, saveVoidedCheck } from '../db/repos/account/purchases.ts';
-import { FEEDS_PER_CALL, knownGuidRows, subscribedFeedPage } from '../db/repos/library/feed-refresh.ts';
-import { hiddenEpisodeRows, pickEpisodeRows } from '../db/repos/library/daily-pick.ts';
-import { CACHE_KEEP_DAYS, PUSH_SENT_KEEP_DAYS, REC_EVENTS_KEEP_DAYS, sweepDailyActive, sweepOldCache, sweepOldPushSent, sweepOldRecEvents } from '../db/repos/old-rows-sweep.ts';
+import { acknowledgeDue, applyVoided } from '../db/repos/account/purchases.ts';
 import { picksForDay } from '@socialmorning/social-core';
 // M22 lane 5: translate, digest and deletions steps.
 import { groqClient, type Groq } from '../translate/groq.ts';
@@ -35,11 +32,13 @@ import { sendMilestones } from '../db/repos/studio/milestones.ts';
  * Every call does a bounded amount of work and hands back a cursor, so nothing here goes
  * near Vercel Hobby's 60 s `maxDuration`.
  */
-export { FEEDS_PER_CALL };
+export const FEEDS_PER_CALL = 25;
 /** M23 US5: feeds fetched at the same time. 25 feeds = 5 rounds of at most 8 s = 40 s worst case. */
 export const FEEDS_AT_ONCE = 5;
 /** M23 US3 (FR-006): how long the hourly sweep keeps each kind of leftover row. */
-export { CACHE_KEEP_DAYS, PUSH_SENT_KEEP_DAYS, REC_EVENTS_KEEP_DAYS };
+export const CACHE_KEEP_DAYS = 7;
+export const PUSH_SENT_KEEP_DAYS = 30;
+export const REC_EVENTS_KEEP_DAYS = 90;
 export const SHOWS_PER_CALL = 200;
 /** A similarity rebuild younger than this is skipped, so a missed hour costs nothing and
  *  a catch-up burst does no extra work (research R4). */
@@ -70,7 +69,7 @@ export async function refreshOne(db: Db, cat: Catalog, feedUrl: string, counts: 
   const top = feed.episodes.slice(0, 5);
   // M10b US3: which of these the server has never seen — "new" is first-seen AND
   // published in the last 48 h, so a feed's back catalogue never notifies anyone.
-  const known = new Set((await knownGuidRows(db, feedUrl, top.map((e) => e.guid))).map((r) => r.guid));
+  const known = new Set((await db.query<{ guid: string }>('SELECT guid FROM episodes WHERE feed_url = $1 AND guid = ANY($2::text[])', [feedUrl, top.map((e) => e.guid)])).map((r) => r.guid));
   const fresh: { id: string; title: string; showTitle: string; at: number }[] = [];
   for (const e of top) {
     const row = await registerCard(db, toCard(feedUrl, feed.show, e));
@@ -106,7 +105,9 @@ export function createInternalRoute(jobToken: string | undefined, m22: { groq?: 
       // M25 S10 (audit #14): the cursor is a plain count of feeds already done, never a feed URL —
       // the public CI mirror prints this answer, and a premium feed's URL can carry a private token.
       const offset = cursor !== undefined && /^\d{1,9}$/.test(cursor) ? Number(cursor) : 0;
-      const rows = await subscribedFeedPage(db, offset);
+      const rows = await db.query<{ feed_url: string }>(
+        `SELECT DISTINCT feed_url FROM subscriptions WHERE deleted_at IS NULL
+         ORDER BY feed_url LIMIT ${FEEDS_PER_CALL + 1} OFFSET $1`, [offset]);
       const batch = rows.slice(0, FEEDS_PER_CALL);
       const counts = { registered: 0, pushed: 0, moved: 0, blocked: 0 };
       const failed: string[] = [];
@@ -138,15 +139,16 @@ export function createInternalRoute(jobToken: string | undefined, m22: { groq?: 
       const failed: string[] = [];
       const cat = c.get('catalog');
       const counts = { milestones: 0, popular: 0, voiceDeleted: 0, activeDeleted: 0, cacheDeleted: 0, pushSentDeleted: 0, recEventsDeleted: 0, errorsDeleted: 0 };
+      const n = async (sql: string): Promise<number> => (await db.query<{ n: number }>(sql))[0]?.n ?? 0;
       // M18 FR-015: a day of app use is kept 400 days, then deleted (research R8).
-      try { counts.activeDeleted = await sweepDailyActive(db); }
+      try { counts.activeDeleted = await n("WITH d AS (DELETE FROM daily_active WHERE day < ((now() AT TIME ZONE 'UTC') + interval '8 hours')::date - 400 RETURNING 1) SELECT count(*)::int AS n FROM d"); }
       catch (e) { failed.push(`daily_active: ${e instanceof Error ? e.message : String(e)}`); }
       // M23 US3 (FR-006): search and feed caches past 7 days, push_sent past 30, rec_events past 90.
-      try { counts.cacheDeleted = await sweepOldCache(db); }
+      try { counts.cacheDeleted = await n(`WITH d AS (DELETE FROM cache WHERE (key LIKE 'apple:search:%' OR key LIKE 'feed:%') AND fetched_at < now() - interval '${CACHE_KEEP_DAYS} days' RETURNING 1) SELECT count(*)::int AS n FROM d`); }
       catch (e) { failed.push(`cache: ${e instanceof Error ? e.message : String(e)}`); }
-      try { counts.pushSentDeleted = await sweepOldPushSent(db); }
+      try { counts.pushSentDeleted = await n(`WITH d AS (DELETE FROM push_sent WHERE sent_at < now() - interval '${PUSH_SENT_KEEP_DAYS} days' RETURNING 1) SELECT count(*)::int AS n FROM d`); }
       catch (e) { failed.push(`push_sent: ${e instanceof Error ? e.message : String(e)}`); }
-      try { counts.recEventsDeleted = await sweepOldRecEvents(db); }
+      try { counts.recEventsDeleted = await n(`WITH d AS (DELETE FROM rec_events WHERE at < now() - interval '${REC_EVENTS_KEEP_DAYS} days' RETURNING 1) SELECT count(*)::int AS n FROM d`); }
       catch (e) { failed.push(`rec_events: ${e instanceof Error ? e.message : String(e)}`); }
       // M23 US8: error reports not seen for 30 days, and old rate counters.
       try { counts.errorsDeleted = await sweepErrorReports(db); } catch (e) { failed.push(`error_reports: ${e instanceof Error ? e.message : String(e)}`); }
@@ -172,10 +174,10 @@ export function createInternalRoute(jobToken: string | undefined, m22: { groq?: 
         try {
           const a = await acknowledgeDue(db, play);
           if (a.failed > 0) failed.push(`google acknowledge: ${a.failed} kept for the next cycle`);
-          const [last] = await lastVoidedCheckRows(db);
+          const [last] = await db.query<{ fetched_at: Date | string }>("SELECT fetched_at FROM cache WHERE key = 'billing:voided'");
           if (!last || Date.now() - new Date(last.fetched_at).getTime() > 23 * 3_600_000) {
             const v = await applyVoided(db, await play.voided(Date.now() - 30 * 86_400_000));
-            await saveVoidedCheck(db, v);
+            await db.query("INSERT INTO cache (key, body, fetched_at) VALUES ('billing:voided', $1::text::jsonb, now()) ON CONFLICT (key) DO UPDATE SET body = EXCLUDED.body, fetched_at = now()", [JSON.stringify(v)]);
           }
         } catch (e) { failed.push(`google play: ${e instanceof Error ? e.message : String(e)}`); }
       }
@@ -189,9 +191,11 @@ export function createInternalRoute(jobToken: string | undefined, m22: { groq?: 
         const day = picksForDay(cat.picks, cat.today());
         const p = day.picks[0];
         if (p) {
-          const [ep] = await pickEpisodeRows(db, p);
+          const [ep] = await db.query<{ id: string; title: string }>(
+            p.guid !== undefined ? 'SELECT id, title FROM episodes WHERE feed_url = $1 AND guid = $2' : 'SELECT id, title FROM episodes WHERE feed_url = $1 ORDER BY published_at DESC NULLS LAST LIMIT 1',
+            p.guid !== undefined ? [p.feedUrl, p.guid] : [p.feedUrl]);
           // M24 US11: a hidden episode is never pushed as the day's pick.
-          const hidden = ep ? await hiddenEpisodeRows(db, ep.id) : [];
+          const hidden = ep ? await db.query('SELECT 1 FROM episodes e JOIN hidden_episodes h ON h.feed_url = e.feed_url AND h.guid = e.guid WHERE e.id = $1', [ep.id]) : [];
           if (ep && hidden.length === 0) counts.popular = (await sendPopular(db, cat.pushFetch, { id: ep.id, title: ep.title, ...(p.why ? { why: p.why } : {}) })).sent;
         }
       } catch (e) { failed.push(`popular: ${e instanceof Error ? e.message : String(e)}`); }

@@ -18,7 +18,6 @@ import { liveSessionSql, rekey, rotateSession, tokenHash, suspendedError, type A
 import { ApiError } from '../errors.ts';
 import type { Db } from '../db/db.ts';
 import type { StudioShow } from '../db/repos/studio/studio-roles.ts';
-import { deleteSessionByHash, studioSessionRows, touchSessionLastSeen } from '../db/repos/account/sessions.ts';
 import { actAsCookie, actingTarget } from './admin.ts';
 
 /** The Studio's routes see everything the API's do, plus the show the request is about. */
@@ -38,18 +37,26 @@ export function studioToken(c: Context): string | undefined {
   return scheme?.toLowerCase() === 'bearer' && token ? token : undefined;
 }
 
+type Row = Listener & { last_seen_at: Date | string };
+
 /** The listener behind a live `studio-web` token, bumping `last_seen_at`; 'expired' past 12 h idle. */
 export async function studioListener(db: Db, pepper: string, token: string, pepperNext?: string): Promise<Listener | 'expired' | undefined> {
   await rekey(db, token, pepper, pepperNext); // M25 SB: secret rotation
   const hash = tokenHash(token, pepper);
   // M25 SB: the same absolute lifetime and rotation grace as a phone session.
-  const [row] = await studioSessionRows(db, hash, STUDIO_LABEL, liveSessionSql);
+  const [row] = await db.query<Row>(
+    `SELECT l.id, l.email, l.display_name, l.created_at, l.suspended_at, s.last_seen_at
+       FROM sessions s JOIN listeners l ON l.id = s.listener_id
+      WHERE s.token_hash = $1 AND s.device_label = $2 AND s.acting_admin_id IS NULL
+        AND ${liveSessionSql}`,
+    [hash, STUDIO_LABEL],
+  );
   if (!row) return undefined;
   if (Date.now() - new Date(row.last_seen_at).getTime() > STUDIO_IDLE_MS) {
-    await deleteSessionByHash(db, hash);
+    await db.query('DELETE FROM sessions WHERE token_hash = $1', [hash]);
     return 'expired';
   }
-  await touchSessionLastSeen(db, hash);
+  await db.query('UPDATE sessions SET last_seen_at = now() WHERE token_hash = $1', [hash]);
   return row;
 }
 

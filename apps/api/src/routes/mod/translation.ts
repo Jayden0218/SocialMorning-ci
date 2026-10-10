@@ -15,10 +15,6 @@ import { GROQ_LIMITS, TRANSLATOR, WHISPER, budgetOf } from '@socialmorning/socia
 import { adminOnly, type AdminEnv } from '../../auth/admin.ts';
 import { ApiError } from '../../errors.ts';
 import { json } from '../../validate.ts';
-import {
-  addTranslationShow, groqUsageTodayAll, listTranslationShows, removeTranslationShow, requeueFailedTranslationJob,
-  translationQueueRows, utcDayRows,
-} from '../../db/repos/safety/translation.ts';
 
 export const modTranslation = new Hono<AdminEnv>();
 
@@ -30,24 +26,31 @@ const feedOf = (raw: string): string => {
 };
 
 modTranslation.get('/translation-shows', adminOnly, async (c) => {
-  const rows = await listTranslationShows(c.get('db'));
+  const rows = await c.get('db').query<{ feed_url: string; created_at: Date | string; title: string | null }>(
+    `SELECT s.feed_url, s.created_at,
+            coalesce(o.title, h.title, (SELECT e.show_title FROM episodes e WHERE e.feed_url = s.feed_url AND e.show_title IS NOT NULL ORDER BY e.published_at DESC NULLS LAST LIMIT 1)) AS title
+       FROM translation_shows s
+       LEFT JOIN show_overrides o ON o.feed_url = s.feed_url
+       LEFT JOIN hosted_shows h ON h.feed_url = s.feed_url AND h.deleted_at IS NULL
+      ORDER BY s.created_at DESC`);
   return c.json({ items: rows.map((r) => ({ feedUrl: r.feed_url, title: r.title, createdAt: new Date(r.created_at).toISOString() })) });
 });
 
 modTranslation.put('/translation-shows/:feedUrl', adminOnly, async (c) => {
-  await addTranslationShow(c.get('db'), feedOf(c.req.param('feedUrl')), c.get('listener')!.id);
+  await c.get('db').query('INSERT INTO translation_shows (feed_url, added_by) VALUES ($1, $2) ON CONFLICT (feed_url) DO NOTHING', [feedOf(c.req.param('feedUrl')), c.get('listener')!.id]);
   return c.body(null, 204);
 });
 
 modTranslation.delete('/translation-shows/:feedUrl', adminOnly, async (c) => {
-  await removeTranslationShow(c.get('db'), feedOf(c.req.param('feedUrl')));
+  await c.get('db').query('DELETE FROM translation_shows WHERE feed_url = $1', [feedOf(c.req.param('feedUrl'))]);
   return c.body(null, 204);
 });
 
 modTranslation.get('/translation-usage', adminOnly, async (c) => {
   const db = c.get('db');
-  const [d] = await utcDayRows(db);
-  const used = await groqUsageTodayAll(db);
+  const [d] = await db.query<{ day: string }>("SELECT (now() AT TIME ZONE 'UTC')::date::text AS day");
+  const used = await db.query<{ model: string; requests: number; audio_s: number; tokens: number }>(
+    "SELECT model, requests, audio_s, tokens FROM groq_usage WHERE day = (now() AT TIME ZONE 'UTC')::date");
   const models = [WHISPER, TRANSLATOR].map((model) => {
     const u = used.find((r) => r.model === model);
     const l = GROQ_LIMITS[model as keyof typeof GROQ_LIMITS];
@@ -56,7 +59,9 @@ modTranslation.get('/translation-usage', adminOnly, async (c) => {
       budget: { requests: budgetOf(l.rpd), ...(l.audioSPerDay ? { audioS: budgetOf(l.audioSPerDay) } : {}), ...(l.tpd ? { tokens: budgetOf(l.tpd) } : {}) },
     };
   });
-  const queue = await translationQueueRows(db);
+  const queue = await db.query<{ episode_id: string; target_lang: string; state: string; title: string | null; error: string | null; requested_at: Date | string }>(
+    `SELECT j.episode_id, j.target_lang, j.state, e.title, j.error, j.requested_at FROM translation_jobs j LEFT JOIN episodes e ON e.id = j.episode_id
+      WHERE j.state <> 'done' OR j.updated_at > now() - interval '7 days' ORDER BY j.requested_at DESC LIMIT 100`);
   return c.json({
     day: d?.day ?? '', models,
     queue: queue.map((q) => ({ episodeId: q.episode_id, lang: q.target_lang, state: q.state, title: q.title, error: q.error, requestedAt: new Date(q.requested_at).toISOString() })),
@@ -65,6 +70,6 @@ modTranslation.get('/translation-usage', adminOnly, async (c) => {
 
 modTranslation.post('/translation-jobs/retry', adminOnly, json(z.object({ episodeId: z.string().min(1).max(200), lang: z.enum(['en', 'zh-Hans']) })), async (c) => {
   const b = c.req.valid('json');
-  await requeueFailedTranslationJob(c.get('db'), b.episodeId, b.lang);
+  await c.get('db').query("UPDATE translation_jobs SET state = 'queued', errors = 0, error = NULL, not_before = NULL, segments = NULL, next_chunk = 0, updated_at = now() WHERE episode_id = $1 AND target_lang = $2 AND state = 'failed'", [b.episodeId, b.lang]);
   return c.body(null, 204);
 });

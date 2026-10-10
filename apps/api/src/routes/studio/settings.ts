@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { json } from '../../validate.ts';
 import { getOverrides, putOverrides } from '../../db/repos/studio/show-overrides.ts';
 import { addOperator, release, removeOperator, team } from '../../db/repos/studio/show-team.ts';
-import { hostedByFeed, listHostedEpisodes, markHostedEpisodesDeleted, markHostedShowDeleted } from '../../db/repos/studio/hosted.ts';
+import { hostedByFeed, listHostedEpisodes } from '../../db/repos/studio/hosted.ts';
 import { CONTACT_TYPES } from '../../db/repos/studio/show-overrides.ts';
 import type { Hono } from 'hono';
 import { ownerOnly, https } from './common.ts';
@@ -62,8 +62,8 @@ export function registerSettings(studio: Hono<StudioEnv>): void {
     if (hosted) {
       // A show made here has no other home: giving it back deletes it and its audio (the feed answers 410).
       const eps = await listHostedEpisodes(c.get('db'), hosted.id);
-      await markHostedShowDeleted(c.get('db'), hosted.id);
-      await markHostedEpisodesDeleted(c.get('db'), hosted.id);
+      await c.get('db').query('UPDATE hosted_shows SET deleted_at = now() WHERE id = $1', [hosted.id]);
+      await c.get('db').query('UPDATE hosted_episodes SET deleted_at = now() WHERE show_id = $1 AND deleted_at IS NULL', [hosted.id]);
       for (const e of eps) await c.get('storage').remove(e.audioUrl).catch(() => undefined);
     }
     return c.body(null, 204);

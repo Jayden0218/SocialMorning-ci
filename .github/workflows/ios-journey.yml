@@ -1,13 +1,32 @@
 # The listener journey on the real app (specs/015-e2e-journey, layer A): a Release build for the
 # iPhone simulator, pointed at a local test server (PGlite in memory — never Neon), seeded with 50
 # listeners; Maestro signs in as listener-02 by emailed code, finds the host's show, subscribes,
-# plays ~20 s, pauses and comments at that moment; then the server is asked what it holds.
+# plays to 0:15–0:29, pauses and comments at that moment; then the server is asked what it holds.
 # macos-26 is a standard runner: free on this public mirror. Nightly, and on demand.
+#
+# Lane IJ (2026-10-10): red every night 2026-10-01…09. Two causes, read from the artifacts:
+#  - the flow was stale (5 of 7 nights, e.g. run 37859560013): it tapped "Agree and continue" on a
+#    first-launch page that has said "Agree" since M17 — the app was right, the flow was not;
+#  - Maestro's iOS driver did not start in its default time (2 of 7, runs 37542267820, 37155381851).
+# The fixes below for signing, the simulator runtime and the driver were found by lane GA
+# (M25, runs 37736408998, 37747667576, 37745701958).
+#
+# Re-running only the flow: `app_from_run=<an earlier run id of this workflow>` reuses that run's
+# simulator app (artifact ios-sim-app) and skips the ~25 min build. Only valid when apps/mobile is
+# unchanged since that run.
 name: ios-journey
 on:
   workflow_dispatch:
+    inputs:
+      app_from_run:
+        description: 'Reuse the simulator app from this earlier ios-journey run id (skip the build)'
+        required: false
+        default: ''
   schedule:
     - cron: '30 18 * * *' # 02:30 in Malaysia
+permissions:
+  contents: read
+  actions: read
 jobs:
   journey:
     runs-on: macos-26
@@ -21,6 +40,10 @@ jobs:
       JOURNEY_OUT: ${{ github.workspace }}/apps/api/journey.json
       # The app's server address, read by app.config.js at prebuild and when the JS is bundled.
       SOCIALNET_API_BASE_URL: http://localhost:8787
+      APP_FROM_RUN: ${{ inputs.app_from_run }}
+      # Maestro's iOS driver did not start within its default time on a busy runner
+      # (runs 37542267820, 37155381851, 37745701958).
+      MAESTRO_DRIVER_STARTUP_TIMEOUT: '240000'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -32,44 +55,96 @@ jobs:
           (npx tsx scripts/e2e-server.ts > ../../api.log 2>&1 &)
           for i in $(seq 1 90); do curl -sf localhost:8787/v1/health && break; sleep 1; done
           npx tsx scripts/journey.ts seed
+          # Lane IJ: runs 38006095502 and 38006115027 failed with the test server silent from the
+          # app's first requests ("Couldn't reach the server", every request cut at the app's 10 s).
+          # A health probe every 10 s, kept as an artifact, says when it stopped answering.
+          (while true; do echo "$(date -u +%T) $(curl -s -m 5 -o /dev/null -w '%{http_code} %{time_total}s' localhost:8787/v1/health || echo 'no answer')"; sleep 10; done > ../../api-health.log 2>&1 &)
+      - name: reuse the simulator app from run ${{ inputs.app_from_run }}
+        if: env.APP_FROM_RUN != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download "$APP_FROM_RUN" -R "$GITHUB_REPOSITORY" -n ios-sim-app -D "$RUNNER_TEMP/app"
+          (cd "$RUNNER_TEMP/app" && ditto -x -k app.zip .)
+          echo "APP=$(ls -d "$RUNNER_TEMP"/app/*.app | head -1)" >> "$GITHUB_ENV"
       - name: prebuild
+        if: env.APP_FROM_RUN == ''
         working-directory: apps/mobile
         run: npx expo prebuild --platform ios --no-install --clean
       - name: pods
+        if: env.APP_FROM_RUN == ''
         working-directory: apps/mobile/ios
         run: pod install
       - name: build Release for the simulator
+        if: env.APP_FROM_RUN == ''
         working-directory: apps/mobile/ios
         run: |
           WS=$(ls -d *.xcworkspace | head -1)
+          # Ad-hoc signed ("-"), not unsigned: with CODE_SIGNING_ALLOWED=NO the app has no keychain
+          # access group on the simulator, expo-secure-store throws, and "Send code" fails
+          # (run 37736408998). No team or certificate is involved.
           xcodebuild build -quiet -workspace "$WS" -scheme "${WS%.xcworkspace}" -configuration Release \
             -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
-            -derivedDataPath "$RUNNER_TEMP/dd" CODE_SIGNING_ALLOWED=NO
-          echo "APP=$(ls -d "$RUNNER_TEMP"/dd/Build/Products/Release-iphonesimulator/*.app | head -1)" >> "$GITHUB_ENV"
+            -derivedDataPath "$RUNNER_TEMP/dd" CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO
+          APP=$(ls -d "$RUNNER_TEMP"/dd/Build/Products/Release-iphonesimulator/*.app | head -1)
+          echo "APP=$APP" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/out"
+          (cd "$(dirname "$APP")" && ditto -c -k --sequesterRsrc --keepParent "$(basename "$APP")" "$RUNNER_TEMP/out/app.zip")
+      - name: keep the simulator app for flow-only re-runs
+        if: env.APP_FROM_RUN == ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-sim-app
+          path: ${{ runner.temp }}/out/app.zip
+          retention-days: 5
       - name: boot a simulator and install
         run: |
-          UDID=$(xcrun simctl list devices available -j | jq -r '[.devices[][] | select(.name | startswith("iPhone"))][0].udid')
+          # An iOS 18 runtime when the image has one: on iOS 26 Maestro's driver failed to read the
+          # screen (viewHierarchy 500) and hung until the job timed out (run 37747667576). Else the
+          # smallest iPhone (its driver crashed mid-tap on a Pro Max, run 37731489175).
+          xcrun simctl list runtimes
+          UDID=$(xcrun simctl list devices available -j | jq -r '[.devices | to_entries[] | select(.key | test("iOS-18")) | .value[] | select(.name | test("iPhone"))][0].udid // empty')
+          [ -n "$UDID" ] || UDID=$(xcrun simctl list devices available -j | jq -r '[.devices[][] | select(.name | test("iPhone (SE|16e|17e)"))][0].udid // empty')
+          [ -n "$UDID" ] || UDID=$(xcrun simctl list devices available -j | jq -r '[.devices[][] | select(.name | startswith("iPhone"))][0].udid')
+          xcrun simctl list devices available | grep "$UDID"
           echo "UDID=$UDID" >> "$GITHUB_ENV"
           xcrun simctl boot "$UDID" && xcrun simctl bootstatus "$UDID" -b
+          # Reduce Motion: fewer elements moving while Maestro reads the screen. Its iOS driver
+          # crashed reading an element that had just changed ("Failed to resolve remote element",
+          # run 38009534635, in the play/pause loop).
+          xcrun simctl spawn "$UDID" defaults write com.apple.Accessibility ReduceMotionEnabled -bool true || true
           xcrun simctl install "$UDID" "$APP"
       - name: install Maestro
         run: |
           curl -Ls "https://get.maestro.mobile.dev" | bash
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+          "$HOME/.maestro/bin/maestro" --version
       - name: the journey on screen
         working-directory: apps/mobile
+        # No debug `log stream` of the app here: ~30 000 lines a run on top of Maestro's screen reads,
+        # and XCTest's reads timed out three ways on this runner (runs 37997764100, 38009534635,
+        # 38015676754). The app's console is collected after a red run instead (next step).
         run: maestro --device "$UDID" test .maestro/journey.yaml --test-output-dir "$RUNNER_TEMP/maestro"
       - name: what the server holds after the phone
         working-directory: apps/api
         run: |
           npx tsx scripts/journey.ts phone listener-02@journey.test "Maestro: heard it on the simulator"
+      - name: where the test server is stuck (only when red)
+        if: failure()
+        run: |
+          ps -axo pid,stat,%cpu,etime,command | grep -E 'e2e-server|PID' | grep -v grep | tee api-ps.log || true
+          for p in $(pgrep -f 'scripts/e2e-server.ts'); do sample "$p" 3 -file "api-sample-$p.txt" > /dev/null 2>&1 || true; done
+          xcrun simctl spawn "$UDID" log show --last 20m --style compact --predicate 'process == "SocialNet"' > "$RUNNER_TEMP/app-console.log" 2>&1 || true
       - if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ios-journey
           path: |
             ${{ runner.temp }}/maestro
-            apps/mobile/*.png
+            ${{ runner.temp }}/app-console.log
             api.log
+            api-health.log
+            api-ps.log
+            api-sample-*.txt
             apps/api/journey.json
           retention-days: 7

@@ -34,7 +34,6 @@ import {
 } from '../../db/repos/discover/lists.ts';
 import { discoverLists, DISCOVER_LIST_IDS, servedArrivals, servedCategory, servedSaid, servedVideo } from '../../db/repos/discover/served.ts';
 import { feedUrl } from './common.ts';
-import { hiddenEpisodeReason, hiddenEpisodeRows, hiddenFeedRow, hiddenShowRows, hideEpisodeWithReason, setHiddenFeedReason, unhideEpisode } from '../../db/repos/admin/admin-lists.ts';
 
 export type LiveRow = ItemRef & { title: string; sub: string; pinned: boolean };
 const LIVE_MAX = 30;
@@ -108,9 +107,19 @@ export function registerLists(admin: Hono<AdminEnv>): void {
 
   // ---- A3: hide a show or an episode everywhere ----
 
+  type HiddenShowRow = { feed_url: string; reason: string | null; hidden_at: Date | string; title: string | null; by_report: boolean };
+  type HiddenEpRow = { feed_url: string; guid: string; reason: string | null; hidden_at: Date | string; title: string | null; show_title: string | null; hidden_by: string | null };
+
   async function hiddenNow(db: AdminEnv['Variables']['db']) {
-    const shows = await hiddenShowRows(db);
-    const episodes = await hiddenEpisodeRows(db);
+    const shows = await db.query<HiddenShowRow>(
+      `SELECT h.feed_url, h.reason, h.hidden_at,
+              (SELECT e.show_title FROM episodes e WHERE e.feed_url = h.feed_url AND e.show_title IS NOT NULL ORDER BY e.published_at DESC NULLS LAST LIMIT 1) AS title,
+              EXISTS (SELECT 1 FROM reports r WHERE r.closed_by = h.action_id) AS by_report
+         FROM hidden_feeds h ORDER BY h.hidden_at DESC LIMIT 500`);
+    const episodes = await db.query<HiddenEpRow>(
+      `SELECT h.feed_url, h.guid, h.reason, h.hidden_at, e.title, e.show_title, h.hidden_by::text AS hidden_by
+         FROM hidden_episodes h LEFT JOIN episodes e ON e.feed_url = h.feed_url AND e.guid = h.guid
+        ORDER BY h.hidden_at DESC LIMIT 500`);
     return {
       shows: shows.map((s) => ({ feedUrl: s.feed_url, title: s.title, reason: s.reason, hiddenAt: new Date(s.hidden_at).toISOString(), byReport: Boolean(s.by_report) })),
       episodes: episodes.map((e) => ({ feedUrl: e.feed_url, guid: e.guid, title: e.title, showTitle: e.show_title, reason: e.reason, hiddenAt: new Date(e.hidden_at).toISOString() })),
@@ -123,12 +132,12 @@ export function registerLists(admin: Hono<AdminEnv>): void {
   async function showAct(c: Context<AdminEnv, any, any>, url: string, action: 'hide_show' | 'unhide_show', why: string | null) {
     const db = c.get('db');
     const read = async () => {
-      const [r] = await hiddenFeedRow(db, url);
+      const [r] = await db.query<{ reason: string | null; hidden_at: Date | string }>('SELECT reason, hidden_at FROM hidden_feeds WHERE feed_url = $1', [url]);
       return { hidden: Boolean(r), reason: r?.reason ?? null };
     };
     const before = await read();
     const a = await act(db, c.get('listener')!.id, { kind: 'show', id: url }, action);
-    if (action === 'hide_show' && why !== null) await setHiddenFeedReason(db, url, why);
+    if (action === 'hide_show' && why !== null) await db.query('UPDATE hidden_feeds SET reason = $2 WHERE feed_url = $1', [url, why]);
     await insertAudit(db, auditCtx(c), { area: 'safety', action: action === 'hide_show' ? 'hide show' : 'show again', target: `show:${url}` }, before, { ...(await read()), moderationActionId: a.id });
   }
 
@@ -148,7 +157,7 @@ export function registerLists(admin: Hono<AdminEnv>): void {
   // Reads through the transaction it is given: a read on the outer handle inside adminWrite would
   // wait for the transaction itself (PGlite has one connection) — a hang, seen in gate 37728987239.
   const epRead = (url: string, g: string) => async (tx: AdminEnv['Variables']['db']) => {
-    const [r] = await hiddenEpisodeReason(tx, url, g);
+    const [r] = await tx.query<{ reason: string | null }>('SELECT reason FROM hidden_episodes WHERE feed_url = $1 AND guid = $2', [url, g]);
     return { hidden: Boolean(r), reason: r?.reason ?? null };
   };
 
@@ -156,7 +165,9 @@ export function registerLists(admin: Hono<AdminEnv>): void {
     const b = c.req.valid('json');
     const db = c.get('db');
     const me = c.get('listener')!.id;
-    await adminWrite(db, auditCtx(c), { area: 'safety', action: 'hide episode', target: `episode:${b.feedUrl}#${b.guid}` }, epRead(b.feedUrl, b.guid), (tx) => hideEpisodeWithReason(tx, b.feedUrl, b.guid, me, b.reason));
+    await adminWrite(db, auditCtx(c), { area: 'safety', action: 'hide episode', target: `episode:${b.feedUrl}#${b.guid}` }, epRead(b.feedUrl, b.guid), (tx) => tx.query(
+      `INSERT INTO hidden_episodes (feed_url, guid, hidden_by, reason) VALUES ($1, $2, $3, $4)
+       ON CONFLICT (feed_url, guid) DO UPDATE SET reason = EXCLUDED.reason`, [b.feedUrl, b.guid, me, b.reason]));
     return c.json(await hiddenNow(db));
   });
 
@@ -166,7 +177,7 @@ export function registerLists(admin: Hono<AdminEnv>): void {
     if (!url.success || g.length === 0 || g.length > 1024) throw new ApiError('validation', 'feedUrl and guid are needed.', { fields: ['feedUrl', 'guid'] });
     const db = c.get('db');
     await adminWrite(db, auditCtx(c), { area: 'safety', action: 'show episode again', target: `episode:${url.data}#${g}` }, epRead(url.data, g),
-      (tx) => unhideEpisode(tx, url.data, g));
+      (tx) => tx.query('DELETE FROM hidden_episodes WHERE feed_url = $1 AND guid = $2', [url.data, g]));
     return c.json(await hiddenNow(db));
   });
 }
