@@ -12,12 +12,8 @@ export async function hiddenShowRows(db: Db): Promise<HiddenShowRow[]> {
          FROM hidden_feeds h ORDER BY h.hidden_at DESC LIMIT 500`);
 }
 
-export async function hiddenEpisodeRows(db: Db): Promise<HiddenEpRow[]> {
-  return db.query<HiddenEpRow>(
-      `SELECT h.feed_url, h.guid, h.reason, h.hidden_at, e.title, e.show_title, h.hidden_by::text AS hidden_by
-         FROM hidden_episodes h LEFT JOIN episodes e ON e.feed_url = h.feed_url AND e.guid = h.guid
-        ORDER BY h.hidden_at DESC LIMIT 500`);
-}
+// M26 lane ST: hidden episodes are lane ST's (studio/hidden-episodes.ts, on DynamoDB with the Store).
+export { hiddenEpisodeRows, hiddenEpisodeReason, hideEpisodeWithReason, unhideEpisode } from '../studio/hidden-episodes.ts';
 
 export async function hiddenFeedRow(db: Db, url: string): Promise<{ reason: string | null; hidden_at: Date | string }[]> {
   return db.query<{ reason: string | null; hidden_at: Date | string }>('SELECT reason, hidden_at FROM hidden_feeds WHERE feed_url = $1', [url]);
@@ -27,17 +23,3 @@ export async function setHiddenFeedReason(db: Db, url: string, why: string): Pro
   await db.query('UPDATE hidden_feeds SET reason = $2 WHERE feed_url = $1', [url, why]);
 }
 
-export async function hiddenEpisodeReason(db: Db, url: string, guid: string): Promise<{ reason: string | null }[]> {
-  return db.query<{ reason: string | null }>('SELECT reason FROM hidden_episodes WHERE feed_url = $1 AND guid = $2', [url, guid]);
-}
-
-/** Hides one episode everywhere with a reason; hiding it again updates the reason. */
-export async function hideEpisodeWithReason(db: Db, feedUrl: string, guid: string, by: string, reason: string): Promise<Record<string, unknown>[]> {
-  return db.query(
-      `INSERT INTO hidden_episodes (feed_url, guid, hidden_by, reason) VALUES ($1, $2, $3, $4)
-       ON CONFLICT (feed_url, guid) DO UPDATE SET reason = EXCLUDED.reason`, [feedUrl, guid, by, reason]);
-}
-
-export async function unhideEpisode(db: Db, feedUrl: string, guid: string): Promise<Record<string, unknown>[]> {
-  return db.query('DELETE FROM hidden_episodes WHERE feed_url = $1 AND guid = $2', [feedUrl, guid]);
-}

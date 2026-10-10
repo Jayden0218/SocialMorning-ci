@@ -7,6 +7,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { freshDb, signUp, type TestDb } from './harness.ts';
+import { setEmailCodeTime } from './ac-neutral.ts';
 
 const lastCode = (t: TestDb, to: string): string => t.lastCode!(to);
 
@@ -66,7 +67,7 @@ test('a wrong code is refused; five wrong tries end the code, even the right one
 test('an expired code is refused', async () => {
   const t = await freshDb();
   await t.call('POST', '/v1/auth/code', { email: 'd@example.com' });
-  await t.q("UPDATE email_codes SET expires_at = now() - interval '1 second'");
+  await setEmailCodeTime(t, 'expires_at', new Date(Date.now() - 1000).toISOString());
   const r = await t.call('POST', '/v1/auth/code/verify', { email: 'd@example.com', code: lastCode(t, 'd@example.com'), displayName: 'D' });
   assert.equal(r.status, 401);
   await t.close();
@@ -79,7 +80,7 @@ test('a second code within 30 s is refused with the wait; after it, a new code r
   const again = await t.call('POST', '/v1/auth/code', { email: 'e@example.com' });
   assert.equal(again.status, 429);
   assert.ok(((await again.json()) as { retryAfterSeconds: number }).retryAfterSeconds >= 1);
-  await t.q("UPDATE email_codes SET sent_at = now() - interval '31 seconds'");
+  await setEmailCodeTime(t, 'sent_at', new Date(Date.now() - 31_000).toISOString());
   assert.equal((await t.call('POST', '/v1/auth/code', { email: 'e@example.com' })).status, 200);
   const fresh = lastCode(t, 'e@example.com');
   if (fresh !== old) {

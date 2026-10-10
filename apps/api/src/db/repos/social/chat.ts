@@ -5,6 +5,7 @@
  * Old messages stay readable after an unfollow, but nobody can send until both follow again.
  */
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 
 export const CHAT_BODY_MAX = 1000;
 export const CHAT_PAGE = 50;
@@ -15,7 +16,7 @@ export type ChatPerson = { id: string; displayName: string; avatarUrl?: string }
 export type Conversation = { with: ChatPerson; last: ChatMessage; unread: number; canSend: boolean };
 
 /** Both directions of the follow, and no block either way. */
-export async function canChat(db: Db, a: string, b: string): Promise<boolean> {
+async function canChatPg(db: Db, a: string, b: string): Promise<boolean> {
   const [r] = await db.query<{ ok: boolean }>(
     `SELECT EXISTS (SELECT 1 FROM follows WHERE follower_id = $1 AND followed_id = $2)
         AND EXISTS (SELECT 1 FROM follows WHERE follower_id = $2 AND followed_id = $1)
@@ -47,12 +48,12 @@ function toMessage(r: Row, me: string): ChatMessage {
   return { id: r.id, fromMe: r.sender_id === me, body: r.body, ...(episode ? { episode } : {}), createdAt: new Date(r.created_at).toISOString(), read: r.read_at !== null };
 }
 
-export async function person(db: Db, id: string): Promise<ChatPerson | undefined> {
+async function personPg(db: Db, id: string): Promise<ChatPerson | undefined> {
   const [r] = await db.query<{ id: string; display_name: string; avatar_url: string | null }>('SELECT id, display_name, avatar_url FROM listeners WHERE id = $1 AND suspended_at IS NULL AND hidden_at IS NULL', [id]);
   return r ? toPerson(r) : undefined;
 }
 
-export async function send(db: Db, from: string, to: string, body: string, episodeId: string | undefined): Promise<ChatMessage> {
+async function sendPg(db: Db, from: string, to: string, body: string, episodeId: string | undefined): Promise<ChatMessage> {
   const [r] = await db.query<{ id: string }>(
     'INSERT INTO chat_messages (sender_id, recipient_id, body, episode_id) VALUES ($1, $2, $3, $4) RETURNING id::text',
     [from, to, body, episodeId ?? null],
@@ -66,7 +67,7 @@ export async function send(db: Db, from: string, to: string, body: string, episo
  * `before` → the page before that id (scrolling up); neither → the newest page.
  * Reading marks the other person's messages to me as read. A block either way → none.
  */
-export async function thread(db: Db, me: string, other: string, opts: { after?: string; before?: string } = {}): Promise<ChatMessage[]> {
+async function threadPg(db: Db, me: string, other: string, opts: { after?: string; before?: string } = {}): Promise<ChatMessage[]> {
   if (await walled(db, me, other)) return [];
   // M24 US1: a message the admin removed is gone for both people.
   const pair = '((m.sender_id = $1 AND m.recipient_id = $2) OR (m.sender_id = $2 AND m.recipient_id = $1)) AND m.removed_at IS NULL';
@@ -80,7 +81,7 @@ export async function thread(db: Db, me: string, other: string, opts: { after?: 
 }
 
 /** Every conversation I have, newest first: the person, the last message, my unread count. */
-export async function conversations(db: Db, me: string): Promise<Conversation[]> {
+async function conversationsPg(db: Db, me: string): Promise<Conversation[]> {
   const rows = await db.query<Row & { other_id: string; other_name: string; other_avatar: string | null; unread: number; can_send: boolean }>(
     `WITH mine AS (
        SELECT DISTINCT ON (CASE WHEN m.sender_id = $1 THEN m.recipient_id ELSE m.sender_id END)
@@ -108,7 +109,7 @@ export async function conversations(db: Db, me: string): Promise<Conversation[]>
 }
 
 /** My unread messages, from people I can still see (the tab badge). */
-export async function unreadCount(db: Db, me: string): Promise<number> {
+async function unreadCountPg(db: Db, me: string): Promise<number> {
   const [r] = await db.query<{ n: number }>(
     `SELECT count(*)::int AS n FROM chat_messages m JOIN listeners l ON l.id = m.sender_id AND l.suspended_at IS NULL AND l.hidden_at IS NULL
      WHERE m.recipient_id = $1 AND m.read_at IS NULL AND m.removed_at IS NULL
@@ -119,7 +120,7 @@ export async function unreadCount(db: Db, me: string): Promise<number> {
 }
 
 /** People I can start a chat with: we follow each other, no block, not suspended. By name. */
-export async function friends(db: Db, me: string): Promise<ChatPerson[]> {
+async function friendsPg(db: Db, me: string): Promise<ChatPerson[]> {
   const rows = await db.query<{ id: string; display_name: string; avatar_url: string | null }>(
     `SELECT l.id, l.display_name, l.avatar_url FROM follows a
      JOIN follows b ON b.follower_id = a.followed_id AND b.followed_id = $1
@@ -134,6 +135,15 @@ export async function friends(db: Db, me: string): Promise<ChatPerson[]> {
 }
 
 /** M19 US1: a chat person carries their photo when they set one. */
-function toPerson(r: { id: string; display_name: string; avatar_url: string | null }): ChatPerson {
+export function toPerson(r: { id: string; display_name: string; avatar_url: string | null }): ChatPerson {
   return { id: r.id, displayName: r.display_name, ...(r.avatar_url ? { avatarUrl: r.avatar_url } : {}) };
 }
+
+// M26 lane SC: each function runs on Postgres, or on DynamoDB (`ddb/chat.ts`) when the Db carries a Store (db/backend.ts).
+export const canChat = dual('sc/chat', 'canChat', canChatPg);
+export const person = dual('sc/chat', 'person', personPg);
+export const send = dual('sc/chat', 'send', sendPg);
+export const thread = dual('sc/chat', 'thread', threadPg);
+export const conversations = dual('sc/chat', 'conversations', conversationsPg);
+export const unreadCount = dual('sc/chat', 'unreadCount', unreadCountPg);
+export const friends = dual('sc/chat', 'friends', friendsPg);

@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
+import { seedCacheRow, setEpisodeImage } from './lb-seed.ts';
 import { familyFor, imageKind, mmss, renderCard } from '../src/share/card.ts';
 
 const ep = { feedUrl: 'https://feeds.example.com/x.xml', guid: 'g1', title: 'How a button got made', showTitle: 'Things', enclosureUrl: 'https://cdn/1.mp3', imageUrl: 'https://img.example/art.png' };
@@ -43,7 +44,7 @@ test('FR-034: GET /v1/share/episode/:id.png is a 1080×1350 PNG, public for a da
   assert.deepEqual(asked, [ep.imageUrl], 'the artwork, and nothing else — no audio, no font fetch for Latin text');
 
   // The artwork gone: the card still renders.
-  await t.q("UPDATE episodes SET image_url = 'https://img.example/gone.png'");
+  await setEpisodeImage(t, EP, 'https://img.example/gone.png');
   const plain = await t.call('GET', `/v1/share/episode/${EP}.png`);
   assert.equal(plain.status, 200);
   assert.deepEqual(pngSize(new Uint8Array(await plain.arrayBuffer())), [1080, 1350]);
@@ -56,7 +57,7 @@ test('FR-034: GET /v1/share/episode/:id.png is a 1080×1350 PNG, public for a da
 test('NEW-8: /e/:id is an HTML page — title, show, artwork, Open in SocialNet, the share card as its preview — and no player', async () => {
   const t = await freshDb();
   await putEpisode(t, `${EP}`, { ...ep, title: 'A <b>bold</b> title', durationMs: 3_000_000 });
-  await t.q(`INSERT INTO cache (key, body, fetched_at) VALUES ($1, $2::text::jsonb, now())`, [`feed:${ep.feedUrl}`, JSON.stringify({ show: { link: 'https://things.example/' }, episodes: [{ guid: 'g1', link: 'https://things.example/ep1' }] })]);
+  await seedCacheRow(t, `feed:${ep.feedUrl}`, { show: { link: 'https://things.example/' }, episodes: [{ guid: 'g1', link: 'https://things.example/ep1' }] });
   const r = await t.call('GET', `/e/${EP}?t=65000`);
   assert.equal(r.status, 200);
   const html = await r.text();

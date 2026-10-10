@@ -13,6 +13,9 @@ import assert from 'node:assert/strict';
 import { freshDb, signUp } from './harness.ts';
 import { fetchFeed } from '../src/catalog/feed.ts';
 import { hiddenFeedUrls } from '../src/db/repos/safety/moderation.ts';
+import { cacheKeys, clearCachePrefix, episodeCountOf, episodeFeedUrls, liveFeedsOf, recEventEpisodeIds, seedCacheRow, seedRecEvent, subscriptionEventCount } from './lb-seed.ts';
+
+const DAY = 86_400_000;
 
 const JOB = 'job-token-not-secret';
 const auth = { authorization: `Bearer ${JOB}` };
@@ -49,8 +52,7 @@ test('G-M23-7: a feed that never answers is given up after 8 s, and the next fee
   assert.equal(body.counts.failed, 1, 'only the hanging feed failed');
   assert.equal(body.counts.registered, 3, 'the three feeds after it were registered');
   assert.ok(took >= 7_500 && took < 20_000, `gave up at the 8 s deadline (${took} ms)`);
-  const shows = await t.q<{ feed_url: string }>('SELECT DISTINCT feed_url FROM episodes ORDER BY feed_url');
-  assert.deepEqual(shows.map((r) => r.feed_url), good);
+  assert.deepEqual(await episodeFeedUrls(t), good);
   await t.close();
 });
 
@@ -108,22 +110,24 @@ test('US5: a pubDate with no zone is read as UTC (the same on the phone and the 
 test('US3/US5: the sweep step deletes old caches, push_sent and rec_events — and only those', async () => {
   const t = await freshDb({ jobToken: JOB });
   const a = await signUp(t);
-  await t.q(`INSERT INTO cache (key, body, fetched_at) VALUES
-    ('apple:search:shows:old', '[]', now() - interval '8 days'), ('apple:search:shows:new', '[]', now() - interval '6 days'),
-    ('feed:https://old', '{}', now() - interval '8 days'), ('feed:https://new', '{}', now()),
-    ('feed-block:https://kept', '{}', now() - interval '100 days'), ('chart:v1:x', '{}', now() - interval '100 days')`);
+  await seedCacheRow(t, 'apple:search:shows:old', [], 8 * DAY);
+  await seedCacheRow(t, 'apple:search:shows:new', [], 6 * DAY);
+  await seedCacheRow(t, 'feed:https://old', {}, 8 * DAY);
+  await seedCacheRow(t, 'feed:https://new', {});
+  await seedCacheRow(t, 'feed-block:https://kept', {}, 100 * DAY);
+  await seedCacheRow(t, 'chart:v1:x', {}, 100 * DAY);
   await t.q(`INSERT INTO push_sent (listener_id, episode_id, kind, sent_at) VALUES ($1, 'e-old', 'popular', now() - interval '31 days'), ($1, 'e-new', 'popular', now() - interval '29 days')`, [a.id]);
-  await t.q(`INSERT INTO rec_events (listener_id, episode_id, channel, rank, kind, at) VALUES ($1, 'e-old', 'pick', 0, 'open', now() - interval '91 days'), ($1, 'e-new', 'pick', 0, 'open', now() - interval '89 days')`, [a.id]);
+  await seedRecEvent(t, { listenerId: a.id, episodeId: 'e-old', at: new Date(Date.now() - 91 * DAY).toISOString() });
+  await seedRecEvent(t, { listenerId: a.id, episodeId: 'e-new', at: new Date(Date.now() - 89 * DAY).toISOString() });
 
   const res = await t.call('POST', '/v1/internal/rebuild', { step: 'sweep' }, undefined, auth);
   assert.equal(res.status, 200);
   const body = (await res.json()) as { done: boolean; counts: { cacheDeleted: number; pushSentDeleted: number; recEventsDeleted: number } };
   assert.equal(body.done, true);
   assert.deepEqual([body.counts.cacheDeleted, body.counts.pushSentDeleted, body.counts.recEventsDeleted], [2, 1, 1]);
-  assert.deepEqual((await t.q<{ key: string }>('SELECT key FROM cache ORDER BY key')).map((r) => r.key),
-    ['apple:search:shows:new', 'chart:v1:x', 'feed-block:https://kept', 'feed:https://new']);
+  assert.deepEqual(await cacheKeys(t), ['apple:search:shows:new', 'chart:v1:x', 'feed-block:https://kept', 'feed:https://new']);
   assert.deepEqual((await t.q<{ episode_id: string }>('SELECT episode_id FROM push_sent')).map((r) => r.episode_id), ['e-new']);
-  assert.deepEqual((await t.q<{ episode_id: string }>('SELECT episode_id FROM rec_events')).map((r) => r.episode_id), ['e-new']);
+  assert.deepEqual(await recEventEpisodeIds(t), ['e-new']);
   await t.close();
 });
 
@@ -158,17 +162,14 @@ test('US11: itunes:new-feed-url moves the subscribers; itunes:block hides the sh
   const counts = ((await res.json()) as { counts: { moved: number; blocked: number } }).counts;
   assert.equal(counts.moved, 2);
   assert.equal(counts.blocked, 1);
-  const live = await t.q<{ email: string; feed_url: string }>(
-    'SELECT l.email::text AS email, s.feed_url FROM subscriptions s JOIN listeners l ON l.id = s.listener_id WHERE s.deleted_at IS NULL ORDER BY 1, 2');
-  assert.deepEqual(live.map((r) => [r.email, r.feed_url]), [['a@example.com', BLOCKED], ['a@example.com', NEW], ['b@example.com', NEW]]);
-  const events = await t.q<{ feed_url: string; kind: string }>("SELECT feed_url, kind FROM subscription_events WHERE kind = 'unsub' AND feed_url = $1", [OLD]);
-  assert.equal(events.length, 2, 'the Studio sees both leave the old address');
+  assert.deepEqual([await liveFeedsOf(t, a.id), await liveFeedsOf(t, b.id)], [[BLOCKED, NEW].sort(), [NEW]], 'a@ keeps BLOCKED and moves to NEW; b@ stays on NEW once');
+  assert.equal(await subscriptionEventCount(t, OLD, 'unsub'), 2, 'the Studio sees both leave the old address');
 
   assert.ok((await hiddenFeedUrls(t.db)).has(BLOCKED));
-  assert.equal((await t.q('SELECT 1 FROM episodes WHERE feed_url = $1', [BLOCKED])).length, 0, 'a blocked show registers nothing');
+  assert.equal(await episodeCountOf(t, BLOCKED), 0, 'a blocked show registers nothing');
 
   blocked = false;
-  await t.q("DELETE FROM cache WHERE key LIKE 'feed:%'");
+  await clearCachePrefix(t, 'feed:');
   await t.call('POST', '/v1/internal/rebuild', { step: 'feeds' }, undefined, auth);
   assert.equal((await hiddenFeedUrls(t.db)).has(BLOCKED), false, 'the mark goes when the feed stops asking');
   await t.close();
