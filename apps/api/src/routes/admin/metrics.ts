@@ -4,7 +4,7 @@
  */
 import { ApiError } from '../../errors.ts';
 import { cached } from '../../db/repos/cache.ts';
-import { computeMetrics, dropCachedMetrics, METRIC_RANGES, type MetricRange } from '../../db/repos/admin/metrics.ts';
+import { computeMetrics, METRIC_RANGES, type MetricRange } from '../../db/repos/admin/metrics.ts';
 import type { Hono } from 'hono';
 import type { AdminEnv } from '../../auth/admin.ts';
 
@@ -19,7 +19,7 @@ export function registerMetrics(admin: Hono<AdminEnv>): void {
     const db = c.get('db');
     const key = `admin-metrics:${days}`;
     const { body } = await cached(db, key, METRICS_TTL_MS, () => computeMetrics(db, days));
-    if (body.partial) await dropCachedMetrics(db, key);
+    if (body.partial) await db.query('DELETE FROM cache WHERE key = $1', [key]);
     return c.json(body);
   });
 }

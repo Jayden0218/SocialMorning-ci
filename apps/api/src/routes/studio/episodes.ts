@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { json } from '../../validate.ts';
 import { publish } from '../../db/repos/studio/announcements.ts';
 import { isAutoCover } from '@socialmorning/social-core';
-import { listHostedEpisodes, paidEpisodeRows, promoteDue, publishEpisode, removeEpisode, setEpisodePaid, setPreview, setPriceTier, storedBytes, updateEpisode, updateHostedShow } from '../../db/repos/studio/hosted.ts';
+import { listHostedEpisodes, promoteDue, publishEpisode, removeEpisode, setEpisodePaid, setPreview, setPriceTier, storedBytes, updateEpisode, updateHostedShow } from '../../db/repos/studio/hosted.ts';
 import { AUDIO_TYPES, IMAGE_TYPES, MAX_AUDIO_BYTES, MAX_IMAGE_BYTES } from '../../storage/episodes-blob.ts';
 import { randomUUID } from 'node:crypto';
 import type { Hono } from 'hono';
@@ -136,7 +136,7 @@ export function registerEpisodes(studio: Hono<StudioEnv>): void {
     const h = await hostedOf(c.get('db'), c.get('show').feedUrl);
     const { tier } = c.req.valid('json');
     if (tier === null) {
-      const [paid] = await paidEpisodeRows(c.get('db'), h.id);
+      const [paid] = await c.get('db').query('SELECT 1 FROM hosted_episodes WHERE show_id = $1 AND paid AND deleted_at IS NULL', [h.id]);
       if (paid) throw new ApiError('validation', 'Make the paid episodes free first.', { fields: ['tier'], reason: 'has_paid' });
     }
     await setPriceTier(c.get('db'), h.id, tier);

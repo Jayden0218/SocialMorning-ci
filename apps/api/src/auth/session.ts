@@ -4,7 +4,6 @@ import type { Context, MiddlewareHandler } from 'hono';
 import type { Db } from '../db/db.ts';
 import { ApiError } from '../errors.ts';
 import { appealTokenFor } from './appeal-token.ts';
-import { insertSession, listenerForTokenRows, rehashSession, rotateSessionRow, sessionExistsRows } from '../db/repos/account/sessions.ts';
 
 export type Listener = { id: string; email: string; display_name: string; created_at: Date | string; suspended_at?: Date | string | null };
 
@@ -24,7 +23,9 @@ export function tokenHash(token: string, pepper: string): Buffer {
  */
 export async function createSession(db: Db, listenerId: string, pepper: string, deviceLabel?: string, extra: { country?: string | undefined; secondFactor?: boolean } = {}): Promise<string> {
   const token = issueToken();
-  await insertSession(db, tokenHash(token, pepper), listenerId, deviceLabel ?? null, extra.country ?? null, extra);
+  await db.query(`INSERT INTO sessions (token_hash, listener_id, device_label, country, second_factor_at) VALUES ($1, $2, $3, $4, ${extra.secondFactor ? 'now()' : 'NULL'})`, [
+    tokenHash(token, pepper), listenerId, deviceLabel ?? null, extra.country ?? null,
+  ]);
   return token;
 }
 
@@ -53,9 +54,9 @@ export const liveSessionSql = LIVE_SESSION;
 export async function rekey(db: Db, token: string, pepper: string, next: string | undefined): Promise<void> {
   if (!next || next === pepper) return;
   const cur = tokenHash(token, pepper);
-  const [have] = await sessionExistsRows(db, cur);
+  const [have] = await db.query<{ ok: number }>('SELECT 1 AS ok FROM sessions WHERE token_hash = $1', [cur]);
   if (have) return;
-  await rehashSession(db, cur, tokenHash(token, next));
+  await db.query('UPDATE sessions SET token_hash = $1 WHERE token_hash = $2', [cur, tokenHash(token, next)]);
 }
 
 /**
@@ -68,7 +69,21 @@ export async function rotateSession(db: Db, token: string, pepper: string): Prom
   const old = tokenHash(token, pepper);
   const fresh = issueToken();
   const freshHash = tokenHash(fresh, pepper);
-  return rotateSessionRow(db, old, fresh, freshHash, ROTATE_EVERY_HOURS);
+  return db.transaction(async (tx) => {
+    const [row] = await tx.query<{ listener_id: string; device_label: string | null; created_at: Date | string; country: string | null; second_factor_at: Date | string | null }>(
+      `UPDATE sessions SET replaced_at = now()
+        WHERE token_hash = $1 AND replaced_at IS NULL AND acting_admin_id IS NULL
+          AND rotated_at < now() - make_interval(hours => ${ROTATE_EVERY_HOURS})
+        RETURNING listener_id, device_label, created_at, country, second_factor_at`,
+      [old]);
+    if (!row) return undefined;
+    await tx.query(
+      `INSERT INTO sessions (token_hash, listener_id, device_label, created_at, last_seen_at, country, second_factor_at, rotated_at)
+       VALUES ($1, $2, $3, $4, now(), $5, $6, now())`,
+      [freshHash, row.listener_id, row.device_label, new Date(row.created_at), row.country, row.second_factor_at === null ? null : new Date(row.second_factor_at)]);
+    await tx.query('UPDATE sessions SET replaced_by = $2 WHERE token_hash = $1', [old, freshHash]);
+    return fresh;
+  });
 }
 
 /** A response a shared cache may keep must never carry a new token. */
@@ -88,7 +103,26 @@ export function cacheablePublicly(res: Response): boolean {
  */
 export async function listenerForToken(db: Db, token: string, pepper: string, pepperNext?: string): Promise<Listener | undefined> {
   await rekey(db, token, pepper, pepperNext);
-  const rows = await listenerForTokenRows(db, tokenHash(token, pepper), LIVE_SESSION, SESSION_IDLE_DAYS, LAST_SEEN_EVERY_MINUTES);
+  const rows = await db.query<Listener>(
+    `WITH s AS (
+       SELECT l.id, l.email, l.display_name, l.created_at, l.suspended_at, s.device_label
+         FROM sessions s JOIN listeners l ON l.id = s.listener_id
+        WHERE s.token_hash = $1 AND s.acting_admin_id IS NULL
+          AND s.last_seen_at > now() - make_interval(days => $2::int)
+          AND ${LIVE_SESSION}
+     ), u AS (
+       UPDATE sessions SET last_seen_at = now()
+        WHERE token_hash = $1 AND EXISTS (SELECT 1 FROM s)
+          AND last_seen_at < now() - make_interval(mins => $3::int)
+     ), d AS (
+       INSERT INTO daily_active (day, listener_id)
+       SELECT ((now() AT TIME ZONE 'UTC') + interval '8 hours')::date, id FROM s
+        WHERE device_label IS DISTINCT FROM 'studio-web'
+       ON CONFLICT DO NOTHING
+     )
+     SELECT id, email, display_name, created_at, suspended_at FROM s`,
+    [tokenHash(token, pepper), SESSION_IDLE_DAYS, LAST_SEEN_EVERY_MINUTES],
+  );
   return rows[0];
 }
 

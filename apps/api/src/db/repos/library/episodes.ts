@@ -1,6 +1,5 @@
 // Saves and reads episodes the app registers; a known duration is never overwritten.
 import type { Db } from '../../db.ts';
-import { clearEpisodeHeat, insertEpisodeHeat } from './heat.ts';
 
 export type EpisodeRow = {
   id: string;
@@ -87,20 +86,7 @@ export async function getEpisode(db: Db, id: string): Promise<EpisodeRow | undef
   return rows[0];
 }
 
-/**
- * Registers an episode in one transaction (`fill` only fills empty fields; `authoritative`
- * overwrites) and, when its length becomes known for the first time, rebuilds its heat so the
- * stored moments fall into their buckets (FR-021).
- */
-export async function registerEpisodeTx(db: Db, id: string, input: EpisodeInput, mode: 'fill' | 'authoritative'): Promise<EpisodeRow> {
-  return db.transaction(async (tx) => {
-    const before = await getEpisode(tx, id);
-    const after = mode === 'fill' ? await fillEpisode(tx, input) : await upsertEpisode(tx, input);
-    // FR-021: the moments were stored without buckets; the first known duration places them.
-    if ((before?.duration_ms ?? null) === null && after.duration_ms !== null) {
-      await clearEpisodeHeat(tx, id);
-      await insertEpisodeHeat(tx, id);
-    }
-    return after;
-  });
+/** True when this call turned a NULL duration into a known one (the heat rebuild trigger, FR-021). */
+export async function durationBecameKnown(before: EpisodeRow | undefined, after: EpisodeRow): Promise<boolean> {
+  return (before?.duration_ms ?? null) === null && after.duration_ms !== null;
 }

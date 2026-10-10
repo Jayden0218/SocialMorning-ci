@@ -14,7 +14,6 @@ import { optionalAuth } from '../auth/session.ts';
 import { ApiError } from '../errors.ts';
 import { clientAddress, hit, HOUR_MS, limit } from '../auth/rate.ts';
 import { recordErrors, recordServerError } from '../db/repos/account/error-reports.ts';
-import { listenerEmailRows } from '../db/repos/account/profile.ts';
 import type { Db } from '../db/db.ts';
 import type { Mailer } from '../mail/mailer.ts';
 
@@ -49,7 +48,7 @@ export async function reportServerError(db: Db, err: unknown, where: { method: s
     const fresh = await recordServerError(db, { message, ...(stack ? { stack } : {}) });
     if (!fresh || !alert.mailer) return;
     const to = process.env['ALERT_EMAIL'] || (alert.ownerListenerId
-      ? (await listenerEmailRows(db, alert.ownerListenerId))[0]?.email
+      ? (await db.query<{ email: string }>('SELECT email FROM listeners WHERE id = $1', [alert.ownerListenerId]))[0]?.email
       : undefined);
     if (!to) return;
     if (!(await hit(db, 'alert:server-error', HOUR_MS, ALERTS_PER_HOUR)).ok) return;

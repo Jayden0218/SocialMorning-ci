@@ -7,13 +7,12 @@ import { json } from '../../validate.ts';
 import { ApiError } from '../../errors.ts';
 import { addLikeComment, clearLikeReaction, deleteLikeComment, like, likePost, likesOf, myLike, setLikeReaction, timeline, unlike, visibleLike } from '../../db/repos/social/likes.ts';
 import { notify } from '../../db/repos/social/notifications.ts';
-import { episodeIdRows } from '../../db/repos/social/public-pages.ts';
 
 const before = z.string().datetime().optional();
 const UUID = /^[0-9a-f-]{36}$/i;
 
 async function episodeExists(db: AuthEnv['Variables']['db'], id: string): Promise<boolean> {
-  const [r] = await episodeIdRows(db, id);
+  const [r] = await db.query<{ id: string }>('SELECT id FROM episodes WHERE id = $1', [id]);
   return r !== undefined;
 }
 

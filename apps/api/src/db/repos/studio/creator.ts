@@ -84,6 +84,13 @@ export async function showStats(db: Db, feedUrl: string): Promise<{ listeners: n
   return { listeners: l?.n ?? 0, comments: cm?.n ?? 0, episodes: ep?.n ?? 0, topMoments: top.map((t) => ({ episodeId: t.episode_id, title: t.title, offsetMs: Number(t.minute), comments: t.n })) };
 }
 
+/** The proven claimant of an episode's show, if any — for the "Host" mark on their comments. */
+export async function hostOfEpisode(db: Db, episodeId: string): Promise<string | undefined> {
+  const [r] = await db.query<{ listener_id: string }>(
+    "SELECT cl.listener_id FROM creator_claims cl JOIN episodes e ON e.feed_url = cl.feed_url WHERE e.id = $1 AND cl.status = 'proven' LIMIT 1", [episodeId]);
+  return r?.listener_id;
+}
+
 /** M14 (FR-03): everyone who carries the Host mark on an episode's show — the proven owner and invited hosts. */
 export async function hostsOfEpisode(db: Db, episodeId: string): Promise<string[]> {
   const rows = await db.query<{ id: string }>(

@@ -61,6 +61,14 @@ export async function listAll(db: Db, listenerId: string): Promise<SubscriptionR
   );
 }
 
+/** The live ones only — what "subscribed" means everywhere else (guard G-M1). */
+export async function listLive(db: Db, listenerId: string): Promise<SubscriptionRow[]> {
+  return db.query<SubscriptionRow>(
+    'SELECT feed_url, starred, created_at, deleted_at, starred_at FROM subscriptions WHERE listener_id = $1 AND deleted_at IS NULL ORDER BY created_at DESC',
+    [listenerId],
+  );
+}
+
 /**
  * Merge a device's set into the account's, then return the whole account set.
  * One transaction: a half-applied reconcile is a library in two states.
