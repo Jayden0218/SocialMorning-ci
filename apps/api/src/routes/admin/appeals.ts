@@ -13,7 +13,6 @@ import { ApiError } from '../../errors.ts';
 import type { Hono } from 'hono';
 import { act } from '../../db/repos/safety/moderation.ts';
 import { adminAppeals, appealById, decide, restoreRemoved } from '../../db/repos/safety/appeals.ts';
-import { pendingDeletions } from '../../db/repos/admin/admin-users.ts';
 
 export function registerAppeals(admin: Hono<AdminEnv>): void {
   admin.get('/appeals', async (c) => {
@@ -44,7 +43,10 @@ export function registerAppeals(admin: Hono<AdminEnv>): void {
   }
 
   admin.get('/deletions', async (c) => {
-    const rows = await pendingDeletions(c.get('db'));
+    const rows = await c.get('db').query<{ listener_id: string; display_name: string; email: string; requested_at: Date | string; due_at: Date | string }>(
+      `SELECT d.listener_id, l.display_name, l.email::text AS email, d.requested_at, d.due_at
+         FROM account_deletions d JOIN listeners l ON l.id = d.listener_id
+        WHERE d.cancelled_at IS NULL ORDER BY d.due_at ASC LIMIT 500`);
     return c.json({ items: rows.map((r) => ({ listenerId: r.listener_id, displayName: r.display_name, email: r.email, requestedAt: new Date(r.requested_at).toISOString(), dueAt: new Date(r.due_at).toISOString() })) });
   });
 }

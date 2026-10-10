@@ -14,9 +14,6 @@
 import type { IssueIn, PickIn } from '@socialmorning/social-core';
 import type { Catalog } from '../auth/session.ts';
 import type { Db } from '../db/db.ts';
-import {
-  listCollectionItemRows, listCollectionRows, listCuratedIssueItems, listCuratedIssues, listPickDays, listPickItems,
-} from '../db/repos/library/catalog.ts';
 import { MAX_COLLECTIONS, type CollectionIn } from './collections.ts';
 
 export const CATALOG_MEMO_MS = 60_000;
@@ -38,12 +35,12 @@ const ymd = (d: Date | string): string => (typeof d === 'string' ? d.slice(0, 10
 
 export async function readDbCatalog(db: Db): Promise<DbCatalog> {
   const [days, picks, issues, issueItems, cols, colItems] = await Promise.all([
-    listPickDays(db),
-    listPickItems(db),
-    listCuratedIssues(db),
-    listCuratedIssueItems(db),
-    listCollectionRows(db),
-    listCollectionItemRows(db),
+    db.query<{ day: Date | string }>("SELECT to_char(day, 'YYYY-MM-DD') AS day FROM pick_days"),
+    db.query<{ day: Date | string; position: number; feed_url: string; guid: string | null; why: string }>("SELECT to_char(day, 'YYYY-MM-DD') AS day, position, feed_url, guid, why FROM pick_items ORDER BY day, position"),
+    db.query<{ id: string; day: Date | string; title: string; intro: string; retired_at: string | null }>("SELECT id, to_char(day, 'YYYY-MM-DD') AS day, title, intro, retired_at FROM curated_issues"),
+    db.query<{ issue_id: string; position: number; feed_url: string; guid: string | null; note: string }>('SELECT issue_id, position, feed_url, guid, note FROM curated_issue_items ORDER BY issue_id, position'),
+    db.query<{ id: string; title: string; subtitle: string | null; position: number; retired_at: string | null }>('SELECT id, title, subtitle, position, retired_at FROM collections ORDER BY position, id'),
+    db.query<{ collection_id: string; position: number; feed_url: string; guid: string | null; why: string | null }>('SELECT collection_id, position, feed_url, guid, why FROM collection_items ORDER BY collection_id, position'),
   ]);
   const issueMap = new Map<string, IssueIn | null>();
   for (const i of issues) {

@@ -17,7 +17,6 @@ import { getCookie, setCookie } from 'hono/cookie';
 import type { Db } from '../db/db.ts';
 import type { Mailer } from '../mail/mailer.ts';
 import { ApiError } from '../errors.ts';
-import { clearSecondFactorCode, markSecondFactorDone, passSecondFactor, reserveSecondFactorTry, secondFactorAtRows, secondFactorSentAtRows, storeSecondFactorCode } from '../db/repos/account/second-factor.ts';
 
 export const DEVICE_COOKIE = 'sm_device';
 export const REMEMBER_DAYS = 30;
@@ -50,23 +49,25 @@ export function rememberDevice(c: Context, listenerId: string, pepper: string): 
   });
 }
 
+type Row = { second_factor_at: Date | string | null };
+
 /**
  * Has this session passed the second factor? A remembered device counts (and marks the session,
  * so the cookie is read once per session, not on every call).
  */
 export async function secondFactorDone(c: Context, db: Db, hash: Buffer, listenerId: string, pepper: string, next?: string): Promise<boolean> {
-  const [row] = await secondFactorAtRows(db, hash);
+  const [row] = await db.query<Row>('SELECT second_factor_at FROM sessions WHERE token_hash = $1', [hash]);
   if (!row) return false;
   if (row.second_factor_at !== null) return true;
   if (!deviceRemembered(getCookie(c, DEVICE_COOKIE), listenerId, pepper, next)) return false;
-  await markSecondFactorDone(db, hash);
+  await db.query('UPDATE sessions SET second_factor_at = now() WHERE token_hash = $1', [hash]);
   return true;
 }
 
 /** Mails a new code for this session. 429 `locked` inside the 30 s resend wait; 503 with no mailer. */
 export async function sendSecondFactor(db: Db, mailer: Mailer | undefined, hash: Buffer, email: string, pepper: string, now = Date.now()): Promise<{ resendAfterSeconds: number }> {
   if (!mailer) throw new ApiError('unavailable', 'Email is not set up, so the admin code cannot be sent.');
-  const [row] = await secondFactorSentAtRows(db, hash);
+  const [row] = await db.query<{ second_factor_sent_at: Date | string | null }>('SELECT second_factor_sent_at FROM sessions WHERE token_hash = $1', [hash]);
   if (!row) throw new ApiError('unauthenticated', 'Sign in again.');
   const sent = row.second_factor_sent_at ? new Date(row.second_factor_sent_at).getTime() : 0;
   if (sent + FACTOR_RESEND_MS > now) {
@@ -74,7 +75,8 @@ export async function sendSecondFactor(db: Db, mailer: Mailer | undefined, hash:
     throw new ApiError('locked', `Wait ${wait} s before asking for another code.`, { retryAfterSeconds: wait });
   }
   const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
-  await storeSecondFactorCode(db, hash, codeHash(hash, code, pepper), new Date(now));
+  await db.query('UPDATE sessions SET second_factor_code = $2, second_factor_sent_at = $3, second_factor_tries = 0 WHERE token_hash = $1',
+    [hash, codeHash(hash, code, pepper), new Date(now)]);
   await mailer.send({
     to: email,
     subject: `${code} is your SocialNet admin code`,
@@ -89,14 +91,18 @@ export async function sendSecondFactor(db: Db, mailer: Mailer | undefined, hash:
  */
 export async function checkSecondFactor(db: Db, hash: Buffer, code: string, pepper: string, next?: string, now = Date.now()): Promise<'ok' | 'wrong' | 'expired'> {
   if (!/^\d{6}$/.test(code)) return 'wrong';
-  const [row] = await reserveSecondFactorTry(db, hash, FACTOR_MAX_TRIES, new Date(now - FACTOR_TTL_MS));
+  const [row] = await db.query<{ second_factor_code: Buffer | Uint8Array; second_factor_tries: number }>(
+    `UPDATE sessions SET second_factor_tries = second_factor_tries + 1
+      WHERE token_hash = $1 AND second_factor_code IS NOT NULL AND second_factor_tries < $2 AND second_factor_sent_at > $3
+      RETURNING second_factor_code, second_factor_tries`,
+    [hash, FACTOR_MAX_TRIES, new Date(now - FACTOR_TTL_MS)]);
   if (!row) return 'expired';
   const want = Buffer.from(row.second_factor_code);
   const match = (p: string) => { const got = codeHash(hash, code, p); return got.length === want.length && timingSafeEqual(got, want); };
   if (match(pepper) || (next !== undefined && match(next))) {
-    await passSecondFactor(db, hash);
+    await db.query('UPDATE sessions SET second_factor_at = now(), second_factor_code = NULL, second_factor_tries = 0 WHERE token_hash = $1', [hash]);
     return 'ok';
   }
-  if (Number(row.second_factor_tries) >= FACTOR_MAX_TRIES) await clearSecondFactorCode(db, hash);
+  if (Number(row.second_factor_tries) >= FACTOR_MAX_TRIES) await db.query('UPDATE sessions SET second_factor_code = NULL WHERE token_hash = $1', [hash]);
   return 'wrong';
 }

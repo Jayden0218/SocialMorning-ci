@@ -5,13 +5,13 @@ import type { AuthEnv } from '../../auth/session.ts';
 import { optionalAuth, requireAuth } from '../../auth/session.ts';
 import { json } from '../../validate.ts';
 import { ApiError } from '../../errors.ts';
-import { getEpisode } from '../../db/repos/library/episodes.ts';
-import { getComment, requireRulesAccepted, toPublic } from '../../db/repos/social/comments.ts';
-import { COUNTRY_HEADER } from '../../db/repos/account/country.ts';
-import { deleteCommentInTx, likeCommentInTx, postCommentInTx, recentCommentRows } from '../../db/repos/social/comment-writes.ts';
+import { getEpisode, upsertEpisode } from '../../db/repos/library/episodes.ts';
+import { createComment, deleteComment, getComment, requireRulesAccepted, toPublic } from '../../db/repos/social/comments.ts';
+import { COUNTRY_HEADER, countryOf } from '../../db/repos/account/country.ts';
+import { rebuildEpisodeHeat } from '../../heat/rebuild.ts';
 import { isBlockedBy } from '../../db/repos/safety/blocks.ts';
 import { isMutedOn } from '../../db/repos/studio/studio-subscribers.ts';
-import { unlike } from '../../db/repos/social/comment-likes.ts';
+import { like, unlike } from '../../db/repos/social/comment-likes.ts';
 import { setPinned, setPinnedBottom, setUnfriendly, thread } from '../../db/repos/social/comment-extras.ts';
 import { commentControl } from '../../db/repos/studio/comment-policy.ts';
 
@@ -39,7 +39,10 @@ comments.post('/:id/comments', requireAuth, json(commentBody), async (c) => {
   // M21 US6 (G-M21-7): 428 rules_required until the community rules are accepted.
   await requireRulesAccepted(db, listener.id);
 
-  const recent = await recentCommentRows(db, listener.id, String(RATE_FLOOR_MS));
+  const recent = await db.query<{ n: number }>(
+    `SELECT count(*)::int AS n FROM comments WHERE author_id = $1 AND created_at > now() - ($2 || ' milliseconds')::interval`,
+    [listener.id, String(RATE_FLOOR_MS)],
+  );
   if (Number(recent[0]?.n ?? 0) > 0) throw new ApiError('locked', 'One comment every few seconds, please.', { retryAfterSeconds: 5 });
   // M6 (FR-008): no reply to a listener who blocked you.
   if (body.parentId) {
@@ -56,7 +59,19 @@ comments.post('/:id/comments', requireAuth, json(commentBody), async (c) => {
   const held = await commentControl(db, episode, listener.id, { body: body.body, offsetMs: body.offsetMs, parentId: body.parentId, countryHeader: c.req.header(COUNTRY_HEADER) });
   if (held) return c.json({ comment: held, held: true });
 
-  const created = await postCommentInTx(db, episode, episodeId, listener.id, body, c.req.header(COUNTRY_HEADER));
+  const created = await db.transaction(async (tx) => {
+    if (body.durationMs !== undefined && episode.duration_ms === null) {
+      await upsertEpisode(tx, {
+        id: episode.id, feedUrl: episode.feed_url, guid: episode.guid, title: episode.title,
+        enclosureUrl: episode.enclosure_url, durationMs: body.durationMs,
+      });
+    }
+    // M21 US6: the region the server saw now — two letters, never a city (G-I1).
+    const country = countryOf(c.req.header(COUNTRY_HEADER));
+    const row = await createComment(tx, { episodeId, authorId: listener.id, body: body.body, offsetMs: body.offsetMs, parentId: body.parentId, ...(country ? { country } : {}) });
+    if (body.offsetMs !== undefined) await rebuildEpisodeHeat(tx, episodeId);
+    return row;
+  });
   return c.json({ comment: toPublic(created, listener.id) });
 });
 
@@ -70,7 +85,11 @@ commentById.delete('/:id', requireAuth, async (c) => {
   const existing = await getComment(db, id);
   if (!existing || existing.deleted_at !== null) throw new ApiError('not_found', 'No such comment.');
   if (existing.author_id !== listener.id) throw new ApiError('forbidden', 'Only the author can delete a comment.');
-  const result = await deleteCommentInTx(db, id);
+  const result = await db.transaction(async (tx) => {
+    const r = await deleteComment(tx, id);
+    await rebuildEpisodeHeat(tx, r.episodeId);
+    return r;
+  });
   // M19 US6 (FR-045): a voice comment's recording leaves the store with it.
   if (existing.voice_url) { try { await c.get('voice').remove(existing.voice_url); } catch (e) { console.error(c.get('requestId'), 'voice comment remove', e); } }
   // M20 US9 (FR-055, G-M20-8): its image leaves the store with it; a failure is swept by the internal cycle.
@@ -83,7 +102,7 @@ commentById.delete('/:id', requireAuth, async (c) => {
  * count. Your own comment is 403 `own_comment` (guard G-C2); a comment you cannot see is 404.
  */
 commentById.put('/:id/like', requireAuth, async (c) =>
-  c.json(await likeCommentInTx(c.get('db'), c.req.param('id'), c.get('listener')!.id)));
+  c.json(await c.get('db').transaction((tx) => like(tx, c.req.param('id'), c.get('listener')!.id))));
 
 commentById.delete('/:id/like', requireAuth, async (c) =>
   c.json(await unlike(c.get('db'), c.req.param('id'), c.get('listener')!.id)));

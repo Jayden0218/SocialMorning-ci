@@ -12,20 +12,10 @@ on:
       - 'patches/**'
       - '.github/workflows/android-compile.yml'
   workflow_dispatch:
-    inputs:
-      variant:
-        # Lane DP: dev = the second app (app.socialmorning.mobile.dev) that installs beside the
-        # real one; prod (and every push) = exactly the app as before (app.config.js APP_VARIANT).
-        description: 'Which app: prod (the real one) or dev (installs beside it)'
-        type: choice
-        options: [prod, dev]
-        default: prod
 jobs:
   android:
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    env:
-      APP_VARIANT: ${{ inputs.variant == 'dev' && 'dev' || 'prod' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -47,12 +37,6 @@ jobs:
         working-directory: apps/mobile/android
       - name: gradle assembleRelease (JS bundled; signed with the template's debug key)
         run: ./gradlew :app:assembleRelease --no-daemon --stacktrace
-        working-directory: apps/mobile/android
-      # Lane DP: the package the variant asked for is the one prebuild wrote.
-      - name: the package is the variant's
-        run: |
-          want=app.socialmorning.mobile; [ "$APP_VARIANT" = dev ] && want=app.socialmorning.mobile.dev
-          grep -nE "applicationId ['\"]$want['\"]" app/build.gradle
         working-directory: apps/mobile/android
       - name: which key signed it
         run: grep -n "signingConfig" app/build.gradle
@@ -94,6 +78,6 @@ jobs:
         working-directory: apps/mobile/android
       - uses: actions/upload-artifact@v4
         with:
-          name: socialnet-release-apk${{ env.APP_VARIANT == 'dev' && '-dev' || '' }}
+          name: socialnet-release-apk
           path: apps/mobile/android/app/build/outputs/apk/release/app-release.apk
           retention-days: 7

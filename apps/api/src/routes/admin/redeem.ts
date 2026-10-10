@@ -13,7 +13,6 @@ import { adminWrite, auditCtx, type AdminEnv } from '../../auth/admin.ts';
 import { ApiError } from '../../errors.ts';
 import { json } from '../../validate.ts';
 import { MAX_PLUS_DAYS, codeState, createCodes, disableCode, listCodes, newRedeemCode, normalizeCode, paidShows, type Grant } from '../../db/repos/account/redeem.ts';
-import { paidHostedShowRows } from '../../db/repos/admin/admin-users.ts';
 
 const body = z.object({
   kind: z.enum(['plus', 'show']),
@@ -40,7 +39,7 @@ export function registerRedeem(admin: Hono<AdminEnv>): void {
       grant = { kind: 'plus', days: b.days };
     } else {
       if (!b.feedUrl) throw new ApiError('validation', 'Pick a paid show.', { fields: ['feedUrl'] });
-      const [show] = await paidHostedShowRows(db, b.feedUrl);
+      const [show] = await db.query('SELECT 1 FROM hosted_shows WHERE feed_url = $1 AND deleted_at IS NULL AND price_tier IS NOT NULL', [b.feedUrl]);
       if (!show) throw new ApiError('validation', 'That show sells nothing, so a code cannot give it.', { fields: ['feedUrl'] });
       grant = { kind: 'show', feedUrl: b.feedUrl };
     }

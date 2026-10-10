@@ -45,10 +45,6 @@ export function purchaseRequest(productId: string, o: { offerToken?: string; pro
   return { type: 'in-app', request: { google: { skus: [productId], ...(o.profileId ? { obfuscatedProfileId: o.profileId } : {}) } } };
 }
 
-/**
- * Purchases can be made here: an Android phone, a build with the store module, and the server connected to Google.
- * Lane DP: never in the dev app (`variant: 'dev'`, app.config.js) — it shows Wallet's "not available" state,
- * so no real money moves from a test build.
- */
-export const canBuy = (o: { platform: string; native: boolean; serverReady: boolean; teen: boolean; variant?: 'dev' | 'prod' }): boolean =>
-  o.platform === 'android' && o.native && o.serverReady && !o.teen && o.variant !== 'dev';
+/** Purchases can be made here: an Android phone, a build with the store module, and the server connected to Google. */
+export const canBuy = (o: { platform: string; native: boolean; serverReady: boolean; teen: boolean }): boolean =>
+  o.platform === 'android' && o.native && o.serverReady && !o.teen;

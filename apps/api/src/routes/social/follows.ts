@@ -3,16 +3,15 @@ import { Hono } from 'hono';
 import type { AuthEnv } from '../../auth/session.ts';
 import { optionalAuth, requireAuth } from '../../auth/session.ts';
 import { ApiError } from '../../errors.ts';
-import { followers, following, unfollow } from '../../db/repos/social/follows.ts';
-import { followInTx, recentFollowRows } from '../../db/repos/social/rate-floors.ts';
+import { follow, followers, following, unfollow } from '../../db/repos/social/follows.ts';
 
 /** Mounted at /v1/listeners — PUT/DELETE /:id/follow, GET /:id/followers, GET /:id/following. */
 export const follows = new Hono<AuthEnv>();
 
 follows.put('/:id/follow', requireAuth, async (c) => {
-  const recent = await recentFollowRows(c.get('db'), c.get('listener')!.id);
+  const recent = await c.get('db').query<{ n: number }>(`SELECT count(*)::int AS n FROM follows WHERE follower_id = $1 AND created_at > now() - interval '1 minute'`, [c.get('listener')!.id]);
   if (Number(recent[0]?.n ?? 0) >= 60) throw new ApiError('locked', 'Too many follows in a minute.', { retryAfterSeconds: 60 });
-  const r = await followInTx(c.get('db'), c.get('listener')!.id, c.req.param('id'));
+  const r = await c.get('db').transaction((tx) => follow(tx, c.get('listener')!.id, c.req.param('id')));
   if (r === 'self') throw new ApiError('self_follow', "You can't follow yourself.");
   if (r === 'no_such_listener') throw new ApiError('not_found', 'No such listener.');
   if (r === 'blocked') throw new ApiError('blocked', "You can't interact with this listener.");
