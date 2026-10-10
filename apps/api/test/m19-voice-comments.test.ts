@@ -7,6 +7,8 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { backdateComments, commentMedia, setCommentFlags } from './sc-neutral.ts';
+import { putEpisode } from './put-episode.ts';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 import type { VoiceStorage } from '../src/storage/voice-blob.ts';
 
@@ -37,7 +39,7 @@ test('G-M19-7: a 10 s voice comment posts at its moment and plays for others; ov
   const t = await freshDb({ voiceStorage: f.store });
   const a = await signUp(t, 'a@example.com', 'Alex');
   const b = await signUp(t, 'b@example.com', 'Bo');
-  await t.q("INSERT INTO episodes (id, feed_url, guid, title, show_title, enclosure_url) VALUES ('e1','https://f/x.xml','g','Ep','Show','https://c/x.mp3')");
+  await putEpisode(t, 'e1', { feedUrl: 'https://f/x.xml', guid: 'g', title: 'Ep', showTitle: 'Show', enclosureUrl: 'https://c/x.mp3' });
   const r = await post(t, a.token, m4a(10_000));
   assert.equal(r.status, 201, await r.clone().text());
   const made = ((await r.json()) as { comment: { id: string; offsetMs: number; voice: { url: string; ms: number } } }).comment;
@@ -48,7 +50,7 @@ test('G-M19-7: a 10 s voice comment posts at its moment and plays for others; ov
   assert.equal(seen.find((c) => c.id === made.id)!.voice!.url, made.voice.url);
 
   // the header lies; the server measures 75 s
-  await t.q("UPDATE comments SET created_at = now() - interval '1 minute'");
+  await backdateComments(t, 60_000, { fromNow: true });
   const long = await post(t, a.token, m4a(75_000), { 'x-duration-ms': '30000' });
   assert.equal(long.status, 422);
   assert.equal(f.puts.length, 1, 'nothing stored for the refused one');
@@ -59,17 +61,16 @@ test('G-M19-7: deleting a voice comment removes its file; a removed one is swept
   const f = fakeStore();
   const t = await freshDb({ voiceStorage: f.store, jobToken: 'job-token-not-secret' });
   const a = await signUp(t);
-  await t.q("INSERT INTO episodes (id, feed_url, guid, title, show_title, enclosure_url) VALUES ('e1','https://f/x.xml','g','Ep','Show','https://c/x.mp3')");
+  await putEpisode(t, 'e1', { feedUrl: 'https://f/x.xml', guid: 'g', title: 'Ep', showTitle: 'Show', enclosureUrl: 'https://c/x.mp3' });
   const one = ((await (await post(t, a.token, m4a(5_000))).json()) as { comment: { id: string; voice: { url: string } } }).comment;
   assert.equal((await t.call('DELETE', `/v1/comments/${one.id}`, undefined, a.token)).status, 200);
   assert.deepEqual(f.removed, [one.voice.url]);
 
-  await t.q("UPDATE comments SET created_at = now() - interval '1 minute'");
+  await backdateComments(t, 60_000, { fromNow: true });
   const two = ((await (await post(t, a.token, m4a(5_000))).json()) as { comment: { id: string; voice: { url: string } } }).comment;
-  await t.q('UPDATE comments SET removed_at = now() WHERE id = $1', [two.id]);
+  await setCommentFlags(t, two.id, { removed: true });
   await t.call('POST', '/v1/internal/rebuild', { step: 'sweep' }, undefined, { authorization: 'Bearer job-token-not-secret' });
   assert.ok(f.removed.includes(two.voice.url), 'the sweep deleted the removed one');
-  const [row] = await t.q<{ voice_url: string | null }>('SELECT voice_url FROM comments WHERE id = $1', [two.id]);
-  assert.equal(row!.voice_url, null);
+  assert.equal((await commentMedia(t, two.id)).voice_url, null);
   await t.close();
 });

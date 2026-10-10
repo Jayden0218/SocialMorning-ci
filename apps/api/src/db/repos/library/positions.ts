@@ -1,6 +1,7 @@
 // Stores and merges playback positions sent from each device.
 import { mergePosition, type PositionObs } from '@socialmorning/social-core';
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 
 export type PositionRow = {
   episode_id: string;
@@ -42,7 +43,7 @@ const COLS = 'episode_id, offset_ms, finished, progress_seq, explicit_seek, devi
  * stored row, using the SERVER's clock as `receivedAt`. Writes only when the incoming
  * observation wins. Returns the row that now stands.
  */
-export async function observePosition(
+async function observePositionPg(
   db: Db,
   listenerId: string,
   deviceId: string,
@@ -76,7 +77,7 @@ export async function observePosition(
   return existing;
 }
 
-export async function listPositions(db: Db, listenerId: string, since?: Date): Promise<PositionRow[]> {
+async function listPositionsPg(db: Db, listenerId: string, since?: Date): Promise<PositionRow[]> {
   return db.query<PositionRow>(
     `SELECT ${COLS} FROM positions WHERE listener_id = $1 AND ($2::timestamptz IS NULL OR received_at > $2) ORDER BY received_at DESC`,
     [listenerId, since ?? null],
@@ -84,12 +85,12 @@ export async function listPositions(db: Db, listenerId: string, since?: Date): P
 }
 
 /** Which of these episode ids the server knows. */
-export async function knownEpisodeIds(db: Db, ids: string[]): Promise<{ id: string }[]> {
+async function knownEpisodeIdsPg(db: Db, ids: string[]): Promise<{ id: string }[]> {
   return db.query<{ id: string }>('SELECT id FROM episodes WHERE id = ANY($1::text[])', [ids]);
 }
 
 /** Merges every observation in one transaction, in order; returns the rows that now stand. */
-export async function observePositions(
+async function observePositionsPg(
   db: Db,
   listenerId: string,
   deviceId: string,
@@ -104,11 +105,19 @@ export async function observePositions(
 }
 
 /** Removes every saved position of the listener (history clear; listened ranges stay). */
-export async function deleteAllPositions(db: Db, listenerId: string): Promise<void> {
+async function deleteAllPositionsPg(db: Db, listenerId: string): Promise<void> {
   await db.query('DELETE FROM positions WHERE listener_id = $1', [listenerId]);
 }
 
 /** Removes the listener's saved positions for these episodes. */
-export async function deletePositionsFor(db: Db, listenerId: string, episodeIds: string[]): Promise<void> {
+async function deletePositionsForPg(db: Db, listenerId: string, episodeIds: string[]): Promise<void> {
   await db.query('DELETE FROM positions WHERE listener_id = $1 AND episode_id = ANY($2::text[])', [listenerId, episodeIds]);
 }
+
+// M26 lane LB: each function runs on Postgres, or on DynamoDB (`ddb/` bodies) when the Db carries a Store (db/backend.ts).
+export const observePosition = dual('lb/positions', 'observePosition', observePositionPg);
+export const listPositions = dual('lb/positions', 'listPositions', listPositionsPg);
+export const knownEpisodeIds = dual('lb/positions', 'knownEpisodeIds', knownEpisodeIdsPg);
+export const observePositions = dual('lb/positions', 'observePositions', observePositionsPg);
+export const deleteAllPositions = dual('lb/positions', 'deleteAllPositions', deleteAllPositionsPg);
+export const deletePositionsFor = dual('lb/positions', 'deletePositionsFor', deletePositionsForPg);

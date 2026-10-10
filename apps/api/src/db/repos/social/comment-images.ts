@@ -7,12 +7,13 @@
  * still sees it.
  */
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 import type { ImageStorage } from '../../../storage/image-store.ts';
 
 export const IMAGE_SWEEP_BATCH = 100;
 
 /** Removed or deleted comments still holding an image: delete each file, then forget it. */
-export async function sweepRemovedImages(db: Db, store: ImageStorage): Promise<{ deleted: number; failed: number }> {
+async function sweepRemovedImagesPg(db: Db, store: ImageStorage): Promise<{ deleted: number; failed: number }> {
   if (!store.ready) return { deleted: 0, failed: 0 };
   const rows = await db.query<{ id: string; image_path: string }>(
     `SELECT id, image_path FROM comments WHERE image_path IS NOT NULL AND (removed_at IS NOT NULL OR deleted_at IS NOT NULL) LIMIT ${IMAGE_SWEEP_BATCH}`,
@@ -21,7 +22,7 @@ export async function sweepRemovedImages(db: Db, store: ImageStorage): Promise<{
 }
 
 /** Every image this listener added, before their account is deleted. */
-export async function removeImagesFor(db: Db, store: ImageStorage, listenerId: string): Promise<{ deleted: number; failed: number }> {
+async function removeImagesForPg(db: Db, store: ImageStorage, listenerId: string): Promise<{ deleted: number; failed: number }> {
   if (!store.ready) return { deleted: 0, failed: 0 };
   const rows = await db.query<{ id: string; image_path: string }>('SELECT id, image_path FROM comments WHERE author_id = $1 AND image_path IS NOT NULL', [listenerId]);
   const done = await forget(db, store, rows);
@@ -45,3 +46,7 @@ async function forget(db: Db, store: ImageStorage, rows: { id: string; image_pat
   }
   return { deleted, failed };
 }
+
+// M26 lane SC: each function runs on Postgres, or on DynamoDB (`ddb/comment-images.ts`) when the Db carries a Store (db/backend.ts).
+export const sweepRemovedImages = dual('sc/comment-images', 'sweepRemovedImages', sweepRemovedImagesPg);
+export const removeImagesFor = dual('sc/comment-images', 'removeImagesFor', removeImagesForPg);

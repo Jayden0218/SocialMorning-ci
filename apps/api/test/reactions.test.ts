@@ -2,6 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
+import { countOf, heatRows as heatRowsOf } from './sc-neutral.ts';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
 
@@ -9,7 +10,7 @@ const ep = { feedUrl: 'https://feeds.example.com/x.xml', guid: 'g189', title: '#
 const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
 const D = 2_899_000;
 
-const heatRows = (t: TestDb) => t.q<{ bucket: number; distinct_listeners: number }>('SELECT bucket, distinct_listeners FROM episode_heat WHERE episode_id = $1 ORDER BY bucket', [EP]);
+const heatRows = (t: TestDb) => heatRowsOf(t, `${EP}`);
 
 // quickstart A9 + the toggle (Q2)
 test('A9: reacting 20 times at one moment is one row; the 21st (a toggle) removes it', async () => {
@@ -21,12 +22,11 @@ test('A9: reacting 20 times at one moment is one row; the 21st (a toggle) remove
     last = (await (await t.call('PUT', `/v1/episodes/${EP}/reactions`, { offsetMs: 180_000 + i * 7 }, a.token)).json()) as typeof last;
   }
   // 20 toggles = even → absent; the rows tell the truth regardless of the arithmetic.
-  const rows = await t.q('SELECT * FROM reactions');
-  assert.equal(rows.length, 0);
+  assert.equal(await countOf(t, 'reactions'), 0);
   assert.deepEqual(await heatRows(t), []);
   const on = (await (await t.call('PUT', `/v1/episodes/${EP}/reactions`, { offsetMs: 180_000 }, a.token)).json()) as { reacted: boolean; bucket: number };
   assert.deepEqual(on, { reacted: true, bucket: 6 });
-  assert.equal((await t.q('SELECT * FROM reactions')).length, 1);
+  assert.equal(await countOf(t, 'reactions'), 1);
   assert.deepEqual(await heatRows(t), [{ bucket: 6, distinct_listeners: 1 }]);
   const off = (await (await t.call('PUT', `/v1/episodes/${EP}/reactions`, { offsetMs: 180_500 }, a.token)).json()) as { reacted: boolean };
   assert.equal(off.reacted, false, 'same segment → toggled off');

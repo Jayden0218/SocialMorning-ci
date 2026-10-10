@@ -17,6 +17,7 @@ import { rebuildEpisodeHeat } from '../../../heat/rebuild.ts';
 import { countryOf } from '../account/country.ts';
 import { initialsOf } from '../social/comment-likes.ts';
 import { createComment, type PublicComment } from '../social/comments.ts';
+import { setCommentImage } from '../social/comment-writes.ts';
 import type { ImageStorage } from '../../../storage/image-store.ts';
 
 export type CommentMode = 'open' | 'closed' | 'review';
@@ -182,8 +183,8 @@ export async function approveHeld(db: Db, feedUrl: string, id: string): Promise<
     });
     // Fix F-S: the picture added while it waited moves with it (the file stays where it is).
     if (h.image_path) {
-      await tx.query('UPDATE comments SET image_url = $2, image_path = $3, image_w = $4, image_h = $5, image_bytes = $6 WHERE id = $1',
-        [created.id, h.image_url, h.image_path, h.image_w, h.image_h, h.image_bytes]);
+      // M26 lane SC: through the comment lane's repo, so it reaches the comment wherever it lives (same SQL on Postgres).
+      await setCommentImage(tx, created.id, String(h.image_url), String(h.image_path), Number(h.image_w), Number(h.image_h), Number(h.image_bytes));
     }
     if (h.offset_ms !== null) await rebuildEpisodeHeat(tx, h.episode_id);
     return { commentId: created.id };

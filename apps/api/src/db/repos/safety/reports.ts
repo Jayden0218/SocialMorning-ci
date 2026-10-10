@@ -5,6 +5,7 @@
  */
 import { closeReason, hiddenKey, type TargetKind } from '@socialmorning/social-core';
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 
 export type Snapshot = Record<string, unknown>;
 
@@ -15,7 +16,7 @@ export type TranscriptDetail = { episodeId: string; offsetMs: number; original: 
 export const transcriptTargetId = (episodeId: string, offsetMs: number): string => `${episodeId}#${offsetMs}`;
 
 /** The target as it is now: what to copy, who wrote it, whether it is already gone. */
-export async function snapshotTarget(db: Db, kind: TargetKind, id: string, detail?: TranscriptDetail): Promise<{ snapshot: Snapshot; authorId: string | null; gone: boolean }> {
+async function snapshotTargetPg(db: Db, kind: TargetKind, id: string, detail?: TranscriptDetail): Promise<{ snapshot: Snapshot; authorId: string | null; gone: boolean }> {
   switch (kind) {
     // M21 US2: an episode, or one line of its transcript — the copy names the episode and its show.
     case 'episode':
@@ -95,10 +96,10 @@ export const CHAT_CONTEXT = 5;
 
 export type CreateResult = { id: string; duplicate: boolean; closed?: 'already_gone' };
 
-export async function createReport(
+async function createReportPg(
   db: Db, r: { kind: TargetKind; targetId: string; reporterId: string; reason: string; note?: string; detail?: TranscriptDetail },
 ): Promise<CreateResult> {
-  const { snapshot, gone } = await snapshotTarget(db, r.kind, r.targetId, r.detail);
+  const { snapshot, gone } = await snapshotTargetPg(db, r.kind, r.targetId, r.detail);
   const close = closeReason(gone, false);
   const rows = await db.query<{ id: string; inserted: boolean }>(
     `INSERT INTO reports (target_kind, target_id, reporter_id, reason, note, snapshot, closed_at, close_reason, detail)
@@ -111,7 +112,7 @@ export async function createReport(
   return { id: row.id, duplicate: !row.inserted, ...(close === 'already_gone' ? { closed: 'already_gone' as const } : {}) };
 }
 
-export async function reportsInLastHour(db: Db, reporterId: string): Promise<number> {
+async function reportsInLastHourPg(db: Db, reporterId: string): Promise<number> {
   const [r] = await db.query<{ n: number }>("SELECT count(*)::int AS n FROM reports WHERE reporter_id = $1 AND created_at > now() - interval '1 hour'", [reporterId]);
   return Number(r?.n ?? 0);
 }
@@ -120,7 +121,7 @@ export async function reportsInLastHour(db: Db, reporterId: string): Promise<num
  * The keys the viewer reported (comment/clip/profile ids, show feed URLs) — hidden for them whatever the owner decides (FR-002).
  * M21 US2: a transcript correction hides nothing, so it is left out.
  */
-export async function hiddenFor(db: Db, viewerId: string): Promise<{ keys: Set<string>; reported: { kind: TargetKind; id: string }[] }> {
+async function hiddenForPg(db: Db, viewerId: string): Promise<{ keys: Set<string>; reported: { kind: TargetKind; id: string }[] }> {
   const rows = await db.query<{ target_kind: TargetKind; target_id: string }>("SELECT target_kind, target_id FROM reports WHERE reporter_id = $1 AND target_kind <> 'transcript'", [viewerId]);
   return { keys: new Set(rows.map((r) => hiddenKey(r.target_kind, r.target_id))), reported: rows.map((r) => ({ kind: r.target_kind, id: r.target_id })) };
 }
@@ -130,14 +131,14 @@ export type QueueRow = {
   reason: string; note: string | null; snapshot: unknown; created_at: string; closed_at: string | null; close_reason: string | null;
 };
 
-export async function openReports(db: Db): Promise<QueueRow[]> {
+async function openReportsPg(db: Db): Promise<QueueRow[]> {
   return db.query<QueueRow>(
     `SELECT r.id, r.target_kind, r.target_id, r.reporter_id, l.display_name, r.reason, r.note, r.snapshot, r.created_at, r.closed_at, r.close_reason
      FROM reports r LEFT JOIN listeners l ON l.id = r.reporter_id WHERE r.closed_at IS NULL ORDER BY r.created_at DESC`,
   );
 }
 
-export async function closedReports(db: Db, days: number): Promise<QueueRow[]> {
+async function closedReportsPg(db: Db, days: number): Promise<QueueRow[]> {
   return db.query<QueueRow>(
     `SELECT r.id, r.target_kind, r.target_id, r.reporter_id, l.display_name, r.reason, r.note, r.snapshot, r.created_at, r.closed_at, r.close_reason
      FROM reports r LEFT JOIN listeners l ON l.id = r.reporter_id
@@ -145,7 +146,7 @@ export async function closedReports(db: Db, days: number): Promise<QueueRow[]> {
   );
 }
 
-export async function closeReportsFor(db: Db, kind: TargetKind, targetId: string, actionId: string | null, reason: string): Promise<number> {
+async function closeReportsForPg(db: Db, kind: TargetKind, targetId: string, actionId: string | null, reason: string): Promise<number> {
   const rows = await db.query<{ id: string }>(
     'UPDATE reports SET closed_at = now(), closed_by = $3, close_reason = $4 WHERE target_kind = $1 AND target_id = $2 AND closed_at IS NULL RETURNING id',
     [kind, targetId, actionId, reason],
@@ -154,7 +155,7 @@ export async function closeReportsFor(db: Db, kind: TargetKind, targetId: string
 }
 
 /** FR-016: closed reports (and their copies) are kept for `days` days, then deleted. */
-export async function purgeClosedOlderThan(db: Db, days: number): Promise<number> {
+async function purgeClosedOlderThanPg(db: Db, days: number): Promise<number> {
   const rows = await db.query<{ id: string }>("DELETE FROM reports WHERE closed_at IS NOT NULL AND closed_at < now() - ($1 || ' days')::interval RETURNING id", [String(days)]);
   return rows.length;
 }
@@ -163,7 +164,7 @@ export async function purgeClosedOlderThan(db: Db, days: number): Promise<number
 export type TranscriptReport = { id: string; episodeId: string; episodeTitle: string; offsetMs: number; original: string; suggested: string; createdAt: string; status: 'open' | 'done' };
 
 /** Every transcript report on this feed's episodes, open first, newest first within each. */
-export async function transcriptReportsForFeed(db: Db, feedUrl: string): Promise<TranscriptReport[]> {
+async function transcriptReportsForFeedPg(db: Db, feedUrl: string): Promise<TranscriptReport[]> {
   const rows = await db.query<{ id: string; detail: TranscriptDetail; title: string; created_at: string; closed_at: string | null }>(
     `SELECT r.id, r.detail, e.title, r.created_at, r.closed_at
        FROM reports r JOIN episodes e ON e.id = r.detail->>'episodeId'
@@ -179,7 +180,7 @@ export async function transcriptReportsForFeed(db: Db, feedUrl: string): Promise
 }
 
 /** The feed a transcript report belongs to (to check the caller hosts it), or null. */
-export async function transcriptReportFeed(db: Db, id: string): Promise<string | null> {
+async function transcriptReportFeedPg(db: Db, id: string): Promise<string | null> {
   const [r] = await db.query<{ feed_url: string }>(
     `SELECT e.feed_url FROM reports r JOIN episodes e ON e.id = r.detail->>'episodeId' WHERE r.id = $1 AND r.target_kind = 'transcript'`, [id],
   );
@@ -187,6 +188,19 @@ export async function transcriptReportFeed(db: Db, id: string): Promise<string |
 }
 
 /** The host marks a transcript report done: it closes like any report, with the reason 'done'. */
-export async function markTranscriptReportDone(db: Db, id: string): Promise<void> {
+async function markTranscriptReportDonePg(db: Db, id: string): Promise<void> {
   await db.query("UPDATE reports SET closed_at = now(), close_reason = 'done' WHERE id = $1 AND target_kind = 'transcript' AND closed_at IS NULL", [id]);
 }
+
+// M26 lane SF: each runs on Postgres, or on DynamoDB (ddb/reports.ts) when the Db carries a Store (db/backend.ts).
+export const snapshotTarget = dual('sf/reports', 'snapshotTarget', snapshotTargetPg);
+export const createReport = dual('sf/reports', 'createReport', createReportPg);
+export const reportsInLastHour = dual('sf/reports', 'reportsInLastHour', reportsInLastHourPg);
+export const hiddenFor = dual('sf/reports', 'hiddenFor', hiddenForPg);
+export const openReports = dual('sf/reports', 'openReports', openReportsPg);
+export const closedReports = dual('sf/reports', 'closedReports', closedReportsPg);
+export const closeReportsFor = dual('sf/reports', 'closeReportsFor', closeReportsForPg);
+export const purgeClosedOlderThan = dual('sf/reports', 'purgeClosedOlderThan', purgeClosedOlderThanPg);
+export const transcriptReportsForFeed = dual('sf/reports', 'transcriptReportsForFeed', transcriptReportsForFeedPg);
+export const transcriptReportFeed = dual('sf/reports', 'transcriptReportFeed', transcriptReportFeedPg);
+export const markTranscriptReportDone = dual('sf/reports', 'markTranscriptReportDone', markTranscriptReportDonePg);

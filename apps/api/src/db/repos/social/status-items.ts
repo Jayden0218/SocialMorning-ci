@@ -13,6 +13,7 @@
  * before the status (G-M22-2) and then the row.
  */
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 import type { ImageStorage } from '../../../storage/image-store.ts';
 
 export const STATUS_ITEMS_MAX = 10;
@@ -52,12 +53,12 @@ export function itemsFromHeader(header: string | undefined): StatusItemIn[] {
 }
 
 /** Bytes the image store holds for status photos (added to comment images for the ceiling). */
-export async function statusPhotoBytes(db: Db): Promise<number> {
+async function statusPhotoBytesPg(db: Db): Promise<number> {
   const [r] = await db.query<{ n: string | number | null }>(`SELECT coalesce(sum((body->>'bytes')::bigint), 0) AS n FROM cache WHERE key LIKE '${PREFIX}%'`);
   return Number(r?.n ?? 0);
 }
 
-export async function recordUpload(db: Db, p: { pathname: string; url: string; bytes: number; listenerId: string }): Promise<void> {
+async function recordUploadPg(db: Db, p: { pathname: string; url: string; bytes: number; listenerId: string }): Promise<void> {
   await db.query(
     'INSERT INTO cache (key, body, fetched_at) VALUES ($1, $2::text::jsonb, now()) ON CONFLICT (key) DO UPDATE SET body = EXCLUDED.body, fetched_at = now()',
     [PREFIX + p.pathname, JSON.stringify({ url: p.url, bytes: p.bytes, listenerId: p.listenerId })],
@@ -68,7 +69,7 @@ export async function recordUpload(db: Db, p: { pathname: string; url: string; b
  * Checks every item and writes them for a new status, in order. An episode must be known; a photo
  * must be this listener's own upload, not yet on another status.
  */
-export async function insertItems(db: Db, postId: string, listenerId: string, items: readonly StatusItemIn[]): Promise<void> {
+async function insertItemsPg(db: Db, postId: string, listenerId: string, items: readonly StatusItemIn[]): Promise<void> {
   if (items.length > STATUS_ITEMS_MAX) throw new ItemsError('too_many_items', `Up to ${STATUS_ITEMS_MAX} items.`);
   for (let i = 0; i < items.length; i++) {
     const it = items[i]!;
@@ -87,7 +88,7 @@ export async function insertItems(db: Db, postId: string, listenerId: string, it
 }
 
 /** Items per post, in order; an episode card carries what the phone needs to show and play it. */
-export async function itemsFor(db: Db, postIds: readonly string[]): Promise<Map<string, StatusItem[]>> {
+async function itemsForPg(db: Db, postIds: readonly string[]): Promise<Map<string, StatusItem[]>> {
   const out = new Map<string, StatusItem[]>();
   if (postIds.length === 0) return out;
   const rows = await db.query<{ post_id: string; kind: 'episode' | 'photo'; episode_id: string | null; image_url: string | null; title: string | null; show_title: string | null; e_image: string | null; feed_url: string | null; enclosure_url: string | null; duration_ms: number | null }>(
@@ -113,14 +114,14 @@ export async function itemsFor(db: Db, postIds: readonly string[]): Promise<Map<
 }
 
 /** The photo files on these posts (image store pathnames). */
-export async function photosOf(db: Db, postIds: readonly string[]): Promise<string[]> {
+async function photosOfPg(db: Db, postIds: readonly string[]): Promise<string[]> {
   if (postIds.length === 0) return [];
   const rows = await db.query<{ image_key: string }>("SELECT image_key FROM status_items WHERE post_id = ANY($1::uuid[]) AND kind = 'photo' AND image_key IS NOT NULL", [postIds]);
   return rows.map((r) => r.image_key);
 }
 
 /** One photo leaves the store, then its rows. Throws when the store is not connected or the delete fails. */
-export async function removePhoto(db: Db, images: ImageStorage | undefined, pathname: string): Promise<void> {
+async function removePhotoPg(db: Db, images: ImageStorage | undefined, pathname: string): Promise<void> {
   if (!images?.ready) throw new Error('image store not connected');
   await images.remove(pathname);
   await db.query("DELETE FROM status_items WHERE kind = 'photo' AND image_key = $1", [pathname]);
@@ -128,7 +129,7 @@ export async function removePhoto(db: Db, images: ImageStorage | undefined, path
 }
 
 /** Photos uploaded more than 2 hours ago and never posted. */
-export async function sweepOrphanPhotos(db: Db, images: ImageStorage | undefined, limit = 100): Promise<{ deleted: number; failed: number }> {
+async function sweepOrphanPhotosPg(db: Db, images: ImageStorage | undefined, limit = 100): Promise<{ deleted: number; failed: number }> {
   if (!images?.ready) return { deleted: 0, failed: 0 };
   const rows = await db.query<{ key: string }>(
     `SELECT key FROM cache WHERE key LIKE '${PREFIX}%' AND NOT (body ? 'postId') AND fetched_at < now() - ($1::int * interval '1 millisecond') LIMIT $2`,
@@ -141,3 +142,12 @@ export async function sweepOrphanPhotos(db: Db, images: ImageStorage | undefined
   }
   return { deleted, failed };
 }
+
+// M26 lane SC: each function runs on Postgres, or on DynamoDB (`ddb/status-items.ts`) when the Db carries a Store (db/backend.ts).
+export const statusPhotoBytes = dual('sc/status-items', 'statusPhotoBytes', statusPhotoBytesPg);
+export const recordUpload = dual('sc/status-items', 'recordUpload', recordUploadPg);
+export const insertItems = dual('sc/status-items', 'insertItems', insertItemsPg);
+export const itemsFor = dual('sc/status-items', 'itemsFor', itemsForPg);
+export const photosOf = dual('sc/status-items', 'photosOf', photosOfPg);
+export const removePhoto = dual('sc/status-items', 'removePhoto', removePhotoPg);
+export const sweepOrphanPhotos = dual('sc/status-items', 'sweepOrphanPhotos', sweepOrphanPhotosPg);

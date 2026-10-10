@@ -16,13 +16,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
+import { backdateComments } from './sc-neutral.ts';
 import { freshDb, signUp, type TestDb } from './harness.ts';
+import { entitlementRows } from './pd-neutral.ts';
 import { putEpisode } from './put-episode.ts';
 import { proveClaim, sCall, studioLogin } from './studio-harness.ts';
 import type { GooglePlay } from '../src/billing/google-play.ts';
 import type { ImageStorage } from '../src/storage/image-store.ts';
 import { applyVoided, plusRun } from '../src/db/repos/account/purchases.ts';
 import { createCodes } from '../src/db/repos/account/redeem.ts';
+import { sessionCount } from './ac-neutral.ts';
 
 const DAY = 86_400_000;
 const daysAway = (iso: string | null | undefined) => (Date.parse(iso ?? '') - Date.now()) / DAY;
@@ -74,9 +77,9 @@ test('G-M24-FS-1: code PLUS days live apart from the store — a store refund ke
   assert.equal((await t.call('POST', '/v1/me/purchases/google', { productId: 'plus_monthly', purchaseToken: 'tok-b' }, b.token)).status, 200);
   assert.equal((await t.call('POST', '/v1/me/redeem', { code: c2 }, b.token)).status, 200);
   assert.equal((await applyVoided(t.db, [{ purchaseToken: 'tok-b', voidedAt: Date.now() }])).withdrawn, 1);
-  const [code] = await t.q<{ starts_at: string; until: string }>("SELECT starts_at, until FROM entitlements WHERE listener_id = $1 AND kind = 'plus' AND ref LIKE 'code:%'", [b.id]);
-  assert.equal(Math.round((Date.parse(new Date(code!.until).toISOString()) - Date.parse(new Date(code!.starts_at).toISOString())) / DAY), 30, 'the code keeps its own 30 days');
-  assert.equal((await t.q("SELECT 1 FROM entitlements WHERE listener_id = $1 AND kind = 'plus' AND ref = ''", [b.id])).length, 0, 'the store row is gone');
+  const [code] = await entitlementRows(t, { listenerId: b.id, kind: 'plus', refPrefix: 'code:' });
+  assert.equal(Math.round((Date.parse(new Date(code!.until!).toISOString()) - Date.parse(new Date(code!.starts_at!).toISOString())) / DAY), 30, 'the code keeps its own 30 days');
+  assert.equal((await entitlementRows(t, { listenerId: b.id, kind: 'plus', ref: '' })).length, 0, 'the store row is gone');
   const bm = await me(t, b.token);
   assert.deepEqual([bm.listener.plus, bm.listener.plusUntil], [false, null], 'no PLUS until the code\'s interval begins (the gap)');
   await t.close();
@@ -108,7 +111,8 @@ test('G-M24-FS-3: a renewal past a waiting code pushes it after the new end, kee
   const codes = await createCodes(t.db, { grant: { kind: 'plus', days: 30 }, count: 3, maxUses: 1, note: '', expiresAt: null, createdBy: a.id });
   // A started code (redeemed before any store sub): [now, now + 30 d].
   assert.equal((await t.call('POST', '/v1/me/redeem', { code: codes[0] }, a.token)).status, 200);
-  const started = await t.q("SELECT starts_at, until FROM entitlements WHERE listener_id = $1 AND ref = $2", [a.id, `code:${codes[0]}`]);
+  const startedRows = async () => (await entitlementRows(t, { listenerId: a.id, ref: `code:${codes[0]}` })).map((r) => ({ starts_at: r.starts_at, until: r.until }));
+  const started = await startedRows();
   // A store sub, then two codes waiting after it: [365, 395] and [395, 425].
   assert.equal((await t.call('POST', '/v1/me/purchases/google', { productId: 'plus_monthly', purchaseToken: 'tok-plus' }, a.token)).status, 200);
   for (const code of codes.slice(1)) assert.equal((await t.call('POST', '/v1/me/redeem', { code }, a.token)).status, 200);
@@ -116,12 +120,11 @@ test('G-M24-FS-3: a renewal past a waiting code pushes it after the new end, kee
   // The renewal: +30 days.
   state.expiresAt = new Date(Date.now() + 395 * DAY).toISOString();
   assert.equal((await t.call('POST', '/v1/me/purchases/google', { productId: 'plus_monthly', purchaseToken: 'tok-plus' }, a.token)).status, 200);
-  const waiting = (await t.q<{ starts_at: string; until: string }>(
-    "SELECT starts_at, until FROM entitlements WHERE listener_id = $1 AND ref = ANY($2::text[]) ORDER BY starts_at", [a.id, codes.slice(1).map((c) => `code:${c}`)]))
-    .map((r) => [new Date(r.starts_at).toISOString(), Math.round((new Date(r.until).getTime() - new Date(r.starts_at).getTime()) / DAY)]);
+  const waiting = (await entitlementRows(t, { listenerId: a.id, refs: codes.slice(1).map((c) => `code:${c}`) }))
+    .map((r) => [new Date(r.starts_at!).toISOString(), Math.round((new Date(r.until!).getTime() - new Date(r.starts_at!).getTime()) / DAY)]);
   const second = new Date(Date.parse(state.expiresAt) + 30 * DAY).toISOString();
   assert.deepEqual(waiting, [[state.expiresAt, 30], [second, 30]], 'the first waiting code starts at the new end, the next follows; each keeps 30 days');
-  assert.deepEqual(await t.q("SELECT starts_at, until FROM entitlements WHERE listener_id = $1 AND ref = $2", [a.id, `code:${codes[0]}`]), started, 'the started code is untouched');
+  assert.deepEqual(await startedRows(), started, 'the started code is untouched');
   assert.ok(Math.abs(daysAway((await me(t, a.token)).listener.plusUntil) - 455) < 0.1, 'no gap, no overlap: 395 + 30 + 30');
   await t.close();
 });
@@ -157,7 +160,7 @@ test('G-M24-FS-2: a new sign-in email signs out every other session; this one st
   assert.equal((await t.call('GET', '/v1/me', undefined, otherToken)).status, 401, 'the other phone is signed out');
   assert.equal((await t.call('GET', '/v1/me', undefined, third)).status, 401);
   assert.equal((await t.call('GET', '/v1/me', undefined, b.token)).status, 200, 'another account keeps its session');
-  assert.equal((await t.q('SELECT 1 FROM sessions s JOIN listeners l ON l.id = s.listener_id WHERE l.email = $1', ['new@example.com'])).length, 1);
+  assert.equal(await sessionCount(t, a.id), 1, 'one session left for the account now signing in as new@example.com');
   await t.close();
 });
 
@@ -185,7 +188,7 @@ test('a comment held for review takes a picture from its author; Approve moves i
   const hold = async (body: string) => {
     // Past the 5 s floor on both tables (an approved comment counts as just posted).
     await t.q("UPDATE held_comments SET created_at = created_at - interval '10 seconds'");
-    await t.q("UPDATE comments SET created_at = created_at - interval '10 seconds'");
+    await backdateComments(t, 10_000);
     const r = await t.call('POST', `/v1/episodes/${EP}/comments`, { body }, mei.token);
     return ((await r.json()) as { held: boolean; comment: { id: string } }).comment.id;
   };

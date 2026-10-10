@@ -36,6 +36,8 @@ export const aCall = (t: TestDb, method: string, path: string, who?: StudioUser,
   sCall(t, method, path, who, body, extra);
 
 export async function auditRows(t: TestDb) {
+  // M26 lane SF: on DynamoDB the record is AUDIT# items (test/sf-neutral.ts).
+  if (t.store) return (await import('./sf-neutral.ts')).auditRowsNeutral(t);
   return t.q<{ id: string; admin_id: string; acting_as: string | null; area: string; action: string; target: string; before_type: string | null; after_type: string | null }>(
     'SELECT id::text, admin_id, acting_as, area, action, target, jsonb_typeof(before) AS before_type, jsonb_typeof(after) AS after_type FROM admin_audit ORDER BY id');
 }

@@ -7,6 +7,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
+import { countOf, setClipTime } from './sc-neutral.ts';
 import { freshDb, signUp } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
 
@@ -27,7 +28,7 @@ test('A9: POST twice with one clientId is one clip (G8); the activity row is wri
   const r2 = await t.call('POST', `/v1/episodes/${EP}/clips`, body, a.token);
   assert.equal(r2.status, 200);
   assert.equal(((await r2.json()) as { clip: { id: string } }).clip.id, c1.id);
-  assert.deepEqual(await t.q('SELECT count(*)::int AS n FROM clips'), [{ n: 1 }]);
+  assert.equal(await countOf(t, 'clips'), 1);
   assert.deepEqual(await t.q(`SELECT count(*)::int AS n FROM activity WHERE kind = 'clipped'`), [{ n: 1 }]);
   await t.close();
 });
@@ -76,7 +77,7 @@ test('GET /v1/episodes/:id/clips lists live clips newest first, 20 a page, with 
   const a = await signUp(t);
   for (let i = 0; i < 22; i++) {
     await t.call('POST', `/v1/episodes/${EP}/clips`, { clientId: `c${i}`, startMs: i * 1000, endMs: i * 1000 + 5000 }, a.token);
-    await t.q(`UPDATE clips SET created_at = now() + ($1 || ' seconds')::interval WHERE client_id = $2`, [String(i), `c${i}`]);
+    await setClipTime(t, `c${i}`, i);
   }
   const p1 = (await (await t.call('GET', `/v1/episodes/${EP}/clips`)).json()) as { clips: { startMs: number }[]; next?: string };
   assert.equal(p1.clips.length, 20);

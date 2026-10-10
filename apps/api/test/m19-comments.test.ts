@@ -7,6 +7,8 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { seedComment } from './sc-neutral.ts';
+import { putEpisode } from './put-episode.ts';
 import { freshDb, signUp } from './harness.ts';
 
 type C = { id: string; pinned?: true; folded?: true; replyCount?: number; replies?: C[] };
@@ -16,12 +18,11 @@ async function setup() {
   const host = await signUp(t, 'host@example.com', 'Host');
   const others = [] as { token: string; id: string }[];
   for (let i = 0; i < 6; i++) others.push(await signUp(t, `l${i}@example.com`, `L${i}`));
-  await t.q("INSERT INTO episodes (id, feed_url, guid, title, show_title, enclosure_url) VALUES ('e1','https://f/x.xml','g','Ep','Show','https://c/x.mp3')");
+  await putEpisode(t, 'e1', { feedUrl: 'https://f/x.xml', guid: 'g', title: 'Ep', showTitle: 'Show', enclosureUrl: 'https://c/x.mp3' });
   await t.q("INSERT INTO creator_claims (listener_id, feed_url, code, status, proven_at) VALUES ($1, 'https://f/x.xml', 'c1', 'proven', now())", [host.id]);
   const ids: string[] = [];
   for (const [i, body] of ['first', 'second'].entries()) {
-    const [r] = await t.q<{ id: string }>("INSERT INTO comments (episode_id, author_id, body, offset_ms, created_at) VALUES ('e1', $1, $2, 1000, now() - ($3 || ' minutes')::interval) RETURNING id", [others[i]!.id, body, String(10 - i)]);
-    ids.push(r!.id);
+    ids.push(await seedComment(t, { episodeId: 'e1', authorId: others[i]!.id, body, offsetMs: 1000, agoMs: (10 - i) * 60_000 }));
   }
   return { t, host, others, ids };
 }
@@ -55,7 +56,7 @@ test('G-M19-6: five unfriendly marks fold a comment; the voters are never in the
 
 test('the reply page: parent first, every reply under it; replyCount on the list', async () => {
   const { t, others, ids } = await setup();
-  for (const i of [2, 3]) await t.q("INSERT INTO comments (episode_id, author_id, body, parent_id) VALUES ('e1', $1, 'a reply', $2)", [others[i]!.id, ids[0]]);
+  for (const i of [2, 3]) await seedComment(t, { episodeId: 'e1', authorId: others[i]!.id, body: 'a reply', parentId: ids[0]! });
   assert.equal((await list(t)).find((c) => c.id === ids[0])!.replyCount, 2);
   const th = (await (await t.call('GET', `/v1/comments/${ids[0]}/thread`)).json()) as { parent: C; replies: C[] };
   assert.equal(th.parent.id, ids[0]);

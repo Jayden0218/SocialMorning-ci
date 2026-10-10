@@ -1,21 +1,24 @@
 // Tests the moderation page access and actions, plus the plain legal pages.
 /** quickstart A7 (the /mod page: G5, G6, G9), A8 (retention), pages (/privacy /rules /get). */
+import { backdateComments } from './sc-neutral.ts';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, TEST_APPEALS, type TestDb } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
 import { runDueDeletions, type DeletionStores } from '../src/db/repos/account/deletion.ts';
+import { makeDeletionsDue } from './ac-neutral.ts';
+import { activityRefCount, actionRows, closeReportsAt, reportRows } from './sf-neutral.ts';
 
 // M22 US11: DELETE /v1/me now waits 15 days; this makes the wait over and runs the internal step's body.
-const dueNow = async (t: TestDb, stores: DeletionStores = {}) => { await t.q("UPDATE account_deletions SET due_at = now() - interval '1 second'"); await runDueDeletions(t.db, stores); };
+const dueNow = async (t: TestDb, stores: DeletionStores = {}) => { await makeDeletionsDue(t); await runDueDeletions(t.db, stores); };
 
 const ep = { feedUrl: 'https://feeds.example.com/x.xml', guid: 'g1', title: 'One', enclosureUrl: 'https://cdn/1.mp3' };
 const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
 type Comment = { id: string; body: string | null; deleted: boolean; removed?: boolean; reported?: boolean; mine?: boolean; replies: Comment[] };
 
 async function post(t: TestDb, token: string, body: Record<string, unknown>) {
-  await t.q("UPDATE comments SET created_at = created_at - interval '10 seconds'");
+  await backdateComments(t, 10_000); // lane SC's items on DynamoDB
   return ((await (await t.call('POST', `/v1/episodes/${EP}/comments`, body, token)).json()) as { comment: Comment }).comment;
 }
 const form = (fields: Record<string, string>) => new URLSearchParams(fields).toString();
@@ -100,8 +103,7 @@ test('A7: the queue shows a report with its copy; Remove → placeholder for eve
   assert.equal(anonRemoved.removed, true);
   assert.equal(anonRemoved.mine, undefined);
   assert.equal(anon.comments.find((c) => c.id === c2.id)!.body, 'fine thing', 'the author\'s other content untouched');
-  const feed = await t.q(`SELECT 1 FROM activity WHERE kind = 'commented' AND ref_id = $1`, [c1.id]);
-  assert.equal(feed.length, 0, 'gone from feeds');
+  assert.equal(await activityRefCount(t, 'commented', c1.id), 0, 'gone from feeds');
 
   // dismiss c2 → nothing changes for the reporter (still hidden for B)
   assert.equal((await web(t, 'POST', '/mod/act', { item: `comment:${c2.id}`, action: 'dismiss', csrf }, cookie)).status, 303);
@@ -114,7 +116,7 @@ test('A7: the queue shows a report with its copy; Remove → placeholder for eve
   assert.match(html2, /Closed in the last 90 days \(2\)/);
   assert.match(html2, /<b>remove<\/b>/);
   assert.match(html2, /<b>dismiss<\/b>/);
-  const acts = await t.q<{ action: string; actor_id: string }>('SELECT action, actor_id FROM moderation_actions ORDER BY created_at');
+  const acts = await actionRows(t);
   assert.deepEqual(acts.map((x) => x.action), ['remove', 'dismiss']);
   assert.ok(acts.every((x) => x.actor_id === o.id));
 
@@ -185,21 +187,21 @@ test('A8: closed reports older than 90 days are purged on the next /mod open; a 
   const c2 = await post(t, a.token, { body: 'new', offsetMs: 2000 });
   await t.call('POST', '/v1/reports', { targetKind: 'comment', targetId: c1.id, reason: 'spam' }, b.token);
   await t.call('POST', '/v1/reports', { targetKind: 'comment', targetId: c2.id, reason: 'spam' }, b.token);
-  await t.q("UPDATE reports SET closed_at = now() - interval '91 days', close_reason = 'dismiss' WHERE target_id = $1", [c1.id]);
+  await closeReportsAt(t, c1.id, new Date(Date.now() - 91 * 86_400_000).toISOString(), 'dismiss');
   const { cookie } = await login(t, 'o@example.com');
   await web(t, 'GET', '/mod', undefined, cookie);
-  assert.equal((await t.q('SELECT 1 FROM reports WHERE target_id = $1', [c1.id])).length, 0, 'purged');
+  assert.equal((await reportRows(t)).filter((x) => x['target_id'] === c1.id).length, 0, 'purged');
   // the reporter deletes their account → the report stays, anonymised
   assert.equal((await t.call('DELETE', '/v1/me', { password: 'correct horse' }, b.token)).status, 202);
   await dueNow(t);
-  const [r] = await t.q<{ reporter_id: string | null; closed_at: string | null }>('SELECT reporter_id, closed_at FROM reports WHERE target_id = $1', [c2.id]);
+  const [r] = (await reportRows(t)).filter((x) => x['target_id'] === c2.id) as { reporter_id: string | null; closed_at: string | null }[];
   assert.equal(r!.reporter_id, null);
   assert.equal(r!.closed_at, null, 'still open');
   assert.match(await (await web(t, 'GET', '/mod', undefined, cookie)).text(), /a deleted account/);
   // the author deletes their account → reports against their content close as author_deleted, the copy stays
   assert.equal((await t.call('DELETE', '/v1/me', { password: 'correct horse' }, a.token)).status, 202);
   await dueNow(t);
-  const [r2] = await t.q<{ close_reason: string | null; snapshot: { body: string } }>('SELECT close_reason, snapshot FROM reports WHERE target_id = $1', [c2.id]);
+  const [r2] = (await reportRows(t)).filter((x) => x['target_id'] === c2.id) as { close_reason: string | null; snapshot: { body: string } }[];
   assert.equal(r2!.close_reason, 'author_deleted');
   assert.equal(r2!.snapshot.body, 'new');
   await t.close();
