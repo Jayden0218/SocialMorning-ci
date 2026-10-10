@@ -245,27 +245,16 @@ const Actionsheet = React.forwardRef<
   );
 });
 
-/**
- * M25 IJ: `still` — the sheet sits where layout puts it instead of sliding to a measured spot.
- * gluestack slides the content from y = screen height to (its box's height − its own height),
- * measured by two onLayouts that arrive apart; with a keyboard opening at the same time the
- * target moves while the slide runs, and the sheet could stay one screen down — keyboard and scrim
- * up, no sheet (ios-journey runs 37993589437, 37772224452: the comment box at y 1046 on an 844 pt
- * screen). `still` is gluestack's `_experimentalContent` path: no measured slide, nothing to race.
- * For full-height sheets with a focused box; short sheets keep the slide.
- */
 const ActionsheetContent = React.forwardRef<
   React.ComponentRef<typeof UIActionsheet.Content>,
-  IActionsheetContentProps & { still?: boolean }
->(function ActionsheetContent({ className, still, ...props }, ref) {
-  const placed = still ? ({ _experimentalContent: true } as object) : undefined;
+  IActionsheetContentProps
+>(function ActionsheetContent({ className, ...props }, ref) {
   return (
     <UIActionsheet.Content
       className={actionsheetContentStyle({
         class: sheetClass(className),
       })}
       ref={ref}
-      {...placed}
       {...props}
     />
   );

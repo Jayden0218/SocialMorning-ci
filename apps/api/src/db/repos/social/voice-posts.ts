@@ -7,6 +7,7 @@
  * the store for ever.
  */
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 import type { VoiceStorage } from '../../../storage/voice-blob.ts';
 import type { ImageStorage } from '../../../storage/image-store.ts';
 import { initialsOf } from './comment-likes.ts';
@@ -23,12 +24,12 @@ export type VoiceRow = { id: string; listener_id: string; blob_url: string | nul
 /** M21 US8 (G-M21-8): a text status is 1–140 characters (the column CHECKs it too). */
 export const TEXT_STATUS_MAX = 140;
 
-export async function liveCount(db: Db, listenerId: string): Promise<number> {
+async function liveCountPg(db: Db, listenerId: string): Promise<number> {
   const [r] = await db.query<{ n: number }>('SELECT count(*)::int AS n FROM voice_posts WHERE listener_id = $1 AND expires_at > now()', [listenerId]);
   return Number(r?.n ?? 0);
 }
 
-export async function insertPost(db: Db, p: { id: string; listenerId: string; url: string; path: string; durationMs: number; bytes: number; /** M20 US3 */ transcript?: string }): Promise<VoiceRow> {
+async function insertPostPg(db: Db, p: { id: string; listenerId: string; url: string; path: string; durationMs: number; bytes: number; /** M20 US3 */ transcript?: string }): Promise<VoiceRow> {
   const [row] = await db.query<VoiceRow>(
     `INSERT INTO voice_posts (id, listener_id, blob_url, blob_path, duration_ms, bytes, transcript, expires_at) VALUES ($1, $2, $3, $4, $5, $6, $7, now() + interval '24 hours')
      RETURNING id, listener_id, blob_url, duration_ms, created_at, expires_at, transcript`,
@@ -38,7 +39,7 @@ export async function insertPost(db: Db, p: { id: string; listenerId: string; ur
 }
 
 /** M21 US8: a text status — no audio, the same 24 h expiry and the same live cap as a voice post. */
-export async function insertTextPost(db: Db, p: { id: string; listenerId: string; body: string }): Promise<VoiceRow> {
+async function insertTextPostPg(db: Db, p: { id: string; listenerId: string; body: string }): Promise<VoiceRow> {
   const [row] = await db.query<VoiceRow>(
     `INSERT INTO voice_posts (id, listener_id, body, expires_at) VALUES ($1, $2, $3, now() + interval '24 hours')
      RETURNING id, listener_id, blob_url, duration_ms, created_at, expires_at, body`,
@@ -48,7 +49,7 @@ export async function insertTextPost(db: Db, p: { id: string; listenerId: string
 }
 
 /** The caller's own posts and those of people they follow; never expired, never across a block, never a suspended author. */
-export async function fromFollowing(db: Db, viewerId: string) {
+async function fromFollowingPg(db: Db, viewerId: string) {
   const rows = await db.query<VoiceRow & { display_name: string; avatar_url: string | null }>(
     `SELECT v.id, v.listener_id, v.blob_url, v.duration_ms, v.created_at, v.expires_at, v.transcript, v.body, l.display_name, l.avatar_url
      FROM voice_posts v JOIN listeners l ON l.id = v.listener_id
@@ -62,9 +63,9 @@ export async function fromFollowing(db: Db, viewerId: string) {
   return rows.map((r) => toPublicPost(r, viewerId));
 }
 
-type PostRow = VoiceRow & { display_name: string; avatar_url: string | null };
+export type PostRow = VoiceRow & { display_name: string; avatar_url: string | null };
 
-function toPublicPost(r: PostRow, viewerId: string) {
+export function toPublicPost(r: PostRow, viewerId: string) {
   return {
     id: r.id, author: { id: r.listener_id, name: r.display_name, initials: initialsOf(r.display_name), ...(r.avatar_url ? { avatarUrl: r.avatar_url } : {}) },
     // M21 US8: a text status has `body` and no `url` (durationMs 0).
@@ -84,7 +85,7 @@ export const SUGGESTED_MAX = 5;
  * blocked (either way), muted, suspended or hidden account. One per author (the newest), newest first.
  * M24 US17: nor anyone the viewer asked to stop suggesting (`status_suggestion_mutes`).
  */
-export async function suggestedFor(db: Db, viewerId: string, limit = SUGGESTED_MAX): Promise<PublicPost[]> {
+async function suggestedForPg(db: Db, viewerId: string, limit = SUGGESTED_MAX): Promise<PublicPost[]> {
   const rows = await db.query<PostRow>(
     `SELECT * FROM (
        SELECT DISTINCT ON (v.listener_id) v.id, v.listener_id, v.blob_url, v.duration_ms, v.created_at, v.expires_at, v.transcript, v.body, l.display_name, l.avatar_url
@@ -103,7 +104,7 @@ export async function suggestedFor(db: Db, viewerId: string, limit = SUGGESTED_M
 }
 
 /** One live status the viewer may see: their own, a followed account's, or any public one (as a suggestion would show it). */
-export async function visiblePost(db: Db, id: string, viewerId: string): Promise<PublicPost | undefined> {
+async function visiblePostPg(db: Db, id: string, viewerId: string): Promise<PublicPost | undefined> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return undefined;
   const [r] = await db.query<PostRow>(
     `SELECT v.id, v.listener_id, v.blob_url, v.duration_ms, v.created_at, v.expires_at, v.transcript, v.body, l.display_name, l.avatar_url
@@ -115,7 +116,7 @@ export async function visiblePost(db: Db, id: string, viewerId: string): Promise
   return r ? toPublicPost(r, viewerId) : undefined;
 }
 
-export async function getPost(db: Db, id: string): Promise<VoiceRow | undefined> {
+async function getPostPg(db: Db, id: string): Promise<VoiceRow | undefined> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return undefined;
   return (await db.query<VoiceRow>('SELECT id, listener_id, blob_url, duration_ms, created_at, expires_at, body FROM voice_posts WHERE id = $1', [id]))[0];
 }
@@ -125,14 +126,14 @@ export async function getPost(db: Db, id: string): Promise<VoiceRow | undefined>
  * M22 (G-M22-2): its voice replies' files and its photos go before it — those rows would cascade
  * away with the status and leave the files in the store for ever. Any failure keeps the status.
  */
-export async function removePost(db: Db, storage: VoiceStorage, row: { id: string; blob_url: string | null }, images?: ImageStorage): Promise<void> {
+async function removePostPg(db: Db, storage: VoiceStorage, row: { id: string; blob_url: string | null }, images?: ImageStorage): Promise<void> {
   await removeAttachments(db, storage, images, row.id);
   if (row.blob_url) await storage.remove(row.blob_url);
   await db.query('DELETE FROM voice_posts WHERE id = $1', [row.id]);
 }
 
 /** M22 US2/US6: a status's voice-reply files (voice store) and photos (image store), each file before its row. */
-export async function removeAttachments(db: Db, storage: VoiceStorage, images: ImageStorage | undefined, postId: string): Promise<void> {
+async function removeAttachmentsPg(db: Db, storage: VoiceStorage, images: ImageStorage | undefined, postId: string): Promise<void> {
   for (const r of await replyAudioOf(db, [postId])) {
     if (!storage.ready) throw new Error('voice store not connected');
     await storage.remove(r.audio_url);
@@ -149,7 +150,7 @@ export async function removeAttachments(db: Db, storage: VoiceStorage, images: I
  * then itself; one whose files could not all be deleted stays for the next cycle. Photos uploaded
  * but never posted go too (after 2 hours).
  */
-export async function sweepExpired(db: Db, storage: VoiceStorage, limit = 200, images?: ImageStorage): Promise<{ deleted: number; failed: number }> {
+async function sweepExpiredPg(db: Db, storage: VoiceStorage, limit = 200, images?: ImageStorage): Promise<{ deleted: number; failed: number }> {
   let deleted = 0;
   let failed = 0;
   const carriers = await db.query<{ id: string; blob_url: string | null }>(
@@ -182,7 +183,7 @@ export async function sweepExpired(db: Db, storage: VoiceStorage, limit = 200, i
 }
 
 /** Account deletion: the listener's blobs go before the rows cascade away with the account. */
-export async function removeAllFor(db: Db, storage: VoiceStorage, listenerId: string, images?: ImageStorage): Promise<void> {
+async function removeAllForPg(db: Db, storage: VoiceStorage, listenerId: string, images?: ImageStorage): Promise<void> {
   if (!storage.ready) return;
   const rows = await db.query<{ id: string; blob_url: string | null }>('SELECT id, blob_url FROM voice_posts WHERE listener_id = $1 AND (body IS NULL OR id IN (SELECT post_id FROM status_replies WHERE audio_url IS NOT NULL) OR id IN (SELECT post_id FROM status_items WHERE kind = \'photo\'))', [listenerId]);
   for (const r of rows) await removePost(db, storage, r, images);
@@ -194,7 +195,21 @@ export async function removeAllFor(db: Db, storage: VoiceStorage, listenerId: st
 }
 
 /** M24 US17: "stop suggesting this person's statuses" — and undo. Their statuses still show if the viewer follows them. */
-export async function setSuggestionMute(db: Db, viewerId: string, mutedId: string, on: boolean): Promise<void> {
+async function setSuggestionMutePg(db: Db, viewerId: string, mutedId: string, on: boolean): Promise<void> {
   if (on) await db.query('INSERT INTO status_suggestion_mutes (listener_id, muted_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [viewerId, mutedId]);
   else await db.query('DELETE FROM status_suggestion_mutes WHERE listener_id = $1 AND muted_id = $2', [viewerId, mutedId]);
 }
+
+// M26 lane SC: each function runs on Postgres, or on DynamoDB (`ddb/voice-posts.ts`) when the Db carries a Store (db/backend.ts).
+export const liveCount = dual('sc/voice-posts', 'liveCount', liveCountPg);
+export const insertPost = dual('sc/voice-posts', 'insertPost', insertPostPg);
+export const insertTextPost = dual('sc/voice-posts', 'insertTextPost', insertTextPostPg);
+export const fromFollowing = dual('sc/voice-posts', 'fromFollowing', fromFollowingPg);
+export const suggestedFor = dual('sc/voice-posts', 'suggestedFor', suggestedForPg);
+export const visiblePost = dual('sc/voice-posts', 'visiblePost', visiblePostPg);
+export const getPost = dual('sc/voice-posts', 'getPost', getPostPg);
+export const removePost = dual('sc/voice-posts', 'removePost', removePostPg);
+export const removeAttachments = dual('sc/voice-posts', 'removeAttachments', removeAttachmentsPg);
+export const sweepExpired = dual('sc/voice-posts', 'sweepExpired', sweepExpiredPg);
+export const removeAllFor = dual('sc/voice-posts', 'removeAllFor', removeAllForPg);
+export const setSuggestionMute = dual('sc/voice-posts', 'setSuggestionMute', setSuggestionMutePg);

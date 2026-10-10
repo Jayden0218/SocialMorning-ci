@@ -13,6 +13,7 @@ import assert from 'node:assert/strict';
 import { createVerify, generateKeyPairSync } from 'node:crypto';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
+import { purchaseRows, tipCount } from './pd-neutral.ts';
 import { serviceAccountJwt, type GooglePlay, type GoogleProduct, type GoogleSubscription } from '../src/billing/google-play.ts';
 import { applyVoided } from '../src/db/repos/account/purchases.ts';
 import { hostedById, setEpisodePaid } from '../src/db/repos/studio/hosted.ts';
@@ -84,7 +85,7 @@ test('not paid at Google (pending) → 402, nothing granted', async () => {
   await withShow(t, 2);
   const r = await t.call('POST', '/v1/me/purchases/google', { productId: 'show_tier_2', purchaseToken: 'p', feedUrl: FEED }, a.token);
   assert.equal(r.status, 402);
-  assert.equal((await t.q('SELECT 1 FROM purchases')).length, 0);
+  assert.equal((await purchaseRows(t)).length, 0);
   await t.close();
 });
 
@@ -97,12 +98,12 @@ test('G-M20-5: a tip sent twice tips once; a refund takes it back', async () => 
   assert.equal((await tip()).status, 200);
   const again = (await (await tip()).json()) as { purchase: { repeated: boolean } };
   assert.equal(again.purchase.repeated, true);
-  assert.equal((await t.q('SELECT 1 FROM tips')).length, 1, 'one tip, not two');
-  assert.equal((await t.q('SELECT 1 FROM purchases')).length, 1);
+  assert.equal(await tipCount(t), 1, 'one tip, not two');
+  assert.equal((await purchaseRows(t)).length, 1);
   const v = await applyVoided(t.db, [{ purchaseToken: 'tok-tip', voidedAt: Date.now() }, { purchaseToken: 'never-seen', voidedAt: Date.now() }]);
   assert.deepEqual(v, { withdrawn: 1, unknown: 1 });
-  assert.equal((await t.q('SELECT 1 FROM tips')).length, 0);
-  const [p] = await t.q<{ status: string }>('SELECT status FROM purchases');
+  assert.equal(await tipCount(t), 0);
+  const [p] = await purchaseRows(t);
   assert.equal(p!.status, 'refunded');
   await t.close();
 });

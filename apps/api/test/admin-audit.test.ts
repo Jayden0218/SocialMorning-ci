@@ -15,6 +15,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { aCall, adminSetup, auditRows } from './admin-harness.ts';
+import { ageStudioSessions, auditFull, tamperWithAudit } from './sf-neutral.ts';
 
 const SETTINGS = { version: 0, order: ['picks', 'forYou'], hidden: ['said'], pins: [], hides: [] };
 
@@ -27,7 +28,7 @@ test('G-A2: one admin write → exactly one record row, with before and after; A
   assert.equal(rows[0]!.admin_id, owner.id);
   assert.equal(rows[0]!.acting_as, null);
   assert.equal(rows[0]!.area, 'discover');
-  const [full] = await t.q<{ before: { version: number }; after: { version: number; hidden: string[] }; device: string }>('SELECT before, after, device FROM admin_audit');
+  const [full] = (await auditFull(t)) as unknown as { before: { version: number }; after: { version: number; hidden: string[] }; device: string }[];
   assert.equal(full!.before.version, 0);
   assert.equal(full!.after.version, 1);
   assert.deepEqual(full!.after.hidden, ['said']);
@@ -51,8 +52,9 @@ test('G-A2: one admin write → exactly one record row, with before and after; A
 test('G-A3: the record cannot be changed or deleted, even directly in SQL', async () => {
   const { t, owner } = await adminSetup();
   await aCall(t, 'PUT', '/v1/admin/discover', owner, SETTINGS);
-  await assert.rejects(t.q("UPDATE admin_audit SET action = 'nothing happened'"), /append-only/);
-  await assert.rejects(t.q('DELETE FROM admin_audit'), /append-only/);
+  const tamper = await tamperWithAudit(t);
+  await assert.rejects(tamper.update, /append-only/);
+  await assert.rejects(tamper.remove, /append-only/);
   assert.equal((await auditRows(t)).length, 1);
   await t.close();
 });
@@ -63,17 +65,17 @@ test('G-A4: before/after are stored as jsonb OBJECTS, never JSON strings (the M1
   const [r] = await auditRows(t);
   assert.equal(r!.before_type, 'object');
   assert.equal(r!.after_type, 'object');
-  // And the column itself refuses a string, whoever writes it.
-  await assert.rejects(t.q(
+  // And the column itself refuses a string, whoever writes it (a Postgres CHECK; on DynamoDB only adminTx writes the record, through asObject).
+  if (!t.store) await assert.rejects(t.q(
     `INSERT INTO admin_audit (admin_id, area, action, target, after) VALUES ($1, 'discover', 'x', 'x', to_jsonb('{"a":1}'::text))`, [owner.id]), /check/i);
   await t.close();
 });
 
 test('G-A5: an admin session 13 h after it was CREATED is refused with reauth, however recently it was used; 11 h is fine', async () => {
   const { t, owner } = await adminSetup();
-  await t.q("UPDATE sessions SET created_at = now() - interval '11 hours', last_seen_at = now() WHERE device_label = 'studio-web' AND listener_id = $1", [owner.id]);
+  await ageStudioSessions(t, owner.id, 11 * 3_600_000);
   assert.equal((await aCall(t, 'GET', '/v1/admin/audit', owner)).status, 200);
-  await t.q("UPDATE sessions SET created_at = now() - interval '13 hours', last_seen_at = now() WHERE device_label = 'studio-web' AND listener_id = $1", [owner.id]);
+  await ageStudioSessions(t, owner.id, 13 * 3_600_000);
   const late = await aCall(t, 'GET', '/v1/admin/audit', owner);
   assert.equal(late.status, 401);
   assert.equal(((await late.json()) as { error: string }).error, 'reauth');

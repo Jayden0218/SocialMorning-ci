@@ -7,6 +7,7 @@
  * over every promotion that is not retired and not over (G-L3).
  */
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 
 export type PromotionState = 'draft' | 'live' | 'ended' | 'retired';
 export type Promotion = {
@@ -41,29 +42,29 @@ const toPromotion = (r: Row): Promotion => ({
   impressions: Number(r.impressions), taps: Number(r.taps), state: stateOf(r), createdAt: iso(r.created_at),
 });
 
-export async function listPromotions(db: Db): Promise<Promotion[]> {
+async function listPromotionsPg(db: Db): Promise<Promotion[]> {
   return (await db.query<Row>(`SELECT ${COLS} FROM promotions ORDER BY created_at DESC`)).map(toPromotion);
 }
 
-export async function getPromotion(db: Db, id: string): Promise<Promotion | undefined> {
+async function getPromotionPg(db: Db, id: string): Promise<Promotion | undefined> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return undefined;
   const [r] = await db.query<Row>(`SELECT ${COLS} FROM promotions WHERE id = $1`, [id]);
   return r ? toPromotion(r) : undefined;
 }
 
 /** Live = not retired and now in [starts_at, ends_at). The only ones the phone is told about. */
-export async function livePromotions(db: Db): Promise<Promotion[]> {
+async function livePromotionsPg(db: Db): Promise<Promotion[]> {
   return (await db.query<Row>(`SELECT ${COLS} FROM promotions WHERE retired_at IS NULL AND starts_at <= now() AND ends_at > now() ORDER BY created_at`)).map(toPromotion);
 }
 
 /** Bytes held by promotions that still count: not retired and not over (drafts will go live). */
-export async function launchBytes(db: Db, exceptId?: string): Promise<number> {
+async function launchBytesPg(db: Db, exceptId?: string): Promise<number> {
   const [r] = await db.query<{ n: number | string }>(
     'SELECT coalesce(sum(image_bytes), 0)::bigint AS n FROM promotions WHERE retired_at IS NULL AND ends_at > now() AND ($1::uuid IS NULL OR id <> $1::uuid)', [exceptId ?? null]);
   return Number(r?.n ?? 0);
 }
 
-export async function createPromotion(tx: Db, p: PromotionInput): Promise<Promotion> {
+async function createPromotionPg(tx: Db, p: PromotionInput): Promise<Promotion> {
   const [r] = await tx.query<Row>(
     `INSERT INTO promotions (image_url, image_path, image_bytes, target_kind, target, label, starts_at, ends_at, weight, daily_cap)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING ${COLS}`,
@@ -72,7 +73,7 @@ export async function createPromotion(tx: Db, p: PromotionInput): Promise<Promot
   return toPromotion(r!);
 }
 
-export async function updatePromotion(tx: Db, id: string, p: Partial<PromotionInput> & { retired?: boolean }): Promise<Promotion | undefined> {
+async function updatePromotionPg(tx: Db, id: string, p: Partial<PromotionInput> & { retired?: boolean }): Promise<Promotion | undefined> {
   const [r] = await tx.query<Row>(
     `UPDATE promotions SET
        image_url = coalesce($2, image_url), image_path = coalesce($3, image_path), image_bytes = coalesce($4, image_bytes),
@@ -88,9 +89,18 @@ export async function updatePromotion(tx: Db, id: string, p: Partial<PromotionIn
 }
 
 /** +1 to a total — nothing about who (FR-017). Only a live promotion counts. */
-export async function countEvent(db: Db, id: string, kind: 'impression' | 'tap'): Promise<boolean> {
+async function countEventPg(db: Db, id: string, kind: 'impression' | 'tap'): Promise<boolean> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return false;
   const col = kind === 'tap' ? 'taps' : 'impressions';
   const rows = await db.query(`UPDATE promotions SET ${col} = ${col} + 1 WHERE id = $1 AND retired_at IS NULL AND starts_at <= now() AND ends_at > now() RETURNING id`, [id]);
   return rows.length > 0;
 }
+
+// M26 lane DV: each runs on Postgres, or on DynamoDB (ddb/promotions.ts) when the Db carries a Store (db/backend.ts).
+export const listPromotions = dual('dv/promotions', 'listPromotions', listPromotionsPg);
+export const getPromotion = dual('dv/promotions', 'getPromotion', getPromotionPg);
+export const livePromotions = dual('dv/promotions', 'livePromotions', livePromotionsPg);
+export const launchBytes = dual('dv/promotions', 'launchBytes', launchBytesPg);
+export const createPromotion = dual('dv/promotions', 'createPromotion', createPromotionPg);
+export const updatePromotion = dual('dv/promotions', 'updatePromotion', updatePromotionPg);
+export const countEvent = dual('dv/promotions', 'countEvent', countEventPg);

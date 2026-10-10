@@ -14,6 +14,7 @@ import { freshDb, signUp } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
 import { proveClaim, sCall, studioLogin } from './studio-harness.ts';
 import { act } from '../src/db/repos/safety/moderation.ts';
+import { reportRows } from './sf-neutral.ts';
 
 const FEED = 'https://feeds.example.com/talk.xml';
 const ep = { feedUrl: FEED, guid: 'g1', title: 'Ep One', enclosureUrl: 'https://cdn/1.mp3' };
@@ -27,7 +28,7 @@ test('an episode report keeps a copy of the episode and the show; the owner can 
   const a = await signUp(t, 'a@example.com', 'Al');
   const r = await t.call('POST', '/v1/reports', { targetKind: 'episode', targetId: EP, reason: 'illegal' }, a.token);
   assert.equal(r.status, 201);
-  const [row] = await t.q<{ target_kind: string; target_id: string; snapshot: { episodeTitle: string; feedUrl: string }; closed_at: string | null }>('SELECT target_kind, target_id, snapshot, closed_at FROM reports');
+  const [row] = (await reportRows(t)) as { target_kind: string; target_id: string; snapshot: { episodeTitle: string; feedUrl: string }; closed_at: string | null }[];
   assert.equal(row!.target_kind, 'episode');
   assert.equal(row!.target_id, EP);
   assert.equal(row!.snapshot.episodeTitle, 'Ep One');
@@ -41,7 +42,7 @@ test('an episode report keeps a copy of the episode and the show; the owner can 
 
   // Migration 020: the action that closes it is recorded (moderation_actions takes the new kinds).
   await act(t.db, a.id, { kind: 'episode', id: EP }, 'dismiss');
-  const [after] = await t.q<{ close_reason: string }>('SELECT close_reason FROM reports WHERE target_id = $1', [EP]);
+  const [after] = (await reportRows(t)).filter((x) => x['target_id'] === EP) as { close_reason: string }[];
   assert.equal(after!.close_reason, 'dismiss');
   await t.close();
 });
@@ -59,8 +60,7 @@ test('a transcript report: one row per line, the correction kept, nothing hidden
   const again = await t.call('POST', '/v1/reports', { targetKind: 'transcript', targetId: `${EP}#61000`, reason: 'other', detail: line(61_000, 'different') }, a.token);
   assert.equal(again.status, 200, 'the same line again is the same row');
 
-  const rows = await t.q<{ target_id: string; detail: { episodeId: string; offsetMs: number; original: string; suggested: string }; snapshot: { suggested: string; episodeTitle: string } }>(
-    "SELECT target_id, detail, snapshot FROM reports WHERE target_kind = 'transcript' ORDER BY target_id");
+  const rows = (await reportRows(t)).filter((x) => x['target_kind'] === 'transcript').sort((x, y) => (String(x['target_id']) < String(y['target_id']) ? -1 : 1)) as { target_id: string; detail: { episodeId: string; offsetMs: number; original: string; suggested: string }; snapshot: { suggested: string; episodeTitle: string } }[];
   assert.deepEqual(rows.map((x) => x.target_id), [`${EP}#61000`, `${EP}#90000`]);
   assert.deepEqual(rows[0]!.detail, { episodeId: EP, offsetMs: 61_000, original: 'the wrong words', suggested: 'the right words' });
   assert.equal(rows[0]!.snapshot.suggested, 'the right words');
@@ -107,7 +107,7 @@ test('the Studio: the host lists the show\'s transcript reports and marks one do
   assert.equal(done.status, 200);
   const after = (await (await sCall(t, 'GET', `/v1/studio/shows/${key}/transcript-reports`, host)).json()) as L;
   assert.equal(after.items[0]!.status, 'done');
-  const [row] = await t.q<{ close_reason: string }>('SELECT close_reason FROM reports');
+  const [row] = (await reportRows(t)) as { close_reason: string }[];
   assert.equal(row!.close_reason, 'done');
   await t.close();
 });

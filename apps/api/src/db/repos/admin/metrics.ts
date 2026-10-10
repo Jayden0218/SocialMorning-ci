@@ -9,6 +9,7 @@
  */
 import { unionLength, type Range } from '@socialmorning/social-core';
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 
 export const METRIC_RANGES = [7, 30, 90] as const;
 export type MetricRange = (typeof METRIC_RANGES)[number];
@@ -19,6 +20,8 @@ export type Section<T> = Ok<T> | Failed;
 
 const HOUR_MS = 3_600_000;
 const UTC8_MS = 8 * HOUR_MS;
+/** An instant (ms or ISO) → its UTC+8 calendar day `yyyy-mm-dd` (M26: the DynamoDB body buckets in code). */
+export const utc8Day = (t: number | string): string => new Date((typeof t === 'number' ? t : Date.parse(t)) + UTC8_MS).toISOString().slice(0, 10);
 /** A timestamptz column → its UTC+8 calendar day, as text. */
 const day = (col: string) => `(((${col}) AT TIME ZONE 'UTC') + interval '8 hours')::date::text`;
 
@@ -29,10 +32,10 @@ export function rangeDays(days: number, now: number): string[] {
 }
 
 /** The first instant of a UTC+8 day, as an ISO timestamp for a `>=` filter. */
-const startOf = (d: string) => new Date(Date.parse(`${d}T00:00:00Z`) - UTC8_MS).toISOString();
+export const startOf = (d: string) => new Date(Date.parse(`${d}T00:00:00Z`) - UTC8_MS).toISOString();
 
 /** Rows `{ d, n }` → one point per day of the range, 0 where nothing happened (FR-018). */
-function series(days: string[], rows: { d: string; n: number | string }[]): Point[] {
+export function series(days: string[], rows: { d: string; n: number | string }[]): Point[] {
   const by = new Map(rows.map((r) => [r.d, Number(r.n)]));
   return days.map((date) => ({ date, value: by.get(date) ?? 0 }));
 }
@@ -51,7 +54,7 @@ async function perDay(db: Db, days: string[], table: string, col: string, where 
   return series(days, rows);
 }
 
-async function section<T>(name: string, f: () => Promise<T>): Promise<Section<T>> {
+export async function section<T>(name: string, f: () => Promise<T>): Promise<Section<T>> {
   try {
     return { ok: true, ...(await f()) };
   } catch (e) {
@@ -89,12 +92,28 @@ const listening = (db: Db, days: string[]) => section('listening', async () => {
     cur.ranges.push(typeof r.ranges === 'string' ? (JSON.parse(r.ranges) as Range[]) : r.ranges);
     sets.set(k, cur);
   }
+  const { listenersPerDay, hoursPerDay, topShows, topEpisodes } = summariseListening(days, [...sets.values()].map(({ ranges, ...s }) => ({ ...s, ms: unionLength(ranges) })));
+  const finished = await one(db, 'SELECT count(*)::int AS n FROM positions WHERE finished AND received_at >= $1', [startOf(days[0]!)]);
+  return {
+    listenersPerDay,
+    hoursPerDay,
+    finished,
+    topShows,
+    topEpisodes,
+  };
+});
+
+/** One listener's union for one (episode, day), with the episode's show — the input of the listening section on both backends. */
+export type ListenedEntry = { listener: string; episode: string; d: string; feedUrl: string | null; title: string | null; showTitle: string | null; ms: number };
+
+/** Per-day listeners and hours, and the top 10 shows and episodes, from the unions (an empty union counts nothing). */
+export function summariseListening(days: string[], entries: readonly ListenedEntry[]) {
   const listeners = new Map<string, Set<string>>();
   const ms = new Map<string, number>();
   const shows = new Map<string, { feedUrl: string; title: string; ms: number }>();
   const episodes = new Map<string, { episodeId: string; title: string; showTitle: string; ms: number }>();
-  for (const s of sets.values()) {
-    const n = unionLength(s.ranges);
+  for (const s of entries) {
+    const n = s.ms;
     if (n <= 0) continue;
     listeners.set(s.d, (listeners.get(s.d) ?? new Set()).add(s.listener));
     ms.set(s.d, (ms.get(s.d) ?? 0) + n);
@@ -107,15 +126,13 @@ const listening = (db: Db, days: string[]) => section('listening', async () => {
   }
   const hours = (n: number) => Math.round((n / HOUR_MS) * 100) / 100;
   const top = <T extends { ms: number }>(m: Map<string, T>) => [...m.values()].sort((a, b) => b.ms - a.ms).slice(0, 10).map(({ ms: n, ...rest }) => ({ ...rest, hours: hours(n) }));
-  const finished = await one(db, 'SELECT count(*)::int AS n FROM positions WHERE finished AND received_at >= $1', [startOf(days[0]!)]);
   return {
     listenersPerDay: days.map((date) => ({ date, value: listeners.get(date)?.size ?? 0 })),
     hoursPerDay: days.map((date) => ({ date, value: hours(ms.get(date) ?? 0) })),
-    finished,
     topShows: top(shows),
     topEpisodes: top(episodes),
   };
-});
+}
 
 const library = (db: Db, days: string[]) => section('library', async () => {
   const [addedPerDay, removedPerDay, topRows] = await Promise.all([
@@ -128,7 +145,8 @@ const library = (db: Db, days: string[]) => section('library', async () => {
   return { addedPerDay, removedPerDay, topShows: topRows.map((r) => ({ feedUrl: r.feed_url, title: r.title ?? r.feed_url, subscribers: Number(r.n) })) };
 });
 
-const social = (db: Db, days: string[]) => section('social', async () => {
+/** Lanes SC/SG (still Postgres): the DynamoDB body runs this same section on the plain handle. */
+export const socialSection = (db: Db, days: string[]) => section('social', async () => {
   const [commentsPerDay, reactionsPerDay, clipsPerDay, followsPerDay, sharesPerDay, voicePostsLive] = await Promise.all([
     perDay(db, days, 'comments', 'created_at'),
     perDay(db, days, 'reactions', 'created_at'),
@@ -161,7 +179,8 @@ const safety = (db: Db, days: string[]) => section('safety', async () => {
   return { openReports, reports, actions, blocks };
 });
 
-const money = (db: Db, days: string[]) => section('money', async () => {
+/** Lane PD (still Postgres): shared with the DynamoDB body. */
+export const moneySection = (db: Db, days: string[]) => section('money', async () => {
   const from = [startOf(days[0]!)];
   const [activePurchases, purchases, tips, amounts] = await Promise.all([
     one(db, "SELECT count(*)::int AS n FROM purchases WHERE status = 'active'"),
@@ -174,7 +193,8 @@ const money = (db: Db, days: string[]) => section('money', async () => {
   return { activePurchases, purchases, tips, amounts: amounts.map((a) => ({ currency: a.currency, micros: Number(a.micros) })) };
 });
 
-const creators = (db: Db) => section('creators', async () => {
+/** Lane ST (still Postgres): shared with the DynamoDB body. */
+export const creatorsSection = (db: Db) => section('creators', async () => {
   const [claimedShows, hostedShows, hostedEpisodes, teamMembers] = await Promise.all([
     one(db, "SELECT count(DISTINCT feed_url)::int AS n FROM creator_claims WHERE status = 'proven'"),
     one(db, 'SELECT count(*)::int AS n FROM hosted_shows WHERE deleted_at IS NULL'),
@@ -184,19 +204,19 @@ const creators = (db: Db) => section('creators', async () => {
   return { claimedShows, hostedShows, hostedEpisodes, teamMembers };
 });
 
-export type Metrics = Awaited<ReturnType<typeof computeMetrics>>;
+export type Metrics = Awaited<ReturnType<typeof computeMetricsPg>>;
 
-export async function computeMetrics(db: Db, range: MetricRange, now: number = Date.now()) {
+async function computeMetricsPg(db: Db, range: MetricRange, now: number = Date.now()) {
   const days = rangeDays(range, now);
   const sections = {
     users: await users(db, days),
     listening: await listening(db, days),
     library: await library(db, days),
-    social: await social(db, days),
+    social: await socialSection(db, days),
     recs: await recs(db, days),
     safety: await safety(db, days),
-    money: await money(db, days),
-    creators: await creators(db),
+    money: await moneySection(db, days),
+    creators: await creatorsSection(db),
   };
   return {
     days: range, from: days[0]!, to: days[days.length - 1]!, countedAt: new Date(now).toISOString(),
@@ -206,6 +226,20 @@ export async function computeMetrics(db: Db, range: MetricRange, now: number = D
 }
 
 /** Drops one cached dashboard result (a partial one is served once, never kept). */
-export async function dropCachedMetrics(db: Db, key: string): Promise<void> {
+async function dropCachedMetricsPg(db: Db, key: string): Promise<void> {
   await db.query('DELETE FROM cache WHERE key = $1', [key]);
 }
+
+/**
+ * M26 lane SF (guard G-M26-SF4): the nightly check of the dashboard's hourly safety counters against a recount
+ * of the items (DynamoDB: ddb/metrics.ts). Postgres counts the rows themselves, so there is nothing to check.
+ * `day` is a UTC+8 day; omitted = yesterday, once a night. Returns how many counters were repaired.
+ */
+async function checkDashboardPg(_db: Db, _day?: string): Promise<number> {
+  return 0;
+}
+
+// M26 lane SF: each runs on Postgres, or on DynamoDB (safety/ddb/metrics.ts) when the Db carries a Store (db/backend.ts).
+export const computeMetrics = dual('sf/metrics', 'computeMetrics', computeMetricsPg);
+export const dropCachedMetrics = dual('sf/metrics', 'dropCachedMetrics', dropCachedMetricsPg);
+export const checkDashboard = dual('sf/metrics', 'checkDashboard', checkDashboardPg);

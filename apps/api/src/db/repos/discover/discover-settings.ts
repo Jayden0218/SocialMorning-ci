@@ -17,6 +17,7 @@
  * after the id it was split from and, where it used to be hidden with it, stays hidden.
  */
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 import { ApiError } from '../../../errors.ts';
 import { active, categoryListId, replaceKind } from './lists.ts';
 
@@ -43,7 +44,7 @@ export type Layout = { version: number; order: string[]; hidden: string[] };
 const known = (ids: readonly string[]) => [...new Set(ids.filter((x) => (SECTION_IDS as readonly string[]).includes(x)))];
 
 /** The saved layout, or undefined when none was ever saved. Throws when it cannot be read (the caller skips it). */
-export async function getLayout(db: Db): Promise<Layout | undefined> {
+async function getLayoutPg(db: Db): Promise<Layout | undefined> {
   const [row] = await db.query<{ section_order: string[] | string; hidden_sections: string[] | string; version: number }>('SELECT section_order, hidden_sections, version FROM discover_settings WHERE id = 1');
   return row ? { version: Number(row.version), order: textArray(row.section_order), hidden: textArray(row.hidden_sections) } : undefined;
 }
@@ -68,7 +69,7 @@ function textArray(v: string[] | string): string[] {
  * Saves the layout; `pins`/`hides` (the M15 body) replace the `trending` list's rows when sent.
  * M25: the Studio's Discover page no longer sends them (Admin › Lists edits `trending`).
  */
-export async function putDiscoverSettings(tx: Db, s: { version: number; order: string[]; hidden: string[]; pins?: EpisodeRef[]; hides?: { feedUrl: string; guid: string }[] }, by: string | null = null): Promise<number> {
+async function putDiscoverSettingsPg(tx: Db, s: { version: number; order: string[]; hidden: string[]; pins?: EpisodeRef[]; hides?: { feedUrl: string; guid: string }[] }, by: string | null = null): Promise<number> {
   if (s.pins && s.pins.length > MAX_PINS) throw new ApiError('validation', `At most ${MAX_PINS} pinned episodes.`, { fields: ['pins'] });
   const [cur] = await tx.query<{ version: number }>('SELECT version FROM discover_settings WHERE id = 1 FOR UPDATE');
   const current = cur ? Number(cur.version) : 0;
@@ -93,3 +94,7 @@ export async function putFeatures(tx: Db, genreId: number, feedUrls: readonly st
   if (feedUrls.length > MAX_FEATURES) throw new ApiError('validation', `At most ${MAX_FEATURES} featured shows.`, { fields: ['shows'] });
   await replaceKind(tx, categoryListId(genreId), 'pin', [...new Set(feedUrls)].map((feedUrl) => ({ feedUrl })), by);
 }
+
+// M26 lane DV: each runs on Postgres, or on DynamoDB (ddb/discover-settings.ts) when the Db carries a Store (db/backend.ts).
+export const getLayout = dual('dv/discover-settings', 'getLayout', getLayoutPg);
+export const putDiscoverSettings = dual('dv/discover-settings', 'putDiscoverSettings', putDiscoverSettingsPg);

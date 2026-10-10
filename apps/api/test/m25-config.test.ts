@@ -11,6 +11,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { CONFIG_DEFAULTS } from '@socialmorning/social-core';
 import { aCall, adminSetup, auditRows } from './admin-harness.ts';
+import { putStoredConfig } from './sf-neutral-config.ts';
 
 type Cfg = { config: typeof CONFIG_DEFAULTS; version: number; updatedAt: string | null };
 
@@ -77,7 +78,7 @@ test('A7: a stored value that no longer passes the check is served as the defaul
   const { t, owner } = await adminSetup();
   try {
     await aCall(t, 'PUT', '/v1/admin/config/searchHints', owner, { version: 0, value: ['jazz'] });
-    await t.q(`INSERT INTO app_config (key, value) VALUES ('ratePrompt', '{"delayMs": "soon"}'::jsonb)`);
+    await putStoredConfig(t, 'ratePrompt', { delayMs: 'soon' });
     // A save elsewhere drops the memo; here a fresh admin save does it.
     await aCall(t, 'PUT', '/v1/admin/config/listSizes', owner, { version: 0, value: { searchCategories: 2 } });
     const body = (await (await t.call('GET', '/v1/config')).json()) as Cfg;

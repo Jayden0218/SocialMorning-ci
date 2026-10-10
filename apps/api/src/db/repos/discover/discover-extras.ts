@@ -11,6 +11,7 @@
  */
 import { hash } from '@socialmorning/social-core';
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 import { cached, TTL } from '../cache.ts';
 import { fetchFeed, registerCard, toCard } from '../../../catalog/feed.ts';
 import type { EpisodeCard } from '../../../catalog/apple.ts';
@@ -37,7 +38,7 @@ const iso = (v: string | Date | null): string | undefined => (v === null ? undef
  * actors (the `hidden` flag keeps private listeners out, guard G2). Comments: top-level,
  * neither deleted by the author nor removed by moderation.
  */
-export async function statsFor(db: Db, episodeIds: readonly string[]): Promise<Map<string, ItemStats>> {
+async function statsForPg(db: Db, episodeIds: readonly string[]): Promise<Map<string, ItemStats>> {
   const out = new Map<string, ItemStats>();
   if (episodeIds.length === 0) return out;
   const rows = await db.query<{ id: string; listeners: number; comments: number }>(
@@ -73,7 +74,7 @@ const feedShowOf = (body: unknown): ShowMeta => {
  * server already holds — the cached parsed feed, else the newest registered episode. A
  * feed we know no title for is counted but not listed: a card with no name is no card.
  */
-export async function followedHere(db: Db): Promise<FollowedHere> {
+async function followedHerePg(db: Db): Promise<FollowedHere> {
   const rows = await db.query<{ feed_url: string; followers: number; total: number; show_title: string | null; image_url: string | null; feed_body: unknown }>(
     `WITH f AS (
        SELECT s.feed_url, count(*)::int AS followers FROM subscriptions s
@@ -109,7 +110,8 @@ export type NewArrival = { show: { feedUrl: string; title: string; author: strin
  * a deleted or hidden show leaves at once. Drafts and scheduled episodes never count — only
  * rows `promoteDue` has put in `episodes` with a time that has come.
  */
-export async function newArrivals(db: Db, limit: number = ARRIVALS_SHOWN): Promise<NewArrival[]> {
+/** Also lane DV's DynamoDB body for now: lane ST's tables are still Postgres (read through `pgOf`). */
+export async function newArrivalsPg(db: Db, limit: number = ARRIVALS_SHOWN): Promise<NewArrival[]> {
   // M24 US11: hidden episodes leave this list (and do not count).
   const rows = await db.query<{ feed_url: string; title: string; author: string; category: string; cover_url: string | null; episodes: number; episode_id: string; guid: string; ep_title: string; image_url: string | null; duration_ms: number | null; enclosure_url: string; published_at: string | Date | null }>(
     `SELECT hs.feed_url, hs.title, hs.author, hs.category, hs.cover_url, n.episodes,
@@ -154,7 +156,7 @@ const SAID_SELECT = `SELECT c.id, c.author_id, c.body, c.created_at,
        AND NOT EXISTS (SELECT 1 FROM hidden_feeds h WHERE h.feed_url = e.feed_url)
        AND ${notHidden('e')}`;
 
-export async function said(db: Db, limit: number = SAID_SHOWN): Promise<Said[]> {
+async function saidPg(db: Db, limit: number = SAID_SHOWN): Promise<Said[]> {
   // M24 US11: hidden episodes leave this list.
   const rows = await db.query<SaidRow>(
     `${SAID_SELECT}
@@ -170,7 +172,7 @@ export async function said(db: Db, limit: number = SAID_SHOWN): Promise<Said[]> 
  * M25 A4: comments the owner pinned to "What listeners said" — the same rules as `said` (removed,
  * hidden, suspended → not shown) but no 14-day window: a pinned quote stays until it is unpinned.
  */
-export async function saidByIds(db: Db, ids: readonly string[]): Promise<Said[]> {
+async function saidByIdsPg(db: Db, ids: readonly string[]): Promise<Said[]> {
   const ok = ids.filter((i) => /^[0-9a-f-]{36}$/i.test(i));
   if (ok.length === 0) return [];
   const rows = await db.query<SaidRow>(`${SAID_SELECT} AND c.id = ANY($1::uuid[])`, [ok]);
@@ -242,7 +244,7 @@ export function collectionsWithoutHidden(cols: readonly Collection[], hidden: Re
  * M10b US5 — "Podcasts you can watch": the newest video episodes SocialNet has registered
  * (from feeds, charts and picks), at most 10, hidden shows left out. Live, not cached.
  */
-export async function videoEpisodes(db: Db, limit = 10): Promise<{ kind: 'trending'; key: string; episode: EpisodeCard & { id: string; mediaKind: 'video' } }[]> {
+async function videoEpisodesPg(db: Db, limit = 10): Promise<{ kind: 'trending'; key: string; episode: EpisodeCard & { id: string; mediaKind: 'video' } }[]> {
   // M24 US11: hidden episodes leave this list.
   const rows = await db.query<{ id: string; feed_url: string; guid: string; title: string; show_title: string | null; image_url: string | null; duration_ms: number | null; enclosure_url: string; published_at: string | Date | null }>(
     `SELECT e.id, e.feed_url, e.guid, e.title, e.show_title, e.image_url, e.duration_ms, e.enclosure_url, e.published_at
@@ -262,3 +264,11 @@ export async function videoEpisodes(db: Db, limit = 10): Promise<{ kind: 'trendi
     },
   }));
 }
+
+// M26 lane DV: each runs on Postgres, or on DynamoDB (ddb/discover-extras.ts) when the Db carries a Store (db/backend.ts).
+export const statsFor = dual('dv/discover-extras', 'statsFor', statsForPg);
+export const followedHere = dual('dv/discover-extras', 'followedHere', followedHerePg);
+export const newArrivals = dual('dv/discover-extras', 'newArrivals', newArrivalsPg);
+export const said = dual('dv/discover-extras', 'said', saidPg);
+export const saidByIds = dual('dv/discover-extras', 'saidByIds', saidByIdsPg);
+export const videoEpisodes = dual('dv/discover-extras', 'videoEpisodes', videoEpisodesPg);

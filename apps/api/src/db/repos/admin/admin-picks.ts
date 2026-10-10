@@ -9,6 +9,8 @@
  */
 import { PICKS_PER_DAY, validatePicks } from '@socialmorning/social-core';
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
+import { pickEpisodeRows } from '../discover/pick-episodes.ts';
 import { ApiError } from '../../../errors.ts';
 import { fetchFeed } from '../../../catalog/feed.ts';
 
@@ -24,7 +26,7 @@ export function checkPickItems(day: string, items: readonly PickItemIn[]): PickI
   return picks.map((p) => ({ feedUrl: p.feedUrl, ...(p.guid !== undefined ? { guid: p.guid } : {}), why: p.why }));
 }
 
-export async function getPickDay(db: Db, day: string): Promise<PickDay | undefined> {
+async function getPickDayPg(db: Db, day: string): Promise<PickDay | undefined> {
   const [d] = await db.query<{ version: number }>('SELECT version FROM pick_days WHERE day = $1::date', [day]);
   if (!d) return undefined;
   const rows = await db.query<{ feed_url: string; guid: string | null; why: string; warning: string | null }>(
@@ -36,7 +38,7 @@ export async function getPickDay(db: Db, day: string): Promise<PickDay | undefin
 }
 
 /** Days in [from, to] that have admin picks, with their counts. */
-export async function adminPickDays(db: Db, from: string, to: string): Promise<{ day: string; count: number }[]> {
+async function adminPickDaysPg(db: Db, from: string, to: string): Promise<{ day: string; count: number }[]> {
   const rows = await db.query<{ day: string; count: number }>(
     `SELECT to_char(d.day, 'YYYY-MM-DD') AS day, (SELECT count(*)::int FROM pick_items i WHERE i.day = d.day) AS count
        FROM pick_days d WHERE d.day BETWEEN $1::date AND $2::date ORDER BY d.day`, [from, to]);
@@ -47,7 +49,7 @@ export async function adminPickDays(db: Db, from: string, to: string): Promise<{
  * Saves a day in the caller's transaction. `version` is what the editor loaded (0 = the day had
  * no admin row). Returns the new version (0 when the day was cleared).
  */
-export async function putPickDay(tx: Db, day: string, version: number, items: readonly PickItemRow[], by: string): Promise<number> {
+async function putPickDayPg(tx: Db, day: string, version: number, items: readonly PickItemRow[], by: string): Promise<number> {
   const [cur] = await tx.query<{ version: number }>('SELECT version FROM pick_days WHERE day = $1::date FOR UPDATE', [day]);
   const current = cur ? Number(cur.version) : 0;
   if (current !== version) throw new ApiError('changed', 'Changed elsewhere — reload.', { version: current });
@@ -74,9 +76,7 @@ export async function putPickDay(tx: Db, day: string, version: number, items: re
  * Known episodes cost one query; others one feed fetch (cached an hour). Never throws.
  */
 export async function pickWarning(db: Db, f: typeof fetch, feedUrl: string, guid: string | undefined): Promise<string | undefined> {
-  const [known] = guid !== undefined
-    ? await db.query('SELECT 1 FROM episodes WHERE feed_url = $1 AND guid = $2 LIMIT 1', [feedUrl, guid])
-    : await db.query('SELECT 1 FROM episodes WHERE feed_url = $1 LIMIT 1', [feedUrl]);
+  const [known] = await pickEpisodeRows(db, feedUrl, guid, false);
   if (known) return undefined;
   try {
     const { feed } = await fetchFeed(db, f, feedUrl);
@@ -86,3 +86,8 @@ export async function pickWarning(db: Db, f: typeof fetch, feedUrl: string, guid
     return `The feed did not answer: ${e instanceof Error ? e.message : String(e)}`.slice(0, 300);
   }
 }
+
+// M26 lane DV: each runs on Postgres, or on DynamoDB (discover/ddb/admin-picks.ts) when the Db carries a Store (db/backend.ts).
+export const getPickDay = dual('dv/admin-picks', 'getPickDay', getPickDayPg);
+export const adminPickDays = dual('dv/admin-picks', 'adminPickDays', adminPickDaysPg);
+export const putPickDay = dual('dv/admin-picks', 'putPickDay', putPickDayPg);

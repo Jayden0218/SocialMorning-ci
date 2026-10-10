@@ -113,9 +113,7 @@ export function ComposerSheet(props: {
       {/* M24 US20 (`CommentComposer-B`): a full-height paper sheet from 44 pt under the top down to
           the keyboard; the text box takes the space between the episode card and the foot. */}
       <KeyboardAvoidingView className="w-full flex-1 justify-end" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        {/* M25 IJ: `still` — placed by layout, not slid to a measured spot: with the box focused at
-            once the slide could leave the sheet one screen down (ios-journey run 37993589437). */}
-        <ActionsheetContent still className="px-0 pt-0 mt-11 items-stretch flex-1 max-h-full">
+        <ActionsheetContent className="px-0 pt-0 mt-11 items-stretch flex-1 max-h-full">
         <ScrollView className="flex-1 w-full" keyboardShouldPersistTaps="handled" scrollEnabled={false} contentContainerClassName="px-screen-x pt-row pb-section gap-row flex-grow">
           {rules ? <RulesBody onAccepted={() => { setRules(false); void submit(); }} onClose={() => setRules(false)} /> : (<>
           <Box className="flex-row justify-between items-center gap-gap">
@@ -153,12 +151,8 @@ export function ComposerSheet(props: {
             multiline
             autoFocus
             placeholder={state.parentId ? 'Write a reply' : 'What is worth saying here?'}
-            // M25 IJ: uncontrolled — the box owns its text and state follows it. With `value` bound,
-            // a render that arrived after the next keystroke put older text back: letters dropped,
-            // the cursor jumped, deletes were lost (ios-journey runs 38002770918, 38009542753:
-            // "Maestro: herd it on the simulatoraestro: heard …"). Nothing rewrites the text.
-            defaultValue={props.initial.body}
-            onChangeText={(t) => setState((s) => composer.edit(s, t))}
+            value={state.body}
+            onChangeText={(t) => setState(composer.edit(state, t))}
             accessibilityLabel="Comment"
           />
           </Textarea>

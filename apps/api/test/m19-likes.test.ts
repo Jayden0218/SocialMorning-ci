@@ -6,7 +6,10 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { putEpisode } from './put-episode.ts';
+import { follow } from '../src/db/repos/social/follows.ts';
 import { freshDb, signUp, type TestDb } from './harness.ts';
+import { hideFeeds } from './sf-neutral.ts';
 
 type Timeline = { items: { listener?: { id: string; displayName: string }; episode: { id: string }; note?: string }[]; next?: string };
 
@@ -14,8 +17,9 @@ async function setup() {
   const t = await freshDb();
   const a = await signUp(t, 'a@example.com', 'Alex');
   const b = await signUp(t, 'b@example.com', 'Bo');
-  await t.q("INSERT INTO episodes (id, feed_url, guid, title, show_title, enclosure_url) VALUES ('e1','https://f/x.xml','g1','Ep one','Show','https://cdn/1.mp3'), ('e2','https://f/y.xml','g2','Ep two','Show Y','https://cdn/2.mp3')");
-  await t.q('INSERT INTO follows (follower_id, followed_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [a.id, b.id]);
+  await putEpisode(t, 'e1', { feedUrl: 'https://f/x.xml', guid: 'g1', title: 'Ep one', showTitle: 'Show', enclosureUrl: 'https://cdn/1.mp3' });
+  await putEpisode(t, 'e2', { feedUrl: 'https://f/y.xml', guid: 'g2', title: 'Ep two', showTitle: 'Show Y', enclosureUrl: 'https://cdn/2.mp3' });
+  await follow(t.db, a.id, b.id); // lane SG's repo, on either backend
   return { t, a, b };
 }
 const tl = async (t: TestDb, token: string) => (await (await t.call('GET', '/v1/me/likes/timeline', undefined, token)).json()) as Timeline;
@@ -53,8 +57,7 @@ test('a block either way, and a hidden show, keep likes out', async () => {
   const { t, a, b } = await setup();
   await t.call('PUT', '/v1/episodes/e1/like', {}, b.token);
   await t.call('PUT', '/v1/episodes/e2/like', {}, b.token);
-  const [action] = await t.q<{ id: string }>("INSERT INTO moderation_actions (actor_id, action, target_kind, target_id) VALUES ($1, 'hide_show', 'show', 'https://f/y.xml') RETURNING id", [a.id]);
-  await t.q("INSERT INTO hidden_feeds (feed_url, action_id) VALUES ('https://f/y.xml', $1)", [action!.id]);
+  await hideFeeds(t, a.id, ['https://f/y.xml']); // lane SF's hide (act), on both backends
   assert.deepEqual((await tl(t, a.token)).items.map((i) => i.episode.id), ['e1'], 'the hidden show is out');
   await t.call('POST', '/v1/me/blocks', { listenerId: a.id }, b.token);
   assert.equal((await tl(t, a.token)).items.length, 0, 'blocked by B: nothing of B');

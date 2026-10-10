@@ -4,6 +4,7 @@
  * ever inserted (`auth/admin.ts` `insertAudit`); the table refuses UPDATE and DELETE (G-A3).
  */
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 import { AUDIT_AREAS, type AuditArea } from '../../../auth/admin.ts';
 
 export const AUDIT_PAGE = 50;
@@ -21,7 +22,7 @@ const obj = (v: unknown): Record<string, unknown> | null => {
 
 export const isArea = (v: string | undefined): v is AuditArea => v !== undefined && (AUDIT_AREAS as readonly string[]).includes(v);
 
-export async function listAudit(db: Db, opts: { area?: AuditArea; before?: string }): Promise<{ items: AuditRow[]; next?: string }> {
+async function listAuditPg(db: Db, opts: { area?: AuditArea; before?: string }): Promise<{ items: AuditRow[]; next?: string }> {
   const rows = await db.query<{
     id: string; at: Date | string; admin_id: string; admin_name: string | null; acting_as: string | null; acting_name: string | null;
     area: AuditArea; action: string; target: string; before: unknown; after: unknown; device: string | null;
@@ -43,3 +44,6 @@ export async function listAudit(db: Db, opts: { area?: AuditArea; before?: strin
   const last = page[page.length - 1];
   return rows.length > AUDIT_PAGE && last ? { items: page, next: last.id } : { items: page };
 }
+
+// M26 lane SF: on DynamoDB (safety/ddb/admin-audit.ts) when the Db carries a Store (db/backend.ts).
+export const listAudit = dual('sf/admin-audit', 'listAudit', listAuditPg);

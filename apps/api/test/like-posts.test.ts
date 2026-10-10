@@ -10,6 +10,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { putEpisode } from './put-episode.ts';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 
 type Post = {
@@ -23,7 +24,7 @@ async function setup() {
   const owner = await signUp(t, 'o@example.com', 'Owner');
   const a = await signUp(t, 'a@example.com', 'Alex');
   const c = await signUp(t, 'c@example.com', 'Cy');
-  await t.q("INSERT INTO episodes (id, feed_url, guid, title, show_title, enclosure_url) VALUES ('e1','https://f/x.xml','g1','Ep one','Show','https://cdn/1.mp3')");
+  await putEpisode(t, 'e1', { feedUrl: 'https://f/x.xml', guid: 'g1', title: 'Ep one', showTitle: 'Show', enclosureUrl: 'https://cdn/1.mp3' });
   assert.equal((await t.call('PUT', '/v1/episodes/e1/like', { note: 'Worth an hour.' }, owner.token)).status, 200);
   return { t, owner, a, c, path: `/v1/likes/${owner.id}/e1` };
 }

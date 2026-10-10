@@ -18,6 +18,7 @@
  */
 import { createHash } from 'node:crypto';
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 import type { EpisodeCard } from '../../../catalog/apple.ts';
 import { cached } from '../cache.ts';
 import { hiddenFeedUrls } from '../safety/moderation.ts';
@@ -31,7 +32,7 @@ export type ChartItem = DiscoverItem & { rank: number };
 export const CHART_TTL = 5 * 60_000;
 const CHART_STORED = 100;
 
-type EpRow = { id: string; feed_url: string; guid: string; title: string; show_title: string | null; image_url: string | null; duration_ms: number | null; enclosure_url: string; published_at: Date | string | null };
+export type EpRow = { id: string; feed_url: string; guid: string; title: string; show_title: string | null; image_url: string | null; duration_ms: number | null; enclosure_url: string; published_at: Date | string | null };
 const EP_COLS = 'e.id, e.feed_url, e.guid, e.title, e.show_title, e.image_url, e.duration_ms, e.enclosure_url, e.published_at';
 const NOT_HIDDEN = 'NOT EXISTS (SELECT 1 FROM hidden_feeds h WHERE h.feed_url = e.feed_url)';
 const keyOf = (c: { feedUrl: string; guid: string }) => `${c.feedUrl}\u0001${c.guid}`;
@@ -68,7 +69,7 @@ export async function chart(db: Db, kind: ChartKind, limit: number, now: () => n
 }
 
 /** "New shows": each show once, with its newest episode, newest first-episode first. */
-async function newShowsChart(db: Db): Promise<ChartItem[]> {
+async function newShowsChartPg(db: Db): Promise<ChartItem[]> {
   // M24 US11: hidden episodes leave this list (a show's newest VISIBLE episode is its card).
   const rows = await db.query<EpRow & { first_at: Date | string }>(
     `WITH s AS (SELECT feed_url, min(COALESCE(published_at, first_seen_at)) AS first_at FROM episodes GROUP BY feed_url),
@@ -84,7 +85,7 @@ async function newShowsChart(db: Db): Promise<ChartItem[]> {
 }
 
 /** "Rising": listens + comments this week minus the week before; only growth, biggest first. */
-async function risingChart(db: Db): Promise<ChartItem[]> {
+async function risingChartPg(db: Db): Promise<ChartItem[]> {
   // M24 US11: hidden episodes leave this list.
   const rows = await db.query<EpRow & { cur: number; prev: number }>(
     `WITH ev AS (
@@ -128,23 +129,7 @@ export const HUNT_SIZE = 3;
  * changes the next day; `shuffle = n` gives the n-th other set.
  */
 export async function hunt(db: Db, listenerId: string | undefined, day: string, shuffle: number, ov: Active = NONE): Promise<(EpisodeCard & { id: string })[]> {
-  // M24 US11: hidden episodes leave this list.
-  const rows = await db.query<EpRow & { plays: number }>(
-    `WITH plays AS (
-       SELECT episode_id, count(DISTINCT actor_id)::int AS n FROM activity
-        WHERE kind = 'listened' AND created_at > now() - interval '30 days' GROUP BY episode_id
-     ), cand AS (
-       SELECT ${EP_COLS}, COALESCE(p.n, 0) AS plays FROM episodes e LEFT JOIN plays p ON p.episode_id = e.id
-        WHERE e.enclosure_url <> '' AND ${NOT_HIDDEN} AND ${notHidden('e')}
-          AND ($1::uuid IS NULL OR (
-            NOT EXISTS (SELECT 1 FROM subscriptions s WHERE s.listener_id = $1::uuid AND s.feed_url = e.feed_url AND s.deleted_at IS NULL)
-            AND NOT EXISTS (SELECT 1 FROM rec_dismissals d WHERE d.listener_id = $1::uuid
-                             AND ((d.kind = 'show' AND d.item_key = e.feed_url) OR (d.kind = 'episode' AND d.item_key = e.id)))))
-     )
-     SELECT * FROM (SELECT cand.*, row_number() OVER (ORDER BY plays, id) AS rn, count(*) OVER () AS total FROM cand) x
-      WHERE rn * 2 <= total + 1 ORDER BY rn LIMIT 2000`,
-    [listenerId ?? null],
-  );
+  const rows = await huntRows(db, listenerId ?? null);
   // M25 A4: the owner's hides leave the candidates; the owner's pins (hidden gems) come first, for everyone.
   const order = seededOrder(rows.filter((r) => !isHidden(ov, { feedUrl: r.feed_url, guid: r.guid })), `hunt|${listenerId ?? 'anon'}|${day}|${shuffle}`, (r) => r.id);
   const pinned: (EpisodeCard & { id: string })[] = [];
@@ -167,6 +152,27 @@ export async function hunt(db: Db, listenerId: string | undefined, day: string, 
   return out;
 }
 
+/** The hunt's candidates in rank order (plays, then id), the bottom half kept, at most 2000. */
+async function huntRowsPg(db: Db, listenerId: string | null): Promise<EpRow[]> {
+  // M24 US11: hidden episodes leave this list.
+  return db.query<EpRow & { plays: number }>(
+    `WITH plays AS (
+       SELECT episode_id, count(DISTINCT actor_id)::int AS n FROM activity
+        WHERE kind = 'listened' AND created_at > now() - interval '30 days' GROUP BY episode_id
+     ), cand AS (
+       SELECT ${EP_COLS}, COALESCE(p.n, 0) AS plays FROM episodes e LEFT JOIN plays p ON p.episode_id = e.id
+        WHERE e.enclosure_url <> '' AND ${NOT_HIDDEN} AND ${notHidden('e')}
+          AND ($1::uuid IS NULL OR (
+            NOT EXISTS (SELECT 1 FROM subscriptions s WHERE s.listener_id = $1::uuid AND s.feed_url = e.feed_url AND s.deleted_at IS NULL)
+            AND NOT EXISTS (SELECT 1 FROM rec_dismissals d WHERE d.listener_id = $1::uuid
+                             AND ((d.kind = 'show' AND d.item_key = e.feed_url) OR (d.kind = 'episode' AND d.item_key = e.id)))))
+     )
+     SELECT * FROM (SELECT cand.*, row_number() OVER (ORDER BY plays, id) AS rn, count(*) OVER () AS total FROM cand) x
+      WHERE rn * 2 <= total + 1 ORDER BY rn LIMIT 2000`,
+    [listenerId],
+  );
+}
+
 export type PlazaShow = { feedUrl: string; title: string; imageUrl?: string; episodes: number; firstAt: string };
 export const PLAZA_POOL = 600;
 export const PLAZA_PAGE = 60;
@@ -181,24 +187,33 @@ const PLAZA_SELECT = `SELECT feed_url,
             (array_agg(image_url ORDER BY COALESCE(published_at, first_seen_at) DESC) FILTER (WHERE image_url IS NOT NULL))[1] AS image_url,
             count(*)::int AS episodes, min(COALESCE(published_at, first_seen_at)) AS first_at
        FROM episodes`;
-type PlazaRow = { feed_url: string; title: string | null; image_url: string | null; episodes: number; first_at: Date | string };
+export type PlazaRow = { feed_url: string; title: string | null; image_url: string | null; episodes: number; first_at: Date | string };
 
 export async function plaza(db: Db, seed: string, cursor: number, ov: Active = NONE): Promise<{ items: PlazaShow[]; next?: string }> {
   const hidden = await hiddenFeedUrls(db);
-  const rows = await db.query<PlazaRow>(`${PLAZA_SELECT} GROUP BY feed_url ORDER BY first_at DESC, feed_url LIMIT ${PLAZA_POOL}`);
+  const rows = await plazaRows(db);
   const pool = rows.filter((r) => !hidden.has(r.feed_url));
   // M25 A4: the owner's hides leave the plaza; pins open its first page, in the owner's order.
   const seeded = seededOrder(pool, `plaza|${seed}`, (r) => r.feed_url);
   const order = await applyList(seeded, ov, (r) => ({ feedUrl: r.feed_url }), async (p) => {
     if (p.feedUrl === undefined || hidden.has(p.feedUrl)) return undefined;
-    const [r] = await db.query<PlazaRow>(`${PLAZA_SELECT} WHERE feed_url = $1 GROUP BY feed_url`, [p.feedUrl]);
-    return r;
+    return plazaRow(db, p.feedUrl);
   });
   const slice = order.slice(cursor, cursor + PLAZA_PAGE);
   return {
     items: slice.map((r) => ({ feedUrl: r.feed_url, title: r.title ?? '', ...(r.image_url ? { imageUrl: r.image_url } : {}), episodes: Number(r.episodes), firstAt: new Date(r.first_at).toISOString() })),
     ...(cursor + PLAZA_PAGE < order.length ? { next: String(cursor + PLAZA_PAGE) } : {}),
   };
+}
+
+/** The newest PLAZA_POOL shows by their earliest episode (each with its newest title and cover, and its episode count). */
+async function plazaRowsPg(db: Db): Promise<PlazaRow[]> {
+  return db.query<PlazaRow>(`${PLAZA_SELECT} GROUP BY feed_url ORDER BY first_at DESC, feed_url LIMIT ${PLAZA_POOL}`);
+}
+
+async function plazaRowPg(db: Db, feedUrl: string): Promise<PlazaRow | undefined> {
+  const [r] = await db.query<PlazaRow>(`${PLAZA_SELECT} WHERE feed_url = $1 GROUP BY feed_url`, [feedUrl]);
+  return r;
 }
 
 export type Face = { id: string; displayName: string; avatarUrl?: string };
@@ -208,7 +223,7 @@ export const FACES_MAX = 3;
  * Faces on editor's picks: up to 3 people the viewer follows who liked each episode, newest like
  * first. Only public likes, never a suspended account, never anyone blocked either way.
  */
-export async function likedByFollowed(db: Db, viewerId: string, episodeIds: readonly string[]): Promise<Map<string, Face[]>> {
+async function likedByFollowedPg(db: Db, viewerId: string, episodeIds: readonly string[]): Promise<Map<string, Face[]>> {
   const out = new Map<string, Face[]>();
   if (episodeIds.length === 0) return out;
   const rows = await db.query<{ episode_id: string; id: string; display_name: string; avatar_url: string | null }>(
@@ -229,3 +244,11 @@ export async function likedByFollowed(db: Db, viewerId: string, episodeIds: read
   return out;
 }
 
+
+// M26 lane DV: each runs on Postgres, or on DynamoDB (ddb/explore.ts) when the Db carries a Store (db/backend.ts).
+export const newShowsChart = dual('dv/explore', 'newShowsChart', newShowsChartPg);
+export const risingChart = dual('dv/explore', 'risingChart', risingChartPg);
+export const huntRows = dual('dv/explore', 'huntRows', huntRowsPg);
+export const plazaRows = dual('dv/explore', 'plazaRows', plazaRowsPg);
+export const plazaRow = dual('dv/explore', 'plazaRow', plazaRowPg);
+export const likedByFollowed = dual('dv/explore', 'likedByFollowed', likedByFollowedPg);

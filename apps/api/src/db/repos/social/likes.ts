@@ -5,6 +5,7 @@
  * suspended account and a hidden show never appear (M6 rules, applied at read time).
  */
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 import type { EpisodeCard } from '../../../catalog/apple.ts';
 
 export const TIMELINE_PAGE = 20;
@@ -41,7 +42,7 @@ function toItem(r: Row, withListener: boolean): LikeItem {
   };
 }
 
-export async function like(db: Db, listenerId: string, episodeId: string, note: string | undefined): Promise<void> {
+async function likePg(db: Db, listenerId: string, episodeId: string, note: string | undefined): Promise<void> {
   await db.query(
     `INSERT INTO episode_likes (listener_id, episode_id, note) VALUES ($1, $2, $3)
      ON CONFLICT (listener_id, episode_id) DO UPDATE SET note = EXCLUDED.note`,
@@ -49,11 +50,11 @@ export async function like(db: Db, listenerId: string, episodeId: string, note: 
   );
 }
 
-export async function unlike(db: Db, listenerId: string, episodeId: string): Promise<void> {
+async function unlikePg(db: Db, listenerId: string, episodeId: string): Promise<void> {
   await db.query('DELETE FROM episode_likes WHERE listener_id = $1 AND episode_id = $2', [listenerId, episodeId]);
 }
 
-export async function myLike(db: Db, listenerId: string, episodeId: string): Promise<{ liked: boolean; note?: string }> {
+async function myLikePg(db: Db, listenerId: string, episodeId: string): Promise<{ liked: boolean; note?: string }> {
   const [r] = await db.query<{ note: string | null }>('SELECT note FROM episode_likes WHERE listener_id = $1 AND episode_id = $2', [listenerId, episodeId]);
   return r ? { liked: true, ...(r.note ? { note: r.note } : {}) } : { liked: false };
 }
@@ -65,7 +66,7 @@ const page = (rows: Row[], withListener: boolean) => {
 };
 
 /** Likes from accounts the viewer follows, newest first, `before` an ISO time for the next page. */
-export async function timeline(db: Db, viewerId: string, before: string | undefined): Promise<{ items: LikeItem[]; next?: string }> {
+async function timelinePg(db: Db, viewerId: string, before: string | undefined): Promise<{ items: LikeItem[]; next?: string }> {
   const rows = await db.query<Row>(
     `SELECT ${COLS} ${FROM}
        AND k.listener_id IN (SELECT followed_id FROM follows WHERE follower_id = $1)
@@ -80,7 +81,7 @@ export async function timeline(db: Db, viewerId: string, before: string | undefi
 }
 
 /** One account's likes: everyone sees them while likes are public; the account itself always does. */
-export async function likesOf(db: Db, ownerId: string, viewerId: string | undefined, before: string | undefined): Promise<{ items: LikeItem[]; next?: string }> {
+async function likesOfPg(db: Db, ownerId: string, viewerId: string | undefined, before: string | undefined): Promise<{ items: LikeItem[]; next?: string }> {
   const rows = await db.query<Row>(
     `SELECT ${COLS} ${FROM}
        AND k.listener_id = $1
@@ -109,7 +110,7 @@ const BLOCKED_EITHER = (a: string, b: string) =>
   `EXISTS (SELECT 1 FROM blocks bb WHERE (bb.blocker_id = ${a} AND bb.blocked_id = ${b}) OR (bb.blocker_id = ${b} AND bb.blocked_id = ${a}))`;
 
 /** The like as the viewer may see it, or undefined (→ 404, never "it exists but is hidden"). */
-export async function visibleLike(db: Db, ownerId: string, episodeId: string, viewerId: string | undefined): Promise<LikeItem | undefined> {
+async function visibleLikePg(db: Db, ownerId: string, episodeId: string, viewerId: string | undefined): Promise<LikeItem | undefined> {
   const [r] = await db.query<Row>(
     `SELECT ${COLS} ${FROM}
        AND k.listener_id = $1::uuid AND k.episode_id = $2
@@ -120,7 +121,7 @@ export async function visibleLike(db: Db, ownerId: string, episodeId: string, vi
   return r ? toItem(r, true) : undefined;
 }
 
-export async function likePost(db: Db, ownerId: string, episodeId: string, viewerId: string | undefined): Promise<LikePost | undefined> {
+async function likePostPg(db: Db, ownerId: string, episodeId: string, viewerId: string | undefined): Promise<LikePost | undefined> {
   const like = await visibleLike(db, ownerId, episodeId, viewerId);
   if (!like) return undefined;
   const comments = await db.query<{ id: string; author_id: string; display_name: string; avatar_url: string | null; body: string; created_at: Date | string }>(
@@ -149,7 +150,7 @@ export async function likePost(db: Db, ownerId: string, episodeId: string, viewe
   };
 }
 
-export async function addLikeComment(db: Db, ownerId: string, episodeId: string, authorId: string, body: string): Promise<LikeComment> {
+async function addLikeCommentPg(db: Db, ownerId: string, episodeId: string, authorId: string, body: string): Promise<LikeComment> {
   const [r] = await db.query<{ id: string; created_at: Date | string }>(
     'INSERT INTO like_comments (owner_id, episode_id, author_id, body) VALUES ($1, $2, $3, $4) RETURNING id, created_at',
     [ownerId, episodeId, authorId, body],
@@ -162,7 +163,7 @@ export async function addLikeComment(db: Db, ownerId: string, episodeId: string,
 }
 
 /** The author, or the like's owner, may delete a comment. True when one was deleted. */
-export async function deleteLikeComment(db: Db, ownerId: string, episodeId: string, commentId: string, viewerId: string): Promise<boolean> {
+async function deleteLikeCommentPg(db: Db, ownerId: string, episodeId: string, commentId: string, viewerId: string): Promise<boolean> {
   const rows = await db.query<{ id: string }>(
     `UPDATE like_comments SET deleted_at = now()
       WHERE id = $1 AND owner_id = $2 AND episode_id = $3 AND deleted_at IS NULL AND (author_id = $4 OR owner_id = $4) RETURNING id`,
@@ -171,7 +172,7 @@ export async function deleteLikeComment(db: Db, ownerId: string, episodeId: stri
   return rows.length > 0;
 }
 
-export async function setLikeReaction(db: Db, ownerId: string, episodeId: string, listenerId: string, emoji: string): Promise<void> {
+async function setLikeReactionPg(db: Db, ownerId: string, episodeId: string, listenerId: string, emoji: string): Promise<void> {
   await db.query(
     `INSERT INTO like_reactions (owner_id, episode_id, listener_id, emoji) VALUES ($1, $2, $3, $4)
      ON CONFLICT (owner_id, episode_id, listener_id) DO UPDATE SET emoji = EXCLUDED.emoji, created_at = now()`,
@@ -179,6 +180,19 @@ export async function setLikeReaction(db: Db, ownerId: string, episodeId: string
   );
 }
 
-export async function clearLikeReaction(db: Db, ownerId: string, episodeId: string, listenerId: string): Promise<void> {
+async function clearLikeReactionPg(db: Db, ownerId: string, episodeId: string, listenerId: string): Promise<void> {
   await db.query('DELETE FROM like_reactions WHERE owner_id = $1 AND episode_id = $2 AND listener_id = $3', [ownerId, episodeId, listenerId]);
 }
+
+// M26 lane SC: each function runs on Postgres, or on DynamoDB (`ddb/likes.ts`) when the Db carries a Store (db/backend.ts).
+export const like = dual('sc/likes', 'like', likePg);
+export const unlike = dual('sc/likes', 'unlike', unlikePg);
+export const myLike = dual('sc/likes', 'myLike', myLikePg);
+export const timeline = dual('sc/likes', 'timeline', timelinePg);
+export const likesOf = dual('sc/likes', 'likesOf', likesOfPg);
+export const visibleLike = dual('sc/likes', 'visibleLike', visibleLikePg);
+export const likePost = dual('sc/likes', 'likePost', likePostPg);
+export const addLikeComment = dual('sc/likes', 'addLikeComment', addLikeCommentPg);
+export const deleteLikeComment = dual('sc/likes', 'deleteLikeComment', deleteLikeCommentPg);
+export const setLikeReaction = dual('sc/likes', 'setLikeReaction', setLikeReactionPg);
+export const clearLikeReaction = dual('sc/likes', 'clearLikeReaction', clearLikeReactionPg);

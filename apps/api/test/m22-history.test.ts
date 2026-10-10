@@ -10,6 +10,7 @@ import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
+import { countListenedRanges } from './lb-seed.ts';
 
 const FEED = 'https://feeds.example.com/h.xml';
 const epBody = (guid: string) => ({ feedUrl: FEED, guid, title: `Ep ${guid}`, showTitle: 'Show', enclosureUrl: `https://cdn/${guid}.mp3`, durationMs: 2_000_000 });
@@ -50,13 +51,13 @@ test('G-M22-14: clear all empties history and keeps listening totals', async () 
   const a = await signUp(t);
   await seed(t, a.token);
   const totalsBefore = await t.q<{ ms: string }>('SELECT listened_ms::text AS ms FROM listeners WHERE id = $1', [a.id]);
-  const rangesBefore = await t.q<{ n: number }>('SELECT count(*)::int AS n FROM listened_ranges WHERE listener_id = $1', [a.id]);
+  const rangesBefore = await countListenedRanges(t, a.id);
   const pageBefore = await (await t.call('GET', '/v1/me/listening?range=all', undefined, a.token)).json();
-  assert.equal(rangesBefore[0]!.n, 2);
+  assert.equal(rangesBefore, 2);
   assert.equal((await t.call('DELETE', '/v1/me/history', { all: true }, a.token)).status, 204);
   assert.deepEqual(await positionIds(t, a.token), []);
   assert.deepEqual(await t.q('SELECT listened_ms::text AS ms FROM listeners WHERE id = $1', [a.id]), totalsBefore);
-  assert.deepEqual(await t.q('SELECT count(*)::int AS n FROM listened_ranges WHERE listener_id = $1', [a.id]), rangesBefore);
+  assert.equal(await countListenedRanges(t, a.id), rangesBefore);
   assert.deepEqual(await (await t.call('GET', '/v1/me/listening?range=all', undefined, a.token)).json(), pageBefore);
   await t.close();
 });

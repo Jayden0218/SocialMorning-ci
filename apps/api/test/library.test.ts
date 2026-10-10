@@ -8,6 +8,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
+import { backdateComments } from './sc-neutral.ts';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
 
@@ -71,9 +72,9 @@ test('My comments: your own top-level comments with their text; a deleted one ha
   const a = await signUp(t, 'a@example.com', 'Alex');
   const b = await signUp(t, 'b@example.com', 'Bo');
   const c1 = (await (await t.call('POST', `/v1/episodes/${EP}/comments`, { body: 'loved this', offsetMs: 61_000 }, a.token)).json() as { comment: { id: string } }).comment;
-  await t.q("UPDATE comments SET created_at = created_at - interval '10 seconds'");
+  await backdateComments(t, 10_000);
   const c2 = (await (await t.call('POST', `/v1/episodes/${EP}/comments`, { body: 'second', offsetMs: 5_000 }, a.token)).json() as { comment: { id: string } }).comment;
-  await t.q("UPDATE comments SET created_at = created_at - interval '10 seconds'");
+  await backdateComments(t, 10_000);
   await t.call('POST', `/v1/episodes/${EP}/comments`, { body: 'not hers' }, b.token);
   await t.q('UPDATE comments SET deleted_at = now() WHERE id = $1', [c2.id]);
   const mine = (await (await t.call('GET', '/v1/me/comments', undefined, a.token)).json()) as { items: { id: string; body: string | null; deleted: boolean; offsetMs: number | null; episode: { title: string } }[] };

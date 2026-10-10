@@ -17,6 +17,7 @@ import { FEEDS_PER_CALL, knownGuidRows, subscribedFeedPage } from '../db/repos/l
 import { hiddenEpisodeRows, pickEpisodeRows } from '../db/repos/library/daily-pick.ts';
 import { CACHE_KEEP_DAYS, PUSH_SENT_KEEP_DAYS, REC_EVENTS_KEEP_DAYS, sweepDailyActive, sweepOldCache, sweepOldPushSent, sweepOldRecEvents } from '../db/repos/old-rows-sweep.ts';
 import { picksForDay } from '@socialmorning/social-core';
+import { checkDashboard } from '../db/repos/admin/metrics.ts';
 // M22 lane 5: translate, digest and deletions steps.
 import { groqClient, type Groq } from '../translate/groq.ts';
 import { stepTranslation } from '../translate/job.ts';
@@ -137,10 +138,13 @@ export function createInternalRoute(jobToken: string | undefined, m22: { groq?: 
     if (step === 'sweep') {
       const failed: string[] = [];
       const cat = c.get('catalog');
-      const counts = { milestones: 0, popular: 0, voiceDeleted: 0, activeDeleted: 0, cacheDeleted: 0, pushSentDeleted: 0, recEventsDeleted: 0, errorsDeleted: 0 };
+      const counts = { milestones: 0, popular: 0, voiceDeleted: 0, activeDeleted: 0, cacheDeleted: 0, pushSentDeleted: 0, recEventsDeleted: 0, errorsDeleted: 0, dashFixed: 0 };
       // M18 FR-015: a day of app use is kept 400 days, then deleted (research R8).
       try { counts.activeDeleted = await sweepDailyActive(db); }
       catch (e) { failed.push(`daily_active: ${e instanceof Error ? e.message : String(e)}`); }
+      // M26 lane SF (G-M26-SF4): once a night, yesterday's dashboard safety counters against a recount (Postgres: 0).
+      try { counts.dashFixed = await checkDashboard(db); }
+      catch (e) { failed.push(`dashboard check: ${e instanceof Error ? e.message : String(e)}`); }
       // M23 US3 (FR-006): search and feed caches past 7 days, push_sent past 30, rec_events past 90.
       try { counts.cacheDeleted = await sweepOldCache(db); }
       catch (e) { failed.push(`cache: ${e instanceof Error ? e.message : String(e)}`); }

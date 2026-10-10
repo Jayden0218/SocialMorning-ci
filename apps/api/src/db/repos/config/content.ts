@@ -5,6 +5,7 @@
  */
 import type { Db } from '../../db.ts';
 import { ApiError } from '../../../errors.ts';
+import { dual } from '../../backend.ts';
 
 export const CONTENT_KINDS = ['academy', 'faq'] as const;
 export type ContentKind = (typeof CONTENT_KINDS)[number];
@@ -22,24 +23,24 @@ const toPage = (r: Row): ContentPage => ({
   published: Boolean(r.published), version: Number(r.version), updatedAt: new Date(r.updated_at).toISOString(),
 });
 
-export async function listPages(db: Db, kind: ContentKind, opts: { all: boolean }): Promise<ContentPage[]> {
+async function listPagesPg(db: Db, kind: ContentKind, opts: { all: boolean }): Promise<ContentPage[]> {
   const rows = await db.query<Row>(
     `SELECT kind, slug, title, summary, tag, body, position, published, version, updated_at FROM content_pages
       WHERE kind = $1 AND ($2::boolean OR published) ORDER BY position, slug`, [kind, opts.all]);
   return rows.map(toPage);
 }
 
-export async function getPage(db: Db, kind: ContentKind, slug: string): Promise<ContentPage | null> {
+async function getPagePg(db: Db, kind: ContentKind, slug: string): Promise<ContentPage | null> {
   const [r] = await db.query<Row>('SELECT kind, slug, title, summary, tag, body, position, published, version, updated_at FROM content_pages WHERE kind = $1 AND slug = $2', [kind, slug]);
   return r ? toPage(r) : null;
 }
 
-const versionGuard = (current: number, sent: number) => {
+export const versionGuard = (current: number, sent: number) => {
   if (current !== sent) throw new ApiError('changed', 'Changed elsewhere — reload.', { version: current });
 };
 
 /** Create (version 0) or update (the stored version). Returns the new version. */
-export async function putPage(tx: Db, kind: ContentKind, slug: string, version: number, p: ContentInput): Promise<number> {
+async function putPagePg(tx: Db, kind: ContentKind, slug: string, version: number, p: ContentInput): Promise<number> {
   const [cur] = await tx.query<{ version: number }>('SELECT version FROM content_pages WHERE kind = $1 AND slug = $2 FOR UPDATE', [kind, slug]);
   const current = cur ? Number(cur.version) : 0;
   versionGuard(current, version);
@@ -54,9 +55,14 @@ export async function putPage(tx: Db, kind: ContentKind, slug: string, version: 
   return next;
 }
 
-export async function deletePage(tx: Db, kind: ContentKind, slug: string, version: number): Promise<void> {
+async function deletePagePg(tx: Db, kind: ContentKind, slug: string, version: number): Promise<void> {
   const [cur] = await tx.query<{ version: number }>('SELECT version FROM content_pages WHERE kind = $1 AND slug = $2 FOR UPDATE', [kind, slug]);
   if (!cur) throw new ApiError('not_found', 'No such page.');
   versionGuard(Number(cur.version), version);
   await tx.query('DELETE FROM content_pages WHERE kind = $1 AND slug = $2', [kind, slug]);
 }
+
+export const listPages = dual('sf/content', 'listPages', listPagesPg);
+export const getPage = dual('sf/content', 'getPage', getPagePg);
+export const putPage = dual('sf/content', 'putPage', putPagePg);
+export const deletePage = dual('sf/content', 'deletePage', deletePagePg);

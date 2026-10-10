@@ -5,6 +5,7 @@
  * writes the `clipped` activity row in the same transaction (research R4).
  */
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 import type { EpisodeRow } from '../library/episodes.ts';
 
 export type ClipRow = {
@@ -27,7 +28,7 @@ export const toClipOut = (r: ClipRow): ClipOut => ({
 const SELECT = `SELECT c.id, c.author_id, l.display_name AS author_name, c.client_id, c.episode_id, c.start_ms, c.end_ms, c.caption, c.created_at, c.deleted_at, c.removed_at
                 FROM clips c LEFT JOIN listeners l ON l.id = c.author_id`;
 
-export async function createClip(
+async function createClipPg(
   db: Db,
   input: { authorId: string; clientId: string; episodeId: string; startMs: number; endMs: number; caption: string },
 ): Promise<{ clip: ClipRow; created: boolean }> {
@@ -54,7 +55,7 @@ export async function createClip(
 }
 
 /** The clip and its episode record — deleted clips included (FR-005: the link still offers the episode). */
-export async function getClip(db: Db, id: string): Promise<{ clip: ClipRow; episode: EpisodeRow } | undefined> {
+async function getClipPg(db: Db, id: string): Promise<{ clip: ClipRow; episode: EpisodeRow } | undefined> {
   type Joined = ClipRow & { e_feed_url: string; e_guid: string; e_title: string; e_show_title: string | null; e_enclosure_url: string; e_image_url: string | null; e_duration_ms: number | null; e_published_at: string | null; e_genre_id: number | null };
   const rows = await db.query<Joined>(
     `SELECT c.id, c.author_id, l.display_name AS author_name, c.client_id, c.episode_id, c.start_ms, c.end_ms, c.caption, c.created_at, c.deleted_at, c.removed_at,
@@ -79,7 +80,7 @@ export const VIEWER_FILTER = `AND ($V::uuid IS NULL
     OR c.author_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id = $V::uuid)
     OR c.id::text IN (SELECT target_id FROM reports WHERE reporter_id = $V::uuid AND target_kind = 'clip'))`;
 
-export async function listClipsForEpisode(db: Db, episodeId: string, before?: string, limit = 20, viewerId?: string): Promise<{ clips: ClipRow[]; next?: string }> {
+async function listClipsForEpisodePg(db: Db, episodeId: string, before?: string, limit = 20, viewerId?: string): Promise<{ clips: ClipRow[]; next?: string }> {
   const rows = await db.query<ClipRow>(
     `${SELECT} WHERE c.episode_id = $1 AND c.deleted_at IS NULL AND c.removed_at IS NULL ${VIEWER_FILTER.replaceAll('$V', '$3')} ${before ? 'AND c.created_at < $4' : ''} ORDER BY c.created_at DESC, c.id DESC LIMIT $2`,
     before ? [episodeId, limit + 1, viewerId ?? null, before] : [episodeId, limit + 1, viewerId ?? null],
@@ -96,7 +97,7 @@ export async function listClipsForEpisode(db: Db, episodeId: string, before?: st
 }
 
 /** Soft delete by the author. Returns 'gone' when there is no such live clip, 'forbidden' for someone else's. */
-export async function deleteClip(db: Db, id: string, authorId: string): Promise<'deleted' | 'gone' | 'forbidden'> {
+async function deleteClipPg(db: Db, id: string, authorId: string): Promise<'deleted' | 'gone' | 'forbidden'> {
   const [row] = await db.query<{ author_id: string; deleted_at: string | null }>('SELECT author_id, deleted_at FROM clips WHERE id = $1', [id]);
   if (!row || row.deleted_at !== null) return 'gone';
   if (row.author_id !== authorId) return 'forbidden';
@@ -106,3 +107,9 @@ export async function deleteClip(db: Db, id: string, authorId: string): Promise<
   });
   return 'deleted';
 }
+
+// M26 lane SC: each function runs on Postgres, or on DynamoDB (`ddb/clips.ts`) when the Db carries a Store (db/backend.ts).
+export const createClip = dual('sc/clips', 'createClip', createClipPg);
+export const getClip = dual('sc/clips', 'getClip', getClipPg);
+export const listClipsForEpisode = dual('sc/clips', 'listClipsForEpisode', listClipsForEpisodePg);
+export const deleteClip = dual('sc/clips', 'deleteClip', deleteClipPg);

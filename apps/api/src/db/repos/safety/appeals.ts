@@ -7,6 +7,7 @@
  */
 import type { Action, TargetKind } from '@socialmorning/social-core';
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 import { insertNotice } from '../social/system-notices.ts';
 
 export const APPEAL_DAYS = 90;
@@ -42,7 +43,7 @@ export function describe(kind: TargetKind, action: Action, snapshot: unknown): s
  * The actions against this listener they may appeal: a `remove` of something they wrote, or a
  * `suspend` while they are still suspended — newest first, each with its appeal if one was sent.
  */
-export async function appealableFor(db: Db, listenerId: string): Promise<Appealable[]> {
+async function appealableForPg(db: Db, listenerId: string): Promise<Appealable[]> {
   const rows = await db.query<Row>(
     `SELECT a.id, a.action, a.target_kind, a.target_id, a.created_at,
             (SELECT r.snapshot FROM reports r WHERE r.closed_by = a.id ORDER BY r.created_at LIMIT 1) AS snapshot,
@@ -68,8 +69,8 @@ export async function appealableFor(db: Db, listenerId: string): Promise<Appeala
 }
 
 /** Sends the appeal. `'not_appealable'` when the action is not theirs to appeal; `'already'` when sent before. */
-export async function sendAppeal(db: Db, listenerId: string, actionId: string, text: string): Promise<{ id: string } | 'not_appealable' | 'already'> {
-  const item = (await appealableFor(db, listenerId)).find((a) => a.actionId === actionId);
+async function sendAppealPg(db: Db, listenerId: string, actionId: string, text: string): Promise<{ id: string } | 'not_appealable' | 'already'> {
+  const item = (await appealableForPg(db, listenerId)).find((a) => a.actionId === actionId);
   if (!item) return 'not_appealable';
   if (item.appeal) return 'already';
   const rows = await db.query<{ id: string }>(
@@ -84,7 +85,7 @@ export type AdminAppeal = {
   what: string; snapshot: Record<string, unknown>;
 };
 
-export async function adminAppeals(db: Db, state: 'open' | 'decided'): Promise<AdminAppeal[]> {
+async function adminAppealsPg(db: Db, state: 'open' | 'decided'): Promise<AdminAppeal[]> {
   const rows = await db.query<{
     id: string; state: AdminAppeal['state']; text: string; created_at: Date | string; decided_at: Date | string | null;
     listener_id: string; display_name: string; email: string; suspended_at: string | null;
@@ -104,7 +105,7 @@ export async function adminAppeals(db: Db, state: 'open' | 'decided'): Promise<A
   }));
 }
 
-export async function appealById(db: Db, id: string): Promise<{ id: string; state: string; listener_id: string; action_id: string; action: Action; target_kind: TargetKind; target_id: string } | undefined> {
+async function appealByIdPg(db: Db, id: string): Promise<{ id: string; state: string; listener_id: string; action_id: string; action: Action; target_kind: TargetKind; target_id: string } | undefined> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return undefined;
   const [r] = await db.query<{ id: string; state: string; listener_id: string; action_id: string; action: Action; target_kind: TargetKind; target_id: string }>(
     `SELECT ap.id, ap.state, ap.listener_id, a.id AS action_id, a.action, a.target_kind, a.target_id
@@ -117,7 +118,7 @@ export async function appealById(db: Db, id: string): Promise<{ id: string; stat
  * 24 hours last (after that the sweep has deleted it from storage, as the constitution asks).
  * A suspension is undone by the caller through `act('unsuspend')`, the one place for that rule.
  */
-export async function restoreRemoved(db: Db, kind: TargetKind, id: string): Promise<void> {
+async function restoreRemovedPg(db: Db, kind: TargetKind, id: string): Promise<void> {
   if (kind === 'comment') await db.query('UPDATE comments SET removed_at = NULL WHERE id = $1', [id]);
   else if (kind === 'clip') await db.query('UPDATE clips SET removed_at = NULL WHERE id = $1', [id]);
   else if (kind === 'status') await db.query("UPDATE voice_posts SET expires_at = created_at + interval '24 hours' WHERE id = $1 AND created_at + interval '24 hours' > now()", [id]);
@@ -126,9 +127,17 @@ export async function restoreRemoved(db: Db, kind: TargetKind, id: string): Prom
 }
 
 /** Marks the decision and tells the listener. */
-export async function decide(db: Db, appealId: string, listenerId: string, accepted: boolean, by: string): Promise<void> {
+async function decidePg(db: Db, appealId: string, listenerId: string, accepted: boolean, by: string): Promise<void> {
   await db.query("UPDATE appeals SET state = $2, decided_at = now(), decided_by = $3 WHERE id = $1 AND state = 'open'", [appealId, accepted ? 'accepted' : 'rejected', by]);
   await insertNotice(db, accepted
     ? { listenerId, title: 'Your appeal was accepted', body: 'We looked again and undid what we did. Thank you for telling us.' }
     : { listenerId, title: 'Your appeal was not accepted', body: 'We looked again and the decision stands. You can read the community rules in Settings.' });
 }
+
+// M26 lane SF: each runs on Postgres, or on DynamoDB (ddb/appeals.ts) when the Db carries a Store (db/backend.ts).
+export const appealableFor = dual('sf/appeals', 'appealableFor', appealableForPg);
+export const sendAppeal = dual('sf/appeals', 'sendAppeal', sendAppealPg);
+export const adminAppeals = dual('sf/appeals', 'adminAppeals', adminAppealsPg);
+export const appealById = dual('sf/appeals', 'appealById', appealByIdPg);
+export const restoreRemoved = dual('sf/appeals', 'restoreRemoved', restoreRemovedPg);
+export const decide = dual('sf/appeals', 'decide', decidePg);

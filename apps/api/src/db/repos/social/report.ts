@@ -5,6 +5,7 @@
  * is ever named.
  */
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 
 export type Report = {
   month: string; minutes: number; shows: number; episodes: number;
@@ -25,7 +26,7 @@ export function monthBounds(month: string): { from: string; to: string } | undef
   return { from: `${month}-01`, to: `${next}-01` };
 }
 
-const rangesMs = (v: unknown): number => {
+export const rangesMs = (v: unknown): number => {
   const a = typeof v === 'string' ? (JSON.parse(v) as unknown) : v;
   if (!Array.isArray(a)) return 0;
   let ms = 0;
@@ -33,15 +34,28 @@ const rangesMs = (v: unknown): number => {
   return ms;
 };
 
-export async function monthReport(db: Db, listenerId: string, month: string): Promise<Report | undefined> {
+async function monthReportPg(db: Db, listenerId: string, month: string): Promise<Report | undefined> {
   const b = monthBounds(month);
   if (!b) return undefined;
-  const rows = await db.query<{ episode_id: string; ranges: unknown; title: string | null; show_title: string | null; feed_url: string | null; image_url: string | null }>(
+  const rows = await db.query<RangeRow>(
     `SELECT r.episode_id, r.ranges, e.title, e.show_title, e.feed_url, e.image_url
      FROM listened_ranges r LEFT JOIN episodes e ON e.id = r.episode_id
      WHERE r.listener_id = $1 AND r.day >= $2::date AND r.day < $3::date`,
     [listenerId, b.from, b.to],
   );
+  const [counts] = await db.query<{ comments: number; clips: number }>(
+    `SELECT (SELECT count(*)::int FROM comments WHERE author_id = $1 AND deleted_at IS NULL AND created_at >= $2::date AND created_at < $3::date) AS comments,
+            (SELECT count(*)::int FROM clips WHERE author_id = $1 AND deleted_at IS NULL AND created_at >= $2::date AND created_at < $3::date) AS clips`,
+    [listenerId, b.from, b.to],
+  );
+  return buildReport(month, rows, { comments: Number(counts?.comments ?? 0), clips: Number(counts?.clips ?? 0) });
+}
+
+/** One device's ranges for an (episode, day), with the episode's titles (the LEFT JOIN's NULLs when unknown). */
+export type RangeRow = { episode_id: string; ranges: unknown; title: string | null; show_title: string | null; feed_url: string | null; image_url: string | null };
+
+/** The report from the month's range rows and the two counts — shared by the Postgres and DynamoDB bodies (M26 lane SC). */
+export function buildReport(month: string, rows: readonly RangeRow[], counts: { comments: number; clips: number }): Report {
   const byEp = new Map<string, { ms: number; title: string; showTitle: string; feedUrl?: string; imageUrl?: string }>();
   for (const r of rows) {
     const cur = byEp.get(r.episode_id) ?? { ms: 0, title: r.title ?? '', showTitle: r.show_title ?? '', ...(r.feed_url ? { feedUrl: r.feed_url } : {}), ...(r.image_url ? { imageUrl: r.image_url } : {}) };
@@ -57,11 +71,6 @@ export async function monthReport(db: Db, listenerId: string, month: string): Pr
   }
   const min = (ms: number) => Math.round(ms / 60_000);
   const listened = [...byEp.entries()].filter(([, e]) => e.ms > 0);
-  const [counts] = await db.query<{ comments: number; clips: number }>(
-    `SELECT (SELECT count(*)::int FROM comments WHERE author_id = $1 AND deleted_at IS NULL AND created_at >= $2::date AND created_at < $3::date) AS comments,
-            (SELECT count(*)::int FROM clips WHERE author_id = $1 AND deleted_at IS NULL AND created_at >= $2::date AND created_at < $3::date) AS clips`,
-    [listenerId, b.from, b.to],
-  );
   return {
     month,
     minutes: min(listened.reduce((n, [, e]) => n + e.ms, 0)),
@@ -71,7 +80,10 @@ export async function monthReport(db: Db, listenerId: string, month: string): Pr
       .map(([feedUrl, s]) => ({ feedUrl, title: s.title, ...(s.imageUrl ? { imageUrl: s.imageUrl } : {}), minutes: min(s.ms) })),
     topEpisodes: listened.sort((x, y) => y[1].ms - x[1].ms).slice(0, 3)
       .map(([id, e]) => ({ id, title: e.title, showTitle: e.showTitle, ...(e.imageUrl ? { imageUrl: e.imageUrl } : {}), minutes: min(e.ms) })),
-    comments: Number(counts?.comments ?? 0),
-    clips: Number(counts?.clips ?? 0),
+    comments: counts.comments,
+    clips: counts.clips,
   };
 }
+
+// M26 lane SC: each function runs on Postgres, or on DynamoDB (`ddb/report.ts`) when the Db carries a Store (db/backend.ts).
+export const monthReport = dual('sc/report', 'monthReport', monthReportPg);

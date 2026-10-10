@@ -9,7 +9,8 @@ import { fillWithTrending, picksForDay, rankTalkedAbout, type PickIn } from '@so
 import type { Db } from '../../db.ts';
 import { hiddenFeedUrls } from '../safety/moderation.ts';
 import { hiddenEpisodeIds } from '../studio/hidden-episodes.ts';
-import { cached, TTL } from '../cache.ts';
+import { cached, invalidateCachePrefix, TTL } from '../cache.ts';
+import { episodeRowsByIds } from './pick-episodes.ts';
 import { talkedAbout } from './activity-stats.ts';
 import { fetchFeed, registerCard, toCard } from '../../../catalog/feed.ts';
 import { latestEpisodes, topShows, type EpisodeCard, type ShowCard } from '../../../catalog/apple.ts';
@@ -53,9 +54,14 @@ export function excludeHidden(body: DiscoverBody, hidden: ReadonlySet<string>, h
 
 export const discoverCacheKey = (day: string) => `discover:v4:${day}`;
 
-/** M15 T014: drop every cached Discover body (all days), so the next request rebuilds with the saved picks. */
+/**
+ * M15 T014: drop every cached Discover body (all days) and every cached For You list, so the next request rebuilds
+ * with the saved picks. M26 lane DV: by prefix through lane LB's `invalidateCachePrefix` (on DynamoDB a prefix's
+ * generation moves on — no Scan); For You's shared chart lives under `foryou-chart` (foryou.ts CHART_KEY), outside `foryou:`.
+ */
 export async function dropDiscoverCache(db: Db): Promise<void> {
-  await db.query("DELETE FROM cache WHERE key LIKE 'discover:v%' OR (key LIKE 'foryou:%' AND key <> 'foryou:chart')");
+  await invalidateCachePrefix(db, 'discover:');
+  await invalidateCachePrefix(db, 'foryou:');
 }
 
 export async function discoverBody(db: Db, f: typeof fetch, picks: readonly PickIn[], today: string): Promise<{ body: DiscoverBody; stale: boolean }> {
@@ -87,9 +93,9 @@ async function cachedDiscover(db: Db, f: typeof fetch, picks: readonly PickIn[],
 
     const ranked = rankTalkedAbout(await talkedAbout(db, 7), 10);
     const talked: DiscoverItem[] = [];
+    const rowsById = new Map((await episodeRowsByIds(db, ranked.map((r) => r.episodeId))).map((e) => [e.id, e]));
     for (const r of ranked) {
-      const [e] = await db.query<{ id: string; feed_url: string; guid: string; title: string; show_title: string | null; image_url: string | null; duration_ms: number | null; enclosure_url: string }>(
-        'SELECT id, feed_url, guid, title, show_title, image_url, duration_ms, enclosure_url FROM episodes WHERE id = $1', [r.episodeId]);
+      const e = rowsById.get(r.episodeId);
       if (!e) continue;
       const card: EpisodeCard & { id: string } = { id: e.id, feedUrl: e.feed_url, guid: e.guid, title: e.title, showTitle: e.show_title ?? '', enclosureUrl: e.enclosure_url, ...(e.image_url ? { imageUrl: e.image_url } : {}), ...(e.duration_ms !== null ? { durationMs: e.duration_ms } : {}) };
       const score = 3 * r.listeners + 2 * r.comments + 2 * r.clips + r.reactions;
@@ -173,8 +179,7 @@ export async function talkedAboutChart(db: Db, limit: number): Promise<(Discover
   const hidden = await hiddenFeedUrls(db);
   const hiddenEps = await hiddenEpisodeIds(db); // M24 US11: hidden episodes leave this list.
   const ranked = rankTalkedAbout(await talkedAbout(db, 7), Number.MAX_SAFE_INTEGER);
-  const rows = await db.query<{ id: string; feed_url: string; guid: string; title: string; show_title: string | null; image_url: string | null; duration_ms: number | null; enclosure_url: string }>(
-    'SELECT id, feed_url, guid, title, show_title, image_url, duration_ms, enclosure_url FROM episodes WHERE id = ANY($1::text[])', [ranked.map((r) => r.episodeId)]);
+  const rows = await episodeRowsByIds(db, ranked.map((r) => r.episodeId));
   const byId = new Map(rows.map((e) => [e.id, e]));
   const out: (DiscoverItem & { rank: number })[] = [];
   for (const r of ranked) {

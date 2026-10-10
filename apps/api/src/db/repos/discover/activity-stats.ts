@@ -8,8 +8,9 @@
 import type { ActivityRow } from '@socialmorning/social-core';
 import type { Db } from '../../db.ts';
 import { notHidden } from '../studio/hidden-episodes.ts';
+import { dual } from '../../backend.ts';
 
-export async function talkedAbout(db: Db, sinceDays = 7, feedUrl?: string): Promise<(ActivityRow & { episodeId: string })[]> {
+async function talkedAboutPg(db: Db, sinceDays = 7, feedUrl?: string): Promise<(ActivityRow & { episodeId: string })[]> {
   // M24 US11: hidden episodes leave this list (Discover's "talked about", the chart, next-up).
   const rows = await db.query<{ episode_id: string; listeners: number; comments: number; clips: number; reactions: number; newest_at: string | null }>(
     `WITH ids AS (
@@ -36,3 +37,6 @@ export async function talkedAbout(db: Db, sinceDays = 7, feedUrl?: string): Prom
     newestAt: r.newest_at ? new Date(r.newest_at).getTime() : 0,
   }));
 }
+
+// M26 lane DV: runs on Postgres, or on DynamoDB (ddb/activity-stats.ts) when the Db carries a Store (db/backend.ts).
+export const talkedAbout = dual('dv/activity-stats', 'talkedAbout', talkedAboutPg);
