@@ -18,6 +18,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
+import { addErrorLogRow, ageErrorLog, entitlementRows, errorLogRows, purchaseByToken, purchaseRows, seedEntitlement, seedPurchase } from './pd-neutral.ts';
+import type { Db } from '../src/db/db.ts';
 import { putEpisode } from './put-episode.ts';
 import { applyVoided, accountHashOf } from '../src/db/repos/account/purchases.ts';
 import { deleteAccount } from '../src/db/repos/account/delete-account.ts';
@@ -26,29 +28,42 @@ import { sweepErrorReports } from '../src/db/repos/account/error-reports.ts';
 import type { GooglePlay, GoogleSubscription } from '../src/billing/google-play.ts';
 
 async function purchaseWithEntitlement(t: TestDb, listenerId: string, token: string): Promise<string> {
-  const [p] = await t.q<{ id: string }>(
-    "INSERT INTO purchases (listener_id, store, product_id, store_txn_id, status, purchase_token) VALUES ($1, 'google', 'show_tier_1', $2, 'active', $2) RETURNING id",
-    [listenerId, token]);
-  await t.q("INSERT INTO entitlements (listener_id, kind, ref, until, source_purchase_id) VALUES ($1, 'show', 'https://feeds.example.com/paid.xml', NULL, $2)", [listenerId, p!.id]);
-  return p!.id;
+  const id = await seedPurchase(t, { listenerId, store: 'google', productId: 'show_tier_1', orderId: token, purchaseToken: token });
+  await seedEntitlement(t, { listenerId, kind: 'show', ref: 'https://feeds.example.com/paid.xml', until: null, sourcePurchaseId: id });
+  return id;
+}
+
+/**
+ * Makes the refund's later step fail. Postgres: the `tips` table is renamed away. DynamoDB (M26 lane PD): every
+ * transaction touching the buyer's partition (the entitlement delete) fails — the same "fails halfway" for a refund
+ * that is now ONE TransactWriteItems. Returns the Db to refund with and how to undo the break.
+ */
+async function breakRefund(t: TestDb, listenerId: string): Promise<{ db: Db; restore: () => Promise<void> }> {
+  if (t.store) {
+    const { withStore } = await import('../src/db/backend-ddb.ts');
+    const { withFaults } = await import('../src/db/ddb/test-wrappers.ts');
+    return { db: withStore(t.db, withFaults(t.store, [{ command: 'TransactWriteCommand', prefix: `L#${listenerId}` }])), restore: async () => undefined };
+  }
+  await t.q('ALTER TABLE tips RENAME TO tips_away'); // the tips step now fails
+  return { db: t.db, restore: async () => { await t.q('ALTER TABLE tips_away RENAME TO tips'); } };
 }
 
 test('G-M23-5: a refund that fails halfway records nothing; the next run withdraws it whole', async () => {
   const t = await freshDb();
   const a = await signUp(t, 'a@example.com', 'Al');
   await purchaseWithEntitlement(t, a.id, 'tok-1');
-  await t.q('ALTER TABLE tips RENAME TO tips_away'); // the tips step now fails
-  const first = await applyVoided(t.db, [{ purchaseToken: 'tok-1', voidedAt: Date.now() }]);
+  const broken = await breakRefund(t, a.id);
+  const first = await applyVoided(broken.db, [{ purchaseToken: 'tok-1', voidedAt: Date.now() }]);
   assert.deepEqual(first, { withdrawn: 0, unknown: 0, failed: 1 });
-  const [p] = await t.q<{ status: string; voided_at: Date | null }>("SELECT status, voided_at FROM purchases WHERE purchase_token = 'tok-1'");
+  const p = await purchaseByToken(t, 'tok-1');
   assert.equal(p!.status, 'active', 'not marked refunded');
   assert.equal(p!.voided_at, null);
-  assert.equal((await t.q('SELECT 1 FROM entitlements WHERE listener_id = $1', [a.id])).length, 1, 'the entitlement is still there');
+  assert.equal((await entitlementRows(t, { listenerId: a.id })).length, 1, 'the entitlement is still there');
 
-  await t.q('ALTER TABLE tips_away RENAME TO tips');
+  await broken.restore();
   assert.deepEqual(await applyVoided(t.db, [{ purchaseToken: 'tok-1', voidedAt: Date.now() }]), { withdrawn: 1, unknown: 0 });
-  assert.equal((await t.q('SELECT 1 FROM entitlements WHERE listener_id = $1', [a.id])).length, 0);
-  assert.equal((await t.q<{ status: string }>("SELECT status FROM purchases WHERE purchase_token = 'tok-1'"))[0]!.status, 'refunded');
+  assert.equal((await entitlementRows(t, { listenerId: a.id })).length, 0);
+  assert.equal((await purchaseByToken(t, 'tok-1'))!.status, 'refunded');
   await t.close();
 });
 
@@ -117,10 +132,10 @@ test('US4: a Google purchase is tied to its account — another account\'s hash 
     const r = await t.call('POST', '/v1/me/purchases/google', { productId: 'plus_monthly', purchaseToken: `tok-${given}` }, a.token);
     assert.equal(r.status, want, given);
     if (want === 200) {
-      const [row] = await t.q<{ account_hash: string | null }>('SELECT account_hash FROM purchases');
+      const [row] = await purchaseRows(t);
       assert.equal(row!.account_hash, given === 'mine' ? accountHashOf(a.id) : null);
     } else {
-      assert.equal((await t.q('SELECT 1 FROM entitlements')).length, 0, 'nothing granted');
+      assert.equal((await entitlementRows(t)).length, 0, 'nothing granted');
     }
     await t.close();
   }
@@ -142,9 +157,9 @@ test('US8: the error log — repeats count up, 20 a batch, stacks cut to 2 KB, o
   const one = { scope: 'player', message: 'Load timed out', stack: 'x'.repeat(5000), appVersion: '1.2.0', platform: 'android' };
   assert.equal((await t.call('POST', '/v1/errors', { reports: [one, one] })).status, 202, 'signed out is fine');
   assert.equal((await t.call('POST', '/v1/errors', { reports: [one] }, a.token)).status, 202);
-  const [row] = await t.q<{ count: number; stack: string; listener_id: string | null }>('SELECT count, stack, listener_id FROM error_reports');
+  const [row] = await errorLogRows(t);
   assert.equal(row!.count, 3);
-  assert.equal(row!.stack.length, 2048);
+  assert.equal(row!.stack!.length, 2048);
   assert.equal(row!.listener_id, a.id);
   const many = Array.from({ length: 21 }, (_, i) => ({ scope: 's', message: `m${i}` }));
   assert.equal((await t.call('POST', '/v1/errors', { reports: many })).status, 422);
@@ -163,9 +178,9 @@ test('US8: the error log — repeats count up, 20 a batch, stacks cut to 2 KB, o
   assert.match(html, /android/);
   assert.ok(!html.includes('a@example.com') && !html.includes('Al<'), 'no listener named');
 
-  await t.q("UPDATE error_reports SET last_seen = now() - interval '31 days'");
-  await t.q("INSERT INTO error_reports (scope, message) VALUES ('fresh', 'stays')");
+  await ageErrorLog(t, 31);
+  await addErrorLogRow(t, 'fresh', 'stays');
   assert.equal(await sweepErrorReports(t.db), 1);
-  assert.deepEqual((await t.q<{ scope: string }>('SELECT scope FROM error_reports')).map((r) => r.scope), ['fresh']);
+  assert.deepEqual((await errorLogRows(t)).map((r) => r.scope), ['fresh']);
   await t.close();
 });

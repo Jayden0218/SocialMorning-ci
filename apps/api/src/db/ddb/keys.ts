@@ -63,7 +63,8 @@ export const mute = (id: string, otherId: string) => k(L(id), `MUTE#${otherId}`)
 export const mutedBy = (id: string, otherId: string) => k(L(id), `MUTEDBY#${otherId}`);
 export const suggestionMute = (id: string, otherId: string) => k(L(id), `SMUTE#${otherId}`);
 export const threadMute = (id: string, threadId: string) => k(L(id), `TMUTE#${threadId}`);
-export const entitlement = (id: string, kind: string, ref: string) => k(L(id), `ENT#${kind}#${ref}`);
+/** Lane PD: a show entitlement's ref is a feed URL (up to 2 KB) — the SK carries its feed key, the item the URL. */
+export const entitlement = (id: string, kind: string, ref: string) => k(L(id), `ENT#${kind}#${kind === 'show' ? feedKey(ref) : ref}`);
 export const notification = (id: string, createdAt: string, notifId: string) => k(L(id), `NOTIF#${ts(createdAt)}#${notifId}`);
 export const notificationDedupe = (id: string, hash: string) => k(L(id), `NDEDUP#${hash}`);
 export const conversation = (id: string, partnerId: string) => k(L(id), `CONV#${partnerId}`);
@@ -123,7 +124,8 @@ export const moderationAction = (id: string) => k(`MA#${id}`, 'A');
 export const appeal = (actionId: string) => k(`APPEAL#${actionId}`, 'A');
 export const purchase = (purchaseToken: string) => k(`PUR#${sha(purchaseToken)}`, 'P');
 export const redeemCode = (codeHash: string) => k(`RC#${codeHash}`, 'CODE');
-export const redeemUse = (codeHash: string, listenerId: string) => k(`RC#${codeHash}`, `USE#${listenerId}`);
+/** Lane PD: the one-use-per-account marker lives in the LISTENER's partition (deleted with the account, no pointer needed). */
+export const redeemUse = (codeHash: string, listenerId: string) => k(L(listenerId), `RUSE#${codeHash}`);
 export const gift = (code: string) => k(`GIFT#${code}`, 'G');
 export const config = (name: string) => k(`CFG#${name}`, 'V');
 export const hiddenFeed = (feedUrl: string) => k('CFG#hidden-feeds', feedKey(feedUrl));
@@ -164,6 +166,8 @@ export const G3shows = (genreId: number | string, latestPublishedAt: string, fee
 export const G4 = (queue: string, sortTs: string, id: string, dayOf?: string) => ({ G4PK: `Q#${queue}${dayOf ? `#${dayOf}` : ''}`, G4SK: `${ts(sortTs)}#${id}` });
 export const G5 = (kind: string, value: string, createdAt: string) => ({ G5PK: `REF#${kind}#${value}`, G5SK: ts(createdAt) });
 export const G6 = (displayName: string, listenerId: string) => ({ G6PK: `NAME#${displayName.trim().toLowerCase()}`, G6SK: listenerId });
+/** Lane LB: the hourly feed list `Q#feeds` (a show META while it has a live subscriber), in feed-key order — no time to sort by. */
+export const G4feeds = (feedUrl: string) => ({ G4PK: 'Q#feeds', G4SK: feedKey(feedUrl) });
 
 // ---- sm-events partitions (data-model.md §4, last paragraph) ----
 export const ev = {
@@ -182,9 +186,68 @@ export const ev = {
 } as const;
 export const E1 = (d: string, kind: string, key: string) => ({ E1PK: `DAY#${d}`, E1SK: `${kind}#${key}` });
 
+// ---- Lane AC (account) additions — data-model.md "Lane AC changes" ----
+/** Act-as pointer under the ADMIN's partition (replaces the `acting_admin_id` lookup; strongly consistent, no GSI). */
+export const actAsPtr = (adminId: string, publicId: string) => k(L(adminId), `ACTAS#${publicId}`);
+/** "Not liking these?" answers, newest last. */
+export const recFeedback = (id: string, createdAt: string, fbId: string) => k(L(id), `RECFB#${ts(createdAt)}#${fbId}`);
+/** One show's new-episode switch (notify_show_prefs). */
+export const notifyShow = (id: string, feedUrl: string) => k(L(id), `NOTIFYSHOW#${feedKey(feedUrl)}`);
+/** A like-grouping window for social pushes (push_like_windows). */
+export const pushWindow = (id: string, groupKey: string) => k(L(id), `PUSHWIN#${sha(groupKey)}`);
+/** A weekly digest; the key is the once-per-ISO-week rule. */
+export const weeklyDigest = (id: string, isoWeek: string) => k(L(id), `DIGEST#${isoWeek}`);
+/** An emailed sign-in code, by address (there may be no account yet). */
+export const emailCode = (email: string) => k(`ECODE#${email.trim().toLowerCase()}`, 'C');
+/** Feedback and its images under one partition. */
+export const feedback = (id: string) => k(`FB#${id}`, 'F');
+export const feedbackImage = (id: string, n: number) => k(`FB#${id}`, `IMG#${n}`);
+/** A push token's owner (a token moves to whoever registered it last; sendExpo knows only the token). */
+export const pushTokenOwner = (token: string) => unique('PUSHTOK', sha(token));
+/** Statuses that pushed today, per author (status_push_log), in sm-events. */
+export const statusPushLog = (authorId: string, d: string) => k(`SPL#${authorId}`, d);
+/** Account prefixes: everything of a listener's partition that the deletion job removes. */
+export const AC_SK = { actAs: 'ACTAS#', recFeedback: 'RECFB#', notifyShow: 'NOTIFYSHOW#', pushWindow: 'PUSHWIN#', digest: 'DIGEST#' } as const;
+
+// ---- Lane PD (paid) additions — data-model.md "Lane PD changes" ----
+/** The buyer's pointer to a purchase (`PUR#<sha(token)>`): the wallet and the deletion job read it strongly. */
+export const purchasePtr = (id: string, createdAt: string, purchaseId: string) => k(L(id), `PURCH#${ts(createdAt)}#${purchaseId}`);
+/** A tip, under the tipper (the wallet's "tips I gave"); G2 `SHTIPS#<feedKey>` for the show's list. */
+export const tip = (id: string, createdAt: string, tipId: string) => k(L(id), `TIP#${ts(createdAt)}#${tipId}`);
+export const G2tips = (feedUrl: string, createdAt: string, tipId: string) => ({ G2PK: `SHTIPS#${feedKey(feedUrl)}`, G2SK: `${ts(createdAt)}#${tipId}` });
+/** Gifts the listener bought (newest first) and claimed. */
+export const giftBought = (id: string, createdAt: string, code: string) => k(L(id), `GIFTB#${ts(createdAt)}#${code}`);
+export const giftClaimed = (id: string, code: string) => k(L(id), `GIFTC#${code}`);
+/** The listener's PLUS version (every PLUS change bumps it in its transaction) and its digest queue key `Q#plus#<tz>`. */
+export const plusVersion = (id: string) => k(L(id), 'PLUSV');
+export const G4plus = (tz: string, until: string | null, id: string) => ({ G4PK: `Q#plus#${tz}`, G4SK: `${until === null ? NULL_LAST : ts(until)}#${id}` });
+/** The time zones that have a `Q#plus#<tz>` queue (a string set), so the digest step reads due zones only. */
+export const plusZones = () => k('CFG#plus-zones', 'V');
+export const PD_SK = { purchases: 'PURCH#', tips: 'TIP#', giftsBought: 'GIFTB#', giftsClaimed: 'GIFTC#', plus: 'ENT#plus#', redeemUses: 'RUSE#' } as const;
+// ---- Lane SG (social graph) additions — data-model.md "Lane SG changes" ----
+/** A playlist's owner by playlist id (`GET /v1/playlists/:id` knows only the id); the playlist is `L#<owner>/PLAYLIST#<id>`. */
+export const playlistOwner = (playlistId: string) => unique('PLAYLIST', playlistId);
+/** Marks an account with more followers than the fan-out limit (G4 `Q#bigactors`): its activity is merged at read time. */
+export const bigActor = (id: string) => k(L(id), 'BIGACTOR');
+/** A system notice: to everyone (`SN#ALL`) or to one listener (`SN#<id>`), sorted `<createdAt>#<id>`. */
+export const systemNotice = (listenerId: string | null, createdAt: string, id: string) => k(`SN#${listenerId ?? 'ALL'}`, `${ts(createdAt)}#${id}`);
+/** A muted notice thread of a listener: `TMUTE#<kind>#<key>`. */
+export const mutedThread = (id: string, kind: string, threadKey: string) => threadMute(id, `${kind}#${threadKey}`);
+/** Listener-partition prefixes lane SG reads. */
+export const SG_SK = { mutes: 'MUTE#', threadMutes: 'TMUTE#', notifications: 'NOTIF#', playlists: 'PLAYLIST#' } as const;
+/** sm-events items of lane SG. */
+export const evSg = {
+  /** activity by its comment/clip (removal by ref — moderation, comment delete): `U#ACTREF#<kind>#<refId>` → the activity key. */
+  activityRef: (kind: string, refId: string) => unique('ACTREF', `${kind}#${refId}`),
+  /** A listener's latest listen of an episode (friends listening backfill on follow), TTL 8 days. */
+  recentListen: (actorId: string, episodeId: string) => k(`LR#${actorId}`, episodeId),
+} as const;
+
 // ---- sm-cache ----
 export const cacheEntry = (cacheKey: string) => k(`CACHE#${sha(cacheKey)}`, 'V');
 export const cacheChunk = (cacheKey: string, n: number) => k(`CACHE#${sha(cacheKey)}`, `CHUNK#${pad(n, 4)}`);
+/** Lane LB: a cache key prefix's generation (prefix invalidation without a Scan — data-model.md §13 note). */
+export const cacheGen = (prefix: string) => k(`CGEN#${sha(prefix)}`, 'G');
 
 /**
  * The index names in infra/tables.yaml and the key attributes of each (paginate.ts builds resume keys from them).

@@ -31,6 +31,9 @@ export const PERSON_ATTRS = ['listenerId', 'accountId', 'authorId', 'actorId', '
 
 type TypeDef = { table: TableRole; attrs: readonly string[] | 'open' };
 
+/** Lane SG: a follow / mute edge holds only the other listener and when (data-model.md "Lane SG changes"). */
+const SG_EDGE = ['otherId', 'createdAt'] as const;
+
 /**
  * Every item type in data-model.md §3–§13. `attrs: 'open'` until the domain lane that owns the type fixes
  * its attribute list (tasks.md: a lane that changes an item shape updates data-model.md in the same
@@ -41,26 +44,30 @@ export const ITEM_TYPES = {
   listener: { table: 'main', attrs: 'open' }, sessionPtr: { table: 'main', attrs: 'open' }, subscription: { table: 'main', attrs: 'open' },
   subOrder: { table: 'main', attrs: 'open' }, position: { table: 'main', attrs: 'open' }, libraryItem: { table: 'main', attrs: 'open' },
   listenedRange: { table: 'main', attrs: 'open' }, listenedDay: { table: 'main', attrs: 'open' }, reaction: { table: 'main', attrs: 'open' },
-  commentLike: { table: 'main', attrs: 'open' }, follow: { table: 'main', attrs: 'open' }, follower: { table: 'main', attrs: 'open' },
-  block: { table: 'main', attrs: 'open' }, mute: { table: 'main', attrs: 'open' }, threadMute: { table: 'main', attrs: 'open' },
-  entitlement: { table: 'main', attrs: 'open' }, notification: { table: 'main', attrs: 'open' }, conversation: { table: 'main', attrs: 'open' },
+  commentLike: { table: 'main', attrs: 'open' }, follow: { table: 'main', attrs: SG_EDGE }, follower: { table: 'main', attrs: SG_EDGE },
+  block: { table: 'main', attrs: 'open' }, mute: { table: 'main', attrs: SG_EDGE }, threadMute: { table: 'main', attrs: ['threadKind', 'threadKey', 'createdAt'] },
+  notification: { table: 'main', attrs: ['id', 'recipientId', 'actorId', 'kind', 'ref', 'createdAt'] }, conversation: { table: 'main', attrs: 'open' },
   pushToken: { table: 'main', attrs: 'open' }, pushPrefs: { table: 'main', attrs: 'open' }, queue: { table: 'main', attrs: 'open' },
   interests: { table: 'main', attrs: 'open' }, stickers: { table: 'main', attrs: 'open' }, deletion: { table: 'main', attrs: 'open' },
-  emailChange: { table: 'main', attrs: 'open' }, identity: { table: 'main', attrs: 'open' }, playlist: { table: 'main', attrs: 'open' },
+  emailChange: { table: 'main', attrs: 'open' }, identity: { table: 'main', attrs: 'open' }, playlist: { table: 'main', attrs: ['id', 'ownerId', 'title', 'isPublic', 'items', 'createdAt', 'updatedAt', 'deletedAt', 'v'] },
   roles: { table: 'main', attrs: 'open' },
+  // Lane AC (data-model.md "Lane AC changes")
+  actAsPtr: { table: 'main', attrs: 'open' }, recFeedback: { table: 'main', attrs: 'open' }, notifyShow: { table: 'main', attrs: 'open' },
+  pushWindow: { table: 'main', attrs: 'open' }, weeklyDigest: { table: 'main', attrs: 'open' }, emailCode: { table: 'main', attrs: 'open' },
+  feedback: { table: 'main', attrs: 'open' }, feedbackImage: { table: 'main', attrs: ['n', 'mime', 'bytes', 'createdAt'] }, errorReport: { table: 'main', attrs: 'open' },
+  pushTokenOwner: { table: 'main', attrs: ['owner', 'token'] },
   // sessions, shows, episodes
   session: { table: 'main', attrs: 'open' }, show: { table: 'main', attrs: 'open' }, teamMember: { table: 'main', attrs: 'open' },
   invite: { table: 'main', attrs: 'open' }, claim: { table: 'main', attrs: 'open' }, announcement: { table: 'main', attrs: 'open' },
   poll: { table: 'main', attrs: 'open' }, pollVote: { table: 'main', attrs: 'open' }, showMute: { table: 'main', attrs: 'open' },
   showOverride: { table: 'main', attrs: 'open' }, commentPolicy: { table: 'main', attrs: 'open' }, hiddenEpisode: { table: 'main', attrs: 'open' },
-  earning: { table: 'main', attrs: 'open' }, milestone: { table: 'main', attrs: 'open' }, hostPick: { table: 'main', attrs: 'open' },
+  milestone: { table: 'main', attrs: 'open' }, hostPick: { table: 'main', attrs: 'open' },
   episode: { table: 'main', attrs: 'open' }, heat: { table: 'main', attrs: 'open' }, heatMark: { table: 'main', attrs: 'open' },
   comment: { table: 'main', attrs: 'open' }, unfriendlyMark: { table: 'main', attrs: 'open' }, heldComment: { table: 'main', attrs: 'open' },
   clip: { table: 'main', attrs: 'open' }, retention: { table: 'main', attrs: 'open' },
   // other partitions
   voicePost: { table: 'main', attrs: 'open' }, chatMessage: { table: 'main', attrs: 'open' }, report: { table: 'main', attrs: 'open' },
-  moderationAction: { table: 'main', attrs: 'open' }, appeal: { table: 'main', attrs: 'open' }, purchase: { table: 'main', attrs: 'open' },
-  redeemCode: { table: 'main', attrs: 'open' }, redeemUse: { table: 'main', attrs: 'open' }, gift: { table: 'main', attrs: 'open' },
+  moderationAction: { table: 'main', attrs: 'open' }, appeal: { table: 'main', attrs: 'open' },
   config: { table: 'main', attrs: 'open' }, hiddenFeed: { table: 'main', attrs: 'open' }, contentPage: { table: 'main', attrs: 'open' },
   audit: { table: 'main', attrs: 'open' }, similarity: { table: 'main', attrs: 'open' }, unique: { table: 'main', attrs: 'open' },
   outbox: { table: 'main', attrs: ['kind', 'id', 'payload', 'createdAt', 'attempts', 'lastError', 'lastTriedAt'] },
@@ -68,16 +75,38 @@ export const ITEM_TYPES = {
   seq: { table: 'main', attrs: ['v'] },
   /** G-L2: a promotion counts impressions and taps, never who saw or tapped it. */
   promotion: { table: 'main', attrs: ['id', 'imageUrl', 'imageBytes', 'targetKind', 'targetId', 'url', 'label', 'weight', 'dailyCap', 'startsAt', 'endsAt', 'impressions', 'taps', 'createdAt'] },
+  // Lane PD (data-model.md "Lane PD changes"): money items are STRICT — nothing else can ride on them.
+  purchase: { table: 'main', attrs: ['id', 'listenerId', 'store', 'productId', 'storeTxnId', 'status', 'expiresAt', 'amountMicros', 'currency', 'createdAt', 'purchaseToken', 'ref', 'acknowledgedAt', 'voidedAt', 'accountHash', 'test', 'granted', 'giftCode', 'tipKey', 'earnKey', 'v'] },
+  purchasePtr: { table: 'main', attrs: ['purchaseId', 'purchasePK', 'createdAt'] },
+  entitlement: { table: 'main', attrs: ['listenerId', 'kind', 'ref', 'until', 'startsAt', 'sourcePurchaseId'] },
+  tip: { table: 'main', attrs: ['id', 'fromListener', 'toFeedUrl', 'purchaseId', 'purchasePK', 'amountMicros', 'currency', 'createdAt'] },
+  earning: { table: 'main', attrs: ['kind', 'purchaseId', 'feedUrl', 'amountMicros', 'currency', 'refunded', 'createdAt'] },
+  gift: { table: 'main', attrs: ['id', 'code', 'buyerId', 'feedUrl', 'purchaseId', 'purchasePK', 'claimedBy', 'claimedAt', 'cancelledAt', 'createdAt'] },
+  giftPtr: { table: 'main', attrs: ['code', 'createdAt'] },
+  redeemCode: { table: 'main', attrs: ['code', 'codeHash', 'grants', 'maxUses', 'uses', 'note', 'expiresAt', 'disabledAt', 'createdAt', 'usedAt'] },
+  redeemUse: { table: 'main', attrs: ['code', 'usedAt'] },
+  plusVersion: { table: 'main', attrs: ['listenerId', 'tz', 'v'] },
+  plusZones: { table: 'main', attrs: ['zones'] },
   // sm-events
-  activity: { table: 'events', attrs: 'open' }, feedInbox: { table: 'events', attrs: 'open' }, friendsListening: { table: 'events', attrs: 'open' },
+  activity: { table: 'events', attrs: ['id', 'actorId', 'kind', 'episodeId', 'momentMs', 'refId', 'day', 'hidden', 'createdAt'] },
+  feedInbox: { table: 'events', attrs: ['actorId', 'activityId', 'actPK', 'actSK', 'createdAt'] },
+  friendsListening: { table: 'events', attrs: ['actorId', 'episodeId', 'day', 'at'] },
   recEvent: { table: 'events', attrs: 'open' }, subscriptionEvent: { table: 'events', attrs: 'open' }, shareEvent: { table: 'events', attrs: 'open' },
   dailyActive: { table: 'events', attrs: 'open' }, rate: { table: 'events', attrs: ['count', 'windowStart'] }, pushSent: { table: 'events', attrs: 'open' },
   rollup: { table: 'events', attrs: 'open' },
+  statusPushLog: { table: 'events', attrs: ['count'] },
   /** G-L1: "listening now" keeps a daily-salted install hash and a time — no account, ever. */
   liveListener: { table: 'events', attrs: ['episodeId', 'listenerHash', 'seenAt'] },
+  // Lane SG (data-model.md "Lane SG changes"): strict lists.
+  notificationDedupe: { table: 'main', attrs: ['notificationId', 'createdAt'] },
+  systemNotice: { table: 'main', attrs: ['id', 'listenerId', 'title', 'body', 'linkLabel', 'linkRoute', 'push', 'createdBy', 'createdAt'] },
+  bigActor: { table: 'main', attrs: ['since'] },
+  recentListen: { table: 'events', attrs: ['episodeId', 'day', 'at'] },
   // sm-cache
-  cacheEntry: { table: 'cache', attrs: ['key', 'body', 'gz', 'chunks', 'fetchedAt', 'gen'] },
-  cacheChunk: { table: 'cache', attrs: ['n', 'data'] },
+  // Lane LB: `w` = the write that made an entry and its chunks (a reader never mixes two writes); `cacheGen` = a prefix's generation.
+  cacheEntry: { table: 'cache', attrs: ['key', 'body', 'gz', 'chunks', 'fetchedAt', 'gen', 'w'] },
+  cacheChunk: { table: 'cache', attrs: ['n', 'data', 'w'] },
+  cacheGen: { table: 'cache', attrs: ['prefix', 'gen'] },
 } as const satisfies Record<string, TypeDef>;
 
 export type ItemType = keyof typeof ITEM_TYPES;

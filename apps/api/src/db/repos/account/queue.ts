@@ -10,6 +10,7 @@
 import type { Db } from '../../db.ts';
 
 import { SYNCED_QUEUE_MAX } from '@socialmorning/social-core';
+import { dual } from '../../backend.ts';
 export { SYNCED_QUEUE_MAX };
 
 export type SyncedQueue = { items: string[]; version: number; deviceId: string | null; updatedAt: string | null };
@@ -28,15 +29,15 @@ function toQueue(r: Row | undefined): SyncedQueue {
 }
 
 /** Empty list, version 0 when the listener never synced a queue. */
-export async function getQueue(db: Db, listenerId: string): Promise<SyncedQueue> {
+export const getQueue = dual('ac/index', 'getQueue', async (db: Db, listenerId: string): Promise<SyncedQueue> => {
   const [r] = await db.query<Row>('SELECT items, version, device_id, updated_at FROM queues WHERE listener_id = $1', [listenerId]);
   return toQueue(r);
-}
+});
 
 /** `{ ok: true, version }` when written; `{ ok: false, current }` (nothing written) on a stale base. */
-export async function putQueue(
+export const putQueue = dual('ac/index', 'putQueue', async (
   db: Db, listenerId: string, items: readonly string[], baseVersion: number, deviceId: string,
-): Promise<{ ok: true; version: number } | { ok: false; current: SyncedQueue }> {
+): Promise<{ ok: true; version: number } | { ok: false; current: SyncedQueue }> => {
   return db.transaction(async (tx) => {
     const [r] = await tx.query<Row>('SELECT items, version, device_id, updated_at FROM queues WHERE listener_id = $1 FOR UPDATE', [listenerId]);
     const current = toQueue(r);
@@ -49,4 +50,4 @@ export async function putQueue(
     );
     return { ok: true as const, version };
   });
-}
+});

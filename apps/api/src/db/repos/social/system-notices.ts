@@ -10,6 +10,7 @@
  * turned it off is never pushed.
  */
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 import { sendExpo, type PushMessage } from '../account/push.ts';
 
 export const NOTICE_TITLE_MAX = 80;
@@ -29,7 +30,7 @@ const toOut = (r: Row): NoticeOut => ({
   to: r.listener_id === null ? 'everyone' : 'you', push: r.push,
 });
 
-export async function insertNotice(db: Db, n: NoticeIn): Promise<NoticeOut> {
+async function insertNoticePg(db: Db, n: NoticeIn): Promise<NoticeOut> {
   const [r] = await db.query<Row>(
     `INSERT INTO system_notices (listener_id, title, body, link_label, link_route, push, created_by)
      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, listener_id, title, body, link_label, link_route, push, created_at`,
@@ -38,7 +39,7 @@ export async function insertNotice(db: Db, n: NoticeIn): Promise<NoticeOut> {
 }
 
 /** What one listener sees: notices to everyone and to them, newest first. */
-export async function noticesFor(db: Db, listenerId: string): Promise<NoticeOut[]> {
+async function noticesForPg(db: Db, listenerId: string): Promise<NoticeOut[]> {
   const rows = await db.query<Row>(
     `SELECT id, listener_id, title, body, link_label, link_route, push, created_at FROM system_notices
       WHERE listener_id IS NULL OR listener_id = $1 ORDER BY created_at DESC, id LIMIT $2`, [listenerId, NOTICES_PAGE]);
@@ -46,18 +47,18 @@ export async function noticesFor(db: Db, listenerId: string): Promise<NoticeOut[
 }
 
 /** Admin's list: the notices sent to everyone (account notices to one listener stay private). */
-export async function broadcastNotices(db: Db): Promise<NoticeOut[]> {
+async function broadcastNoticesPg(db: Db): Promise<NoticeOut[]> {
   const rows = await db.query<Row>(
     'SELECT id, listener_id, title, body, link_label, link_route, push, created_at FROM system_notices WHERE listener_id IS NULL ORDER BY created_at DESC, id LIMIT 100');
   return rows.map(toOut);
 }
 
-export async function deleteNotice(db: Db, id: string): Promise<boolean> {
+async function deleteNoticePg(db: Db, id: string): Promise<boolean> {
   return (await db.query('DELETE FROM system_notices WHERE id = $1 AND listener_id IS NULL RETURNING id', [id])).length > 0;
 }
 
 /** Pushes a notice to its listener (or everyone) whose "System notices" switch is on. */
-export async function pushNotice(db: Db, f: typeof fetch, n: { title: string; body: string; listenerId: string | null }): Promise<{ sent: number; dropped: number }> {
+async function pushNoticePg(db: Db, f: typeof fetch, n: { title: string; body: string; listenerId: string | null }): Promise<{ sent: number; dropped: number }> {
   const tokens = await db.query<{ token: string }>(
     `SELECT t.token FROM push_tokens t LEFT JOIN push_prefs p ON p.listener_id = t.listener_id
        JOIN listeners l ON l.id = t.listener_id AND l.suspended_at IS NULL
@@ -65,3 +66,10 @@ export async function pushNotice(db: Db, f: typeof fetch, n: { title: string; bo
   const messages = tokens.map((t): PushMessage => ({ to: t.token, title: n.title, body: n.body.slice(0, 180), data: { href: NOTICES_HREF, kind: 'system' }, sound: 'default' }));
   return messages.length === 0 ? { sent: 0, dropped: 0 } : sendExpo(db, f, messages);
 }
+
+// M26 lane SG: each runs on DynamoDB when the Db carries a Store (src/db/backend.ts; bodies in graph-ddb/).
+export const insertNotice = dual('sg/index', 'insertNotice', insertNoticePg);
+export const noticesFor = dual('sg/index', 'noticesFor', noticesForPg);
+export const broadcastNotices = dual('sg/index', 'broadcastNotices', broadcastNoticesPg);
+export const deleteNotice = dual('sg/index', 'deleteNotice', deleteNoticePg);
+export const pushNotice = dual('sg/index', 'pushNotice', pushNoticePg);
