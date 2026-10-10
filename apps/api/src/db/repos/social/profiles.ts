@@ -2,6 +2,7 @@
 /** A profile (M4 FR-011/FR-012/FR-013): name, counts, stats (unless private and not the viewer), recent public activity. */
 import { stats } from '@socialmorning/social-core';
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 import { counts, isFollowing } from './follows.ts';
 import { listenedRowsFor } from '../library/listened.ts';
 import { recentBy, toFeedItem, type FeedItemOut } from './activity.ts';
@@ -41,7 +42,7 @@ export const OFTEN_LISTENED_DAYS = 90;
 export const OFTEN_LISTENED_MAX = 6;
 
 /** M22 US17 item 6: the shows `id` listened to most in the last 90 days (by listened time), with title and artwork. */
-export async function oftenListened(db: Db, id: string, today: string): Promise<OftenListenedShow[]> {
+async function oftenListenedPg(db: Db, id: string, today: string): Promise<OftenListenedShow[]> {
   const cutoff = new Date(new Date(`${today}T00:00:00Z`).getTime() - (OFTEN_LISTENED_DAYS - 1) * 86_400_000).toISOString().slice(0, 10);
   const rows = (await listenedRowsFor(db, id)).filter((r) => r.day >= cutoff);
   const top = stats(rows, today, OFTEN_LISTENED_MAX).all.topShows;
@@ -66,7 +67,7 @@ export async function oftenListened(db: Db, id: string, today: string): Promise<
   return out;
 }
 
-export async function setHideOftenListened(db: Db, id: string, value: boolean): Promise<void> {
+async function setHideOftenListenedPg(db: Db, id: string, value: boolean): Promise<void> {
   await db.query('UPDATE listeners SET hide_often_listened = $2 WHERE id = $1', [id, value]);
 }
 
@@ -76,7 +77,7 @@ export async function setHideOftenListened(db: Db, id: string, value: boolean): 
  * `show_hosts`. A suspended listener hosts nothing (the profile is bare anyway). Title: the host's
  * override, the created show, else the newest registered episode's show title; untitled feeds are left out.
  */
-export async function hostOf(db: Db, listenerId: string): Promise<{ feedUrl: string; title: string }[]> {
+async function hostOfPg(db: Db, listenerId: string): Promise<{ feedUrl: string; title: string }[]> {
   const rows = await db.query<{ feed_url: string; title: string | null }>(
     `SELECT w.feed_url,
             coalesce(o.title, h.title, (SELECT e.show_title FROM episodes e WHERE e.feed_url = w.feed_url AND e.show_title IS NOT NULL ORDER BY e.published_at DESC NULLS LAST LIMIT 1)) AS title
@@ -105,7 +106,7 @@ export async function hostOf(db: Db, listenerId: string): Promise<{ feedUrl: str
  * not across a block in either direction, not when suspended. The owner always may.
  * 'none' = no such listener.
  */
-export async function subscriptionsVisible(db: Db, id: string, viewerId: string | undefined): Promise<'yes' | 'private' | 'none'> {
+async function subscriptionsVisiblePg(db: Db, id: string, viewerId: string | undefined): Promise<'yes' | 'private' | 'none'> {
   const [l] = await db.query<{ private_subscriptions: boolean; suspended_at: string | null; hidden_at: string | null }>('SELECT private_subscriptions, suspended_at, hidden_at FROM listeners WHERE id = $1', [id]);
   if (!l || l.suspended_at) return 'none';
   // M22 US11 (G-M22-8): an account waiting to be deleted is invisible to everyone else.
@@ -116,7 +117,7 @@ export async function subscriptionsVisible(db: Db, id: string, viewerId: string 
   return 'yes';
 }
 
-export async function profile(db: Db, id: string, viewerId: string | undefined, today: string): Promise<ProfileOut | undefined> {
+async function profilePg(db: Db, id: string, viewerId: string | undefined, today: string): Promise<ProfileOut | undefined> {
   // M21 US8 (G-M21-10): birthday and industry are never selected here — this answer goes to anyone.
   const [l] = await db.query<{ id: string; display_name: string; private_listening: boolean; suspended_at: string | null; hidden_at: string | null; country: string | null; avatar_url: string | null; bio: string | null; likes_public: boolean; private_subscriptions: boolean; hide_often_listened: boolean }>('SELECT id, display_name, private_listening, suspended_at, hidden_at, country, avatar_url, bio, likes_public, private_subscriptions, hide_often_listened FROM listeners WHERE id = $1', [id]);
   if (!l) return undefined;
@@ -150,6 +151,14 @@ export async function profile(db: Db, id: string, viewerId: string | undefined, 
   return { ...deco, ...m22, id: l.id, displayName: l.display_name, ...look, followers: c.followers, following: c.following, isFollowing: following, stats: s, recent, ...m21, ...(blockedByMe ? { blockedByMe: true } : {}), ...(l.country ? { country: l.country.trim() } : {}) };
 }
 
-export async function setPrivateListening(db: Db, id: string, value: boolean): Promise<void> {
+async function setPrivateListeningPg(db: Db, id: string, value: boolean): Promise<void> {
   await db.query('UPDATE listeners SET private_listening = $2 WHERE id = $1', [id, value]);
 }
+
+// M26 lane SG: each runs on DynamoDB when the Db carries a Store (src/db/backend.ts; bodies in graph-ddb/).
+export const oftenListened = dual('sg/index', 'oftenListened', oftenListenedPg);
+export const setHideOftenListened = dual('sg/index', 'setHideOftenListened', setHideOftenListenedPg);
+export const hostOf = dual('sg/index', 'hostOf', hostOfPg);
+export const subscriptionsVisible = dual('sg/index', 'subscriptionsVisible', subscriptionsVisiblePg);
+export const profile = dual('sg/index', 'profile', profilePg);
+export const setPrivateListening = dual('sg/index', 'setPrivateListening', setPrivateListeningPg);

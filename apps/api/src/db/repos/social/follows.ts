@@ -1,11 +1,12 @@
 // Follow and unfollow listeners, and list followers and following.
 /** Follows (M4 FR-007): one-way, idempotent both ways, never self (the CHECK is guard G4). */
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 import { notify } from './notifications.ts';
 
 export type ListenerLite = { id: string; displayName: string | null; avatarUrl?: string; /** M21 US8 */ bio?: string; youFollow?: boolean };
 
-export async function follow(db: Db, followerId: string, followedId: string): Promise<'followed' | 'self' | 'no_such_listener' | 'blocked'> {
+async function followPg(db: Db, followerId: string, followedId: string): Promise<'followed' | 'self' | 'no_such_listener' | 'blocked'> {
   if (followerId === followedId) return 'self';
   const exists = await db.query<{ id: string }>('SELECT id FROM listeners WHERE id = $1', [followedId]);
   if (exists.length === 0) return 'no_such_listener';
@@ -18,11 +19,11 @@ export async function follow(db: Db, followerId: string, followedId: string): Pr
   return 'followed';
 }
 
-export async function unfollow(db: Db, followerId: string, followedId: string): Promise<void> {
+async function unfollowPg(db: Db, followerId: string, followedId: string): Promise<void> {
   await db.query('DELETE FROM follows WHERE follower_id = $1 AND followed_id = $2', [followerId, followedId]);
 }
 
-export async function isFollowing(db: Db, followerId: string, followedId: string): Promise<boolean> {
+async function isFollowingPg(db: Db, followerId: string, followedId: string): Promise<boolean> {
   return (await db.query('SELECT 1 FROM follows WHERE follower_id = $1 AND followed_id = $2', [followerId, followedId])).length > 0;
 }
 
@@ -35,7 +36,7 @@ const NOT_BLOCKED_2 = `AND ($2::uuid IS NULL OR l.id NOT IN (SELECT blocked_id F
  * below leave out listeners the viewer blocked (NOT_BLOCKED); the counts did not, so a profile
  * could say more followers than its list would ever hold. Both now use the same rule.
  */
-export async function counts(db: Db, listenerId: string, viewerId?: string): Promise<{ followers: number; following: number }> {
+async function countsPg(db: Db, listenerId: string, viewerId?: string): Promise<{ followers: number; following: number }> {
   const [r] = await db.query<{ followers: number; following: number }>(
     `SELECT (SELECT count(*)::int FROM follows f JOIN listeners l ON l.id = f.follower_id WHERE f.followed_id = $1 ${NOT_BLOCKED_2}) AS followers,
             (SELECT count(*)::int FROM follows f JOIN listeners l ON l.id = f.followed_id WHERE f.follower_id = $1 ${NOT_BLOCKED_2}) AS following`,
@@ -64,16 +65,24 @@ async function page(db: Db, sql: string, params: unknown[], limit: number): Prom
 const YOU_FOLLOW = `CASE WHEN $4::uuid IS NULL THEN NULL ELSE EXISTS (SELECT 1 FROM follows y WHERE y.follower_id = $4::uuid AND y.followed_id = l.id) END AS you_follow`;
 
 
-export function followers(db: Db, listenerId: string, before?: string, limit = 50, viewerId?: string): Promise<Page> {
+function followersPg(db: Db, listenerId: string, before?: string, limit = 50, viewerId?: string): Promise<Page> {
   return page(db,
     `SELECT l.id, l.display_name, l.avatar_url, l.bio, ${YOU_FOLLOW}, f.created_at FROM follows f JOIN listeners l ON l.id = f.follower_id
      WHERE f.followed_id = $1 ${NOT_BLOCKED} AND ($3::timestamptz IS NULL OR f.created_at < $3::timestamptz) ORDER BY f.created_at DESC LIMIT $2`,
     [listenerId, limit + 1, before ?? null, viewerId ?? null], limit);
 }
 
-export function following(db: Db, listenerId: string, before?: string, limit = 50, viewerId?: string): Promise<Page> {
+function followingPg(db: Db, listenerId: string, before?: string, limit = 50, viewerId?: string): Promise<Page> {
   return page(db,
     `SELECT l.id, l.display_name, l.avatar_url, l.bio, ${YOU_FOLLOW}, f.created_at FROM follows f JOIN listeners l ON l.id = f.followed_id
      WHERE f.follower_id = $1 ${NOT_BLOCKED} AND ($3::timestamptz IS NULL OR f.created_at < $3::timestamptz) ORDER BY f.created_at DESC LIMIT $2`,
     [listenerId, limit + 1, before ?? null, viewerId ?? null], limit);
 }
+
+// M26 lane SG: each runs on DynamoDB when the Db carries a Store (src/db/backend.ts; bodies in graph-ddb/).
+export const follow = dual('sg/index', 'follow', followPg);
+export const unfollow = dual('sg/index', 'unfollow', unfollowPg);
+export const isFollowing = dual('sg/index', 'isFollowing', isFollowingPg);
+export const counts = dual('sg/index', 'counts', countsPg);
+export const followers = dual('sg/index', 'followers', followersPg);
+export const following = dual('sg/index', 'following', followingPg);

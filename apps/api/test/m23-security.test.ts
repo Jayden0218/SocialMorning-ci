@@ -19,8 +19,8 @@ import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, TEST_PEPPER, type TestDb } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
-import { tokenHash, issueToken } from '../src/auth/session.ts';
 import { hit } from '../src/auth/rate.ts';
+import { emailCodeExists, feedbackBodies, feedbackImageCount, listenerByEmailRow, rawSession, sessionLastSeen, setRateCount } from './ac-neutral.ts';
 
 const ep = { feedUrl: 'https://feeds.example.com/m23.xml', guid: 'g1', title: 'The real title', enclosureUrl: 'https://cdn.example.com/1.mp3', imageUrl: 'https://cdn.example.com/real.jpg', publishedAt: '2026-01-01T00:00:00.000Z' };
 const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
@@ -56,7 +56,7 @@ test('G-M23-2: 50 wrong codes at the same moment — at most 5 are checked and t
   const answers = await Promise.all(Array.from({ length: 50 }, () => t.call('POST', '/v1/auth/code/verify', { email: 'g@example.com', code: wrong }).then((r) => r.json() as Promise<{ message: string }>)));
   const checked = answers.filter((a) => /not right/.test(a.message)).length;
   assert.ok(checked <= 5, `${checked} wrong guesses were compared`);
-  assert.equal((await t.q('SELECT 1 FROM email_codes WHERE email = $1', ['g@example.com'])).length, 0, 'the code is used up');
+  assert.equal(await emailCodeExists(t, 'g@example.com'), false, 'the code is used up');
   assert.equal((await t.call('POST', '/v1/auth/code/verify', { email: 'g@example.com', code: right })).status, 401, 'even the right code is gone');
   await t.close();
 });
@@ -76,10 +76,10 @@ test('G-M23-2: wrong passwords in parallel are each counted', async () => {
   const t = await freshDb();
   await signUp(t, 'p@example.com', 'Pat');
   await Promise.all(Array.from({ length: 8 }, () => t.call('POST', '/v1/auth/sign-in', { email: 'p@example.com', password: 'wrong wrong' })));
-  const [row] = await t.q<{ failed_attempts: number; locked_until: Date | null }>('SELECT failed_attempts, locked_until FROM listeners WHERE email = $1', ['p@example.com']);
-  assert.equal(row!.failed_attempts, 8);
+  const row = (await listenerByEmailRow(t, 'p@example.com')) as { failed_attempts: number; locked_until: Date | string | null };
+  assert.equal(row.failed_attempts, 8);
   // The lock follows the real count (8 → 2^3 s), not each request's stale "0 + 1".
-  assert.ok(row!.locked_until && new Date(row!.locked_until).getTime() > Date.now() + 4_000, 'locked as for 8 failures');
+  assert.ok(row.locked_until && new Date(row.locked_until).getTime() > Date.now() + 4_000, 'locked as for 8 failures');
   const next = await t.call('POST', '/v1/auth/sign-in', { email: 'p@example.com', password: 'correct horse' });
   assert.equal(next.status, 429, 'locked even for the right password');
   await t.close();
@@ -94,7 +94,7 @@ test('FR-003: 10 codes an hour per address, then 429; another address is not aff
   assert.match(((await eleventh.json()) as { message: string }).message, /Try again in an hour/);
   assert.equal((await ask('v@example.com', '198.51.100.1')).status, 200, 'a different address');
   // The server-wide daily window: fill it, and the next code is refused.
-  await t.q("UPDATE rate_counters SET count = 100000 WHERE key = 'code:global'");
+  await setRateCount(t, 'code:global', 100000);
   assert.equal((await ask('w@example.com', '198.51.100.2')).status, 429);
   await t.close();
 });
@@ -106,31 +106,29 @@ test('rate counter: parallel hits are all counted', async () => {
   await t.close();
 });
 
-async function sessionFor(t: TestDb, listenerId: string, extra: { lastSeen?: string; actingAdmin?: string } = {}): Promise<string> {
-  const token = issueToken();
-  await t.q(
-    `INSERT INTO sessions (token_hash, listener_id, last_seen_at, acting_admin_id) VALUES ($1, $2, now() - $3::interval, $4)`,
-    [tokenHash(token, TEST_PEPPER), listenerId, extra.lastSeen ?? '0 seconds', extra.actingAdmin ?? null],
-  );
-  return token;
+const MIN = 60_000;
+const DAY = 86_400_000;
+/** A session row as an older sign-in left it, last seen `lastSeenMs` ago (or an admin's act-as one). */
+async function sessionFor(t: TestDb, listenerId: string, extra: { lastSeenMs?: number; actingAdmin?: string } = {}): Promise<string> {
+  return rawSession(t, listenerId, { lastSeenMsAgo: extra.lastSeenMs ?? 0, ...(extra.actingAdmin ? { actingAdmin: extra.actingAdmin } : {}) });
 }
 
 test('G-M23-3: a session idle 90 days is refused; act-as is refused by the phone API; last-seen moves at most every 5 minutes', async () => {
   const t = await freshDb();
   const a = await signUp(t, 'a@example.com', 'Al');
   const admin = await signUp(t, 'admin@example.com', 'Admin');
-  assert.equal((await t.call('GET', '/v1/me', undefined, await sessionFor(t, a.id, { lastSeen: '89 days' }))).status, 200);
-  assert.equal((await t.call('GET', '/v1/me', undefined, await sessionFor(t, a.id, { lastSeen: '91 days' }))).status, 401, 'idle 91 days');
+  assert.equal((await t.call('GET', '/v1/me', undefined, await sessionFor(t, a.id, { lastSeenMs: 89 * DAY }))).status, 200);
+  assert.equal((await t.call('GET', '/v1/me', undefined, await sessionFor(t, a.id, { lastSeenMs: 91 * DAY }))).status, 401, 'idle 91 days');
   assert.equal((await t.call('GET', '/v1/me', undefined, await sessionFor(t, a.id, { actingAdmin: admin.id }))).status, 401, 'act-as');
 
-  const recent = await sessionFor(t, a.id, { lastSeen: '2 minutes' });
-  const before = (await t.q<{ s: Date }>('SELECT last_seen_at AS s FROM sessions WHERE token_hash = $1', [tokenHash(recent, TEST_PEPPER)]))[0]!.s;
+  const recent = await sessionFor(t, a.id, { lastSeenMs: 2 * MIN });
+  const before = await sessionLastSeen(t, recent);
   assert.equal((await t.call('GET', '/v1/me', undefined, recent)).status, 200);
-  const after = (await t.q<{ s: Date }>('SELECT last_seen_at AS s FROM sessions WHERE token_hash = $1', [tokenHash(recent, TEST_PEPPER)]))[0]!.s;
-  assert.equal(new Date(after).getTime(), new Date(before).getTime(), 'not written again within 5 minutes');
-  const old = await sessionFor(t, a.id, { lastSeen: '6 minutes' });
+  const after = await sessionLastSeen(t, recent);
+  assert.equal(after, before, 'not written again within 5 minutes');
+  const old = await sessionFor(t, a.id, { lastSeenMs: 6 * MIN });
   await t.call('GET', '/v1/me', undefined, old);
-  const moved = (await t.q<{ age: number }>('SELECT extract(epoch FROM now() - last_seen_at)::int AS age FROM sessions WHERE token_hash = $1', [tokenHash(old, TEST_PEPPER)]))[0]!.age;
+  const moved = Math.floor((Date.now() - (await sessionLastSeen(t, old))) / 1000);
   assert.ok(moved < 60, 'written once 5 minutes old');
   await t.close();
 });
@@ -142,7 +140,7 @@ test('G-M23-4: feedback pictures — signed-out refused (text taken), 5 a day ea
   const withPic = { kind: 'x', body: 'look', images: [{ mime: 'image/jpeg', base64: JPEG }] };
   assert.equal((await t.call('POST', '/v1/feedback', withPic)).status, 401, 'pictures need a session');
   assert.equal((await t.call('POST', '/v1/feedback', { kind: 'x', body: 'text only' })).status, 200, 'text still taken');
-  assert.equal((await t.q('SELECT 1 FROM feedback_images')).length, 0);
+  assert.equal(await feedbackImageCount(t), 0);
 
   const a = await signUp(t, 'a@example.com', 'Al');
   for (let i = 0; i < 5; i++) assert.equal((await t.call('POST', '/v1/feedback', withPic, a.token)).status, 200);
@@ -161,8 +159,8 @@ test('G-M23-4: feedback pictures — signed-out refused (text taken), 5 a day ea
   // Feedback may carry the phone's last errors (US8), inside the body.
   const r = await t.call('POST', '/v1/feedback', { kind: 'x', body: 'it broke', errors: ['player: timeout', 'sync: 500'] }, b.token);
   assert.equal(r.status, 200);
-  const [row] = await t.q<{ body: string }>("SELECT body FROM feedback WHERE body LIKE 'it broke%'");
-  assert.match(row!.body, /Last errors[\s\S]*player: timeout\nsync: 500/);
+  const [body] = await feedbackBodies(t, 'it broke');
+  assert.match(body!, /Last errors[\s\S]*player: timeout\nsync: 500/);
   await t.close();
 });
 

@@ -6,6 +6,7 @@
  * columns are dropped. Big integers become strings so the JSON is always valid.
  */
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 
 /** A column whose name matches this is never exported. */
 const SECRET = /(password|token|hash|secret|_path$|^failed_attempts$|^locked_until$|^second_factor)/;
@@ -45,9 +46,9 @@ export const SECTIONS: readonly (readonly [string, string])[] = [
   ['devices', 'SELECT device_label, country, created_at, last_seen_at FROM sessions WHERE listener_id = $1 AND acting_admin_id IS NULL AND replaced_at IS NULL'],
 ];
 
-export async function exportData(db: Db, listenerId: string, now = new Date()): Promise<Record<string, unknown>> {
+export const exportData = dual('ac/index', 'exportData', async (db: Db, listenerId: string, now = new Date()): Promise<Record<string, unknown>> => {
   const [profile] = await db.query<Record<string, unknown>>('SELECT * FROM listeners WHERE id = $1', [listenerId]);
   const out: Record<string, unknown> = { exportedAt: now.toISOString(), format: 'socialnet-export-1', profile: profile ? clean(profile) : null };
   for (const [name, sql] of SECTIONS) out[name] = (await db.query<Record<string, unknown>>(sql, [listenerId])).map(clean);
   return out;
-}
+});

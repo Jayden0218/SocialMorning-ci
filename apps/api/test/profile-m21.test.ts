@@ -17,6 +17,7 @@ import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
+import { suspend } from './sg-neutral.ts';
 
 const JOB = 'job-token-not-secret';
 const rebuild = (t: TestDb) => t.call('POST', '/v1/internal/rebuild', { step: 'sweep' }, undefined, { authorization: `Bearer ${JOB}` });
@@ -100,7 +101,7 @@ test('FR-074: the profile names the shows they host and counts their likes (only
   const own = (await (await t.call('GET', `/v1/listeners/${a.id}`, undefined, a.token)).json()) as P;
   assert.equal(own.profile.likesCount, 1, 'but are for yourself');
 
-  await t.q('UPDATE listeners SET suspended_at = now() WHERE id = $1', [a.id]);
+  await suspend(t, a.id);
   const gone = (await (await t.call('GET', `/v1/listeners/${a.id}`, undefined, b.token)).json()) as P;
   assert.deepEqual(gone.profile.hostOf, [], 'a suspended listener hosts nothing');
   await t.close();

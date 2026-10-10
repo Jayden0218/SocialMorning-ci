@@ -59,6 +59,13 @@ test('A9: a later re-subscribe DOES win, and the whole set comes back including 
   await put(t, a.token, [{ feedUrl: F2, createdAt: '2026-09-25T09:00:00.000Z', deletedAt: '2026-09-25T09:10:00.000Z' }]);
   const get = (await (await t.call('GET', '/v1/me/subscriptions', undefined, a.token)).json()) as { items: Item[] };
   assert.equal(get.items.length, 2, 'the whole set, tombstones included, so a phone converges in one round trip');
+  if (t.store) {
+    // M26 (TEST_BACKEND=ddb): the items, and the show's live count, are on DynamoDB.
+    const { itemAt } = await import('./fixtures.ts');
+    const K = await import('../src/db/ddb/keys.ts');
+    assert.equal((await itemAt(t.store, 'subscription', K.subscription(a.id, F1)))?.['deletedAt'], null);
+    assert.equal((await itemAt(t.store, 'show', K.show(F1)))?.['subscriberCount'], 1);
+  }
 
   await t.close();
 });
