@@ -48,6 +48,11 @@ export const ITEM_TYPES = {
   interests: { table: 'main', attrs: 'open' }, stickers: { table: 'main', attrs: 'open' }, deletion: { table: 'main', attrs: 'open' },
   emailChange: { table: 'main', attrs: 'open' }, identity: { table: 'main', attrs: 'open' }, playlist: { table: 'main', attrs: 'open' },
   roles: { table: 'main', attrs: 'open' },
+  // Lane AC (data-model.md "Lane AC changes")
+  actAsPtr: { table: 'main', attrs: 'open' }, recFeedback: { table: 'main', attrs: 'open' }, notifyShow: { table: 'main', attrs: 'open' },
+  pushWindow: { table: 'main', attrs: 'open' }, weeklyDigest: { table: 'main', attrs: 'open' }, emailCode: { table: 'main', attrs: 'open' },
+  feedback: { table: 'main', attrs: 'open' }, feedbackImage: { table: 'main', attrs: ['n', 'mime', 'bytes', 'createdAt'] }, errorReport: { table: 'main', attrs: 'open' },
+  pushTokenOwner: { table: 'main', attrs: ['owner', 'token'] },
   // sessions, shows, episodes
   session: { table: 'main', attrs: 'open' }, show: { table: 'main', attrs: 'open' }, teamMember: { table: 'main', attrs: 'open' },
   invite: { table: 'main', attrs: 'open' }, claim: { table: 'main', attrs: 'open' }, announcement: { table: 'main', attrs: 'open' },
@@ -73,11 +78,14 @@ export const ITEM_TYPES = {
   recEvent: { table: 'events', attrs: 'open' }, subscriptionEvent: { table: 'events', attrs: 'open' }, shareEvent: { table: 'events', attrs: 'open' },
   dailyActive: { table: 'events', attrs: 'open' }, rate: { table: 'events', attrs: ['count', 'windowStart'] }, pushSent: { table: 'events', attrs: 'open' },
   rollup: { table: 'events', attrs: 'open' },
+  statusPushLog: { table: 'events', attrs: ['count'] },
   /** G-L1: "listening now" keeps a daily-salted install hash and a time — no account, ever. */
   liveListener: { table: 'events', attrs: ['episodeId', 'listenerHash', 'seenAt'] },
   // sm-cache
-  cacheEntry: { table: 'cache', attrs: ['key', 'body', 'gz', 'chunks', 'fetchedAt', 'gen'] },
-  cacheChunk: { table: 'cache', attrs: ['n', 'data'] },
+  // Lane LB: `w` = the write that made an entry and its chunks (a reader never mixes two writes); `cacheGen` = a prefix's generation.
+  cacheEntry: { table: 'cache', attrs: ['key', 'body', 'gz', 'chunks', 'fetchedAt', 'gen', 'w'] },
+  cacheChunk: { table: 'cache', attrs: ['n', 'data', 'w'] },
+  cacheGen: { table: 'cache', attrs: ['prefix', 'gen'] },
 } as const satisfies Record<string, TypeDef>;
 
 export type ItemType = keyof typeof ITEM_TYPES;

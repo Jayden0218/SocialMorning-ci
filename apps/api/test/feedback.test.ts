@@ -6,6 +6,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { freshDb, signUp, type TestDb } from './harness.ts';
+import { ageFeedbackImages, feedbackBodies, feedbackImageCount } from './ac-neutral.ts';
 
 const JPEG = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 0x10, 0x4a, 0x46, 0x49, 0x46, 0, 1, 0xff, 0xd9]).toString('base64');
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]).toString('base64');
@@ -59,10 +60,10 @@ test('FR-020: images older than 90 days are swept; the text stays', async () => 
   const t = await freshDb();
   const a = await signUp(t, 'a@example.com', 'Al');
   await t.call('POST', '/v1/feedback', { kind: 'x', body: 'keep me', images: [{ mime: 'image/jpeg', base64: JPEG }] }, a.token);
-  await t.q("UPDATE feedback_images SET created_at = now() - interval '91 days'");
+  await ageFeedbackImages(t, 91);
   const { sweepImages } = await import('../src/db/repos/account/feedback.ts');
   assert.equal(await sweepImages(t.db), 1);
-  assert.equal((await t.q('SELECT 1 FROM feedback_images')).length, 0);
-  assert.equal((await t.q("SELECT 1 FROM feedback WHERE body = 'keep me'")).length, 1);
+  assert.equal(await feedbackImageCount(t), 0);
+  assert.deepEqual(await feedbackBodies(t, 'keep me'), ['keep me']);
   await t.close();
 });

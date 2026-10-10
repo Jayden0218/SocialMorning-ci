@@ -43,6 +43,13 @@ test('A3 over HTTP: 16:00 stands against a later 15:00; finished is sticky; a ne
   const list = (await (await t.call('GET', '/v1/me/positions', undefined, a.token)).json()) as { positions: Row[]; serverTime: string };
   assert.equal(list.positions.length, 1);
   assert.ok(list.serverTime);
+  if (t.store) {
+    // M26 (TEST_BACKEND=ddb): the route read and wrote DynamoDB, not only Postgres.
+    const { itemAt } = await import('./fixtures.ts');
+    const K = await import('../src/db/ddb/keys.ts');
+    const item = await itemAt(t.store, 'position', K.position(a.id, EP));
+    assert.deepEqual([item?.['offsetMs'], item?.['finished']], [2_899_000, true]);
+  }
   await t.close();
 });
 

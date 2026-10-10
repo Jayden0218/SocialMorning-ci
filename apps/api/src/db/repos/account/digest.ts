@@ -13,6 +13,7 @@ import type { Db } from '../../db.ts';
 import { ApiError } from '../../../errors.ts';
 import { sendExpo, type PushMessage } from './push.ts';
 import { notHidden } from '../studio/hidden-episodes.ts';
+import { dual } from '../../backend.ts';
 
 export const DEFAULT_TZ = 'Asia/Kuala_Lumpur';
 export const DIGEST_MAX = 10;
@@ -24,10 +25,10 @@ export function validTz(tz: string): boolean {
   try { new Intl.DateTimeFormat('en-US', { timeZone: tz }); return true; } catch { return false; }
 }
 
-export async function setTz(db: Db, listenerId: string, tz: string): Promise<void> {
+export const setTz = dual('ac/index', 'setTz', async (db: Db, listenerId: string, tz: string): Promise<void> => {
   if (!validTz(tz)) throw new ApiError('validation', 'That is not a time zone.', { fields: ['tz'] });
   await db.query('UPDATE listeners SET tz = $2 WHERE id = $1', [listenerId, tz]);
-}
+});
 
 /** The wall clock in a zone: weekday (1 = Monday … 7 = Sunday), hour, and the local date. */
 export function localClock(now: Date, tz: string): { weekday: number; hour: number; minute: number; second: number; y: number; m: number; d: number } {
@@ -75,7 +76,7 @@ async function pick(db: Db, listenerId: string, from: Date, to: Date): Promise<s
 }
 
 /** The internal step. `now` is injectable so tests can stand on a Monday noon anywhere. */
-export async function runDigests(db: Db, pushFetch: typeof fetch, now: Date = new Date()): Promise<{ made: number; pushed: number; swept: number }> {
+export const runDigests = dual('ac/index', 'runDigests', async (db: Db, pushFetch: typeof fetch, now: Date = new Date()): Promise<{ made: number; pushed: number; swept: number }> => {
   const swept = (await db.query(`DELETE FROM weekly_digests WHERE sent_at < now() - interval '${DIGEST_KEEP_DAYS} days' RETURNING 1`)).length;
   let made = 0;
   let pushed = 0;
@@ -106,10 +107,10 @@ export async function runDigests(db: Db, pushFetch: typeof fetch, now: Date = ne
     }
   }
   return { made, pushed, swept };
-}
+});
 
 /** GET /v1/me/digests — the last 4 weeks, newest first, each with its episode cards in the stored order. */
-export async function listDigests(db: Db, listenerId: string): Promise<{ items: { isoWeek: string; episodes: DigestCard[]; sentAt: string }[] }> {
+export const listDigests = dual('ac/index', 'listDigests', async (db: Db, listenerId: string): Promise<{ items: { isoWeek: string; episodes: DigestCard[]; sentAt: string }[] }> => {
   const rows = await db.query<{ iso_week: string; episode_ids: string[]; sent_at: Date | string }>(
     `SELECT iso_week, episode_ids, sent_at FROM weekly_digests WHERE listener_id = $1 AND sent_at >= now() - interval '${DIGEST_KEEP_DAYS} days' ORDER BY sent_at DESC`, [listenerId]);
   const all = [...new Set(rows.flatMap((r) => r.episode_ids))];
@@ -126,4 +127,4 @@ export async function listDigests(db: Db, listenerId: string): Promise<{ items: 
       sentAt: new Date(r.sent_at).toISOString(),
     })),
   };
-}
+});
