@@ -9,7 +9,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { freshDb, signUp, type TestDb } from './harness.ts';
-import { isoWeek, localClock, runDigests, validTz } from '../src/db/repos/account/digest.ts';
+import { seedEntitlement } from './pd-neutral.ts';
+import { isoWeek, localClock, runDigests, setTz, validTz } from '../src/db/repos/account/digest.ts';
+import { saveToken } from '../src/db/repos/account/push.ts';
+import { digestCount, oldDigest } from './ac-neutral.ts';
 
 const FEED = 'https://feeds.example.com/weekly.xml';
 const MONDAY_NOON_UTC = new Date('2026-10-05T12:30:00Z'); // ISO week 2026-W41
@@ -27,9 +30,9 @@ function fakeExpo() {
 
 async function member(t: TestDb, email: string, o: { plus?: boolean; tz?: string | null } = {}) {
   const who = await signUp(t, email, email.split('@')[0]!);
-  if (o.plus !== false) await t.q("INSERT INTO entitlements (listener_id, kind, ref, until) VALUES ($1, 'plus', '', '2099-01-01')", [who.id]);
-  if (o.tz !== undefined) await t.q('UPDATE listeners SET tz = $2 WHERE id = $1', [who.id, o.tz]);
-  await t.q("INSERT INTO push_tokens (token, listener_id, platform) VALUES ($1, $2, 'android')", [`tok-${who.id}`, who.id]);
+  if (o.plus !== false) await seedEntitlement(t, { listenerId: who.id, kind: 'plus', ref: '', until: '2099-01-01T00:00:00.000Z' });
+  if (o.tz) await setTz(t.db, who.id, o.tz);
+  await saveToken(t.db, who.id, `tok-${who.id}`, 'android');
   await t.call('PUT', '/v1/me/subscriptions', { items: [{ feedUrl: FEED, createdAt: '2026-09-01T00:00:00.000Z' }] }, who.token);
   return who;
 }
@@ -77,7 +80,7 @@ test('G-M22-13: PLUS only, Monday noon local, unplayed episodes from last week n
   // The same hour again, and later the same week: nothing new, no second push.
   assert.equal((await runDigests(t.db, expo.f, new Date('2026-10-05T12:50:00Z'))).made, 0);
   assert.equal(expo.sent.length, 1);
-  assert.equal((await t.q('SELECT 1 FROM weekly_digests')).length, 1);
+  assert.equal(await digestCount(t), 1);
   await t.close();
 });
 
@@ -89,7 +92,7 @@ test('the default zone is Kuala Lumpur; nothing unplayed or the switch off → n
   await t.call('PUT', '/v1/me/push-prefs', { digest: false }, off.token);
   const done = await member(t, 'done@example.com');
   for (const id of ['e1', 'e2', 'e3']) await t.q("INSERT INTO positions (listener_id, episode_id, offset_ms, progress_seq, device_id) VALUES ($1, $2, 1, 1, 'p')", [done.id, id]);
-  await t.q("INSERT INTO weekly_digests (listener_id, iso_week, episode_ids, sent_at) VALUES ($1, '2026-W30', '{e1}', now() - interval '29 days')", [kl.id]);
+  await oldDigest(t, kl.id, '2026-W30', ['e1'], new Date(Date.now() - 29 * 86_400_000).toISOString());
   const expo = fakeExpo();
   const r = await runDigests(t.db, expo.f, MONDAY_NOON_KL);
   assert.deepEqual([r.made, r.swept], [1, 1]);

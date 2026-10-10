@@ -12,8 +12,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
+import { backdateComments } from './sc-neutral.ts';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
+import { noticeCount, seedFollowNotices, shiftNotices, shiftSeenAt } from './sg-neutral.ts';
 import { mentionCandidates, mentionedIds, notify } from '../src/db/repos/social/notifications.ts';
 
 type Item = { id: string; kind: string; actor: { id: string; name: string; avatarUrl: string | null }; ref: Record<string, string>; createdAt: string; unread: boolean };
@@ -32,7 +34,7 @@ async function setup() {
 
 /** Posts a comment; the 5 s rate floor is stepped over by ageing the author's earlier comments. */
 async function post(t: TestDb, who: { id: string; token: string }, body: string, parentId?: string): Promise<string> {
-  await t.q(`UPDATE comments SET created_at = created_at - interval '1 minute' WHERE author_id = $1`, [who.id]);
+  await backdateComments(t, 60_000, { authorId: who.id }); // M26 lane SC (sc-neutral.ts)
   const res = await t.call('POST', `/v1/episodes/${EP}/comments`, { body, ...(parentId ? { parentId } : {}) }, who.token);
   assert.equal(res.status, 200, await res.clone().text());
   return ((await res.json()) as { comment: { id: string } }).comment.id;
@@ -75,8 +77,8 @@ test('reply, like, mention and follow each write one notice to the right person'
   // Seen: everything so far is read; a newer notice is unread.
   assert.equal((await t.call('POST', '/v1/me/notifications/seen', undefined, a.token)).status, 204);
   assert.ok((await inbox(t, a.token)).items.every((i) => !i.unread));
-  await t.q(`UPDATE listeners SET notifications_seen_at = notifications_seen_at - interval '1 minute' WHERE id = $1`, [a.id]);
-  await t.q(`UPDATE notifications SET created_at = created_at - interval '2 minutes' WHERE recipient_id = $1`, [a.id]);
+  await shiftSeenAt(t, a.id, 60_000);
+  await shiftNotices(t, a.id, 120_000);
   await post(t, c, 'Again @Alex');
   const after = await inbox(t, a.token);
   assert.deepEqual(after.items.map((i) => i.unread), [true, false, false, false, false]);
@@ -100,8 +102,7 @@ test('G-M21-9: no notice for a self-act, to a blocker, or to a muter', async () 
   assert.equal((await t.call('PUT', `/v1/comments/${mine}/like`, undefined, b.token)).status, 200);
   assert.equal((await t.call('PUT', `/v1/listeners/${a.id}/follow`, undefined, b.token)).status, 204);
   assert.deepEqual((await inbox(t, a.token)).items, [], 'nothing from Cy (blocked) or Bea (muted)');
-  const [n] = await t.q<{ n: number }>('SELECT count(*)::int AS n FROM notifications WHERE recipient_id = $1', [a.id]);
-  assert.equal(Number(n!.n), 0, 'not merely hidden on read: never written');
+  assert.equal(await noticeCount(t, a.id), 0, 'not merely hidden on read: never written');
 
   // The repo call itself: self, blocked, muted → false; a stranger → true.
   assert.equal(await notify(t.db, { recipientId: a.id, actorId: a.id, kind: 'follow' }), false);
@@ -119,11 +120,9 @@ test('G-M21-9: no notice for a self-act, to a blocker, or to a muter', async () 
 
 test('mentions: longest exact display name, case-insensitive, at most 5 per comment', async () => {
   const { t, a } = await setup();
-  await signUp(t, 'd@example.com', 'Ann Lee');
-  await signUp(t, 'e@example.com', 'Ann');
+  const annLee = await signUp(t, 'd@example.com', 'Ann Lee');
+  const ann = await signUp(t, 'e@example.com', 'Ann');
   assert.deepEqual(mentionCandidates('hi @Ann Lee, ok'), [['ann', 'ann lee', 'ann lee, ok']]);
-  const [annLee] = await t.q<{ id: string }>("SELECT id FROM listeners WHERE display_name = 'Ann Lee'");
-  const [ann] = await t.q<{ id: string }>("SELECT id FROM listeners WHERE display_name = 'Ann'");
   assert.deepEqual(await mentionedIds(t.db, 'hi @ann lee, ok'), [annLee!.id]);
   assert.deepEqual(await mentionedIds(t.db, 'hi @ANN'), [ann!.id]);
   assert.deepEqual(await mentionedIds(t.db, 'mail me at x@nobody'), []);
@@ -137,11 +136,7 @@ test('mentions: longest exact display name, case-insensitive, at most 5 per comm
 
 test('paging: 30 a page, newest first, the cursor continues', async () => {
   const { t, a, b } = await setup();
-  await t.q(
-    `INSERT INTO notifications (recipient_id, actor_id, kind, created_at)
-     SELECT $1, $2, 'follow', now() - (g || ' seconds')::interval FROM generate_series(1, 35) g`,
-    [a.id, b.id],
-  );
+  await seedFollowNotices(t, a.id, b.id, 35);
   const one = await inbox(t, a.token);
   assert.equal(one.items.length, 30);
   assert.ok(one.next);

@@ -5,6 +5,8 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { backdateComments, countOf } from './sc-neutral.ts';
+import { putEpisode } from './put-episode.ts';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 import type { VoiceStorage } from '../src/storage/voice-blob.ts';
 import { readTranscript } from '../src/voice/transcript.ts';
@@ -24,7 +26,7 @@ test('A11: a voice comment keeps the text its author sent; others read it; a rep
   const t = await freshDb({ voiceStorage: store });
   const a = await signUp(t, 'a@example.com', 'Alex');
   const b = await signUp(t, 'b@example.com', 'Bo');
-  await t.q("INSERT INTO episodes (id, feed_url, guid, title, show_title, enclosure_url) VALUES ('e1','https://f/x.xml','g','Ep','Show','https://c/x.mp3')");
+  await putEpisode(t, 'e1', { feedUrl: 'https://f/x.xml', guid: 'g', title: 'Ep', showTitle: 'Show', enclosureUrl: 'https://c/x.mp3' });
   const said = '这一段 really is the best part';
   const r = await send(t, '/v1/episodes/e1/comments/voice', a.token, { 'x-offset-ms': '1000', 'x-transcript': encodeURIComponent(said) });
   assert.equal(r.status, 201, await r.clone().text());
@@ -44,15 +46,14 @@ test('A11: a voice comment keeps the text its author sent; others read it; a rep
 test('A11: no header is no text; over 2000 characters or a broken encoding is refused before anything is stored', async () => {
   const t = await freshDb({ voiceStorage: store });
   const a = await signUp(t, 'a@example.com', 'Alex');
-  await t.q("INSERT INTO episodes (id, feed_url, guid, title, show_title, enclosure_url) VALUES ('e1','https://f/x.xml','g','Ep','Show','https://c/x.mp3')");
+  await putEpisode(t, 'e1', { feedUrl: 'https://f/x.xml', guid: 'g', title: 'Ep', showTitle: 'Show', enclosureUrl: 'https://c/x.mp3' });
   const plain = await send(t, '/v1/episodes/e1/comments/voice', a.token, {});
   assert.equal(plain.status, 201);
   assert.equal(((await plain.json()) as { comment: { voice: { text?: string } } }).comment.voice.text, undefined);
-  await t.q("UPDATE comments SET created_at = now() - interval '1 minute'");
+  await backdateComments(t, 60_000, { fromNow: true });
   assert.equal((await send(t, '/v1/episodes/e1/comments/voice', a.token, { 'x-transcript': encodeURIComponent('x'.repeat(2001)) })).status, 422);
   assert.equal((await send(t, '/v1/episodes/e1/comments/voice', a.token, { 'x-transcript': '%E0%A4%A' })).status, 422);
-  const [row] = await t.q<{ n: number }>('SELECT count(*)::int AS n FROM comments');
-  assert.equal(row!.n, 1);
+  assert.equal(await countOf(t, 'comments'), 1);
   await t.close();
 });
 
@@ -76,10 +77,10 @@ test('readTranscript folds spaces, treats blank as none', () => {
 test('iPhone walk 2026-10-06: an upload with no type (React Native Blob) is taken when its bytes are MP4; other bytes are not', async () => {
   const t = await freshDb({ voiceStorage: store });
   const a = await signUp(t, 'a@example.com', 'Alex');
-  await t.q("INSERT INTO episodes (id, feed_url, guid, title, show_title, enclosure_url) VALUES ('e1','https://f/x.xml','g','Ep','Show','https://c/x.mp3')");
+  await putEpisode(t, 'e1', { feedUrl: 'https://f/x.xml', guid: 'g', title: 'Ep', showTitle: 'Show', enclosureUrl: 'https://c/x.mp3' });
   const r = await send(t, '/v1/episodes/e1/comments/voice', a.token, { 'content-type': 'application/octet-stream' });
   assert.equal(r.status, 201, await r.clone().text());
-  await t.q("UPDATE comments SET created_at = now() - interval '1 minute'");
+  await backdateComments(t, 60_000, { fromNow: true });
   const junk = await t.app.request('/v1/episodes/e1/comments/voice', { method: 'POST', body: new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]) as unknown as BodyInit, headers: { 'content-type': 'application/octet-stream', 'x-duration-ms': '10000', authorization: `Bearer ${a.token}` } });
   assert.equal(junk.status, 422);
   assert.equal((await send(t, '/v1/episodes/e1/comments/voice', a.token, { 'content-type': 'audio/mpeg' })).status, 422, 'a wrong declared type is still refused');

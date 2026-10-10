@@ -10,6 +10,7 @@
  */
 import type { Db } from '../../db.ts';
 import { shouldPush, type PushKind, type PushPrefs } from '@socialmorning/social-core';
+import { dual } from '../../backend.ts';
 
 export const EXPO_PUSH = 'https://exp.host/--/api/v2/push/send';
 export const NEW_WINDOW_HOURS = 48;
@@ -21,17 +22,17 @@ export type PushMessage = {
   channelId?: string; tag?: string; threadId?: string;
 };
 
-export async function saveToken(db: Db, listenerId: string, token: string, platform: 'ios' | 'android'): Promise<void> {
+export const saveToken = dual('ac/index', 'saveToken', async (db: Db, listenerId: string, token: string, platform: 'ios' | 'android'): Promise<void> => {
   await db.query(
     `INSERT INTO push_tokens (token, listener_id, platform) VALUES ($1, $2, $3)
      ON CONFLICT (token) DO UPDATE SET listener_id = excluded.listener_id, platform = excluded.platform`,
     [token, listenerId, platform],
   );
-}
+});
 
-export async function deleteToken(db: Db, listenerId: string, token: string): Promise<void> {
+export const deleteToken = dual('ac/index', 'deleteToken', async (db: Db, listenerId: string, token: string): Promise<void> => {
   await db.query('DELETE FROM push_tokens WHERE token = $1 AND listener_id = $2', [token, listenerId]);
-}
+});
 
 export type PrefsPatch = {
   newEpisodes?: boolean; popular?: boolean;
@@ -46,15 +47,15 @@ const PREF_COLUMNS: Record<keyof PrefsPatch, string> = {
 };
 
 /** Saves only the switches sent; the rest keep their value (all default on). */
-export async function setPrefs(db: Db, listenerId: string, p: PrefsPatch): Promise<void> {
+export const setPrefs = dual('ac/index', 'setPrefs', async (db: Db, listenerId: string, p: PrefsPatch): Promise<void> => {
   const keys = (Object.keys(PREF_COLUMNS) as (keyof PrefsPatch)[]).filter((k) => typeof p[k] === 'boolean');
   await db.query('INSERT INTO push_prefs (listener_id) VALUES ($1) ON CONFLICT (listener_id) DO NOTHING', [listenerId]);
   if (keys.length === 0) return;
   const sets = keys.map((k, i) => `${PREF_COLUMNS[k]} = $${i + 2}`).join(', ');
   await db.query(`UPDATE push_prefs SET ${sets} WHERE listener_id = $1`, [listenerId, ...keys.map((k) => p[k])]);
-}
+});
 
-export async function getPrefs(db: Db, listenerId: string): Promise<Required<PrefsPatch>> {
+export const getPrefs = dual('ac/index', 'getPrefs', async (db: Db, listenerId: string): Promise<Required<PrefsPatch>> => {
   const [r] = await db.query<{ new_episodes: boolean; popular: boolean; replies: boolean; likes: boolean; follows: boolean; mentions: boolean; statuses: boolean; digest: boolean; system: boolean }>(
     'SELECT * FROM push_prefs WHERE listener_id = $1', [listenerId]);
   return {
@@ -62,13 +63,13 @@ export async function getPrefs(db: Db, listenerId: string): Promise<Required<Pre
     follows: r?.follows ?? true, mentions: r?.mentions ?? true, statuses: r?.statuses ?? true, digest: r?.digest ?? true,
     system: r?.system ?? true,
   };
-}
+});
 
 /**
  * Sends through Expo in batches of 100. A `DeviceNotRegistered` answer deletes that token
  * (the app was uninstalled); any other error leaves it for the next cycle.
  */
-export async function sendExpo(db: Db, f: typeof fetch, messages: readonly PushMessage[]): Promise<{ sent: number; dropped: number }> {
+export const sendExpo = dual('ac/index', 'sendExpo', async (db: Db, f: typeof fetch, messages: readonly PushMessage[]): Promise<{ sent: number; dropped: number }> => {
   let sent = 0;
   let dropped = 0;
   for (let i = 0; i < messages.length; i += BATCH) {
@@ -85,13 +86,13 @@ export async function sendExpo(db: Db, f: typeof fetch, messages: readonly PushM
     }
   }
   return { sent, dropped };
-}
+});
 
 /**
  * One new episode of one show → every follower's devices, once. The `push_sent` insert
  * happens before sending and only for listeners not already told (G-N1).
  */
-export async function fanOutNewEpisode(db: Db, f: typeof fetch, ep: { id: string; feedUrl: string; title: string; showTitle: string }): Promise<{ sent: number; dropped: number }> {
+export const fanOutNewEpisode = dual('ac/index', 'fanOutNewEpisode', async (db: Db, f: typeof fetch, ep: { id: string; feedUrl: string; title: string; showTitle: string }): Promise<{ sent: number; dropped: number }> => {
   const told = await db.query<{ listener_id: string }>(
     `INSERT INTO push_sent (listener_id, episode_id, kind)
      SELECT s.listener_id, $2, 'new_episode' FROM subscriptions s
@@ -107,10 +108,10 @@ export async function fanOutNewEpisode(db: Db, f: typeof fetch, ep: { id: string
   const tokens = await db.query<{ token: string }>('SELECT token FROM push_tokens WHERE listener_id = ANY($1::uuid[])', [told.map((t) => t.listener_id)]);
   const messages = tokens.map((t): PushMessage => ({ to: t.token, title: ep.showTitle || 'New episode', body: ep.title, data: { episodeId: ep.id, kind: 'new_episode' }, sound: 'default' }));
   return messages.length === 0 ? { sent: 0, dropped: 0 } : sendExpo(db, f, messages);
-}
+});
 
 /** The day's pick → listeners with "Popular content" on, at most once a day each. */
-export async function sendPopular(db: Db, f: typeof fetch, pick: { id: string; title: string; why?: string }): Promise<{ sent: number; dropped: number }> {
+export const sendPopular = dual('ac/index', 'sendPopular', async (db: Db, f: typeof fetch, pick: { id: string; title: string; why?: string }): Promise<{ sent: number; dropped: number }> => {
   const told = await db.query<{ listener_id: string }>(
     `INSERT INTO push_sent (listener_id, episode_id, kind)
      SELECT t.listener_id, $1, 'popular' FROM (SELECT DISTINCT listener_id FROM push_tokens) t
@@ -125,13 +126,15 @@ export async function sendPopular(db: Db, f: typeof fetch, pick: { id: string; t
   const tokens = await db.query<{ token: string }>('SELECT token FROM push_tokens WHERE listener_id = ANY($1::uuid[])', [told.map((t) => t.listener_id)]);
   const messages = tokens.map((t): PushMessage => ({ to: t.token, title: "Today's pick", body: pick.why ? `${pick.title} — ${pick.why}` : pick.title, data: { episodeId: pick.id, kind: 'popular' }, sound: 'default' }));
   return messages.length === 0 ? { sent: 0, dropped: 0 } : sendExpo(db, f, messages);
-}
+});
 
 // ---- M22 US1/US3/US6: pushes for interactions (specs/023 research R2) ----
 
 /** The fetch social pushes use. `createApp` sets it from `deps.pushFetch` so tests can fake Expo. */
 let socialFetch: typeof fetch = (...a) => fetch(...a);
 export function setSocialPushFetch(f: typeof fetch): void { socialFetch = f; }
+/** M26: the same fetch, for the DynamoDB twin (ddb/push.ts). */
+export const socialPushFetch = (): typeof fetch => socialFetch;
 
 export type SocialNotice = { recipientId: string; actorId: string; kind: PushKind; ref: Record<string, string> };
 
@@ -156,7 +159,7 @@ export function threadOf(n: SocialNotice): { kind: 'comment' | 'like_post'; key:
   return null;
 }
 
-function words(kind: PushKind, name: string, count: number, excerpt: string | null): { title: string; body: string } {
+export function words(kind: PushKind, name: string, count: number, excerpt: string | null): { title: string; body: string } {
   const who = count > 1 ? `${name} and ${count - 1} other${count - 1 === 1 ? '' : 's'}` : name;
   switch (kind) {
     case 'reply': return { title: `${name} replied`, body: excerpt ?? 'to your comment' };
@@ -177,7 +180,7 @@ function words(kind: PushKind, name: string, count: number, excerpt: string | nu
  * One notice → at most one push to each of the recipient's devices. Never throws: a push that
  * fails must not undo the act it reports. Returns how many devices were told.
  */
-export async function pushFor(db: Db, n: SocialNotice, now = Date.now()): Promise<number> {
+export const pushFor = dual('ac/index', 'pushFor', async (db: Db, n: SocialNotice, now = Date.now()): Promise<number> => {
   try {
     const tokens = await db.query<{ token: string }>('SELECT token FROM push_tokens WHERE listener_id = $1', [n.recipientId]);
     if (tokens.length === 0) return 0;
@@ -224,7 +227,7 @@ export async function pushFor(db: Db, n: SocialNotice, now = Date.now()): Promis
     console.warn(`[push] social push skipped: ${e instanceof Error ? e.message : String(e)}`);
     return 0;
   }
-}
+});
 
 // ---- M22 US6 (FR-022): a push to followers when someone posts a status ----
 
@@ -237,7 +240,7 @@ export const STATUS_PUSHES_PER_DAY = 5;
  * poster's pushing statuses per day; the 6th and later post normally but push no one. Never
  * throws (like `pushFor`).
  */
-export async function pushNewStatus(db: Db, authorId: string, postId: string, isVoice: boolean): Promise<number> {
+export const pushNewStatus = dual('ac/index', 'pushNewStatus', async (db: Db, authorId: string, postId: string, isVoice: boolean): Promise<number> => {
   try {
     const [slot] = await db.query<{ count: number }>(
       `INSERT INTO status_push_log (author_id, day, count) VALUES ($1, ((now() AT TIME ZONE 'UTC') + interval '8 hours')::date, 1)
@@ -267,4 +270,4 @@ export async function pushNewStatus(db: Db, authorId: string, postId: string, is
     console.warn(`[push] status push skipped: ${e instanceof Error ? e.message : String(e)}`);
     return 0;
   }
-}
+});

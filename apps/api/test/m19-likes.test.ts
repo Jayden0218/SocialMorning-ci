@@ -6,6 +6,8 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { putEpisode } from './put-episode.ts';
+import { follow } from '../src/db/repos/social/follows.ts';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 
 type Timeline = { items: { listener?: { id: string; displayName: string }; episode: { id: string }; note?: string }[]; next?: string };
@@ -14,8 +16,9 @@ async function setup() {
   const t = await freshDb();
   const a = await signUp(t, 'a@example.com', 'Alex');
   const b = await signUp(t, 'b@example.com', 'Bo');
-  await t.q("INSERT INTO episodes (id, feed_url, guid, title, show_title, enclosure_url) VALUES ('e1','https://f/x.xml','g1','Ep one','Show','https://cdn/1.mp3'), ('e2','https://f/y.xml','g2','Ep two','Show Y','https://cdn/2.mp3')");
-  await t.q('INSERT INTO follows (follower_id, followed_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [a.id, b.id]);
+  await putEpisode(t, 'e1', { feedUrl: 'https://f/x.xml', guid: 'g1', title: 'Ep one', showTitle: 'Show', enclosureUrl: 'https://cdn/1.mp3' });
+  await putEpisode(t, 'e2', { feedUrl: 'https://f/y.xml', guid: 'g2', title: 'Ep two', showTitle: 'Show Y', enclosureUrl: 'https://cdn/2.mp3' });
+  await follow(t.db, a.id, b.id); // lane SG's repo, on either backend
   return { t, a, b };
 }
 const tl = async (t: TestDb, token: string) => (await (await t.call('GET', '/v1/me/likes/timeline', undefined, token)).json()) as Timeline;

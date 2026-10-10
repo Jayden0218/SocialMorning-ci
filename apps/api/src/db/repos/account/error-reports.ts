@@ -7,6 +7,7 @@
  */
 import type { Db } from '../../db.ts';
 import { sweepRateCounters } from '../../../auth/rate.ts';
+import { dual } from '../../backend.ts';
 
 export const ERROR_DAYS = 30;
 export const SCOPE_MAX = 80;
@@ -19,7 +20,7 @@ export type ErrorRow = { scope: string; message: string; stack: string | null; a
 const clip = (s: string, n: number) => [...s].slice(0, n).join('');
 
 /** Adds a batch; a repeat of a known error only counts up. Returns how many rows were touched. */
-export async function recordErrors(db: Db, listenerId: string | null, items: readonly ErrorIn[]): Promise<number> {
+export const recordErrors = dual('ac/index', 'recordErrors', async (db: Db, listenerId: string | null, items: readonly ErrorIn[]): Promise<number> => {
   let n = 0;
   for (const e of items) {
     const scope = clip(e.scope.trim(), SCOPE_MAX);
@@ -37,32 +38,32 @@ export async function recordErrors(db: Db, listenerId: string | null, items: rea
     n++;
   }
   return n;
-}
+});
 
 /** Newest first, for /mod/errors. */
-export async function recentErrors(db: Db, limit = 200): Promise<ErrorRow[]> {
+export const recentErrors = dual('ac/index', 'recentErrors', async (db: Db, limit = 200): Promise<ErrorRow[]> => {
   return db.query<ErrorRow>(
     'SELECT scope, message, stack, app_version, platform, count, first_seen, last_seen FROM error_reports ORDER BY last_seen DESC LIMIT $1',
     [limit],
   );
-}
+});
 
 /**
  * The hourly sweep (internal.ts `sweep` step calls it): error rows unseen for 30 days go, and so
  * do rate-limit windows older than two days (auth/rate.ts). Returns the error rows deleted.
  */
-export async function sweepErrorReports(db: Db): Promise<number> {
+export const sweepErrorReports = dual('ac/index', 'sweepErrorReports', async (db: Db): Promise<number> => {
   const rows = await db.query<{ id: string }>(
     `DELETE FROM error_reports WHERE last_seen < now() - make_interval(days => $1::int) RETURNING id`, [ERROR_DAYS]);
   await sweepRateCounters(db);
   return rows.length;
-}
+});
 
 /**
  * M25 S11: one unhandled server error, kept like a phone's (scope 'server', platform 'server').
  * Returns true when this signature is new — the first row of its kind — so the caller can alert.
  */
-export async function recordServerError(db: Db, e: { message: string; stack?: string }): Promise<boolean> {
+export const recordServerError = dual('ac/index', 'recordServerError', async (db: Db, e: { message: string; stack?: string }): Promise<boolean> => {
   const message = clip(e.message.trim() || 'unknown error', MESSAGE_MAX);
   const [row] = await db.query<{ count: number }>(
     `INSERT INTO error_reports (listener_id, scope, message, stack, app_version, platform)
@@ -73,4 +74,4 @@ export async function recordServerError(db: Db, e: { message: string; stack?: st
     [message, e.stack ? clip(e.stack, STACK_MAX) : null],
   );
   return Number(row?.count ?? 0) === 1;
-}
+});

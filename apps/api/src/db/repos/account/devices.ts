@@ -1,5 +1,6 @@
 // Database queries for the signed-in devices list (M26: moved here from routes/account/devices.ts).
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 
 export type DeviceRow = { id: string; device_label: string | null; country: string | null; created_at: Date | string; last_seen_at: Date | string; current: boolean };
 
@@ -7,7 +8,7 @@ export type DeviceRow = { id: string; device_label: string | null; country: stri
  * The account's live sessions, this one first. `liveSessionSql` is the session-lifetime SQL from
  * auth/session.ts, passed in so this file does not import the auth module.
  */
-export async function listDeviceRows(db: Db, listenerId: string, hash: Buffer, idleDays: number, liveSessionSql: string): Promise<DeviceRow[]> {
+export const listDeviceRows = dual('ac/index', 'listDeviceRows', async (db: Db, listenerId: string, hash: Buffer, idleDays: number, liveSessionSql: string): Promise<DeviceRow[]> => {
   return db.query<DeviceRow>(
     `SELECT s.id::text AS id, s.device_label, s.country, s.created_at, s.last_seen_at,
             COALESCE(s.token_hash = $2 OR s.token_hash = (SELECT replaced_by FROM sessions WHERE token_hash = $2), false) AS current
@@ -18,22 +19,22 @@ export async function listDeviceRows(db: Db, listenerId: string, hash: Buffer, i
       ORDER BY 6 DESC, s.last_seen_at DESC
       LIMIT 100`,
     [listenerId, hash, idleDays]);
-}
+});
 
 /** One of the account's sessions (not an admin's "act as" one), and whether it is the caller's. */
-export async function deviceCurrentRows(db: Db, id: string, listenerId: string, hash: Buffer): Promise<{ current: boolean }[]> {
+export const deviceCurrentRows = dual('ac/index', 'deviceCurrentRows', async (db: Db, id: string, listenerId: string, hash: Buffer): Promise<{ current: boolean }[]> => {
   return db.query<{ current: boolean }>(
     `SELECT COALESCE(token_hash = $3 OR token_hash = (SELECT replaced_by FROM sessions WHERE token_hash = $3), false) AS current
        FROM sessions WHERE id = $1::uuid AND listener_id = $2 AND acting_admin_id IS NULL`, [id, listenerId, hash]);
-}
+});
 
 /** Sign one session out by its public id. */
-export async function deleteDevice(db: Db, id: string, listenerId: string): Promise<void> {
+export const deleteDevice = dual('ac/index', 'deleteDevice', async (db: Db, id: string, listenerId: string): Promise<void> => {
   await db.query('DELETE FROM sessions WHERE id = $1::uuid AND listener_id = $2', [id, listenerId]);
-}
+});
 
 /** Sign out every other session: keep this token's row, the row that replaced it, and the rows that point at either. */
-export async function signOutOtherDevices(db: Db, listenerId: string, hash: Buffer): Promise<{ id: string }[]> {
+export const signOutOtherDevices = dual('ac/index', 'signOutOtherDevices', async (db: Db, listenerId: string, hash: Buffer): Promise<{ id: string }[]> => {
   return db.query<{ id: string }>(
     `WITH keep AS (
        SELECT token_hash FROM sessions WHERE token_hash = $2
@@ -45,4 +46,4 @@ export async function signOutOtherDevices(db: Db, listenerId: string, hash: Buff
         AND (replaced_by IS NULL OR replaced_by NOT IN (SELECT token_hash FROM keep))
       RETURNING id::text AS id`,
     [listenerId, hash]);
-}
+});

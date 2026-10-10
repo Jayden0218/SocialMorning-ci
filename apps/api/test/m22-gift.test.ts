@@ -9,6 +9,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp } from './harness.ts';
+import { entitlementRows, giftCount } from './pd-neutral.ts';
 import type { GooglePlay, GoogleProduct } from '../src/billing/google-play.ts';
 import { applyVoided } from '../src/db/repos/account/purchases.ts';
 import { GIFT_TIERS, kindOf, tierOf } from '../src/billing/products.ts';
@@ -45,22 +46,22 @@ test('G-M22-9: a verified gift makes a link; the first claim wins, a second is r
   assert.equal(purchase.kind, 'gift');
   assert.match(gift.code, /^[A-Za-z0-9]{16}$/);
   assert.ok(gift.url.endsWith(`/gift/${gift.code}`));
-  assert.equal((await t.q("SELECT 1 FROM entitlements WHERE listener_id = $1 AND kind = 'show'", [a.id])).length, 0, 'the buyer did not buy it for themself');
+  assert.equal((await entitlementRows(t, { listenerId: a.id, kind: 'show' })).length, 0, 'the buyer did not buy it for themself');
   // The same purchase sent again gives the same link, not a second gift.
   const repeat = (await (await t.call('POST', '/v1/me/purchases/google', { productId: 'gift_tier_2', purchaseToken: 'tok-gift-1', feedUrl: FEED }, a.token)).json()) as { gift: { code: string } };
   assert.equal(repeat.gift.code, gift.code);
-  assert.equal((await t.q('SELECT 1 FROM gifts')).length, 1);
+  assert.equal(await giftCount(t), 1);
 
   const view = (await (await t.call('GET', `/v1/gifts/${gift.code}`)).json()) as { show: { feedUrl: string; title: string }; claimed: boolean; buyerName: string };
   assert.deepEqual([view.show.feedUrl, view.show.title, view.claimed, view.buyerName], [FEED, 'Hosted', false, 'Ana']);
   assert.equal((await t.call('POST', `/v1/gifts/${gift.code}/claim`)).status, 401, 'claiming needs sign-in');
 
   assert.equal((await t.call('POST', `/v1/gifts/${gift.code}/claim`, undefined, b.token)).status, 204);
-  assert.equal((await t.q("SELECT 1 FROM entitlements WHERE listener_id = $1 AND kind = 'show' AND ref = $2", [b.id, FEED])).length, 1);
+  assert.equal((await entitlementRows(t, { listenerId: b.id, kind: 'show', ref: FEED })).length, 1);
   const second = await t.call('POST', `/v1/gifts/${gift.code}/claim`, undefined, c.token);
   assert.equal(second.status, 409);
   assert.equal(((await second.json()) as { error: string }).error, 'already_claimed');
-  assert.equal((await t.q("SELECT 1 FROM entitlements WHERE listener_id = $1 AND kind = 'show'", [c.id])).length, 0);
+  assert.equal((await entitlementRows(t, { listenerId: c.id, kind: 'show' })).length, 0);
   const mine = (await (await t.call('GET', '/v1/me/gifts', undefined, a.token)).json()) as { items: { code: string; claimed: boolean }[] };
   assert.deepEqual(mine.items.map((i) => [i.code, i.claimed]), [[gift.code, true]]);
 
@@ -73,7 +74,7 @@ test('G-M22-9: a verified gift makes a link; the first claim wins, a second is r
 
   // Refunds: the claimed gift is withdrawn from B; the unclaimed one is cancelled (410).
   await applyVoided(t.db, [{ purchaseToken: 'tok-gift-1', voidedAt: Date.now() }, { purchaseToken: 'tok-gift-2', voidedAt: Date.now() }]);
-  assert.equal((await t.q("SELECT 1 FROM entitlements WHERE listener_id = $1 AND kind = 'show'", [b.id])).length, 0, 'withdrawn');
+  assert.equal((await entitlementRows(t, { listenerId: b.id, kind: 'show' })).length, 0, 'withdrawn');
   const late = await t.call('POST', `/v1/gifts/${g2.code}/claim`, undefined, c.token);
   assert.equal(late.status, 410);
   assert.equal(((await late.json()) as { error: string }).error, 'cancelled');
