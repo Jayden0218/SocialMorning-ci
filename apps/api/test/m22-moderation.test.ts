@@ -8,6 +8,7 @@
  *   Break: drop the `bottom` lines at the end of listComments in src/db/repos/social/comments.ts.
  * The banned message keeps the wire code `muted_on_show` that shipped phones already understand.
  */
+import { backdateComments } from './sc-neutral.ts';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
@@ -111,7 +112,7 @@ test('G-M22-10: a banned listener can post neither text nor voice on that show â
   assert.equal(((await refused.json()) as { error: string }).error, 'is_cohost');
 
   assert.equal((await sCall(t, 'DELETE', `/v1/studio/shows/${key}/bans/${l.id}`, owner)).status, 204);
-  await t.q("UPDATE comments SET created_at = created_at - interval '10 seconds'");
+  await backdateComments(t, 10_000); // lane SC's items on DynamoDB
   assert.equal((await t.call('POST', `/v1/episodes/${mine.id}/comments`, { body: 'sorry' }, l.token)).status, 200);
   await t.close();
 });

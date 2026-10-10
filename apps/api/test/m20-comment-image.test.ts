@@ -8,12 +8,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import { backdateComments, commentMedia, setCommentFlags } from './sc-neutral.ts';
+import { makeDeletionsDue } from './ac-neutral.ts';
+import { putEpisode } from './put-episode.ts';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 import { runDueDeletions, type DeletionStores } from '../src/db/repos/account/deletion.ts';
 import { imageStorageFromEnv, r2ImageStorage, sigV4, type ImageStorage } from '../src/storage/image-store.ts';
 
 // M22 US11: DELETE /v1/me now waits 15 days; this makes the wait over and runs the internal step's body.
-const dueNow = async (t: TestDb, stores: DeletionStores = {}) => { await t.q("UPDATE account_deletions SET due_at = now() - interval '1 second'"); await runDueDeletions(t.db, stores); };
+const dueNow = async (t: TestDb, stores: DeletionStores = {}) => { await makeDeletionsDue(t); await runDueDeletions(t.db, stores); };
 
 const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 16, 0x4a, 0x46, 0x49, 0x46, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0xff, 0xd9]);
 
@@ -67,7 +70,7 @@ async function setup(store: ImageStorage) {
   const t = await freshDb({ imageStorage: store, jobToken: 'job-token-not-secret' });
   const a = await signUp(t, 'a@example.com', 'Alex');
   const b = await signUp(t, 'b@example.com', 'Bo');
-  await t.q("INSERT INTO episodes (id, feed_url, guid, title, show_title, enclosure_url) VALUES ('e1','https://f/x.xml','g','Ep','Show','https://c/x.mp3')");
+  await putEpisode(t, 'e1', { feedUrl: 'https://f/x.xml', guid: 'g', title: 'Ep', showTitle: 'Show', enclosureUrl: 'https://c/x.mp3' });
   const comment = async (token: string) => ((await (await t.call('POST', '/v1/episodes/e1/comments', { body: 'look', offsetMs: 1000 }, token)).json()) as { comment: { id: string } }).comment.id;
   const add = (id: string, token: string, bytes: Uint8Array = JPEG, w = '640', h = '480') =>
     t.app.request(`/v1/comments/${id}/image`, { method: 'POST', body: bytes as unknown as BodyInit, headers: { 'content-type': 'image/jpeg', 'x-width': w, 'x-height': h, authorization: `Bearer ${token}` } });
@@ -87,9 +90,9 @@ test('FR-053: the author adds one JPEG within 10 minutes; others see it; not som
   assert.equal((await add(id, a.token)).status, 409);
   const seen = ((await (await t.call('GET', '/v1/episodes/e1/social', undefined, b.token)).json()) as { comments: { id: string; image?: { url: string; w: number; h: number } }[] }).comments;
   assert.deepEqual(seen.find((c) => c.id === id)!.image, { url: `https://pub.example/${f.puts[0]}`, w: 640, h: 480 });
-  await t.q("UPDATE comments SET created_at = now() - interval '11 minutes'");
+  await backdateComments(t, 11 * 60_000, { fromNow: true });
   const late = await comment(a.token);
-  await t.q("UPDATE comments SET created_at = now() - interval '11 minutes' WHERE id = $1", [late]);
+  await backdateComments(t, 11 * 60_000, { fromNow: true, id: late });
   assert.equal((await add(late, a.token)).status, 422);
   await t.close();
 });
@@ -111,14 +114,13 @@ test('G-M20-8: deleted, removed by moderation, or the author\'s account deleted 
   assert.equal((await t.call('DELETE', `/v1/comments/${one}`, undefined, a.token)).status, 200);
   assert.deepEqual(f.removed, [f.puts[0]]);
 
-  await t.q("UPDATE comments SET created_at = now() - interval '1 minute'");
+  await backdateComments(t, 60_000, { fromNow: true });
   const two = await comment(a.token);
   await add(two, a.token);
-  await t.q('UPDATE comments SET removed_at = now() WHERE id = $1', [two]);
+  await setCommentFlags(t, two, { removed: true });
   await t.call('POST', '/v1/internal/rebuild', { step: 'sweep' }, undefined, { authorization: 'Bearer job-token-not-secret' });
   assert.ok(f.removed.includes(f.puts[1]!), 'the sweep deleted the removed one');
-  const [row] = await t.q<{ image_path: string | null }>('SELECT image_path FROM comments WHERE id = $1', [two]);
-  assert.equal(row!.image_path, null);
+  assert.equal((await commentMedia(t, two)).image_path, null);
 
   const three = await comment(b.token);
   await add(three, b.token);

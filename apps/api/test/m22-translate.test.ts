@@ -8,6 +8,7 @@
  *   Break: drop the `hasPlus` line in gate() in src/translate/routes.ts → the 403 case goes red.
  * The real Groq is NEVER called here: every request goes to the fake below.
  */
+import { seedEntitlement } from './pd-neutral.ts';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { adminSetup, aCall } from './admin-harness.ts';
@@ -15,6 +16,8 @@ import { signUp, TEST_PEPPER, type TestDb } from './harness.ts';
 import { createApp } from '../src/app.ts';
 import { retryAfterSeconds } from '../src/translate/groq.ts';
 import { parseTimedTranscript } from '../src/translate/job.ts';
+import { upsertEpisode } from '../src/db/repos/library/episodes.ts';
+import { clearGroqUsage, groqUsage, jobCount, jobStates, parkedWaitS, setGroqUsage } from './sf-neutral-tr.ts';
 
 test('a publisher\'s own transcript (SRT, VTT, JSON) becomes segments — then no speech-to-text is needed', () => {
   const srt = '1\n00:00:01,500 --> 00:00:04,000\nBonjour\n\n2\n00:00:04,000 --> 00:00:06,250\n<i>à tous</i>\n';
@@ -55,10 +58,10 @@ function fakeGroq(o: { status?: number } = {}) {
 }
 
 async function episode(t: TestDb, id: string, feedUrl: string, durationMs: number | null = 600_000) {
-  await t.q('INSERT INTO episodes (id, feed_url, guid, title, show_title, enclosure_url, duration_ms) VALUES ($1, $2, $1, $3, $4, $5, $6)',
-    [id, feedUrl, `Episode ${id}`, 'Le Show', `https://cdn.example.com/${id}.mp3`, durationMs]);
+  // M26: episodes are lane LB's (DynamoDB in the hybrid run): seeded through the app's dual upsert.
+  await upsertEpisode(t.db, { id, feedUrl, guid: id, title: `Episode ${id}`, showTitle: 'Le Show', enclosureUrl: `https://cdn.example.com/${id}.mp3`, ...(durationMs !== null ? { durationMs } : {}) });
 }
-const plus = (t: TestDb, id: string) => t.q("INSERT INTO entitlements (listener_id, kind, ref, until) VALUES ($1, 'plus', '', '2099-01-01')", [id]);
+const plus = (t: TestDb, id: string) => seedEntitlement(t, { listenerId: id, kind: 'plus', ref: '', until: '2099-01-01T00:00:00.000Z' }); // lane PD's items on DynamoDB
 const step = async (t: TestDb) => ((await (await t.call('POST', '/v1/internal/rebuild', { step: 'translate' }, undefined, { authorization: `Bearer ${JOB}` })).json()) as { counts: Record<string, number> }).counts;
 
 test('G-M22-7: offered only on allow-listed shows (set in /mod) and only to PLUS', async () => {
@@ -80,7 +83,7 @@ test('G-M22-7: offered only on allow-listed shows (set in /mod) and only to PLUS
   assert.equal(free.status, 403);
   assert.equal(((await free.json()) as { error: string }).error, 'plus_required');
   assert.equal((await t.call('POST', '/v1/episodes/e1/translation', { lang: 'en' }, n.token)).status, 403);
-  assert.equal((await t.q('SELECT 1 FROM translation_jobs')).length, 0, 'nothing queued for a free listener');
+  assert.equal(await jobCount(t), 0, 'nothing queued for a free listener');
   const notOffered = await t.call('POST', '/v1/episodes/x1/translation', { lang: 'en' }, p.token);
   assert.equal(notOffered.status, 404);
   assert.equal(((await notOffered.json()) as { error: string }).error, 'not_offered');
@@ -107,7 +110,7 @@ test('a PLUS request: queued (202 + etaHours), speech-to-text by URL, then trans
   assert.equal(a.state, 'queued');
   assert.ok(a.etaHours >= 1);
   assert.equal((await t.call('POST', '/v1/episodes/e1/translation', { lang: 'en' }, q.token)).status, 202, 'idempotent');
-  assert.equal((await t.q('SELECT 1 FROM translation_jobs')).length, 1);
+  assert.equal(await jobCount(t), 1);
 
   assert.deepEqual(await step(t), { transcribed: 1 });
   assert.deepEqual(g.calls.map((c) => [c.model, c.audioUrl]), [['whisper-large-v3', 'https://cdn.example.com/e1.mp3']], 'Groq fetches the publisher\'s audio; we never download it');
@@ -120,7 +123,7 @@ test('a PLUS request: queued (202 + etaHours), speech-to-text by URL, then trans
   assert.equal(done.state, 'done');
   assert.deepEqual(done.lines[0], { s: 0, e: 4500, o: 'Bonjour à tous', t: 'EN Bonjour à tous' });
   assert.equal(done.lines.length, 3);
-  const usage = await t.q<{ model: string; requests: number; audio_s: number; tokens: number }>('SELECT model, requests, audio_s, tokens FROM groq_usage ORDER BY model');
+  const usage = await groqUsage(t);
   assert.deepEqual(usage.map((u) => [u.model, u.requests, u.audio_s, u.tokens]), [['openai/gpt-oss-120b', 1, 0, 321], ['whisper-large-v3', 1, 600, 0]]);
   const mod = (await (await aCall(t, 'GET', '/v1/mod/translation-usage', owner)).json()) as { models: { model: string; audioS: number; budget: { audioS?: number } }[] };
   assert.deepEqual(mod.models.find((m) => m.model === 'whisper-large-v3'), { model: 'whisper-large-v3', requests: 1, audioS: 600, tokens: 0, budget: { requests: 1_800, audioS: 25_920 } });
@@ -138,16 +141,15 @@ test('G-M22-6: with the day\'s budget spent there is no Groq call; a 429 parks t
   await plus(t, p.id);
   await t.call('POST', '/v1/episodes/e1/translation', { lang: 'en' }, p.token);
   // 25,920 is 90 % of 28,800 audio-seconds: an hour more would pass it.
-  await t.q("INSERT INTO groq_usage (day, model, requests, audio_s, tokens) VALUES ((now() AT TIME ZONE 'UTC')::date, 'whisper-large-v3', 5, 23_000, 0)");
+  await setGroqUsage(t, 'whisper-large-v3', 5, 23_000, 0);
   assert.deepEqual(await step(t), { waiting: 1 });
   assert.equal(g.calls.length, 0, 'no call when the budget is spent');
-  const [j] = await t.q<{ state: string }>('SELECT state FROM translation_jobs');
-  assert.equal(j!.state, 'queued');
+  assert.deepEqual(await jobStates(t), ['queued']);
   // The next day (a fresh ledger row), it goes.
-  await t.q('DELETE FROM groq_usage');
+  await clearGroqUsage(t);
   assert.deepEqual(await step(t), { transcribed: 1 });
   // The translator's day spent too.
-  await t.q("INSERT INTO groq_usage (day, model, requests, audio_s, tokens) VALUES ((now() AT TIME ZONE 'UTC')::date, 'openai/gpt-oss-120b', 1, 0, 179_900)");
+  await setGroqUsage(t, 'openai/gpt-oss-120b', 1, 0, 179_900);
   assert.deepEqual(await step(t), { waiting: 1 });
   assert.equal(g.calls.length, 1);
   await t.close();
@@ -161,8 +163,8 @@ test('G-M22-6: with the day\'s budget spent there is no Groq call; a 429 parks t
   await plus(s.t, sp.id);
   await s.t.call('POST', '/v1/episodes/e1/translation', { lang: 'en' }, sp.token);
   assert.deepEqual(await step(s.t), { rate_limited: 1 });
-  const [parked] = await s.t.q<{ wait: number }>('SELECT extract(epoch FROM not_before - now())::int AS wait FROM translation_jobs');
-  assert.ok(parked!.wait > 100 && parked!.wait <= 120, `parked ${parked!.wait} s`);
+  const wait = await parkedWaitS(s.t);
+  assert.ok(wait > 100 && wait <= 120, `parked ${wait} s`);
   assert.deepEqual(await step(s.t), { nothing: 1 }, 'parked jobs are not picked');
   assert.deepEqual([retryAfterSeconds(null), retryAfterSeconds('7'), retryAfterSeconds('soon')], [60, 7, 60]);
 

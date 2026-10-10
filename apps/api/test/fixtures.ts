@@ -88,43 +88,97 @@ export async function commentItem(store: Store, c: { id?: string; episodeId: str
   return { id, key };
 }
 
-export async function subscriptionItem(store: Store, s: { listenerId: string; feedUrl: string; createdAt?: string; deletedAt?: string | null; starredAt?: string | null }): Promise<Key> {
+/** A subscription as lane LB writes it (src/db/repos/library/ddb/subscriptions.ts): the item, and for a live one the show's count + `Q#feeds`. */
+export async function subscriptionItem(store: Store, s: { listenerId: string; feedUrl: string; createdAt?: string; deletedAt?: string | null; starredAt?: string | null; starred?: boolean }): Promise<Key> {
+  const { subscriptionItem: item, syncFeedQueue } = await import('../src/db/repos/library/ddb/subscriptions.ts');
   const createdAt = s.createdAt ?? now(store);
-  const key = K.subscription(s.listenerId, s.feedUrl);
-  const live = !s.deletedAt;
-  await tx(store).put('main', encode('subscription', key, {
-    listenerId: s.listenerId, feedUrl: s.feedUrl, createdAt, stamp: createdAt, deletedAt: s.deletedAt ?? null, starredAt: s.starredAt ?? null,
-  }, live ? { gsi: K.G2subs(s.feedUrl, createdAt, s.listenerId) } : {})).commit();
-  return key;
+  const t = tx(store).put('main', item(s.listenerId, { feed_url: s.feedUrl, starred: s.starred ?? false, created_at: createdAt, deleted_at: s.deletedAt ?? null, starred_at: s.starredAt ?? null }, 1), { condition: 'attribute_not_exists(PK)' });
+  if (!s.deletedAt) {
+    t.update('main', K.show(s.feedUrl), {
+      update: 'SET #t = if_not_exists(#t, :show), #f = if_not_exists(#f, :f) ADD #c :one',
+      names: { '#t': 't', '#f': 'feedUrl', '#c': 'subscriberCount' }, values: { ':show': 'show', ':f': s.feedUrl, ':one': 1 },
+    });
+  }
+  await t.commit();
+  if (!s.deletedAt) await syncFeedQueue(store, s.feedUrl);
+  return K.subscription(s.listenerId, s.feedUrl);
 }
 
-export async function purchaseItem(store: Store, p: { id?: string; listenerId: string; purchaseToken: string; orderId: string; product: string; amountMicros?: number; currency?: string; status?: string; createdAt?: string }): Promise<{ id: string; key: Key }> {
+/** A recommendation event (lane LB, sm-events `RE#…`), e.g. an old one for the 90-day sweep. */
+export async function recEventItem(store: Store, e: { listenerId: string; episodeId: string; channel?: string; rank?: number; kind?: string; at: string }): Promise<void> {
+  const { REC_KEEP_DAYS } = await import('../src/db/repos/library/ddb/rec-events.ts');
+  const { nextSeq } = await import('../src/db/ddb/seq.ts');
+  const id = await nextSeq(store, 'rec_events');
+  const at = K.ts(e.at);
+  await tx(store).put('events', encode('recEvent', K.ev.recEvent(e.listenerId, at, id), { id, listenerId: e.listenerId, episodeId: e.episodeId, channel: e.channel ?? 'pick', rank: e.rank ?? 0, kind: e.kind ?? 'open', at }, {
+    gsi: K.E1(at.slice(0, 10), 're', `${e.listenerId}#${id}`), ttl: Math.floor(Date.parse(at) / 1000) + REC_KEEP_DAYS * 86_400,
+  })).commit();
+}
+
+/**
+ * Lane PD: a purchase as grantGoogle leaves it — the item (keyed by the token's hash, or the order id when a store
+ * gives no token), its `U#TXN#` item and the buyer's pointer — in one transaction (src/db/repos/account/paid-ddb/common.ts).
+ */
+export async function purchaseItem(store: Store, p: {
+  id?: string; listenerId: string; purchaseToken?: string | null; orderId: string; productId: string; store?: 'google' | 'apple'; status?: 'active' | 'expired' | 'refunded';
+  amountMicros?: number | null; currency?: string | null; ref?: string | null; expiresAt?: string | null; createdAt?: string; granted?: Key[]; test?: boolean;
+}): Promise<{ id: string; key: Key }> {
+  const C = await import('../src/db/repos/account/paid-ddb/common.ts');
   const id = p.id ?? randomUUID();
   const createdAt = p.createdAt ?? now(store);
-  const key = K.purchase(p.purchaseToken);
-  const t = tx(store).put('main', encode('purchase', key, {
-    id, listenerId: p.listenerId, product: p.product, orderId: p.orderId, amountMicros: p.amountMicros ?? 0, currency: p.currency ?? 'USD',
-    status: p.status ?? 'verified', createdAt, granted: [],
-  }, { gsi: K.G5('purchase', id, createdAt) }), { condition: 'attribute_not_exists(PK)' });
+  const base = {
+    id, listenerId: p.listenerId, store: p.store ?? 'google', productId: p.productId, storeTxnId: p.orderId, status: p.status ?? 'active', expiresAt: p.expiresAt ?? null,
+    amountMicros: p.amountMicros ?? null, currency: p.currency ?? null, createdAt, purchaseToken: p.purchaseToken ?? null, ref: p.ref ?? null, accountHash: null,
+    test: p.test ?? false, granted: p.granted ?? [], v: 1, acknowledgedAt: createdAt,
+  } as const;
+  const key = C.purchaseKeyOf(base);
+  const t = tx(store).put('main', C.purchaseItem(base as never), { condition: 'attribute_not_exists(PK)' });
   claimUnique(t, K.U.txn(p.orderId), id);
+  t.put('main', C.purchasePtrItem({ listenerId: p.listenerId, id, createdAt, key }));
   await t.commit();
   return { id, key };
 }
 
-export async function entitlementItem(store: Store, e: { listenerId: string; kind: 'plus' | 'show'; ref: string; until?: string | null; startsAt?: string; sourcePurchaseId?: string | null }): Promise<Key> {
+/** Lane PD: an entitlement; a PLUS row also bumps the listener's PLUS version and digest queue, as the app's writes do. */
+export async function entitlementItem(store: Store, e: { listenerId: string; kind: 'plus' | 'show'; ref: string; until?: string | null; startsAt?: string | null; sourcePurchaseId?: string | null }): Promise<Key> {
+  const C = await import('../src/db/repos/account/paid-ddb/common.ts');
+  const { txa } = await import('../src/db/repos/account/ddb/common.ts');
+  const row = { listenerId: e.listenerId, kind: e.kind, ref: e.ref, until: e.until ?? null, startsAt: e.startsAt ?? null, sourcePurchaseId: e.sourcePurchaseId ?? null };
   const key = K.entitlement(e.listenerId, e.kind, e.ref);
-  await tx(store).put('main', encode('entitlement', key, {
-    listenerId: e.listenerId, kind: e.kind, ref: e.ref, until: e.until ?? null, startsAt: e.startsAt ?? now(store), sourcePurchaseId: e.sourcePurchaseId ?? null,
-  })).commit();
+  const t = txa(store).put('main', C.entItem(row));
+  if (e.kind === 'plus') {
+    const st = await C.readPlus(store, e.listenerId);
+    const tz = await C.zoneOf(store, e.listenerId);
+    await C.addZone(store, tz);
+    C.bumpPlus(t, e.listenerId, st, C.applyRows(st.rows, [{ ...row, ...key } as never]), tz, store.clock.now());
+  }
+  await t.commit();
   return key;
 }
 
-export async function tipItem(store: Store, tip: { id?: string; fromListener: string; feedUrl: string; purchaseId: string; amountMicros: number; createdAt?: string }): Promise<Key> {
+/** Lane PD: a tip under the tipper, with the purchase's amount copied, and its purchase pointing at it. */
+export async function tipItem(store: Store, tip: { id?: string; fromListener: string; feedUrl: string; purchaseId: string; purchaseKey: Key; amountMicros: number | null; currency: string | null; createdAt?: string }): Promise<Key> {
   const id = tip.id ?? randomUUID();
   const createdAt = tip.createdAt ?? now(store);
-  const key = K.earning(tip.feedUrl, createdAt, tip.purchaseId);
-  await tx(store).put('main', encode('earning', key, { id, kind: 'tip', fromListener: tip.fromListener, purchaseId: tip.purchaseId, amountMicros: tip.amountMicros, createdAt })).commit();
+  const key = K.tip(tip.fromListener, createdAt, id);
+  await tx(store)
+    .put('main', encode('tip', key, { id, fromListener: tip.fromListener, toFeedUrl: tip.feedUrl, purchaseId: tip.purchaseId, purchasePK: tip.purchaseKey.PK, amountMicros: tip.amountMicros, currency: tip.currency, createdAt }, { gsi: K.G2tips(tip.feedUrl, createdAt, id) }))
+    .update('main', tip.purchaseKey, { update: 'SET #k = :k', names: { '#k': 'tipKey' }, values: { ':k': key } })
+    .commit();
   return key;
+}
+
+/** Lane PD: test-only reads of the money items. */
+export async function pdItems(store: Store, type: 'purchase' | 'entitlement' | 'tip' | 'gift' | 'redeemUse' | 'redeemCode'): Promise<Item[]> {
+  return acScan(store, 'main', type);
+}
+
+/** Lane PD: a redeem code's expiry (replaces `UPDATE redeem_codes SET expires_at …`). */
+export async function pdSetCodeExpiry(store: Store, code: string, iso: string): Promise<void> {
+  const { codeHashOf } = await import('../src/db/repos/account/redeem.ts');
+  await update(store, 'main', K.redeemCode(codeHashOf(code).toString('hex')), {
+    update: 'SET #e = :e', condition: 'attribute_exists(PK)', names: { '#e': 'expiresAt' }, values: { ':e': iso },
+  });
 }
 
 export async function moderationActionItem(store: Store, a: { id?: string; actorId: string; action: string; targetKind: string; targetId: string; subjectListenerId?: string | null; createdAt?: string; snapshot?: Record<string, unknown> }): Promise<string> {
@@ -141,8 +195,10 @@ export async function hiddenFeedItem(store: Store, h: { feedUrl: string; actionI
   await tx(store).put('main', encode('hiddenFeed', K.hiddenFeed(h.feedUrl), { feedUrl: h.feedUrl, actionId: h.actionId, reason: h.reason ?? '', createdAt: now(store) })).commit();
 }
 
+/** A cache entry as lane LB writes it (gzip, chunks over 350 KB, `w`, generation) — src/db/repos/library/ddb/cache.ts. */
 export async function cacheItem(store: Store, cacheKey: string, body: unknown, fetchedAt?: string): Promise<void> {
-  await tx(store).put('cache', encode('cacheEntry', K.cacheEntry(cacheKey), { key: cacheKey, body: body as never, fetchedAt: fetchedAt ?? now(store) })).commit();
+  const { writeEntry } = await import('../src/db/repos/library/ddb/cache.ts');
+  await writeEntry(store, cacheKey, body, Date.parse(fetchedAt ?? now(store)));
 }
 
 /** `proveClaim` of test/studio-harness.ts, on DynamoDB: a proven claim + the one-proven-claim-per-feed item. */
@@ -181,3 +237,141 @@ export async function auditItems(store: Store, months: string[] = [now(store).sl
 
 /** A test-only getter: one item by key, strongly (replaces `SELECT … WHERE id = …` asserts). */
 export const itemAt = (store: Store, type: ItemType, key: Key) => get(store, ITEM_TYPES[type].table, key, { consistent: true });
+
+// ---- Lane AC (account): writers and test-only getters for test/ac-neutral.ts and test/ddb-account.test.ts ----
+
+const snake = (k: string) => k.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
+const keyOf = (i: Item): Key => ({ PK: String(i['PK']), SK: String(i['SK']) });
+
+/** Every item of one type (a test-only Scan; src/ never scans outside src/jobs/). */
+export async function acScan(store: Store, table: 'main' | 'events', type: string): Promise<Item[]> {
+  const { ScanCommand } = await import('@aws-sdk/lib-dynamodb');
+  const out: Item[] = [];
+  let start: Record<string, unknown> | undefined;
+  do {
+    const r = (await store.send(new ScanCommand({
+      TableName: store.tables[table], FilterExpression: '#t = :t', ExpressionAttributeNames: { '#t': 't' }, ExpressionAttributeValues: { ':t': type }, ConsistentRead: true,
+      ...(start ? { ExclusiveStartKey: start } : {}),
+    }))) as { Items?: Item[]; LastEvaluatedKey?: Record<string, unknown> };
+    out.push(...(r.Items ?? []));
+    start = r.LastEvaluatedKey;
+  } while (start);
+  return out;
+}
+
+export const acCount = async (store: Store, table: 'main' | 'events', type: string) => (await acScan(store, table, type)).length;
+export const acHasItem = async (store: Store, key: Key) => Boolean(await get(store, 'main', key, { consistent: true }));
+
+const listenerAsRow = (l: Item): Record<string, unknown> => {
+  const row: Record<string, unknown> = { failed_attempts: 0, locked_until: null, suspended_at: null, hidden_at: null, country: null, tz: null };
+  for (const [k, v] of Object.entries(l)) if (!/^(PK|SK|t|ttl|G\dPK|G\dSK)$/.test(k)) row[snake(k)] = v;
+  return row;
+};
+
+export async function acListenerRow(store: Store, id: string): Promise<Record<string, unknown> | undefined> {
+  const l = await get(store, 'main', K.listener(id), { consistent: true });
+  return l ? listenerAsRow(l) : undefined;
+}
+
+export async function acListenerByEmail(store: Store, email: string): Promise<Record<string, unknown> | undefined> {
+  const u = await get(store, 'main', K.U.email(email), { consistent: true });
+  return u ? acListenerRow(store, String(u['owner'])) : undefined;
+}
+
+export async function acSetLocked(store: Store, iso: string | null, id?: string): Promise<void> {
+  const ids = id ? [id] : (await acScan(store, 'main', 'listener')).map((l) => String(l['id']));
+  for (const x of ids) {
+    await update(store, 'main', K.listener(x), iso ? { update: 'SET #l = :v', names: { '#l': 'lockedUntil' }, values: { ':v': iso } } : { update: 'REMOVE #l', names: { '#l': 'lockedUntil' } });
+  }
+}
+
+export async function acSetCodeTime(store: Store, field: 'expiresAt' | 'sentAt', iso: string): Promise<void> {
+  for (const c of await acScan(store, 'main', 'emailCode')) await update(store, 'main', keyOf(c), { update: 'SET #f = :v', names: { '#f': field }, values: { ':v': iso } });
+}
+
+/** Every pending (uncancelled, not yet started) deletion becomes due at `iso`: the item and its G4 queue key. */
+export async function acDeletionsDue(store: Store, iso: string): Promise<void> {
+  for (const d of await acScan(store, 'main', 'deletion')) {
+    if (d['cancelledAt'] || !d['G4PK']) continue;
+    await update(store, 'main', keyOf(d), { update: 'SET #d = :v, G4SK = :sk', names: { '#d': 'dueAt' }, values: { ':v': iso, ':sk': `${iso}#${String(d['listenerId'])}` } });
+  }
+}
+
+export async function acSessions(store: Store, listenerId?: string): Promise<Item[]> {
+  return (await acScan(store, 'main', 'session')).filter((s) => !listenerId || s['listenerId'] === listenerId);
+}
+
+export async function acSession(store: Store, hash: Buffer): Promise<Item | undefined> {
+  return get(store, 'main', K.session(hash.toString('base64url')), { consistent: true });
+}
+
+export async function acSetSessionTime(store: Store, field: string, iso: string, replacedOnly: boolean): Promise<void> {
+  for (const s of await acScan(store, 'main', 'session')) {
+    if (replacedOnly && !s['replacedAt']) continue;
+    await update(store, 'main', keyOf(s), { update: 'SET #f = :v', names: { '#f': field }, values: { ':v': iso } });
+  }
+}
+
+/** A session item as an old sign-in left it (with its pointer and the listener's copies) — e.g. idle for months, or act-as. */
+export async function acSessionItem(store: Store, s: { hash: Buffer; listenerId: string; lastSeenAt: string; actingAdminId?: string; deviceLabel?: string | null }): Promise<void> {
+  const l = await get(store, 'main', K.listener(s.listenerId), { consistent: true });
+  if (!l) throw new Error('acSessionItem: no such listener');
+  const key = s.hash.toString('base64url');
+  const createdAt = now(store);
+  const publicId = randomUUID();
+  await tx(store)
+    .put('main', encode('session', K.session(key), {
+      tokenHash: key, listenerId: s.listenerId, publicId, deviceLabel: s.deviceLabel ?? null, country: null, createdAt, lastSeenAt: s.lastSeenAt, rotatedAt: createdAt,
+      secondFactorTries: 0, actingAdminId: s.actingAdminId, email: l['email'], displayName: l['displayName'], listenerCreatedAt: l['createdAt'], suspendedAt: l['suspendedAt'] ?? null,
+    }))
+    .put('main', encode('sessionPtr', K.listenerSessionPtr(s.listenerId, publicId), { tokenHash: key, publicId, deviceLabel: s.deviceLabel ?? null, actingAdminId: s.actingAdminId, createdAt }))
+    .commit();
+}
+
+/** `studioLogin`'s second-factor mark on DynamoDB: every Studio session of the listener. */
+export async function acStudioFactor(store: Store, listenerId: string, at: string | null): Promise<void> {
+  for (const s of await acSessions(store, listenerId)) {
+    if (s['deviceLabel'] !== 'studio-web') continue;
+    await setSecondFactor(store, String(s['tokenHash']), at);
+  }
+}
+
+export async function acSetRate(store: Store, key: string, n: number, windowIso?: string): Promise<void> {
+  if (windowIso) {
+    await update(store, 'events', K.ev.rate(key, windowIso), { update: 'SET #c = :n, #t = :t, #w = :w', names: { '#c': 'count', '#t': 't', '#w': 'windowStart' }, values: { ':n': n, ':t': 'rate', ':w': windowIso } });
+    return;
+  }
+  const { items } = await queryAll(store, 'events', { KeyConditionExpression: 'PK = :pk', ExpressionAttributeValues: { ':pk': `RATE#${key}` }, ConsistentRead: true });
+  for (const i of items) await update(store, 'events', keyOf(i), { update: 'SET #c = :n', names: { '#c': 'count' }, values: { ':n': n } });
+}
+
+export async function acFeedbackBodies(store: Store, prefix: string): Promise<string[]> {
+  return (await acScan(store, 'main', 'feedback')).map((f) => f['body']).filter((b): b is string => typeof b === 'string' && b.startsWith(prefix));
+}
+
+/** Every feedback picture's time (and its G4 sort key, which the sweep reads) set to `iso`. */
+export async function acAgeFeedbackImages(store: Store, iso: string): Promise<void> {
+  for (const i of await acScan(store, 'main', 'feedbackImage')) {
+    const id = `${String(i['PK']).slice('FB#'.length)}#${String(i['n'])}`;
+    await update(store, 'main', keyOf(i), { update: 'SET #c = :v, G4SK = :sk', names: { '#c': 'createdAt' }, values: { ':v': iso, ':sk': `${iso}#${id}` } });
+  }
+}
+
+export async function acErrorRows(store: Store, scope: string): Promise<{ scope: string; message: string; platform: string; listener_id: string | null }[]> {
+  return (await acScan(store, 'main', 'errorReport')).filter((e) => e['scope'] === scope)
+    .map((e) => ({ scope: String(e['scope']), message: String(e['message']), platform: String(e['platform']), listener_id: (e['listenerId'] as string | null | undefined) ?? null }));
+}
+
+export async function acPushTokens(store: Store): Promise<string[]> {
+  return (await acScan(store, 'main', 'pushToken')).map((p) => String(p['token'])).sort();
+}
+
+export async function acDigestItem(store: Store, d: { listenerId: string; isoWeek: string; episodeIds: string[]; sentAt: string }): Promise<void> {
+  await tx(store).put('main', encode('weeklyDigest', K.weeklyDigest(d.listenerId, d.isoWeek), { isoWeek: d.isoWeek, episodeIds: d.episodeIds, sentAt: d.sentAt }, {
+    gsi: K.G4('digests', d.sentAt, `${d.listenerId}#${d.isoWeek}`),
+  })).commit();
+}
+
+export async function acSetEmailChangeSent(store: Store, iso: string): Promise<void> {
+  for (const c of await acScan(store, 'main', 'emailChange')) await update(store, 'main', keyOf(c), { update: 'SET #s = :v', names: { '#s': 'sentAt' }, values: { ':v': iso } });
+}

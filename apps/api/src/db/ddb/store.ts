@@ -18,6 +18,7 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import type { NativeAttributeValue } from '@aws-sdk/lib-dynamodb';
 import type { Clients } from './client.ts';
+import { assertAppendOnly } from './append-only.ts';
 
 export type TableRole = 'main' | 'events' | 'cache';
 export type Tables = Readonly<Record<TableRole, string>>;
@@ -54,7 +55,8 @@ export function createStore(opts: { clients: Clients; secret: string; tables?: T
     tables: opts.tables ?? PROD_TABLES,
     clock: opts.clock ?? systemClock,
     secret: opts.secret,
-    send: (command) => doc.send(command as never) as Promise<unknown>,
+    // Lane SF (G-M26-SF3): the admin record is append-only for every caller of this Store (append-only.ts).
+    send: async (command) => { void assertAppendOnly; return doc.send(command as never) as Promise<unknown>; },
   };
 }
 

@@ -9,12 +9,27 @@
  *                                              Break: remove the `studio-web` filter in listenerForToken.
  * G-AD4 one failing section leaves the others.  Break: rethrow in `section()`.
  * G-AD5 a non-admin is refused.                 Break: register `/metrics` above `admin.use('*', adminOnly)`.
+ *
+ * M26 lane SF: the same tests on both backends. The seed goes through the app's own (dual) repo functions where
+ * they exist, and through test/sf-neutral-metrics.ts where a time must be set by hand; rows of lanes still on
+ * Postgres (comments, reactions, clips, follows, shares, voice posts, money, creators) stay SQL.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
 import { aCall, adminSetup } from './admin-harness.ts';
-import { signUp, type TestDb } from './harness.ts';
+import { signUp, TEST_BACKEND, type TestDb } from './harness.ts';
+import { seedPurchase, seedTip } from './pd-neutral.ts';
 import { rangeDays, type Metrics } from '../src/db/repos/admin/metrics.ts';
+import { upsertEpisode } from '../src/db/repos/library/episodes.ts';
+import { replaceRanges } from '../src/db/repos/library/listened.ts';
+import { observePosition } from '../src/db/repos/library/positions.ts';
+import { merge } from '../src/db/repos/library/subscriptions.ts';
+import { recordEvents } from '../src/db/repos/library/rec-events.ts';
+import { closeReportsFor, createReport } from '../src/db/repos/safety/reports.ts';
+import { act } from '../src/db/repos/safety/moderation.ts';
+import { block } from '../src/db/repos/safety/blocks.ts';
+import { addDailyActive, cacheKeyExists, dailyActiveRows, deleteListener, joinedAndSuspended, lastSeenAgo, subscriptionEventAt } from './sf-neutral-metrics.ts';
 
 const JOB = 'job-token-metrics';
 /** The UTC+8 calendar day `n` days ago, and noon on it. */
@@ -35,23 +50,33 @@ async function seed(t: TestDb) {
   const u2 = await signUp(t, 'u2@example.com', 'Vic');
   const q = (sql: string, p: unknown[] = []) => t.q(sql, p);
   // Users: u2 joined 3 days ago, is suspended, and was last seen 10 days ago.
-  await q('UPDATE listeners SET created_at = $2, suspended_at = now() WHERE id = $1', [u2.id, noonAgo(3)]);
-  await q("UPDATE sessions SET last_seen_at = now() - interval '10 days' WHERE listener_id = $1", [u2.id]);
+  await joinedAndSuspended(t, u2.id, noonAgo(3));
+  await lastSeenAgo(t, u2.id, 10 * 86_400_000);
   // App use: u1 today three times (one day), and two days ago by hand.
   for (let i = 0; i < 3; i++) assert.equal((await t.call('GET', '/v1/me', undefined, u1.token)).status, 200);
-  await q('INSERT INTO daily_active (day, listener_id) VALUES ($1::date, $2)', [dayAgo(2), u1.id]);
+  await addDailyActive(t, dayAgo(2), u1.id);
   // Episodes.
-  for (const [id, feed, show] of [['e1', F1, 'Show One'], ['e2', F2, 'Show Two']]) {
-    await q("INSERT INTO episodes (id, feed_url, guid, title, show_title, enclosure_url) VALUES ($1, $2, $1, $3, $4, 'https://cdn.example.com/a.mp3')", [id, feed, `Episode ${id}`, show]);
+  for (const [id, feed, show] of [['e1', F1, 'Show One'], ['e2', F2, 'Show Two']] as const) {
+    await upsertEpisode(t.db, { id, feedUrl: feed, guid: id, title: `Episode ${id}`, showTitle: show, enclosureUrl: 'https://cdn.example.com/a.mp3' });
   }
   // Listening: u1 today on two devices overlapping (union 45 min); u2 yesterday 1 h.
-  await q("INSERT INTO listened_ranges (listener_id, episode_id, day, device_id, ranges) VALUES ($1, 'e1', $2::date, 'd1', '[[0,1800000]]'::jsonb), ($1, 'e1', $2::date, 'd2', '[[900000,2700000]]'::jsonb)", [u1.id, dayAgo(0)]);
-  await q("INSERT INTO listened_ranges (listener_id, episode_id, day, device_id, ranges) VALUES ($1, 'e2', $2::date, 'd1', '[[0,3600000]]'::jsonb)", [u2.id, dayAgo(1)]);
-  await q("INSERT INTO positions (listener_id, episode_id, offset_ms, finished, progress_seq, device_id) VALUES ($1, 'e2', 3600000, true, 1, 'd1')", [u2.id]);
+  await replaceRanges(t.db, u1.id, 'd1', [{ episodeId: 'e1', day: dayAgo(0), ranges: [[0, 1_800_000]] }]);
+  await replaceRanges(t.db, u1.id, 'd2', [{ episodeId: 'e1', day: dayAgo(0), ranges: [[900_000, 2_700_000]] }]);
+  await replaceRanges(t.db, u2.id, 'd1', [{ episodeId: 'e2', day: dayAgo(1), ranges: [[0, 3_600_000]] }]);
+  await observePosition(t.db, u2.id, 'd1', { episodeId: 'e2', offsetMs: 3_600_000, finished: true, progressSeq: 1, explicitSeek: false }, new Date());
   // Library: 2 subscribed today, 1 unsubscribed yesterday; F1 has 2 live subscribers, F2 none (deleted).
-  await q("INSERT INTO subscription_events (listener_id, feed_url, kind, at) VALUES ($1, $3, 'sub', $4), ($2, $3, 'sub', $4), ($1, $5, 'unsub', $6)", [u1.id, u2.id, F1, noonAgo(0), F2, noonAgo(1)]);
-  await q('INSERT INTO subscriptions (listener_id, feed_url) VALUES ($1, $3), ($2, $3)', [u1.id, u2.id, F1]);
-  await q('INSERT INTO subscriptions (listener_id, feed_url, deleted_at) VALUES ($1, $2, now())', [u1.id, F2]);
+  // The merge logs each new live subscription as a 'sub' event now; a row born deleted logs nothing.
+  const now = new Date().toISOString();
+  await merge(t.db, u1.id, [{ feedUrl: F1, createdAt: now }, { feedUrl: F2, createdAt: now, deletedAt: now }]);
+  await merge(t.db, u2.id, [{ feedUrl: F1, createdAt: now }]);
+  await subscriptionEventAt(t, u1.id, F2, 'unsub', noonAgo(1));
+  // Safety: 2 reports (1 closed), 1 action, 1 block — through the app's functions, so the DynamoDB counters move.
+  // (Before the follow below: a block removes follows both ways.)
+  await createReport(t.db, { kind: 'profile', targetId: u2.id, reporterId: u1.id, reason: 'spam' });
+  await createReport(t.db, { kind: 'profile', targetId: u1.id, reporterId: u2.id, reason: 'other' });
+  await closeReportsFor(t.db, 'profile', u1.id, null, 'dismiss');
+  await act(t.db, u1.id, { kind: 'clip', id: randomUUID() }, 'dismiss');
+  assert.equal(await block(t.db, u1.id, u2.id), 'blocked');
   // Social: 4 comments two days ago, none yesterday; 1 reaction, clip, follow, share today; 1 live voice post.
   for (let i = 0; i < 4; i++) await q("INSERT INTO comments (episode_id, author_id, body, created_at) VALUES ('e1', $1, 'hi', $2)", [u1.id, noonAgo(2)]);
   await q("INSERT INTO reactions (listener_id, episode_id, bucket, offset_ms) VALUES ($1, 'e1', 3, 1000)", [u1.id]);
@@ -60,17 +85,15 @@ async function seed(t: TestDb) {
   await q("INSERT INTO share_events (listener_id, target_kind, target_id, feed_url) VALUES ($1, 'episode', 'e1', $2)", [u1.id, F1]);
   await q("INSERT INTO voice_posts (listener_id, blob_url, blob_path, duration_ms, bytes) VALUES ($1, 'https://b.example.com/v', 'v', 3000, 1000)", [u1.id]);
   // Recommendations: pick 4 shown / 1 played; chart 2 shown / 0 played.
-  for (let i = 0; i < 4; i++) await q("INSERT INTO rec_events (listener_id, episode_id, channel, rank, kind) VALUES ($1, 'e1', 'pick', $2, 'impression')", [u1.id, i]);
-  await q("INSERT INTO rec_events (listener_id, episode_id, channel, rank, kind) VALUES ($1, 'e1', 'pick', 0, 'play')", [u1.id]);
-  for (let i = 0; i < 2; i++) await q("INSERT INTO rec_events (listener_id, episode_id, channel, rank, kind) VALUES ($1, 'e2', 'chart', $2, 'impression')", [u1.id, i]);
-  // Safety: 2 reports (1 closed), 1 action, 1 block.
-  await q("INSERT INTO reports (target_kind, target_id, reporter_id, reason, snapshot) VALUES ('profile', $1, $2, 'spam', '{}'::jsonb)", [u2.id, u1.id]);
-  await q("INSERT INTO reports (target_kind, target_id, reporter_id, reason, snapshot, closed_at) VALUES ('profile', $1, $2, 'other', '{}'::jsonb, now())", [u1.id, u2.id]);
-  await q("INSERT INTO moderation_actions (actor_id, action, target_kind, target_id) VALUES ($1, 'suspend', 'profile', $2)", [u1.id, u2.id]);
-  await q('INSERT INTO blocks (blocker_id, blocked_id) VALUES ($1, $2)', [u1.id, u2.id]);
+  const at = new Date().toISOString();
+  await recordEvents(t.db, u1.id, [
+    ...[0, 1, 2, 3].map((rank) => ({ episodeId: 'e1', channel: 'pick' as const, rank, kind: 'impression' as const, at })),
+    { episodeId: 'e1', channel: 'pick', rank: 0, kind: 'play', at },
+    ...[0, 1].map((rank) => ({ episodeId: 'e2', channel: 'chart' as const, rank, kind: 'impression' as const, at })),
+  ]);
   // Money: 1 active purchase RM 4.90, one tip on it.
-  const [p] = await t.q<{ id: string }>("INSERT INTO purchases (listener_id, store, product_id, store_txn_id, status, amount_micros, currency) VALUES ($1, 'apple', 'tip.small', 'txn-1', 'active', 4900000, 'MYR') RETURNING id", [u1.id]);
-  await q('INSERT INTO tips (from_listener, to_feed_url, purchase_id) VALUES ($1, $2, $3)', [u1.id, F1, p!.id]);
+  const p = await seedPurchase(t, { listenerId: u1.id, store: 'apple', productId: 'tip.small', orderId: 'txn-1', status: 'active', amountMicros: 4_900_000, currency: 'MYR' });
+  await seedTip(t, { fromListener: u1.id, feedUrl: F1, purchaseId: p });
   // Creators: 1 proven claim, 1 hosted show with 2 published episodes + 1 draft, 1 team member.
   await q("INSERT INTO creator_claims (listener_id, feed_url, code, status) VALUES ($1, $2, 'code-1', 'proven')", [u1.id, F1]);
   const [s] = await t.q<{ id: string }>("INSERT INTO hosted_shows (owner_id, feed_url, title) VALUES ($1, 'https://h.example.com/feed.xml', 'Hosted') RETURNING id", [u1.id]);
@@ -144,32 +167,35 @@ test('G-AD3: a person counts once per day however often they come; a Studio sess
   // a phone route, must not count as app use (the Studio's own path never reaches listenerForToken).
   await aCall(t, 'GET', '/v1/admin/audit', owner);
   assert.equal((await t.call('GET', '/v1/me', undefined, owner.token)).status, 200);
-  const rows = await t.q<{ listener_id: string; day: string }>('SELECT listener_id, day::text AS day FROM daily_active');
-  assert.deepEqual(rows, [{ listener_id: u.id, day: dayAgo(0) }]);
+  const days = [dayAgo(1), dayAgo(0)];
+  assert.deepEqual(await dailyActiveRows(t, days), [{ listener_id: u.id, day: dayAgo(0) }]);
   // Deleting the account deletes its days (FR-015).
-  await t.q('DELETE FROM listeners WHERE id = $1', [u.id]);
-  assert.equal((await t.q('SELECT 1 FROM daily_active')).length, 0);
+  await deleteListener(t, u.id);
+  assert.equal((await dailyActiveRows(t, days)).length, 0);
   await t.close();
 });
 
 test('FR-015: a day of app use is deleted after 400 days by the hourly rebuild', async () => {
   const { t } = await adminSetup({ jobToken: JOB });
   const u = await signUp(t, 'old@example.com', 'Old');
-  await t.q('INSERT INTO daily_active (day, listener_id) VALUES ($1::date, $3), ($2::date, $3)', [dayAgo(401), dayAgo(399), u.id]);
+  await addDailyActive(t, dayAgo(401), u.id);
+  await addDailyActive(t, dayAgo(399), u.id);
   const res = await t.call('POST', '/v1/internal/rebuild', { step: 'sweep' }, undefined, { authorization: `Bearer ${JOB}` });
   assert.equal(((await res.json()) as { counts: { activeDeleted: number } }).counts.activeDeleted, 1);
-  assert.deepEqual((await t.q<{ day: string }>('SELECT day::text AS day FROM daily_active')).map((r) => r.day), [dayAgo(399)]);
+  assert.deepEqual((await dailyActiveRows(t, [dayAgo(402), dayAgo(401), dayAgo(400), dayAgo(399), dayAgo(0)])).map((r) => r.day), [dayAgo(399)]);
   await t.close();
 });
 
-test('G-AD4: one section failing leaves the other seven; a partial result is not kept', async () => {
+// On DynamoDB the money section reads lane PD's items, so DROP TABLE breaks nothing there: its G-AD4 is the fault-injection
+// guard in test/ddb-sf.test.ts. Here it runs on Postgres.
+test('G-AD4: one section failing leaves the other seven; a partial result is not kept', { skip: TEST_BACKEND === 'ddb' ? 'fault-injection version in test/ddb-sf.test.ts' : false }, async () => {
   const { t, owner } = await adminSetup();
   await t.q('DROP TABLE tips');
   const m = await metrics(t, owner);
   assert.equal(m.partial, true);
   assert.equal(m.sections.money.ok, false);
   for (const k of ['users', 'listening', 'library', 'social', 'recs', 'safety', 'creators'] as const) assert.equal(m.sections[k].ok, true, k);
-  assert.equal((await t.q("SELECT 1 FROM cache WHERE key = 'admin-metrics:7'")).length, 0, 'a partial result is dropped so Retry recounts');
+  assert.equal(await cacheKeyExists(t, 'admin-metrics:7'), false, 'a partial result is dropped so Retry recounts');
   await t.close();
 });
 
