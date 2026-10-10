@@ -16,6 +16,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
+import { backdateComments } from './sc-neutral.ts';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
 import { proveClaim, sCall, studioLogin } from './studio-harness.ts';
@@ -23,6 +24,7 @@ import type { GooglePlay } from '../src/billing/google-play.ts';
 import type { ImageStorage } from '../src/storage/image-store.ts';
 import { applyVoided, plusRun } from '../src/db/repos/account/purchases.ts';
 import { createCodes } from '../src/db/repos/account/redeem.ts';
+import { sessionCount } from './ac-neutral.ts';
 
 const DAY = 86_400_000;
 const daysAway = (iso: string | null | undefined) => (Date.parse(iso ?? '') - Date.now()) / DAY;
@@ -157,7 +159,7 @@ test('G-M24-FS-2: a new sign-in email signs out every other session; this one st
   assert.equal((await t.call('GET', '/v1/me', undefined, otherToken)).status, 401, 'the other phone is signed out');
   assert.equal((await t.call('GET', '/v1/me', undefined, third)).status, 401);
   assert.equal((await t.call('GET', '/v1/me', undefined, b.token)).status, 200, 'another account keeps its session');
-  assert.equal((await t.q('SELECT 1 FROM sessions s JOIN listeners l ON l.id = s.listener_id WHERE l.email = $1', ['new@example.com'])).length, 1);
+  assert.equal(await sessionCount(t, a.id), 1, 'one session left for the account now signing in as new@example.com');
   await t.close();
 });
 
@@ -185,7 +187,7 @@ test('a comment held for review takes a picture from its author; Approve moves i
   const hold = async (body: string) => {
     // Past the 5 s floor on both tables (an approved comment counts as just posted).
     await t.q("UPDATE held_comments SET created_at = created_at - interval '10 seconds'");
-    await t.q("UPDATE comments SET created_at = created_at - interval '10 seconds'");
+    await backdateComments(t, 10_000);
     const r = await t.call('POST', `/v1/episodes/${EP}/comments`, { body }, mei.token);
     return ((await r.json()) as { held: boolean; comment: { id: string } }).comment.id;
   };

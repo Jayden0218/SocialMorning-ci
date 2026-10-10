@@ -8,7 +8,7 @@
 # No AWS account and no AWS secret are involved: the client sends fixed dummy keys to localhost only
 # (src/db/ddb/client.ts refuses any other endpoint).
 #
-# For now it runs only test/ddb-*.test.ts. Each shard runs its files one at a time and counts the files that
+# It runs test/ddb-*.test.ts and the files each domain lane has converted (DDB_FILES). Each shard runs its files one at a time and counts the files that
 # pass; the `ratchet` job adds the shards up and prints "ddb passing files: N of M". It fails when
 # N < DDB_MIN_PASSING (default: every file). On the m26 branch the head sets the minimum to the last recorded
 # count (plan.md: the count may never go down at a merge).
@@ -20,7 +20,24 @@ concurrency:
   group: ddb-api-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 env:
-  DDB_FILES: 'test/ddb-*.test.ts'
+  # Each domain lane appends its converted files (tasks.md); they run hybrid: that lane on DynamoDB Local,
+  # every lane not moved yet on PGlite (src/db/backend.ts). LB: catalog/library. AC: account. SC: social content. SG: social graph.
+  DDB_FILES: >-
+    test/ddb-*.test.ts
+    test/cache.test.ts test/episodes.test.ts test/episodes-route.test.ts test/feed.test.ts test/feed-catalog.test.ts
+    test/library.test.ts test/listened.test.ts test/listening-m21.test.ts test/positions.test.ts test/subscriptions.test.ts
+    test/m22-history.test.ts test/m23-feeds.test.ts test/apple-catalog.test.ts test/auto-cover.test.ts test/share-card.test.ts
+    test/tint.test.ts test/m20-quote-card.test.ts
+    test/auth.test.ts test/country.test.ts test/delete-account.test.ts test/email-code.test.ts test/feedback.test.ts
+    test/m22-deletion.test.ts test/m22-digest.test.ts test/m22-push.test.ts test/m22-queue.test.ts test/m23-security.test.ts
+    test/m24-account.test.ts test/m24-fixes.test.ts test/m25-sb.test.ts test/m25-security.test.ts test/password.test.ts
+    test/push.test.ts test/notify-shows.test.ts
+    test/chat.test.ts test/clips.test.ts test/clip-page.test.ts test/comment-counts.test.ts test/comment-likes.test.ts
+    test/comments.test.ts test/comments-m21.test.ts test/like-posts.test.ts test/m19-comments.test.ts test/m19-likes.test.ts
+    test/m19-voice-comments.test.ts test/m20-comment-image.test.ts test/m20-voice-text.test.ts test/m22-status.test.ts
+    test/reactions.test.ts test/voice-posts.test.ts test/social.test.ts
+    test/follows.test.ts test/friends-listening.test.ts test/live-listeners.test.ts test/m19-playlists.test.ts test/m19-profile.test.ts
+    test/notifications-m21.test.ts test/profile-m21.test.ts test/profiles.test.ts
 jobs:
   ddb:
     runs-on: ubuntu-latest

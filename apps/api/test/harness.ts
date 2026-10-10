@@ -225,7 +225,9 @@ export async function freshDb(allOpts: { ownerListenerId?: string; appealsEmail?
   // Test listeners have accepted them, so every older test keeps its meaning; the rules tests
   // (comments-m21.test.ts) set rules_accepted_at back to NULL for the listener they test.
   await pg.exec('ALTER TABLE listeners ALTER COLUMN rules_accepted_at SET DEFAULT now()');
-  const db = dbOf(pg);
+  // M26 lane AC: with TEST_BACKEND=ddb the app runs hybrid — converted lanes on DynamoDB, the rest on PGlite.
+  const hy = await hybridDb(dbOf(pg));
+  const db = hy.db;
   const mail: Mail[] = [];
   const mailer: Mailer | undefined = noMailer ? undefined : { send: async (m) => { mail.push(m); } };
   let app = createApp({ db, pepper: TEST_PEPPER, appealsEmail: TEST_APPEALS, ...(mailer ? { mailer } : {}), ...opts });
@@ -243,8 +245,8 @@ export async function freshDb(allOpts: { ownerListenerId?: string; appealsEmail?
     },
     setOwner: (id) => { app = createApp({ db, pepper: TEST_PEPPER, appealsEmail: TEST_APPEALS, ...(mailer ? { mailer } : {}), ...opts, ownerListenerId: id }); t.app = app; },
     q: async <T,>(s: string, params?: unknown[]) => (await pg.query<T>(s, params)).rows,
-    call: async (method, path, body, token, headers = {}) =>
-      app.request(path, {
+    call: async (method, path, body, token, headers = {}) => {
+      const res = await app.request(path, {
         method,
         headers: {
           ...(body !== undefined ? { 'content-type': 'application/json' } : {}),
@@ -252,14 +254,17 @@ export async function freshDb(allOpts: { ownerListenerId?: string; appealsEmail?
           ...headers,
         },
         body: body !== undefined ? JSON.stringify(body) : undefined,
-      }),
+      });
+      await hy.drain(); // M26: the outbox runs after each request on DynamoDB (a no-op on Postgres)
+      return res;
+    },
     // M21 (gate 37444486891, debug run 37447600552): in admin-discover's renamed-table test,
     // PGlite's close() sometimes never settled after a correct 200 answer, with no query open;
     // with query tracing on it closed at once. A close that has not settled in 5 s is left to
     // the process exit instead of hanging the whole file.
-    close: () => Promise.race([pg.close(), new Promise<void>((r) => { setTimeout(r, 5_000).unref(); })]),
+    close: async () => { await hy.close(); await Promise.race([pg.close(), new Promise<void>((r) => { setTimeout(r, 5_000).unref(); })]); },
   };
-  if (TEST_BACKEND === 'ddb') await attachStore(t);
+  if (hy.store) t.store = hy.store;
   return t;
 }
 
@@ -315,11 +320,34 @@ export async function freshStore(opts: { clock?: Clock } = {}): Promise<TestStor
   };
 }
 
-async function attachStore(t: TestDb): Promise<void> {
+/**
+ * M26 lanes LB + AC — the dual backend (src/db/backend.ts, backend-ddb.ts). With TEST_BACKEND=ddb, `db` gets a fresh DynamoDB table
+ * set (`withStore`): every converted repo function then runs on DynamoDB, the rest on Postgres/PGlite. On
+ * Postgres this returns `db` unchanged. Tests that build their own app call it too (test/push.test.ts).
+ */
+export async function hybridDb(db: Db): Promise<{ db: Db; store?: Store; drain(): Promise<unknown>; close(): Promise<void> }> {
+  if (TEST_BACKEND !== 'ddb') return { db, drain: async () => undefined, close: async () => undefined };
   const s = await freshStore();
-  t.store = s.store;
-  const call = t.call;
-  t.call = async (...args) => { const res = await call(...args); await s.drain(); return res; };
-  const close = t.close;
-  t.close = async () => { await s.close(); await close(); };
+  const { withStore } = await import('../src/db/backend-ddb.ts');
+  const store = await withListenerDefaults(s.store);
+  // The outbox drains through the same (wrapped) Store the app runs on: handlers find what the app's repos remembered by it.
+  const { drainOutbox } = await import('../src/jobs/outbox.ts');
+  return { db: withStore(db, store), store, drain: () => drainOutbox(store), close: () => s.close() };
+}
+
+/**
+ * M26 lane SC: freshDb gives every Postgres test listener `rules_accepted_at DEFAULT now()` (the rules tests set it
+ * back to NULL — comments-m21.test.ts); this is the same test-only default on the DynamoDB listener item: a listener
+ * item written without `rulesAcceptedAt` gets its `createdAt`. App code never sees the difference.
+ */
+async function withListenerDefaults(store: Store): Promise<Store> {
+  const [{ PutCommand, TransactWriteCommand }, { wrapStore }] = await Promise.all([import('@aws-sdk/lib-dynamodb'), import('../src/db/ddb/store.ts')]);
+  const fill = (item: Record<string, unknown> | undefined) => {
+    if (item && item['t'] === 'listener' && item['rulesAcceptedAt'] === undefined && typeof item['createdAt'] === 'string') item['rulesAcceptedAt'] = item['createdAt'];
+  };
+  return wrapStore(store, (cmd, next) => {
+    if (cmd instanceof PutCommand) fill((cmd.input as { Item?: Record<string, unknown> }).Item);
+    if (cmd instanceof TransactWriteCommand) for (const a of (cmd.input as { TransactItems?: { Put?: { Item?: Record<string, unknown> } }[] }).TransactItems ?? []) fill(a.Put?.Item);
+    return next(cmd);
+  });
 }
