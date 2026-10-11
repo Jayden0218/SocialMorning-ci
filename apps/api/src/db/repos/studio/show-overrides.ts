@@ -4,6 +4,7 @@
  * "use what the feed says"; the feed stays the source of everything else.
  */
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 
 /** M14 US3: a contact has a type, so listeners see the right icon and the value is checked for it (FR-04). */
 export const CONTACT_TYPES = ['website', 'email', 'wechat', 'wechat_official', 'weibo', 'jike', 'xiaohongshu'] as const;
@@ -24,7 +25,7 @@ type Row = { title: string | null; description: string | null; cover_url: string
  */
 const unwrap = <T>(v: T | string | null): T | null => (typeof v === 'string' ? (JSON.parse(v) as T) : v);
 
-export async function getOverrides(db: Db, feedUrl: string): Promise<Overrides | null> {
+async function getOverridesPg(db: Db, feedUrl: string): Promise<Overrides | null> {
   const [r] = await db.query<Row>(
     'SELECT title, description, cover_url, theme_colour, milestone_message, hosts, links, updated_at, contacts, tips_enabled FROM show_overrides WHERE feed_url = $1', [feedUrl]);
   if (!r) return null;
@@ -41,7 +42,7 @@ export type OverridesIn = {
 };
 
 /** Upsert the given fields; a field left out keeps its value, `null` clears it back to the feed's. */
-export async function putOverrides(db: Db, feedUrl: string, by: string, o: OverridesIn): Promise<Overrides> {
+async function putOverridesPg(db: Db, feedUrl: string, by: string, o: OverridesIn): Promise<Overrides> {
   const cur = await getOverrides(db, feedUrl);
   const pick = <K extends keyof OverridesIn>(k: K, curV: unknown) => (k in o ? (o[k] ?? null) : curV ?? null);
   const next = {
@@ -61,3 +62,7 @@ export async function putOverrides(db: Db, feedUrl: string, by: string, o: Overr
   );
   return (await getOverrides(db, feedUrl))!;
 }
+
+// M26 lane ST: each runs on Postgres, or on DynamoDB (ddb/page.ts) when the Db carries a Store (db/backend.ts).
+export const getOverrides = dual('st/page', 'getOverrides', getOverridesPg);
+export const putOverrides = dual('st/page', 'putOverrides', putOverridesPg);

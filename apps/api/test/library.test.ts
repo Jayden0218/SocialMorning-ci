@@ -8,6 +8,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
+import { backdateComments } from './sc-neutral.ts';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
 
@@ -71,11 +72,16 @@ test('My comments: your own top-level comments with their text; a deleted one ha
   const a = await signUp(t, 'a@example.com', 'Alex');
   const b = await signUp(t, 'b@example.com', 'Bo');
   const c1 = (await (await t.call('POST', `/v1/episodes/${EP}/comments`, { body: 'loved this', offsetMs: 61_000 }, a.token)).json() as { comment: { id: string } }).comment;
-  await t.q("UPDATE comments SET created_at = created_at - interval '10 seconds'");
+  await backdateComments(t, 10_000);
   const c2 = (await (await t.call('POST', `/v1/episodes/${EP}/comments`, { body: 'second', offsetMs: 5_000 }, a.token)).json() as { comment: { id: string } }).comment;
-  await t.q("UPDATE comments SET created_at = created_at - interval '10 seconds'");
+  await backdateComments(t, 10_000);
   await t.call('POST', `/v1/episodes/${EP}/comments`, { body: 'not hers' }, b.token);
   await t.q('UPDATE comments SET deleted_at = now() WHERE id = $1', [c2.id]);
+  if (t.store) { // M26 lane LE: "My comments" reads lane SC's items on DynamoDB — the same mark on the item
+    const [{ commentItemById }, { update }] = await Promise.all([import('../src/db/repos/social/ddb/sc-common.ts'), import('../src/db/ddb/store.ts')]);
+    const it = (await commentItemById(t.store, c2.id))!;
+    await update(t.store, 'main', { PK: String(it['PK']), SK: String(it['SK']) }, { update: 'SET deletedAt = :d', values: { ':d': new Date().toISOString() } });
+  }
   const mine = (await (await t.call('GET', '/v1/me/comments', undefined, a.token)).json()) as { items: { id: string; body: string | null; deleted: boolean; offsetMs: number | null; episode: { title: string } }[] };
   assert.deepEqual(mine.items.map((i) => i.id).sort(), [c1.id, c2.id].sort());
   const first = mine.items.find((i) => i.id === c1.id);

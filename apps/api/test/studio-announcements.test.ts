@@ -13,6 +13,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 import { addEpisode, proveClaim, sCall, studioLogin } from './studio-harness.ts';
+import { saveToken, setPrefs } from '../src/db/repos/account/push.ts';
+import * as S from './st-neutral.ts';
 
 const FEED = 'https://feeds.example.com/mine.xml';
 
@@ -36,9 +38,9 @@ async function setup(withPush = true) {
   const sub = await signUp(t, 's@example.com', 'Sub');
   const quiet = await signUp(t, 'q@example.com', 'Quiet');
   const stranger = await signUp(t, 'x@example.com', 'Stranger');
-  for (const l of [sub, quiet]) await t.q('INSERT INTO subscriptions (listener_id, feed_url) VALUES ($1, $2)', [l.id, FEED]);
-  await t.q("INSERT INTO push_tokens (token, listener_id, platform) VALUES ('ExponentPushToken[sub]', $1, 'ios'), ('ExponentPushToken[quiet]', $2, 'android'), ('ExponentPushToken[x]', $3, 'ios')", [sub.id, quiet.id, stranger.id]);
-  await t.q('INSERT INTO push_prefs (listener_id, new_episodes) VALUES ($1, false)', [quiet.id]);
+  for (const l of [sub, quiet]) await S.seedSubscription(t, { listenerId: l.id, feedUrl: FEED });
+  await saveToken(t.db, sub.id, 'ExponentPushToken[sub]', 'ios'); await saveToken(t.db, quiet.id, 'ExponentPushToken[quiet]', 'android'); await saveToken(t.db, stranger.id, 'ExponentPushToken[x]', 'ios');
+  await setPrefs(t.db, quiet.id, { newEpisodes: false });
   return { t, expo, owner, key, sub, quiet, stranger };
 }
 
@@ -63,7 +65,7 @@ test('G-N2: two announcements push to subscribers who allow it; the third in a m
 
 test('G-N2: an edit changes the text and sends nothing; last month\'s pushes do not count', async () => {
   const { t, expo, owner, key } = await setup();
-  await t.q("INSERT INTO announcements (feed_url, body, created_at, pushed_at) VALUES ($1, 'old', now() - interval '40 days', now() - interval '40 days'), ($1, 'old2', now() - interval '40 days', now() - interval '40 days')", [FEED]);
+  for (const body of ['old', 'old2']) await S.seedAnnouncement(t, FEED, { body, createdAgoMs: 40 * 86_400_000, pushedAgoMs: 40 * 86_400_000 });
   const r = await post(t, owner, key, 'First draft');
   assert.equal(r.status, 201);
   const id = ((await r.json()) as { announcement: { id: string } }).announcement.id;
@@ -118,6 +120,6 @@ test('FR-011: a share event is stored for the show, signed in or not', async () 
   assert.equal((await t.call('POST', '/v1/shares', { targetKind: 'episode', targetId: 'E1', feedUrl: FEED }, sub.token)).status, 204);
   assert.equal((await t.call('POST', '/v1/shares', { targetKind: 'show', targetId: FEED, feedUrl: FEED })).status, 204);
   assert.equal((await t.call('POST', '/v1/shares', { targetKind: 'nope', targetId: 'x', feedUrl: FEED })).status, 422);
-  assert.equal((await t.q('SELECT count(*)::int AS n FROM share_events WHERE feed_url = $1', [FEED]))[0]!.n, 2);
+  assert.equal(await S.shareCount(t, FEED), 2);
   await t.close();
 });

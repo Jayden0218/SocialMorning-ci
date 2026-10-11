@@ -5,7 +5,8 @@ import type { Db } from '../../db.ts';
 import { ApiError } from '../../../errors.ts';
 import { blockedIdsFor } from '../safety/blocks.ts';
 import { hiddenFor } from '../safety/reports.ts';
-import { initialsOf, likesOnEpisode } from './comment-likes.ts';
+import { initialsOf, likesOnEpisode, type LikeState } from './comment-likes.ts';
+import { dual } from '../../backend.ts';
 import { mutedIdsFor } from './mutes.ts';
 import { notifyForComment } from './notifications.ts';
 import { heldForAuthor } from '../studio/comment-policy.ts';
@@ -142,7 +143,7 @@ export function toPublic(r: CommentRow, viewerId?: string): PublicComment {
   };
 }
 
-export async function createComment(
+async function createCommentPg(
   db: Db,
   c: { episodeId: string; authorId: string; body: string | null; offsetMs?: number; parentId?: string; voice?: { url: string; path: string; ms: number; transcript?: string }; /** M21 US6: from countryOf() */ country?: string },
 ): Promise<CommentRow> {
@@ -169,7 +170,7 @@ export async function createComment(
   return (await db.query<CommentRow>(`${SELECT} WHERE c.id = $1`, [row!.id]))[0]!;
 }
 
-export async function getComment(db: Db, id: string): Promise<CommentRow | undefined> {
+async function getCommentPg(db: Db, id: string): Promise<CommentRow | undefined> {
   return (await db.query<CommentRow>(`${SELECT} WHERE c.id = $1`, [id]))[0];
 }
 
@@ -180,7 +181,7 @@ export async function getComment(db: Db, id: string): Promise<CommentRow | undef
  * has replies, in one statement (an account with thousands of comments is one UPDATE, not
  * thousands). Blobs are removed by the caller first (finishDeletion) or by the sweeps.
  */
-export async function placeholderComments(db: Db, by: { id: string } | { authorId: string }): Promise<{ id: string; episode_id: string }[]> {
+async function placeholderCommentsPg(db: Db, by: { id: string } | { authorId: string }): Promise<{ id: string; episode_id: string }[]> {
   const set = `body = NULL, author_id = NULL, offset_ms = NULL, voice_url = NULL, voice_path = NULL, voice_ms = NULL, transcript = NULL,
                image_url = NULL, image_path = NULL, image_w = NULL, image_h = NULL, image_bytes = NULL, country = NULL, deleted_at = now()`;
   if ('id' in by) return db.query(`UPDATE comments SET ${set} WHERE id = $1 RETURNING id, episode_id`, [by.id]);
@@ -197,7 +198,7 @@ export async function placeholderComments(db: Db, by: { id: string } | { authorI
  * deleted_at set) so the replies keep their context; one without is removed.
  * Returns whether a placeholder was left, and the episode (for the heat rebuild).
  */
-export async function deleteComment(db: Db, id: string): Promise<{ placeholder: boolean; episodeId: string }> {
+async function deleteCommentPg(db: Db, id: string): Promise<{ placeholder: boolean; episodeId: string }> {
   const row = (await db.query<{ episode_id: string; replies: number }>(
     'SELECT episode_id, (SELECT count(*)::int FROM comments r WHERE r.parent_id = c.id) AS replies FROM comments c WHERE c.id = $1',
     [id],
@@ -216,8 +217,24 @@ export async function deleteComment(db: Db, id: string): Promise<{ placeholder: 
  * Top-level newest first (M21 US6: `dir: 'asc'` turns that to oldest first), each with its replies
  * oldest first (contracts/api.md).
  */
-export async function listComments(db: Db, episodeId: string, viewerId?: string, opts: { dir?: 'asc' | 'desc' } = {}): Promise<PublicComment[]> {
+async function listCommentsPg(db: Db, episodeId: string, viewerId?: string, opts: { dir?: 'asc' | 'desc' } = {}): Promise<PublicComment[]> {
   const fetchedAll = await db.query<CommentRow>(`${SELECT} WHERE c.episode_id = $1 ORDER BY c.created_at ASC`, [episodeId]);
+  // M12 (FR-023): like counts in one grouped read.
+  const likes = await likesOnEpisode(db, episodeId, viewerId);
+  // M19 US5: which comments 5 or more listeners marked unfriendly (counts only, never who).
+  const folded = await foldedOnEpisode(db, episodeId);
+  return buildThreads(db, fetchedAll, episodeId, viewerId, opts, likes, folded);
+}
+
+/**
+ * The episode's comments (oldest first, every row) shaped for one viewer: hidden accounts, mutes, blocks and
+ * reports applied, Host marks, like counts, folds, held comments, threads and the two pins. Shared by the
+ * Postgres and the DynamoDB bodies (M26 lane SC), so the answer is built by the same code on both.
+ */
+export async function buildThreads(
+  db: Db, fetchedAll: CommentRow[], episodeId: string, viewerId: string | undefined, opts: { dir?: 'asc' | 'desc' },
+  likes: Map<string, LikeState>, folded: Set<string>,
+): Promise<PublicComment[]> {
   // M22 US11 (G-M22-8): an account waiting to be deleted is hidden from everyone else — its comments
   // and the replies under them, the way a mute hides them; Keep brings them all back.
   const fetched = fetchedAll.filter((r) => r.author_hidden_at == null || (viewerId !== undefined && r.author_id === viewerId));
@@ -230,10 +247,6 @@ export async function listComments(db: Db, episodeId: string, viewerId?: string,
   const top: PublicComment[] = [];
   // M10b US8 + M14: the show's proven creator's and invited hosts' comments carry a Host mark.
   const hosts = new Set(await hostsOfEpisode(db, episodeId));
-  // M12 (FR-023): like counts in one grouped read.
-  const likes = await likesOnEpisode(db, episodeId, viewerId);
-  // M19 US5: which comments 5 or more listeners marked unfriendly (counts only, never who).
-  const folded = await foldedOnEpisode(db, episodeId);
   for (const r of rows) {
     const plain = toPublic(r, viewerId);
     const l = likes.get(r.id);
@@ -288,7 +301,7 @@ async function filterForViewer(db: Db, rows: CommentRow[], viewerId: string): Pr
  * M21 US6 (G-M21-7): a comment — text or voice — waits until its author accepted the community
  * rules (`POST /v1/me/rules`). The phone shows the rules on this 428 and resends after Accept.
  */
-export async function requireRulesAccepted(db: Db, listenerId: string): Promise<void> {
+async function requireRulesAcceptedPg(db: Db, listenerId: string): Promise<void> {
   const [r] = await db.query<{ rules_accepted_at: Date | string | null }>('SELECT rules_accepted_at FROM listeners WHERE id = $1', [listenerId]);
   if (!r || r.rules_accepted_at === null) throw new ApiError('rules_required', 'Please read and accept the community rules before your first comment.');
 }
@@ -297,7 +310,7 @@ export async function requireRulesAccepted(db: Db, listenerId: string): Promise<
 export const UNFRIENDLY_FOLD_AT = 5;
 
 /** The ids on this episode that reached the fold — the voters are never read. */
-export async function foldedOnEpisode(db: Db, episodeId: string): Promise<Set<string>> {
+async function foldedOnEpisodePg(db: Db, episodeId: string): Promise<Set<string>> {
   const rows = await db.query<{ comment_id: string }>(
     `SELECT u.comment_id FROM comment_unfriendly u JOIN comments c ON c.id = u.comment_id
      WHERE c.episode_id = $1 GROUP BY u.comment_id HAVING count(*) >= $2`,
@@ -305,3 +318,30 @@ export async function foldedOnEpisode(db: Db, episodeId: string): Promise<Set<st
   );
   return new Set(rows.map((r) => r.comment_id));
 }
+
+/** M26 lane SC: the moderation take-down (lane SF's act) and its undo (appeals) — one place, so both backends stay in step. */
+async function setCommentRemovedPg(db: Db, id: string, removed: boolean): Promise<boolean> {
+  const rows = removed
+    ? await db.query('UPDATE comments SET removed_at = now() WHERE id = $1 AND removed_at IS NULL RETURNING id', [id])
+    : await db.query('UPDATE comments SET removed_at = NULL WHERE id = $1 AND removed_at IS NOT NULL RETURNING id', [id]);
+  return rows.length > 0;
+}
+
+/** M26 lane SC: the host's hide in the Studio (lane ST) and its undo; `by` = the host, null = show again. */
+async function setCommentHostHiddenPg(db: Db, id: string, by: string | null): Promise<boolean> {
+  const rows = by !== null
+    ? await db.query('UPDATE comments SET host_hidden_at = now(), host_hidden_by = $2 WHERE id = $1 AND host_hidden_at IS NULL RETURNING id', [id, by])
+    : await db.query('UPDATE comments SET host_hidden_at = NULL, host_hidden_by = NULL WHERE id = $1 AND host_hidden_at IS NOT NULL RETURNING id', [id]);
+  return rows.length > 0;
+}
+
+// M26 lane SC: each function runs on Postgres, or on DynamoDB (`ddb/comments.ts`) when the Db carries a Store (db/backend.ts).
+export const createComment = dual('sc/comments', 'createComment', createCommentPg);
+export const getComment = dual('sc/comments', 'getComment', getCommentPg);
+export const placeholderComments = dual('sc/comments', 'placeholderComments', placeholderCommentsPg);
+export const deleteComment = dual('sc/comments', 'deleteComment', deleteCommentPg);
+export const listComments = dual('sc/comments', 'listComments', listCommentsPg);
+export const requireRulesAccepted = dual('sc/comments', 'requireRulesAccepted', requireRulesAcceptedPg);
+export const foldedOnEpisode = dual('sc/comments', 'foldedOnEpisode', foldedOnEpisodePg);
+export const setCommentRemoved = dual('sc/comments', 'setCommentRemoved', setCommentRemovedPg);
+export const setCommentHostHidden = dual('sc/comments', 'setCommentHostHidden', setCommentHostHiddenPg);

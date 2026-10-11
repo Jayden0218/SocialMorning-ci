@@ -7,6 +7,7 @@
  * store's fee; a purchase the store gave no amount for counts, with no amount.
  */
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 import { toCsv } from './studio-numbers.ts';
 
 export type EarningKind = 'sale' | 'gift' | 'tip';
@@ -17,7 +18,7 @@ export type EarningMonth = { month: string; sale: Bucket; gift: Bucket; tip: Buc
 const empty = (): Bucket => ({ count: 0, refunded: 0, totalMicrosByCurrency: {}, refundedMicrosByCurrency: {} });
 
 /** Every money row for the show, newest first. M25 SB: a test purchase (licence tester) is never earnings. */
-export async function earningRows(db: Db, feedUrl: string, limit = 5000): Promise<EarningRow[]> {
+async function earningRowsPg(db: Db, feedUrl: string, limit = 5000): Promise<EarningRow[]> {
   const rows = await db.query<{ kind: EarningKind; created_at: Date | string; amount_micros: string | number | null; currency: string | null; status: string }>(
     `SELECT * FROM (
        SELECT 'sale' AS kind, p.created_at, p.amount_micros, p.currency, p.status
@@ -53,7 +54,7 @@ export function byMonth(rows: EarningRow[]): EarningMonth[] {
   return [...months.values()].sort((a, b) => b.month.localeCompare(a.month));
 }
 
-export async function earnings(db: Db, feedUrl: string): Promise<{ months: EarningMonth[]; items: EarningRow[] }> {
+async function earningsPg(db: Db, feedUrl: string): Promise<{ months: EarningMonth[]; items: EarningRow[] }> {
   const rows = await earningRows(db, feedUrl);
   return { months: byMonth(rows), items: rows.slice(0, 200) };
 }
@@ -65,3 +66,7 @@ export async function earningsCsv(db: Db, feedUrl: string): Promise<string> {
   return toCsv(['Date', 'Type', 'Amount', 'Currency', 'Refunded'],
     rows.map((r) => [r.at.slice(0, 10), LABEL[r.kind], r.amountMicros === null ? null : r.amountMicros / 1_000_000, r.currency, r.refunded ? 'yes' : 'no']));
 }
+
+// M26 lane ST: each runs on Postgres, or on DynamoDB (src/db/repos/studio/ddb/) when the Db carries a Store (db/backend.ts).
+export const earningRows = dual('st/numbers', 'earningRows', earningRowsPg);
+export const earnings = dual('st/numbers', 'earnings', earningsPg);

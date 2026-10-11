@@ -8,6 +8,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { freshDb, signUp } from './harness.ts';
+import { queueStored } from './ac-neutral.ts';
 
 type Q = { items: string[]; version: number; deviceId: string | null; updatedAt: string | null };
 
@@ -60,7 +61,7 @@ test('G-M22-3: a stale baseVersion → 409 with the account list; nothing is ove
   // With no row yet, only base 0 is accepted.
   const c = await signUp(t, 'c@example.com', 'Cal');
   assert.equal((await t.call('PUT', '/v1/me/queue', { items: ['x'], baseVersion: 3, deviceId: 'p' }, c.token)).status, 409);
-  assert.deepEqual(await t.q('SELECT count(*)::int AS n FROM queues WHERE listener_id = $1', [c.id]), [{ n: 0 }]);
+  assert.equal(await queueStored(t, c.id), false);
   await t.close();
 });
 

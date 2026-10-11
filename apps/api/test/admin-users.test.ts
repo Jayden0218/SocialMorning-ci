@@ -13,6 +13,8 @@ import { fnv1a64 } from '@socialmorning/social-core';
 import { aCall, adminSetup, auditRows } from './admin-harness.ts';
 import { putEpisode } from './put-episode.ts';
 import { signUp } from './harness.ts';
+import { actionRows, auditFull } from './sf-neutral.ts';
+import { commentRemovedCount } from './nb-h3-neutral.ts';
 
 test('G-U1: suspend and restore in Admin are moderation actions (/mod lists them), and the account is refused exactly as /mod would', async () => {
   const { t, owner } = await adminSetup();
@@ -23,7 +25,7 @@ test('G-U1: suspend and restore in Admin are moderation actions (/mod lists them
   assert.equal(((await (await aCall(t, 'GET', '/v1/admin/users?q=user@exa', owner)).json()) as { items: unknown[] }).items.length, 1, 'by email too');
 
   assert.equal((await aCall(t, 'POST', `/v1/admin/users/${u.id}/suspend`, owner)).status, 200);
-  const acts = await t.q<{ action: string; target_kind: string; target_id: string; actor_id: string }>('SELECT action, target_kind, target_id, actor_id FROM moderation_actions ORDER BY created_at');
+  const acts = await actionRows(t);
   assert.deepEqual(acts, [{ action: 'suspend', target_kind: 'profile', target_id: u.id, actor_id: owner.id }]);
   const refused = await t.call('GET', '/v1/me', undefined, u.token);
   assert.equal(refused.status, 403);
@@ -61,7 +63,7 @@ test('reports: the queue in Admin is /mod\'s queue; acting on an item closes it 
   assert.equal(((await (await aCall(t, 'GET', '/v1/admin/reports?state=open', owner)).json()) as { items: unknown[] }).items.length, 0);
   const closed = (await (await aCall(t, 'GET', '/v1/admin/reports?state=closed', owner)).json()) as { items: { targetId: string; closeReason: string }[] };
   assert.deepEqual(closed.items.map((i) => [i.targetId, i.closeReason]), [[commentId, 'remove']]);
-  assert.equal((await t.q('SELECT 1 FROM comments WHERE id = $1 AND removed_at IS NOT NULL', [commentId])).length, 1);
+  assert.equal(await commentRemovedCount(t, commentId, true), 1); // M26 lane NB: neutral (the item with the bridge off)
   assert.deepEqual((await auditRows(t)).map((x) => [x.area, x.action, x.target]), [['reports', 'remove', `comment:${commentId}`]]);
   await t.close();
 });
@@ -72,7 +74,7 @@ test('rename a listener whose display name breaks the rules; recorded with befor
   const res = await aCall(t, 'PATCH', `/v1/admin/users/${u.id}`, owner, { displayName: 'Listener' });
   assert.equal(res.status, 200);
   assert.equal(((await res.json()) as { user: { displayName: string } }).user.displayName, 'Listener');
-  const [row] = await t.q<{ before: { displayName: string }; after: { displayName: string } }>('SELECT before, after FROM admin_audit');
+  const [row] = (await auditFull(t)) as unknown as { before: { displayName: string }; after: { displayName: string } }[];
   assert.deepEqual([row!.before.displayName, row!.after.displayName], ['Bad Name', 'Listener']);
   await t.close();
 });
