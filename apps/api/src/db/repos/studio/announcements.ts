@@ -5,6 +5,7 @@
  * creator is never surprised (guard G-N2). An edit changes the text and never pushes again.
  */
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 import { ApiError } from '../../../errors.ts';
 import { sendExpo, type PushMessage } from '../account/push.ts';
 
@@ -36,7 +37,7 @@ async function pushedThisMonth(db: Db, feedUrl: string): Promise<number> {
   return Number(r?.n ?? 0);
 }
 
-export async function listAnnouncements(db: Db, feedUrl: string, limit = 50) {
+async function listAnnouncementsPg(db: Db, feedUrl: string, limit = 50) {
   const rows = await db.query<Row>(
     `SELECT ${COLS} FROM announcements WHERE feed_url = $1 AND deleted_at IS NULL ORDER BY created_at DESC LIMIT $2`,
     [feedUrl, limit],
@@ -45,7 +46,7 @@ export async function listAnnouncements(db: Db, feedUrl: string, limit = 50) {
 }
 
 /** Publish and push, or refuse over the monthly limit. The count and the insert share one transaction. */
-export async function publish(db: Db, f: typeof fetch, feedUrl: string, showTitle: string | null, authorId: string, body: string, extra: { images?: string[]; releaseAt?: string } = {}): Promise<{ announcement: Announcement; pushed: { devices: number } }> {
+async function publishPg(db: Db, f: typeof fetch, feedUrl: string, showTitle: string | null, authorId: string, body: string, extra: { images?: string[]; releaseAt?: string } = {}): Promise<{ announcement: Announcement; pushed: { devices: number } }> {
   const images = JSON.stringify(extra.images ?? []);
   // M19 US12: a scheduled announcement is saved now and shown from its time; it is not pushed and does not use a push.
   if (extra.releaseAt && new Date(extra.releaseAt).getTime() > Date.now()) {
@@ -89,7 +90,7 @@ export async function publish(db: Db, f: typeof fetch, feedUrl: string, showTitl
   return { announcement: toA(created.row), pushed: { devices } };
 }
 
-export async function edit(db: Db, feedUrl: string, id: string, body: string, extra: { images?: string[]; releaseAt?: string } = {}): Promise<Announcement> {
+async function editPg(db: Db, feedUrl: string, id: string, body: string, extra: { images?: string[]; releaseAt?: string } = {}): Promise<Announcement> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) throw new ApiError('not_found', 'No such announcement.');
   // M19 US12: pictures may change; a release time may move only while the announcement is still waiting.
   const [r] = await db.query<Row>(
@@ -103,7 +104,13 @@ export async function edit(db: Db, feedUrl: string, id: string, body: string, ex
   return toA(r);
 }
 
-export async function remove(db: Db, feedUrl: string, id: string): Promise<void> {
+async function removePg(db: Db, feedUrl: string, id: string): Promise<void> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return;
   await db.query('UPDATE announcements SET deleted_at = now() WHERE id = $1 AND feed_url = $2', [id, feedUrl]);
 }
+
+// M26 lane ST: each runs on Postgres, or on DynamoDB (src/db/repos/studio/ddb/) when the Db carries a Store (db/backend.ts).
+export const listAnnouncements = dual('st/announce', 'listAnnouncements', listAnnouncementsPg);
+export const publish = dual('st/announce', 'publish', publishPg);
+export const edit = dual('st/announce', 'edit', editPg);
+export const remove = dual('st/announce', 'remove', removePg);

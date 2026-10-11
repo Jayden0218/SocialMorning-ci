@@ -9,14 +9,14 @@ import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 import { buildForYou, contextFor } from '../src/db/repos/discover/foryou.ts';
+import { seedEpisode } from './dv-neutral.ts';
 
 const SHOW = 'https://feeds.example.com/a.xml';
 const emptyDiscover = async () => ({ picks: [], talkedAbout: [], trending: [] });
 
 async function episode(t: TestDb, guid: string) {
-  const id = fnv1a64(`${SHOW}\u0001${guid}`);
-  await t.q(`INSERT INTO episodes (id, feed_url, guid, title, enclosure_url, published_at, genre_id) VALUES ($1, $2, $3, $4, $5, now(), 1318)`, [id, SHOW, guid, `Ep ${guid}`, `https://cdn/${guid}.mp3`]);
-  return id;
+  // M26: registered through lane LB's dual upsertEpisode (both backends).
+  return seedEpisode(t, { id: fnv1a64(`${SHOW}\u0001${guid}`), feedUrl: SHOW, guid, title: `Ep ${guid}`, enclosureUrl: `https://cdn/${guid}.mp3`, publishedAt: new Date().toISOString(), genreId: 1318 });
 }
 
 test('G-M19-2: a dismissed episode, then a dismissed show, leave For You; restore brings them back', async () => {

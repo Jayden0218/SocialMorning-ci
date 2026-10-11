@@ -13,6 +13,9 @@ import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 import { likers, rebuildSimilarity } from '../src/db/repos/discover/similarity.ts';
 import { contextFor, buildForYou } from '../src/db/repos/discover/foryou.ts';
+import { follow } from '../src/db/repos/social/follows.ts';
+import { seedEpisode, seedListen, similarityRows } from './dv-neutral.ts';
+import { hideFeeds } from './sf-neutral.ts';
 
 const SHOW_A = 'https://feeds.example.com/a.xml';
 const SHOW_B = 'https://feeds.example.com/b.xml';
@@ -21,13 +24,8 @@ const SHOW_C = 'https://feeds.example.com/c.xml';
 const idOf = (feed: string, guid: string) => fnv1a64(`${feed}\u0001${guid}`);
 
 async function episode(t: TestDb, feed: string, guid: string, title: string, publishedAt = '2026-09-24T10:00:00Z') {
-  const id = idOf(feed, guid);
-  await t.q(
-    `INSERT INTO episodes (id, feed_url, guid, title, enclosure_url, published_at, genre_id)
-     VALUES ($1, $2, $3, $4, $5, $6, 1318) ON CONFLICT (id) DO NOTHING`,
-    [id, feed, guid, title, `https://cdn/${guid}.mp3`, publishedAt],
-  );
-  return id;
+  // M26: registered through lane LB's dual upsertEpisode (both backends).
+  return seedEpisode(t, { id: idOf(feed, guid), feedUrl: feed, guid, title, enclosureUrl: `https://cdn/${guid}.mp3`, publishedAt, genreId: 1318 });
 }
 
 const emptyDiscover = async () => ({ picks: [], talkedAbout: [], trending: [] });
@@ -38,8 +36,8 @@ test('A11: a blocked listener\'s activity never reaches For You, in items or in 
   const b = await signUp(t, 'b@example.com', 'Bo');
   const ep = await episode(t, SHOW_B, 'b1', "Bo's episode");
 
-  await t.q("INSERT INTO follows (follower_id, followed_id) VALUES ($1, $2)", [a.id, b.id]);
-  await t.q("INSERT INTO activity (actor_id, kind, episode_id, day) VALUES ($1, 'listened', $2, '2026-09-24')", [b.id, ep]);
+  await follow(t.db, a.id, b.id);
+  await seedListen(t, b.id, ep, { day: '2026-09-24' });
 
   const before = await buildForYou(t.db, await contextFor(t.db, a.id), emptyDiscover, Date.now());
   assert.ok(before.items.some((i) => i.episode.id === ep), 'the social channel found it while B was visible');
@@ -63,10 +61,8 @@ test('A11: an episode of a moderation-hidden show never appears, for anyone', as
 
   // Hiding goes through a moderation action, exactly as /mod does it — the table has an
   // FK to it, which is what makes "who hid this and when" answerable.
-  const [action] = await t.q<{ id: string }>(
-    "INSERT INTO moderation_actions (actor_id, action, target_kind, target_id) VALUES ($1, 'hide_show', 'show', $2) RETURNING id",
-    [a.id, SHOW_A]);
-  await t.q("INSERT INTO hidden_feeds (feed_url, action_id) VALUES ($1, $2)", [SHOW_A, action!.id]);
+  // M26: the moderation action + hidden_feeds row through act() (test/sf-neutral.ts), on both backends.
+  await hideFeeds(t, a.id, [SHOW_A]);
 
   const after = await buildForYou(t.db, await contextFor(t.db, a.id), emptyDiscover, Date.now());
   assert.ok(!after.items.some((i) => i.episode.id === ep), 'hidden is hidden');
@@ -79,10 +75,10 @@ test('A11 + A12: private listening is invisible to others and still personal to 
   const c = await signUp(t, 'c@example.com', 'Cass');
   const ep = await episode(t, SHOW_C, 'c1', "Cass's private listen");
 
-  await t.q("INSERT INTO follows (follower_id, followed_id) VALUES ($1, $2)", [a.id, c.id]);
+  await follow(t.db, a.id, c.id);
   await t.call('PUT', '/v1/me/privacy', { privateListening: true }, c.token);
   // M4 writes `hidden` at insert time from the switch, so the row is hidden as it is made.
-  await t.q("INSERT INTO activity (actor_id, kind, episode_id, day, hidden) VALUES ($1, 'listened', $2, '2026-09-24', true)", [c.id, ep]);
+  await seedListen(t, c.id, ep, { day: '2026-09-24', hidden: true });
 
   const forA = await buildForYou(t.db, await contextFor(t.db, a.id), emptyDiscover, Date.now());
   assert.ok(!forA.items.some((i) => i.episode.id === ep), "A never sees C's private listening");
@@ -110,7 +106,7 @@ test('A16 (G-R1): a private listener cannot make two shows neighbours', async ()
   assert.deepEqual(await likers(t.db), [], 'private listeners are not in the input at all');
   const r = await rebuildSimilarity(t.db, undefined, 200);
   assert.equal(r.done, true);
-  assert.equal((await t.q('SELECT 1 FROM show_similarity')).length, 0, 'and so nothing was learned from them');
+  assert.equal((await similarityRows(t)).rows.length, 0, 'and so nothing was learned from them');
   await t.close();
 });
 
@@ -129,9 +125,10 @@ test('A15 (G-R3): show_similarity holds feed URLs and a number — no listener i
 
   const r = await rebuildSimilarity(t.db, undefined, 200);
   assert.equal(r.done, true);
-  const rows = await t.q<Record<string, unknown>>('SELECT * FROM show_similarity');
+  // M26: `raw` is every stored field (the whole DynamoDB item, keys included); `rows` the old four columns.
+  const { rows, raw } = await similarityRows(t);
   assert.ok(rows.length > 0, 'three listeners liking three shows is enough to learn something');
-  const text = JSON.stringify(rows);
+  const text = raw;
   for (const id of listeners) assert.ok(!text.includes(id), 'a listener id reached the table');
   assert.deepEqual(Object.keys(rows[0]!).sort(), ['computed_at', 'show_a', 'show_b', 'sim']);
   await t.close();

@@ -8,10 +8,11 @@
  */
 import type { Channel } from '@socialmorning/social-core';
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 
 export type RecEventIn = { episodeId: string; channel: Channel; rank: number; kind: 'impression' | 'open' | 'play' | 'finish'; at: string };
 
-export async function recordEvents(db: Db, listenerId: string, events: readonly RecEventIn[]): Promise<number> {
+async function recordEventsPg(db: Db, listenerId: string, events: readonly RecEventIn[]): Promise<number> {
   if (events.length === 0) return 0;
   await db.transaction(async (tx) => {
     for (const e of events) {
@@ -27,7 +28,7 @@ export async function recordEvents(db: Db, listenerId: string, events: readonly 
 export type ChannelRollup = { channel: string; shown: number; opened: number; played: number; finished: number };
 
 /** The 7-day table `/mod/recs` shows. Aggregates only — no listener is named. */
-export async function rollup(db: Db, days = 7): Promise<ChannelRollup[]> {
+async function rollupPg(db: Db, days = 7): Promise<ChannelRollup[]> {
   const rows = await db.query<{ channel: string; shown: string; opened: string; played: string; finished: string }>(
     `SELECT channel,
             count(*) FILTER (WHERE kind = 'impression') AS shown,
@@ -40,3 +41,7 @@ export async function rollup(db: Db, days = 7): Promise<ChannelRollup[]> {
   );
   return rows.map((r) => ({ channel: r.channel, shown: Number(r.shown), opened: Number(r.opened), played: Number(r.played), finished: Number(r.finished) }));
 }
+
+// M26 lane LB: each function runs on Postgres, or on DynamoDB (`ddb/` bodies) when the Db carries a Store (db/backend.ts).
+export const recordEvents = dual('lb/rec-events', 'recordEvents', recordEventsPg);
+export const rollup = dual('lb/rec-events', 'rollup', rollupPg);

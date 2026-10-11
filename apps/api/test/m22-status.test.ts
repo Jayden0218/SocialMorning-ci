@@ -15,6 +15,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
+import { ageStatusPhotos, countOf, expireStatuses, seedStatusReactions, voicePostIds } from './sc-neutral.ts';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
 import type { VoiceStorage } from '../src/storage/voice-blob.ts';
@@ -122,8 +123,7 @@ test('T017 (US2 scenario 5): the owner is told once when a status reaches 100 re
   const { t, a, b, c } = await setup();
   const r = await t.call('POST', '/v1/voice-posts', { body: 'Count me' }, c.token);
   const id = ((await r.json()) as { id: string }).id;
-  await t.q(`WITH l AS (INSERT INTO listeners (email, password_hash, display_name) SELECT 'f' || g || '@x', 'h', 'F' || g FROM generate_series(1, 99) g RETURNING id)
-             INSERT INTO status_reactions (post_id, listener_id, kind) SELECT $1::uuid, id, 1 FROM l`, [id]);
+  await seedStatusReactions(t, id, 99);
   assert.equal((await t.call('PUT', `/v1/voice-posts/${id}/reaction`, { kind: 2 }, a.token)).status, 204);
   assert.equal((await t.call('PUT', `/v1/voice-posts/${id}/reaction`, { kind: 2 }, b.token)).status, 204);
   const kinds = ((await (await t.call('GET', '/v1/me/notifications', undefined, c.token)).json()) as { items: { kind: string }[] }).items.map((n) => n.kind);
@@ -192,20 +192,20 @@ test('G-M22-2 (T018, T019): an expired status leaves no reply recording, photo o
   const up2 = (await (await photo(t, a.token)).json()) as { imageKey: string };
   await t.call('POST', '/v1/voice-posts', { body: 'Text with a photo', items: [{ kind: 'photo', imageKey: up2.imageKey }] }, a.token);
 
-  await t.q("UPDATE voice_posts SET expires_at = now() - interval '1 minute'");
+  await expireStatuses(t, 60_000);
   s.state.failImage = true;
   await rebuild(t);
-  assert.equal((await t.q('SELECT id FROM voice_posts')).length, 2, 'a photo that could not be deleted keeps its status for the next cycle');
+  assert.equal((await voicePostIds(t)).length, 2, 'a photo that could not be deleted keeps its status for the next cycle');
 
   s.state.failImage = false;
   assert.equal((await rebuild(t)).status, 200);
-  assert.deepEqual(await t.q('SELECT id FROM voice_posts'), []);
-  assert.deepEqual(await t.q('SELECT id FROM status_replies'), [], '0 reply rows');
-  assert.deepEqual(await t.q('SELECT post_id FROM status_reactions'), [], '0 reactions');
-  assert.deepEqual(await t.q('SELECT post_id FROM status_items'), [], '0 items');
+  assert.deepEqual(await voicePostIds(t), []);
+  assert.equal(await countOf(t, 'status_replies'), 0, '0 reply rows');
+  assert.equal(await countOf(t, 'status_reactions'), 0, '0 reactions');
+  assert.equal(await countOf(t, 'status_items'), 0, '0 items');
   for (const u of [r1.url, r2.url, post.url]) assert.ok(s.voiceRemoved.includes(u), `removed from the voice store: ${u}`);
   assert.deepEqual(s.imageRemoved.sort(), [up.imageKey, up2.imageKey].sort(), 'both photos removed from the image store');
-  assert.deepEqual(await t.q("SELECT key FROM cache WHERE key LIKE 'status-photo:%'"), [], 'the upload records are gone');
+  assert.equal(await countOf(t, 'status_photos'), 0, 'the upload records are gone');
   await t.close();
 });
 
@@ -214,7 +214,7 @@ test('T023: a photo uploaded but never posted is deleted after 2 hours', async (
   const up = (await (await photo(t, a.token)).json()) as { imageKey: string };
   await rebuild(t);
   assert.deepEqual(s.imageRemoved, [], 'a fresh upload is kept (it may be posted yet)');
-  await t.q("UPDATE cache SET fetched_at = now() - interval '3 hours' WHERE key LIKE 'status-photo:%'");
+  await ageStatusPhotos(t, 3 * 3_600_000);
   await rebuild(t);
   assert.deepEqual(s.imageRemoved, [up.imageKey]);
   await t.close();

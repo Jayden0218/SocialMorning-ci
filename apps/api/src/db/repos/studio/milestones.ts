@@ -11,6 +11,7 @@
  * The listener reads it in Notifications › From hosts (`hostNotices` unions these rows).
  */
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 
 export const MILESTONES = [100, 1000, 10000] as const;
 export const RECENT_DAYS = 7;
@@ -21,7 +22,7 @@ export function milestoneText(template: string, milestone: number): string {
 }
 
 /** Sends every milestone due now. Returns how many notices were written. */
-export async function sendMilestones(db: Db): Promise<number> {
+async function sendMilestonesPg(db: Db): Promise<number> {
   const shows = await db.query<{ feed_url: string; message: string; n: number }>(
     `SELECT o.feed_url, o.milestone_message AS message, count(s.listener_id)::int AS n
        FROM show_overrides o JOIN subscriptions s ON s.feed_url = o.feed_url AND s.deleted_at IS NULL
@@ -45,3 +46,6 @@ export async function sendMilestones(db: Db): Promise<number> {
   }
   return sent;
 }
+
+// M26 lane ST: each runs on Postgres, or on DynamoDB (src/db/repos/studio/ddb/) when the Db carries a Store (db/backend.ts).
+export const sendMilestones = dual('st/announce', 'sendMilestones', sendMilestonesPg);

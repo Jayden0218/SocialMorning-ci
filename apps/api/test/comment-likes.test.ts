@@ -7,6 +7,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
+import { countOf, setCommentFlags } from './sc-neutral.ts';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
 import { initialsOf } from '../src/db/repos/social/comment-likes.ts';
@@ -33,7 +34,7 @@ test('G-C2: liking your own comment is 403 own_comment and stores nothing', asyn
   const r = await t.call('PUT', `/v1/comments/${id}/like`, undefined, a.token);
   assert.equal(r.status, 403);
   assert.equal(((await r.json()) as { error: string }).error, 'own_comment');
-  assert.deepEqual(await t.q('SELECT count(*)::int AS n FROM comment_likes'), [{ n: 0 }]);
+  assert.equal(await countOf(t, 'comment_likes'), 0);
   await t.close();
 });
 
@@ -85,14 +86,14 @@ test('FR-023: a comment you cannot see is 404 — deleted, removed, hidden by th
   assert.equal((await t.call('PUT', `/v1/comments/${id}/like`, undefined, c.token)).status, 404);
 
   assert.equal((await t.call('PUT', `/v1/comments/${id}/like`, undefined, b.token)).status, 200);
-  await t.q('UPDATE comments SET host_hidden_at = now() WHERE id = $1', [id]);
+  await setCommentFlags(t, id, { hostHiddenBy: a.id });
   assert.equal((await t.call('PUT', `/v1/comments/${id}/like`, undefined, b.token)).status, 404);
-  await t.q('UPDATE comments SET host_hidden_at = NULL, removed_at = now() WHERE id = $1', [id]);
+  await setCommentFlags(t, id, { hostHiddenBy: null, removed: true });
   assert.equal((await t.call('PUT', `/v1/comments/${id}/like`, undefined, b.token)).status, 404);
-  await t.q('UPDATE comments SET removed_at = NULL WHERE id = $1', [id]);
+  await setCommentFlags(t, id, { removed: false });
 
   assert.equal((await t.call('DELETE', `/v1/comments/${id}`, undefined, a.token)).status, 200);
-  assert.deepEqual(await t.q('SELECT count(*)::int AS n FROM comment_likes'), [{ n: 0 }], 'cascade: the like went with the comment');
+  assert.equal(await countOf(t, 'comment_likes'), 0, 'cascade: the like went with the comment');
   await t.close();
 });
 

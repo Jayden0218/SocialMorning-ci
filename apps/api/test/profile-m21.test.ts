@@ -15,8 +15,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
+import { expireStatus, voicePostIds } from './sc-neutral.ts';
+import { like } from '../src/db/repos/social/likes.ts';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
+import { suspend } from './sg-neutral.ts';
+import { provenClaim, seedOverrides } from './st-neutral.ts';
 
 const JOB = 'job-token-not-secret';
 const rebuild = (t: TestDb) => t.call('POST', '/v1/internal/rebuild', { step: 'sweep' }, undefined, { authorization: `Bearer ${JOB}` });
@@ -40,7 +44,7 @@ test('G-M21-8: a text status is 1–140 characters, needs no voice store, shows 
   assert.equal((await t.call('POST', '/v1/voice-posts', { body: 'hi' })).status, 401);
   // 140 emoji are 140 characters (code points), the same count the column CHECKs.
   assert.equal((await text(t, a.token, { body: '🎧'.repeat(140) })).status, 201);
-  assert.equal((await t.q('SELECT 1 FROM voice_posts')).length, 1, 'nothing refused was stored');
+  assert.equal((await voicePostIds(t)).length, 1, 'nothing refused was stored');
 
   const r = await text(t, a.token, { body: '  Listening to the rain  ' });
   assert.equal(r.status, 201);
@@ -54,11 +58,11 @@ test('G-M21-8: a text status is 1–140 characters, needs no voice store, shows 
   assert.equal(seen.url, undefined, 'a text status has no audio');
   assert.equal(seen.mine, false);
 
-  await t.q("UPDATE voice_posts SET expires_at = now() - interval '1 minute' WHERE id = $1", [made.id]);
+  await expireStatus(t, made.id, 60_000);
   const res = (await (await rebuild(t)).json()) as { counts: { voiceDeleted: number } };
   assert.equal(res.counts.voiceDeleted, 1);
-  assert.deepEqual(await t.q('SELECT id FROM voice_posts WHERE id = $1', [made.id]), [], 'the row is gone, not just hidden');
-  assert.equal((await t.q('SELECT id FROM voice_posts')).length, 1, 'the live one stays');
+  assert.ok(!(await voicePostIds(t)).includes(made.id), 'the row is gone, not just hidden');
+  assert.equal((await voicePostIds(t)).length, 1, 'the live one stays');
   await t.close();
 });
 
@@ -81,12 +85,12 @@ test('FR-074: the profile names the shows they host and counts their likes (only
   const a = await signUp(t, 'a@example.com', 'Alex');
   const b = await signUp(t, 'b@example.com', 'Bea');
   const FEED = 'https://feeds.example.com/show.xml';
-  await t.q("INSERT INTO creator_claims (listener_id, feed_url, code, status, proven_at) VALUES ($1, $2, 'code-1', 'proven', now())", [a.id, FEED]);
-  await t.q("INSERT INTO show_overrides (feed_url, title) VALUES ($1, 'Rain Talk')", [FEED]);
+  await provenClaim(t, a.id, FEED);
+  await seedOverrides(t, FEED, { title: 'Rain Talk' });
   const ep = { feedUrl: FEED, guid: 'g1', title: 'Ep 1', showTitle: 'Show', enclosureUrl: 'https://cdn/1.mp3' };
   const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
   await putEpisode(t, `${EP}`, ep);
-  await t.q('INSERT INTO episode_likes (listener_id, episode_id) VALUES ($1, $2)', [a.id, EP]);
+  await like(t.db, a.id, `${EP}`, undefined); // M26 lane SC: the repo, on either backend
 
   type P = { profile: { hostOf: { feedUrl: string; title: string }[]; likesCount?: number; privateSubscriptions: boolean } };
   const p = (await (await t.call('GET', `/v1/listeners/${a.id}`, undefined, b.token)).json()) as P;
@@ -100,7 +104,7 @@ test('FR-074: the profile names the shows they host and counts their likes (only
   const own = (await (await t.call('GET', `/v1/listeners/${a.id}`, undefined, a.token)).json()) as P;
   assert.equal(own.profile.likesCount, 1, 'but are for yourself');
 
-  await t.q('UPDATE listeners SET suspended_at = now() WHERE id = $1', [a.id]);
+  await suspend(t, a.id);
   const gone = (await (await t.call('GET', `/v1/listeners/${a.id}`, undefined, b.token)).json()) as P;
   assert.deepEqual(gone.profile.hostOf, [], 'a suspended listener hosts nothing');
   await t.close();
