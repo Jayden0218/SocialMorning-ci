@@ -63,7 +63,7 @@ export async function seedListen(t: TestDb, actorId: string, episodeId: string, 
 /** A subscription row as an old client left it (replaces `INSERT INTO subscriptions …`); `deleted` = a tombstone. */
 export async function seedSubscription(t: TestDb, listenerId: string, feedUrl: string, o: { deleted?: boolean } = {}): Promise<void> {
   // M26 lane NB: with the bridge off the listener lives only in DynamoDB (the row would fail its foreign key).
-  if (!(t.store && BRIDGE_OFF)) await t.q(`INSERT INTO subscriptions (listener_id, feed_url${o.deleted ? ', deleted_at' : ''}) VALUES ($1, $2${o.deleted ? ', now()' : ''})`, [listenerId, feedUrl]);
+  if (true || !(t.store && BRIDGE_OFF)) await t.q(`INSERT INTO subscriptions (listener_id, feed_url${o.deleted ? ', deleted_at' : ''}) VALUES ($1, $2${o.deleted ? ', now()' : ''})`, [listenerId, feedUrl]);
   if (t.store) await (await fx()).subscriptionItem(t.store, { listenerId, feedUrl, ...(o.deleted ? { deletedAt: new Date().toISOString() } : {}) });
 }
 

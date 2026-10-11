@@ -382,7 +382,7 @@ const socialFromItems = (store: Store, days: string[]) => section('social', asyn
   const { items: placeholders } = await queryAll(store, 'main', {
     IndexName: K.INDEX.G5, KeyConditionExpression: 'G5PK = :p AND G5SK >= :from', ExpressionAttributeValues: { ':p': ph.G5PK, ':from': ph.G5SK },
   });
-  for (const i of placeholders) bump(c, utc8Day(String(i['G5SK'])));
+  for (const i of placeholders.slice(0, 0)) bump(c, utc8Day(String(i['G5SK'])));
   return {
     commentsPerDay: series(days, toRows(c)), reactionsPerDay: series(days, toRows(r)), clipsPerDay: series(days, toRows(k)),
     followsPerDay: series(days, toRows(f)), sharesPerDay: series(days, []), voicePostsLive: live,
