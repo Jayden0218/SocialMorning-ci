@@ -11,7 +11,11 @@ import { createApp } from '../src/app.ts';
 import { validateCollections } from '../src/catalog/collections.ts';
 import { genreName, GENRE_LIST } from '../src/catalog/genres.ts';
 import { FIXTURE_FEED } from './fake-apple.ts';
-import { dbOf, migratedPg, TEST_PEPPER, signUp, type TestDb } from './harness.ts';
+import { migratedPg, TEST_PEPPER, signUp, type TestDb } from './harness.ts';
+import { ageCacheKey, ownBackend, seedSubscription } from './dv-neutral.ts';
+import { seedComment, setCommentFlags } from './sc-neutral.ts';
+import { hideFeeds, suspendNow } from './sf-neutral.ts';
+import { deleteComment } from '../src/db/repos/social/comments.ts';
 import shippedCollections from '../collections.json' with { type: 'json' };
 import shippedPicks from '../picks.json' with { type: 'json' };
 
@@ -66,7 +70,8 @@ function fakeCatalog(chart: AppleShow[] = CHART) {
 
 async function appWith(opts: { collectionsRaw?: unknown; chart?: AppleShow[] } = {}) {
   const { pg, runner } = await migratedPg();
-  const db = dbOf(pg);
+  const be = await ownBackend(pg); // M26: Postgres, or (TEST_BACKEND=ddb) the hybrid Db
+  const db = be.db;
   const cat = fakeCatalog(opts.chart);
   const picksRaw = [{ date: '2026-09-22', feedUrl: FX, guid: 'g-new', why: 'Today\'s pick.' }];
   const collectionsRaw = opts.collectionsRaw ?? [{ id: 'start-here', title: 'Where to start', subtitle: 'Shows worth a first episode', items: [{ feedUrl: FX }, { feedUrl: FX, guid: 'g-old', why: 'The older one.' }, { feedUrl: FX, guid: 'nope' }] }];
@@ -75,10 +80,14 @@ async function appWith(opts: { collectionsRaw?: unknown; chart?: AppleShow[] } =
   const app = createApp({ db, pepper: TEST_PEPPER, catalogFetch: cat.fetch, picksRaw, collectionsRaw, today: () => '2026-09-22' });
   console.warn = orig;
   const t: TestDb = {
-    pg, db, runner, app,
+    pg, db, runner, app, ...(be.store ? { store: be.store } : {}),
     q: async <T,>(s: string, p?: unknown[]) => (await pg.query<T>(s, p)).rows,
-    call: async (method, path, body, token, headers = {}) => app.request(path, { method, headers: { ...(body !== undefined ? { 'content-type': 'application/json' } : {}), ...(token ? { authorization: `Bearer ${token}` } : {}), ...headers }, body: body !== undefined ? JSON.stringify(body) : undefined }),
-    close: () => pg.close(),
+    call: async (method, path, body, token, headers = {}) => {
+      const r = await app.request(path, { method, headers: { ...(body !== undefined ? { 'content-type': 'application/json' } : {}), ...(token ? { authorization: `Bearer ${token}` } : {}), ...headers }, body: body !== undefined ? JSON.stringify(body) : undefined });
+      await be.drain(); // M26: the outbox runs after each request on DynamoDB
+      return r;
+    },
+    close: async () => { await be.close(); await pg.close(); },
   };
   return { t, cat, warned };
 }
@@ -104,23 +113,28 @@ async function seed(t: TestDb) {
   const c = await signUp(t, 'c@example.com', NAMES[2]!);
   const d = await signUp(t, 'd@example.com', NAMES[3]!);
   // followers: FX 2 (a, b), REPLY_ALL 1 (c; d's row is a tombstone), UNKNOWN 1 (no title anywhere)
-  await t.q(`INSERT INTO subscriptions (listener_id, feed_url) VALUES ($1, $3), ($2, $3), ($4, $5), ($1, $6)`, [a.id, b.id, FX, c.id, REPLY_ALL, UNKNOWN]);
-  await t.q(`INSERT INTO subscriptions (listener_id, feed_url, deleted_at) VALUES ($1, $2, now()), ($1, $3, now())`, [d.id, REPLY_ALL, NEW_A]);
+  await seedSubscription(t, a.id, FX);
+  await seedSubscription(t, b.id, FX);
+  await seedSubscription(t, c.id, REPLY_ALL);
+  await seedSubscription(t, a.id, UNKNOWN);
+  await seedSubscription(t, d.id, REPLY_ALL, { deleted: true });
+  await seedSubscription(t, d.id, NEW_A, { deleted: true });
   // Bea listens in public; Alex in private (not counted, G2)
   await t.call('PUT', '/v1/me/privacy', { privateListening: true }, a.token);
   await t.call('PUT', '/v1/me/listened', { deviceId: 'pa', days: [{ episodeId: PICK_EP, day: '2026-09-22', ranges: [[0, 360_000]] }] }, a.token);
   await t.call('PUT', '/v1/me/listened', { deviceId: 'pb', days: [{ episodeId: PICK_EP, day: '2026-09-22', ranges: [[0, 360_000]] }] }, b.token);
   // comments on the pick: one kept, one by a soon-suspended author, one removed, one deleted, one too old
-  const ins = (author: string, body: string) => t.q(`INSERT INTO comments (episode_id, author_id, body, offset_ms) VALUES ($1, $2, $3, 1)`, [PICK_EP, author, body]);
+  // M26: seeded through the neutral helpers — the removal is moderation's flag, the deletion is the author's (no
+  // replies, so the comment goes), the old one is written 20 days back.
+  const ins = (author: string, body: string, agoMs?: number) => seedComment(t, { episodeId: PICK_EP, authorId: author, body, offsetMs: 1, ...(agoMs ? { agoMs } : {}) });
   await ins(b.id, 'b-kept');
   await ins(c.id, 'c-suspended');
-  await ins(a.id, 'a-removed');
-  await ins(d.id, 'd-deleted');
-  await ins(b.id, 'b-too-old');
-  await t.q(`UPDATE comments SET removed_at = now() WHERE body = 'a-removed'`);
-  await t.q(`UPDATE comments SET deleted_at = now() WHERE body = 'd-deleted'`);
-  await t.q(`UPDATE comments SET created_at = now() - interval '20 days' WHERE body = 'b-too-old'`);
-  await t.q('UPDATE listeners SET suspended_at = now() WHERE id = $1', [c.id]);
+  const removed = await ins(a.id, 'a-removed');
+  const deleted = await ins(d.id, 'd-deleted');
+  await ins(b.id, 'b-too-old', 20 * 86_400_000);
+  await setCommentFlags(t, removed, { removed: true });
+  await deleteComment(t.db, deleted);
+  await suspendNow(t, c.id);
   return { a, b, c, d };
 }
 
@@ -195,7 +209,7 @@ test('M10: every new field is present and shaped; the M5 fields are unchanged; G
   // ETag: same state → 304; a new comment (said + stats) → 200
   const etag = res.headers.get('etag')!;
   assert.equal((await getDiscover(t, { 'if-none-match': etag })).res.status, 304);
-  await t.q(`INSERT INTO comments (episode_id, author_id, body, offset_ms) VALUES ($1, $2, 'b-second', 2)`, [PICK_EP, who.b.id]);
+  await seedComment(t, { episodeId: PICK_EP, authorId: who.b.id, body: 'b-second', offsetMs: 2 });
   const after = await getDiscover(t, { 'if-none-match': etag });
   assert.equal(after.res.status, 200);
   assert.equal((JSON.parse(after.raw) as Body).said![0]!.body, 'b-second');
@@ -213,10 +227,9 @@ test('M10 G7: a hidden show leaves shows, newShows, followedHere, said and colle
   assert.ok(before.said!.some((s) => s.episode.feedUrl === FX));
   assert.ok(before.collections!.length === 1);
 
-  await t.q(`INSERT INTO listeners (email, password_hash, display_name) VALUES ('o@example.com', 'x', 'Owner')`);
-  const [o] = await t.q<{ id: string }>(`SELECT id FROM listeners WHERE email = 'o@example.com'`);
-  const [act] = await t.q<{ id: string }>(`INSERT INTO moderation_actions (actor_id, action, target_kind, target_id) VALUES ($1, 'hide_show', 'show', $2) RETURNING id`, [o!.id, FX]);
-  await t.q('INSERT INTO hidden_feeds (feed_url, action_id) VALUES ($1, $4), ($2, $4), ($3, $4)', [FX, REPLY_ALL, NEW_A, act!.id]);
+  // M26: the owner is a real account; the shows are hidden through moderation's act() (one action per show)
+  const o = await signUp(t, 'o@example.com', 'Owner');
+  await hideFeeds(t, o.id, [FX, REPLY_ALL, NEW_A]);
 
   const { raw } = await getDiscover(t);
   const after = JSON.parse(raw) as Body;
@@ -311,17 +324,15 @@ test('M10: GET /v1/categories lists Apple\'s genres with display names; /:genreI
   }
 
   // hidden show removed at serve time
-  await t.q(`INSERT INTO listeners (email, password_hash, display_name) VALUES ('o@example.com', 'x', 'Owner')`);
-  const [o] = await t.q<{ id: string }>('SELECT id FROM listeners');
-  const [act] = await t.q<{ id: string }>(`INSERT INTO moderation_actions (actor_id, action, target_kind, target_id) VALUES ($1, 'hide_show', 'show', $2) RETURNING id`, [o!.id, REPLY_ALL]);
-  await t.q('INSERT INTO hidden_feeds (feed_url, action_id) VALUES ($1, $2)', [REPLY_ALL, act!.id]);
+  const o = await signUp(t, 'o@example.com', 'Owner');
+  await hideFeeds(t, o.id, [REPLY_ALL]);
   const hid = (await (await t.call('GET', '/v1/categories/1303')).json()) as { shows: Show[] };
   assert.ok(hid.shows.every((s) => s.feedUrl !== REPLY_ALL));
   assert.equal(hid.shows.length, CHART.length - 1);
 
   // Apple down: an expired cached copy is served stale; a genre never fetched is 503
   cat.state.appleDown = true;
-  await t.q(`UPDATE cache SET fetched_at = now() - interval '7 hours' WHERE key = 'apple:category:1303'`);
+  await ageCacheKey(t, 'apple:category:1303', 7 * 3_600_000);
   const stale = (await (await t.call('GET', '/v1/categories/1303')).json()) as { shows: Show[]; stale: boolean };
   assert.equal(stale.stale, true);
   assert.equal(stale.shows.length, CHART.length - 1);

@@ -1,4 +1,5 @@
 // Fetches and parses a podcast RSS feed on the server, cached for one hour.
+import { setPublisherMark } from '../db/repos/safety/moderation.ts';
 import { mediaKindOf } from '@socialmorning/social-core';
 /**
  * A feed, parsed server-side (M5 research R3/R5): for show picks ("its latest episode"),
@@ -100,6 +101,8 @@ export async function setPublisherBlock(db: Db, feedUrl: string, blocked: boolea
   } else {
     await deleteCacheKey(db, FEED_BLOCK_PREFIX + feedUrl);
   }
+  // M26 lane SF: on DynamoDB the mark also lives in the hidden-feeds partition, which hiddenFeedUrls reads (a no-op on Postgres).
+  await setPublisherMark(db, feedUrl, blocked);
 }
 
 /**

@@ -10,6 +10,7 @@ import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, TEST_PEPPER } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
+import { jobView, seedJob, translationShowCount } from './sf-neutral-tr.ts';
 import { tokenHash } from '../src/auth/session.ts';
 import { clearSecondFactorCode } from '../src/db/repos/account/second-factor.ts';
 import { lastVoidedCheckRows, saveVoidedCheck } from '../src/db/repos/account/purchases.ts';
@@ -82,9 +83,8 @@ test('translation upkeep: errors fail a job at the limit, a failed job is re-que
   const t = await freshDb();
   try {
     const owner = await signUp(t);
-    const state = async () => (await t.q<{ state: string; errors: number; error: string | null; source_lang: string | null }>(
-      "SELECT state, errors, error, source_lang FROM translation_jobs WHERE episode_id = 'e1' AND target_lang = 'en'"))[0];
-    await t.q("INSERT INTO translation_jobs (episode_id, target_lang) VALUES ('e1', 'en')");
+    const state = () => jobView(t, 'e1', 'en');
+    await seedJob(t, 'e1', 'en');
     await recordTranslationJobError(t.db, 'e1', 'en', 1, 'slow', 3);
     assert.deepEqual({ ...await state() }, { state: 'queued', errors: 1, error: 'slow', source_lang: null });
     await recordTranslationJobError(t.db, 'e1', 'en', 3, 'gone', 3);
@@ -97,8 +97,8 @@ test('translation upkeep: errors fail a job at the limit, a failed job is re-que
     assert.deepEqual({ ...await state() }, { state: 'translating', errors: 0, error: 'too long', source_lang: 'fr' });
     await addTranslationShow(t.db, FEED, owner.id);
     await addTranslationShow(t.db, FEED, owner.id);
-    assert.equal((await t.q('SELECT 1 FROM translation_shows')).length, 1);
+    assert.equal(await translationShowCount(t), 1);
     await removeTranslationShow(t.db, FEED);
-    assert.equal((await t.q('SELECT 1 FROM translation_shows')).length, 0);
+    assert.equal(await translationShowCount(t), 0);
   } finally { await t.close(); }
 });

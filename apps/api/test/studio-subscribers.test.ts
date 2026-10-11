@@ -11,6 +11,9 @@ import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
 import { proveClaim, sCall, studioLogin } from './studio-harness.ts';
+import { backdateComments } from './sc-neutral.ts';
+import { saveToken } from '../src/db/repos/account/push.ts';
+import * as S from './st-neutral.ts';
 
 const FEED = 'https://feeds.example.com/mine.xml';
 const OTHER = 'https://feeds.example.com/other.xml';
@@ -22,7 +25,7 @@ const sync = (t: TestDb, token: string, items: { feedUrl: string; createdAt: str
 test('subscription_events records only real flips: subscribe, resend, unsubscribe, resubscribe', async () => {
   const t = await freshDb();
   const a = await signUp(t, 'a@example.com', 'A');
-  const ev = async () => (await t.q<{ kind: string }>('SELECT kind FROM subscription_events WHERE feed_url = $1 ORDER BY id', [FEED])).map((r) => r.kind);
+  const ev = () => S.subEventKinds(t, FEED);
   assert.equal((await sync(t, a.token, [{ feedUrl: FEED, createdAt: '2026-09-01T00:00:00Z' }])).status, 200);
   await sync(t, a.token, [{ feedUrl: FEED, createdAt: '2026-09-01T00:00:00Z' }]);
   assert.deepEqual(await ev(), ['sub'], 'a re-sent row is not a new subscribe');
@@ -40,7 +43,7 @@ test('stats: total, a 0-filled trend, 24 hour bars, platforms; the list shows cu
   const now = new Date().toISOString();
   for (const x of [a, b, c]) await sync(t, x.token, [{ feedUrl: FEED, createdAt: now }]);
   await sync(t, c.token, [{ feedUrl: FEED, createdAt: now, deletedAt: new Date(Date.now() + 1000).toISOString() }]);
-  await t.q("INSERT INTO push_tokens (token, listener_id, platform) VALUES ('t1', $1, 'ios')", [a.id]);
+  await saveToken(t.db, a.id, 't1', 'ios');
 
   const s = (await (await sCall(t, 'GET', `/v1/studio/shows/${key}/subscribers/stats?days=7&tz=UTC`, owner)).json()) as {
     total: number; trend: { sub: number; unsub: number }[]; hours: number[]; platforms: Record<string, number>; historySince: string | null;
@@ -77,7 +80,7 @@ test('G-M1: a muted listener cannot comment on this show — and can everywhere 
   const muted = (await (await sCall(t, 'GET', `/v1/studio/shows/${key}/mutes`, owner)).json()) as { items: { displayName: string }[] };
   assert.deepEqual(muted.items.map((m) => m.displayName), ['Troll']);
   assert.equal((await sCall(t, 'DELETE', `/v1/studio/shows/${key}/mutes/${l.id}`, owner)).status, 204);
-  await t.q("UPDATE comments SET created_at = created_at - interval '10 seconds'");
+  await backdateComments(t, 10_000);
   assert.equal((await t.call('POST', `/v1/episodes/${mine.id}/comments`, { body: 'sorry' }, l.token)).status, 200);
   await t.close();
 });
@@ -87,7 +90,7 @@ test('the owner and operators cannot be muted on their own show', async () => {
   const owner = await studioLogin(t, 'o@example.com', 'Owner');
   const key = await proveClaim(t, owner.id, FEED);
   const op = await signUp(t, 'op@example.com', 'Op');
-  await t.q('INSERT INTO show_members (feed_url, listener_id) VALUES ($1, $2)', [FEED, op.id]);
+  await S.addHelper(t, FEED, op.id);
   assert.equal((await sCall(t, 'PUT', `/v1/studio/shows/${key}/mutes/${owner.id}`, owner)).status, 409);
   assert.equal((await sCall(t, 'PUT', `/v1/studio/shows/${key}/mutes/${op.id}`, owner)).status, 409);
   await t.close();

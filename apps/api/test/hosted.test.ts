@@ -15,6 +15,7 @@ import { hash } from '@socialmorning/social-core';
 import { parseFeed } from '@socialmorning/feed-parser';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 import { sCall, studioLogin } from './studio-harness.ts';
+import { appEpisodesOf } from './st-neutral.ts';
 import { fakeStore, STORE } from './fake-store.ts';
 
 const BASE = 'https://api.example.test';
@@ -67,7 +68,7 @@ test('G-F1: an uploaded, published episode is in the feed, and the app\'s own pa
   const e = parsed.episodes[0]!;
   assert.deepEqual([e.title, e.enclosureUrl, e.durationMs], ['Ep 1 — hello', r.audioUrl, 1_800_000]);
   // The app's episode row exists at once, with the id the phone will compute — so comments and numbers work.
-  const [row] = await t.q<{ id: string; enclosure_url: string }>('SELECT id, enclosure_url FROM episodes WHERE feed_url = $1', [show.feedUrl]);
+  const [row] = await appEpisodesOf(t, show.feedUrl);
   assert.equal(row!.id, hash(show.feedUrl + '\u0001' + e.guid));
   const table = (await (await sCall(t, 'GET', `/v1/studio/shows/${key}/episodes`, me)).json()) as { total: number };
   assert.equal(table.total, 1);

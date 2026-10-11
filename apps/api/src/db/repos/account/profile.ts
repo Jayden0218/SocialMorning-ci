@@ -5,6 +5,7 @@
  * optional and never leave this file except as the listener's own answers or as totals (FR-073).
  */
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 
 export const AVATAR_MAX_BYTES = 204_800;
 export const AVATAR_CEILING_BYTES = 200 * 1024 * 1024;
@@ -22,7 +23,7 @@ export type MyProfile = {
 type Row = { avatar_url: string | null; bio: string | null; age_range: string | null; gender: string | null; likes_public: boolean; private_listening: boolean;
   birthday: string | null; industry: string | null; hide_badge: boolean; hide_stickers: boolean; hide_decorations: boolean; private_subscriptions: boolean };
 
-export async function myProfile(db: Db, id: string): Promise<MyProfile> {
+export const myProfile = dual('ac/index', 'myProfile', async (db: Db, id: string): Promise<MyProfile> => {
   const [r] = await db.query<Row>(
     `SELECT avatar_url, bio, age_range, gender, likes_public, private_listening, to_char(birthday, 'YYYY-MM-DD') AS birthday, industry,
             hide_badge, hide_stickers, hide_decorations, private_subscriptions FROM listeners WHERE id = $1`, [id]);
@@ -34,7 +35,7 @@ export async function myProfile(db: Db, id: string): Promise<MyProfile> {
     hideBadge: r?.hide_badge ?? false, hideStickers: r?.hide_stickers ?? false, hideDecorations: r?.hide_decorations ?? false,
     privateSubscriptions: r?.private_subscriptions ?? false,
   };
-}
+});
 
 /** M21 US8: industry is free text, 1–40 characters (the column CHECKs it too). */
 export const INDUSTRY_MAX = 40;
@@ -45,7 +46,7 @@ export type ProfilePatch = { displayName?: string; bio?: string; ageRange?: stri
   hideBadge?: boolean; hideStickers?: boolean; hideDecorations?: boolean; privateSubscriptions?: boolean };
 
 /** Only the fields sent change; `null` clears age range or gender; an empty bio clears it. */
-export async function updateProfile(db: Db, id: string, p: ProfilePatch): Promise<void> {
+export const updateProfile = dual('ac/index', 'updateProfile', async (db: Db, id: string, p: ProfilePatch): Promise<void> => {
   const sets: string[] = [];
   const vals: unknown[] = [id];
   const set = (col: string, v: unknown) => { vals.push(v); sets.push(`${col} = $${vals.length}`); };
@@ -62,22 +63,22 @@ export async function updateProfile(db: Db, id: string, p: ProfilePatch): Promis
   if (p.privateSubscriptions !== undefined) set('private_subscriptions', p.privateSubscriptions);
   if (sets.length === 0) return;
   await db.query(`UPDATE listeners SET ${sets.join(', ')} WHERE id = $1`, vals);
-}
+});
 
 /** Bytes every photo takes now, without this listener's own (it is about to be replaced). */
-export async function avatarBytesOthers(db: Db, id: string): Promise<number> {
+export const avatarBytesOthers = dual('ac/index', 'avatarBytesOthers', async (db: Db, id: string): Promise<number> => {
   const [r] = await db.query<{ n: string | number | null }>('SELECT coalesce(sum(avatar_bytes), 0) AS n FROM listeners WHERE id <> $1', [id]);
   return Number(r?.n ?? 0);
-}
+});
 
-export async function currentAvatar(db: Db, id: string): Promise<string | undefined> {
+export const currentAvatar = dual('ac/index', 'currentAvatar', async (db: Db, id: string): Promise<string | undefined> => {
   const [r] = await db.query<{ avatar_url: string | null }>('SELECT avatar_url FROM listeners WHERE id = $1', [id]);
   return r?.avatar_url ?? undefined;
-}
+});
 
-export async function setAvatar(db: Db, id: string, a: { url: string; path: string; bytes: number } | null): Promise<void> {
+export const setAvatar = dual('ac/index', 'setAvatar', async (db: Db, id: string, a: { url: string; path: string; bytes: number } | null): Promise<void> => {
   await db.query('UPDATE listeners SET avatar_url = $2, avatar_path = $3, avatar_bytes = $4 WHERE id = $1', [id, a?.url ?? null, a?.path ?? null, a?.bytes ?? null]);
-}
+});
 
 /** JPEG or PNG by their first bytes — the declared type is not trusted. */
 export function imageKind(b: Uint8Array): 'image/jpeg' | 'image/png' | undefined {
@@ -89,21 +90,21 @@ export function imageKind(b: Uint8Array): 'image/jpeg' | 'image/png' | undefined
 // M26: small reads and writes of the listener's own row (moved here from routes/).
 
 /** The listener's display name as stored now. */
-export async function displayNameRows(db: Db, listenerId: string): Promise<{ display_name: string }[]> {
+export const displayNameRows = dual('ac/index', 'displayNameRows', async (db: Db, listenerId: string): Promise<{ display_name: string }[]> => {
   return db.query<{ display_name: string }>('SELECT display_name FROM listeners WHERE id = $1', [listenerId]);
-}
+});
 
 /** The listener accepted the community rules; the first time is kept. */
-export async function acceptRules(db: Db, listenerId: string): Promise<void> {
+export const acceptRules = dual('ac/index', 'acceptRules', async (db: Db, listenerId: string): Promise<void> => {
   await db.query('UPDATE listeners SET rules_accepted_at = coalesce(rules_accepted_at, now()) WHERE id = $1', [listenerId]);
-}
+});
 
 /** The listener's password hash, to check a password. */
-export async function passwordHashRows(db: Db, listenerId: string): Promise<{ password_hash: string }[]> {
+export const passwordHashRows = dual('ac/index', 'passwordHashRows', async (db: Db, listenerId: string): Promise<{ password_hash: string }[]> => {
   return db.query<{ password_hash: string }>('SELECT password_hash FROM listeners WHERE id = $1', [listenerId]);
-}
+});
 
 /** The listener's email. */
-export async function listenerEmailRows(db: Db, listenerId: string): Promise<{ email: string }[]> {
+export const listenerEmailRows = dual('ac/index', 'listenerEmailRows', async (db: Db, listenerId: string): Promise<{ email: string }[]> => {
   return db.query<{ email: string }>('SELECT email FROM listeners WHERE id = $1', [listenerId]);
-}
+});
