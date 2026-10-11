@@ -6,6 +6,7 @@
  */
 import { autoCoverUrl, fnv1a64, isAutoCover } from '@socialmorning/social-core';
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 import { ApiError } from '../../../errors.ts';
 
 /** Apple Podcasts' top-level categories (podcasters.apple.com/support/1691, read 2026-09-29). */
@@ -59,7 +60,7 @@ export type ShowIn = { title: string; description?: string; author?: string; lan
  * Creates the show, its feed address and the owner's proven claim, in one transaction. No cover
  * given: the made-for-you tile (owner, 2026-10-04) is saved as the cover.
  */
-export async function createHostedShow(db: Db, ownerId: string, publicBase: string, s: ShowIn): Promise<HostedShow> {
+async function createHostedShowPg(db: Db, ownerId: string, publicBase: string, s: ShowIn): Promise<HostedShow> {
   return db.transaction(async (tx) => {
     const [{ id }] = (await tx.query<{ id: string }>('SELECT gen_random_uuid()::text AS id')) as [{ id: string }];
     const feedUrl = `${publicBase.replace(/\/$/, '')}/feeds/${id}.xml`;
@@ -85,18 +86,18 @@ const apiBase = (feedUrl: string) => feedUrl.replace(/\/feeds\/[^/]+$/, '');
  */
 const drawnCover = (base: string, title: string) => (base.startsWith('https://') ? autoCoverUrl(base, title) : null);
 
-export async function hostedByFeed(db: Db, feedUrl: string): Promise<HostedShow | undefined> {
+async function hostedByFeedPg(db: Db, feedUrl: string): Promise<HostedShow | undefined> {
   const [r] = await db.query<ShowRow>(`SELECT ${SHOW_COLS} FROM hosted_shows WHERE feed_url = $1 AND deleted_at IS NULL`, [feedUrl]);
   return r ? toShow(r) : undefined;
 }
 
-export async function hostedById(db: Db, id: string): Promise<HostedShow | undefined> {
+async function hostedByIdPg(db: Db, id: string): Promise<HostedShow | undefined> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return undefined;
   const [r] = await db.query<ShowRow>(`SELECT ${SHOW_COLS} FROM hosted_shows WHERE id = $1 AND deleted_at IS NULL`, [id]);
   return r ? toShow(r) : undefined;
 }
 
-export async function updateHostedShow(db: Db, id: string, s: Partial<ShowIn>): Promise<HostedShow> {
+async function updateHostedShowPg(db: Db, id: string, s: Partial<ShowIn>): Promise<HostedShow> {
   const cur = await hostedById(db, id);
   if (!cur) throw new ApiError('not_found', 'No such show.');
   const n = { ...cur, ...Object.fromEntries(Object.entries(s).filter(([, v]) => v !== undefined)) } as HostedShow;
@@ -113,7 +114,7 @@ export async function updateHostedShow(db: Db, id: string, s: Partial<ShowIn>): 
   return toShow(r!);
 }
 
-export async function listHostedEpisodes(db: Db, showId: string, opts: { liveOnly?: boolean; freeOnly?: boolean; paidOnly?: boolean } = {}): Promise<HostedEpisode[]> {
+async function listHostedEpisodesPg(db: Db, showId: string, opts: { liveOnly?: boolean; freeOnly?: boolean; paidOnly?: boolean } = {}): Promise<HostedEpisode[]> {
   // M20 US6: the public feed takes free episodes only; the paid list takes paid ones only.
   const live = (opts.liveOnly ? "AND status = 'published' AND published_at <= now()" : '') + (opts.freeOnly ? ' AND NOT paid' : '') + (opts.paidOnly ? ' AND paid' : '');
   return (await db.query<EpRow>(`SELECT ${EP_COLS} FROM hosted_episodes WHERE show_id = $1 AND deleted_at IS NULL ${live} ORDER BY published_at DESC`, [showId])).map(toEp);
@@ -124,7 +125,7 @@ export async function listHostedEpisodes(db: Db, showId: string, opts: { liveOnl
  * so a draft or a scheduled one never shows in lists, search or numbers early. Run whenever the
  * feed or the Studio reads a show — there is no clock job, and none is needed.
  */
-export async function promoteDue(db: Db, show: HostedShow): Promise<void> {
+async function promoteDuePg(db: Db, show: HostedShow): Promise<void> {
   await db.query(
     `INSERT INTO episodes (id, feed_url, guid, title, show_title, enclosure_url, image_url, duration_ms, published_at)
      SELECT he.episode_id, $2, he.guid, he.title, $3, he.audio_url, coalesce(he.cover_url, $4), he.duration_ms, he.published_at
@@ -136,13 +137,13 @@ export async function promoteDue(db: Db, show: HostedShow): Promise<void> {
 }
 
 /** Every created show's audio, in bytes — what the ceiling is measured against. */
-export async function storedBytes(db: Db): Promise<number> {
+async function storedBytesPg(db: Db): Promise<number> {
   const [r] = await db.query<{ n: string | number | null }>('SELECT coalesce(sum(audio_bytes), 0) AS n FROM hosted_episodes WHERE deleted_at IS NULL');
   return Number(r?.n ?? 0);
 }
 
 /** Publish: the episode joins the feed and the app's episode table (so Studio numbers and comments work at once). */
-export async function publishEpisode(db: Db, show: HostedShow, by: string, e: {
+async function publishEpisodePg(db: Db, show: HostedShow, by: string, e: {
   title: string; description: string; audioUrl: string; audioBytes: number; audioType: string; durationMs: number | null;
   status?: 'draft' | 'published'; publishAt?: string | null; coverUrl?: string | null;
 }): Promise<HostedEpisode> {
@@ -161,7 +162,7 @@ export async function publishEpisode(db: Db, show: HostedShow, by: string, e: {
 }
 
 /** Edit a hosted episode: text, cover, state or time. A live episode's title follows into the app's row. */
-export async function updateEpisode(db: Db, show: HostedShow, id: string, e: { title?: string; description?: string; status?: 'draft' | 'published'; publishAt?: string | null; coverUrl?: string | null }): Promise<HostedEpisode> {
+async function updateEpisodePg(db: Db, show: HostedShow, id: string, e: { title?: string; description?: string; status?: 'draft' | 'published'; publishAt?: string | null; coverUrl?: string | null }): Promise<HostedEpisode> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) throw new ApiError('not_found', 'No such episode.');
   const [r] = await db.query<EpRow>(
     `UPDATE hosted_episodes SET title = coalesce($3, title), description = coalesce($4, description), status = coalesce($5, status),
@@ -177,7 +178,7 @@ export async function updateEpisode(db: Db, show: HostedShow, id: string, e: { t
 }
 
 /** Unpublish: out of the feed; the caller removes the audio from storage (guard G-D1). */
-export async function removeEpisode(db: Db, showId: string, id: string): Promise<HostedEpisode | undefined> {
+async function removeEpisodePg(db: Db, showId: string, id: string): Promise<HostedEpisode | undefined> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return undefined;
   const [r] = await db.query<EpRow>(`UPDATE hosted_episodes SET deleted_at = now() WHERE id = $1 AND show_id = $2 AND deleted_at IS NULL RETURNING ${EP_COLS}`, [id, showId]);
   return r ? toEp(r) : undefined;
@@ -214,7 +215,7 @@ ${show.coverUrl ? `    <itunes:image href="${x(show.coverUrl)}"/>\n    <image><u
 }
 
 /** M20 US6 (FR-024): the show's price level; only a Studio-created show can sell. null = sells nothing. */
-export async function setPriceTier(db: Db, showId: string, tier: number | null): Promise<void> {
+async function setPriceTierPg(db: Db, showId: string, tier: number | null): Promise<void> {
   await db.query('UPDATE hosted_shows SET price_tier = $2, updated_at = now() WHERE id = $1', [showId, tier]);
 }
 
@@ -224,7 +225,7 @@ export async function setPriceTier(db: Db, showId: string, tier: number | null):
  * only while it is a draft or scheduled — a live episode already has its row (and maybe comments)
  * in the app's episode table, and its audio address is out. A paid episode never enters that table.
  */
-export async function setEpisodePaid(db: Db, show: HostedShow, id: string, paid: boolean): Promise<HostedEpisode> {
+async function setEpisodePaidPg(db: Db, show: HostedShow, id: string, paid: boolean): Promise<HostedEpisode> {
   const [cur] = await db.query<EpRow>(`SELECT ${EP_COLS} FROM hosted_episodes WHERE id = $1 AND show_id = $2 AND deleted_at IS NULL`, [id, show.id]);
   if (!cur) throw new ApiError('not_found', 'No such episode.');
   if (paid && cur.created_at === null) throw new ApiError('validation', 'Episodes that were free before paid episodes existed stay free.', { fields: ['paid'], reason: 'was_free' });
@@ -245,7 +246,7 @@ export const PREVIEW_MAX_MS = 600_000;
  * M24 US13: set (or clear, `null`) a paid episode's free preview. Only a range — no audio is cut or
  * copied: the phone plays the one file and stops at `endMs` for a listener without the purchase.
  */
-export async function setPreview(db: Db, show: HostedShow, id: string, range: { startMs: number; endMs: number } | null): Promise<HostedEpisode> {
+async function setPreviewPg(db: Db, show: HostedShow, id: string, range: { startMs: number; endMs: number } | null): Promise<HostedEpisode> {
   const [cur] = await db.query<EpRow>(`SELECT ${EP_COLS} FROM hosted_episodes WHERE id = $1 AND show_id = $2 AND deleted_at IS NULL`, [id, show.id]);
   if (!cur) throw new ApiError('not_found', 'No such episode.');
   if (range && !cur.paid) throw new ApiError('validation', 'Only a paid episode has a free preview.', { fields: ['startMs'], reason: 'not_paid' });
@@ -257,26 +258,46 @@ export async function setPreview(db: Db, show: HostedShow, id: string, range: { 
 }
 
 /** Mark a created show deleted (giving it back). */
-export async function markHostedShowDeleted(db: Db, showId: string): Promise<void> {
+async function markHostedShowDeletedPg(db: Db, showId: string): Promise<void> {
   await db.query('UPDATE hosted_shows SET deleted_at = now() WHERE id = $1', [showId]);
 }
 
 /** Mark every live episode of a created show deleted. */
-export async function markHostedEpisodesDeleted(db: Db, showId: string): Promise<void> {
+async function markHostedEpisodesDeletedPg(db: Db, showId: string): Promise<void> {
   await db.query('UPDATE hosted_episodes SET deleted_at = now() WHERE show_id = $1 AND deleted_at IS NULL', [showId]);
 }
 
 /** One row when the created show still has a paid, live episode. */
-export async function paidEpisodeRows(db: Db, showId: string): Promise<Record<string, unknown>[]> {
+async function paidEpisodeRowsPg(db: Db, showId: string): Promise<Record<string, unknown>[]> {
   return db.query('SELECT 1 FROM hosted_episodes WHERE show_id = $1 AND paid AND deleted_at IS NULL', [showId]);
 }
 
 /** Whether a created show exists and was deleted (the public feed answers 404 / 410). */
-export async function hostedShowDeletedRows(db: Db, showId: string): Promise<{ deleted: boolean }[]> {
+async function hostedShowDeletedRowsPg(db: Db, showId: string): Promise<{ deleted: boolean }[]> {
   return db.query<{ deleted: boolean }>('SELECT deleted_at IS NOT NULL AS deleted FROM hosted_shows WHERE id = $1', [showId]);
 }
 
 /** How many live shows the listener has created. */
-export async function ownedShowCountRows(db: Db, ownerId: string): Promise<{ n: number }[]> {
+async function ownedShowCountRowsPg(db: Db, ownerId: string): Promise<{ n: number }[]> {
   return db.query<{ n: number }>('SELECT count(*)::int AS n FROM hosted_shows WHERE owner_id = $1 AND deleted_at IS NULL', [ownerId]);
 }
+
+// M26 lane ST: each runs on Postgres, or on DynamoDB (ddb/hosted.ts) when the Db carries a Store (db/backend.ts).
+export const createHostedShow = dual('st/hosted', 'createHostedShow', createHostedShowPg);
+export const hostedByFeed = dual('st/hosted', 'hostedByFeed', hostedByFeedPg);
+export const hostedById = dual('st/hosted', 'hostedById', hostedByIdPg);
+export const updateHostedShow = dual('st/hosted', 'updateHostedShow', updateHostedShowPg);
+export const listHostedEpisodes = dual('st/hosted', 'listHostedEpisodes', listHostedEpisodesPg);
+export const promoteDue = dual('st/hosted', 'promoteDue', promoteDuePg);
+export const storedBytes = dual('st/hosted', 'storedBytes', storedBytesPg);
+export const publishEpisode = dual('st/hosted', 'publishEpisode', publishEpisodePg);
+export const updateEpisode = dual('st/hosted', 'updateEpisode', updateEpisodePg);
+export const removeEpisode = dual('st/hosted', 'removeEpisode', removeEpisodePg);
+export const setPriceTier = dual('st/hosted', 'setPriceTier', setPriceTierPg);
+export const setEpisodePaid = dual('st/hosted', 'setEpisodePaid', setEpisodePaidPg);
+export const setPreview = dual('st/hosted', 'setPreview', setPreviewPg);
+export const markHostedShowDeleted = dual('st/hosted', 'markHostedShowDeleted', markHostedShowDeletedPg);
+export const markHostedEpisodesDeleted = dual('st/hosted', 'markHostedEpisodesDeleted', markHostedEpisodesDeletedPg);
+export const paidEpisodeRows = dual('st/hosted', 'paidEpisodeRows', paidEpisodeRowsPg);
+export const hostedShowDeletedRows = dual('st/hosted', 'hostedShowDeletedRows', hostedShowDeletedRowsPg);
+export const ownedShowCountRows = dual('st/hosted', 'ownedShowCountRows', ownedShowCountRowsPg);

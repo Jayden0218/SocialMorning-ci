@@ -13,6 +13,7 @@ import { fnv1a64 } from '@socialmorning/social-core';
 import { aCall, adminSetup, auditRows } from './admin-harness.ts';
 import { putEpisode } from './put-episode.ts';
 import { signUp } from './harness.ts';
+import { actionRows, auditFull } from './sf-neutral.ts';
 
 test('G-U1: suspend and restore in Admin are moderation actions (/mod lists them), and the account is refused exactly as /mod would', async () => {
   const { t, owner } = await adminSetup();
@@ -23,7 +24,7 @@ test('G-U1: suspend and restore in Admin are moderation actions (/mod lists them
   assert.equal(((await (await aCall(t, 'GET', '/v1/admin/users?q=user@exa', owner)).json()) as { items: unknown[] }).items.length, 1, 'by email too');
 
   assert.equal((await aCall(t, 'POST', `/v1/admin/users/${u.id}/suspend`, owner)).status, 200);
-  const acts = await t.q<{ action: string; target_kind: string; target_id: string; actor_id: string }>('SELECT action, target_kind, target_id, actor_id FROM moderation_actions ORDER BY created_at');
+  const acts = await actionRows(t);
   assert.deepEqual(acts, [{ action: 'suspend', target_kind: 'profile', target_id: u.id, actor_id: owner.id }]);
   const refused = await t.call('GET', '/v1/me', undefined, u.token);
   assert.equal(refused.status, 403);
@@ -72,7 +73,7 @@ test('rename a listener whose display name breaks the rules; recorded with befor
   const res = await aCall(t, 'PATCH', `/v1/admin/users/${u.id}`, owner, { displayName: 'Listener' });
   assert.equal(res.status, 200);
   assert.equal(((await res.json()) as { user: { displayName: string } }).user.displayName, 'Listener');
-  const [row] = await t.q<{ before: { displayName: string }; after: { displayName: string } }>('SELECT before, after FROM admin_audit');
+  const [row] = (await auditFull(t)) as unknown as { before: { displayName: string }; after: { displayName: string } }[];
   assert.deepEqual([row!.before.displayName, row!.after.displayName], ['Bad Name', 'Listener']);
   await t.close();
 });

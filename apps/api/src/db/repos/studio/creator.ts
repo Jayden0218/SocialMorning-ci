@@ -10,6 +10,7 @@ import { randomBytes } from 'node:crypto';
 import { FEED_TIMEOUT_MS, readFeedText } from '@socialmorning/feed-parser';
 import { USER_AGENT, withDeadline } from '../../../catalog/feed.ts';
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 
 export type Claim = { id: string; feedUrl: string; code: string; status: 'pending' | 'proven' | 'revoked'; provenAt?: string };
 
@@ -19,7 +20,7 @@ const toClaim = (r: { id: string; feed_url: string; code: string; status: Claim[
 
 export const newCode = (): string => `socialnet-verify-${randomBytes(6).toString('hex')}`;
 
-export async function createClaim(db: Db, listenerId: string, feedUrl: string): Promise<Claim> {
+async function createClaimPg(db: Db, listenerId: string, feedUrl: string): Promise<Claim> {
   const [existing] = await db.query<{ id: string; feed_url: string; code: string; status: Claim['status']; proven_at: string | null }>(
     "SELECT id, feed_url, code, status, proven_at FROM creator_claims WHERE listener_id = $1 AND feed_url = $2 AND status <> 'revoked' ORDER BY created_at DESC LIMIT 1",
     [listenerId, feedUrl],
@@ -32,7 +33,7 @@ export async function createClaim(db: Db, listenerId: string, feedUrl: string): 
   return toClaim(r!);
 }
 
-export async function myClaims(db: Db, listenerId: string): Promise<Claim[]> {
+async function myClaimsPg(db: Db, listenerId: string): Promise<Claim[]> {
   const rows = await db.query<{ id: string; feed_url: string; code: string; status: Claim['status']; proven_at: string | null }>(
     "SELECT id, feed_url, code, status, proven_at FROM creator_claims WHERE listener_id = $1 AND status <> 'revoked' ORDER BY created_at DESC",
     [listenerId],
@@ -44,7 +45,7 @@ export async function myClaims(db: Db, listenerId: string): Promise<Claim[]> {
 export const CLAIM_MAX_BYTES = 5 * 1024 * 1024;
 
 /** 'proven' only when the code is in the feed's text as the publisher serves it now. */
-export async function verifyClaim(db: Db, f: typeof fetch, listenerId: string, id: string): Promise<{ status: Claim['status'] } | 'not_found' | 'taken'> {
+async function verifyClaimPg(db: Db, f: typeof fetch, listenerId: string, id: string): Promise<{ status: Claim['status'] } | 'not_found' | 'taken'> {
   const [c] = await db.query<{ id: string; feed_url: string; code: string; status: Claim['status'] }>(
     'SELECT id, feed_url, code, status FROM creator_claims WHERE id = $1 AND listener_id = $2', [id, listenerId]);
   if (!c) return 'not_found';
@@ -64,13 +65,13 @@ export async function verifyClaim(db: Db, f: typeof fetch, listenerId: string, i
   return { status: 'proven' };
 }
 
-export async function isProvenOwner(db: Db, listenerId: string, feedUrl: string): Promise<boolean> {
+async function isProvenOwnerPg(db: Db, listenerId: string, feedUrl: string): Promise<boolean> {
   const r = await db.query("SELECT 1 FROM creator_claims WHERE listener_id = $1 AND feed_url = $2 AND status = 'proven'", [listenerId, feedUrl]);
   return r.length > 0;
 }
 
 /** The claimant's view of their show: who listened, how many comments, where people react. Counts only — no names. */
-export async function showStats(db: Db, feedUrl: string): Promise<{ listeners: number; comments: number; episodes: number; topMoments: { episodeId: string; title: string; offsetMs: number; comments: number }[] }> {
+async function showStatsPg(db: Db, feedUrl: string): Promise<{ listeners: number; comments: number; episodes: number; topMoments: { episodeId: string; title: string; offsetMs: number; comments: number }[] }> {
   const [l] = await db.query<{ n: number }>(
     "SELECT count(DISTINCT a.actor_id)::int AS n FROM activity a JOIN episodes e ON e.id = a.episode_id WHERE e.feed_url = $1 AND a.kind = 'listened'", [feedUrl]);
   const [cm] = await db.query<{ n: number }>(
@@ -85,7 +86,7 @@ export async function showStats(db: Db, feedUrl: string): Promise<{ listeners: n
 }
 
 /** M14 (FR-03): everyone who carries the Host mark on an episode's show — the proven owner and invited hosts. */
-export async function hostsOfEpisode(db: Db, episodeId: string): Promise<string[]> {
+async function hostsOfEpisodePg(db: Db, episodeId: string): Promise<string[]> {
   const rows = await db.query<{ id: string }>(
     `SELECT cl.listener_id AS id FROM creator_claims cl JOIN episodes e ON e.feed_url = cl.feed_url WHERE e.id = $1 AND cl.status = 'proven'
      UNION SELECT h.listener_id FROM show_hosts h JOIN episodes e ON e.feed_url = h.feed_url WHERE e.id = $1
@@ -93,3 +94,11 @@ export async function hostsOfEpisode(db: Db, episodeId: string): Promise<string[
     [episodeId]);
   return rows.map((r) => r.id).sort();
 }
+
+// M26 lane ST: each runs on Postgres, or on DynamoDB (ddb/claims.ts, ddb/numbers.ts) when the Db carries a Store (db/backend.ts).
+export const createClaim = dual('st/claims', 'createClaim', createClaimPg);
+export const myClaims = dual('st/claims', 'myClaims', myClaimsPg);
+export const verifyClaim = dual('st/claims', 'verifyClaim', verifyClaimPg);
+export const isProvenOwner = dual('st/claims', 'isProvenOwner', isProvenOwnerPg);
+export const showStats = dual('st/numbers', 'showStats', showStatsPg);
+export const hostsOfEpisode = dual('st/claims', 'hostsOfEpisode', hostsOfEpisodePg);

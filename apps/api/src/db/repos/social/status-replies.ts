@@ -11,6 +11,7 @@
  * suggestions, FR-010) any signed-in listener not blocked either way and not suspended.
  */
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 import type { VoiceStorage } from '../../../storage/voice-blob.ts';
 import { initialsOf } from './comment-likes.ts';
 import { notify } from './notifications.ts';
@@ -33,7 +34,7 @@ export type StatusReply = {
 };
 
 /** A live status the viewer may see, or undefined (→ 404; a block never shows as "blocked"). */
-export async function visibleStatus(db: Db, postId: string, viewerId: string): Promise<StatusPostRow | undefined> {
+async function visibleStatusPg(db: Db, postId: string, viewerId: string): Promise<StatusPostRow | undefined> {
   if (!/^[0-9a-f-]{36}$/i.test(postId)) return undefined;
   const [row] = await db.query<StatusPostRow>(
     `SELECT v.id, v.listener_id, v.expires_at FROM voice_posts v JOIN listeners l ON l.id = v.listener_id
@@ -46,7 +47,7 @@ export async function visibleStatus(db: Db, postId: string, viewerId: string): P
 
 const chars = (s: string) => [...s].length;
 
-export async function addTextReply(db: Db, post: StatusPostRow, authorId: string, body: string): Promise<string> {
+async function addTextReplyPg(db: Db, post: StatusPostRow, authorId: string, body: string): Promise<string> {
   const text = body.trim();
   if (text.length === 0 || chars(text) > REPLY_TEXT_MAX) throw new Error('reply_length');
   const [r] = await db.query<{ id: string }>('INSERT INTO status_replies (post_id, author_id, body) VALUES ($1, $2, $3) RETURNING id', [post.id, authorId, text]);
@@ -54,7 +55,7 @@ export async function addTextReply(db: Db, post: StatusPostRow, authorId: string
   return r!.id;
 }
 
-export async function addAudioReply(db: Db, post: StatusPostRow, authorId: string, a: { key: string; url: string; durationMs: number }): Promise<string> {
+async function addAudioReplyPg(db: Db, post: StatusPostRow, authorId: string, a: { key: string; url: string; durationMs: number }): Promise<string> {
   const [r] = await db.query<{ id: string }>(
     'INSERT INTO status_replies (post_id, author_id, audio_key, audio_url, audio_ms) VALUES ($1, $2, $3, $4, $5) RETURNING id',
     [post.id, authorId, a.key, a.url, a.durationMs],
@@ -64,7 +65,7 @@ export async function addAudioReply(db: Db, post: StatusPostRow, authorId: strin
 }
 
 /** FR-007: the owner reads every reply; anyone else only their own. Oldest first. */
-export async function listReplies(db: Db, post: StatusPostRow, viewerId: string): Promise<StatusReply[]> {
+async function listRepliesPg(db: Db, post: StatusPostRow, viewerId: string): Promise<StatusReply[]> {
   const owner = post.listener_id === viewerId;
   const rows = await db.query<{ id: string; author_id: string; display_name: string; avatar_url: string | null; body: string | null; audio_url: string | null; audio_ms: number | null; created_at: Date | string }>(
     `SELECT r.id, r.author_id, l.display_name, l.avatar_url, r.body, r.audio_url, r.audio_ms, r.created_at
@@ -85,7 +86,7 @@ export async function listReplies(db: Db, post: StatusPostRow, viewerId: string)
 }
 
 /** The owner deletes any reply, the author their own; a voice reply's file goes first. */
-export async function deleteReply(db: Db, storage: VoiceStorage, post: StatusPostRow, replyId: string, viewerId: string): Promise<'ok' | 'not_found'> {
+async function deleteReplyPg(db: Db, storage: VoiceStorage, post: StatusPostRow, replyId: string, viewerId: string): Promise<'ok' | 'not_found'> {
   if (!/^[0-9a-f-]{36}$/i.test(replyId)) return 'not_found';
   const [r] = await db.query<{ id: string; author_id: string; audio_url: string | null }>(
     'SELECT id, author_id, audio_url FROM status_replies WHERE id = $1 AND post_id = $2', [replyId, post.id]);
@@ -99,7 +100,7 @@ export async function deleteReply(db: Db, storage: VoiceStorage, post: StatusPos
  * One reaction per listener (FR-008); a new kind replaces the old. The owner is told of a first
  * reaction from each listener, and once — `milestone_sent_at` — when the status reaches 100.
  */
-export async function setReaction(db: Db, post: StatusPostRow, listenerId: string, kind: number): Promise<void> {
+async function setReactionPg(db: Db, post: StatusPostRow, listenerId: string, kind: number): Promise<void> {
   await db.query(
     `INSERT INTO status_reactions (post_id, listener_id, kind) VALUES ($1, $2, $3)
      ON CONFLICT (post_id, listener_id) DO UPDATE SET kind = EXCLUDED.kind, created_at = now()`,
@@ -113,7 +114,7 @@ export async function setReaction(db: Db, post: StatusPostRow, listenerId: strin
   if (claimed.length > 0) await notify(db, { recipientId: post.listener_id, actorId: listenerId, kind: 'status_milestone', ref: { postId: post.id } });
 }
 
-export async function clearReaction(db: Db, postId: string, listenerId: string): Promise<void> {
+async function clearReactionPg(db: Db, postId: string, listenerId: string): Promise<void> {
   await db.query('DELETE FROM status_reactions WHERE post_id = $1 AND listener_id = $2', [postId, listenerId]);
 }
 
@@ -123,7 +124,7 @@ export type ReactionSummary = { reactions: { kind: number; count: number }[]; my
  * Per post: counts per kind, the viewer's own kind, and — for the owner only — the reply count and
  * who reacted (FR-008 "the owner sees the count and who reacted").
  */
-export async function summaries(db: Db, posts: readonly { id: string; listenerId: string }[], viewerId: string): Promise<Map<string, ReactionSummary>> {
+async function summariesPg(db: Db, posts: readonly { id: string; listenerId: string }[], viewerId: string): Promise<Map<string, ReactionSummary>> {
   const out = new Map<string, ReactionSummary>();
   if (posts.length === 0) return out;
   const ids = posts.map((p) => p.id);
@@ -154,7 +155,18 @@ export async function summaries(db: Db, posts: readonly { id: string; listenerId
 }
 
 /** The voice-reply files hanging off these posts (for the sweep and for deleting a status). */
-export async function replyAudioOf(db: Db, postIds: readonly string[]): Promise<{ id: string; audio_url: string }[]> {
+async function replyAudioOfPg(db: Db, postIds: readonly string[]): Promise<{ id: string; audio_url: string }[]> {
   if (postIds.length === 0) return [];
   return db.query<{ id: string; audio_url: string }>('SELECT id, audio_url FROM status_replies WHERE post_id = ANY($1::uuid[]) AND audio_url IS NOT NULL', [postIds]);
 }
+
+// M26 lane SC: each function runs on Postgres, or on DynamoDB (`ddb/status-replies.ts`) when the Db carries a Store (db/backend.ts).
+export const visibleStatus = dual('sc/status-replies', 'visibleStatus', visibleStatusPg);
+export const addTextReply = dual('sc/status-replies', 'addTextReply', addTextReplyPg);
+export const addAudioReply = dual('sc/status-replies', 'addAudioReply', addAudioReplyPg);
+export const listReplies = dual('sc/status-replies', 'listReplies', listRepliesPg);
+export const deleteReply = dual('sc/status-replies', 'deleteReply', deleteReplyPg);
+export const setReaction = dual('sc/status-replies', 'setReaction', setReactionPg);
+export const clearReaction = dual('sc/status-replies', 'clearReaction', clearReactionPg);
+export const summaries = dual('sc/status-replies', 'summaries', summariesPg);
+export const replyAudioOf = dual('sc/status-replies', 'replyAudioOf', replyAudioOfPg);

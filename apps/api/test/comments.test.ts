@@ -2,6 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
+import { backdateComments, commentRows, heatRows } from './sc-neutral.ts';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
 
@@ -17,7 +18,7 @@ async function setup(t: TestDb) {
 
 async function post(t: TestDb, token: string, body: Record<string, unknown>) {
   // The rate floor is per listener; tests back-date the previous comment instead of sleeping.
-  await t.q("UPDATE comments SET created_at = created_at - interval '10 seconds'");
+  await backdateComments(t, 10_000);
   return t.call('POST', `/v1/episodes/${EP}/comments`, body, token);
 }
 
@@ -77,9 +78,7 @@ test('delete: without replies the row is gone; with replies a placeholder stays;
   const r2 = await t.call('DELETE', `/v1/comments/${parent}`, undefined, a.token);
   assert.deepEqual(await r2.json(), { placeholder: true });
 
-  const rows = await t.q<{ id: string; body: string | null; author_id: string | null; offset_ms: number | null; deleted_at: string | null }>(
-    'SELECT id, body, author_id, offset_ms, deleted_at FROM comments ORDER BY created_at',
-  );
+  const rows = await commentRows(t);
   assert.equal(rows.length, 2, 'placeholder + reply');
   const ph = rows.find((r) => r.id === parent)!;
   assert.deepEqual([ph.body, ph.author_id, ph.offset_ms], [null, null, null]);
@@ -92,10 +91,10 @@ test('heat: a timestamped comment lands in its bucket; deleting it removes it', 
   const t = await freshDb();
   const { a } = await setup(t);
   const id = ((await (await post(t, a.token, { body: 'at 14:32', offsetMs: 872_000 })).json()) as { comment: { id: string } }).comment.id;
-  const heat = await t.q<{ bucket: number; distinct_listeners: number }>('SELECT bucket, distinct_listeners FROM episode_heat WHERE episode_id = $1', [EP]);
+  const heat = await heatRows(t, `${EP}`);
   assert.deepEqual(heat, [{ bucket: Math.floor(872_000 * 100 / 2_899_000), distinct_listeners: 1 }]);
   await t.call('DELETE', `/v1/comments/${id}`, undefined, a.token);
-  assert.deepEqual(await t.q('SELECT bucket FROM episode_heat WHERE episode_id = $1', [EP]), []);
+  assert.deepEqual(await heatRows(t, `${EP}`), []);
   await t.close();
 });
 
