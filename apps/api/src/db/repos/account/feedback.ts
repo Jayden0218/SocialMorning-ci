@@ -6,6 +6,7 @@
  * type), readable only on the owner's /mod page, and deleted after 90 days.
  */
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 
 export const IMAGE_MAX_BYTES = 250_000;
 export const IMAGES_MAX = 3;
@@ -20,7 +21,7 @@ export function sniff(bytes: Uint8Array): 'image/jpeg' | 'image/png' | undefined
   return undefined;
 }
 
-export async function createFeedback(db: Db, f: { listenerId: string | null; kind: string; body: string; appVersion?: string; images: readonly ImageIn[] }): Promise<string> {
+export const createFeedback = dual('ac/index', 'createFeedback', async (db: Db, f: { listenerId: string | null; kind: string; body: string; appVersion?: string; images: readonly ImageIn[] }): Promise<string> => {
   return db.transaction(async (tx) => {
     const [row] = await tx.query<{ id: string }>(
       'INSERT INTO feedback (listener_id, kind, body, app_version) VALUES ($1, $2, $3, $4) RETURNING id',
@@ -34,10 +35,10 @@ export async function createFeedback(db: Db, f: { listenerId: string | null; kin
     }
     return id;
   });
-}
+});
 
 /** M23 US3: feedback messages with pictures this listener sent in the last 24 hours. */
-export async function imagesSentToday(db: Db, listenerId: string): Promise<number> {
+export const imagesSentToday = dual('ac/index', 'imagesSentToday', async (db: Db, listenerId: string): Promise<number> => {
   const [r] = await db.query<{ n: number }>(
     `SELECT count(*)::int AS n FROM feedback f
       WHERE f.listener_id = $1 AND f.created_at > now() - interval '24 hours'
@@ -45,17 +46,17 @@ export async function imagesSentToday(db: Db, listenerId: string): Promise<numbe
     [listenerId],
   );
   return r?.n ?? 0;
-}
+});
 
 /** M23 US3: every stored feedback picture together, in bytes (the ceiling check). */
-export async function feedbackImageBytes(db: Db): Promise<number> {
+export const feedbackImageBytes = dual('ac/index', 'feedbackImageBytes', async (db: Db): Promise<number> => {
   const [r] = await db.query<{ n: string | number }>('SELECT COALESCE(sum(octet_length(bytes)), 0)::bigint AS n FROM feedback_images');
   return Number(r?.n ?? 0);
-}
+});
 
 export type FeedbackRow = { id: string; kind: string; body: string; app_version: string | null; created_at: string | Date; display_name: string | null; images: number };
 
-export async function recentFeedback(db: Db, limit = 50): Promise<FeedbackRow[]> {
+export const recentFeedback = dual('ac/index', 'recentFeedback', async (db: Db, limit = 50): Promise<FeedbackRow[]> => {
   return db.query<FeedbackRow>(
     `SELECT f.id, f.kind, f.body, f.app_version, f.created_at, l.display_name,
             (SELECT count(*)::int FROM feedback_images i WHERE i.feedback_id = f.id) AS images
@@ -63,15 +64,15 @@ export async function recentFeedback(db: Db, limit = 50): Promise<FeedbackRow[]>
      ORDER BY f.created_at DESC LIMIT $1`,
     [limit],
   );
-}
+});
 
-export async function feedbackImage(db: Db, id: string, n: number): Promise<{ mime: string; bytes: Uint8Array } | undefined> {
+export const feedbackImage = dual('ac/index', 'feedbackImage', async (db: Db, id: string, n: number): Promise<{ mime: string; bytes: Uint8Array } | undefined> => {
   const [r] = await db.query<{ mime: string; bytes: Uint8Array }>('SELECT mime, bytes FROM feedback_images WHERE feedback_id = $1 AND n = $2', [id, n]);
   return r;
-}
+});
 
 /** FR-020: images older than 90 days are deleted (the text stays). */
-export async function sweepImages(db: Db): Promise<number> {
+export const sweepImages = dual('ac/index', 'sweepImages', async (db: Db): Promise<number> => {
   const rows = await db.query<{ n: number }>(`DELETE FROM feedback_images WHERE created_at < now() - ($1 || ' days')::interval RETURNING n`, [String(IMAGE_DAYS)]);
   return rows.length;
-}
+});

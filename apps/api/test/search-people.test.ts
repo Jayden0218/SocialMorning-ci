@@ -3,6 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { freshDb, signUp, type TestDb } from './harness.ts';
+import { suspendNow } from './sf-neutral.ts';
 
 type Body = { listeners: { id: string; displayName: string }[] };
 const find = async (t: TestDb, q: string, token?: string): Promise<Body> =>
@@ -19,7 +20,7 @@ test('search/people: case-insensitive, prefix first, only id + displayName; susp
   await signUp(t, 'pct@example.com', 'Ann 100%');
 
   // Anonymous: everyone named like "ann" but the suspended one; the prefix names first.
-  await t.q('UPDATE listeners SET suspended_at = now() WHERE id = $1', [sus.id]);
+  await suspendNow(t, sus.id);
   const anon = await find(t, 'ANN');
   assert.ok(!anon.listeners.some((l) => l.id === sus.id), 'a suspended account is not found');
   assert.equal(anon.listeners.at(-1)!.id, joanna.id, '"Joanna" only contains the term, so it comes last');
@@ -46,8 +47,8 @@ test('search/people: case-insensitive, prefix first, only id + displayName; susp
 
 test('search/people: at most 20', async () => {
   const t = await freshDb();
-  await t.q(`INSERT INTO listeners (email, password_hash, display_name)
-    SELECT 'p' || i || '@example.com', 'x', 'Pat ' || lpad(i::text, 2, '0') FROM generate_series(1, 23) AS i`);
+  // M26: 23 accounts made one by one (both backends), not a generate_series INSERT
+  for (let i = 1; i <= 23; i++) await signUp(t, `p${i}@example.com`, `Pat ${String(i).padStart(2, '0')}`);
   assert.equal((await find(t, 'pat')).listeners.length, 20);
   await t.close();
 });

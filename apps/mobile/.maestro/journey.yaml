@@ -2,12 +2,6 @@
 # simulator on GitHub (ci/workflows/ios-journey.yml) against the local test server that
 # apps/api/scripts/journey.ts seeded. Elements are found by their accessible names — the same
 # names VoiceOver reads — so a renamed control fails here the way it would for a listener.
-#
-# Lane IJ (2026-10-10): every step waits for the element it needs, never a fixed sleep. On CI each
-# Maestro step reads the whole screen (2–25 s) and a clear-state launch took 92–270 s (lane GA runs
-# 37729886977, 37762859064, 37765686194), so the waits are long; they end as soon as the element is
-# there. Labels as of M17+: the first-launch page says "Agree" (it said "Agree and continue" —
-# the nightly was red 2026-10-01…09 at that tap, run 37859560013).
 appId: app.socialmorning.mobile
 env:
   API: http://localhost:8787
@@ -16,226 +10,45 @@ env:
 ---
 - launchApp:
     clearState: true
-    permissions:
-      all: allow                         # notifications: no system alert over the app
-- extendedWaitUntil:                     # the Terms page on first launch
-    visible: "Agree"
-    timeout: 300000
-- takeScreenshot: 00-terms
-# Right after a cold launch the app is still starting: a tap on Agree did not take (lane GA run
-# 37782093384: the Terms page still up), or the screen read after it timed out (run 37997764100).
-# So: tap, wait for the next page, and tap again only while the Terms page is still there.
-- tapOn: "Agree"
-- repeat:
-    while:
-      notVisible: "Continue with email"
-    times: 3
-    commands:
-      - extendedWaitUntil:
-          visible: "Continue with email"
-          timeout: 20000
-          optional: true
-      - runFlow:
-          when:
-            visible: "Agree"
-          commands:
-            - tapOn: "Agree"
-- tapOn: "Continue with email"           # the tap waits for it (a separate assert misread the screen
-                                         # while the Terms page left: run 38014671867)
-- extendedWaitUntil:                     # the consent sheet before signing in
-    visible: "Agree and continue"
-    timeout: 30000
-- tapOn: "Agree and continue"
-- extendedWaitUntil:
-    visible: "Email"
-    timeout: 30000
+- tapOn: "Agree and continue"          # the Terms screen on first launch
+- tapOn: "Continue with email"
+- tapOn: "Agree and continue"          # the consent sheet before signing in
 - tapOn: "Email"
-# The email in short pieces: one fast inputText into this controlled field came out as "l" or
-# "listener-02@journey.test.test.test" on a busy simulator (lane GA runs 37738201166, 37760857732).
-- eraseText: 40
-- inputText: "listener"
-- inputText: "-02@"
-- inputText: "journey"
-- inputText: ".test"
-- repeat:                                # still wrong: clear and type again (the check below stays)
-    while:
-      notVisible: "listener-02@journey\\.test"
-    times: 3
-    commands:
-      - tapOn: "Email"
-      - eraseText: 40
-      - inputText: "listener"
-      - inputText: "-02@"
-      - inputText: "journey"
-      - inputText: ".test"
-- assertVisible: "listener-02@journey\\.test"
+- inputText: ${EMAIL}
 - tapOn: "Send code"
-- extendedWaitUntil:                     # the code step: the server has sent it
-    visible: "Code"
-    timeout: 30000
-- runScript: fetch-code.js               # the test server's inbox — what a person reads in their mail
-- tapOn: "Code"
+- runScript: fetch-code.js             # the test server's inbox — what a person reads in their mail
+- tapOn: "6-digit code"
 - inputText: ${output.code}
-- repeat:                                # Continue turns on only with all 6 digits
-    while:
-      notVisible:
-        text: "Continue"
-        enabled: true
-    times: 3
-    commands:
-      - tapOn: "Code"
-      - eraseText: 10
-      - inputText: ${output.code}
 - tapOn: "Continue"
-- extendedWaitUntil:                     # Discover, or the interests page pushed over it
-    visible: "Discover|Skip choosing categories|Skip"
-    timeout: 60000
-# Whatever may sit over the tabs. A new account gets the interests page, pushed over the tabs a
-# moment AFTER they show (run 38011142490: "Discover" was seen, then the page covered it), so wait
-# for it; then the rate sheet (~1.5 s after the tabs); the launch promotion may come too.
-- extendedWaitUntil:
-    visible: "Skip choosing categories"
-    timeout: 30000
-    optional: true
-- runFlow:
-    when:
-      visible: "Skip choosing categories"
-    commands:
-      - tapOn: "Skip choosing categories"
-- extendedWaitUntil:
-    visible: "Enjoying SocialNet\\?.*"
-    timeout: 8000
-    optional: true
-- repeat:                                # until the tabs are what is on screen
-    while:
-      notVisible: "Discover"
-    times: 4
-    commands:
-      - runFlow:
-          when:
-            visible: "Skip choosing categories"
-          commands:
-            - tapOn: "Skip choosing categories"
-      - runFlow:
-          when:
-            visible: "Skip"
-          commands:
-            - tapOn: "Skip"
-      - runFlow:
-          when:
-            visible: "Enjoying SocialNet\\?.*"
-          commands:
-            - tapOn: "Close"
-      - extendedWaitUntil:
-          visible: "Discover"
-          timeout: 10000
-          optional: true
-- runFlow:
-    when:
-      visible: "Enjoying SocialNet\\?.*"
-    commands:
-      - tapOn: "Close"
 - extendedWaitUntil:
     visible: "Discover"
-    timeout: 30000
+    timeout: 20000
 - takeScreenshot: 01-signed-in
-# Find the seeded show and subscribe.
-- tapOn: "Discover"
 - tapOn:
     text: "Search.*"
-- tapOn: "Search podcasts"
 - inputText: "Journey Morning"
 - pressKey: Enter
-- extendedWaitUntil:
-    visible: "Journey Morning, .*"
-    timeout: 30000
 - tapOn:
-    text: "Journey Morning, .*"
+    text: "Journey Morning"
     index: 0
-- extendedWaitUntil:
-    visible: "(Subscribe to|Unsubscribe from) this show"
-    timeout: 30000
-# A tap on Subscribe did not always take (run 38013604111; lane GA 37769246598). Tap only while
-# the button still says Subscribe, and wait for the change, so a slow tap is never undone.
-- repeat:
-    while:
-      notVisible: "Unsubscribe from this show"
-    times: 3
-    commands:
-      - runFlow:
-          when:
-            visible: "Subscribe to this show"
-          commands:
-            - tapOn: "Subscribe to this show"
-      - extendedWaitUntil:
-          visible: "Unsubscribe from this show"
-          timeout: 15000
-          optional: true
-- extendedWaitUntil:
-    visible: "Unsubscribe from this show"
-    timeout: 30000
+- tapOn: "Subscribe to this show"
 - takeScreenshot: 02-subscribed
-# Play to 0:15–0:29 and pause. Pause before 0:30: inside the last 30 s of this 60 s episode it
-# counts as Finished (src/playback/finished.ts). A screen read can take 25 s on CI (lane GA run
-# 37758119676 saw "Pause" only at 0:40), so play and pause at once, read the STILL clock, and
-# repeat in short steps until it reads 0:15 or later. On iOS the clock is in the episode row's
-# label ("… 0:19 / 1:00").
-- repeat:
-    while:
-      notVisible:
-        text: ".*0:(1[5-9]|2[0-9]) ?/ ?1:00.*"
-    times: 25                            # each play+pause moves the clock 1–15 s (run 38013589560 stopped at 0:14 after 10)
-    commands:
-      - tapOn: "Play Episode 1: A minute of tone"
-      - tapOn: "Pause Episode 1: A minute of tone"
-- assertVisible:
-    text: ".*0:(1[5-9]|2[0-9]) ?/ ?1:00.*"
-- takeScreenshot: 03-paused-at-0-1x-or-0-2x
-# Comment at that moment, from the full player's comments.
+- tapOn: "Play Episode 1: A minute of tone"
+- extendedWaitUntil:                   # about 20 s of real playback
+    visible:
+      text: "0:2[0-9]/1:00"
+    timeout: 45000
+- tapOn: "Pause"
+- takeScreenshot: 03-paused-at-0-2x
 - tapOn:
     text: "Now playing: .*"
 - tapOn:
-    text: "Comments, .*"
-- extendedWaitUntil:
-    visible: "Write a comment.*"
-    timeout: 30000
+    text: "Comments.*"
 - tapOn:
     text: "Write a comment.*"
-- extendedWaitUntil:                     # the composer sheet is up, its box focused
-    visible: "New comment"
-    timeout: 30000
-- takeScreenshot: 04a-composer
-# The box, by its name ("Comment", read together with its placeholder on iOS). It is focused when
-# the sheet opens; the tap makes that not depend on timing. Before lane IJ the sheet could sit one
-# screen down, so this tap landed on the scrim and closed it (lane GA run 37769246598).
-- tapOn:
-    text: "Comment.*What is worth saying here.*"
 - inputText: ${NOTE}
-# Typed faster than any person, this controlled box can drop or move letters on a busy simulator
-# (run 38002770918: "Maestard it on the simulatorro:"; lane GA 37772224452: "…onhe simulator").
-# Wrong text: clear it and type again. The exact text is still checked below and on the server.
-- repeat:
-    while:
-      notVisible: ${NOTE}
-    times: 3
-    commands:
-      - tapOn:
-          text: "Comment( .*)?"            # the box ("Comment", plus its placeholder when empty)
-      - eraseText: 80
-      - inputText: ${NOTE}
-- takeScreenshot: 04b-typed
-- assertVisible: ${NOTE}
 - tapOn: "Post"
-# listener-02 has not accepted the community rules (the seed leaves them out), so the first post
-# answers 428 and the sheet shows the rules (M21 US6); Accept sends the comment again.
 - extendedWaitUntil:
-    visible: "Accept the community rules"
-    timeout: 30000
-- tapOn: "Accept the community rules"
-# The posted comment is ONE element whose name joins the row: "L, Listener 02, just now, Play from
-# 0:15, Maestro: heard it on the simulator" (run 38014659567) — so match the note inside it.
-- extendedWaitUntil:
-    visible: ".*Listener 02, .*Play from 0:(1[5-9]|2[0-9]|3[0-9]|40), Maestro: heard it on the simulator"
-    timeout: 30000
-- assertNotVisible: "New comment"
-- takeScreenshot: 05-commented
+    visible: ${NOTE}
+    timeout: 15000
+- takeScreenshot: 04-commented

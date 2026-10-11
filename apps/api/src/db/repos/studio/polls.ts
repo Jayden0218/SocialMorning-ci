@@ -7,6 +7,7 @@
  * transaction, which keeps it to one. The creator may delete a poll (its votes go with it).
  */
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 import { ApiError } from '../../../errors.ts';
 
 export type Poll = {
@@ -47,17 +48,17 @@ async function hydrate(db: Db, rows: Row[], viewerId?: string): Promise<Poll[]> 
 
 const SELECT = 'SELECT id, question, episode_id, ends_at, closed_at, (closed_at IS NULL AND ends_at > now()) AS open, multi FROM polls';
 
-export async function listPolls(db: Db, feedUrl: string): Promise<Poll[]> {
+async function listPollsPg(db: Db, feedUrl: string): Promise<Poll[]> {
   return hydrate(db, await db.query<Row>(`${SELECT} WHERE feed_url = $1 ORDER BY created_at DESC LIMIT 50`, [feedUrl]));
 }
 
 /** For the app: open polls, and ones closed in the last 7 days so listeners can see how it went. */
-export async function pollsForApp(db: Db, feedUrl: string, viewerId?: string): Promise<Poll[]> {
+async function pollsForAppPg(db: Db, feedUrl: string, viewerId?: string): Promise<Poll[]> {
   return hydrate(db, await db.query<Row>(
     `${SELECT} WHERE feed_url = $1 AND coalesce(closed_at, ends_at) > now() - interval '7 days' ORDER BY created_at DESC LIMIT 10`, [feedUrl]), viewerId);
 }
 
-export async function createPoll(db: Db, feedUrl: string, by: string, p: { question: string; options: string[]; endsAt: string; episodeId?: string | undefined; multi?: boolean | undefined }): Promise<Poll> {
+async function createPollPg(db: Db, feedUrl: string, by: string, p: { question: string; options: string[]; endsAt: string; episodeId?: string | undefined; multi?: boolean | undefined }): Promise<Poll> {
   const ends = Date.parse(p.endsAt);
   if (!Number.isFinite(ends) || ends <= Date.now() || ends > Date.now() + MAX_DAYS * 86_400_000) {
     throw new ApiError('validation', `The end must be in the next ${MAX_DAYS} days.`, { fields: ['endsAt'] });
@@ -77,14 +78,14 @@ export async function createPoll(db: Db, feedUrl: string, by: string, p: { quest
   return (await hydrate(db, await db.query<Row>(`${SELECT} WHERE id = $1`, [id])))[0]!;
 }
 
-export async function closePoll(db: Db, feedUrl: string, id: string): Promise<void> {
+async function closePollPg(db: Db, feedUrl: string, id: string): Promise<void> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) throw new ApiError('not_found', 'No such poll.');
   const r = await db.query('UPDATE polls SET closed_at = coalesce(closed_at, now()) WHERE id = $1 AND feed_url = $2 RETURNING id', [id, feedUrl]);
   if (r.length === 0) throw new ApiError('not_found', 'No such poll.');
 }
 
 /** M24 US14: the creator deletes a poll; its options and votes go with it (ON DELETE CASCADE). */
-export async function deletePoll(db: Db, feedUrl: string, id: string): Promise<void> {
+async function deletePollPg(db: Db, feedUrl: string, id: string): Promise<void> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) throw new ApiError('not_found', 'No such poll.');
   const r = await db.query('DELETE FROM polls WHERE id = $1 AND feed_url = $2 RETURNING id', [id, feedUrl]);
   if (r.length === 0) throw new ApiError('not_found', 'No such poll.');
@@ -96,7 +97,7 @@ export async function deletePoll(db: Db, feedUrl: string, id: string): Promise<v
  * replaced in one transaction, so it stays one vote per listener (G-P1).
  * M24 US14, multiple choice: one number toggles that option; a list (`all`) sets the whole choice.
  */
-export async function vote(db: Db, pollId: string, listenerId: string, choice: number | number[], all = false): Promise<Poll> {
+async function votePg(db: Db, pollId: string, listenerId: string, choice: number | number[], all = false): Promise<Poll> {
   if (!/^[0-9a-f-]{36}$/i.test(pollId)) throw new ApiError('not_found', 'No such poll.');
   const [p] = await db.query<Row>(`${SELECT} WHERE id = $1`, [pollId]);
   if (!p) throw new ApiError('not_found', 'No such poll.');
@@ -118,3 +119,11 @@ export async function vote(db: Db, pollId: string, listenerId: string, choice: n
   });
   return (await hydrate(db, [p], listenerId))[0]!;
 }
+
+// M26 lane ST: each runs on Postgres, or on DynamoDB (src/db/repos/studio/ddb/) when the Db carries a Store (db/backend.ts).
+export const listPolls = dual('st/announce', 'listPolls', listPollsPg);
+export const pollsForApp = dual('st/announce', 'pollsForApp', pollsForAppPg);
+export const createPoll = dual('st/announce', 'createPoll', createPollPg);
+export const closePoll = dual('st/announce', 'closePoll', closePollPg);
+export const deletePoll = dual('st/announce', 'deletePoll', deletePollPg);
+export const vote = dual('st/announce', 'vote', votePg);

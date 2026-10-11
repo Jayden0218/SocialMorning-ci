@@ -5,6 +5,7 @@
  * (`deleted_at`) so a second phone learns it went. Hidden shows' episodes are left out on read.
  */
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 import { ApiError } from '../../../errors.ts';
 import type { EpisodeCard } from '../../../catalog/apple.ts';
 
@@ -30,12 +31,12 @@ const toPlaylist = (r: Row): Playlist => ({
   ...(r.image_url ? { imageUrl: r.image_url } : {}),
 });
 
-export async function myPlaylists(db: Db, ownerId: string): Promise<Playlist[]> {
+async function myPlaylistsPg(db: Db, ownerId: string): Promise<Playlist[]> {
   return (await db.query<Row>(`${LIST} WHERE p.owner_id = $1 AND p.deleted_at IS NULL ORDER BY p.updated_at DESC`, [ownerId])).map(toPlaylist);
 }
 
 /** Public playlists of an account; all of them when the viewer is the owner. */
-export async function playlistsOf(db: Db, ownerId: string, viewerId: string | undefined): Promise<Playlist[]> {
+async function playlistsOfPg(db: Db, ownerId: string, viewerId: string | undefined): Promise<Playlist[]> {
   return (await db.query<Row>(`${LIST} WHERE p.owner_id = $1 AND p.deleted_at IS NULL AND (p.is_public OR p.owner_id = $2) ORDER BY p.updated_at DESC`, [ownerId, viewerId ?? null])).map(toPlaylist);
 }
 
@@ -44,27 +45,27 @@ async function ownRow(db: Db, id: string, ownerId: string): Promise<void> {
   if (!r || r.owner_id !== ownerId) throw new ApiError('not_found', 'No such playlist.');
 }
 
-export async function createPlaylist(db: Db, ownerId: string, title: string, isPublic: boolean): Promise<Playlist> {
+async function createPlaylistPg(db: Db, ownerId: string, title: string, isPublic: boolean): Promise<Playlist> {
   const [n] = await db.query<{ n: number }>('SELECT count(*)::int AS n FROM playlists WHERE owner_id = $1 AND deleted_at IS NULL', [ownerId]);
   if (Number(n?.n ?? 0) >= PLAYLISTS_MAX) throw new ApiError('conflict', `You can keep at most ${PLAYLISTS_MAX} playlists.`);
   const [r] = await db.query<{ id: string }>('INSERT INTO playlists (owner_id, title, is_public) VALUES ($1, $2, $3) RETURNING id', [ownerId, title, isPublic]);
   return (await getPlaylist(db, r!.id, ownerId))!;
 }
 
-export async function updatePlaylist(db: Db, id: string, ownerId: string, p: { title?: string; isPublic?: boolean }): Promise<Playlist> {
+async function updatePlaylistPg(db: Db, id: string, ownerId: string, p: { title?: string; isPublic?: boolean }): Promise<Playlist> {
   await ownRow(db, id, ownerId);
   await db.query('UPDATE playlists SET title = coalesce($2, title), is_public = coalesce($3, is_public), updated_at = now() WHERE id = $1', [id, p.title ?? null, p.isPublic ?? null]);
   return (await getPlaylist(db, id, ownerId))!;
 }
 
-export async function deletePlaylist(db: Db, id: string, ownerId: string): Promise<void> {
+async function deletePlaylistPg(db: Db, id: string, ownerId: string): Promise<void> {
   await ownRow(db, id, ownerId);
   await db.query('DELETE FROM playlist_items WHERE playlist_id = $1', [id]);
   await db.query('UPDATE playlists SET deleted_at = now(), updated_at = now() WHERE id = $1', [id]);
 }
 
 /** Replaces the whole ordered list (reorder and remove in one call). Unknown episodes are refused. */
-export async function setItems(db: Db, id: string, ownerId: string, episodeIds: string[]): Promise<Playlist> {
+async function setItemsPg(db: Db, id: string, ownerId: string, episodeIds: string[]): Promise<Playlist> {
   await ownRow(db, id, ownerId);
   const ids = [...new Set(episodeIds)];
   if (ids.length > PLAYLIST_ITEMS_MAX) throw new ApiError('conflict', `A playlist holds at most ${PLAYLIST_ITEMS_MAX} episodes.`);
@@ -80,7 +81,7 @@ export async function setItems(db: Db, id: string, ownerId: string, episodeIds: 
   return (await getPlaylist(db, id, ownerId))!;
 }
 
-export async function addItem(db: Db, id: string, ownerId: string, episodeId: string): Promise<Playlist> {
+async function addItemPg(db: Db, id: string, ownerId: string, episodeId: string): Promise<Playlist> {
   await ownRow(db, id, ownerId);
   const [e] = await db.query<{ id: string }>('SELECT id FROM episodes WHERE id = $1', [episodeId]);
   if (!e) throw new ApiError('not_found', 'No such episode.');
@@ -92,7 +93,7 @@ export async function addItem(db: Db, id: string, ownerId: string, episodeId: st
 }
 
 /** One playlist with its episodes in order — undefined (404) when private and not the viewer's. */
-export async function getPlaylist(db: Db, id: string, viewerId: string | undefined): Promise<Playlist | undefined> {
+async function getPlaylistPg(db: Db, id: string, viewerId: string | undefined): Promise<Playlist | undefined> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return undefined;
   const [r] = await db.query<Row & { display_name: string; avatar_url: string | null }>(
     `SELECT x.*, l.display_name, l.avatar_url FROM (${LIST} WHERE p.id = $1 AND p.deleted_at IS NULL) x JOIN listeners l ON l.id = x.owner_id`, [id]);
@@ -112,3 +113,13 @@ export async function getPlaylist(db: Db, id: string, viewerId: string | undefin
     })),
   };
 }
+
+// M26 lane SG: each runs on DynamoDB when the Db carries a Store (src/db/backend.ts; bodies in graph-ddb/).
+export const myPlaylists = dual('sg/index', 'myPlaylists', myPlaylistsPg);
+export const playlistsOf = dual('sg/index', 'playlistsOf', playlistsOfPg);
+export const createPlaylist = dual('sg/index', 'createPlaylist', createPlaylistPg);
+export const updatePlaylist = dual('sg/index', 'updatePlaylist', updatePlaylistPg);
+export const deletePlaylist = dual('sg/index', 'deletePlaylist', deletePlaylistPg);
+export const setItems = dual('sg/index', 'setItems', setItemsPg);
+export const addItem = dual('sg/index', 'addItem', addItemPg);
+export const getPlaylist = dual('sg/index', 'getPlaylist', getPlaylistPg);

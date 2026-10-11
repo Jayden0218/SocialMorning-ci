@@ -9,6 +9,7 @@
  */
 import { randomUUID } from 'node:crypto';
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 
 export type AccountInput = { displayName: string; bio?: string | undefined; email?: string | undefined };
 export type AccountResult = { ok: true; id: string } | { ok: false; reason: string };
@@ -24,16 +25,16 @@ export const toAccount = (r: Row): Account => ({
   suspended: r.suspended_at !== null, madeBy: r.made_by, placeholderEmail: r.email.toLowerCase().endsWith(PLACEHOLDER_DOMAIN),
 });
 
-export async function accountsByIds(db: Db, ids: readonly string[]): Promise<Account[]> {
+async function accountsByIdsPg(db: Db, ids: readonly string[]): Promise<Account[]> {
   if (ids.length === 0) return [];
   return (await db.query<Row>(`SELECT ${COLS} FROM listeners WHERE id = ANY($1::uuid[]) ORDER BY created_at`, [ids])).map(toAccount);
 }
 
-export async function madeAccounts(db: Db): Promise<Account[]> {
+async function madeAccountsPg(db: Db): Promise<Account[]> {
   return (await db.query<Row>(`SELECT ${COLS} FROM listeners WHERE made_by IS NOT NULL ORDER BY created_at DESC LIMIT 500`)).map(toAccount);
 }
 
-export async function createAccounts(tx: Db, adminId: string, rows: readonly AccountInput[], passwordHash: string): Promise<AccountResult[]> {
+async function createAccountsPg(tx: Db, adminId: string, rows: readonly AccountInput[], passwordHash: string): Promise<AccountResult[]> {
   const seen = new Set<string>();
   const out: AccountResult[] = [];
   for (const r of rows) {
@@ -51,12 +52,12 @@ export async function createAccounts(tx: Db, adminId: string, rows: readonly Acc
   return out;
 }
 
-export async function emailTaken(db: Db, email: string, exceptId: string): Promise<boolean> {
+async function emailTakenPg(db: Db, email: string, exceptId: string): Promise<boolean> {
   const [r] = await db.query('SELECT 1 FROM listeners WHERE email = $1 AND id <> $2', [email, exceptId]);
   return Boolean(r);
 }
 
-export async function updateAccount(tx: Db, id: string, p: { displayName?: string | undefined; bio?: string | null | undefined; email?: string | undefined }): Promise<Account | undefined> {
+async function updateAccountPg(tx: Db, id: string, p: { displayName?: string | undefined; bio?: string | null | undefined; email?: string | undefined }): Promise<Account | undefined> {
   const [r] = await tx.query<Row>(
     `UPDATE listeners SET display_name = coalesce($2, display_name),
             bio = CASE WHEN $3::boolean THEN $4 ELSE bio END,
@@ -66,3 +67,10 @@ export async function updateAccount(tx: Db, id: string, p: { displayName?: strin
   );
   return r ? toAccount(r) : undefined;
 }
+
+// M26 lane SF: on DynamoDB (safety/ddb/admin-accounts.ts) when the Db carries a Store (db/backend.ts).
+export const accountsByIds = dual('sf/admin-accounts', 'accountsByIds', accountsByIdsPg);
+export const madeAccounts = dual('sf/admin-accounts', 'madeAccounts', madeAccountsPg);
+export const createAccounts = dual('sf/admin-accounts', 'createAccounts', createAccountsPg);
+export const emailTaken = dual('sf/admin-accounts', 'emailTaken', emailTakenPg);
+export const updateAccount = dual('sf/admin-accounts', 'updateAccount', updateAccountPg);

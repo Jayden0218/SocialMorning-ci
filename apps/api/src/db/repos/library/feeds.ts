@@ -1,11 +1,12 @@
 // Feed moves: every live subscription follows a publisher's new feed address, in one transaction.
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 
 /**
  * Tombstones every live subscription to `from`, subscribes the same listeners to `to` (a listener
  * already on `to` keeps that row), and records the unsub/sub events. Returns how many moved.
  */
-export async function moveSubscriptionsToFeed(db: Db, from: string, to: string): Promise<number> {
+async function moveSubscriptionsToFeedPg(db: Db, from: string, to: string): Promise<number> {
   return db.transaction(async (tx) => {
     const moved = await tx.query<{ listener_id: string }>(
       'UPDATE subscriptions SET deleted_at = now() WHERE feed_url = $1 AND deleted_at IS NULL RETURNING listener_id', [from]);
@@ -24,3 +25,6 @@ export async function moveSubscriptionsToFeed(db: Db, from: string, to: string):
     return moved.length;
   });
 }
+
+// M26 lane LB: each function runs on Postgres, or on DynamoDB (`ddb/` bodies) when the Db carries a Store (db/backend.ts).
+export const moveSubscriptionsToFeed = dual('lb/feeds', 'moveSubscriptionsToFeed', moveSubscriptionsToFeedPg);
