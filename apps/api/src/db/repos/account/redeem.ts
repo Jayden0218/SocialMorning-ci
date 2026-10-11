@@ -14,6 +14,7 @@
  */
 import { createHash, randomInt, timingSafeEqual } from 'node:crypto';
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 import { ApiError } from '../../../errors.ts';
 import { codeRef, plusUntil } from './purchases.ts';
 
@@ -58,7 +59,7 @@ function safeJson(s: string): unknown {
   try { return JSON.parse(s); } catch { return undefined; }
 }
 
-export async function showTitle(db: Db, feedUrl: string): Promise<string | null> {
+async function showTitlePg(db: Db, feedUrl: string): Promise<string | null> {
   const [r] = await db.query<{ title: string | null }>(
     `SELECT coalesce(o.title, h.title) AS title FROM (SELECT $1::text AS feed_url) x
        LEFT JOIN hosted_shows h ON h.feed_url = x.feed_url
@@ -73,7 +74,7 @@ type CodeRow = { code: string; grants: unknown; max_uses: number; uses: number; 
 const NO_CODE = () => new ApiError('not_found', 'That code does not work. Check it and try again.');
 
 /** POST /v1/me/redeem — one transaction; see the file comment for the order of the checks. */
-export async function redeemCode(db: Db, raw: string, listenerId: string, now = new Date()): Promise<Redeemed> {
+export const redeemCode = dual('pd/redeem', 'redeemCode', async (db: Db, raw: string, listenerId: string, now = new Date()): Promise<Redeemed> => {
   const code = normalizeCode(raw);
   if (!code) throw NO_CODE();
   return db.transaction(async (tx) => {
@@ -112,14 +113,14 @@ export async function redeemCode(db: Db, raw: string, listenerId: string, now = 
        ON CONFLICT (listener_id, kind, ref) DO NOTHING`, [listenerId, grant.feedUrl]);
     return { kind: 'show', feedUrl: grant.feedUrl, title: await showTitle(tx, grant.feedUrl) };
   });
-}
+});
 
 // ---- Admin ----
 
 export type CodeInput = { grant: Grant; count: number; maxUses: number; note: string; expiresAt: string | null; createdBy: string };
 
 /** Makes `count` new codes with the same grant; returns them in the order made. */
-export async function createCodes(db: Db, p: CodeInput, codes: string[] = []): Promise<string[]> {
+export const createCodes = dual('pd/redeem', 'createCodes', async (db: Db, p: CodeInput, codes: string[] = []): Promise<string[]> => {
   const made: string[] = [];
   for (const wanted of codes.length > 0 ? codes : Array.from({ length: p.count }, () => newRedeemCode())) {
     let code = wanted;
@@ -134,7 +135,7 @@ export async function createCodes(db: Db, p: CodeInput, codes: string[] = []): P
   }
   if (made.length !== (codes.length > 0 ? codes.length : p.count)) throw new Error('could not make unique redeem codes');
   return made;
-}
+});
 
 export type CodeListItem = {
   code: string; kind: 'plus' | 'show'; days: number | null; feedUrl: string | null; showTitle: string | null;
@@ -143,7 +144,7 @@ export type CodeListItem = {
 
 const iso = (v: Date | string | null): string | null => (v === null ? null : new Date(v).toISOString());
 
-export async function listCodes(db: Db, limit = 300): Promise<CodeListItem[]> {
+export const listCodes = dual('pd/redeem', 'listCodes', async (db: Db, limit = 300): Promise<CodeListItem[]> => {
   const rows = await db.query<CodeRow & { note: string; created_at: Date | string }>(
     'SELECT code, grants, max_uses, uses, expires_at, disabled_at, note, created_at FROM redeem_codes ORDER BY created_at DESC, code LIMIT $1', [limit]);
   const titles = new Map<string, string | null>();
@@ -159,22 +160,26 @@ export async function listCodes(db: Db, limit = 300): Promise<CodeListItem[]> {
     });
   }
   return out;
-}
+});
 
 /** The paid shows a code can give (a hosted show with a price, not deleted). */
-export async function paidShows(db: Db): Promise<{ feedUrl: string; title: string }[]> {
+async function paidShowsPg(db: Db): Promise<{ feedUrl: string; title: string }[]> {
   const rows = await db.query<{ feed_url: string; title: string }>(
     'SELECT h.feed_url, coalesce(o.title, h.title) AS title FROM hosted_shows h LEFT JOIN show_overrides o ON o.feed_url = h.feed_url WHERE h.deleted_at IS NULL AND h.price_tier IS NOT NULL ORDER BY 2 LIMIT 200');
   return rows.map((r) => ({ feedUrl: r.feed_url, title: r.title }));
 }
 
-export async function codeState(db: Db, codes: string[]): Promise<Record<string, unknown>[]> {
+export const codeState = dual('pd/redeem', 'codeState', async (db: Db, codes: string[]): Promise<Record<string, unknown>[]> => {
   if (codes.length === 0) return [];
   return db.query<Record<string, unknown>>('SELECT code, grants, max_uses, uses, note, disabled_at FROM redeem_codes WHERE code IN (SELECT jsonb_array_elements_text(($1::text)::jsonb)) ORDER BY code', [JSON.stringify(codes)]);
-}
+});
 
 /** Switches a code off; uses already made keep what they gave. False when there is no such code. */
-export async function disableCode(db: Db, code: string): Promise<boolean> {
+export const disableCode = dual('pd/redeem', 'disableCode', async (db: Db, code: string): Promise<boolean> => {
   const rows = await db.query<{ code: string }>('UPDATE redeem_codes SET disabled_at = coalesce(disabled_at, now()) WHERE code = $1 RETURNING code', [code]);
   return rows.length > 0;
-}
+});
+
+// M26 lane ST: the show's title (override, else Studio-made show) and the priced shows are lane ST's items (studio/ddb/hosted.ts).
+export const showTitle = dual('st/hosted', 'codeShowTitle', showTitlePg);
+export const paidShows = dual('st/hosted', 'paidShows', paidShowsPg);

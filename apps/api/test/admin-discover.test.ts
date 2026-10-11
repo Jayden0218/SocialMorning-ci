@@ -10,8 +10,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
-import { aCall, adminSetup, FX } from './admin-harness.ts';
+import { aCall, adminSetup, catalogFetch, FX } from './admin-harness.ts';
 import { putEpisode } from './put-episode.ts';
+import { createApp } from '../src/app.ts';
+import { TEST_PEPPER } from './harness.ts';
+import { seedCacheRow } from './lb-seed.ts';
 
 const TODAY = '2026-09-22';
 type Body = { layout?: { order: string[]; hidden: string[] }; trending: { key: string; episode: { title: string; feedUrl: string } }[] };
@@ -46,15 +49,32 @@ test('G-D1 (server): hidden ids in layout.hidden, a pin first in trending, a hid
 test('G-D1 (server): settings that cannot be read → today\'s Discover, no layout, no error (FR-029)', async () => {
   const { t, owner } = await adminSetup({ picksRaw: [], today: () => TODAY, collectionsRaw: [] });
   await aCall(t, 'PUT', '/v1/admin/discover', owner, { version: 0, order: ['picks'], hidden: ['said'], pins: [], hides: [] });
-  await t.q('ALTER TABLE discover_settings RENAME TO discover_settings_gone');
-  // M21: close the database whatever happens — a failed assertion left it open, and the file then
-  // never exited (gate 37438890166 hung 24 min with no test named).
-  try {
-    const res = await t.call('GET', '/v1/discover');
+  const check = async (res: Response) => {
     assert.equal(res.status, 200, await res.clone().text());
     const body = (await res.json()) as Body;
     assert.equal(body.layout, undefined);
     assert.ok(body.trending.length > 0, `trending: ${JSON.stringify(body.trending)}`);
+  };
+  if (t.store) {
+    // M26 lane DV: on DynamoDB "cannot be read" is the settings item failing — every GetCommand on
+    // CFG#discover-settings throws, on a second app over the same table set.
+    try {
+      const [{ withStore }, { withFaults }] = await Promise.all([import('../src/db/backend-ddb.ts'), import('../src/db/ddb/test-wrappers.ts')]);
+      const broken = createApp({
+        db: withStore(t.db, withFaults(t.store, [{ command: 'GetCommand', prefix: 'CFG#discover-settings' }])),
+        pepper: TEST_PEPPER, catalogFetch: catalogFetch(), picksRaw: [], today: () => TODAY, collectionsRaw: [],
+      });
+      await check(await broken.request('/v1/discover'));
+    } finally {
+      await t.close();
+    }
+    return;
+  }
+  await t.q('ALTER TABLE discover_settings RENAME TO discover_settings_gone');
+  // M21: close the database whatever happens — a failed assertion left it open, and the file then
+  // never exited (gate 37438890166 hung 24 min with no test named).
+  try {
+    await check(await t.call('GET', '/v1/discover'));
   } finally {
     // Put the table back before closing: with it renamed, PGlite's close() never settled since M21
     // (debug runs on the CI branch debug-hang: renamed → hang; renamed back → 3 of 3 closed).
@@ -65,8 +85,7 @@ test('G-D1 (server): settings that cannot be read → today\'s Discover, no layo
 
 test('category features: up to 5 shows first, in the owner\'s order, even one not on the chart', async () => {
   const { t, owner } = await adminSetup({ picksRaw: [], today: () => TODAY, collectionsRaw: [] });
-  await t.q(`INSERT INTO cache (key, body, fetched_at) VALUES ($1, ($2::text)::jsonb, now())`,
-    [`feed:${FX}`, JSON.stringify({ show: { title: 'Fixture Show', author: 'Fx' }, episodes: [], warnings: [] })]);
+  await seedCacheRow(t, `feed:${FX}`, { show: { title: 'Fixture Show', author: 'Fx' }, episodes: [], warnings: [] }); // M26: both backends
   const put = await aCall(t, 'PUT', '/v1/admin/categories/1303/features', owner, { shows: [{ feedUrl: FX }] });
   assert.equal(put.status, 200);
   const cat = (await (await t.call('GET', '/v1/categories/1303')).json()) as { shows: { feedUrl: string; title: string }[] };

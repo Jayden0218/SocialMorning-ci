@@ -7,13 +7,14 @@
  */
 import { fnv1a64 } from '@socialmorning/social-core';
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 
 export type Role = 'owner' | 'operator';
 export type StudioShow = { key: string; feedUrl: string; title: string | null; image: string | null; role: Role; hosted: boolean };
 
 export const showKey = (feedUrl: string): string => fnv1a64(feedUrl);
 
-export async function showsFor(db: Db, listenerId: string): Promise<StudioShow[]> {
+async function showsForPg(db: Db, listenerId: string): Promise<StudioShow[]> {
   const rows = await db.query<{ feed_url: string; role: Role; title: string | null; image: string | null; hosted: boolean | null }>(
     `WITH mine AS (
        SELECT feed_url, 'owner' AS role, proven_at AS since FROM creator_claims
@@ -38,6 +39,10 @@ export async function showsFor(db: Db, listenerId: string): Promise<StudioShow[]
 }
 
 /** The caller's role on the show with this key, or null. Checked on every Studio request (guard G-A1). */
-export async function roleFor(db: Db, listenerId: string, key: string): Promise<StudioShow | null> {
-  return (await showsFor(db, listenerId)).find((s) => s.key === key) ?? null;
+async function roleForPg(db: Db, listenerId: string, key: string): Promise<StudioShow | null> {
+  return (await showsForPg(db, listenerId)).find((s) => s.key === key) ?? null;
 }
+
+// M26 lane ST: each runs on Postgres, or on DynamoDB (ddb/roles.ts — the `ROLES#` copies) when the Db carries a Store.
+export const showsFor = dual('st/roles', 'showsFor', showsForPg);
+export const roleFor = dual('st/roles', 'roleFor', roleForPg);

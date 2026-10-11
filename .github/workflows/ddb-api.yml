@@ -8,7 +8,7 @@
 # No AWS account and no AWS secret are involved: the client sends fixed dummy keys to localhost only
 # (src/db/ddb/client.ts refuses any other endpoint).
 #
-# For now it runs only test/ddb-*.test.ts. Each shard runs its files one at a time and counts the files that
+# It runs test/ddb-*.test.ts and the files each domain lane has converted (DDB_FILES). Each shard runs its files one at a time and counts the files that
 # pass; the `ratchet` job adds the shards up and prints "ddb passing files: N of M". It fails when
 # N < DDB_MIN_PASSING (default: every file). On the m26 branch the head sets the minimum to the last recorded
 # count (plan.md: the count may never go down at a merge).
@@ -20,16 +20,48 @@ concurrency:
   group: ddb-api-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 env:
-  DDB_FILES: 'test/ddb-*.test.ts'
+  # Each domain lane appends its converted files (tasks.md); they run hybrid: that lane on DynamoDB Local,
+  # every lane not moved yet on PGlite (src/db/backend.ts). LB: catalog/library. AC: account. SC: social content. SG: social graph. PD: paid. SF: safety/admin/config/translation. ST: Studio. DV: discover.
+  DDB_FILES: >-
+    test/ddb-*.test.ts
+    test/cache.test.ts test/episodes.test.ts test/episodes-route.test.ts test/feed.test.ts test/feed-catalog.test.ts
+    test/library.test.ts test/listened.test.ts test/listening-m21.test.ts test/positions.test.ts test/subscriptions.test.ts
+    test/m22-history.test.ts test/m23-feeds.test.ts test/apple-catalog.test.ts test/auto-cover.test.ts test/share-card.test.ts
+    test/tint.test.ts test/m20-quote-card.test.ts
+    test/auth.test.ts test/country.test.ts test/delete-account.test.ts test/email-code.test.ts test/feedback.test.ts
+    test/m22-deletion.test.ts test/m22-digest.test.ts test/m22-push.test.ts test/m22-queue.test.ts test/m23-security.test.ts
+    test/m24-account.test.ts test/m24-fixes.test.ts test/m25-sb.test.ts test/m25-security.test.ts test/password.test.ts
+    test/push.test.ts test/notify-shows.test.ts
+    test/admin-access.test.ts test/admin-accounts.test.ts test/admin-audit.test.ts test/admin-metrics.test.ts test/admin-users.test.ts
+    test/hidden-feed.test.ts test/m22-maintenance.test.ts test/m22-moderation.test.ts test/m22-translate.test.ts test/m24-safety.test.ts
+    test/m25-config.test.ts test/mod-pages.test.ts test/reports-blocks.test.ts test/reports-m21.test.ts
+    test/chat.test.ts test/clips.test.ts test/clip-page.test.ts test/comment-counts.test.ts test/comment-likes.test.ts
+    test/comments.test.ts test/comments-m21.test.ts test/like-posts.test.ts test/m19-comments.test.ts test/m19-likes.test.ts
+    test/m19-voice-comments.test.ts test/m20-comment-image.test.ts test/m20-voice-text.test.ts test/m22-status.test.ts
+    test/reactions.test.ts test/voice-posts.test.ts test/social.test.ts
+    test/follows.test.ts test/friends-listening.test.ts test/live-listeners.test.ts test/m19-playlists.test.ts test/m19-profile.test.ts
+    test/notifications-m21.test.ts test/profile-m21.test.ts test/profiles.test.ts
+    test/m20-purchases.test.ts test/m22-gift.test.ts test/m23-money.test.ts test/wallet.test.ts
+    test/creator.test.ts test/hosted.test.ts test/m14.test.ts test/m19-studio.test.ts test/m24-comment-control.test.ts test/m24-hidden-episodes.test.ts
+    test/m24-studio.test.ts test/studio-announcements.test.ts test/studio-auth.test.ts test/show-m21.test.ts test/studio-comments.test.ts
+    test/studio-data.test.ts test/studio-numbers.test.ts test/studio-perf.test.ts test/studio-roles.test.ts test/studio-settings.test.ts test/studio-subscribers.test.ts
+    test/activity-stats.test.ts test/admin-discover.test.ts test/admin-launch.test.ts test/admin-picks.test.ts test/discover.test.ts
+    test/discover-m10.test.ts test/discover-m21.test.ts test/foryou.test.ts test/foryou-safety.test.ts test/issues.test.ts
+    test/m19-dismissals.test.ts test/m22-foryou.test.ts test/m22-small.test.ts test/m25-lists.test.ts test/nextup.test.ts
+    test/search.test.ts test/search-people.test.ts test/video.test.ts
+    test/le-removed-counts.test.ts
 jobs:
   ddb:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: ${{ matrix.bridge == 'off' && 45 || 20 }}
     strategy:
       fail-fast: false
       matrix:
         shard: [1, 2, 3]
-    name: api tests on DynamoDB Local (shard ${{ matrix.shard }} of 3)
+        # M26 lane LE: `off` runs the same files with NO Postgres behind the app (test/harness.ts noPostgres): no write
+        # bridge and every foreign SQL read throws. Counted on its own (ratchet below, NOBRIDGE_MIN_PASSING).
+        bridge: ['on', 'off']
+    name: api tests on DynamoDB Local (bridge ${{ matrix.bridge }}, shard ${{ matrix.shard }} of 3)
     services:
       dynamodb:
         image: public.ecr.aws/aws-dynamodb-local/aws-dynamodb-local:3.3.1
@@ -38,6 +70,7 @@ jobs:
       DDB_ENDPOINT: http://localhost:8000
       TEST_BACKEND: ddb
       AWS_REGION: ap-southeast-1
+      BRIDGE: ${{ matrix.bridge }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -53,7 +86,7 @@ jobs:
             sleep 1
           done
           echo "DynamoDB Local did not start" >&2; exit 1
-      - name: ddb tests, shard ${{ matrix.shard }} of 3 (one file at a time, counted)
+      - name: ddb tests, bridge ${{ matrix.bridge }}, shard ${{ matrix.shard }} of 3 (one file at a time, counted)
         working-directory: apps/api
         run: |
           start=$(date +%s)
@@ -63,16 +96,19 @@ jobs:
             if [ $(( (i - 1) % 3 + 1 )) -ne ${{ matrix.shard }} ]; then continue; fi
             total=$((total+1))
             echo "::group::$f"
-            if npx tsx --test --test-timeout=120000 "$f"; then pass=$((pass+1)); echo "PASS $f"; else echo "FAIL $f"; echo "$f" >> failed.txt; fi
+            if timeout 600 npx tsx --test --test-timeout=120000 "$f" >out.txt 2>&1; then pass=$((pass+1)); echo "PASS $f"; else echo "FAIL $f"; echo "$f" >> failed.txt; fi
+            cat out.txt
+            grep -o 'BRIDGE-OFF-PG: .*' out.txt | sed "s|^|$f |" >> pg-calls.txt || true
             echo "::endgroup::"
           done
           secs=$(( $(date +%s) - start ))
           echo "shard ${{ matrix.shard }}: $pass of $total files passed in ${secs}s"
-          mkdir -p ../../ddb-count && echo "$pass $total $secs" > ../../ddb-count/shard-${{ matrix.shard }}.txt
-          [ -f failed.txt ] && { echo "failed:"; cat failed.txt; } || true
+          mkdir -p ../../ddb-count && echo "$pass $total $secs" > ../../ddb-count/${{ matrix.bridge }}-shard-${{ matrix.shard }}.txt
+          [ -f failed.txt ] && { echo "failed:"; cat failed.txt; cp failed.txt ../../ddb-count/${{ matrix.bridge }}-failed-${{ matrix.shard }}.txt; } || true
+          if [ -f pg-calls.txt ]; then echo "Postgres calls on the DynamoDB path (file, SQL), unique:"; sort -u pg-calls.txt | tee ../../ddb-count/${{ matrix.bridge }}-pg-${{ matrix.shard }}.txt; fi
       - uses: actions/upload-artifact@v4
         with:
-          name: ddb-count-${{ matrix.shard }}
+          name: ddb-count-${{ matrix.bridge }}-${{ matrix.shard }}
           path: ddb-count/
 
   ratchet:
@@ -90,9 +126,20 @@ jobs:
       - name: add up the shards
         env:
           DDB_MIN_PASSING: ${{ vars.DDB_MIN_PASSING }}
+          # M26 lane LE: the BRIDGE=off count may only go up (raise it when files move over; CUT needs every file).
+          NOBRIDGE_MIN_PASSING: 103
         run: |
           pass=0; total=0; slowest=0; shards=0
-          for f in ddb-count/shard-*.txt; do
+          for f in ddb-count/off-shard-*.txt; do
+            read p t s < "$f"; pass=$((pass+p)); total=$((total+t)); shards=$((shards+1))
+          done
+          [ "$shards" -eq 3 ] || { echo "only $shards of 3 bridge-off shards reported" >&2; exit 1; }
+          echo "ddb passing files with BRIDGE=off: $pass of $total (minimum $NOBRIDGE_MIN_PASSING)" | tee -a "$GITHUB_STEP_SUMMARY"
+          cat ddb-count/off-failed-*.txt 2>/dev/null | sort | sed 's/^/  needs Postgres: /' | tee -a "$GITHUB_STEP_SUMMARY" || true
+          cat ddb-count/off-pg-*.txt 2>/dev/null | sort -u | tee -a "$GITHUB_STEP_SUMMARY" || true
+          [ "$pass" -ge "$NOBRIDGE_MIN_PASSING" ] || exit 1
+          pass=0; total=0; slowest=0; shards=0
+          for f in ddb-count/on-shard-*.txt; do
             read p t s < "$f"; pass=$((pass+p)); total=$((total+t)); shards=$((shards+1)); [ "$s" -gt "$slowest" ] && slowest=$s
           done
           [ "$shards" -eq 3 ] || { echo "only $shards of 3 shards reported" >&2; exit 1; }

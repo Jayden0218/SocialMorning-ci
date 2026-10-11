@@ -14,6 +14,8 @@ import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
 import { proveClaim, sCall, studioLogin } from './studio-harness.ts';
+import { backdateComments, countOf, heatRows } from './sc-neutral.ts';
+import * as S from './st-neutral.ts';
 
 const FEED = 'https://feeds.example.com/control.xml';
 const EP = fnv1a64(FEED + '\u0001' + 'g1');
@@ -36,8 +38,8 @@ const thread = async (t: TestDb, ep: string, token?: string) =>
 const post = (t: TestDb, token: string, body: string, ep = EP, extra: Record<string, unknown> = {}) =>
   t.call('POST', `/v1/episodes/${ep}/comments`, { body, ...extra }, token);
 const older = (t: TestDb) => Promise.all([
-  t.q("UPDATE comments SET created_at = created_at - interval '10 seconds'"),
-  t.q("UPDATE held_comments SET created_at = created_at - interval '10 seconds'"),
+  backdateComments(t, 10_000),
+  S.ageHeld(t, 10_000),
 ]);
 
 test('G-M24-1: a closed show refuses comments with comments_closed; open again takes them', async () => {
@@ -47,7 +49,7 @@ test('G-M24-1: a closed show refuses comments with comments_closed; open again t
   const r = await post(t, mei.token, 'Hello?');
   assert.equal(r.status, 403);
   assert.equal(((await r.json()) as { error: string }).error, 'comments_closed');
-  assert.equal((await t.q('SELECT count(*)::int AS n FROM comments'))[0]!.n, 0);
+  assert.equal(await countOf(t, 'comments'), 0);
   // The host's own team still writes on a closed show.
   assert.equal((await t.call('POST', `/v1/episodes/${EP}/comments`, { body: 'Host here' }, owner.token)).status, 200);
   const policy = (await (await sCall(t, 'PUT', `/v1/studio/shows/${key}/comment-policy`, owner, { mode: 'open' })).json()) as { show: string };
@@ -64,13 +66,13 @@ test('G-M24-1: under review, a comment is seen by its author only — until Appr
   assert.equal(r.status, 200);
   const held = (await r.json()) as { held: boolean; comment: { id: string; held?: true } };
   assert.deepEqual([held.held, held.comment.held], [true, true]);
-  assert.equal((await t.q('SELECT count(*)::int AS n FROM comments'))[0]!.n, 0, 'not in comments at all');
+  assert.equal(await countOf(t, 'comments'), 0, 'not in comments at all');
 
   const mine = await thread(t, EP, mei.token);
   assert.deepEqual(mine.map((c) => [c.body, c.held === true, c.mine]), [['Waiting for you', true, true]]);
   assert.deepEqual(await thread(t, EP, xu.token), [], 'another listener sees nothing');
   assert.deepEqual(await thread(t, EP), [], 'nor does a signed-out reader');
-  assert.deepEqual((await t.q('SELECT count(*)::int AS n FROM episode_heat'))[0]!.n, 0, 'no heat from a held comment');
+  assert.deepEqual((await heatRows(t, EP)).length + (await heatRows(t, EP2)).length, 0, 'no heat from a held comment');
 
   type P = { items: { id: string; body: string; author: { displayName: string } }[] };
   const pending = (await (await sCall(t, 'GET', `/v1/studio/shows/${key}/comments/pending`, owner)).json()) as P;
@@ -78,7 +80,7 @@ test('G-M24-1: under review, a comment is seen by its author only — until Appr
   assert.equal((await sCall(t, 'POST', `/v1/studio/shows/${key}/comments/pending/${pending.items[0]!.id}/approve`, owner)).status, 200);
   const seen = await thread(t, EP, xu.token);
   assert.deepEqual(seen.map((c) => [c.body, c.held === true]), [['Waiting for you', false]], 'approved: everyone sees it');
-  assert.equal((await t.q('SELECT count(*)::int AS n FROM held_comments'))[0]!.n, 0);
+  assert.equal(await S.heldCount(t), 0);
 
   await older(t);
   const second = (await (await post(t, mei.token, 'Second thought')).json()) as { comment: { id: string } };

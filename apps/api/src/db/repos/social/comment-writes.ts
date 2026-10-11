@@ -1,6 +1,7 @@
 // Comment writes the comment routes run: the rate floor, posting and deleting in a transaction, images, reactions.
 import { bucketOf } from '@socialmorning/social-core';
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 import { ApiError } from '../../../errors.ts';
 import { upsertEpisode, type EpisodeRow } from '../library/episodes.ts';
 import { countryOf } from '../account/country.ts';
@@ -9,7 +10,7 @@ import { createComment, deleteComment, type CommentRow } from './comments.ts';
 import { like, type LikeState } from './comment-likes.ts';
 
 /** The comment rate floor: this author's comments within the last `floorMs` milliseconds (a string). */
-export async function recentCommentRows(db: Db, authorId: string, floorMs: string): Promise<{ n: number }[]> {
+async function recentCommentRowsPg(db: Db, authorId: string, floorMs: string): Promise<{ n: number }[]> {
   return db.query<{ n: number }>(
     `SELECT count(*)::int AS n FROM comments WHERE author_id = $1 AND created_at > now() - ($2 || ' milliseconds')::interval`,
     [authorId, floorMs],
@@ -17,7 +18,7 @@ export async function recentCommentRows(db: Db, authorId: string, floorMs: strin
 }
 
 /** POST /v1/episodes/:id/comments: fill a missing duration, create the comment, rebuild heat — one transaction. */
-export async function postCommentInTx(
+async function postCommentInTxPg(
   db: Db,
   episode: EpisodeRow,
   episodeId: string,
@@ -41,7 +42,7 @@ export async function postCommentInTx(
 }
 
 /** DELETE /v1/comments/:id: delete (or placeholder) and rebuild heat — one transaction. */
-export async function deleteCommentInTx(db: Db, id: string): Promise<{ placeholder: boolean; episodeId: string }> {
+async function deleteCommentInTxPg(db: Db, id: string): Promise<{ placeholder: boolean; episodeId: string }> {
   return db.transaction(async (tx) => {
     const r = await deleteComment(tx, id);
     await rebuildEpisodeHeat(tx, r.episodeId);
@@ -55,7 +56,7 @@ export async function likeCommentInTx(db: Db, commentId: string, listenerId: str
 }
 
 /** POST /v1/episodes/:id/comments/voice: create the voice comment and rebuild heat — one transaction. */
-export async function postVoiceCommentInTx(
+async function postVoiceCommentInTxPg(
   db: Db,
   episodeId: string,
   authorId: string,
@@ -70,13 +71,13 @@ export async function postVoiceCommentInTx(
 }
 
 /** Bytes held by comment images, live and held for review. */
-export async function commentImageBytesRows(db: Db): Promise<{ n: string | number | null }[]> {
+async function commentImageBytesRowsPg(db: Db): Promise<{ n: string | number | null }[]> {
   return db.query<{ n: string | number | null }>(
     'SELECT (SELECT coalesce(sum(image_bytes), 0) FROM comments) + (SELECT coalesce(sum(image_bytes), 0) FROM held_comments) AS n');
 }
 
 /** Attach a stored image to a live comment. */
-export async function setCommentImage(db: Db, id: string, url: string, path: string, w: number, h: number, bytes: number): Promise<void> {
+async function setCommentImagePg(db: Db, id: string, url: string, path: string, w: number, h: number, bytes: number): Promise<void> {
   await db.query('UPDATE comments SET image_url = $2, image_path = $3, image_w = $4, image_h = $5, image_bytes = $6 WHERE id = $1', [id, url, path, w, h, bytes]);
 }
 
@@ -84,7 +85,7 @@ export async function setCommentImage(db: Db, id: string, url: string, path: str
  * PUT /v1/episodes/:id/reactions: the toggle, in one transaction — fill a missing duration,
  * remove this listener's reaction in the segment or add one, rebuild heat.
  */
-export async function toggleReactionInTx(
+async function toggleReactionInTxPg(
   db: Db,
   found: EpisodeRow,
   episodeId: string,
@@ -119,3 +120,12 @@ export async function toggleReactionInTx(
     return { reacted, bucket };
   });
 }
+
+// M26 lane SC: each function runs on Postgres, or on DynamoDB (`ddb/comment-writes.ts`) when the Db carries a Store (db/backend.ts).
+export const recentCommentRows = dual('sc/comment-writes', 'recentCommentRows', recentCommentRowsPg);
+export const postCommentInTx = dual('sc/comment-writes', 'postCommentInTx', postCommentInTxPg);
+export const deleteCommentInTx = dual('sc/comment-writes', 'deleteCommentInTx', deleteCommentInTxPg);
+export const postVoiceCommentInTx = dual('sc/comment-writes', 'postVoiceCommentInTx', postVoiceCommentInTxPg);
+export const commentImageBytesRows = dual('sc/comment-writes', 'commentImageBytesRows', commentImageBytesRowsPg);
+export const setCommentImage = dual('sc/comment-writes', 'setCommentImage', setCommentImagePg);
+export const toggleReactionInTx = dual('sc/comment-writes', 'toggleReactionInTx', toggleReactionInTxPg);

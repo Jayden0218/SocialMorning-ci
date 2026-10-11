@@ -2,6 +2,7 @@
 import type { Db } from '../../db.ts';
 import { rebuildEpisodeHeat } from '../../../heat/rebuild.ts';
 import { placeholderComments } from '../social/comments.ts';
+import { dual } from '../../backend.ts';
 
 /**
  * FR-005a (clarified 2026-09-21: everything goes). One transaction:
@@ -12,7 +13,7 @@ import { placeholderComments } from '../social/comments.ts';
  *   3. rebuild heat for every episode touched.
  * The email is free again afterwards because the row is gone, not flagged.
  */
-export async function deleteAccount(db: Db, listenerId: string): Promise<{ placeholders: number; deleted: number; episodes: string[] }> {
+export const deleteAccount = dual('ac/index', 'deleteAccount', async (db: Db, listenerId: string): Promise<{ placeholders: number; deleted: number; episodes: string[] }> => {
   return db.transaction(async (tx) => {
     // M6 (US2 #8): open reports against this listener's content close as "author deleted"; reports BY them stay, anonymised by the FK.
     await tx.query(
@@ -46,4 +47,4 @@ export async function deleteAccount(db: Db, listenerId: string): Promise<{ place
     for (const episodeId of touched) await rebuildEpisodeHeat(tx, episodeId);
     return { placeholders, deleted, episodes: [...touched] };
   });
-}
+});

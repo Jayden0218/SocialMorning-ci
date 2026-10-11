@@ -11,6 +11,7 @@
  * anyone but its owner — a moment's note and a search term are private.
  */
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 
 export const KINDS = ['fav_episode', 'fav_comment', 'moment', 'search'] as const;
 export type Kind = (typeof KINDS)[number];
@@ -41,7 +42,7 @@ function clean(i: LibraryIn): Record<string, unknown> {
   return p;
 }
 
-async function listAll(db: Pick<Db, 'query'>, listenerId: string): Promise<LibraryRow[]> {
+async function listAllPg(db: Pick<Db, 'query'>, listenerId: string): Promise<LibraryRow[]> {
   return db.query<LibraryRow>(
     `SELECT kind, item_key, payload, updated_at, deleted_at FROM library_items
      WHERE listener_id = $1 AND (deleted_at IS NULL OR deleted_at > now() - ($2 || ' days')::interval)
@@ -50,7 +51,7 @@ async function listAll(db: Pick<Db, 'query'>, listenerId: string): Promise<Libra
   );
 }
 
-export async function merge(db: Db, listenerId: string, items: readonly LibraryIn[]): Promise<LibraryRow[]> {
+async function mergePg(db: Db, listenerId: string, items: readonly LibraryIn[]): Promise<LibraryRow[]> {
   if (items.length === 0) return listAll(db, listenerId);
   const incoming = new Map<string, LibraryIn>();
   for (const i of items) {
@@ -89,12 +90,11 @@ export async function merge(db: Db, listenerId: string, items: readonly LibraryI
   });
 }
 
-export { listAll };
 
 export type MyComment = { id: string; body: string | null; deleted: boolean; removed: boolean; hiddenByHost?: true; offsetMs: number | null; createdAt: string; episode: { id: string; feedUrl: string; guid: string; title: string; showTitle: string; imageUrl?: string; enclosureUrl: string } };
 
 /** The caller's own top-level comments, newest first, 50 a page. A deleted or removed one has no body. */
-export async function myComments(db: Pick<Db, 'query'>, listenerId: string, before?: string): Promise<{ items: MyComment[]; next?: string }> {
+async function myCommentsPg(db: Pick<Db, 'query'>, listenerId: string, before?: string): Promise<{ items: MyComment[]; next?: string }> {
   const rows = await db.query<{ id: string; body: string | null; deleted_at: string | null; removed_at: string | null; host_hidden_at: string | null; offset_ms: number | null; created_at: string; episode_id: string; feed_url: string; guid: string; title: string; show_title: string | null; image_url: string | null; enclosure_url: string }>(
     `SELECT c.id, c.body, c.deleted_at, c.removed_at, c.host_hidden_at, c.offset_ms, c.created_at, e.id AS episode_id, e.feed_url, e.guid, e.title, e.show_title, e.image_url, e.enclosure_url
      FROM comments c JOIN episodes e ON e.id = c.episode_id
@@ -114,3 +114,11 @@ export async function myComments(db: Pick<Db, 'query'>, listenerId: string, befo
   const last = page[page.length - 1];
   return { items, ...(rows.length > 50 && last ? { next: new Date(last.created_at).toISOString() } : {}) };
 }
+
+// M26 lane LB: each function runs on Postgres, or on DynamoDB (`ddb/` bodies) when the Db carries a Store (db/backend.ts).
+export const listAll = dual('lb/library', 'listAll', listAllPg);
+export const merge = dual('lb/library', 'merge', mergePg);
+/** The payload as stored (a moment's note capped) — shared with the DynamoDB body. */
+export const cleanPayload = clean;
+// M26 lane LE: on DynamoDB lane SC's author index and items (social/ddb/my-comments.ts).
+export const myComments = dual('sc/my-comments', 'myComments', myCommentsPg);

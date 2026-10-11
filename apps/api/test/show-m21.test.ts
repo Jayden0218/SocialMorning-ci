@@ -13,6 +13,8 @@ import assert from 'node:assert/strict';
 import { Resvg } from '@resvg/resvg-wasm';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 import { addEpisode, proveClaim, sCall, studioLogin } from './studio-harness.ts';
+import { hideFeeds, suspendNow } from './sf-neutral.ts';
+import * as S from './st-neutral.ts';
 import { assets } from '../src/share/card.ts';
 
 const FEED = 'https://feeds.example.com/m21.xml';
@@ -31,11 +33,10 @@ test('subscribers counts live rows only, and reads 0 for a feed moderation hid',
   const a = await signUp(t, 'a@example.com', 'A');
   const b = await signUp(t, 'b@example.com', 'B');
   const c = await signUp(t, 'c@example.com', 'C');
-  await t.q('INSERT INTO subscriptions (listener_id, feed_url) VALUES ($1, $3), ($2, $3)', [a.id, b.id, FEED]);
-  await t.q('INSERT INTO subscriptions (listener_id, feed_url, deleted_at) VALUES ($1, $2, now())', [c.id, FEED]);
+  await S.seedSubscription(t, { listenerId: a.id, feedUrl: FEED }); await S.seedSubscription(t, { listenerId: b.id, feedUrl: FEED });
+  await S.seedSubscription(t, { listenerId: c.id, feedUrl: FEED, deletedAt: new Date().toISOString() });
   assert.equal((await extras(t)).subscribers, 2);
-  const [act] = await t.q<{ id: string }>("INSERT INTO moderation_actions (actor_id, action, target_kind, target_id) VALUES ($1, 'hide_show', 'show', $2) RETURNING id", [a.id, FEED]);
-  await t.q('INSERT INTO hidden_feeds (feed_url, action_id) VALUES ($1, $2)', [FEED, act!.id]);
+  await hideFeeds(t, a.id, [FEED]);
   assert.equal((await extras(t)).subscribers, 0);
   await t.close();
 });
@@ -46,10 +47,10 @@ test('hosts: the proven owner first, then invited hosts, with faces; suspended a
   const owner = await signUp(t, 'o@example.com', 'Owner');
   const host = await signUp(t, 'h@example.com', 'Host');
   const gone = await signUp(t, 'g@example.com', 'Gone');
-  await t.q("UPDATE listeners SET avatar_url = 'https://img.example/o.png' WHERE id = $1", [owner.id]);
+  await S.setAvatarUrl(t, owner.id, 'https://img.example/o.png');
   await proveClaim(t, owner.id, FEED);
-  await t.q('INSERT INTO show_hosts (feed_url, listener_id) VALUES ($1, $2), ($1, $3)', [FEED, host.id, gone.id]);
-  await t.q('UPDATE listeners SET suspended_at = now() WHERE id = $1', [gone.id]);
+  await S.addHost(t, FEED, host.id); await S.addHost(t, FEED, gone.id);
+  await suspendNow(t, gone.id);
   assert.deepEqual((await extras(t)).hosts, [
     { id: owner.id, name: 'Owner', avatarUrl: 'https://img.example/o.png' },
     { id: host.id, name: 'Host', avatarUrl: null },
@@ -105,11 +106,11 @@ test('Show info: a plain feed, a claimed show with its owner\'s country, a show 
   const info = async (feed: string) => (await (await t.call('GET', `/v1/shows/info?feedUrl=${encodeURIComponent(feed)}`)).json()) as Record<string, unknown>;
   assert.deepEqual(await info(FEED), { ownerType: 'feed', ownerCountry: null, feedUrl: FEED, claimedAt: null });
   const owner = await signUp(t, 'o@example.com', 'Owner');
-  await t.q("UPDATE listeners SET country = 'MY' WHERE id = $1", [owner.id]);
+  await S.setDemographics(t, owner.id, { country: 'MY' });
   await proveClaim(t, owner.id, FEED, '2026-10-01T00:00:00.000Z');
   assert.deepEqual(await info(FEED), { ownerType: 'claimed', ownerCountry: 'MY', feedUrl: FEED, claimedAt: '2026-10-01T00:00:00.000Z' });
   const made = 'https://h.example.com/feed.xml';
-  await t.q('INSERT INTO hosted_shows (owner_id, feed_url, title) VALUES ($1, $2, $3)', [owner.id, made, 'Made here']);
+  await S.seedHostedShow(t, { ownerId: owner.id, feedUrl: made, title: 'Made here' });
   await proveClaim(t, owner.id, made);
   assert.equal((await info(made)).ownerType, 'studio');
   assert.equal((await t.call('GET', '/v1/shows/info?feedUrl=nope')).status, 422);
