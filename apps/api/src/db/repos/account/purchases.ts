@@ -15,6 +15,7 @@
  */
 import { fnv1a64 } from '@socialmorning/social-core';
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 import { ApiError } from '../../../errors.ts';
 import type { GooglePlay } from '../../../billing/google-play.ts';
 import { kindOf, tierOf } from '../../../billing/products.ts';
@@ -25,7 +26,7 @@ export type GrantIn = { listenerId: string; productId: string; purchaseToken: st
   allowTest?: boolean };
 
 /** M25 SB (audit #29): a test purchase in production is refused before anything is written. */
-function checkTest(test: boolean, allow: boolean | undefined): boolean {
+export function checkTest(test: boolean, allow: boolean | undefined): boolean {
   if (test && !allow) throw new ApiError('not_paid', 'Test purchases are not accepted here.', { test: true });
   return test;
 }
@@ -49,9 +50,10 @@ export function checkAccount(given: string | null | undefined, listenerId: strin
   return given ?? null;
 }
 
-const ACTIVE = new Set(['SUBSCRIPTION_STATE_ACTIVE', 'SUBSCRIPTION_STATE_IN_GRACE_PERIOD']);
+export const ACTIVE_STATES: ReadonlySet<string> = new Set(['SUBSCRIPTION_STATE_ACTIVE', 'SUBSCRIPTION_STATE_IN_GRACE_PERIOD']);
+const ACTIVE = ACTIVE_STATES;
 
-export async function grantGoogle(db: Db, play: GooglePlay, p: GrantIn): Promise<Granted> {
+export const grantGoogle = dual('pd/purchases', 'grantGoogle', async (db: Db, play: GooglePlay, p: GrantIn): Promise<Granted> => {
   const kind = kindOf(p.productId);
   if (!kind) throw new ApiError('validation', 'No such product.', { fields: ['productId'] });
   const [seen] = await db.query<{ id: string; listener_id: string; status: 'active' | 'expired' | 'refunded'; expires_at: Date | string | null; account_hash: string | null }>(
@@ -143,7 +145,7 @@ export async function grantGoogle(db: Db, play: GooglePlay, p: GrantIn): Promise
   }
   const giftCode = kind === 'gift' ? ('giftCode' in purchaseId && purchaseId.giftCode ? purchaseId.giftCode : await giftForPurchase(db, purchaseId.id)) : undefined;
   return { purchaseId: purchaseId.id, kind, status: 'active', expiresAt, repeated: Boolean(seen) || purchaseId.raced, ...(giftCode ? { giftCode } : {}) };
-}
+});
 
 /**
  * Refunds from Google: the row is marked, and what it granted is taken back.
@@ -151,7 +153,7 @@ export async function grantGoogle(db: Db, play: GooglePlay, p: GrantIn): Promise
  * is recorded — the purchase stays un-voided and keeps what it granted — so the next run
  * finds it again and retries the whole refund. One failed refund does not stop the others.
  */
-export async function applyVoided(db: Db, voided: { purchaseToken: string; voidedAt: number }[]): Promise<{ withdrawn: number; unknown: number; failed?: number }> {
+export const applyVoided = dual('pd/purchases', 'applyVoided', async (db: Db, voided: { purchaseToken: string; voidedAt: number }[]): Promise<{ withdrawn: number; unknown: number; failed?: number }> => {
   let withdrawn = 0;
   let unknown = 0;
   let failed = 0;
@@ -179,10 +181,10 @@ export async function applyVoided(db: Db, voided: { purchaseToken: string; voide
     }
   }
   return { withdrawn, unknown, ...(failed > 0 ? { failed } : {}) };
-}
+});
 
 /** Purchases not yet acknowledged (the first try failed): try again, oldest first. */
-export async function acknowledgeDue(db: Db, play: GooglePlay): Promise<{ done: number; failed: number }> {
+export const acknowledgeDue = dual('pd/purchases', 'acknowledgeDue', async (db: Db, play: GooglePlay): Promise<{ done: number; failed: number }> => {
   const rows = await db.query<{ id: string; product_id: string; purchase_token: string }>(
     "SELECT id, product_id, purchase_token FROM purchases WHERE store = 'google' AND acknowledged_at IS NULL AND status = 'active' AND purchase_token IS NOT NULL AND created_at < now() - interval '10 minutes' ORDER BY created_at LIMIT 50");
   let done = 0;
@@ -197,7 +199,7 @@ export async function acknowledgeDue(db: Db, play: GooglePlay): Promise<{ done: 
     }
   }
   return { done, failed };
-}
+});
 
 /**
  * Fix F-S: PLUS comes from separate rows, one per source (`entitlements.ref`): '' = the store
@@ -249,7 +251,7 @@ export function plusRun(intervals: readonly PlusInterval[], now: number): { acti
  * codes are never moved, and nothing moves earlier (a refund may leave a gap; that is accepted).
  * Call it in the same transaction as the change: the store sync (`grantGoogle`) and Admin's grant.
  */
-export async function rechainCodes(tx: Db, listenerId: string): Promise<number> {
+export const rechainCodes = dual('pd/purchases', 'rechainCodes', async (tx: Db, listenerId: string): Promise<number> => {
   const waiting = await tx.query<{ ref: string; starts_at: Date | string; until: Date | string }>(
     `SELECT ref, starts_at, until FROM entitlements
       WHERE listener_id = $1 AND kind = 'plus' AND (ref = $2 OR ref LIKE $3) AND starts_at > now() AND until IS NOT NULL
@@ -274,21 +276,21 @@ export async function rechainCodes(tx: Db, listenerId: string): Promise<number> 
     cursor = next + length;
   }
   return moved;
-}
+});
 
 /** PLUS now, and when its continuous run ends (`plusRun`). Computed, never stored. */
-export async function plusUntil(db: Db, listenerId: string): Promise<{ active: boolean; until: string | null }> {
+export const plusUntil = dual('pd/purchases', 'plusUntil', async (db: Db, listenerId: string): Promise<{ active: boolean; until: string | null }> => {
   const rows = await db.query<{ starts_at: Date | string | null; until: Date | string | null }>(
     "SELECT starts_at, until FROM entitlements WHERE listener_id = $1 AND kind = 'plus' AND (until IS NULL OR until > now())", [listenerId]);
   const run = plusRun(rows.map((r) => ({ start: r.starts_at === null ? null : new Date(r.starts_at).getTime(), end: r.until === null ? null : new Date(r.until).getTime() })), Date.now());
   return { active: run.active, until: run.until === null ? null : new Date(run.until).toISOString() };
-}
+});
 
 /** Whether this listener has PLUS now (the badge, the icons): any source whose interval holds now. */
-export async function hasPlus(db: Db, listenerId: string): Promise<boolean> {
+export const hasPlus = dual('pd/purchases', 'hasPlus', async (db: Db, listenerId: string): Promise<boolean> => {
   const [r] = await db.query(`SELECT 1 FROM entitlements e WHERE e.listener_id = $1 AND ${PLUS_LIVE_SQL}`, [listenerId]);
   return Boolean(r);
-}
+});
 
 // M26: the wallet page's reads and the sweep's refund-check cache (moved here from routes/).
 
@@ -297,34 +299,79 @@ export type EntitlementListRow = { kind: string; ref: string; starts_at: Date | 
 export type TipListRow = { id: string; to_feed_url: string; created_at: Date | string; amount_micros: string | number | null; currency: string | null; show_title: string | null };
 
 /** My purchases, newest first (at most 200). */
-export async function listPurchaseRows(db: Db, listenerId: string): Promise<PurchaseListRow[]> {
-  return db.query<PurchaseListRow>(
-    'SELECT id, store, product_id, status, expires_at, amount_micros, currency, created_at FROM purchases WHERE listener_id = $1 ORDER BY created_at DESC LIMIT 200', [listenerId]);
-}
+export const listPurchaseRows = dual('pd/purchases', 'listPurchaseRows', async (db: Db, listenerId: string): Promise<PurchaseListRow[]> =>
+  db.query<PurchaseListRow>(
+    'SELECT id, store, product_id, status, expires_at, amount_micros, currency, created_at FROM purchases WHERE listener_id = $1 ORDER BY created_at DESC LIMIT 200', [listenerId]));
 
 /** My entitlements. */
-export async function listEntitlementRows(db: Db, listenerId: string): Promise<EntitlementListRow[]> {
-  return db.query<EntitlementListRow>(
-    'SELECT kind, ref, starts_at, until FROM entitlements WHERE listener_id = $1 ORDER BY kind, ref', [listenerId]);
-}
+export const listEntitlementRows = dual('pd/purchases', 'listEntitlementRows', async (db: Db, listenerId: string): Promise<EntitlementListRow[]> =>
+  db.query<EntitlementListRow>(
+    'SELECT kind, ref, starts_at, until FROM entitlements WHERE listener_id = $1 ORDER BY kind, ref', [listenerId]));
 
 /** The tips I gave, newest first (at most 200), with the show's title. */
-export async function listTipRows(db: Db, listenerId: string): Promise<TipListRow[]> {
-  return db.query<TipListRow>(
+export const listTipRows = dual('pd/purchases', 'listTipRows', async (db: Db, listenerId: string): Promise<TipListRow[]> =>
+  db.query<TipListRow>(
     `SELECT t.id, t.to_feed_url, t.created_at, p.amount_micros, p.currency,
             (SELECT e.show_title FROM episodes e WHERE e.feed_url = t.to_feed_url AND e.show_title IS NOT NULL LIMIT 1) AS show_title
      FROM tips t JOIN purchases p ON p.id = t.purchase_id
      WHERE t.from_listener = $1 ORDER BY t.created_at DESC LIMIT 200`,
     [listenerId],
-  );
-}
+  ));
 
 /** When Google's refunds were last read (the `billing:voided` cache row). */
-export async function lastVoidedCheckRows(db: Db): Promise<{ fetched_at: Date | string }[]> {
-  return db.query<{ fetched_at: Date | string }>("SELECT fetched_at FROM cache WHERE key = 'billing:voided'");
-}
+export const lastVoidedCheckRows = dual('pd/purchases', 'lastVoidedCheckRows', async (db: Db): Promise<{ fetched_at: Date | string }[]> =>
+  db.query<{ fetched_at: Date | string }>("SELECT fetched_at FROM cache WHERE key = 'billing:voided'"));
 
 /** Remember the last refund read and when it happened. */
-export async function saveVoidedCheck(db: Db, v: unknown): Promise<void> {
+export const saveVoidedCheck = dual('pd/purchases', 'saveVoidedCheck', async (db: Db, v: unknown): Promise<void> => {
   await db.query("INSERT INTO cache (key, body, fetched_at) VALUES ('billing:voided', $1::text::jsonb, now()) ON CONFLICT (key) DO UPDATE SET body = EXCLUDED.body, fetched_at = now()", [JSON.stringify(v)]);
-}
+});
+
+// M26 lane PD: the admin user page's money reads and PLUS writes (moved here from db/repos/admin/admin-users.ts, which
+// re-exports them, so they reach the DynamoDB items once this lane moves). SQL unchanged.
+
+export type MoneyRow = { id: string; product_id: string; store: string; status: string; amount_micros: string | number | null; currency: string | null; created_at: Date | string; expires_at: Date | string | null };
+export type TipAdminRow = { id: string; to_feed_url: string; created_at: Date | string; status: string };
+export type GiftAdminRow = { id: string; feed_url: string; bought: boolean; claimed_at: Date | string | null; cancelled_at: Date | string | null; created_at: Date | string };
+
+export const plusEntitlements = dual('pd/purchases', 'plusEntitlements', async (db: Db, id: string): Promise<{ ref: string; until: Date | string | null; source_purchase_id: string | null }[]> =>
+  db.query<{ ref: string; until: Date | string | null; source_purchase_id: string | null }>(
+    "SELECT ref, until, source_purchase_id FROM entitlements WHERE listener_id = $1 AND kind = 'plus' ORDER BY until DESC NULLS FIRST", [id]));
+
+export const purchasesOf = dual('pd/purchases', 'purchasesOf', async (db: Db, id: string): Promise<MoneyRow[]> =>
+  db.query<MoneyRow>(
+    'SELECT id, product_id, store, status, amount_micros, currency, created_at, expires_at FROM purchases WHERE listener_id = $1 ORDER BY created_at DESC LIMIT 100', [id]));
+
+export const tipsSentBy = dual('pd/purchases', 'tipsSentBy', async (db: Db, id: string): Promise<TipAdminRow[]> =>
+  db.query<TipAdminRow>(
+    'SELECT t.id, t.to_feed_url, t.created_at, p.status FROM tips t JOIN purchases p ON p.id = t.purchase_id WHERE t.from_listener = $1 ORDER BY t.created_at DESC LIMIT 100', [id]));
+
+export const giftsOf = dual('pd/purchases', 'giftsOf', async (db: Db, id: string): Promise<GiftAdminRow[]> =>
+  db.query<GiftAdminRow>(
+    `SELECT id, feed_url, buyer_id = $1 AS bought, claimed_at, cancelled_at, created_at FROM gifts WHERE buyer_id = $1 OR claimed_by = $1 ORDER BY created_at DESC LIMIT 100`, [id]));
+
+/** PLUS for `days` from now under `ref` (the admin's grant), no purchase. */
+export const grantPlusByAdmin = dual('pd/purchases', 'grantPlusByAdmin', async (db: Db, id: string, ref: string, days: number): Promise<void> => {
+  await db.query(
+    `INSERT INTO entitlements (listener_id, kind, ref, until) VALUES ($1, 'plus', $2, now() + make_interval(days => $3::int))
+     ON CONFLICT (listener_id, kind, ref) DO UPDATE SET until = excluded.until`, [id, ref, days]);
+});
+
+/** Every PLUS row goes, bought or given. */
+export const revokeAllPlus = dual('pd/purchases', 'revokeAllPlus', async (db: Db, id: string): Promise<Record<string, unknown>[]> =>
+  db.query("DELETE FROM entitlements WHERE listener_id = $1 AND kind = 'plus'", [id]));
+
+/**
+ * AC-T07 (PLUS half): who may get the weekly digest now — every listener whose PLUS holds now. Postgres returns them
+ * all (the digest filters by time zone itself); DynamoDB reads only the zones where it is Monday noon (`Q#plus#<tz>`).
+ */
+export const plusMembersDue = dual('pd/purchases', 'plusMembersDue', async (db: Db, _now: Date): Promise<string[]> =>
+  (await db.query<{ id: string }>(`SELECT DISTINCT e.listener_id AS id FROM entitlements e WHERE ${PLUS_LIVE_SQL}`)).map((r) => r.id));
+
+/** "Download my data": the four money sections as their `SELECT *` rows (data-export.ts SECTIONS). */
+export const exportPaidRows = dual('pd/purchases', 'exportPaidRows', async (db: Db, listenerId: string): Promise<Record<string, Record<string, unknown>[]>> => ({
+  purchases: await db.query<Record<string, unknown>>('SELECT * FROM purchases WHERE listener_id = $1 ORDER BY created_at', [listenerId]),
+  entitlements: await db.query<Record<string, unknown>>('SELECT * FROM entitlements WHERE listener_id = $1', [listenerId]),
+  tips: await db.query<Record<string, unknown>>('SELECT * FROM tips WHERE from_listener = $1', [listenerId]),
+  giftsBought: await db.query<Record<string, unknown>>('SELECT * FROM gifts WHERE buyer_id = $1', [listenerId]),
+}));

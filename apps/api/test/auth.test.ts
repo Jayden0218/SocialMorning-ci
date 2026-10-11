@@ -2,13 +2,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { freshDb, signUp, signUpWithCode } from './harness.ts';
+import { listenerByEmailRow, setLockedUntil } from './ac-neutral.ts';
 
 test('G-M25-S3: POST /v1/auth/sign-up is gone (404) and makes no account; a code makes one → me → sign-out', async () => {
   const t = await freshDb();
   const gone = await t.call('POST', '/v1/auth/sign-up', { email: 'victim@example.com', password: 'attacker pass 1', displayName: 'Victim' });
   assert.equal(gone.status, 404);
   assert.deepEqual(await gone.json(), { error: 'not_found', message: 'No such route.' });
-  assert.equal((await t.q('SELECT 1 FROM listeners WHERE email = $1', ['victim@example.com'])).length, 0, 'no account was made');
+  assert.equal(await listenerByEmailRow(t, 'victim@example.com'), undefined, 'no account was made');
   // The password the "attacker" chose signs nobody in.
   assert.equal((await t.call('POST', '/v1/auth/sign-in', { email: 'victim@example.com', password: 'attacker pass 1' })).status, 401);
 
@@ -59,10 +60,10 @@ test('five wrong passwords lock the account; the lock expires; the right passwor
   assert.ok(body.retryAfterSeconds >= 1 && body.retryAfterSeconds <= 2, `retryAfterSeconds=${body.retryAfterSeconds}`);
 
   // Expire the lock by moving it into the past rather than sleeping.
-  await t.q("UPDATE listeners SET locked_until = now() - interval '1 second'");
+  await setLockedUntil(t, new Date(Date.now() - 1000).toISOString());
   const ok = await t.call('POST', '/v1/auth/sign-in', { email: 'a@example.com', password: 'correct horse' });
   assert.equal(ok.status, 200);
-  const [row] = await t.q<{ failed_attempts: number }>('SELECT failed_attempts FROM listeners');
+  const row = await listenerByEmailRow(t, 'a@example.com');
   assert.equal(row!.failed_attempts, 0, 'success resets the counter');
   await t.close();
 });

@@ -3,6 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { freshDb, signUp } from './harness.ts';
+import { seedEntitlement, seedPurchase, seedTip } from './pd-neutral.ts';
 
 test('FR-105/106: empty until the store exists; the caller\'s own rows only; storeReady false', async () => {
   const t = await freshDb();
@@ -12,10 +13,10 @@ test('FR-105/106: empty until the store exists; the caller\'s own rows only; sto
   assert.deepEqual(await (await t.call('GET', '/v1/me/purchases', undefined, a.token)).json(), { items: [], entitlements: [], storeReady: false, stores: { google: false, apple: false } });
   assert.deepEqual(await (await t.call('GET', '/v1/me/tips', undefined, a.token)).json(), { items: [], storeReady: false, stores: { google: false, apple: false } });
 
-  const [p] = await t.q<{ id: string }>(`INSERT INTO purchases (listener_id, store, product_id, store_txn_id, status, amount_micros, currency) VALUES ($1, 'apple', 'tip.small', 'txn-1', 'active', 990000, 'USD') RETURNING id`, [a.id]);
-  await t.q(`INSERT INTO purchases (listener_id, store, product_id, store_txn_id, status) VALUES ($1, 'google', 'plus.month', 'txn-2', 'active')`, [b.id]);
-  await t.q(`INSERT INTO tips (from_listener, to_feed_url, purchase_id) VALUES ($1, 'https://feeds.example.com/x.xml', $2)`, [a.id, p!.id]);
-  await t.q(`INSERT INTO entitlements (listener_id, kind) VALUES ($1, 'plus')`, [a.id]);
+  const p = await seedPurchase(t, { listenerId: a.id, store: 'apple', productId: 'tip.small', orderId: 'txn-1', amountMicros: 990000, currency: 'USD' });
+  await seedPurchase(t, { listenerId: b.id, store: 'google', productId: 'plus.month', orderId: 'txn-2' });
+  await seedTip(t, { fromListener: a.id, feedUrl: 'https://feeds.example.com/x.xml', purchaseId: p });
+  await seedEntitlement(t, { listenerId: a.id, kind: 'plus' });
 
   const mine = (await (await t.call('GET', '/v1/me/purchases', undefined, a.token)).json()) as { items: { productId: string; amountMicros: number; currency: string }[]; entitlements: { kind: string; until: string | null }[]; storeReady: boolean };
   assert.deepEqual(mine.items.map((i) => [i.productId, i.amountMicros, i.currency]), [['tip.small', 990000, 'USD']]);

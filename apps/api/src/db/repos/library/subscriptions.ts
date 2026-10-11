@@ -15,6 +15,7 @@
  * still holds it and its next reconcile puts the show back. That is guard G-M2.
  */
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 
 export type SubscriptionRow = {
   feed_url: string;
@@ -54,7 +55,7 @@ export const stampOf = (r: { createdAt: string; deletedAt?: string | null }): nu
   new Date(r.deletedAt ?? r.createdAt).getTime();
 
 /** Everything the account has ever had, tombstones included, so a phone can converge in one round trip. */
-export async function listAll(db: Db, listenerId: string): Promise<SubscriptionRow[]> {
+async function listAllPg(db: Db, listenerId: string): Promise<SubscriptionRow[]> {
   return db.query<SubscriptionRow>(
     'SELECT feed_url, starred, created_at, deleted_at, starred_at FROM subscriptions WHERE listener_id = $1 ORDER BY created_at DESC',
     [listenerId],
@@ -65,7 +66,7 @@ export async function listAll(db: Db, listenerId: string): Promise<SubscriptionR
  * Merge a device's set into the account's, then return the whole account set.
  * One transaction: a half-applied reconcile is a library in two states.
  */
-export async function merge(db: Db, listenerId: string, items: readonly SubscriptionIn[]): Promise<SubscriptionRow[]> {
+async function mergePg(db: Db, listenerId: string, items: readonly SubscriptionIn[]): Promise<SubscriptionRow[]> {
   if (items.length === 0) return listAll(db, listenerId);
 
   // A device may send the same feed twice (two tabs, a retry). Keep the later stamp.
@@ -136,7 +137,7 @@ async function logFlip(db: Db, listenerId: string, feedUrl: string, kind: 'sub' 
  * last). One transaction, so a second phone never reads half an order. Feeds the account does not
  * hold are ignored.
  */
-export async function setOrder(db: Db, listenerId: string, feedUrls: readonly string[]): Promise<void> {
+async function setOrderPg(db: Db, listenerId: string, feedUrls: readonly string[]): Promise<void> {
   const urls = [...new Set(feedUrls)];
   await db.transaction(async (tx) => {
     await tx.query('UPDATE subscriptions SET sort_pos = NULL WHERE listener_id = $1 AND sort_pos IS NOT NULL', [listenerId]);
@@ -151,7 +152,7 @@ export async function setOrder(db: Db, listenerId: string, feedUrls: readonly st
 }
 
 /** The saved order: live feeds that have a position, first to last. */
-export async function getOrder(db: Db, listenerId: string): Promise<string[]> {
+async function getOrderPg(db: Db, listenerId: string): Promise<string[]> {
   const rows = await db.query<{ feed_url: string }>(
     'SELECT feed_url FROM subscriptions WHERE listener_id = $1 AND deleted_at IS NULL AND sort_pos IS NOT NULL ORDER BY sort_pos, feed_url',
     [listenerId],
@@ -167,7 +168,7 @@ export type PublicShow = { feedUrl: string; title: string | null; imageUrl: stri
  * called. Hidden feeds (moderation) are left out. Title and cover: the host's override, else the
  * newest episode we registered for the feed.
  */
-export async function publicSubscriptions(db: Db, listenerId: string): Promise<PublicShow[]> {
+async function publicSubscriptionsPg(db: Db, listenerId: string): Promise<PublicShow[]> {
   const rows = await db.query<{ feed_url: string; title: string | null; image_url: string | null }>(
     `SELECT s.feed_url,
             coalesce(o.title, (SELECT e.show_title FROM episodes e WHERE e.feed_url = s.feed_url AND e.show_title IS NOT NULL ORDER BY e.published_at DESC NULLS LAST LIMIT 1)) AS title,
@@ -181,3 +182,10 @@ export async function publicSubscriptions(db: Db, listenerId: string): Promise<P
   );
   return rows.map((r) => ({ feedUrl: r.feed_url, title: r.title, imageUrl: r.image_url }));
 }
+
+// M26 lane LB: each function runs on Postgres, or on DynamoDB (`ddb/` bodies) when the Db carries a Store (db/backend.ts).
+export const listAll = dual('lb/subscriptions', 'listAll', listAllPg);
+export const merge = dual('lb/subscriptions', 'merge', mergePg);
+export const setOrder = dual('lb/subscriptions', 'setOrder', setOrderPg);
+export const getOrder = dual('lb/subscriptions', 'getOrder', getOrderPg);
+export const publicSubscriptions = dual('lb/subscriptions', 'publicSubscriptions', publicSubscriptionsPg);

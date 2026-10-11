@@ -7,13 +7,15 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { expireStatuses, voicePostIds } from './sc-neutral.ts';
+import { makeDeletionsDue } from './ac-neutral.ts';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 import { runDueDeletions, type DeletionStores } from '../src/db/repos/account/deletion.ts';
 import type { VoiceStorage } from '../src/storage/voice-blob.ts';
 import { audioDurationMs } from '../src/voice/duration.ts';
 
 // M22 US11: DELETE /v1/me now waits 15 days; this makes the wait over and runs the internal step's body.
-const dueNow = async (t: TestDb, stores: DeletionStores = {}) => { await t.q("UPDATE account_deletions SET due_at = now() - interval '1 second'"); await runDueDeletions(t.db, stores); };
+const dueNow = async (t: TestDb, stores: DeletionStores = {}) => { await makeDeletionsDue(t); await runDueDeletions(t.db, stores); };
 
 const JOB = 'job-token-not-secret';
 
@@ -63,18 +65,18 @@ test('G-V1: an expired post is never read, and the cron deletes its blob AND its
   assert.ok(hours > 23.9 && hours <= 24, `expires 24 h after creation (${hours})`);
   assert.deepEqual((await feed(t, a.token)).items.map((i) => [i.id, i.durationMs, i.author.initials, i.mine]), [[made.id, 12_000, 'A', true]]);
 
-  await t.q("UPDATE voice_posts SET expires_at = now() - interval '1 minute'");
+  await expireStatuses(t, 60_000);
   assert.deepEqual((await feed(t, a.token)).items, [], 'an expired row is never returned');
 
   v.state.failRemove = true;
   await rebuild(t);
-  assert.equal((await t.q('SELECT id FROM voice_posts')).length, 1, 'a blob that could not be deleted keeps its row for the next cycle');
+  assert.equal((await voicePostIds(t)).length, 1, 'a blob that could not be deleted keeps its row for the next cycle');
 
   v.state.failRemove = false;
   const res = (await (await rebuild(t)).json()) as { counts: { voiceDeleted: number } };
   assert.equal(res.counts.voiceDeleted, 1);
   assert.deepEqual(v.removed, [made.url], 'the blob delete was called');
-  assert.deepEqual(await t.q('SELECT id FROM voice_posts'), [], 'the row is gone, not just hidden');
+  assert.deepEqual(await voicePostIds(t), [], 'the row is gone, not just hidden');
   await t.close();
 });
 
@@ -136,7 +138,7 @@ test('FR-104: followed people and yourself only, never across a block; the autho
   assert.equal(del.status, 202);
   await dueNow(t, { voice: v.store });
   assert.equal(v.removed.length - before, 5);
-  assert.deepEqual(await t.q('SELECT id FROM voice_posts WHERE listener_id = $1', [a.id]), []);
+  assert.deepEqual(await voicePostIds(t, a.id), []);
   await t.close();
 });
 

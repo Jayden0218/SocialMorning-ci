@@ -9,6 +9,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { freshDb, signUp } from './harness.ts';
 import { addEpisode, proveClaim, sCall, studioLogin } from './studio-harness.ts';
+import { releaseLeftovers } from './st-neutral.ts';
+import { seedPurchase, seedTip } from './pd-neutral.ts';
 
 const FEED = 'https://feeds.example.com/mine.xml';
 
@@ -70,10 +72,7 @@ test('release: the owner types the name; everything that hung on the claim stops
 
   assert.equal((await sCall(t, 'GET', `/v1/studio/shows/${key}/overview`, owner)).status, 403);
   assert.equal((await sCall(t, 'GET', `/v1/studio/shows/${key}/overview`, op)).status, 403);
-  const left = await t.q<{ m: number; u: number; o: number; p: number }>(
-    `SELECT (SELECT count(*)::int FROM show_members WHERE feed_url = $1) AS m, (SELECT count(*)::int FROM show_mutes WHERE feed_url = $1) AS u,
-            (SELECT count(*)::int FROM show_overrides WHERE feed_url = $1) AS o, (SELECT count(*)::int FROM polls WHERE feed_url = $1 AND closed_at IS NULL) AS p`, [FEED]);
-  assert.deepEqual(left[0], { m: 0, u: 0, o: 0, p: 0 });
+  assert.deepEqual(await releaseLeftovers(t, FEED), { m: 0, u: 0, o: 0, p: 0 });
   const other = await signUp(t, 'new@example.com', 'New');
   const claim = await t.call('POST', '/v1/creator/claims', { feedUrl: FEED }, other.token);
   assert.equal(claim.status, 200, 'the feed is free again');
@@ -85,11 +84,9 @@ test('G-T1: tips total and list leave out refunded purchases; no tips is zero, n
   const empty = (await (await sCall(t, 'GET', `/v1/studio/shows/${key}/tips`, owner)).json()) as { totalMicrosByCurrency: Record<string, number>; items: unknown[] };
   assert.deepEqual([empty.totalMicrosByCurrency, empty.items], [{}, []]);
   const fan = await signUp(t, 'fan@example.com', 'Fan');
-  const buy = async (txn: string, micros: number, status: string) => {
-    const [p] = await t.q<{ id: string }>(
-      "INSERT INTO purchases (listener_id, store, product_id, store_txn_id, status, amount_micros, currency) VALUES ($1, 'apple', 'tip.small', $2, $3, $4, 'MYR') RETURNING id",
-      [fan.id, txn, status, micros]);
-    await t.q('INSERT INTO tips (from_listener, to_feed_url, purchase_id) VALUES ($1, $2, $3)', [fan.id, FEED, p!.id]);
+  const buy = async (txn: string, micros: number, status: 'active' | 'refunded') => {
+    const pid = await seedPurchase(t, { listenerId: fan.id, store: 'apple', productId: 'tip.small', orderId: txn, status, amountMicros: micros, currency: 'MYR' });
+    await seedTip(t, { fromListener: fan.id, feedUrl: FEED, purchaseId: pid });
   };
   await buy('t1', 4_900_000, 'active');
   await buy('t2', 9_900_000, 'refunded');

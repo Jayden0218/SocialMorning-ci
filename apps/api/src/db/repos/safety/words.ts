@@ -8,6 +8,7 @@
 import { findBlockedWord, WORDS_MAX } from '@socialmorning/social-core';
 import type { Db } from '../../db.ts';
 import { ApiError } from '../../../errors.ts';
+import { dual } from '../../backend.ts';
 
 const MEMO_MS = 30_000;
 const memo = new WeakMap<Db, { at: number; words: string[] }>();
@@ -20,23 +21,28 @@ export async function blockedWords(db: Db): Promise<string[]> {
   const hit = memo.get(db);
   if (hit && Date.now() - hit.at < MEMO_MS) return hit.words;
   // A read that fails (e.g. migration 023 not applied yet) checks nothing rather than refusing every write.
-  const rows = await db.query<{ word: string }>('SELECT word FROM blocked_words ORDER BY word LIMIT $1', [WORDS_MAX])
-    .catch((e: unknown) => { console.warn('[words] read failed', e instanceof Error ? e.message : e); return [] as { word: string }[]; });
-  const words = rows.map((r) => r.word);
+  const words = await wordRows(db)
+    .catch((e: unknown) => { console.warn('[words] read failed', e instanceof Error ? e.message : e); return [] as string[]; });
   memo.set(db, { at: Date.now(), words });
   return words;
 }
 
+/** The stored words, in order (at most WORDS_MAX). */
+async function wordRowsPg(db: Db): Promise<string[]> {
+  const rows = await db.query<{ word: string }>('SELECT word FROM blocked_words ORDER BY word LIMIT $1', [WORDS_MAX]);
+  return rows.map((r) => r.word);
+}
+
 export type WordRow = { word: string; addedBy: string | null; addedAt: string };
 
-export async function listWords(db: Db): Promise<WordRow[]> {
+async function listWordsPg(db: Db): Promise<WordRow[]> {
   const rows = await db.query<{ word: string; added_by_name: string | null; added_at: Date | string }>(
     `SELECT w.word, l.display_name AS added_by_name, w.added_at FROM blocked_words w LEFT JOIN listeners l ON l.id = w.added_by ORDER BY w.word LIMIT $1`, [WORDS_MAX]);
   return rows.map((r) => ({ word: r.word, addedBy: r.added_by_name, addedAt: new Date(r.added_at).toISOString() }));
 }
 
 /** Adds words (already normalised); a word already there is kept. Refuses past WORDS_MAX. */
-export async function addWords(db: Db, words: readonly string[], by: string): Promise<number> {
+async function addWordsPg(db: Db, words: readonly string[], by: string): Promise<number> {
   const [n] = await db.query<{ n: number }>('SELECT count(*)::int AS n FROM blocked_words');
   if (Number(n?.n ?? 0) + words.length > WORDS_MAX) throw new ApiError('validation', `At most ${WORDS_MAX} words.`, { fields: ['words'] });
   const rows = await db.query<{ word: string }>(
@@ -44,7 +50,7 @@ export async function addWords(db: Db, words: readonly string[], by: string): Pr
   return rows.length;
 }
 
-export async function removeWord(db: Db, word: string): Promise<boolean> {
+async function removeWordPg(db: Db, word: string): Promise<boolean> {
   return (await db.query('DELETE FROM blocked_words WHERE word = $1 RETURNING word', [word])).length > 0;
 }
 
@@ -58,3 +64,8 @@ export async function assertNoBlockedWords(db: Db, texts: readonly (string | und
     if (findBlockedWord(t, words) !== undefined) throw new ApiError('blocked_word', 'That contains a word that is not allowed here. Change it and try again.');
   }
 }
+
+export const wordRows = dual('sf/words', 'wordRows', wordRowsPg);
+export const listWords = dual('sf/words', 'listWords', listWordsPg);
+export const addWords = dual('sf/words', 'addWords', addWordsPg);
+export const removeWord = dual('sf/words', 'removeWord', removeWordPg);

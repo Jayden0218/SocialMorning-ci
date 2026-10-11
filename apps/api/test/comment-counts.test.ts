@@ -7,6 +7,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
+import { seedComment, setCommentFlags } from './sc-neutral.ts';
+import { deleteComment } from '../src/db/repos/social/comments.ts';
 import { freshDb, signUp } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
 
@@ -17,18 +19,18 @@ test('G-U1: counts are top-level, live comments only; unknown ids are 0; the bod
   const t = await freshDb();
   for (const g of ['g1', 'g2']) await putEpisode(t, `${id(g)}`, { ...ep(g), durationMs: 1_000_000 });
   const a = await signUp(t);
-  // Straight into the table: the route allows one comment every few seconds.
+  // Straight in: the route allows one comment every few seconds (M26 lane SC: on either backend — sc-neutral.ts).
   const post = async (g: string, parentId: string | null = null) =>
-    (await t.q<{ id: string }>('INSERT INTO comments (episode_id, author_id, parent_id, body, offset_ms) VALUES ($1, $2, $3, $4, 1000) RETURNING id', [id(g), a.id, parentId, 'hi']))[0]!.id;
+    seedComment(t, { episodeId: id(g), authorId: a.id, body: 'hi', offsetMs: 1000, ...(parentId ? { parentId } : {}) });
   const first = await post('g1');
   await post('g1');
   await post('g1', first);
   const gone = await post('g1');
   const removed = await post('g1');
   const hidden = await post('g1');
-  await t.q('UPDATE comments SET deleted_at = now() WHERE id = $1', [gone]);
-  await t.q('UPDATE comments SET removed_at = now() WHERE id = $1', [removed]);
-  await t.q('UPDATE comments SET host_hidden_at = now() WHERE id = $1', [hidden]);
+  await deleteComment(t.db, gone); // no replies: the row goes (it was `deleted_at = now()`; either way it is not counted)
+  await setCommentFlags(t, removed, { removed: true });
+  await setCommentFlags(t, hidden, { hostHiddenBy: a.id });
   await post('g2');
 
   const res = await t.call('POST', '/v1/episodes/comment-counts', { ids: [id('g1'), id('g2'), 'never-seen'] });

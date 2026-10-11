@@ -18,6 +18,7 @@ import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
+import { updateProfile } from '../src/db/repos/account/profile.ts';
 import { todayFor } from '../src/routes/library/listened.ts';
 import { imageKind } from '../src/share/card.ts';
 import { hoursMinutes, monthTitle, recapTree } from '../src/share/recap.ts';
@@ -140,12 +141,12 @@ test('US9 + US10 privacy: hide_decorations empties the stickers for everyone; hi
   const b = await signUp(t, 'b@example.com', 'Bea');
   await putPlacements(t, a.token, { items: [item('hour-1'), item('finish-1', { z: 1 })] });
   assert.equal((await profileOf(t, a.id, b.token)).stickersHidden, undefined);
-  await t.q('UPDATE listeners SET hide_decorations = true WHERE id = $1', [a.id]);
+  await updateProfile(t.db, a.id, { hideDecorations: true }); // M26 lane AC: the listener's own switches are AC's (DynamoDB under ddb)
   assert.deepEqual((await profileOf(t, a.id, b.token)).stickers, []);
   assert.deepEqual((await profileOf(t, a.id, a.token)).stickers, []);
   // The owner's canvas still has them, to turn decorations back on without losing the layout.
   assert.equal(((await (await t.call('GET', '/v1/me/stickers/placements', undefined, a.token)).json()) as { items: unknown[] }).items.length, 2);
-  await t.q('UPDATE listeners SET hide_decorations = false, hide_stickers = true WHERE id = $1', [a.id]);
+  await updateProfile(t.db, a.id, { hideDecorations: false, hideStickers: true });
   assert.equal((await profileOf(t, a.id, b.token)).stickers!.length, 2);
   assert.equal((await profileOf(t, a.id, b.token)).stickersHidden, true);
   assert.equal((await profileOf(t, a.id)).stickersHidden, true);
