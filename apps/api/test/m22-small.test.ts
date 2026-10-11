@@ -3,18 +3,16 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
+import { replaceRanges } from '../src/db/repos/library/listened.ts';
+import { searchRequestCount, seedEpisode } from './dv-neutral.ts';
 
 const noCatalog = (async () => new Response('nope', { status: 404 })) as typeof fetch;
 const A = 'https://feeds.example.com/a.xml';
 const B = 'https://feeds.example.com/b.xml';
 
 async function episode(t: TestDb, feed: string, guid: string, showTitle: string): Promise<string> {
-  const id = fnv1a64(`${feed}\u0001${guid}`);
-  await t.q(
-    `INSERT INTO episodes (id, feed_url, guid, title, show_title, enclosure_url, published_at)
-     VALUES ($1, $2, $3, $4, $5, $6, now()) ON CONFLICT (id) DO NOTHING`,
-    [id, feed, guid, `Ep ${guid}`, showTitle, `https://cdn.example.com/${guid}.mp3`]);
-  return id;
+  // M26: registered through lane LB's dual upsertEpisode (both backends).
+  return seedEpisode(t, { id: fnv1a64(`${feed}\u0001${guid}`), feedUrl: feed, guid, title: `Ep ${guid}`, showTitle, enclosureUrl: `https://cdn.example.com/${guid}.mp3`, publishedAt: new Date().toISOString() });
 }
 
 test('tell the editors: words are stored once a day per caller, and only the owner reads the list', async () => {
@@ -27,7 +25,7 @@ test('tell the editors: words are stored once a day per caller, and only the own
   assert.equal((await t.call('POST', '/v1/search-requests', { q: 'rare show' })).status, 204, 'signed out works too');
   assert.equal((await t.call('POST', '/v1/search-requests', { q: '' })).status, 422);
   assert.equal((await t.call('POST', '/v1/search-requests', { q: 'x'.repeat(201) })).status, 422);
-  assert.equal((await t.q('SELECT 1 FROM search_requests')).length, 2);
+  assert.equal(await searchRequestCount(t), 2);
   assert.equal((await t.call('GET', '/v1/mod/search-requests', undefined, a.token)).status, 403);
   const res = await t.call('GET', '/v1/mod/search-requests', undefined, owner.token);
   assert.equal(res.status, 200);
@@ -72,8 +70,10 @@ test('often listened: top shows of the last 90 days on the profile, hidden by th
   const epB = await episode(t, B, 'b1', 'Show B');
   const today = new Date().toISOString().slice(0, 10);
   const old = new Date(Date.now() - 120 * 86_400_000).toISOString().slice(0, 10);
-  await t.q(`INSERT INTO listened_ranges (listener_id, episode_id, day, device_id, ranges) VALUES ($1, $2, $3, 'p', '[[0, 600000]]'::jsonb)`, [a.id, epA, today]);
-  await t.q(`INSERT INTO listened_ranges (listener_id, episode_id, day, device_id, ranges) VALUES ($1, $2, $3, 'p', '[[0, 900000]]'::jsonb)`, [a.id, epB, old]);
+  // M26: through lane LB's dual replaceRanges (the LDAY rollups on DynamoDB, the rows on Postgres) — it also
+  // writes the listener's running total and the `listened` activity, which this test does not read.
+  await replaceRanges(t.db, a.id, 'p', [{ episodeId: epA, day: today, ranges: [[0, 600_000]] }]);
+  await replaceRanges(t.db, a.id, 'p', [{ episodeId: epB, day: old, ranges: [[0, 900_000]] }]);
 
   type P = { profile: { oftenListened: { feedUrl: string; title: string }[]; hideOftenListened?: boolean } };
   const read = async (token?: string) => ((await (await t.call('GET', `/v1/listeners/${a.id}`, undefined, token)).json()) as P).profile;

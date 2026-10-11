@@ -9,9 +9,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
+import { backdateComments, expireStatuses } from './sc-neutral.ts';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
 import { pushFor } from '../src/db/repos/account/push.ts';
+import { deleteAllBlocks, insertBlock } from './sf-neutral.ts';
 
 type Msg = { to: string; title: string; body: string; data: Record<string, string>; channelId?: string; tag?: string };
 
@@ -38,7 +40,7 @@ async function setup() {
 
 /** Posts a comment; the 5 s rate floor is stepped over by ageing the author's earlier comments. */
 async function comment(t: TestDb, who: { id: string; token: string }, body: string, parentId?: string): Promise<string> {
-  await t.q(`UPDATE comments SET created_at = created_at - interval '1 minute' WHERE author_id = $1`, [who.id]);
+  await backdateComments(t, 60_000, { authorId: who.id });
   const res = await t.call('POST', `/v1/episodes/${EP}/comments`, { body, ...(parentId ? { parentId } : {}) }, who.token);
   assert.equal(res.status, 200, await res.clone().text());
   return ((await res.json()) as { comment: { id: string } }).comment.id;
@@ -105,10 +107,10 @@ test('T012 (G-M22-1 wired): nothing from a blocked or muted person, nor with the
   assert.equal(sent.length, 0, 'muted → no push');
 
   // Block: pushFor itself refuses, even if a notice were written.
-  await t.q('INSERT INTO blocks (blocker_id, blocked_id) VALUES ($1, $2)', [a.id, c.id]);
+  await insertBlock(t, a.id, c.id);
   assert.equal(await pushFor(t.db, { recipientId: a.id, actorId: c.id, kind: 'follow', ref: {} }), 0);
   assert.equal(sent.length, 0, 'blocked → no push');
-  await t.q('DELETE FROM blocks');
+  await deleteAllBlocks(t);
 
   // Switch off: "New followers" off → Cy's follow is a notice but no push.
   assert.equal((await t.call('PUT', '/v1/me/push-prefs', { follows: false }, a.token)).status, 204);
@@ -161,7 +163,7 @@ test('T025 (FR-022): a new status pushes each follower with "Statuses" on, at mo
   // The cap: 4 more push (5 in all), then the 6th does not. Live statuses are capped at 5, so
   // the older ones expire first; the day's count is what limits pushes.
   for (let i = 0; i < 5; i++) {
-    await t.q("UPDATE voice_posts SET expires_at = now() - interval '1 minute' WHERE listener_id = $1", [c.id]);
+    await expireStatuses(t, 60_000, c.id);
     assert.equal((await t.call('POST', '/v1/voice-posts', { body: `Status ${i}` }, c.token)).status, 201);
   }
   assert.equal(statusPushes().length, 5, 'the 6th status of the day pushes no one');

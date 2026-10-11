@@ -7,6 +7,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { freshDb, signUp } from './harness.ts';
+import { putEpisode } from './put-episode.ts';
+import { createPlaylist } from '../src/db/repos/social/playlists.ts';
 
 type P = { id: string; title: string; isPublic: boolean; count: number; items?: { id: string }[] };
 
@@ -14,7 +16,9 @@ test('make, add, reorder, rename, share; another account reads it only while pub
   const t = await freshDb();
   const a = await signUp(t, 'a@example.com', 'Alex');
   const b = await signUp(t, 'b@example.com', 'Bo');
-  await t.q("INSERT INTO episodes (id, feed_url, guid, title, show_title, enclosure_url) VALUES ('e1','https://f/x.xml','g1','One','S','https://c/1.mp3'),('e2','https://f/x.xml','g2','Two','S','https://c/2.mp3'),('e3','https://f/x.xml','g3','Three','S','https://c/3.mp3')");
+  for (const [id, n, title] of [['e1', 1, 'One'], ['e2', 2, 'Two'], ['e3', 3, 'Three']] as const) {
+    await putEpisode(t, id, { feedUrl: 'https://f/x.xml', guid: `g${n}`, title, showTitle: 'S', enclosureUrl: `https://c/${n}.mp3` });
+  }
   const made = (await (await t.call('POST', '/v1/me/playlists', { title: 'Commute' }, a.token)).json()) as P;
   assert.equal(made.isPublic, false);
   for (const e of ['e1', 'e2', 'e3']) await t.call('POST', `/v1/me/playlists/${made.id}/items`, { episodeId: e }, a.token);
@@ -43,7 +47,7 @@ test('at most 50 playlists; a title is 1–60 characters', async () => {
   const a = await signUp(t);
   assert.equal((await t.call('POST', '/v1/me/playlists', { title: '' }, a.token)).status, 422);
   assert.equal((await t.call('POST', '/v1/me/playlists', { title: 'x'.repeat(61) }, a.token)).status, 422);
-  await t.q("INSERT INTO playlists (owner_id, title) SELECT $1, 'p' || g FROM generate_series(1, 50) g", [a.id]);
+  for (let g = 1; g <= 50; g++) await createPlaylist(t.db, a.id, `p${g}`, false);
   assert.equal((await t.call('POST', '/v1/me/playlists', { title: 'one more' }, a.token)).status, 409);
   await t.close();
 });

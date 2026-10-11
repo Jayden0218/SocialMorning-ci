@@ -1,10 +1,14 @@
 // Tests reports hide content for the reporter, and blocks hide people.
 /** quickstart A4 (reports: G3, G4), A5 (blocks), A6 (the poll: G1, G2, G8). */
+import { backdateComments } from './sc-neutral.ts';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
+import { reportRows } from './sf-neutral.ts';
+import { followCount } from './sg-neutral.ts';
+import { isFollowing } from '../src/db/repos/social/follows.ts';
 
 const ep = { feedUrl: 'https://feeds.example.com/x.xml', guid: 'g1', title: 'One', enclosureUrl: 'https://cdn/1.mp3' };
 const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
@@ -12,7 +16,7 @@ type Comment = { id: string; body: string | null; authorId: string | null; delet
 type Social = { comments: Comment[]; heat: { available: boolean; buckets?: number[] } };
 
 async function post(t: TestDb, token: string, body: Record<string, unknown>) {
-  await t.q("UPDATE comments SET created_at = created_at - interval '10 seconds'");
+  await backdateComments(t, 10_000); // lane SC's items on DynamoDB
   const r = await t.call('POST', `/v1/episodes/${EP}/comments`, body, token);
   return { status: r.status, comment: ((await r.json()) as { comment: Comment }).comment };
 }
@@ -47,7 +51,7 @@ test('A4: a report hides the target for the reporter at once, keeps a copy (G4),
   const r2 = await t.call('POST', '/v1/reports', { targetKind: 'comment', targetId: c1.id, reason: 'spam' }, b.token);
   assert.equal(r2.status, 200);
   assert.equal(((await r2.json()) as { duplicate: boolean }).duplicate, true);
-  const rows = await t.q<{ reason: string; snapshot: { body: string; authorName: string } }>('SELECT reason, snapshot FROM reports');
+  const rows = (await reportRows(t)) as { reason: string; snapshot: { body: string; authorName: string } }[];
   assert.equal(rows.length, 1);
   assert.equal(rows[0]!.reason, 'harassment', 'the first reason stands');
   // G4: the copy
@@ -73,7 +77,7 @@ test('A4: a report hides the target for the reporter at once, keeps a copy (G4),
   const gone = await t.call('POST', '/v1/reports', { targetKind: 'comment', targetId: c2.id, reason: 'spam' }, b.token);
   assert.equal(gone.status, 201);
   assert.equal(((await gone.json()) as { closed?: string }).closed, 'already_gone');
-  const [closed] = await t.q<{ close_reason: string; closed_at: string | null }>('SELECT close_reason, closed_at FROM reports WHERE target_id = $1', [c2.id]);
+  const [closed] = (await reportRows(t)).filter((x) => x['target_id'] === c2.id) as { close_reason: string; closed_at: string | null }[];
   assert.equal(closed!.close_reason, 'already_gone');
   assert.ok(closed!.closed_at);
 
@@ -125,8 +129,7 @@ test('A5 + A6: a block hides the blocked listener\'s comments (G1) and turns the
   // one-way: A still sees B
   assert.deepEqual(ids((await social(t, a.token)).body.comments), [bTop.id, aTop.id]);
   // follows gone both ways
-  const follows = await t.q('SELECT 1 FROM follows');
-  assert.equal(follows.length, 0);
+  assert.equal(await followCount(t), 0);
   // A cannot follow B or reply to B; B's profile to A is bare; A's profile to B says blockedByMe
   const f = await t.call('PUT', `/v1/listeners/${b.id}/follow`, undefined, a.token);
   assert.equal(f.status, 403);
@@ -158,7 +161,7 @@ test('A5 + A6: a block hides the blocked listener\'s comments (G1) and turns the
   const restored = await social(t, b.token);
   assert.deepEqual(ids(restored.body.comments), [bTop.id, aTop.id]);
   assert.equal(restored.body.comments[0]!.replies[0]!.body, 'A reply');
-  assert.equal((await t.q('SELECT 1 FROM follows WHERE follower_id = $1', [a.id])).length, 0);
+  assert.equal(await isFollowing(t.db, a.id, b.id), false);
   assert.equal((await t.call('PUT', `/v1/listeners/${b.id}/follow`, undefined, a.token)).status, 204, 'allowed again');
   await t.close();
 });

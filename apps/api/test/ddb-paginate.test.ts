@@ -18,8 +18,9 @@ if (!ON) {
 
   const PAD = 'x'.repeat(100_000); // ~100 KB per item: 12 items ≈ 1.2 MB, more than one 1 MB page
   async function bigPartition(store: Parameters<typeof put>[0], n: number) {
+    // Lane SC: the comment type is strict now (codec.ts), so these test-only rows are typed `config` (an open type) at comment keys.
     await batchWriteAll(store, 'main', Array.from({ length: n }, (_, i) => ({
-      put: encode('comment', K.comment('ep1', `2026-10-10T00:00:${String(i).padStart(2, '0')}.000Z`, `c${i}`), { n: i, pad: PAD, keep: i >= n - 2 }),
+      put: encode('config', K.comment('ep1', `2026-10-10T00:00:${String(i).padStart(2, '0')}.000Z`, `c${i}`), { n: i, pad: PAD, keep: i >= n - 2 }),
     })));
   }
   const byEpisode = { KeyConditionExpression: 'PK = :pk AND begins_with(SK, :c)', ExpressionAttributeValues: { ':pk': 'EP#ep1', ':c': 'C#' }, ConsistentRead: true };
@@ -59,13 +60,13 @@ if (!ON) {
 
   test('max stops inside a page and resumes after the last RETURNED item (no item skipped or repeated)', async () => {
     const s = await freshStore();
-    await batchWriteAll(s.store, 'main', Array.from({ length: 30 }, (_, i) => ({ put: encode('notification', K.notification('L1', `2026-10-10T00:00:${String(i).padStart(2, '0')}.000Z`, `n${i}`), { i }) })));
+    await batchWriteAll(s.store, 'main', Array.from({ length: 30 }, (_, i) => ({ put: encode('notification', K.notification('L1', `2026-10-10T00:00:${String(i).padStart(2, '0')}.000Z`, `n${i}`), { id: i }) }))); // lane SG: notification is a strict type (id is allowed)
     const q = { KeyConditionExpression: 'PK = :pk', ExpressionAttributeValues: { ':pk': 'L#L1' }, ConsistentRead: true };
     const seen: number[] = [];
     let start: Record<string, unknown> | undefined;
     for (let page = 0; page < 10; page++) {
-      const r = await queryAll(s.store, 'main', { ...q, ...(start ? { ExclusiveStartKey: start } : {}) }, { max: 7, keep: (it) => Number(it['i']) % 2 === 0 });
-      seen.push(...r.items.map((i) => Number(i['i'])));
+      const r = await queryAll(s.store, 'main', { ...q, ...(start ? { ExclusiveStartKey: start } : {}) }, { max: 7, keep: (it) => Number(it['id']) % 2 === 0 });
+      seen.push(...r.items.map((i) => Number(i['id'])));
       if (!r.lastKey) break;
       start = r.lastKey;
     }

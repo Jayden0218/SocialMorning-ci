@@ -1,5 +1,6 @@
 // Reads for the public pages and share routes: the share card's fallback artwork, an episode check, the show card, the cached feed.
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 import { notHidden } from '../studio/hidden-episodes.ts';
 
 /** Any artwork from the same show, for an episode without its own. */
@@ -13,14 +14,14 @@ export async function episodeIdRows(db: Db, id: string): Promise<{ id: string }[
 }
 
 /** Every feed with a proven claim. */
-export async function provenFeedRows(db: Db): Promise<{ feed_url: string }[]> {
+async function provenFeedRowsPg(db: Db): Promise<{ feed_url: string }[]> {
   return db.query<{ feed_url: string }>("SELECT DISTINCT feed_url FROM creator_claims WHERE status = 'proven'");
 }
 
 export type ShowCardInfo = { title: string | null; description: string | null; cover: string | null };
 
 /** The show card's title, description and cover: the owner's override, the hosted show, then the episodes. */
-export async function showCardInfoRows(db: Db, feedUrl: string): Promise<ShowCardInfo[]> {
+async function showCardInfoRowsPg(db: Db, feedUrl: string): Promise<ShowCardInfo[]> {
   return db.query<{ title: string | null; description: string | null; cover: string | null }>(
     `SELECT coalesce(o.title, h.title, (SELECT coalesce(e.show_title, e.title) FROM episodes e WHERE e.feed_url = $1 ORDER BY e.published_at DESC NULLS LAST LIMIT 1)) AS title,
             coalesce(o.description, h.description) AS description,
@@ -39,3 +40,7 @@ export async function showCardEpisodeRows(db: Db, feedUrl: string): Promise<{ ti
 export async function cachedFeedRows(db: Db, feedUrl: string): Promise<{ body: unknown }[]> {
   return db.query<{ body: unknown }>('SELECT body FROM cache WHERE key = $1', [`feed:${feedUrl}`]);
 }
+
+// M26 lane ST: claims, overrides and Studio-made shows are lane ST's items (studio/ddb/page.ts).
+export const provenFeedRows = dual('st/page', 'provenFeedRows', provenFeedRowsPg);
+export const showCardInfoRows = dual('st/page', 'showCardInfoRows', showCardInfoRowsPg);

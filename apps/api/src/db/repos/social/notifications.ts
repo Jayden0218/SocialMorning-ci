@@ -6,6 +6,7 @@
  * muted the actor. Read: newest first, a page of 30, `unread` = newer than `notifications_seen_at`.
  */
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 import { pushFor, threadOf } from '../account/push.ts';
 
 export type NoticeKind = 'reply' | 'like' | 'mention' | 'follow'
@@ -21,7 +22,7 @@ const PAGE = 30;
  * actor (G-M21-9). A like or a follow already reported is not reported again (unlike + like again).
  * Returns whether a row was written.
  */
-export async function notify(db: Db, n: { recipientId: string | null | undefined; actorId: string; kind: NoticeKind; ref?: Record<string, string> }): Promise<boolean> {
+async function notifyPg(db: Db, n: { recipientId: string | null | undefined; actorId: string; kind: NoticeKind; ref?: Record<string, string> }): Promise<boolean> {
   if (!n.recipientId) return false;
   // M22 US3: a muted thread, or a comment whose author stopped like notices, makes no notice at all.
   const thread = threadOf({ recipientId: n.recipientId, actorId: n.actorId, kind: n.kind, ref: n.ref ?? {} });
@@ -74,7 +75,7 @@ export function mentionCandidates(body: string): string[][] {
 }
 
 /** The listeners a body mentions: per `@`, the longest exact display name (case-insensitive); at most MAX_MENTIONS. */
-export async function mentionedIds(db: Db, body: string): Promise<string[]> {
+async function mentionedIdsPg(db: Db, body: string): Promise<string[]> {
   const groups = mentionCandidates(body).slice(0, 20);
   const all = [...new Set(groups.flat())];
   if (all.length === 0) return [];
@@ -95,7 +96,7 @@ export async function mentionedIds(db: Db, body: string): Promise<string[]> {
 }
 
 /** A new comment's notices: a reply tells the parent's author; each `@name` tells that listener (not twice). */
-export async function notifyForComment(db: Db, c: { id: string; episodeId: string; authorId: string; parentId?: string | null; body: string | null }): Promise<void> {
+async function notifyForCommentPg(db: Db, c: { id: string; episodeId: string; authorId: string; parentId?: string | null; body: string | null }): Promise<void> {
   let parentAuthor: string | null = null;
   if (c.parentId) {
     const [p] = await db.query<{ author_id: string | null }>('SELECT author_id FROM comments WHERE id = $1', [c.parentId]);
@@ -126,7 +127,7 @@ export type NoticeItem = {
 /** A row written before the M25 fix holds its ref as a jsonb string: read it as the object it encodes. */
 const REF = "(CASE WHEN jsonb_typeof(n.ref) = 'string' THEN (n.ref #>> '{}')::jsonb ELSE n.ref END)";
 
-export async function listNotifications(db: Db, recipientId: string, cursor?: string): Promise<{ items: NoticeItem[]; next: string | null }> {
+async function listNotificationsPg(db: Db, recipientId: string, cursor?: string): Promise<{ items: NoticeItem[]; next: string | null }> {
   const before = cursor && !Number.isNaN(Date.parse(cursor)) ? new Date(cursor).toISOString() : null;
   const rows = await db.query<{
     id: string; kind: NoticeKind; actor_id: string; display_name: string; avatar_url: string | null; ref: unknown;
@@ -165,6 +166,13 @@ export async function listNotifications(db: Db, recipientId: string, cursor?: st
 }
 
 /** Everything up to now is read. */
-export async function markSeen(db: Db, recipientId: string): Promise<void> {
+async function markSeenPg(db: Db, recipientId: string): Promise<void> {
   await db.query('UPDATE listeners SET notifications_seen_at = now() WHERE id = $1', [recipientId]);
 }
+
+// M26 lane SG: each runs on DynamoDB when the Db carries a Store (src/db/backend.ts; bodies in graph-ddb/).
+export const notify = dual('sg/index', 'notify', notifyPg);
+export const mentionedIds = dual('sg/index', 'mentionedIds', mentionedIdsPg);
+export const notifyForComment = dual('sg/index', 'notifyForComment', notifyForCommentPg);
+export const listNotifications = dual('sg/index', 'listNotifications', listNotificationsPg);
+export const markSeen = dual('sg/index', 'markSeen', markSeenPg);
