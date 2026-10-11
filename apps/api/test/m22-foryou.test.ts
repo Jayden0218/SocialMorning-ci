@@ -13,6 +13,7 @@ import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 import { buildForYou, contextFor, interestWeight } from '../src/db/repos/discover/foryou.ts';
 import type { EpisodeCard } from '../src/catalog/apple.ts';
+import { recFeedbackRows, seedEpisode } from './dv-neutral.ts';
 
 const COMEDY = 1303;
 const HISTORY = 1487;
@@ -21,13 +22,11 @@ const noCatalog = (async () => new Response('nope', { status: 404 })) as typeof 
 
 async function episode(t: TestDb, n: number, genre: number, publishedAt: string): Promise<string> {
   const feed = `https://feeds.example.com/g${genre}-${n}.xml`;
-  const id = fnv1a64(`${feed}\u0001e${n}`);
-  await t.q(
-    `INSERT INTO episodes (id, feed_url, guid, title, show_title, enclosure_url, published_at, genre_id)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (id) DO NOTHING`,
-    [id, feed, `e${n}`, `Episode ${n}`, `Show ${genre}-${n}`, `https://cdn.example.com/${genre}-${n}.mp3`, publishedAt, genre],
-  );
-  return id;
+  // M26: registered through lane LB's dual upsertEpisode (both backends).
+  return seedEpisode(t, {
+    id: fnv1a64(`${feed}\u0001e${n}`), feedUrl: feed, guid: `e${n}`, title: `Episode ${n}`, showTitle: `Show ${genre}-${n}`,
+    enclosureUrl: `https://cdn.example.com/${genre}-${n}.mp3`, publishedAt, genreId: genre,
+  });
 }
 
 /** Ten chart cards in five other categories, two shows each, all published an hour ago. */
@@ -105,7 +104,7 @@ test('"Not liking these?" stores the reason and applies the category changes', a
   assert.equal(res.status, 204);
   const got = (await (await t.call('GET', '/v1/me/interests', undefined, a.token)).json()) as { genreIds: number[] };
   assert.deepEqual(got.genreIds, [HISTORY, 1533]);
-  const rows = await t.q<{ reason: string; note: string }>('SELECT reason, note FROM rec_feedback WHERE listener_id = $1', [a.id]);
+  const rows = await recFeedbackRows(t, a.id); // M26: lane AC's items on DynamoDB
   assert.deepEqual(rows.map((r) => [r.reason, r.note]), [['topics', 'less comedy']]);
   assert.equal((await t.call('POST', '/v1/me/rec-feedback', { reason: 'bored' }, a.token)).status, 422);
   await t.close();

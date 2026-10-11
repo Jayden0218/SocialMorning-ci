@@ -9,6 +9,7 @@
  */
 import { randomBytes } from 'node:crypto';
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 import { ApiError } from '../../../errors.ts';
 
 /** No 0/O, 1/I/L: a code read aloud or typed from a screenshot. 32 symbols × 16 = 80 bits. */
@@ -57,16 +58,16 @@ async function showOf(db: Db, feedUrl: string): Promise<{ feedUrl: string; title
 }
 
 /** GET /v1/gifts/:code — what the link offers. Unknown code → 404. */
-export async function giftByCode(db: Db, code: string): Promise<{ show: { feedUrl: string; title: string; artworkUrl: string | null }; claimed: boolean; cancelled: boolean; buyerName: string | null }> {
+export const giftByCode = dual('pd/gifts', 'giftByCode', async (db: Db, code: string): Promise<{ show: { feedUrl: string; title: string; artworkUrl: string | null }; claimed: boolean; cancelled: boolean; buyerName: string | null }> => {
   if (!CODE.test(code)) throw new ApiError('not_found', 'No such gift.');
   const [g] = await db.query<GiftRow & { buyer_name: string | null }>(
     'SELECT g.*, l.display_name AS buyer_name FROM gifts g LEFT JOIN listeners l ON l.id = g.buyer_id AND l.hidden_at IS NULL WHERE g.code = $1', [code]);
   if (!g) throw new ApiError('not_found', 'No such gift.');
   return { show: await showOf(db, g.feed_url), claimed: g.claimed_by !== null, cancelled: g.cancelled_at !== null, buyerName: g.buyer_name };
-}
+});
 
 /** POST /v1/gifts/:code/claim — once (409 already_claimed), not to an owner (409 already_owned), not after a refund (410). */
-export async function claimGift(db: Db, code: string, listenerId: string): Promise<{ feedUrl: string }> {
+export const claimGift = dual('pd/gifts', 'claimGift', async (db: Db, code: string, listenerId: string): Promise<{ feedUrl: string }> => {
   if (!CODE.test(code)) throw new ApiError('not_found', 'No such gift.');
   return db.transaction(async (tx) => {
     const [g] = await tx.query<GiftRow>('SELECT * FROM gifts WHERE code = $1 FOR UPDATE', [code]);
@@ -84,10 +85,10 @@ export async function claimGift(db: Db, code: string, listenerId: string): Promi
        ON CONFLICT (listener_id, kind, ref) DO NOTHING`, [listenerId, g.feed_url, g.purchase_id]);
     return { feedUrl: g.feed_url };
   });
-}
+});
 
 /** GET /v1/me/gifts — the buyer's gifts, newest first, with whether each was claimed (never by whom). */
-export async function myGifts(db: Db, buyerId: string, publicBase: string): Promise<{ items: { code: string; url: string; feedUrl: string; title: string; claimed: boolean; cancelled: boolean; createdAt: string }[] }> {
+export const myGifts = dual('pd/gifts', 'myGifts', async (db: Db, buyerId: string, publicBase: string): Promise<{ items: { code: string; url: string; feedUrl: string; title: string; claimed: boolean; cancelled: boolean; createdAt: string }[] }> => {
   const rows = await db.query<GiftRow>('SELECT * FROM gifts WHERE buyer_id = $1 ORDER BY created_at DESC LIMIT 100', [buyerId]);
   const items = await Promise.all(rows.map(async (g) => {
     const show = await showOf(db, g.feed_url);
@@ -95,7 +96,7 @@ export async function myGifts(db: Db, buyerId: string, publicBase: string): Prom
     return { code, url: giftUrl(publicBase, code), feedUrl: g.feed_url, title: show.title, claimed: g.claimed_by !== null, cancelled: g.cancelled_at !== null, createdAt: new Date(g.created_at).toISOString() };
   }));
   return { items };
-}
+});
 
 /** A refund: an unclaimed gift is cancelled. (A claimed one's entitlement goes with `source_purchase_id`.) */
 export async function cancelGiftsFor(db: Db, purchaseId: string): Promise<void> {

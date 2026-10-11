@@ -12,7 +12,8 @@ import assert from 'node:assert/strict';
 import { hash } from '@socialmorning/social-core';
 import { parseFeed } from '@socialmorning/feed-parser';
 import { freshDb, signUp, type TestDb } from './harness.ts';
-import { sCall, studioLogin, type StudioUser } from './studio-harness.ts';
+import { addEpisode, sCall, studioLogin, type StudioUser } from './studio-harness.ts';
+import * as S from './st-neutral.ts';
 import { fakeStore } from './fake-store.ts';
 
 async function setup() {
@@ -42,13 +43,13 @@ test('G-S1: a draft and a scheduled episode stay out of the feed; publishing the
   assert.equal(((await sched.json()) as { episode: { scheduled: boolean } }).episode.scheduled, true);
   assert.equal((await sCall(t, 'POST', `/v1/studio/shows/${key}/hosted-episodes`, owner, { title: 'x', audioUrl: await uploadFile(t, store, owner, key, 'audio'), publishAt: new Date(Date.now() + 100 * 86_400_000).toISOString() })).status, 422, 'more than 90 days ahead');
   assert.equal((await feedOf(t, show)).episodes.length, 0);
-  assert.equal((await t.q('SELECT count(*)::int AS n FROM episodes WHERE feed_url = $1', [show.feedUrl]))[0]!.n, 0, 'not in the app early');
+  assert.equal(await S.appEpisodeCount(t, show.feedUrl), 0, 'not in the app early');
 
   const id = ((await draft.json()) as { episode: { id: string } }).episode.id;
   assert.equal((await sCall(t, 'PUT', `/v1/studio/shows/${key}/hosted-episodes/${id}`, owner, { status: 'published' })).status, 200);
   assert.deepEqual((await feedOf(t, show)).episodes.map((e) => e.title), ['Draft one']);
   // Time passes: the scheduled one becomes live when anything reads the show.
-  await t.q("UPDATE hosted_episodes SET published_at = now() - interval '1 minute' WHERE title = 'Later one'");
+  await S.moveHostedEpisode(t, 'Later one', 60_000);
   assert.deepEqual((await feedOf(t, show)).episodes.map((e) => e.title).sort(), ['Draft one', 'Later one']);
   await t.close();
 });
@@ -78,7 +79,7 @@ test('G-I1: an invite link works once, for 4 days, and only until revoked; hosts
   assert.deepEqual(((await (await sCall(t, 'GET', `/v1/studio/shows/${key}/hosts`, owner)).json()) as { hosts: { displayName: string }[] }).hosts.map((h) => h.displayName), ['Hana']);
 
   const inv2 = (await (await sCall(t, 'POST', `/v1/studio/shows/${key}/host-invites`, owner)).json()) as { url: string };
-  await t.q("UPDATE show_invites SET expires_at = now() - interval '1 second' WHERE used_at IS NULL");
+  await S.expireInvites(t);
   const late = await sCall(t, 'POST', `/v1/studio/invites/${inv2.url.split('/').pop()}/accept`, again);
   assert.deepEqual([late.status, ((await late.json()) as { reason: string }).reason], [409, 'expired']);
   const inv3 = (await (await sCall(t, 'POST', `/v1/studio/shows/${key}/host-invites`, owner)).json()) as { id: string; url: string };
@@ -87,7 +88,7 @@ test('G-I1: an invite link works once, for 4 days, and only until revoked; hosts
   assert.equal((await sCall(t, 'POST', '/v1/studio/invites/not-a-real-token/accept', again)).status, 404);
 
   // The host's comment carries the Host mark in the app.
-  await t.q("INSERT INTO episodes (id, feed_url, guid, title, enclosure_url) VALUES ('ep1', $1, 'g', 'E', 'https://x/a.mp3')", [show.feedUrl]);
+  await addEpisode(t, show.feedUrl, 'ep1', 'E', null);
   const hostToken = (await (await t.call('POST', '/v1/auth/sign-in', { email: 'h@example.com', password: 'correct horse' })).json()) as { token: string };
   await t.call('POST', '/v1/episodes/ep1/comments', { body: 'Hi from the host' }, hostToken.token);
   const listener = await signUp(t, 'l@example.com', 'L');
@@ -146,6 +147,8 @@ test('the show card is public, escapes text, and 404s for an unknown show', asyn
 
 test('overrides written as a JSON string (the postgres driver, before the fix) read back as lists', async () => {
   const t = await freshDb();
+  // M26 lane ST: Postgres-only (the `postgres` driver's jsonb-as-string defect cannot exist on DynamoDB — plan.md test strategy, like jsonb-repair).
+  if (t.store) { await t.close(); return; }
   const feed = 'https://feeds.example.com/old.xml';
   await t.q(`INSERT INTO show_overrides (feed_url, hosts, links, contacts) VALUES ($1, to_jsonb($2::text), to_jsonb($3::text), to_jsonb($4::text))`,
     [feed, '["Mei"]', '[{"label":"Site","url":"https://x.example"}]', '[{"type":"email","value":"a@b.co"}]']);

@@ -5,13 +5,14 @@
  * M24 US12: plus the show's subscriber-milestone message, to the one listener who crossed it.
  */
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 import { imagesOf } from '../studio/announcements.ts';
 
 export const NOTICES_PAGE = 20;
 
 export type HostNotice = { id: string; feedUrl: string; showTitle: string; imageUrl?: string; body: string; images: string[]; releaseAt: string };
 
-export async function hostNotices(db: Db, listenerId: string, before: string | undefined): Promise<{ items: HostNotice[]; next?: string }> {
+async function hostNoticesPg(db: Db, listenerId: string, before: string | undefined): Promise<{ items: HostNotice[]; next?: string }> {
   const rows = await db.query<{ id: string; feed_url: string; body: string; images: unknown; release_at: Date | string; show_title: string | null; image_url: string | null }>(
     `WITH a AS (
        SELECT a.id, a.feed_url, a.body, a.images, a.release_at
@@ -39,3 +40,6 @@ export async function hostNotices(db: Db, listenerId: string, before: string | u
     ...(rows.length > NOTICES_PAGE && last ? { next: new Date(last.release_at).toISOString() } : {}),
   };
 }
+
+// M26 lane SG: each runs on DynamoDB when the Db carries a Store (src/db/backend.ts; bodies in graph-ddb/).
+export const hostNotices = dual('sg/index', 'hostNotices', hostNoticesPg);

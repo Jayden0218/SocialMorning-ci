@@ -9,14 +9,17 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { freshDb } from './harness.ts';
 import { proveClaim, sCall, studioLogin } from './studio-harness.ts';
+import { bulkBigShow } from './st-neutral.ts';
 
 const FEED = 'https://feeds.example.com/big.xml';
-const BUDGET_MS = 2000;
+// M26 lane ST: on DynamoDB Local (a container over HTTP, one request per read) the budget is re-set to 6 s (plan.md test strategy).
+const BUDGET_MS = process.env['TEST_BACKEND'] === 'ddb' ? 6000 : 2000;
 
 test('SC-006: overview, 90-day trend, episode table, comments and subscribers each answer within 2 s on a big show', async () => {
   const t = await freshDb();
   const owner = await studioLogin(t, 'o@example.com', 'Owner');
   const key = await proveClaim(t, owner.id, FEED);
+  if (t.store) await bulkBigShow(t, FEED); else {
   await t.q(`INSERT INTO episodes (id, feed_url, guid, title, show_title, enclosure_url, duration_ms, published_at)
              SELECT 'E' || i, $1, 'g' || i, 'Episode ' || i, 'Big', 'https://cdn/' || i || '.mp3', 3600000, now() - (i || ' days')::interval
              FROM generate_series(1, 500) i`, [FEED]);
@@ -33,6 +36,7 @@ test('SC-006: overview, 90-day trend, episode table, comments and subscribers ea
   await t.q(`INSERT INTO reactions (listener_id, episode_id, bucket, offset_ms)
              SELECT l.id, 'E' || (1 + (row_number() OVER () % 500)), (row_number() OVER () % 100)::smallint, 0
              FROM listeners l WHERE l.email LIKE 'l%@example.com'`);
+  }
 
   const paths = [
     `/v1/studio/shows/${key}/overview`,

@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 import { fnv1a64, validateIssues } from '@socialmorning/social-core';
 import { freshDb, signUp } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
+import { seedComment } from './sc-neutral.ts';
 import shipped from '../picks.json' with { type: 'json' };
 
 const F = 'https://feeds.example.com/a.xml';
@@ -76,7 +77,7 @@ test('FR-071: the full chart is Discover\'s "Talked about" ranking, un-truncated
   }
   // Episode n gets n comments: the ranking is 12, 11, …, 1 — more than Discover's 10.
   for (let n = 1; n <= 12; n++) {
-    for (let k = 0; k < n; k++) await t.q('INSERT INTO comments (episode_id, author_id, body) VALUES ($1, $2, $3)', [ids[n - 1], a.id, `c${k}`]);
+    for (let k = 0; k < n; k++) await seedComment(t, { episodeId: ids[n - 1]!, authorId: a.id, body: `c${k}` }); // M26: lane SC's items on DynamoDB
   }
   type Chart = { items: { rank: number; score: number; episode: { title: string } }[] };
   const all = (await (await t.call('GET', '/v1/discover/chart')).json()) as Chart;

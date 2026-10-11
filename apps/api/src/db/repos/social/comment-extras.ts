@@ -5,6 +5,7 @@
  * UNFRIENDLY_FOLD_AT marks it folds for everyone, and who marked it is never returned.
  */
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 import { ApiError } from '../../../errors.ts';
 import { hostsOfEpisode } from '../studio/creator.ts';
 import { foldedOnEpisode, getComment, listComments, type PublicComment } from './comments.ts';
@@ -20,7 +21,7 @@ export async function setPinned(db: Db, commentId: string, listenerId: string, p
 }
 
 /** The Studio has already checked the role; it pins by comment and show. */
-export async function pinAsHost(db: Db, commentId: string, episodeId: string, by: string, pin: boolean): Promise<void> {
+async function pinAsHostPg(db: Db, commentId: string, episodeId: string, by: string, pin: boolean): Promise<void> {
   await db.transaction(async (tx) => {
     if (pin) {
       await tx.query('UPDATE comments SET pinned_at = NULL, pinned_by = NULL WHERE episode_id = $1 AND pinned_at IS NOT NULL', [episodeId]);
@@ -47,7 +48,7 @@ export async function setPinnedBottom(db: Db, commentId: string, listenerId: str
 }
 
 /** The Studio has already checked the role; it pins to the bottom by comment and episode. */
-export async function pinBottomAsHost(db: Db, commentId: string, episodeId: string, pin: boolean): Promise<void> {
+async function pinBottomAsHostPg(db: Db, commentId: string, episodeId: string, pin: boolean): Promise<void> {
   await db.transaction(async (tx) => {
     if (pin) {
       await tx.query('UPDATE comments SET pinned_bottom_at = NULL WHERE episode_id = $1 AND pinned_bottom_at IS NOT NULL', [episodeId]);
@@ -60,7 +61,7 @@ export async function pinBottomAsHost(db: Db, commentId: string, episodeId: stri
 }
 
 /** Mark or unmark; answers whether the comment is folded now. */
-export async function setUnfriendly(db: Db, commentId: string, listenerId: string, on: boolean): Promise<{ folded: boolean }> {
+async function setUnfriendlyPg(db: Db, commentId: string, listenerId: string, on: boolean): Promise<{ folded: boolean }> {
   const c = await getComment(db, commentId);
   if (!c || c.deleted_at !== null || c.removed_at !== null) throw new ApiError('not_found', 'No such comment.');
   if (c.author_id === listenerId) throw new ApiError('own_comment', "You can't mark your own comment.");
@@ -84,3 +85,8 @@ export async function thread(db: Db, commentId: string, viewerId: string | undef
   const list = replies ?? [];
   return { parent: rest, replies: tab === 'newest' ? [...list].reverse() : list };
 }
+
+// M26 lane SC: each function runs on Postgres, or on DynamoDB (`ddb/comment-extras.ts`) when the Db carries a Store (db/backend.ts).
+export const pinAsHost = dual('sc/comment-extras', 'pinAsHost', pinAsHostPg);
+export const pinBottomAsHost = dual('sc/comment-extras', 'pinBottomAsHost', pinBottomAsHostPg);
+export const setUnfriendly = dual('sc/comment-extras', 'setUnfriendly', setUnfriendlyPg);

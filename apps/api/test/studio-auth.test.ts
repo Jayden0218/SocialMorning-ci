@@ -11,6 +11,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { freshDb, signUp } from './harness.ts';
 import { sCall, studioLogin } from './studio-harness.ts';
+import { ageSessions } from './ac-neutral.ts';
+import { studioSessionCount } from './st-neutral.ts';
 
 test('the session cookie is HttpOnly, SameSite=Strict, Path=/, host-only', async () => {
   const t = await freshDb();
@@ -65,12 +67,12 @@ test('G-X2: a write without X-Studio is refused; with it, it works', async () =>
 test('G-S1: 12 h idle ends the session and deletes it; 11 h 59 min does not', async () => {
   const t = await freshDb();
   const a = await studioLogin(t, 'a@example.com', 'A');
-  await t.q("UPDATE sessions SET last_seen_at = now() - interval '11 hours 59 minutes' WHERE device_label = 'studio-web'");
+  await ageSessions(t, 'last_seen_at', (11 * 60 + 59) * 60_000);
   assert.equal((await sCall(t, 'GET', '/v1/studio/me', a)).status, 200);
-  await t.q("UPDATE sessions SET last_seen_at = now() - interval '12 hours 1 minute' WHERE device_label = 'studio-web'");
+  await ageSessions(t, 'last_seen_at', (12 * 60 + 1) * 60_000);
   const late = await sCall(t, 'GET', '/v1/studio/me', a);
   assert.equal(late.status, 401);
   assert.equal(((await late.json()) as { error: string }).error, 'session_expired');
-  assert.equal((await t.q("SELECT 1 FROM sessions WHERE device_label = 'studio-web'")).length, 0);
+  assert.equal(await studioSessionCount(t), 0);
   await t.close();
 });

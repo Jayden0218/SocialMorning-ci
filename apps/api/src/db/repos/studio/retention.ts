@@ -5,6 +5,7 @@
  * it. A count of listeners, never who; private listening counts in totals like everywhere else.
  */
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 
 export const RETENTION_MAX_MINUTES = 600;
 
@@ -17,7 +18,7 @@ const rangesOf = (v: unknown): Range[] => {
 };
 
 /** `durationMs` sets the number of minutes; unknown → up to the furthest point anyone heard. */
-export async function retention(db: Db, episodeId: string, durationMs: number | null): Promise<number[]> {
+async function retentionPg(db: Db, episodeId: string, durationMs: number | null): Promise<number[]> {
   const rows = await db.query<{ listener_id: string; ranges: unknown }>('SELECT listener_id, ranges FROM listened_ranges WHERE episode_id = $1', [episodeId]);
   const byListener = new Map<string, Range[]>();
   for (const r of rows) byListener.set(r.listener_id, [...(byListener.get(r.listener_id) ?? []), ...rangesOf(r.ranges)]);
@@ -33,3 +34,6 @@ export async function retention(db: Db, episodeId: string, durationMs: number | 
   }
   return out;
 }
+
+// M26 lane ST: each runs on Postgres, or on DynamoDB (src/db/repos/studio/ddb/) when the Db carries a Store (db/backend.ts).
+export const retention = dual('st/numbers', 'retention', retentionPg);

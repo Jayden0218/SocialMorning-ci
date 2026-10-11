@@ -9,7 +9,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createApp } from '../src/app.ts';
 import { fakeFeedFetch } from './fake-apple.ts';
-import { dbOf, migratedPg, TEST_PEPPER, signUp, type TestDb } from './harness.ts';
+import { dbOf, hybridDb, migratedPg, TEST_PEPPER, signUp, type TestDb } from './harness.ts';
+import { pushTokenList } from './ac-neutral.ts';
+import { clearCachePrefix } from './lb-seed.ts';
 
 const FX = 'https://feeds.example.com/px.xml';
 const JOB = 'job-token-not-secret';
@@ -20,7 +22,9 @@ ${items.map((i) => `<item><title>${i.title}</title><guid>${i.guid}</guid><pubDat
 
 async function appWith(initial: { guid: string; title: string; at: number }[], dead: Set<string> = new Set()) {
   const { pg, runner } = await migratedPg();
-  const db = dbOf(pg);
+  // M26 lane AC: hybrid on DynamoDB under TEST_BACKEND=ddb (account on DynamoDB, the rest on PGlite).
+  const hy = await hybridDb(dbOf(pg));
+  const db = hy.db;
   const state = { items: initial };
   const sent: { to: string; title: string; body: string; data: Record<string, string> }[] = [];
   const catalogFetch = (async (input: string | URL | Request, init?: RequestInit) =>
@@ -34,15 +38,20 @@ async function appWith(initial: { guid: string; title: string; at: number }[], d
   const t: TestDb = {
     pg, db, runner, app,
     q: async <T,>(s: string, p?: unknown[]) => (await pg.query<T>(s, p)).rows,
-    call: async (method, path, body, token, headers = {}) => app.request(path, { method, headers: { ...(body !== undefined ? { 'content-type': 'application/json' } : {}), ...(token ? { authorization: `Bearer ${token}` } : {}), ...headers }, body: body !== undefined ? JSON.stringify(body) : undefined }),
-    close: () => pg.close(),
+    call: async (method, path, body, token, headers = {}) => {
+      const r = await app.request(path, { method, headers: { ...(body !== undefined ? { 'content-type': 'application/json' } : {}), ...(token ? { authorization: `Bearer ${token}` } : {}), ...headers }, body: body !== undefined ? JSON.stringify(body) : undefined });
+      await hy.drain();
+      return r;
+    },
+    close: async () => { await hy.close(); await pg.close(); },
+    ...(hy.store ? { store: hy.store } : {}),
   };
   return { t, sent, state };
 }
 
 /** One hourly cycle. The feed cache lives an hour (TTL.feed), so a real cycle reads the feed fresh; here it is cleared. */
 const rebuild = async (t: TestDb) => {
-  await t.q("DELETE FROM cache WHERE key LIKE 'feed:%'");
+  await clearCachePrefix(t, 'feed:'); // M26: the cache is lane LB's (sm-cache under ddb)
   return t.call('POST', '/v1/internal/rebuild', { step: 'feeds' }, undefined, { authorization: `Bearer ${JOB}` });
 };
 const TOKEN_A = 'ExponentPushToken[aaaaaaaaaaaa]';
@@ -87,11 +96,10 @@ test('"New episodes" off → nothing; a DeviceNotRegistered token is dropped; to
   state.items = [{ guid: 'n1', title: 'New', at: now - 600_000 }];
   await rebuild(t);
   assert.deepEqual(sent.map((m) => m.to), [TOKEN_B], 'only the listener with New episodes on');
-  const left = await t.q<{ token: string }>('SELECT token FROM push_tokens ORDER BY token');
-  assert.deepEqual(left.map((r) => r.token), [TOKEN_A], 'the dead token is gone, the live one kept');
+  assert.deepEqual(await pushTokenList(t), [TOKEN_A], 'the dead token is gone, the live one kept');
 
   assert.equal((await t.call('DELETE', `/v1/me/push-tokens/${encodeURIComponent(TOKEN_A)}`, undefined, a.token)).status, 204);
-  assert.equal((await t.q('SELECT token FROM push_tokens')).length, 0, 'removed at sign-out');
+  assert.equal((await pushTokenList(t)).length, 0, 'removed at sign-out');
   await t.close();
 });
 

@@ -10,6 +10,7 @@ import { fnv1a64 } from '@socialmorning/social-core';
 import { verifyClaim } from '../src/db/repos/studio/creator.ts';
 import { freshDb, signUp } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
+import { backdateComments } from './sc-neutral.ts';
 
 const FEED = 'https://feeds.example.com/mine.xml';
 const ep = { feedUrl: FEED, guid: 'g1', title: 'Ep 1', enclosureUrl: 'https://cdn/1.mp3' };
@@ -50,7 +51,7 @@ test('stats are for the proven claimant only; their comments carry the Host mark
   assert.equal((await t.call('GET', q, undefined, a.token)).status, 403, 'not proven yet');
 
   await t.call('POST', `/v1/episodes/${EP}/comments`, { body: 'from the host', offsetMs: 61_000 }, a.token);
-  await t.q("UPDATE comments SET created_at = created_at - interval '10 seconds'");
+  await backdateComments(t, 10_000);
   await t.call('POST', `/v1/episodes/${EP}/comments`, { body: 'from a listener', offsetMs: 65_000 }, b.token);
 
   const before = (await (await t.call('GET', `/v1/episodes/${EP}/social`, undefined, b.token)).json()) as { comments: { body: string; host?: true }[] };

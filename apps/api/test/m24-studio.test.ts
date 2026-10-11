@@ -9,6 +9,8 @@ import { freshDb, signUp, type TestDb } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
 import { proveClaim, sCall, studioLogin, type StudioUser } from './studio-harness.ts';
 import { sendMilestones, milestoneText } from '../src/db/repos/studio/milestones.ts';
+import { reportRows } from './sf-neutral.ts';
+import * as S from './st-neutral.ts';
 
 const FEED = 'https://feeds.example.com/m24.xml';
 const EP = fnv1a64(FEED + '\u0001' + 'g1');
@@ -21,27 +23,16 @@ async function claimed(t: TestDb): Promise<{ owner: StudioUser; key: string }> {
   return { owner, key: await proveClaim(t, owner.id, FEED) };
 }
 
-async function buy(t: TestDb, who: string, product: string, micros: number | null, status: 'active' | 'refunded', at: string): Promise<string> {
-  const [p] = await t.q<{ id: string }>(
-    `INSERT INTO purchases (listener_id, store, product_id, store_txn_id, status, amount_micros, currency, ref, created_at)
-     VALUES ($1, 'google', $2, gen_random_uuid()::text, $3, $4, $5, $6, $7) RETURNING id`,
-    [who, product, status, micros, micros === null ? null : 'USD', FEED, at]);
-  return p!.id;
-}
-
 test('US9: Earnings counts paid-show sales, gifts and tips per month, refunds apart; CSV; owner only', async () => {
   const t = await freshDb();
   const { owner, key } = await claimed(t);
   const a = await signUp(t, 'a@example.com', 'Ann');
-  await buy(t, a.id, 'show_tier_2', 2_990_000, 'active', '2026-09-03T10:00:00Z');
-  await buy(t, a.id, 'show_tier_2', 2_990_000, 'refunded', '2026-09-04T10:00:00Z');
-  const g = await buy(t, a.id, 'gift_tier_2', 2_990_000, 'active', '2026-10-01T10:00:00Z');
-  await t.q("INSERT INTO gifts (code, buyer_id, feed_url, purchase_id) VALUES ('ABCDEFGH12345678', $1, $2, $3)", [a.id, FEED, g]);
-  const tip = await buy(t, a.id, 'tip_small', null, 'active', '2026-10-02T10:00:00Z');
-  await t.q('INSERT INTO tips (from_listener, to_feed_url, purchase_id) VALUES ($1, $2, $3)', [a.id, FEED, tip]);
-  // Someone else's show is never counted.
-  await t.q("UPDATE purchases SET ref = 'https://other.example/x.xml' WHERE id = (SELECT id FROM purchases WHERE product_id = 'show_tier_2' AND status = 'active' LIMIT 1)");
-  await buy(t, a.id, 'show_tier_2', 1_000_000, 'active', '2026-09-05T10:00:00Z');
+  // Someone else's show is never counted (the first sale is on another feed).
+  await S.seedEarning(t, { buyerId: a.id, feedUrl: 'https://other.example/x.xml', kind: 'sale', product: 'show_tier_2', micros: 2_990_000, status: 'active', at: '2026-09-03T10:00:00Z' });
+  await S.seedEarning(t, { buyerId: a.id, feedUrl: FEED, kind: 'sale', product: 'show_tier_2', micros: 2_990_000, status: 'refunded', at: '2026-09-04T10:00:00Z' });
+  await S.seedEarning(t, { buyerId: a.id, feedUrl: FEED, kind: 'gift', product: 'gift_tier_2', micros: 2_990_000, status: 'active', at: '2026-10-01T10:00:00Z' });
+  await S.seedEarning(t, { buyerId: a.id, feedUrl: FEED, kind: 'tip', product: 'tip_small', micros: null, status: 'active', at: '2026-10-02T10:00:00Z' });
+  await S.seedEarning(t, { buyerId: a.id, feedUrl: FEED, kind: 'sale', product: 'show_tier_2', micros: 1_000_000, status: 'active', at: '2026-09-05T10:00:00Z' });
 
   type B = { count: number; refunded: number; totalMicrosByCurrency: Record<string, number> };
   const e = (await (await sCall(t, 'GET', `/v1/studio/shows/${key}/earnings`, owner)).json()) as { months: { month: string; sale: B; gift: B; tip: B }[]; items: unknown[] };
@@ -55,7 +46,7 @@ test('US9: Earnings counts paid-show sales, gifts and tips per month, refunds ap
   const lines = (await csv.text()).replace(/^﻿/, '').trim().split('\r\n');
   assert.deepEqual(lines, ['Date,Type,Amount,Currency,Refunded', '2026-10-02,Tip,,,no', '2026-10-01,Gift,2.99,USD,no', '2026-09-05,Paid show,1,USD,no', '2026-09-04,Paid show,2.99,USD,yes']);
   const op = await studioLogin(t, 'op@example.com', 'Helper');
-  await t.q('INSERT INTO show_members (feed_url, listener_id) VALUES ($1, $2)', [FEED, op.id]);
+  await S.addHelper(t, FEED, op.id);
   assert.equal((await sCall(t, 'GET', `/v1/studio/shows/${key}/earnings`, op)).status, 403);
   await t.close();
 });
@@ -83,7 +74,7 @@ test('US10: the job records each fetch; Sync now fetches at once, then waits 10 
   const again = await sCall(t, 'POST', `/v1/studio/shows/${key}/feed-sync`, owner);
   assert.equal(again.status, 429);
   assert.ok(((await again.json()) as { retryAfterSeconds: number }).retryAfterSeconds > 500);
-  await t.q("UPDATE feed_sync SET manual_at = now() - interval '11 minutes'");
+  await S.ageManualSync(t, 11 * 60_000);
   assert.equal((await sCall(t, 'POST', `/v1/studio/shows/${key}/feed-sync`, owner)).status, 200);
   await t.close();
 });
@@ -108,14 +99,14 @@ test('US11: the host hides an episode; the app learns its guid; showing it again
 test('US12: the milestone message reaches the 100th subscriber once, as a From hosts notice; an old crossing is not sent', async () => {
   const t = await freshDb();
   const { owner } = await claimed(t);
-  await t.q("INSERT INTO show_overrides (feed_url, milestone_message, updated_by) VALUES ($1, 'Thank you, our {n}th listener!', $2)", [FEED, owner.id]);
+  await S.seedOverrides(t, FEED, { milestoneMessage: 'Thank you, our {n}th listener!', updatedBy: owner.id });
   const hundredth = await signUp(t, 'h@example.com', 'Hundredth');
   // 99 earlier subscribers, then the 100th; the 101st is later still.
-  await t.q(`INSERT INTO listeners (email, password_hash, display_name) SELECT 'l' || i || '@x', 'h', 'L' || i FROM generate_series(1, 100) i`);
-  await t.q(`INSERT INTO subscriptions (listener_id, feed_url, created_at)
-             SELECT id, $1, now() - interval '2 days' + (row_number() OVER (ORDER BY email))::int * interval '1 second' FROM listeners WHERE email LIKE 'l%@x' AND email <> 'l100@x'`, [FEED]);
-  await t.q("INSERT INTO subscriptions (listener_id, feed_url, created_at) VALUES ($1, $2, now() - interval '1 day')", [hundredth.id, FEED]);
-  await t.q("INSERT INTO subscriptions (listener_id, feed_url, created_at) SELECT id, $1, now() FROM listeners WHERE email = 'l100@x'", [FEED]);
+  const crowd = await S.seedCrowd(t, 100);
+  const now = Date.now();
+  for (const [i, l] of crowd.filter((c) => c.email !== 'l100@x').entries()) await S.seedSubscription(t, { listenerId: l.id, feedUrl: FEED, createdAt: new Date(now - 2 * 86_400_000 + (i + 1) * 1000).toISOString() });
+  await S.seedSubscription(t, { listenerId: hundredth.id, feedUrl: FEED, createdAt: new Date(now - 86_400_000).toISOString() });
+  await S.seedSubscription(t, { listenerId: crowd.find((c) => c.email === 'l100@x')!.id, feedUrl: FEED, createdAt: new Date(now).toISOString() });
   assert.equal(await sendMilestones(t.db), 1);
   assert.equal(await sendMilestones(t.db), 0, 'once per milestone');
   const notices = (await (await t.call('GET', '/v1/me/host-notices', undefined, hundredth.token)).json()) as { items: { body: string; feedUrl: string }[] };
@@ -124,8 +115,8 @@ test('US12: the milestone message reaches the 100th subscriber once, as a From h
 
   // A show that crossed 100 long ago sends nothing now.
   const OLD = 'https://feeds.example.com/old.xml';
-  await t.q("INSERT INTO show_overrides (feed_url, milestone_message) VALUES ($1, 'Hi')", [OLD]);
-  await t.q(`INSERT INTO subscriptions (listener_id, feed_url, created_at) SELECT id, $1, now() - interval '400 days' FROM listeners WHERE email LIKE 'l%@x'`, [OLD]);
+  await S.seedOverrides(t, OLD, { milestoneMessage: 'Hi' });
+  for (const l of crowd) await S.seedSubscription(t, { listenerId: l.id, feedUrl: OLD, createdAt: new Date(now - 400 * 86_400_000).toISOString() });
   assert.equal(await sendMilestones(t.db), 0);
   await t.close();
 });
@@ -135,10 +126,8 @@ test('US13: a paid episode\'s free preview — set by the owner, read by anyone,
   const owner = await studioLogin(t, 'o@example.com', 'Host');
   const HOSTED = 'https://socialmorning-api.vercel.app/feeds/m24.xml';
   const key = await proveClaim(t, owner.id, HOSTED);
-  const [s] = await t.q<{ id: string }>('INSERT INTO hosted_shows (owner_id, feed_url, title, price_tier) VALUES ($1, $2, $3, 2) RETURNING id', [owner.id, HOSTED, 'Hosted']);
-  const ep = async (paid: boolean) => (await t.q<{ id: string }>(
-    `INSERT INTO hosted_episodes (show_id, guid, episode_id, title, audio_url, audio_bytes, audio_type, status, published_at, paid, created_at, duration_ms)
-     VALUES ($1, gen_random_uuid()::text, gen_random_uuid()::text, 'Ep', 'https://blob.example/a.mp3', 10, 'audio/mpeg', 'published', now() - interval '1 minute', $2, now(), 1800000) RETURNING id`, [s!.id, paid]))[0]!.id;
+  const s = await S.seedHostedShow(t, { ownerId: owner.id, feedUrl: HOSTED, title: 'Hosted', priceTier: 2 });
+  const ep = (paid: boolean) => S.seedHostedEpisode(t, s, { paid, durationMs: 1_800_000 });
   const paidId = await ep(true);
   const freeId = await ep(false);
   const set = (id: string, preview: unknown) => sCall(t, 'PUT', `/v1/studio/shows/${key}/hosted-episodes/${id}/preview`, owner, { preview });
@@ -181,7 +170,7 @@ test('US14: polls — multiple choice toggles options, single choice stays one v
 
   assert.equal((await sCall(t, 'DELETE', `/v1/studio/shows/${key}/polls/${made.poll.id}`, owner)).status, 204);
   assert.equal((await sCall(t, 'DELETE', `/v1/studio/shows/${key}/polls/${made.poll.id}`, owner)).status, 404);
-  assert.equal((await t.q('SELECT count(*)::int AS n FROM poll_votes WHERE poll_id = $1', [made.poll.id]))[0]!.n, 0);
+  assert.equal(await S.pollVoteCount(t, made.poll.id), 0);
   await t.close();
 });
 
@@ -201,7 +190,7 @@ test('US14: subscriber search by name; the host likes and reports a listener\'s 
   const id = posted.comment.id;
   const liked = (await (await sCall(t, 'PUT', `/v1/studio/shows/${key}/comments/${id}/like`, owner)).json()) as { likeCount: number; likedByMe: boolean };
   assert.deepEqual(liked, { likeCount: 1, likedByMe: true });
-  const n = await t.q<{ kind: string }>('SELECT kind FROM notifications WHERE recipient_id = $1', [mei.id]);
+  const n = (await S.noticeKinds(t, mei.id)).map((kind) => ({ kind }));
   assert.deepEqual(n.map((r) => r.kind), ['like'], 'the author is told, as for any like');
   assert.deepEqual(await (await sCall(t, 'DELETE', `/v1/studio/shows/${key}/comments/${id}/like`, owner)).json(), { likeCount: 0, likedByMe: false });
 
@@ -209,7 +198,7 @@ test('US14: subscriber search by name; the host likes and reports a listener\'s 
   assert.equal(r.status, 201);
   const again = await sCall(t, 'POST', `/v1/studio/shows/${key}/comments/${id}/report`, owner, { reason: 'spam' });
   assert.equal(((await again.json()) as { duplicate: boolean }).duplicate, true);
-  const rows = await t.q<{ target_kind: string; reporter_id: string }>('SELECT target_kind, reporter_id FROM reports');
+  const rows = (await reportRows(t)).map((r) => ({ target_kind: String(r['target_kind']), reporter_id: String(r['reporter_id']) }));
   assert.deepEqual(rows, [{ target_kind: 'comment', reporter_id: owner.id }]);
   assert.equal((await sCall(t, 'POST', `/v1/studio/shows/${key}/comments/${id}/report`, owner, { reason: 'nope' })).status, 422);
   await t.close();

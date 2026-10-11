@@ -9,10 +9,11 @@
  */
 import { listenItemDue, mergeRanges, unionLength, type Range } from '@socialmorning/social-core';
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 
 export type ListenedDayIn = { episodeId: string; day: string; ranges: Range[] };
 
-export async function replaceRanges(db: Db, listenerId: string, deviceId: string, days: readonly ListenedDayIn[]): Promise<number> {
+async function replaceRangesPg(db: Db, listenerId: string, deviceId: string, days: readonly ListenedDayIn[]): Promise<number> {
   let accepted = 0;
   for (const d of days) {
     await db.transaction(async (tx) => {
@@ -68,7 +69,7 @@ async function unionFor(db: Db, listenerId: string, episodeId: string, day: stri
 }
 
 /** Per (episode, day) union across devices, joined to the episode's show, for the stats. */
-export async function listenedRowsFor(db: Db, listenerId: string): Promise<{ episodeId: string; feedUrl?: string; showTitle?: string; day: string; unionMs: number; finished: boolean }[]> {
+async function listenedRowsForPg(db: Db, listenerId: string): Promise<{ episodeId: string; feedUrl?: string; showTitle?: string; day: string; unionMs: number; finished: boolean }[]> {
   const rows = await db.query<{ episode_id: string; day: string; ranges: Range[] | string; feed_url: string | null; show_title: string | null; finished: boolean | null }>(
     `SELECT lr.episode_id, lr.day::text AS day, lr.ranges, e.feed_url, e.show_title, p.finished
      FROM listened_ranges lr
@@ -86,3 +87,7 @@ export async function listenedRowsFor(db: Db, listenerId: string): Promise<{ epi
   }
   return [...byKey.values()].map(({ sets, ...rest }) => ({ ...rest, unionMs: unionLength(sets) }));
 }
+
+// M26 lane LB: each function runs on Postgres, or on DynamoDB (`ddb/` bodies) when the Db carries a Store (db/backend.ts).
+export const replaceRanges = dual('lb/listened', 'replaceRanges', replaceRangesPg);
+export const listenedRowsFor = dual('lb/listened', 'listenedRowsFor', listenedRowsForPg);

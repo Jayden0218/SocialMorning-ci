@@ -12,6 +12,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { aCall, adminSetup, auditRows } from './admin-harness.ts';
 import { fakeStore } from './fake-store.ts';
+import { allTaps, endAllPromotions, eventSideRows, promotionColumns, promotionCounts, promotionsDump, seedLivePromotions } from './dv-neutral.ts';
 import { LAUNCH_CEILING_BYTES, MAX_LAUNCH_IMAGE_BYTES } from '../src/storage/episodes-blob.ts';
 
 const hour = 3_600_000;
@@ -25,7 +26,8 @@ async function setup() {
 
 test('G-L2: promotions has no listener or IP column, and an event stores nothing but +1', async () => {
   const { t, owner, store } = await setup();
-  const cols = (await t.q<{ column_name: string }>("SELECT column_name FROM information_schema.columns WHERE table_name = 'promotions'")).map((r) => r.column_name);
+  // M26: the table's columns on Postgres, the item's attribute list (codec ITEM_TYPES) on DynamoDB.
+  const cols = await promotionColumns(t);
   assert.ok(cols.length > 10);
   for (const c of cols) assert.doesNotMatch(c, /listener|ip|device|user|viewer|session|country|email/i, `promotions.${c} could identify a person`);
 
@@ -41,20 +43,20 @@ test('G-L2: promotions has no listener or IP column, and an event stores nothing
   const list = (await pub.json()) as { items: { id: string; imageUrl: string; target: string }[] };
   assert.deepEqual(list.items.map((i) => [i.id, i.imageUrl, i.target]), [[promotion.id, url, '/categories']]);
 
-  const rowsBefore = (await t.q<{ n: number }>("SELECT (SELECT count(*) FROM sessions) + (SELECT count(*) FROM admin_audit) + (SELECT count(*) FROM rec_events) + (SELECT count(*) FROM share_events) AS n"))[0]!.n;
+  const rowsBefore = await eventSideRows(t); // sessions + admin_audit + rec_events + share_events, on either backend
   for (const kind of ['impression', 'impression', 'tap'] as const) {
     assert.equal((await t.call('POST', `/v1/launch/${promotion.id}/events`, { kind }, undefined, { 'x-forwarded-for': '203.0.113.9' })).status, 204);
   }
-  const [counts] = await t.q<{ impressions: number; taps: number }>('SELECT impressions::int, taps::int FROM promotions WHERE id = $1', [promotion.id]);
+  const counts = await promotionCounts(t, promotion.id);
   assert.deepEqual(counts, { impressions: 2, taps: 1 });
-  const rowsAfter = (await t.q<{ n: number }>("SELECT (SELECT count(*) FROM sessions) + (SELECT count(*) FROM admin_audit) + (SELECT count(*) FROM rec_events) + (SELECT count(*) FROM share_events) AS n"))[0]!.n;
+  const rowsAfter = await eventSideRows(t);
   assert.equal(Number(rowsAfter), Number(rowsBefore), 'an event wrote a row somewhere');
-  const dump = JSON.stringify(await t.q('SELECT * FROM promotions'));
+  const dump = await promotionsDump(t);
   assert.equal(dump.includes('203.0.113.9'), false, 'the IP is stored');
   // Not live → not counted, not served.
   await aCall(t, 'PATCH', `/v1/admin/launch/${promotion.id}`, owner, { retired: true });
   assert.equal((await t.call('POST', `/v1/launch/${promotion.id}/events`, { kind: 'tap' })).status, 204);
-  assert.equal(((await t.q<{ taps: number }>('SELECT taps::int FROM promotions'))[0]!).taps, 1);
+  assert.equal(await allTaps(t), 1);
   assert.deepEqual(((await (await t.call('GET', '/v1/launch')).json()) as { items: unknown[] }).items, []);
   assert.deepEqual((await auditRows(t)).map((r) => [r.area, r.action]), [['launch', 'create'], ['launch', 'retire']]);
   await t.close();
@@ -73,10 +75,8 @@ test('G-L3: an upload over 1 MB is refused naming 1 MB; one that would take live
   assert.equal((await aCall(t, 'POST', '/v1/admin/launch/uploads', owner, { contentType: 'image/gif', size: 10 })).status, 422);
 
   // 50 live images of exactly 1 MB fill the ceiling; one more byte is refused.
-  for (let i = 0; i < 50; i++) {
-    await t.q(`INSERT INTO promotions (image_url, image_path, image_bytes, target_kind, target, starts_at, ends_at)
-               VALUES ($1, $2, 1048576, 'route', '/', now() - interval '1 hour', now() + interval '1 day')`, [`https://store.example/launch/${i}.png`, `launch/${i}.png`]);
-  }
+  // M26: through the dual createPromotion (test/dv-neutral.ts), live from an hour ago to a day ahead.
+  await seedLivePromotions(t, 50, 1_048_576);
   const full = await aCall(t, 'POST', '/v1/admin/launch/uploads', owner, { contentType: 'image/png', size: 1 });
   assert.equal(full.status, 409);
   assert.equal(((await full.json()) as { error: string }).error, 'storage_full');
@@ -84,7 +84,7 @@ test('G-L3: an upload over 1 MB is refused naming 1 MB; one that would take live
   const url = store.put('launch/late.png', 10, 'image/png');
   assert.equal((await aCall(t, 'POST', '/v1/admin/launch', owner, { imageUrl: url, targetKind: 'route', target: '/', startsAt: iso(0), endsAt: iso(hour) })).status, 409);
   // Ended promotions no longer count.
-  await t.q("UPDATE promotions SET ends_at = now() - interval '1 minute', starts_at = now() - interval '2 hours'");
+  await endAllPromotions(t);
   assert.equal((await aCall(t, 'POST', '/v1/admin/launch/uploads', owner, { contentType: 'image/png', size: 1 })).status, 200);
   await t.close();
 });
