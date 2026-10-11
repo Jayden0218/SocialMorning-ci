@@ -104,7 +104,7 @@ if (!ON) {
     assert.equal((await itemAt(s.store, 'comment', c.key))?.['createdAt'], '2026-09-01T00:00:00.000Z');
     assert.equal(await proveClaimItem(s.store, lid, 'https://f.example/x.xml'), K.feedKey('https://f.example/x.xml'));
     await assert.rejects(proveClaimItem(s.store, lid, 'https://f.example/x.xml'), TxCancelled, 'one proven claim per feed');
-    await tx(s.store).put('main', encode('audit', K.audit(clock.iso(), 1), { id: 1, area: 'users' })).commit();
+    await tx(s.store).put('main', encode('audit', K.audit(clock.iso(), 1), { id: 1, area: 'users' }), { condition: 'attribute_not_exists(PK)' }).commit(); // append-only (lane SF)
     assert.equal((await auditItems(s.store)).length, 1);
     await s.close();
 

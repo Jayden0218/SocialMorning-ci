@@ -5,7 +5,8 @@ import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { createApp } from '../src/app.ts';
 import { fakeApple, fakeFeedFetch, FIXTURE_FEED } from './fake-apple.ts';
-import { dbOf, migratedPg, TEST_PEPPER } from './harness.ts';
+import { dbOf, hybridDb, migratedPg, TEST_PEPPER } from './harness.ts';
+import { hideEpisodeRow } from './st-neutral.ts';
 import { putEpisode } from './put-episode.ts';
 
 const FX = 'https://feeds.example.com/fx.xml';
@@ -15,7 +16,8 @@ const E = (guid: string) => fnv1a64(`${FX}\u0001${guid}`);
 
 async function build() {
   const { pg } = await migratedPg();
-  const db = dbOf(pg);
+  const hy = await hybridDb(dbOf(pg)); // M26: lane ST's hidden set on DynamoDB under TEST_BACKEND=ddb
+  const db = hy.db;
   const apple = fakeApple();
   const catalogFetch = (async (input: string | URL | Request, init?: RequestInit) => {
     const url = String(input);
@@ -28,7 +30,8 @@ async function build() {
   const app = createApp({ db, pepper: TEST_PEPPER, catalogFetch, picksRaw, today: () => '2026-09-22' });
   console.warn = orig;
   const q = async <T,>(s: string, p?: unknown[]) => (await pg.query<T>(s, p)).rows;
-  return { pg, db, app, q };
+  const tq = { q, db, ...(hy.store ? { store: hy.store } : {}) };
+  return { pg, db, app, q, tq, close: async () => { await hy.close(); await pg.close(); } };
 }
 
 test('M24 US11: a hidden episode leaves Discover picks, daily picks and episode search at once; the row removed brings it back', async () => {
@@ -50,8 +53,8 @@ test('M24 US11: a hidden episode leaves Discover picks, daily picks and episode 
   assert.ok(s0.episodes.some((e) => e.feedUrl === REPLY_ALL && e.guid === CASEY), 'the episode is found before the hide');
 
   // Hide both episodes directly (the Studio route is tested with the Studio).
-  await t.q('INSERT INTO hidden_episodes (feed_url, guid) VALUES ($1,$2)', [FX, 'g-new']);
-  await t.q('INSERT INTO hidden_episodes (feed_url, guid) VALUES ($1,$2)', [REPLY_ALL, CASEY]);
+  await hideEpisodeRow(t.tq, FX, 'g-new', true);
+  await hideEpisodeRow(t.tq, REPLY_ALL, CASEY, true);
 
   const d1 = await disc();
   assert.ok(d1.picks.every((p) => !(p.episode.feedUrl === FX && p.episode.guid === 'g-new')), 'the hidden pick is gone from the cached Discover body');
@@ -62,11 +65,11 @@ test('M24 US11: a hidden episode leaves Discover picks, daily picks and episode 
   assert.ok(s1.shows.some((s) => s.feedUrl === REPLY_ALL), 'its show is still found: only the episode is hidden');
 
   // Un-hide: back at once.
-  await t.q('DELETE FROM hidden_episodes WHERE feed_url = $1 AND guid = $2', [FX, 'g-new']);
+  await hideEpisodeRow(t.tq, FX, 'g-new', false);
   const d2 = await disc();
   assert.ok(d2.picks.some((p) => p.episode.feedUrl === FX && p.episode.guid === 'g-new'), 'the pick is back after the row is removed');
   console.warn = orig;
-  await t.pg.close();
+  await t.close();
 });
 
 test('M24 US11: a hidden episode leaves next-up (from the cached sources too)', async () => {
@@ -84,9 +87,9 @@ test('M24 US11: a hidden episode leaves next-up (from the cached sources too)', 
   const n0 = await nextUp();
   assert.ok(n0.items.some((i) => i.episode.feedUrl === FX && i.episode.guid === 'g-new'), 'g-new is suggested before the hide');
 
-  await t.q('INSERT INTO hidden_episodes (feed_url, guid) VALUES ($1,$2)', [FX, 'g-new']);
+  await hideEpisodeRow(t.tq, FX, 'g-new', true);
   const n1 = await nextUp();
   assert.ok(n1.items.every((i) => !(i.episode.feedUrl === FX && i.episode.guid === 'g-new')), 'g-new is gone from next-up although the sources are cached');
   console.warn = orig;
-  await t.pg.close();
+  await t.close();
 });

@@ -13,6 +13,7 @@
  */
 import { completionRate, isComplete, type Range } from '@socialmorning/social-core';
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 
 export const METRICS = ['plays', 'subs', 'comments', 'saves', 'shares', 'likes'] as const;
 export type Metric = (typeof METRICS)[number];
@@ -28,7 +29,7 @@ async function count(db: Db, sql: string, feedUrl: string): Promise<number> {
 }
 
 /** Completion over every (listener, episode) that has a play, as one rate; per-episode when `episodeId` given. */
-export async function completion(db: Db, feedUrl: string): Promise<{ all: number | null; byEpisode: Map<string, number | null> }> {
+async function completionPg(db: Db, feedUrl: string): Promise<{ all: number | null; byEpisode: Map<string, number | null> }> {
   const rows = await db.query<{ episode_id: string; ranges: (Range[] | string)[] | null; duration_ms: number | null; finished: boolean | null }>(
     `SELECT a.episode_id, e.duration_ms,
             (SELECT jsonb_agg(lr.ranges) FROM listened_ranges lr
@@ -52,7 +53,7 @@ export async function completion(db: Db, feedUrl: string): Promise<{ all: number
   return { all: completionRate(all), byEpisode: new Map([...per].map(([k, v]) => [k, completionRate(v)])) };
 }
 
-export async function totals(db: Db, feedUrl: string): Promise<Totals> {
+async function totalsPg(db: Db, feedUrl: string): Promise<Totals> {
   const [plays, subscribers, comments, likes, clips, saves, shares, comp] = await Promise.all([
     count(db, "SELECT count(*) AS n FROM activity a JOIN episodes e ON e.id = a.episode_id WHERE e.feed_url = $1 AND a.kind = 'listened'", feedUrl),
     count(db, 'SELECT count(*) AS n FROM subscriptions WHERE feed_url = $1 AND deleted_at IS NULL', feedUrl),
@@ -92,7 +93,7 @@ export function validTz(tz: string | undefined): string {
 }
 
 /** Exactly `days` points ending today (in `tz`), every missing day 0. */
-export async function trend(db: Db, feedUrl: string, metric: Metric, days: number, tz: string): Promise<{ date: string; value: number }[]> {
+async function trendPg(db: Db, feedUrl: string, metric: Metric, days: number, tz: string): Promise<{ date: string; value: number }[]> {
   const src = SOURCES[metric];
   const bucket = src.isDate ? 'x.t::date' : '(x.t AT TIME ZONE $3)::date';
   const rows = await db.query<{ d: string | Date; n: number | string }>(
@@ -112,7 +113,7 @@ const isoDate = (d: string | Date): string => (typeof d === 'string' ? d.slice(0
 export type RecentComment = { id: string; episodeId: string; episodeTitle: string; author: string | null; body: string; offsetMs: number | null; createdAt: string };
 export type RecentEpisode = { id: string; title: string; publishedAt: string | null; plays: number; comments: number };
 
-export async function recentComments(db: Db, feedUrl: string, limit = 5): Promise<RecentComment[]> {
+async function recentCommentsPg(db: Db, feedUrl: string, limit = 5): Promise<RecentComment[]> {
   const rows = await db.query<{ id: string; episode_id: string; title: string; display_name: string | null; body: string; offset_ms: number | null; created_at: Date | string }>(
     `SELECT c.id, c.episode_id, e.title, l.display_name, c.body, c.offset_ms, c.created_at
        FROM comments c JOIN episodes e ON e.id = c.episode_id LEFT JOIN listeners l ON l.id = c.author_id
@@ -123,7 +124,7 @@ export async function recentComments(db: Db, feedUrl: string, limit = 5): Promis
   return rows.map((r) => ({ id: r.id, episodeId: r.episode_id, episodeTitle: r.title, author: r.display_name, body: r.body, offsetMs: r.offset_ms, createdAt: new Date(r.created_at).toISOString() }));
 }
 
-export async function recentEpisodes(db: Db, feedUrl: string, limit = 5): Promise<RecentEpisode[]> {
+async function recentEpisodesPg(db: Db, feedUrl: string, limit = 5): Promise<RecentEpisode[]> {
   const rows = await db.query<{ id: string; title: string; published_at: Date | string | null; plays: number | string; comments: number | string }>(
     `SELECT e.id, e.title, e.published_at,
             (SELECT count(*) FROM activity a WHERE a.episode_id = e.id AND a.kind = 'listened') AS plays,
@@ -135,7 +136,7 @@ export async function recentEpisodes(db: Db, feedUrl: string, limit = 5): Promis
   return rows.map((r) => ({ id: r.id, title: r.title, publishedAt: r.published_at ? new Date(r.published_at).toISOString() : null, plays: Number(r.plays), comments: Number(r.comments) }));
 }
 
-export async function claimedAt(db: Db, feedUrl: string): Promise<string | null> {
+async function claimedAtPg(db: Db, feedUrl: string): Promise<string | null> {
   const [r] = await db.query<{ proven_at: Date | string | null }>(
     "SELECT proven_at FROM creator_claims WHERE feed_url = $1 AND status = 'proven' LIMIT 1", [feedUrl]);
   return r?.proven_at ? new Date(r.proven_at).toISOString() : null;
@@ -144,7 +145,7 @@ export async function claimedAt(db: Db, feedUrl: string): Promise<string | null>
 // ---- US2: Data (FR-008..FR-010) ----
 
 /** Yesterday in the viewer's zone (plays by the listener's own day, like the trend). */
-export async function yesterday(db: Db, feedUrl: string, tz: string): Promise<{ plays: number; subs: number; comments: number; shares: number }> {
+async function yesterdayPg(db: Db, feedUrl: string, tz: string): Promise<{ plays: number; subs: number; comments: number; shares: number }> {
   const one = async (m: Metric) => {
     const days = await trend(db, feedUrl, m, 2, tz);
     return days[0]?.value ?? 0;
@@ -162,7 +163,7 @@ export const EPISODE_SORTS = ['publishedAt', 'plays', 'completionRate', 'comment
 export type EpisodeSort = (typeof EPISODE_SORTS)[number];
 
 /** Every episode of the feed with its numbers — the one source for the table, its CSV and the top 5. */
-export async function episodeStats(db: Db, feedUrl: string): Promise<EpisodeStats[]> {
+async function episodeStatsPg(db: Db, feedUrl: string): Promise<EpisodeStats[]> {
   const [rows, comp] = await Promise.all([
     db.query<{ id: string; title: string; published_at: Date | string | null; plays: string | number; comments: string | number; shares: string | number; saves: string | number; likes: string | number }>(
       `SELECT e.id, e.title, e.published_at,
@@ -199,7 +200,7 @@ export function sortEpisodes(items: EpisodeStats[], sort: EpisodeSort = 'publish
 
 /** Other shows this show's live subscribers also follow — hidden under 5 subscribers (FR-010, G-L1). */
 export const ALSO_FOLLOW_MIN = 5;
-export async function alsoFollow(db: Db, feedUrl: string): Promise<{ hidden: 'too_few' } | { shows: { feedUrl: string; title: string | null; image: string | null; listeners: number }[] }> {
+async function alsoFollowPg(db: Db, feedUrl: string): Promise<{ hidden: 'too_few' } | { shows: { feedUrl: string; title: string | null; image: string | null; listeners: number }[] }> {
   const [n] = await db.query<{ n: string | number }>('SELECT count(*) AS n FROM subscriptions WHERE feed_url = $1 AND deleted_at IS NULL', [feedUrl]);
   if (Number(n?.n ?? 0) < ALSO_FOLLOW_MIN) return { hidden: 'too_few' };
   const rows = await db.query<{ feed_url: string; listeners: string | number; title: string | null; image: string | null }>(
@@ -216,7 +217,7 @@ export async function alsoFollow(db: Db, feedUrl: string): Promise<{ hidden: 'to
 }
 
 /** One episode of the feed: its numbers, its 100-bucket heat curve (0–1) and comments per minute. */
-export async function episodeDetail(db: Db, feedUrl: string, episodeId: string) {
+async function episodeDetailPg(db: Db, feedUrl: string, episodeId: string) {
   const stats = (await episodeStats(db, feedUrl)).find((e) => e.id === episodeId);
   if (!stats) return undefined;
   const [heat, perMinute, dur] = await Promise.all([
@@ -264,3 +265,15 @@ export const episodeCsv = (items: EpisodeStats[]) =>
   );
 
 export const trendCsv = (metric: Metric, days: { date: string; value: number }[]) => toCsv(['Date', metric], days.map((d) => [d.date, d.value]));
+
+// M26 lane ST: each runs on Postgres, or on DynamoDB (src/db/repos/studio/ddb/) when the Db carries a Store (db/backend.ts).
+export const completion = dual('st/numbers', 'completion', completionPg);
+export const totals = dual('st/numbers', 'totals', totalsPg);
+export const trend = dual('st/numbers', 'trend', trendPg);
+export const recentComments = dual('st/numbers', 'recentComments', recentCommentsPg);
+export const recentEpisodes = dual('st/numbers', 'recentEpisodes', recentEpisodesPg);
+export const claimedAt = dual('st/numbers', 'claimedAt', claimedAtPg);
+export const yesterday = dual('st/numbers', 'yesterday', yesterdayPg);
+export const episodeStats = dual('st/numbers', 'episodeStats', episodeStatsPg);
+export const alsoFollow = dual('st/numbers', 'alsoFollow', alsoFollowPg);
+export const episodeDetail = dual('st/numbers', 'episodeDetail', episodeDetailPg);

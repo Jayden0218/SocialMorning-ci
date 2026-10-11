@@ -1,8 +1,9 @@
 // Block and unblock listeners; a block also removes follows both ways.
 /** M6 blocks (FR-006–FR-010): one-way visibility, two-way interaction; a block removes follows both ways. */
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 
-export async function block(db: Db, blockerId: string, blockedId: string): Promise<'blocked' | 'no_such_listener'> {
+async function blockPg(db: Db, blockerId: string, blockedId: string): Promise<'blocked' | 'no_such_listener'> {
   const exists = await db.query<{ id: string }>('SELECT id FROM listeners WHERE id = $1', [blockedId]);
   if (exists.length === 0) return 'no_such_listener';
   await db.transaction(async (tx) => {
@@ -16,16 +17,16 @@ export async function block(db: Db, blockerId: string, blockedId: string): Promi
 }
 
 /** FR-010: visibility returns; the follow does not. */
-export async function unblock(db: Db, blockerId: string, blockedId: string): Promise<void> {
+async function unblockPg(db: Db, blockerId: string, blockedId: string): Promise<void> {
   await db.query('DELETE FROM blocks WHERE blocker_id = $1 AND blocked_id = $2', [blockerId, blockedId]);
 }
 
-export async function blockedIdsFor(db: Db, viewerId: string): Promise<Set<string>> {
+async function blockedIdsForPg(db: Db, viewerId: string): Promise<Set<string>> {
   const rows = await db.query<{ blocked_id: string }>('SELECT blocked_id FROM blocks WHERE blocker_id = $1', [viewerId]);
   return new Set(rows.map((r) => r.blocked_id));
 }
 
-export async function listBlocks(db: Db, viewerId: string): Promise<{ id: string; displayName: string; createdAt: string }[]> {
+async function listBlocksPg(db: Db, viewerId: string): Promise<{ id: string; displayName: string; createdAt: string }[]> {
   const rows = await db.query<{ id: string; display_name: string; created_at: string }>(
     'SELECT l.id, l.display_name, b.created_at FROM blocks b JOIN listeners l ON l.id = b.blocked_id WHERE b.blocker_id = $1 ORDER BY b.created_at DESC',
     [viewerId],
@@ -34,15 +35,23 @@ export async function listBlocks(db: Db, viewerId: string): Promise<{ id: string
 }
 
 /** Has `a` blocked `b`? */
-export async function isBlockedBy(db: Db, a: string, b: string): Promise<boolean> {
+async function isBlockedByPg(db: Db, a: string, b: string): Promise<boolean> {
   return (await db.query('SELECT 1 FROM blocks WHERE blocker_id = $1 AND blocked_id = $2', [a, b])).length > 0;
 }
 
 /** The viewer's newest block or report — part of the social poll's ETag (R1). */
-export async function safetyStamp(db: Db, viewerId: string): Promise<string> {
+async function safetyStampPg(db: Db, viewerId: string): Promise<string> {
   const [r] = await db.query<{ v: string | null }>(
     `SELECT greatest((SELECT max(created_at) FROM blocks WHERE blocker_id = $1), (SELECT max(created_at) FROM reports WHERE reporter_id = $1))::text AS v`,
     [viewerId],
   );
   return r?.v ?? '-';
 }
+
+// M26 lane SF: each runs on Postgres, or on DynamoDB (ddb/blocks.ts) when the Db carries a Store (db/backend.ts).
+export const block = dual('sf/blocks', 'block', blockPg);
+export const unblock = dual('sf/blocks', 'unblock', unblockPg);
+export const blockedIdsFor = dual('sf/blocks', 'blockedIdsFor', blockedIdsForPg);
+export const listBlocks = dual('sf/blocks', 'listBlocks', listBlocksPg);
+export const isBlockedBy = dual('sf/blocks', 'isBlockedBy', isBlockedByPg);
+export const safetyStamp = dual('sf/blocks', 'safetyStamp', safetyStampPg);

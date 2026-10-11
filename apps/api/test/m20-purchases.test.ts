@@ -13,6 +13,8 @@ import assert from 'node:assert/strict';
 import { createVerify, generateKeyPairSync } from 'node:crypto';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
+import { purchaseRows, tipCount } from './pd-neutral.ts';
+import * as S from './st-neutral.ts';
 import { serviceAccountJwt, type GooglePlay, type GoogleProduct, type GoogleSubscription } from '../src/billing/google-play.ts';
 import { applyVoided } from '../src/db/repos/account/purchases.ts';
 import { hostedById, setEpisodePaid } from '../src/db/repos/studio/hosted.ts';
@@ -33,15 +35,10 @@ const FEED = 'https://socialmorning-api.vercel.app/feeds/hosted.xml';
 
 async function withShow(t: TestDb, tier: number | null) {
   const owner = await signUp(t, 'owner@example.com', 'Owner');
-  const [s] = await t.q<{ id: string }>('INSERT INTO hosted_shows (owner_id, feed_url, title, price_tier) VALUES ($1, $2, $3, $4) RETURNING id', [owner.id, FEED, 'Hosted', tier]);
-  const ep = async (o: { paid?: boolean; old?: boolean; status?: 'draft' | 'published'; at?: string }) => {
-    const [e] = await t.q<{ id: string }>(
-      `INSERT INTO hosted_episodes (show_id, guid, episode_id, title, audio_url, audio_bytes, audio_type, status, published_at, paid, created_at)
-       VALUES ($1, gen_random_uuid()::text, gen_random_uuid()::text, 'Ep', 'https://blob.example/a.mp3', 10, 'audio/mpeg', $2, $3, $4, $5) RETURNING id`,
-      [s!.id, o.status ?? 'published', o.at ?? new Date(Date.now() - 60_000).toISOString(), o.paid ?? false, o.old ? null : new Date().toISOString()]);
-    return e!.id;
-  };
-  return { showId: s!.id, ep };
+  const s = await S.seedHostedShow(t, { ownerId: owner.id, feedUrl: FEED, title: 'Hosted', priceTier: tier });
+  const ep = (o: { paid?: boolean; old?: boolean; status?: 'draft' | 'published'; at?: string }) =>
+    S.seedHostedEpisode(t, s, { status: o.status ?? 'published', ...(o.at ? { publishedAt: o.at } : {}), paid: o.paid ?? false, createdAt: !o.old });
+  return { showId: s, ep };
 }
 
 test('the service-account JWT is RS256 over header.claims, for the androidpublisher scope', () => {
@@ -84,7 +81,7 @@ test('not paid at Google (pending) → 402, nothing granted', async () => {
   await withShow(t, 2);
   const r = await t.call('POST', '/v1/me/purchases/google', { productId: 'show_tier_2', purchaseToken: 'p', feedUrl: FEED }, a.token);
   assert.equal(r.status, 402);
-  assert.equal((await t.q('SELECT 1 FROM purchases')).length, 0);
+  assert.equal((await purchaseRows(t)).length, 0);
   await t.close();
 });
 
@@ -92,17 +89,17 @@ test('G-M20-5: a tip sent twice tips once; a refund takes it back', async () => 
   const f = fakePlay({ product: { profileId: fnv1a64(FEED) } });
   const t = await freshDb({ play: f.play });
   const a = await signUp(t);
-  await t.q('INSERT INTO show_overrides (feed_url, tips_enabled) VALUES ($1, true)', [FEED]);
+  await S.seedOverrides(t, FEED, { tipsEnabled: true });
   const tip = () => t.call('POST', '/v1/me/purchases/google', { productId: 'tip_small', purchaseToken: 'tok-tip', feedUrl: FEED }, a.token);
   assert.equal((await tip()).status, 200);
   const again = (await (await tip()).json()) as { purchase: { repeated: boolean } };
   assert.equal(again.purchase.repeated, true);
-  assert.equal((await t.q('SELECT 1 FROM tips')).length, 1, 'one tip, not two');
-  assert.equal((await t.q('SELECT 1 FROM purchases')).length, 1);
+  assert.equal(await tipCount(t), 1, 'one tip, not two');
+  assert.equal((await purchaseRows(t)).length, 1);
   const v = await applyVoided(t.db, [{ purchaseToken: 'tok-tip', voidedAt: Date.now() }, { purchaseToken: 'never-seen', voidedAt: Date.now() }]);
   assert.deepEqual(v, { withdrawn: 1, unknown: 1 });
-  assert.equal((await t.q('SELECT 1 FROM tips')).length, 0);
-  const [p] = await t.q<{ status: string }>('SELECT status FROM purchases');
+  assert.equal(await tipCount(t), 0);
+  const [p] = await purchaseRows(t);
   assert.equal(p!.status, 'refunded');
   await t.close();
 });
@@ -140,10 +137,10 @@ test('G-M20-6: an episode from before M20, or a live one, cannot be made paid; t
   await assert.rejects(setEpisodePaid(t.db, show, live, true), /stays free/);
   const draft = await ep({ status: 'draft' });
   assert.equal((await setEpisodePaid(t.db, show, draft, true)).paid, true);
-  await t.q("UPDATE hosted_episodes SET status = 'published', published_at = now() - interval '1 minute' WHERE id = $1", [draft]);
+  await S.publishHostedNow(t, draft);
   const xml = await (await t.app.request(`/feeds/${showId}.xml`)).text();
   assert.equal((xml.match(/<item>/g) ?? []).length, 1, 'only the free live episode is in the feed');
-  const [row] = await t.q('SELECT 1 FROM episodes e JOIN hosted_episodes h ON h.episode_id = e.id WHERE h.id = $1', [draft]);
+  const row = (await S.hostedEpisodeLive(t, draft)) ? {} : undefined;
   assert.equal(row, undefined, 'a paid episode never enters the app\'s episode table');
   await t.close();
 });

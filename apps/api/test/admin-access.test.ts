@@ -9,7 +9,9 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { aCall, adminSetup } from './admin-harness.ts';
+import { aCall, adminSetup, auditRows } from './admin-harness.ts';
+import { adminIds } from './sf-neutral.ts';
+import { removeAdmin } from '../src/db/repos/admin/admin-access.ts';
 import { sCall } from './studio-harness.ts';
 
 const SAMPLE: Record<string, string> = { day: '2026-10-02', genreId: '1303' };
@@ -33,7 +35,7 @@ test('G-A1: every registered /v1/admin route answers 401 signed out and 403 not_
     assert.equal(((await non.json()) as { error: string }).error, 'not_admin', `${r.method} ${r.path}`);
     assert.equal(non.headers.get('cache-control'), 'private, no-store');
   }
-  assert.equal((await t.q('SELECT 1 FROM admin_audit')).length, 0, 'a refused call left a record row, so it wrote something');
+  assert.equal((await auditRows(t)).length, 0, 'a refused call left a record row, so it wrote something');
   assert.equal((await aCall(t, 'GET', '/v1/admin/audit', owner)).status, 200, 'the owner gets in');
   await t.close();
 });
@@ -57,7 +59,8 @@ test('the Studio says who is admin (display only); a phone token never reaches A
 test('FR-002: the owner is seeded as the only admin, and the last admin cannot be removed', async () => {
   const { t, owner } = await adminSetup();
   await aCall(t, 'GET', '/v1/admin/audit', owner);
-  assert.deepEqual((await t.q<{ listener_id: string }>('SELECT listener_id FROM admins')).map((r) => r.listener_id), [owner.id]);
-  await assert.rejects(t.q('DELETE FROM admins'), /at least one admin/);
+  assert.deepEqual(await adminIds(t), [owner.id]);
+  await assert.rejects(removeAdmin(t.db, owner.id), /at least one admin/);
+  assert.deepEqual(await adminIds(t), [owner.id], 'still the admin');
   await t.close();
 });

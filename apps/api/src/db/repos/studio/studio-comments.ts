@@ -8,12 +8,13 @@
  * `moderation_actions` so the owner's /mod page sees it and can undo it (research R6).
  */
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 import { ApiError } from '../../../errors.ts';
 import { rebuildEpisodeHeat } from '../../../heat/rebuild.ts';
 import { like, type LikeState } from '../social/comment-likes.ts';
 
 /** Comments the listener wrote in the last 5 seconds (the reply rate floor). */
-export async function recentCommentCountRows(db: Db, authorId: string): Promise<{ n: number }[]> {
+async function recentCommentCountRowsPg(db: Db, authorId: string): Promise<{ n: number }[]> {
   return db.query<{ n: number }>("SELECT count(*)::int AS n FROM comments WHERE author_id = $1 AND created_at > now() - interval '5 seconds'", [authorId]);
 }
 
@@ -67,7 +68,7 @@ const toStudio = (r: Row): StudioComment => {
 };
 
 /** Newest first; search matches the body (case-insensitive), `episodeId` narrows to one episode. */
-export async function listShowComments(
+async function listShowCommentsPg(
   db: Db, feedUrl: string, opts: { q?: string; episodeId?: string; before?: string } = {},
 ): Promise<{ items: StudioComment[]; next?: string }> {
   const rows = await db.query<Row>(
@@ -90,7 +91,7 @@ export async function listShowComments(
 }
 
 /** The comment, only if it belongs to this feed — every write below starts here. */
-export async function commentOnFeed(db: Db, feedUrl: string, id: string): Promise<{ id: string; episode_id: string; parent_id: string | null; author_id: string | null; offset_ms: number | null } | undefined> {
+async function commentOnFeedPg(db: Db, feedUrl: string, id: string): Promise<{ id: string; episode_id: string; parent_id: string | null; author_id: string | null; offset_ms: number | null } | undefined> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return undefined;
   const [r] = await db.query<{ id: string; episode_id: string; parent_id: string | null; author_id: string | null; offset_ms: number | null }>(
     'SELECT c.id, c.episode_id, c.parent_id, c.author_id, c.offset_ms FROM comments c JOIN episodes e ON e.id = c.episode_id WHERE c.id = $1 AND e.feed_url = $2',
@@ -100,7 +101,7 @@ export async function commentOnFeed(db: Db, feedUrl: string, id: string): Promis
 }
 
 /** Hide (or un-hide) a comment on this show; logged; the heat curve and the feed item follow. */
-export async function setHostHidden(db: Db, feedUrl: string, id: string, actorId: string, hidden: boolean): Promise<void> {
+async function setHostHiddenPg(db: Db, feedUrl: string, id: string, actorId: string, hidden: boolean): Promise<void> {
   const c = await commentOnFeed(db, feedUrl, id);
   if (!c) throw new ApiError('not_found', 'No such comment on this show.');
   await db.transaction(async (tx) => {
@@ -132,7 +133,7 @@ export async function setHostHidden(db: Db, feedUrl: string, id: string, actorId
 }
 
 /** For /mod: the latest host hides still in force, with enough to judge them. */
-export async function recentHostHides(db: Db, limit = 50): Promise<{ id: string; body: string | null; title: string; feedUrl: string; by: string | null; at: string }[]> {
+async function recentHostHidesPg(db: Db, limit = 50): Promise<{ id: string; body: string | null; title: string; feedUrl: string; by: string | null; at: string }[]> {
   const rows = await db.query<{ id: string; body: string | null; title: string; feed_url: string; by: string | null; at: Date | string }>(
     `SELECT c.id, c.body, e.title, e.feed_url, l.display_name AS by, c.host_hidden_at AS at
        FROM comments c JOIN episodes e ON e.id = c.episode_id LEFT JOIN listeners l ON l.id = c.host_hidden_by
@@ -141,3 +142,10 @@ export async function recentHostHides(db: Db, limit = 50): Promise<{ id: string;
   );
   return rows.map((r) => ({ id: r.id, body: r.body, title: r.title, feedUrl: r.feed_url, by: r.by, at: new Date(r.at).toISOString() }));
 }
+
+// M26 lane ST: each runs on Postgres, or on DynamoDB (src/db/repos/studio/ddb/) when the Db carries a Store (db/backend.ts).
+export const recentCommentCountRows = dual('st/comments', 'recentCommentCountRows', recentCommentCountRowsPg);
+export const listShowComments = dual('st/comments', 'listShowComments', listShowCommentsPg);
+export const commentOnFeed = dual('st/comments', 'commentOnFeed', commentOnFeedPg);
+export const setHostHidden = dual('st/comments', 'setHostHidden', setHostHiddenPg);
+export const recentHostHides = dual('st/comments', 'recentHostHides', recentHostHidesPg);

@@ -1,5 +1,6 @@
 // Database queries for shared show lists (M22 US17 item 5; moved from routes/lists.ts in M26 F0-01).
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 
 export type SharedListRow = { id: string; title: string; feed_urls: string[] | string; created_at: Date | string; owner_id: string; display_name: string; suspended_at: string | null };
 export type SharedListShowRow = { feed_url: string; title: string | null; image_url: string | null };
@@ -11,7 +12,7 @@ export async function sharedListRows(db: Db, id: string): Promise<SharedListRow[
 }
 
 /** The shows of a list, in list order; a show hidden by moderation is left out. */
-export async function sharedListShowRows(db: Db, urls: string[]): Promise<SharedListShowRow[]> {
+async function sharedListShowRowsPg(db: Db, urls: string[]): Promise<SharedListShowRow[]> {
   return db.query<SharedListShowRow>(
     `SELECT u.feed_url,
             coalesce(o.title, (SELECT e.show_title FROM episodes e WHERE e.feed_url = u.feed_url AND e.show_title IS NOT NULL ORDER BY e.published_at DESC NULLS LAST LIMIT 1)) AS title,
@@ -28,3 +29,6 @@ export async function insertSharedList(db: Db, id: string, ownerId: string, titl
     'INSERT INTO shared_lists (id, owner_id, title, feed_urls) VALUES ($1, $2, $3, $4::text[]) ON CONFLICT (id) DO NOTHING RETURNING id',
     [id, ownerId, title, feedUrls]);
 }
+
+// M26 lane DV (lane ST's request): on DynamoDB the titles come from lane ST's overrides and lane LB's show META (discover/ddb/shared-lists.ts).
+export const sharedListShowRows = dual('dv/shared-lists', 'sharedListShowRows', sharedListShowRowsPg);
