@@ -10,6 +10,7 @@ import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, signUpWithCode } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
+import { deletionCount, listenerRow, makeDeletionsDue } from './ac-neutral.ts';
 
 const JOB = 'job-token-not-secret';
 const ep = { feedUrl: 'https://feeds.example.com/x.xml', guid: 'g1', title: 'Ep 1', enclosureUrl: 'https://cdn/1.mp3' };
@@ -51,10 +52,10 @@ test('G-M22-8: a deletion request hides the account and signs it out; sign-in of
   assert.equal((await t.call('GET', `/v1/listeners/${a.id}`, undefined, b.token)).status, 200, 'Keep: the profile is back');
   assert.equal(await commentsSeenBy(b.token), 1, 'Keep: the comment is back');
   // The step finds nothing to delete after Keep, even when the old date passes.
-  await t.q("UPDATE account_deletions SET due_at = now() - interval '1 second'");
+  await makeDeletionsDue(t);
   const step = await t.call('POST', '/v1/internal/rebuild', { step: 'deletions' }, undefined, { authorization: `Bearer ${JOB}` });
   assert.deepEqual(((await step.json()) as { counts: unknown }).counts, { deleted: 0, failed: 0 });
-  assert.equal((await t.q('SELECT 1 FROM listeners WHERE id = $1', [a.id])).length, 1);
+  assert.ok(await listenerRow(t, a.id));
   await t.close();
 });
 
@@ -66,12 +67,12 @@ test('the due step deletes exactly as the old immediate deletion did; not before
   assert.equal((await t.call('DELETE', '/v1/me', { password: 'correct horse' }, a.token)).status, 202);
   const run = async () => ((await (await t.call('POST', '/v1/internal/rebuild', { step: 'deletions' }, undefined, { authorization: `Bearer ${JOB}` })).json()) as { counts: { deleted: number } }).counts.deleted;
   assert.equal(await run(), 0, 'not due yet');
-  assert.equal((await t.q('SELECT 1 FROM listeners WHERE id = $1', [a.id])).length, 1);
-  await t.q("UPDATE account_deletions SET due_at = now() - interval '1 second'");
+  assert.ok(await listenerRow(t, a.id));
+  await makeDeletionsDue(t);
   assert.equal(await run(), 1);
-  assert.equal((await t.q('SELECT 1 FROM listeners WHERE id = $1', [a.id])).length, 0);
+  assert.equal(await listenerRow(t, a.id), undefined);
   assert.equal((await t.q('SELECT 1 FROM comments')).length, 0, 'the lone comment went with it');
-  assert.equal((await t.q('SELECT 1 FROM account_deletions')).length, 0);
+  assert.equal(await deletionCount(t), 0);
   const re = await signUpWithCode(t, 'a@example.com', 'Alex again');
   assert.equal(re.status, 200, 'the email is free again');
   await t.close();

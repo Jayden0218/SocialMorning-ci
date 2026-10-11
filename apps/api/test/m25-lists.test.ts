@@ -14,8 +14,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
-import { aCall, adminSetup, FX } from './admin-harness.ts';
+import { aCall, adminSetup, auditRows, FX } from './admin-harness.ts';
 import { putEpisode } from './put-episode.ts';
+import { TEST_BACKEND } from './harness.ts';
+import { seedListener } from './dv-neutral.ts';
+import { seedCacheRow } from './lb-seed.ts';
+import { seedComment } from './sc-neutral.ts';
+import { hiddenEpisodeRow } from './nb-h3-neutral.ts';
 import { migrate } from '../src/db/migrate.ts';
 import { createFeedback } from '../src/db/repos/account/feedback.ts';
 import { addSearchRequest } from '../src/routes/discover/search-requests.ts';
@@ -33,8 +38,7 @@ type Disc = { trending: Item[]; talkedAbout: Item[]; shows?: Show[]; premium?: S
 async function setup() {
   const s = await adminSetup({ picksRaw: [], today: () => TODAY, collectionsRaw: [] });
   // The fixture show's parsed feed, as the server keeps it (a pinned show off the chart is drawn from it).
-  await s.t.q(`INSERT INTO cache (key, body, fetched_at) VALUES ($1, ($2::text)::jsonb, now())`,
-    [`feed:${FX}`, JSON.stringify({ show: { title: 'Fixture Show', author: 'Fx' }, episodes: [], warnings: [] })]);
+  await seedCacheRow(s.t, `feed:${FX}`, { show: { title: 'Fixture Show', author: 'Fx' }, episodes: [], warnings: [] }); // M26: both backends
   const ep = { feedUrl: FX, guid: 'g-pin', title: 'Pinned One', showTitle: 'Fixture Show', enclosureUrl: 'https://cdn/pin.mp3', publishedAt: '2026-09-20T00:00:00Z' };
   await putEpisode(s.t, fnv1a64(`${ep.feedUrl}\u0001${ep.guid}`), { ...ep, durationMs: 1_000_000 });
   return s;
@@ -107,7 +111,7 @@ test('A1: start and end times — a pin not started yet, or already over, is not
     assert.equal((await aCall(t, 'POST', L('said'), owner, { kind: 'pin', feedUrl: FX })).status, 422);
     assert.equal((await aCall(t, 'POST', L('trending'), owner, { kind: 'pin', feedUrl: FX, startsAt: later, endsAt: past })).status, 422);
     assert.equal((await aCall(t, 'PUT', `${L('trending')}/default-tab`, owner, { tab: 'all' })).status, 422);
-    const audit = await t.q<{ area: string; action: string }>("SELECT area, action FROM admin_audit WHERE area = 'discover' ORDER BY id");
+    const audit = (await auditRows(t)).filter((a) => a.area === 'discover'); // M26: lane SF's AUDIT# items on DynamoDB
     assert.ok(audit.length >= 4 && audit.every((a) => a.action.startsWith('list ')), 'every list write is recorded');
   } finally { await t.close(); }
 });
@@ -139,7 +143,7 @@ test('G-AL-A3: a show hidden from Admin (no report, with a reason) leaves search
     assert.equal((await newChart()).some((i) => i.episode.feedUrl === JRE), false, 'New shows chart: gone');
     const cat = (await (await t.call('GET', '/v1/categories/1303')).json()) as Cat;
     assert.equal(cat.shows.some((x) => x.feedUrl === JRE || x.feedUrl === REPLY_ALL), false, 'category: gone');
-    const audit = await t.q<{ action: string; target: string }>("SELECT action, target FROM admin_audit WHERE area = 'safety' ORDER BY id");
+    const audit = (await auditRows(t)).filter((a) => a.area === 'safety'); // M26: lane SF's AUDIT# items on DynamoDB
     assert.deepEqual(audit.map((a) => a.action), ['hide show', 'hide show']);
 
     assert.equal((await aCall(t, 'DELETE', `/v1/admin/hidden/show?feedUrl=${encodeURIComponent(REPLY_ALL)}`, owner)).status, 200);
@@ -153,7 +157,7 @@ test('A3: an episode hidden from Admin leaves the lists; its show stays; showing
     const chartNew = async () => ((await (await t.call('GET', '/v1/discover/chart?kind=new')).json()) as { items: Item[] }).items;
     assert.equal((await chartNew()).find((i) => i.episode.feedUrl === FX)?.episode.guid, 'g-pin');
     assert.equal((await aCall(t, 'POST', '/v1/admin/hidden/episode', owner, { feedUrl: FX, guid: 'g-pin', reason: 'Wrong file' })).status, 200);
-    const [row] = await t.q<{ reason: string; hidden_by: string }>('SELECT reason, hidden_by::text AS hidden_by FROM hidden_episodes WHERE feed_url = $1 AND guid = $2', [FX, 'g-pin']);
+    const row = await hiddenEpisodeRow(t, FX, 'g-pin'); // M26 lane NB: neutral (the item with the bridge off)
     assert.deepEqual(row, { reason: 'Wrong file', hidden_by: owner.id });
     assert.equal((await chartNew()).some((i) => i.episode.guid === 'g-pin'), false);
     assert.equal((await aCall(t, 'DELETE', `/v1/admin/hidden/episode?feedUrl=${encodeURIComponent(FX)}&guid=g-pin`, owner)).status, 200);
@@ -173,16 +177,17 @@ test('A4: Popular shows, Premium picks, What listeners said, the New shows chart
     assert.deepEqual(d.premium!.map((s) => s.feedUrl), [JRE], 'Premium is the rest of the chart, less its own hides');
 
     // What listeners said: hide one quote, pin an old one (past the 14-day window).
-    const [l] = await t.q<{ id: string }>("INSERT INTO listeners (email, password_hash, display_name) VALUES ('said@example.com', 'x', 'Said') RETURNING id");
+    // M26: the listener and the comments through the neutral seeds (lane SC's items on DynamoDB).
+    const l = await seedListener(t, { email: 'said@example.com', displayName: 'Said' });
     const epId = fnv1a64(`${FX}\u0001g-pin`);
-    const [fresh] = await t.q<{ id: string }>("INSERT INTO comments (episode_id, author_id, body) VALUES ($1, $2, 'fresh') RETURNING id", [epId, l!.id]);
-    const [old] = await t.q<{ id: string }>("INSERT INTO comments (episode_id, author_id, body, created_at) VALUES ($1, $2, 'old but gold', now() - interval '40 days') RETURNING id", [epId, l!.id]);
+    const fresh = { id: await seedComment(t, { episodeId: epId, authorId: l, body: 'fresh' }) };
+    const old = { id: await seedComment(t, { episodeId: epId, authorId: l, body: 'old but gold', agoMs: 40 * 86_400_000 }) };
     d = (await (await t.call('GET', '/v1/discover')).json()) as Disc;
-    assert.deepEqual(d.said!.map((x) => x.commentId), [fresh!.id]);
-    await aCall(t, 'POST', L('said'), owner, { kind: 'pin', commentId: old!.id });
-    await aCall(t, 'POST', L('said'), owner, { kind: 'hide', commentId: fresh!.id });
+    assert.deepEqual(d.said!.map((x) => x.commentId), [fresh.id]);
+    await aCall(t, 'POST', L('said'), owner, { kind: 'pin', commentId: old.id });
+    await aCall(t, 'POST', L('said'), owner, { kind: 'hide', commentId: fresh.id });
     d = (await (await t.call('GET', '/v1/discover')).json()) as Disc;
-    assert.deepEqual(d.said!.map((x) => x.commentId), [old!.id]);
+    assert.deepEqual(d.said!.map((x) => x.commentId), [old.id]);
 
     // The New shows chart (show-level): hide the fixture show.
     const items = async () => ((await (await t.call('GET', '/v1/discover/chart?kind=new')).json()) as { items: Item[] }).items;
@@ -246,7 +251,9 @@ test('A9: feedback, search requests and recommendation numbers are in Admin (own
   } finally { await t.close(); }
 });
 
-test('migration 028 copies the M15 pins, hides and category features into list_overrides', async () => {
+// Postgres only: a migration re-run over SQL tables (M15 → list_overrides). On DynamoDB there are no M15 tables to
+// copy from; the list items the routes write are covered by the tests above (and test/ddb-dv.test.ts).
+test('migration 028 copies the M15 pins, hides and category features into list_overrides', { skip: TEST_BACKEND === 'ddb' ? 'a Postgres migration re-run (no tables on DynamoDB)' : false }, async () => {
   const { t } = await setup();
   try {
     await t.q('DROP TABLE list_overrides, list_settings, foryou_rules, foryou_weights');

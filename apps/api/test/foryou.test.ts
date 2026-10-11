@@ -11,9 +11,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createApp } from '../src/app.ts';
 import { fakeApple, fakeFeedFetch, FIXTURE_FEED } from './fake-apple.ts';
-import { dbOf, migratedPg, TEST_PEPPER, signUp, type TestDb } from './harness.ts';
+import { migratedPg, TEST_PEPPER, signUp, type TestDb } from './harness.ts';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { putEpisode } from './put-episode.ts';
+import { daysAgo, ownBackend, seedRecEvent, seedSimilarity, shiftRecEvents, similarityRows, similarityStagingCount } from './dv-neutral.ts';
+import { clearCachePrefix, oneEpisodeOf } from './lb-seed.ts';
 
 const FX = 'https://feeds.example.com/fx.xml';
 const JOB = 'job-token-not-secret';
@@ -23,7 +25,8 @@ type Body = { items: { episode: { id: string; feedUrl: string; title: string }; 
 
 async function appWith(opts: { picksRaw?: unknown; appleMode?: Parameters<typeof fakeApple>[0]; feedStatus?: number } = {}) {
   const { pg, runner } = await migratedPg();
-  const db = dbOf(pg);
+  const be = await ownBackend(pg); // M26 lane DV: Postgres, or the hybrid Db under TEST_BACKEND=ddb
+  const db = be.db;
   const apple = fakeApple(opts.appleMode ?? {});
   const catalogFetch = (async (input: string | URL | Request, init?: RequestInit) => {
     const url = String(input);
@@ -36,10 +39,14 @@ async function appWith(opts: { picksRaw?: unknown; appleMode?: Parameters<typeof
   const app = createApp({ db, pepper: TEST_PEPPER, catalogFetch, picksRaw: opts.picksRaw ?? PICKS, today: () => '2026-09-22', jobToken: JOB });
   console.warn = orig;
   const t: TestDb = {
-    pg, db, runner, app,
+    pg, db, runner, app, ...(be.store ? { store: be.store } : {}),
     q: async <T,>(s: string, p?: unknown[]) => (await pg.query<T>(s, p)).rows,
-    call: async (method, path, body, token, headers = {}) => app.request(path, { method, headers: { ...(body !== undefined ? { 'content-type': 'application/json' } : {}), ...(token ? { authorization: `Bearer ${token}` } : {}), ...headers }, body: body !== undefined ? JSON.stringify(body) : undefined }),
-    close: () => pg.close(),
+    call: async (method, path, body, token, headers = {}) => {
+      const r = await app.request(path, { method, headers: { ...(body !== undefined ? { 'content-type': 'application/json' } : {}), ...(token ? { authorization: `Bearer ${token}` } : {}), ...headers }, body: body !== undefined ? JSON.stringify(body) : undefined });
+      await be.drain(); // the outbox, on DynamoDB
+      return r;
+    },
+    close: async () => { await be.close(); await pg.close(); },
   };
   return { t, warned };
 }
@@ -115,7 +122,7 @@ test('a finished episode never appears (FR-016)', async () => {
   const victim = before.items[0]!.episode.id;
 
   await t.call('PUT', '/v1/me/positions', { deviceId: 'p1', observations: [{ episodeId: victim, offsetMs: 1, finished: true, progressSeq: 1, explicitSeek: false }] }, a.token);
-  await t.q("DELETE FROM cache WHERE key LIKE 'foryou:%'"); // the 30-minute cache, stepped over
+  await clearCachePrefix(t, 'foryou:'); // the 30-minute cache, stepped over
 
   const after = (await (await get(t, a.token)).json()) as Body;
   assert.ok(!after.items.some((i) => i.episode.id === victim), 'finished is gone');
@@ -143,7 +150,7 @@ test('A17: the feeds step walks subscribed feeds and registers what it finds', a
   assert.equal(body.done, true);
   assert.equal(body.counts.feeds, 1);
   assert.ok(body.counts.registered >= 1);
-  const [row] = await t.q<{ published_at: string | null; genre_id: number | null }>('SELECT published_at, genre_id FROM episodes WHERE feed_url = $1 LIMIT 1', [FX]);
+  const row = await oneEpisodeOf(t, FX); // M26 lane NB: the episode item on DynamoDB, the row on Postgres
   assert.ok(row!.published_at !== null, 'the publisher date landed — freshness depends on it');
   assert.equal(Number(row!.genre_id), 1318);
   await t.close();
@@ -154,9 +161,9 @@ test('A18: an interrupted rebuild never serves half a neighbourhood, and a fresh
   const auth = { authorization: `Bearer ${JOB}` };
 
   // Seed a standing neighbourhood, then start a rebuild and stop after the first chunk.
-  await t.q("INSERT INTO show_similarity (show_a, show_b, sim) VALUES ('https://a', 'https://b', 0.5)");
-  await t.q("INSERT INTO show_similarity_next (show_a, show_b, sim) VALUES ('https://c', 'https://d', 0.9)");
-  const standing = await t.q<{ show_a: string }>('SELECT show_a FROM show_similarity');
+  // M26: through dv-neutral (tables on Postgres; a standing + a building generation on DynamoDB).
+  await seedSimilarity(t, [['https://a', 'https://b', 0.5]], [['https://c', 'https://d', 0.9]]);
+  const { rows: standing } = await similarityRows(t);
   assert.deepEqual(standing.map((r) => r.show_a), ['https://a'], 'the staging rows are not visible');
 
   // A table rebuilt within the last 20 h is left alone (research R4's self-throttle).
@@ -167,8 +174,7 @@ test('A18: an interrupted rebuild never serves half a neighbourhood, and a fresh
 
   // …unless it is forced, and then the swap leaves the table whole.
   await t.call('POST', '/v1/internal/rebuild', { step: 'similarity', force: true }, undefined, auth);
-  const after = await t.q<{ n: number }>('SELECT count(*)::int AS n FROM show_similarity_next');
-  assert.equal(Number(after[0]!.n), 0, 'staging is emptied by the swap');
+  assert.equal(await similarityStagingCount(t), 0, 'staging is emptied by the swap');
   await t.close();
 });
 
@@ -191,7 +197,7 @@ test('fatigue counts occasions, not renders: three impressions in one day is one
   await t.call('PUT', '/v1/me/subscriptions', { items: [{ feedUrl: own, createdAt: '2026-09-20T10:00:00.000Z' }] }, a.token);
 
   const seen = async () => {
-    await t.q("DELETE FROM cache WHERE key LIKE 'foryou:%'");
+    await clearCachePrefix(t, 'foryou:');
     const body = (await (await get(t, a.token)).json()) as Body;
     return body.items.some((i) => i.episode.id === ownId);
   };
@@ -200,18 +206,18 @@ test('fatigue counts occasions, not renders: three impressions in one day is one
 
   // Five impressions, all on one day — one occasion.
   for (let i = 0; i < 5; i++) {
-    await t.q("INSERT INTO rec_events (listener_id, episode_id, channel, rank, kind, at) VALUES ($1, $2, 'sub-new', 0, 'impression', now())", [a.id, ownId]);
+    await seedRecEvent(t, { listenerId: a.id, episodeId: ownId, kind: 'impression', at: new Date().toISOString() });
   }
   assert.equal(await seen(), true, 'five renders in one day must not retire it');
 
   // Three separate days is three occasions, and that is the limit.
   for (const d of [1, 2, 3]) {
-    await t.q(`INSERT INTO rec_events (listener_id, episode_id, channel, rank, kind, at) VALUES ($1, $2, 'sub-new', 0, 'impression', now() - interval '${d} days')`, [a.id, ownId]);
+    await seedRecEvent(t, { listenerId: a.id, episodeId: ownId, kind: 'impression', at: daysAgo(d) });
   }
   assert.equal(await seen(), false, 'three occasions with no open retires it (FR-017)');
 
   // …and the window forgets, so a list can recover.
-  await t.q("UPDATE rec_events SET at = at - interval '30 days' WHERE listener_id = $1", [a.id]);
+  await shiftRecEvents(t, a.id, 30 * 86_400_000);
   assert.equal(await seen(), true, 'outside the window it comes back');
 
   await t.close();

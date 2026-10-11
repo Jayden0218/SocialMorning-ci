@@ -1,8 +1,9 @@
 // The two statements of an episode's heat rebuild (see heat/rebuild.ts for the rule they keep).
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 
 /** Clears the episode's heat rows, but only when its duration is known. */
-export async function clearEpisodeHeat(db: Db, episodeId: string): Promise<void> {
+async function clearEpisodeHeatPg(db: Db, episodeId: string): Promise<void> {
   await db.query(
     `DELETE FROM episode_heat WHERE episode_id = $1
        AND (SELECT duration_ms FROM episodes WHERE id = $1) IS NOT NULL`,
@@ -11,7 +12,7 @@ export async function clearEpisodeHeat(db: Db, episodeId: string): Promise<void>
 }
 
 /** Counts each listener once per bucket across reactions and timestamped comments (UNION, count DISTINCT). */
-export async function insertEpisodeHeat(db: Db, episodeId: string): Promise<void> {
+async function insertEpisodeHeatPg(db: Db, episodeId: string): Promise<void> {
   await db.query(
     `INSERT INTO episode_heat (episode_id, bucket, distinct_listeners)
      SELECT $1, bucket, count(DISTINCT listener_id)
@@ -29,3 +30,7 @@ export async function insertEpisodeHeat(db: Db, episodeId: string): Promise<void
     [episodeId],
   );
 }
+
+// M26 lane LB: each function runs on Postgres, or on DynamoDB (`ddb/` bodies) when the Db carries a Store (db/backend.ts).
+export const clearEpisodeHeat = dual('lb/heat', 'clearEpisodeHeat', clearEpisodeHeatPg);
+export const insertEpisodeHeat = dual('lb/heat', 'insertEpisodeHeat', insertEpisodeHeatPg);

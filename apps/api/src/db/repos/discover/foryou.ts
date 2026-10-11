@@ -21,6 +21,7 @@ import {
 } from '@socialmorning/social-core';
 import type { PickIn } from '@socialmorning/social-core';
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 import { cached } from '../cache.ts';
 import { hiddenFeedUrls } from '../safety/moderation.ts';
 import { hiddenEpisodeIds } from '../studio/hidden-episodes.ts';
@@ -44,6 +45,11 @@ export const TOP_GENRES = 2;
 export const FATIGUE_WINDOW_DAYS = 14;
 /** The chart is fetched once an hour for everyone, not once per listener. */
 export const CHART_TTL = 60 * 60_000;
+/**
+ * M26 lane DV: the shared chart's cache key, OUTSIDE the `foryou:` prefix that an admin save drops (it was
+ * `foryou:chart`, spared by a `key <> 'foryou:chart'` — a prefix generation cannot spare one key).
+ */
+export const CHART_KEY = 'foryou-chart';
 
 /**
  * M22 US5 (research R5, guard G-M22-5): the "interests" channel — the categories picked on
@@ -70,7 +76,7 @@ export type ForYouBody = {
   warnings: string[];
 };
 
-type Row = {
+export type Row = {
   id: string; feed_url: string; guid: string; title: string; show_title: string | null;
   image_url: string | null; duration_ms: number | null; enclosure_url: string;
   published_at: string | null; genre_id: number | null;
@@ -132,7 +138,10 @@ export function anonContext(interests: readonly number[]): Context {
   };
 }
 
-export async function contextFor(db: Db, listenerId: string): Promise<Context> {
+/** The listener's own rows For You reads once per build (lane DV: one dual function, so the scoring below is shared). */
+export type ContextRows = { subs: string[]; fin: { episode_id: string; feed_url: string | null }[]; follows: string[]; genres: number[]; fatigue: { episode_id: string; imps: number }[] };
+
+async function contextRowsPg(db: Db, listenerId: string): Promise<ContextRows> {
   const [subs, fin, follows, genres, fatigue] = await Promise.all([
     db.query<{ feed_url: string }>('SELECT feed_url FROM subscriptions WHERE listener_id = $1 AND deleted_at IS NULL', [listenerId]),
     db.query<{ episode_id: string; feed_url: string | null }>(
@@ -160,8 +169,15 @@ export async function contextFor(db: Db, listenerId: string): Promise<Context> {
        WHERE listener_id = $1 AND at > now() - ($2 || ' days')::interval
        GROUP BY episode_id HAVING count(*) FILTER (WHERE kind = 'open') = 0`, [listenerId, String(FATIGUE_WINDOW_DAYS)]),
   ]);
+  return {
+    subs: subs.map((r) => r.feed_url), fin, follows: follows.map((r) => r.followed_id), genres: genres.map((r) => Number(r.genre_id)),
+    fatigue: fatigue.map((r) => ({ episode_id: r.episode_id, imps: Number(r.imps) })),
+  };
+}
 
-  const subscribed = new Set(subs.map((r) => r.feed_url));
+export async function contextFor(db: Db, listenerId: string): Promise<Context> {
+  const { subs, fin, follows, genres, fatigue } = await contextRows(db, listenerId);
+  const subscribed = new Set(subs);
   const finishedByShow = new Map<string, number>();
   for (const r of fin) if (r.feed_url !== null) finishedByShow.set(r.feed_url, (finishedByShow.get(r.feed_url) ?? 0) + 1);
   const liked = new Set(subscribed);
@@ -175,9 +191,9 @@ export async function contextFor(db: Db, listenerId: string): Promise<Context> {
     blocked: await blockedIdsFor(db, listenerId),
     hidden: await hiddenFeedUrls(db),
     hiddenEps: await hiddenEpisodeIds(db), // M24 US11: hidden episodes leave this list.
-    follows: follows.map((r) => r.followed_id),
-    genres: genres.map((r) => Number(r.genre_id)),
-    fatigue: new Map(fatigue.map((r) => [r.episode_id, Number(r.imps)])),
+    follows,
+    genres,
+    fatigue: new Map(fatigue.map((r) => [r.episode_id, r.imps])),
     neighbours: await neighboursOf(db, [...liked]),
     dismissed: await dismissedFor(db, listenerId),
     interests: (await getInterests(db, listenerId)).genreIds,
@@ -190,10 +206,15 @@ type Raw = { row: Row; channel: Channel; socialCount?: number; neighbourOf?: str
 
 async function subNew(db: Db, ctx: Context): Promise<Raw[]> {
   if (ctx.subscribed.size === 0) return [];
-  const rows = await db.query<Row>(
-    `SELECT ${EPISODE_COLS} FROM episodes WHERE feed_url = ANY($1::text[])
-     ORDER BY published_at DESC NULLS LAST LIMIT ${CHANNEL_CAP['sub-new']}`, [[...ctx.subscribed]]);
+  const rows = await newestOfShows(db, [...ctx.subscribed], CHANNEL_CAP['sub-new']);
   return rows.map((row) => ({ row, channel: 'sub-new' as const }));
+}
+
+/** The newest `limit` episodes over these shows together (`published_at DESC NULLS LAST`). */
+async function newestOfShowsPg(db: Db, feedUrls: readonly string[], limit: number): Promise<Row[]> {
+  return db.query<Row>(
+    `SELECT ${EPISODE_COLS} FROM episodes WHERE feed_url = ANY($1::text[])
+     ORDER BY published_at DESC NULLS LAST LIMIT ${Number(limit)}`, [[...feedUrls]]);
 }
 
 async function showCf(db: Db, ctx: Context): Promise<Raw[]> {
@@ -201,8 +222,7 @@ async function showCf(db: Db, ctx: Context): Promise<Raw[]> {
   for (const [show, list] of ctx.neighbours) {
     for (const n of list) {
       if (ctx.liked.has(n.show)) continue; // they already have it
-      const rows = await db.query<Row>(
-        `SELECT ${EPISODE_COLS} FROM episodes WHERE feed_url = $1 ORDER BY published_at DESC NULLS LAST LIMIT 2`, [n.show]);
+      const rows = await newestOfShows(db, [n.show], 2);
       for (const row of rows) out.push({ row, channel: 'showcf', neighbourOf: show });
       if (out.length >= CHANNEL_CAP.showcf) return out;
     }
@@ -212,35 +232,49 @@ async function showCf(db: Db, ctx: Context): Promise<Raw[]> {
 
 async function social(db: Db, ctx: Context): Promise<Raw[]> {
   if (ctx.follows.length === 0) return [];
-  const rows = await db.query<Row & { n: number }>(
+  const rows = await socialRows(db, ctx.follows, [...ctx.blocked]);
+  return rows.map(({ n, ...row }) => ({ row: row as Row, channel: 'social' as const, socialCount: Number(n) }));
+}
+
+/** Episodes the followed (not blocked) listened to or acted on in public in the window, by how many of them. */
+async function socialRowsPg(db: Db, follows: readonly string[], blocked: readonly string[]): Promise<(Row & { n: number })[]> {
+  return db.query<Row & { n: number }>(
     `SELECT ${EPISODE_COLS.split(', ').map((c) => `e.${c}`).join(', ')}, count(DISTINCT a.actor_id)::int AS n
      FROM activity a JOIN episodes e ON e.id = a.episode_id
      WHERE a.actor_id = ANY($1::uuid[]) AND a.hidden = false
        AND a.actor_id <> ALL($2::uuid[])
        AND a.created_at > now() - interval '${SOCIAL_WINDOW_DAYS} days'
      GROUP BY ${EPISODE_COLS.split(', ').map((c) => `e.${c}`).join(', ')}
-     ORDER BY n DESC LIMIT ${CHANNEL_CAP.social}`, [ctx.follows, [...ctx.blocked]]);
-  return rows.map(({ n, ...row }) => ({ row: row as Row, channel: 'social' as const, socialCount: Number(n) }));
+     ORDER BY n DESC LIMIT ${CHANNEL_CAP.social}`, [[...follows], [...blocked]]);
 }
 
 async function byGenre(db: Db, ctx: Context): Promise<Raw[]> {
   if (ctx.genres.length === 0) return [];
-  const rows = await db.query<Row>(
-    `SELECT ${EPISODE_COLS} FROM episodes WHERE genre_id = ANY($1::int[])
-     ORDER BY published_at DESC NULLS LAST LIMIT ${CHANNEL_CAP.genre}`, [ctx.genres]);
+  const rows = await genreRows(db, ctx.genres);
   return rows.map((row) => ({ row, channel: 'genre' as const }));
+}
+
+async function genreRowsPg(db: Db, genres: readonly number[]): Promise<Row[]> {
+  return db.query<Row>(
+    `SELECT ${EPISODE_COLS} FROM episodes WHERE genre_id = ANY($1::int[])
+     ORDER BY published_at DESC NULLS LAST LIMIT ${CHANNEL_CAP.genre}`, [[...genres]]);
 }
 
 /** M22 US5: the newest episode of each show in a picked category (one per show, so the list can hold several). */
 async function byInterests(db: Db, ctx: Context): Promise<Raw[]> {
   const picked = ctx.interests ?? [];
   if (picked.length === 0 || (ctx.interestWeight ?? 0) <= 0) return [];
-  const rows = await db.query<Row>(
+  const rows = await interestRows(db, picked);
+  return rows.map((row) => ({ row, channel: 'genre' as const, interest: true as const }));
+}
+
+/** The newest episode of each show in these categories, then the newest INTERESTS_CAP of those. */
+async function interestRowsPg(db: Db, picked: readonly number[]): Promise<Row[]> {
+  return db.query<Row>(
     `SELECT ${EPISODE_COLS} FROM (
        SELECT DISTINCT ON (feed_url) ${EPISODE_COLS} FROM episodes WHERE genre_id = ANY($1::int[])
        ORDER BY feed_url, published_at DESC NULLS LAST) x
-     ORDER BY published_at DESC NULLS LAST LIMIT ${INTERESTS_CAP}`, [picked]);
-  return rows.map((row) => ({ row, channel: 'genre' as const, interest: true as const }));
+     ORDER BY published_at DESC NULLS LAST LIMIT ${INTERESTS_CAP}`, [[...picked]]);
 }
 
 /**
@@ -256,7 +290,7 @@ async function byInterests(db: Db, ctx: Context): Promise<Raw[]> {
  * Cached for everyone rather than per listener: it is the same ten shows for all of them.
  */
 export async function chartCandidates(db: Db, f: typeof fetch, now: number): Promise<(EpisodeCard & { id: string })[]> {
-  const r = await cached<(EpisodeCard & { id: string })[]>(db, 'foryou:chart', CHART_TTL, async () => {
+  const r = await cached<(EpisodeCard & { id: string })[]>(db, CHART_KEY, CHART_TTL, async () => {
     const out: (EpisodeCard & { id: string })[] = [];
     const shows = await topShows(f, undefined, 10);
     for (const s of shows) {
@@ -448,3 +482,10 @@ export async function forYouAnon(
   const body = r.body.items.some(off) ? { ...r.body, items: r.body.items.filter((i) => !off(i)) } : r.body;
   return { body, stale: r.stale };
 }
+
+// M26 lane DV: each runs on Postgres, or on DynamoDB (ddb/foryou.ts) when the Db carries a Store (db/backend.ts).
+export const contextRows = dual('dv/foryou', 'contextRows', contextRowsPg);
+export const newestOfShows = dual('dv/foryou', 'newestOfShows', newestOfShowsPg);
+export const socialRows = dual('dv/foryou', 'socialRows', socialRowsPg);
+export const genreRows = dual('dv/foryou', 'genreRows', genreRowsPg);
+export const interestRows = dual('dv/foryou', 'interestRows', interestRowsPg);

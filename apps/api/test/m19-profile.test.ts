@@ -6,8 +6,11 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { seedComment } from './sc-neutral.ts';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 import type { VoiceStorage } from '../src/storage/voice-blob.ts';
+import { putEpisode } from './put-episode.ts';
+import { listenerRow } from './ac-neutral.ts';
 
 function fakeStore() {
   const puts: { path: string; bytes: number; type: string }[] = [];
@@ -72,8 +75,8 @@ test('avatar: JPEG ≤ 200 KB is stored, the old one removed, a non-image refuse
   assert.equal((await putAvatar(t, a.token, JPEG(204_801))).status, 413, 'over 200 KB');
   const me = (await (await t.call('GET', '/v1/me', undefined, a.token)).json()) as { listener: { avatarUrl?: string } };
   assert.equal(me.listener.avatarUrl, u2);
-  const [row] = await t.q<{ avatar_bytes: number }>('SELECT avatar_bytes FROM listeners WHERE id = $1', [a.id]);
-  assert.equal(row!.avatar_bytes, 2000);
+  const row = await listenerRow(t, a.id);
+  assert.equal(Number(row!['avatar_bytes']), 2000);
   assert.equal((await t.call('DELETE', '/v1/me/avatar', undefined, a.token)).status, 204);
   assert.deepEqual(f.removed, [u1, u2]);
   await t.close();
@@ -83,9 +86,9 @@ test('avatar: a comment carries its author\'s photo', async () => {
   const f = fakeStore();
   const t = await freshDb({ avatarStorage: f.store });
   const a = await signUp(t);
-  await t.q("INSERT INTO episodes (id, feed_url, guid, title, show_title, enclosure_url) VALUES ('e1','https://f/x.xml','g','Ep','Show','https://cdn/x.mp3')");
+  await putEpisode(t, 'e1', { feedUrl: 'https://f/x.xml', guid: 'g', title: 'Ep', showTitle: 'Show', enclosureUrl: 'https://cdn/x.mp3' });
   const url = ((await (await putAvatar(t, a.token, JPEG(500))).json()) as { avatarUrl: string }).avatarUrl;
-  await t.q("INSERT INTO comments (episode_id, author_id, body, offset_ms) VALUES ('e1', $1, 'hi', 1000)", [a.id]);
+  await seedComment(t, { episodeId: 'e1', authorId: a.id, body: 'hi', offsetMs: 1000 }); // M26 lane SC (sc-neutral.ts)
   const body = await (await t.call('GET', '/v1/episodes/e1/social')).text();
   assert.ok(body.includes(url), body);
   await t.close();

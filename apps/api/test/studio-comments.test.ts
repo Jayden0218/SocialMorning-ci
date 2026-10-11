@@ -11,6 +11,9 @@ import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
 import { proveClaim, sCall, studioLogin } from './studio-harness.ts';
+import { backdateComments, heatRows } from './sc-neutral.ts';
+import { actionRows } from './sf-neutral.ts';
+import * as S from './st-neutral.ts';
 
 const FEED = 'https://feeds.example.com/mine.xml';
 const ep = { feedUrl: FEED, guid: 'g1', title: 'Ep 1', enclosureUrl: 'https://cdn/1.mp3' };
@@ -52,8 +55,8 @@ test('SC-003 path: the owner\'s reply reaches the app thread with the Host mark;
   const r = await sCall(t, 'POST', `/v1/studio/shows/${key}/comments/${commentId}/reply`, owner, { body: 'Glad you liked it' });
   assert.equal(r.status, 201);
   const op = await studioLogin(t, 'op@example.com', 'Helper');
-  await t.q('INSERT INTO show_members (feed_url, listener_id) VALUES ($1, $2)', [FEED, op.id]);
-  await t.q("UPDATE comments SET created_at = created_at - interval '10 seconds'");
+  await S.addHelper(t, FEED, op.id);
+  await backdateComments(t, 10_000);
   assert.equal((await sCall(t, 'POST', `/v1/studio/shows/${key}/comments/${commentId}/reply`, op, { body: 'Me too' })).status, 201);
   const [top] = await thread(t, listener.token);
   assert.deepEqual(top!.replies.map((x) => [x.body, x.host === true]), [['Glad you liked it', true], ['Me too', false]]);
@@ -65,8 +68,8 @@ test('SC-003 path: the owner\'s reply reaches the app thread with the Host mark;
 test('G-H1: a hidden comment is a placeholder for others, still readable (marked) by its author; un-hide restores it', async () => {
   const t = await freshDb();
   const { owner, key, listener, other, commentId } = await setup(t);
-  const heatBefore = await t.q('SELECT count(*)::int AS n FROM episode_heat WHERE episode_id = $1', [EP]);
-  assert.equal(Number(heatBefore[0]!.n) > 0, true);
+  const heatBefore = (await heatRows(t, EP)).length;
+  assert.equal(heatBefore > 0, true);
   assert.equal((await sCall(t, 'POST', `/v1/studio/shows/${key}/comments/${commentId}/hide`, owner)).status, 204);
 
   const [forOther] = await thread(t, other.token);
@@ -75,9 +78,9 @@ test('G-H1: a hidden comment is a placeholder for others, still readable (marked
   assert.equal(anon!.body, null);
   const [forAuthor] = await thread(t, listener.token);
   assert.deepEqual([forAuthor!.body, forAuthor!.hiddenByHost, forAuthor!.mine], ['That bit at 14:32!', true, true]);
-  assert.equal((await t.q("SELECT count(*)::int AS n FROM activity WHERE kind = 'commented' AND ref_id = $1", [commentId]))[0]!.n, 0, 'out of the feeds');
-  assert.equal((await t.q('SELECT count(*)::int AS n FROM episode_heat WHERE episode_id = $1', [EP]))[0]!.n, 0, 'off the rail');
-  const log = await t.q<{ action: string }>("SELECT action FROM moderation_actions WHERE target_id = $1 ORDER BY created_at", [commentId]);
+  assert.equal(await S.commentedActivityCount(t, commentId), 0, 'out of the feeds');
+  assert.equal((await heatRows(t, EP)).length, 0, 'off the rail');
+  const log = (await actionRows(t)).filter((a) => a.target_id === commentId);
   assert.deepEqual(log.map((l) => l.action), ['host_hide']);
   const mine = (await (await t.call('GET', '/v1/me/comments', undefined, listener.token)).json()) as { items: { hiddenByHost?: true; body: string }[] };
   assert.deepEqual([mine.items[0]!.hiddenByHost, mine.items[0]!.body], [true, 'That bit at 14:32!']);
@@ -85,8 +88,8 @@ test('G-H1: a hidden comment is a placeholder for others, still readable (marked
   assert.equal((await sCall(t, 'POST', `/v1/studio/shows/${key}/comments/${commentId}/unhide`, owner)).status, 204);
   const [back] = await thread(t, other.token);
   assert.deepEqual([back!.body, back!.hiddenByHost], ['That bit at 14:32!', undefined]);
-  assert.equal((await t.q("SELECT count(*)::int AS n FROM activity WHERE kind = 'commented' AND ref_id = $1", [commentId]))[0]!.n, 1);
-  assert.deepEqual((await t.q<{ action: string }>("SELECT action FROM moderation_actions WHERE target_id = $1 ORDER BY created_at", [commentId])).map((l) => l.action), ['host_hide', 'host_unhide']);
+  assert.equal(await S.commentedActivityCount(t, commentId), 1);
+  assert.deepEqual((await actionRows(t)).filter((a) => a.target_id === commentId).map((l) => l.action), ['host_hide', 'host_unhide']);
   await t.close();
 });
 
@@ -96,7 +99,7 @@ test('a comment on another show cannot be answered or hidden from this one', asy
   const otherFeed = 'https://feeds.example.com/theirs.xml';
   const theirs = fnv1a64(otherFeed + '\u0001' + 'g9');
   await putEpisode(t, `${theirs}`, { feedUrl: otherFeed, guid: 'g9', title: 'Theirs', enclosureUrl: 'https://cdn/9.mp3' });
-  await t.q("UPDATE comments SET created_at = created_at - interval '10 seconds'");
+  await backdateComments(t, 10_000);
   const id = ((await (await t.call('POST', `/v1/episodes/${theirs}/comments`, { body: 'elsewhere' }, listener.token)).json()) as { comment: { id: string } }).comment.id;
   assert.equal((await sCall(t, 'POST', `/v1/studio/shows/${key}/comments/${id}/hide`, owner)).status, 404);
   assert.equal((await sCall(t, 'POST', `/v1/studio/shows/${key}/comments/${id}/reply`, owner, { body: 'x' })).status, 404);

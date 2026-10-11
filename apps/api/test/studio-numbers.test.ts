@@ -8,6 +8,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { freshDb, type TestDb } from './harness.ts';
 import { addEpisode, day, noon, proveClaim, sCall, studioLogin, type StudioUser } from './studio-harness.ts';
+import { seedComment, setCommentFlags } from './sc-neutral.ts';
+import * as S from './st-neutral.ts';
 
 const F = 'https://feeds.example.com/f.xml';
 const G = 'https://feeds.example.com/g.xml';
@@ -23,49 +25,50 @@ async function seed(t: TestDb) {
   const L = { l1: l1!.id, l2: l2!.id, l3: l3!.id };
 
   // Plays: 5 on F (l1 E1 ×2 days, l2 E1, l3 E2, l1 E3 hidden) + 1 on G.
-  const listened = (who: string, ep: string, d: number, hidden = false) =>
-    t.q("INSERT INTO activity (actor_id, kind, episode_id, day, hidden, created_at) VALUES ($1, 'listened', $2, $3, $4, $5)", [who, ep, day(d), hidden, noon(d)]);
+  const listened = (who: string, ep: string, d: number, hidden = false) => S.seedListened(t, { actorId: who, episodeId: ep, day: day(d), hidden, at: noon(d) });
   await listened(L.l1, 'E1', 0); await listened(L.l1, 'E1', 1); await listened(L.l2, 'E1', 1);
   await listened(L.l3, 'E2', 2); await listened(L.l1, 'E3', 0, true); await listened(L.l1, 'G1', 0);
 
   // Completion: l1/E1 two days → 950 000 of 1 000 000 = complete; l2/E1 100 000 = not;
   // l3/E2 finished = complete; l1/E3 no length = unknown. → 2 / 3.
-  const ranges = (who: string, ep: string, d: number, r: [number, number][]) =>
-    t.q("INSERT INTO listened_ranges (listener_id, episode_id, day, device_id, ranges) VALUES ($1, $2, $3, 'phone', $4)", [who, ep, day(d), JSON.stringify(r)]);
+  const ranges = (who: string, ep: string, d: number, r: [number, number][]) => S.seedRanges(t, who, ep, day(d), r);
   await ranges(L.l1, 'E1', 1, [[0, 500_000]]); await ranges(L.l1, 'E1', 0, [[500_000, 950_000]]);
   await ranges(L.l2, 'E1', 1, [[0, 100_000]]);
-  await t.q("INSERT INTO positions (listener_id, episode_id, offset_ms, finished, progress_seq, device_id) VALUES ($1, 'E2', 2000000, true, 1, 'phone')", [L.l3]);
+  await S.seedFinished(t, L.l3, 'E2', 2_000_000);
 
   // Subscribers: l1, l2 live; l3 unsubscribed → 2. Events: subs on days 0, 1, 3.
-  await t.q('INSERT INTO subscriptions (listener_id, feed_url, created_at) VALUES ($1, $3, $4), ($2, $3, $5)', [L.l1, L.l2, F, noon(0), noon(1)]);
-  await t.q('INSERT INTO subscriptions (listener_id, feed_url, created_at, deleted_at) VALUES ($1, $2, $3, $4)', [L.l3, F, noon(3), noon(2)]);
-  await t.q("INSERT INTO subscription_events (listener_id, feed_url, kind, at) VALUES ($1, $4, 'sub', $5), ($2, $4, 'sub', $6), ($3, $4, 'sub', $7), ($3, $4, 'unsub', $8)",
-    [L.l1, L.l2, L.l3, F, noon(0), noon(1), noon(3), noon(2)]);
+  await S.seedSubscription(t, { listenerId: L.l1, feedUrl: F, createdAt: noon(0) });
+  await S.seedSubscription(t, { listenerId: L.l2, feedUrl: F, createdAt: noon(1) });
+  await S.seedSubscription(t, { listenerId: L.l3, feedUrl: F, createdAt: noon(3), deletedAt: noon(2) });
+  for (const [who, kind, at] of [[L.l1, 'sub', noon(0)], [L.l2, 'sub', noon(1)], [L.l3, 'sub', noon(3)], [L.l3, 'unsub', noon(2)]] as const) {
+    await S.seedSubEvent(t, { listenerId: who, feedUrl: F, kind, at });
+  }
 
   // Comments: 2 visible (days 0 and 1); removed, host-hidden and deleted ones do not count; G's never.
-  const comment = (who: string, ep: string, d: number, extra = '') =>
-    t.q(`INSERT INTO comments (episode_id, author_id, body, offset_ms, created_at${extra ? ', ' + extra : ''}) VALUES ($1, $2, 'hi', 60000, $3${extra ? ', now()' : ''})`, [ep, who, noon(d)]);
+  const comment = (who: string, ep: string, d: number) => seedComment(t, { episodeId: ep, authorId: who, body: 'hi', offsetMs: 60000, agoMs: Date.now() - Date.parse(noon(d)) });
   await comment(L.l1, 'E1', 0); await comment(L.l2, 'E2', 1);
-  await comment(L.l1, 'E1', 0, 'removed_at'); await comment(L.l1, 'E1', 0, 'host_hidden_at'); await comment(L.l1, 'E1', 0, 'deleted_at');
+  await setCommentFlags(t, await comment(L.l1, 'E1', 0), { removed: true });
+  await setCommentFlags(t, await comment(L.l1, 'E1', 0), { hostHiddenBy: L.l2 });
+  await S.markCommentDeleted(t, await comment(L.l1, 'E1', 0));
   await comment(L.l1, 'G1', 0);
 
   // Likes: l1 E1 (3 buckets = 1 like), l2 E1, l2 E2 → 3.
-  const react = (who: string, ep: string, b: number, d: number) =>
-    t.q('INSERT INTO reactions (listener_id, episode_id, bucket, offset_ms, created_at) VALUES ($1, $2, $3, 0, $4)', [who, ep, b, noon(d)]);
+  const react = (who: string, ep: string, b: number, d: number) => S.seedReaction(t, who, ep, b, noon(d));
   await react(L.l1, 'E1', 3, 0); await react(L.l1, 'E1', 4, 0); await react(L.l1, 'E1', 5, 0);
   await react(L.l2, 'E1', 3, 1); await react(L.l2, 'E2', 3, 1); await react(L.l2, 'G1', 3, 1);
 
   // Clips: 1 live (a deleted one does not count).
-  await t.q("INSERT INTO clips (author_id, client_id, episode_id, start_ms, end_ms) VALUES ($1, 'c1', 'E1', 0, 30000)", [L.l1]);
-  await t.q("INSERT INTO clips (author_id, client_id, episode_id, start_ms, end_ms, deleted_at) VALUES ($1, 'c2', 'E1', 0, 30000, now())", [L.l1]);
+  await S.seedClip(t, L.l1, 'c1', 'E1');
+  await S.seedClip(t, L.l1, 'c2', 'E1', true);
 
   // Saves: l1 E1 live; l2 E1 removed → 1.
-  await t.q("INSERT INTO library_items (listener_id, kind, item_key, updated_at) VALUES ($1, 'fav_episode', 'E1', $2)", [L.l1, noon(0)]);
-  await t.q("INSERT INTO library_items (listener_id, kind, item_key, updated_at, deleted_at) VALUES ($1, 'fav_episode', 'E1', $2, now())", [L.l2, noon(0)]);
+  await S.seedSave(t, L.l1, 'E1', noon(0));
+  await S.seedSave(t, L.l2, 'E1', noon(0), true);
 
   // Shares: 2 on F (days 0, 2), 1 on G.
-  await t.q("INSERT INTO share_events (listener_id, target_kind, target_id, feed_url, at) VALUES ($1, 'episode', 'E1', $2, $3), (NULL, 'show', $2, $2, $4), ($1, 'episode', 'G1', $5, $3)",
-    [L.l1, F, noon(0), noon(2), G]);
+  await S.seedShare(t, { listenerId: L.l1, targetKind: 'episode', targetId: 'E1', feedUrl: F, at: noon(0) });
+  await S.seedShare(t, { listenerId: null, targetKind: 'show', targetId: F, feedUrl: F, at: noon(2) });
+  await S.seedShare(t, { listenerId: L.l1, targetKind: 'episode', targetId: 'G1', feedUrl: G, at: noon(0) });
   return { owner, key };
 }
 

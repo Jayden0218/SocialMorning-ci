@@ -8,12 +8,14 @@
  *   Break: drop the `bottom` lines at the end of listComments in src/db/repos/social/comments.ts.
  * The banned message keeps the wire code `muted_on_show` that shipped phones already understand.
  */
+import { backdateComments } from './sc-neutral.ts';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
 import { proveClaim, sCall, studioLogin } from './studio-harness.ts';
+import { addHost } from './st-neutral.ts';
 import type { VoiceStorage } from '../src/storage/voice-blob.ts';
 
 const FEED = 'https://feeds.example.com/mine.xml';
@@ -105,13 +107,13 @@ test('G-M22-10: a banned listener can post neither text nor voice on that show â
 
   // An invited co-host can't be banned.
   const co = await signUp(t, 'co@example.com', 'Co');
-  await t.q('INSERT INTO show_hosts (feed_url, listener_id) VALUES ($1, $2)', [FEED, co.id]);
+  await addHost(t, FEED, co.id);
   const refused = await sCall(t, 'PUT', `/v1/studio/shows/${key}/bans/${co.id}`, owner, {});
   assert.equal(refused.status, 409);
   assert.equal(((await refused.json()) as { error: string }).error, 'is_cohost');
 
   assert.equal((await sCall(t, 'DELETE', `/v1/studio/shows/${key}/bans/${l.id}`, owner)).status, 204);
-  await t.q("UPDATE comments SET created_at = created_at - interval '10 seconds'");
+  await backdateComments(t, 10_000); // lane SC's items on DynamoDB
   assert.equal((await t.call('POST', `/v1/episodes/${mine.id}/comments`, { body: 'sorry' }, l.token)).status, 200);
   await t.close();
 });

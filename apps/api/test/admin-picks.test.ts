@@ -14,6 +14,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { aCall, adminSetup, auditRows, FX } from './admin-harness.ts';
+import { pickDayExists, pickWhys } from './dv-neutral.ts';
+import { cacheKeys } from './lb-seed.ts';
 
 const TODAY = '2026-09-22';
 const FILE = [{ date: '2026-09-20', feedUrl: FX, guid: 'g-old', why: 'From the file.', order: 1 }];
@@ -26,7 +28,7 @@ test('G-P1: picks saved for today are in the very next /v1/discover (the cached 
   const before = await discover(t);
   assert.equal(before.date, '2026-09-20', 'the file serves first');
   assert.deepEqual(before.picks.map((p) => p.why), ['From the file.']);
-  assert.ok((await t.q("SELECT 1 FROM cache WHERE key = 'discover:v4:2026-09-22'")).length === 1, 'the body is cached under the day');
+  assert.ok((await cacheKeys(t)).includes('discover:v4:2026-09-22'), 'the body is cached under the day');
 
   const put = await aCall(t, 'PUT', `/v1/admin/picks/${TODAY}`, owner, { version: 0, items: [
     { feedUrl: FX, guid: 'g-new', why: 'Admin first.' },
@@ -63,7 +65,7 @@ test('G-P2: a day with no rows gets the latest EARLIER picks (admin or file), ne
   assert.deepEqual(b.picks.map((p) => p.why), ['Yesterday.']);
   // Clearing it (0 items deletes the day) falls back to the file again.
   assert.equal((await aCall(t, 'PUT', '/v1/admin/picks/2026-09-21', owner, { version: 1, items: [] })).status, 200);
-  assert.equal((await t.q("SELECT 1 FROM pick_days WHERE day = '2026-09-21'")).length, 0);
+  assert.equal(await pickDayExists(t, '2026-09-21'), false);
   const c = await discover(t);
   assert.ok(c.picks.length > 0);
   assert.equal(c.date, '2026-09-20');
@@ -80,7 +82,7 @@ test('G-P3: a save on an old version is refused 409 changed and changes nothing'
   assert.equal(body.error, 'changed');
   assert.match(body.message, /reload/i);
   assert.equal(body.version, 1);
-  assert.deepEqual((await t.q<{ why: string }>('SELECT why FROM pick_items')).map((r) => r.why), ['Tab one.']);
+  assert.deepEqual(await pickWhys(t), ['Tab one.']);
   assert.equal((await auditRows(t)).length, 1, 'the refused save left no record');
   await t.close();
 });

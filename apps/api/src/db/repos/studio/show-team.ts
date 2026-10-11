@@ -4,11 +4,12 @@
  * There is no handle in this product, so an operator is added by their account's email.
  */
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 import { ApiError } from '../../../errors.ts';
 
 export const MAX_OPERATORS = 10;
 
-export async function team(db: Db, feedUrl: string) {
+async function teamPg(db: Db, feedUrl: string) {
   const [owner] = await db.query<{ id: string; display_name: string; email: string }>(
     "SELECT l.id, l.display_name, l.email FROM creator_claims c JOIN listeners l ON l.id = c.listener_id WHERE c.feed_url = $1 AND c.status = 'proven'", [feedUrl]);
   const ops = await db.query<{ id: string; display_name: string; email: string; created_at: Date | string }>(
@@ -21,7 +22,7 @@ export async function team(db: Db, feedUrl: string) {
 }
 
 /** Adds by exact email. The count and the insert share a lock, so two tabs cannot both take slot 10. */
-export async function addOperator(db: Db, feedUrl: string, email: string, by: string): Promise<void> {
+async function addOperatorPg(db: Db, feedUrl: string, email: string, by: string): Promise<void> {
   await db.transaction(async (tx) => {
     await tx.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`team|${feedUrl}`]);
     const [l] = await tx.query<{ id: string }>('SELECT id FROM listeners WHERE email = $1 AND suspended_at IS NULL', [email.trim().toLowerCase()]);
@@ -36,7 +37,7 @@ export async function addOperator(db: Db, feedUrl: string, email: string, by: st
   });
 }
 
-export async function removeOperator(db: Db, feedUrl: string, listenerId: string): Promise<void> {
+async function removeOperatorPg(db: Db, feedUrl: string, listenerId: string): Promise<void> {
   if (!/^[0-9a-f-]{36}$/i.test(listenerId)) return;
   await db.query('DELETE FROM show_members WHERE feed_url = $1 AND listener_id = $2', [feedUrl, listenerId]);
 }
@@ -46,7 +47,7 @@ export async function removeOperator(db: Db, feedUrl: string, listenerId: string
  * applying — overrides, helpers, mutes; open polls close. Announcements and host hides stay as
  * history (a hide can still be undone from /mod). The feed may then be claimed again.
  */
-export async function release(db: Db, feedUrl: string): Promise<void> {
+async function releasePg(db: Db, feedUrl: string): Promise<void> {
   await db.transaction(async (tx) => {
     await tx.query("UPDATE creator_claims SET status = 'revoked' WHERE feed_url = $1 AND status = 'proven'", [feedUrl]);
     await tx.query('DELETE FROM show_members WHERE feed_url = $1', [feedUrl]);
@@ -57,3 +58,9 @@ export async function release(db: Db, feedUrl: string): Promise<void> {
     await tx.query('UPDATE polls SET closed_at = now() WHERE feed_url = $1 AND closed_at IS NULL', [feedUrl]);
   });
 }
+
+// M26 lane ST: each runs on Postgres, or on DynamoDB (ddb/team.ts) when the Db carries a Store (db/backend.ts).
+export const team = dual('st/team', 'team', teamPg);
+export const addOperator = dual('st/team', 'addOperator', addOperatorPg);
+export const removeOperator = dual('st/team', 'removeOperator', removeOperatorPg);
+export const release = dual('st/team', 'release', releasePg);

@@ -1,5 +1,6 @@
 // Saves and reads episodes the app registers; a known duration is never overwritten.
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 import { clearEpisodeHeat, insertEpisodeHeat } from './heat.ts';
 
 export type EpisodeRow = {
@@ -37,7 +38,7 @@ export type EpisodeInput = {
  * `duration_ms`. A known duration is never overwritten by a later report: the heat
  * buckets were computed against it (FR-021).
  */
-export async function upsertEpisode(db: Db, e: EpisodeInput): Promise<EpisodeRow> {
+async function upsertEpisodePg(db: Db, e: EpisodeInput): Promise<EpisodeRow> {
   const rows = await db.query<EpisodeRow>(
     `INSERT INTO episodes (id, feed_url, guid, title, show_title, enclosure_url, image_url, duration_ms, published_at, genre_id, media_kind)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, COALESCE($11, 'audio'))
@@ -62,7 +63,7 @@ export async function upsertEpisode(db: Db, e: EpisodeInput): Promise<EpisodeRow
  * belong to the server's own feed refresh (`upsertEpisode`, catalog/feed.ts). A new episode is
  * inserted with everything it carries, as before.
  */
-export async function fillEpisode(db: Db, e: EpisodeInput): Promise<EpisodeRow> {
+async function fillEpisodePg(db: Db, e: EpisodeInput): Promise<EpisodeRow> {
   const rows = await db.query<EpisodeRow>(
     `INSERT INTO episodes (id, feed_url, guid, title, show_title, enclosure_url, image_url, duration_ms, published_at, genre_id, media_kind)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, COALESCE($11, 'audio'))
@@ -79,7 +80,7 @@ export async function fillEpisode(db: Db, e: EpisodeInput): Promise<EpisodeRow> 
   return rows[0]!;
 }
 
-export async function getEpisode(db: Db, id: string): Promise<EpisodeRow | undefined> {
+async function getEpisodePg(db: Db, id: string): Promise<EpisodeRow | undefined> {
   const rows = await db.query<EpisodeRow>(
     'SELECT id, feed_url, guid, title, show_title, enclosure_url, image_url, duration_ms, published_at, genre_id FROM episodes WHERE id = $1',
     [id],
@@ -92,7 +93,7 @@ export async function getEpisode(db: Db, id: string): Promise<EpisodeRow | undef
  * overwrites) and, when its length becomes known for the first time, rebuilds its heat so the
  * stored moments fall into their buckets (FR-021).
  */
-export async function registerEpisodeTx(db: Db, id: string, input: EpisodeInput, mode: 'fill' | 'authoritative'): Promise<EpisodeRow> {
+async function registerEpisodeTxPg(db: Db, id: string, input: EpisodeInput, mode: 'fill' | 'authoritative'): Promise<EpisodeRow> {
   return db.transaction(async (tx) => {
     const before = await getEpisode(tx, id);
     const after = mode === 'fill' ? await fillEpisode(tx, input) : await upsertEpisode(tx, input);
@@ -104,3 +105,9 @@ export async function registerEpisodeTx(db: Db, id: string, input: EpisodeInput,
     return after;
   });
 }
+
+// M26 lane LB: each function runs on Postgres, or on DynamoDB (`ddb/` bodies) when the Db carries a Store (db/backend.ts).
+export const upsertEpisode = dual('lb/episodes', 'upsertEpisode', upsertEpisodePg);
+export const fillEpisode = dual('lb/episodes', 'fillEpisode', fillEpisodePg);
+export const getEpisode = dual('lb/episodes', 'getEpisode', getEpisodePg);
+export const registerEpisodeTx = dual('lb/episodes', 'registerEpisodeTx', registerEpisodeTxPg);

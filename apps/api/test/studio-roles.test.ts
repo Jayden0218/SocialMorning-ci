@@ -14,6 +14,7 @@ import assert from 'node:assert/strict';
 import { studio } from '../src/routes/studio/index.ts';
 import { freshDb } from './harness.ts';
 import { addEpisode, proveClaim, sCall, studioLogin } from './studio-harness.ts';
+import * as S from './st-neutral.ts';
 
 const FEED = 'https://feeds.example.com/mine.xml';
 const OTHER = 'https://feeds.example.com/theirs.xml';
@@ -43,7 +44,7 @@ test('G-A1: no role → 403 no_role on every show route; owner and operator get 
   const stranger = await studioLogin(t, 's@example.com', 'Stranger');
   await addEpisode(t, FEED, 'e1', 'One', 1_000_000);
   const key = await proveClaim(t, owner.id, FEED);
-  await t.q('INSERT INTO show_members (feed_url, listener_id, added_by) VALUES ($1, $2, $3)', [FEED, op.id, owner.id]);
+  await S.addHelper(t, FEED, op.id, owner.id);
 
   const routes = showRoutes();
   assert.ok(routes.length >= 2, 'the matrix found the show routes');
@@ -77,13 +78,13 @@ test('/me lists owned and operated shows; an operator loses the show when the cl
   const op = await studioLogin(t, 'op@example.com', 'Op');
   await addEpisode(t, FEED, 'e1', 'One', 1_000_000);
   const key = await proveClaim(t, owner.id, FEED);
-  await t.q('INSERT INTO show_members (feed_url, listener_id, added_by) VALUES ($1, $2, $3)', [FEED, op.id, owner.id]);
+  await S.addHelper(t, FEED, op.id, owner.id);
   const mine = ((await (await sCall(t, 'GET', '/v1/studio/me', owner)).json()) as { shows: { key: string; role: string; title: string }[] }).shows;
   assert.deepEqual(mine.map((s) => [s.key, s.role, s.title]), [[key, 'owner', 'The Show']]);
   const theirs = ((await (await sCall(t, 'GET', '/v1/studio/me', op)).json()) as { shows: { role: string }[] }).shows;
   assert.deepEqual(theirs.map((s) => s.role), ['operator']);
 
-  await t.q("UPDATE creator_claims SET status = 'revoked' WHERE feed_url = $1", [FEED]);
+  await S.revokeClaim(t, FEED);
   assert.equal((await sCall(t, 'GET', `/v1/studio/shows/${key}/overview`, op)).status, 403);
   assert.equal((await sCall(t, 'GET', `/v1/studio/shows/${key}/overview`, owner)).status, 403);
   await t.close();
