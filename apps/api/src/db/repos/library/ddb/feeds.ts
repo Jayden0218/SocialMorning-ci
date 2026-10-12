@@ -11,7 +11,6 @@
  */
 import { randomUUID } from 'node:crypto';
 import type { Db } from '../../../db.ts';
-import { bridgeOf } from '../../../backend-ddb.ts';
 import { encode } from '../../../ddb/codec.ts';
 import * as K from '../../../ddb/keys.ts';
 import { queryAll } from '../../../ddb/paginate.ts';
@@ -19,7 +18,6 @@ import { nextSeq } from '../../../ddb/seq.ts';
 import { get, isoNow, type Store } from '../../../ddb/store.ts';
 import { tx, TxCancelled } from '../../../ddb/tx.ts';
 import { runJob, startJob, type JobStep } from '../../../../jobs/outbox.ts';
-import * as pg from '../feeds.ts';
 import { addFlip, subscriptionItem, subscriptionRow, syncFeedQueue } from './subscriptions.ts';
 
 export const MOVED_FEED_JOB = 'moved-feed';
@@ -82,14 +80,12 @@ const step: JobStep = async (store, job) => {
 };
 
 /** Runs the job to the end now (the hourly feed step waits for it, as it waited for the old transaction). */
-export async function moveSubscriptionsToFeed(store: Store, db: Db, from: string, to: string): Promise<number> {
+export async function moveSubscriptionsToFeed(store: Store, _db: Db, from: string, to: string): Promise<number> {
   const id = randomUUID();
   await startJob(tx(store), store, MOVED_FEED_JOB, id, { from, to, moved: 0 }).commit();
   await runJob(store, MOVED_FEED_JOB, id, step, { maxSteps: 1000 });
   const done = await get(store, 'main', K.job(MOVED_FEED_JOB, id));
   const moved = Number((done?.['state'] as Record<string, unknown> | undefined)?.['moved'] ?? 0);
-  const raw = bridgeOf(db);
-  if (raw) await pg.moveSubscriptionsToFeed(raw, from, to);
   return moved;
 }
 

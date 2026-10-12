@@ -296,7 +296,7 @@ export function createApp(deps: AppDeps) {
   // future; the phone then shows its maintenance page. Read per request, so an env change and a
   // redeploy is all it takes. Unset → `{ ok: true }` exactly as before.
   // M24 US4: or while the admin's switch is on (env first, then the switch).
-  // M25 S11: the health check touches the database (`SELECT 1`) and says so: `db: 'ok'`, or
+  // M25 S11: the health check touches the database (one read) and says so: `db: 'ok'`, or
   // `{ ok: false, db: 'fail' }` with 503 so an uptime check sees a dead database.
   app.get('/v1/health', async (c) => {
     const dbOk = await ping(deps.db).then(() => true, () => false);

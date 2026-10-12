@@ -14,12 +14,8 @@
  * server never saw is only logged.
  */
 import { fnv1a64 } from '@socialmorning/social-core';
-import type { Db } from '../../db.ts';
-import { dual } from '../../backend.ts';
+import { viaStore } from '../../backend.ts';
 import { ApiError } from '../../../errors.ts';
-import type { GooglePlay } from '../../../billing/google-play.ts';
-import { kindOf, tierOf } from '../../../billing/products.ts';
-import { cancelGiftsFor, createGift, giftForPurchase } from './gifts.ts';
 
 export type GrantIn = { listenerId: string; productId: string; purchaseToken: string; feedUrl?: string;
   /** M25 SB: a Google test purchase (licence tester) is granted only when this is true; it is then stored with `test = true`. */
@@ -51,101 +47,8 @@ export function checkAccount(given: string | null | undefined, listenerId: strin
 }
 
 export const ACTIVE_STATES: ReadonlySet<string> = new Set(['SUBSCRIPTION_STATE_ACTIVE', 'SUBSCRIPTION_STATE_IN_GRACE_PERIOD']);
-const ACTIVE = ACTIVE_STATES;
 
-export const grantGoogle = dual('pd/purchases', 'grantGoogle', async (db: Db, play: GooglePlay, p: GrantIn): Promise<Granted> => {
-  const kind = kindOf(p.productId);
-  if (!kind) throw new ApiError('validation', 'No such product.', { fields: ['productId'] });
-  const [seen] = await db.query<{ id: string; listener_id: string; status: 'active' | 'expired' | 'refunded'; expires_at: Date | string | null; account_hash: string | null }>(
-    'SELECT id, listener_id, status, expires_at, account_hash FROM purchases WHERE purchase_token = $1', [p.purchaseToken]);
-  if (seen && seen.listener_id !== p.listenerId) throw new ApiError('conflict', 'This purchase belongs to another account.');
-  if (seen) checkAccount(undefined, p.listenerId, seen.account_hash);
-  if (seen && kind !== 'plus') {
-    const giftCode = kind === 'gift' ? await giftForPurchase(db, seen.id) : undefined;
-    return { purchaseId: seen.id, kind, status: seen.status, expiresAt: seen.expires_at ? new Date(seen.expires_at).toISOString() : null, repeated: true, ...(giftCode ? { giftCode } : {}) };
-  }
-
-  let expiresAt: string | null = null;
-  let orderId: string | null = null;
-  let acknowledged = false;
-  let feedUrl: string | null = null;
-  let accountHash: string | null = null;
-  let test = false;
-  if (kind === 'plus') {
-    const s = await play.subscription(p.purchaseToken);
-    if (s.productId !== p.productId) throw new ApiError('validation', 'That purchase is for another product.', { fields: ['productId'] });
-    test = checkTest(s.test, p.allowTest);
-    accountHash = checkAccount(s.accountId, p.listenerId);
-    if (!ACTIVE.has(s.state)) {
-      if (seen) await db.query("UPDATE purchases SET status = 'expired' WHERE id = $1 AND status = 'active'", [seen.id]);
-      throw new ApiError('not_paid', 'Google has not taken this payment.');
-    }
-    expiresAt = s.expiresAt; orderId = s.orderId; acknowledged = s.acknowledged;
-  } else {
-    if (!p.feedUrl) throw new ApiError('validation', 'Say which show.', { fields: ['feedUrl'] });
-    const g = await play.product(p.productId, p.purchaseToken);
-    if (g.purchaseState !== 0) throw new ApiError('not_paid', 'Google has not taken this payment.');
-    test = checkTest(g.test, p.allowTest);
-    accountHash = checkAccount(g.accountId, p.listenerId);
-    // The purchase names its show by a hash of the feed URL; a different show is refused.
-    if (g.profileId !== fnv1a64(p.feedUrl)) throw new ApiError('validation', 'That purchase is for another show.', { fields: ['feedUrl'] });
-    if (kind === 'show' || kind === 'gift') {
-      const [show] = await db.query<{ price_tier: number | null }>('SELECT price_tier FROM hosted_shows WHERE feed_url = $1 AND deleted_at IS NULL', [p.feedUrl]);
-      if (!show || show.price_tier === null) throw new ApiError('validation', 'This show sells nothing.', { fields: ['feedUrl'] });
-      if (show.price_tier !== tierOf(p.productId)) throw new ApiError('validation', 'That is not this show\'s price.', { fields: ['productId'] });
-    } else {
-      const [o] = await db.query<{ tips_enabled: boolean | null }>('SELECT tips_enabled FROM show_overrides WHERE feed_url = $1', [p.feedUrl]);
-      if (!o?.tips_enabled) throw new ApiError('validation', 'This show does not take tips.', { fields: ['feedUrl'] });
-    }
-    feedUrl = p.feedUrl; orderId = g.orderId; acknowledged = g.acknowledged;
-  }
-
-  const purchaseId = await db.transaction(async (tx) => {
-    let id = seen?.id;
-    if (id) {
-      await tx.query("UPDATE purchases SET status = 'active', expires_at = $2, account_hash = COALESCE(account_hash, $3) WHERE id = $1", [id, expiresAt, accountHash]);
-    } else {
-      const [row] = await tx.query<{ id: string }>(
-        `INSERT INTO purchases (listener_id, store, product_id, store_txn_id, status, expires_at, purchase_token, ref, account_hash, test)
-         VALUES ($1, 'google', $2, $3, 'active', $4, $5, $6, $7, $8) ON CONFLICT (purchase_token) DO NOTHING RETURNING id`,
-        [p.listenerId, p.productId, orderId ?? p.purchaseToken, expiresAt, p.purchaseToken, feedUrl, accountHash, test]);
-      if (!row) {
-        // A second notice raced this one past the first look: it granted; grant nothing here.
-        const [again] = await tx.query<{ id: string }>('SELECT id FROM purchases WHERE purchase_token = $1', [p.purchaseToken]);
-        return { id: again!.id, raced: true as boolean };
-      }
-      id = row.id;
-    }
-    if (kind === 'plus') {
-      await tx.query(`INSERT INTO entitlements (listener_id, kind, ref, until, source_purchase_id) VALUES ($1, 'plus', '', $2, $3)
-                      ON CONFLICT (listener_id, kind, ref) DO UPDATE SET until = EXCLUDED.until, source_purchase_id = EXCLUDED.source_purchase_id`, [p.listenerId, expiresAt, id]);
-      // Fix F-S: a renewal past a waiting code's start pushes the code later (it keeps its days).
-      await rechainCodes(tx, p.listenerId);
-    } else if (kind === 'show') {
-      await tx.query(`INSERT INTO entitlements (listener_id, kind, ref, until, source_purchase_id) VALUES ($1, 'show', $2, NULL, $3)
-                      ON CONFLICT (listener_id, kind, ref) DO NOTHING`, [p.listenerId, feedUrl, id]);
-    } else if (kind === 'gift') {
-      // M22 US14: the buyer gets a code, not the show (FR-042).
-      return { id, raced: false, giftCode: await createGift(tx, { buyerId: p.listenerId, feedUrl: feedUrl!, purchaseId: id }) };
-    } else {
-      await tx.query('INSERT INTO tips (from_listener, to_feed_url, purchase_id) VALUES ($1, $2, $3)', [p.listenerId, feedUrl, id]);
-    }
-    return { id, raced: false };
-  });
-
-  if (!acknowledged && !purchaseId.raced) {
-    try {
-      await play.acknowledge(kind === 'plus' ? 'subscription' : 'product', p.productId, p.purchaseToken);
-      await db.query('UPDATE purchases SET acknowledged_at = now() WHERE id = $1', [purchaseId.id]);
-    } catch (e) {
-      console.error('google acknowledge failed; the cycle retries', e instanceof Error ? e.message : String(e));
-    }
-  } else if (acknowledged) {
-    await db.query('UPDATE purchases SET acknowledged_at = coalesce(acknowledged_at, now()) WHERE id = $1', [purchaseId.id]);
-  }
-  const giftCode = kind === 'gift' ? ('giftCode' in purchaseId && purchaseId.giftCode ? purchaseId.giftCode : await giftForPurchase(db, purchaseId.id)) : undefined;
-  return { purchaseId: purchaseId.id, kind, status: 'active', expiresAt, repeated: Boolean(seen) || purchaseId.raced, ...(giftCode ? { giftCode } : {}) };
-});
+export const grantGoogle = viaStore<typeof import('./paid-ddb/purchases.ts').grantGoogle>('pd/purchases', 'grantGoogle');
 
 /**
  * Refunds from Google: the row is marked, and what it granted is taken back.
@@ -153,53 +56,10 @@ export const grantGoogle = dual('pd/purchases', 'grantGoogle', async (db: Db, pl
  * is recorded — the purchase stays un-voided and keeps what it granted — so the next run
  * finds it again and retries the whole refund. One failed refund does not stop the others.
  */
-export const applyVoided = dual('pd/purchases', 'applyVoided', async (db: Db, voided: { purchaseToken: string; voidedAt: number }[]): Promise<{ withdrawn: number; unknown: number; failed?: number }> => {
-  let withdrawn = 0;
-  let unknown = 0;
-  let failed = 0;
-  for (const v of voided) {
-    try {
-      const outcome = await db.transaction(async (tx) => {
-        const [row] = await tx.query<{ id: string }>(
-          "UPDATE purchases SET status = 'refunded', voided_at = to_timestamp($2::double precision / 1000) WHERE purchase_token = $1 AND voided_at IS NULL RETURNING id",
-          [v.purchaseToken, v.voidedAt]);
-        if (!row) {
-          const [known] = await tx.query('SELECT 1 FROM purchases WHERE purchase_token = $1', [v.purchaseToken]);
-          return known ? 'seen' as const : 'unknown' as const;
-        }
-        await tx.query('DELETE FROM entitlements WHERE source_purchase_id = $1', [row.id]);
-        await tx.query('DELETE FROM tips WHERE purchase_id = $1', [row.id]);
-        // M22 US14 (FR-044, G-M22-9): a refunded gift is cancelled if unclaimed; a claimed one lost its entitlement above.
-        await cancelGiftsFor(tx, row.id);
-        return 'withdrawn' as const;
-      });
-      if (outcome === 'withdrawn') withdrawn++;
-      if (outcome === 'unknown') { unknown++; console.warn('google refund for a purchase this server never saw'); }
-    } catch (e) {
-      failed++;
-      console.error('google refund failed; the next run retries it', e instanceof Error ? e.message : String(e));
-    }
-  }
-  return { withdrawn, unknown, ...(failed > 0 ? { failed } : {}) };
-});
+export const applyVoided = viaStore<typeof import('./paid-ddb/purchases.ts').applyVoided>('pd/purchases', 'applyVoided');
 
 /** Purchases not yet acknowledged (the first try failed): try again, oldest first. */
-export const acknowledgeDue = dual('pd/purchases', 'acknowledgeDue', async (db: Db, play: GooglePlay): Promise<{ done: number; failed: number }> => {
-  const rows = await db.query<{ id: string; product_id: string; purchase_token: string }>(
-    "SELECT id, product_id, purchase_token FROM purchases WHERE store = 'google' AND acknowledged_at IS NULL AND status = 'active' AND purchase_token IS NOT NULL AND created_at < now() - interval '10 minutes' ORDER BY created_at LIMIT 50");
-  let done = 0;
-  let failed = 0;
-  for (const r of rows) {
-    try {
-      await play.acknowledge(kindOf(r.product_id) === 'plus' ? 'subscription' : 'product', r.product_id, r.purchase_token);
-      await db.query('UPDATE purchases SET acknowledged_at = now() WHERE id = $1', [r.id]);
-      done++;
-    } catch {
-      failed++;
-    }
-  }
-  return { done, failed };
-});
+export const acknowledgeDue = viaStore<typeof import('./paid-ddb/purchases.ts').acknowledgeDue>('pd/purchases', 'acknowledgeDue');
 
 /**
  * Fix F-S: PLUS comes from separate rows, one per source (`entitlements.ref`): '' = the store
@@ -215,9 +75,6 @@ export const acknowledgeDue = dual('pd/purchases', 'acknowledgeDue', async (db: 
 export const PLUS_BY_STORE = '';
 export const PLUS_BY_CODE = 'code';
 export const codeRef = (code: string): string => `${PLUS_BY_CODE}:${code}`;
-
-/** SQL: a PLUS row whose interval contains now (alias `e`). */
-export const PLUS_LIVE_SQL = "e.kind = 'plus' AND (e.starts_at IS NULL OR e.starts_at <= now()) AND (e.until IS NULL OR e.until > now())";
 
 export type PlusInterval = { start: number | null; end: number | null };
 
@@ -251,46 +108,13 @@ export function plusRun(intervals: readonly PlusInterval[], now: number): { acti
  * codes are never moved, and nothing moves earlier (a refund may leave a gap; that is accepted).
  * Call it in the same transaction as the change: the store sync (`grantGoogle`) and Admin's grant.
  */
-export const rechainCodes = dual('pd/purchases', 'rechainCodes', async (tx: Db, listenerId: string): Promise<number> => {
-  const waiting = await tx.query<{ ref: string; starts_at: Date | string; until: Date | string }>(
-    `SELECT ref, starts_at, until FROM entitlements
-      WHERE listener_id = $1 AND kind = 'plus' AND (ref = $2 OR ref LIKE $3) AND starts_at > now() AND until IS NOT NULL
-      ORDER BY starts_at, ref FOR UPDATE`, [listenerId, PLUS_BY_CODE, `${PLUS_BY_CODE}:%`]);
-  if (waiting.length === 0) return 0;
-  const waitingRefs = waiting.map((w) => w.ref);
-  const [base] = await tx.query<{ forever: boolean; until: Date | string | null }>(
-    `SELECT bool_or(until IS NULL) AS forever, max(until) AS until FROM entitlements
-      WHERE listener_id = $1 AND kind = 'plus' AND NOT (ref = ANY($2::text[])) AND (until IS NULL OR until > now())`, [listenerId, waitingRefs]);
-  if (base?.forever) return 0; // PLUS for ever: there is nothing to follow on from
-  let cursor = Math.max(Date.now(), base?.until ? new Date(base.until).getTime() : 0);
-  let moved = 0;
-  for (const w of waiting) {
-    const start = new Date(w.starts_at).getTime();
-    const length = new Date(w.until).getTime() - start;
-    const next = Math.max(start, cursor);
-    if (next !== start) {
-      await tx.query("UPDATE entitlements SET starts_at = $3, until = $4 WHERE listener_id = $1 AND kind = 'plus' AND ref = $2",
-        [listenerId, w.ref, new Date(next).toISOString(), new Date(next + length).toISOString()]);
-      moved++;
-    }
-    cursor = next + length;
-  }
-  return moved;
-});
+export const rechainCodes = viaStore<typeof import('./paid-ddb/purchases.ts').rechainCodes>('pd/purchases', 'rechainCodes');
 
 /** PLUS now, and when its continuous run ends (`plusRun`). Computed, never stored. */
-export const plusUntil = dual('pd/purchases', 'plusUntil', async (db: Db, listenerId: string): Promise<{ active: boolean; until: string | null }> => {
-  const rows = await db.query<{ starts_at: Date | string | null; until: Date | string | null }>(
-    "SELECT starts_at, until FROM entitlements WHERE listener_id = $1 AND kind = 'plus' AND (until IS NULL OR until > now())", [listenerId]);
-  const run = plusRun(rows.map((r) => ({ start: r.starts_at === null ? null : new Date(r.starts_at).getTime(), end: r.until === null ? null : new Date(r.until).getTime() })), Date.now());
-  return { active: run.active, until: run.until === null ? null : new Date(run.until).toISOString() };
-});
+export const plusUntil = viaStore<typeof import('./paid-ddb/purchases.ts').plusUntil>('pd/purchases', 'plusUntil');
 
 /** Whether this listener has PLUS now (the badge, the icons): any source whose interval holds now. */
-export const hasPlus = dual('pd/purchases', 'hasPlus', async (db: Db, listenerId: string): Promise<boolean> => {
-  const [r] = await db.query(`SELECT 1 FROM entitlements e WHERE e.listener_id = $1 AND ${PLUS_LIVE_SQL}`, [listenerId]);
-  return Boolean(r);
-});
+export const hasPlus = viaStore<typeof import('./paid-ddb/purchases.ts').hasPlus>('pd/purchases', 'hasPlus');
 
 // M26: the wallet page's reads and the sweep's refund-check cache (moved here from routes/).
 
@@ -299,79 +123,46 @@ export type EntitlementListRow = { kind: string; ref: string; starts_at: Date | 
 export type TipListRow = { id: string; to_feed_url: string; created_at: Date | string; amount_micros: string | number | null; currency: string | null; show_title: string | null };
 
 /** My purchases, newest first (at most 200). */
-export const listPurchaseRows = dual('pd/purchases', 'listPurchaseRows', async (db: Db, listenerId: string): Promise<PurchaseListRow[]> =>
-  db.query<PurchaseListRow>(
-    'SELECT id, store, product_id, status, expires_at, amount_micros, currency, created_at FROM purchases WHERE listener_id = $1 ORDER BY created_at DESC LIMIT 200', [listenerId]));
+export const listPurchaseRows = viaStore<typeof import('./paid-ddb/purchases.ts').listPurchaseRows>('pd/purchases', 'listPurchaseRows');
 
 /** My entitlements. */
-export const listEntitlementRows = dual('pd/purchases', 'listEntitlementRows', async (db: Db, listenerId: string): Promise<EntitlementListRow[]> =>
-  db.query<EntitlementListRow>(
-    'SELECT kind, ref, starts_at, until FROM entitlements WHERE listener_id = $1 ORDER BY kind, ref', [listenerId]));
+export const listEntitlementRows = viaStore<typeof import('./paid-ddb/purchases.ts').listEntitlementRows>('pd/purchases', 'listEntitlementRows');
 
 /** The tips I gave, newest first (at most 200), with the show's title. */
-export const listTipRows = dual('pd/purchases', 'listTipRows', async (db: Db, listenerId: string): Promise<TipListRow[]> =>
-  db.query<TipListRow>(
-    `SELECT t.id, t.to_feed_url, t.created_at, p.amount_micros, p.currency,
-            (SELECT e.show_title FROM episodes e WHERE e.feed_url = t.to_feed_url AND e.show_title IS NOT NULL LIMIT 1) AS show_title
-     FROM tips t JOIN purchases p ON p.id = t.purchase_id
-     WHERE t.from_listener = $1 ORDER BY t.created_at DESC LIMIT 200`,
-    [listenerId],
-  ));
+export const listTipRows = viaStore<typeof import('./paid-ddb/purchases.ts').listTipRows>('pd/purchases', 'listTipRows');
 
 /** When Google's refunds were last read (the `billing:voided` cache row). */
-export const lastVoidedCheckRows = dual('pd/purchases', 'lastVoidedCheckRows', async (db: Db): Promise<{ fetched_at: Date | string }[]> =>
-  db.query<{ fetched_at: Date | string }>("SELECT fetched_at FROM cache WHERE key = 'billing:voided'"));
+export const lastVoidedCheckRows = viaStore<typeof import('./paid-ddb/purchases.ts').lastVoidedCheckRows>('pd/purchases', 'lastVoidedCheckRows');
 
 /** Remember the last refund read and when it happened. */
-export const saveVoidedCheck = dual('pd/purchases', 'saveVoidedCheck', async (db: Db, v: unknown): Promise<void> => {
-  await db.query("INSERT INTO cache (key, body, fetched_at) VALUES ('billing:voided', $1::text::jsonb, now()) ON CONFLICT (key) DO UPDATE SET body = EXCLUDED.body, fetched_at = now()", [JSON.stringify(v)]);
-});
+export const saveVoidedCheck = viaStore<typeof import('./paid-ddb/purchases.ts').saveVoidedCheck>('pd/purchases', 'saveVoidedCheck');
 
 // M26 lane PD: the admin user page's money reads and PLUS writes (moved here from db/repos/admin/admin-users.ts, which
-// re-exports them, so they reach the DynamoDB items once this lane moves). SQL unchanged.
+// re-exports them)..
 
 export type MoneyRow = { id: string; product_id: string; store: string; status: string; amount_micros: string | number | null; currency: string | null; created_at: Date | string; expires_at: Date | string | null };
 export type TipAdminRow = { id: string; to_feed_url: string; created_at: Date | string; status: string };
 export type GiftAdminRow = { id: string; feed_url: string; bought: boolean; claimed_at: Date | string | null; cancelled_at: Date | string | null; created_at: Date | string };
 
-export const plusEntitlements = dual('pd/purchases', 'plusEntitlements', async (db: Db, id: string): Promise<{ ref: string; until: Date | string | null; source_purchase_id: string | null }[]> =>
-  db.query<{ ref: string; until: Date | string | null; source_purchase_id: string | null }>(
-    "SELECT ref, until, source_purchase_id FROM entitlements WHERE listener_id = $1 AND kind = 'plus' ORDER BY until DESC NULLS FIRST", [id]));
+export const plusEntitlements = viaStore<typeof import('./paid-ddb/purchases.ts').plusEntitlements>('pd/purchases', 'plusEntitlements');
 
-export const purchasesOf = dual('pd/purchases', 'purchasesOf', async (db: Db, id: string): Promise<MoneyRow[]> =>
-  db.query<MoneyRow>(
-    'SELECT id, product_id, store, status, amount_micros, currency, created_at, expires_at FROM purchases WHERE listener_id = $1 ORDER BY created_at DESC LIMIT 100', [id]));
+export const purchasesOf = viaStore<typeof import('./paid-ddb/purchases.ts').purchasesOf>('pd/purchases', 'purchasesOf');
 
-export const tipsSentBy = dual('pd/purchases', 'tipsSentBy', async (db: Db, id: string): Promise<TipAdminRow[]> =>
-  db.query<TipAdminRow>(
-    'SELECT t.id, t.to_feed_url, t.created_at, p.status FROM tips t JOIN purchases p ON p.id = t.purchase_id WHERE t.from_listener = $1 ORDER BY t.created_at DESC LIMIT 100', [id]));
+export const tipsSentBy = viaStore<typeof import('./paid-ddb/purchases.ts').tipsSentBy>('pd/purchases', 'tipsSentBy');
 
-export const giftsOf = dual('pd/purchases', 'giftsOf', async (db: Db, id: string): Promise<GiftAdminRow[]> =>
-  db.query<GiftAdminRow>(
-    `SELECT id, feed_url, buyer_id = $1 AS bought, claimed_at, cancelled_at, created_at FROM gifts WHERE buyer_id = $1 OR claimed_by = $1 ORDER BY created_at DESC LIMIT 100`, [id]));
+export const giftsOf = viaStore<typeof import('./paid-ddb/purchases.ts').giftsOf>('pd/purchases', 'giftsOf');
 
 /** PLUS for `days` from now under `ref` (the admin's grant), no purchase. */
-export const grantPlusByAdmin = dual('pd/purchases', 'grantPlusByAdmin', async (db: Db, id: string, ref: string, days: number): Promise<void> => {
-  await db.query(
-    `INSERT INTO entitlements (listener_id, kind, ref, until) VALUES ($1, 'plus', $2, now() + make_interval(days => $3::int))
-     ON CONFLICT (listener_id, kind, ref) DO UPDATE SET until = excluded.until`, [id, ref, days]);
-});
+export const grantPlusByAdmin = viaStore<typeof import('./paid-ddb/purchases.ts').grantPlusByAdmin>('pd/purchases', 'grantPlusByAdmin');
 
 /** Every PLUS row goes, bought or given. */
-export const revokeAllPlus = dual('pd/purchases', 'revokeAllPlus', async (db: Db, id: string): Promise<Record<string, unknown>[]> =>
-  db.query("DELETE FROM entitlements WHERE listener_id = $1 AND kind = 'plus'", [id]));
+export const revokeAllPlus = viaStore<typeof import('./paid-ddb/purchases.ts').revokeAllPlus>('pd/purchases', 'revokeAllPlus');
 
 /**
- * AC-T07 (PLUS half): who may get the weekly digest now — every listener whose PLUS holds now. Postgres returns them
- * all (the digest filters by time zone itself); DynamoDB reads only the zones where it is Monday noon (`Q#plus#<tz>`).
+ * AC-T07 (PLUS half): who may get the weekly digest now — every listener whose PLUS holds now. Only the zones
+ * where it is Monday noon are read (`Q#plus#<tz>`).
  */
-export const plusMembersDue = dual('pd/purchases', 'plusMembersDue', async (db: Db, _now: Date): Promise<string[]> =>
-  (await db.query<{ id: string }>(`SELECT DISTINCT e.listener_id AS id FROM entitlements e WHERE ${PLUS_LIVE_SQL}`)).map((r) => r.id));
+export const plusMembersDue = viaStore<typeof import('./paid-ddb/purchases.ts').plusMembersDue>('pd/purchases', 'plusMembersDue');
 
-/** "Download my data": the four money sections as their `SELECT *` rows (data-export.ts SECTIONS). */
-export const exportPaidRows = dual('pd/purchases', 'exportPaidRows', async (db: Db, listenerId: string): Promise<Record<string, Record<string, unknown>[]>> => ({
-  purchases: await db.query<Record<string, unknown>>('SELECT * FROM purchases WHERE listener_id = $1 ORDER BY created_at', [listenerId]),
-  entitlements: await db.query<Record<string, unknown>>('SELECT * FROM entitlements WHERE listener_id = $1', [listenerId]),
-  tips: await db.query<Record<string, unknown>>('SELECT * FROM tips WHERE from_listener = $1', [listenerId]),
-  giftsBought: await db.query<Record<string, unknown>>('SELECT * FROM gifts WHERE buyer_id = $1', [listenerId]),
-}));
+/** "Download my data": the four money sections as their rows (data-export.ts SECTIONS). */
+export const exportPaidRows = viaStore<typeof import('./paid-ddb/purchases.ts').exportPaidRows>('pd/purchases', 'exportPaidRows');

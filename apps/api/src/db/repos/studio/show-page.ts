@@ -11,104 +11,23 @@
  * - `showInfo`: who stands behind the show — created in the Studio, claimed, or only a feed —
  *   and the owner's country (two letters, guard G-I1), never more.
  */
-import type { Db } from '../../db.ts';
-import { dual } from '../../backend.ts';
-import { ApiError } from '../../../errors.ts';
+import { viaStore } from '../../backend.ts';
 
 import { HOST_PICKS_MAX } from '@socialmorning/social-core';
 export { HOST_PICKS_MAX };
 
-async function subscriberCountPg(db: Db, feedUrl: string): Promise<number> {
-  const [r] = await db.query<{ n: number | string; hidden: boolean }>(
-    `SELECT (SELECT count(*) FROM subscriptions WHERE feed_url = $1 AND deleted_at IS NULL) AS n,
-            EXISTS (SELECT 1 FROM hidden_feeds WHERE feed_url = $1) AS hidden`, [feedUrl]);
-  return r && !r.hidden ? Number(r.n) : 0;
-}
-
 export type ShowHost = { id: string; name: string; avatarUrl: string | null };
-
-async function showHostsPg(db: Db, feedUrl: string): Promise<ShowHost[]> {
-  const rows = await db.query<{ id: string; display_name: string; avatar_url: string | null }>(
-    `SELECT l.id, l.display_name, l.avatar_url FROM (
-        SELECT c.listener_id, 0 AS rank, c.proven_at AS since FROM creator_claims c WHERE c.feed_url = $1 AND c.status = 'proven'
-        UNION ALL
-        SELECT h.listener_id, 1, h.added_at FROM show_hosts h WHERE h.feed_url = $1
-     ) w JOIN listeners l ON l.id = w.listener_id
-      WHERE l.suspended_at IS NULL AND l.hidden_at IS NULL
-      ORDER BY w.rank, w.since`, [feedUrl]);
-  const seen = new Set<string>();
-  return rows.filter((r) => (seen.has(r.id) ? false : (seen.add(r.id), true))).map((r) => ({ id: r.id, name: r.display_name, avatarUrl: r.avatar_url }));
-}
-
-async function hostPicksPg(db: Db, feedUrl: string): Promise<string[]> {
-  // M24 US11: a hidden episode is no longer a pick.
-  const rows = await db.query<{ episode_id: string }>(
-    `SELECT p.episode_id FROM host_picks p WHERE p.feed_url = $1
-       AND NOT EXISTS (SELECT 1 FROM episodes e JOIN hidden_episodes h ON h.feed_url = e.feed_url AND h.guid = e.guid WHERE e.id = p.episode_id)
-     ORDER BY p.position`, [feedUrl]);
-  return rows.map((r) => r.episode_id);
-}
-
-/** Replaces the show's picks with `episodeIds`, in that order. Every id must be an episode of this show. */
-async function setHostPicksPg(db: Db, feedUrl: string, episodeIds: readonly string[], by: string): Promise<string[]> {
-  const ids = [...new Set(episodeIds)];
-  if (ids.length > HOST_PICKS_MAX) throw new ApiError('validation', `At most ${HOST_PICKS_MAX} host picks.`, { fields: ['episodeIds'] });
-  return db.transaction(async (tx) => {
-    if (ids.length > 0) {
-      const found = await tx.query<{ id: string }>('SELECT id FROM episodes WHERE feed_url = $1 AND id = ANY($2::text[])', [feedUrl, ids]);
-      if (found.length !== ids.length) throw new ApiError('validation', 'Pick episodes of this show only.', { fields: ['episodeIds'] });
-    }
-    await tx.query('DELETE FROM host_picks WHERE feed_url = $1', [feedUrl]);
-    for (const [i, id] of ids.entries()) {
-      await tx.query('INSERT INTO host_picks (feed_url, episode_id, position, picked_by) VALUES ($1, $2, $3, $4)', [feedUrl, id, i + 1, by]);
-    }
-    return ids;
-  });
-}
-
-/** The picks with their titles, for the Studio. */
-async function hostPickItemsPg(db: Db, feedUrl: string): Promise<{ id: string; title: string }[]> {
-  return db.query<{ id: string; title: string }>(
-    'SELECT e.id, e.title FROM host_picks p JOIN episodes e ON e.id = p.episode_id WHERE p.feed_url = $1 ORDER BY p.position', [feedUrl]);
-}
 
 export type ShowInfo = { ownerType: 'claimed' | 'studio' | 'feed'; ownerCountry: string | null; feedUrl: string; claimedAt: string | null };
 
-async function showInfoPg(db: Db, feedUrl: string): Promise<ShowInfo> {
-  const [r] = await db.query<{ proven_at: Date | string | null; country: string | null; hosted: boolean }>(
-    `SELECT c.proven_at, l.country,
-            EXISTS (SELECT 1 FROM hosted_shows h WHERE h.feed_url = $1 AND h.deleted_at IS NULL) AS hosted
-       FROM creator_claims c JOIN listeners l ON l.id = c.listener_id
-      WHERE c.feed_url = $1 AND c.status = 'proven'`, [feedUrl]);
-  if (!r) return { ownerType: 'feed', ownerCountry: null, feedUrl, claimedAt: null };
-  const country = r.country && /^[A-Za-z]{2}$/.test(r.country.trim()) ? r.country.trim().toUpperCase() : null;
-  return {
-    ownerType: r.hosted ? 'studio' : 'claimed',
-    ownerCountry: country,
-    feedUrl,
-    claimedAt: r.proven_at ? new Date(r.proven_at).toISOString() : null,
-  };
-}
-
 export type ShowPageAnnouncementRow = { id: string; body: string; created_at: Date | string; edited_at: Date | string | null; images: unknown };
 
-/** The show page's three newest released announcements. */
-async function latestAnnouncementRowsPg(db: Db, feedUrl: string): Promise<ShowPageAnnouncementRow[]> {
-  return db.query<{ id: string; body: string; created_at: Date | string; edited_at: Date | string | null; images: unknown }>(
-      'SELECT id, body, created_at, edited_at, images FROM announcements WHERE feed_url = $1 AND deleted_at IS NULL AND release_at <= now() ORDER BY created_at DESC LIMIT 3', [feedUrl]);
-}
-
-/** The newest episode image of a feed (the show page's last-resort cover). */
-async function newestEpisodeImageRowsPg(db: Db, feedUrl: string): Promise<{ image_url: string }[]> {
-  return db.query<{ image_url: string }>('SELECT image_url FROM episodes WHERE feed_url = $1 AND image_url IS NOT NULL ORDER BY published_at DESC NULLS LAST LIMIT 1', [feedUrl]);
-}
-
-// M26 lane ST: each runs on Postgres, or on DynamoDB (ddb/page.ts) when the Db carries a Store (db/backend.ts).
-export const subscriberCount = dual('st/page', 'subscriberCount', subscriberCountPg);
-export const showHosts = dual('st/page', 'showHosts', showHostsPg);
-export const hostPicks = dual('st/page', 'hostPicks', hostPicksPg);
-export const setHostPicks = dual('st/page', 'setHostPicks', setHostPicksPg);
-export const hostPickItems = dual('st/page', 'hostPickItems', hostPickItemsPg);
-export const showInfo = dual('st/page', 'showInfo', showInfoPg);
-export const latestAnnouncementRows = dual('st/page', 'latestAnnouncementRows', latestAnnouncementRowsPg);
-export const newestEpisodeImageRows = dual('st/page', 'newestEpisodeImageRows', newestEpisodeImageRowsPg);
+// DynamoDB bodies: ddb/page.ts (db/backend.ts).
+export const subscriberCount = viaStore<typeof import('./ddb/page.ts').subscriberCount>('st/page', 'subscriberCount');
+export const showHosts = viaStore<typeof import('./ddb/page.ts').showHosts>('st/page', 'showHosts');
+export const hostPicks = viaStore<typeof import('./ddb/page.ts').hostPicks>('st/page', 'hostPicks');
+export const setHostPicks = viaStore<typeof import('./ddb/page.ts').setHostPicks>('st/page', 'setHostPicks');
+export const hostPickItems = viaStore<typeof import('./ddb/page.ts').hostPickItems>('st/page', 'hostPickItems');
+export const showInfo = viaStore<typeof import('./ddb/page.ts').showInfo>('st/page', 'showInfo');
+export const latestAnnouncementRows = viaStore<typeof import('./ddb/page.ts').latestAnnouncementRows>('st/page', 'latestAnnouncementRows');
+export const newestEpisodeImageRows = viaStore<typeof import('./ddb/page.ts').newestEpisodeImageRows>('st/page', 'newestEpisodeImageRows');

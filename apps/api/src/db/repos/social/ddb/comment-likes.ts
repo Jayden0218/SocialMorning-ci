@@ -15,8 +15,7 @@ import { TxCancelled } from '../../../ddb/tx.ts';
 import { isBlockedBy } from '../../safety/blocks.ts';
 import type { LikeState } from '../comment-likes.ts';
 import { notify } from '../notifications.ts';
-import * as B from './sc-bridge.ts';
-import { bumpSocial, commentItemById, commitRetry, keyOf, nowIso, rawPg, UUID } from './sc-common.ts';
+import { bumpSocial, commentItemById, commitRetry, keyOf, nowIso, UUID } from './sc-common.ts';
 import { likedByViewer, likesFrom } from './comments.ts';
 import { prefixItems } from './sc-common.ts';
 
@@ -77,8 +76,6 @@ export async function like(store: Store, db: Db, commentId: string, listenerId: 
   const at = nowIso(store);
   const added = await addLike(store, it, listenerId, at);
   if (added) {
-    const raw = rawPg(db);
-    if (raw) await B.insertCommentLike(raw, commentId, listenerId, at);
     // M21 US10 (G-M21-9): a new like tells the author (lane SG).
     const parentId = it['parentId'] ? String(it['parentId']) : undefined;
     await notify(db, { recipientId: String(it['authorId']), actorId: listenerId, kind: 'like', ref: { commentId, episodeId: String(it['episodeId']), ...(parentId ? { parentId } : {}) } });
@@ -92,8 +89,6 @@ export async function unlike(store: Store, db: Db, commentId: string, listenerId
   const it = await commentItemById(store, commentId);
   if (!it) throw new ApiError('not_found', 'No such comment.');
   if (await removeLike(store, it, listenerId, nowIso(store))) {
-    const raw = rawPg(db);
-    if (raw) await B.deleteCommentLike(raw, commentId, listenerId);
   }
   return { likeCount: await countOf(store, it), likedByMe: false };
 }

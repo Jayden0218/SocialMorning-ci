@@ -3,19 +3,15 @@
  * M26 lane SG, SG-T02 (patterns SG-10, SG-11), data-model.md §4 (sm-events) and §9 (fan-out on write).
  *
  * - `ACT#<actor>/<createdAt>#<id>` (sm-events): { id, actorId, kind, episodeId, momentMs, refId, day, hidden, createdAt }.
- *   Ids stay numbers. While the bridge is on, the Postgres row is written first and its id is used, so both stores
- *   carry the same id (other lanes' Postgres rows and these items never collide in a feed); off, `SEQ#activity`.
+ *   Ids stay numbers, from `SEQ#activity`.
  * - `U#ACT#<actor>#listened#<episode>#<day>` (sm-events): the once-per-day `listened` rule (G6), carrying `hidden`.
  *   `U#ACTREF#<kind>#<refId>` → the activity key, so a deleted/removed comment or clip removes its activity.
  * - Fan-out (`sg:fanout`, outbox): one `FEED#<follower>/<createdAt>#<id>` pointer per follower (TTL 60 d), never for
  *   hidden activity (G5). Above FANOUT_MAX followers an actor is a "big actor" (`BIGACTOR`, G4 `Q#bigactors`): no
- *   fan-out, its `ACT#` partition is merged at read time (hybrid). Follow backfills the newest 50 (`sg:follow`);
+ *   fan-out, its `ACT#` partition is merged at read time. Follow backfills the newest 50 (`sg:follow`);
  *   unfollow removes the actor's pointers (`sg:unfollow`); reads also filter by the follow set and blocks.
  * - Reads resolve each pointer to its activity item, actor and episode at read time (the SQL's JOINs): a deleted
  *   activity, actor or episode drops the row; names and titles are always current.
- * - Hybrid only: comments and clips (lane SC) and Studio replies (lane ST) still write their activity rows in Postgres
- *   SQL. Until they call `recordActivity`, the feed and the profile merge those Postgres rows (`commented`, `clipped`)
- *   in, de-duplicated by id. CUT deletes that merge.
  */
 import { listenItemDue } from '@socialmorning/social-core';
 import type { Db } from '../../../db.ts';
@@ -30,7 +26,7 @@ import { enqueue, registerHandler } from '../../../../jobs/outbox.ts';
 import { enqueueFact } from '../../studio/ddb/facts.ts';
 import { getListener } from '../../account/ddb/common.ts';
 import type { ActivityKind, FeedRow } from '../activity.ts';
-import { blockedBy, DAY_MS, episodesById, iso, listenersById, nowMs, pgRaw, raw, str, type Hybrid } from './common.ts';
+import { blockedBy, DAY_MS, episodesById, iso, listenersById, nowMs, str, type Ctx } from './common.ts';
 import { FANOUT_MAX, followSet } from './follows.ts';
 import { listenMarkItem } from '../../discover/ddb/listens.ts';
 
@@ -72,21 +68,9 @@ async function writeAct(store: Store, a: Act): Promise<boolean> {
  * (through `onListened`). Returns the activity id, or undefined when the day's `listened` row already exists.
  */
 export async function recordActivity(store: Store, db: Db, a: ActivityIn): Promise<number | undefined> {
-  const h: Hybrid = { store, pg: db };
-  const pg = raw(h);
-  let id: number;
-  let createdAt: string;
-  if (pg) {
-    const [row] = await pg.query<{ id: string | number; created_at: Date | string }>(
-      `INSERT INTO activity (actor_id, kind, episode_id, moment_ms, ref_id, day, hidden) VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT DO NOTHING RETURNING id, created_at`,
-      [a.actorId, a.kind, a.episodeId, a.momentMs ?? null, a.refId ?? null, a.day ?? null, a.hidden ?? false]);
-    if (!row) return undefined;
-    id = Number(row.id);
-    createdAt = new Date(row.created_at).toISOString();
-  } else {
-    id = await nextSeq(store, 'activity');
-    createdAt = iso(nowMs(h));
-  }
+  const h: Ctx = { store, db };
+  const id = await nextSeq(store, 'activity');
+  const createdAt = iso(nowMs(h));
   const ok = await writeAct(store, { actorId: a.actorId, kind: a.kind, episodeId: a.episodeId, momentMs: a.momentMs ?? null, refId: a.refId ?? null, day: a.day ?? null, hidden: a.hidden ?? false, id, createdAt });
   return ok ? id : undefined;
 }
@@ -98,31 +82,22 @@ export async function removeActivityByRef(store: Store, db: Db, kind: ActivityKi
     await del(store, 'events', { PK: String(ref['actPK']), SK: String(ref['actSK']) });
     await del(store, 'events', K.evSg.activityRef(kind, refId));
   }
-  await raw({ store, pg: db })?.query('DELETE FROM activity WHERE kind = $1 AND ref_id = $2', [kind, refId]);
 }
 
 /**
  * Lane LB's listened sync calls this for each (episode, day) it stored: the once-per-day `listened` activity (G6) and
- * "friends are listening" (SG-T03). With the bridge on, LB's Postgres body has just written the Postgres row; the item
- * copies it (same id, same `hidden`). Off, the rule runs here (threshold or finished, registered episode, `hidden` =
+ * "friends are listening" (SG-T03). The rule runs here (threshold or finished, registered episode, `hidden` =
  * the listener's private-listening switch now — research R5).
  */
 export async function onListened(store: Store, db: Db, listenerId: string, d: { episodeId: string; day: string }, before: number, after: number): Promise<void> {
-  const h: Hybrid = { store, pg: db };
+  const h: Ctx = { store, db };
   const dayKey = K.ev.activityDedupe(listenerId, 'listened', d.episodeId, d.day);
   let mark = await get(store, 'events', dayKey);
   if (!mark) {
-    const pg = raw(h);
-    if (pg) {
-      const [row] = await pg.query<{ id: string | number; hidden: boolean; created_at: Date | string }>(
-        "SELECT id, hidden, created_at FROM activity WHERE actor_id = $1 AND kind = 'listened' AND episode_id = $2 AND day = $3", [listenerId, d.episodeId, d.day]);
-      if (row) await writeAct(store, { actorId: listenerId, kind: 'listened', episodeId: d.episodeId, momentMs: null, refId: null, day: d.day, hidden: row.hidden, id: Number(row.id), createdAt: new Date(row.created_at).toISOString() });
-    } else {
-      const pos = await get(store, 'main', K.position(listenerId, d.episodeId));
-      if (listenItemDue(before, after, false, pos?.['finished'] === true) && (await get(store, 'main', K.episode(d.episodeId)))) {
-        const l = await getListener(h, listenerId);
-        await writeAct(store, { actorId: listenerId, kind: 'listened', episodeId: d.episodeId, momentMs: null, refId: null, day: d.day, hidden: l?.['privateListening'] === true, id: await nextSeq(store, 'activity'), createdAt: iso(nowMs(h)) });
-      }
+    const pos = await get(store, 'main', K.position(listenerId, d.episodeId));
+    if (listenItemDue(before, after, false, pos?.['finished'] === true) && (await get(store, 'main', K.episode(d.episodeId)))) {
+      const l = await getListener(h, listenerId);
+      await writeAct(store, { actorId: listenerId, kind: 'listened', episodeId: d.episodeId, momentMs: null, refId: null, day: d.day, hidden: l?.['privateListening'] === true, id: await nextSeq(store, 'activity'), createdAt: iso(nowMs(h)) });
     }
     mark = await get(store, 'events', dayKey);
   }
@@ -136,7 +111,7 @@ export async function onListened(store: Store, db: Db, listenerId: string, d: { 
 }
 
 /** AC's interests fade (`playCount`): distinct episodes the listener has a `listened` activity for. */
-export async function listenedEpisodeCount(h: Hybrid, listenerId: string): Promise<number> {
+export async function listenedEpisodeCount(h: Ctx, listenerId: string): Promise<number> {
   const { items } = await queryAll(h.store, 'events', {
     KeyConditionExpression: 'PK = :pk', FilterExpression: '#k = :k', ProjectionExpression: '#e',
     ExpressionAttributeNames: { '#k': 'kind', '#e': 'episodeId' }, ExpressionAttributeValues: { ':pk': `ACT#${listenerId}`, ':k': 'listened' }, ConsistentRead: true,
@@ -190,21 +165,6 @@ async function actorRows(store: Store, actorId: string, cursor: { createdAt: str
   return out.slice(0, want);
 }
 
-/** Hybrid only: the `commented` / `clipped` rows lanes SC and ST still write in Postgres SQL (same JOINs as the old feed). */
-async function pgRows(h: Hybrid, actorIds: readonly string[], viewerId: string | undefined, cursor: { createdAt: string; id: string } | undefined, want: number): Promise<FeedRow[]> {
-  // Lane LE: with the bridge off there is no Postgres row — lanes SC and ST write every `commented` / `clipped` item through recordActivity.
-  if (actorIds.length === 0 || !raw(h)) return [];
-  const rows = await pgRaw(h).query<FeedRow>(
-    `SELECT a.id::text AS id, a.kind, a.actor_id, l.display_name AS actor_name, a.episode_id, e.title AS episode_title, e.show_title, e.image_url, a.moment_ms, a.ref_id, a.created_at
-       FROM activity a JOIN listeners l ON l.id = a.actor_id JOIN episodes e ON e.id = a.episode_id
-      WHERE a.kind IN ('commented', 'clipped') AND a.hidden = false AND a.actor_id = ANY($1::uuid[])
-        ${viewerId ? 'AND a.actor_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id = $3)' : ''}
-        ${cursor ? `AND (a.created_at, a.id) < ($${viewerId ? 4 : 3}::timestamptz, $${viewerId ? 5 : 4}::bigint)` : ''}
-      ORDER BY a.created_at DESC, a.id DESC LIMIT $2`,
-    [[...actorIds], want, ...(viewerId ? [viewerId] : []), ...(cursor ? [cursor.createdAt, cursor.id] : [])]);
-  return rows.map((r) => ({ ...r, id: String(r.id), created_at: new Date(r.created_at).toISOString() }));
-}
-
 function parseCursor(s: string): { createdAt: string; id: string } | undefined {
   const i = s.lastIndexOf(',');
   if (i < 0) return undefined;
@@ -214,7 +174,7 @@ function parseCursor(s: string): { createdAt: string; id: string } | undefined {
 }
 
 /** The Following feed: `before` is "<createdAt ISO>,<id>" from a previous page's `next`. */
-export async function feedFor(h: Hybrid, listenerId: string, before?: string, limit = 20): Promise<{ items: FeedRow[]; next?: string }> {
+export async function feedFor(h: Ctx, listenerId: string, before?: string, limit = 20): Promise<{ items: FeedRow[]; next?: string }> {
   const cursor = before ? parseCursor(before) : undefined;
   const want = limit + 1;
   const [follows, blocked] = await Promise.all([followSet(h, listenerId), blockedBy(h, listenerId)]);
@@ -239,8 +199,7 @@ export async function feedFor(h: Hybrid, listenerId: string, before?: string, li
   const bigs = actors.length === 0 ? [] : (await queryAll(h.store, 'main', { IndexName: K.INDEX.G4, KeyConditionExpression: 'G4PK = :q', ExpressionAttributeValues: { ':q': 'Q#bigactors' } }))
     .items.map((i) => String(i['PK']).slice(2)).filter((id) => live.has(id));
   const big = await Promise.all(bigs.map((id) => actorRows(h.store, id, cursor, want)));
-  const legacy = await pgRows(h, actors, listenerId, cursor, want);
-  const rows = merge([inbox, ...big, legacy]);
+  const rows = merge([inbox, ...big]);
   const items = rows.slice(0, limit);
   const last = items[items.length - 1];
   const next = rows.length > limit && last ? `${new Date(last.created_at).toISOString()},${last.id}` : undefined;
@@ -248,10 +207,9 @@ export async function feedFor(h: Hybrid, listenerId: string, before?: string, li
 }
 
 /** Recent public activity by one listener, for their profile. */
-export async function recentBy(h: Hybrid, actorId: string, limit = 20): Promise<FeedRow[]> {
+export async function recentBy(h: Ctx, actorId: string, limit = 20): Promise<FeedRow[]> {
   const mine = await actorRows(h.store, actorId, undefined, limit);
-  const legacy = await pgRows(h, [actorId], undefined, undefined, limit);
-  return merge([mine, legacy]).slice(0, limit);
+  return merge([mine]).slice(0, limit);
 }
 
 // ---- outbox handlers (idempotent: a pointer Put twice is the same item) ----

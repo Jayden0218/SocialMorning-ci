@@ -1,20 +1,16 @@
-// Shared pieces of lane ST's DynamoDB code: clock, partition reads, listener/episode/show lookups, the Postgres bridge handle.
+// Shared pieces of the Studio DynamoDB code: clock, partition reads, listener/episode/show lookups.
 /**
- * M26 lane ST. Every other file in this folder exports `<name>(store, db, ...args)` bodies for `dual('st/<file>', …)`
- * (src/db/backend.ts). `db` is the app's handle WITH the Store attached: calling another lane's dual repo function
- * with it runs that lane's DynamoDB body. `bridgeOf(db)` is the plain Postgres handle while the write bridge is on —
- * lane ST bridges only the two tables other code still reads in SQL (lane DV's discover queries): `hosted_shows` and
- * `hidden_episodes` (data-model.md "Lane ST changes"). Expressions are aliased by lane AC's `xo` (reserved words).
+ * Every other file in this folder exports `<name>(store, db, ...args)` bodies for `viaStore('st/<file>', …)`
+ * (src/db/backend.ts). `db` is the app's handle WITH the Store attached: calling another repo function with it
+ * runs that function's DynamoDB body. Expressions are aliased by the account lane's `xo` (reserved words).
  */
 import type { Db } from '../../../db.ts';
-import { attachedOf, bridgeOf } from '../../../backend-ddb.ts';
 import * as K from '../../../ddb/keys.ts';
 import { batchGetAll } from '../../../ddb/batch.ts';
 import { queryAll } from '../../../ddb/paginate.ts';
 import type { Item, Key, Store, TableRole } from '../../../ddb/store.ts';
 
 export { xo, txa, upd, aput, adel, unlessCondition, type TxA } from '../../account/ddb/common.ts';
-export { bridgeOf };
 export type { Db, Item, Key, Store };
 
 export const DAY_MS = 86_400_000;
@@ -27,9 +23,6 @@ export const keyOf = (i: Item): Key => ({ PK: String(i['PK']), SK: String(i['SK'
 export const isUuid = (s: string): boolean => /^[0-9a-f-]{36}$/i.test(s);
 export const str = (v: unknown): string | null => (v === undefined || v === null ? null : String(v));
 export const num = (v: unknown): number | null => (v === undefined || v === null ? null : Number(v));
-
-/** The plain Postgres handle behind `db` (only for the bridge and for other lanes' SQL still on Postgres). */
-export const pgRaw = (db: Db): Db => attachedOf(db).raw;
 
 /** Every item of a partition (optionally under an SK prefix), strongly consistent, in SK order. */
 export async function partition(store: Store, table: TableRole, pk: string, opts: { prefix?: string; from?: string; to?: string; newestFirst?: boolean; max?: number; projection?: string; names?: Record<string, string> } = {}): Promise<Item[]> {

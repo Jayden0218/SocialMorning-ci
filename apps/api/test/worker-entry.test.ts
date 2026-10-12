@@ -7,7 +7,7 @@ const ON = Boolean(process.env['DDB_ENDPOINT']);
 if (!ON) {
   test('worker entry (needs DynamoDB Local: DDB_ENDPOINT, ci/workflows/ddb-api.yml)', { skip: 'no DDB_ENDPOINT' }, () => {});
 } else {
-  const { freshStore, noPostgres, TEST_PEPPER } = await import('./harness.ts');
+  const { freshStore, TEST_PEPPER } = await import('./harness.ts');
   const { withStore } = await import('../src/db/backend-ddb.ts');
   const { tx } = await import('../src/db/ddb/tx.ts');
   const { enqueue, pendingOutbox, registerHandler } = await import('../src/jobs/outbox.ts');
@@ -22,7 +22,7 @@ if (!ON) {
 
   async function setup() {
     const s = await freshStore();
-    const db = withStore(noPostgres(), s.store, { bridge: false });
+    const db = withStore(undefined, s.store);
     const lines: string[] = [];
     return { s, db, lines, log: (l: string) => { lines.push(l); } };
   }

@@ -1,11 +1,11 @@
-// The maintenance switch the admin turns on and off: stored in app_settings, read through a short memo.
+// The maintenance switch the admin turns on and off: stored as an app setting, read through a short memo.
 /**
- * M24 US4. `app_settings` row `maintenance` = `{ until, message }` while on; no row = off. It is on
+ * M24 US4. The `maintenance` setting = `{ until, message }` while on; none = off. It is on
  * only while `until` is in the future, so it ends by itself. Read on every API call through a
  * 10 s in-process memo per database; the admin's change drops the memo in this process at once.
  */
 import type { Db } from '../../db.ts';
-import { dual } from '../../backend.ts';
+import { viaStore } from '../../backend.ts';
 
 export type Maintenance = { until: string; message: string };
 
@@ -25,16 +25,10 @@ const parse = (v: unknown): Maintenance | null => {
   return { until: new Date(o.until).toISOString(), message: typeof o.message === 'string' && o.message.trim() ? o.message : DEFAULT_MAINTENANCE_MESSAGE };
 };
 
-/** The stored setting, whether or not its time has passed (the Admin page shows both). */
-async function storedMaintenancePg(db: Db): Promise<Maintenance | null> {
-  const [r] = await db.query<{ value: unknown }>('SELECT value FROM app_settings WHERE key = $1', [MAINTENANCE_KEY]);
-  return r ? parse(r.value) : null;
-}
-
-/** On right now: the setting exists and its end time is in the future. Memoised. */
 /** The stored value → the setting, or null when it is not a valid one (also used by the DynamoDB body). */
 export const parseMaintenance = (v: unknown): Maintenance | null => parse(v);
 
+/** On right now: the setting exists and its end time is in the future. Memoised. */
 export async function activeMaintenance(db: Db, now = Date.now()): Promise<Maintenance | null> {
   const hit = memo.get(db);
   const value = hit && now - hit.at < MEMO_MS ? hit.value : await storedMaintenance(db);
@@ -42,13 +36,5 @@ export async function activeMaintenance(db: Db, now = Date.now()): Promise<Maint
   return value && Date.parse(value.until) > now ? value : null;
 }
 
-async function setMaintenancePg(db: Db, m: Maintenance | null, by: string): Promise<void> {
-  if (m === null) { await db.query('DELETE FROM app_settings WHERE key = $1', [MAINTENANCE_KEY]); return; }
-  await db.query(
-    `INSERT INTO app_settings (key, value, updated_by) VALUES ($1, ($2::text)::jsonb, $3)
-     ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_at = now(), updated_by = excluded.updated_by`,
-    [MAINTENANCE_KEY, JSON.stringify(m), by]);
-}
-
-export const storedMaintenance = dual('sf/maintenance', 'storedMaintenance', storedMaintenancePg);
-export const setMaintenance = dual('sf/maintenance', 'setMaintenance', setMaintenancePg);
+export const storedMaintenance = viaStore<typeof import('./ddb/maintenance.ts').storedMaintenance>('sf/maintenance', 'storedMaintenance');
+export const setMaintenance = viaStore<typeof import('./ddb/maintenance.ts').setMaintenance>('sf/maintenance', 'setMaintenance');

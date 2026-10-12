@@ -1,12 +1,12 @@
 // Gifts on DynamoDB: the gift item keyed by its code, claimed once in one transaction, withdrawn by a refund.
 /**
- * M26 lane PD (PD-T04; patterns PD-22…PD-29). Postgres twins: ../gifts.ts.
+ * M26 lane PD (PD-T04; patterns PD-22…PD-29).
  *
  * Claim = ONE transaction: the gift gets its claimer only while it has none and is not cancelled (the old
  * `UPDATE … WHERE claimed_by IS NULL AND cancelled_at IS NULL`, guard G-M22-9), the claimer's show entitlement
  * (attribute_not_exists: someone who owns the show is told and the link stays), the purchase records the key it
  * granted (so a refund removes it — `source_purchase_id`), and the claimer's pointer. The gift page reads the show
- * card from lane ST (override, hosted show — Postgres until it moves) and lane LB (newest episode title and cover).
+ * card from lane ST (override, hosted show) and lane LB (newest episode title and cover).
  */
 import type { Db } from '../../../db.ts';
 import { ApiError } from '../../../../errors.ts';
@@ -20,7 +20,7 @@ import { TxCancelled } from '../../../ddb/tx.ts';
 import { showNewest } from '../../library/ddb/episodes.ts';
 import { getListener, txa } from '../ddb/common.ts';
 import { giftUrl } from '../gifts.ts';
-import { entItem, iso, mirror, nowMs } from './common.ts';
+import { entItem, iso, nowMs } from './common.ts';
 import { showCardParts } from './foreign.ts';
 
 const CODE = /^[A-Za-z0-9]{16}$/;
@@ -38,7 +38,7 @@ export async function giftByCode(store: Store, db: Db, code: string): Promise<{ 
   if (!CODE.test(code)) throw new ApiError('not_found', 'No such gift.');
   const g = await get(store, 'main', K.gift(code));
   if (!g) throw new ApiError('not_found', 'No such gift.');
-  const buyer = await getListener({ store, pg: db }, String(g['buyerId']));
+  const buyer = await getListener({ store, db }, String(g['buyerId']));
   return {
     show: await showOf(store, db, String(g['feedUrl'])), claimed: Boolean(g['claimedBy']), cancelled: Boolean(g['cancelledAt']),
     buyerName: buyer && !buyer.hiddenAt ? buyer.displayName : null,
@@ -77,7 +77,6 @@ export async function claimGift(store: Store, db: Db, code: string, listenerId: 
     }
     return feed;
   }, { tries: 4, retryOn: (e) => isConflict(e) || e instanceof GiftRace });
-  await mirror(store, db, { gifts: [code], listeners: [listenerId] });
   return { feedUrl };
 }
 

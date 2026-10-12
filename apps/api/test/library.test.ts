@@ -76,8 +76,7 @@ test('My comments: your own top-level comments with their text; a deleted one ha
   const c2 = (await (await t.call('POST', `/v1/episodes/${EP}/comments`, { body: 'second', offsetMs: 5_000 }, a.token)).json() as { comment: { id: string } }).comment;
   await backdateComments(t, 10_000);
   await t.call('POST', `/v1/episodes/${EP}/comments`, { body: 'not hers' }, b.token);
-  await t.q('UPDATE comments SET deleted_at = now() WHERE id = $1', [c2.id]);
-  if (t.store) { // M26 lane LE: "My comments" reads lane SC's items on DynamoDB — the same mark on the item
+  { // "My comments" reads lane SC's items: mark the comment deleted on its item
     const [{ commentItemById }, { update }] = await Promise.all([import('../src/db/repos/social/ddb/sc-common.ts'), import('../src/db/ddb/store.ts')]);
     const it = (await commentItemById(t.store, c2.id))!;
     await update(t.store, 'main', { PK: String(it['PK']), SK: String(it['SK']) }, { update: 'SET deletedAt = :d', values: { ':d': new Date().toISOString() } });

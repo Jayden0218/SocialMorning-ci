@@ -143,7 +143,7 @@ export function createInternalRoute(jobToken: string | undefined, m22: { groq?: 
       // M18 FR-015: a day of app use is kept 400 days, then deleted (research R8).
       try { counts.activeDeleted = await sweepDailyActive(db); }
       catch (e) { failed.push(`daily_active: ${e instanceof Error ? e.message : String(e)}`); }
-      // M26 lane SF (G-M26-SF4): once a night, yesterday's dashboard safety counters against a recount (Postgres: 0).
+      // M26 lane SF (G-M26-SF4): once a night, yesterday's dashboard safety counters against a recount.
       try { counts.dashFixed = await checkDashboard(db); }
       catch (e) { failed.push(`dashboard check: ${e instanceof Error ? e.message : String(e)}`); }
       // M23 US3 (FR-006): search and feed caches past 7 days, push_sent past 30, rec_events past 90.

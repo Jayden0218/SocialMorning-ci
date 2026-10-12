@@ -19,7 +19,6 @@ import { ApiError } from '../../errors.ts';
 import { roleFor, showsFor } from '../../db/repos/studio/studio-roles.ts';
 import { deleteSessionByHash } from '../../db/repos/account/sessions.ts';
 import { ACT_AS_COOKIE, ensureSeeded, insertAudit, isAdmin, stopActing } from '../../auth/admin.ts';
-import { https } from './common.ts';
 import { registerClaims } from './claims.ts';
 import { registerCreate } from './create.ts';
 import { registerOverview } from './overview.ts';

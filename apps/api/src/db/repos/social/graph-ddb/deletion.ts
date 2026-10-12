@@ -5,7 +5,7 @@
  *
  * - Every follow edge in the leaving listener's partition goes with its twin in the OTHER listener's partition and
  *   that listener's counter (one transaction per edge, conditional on the edge — a second run moves nothing twice).
- *   This is the old `DELETE FROM follows WHERE follower_id = $1 OR followed_id = $1` (guard G7).
+ *   Every follow edge of the listener goes, both ways (guard G7).
  * - Their activity (`ACT#`), its day/ref items, their recent listens (`LR#`) and the notices to them (`SN#<id>`) go.
  * - Pointers others keep to them (feed inbox, friends listening, notices they caused, mutes of them) are dropped at
  *   read time — every read joins the actor — and expire with their TTL (inbox 60 d, friends 7 d).
@@ -18,12 +18,12 @@ import { get, type Item, type Key } from '../../../ddb/store.ts';
 import { TxCancelled } from '../../../ddb/tx.ts';
 import { partitionItems, txa } from '../../account/ddb/common.ts';
 import { addFollowCount } from '../../account/ddb/listeners.ts';
-import type { Hybrid } from './common.ts';
+import type { Ctx } from './common.ts';
 
 const CHUNK = 25;
 const keyOf = (i: Item): Key => ({ PK: String(i['PK']), SK: String(i['SK']) });
 
-async function dropEdge(h: Hybrid, mine: Item, me: string): Promise<void> {
+async function dropEdge(h: Ctx, mine: Item, me: string): Promise<void> {
   const other = String(mine['otherId']);
   const iFollow = String(mine['SK']).startsWith(K.LISTENER_SK.follows);
   const twin = iFollow ? K.follower(other, me) : K.follow(other, me);
@@ -33,7 +33,7 @@ async function dropEdge(h: Hybrid, mine: Item, me: string): Promise<void> {
 }
 
 /** One step of the phase; true when nothing of this lane's is left for `listenerId`. */
-export async function graphDeletionStep(h: Hybrid, listenerId: string): Promise<boolean> {
+export async function graphDeletionStep(h: Ctx, listenerId: string): Promise<boolean> {
   const out = await partitionItems(h, K.L(listenerId), K.LISTENER_SK.follows, CHUNK);
   const inn = out.length < CHUNK ? await partitionItems(h, K.L(listenerId), K.LISTENER_SK.followers, CHUNK - out.length) : [];
   for (const e of [...out, ...inn]) await dropEdge(h, e, listenerId);

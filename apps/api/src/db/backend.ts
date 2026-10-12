@@ -1,22 +1,14 @@
-// The dual-backend switch: a repo function runs on Postgres, or on DynamoDB when a Store is attached to the Db handle.
+// How a repo function reaches DynamoDB: the Store attached to the Db handle it is given.
 /**
- * M26 lane LB (plan.md "Branch and lane method"): while the lanes convert domain by domain, the app must
- * run on BOTH backends. A repo function keeps its name, parameters and return type; `dual()` wraps the
- * Postgres body and, when the `Db` handle it is given carries a DynamoDB `Store` (attached by
- * `backend-ddb.ts` — the harness under TEST_BACKEND=ddb; later DATA_BACKEND=ddb), calls the DynamoDB body
- * instead: `ddb/<mod>.ts` export `<name>(store, db, ...args)`.
- *
- * Nothing here loads the AWS SDK on Postgres: the DynamoDB module is imported only when a Store is
- * attached (the PGlite coverage run counts loaded files — apps/api/.c8rc.json).
- *
- * The bridge (hybrid only): domains not yet converted still read and JOIN the Postgres tables, so a
- * converted write ALSO writes its Postgres row while `bridge` is on (`rawOf(db)` is the plain Postgres
- * handle). Reads come from DynamoDB. Lane CUT removes the bridge and the Postgres bodies.
+ * A repo function keeps one shape, `(db, ...args)`. `viaStore('<lane>/<file>', '<name>')` makes it: it finds the Store
+ * attached to `db` (`backend-ddb.ts` `withStore`) and calls the DynamoDB body `ddb/<file>.ts` `<name>(store, db, ...args)`.
+ * The DynamoDB module is imported on first call, one literal-prefix `import()` per lane folder (see DDB_LOADERS).
  */
 import type { Db } from './db.ts';
 import type { Store } from './ddb/store.ts';
+import { attachedOf } from './backend-ddb.ts';
 
-export type Attached = { store: Store; raw: Db; bridge: boolean };
+export type Attached = { store: Store };
 
 /** Db handle → its Store. Set only by backend-ddb.ts `withStore`. */
 export const ATTACHED = new WeakMap<object, Attached>();
@@ -40,16 +32,16 @@ const DDB_LOADERS: Readonly<Record<string, (file: string) => Promise<unknown>>> 
   sl: (f) => import(`./repos/social/lists-ddb/${f}.ts`),
 };
 
+/** A DynamoDB body `(store, db, ...args)` seen as the repo function `(db, ...args)`. */
+type Bound<D> = D extends (store: Store, db: Db, ...a: infer A) => infer R ? (db: Db, ...a: A) => R : never;
+
 /**
- * Wraps a Postgres repo body. `mod` names the DynamoDB module as `<lane>/<file>` (e.g. `lb/episodes`);
- * its export `name` takes `(store, db, ...args)` and returns what `pg` returns.
+ * A repo function: `mod` names the DynamoDB module as `<lane>/<file>` (e.g. `lb/episodes`); its export `name` takes
+ * `(store, db, ...args)`. The `Db` handle a caller holds carries the Store (attached by `backend-ddb.ts`).
  */
-export function dual<F extends (db: any, ...args: any[]) => Promise<any>>(mod: string, name: string, pg: F): F {
-  const wrapped = (db: Db, ...args: unknown[]) => {
-    const on = ATTACHED.get(db);
-    return on ? callDdb(mod, name, on, db, args) : pg(db, ...args);
-  };
-  return wrapped as unknown as F;
+export function viaStore<D extends (store: Store, db: Db, ...args: any[]) => Promise<any>>(mod: string, name: string): Bound<D> {
+  const wrapped = (db: Db, ...args: unknown[]) => callDdb(mod, name, attachedOf(db), db, args);
+  return wrapped as unknown as Bound<D>;
 }
 
 async function callDdb(mod: string, name: string, on: Attached, db: Db, args: unknown[]): Promise<unknown> {

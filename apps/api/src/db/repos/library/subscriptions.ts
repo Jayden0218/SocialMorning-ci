@@ -14,8 +14,7 @@
  * A delete would not work here at all. Phone A unsubscribes and the row vanishes; phone B
  * still holds it and its next reconcile puts the show back. That is guard G-M2.
  */
-import type { Db } from '../../db.ts';
-import { dual } from '../../backend.ts';
+import { viaStore } from '../../backend.ts';
 
 export type SubscriptionRow = {
   feed_url: string;
@@ -54,138 +53,11 @@ export const toPublic = (r: SubscriptionRow): SubscriptionOut => ({
 export const stampOf = (r: { createdAt: string; deletedAt?: string | null }): number =>
   new Date(r.deletedAt ?? r.createdAt).getTime();
 
-/** Everything the account has ever had, tombstones included, so a phone can converge in one round trip. */
-async function listAllPg(db: Db, listenerId: string): Promise<SubscriptionRow[]> {
-  return db.query<SubscriptionRow>(
-    'SELECT feed_url, starred, created_at, deleted_at, starred_at FROM subscriptions WHERE listener_id = $1 ORDER BY created_at DESC',
-    [listenerId],
-  );
-}
-
-/**
- * Merge a device's set into the account's, then return the whole account set.
- * One transaction: a half-applied reconcile is a library in two states.
- */
-async function mergePg(db: Db, listenerId: string, items: readonly SubscriptionIn[]): Promise<SubscriptionRow[]> {
-  if (items.length === 0) return listAll(db, listenerId);
-
-  // A device may send the same feed twice (two tabs, a retry). Keep the later stamp.
-  const incoming = new Map<string, SubscriptionIn>();
-  for (const i of items) {
-    const prev = incoming.get(i.feedUrl);
-    if (prev === undefined || stampOf(i) >= stampOf(prev)) incoming.set(i.feedUrl, i);
-  }
-
-  return db.transaction(async (tx) => {
-    const urls = [...incoming.keys()];
-    const existing = await tx.query<SubscriptionRow>(
-      'SELECT feed_url, starred, created_at, deleted_at, starred_at FROM subscriptions WHERE listener_id = $1 AND feed_url = ANY($2::text[])',
-      [listenerId, urls],
-    );
-    const have = new Map(existing.map((r) => [r.feed_url, r]));
-
-    for (const [feedUrl, next] of incoming) {
-      const cur = have.get(feedUrl);
-      if (cur === undefined) {
-        await tx.query(
-          'INSERT INTO subscriptions (listener_id, feed_url, starred, created_at, deleted_at, starred_at) VALUES ($1, $2, $3, $4, $5, $6)',
-          [listenerId, feedUrl, next.starred ?? false, next.createdAt, next.deletedAt ?? null, next.starredAt ?? null],
-        );
-        // M11 (research R4): a new live row is a subscribe. A row born as a tombstone changes nothing.
-        if ((next.deletedAt ?? null) === null) await logFlip(tx, listenerId, feedUrl, 'sub');
-        continue;
-      }
-      const curStamp = stampOf({ createdAt: cur.created_at, deletedAt: cur.deleted_at });
-      const nextStamp = stampOf(next);
-      // Strictly later wins. On a tie the tombstone wins, whichever side holds it.
-      const nextIsTombstone = (next.deletedAt ?? null) !== null;
-      const curIsTombstone = cur.deleted_at !== null;
-      const takeNext = nextStamp > curStamp || (nextStamp === curStamp && nextIsTombstone && !curIsTombstone);
-      // M12 (guard G-ST1): the star merges on its own stamp — starring moves neither row
-      // stamp, so under the row rule alone it could never win. A phone that sends no
-      // `starredAt` (a build before M12) keeps the M8 behaviour: its star rides the row.
-      const takeStar = next.starred !== undefined && next.starredAt !== undefined
-        && (cur.starred_at === null || new Date(next.starredAt).getTime() > new Date(cur.starred_at).getTime());
-      if (takeStar) {
-        await tx.query('UPDATE subscriptions SET starred = $3, starred_at = $4 WHERE listener_id = $1 AND feed_url = $2', [listenerId, feedUrl, next.starred, next.starredAt]);
-      }
-      if (!takeNext) continue;
-      const legacyStar = next.starredAt === undefined && cur.starred_at === null ? (next.starred ?? cur.starred) : takeStar ? next.starred! : cur.starred;
-      await tx.query(
-        'UPDATE subscriptions SET created_at = $3, deleted_at = $4, starred = $5 WHERE listener_id = $1 AND feed_url = $2',
-        [listenerId, feedUrl, next.createdAt, next.deletedAt ?? null, legacyStar],
-      );
-      // M11: only a change of live state is history; a re-sent or re-starred row is not.
-      if (curIsTombstone !== nextIsTombstone) await logFlip(tx, listenerId, feedUrl, nextIsTombstone ? 'unsub' : 'sub');
-    }
-
-    return tx.query<SubscriptionRow>(
-      'SELECT feed_url, starred, created_at, deleted_at, starred_at FROM subscriptions WHERE listener_id = $1 ORDER BY created_at DESC',
-      [listenerId],
-    );
-  });
-}
-
-/** M11 (research R4): `subscriptions` overwrites itself, so each live-state flip is also appended here. */
-async function logFlip(db: Db, listenerId: string, feedUrl: string, kind: 'sub' | 'unsub'): Promise<void> {
-  await db.query('INSERT INTO subscription_events (listener_id, feed_url, kind) VALUES ($1, $2, $3)', [listenerId, feedUrl, kind]);
-}
-
-/**
- * M21 US8 (FR-072): my own order of subscriptions — the "Default" sort. The feeds sent take
- * positions 0, 1, 2 … in that order; every other row of the account goes back to NULL (sorts
- * last). One transaction, so a second phone never reads half an order. Feeds the account does not
- * hold are ignored.
- */
-async function setOrderPg(db: Db, listenerId: string, feedUrls: readonly string[]): Promise<void> {
-  const urls = [...new Set(feedUrls)];
-  await db.transaction(async (tx) => {
-    await tx.query('UPDATE subscriptions SET sort_pos = NULL WHERE listener_id = $1 AND sort_pos IS NOT NULL', [listenerId]);
-    if (urls.length === 0) return;
-    await tx.query(
-      `UPDATE subscriptions s SET sort_pos = o.pos - 1
-         FROM unnest($2::text[]) WITH ORDINALITY AS o(feed_url, pos)
-        WHERE s.listener_id = $1 AND s.feed_url = o.feed_url`,
-      [listenerId, urls],
-    );
-  });
-}
-
-/** The saved order: live feeds that have a position, first to last. */
-async function getOrderPg(db: Db, listenerId: string): Promise<string[]> {
-  const rows = await db.query<{ feed_url: string }>(
-    'SELECT feed_url FROM subscriptions WHERE listener_id = $1 AND deleted_at IS NULL AND sort_pos IS NOT NULL ORDER BY sort_pos, feed_url',
-    [listenerId],
-  );
-  return rows.map((r) => r.feed_url);
-}
-
 export type PublicShow = { feedUrl: string; title: string | null; imageUrl: string | null };
 
-/**
- * M21 US8 (FR-074): another listener's public subscriptions — live rows only, in their own order
- * then newest first. The route answers 403 `private` when they keep them private, before this is
- * called. Hidden feeds (moderation) are left out. Title and cover: the host's override, else the
- * newest episode we registered for the feed.
- */
-async function publicSubscriptionsPg(db: Db, listenerId: string): Promise<PublicShow[]> {
-  const rows = await db.query<{ feed_url: string; title: string | null; image_url: string | null }>(
-    `SELECT s.feed_url,
-            coalesce(o.title, (SELECT e.show_title FROM episodes e WHERE e.feed_url = s.feed_url AND e.show_title IS NOT NULL ORDER BY e.published_at DESC NULLS LAST LIMIT 1)) AS title,
-            coalesce(o.cover_url, (SELECT e.image_url FROM episodes e WHERE e.feed_url = s.feed_url AND e.image_url IS NOT NULL ORDER BY e.published_at DESC NULLS LAST LIMIT 1)) AS image_url
-       FROM subscriptions s LEFT JOIN show_overrides o ON o.feed_url = s.feed_url
-      WHERE s.listener_id = $1 AND s.deleted_at IS NULL
-        AND NOT EXISTS (SELECT 1 FROM hidden_feeds h WHERE h.feed_url = s.feed_url)
-      ORDER BY s.sort_pos NULLS LAST, s.created_at DESC
-      LIMIT 500`,
-    [listenerId],
-  );
-  return rows.map((r) => ({ feedUrl: r.feed_url, title: r.title, imageUrl: r.image_url }));
-}
-
-// M26 lane LB: each function runs on Postgres, or on DynamoDB (`ddb/` bodies) when the Db carries a Store (db/backend.ts).
-export const listAll = dual('lb/subscriptions', 'listAll', listAllPg);
-export const merge = dual('lb/subscriptions', 'merge', mergePg);
-export const setOrder = dual('lb/subscriptions', 'setOrder', setOrderPg);
-export const getOrder = dual('lb/subscriptions', 'getOrder', getOrderPg);
-export const publicSubscriptions = dual('lb/subscriptions', 'publicSubscriptions', publicSubscriptionsPg);
+// Each function runs on DynamoDB (`ddb/` bodies; db/backend.ts).
+export const listAll = viaStore<typeof import('./ddb/subscriptions.ts').listAll>('lb/subscriptions', 'listAll');
+export const merge = viaStore<typeof import('./ddb/subscriptions.ts').merge>('lb/subscriptions', 'merge');
+export const setOrder = viaStore<typeof import('./ddb/subscriptions.ts').setOrder>('lb/subscriptions', 'setOrder');
+export const getOrder = viaStore<typeof import('./ddb/subscriptions.ts').getOrder>('lb/subscriptions', 'getOrder');
+export const publicSubscriptions = viaStore<typeof import('./ddb/subscriptions.ts').publicSubscriptions>('lb/subscriptions', 'publicSubscriptions');

@@ -13,8 +13,7 @@ import { get, type Item, type Store } from '../../../ddb/store.ts';
 import { TxCancelled } from '../../../ddb/tx.ts';
 import type { ImageStorage } from '../../../../storage/image-store.ts';
 import { IMAGE_SWEEP_BATCH } from '../comment-images.ts';
-import * as B from './sc-bridge.ts';
-import { commitRetry, keyOf, prefixItems, rawPg } from './sc-common.ts';
+import { commitRetry, keyOf, prefixItems } from './sc-common.ts';
 import { imageBytesStep } from './comments.ts';
 import { forgetHeldImage, heldImagesOf } from './sc-foreign.ts';
 
@@ -41,8 +40,6 @@ export async function forgetImage(store: Store, db: Db, it: Item): Promise<void>
   } catch (e) {
     if (!(e instanceof TxCancelled && e.failed('comment'))) throw e;
   }
-  const raw = rawPg(db);
-  if (raw) await B.setCommentColumns(raw, String(fresh['id']), { image_url: null, image_path: null, image_w: null, image_h: null, image_bytes: null });
 }
 
 export async function sweepRemovedImages(store: Store, db: Db, images: ImageStorage): Promise<{ deleted: number; failed: number }> {
@@ -80,7 +77,7 @@ export async function removeImagesFor(store: Store, db: Db, images: ImageStorage
       failed++;
     }
   }
-  // Fix F-S: pictures on comments still held for review go too (lane ST's table, on Postgres).
+  // Fix F-S: pictures on comments still held for review go too (lane ST's held comments).
   for (const h of await heldImagesOf(db, listenerId)) {
     try {
       await images.remove(h.image_path);

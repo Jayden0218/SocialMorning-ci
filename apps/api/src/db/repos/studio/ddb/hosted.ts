@@ -15,7 +15,6 @@
  *   is known — so however many timers or readers fire at once, the episode goes live exactly once. Readers still
  *   promote on read (the old behaviour: the feed, the overview); the timer is the `scheduled` sweep step (src/jobs/
  *   studio-nightly.ts `promoteScheduled`), which a 1-minute schedule can call in production.
- * - Bridge: `hosted_shows` rows are still read in SQL by lane DV (search, lists): create/update/delete/price mirror them.
  */
 import { randomUUID } from 'node:crypto';
 import { autoCoverUrl, fnv1a64, isAutoCover } from '@socialmorning/social-core';
@@ -29,10 +28,10 @@ import { isConditionFailed } from '../../../ddb/retry.ts';
 import { enqueue } from '../../../../jobs/outbox.ts';
 import { HEAT_PLACE } from '../../../../heat/ddb.ts';
 import { touchShow, episodeRow } from '../../library/ddb/episodes.ts';
-import { fillEpisode, getEpisode, upsertEpisode } from '../../library/episodes.ts';
+import { getEpisode, upsertEpisode } from '../../library/episodes.ts';
 import { PREVIEW_MAX_MS, type HostedEpisode, type HostedShow, type ShowIn } from '../hosted.ts';
 import { claimItem, proveInTx } from './claims.ts';
-import { bridgeOf, getMany, isUuid, keyOf, nowIso, nowMs, partition, queue, showEpisodes, str, type Db } from './common.ts';
+import { getMany, isUuid, keyOf, nowIso, nowMs, partition, queue, showEpisodes, str, type Db } from './common.ts';
 
 const BYTES = 'hostedAudioBytes';
 
@@ -79,22 +78,9 @@ const bytesStep = (t: Tx, delta: number): void => {
   t.update('main', K.config('bytes'), { update: 'SET #t = if_not_exists(#t, :t) ADD #b :d', names: { '#t': 't', '#b': BYTES }, values: { ':t': 'config', ':d': delta } });
 };
 
-/** Mirrors the show's Postgres row (lane DV's search and lists still read `hosted_shows`). */
-async function mirrorShow(db: Db, s: HostedShow, deletedAt: string | null): Promise<void> {
-  const raw = bridgeOf(db);
-  if (!raw) return;
-  await raw.query(
-    `INSERT INTO hosted_shows (id, owner_id, feed_url, title, description, author, language, category, explicit, cover_url, price_tier, created_at, updated_at, deleted_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-     ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title, description = EXCLUDED.description, author = EXCLUDED.author, language = EXCLUDED.language,
-       category = EXCLUDED.category, explicit = EXCLUDED.explicit, cover_url = EXCLUDED.cover_url, price_tier = EXCLUDED.price_tier,
-       updated_at = EXCLUDED.updated_at, deleted_at = EXCLUDED.deleted_at`,
-    [s.id, s.ownerId, s.feedUrl, s.title, s.description, s.author, s.language, s.category, s.explicit, s.coverUrl, s.priceTier, s.createdAt, s.updatedAt, deletedAt]);
-}
-
 // ---- the show ----
 
-export async function createHostedShow(store: Store, db: Db, ownerId: string, publicBase: string, s: ShowIn): Promise<HostedShow> {
+export async function createHostedShow(store: Store, _db: Db, ownerId: string, publicBase: string, s: ShowIn): Promise<HostedShow> {
   const id = randomUUID();
   const feedUrl = `${publicBase.replace(/\/$/, '')}/feeds/${id}.xml`;
   const now = nowIso(store);
@@ -111,7 +97,6 @@ export async function createHostedShow(store: Store, db: Db, ownerId: string, pu
   claimUnique(t, K.U.claimCode(code), id);
   proveInTx(t, { id, listenerId: ownerId, feedUrl }, now, false);
   await t.commit();
-  await mirrorShow(db, show, null);
   return show;
 }
 
@@ -140,7 +125,6 @@ export async function updateHostedShow(store: Store, db: Db, id: string, s: Part
   const next: HostedShow = { ...n, updatedAt: nowIso(store) };
   await tx(store).put('main', showItem(next), { condition: 'attribute_exists(PK) AND attribute_not_exists(#d)', names: { '#d': 'deletedAt' } }).commit()
     .catch((e: unknown) => { if (isConditionFailed(e)) throw new ApiError('not_found', 'No such show.'); throw e; });
-  await mirrorShow(db, next, null);
   // Keep the app's episode rows' show title (and cover, when there is one) in step — lane LB's repo writes each.
   for (const ep of await showEpisodes(store, cur.feedUrl)) {
     const r = episodeRow(ep);
@@ -149,21 +133,19 @@ export async function updateHostedShow(store: Store, db: Db, id: string, s: Part
   return next;
 }
 
-export async function setPriceTier(store: Store, db: Db, showId: string, tier: number | null): Promise<void> {
+export async function setPriceTier(store: Store, _db: Db, showId: string, tier: number | null): Promise<void> {
   const it = await get(store, 'main', K.hostedShow(showId));
   if (!it) return;
   const next = { ...toShow(it), priceTier: tier, updatedAt: nowIso(store) };
   await tx(store).put('main', showItem({ ...next, deletedAt: str(it['deletedAt']) })).commit();
-  await mirrorShow(db, next, str(it['deletedAt']));
 }
 
-export async function markHostedShowDeleted(store: Store, db: Db, showId: string): Promise<void> {
+export async function markHostedShowDeleted(store: Store, _db: Db, showId: string): Promise<void> {
   const it = await get(store, 'main', K.hostedShow(showId));
   if (!it || it['deletedAt']) return;
   const at = nowIso(store);
   const s = toShow(it);
   await tx(store).put('main', showItem({ ...s, deletedAt: at })).commit();
-  await mirrorShow(db, s, at);
 }
 
 /** /mod take-down: marks a live Studio-made show deleted; its feed address, or no row when it was already gone. */
@@ -257,8 +239,6 @@ export async function promoteHostedEpisode(store: Store, db: Db, show: { id: str
   const row = (await getEpisode(db, episodeId))!;
   if (!exists) {
     await touchShow(store, row);
-    const raw = bridgeOf(db);
-    if (raw) await fillEpisode(raw, { id: episodeId, feedUrl: show.feedUrl, guid: String(e['guid']), title: String(e['title']), showTitle: show.title, enclosureUrl: String(e['audioUrl']), ...(image ? { imageUrl: image } : {}), ...(duration !== null ? { durationMs: duration } : {}), publishedAt });
   }
   return true;
 }

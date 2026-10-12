@@ -9,7 +9,7 @@ import { json } from '../../validate.ts';
 import { checkCollection, checkIssue, getIssueRow, listCollectionRows, listIssueRows, putCollection, putIssue, retireCollection, retireIssue } from '../../db/repos/admin/admin-curated.ts';
 import type { Db } from '../../db/db.ts';
 import type { Hono } from 'hono';
-import { DATE, feedUrl, guid, version, catalogChanged, target } from './common.ts';
+import { DATE, feedUrl, guid, version, catalogChanged } from './common.ts';
 import type { AdminEnv } from '../../auth/admin.ts';
 
 export function registerCurated(admin: Hono<AdminEnv>): void {

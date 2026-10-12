@@ -1,6 +1,6 @@
-// Test fixtures for DynamoDB: typed item writers per entity, a test clock, and backdate() instead of SQL UPDATEs.
+// Test fixtures for DynamoDB: typed item writers per entity, a test clock, and backdate().
 /**
- * M26 F0-09 (plan.md "test strategy"). Replaces `t.q('INSERT …')` seeds and the 72 back-dating UPDATEs:
+ * M26 F0-09 (plan.md "test strategy"). Typed item writers for seeds and the back-dating of times:
  * - writers put the item(s) an entity needs — the row, its uniqueness item, its GSI keys — in ONE transaction,
  *   with the keys of src/db/ddb/keys.ts and the codec (so a fixture can never write a key a repo would not);
  * - `testClock` is the Store's clock: a test moves time instead of rewriting `created_at`;
@@ -8,7 +8,7 @@
  * The attribute names follow data-model.md §3 in camelCase; the domain lane that owns an entity owns its shape
  * and updates the writer here when it changes it.
  *
- * Import ONLY from DynamoDB tests (test/ddb-*.test.ts, behind `DDB_ENDPOINT`), never from a Postgres test:
+ * Imported by the tests and neutral helpers (they need `DDB_ENDPOINT`):
  * it loads the AWS SDK and src/db/ddb/*.
  */
 import { randomUUID } from 'node:crypto';
@@ -33,7 +33,7 @@ export function testClock(start: string | number = '2026-10-10T00:00:00.000Z'): 
   };
 }
 
-/** Sets one time attribute of an existing item (replaces `UPDATE … SET created_at = …`). */
+/** Sets one time attribute of an existing item . */
 export async function backdate(store: Store, type: ItemType, key: Key, field: string, iso: string): Promise<void> {
   const def = ITEM_TYPES[type];
   if (def.attrs !== 'open' && !(def.attrs as readonly string[]).includes(field)) throw new Error(`backdate: ${type}.${field} is not in its allowlist`);
@@ -173,7 +173,7 @@ export async function pdItems(store: Store, type: 'purchase' | 'entitlement' | '
   return acScan(store, 'main', type);
 }
 
-/** Lane PD: a redeem code's expiry (replaces `UPDATE redeem_codes SET expires_at …`). */
+/** Lane PD: a redeem code's expiry . */
 export async function pdSetCodeExpiry(store: Store, code: string, iso: string): Promise<void> {
   const { codeHashOf } = await import('../src/db/repos/account/redeem.ts');
   await update(store, 'main', K.redeemCode(codeHashOf(code).toString('hex')), {
@@ -215,7 +215,7 @@ export async function proveClaimItem(store: Store, listenerId: string, feedUrl: 
 }
 
 /**
- * The part of `studioLogin` / `studioLoginNoFactor` that was SQL: mark a session's second factor as passed
+ * The part of `studioLogin` / `studioLoginNoFactor` that wrote the session: mark a session's second factor as passed
  * (`at`) or not (`null`). The session item itself is written by the AC lane's session code.
  */
 export async function setSecondFactor(store: Store, tokenHash: string, at: string | null): Promise<void> {
@@ -237,7 +237,7 @@ export async function auditItems(store: Store, months: string[] = [now(store).sl
   return out;
 }
 
-/** A test-only getter: one item by key, strongly (replaces `SELECT … WHERE id = …` asserts). */
+/** A test-only getter: one item by key, strongly . */
 export const itemAt = (store: Store, type: ItemType, key: Key) => get(store, ITEM_TYPES[type].table, key, { consistent: true });
 
 // ---- Lane AC (account): writers and test-only getters for test/ac-neutral.ts and test/ddb-account.test.ts ----

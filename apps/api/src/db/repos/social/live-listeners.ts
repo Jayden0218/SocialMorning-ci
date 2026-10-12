@@ -6,8 +6,7 @@
  * day, so yesterday's hash cannot be matched to today's.
  */
 import { createHash } from 'node:crypto';
-import type { Db } from '../../db.ts';
-import { dual } from '../../backend.ts';
+import { viaStore } from '../../backend.ts';
 
 /** Seen in the last 3 minutes counts as listening now. */
 export const LIVE_WINDOW_S = 180;
@@ -24,25 +23,6 @@ export function listenerHash(installId: string, salt: string): string {
   return createHash('sha256').update(installId).update(':').update(salt).digest('hex');
 }
 
-async function heartbeatPg(db: Db, episodeId: string, installId: string, pepper: string, now = new Date()): Promise<void> {
-  const hash = listenerHash(installId, dailySalt(pepper, now));
-  await db.query(
-    `INSERT INTO live_listeners (episode_id, listener_hash, seen_at) VALUES ($1, $2, now())
-     ON CONFLICT (episode_id, listener_hash) DO UPDATE SET seen_at = now()
-     WHERE live_listeners.seen_at < now() - ($3 || ' seconds')::interval`,
-    [episodeId, hash, String(WRITE_EVERY_S)],
-  );
-  await db.query(`DELETE FROM live_listeners WHERE episode_id = $1 AND seen_at < now() - ($2 || ' seconds')::interval`, [episodeId, String(KEEP_S)]);
-}
-
-async function listeningNowPg(db: Db, episodeId: string): Promise<number> {
-  const [r] = await db.query<{ n: number }>(
-    `SELECT count(*)::int AS n FROM live_listeners WHERE episode_id = $1 AND seen_at > now() - ($2 || ' seconds')::interval`,
-    [episodeId, String(LIVE_WINDOW_S)],
-  );
-  return Number(r?.n ?? 0);
-}
-
-// M26 lane SG: each runs on DynamoDB when the Db carries a Store (src/db/backend.ts; bodies in graph-ddb/).
-export const heartbeat = dual('sg/index', 'heartbeat', heartbeatPg);
-export const listeningNow = dual('sg/index', 'listeningNow', listeningNowPg);
+// Bodies in graph-ddb/ (src/db/backend.ts).
+export const heartbeat = viaStore<typeof import('./graph-ddb/index.ts').heartbeat>('sg/index', 'heartbeat');
+export const listeningNow = viaStore<typeof import('./graph-ddb/index.ts').listeningNow>('sg/index', 'listeningNow');

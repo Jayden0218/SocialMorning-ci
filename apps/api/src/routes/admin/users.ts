@@ -14,7 +14,7 @@ import { act, recentActions } from '../../db/repos/safety/moderation.ts';
 import { closedReports, openReports, type QueueRow } from '../../db/repos/safety/reports.ts';
 import type { Db } from '../../db/db.ts';
 import type { Hono } from 'hono';
-import { uuidParam, target } from './common.ts';
+import { uuidParam } from './common.ts';
 import { plusUntil, rechainCodes } from '../../db/repos/account/purchases.ts';
 import {
   avatarUrlOf, clearAvatar, clearBio, giftsOf, grantPlusByAdmin, openDeletionOf, openReportCount, plusEntitlements, profileExtras, purchasesOf,

@@ -11,13 +11,12 @@
  */
 import { hash } from '@socialmorning/social-core';
 import type { Db } from '../../db.ts';
-import { dual } from '../../backend.ts';
+import { viaStore } from '../../backend.ts';
 import { cached, TTL } from '../cache.ts';
 import { fetchFeed, registerCard, toCard } from '../../../catalog/feed.ts';
 import type { EpisodeCard } from '../../../catalog/apple.ts';
 import type { CollectionIn } from '../../../catalog/collections.ts';
 import type { DiscoverItem, ItemStats } from './discover.ts';
-import { notHidden } from '../studio/hidden-episodes.ts';
 
 export type FollowedShow = { feedUrl: string; title: string; imageUrl?: string; author?: string; followers: number };
 export type FollowedHere = { total: number; shows: FollowedShow[] };
@@ -30,29 +29,6 @@ export const SAID_DAYS = 14;
 /** At most this many distinct feeds are fetched to rebuild the collections (the function's time budget). */
 export const COLLECTION_FEEDS_MAX = 12;
 
-const iso = (v: string | Date | null): string | undefined => (v === null ? undefined : new Date(v).toISOString());
-
-/**
- * Per-episode counts for pick cards. ALL-TIME, not a window: a pick can be months old, and
- * "40 listened" means more than "0 this week". Listeners: distinct public `listened`
- * actors (the `hidden` flag keeps private listeners out, guard G2). Comments: top-level,
- * neither deleted by the author nor removed by moderation.
- */
-async function statsForPg(db: Db, episodeIds: readonly string[]): Promise<Map<string, ItemStats>> {
-  const out = new Map<string, ItemStats>();
-  if (episodeIds.length === 0) return out;
-  const rows = await db.query<{ id: string; listeners: number; comments: number }>(
-    `WITH ids AS (SELECT DISTINCT value AS id FROM jsonb_array_elements_text(($1::text)::jsonb))
-     SELECT ids.id,
-            (SELECT count(DISTINCT a.actor_id)::int FROM activity a WHERE a.episode_id = ids.id AND a.kind = 'listened' AND a.hidden = false) AS listeners,
-            (SELECT count(*)::int FROM comments c WHERE c.episode_id = ids.id AND c.parent_id IS NULL AND c.deleted_at IS NULL AND c.removed_at IS NULL AND c.host_hidden_at IS NULL) AS comments
-     FROM ids`,
-    [JSON.stringify(episodeIds)],
-  );
-  for (const r of rows) out.set(r.id, { listeners: Number(r.listeners), comments: Number(r.comments) });
-  return out;
-}
-
 export function withStats(items: readonly DiscoverItem[], stats: ReadonlyMap<string, ItemStats>): DiscoverItem[] {
   return items.map((i) => {
     const s = stats.get(i.episode.id);
@@ -60,135 +36,8 @@ export function withStats(items: readonly DiscoverItem[], stats: ReadonlyMap<str
   });
 }
 
-type ShowMeta = { title?: string; imageUrl?: string; author?: string };
-const feedShowOf = (body: unknown): ShowMeta => {
-  const b = (typeof body === 'string' ? JSON.parse(body) : body) as { show?: ShowMeta } | null;
-  const show = b?.show;
-  return show ? { ...(show.title ? { title: show.title } : {}), ...(show.imageUrl ? { imageUrl: show.imageUrl } : {}), ...(show.author ? { author: show.author } : {}) } : {};
-};
-
-/**
- * Shows followed on this server: live subscriptions only (`deleted_at IS NULL` — a
- * tombstone is not a follower, guard G-M1), grouped by feed, most followers first; a
- * hidden show is left out of the list AND the total. Title and art come from what the
- * server already holds — the cached parsed feed, else the newest registered episode. A
- * feed we know no title for is counted but not listed: a card with no name is no card.
- */
-async function followedHerePg(db: Db): Promise<FollowedHere> {
-  const rows = await db.query<{ feed_url: string; followers: number; total: number; show_title: string | null; image_url: string | null; feed_body: unknown }>(
-    `WITH f AS (
-       SELECT s.feed_url, count(*)::int AS followers FROM subscriptions s
-       WHERE s.deleted_at IS NULL AND NOT EXISTS (SELECT 1 FROM hidden_feeds h WHERE h.feed_url = s.feed_url)
-       GROUP BY s.feed_url
-     ),
-     top AS (SELECT feed_url, followers, (count(*) OVER ())::int AS total FROM f ORDER BY followers DESC, feed_url LIMIT 30)
-     SELECT top.feed_url, top.followers, top.total, e.show_title, e.image_url, c.body AS feed_body
-     FROM top
-     LEFT JOIN LATERAL (SELECT show_title, image_url FROM episodes WHERE episodes.feed_url = top.feed_url AND show_title IS NOT NULL AND show_title <> '' ORDER BY updated_at DESC LIMIT 1) e ON true
-     LEFT JOIN cache c ON c.key = 'feed:' || top.feed_url
-     ORDER BY top.followers DESC, top.feed_url`,
-  );
-  const shows: FollowedShow[] = [];
-  for (const r of rows) {
-    if (shows.length >= FOLLOWED_SHOWN) break;
-    let meta: ShowMeta = {};
-    try { meta = r.feed_body == null ? {} : feedShowOf(r.feed_body); } catch { meta = {}; }
-    const title = meta.title ?? r.show_title ?? undefined;
-    if (!title) continue;
-    const imageUrl = meta.imageUrl ?? r.image_url ?? undefined;
-    shows.push({ feedUrl: r.feed_url, title, ...(imageUrl ? { imageUrl } : {}), ...(meta.author ? { author: meta.author } : {}), followers: Number(r.followers) });
-  }
-  return { total: rows[0] ? Number(rows[0].total) : 0, shows };
-}
-
 export const ARRIVALS_SHOWN = 6;
 export type NewArrival = { show: { feedUrl: string; title: string; author: string; imageUrl?: string; genres: string[]; episodeCount: number }; episode: EpisodeCard & { id: string } };
-
-/**
- * Owner, 2026-10-05 — "New arrivals": shows created in the Studio, newest first, each with its
- * newest live episode (a show with none yet is left out: nothing to play). Live, like `said`:
- * a deleted or hidden show leaves at once. Drafts and scheduled episodes never count — only
- * rows `promoteDue` has put in `episodes` with a time that has come.
- */
-async function newArrivalsPg(db: Db, limit: number = ARRIVALS_SHOWN): Promise<NewArrival[]> {
-  // M24 US11: hidden episodes leave this list (and do not count).
-  const rows = await db.query<{ feed_url: string; title: string; author: string; category: string; cover_url: string | null; episodes: number; episode_id: string; guid: string; ep_title: string; image_url: string | null; duration_ms: number | null; enclosure_url: string; published_at: string | Date | null }>(
-    `SELECT hs.feed_url, hs.title, hs.author, hs.category, hs.cover_url, n.episodes,
-            e.id AS episode_id, e.guid, e.title AS ep_title, e.image_url, e.duration_ms, e.enclosure_url, e.published_at
-     FROM hosted_shows hs
-     JOIN LATERAL (SELECT count(*)::int AS episodes FROM episodes x WHERE x.feed_url = hs.feed_url AND (x.published_at IS NULL OR x.published_at <= now()) AND ${notHidden('x')}) n ON n.episodes > 0
-     JOIN LATERAL (SELECT * FROM episodes x WHERE x.feed_url = hs.feed_url AND (x.published_at IS NULL OR x.published_at <= now()) AND ${notHidden('x')} ORDER BY x.published_at DESC NULLS LAST LIMIT 1) e ON true
-     WHERE hs.deleted_at IS NULL
-       AND NOT EXISTS (SELECT 1 FROM hidden_feeds h WHERE h.feed_url = hs.feed_url)
-     ORDER BY hs.created_at DESC, hs.id
-     LIMIT $1`,
-    [limit],
-  );
-  return rows.map((r) => {
-    const publishedAt = iso(r.published_at);
-    const imageUrl = r.image_url ?? r.cover_url ?? undefined;
-    return {
-      show: { feedUrl: r.feed_url, title: r.title, author: r.author, ...(r.cover_url ? { imageUrl: r.cover_url } : {}), genres: [r.category], episodeCount: Number(r.episodes) },
-      episode: {
-        id: r.episode_id, feedUrl: r.feed_url, guid: r.guid, title: r.ep_title, showTitle: r.title, enclosureUrl: r.enclosure_url,
-        ...(imageUrl ? { imageUrl } : {}), ...(r.duration_ms !== null ? { durationMs: r.duration_ms } : {}),
-        ...(publishedAt ? { publishedAt } : {}),
-      },
-    };
-  });
-}
-
-/**
- * "What people said": the newest top-level comments of the last 14 days. Out: deleted by
- * the author, removed by moderation, empty, by a suspended listener or a deleted account,
- * or on a hidden show. The author travels as an id only — no display name is selected,
- * so none can leak (guard G6).
- */
-type SaidRow = { id: string; author_id: string; body: string; created_at: string | Date; episode_id: string; feed_url: string; guid: string; title: string; show_title: string | null; image_url: string | null; duration_ms: number | null; enclosure_url: string; published_at: string | Date | null };
-const SAID_SELECT = `SELECT c.id, c.author_id, c.body, c.created_at,
-            e.id AS episode_id, e.feed_url, e.guid, e.title, e.show_title, e.image_url, e.duration_ms, e.enclosure_url, e.published_at
-     FROM comments c
-     JOIN episodes e ON e.id = c.episode_id
-     JOIN listeners l ON l.id = c.author_id
-     WHERE c.parent_id IS NULL AND c.deleted_at IS NULL AND c.removed_at IS NULL AND c.host_hidden_at IS NULL AND c.body IS NOT NULL
-       AND l.suspended_at IS NULL AND l.hidden_at IS NULL
-       AND NOT EXISTS (SELECT 1 FROM hidden_feeds h WHERE h.feed_url = e.feed_url)
-       AND ${notHidden('e')}`;
-
-async function saidPg(db: Db, limit: number = SAID_SHOWN): Promise<Said[]> {
-  // M24 US11: hidden episodes leave this list.
-  const rows = await db.query<SaidRow>(
-    `${SAID_SELECT}
-       AND c.created_at > now() - ($1 || ' days')::interval
-     ORDER BY c.created_at DESC, c.id DESC
-     LIMIT $2`,
-    [String(SAID_DAYS), limit],
-  );
-  return rows.map(toSaid);
-}
-
-/**
- * M25 A4: comments the owner pinned to "What listeners said" — the same rules as `said` (removed,
- * hidden, suspended → not shown) but no 14-day window: a pinned quote stays until it is unpinned.
- */
-async function saidByIdsPg(db: Db, ids: readonly string[]): Promise<Said[]> {
-  const ok = ids.filter((i) => /^[0-9a-f-]{36}$/i.test(i));
-  if (ok.length === 0) return [];
-  const rows = await db.query<SaidRow>(`${SAID_SELECT} AND c.id = ANY($1::uuid[])`, [ok]);
-  return rows.map(toSaid);
-}
-
-function toSaid(r: SaidRow): Said {
-    const publishedAt = iso(r.published_at);
-    return {
-      commentId: r.id, authorId: r.author_id, body: r.body, createdAt: iso(r.created_at)!,
-      episode: {
-        id: r.episode_id, feedUrl: r.feed_url, guid: r.guid, title: r.title, showTitle: r.show_title ?? '', enclosureUrl: r.enclosure_url,
-        ...(r.image_url ? { imageUrl: r.image_url } : {}), ...(r.duration_ms !== null ? { durationMs: r.duration_ms } : {}),
-        ...(publishedAt ? { publishedAt } : {}),
-      },
-    };
-}
 
 /**
  * The owner's collections, each item resolved exactly like a pick (feedUrl + optional
@@ -238,36 +87,10 @@ export function collectionsWithoutHidden(cols: readonly Collection[], hidden: Re
   return cols.map((c) => ({ ...c, items: c.items.filter((i) => !hidden.has(i.episode.feedUrl) && !hiddenEps.has(i.episode.id)) })).filter((c) => c.items.length > 0);
 }
 
-
-/**
- * M10b US5 — "Podcasts you can watch": the newest video episodes SocialNet has registered
- * (from feeds, charts and picks), at most 10, hidden shows left out. Live, not cached.
- */
-async function videoEpisodesPg(db: Db, limit = 10): Promise<{ kind: 'trending'; key: string; episode: EpisodeCard & { id: string; mediaKind: 'video' } }[]> {
-  // M24 US11: hidden episodes leave this list.
-  const rows = await db.query<{ id: string; feed_url: string; guid: string; title: string; show_title: string | null; image_url: string | null; duration_ms: number | null; enclosure_url: string; published_at: string | Date | null }>(
-    `SELECT e.id, e.feed_url, e.guid, e.title, e.show_title, e.image_url, e.duration_ms, e.enclosure_url, e.published_at
-     FROM episodes e
-     WHERE e.media_kind = 'video' AND NOT EXISTS (SELECT 1 FROM hidden_feeds h WHERE h.feed_url = e.feed_url)
-       AND ${notHidden('e')}
-     ORDER BY e.published_at DESC NULLS LAST, e.id LIMIT $1`,
-    [limit],
-  );
-  return rows.map((r) => ({
-    kind: 'trending' as const,
-    key: `${r.feed_url}\u0001${r.guid}`,
-    episode: {
-      id: r.id, feedUrl: r.feed_url, guid: r.guid, title: r.title, showTitle: r.show_title ?? '', enclosureUrl: r.enclosure_url, mediaKind: 'video' as const,
-      ...(r.image_url ? { imageUrl: r.image_url } : {}), ...(r.duration_ms !== null ? { durationMs: r.duration_ms } : {}),
-      ...(r.published_at ? { publishedAt: new Date(r.published_at).toISOString() } : {}),
-    },
-  }));
-}
-
-// M26 lane DV: each runs on Postgres, or on DynamoDB (ddb/discover-extras.ts) when the Db carries a Store (db/backend.ts).
-export const statsFor = dual('dv/discover-extras', 'statsFor', statsForPg);
-export const followedHere = dual('dv/discover-extras', 'followedHere', followedHerePg);
-export const newArrivals = dual('dv/discover-extras', 'newArrivals', newArrivalsPg);
-export const said = dual('dv/discover-extras', 'said', saidPg);
-export const saidByIds = dual('dv/discover-extras', 'saidByIds', saidByIdsPg);
-export const videoEpisodes = dual('dv/discover-extras', 'videoEpisodes', videoEpisodesPg);
+// Each runs its DynamoDB body (ddb/discover-extras.ts) on the Store the Db carries (db/backend.ts).
+export const statsFor = viaStore<typeof import('./ddb/discover-extras.ts').statsFor>('dv/discover-extras', 'statsFor');
+export const followedHere = viaStore<typeof import('./ddb/discover-extras.ts').followedHere>('dv/discover-extras', 'followedHere');
+export const newArrivals = viaStore<typeof import('./ddb/discover-extras.ts').newArrivals>('dv/discover-extras', 'newArrivals');
+export const said = viaStore<typeof import('./ddb/discover-extras.ts').said>('dv/discover-extras', 'said');
+export const saidByIds = viaStore<typeof import('./ddb/discover-extras.ts').saidByIds>('dv/discover-extras', 'saidByIds');
+export const videoEpisodes = viaStore<typeof import('./ddb/discover-extras.ts').videoEpisodes>('dv/discover-extras', 'videoEpisodes');

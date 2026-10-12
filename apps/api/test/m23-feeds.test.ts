@@ -117,7 +117,7 @@ test('US3/US5: the sweep step deletes old caches, push_sent and rec_events — a
   await seedCacheRow(t, 'feed:https://new', {});
   await seedCacheRow(t, 'feed-block:https://kept', {}, 100 * DAY);
   await seedCacheRow(t, 'chart:v1:x', {}, 100 * DAY);
-  await seedPushSent(t, a.id, 'e-old', 'popular', 31); // M26 lane NB: neutral (an item with its TTL when the bridge is off)
+  await seedPushSent(t, a.id, 'e-old', 'popular', 31); // neutral (an item with its TTL)
   await seedPushSent(t, a.id, 'e-new', 'popular', 29);
   await seedRecEvent(t, { listenerId: a.id, episodeId: 'e-old', at: new Date(Date.now() - 91 * DAY).toISOString() });
   await seedRecEvent(t, { listenerId: a.id, episodeId: 'e-new', at: new Date(Date.now() - 89 * DAY).toISOString() });

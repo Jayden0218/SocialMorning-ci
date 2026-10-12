@@ -8,7 +8,6 @@ import { z } from 'zod';
 import { json } from '../../validate.ts';
 import { createClaim, myClaims, verifyClaim } from '../../db/repos/studio/creator.ts';
 import type { Hono } from 'hono';
-import { https } from './common.ts';
 import type { StudioEnv } from '../../auth/studio-session.ts';
 
 export function registerClaims(studio: Hono<StudioEnv>): void {

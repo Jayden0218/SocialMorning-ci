@@ -2,7 +2,7 @@
 /**
  * M26 lane SC. Clips: the author's index `L#<author>/CLP#<createdAt>#<id>` (one bounded Query). Chat: the sender's
  * conversations touched in the last minute (`CONV#` items carry `updatedAt`), then each pair's newest messages.
- * The follow floor in rate-floors.ts is lane SG's and stays on Postgres until SG moves.
+ * The follow floor is lane SG's (social/rate-floors.ts).
  */
 import type { Db } from '../../../db.ts';
 import * as K from '../../../ddb/keys.ts';

@@ -1,8 +1,7 @@
 // adminWrite on DynamoDB: the change and its one audit item in ONE TransactWriteItems; a change too big for one goes audit-first.
 /**
- * M26 lane AC (AC-T04; data-model.md §8 "adminWrite"; guard G-A2 keeps its meaning). The admin routes are
- * lanes SF/DV's and still call the Postgres `adminWrite` (auth/admin.ts → db/repos/admin/admin-access.ts);
- * this is what they call when they move:
+ * M26 lane AC (AC-T04; data-model.md §8 "adminWrite"; guard G-A2 keeps its meaning). Admin routes call it
+ * (auth/admin.ts re-exports `adminWrite` from db/repos/admin/admin-access.ts):
  *
  *   adminTx(store, ctx, meta, { before, after, write: (t) => { t.update(…); t.put(…) } })
  *
@@ -14,7 +13,6 @@
  * - More (redeem batch, list replace-all, word bulk-add): the audit item is written FIRST, naming every key
  *   the change will touch and `complete: false`; then the change in chunks; then `complete: true`. The
  *   record is never missing; an interrupted change is visible as an incomplete record.
- * Loaded only by DynamoDB code and its tests (never by the Postgres build).
  */
 import type { Store, Item, Key } from '../db/ddb/store.ts';
 import { encode } from '../db/ddb/codec.ts';

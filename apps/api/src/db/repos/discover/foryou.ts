@@ -21,7 +21,7 @@ import {
 } from '@socialmorning/social-core';
 import type { PickIn } from '@socialmorning/social-core';
 import type { Db } from '../../db.ts';
-import { dual } from '../../backend.ts';
+import { viaStore } from '../../backend.ts';
 import { cached } from '../cache.ts';
 import { hiddenFeedUrls } from '../safety/moderation.ts';
 import { hiddenEpisodeIds } from '../studio/hidden-episodes.ts';
@@ -82,8 +82,6 @@ export type Row = {
   published_at: string | null; genre_id: number | null;
 };
 
-const EPISODE_COLS = 'id, feed_url, guid, title, show_title, image_url, duration_ms, enclosure_url, published_at, genre_id';
-
 const toCardRow = (e: Row): EpisodeCard & { id: string } => ({
   id: e.id, feedUrl: e.feed_url, guid: e.guid, title: e.title, showTitle: e.show_title ?? '',
   enclosureUrl: e.enclosure_url,
@@ -138,42 +136,8 @@ export function anonContext(interests: readonly number[]): Context {
   };
 }
 
-/** The listener's own rows For You reads once per build (lane DV: one dual function, so the scoring below is shared). */
+/** The listener's own rows For You reads once per build (one function, so the scoring below is shared). */
 export type ContextRows = { subs: string[]; fin: { episode_id: string; feed_url: string | null }[]; follows: string[]; genres: number[]; fatigue: { episode_id: string; imps: number }[] };
-
-async function contextRowsPg(db: Db, listenerId: string): Promise<ContextRows> {
-  const [subs, fin, follows, genres, fatigue] = await Promise.all([
-    db.query<{ feed_url: string }>('SELECT feed_url FROM subscriptions WHERE listener_id = $1 AND deleted_at IS NULL', [listenerId]),
-    db.query<{ episode_id: string; feed_url: string | null }>(
-      `SELECT p.episode_id, e.feed_url FROM positions p LEFT JOIN episodes e ON e.id = p.episode_id WHERE p.listener_id = $1 AND p.finished = true`, [listenerId]),
-    db.query<{ followed_id: string }>('SELECT followed_id FROM follows WHERE follower_id = $1', [listenerId]),
-    db.query<{ genre_id: number; n: number }>(
-      `SELECT e.genre_id, count(*)::int AS n FROM activity a JOIN episodes e ON e.id = a.episode_id
-       WHERE a.actor_id = $1 AND a.kind = 'listened' AND e.genre_id IS NOT NULL
-       GROUP BY e.genre_id ORDER BY n DESC LIMIT ${TOP_GENRES}`, [listenerId]),
-    /**
-     * Fatigue (FR-017), counted in **distinct days** inside a window — not raw impressions.
-     *
-     * Counting raw impressions was wrong in a way only the phone showed: the app logs one
-     * per row per launch, so opening Discover four times in five minutes retired an
-     * episode for ever. On 2026-09-26 that had fatigued out **40 episodes**, including
-     * every show on the chart, which is why L2's top ten fell back to repeating the
-     * listener's own shows.
-     *
-     * "Shown three times and never opened" means three *occasions*, and it stops counting
-     * after FATIGUE_WINDOW_DAYS so a list can recover.
-     */
-    db.query<{ episode_id: string; imps: number }>(
-      `SELECT episode_id, count(DISTINCT date(at)) FILTER (WHERE kind = 'impression')::int AS imps
-       FROM rec_events
-       WHERE listener_id = $1 AND at > now() - ($2 || ' days')::interval
-       GROUP BY episode_id HAVING count(*) FILTER (WHERE kind = 'open') = 0`, [listenerId, String(FATIGUE_WINDOW_DAYS)]),
-  ]);
-  return {
-    subs: subs.map((r) => r.feed_url), fin, follows: follows.map((r) => r.followed_id), genres: genres.map((r) => Number(r.genre_id)),
-    fatigue: fatigue.map((r) => ({ episode_id: r.episode_id, imps: Number(r.imps) })),
-  };
-}
 
 export async function contextFor(db: Db, listenerId: string): Promise<Context> {
   const { subs, fin, follows, genres, fatigue } = await contextRows(db, listenerId);
@@ -210,13 +174,6 @@ async function subNew(db: Db, ctx: Context): Promise<Raw[]> {
   return rows.map((row) => ({ row, channel: 'sub-new' as const }));
 }
 
-/** The newest `limit` episodes over these shows together (`published_at DESC NULLS LAST`). */
-async function newestOfShowsPg(db: Db, feedUrls: readonly string[], limit: number): Promise<Row[]> {
-  return db.query<Row>(
-    `SELECT ${EPISODE_COLS} FROM episodes WHERE feed_url = ANY($1::text[])
-     ORDER BY published_at DESC NULLS LAST LIMIT ${Number(limit)}`, [[...feedUrls]]);
-}
-
 async function showCf(db: Db, ctx: Context): Promise<Raw[]> {
   const out: Raw[] = [];
   for (const [show, list] of ctx.neighbours) {
@@ -236,28 +193,10 @@ async function social(db: Db, ctx: Context): Promise<Raw[]> {
   return rows.map(({ n, ...row }) => ({ row: row as Row, channel: 'social' as const, socialCount: Number(n) }));
 }
 
-/** Episodes the followed (not blocked) listened to or acted on in public in the window, by how many of them. */
-async function socialRowsPg(db: Db, follows: readonly string[], blocked: readonly string[]): Promise<(Row & { n: number })[]> {
-  return db.query<Row & { n: number }>(
-    `SELECT ${EPISODE_COLS.split(', ').map((c) => `e.${c}`).join(', ')}, count(DISTINCT a.actor_id)::int AS n
-     FROM activity a JOIN episodes e ON e.id = a.episode_id
-     WHERE a.actor_id = ANY($1::uuid[]) AND a.hidden = false
-       AND a.actor_id <> ALL($2::uuid[])
-       AND a.created_at > now() - interval '${SOCIAL_WINDOW_DAYS} days'
-     GROUP BY ${EPISODE_COLS.split(', ').map((c) => `e.${c}`).join(', ')}
-     ORDER BY n DESC LIMIT ${CHANNEL_CAP.social}`, [[...follows], [...blocked]]);
-}
-
 async function byGenre(db: Db, ctx: Context): Promise<Raw[]> {
   if (ctx.genres.length === 0) return [];
   const rows = await genreRows(db, ctx.genres);
   return rows.map((row) => ({ row, channel: 'genre' as const }));
-}
-
-async function genreRowsPg(db: Db, genres: readonly number[]): Promise<Row[]> {
-  return db.query<Row>(
-    `SELECT ${EPISODE_COLS} FROM episodes WHERE genre_id = ANY($1::int[])
-     ORDER BY published_at DESC NULLS LAST LIMIT ${CHANNEL_CAP.genre}`, [[...genres]]);
 }
 
 /** M22 US5: the newest episode of each show in a picked category (one per show, so the list can hold several). */
@@ -266,15 +205,6 @@ async function byInterests(db: Db, ctx: Context): Promise<Raw[]> {
   if (picked.length === 0 || (ctx.interestWeight ?? 0) <= 0) return [];
   const rows = await interestRows(db, picked);
   return rows.map((row) => ({ row, channel: 'genre' as const, interest: true as const }));
-}
-
-/** The newest episode of each show in these categories, then the newest INTERESTS_CAP of those. */
-async function interestRowsPg(db: Db, picked: readonly number[]): Promise<Row[]> {
-  return db.query<Row>(
-    `SELECT ${EPISODE_COLS} FROM (
-       SELECT DISTINCT ON (feed_url) ${EPISODE_COLS} FROM episodes WHERE genre_id = ANY($1::int[])
-       ORDER BY feed_url, published_at DESC NULLS LAST) x
-     ORDER BY published_at DESC NULLS LAST LIMIT ${INTERESTS_CAP}`, [[...picked]]);
 }
 
 /**
@@ -483,9 +413,9 @@ export async function forYouAnon(
   return { body, stale: r.stale };
 }
 
-// M26 lane DV: each runs on Postgres, or on DynamoDB (ddb/foryou.ts) when the Db carries a Store (db/backend.ts).
-export const contextRows = dual('dv/foryou', 'contextRows', contextRowsPg);
-export const newestOfShows = dual('dv/foryou', 'newestOfShows', newestOfShowsPg);
-export const socialRows = dual('dv/foryou', 'socialRows', socialRowsPg);
-export const genreRows = dual('dv/foryou', 'genreRows', genreRowsPg);
-export const interestRows = dual('dv/foryou', 'interestRows', interestRowsPg);
+// Each runs its DynamoDB body (ddb/foryou.ts) on the Store the Db carries (db/backend.ts).
+export const contextRows = viaStore<typeof import('./ddb/foryou.ts').contextRows>('dv/foryou', 'contextRows');
+export const newestOfShows = viaStore<typeof import('./ddb/foryou.ts').newestOfShows>('dv/foryou', 'newestOfShows');
+export const socialRows = viaStore<typeof import('./ddb/foryou.ts').socialRows>('dv/foryou', 'socialRows');
+export const genreRows = viaStore<typeof import('./ddb/foryou.ts').genreRows>('dv/foryou', 'genreRows');
+export const interestRows = viaStore<typeof import('./ddb/foryou.ts').interestRows>('dv/foryou', 'interestRows');

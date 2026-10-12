@@ -1,5 +1,5 @@
 # The listener journey on the real app (specs/015-e2e-journey, layer A): a Release build for the
-# iPhone simulator, pointed at a local test server (PGlite in memory — never Neon), seeded with 50
+# iPhone simulator, pointed at a local test server (DynamoDB Local in memory — never AWS), seeded with 50
 # listeners; Maestro signs in as listener-02 by emailed code, finds the host's show, subscribes,
 # plays to 0:15–0:29, pauses and comments at that moment; then the server is asked what it holds.
 # macos-26 is a standard runner: free on this public mirror. Nightly, and on demand.
@@ -37,6 +37,8 @@ jobs:
       E2E_PUBLIC_BASE: http://localhost:8787
       E2E_MOD_EMAIL: mod@journey.test
       SESSION_PEPPER: journey-pepper-not-secret
+      DDB_ENDPOINT: http://localhost:8000
+      AWS_REGION: ap-southeast-1
       JOURNEY_OUT: ${{ github.workspace }}/apps/api/journey.json
       # The app's server address, read by app.config.js at prebuild and when the JS is bundled.
       SOCIALNET_API_BASE_URL: http://localhost:8787
@@ -49,7 +51,12 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci --no-audit --no-fund
-      - name: start the test server (PGlite) and seed 50 listeners
+      # macOS runners have no service containers: DynamoDB Local runs from Maven Central (scripts/ddb-local.sh), in memory.
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '21' }
+      - name: start DynamoDB Local
+        run: scripts/ddb-local.sh
+      - name: start the test server (DynamoDB Local) and seed 50 listeners
         working-directory: apps/api
         run: |
           (npx tsx scripts/e2e-server.ts > ../../api.log 2>&1 &)

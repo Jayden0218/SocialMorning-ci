@@ -6,13 +6,8 @@
  * expired row, but hiding is not deleting: a post that is only filtered would still sit in
  * the store for ever.
  */
-import type { Db } from '../../db.ts';
-import { dual } from '../../backend.ts';
-import type { VoiceStorage } from '../../../storage/voice-blob.ts';
-import type { ImageStorage } from '../../../storage/image-store.ts';
+import { viaStore } from '../../backend.ts';
 import { initialsOf } from './comment-likes.ts';
-import { replyAudioOf } from './status-replies.ts';
-import { photosOf, removePhoto, sweepOrphanPhotos } from './status-items.ts';
 
 export const VOICE_MAX_BYTES = 600_000;
 export const VOICE_MAX_MS = 60_000;
@@ -23,45 +18,6 @@ export type VoiceRow = { id: string; listener_id: string; blob_url: string | nul
 
 /** M21 US8 (G-M21-8): a text status is 1–140 characters (the column CHECKs it too). */
 export const TEXT_STATUS_MAX = 140;
-
-async function liveCountPg(db: Db, listenerId: string): Promise<number> {
-  const [r] = await db.query<{ n: number }>('SELECT count(*)::int AS n FROM voice_posts WHERE listener_id = $1 AND expires_at > now()', [listenerId]);
-  return Number(r?.n ?? 0);
-}
-
-async function insertPostPg(db: Db, p: { id: string; listenerId: string; url: string; path: string; durationMs: number; bytes: number; /** M20 US3 */ transcript?: string }): Promise<VoiceRow> {
-  const [row] = await db.query<VoiceRow>(
-    `INSERT INTO voice_posts (id, listener_id, blob_url, blob_path, duration_ms, bytes, transcript, expires_at) VALUES ($1, $2, $3, $4, $5, $6, $7, now() + interval '24 hours')
-     RETURNING id, listener_id, blob_url, duration_ms, created_at, expires_at, transcript`,
-    [p.id, p.listenerId, p.url, p.path, p.durationMs, p.bytes, p.transcript ?? null],
-  );
-  return row!;
-}
-
-/** M21 US8: a text status — no audio, the same 24 h expiry and the same live cap as a voice post. */
-async function insertTextPostPg(db: Db, p: { id: string; listenerId: string; body: string }): Promise<VoiceRow> {
-  const [row] = await db.query<VoiceRow>(
-    `INSERT INTO voice_posts (id, listener_id, body, expires_at) VALUES ($1, $2, $3, now() + interval '24 hours')
-     RETURNING id, listener_id, blob_url, duration_ms, created_at, expires_at, body`,
-    [p.id, p.listenerId, p.body],
-  );
-  return row!;
-}
-
-/** The caller's own posts and those of people they follow; never expired, never across a block, never a suspended author. */
-async function fromFollowingPg(db: Db, viewerId: string) {
-  const rows = await db.query<VoiceRow & { display_name: string; avatar_url: string | null }>(
-    `SELECT v.id, v.listener_id, v.blob_url, v.duration_ms, v.created_at, v.expires_at, v.transcript, v.body, l.display_name, l.avatar_url
-     FROM voice_posts v JOIN listeners l ON l.id = v.listener_id
-     WHERE v.expires_at > now() AND l.suspended_at IS NULL AND l.hidden_at IS NULL
-       AND (v.listener_id = $1 OR v.listener_id IN (SELECT followed_id FROM follows WHERE follower_id = $1))
-       AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id = $1 AND b.blocked_id = v.listener_id) OR (b.blocker_id = v.listener_id AND b.blocked_id = $1))
-       AND NOT EXISTS (SELECT 1 FROM listener_mutes m WHERE m.muter_id = $1 AND m.muted_id = v.listener_id) -- M21 US6 (G-M21-6)
-     ORDER BY v.created_at DESC LIMIT 100`,
-    [viewerId],
-  );
-  return rows.map((r) => toPublicPost(r, viewerId));
-}
 
 export type PostRow = VoiceRow & { display_name: string; avatar_url: string | null };
 
@@ -80,136 +36,16 @@ export type PublicPost = ReturnType<typeof toPublicPost>;
 /** M22 US2 (FR-010): at most this many suggested statuses after the people the viewer follows. */
 export const SUGGESTED_MAX = 5;
 
-/**
- * Suggested statuses: live posts by accounts the viewer does not follow — never their own, never a
- * blocked (either way), muted, suspended or hidden account. One per author (the newest), newest first.
- * M24 US17: nor anyone the viewer asked to stop suggesting (`status_suggestion_mutes`).
- */
-async function suggestedForPg(db: Db, viewerId: string, limit = SUGGESTED_MAX): Promise<PublicPost[]> {
-  const rows = await db.query<PostRow>(
-    `SELECT * FROM (
-       SELECT DISTINCT ON (v.listener_id) v.id, v.listener_id, v.blob_url, v.duration_ms, v.created_at, v.expires_at, v.transcript, v.body, l.display_name, l.avatar_url
-         FROM voice_posts v JOIN listeners l ON l.id = v.listener_id
-        WHERE v.expires_at > now() AND l.suspended_at IS NULL AND l.hidden_at IS NULL
-          AND v.listener_id <> $1
-          AND v.listener_id NOT IN (SELECT followed_id FROM follows WHERE follower_id = $1)
-          AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id = $1 AND b.blocked_id = v.listener_id) OR (b.blocker_id = v.listener_id AND b.blocked_id = $1))
-          AND NOT EXISTS (SELECT 1 FROM listener_mutes m WHERE m.muter_id = $1 AND m.muted_id = v.listener_id)
-          AND NOT EXISTS (SELECT 1 FROM status_suggestion_mutes x WHERE x.listener_id = $1 AND x.muted_id = v.listener_id) -- M24 US17
-        ORDER BY v.listener_id, v.created_at DESC) s
-     ORDER BY s.created_at DESC LIMIT $2`,
-    [viewerId, limit],
-  );
-  return rows.map((r) => toPublicPost(r, viewerId));
-}
-
-/** One live status the viewer may see: their own, a followed account's, or any public one (as a suggestion would show it). */
-async function visiblePostPg(db: Db, id: string, viewerId: string): Promise<PublicPost | undefined> {
-  if (!/^[0-9a-f-]{36}$/i.test(id)) return undefined;
-  const [r] = await db.query<PostRow>(
-    `SELECT v.id, v.listener_id, v.blob_url, v.duration_ms, v.created_at, v.expires_at, v.transcript, v.body, l.display_name, l.avatar_url
-       FROM voice_posts v JOIN listeners l ON l.id = v.listener_id
-      WHERE v.id = $2 AND v.expires_at > now() AND l.suspended_at IS NULL AND (l.hidden_at IS NULL OR v.listener_id = $1)
-        AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id = $1 AND b.blocked_id = v.listener_id) OR (b.blocker_id = v.listener_id AND b.blocked_id = $1))`,
-    [viewerId, id],
-  );
-  return r ? toPublicPost(r, viewerId) : undefined;
-}
-
-async function getPostPg(db: Db, id: string): Promise<VoiceRow | undefined> {
-  if (!/^[0-9a-f-]{36}$/i.test(id)) return undefined;
-  return (await db.query<VoiceRow>('SELECT id, listener_id, blob_url, duration_ms, created_at, expires_at, body FROM voice_posts WHERE id = $1', [id]))[0];
-}
-
-/**
- * Blob first, then the row: a failed blob delete keeps the row, so the next sweep tries again. A text status has no blob.
- * M22 (G-M22-2): its voice replies' files and its photos go before it — those rows would cascade
- * away with the status and leave the files in the store for ever. Any failure keeps the status.
- */
-async function removePostPg(db: Db, storage: VoiceStorage, row: { id: string; blob_url: string | null }, images?: ImageStorage): Promise<void> {
-  await removeAttachments(db, storage, images, row.id);
-  if (row.blob_url) await storage.remove(row.blob_url);
-  await db.query('DELETE FROM voice_posts WHERE id = $1', [row.id]);
-}
-
-/** M22 US2/US6: a status's voice-reply files (voice store) and photos (image store), each file before its row. */
-async function removeAttachmentsPg(db: Db, storage: VoiceStorage, images: ImageStorage | undefined, postId: string): Promise<void> {
-  for (const r of await replyAudioOf(db, [postId])) {
-    if (!storage.ready) throw new Error('voice store not connected');
-    await storage.remove(r.audio_url);
-    await db.query('DELETE FROM status_replies WHERE id = $1', [r.id]);
-  }
-  for (const key of await photosOf(db, [postId])) await removePhoto(db, images, key);
-}
-
-/**
- * G-V1: every post past `expires_at` loses its blob and its row. M21 US8 (G-M21-8): an expired text
- * status has no blob, so its row goes first, whether or not the store is connected. Store not
- * connected → no audio post is touched.
- * M22 (G-M22-2): first, every expired status that carries files (voice replies, photos) loses them,
- * then itself; one whose files could not all be deleted stays for the next cycle. Photos uploaded
- * but never posted go too (after 2 hours).
- */
-async function sweepExpiredPg(db: Db, storage: VoiceStorage, limit = 200, images?: ImageStorage): Promise<{ deleted: number; failed: number }> {
-  let deleted = 0;
-  let failed = 0;
-  const carriers = await db.query<{ id: string; blob_url: string | null }>(
-    `SELECT v.id, v.blob_url FROM voice_posts v WHERE v.expires_at < now()
-        AND (EXISTS (SELECT 1 FROM status_replies r WHERE r.post_id = v.id AND r.audio_url IS NOT NULL)
-          OR EXISTS (SELECT 1 FROM status_items i WHERE i.post_id = v.id AND i.kind = 'photo'))
-      ORDER BY v.expires_at LIMIT $1`,
-    [limit],
-  );
-  for (const r of carriers) {
-    try { await removePost(db, storage, r, images); deleted++; } catch { failed++; }
-  }
-  failed += (await sweepOrphanPhotos(db, images)).failed;
-  // A carrier whose files could not all be deleted is still here: leave it for the next cycle.
-  const kept = carriers.map((r) => r.id);
-  const [t] = await db.query<{ n: number }>(
-    'WITH d AS (DELETE FROM voice_posts WHERE body IS NOT NULL AND expires_at < now() AND NOT (id = ANY($1::uuid[])) RETURNING 1) SELECT count(*)::int AS n FROM d',
-    [kept],
-  );
-  deleted += Number(t?.n ?? 0);
-  if (!storage.ready) return { deleted, failed };
-  const rows = await db.query<{ id: string; blob_url: string }>(
-    'SELECT id, blob_url FROM voice_posts WHERE body IS NULL AND expires_at < now() AND NOT (id = ANY($2::uuid[])) ORDER BY expires_at LIMIT $1',
-    [limit, kept],
-  );
-  for (const r of rows) {
-    try { await removePost(db, storage, r, images); deleted++; } catch { failed++; }
-  }
-  return { deleted, failed };
-}
-
-/** Account deletion: the listener's blobs go before the rows cascade away with the account. */
-async function removeAllForPg(db: Db, storage: VoiceStorage, listenerId: string, images?: ImageStorage): Promise<void> {
-  if (!storage.ready) return;
-  const rows = await db.query<{ id: string; blob_url: string | null }>('SELECT id, blob_url FROM voice_posts WHERE listener_id = $1 AND (body IS NULL OR id IN (SELECT post_id FROM status_replies WHERE audio_url IS NOT NULL) OR id IN (SELECT post_id FROM status_items WHERE kind = \'photo\'))', [listenerId]);
-  for (const r of rows) await removePost(db, storage, r, images);
-  // M22: their voice replies on other people's statuses.
-  for (const r of await db.query<{ id: string; audio_url: string }>('SELECT id, audio_url FROM status_replies WHERE author_id = $1 AND audio_url IS NOT NULL', [listenerId])) {
-    await storage.remove(r.audio_url);
-    await db.query('DELETE FROM status_replies WHERE id = $1', [r.id]);
-  }
-}
-
-/** M24 US17: "stop suggesting this person's statuses" — and undo. Their statuses still show if the viewer follows them. */
-async function setSuggestionMutePg(db: Db, viewerId: string, mutedId: string, on: boolean): Promise<void> {
-  if (on) await db.query('INSERT INTO status_suggestion_mutes (listener_id, muted_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [viewerId, mutedId]);
-  else await db.query('DELETE FROM status_suggestion_mutes WHERE listener_id = $1 AND muted_id = $2', [viewerId, mutedId]);
-}
-
-// M26 lane SC: each function runs on Postgres, or on DynamoDB (`ddb/voice-posts.ts`) when the Db carries a Store (db/backend.ts).
-export const liveCount = dual('sc/voice-posts', 'liveCount', liveCountPg);
-export const insertPost = dual('sc/voice-posts', 'insertPost', insertPostPg);
-export const insertTextPost = dual('sc/voice-posts', 'insertTextPost', insertTextPostPg);
-export const fromFollowing = dual('sc/voice-posts', 'fromFollowing', fromFollowingPg);
-export const suggestedFor = dual('sc/voice-posts', 'suggestedFor', suggestedForPg);
-export const visiblePost = dual('sc/voice-posts', 'visiblePost', visiblePostPg);
-export const getPost = dual('sc/voice-posts', 'getPost', getPostPg);
-export const removePost = dual('sc/voice-posts', 'removePost', removePostPg);
-export const removeAttachments = dual('sc/voice-posts', 'removeAttachments', removeAttachmentsPg);
-export const sweepExpired = dual('sc/voice-posts', 'sweepExpired', sweepExpiredPg);
-export const removeAllFor = dual('sc/voice-posts', 'removeAllFor', removeAllForPg);
-export const setSuggestionMute = dual('sc/voice-posts', 'setSuggestionMute', setSuggestionMutePg);
+// Bodies in ddb/voice-posts.ts (src/db/backend.ts).
+export const liveCount = viaStore<typeof import('./ddb/voice-posts.ts').liveCount>('sc/voice-posts', 'liveCount');
+export const insertPost = viaStore<typeof import('./ddb/voice-posts.ts').insertPost>('sc/voice-posts', 'insertPost');
+export const insertTextPost = viaStore<typeof import('./ddb/voice-posts.ts').insertTextPost>('sc/voice-posts', 'insertTextPost');
+export const fromFollowing = viaStore<typeof import('./ddb/voice-posts.ts').fromFollowing>('sc/voice-posts', 'fromFollowing');
+export const suggestedFor = viaStore<typeof import('./ddb/voice-posts.ts').suggestedFor>('sc/voice-posts', 'suggestedFor');
+export const visiblePost = viaStore<typeof import('./ddb/voice-posts.ts').visiblePost>('sc/voice-posts', 'visiblePost');
+export const getPost = viaStore<typeof import('./ddb/voice-posts.ts').getPost>('sc/voice-posts', 'getPost');
+export const removePost = viaStore<typeof import('./ddb/voice-posts.ts').removePost>('sc/voice-posts', 'removePost');
+export const removeAttachments = viaStore<typeof import('./ddb/voice-posts.ts').removeAttachments>('sc/voice-posts', 'removeAttachments');
+export const sweepExpired = viaStore<typeof import('./ddb/voice-posts.ts').sweepExpired>('sc/voice-posts', 'sweepExpired');
+export const removeAllFor = viaStore<typeof import('./ddb/voice-posts.ts').removeAllFor>('sc/voice-posts', 'removeAllFor');
+export const setSuggestionMute = viaStore<typeof import('./ddb/voice-posts.ts').setSuggestionMute>('sc/voice-posts', 'setSuggestionMute');

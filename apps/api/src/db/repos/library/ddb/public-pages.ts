@@ -1,7 +1,6 @@
 // The public pages' catalogue reads on DynamoDB: a show's artwork, an episode check, the show card's episodes, the cached feed.
 /**
- * M26 lane LE (gap 4: these were plain SQL functions — social/public-pages.ts — so the DynamoDB path read `episodes` and
- * `cache` in Postgres). Lane LB's items: the show META (`newestImage`), the episode item, G2 `SHEPS#<feedKey>` (episodes
+ * M26 lane LE. Lane LB's items: the show META (`newestImage`), the episode item, G2 `SHEPS#<feedKey>` (episodes
  * by publish date; a missing date sorts as `~`), the cache entry (`readEntry`); lane ST's hidden-episode set.
  */
 import * as K from '../../../ddb/keys.ts';

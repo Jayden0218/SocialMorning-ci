@@ -17,8 +17,7 @@ import { blockedIdsFor } from '../../safety/blocks.ts';
 import { initialsOf } from '../comment-likes.ts';
 import { notify } from '../notifications.ts';
 import { REACTION_MILESTONE, REPLY_TEXT_MAX, type ReactionSummary, type StatusPostRow, type StatusReply } from '../status-replies.ts';
-import * as B from './sc-bridge.ts';
-import { commitRetry, keyOf, nowIso, nowMs, people, person, prefixItems, rawPg, UUID, visiblePerson } from './sc-common.ts';
+import { commitRetry, keyOf, nowIso, nowMs, people, person, prefixItems, UUID, visiblePerson } from './sc-common.ts';
 import { blockedEitherWay } from './sc-foreign.ts';
 
 const DAY_MS = 86_400_000;
@@ -49,8 +48,6 @@ async function addReply(store: Store, db: Db, post: StatusPostRow, authorId: str
     t.put('main', encode('statusReplyPtr', K.statusReplyPtr(authorId, post.id, id), { postId: post.id, id, expiresAt }, { ttl }));
     t.update('main', K.voicePost(post.id), { update: 'ADD #n :one', condition: 'attribute_exists(PK)', names: { '#n': 'replyCount' }, values: { ':one': 1 } });
   });
-  const raw = rawPg(db);
-  if (raw) await B.insertStatusReply(raw, { id, postId: post.id, authorId, ...r, createdAt });
   return id;
 }
 
@@ -105,8 +102,6 @@ export async function deleteReply(store: Store, db: Db, storage: VoiceStorage, p
   if (!r || (r['authorId'] !== viewerId && post.listener_id !== viewerId)) return 'not_found';
   if (r['audioUrl']) await storage.remove(String(r['audioUrl']));
   await commitRetry(store, (t) => { dropReply(t, r, true); });
-  const raw = rawPg(db);
-  if (raw) await B.deleteStatusReply(raw, replyId);
   return 'ok';
 }
 
@@ -134,8 +129,6 @@ export async function setReaction(store: Store, db: Db, post: StatusPostRow, lis
       throw e;
     }
   }
-  const raw = rawPg(db);
-  if (raw) await B.upsertStatusReaction(raw, post.id, listenerId, kind, at);
   await notify(db, { recipientId: post.listener_id, actorId: listenerId, kind: 'status_reaction', ref: { postId: post.id } });
   const n = Number((await get(store, 'main', K.voicePost(post.id)))?.['reactionCount'] ?? 0);
   if (n < REACTION_MILESTONE) return;
@@ -161,8 +154,6 @@ export async function clearReaction(store: Store, db: Db, postId: string, listen
   } catch (e) {
     if (!(e instanceof TxCancelled && e.conditionFailed)) throw e;
   }
-  const raw = rawPg(db);
-  if (raw) await B.deleteStatusReaction(raw, postId, listenerId);
 }
 
 /** Per post: counts per kind, the viewer's own kind, and — for the owner only — the reply count and who reacted. */

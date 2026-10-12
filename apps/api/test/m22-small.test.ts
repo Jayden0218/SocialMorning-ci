@@ -70,7 +70,7 @@ test('often listened: top shows of the last 90 days on the profile, hidden by th
   const epB = await episode(t, B, 'b1', 'Show B');
   const today = new Date().toISOString().slice(0, 10);
   const old = new Date(Date.now() - 120 * 86_400_000).toISOString().slice(0, 10);
-  // M26: through lane LB's dual replaceRanges (the LDAY rollups on DynamoDB, the rows on Postgres) — it also
+  // M26: through lane LB's replaceRanges (the LDAY rollups) — it also
   // writes the listener's running total and the `listened` activity, which this test does not read.
   await replaceRanges(t.db, a.id, 'p', [{ episodeId: epA, day: today, ranges: [[0, 600_000]] }]);
   await replaceRanges(t.db, a.id, 'p', [{ episodeId: epB, day: old, ranges: [[0, 900_000]] }]);

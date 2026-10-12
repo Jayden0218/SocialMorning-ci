@@ -6,8 +6,7 @@
  * listening is private, never on a day whose activity was written hidden — and backfilled on follow from their
  * `LR#` items (their last week's listens). The read is one Query of my partition, filtered as the SQL filtered:
  * the last 7 days, people I still follow, no block either way, not private / suspended / waiting for deletion NOW,
- * not a day written hidden (the day's `U#ACT` item), episodes registered and not hidden by their host (lane ST,
- * Postgres). Newest first, at most 1000 rows; the route groups them.
+ * not a day written hidden (the day's `U#ACT` item), episodes registered and not hidden by their host (lane ST). Newest first, at most 1000 rows; the route groups them.
  */
 import * as K from '../../../ddb/keys.ts';
 import { batchGetAll } from '../../../ddb/batch.ts';
@@ -15,11 +14,11 @@ import { queryAll } from '../../../ddb/paginate.ts';
 import type { Item } from '../../../ddb/store.ts';
 import type { FriendsListeningRow } from '../friends-listening.ts';
 import { hiddenEpisodeIds } from '../../studio/hidden-episodes.ts';
-import { blockedEitherWay, DAY_MS, episodesById, iso, listenersById, nowMs, str, type Hybrid } from './common.ts';
+import { blockedEitherWay, DAY_MS, episodesById, iso, listenersById, nowMs, str, type Ctx } from './common.ts';
 import { FRIENDS_DAYS } from './activity.ts';
 import { followSet } from './follows.ts';
 
-export async function friendsListeningRows(h: Hybrid, me: string): Promise<FriendsListeningRow[]> {
+export async function friendsListeningRows(h: Ctx, me: string): Promise<FriendsListeningRow[]> {
   const since = iso(nowMs(h) - FRIENDS_DAYS * DAY_MS);
   const [{ items }, follows, blocked] = await Promise.all([
     queryAll(h.store, 'events', { KeyConditionExpression: 'PK = :pk', ExpressionAttributeValues: { ':pk': `FL#${me}` }, ConsistentRead: true }),
@@ -35,7 +34,7 @@ export async function friendsListeningRows(h: Hybrid, me: string): Promise<Frien
     .map((m) => [String(m['PK']), m]));
   rows = rows.filter((r) => marks.get(K.ev.activityDedupe(String(r['actorId']), 'listened', String(r['episodeId']), String(r['day'])).PK)?.['hidden'] !== true);
   const eps = await episodesById(h.store, rows.map((r) => String(r['episodeId'])));
-  const hiddenEps = await hiddenEpisodeIds(h.pg); // lane ST's (Postgres until it moves)
+  const hiddenEps = await hiddenEpisodeIds(h.db); // lane ST's
   return rows
     .filter((r) => eps.has(String(r['episodeId'])) && !hiddenEps.has(String(r['episodeId'])))
     .sort((a, b) => String(b['at']).localeCompare(String(a['at'])))

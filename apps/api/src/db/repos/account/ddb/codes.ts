@@ -8,23 +8,23 @@
  */
 import { encode, ttlAfter } from '../../../ddb/codec.ts';
 import * as K from '../../../ddb/keys.ts';
-import { del, get, put, update } from '../../../ddb/store.ts';
+import { get } from '../../../ddb/store.ts';
 import type { EmailCodeRow } from '../sign-in-codes.ts';
-import { DAY_MS, unlessCondition, upd, aput, adel, type Hybrid } from './common.ts';
+import { DAY_MS, unlessCondition, upd, aput, adel, type Ctx } from './common.ts';
 
-export async function codeSentAtRows(h: Hybrid, email: string): Promise<EmailCodeRow[]> {
+export async function codeSentAtRows(h: Ctx, email: string): Promise<EmailCodeRow[]> {
   const it = await get(h.store, 'main', K.emailCode(email));
   if (!it) return [];
   return [{ code_hash: it['codeHash'] as Uint8Array, sent_at: String(it['sentAt']), expires_at: String(it['expiresAt']), attempts: Number(it['attempts'] ?? 0) }];
 }
 
-export async function upsertEmailCode(h: Hybrid, email: string, codeHash: Buffer, sentAt: Date, expiresAt: Date): Promise<void> {
+export async function upsertEmailCode(h: Ctx, email: string, codeHash: Buffer, sentAt: Date, expiresAt: Date): Promise<void> {
   await aput(h.store, 'main', encode('emailCode', K.emailCode(email), {
     email, codeHash: new Uint8Array(codeHash), sentAt: sentAt.toISOString(), expiresAt: expiresAt.toISOString(), attempts: 0,
   }, { ttl: ttlAfter(expiresAt.getTime(), DAY_MS) }));
 }
 
-export async function reserveCodeAttempt(h: Hybrid, email: string, maxAttempts: number, now: Date): Promise<EmailCodeRow[]> {
+export async function reserveCodeAttempt(h: Ctx, email: string, maxAttempts: number, now: Date): Promise<EmailCodeRow[]> {
   const out = await unlessCondition(upd(h.store, 'main', K.emailCode(email), {
     update: 'ADD attempts :one',
     condition: 'attribute_exists(PK) AND attempts < :max AND expiresAt > :now',
@@ -35,18 +35,18 @@ export async function reserveCodeAttempt(h: Hybrid, email: string, maxAttempts: 
   return [{ code_hash: out['codeHash'] as Uint8Array, sent_at: String(out['sentAt']), expires_at: String(out['expiresAt']), attempts: Number(out['attempts']) }];
 }
 
-export async function returnCodeAttempt(h: Hybrid, email: string): Promise<void> {
+export async function returnCodeAttempt(h: Ctx, email: string): Promise<void> {
   await unlessCondition(upd(h.store, 'main', K.emailCode(email), {
     update: 'ADD attempts :minus', condition: 'attribute_exists(PK) AND attempts > :z', values: { ':minus': -1, ':z': 0 },
   }));
 }
 
-export async function deleteEmailCode(h: Hybrid, email: string): Promise<void> {
+export async function deleteEmailCode(h: Ctx, email: string): Promise<void> {
   await adel(h.store, 'main', K.emailCode(email));
 }
 
 /** One ADD on the window's item; DynamoDB returns the count after it, so parallel hits are all counted. */
-export async function bumpRateCounter(h: Hybrid, key: string, windowStart: Date): Promise<{ count: number }[]> {
+export async function bumpRateCounter(h: Ctx, key: string, windowStart: Date): Promise<{ count: number }[]> {
   const out = await upd(h.store, 'events', K.ev.rate(key, windowStart.toISOString()), {
     update: 'ADD #c :one SET #t = :t, windowStart = :w, #ttl = :ttl',
     names: { '#c': 'count', '#t': 't', '#ttl': 'ttl' },
@@ -58,6 +58,6 @@ export async function bumpRateCounter(h: Hybrid, key: string, windowStart: Date)
 }
 
 /** TTL removes old windows (above); nothing is left for the sweep to delete. */
-export async function deleteRateCountersBefore(_h: Hybrid, _before: Date): Promise<{ key: string }[]> {
+export async function deleteRateCountersBefore(_h: Ctx, _before: Date): Promise<{ key: string }[]> {
   return [];
 }

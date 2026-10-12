@@ -14,18 +14,17 @@ import { randomUUID } from 'node:crypto';
 import { encode, ttlAfter } from '../../../ddb/codec.ts';
 import * as K from '../../../ddb/keys.ts';
 import { batchGetAll } from '../../../ddb/batch.ts';
-import { del, get, update } from '../../../ddb/store.ts';
-import { tx } from '../../../ddb/tx.ts';
+import { get } from '../../../ddb/store.ts';
 import { withVersionRetry } from '../../../ddb/retry.ts';
 import { IMAGE_DAYS, IMAGES_MAX, type FeedbackRow, type ImageIn } from '../feedback.ts';
 import { ERROR_DAYS, MESSAGE_MAX, SCOPE_MAX, STACK_MAX, type ErrorIn, type ErrorRow } from '../error-reports.ts';
 import { sweepRateCounters } from '../../../../auth/rate.ts';
-import { DAY_MS, iso, nowMs, queueBefore, queueNewest, upd, adel, txa, type Hybrid } from './common.ts';
+import { DAY_MS, iso, nowMs, queueBefore, queueNewest, upd, adel, txa, type Ctx } from './common.ts';
 
 const BYTES = K.config('bytes');
 const FBIMG = (id: string) => ({ PK: K.L(id), SK: 'FBIMG' });
 
-export async function createFeedback(h: Hybrid, f: { listenerId: string | null; kind: string; body: string; appVersion?: string; images: readonly ImageIn[] }): Promise<string> {
+export async function createFeedback(h: Ctx, f: { listenerId: string | null; kind: string; body: string; appVersion?: string; images: readonly ImageIn[] }): Promise<string> {
   const id = randomUUID();
   const imgs = f.images.slice(0, IMAGES_MAX);
   await withVersionRetry(async () => {
@@ -54,17 +53,17 @@ export async function createFeedback(h: Hybrid, f: { listenerId: string | null; 
 }
 
 /** M23 US3: this listener's picture messages in the last 24 hours (strongly read from their own item). */
-export async function imagesSentToday(h: Hybrid, listenerId: string): Promise<number> {
+export async function imagesSentToday(h: Ctx, listenerId: string): Promise<number> {
   const log = await get(h.store, 'main', FBIMG(listenerId));
   const cut = nowMs(h) - DAY_MS;
   return ((log?.['times'] as string[] | undefined) ?? []).filter((x) => Date.parse(x) > cut).length;
 }
 
-export async function feedbackImageBytes(h: Hybrid): Promise<number> {
+export async function feedbackImageBytes(h: Ctx): Promise<number> {
   return Math.max(0, Number((await get(h.store, 'main', BYTES))?.['feedbackImageBytes'] ?? 0));
 }
 
-export async function recentFeedback(h: Hybrid, limit = 50): Promise<FeedbackRow[]> {
+export async function recentFeedback(h: Ctx, limit = 50): Promise<FeedbackRow[]> {
   const items = await queueNewest(h, 'feedback', limit);
   const ids = [...new Set(items.map((i) => i['listenerId']).filter((x): x is string => typeof x === 'string'))];
   const names = new Map((await batchGetAll(h.store, 'main', ids.map((id) => K.listener(id)))).map((l) => [String(l['id']), String(l['displayName'])]));
@@ -74,13 +73,13 @@ export async function recentFeedback(h: Hybrid, limit = 50): Promise<FeedbackRow
   }));
 }
 
-export async function feedbackImage(h: Hybrid, id: string, n: number): Promise<{ mime: string; bytes: Uint8Array } | undefined> {
+export async function feedbackImage(h: Ctx, id: string, n: number): Promise<{ mime: string; bytes: Uint8Array } | undefined> {
   const it = await get(h.store, 'main', K.feedbackImage(id, n));
   return it ? { mime: String(it['mime']), bytes: it['bytes'] as Uint8Array } : undefined;
 }
 
 /** FR-020: images older than 90 days go (the text stays); the byte counter goes down with them. */
-export async function sweepImages(h: Hybrid): Promise<number> {
+export async function sweepImages(h: Ctx): Promise<number> {
   const old = await queueBefore(h, 'feedback-images', iso(nowMs(h) - IMAGE_DAYS * DAY_MS));
   let n = 0;
   for (const it of old) {
@@ -97,7 +96,7 @@ export async function sweepImages(h: Hybrid): Promise<number> {
 
 const clip = (s: string, n: number) => [...s].slice(0, n).join('');
 
-async function upsertError(h: Hybrid, listenerId: string | null, e: { scope: string; message: string; stack: string | null; appVersion: string; platform: string }): Promise<number> {
+async function upsertError(h: Ctx, listenerId: string | null, e: { scope: string; message: string; stack: string | null; appVersion: string; platform: string }): Promise<number> {
   const now = nowMs(h);
   const key = K.U.error(e.scope, e.message, e.appVersion, e.platform);
   const sig = key.PK.slice('U#ERR#'.length);
@@ -124,7 +123,7 @@ async function upsertError(h: Hybrid, listenerId: string | null, e: { scope: str
   return Number(out?.['count'] ?? 0);
 }
 
-export async function recordErrors(h: Hybrid, listenerId: string | null, items: readonly ErrorIn[]): Promise<number> {
+export async function recordErrors(h: Ctx, listenerId: string | null, items: readonly ErrorIn[]): Promise<number> {
   let n = 0;
   for (const e of items) {
     const scope = clip(e.scope.trim(), SCOPE_MAX);
@@ -136,7 +135,7 @@ export async function recordErrors(h: Hybrid, listenerId: string | null, items: 
   return n;
 }
 
-export async function recentErrors(h: Hybrid, limit = 200): Promise<ErrorRow[]> {
+export async function recentErrors(h: Ctx, limit = 200): Promise<ErrorRow[]> {
   return (await queueNewest(h, 'errors', limit)).map((i) => ({
     scope: String(i['scope']), message: String(i['message']), stack: (i['stack'] as string | null | undefined) ?? null,
     app_version: String(i['appVersion'] ?? ''), platform: String(i['platform'] ?? ''), count: Number(i['count'] ?? 0),
@@ -144,7 +143,7 @@ export async function recentErrors(h: Hybrid, limit = 200): Promise<ErrorRow[]> 
   }));
 }
 
-export async function sweepErrorReports(h: Hybrid): Promise<number> {
+export async function sweepErrorReports(h: Ctx): Promise<number> {
   const old = await queueBefore(h, 'errors', iso(nowMs(h) - ERROR_DAYS * DAY_MS));
   let n = 0;
   for (const it of old) {
@@ -152,11 +151,11 @@ export async function sweepErrorReports(h: Hybrid): Promise<number> {
     const gone = await adel(h.store, 'main', { PK: String(it['PK']), SK: String(it['SK']) }, { condition: 'lastSeen < :cut', values: { ':cut': iso(nowMs(h) - ERROR_DAYS * DAY_MS) }, returnOld: true }).catch(() => undefined);
     if (gone) n++;
   }
-  await sweepRateCounters(h.pg);
+  await sweepRateCounters(h.db);
   return n;
 }
 
-export async function recordServerError(h: Hybrid, e: { message: string; stack?: string }): Promise<boolean> {
+export async function recordServerError(h: Ctx, e: { message: string; stack?: string }): Promise<boolean> {
   const message = clip(e.message.trim() || 'unknown error', MESSAGE_MAX);
   return (await upsertError(h, null, { scope: 'server', message, stack: e.stack ? clip(e.stack, STACK_MAX) : null, appVersion: '', platform: 'server' })) === 1;
 }

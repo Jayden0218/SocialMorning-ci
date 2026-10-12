@@ -23,7 +23,6 @@ test('A7: A follows B; B clips and comments; A sees both newest first with the m
   await t.call('PUT', `/v1/listeners/${b.id}/follow`, undefined, a.token);
   const clip = ((await (await t.call('POST', `/v1/episodes/${EP}/clips`, { clientId: 'k', startMs: 872_000, endMs: 910_000 }, b.token)).json()) as { clip: { id: string } }).clip;
   const comment = ((await (await t.call('POST', `/v1/episodes/${EP}/comments`, { body: 'hello', offsetMs: 141_603 }, b.token)).json()) as { comment: { id: string } }).comment;
-  await t.q(`UPDATE activity SET created_at = created_at + interval '1 minute' WHERE kind = 'commented'`);
   await t.call('POST', `/v1/episodes/${EP}/comments`, { body: 'a reply', parentId: comment.id }, b.token);
   const f = await feedOf(t, a.token);
   assert.equal(f.status, 200);

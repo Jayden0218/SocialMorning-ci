@@ -14,7 +14,7 @@
  */
 import type { Context, MiddlewareHandler } from 'hono';
 import { getCookie, setCookie } from 'hono/cookie';
-import { liveSessionSql, rekey, rotateSession, tokenHash, suspendedError, type AuthEnv, type Listener } from './session.ts';
+import { rekey, rotateSession, tokenHash, suspendedError, type AuthEnv, type Listener } from './session.ts';
 import { ApiError } from '../errors.ts';
 import type { Db } from '../db/db.ts';
 import type { StudioShow } from '../db/repos/studio/studio-roles.ts';
@@ -43,7 +43,7 @@ export async function studioListener(db: Db, pepper: string, token: string, pepp
   await rekey(db, token, pepper, pepperNext); // M25 SB: secret rotation
   const hash = tokenHash(token, pepper);
   // M25 SB: the same absolute lifetime and rotation grace as a phone session.
-  const [row] = await studioSessionRows(db, hash, STUDIO_LABEL, liveSessionSql);
+  const [row] = await studioSessionRows(db, hash, STUDIO_LABEL);
   if (!row) return undefined;
   if (Date.now() - new Date(row.last_seen_at).getTime() > STUDIO_IDLE_MS) {
     await deleteSessionByHash(db, hash);

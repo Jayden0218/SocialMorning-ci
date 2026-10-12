@@ -1,10 +1,10 @@
 // Admin › users on DynamoDB: the search in memory over the listener queue, one account from AC's items, reports against from G1.
 /**
- * M26 lane SF (SF-86…SF-102; data-model.md §14). The search is the SQL's rule run in code: name OR email contains
+ * Data-model.md §14. The search is a rule run in code: name OR email contains
  * the text (case-insensitive, the `\` `%` `_` escapes undone), names starting with it first, then by lower name, id;
  * 50 at most — over every listener of G4 `Q#listeners` (owner-only and rare; a scale limit near 50 000 listeners,
- * the upgrade is a search service). Listener writes go through lane AC's repo (rename, bio, photo). PLUS, purchases,
- * tips, gifts (lane PD) and the Studio shows (lane ST) are still Postgres rows: those functions stay SQL.
+ * the upgrade is a search service). Listener writes go through the account repo (rename, bio, photo). PLUS, purchases,
+ * tips and gifts are read through the paid repo.
  */
 import * as K from '../../../ddb/keys.ts';
 import { get } from '../../../ddb/store.ts';
@@ -12,7 +12,7 @@ import { setAvatar, updateProfile } from '../../account/profile.ts';
 import type { PendingDeletionRow, UserRow } from '../../admin/admin-users.ts';
 import { reportsAbout, reportsOnTarget } from './reports.ts';
 import { hostedShowsOf } from './foreign.ts';
-import { getMany, isUuid, listenersById, partition, pgOf, queue, type Db, type Item, type Store } from './common.ts';
+import { getMany, isUuid, listenersById, partition, queue, type Db, type Item, type Store } from './common.ts';
 
 const userRow = (l: Item): UserRow => ({
   id: String(l['id']), display_name: String(l['displayName']), email: String(l['email']), created_at: String(l['createdAt']),
@@ -70,7 +70,7 @@ export async function openDeletionOf(store: Store, _db: Db, id: string): Promise
   return d && !d['cancelledAt'] ? [{ requested_at: String(d['requestedAt']), due_at: String(d['dueAt']) }] : [];
 }
 
-export async function studioShowsOf(store: Store, db: Db, id: string): Promise<{ feed_url: string; title: string; hidden: boolean }[]> {
+export async function studioShowsOf(store: Store, _db: Db, id: string): Promise<{ feed_url: string; title: string; hidden: boolean }[]> {
   const shows = await hostedShowsOf(store, id);
   const hidden = new Set((await getMany(store, 'main', [...new Set(shows.map((s) => s.feed_url))].map((u) => K.hiddenFeed(u)))).map((i) => String(i['feedUrl'])));
   return shows.map((s) => ({ feed_url: s.feed_url, title: s.title, hidden: hidden.has(s.feed_url) }));

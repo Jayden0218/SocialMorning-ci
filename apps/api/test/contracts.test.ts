@@ -15,6 +15,8 @@ import { freshDb, signUp, type TestDb } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
 import { fakeApple } from './fake-apple.ts';
 import { insertNotice } from '../src/db/repos/social/system-notices.ts';
+import { backdateComments } from './sc-neutral.ts';
+import { seedPurchase, seedTip } from './pd-neutral.ts';
 
 const ep = { feedUrl: 'https://feeds.example.com/contract.xml', guid: 'c1', title: 'Ep C', showTitle: 'Contract Show', enclosureUrl: 'https://cdn.example.com/c1.mp3' };
 const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
@@ -56,7 +58,7 @@ async function answers(t: TestDb) {
 
   // Alex comments at 0:20, Bea replies (a notice for Alex); Alex follows Bea first (her comments are then in his feed).
   const post = async (who: { token: string; id: string }, body: string, parentId?: string) => {
-    await t.q(`UPDATE comments SET created_at = created_at - interval '1 minute' WHERE author_id = $1`, [who.id]);
+    await backdateComments(t, 60_000, { authorId: who.id });
     const r = await t.call('POST', `/v1/episodes/${EP}/comments`, { body, offsetMs: 20_000, ...(parentId ? { parentId } : {}) }, who.token);
     assert.equal(r.status, 200, await r.clone().text());
     return ((await r.json()) as { comment: { id: string } }).comment.id;
@@ -78,7 +80,7 @@ async function answers(t: TestDb) {
   ok('discover', await get(t, '/v1/discover', a.token));
   ok('config', await get(t, '/v1/config'));
   const academy = (await get(t, '/v1/content/academy')) as { items: unknown[] };
-  assert.ok(academy.items.length > 0, 'migration 029 seeds the Academy');
+  assert.ok(academy.items.length > 0, 'a new environment starts with the default Academy pages');
   ok('content', academy);
 
   const inbox = (await get(t, '/v1/me/notifications', a.token)) as { items: unknown[] };
@@ -91,10 +93,8 @@ async function answers(t: TestDb) {
   assert.equal(sys.items.length, 2);
   ok('systemNotices', sys);
 
-  const [p] = await t.q<{ id: string }>(
-    `INSERT INTO purchases (listener_id, store, product_id, store_txn_id, status, expires_at, amount_micros, currency)
-     VALUES ($1, 'google', 'plus_month', 'txn-contract-1', 'active', now() + interval '30 days', 9900000, 'MYR') RETURNING id`, [a.id]);
-  await t.q('INSERT INTO tips (from_listener, to_feed_url, purchase_id) VALUES ($1, $2, $3)', [a.id, ep.feedUrl, p!.id]);
+  const purchaseId = await seedPurchase(t, { listenerId: a.id, store: 'google', productId: 'plus_month', orderId: 'txn-contract-1', status: 'active', amountMicros: 9_900_000, currency: 'MYR' });
+  await seedTip(t, { fromListener: a.id, feedUrl: ep.feedUrl, purchaseId });
   const purchases = (await get(t, '/v1/me/purchases', a.token)) as { items: unknown[] };
   assert.ok(purchases.items.length > 0);
   ok('purchases', purchases);

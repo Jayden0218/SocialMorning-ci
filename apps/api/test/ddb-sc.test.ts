@@ -54,14 +54,14 @@ if (!ON) {
       const author = await signUp(t, 'author@example.com', 'Author');
       const people = await Promise.all(Array.from({ length: 5 }, (_, i) => signUp(t, `p${i}@example.com`, `P${i}`)));
       const root = await createComment(t.db, { episodeId: EP, authorId: author.id, body: 'root' });
-      const racing = withConflicts(t.store!, (n) => n <= 6);
+      const racing = withConflicts(t.store, (n) => n <= 6);
       const db = withStore(t.db, racing);
       const results = await Promise.allSettled(people.flatMap((p) => [
         createComment(db, { episodeId: EP, authorId: p.id, body: `reply from ${p.id}`, parentId: root.id }),
         like(db, root.id, p.id),
         like(db, root.id, p.id), // the same like again: never counted twice
       ]));
-      const item = await get(t.store!, 'main', { PK: K.EP(EP), SK: K.comment(EP, String(root.created_at), root.id).SK });
+      const item = await get(t.store, 'main', { PK: K.EP(EP), SK: K.comment(EP, String(root.created_at), root.id).SK });
       assert.equal(Number(item?.['replyCount']), 5, 'five replies counted, no more, no fewer');
       assert.equal(Number(item?.['likeCount']), 5, 'five likes counted, the repeats not');
       assert.ok(racing.cancelled() > 0, 'transactions were cancelled by conflicts and tried again');
@@ -81,9 +81,9 @@ if (!ON) {
       const row = await insertPost(t.db, { id: '00000000-0000-4000-8000-0000000000c2', listenerId: a.id, url: 'https://blob.example/voice/x.m4a', path: 'voice/x.m4a', durationMs: 5_000, bytes: 100 });
       assert.equal((await fromFollowing(t.db, a.id)).length, 1, 'live: listed');
       // The clock moves on; nothing deletes the items in between (no sweep, no TTL — DynamoDB Local never runs TTL).
-      const later: Store = { ...t.store!, clock: { now: () => Date.parse(row.expires_at as string) + 1_000 } };
+      const later: Store = { ...t.store, clock: { now: () => Date.parse(row.expires_at as string) + 1_000 } };
       const db = withStore(t.db, later);
-      assert.ok(await get(t.store!, 'main', K.voicePost(row.id)), 'the item is still stored');
+      assert.ok(await get(t.store, 'main', K.voicePost(row.id)), 'the item is still stored');
       assert.deepEqual(await fromFollowing(db, a.id), [], 'not in the following list');
       assert.equal(await visiblePost(db, row.id, a.id), undefined, 'not as a single status');
       assert.equal(await liveCount(db, a.id), 0, 'not in the live count');
@@ -106,15 +106,14 @@ if (!ON) {
       const b = await signUp(t, 'b@example.com', 'Bea');
       const root = await createComment(t.db, { episodeId: EP, authorId: a.id, body: 'root', offsetMs: 500_000 });
       const reply = await createComment(t.db, { episodeId: EP, authorId: b.id, body: 'a reply', parentId: root.id });
-      assert.equal((await heatCurve(t.store!, EP))[50], 1);
-      // (A whole delete would also fail the bridge's Postgres foreign key — caught, so the answer is what is checked.)
+      assert.equal((await heatCurve(t.store, EP))[50], 1);
       const deleted = await deleteComment(t.db, root.id).catch((e: unknown) => ({ failed: e instanceof Error ? e.message : String(e) }));
       assert.deepEqual(deleted, { placeholder: true, episodeId: EP }, 'a comment with a reply becomes a placeholder');
       const [top] = await listComments(t.db, EP);
       assert.equal(top?.id, root.id, 'the placeholder is still the thread');
       assert.deepEqual([top!.deleted, top!.body, top!.authorId, top!.offsetMs, top!.displayName], [true, null, null, null, null]);
       assert.deepEqual(top!.replies!.map((r) => r.id), [reply.id], 'the reply keeps its context');
-      assert.equal((await heatCurve(t.store!, EP))[50], 0, 'the placeholder carries no heat');
+      assert.equal((await heatCurve(t.store, EP))[50], 0, 'the placeholder carries no heat');
       const again = await createComment(t.db, { episodeId: EP, authorId: b.id, body: 'still answering', parentId: root.id });
       assert.deepEqual((await listComments(t.db, EP))[0]!.replies!.map((r) => r.id), [reply.id, again.id]);
     } finally { await t.close(); }
@@ -128,12 +127,12 @@ if (!ON) {
       const one = await createComment(t.db, { episodeId: EP, authorId: a.id, body: 'one' });
       const two = await createComment(t.db, { episodeId: EP, authorId: a.id, body: 'two' });
       // Every transaction waits a moment, so both pins read "no pin yet" before either writes.
-      const slow = wrapStore(t.store!, async (cmd, next) => { if (cmd instanceof TransactWriteCommand) await new Promise((r) => { setTimeout(r, 150); }); return next(cmd); });
+      const slow = wrapStore(t.store, async (cmd, next) => { if (cmd instanceof TransactWriteCommand) await new Promise((r) => { setTimeout(r, 150); }); return next(cmd); });
       const db = withStore(t.db, slow);
       await Promise.all([pinAsHost(db, one.id, EP, a.id, true), pinAsHost(db, two.id, EP, a.id, true)]);
       const pinned = (await listComments(t.db, EP)).filter((c) => c.pinned);
       assert.equal(pinned.length, 1, `exactly one pinned comment (got ${pinned.length})`);
-      assert.equal((await get(t.store!, 'main', K.episodeSocial(EP)))?.['pinnedId'], pinned[0]!.id, 'the episode names the pinned one');
+      assert.equal((await get(t.store, 'main', K.episodeSocial(EP)))?.['pinnedId'], pinned[0]!.id, 'the episode names the pinned one');
     } finally { await t.close(); }
   });
 

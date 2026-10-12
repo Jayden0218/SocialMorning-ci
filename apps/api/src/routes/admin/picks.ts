@@ -10,7 +10,7 @@ import { adminPickDays, checkPickItems, getPickDay, pickWarning, putPickDay, typ
 import { discoverBody } from '../../db/repos/discover/discover.ts';
 import { episodeFor } from '../discover/issues.ts';
 import type { Hono } from 'hono';
-import { validDay, dayParam, addDays, feedUrl, guid, version, catalogChanged, target } from './common.ts';
+import { validDay, dayParam, addDays, feedUrl, guid, version, catalogChanged } from './common.ts';
 import type { AdminEnv } from '../../auth/admin.ts';
 
 export function registerPicks(admin: Hono<AdminEnv>): void {

@@ -1,13 +1,12 @@
-// The account lane's DynamoDB bodies for the switch: `dual('ac/index', name, …)` calls `name(store, db, ...args)` here.
+// The account lane's DynamoDB bodies for the switch: `viaStore('ac/index', name)` calls `name(store, db, ...args)` here.
 /**
- * M26 lane AC. Loaded only by `dual` (src/db/backend.ts, lane LB) when the Db carries a Store — never by the
- * Postgres build. Every export has a Postgres twin of the same name in src/db/repos/account/*.ts. The bodies
- * in this folder take one `Hybrid` ({ store, pg }); `ac` adapts each to the switch's `(store, db, ...args)` and
- * remembers which Postgres Db the Store runs beside (the outbox handlers are given only the Store).
+ * M26 lane AC. Loaded by `viaStore` (src/db/backend.ts). The bodies in this folder take one `Ctx` ({ store, db });
+ * `ac` adapts each to the switch's `(store, db, ...args)` and remembers which `Db` the Store runs beside (the
+ * outbox handlers are given only the Store).
  */
 import type { Db } from '../../../db.ts';
 import type { Store } from '../../../ddb/store.ts';
-import { rememberPg, type Hybrid } from './common.ts';
+import { rememberDb, type Ctx } from './common.ts';
 import * as L from './listeners.ts';
 import * as S from './sessions.ts';
 import * as C from './codes.ts';
@@ -17,8 +16,8 @@ import * as U from './push.ts';
 import * as D from './deletion.ts';
 import * as A from './account.ts';
 
-function ac<A extends unknown[], R>(fn: (h: Hybrid, ...a: A) => Promise<R>): (store: Store, db: Db, ...a: A) => Promise<R> {
-  return (store, db, ...a) => { rememberPg(store, db); return fn({ store, pg: db }, ...a); };
+function ac<A extends unknown[], R>(fn: (h: Ctx, ...a: A) => Promise<R>): (store: Store, db: Db, ...a: A) => Promise<R> {
+  return (store, db, ...a) => { rememberDb(store, db); return fn({ store, db }, ...a); };
 }
 
 export const createListener = ac(L.createListener);

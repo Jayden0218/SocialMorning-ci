@@ -1,22 +1,16 @@
-// Shared pieces of lane SF's DynamoDB code: clock, partition and queue reads, batch gets, the Postgres bridge handles.
+// Shared pieces of the safety DynamoDB code: clock, partition and queue reads, batch gets.
 /**
- * M26 lane SF. Every file in this folder exports `<name>(store, db, ...args)` bodies for `dual('sf/<file>', …)`
- * (src/db/backend.ts). `db` is the app's handle WITH the Store attached; `bridgeOf(db)` is the plain Postgres
- * handle while the write bridge is on (the lanes still on Postgres JOIN `blocks`, `reports`,
- * `moderation_actions`, `hidden_feeds` — data-model.md "Lane SF changes"), and `pgOf(db)` is the plain handle
- * for reading tables of lanes not moved yet (foreign.ts). Calling a dual function with a plain handle runs its
- * Postgres body.
- * Expressions are written with plain attribute names and aliased by lane AC's `xo` (reserved words).
+ * Every file in this folder exports `<name>(store, db, ...args)` bodies for `viaStore('sf/<file>', …)`
+ * (src/db/backend.ts). `db` is the app's handle WITH the Store attached.
+ * Expressions are written with plain attribute names and aliased by the account lane's `xo` (reserved words).
  */
 import type { Db } from '../../../db.ts';
-import { bridgeOf, pgOf } from '../../../backend-ddb.ts';
 import * as K from '../../../ddb/keys.ts';
 import { batchGetAll } from '../../../ddb/batch.ts';
 import { queryAll, countAll } from '../../../ddb/paginate.ts';
 import type { Item, Key, Store, TableRole } from '../../../ddb/store.ts';
 
 export { xo, txa, upd, aput, adel, unlessCondition, type TxA } from '../../account/ddb/common.ts';
-export { bridgeOf, pgOf };
 
 export const DAY_MS = 86_400_000;
 export const HOUR_MS = 3_600_000;

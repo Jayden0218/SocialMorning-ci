@@ -5,14 +5,12 @@
  *
  * The constitution's rule for positions: the server keeps the merged position by playback progress
  * (`mergePosition`: progress never goes backwards, finished is sticky, a newer explicit seek wins) — never
- * the last write on the wall clock. Under Postgres the row lock (`FOR UPDATE`) made the read-merge-write
- * atomic; here the version condition does: if another write landed between our read and our write, our Put
+ * the last write on the wall clock. The version condition makes the read-merge-write atomic: if another write landed between our read and our write, our Put
  * fails and we merge again against what is there now (guard G-M26-LB3: a late, older observation can never
  * replace a further one).
  */
 import { mergePosition, type PositionObs } from '@socialmorning/social-core';
 import type { Db } from '../../../db.ts';
-import { bridgeOf } from '../../../backend-ddb.ts';
 import { encode } from '../../../ddb/codec.ts';
 import * as K from '../../../ddb/keys.ts';
 import { batchGetAll, batchWriteAll } from '../../../ddb/batch.ts';
@@ -39,7 +37,7 @@ export async function observeOne(store: Store, listenerId: string, deviceId: str
     const stored = existing ? pg.toObs(existing) : null;
     const incoming: PositionObs = { ...o, receivedAt: now.getTime() };
     const winner = mergePosition(stored, incoming);
-    // As the Postgres body: a winner stamped with this request's time counts as the incoming one.
+    // A winner stamped with this request's time counts as the incoming one.
     const incomingWon = winner.receivedAt === incoming.receivedAt;
     if (existing && !incomingWon && winner.finished === existing.finished) return existing;
     const row: PositionRow = {
@@ -60,19 +58,15 @@ export async function observeOne(store: Store, listenerId: string, deviceId: str
   }, { tries: 5 });
 }
 
-export async function observePosition(store: Store, db: Db, listenerId: string, deviceId: string, o: Omit<PositionObs, 'receivedAt'>, now: Date): Promise<PositionRow> {
+export async function observePosition(store: Store, _db: Db, listenerId: string, deviceId: string, o: Omit<PositionObs, 'receivedAt'>, now: Date): Promise<PositionRow> {
   const row = await observeOne(store, listenerId, deviceId, o, now);
-  const raw = bridgeOf(db);
-  if (raw) await pg.observePosition(raw, listenerId, deviceId, o, now);
   return row;
 }
 
 /** In order, one conditional write each (the old single transaction held row locks; each write here is atomic on its own). */
-export async function observePositions(store: Store, db: Db, listenerId: string, deviceId: string, observations: readonly Omit<PositionObs, 'receivedAt'>[], now: Date): Promise<PositionRow[]> {
+export async function observePositions(store: Store, _db: Db, listenerId: string, deviceId: string, observations: readonly Omit<PositionObs, 'receivedAt'>[], now: Date): Promise<PositionRow[]> {
   const out: PositionRow[] = [];
   for (const o of observations) out.push(await observeOne(store, listenerId, deviceId, o, now));
-  const raw = bridgeOf(db);
-  if (raw) await pg.observePositions(raw, listenerId, deviceId, observations, now);
   return out;
 }
 
@@ -98,15 +92,11 @@ export async function knownEpisodeIds(store: Store, _db: Db, ids: string[]): Pro
   return found.map((it) => ({ id: String(it['id'] ?? String(it['PK']).slice(3)) }));
 }
 
-export async function deleteAllPositions(store: Store, db: Db, listenerId: string): Promise<void> {
+export async function deleteAllPositions(store: Store, _db: Db, listenerId: string): Promise<void> {
   const items = await allPositions(store, listenerId);
   await batchWriteAll(store, 'main', items.map((it) => ({ delete: { PK: String(it['PK']), SK: String(it['SK']) } })));
-  const raw = bridgeOf(db);
-  if (raw) await pg.deleteAllPositions(raw, listenerId);
 }
 
-export async function deletePositionsFor(store: Store, db: Db, listenerId: string, episodeIds: string[]): Promise<void> {
+export async function deletePositionsFor(store: Store, _db: Db, listenerId: string, episodeIds: string[]): Promise<void> {
   await batchWriteAll(store, 'main', [...new Set(episodeIds)].map((id) => ({ delete: K.position(listenerId, id) })));
-  const raw = bridgeOf(db);
-  if (raw) await pg.deletePositionsFor(raw, listenerId, episodeIds);
 }

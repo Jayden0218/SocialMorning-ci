@@ -1,9 +1,8 @@
-// The /mod page's Studio shows list and take-down on DynamoDB: the Studio rows stay lane ST's, the hide and the action are lane SF's items.
+// The /mod page's Studio shows list and take-down on DynamoDB: the Studio rows are the Studio's, the hide and the action are items here.
 /**
- * M26 lane SF (SF-127…SF-131). The hosted shows and their episodes and claims are lane ST's (Postgres until it
- * moves — foreign.ts); the owner's name is lane AC's listener item; "hidden" is the hidden-feeds partition; the
- * take-down's moderation action is an `MA#` item like act()'s (G4 `Q#actions`, the hour's `R#dash#actions`), with
- * its Postgres bridge row (lane ST's Studio comments still read `moderation_actions`).
+ * The hosted shows and their episodes and claims are the Studio's (foreign.ts); the owner's name is the listener
+ * item; "hidden" is the hidden-feeds partition; the take-down's moderation action is an `MA#` item like act()'s
+ * (G4 `Q#actions`, the hour's `R#dash#actions`).
  */
 import { randomUUID } from 'node:crypto';
 import { encode } from '../../../ddb/codec.ts';
@@ -13,7 +12,7 @@ import { tx } from '../../../ddb/tx.ts';
 import type { CreatedShowRow } from '../mod-shows.ts';
 import { dashAdd } from './dash.ts';
 import { liveHostedShows, takedownStudio } from './foreign.ts';
-import { bridgeOf, listenersById, nowIso, pgOf, type Db, type Store } from './common.ts';
+import { listenersById, nowIso, type Db, type Store } from './common.ts';
 
 export async function studioCreatedShows(store: Store, db: Db): Promise<CreatedShowRow[]> {
   const rows = await liveHostedShows(store, db);
@@ -33,10 +32,6 @@ export async function finishTakedown(store: Store, db: Db, showId: string, feedU
     id, actorId, action: 'hide_show', targetKind: 'show', targetId: feedUrl, subjectListenerId: null, reportAuthorId: null, snapshot: null, createdAt: at,
   }, { gsi: K.G4('actions', at, id) }), { condition: 'attribute_not_exists(PK)' });
   dashAdd(t, 'actions', at);
-  await db.transaction(async (txdb) => {
-    await takedownStudio(store, txdb, showId, feedUrl);
-    const raw = bridgeOf(txdb);
-    if (raw) await raw.query("INSERT INTO moderation_actions (id, actor_id, action, target_kind, target_id, created_at) VALUES ($1, $2, 'hide_show', 'show', $3, $4)", [id, actorId, feedUrl, at]);
-    await t.commit();
-  });
+  await takedownStudio(store, db, showId, feedUrl);
+  await t.commit();
 }

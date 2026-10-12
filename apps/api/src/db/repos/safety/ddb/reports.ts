@@ -1,6 +1,6 @@
 // Reports on DynamoDB: the key is the one-report-per-reporter rule, the open queue, closed reports kept 90 days.
 /**
- * M26 lane SF (SF-26…SF-44; data-model.md §3 `RPT#`, SF hard case 3).
+ * Data-model.md §3 `RPT#`, SF hard case 3.
  * - `RPT#<kind>#<targetId>` / `BY#<reporterId>` — the PK/SK pair IS the UNIQUE (target_kind, target_id, reporter_id)
  *   (guard G-M26-SF1): the report is put with `attribute_not_exists(PK)`, so a second report by the same reporter
  *   cancels and reads back as `duplicate`. "Close every open report on a target" is one Query of the partition.
@@ -11,8 +11,6 @@
  * - `L#<reporter>/RPTBY#<createdAt>#<id>`: the reporter's own copy, in the same transaction — "hidden for the
  *   reporter at once", the 20-an-hour limit and the safety stamp read it strongly (own writes).
  * - `R#dash#reports` (dash.ts) moves in the same transaction.
- * Bridge: `reports` is read by lanes still on Postgres (comments' "reported by me", admin lists, account deletion),
- * so each write also writes its Postgres row with the same id.
  */
 import { randomUUID } from 'node:crypto';
 import { closeReason, hiddenKey, type TargetKind } from '@socialmorning/social-core';
@@ -25,7 +23,7 @@ import { getEpisode } from '../../library/episodes.ts';
 import type { CreateResult, QueueRow, Snapshot, TranscriptDetail, TranscriptReport } from '../reports.ts';
 import { dashAdd } from './dash.ts';
 import { chatBefore, chatRow, clipRow, commentRow, sharedListRow, statusRow } from './foreign.ts';
-import { bridgeOf, byRef, DAY_MS, getMany, HOUR_MS, isUuid, keyOf, listenersById, nowIso, nowMs, partition, queue, type Db, type Item, type Store } from './common.ts';
+import { byRef, DAY_MS, getMany, HOUR_MS, isUuid, keyOf, listenersById, nowIso, nowMs, partition, queue, type Db, type Item, type Store } from './common.ts';
 
 export const KEEP_CLOSED_DAYS = 90;
 const RPT = (kind: string, targetId: string) => `RPT#${kind}#${targetId}`;
@@ -148,13 +146,6 @@ export async function createReport(
     const now = await get(store, 'main', key);
     return { id: String(now?.['id']), duplicate: true, ...flag };
   }
-  const raw = bridgeOf(db);
-  if (raw) {
-    await raw.query(
-      `INSERT INTO reports (id, target_kind, target_id, reporter_id, reason, note, snapshot, closed_at, close_reason, detail, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, ($7::text)::jsonb, $8, $9, ($10::text)::jsonb, $11) ON CONFLICT DO NOTHING`,
-      [id, r.kind, r.targetId, r.reporterId, r.reason, r.note ?? null, JSON.stringify(snapshot), closedAt, close === 'open' ? null : close, r.detail ? JSON.stringify(r.detail) : null, at]);
-  }
   return { id, duplicate: false, ...flag };
 }
 
@@ -197,7 +188,7 @@ export async function closedReports(store: Store, _db: Db, days: number): Promis
 }
 
 /** Every open report on the target closes with this action (or reason). Returns how many. */
-export async function closeReportsFor(store: Store, db: Db, kind: TargetKind, targetId: string, actionId: string | null, reason: string): Promise<number> {
+export async function closeReportsFor(store: Store, _db: Db, kind: TargetKind, targetId: string, actionId: string | null, reason: string): Promise<number> {
   const at = nowIso(store);
   let n = 0;
   for (const r of await partition(store, 'main', RPT(kind, targetId))) {
@@ -215,13 +206,11 @@ export async function closeReportsFor(store: Store, db: Db, kind: TargetKind, ta
       if ((e as { name?: string }).name !== 'ConditionalCheckFailedException') throw e; // closed meanwhile
     }
   }
-  const raw = bridgeOf(db);
-  if (raw) await raw.query('UPDATE reports SET closed_at = $5, closed_by = $3, close_reason = $4 WHERE target_kind = $1 AND target_id = $2 AND closed_at IS NULL', [kind, targetId, actionId, reason, at]);
   return n;
 }
 
 /** FR-016: closed reports (and their copies) are kept for `days` days, then deleted — with the reporter's own copy. */
-export async function purgeClosedOlderThan(store: Store, db: Db, days: number): Promise<number> {
+export async function purgeClosedOlderThan(store: Store, _db: Db, days: number): Promise<number> {
   const cutoff = new Date(nowMs(store) - days * DAY_MS).toISOString();
   const items = (await queue(store, 'reports-closed', { to: cutoff })).filter((i) => String(i['closedAt']) < cutoff);
   const deletes = items.flatMap((i) => {
@@ -229,8 +218,6 @@ export async function purgeClosedOlderThan(store: Store, db: Db, days: number): 
     return [{ delete: keyOf(i) }, ...marks];
   });
   if (deletes.length) await batchWriteAll(store, 'main', deletes);
-  const raw = bridgeOf(db);
-  if (raw) await raw.query("DELETE FROM reports WHERE closed_at IS NOT NULL AND closed_at < $1", [cutoff]);
   return items.length;
 }
 
@@ -264,7 +251,7 @@ export async function transcriptReportFeed(store: Store, db: Db, id: string): Pr
   return e?.feed_url ?? null;
 }
 
-export async function markTranscriptReportDone(store: Store, db: Db, id: string): Promise<void> {
+export async function markTranscriptReportDone(store: Store, _db: Db, id: string): Promise<void> {
   const r = await reportById(store, id);
   if (!r || r['targetKind'] !== 'transcript' || r['closedAt']) return;
   const at = nowIso(store);
@@ -278,18 +265,16 @@ export async function markTranscriptReportDone(store: Store, db: Db, id: string)
   } catch (e) {
     if ((e as { name?: string }).name !== 'ConditionalCheckFailedException') throw e;
   }
-  const raw = bridgeOf(db);
-  if (raw) await raw.query("UPDATE reports SET closed_at = $2, close_reason = 'done' WHERE id = $1 AND target_kind = 'transcript' AND closed_at IS NULL", [id, at]);
 }
 
-// ---- lane SF helpers used by moderation.ts, appeals.ts and admin-users.ts ----
+// ---- helpers used by moderation.ts, appeals.ts and admin-users.ts ----
 
 /** Every report on a target (strong), oldest first. */
 export async function reportsOnTarget(store: Store, kind: string, targetId: string): Promise<Item[]> {
   return (await partition(store, 'main', RPT(kind, targetId))).sort((a, b) => (String(a['createdAt']) < String(b['createdAt']) ? -1 : 1));
 }
 
-/** Closes one report item (no Postgres bridge — the caller's Postgres side is already done). */
+/** Closes one report item. */
 export async function closeReportItem(store: Store, r: Item, actionId: string | null, reason: string): Promise<boolean> {
   const at = nowIso(store);
   try {

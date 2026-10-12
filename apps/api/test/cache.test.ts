@@ -1,7 +1,7 @@
-// Tests the database cache: fresh, refetch, stale fallback, and double-encoded rows.
+// Tests the cache: fresh, refetch, stale fallback, deleted keys and invalidated prefixes.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { freshDb, TEST_BACKEND } from './harness.ts';
+import { freshDb } from './harness.ts';
 import { cached, deleteCacheKey, invalidateCachePrefix } from '../src/db/repos/cache.ts';
 
 test('cached: fetch once within the TTL; refetch after; a failing refetch serves the stale row; no row + failure throws', async () => {
@@ -17,15 +17,6 @@ test('cached: fetch once within the TTL; refetch after; a failing refetch serves
   assert.deepEqual(await cached(t.db, 'k', 60_000, fetch, now), { body: { n: 2 }, stale: true });   // fetch 3 fails → stale copy
   await assert.rejects(cached(t.db, 'other', 60_000, async () => { throw new Error('down'); }, now), /down/);
   assert.equal(calls, 3);
-  await t.close();
-});
-
-// Postgres only: the double-encoded jsonb shape is a Postgres driver bug; DynamoDB stores gzipped bytes (M26, plan.md test strategy).
-test('a row stored double-encoded (a JSON string holding JSON — the postgres driver\'s shape, seen live) reads back as the object', { skip: TEST_BACKEND === 'ddb' ? 'Postgres-only shape' : false }, async () => {
-  const t = await freshDb();
-  await t.q(`INSERT INTO cache (key, body, fetched_at) VALUES ('dbl', to_jsonb($1::text), now())`, [JSON.stringify({ episodes: [1, 2] })]);
-  const r = await cached<{ episodes: number[] }>(t.db, 'dbl', 60_000, async () => { throw new Error('should not fetch'); });
-  assert.deepEqual(r, { body: { episodes: [1, 2] }, stale: false });
   await t.close();
 });
 

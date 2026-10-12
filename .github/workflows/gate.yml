@@ -5,8 +5,8 @@
 #
 # M23 US12 (T050): one 12.5-minute job became three kinds of job running side by side —
 #   typecheck  fails fast on its own;
-#   api (×3)   the API tests split with node's --test-shard (each test now copies a
-#              once-migrated database instead of migrating its own — test/harness.ts);
+#   api (×3)   the API tests split with node's --test-shard, on DynamoDB Local (a service container;
+#              every test makes and drops its own tables — test/harness.ts). There is no Postgres;
 #   checks     everything else, each test suite run ONCE: the coverage runs (mobile jest,
 #              social-core, player-core) are the test runs, no plain run before them.
 # The gate is green only when every job is green.
@@ -43,6 +43,11 @@ jobs:
       matrix:
         shard: [1, 2, 3]
     name: api tests (shard ${{ matrix.shard }} of 3)
+    # DynamoDB Local runs from Maven Central (scripts/ddb-local.sh), in memory, port 8000. A service container pulled its image
+    # from a registry that answered `toomanyrequests` on 2026-10-12. No AWS account or secret: dummy keys to localhost only.
+    env:
+      DDB_ENDPOINT: http://localhost:8000
+      AWS_REGION: ap-southeast-1
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -50,6 +55,19 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --no-audit --no-fund
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '21' }
+      - name: start DynamoDB Local
+        run: scripts/ddb-local.sh
+        working-directory: .
+      - name: wait for DynamoDB Local
+        run: |
+          for i in $(seq 1 60); do
+            # Any HTTP answer means the server is up (it answers 400 to an unsigned request).
+            if curl -s -o /dev/null -w '%{http_code}' http://localhost:8000 | grep -qE '^[1-5][0-9][0-9]$'; then echo "up after ${i}s"; exit 0; fi
+            sleep 1
+          done
+          echo "DynamoDB Local did not start" >&2; exit 1
       - name: api tests, shard ${{ matrix.shard }} of 3
         run: npx tsx --test --test-timeout=120000 --test-shard=${{ matrix.shard }}/3 test/*.test.ts
         working-directory: apps/api

@@ -1,8 +1,8 @@
 // Status route writes on DynamoDB: a text status with its items (refused whole), the listener check, the comment-image bytes.
 /**
- * M26 lane SC (SC-T06, SC-T08). A text status and its items were one SQL transaction; here the status is written,
+ * M26 lane SC (SC-T06, SC-T08). A text status and its items: the status is written,
  * then its items in one TransactWriteItems — a refused item deletes the status again, so the answer is the same
- * all-or-nothing. The Postgres rows go in the bridge's transaction.
+ * all-or-nothing.
  */
 import { randomUUID } from 'node:crypto';
 import type { Db } from '../../../db.ts';

@@ -3,7 +3,7 @@
  * M26 lane SF (data-model.md "Lane SF changes"). `K.contentPage(kind, slug)` = `CONTENT#<kind>` / `<slug>`,
  * type `contentPage`. A list is one strongly consistent Query of the kind's partition (≤ a few dozen pages),
  * filtered to published unless `all`, ordered by position then slug in code (the SQL's ORDER BY).
- * A save or delete reads the item strongly, checks in code (404 / 409 as on Postgres), then writes ONE Tx
+ * A save or delete reads the item strongly, checks in code (404 / 409), then writes ONE Tx
  * with the version as a condition (label `content`) through `commitOrDefer` (joins the audit transaction).
  */
 import { ApiError } from '../../../../errors.ts';
@@ -36,7 +36,7 @@ export async function getPage(store: Store, _db: Db, kind: ContentKind, slug: st
   return i ? toPage(i) : null;
 }
 
-/** The page item, as the Tx puts it (also used by the copy of the seeded rows, content-seed.ts). */
+/** The page item, as the Tx puts it (also used by content-seed.ts). */
 export const pageItem = (kind: ContentKind, slug: string, p: ContentInput, version: number, updatedAt: string): Item =>
   encode('contentPage', K.contentPage(kind, slug), {
     kind, slug, title: p.title, summary: p.summary, tag: p.tag, body: p.body, position: p.position, published: p.published, version, updatedAt,

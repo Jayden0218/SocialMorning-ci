@@ -1,11 +1,11 @@
 // Guards of the safety lane on DynamoDB: one report per reporter under a race, act() all-or-nothing, the admin record append-only, the last admin kept.
 /**
- * M26 lane SF (tasks.md SF-T09). Each guard was broken on mirror branch `lane-sf-red`, seen red, restored:
+ * Lane SF (tasks.md SF-T09). Each guard was broken on mirror branch `lane-sf-red`, seen red, restored:
  * - G-M26-SF1 — ten reports of one target by one reporter, racing, make ONE report (the `RPT#<kind>#<id>/BY#<reporter>`
  *   key put with attribute_not_exists), one reporter copy and one count on the dashboard; the other nine read `duplicate`.
  *   Break: in src/db/repos/safety/ddb/reports.ts createReport, drop the `condition: 'attribute_not_exists(PK)'` of the report put.
  * - G-M26-SF2 — act() applies the action, its effect and the author's notice together or not at all: with the DynamoDB
- *   transaction failing, no action item, no Postgres bridge row, the comment not removed, no notice, the report open.
+ *   transaction failing, no action item, the comment not removed, no notice, the report open.
  *   Break: in src/db/repos/safety/ddb/moderation.ts act(), move `await t.commit()` out of the `db.transaction(…)` callback (after it).
  * - G-M26-SF3 — no request through the app's Store can update, delete or overwrite an audit record (UpdateItem, DeleteItem,
  *   an unconditional PutItem, a TransactWriteItems Update/Delete, a BatchWriteItem), and the record reads back unchanged.
@@ -20,9 +20,9 @@ import assert from 'node:assert/strict';
 const ON = Boolean(process.env['DDB_ENDPOINT']);
 
 if (!ON) {
-  test('ddb safety guards (needs DynamoDB Local: DDB_ENDPOINT, ci/workflows/ddb-api.yml)', { skip: 'no DDB_ENDPOINT' }, () => {});
+  test('ddb safety guards (needs DynamoDB Local: DDB_ENDPOINT)', { skip: 'no DDB_ENDPOINT' }, () => {});
 } else {
-  const { BRIDGE_OFF, freshDb, signUp } = await import('./harness.ts');
+  const { freshDb, signUp } = await import('./harness.ts');
   const { putEpisode } = await import('./put-episode.ts');
   const { withStore } = await import('../src/db/backend-ddb.ts');
   const { withFaults } = await import('../src/db/ddb/test-wrappers.ts');
@@ -48,22 +48,22 @@ if (!ON) {
     const results = await Promise.all(Array.from({ length: 10 }, () => createReport(t.db, { kind: 'profile', targetId: a.id, reporterId: r.id, reason: 'spam' })));
     assert.equal(results.filter((x) => !x.duplicate).length, 1, `${results.filter((x) => !x.duplicate).length} reports were made`);
     assert.equal(new Set(results.map((x) => x.id)).size, 1, 'every answer names the one report');
-    assert.equal((await acScan(t.store!, 'main', 'report')).length, 1);
-    assert.equal((await acScan(t.store!, 'main', 'reporterMark')).length, 1, 'one reporter copy');
-    const counter = await get(t.store!, 'events', dashKey('reports', new Date().toISOString()));
+    assert.equal((await acScan(t.store, 'main', 'report')).length, 1);
+    assert.equal((await acScan(t.store, 'main', 'reporterMark')).length, 1, 'one reporter copy');
+    const counter = await get(t.store, 'events', dashKey('reports', new Date().toISOString()));
     assert.equal(Number(counter?.['n'] ?? 0), 1, 'the dashboard counted it once');
 
     // Deterministic too: a reader that does not see the first report yet (a stale read) still cannot make a second one —
     // the key's attribute_not_exists condition refuses it.
-    const stale = withStore(t.db, wrapStore(t.store!, async (cmd, next) => {
+    const stale = withStore(t.db, wrapStore(t.store, async (cmd, next) => {
       if (cmd instanceof GetCommand && String((cmd.input as { Key?: { PK?: string } }).Key?.PK ?? '').startsWith('RPT#')) return {};
       return next(cmd);
     }));
     const r1 = await createReport(stale, { kind: 'profile', targetId: r.id, reporterId: a.id, reason: 'spam' });
     const r2 = await createReport(stale, { kind: 'profile', targetId: r.id, reporterId: a.id, reason: 'hate' });
     assert.deepEqual([r1.duplicate, r2.duplicate], [false, true], 'the second report by the same reporter is a duplicate');
-    assert.equal((await acScan(t.store!, 'main', 'report')).filter((x) => x['targetId'] === r.id).length, 1);
-    assert.equal((await acScan(t.store!, 'main', 'report')).find((x) => x['targetId'] === r.id)?.['reason'], 'spam', 'the first reason stands');
+    assert.equal((await acScan(t.store, 'main', 'report')).filter((x) => x['targetId'] === r.id).length, 1);
+    assert.equal((await acScan(t.store, 'main', 'report')).find((x) => x['targetId'] === r.id)?.['reason'], 'spam', 'the first reason stands');
     await t.close();
   });
 
@@ -80,19 +80,17 @@ if (!ON) {
     assert.equal((await t.call('POST', '/v1/reports', { targetKind: 'comment', targetId: commentId, reason: 'spam' }, r.token)).status, 201);
 
     const state = async () => ({
-      actions: (await acScan(t.store!, 'main', 'moderationAction')).length,
-      // M26 lane NB: the bridge row exists only while the write bridge is on; with it off it is not asserted.
-      ...(BRIDGE_OFF ? {} : { bridge: (await t.q('SELECT 1 FROM moderation_actions')).length }),
+      actions: (await acScan(t.store, 'main', 'moderationAction')).length,
       removed: await commentRemovedCount(t, commentId, true),
       notices: (await noticesFor(t.db, a.id)).length, // lane SG's notice items
       open: (await reportRows(t)).filter((x) => x['closed_at'] === null || x['closed_at'] === undefined).length,
     });
-    const faulty = withStore(t.db, withFaults(t.store!, [{ command: 'TransactWriteCommand', prefix: 'MA#' }]));
+    const faulty = withStore(t.db, withFaults(t.store, [{ command: 'TransactWriteCommand', prefix: 'MA#' }]));
     await assert.rejects(act(faulty, o.id, { kind: 'comment', id: commentId }, 'remove'), /injected fault/);
-    assert.deepEqual(await state(), { actions: 0, ...(BRIDGE_OFF ? {} : { bridge: 0 }), removed: 0, notices: 0, open: 1 }, 'nothing happened');
+    assert.deepEqual(await state(), { actions: 0, removed: 0, notices: 0, open: 1 }, 'nothing happened');
 
     await act(t.db, o.id, { kind: 'comment', id: commentId }, 'remove');
-    assert.deepEqual(await state(), { actions: 1, ...(BRIDGE_OFF ? {} : { bridge: 1 }), removed: 1, notices: 1, open: 0 }, 'everything happened');
+    assert.deepEqual(await state(), { actions: 1, removed: 1, notices: 1, open: 0 }, 'everything happened');
     await t.close();
   });
 
@@ -100,10 +98,10 @@ if (!ON) {
     const t = await freshDb();
     const o = await signUp(t, 'o@example.com', 'Owner');
     await insertAudit(t.db, { adminId: o.id }, { area: 'users', action: 'rename', target: o.id }, { displayName: 'A' }, { displayName: 'B' });
-    const [rec] = (await acScan(t.store!, 'main', 'audit')).filter((i) => !String(i['SK']).includes('#'));
+    const [rec] = (await acScan(t.store, 'main', 'audit')).filter((i) => !String(i['SK']).includes('#'));
     assert.ok(rec, 'the record exists');
     const key = { PK: String(rec['PK']), SK: String(rec['SK']) };
-    const store = t.store!;
+    const store = t.store;
     const attempts: [string, () => Promise<unknown>][] = [
       ['UpdateItem', () => update(store, 'main', key, { update: 'SET #a = :a', names: { '#a': 'action' }, values: { ':a': 'nothing happened' } })],
       ['DeleteItem', () => del(store, 'main', key)],
@@ -124,7 +122,7 @@ if (!ON) {
     const t = await freshDb();
     await signUp(t, 'a@example.com', 'Ada');
     const { computeMetrics } = await import('../src/db/repos/admin/metrics.ts');
-    const faulty = withStore(t.db, withFaults(t.store!, [{ command: 'QueryCommand', prefix: 'R#dash#' }]));
+    const faulty = withStore(t.db, withFaults(t.store, [{ command: 'QueryCommand', prefix: 'R#dash#' }]));
     const orig = console.warn; console.warn = () => {};
     const m = await computeMetrics(faulty, 7).finally(() => { console.warn = orig; });
     assert.equal(m.partial, true);
@@ -138,10 +136,10 @@ if (!ON) {
     const a = await signUp(t, 'a@example.com', 'Ada');
     const b = await signUp(t, 'b@example.com', 'Bo');
     const at = new Date().toISOString();
-    await put(t.store!, 'main', encode('adminSet', K.adminSet(), { admins: { [a.id]: { grantedAt: at, grantedBy: null }, [b.id]: { grantedAt: at, grantedBy: a.id } } }));
+    await put(t.store, 'main', encode('adminSet', K.adminSet(), { admins: { [a.id]: { grantedAt: at, grantedBy: null }, [b.id]: { grantedAt: at, grantedBy: a.id } } }));
     await removeAdmin(t.db, b.id);
     await assert.rejects(removeAdmin(t.db, a.id), /at least one admin/);
-    const left = (await get(t.store!, 'main', K.adminSet()))?.['admins'] as Record<string, unknown>;
+    const left = (await get(t.store, 'main', K.adminSet()))?.['admins'] as Record<string, unknown>;
     assert.deepEqual(Object.keys(left), [a.id]);
     await t.close();
   });

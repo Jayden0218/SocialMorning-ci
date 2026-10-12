@@ -5,10 +5,10 @@
  * UNFRIENDLY_FOLD_AT marks it folds for everyone, and who marked it is never returned.
  */
 import type { Db } from '../../db.ts';
-import { dual } from '../../backend.ts';
+import { viaStore } from '../../backend.ts';
 import { ApiError } from '../../../errors.ts';
 import { hostsOfEpisode } from '../studio/creator.ts';
-import { foldedOnEpisode, getComment, listComments, type PublicComment } from './comments.ts';
+import { getComment, listComments, type PublicComment } from './comments.ts';
 
 /** Pins (or unpins) as the given listener, who must be a host of the episode's show. */
 export async function setPinned(db: Db, commentId: string, listenerId: string, pin: boolean): Promise<void> {
@@ -18,19 +18,6 @@ export async function setPinned(db: Db, commentId: string, listenerId: string, p
   const hosts = await hostsOfEpisode(db, c.episode_id);
   if (!hosts.includes(listenerId)) throw new ApiError('forbidden', "Only the show's host can pin a comment.");
   await pinAsHost(db, commentId, c.episode_id, listenerId, pin);
-}
-
-/** The Studio has already checked the role; it pins by comment and show. */
-async function pinAsHostPg(db: Db, commentId: string, episodeId: string, by: string, pin: boolean): Promise<void> {
-  await db.transaction(async (tx) => {
-    if (pin) {
-      await tx.query('UPDATE comments SET pinned_at = NULL, pinned_by = NULL WHERE episode_id = $1 AND pinned_at IS NOT NULL', [episodeId]);
-      // M22 US10: a comment is pinned at one end only — the top pin takes it off the bottom.
-      await tx.query('UPDATE comments SET pinned_at = now(), pinned_by = $2, pinned_bottom_at = NULL WHERE id = $1', [commentId, by]);
-    } else {
-      await tx.query('UPDATE comments SET pinned_at = NULL, pinned_by = NULL WHERE id = $1', [commentId]);
-    }
-  });
 }
 
 /**
@@ -45,29 +32,6 @@ export async function setPinnedBottom(db: Db, commentId: string, listenerId: str
   const hosts = await hostsOfEpisode(db, c.episode_id);
   if (!hosts.includes(listenerId)) throw new ApiError('forbidden', "Only the show's host can pin a comment.");
   await pinBottomAsHost(db, commentId, c.episode_id, pin);
-}
-
-/** The Studio has already checked the role; it pins to the bottom by comment and episode. */
-async function pinBottomAsHostPg(db: Db, commentId: string, episodeId: string, pin: boolean): Promise<void> {
-  await db.transaction(async (tx) => {
-    if (pin) {
-      await tx.query('UPDATE comments SET pinned_bottom_at = NULL WHERE episode_id = $1 AND pinned_bottom_at IS NOT NULL', [episodeId]);
-      // A comment is pinned at one end only — the bottom pin takes it off the top.
-      await tx.query('UPDATE comments SET pinned_bottom_at = now(), pinned_at = NULL, pinned_by = NULL WHERE id = $1', [commentId]);
-    } else {
-      await tx.query('UPDATE comments SET pinned_bottom_at = NULL WHERE id = $1', [commentId]);
-    }
-  });
-}
-
-/** Mark or unmark; answers whether the comment is folded now. */
-async function setUnfriendlyPg(db: Db, commentId: string, listenerId: string, on: boolean): Promise<{ folded: boolean }> {
-  const c = await getComment(db, commentId);
-  if (!c || c.deleted_at !== null || c.removed_at !== null) throw new ApiError('not_found', 'No such comment.');
-  if (c.author_id === listenerId) throw new ApiError('own_comment', "You can't mark your own comment.");
-  if (on) await db.query('INSERT INTO comment_unfriendly (comment_id, listener_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [commentId, listenerId]);
-  else await db.query('DELETE FROM comment_unfriendly WHERE comment_id = $1 AND listener_id = $2', [commentId, listenerId]);
-  return { folded: (await foldedOnEpisode(db, c.episode_id)).has(commentId) };
 }
 
 /**
@@ -86,7 +50,7 @@ export async function thread(db: Db, commentId: string, viewerId: string | undef
   return { parent: rest, replies: tab === 'newest' ? [...list].reverse() : list };
 }
 
-// M26 lane SC: each function runs on Postgres, or on DynamoDB (`ddb/comment-extras.ts`) when the Db carries a Store (db/backend.ts).
-export const pinAsHost = dual('sc/comment-extras', 'pinAsHost', pinAsHostPg);
-export const pinBottomAsHost = dual('sc/comment-extras', 'pinBottomAsHost', pinBottomAsHostPg);
-export const setUnfriendly = dual('sc/comment-extras', 'setUnfriendly', setUnfriendlyPg);
+// Bodies in ddb/comment-extras.ts (src/db/backend.ts).
+export const pinAsHost = viaStore<typeof import('./ddb/comment-extras.ts').pinAsHost>('sc/comment-extras', 'pinAsHost');
+export const pinBottomAsHost = viaStore<typeof import('./ddb/comment-extras.ts').pinBottomAsHost>('sc/comment-extras', 'pinBottomAsHost');
+export const setUnfriendly = viaStore<typeof import('./ddb/comment-extras.ts').setUnfriendly>('sc/comment-extras', 'setUnfriendly');

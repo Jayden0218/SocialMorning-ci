@@ -1,23 +1,18 @@
-// Shared pieces of lane DV's DynamoDB code: the clock, episode rows from the catalogue items, show and listener walks.
+// Shared pieces of the discover DynamoDB code: the clock, episode rows from the catalogue items, show and listener walks.
 /**
- * M26 lane DV. Every file in this folder exports `<name>(store, db, ...args)` bodies for `dual('dv/<file>', …)`
- * (src/db/backend.ts). `db` is the app's handle WITH the Store attached; `bridgeOf(db)` is the plain Postgres handle
- * while the write bridge is on, `pgOf(db)` the plain handle for tables of lanes not moved yet (none read here any more:
- * lane ST's Studio shows, overrides and hidden episodes come through lane ST's repo).
+ * Every file in this folder exports `<name>(store, db, ...args)` bodies bound by `viaStore('dv/<file>', …)`
+ * (src/db/backend.ts). `db` is the app's handle with the Store attached.
  *
  * Episodes are lane LB's `EP#<id>/META` items (read here, never written); a show's episodes are its G2
  * `SHEPS#<feedKey>` partition, newest first (`<publishedAt|~>#<id>` — `~` sorts after every date, so the dated
- * ones are read first with `G2SK < '~'` and the undated ones after, which is the SQL's `DESC NULLS LAST`).
+ * ones are read first with `G2SK < '~'` and the undated ones after, i.e. newest first, undated last).
  */
-import type { Db } from '../../../db.ts';
-import { bridgeOf, pgOf } from '../../../backend-ddb.ts';
 import * as K from '../../../ddb/keys.ts';
 import { batchGetAll } from '../../../ddb/batch.ts';
 import { queryAll } from '../../../ddb/paginate.ts';
 import type { Item, Key, Store } from '../../../ddb/store.ts';
 import { uniqueOwner } from '../../../ddb/unique.ts';
 
-export { bridgeOf, pgOf };
 export const DAY_MS = 86_400_000;
 export const nowMs = (store: Store): number => store.clock.now();
 export const nowIso = (store: Store): string => new Date(store.clock.now()).toISOString();
@@ -27,7 +22,7 @@ export const str = (v: unknown): string | null => (v === undefined || v === null
 export const num = (v: unknown): number | null => (v === undefined || v === null ? null : Number(v));
 export const isUuid = (s: string): boolean => /^[0-9a-f-]{36}$/i.test(s);
 
-/** An episode as the Postgres repos selected it (snake_case, times ISO strings). */
+/** An episode row (snake_case, times ISO strings). */
 export type EpRow = {
   id: string; feed_url: string; guid: string; title: string; show_title: string | null; image_url: string | null; duration_ms: number | null;
   enclosure_url: string; published_at: string | null; genre_id: number | null; media_kind: string; first_seen_at: string; updated_at: string | null;
@@ -139,5 +134,3 @@ export async function partitionItems(store: Store, pk: string, opts: { prefix?: 
   });
   return items;
 }
-
-export type Hybrid = { store: Store; db: Db };

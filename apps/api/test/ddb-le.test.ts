@@ -7,9 +7,6 @@
  *   Break: in words.ts set `CHUNK_BYTES = 10_000_000` (one chunk) → encode refuses the item (400 KB).
  * - G-M26-LE2 — a deleted account's shared lists are gone (the old `owner_id → listeners ON DELETE CASCADE`), another
  *   listener's list stays. Break: in src/db/repos/account/ddb/deletion.ts drop `'lists'` from PHASES.
- * - G-M26-LE3 is the BRIDGE=off job itself (ci/workflows/ddb-api.yml, test/harness.ts `noPostgres`): broken by putting one
- *   foreign SQL read back into a DynamoDB body; the file that reaches it fails with "BRIDGE=off: the DynamoDB path called
- *   Postgres". The test below proves the refusing Db is loud even when a body swallows errors.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -19,7 +16,7 @@ const ON = Boolean(process.env['DDB_ENDPOINT']);
 if (!ON) {
   test('ddb lane LE guards (needs DynamoDB Local: DDB_ENDPOINT, ci/workflows/ddb-api.yml)', { skip: 'no DDB_ENDPOINT' }, () => {});
 } else {
-  const { freshDb, freshStore, signUp, noPostgres } = await import('./harness.ts');
+  const { freshDb, freshStore, signUp } = await import('./harness.ts');
   const { withStore } = await import('../src/db/backend-ddb.ts');
   const K = await import('../src/db/ddb/keys.ts');
   const { encode, itemSize, ITEM_MAX_BYTES } = await import('../src/db/ddb/codec.ts');
@@ -38,7 +35,7 @@ if (!ON) {
   test('G-M26-LE1: the worst-case blocked-word list (2000 × 40 four-byte characters) round-trips; one item could not hold it', { timeout: 300_000 }, async () => {
     const s = await freshStore();
     try {
-      const db = withStore(noPostgres(), s.store, { bridge: false });
+      const db = withStore(undefined, s.store);
       const by = '11111111-2222-4333-8444-555555555555';
       const words = Array.from({ length: WORDS_MAX }, (_, i) => worstWord(i));
       assert.equal(new Set(words).size, WORDS_MAX);
@@ -82,7 +79,7 @@ if (!ON) {
   test('words: a list stored in the old one-item shape is still read, and the next change rewrites it in chunks', async () => {
     const s = await freshStore();
     try {
-      const db = withStore(noPostgres(), s.store, { bridge: false });
+      const db = withStore(undefined, s.store);
       const { put } = await import('../src/db/ddb/store.ts');
       await put(s.store, 'main', encode('wordList', K.config('words'), { words: { beta: { by: null, at: '2026-10-11T00:00:00.000Z' }, alpha: { by: null, at: '2026-10-11T00:00:00.000Z' } }, v: 3 }));
       assert.deepEqual(await wordRows(db), ['alpha', 'beta']);
@@ -117,11 +114,11 @@ if (!ON) {
     assert.equal((await runDueDeletions(t.db, {})).deleted, 1);
 
     for (const id of mine) {
-      assert.equal(await get(t.store!, 'main', K.sharedList(id), { consistent: true }), undefined, `list ${id} is gone`);
-      assert.equal(await get(t.store!, 'main', K.sharedListPtr(a.id, id), { consistent: true }), undefined, `pointer ${id} is gone`);
+      assert.equal(await get(t.store, 'main', K.sharedList(id), { consistent: true }), undefined, `list ${id} is gone`);
+      assert.equal(await get(t.store, 'main', K.sharedListPtr(a.id, id), { consistent: true }), undefined, `pointer ${id} is gone`);
       assert.equal((await t.call('GET', `/v1/lists/${id}`)).status, 404);
     }
-    assert.ok(await get(t.store!, 'main', K.sharedList(theirs), { consistent: true }), 'the other listener\'s list stays');
+    assert.ok(await get(t.store, 'main', K.sharedList(theirs), { consistent: true }), 'the other listener\'s list stays');
     assert.equal((await t.call('GET', `/v1/lists/${theirs}`)).status, 200);
     await t.close();
   });
@@ -133,7 +130,7 @@ if (!ON) {
       const L = `/v1/admin/lists/${encodeURIComponent('category:1303')}`;
       assert.equal((await aCall(t, 'PUT', `${L}/default-tab`, owner, { tab: 'newest' })).status, 200, 'the tab first: this makes the document');
       assert.equal((await aCall(t, 'POST', L, owner, { kind: 'hide', feedUrl: FX })).status, 200, 'then a save of the same list (was 409)');
-      const doc = await get(t.store!, 'main', K.listDoc('category:1303'), { consistent: true });
+      const doc = await get(t.store, 'main', K.listDoc('category:1303'), { consistent: true });
       assert.equal(doc?.['v'], 1, 'version 0 from the tab, 1 after the save');
       assert.equal((await aCall(t, 'PUT', `${L}/default-tab`, owner, { tab: null })).status, 200);
       assert.equal((await aCall(t, 'POST', L, owner, { kind: 'hide', feedUrl: 'https://feeds.example.com/other.xml' })).status, 200, 'and again');
@@ -145,24 +142,16 @@ if (!ON) {
     const a = await signUp(t, 'fb-gone@example.com', 'Gone');
     assert.equal((await t.call('POST', '/v1/feedback', { kind: 'Other', body: 'from a leaver' }, a.token)).status, 200);
     const { acScan } = await import('./fixtures.ts');
-    const before = (await acScan(t.store!, 'main', 'feedback')).find((f) => f['body'] === 'from a leaver');
+    const before = (await acScan(t.store, 'main', 'feedback')).find((f) => f['body'] === 'from a leaver');
     assert.equal(before?.['listenerId'], a.id);
     assert.equal(before?.['G1PK'], `AUTH#${a.id}`, 'the item is in the author index');
     assert.equal((await t.call('DELETE', '/v1/me', { password: 'correct horse' }, a.token)).status, 202);
     await makeDeletionsDue(t);
     assert.equal((await runDueDeletions(t.db, {})).deleted, 1);
-    const after = (await acScan(t.store!, 'main', 'feedback')).find((f) => f['body'] === 'from a leaver');
+    const after = (await acScan(t.store, 'main', 'feedback')).find((f) => f['body'] === 'from a leaver');
     assert.ok(after, 'the feedback stays');
     assert.equal(after?.['listenerId'] ?? null, null, 'its sender is gone (the old ON DELETE SET NULL)');
     assert.equal(after?.['G1PK'], undefined);
     await t.close();
-  });
-
-  test('G-M26-LE3 (support): the BRIDGE=off Db refuses every query and exec loudly; a transaction opens nothing', async () => {
-    const pg = noPostgres();
-    await assert.rejects(pg.query('SELECT 1 FROM shared_lists'), /BRIDGE=off: the DynamoDB path called Postgres: SELECT 1 FROM shared_lists/);
-    await assert.rejects(pg.exec('DELETE FROM blocks'), /BRIDGE=off/);
-    assert.equal(await pg.transaction(async () => 7), 7);
-    await assert.rejects(pg.transaction((tx) => tx.query('SELECT 2')), /BRIDGE=off/);
   });
 }

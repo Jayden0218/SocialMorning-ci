@@ -101,7 +101,7 @@ export async function setPublisherBlock(db: Db, feedUrl: string, blocked: boolea
   } else {
     await deleteCacheKey(db, FEED_BLOCK_PREFIX + feedUrl);
   }
-  // M26 lane SF: on DynamoDB the mark also lives in the hidden-feeds partition, which hiddenFeedUrls reads (a no-op on Postgres).
+  // The mark also lives in the hidden-feeds partition, which hiddenFeedUrls reads.
   await setPublisherMark(db, feedUrl, blocked);
 }
 

@@ -11,7 +11,7 @@ import { createApp } from '../src/app.ts';
 import { validateCollections } from '../src/catalog/collections.ts';
 import { genreName, GENRE_LIST } from '../src/catalog/genres.ts';
 import { FIXTURE_FEED } from './fake-apple.ts';
-import { migratedPg, TEST_PEPPER, signUp, type TestDb } from './harness.ts';
+import { TEST_PEPPER, signUp, type TestDb } from './harness.ts';
 import { ageCacheKey, ownBackend, seedSubscription } from './dv-neutral.ts';
 import { seedComment, setCommentFlags } from './sc-neutral.ts';
 import { hideFeeds, suspendNow } from './sf-neutral.ts';
@@ -70,8 +70,7 @@ function fakeCatalog(chart: AppleShow[] = CHART) {
 }
 
 async function appWith(opts: { collectionsRaw?: unknown; chart?: AppleShow[] } = {}) {
-  const { pg, runner } = await migratedPg();
-  const be = await ownBackend(pg); // M26: Postgres, or (TEST_BACKEND=ddb) the hybrid Db
+  const be = await ownBackend();
   const db = be.db;
   const cat = fakeCatalog(opts.chart);
   const picksRaw = [{ date: '2026-09-22', feedUrl: FX, guid: 'g-new', why: 'Today\'s pick.' }];
@@ -81,14 +80,13 @@ async function appWith(opts: { collectionsRaw?: unknown; chart?: AppleShow[] } =
   const app = createApp({ db, pepper: TEST_PEPPER, catalogFetch: cat.fetch, picksRaw, collectionsRaw, today: () => '2026-09-22' });
   console.warn = orig;
   const t: TestDb = {
-    pg, db, runner, app, ...(be.store ? { store: be.store } : {}),
-    q: async <T,>(s: string, p?: unknown[]) => (await pg.query<T>(s, p)).rows,
+    db, app, store: be.store,
     call: async (method, path, body, token, headers = {}) => {
       const r = await app.request(path, { method, headers: { ...(body !== undefined ? { 'content-type': 'application/json' } : {}), ...(token ? { authorization: `Bearer ${token}` } : {}), ...headers }, body: body !== undefined ? JSON.stringify(body) : undefined });
-      await be.drain(); // M26: the outbox runs after each request on DynamoDB
+      await be.drain(); // the outbox runs after each request
       return r;
     },
-    close: async () => { await be.close(); await pg.close(); },
+    close: async () => { await be.close(); },
   };
   return { t, cat, warned };
 }

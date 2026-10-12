@@ -1,7 +1,7 @@
 // Moderation's take-down setters for clips, chat messages and statuses on DynamoDB (lane SF's additive file in lane SC's folder).
 /**
  * M26 lane SF (head note: "no take-down setters yet for clips, chat messages and statuses — add them in SC's ddb folder").
- * The items stay lane SC's; these only set or clear what the old SQL set, each with its Postgres bridge row (sc-bridge.ts):
+ * The items stay lane SC's; these only set or clear the take-down fields:
  * - clip: `removedAt` on the clip item (found by `clipItemById`);
  * - chat message: `removedAt` on `CH#<pair>/M#<id>` (found through `CHM#<id>`, `chatRef`);
  * - status: removal ends it now (`expiresAt` = now, and its queue key `Q#statuses` so the hourly sweep deletes it
@@ -13,10 +13,9 @@ import { ttlAfter } from '../../../ddb/codec.ts';
 import { get, update } from '../../../ddb/store.ts';
 import type { Db } from '../../../db.ts';
 import type { Store } from '../../../ddb/store.ts';
-import * as B from './sc-bridge.ts';
 import { clipItemById } from './clips.ts';
 import { STATUS_LIFE_MS } from './voice-posts.ts';
-import { keyOf, nowIso, nowMs, rawPg } from './sc-common.ts';
+import { keyOf, nowIso, nowMs } from './sc-common.ts';
 
 const DAY_MS = 86_400_000;
 const condFailed = (e: unknown) => (e as { name?: string }).name === 'ConditionalCheckFailedException';
@@ -30,8 +29,6 @@ export async function setClipRemovedItem(store: Store, db: Db, id: string, remov
       ? { update: 'SET #r = :at', condition: 'attribute_exists(PK) AND attribute_not_exists(#r)', names: { '#r': 'removedAt' }, values: { ':at': at } }
       : { update: 'REMOVE #r', condition: 'attribute_exists(#r)', names: { '#r': 'removedAt' } });
   } catch (e) { if (condFailed(e)) return false; throw e; }
-  const raw = rawPg(db);
-  if (raw) await B.setClipRemoved(raw, id, removed ? at : null);
   return true;
 }
 
@@ -47,8 +44,6 @@ export async function setChatRemovedItem(store: Store, db: Db, id: string, remov
       ? { update: 'SET #r = :at', condition: 'attribute_exists(PK) AND attribute_not_exists(#r)', names: { '#r': 'removedAt' }, values: { ':at': at } }
       : { update: 'REMOVE #r', condition: 'attribute_exists(#r)', names: { '#r': 'removedAt' } });
   } catch (e) { if (condFailed(e)) return false; throw e; }
-  const raw = rawPg(db);
-  if (raw) await B.setChatRemoved(raw, n, removed ? at : null);
   return true;
 }
 
@@ -70,7 +65,5 @@ export async function setStatusEnded(store: Store, db: Db, id: string, removed: 
   } catch (e) { if (condFailed(e)) return false; throw e; }
   const ptr = K.voicePostPtr(String(p['listenerId']), String(p['createdAt']), id);
   await update(store, 'main', ptr, { update: 'SET #e = :e', condition: 'attribute_exists(PK)', names: { '#e': 'expiresAt' }, values: { ':e': at } }).catch((e: unknown) => { if (!condFailed(e)) throw e; });
-  const raw = rawPg(db);
-  if (raw) await raw.query('UPDATE voice_posts SET expires_at = $2 WHERE id = $1', [id, at]);
   return true;
 }

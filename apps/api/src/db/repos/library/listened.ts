@@ -7,51 +7,10 @@
  * (guard G6: the UNIQUE), with `hidden` fixed from the listener's switch at that moment
  * (research R5).
  */
-import { listenItemDue, mergeRanges, unionLength, type Range } from '@socialmorning/social-core';
-import type { Db } from '../../db.ts';
-import { dual } from '../../backend.ts';
+import { unionLength, type Range } from '@socialmorning/social-core';
+import { viaStore } from '../../backend.ts';
 
 export type ListenedDayIn = { episodeId: string; day: string; ranges: Range[] };
-
-async function replaceRangesPg(db: Db, listenerId: string, deviceId: string, days: readonly ListenedDayIn[]): Promise<number> {
-  let accepted = 0;
-  for (const d of days) {
-    await db.transaction(async (tx) => {
-      const before = await unionFor(tx, listenerId, d.episodeId, d.day);
-      const merged = mergeRanges(d.ranges);
-      await tx.query(
-        `INSERT INTO listened_ranges (listener_id, episode_id, day, device_id, ranges) VALUES ($1, $2, $3, $4, ($5::text)::jsonb)
-         ON CONFLICT (listener_id, episode_id, day, device_id) DO UPDATE SET ranges = EXCLUDED.ranges, updated_at = now()`,
-        [listenerId, d.episodeId, d.day, deviceId, JSON.stringify(merged)],
-      );
-      const after = await unionFor(tx, listenerId, d.episodeId, d.day);
-      // M21 US6 (G-M21-12): the badge's running total grows by what the UNION gained — never by the
-      // raw ranges, which overlap across devices. A replace that shrinks the union takes it back;
-      // the total never goes below 0.
-      const delta = listenedDelta(before, after);
-      if (delta !== 0) {
-        await tx.query('UPDATE listeners SET listened_ms = greatest(0, listened_ms + $2::bigint) WHERE id = $1', [listenerId, delta]);
-      }
-      const [pos] = await tx.query<{ finished: boolean }>('SELECT finished FROM positions WHERE listener_id = $1 AND episode_id = $2', [listenerId, d.episodeId]);
-      const finished = pos?.finished ?? false;
-      // "finishedBefore" is whether a listened row already exists for that reason: once written, never again.
-      const [existing] = await tx.query<{ n: number }>(`SELECT count(*)::int AS n FROM activity WHERE actor_id = $1 AND kind = 'listened' AND episode_id = $2 AND day = $3`, [listenerId, d.episodeId, d.day]);
-      const already = Number(existing!.n) > 0;
-      if (!already && listenItemDue(before, after, false, finished)) {
-        const registered = await tx.query('SELECT 1 FROM episodes WHERE id = $1', [d.episodeId]);
-        if (registered.length > 0) {
-          const [l] = await tx.query<{ private_listening: boolean }>('SELECT private_listening FROM listeners WHERE id = $1', [listenerId]);
-          await tx.query(
-            `INSERT INTO activity (actor_id, kind, episode_id, day, hidden) VALUES ($1, 'listened', $2, $3, $4) ON CONFLICT DO NOTHING`,
-            [listenerId, d.episodeId, d.day, l?.private_listening ?? false],
-          );
-        }
-      }
-    });
-    accepted++;
-  }
-  return accepted;
-}
 
 /** M21 US6 (G-M21-12): what one replace adds to `listeners.listened_ms` — the union's change. */
 export function listenedDelta(beforeUnionMs: number, afterUnionMs: number): number {
@@ -63,31 +22,6 @@ export function unionOfRows(rows: readonly { ranges: Range[] | string }[]): numb
   return unionLength(rows.map((r) => (typeof r.ranges === 'string' ? (JSON.parse(r.ranges) as Range[]) : r.ranges)));
 }
 
-async function unionFor(db: Db, listenerId: string, episodeId: string, day: string): Promise<number> {
-  const rows = await db.query<{ ranges: Range[] | string }>('SELECT ranges FROM listened_ranges WHERE listener_id = $1 AND episode_id = $2 AND day = $3', [listenerId, episodeId, day]);
-  return unionOfRows(rows);
-}
-
-/** Per (episode, day) union across devices, joined to the episode's show, for the stats. */
-async function listenedRowsForPg(db: Db, listenerId: string): Promise<{ episodeId: string; feedUrl?: string; showTitle?: string; day: string; unionMs: number; finished: boolean }[]> {
-  const rows = await db.query<{ episode_id: string; day: string; ranges: Range[] | string; feed_url: string | null; show_title: string | null; finished: boolean | null }>(
-    `SELECT lr.episode_id, lr.day::text AS day, lr.ranges, e.feed_url, e.show_title, p.finished
-     FROM listened_ranges lr
-     LEFT JOIN episodes e ON e.id = lr.episode_id
-     LEFT JOIN positions p ON p.listener_id = lr.listener_id AND p.episode_id = lr.episode_id
-     WHERE lr.listener_id = $1`,
-    [listenerId],
-  );
-  const byKey = new Map<string, { episodeId: string; feedUrl?: string; showTitle?: string; day: string; sets: Range[][]; finished: boolean }>();
-  for (const r of rows) {
-    const key = `${r.episode_id}\u0000${r.day}`;
-    const cur = byKey.get(key) ?? { episodeId: r.episode_id, ...(r.feed_url ? { feedUrl: r.feed_url } : {}), ...(r.show_title ? { showTitle: r.show_title } : {}), day: r.day, sets: [], finished: r.finished ?? false };
-    cur.sets.push(typeof r.ranges === 'string' ? (JSON.parse(r.ranges) as Range[]) : r.ranges);
-    byKey.set(key, cur);
-  }
-  return [...byKey.values()].map(({ sets, ...rest }) => ({ ...rest, unionMs: unionLength(sets) }));
-}
-
-// M26 lane LB: each function runs on Postgres, or on DynamoDB (`ddb/` bodies) when the Db carries a Store (db/backend.ts).
-export const replaceRanges = dual('lb/listened', 'replaceRanges', replaceRangesPg);
-export const listenedRowsFor = dual('lb/listened', 'listenedRowsFor', listenedRowsForPg);
+// Each function runs on DynamoDB (`ddb/` bodies; db/backend.ts).
+export const replaceRanges = viaStore<typeof import('./ddb/listened.ts').replaceRanges>('lb/listened', 'replaceRanges');
+export const listenedRowsFor = viaStore<typeof import('./ddb/listened.ts').listenedRowsFor>('lb/listened', 'listenedRowsFor');

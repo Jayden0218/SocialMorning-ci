@@ -7,41 +7,12 @@
  * because that is the only way to delete one on evidence instead of taste.
  */
 import type { Channel } from '@socialmorning/social-core';
-import type { Db } from '../../db.ts';
-import { dual } from '../../backend.ts';
+import { viaStore } from '../../backend.ts';
 
 export type RecEventIn = { episodeId: string; channel: Channel; rank: number; kind: 'impression' | 'open' | 'play' | 'finish'; at: string };
 
-async function recordEventsPg(db: Db, listenerId: string, events: readonly RecEventIn[]): Promise<number> {
-  if (events.length === 0) return 0;
-  await db.transaction(async (tx) => {
-    for (const e of events) {
-      await tx.query(
-        'INSERT INTO rec_events (listener_id, episode_id, channel, rank, kind, at) VALUES ($1, $2, $3, $4, $5, $6)',
-        [listenerId, e.episodeId, e.channel, e.rank, e.kind, e.at],
-      );
-    }
-  });
-  return events.length;
-}
-
 export type ChannelRollup = { channel: string; shown: number; opened: number; played: number; finished: number };
 
-/** The 7-day table `/mod/recs` shows. Aggregates only — no listener is named. */
-async function rollupPg(db: Db, days = 7): Promise<ChannelRollup[]> {
-  const rows = await db.query<{ channel: string; shown: string; opened: string; played: string; finished: string }>(
-    `SELECT channel,
-            count(*) FILTER (WHERE kind = 'impression') AS shown,
-            count(*) FILTER (WHERE kind = 'open')       AS opened,
-            count(*) FILTER (WHERE kind = 'play')       AS played,
-            count(*) FILTER (WHERE kind = 'finish')     AS finished
-     FROM rec_events WHERE at > now() - ($1 || ' days')::interval
-     GROUP BY channel ORDER BY channel`,
-    [String(days)],
-  );
-  return rows.map((r) => ({ channel: r.channel, shown: Number(r.shown), opened: Number(r.opened), played: Number(r.played), finished: Number(r.finished) }));
-}
-
-// M26 lane LB: each function runs on Postgres, or on DynamoDB (`ddb/` bodies) when the Db carries a Store (db/backend.ts).
-export const recordEvents = dual('lb/rec-events', 'recordEvents', recordEventsPg);
-export const rollup = dual('lb/rec-events', 'rollup', rollupPg);
+// Each function runs on DynamoDB (`ddb/` bodies; db/backend.ts).
+export const recordEvents = viaStore<typeof import('./ddb/rec-events.ts').recordEvents>('lb/rec-events', 'recordEvents');
+export const rollup = viaStore<typeof import('./ddb/rec-events.ts').rollup>('lb/rec-events', 'rollup');

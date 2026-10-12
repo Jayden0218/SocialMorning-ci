@@ -36,18 +36,14 @@ async function purchaseWithEntitlement(t: TestDb, listenerId: string, token: str
 }
 
 /**
- * Makes the refund's later step fail. Postgres: the `tips` table is renamed away. DynamoDB (M26 lane PD): every
+ * Makes the refund's later step fail: every
  * transaction touching the buyer's partition (the entitlement delete) fails — the same "fails halfway" for a refund
  * that is now ONE TransactWriteItems. Returns the Db to refund with and how to undo the break.
  */
 async function breakRefund(t: TestDb, listenerId: string): Promise<{ db: Db; restore: () => Promise<void> }> {
-  if (t.store) {
-    const { withStore } = await import('../src/db/backend-ddb.ts');
-    const { withFaults } = await import('../src/db/ddb/test-wrappers.ts');
-    return { db: withStore(t.db, withFaults(t.store, [{ command: 'TransactWriteCommand', prefix: `L#${listenerId}` }])), restore: async () => undefined };
-  }
-  await t.q('ALTER TABLE tips RENAME TO tips_away'); // the tips step now fails
-  return { db: t.db, restore: async () => { await t.q('ALTER TABLE tips_away RENAME TO tips'); } };
+  const { withStore } = await import('../src/db/backend-ddb.ts');
+  const { withFaults } = await import('../src/db/ddb/test-wrappers.ts');
+  return { db: withStore(t.db, withFaults(t.store, [{ command: 'TransactWriteCommand', prefix: `L#${listenerId}` }])), restore: async () => undefined };
 }
 
 test('G-M23-5: a refund that fails halfway records nothing; the next run withdraws it whole', async () => {
@@ -73,7 +69,7 @@ const ep = { feedUrl: 'https://feeds.example.com/del.xml', guid: 'g1', title: 'E
 const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
 const FULL = `body, transcript, country, voice_url, voice_path, voice_ms, image_url, image_path, image_w, image_h, image_bytes`;
 
-// M26 lane SC: through sc-neutral, so the comment exists wherever the comment lane runs (DynamoDB + its Postgres bridge row).
+// M26 lane SC: through sc-neutral, so the comment is written the way the comment lane stores it.
 async function heavyComment(t: TestDb, authorId: string): Promise<string> {
   return seedComment(t, {
     episodeId: `${EP}`, authorId, body: 'words', country: 'MY',

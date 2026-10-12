@@ -1,7 +1,7 @@
 // Starts the real API on a test database for browser end-to-end tests.
 /**
  * The real API for the Studio's end-to-end test (ci/workflows/e2e.yml) — NOT used in production.
- * Real app, real PostgreSQL, real sessions. Two things are stand-ins, and only these:
+ * Real app, real DynamoDB (DynamoDB Local, DDB_ENDPOINT), real sessions. Two things are stand-ins, and only these:
  *   - the audio store: tokens are genuine client tokens made from a dummy read-write token (made
  *     locally, no network), the browser's upload call is answered by the test, and `head` here
  *     reports a fixed size for any file under this test's store address;
@@ -9,8 +9,8 @@
  *
  * The listener journey (specs/015-e2e-journey) adds three switches, all off by default so the
  * Studio test runs exactly as before:
- *   - no DATABASE_URL → PGlite in memory, migrated at start (the Mac run for the real iPhone,
- *     which must never touch Neon);
+ *   - the data is a new table set on DynamoDB Local made at start (`e2e_<random>_main/events/cache`) and dropped at exit;
+ *     DDB_ENDPOINT must name a local DynamoDB (never AWS). The outbox is drained every 200 ms, as the worker would;
  *   - E2E_STORE_BASE=<this server>/__e2e/store/ → the store's files are served HERE, every audio
  *     file being scripts/fixtures/journey.mp3 (60 s, byte ranges for the phone's player), so a
  *     published episode really plays;
@@ -24,9 +24,12 @@
  */
 import { serve } from '@hono/node-server';
 import { createApp } from '../src/app.ts';
-import { createClient } from '../src/db/client.ts';
-import { fromPglite, fromPostgres, type Db } from '../src/db/db.ts';
-import { migrate } from '../src/db/migrate.ts';
+import { createDdbClients } from '../src/db/ddb/client.ts';
+import { createStore, prefixedTables } from '../src/db/ddb/store.ts';
+import { createTableSet, deleteTableSet } from '../src/db/ddb/schema.ts';
+import { withStore } from '../src/db/backend-ddb.ts';
+import { drainOutbox } from '../src/jobs/outbox.ts';
+import type { Db } from '../src/db/db.ts';
 import { createListener, listenerByEmail } from '../src/db/repos/account/listeners.ts';
 import { hashPassword } from '../src/auth/password.ts';
 import { createSession } from '../src/auth/session.ts';
@@ -59,19 +62,20 @@ const storage: EpisodeStorage = {
 };
 
 async function database(): Promise<Db> {
-  if (process.env['DATABASE_URL']) return fromPostgres(createClient());
-  const { PGlite } = await import('@electric-sql/pglite');
-  const { citext } = await import('@electric-sql/pglite/contrib/citext');
-  const pg = new PGlite({ extensions: { citext } });
-  await migrate({ exec: (q) => pg.exec(q).then(() => undefined), query: async <T,>(q: string, p?: unknown[]) => (await pg.query<T>(q, p)).rows });
-  console.log('e2e api: PGlite in memory (no DATABASE_URL)');
-  return fromPglite(pg);
+  if (!process.env['DDB_ENDPOINT']) throw new Error('e2e api: DDB_ENDPOINT is not set (DynamoDB Local, e.g. scripts/ddb-local.sh)');
+  const clients = createDdbClients();
+  const tables = prefixedTables(`e2e_${Math.random().toString(36).slice(2, 8)}`);
+  await createTableSet(clients.raw, tables);
+  const store = createStore({ clients, tables, secret: process.env['CURSOR_SECRET'] ?? 'e2e-cursor-secret' });
+  // The worker's job in production: run the outbox (notifications, fan-out, counters) shortly after each write.
+  const timer = setInterval(() => { void drainOutbox(store).catch(() => undefined); }, 200);
+  timer.unref();
+  const drop = async () => { clearInterval(timer); await deleteTableSet(clients.raw, tables).catch(() => undefined); clients.raw.destroy(); };
+  for (const sig of ['SIGINT', 'SIGTERM'] as const) process.once(sig, () => { void drop().finally(() => process.exit(0)); });
+  console.log(`e2e api: DynamoDB Local tables ${tables.main}, ${tables.events}, ${tables.cache}`);
+  return withStore(undefined, store);
 }
 const db = await database();
-// The store served HERE is plain http on the Mac (the phone cannot trust a self-made certificate),
-// so this throw-away test database drops the one rule that wants https audio. Only when the
-// audio really is served by this server; production's rule is untouched (migration 010).
-if (E2E_STORE.startsWith('http://')) await db.query('ALTER TABLE hosted_episodes DROP CONSTRAINT IF EXISTS hosted_episodes_audio_url_check');
 
 async function moderator(): Promise<string | undefined> {
   const email = process.env['E2E_MOD_EMAIL'];

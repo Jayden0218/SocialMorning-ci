@@ -13,8 +13,7 @@
  * A racing writer fails the mark's condition (or AWS cancels with TransactionConflict) and the whole step is
  * retried from a fresh read — so two taps by one listener in one bucket can never count twice (guard G-M26-LB1).
  *
- * `replaceHeat` writes a whole curve from a set of marks (rebuild after a duration becomes known, and the
- * Postgres bridge while comments/reactions still live there); `repairHeat` recomputes `b` from the marks
+ * `replaceHeat` writes a whole curve from a set of marks (rebuild after a duration becomes known); `repairHeat` recomputes `b` from the marks
  * (the nightly repair, §6).
  */
 import { encode } from '../db/ddb/codec.ts';
@@ -133,7 +132,7 @@ const curveOf = (marks: Iterable<{ bucket: number; refs: number }>): number[] =>
 /**
  * Replaces an episode's marks and curve with exactly `marks` (refs per listener per bucket). Not one
  * transaction (an episode can have thousands of marks): marks first, the curve last, so a reader sees the
- * old curve or the new one. Used by the rebuild and by the Postgres bridge.
+ * old curve or the new one. Used by the rebuild.
  */
 export async function replaceHeat(store: Store, episodeId: string, marks: readonly { listenerId: string; bucket: number; refs: number }[]): Promise<number[]> {
   const want = new Map(marks.filter((m) => m.refs > 0).map((m) => [`${K.bucket(m.bucket)}#${m.listenerId}`, m]));

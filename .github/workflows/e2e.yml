@@ -1,5 +1,5 @@
 # The Studio end to end (M11 + M13): a real browser against the built Studio (vite preview,
-# proxying /api like production) and the real API on a real PostgreSQL. Stand-ins: the audio
+# proxying /api like production) and the real API on DynamoDB Local. Stand-ins: the audio
 # store's upload call and Apple's catalogue (apps/api/scripts/e2e-server.ts). Screenshots of
 # every step are uploaded as the `studio-e2e` artifact.
 name: studio-e2e
@@ -10,16 +10,9 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    services:
-      postgres:
-        image: postgres:16
-        # No password: a throw-away container for this run only (trust auth), so no secret-shaped string exists.
-        env: { POSTGRES_HOST_AUTH_METHOD: trust, POSTGRES_DB: e2e }
-        ports: ['5432:5432']
-        options: >-
-          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      DATABASE_URL: postgresql://postgres@localhost:5432/e2e
+      DDB_ENDPOINT: http://localhost:8000
+      AWS_REGION: ap-southeast-1
       SESSION_PEPPER: e2e-pepper-not-secret
       # The listener journey (specs/015-e2e-journey): the moderator account, the seed's output.
       E2E_MOD_EMAIL: mod@journey.test
@@ -31,9 +24,11 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci --no-audit --no-fund
-      - name: migrate
-        run: npx tsx src/db/migrate.ts
-        working-directory: apps/api
+      # DynamoDB Local from Maven Central (scripts/ddb-local.sh): the image registry rate-limited the service container (2026-10-12).
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '21' }
+      - name: start DynamoDB Local
+        run: scripts/ddb-local.sh
       - name: start the API
         run: (npx tsx scripts/e2e-server.ts > ../../api.log 2>&1 &) && for i in $(seq 1 60); do curl -sf localhost:8787/v1/health && break; sleep 1; done
         working-directory: apps/api

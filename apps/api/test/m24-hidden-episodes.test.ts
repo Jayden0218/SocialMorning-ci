@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { createApp } from '../src/app.ts';
 import { fakeApple, fakeFeedFetch, FIXTURE_FEED } from './fake-apple.ts';
-import { dbOf, hybridDb, migratedPg, TEST_PEPPER } from './harness.ts';
+import { appDb, TEST_PEPPER } from './harness.ts';
 import { hideEpisodeRow } from './st-neutral.ts';
 import { putEpisode } from './put-episode.ts';
 
@@ -15,8 +15,7 @@ const CASEY = 'c0633378-b188-11ef-bcb2-677967fca1e9';
 const E = (guid: string) => fnv1a64(`${FX}\u0001${guid}`);
 
 async function build() {
-  const { pg } = await migratedPg();
-  const hy = await hybridDb(dbOf(pg)); // M26: lane ST's hidden set on DynamoDB under TEST_BACKEND=ddb
+  const hy = await appDb();
   const db = hy.db;
   const apple = fakeApple();
   const catalogFetch = (async (input: string | URL | Request, init?: RequestInit) => {
@@ -29,9 +28,8 @@ async function build() {
   const orig = console.warn; console.warn = () => {};
   const app = createApp({ db, pepper: TEST_PEPPER, catalogFetch, picksRaw, today: () => '2026-09-22' });
   console.warn = orig;
-  const q = async <T,>(s: string, p?: unknown[]) => (await pg.query<T>(s, p)).rows;
-  const tq = { q, db, ...(hy.store ? { store: hy.store } : {}) };
-  return { pg, db, app, q, tq, close: async () => { await hy.close(); await pg.close(); } };
+  const tq = { db, store: hy.store };
+  return { db, app, tq, close: () => hy.close() };
 }
 
 test('M24 US11: a hidden episode leaves Discover picks, daily picks and episode search at once; the row removed brings it back', async () => {

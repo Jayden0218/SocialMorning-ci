@@ -1,8 +1,7 @@
 // Lane ST's timed work on DynamoDB: scheduled Studio episodes go live, and once a day the rollups are checked against a recount.
 /**
  * M26 lane ST (ST-T02, ST-T05). Called by the hourly `sweep` step (routes/internal.ts); production may also call
- * `promoteScheduled` from a 1-minute schedule (lane OPS). On Postgres there is nothing to do: the old code promoted
- * on read, which the DynamoDB code also still does.
+ * `promoteScheduled` from a 1-minute schedule (lane OPS). Episodes are also promoted on read.
  *  - `promoteScheduled`: every hosted episode on G4 `Q#scheduled` whose time has come goes live — once (G-M26-ST1).
  *  - `checkRollups`: yesterday's (UTC) Studio rollups against a recount of the facts, repaired where they differ —
  *    once a day (`U#LOCK#st-rollups#<day>`).

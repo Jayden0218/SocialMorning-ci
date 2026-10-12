@@ -10,15 +10,12 @@
  */
 import type { NativeAttributeValue } from '@aws-sdk/lib-dynamodb';
 import type { Db } from '../../../db.ts';
-import { bridgeOf } from '../../../backend-ddb.ts';
 import { batchWriteAll } from '../../../ddb/batch.ts';
 import { encode, ttlAfter } from '../../../ddb/codec.ts';
 import * as K from '../../../ddb/keys.ts';
 import { queryAll } from '../../../ddb/paginate.ts';
 import { nextSeq } from '../../../ddb/seq.ts';
 import { update, type Store } from '../../../ddb/store.ts';
-import * as pg from '../rec-events.ts';
-import { sweepOldRecEvents as pgSweepOldRecEvents } from '../../old-rows-sweep.ts';
 import type { ChannelRollup, RecEventIn } from '../rec-events.ts';
 
 const DAY_MS = 86_400_000;
@@ -26,7 +23,7 @@ export const REC_KEEP_DAYS = 90;
 const KINDS = { impression: 'shown', open: 'opened', play: 'played', finish: 'finished' } as const;
 const ROLLUP_PK = K.ev.rollup('recs', 'all', '2000-01-01T00:00:00Z').PK;
 
-export async function recordEvents(store: Store, db: Db, listenerId: string, events: readonly RecEventIn[]): Promise<number> {
+export async function recordEvents(store: Store, _db: Db, listenerId: string, events: readonly RecEventIn[]): Promise<number> {
   if (events.length === 0) return 0;
   const first = await nextSeq(store, 'rec_events', events.length);
   await batchWriteAll(store, 'events', events.map((e, i) => {
@@ -52,8 +49,6 @@ export async function recordEvents(store: Store, db: Db, listenerId: string, eve
     const adds = [...counts].map(([attr, n], i) => { names[`#c${i}`] = attr; values[`:c${i}`] = n; return `#c${i} :c${i}`; });
     await update(store, 'events', { PK: ROLLUP_PK, SK: sk }, { update: `SET #t = :t ADD ${adds.join(', ')}`, names, values });
   }
-  const raw = bridgeOf(db);
-  if (raw) await pg.recordEvents(raw, listenerId, events);
   return events.length;
 }
 
@@ -80,7 +75,7 @@ export async function rollup(store: Store, _db: Db, days = 7): Promise<ChannelRo
  * LB-58: events older than 90 days, read by day through E1 (the 30 days before the cutoff — the sweep runs
  * hourly, so nothing older survives it; TTL removes anything a long outage left behind).
  */
-export async function sweepOldRecEvents(store: Store, db: Db): Promise<number> {
+export async function sweepOldRecEvents(store: Store, _db: Db): Promise<number> {
   const cutoff = store.clock.now() - REC_KEEP_DAYS * DAY_MS;
   const doomed: { PK: string; SK: string }[] = [];
   for (let d = 0; d <= 30; d++) {
@@ -91,8 +86,6 @@ export async function sweepOldRecEvents(store: Store, db: Db): Promise<number> {
     for (const it of items) if (Date.parse(String(it['SK']).slice(0, 24)) < cutoff) doomed.push({ PK: String(it['PK']), SK: String(it['SK']) });
   }
   await batchWriteAll(store, 'events', doomed.map((k) => ({ delete: k })));
-  const raw = bridgeOf(db);
-  if (raw) await pgSweepOldRecEvents(raw);
   return doomed.length;
 }
 

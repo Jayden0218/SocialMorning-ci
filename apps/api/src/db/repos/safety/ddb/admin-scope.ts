@@ -1,6 +1,6 @@
 // Inside an admin write, a small change joins the admin record's own transaction instead of committing alone.
 /**
- * M26 lane SF (adopts lane AC's `adminTx`, src/auth/admin-tx.ts). The admin routes call
+ * Adopts `adminTx` (src/auth/admin-tx.ts). The admin routes call
  * `adminWrite(db, ctx, meta, read, write)`; on DynamoDB (admin-access.ts) `write` runs inside an admin scope.
  * A repo body that makes one bounded change (a setting, a page, the word list, an appeal decision) builds its
  * Tx and calls `commitOrDefer`: outside a scope it commits as usual; inside one its items are handed to the
@@ -8,8 +8,7 @@
  * happen without its record, and a failed record undoes it (guard G-A2 keeps its meaning).
  * A failed condition of a deferred item surfaces as the error the body registered for its label (e.g. a
  * version race → 409 `changed`), exactly as the body would have thrown it alone.
- * Writes that are not deferred (lane AC's listener items, the Postgres tables of lanes not moved yet) commit in
- * the request: the Postgres ones inside adminWrite's Postgres transaction (rolled back if the record fails).
+ * Writes that are not deferred (the listener items) commit in the request.
  */
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { tx, TxCancelled, type Tx } from '../../../ddb/tx.ts';

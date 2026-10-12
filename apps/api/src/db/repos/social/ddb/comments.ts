@@ -27,13 +27,12 @@ import { addHeatMark, removeHeatMark } from '../../../../heat/ddb.ts';
 import { buildThreads, UNFRIENDLY_FOLD_AT, type CommentRow, type PublicComment } from '../comments.ts';
 import type { LikeState } from '../comment-likes.ts';
 import { notifyForComment } from '../notifications.ts';
-import * as B from './sc-bridge.ts';
 import {
-  bumpSocial, commentItemById, commitRetry, countsAsTop, countsOnHeat, keyOf, nowIso, num, people, person, prefixItems, rawPg, str, type Person,
+  bumpSocial, commentItemById, commitRetry, countsAsTop, countsOnHeat, keyOf, nowIso, num, people, person, prefixItems, str, type Person,
 } from './sc-common.ts';
 import { recordActivity, removeActivityByRef } from '../graph-ddb/activity.ts';
 
-/** The item and its author's listener item → the row the Postgres SELECT returned (LEFT JOIN listeners). */
+/** The item and its author's listener item → the comment row (LEFT JOIN listeners semantics: a deleted author is just missing). */
 export function commentRow(it: Item, p: Person | undefined): CommentRow {
   return {
     id: String(it['id']), episode_id: String(it['episodeId']), author_id: str(it['authorId']),
@@ -77,8 +76,7 @@ export async function createComment(store: Store, db: Db, c: NewComment): Promis
 
 /**
  * The comment's items in one transaction — the comment, its id pointer, the author's index entry, the episode's SOCIAL
- * stamp and top-level count, the root's `replyCount`, and the heat mark when it has a placed moment — then its
- * Postgres row (the bridge). `given` is used only by test seeding (sc-neutral.ts); the app takes now and a new id.
+ * stamp and top-level count, the root's `replyCount`, and the heat mark when it has a placed moment. `given` is used only by test seeding (sc-neutral.ts); the app takes now and a new id.
  */
 export async function writeComment(store: Store, db: Db, c: NewComment, given: { id?: string; at?: string } = {}): Promise<Item> {
   let root: Item | undefined;
@@ -116,8 +114,6 @@ export async function writeComment(store: Store, db: Db, c: NewComment, given: {
     if (e instanceof TxCancelled && e.failed('comment:parent')) throw new ApiError('not_found', 'That comment is not on this episode.');
     throw e;
   }
-  const raw = rawPg(db);
-  if (raw) await B.insertComment(raw, { id, episodeId: c.episodeId, authorId: c.authorId, parentId: c.parentId ?? null, body: c.body, offsetMs, ...(c.voice ? { voice: c.voice } : {}), ...(c.country ? { country: c.country } : {}), createdAt });
   return item;
 }
 
@@ -147,8 +143,6 @@ export async function placeholderItem(store: Store, db: Db, it: Item): Promise<v
   };
   if (countsOnHeat(it)) await removeHeatMark(store, { episodeId, listenerId: String(it['authorId']), bucket: Number(it['bucket']) }, build);
   else await commitRetry(store, build);
-  const raw = rawPg(db);
-  if (raw) await B.placeholderComment(raw, String(it['id']), at);
 }
 
 /** The likes and "unfriendly" marks under a comment that is gone, on both sides (the old ON DELETE CASCADE). */
@@ -180,8 +174,6 @@ export async function removeCommentItem(store: Store, db: Db, it: Item): Promise
   if (countsOnHeat(it)) await removeHeatMark(store, { episodeId, listenerId: String(it['authorId']), bucket: Number(it['bucket']) }, build);
   else await commitRetry(store, build);
   await cascadeMarks(store, it);
-  const raw = rawPg(db);
-  if (raw) await B.deleteCommentRow(raw, String(it['id']));
 }
 
 /** Has this top-level comment any reply (the replies sort right after it)? */
@@ -285,8 +277,6 @@ export async function setCommentRemoved(store: Store, db: Db, id: string, remove
     if (e instanceof TxCancelled && e.failed('comment')) return false; // changed meanwhile: the other writer's state stands
     throw e;
   }
-  const raw = rawPg(db);
-  if (raw) await B.setCommentColumns(raw, id, { removed_at: removed ? at : null });
   return true;
 }
 
@@ -313,13 +303,11 @@ export async function setCommentHostHidden(store: Store, db: Db, id: string, by:
     if (e instanceof TxCancelled && e.failed('comment')) return false;
     throw e;
   }
-  const raw = rawPg(db);
-  if (raw) await B.setCommentColumns(raw, id, { host_hidden_at: hide ? at : null, host_hidden_by: by });
   return true;
 }
 
 /**
- * After lane LB rebuilt an episode's marks from the bridge's Postgres rows (`rebuildFromBridge`), the comments that
+ * After an episode's marks are rebuilt from its comments, the comments that
  * were parked (a moment but no length yet) are counted already: give them their `bucket` without touching the
  * curve, so the `heat.place` job does not count them a second time and a later delete takes the right mark away.
  */
@@ -347,8 +335,6 @@ export async function setLikeNotices(store: Store, db: Db, commentId: string, li
   await commitRetry(store, (t) => {
     t.update('main', keyOf(it), { update: 'SET #n = :off', condition: 'attribute_exists(PK)', names: { '#n': 'likeNoticesOff' }, values: { ':off': off } });
   });
-  const raw = rawPg(db);
-  if (raw) await B.setCommentColumns(raw, commentId, { like_notices_off: off });
   return 'ok';
 }
 

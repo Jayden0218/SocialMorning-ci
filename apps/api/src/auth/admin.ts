@@ -33,7 +33,7 @@ export type AdminEnv = { Variables: AuthEnv['Variables'] & { device?: string } }
 export const AUDIT_AREAS = ['picks', 'issues', 'collections', 'discover', 'launch', 'accounts', 'users', 'reports', 'safety', 'notices', 'appeals', 'config', 'content'] as const;
 export type AuditArea = (typeof AUDIT_AREAS)[number];
 
-// jsonb/asObject (jsonb goes in as TEXT, guard G-A4), insertAudit and adminWrite (G-A2) live with their SQL.
+// adminWrite (G-A2) and its helpers live with the admin repo.
 export { adminWrite, asObject, insertAudit, jsonb } from '../db/repos/admin/admin-access.ts';
 
 /** M15 T003: the owner becomes the first admin when there is none. Idempotent; a missing listener row is skipped. */

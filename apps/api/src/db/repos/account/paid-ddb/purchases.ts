@@ -1,6 +1,6 @@
 // Store purchases on DynamoDB: granted once per token, refunded in one transaction, PLUS chained under a version.
 /**
- * M26 lane PD (PD-T01…T03, T06; patterns PD-01…PD-21, PD-40…PD-42). Postgres twins: ../purchases.ts.
+ * M26 lane PD (PD-T01…T03, T06; patterns PD-01…PD-21, PD-40…PD-42).
  *
  * - Grant (PD-01, PD-06): the purchase item is keyed by the token's hash and Put with attribute_not_exists in ONE
  *   transaction with `U#TXN#<orderId>`, the buyer's pointer and what it grants (PLUS row + moved codes + the PLUS
@@ -8,7 +8,7 @@
  *   condition: one transaction wins, the other is cancelled and answers `repeated` — never a second grant
  *   (guard G-M26-PD1). `granted` records the entitlement keys it created.
  * - Access-patterns finding 2 is KEPT (owner to decide): a NEW token whose order id is already stored fails on
- *   `U#TXN#` and throws, as the Postgres unique violation did (a 500).
+ *   `U#TXN#` and throws, as a unique violation would (a 500).
  * - Refund (PD-12…PD-15, M23 US4): GetItem, then ONE transaction: purchase voided (condition: not voided yet), each
  *   granted entitlement deleted only while its `sourcePurchaseId` is still this purchase (a renewal by another purchase
  *   keeps it), the tip deleted, the gift cancelled, the earning marked refunded (a tip's earning deleted — finding 3
@@ -40,7 +40,7 @@ import {
   type EntitlementListRow, type GiftAdminRow, type GrantIn, type Granted, type MoneyRow, type PurchaseListRow, type TipAdminRow, type TipListRow,
 } from '../purchases.ts';
 import {
-  addZone, applyRows, bumpPlus, DAY_MS, entItem, entitlementsOf, getPurchase, iso, isoOf, keyOf, liveNow, mirror, newId, notEnded,
+  addZone, applyRows, bumpPlus, DAY_MS, entItem, entitlementsOf, getPurchase, iso, isoOf, keyOf, liveNow, newId, notEnded,
   nowMs, purchaseItem, purchasePtrItem, purchasesOfListener, putRows, readPlus, rechain, zoneOf, ackDue, type EntItem, type PurchaseItem,
 } from './common.ts';
 import { hostedPriceTier, tipsEnabled } from './foreign.ts';
@@ -79,7 +79,6 @@ export async function grantGoogle(store: Store, db: Db, play: GooglePlay, p: Gra
     if (!ACTIVE_STATES.has(s.state)) {
       if (seen) {
         await unlessCondition(upd(store, 'main', key, { update: 'SET status = :x REMOVE G4PK, G4SK', condition: 'status = :a', values: { ':x': 'expired', ':a': 'active' } }));
-        await mirror(store, db, { purchases: [key] });
       }
       throw new ApiError('not_paid', 'Google has not taken this payment.');
     }
@@ -118,8 +117,7 @@ export async function grantGoogle(store: Store, db: Db, play: GooglePlay, p: Gra
     const again = seen ? undefined : await getPurchase(store, key);
     // The same token, committed by a racing notice (its order id is the same too): that one granted.
     if (again && again.listenerId === p.listenerId) out = { id: again.id, raced: true, giftCode: again.giftCode };
-    // Access-patterns finding 2, kept: a NEW token with a stored order id fails as the Postgres unique violation
-    // on store_txn_id did (a 500) — never a silent grant. The owner decides (tasks.md PD-T01).
+    // Access-patterns finding 2, kept: a NEW token with a stored order id fails (a 500) — never a silent grant. The owner decides (tasks.md PD-T01).
     else throw new Error('purchase: this store order id is already stored under another purchase token');
   }
 
@@ -128,13 +126,11 @@ export async function grantGoogle(store: Store, db: Db, play: GooglePlay, p: Gra
     try {
       await play.acknowledge(kind === 'plus' ? 'subscription' : 'product', p.productId, p.purchaseToken);
       await upd(store, 'main', key, { update: 'SET acknowledgedAt = :now REMOVE G4PK, G4SK', condition: 'attribute_exists(PK)', values: { ':now': at } });
-      await mirror(store, db, { purchases: [key] });
     } catch (e) {
       console.error('google acknowledge failed; the cycle retries', e instanceof Error ? e.message : String(e));
     }
   } else if (acknowledged) {
     await upd(store, 'main', key, { update: 'SET acknowledgedAt = if_not_exists(acknowledgedAt, :now) REMOVE G4PK, G4SK', condition: 'attribute_exists(PK)', values: { ':now': at } });
-    await mirror(store, db, { purchases: [key] });
   }
   const giftCode = kind === 'gift' ? out.giftCode : undefined;
   return { purchaseId: out.id, kind, status: 'active', expiresAt, repeated: Boolean(seen) || out.raced, ...(giftCode ? { giftCode } : {}) };
@@ -199,7 +195,6 @@ async function create(store: Store, db: Db, listenerId: string, token: string, w
   claimUnique(t.raw, K.U.txn(w.orderId ?? token), id);
   t.put('main', purchasePtrItem({ listenerId, id, createdAt, key: w.key }));
   await t.commit();
-  await mirror(store, db, { purchases: [w.key], listeners: w.kind === 'plus' || w.kind === 'show' ? [listenerId] : [], ...(tipKey ? { tips: [{ key: tipKey, id: tipId! }] } : {}), ...(giftCode ? { gifts: [giftCode] } : {}) });
   return { id, raced: false, giftCode };
 }
 
@@ -217,7 +212,6 @@ async function renewPlus(store: Store, db: Db, listenerId: string, seen: Purchas
     label: 'purchase',
   });
   await t.commit();
-  await mirror(store, db, { purchases: [w.key], listeners: [listenerId] });
   return { id: seen.id, raced: false };
 }
 
@@ -281,7 +275,6 @@ async function refundOne(store: Store, db: Db, v: { purchaseToken: string; voide
     else if (earn) t.update('main', keyOf(p.earnKey), { update: 'SET refunded = :y', values: { ':y': true } });
   }
   await t.commit();
-  await mirror(store, db, { purchases: [key], listeners: [...listeners], ...(tip ? { tips: [tip] } : {}), ...(p.giftCode ? { gifts: [p.giftCode] } : {}) });
   return 'withdrawn';
 }
 
@@ -298,7 +291,6 @@ export async function acknowledgeDue(store: Store, db: Db, play: GooglePlay): Pr
     try {
       await play.acknowledge(kindOf(r.productId) === 'plus' ? 'subscription' : 'product', r.productId, String(r.purchaseToken));
       await upd(store, 'main', keyOf(r), { update: 'SET acknowledgedAt = :now REMOVE G4PK, G4SK', condition: 'attribute_exists(PK)', values: { ':now': iso(nowMs(store)) } });
-      await mirror(store, db, { purchases: [keyOf(r)] });
       done++;
     } catch {
       failed++;
@@ -321,7 +313,6 @@ export async function rechainCodes(store: Store, db: Db, listenerId: string): Pr
     await t.commit();
     return m.length;
   }, { tries: 5, retryOn: retryable('plusv') });
-  if (moved > 0) await mirror(store, db, { listeners: [listenerId] });
   return moved;
 }
 
@@ -347,7 +338,6 @@ export async function grantPlusByAdmin(store: Store, db: Db, listenerId: string,
     await plusChange(store, t, listenerId, { ref, until: iso(nowMs(store) + days * DAY_MS), sourcePurchaseId: cur?.sourcePurchaseId ?? null });
     await t.commit();
   }, { tries: 5, retryOn: retryable('plusv') });
-  await mirror(store, db, { listeners: [listenerId] });
 }
 
 /** Admin: every PLUS row goes, bought or given (the digest queue entry with them). */
@@ -359,7 +349,6 @@ export async function revokeAllPlus(store: Store, db: Db, listenerId: string): P
     bumpPlus(t, listenerId, st, [], await zoneOf(store, listenerId), nowMs(store));
     await t.commit();
   }, { tries: 5, retryOn: retryable('plusv') });
-  await mirror(store, db, { listeners: [listenerId] });
   return [];
 }
 
@@ -479,7 +468,7 @@ export async function saveVoidedCheck(store: Store, _db: Db, v: unknown): Promis
 
 // ---- data export (AC-T08's paid sections) and account deletion (AC-T09's paid phase) ----
 
-/** The four export sections as the old `SELECT *` rows (snake_case; the export drops token/hash columns itself). */
+/** The four export sections as rows (snake_case; the export drops token/hash columns itself). */
 export async function exportPaidRows(store: Store, _db: Db, listenerId: string): Promise<Record<string, Record<string, unknown>[]>> {
   const ps = (await purchasesOfListener(store, listenerId)).sort((a, b) => (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : 0));
   const tips = await tipsOf(store, listenerId, 10_000);

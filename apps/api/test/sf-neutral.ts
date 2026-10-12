@@ -1,9 +1,7 @@
-// Lane SF test helpers that work on both backends: Postgres SQL today, DynamoDB items when the test runs hybrid (TEST_BACKEND=ddb).
+// Lane SF test helpers: seeds and reads of the safety and admin items on DynamoDB.
 /**
- * M26 lane SF. The safety/admin tests seed and assert rows of lane SF's tables (reports, moderation actions,
- * admins, the admin record) and a few listener columns. With `t.store` each helper reads/writes the items (through
- * test/fixtures.ts and src/db/ddb — loaded dynamically, so the Postgres coverage run never loads them), otherwise
- * the SQL the test used to inline. CUT deletes the Postgres branches.
+ * The safety/admin tests seed and assert items of lane SF (reports, moderation actions, admins, the admin record)
+ * and a few listener attributes. Each helper reads or writes them through `t.store` (test/fixtures.ts and src/db/ddb).
  */
 import type { TestDb } from './harness.ts';
 
@@ -17,12 +15,8 @@ const asRow = (i: Row): Row => {
   return out;
 };
 
-/** Every audit record, oldest first, with its `after` sibling merged (DynamoDB) — the full admin_audit rows. */
+/** Every audit record, oldest first, with its `after` sibling merged. */
 export async function auditFull(t: TestDb): Promise<{ id: string; admin_id: string; acting_as: string | null; area: string; action: string; target: string; before: Record<string, unknown> | null; after: Record<string, unknown> | null; device: string | null }[]> {
-  if (!t.store) {
-    return (await t.q<{ id: string; admin_id: string; acting_as: string | null; area: string; action: string; target: string; before: Record<string, unknown> | null; after: Record<string, unknown> | null; device: string | null }>(
-      'SELECT id::text, admin_id, acting_as, area, action, target, before, after, device FROM admin_audit ORDER BY id'));
-  }
   const items = await (await fx()).acScan(t.store, 'main', 'audit');
   const afters = new Map<number, unknown>();
   for (const i of items) if (String(i['SK']).endsWith('#after')) afters.set(Number(i['id']), i['after']);
@@ -34,7 +28,7 @@ export async function auditFull(t: TestDb): Promise<{ id: string; admin_id: stri
   }));
 }
 
-/** test/admin-harness.ts `auditRows` on both backends (the jsonb type of before/after: 'object' or null). */
+/** test/admin-harness.ts `auditRows` (the type of before/after: 'object' or null). */
 export async function auditRowsNeutral(t: TestDb): Promise<{ id: string; admin_id: string; acting_as: string | null; area: string; action: string; target: string; before_type: string | null; after_type: string | null }[]> {
   const kind = (v: unknown) => (v === null || v === undefined ? null : Array.isArray(v) ? 'array' : typeof v === 'object' ? 'object' : typeof v === 'string' ? 'string' : typeof v);
   return (await auditFull(t)).map(({ before, after, device: _d, ...r }) => ({ ...r, before_type: kind(before), after_type: kind(after) }));
@@ -42,21 +36,18 @@ export async function auditRowsNeutral(t: TestDb): Promise<{ id: string; admin_i
 
 /** The admins' listener ids. */
 export async function adminIds(t: TestDb): Promise<string[]> {
-  if (!t.store) return (await t.q<{ listener_id: string }>('SELECT listener_id FROM admins')).map((r) => r.listener_id);
   const { get } = await import('../src/db/ddb/store.ts');
   const it = await get(t.store, 'main', (await keys()).adminSet());
   return Object.keys((it?.['admins'] as Row | undefined) ?? {});
 }
 
-/** Every report as the old `reports` row (snake_case), oldest first. */
+/** Every report as a snake_case row, oldest first. */
 export async function reportRows(t: TestDb): Promise<Row[]> {
-  if (!t.store) return t.q('SELECT * FROM reports ORDER BY created_at');
   return (await (await fx()).acScan(t.store, 'main', 'report')).map(asRow).sort((a, b) => (String(a['created_at']) < String(b['created_at']) ? -1 : 1));
 }
 
 /** Every moderation action (action, target_kind, target_id, actor_id), oldest first. */
 export async function actionRows(t: TestDb): Promise<{ action: string; target_kind: string; target_id: string; actor_id: string }[]> {
-  if (!t.store) return t.q('SELECT action, target_kind, target_id, actor_id FROM moderation_actions ORDER BY created_at');
   return (await (await fx()).acScan(t.store, 'main', 'moderationAction'))
     .sort((a, b) => (String(a['createdAt']) < String(b['createdAt']) ? -1 : 1))
     .map((a) => ({ action: String(a['action']), target_kind: String(a['targetKind']), target_id: String(a['targetId']), actor_id: String(a['actorId']) }));
@@ -64,7 +55,6 @@ export async function actionRows(t: TestDb): Promise<{ action: string; target_ki
 
 /** Makes the reports on a target closed at `iso` (the purge test's "91 days ago"). */
 export async function closeReportsAt(t: TestDb, targetId: string, iso: string, reason: string): Promise<void> {
-  if (!t.store) { await t.q('UPDATE reports SET closed_at = $2, close_reason = $3 WHERE target_id = $1', [targetId, iso, reason]); return; }
   const { update } = await import('../src/db/ddb/store.ts');
   for (const r of await (await fx()).acScan(t.store, 'main', 'report')) {
     if (r['targetId'] !== targetId) continue;
@@ -77,22 +67,19 @@ export async function closeReportsAt(t: TestDb, targetId: string, iso: string, r
 
 /** A listener suspended now (as moderation would), with its sessions' copies. */
 export async function suspendNow(t: TestDb, id: string): Promise<void> {
-  if (!t.store) { await t.q('UPDATE listeners SET suspended_at = now() WHERE id = $1', [id]); return; }
   const { update } = await import('../src/db/ddb/store.ts');
   await update(t.store, 'main', (await keys()).listener(id), { update: 'SET #s = :s', names: { '#s': 'suspendedAt' }, values: { ':s': new Date().toISOString() } });
   const { refreshSessionCopies } = await import('../src/db/repos/account/ddb/common.ts');
-  await refreshSessionCopies({ store: t.store, pg: t.db }, id);
+  await refreshSessionCopies({ store: t.store, db: t.db }, id);
 }
 
 /** How many act-as sessions exist. */
 export async function actingSessionCount(t: TestDb): Promise<number> {
-  if (!t.store) return (await t.q('SELECT 1 FROM sessions WHERE acting_admin_id IS NOT NULL')).length;
   return (await (await fx()).acSessions(t.store)).filter((s) => s['actingAdminId']).length;
 }
 
 /** Accounts made in Admin (email, bio, made_by), by creation then email. */
 export async function madeListeners(t: TestDb): Promise<{ email: string; bio: string | null; made_by: string }[]> {
-  if (!t.store) return t.q("SELECT email, bio, made_by FROM listeners WHERE made_by IS NOT NULL ORDER BY created_at, email");
   return (await (await fx()).acScan(t.store, 'main', 'listener')).filter((l) => l['madeBy'])
     .sort((a, b) => (String(a['createdAt']) < String(b['createdAt']) ? -1 : String(a['createdAt']) > String(b['createdAt']) ? 1 : String(a['email']) < String(b['email']) ? -1 : 1))
     .map((l) => ({ email: String(l['email']), bio: (l['bio'] as string | undefined) ?? null, made_by: String(l['madeBy']) }));
@@ -100,14 +87,12 @@ export async function madeListeners(t: TestDb): Promise<{ email: string; bio: st
 
 /** A listener's photo set by hand (the M24 photo-removal test's seed). */
 export async function setAvatarRow(t: TestDb, id: string, url: string, path: string, bytes: number): Promise<void> {
-  if (!t.store) { await t.q('UPDATE listeners SET avatar_url = $2, avatar_path = $3, avatar_bytes = $4 WHERE id = $1', [id, url, path, bytes]); return; }
   const { setAvatar } = await import('../src/db/repos/account/profile.ts');
   await setAvatar(t.db, id, { url, path, bytes });
 }
 
-/** A bare block row/items (no follow side effects — the old `INSERT INTO blocks`). */
+/** A bare block row/items (no follow side effects). */
 export async function insertBlock(t: TestDb, blockerId: string, blockedId: string): Promise<void> {
-  if (!t.store) { await t.q('INSERT INTO blocks (blocker_id, blocked_id) VALUES ($1, $2)', [blockerId, blockedId]); return; }
   const [{ encode }, K, { tx }] = await Promise.all([import('../src/db/ddb/codec.ts'), keys(), import('../src/db/ddb/tx.ts')]);
   const at = new Date().toISOString();
   await tx(t.store)
@@ -116,7 +101,7 @@ export async function insertBlock(t: TestDb, blockerId: string, blockedId: strin
     .commit();
 }
 
-/** Hides shows as the old seed did (`INSERT INTO moderation_actions … 'hide_show'` + `INSERT INTO hidden_feeds`), through act() on both backends. */
+/** Hides shows through act() with 'hide_show'. */
 export async function hideFeeds(t: TestDb, actorId: string, feedUrls: readonly string[]): Promise<void> {
   const { act } = await import('../src/db/repos/safety/moderation.ts');
   for (const u of feedUrls) await act(t.db, actorId, { kind: 'show', id: u }, 'hide_show');
@@ -124,13 +109,11 @@ export async function hideFeeds(t: TestDb, actorId: string, feedUrls: readonly s
 
 /** Activity entries of a kind pointing at one comment or clip (lane SG's items on DynamoDB). */
 export async function activityRefCount(t: TestDb, kind: string, refId: string): Promise<number> {
-  if (!t.store) return (await t.q('SELECT 1 FROM activity WHERE kind = $1 AND ref_id = $2', [kind, refId])).length;
   return (await (await fx()).acScan(t.store, 'events', 'activity')).filter((a) => a['kind'] === kind && a['refId'] === refId).length;
 }
 
-/** Every block gone (the old `DELETE FROM blocks`). */
+/** Every block gone. */
 export async function deleteAllBlocks(t: TestDb): Promise<void> {
-  if (!t.store) { await t.q('DELETE FROM blocks'); return; }
   const { del } = await import('../src/db/ddb/store.ts');
   for (const type of ['block', 'blockedBy']) {
     for (const i of await (await fx()).acScan(t.store, 'main', type)) await del(t.store, 'main', { PK: String(i['PK']), SK: String(i['SK']) });
@@ -140,10 +123,6 @@ export async function deleteAllBlocks(t: TestDb): Promise<void> {
 /** The listener's Studio sessions: CREATED `createdAgoMs` ago, last used now (G-A5). */
 export async function ageStudioSessions(t: TestDb, listenerId: string, createdAgoMs: number): Promise<void> {
   const created = new Date(Date.now() - createdAgoMs).toISOString();
-  if (!t.store) {
-    await t.q("UPDATE sessions SET created_at = $2, last_seen_at = now() WHERE device_label = 'studio-web' AND listener_id = $1", [listenerId, created]);
-    return;
-  }
   const { update } = await import('../src/db/ddb/store.ts');
   for (const s of await (await fx()).acSessions(t.store, listenerId)) {
     if (s['deviceLabel'] !== 'studio-web' || s['actingAdminId']) continue;
@@ -153,9 +132,8 @@ export async function ageStudioSessions(t: TestDb, listenerId: string, createdAg
   }
 }
 
-/** Tries to change and to delete an audit record — G-A3 (SQL: the trigger refuses; DynamoDB: the Store refuses). */
+/** Tries to change and to delete an audit record — G-A3 (the Store refuses). */
 export async function tamperWithAudit(t: TestDb): Promise<{ update: () => Promise<unknown>; remove: () => Promise<unknown> }> {
-  if (!t.store) return { update: () => t.q("UPDATE admin_audit SET action = 'nothing happened'"), remove: () => t.q('DELETE FROM admin_audit') };
   const store = t.store;
   const { update, del } = await import('../src/db/ddb/store.ts');
   const [first] = await (await fx()).acScan(store, 'main', 'audit');

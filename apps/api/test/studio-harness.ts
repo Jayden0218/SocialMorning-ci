@@ -19,16 +19,14 @@ export async function studioLogin(t: TestDb, email: string, name: string, passwo
   const cookie = (res.headers.get('set-cookie') ?? '').split(';')[0]!;
   // M25 SB: Admin also needs the emailed second factor. Every older test is about what comes after
   // it, so this session counts as having passed; test/m25-sb.test.ts checks the code itself.
-  await t.q("UPDATE sessions SET second_factor_at = now() WHERE listener_id = $1 AND device_label = 'studio-web'", [id]);
-  if (t.store) await (await import('./ac-neutral.ts')).studioFactor(t, id, true); // M26 lane AC: sessions live in DynamoDB there
+  await (await import('./ac-neutral.ts')).studioFactor(t, id, true);
   return { id, cookie, token };
 }
 
 /** M25 SB: a Studio sign-in that has NOT passed the second factor (for the tests of it). */
 export async function studioLoginNoFactor(t: TestDb, email: string, name: string): Promise<StudioUser> {
   const u = await studioLogin(t, email, name);
-  await t.q("UPDATE sessions SET second_factor_at = NULL WHERE listener_id = $1 AND device_label = 'studio-web'", [u.id]);
-  if (t.store) await (await import('./ac-neutral.ts')).studioFactor(t, u.id, false); // M26 lane AC
+  await (await import('./ac-neutral.ts')).studioFactor(t, u.id, false);
   return u;
 }
 
@@ -42,32 +40,19 @@ export function sCall(t: TestDb, method: string, path: string, who?: StudioUser,
 }
 
 export async function proveClaim(t: TestDb, listenerId: string, feedUrl: string, provenAt = new Date().toISOString()) {
-  // M26 lane ST: with the Store, the claim is lane ST's items (test/fixtures.ts proveClaimItem).
-  if (t.store) {
-    await (await import('./fixtures.ts')).proveClaimItem(t.store, listenerId, feedUrl, new Date(provenAt).toISOString());
-    return showKey(feedUrl);
-  }
-  await t.q(
-    "INSERT INTO creator_claims (listener_id, feed_url, code, status, proven_at) VALUES ($1, $2, $3, 'proven', $4)",
-    [listenerId, feedUrl, `socialnet-verify-${Math.random().toString(16).slice(2, 14).padEnd(12, '0')}`, provenAt],
-  );
+  // The claim is lane ST's items (test/fixtures.ts proveClaimItem).
+  await (await import('./fixtures.ts')).proveClaimItem(t.store, listenerId, feedUrl, new Date(provenAt).toISOString());
   return showKey(feedUrl);
 }
 
 export async function addEpisode(t: TestDb, feedUrl: string, id: string, title: string, durationMs: number | null, publishedAt: string | null = null) {
-  // M26: with the Store, the episode is lane LB's item (and its Postgres row, which lanes still on SQL read).
-  if (t.store) {
-    const { episodeItem } = await import('./fixtures.ts');
-    await episodeItem(t.store, { id, feedUrl, title, durationMs, publishedAt: publishedAt ? new Date(publishedAt).toISOString() : null });
-    const { touchShow, episodeRow } = await import('../src/db/repos/library/ddb/episodes.ts');
-    const { get } = await import('../src/db/ddb/store.ts');
-    const K = await import('../src/db/ddb/keys.ts');
-    await touchShow(t.store, episodeRow((await get(t.store, 'main', K.episode(id)))!));
-  }
-  await t.q(
-    'INSERT INTO episodes (id, feed_url, guid, title, show_title, enclosure_url, duration_ms, published_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
-    [id, feedUrl, id, title, 'The Show', `https://cdn.example.com/${id}.mp3`, durationMs, publishedAt],
-  );
+  // The episode is lane LB's item, and the show's counters are touched as the feed refresh would.
+  const { episodeItem } = await import('./fixtures.ts');
+  await episodeItem(t.store, { id, feedUrl, title, durationMs, publishedAt: publishedAt ? new Date(publishedAt).toISOString() : null });
+  const { touchShow, episodeRow } = await import('../src/db/repos/library/ddb/episodes.ts');
+  const { get } = await import('../src/db/ddb/store.ts');
+  const K = await import('../src/db/ddb/keys.ts');
+  await touchShow(t.store, episodeRow((await get(t.store, 'main', K.episode(id)))!));
 }
 
 /** YYYY-MM-DD, `n` days before today in UTC. */

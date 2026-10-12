@@ -8,8 +8,7 @@ import { get, type Store } from '../../../ddb/store.ts';
 import { TxCancelled } from '../../../ddb/tx.ts';
 import type { VoiceStorage } from '../../../../storage/voice-blob.ts';
 import { VOICE_COMMENT_SWEEP_BATCH } from '../voice-comments.ts';
-import * as B from './sc-bridge.ts';
-import { commitRetry, keyOf, rawPg } from './sc-common.ts';
+import { commitRetry, keyOf } from './sc-common.ts';
 import { removedMedia } from './comment-images.ts';
 
 export async function sweepRemovedVoice(store: Store, db: Db, voice: VoiceStorage): Promise<{ deleted: number; failed: number }> {
@@ -31,8 +30,6 @@ export async function sweepRemovedVoice(store: Store, db: Db, voice: VoiceStorag
       } catch (e) {
         if (!(e instanceof TxCancelled && e.failed('comment'))) throw e;
       }
-      const raw = rawPg(db);
-      if (raw) await B.setCommentColumns(raw, String(it['id']), { voice_url: null, voice_path: null });
       deleted++;
     } catch {
       failed++;

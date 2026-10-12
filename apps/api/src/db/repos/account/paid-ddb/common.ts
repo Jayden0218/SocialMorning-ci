@@ -1,8 +1,8 @@
-// Shared pieces of the paid lane on DynamoDB: item shapes, the PLUS version and digest queue, and the Postgres mirror.
+// Shared pieces of the paid lane on DynamoDB: item shapes, the PLUS version and digest queue.
 /**
  * M26 lane PD (data-model.md §3 `PUR#`, `RC#`, `GIFT#`, `L#…/ENT#`, and "Lane PD changes"). Every export of the files
- * in this folder takes `(store, db, ...args)` — the switch's shape (src/db/backend.ts `dual`); `db` is the app's
- * Postgres handle with the Store attached.
+ * in this folder takes `(store, db, ...args)` — the switch's shape (src/db/backend.ts `viaStore`); `db` is the app's
+ * `Db` handle with the Store attached.
  *
  * Items (all STRICT in codec.ts):
  *   PUR#<sha(token)>/P            purchase; `granted` = the entitlement keys it created (a refund deletes those whose
@@ -18,21 +18,14 @@
  *   GIFT#<code>/G                 gift; L#<buyer>/GIFTB#…, L#<claimer>/GIFTC#… pointers
  *   RC#<sha256 hex>/CODE          redeem code (hash = key: one strong GetItem, unique by construction); G4 `Q#codes`
  *   L#<id>/RUSE#<sha256 hex>      "this account used this code" (the old redeem_uses primary key)
- *
- * The write BRIDGE (hybrid): lanes still on Postgres read `purchases`, `entitlements`, `tips`, `gifts` (Studio tips
- * and earnings, paid episodes, the dashboard, admin), so each write here also mirrors its rows there (bridge.ts).
- * Redeem codes and uses are read by nobody else and are not mirrored.
  */
 import { randomUUID } from 'node:crypto';
-import type { Db } from '../../../db.ts';
-import { bridgeOf } from '../../../backend-ddb.ts';
 import { encode } from '../../../ddb/codec.ts';
 import * as K from '../../../ddb/keys.ts';
 import { queryAll } from '../../../ddb/paginate.ts';
 import { get, update, type Item, type Key, type Store } from '../../../ddb/store.ts';
 import { DEFAULT_TZ, validTz } from '../digest.ts';
 import type { TxA } from '../ddb/common.ts';
-import * as B from './bridge.ts';
 
 export const DAY_MS = 86_400_000;
 export const nowMs = (store: Store): number => store.clock.now();
@@ -115,7 +108,7 @@ export const ms = (v: string | null | undefined): number | null => (v === null |
 
 /** A PLUS row has not ended (the old `until IS NULL OR until > now()`). */
 export const notEnded = (e: EntItem, now: number): boolean => e.until === null || e.until === undefined || Date.parse(e.until) > now;
-/** A PLUS row holds now (PLUS_LIVE_SQL). */
+/** A PLUS row holds now (live now). */
 export const liveNow = (e: EntItem, now: number): boolean => (e.startsAt === null || e.startsAt === undefined || Date.parse(e.startsAt) <= now) && notEnded(e, now);
 
 export type PlusState = { v: number; exists: boolean; rows: EntItem[] };
@@ -195,16 +188,4 @@ export function applyRows(rows: readonly EntItem[], changed: readonly EntItem[],
 /** Puts the moved code rows into the transaction (their own keys; the version guards them). */
 export function putRows(t: TxA, rows: readonly EntItem[]): void {
   for (const r of rows) t.put('main', entItem(r));
-}
-
-// ---- the bridge ----
-
-/** Mirrors purchases (first: entitlements, tips and gifts point at them), then the listeners' entitlements, tips, gifts. */
-export async function mirror(store: Store, db: Db, m: { purchases?: Key[]; listeners?: string[]; tips?: { key: Key; id: string }[]; gifts?: string[] }): Promise<void> {
-  const raw = bridgeOf(db);
-  if (!raw) return;
-  for (const k of m.purchases ?? []) { const p = await getPurchase(store, k); if (p) await B.mirrorPurchase(raw, p); }
-  for (const t of m.tips ?? []) await B.mirrorTip(raw, t.id, await get(store, 'main', t.key));
-  for (const code of m.gifts ?? []) { const g = await get(store, 'main', K.gift(code)); if (g) await B.mirrorGift(raw, g); }
-  for (const id of [...new Set(m.listeners ?? [])]) await B.mirrorEntitlements(raw, id, await entitlementsOf(store, id));
 }

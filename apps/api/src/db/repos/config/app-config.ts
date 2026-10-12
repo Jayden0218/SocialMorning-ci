@@ -6,26 +6,18 @@
  * on every admin save in this process.
  */
 import { createHash } from 'node:crypto';
-import { CONFIG_DEFAULTS, isConfigKey, readConfig, type AppConfig, type ConfigKey } from '@socialmorning/social-core';
+import { CONFIG_DEFAULTS, readConfig, type AppConfig, type ConfigKey } from '@socialmorning/social-core';
 import type { Db } from '../../db.ts';
 import { ApiError } from '../../../errors.ts';
-import { dual } from '../../backend.ts';
+import { viaStore } from '../../backend.ts';
 
 export type ConfigRow = { key: ConfigKey; value: unknown; version: number; updatedAt: string };
 
-/** jsonb comes back parsed from both drivers; a value stored as a JSON string (the M14 lesson) is parsed once more. */
+/** A value stored as a JSON string (the M14 lesson) is parsed once more. */
 export const parsed = (v: unknown): unknown => {
   if (typeof v !== 'string') return v;
   try { return JSON.parse(v) as unknown; } catch { return v; }
 };
-
-async function listConfigRowsPg(db: Db): Promise<ConfigRow[]> {
-  const rows = await db.query<{ key: string; value: unknown; version: number; updated_at: Date | string }>(
-    'SELECT key, value, version, updated_at FROM app_config ORDER BY key');
-  return rows.filter((r) => isConfigKey(r.key)).map((r) => ({
-    key: r.key as ConfigKey, value: parsed(r.value), version: Number(r.version), updatedAt: new Date(r.updated_at).toISOString(),
-  }));
-}
 
 export async function getConfigRow(db: Db, key: ConfigKey): Promise<ConfigRow | null> {
   return (await listConfigRows(db)).find((r) => r.key === key) ?? null;
@@ -34,27 +26,6 @@ export async function getConfigRow(db: Db, key: ConfigKey): Promise<ConfigRow | 
 export const versionGuard = (current: number, sent: number) => {
   if (current !== sent) throw new ApiError('changed', 'Changed elsewhere — reload.', { version: current });
 };
-
-/** Save `value` (already checked) when `version` is the stored one (0 = never saved). Returns the new version. */
-async function putConfigPg(tx: Db, key: ConfigKey, version: number, value: unknown): Promise<number> {
-  const [cur] = await tx.query<{ version: number }>('SELECT version FROM app_config WHERE key = $1 FOR UPDATE', [key]);
-  const current = cur ? Number(cur.version) : 0;
-  versionGuard(current, version);
-  const next = current + 1;
-  await tx.query(
-    `INSERT INTO app_config (key, value, version, updated_at) VALUES ($1, ($2::text)::jsonb, $3, now())
-     ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, version = EXCLUDED.version, updated_at = now()`,
-    [key, JSON.stringify(value), next],
-  );
-  return next;
-}
-
-/** Back to the default: the row goes. */
-async function resetConfigPg(tx: Db, key: ConfigKey, version: number): Promise<void> {
-  const [cur] = await tx.query<{ version: number }>('SELECT version FROM app_config WHERE key = $1 FOR UPDATE', [key]);
-  versionGuard(cur ? Number(cur.version) : 0, version);
-  await tx.query('DELETE FROM app_config WHERE key = $1', [key]);
-}
 
 export type PublicConfig = { config: AppConfig; version: number; updatedAt: string | null };
 
@@ -91,6 +62,6 @@ export async function publicConfig(db: Db, now = Date.now()): Promise<{ body: Pu
   return out;
 }
 
-export const listConfigRows = dual('sf/app-config', 'listConfigRows', listConfigRowsPg);
-export const putConfig = dual('sf/app-config', 'putConfig', putConfigPg);
-export const resetConfig = dual('sf/app-config', 'resetConfig', resetConfigPg);
+export const listConfigRows = viaStore<typeof import('../safety/ddb/app-config.ts').listConfigRows>('sf/app-config', 'listConfigRows');
+export const putConfig = viaStore<typeof import('../safety/ddb/app-config.ts').putConfig>('sf/app-config', 'putConfig');
+export const resetConfig = viaStore<typeof import('../safety/ddb/app-config.ts').resetConfig>('sf/app-config', 'resetConfig');

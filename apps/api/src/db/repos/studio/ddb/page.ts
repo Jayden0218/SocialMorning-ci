@@ -8,7 +8,7 @@
  *   copy in ONE partition `CFG#hidden-eps` that every listener list reads (`hiddenEpisodeIds`: one Query, then the
  *   episode ids from lane LB's `U#GUID` items — the old JOIN on (feed_url, guid)). The episode's META also gets
  *   `hidden: true` (projected on G2) while it is hidden — a hint for readers of one episode; the set is the truth (a
- *   hide also covers an episode registered later). The Postgres row is bridged: lane DV's SQL still filters with it.
+ *   hide also covers an episode registered later).
  * - Host picks: one item `SH#<feedKey>/PICKS` (the old delete-all + insert-n, ≤ 20, is one Put).
  * - Feed sync: `SH#<feedKey>/FEEDSYNC`; "Sync now" claims its 10-minute slot with one conditional update.
  * - Shares: facts.ts (`recordShare`), with the per-listener burst marker.
@@ -29,7 +29,7 @@ import { MANUAL_EVERY_MS, type SyncStatus } from '../feed-sync.ts';
 import { provenOf } from './claims.ts';
 import { hostedByFeed } from './hosted.ts';
 import { recentShares, recordShare } from './facts.ts';
-import { bridgeOf, episodesById, getMany, keyOf, listenersById, nowIso, nowMs, partition, str, visible, type Db } from './common.ts';
+import { episodesById, getMany, keyOf, listenersById, nowIso, nowMs, partition, str, visible, type Db } from './common.ts';
 
 // ---- overrides ----
 
@@ -224,8 +224,8 @@ export async function listHidden(store: Store, _db: Db, feedUrl: string): Promis
   }).sort((a, b) => b.hiddenAt.localeCompare(a.hiddenAt));
 }
 
-/** Hides (or shows again) one (feed, guid) — the item, its copy in the set, the META hint, and the Postgres row (lane DV reads it). */
-export async function hideByGuid(store: Store, db: Db, feedUrl: string, guid: string, hidden: boolean, by: string | null, reason: string | null = null): Promise<void> {
+/** Hides (or shows again) one (feed, guid) — the item, its copy in the set, and the META hint. */
+export async function hideByGuid(store: Store, _db: Db, feedUrl: string, guid: string, hidden: boolean, by: string | null, reason: string | null = null): Promise<void> {
   const owner = await get(store, 'main', K.U.guid(feedUrl, guid));
   const episodeId = str(owner?.['owner']);
   const meta = episodeId ? await get(store, 'main', K.episode(episodeId)) : undefined;
@@ -242,12 +242,7 @@ export async function hideByGuid(store: Store, db: Db, feedUrl: string, guid: st
   try {
     await t.commit();
   } catch (e) {
-    if (!(e instanceof TxCancelled && e.failed('hide'))) throw e; // already hidden: ON CONFLICT DO NOTHING
-  }
-  const raw = bridgeOf(db);
-  if (raw) {
-    if (hidden) await raw.query('INSERT INTO hidden_episodes (feed_url, guid, hidden_by, reason) VALUES ($1, $2, $3, $4) ON CONFLICT (feed_url, guid) DO NOTHING', [feedUrl, guid, by, reason]);
-    else await raw.query('DELETE FROM hidden_episodes WHERE feed_url = $1 AND guid = $2', [feedUrl, guid]);
+    if (!(e instanceof TxCancelled && e.failed('hide'))) throw e; // already hidden: nothing to do
   }
 }
 
@@ -280,8 +275,6 @@ export async function hiddenEpisodeReason(store: Store, _db: Db, feedUrl: string
 export async function hideEpisodeWithReason(store: Store, db: Db, feedUrl: string, guid: string, by: string, reason: string): Promise<Record<string, unknown>[]> {
   if (await get(store, 'main', K.hiddenEp(feedUrl, guid))) {
     await tx(store).update('main', K.hiddenEp(feedUrl, guid), { update: 'SET #r = :r', condition: 'attribute_exists(PK)', names: { '#r': 'reason' }, values: { ':r': reason } }).commit();
-    const raw = bridgeOf(db);
-    if (raw) await raw.query('UPDATE hidden_episodes SET reason = $3 WHERE feed_url = $1 AND guid = $2', [feedUrl, guid, reason]);
   } else {
     await hideByGuid(store, db, feedUrl, guid, true, by, reason);
   }

@@ -10,11 +10,10 @@
  *   reporting the same day at once recompute from fresh ranges) and, when the listener's item is on DynamoDB,
  *   `listenedMs` moved by what the UNION gained (G-M21-12; never below 0).
  * - The `listened` activity and "friends are listening" belong to lane SG: `onListened` (social/graph-ddb/activity.ts)
- *   after each (episode, day); while the bridge is on, the Postgres row is written by the Postgres body first.
+ *   after each (episode, day).
  */
 import { mergeRanges, unionLength, type Range } from '@socialmorning/social-core';
 import type { Db } from '../../../db.ts';
-import { bridgeOf } from '../../../backend-ddb.ts';
 import { batchGetAll } from '../../../ddb/batch.ts';
 import { encode } from '../../../ddb/codec.ts';
 import * as K from '../../../ddb/keys.ts';
@@ -70,12 +69,9 @@ async function replaceOne(store: Store, listenerId: string, deviceId: string, d:
 }
 
 export async function replaceRanges(store: Store, db: Db, listenerId: string, deviceId: string, days: readonly ListenedDayIn[]): Promise<number> {
-  const raw = bridgeOf(db);
   let accepted = 0;
   for (const d of days) {
     const { before, after } = await replaceOne(store, listenerId, deviceId, d);
-    // The bridge writes the same day on Postgres, including the `listened` activity row (lane SG's table, still read in SQL).
-    if (raw) await pg.replaceRanges(raw, listenerId, deviceId, [d]);
     // Lane SG (moved): the once-per-(episode, day) `listened` activity item (G6) and friends listening.
     await onListened(store, db, listenerId, d, before, after);
     accepted++;

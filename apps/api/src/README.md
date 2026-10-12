@@ -15,10 +15,13 @@ here or a line does not match its file.
 | File | What it does |
 |---|---|
 | `app.ts` | Builds the Hono app: shared setup, error handling, and every route mounted. |
+| `config.ts` | What environment the API runs in, which DynamoDB tables it uses, and the Db + options built from it. |
 | `errors.ts` | The single API error shape and its error codes with HTTP statuses. |
-| `server.ts` | Starts the API locally on Node with the real database. |
+| `lambda-entry.ts` | The API as an AWS Lambda function behind a Function URL (API Gateway v2 event shape). |
+| `server.ts` | Starts the API locally on Node, on DynamoDB Local (DDB_ENDPOINT) — see src/config.ts. |
 | `validate.ts` | Checks JSON request bodies with zod and answers 422 naming bad fields. |
 | `vercel-entry.ts` | Entry point that runs the API as a Vercel serverless function. |
+| `worker-entry.ts` | The worker Lambda: drains the outbox (DynamoDB Stream batch or schedule) and runs the hourly job steps (schedule). |
 
 ### `routes/` — requests that belong to no single area
 
@@ -189,17 +192,15 @@ here or a line does not match its file.
 | `lists.ts` | Admin routes for every list's pins and hides, the category page's default chip, and hiding a show or episode everywhere. |
 | `foryou.ts` | Admin routes for For You (boost, bury, never recommend; the ranking weights) and the inbox moved from /mod (feedback, search requests, rec numbers). |
 
-### `db/` — the database connection and migrations
+### `db/` — the data handle every repo function takes
 
 | File | What it does |
 |---|---|
-| `client.ts` | Creates the one Postgres connection each server instance uses. |
-| `db.ts` | The shared database interface, with adapters for real Postgres and in-memory pglite. |
-| `backend-ddb.ts` | Attaches a DynamoDB Store to a Postgres Db handle, so the converted repo functions run on DynamoDB (backend.ts). |
-| `backend.ts` | The dual-backend switch: a repo function runs on Postgres, or on DynamoDB when a Store is attached to the Db handle. |
-| `migrate.ts` | Runs every database migration file not yet applied, in order. |
+| `db.ts` | The handle every repo function takes: it leads to the DynamoDB Store (see backend-ddb.ts); there is no SQL behind it. |
+| `backend-ddb.ts` | Attaches a DynamoDB Store to a Db handle, so a repo function runs on DynamoDB (backend.ts). |
+| `backend.ts` | How a repo function reaches DynamoDB: the Store attached to the Db handle it is given. |
 
-### `db/ddb/` — the DynamoDB data layer (M26, being built beside Postgres; not used by any route yet)
+### `db/ddb/` — the DynamoDB data layer (M26; every repo function runs on it)
 
 | File | What it does |
 |---|---|
@@ -263,7 +264,7 @@ here or a line does not match its file.
 | `queue.ts` | The listener's synced play queue: read it, and replace it only from the version the phone last saw. |
 | `stickers.ts` | Stickers placed on a profile header: read them, replace them all, and what a viewer may see. |
 | `interests.ts` | A listener's chosen categories (first-open interests) and their "Not liking these?" answers. |
-| `devices.ts` | Database queries for the signed-in devices list (M26: moved here from routes/account/devices.ts). |
+| `devices.ts` | The signed-in devices list (M26: moved here from routes/account/devices.ts). |
 | `email-change.ts` | Database queries for changing the sign-in email (M26: moved here from routes/account/email.ts). |
 | `notify-shows.ts` | Database queries for per-show new-episode notifications (M26: moved here from routes/account/notify.ts). |
 | `rate-limits.ts` | Database queries for fixed-window rate limits (M26 F0-01: moved here from auth/rate.ts). |
@@ -278,12 +279,12 @@ here or a line does not match its file.
 | `account.ts` | Signed-in devices, the email change and "Download my data" on DynamoDB. |
 | `admin-ops.ts` | Listener writes that lane SF's admin and moderation code makes: suspension, admin-made accounts and their email. |
 | `codes.ts` | Emailed sign-in codes and fixed-window rate counters on DynamoDB, with conditional counters instead of row locks. |
-| `common.ts` | Shared pieces of the account lane's DynamoDB code: the clock, key forms, the listener item, session copies and the Postgres shadow. |
+| `common.ts` | Shared pieces of the account lane's DynamoDB code: the clock, key forms, the listener item and session copies. |
 | `deletion.ts` | Account deletion on DynamoDB: the 15-day wait, then a resumable job (JOB#delete) that removes the account piece by piece, listener item last. |
 | `feedback.ts` | Feedback (with its small images) and our own error log on DynamoDB. |
 | `export-items.ts` | "Download my data" sections of lanes LB and SC, read from their DynamoDB items (no SQL). |
 | `foreign.ts` | What the account lane reads from other lanes (LB catalog, PD paid, SG graph, SF safety, SC content) — through their DynamoDB items. |
-| `index.ts` | The account lane's DynamoDB bodies for the switch: `dual('ac/index', name, …)` calls `name(store, db, ...args)` here. |
+| `index.ts` | The account lane's DynamoDB bodies for the switch: `viaStore('ac/index', name)` calls `name(store, db, ...args)` here. |
 | `listeners.ts` | Listener accounts on DynamoDB: the listener item plus its U#EMAIL uniqueness item, lockout counters, country, profile reads. |
 | `profile.ts` | The listener's own profile, interests, stickers and synced queue on DynamoDB. |
 | `push.ts` | Push tokens, switches, the "never twice" record, social pushes, the status fan-out (outbox), the weekly digest and per-show switches on DynamoDB. |
@@ -294,8 +295,7 @@ here or a line does not match its file.
 
 | File | What it does |
 |---|---|
-| `bridge.ts` | The paid lane's Postgres mirror (hybrid only): its DynamoDB writes copied onto the rows other lanes still read. |
-| `common.ts` | Shared pieces of the paid lane on DynamoDB: item shapes, the PLUS version and digest queue, and the Postgres mirror. |
+| `common.ts` | Shared pieces of the paid lane on DynamoDB: item shapes, the PLUS version and digest queue. |
 | `foreign.ts` | What the paid lane reads from lane ST (hosted shows, show overrides) — through lane ST's repo since it moved. |
 | `gifts.ts` | Gifts on DynamoDB: the gift item keyed by its code, claimed once in one transaction, withdrawn by a refund. |
 | `purchases.ts` | Store purchases on DynamoDB: granted once per token, refunded in one transaction, PLUS chained under a version. |
@@ -351,11 +351,10 @@ here or a line does not match its file.
 | `likes.ts` | Episode likes on DynamoDB: the like and its time-ordered copy in the owner's partition, and a like post's comments and reactions under one partition. |
 | `rate-floors.ts` | The per-minute floors for chat messages and clips on DynamoDB: counted from the sender's own items, read strongly. |
 | `report.ts` | The monthly listening report on DynamoDB: the month's listened ranges, and the listener's comments and clips counted from their own index. |
-| `sc-bridge.ts` | The write bridge of the social-content lane: each DynamoDB write also writes its Postgres row, with the same id, while other lanes read Postgres. |
 | `sc-common.ts` | Shared pieces of the social-content lane on DynamoDB: the clock, listener look-ups, comment look-ups by id, retried transactions. |
 | `sc-deletion.ts` | Account deletion's social phase on DynamoDB: a listener's comments, reactions, likes, clips, statuses and chats, piece by piece. |
 | `sf-takedown.ts` | Moderation's take-down setters for clips, chat messages and statuses on DynamoDB (lane SF's additive file in lane SC's folder). |
-| `sc-foreign.ts` | What the social-content lane reads and writes in other lanes: follows (lane SG's repo), blocks, held comments, reports (still on Postgres). |
+| `sc-foreign.ts` | What the social-content lane reads in other lanes: follows (lane SG's repo), blocks, held comments, reports. |
 | `status-items.ts` | Status items on DynamoDB: up to 10 episode cards and photos under the status, photo uploads recorded with their owner and size. |
 | `status-replies.ts` | Status replies and reactions on DynamoDB: under the status's partition, counted on it, each with a pointer in its writer's partition. |
 | `status-writes.ts` | Status route writes on DynamoDB: a text status with its items (refused whole), the listener check, the comment-image bytes. |
@@ -367,12 +366,12 @@ here or a line does not match its file.
 | File | What it does |
 |---|---|
 | `activity.ts` | The activity log and the Following feed on DynamoDB: activity items per actor, fanned out to each follower's inbox by the outbox. |
-| `common.ts` | Shared pieces of the social-graph lane's DynamoDB code: the hybrid handle, the bridge, foreign reads of lanes still on Postgres. |
+| `common.ts` | Shared pieces of the social-graph lane's DynamoDB code: the handle, time helpers, listener/episode/show item reads, reads across lanes. |
 | `deletion.ts` | The social-graph phase of the account deletion job: follows both ways (with the other side's counters), activity, notices, playlist pointers. |
 | `export.ts` | The social-graph sections of "Download my data" on DynamoDB: who I follow and my playlists, as the old rows. |
 | `follows.ts` | Follows on DynamoDB: both directions and both counters in one transaction, the lists read from the listener's own partition. |
 | `friends.ts` | "Friends are listening" on DynamoDB: one inbox item per (episode, friend) in my partition, written when a friend listens. |
-| `index.ts` | The social-graph lane's DynamoDB bodies for the switch: `dual('sg/index', name, …)` calls `name(store, db, ...args)` here. |
+| `index.ts` | The social-graph lane's DynamoDB bodies for the switch: `viaStore('sg/index', name)` calls `name(store, db, ...args)` here. |
 | `live.ts` | "Listening now" on DynamoDB: one item per salted install hash and episode, never an account (strict attribute allowlist). |
 | `mutes.ts` | Mutes and muted notice threads on DynamoDB: items in the muter's own partition, so the whole set is one Query. |
 | `notices.ts` | System notices and host notices on DynamoDB: notices to everyone or to one listener, and the announcements of the shows I follow. |
@@ -390,21 +389,22 @@ here or a line does not match its file.
 
 | File | What it does |
 |---|---|
+| `appeals.ts` | Appeals: what a listener may appeal, sending one appeal per action, and the admin's decision. |
 | `blocks.ts` | Block and unblock listeners; a block also removes follows both ways. |
+| `default-content.ts` | The 14 default Academy and Help pages a new environment starts with (what migration 029 inserted into Postgres). |
+| `maintenance.ts` | The maintenance switch the admin turns on and off: stored as an app setting, read through a short memo. |
+| `mod-shows.ts` | The /mod page's Studio shows list and take-down. |
 | `moderation.ts` | Applies a moderation action, closes its reports and records it, in one step. |
 | `reports.ts` | Stores reports with a copy of the reported item, hidden for the reporter. |
-| `appeals.ts` | Appeals: what a listener may appeal, sending one appeal per action, and the admin's decision. |
-| `maintenance.ts` | The maintenance switch the admin turns on and off: stored in app_settings, read through a short memo. |
+| `translation.ts` | Translation: the Groq usage ledger, translation jobs, finished translations and the /mod allow-list. |
 | `words.ts` | Blocked words: the admin's list, read through a short memo, and the check every write uses. |
-| `mod-shows.ts` | Database queries for the /mod page's Studio shows list and take-down (M26: moved here from pages/mod.ts). |
-| `translation.ts` | Translation queries: the Groq usage ledger, translation jobs, finished translations and the /mod allow-list. |
 
 ### `db/repos/safety/ddb/` — lane SF on DynamoDB: safety, admin, dashboard, config, translation (M26; used when the app carries a Store)
 
 | File | What it does |
 |---|---|
-| `admin-access.ts` | Who is admin and the admin record on DynamoDB: one admins item, and every admin write recorded through lane AC's adminTx. |
-| `admin-lists.ts` | Admin's hidden-show list on DynamoDB: lane SF's hidden-feed items, the show title from lane LB's show item, "by a report" from the action. |
+| `admin-access.ts` | Who is admin and the admin record on DynamoDB: one admins item, and every admin write recorded through adminTx. |
+| `admin-lists.ts` | Admin's hidden-show list on DynamoDB: the hidden-feed items, the show title from the show item, "by a report" from the action. |
 | `health.ts` | The health check's database probe on DynamoDB: one GetItem. |
 | `admin-accounts.ts` | Admin-made accounts on DynamoDB: read from lane AC's listener items, made and edited through AC's repo (admin-ops.ts). |
 | `admin-audit.ts` | The admin record on DynamoDB: newest first, 50 a page, by area — month partitions read from the base table. |
@@ -413,16 +413,16 @@ here or a line does not match its file.
 | `admin-users.ts` | Admin › users on DynamoDB: the search in memory over the listener queue, one account from AC's items, reports against from G1. |
 | `app-config.ts` | App settings on DynamoDB: one item per key in `CFG#app-config`, saved and reset with a version condition. |
 | `appeals.ts` | Appeals on DynamoDB: one per moderation action (the key), found through the action's subject, decided in the admin's record. |
-| `blocks.ts` | Blocks on DynamoDB: both directions in the two listeners' partitions, the dashboard counter, the Postgres bridge row. |
-| `common.ts` | Shared pieces of lane SF's DynamoDB code: clock, partition and queue reads, batch gets, the Postgres bridge handles. |
-| `content-seed.ts` | Copies the seeded Academy/Help rows (migration 029) from Postgres into DynamoDB when the pages are empty there. |
+| `blocks.ts` | Blocks on DynamoDB: both directions in the two listeners' partitions, the dashboard counter. |
+| `common.ts` | Shared pieces of the safety DynamoDB code: clock, partition and queue reads, batch gets. |
+| `content-seed.ts` | Writes the default Academy/Help pages into DynamoDB when a kind has none there. |
 | `content.ts` | Academy and Help pages on DynamoDB: one partition per kind, saved and deleted with a version condition. |
 | `dash.ts` | The dashboard's hourly safety counters: moved in the same transaction as the report, action or block they count. |
 | `deletion.ts` | Lane SF's part of an account deletion (JOB#delete phase `safety`): blocks both ways, reports kept anonymous, appeals, role, app-use days. |
-| `foreign.ts` | What lane SF's DynamoDB code reads in other lanes' items (SC content, the shared lists, ST Studio) — through their DynamoDB code, never SQL. |
+| `foreign.ts` | What the safety DynamoDB code reads in other repos' items (social content, the shared lists, Studio) — through their DynamoDB code. |
 | `maintenance.ts` | The maintenance switch on DynamoDB: one item while on, no item while off; changed in a Tx that can join the audit transaction. |
 | `metrics.ts` | The admin dashboard on DynamoDB: numbers recounted from the source items behind the 5-minute cache, and the nightly check of the safety counters. |
-| `mod-shows.ts` | The /mod page's Studio shows list and take-down on DynamoDB: the Studio rows stay lane ST's, the hide and the action are lane SF's items. |
+| `mod-shows.ts` | The /mod page's Studio shows list and take-down on DynamoDB: the Studio rows are the Studio's, the hide and the action are items here. |
 | `moderation.ts` | Moderation on DynamoDB: one transaction for the action, its effect and the author's notice; then the target's reports close. |
 | `old-rows-sweep.ts` | The 400-day sweep of app-use days on DynamoDB: the DA#<day> partitions just before the cutoff, deleted in batches. |
 | `reports.ts` | Reports on DynamoDB: the key is the one-report-per-reporter rule, the open queue, closed reports kept 90 days. |
@@ -443,7 +443,6 @@ here or a line does not match its file.
 | `daily-pick.ts` | Database queries for pushing the day's pick (M26: moved here from routes/internal.ts). |
 | `feed-refresh.ts` | Database queries for the hourly feed refresh (M26: moved here from routes/internal.ts). |
 | `feeds.ts` | Feed moves: every live subscription follows a publisher's new feed address, in one transaction. |
-| `heat.ts` | The two statements of an episode's heat rebuild (see heat/rebuild.ts for the rule they keep). |
 
 ### `db/repos/library/ddb/` — the same functions on DynamoDB (M26 lane LB; run when the Db carries a Store — db/backend.ts)
 
@@ -454,7 +453,6 @@ here or a line does not match its file.
 | `episodes.ts` | Episodes on DynamoDB: EP#<id>/META, the (feed, guid) uniqueness item, the show's META kept up to date. |
 | `feed-refresh.ts` | The hourly feed refresh on DynamoDB: the subscribed-feed list from G4 `Q#feeds`, known guids by GetItem. |
 | `feeds.ts` | The moved-feed job on DynamoDB: every live subscriber of the old address moves to the new one, 4 items per subscriber. |
-| `heat.ts` | The heat rebuild on DynamoDB while reactions and comments still live on Postgres (the bridge until lane SC lands). |
 | `library.ts` | Library sync on DynamoDB: L#<id>/LIB#<kind>#<key> items merged one by one, tombstones kept 30 days, 12 searches. |
 | `listened.ts` | Listened ranges on DynamoDB: RANGE# items per device, the union kept per day in LDAY#, the badge total moved by the union's change. |
 | `old-rows-sweep.ts` | The hourly sweep's cache and rec-events deletes on DynamoDB (LB-56, LB-58). |
@@ -493,7 +491,7 @@ here or a line does not match its file.
 | `admin-curated.ts` | Curated issues and collections on DynamoDB: one document item each, saved with a version condition. |
 | `admin-picks.ts` | The owner's daily picks on DynamoDB: one document item per day, saved with a version condition. |
 | `catalog.ts` | The admin catalogue (picks, issues, collections) read from lane DV's documents, in the row shapes catalog/live.ts merges. |
-| `common.ts` | Shared pieces of lane DV's DynamoDB code: the clock, episode rows from the catalogue items, show and listener walks. |
+| `common.ts` | Shared pieces of the discover DynamoDB code: the clock, episode rows from the catalogue items, show and listener walks. |
 | `discover-extras.ts` | Discover's extra parts on DynamoDB: pick counts, followed shows, new arrivals, what people said, video episodes. |
 | `discover-settings.ts` | Discover's layout on DynamoDB: one settings item with a version; the trending pins and hides in the trending list document. |
 | `dismissals.ts` | "Not interested" on DynamoDB: one item per turned-down episode or show, in the listener's own partition. |
@@ -505,7 +503,7 @@ here or a line does not match its file.
 | `nextup.ts` | "Next up" on DynamoDB: who else listened (the listen index, then those listeners' own activity), and what the viewer finished. |
 | `pick-episodes.ts` | Known episodes on DynamoDB: by (feed, guid) through lane LB's uniqueness item, a feed's newest through its G2 partition, by id with BatchGet. |
 | `promotions.ts` | Launch-screen promotions on DynamoDB: one small partition; an event is one conditional ADD on the promotion itself. |
-| `search-local.ts` | Search on DynamoDB, in memory: people over lane AC's listener queue; Studio shows from lane ST's table (still Postgres). |
+| `search-local.ts` | Search on DynamoDB, in memory: people over lane AC's listener queue; Studio shows from lane ST's table. |
 | `search-requests.ts` | "Can't find it? Tell us" on DynamoDB: the words in one partition, and a once-a-day mark per asker. |
 | `shared-lists.ts` | The shows of a shared list on DynamoDB: lane ST's overrides first, else lane LB's show META, hidden shows left out. |
 | `similarity.ts` | Show-to-show similarity on DynamoDB: each rebuild writes a new generation; one pointer item says which one readers use. |
@@ -535,9 +533,9 @@ here or a line does not match its file.
 | `studio-tips.ts` | Lists tips a show received, leaving out refunded purchases. |
 | `retention.ts` | Retention: the share of an episode's listeners still listening at each minute. |
 | `demographics.ts` | Demographics: age range, gender and country totals of a show's subscribers, never under 10. |
-| `paid-episodes.ts` | Database queries for paid shows and their episodes (M26 F0: moved here from routes/creators/paid.ts). |
-| `share-events.ts` | Database queries for share events (M26 F0: moved here from routes/creators/extras.ts). |
-| `show-bans.ts` | Database queries for Studio show bans (M26 F0: moved here from routes/studio/bans.ts). |
+| `paid-episodes.ts` | Paid shows and their episodes. |
+| `share-events.ts` | Share events. |
+| `show-bans.ts` | Studio show bans. |
 
 ### `db/repos/studio/ddb/` — the Studio lane on DynamoDB (M26 lane ST; run when the Db carries a Store — db/backend.ts)
 
@@ -546,7 +544,7 @@ here or a line does not match its file.
 | `announce.ts` | Announcements, polls and subscriber milestones on DynamoDB. |
 | `claims.ts` | Claims on DynamoDB: a claim in the claimant's partition; the one proven claim of a feed is a uniqueness item. |
 | `comments.ts` | Comment control and the Studio's comments on DynamoDB: the policy, held comments, the show's comment list, host hides. |
-| `common.ts` | Shared pieces of lane ST's DynamoDB code: clock, partition reads, listener/episode/show lookups, the Postgres bridge handle. |
+| `common.ts` | Shared pieces of the Studio DynamoDB code: clock, partition reads, listener/episode/show lookups. |
 | `deletion.ts` | Account deletion, lane ST's phase: the listener's Studio items and the facts that count them, a chunk at a time. |
 | `facts.ts` | The Studio's facts and hourly rollups on DynamoDB: one small item per counted thing in the show's partition, kept in step with its source. |
 | `hosted.ts` | Shows made in the Studio on DynamoDB: the show, its episodes, the scheduled timer, the byte ceiling and paid episodes. |
@@ -564,10 +562,10 @@ here or a line does not match its file.
 | `admin-curated.ts` | Curated issues and collections stored in the database, with save and retire. |
 | `admin-picks.ts` | The owner's daily picks stored in the database, refusing out-of-date saves. |
 | `metrics.ts` | Admin dashboard numbers: totals only, each section fails on its own. |
-| `admin-access.ts` | Database queries for admin access: who is admin, and the admin action record (M26 F0-01: moved here from auth/admin.ts). |
-| `admin-lists.ts` | Database queries for hiding a show or an episode everywhere from Admin (M26: moved here from routes/admin/lists.ts). |
-| `admin-sessions.ts` | Database queries on sessions for Admin's "act as" (M26: moved here from routes/admin/accounts.ts). |
-| `admin-users.ts` | Database queries for the admin user pages: search, one account in full, PLUS by hand, photo and bio removal, the deletion queue (M26: moved here from routes/admin/). |
+| `admin-access.ts` | Admin access: who is admin, and the admin action record. |
+| `admin-lists.ts` | Hiding a show or an episode everywhere from Admin. |
+| `admin-sessions.ts` | Sessions for Admin's "act as". |
+| `admin-users.ts` | The admin user pages: search, one account in full, PLUS by hand, photo and bio removal, the deletion queue. |
 
 ### `auth/` — sessions, passwords, codes, admin access
 
@@ -610,7 +608,7 @@ here or a line does not match its file.
 | File | What it does |
 |---|---|
 | `ddb.ts` | The heat curve on DynamoDB: 100 buckets per episode, a listener counted once per bucket, kept in the writing transaction. |
-| `rebuild.ts` | Rebuilds an episode's reaction heat curve, counting each listener once per segment. |
+| `rebuild.ts` | An episode's heat curve is kept live by the writes themselves (heat/ddb.ts); there is nothing to rebuild. |
 
 ### `billing/` — selling through the stores
 

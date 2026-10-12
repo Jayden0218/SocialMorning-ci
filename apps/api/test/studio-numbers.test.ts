@@ -120,7 +120,7 @@ test('a show with nothing yet answers zeros and a flat line, never an error', as
   const tr = await get<{ days: { value: number }[] }>(t, owner, `/v1/studio/shows/${key}/trend?metric=comments&days=30&tz=Asia/Kuala_Lumpur`);
   assert.equal(tr.days.length, 30);
   assert.ok(tr.days.every((d) => d.value === 0));
-  // A made-up zone falls back to UTC instead of reaching SQL.
+  // A made-up zone falls back to UTC instead of failing.
   assert.equal((await get<{ tz: string }>(t, owner, `/v1/studio/shows/${key}/trend?tz=Not/AZone`)).tz, 'UTC');
   await t.close();
 });

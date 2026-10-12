@@ -19,17 +19,17 @@ import { withVersionRetry } from '../../../ddb/retry.ts';
 import { ApiError } from '../../../../errors.ts';
 import { aput, partitionItems, txa } from '../../account/ddb/common.ts';
 import { PLAYLISTS_MAX, PLAYLIST_ITEMS_MAX, type Playlist } from '../playlists.ts';
-import { episodesById, hiddenFeeds, iso, listenersById, nowMs, type Hybrid } from './common.ts';
+import { episodesById, hiddenFeeds, iso, listenersById, nowMs, type Ctx } from './common.ts';
 
 type Entry = { e: string; at: string };
 const entries = (p: Item): Entry[] => ((p['items'] as Entry[] | undefined) ?? []).map((x) => ({ e: String(x.e), at: String(x.at) }));
 
-async function ownerOf(h: Hybrid, id: string): Promise<string | undefined> {
+async function ownerOf(h: Ctx, id: string): Promise<string | undefined> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return undefined;
   return (await get(h.store, 'main', K.playlistOwner(id)))?.['owner'] as string | undefined;
 }
 
-async function liveItem(h: Hybrid, id: string): Promise<Item | undefined> {
+async function liveItem(h: Ctx, id: string): Promise<Item | undefined> {
   const owner = await ownerOf(h, id);
   if (!owner) return undefined;
   const p = await get(h.store, 'main', K.playlist(owner, id));
@@ -37,14 +37,14 @@ async function liveItem(h: Hybrid, id: string): Promise<Item | undefined> {
 }
 
 /** SG-46: mine and not deleted, or 404. */
-async function own(h: Hybrid, id: string, ownerId: string): Promise<Item> {
+async function own(h: Ctx, id: string, ownerId: string): Promise<Item> {
   const p = await liveItem(h, id);
   if (!p || p['ownerId'] !== ownerId) throw new ApiError('not_found', 'No such playlist.');
   return p;
 }
 
 /** The list cards: count and cover (the first episode's image) from the item; newest change first. */
-async function cards(h: Hybrid, ps: Item[]): Promise<Playlist[]> {
+async function cards(h: Ctx, ps: Item[]): Promise<Playlist[]> {
   const firsts = await episodesById(h.store, ps.map((p) => entries(p)[0]?.e).filter((x): x is string => x !== undefined));
   return ps
     .sort((a, b) => String(b['updatedAt']).localeCompare(String(a['updatedAt'])))
@@ -60,20 +60,20 @@ function card(p: Item, eps: Map<string, Item>): Playlist {
   };
 }
 
-async function liveOf(h: Hybrid, ownerId: string): Promise<Item[]> {
+async function liveOf(h: Ctx, ownerId: string): Promise<Item[]> {
   return (await partitionItems(h, K.L(ownerId), K.SG_SK.playlists)).filter((p) => !p['deletedAt']);
 }
 
-export async function myPlaylists(h: Hybrid, ownerId: string): Promise<Playlist[]> {
+export async function myPlaylists(h: Ctx, ownerId: string): Promise<Playlist[]> {
   return cards(h, await liveOf(h, ownerId));
 }
 
 /** Public playlists of an account; all of them when the viewer is the owner. */
-export async function playlistsOf(h: Hybrid, ownerId: string, viewerId: string | undefined): Promise<Playlist[]> {
+export async function playlistsOf(h: Ctx, ownerId: string, viewerId: string | undefined): Promise<Playlist[]> {
   return cards(h, (await liveOf(h, ownerId)).filter((p) => p['isPublic'] === true || ownerId === viewerId));
 }
 
-export async function createPlaylist(h: Hybrid, ownerId: string, title: string, isPublic: boolean): Promise<Playlist> {
+export async function createPlaylist(h: Ctx, ownerId: string, title: string, isPublic: boolean): Promise<Playlist> {
   if ((await liveOf(h, ownerId)).length >= PLAYLISTS_MAX) throw new ApiError('conflict', `You can keep at most ${PLAYLISTS_MAX} playlists.`);
   const id = randomUUID();
   const now = iso(nowMs(h));
@@ -85,7 +85,7 @@ export async function createPlaylist(h: Hybrid, ownerId: string, title: string, 
 }
 
 /** One version-checked write of the playlist item (a racing change re-reads and applies again). */
-async function change(h: Hybrid, id: string, ownerId: string, fn: (p: Item) => Record<string, unknown>): Promise<void> {
+async function change(h: Ctx, id: string, ownerId: string, fn: (p: Item) => Record<string, unknown>): Promise<void> {
   await withVersionRetry(async () => {
     const p = await own(h, id, ownerId);
     const v = Number(p['v'] ?? 0);
@@ -95,17 +95,17 @@ async function change(h: Hybrid, id: string, ownerId: string, fn: (p: Item) => R
   }, { tries: 5 });
 }
 
-export async function updatePlaylist(h: Hybrid, id: string, ownerId: string, p: { title?: string; isPublic?: boolean }): Promise<Playlist> {
+export async function updatePlaylist(h: Ctx, id: string, ownerId: string, p: { title?: string; isPublic?: boolean }): Promise<Playlist> {
   await change(h, id, ownerId, () => ({ ...(p.title !== undefined ? { title: p.title } : {}), ...(p.isPublic !== undefined ? { isPublic: p.isPublic } : {}) }));
   return (await getPlaylist(h, id, ownerId))!;
 }
 
-export async function deletePlaylist(h: Hybrid, id: string, ownerId: string): Promise<void> {
+export async function deletePlaylist(h: Ctx, id: string, ownerId: string): Promise<void> {
   await change(h, id, ownerId, () => ({ items: [], deletedAt: iso(nowMs(h)) }));
 }
 
 /** Replaces the whole ordered list (reorder and remove in one call). Unknown episodes are refused. */
-export async function setItems(h: Hybrid, id: string, ownerId: string, episodeIds: string[]): Promise<Playlist> {
+export async function setItems(h: Ctx, id: string, ownerId: string, episodeIds: string[]): Promise<Playlist> {
   await own(h, id, ownerId);
   const ids = [...new Set(episodeIds)];
   if (ids.length > PLAYLIST_ITEMS_MAX) throw new ApiError('conflict', `A playlist holds at most ${PLAYLIST_ITEMS_MAX} episodes.`);
@@ -118,7 +118,7 @@ export async function setItems(h: Hybrid, id: string, ownerId: string, episodeId
   return (await getPlaylist(h, id, ownerId))!;
 }
 
-export async function addItem(h: Hybrid, id: string, ownerId: string, episodeId: string): Promise<Playlist> {
+export async function addItem(h: Ctx, id: string, ownerId: string, episodeId: string): Promise<Playlist> {
   await own(h, id, ownerId);
   if (!(await get(h.store, 'main', K.episode(episodeId)))) throw new ApiError('not_found', 'No such episode.');
   await change(h, id, ownerId, (p) => {
@@ -130,7 +130,7 @@ export async function addItem(h: Hybrid, id: string, ownerId: string, episodeId:
 }
 
 /** One playlist with its episodes in order — undefined (404) when private and not the viewer's. */
-export async function getPlaylist(h: Hybrid, id: string, viewerId: string | undefined): Promise<Playlist | undefined> {
+export async function getPlaylist(h: Ctx, id: string, viewerId: string | undefined): Promise<Playlist | undefined> {
   const p = await liveItem(h, id);
   if (!p) return undefined;
   const ownerId = String(p['ownerId']);
@@ -160,7 +160,7 @@ export async function getPlaylist(h: Hybrid, id: string, viewerId: string | unde
 }
 
 /** "Download my data" (lane AC's export): the old `playlists` and `playlist_items` rows, from the items. */
-export async function exportPlaylists(h: Hybrid, ownerId: string): Promise<{ playlists: Record<string, unknown>[]; items: Record<string, unknown>[] }> {
+export async function exportPlaylists(h: Ctx, ownerId: string): Promise<{ playlists: Record<string, unknown>[]; items: Record<string, unknown>[] }> {
   const all = await partitionItems(h, K.L(ownerId), K.SG_SK.playlists);
   return {
     playlists: all.map((p) => ({

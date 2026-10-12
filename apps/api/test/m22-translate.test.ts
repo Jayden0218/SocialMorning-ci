@@ -58,7 +58,7 @@ function fakeGroq(o: { status?: number } = {}) {
 }
 
 async function episode(t: TestDb, id: string, feedUrl: string, durationMs: number | null = 600_000) {
-  // M26: episodes are lane LB's (DynamoDB in the hybrid run): seeded through the app's dual upsert.
+  // M26: episodes are lane LB's: seeded through the app's upsert.
   await upsertEpisode(t.db, { id, feedUrl, guid: id, title: `Episode ${id}`, showTitle: 'Le Show', enclosureUrl: `https://cdn.example.com/${id}.mp3`, ...(durationMs !== null ? { durationMs } : {}) });
 }
 const plus = (t: TestDb, id: string) => seedEntitlement(t, { listenerId: id, kind: 'plus', ref: '', until: '2099-01-01T00:00:00.000Z' }); // lane PD's items on DynamoDB

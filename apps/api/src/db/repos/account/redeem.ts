@@ -5,18 +5,15 @@
  *
  *  - The code is 12 symbols from an alphabet with no 0/O, 1/I/L (31 symbols, about 59 bits).
  *    The phone may send it with spaces, dashes or in lower case; `normalizeCode` removes them.
- *  - Lookup is by `code_hash` (sha256 of the code), and the stored code is then compared with
+ *  - Lookup is by the code hash (sha256 of the code), and the stored code is then compared with
  *    `timingSafeEqual`, so no step compares the typed code character by character.
- *  - Guard G-M24-A3-1: the `redeem_uses (code, listener_id)` primary key is what makes "one use per
- *    account" true; the INSERT … ON CONFLICT DO NOTHING finds a second use and refuses it. The
- *    whole redeem is one transaction: a refusal after that INSERT (used up, already own the
- *    show) rolls it back, so the code stays usable for this account.
+ *  - Guard G-M24-A3-1: the use record (code, listener) is claimed with a condition, which is what makes
+ *    "one use per account" true; a second use finds it and is refused. The whole redeem is one
+ *    transaction: a refusal after that claim (used up, already own the show) leaves nothing
+ *    behind, so the code stays usable for this account.
  */
 import { createHash, randomInt, timingSafeEqual } from 'node:crypto';
-import type { Db } from '../../db.ts';
-import { dual } from '../../backend.ts';
-import { ApiError } from '../../../errors.ts';
-import { codeRef, plusUntil } from './purchases.ts';
+import { viaStore } from '../../backend.ts';
 
 const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 export const REDEEM_CODE_LENGTH = 12;
@@ -45,7 +42,7 @@ export function sameCode(stored: string, typed: string): boolean {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-/** The grant as stored (jsonb); a row that is not a valid grant is treated as no code. */
+/** The grant as stored; a row that is not a valid grant is treated as no code. */
 export function parseGrant(v: unknown): Grant | undefined {
   const o = typeof v === 'string' ? safeJson(v) : v;
   if (!o || typeof o !== 'object') return undefined;
@@ -59,127 +56,30 @@ function safeJson(s: string): unknown {
   try { return JSON.parse(s); } catch { return undefined; }
 }
 
-async function showTitlePg(db: Db, feedUrl: string): Promise<string | null> {
-  const [r] = await db.query<{ title: string | null }>(
-    `SELECT coalesce(o.title, h.title) AS title FROM (SELECT $1::text AS feed_url) x
-       LEFT JOIN hosted_shows h ON h.feed_url = x.feed_url
-       LEFT JOIN show_overrides o ON o.feed_url = x.feed_url`, [feedUrl]);
-  return r?.title ?? null;
-}
-
 export type Redeemed = { kind: 'plus'; days: number; /** Fix F-S: when this code's days begin */ startsAt: string; until: string | null } | { kind: 'show'; feedUrl: string; title: string | null };
 
-type CodeRow = { code: string; grants: unknown; max_uses: number; uses: number; expires_at: Date | string | null; disabled_at: Date | string | null };
-
-const NO_CODE = () => new ApiError('not_found', 'That code does not work. Check it and try again.');
-
 /** POST /v1/me/redeem — one transaction; see the file comment for the order of the checks. */
-export const redeemCode = dual('pd/redeem', 'redeemCode', async (db: Db, raw: string, listenerId: string, now = new Date()): Promise<Redeemed> => {
-  const code = normalizeCode(raw);
-  if (!code) throw NO_CODE();
-  return db.transaction(async (tx) => {
-    const [row] = await tx.query<CodeRow>(
-      'SELECT code, grants, max_uses, uses, expires_at, disabled_at FROM redeem_codes WHERE code_hash = $1 FOR UPDATE', [codeHashOf(code)]);
-    if (!row || !sameCode(row.code, code)) throw NO_CODE();
-    const grant = parseGrant(row.grants);
-    if (!grant) throw NO_CODE();
-    if (row.disabled_at !== null) throw new ApiError('cancelled', 'This code was switched off.');
-    if (row.expires_at !== null && new Date(row.expires_at).getTime() <= now.getTime()) throw new ApiError('cancelled', 'This code has expired.');
-    // G-M24-A3-1: one use per code per account.
-    const [mine] = await tx.query<{ code: string }>(
-      'INSERT INTO redeem_uses (code, listener_id) VALUES ($1, $2) ON CONFLICT (code, listener_id) DO NOTHING RETURNING code', [row.code, listenerId]);
-    if (!mine) throw new ApiError('already_claimed', 'You already used this code.');
-    const [took] = await tx.query<{ uses: number }>(
-      'UPDATE redeem_codes SET uses = uses + 1, used_by = $2, used_at = now() WHERE code = $1 AND uses < max_uses AND disabled_at IS NULL RETURNING uses', [row.code, listenerId]);
-    if (!took) throw new ApiError('cancelled', 'This code has been used up.');
-    if (grant.kind === 'plus') {
-      // Fix F-S: each code is its own interval row (ref 'code:<CODE>'), never the store's row, so a
-      // Play renewal or refund cannot overwrite or remove it. It starts at the latest end over all
-      // sources (or now) and lasts its days: a code during a running store sub adds days after it,
-      // and a second code chains after the first. A source that never ends → the code starts now.
-      const [e] = await tx.query<{ starts_at: Date | string }>(
-        `INSERT INTO entitlements (listener_id, kind, ref, starts_at, until)
-         SELECT $1, 'plus', $3, s.at, s.at + make_interval(days => $2::int)
-           FROM (SELECT CASE WHEN bool_or(until IS NULL) THEN now() ELSE GREATEST(now(), max(until)) END AS at
-                   FROM entitlements WHERE listener_id = $1 AND kind = 'plus' AND (until IS NULL OR until > now())) s
-         RETURNING starts_at`, [listenerId, grant.days, codeRef(row.code)]);
-      const p = await plusUntil(tx, listenerId);
-      return { kind: 'plus', days: grant.days, startsAt: new Date(e!.starts_at).toISOString(), until: p.until };
-    }
-    const [owns] = await tx.query("SELECT 1 FROM entitlements WHERE listener_id = $1 AND kind = 'show' AND ref = $2", [listenerId, grant.feedUrl]);
-    if (owns) throw new ApiError('already_owned', 'You already have this series. The code still works for someone else.');
-    await tx.query(
-      `INSERT INTO entitlements (listener_id, kind, ref, until, source_purchase_id) VALUES ($1, 'show', $2, NULL, NULL)
-       ON CONFLICT (listener_id, kind, ref) DO NOTHING`, [listenerId, grant.feedUrl]);
-    return { kind: 'show', feedUrl: grant.feedUrl, title: await showTitle(tx, grant.feedUrl) };
-  });
-});
+export const redeemCode = viaStore<typeof import('./paid-ddb/redeem.ts').redeemCode>('pd/redeem', 'redeemCode');
 
 // ---- Admin ----
 
 export type CodeInput = { grant: Grant; count: number; maxUses: number; note: string; expiresAt: string | null; createdBy: string };
 
 /** Makes `count` new codes with the same grant; returns them in the order made. */
-export const createCodes = dual('pd/redeem', 'createCodes', async (db: Db, p: CodeInput, codes: string[] = []): Promise<string[]> => {
-  const made: string[] = [];
-  for (const wanted of codes.length > 0 ? codes : Array.from({ length: p.count }, () => newRedeemCode())) {
-    let code = wanted;
-    for (let i = 0; i < 5; i++) {
-      const [row] = await db.query<{ code: string }>(
-        `INSERT INTO redeem_codes (code, code_hash, grants, created_by, max_uses, note, expires_at)
-         VALUES ($1, $2, ($3::text)::jsonb, $4, $5, $6, $7) ON CONFLICT DO NOTHING RETURNING code`,
-        [code, codeHashOf(code), JSON.stringify(p.grant), p.createdBy, p.maxUses, p.note, p.expiresAt]);
-      if (row) { made.push(row.code); break; }
-      code = newRedeemCode();
-    }
-  }
-  if (made.length !== (codes.length > 0 ? codes.length : p.count)) throw new Error('could not make unique redeem codes');
-  return made;
-});
+export const createCodes = viaStore<typeof import('./paid-ddb/redeem.ts').createCodes>('pd/redeem', 'createCodes');
 
 export type CodeListItem = {
   code: string; kind: 'plus' | 'show'; days: number | null; feedUrl: string | null; showTitle: string | null;
   uses: number; maxUses: number; note: string; createdAt: string; expiresAt: string | null; disabled: boolean;
 };
 
-const iso = (v: Date | string | null): string | null => (v === null ? null : new Date(v).toISOString());
+export const listCodes = viaStore<typeof import('./paid-ddb/redeem.ts').listCodes>('pd/redeem', 'listCodes');
 
-export const listCodes = dual('pd/redeem', 'listCodes', async (db: Db, limit = 300): Promise<CodeListItem[]> => {
-  const rows = await db.query<CodeRow & { note: string; created_at: Date | string }>(
-    'SELECT code, grants, max_uses, uses, expires_at, disabled_at, note, created_at FROM redeem_codes ORDER BY created_at DESC, code LIMIT $1', [limit]);
-  const titles = new Map<string, string | null>();
-  const out: CodeListItem[] = [];
-  for (const r of rows) {
-    const g = parseGrant(r.grants);
-    if (!g) continue;
-    if (g.kind === 'show' && !titles.has(g.feedUrl)) titles.set(g.feedUrl, await showTitle(db, g.feedUrl));
-    out.push({
-      code: r.code, kind: g.kind, days: g.kind === 'plus' ? g.days : null, feedUrl: g.kind === 'show' ? g.feedUrl : null,
-      showTitle: g.kind === 'show' ? (titles.get(g.feedUrl) ?? null) : null,
-      uses: r.uses, maxUses: r.max_uses, note: r.note, createdAt: iso(r.created_at)!, expiresAt: iso(r.expires_at), disabled: r.disabled_at !== null,
-    });
-  }
-  return out;
-});
-
-/** The paid shows a code can give (a hosted show with a price, not deleted). */
-async function paidShowsPg(db: Db): Promise<{ feedUrl: string; title: string }[]> {
-  const rows = await db.query<{ feed_url: string; title: string }>(
-    'SELECT h.feed_url, coalesce(o.title, h.title) AS title FROM hosted_shows h LEFT JOIN show_overrides o ON o.feed_url = h.feed_url WHERE h.deleted_at IS NULL AND h.price_tier IS NOT NULL ORDER BY 2 LIMIT 200');
-  return rows.map((r) => ({ feedUrl: r.feed_url, title: r.title }));
-}
-
-export const codeState = dual('pd/redeem', 'codeState', async (db: Db, codes: string[]): Promise<Record<string, unknown>[]> => {
-  if (codes.length === 0) return [];
-  return db.query<Record<string, unknown>>('SELECT code, grants, max_uses, uses, note, disabled_at FROM redeem_codes WHERE code IN (SELECT jsonb_array_elements_text(($1::text)::jsonb)) ORDER BY code', [JSON.stringify(codes)]);
-});
+export const codeState = viaStore<typeof import('./paid-ddb/redeem.ts').codeState>('pd/redeem', 'codeState');
 
 /** Switches a code off; uses already made keep what they gave. False when there is no such code. */
-export const disableCode = dual('pd/redeem', 'disableCode', async (db: Db, code: string): Promise<boolean> => {
-  const rows = await db.query<{ code: string }>('UPDATE redeem_codes SET disabled_at = coalesce(disabled_at, now()) WHERE code = $1 RETURNING code', [code]);
-  return rows.length > 0;
-});
+export const disableCode = viaStore<typeof import('./paid-ddb/redeem.ts').disableCode>('pd/redeem', 'disableCode');
 
 // M26 lane ST: the show's title (override, else Studio-made show) and the priced shows are lane ST's items (studio/ddb/hosted.ts).
-export const showTitle = dual('st/hosted', 'codeShowTitle', showTitlePg);
-export const paidShows = dual('st/hosted', 'paidShows', paidShowsPg);
+export const showTitle = viaStore<typeof import('../studio/ddb/hosted.ts').codeShowTitle>('st/hosted', 'codeShowTitle');
+export const paidShows = viaStore<typeof import('../studio/ddb/hosted.ts').paidShows>('st/hosted', 'paidShows');

@@ -8,7 +8,7 @@
  *   facts (`STF#<id>` → plays, likes, saves, heard ranges leave their show's counts; a share keeps its count, loses its sharer),
  *   held comments (`L#/HELD#`), host and mute pointers (`HOSTOF#`, `SMUTEON#` → the show's `HOST#` / `SMUTE#`),
  *   role copies (`ROLES#`: a helper's `TEAM#` goes; an owner's proven claim is revoked — `U#PROVEN` freed),
- *   Studio-made shows (`HOSTED#` → the show, its episodes and their bytes, the feed pointer; the Postgres row too),
+ *   Studio-made shows (`HOSTED#` → the show, its episodes and their bytes, the feed pointer),
  *   poll votes (`PVOTE#` → the poll's counts), milestone copies (`MSTONE#` → the show's `MILESTONE#`), curator rows.
  * The pointers themselves are in `L#<id>` and go with lane AC's `partition` phase. `*_by` ids on items others keep
  * (announcement author, poll creator, invite creator, override editor) are never shown and are left as they are —
@@ -22,7 +22,7 @@ import { isConditionFailed } from '../../../ddb/retry.ts';
 import { deleteFactsStep } from './facts.ts';
 import { deleteHeldStep } from './comments.ts';
 import { removeVoteOf } from './announce.ts';
-import { bridgeOf, keyOf, partition, type Db } from './common.ts';
+import { keyOf, partition, type Db } from './common.ts';
 
 const CHUNK = 25;
 
@@ -31,7 +31,7 @@ async function swallow(p: Promise<unknown>): Promise<void> {
 }
 
 /** One step; true when nothing of the listener is left in lane ST's items. */
-export async function deleteStudioStep(store: Store, db: Db, listenerId: string): Promise<boolean> {
+export async function deleteStudioStep(store: Store, _db: Db, listenerId: string): Promise<boolean> {
   if (!(await deleteFactsStep(store, listenerId))) return false;
   if (!(await deleteHeldStep(store, listenerId))) return false;
   const L = K.L(listenerId);
@@ -70,8 +70,6 @@ export async function deleteStudioStep(store: Store, db: Db, listenerId: string)
     const t = tx(store).delete('main', K.hostedShow(showId)).delete('main', keyOf(p));
     if (bytes > 0) t.update('main', K.config('bytes'), { update: 'ADD #b :d', names: { '#b': 'hostedAudioBytes' }, values: { ':d': -bytes } });
     await t.commit();
-    const raw = bridgeOf(db);
-    if (raw) await raw.query('DELETE FROM hosted_shows WHERE id = $1', [showId]);
   }
   for (const v of votes) await removeVoteOf(store, String(v['pollId']), listenerId);
   for (const s of stones) {

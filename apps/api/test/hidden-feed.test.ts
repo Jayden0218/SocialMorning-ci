@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createApp } from '../src/app.ts';
 import { fakeApple, fakeFeedFetch, FIXTURE_FEED } from './fake-apple.ts';
-import { dbOf, hybridDb, migratedPg, TEST_PEPPER } from './harness.ts';
+import { appDb, TEST_PEPPER } from './harness.ts';
 import { createListener } from '../src/db/repos/account/listeners.ts';
 import { act } from '../src/db/repos/safety/moderation.ts';
 
@@ -12,8 +12,7 @@ const FX = 'https://feeds.example.com/fx.xml';
 const REPLY_ALL = 'https://feeds.megaphone.fm/replyall';
 
 test('G7: hidden feeds are absent from /v1/discover (picks, trending), /v1/search (shows, episodes) and next-up, without waiting for the cache', async () => {
-  const { pg, runner } = await migratedPg();
-  const hy = await hybridDb(dbOf(pg)); // M26: on DynamoDB the converted lanes run on DynamoDB Local
+  const hy = await appDb();
   const db = hy.db;
   const apple = fakeApple();
   const catalogFetch = (async (input: string | URL | Request, init?: RequestInit) => {
@@ -50,5 +49,4 @@ test('G7: hidden feeds are absent from /v1/discover (picks, trending), /v1/searc
   assert.ok(s1.shows.every((s) => s.feedUrl !== REPLY_ALL));
   assert.ok(s1.episodes.every((e) => e.feedUrl !== REPLY_ALL));
   await hy.close();
-  await pg.close();
 });

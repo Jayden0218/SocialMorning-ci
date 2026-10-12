@@ -1,14 +1,14 @@
 // Blocked words: the admin's list, read through a short memo, and the check every write uses.
 /**
- * M24 US2. The list lives in `blocked_words` (migration 023). Every checked write reads it through
+ * M24 US2. The list is stored as the admin's word list. Every checked write reads it through
  * a 30 s in-process memo per database; an admin change drops the memo at once in this process
  * (another serverless instance catches up within 30 s). The matching rule is social-core's
  * `findBlockedWord`, so the phone could run the same one.
  */
-import { findBlockedWord, WORDS_MAX } from '@socialmorning/social-core';
+import { findBlockedWord } from '@socialmorning/social-core';
 import type { Db } from '../../db.ts';
 import { ApiError } from '../../../errors.ts';
-import { dual } from '../../backend.ts';
+import { viaStore } from '../../backend.ts';
 
 const MEMO_MS = 30_000;
 const memo = new WeakMap<Db, { at: number; words: string[] }>();
@@ -20,39 +20,14 @@ export function dropWordsMemo(db: Db): void {
 export async function blockedWords(db: Db): Promise<string[]> {
   const hit = memo.get(db);
   if (hit && Date.now() - hit.at < MEMO_MS) return hit.words;
-  // A read that fails (e.g. migration 023 not applied yet) checks nothing rather than refusing every write.
+  // A read that fails checks nothing rather than refusing every write.
   const words = await wordRows(db)
     .catch((e: unknown) => { console.warn('[words] read failed', e instanceof Error ? e.message : e); return [] as string[]; });
   memo.set(db, { at: Date.now(), words });
   return words;
 }
 
-/** The stored words, in order (at most WORDS_MAX). */
-async function wordRowsPg(db: Db): Promise<string[]> {
-  const rows = await db.query<{ word: string }>('SELECT word FROM blocked_words ORDER BY word LIMIT $1', [WORDS_MAX]);
-  return rows.map((r) => r.word);
-}
-
 export type WordRow = { word: string; addedBy: string | null; addedAt: string };
-
-async function listWordsPg(db: Db): Promise<WordRow[]> {
-  const rows = await db.query<{ word: string; added_by_name: string | null; added_at: Date | string }>(
-    `SELECT w.word, l.display_name AS added_by_name, w.added_at FROM blocked_words w LEFT JOIN listeners l ON l.id = w.added_by ORDER BY w.word LIMIT $1`, [WORDS_MAX]);
-  return rows.map((r) => ({ word: r.word, addedBy: r.added_by_name, addedAt: new Date(r.added_at).toISOString() }));
-}
-
-/** Adds words (already normalised); a word already there is kept. Refuses past WORDS_MAX. */
-async function addWordsPg(db: Db, words: readonly string[], by: string): Promise<number> {
-  const [n] = await db.query<{ n: number }>('SELECT count(*)::int AS n FROM blocked_words');
-  if (Number(n?.n ?? 0) + words.length > WORDS_MAX) throw new ApiError('validation', `At most ${WORDS_MAX} words.`, { fields: ['words'] });
-  const rows = await db.query<{ word: string }>(
-    'INSERT INTO blocked_words (word, added_by) SELECT w, $2 FROM unnest($1::text[]) AS w ON CONFLICT (word) DO NOTHING RETURNING word', [[...words], by]);
-  return rows.length;
-}
-
-async function removeWordPg(db: Db, word: string): Promise<boolean> {
-  return (await db.query('DELETE FROM blocked_words WHERE word = $1 RETURNING word', [word])).length > 0;
-}
 
 /** Throws 422 `blocked_word` when any of the texts holds a blocked word. The word is not echoed back. */
 export async function assertNoBlockedWords(db: Db, texts: readonly (string | undefined | null)[]): Promise<void> {
@@ -65,7 +40,7 @@ export async function assertNoBlockedWords(db: Db, texts: readonly (string | und
   }
 }
 
-export const wordRows = dual('sf/words', 'wordRows', wordRowsPg);
-export const listWords = dual('sf/words', 'listWords', listWordsPg);
-export const addWords = dual('sf/words', 'addWords', addWordsPg);
-export const removeWord = dual('sf/words', 'removeWord', removeWordPg);
+export const wordRows = viaStore<typeof import('./ddb/words.ts').wordRows>('sf/words', 'wordRows');
+export const listWords = viaStore<typeof import('./ddb/words.ts').listWords>('sf/words', 'listWords');
+export const addWords = viaStore<typeof import('./ddb/words.ts').addWords>('sf/words', 'addWords');
+export const removeWord = viaStore<typeof import('./ddb/words.ts').removeWord>('sf/words', 'removeWord');

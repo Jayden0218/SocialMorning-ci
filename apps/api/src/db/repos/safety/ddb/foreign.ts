@@ -1,11 +1,9 @@
-// What lane SF's DynamoDB code reads in other lanes' items (SC content, the shared lists, ST Studio) — through their DynamoDB code, never SQL.
+// What the safety DynamoDB code reads in other repos' items (social content, the shared lists, Studio) — through their DynamoDB code.
 /**
- * M26 lane SF; switched to DynamoDB by lane LE (gap 4: "no DynamoDB body reads Postgres with the bridge off"). Before,
- * the SC rows (comments, clips, statuses, chat messages) and the shared lists were read here with the old SQL on
- * `pgOf(db)`; now each reads that lane's items through its own getters (lane SC's `commentItemById`, `clipItemById`,
- * `K.voicePost`, `chatRef` + the pair partition; lane LE's `lists-ddb/shared-lists.ts`). The returned rows keep their
- * snake_case shape, so reports.ts and moderation.ts read them as before. Take-downs are lane SC's / LE's setters
- * (moderation.ts applyTakedown); nothing here writes.
+ * The social rows (comments, clips, statuses, chat messages) and the shared lists are read through their own getters
+ * (`commentItemById`, `clipItemById`, `K.voicePost`, `chatRef` + the pair partition; `lists-ddb/shared-lists.ts`).
+ * The returned rows keep a snake_case shape, so reports.ts and moderation.ts read them as before. Take-downs are
+ * those repos' setters (moderation.ts applyTakedown); nothing here writes.
  */
 import type { Db } from '../../../db.ts';
 import * as K from '../../../ddb/keys.ts';

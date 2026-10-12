@@ -11,7 +11,7 @@
  */
 import { Hono } from 'hono';
 import type { AuthEnv } from '../../auth/session.ts';
-import { liveSessionSql, requireAuth, SESSION_IDLE_DAYS, tokenHash } from '../../auth/session.ts';
+import { requireAuth, SESSION_IDLE_DAYS, tokenHash } from '../../auth/session.ts';
 import { STUDIO_LABEL } from '../../auth/studio-session.ts';
 import { ApiError } from '../../errors.ts';
 import { deleteDevice, deviceCurrentRows, listDeviceRows, signOutOtherDevices, type DeviceRow } from '../../db/repos/account/devices.ts';
@@ -38,7 +38,7 @@ devices.get('/', requireAuth, async (c) => {
   const hash = tokenHash(c.get('token')!, c.get('pepper'));
   // `current`: this token's row — or, when this token was just rotated out, the row that replaced it
   // (COALESCE: a NULL from the sub-select would sort first under DESC).
-  const rows: DeviceRow[] = await listDeviceRows(c.get('db'), me.id, hash, SESSION_IDLE_DAYS, liveSessionSql);
+  const rows: DeviceRow[] = await listDeviceRows(c.get('db'), me.id, hash, SESSION_IDLE_DAYS);
   const items: Device[] = rows.map((r) => ({
     id: r.id, ...deviceOf(r.device_label), country: r.country?.trim() || null,
     signedInAt: new Date(r.created_at).toISOString(), lastSeenAt: new Date(r.last_seen_at).toISOString(), current: Boolean(r.current),

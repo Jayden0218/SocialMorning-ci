@@ -12,15 +12,12 @@
  * after 2 hours). Attaching it to a status sets `postId` on the row; the sweep deletes the file
  * before the status (G-M22-2) and then the row.
  */
-import type { Db } from '../../db.ts';
-import { dual } from '../../backend.ts';
-import type { ImageStorage } from '../../../storage/image-store.ts';
+import { viaStore } from '../../backend.ts';
 
 export const STATUS_ITEMS_MAX = 10;
 export const STATUS_PHOTO_MAX_BYTES = 1_000_000;
 /** A photo uploaded but never posted is deleted after this long. */
 export const ORPHAN_PHOTO_MS = 2 * 3_600_000;
-const PREFIX = 'status-photo:';
 
 export type StatusItemIn = { kind: 'episode'; episodeId: string } | { kind: 'photo'; imageKey: string };
 export type StatusItem =
@@ -52,102 +49,11 @@ export function itemsFromHeader(header: string | undefined): StatusItemIn[] {
   return parseItems(raw);
 }
 
-/** Bytes the image store holds for status photos (added to comment images for the ceiling). */
-async function statusPhotoBytesPg(db: Db): Promise<number> {
-  const [r] = await db.query<{ n: string | number | null }>(`SELECT coalesce(sum((body->>'bytes')::bigint), 0) AS n FROM cache WHERE key LIKE '${PREFIX}%'`);
-  return Number(r?.n ?? 0);
-}
-
-async function recordUploadPg(db: Db, p: { pathname: string; url: string; bytes: number; listenerId: string }): Promise<void> {
-  await db.query(
-    'INSERT INTO cache (key, body, fetched_at) VALUES ($1, $2::text::jsonb, now()) ON CONFLICT (key) DO UPDATE SET body = EXCLUDED.body, fetched_at = now()',
-    [PREFIX + p.pathname, JSON.stringify({ url: p.url, bytes: p.bytes, listenerId: p.listenerId })],
-  );
-}
-
-/**
- * Checks every item and writes them for a new status, in order. An episode must be known; a photo
- * must be this listener's own upload, not yet on another status.
- */
-async function insertItemsPg(db: Db, postId: string, listenerId: string, items: readonly StatusItemIn[]): Promise<void> {
-  if (items.length > STATUS_ITEMS_MAX) throw new ItemsError('too_many_items', `Up to ${STATUS_ITEMS_MAX} items.`);
-  for (let i = 0; i < items.length; i++) {
-    const it = items[i]!;
-    if (it.kind === 'episode') {
-      const [e] = await db.query<{ id: string }>('SELECT id FROM episodes WHERE id = $1', [it.episodeId]);
-      if (!e) throw new ItemsError('bad_item', 'No such episode.');
-      await db.query("INSERT INTO status_items (post_id, pos, kind, episode_id) VALUES ($1, $2, 'episode', $3)", [postId, i + 1, it.episodeId]);
-    } else {
-      const [u] = await db.query<{ body: { url?: string; listenerId?: string; postId?: string } | string }>('SELECT body FROM cache WHERE key = $1', [PREFIX + it.imageKey]);
-      const body = u ? (typeof u.body === 'string' ? JSON.parse(u.body) as { url?: string; listenerId?: string; postId?: string } : u.body) : undefined;
-      if (!body || body.listenerId !== listenerId || body.postId || !body.url) throw new ItemsError('bad_item', 'Upload the photo first.');
-      await db.query("INSERT INTO status_items (post_id, pos, kind, image_key, image_url) VALUES ($1, $2, 'photo', $3, $4)", [postId, i + 1, it.imageKey, body.url]);
-      await db.query(`UPDATE cache SET body = body || jsonb_build_object('postId', $2::text) WHERE key = $1`, [PREFIX + it.imageKey, postId]);
-    }
-  }
-}
-
-/** Items per post, in order; an episode card carries what the phone needs to show and play it. */
-async function itemsForPg(db: Db, postIds: readonly string[]): Promise<Map<string, StatusItem[]>> {
-  const out = new Map<string, StatusItem[]>();
-  if (postIds.length === 0) return out;
-  const rows = await db.query<{ post_id: string; kind: 'episode' | 'photo'; episode_id: string | null; image_url: string | null; title: string | null; show_title: string | null; e_image: string | null; feed_url: string | null; enclosure_url: string | null; duration_ms: number | null }>(
-    `SELECT i.post_id, i.kind, i.episode_id, i.image_url, e.title, e.show_title, e.image_url AS e_image, e.feed_url, e.enclosure_url, e.duration_ms
-       FROM status_items i LEFT JOIN episodes e ON e.id = i.episode_id
-      WHERE i.post_id = ANY($1::uuid[]) ORDER BY i.post_id, i.pos`,
-    [postIds],
-  );
-  for (const r of rows) {
-    const list = out.get(r.post_id) ?? [];
-    if (r.kind === 'photo' && r.image_url) list.push({ kind: 'photo', url: r.image_url });
-    else if (r.kind === 'episode' && r.episode_id) {
-      list.push({
-        kind: 'episode', episodeId: r.episode_id,
-        ...(r.title ? { title: r.title } : {}), ...(r.show_title ? { showTitle: r.show_title } : {}), ...(r.e_image ? { imageUrl: r.e_image } : {}),
-        ...(r.feed_url ? { feedUrl: r.feed_url } : {}), ...(r.enclosure_url ? { enclosureUrl: r.enclosure_url } : {}),
-        ...(r.duration_ms !== null ? { durationMs: Number(r.duration_ms) } : {}),
-      });
-    }
-    out.set(r.post_id, list);
-  }
-  return out;
-}
-
-/** The photo files on these posts (image store pathnames). */
-async function photosOfPg(db: Db, postIds: readonly string[]): Promise<string[]> {
-  if (postIds.length === 0) return [];
-  const rows = await db.query<{ image_key: string }>("SELECT image_key FROM status_items WHERE post_id = ANY($1::uuid[]) AND kind = 'photo' AND image_key IS NOT NULL", [postIds]);
-  return rows.map((r) => r.image_key);
-}
-
-/** One photo leaves the store, then its rows. Throws when the store is not connected or the delete fails. */
-async function removePhotoPg(db: Db, images: ImageStorage | undefined, pathname: string): Promise<void> {
-  if (!images?.ready) throw new Error('image store not connected');
-  await images.remove(pathname);
-  await db.query("DELETE FROM status_items WHERE kind = 'photo' AND image_key = $1", [pathname]);
-  await db.query('DELETE FROM cache WHERE key = $1', [PREFIX + pathname]);
-}
-
-/** Photos uploaded more than 2 hours ago and never posted. */
-async function sweepOrphanPhotosPg(db: Db, images: ImageStorage | undefined, limit = 100): Promise<{ deleted: number; failed: number }> {
-  if (!images?.ready) return { deleted: 0, failed: 0 };
-  const rows = await db.query<{ key: string }>(
-    `SELECT key FROM cache WHERE key LIKE '${PREFIX}%' AND NOT (body ? 'postId') AND fetched_at < now() - ($1::int * interval '1 millisecond') LIMIT $2`,
-    [ORPHAN_PHOTO_MS, limit],
-  );
-  let deleted = 0;
-  let failed = 0;
-  for (const r of rows) {
-    try { await removePhoto(db, images, r.key.slice(PREFIX.length)); deleted++; } catch { failed++; }
-  }
-  return { deleted, failed };
-}
-
-// M26 lane SC: each function runs on Postgres, or on DynamoDB (`ddb/status-items.ts`) when the Db carries a Store (db/backend.ts).
-export const statusPhotoBytes = dual('sc/status-items', 'statusPhotoBytes', statusPhotoBytesPg);
-export const recordUpload = dual('sc/status-items', 'recordUpload', recordUploadPg);
-export const insertItems = dual('sc/status-items', 'insertItems', insertItemsPg);
-export const itemsFor = dual('sc/status-items', 'itemsFor', itemsForPg);
-export const photosOf = dual('sc/status-items', 'photosOf', photosOfPg);
-export const removePhoto = dual('sc/status-items', 'removePhoto', removePhotoPg);
-export const sweepOrphanPhotos = dual('sc/status-items', 'sweepOrphanPhotos', sweepOrphanPhotosPg);
+// Bodies in ddb/status-items.ts (src/db/backend.ts).
+export const statusPhotoBytes = viaStore<typeof import('./ddb/status-items.ts').statusPhotoBytes>('sc/status-items', 'statusPhotoBytes');
+export const recordUpload = viaStore<typeof import('./ddb/status-items.ts').recordUpload>('sc/status-items', 'recordUpload');
+export const insertItems = viaStore<typeof import('./ddb/status-items.ts').insertItems>('sc/status-items', 'insertItems');
+export const itemsFor = viaStore<typeof import('./ddb/status-items.ts').itemsFor>('sc/status-items', 'itemsFor');
+export const photosOf = viaStore<typeof import('./ddb/status-items.ts').photosOf>('sc/status-items', 'photosOf');
+export const removePhoto = viaStore<typeof import('./ddb/status-items.ts').removePhoto>('sc/status-items', 'removePhoto');
+export const sweepOrphanPhotos = viaStore<typeof import('./ddb/status-items.ts').sweepOrphanPhotos>('sc/status-items', 'sweepOrphanPhotos');

@@ -5,15 +5,13 @@ import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { createApp } from '../src/app.ts';
 import { fakeApple, fakeFeedFetch, FIXTURE_FEED } from './fake-apple.ts';
-import { migratedPg, TEST_PEPPER, signUp, type TestDb } from './harness.ts';
+import { TEST_PEPPER, signUp, type TestDb } from './harness.ts';
 import { ownBackend } from './dv-neutral.ts';
 import { putEpisode } from './put-episode.ts';
 
 /** A test app whose catalogue fetch answers Apple URLs with the fake and feed URLs with the fixture. */
 async function appWith(picksRaw: unknown, today = '2026-09-22') {
-  const { pg, runner } = await migratedPg();
-  await pg.exec('ALTER TABLE listeners ALTER COLUMN rules_accepted_at SET DEFAULT now()'); // M21 US6: test listeners accepted the rules (as harness.ts)
-  const be = await ownBackend(pg); // M26: Postgres, or (TEST_BACKEND=ddb) the hybrid Db
+  const be = await ownBackend();
   const db = be.db;
   const apple = fakeApple();
   const catalogFetch = (async (input: string | URL | Request, init?: RequestInit) => {
@@ -27,14 +25,13 @@ async function appWith(picksRaw: unknown, today = '2026-09-22') {
   const app = createApp({ db, pepper: TEST_PEPPER, catalogFetch, picksRaw, today: () => today });
   console.warn = orig;
   const t: TestDb = {
-    pg, db, runner, app, ...(be.store ? { store: be.store } : {}),
-    q: async <T,>(s: string, p?: unknown[]) => (await pg.query<T>(s, p)).rows,
+    db, app, store: be.store,
     call: async (method, path, body, token, headers = {}) => {
       const r = await app.request(path, { method, headers: { ...(body !== undefined ? { 'content-type': 'application/json' } : {}), ...(token ? { authorization: `Bearer ${token}` } : {}), ...headers }, body: body !== undefined ? JSON.stringify(body) : undefined });
-      await be.drain(); // M26: the outbox runs after each request on DynamoDB
+      await be.drain(); // the outbox runs after each request
       return r;
     },
-    close: async () => { await be.close(); await pg.close(); },
+    close: async () => { await be.close(); },
   };
   return { t, warned, apple };
 }

@@ -4,7 +4,7 @@
  */
 import { acceptInvite, createInvite, listHosts, openInvites, previewInvite, removeHost, revokeInvite } from '../../db/repos/studio/show-hosts.ts';
 import type { Hono } from 'hono';
-import { ownerOnly, https } from './common.ts';
+import { ownerOnly } from './common.ts';
 import type { StudioEnv } from '../../auth/studio-session.ts';
 
 export function registerHosts(studio: Hono<StudioEnv>): void {

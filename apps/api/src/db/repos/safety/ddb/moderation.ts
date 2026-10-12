@@ -1,14 +1,9 @@
 // Moderation on DynamoDB: one transaction for the action, its effect and the author's notice; then the target's reports close.
 /**
- * M26 lane SF (SF-17…SF-25; SF hard case 4). `act()`:
- *   Postgres transaction {                     (the effects in lanes still on Postgres + the notice + the bridge rows)
- *     remove → the item's removal (SC/DV, foreign.ts) and the author's system notice (SG `insertNotice`);
- *     DynamoDB TransactWriteItems {           (≤ 6 items)
- *       MA#<id>/A (G4 `Q#actions`, G5 `REF#subject#<person>`), the effect on DynamoDB items (hidden feed put/delete,
- *       the listener's suspension — lane AC's admin-ops.ts), the hour's `R#dash#actions`, the outbox entry
- *       `reports:close` }
- *   }   — the DynamoDB transaction commits LAST inside the Postgres one: if it fails, the Postgres effects and
- *       the notice roll back; if it commits, they commit. Action, effect and notice together or none (G-M26-SF2).
+ * `act()` is one DynamoDB TransactWriteItems (≤ 6 items): MA#<id>/A (G4 `Q#actions`, G5 `REF#subject#<person>`),
+ * the effect on the items (hidden feed put/delete, the listener's suspension — admin-ops.ts), the author's system
+ * notice for a removal, the hour's `R#dash#actions`, and the outbox entry `reports:close`. Action, effect and notice
+ * together or none (G-M26-SF2); the removal of the item itself follows right after the commit.
  * Then the target's open reports close: right away in the request (as before — the routes read the queue next),
  * and the outbox entry (`reports:close`, idempotent) finishes the job if the request dies half-way: a target's
  * reports are unbounded, so they cannot sit in the one transaction.
@@ -24,7 +19,6 @@ import { tx, type Tx } from '../../../ddb/tx.ts';
 import { batchWriteAll } from '../../../ddb/batch.ts';
 import { enqueue, registerHandler } from '../../../../jobs/outbox.ts';
 import { withStore } from '../../../backend-ddb.ts';
-import { ATTACHED } from '../../../backend.ts';
 import { afterSuspension, suspensionUpdate } from '../../account/ddb/admin-ops.ts';
 import type { ActionRow } from '../moderation.ts';
 import { closeReportsFor, reportsOnTarget } from './reports.ts';
@@ -32,7 +26,7 @@ import { dashAdd } from './dash.ts';
 import { liveAuthor } from './foreign.ts';
 import { setCommentRemoved } from '../../social/comments.ts';
 import { removeActivityByRef } from '../../social/graph-ddb/activity.ts';
-import { bridgeOf, isUuid, listenersById, nowIso, obj, partition, queue, type Db, type Store } from './common.ts';
+import { isUuid, listenersById, nowIso, obj, partition, queue, type Db, type Store } from './common.ts';
 
 const THING: Partial<Record<TargetKind, string>> = { comment: 'comment', clip: 'clip', status: 'status', chat_message: 'message', list: 'shared list' };
 
@@ -47,8 +41,8 @@ async function firstCopy(store: Store, kind: string, id: string, openOnly: boole
 }
 
 /**
- * Takes an item down (or puts it back — an accepted appeal) where it lives: lane SC's comment, clip, chat message and
- * status items (their setters, each with its Postgres bridge), lane LE's shared list item. Idempotent.
+ * Takes an item down (or puts it back — an accepted appeal) where it lives: the comment, clip, chat message and
+ * status items (their setters) and the shared list item. Idempotent.
  */
 export async function applyTakedown(store: Store, db: Db, kind: TargetKind, id: string, removed: boolean): Promise<void> {
   if (kind === 'comment') { if (isUuid(id)) await setCommentRemoved(db, id, removed); return; }
@@ -56,11 +50,11 @@ export async function applyTakedown(store: Store, db: Db, kind: TargetKind, id: 
   if (kind === 'clip') await sc.setClipRemovedItem(store, db, id, removed);
   else if (kind === 'chat_message') await sc.setChatRemovedItem(store, db, id, removed);
   else if (kind === 'status') await sc.setStatusEnded(store, db, id, removed);
-  else if (kind === 'list') await (await import('../../social/lists-ddb/shared-lists.ts')).setSharedListRemoved(store, db, id, removed); // lane LE
+  else if (kind === 'list') await (await import('../../social/lists-ddb/shared-lists.ts')).setSharedListRemoved(store, db, id, removed);
 }
 
 /** Who wrote the item: from its row while it exists, else from the copy a report kept (M24: a status may be swept). */
-export async function authorOf(store: Store, db: Db, kind: TargetKind, id: string): Promise<string | null> {
+export async function authorOf(store: Store, _db: Db, kind: TargetKind, id: string): Promise<string | null> {
   const live = await liveAuthor(store, kind, id);
   if (live) return live;
   for (const r of await reportsOnTarget(store, kind, id)) {
@@ -96,32 +90,24 @@ export async function act(store: Store, db: Db, actorId: string, item: { kind: T
     if (isUuid(item.id) && await suspensionUpdate(store, db, t, item.id, null)) suspended = { who: item.id, at: null };
   }
 
-  await db.transaction(async (txdb) => {
-    const raw = bridgeOf(txdb);
-    if (raw) {
-      await raw.query('INSERT INTO moderation_actions (id, actor_id, action, target_kind, target_id, created_at) VALUES ($1, $2, $3, $4, $5, $6)', [id, actorId, action, item.kind, item.id, at]);
-      if (action === 'hide_show') await raw.query('INSERT INTO hidden_feeds (feed_url, action_id) VALUES ($1, $2) ON CONFLICT (feed_url) DO NOTHING', [item.id, id]);
-      if (action === 'unhide_show') await raw.query('DELETE FROM hidden_feeds WHERE feed_url = $1', [item.id]);
+  if (action === 'remove') {
+    // A shared list is an item; like the other kinds it is taken down right after the commit (applyTakedown below, re-applied by the outbox).
+    // M24 US6: the author is told, with the one way to appeal — a notice item, IN the transaction.
+    const who = await authorOf(store, db, item.kind, item.id);
+    const thing = THING[item.kind];
+    if (who && thing) {
+      const nid = randomUUID();
+      t.put('main', encode('systemNotice', K.systemNotice(who, at, nid), {
+        id: nid, listenerId: who, title: `Your ${thing} was removed`,
+        body: `A ${thing} you posted broke the community rules, so it was removed. If you think this is a mistake, you can appeal once.`,
+        linkLabel: 'Appeal', linkRoute: '/appeal', push: false, createdBy: null, createdAt: at,
+      }), { condition: 'attribute_not_exists(PK)', label: 'notice' });
     }
-    if (action === 'remove') {
-      // Lane LE: a shared list is an item now; like lane SC's kinds it is taken down right after the commit (applyTakedown below, re-applied by the outbox).
-      // M24 US6: the author is told, with the one way to appeal — lane SG's notice item, IN this transaction.
-      const who = await authorOf(store, txdb, item.kind, item.id);
-      const thing = THING[item.kind];
-      if (who && thing) {
-        const nid = randomUUID();
-        t.put('main', encode('systemNotice', K.systemNotice(who, at, nid), {
-          id: nid, listenerId: who, title: `Your ${thing} was removed`,
-          body: `A ${thing} you posted broke the community rules, so it was removed. If you think this is a mistake, you can appeal once.`,
-          linkLabel: 'Appeal', linkRoute: '/appeal', push: false, createdBy: null, createdAt: at,
-        }), { condition: 'attribute_not_exists(PK)', label: 'notice' });
-      }
-    }
-    await t.commit(); // last: a failure here rolls the Postgres part back (G-M26-SF2)
-  });
-  if (suspended) await afterSuspension(store, db, suspended.who, suspended.at, bridgeOf(db));
-  // Lane SG (moved): the removed comment's or clip's activity entry goes (with its Postgres bridge row) — idempotent.
-  // Lane SC's items (moved): the take-down setters run right after the commit — idempotent, and the outbox entry re-applies them.
+  }
+  await t.commit();
+  if (suspended) await afterSuspension(store, db, suspended.who, suspended.at);
+  // The take-down setters run right after the commit — idempotent, and the outbox entry re-applies them.
+  // The removed comment's or clip's activity entry goes too — idempotent.
   if (action === 'remove') await applyTakedown(store, db, item.kind, item.id, true);
   if (action === 'remove' && (item.kind === 'comment' || item.kind === 'clip')) await removeActivityByRef(store, db, item.kind === 'comment' ? 'commented' : 'clipped', item.id);
   await closeReportsFor(store, db, item.kind, item.id, id, action);
@@ -131,26 +117,9 @@ export async function act(store: Store, db: Db, actorId: string, item: { kind: T
 /** The outbox job: closes whatever is still open on the target (idempotent — already-closed reports are skipped). */
 registerHandler('reports:close', async (store, entry) => {
   const p = entry.payload as { kind: TargetKind; id: string; actionId: string; reason: string };
-  const { pgFor } = await import('../../account/ddb/common.ts').then((m) => ({ pgFor: m.pgOf }));
-  let db: Db | undefined;
-  // Lane LE: the remembered Db already carries this Store (and its bridge switch) — re-wrapping it would turn the bridge on.
-  try { const base = pgFor(store); db = ATTACHED.has(base) ? base : withStore(base, store); } catch { db = undefined; }
-  if (db && p.reason === 'remove') await applyTakedown(store, db, p.kind, p.id, true);
-  if (db) await closeReportsFor(store, db, p.kind, p.id, p.actionId, p.reason);
-  else {
-    // No Postgres beside this Store (after CUT): close the items only.
-    const { update } = await import('../../../ddb/store.ts');
-    for (const r of await reportsOnTarget(store, p.kind, p.id)) {
-      if (r['closedAt']) continue;
-      const rid = String(r['id']);
-      await update(store, 'main', { PK: String(r['PK']), SK: String(r['SK']) }, {
-        update: 'SET #ca = :at, #cb = :by, #cr = :why, G4PK = :q, G4SK = :qs',
-        condition: 'attribute_not_exists(#ca) OR attribute_type(#ca, :nul)',
-        names: { '#ca': 'closedAt', '#cb': 'closedBy', '#cr': 'closeReason' },
-        values: { ':at': nowIso(store), ':by': p.actionId, ':why': p.reason, ':q': 'Q#reports-closed', ':qs': `${nowIso(store)}#${rid}`, ':nul': 'NULL' },
-      }).catch(() => undefined);
-    }
-  }
+  const db = withStore(undefined, store);
+  if (p.reason === 'remove') await applyTakedown(store, db, p.kind, p.id, true);
+  await closeReportsFor(store, db, p.kind, p.id, p.actionId, p.reason);
 });
 
 /** Every hidden show: the admin's hides and the publishers' `itunes:block` marks — one partition, one Query. */

@@ -9,7 +9,7 @@ import { json } from '../../validate.ts';
 import { getDiscoverSettings, getFeatures, MAX_FEATURES, MAX_PINS, putDiscoverSettings, putFeatures, SECTION_IDS, SPLIT_FROM } from '../../db/repos/discover/discover-settings.ts';
 import { genreName } from '../../catalog/genres.ts';
 import type { Hono } from 'hono';
-import { feedUrl, guid, version, target } from './common.ts';
+import { feedUrl, guid, version } from './common.ts';
 import type { AdminEnv } from '../../auth/admin.ts';
 
 export function registerDiscover(admin: Hono<AdminEnv>): void {

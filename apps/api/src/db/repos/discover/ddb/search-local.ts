@@ -1,4 +1,4 @@
-// Search on DynamoDB, in memory: people over lane AC's listener queue; Studio shows from lane ST's table (still Postgres).
+// Search on DynamoDB, in memory: people over lane AC's listener queue; Studio shows from lane ST's table.
 /**
  * M26 lane DV (DV-93, DV-94; data-model.md §14, research R11 decision B). DynamoDB has no text index, so the SQL's
  * `ILIKE '%q%'` runs in code over a list read whole:
