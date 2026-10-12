@@ -6,6 +6,7 @@
  */
 import { validateIssues, type IssueIn } from '@socialmorning/social-core';
 import type { Db } from '../../db.ts';
+import { dual } from '../../backend.ts';
 import { ApiError } from '../../../errors.ts';
 import { MAX_COLLECTIONS, validateCollections, type CollectionIn } from '../../../catalog/collections.ts';
 
@@ -37,7 +38,7 @@ const versionGuard = (current: number, sent: number) => {
 
 // ---- Issues ----
 
-export async function listIssueRows(db: Db): Promise<IssueRow[]> {
+async function listIssueRowsPg(db: Db): Promise<IssueRow[]> {
   const rows = await db.query<{ id: string; day: string; title: string; intro: string; version: number; retired_at: string | null }>(
     "SELECT id, to_char(day, 'YYYY-MM-DD') AS day, title, intro, version, retired_at FROM curated_issues ORDER BY day DESC, id");
   const items = await db.query<{ issue_id: string; feed_url: string; guid: string | null; note: string }>(
@@ -52,7 +53,7 @@ export async function getIssueRow(db: Db, id: string): Promise<IssueRow | undefi
   return (await listIssueRows(db)).find((r) => r.id === id);
 }
 
-export async function putIssue(tx: Db, id: string, version: number, issue: IssueIn): Promise<number> {
+async function putIssuePg(tx: Db, id: string, version: number, issue: IssueIn): Promise<number> {
   const [cur] = await tx.query<{ version: number }>('SELECT version FROM curated_issues WHERE id = $1 FOR UPDATE', [id]);
   const current = cur ? Number(cur.version) : 0;
   versionGuard(current, version);
@@ -70,13 +71,13 @@ export async function putIssue(tx: Db, id: string, version: number, issue: Issue
 }
 
 /** Retire. An issue that lives only in the file gets a retired row (`file` is its content), so it stays hidden. */
-export async function retireIssue(tx: Db, id: string, version: number, file: IssueIn | undefined): Promise<number> {
+async function retireIssuePg(tx: Db, id: string, version: number, file: IssueIn | undefined): Promise<number> {
   const [cur] = await tx.query<{ version: number }>('SELECT version FROM curated_issues WHERE id = $1 FOR UPDATE', [id]);
   const current = cur ? Number(cur.version) : 0;
   versionGuard(current, version);
   if (!cur) {
     if (!file) throw new ApiError('not_found', 'No such issue.');
-    await putIssue(tx, id, 0, file);
+    await putIssuePg(tx, id, 0, file);
   }
   await tx.query('UPDATE curated_issues SET retired_at = now(), version = $2, updated_at = now() WHERE id = $1', [id, current + (cur ? 1 : 2)]);
   return current + (cur ? 1 : 2);
@@ -84,7 +85,7 @@ export async function retireIssue(tx: Db, id: string, version: number, file: Iss
 
 // ---- Collections ----
 
-export async function listCollectionRows(db: Db): Promise<CollectionRow[]> {
+async function listCollectionRowsPg(db: Db): Promise<CollectionRow[]> {
   const rows = await db.query<{ id: string; title: string; subtitle: string | null; position: number; version: number; retired_at: string | null }>(
     'SELECT id, title, subtitle, position, version, retired_at FROM collections ORDER BY position, id');
   const items = await db.query<{ collection_id: string; feed_url: string; guid: string | null; why: string | null }>(
@@ -95,7 +96,7 @@ export async function listCollectionRows(db: Db): Promise<CollectionRow[]> {
   }));
 }
 
-export async function putCollection(tx: Db, id: string, version: number, col: CollectionIn, position: number): Promise<number> {
+async function putCollectionPg(tx: Db, id: string, version: number, col: CollectionIn, position: number): Promise<number> {
   const [cur] = await tx.query<{ version: number }>('SELECT version FROM collections WHERE id = $1 FOR UPDATE', [id]);
   const current = cur ? Number(cur.version) : 0;
   versionGuard(current, version);
@@ -114,7 +115,7 @@ export async function putCollection(tx: Db, id: string, version: number, col: Co
   return next;
 }
 
-export async function retireCollection(tx: Db, id: string, version: number, file: CollectionIn | undefined): Promise<number> {
+async function retireCollectionPg(tx: Db, id: string, version: number, file: CollectionIn | undefined): Promise<number> {
   const [cur] = await tx.query<{ version: number }>('SELECT version FROM collections WHERE id = $1 FOR UPDATE', [id]);
   const current = cur ? Number(cur.version) : 0;
   versionGuard(current, version);
@@ -127,3 +128,11 @@ export async function retireCollection(tx: Db, id: string, version: number, file
   await tx.query('UPDATE collections SET retired_at = now(), version = version + 1, updated_at = now() WHERE id = $1', [id]);
   return current + 1;
 }
+
+// M26 lane DV: each runs on Postgres, or on DynamoDB (discover/ddb/admin-curated.ts) when the Db carries a Store (db/backend.ts).
+export const listIssueRows = dual('dv/admin-curated', 'listIssueRows', listIssueRowsPg);
+export const putIssue = dual('dv/admin-curated', 'putIssue', putIssuePg);
+export const retireIssue = dual('dv/admin-curated', 'retireIssue', retireIssuePg);
+export const listCollectionRows = dual('dv/admin-curated', 'listCollectionRows', listCollectionRowsPg);
+export const putCollection = dual('dv/admin-curated', 'putCollection', putCollectionPg);
+export const retireCollection = dual('dv/admin-curated', 'retireCollection', retireCollectionPg);

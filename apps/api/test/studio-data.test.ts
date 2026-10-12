@@ -10,6 +10,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { freshDb, type TestDb } from './harness.ts';
 import { addEpisode, day, noon, proveClaim, sCall, studioLogin, type StudioUser } from './studio-harness.ts';
+import { seedComment } from './sc-neutral.ts';
+import * as S from './st-neutral.ts';
 
 const F = 'https://feeds.example.com/f.xml';
 
@@ -26,12 +28,13 @@ async function setup(t: TestDb) {
   await addEpisode(t, F, 'E2', 'Beta 第二集', 2_000_000, noon(5));
   await addEpisode(t, F, 'E3', 'Gamma', null, noon(1));
   const ls = await Promise.all(['a', 'b', 'c'].map((n) => studioLogin(t, `${n}@example.com`, n)));
-  const listen = (who: string, ep: string, d: number) =>
-    t.q("INSERT INTO activity (actor_id, kind, episode_id, day, created_at) VALUES ($1, 'listened', $2, $3, $4)", [who, ep, day(d), noon(d)]);
+  const listen = (who: string, ep: string, d: number) => S.seedListened(t, { actorId: who, episodeId: ep, day: day(d), at: noon(d) });
   await listen(ls[0]!.id, 'E2', 1); await listen(ls[1]!.id, 'E2', 1); await listen(ls[2]!.id, 'E2', 3);
   await listen(ls[0]!.id, 'E1', 0);
-  await t.q("INSERT INTO comments (episode_id, author_id, body, created_at) VALUES ('E1', $1, 'hi', $2), ('E2', $1, 'yo', $3)", [ls[0]!.id, noon(0), noon(1)]);
-  await t.q("INSERT INTO share_events (target_kind, target_id, feed_url, at) VALUES ('episode', 'E2', $1, $2), ('episode', 'E2', $1, $3)", [F, noon(1), noon(4)]);
+  await seedComment(t, { episodeId: 'E1', authorId: ls[0]!.id, body: 'hi', agoMs: Date.now() - Date.parse(noon(0)) });
+  await seedComment(t, { episodeId: 'E2', authorId: ls[0]!.id, body: 'yo', agoMs: Date.now() - Date.parse(noon(1)) });
+  await S.seedShare(t, { listenerId: null, targetKind: 'episode', targetId: 'E2', feedUrl: F, at: noon(1) });
+  await S.seedShare(t, { listenerId: null, targetKind: 'episode', targetId: 'E2', feedUrl: F, at: noon(4) });
   return { owner, key, ls };
 }
 
@@ -95,9 +98,9 @@ test('G-L1: "also follow" is hidden at 4 subscribers and shown at 5, never namin
   const other = 'https://feeds.example.com/other.xml';
   await addEpisode(t, other, 'O1', 'Other ep', 1000);
   const ls = await Promise.all([1, 2, 3, 4, 5].map((i) => studioLogin(t, `s${i}@example.com`, `Sub${i}`)));
-  for (const l of ls.slice(0, 4)) await t.q('INSERT INTO subscriptions (listener_id, feed_url) VALUES ($1, $2), ($1, $3)', [l.id, F, other]);
+  for (const l of ls.slice(0, 4)) { await S.seedSubscription(t, { listenerId: l.id, feedUrl: F }); await S.seedSubscription(t, { listenerId: l.id, feedUrl: other }); }
   assert.deepEqual(await get(t, owner, `/v1/studio/shows/${key}/also-follow`), { hidden: 'too_few' });
-  await t.q('INSERT INTO subscriptions (listener_id, feed_url) VALUES ($1, $2)', [ls[4]!.id, F]);
+  await S.seedSubscription(t, { listenerId: ls[4]!.id, feedUrl: F });
   const shown = await get<{ shows: { feedUrl: string; listeners: number }[] }>(t, owner, `/v1/studio/shows/${key}/also-follow`);
   assert.deepEqual(shown.shows.map((s) => [s.feedUrl, s.listeners]), [[other, 4]]);
   assert.doesNotMatch(JSON.stringify(shown), /Sub\d|@example/);
@@ -107,8 +110,9 @@ test('G-L1: "also follow" is hidden at 4 subscribers and shown at 5, never namin
 test('an episode page: its numbers, a normalised 100-bucket curve, comments per minute; another show\'s episode is 404', async () => {
   const t = await freshDb();
   const { owner, key, ls } = await setup(t);
-  await t.q("INSERT INTO episode_heat (episode_id, bucket, distinct_listeners) VALUES ('E1', 10, 2), ('E1', 50, 4)");
-  await t.q("INSERT INTO comments (episode_id, author_id, body, offset_ms) VALUES ('E1', $1, 'm', 125000), ('E1', $1, 'n', 130000)", [ls[1]!.id]);
+  await S.seedHeat(t, 'E1', { 10: 2, 50: 4 });
+  await seedComment(t, { episodeId: 'E1', authorId: ls[1]!.id, body: 'm', offsetMs: 125000 });
+  await seedComment(t, { episodeId: 'E1', authorId: ls[1]!.id, body: 'n', offsetMs: 130000, agoMs: 10_000 });
   const d = await get<{ heat: number[]; commentsByMinute: { minute: number; count: number }[]; episode: { id: string } }>(t, owner, `/v1/studio/shows/${key}/episodes/E1`);
   assert.equal(d.heat.length, 100);
   assert.deepEqual([d.heat[10], d.heat[50], d.heat[0]], [0.5, 1, 0]);

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "npm install --ignore-scripts --no-audit --no-fund",
+  "buildCommand": "mkdir -p public && printf 'User-agent: *\\nDisallow: /\\n' > public/robots.txt",
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "PROD_FUNCTION_URL_PLACEHOLDER/"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "PROD_FUNCTION_URL_PLACEHOLDER/$1"
+    }
+  ],
+  "outputDirectory": "public"
+}

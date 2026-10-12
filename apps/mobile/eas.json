@@ -16,7 +16,8 @@
     "preview": {
       "distribution": "internal",
       "env": {
-        "SOCIALNET_DISTRIBUTION": "github"
+        "SOCIALNET_DISTRIBUTION": "github",
+        "SOCIALNET_API_BASE_URL": "https://socialmorning-api.vercel.app"
       },
       "android": {
         "buildType": "apk"
@@ -25,6 +26,18 @@
     "production": {
       "android": {
         "buildType": "app-bundle"
+      },
+      "env": {
+        "SOCIALNET_API_BASE_URL": "https://socialmorning-api.vercel.app"
+      }
+    },
+    "staging": {
+      "extends": "preview",
+      "env": {
+        "APP_VARIANT": "dev",
+        "SOCIALNET_DISTRIBUTION": "staging",
+        "SOCIALNET_API_BASE_URL": "STAGING_API_URL_PLACEHOLDER",
+        "SOCIALNET_DEV_API_BASE_URL": "STAGING_API_URL_PLACEHOLDER"
       }
     }
   }

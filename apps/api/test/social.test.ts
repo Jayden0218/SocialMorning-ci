@@ -2,6 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
+import { backdateComments } from './sc-neutral.ts';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
 
@@ -9,7 +10,7 @@ const ep = { feedUrl: 'https://feeds.example.com/x.xml', guid: 'g189', title: '#
 const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
 
 async function post(t: TestDb, token: string, body: Record<string, unknown>) {
-  await t.q("UPDATE comments SET created_at = created_at - interval '10 seconds'");
+  await backdateComments(t, 10_000);
   return t.call('POST', `/v1/episodes/${EP}/comments`, body, token);
 }
 

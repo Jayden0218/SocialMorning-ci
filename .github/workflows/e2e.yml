@@ -24,6 +24,7 @@ jobs:
       # The listener journey (specs/015-e2e-journey): the moderator account, the seed's output.
       E2E_MOD_EMAIL: mod@journey.test
       E2E_API: http://localhost:8787
+      API_URL: http://localhost:8787 # the Studio preview's /api proxy (apps/studio/vite.config.ts)
       JOURNEY_OUT: ${{ github.workspace }}/apps/api/journey.json
     steps:
       - uses: actions/checkout@v4

@@ -8,7 +8,9 @@
 import { registerEpisode, episodeBody } from '../src/routes/library/episodes.ts';
 import type { TestDb } from './harness.ts';
 
-export async function putEpisode(t: Pick<TestDb, 'db'>, id: string, body: unknown): Promise<{ status: number }> {
+export async function putEpisode(t: Pick<TestDb, 'db'> & { store?: TestDb['store'] }, id: string, body: unknown): Promise<{ status: number }> {
   await registerEpisode(t.db, id, episodeBody.parse(body), 'authoritative');
+  // M26 lane NB: on DynamoDB the heat placement for stored moments is an outbox job; drain it as a request would (t.call).
+  if (t.store) await (await import('../src/jobs/outbox.ts')).drainOutbox(t.store);
   return { status: 200 };
 }

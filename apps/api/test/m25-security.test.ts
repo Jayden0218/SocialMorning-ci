@@ -23,12 +23,14 @@ import { assertPublicUrl, BlockedFetchError, isBlockedAddress, safeFetch } from 
 import { HOUR_MS } from '../src/auth/rate.ts';
 import { MINUTE_MS } from '../src/auth/write-limit.ts';
 import { scrubError } from '../src/routes/errors.ts';
+import { errorRows, listenerRow, setLockedUntil, setRateCount } from './ac-neutral.ts';
+import { addBlockedWord } from './sf-neutral-config.ts';
 
 const json = async <T,>(r: Response | Promise<Response>) => (await (await r).json()) as T;
 const windowOf = (ms: number) => new Date(Math.floor(Date.now() / ms) * ms);
 /** Fills a rate-limit window, as if `n` requests had already come. */
 const fill = (t: TestDb, key: string, ms: number, n: number) =>
-  t.q('INSERT INTO rate_counters (key, window_start, count) VALUES ($1, $2, $3) ON CONFLICT (key, window_start) DO UPDATE SET count = EXCLUDED.count', [key, windowOf(ms), n]);
+  setRateCount(t, key, n, windowOf(ms));
 
 // ---------------------------------------------------------------- S1 paid preview
 
@@ -51,11 +53,9 @@ function fakeStore() {
 
 async function paidEpisode(t: TestDb): Promise<string> {
   const owner = await signUp(t, 'host@example.com', 'Host');
-  const [s] = await t.q<{ id: string }>("INSERT INTO hosted_shows (owner_id, feed_url, title, price_tier) VALUES ($1, 'https://socialmorning-api.vercel.app/feeds/m25.xml', 'Paid', 2) RETURNING id", [owner.id]);
-  const [e] = await t.q<{ id: string }>(
-    `INSERT INTO hosted_episodes (show_id, guid, episode_id, title, audio_url, audio_bytes, audio_type, status, published_at, paid, created_at, duration_ms, preview_start_ms, preview_end_ms)
-     VALUES ($1, 'g', 'e', 'Ep', $2, $3, 'audio/mpeg', 'published', now() - interval '1 minute', true, now(), 1800000, 600000, 660000) RETURNING id`, [s!.id, AUDIO_URL, TOTAL]);
-  return e!.id;
+  const { seedHostedShow, seedHostedEpisode } = await import('./st-neutral.ts');
+  const s = await seedHostedShow(t, { ownerId: owner.id, feedUrl: 'https://socialmorning-api.vercel.app/feeds/m25.xml', title: 'Paid', priceTier: 2 });
+  return seedHostedEpisode(t, s, { title: 'Ep', audioUrl: AUDIO_URL, audioBytes: TOTAL, paid: true, durationMs: 1_800_000, previewStartMs: 600_000, previewEndMs: 660_000 });
 }
 
 test('G-M25-S1: a preview link is its own kind — not the buyer link, never the file address, only the preview bytes', async () => {
@@ -114,17 +114,17 @@ test('G-M25-S2: /mod/login counts wrong passwords, refuses a locked owner even w
   const o = await signUp(t, 'o@example.com', 'Owner');
   t.setOwner!(o.id);
   for (let i = 0; i < 5; i++) assert.equal((await modLogin(t, 'o@example.com', 'wrong password')).status, 403, `try ${i + 1}`);
-  const [row] = await t.q<{ failed_attempts: number; locked_until: Date | null }>('SELECT failed_attempts, locked_until FROM listeners WHERE id = $1', [o.id]);
-  assert.equal(row!.failed_attempts, 5, 'every wrong password counted');
-  assert.ok(row!.locked_until, 'the fifth locks the account');
-  await t.q("UPDATE listeners SET locked_until = now() + interval '1 hour' WHERE id = $1", [o.id]);
+  const row = (await listenerRow(t, o.id))!;
+  assert.equal(row['failed_attempts'], 5, 'every wrong password counted');
+  assert.ok(row['locked_until'], 'the fifth locks the account');
+  await setLockedUntil(t, new Date(Date.now() + 3_600_000).toISOString(), o.id);
   const locked = await modLogin(t, 'o@example.com', 'correct horse');
   assert.equal(locked.status, 429, 'the right password does not open a locked account');
   assert.equal(locked.headers.get('set-cookie'), null);
-  await t.q('UPDATE listeners SET locked_until = NULL WHERE id = $1', [o.id]);
+  await setLockedUntil(t, null, o.id);
   const ok = await modLogin(t, 'o@example.com', 'correct horse');
   assert.equal(ok.status, 303);
-  assert.equal((await t.q<{ failed_attempts: number }>('SELECT failed_attempts FROM listeners WHERE id = $1', [o.id]))[0]!.failed_attempts, 0, 'a good sign-in clears the count');
+  assert.equal((await listenerRow(t, o.id))!['failed_attempts'], 0, 'a good sign-in clears the count');
   // Per address: 10 an hour, whatever the email.
   for (let i = 0; i < 10; i++) assert.equal((await modLogin(t, `x${i}@example.com`, 'nope', '198.51.100.7')).status, 403);
   assert.equal((await modLogin(t, 'o@example.com', 'correct horse', '198.51.100.7')).status, 429);
@@ -150,7 +150,7 @@ test('G-M25-S5: an email change needs the code sent to the OLD address too; the 
   const bad = await t.call('POST', '/v1/me/email/confirm', { code, oldCode: wrongOld }, a.token);
   assert.equal(bad.status, 422);
   assert.deepEqual((await json<{ fields: string[] }>(bad)).fields, ['oldCode']);
-  assert.equal((await t.q<{ email: string }>('SELECT email FROM listeners WHERE id = $1', [a.id]))[0]!.email, 'a@example.com');
+  assert.equal((await listenerRow(t, a.id))!['email'], 'a@example.com');
   // Both right: the change is made (and M24's sign-out of other sessions still runs).
   const ok = await t.call('POST', '/v1/me/email/confirm', { code, oldCode }, a.token);
   assert.equal(ok.status, 200, await ok.clone().text());
@@ -214,11 +214,12 @@ test('S8: a listener cannot register an episode its feed does not list; a listed
   const fake = fnv1a64(`${FEED}\u0001made-up`);
   const r1 = await t.call('PUT', `/v1/episodes/${fake}`, { feedUrl: FEED, guid: 'made-up', title: 'Buy pills', enclosureUrl: 'https://evil.example/x.mp3', imageUrl: 'https://evil.example/x.jpg' }, a.token);
   assert.equal(r1.status, 404);
-  assert.equal((await t.q('SELECT 1 FROM episodes WHERE id = $1', [fake])).length, 0, 'nothing was written');
+  const { appEpisodeRow } = await import('./st-neutral.ts');
+  assert.equal(await appEpisodeRow(t, fake), undefined, 'nothing was written');
   const real = fnv1a64(`${FEED}\u0001real`);
   const r2 = await t.call('PUT', `/v1/episodes/${real}`, { feedUrl: FEED, guid: 'real', title: 'FAKE', enclosureUrl: 'https://evil.example/x.mp3', imageUrl: 'https://evil.example/x.jpg', durationMs: 1_234_000 }, a.token);
   assert.equal(r2.status, 200, await r2.clone().text());
-  const [row] = await t.q<{ title: string; enclosure_url: string; image_url: string | null; duration_ms: number }>('SELECT title, enclosure_url, image_url, duration_ms FROM episodes WHERE id = $1', [real]);
+  const row = await appEpisodeRow(t, real);
   assert.deepEqual([row!.title, row!.enclosure_url, row!.image_url, row!.duration_ms], ['Real title', 'https://cdn.example.com/real.mp3', null, 1_234_000]);
   await t.close();
 });
@@ -229,7 +230,7 @@ test('S4: blocked words are refused for +json bodies, voice transcripts, Studio 
   const t = await freshDb();
   await putEpisode(t, 'e1', { feedUrl: 'https://feeds.example.com/w.xml', guid: 'g', title: 'T', enclosureUrl: 'https://cdn.example.com/1.mp3', durationMs: 600_000 });
   const a = await signUp(t);
-  await t.q("INSERT INTO blocked_words (word) VALUES ('badword')");
+  await addBlockedWord(t, 'badword');
   const refused: [string, string, string | undefined, Record<string, string>, unknown][] = [
     ['POST', '/v1/episodes/e1/comments', a.token, { 'content-type': 'application/vnd.x+json' }, { body: 'you badword', offsetMs: 1 }],
     ['POST', '/v1/episodes/e1/comments', a.token, { 'content-type': 'application/json; charset=utf-8' }, { body: 'you badword', offsetMs: 1 }],
@@ -308,7 +309,7 @@ test('S11: an unhandled error is kept as scope server with no personal data; a n
   const r = await t.call('GET', '/v1/__boom');
   assert.equal(r.status, 500);
   assert.deepEqual(await r.json(), { error: 'internal', message: 'Something went wrong on our side.' });
-  const rows = await t.q<{ scope: string; message: string; platform: string; listener_id: string | null }>("SELECT scope, message, platform, listener_id FROM error_reports WHERE scope = 'server'");
+  const rows = await errorRows(t, 'server');
   assert.equal(rows.length, 1);
   assert.match(rows[0]!.message, /^GET \S+: Error: boom +for <email>, code <n>, Bearer <redacted>$/);
   assert.deepEqual([rows[0]!.platform, rows[0]!.listener_id], ['server', null]);
@@ -319,7 +320,7 @@ test('S11: an unhandled error is kept as scope server with no personal data; a n
   await t.call('GET', '/v1/__boom'); // a new text ("again"), so a new row — but this hour's email is spent
   await t.call('GET', '/v1/__bang');
   assert.equal(alerts().length, 1, 'at most one alert an hour');
-  assert.equal((await t.q("SELECT 1 FROM error_reports WHERE scope = 'server'")).length, 3);
+  assert.equal((await errorRows(t, 'server')).length, 3);
   assert.equal(scrubError('see https://x.example/feed?token=abcdef'), 'see https://x.example/feed?<query>');
 
   const broken = { ...t.db, query: async () => { throw new Error('database down'); } } as unknown as Db;

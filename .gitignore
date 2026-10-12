@@ -65,3 +65,5 @@ apps/api/journey.json
 # M23 T052: build junk anywhere in the tree (Gradle caches, coverage output).
 **/.gradle/
 **/coverage/
+apps/api/dist-lambda/
+dynamodb-local-metadata.json

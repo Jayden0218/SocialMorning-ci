@@ -1,0 +1,32 @@
+# M27: the AWS template and its tests, checked with NO AWS account and NO credential (specs/028-m27-aws-infra).
+# Lives in the PRIVATE repo under ci/workflows/ and is copied by scripts/push-ci.sh into the public mirror.
+# cfn-lint ships the CloudFormation resource schemas, so a wrong resource type, property or enum value fails
+# offline. It proves the SHAPE of the template, not how it behaves on AWS (research R1) — that is the first
+# staging deploy, which is the owner's to run.
+name: infra
+on:
+  push:
+  workflow_dispatch:
+concurrency:
+  group: infra-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+jobs:
+  template:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: pip install cfn-lint==1.57.2
+      - name: lint the stack template
+        run: cfn-lint --regions ap-southeast-1 -- apps/api/infra/stack.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: template tests (staging and prod render, retain, schedules, Stream filter)
+        working-directory: apps/api
+        run: npx tsx --test --test-timeout=120000 test/infra-stack.test.ts

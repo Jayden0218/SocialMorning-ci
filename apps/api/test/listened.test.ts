@@ -5,6 +5,8 @@ import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
+import { countListenedRanges } from './lb-seed.ts';
+import { activityCount, activityKindDays, assertListenedDayUnique } from './nb-h2-neutral.ts';
 
 const ep = { feedUrl: 'https://feeds.example.com/x.xml', guid: 'g1', title: 'Ep 1', showTitle: 'Show', enclosureUrl: 'https://cdn/1.mp3' };
 const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
@@ -25,7 +27,7 @@ test('A8: [0,60s] from phone 1 and [30s,90s] from phone 2 → 90 s, not 120 s; t
   // A phone's report REPLACES its own set: shrinking it is honoured.
   await put(t, a.token, 'p2', [[30_000, 40_000]]);
   assert.equal((await statsOf(t, a.id))!.all.listenedMs, 60_000);
-  assert.deepEqual(await t.q('SELECT count(*)::int AS n FROM listened_ranges'), [{ n: 2 }]);
+  assert.equal(await countListenedRanges(t), 2);
   await t.close();
 });
 
@@ -33,7 +35,7 @@ test('A8: one listened item per (episode, day) — written when the union first 
   const t = await freshDb();
   await putEpisode(t, `${EP}`, { ...ep, durationMs: 2_000_000 });
   const a = await signUp(t);
-  const items = () => t.q<{ kind: string; day: string }>(`SELECT kind, day::text AS day FROM activity ORDER BY id`);
+  const items = () => activityKindDays(t);
   await put(t, a.token, 'p1', [[0, 299_000]]);
   assert.deepEqual(await items(), []);
   await put(t, a.token, 'p1', [[0, 300_000]]);
@@ -47,7 +49,7 @@ test('A8: one listened item per (episode, day) — written when the union first 
   assert.deepEqual(await items(), [{ kind: 'listened', day: '2026-09-21' }, { kind: 'listened', day: '2026-09-22' }]);
   assert.equal((await statsOf(t, a.id))!.all.finished, 1);
   // The database enforces it too (G6).
-  await assert.rejects(t.q(`INSERT INTO activity (actor_id, kind, episode_id, day) VALUES ($1, 'listened', $2, '2026-09-21')`, [a.id, EP]), /unique|duplicate/i);
+  await assertListenedDayUnique(t, a.id, EP, '2026-09-21');
   await t.close();
 });
 
@@ -60,6 +62,6 @@ test('A8: validation — inverted ranges, a bad day, no auth', async () => {
   // An unregistered episode's time still counts (no FK), but no activity row can point at it.
   assert.equal((await put(t, a.token, 'p1', [[0, 400_000]], 'unregistered')).status, 200);
   assert.equal((await statsOf(t, a.id))!.all.listenedMs, 400_000);
-  assert.deepEqual(await t.q('SELECT count(*)::int AS n FROM activity'), [{ n: 0 }]);
+  assert.equal(await activityCount(t), 0);
   await t.close();
 });

@@ -2,8 +2,10 @@
 import { commentCounts } from './routes/social/comment-counts.ts';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
+import { HTTPException } from 'hono/http-exception';
 import { requestId } from 'hono/request-id';
 import type { Db } from './db/db.ts';
+import { testPurchasesAllowed } from './config.ts';
 import type { AuthEnv } from './auth/session.ts';
 import { ApiError } from './errors.ts';
 import { auth } from './routes/account/auth.ts';
@@ -121,7 +123,7 @@ export type AppDeps = {
   db: Db; pepper: string; assetLinksSha256?: string;
   /** M25 SB: the second accepted pepper while a secret rotation is under way (env PEPPER_NEXT; docs/runbooks/secret-rotation.md). */
   pepperNext?: string;
-  /** M25 SB: grant Google test purchases (marked `test`)? Default: yes unless VERCEL_ENV is production, where only ALLOW_TEST_PURCHASES=1 allows them. */
+  /** M25 SB: grant Google test purchases (marked `test`)? Default (config.ts): yes unless APP_ENV is prod, where only ALLOW_TEST_PURCHASES=1 allows them. */
   allowTestPurchases?: boolean;
   /** M5: the catalogue's fetch (tests inject a fake Apple) and the raw picks file; defaults: global fetch, `picks.json`. */
   catalogFetch?: typeof fetch;
@@ -230,7 +232,7 @@ export function createApp(deps: AppDeps) {
   const play = deps.play ?? googlePlay(process.env);
   const imageCeilingBytes = deps.imageCeilingBytes ?? (Number(process.env['IMAGE_CEILING_BYTES']) || 500_000_000);
   const publicBase = deps.publicBase ?? process.env['PUBLIC_API_URL'] ?? 'https://socialmorning-api.vercel.app';
-  const allowTestPurchases = deps.allowTestPurchases ?? (process.env['VERCEL_ENV'] !== 'production' || process.env['ALLOW_TEST_PURCHASES'] === '1');
+  const allowTestPurchases = deps.allowTestPurchases ?? testPurchasesAllowed(process.env);
   const pepperNext = deps.pepperNext && deps.pepperNext !== deps.pepper ? deps.pepperNext : undefined;
 
   app.use('*', async (c, next) => {
@@ -278,6 +280,8 @@ export function createApp(deps: AppDeps) {
 
   app.onError((err, c) => {
     if (err instanceof ApiError) return c.json(err.body(), err.status as 422);
+    // M27: hono's own limits (bodyLimit without an onError) throw an HTTPException with the right answer (413); it is not a server fault.
+    if (err instanceof HTTPException) return err.getResponse();
     if (err instanceof Error && /reply_depth/.test(err.message)) {
       return c.json(new ApiError('reply_depth', 'You can reply to a comment, not to a reply.').body(), 422);
     }

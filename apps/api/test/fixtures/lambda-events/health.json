@@ -1,0 +1,32 @@
+{
+  "version": "2.0",
+  "routeKey": "$default",
+  "rawPath": "/v1/health",
+  "rawQueryString": "",
+  "headers": {
+    "host": "abc123.lambda-url.ap-southeast-1.on.aws",
+    "x-forwarded-for": "203.0.113.9",
+    "x-forwarded-proto": "https",
+    "x-forwarded-port": "443",
+    "user-agent": "recorded-fixture"
+  },
+  "requestContext": {
+    "accountId": "anonymous",
+    "apiId": "abc123",
+    "domainName": "abc123.lambda-url.ap-southeast-1.on.aws",
+    "domainPrefix": "abc123",
+    "http": {
+      "method": "GET",
+      "path": "/v1/health",
+      "protocol": "HTTP/1.1",
+      "sourceIp": "203.0.113.9",
+      "userAgent": "recorded-fixture"
+    },
+    "requestId": "00000000-0000-0000-0000-000000000000",
+    "routeKey": "$default",
+    "stage": "$default",
+    "time": "12/Oct/2026:00:00:00 +0000",
+    "timeEpoch": 1791763200000
+  },
+  "isBase64Encoded": false
+}

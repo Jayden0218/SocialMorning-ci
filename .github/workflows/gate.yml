@@ -95,6 +95,9 @@ jobs:
       # its database address or its encryption key, and never prints the address.
       - name: backup preflight refuses without its key (G-M23-10)
         run: sh scripts/backup-preflight.test.sh
+      # M27 G-DV4: the commit script's verdict is the worst run of the commit, not the gate's alone.
+      - name: commit-gated verdict logic (G-DV4)
+        run: node --test scripts/gate-verdict.test.mjs
       # M11 (research R9 open item): recharts 3 was reported to resolve react-is@18 under
       # React 19. List what it resolves; the Studio's own tests (above) render its charts.
       - name: studio — react-is resolved under React 19

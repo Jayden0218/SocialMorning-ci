@@ -20,21 +20,10 @@
  * fresh clone without that file would find no function — build it once first (or track a stub).
  */
 import { createApp } from './app.ts';
-import { gmailMailer } from './mail/mailer.ts';
-import { createClient } from './db/client.ts';
-import { fromPostgres } from './db/db.ts';
+import { depsFromEnv } from './config.ts';
 
-const pepper = process.env.SESSION_PEPPER;
-if (!pepper) throw new Error('SESSION_PEPPER is not set in the Vercel project env');
-
-const app = createApp({ db: fromPostgres(createClient()), pepper, ...(process.env['ASSETLINKS_SHA256'] ? { assetLinksSha256: process.env['ASSETLINKS_SHA256'] } : {}),
-  ...(process.env['OWNER_LISTENER_ID'] ? { ownerListenerId: process.env['OWNER_LISTENER_ID'] } : {}),
-  ...(process.env['APPEALS_EMAIL'] ? { appealsEmail: process.env['APPEALS_EMAIL'] } : {}),
-  ...(process.env['RELEASE_SHA256'] ? { releaseSha256: process.env['RELEASE_SHA256'] } : {}),
-  ...(process.env['JOB_TOKEN'] ? { jobToken: process.env['JOB_TOKEN'] } : {}),
-  // M25 SB: the second pepper during a secret rotation (docs/runbooks/secret-rotation.md).
-  ...(process.env['PEPPER_NEXT'] ? { pepperNext: process.env['PEPPER_NEXT'] } : {}),
-  ...(process.env['GMAIL_USER'] && process.env['GMAIL_APP_PASSWORD'] ? { mailer: gmailMailer(process.env['GMAIL_USER'], process.env['GMAIL_APP_PASSWORD']) } : {}) });
+// Top-level await: the bundle is ESM (build script), Vercel's Node 22 runtime supports it.
+const app = createApp(await depsFromEnv());
 const handler = (req: Request): Promise<Response> => Promise.resolve(app.fetch(req));
 
 export const GET = handler;

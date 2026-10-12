@@ -1,22 +1,23 @@
-// Starts the API locally on Node with the real database.
+// Starts the API locally on Node: Postgres by default, DynamoDB (Local) with DATA_BACKEND=ddb — see src/config.ts.
 import { serve } from '@hono/node-server';
 import { createApp } from './app.ts';
-import { gmailMailer } from './mail/mailer.ts';
-import { createClient } from './db/client.ts';
-import { fromPostgres } from './db/db.ts';
+import { dbFromConfig, depsFromEnv, readConfig } from './config.ts';
 
-const pepper = process.env.SESSION_PEPPER;
-if (!pepper) throw new Error('SESSION_PEPPER is not set (apps/api/.env — see .env.example)');
+const config = readConfig();
+// On a local DynamoDB the tables may not exist yet (`npm run dev:ddb`): create the missing ones before listening.
+if (config.dataBackend === 'ddb' && config.ddbEndpoint) {
+  const { ddb, tables } = await dbFromConfig(config);
+  const [{ ListTablesCommand }, { createTableSet }] = await Promise.all([import('@aws-sdk/client-dynamodb'), import('./db/ddb/schema.ts')]);
+  const have = new Set((await ddb!.raw.send(new ListTablesCommand({}))).TableNames ?? []);
+  const missing = Object.values(tables!).filter((t) => !have.has(t));
+  if (missing.length === 0) console.log(`tables ${Object.values(tables!).join(', ')} already exist`);
+  else if (missing.length === 3) { await createTableSet(ddb!.raw, tables!); console.log(`created tables ${missing.join(', ')}`); }
+  else throw new Error(`DynamoDB Local has only part of the table set (missing ${missing.join(', ')}); restart it or drop the rest`);
+  ddb!.raw.destroy();
+}
 
-const app = createApp({ db: fromPostgres(createClient()), pepper, ...(process.env['ASSETLINKS_SHA256'] ? { assetLinksSha256: process.env['ASSETLINKS_SHA256'] } : {}),
-  ...(process.env['OWNER_LISTENER_ID'] ? { ownerListenerId: process.env['OWNER_LISTENER_ID'] } : {}),
-  ...(process.env['APPEALS_EMAIL'] ? { appealsEmail: process.env['APPEALS_EMAIL'] } : {}),
-  ...(process.env['RELEASE_SHA256'] ? { releaseSha256: process.env['RELEASE_SHA256'] } : {}),
-  ...(process.env['JOB_TOKEN'] ? { jobToken: process.env['JOB_TOKEN'] } : {}),
-  // M25 SB: the second pepper during a secret rotation (docs/runbooks/secret-rotation.md).
-  ...(process.env['PEPPER_NEXT'] ? { pepperNext: process.env['PEPPER_NEXT'] } : {}),
-  ...(process.env['GMAIL_USER'] && process.env['GMAIL_APP_PASSWORD'] ? { mailer: gmailMailer(process.env['GMAIL_USER'], process.env['GMAIL_APP_PASSWORD']) } : {}) });
+const app = createApp(await depsFromEnv());
 const port = Number(process.env.PORT ?? 3000);
 serve({ fetch: app.fetch, port }, () => {
-  console.log(`api listening on :${port}`);
+  console.log(`api listening on :${port} (${config.appEnv}, ${config.dataBackend})`);
 });

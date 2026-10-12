@@ -1,22 +1,28 @@
-// Fills one demo account (and 6 helper accounts) with sample data so every phone screen has content.
+// Fills one demo account (and 6 helper accounts) with sample data so every phone screen has content — on Postgres or DynamoDB.
 /**
  * Owner, 2026-10-05: ONE demo account on the production database plus 6 helpers, with clearly
  * fake but realistic data — follows, chats, timestamped comments and replies, likes, reactions
- * (the heat curve), clips, subscriptions to feeds already in `episodes`, positions, listened
+ * (the heat curve), clips, subscriptions to feeds already in the catalogue, positions, listened
  * ranges, favourites, moments and search history. Notifications are the Following feed
- * (`activity` rows of the people you follow), so the helpers' comments, clips and listens fill it.
+ * (`activity` of the people you follow), so the helpers' comments, clips and listens fill it.
+ *
+ * M26 lane MIG (MIG-05): every write goes through the repo functions the API uses (`dual()`), so the same
+ * script works on Postgres and on DynamoDB. Times: on DynamoDB the Store's clock is set to "N hours ago"
+ * before each write; on Postgres the repos write `now()` and the old back-dating UPDATEs (Postgres only)
+ * set the times afterwards. Re-running is safe: the demo accounts of an earlier run are deleted first
+ * (the account-deletion path of each backend), then everything is written again.
  *
  * NOT seeded: voice posts (each needs an audio blob in the approved store — skipped, we host no
  * audio for a demo), downloads and the queue (phone-only), the Inbox (built on the phone from
- * the synced subscriptions — it fills itself).
+ * the synced subscriptions — it fills itself), the account's country.
  *
- *   cd apps/api && npx tsx scripts/seed-demo.ts      (DATABASE_URL from apps/api/.env)
- *   cd apps/api && npx tsx scripts/unseed-demo.ts    (removes everything this made)
+ *   cd apps/api && npx tsx scripts/seed-demo.ts                                       (Postgres: DATABASE_URL from apps/api/.env)
+ *   cd apps/api && npx tsx scripts/seed-demo.ts --ddb --prefix <set>   (or --prod --aws: runbook docs/runbooks/m26-cutover.md)
+ *   cd apps/api && npx tsx scripts/unseed-demo.ts [the same flags]                    (removes everything this made)
  *
- * Every account it makes is in DEMO_ACCOUNTS (emails demo+…@socialmorning.app). Re-running is
- * safe: the accounts are upserted by email, their seeded content is cleared, then written again.
- * The demo login goes to apps/api/.env.demo-account (gitignored by `.env.*`); it is never printed.
- * The same password is kept across re-runs while that file exists.
+ * Every account it makes is in DEMO_ACCOUNTS (emails demo+…@socialmorning.app). The demo login goes to
+ * apps/api/.env.demo-account (gitignored by `.env.*`); it is never printed. The same password is kept across
+ * re-runs while that file exists.
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
@@ -25,8 +31,25 @@ import { dirname, join, resolve } from 'node:path';
 import postgres from 'postgres';
 import { bucketOf } from '@socialmorning/social-core';
 import { hashPassword } from '../src/auth/password.ts';
+import { ATTACHED } from '../src/db/backend.ts';
+import { withStore } from '../src/db/backend-ddb.ts';
 import { fromPostgres, type Db } from '../src/db/db.ts';
-import { rebuildEpisodeHeat } from '../src/heat/rebuild.ts';
+import type { Store } from '../src/db/ddb/store.ts';
+import { createListener, listenerByEmail } from '../src/db/repos/account/listeners.ts';
+import { updateProfile } from '../src/db/repos/account/profile.ts';
+import { finishDeletion } from '../src/db/repos/account/deletion.ts';
+import { newestOfShows } from '../src/db/repos/discover/foryou.ts';
+import { getEpisode, type EpisodeRow } from '../src/db/repos/library/episodes.ts';
+import { registerCard } from '../src/catalog/feed.ts';
+import { merge as mergeSubscriptions } from '../src/db/repos/library/subscriptions.ts';
+import { merge as mergeLibrary, type LibraryIn } from '../src/db/repos/library/library.ts';
+import { observePosition } from '../src/db/repos/library/positions.ts';
+import { replaceRanges } from '../src/db/repos/library/listened.ts';
+import { follow } from '../src/db/repos/social/follows.ts';
+import { postCommentInTx, toggleReactionInTx, likeCommentInTx } from '../src/db/repos/social/comment-writes.ts';
+import { createClip } from '../src/db/repos/social/clips.ts';
+import { send as sendChat, thread as readThread } from '../src/db/repos/social/chat.ts';
+import { connect, parseArgs } from './copy/connect.ts';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const API_DIR = join(HERE, '..');
@@ -70,7 +93,7 @@ const EPISODES: Record<string, { feed: keyof typeof FEEDS; title: string }> = {
 };
 
 const HOUR = 3_600_000;
-type Ep = { id: string; feed_url: string; title: string; show_title: string | null; duration_ms: number };
+type Ep = EpisodeRow & { duration_ms: number };
 
 /** A comment thread: who, where (fraction of the episode), when (hours ago), text, and replies. */
 type Thread = { ep: string; who: Who; at: number; ago: number; body: string; likes?: Who[]; replies?: { who: Who; ago: number; body: string; likes?: Who[] }[] };
@@ -180,40 +203,55 @@ const SEARCHES = ['design', 'stoic', 'learn english', 'history of objects'];
 
 // ---------------------------------------------------------------------------------------------
 
-export function loadEnv(): void {
+/** Loads apps/api/.env when present. `needPostgres` (the Postgres path only): DATABASE_URL must then be set. The DynamoDB path needs none (M27). */
+export function loadEnv(needPostgres = true): void {
   if (!process.env['DATABASE_URL'] && existsSync(join(API_DIR, '.env'))) process.loadEnvFile(join(API_DIR, '.env'));
-  if (!process.env['DATABASE_URL']) throw new Error('DATABASE_URL is not set (apps/api/.env)');
+  if (needPostgres && !process.env['DATABASE_URL']) throw new Error('DATABASE_URL is not set (apps/api/.env)');
 }
+
+/** Postgres on this machine (a local container, CI) speaks no TLS; every other host must. */
+export const pgSsl = (url: string): { ssl?: 'require' } => {
+  const host = new URL(url).hostname;
+  return host === 'localhost' || host === '127.0.0.1' || host === '::1' ? {} : { ssl: 'require' as const };
+};
+
+const SHOW_TITLES: Record<keyof typeof FEEDS, string> = { pi: '99% Invisible', stoic: 'The Daily Stoic', bbc: '6 Minute English', daily: 'The Daily', upfirst: 'Up First', fresh: 'Fresh Air' };
 
 /**
- * Removes the content the seed writes for these accounts (not the accounts). Returns the
- * episodes whose heat curve must be rebuilt. Used by both scripts.
+ * M27: when the episodes the demo needs are not in the catalogue yet (an empty DynamoDB Local or staging set — nothing has refreshed
+ * the feeds), register them under the same titles and feed URLs with made-up lengths and an enclosure that does not exist
+ * (the demo only needs rows with ids and lengths — nothing plays). Does nothing when the first episode is already there.
  */
-export async function clearContent(db: Db, ids: string[]): Promise<string[]> {
-  const touched = await db.query<{ episode_id: string }>(
-    `SELECT episode_id FROM comments WHERE author_id = ANY($1::uuid[]) AND offset_ms IS NOT NULL
-     UNION SELECT episode_id FROM reactions WHERE listener_id = ANY($1::uuid[])`, [ids]);
-  await db.transaction(async (tx) => {
-    await tx.query('DELETE FROM activity WHERE actor_id = ANY($1::uuid[])', [ids]);
-    await tx.query('DELETE FROM comment_likes WHERE listener_id = ANY($1::uuid[])', [ids]);
-    await tx.query('DELETE FROM comments WHERE author_id = ANY($1::uuid[]) AND parent_id IS NOT NULL', [ids]);
-    // A demo comment someone else replied to stays as a placeholder (FR-010), as a real delete would.
-    await tx.query(
-      `UPDATE comments c SET body = NULL, author_id = NULL, offset_ms = NULL, deleted_at = now()
-       WHERE c.author_id = ANY($1::uuid[]) AND EXISTS (SELECT 1 FROM comments r WHERE r.parent_id = c.id)`, [ids]);
-    await tx.query('DELETE FROM comments WHERE author_id = ANY($1::uuid[])', [ids]);
-    await tx.query('DELETE FROM reactions WHERE listener_id = ANY($1::uuid[])', [ids]);
-    await tx.query('DELETE FROM clips WHERE author_id = ANY($1::uuid[])', [ids]);
-    await tx.query('DELETE FROM follows WHERE follower_id = ANY($1::uuid[]) AND followed_id = ANY($1::uuid[])', [ids]);
-    await tx.query('DELETE FROM chat_messages WHERE sender_id = ANY($1::uuid[]) AND recipient_id = ANY($1::uuid[])', [ids]);
-    for (const t of ['subscriptions', 'subscription_events', 'positions', 'listened_ranges', 'library_items']) {
-      await tx.query(`DELETE FROM ${t} WHERE listener_id = ANY($1::uuid[])`, [ids]);
-    }
-  });
-  return touched.map((r) => r.episode_id);
+export async function ensureDemoCatalogue(db: Db, now: number): Promise<number> {
+  const first = Object.values(EPISODES)[0]!;
+  if ((await newestOfShows(db, [FEEDS[first.feed]], 5)).length > 0) return 0;
+  let n = 0;
+  for (const [key, want] of Object.entries(EPISODES)) {
+    await registerCard(db, {
+      feedUrl: FEEDS[want.feed], guid: `demo-${key}`, title: want.title, showTitle: SHOW_TITLES[want.feed],
+      enclosureUrl: `https://example.invalid/demo/${key}.mp3`, durationMs: (20 + (n % 7) * 5) * 60_000,
+      publishedAt: new Date(now - (n + 1) * 24 * HOUR).toISOString(),
+    });
+    n++;
+  }
+  return n;
 }
 
-async function readPassword(): Promise<string> {
+/** Deletes the demo accounts of an earlier run with the account-deletion path of the backend in use. Returns how many. */
+export async function removeDemo(db: Db): Promise<number> {
+  let n = 0;
+  for (const a of DEMO_ACCOUNTS) {
+    const l = await listenerByEmail(db, a.email);
+    if (!l) continue;
+    await finishDeletion(db, {}, l.id);
+    n++;
+  }
+  return n;
+}
+
+export async function readPassword(): Promise<string> {
+  // M27: the owner can choose the demo password (DEMO_PASSWORD in the environment) so the staging deploy's smoke secret and this seed agree without a secret ever passing through chat.
+  if (process.env['DEMO_PASSWORD']) return process.env['DEMO_PASSWORD'];
   if (existsSync(LOGIN_FILE)) {
     const m = /^DEMO_PASSWORD=(.+)$/m.exec(readFileSync(LOGIN_FILE, 'utf8'));
     if (m?.[1]) return m[1].trim();
@@ -221,174 +259,210 @@ async function readPassword(): Promise<string> {
   return `demo-${randomBytes(9).toString('base64url')}`;
 }
 
+export type SeedDemoOpts = {
+  password: string;
+  now?: number;
+  /** DynamoDB: moves the Store's clock to this time before a write (the repos stamp items with it). */
+  setClock?: (ms: number) => void;
+};
+
+/** Writes the demo; returns the account ids and per-kind counts. */
+export async function seedDemo(db: Db, o: SeedDemoOpts): Promise<{ id: Record<Who, string>; counts: Record<string, number> }> {
+  const onPg = !ATTACHED.has(db);
+  const now = o.now ?? Date.now();
+  const ago = (hours: number) => new Date(now - hours * HOUR);
+  const at = (h: number) => o.setClock?.(now - h * HOUR);
+  const pgSet = async (sql: string, params: unknown[]) => { if (onPg) await db.query(sql, params); };
+
+  // 1. Episodes, from what the catalogue already has. A fresh DynamoDB set (the dev loop, staging) has none: register the sample ones.
+  if (!onPg) await ensureDemoCatalogue(db, now);
+  const ep: Record<string, Ep> = {};
+  const used = new Set<string>();
+  const byFeed = new Map<string, { id: string; title: string; duration_ms: number | null }[]>();
+  for (const [key, want] of Object.entries(EPISODES)) {
+    const feed = FEEDS[want.feed];
+    if (!byFeed.has(feed)) byFeed.set(feed, await newestOfShows(db, [feed], 500));
+    const rows = byFeed.get(feed)!.filter((r) => r.duration_ms !== null && !used.has(r.id));
+    const row = rows.find((r) => r.title === want.title) ?? rows[0];
+    if (!row) throw new Error(`no episode with a length in ${want.feed}`);
+    const full = await getEpisode(db, row.id);
+    if (!full || full.duration_ms === null) throw new Error(`episode ${row.id} has no length`);
+    used.add(row.id);
+    ep[key] = { ...full, duration_ms: Number(full.duration_ms) };
+  }
+
+  // 2. Accounts: an earlier run's are deleted first, then made again.
+  await removeDemo(db);
+  const id = {} as Record<Who, string>;
+  at(400);
+  for (const a of DEMO_ACCOUNTS) {
+    const hash = await hashPassword(a.key === 'main' ? o.password : randomBytes(24).toString('base64url'));
+    const made = await createListener(db, a.email, hash, a.name);
+    if (made === 'exists') throw new Error('a demo account is still there after the clean-up');
+    await updateProfile(db, made.id, { bio: a.bio });
+    id[a.key] = made.id;
+  }
+
+  const atMs = (key: string, f: number) => Math.min(ep[key]!.duration_ms - 1, Math.max(0, Math.round(ep[key]!.duration_ms * f)));
+  const counts: Record<string, number> = {};
+  const bump = (t: string, n = 1) => { counts[t] = (counts[t] ?? 0) + n; };
+
+  // Follows.
+  // Each row its own minute: lists sorted by time have no ties (a tie's order is not defined on Postgres).
+  for (const [n, [a, b]] of FOLLOWS.entries()) {
+    at(200 - n / 60);
+    await follow(db, id[a], id[b]);
+    await pgSet('UPDATE follows SET created_at = $3 WHERE follower_id = $1 AND followed_id = $2', [id[a], id[b], ago(200 - n / 60)]);
+    bump('follows');
+  }
+  // Subscriptions (the sync path writes the Studio's subscription history too).
+  for (const [who, feeds] of Object.entries(SUBS) as [Who, (keyof typeof FEEDS)[]][]) {
+    at(240);
+    await mergeSubscriptions(db, id[who], feeds.map((f, n) => {
+      const star = who === 'main' && STARRED.includes(f);
+      return { feedUrl: FEEDS[f], createdAt: ago(240 - n / 60).toISOString(), starred: star, ...(star ? { starredAt: ago(230 - n / 60).toISOString() } : {}) };
+    }));
+    bump('subscriptions', feeds.length);
+  }
+  // Comments, replies, likes (the "commented" feed item comes with each top-level comment).
+  const commentIds: { id: string; ep: string; who: Who; body: string; offsetMs: number }[] = [];
+  const backdateComment = async (cid: string, when: Date) => {
+    await pgSet('UPDATE comments SET created_at = $2 WHERE id = $1', [cid, when]);
+    await pgSet(`UPDATE activity SET created_at = $2 WHERE kind = 'commented' AND ref_id = $1`, [cid, when]);
+  };
+  for (const t of THREADS) {
+    const e = ep[t.ep]!;
+    const off = atMs(t.ep, t.at);
+    at(t.ago);
+    const c = await postCommentInTx(db, e, e.id, id[t.who], { body: t.body, offsetMs: off }, undefined);
+    await backdateComment(c.id, ago(t.ago));
+    bump('comments');
+    commentIds.push({ id: c.id, ep: t.ep, who: t.who, body: t.body, offsetMs: off });
+    for (const l of t.likes ?? []) {
+      if (l === t.who) continue;
+      at(t.ago - 1);
+      await likeCommentInTx(db, c.id, id[l]);
+      bump('comment_likes');
+    }
+    for (const r of t.replies ?? []) {
+      at(r.ago);
+      const rc = await postCommentInTx(db, e, e.id, id[r.who], { body: r.body, parentId: c.id }, undefined);
+      await backdateComment(rc.id, ago(r.ago));
+      bump('comments');
+      for (const l of r.likes ?? []) {
+        if (l === r.who) continue;
+        at(r.ago - 1);
+        await likeCommentInTx(db, rc.id, id[l]);
+        bump('comment_likes');
+      }
+    }
+  }
+  // Reactions (a second tap in the same segment would take the first one back: one per listener per bucket).
+  const tapped = new Set<string>();
+  for (const r of REACTIONS) {
+    const e = ep[r.ep]!;
+    for (const f of r.at) {
+      const off = atMs(r.ep, f);
+      const k = `${r.who}|${e.id}|${bucketOf(off, e.duration_ms)}`;
+      if (tapped.has(k)) continue;
+      tapped.add(k);
+      at(12);
+      await toggleReactionInTx(db, e, e.id, id[r.who], { offsetMs: off });
+      bump('reactions');
+    }
+  }
+  // Clips and their feed items.
+  for (const [n, c] of CLIPS.entries()) {
+    const start = atMs(c.ep, c.at);
+    const end = Math.min(ep[c.ep]!.duration_ms, start + c.secs * 1000);
+    at(c.ago);
+    const made = await createClip(db, { authorId: id[c.who], clientId: `demo-seed-${n + 1}`, episodeId: ep[c.ep]!.id, startMs: start, endMs: end, caption: c.caption });
+    await pgSet('UPDATE clips SET created_at = $2 WHERE id = $1', [made.clip.id, ago(c.ago)]);
+    await pgSet(`UPDATE activity SET created_at = $2 WHERE kind = 'clipped' AND ref_id = $1`, [made.clip.id, ago(c.ago)]);
+    bump('clips');
+  }
+  // Chats: a read message is read by its recipient right after (reading the thread marks it).
+  for (const m of CHATS) {
+    const when = now - m.ago * 60_000;
+    o.setClock?.(when);
+    const sent = await sendChat(db, id[m.from], id[m.to], m.body, m.ep ? ep[m.ep]!.id : undefined);
+    await pgSet('UPDATE chat_messages SET created_at = $2 WHERE id = $1::bigint', [String(sent.id), new Date(when)]);
+    if (m.read) {
+      o.setClock?.(when + 60_000);
+      await readThread(db, id[m.to], id[m.from]);
+    }
+    bump('chat_messages');
+  }
+  // Positions (Continue listening / history on the phone after sign-in).
+  for (const [n, [key, f, finished, h]] of POSITIONS.entries()) {
+    at(h);
+    await observePosition(db, id.main, 'demo-seed', {
+      episodeId: ep[key]!.id, offsetMs: finished ? ep[key]!.duration_ms - 1000 : atMs(key, f), finished, progressSeq: 1000 + n, explicitSeek: false,
+    }, ago(h));
+    bump('positions');
+  }
+  // Listened ranges (Friends listening: last 7 days) — the sync path writes the "listened" feed items.
+  for (const [who, key, f, h] of LISTENS) {
+    const when = ago(h);
+    const day = when.toISOString().slice(0, 10);
+    at(h);
+    await replaceRanges(db, id[who], 'demo-seed', [{ episodeId: ep[key]!.id, day, ranges: [[0, atMs(key, f)]] }]);
+    await pgSet(`UPDATE activity SET created_at = $4 WHERE actor_id = $1 AND kind = 'listened' AND episode_id = $2 AND day = $3::date`, [id[who], ep[key]!.id, day, when]);
+    bump('listened_ranges');
+  }
+  // Library: favourites, favourite comments, moments, searches (the demo account only).
+  const lib: LibraryIn[] = [];
+  for (const [n, key] of FAV_EPISODES.entries()) lib.push({ kind: 'fav_episode', key: ep[key]!.id, payload: {}, updatedAt: ago(5 + n * 7).toISOString() });
+  const favs = commentIds.filter((c) => c.who !== 'main').slice(0, 3);
+  for (const [n, c] of favs.entries()) {
+    const author = DEMO_ACCOUNTS.find((a) => a.key === c.who)!.name;
+    lib.push({ kind: 'fav_comment', key: c.id, payload: { episodeId: ep[c.ep]!.id, body: c.body, author, offsetMs: c.offsetMs }, updatedAt: ago(4 + n * 5).toISOString() });
+  }
+  for (const [key, f, note, h] of MOMENTS) {
+    const savedAt = ago(h).getTime();
+    const ms = atMs(key, f);
+    lib.push({ kind: 'moment', key: `${ep[key]!.id}@${ms}@${savedAt}`, payload: { episodeId: ep[key]!.id, atMs: ms, note, savedAt }, updatedAt: ago(h).toISOString() });
+  }
+  for (const [n, term] of SEARCHES.entries()) lib.push({ kind: 'search', key: term.toLowerCase(), payload: { term }, updatedAt: ago(1.5 + n * 9).toISOString() });
+  o.setClock?.(now);
+  await mergeLibrary(db, id.main, lib);
+  bump('library_items', lib.length);
+  counts['listeners'] = DEMO_ACCOUNTS.length;
+  return { id, counts };
+}
+
+/** The backend from the flags: Postgres (default), or DynamoDB (`--ddb` with `--prefix <set>` / `--prod`) with a clock the seed moves. */
+export async function openBackend(argv: readonly string[]): Promise<{ db: Db; setClock?: (ms: number) => void; close(): Promise<void> }> {
+  const args = parseArgs(argv);
+  loadEnv(!args['ddb']);
+  if (!args['ddb']) {
+    const sql = postgres(process.env['DATABASE_URL']!, { ...pgSsl(process.env['DATABASE_URL']!), max: 1, onnotice: () => {} });
+    return { db: fromPostgres(sql), close: async () => { await sql.end(); } };
+  }
+  // M27: DynamoDB needs no Postgres at all (the BRIDGE=off rule: the DynamoDB path never calls it).
+  const c = await connect(args, { pg: false });
+  // On DynamoDB Local the tables may not exist yet: create the set for the prefix first.
+  const endpoint = process.env['DDB_ENDPOINT'];
+  if (endpoint && c.clients && typeof args['prefix'] === 'string') {
+    const { ListTablesCommand } = await import('@aws-sdk/client-dynamodb');
+    const { createTableSet } = await import('../src/db/ddb/schema.ts');
+    if (!((await c.clients.raw.send(new ListTablesCommand({}))).TableNames ?? []).includes(c.store.tables.main)) await createTableSet(c.clients.raw, c.store.tables);
+  }
+  let t = Date.now();
+  const store: Store = { ...c.store, clock: { now: () => t } };
+  return { db: withStore(c.pg, store, { bridge: false }), setClock: (ms) => { t = ms; }, close: () => c.close() };
+}
+
 async function main(): Promise<void> {
-  loadEnv();
-  const sql = postgres(process.env['DATABASE_URL']!, { ssl: 'require', max: 1, onnotice: () => {} });
-  const db = fromPostgres(sql);
+  const b = await openBackend(process.argv.slice(2));
   try {
-    // 1. Episodes, from rows that already exist.
-    const ep: Record<string, Ep> = {};
-    const used = new Set<string>();
-    for (const [key, want] of Object.entries(EPISODES)) {
-      const feed = FEEDS[want.feed];
-      let [row] = await db.query<Ep>('SELECT id, feed_url, title, show_title, duration_ms FROM episodes WHERE feed_url = $1 AND title = $2 AND duration_ms IS NOT NULL LIMIT 1', [feed, want.title]);
-      if (!row || used.has(row.id)) {
-        [row] = await db.query<Ep>(
-          `SELECT id, feed_url, title, show_title, duration_ms FROM episodes WHERE feed_url = $1 AND duration_ms IS NOT NULL AND NOT (id = ANY($2::text[]))
-           ORDER BY published_at DESC NULLS LAST, id LIMIT 1`, [feed, [...used]]);
-      }
-      if (!row) throw new Error(`no episode with a length in ${want.feed}`);
-      used.add(row.id);
-      ep[key] = { ...row, duration_ms: Number(row.duration_ms) };
-    }
-
-    // 2. Accounts (upsert by email). Helpers get a random password nobody keeps.
     const password = await readPassword();
-    const id = {} as Record<Who, string>;
-    for (const a of DEMO_ACCOUNTS) {
-      const hash = await hashPassword(a.key === 'main' ? password : randomBytes(24).toString('base64url'));
-      const [r] = await db.query<{ id: string }>(
-        `INSERT INTO listeners (email, password_hash, display_name, bio, country) VALUES ($1, $2, $3, $4, $5)
-         ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash, display_name = EXCLUDED.display_name,
-           bio = EXCLUDED.bio, country = EXCLUDED.country, failed_attempts = 0, locked_until = NULL, suspended_at = NULL
-         RETURNING id`, [a.email, hash, a.name, a.bio, a.country]);
-      id[a.key] = r!.id;
-    }
-    writeFileSync(LOGIN_FILE, `# Demo account on production (seed: apps/api/scripts/seed-demo.ts). Gitignored.\nDEMO_EMAIL=${DEMO_ACCOUNTS[0].email}\nDEMO_PASSWORD=${password}\n`, { mode: 0o600 });
-    const ids = Object.values(id);
-
-    // 3. Clear what an earlier run wrote, so nothing doubles.
-    const touched = new Set(await clearContent(db, ids));
-
-    const now = Date.now();
-    const ago = (hours: number) => new Date(now - hours * HOUR);
-    const at = (key: string, f: number) => Math.min(ep[key]!.duration_ms - 1, Math.max(0, Math.round(ep[key]!.duration_ms * f)));
-    const counts: Record<string, number> = {};
-    const bump = (t: string, n = 1) => { counts[t] = (counts[t] ?? 0) + n; };
-
-    await db.transaction(async (tx) => {
-      // Follows.
-      for (const [a, b] of FOLLOWS) {
-        await tx.query('INSERT INTO follows (follower_id, followed_id, created_at) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING', [id[a], id[b], ago(200)]);
-        bump('follows');
-      }
-      // Subscriptions (+ the Studio's subscription history).
-      for (const [who, feeds] of Object.entries(SUBS) as [Who, (keyof typeof FEEDS)[]][]) {
-        for (const f of feeds) {
-          const star = who === 'main' && STARRED.includes(f);
-          await tx.query('INSERT INTO subscriptions (listener_id, feed_url, starred, created_at, starred_at) VALUES ($1, $2, $3, $4, $5)',
-            [id[who], FEEDS[f], star, ago(240), star ? ago(230) : null]);
-          await tx.query(`INSERT INTO subscription_events (listener_id, feed_url, kind, at) VALUES ($1, $2, 'sub', $3)`, [id[who], FEEDS[f], ago(240)]);
-          bump('subscriptions'); bump('subscription_events');
-        }
-      }
-      // Comments, replies, likes, and the "commented" feed items.
-      const commentIds: { id: string; ep: string; who: Who; body: string; offsetMs: number }[] = [];
-      for (const t of THREADS) {
-        const off = at(t.ep, t.at);
-        const [c] = await tx.query<{ id: string }>(
-          'INSERT INTO comments (episode_id, author_id, body, offset_ms, created_at) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-          [ep[t.ep]!.id, id[t.who], t.body, off, ago(t.ago)]);
-        bump('comments');
-        commentIds.push({ id: c!.id, ep: t.ep, who: t.who, body: t.body, offsetMs: off });
-        touched.add(ep[t.ep]!.id);
-        await tx.query(`INSERT INTO activity (actor_id, kind, episode_id, moment_ms, ref_id, hidden, created_at) VALUES ($1, 'commented', $2, $3, $4, false, $5)`,
-          [id[t.who], ep[t.ep]!.id, off, c!.id, ago(t.ago)]);
-        bump('activity');
-        for (const l of t.likes ?? []) {
-          if (l === t.who) continue;
-          await tx.query('INSERT INTO comment_likes (comment_id, listener_id, created_at) VALUES ($1, $2, $3)', [c!.id, id[l], ago(t.ago - 1)]);
-          bump('comment_likes');
-        }
-        for (const r of t.replies ?? []) {
-          const [rc] = await tx.query<{ id: string }>(
-            'INSERT INTO comments (episode_id, author_id, parent_id, body, created_at) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-            [ep[t.ep]!.id, id[r.who], c!.id, r.body, ago(r.ago)]);
-          bump('comments');
-          for (const l of r.likes ?? []) {
-            if (l === r.who) continue;
-            await tx.query('INSERT INTO comment_likes (comment_id, listener_id, created_at) VALUES ($1, $2, $3)', [rc!.id, id[l], ago(r.ago - 1)]);
-            bump('comment_likes');
-          }
-        }
-      }
-      // Reactions (one per listener per bucket, as the primary key says).
-      for (const r of REACTIONS) {
-        const e = ep[r.ep]!;
-        for (const f of r.at) {
-          const off = at(r.ep, f);
-          const res = await tx.query('INSERT INTO reactions (listener_id, episode_id, bucket, offset_ms) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING RETURNING 1',
-            [id[r.who], e.id, bucketOf(off, e.duration_ms), off]);
-          bump('reactions', res.length);
-          touched.add(e.id);
-        }
-      }
-      // Clips and their feed items.
-      for (const [n, c] of CLIPS.entries()) {
-        const start = at(c.ep, c.at);
-        const end = Math.min(ep[c.ep]!.duration_ms, start + c.secs * 1000);
-        const [row] = await tx.query<{ id: string }>(
-          'INSERT INTO clips (author_id, client_id, episode_id, start_ms, end_ms, caption, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
-          [id[c.who], `demo-seed-${n + 1}`, ep[c.ep]!.id, start, end, c.caption, ago(c.ago)]);
-        await tx.query(`INSERT INTO activity (actor_id, kind, episode_id, moment_ms, ref_id, hidden, created_at) VALUES ($1, 'clipped', $2, $3, $4, false, $5)`,
-          [id[c.who], ep[c.ep]!.id, start, row!.id, ago(c.ago)]);
-        bump('clips'); bump('activity');
-      }
-      // Chats (both sides follow each other).
-      for (const m of CHATS) {
-        const when = new Date(now - m.ago * 60_000);
-        await tx.query('INSERT INTO chat_messages (sender_id, recipient_id, body, episode_id, created_at, read_at) VALUES ($1, $2, $3, $4, $5, $6)',
-          [id[m.from], id[m.to], m.body, m.ep ? ep[m.ep]!.id : null, when, m.read ? new Date(when.getTime() + 60_000) : null]);
-        bump('chat_messages');
-      }
-      // Positions (Continue listening / history on the phone after sign-in).
-      for (const [n, [key, f, finished, h]] of POSITIONS.entries()) {
-        await tx.query(
-          `INSERT INTO positions (listener_id, episode_id, offset_ms, finished, progress_seq, explicit_seek, device_id, received_at)
-           VALUES ($1, $2, $3, $4, $5, false, 'demo-seed', $6)`,
-          [id.main, ep[key]!.id, finished ? ep[key]!.duration_ms - 1000 : at(key, f), finished, 1000 + n, ago(h)]);
-        bump('positions');
-      }
-      // Listened ranges (Friends listening: last 7 days) and the "listened" feed items.
-      for (const [who, key, f, h] of LISTENS) {
-        const when = ago(h);
-        const day = when.toISOString().slice(0, 10);
-        await tx.query(
-          `INSERT INTO listened_ranges (listener_id, episode_id, day, device_id, ranges, updated_at) VALUES ($1, $2, $3, 'demo-seed', ($4::text)::jsonb, $5)`,
-          [id[who], ep[key]!.id, day, JSON.stringify([[0, at(key, f)]]), when]);
-        await tx.query(`INSERT INTO activity (actor_id, kind, episode_id, day, hidden, created_at) VALUES ($1, 'listened', $2, $3, false, $4) ON CONFLICT DO NOTHING`,
-          [id[who], ep[key]!.id, day, when]);
-        bump('listened_ranges'); bump('activity');
-      }
-      // Library: favourites, favourite comments, moments, searches (the demo account only).
-      const lib = async (kind: string, key: string, payload: Record<string, unknown>, when: Date) => {
-        await tx.query('INSERT INTO library_items (listener_id, kind, item_key, payload, updated_at) VALUES ($1, $2, $3, ($4::text)::jsonb, $5)',
-          [id.main, kind, key, JSON.stringify(payload), when]);
-        bump('library_items');
-      };
-      for (const [n, key] of FAV_EPISODES.entries()) await lib('fav_episode', ep[key]!.id, {}, ago(5 + n * 7));
-      const favs = commentIds.filter((c) => c.who !== 'main').slice(0, 3);
-      for (const [n, c] of favs.entries()) {
-        const author = DEMO_ACCOUNTS.find((a) => a.key === c.who)!.name;
-        await lib('fav_comment', c.id, { episodeId: ep[c.ep]!.id, body: c.body, author, offsetMs: c.offsetMs }, ago(4 + n * 5));
-      }
-      for (const [key, f, note, h] of MOMENTS) {
-        const savedAt = ago(h).getTime();
-        const atMs = at(key, f);
-        await lib('moment', `${ep[key]!.id}@${atMs}@${savedAt}`, { episodeId: ep[key]!.id, atMs, note, savedAt }, ago(h));
-      }
-      for (const [n, term] of SEARCHES.entries()) await lib('search', term.toLowerCase(), { term }, ago(1 + n * 9));
-    });
-
-    // 4. Heat curves for every episode the demo touched (before or now).
-    for (const e of touched) await rebuildEpisodeHeat(db, e);
-    counts['episode_heat rebuilt (episodes)'] = touched.size;
-    counts['listeners (upserted)'] = DEMO_ACCOUNTS.length;
-
+    const { counts } = await seedDemo(b.db, { password, ...(b.setClock ? { setClock: b.setClock } : {}) });
+    writeFileSync(LOGIN_FILE, `# Demo account (seed: apps/api/scripts/seed-demo.ts). Gitignored.\nDEMO_EMAIL=${DEMO_ACCOUNTS[0].email}\nDEMO_PASSWORD=${password}\n`, { mode: 0o600 });
     console.log('Demo seed done. Login written to apps/api/.env.demo-account (not printed).');
     for (const [t, n] of Object.entries(counts)) console.log(`  ${t}: ${n}`);
   } finally {
-    await sql.end();
+    await b.close();
   }
 }
 
