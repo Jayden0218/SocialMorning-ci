@@ -16,7 +16,6 @@
  */
 import type { NativeAttributeValue } from '@aws-sdk/lib-dynamodb';
 import type { Db } from '../../../db.ts';
-import { bridgeOf } from '../../../backend-ddb.ts';
 import { encode } from '../../../ddb/codec.ts';
 import * as K from '../../../ddb/keys.ts';
 import { withVersionRetry } from '../../../ddb/retry.ts';
@@ -25,9 +24,7 @@ import { tx } from '../../../ddb/tx.ts';
 import { claimUnique } from '../../../ddb/unique.ts';
 import { enqueue } from '../../../../jobs/outbox.ts';
 import { HEAT_PLACE } from '../../../../heat/ddb.ts';
-import * as pg from '../episodes.ts';
 import type { EpisodeInput, EpisodeRow } from '../episodes.ts';
-import { rebuildFromBridge } from './heat.ts';
 
 const str = (v: unknown): string | null => (v === undefined || v === null ? null : String(v));
 const num = (v: unknown): number | null => (v === undefined || v === null ? null : Number(v));
@@ -156,36 +153,27 @@ export async function getEpisode(store: Store, _db: Db, id: string): Promise<Epi
   return it ? episodeRow(it) : undefined;
 }
 
-export async function upsertEpisode(store: Store, db: Db, e: EpisodeInput): Promise<EpisodeRow> {
+export async function upsertEpisode(store: Store, _db: Db, e: EpisodeInput): Promise<EpisodeRow> {
   const { after } = await writeEpisode(store, e, 'upsert');
-  const raw = bridgeOf(db);
-  if (raw) await pg.upsertEpisode(raw, e);
   return after;
 }
 
-export async function fillEpisode(store: Store, db: Db, e: EpisodeInput): Promise<EpisodeRow> {
+export async function fillEpisode(store: Store, _db: Db, e: EpisodeInput): Promise<EpisodeRow> {
   const { after } = await writeEpisode(store, e, 'fill');
-  const raw = bridgeOf(db);
-  if (raw) await pg.fillEpisode(raw, e);
   return after;
 }
 
 /**
- * The episode PUT. The heat placement for comments already in DynamoDB is the outbox job enqueued by
- * `writeEpisode`; while comments and reactions still live on Postgres (lane SC not merged), the curve is
- * rebuilt here from them, as the Postgres version does inside its transaction.
+ * The episode PUT. The heat placement for comments parked without a length is the outbox job enqueued by `writeEpisode`.
  */
-export async function registerEpisodeTx(store: Store, db: Db, id: string, input: EpisodeInput, mode: 'fill' | 'authoritative'): Promise<EpisodeRow> {
-  const { before, after } = await writeEpisode(store, { ...input, id }, mode === 'fill' ? 'fill' : 'upsert');
-  const raw = bridgeOf(db);
-  if (raw) await pg.registerEpisodeTx(raw, id, input, mode);
-  if ((before?.duration_ms ?? null) === null && after.duration_ms !== null) await rebuildFromBridge(store, db, id);
+export async function registerEpisodeTx(store: Store, _db: Db, id: string, input: EpisodeInput, mode: 'fill' | 'authoritative'): Promise<EpisodeRow> {
+  const { after } = await writeEpisode(store, { ...input, id }, mode === 'fill' ? 'fill' : 'upsert');
   return after;
 }
 
 /**
  * Lane PD (additive): a show's newest episode title and cover as `touchShow` keeps them on the show META — what the
- * gift page and the wallet read with `SELECT show_title / image_url FROM episodes … ORDER BY published_at DESC NULLS LAST`.
+ * gift page and the wallet read (newest episode by publish date).
  */
 export async function showNewest(store: Store, feedUrl: string): Promise<{ title: string | null; image: string | null }> {
   const it = await get(store, 'main', K.show(feedUrl));

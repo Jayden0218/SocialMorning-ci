@@ -40,7 +40,7 @@ async function member(t: TestDb, email: string, o: { plus?: boolean; tz?: string
 }
 
 async function episodes(t: TestDb) {
-  // M26 lane LE: through the repo (Postgres row, or lane LB's item that the digest now reads on DynamoDB).
+  // M26 lane LE: through the repo (lane LB's item that the digest reads).
   const add = (id: string, at: string) => upsertEpisode(t.db, { id, feedUrl: FEED, guid: id, title: `Episode ${id}`, showTitle: 'Weekly', enclosureUrl: `https://cdn.example.com/${id}.mp3`, publishedAt: at });
   await add('old', '2026-09-27T10:00:00Z'); // the week before last (Sunday 18:00 in Kuala Lumpur)
   await add('e1', '2026-09-28T09:00:00Z');

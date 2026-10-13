@@ -15,14 +15,18 @@
  *   (two workers never both advance one job); the sparse G4 queue `Q#jobs#<kind>` lists the open ones
  *   (`resumeJobs`), so an hourly step finishes anything a crash left half-done.
  *
+ * - M28 US3 (research R6): after `OUTBOX_PARK_AFTER` failures one transaction moves the entry to `PARKED#<shard>`
+ *   (same SK, `parkedAt`), conditional on `attempts` being unchanged. The drain never reads `PARKED#`; the owner
+ *   retries or discards it from /mod (`retryParked`, `discardParked`). Nothing is dropped: in = done + pending + parked + discarded.
+ *
  * This folder (src/jobs/) is also the only place a full-table Scan may appear (test/ddb-lint.test.ts).
  */
 import { randomUUID, createHash } from 'node:crypto';
 import { encode } from '../db/ddb/codec.ts';
-import { G4, job as jobKey, outbox as outboxKey, OUTBOX_SHARDS } from '../db/ddb/keys.ts';
+import { G4, job as jobKey, outbox as outboxKey, parked as parkedKey, OUTBOX_SHARDS } from '../db/ddb/keys.ts';
 import { queryAll } from '../db/ddb/paginate.ts';
 import { del, get, isoNow, update, type Item, type Key, type Store } from '../db/ddb/store.ts';
-import type { Tx } from '../db/ddb/tx.ts';
+import { tx as newTx, TxCancelled, type Tx } from '../db/ddb/tx.ts';
 
 export type OutboxEntry = { id: string; kind: string; payload: Record<string, unknown>; createdAt: string; attempts: number; key: Key };
 export type OutboxHandler = (store: Store, entry: OutboxEntry) => Promise<void>;
@@ -48,11 +52,14 @@ export function enqueue(t: Tx, store: Store, entry: { kind: string; payload?: Re
   return id;
 }
 
-export type DrainResult = { done: number; failed: number; kept: string[] };
+/** M28 US3: failures after which an entry stops being retried every minute and waits for the owner. */
+export const OUTBOX_PARK_AFTER = 10;
+
+export type DrainResult = { done: number; failed: number; kept: string[]; parked: number };
 
 /** Runs every pending entry once (oldest first in each shard). */
 export async function drainOutbox(store: Store, handlers: Handlers = registry, opts: { limit?: number } = {}): Promise<DrainResult> {
-  const result: DrainResult = { done: 0, failed: 0, kept: [] };
+  const result: DrainResult = { done: 0, failed: 0, kept: [], parked: 0 };
   let budget = opts.limit ?? 1000;
   for (let shard = 0; shard < OUTBOX_SHARDS && budget > 0; shard++) {
     const { items } = await queryAll(store, 'main', {
@@ -75,11 +82,25 @@ export async function drainOutbox(store: Store, handlers: Handlers = registry, o
       } catch (e) {
         result.failed++;
         result.kept.push(entry.id);
+        const lastError = String((e as Error)?.message ?? e).slice(0, 500);
+        const now = isoNow(store.clock);
+        if (entry.attempts + 1 >= OUTBOX_PARK_AFTER) {
+          // Park: delete + put in one transaction; if another drain moved the entry first (attempts changed), nothing happens.
+          const seen = entry.attempts;
+          try {
+            await newTx(store)
+              .delete('main', entry.key, { condition: seen === 0 ? 'attribute_exists(PK) AND (attribute_not_exists(#a) OR #a = :seen)' : '#a = :seen', names: { '#a': 'attempts' }, values: { ':seen': seen }, label: 'unmoved' })
+              .put('main', { ...it, ...parkedKey(shard, entry.createdAt, entry.id), attempts: seen + 1, lastError, lastTriedAt: now, parkedAt: now }, { condition: 'attribute_not_exists(PK)', label: 'parked' })
+              .commit();
+            result.parked++;
+          } catch { /* lost the race or a transient error: the entry is still pending and the next drain tries again */ }
+          continue;
+        }
         await update(store, 'main', entry.key, {
           update: 'SET #a = if_not_exists(#a, :z) + :one, #e = :err, #w = :now',
           condition: 'attribute_exists(PK)',
           names: { '#a': 'attempts', '#e': 'lastError', '#w': 'lastTriedAt' },
-          values: { ':z': 0, ':one': 1, ':err': String((e as Error)?.message ?? e).slice(0, 500), ':now': isoNow(store.clock) },
+          values: { ':z': 0, ':one': 1, ':err': lastError, ':now': now },
         }).catch(() => undefined);
       }
     }
@@ -95,6 +116,56 @@ export async function pendingOutbox(store: Store): Promise<Item[]> {
     all.push(...items);
   }
   return all;
+}
+
+/** Parked entries (M28 US3), oldest first within a shard. */
+export async function parkedOutbox(store: Store): Promise<Item[]> {
+  const all: Item[] = [];
+  for (let shard = 0; shard < OUTBOX_SHARDS; shard++) {
+    const { items } = await queryAll(store, 'main', { KeyConditionExpression: 'PK = :pk', ExpressionAttributeValues: { ':pk': `PARKED#${shard}` }, ConsistentRead: true });
+    all.push(...items);
+  }
+  return all;
+}
+
+async function findParked(store: Store, id: string): Promise<Item | undefined> {
+  const { items } = await queryAll(store, 'main', { KeyConditionExpression: 'PK = :pk', ExpressionAttributeValues: { ':pk': `PARKED#${shardOf(id)}` }, ConsistentRead: true });
+  return items.find((i) => i['id'] === id);
+}
+
+type Commit = (t: Tx) => Promise<void>;
+const commitNow: Commit = (t) => t.commit();
+
+/**
+ * The reverse move: back under OUTBOX# with attempts 0 (a new INSERT, so the Stream fires). False when the id is not parked.
+ * `commit` lets an admin route hand the transaction to adminWrite so it commits with the audit record.
+ */
+export async function retryParked(store: Store, id: string, commit: Commit = commitNow): Promise<boolean> {
+  const it = await findParked(store, id);
+  if (!it) return false;
+  const { parkedAt: _p, lastError: _e, lastTriedAt: _t, ...rest } = it;
+  try {
+    await commit(newTx(store)
+      .delete('main', { PK: String(it['PK']), SK: String(it['SK']) }, { condition: 'attribute_exists(PK)', label: 'parked' })
+      .put('main', { ...rest, ...outboxKey(shardOf(id), String(it['createdAt']), id), attempts: 0 }, { condition: 'attribute_not_exists(PK)' }));
+    return true;
+  } catch (e) {
+    if (e instanceof TxCancelled) return false;
+    throw e;
+  }
+}
+
+/** Deletes a parked entry for good (the caller audits it). False when the id is not parked. */
+export async function discardParked(store: Store, id: string, commit: Commit = commitNow): Promise<boolean> {
+  const it = await findParked(store, id);
+  if (!it) return false;
+  try {
+    await commit(newTx(store).delete('main', { PK: String(it['PK']), SK: String(it['SK']) }, { condition: 'attribute_exists(PK)', label: 'parked' }));
+    return true;
+  } catch (e) {
+    if (e instanceof TxCancelled) return false;
+    throw e;
+  }
 }
 
 // ---- jobs ----

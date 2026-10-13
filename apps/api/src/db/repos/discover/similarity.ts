@@ -21,103 +21,15 @@
  * — instead of two. If the catalogue grows by an order of magnitude, cache the computed
  * map in `cache` between chunks rather than making the chunking cleverer.
  */
-import { LIKE_FINISHED, swingSimilarity, type Liker, type Neighbour } from '@socialmorning/social-core';
-import type { Db } from '../../db.ts';
-import { dual } from '../../backend.ts';
+import { viaStore } from '../../backend.ts';
 
 /** How stale a similarity table may be before the rebuild is presumed dead (research R4). */
 export const SIMILARITY_STALE_HOURS = 168;
 
-/**
- * Who likes what. `like` = subscribed, or ≥ LIKE_FINISHED episodes of the show finished.
- * Private listeners are excluded here and nowhere else, so the exclusion is auditable.
- */
-async function likersPg(db: Db): Promise<Liker[]> {
-  const rows = await db.query<{ listener_id: string; feed_url: string }>(
-    `SELECT listener_id, feed_url FROM (
-       SELECT s.listener_id, s.feed_url
-       FROM subscriptions s
-       JOIN listeners l ON l.id = s.listener_id AND l.private_listening = false
-       WHERE s.deleted_at IS NULL
-       UNION
-       SELECT p.listener_id, e.feed_url
-       FROM positions p
-       JOIN episodes e ON e.id = p.episode_id
-       JOIN listeners l ON l.id = p.listener_id AND l.private_listening = false
-       WHERE p.finished = true
-       GROUP BY p.listener_id, e.feed_url
-       HAVING count(*) >= ${LIKE_FINISHED}
-     ) likes ORDER BY listener_id, feed_url`,
-  );
-  const byListener = new Map<string, string[]>();
-  for (const r of rows) (byListener.get(r.listener_id) ?? byListener.set(r.listener_id, []).get(r.listener_id)!).push(r.feed_url);
-  return [...byListener].map(([listenerId, shows]) => ({ listenerId, shows }));
-}
-
 export type RebuildResult = { done: boolean; next?: string; written: number; shows: number };
 
-/**
- * One bounded chunk of the rebuild. `cursor` is the last `show_a` written.
- * When there is nothing left, the staging table is swapped in and emptied.
- */
-async function rebuildSimilarityPg(db: Db, cursor: string | undefined, limit = 200): Promise<RebuildResult> {
-  const map = swingSimilarity(await likersPg(db));
-  const shows = [...map.keys()].sort();
-  const from = cursor === undefined ? 0 : shows.findIndex((s) => s > cursor);
-  const slice = from < 0 ? [] : shows.slice(from, from + limit);
-
-  if (cursor === undefined) await db.query('DELETE FROM show_similarity_next');
-
-  let written = 0;
-  await db.transaction(async (tx) => {
-    for (const show of slice) {
-      for (const n of map.get(show)!) {
-        await tx.query(
-          `INSERT INTO show_similarity_next (show_a, show_b, sim) VALUES ($1, $2, $3)
-           ON CONFLICT (show_a, show_b) DO UPDATE SET sim = EXCLUDED.sim, computed_at = now()`,
-          [show, n.show, n.sim],
-        );
-        written++;
-      }
-    }
-  });
-
-  const last = slice[slice.length - 1];
-  const more = from >= 0 && from + limit < shows.length;
-  if (!more) {
-    // The swap. Everything the readers see changes in one transaction or not at all.
-    await db.transaction(async (tx) => {
-      await tx.query('DELETE FROM show_similarity');
-      await tx.query('INSERT INTO show_similarity (show_a, show_b, sim, computed_at) SELECT show_a, show_b, sim, computed_at FROM show_similarity_next');
-      await tx.query('DELETE FROM show_similarity_next');
-    });
-    return { done: true, written, shows: shows.length };
-  }
-  return { done: false, ...(last === undefined ? {} : { next: last }), written, shows: shows.length };
-}
-
-/** Neighbours of the given shows, as the reranker and the scorer want them. */
-async function neighboursOfPg(db: Db, shows: readonly string[]): Promise<Map<string, readonly Neighbour[]>> {
-  if (shows.length === 0) return new Map();
-  const rows = await db.query<{ show_a: string; show_b: string; sim: number }>(
-    'SELECT show_a, show_b, sim FROM show_similarity WHERE show_a = ANY($1::text[]) ORDER BY show_a, sim DESC',
-    [[...shows]],
-  );
-  const out = new Map<string, Neighbour[]>();
-  for (const r of rows) (out.get(r.show_a) ?? out.set(r.show_a, []).get(r.show_a)!).push({ show: r.show_b, sim: Number(r.sim) });
-  return out;
-}
-
-/** Hours since the table was last rebuilt, or null if it never has been (research R4). */
-async function similarityAgeHoursPg(db: Db): Promise<number | null> {
-  const [row] = await db.query<{ age: string | null }>(
-    'SELECT EXTRACT(EPOCH FROM (now() - max(computed_at))) / 3600 AS age FROM show_similarity',
-  );
-  return row?.age === null || row?.age === undefined ? null : Number(row.age);
-}
-
-// M26 lane DV: each runs on Postgres, or on DynamoDB (ddb/similarity.ts — generations + a pointer) when the Db carries a Store (db/backend.ts).
-export const likers = dual('dv/similarity', 'likers', likersPg);
-export const rebuildSimilarity = dual('dv/similarity', 'rebuildSimilarity', rebuildSimilarityPg);
-export const neighboursOf = dual('dv/similarity', 'neighboursOf', neighboursOfPg);
-export const similarityAgeHours = dual('dv/similarity', 'similarityAgeHours', similarityAgeHoursPg);
+// Each runs its DynamoDB body (ddb/similarity.ts) on the Store the Db carries (db/backend.ts).
+export const likers = viaStore<typeof import('./ddb/similarity.ts').likers>('dv/similarity', 'likers');
+export const rebuildSimilarity = viaStore<typeof import('./ddb/similarity.ts').rebuildSimilarity>('dv/similarity', 'rebuildSimilarity');
+export const neighboursOf = viaStore<typeof import('./ddb/similarity.ts').neighboursOf>('dv/similarity', 'neighboursOf');
+export const similarityAgeHours = viaStore<typeof import('./ddb/similarity.ts').similarityAgeHours>('dv/similarity', 'similarityAgeHours');

@@ -56,15 +56,14 @@ if (!ON) {
     const a = await signUp(t, 'tipper@example.com', 'Tipper');
     await (await import('./st-neutral.ts')).seedOverrides(t, FEED, { tipsEnabled: true });
     const play = fakePlay();
-    // Bridge off: this guard checks the DynamoDB items (Postgres's own unique index would otherwise stop the mirror).
     const { withStore } = await import('../src/db/backend-ddb.ts');
-    const db = withStore(t.db, t.store!, { bridge: false });
+    const db = withStore(t.db, t.store);
     const out = await Promise.all(Array.from({ length: 10 }, () =>
       grantGoogle(db, play, { listenerId: a.id, productId: 'tip_small', purchaseToken: 'tok-race', feedUrl: FEED, allowTest: true })));
     assert.equal(new Set(out.map((o) => o.purchaseId)).size, 1, 'one purchase id for every answer');
     assert.equal(out.filter((o) => !o.repeated).length, 1, 'exactly one notice granted');
-    assert.equal((await acScan(t.store!, 'main', 'tip')).length, 1, 'one tip, not ten');
-    assert.equal((await acScan(t.store!, 'main', 'purchase')).length, 1);
+    assert.equal((await acScan(t.store, 'main', 'tip')).length, 1, 'one tip, not ten');
+    assert.equal((await acScan(t.store, 'main', 'purchase')).length, 1);
 
     // The same race without overlapping transactions: a second notice whose first look happened BEFORE the first one
     // committed (its read of PUR# answers "none"), but whose write comes after. Only the conditional Put stops it.
@@ -72,16 +71,16 @@ if (!ON) {
     const { GetCommand } = await import('@aws-sdk/lib-dynamodb');
     await grantGoogle(db, play, { listenerId: a.id, productId: 'tip_small', purchaseToken: 'tok-late', feedUrl: FEED, allowTest: true });
     let hidden = false;
-    const stale = wrapStore(t.store!, async (cmd, next) => {
+    const stale = wrapStore(t.store, async (cmd, next) => {
       const k = (cmd.input as { Key?: { PK?: string } }).Key;
       if (!hidden && cmd instanceof GetCommand && String(k?.PK).startsWith('PUR#')) { hidden = true; return {}; }
       return next(cmd);
     });
-    const late = await grantGoogle(withStore(t.db, stale, { bridge: false }), play, { listenerId: a.id, productId: 'tip_small', purchaseToken: 'tok-late', feedUrl: FEED, allowTest: true });
+    const late = await grantGoogle(withStore(t.db, stale), play, { listenerId: a.id, productId: 'tip_small', purchaseToken: 'tok-late', feedUrl: FEED, allowTest: true });
     assert.equal(hidden, true, 'the stale first look happened');
     assert.equal(late.repeated, true, 'the late notice is answered as a repeat');
-    assert.equal((await acScan(t.store!, 'main', 'tip')).length, 2, 'two tokens, two tips — never a third');
-    assert.equal((await acScan(t.store!, 'main', 'unique')).filter((u) => String(u['PK']).startsWith('U#TXN#')).length, 2, 'one order-id item per purchase');
+    assert.equal((await acScan(t.store, 'main', 'tip')).length, 2, 'two tokens, two tips — never a third');
+    assert.equal((await acScan(t.store, 'main', 'unique')).filter((u) => String(u['PK']).startsWith('U#TXN#')).length, 2, 'one order-id item per purchase');
     await t.close();
   });
 
@@ -107,7 +106,7 @@ if (!ON) {
 
     // Refund the renewal: its store row goes; the code keeps its own 30 days (a gap before them, as fix F-S says).
     assert.equal((await applyVoided(t.db, [{ purchaseToken: 'tok-new', voidedAt: Date.now() }])).withdrawn, 1);
-    const rows = (await acScan(t.store!, 'main', 'entitlement')).filter((e) => e['listenerId'] === a.id);
+    const rows = (await acScan(t.store, 'main', 'entitlement')).filter((e) => e['listenerId'] === a.id);
     assert.deepEqual(rows.map((r) => r['ref']), [`code:${code}`], 'only the code row is left');
     assert.equal(Math.round((Date.parse(String(rows[0]!['until'])) - Date.parse(String(rows[0]!['startsAt']))) / DAY), 30);
     assert.deepEqual(await plusUntil(t.db, a.id), { active: false, until: null }, 'nothing now, the code starts later');
@@ -129,9 +128,9 @@ if (!ON) {
     const all = await Promise.allSettled(people.map((p) => redeemCode(t.db, ten!, p.id)));
     assert.equal(all.filter((r) => r.status === 'fulfilled').length, 10, 'ten redeems, not more');
     const { codeHashOf } = await import('../src/db/repos/account/redeem.ts');
-    const item = await get(t.store!, 'main', K.redeemCode(codeHashOf(ten!).toString('hex')));
+    const item = await get(t.store, 'main', K.redeemCode(codeHashOf(ten!).toString('hex')));
     assert.equal(item?.['uses'], 10);
-    assert.equal((await acScan(t.store!, 'main', 'redeemUse')).filter((u) => u['code'] === ten).length, 10, 'ten use markers');
+    assert.equal((await acScan(t.store, 'main', 'redeemUse')).filter((u) => u['code'] === ten).length, 10, 'ten use markers');
     await t.close();
   });
 
@@ -141,7 +140,7 @@ if (!ON) {
     const t = await freshDb();
     const a = await signUp(t, 'digest@example.com', 'Digest');
     await grantGoogle(t.db, fakePlay(), { listenerId: a.id, productId: 'plus_monthly', purchaseToken: 'tok-q', allowTest: true });
-    const queue = async () => (await get(t.store!, 'main', K.plusVersion(a.id)))?.['G4PK'];
+    const queue = async () => (await get(t.store, 'main', K.plusVersion(a.id)))?.['G4PK'];
     assert.equal(await queue(), 'Q#plus#Asia/Kuala_Lumpur', 'no zone set: the default zone');
     assert.deepEqual(await plusMembersDue(t.db, MONDAY_NOON_KL), [a.id]);
     assert.deepEqual(await plusMembersDue(t.db, MONDAY_NOON_UTC), [], 'not noon in Kuala Lumpur');
@@ -170,14 +169,14 @@ if (!ON) {
     await grantGoogle(t.db, play, { listenerId: a.id, productId: 'plus_monthly', purchaseToken: 'tok-a-plus', allowTest: true });
 
     await deleteAccount(t.db, a.id);
-    assert.equal((await acScan(t.store!, 'main', 'purchase')).filter((p) => p['listenerId'] === a.id).length, 0, 'no purchase of the account');
-    assert.deepEqual((await acScan(t.store!, 'main', 'unique')).filter((u) => String(u['PK']).startsWith('U#TXN#')).map((u) => u['PK']), ['U#TXN#GPA.tok-c-gift'], 'only the other buyer\'s order id');
-    const gifts = await acScan(t.store!, 'main', 'gift');
+    assert.equal((await acScan(t.store, 'main', 'purchase')).filter((p) => p['listenerId'] === a.id).length, 0, 'no purchase of the account');
+    assert.deepEqual((await acScan(t.store, 'main', 'unique')).filter((u) => String(u['PK']).startsWith('U#TXN#')).map((u) => u['PK']), ['U#TXN#GPA.tok-c-gift'], 'only the other buyer\'s order id');
+    const gifts = await acScan(t.store, 'main', 'gift');
     assert.deepEqual(gifts.map((g) => g['code']), [theirs.giftCode], 'the gift the account bought is gone');
     assert.equal(gifts[0]!['claimedBy'], undefined, 'the gift the account claimed has no claimer now');
-    assert.equal((await acScan(t.store!, 'main', 'entitlement')).filter((e) => e['listenerId'] === b.id).length, 0, 'what the account\'s gift gave went with its purchase');
-    assert.equal((await acScan(t.store!, 'main', 'entitlement')).filter((e) => e['listenerId'] === a.id).length, 0);
-    assert.equal(await get(t.store!, 'main', K.plusVersion(a.id)), undefined, 'off the digest queue');
+    assert.equal((await acScan(t.store, 'main', 'entitlement')).filter((e) => e['listenerId'] === b.id).length, 0, 'what the account\'s gift gave went with its purchase');
+    assert.equal((await acScan(t.store, 'main', 'entitlement')).filter((e) => e['listenerId'] === a.id).length, 0);
+    assert.equal(await get(t.store, 'main', K.plusVersion(a.id)), undefined, 'off the digest queue');
     await t.close();
   });
 }

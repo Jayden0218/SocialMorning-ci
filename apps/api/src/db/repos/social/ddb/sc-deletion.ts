@@ -27,7 +27,7 @@ import { dropPartition } from './voice-posts.ts';
 
 const CHUNK = 25;
 
-/** What the comment handler did (the account deletion reports it, as the Postgres `deleteAccount` returns it). */
+/** What the comment handler did (the account deletion reports it, as `deleteAccount` returns it). */
 export type SocialTally = { placeholders: number; deleted: number; episodes: string[] };
 
 type Handler = (store: Store, db: Db, me: string, ptr: Item, tally?: SocialTally) => Promise<void>;

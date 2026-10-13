@@ -9,17 +9,15 @@ import { randomUUID } from 'node:crypto';
 import { lockoutUntil } from '@socialmorning/social-core';
 import { encode } from '../../../ddb/codec.ts';
 import * as K from '../../../ddb/keys.ts';
-import { update } from '../../../ddb/store.ts';
-import { tx, TxCancelled } from '../../../ddb/tx.ts';
+import { TxCancelled } from '../../../ddb/tx.ts';
 import { claimUnique, uniqueOwner } from '../../../ddb/unique.ts';
 import { withRetry } from '../../../ddb/retry.ts';
 import type { Listener } from '../../../../auth/session.ts';
 import type { ListenerAuthRow } from '../listeners.ts';
-import { countryOf, recordCountry as recordCountryDual } from '../country.ts';
-import { getListener, iso, nowMs, plainPg, unlessCondition, upd, txa, type Hybrid, type TxA, bridgeOn } from './common.ts';
-import { shadowInsertListener } from './foreign.ts';
+import { countryOf } from '../country.ts';
+import { getListener, iso, nowMs, unlessCondition, upd, txa, type Ctx, type TxA } from './common.ts';
 
-export async function createListener(h: Hybrid, email: string, passwordHash: string, displayName: string): Promise<Listener | 'exists'> {
+export async function createListener(h: Ctx, email: string, passwordHash: string, displayName: string): Promise<Listener | 'exists'> {
   const id = randomUUID();
   const createdAt = iso(nowMs(h));
   const t = txa(h.store).put('main', encode('listener', K.listener(id), {
@@ -34,12 +32,11 @@ export async function createListener(h: Hybrid, email: string, passwordHash: str
     if (e instanceof TxCancelled && e.failed('unique:EMAIL')) return 'exists';
     throw e;
   }
-  if (bridgeOn(h)) await shadowInsertListener(h.pg, { id, email, passwordHash, displayName, createdAt });
   return { id, email, display_name: displayName, created_at: createdAt };
 }
 
 /** By email: a strong GetItem of the U#EMAIL item, then of the listener. */
-export async function listenerByEmail(h: Hybrid, email: string): Promise<ListenerAuthRow | undefined> {
+export async function listenerByEmail(h: Ctx, email: string): Promise<ListenerAuthRow | undefined> {
   const id = await uniqueOwner(h.store, K.U.email(email));
   if (!id) return undefined;
   const l = await getListener(h, id);
@@ -51,7 +48,7 @@ export async function listenerByEmail(h: Hybrid, email: string): Promise<Listene
 }
 
 /** M23 US2: the count is the item's (ADD returns the new value), so parallel failures each count; a lock only grows. */
-export async function recordFailedSignIn(h: Hybrid, id: string, now: number): Promise<number> {
+export async function recordFailedSignIn(h: Ctx, id: string, now: number): Promise<number> {
   const out = await unlessCondition(upd(h.store, 'main', K.listener(id), {
     update: 'ADD failedAttempts :one', condition: 'attribute_exists(PK)', values: { ':one': 1 }, returnValues: 'UPDATED_NEW',
   }));
@@ -69,17 +66,16 @@ export async function recordFailedSignIn(h: Hybrid, id: string, now: number): Pr
   return count;
 }
 
-export async function clearFailedSignIns(h: Hybrid, id: string): Promise<void> {
+export async function clearFailedSignIns(h: Ctx, id: string): Promise<void> {
   await unlessCondition(upd(h.store, 'main', K.listener(id), {
     update: 'SET failedAttempts = :z REMOVE lockedUntil', condition: 'attribute_exists(PK)', values: { ':z': 0 },
   }));
 }
 
-export async function recordCountry(h: Hybrid, listenerId: string, header: string | undefined | null): Promise<void> {
+export async function recordCountry(h: Ctx, listenerId: string, header: string | undefined | null): Promise<void> {
   const c = countryOf(header);
   if (c === undefined) return;
   await unlessCondition(upd(h.store, 'main', K.listener(listenerId), { update: 'SET country = :c', condition: 'attribute_exists(PK)', values: { ':c': c } }));
-  if (bridgeOn(h)) await recordCountryDual(plainPg(h), listenerId, header); // shadow
 }
 
 // ---- Lane SG (social graph), additive: the listener fields lane SG changes, written through this lane (data-model.md "Lane SG changes") ----
@@ -93,8 +89,8 @@ export function addFollowCount(t: TxA, listenerId: string, attr: 'followerCount'
 
 export type GraphFlags = { privateListening?: boolean; hideOftenListened?: boolean; notificationsSeenAt?: string };
 
-/** Lane SG: the privacy switches and "notifications seen" on the listener item, and on the Postgres shadow while the bridge is on. */
-export async function setGraphFlags(h: Hybrid, id: string, f: GraphFlags): Promise<void> {
+/** Lane SG: the privacy switches and "notifications seen" on the listener item. */
+export async function setGraphFlags(h: Ctx, id: string, f: GraphFlags): Promise<void> {
   const sets: string[] = [];
   const values: Record<string, unknown> = {};
   for (const k of ['privateListening', 'hideOftenListened', 'notificationsSeenAt'] as const) {
@@ -104,9 +100,4 @@ export async function setGraphFlags(h: Hybrid, id: string, f: GraphFlags): Promi
   }
   if (sets.length === 0) return;
   await unlessCondition(upd(h.store, 'main', K.listener(id), { update: `SET ${sets.join(', ')}`, condition: 'attribute_exists(PK)', values }));
-  if (!bridgeOn(h)) return;
-  // The shadow: lanes still on Postgres read these columns (the bridge's `listened` activity row reads private_listening).
-  if (f.privateListening !== undefined) await h.pg.query('UPDATE listeners SET private_listening = $2 WHERE id = $1', [id, f.privateListening]);
-  if (f.hideOftenListened !== undefined) await h.pg.query('UPDATE listeners SET hide_often_listened = $2 WHERE id = $1', [id, f.hideOftenListened]);
-  if (f.notificationsSeenAt !== undefined) await h.pg.query('UPDATE listeners SET notifications_seen_at = $2 WHERE id = $1', [id, f.notificationsSeenAt]);
 }

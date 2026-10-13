@@ -173,7 +173,8 @@ export const ITEM_TYPES = {
   translated: { table: 'main', attrs: ['episodeId', 'targetLang', 'chunks', 'madeAt', 'w'] },
   translatedChunk: { table: 'main', attrs: ['n', 'data', 'w'] },
   translationShow: { table: 'main', attrs: ['feedUrl', 'addedBy', 'createdAt'] },
-  outbox: { table: 'main', attrs: ['kind', 'id', 'payload', 'createdAt', 'attempts', 'lastError', 'lastTriedAt'] },
+  outbox: { table: 'main', attrs: ['kind', 'id', 'payload', 'createdAt', 'attempts', 'lastError', 'lastTriedAt', 'parkedAt'] },
+  healthState: { table: 'main', attrs: ['state', 'since', 'lastOldestAgeMs', 'lastParked'] },
   job: { table: 'main', attrs: ['kind', 'id', 'state', 'cursor', 'v', 'done', 'createdAt', 'updatedAt', 'runs', 'lastError'] },
   seq: { table: 'main', attrs: ['v'] },
   /** G-L2: a promotion counts impressions and taps, never who saw or tapped it. */

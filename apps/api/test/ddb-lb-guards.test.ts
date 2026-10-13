@@ -36,14 +36,6 @@ if (!ON) {
   const { upsertEpisode } = await import('../src/db/repos/library/episodes.ts');
   const { cached } = await import('../src/db/repos/cache.ts');
   const { withStore } = await import('../src/db/backend-ddb.ts');
-  type Db = import('../src/db/db.ts').Db;
-
-  /** A Db for DynamoDB-only calls: no Postgres behind it, the bridge off. */
-  const noPg: Db = {
-    query: async () => { throw new Error('no Postgres in this test'); },
-    exec: async () => { throw new Error('no Postgres in this test'); },
-    transaction: async () => { throw new Error('no Postgres in this test'); },
-  };
 
   const EP = 'ep-heat';
   const L = '00000000-0000-4000-8000-00000000000a';
@@ -90,7 +82,7 @@ if (!ON) {
       await commentItem(s.store, { episodeId: 'ep-park', authorId: L, body: 'early', offsetMs: 30_000 });
       await commentItem(s.store, { episodeId: 'ep-park', authorId: L, body: 'early too', offsetMs: 30_500 });
       await commentItem(s.store, { episodeId: 'ep-park', authorId: M, body: 'no moment' });
-      const db = withStore(noPg, s.store, { bridge: false });
+      const db = withStore(undefined, s.store);
       const row = await upsertEpisode(db, { id: 'ep-park', feedUrl, guid: 'g', title: 'T', enclosureUrl: 'https://cdn/x.mp3', durationMs: 100_000 });
       assert.equal(row.duration_ms, 100_000);
       assert.equal((await heatCurve(s.store, 'ep-park'))[30], 0, 'placed after the commit, by the outbox');
@@ -120,7 +112,7 @@ if (!ON) {
       assert.deepEqual((await readEntry(s.store, key))?.body, body, 'read back equal');
 
       // Through the repo function the app calls (no fetch: the copy is fresh).
-      const db = withStore(noPg, s.store, { bridge: false });
+      const db = withStore(undefined, s.store);
       const got = await cached(db, key, Number.MAX_SAFE_INTEGER, async () => { throw new Error('should not fetch'); });
       assert.deepEqual(got.body, body);
 

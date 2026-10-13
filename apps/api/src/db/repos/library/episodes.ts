@@ -1,7 +1,5 @@
 // Saves and reads episodes the app registers; a known duration is never overwritten.
-import type { Db } from '../../db.ts';
-import { dual } from '../../backend.ts';
-import { clearEpisodeHeat, insertEpisodeHeat } from './heat.ts';
+import { viaStore } from '../../backend.ts';
 
 export type EpisodeRow = {
   id: string;
@@ -33,81 +31,8 @@ export type EpisodeInput = {
   mediaKind?: 'video';
 };
 
-/**
- * Client-registered episode (research R6). Insert, or refresh `title` and fill a NULL
- * `duration_ms`. A known duration is never overwritten by a later report: the heat
- * buckets were computed against it (FR-021).
- */
-async function upsertEpisodePg(db: Db, e: EpisodeInput): Promise<EpisodeRow> {
-  const rows = await db.query<EpisodeRow>(
-    `INSERT INTO episodes (id, feed_url, guid, title, show_title, enclosure_url, image_url, duration_ms, published_at, genre_id, media_kind)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, COALESCE($11, 'audio'))
-     ON CONFLICT (id) DO UPDATE SET
-       title = EXCLUDED.title,
-       show_title = COALESCE(EXCLUDED.show_title, episodes.show_title),
-       image_url = COALESCE(EXCLUDED.image_url, episodes.image_url),
-       duration_ms = COALESCE(episodes.duration_ms, EXCLUDED.duration_ms),
-       published_at = COALESCE(EXCLUDED.published_at, episodes.published_at),
-       genre_id = COALESCE(EXCLUDED.genre_id, episodes.genre_id),
-       media_kind = CASE WHEN $11::text = 'video' THEN 'video' ELSE episodes.media_kind END,
-       updated_at = CASE WHEN episodes.duration_ms IS NULL AND EXCLUDED.duration_ms IS NOT NULL THEN now() ELSE episodes.updated_at END
-     RETURNING id, feed_url, guid, title, show_title, enclosure_url, image_url, duration_ms, published_at, genre_id`,
-    [e.id, e.feedUrl, e.guid, e.title, e.showTitle ?? null, e.enclosureUrl, e.imageUrl ?? null, e.durationMs ?? null, e.publishedAt ?? null, e.genreId ?? null, e.mediaKind ?? null],
-  );
-  return rows[0]!;
-}
-
-/**
- * M23 US1 (FR-001): what a signed-in listener's PUT may do to an episode the server already
- * knows — fill fields that are still empty, nothing more. Title, image, date, genre and kind
- * belong to the server's own feed refresh (`upsertEpisode`, catalog/feed.ts). A new episode is
- * inserted with everything it carries, as before.
- */
-async function fillEpisodePg(db: Db, e: EpisodeInput): Promise<EpisodeRow> {
-  const rows = await db.query<EpisodeRow>(
-    `INSERT INTO episodes (id, feed_url, guid, title, show_title, enclosure_url, image_url, duration_ms, published_at, genre_id, media_kind)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, COALESCE($11, 'audio'))
-     ON CONFLICT (id) DO UPDATE SET
-       show_title = COALESCE(episodes.show_title, EXCLUDED.show_title),
-       image_url = COALESCE(episodes.image_url, EXCLUDED.image_url),
-       duration_ms = COALESCE(episodes.duration_ms, EXCLUDED.duration_ms),
-       published_at = COALESCE(episodes.published_at, EXCLUDED.published_at),
-       genre_id = COALESCE(episodes.genre_id, EXCLUDED.genre_id),
-       updated_at = CASE WHEN episodes.duration_ms IS NULL AND EXCLUDED.duration_ms IS NOT NULL THEN now() ELSE episodes.updated_at END
-     RETURNING id, feed_url, guid, title, show_title, enclosure_url, image_url, duration_ms, published_at, genre_id`,
-    [e.id, e.feedUrl, e.guid, e.title, e.showTitle ?? null, e.enclosureUrl, e.imageUrl ?? null, e.durationMs ?? null, e.publishedAt ?? null, e.genreId ?? null, e.mediaKind ?? null],
-  );
-  return rows[0]!;
-}
-
-async function getEpisodePg(db: Db, id: string): Promise<EpisodeRow | undefined> {
-  const rows = await db.query<EpisodeRow>(
-    'SELECT id, feed_url, guid, title, show_title, enclosure_url, image_url, duration_ms, published_at, genre_id FROM episodes WHERE id = $1',
-    [id],
-  );
-  return rows[0];
-}
-
-/**
- * Registers an episode in one transaction (`fill` only fills empty fields; `authoritative`
- * overwrites) and, when its length becomes known for the first time, rebuilds its heat so the
- * stored moments fall into their buckets (FR-021).
- */
-async function registerEpisodeTxPg(db: Db, id: string, input: EpisodeInput, mode: 'fill' | 'authoritative'): Promise<EpisodeRow> {
-  return db.transaction(async (tx) => {
-    const before = await getEpisode(tx, id);
-    const after = mode === 'fill' ? await fillEpisode(tx, input) : await upsertEpisode(tx, input);
-    // FR-021: the moments were stored without buckets; the first known duration places them.
-    if ((before?.duration_ms ?? null) === null && after.duration_ms !== null) {
-      await clearEpisodeHeat(tx, id);
-      await insertEpisodeHeat(tx, id);
-    }
-    return after;
-  });
-}
-
-// M26 lane LB: each function runs on Postgres, or on DynamoDB (`ddb/` bodies) when the Db carries a Store (db/backend.ts).
-export const upsertEpisode = dual('lb/episodes', 'upsertEpisode', upsertEpisodePg);
-export const fillEpisode = dual('lb/episodes', 'fillEpisode', fillEpisodePg);
-export const getEpisode = dual('lb/episodes', 'getEpisode', getEpisodePg);
-export const registerEpisodeTx = dual('lb/episodes', 'registerEpisodeTx', registerEpisodeTxPg);
+// Each function runs on DynamoDB (`ddb/` bodies; db/backend.ts).
+export const upsertEpisode = viaStore<typeof import('./ddb/episodes.ts').upsertEpisode>('lb/episodes', 'upsertEpisode');
+export const fillEpisode = viaStore<typeof import('./ddb/episodes.ts').fillEpisode>('lb/episodes', 'fillEpisode');
+export const getEpisode = viaStore<typeof import('./ddb/episodes.ts').getEpisode>('lb/episodes', 'getEpisode');
+export const registerEpisodeTx = viaStore<typeof import('./ddb/episodes.ts').registerEpisodeTx>('lb/episodes', 'registerEpisodeTx');

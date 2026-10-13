@@ -1,6 +1,6 @@
 // Redeem codes on DynamoDB: the code keyed by its hash; a redeem is one transaction (use + counter + grant).
 /**
- * M26 lane PD (PD-T05; patterns PD-30…PD-39). Postgres twins: ../redeem.ts.
+ * M26 lane PD (PD-T05; patterns PD-30…PD-39).
  *
  * - `RC#<sha256 hex>/CODE`: the hash IS the key, so the lookup is one strongly consistent GetItem (a GSI cannot be read
  *   consistently or locked — PD-31) and the code is unique by construction; the stored code is still compared with
@@ -26,7 +26,7 @@ import { TxCancelled } from '../../../ddb/tx.ts';
 import { txa, upd } from '../ddb/common.ts';
 import { codeHashOf, normalizeCode, parseGrant, sameCode, showTitle, newRedeemCode, type CodeInput, type CodeListItem, type Redeemed } from '../redeem.ts';
 import { codeRef } from '../purchases.ts';
-import { addZone, applyRows, bumpPlus, DAY_MS, entItem, iso, mirror, notEnded, nowMs, readPlus, zoneOf, type EntItem } from './common.ts';
+import { addZone, applyRows, bumpPlus, DAY_MS, entItem, iso, notEnded, nowMs, readPlus, zoneOf, type EntItem } from './common.ts';
 import { plusUntil } from './purchases.ts';
 
 const hashHex = (code: string): string => codeHashOf(code).toString('hex');
@@ -86,7 +86,6 @@ export async function redeemCode(store: Store, db: Db, raw: string, listenerId: 
     }
     return { grant, startsAt };
   }, { tries: 10, retryOn: (e) => e instanceof Again || isConflict(e) });
-  await mirror(store, db, { listeners: [listenerId] });
   if (result.grant.kind === 'plus') {
     const p = await plusUntil(store, db, listenerId);
     return { kind: 'plus', days: result.grant.days, startsAt: result.startsAt!, until: p.until };

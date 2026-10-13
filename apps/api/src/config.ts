@@ -1,4 +1,4 @@
-// What environment the API runs in, which data backend it uses, and the Db + options built from it.
+// What environment the API runs in, which DynamoDB tables it uses, and the Db + options built from it.
 /**
  * M27 (specs/028-m27-aws-infra, contracts/config-env.md, data-model.md "Environment"). One place reads the
  * environment variables, so dev, staging and prod differ only in configuration — and `src/server.ts`,
@@ -7,19 +7,19 @@
  * - `APP_ENV` is `dev | staging | prod`. When it is unset, a Vercel production deploy (`VERCEL_ENV=production`) counts
  *   as `prod` and anything else as `dev`: the Vercel API project keeps its behaviour until the owner sets `APP_ENV=prod`
  *   there (gate-log "Owner steps"). Nothing else reads `VERCEL_ENV`.
- * - `DATA_BACKEND` is `pg` (default until the cutover) or `ddb`.
+ * - M28 US6 (src/secrets.ts): inside Lambda with `SECRETS_PATH` set, the secrets come from SSM Parameter Store (re-read every 15 minutes)
+ *   instead of the function's environment. Everywhere else — Vercel, Node, tests, and Lambda without `SECRETS_PATH` — `process.env`
+ *   is read exactly as before. `SECRETS_REQUIRED` (comma list) adds names that must exist; `SESSION_PEPPER` always must.
  * - On `ddb` the three tables are `<prefix>-main`, `<prefix>-events`, `<prefix>-cache`; the prefix is `stg` for staging
  *   and `sm` for prod and cannot be anything else there; dev may use any other prefix (`dev` by default).
  *
- * The DynamoDB modules load only on the `ddb` path (dynamic import), so the Postgres path and the PGlite coverage run are unchanged.
  */
 import type { AppDeps } from './app.ts';
 import { gmailMailer } from './mail/mailer.ts';
-import { createClient } from './db/client.ts';
-import { fromPostgres, type Db } from './db/db.ts';
+import type { Db } from './db/db.ts';
+import { loadSecrets, type Secrets, type SsmLike } from './secrets.ts';
 
 export type AppEnv = 'dev' | 'staging' | 'prod';
-export type DataBackend = 'ddb' | 'pg';
 type Env = Record<string, string | undefined>;
 
 export const DEFAULT_AWS_REGION = 'ap-southeast-1';
@@ -28,7 +28,6 @@ export const ENV_PREFIX: Readonly<Record<'staging' | 'prod', string>> = { stagin
 
 export type Config = {
   appEnv: AppEnv;
-  dataBackend: DataBackend;
   /** DynamoDB Local only; never set on staging or prod. */
   ddbEndpoint: string | undefined;
   tablePrefix: string;
@@ -61,9 +60,8 @@ export function readConfig(env: Env = process.env): Config {
   if (rawEnv !== 'dev' && rawEnv !== 'staging' && rawEnv !== 'prod') bad('APP_ENV', `"${rawEnv}" is not one of dev, staging, prod`);
   const appEnv = rawEnv as AppEnv;
 
-  const rawBackend = env['DATA_BACKEND'] ?? 'pg';
-  if (rawBackend !== 'ddb' && rawBackend !== 'pg') bad('DATA_BACKEND', `"${rawBackend}" is not ddb or pg`);
-  const dataBackend = rawBackend as DataBackend;
+  // There is no other data layer: a leftover DATA_BACKEND=pg must not be read as "use Postgres".
+  if (env['DATA_BACKEND'] && env['DATA_BACKEND'] !== 'ddb') bad('DATA_BACKEND', `"${env['DATA_BACKEND']}": Postgres was removed; the API runs on DynamoDB only (unset it)`);
 
   const ddbEndpoint = env['DDB_ENDPOINT'] || undefined;
   const awsRegion = env['AWS_REGION'] || DEFAULT_AWS_REGION;
@@ -80,30 +78,16 @@ export function readConfig(env: Env = process.env): Config {
   const tablePrefix = given ?? owned ?? 'dev';
 
   // 027's client.ts rule kept: without a local endpoint the DynamoDB client is refused unless we run inside Lambda.
-  if (dataBackend === 'ddb' && !ddbEndpoint && !inLambda) bad('DDB_ENDPOINT', 'DATA_BACKEND=ddb needs a local DDB_ENDPOINT outside AWS Lambda (no AWS account is approved for local runs)');
+  if (!ddbEndpoint && !inLambda) bad('DDB_ENDPOINT', 'outside AWS Lambda the API needs a local DDB_ENDPOINT outside AWS Lambda (no AWS account is approved for local runs)');
 
-  return { appEnv, dataBackend, ddbEndpoint, tablePrefix, awsRegion, inLambda, allowTestPurchases: testPurchasesAllowed(env) };
-}
-
-/** A Db that refuses every call: the DynamoDB path must not reach Postgres (the BRIDGE=off rule of lane NB). */
-export function noPostgres(): Db {
-  const refuse = (what: string): never => {
-    throw new Error(`DATA_BACKEND=ddb: the DynamoDB path called Postgres: ${what.replace(/\s+/g, ' ').trim().slice(0, 160)}`);
-  };
-  const db: Db = {
-    query: async (sql: string) => refuse(sql),
-    exec: async (sql: string) => refuse(sql),
-    transaction: (fn) => fn(db),
-  };
-  return db;
+  return { appEnv, ddbEndpoint, tablePrefix, awsRegion, inLambda, allowTestPurchases: testPurchasesAllowed(env) };
 }
 
 /** The three table names of an environment: `<prefix>-main`, `-events`, `-cache`. */
 export const tablesFor = (prefix: string) => ({ main: `${prefix}-main`, events: `${prefix}-events`, cache: `${prefix}-cache` });
 
 /** The `Db` the app runs on, and (on DynamoDB) the clients, for scripts that need to create tables. */
-export async function dbFromConfig(cfg: Config, env: Env = process.env): Promise<{ db: Db; ddb?: import('./db/ddb/client.ts').Clients; tables?: ReturnType<typeof tablesFor> }> {
-  if (cfg.dataBackend === 'pg') return { db: fromPostgres(createClient(env['DATABASE_URL'])) };
+export async function dbFromConfig(cfg: Config, env: Env = process.env, secrets?: Secrets): Promise<{ db: Db; ddb?: import('./db/ddb/client.ts').Clients; tables?: ReturnType<typeof tablesFor> }> {
   const [{ createDdbClients }, { createStore }, { withStore }] = await Promise.all([
     import('./db/ddb/client.ts'), import('./db/ddb/store.ts'), import('./db/backend-ddb.ts'),
   ]);
@@ -112,24 +96,55 @@ export async function dbFromConfig(cfg: Config, env: Env = process.env): Promise
   // Cursors are signed; without CURSOR_SECRET the session pepper (already a server secret) signs them.
   const secret = env['CURSOR_SECRET'] || `cursor:${env['SESSION_PEPPER'] ?? ''}`;
   const store = createStore({ clients, tables, secret });
-  return { db: withStore(noPostgres(), store, { bridge: false }), ddb: clients, tables };
+  // M28 US6: with SSM secrets the cursor secret is read at each use, so a rotation takes effect without a restart.
+  if (secrets) Object.defineProperty(store, 'secret', { get: () => secrets.get('CURSOR_SECRET') || `cursor:${secrets.get('SESSION_PEPPER') ?? ''}`, enumerable: true });
+  return { db: withStore(undefined, store), ddb: clients, tables };
 }
 
+/** True on Lambda with a Parameter Store path: the one case where secrets are not read from `env`. */
+export const secretsFromSsm = (env: Env): boolean => Boolean(env['AWS_LAMBDA_FUNCTION_NAME'] && env['SECRETS_PATH']);
+
 /** Everything `createApp` needs, from the environment. Throws, naming the variable, when something required is missing or inconsistent. */
-export async function depsFromEnv(env: Env = process.env): Promise<AppDeps> {
-  const pepper = env['SESSION_PEPPER'];
+export async function depsFromEnv(env: Env = process.env, opts: { ssm?: SsmLike; now?: () => number; log?: (m: string) => void } = {}): Promise<AppDeps> {
+  const secrets = secretsFromSsm(env)
+    ? await loadSecrets({
+      path: env['SECRETS_PATH']!, env, region: env['AWS_REGION'] || DEFAULT_AWS_REGION,
+      required: ['SESSION_PEPPER', ...(env['SECRETS_REQUIRED'] ?? '').split(',').map((n) => n.trim()).filter(Boolean)],
+      ...(opts.ssm ? { client: opts.ssm } : {}), ...(opts.now ? { now: opts.now } : {}), ...(opts.log ? { log: opts.log } : {}),
+    })
+    : undefined;
+  const secret = (name: string): string | undefined => (secrets ? secrets.get(name) : env[name]);
+  const pepper = secret('SESSION_PEPPER');
   if (!pepper) throw new Error('SESSION_PEPPER is not set (apps/api/.env — see .env.example)');
   const config = readConfig(env);
-  const { db } = await dbFromConfig(config, env);
-  return {
+  const { db } = await dbFromConfig(config, env, secrets);
+  const deps: AppDeps = {
     db, pepper, allowTestPurchases: config.allowTestPurchases,
     ...(env['ASSETLINKS_SHA256'] ? { assetLinksSha256: env['ASSETLINKS_SHA256'] } : {}),
     ...(env['OWNER_LISTENER_ID'] ? { ownerListenerId: env['OWNER_LISTENER_ID'] } : {}),
     ...(env['APPEALS_EMAIL'] ? { appealsEmail: env['APPEALS_EMAIL'] } : {}),
     ...(env['RELEASE_SHA256'] ? { releaseSha256: env['RELEASE_SHA256'] } : {}),
-    ...(env['JOB_TOKEN'] ? { jobToken: env['JOB_TOKEN'] } : {}),
+    ...(secret('JOB_TOKEN') ? { jobToken: secret('JOB_TOKEN')! } : {}),
     // M25 SB: the second pepper during a secret rotation (docs/runbooks/secret-rotation.md).
-    ...(env['PEPPER_NEXT'] ? { pepperNext: env['PEPPER_NEXT'] } : {}),
-    ...(env['GMAIL_USER'] && env['GMAIL_APP_PASSWORD'] ? { mailer: gmailMailer(env['GMAIL_USER'], env['GMAIL_APP_PASSWORD']) } : {}),
+    ...(secret('PEPPER_NEXT') ? { pepperNext: secret('PEPPER_NEXT')! } : {}),
+    ...(env['GMAIL_USER'] && secret('GMAIL_APP_PASSWORD') ? { mailer: gmailMailer(env['GMAIL_USER'], secret('GMAIL_APP_PASSWORD')!) } : {}),
   };
+  if (!secrets) return deps;
+  // M28 US6: read through getters, so a value changed in Parameter Store is used after the next refresh, with no restart.
+  let mail: { key: string; mailer: ReturnType<typeof gmailMailer> } | undefined;
+  Object.defineProperties(deps, {
+    pepper: { enumerable: true, get: () => secrets.get('SESSION_PEPPER') ?? pepper },
+    pepperNext: { enumerable: true, get: () => secrets.get('PEPPER_NEXT') },
+    jobToken: { enumerable: true, get: () => secrets.get('JOB_TOKEN') },
+    mailer: {
+      enumerable: true,
+      get: () => {
+        const user = env['GMAIL_USER'], pass = secrets.get('GMAIL_APP_PASSWORD');
+        if (!user || !pass) return undefined;
+        if (mail?.key !== `${user}\n${pass}`) mail = { key: `${user}\n${pass}`, mailer: gmailMailer(user, pass) };
+        return mail.mailer;
+      },
+    },
+  });
+  return deps;
 }

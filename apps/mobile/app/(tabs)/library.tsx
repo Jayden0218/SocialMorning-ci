@@ -60,6 +60,12 @@ import { plural } from '@socialmorning/social-core';
 import { EndOfList } from '@/ui/kit/EndOfList';
 import { EpisodePane, ListDetail, useOpensInPane } from '@/ui/shell/ListDetail';
 
+/** Opening Updates refreshes the feeds at most this often (pull to refresh always does). */
+const FOCUS_REFRESH_MS = 15 * 60_000;
+let lastFocusRefresh = 0;
+/** The native page push is about 350 ms; start the network work after it. */
+const AFTER_TRANSITION_MS = 400;
+
 const TAP = { minHeight: hit.min, minWidth: hit.min };
 /** M21 US8: a starred show in the row above the feed — a 72 pt cover with its name under it. */
 const STAR_ART = 72;
@@ -101,8 +107,16 @@ export default function UpdatesScreen(): React.ReactElement {
   useFocusEffect(useCallback(() => {
     let live = true;
     read();
-    void refreshAll(stores, Date.now(), PER_FEED_TIMEOUT_MS, social.api?.hiddenEpisodes).then((r) => { if (!live) return; setStale(r.stale.length); read(); });
-    return () => { live = false; };
+    // The lag audit (2026-10-04, branch perf): every visit fetched every subscribed feed again, one
+    // after another, parsing the XML while the page was still sliding in. Now: at most once per
+    // FOCUS_REFRESH_MS, and only after the transition (React Native 0.88 has no InteractionManager,
+    // so a timer waits it out).
+    if (Date.now() - lastFocusRefresh < FOCUS_REFRESH_MS) return () => { live = false; };
+    const task = setTimeout(() => {
+      lastFocusRefresh = Date.now();
+      void refreshAll(stores, Date.now(), PER_FEED_TIMEOUT_MS, social.api?.hiddenEpisodes).then((r) => { if (!live) return; setStale(r.stale.length); read(); });
+    }, AFTER_TRANSITION_MS);
+    return () => { live = false; clearTimeout(task); };
   }, [read, stores, social.api]));
 
   // iOS L1 (and Android's defect 13): after a sign-in on a fresh install the server's

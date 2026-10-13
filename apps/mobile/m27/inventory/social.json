@@ -1,0 +1,2924 @@
+[
+  {
+    "name": "comments--screen",
+    "area": "social",
+    "kind": "screen",
+    "covers": [
+      "app/comments/[episodeId].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/comments/{episode}"
+      },
+      {
+        "see": "Order options"
+      }
+    ],
+    "design": "Comments-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "comments--signed-out",
+    "area": "social",
+    "kind": "variant",
+    "covers": [
+      "app/comments/[episodeId].tsx::route::route"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/comments/{episode}"
+      },
+      {
+        "see": "Sign in to join the conversation"
+      }
+    ],
+    "design": "Comments-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "comments--host",
+    "area": "social",
+    "kind": "variant",
+    "covers": [
+      "app/comments/[episodeId].tsx::route::route"
+    ],
+    "as": "host",
+    "steps": [
+      {
+        "open": "/comments/{episode}"
+      },
+      {
+        "see": "Order options"
+      }
+    ],
+    "design": "Comments-B",
+    "status": "CAPTURE",
+    "note": "The host sees the same page; the difference (Pin) is in the comment menu: see comments--comment-menu-host."
+  },
+  {
+    "name": "comments--empty",
+    "area": "social",
+    "kind": "empty",
+    "covers": [
+      "app/comments/[episodeId].tsx::empty::comments",
+      "packages/social-core/src/empty.ts::surface::comments"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/comments/{episode2}"
+      },
+      {
+        "see": "Comment here"
+      }
+    ],
+    "design": "Comments-B",
+    "status": "CAPTURE",
+    "note": "{episode2} must be an episode with no comments."
+  },
+  {
+    "name": "comments--order-options-sheet",
+    "area": "social",
+    "kind": "sheet",
+    "covers": [
+      "app/comments/[episodeId].tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/comments/{episode}"
+      },
+      {
+        "tap": "Order options"
+      },
+      {
+        "see": "Reverse order"
+      }
+    ],
+    "design": "Comments-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "comments--comment-menu",
+    "area": "social",
+    "kind": "menu",
+    "covers": [
+      "app/comments/[episodeId].tsx::sheet::#2"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/comments/{episode}"
+      },
+      {
+        "tap": "More for this comment"
+      },
+      {
+        "see": "Mark as unfriendly"
+      }
+    ],
+    "design": "CommentMenu-B",
+    "status": "CAPTURE",
+    "note": "First comment on the page must be written by someone else."
+  },
+  {
+    "name": "comments--comment-menu-host",
+    "area": "social",
+    "kind": "menu",
+    "covers": [
+      "app/comments/[episodeId].tsx::sheet::#2"
+    ],
+    "as": "host",
+    "steps": [
+      {
+        "open": "/comments/{episode}"
+      },
+      {
+        "tap": "More for this comment"
+      },
+      {
+        "see": "Pin to bottom"
+      }
+    ],
+    "design": "CommentMenu-B",
+    "status": "CAPTURE",
+    "note": "Host variant: Pin / Pin to bottom rows appear for the proven host of the show."
+  },
+  {
+    "name": "comments--comment-menu-signed-out",
+    "area": "social",
+    "kind": "menu",
+    "covers": [
+      "app/comments/[episodeId].tsx::sheet::#2"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/comments/{episode}"
+      },
+      {
+        "tap": "More for this comment"
+      },
+      {
+        "see": "Report"
+      }
+    ],
+    "design": "CommentMenu-B",
+    "status": "CAPTURE",
+    "note": "A visitor sees only Share / Copy / Save / Report (no Mute, no Mark as unfriendly)."
+  },
+  {
+    "name": "comments--report-sheet",
+    "area": "social",
+    "kind": "sheet",
+    "covers": [
+      "src/ui/comments/ReportSheet.tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/comments/{episode}"
+      },
+      {
+        "tap": "More for this comment"
+      },
+      {
+        "tap": "Report"
+      },
+      {
+        "see": "Choose one reason."
+      }
+    ],
+    "design": "ReportSheet-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "comments--composer-sheet",
+    "area": "social",
+    "kind": "sheet",
+    "covers": [
+      "src/ui/comments/Composer.tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/comments/{episode}"
+      },
+      {
+        "tap": "Say something about this episode…"
+      },
+      {
+        "see": "New comment"
+      }
+    ],
+    "design": "CommentComposer-B",
+    "status": "CAPTURE",
+    "note": "The write box name is \"Write a comment at m:ss\" (time follows the playhead), so the visible placeholder text is tapped."
+  },
+  {
+    "name": "comments--community-rules",
+    "area": "social",
+    "kind": "variant",
+    "covers": [
+      "src/ui/comments/Composer.tsx::sheet::#1"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/comments/{episode}"
+      },
+      {
+        "tap": "Say something about this episode…"
+      },
+      {
+        "type": "Comment",
+        "text": "First!"
+      },
+      {
+        "tap": "Post"
+      },
+      {
+        "see": "Community rules"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "A new account has not accepted the community rules; the server refuses the first comment and the composer shows the rules."
+  },
+  {
+    "name": "comments--picture-full-size",
+    "area": "social",
+    "kind": "sheet",
+    "covers": [
+      "src/ui/comments/CommentImage.tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/comments/{episode}"
+      },
+      {
+        "tap": "The picture in this comment. Opens it full size"
+      },
+      {
+        "see": "Close the picture"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Needs a seeded comment that carries a picture (comment images switched on); the first one on the page is tapped."
+  },
+  {
+    "name": "comments--voice-record",
+    "area": "social",
+    "kind": "variant",
+    "covers": [
+      "app/comments/[episodeId].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/comments/{episode}"
+      },
+      {
+        "tap": "Record a voice comment"
+      },
+      {
+        "see": "Cancel recording"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "The microphone is allowed by the earlier permission entry; on a first run the system prompt shows first (see comments--microphone-permission)."
+  },
+  {
+    "name": "comments--microphone-permission",
+    "area": "system",
+    "kind": "permission",
+    "covers": [
+      "src/social/voice-text.ts::permission::requestPermissionsAsync"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/comments/{episode}"
+      },
+      {
+        "tap": "Record a voice comment"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "The first request is the iOS microphone alert (then the speech-recognition alert). Simulator-only system alerts.",
+    "web": "skip: system permission prompt"
+  },
+  {
+    "name": "comments--community-rules-voice",
+    "area": "social",
+    "kind": "sheet",
+    "covers": [
+      "src/ui/comments/RulesSheet.tsx::sheet::#1"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/comments/{episode}"
+      },
+      {
+        "tap": "Record a voice comment"
+      },
+      {
+        "tap": "Stop recording and check the text"
+      },
+      {
+        "tap": "Post"
+      },
+      {
+        "see": "Community rules"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "A voice comment from an account that has not accepted the rules opens RulesSheet. Depends on the simulator recording at least one second and the speech path (otherwise the stop button is \"Stop and post the voice comment\"). Low confidence."
+  },
+  {
+    "name": "comments--reply-composer",
+    "area": "social",
+    "kind": "sheet",
+    "covers": [
+      "src/ui/comments/Composer.tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/comments/{episode}"
+      },
+      {
+        "tap": "More for this comment"
+      },
+      {
+        "tap": "Reply"
+      },
+      {
+        "see": "Reply"
+      }
+    ],
+    "design": "CommentComposer-B",
+    "status": "CAPTURE",
+    "note": "The reply variant of the composer (\"Reply\" title, \"Write a reply\" box)."
+  },
+  {
+    "name": "comments--share-sheet",
+    "area": "system",
+    "kind": "system",
+    "covers": [
+      "app/comments/[episodeId].tsx::system::Share.share#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/comments/{episode}"
+      },
+      {
+        "tap": "More for this comment"
+      },
+      {
+        "tap": "Share"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "The native iOS share sheet is the shot.",
+    "web": "skip: native share sheet"
+  },
+  {
+    "name": "comments--toast",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/comments/[episodeId].tsx::toast::<dynamic>#1",
+      "app/comments/[episodeId].tsx::toast::<dynamic>#2",
+      "app/comments/[episodeId].tsx::toast::<dynamic>#3",
+      "app/comments/[episodeId].tsx::toast::<dynamic>#4",
+      "app/comments/[episodeId].tsx::toast::<dynamic>#5",
+      "app/comments/[episodeId].tsx::toast::Copied.",
+      "app/comments/[episodeId].tsx::toast::Couldn't change that pin — try again.",
+      "app/comments/[episodeId].tsx::toast::Couldn't change that — try again.",
+      "app/comments/[episodeId].tsx::toast::Couldn't delete that comment.",
+      "app/comments/[episodeId].tsx::toast::Couldn't mute — try again.",
+      "app/comments/[episodeId].tsx::toast::Couldn't save that like — try again.",
+      "app/comments/[episodeId].tsx::toast::Couldn't save that — try again.",
+      "app/comments/[episodeId].tsx::toast::Muted ${x.displayName ?? 'this listener'}. Unmute from their profile."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/comments/{episode}"
+      },
+      {
+        "tap": "More for this comment"
+      },
+      {
+        "tap": "Copy"
+      },
+      {
+        "see": "Copied."
+      }
+    ],
+    "design": "Toast-B",
+    "status": "CAPTURE",
+    "note": "Triggered message: \"Copied.\""
+  },
+  {
+    "name": "comments--composer-toast",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "src/ui/comments/Composer.tsx::toast::Sent. The host reviews comments here first. Until then, only you can see it.",
+      "src/ui/comments/Composer.tsx::toast::Your comment is posted, but the picture did not upload."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/comments/{episode3}"
+      },
+      {
+        "tap": "Say something about this episode…"
+      },
+      {
+        "type": "Comment",
+        "text": "Hello"
+      },
+      {
+        "tap": "Post"
+      },
+      {
+        "see": "Sent. The host reviews comments here first. Until then, only you can see it."
+      }
+    ],
+    "design": "Toast-B",
+    "status": "CAPTURE",
+    "note": "Triggered message: \"Sent. The host reviews comments here first…\". {episode3} must belong to a show with comment review switched on; the other message needs a picture upload to fail."
+  },
+  {
+    "name": "comments--voice-toast",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "src/ui/comments/VoiceRecord.tsx::toast::<dynamic>#1",
+      "src/ui/comments/VoiceRecord.tsx::toast::<dynamic>#2",
+      "src/ui/comments/VoiceRecord.tsx::toast::<dynamic>#3",
+      "src/ui/comments/VoiceRecord.tsx::toast::SocialNet needs the microphone — allow it in the phone's settings.",
+      "src/ui/comments/VoiceRecord.tsx::toast::That was too short — record at least a second."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/comments/{episode}"
+      },
+      {
+        "tap": "Record a voice comment"
+      },
+      {
+        "tap": "Stop recording and check the text"
+      },
+      {
+        "see": "That was too short — record at least a second."
+      }
+    ],
+    "design": "Toast-B",
+    "status": "CAPTURE",
+    "note": "Triggered message: \"That was too short — record at least a second.\" Stopping at once. Speech path only; low confidence."
+  },
+  {
+    "name": "comment-thread--screen",
+    "area": "social",
+    "kind": "screen",
+    "covers": [
+      "app/comments/thread/[commentId].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/comments/thread/{thread}?episodeId={episode}"
+      },
+      {
+        "see": "Replies"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "comment-thread--signed-out",
+    "area": "social",
+    "kind": "variant",
+    "covers": [
+      "app/comments/thread/[commentId].tsx::route::route"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/comments/thread/{thread}?episodeId={episode}"
+      },
+      {
+        "see": "Sign in to reply"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "comment-thread--empty",
+    "area": "social",
+    "kind": "empty",
+    "covers": [
+      "app/comments/thread/[commentId].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/comments/thread/{comment}?episodeId={episode}"
+      },
+      {
+        "see": "No replies yet — be the first."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "{comment} is a top-level comment with no replies; {thread} is one with replies."
+  },
+  {
+    "name": "comment-thread--load-failed",
+    "area": "social",
+    "kind": "error",
+    "covers": [
+      "app/comments/thread/[commentId].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/episodes/{episode}/social",
+          "mode": "fail"
+        }
+      },
+      {
+        "open": "/comments/thread/{comment}?episodeId={episode}"
+      },
+      {
+        "see": "Couldn't load the replies — pull back and try again."
+      },
+      {
+        "fault": {
+          "path": "/v1/episodes/{episode}/social",
+          "mode": "off"
+        }
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Replies come from the episode social payload; with no cached copy the page says it could not load."
+  },
+  {
+    "name": "comment-thread--comment-menu",
+    "area": "social",
+    "kind": "menu",
+    "covers": [
+      "app/comments/thread/[commentId].tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/comments/thread/{thread}?episodeId={episode}"
+      },
+      {
+        "tap": "More for this comment"
+      },
+      {
+        "see": "Mark as unfriendly"
+      }
+    ],
+    "design": "CommentMenu-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "comment-thread--share-sheet",
+    "area": "system",
+    "kind": "system",
+    "covers": [
+      "app/comments/thread/[commentId].tsx::system::Share.share#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/comments/thread/{thread}?episodeId={episode}"
+      },
+      {
+        "tap": "More for this comment"
+      },
+      {
+        "tap": "Share"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "The native iOS share sheet is the shot.",
+    "web": "skip: native share sheet"
+  },
+  {
+    "name": "comment-thread--toast",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/comments/thread/[commentId].tsx::toast::<dynamic>#1",
+      "app/comments/thread/[commentId].tsx::toast::Copied.",
+      "app/comments/thread/[commentId].tsx::toast::Couldn't delete that comment.",
+      "app/comments/thread/[commentId].tsx::toast::Couldn't mute — try again.",
+      "app/comments/thread/[commentId].tsx::toast::Couldn't save that like — try again.",
+      "app/comments/thread/[commentId].tsx::toast::Couldn't save that — try again.",
+      "app/comments/thread/[commentId].tsx::toast::Muted ${x.displayName ?? 'this listener'}. Unmute from their profile."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/comments/thread/{thread}?episodeId={episode}"
+      },
+      {
+        "tap": "More for this comment"
+      },
+      {
+        "tap": "Copy"
+      },
+      {
+        "see": "Copied."
+      }
+    ],
+    "design": "Toast-B",
+    "status": "CAPTURE",
+    "note": "Triggered message: \"Copied.\""
+  },
+  {
+    "name": "chat-thread--screen",
+    "area": "social",
+    "kind": "screen",
+    "covers": [
+      "app/chat/[id].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/chat/{user}"
+      },
+      {
+        "see": "Message"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Header name comes from the thread; the pair should follow each other so the box is enabled."
+  },
+  {
+    "name": "chat-thread--signed-out",
+    "area": "social",
+    "kind": "variant",
+    "covers": [
+      "app/chat/[id].tsx::route::route"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/chat/{user}"
+      },
+      {
+        "see": "Sign in to chat."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "chat-thread--cannot-send",
+    "area": "social",
+    "kind": "variant",
+    "covers": [
+      "app/chat/[id].tsx::route::route"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/chat/{user}"
+      },
+      {
+        "see": "You can send messages while you both follow each other."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "A new account does not follow {user} back."
+  },
+  {
+    "name": "chat-thread--error",
+    "area": "social",
+    "kind": "error",
+    "covers": [
+      "app/chat/[id].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/me/chats/{user}",
+          "mode": "fail"
+        }
+      },
+      {
+        "open": "/chat/{user}"
+      },
+      {
+        "see": "Couldn't reach the server."
+      },
+      {
+        "fault": {
+          "path": "/v1/me/chats/{user}",
+          "mode": "off"
+        }
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Thread load fails with nothing cached; the page shows the line."
+  },
+  {
+    "name": "chat-thread--toast",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/chat/[id].tsx::toast::<dynamic>#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/chat/{user}"
+      },
+      {
+        "see": "Message"
+      },
+      {
+        "fault": {
+          "path": "/v1/me/chats/{user}",
+          "mode": "fail"
+        }
+      },
+      {
+        "type": "Message",
+        "text": "Hello"
+      },
+      {
+        "tap": "Send"
+      },
+      {
+        "see": "Couldn't send — check your connection and try again."
+      },
+      {
+        "fault": {
+          "path": "/v1/me/chats/{user}",
+          "mode": "off"
+        }
+      }
+    ],
+    "design": "Toast-B",
+    "status": "CAPTURE",
+    "note": "Triggered message: \"Couldn't send — check your connection and try again.\" An ApiError that is not a network error shows its own message instead; low confidence on which the fault gives."
+  },
+  {
+    "name": "chat-new--screen",
+    "area": "social",
+    "kind": "screen",
+    "covers": [
+      "app/chat/new.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/chat/new"
+      },
+      {
+        "see": "People who follow you back"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "chat-new--signed-out",
+    "area": "social",
+    "kind": "variant",
+    "covers": [
+      "app/chat/new.tsx::route::route"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/chat/new"
+      },
+      {
+        "see": "Sign in to chat with people who follow you back"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "chat-new--send-to",
+    "area": "social",
+    "kind": "variant",
+    "covers": [
+      "app/chat/new.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/chat/new?episodeId={episode}&episodeTitle={episode_title}"
+      },
+      {
+        "see": "Send to"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "The share-an-episode variant (\"Send to\" with the episode title as subtitle)."
+  },
+  {
+    "name": "chat-new--load-failed",
+    "area": "social",
+    "kind": "error",
+    "covers": [
+      "app/chat/new.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/me/chats/friends",
+          "mode": "fail"
+        }
+      },
+      {
+        "open": "/chat/new"
+      },
+      {
+        "see": "Couldn't load this right now."
+      },
+      {
+        "fault": {
+          "path": "/v1/me/chats/friends",
+          "mode": "off"
+        }
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "notifications--people",
+    "area": "social",
+    "kind": "screen",
+    "covers": [
+      "app/notifications.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/notifications"
+      },
+      {
+        "see": "System. Messages from SocialNet"
+      }
+    ],
+    "design": "Following-B",
+    "status": "CAPTURE",
+    "note": "People tab (the page opens on it). Pills are tapped by their visible titles \"People\" / \"Interactions\"; their accessible name carries a count line."
+  },
+  {
+    "name": "notifications--signed-out",
+    "area": "social",
+    "kind": "variant",
+    "covers": [
+      "app/notifications.tsx::route::route"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/notifications"
+      },
+      {
+        "see": "Sign in to follow people and see what they listen to."
+      }
+    ],
+    "design": "Following-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "notifications--people-empty",
+    "area": "social",
+    "kind": "empty",
+    "covers": [
+      "app/notifications.tsx::route::route"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/notifications"
+      },
+      {
+        "see": "No activity yet — follow people from their profile"
+      }
+    ],
+    "design": "Following-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "notifications--feed-offline",
+    "area": "social",
+    "kind": "offline",
+    "covers": [
+      "app/notifications.tsx::empty::feed",
+      "packages/social-core/src/empty.ts::surface::feed"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/me/feed",
+          "mode": "fail"
+        }
+      },
+      {
+        "open": "/notifications"
+      },
+      {
+        "see": "You're offline and nothing is saved here yet."
+      },
+      {
+        "fault": {
+          "path": "/v1/me/feed",
+          "mode": "off"
+        }
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "A failed first load with no cached copy shows the offline variant of the feed surface."
+  },
+  {
+    "name": "notifications--interactions",
+    "area": "social",
+    "kind": "screen",
+    "covers": [
+      "app/notifications.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/notifications"
+      },
+      {
+        "tap": "Interactions"
+      },
+      {
+        "see": "Today"
+      }
+    ],
+    "design": "Notifications-B",
+    "status": "CAPTURE",
+    "note": "Needs interactions in the seed; \"Today\" is only a guess for the day heading, any unread notice works."
+  },
+  {
+    "name": "notifications--interactions-signed-out",
+    "area": "social",
+    "kind": "variant",
+    "covers": [
+      "app/notifications.tsx::route::route"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/notifications"
+      },
+      {
+        "tap": "Interactions"
+      },
+      {
+        "see": "Sign in to see replies, likes, mentions and new followers."
+      }
+    ],
+    "design": "Notifications-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "notifications--interactions-empty",
+    "area": "social",
+    "kind": "empty",
+    "covers": [
+      "app/notifications.tsx::route::route"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/notifications"
+      },
+      {
+        "tap": "Interactions"
+      },
+      {
+        "see": "Nothing yet. When someone replies to you, likes your comment, mentions you or follows you, it appears here."
+      }
+    ],
+    "design": "Notifications-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "notifications--interactions-error",
+    "area": "social",
+    "kind": "error",
+    "covers": [
+      "app/notifications.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/me/notifications",
+          "mode": "fail"
+        }
+      },
+      {
+        "open": "/notifications"
+      },
+      {
+        "tap": "Interactions"
+      },
+      {
+        "see": "Couldn't load your interactions right now."
+      },
+      {
+        "fault": {
+          "path": "/v1/me/notifications",
+          "mode": "off"
+        }
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "The inline (not page-wide) error with a Retry button."
+  },
+  {
+    "name": "notifications--mute-sheet",
+    "area": "social",
+    "kind": "sheet",
+    "covers": [
+      "app/notifications.tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/notifications"
+      },
+      {
+        "tap": "Interactions"
+      },
+      {
+        "tap": "More for {notice_who}"
+      },
+      {
+        "see": "Mute this"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "{notice_who} = \"<actor name> <verb>\", e.g. \"Bea replied to your comment\"; the ⋯ only shows on reply and like notices."
+  },
+  {
+    "name": "notifications--toast",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/notifications.tsx::toast::Couldn't mute — try again when you're online.",
+      "app/notifications.tsx::toast::Muted. No more notices from this thread."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/notifications"
+      },
+      {
+        "tap": "Interactions"
+      },
+      {
+        "tap": "More for {notice_who}"
+      },
+      {
+        "tap": "Mute this"
+      },
+      {
+        "see": "Muted. No more notices from this thread."
+      }
+    ],
+    "design": "Toast-B",
+    "status": "CAPTURE",
+    "note": "Triggered message: \"Muted. No more notices from this thread.\""
+  },
+  {
+    "name": "notifications-hosts--screen",
+    "area": "social",
+    "kind": "screen",
+    "covers": [
+      "app/notifications/hosts.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/notifications/hosts"
+      },
+      {
+        "see": "From hosts"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Needs a host announcement in the seed for a show the listener follows."
+  },
+  {
+    "name": "notifications-hosts--signed-out",
+    "area": "social",
+    "kind": "variant",
+    "covers": [
+      "app/notifications/hosts.tsx::route::route"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/notifications/hosts"
+      },
+      {
+        "see": "Sign in to see announcements from the shows you follow."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "notifications-hosts--empty",
+    "area": "social",
+    "kind": "empty",
+    "covers": [
+      "app/notifications/hosts.tsx::route::route"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/notifications/hosts"
+      },
+      {
+        "see": "No announcements yet. When a show you follow posts one, it appears here."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "notifications-hosts--load-failed",
+    "area": "social",
+    "kind": "error",
+    "covers": [
+      "app/notifications/hosts.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/me/notifications/hosts",
+          "mode": "fail"
+        }
+      },
+      {
+        "open": "/notifications/hosts"
+      },
+      {
+        "see": "Couldn't load announcements right now."
+      },
+      {
+        "fault": {
+          "path": "/v1/me/notifications/hosts",
+          "mode": "off"
+        }
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Fault path is a guess at the host-notices route (m19-api hostNotices)."
+  },
+  {
+    "name": "notifications-system--screen",
+    "area": "social",
+    "kind": "screen",
+    "covers": [
+      "app/notifications/system.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/notifications/system"
+      },
+      {
+        "see": "System"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Needs a system notice in the seed."
+  },
+  {
+    "name": "notifications-system--empty",
+    "area": "social",
+    "kind": "empty",
+    "covers": [
+      "app/notifications/system.tsx::route::route"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/notifications/system"
+      },
+      {
+        "see": "No messages from SocialNet yet — announcements and account notices will appear here"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "profile--screen",
+    "area": "social",
+    "kind": "screen",
+    "covers": [
+      "app/profile/[id].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/profile/{user}"
+      },
+      {
+        "see": "Followers"
+      }
+    ],
+    "design": "Profile-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "profile--own",
+    "area": "social",
+    "kind": "variant",
+    "covers": [
+      "app/profile/[id].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/profile/{me}"
+      },
+      {
+        "see": "This is you"
+      }
+    ],
+    "design": "Profile-B",
+    "status": "CAPTURE",
+    "note": "{me} = the signed-in account's own listener id. Shows Edit profile, stickers card and Recently played instead of Follow / Message / ⋯."
+  },
+  {
+    "name": "profile--signed-out",
+    "area": "social",
+    "kind": "variant",
+    "covers": [
+      "app/profile/[id].tsx::route::route"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/profile/{user}"
+      },
+      {
+        "see": "Followers"
+      }
+    ],
+    "design": "Profile-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "profile--host",
+    "area": "social",
+    "kind": "variant",
+    "covers": [
+      "app/profile/[id].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/profile/{host}"
+      },
+      {
+        "see": "Podcasts"
+      }
+    ],
+    "design": "Profile-B",
+    "status": "CAPTURE",
+    "note": "A host profile shows \"Host of 《…》\" and the Podcasts row."
+  },
+  {
+    "name": "profile--stats-empty",
+    "area": "social",
+    "kind": "empty",
+    "covers": [
+      "app/profile/[id].tsx::empty::stats",
+      "packages/social-core/src/empty.ts::surface::stats"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/profile/{me}"
+      },
+      {
+        "see": "Nothing listened yet. Play something — stats count from the first minute."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "A new account has public stats with zero listening."
+  },
+  {
+    "name": "profile--suspended",
+    "area": "social",
+    "kind": "variant",
+    "covers": [
+      "app/profile/[id].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/profile/{suspended_user}"
+      },
+      {
+        "see": "This account is suspended."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "{suspended_user} = the seeded suspended account's id."
+  },
+  {
+    "name": "profile--load-failed",
+    "area": "social",
+    "kind": "error",
+    "covers": [
+      "app/profile/[id].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/listeners/{user}",
+          "mode": "fail"
+        }
+      },
+      {
+        "open": "/profile/{user}"
+      },
+      {
+        "see": "Couldn't reach the server."
+      },
+      {
+        "fault": {
+          "path": "/v1/listeners/{user}",
+          "mode": "off"
+        }
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "ApiError that is not a network error shows its own message; low confidence on which text the fault gives."
+  },
+  {
+    "name": "profile--more-sheet",
+    "area": "social",
+    "kind": "sheet",
+    "covers": [
+      "app/profile/[id].tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/profile/{user}"
+      },
+      {
+        "tap": "More actions for {user_name}"
+      },
+      {
+        "see": "Only you"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "profile--block-dialog",
+    "area": "social",
+    "kind": "dialog",
+    "covers": [
+      "app/profile/[id].tsx::dialog::Block ${name}?"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/profile/{user}"
+      },
+      {
+        "tap": "More actions for {user_name}"
+      },
+      {
+        "tap": "Block {user_name}"
+      },
+      {
+        "see": "Nothing they write, clip or do will show for you. They will not be told."
+      }
+    ],
+    "design": "ConfirmDialog-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "profile--blocked",
+    "area": "social",
+    "kind": "variant",
+    "covers": [
+      "app/profile/[id].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/profile/{user}"
+      },
+      {
+        "tap": "More actions for {user_name}"
+      },
+      {
+        "tap": "Block {user_name}"
+      },
+      {
+        "tap": "Block"
+      },
+      {
+        "see": "You blocked this listener."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Blocks {user_name} on this phone (reset between runs)."
+  },
+  {
+    "name": "profile--block-dialog-from-blocked-page",
+    "area": "social",
+    "kind": "dialog",
+    "covers": [
+      "src/ui/social/BlockButton.tsx::dialog::Block ${props.displayName}?"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/profile/{user}"
+      },
+      {
+        "tap": "More actions for {user_name}"
+      },
+      {
+        "tap": "Block {user_name}"
+      },
+      {
+        "tap": "Block"
+      },
+      {
+        "see": "You blocked this listener."
+      },
+      {
+        "tap": "Unblock {user_name}"
+      },
+      {
+        "tap": "Block {user_name}"
+      },
+      {
+        "see": "Nothing they write, clip or do will show for you. They will not be told."
+      }
+    ],
+    "design": "ConfirmDialog-B",
+    "status": "CAPTURE",
+    "note": "BlockButton's own confirm: block, unblock, then block again from the blocked profile."
+  },
+  {
+    "name": "profile--cannot-block-owner",
+    "area": "social",
+    "kind": "dialog",
+    "covers": [
+      "app/profile/[id].tsx::dialog::#1",
+      "src/ui/social/BlockButton.tsx::dialog::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/profile/{owner}"
+      },
+      {
+        "tap": "More actions for {owner_name}"
+      },
+      {
+        "tap": "Block {owner_name}"
+      },
+      {
+        "tap": "Block"
+      },
+      {
+        "see": "You can't block the app's owner — write to them instead."
+      }
+    ],
+    "design": "ConfirmDialog-B",
+    "status": "NOT_CAPTURABLE",
+    "reason": "Only the app owner's account (never in the seed) or your own profile (which has no Block row) can trigger it."
+  },
+  {
+    "name": "profile--report-sheet",
+    "area": "social",
+    "kind": "sheet",
+    "covers": [
+      "src/ui/comments/ReportSheet.tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/profile/{user}"
+      },
+      {
+        "tap": "More actions for {user_name}"
+      },
+      {
+        "tap": "Report {user_name}"
+      },
+      {
+        "see": "Choose one reason."
+      }
+    ],
+    "design": "ReportSheet-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "profile--toast",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/profile/[id].tsx::toast::<dynamic>#1",
+      "app/profile/[id].tsx::toast::<dynamic>#2",
+      "app/profile/[id].tsx::toast::Couldn't save that — try again."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/profile/{user}"
+      },
+      {
+        "tap": "More actions for {user_name}"
+      },
+      {
+        "tap": "Mute {user_name}"
+      },
+      {
+        "see": "Muted {user_name}. Their comments are hidden for you."
+      }
+    ],
+    "design": "Toast-B",
+    "status": "CAPTURE",
+    "note": "Triggered message: \"Muted {user_name}. Their comments are hidden for you.\""
+  },
+  {
+    "name": "follow-button--toast",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "src/ui/social/FollowButton.tsx::toast::<dynamic>#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/profile/{user}"
+      },
+      {
+        "see": "Follow"
+      },
+      {
+        "fault": {
+          "path": "/v1/listeners/{user}/follow",
+          "mode": "fail"
+        }
+      },
+      {
+        "tap": "Follow"
+      },
+      {
+        "see": "Something went wrong."
+      },
+      {
+        "fault": {
+          "path": "/v1/listeners/{user}/follow",
+          "mode": "off"
+        }
+      }
+    ],
+    "design": "Toast-B",
+    "status": "CAPTURE",
+    "note": "Triggered message: \"Something went wrong.\" (or the server's own message for the failure; low confidence)."
+  },
+  {
+    "name": "profile-followers--screen",
+    "area": "social",
+    "kind": "screen",
+    "covers": [
+      "app/profile/[id]/followers.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/profile/{user}/followers"
+      },
+      {
+        "see": "Followers"
+      }
+    ],
+    "design": "Followers-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "profile-followers--own-empty",
+    "area": "social",
+    "kind": "empty",
+    "covers": [
+      "src/ui/social/FollowList.tsx::empty::props.kind",
+      "packages/social-core/src/empty.ts::surface::followers",
+      "app/profile/[id]/followers.tsx::route::route"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/profile/{me}/followers"
+      },
+      {
+        "see": "Nobody follows you yet. Share a clip — your name travels with it."
+      }
+    ],
+    "design": "Followers-B",
+    "status": "CAPTURE",
+    "note": "Own empty list uses the shared EmptyState sentence; someone else's empty list names them (profile-followers--other-empty)."
+  },
+  {
+    "name": "profile-followers--other-empty",
+    "area": "social",
+    "kind": "empty",
+    "covers": [
+      "src/ui/social/FollowList.tsx::empty::props.kind",
+      "app/profile/[id]/followers.tsx::route::route"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/profile/{user_nofollowers}/followers?name={user_nofollowers_name}"
+      },
+      {
+        "see": "Nobody follows {user_nofollowers_name} yet."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "{user_nofollowers} is a seeded account nobody follows."
+  },
+  {
+    "name": "profile-followers--load-failed",
+    "area": "social",
+    "kind": "error",
+    "covers": [
+      "app/profile/[id]/followers.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/listeners/{user}/followers",
+          "mode": "fail"
+        }
+      },
+      {
+        "open": "/profile/{user}/followers"
+      },
+      {
+        "see": "Couldn't load followers right now."
+      },
+      {
+        "fault": {
+          "path": "/v1/listeners/{user}/followers",
+          "mode": "off"
+        }
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "The inline error with Retry; the same code serves Following."
+  },
+  {
+    "name": "profile-following--screen",
+    "area": "social",
+    "kind": "screen",
+    "covers": [
+      "app/profile/[id]/following.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/profile/{user}/following"
+      },
+      {
+        "see": "Following"
+      }
+    ],
+    "design": "FollowingList-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "profile-following--own-empty",
+    "area": "social",
+    "kind": "empty",
+    "covers": [
+      "src/ui/social/FollowList.tsx::empty::props.kind",
+      "packages/social-core/src/empty.ts::surface::following",
+      "app/profile/[id]/following.tsx::route::route"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/profile/{me}/following"
+      },
+      {
+        "see": "You follow nobody yet. Tap a name on any comment to see their profile."
+      }
+    ],
+    "design": "FollowingList-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "profile-likes--screen",
+    "area": "social",
+    "kind": "screen",
+    "covers": [
+      "app/profile/[id]/likes.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/profile/{user}/likes"
+      },
+      {
+        "see": "Likes"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "profile-likes--empty",
+    "area": "social",
+    "kind": "empty",
+    "covers": [
+      "app/profile/[id]/likes.tsx::route::route"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/profile/{me}/likes"
+      },
+      {
+        "see": "No public likes yet."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "profile-likes--load-failed",
+    "area": "social",
+    "kind": "error",
+    "covers": [
+      "app/profile/[id]/likes.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/listeners/{user}/likes",
+          "mode": "fail"
+        }
+      },
+      {
+        "open": "/profile/{user}/likes"
+      },
+      {
+        "see": "Couldn't load likes right now."
+      },
+      {
+        "fault": {
+          "path": "/v1/listeners/{user}/likes",
+          "mode": "off"
+        }
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "profile-subscriptions--screen",
+    "area": "social",
+    "kind": "screen",
+    "covers": [
+      "app/profile/[id]/subscriptions.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/profile/{user}/subscriptions"
+      },
+      {
+        "see": "Subscriptions"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "profile-subscriptions--private",
+    "area": "social",
+    "kind": "variant",
+    "covers": [
+      "app/profile/[id]/subscriptions.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/profile/{user_private}/subscriptions"
+      },
+      {
+        "see": "This listener keeps their subscriptions private."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "{user_private} has private subscriptions; the sentence uses their name if passed in the link, otherwise \"This listener\"."
+  },
+  {
+    "name": "profile-subscriptions--empty",
+    "area": "social",
+    "kind": "empty",
+    "covers": [
+      "app/profile/[id]/subscriptions.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/profile/{user_nosubs}/subscriptions"
+      },
+      {
+        "see": "No shows yet."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "{user_nosubs} has public subscriptions but none."
+  },
+  {
+    "name": "profile-edit--screen",
+    "area": "social",
+    "kind": "screen",
+    "covers": [
+      "app/profile/edit.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/profile/edit"
+      },
+      {
+        "see": "Edit profile"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "profile-edit--signed-out",
+    "area": "social",
+    "kind": "variant",
+    "covers": [
+      "app/profile/edit.tsx::route::route"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/profile/edit"
+      },
+      {
+        "see": "Sign in to edit your profile."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "profile-edit--load-failed",
+    "area": "social",
+    "kind": "error",
+    "covers": [
+      "app/profile/edit.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/me",
+          "mode": "fail"
+        }
+      },
+      {
+        "open": "/profile/edit"
+      },
+      {
+        "see": "Couldn't load your profile right now."
+      },
+      {
+        "fault": {
+          "path": "/v1/me",
+          "mode": "off"
+        }
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "profile-edit--toast",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/profile/edit.tsx::toast::Profile saved"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/profile/edit"
+      },
+      {
+        "see": "Edit profile"
+      },
+      {
+        "tap": "Save"
+      },
+      {
+        "see": "Profile saved"
+      }
+    ],
+    "design": "Toast-B",
+    "status": "CAPTURE",
+    "note": "Triggered message: \"Profile saved\""
+  },
+  {
+    "name": "profile-edit--photo-permission",
+    "area": "system",
+    "kind": "permission",
+    "covers": [
+      "src/social/avatar-image.ts::permission::requestMediaLibraryPermissionsAsync"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/profile/edit"
+      },
+      {
+        "see": "Edit profile"
+      },
+      {
+        "tap": "Add photo"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "The iOS photo-library alert. Simulator-only system alert.",
+    "web": "skip: system permission prompt"
+  },
+  {
+    "name": "profile-edit--photo-picker",
+    "area": "system",
+    "kind": "system",
+    "covers": [
+      "src/social/avatar-image.ts::system::photo-picker#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/profile/edit"
+      },
+      {
+        "see": "Edit profile"
+      },
+      {
+        "tap": "Add photo"
+      },
+      {
+        "tap": "Allow Full Access"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "After allowing, the native picker opens. The alert button text varies with the iOS version (\"Allow Full Access\" on 18). Low confidence.",
+    "web": "skip: native photo picker"
+  },
+  {
+    "name": "status--screen",
+    "area": "social",
+    "kind": "screen",
+    "covers": [
+      "app/status/[id].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/status/{status}"
+      },
+      {
+        "see": "Close"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "{status} is a status posted by someone else (so More offers Report)."
+  },
+  {
+    "name": "status--signed-out",
+    "area": "social",
+    "kind": "variant",
+    "covers": [
+      "app/status/[id].tsx::route::route"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/status/{status}"
+      },
+      {
+        "see": "Sign in to see statuses."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "status--gone",
+    "area": "social",
+    "kind": "empty",
+    "covers": [
+      "app/status/[id].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/status/status-that-does-not-exist"
+      },
+      {
+        "see": "This status is gone. Statuses are deleted 24 hours after they are posted."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "status--more-sheet",
+    "area": "social",
+    "kind": "sheet",
+    "covers": [
+      "src/ui/social/MoreSheet.tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/status/{status}"
+      },
+      {
+        "tap": "More for {user_name}'s status"
+      },
+      {
+        "see": "Report this status"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "{user_name} is the status author's display name (the viewer says \"You\" for your own)."
+  },
+  {
+    "name": "status--report-sheet",
+    "area": "social",
+    "kind": "sheet",
+    "covers": [
+      "src/ui/comments/ReportSheet.tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/status/{status}"
+      },
+      {
+        "tap": "More for {user_name}'s status"
+      },
+      {
+        "tap": "Report this status"
+      },
+      {
+        "see": "Choose one reason."
+      }
+    ],
+    "design": "ReportSheet-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "status--reply-composer",
+    "area": "social",
+    "kind": "variant",
+    "covers": [
+      "app/status/[id].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/status/{status}"
+      },
+      {
+        "see": "Reply to this status"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Replies and reactions are part of the viewer page; reaction row, text box and hold-to-record mic."
+  },
+  {
+    "name": "status-replies--toast",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "src/ui/social/StatusReplies.tsx::toast::<dynamic>#1",
+      "src/ui/social/StatusReplies.tsx::toast::<dynamic>#2",
+      "src/ui/social/StatusReplies.tsx::toast::<dynamic>#3",
+      "src/ui/social/StatusReplies.tsx::toast::<dynamic>#4",
+      "src/ui/social/StatusReplies.tsx::toast::Couldn't delete — try again.",
+      "src/ui/social/StatusReplies.tsx::toast::Couldn't react — try again.",
+      "src/ui/social/StatusReplies.tsx::toast::SocialNet needs the microphone to record. Allow it in the phone’s settings.",
+      "src/ui/social/StatusReplies.tsx::toast::That was too short — hold for at least a second."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/status/{status}"
+      },
+      {
+        "type": "Reply to this status",
+        "text": "Nice one"
+      },
+      {
+        "tap": "Send reply"
+      },
+      {
+        "see": "Sent. Only the poster can see your reply."
+      }
+    ],
+    "design": "Toast-B",
+    "status": "CAPTURE",
+    "note": "Triggered message: \"Sent. Only the poster can see your reply.\" ({status} must be another listener's)."
+  },
+  {
+    "name": "status--toast",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/status/[id].tsx::toast::Couldn't do that. Try again.",
+      "app/status/[id].tsx::toast::We won't suggest ${st.author.name}'s statuses."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/status/{status_suggested}"
+      },
+      {
+        "tap": "More for {user_name}'s status"
+      },
+      {
+        "tap": "Stop suggesting {user_name}"
+      },
+      {
+        "see": "We won't suggest {user_name}'s statuses."
+      }
+    ],
+    "design": "Toast-B",
+    "status": "CAPTURE",
+    "note": "Triggered message: \"We won't suggest {user_name}'s statuses.\" {status_suggested} must be a suggested status from someone the viewer does not follow."
+  },
+  {
+    "name": "status-reply--delete-dialog",
+    "area": "social",
+    "kind": "dialog",
+    "covers": [
+      "src/ui/social/StatusReplies.tsx::dialog::Delete this reply?"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/status/{status}"
+      },
+      {
+        "tap": "You: Nice one"
+      }
+    ],
+    "design": "ConfirmDialog-B",
+    "status": "NOT_CAPTURABLE",
+    "reason": "Opens on a long-press of a reply; the step language has no long-press."
+  },
+  {
+    "name": "status-text--screen",
+    "area": "social",
+    "kind": "screen",
+    "covers": [
+      "app/status/text.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/status/text"
+      },
+      {
+        "see": "Text status"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "status-text--signed-out",
+    "area": "social",
+    "kind": "variant",
+    "covers": [
+      "app/status/text.tsx::route::route"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/status/text"
+      },
+      {
+        "see": "Sign in to post a status."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "status-text--add-episode-sheet",
+    "area": "social",
+    "kind": "sheet",
+    "covers": [
+      "src/ui/social/StatusComposerItems.tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/status/text"
+      },
+      {
+        "tap": "Add episode"
+      },
+      {
+        "see": "Add an episode"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "status-text--toast",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/status/text.tsx::toast::Posted. It is gone after 24 hours."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/status/text"
+      },
+      {
+        "type": "Text status",
+        "text": "Listening to something good"
+      },
+      {
+        "tap": "Post"
+      },
+      {
+        "see": "Posted. It is gone after 24 hours."
+      }
+    ],
+    "design": "Toast-B",
+    "status": "CAPTURE",
+    "note": "Triggered message: \"Posted. It is gone after 24 hours.\""
+  },
+  {
+    "name": "status-composer-items--toast",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "src/ui/social/StatusComposerItems.tsx::toast::Allow photo access in the phone’s settings to add a photo.",
+      "src/ui/social/StatusComposerItems.tsx::toast::Couldn't add the photo — try again.",
+      "src/ui/social/StatusComposerItems.tsx::toast::That picture is too big — pick a smaller one.",
+      "src/ui/social/StatusComposerItems.tsx::toast::Up to 10 items."
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/status/text"
+      },
+      {
+        "tap": "Add photo"
+      },
+      {
+        "tap": "Don’t Allow"
+      },
+      {
+        "see": "Allow photo access in the phone’s settings to add a photo."
+      }
+    ],
+    "design": "Toast-B",
+    "status": "CAPTURE",
+    "note": "Triggered message: \"Allow photo access in the phone’s settings to add a photo.\" by denying the photo alert (button is \"Don’t Allow\" with a curly apostrophe).",
+    "web": "skip: system permission prompt"
+  },
+  {
+    "name": "status-text--photo-permission",
+    "area": "system",
+    "kind": "permission",
+    "covers": [
+      "src/social/comment-image.ts::permission::requestMediaLibraryPermissionsAsync"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/status/text"
+      },
+      {
+        "tap": "Add photo"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "The iOS photo-library alert. Simulator-only system alert.",
+    "web": "skip: system permission prompt"
+  },
+  {
+    "name": "status-text--photo-picker",
+    "area": "system",
+    "kind": "system",
+    "covers": [
+      "src/social/comment-image.ts::system::photo-picker#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/status/text"
+      },
+      {
+        "tap": "Add photo"
+      },
+      {
+        "tap": "Allow Full Access"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "After allowing, the native picker opens. Alert button text varies with the iOS version. Low confidence.",
+    "web": "skip: native photo picker"
+  },
+  {
+    "name": "voice-new--screen",
+    "area": "social",
+    "kind": "screen",
+    "covers": [
+      "app/voice/new.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/voice/new"
+      },
+      {
+        "see": "Tap to record"
+      }
+    ],
+    "design": "VoiceNew-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "voice-new--microphone-permission",
+    "area": "system",
+    "kind": "permission",
+    "covers": [
+      "src/social/voice-text.ts::permission::requestPermissionsAsync"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/voice/new"
+      },
+      {
+        "tap": "Start recording"
+      }
+    ],
+    "design": "VoiceNew-B",
+    "status": "CAPTURE",
+    "note": "The first request is the iOS microphone alert (then speech recognition). Simulator-only system alerts.",
+    "web": "skip: system permission prompt"
+  },
+  {
+    "name": "voice-new--recording",
+    "area": "social",
+    "kind": "variant",
+    "covers": [
+      "app/voice/new.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/voice/new"
+      },
+      {
+        "tap": "Start recording"
+      },
+      {
+        "see": "Recording — tap to stop"
+      }
+    ],
+    "design": "VoiceNew-B",
+    "status": "CAPTURE",
+    "note": "Needs the microphone already allowed for the account."
+  },
+  {
+    "name": "voice-new--microphone-denied",
+    "area": "system",
+    "kind": "system",
+    "covers": [
+      "app/voice/new.tsx::system::open-settings#1"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/voice/new"
+      },
+      {
+        "tap": "Start recording"
+      },
+      {
+        "tap": "Don’t Allow"
+      },
+      {
+        "see": "SocialNet needs the microphone to record. You can allow it in the phone's settings."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "The denied state with the \"Open settings\" button (the hand-off to the Settings app). Denying the alert is a simulator-only system alert.",
+    "web": "skip: system permission prompt"
+  },
+  {
+    "name": "voice-new--toast",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/voice/new.tsx::toast::Posted. It disappears in 24 hours."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/voice/new"
+      },
+      {
+        "tap": "Start recording"
+      },
+      {
+        "see": "Recording — tap to stop"
+      },
+      {
+        "see": "0:02"
+      },
+      {
+        "tap": "Stop recording"
+      },
+      {
+        "tap": "Post"
+      },
+      {
+        "see": "Posted. It disappears in 24 hours."
+      }
+    ],
+    "design": "Toast-B",
+    "status": "CAPTURE",
+    "note": "Triggered message: \"Posted. It disappears in 24 hours.\" Depends on the simulator recording more than a second; low confidence (the clock text \"0:02\" is a wait)."
+  },
+  {
+    "name": "voice-new--add-episode-sheet",
+    "area": "social",
+    "kind": "sheet",
+    "covers": [
+      "src/ui/social/StatusComposerItems.tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/voice/new"
+      },
+      {
+        "tap": "Add episode"
+      },
+      {
+        "see": "Add an episode"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "voice-posts--chooser-sheet",
+    "area": "social",
+    "kind": "sheet",
+    "covers": [
+      "src/ui/social/VoicePosts.tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/library"
+      },
+      {
+        "tap": "Post a status: voice or text"
+      },
+      {
+        "see": "New status · gone after 24 h"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "The status row sits on the Library tab."
+  },
+  {
+    "name": "voice-posts--delete-dialog",
+    "area": "social",
+    "kind": "dialog",
+    "covers": [
+      "src/ui/social/VoicePosts.tsx::dialog::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/library"
+      }
+    ],
+    "design": "ConfirmDialog-B",
+    "status": "NOT_CAPTURABLE",
+    "reason": "Opens on a long-press of one of your own statuses; the step language has no long-press."
+  },
+  {
+    "name": "stickers--screen",
+    "area": "social",
+    "kind": "screen",
+    "covers": [
+      "app/stickers.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/stickers"
+      },
+      {
+        "see": "Decorate my profile"
+      }
+    ],
+    "design": "Stickers-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "stickers--signed-out",
+    "area": "social",
+    "kind": "variant",
+    "covers": [
+      "app/stickers.tsx::route::route"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/stickers"
+      },
+      {
+        "see": "Sign in to count your listening time."
+      }
+    ],
+    "design": "Stickers-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "stickers--none-earned",
+    "area": "social",
+    "kind": "empty",
+    "covers": [
+      "app/stickers.tsx::route::route"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/stickers"
+      },
+      {
+        "see": "Next up"
+      }
+    ],
+    "design": "Stickers-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "stickers--card-sheet",
+    "area": "social",
+    "kind": "sheet",
+    "covers": [
+      "app/stickers.tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/stickers"
+      },
+      {
+        "tap": "First hour"
+      },
+      {
+        "see": "Given by SocialMorning"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Taps the first sticker's visible title; the account must have earned it ({sticker} = \"First hour\")."
+  },
+  {
+    "name": "stickers--share-sheet",
+    "area": "system",
+    "kind": "system",
+    "covers": [
+      "app/stickers.tsx::system::Share.share#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/stickers"
+      },
+      {
+        "tap": "First hour"
+      },
+      {
+        "tap": "Share the First hour sticker"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "The native iOS share sheet is the shot.",
+    "web": "skip: native share sheet"
+  },
+  {
+    "name": "stickers-decorate--screen",
+    "area": "social",
+    "kind": "screen",
+    "covers": [
+      "app/stickers/decorate.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/stickers/decorate"
+      },
+      {
+        "see": "Your stickers"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "stickers-decorate--chosen",
+    "area": "social",
+    "kind": "variant",
+    "covers": [
+      "app/stickers/decorate.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/stickers/decorate"
+      },
+      {
+        "tap": "Put First hour on your profile"
+      },
+      {
+        "see": "Chosen: First hour"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "stickers-decorate--signed-out",
+    "area": "social",
+    "kind": "variant",
+    "covers": [
+      "app/stickers/decorate.tsx::route::route"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/stickers/decorate"
+      },
+      {
+        "see": "Sign in to decorate your profile."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "stickers-decorate--empty",
+    "area": "social",
+    "kind": "empty",
+    "covers": [
+      "app/stickers/decorate.tsx::route::route"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/stickers/decorate"
+      },
+      {
+        "see": "You have no stickers yet. Listen for an hour to earn the first."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "stickers-decorate--toast",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/stickers/decorate.tsx::toast::At most ${MAX} stickers. Remove one first.",
+      "app/stickers/decorate.tsx::toast::Couldn't save — try again when you're online.",
+      "app/stickers/decorate.tsx::toast::Saved. Your profile shows your stickers."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/stickers/decorate"
+      },
+      {
+        "tap": "Put First hour on your profile"
+      },
+      {
+        "tap": "Save"
+      },
+      {
+        "see": "Saved. Your profile shows your stickers."
+      }
+    ],
+    "design": "Toast-B",
+    "status": "CAPTURE",
+    "note": "Triggered message: \"Saved. Your profile shows your stickers.\""
+  },
+  {
+    "name": "stickers-help--screen",
+    "area": "social",
+    "kind": "screen",
+    "covers": [
+      "app/stickers/help.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/stickers/help"
+      },
+      {
+        "see": "How stickers work"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "moment-sheet--player-marker",
+    "area": "social",
+    "kind": "sheet",
+    "covers": [
+      "src/ui/comments/MomentSheet.tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/player"
+      },
+      {
+        "tap": "Comment at {moment}"
+      },
+      {
+        "see": "At {moment}"
+      }
+    ],
+    "design": "MomentSheet-B",
+    "status": "CAPTURE",
+    "note": "Opened from the player's heat rail; the walker must have {episode} loaded in the player first, {moment} = m:ss of a commented marker. The rail marker's name is \"Comment at m:ss by <name>\" so the tap may need the full text. Low confidence."
+  },
+  {
+    "name": "like-sheet--episode",
+    "area": "social",
+    "kind": "sheet",
+    "covers": [
+      "src/ui/social/LikeSheet.tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/episode/{episode}"
+      },
+      {
+        "tap": "Like this episode"
+      },
+      {
+        "see": "Add a note, optional"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "muted-threads--toast",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "src/ui/social/MutedThreads.tsx::toast::Couldn't unmute — try again when you're online.",
+      "src/ui/social/MutedThreads.tsx::toast::Unmuted. New notices from it will show again."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/notifications"
+      },
+      {
+        "tap": "Interactions"
+      },
+      {
+        "tap": "More for {notice_who}"
+      },
+      {
+        "tap": "Mute this"
+      },
+      {
+        "open": "/settings/privacy"
+      },
+      {
+        "tap": "Unmute {thread_title}"
+      },
+      {
+        "see": "Unmuted. New notices from it will show again."
+      }
+    ],
+    "design": "Toast-B",
+    "status": "CAPTURE",
+    "note": "Triggered message: \"Unmuted. New notices from it will show again.\" Mutes a thread first, then unmutes it in Privacy."
+  }
+]

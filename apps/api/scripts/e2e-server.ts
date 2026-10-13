@@ -1,7 +1,7 @@
 // Starts the real API on a test database for browser end-to-end tests.
 /**
  * The real API for the Studio's end-to-end test (ci/workflows/e2e.yml) — NOT used in production.
- * Real app, real PostgreSQL, real sessions. Two things are stand-ins, and only these:
+ * Real app, real DynamoDB (DynamoDB Local, DDB_ENDPOINT), real sessions. Two things are stand-ins, and only these:
  *   - the audio store: tokens are genuine client tokens made from a dummy read-write token (made
  *     locally, no network), the browser's upload call is answered by the test, and `head` here
  *     reports a fixed size for any file under this test's store address;
@@ -9,8 +9,8 @@
  *
  * The listener journey (specs/015-e2e-journey) adds three switches, all off by default so the
  * Studio test runs exactly as before:
- *   - no DATABASE_URL → PGlite in memory, migrated at start (the Mac run for the real iPhone,
- *     which must never touch Neon);
+ *   - the data is a new table set on DynamoDB Local made at start (`e2e_<random>_main/events/cache`) and dropped at exit;
+ *     DDB_ENDPOINT must name a local DynamoDB (never AWS). The outbox is drained every 200 ms, as the worker would;
  *   - E2E_STORE_BASE=<this server>/__e2e/store/ → the store's files are served HERE, every audio
  *     file being scripts/fixtures/journey.mp3 (60 s, byte ranges for the phone's player), so a
  *     published episode really plays;
@@ -18,15 +18,21 @@
  *   - E2E_PUBLIC_BASE → the address feeds and pages name (the phone needs the Mac's LAN address);
  *   - the email-code sign-in always works here: codes go to an in-memory inbox, and
  *     GET /__e2e/code?email=… returns the latest (the phone signs in by code, as a person would);
+ *   - M27: POST /__e2e/fault { path, mode: 'slow'|'fail'|'off', ms? } makes a request path (prefix) slow
+ *     (default 15000 ms) or answer 503 {error:'unavailable'}; { mode:'off' } with no path clears all.
+ *     The screen capture uses it to show loading and error states without touching app code.
  *   - M25 S3: POST /__e2e/account { email, password, displayName } makes an account with a
  *     password and answers { token, listener: { id } } — what `POST /v1/auth/sign-up` did before it
  *     was removed. The Studio's Password tab needs accounts that have one. Test server only.
  */
 import { serve } from '@hono/node-server';
 import { createApp } from '../src/app.ts';
-import { createClient } from '../src/db/client.ts';
-import { fromPglite, fromPostgres, type Db } from '../src/db/db.ts';
-import { migrate } from '../src/db/migrate.ts';
+import { createDdbClients } from '../src/db/ddb/client.ts';
+import { createStore, prefixedTables } from '../src/db/ddb/store.ts';
+import { createTableSet, deleteTableSet } from '../src/db/ddb/schema.ts';
+import { withStore } from '../src/db/backend-ddb.ts';
+import { drainOutbox } from '../src/jobs/outbox.ts';
+import type { Db } from '../src/db/db.ts';
 import { createListener, listenerByEmail } from '../src/db/repos/account/listeners.ts';
 import { hashPassword } from '../src/auth/password.ts';
 import { createSession } from '../src/auth/session.ts';
@@ -59,19 +65,20 @@ const storage: EpisodeStorage = {
 };
 
 async function database(): Promise<Db> {
-  if (process.env['DATABASE_URL']) return fromPostgres(createClient());
-  const { PGlite } = await import('@electric-sql/pglite');
-  const { citext } = await import('@electric-sql/pglite/contrib/citext');
-  const pg = new PGlite({ extensions: { citext } });
-  await migrate({ exec: (q) => pg.exec(q).then(() => undefined), query: async <T,>(q: string, p?: unknown[]) => (await pg.query<T>(q, p)).rows });
-  console.log('e2e api: PGlite in memory (no DATABASE_URL)');
-  return fromPglite(pg);
+  if (!process.env['DDB_ENDPOINT']) throw new Error('e2e api: DDB_ENDPOINT is not set (DynamoDB Local, e.g. scripts/ddb-local.sh)');
+  const clients = createDdbClients();
+  const tables = prefixedTables(`e2e_${Math.random().toString(36).slice(2, 8)}`);
+  await createTableSet(clients.raw, tables);
+  const store = createStore({ clients, tables, secret: process.env['CURSOR_SECRET'] ?? 'e2e-cursor-secret' });
+  // The worker's job in production: run the outbox (notifications, fan-out, counters) shortly after each write.
+  const timer = setInterval(() => { void drainOutbox(store).catch(() => undefined); }, 200);
+  timer.unref();
+  const drop = async () => { clearInterval(timer); await deleteTableSet(clients.raw, tables).catch(() => undefined); clients.raw.destroy(); };
+  for (const sig of ['SIGINT', 'SIGTERM'] as const) process.once(sig, () => { void drop().finally(() => process.exit(0)); });
+  console.log(`e2e api: DynamoDB Local tables ${tables.main}, ${tables.events}, ${tables.cache}`);
+  return withStore(undefined, store);
 }
 const db = await database();
-// The store served HERE is plain http on the Mac (the phone cannot trust a self-made certificate),
-// so this throw-away test database drops the one rule that wants https audio. Only when the
-// audio really is served by this server; production's rule is untouched (migration 010).
-if (E2E_STORE.startsWith('http://')) await db.query('ALTER TABLE hosted_episodes DROP CONSTRAINT IF EXISTS hosted_episodes_audio_url_check');
 
 async function moderator(): Promise<string | undefined> {
   const email = process.env['E2E_MOD_EMAIL'];
@@ -122,11 +129,36 @@ const app = createApp({
   catalogFetch: (async () => { throw new Error('catalogue down in e2e'); }) as unknown as typeof fetch,
   pushFetch: (async () => new Response(JSON.stringify({ data: [] }))) as unknown as typeof fetch,
 });
+/** M27: the fault switch — request-path prefixes made slow or failing. Test server only; empty by default. */
+const faults = new Map<string, { mode: 'slow' | 'fail'; ms: number }>();
+async function e2eFault(req: Request): Promise<Response> {
+  const b = (await req.json().catch(() => ({}))) as { path?: unknown; mode?: unknown; ms?: unknown };
+  if (b.mode === 'off') {
+    if (typeof b.path === 'string') faults.delete(b.path); else faults.clear();
+    return Response.json({ faults: Object.fromEntries(faults) });
+  }
+  if ((b.mode !== 'slow' && b.mode !== 'fail') || typeof b.path !== 'string' || !b.path.startsWith('/')) return Response.json({ error: 'validation', message: "Send { path: '/…', mode: 'slow'|'fail'|'off', ms? }." }, { status: 422 });
+  const ms = typeof b.ms === 'number' && b.ms >= 0 ? b.ms : 15_000;
+  faults.set(b.path, { mode: b.mode, ms });
+  return Response.json({ faults: Object.fromEntries(faults) });
+}
+/** The longest matching prefix wins; the test server's own /__e2e routes are never faulted. */
+function faultFor(pathname: string): { mode: 'slow' | 'fail'; ms: number } | undefined {
+  if (faults.size === 0 || pathname.startsWith('/__e2e/')) return undefined;
+  let best: string | undefined;
+  for (const p of faults.keys()) if (pathname.startsWith(p) && (best === undefined || p.length > best.length)) best = p;
+  return best === undefined ? undefined : faults.get(best);
+}
+
 // Test-only window into what was deleted from the store (never mounted in production).
 const port = Number(process.env['PORT'] ?? 8787);
 serve({
-  fetch: (req, env) => {
+  fetch: async (req, env) => {
     const url = new URL(req.url);
+    if (url.pathname === '/__e2e/fault' && req.method === 'POST') return e2eFault(req);
+    const fault = faultFor(url.pathname);
+    if (fault?.mode === 'fail') return Response.json({ error: 'unavailable' }, { status: 503 });
+    if (fault?.mode === 'slow') await new Promise((r) => setTimeout(r, fault.ms));
     if (url.pathname === '/__e2e/removed') return Response.json(removed);
     if (url.pathname === '/__e2e/account' && req.method === 'POST') return e2eAccount(req);
     if (url.pathname === '/__e2e/code') {

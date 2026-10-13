@@ -11,7 +11,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createApp } from '../src/app.ts';
 import { fakeApple, fakeFeedFetch, FIXTURE_FEED } from './fake-apple.ts';
-import { migratedPg, TEST_PEPPER, signUp, type TestDb } from './harness.ts';
+import { TEST_PEPPER, signUp, type TestDb } from './harness.ts';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { putEpisode } from './put-episode.ts';
 import { daysAgo, ownBackend, seedRecEvent, seedSimilarity, shiftRecEvents, similarityRows, similarityStagingCount } from './dv-neutral.ts';
@@ -24,8 +24,7 @@ const PICKS = [{ date: '2026-09-22', feedUrl: FX, guid: 'g-new', why: 'The pick 
 type Body = { items: { episode: { id: string; feedUrl: string; title: string }; channel: string; reason: string; score: number }[]; computedAt: string; stale: boolean; similarityAge: number | null };
 
 async function appWith(opts: { picksRaw?: unknown; appleMode?: Parameters<typeof fakeApple>[0]; feedStatus?: number } = {}) {
-  const { pg, runner } = await migratedPg();
-  const be = await ownBackend(pg); // M26 lane DV: Postgres, or the hybrid Db under TEST_BACKEND=ddb
+  const be = await ownBackend();
   const db = be.db;
   const apple = fakeApple(opts.appleMode ?? {});
   const catalogFetch = (async (input: string | URL | Request, init?: RequestInit) => {
@@ -39,14 +38,13 @@ async function appWith(opts: { picksRaw?: unknown; appleMode?: Parameters<typeof
   const app = createApp({ db, pepper: TEST_PEPPER, catalogFetch, picksRaw: opts.picksRaw ?? PICKS, today: () => '2026-09-22', jobToken: JOB });
   console.warn = orig;
   const t: TestDb = {
-    pg, db, runner, app, ...(be.store ? { store: be.store } : {}),
-    q: async <T,>(s: string, p?: unknown[]) => (await pg.query<T>(s, p)).rows,
+    db, app, store: be.store,
     call: async (method, path, body, token, headers = {}) => {
       const r = await app.request(path, { method, headers: { ...(body !== undefined ? { 'content-type': 'application/json' } : {}), ...(token ? { authorization: `Bearer ${token}` } : {}), ...headers }, body: body !== undefined ? JSON.stringify(body) : undefined });
-      await be.drain(); // the outbox, on DynamoDB
+      await be.drain(); // the outbox runs after each request
       return r;
     },
-    close: async () => { await be.close(); await pg.close(); },
+    close: async () => { await be.close(); },
   };
   return { t, warned };
 }
@@ -78,7 +76,7 @@ test('A14: a brand-new account with nothing in it still gets a list, and every i
 });
 
 test('A13: the catalogue being down is one channel failing, not a failed request — and the body does not say which', async () => {
-  const { t, warned } = await appWith({ appleMode: { all: '429' }, feedStatus: 500 });
+  const { t } = await appWith({ appleMode: { all: '429' }, feedStatus: 500 });
   const a = await signUp(t);
   // Give the account something of its own so the list is not empty when Discover dies.
   // The id is not free-form: the route checks it against fnv1a64(feedUrl \u0001 guid).
@@ -150,7 +148,7 @@ test('A17: the feeds step walks subscribed feeds and registers what it finds', a
   assert.equal(body.done, true);
   assert.equal(body.counts.feeds, 1);
   assert.ok(body.counts.registered >= 1);
-  const row = await oneEpisodeOf(t, FX); // M26 lane NB: the episode item on DynamoDB, the row on Postgres
+  const row = await oneEpisodeOf(t, FX); // the episode item
   assert.ok(row!.published_at !== null, 'the publisher date landed — freshness depends on it');
   assert.equal(Number(row!.genre_id), 1318);
   await t.close();
@@ -161,7 +159,7 @@ test('A18: an interrupted rebuild never serves half a neighbourhood, and a fresh
   const auth = { authorization: `Bearer ${JOB}` };
 
   // Seed a standing neighbourhood, then start a rebuild and stop after the first chunk.
-  // M26: through dv-neutral (tables on Postgres; a standing + a building generation on DynamoDB).
+  // through dv-neutral (a standing + a building generation).
   await seedSimilarity(t, [['https://a', 'https://b', 0.5]], [['https://c', 'https://d', 0.9]]);
   const { rows: standing } = await similarityRows(t);
   assert.deepEqual(standing.map((r) => r.show_a), ['https://a'], 'the staging rows are not visible');

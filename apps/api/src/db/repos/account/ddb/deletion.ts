@@ -9,10 +9,8 @@
  *                    every open job (G4 `Q#jobs#delete`) is resumed first, so a crash half-way finishes later.
  *
  * The job's phases, each idempotent and saved after it runs (outbox.ts runJob):
- *   blobs      voice recordings, comment images (lane SC's code, still Postgres-indexed) and the photo;
- *   others     the lanes still on Postgres: their old one-transaction cascade (`deleteAccount` on Postgres —
- *              comments → placeholders under replies, reactions, clips, follows, heat …). Each lane replaces
- *              its part with a DynamoDB phase here when it moves; CUT deletes this phase;
+ *   blobs      voice recordings, comment images and the photo;
+ *   others     nothing to do (kept so a job saved at this phase moves on);
  *   studio     lane ST's part (studio/ddb/deletion.ts): Studio facts leave the counts, held comments, team links,
  *              proven claims, Studio-made shows, poll votes, milestones, curator rows — 25 a step;
  *   social     lane SC's items on DynamoDB (social/ddb/sc-deletion.ts): comments → placeholders under replies, reactions,
@@ -34,10 +32,7 @@
  *   listener   the listener item, last.
  * Guard G-M26-AC2: a fault injected in the middle leaves the job open; the next run finishes it and no
  * listener item is left.
- * Finding 1 (moderation actions → listeners has no ON DELETE rule, so the deletion of a moderator FAILS on
- * Postgres) is kept as it is: the `others` phase still runs that cascade, so it fails and is retried exactly
- * as before — the owner's decision is still open (tasks.md AC-T09).
- */
+ *  */
 import { encode } from '../../../ddb/codec.ts';
 import * as K from '../../../ddb/keys.ts';
 import { batchWriteAll } from '../../../ddb/batch.ts';
@@ -46,11 +41,9 @@ import { get, type Item, type Store } from '../../../ddb/store.ts';
 import { TxCancelled } from '../../../ddb/tx.ts';
 import { resumeJobs, runJob, startJob, type JobStep } from '../../../../jobs/outbox.ts';
 import { DELETION_WAIT_DAYS, type DeletionStores } from '../deletion.ts';
-import { deleteAccount as deleteAccountDual } from '../delete-account.ts';
 import { removeAllFor } from '../../social/voice-posts.ts';
 import { removeImagesFor } from '../../social/comment-images.ts';
-import { adel, DAY_MS, getListener, iso, nowMs, partitionItems, plainPg, txa, unlessCondition, upd, type Hybrid, bridgeOn } from './common.ts';
-import { shadowListener } from './foreign.ts';
+import { adel, DAY_MS, getListener, iso, nowMs, partitionItems, txa, unlessCondition, upd, type Ctx } from './common.ts';
 import { deleteSessionChain } from './sessions.ts';
 import { graphDeletionStep } from '../../social/graph-ddb/deletion.ts';
 
@@ -61,26 +54,25 @@ type Phase = (typeof PHASES)[number];
 /** Items one job step handles at most (a step is one BatchWrite-sized chunk or one phase). */
 const CHUNK = 25;
 
-export async function requestDeletion(h: Hybrid, listenerId: string): Promise<{ dueAt: string }> {
+export async function requestDeletion(h: Ctx, listenerId: string): Promise<{ dueAt: string }> {
   const now = nowMs(h);
   const dueAt = iso(now + DELETION_WAIT_DAYS * DAY_MS);
   await txa(h.store)
     .put('main', encode('deletion', DELETION(listenerId), { listenerId, requestedAt: iso(now), dueAt }, { gsi: K.G4('deletions', dueAt, listenerId) }))
     .update('main', K.listener(listenerId), { update: 'SET hiddenAt = :now, deletingAt = :due', condition: 'attribute_exists(PK)', values: { ':now': iso(now), ':due': dueAt } })
     .commit();
-  if (bridgeOn(h)) await shadowListener(h.pg, listenerId, 'hidden_at', iso(now)); // shadow: every public read of the other lanes filters it
   // Signed out everywhere (not in the transaction: a listener's sessions are not bounded).
   for (const p of await partitionItems(h, K.L(listenerId), K.LISTENER_SK.sessions)) await deleteSessionChain(h, String(p['tokenHash']));
   return { dueAt };
 }
 
-export async function pendingDeletion(h: Hybrid, listenerId: string): Promise<{ dueAt: string } | null> {
+export async function pendingDeletion(h: Ctx, listenerId: string): Promise<{ dueAt: string } | null> {
   const d = await get(h.store, 'main', DELETION(listenerId));
   return d && !d['cancelledAt'] ? { dueAt: String(d['dueAt']) } : null;
 }
 
 /** Keep: only while the job has not started (after that the account is going, as the old single transaction was). */
-export async function cancelDeletion(h: Hybrid, listenerId: string): Promise<boolean> {
+export async function cancelDeletion(h: Ctx, listenerId: string): Promise<boolean> {
   const now = iso(nowMs(h));
   let cancelled = true;
   try {
@@ -93,13 +85,12 @@ export async function cancelDeletion(h: Hybrid, listenerId: string): Promise<boo
     cancelled = false;
   }
   await unlessCondition(upd(h.store, 'main', K.listener(listenerId), { update: 'REMOVE hiddenAt, deletingAt', condition: 'attribute_exists(PK)' }));
-  if (bridgeOn(h)) await shadowListener(h.pg, listenerId, 'hidden_at', null);
   return cancelled;
 }
 
 const keyOf = (i: Item) => ({ PK: String(i['PK']), SK: String(i['SK']) });
 
-function deletionStep(h: Hybrid, stores: DeletionStores, listenerId: string): JobStep {
+function deletionStep(h: Ctx, stores: DeletionStores, listenerId: string): JobStep {
   return async (_store, job) => {
     const phase = (job.state['phase'] as Phase | undefined) ?? 'blobs';
     const next = (p: Phase): { state: Record<string, unknown>; done: boolean } => {
@@ -110,17 +101,13 @@ function deletionStep(h: Hybrid, stores: DeletionStores, listenerId: string): Jo
     switch (phase) {
       case 'blobs': {
         // M12 FR-104, M20 US9, M19 US1: the listener's stored files go before their rows (errors logged, as before).
-        if (stores.voice) { try { await removeAllFor(h.pg, stores.voice, listenerId, stores.images); } catch (e) { console.error('voice cleanup on delete', e); } }
-        if (stores.images) { try { await removeImagesFor(h.pg, stores.images, listenerId); } catch (e) { console.error('image cleanup on delete', e); } }
+        if (stores.voice) { try { await removeAllFor(h.db, stores.voice, listenerId, stores.images); } catch (e) { console.error('voice cleanup on delete', e); } }
+        if (stores.images) { try { await removeImagesFor(h.db, stores.images, listenerId); } catch (e) { console.error('image cleanup on delete', e); } }
         if (stores.avatars) { try { const a = (await getListener(h, listenerId))?.avatarUrl; if (a) await stores.avatars.remove(a); } catch (e) { console.error('avatar cleanup on delete', e); } }
         return next('blobs');
       }
-      case 'others': {
-        // Lane LE: with the bridge off nothing is in Postgres — every lane deletes its own items in the phases below.
-        if (!bridgeOn(h)) return next('others');
-        const r = await deleteAccountDual(plainPg(h), listenerId); // the lanes still on Postgres, one transaction as before
-        return { ...next('others'), state: { ...next('others').state, placeholders: r.placeholders, deleted: r.deleted, episodes: r.episodes } };
-      }
+      case 'others':
+        return next('others');
       case 'recs': {
         // Lane NB (G-D1): the listener's recommendation events (`RE#<id>`, sm-events) — the old rec_events ON DELETE CASCADE.
         const { deleteRecEventsStep } = await import('../../library/ddb/rec-events.ts');
@@ -134,17 +121,17 @@ function deletionStep(h: Hybrid, stores: DeletionStores, listenerId: string): Jo
         // Lane ST: Studio facts (plays, likes, saves, heard ranges leave the counts), held comments, team links,
         // claims, Studio-made shows, poll votes, milestones — before lane SC/SG remove the sources (order-free anyway).
         const { deleteStudioStep } = await import('../../studio/ddb/deletion.ts');
-        return (await deleteStudioStep(h.store, h.pg, listenerId)) ? next('studio') : stay();
+        return (await deleteStudioStep(h.store, h.db, listenerId)) ? next('studio') : stay();
       }
       case 'social': {
         // Lane SC: comments (placeholders under replies), reactions and their heat marks, likes, clips, statuses, chats.
         const { deleteSocialStep } = await import('../../social/ddb/sc-deletion.ts');
-        // Lane NB: with the bridge off, this phase (not `others`) counts the placeholders, deletions and touched episodes the job reports.
-        const tally = bridgeOn(h) ? undefined : {
+        // This phase counts the placeholders, deletions and touched episodes the job reports.
+        const tally = {
           placeholders: Number(job.state['placeholders'] ?? 0), deleted: Number(job.state['deleted'] ?? 0), episodes: [...((job.state['episodes'] as string[] | undefined) ?? [])],
         };
-        const done = await deleteSocialStep(h.store, h.pg, listenerId, tally);
-        const counted = tally ? { placeholders: tally.placeholders, deleted: tally.deleted, episodes: tally.episodes } : {};
+        const done = await deleteSocialStep(h.store, h.db, listenerId, tally);
+        const counted = { placeholders: tally.placeholders, deleted: tally.deleted, episodes: tally.episodes };
         return done ? { ...next('social'), state: { ...next('social').state, ...counted } } : stay(counted);
       }
       case 'discover': {
@@ -216,7 +203,7 @@ function deletionStep(h: Hybrid, stores: DeletionStores, listenerId: string): Jo
 }
 
 /** Starts (if needed) and runs the job to the end. Throws what a phase threw; the job stays open for the next run. */
-export async function runDeletionJob(h: Hybrid, stores: DeletionStores, listenerId: string, opts: { maxSteps?: number } = {}): Promise<boolean> {
+export async function runDeletionJob(h: Ctx, stores: DeletionStores, listenerId: string, opts: { maxSteps?: number } = {}): Promise<boolean> {
   const existing = await get(h.store, 'main', K.job(DELETE_JOB, listenerId));
   if (!existing) {
     try {
@@ -227,12 +214,12 @@ export async function runDeletionJob(h: Hybrid, stores: DeletionStores, listener
 }
 
 /** The pre-M22 immediate deletion (blobs first, then everything) — now the job, run to the end. */
-export async function finishDeletion(h: Hybrid, stores: DeletionStores, listenerId: string): Promise<void> {
+export async function finishDeletion(h: Ctx, stores: DeletionStores, listenerId: string): Promise<void> {
   await runDeletionJob(h, stores, listenerId);
 }
 
-/** Used only by the job's `others` phase on Postgres; on DynamoDB the whole deletion is the job. */
-export async function deleteAccount(h: Hybrid, listenerId: string): Promise<{ placeholders: number; deleted: number; episodes: string[] }> {
+/** Runs the deletion job to the end and returns what it counted. */
+export async function deleteAccount(h: Ctx, listenerId: string): Promise<{ placeholders: number; deleted: number; episodes: string[] }> {
   await runDeletionJob(h, {}, listenerId);
   const j = await get(h.store, 'main', K.job(DELETE_JOB, listenerId));
   const s = (j?.['state'] ?? {}) as { placeholders?: number; deleted?: number; episodes?: string[] };
@@ -240,7 +227,7 @@ export async function deleteAccount(h: Hybrid, listenerId: string): Promise<{ pl
 }
 
 /** The hourly step: open jobs first (a crash half-way finishes), then every due, uncancelled request (bounded). */
-export async function runDueDeletions(h: Hybrid, stores: DeletionStores, limit = 20): Promise<{ deleted: number; failed: number }> {
+export async function runDueDeletions(h: Ctx, stores: DeletionStores, limit = 20): Promise<{ deleted: number; failed: number }> {
   let deleted = 0;
   let failed = 0;
   const resumeStep: JobStep = (store, job) => deletionStep(h, stores, job.id)(store, job);

@@ -5,13 +5,12 @@
 import { ApiError } from '../../errors.ts';
 import { z } from 'zod';
 import { json } from '../../validate.ts';
-import { publish } from '../../db/repos/studio/announcements.ts';
 import { isAutoCover } from '@socialmorning/social-core';
 import { listHostedEpisodes, paidEpisodeRows, promoteDue, publishEpisode, removeEpisode, setEpisodePaid, setPreview, setPriceTier, storedBytes, updateEpisode, updateHostedShow } from '../../db/repos/studio/hosted.ts';
 import { AUDIO_TYPES, IMAGE_TYPES, MAX_AUDIO_BYTES, MAX_IMAGE_BYTES } from '../../storage/episodes-blob.ts';
 import { randomUUID } from 'node:crypto';
 import type { Hono } from 'hono';
-import { showDetails, ownerOnly, days, hostedOf } from './common.ts';
+import { showDetails, ownerOnly, hostedOf } from './common.ts';
 import type { StudioEnv } from '../../auth/studio-session.ts';
 
 export function registerEpisodes(studio: Hono<StudioEnv>): void {

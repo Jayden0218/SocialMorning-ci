@@ -5,7 +5,7 @@
  * - `U#CLIP#<authorId>#<clientId>` → the clip id: the old UNIQUE (author_id, client_id) — a phone's retry finds it;
  * - `CLIPREF#<id> / R` → where it lives (the link page, delete); `L#<author> / CLP#<createdAt>#<id>` the author's
  *   index (the per-minute floor, the month report, account deletion).
- * The `clipped` feed item is lane SG's (activity, on Postgres).
+ * The `clipped` feed item is lane SG's (activity).
  */
 import { randomUUID } from 'node:crypto';
 import type { Db } from '../../../db.ts';
@@ -18,8 +18,7 @@ import { claimUnique, uniqueOwner } from '../../../ddb/unique.ts';
 import { blockedIdsFor } from '../../safety/blocks.ts';
 import { getEpisode, type EpisodeRow } from '../../library/episodes.ts';
 import type { ClipRow } from '../clips.ts';
-import * as B from './sc-bridge.ts';
-import { commitRetry, keyOf, nowIso, person, people, rawPg, str, UUID } from './sc-common.ts';
+import { commitRetry, keyOf, nowIso, person, people, str, UUID } from './sc-common.ts';
 import { reportedClipIds } from './sc-foreign.ts';
 import { recordActivity, removeActivityByRef } from '../graph-ddb/activity.ts';
 
@@ -71,8 +70,6 @@ export async function createClip(
     }
     throw e;
   }
-  const raw = rawPg(db);
-  if (raw) await B.insertClip(raw, { ...input, id, createdAt });
   await recordActivity(store, db, { actorId: input.authorId, kind: 'clipped', episodeId: input.episodeId, momentMs: input.startMs, refId: id });
   return { clip: await rowOf(store, item), created: true };
 }
@@ -124,8 +121,6 @@ export async function deleteClip(store: Store, db: Db, id: string, authorId: str
     throw e;
   }
   await removeActivityByRef(store, db, 'clipped', id);
-  const raw = rawPg(db);
-  if (raw) await B.setClipDeleted(raw, id, at);
   return 'deleted';
 }
 

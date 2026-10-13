@@ -4,10 +4,9 @@
  *
  * G-M21-9 — `notifications` is never written for a self-act, nor to a recipient who blocked or
  *   muted the actor.
- *   The break that turns it red: in `src/db/repos/social/notifications.ts` `notify`, drop the
- *   self / block / mute conditions from the INSERT … SELECT — Alex's self-mention then fails the
- *   table's CHECK (500), Cy's mention reaches Alex who blocked her, and Bea's reply reaches Alex
- *   who muted her.
+ *   The break that turns it red: in `planNotice` (src/db/repos/social/graph-ddb/notifications.ts) drop the
+ *   self / block / mute checks — Alex's self-mention is stored, Cy's mention reaches Alex who blocked her,
+ *   and Bea's reply reaches Alex who muted her.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

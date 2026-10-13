@@ -1,9 +1,9 @@
 // The maintenance switch on DynamoDB: one item while on, no item while off; changed in a Tx that can join the audit transaction.
 /**
- * M26 lane SF. `K.config('maintenance')` = `CFG#maintenance` / `V`, type `maintenance`
- * {until, message, updatedAt, updatedBy}. Off = the item is deleted (as the SQL deleted the row). Read
+ * `K.config('maintenance')` = `CFG#maintenance` / `V`, type `maintenance`
+ * {until, message, updatedAt, updatedBy}. Off = the item is deleted . Read
  * strongly (an admin's change is seen at once by the next memo refill); `activeMaintenance` keeps its memo
- * and its `now` in the Postgres module.
+ * and its `now` in ../maintenance.ts.
  */
 import { encode } from '../../../ddb/codec.ts';
 import * as K from '../../../ddb/keys.ts';

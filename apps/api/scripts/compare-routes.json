@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "routes": [
+    "/v1/me",
+    "/v1/me/subscriptions",
+    "/v1/me/subscriptions/order",
+    "/v1/me/positions",
+    "/v1/me/library",
+    "/v1/me/comments",
+    "/v1/me/feed",
+    "/v1/me/notifications",
+    "/v1/me/notifications/system",
+    "/v1/me/chats",
+    "/v1/me/playlists",
+    "/v1/me/likes/timeline",
+    "/v1/me/purchases",
+    "/v1/me/blocks",
+    "/v1/me/friends-listening",
+    "/v1/me/host-notices",
+    "/v1/listeners/:me",
+    "/v1/listeners/:me/followers",
+    "/v1/listeners/:me/following",
+    "/v1/episodes/:ep/social"
+  ]
+}

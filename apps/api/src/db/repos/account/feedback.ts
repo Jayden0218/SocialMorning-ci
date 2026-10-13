@@ -5,8 +5,7 @@
  * bytes after the phone shrank it, JPEG or PNG by their first bytes (not by the claimed
  * type), readable only on the owner's /mod page, and deleted after 90 days.
  */
-import type { Db } from '../../db.ts';
-import { dual } from '../../backend.ts';
+import { viaStore } from '../../backend.ts';
 
 export const IMAGE_MAX_BYTES = 250_000;
 export const IMAGES_MAX = 3;
@@ -21,58 +20,19 @@ export function sniff(bytes: Uint8Array): 'image/jpeg' | 'image/png' | undefined
   return undefined;
 }
 
-export const createFeedback = dual('ac/index', 'createFeedback', async (db: Db, f: { listenerId: string | null; kind: string; body: string; appVersion?: string; images: readonly ImageIn[] }): Promise<string> => {
-  return db.transaction(async (tx) => {
-    const [row] = await tx.query<{ id: string }>(
-      'INSERT INTO feedback (listener_id, kind, body, app_version) VALUES ($1, $2, $3, $4) RETURNING id',
-      [f.listenerId, f.kind, f.body, f.appVersion ?? null],
-    );
-    const id = row!.id;
-    let n = 0;
-    for (const img of f.images.slice(0, IMAGES_MAX)) {
-      n++;
-      await tx.query('INSERT INTO feedback_images (feedback_id, n, mime, bytes) VALUES ($1, $2, $3, $4)', [id, n, img.mime, img.bytes]);
-    }
-    return id;
-  });
-});
+export const createFeedback = viaStore<typeof import('./ddb/index.ts').createFeedback>('ac/index', 'createFeedback');
 
 /** M23 US3: feedback messages with pictures this listener sent in the last 24 hours. */
-export const imagesSentToday = dual('ac/index', 'imagesSentToday', async (db: Db, listenerId: string): Promise<number> => {
-  const [r] = await db.query<{ n: number }>(
-    `SELECT count(*)::int AS n FROM feedback f
-      WHERE f.listener_id = $1 AND f.created_at > now() - interval '24 hours'
-        AND EXISTS (SELECT 1 FROM feedback_images i WHERE i.feedback_id = f.id)`,
-    [listenerId],
-  );
-  return r?.n ?? 0;
-});
+export const imagesSentToday = viaStore<typeof import('./ddb/index.ts').imagesSentToday>('ac/index', 'imagesSentToday');
 
 /** M23 US3: every stored feedback picture together, in bytes (the ceiling check). */
-export const feedbackImageBytes = dual('ac/index', 'feedbackImageBytes', async (db: Db): Promise<number> => {
-  const [r] = await db.query<{ n: string | number }>('SELECT COALESCE(sum(octet_length(bytes)), 0)::bigint AS n FROM feedback_images');
-  return Number(r?.n ?? 0);
-});
+export const feedbackImageBytes = viaStore<typeof import('./ddb/index.ts').feedbackImageBytes>('ac/index', 'feedbackImageBytes');
 
 export type FeedbackRow = { id: string; kind: string; body: string; app_version: string | null; created_at: string | Date; display_name: string | null; images: number };
 
-export const recentFeedback = dual('ac/index', 'recentFeedback', async (db: Db, limit = 50): Promise<FeedbackRow[]> => {
-  return db.query<FeedbackRow>(
-    `SELECT f.id, f.kind, f.body, f.app_version, f.created_at, l.display_name,
-            (SELECT count(*)::int FROM feedback_images i WHERE i.feedback_id = f.id) AS images
-     FROM feedback f LEFT JOIN listeners l ON l.id = f.listener_id
-     ORDER BY f.created_at DESC LIMIT $1`,
-    [limit],
-  );
-});
+export const recentFeedback = viaStore<typeof import('./ddb/index.ts').recentFeedback>('ac/index', 'recentFeedback');
 
-export const feedbackImage = dual('ac/index', 'feedbackImage', async (db: Db, id: string, n: number): Promise<{ mime: string; bytes: Uint8Array } | undefined> => {
-  const [r] = await db.query<{ mime: string; bytes: Uint8Array }>('SELECT mime, bytes FROM feedback_images WHERE feedback_id = $1 AND n = $2', [id, n]);
-  return r;
-});
+export const feedbackImage = viaStore<typeof import('./ddb/index.ts').feedbackImage>('ac/index', 'feedbackImage');
 
 /** FR-020: images older than 90 days are deleted (the text stays). */
-export const sweepImages = dual('ac/index', 'sweepImages', async (db: Db): Promise<number> => {
-  const rows = await db.query<{ n: number }>(`DELETE FROM feedback_images WHERE created_at < now() - ($1 || ' days')::interval RETURNING n`, [String(IMAGE_DAYS)]);
-  return rows.length;
-});
+export const sweepImages = viaStore<typeof import('./ddb/index.ts').sweepImages>('ac/index', 'sweepImages');

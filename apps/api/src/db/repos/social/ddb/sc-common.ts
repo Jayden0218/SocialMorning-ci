@@ -1,16 +1,10 @@
 // Shared pieces of the social-content lane on DynamoDB: the clock, listener look-ups, comment look-ups by id, retried transactions.
 /**
- * M26 lane SC (data-model.md "Lane SC changes"). The bodies in this folder are called by `dual('sc/<file>', …)`
- * (src/db/backend.ts) as `name(store, db, ...args)`. `db` is the app's Postgres handle with the Store attached:
- * - lanes not moved yet (SG follows/mutes/notifications/activity, SF blocks/reports/moderation, ST hosts/held
- *   comments) are reached through THEIR exported repo functions called with `db` (they turn dual when those lanes
- *   move) or, where no such function exists, through the SQL in `sc-foreign.ts`;
- * - lanes already moved (AC listeners, LB episodes/heat/listened) are read through their items and helpers;
- * - every write of this lane also writes its Postgres row while the bridge is on (`sc-bridge.ts`), because the
- *   unmoved lanes still JOIN comments, clips, chat messages, statuses and likes.
+ * The bodies in this folder are called by `viaStore('sc/<file>', …)` (src/db/backend.ts) as `name(store, db, ...args)`.
+ * `db` is the handle that carries the Store: other lanes (SG follows/mutes/notifications/activity, SF blocks/reports/
+ * moderation, ST hosts/held comments) are reached through their exported repo functions called with `db`, or through
+ * their items (AC listeners, LB episodes/heat/listened) and helpers.
  */
-import type { Db } from '../../../db.ts';
-import { ATTACHED } from '../../../backend.ts';
 import { batchGetAll } from '../../../ddb/batch.ts';
 import * as K from '../../../ddb/keys.ts';
 import { queryAll } from '../../../ddb/paginate.ts';
@@ -25,18 +19,6 @@ export const keyOf = (i: Item): Key => ({ PK: String(i['PK']), SK: String(i['SK'
 export const str = (v: unknown): string | null => (v === undefined || v === null ? null : String(v));
 export const num = (v: unknown): number | null => (v === undefined || v === null ? null : Number(v));
 export const UUID = /^[0-9a-f-]{36}$/i;
-
-/** The bridge is on (backend-ddb.ts): writes also go to the Postgres rows the unmoved lanes read. */
-export function rawPg(db: Db): Db | undefined {
-  const a = ATTACHED.get(db);
-  return a?.bridge ? a.raw : undefined;
-}
-/** The Postgres side, for reads of lanes that are still there. */
-export function pgSide(db: Db): Db {
-  const a = ATTACHED.get(db);
-  if (!a) throw new Error('social: a DynamoDB body was called without a Store');
-  return a.raw;
-}
 
 /** The listener item fields this lane shows next to what a listener wrote (lane AC's item, read by key). */
 export type Person = {

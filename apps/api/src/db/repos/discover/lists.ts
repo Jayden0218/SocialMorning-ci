@@ -18,7 +18,7 @@
  * conditional write, a racing save gets 409 `changed` (guard G-M26-DV1). The checks below run on both backends.
  */
 import type { Db } from '../../db.ts';
-import { dual } from '../../backend.ts';
+import { viaStore } from '../../backend.ts';
 import { ApiError } from '../../../errors.ts';
 import type { EpisodeCard, ShowCard } from '../../../catalog/apple.ts';
 import { genreName } from '../../../catalog/genres.ts';
@@ -64,41 +64,9 @@ export type Override = {
 export type Active = { pins: Override[]; hides: Override[] };
 export const NONE: Active = { pins: [], hides: [] };
 
-type Row = { id: string | number; list_id: string; kind: 'pin' | 'hide'; feed_url: string | null; guid: string | null; comment_id: string | null; position: number | null; starts_at: Date | string | null; ends_at: Date | string | null; note: string | null; created_at: Date | string; live: boolean };
-const iso = (v: Date | string | null) => (v === null ? null : new Date(v).toISOString());
-const LIVE = '((starts_at IS NULL OR starts_at <= now()) AND (ends_at IS NULL OR ends_at > now()))';
-const COLS = `id, list_id, kind, feed_url, guid, comment_id::text AS comment_id, position, starts_at, ends_at, note, created_at, ${LIVE} AS live`;
-
-const toOverride = (r: Row): Override => ({
-  id: String(r.id), listId: r.list_id, kind: r.kind,
-  ...(r.feed_url !== null ? { feedUrl: r.feed_url } : {}), ...(r.guid !== null ? { guid: r.guid } : {}), ...(r.comment_id !== null ? { commentId: r.comment_id } : {}),
-  position: r.position === null ? null : Number(r.position), startsAt: iso(r.starts_at), endsAt: iso(r.ends_at), note: r.note, createdAt: iso(r.created_at)!, live: Boolean(r.live),
-});
-
 /** Pins in slot order: slotted first by slot, then the rest by when they were made. */
 export const pinOrder = (a: Override, b: Override) =>
   (a.position ?? Number.MAX_SAFE_INTEGER) - (b.position ?? Number.MAX_SAFE_INTEGER) || a.createdAt.localeCompare(b.createdAt) || Number(a.id) - Number(b.id);
-
-/** Every row of one list, live or not (Admin). */
-async function listOverridesPg(db: Db, listId: string): Promise<Override[]> {
-  const rows = await db.query<Row>(`SELECT ${COLS} FROM list_overrides WHERE list_id = $1 ORDER BY kind DESC, position NULLS LAST, created_at, id`, [listId]);
-  return rows.map(toOverride);
-}
-
-/** The rows that count NOW for several lists, in one read. A list with none is `NONE`. */
-async function activeForPg(db: Db, listIds: readonly string[]): Promise<Map<string, Active>> {
-  const out = new Map<string, Active>();
-  for (const id of listIds) out.set(id, { pins: [], hides: [] });
-  if (listIds.length === 0) return out;
-  const rows = await db.query<Row>(`SELECT ${COLS} FROM list_overrides WHERE list_id = ANY($1::text[]) AND ${LIVE}`, [[...listIds]]);
-  for (const r of rows) {
-    const o = toOverride(r);
-    const a = out.get(o.listId)!;
-    (o.kind === 'pin' ? a.pins : a.hides).push(o);
-  }
-  for (const a of out.values()) a.pins.sort(pinOrder);
-  return out;
-}
 
 export async function active(db: Db, listId: string): Promise<Active> {
   return (await activeFor(db, [listId])).get(listId) ?? NONE;
@@ -170,59 +138,15 @@ export async function putOverride(tx: Db, listId: string, o: OverrideIn, by: str
 
 export const tooManyRows = () => new ApiError('validation', `At most ${MAX_OVERRIDES_PER_LIST} rows on one list.`);
 
-async function storeOverridePg(tx: Db, listId: string, r: OverrideRow, by: string): Promise<Override> {
-  const [n] = await tx.query<{ n: number }>('SELECT count(*)::int AS n FROM list_overrides WHERE list_id = $1', [listId]);
-  if (Number(n?.n ?? 0) >= MAX_OVERRIDES_PER_LIST) throw tooManyRows();
-  await tx.query(
-    `DELETE FROM list_overrides WHERE list_id = $1 AND COALESCE(feed_url, '') = COALESCE($2::text, '') AND COALESCE(guid, '') = COALESCE($3::text, '') AND COALESCE(comment_id::text, '') = COALESCE($4::text, '')`,
-    [listId, r.feedUrl, r.guid, r.commentId],
-  );
-  const [row] = await tx.query<Row>(
-    `INSERT INTO list_overrides (list_id, kind, feed_url, guid, comment_id, position, starts_at, ends_at, note, created_by)
-     VALUES ($1, $2, $3, $4, $5::uuid, $6, $7::timestamptz, $8::timestamptz, $9, $10) RETURNING ${COLS}`,
-    [listId, r.kind, r.feedUrl, r.guid, r.commentId, r.position, r.startsAt, r.endsAt, r.note, by],
-  );
-  return toOverride(row!);
-}
-
 export async function deleteOverride(tx: Db, listId: string, id: string): Promise<boolean> {
   if (!/^\d{1,18}$/.test(id)) return false;
   return deleteOverrideRow(tx, listId, id);
-}
-
-async function deleteOverrideRowPg(tx: Db, listId: string, id: string): Promise<boolean> {
-  const rows = await tx.query('DELETE FROM list_overrides WHERE list_id = $1 AND id = $2::bigint RETURNING id', [listId, id]);
-  return rows.length > 0;
-}
-
-/** Replaces one kind of row on a list with `items` in order (slots 1…n for pins). For the M15 routes. */
-async function replaceKindPg(tx: Db, listId: string, kind: 'pin' | 'hide', items: readonly { feedUrl: string; guid?: string }[], by: string | null): Promise<void> {
-  await tx.query('DELETE FROM list_overrides WHERE list_id = $1 AND kind = $2', [listId, kind]);
-  for (const [i, it] of items.entries()) {
-    await tx.query(
-      `DELETE FROM list_overrides WHERE list_id = $1 AND feed_url = $2 AND COALESCE(guid, '') = COALESCE($3::text, '')`, [listId, it.feedUrl, it.guid ?? null]);
-    await tx.query(
-      'INSERT INTO list_overrides (list_id, kind, feed_url, guid, position, created_by) VALUES ($1, $2, $3, $4, $5, $6)',
-      [listId, kind, it.feedUrl, it.guid ?? null, kind === 'pin' ? i + 1 : null, by],
-    );
-  }
 }
 
 // ---- Per-list settings (A2: the category page's default chip) ----
 
 export const DEFAULT_TABS = ['forYou', 'all', 'newest'] as const;
 export type DefaultTab = (typeof DEFAULT_TABS)[number];
-
-async function defaultTabPg(db: Db, listId: string): Promise<DefaultTab | undefined> {
-  const [r] = await db.query<{ default_tab: DefaultTab | null }>('SELECT default_tab FROM list_settings WHERE list_id = $1', [listId]);
-  return r?.default_tab ?? undefined;
-}
-
-async function setDefaultTabPg(tx: Db, listId: string, tab: DefaultTab | null): Promise<void> {
-  await tx.query(
-    `INSERT INTO list_settings (list_id, default_tab, updated_at) VALUES ($1, $2, now())
-     ON CONFLICT (list_id) DO UPDATE SET default_tab = EXCLUDED.default_tab, updated_at = now()`, [listId, tab]);
-}
 
 // ---- Pinned items a list does not hold (from what the server already knows; no feed fetch) ----
 
@@ -245,20 +169,6 @@ export async function pinnedEpisode(db: Db, o: ItemRef, hiddenFeeds: ReadonlySet
 /** A show's own words the server keeps: its parsed feed's show block (cache `feed:<url>`), and a live Studio show. */
 export type ShowSources = { feed?: { title?: string; author?: string; imageUrl?: string }; hosted?: { title: string; author: string; cover_url: string | null } };
 
-async function showSourcesPg(db: Db, feedUrl: string): Promise<ShowSources> {
-  const out: ShowSources = {};
-  const [row] = await db.query<{ body: unknown }>('SELECT body FROM cache WHERE key = $1', [`feed:${feedUrl}`]);
-  if (row) {
-    try {
-      const b = (typeof row.body === 'string' ? JSON.parse(row.body) : row.body) as { show?: { title?: string; author?: string; imageUrl?: string } };
-      if (b.show) out.feed = b.show;
-    } catch { /* a cached body we cannot read: fall through */ }
-  }
-  const [hs] = await db.query<{ title: string; author: string; cover_url: string | null }>('SELECT title, author, cover_url FROM hosted_shows WHERE feed_url = $1 AND deleted_at IS NULL', [feedUrl]);
-  if (hs) out.hosted = hs;
-  return out;
-}
-
 /** A show card for a pinned show: the parsed feed the server cached, else its newest registered episode, else a Studio show. */
 export async function pinnedShow(db: Db, feedUrl: string | undefined, hiddenFeeds: ReadonlySet<string>): Promise<ShowCard | undefined> {
   if (feedUrl === undefined || hiddenFeeds.has(feedUrl)) return undefined;
@@ -280,12 +190,12 @@ export async function pinnedShow(db: Db, feedUrl: string | undefined, hiddenFeed
   };
 }
 
-// M26 lane DV: each runs on Postgres, or on DynamoDB (ddb/lists.ts) when the Db carries a Store (db/backend.ts).
-export const listOverrides = dual('dv/lists', 'listOverrides', listOverridesPg);
-export const activeFor = dual('dv/lists', 'activeFor', activeForPg);
-export const storeOverride = dual('dv/lists', 'storeOverride', storeOverridePg);
-export const deleteOverrideRow = dual('dv/lists', 'deleteOverrideRow', deleteOverrideRowPg);
-export const replaceKind = dual('dv/lists', 'replaceKind', replaceKindPg);
-export const defaultTab = dual('dv/lists', 'defaultTab', defaultTabPg);
-export const setDefaultTab = dual('dv/lists', 'setDefaultTab', setDefaultTabPg);
-export const showSources = dual('dv/lists', 'showSources', showSourcesPg);
+// Each runs its DynamoDB body (ddb/lists.ts) on the Store the Db carries (db/backend.ts).
+export const listOverrides = viaStore<typeof import('./ddb/lists.ts').listOverrides>('dv/lists', 'listOverrides');
+export const activeFor = viaStore<typeof import('./ddb/lists.ts').activeFor>('dv/lists', 'activeFor');
+export const storeOverride = viaStore<typeof import('./ddb/lists.ts').storeOverride>('dv/lists', 'storeOverride');
+export const deleteOverrideRow = viaStore<typeof import('./ddb/lists.ts').deleteOverrideRow>('dv/lists', 'deleteOverrideRow');
+export const replaceKind = viaStore<typeof import('./ddb/lists.ts').replaceKind>('dv/lists', 'replaceKind');
+export const defaultTab = viaStore<typeof import('./ddb/lists.ts').defaultTab>('dv/lists', 'defaultTab');
+export const setDefaultTab = viaStore<typeof import('./ddb/lists.ts').setDefaultTab>('dv/lists', 'setDefaultTab');
+export const showSources = viaStore<typeof import('./ddb/lists.ts').showSources>('dv/lists', 'showSources');

@@ -1,24 +1,24 @@
 // Guard G-M26-SF4 on DynamoDB Local: the dashboard's hourly safety counters equal a recount of the items, and the nightly check repairs one that drifted.
 /**
- * M26 lane SF. Reports, moderation actions and blocks (and one unblock) are made through the app's own functions
+ * Lane SF. Reports, moderation actions and blocks (and one unblock) are made through the app's own functions
  * at different hours of one UTC+8 day (a test clock on the Store), plus one report the next day. Then:
  * - every hour's counter `R#dash#<metric>` equals `recountDay` (the recount from the report/action/block items);
  * - the dashboard's safety numbers equal the recount's sums (and open reports = the open queue);
  * - a counter corrupted on purpose (and one that should not exist) is set back to the recount by `checkDashboard`,
  *   once a night for the automatic run.
  *
- * Break that turns it red: drop the `dashAdd` call in the DynamoDB `block()` (src/db/repos/safety/ddb/blocks.ts) —
+ * Break that turns it red: drop the `dashAdd` call in `block()` (src/db/repos/safety/ddb/blocks.ts) —
  * the blocks counters stay 0 while the recount sees the block items.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 
-/** As test/fixtures.ts DDB_ON (read here so the Postgres run never loads the DynamoDB modules). */
+/** As test/fixtures.ts DDB_ON. */
 const ON = Boolean(process.env['DDB_ENDPOINT']);
 
 test('G-M26-SF4: the hourly safety counters equal a recount of the items; the nightly check repairs a drifted one', { skip: !ON }, async () => {
-  const { migratedPg, dbOf, freshStore, signUp } = await import('./harness.ts');
+  const { freshStore, signUp } = await import('./harness.ts');
   const { testClock } = await import('./fixtures.ts');
   const { withStore } = await import('../src/db/backend-ddb.ts');
   const { get, update } = await import('../src/db/ddb/store.ts');
@@ -33,10 +33,9 @@ test('G-M26-SF4: the hourly safety counters equal a recount of the items; the ni
   const DAY = '2026-10-10';
   const NEXT = '2026-10-11';
   const clock = testClock('2026-10-09T17:05:00.000Z');
-  const { pg } = await migratedPg();
   const s = await freshStore({ clock });
-  await (await import('../src/db/repos/safety/ddb/content-seed.ts')).copyContentSeed(s.store, dbOf(pg)); // as hybridDb does
-  const db = withStore(dbOf(pg), s.store);
+  await (await import('../src/db/repos/safety/ddb/content-seed.ts')).seedDefaultContent(s.store);
+  const db = withStore(undefined, s.store);
   try {
     const a = (await signUp({ db }, 'a@example.com', 'Ana')).id;
     const b = (await signUp({ db }, 'b@example.com', 'Ben')).id;
@@ -117,6 +116,5 @@ test('G-M26-SF4: the hourly safety counters equal a recount of the items; the ni
     assert.deepEqual(await counters(DAY), recount);
   } finally {
     await s.close();
-    await pg.close();
   }
 });

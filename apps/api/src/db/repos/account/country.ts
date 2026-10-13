@@ -6,8 +6,7 @@
  * two letters only, never a city or an address (guard G-I1). Anything that is not two letters
  * leaves the stored value alone.
  */
-import type { Db } from '../../db.ts';
-import { dual } from '../../backend.ts';
+import { viaStore } from '../../backend.ts';
 
 export const COUNTRY_HEADER = 'x-vercel-ip-country';
 
@@ -16,8 +15,4 @@ export function countryOf(header: string | undefined | null): string | undefined
   return /^[A-Z]{2}$/.test(v) && v !== 'XX' ? v : undefined;
 }
 
-export const recordCountry = dual('ac/index', 'recordCountry', async (db: Db, listenerId: string, header: string | undefined | null): Promise<void> => {
-  const c = countryOf(header);
-  if (c === undefined) return;
-  await db.query('UPDATE listeners SET country = $2 WHERE id = $1', [listenerId, c]);
-});
+export const recordCountry = viaStore<typeof import('./ddb/index.ts').recordCountry>('ac/index', 'recordCountry');

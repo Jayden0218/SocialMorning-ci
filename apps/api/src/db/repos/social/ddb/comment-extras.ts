@@ -15,9 +15,7 @@ import { isConflict, withRetry } from '../../../ddb/retry.ts';
 import { get, type Item, type Store } from '../../../ddb/store.ts';
 import { tx, TxCancelled } from '../../../ddb/tx.ts';
 import { UNFRIENDLY_FOLD_AT } from '../comments.ts';
-import { pinAsHost as pinAsHostDual, pinBottomAsHost as pinBottomAsHostDual } from '../comment-extras.ts';
-import * as B from './sc-bridge.ts';
-import { bumpSocial, commentItemById, commitRetry, keyOf, nowIso, rawPg } from './sc-common.ts';
+import { bumpSocial, commentItemById, commitRetry, keyOf, nowIso } from './sc-common.ts';
 
 type End = 'top' | 'bottom';
 const FIELD = { top: 'pinnedId', bottom: 'pinnedBottomId' } as const;
@@ -81,14 +79,10 @@ async function pinEnd(store: Store, end: End, commentId: string, episodeId: stri
 /** The Studio has already checked the role; it pins by comment and episode. */
 export async function pinAsHost(store: Store, db: Db, commentId: string, episodeId: string, by: string, pin: boolean): Promise<void> {
   await pinEnd(store, 'top', commentId, episodeId, pin, by);
-  const raw = rawPg(db);
-  if (raw) await pinAsHostDual(raw, commentId, episodeId, by, pin);
 }
 
 export async function pinBottomAsHost(store: Store, db: Db, commentId: string, episodeId: string, pin: boolean): Promise<void> {
   await pinEnd(store, 'bottom', commentId, episodeId, pin, undefined);
-  const raw = rawPg(db);
-  if (raw) await pinBottomAsHostDual(raw, commentId, episodeId, pin);
 }
 
 async function markStep(store: Store, it: Item, listenerId: string, on: boolean): Promise<boolean> {
@@ -120,8 +114,6 @@ export async function setUnfriendly(store: Store, db: Db, commentId: string, lis
   if (!it || it['deletedAt'] || it['removedAt']) throw new ApiError('not_found', 'No such comment.');
   if (it['authorId'] === listenerId) throw new ApiError('own_comment', "You can't mark your own comment.");
   if (await markStep(store, it, listenerId, on)) {
-    const raw = rawPg(db);
-    if (raw) await (on ? B.insertUnfriendly(raw, commentId, listenerId) : B.deleteUnfriendly(raw, commentId, listenerId));
   }
   const now = await get(store, 'main', keyOf(it));
   return { folded: Number(now?.['unfriendlyCount'] ?? 0) >= UNFRIENDLY_FOLD_AT };

@@ -1,0 +1,2316 @@
+[
+  {
+    "name": "terms--first-launch",
+    "area": "auth",
+    "kind": "screen",
+    "covers": [],
+    "as": "visitor",
+    "steps": [
+      {
+        "see": "Service Agreement and Privacy Policy"
+      }
+    ],
+    "design": "Terms-B",
+    "status": "CAPTURE",
+    "note": "The first-launch Terms page (src/ui/shell/Terms.tsx). It has no code site of its own. Needs a fresh install (terms.accepted unset); shown over the app, so no open step."
+  },
+  {
+    "name": "terms--refused",
+    "area": "auth",
+    "kind": "variant",
+    "covers": [],
+    "as": "visitor",
+    "steps": [
+      {
+        "tap": "Disagree"
+      },
+      {
+        "see": "Agree and continue"
+      }
+    ],
+    "design": "TermsRefused-B",
+    "status": "CAPTURE",
+    "note": "Second Terms page after Disagree."
+  },
+  {
+    "name": "terms--full-document",
+    "area": "auth",
+    "kind": "sheet",
+    "covers": [],
+    "as": "visitor",
+    "steps": [
+      {
+        "tap": "Read the full agreement"
+      },
+      {
+        "see": "Software Licence and Service Agreement"
+      }
+    ],
+    "design": "LegalDoc-B",
+    "status": "CAPTURE",
+    "note": "The first Terms card is open on arrival, so its \"Read the full agreement\" link is shown; opens LegalDoc inside the Terms overlay."
+  },
+  {
+    "name": "auth-sign-in--screen",
+    "area": "auth",
+    "kind": "screen",
+    "covers": [
+      "app/auth/sign-in.tsx::route::route"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/auth/sign-in"
+      },
+      {
+        "see": "Continue with email"
+      }
+    ],
+    "design": "SignIn-B",
+    "status": "CAPTURE",
+    "note": "Needs the Terms already accepted in this run."
+  },
+  {
+    "name": "auth-sign-in--consent-sheet",
+    "area": "auth",
+    "kind": "sheet",
+    "covers": [
+      "src/ui/auth/Consent.tsx::sheet::#1"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/auth/sign-in"
+      },
+      {
+        "tap": "Continue with email"
+      },
+      {
+        "see": "Before you continue"
+      }
+    ],
+    "design": "ConsentDialog-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "auth-sign-in--legal-document",
+    "area": "auth",
+    "kind": "sheet",
+    "covers": [
+      "src/ui/auth/Consent.tsx::sheet::#2"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/auth/sign-in"
+      },
+      {
+        "tap": "Service Agreement"
+      },
+      {
+        "see": "Software Licence and Service Agreement"
+      }
+    ],
+    "design": "LegalDoc-B",
+    "status": "CAPTURE",
+    "note": "Full-screen Modal with the agreement, opened from the link in the consent line."
+  },
+  {
+    "name": "auth-sign-in--notification-permission",
+    "area": "auth",
+    "kind": "permission",
+    "covers": [
+      "src/notify/expo.ts::permission::requestPermissionsAsync"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/auth/sign-in"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "The iOS \"SocialNet Would Like to Send You Notifications\" alert is raised when the sign-in page opens (askForNotifications). Simulator-only system alert; no see step, because the alert covers the app, so the shot is taken when the network is quiet. Needs a clear-state launch so it has not been asked before.",
+    "web": "skip: system permission prompt"
+  },
+  {
+    "name": "auth-email--screen",
+    "area": "auth",
+    "kind": "screen",
+    "covers": [
+      "app/auth/email.tsx::route::route"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/auth/email"
+      },
+      {
+        "see": "Send code"
+      }
+    ],
+    "design": "EmailAuth-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "auth-email--consent-sheet",
+    "area": "auth",
+    "kind": "sheet",
+    "covers": [],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/auth/email"
+      },
+      {
+        "type": "Email",
+        "text": "capture-newcomer@example.com"
+      },
+      {
+        "tap": "Send code"
+      },
+      {
+        "see": "Before you continue"
+      }
+    ],
+    "design": "ConsentDialog-B",
+    "status": "CAPTURE",
+    "note": "Same sheet as auth-sign-in--consent-sheet, asked here when the page is opened without the box ticked."
+  },
+  {
+    "name": "auth-email--code-step",
+    "area": "auth",
+    "kind": "variant",
+    "covers": [],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/auth/email"
+      },
+      {
+        "type": "Email",
+        "text": "capture-newcomer@example.com"
+      },
+      {
+        "tap": "I have read and agree to the Service Agreement and Privacy Policy"
+      },
+      {
+        "tap": "Send code"
+      },
+      {
+        "see": "Enter the code"
+      }
+    ],
+    "design": "EmailCode-B",
+    "status": "CAPTURE",
+    "note": "Sends a code to a new address on the test server."
+  },
+  {
+    "name": "auth-email--name-step",
+    "area": "auth",
+    "kind": "variant",
+    "covers": [],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/auth/email"
+      },
+      {
+        "type": "Email",
+        "text": "capture-newcomer@example.com"
+      },
+      {
+        "tap": "I have read and agree to the Service Agreement and Privacy Policy"
+      },
+      {
+        "tap": "Send code"
+      },
+      {
+        "see": "Enter the code"
+      },
+      {
+        "type": "Code",
+        "text": "{code}"
+      },
+      {
+        "tap": "Continue"
+      },
+      {
+        "see": "Your name"
+      }
+    ],
+    "design": "SignUp-B",
+    "status": "CAPTURE",
+    "note": "{code} is the emailed 6-digit code, read from the test server inbox (GET /__e2e/code?email=capture-newcomer@example.com), as .maestro/fetch-code.js does. Includes the \"I am 14 or older\" row."
+  },
+  {
+    "name": "auth-email--under-age",
+    "area": "auth",
+    "kind": "variant",
+    "covers": [],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/auth/email"
+      },
+      {
+        "type": "Email",
+        "text": "capture-newcomer@example.com"
+      },
+      {
+        "tap": "I have read and agree to the Service Agreement and Privacy Policy"
+      },
+      {
+        "tap": "Send code"
+      },
+      {
+        "see": "Enter the code"
+      },
+      {
+        "type": "Code",
+        "text": "{code}"
+      },
+      {
+        "tap": "Continue"
+      },
+      {
+        "tap": "I am under 14"
+      },
+      {
+        "see": "SocialNet is for people aged 14 and over, so we cannot make an account for you. You have not been signed up, and nothing was kept."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "The sign-up ends with a plain line. {code} as in auth-email--name-step."
+  },
+  {
+    "name": "auth-email--suspended",
+    "area": "auth",
+    "kind": "variant",
+    "covers": [],
+    "as": "suspended",
+    "steps": [
+      {
+        "open": "/auth/email"
+      },
+      {
+        "see": "Appeal"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "The refusal line and the Appeal link show only after a suspended listener has been refused at sign-in (SUSPENDED_KEY is set); the walker must try a sign-in as the suspended seed account first, then the page shows them."
+  },
+  {
+    "name": "auth-sign-up--screen",
+    "area": "auth",
+    "kind": "screen",
+    "covers": [
+      "app/auth/sign-up.tsx::route::route"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/auth/sign-up"
+      }
+    ],
+    "design": null,
+    "status": "EXCLUDED",
+    "reason": "redirects to /auth/email, no screen of its own"
+  },
+  {
+    "name": "onboarding-interests--screen",
+    "area": "onboarding",
+    "kind": "screen",
+    "covers": [
+      "app/onboarding/interests.tsx::route::route"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/onboarding/interests"
+      },
+      {
+        "see": "What do you like?"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "onboarding-interests--picked",
+    "area": "onboarding",
+    "kind": "variant",
+    "covers": [],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/onboarding/interests"
+      },
+      {
+        "tap": "Business"
+      },
+      {
+        "tap": "Society & Culture"
+      },
+      {
+        "see": "2 picked"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "onboarding-not-liking--screen",
+    "area": "onboarding",
+    "kind": "screen",
+    "covers": [
+      "app/onboarding/not-liking.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/onboarding/not-liking"
+      },
+      {
+        "see": "What's wrong?"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "account--screen",
+    "area": "settings",
+    "kind": "screen",
+    "covers": [
+      "app/account.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/account"
+      },
+      {
+        "see": "Account and security"
+      }
+    ],
+    "design": "Account-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "account--signed-out",
+    "area": "settings",
+    "kind": "variant",
+    "covers": [],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/account"
+      },
+      {
+        "see": "Account and security"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "No Sign out button."
+  },
+  {
+    "name": "account--sign-out-dialog",
+    "area": "settings",
+    "kind": "dialog",
+    "covers": [],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/account"
+      },
+      {
+        "tap": "Sign out"
+      },
+      {
+        "see": "Your downloads stay on this phone. Unsent comment drafts are cleared."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "An AlertDialog in src/ui/me/SignOut.tsx; not a counted site."
+  },
+  {
+    "name": "settings-account--screen",
+    "area": "settings",
+    "kind": "screen",
+    "covers": [
+      "app/settings/account.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/account"
+      },
+      {
+        "see": "Signed-in devices"
+      }
+    ],
+    "design": "SettingsAccount-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "settings-account--signed-out",
+    "area": "settings",
+    "kind": "variant",
+    "covers": [],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/settings/account"
+      },
+      {
+        "see": "Not signed in"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "No Change, no Signed-in devices row."
+  },
+  {
+    "name": "settings-account-email--screen",
+    "area": "settings",
+    "kind": "screen",
+    "covers": [
+      "app/settings/account-email.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/account-email"
+      },
+      {
+        "see": "Email me a code"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "settings-account-email--codes-sent",
+    "area": "settings",
+    "kind": "variant",
+    "covers": [],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/account-email"
+      },
+      {
+        "type": "New email",
+        "text": "capture-change@example.com"
+      },
+      {
+        "tap": "Email me a code"
+      },
+      {
+        "see": "Code from your current email"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "toast--settings-account-email",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/settings/account-email.tsx::toast::<dynamic>#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/account-email"
+      },
+      {
+        "type": "New email",
+        "text": "capture-change@example.com"
+      },
+      {
+        "tap": "Email me a code"
+      },
+      {
+        "type": "Code from your new email",
+        "text": "{code}"
+      },
+      {
+        "type": "Code from your current email",
+        "text": "{oldcode}"
+      },
+      {
+        "tap": "Change email"
+      },
+      {
+        "see": "Email changed."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Triggers \"Email changed.\" {code} = code mailed to capture-change@example.com, {oldcode} = code mailed to the signed-in listener; both read from GET /__e2e/code. This changes the listener's email: run it last for the listener account."
+  },
+  {
+    "name": "settings-account-more--screen",
+    "area": "settings",
+    "kind": "screen",
+    "covers": [
+      "app/settings/account-more.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/account-more"
+      },
+      {
+        "see": "Delete my account…"
+      }
+    ],
+    "design": "SettingsAccountMore-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "settings-account-more--signed-out",
+    "area": "settings",
+    "kind": "variant",
+    "covers": [],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/settings/account-more"
+      },
+      {
+        "see": "Sign in to manage your account."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "settings-account-more--delete-steps",
+    "area": "settings",
+    "kind": "variant",
+    "covers": [],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/account-more"
+      },
+      {
+        "tap": "Delete my account"
+      },
+      {
+        "see": "Enter the 6-digit code"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "settings-account-more--code-sent",
+    "area": "settings",
+    "kind": "variant",
+    "covers": [],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/account-more"
+      },
+      {
+        "tap": "Delete my account"
+      },
+      {
+        "tap": "Email me a code to confirm"
+      },
+      {
+        "see": "Code"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "\"Email me a code to confirm\" is both the step title and the bottom button; the button is the one to press. Stops before the final Delete account."
+  },
+  {
+    "name": "pending-deletion--sheet",
+    "area": "auth",
+    "kind": "sheet",
+    "covers": [
+      "src/ui/auth/PendingDeletion.tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "see": "Keep your account?"
+      }
+    ],
+    "design": null,
+    "status": "NOT_CAPTURABLE",
+    "reason": "shown only when an account signs in during its 15-day deletion wait; no seed account is in that state and making one would delete a seed account (a seed account for it would make this CAPTURE)"
+  },
+  {
+    "name": "toast--pending-deletion",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "src/ui/auth/PendingDeletion.tsx::toast::Your account is staying. Everything is back."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "see": "Your account is staying. Everything is back."
+      }
+    ],
+    "design": null,
+    "status": "NOT_CAPTURABLE",
+    "reason": "needs the pending-deletion sheet (Keep my account); see pending-deletion--sheet",
+    "note": "Message: \"Your account is staying. Everything is back.\""
+  },
+  {
+    "name": "settings-appearance--screen",
+    "area": "settings",
+    "kind": "screen",
+    "covers": [
+      "app/settings/appearance.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/appearance"
+      },
+      {
+        "see": "Accent colour"
+      }
+    ],
+    "design": "SettingsAppearance-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "settings-appearance--app-icon-locked",
+    "area": "settings",
+    "kind": "variant",
+    "covers": [],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/appearance"
+      },
+      {
+        "see": "Part of PLUS."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "The App icon section is drawn only where the OS supports alternate icons (iPhone, Android); a non-PLUS listener sees the choices disabled and \"Open Wallet\".",
+    "web": "skip: native alternate-icon module"
+  },
+  {
+    "name": "settings-appearance--app-icon-plus",
+    "area": "settings",
+    "kind": "variant",
+    "covers": [],
+    "as": "plus",
+    "steps": [
+      {
+        "open": "/settings/appearance"
+      },
+      {
+        "see": "App icon: Sunrise"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "web": "skip: native alternate-icon module"
+  },
+  {
+    "name": "settings-appearance--change-icon-dialog",
+    "area": "settings",
+    "kind": "dialog",
+    "covers": [
+      "app/settings/appearance.tsx::dialog::Change the app icon?"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/appearance"
+      },
+      {
+        "tap": "App icon: Sunrise"
+      },
+      {
+        "see": "Change the app icon?"
+      }
+    ],
+    "design": null,
+    "status": "NOT_CAPTURABLE",
+    "reason": "the dialog is asked only on Android (\"The app will close to change its icon\"); the capture runs on an iOS simulator and the web build"
+  },
+  {
+    "name": "toast--settings-appearance",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/settings/appearance.tsx::toast::The icon could not be changed. Try again."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/appearance"
+      },
+      {
+        "see": "The icon could not be changed. Try again."
+      }
+    ],
+    "design": null,
+    "status": "NOT_CAPTURABLE",
+    "reason": "shown only when the OS refuses the icon change; a simulator accepts it",
+    "note": "Message: \"The icon could not be changed. Try again.\""
+  },
+  {
+    "name": "settings-background--screen",
+    "area": "settings",
+    "kind": "screen",
+    "covers": [
+      "app/settings/background.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/background"
+      },
+      {
+        "see": "On iPhone, SocialNet keeps playing with the screen off. Nothing to set."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "On iPhone this page is one line; the Android steps list is not drawn on iOS or web."
+  },
+  {
+    "name": "settings-blocked--screen",
+    "area": "settings",
+    "kind": "screen",
+    "covers": [
+      "app/settings/blocked.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/blocked"
+      },
+      {
+        "see": "You have not blocked anyone"
+      }
+    ],
+    "design": "SettingsBlocked-B",
+    "status": "CAPTURE",
+    "note": "The empty list; blocks are kept on the phone, so see settings-blocked--with-blocks."
+  },
+  {
+    "name": "settings-blocked--with-blocks",
+    "area": "settings",
+    "kind": "variant",
+    "covers": [],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/profile/{user}"
+      },
+      {
+        "tap": "Block"
+      },
+      {
+        "see": "Nothing they write, clip or do will show for you. They will not be told."
+      },
+      {
+        "tap": "Block"
+      },
+      {
+        "open": "/settings/blocked"
+      },
+      {
+        "see": "listener blocked"
+      }
+    ],
+    "design": "SettingsBlocked-B",
+    "status": "CAPTURE",
+    "note": "The profile button \"Block\" and the sheet action \"Block\" share a name; the sheet one is the second tap."
+  },
+  {
+    "name": "settings-collected--screen",
+    "area": "settings",
+    "kind": "screen",
+    "covers": [
+      "app/settings/collected.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/collected"
+      },
+      {
+        "see": "SocialNet keeps the information below, and nothing else."
+      }
+    ],
+    "design": "SettingsCollected-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "settings-collected--detail-sheet",
+    "area": "settings",
+    "kind": "sheet",
+    "covers": [
+      "app/settings/collected.tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/collected"
+      },
+      {
+        "tap": "Account details"
+      },
+      {
+        "see": "What SocialNet keeps"
+      }
+    ],
+    "design": "CollectedDetail-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "settings-collected--signed-out",
+    "area": "settings",
+    "kind": "variant",
+    "covers": [],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/settings/collected"
+      },
+      {
+        "see": "SocialNet keeps the information below, and nothing else."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Counts of account items are 0."
+  },
+  {
+    "name": "settings-devices--screen",
+    "area": "settings",
+    "kind": "screen",
+    "covers": [
+      "app/settings/devices.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/devices"
+      },
+      {
+        "see": "This phone"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "settings-devices--loading",
+    "area": "settings",
+    "kind": "loading",
+    "covers": [],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/me/sessions",
+          "mode": "slow"
+        }
+      },
+      {
+        "open": "/settings/devices"
+      },
+      {
+        "see": "Loading…"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Page-level loading. The fault must be cleared (mode off) before the next entry."
+  },
+  {
+    "name": "settings-devices--error",
+    "area": "settings",
+    "kind": "error",
+    "covers": [],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/me/sessions",
+          "mode": "fail"
+        }
+      },
+      {
+        "open": "/settings/devices"
+      },
+      {
+        "see": "Couldn't load your devices. Tap to try again."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Page-level error. Clear the fault afterwards."
+  },
+  {
+    "name": "settings-devices--signed-out",
+    "area": "settings",
+    "kind": "variant",
+    "covers": [],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/settings/devices"
+      },
+      {
+        "see": "Sign in to see your devices."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "toast--settings-devices",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/settings/devices.tsx::toast::${d.label} is signed out.",
+      "app/settings/devices.tsx::toast::<dynamic>#1",
+      "app/settings/devices.tsx::toast::Couldn't sign that device out — try again when you're online.",
+      "app/settings/devices.tsx::toast::Couldn't sign the others out — try again when you're online."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/devices"
+      },
+      {
+        "tap": "Sign out all other devices"
+      },
+      {
+        "tap": "Tap again to sign out every other device"
+      },
+      {
+        "see": "Signed out of 1 other device."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Triggers \"Signed out of 1 other device.\" (the dynamic line). Needs the listener to hold one more session than the phone's own; the \"Sign out all other devices\" button is drawn only then. The second tap uses the button's changed name."
+  },
+  {
+    "name": "settings-downloads--screen",
+    "area": "settings",
+    "kind": "screen",
+    "covers": [
+      "app/settings/downloads.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/downloads"
+      },
+      {
+        "see": "When to download"
+      }
+    ],
+    "design": "SettingsDownloads-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "settings-downloads--clear-cache-dialog",
+    "area": "settings",
+    "kind": "dialog",
+    "covers": [
+      "app/settings/downloads.tsx::dialog::Clear cache?"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/downloads"
+      },
+      {
+        "tap": "Clear cache"
+      },
+      {
+        "see": "Clear cache?"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "settings-downloads--clear-downloads-dialog",
+    "area": "settings",
+    "kind": "dialog",
+    "covers": [
+      "app/settings/downloads.tsx::dialog::Clear downloaded episodes?"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/downloads"
+      },
+      {
+        "tap": "Clear downloaded episodes"
+      },
+      {
+        "see": "Clear downloaded episodes?"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Needs at least one completed download on the phone; without one the tap only shows a toast and the entry is MISSED. The seed has to download an episode first."
+  },
+  {
+    "name": "toast--settings-downloads",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/settings/downloads.tsx::toast::Cache cleared — ${sizeLabel(freed)} freed.",
+      "app/settings/downloads.tsx::toast::Downloads cleared.",
+      "app/settings/downloads.tsx::toast::There are no downloaded episodes."
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/settings/downloads"
+      },
+      {
+        "tap": "Clear downloaded episodes"
+      },
+      {
+        "see": "There are no downloaded episodes."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Triggers \"There are no downloaded episodes.\" (an account with no downloads)."
+  },
+  {
+    "name": "settings-feedback--screen",
+    "area": "settings",
+    "kind": "screen",
+    "covers": [
+      "app/settings/feedback.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/feedback"
+      },
+      {
+        "see": "It is about"
+      }
+    ],
+    "design": "SettingsFeedback-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "settings-feedback--signed-out",
+    "area": "settings",
+    "kind": "variant",
+    "covers": [],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/settings/feedback"
+      },
+      {
+        "see": "It is about"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "No image count and no Add an image button."
+  },
+  {
+    "name": "settings-feedback--mine-empty",
+    "area": "settings",
+    "kind": "empty",
+    "covers": [],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/settings/feedback"
+      },
+      {
+        "tap": "My feedback"
+      },
+      {
+        "see": "Nothing sent yet"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "toast--settings-feedback",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/settings/feedback.tsx::toast::Allow photo access for SocialNet in your phone’s Settings to add images.",
+      "app/settings/feedback.tsx::toast::Could not open your photos.",
+      "app/settings/feedback.tsx::toast::Could not send — check your connection.",
+      "app/settings/feedback.tsx::toast::One image was too large even after shrinking, and was left out.",
+      "app/settings/feedback.tsx::toast::Opened your email app — send the message from there.",
+      "app/settings/feedback.tsx::toast::Sent. Thank you."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/feedback"
+      },
+      {
+        "tap": "Using the app"
+      },
+      {
+        "type": "Your feedback",
+        "text": "Capture run, please ignore this note."
+      },
+      {
+        "tap": "Send"
+      },
+      {
+        "see": "Sent. Thank you."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Triggers \"Sent. Thank you.\" The other five messages need a refused photo permission, a failed send or a mail hand-off."
+  },
+  {
+    "name": "settings-feedback--email-fallback",
+    "area": "settings",
+    "kind": "system",
+    "covers": [
+      "app/settings/feedback.tsx::system::open-url#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/feedback",
+          "mode": "fail"
+        }
+      },
+      {
+        "open": "/settings/feedback"
+      },
+      {
+        "tap": "Using the app"
+      },
+      {
+        "type": "Your feedback",
+        "text": "Capture run, please ignore this note."
+      },
+      {
+        "tap": "Send"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "With the send refused the app hands the message to the mail app (mailto:). The shot shows whatever the simulator does with it (Mail, or the toast \"Could not send — check your connection.\"). No see step. Clear the fault afterwards.",
+    "web": "skip: opens the phone mail app"
+  },
+  {
+    "name": "settings-feedback--photo-permission",
+    "area": "settings",
+    "kind": "permission",
+    "covers": [
+      "src/settings/feedback-images.ts::permission::requestMediaLibraryPermissionsAsync"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/settings/feedback"
+      },
+      {
+        "tap": "Add an image"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "iOS photo-library permission alert, raised on the first tap of Add an image. Simulator-only system alert; no see step.",
+    "web": "skip: system permission prompt"
+  },
+  {
+    "name": "settings-feedback--photo-picker",
+    "area": "settings",
+    "kind": "system",
+    "covers": [
+      "src/settings/feedback-images.ts::system::photo-picker#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/feedback"
+      },
+      {
+        "tap": "Add an image"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "The iOS photo picker, after photo access is already allowed (grant it before this entry in the listener run). No see step.",
+    "web": "skip: system photo picker"
+  },
+  {
+    "name": "settings-help--screen",
+    "area": "settings",
+    "kind": "screen",
+    "covers": [
+      "app/settings/help.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/help"
+      },
+      {
+        "see": "Common questions"
+      }
+    ],
+    "design": "SettingsHelp-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "settings-help--answer-open",
+    "area": "settings",
+    "kind": "variant",
+    "covers": [],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/help"
+      },
+      {
+        "tap": "Where does the audio come from?"
+      },
+      {
+        "see": "Every episode plays straight from its publisher. SocialNet never stores or hosts audio."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "settings-help--contact-support",
+    "area": "settings",
+    "kind": "system",
+    "covers": [
+      "app/settings/help.tsx::system::open-url#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/help"
+      },
+      {
+        "tap": "Contact support"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "mailto: hand-off to the mail app; the shot shows what the simulator does with it. No see step. If the appeals address has not loaded the tile reads \"Contact support (offline)\" and does nothing.",
+    "web": "skip: opens the phone mail app"
+  },
+  {
+    "name": "settings-how-for-you--screen",
+    "area": "settings",
+    "kind": "screen",
+    "covers": [
+      "app/settings/how-for-you.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/how-for-you"
+      },
+      {
+        "see": "How For You works"
+      }
+    ],
+    "design": "SettingsHowForYou-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "settings-licences--screen",
+    "area": "settings",
+    "kind": "screen",
+    "covers": [
+      "app/settings/licences.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/licences"
+      },
+      {
+        "see": "@adobe/react-spectrum"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "settings-licences--package-detail",
+    "area": "settings",
+    "kind": "variant",
+    "covers": [],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/licences"
+      },
+      {
+        "tap": "@adobe/react-spectrum"
+      },
+      {
+        "see": "https://github.com/adobe/react-spectrum"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Taps the first package; the licence text page."
+  },
+  {
+    "name": "settings-licences--package-link",
+    "area": "settings",
+    "kind": "system",
+    "covers": [
+      "app/settings/licences.tsx::system::open-url#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/licences"
+      },
+      {
+        "tap": "@adobe/react-spectrum"
+      },
+      {
+        "tap": "https://github.com/adobe/react-spectrum"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Hands the package address to the browser; the shot shows the browser. No see step.",
+    "web": "skip: opens the phone browser"
+  },
+  {
+    "name": "settings-minor--screen",
+    "area": "settings",
+    "kind": "screen",
+    "covers": [
+      "app/settings/minor.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/minor"
+      },
+      {
+        "see": "Hide explicit episodes"
+      }
+    ],
+    "design": "SettingsMinor-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "settings-minor--set-passcode",
+    "area": "settings",
+    "kind": "variant",
+    "covers": [],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/minor"
+      },
+      {
+        "tap": "Hide explicit episodes"
+      },
+      {
+        "see": "Choose a 4-digit passcode. You will need it to turn minor mode off."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "settings-minor--confirm-passcode",
+    "area": "settings",
+    "kind": "variant",
+    "covers": [],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/minor"
+      },
+      {
+        "tap": "Hide explicit episodes"
+      },
+      {
+        "type": "Passcode",
+        "text": "1234"
+      },
+      {
+        "see": "Enter the same 4 digits again."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "toast--settings-minor",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/settings/minor.tsx::toast::Minor mode is off and the passcode is cleared.",
+      "app/settings/minor.tsx::toast::Minor mode is on. Keep the passcode somewhere safe."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/minor"
+      },
+      {
+        "tap": "Hide explicit episodes"
+      },
+      {
+        "type": "Passcode",
+        "text": "1234"
+      },
+      {
+        "type": "Passcode again",
+        "text": "1234"
+      },
+      {
+        "see": "Minor mode is on. Keep the passcode somewhere safe."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Triggers \"Minor mode is on. Keep the passcode somewhere safe.\" This turns minor mode on for the phone, so keep it the last minor entry of the listener run. The \"off\" message needs the emailed reset code."
+  },
+  {
+    "name": "settings-minor--turn-off-prompt",
+    "area": "settings",
+    "kind": "variant",
+    "covers": [],
+    "as": "plus",
+    "steps": [
+      {
+        "open": "/settings/minor"
+      },
+      {
+        "tap": "Hide explicit episodes"
+      },
+      {
+        "type": "Passcode",
+        "text": "1234"
+      },
+      {
+        "type": "Passcode again",
+        "text": "1234"
+      },
+      {
+        "tap": "Hide explicit episodes"
+      },
+      {
+        "see": "Enter your passcode to turn minor mode off."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Run in the plus account (a separate phone state from the listener run): turns minor mode on, then asks for the passcode to turn it off."
+  },
+  {
+    "name": "settings-minor--forgot-passcode",
+    "area": "settings",
+    "kind": "variant",
+    "covers": [],
+    "as": "plus",
+    "steps": [
+      {
+        "open": "/settings/minor"
+      },
+      {
+        "tap": "Hide explicit episodes"
+      },
+      {
+        "type": "Passcode",
+        "text": "1234"
+      },
+      {
+        "type": "Passcode again",
+        "text": "1234"
+      },
+      {
+        "tap": "Hide explicit episodes"
+      },
+      {
+        "tap": "Forgot passcode?"
+      },
+      {
+        "see": "Enter the 6-digit code we emailed to your account."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Follows settings-minor--turn-off-prompt in the plus run if the phone state is carried on; otherwise it makes its own passcode."
+  },
+  {
+    "name": "settings-more--screen",
+    "area": "settings",
+    "kind": "screen",
+    "covers": [
+      "app/settings/more.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/more"
+      },
+      {
+        "see": "Your shows"
+      }
+    ],
+    "design": "SettingsMore-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "settings-network--screen",
+    "area": "settings",
+    "kind": "screen",
+    "covers": [
+      "app/settings/network.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/network"
+      },
+      {
+        "see": "Start the check"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "settings-network--results",
+    "area": "settings",
+    "kind": "variant",
+    "covers": [],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/network"
+      },
+      {
+        "tap": "Start the check"
+      },
+      {
+        "see": "Copy the result"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "toast--settings-network",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/settings/network.tsx::toast::Copied.",
+      "app/settings/network.tsx::toast::Could not copy.",
+      "app/settings/network.tsx::system::clipboard#1",
+      "app/settings/network.tsx::system::clipboard#2"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/network"
+      },
+      {
+        "tap": "Start the check"
+      },
+      {
+        "tap": "Copy the result"
+      },
+      {
+        "see": "Copied."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Triggers \"Copied.\" (also exercises the two clipboard sites). \"Could not copy.\" needs the clipboard to refuse."
+  },
+  {
+    "name": "settings-not-interested--screen",
+    "area": "settings",
+    "kind": "screen",
+    "covers": [
+      "app/settings/not-interested.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/not-interested"
+      },
+      {
+        "see": "Not interested"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "settings-not-interested--empty",
+    "area": "settings",
+    "kind": "empty",
+    "covers": [],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/settings/not-interested"
+      },
+      {
+        "see": "Nothing hidden. Use ⋯ on a For You row to hide it."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "settings-not-interested--signed-out",
+    "area": "settings",
+    "kind": "variant",
+    "covers": [],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/settings/not-interested"
+      },
+      {
+        "see": "Sign in to see what you hid from For You."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "toast--settings-not-interested",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/settings/not-interested.tsx::toast::Couldn't restore — try again.",
+      "app/settings/not-interested.tsx::toast::Restored"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/not-interested"
+      },
+      {
+        "tap": "Restore"
+      },
+      {
+        "see": "Restored"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Triggers \"Restored\". Needs one hidden item in the listener's dismissals (the seed hides one For You row)."
+  },
+  {
+    "name": "settings-opml--screen",
+    "area": "settings",
+    "kind": "screen",
+    "covers": [
+      "app/settings/opml.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/opml"
+      },
+      {
+        "see": "Export subscriptions"
+      }
+    ],
+    "design": "SettingsOpml-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "settings-opml--from-app",
+    "area": "settings",
+    "kind": "variant",
+    "covers": [],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/opml"
+      },
+      {
+        "tap": "From Overcast"
+      },
+      {
+        "see": "Export OPML from your other app"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Opens the steps for one app."
+  },
+  {
+    "name": "settings-opml--found",
+    "area": "settings",
+    "kind": "variant",
+    "covers": [],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/opml"
+      },
+      {
+        "type": "OPML to import",
+        "text": "<opml version=\"2.0\"><body><outline type=\"rss\" xmlUrl=\"https://example.com/capture-feed.xml\"/></body></opml>"
+      },
+      {
+        "see": "Subscribe to 1"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Pasted OPML with one new show. Does not press Subscribe."
+  },
+  {
+    "name": "settings-opml--export-sheet",
+    "area": "settings",
+    "kind": "sheet",
+    "covers": [],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/opml"
+      },
+      {
+        "tap": "Export subscriptions"
+      },
+      {
+        "see": "OPML to another app"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "The share panel (the sheet code lives in src/ui/clips/ShareChooser.tsx). Needs a listener with subscriptions."
+  },
+  {
+    "name": "settings-opml--share-sheet",
+    "area": "settings",
+    "kind": "system",
+    "covers": [
+      "app/settings/opml.tsx::system::Share.share#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/opml"
+      },
+      {
+        "tap": "Export subscriptions"
+      },
+      {
+        "tap": "More ways to share"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "The iOS share sheet carrying the OPML text. No see step.",
+    "web": "skip: system share sheet"
+  },
+  {
+    "name": "toast--settings-opml",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/settings/opml.tsx::toast::Subscribed to ${plural(fresh.length, 'show')}.",
+      "app/settings/opml.tsx::toast::You have no subscriptions to export."
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/settings/opml"
+      },
+      {
+        "tap": "Export subscriptions"
+      },
+      {
+        "see": "You have no subscriptions to export."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Triggers \"You have no subscriptions to export.\" (an account with no subscriptions). The \"Subscribed to ...\" message would add a pretend show."
+  },
+  {
+    "name": "settings-playback--screen",
+    "area": "settings",
+    "kind": "screen",
+    "covers": [
+      "app/settings/playback.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/playback"
+      },
+      {
+        "see": "Music mode"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "settings-privacy--screen",
+    "area": "settings",
+    "kind": "screen",
+    "covers": [
+      "app/settings/privacy.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/privacy"
+      },
+      {
+        "see": "Blocked listeners"
+      }
+    ],
+    "design": "SettingsPrivacy-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "settings-privacy--signed-out",
+    "area": "settings",
+    "kind": "variant",
+    "covers": [],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/settings/privacy"
+      },
+      {
+        "see": "Sign in to choose who sees your listening."
+      }
+    ],
+    "design": "SettingsPrivacy-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "settings-privacy--muted-empty",
+    "area": "settings",
+    "kind": "empty",
+    "covers": [],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/settings/privacy"
+      },
+      {
+        "see": "You have not muted anyone. Mute someone from the ⋯ on their comment; they are never told."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "settings-privacy--muted-loading",
+    "area": "settings",
+    "kind": "loading",
+    "covers": [],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/me/mutes",
+          "mode": "slow"
+        }
+      },
+      {
+        "open": "/settings/privacy"
+      },
+      {
+        "see": "Loading…"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Inline loading inside a card. Clear the fault afterwards."
+  },
+  {
+    "name": "settings-privacy--muted-error",
+    "area": "settings",
+    "kind": "error",
+    "covers": [],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/me/mutes",
+          "mode": "fail"
+        }
+      },
+      {
+        "open": "/settings/privacy"
+      },
+      {
+        "see": "Couldn't load the listeners you muted."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Inline error inside a card. Clear the fault afterwards."
+  },
+  {
+    "name": "toast--settings-privacy",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/settings/privacy.tsx::toast::${m.name} is unmuted.",
+      "app/settings/privacy.tsx::toast::<dynamic>#1",
+      "app/settings/privacy.tsx::toast::Couldn't save that — try again when you're online.",
+      "app/settings/privacy.tsx::toast::Couldn't unmute — try again when you're online.",
+      "app/settings/privacy.tsx::toast::We emailed you a link. It works for ${r.expiresInHours} hours."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/privacy"
+      },
+      {
+        "tap": "Email me a link to my data"
+      },
+      {
+        "see": "We emailed you a link. It works for 24 hours."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Triggers \"We emailed you a link. It works for 24 hours.\" (the hour count comes from the server)."
+  },
+  {
+    "name": "toast--often-listened-switch",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "src/ui/settings/OftenListenedSwitch.tsx::toast::Couldn't save that — try again when you're online."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/me/privacy",
+          "mode": "fail"
+        }
+      },
+      {
+        "open": "/settings/privacy"
+      },
+      {
+        "tap": "Hide \"Often listened\""
+      },
+      {
+        "see": "Couldn't save that — try again when you're online."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Triggers \"Couldn't save that — try again when you're online.\" with the privacy save refused. Clear the fault afterwards."
+  },
+  {
+    "name": "toast--muted-threads",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "src/ui/social/MutedThreads.tsx::toast::Couldn't unmute — try again when you're online.",
+      "src/ui/social/MutedThreads.tsx::toast::Unmuted. New notices from it will show again."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/privacy"
+      },
+      {
+        "tap": "Unmute {thread}"
+      },
+      {
+        "see": "Unmuted. New notices from it will show again."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Triggers \"Unmuted. New notices from it will show again.\" {thread} is the title of a muted thread; the seed has to mute one thread for the listener. The component is drawn only on the privacy page."
+  },
+  {
+    "name": "settings-push--screen",
+    "area": "settings",
+    "kind": "screen",
+    "covers": [
+      "app/settings/push.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/push"
+      },
+      {
+        "see": "New episodes"
+      }
+    ],
+    "design": "SettingsPush-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "settings-push--signed-out",
+    "area": "settings",
+    "kind": "variant",
+    "covers": [],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/settings/push"
+      },
+      {
+        "see": "Sign in to receive notifications."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "settings-push--open-settings",
+    "area": "settings",
+    "kind": "system",
+    "covers": [
+      "app/settings/push.tsx::system::open-settings#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/push"
+      },
+      {
+        "tap": "Allow notifications"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Hands over to the iOS Settings app; the shot shows it. No see step.",
+    "web": "skip: opens the phone Settings app"
+  },
+  {
+    "name": "settings-queue-backups--screen",
+    "area": "settings",
+    "kind": "screen",
+    "covers": [
+      "app/settings/queue-backups.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/queue-backups"
+      },
+      {
+        "see": "The last 10 versions of your playlist on this phone."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "settings-queue-backups--empty",
+    "area": "settings",
+    "kind": "empty",
+    "covers": [],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/settings/queue-backups"
+      },
+      {
+        "see": "No backups yet"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "settings-queue-backups--restore-dialog",
+    "area": "settings",
+    "kind": "dialog",
+    "covers": [
+      "app/settings/queue-backups.tsx::dialog::Restore this playlist?"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/queue-backups"
+      },
+      {
+        "tap": "Restore"
+      },
+      {
+        "see": "Restore this playlist?"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Needs one saved backup on the phone (the seed chooses a playlist so a backup is written)."
+  },
+  {
+    "name": "toast--settings-queue-backups",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/settings/queue-backups.tsx::toast::Couldn't restore the playlist.",
+      "app/settings/queue-backups.tsx::toast::Playlist restored."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/queue-backups"
+      },
+      {
+        "tap": "Restore"
+      },
+      {
+        "tap": "Restore"
+      },
+      {
+        "see": "Playlist restored."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Triggers \"Playlist restored.\" The row button and the sheet action are both named \"Restore\"; the second tap is the sheet action. Needs one saved backup."
+  },
+  {
+    "name": "settings-sharing--screen",
+    "area": "settings",
+    "kind": "screen",
+    "covers": [
+      "app/settings/sharing.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/sharing"
+      },
+      {
+        "see": "No advertising or analytics companies receive anything from SocialNet."
+      }
+    ],
+    "design": "SettingsSharing-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "settings-updates--screen",
+    "area": "settings",
+    "kind": "screen",
+    "covers": [
+      "app/settings/updates.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/updates"
+      },
+      {
+        "see": "On iPhone, the App Store keeps SocialNet up to date."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "On iPhone the page is one line; the update check (GitHub release) is drawn on Android copies from GitHub only."
+  },
+  {
+    "name": "settings-widgets--screen",
+    "area": "settings",
+    "kind": "screen",
+    "covers": [
+      "app/settings/widgets.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/widgets"
+      },
+      {
+        "see": "How to add a widget"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "settings-about--screen",
+    "area": "settings",
+    "kind": "screen",
+    "covers": [
+      "app/settings/about.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/about"
+      },
+      {
+        "see": "The documents"
+      }
+    ],
+    "design": "SettingsAbout-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "settings-about--legal-sheet",
+    "area": "settings",
+    "kind": "sheet",
+    "covers": [
+      "app/settings/about.tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/settings/about"
+      },
+      {
+        "tap": "Service agreement"
+      },
+      {
+        "see": "Software Licence and Service Agreement"
+      }
+    ],
+    "design": "LegalDoc-B",
+    "status": "CAPTURE",
+    "note": "Full-screen Modal with the document."
+  }
+]

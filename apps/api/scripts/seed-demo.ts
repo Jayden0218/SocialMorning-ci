@@ -1,4 +1,4 @@
-// Fills one demo account (and 6 helper accounts) with sample data so every phone screen has content — on Postgres or DynamoDB.
+// Fills one demo account (and 6 helper accounts) with sample data so every phone screen has content — on DynamoDB.
 /**
  * Owner, 2026-10-05: ONE demo account on the production database plus 6 helpers, with clearly
  * fake but realistic data — follows, chats, timestamped comments and replies, likes, reactions
@@ -6,19 +6,18 @@
  * ranges, favourites, moments and search history. Notifications are the Following feed
  * (`activity` of the people you follow), so the helpers' comments, clips and listens fill it.
  *
- * M26 lane MIG (MIG-05): every write goes through the repo functions the API uses (`dual()`), so the same
- * script works on Postgres and on DynamoDB. Times: on DynamoDB the Store's clock is set to "N hours ago"
- * before each write; on Postgres the repos write `now()` and the old back-dating UPDATEs (Postgres only)
- * set the times afterwards. Re-running is safe: the demo accounts of an earlier run are deleted first
- * (the account-deletion path of each backend), then everything is written again.
+ * Every write goes through the repo functions the API uses. Times: the Store's clock is set to "N hours ago"
+ * before each write. Re-running is safe: the demo accounts of an earlier run are deleted first
+ * (the account-deletion path), then everything is written again.
  *
  * NOT seeded: voice posts (each needs an audio blob in the approved store — skipped, we host no
  * audio for a demo), downloads and the queue (phone-only), the Inbox (built on the phone from
  * the synced subscriptions — it fills itself), the account's country.
  *
- *   cd apps/api && npx tsx scripts/seed-demo.ts                                       (Postgres: DATABASE_URL from apps/api/.env)
- *   cd apps/api && npx tsx scripts/seed-demo.ts --ddb --prefix <set>   (or --prod --aws: runbook docs/runbooks/m26-cutover.md)
- *   cd apps/api && npx tsx scripts/unseed-demo.ts [the same flags]                    (removes everything this made)
+ *   cd apps/api && npx tsx scripts/seed-demo.ts --prefix <set>   (DynamoDB Local via DDB_ENDPOINT; `dev` = the dev loop's tables;
+ *                                                                 or --prod --aws: runbook docs/runbooks/m26-cutover.md)
+ *   cd apps/api && npx tsx scripts/unseed-demo.ts [the same flags]  (removes everything this made)
+ * A leftover `--ddb` flag (scripts/dev-ddb.sh used to pass it) is accepted and ignored.
  *
  * Every account it makes is in DEMO_ACCOUNTS (emails demo+…@socialmorning.app). The demo login goes to
  * apps/api/.env.demo-account (gitignored by `.env.*`); it is never printed. The same password is kept across
@@ -28,13 +27,13 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
-import postgres from 'postgres';
 import { bucketOf } from '@socialmorning/social-core';
 import { hashPassword } from '../src/auth/password.ts';
-import { ATTACHED } from '../src/db/backend.ts';
 import { withStore } from '../src/db/backend-ddb.ts';
-import { fromPostgres, type Db } from '../src/db/db.ts';
-import type { Store } from '../src/db/ddb/store.ts';
+import type { Db } from '../src/db/db.ts';
+import { createStore, PROD_TABLES, prefixedTables, type Store } from '../src/db/ddb/store.ts';
+import { createDdbClients } from '../src/db/ddb/client.ts';
+import { tablesFor } from '../src/config.ts';
 import { createListener, listenerByEmail } from '../src/db/repos/account/listeners.ts';
 import { updateProfile } from '../src/db/repos/account/profile.ts';
 import { finishDeletion } from '../src/db/repos/account/deletion.ts';
@@ -49,7 +48,6 @@ import { follow } from '../src/db/repos/social/follows.ts';
 import { postCommentInTx, toggleReactionInTx, likeCommentInTx } from '../src/db/repos/social/comment-writes.ts';
 import { createClip } from '../src/db/repos/social/clips.ts';
 import { send as sendChat, thread as readThread } from '../src/db/repos/social/chat.ts';
-import { connect, parseArgs } from './copy/connect.ts';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const API_DIR = join(HERE, '..');
@@ -203,17 +201,22 @@ const SEARCHES = ['design', 'stoic', 'learn english', 'history of objects'];
 
 // ---------------------------------------------------------------------------------------------
 
-/** Loads apps/api/.env when present. `needPostgres` (the Postgres path only): DATABASE_URL must then be set. The DynamoDB path needs none (M27). */
-export function loadEnv(needPostgres = true): void {
-  if (!process.env['DATABASE_URL'] && existsSync(join(API_DIR, '.env'))) process.loadEnvFile(join(API_DIR, '.env'));
-  if (needPostgres && !process.env['DATABASE_URL']) throw new Error('DATABASE_URL is not set (apps/api/.env)');
+/** Loads apps/api/.env when present (DynamoDB Local needs none of it; kept for SESSION_PEPPER / CURSOR_SECRET). */
+export function loadEnv(): void {
+  if (existsSync(join(API_DIR, '.env'))) process.loadEnvFile(join(API_DIR, '.env'));
 }
 
-/** Postgres on this machine (a local container, CI) speaks no TLS; every other host must. */
-export const pgSsl = (url: string): { ssl?: 'require' } => {
-  const host = new URL(url).hostname;
-  return host === 'localhost' || host === '127.0.0.1' || host === '::1' ? {} : { ssl: 'require' as const };
-};
+/** `--a b --c` → { a: 'b', c: true }. */
+export function parseArgs(argv: readonly string[]): Record<string, string | true> {
+  const out: Record<string, string | true> = {};
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i]!;
+    if (!a.startsWith('--')) continue;
+    const next = argv[i + 1];
+    if (next !== undefined && !next.startsWith('--')) { out[a.slice(2)] = next; i++; } else out[a.slice(2)] = true;
+  }
+  return out;
+}
 
 const SHOW_TITLES: Record<keyof typeof FEEDS, string> = { pi: '99% Invisible', stoic: 'The Daily Stoic', bbc: '6 Minute English', daily: 'The Daily', upfirst: 'Up First', fresh: 'Fresh Air' };
 
@@ -268,14 +271,12 @@ export type SeedDemoOpts = {
 
 /** Writes the demo; returns the account ids and per-kind counts. */
 export async function seedDemo(db: Db, o: SeedDemoOpts): Promise<{ id: Record<Who, string>; counts: Record<string, number> }> {
-  const onPg = !ATTACHED.has(db);
   const now = o.now ?? Date.now();
   const ago = (hours: number) => new Date(now - hours * HOUR);
   const at = (h: number) => o.setClock?.(now - h * HOUR);
-  const pgSet = async (sql: string, params: unknown[]) => { if (onPg) await db.query(sql, params); };
 
   // 1. Episodes, from what the catalogue already has. A fresh DynamoDB set (the dev loop, staging) has none: register the sample ones.
-  if (!onPg) await ensureDemoCatalogue(db, now);
+  await ensureDemoCatalogue(db, now);
   const ep: Record<string, Ep> = {};
   const used = new Set<string>();
   const byFeed = new Map<string, { id: string; title: string; duration_ms: number | null }[]>();
@@ -308,11 +309,10 @@ export async function seedDemo(db: Db, o: SeedDemoOpts): Promise<{ id: Record<Wh
   const bump = (t: string, n = 1) => { counts[t] = (counts[t] ?? 0) + n; };
 
   // Follows.
-  // Each row its own minute: lists sorted by time have no ties (a tie's order is not defined on Postgres).
+  // Each row its own minute: lists sorted by time have no ties.
   for (const [n, [a, b]] of FOLLOWS.entries()) {
     at(200 - n / 60);
     await follow(db, id[a], id[b]);
-    await pgSet('UPDATE follows SET created_at = $3 WHERE follower_id = $1 AND followed_id = $2', [id[a], id[b], ago(200 - n / 60)]);
     bump('follows');
   }
   // Subscriptions (the sync path writes the Studio's subscription history too).
@@ -327,8 +327,6 @@ export async function seedDemo(db: Db, o: SeedDemoOpts): Promise<{ id: Record<Wh
   // Comments, replies, likes (the "commented" feed item comes with each top-level comment).
   const commentIds: { id: string; ep: string; who: Who; body: string; offsetMs: number }[] = [];
   const backdateComment = async (cid: string, when: Date) => {
-    await pgSet('UPDATE comments SET created_at = $2 WHERE id = $1', [cid, when]);
-    await pgSet(`UPDATE activity SET created_at = $2 WHERE kind = 'commented' AND ref_id = $1`, [cid, when]);
   };
   for (const t of THREADS) {
     const e = ep[t.ep]!;
@@ -377,8 +375,6 @@ export async function seedDemo(db: Db, o: SeedDemoOpts): Promise<{ id: Record<Wh
     const end = Math.min(ep[c.ep]!.duration_ms, start + c.secs * 1000);
     at(c.ago);
     const made = await createClip(db, { authorId: id[c.who], clientId: `demo-seed-${n + 1}`, episodeId: ep[c.ep]!.id, startMs: start, endMs: end, caption: c.caption });
-    await pgSet('UPDATE clips SET created_at = $2 WHERE id = $1', [made.clip.id, ago(c.ago)]);
-    await pgSet(`UPDATE activity SET created_at = $2 WHERE kind = 'clipped' AND ref_id = $1`, [made.clip.id, ago(c.ago)]);
     bump('clips');
   }
   // Chats: a read message is read by its recipient right after (reading the thread marks it).
@@ -386,7 +382,6 @@ export async function seedDemo(db: Db, o: SeedDemoOpts): Promise<{ id: Record<Wh
     const when = now - m.ago * 60_000;
     o.setClock?.(when);
     const sent = await sendChat(db, id[m.from], id[m.to], m.body, m.ep ? ep[m.ep]!.id : undefined);
-    await pgSet('UPDATE chat_messages SET created_at = $2 WHERE id = $1::bigint', [String(sent.id), new Date(when)]);
     if (m.read) {
       o.setClock?.(when + 60_000);
       await readThread(db, id[m.to], id[m.from]);
@@ -407,7 +402,6 @@ export async function seedDemo(db: Db, o: SeedDemoOpts): Promise<{ id: Record<Wh
     const day = when.toISOString().slice(0, 10);
     at(h);
     await replaceRanges(db, id[who], 'demo-seed', [{ episodeId: ep[key]!.id, day, ranges: [[0, atMs(key, f)]] }]);
-    await pgSet(`UPDATE activity SET created_at = $4 WHERE actor_id = $1 AND kind = 'listened' AND episode_id = $2 AND day = $3::date`, [id[who], ep[key]!.id, day, when]);
     bump('listened_ranges');
   }
   // Library: favourites, favourite comments, moments, searches (the demo account only).
@@ -431,26 +425,23 @@ export async function seedDemo(db: Db, o: SeedDemoOpts): Promise<{ id: Record<Wh
   return { id, counts };
 }
 
-/** The backend from the flags: Postgres (default), or DynamoDB (`--ddb` with `--prefix <set>` / `--prod`) with a clock the seed moves. */
+/** The backend from the flags: DynamoDB, `--prefix <set>` / `--prod` (with `--aws`), with a clock the seed moves. A leftover `--ddb` is ignored. */
 export async function openBackend(argv: readonly string[]): Promise<{ db: Db; setClock?: (ms: number) => void; close(): Promise<void> }> {
   const args = parseArgs(argv);
-  loadEnv(!args['ddb']);
-  if (!args['ddb']) {
-    const sql = postgres(process.env['DATABASE_URL']!, { ...pgSsl(process.env['DATABASE_URL']!), max: 1, onnotice: () => {} });
-    return { db: fromPostgres(sql), close: async () => { await sql.end(); } };
-  }
-  // M27: DynamoDB needs no Postgres at all (the BRIDGE=off rule: the DynamoDB path never calls it).
-  const c = await connect(args, { pg: false });
+  loadEnv();
+  if (!args['prefix'] && !args['prod']) throw new Error('name the tables: --prefix <scratch> (dev = the dev loop) or --prod');
+  const tables = typeof args['prefix'] === 'string' ? (args['prefix'] === 'dev' ? tablesFor('dev') : prefixedTables(args['prefix'])) : PROD_TABLES;
+  const clients = createDdbClients({ allowAws: args['aws'] === true });
   // On DynamoDB Local the tables may not exist yet: create the set for the prefix first.
-  const endpoint = process.env['DDB_ENDPOINT'];
-  if (endpoint && c.clients && typeof args['prefix'] === 'string') {
+  if (process.env['DDB_ENDPOINT'] && typeof args['prefix'] === 'string') {
     const { ListTablesCommand } = await import('@aws-sdk/client-dynamodb');
     const { createTableSet } = await import('../src/db/ddb/schema.ts');
-    if (!((await c.clients.raw.send(new ListTablesCommand({}))).TableNames ?? []).includes(c.store.tables.main)) await createTableSet(c.clients.raw, c.store.tables);
+    if (!((await clients.raw.send(new ListTablesCommand({}))).TableNames ?? []).includes(tables.main)) await createTableSet(clients.raw, tables);
   }
   let t = Date.now();
-  const store: Store = { ...c.store, clock: { now: () => t } };
-  return { db: withStore(c.pg, store, { bridge: false }), setClock: (ms) => { t = ms; }, close: () => c.close() };
+  const base = createStore({ clients, tables, secret: process.env['CURSOR_SECRET'] ?? 'seed-script' });
+  const store: Store = { ...base, clock: { now: () => t } };
+  return { db: withStore(undefined, store), setClock: (ms) => { t = ms; }, close: async () => { clients.raw.destroy(); } };
 }
 
 async function main(): Promise<void> {

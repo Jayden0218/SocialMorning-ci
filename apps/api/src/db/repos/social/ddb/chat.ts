@@ -20,8 +20,7 @@ import { tx, TxCancelled } from '../../../ddb/tx.ts';
 import { isBlockedBy } from '../../safety/blocks.ts';
 import { isFollowing } from '../follows.ts';
 import { CHAT_PAGE, toPerson, type ChatEpisode, type ChatMessage, type ChatPerson, type Conversation } from '../chat.ts';
-import * as B from './sc-bridge.ts';
-import { nowIso, people, person as personItem, prefixItems, rawPg, visiblePerson } from './sc-common.ts';
+import { nowIso, people, person as personItem, prefixItems, visiblePerson } from './sc-common.ts';
 import { blockedEitherWay, mutualFollowIds } from './sc-foreign.ts';
 
 const M = (id: number) => `M#${K.pad(id)}`;
@@ -83,8 +82,6 @@ export async function send(store: Store, db: Db, from: string, to: string, body:
     .update('main', K.conversation(from, to), side(from, to))
     .update('main', K.conversation(to, from), side(to, from))
     .commit();
-  const raw = rawPg(db);
-  if (raw) await B.insertChatMessage(raw, { id, senderId: from, recipientId: to, body, episodeId: episodeId ?? null, createdAt });
   return toMessage(item, from, await episodeCards(store, episodeId ? [episodeId] : []), false);
 }
 
@@ -120,12 +117,9 @@ export async function thread(store: Store, db: Db, me: string, other: string, op
   }, { max: 1 });
   const newestId = newest ? Number(newest['id']) : 0;
   if (mine && newestId > myLastRead) {
-    const at = nowIso(store);
     await tx(store).update('main', K.conversation(me, other), {
       update: 'SET #r = :n', condition: 'attribute_exists(PK) AND (attribute_not_exists(#r) OR #r < :n)', names: { '#r': 'lastReadId' }, values: { ':n': newestId },
     }).commit().catch((e: unknown) => { if (!(e instanceof TxCancelled && e.conditionFailed)) throw e; });
-    const raw = rawPg(db);
-    if (raw) await B.readChat(raw, me, other, at);
   }
   return out;
 }

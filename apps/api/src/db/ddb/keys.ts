@@ -136,6 +136,10 @@ export const similarity = (generation: string, feedUrl: string, score: number, o
   k(`SIM#${generation}#${feedKey(feedUrl)}`, `${pad(Math.max(0, Math.round((1 - score) * 1e9)), 10)}#${feedKey(otherFeedUrl)}`);
 export const OUTBOX_SHARDS = 4;
 export const outbox = (shard: number, createdAt: string, id: string) => k(`OUTBOX#${shard}`, `${ts(createdAt)}#${id}`);
+/** M28 US3: an outbox entry that failed `OUTBOX_PARK_AFTER` times; same SK as when pending. The Stream filter (OUTBOX# inserts) never sees it. */
+export const parked = (shard: number, createdAt: string, id: string) => k(`PARKED#${shard}`, `${ts(createdAt)}#${id}`);
+/** M28 US3: the outbox health state (data-model.md §1). */
+export const health = (name: string) => k(`HEALTH#${name}`, 'state');
 export const job = (kind: string, id: string) => k(`JOB#${kind}#${id}`, 'J');
 export const seq = (name: string) => k(`SEQ#${name}`, 'S');
 

@@ -40,8 +40,8 @@ if (!ON) {
     const made = results.filter((r) => r !== 'exists');
     assert.equal(made.length, 1, `${made.length} accounts were made for one email`);
     assert.equal(results.filter((r) => r === 'exists').length, 9);
-    assert.equal(await acCount(t.store!, 'main', 'listener'), 1);
-    const owner = (await acScan(t.store!, 'main', 'unique')).find((u) => u['PK'] === K.U.email('race@example.com').PK);
+    assert.equal(await acCount(t.store, 'main', 'listener'), 1);
+    const owner = (await acScan(t.store, 'main', 'unique')).find((u) => u['PK'] === K.U.email('race@example.com').PK);
     assert.equal(owner?.['owner'], (made[0] as { id: string }).id);
     await t.close();
   });
@@ -56,27 +56,27 @@ if (!ON) {
     await setInterests(t.db, a.id, [1301, 1303]);
     assert.equal((await t.call('PUT', '/v1/me/push-prefs', { popular: false }, a.token)).status, 204);
     assert.equal((await t.call('DELETE', '/v1/me', { password: 'correct horse' }, a.token)).status, 202);
-    assert.equal((await acSessions(t.store!, a.id)).length, 0, 'signed out everywhere at the request');
+    assert.equal((await acSessions(t.store, a.id)).length, 0, 'signed out everywhere at the request');
     await makeDeletionsDue(t);
 
     // The crash: every BatchWrite on the listener's partition fails, half-way through the job.
-    const faulty = withFaults(t.store!, [{ command: 'BatchWriteCommand', prefix: K.L(a.id) }]);
+    const faulty = withFaults(t.store, [{ command: 'BatchWriteCommand', prefix: K.L(a.id) }]);
     const first = await runDueDeletions(withStore(t.db, faulty), {});
     assert.deepEqual(first, { deleted: 0, failed: 1 }, 'the first run stops at the fault');
-    assert.ok((await listenerItemsLeft(t.store!, a.id)) > 0, 'the crash left items behind');
-    const job = (await acScan(t.store!, 'main', 'job')).find((j) => j['id'] === a.id);
+    assert.ok((await listenerItemsLeft(t.store, a.id)) > 0, 'the crash left items behind');
+    const job = (await acScan(t.store, 'main', 'job')).find((j) => j['id'] === a.id);
     assert.ok(job && job['done'] !== true, 'the job is still open');
     assert.match(String(job['lastError']), /injected fault/);
 
     // The next hourly run (no fault) resumes it from where it stopped.
     const second = await runDueDeletions(t.db, {});
     assert.equal(second.deleted, 1, 'the open job finished');
-    assert.equal(await listenerItemsLeft(t.store!, a.id), 0, 'no item of the listener is left');
-    assert.equal(await acHasItem(t.store!, K.U.email('gone@example.com')), false, 'the email is free');
-    assert.equal(await acHasItem(t.store!, K.pushTokenOwner('ExponentPushToken[gonegonegone]')), false, 'the push token is gone');
-    assert.equal((await acSessions(t.store!, a.id)).length, 0);
+    assert.equal(await listenerItemsLeft(t.store, a.id), 0, 'no item of the listener is left');
+    assert.equal(await acHasItem(t.store, K.U.email('gone@example.com')), false, 'the email is free');
+    assert.equal(await acHasItem(t.store, K.pushTokenOwner('ExponentPushToken[gonegonegone]')), false, 'the push token is gone');
+    assert.equal((await acSessions(t.store, a.id)).length, 0);
     assert.equal((await t.call('GET', '/v1/me', undefined, b.token)).status, 200, 'the other account is untouched');
-    assert.equal(await listenerItemsLeft(t.store!, b.id) > 0, true);
+    assert.equal(await listenerItemsLeft(t.store, b.id) > 0, true);
     await t.close();
   });
 
@@ -85,7 +85,7 @@ if (!ON) {
     const a = await signUp(t, 'warm@example.com', 'Warm');
     assert.equal((await t.call('GET', '/v1/me', undefined, a.token)).status, 200); // records today's app use once
     const sent: string[] = [];
-    const counting = wrapStore(t.store!, (cmd, next) => { sent.push(cmd.constructor.name); return next(cmd); });
+    const counting = wrapStore(t.store, (cmd, next) => { sent.push(cmd.constructor.name); return next(cmd); });
     const who = await listenerForToken(withStore(t.db, counting), a.token, TEST_PEPPER);
     assert.equal(who?.id, a.id);
     assert.equal(who?.display_name, 'Warm', 'the name comes from the session item');

@@ -3,9 +3,10 @@
  * M23 US2/US8 (FR-003, FR-013). One row per (key, window): the first request of a window
  * inserts it, later ones add 1 in the same statement, so parallel requests are all counted.
  *
- * The device address is the first entry of `x-forwarded-for`, which Vercel sets (spec edge
- * cases). Without the header (tests, a local server) there is no address and the per-address
- * limit does not apply; global limits still do.
+ * The device address is `x-sm-trusted-ip` when the Lambda entry set it (AWS's `sourceIp`, or the Vercel edge
+ * proxy's signed client address; M28 US2), else the first entry of `x-forwarded-for`, which Vercel sets on the
+ * Vercel and Node entries (spec edge cases). Without either (tests, a local server) there is no address and the
+ * per-address limit does not apply; global limits still do.
  */
 import type { Context } from 'hono';
 import type { Db } from '../db/db.ts';
@@ -24,8 +25,10 @@ export function codesPerDay(): number {
   return Number.isInteger(n) && n > 0 ? n : DEFAULT_CODES_PER_DAY;
 }
 
-/** The caller's address from `x-forwarded-for` (first entry), or undefined when there is none. */
+/** The caller's address (`x-sm-trusted-ip`, else the first `x-forwarded-for` entry), or undefined when there is none. */
 export function clientAddress(c: Context): string | undefined {
+  const trusted = c.req.header('x-sm-trusted-ip')?.trim();
+  if (trusted) return trusted.slice(0, 64);
   const first = c.req.header('x-forwarded-for')?.split(',')[0]?.trim();
   return first ? first.slice(0, 64) : undefined;
 }

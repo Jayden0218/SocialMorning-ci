@@ -18,7 +18,7 @@ import { Icon } from '@/ui/kit/Icon';
 import { minutesLabel } from '@/ui/kit/format';
 import { useStores } from '@/ui/shell/providers';
 import { useColours } from '@/ui/kit/useColours';
-import { usePlayer, usePlayerState } from '@/playback/store';
+import { episodePlayView, sameEpisodePlayView, usePlayer, usePlayerSelector } from '@/playback/store';
 import { toPlayable } from '@/storage/playable';
 
 export const CARD_ARTWORK = 40;
@@ -33,12 +33,12 @@ export function EpisodeCard(props: { episodeId: string }): React.ReactElement | 
   const stores = useStores();
   const c = useColours(stores.settings);
   const player = usePlayer();
-  const state = usePlayerState();
+  // The lag audit (2026-10-04, branch perf): only "is this episode loaded / playing" — this card
+  // re-rendered (and re-read the episode) on every player tick with usePlayerState.
+  const { loaded, playing } = usePlayerSelector((s) => episodePlayView(s, props.episodeId), sameEpisodePlayView);
   const episode = stores.feeds.getEpisode(props.episodeId);
   if (!episode) return null;
   const show = stores.feeds.getShow(episode.feedUrl);
-  const loaded = state.kind !== 'idle' && state.episodeId === props.episodeId;
-  const playing = loaded && (state.kind === 'playing' || state.kind === 'buffering');
   const playable = loaded ? undefined : toPlayable(stores, props.episodeId);
   const canPlay = loaded || playable !== undefined;
 

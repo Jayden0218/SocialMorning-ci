@@ -14,7 +14,6 @@
  * - `L#<id> / SUBORDER`: the saved order as one list (replaces up to 1 000 row updates).
  */
 import type { Db } from '../../../db.ts';
-import { bridgeOf } from '../../../backend-ddb.ts';
 import { encode } from '../../../ddb/codec.ts';
 import * as K from '../../../ddb/keys.ts';
 import { batchGetAll } from '../../../ddb/batch.ts';
@@ -141,19 +140,15 @@ export async function merge(store: Store, db: Db, listenerId: string, items: rea
       const flip = await mergeOne(store, listenerId, next, have.get(feedUrl));
       if (flip) await syncFeedQueue(store, feedUrl);
     }
-    const raw = bridgeOf(db);
-    if (raw) await pg.merge(raw, listenerId, items);
   }
   return listAll(store, db, listenerId);
 }
 
 /** The saved order (feeds the account holds, in the order sent). */
-export async function setOrder(store: Store, db: Db, listenerId: string, feedUrls: readonly string[]): Promise<void> {
+export async function setOrder(store: Store, _db: Db, listenerId: string, feedUrls: readonly string[]): Promise<void> {
   const held = new Set((await subscriptionItems(store, listenerId)).map((it) => String(it['feedUrl'])));
   const order = [...new Set(feedUrls)].filter((u) => held.has(u));
   await put(store, 'main', encode('subOrder', K.subOrder(listenerId), { listenerId, feedUrls: order, updatedAt: isoNow(store.clock) }));
-  const raw = bridgeOf(db);
-  if (raw) await pg.setOrder(raw, listenerId, feedUrls);
 }
 
 async function orderOf(store: Store, listenerId: string): Promise<string[]> {
@@ -169,10 +164,9 @@ export async function getOrder(store: Store, _db: Db, listenerId: string): Promi
 /**
  * LB-36: another listener's public subscriptions — live, in their order then newest first, ≤ 500, hidden
  * feeds left out; title/cover = the host's override, else the newest episode's (the show META, LB-T02).
- * The override (lane ST) and hidden feeds (lane SF) are still Postgres rows: read through `pgOf` until
- * those lanes land (data-model.md "Lane LB changes").
+ * The override (lane ST) and hidden feeds (lane SF) are read from their own lanes' items.
  */
-export async function publicSubscriptions(store: Store, db: Db, listenerId: string): Promise<PublicShow[]> {
+export async function publicSubscriptions(store: Store, _db: Db, listenerId: string): Promise<PublicShow[]> {
   const live = (await subscriptionItems(store, listenerId)).map(subscriptionRow).filter((r) => r.deleted_at === null);
   const order = await orderOf(store, listenerId);
   const pos = new Map(order.map((u, i) => [u, i]));

@@ -12,7 +12,6 @@
  * - The lists (followers / following) Query the listener's own edges — strongly consistent, no GSI — and sort by
  *   `createdAt` in code. Scale limit, stated: every edge of one listener is read per list page (≈ 10 000 edges per 1 MB).
  * - The per-viewer counts (M16a G-B2) are the stored counters minus the viewer's blocked listeners found among the edges.
- * - The bridge writes the Postgres `follows` row too (chat, likes, voice posts, discover still JOIN it).
  */
 import { encode } from '../../../ddb/codec.ts';
 import * as K from '../../../ddb/keys.ts';
@@ -24,7 +23,7 @@ import { enqueue } from '../../../../jobs/outbox.ts';
 import { getListener, partitionItems, txa } from '../../account/ddb/common.ts';
 import { addFollowCount } from '../../account/ddb/listeners.ts';
 import type { ListenerLite } from '../follows.ts';
-import { blockedBy, blockedEitherWay, hasBlocked, iso, listenersById, nowMs, raw, type Hybrid } from './common.ts';
+import { blockedBy, blockedEitherWay, hasBlocked, iso, listenersById, nowMs, type Ctx } from './common.ts';
 import { planNotice } from './notifications.ts';
 
 /** How many times a cancelled (conflicting) follow transaction is tried in all. */
@@ -35,26 +34,26 @@ export const FANOUT_MAX = 2000;
 const edgeOf = (it: Item) => ({ id: String(it['otherId']), createdAt: String(it['createdAt']) });
 
 /** The listener's edges of one direction (strongly consistent). */
-export async function edges(h: Hybrid, listenerId: string, dir: 'following' | 'followers'): Promise<{ id: string; createdAt: string }[]> {
+export async function edges(h: Ctx, listenerId: string, dir: 'following' | 'followers'): Promise<{ id: string; createdAt: string }[]> {
   return (await partitionItems(h, K.L(listenerId), dir === 'following' ? K.LISTENER_SK.follows : K.LISTENER_SK.followers)).map(edgeOf);
 }
 
 /** Who `listenerId` follows. */
-export async function followSet(h: Hybrid, listenerId: string): Promise<Set<string>> {
+export async function followSet(h: Ctx, listenerId: string): Promise<Set<string>> {
   return new Set((await edges(h, listenerId, 'following')).map((e) => e.id));
 }
 
-export async function follow(h: Hybrid, followerId: string, followedId: string): Promise<'followed' | 'self' | 'no_such_listener' | 'blocked'> {
+export async function follow(h: Ctx, followerId: string, followedId: string): Promise<'followed' | 'self' | 'no_such_listener' | 'blocked'> {
   if (followerId === followedId) return 'self';
   if (!(await getListener(h, followedId))) return 'no_such_listener';
-  // M6 (FR-008): no follow across a block, in either direction (blocks are lane SF's, still on Postgres).
+  // M6 (FR-008): no follow across a block, in either direction (blocks are lane SF's).
   if ((await hasBlocked(h, followerId, followedId)) || (await hasBlocked(h, followedId, followerId))) return 'blocked';
   await addEdge(h, followerId, followedId);
   return 'followed';
 }
 
 /** One transaction: both edges, both counters, the outbox entry and — the first time only — the notice. True when new. */
-export async function addEdge(h: Hybrid, followerId: string, followedId: string): Promise<boolean> {
+export async function addEdge(h: Ctx, followerId: string, followedId: string): Promise<boolean> {
   let notice = true;
   const added = await withRetry(async () => {
     const createdAt = iso(nowMs(h));
@@ -78,18 +77,16 @@ export async function addEdge(h: Hybrid, followerId: string, followedId: string)
     await plan?.after();
     return true;
   }, { tries: TRIES, retryOn: isConflict });
-  const pg = raw(h);
-  if (added && pg) await pg.query('INSERT INTO follows (follower_id, followed_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [followerId, followedId]);
   if (added) await markBigActor(h, followedId);
   return added;
 }
 
-export async function unfollow(h: Hybrid, followerId: string, followedId: string): Promise<void> {
+export async function unfollow(h: Ctx, followerId: string, followedId: string): Promise<void> {
   await removeEdge(h, followerId, followedId);
 }
 
 /** The mirror of `addEdge`. True when an edge was removed. */
-export async function removeEdge(h: Hybrid, followerId: string, followedId: string): Promise<boolean> {
+export async function removeEdge(h: Ctx, followerId: string, followedId: string): Promise<boolean> {
   const removed = await withRetry(async () => {
     const t = txa(h.store)
       .delete('main', K.follow(followerId, followedId), { condition: 'attribute_exists(PK)', label: 'edge' })
@@ -105,20 +102,18 @@ export async function removeEdge(h: Hybrid, followerId: string, followedId: stri
     }
     return true;
   }, { tries: TRIES, retryOn: isConflict });
-  const pg = raw(h);
-  if (pg) await pg.query('DELETE FROM follows WHERE follower_id = $1 AND followed_id = $2', [followerId, followedId]);
   if (removed) await markBigActor(h, followedId);
   return removed;
 }
 
 /** SF's block ends follows both ways (blocks.ts `block`): lane SF calls this when it moves. */
-export async function endFollowsBetween(h: Hybrid, a: string, b: string): Promise<void> {
+export async function endFollowsBetween(h: Ctx, a: string, b: string): Promise<void> {
   await removeEdge(h, a, b);
   await removeEdge(h, b, a);
 }
 
 /** Keeps the `BIGACTOR` marker (G4 `Q#bigactors`) in step with the follower count: above FANOUT_MAX the feed merges on read. */
-async function markBigActor(h: Hybrid, id: string): Promise<void> {
+async function markBigActor(h: Ctx, id: string): Promise<void> {
   const l = await getListener(h, id);
   const big = Number(l?.['followerCount'] ?? 0) > FANOUT_MAX;
   const has = Boolean(await get(h.store, 'main', K.bigActor(id)));
@@ -129,12 +124,12 @@ async function markBigActor(h: Hybrid, id: string): Promise<void> {
   await t.commit();
 }
 
-export async function isFollowing(h: Hybrid, followerId: string, followedId: string): Promise<boolean> {
+export async function isFollowing(h: Ctx, followerId: string, followedId: string): Promise<boolean> {
   return Boolean(await get(h.store, 'main', K.follow(followerId, followedId)));
 }
 
 /** M16a bug 2 (FR-003): the stored counters minus listeners the viewer blocked — the lists' own rule. */
-export async function counts(h: Hybrid, listenerId: string, viewerId?: string): Promise<{ followers: number; following: number }> {
+export async function counts(h: Ctx, listenerId: string, viewerId?: string): Promise<{ followers: number; following: number }> {
   const l = await getListener(h, listenerId);
   let followers = Number(l?.['followerCount'] ?? 0);
   let following = Number(l?.['followingCount'] ?? 0);
@@ -154,7 +149,7 @@ export async function counts(h: Hybrid, listenerId: string, viewerId?: string): 
 type Page = { listeners: ListenerLite[]; next?: string };
 
 /** M21 US8 (FR-074): newest first, `before` = the previous page's last `createdAt`; bio and (signed in) `youFollow`. */
-async function page(h: Hybrid, listenerId: string, dir: 'following' | 'followers', before: string | undefined, limit: number, viewerId: string | undefined): Promise<Page> {
+async function page(h: Ctx, listenerId: string, dir: 'following' | 'followers', before: string | undefined, limit: number, viewerId: string | undefined): Promise<Page> {
   const cut = before !== undefined && !Number.isNaN(Date.parse(before)) ? new Date(before).toISOString() : undefined;
   const blocked = viewerId ? await blockedBy(h, viewerId) : new Set<string>();
   const all = (await edges(h, listenerId, dir))
@@ -185,20 +180,20 @@ async function page(h: Hybrid, listenerId: string, dir: 'following' | 'followers
   };
 }
 
-export const followers = (h: Hybrid, listenerId: string, before?: string, limit = 50, viewerId?: string): Promise<Page> => page(h, listenerId, 'followers', before, limit, viewerId);
-export const following = (h: Hybrid, listenerId: string, before?: string, limit = 50, viewerId?: string): Promise<Page> => page(h, listenerId, 'following', before, limit, viewerId);
+export const followers = (h: Ctx, listenerId: string, before?: string, limit = 50, viewerId?: string): Promise<Page> => page(h, listenerId, 'followers', before, limit, viewerId);
+export const following = (h: Ctx, listenerId: string, before?: string, limit = 50, viewerId?: string): Promise<Page> => page(h, listenerId, 'following', before, limit, viewerId);
 
 /** SG-09: follows this listener made in the last minute (the 60-a-minute floor). */
-export async function recentFollowRows(h: Hybrid, followerId: string): Promise<{ n: number }[]> {
+export async function recentFollowRows(h: Ctx, followerId: string): Promise<{ n: number }[]> {
   const since = iso(nowMs(h) - 60_000);
   return [{ n: (await edges(h, followerId, 'following')).filter((e) => e.createdAt > since).length }];
 }
 
 /** PUT /v1/listeners/:id/follow: on DynamoDB the follow is one transaction already. */
-export const followInTx = (h: Hybrid, followerId: string, followedId: string) => follow(h, followerId, followedId);
+export const followInTx = (h: Ctx, followerId: string, followedId: string) => follow(h, followerId, followedId);
 
 /** AC's status push (foreign.ts `statusFollowers`): followers of an author, minus blocks either way and followers who muted the author. */
-export async function statusFollowerIds(h: Hybrid, authorId: string): Promise<string[]> {
+export async function statusFollowerIds(h: Ctx, authorId: string): Promise<string[]> {
   const blocked = await blockedEitherWay(h, authorId);
   const ids = (await edges(h, authorId, 'followers')).map((e) => e.id).filter((id) => id !== authorId && !blocked.has(id));
   if (ids.length === 0) return [];

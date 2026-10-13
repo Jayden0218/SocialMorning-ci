@@ -8,7 +8,7 @@
  * - appeals they sent go (ON DELETE CASCADE) — found through the actions about them (G5 subject);
  * - their admin role goes (the trigger allowed this one removal: the listener itself is deleted);
  * - their app-use days (`DA#<day>/<id>`, sm-events) go — M18 FR-015 "deleting the account deletes its days".
- * Finding 1 (a moderator's account cannot be deleted on Postgres: moderation_actions.actor_id has no ON DELETE
+ * Finding 1 (a moderator's account could not be deleted once: moderation_actions.actor_id had no ON DELETE
  * rule) is kept: the job's `others` phase still runs that cascade first and fails for a moderator, as today.
  */
 import * as K from '../../../ddb/keys.ts';

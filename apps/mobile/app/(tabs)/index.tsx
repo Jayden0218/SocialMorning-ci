@@ -20,8 +20,8 @@
  * "Shows picked for you" (from For You), topic lists, the treasure hunt and "Their likes" join
  * the page. The treasure hunt, the plaza and like posts are OUR OWN DESIGN (owner, 2026-10-06).
  */
-import { useRouter, useScrollToTop } from "expo-router";
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { useFocusEffect, useRouter, useScrollToTop } from "expo-router";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { LayoutChangeEvent, ScrollView as RNScrollView } from "react-native";
 import Animated, {
   Extrapolation,
@@ -103,6 +103,44 @@ const today = (): string =>
     month: "long",
   });
 
+/**
+ * The trending hint at this moment, cycling every HINT_EVERY_MS while Discover is on screen.
+ * The scroll audit (2026-10-04, branch perf): the timer lived in the page, so every 4 s the WHOLE
+ * Discover page re-rendered (every section, every cover) — and it kept ticking under every other
+ * page. Now only the two search controls that show the hint re-render, and only while focused.
+ */
+function useTrendingHint(hints: readonly string[]): string | undefined {
+  const [tick, setTick] = useState(0);
+  useFocusEffect(useCallback(() => {
+    if (hints.length < 2) return undefined;
+    const t = setInterval(() => setTick((n) => n + 1), HINT_EVERY_MS);
+    return () => clearInterval(t);
+  }, [hints]));
+  return hintAt(hints, tick);
+}
+
+/** The search box with its trending hint (`useTrendingHint`). */
+function TrendingSearchBar(props: { hints: readonly string[]; onOpen: (fromY: number, hint: string | undefined) => void; onScan: () => void }): React.ReactElement {
+  const hint = useTrendingHint(props.hints);
+  return <SearchBar {...(hint ? { hint } : {})} onPress={(fromY) => props.onOpen(fromY, hint)} onScan={props.onScan} />;
+}
+
+/** The collapsed bar's search button, named with the same trending hint. */
+function TrendingSearchButton(props: { hints: readonly string[]; colour: string; onOpen: (fromY: number, hint: string | undefined) => void }): React.ReactElement {
+  const hint = useTrendingHint(props.hints);
+  return (
+    <Pressable
+      onPress={() => props.onOpen(0, hint)}
+      accessibilityRole="search"
+      accessibilityLabel={hint ? `Search. Trending: ${hint}` : "Search shows and episodes"}
+      className="items-center justify-center"
+      style={TAP}
+    >
+      <Icon name="search-outline" size={22} color={props.colour} />
+    </Pressable>
+  );
+}
+
 export default function DiscoverScreen(): React.ReactElement {
   const router = useRouter();
   const stores = useStores();
@@ -166,13 +204,6 @@ export default function DiscoverScreen(): React.ReactElement {
   };
   // The search box's middle cycles through what is trending (owner, 2026-09-27).
   const hints = useMemo(() => trendingHints(model.chart), [model]);
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    if (hints.length < 2) return;
-    const t = setInterval(() => setTick((n) => n + 1), HINT_EVERY_MS);
-    return () => clearInterval(t);
-  }, [hints]);
-  const hint = hintAt(hints, tick);
   const showPage = (feedUrl: string) =>
     router.push({
       pathname: "/show/[feedUrl]",
@@ -208,7 +239,7 @@ export default function DiscoverScreen(): React.ReactElement {
   const smallBar = useAnimatedStyle(() => ({
     opacity: withTiming(scrollY.value > COLLAPSE_TO - 8 ? 1 : 0, { duration: 120 }),
   }));
-  const openSearch = (fromY: number): void =>
+  const openSearch = (fromY: number, hint: string | undefined): void =>
     search.open({ fromY: Math.round(fromY), ...(hint ? { hint } : {}) });
   const toPremium = (): void => {
     if (premiumY.current === undefined) return;
@@ -366,12 +397,12 @@ export default function DiscoverScreen(): React.ReactElement {
             />
           </Box>
           </Animated.View>
-          <SearchBar
-            {...(hint ? { hint } : {})}
+          <TrendingSearchBar
+            hints={hints}
             // `fromY`: where the bar sits now, so Search can start its box here and move it up.
             // M17: Search opens IN PLACE over the tabs (not the `/search` route), so a page opened
             // from its results is an ordinary push with the edge swipe (src/ui/search/SearchOverlay.tsx).
-            onPress={(fromY) => openSearch(fromY)}
+            onOpen={openSearch}
             onScan={() => router.push("/scan")}
           />
           {/* M25 A7: the tiles are their own component now, so the admin can order, rename and hide them. */}
@@ -412,15 +443,7 @@ export default function DiscoverScreen(): React.ReactElement {
         >
           <Box className="flex-row items-center justify-between px-screen-x bg-background border-b-hairline border-separator">
           <Text className="text-text text-lg font-display" numberOfLines={1}>Discover</Text>
-          <Pressable
-            onPress={() => openSearch(0)}
-            accessibilityRole="search"
-            accessibilityLabel={hint ? `Search. Trending: ${hint}` : "Search shows and episodes"}
-            className="items-center justify-center"
-            style={TAP}
-          >
-            <Icon name="search-outline" size={22} color={c.text} />
-          </Pressable>
+          <TrendingSearchButton hints={hints} colour={c.text} onOpen={openSearch} />
           </Box>
         </Animated.View>
       </Box>

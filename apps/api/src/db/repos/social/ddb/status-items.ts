@@ -15,8 +15,7 @@ import { get, type Item, type Store } from '../../../ddb/store.ts';
 import { tx, TxCancelled } from '../../../ddb/tx.ts';
 import type { ImageStorage } from '../../../../storage/image-store.ts';
 import { ItemsError, ORPHAN_PHOTO_MS, STATUS_ITEMS_MAX, type StatusItem, type StatusItemIn } from '../status-items.ts';
-import * as B from './sc-bridge.ts';
-import { commitRetry, keyOf, nowIso, nowMs, prefixItems, rawPg } from './sc-common.ts';
+import { commitRetry, keyOf, nowIso, nowMs, prefixItems } from './sc-common.ts';
 
 const PHOTO_BYTES = 'statusPhotoBytes';
 const DAY_MS = 86_400_000;
@@ -83,8 +82,6 @@ export async function insertItems(store: Store, db: Db, postId: string, listener
     if (e instanceof TxCancelled && e.failed('photo')) throw new ItemsError('bad_item', 'Upload the photo first.');
     throw e;
   }
-  const raw = rawPg(db);
-  if (raw) for (const r of rows) await B.insertStatusItem(raw, { postId, ...r });
 }
 
 /** Items per post, in order; an episode card carries what the phone needs to show and play it. */
@@ -135,8 +132,6 @@ export async function removePhoto(store: Store, db: Db, images: ImageStorage | u
     photoBytesStep(t, -Number(up['bytes'] ?? 0));
   }
   try { await t.commit(); } catch (e) { if (!(e instanceof TxCancelled && e.failed('photo'))) throw e; }
-  const raw = rawPg(db);
-  if (raw) await B.deleteStatusPhotoItems(raw, pathname);
 }
 
 /** Photos uploaded more than 2 hours ago and never posted (the `Q#status-photos` queue, oldest first). */

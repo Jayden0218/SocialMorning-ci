@@ -63,7 +63,7 @@ test('reports: the queue in Admin is /mod\'s queue; acting on an item closes it 
   assert.equal(((await (await aCall(t, 'GET', '/v1/admin/reports?state=open', owner)).json()) as { items: unknown[] }).items.length, 0);
   const closed = (await (await aCall(t, 'GET', '/v1/admin/reports?state=closed', owner)).json()) as { items: { targetId: string; closeReason: string }[] };
   assert.deepEqual(closed.items.map((i) => [i.targetId, i.closeReason]), [[commentId, 'remove']]);
-  assert.equal(await commentRemovedCount(t, commentId, true), 1); // M26 lane NB: neutral (the item with the bridge off)
+  assert.equal(await commentRemovedCount(t, commentId, true), 1); 
   assert.deepEqual((await auditRows(t)).map((x) => [x.area, x.action, x.target]), [['reports', 'remove', `comment:${commentId}`]]);
   await t.close();
 });

@@ -1,0 +1,14 @@
+{
+  "about": "Route mix and phases for scripts/load-local.ts (specs/029-m28-enterprise-hardening contracts/gates.md 'Local load run', research R12). Weights are relative. kind decides which target a route is held to.",
+  "peak": { "requestsPerHour": 100, "multiplier": 20, "minutes": 15, "note": "R12/R15: today is about 1,000 requests a day, a peak hour is about 10 % of that; the run sends 20 times it, rounded up to a whole request a second." },
+  "steps": { "connections": [1, 5, 20, 50], "seconds": 60 },
+  "targets": { "readP95Ms": 500, "writeP95Ms": 1000 },
+  "listeners": 600,
+  "routes": [
+    { "group": "positions-sync", "kind": "write", "weight": 35, "method": "PUT", "path": "/v1/me/positions", "what": "listening sync, as the phone sends it" },
+    { "group": "comments-heat", "kind": "read", "weight": 30, "method": "GET", "path": "/v1/episodes/:episode/social", "what": "the episode poll: comments and the heat curve in one answer (there is no separate /comments or /heat read)" },
+    { "group": "feed", "kind": "read", "weight": 15, "method": "GET", "path": "/v1/me/feed", "what": "the Following feed of an account that follows people" },
+    { "group": "discover", "kind": "read", "weight": 10, "method": "GET", "path": "/v1/discover", "what": "Discover home" },
+    { "group": "comment-post", "kind": "write", "weight": 10, "method": "POST", "path": "/v1/episodes/:episode/comments", "what": "a timestamped comment" }
+  ]
+}

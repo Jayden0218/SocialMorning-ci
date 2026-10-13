@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "_comment": "M28 US2: NOT applied. A rewrite cannot add headers, so behind it every listener shares Vercel's address. This stays the plan only until the edge proxy src/edge-proxy.ts passes quickstart B10; EDGE_SECRET is created only then (docs/runbooks/m26-cutover.md section 5). Remove this key when copying over vercel.json.",
   "framework": null,
   "installCommand": "npm install --ignore-scripts --no-audit --no-fund",
   "buildCommand": "mkdir -p public && printf 'User-agent: *\\nDisallow: /\\n' > public/robots.txt",

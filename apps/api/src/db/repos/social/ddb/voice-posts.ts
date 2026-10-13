@@ -24,8 +24,7 @@ import { photosOf, removePhoto } from '../status-items.ts';
 import { replyAudioOf } from '../status-replies.ts';
 import { sweepOrphanPhotos } from '../status-items.ts';
 import { SUGGESTED_MAX, toPublicPost, type PublicPost, type VoiceRow } from '../voice-posts.ts';
-import * as B from './sc-bridge.ts';
-import { keyOf, nowIso, nowMs, partitionAll, people, person, prefixItems, rawPg, UUID, visiblePerson, type Person } from './sc-common.ts';
+import { keyOf, nowIso, nowMs, partitionAll, people, person, prefixItems, UUID, visiblePerson, type Person } from './sc-common.ts';
 import { blockedEitherWay, followedIds } from './sc-foreign.ts';
 
 export const STATUS_LIFE_MS = 24 * 3_600_000;
@@ -65,8 +64,6 @@ async function writePost(store: Store, db: Db, p: { id: string; listenerId: stri
     .put('main', item, { condition: 'attribute_not_exists(PK)' })
     .put('main', encode('voicePostPtr', K.voicePostPtr(p.listenerId, createdAt, p.id), { id: p.id, createdAt, expiresAt }, { ttl }))
     .commit();
-  const raw = rawPg(db);
-  if (raw) await B.insertVoicePost(raw, { id: p.id, listenerId: p.listenerId, blobUrl: p.blobUrl ?? null, blobPath: p.blobPath ?? null, durationMs: p.durationMs ?? null, bytes: p.bytes ?? null, transcript: p.transcript ?? null, body: p.body ?? null, createdAt, expiresAt });
   return voiceRow(item);
 }
 
@@ -169,8 +166,6 @@ export async function removePost(store: Store, db: Db, storage: VoiceStorage, ro
   await removeAttachments(store, db, storage, images, row.id);
   if (row.blob_url) await storage.remove(row.blob_url);
   await dropPartition(store, row.id);
-  const raw = rawPg(db);
-  if (raw) await B.deleteVoicePost(raw, row.id);
 }
 
 /** A status's voice-reply files (voice store) and photos (image store), each file before its item. */
@@ -182,8 +177,6 @@ export async function removeAttachments(store: Store, db: Db, storage: VoiceStor
     if (item) {
       await batchWriteAll(store, 'main', [{ delete: keyOf(item) }, { delete: K.statusReplyPtr(String(item['authorId']), postId, r.id) }]);
     }
-    const raw = rawPg(db);
-    if (raw) await B.deleteStatusReply(raw, r.id);
   }
   for (const key of await photosOf(db, [postId])) await removePhoto(db, images, key);
 }
@@ -221,8 +214,6 @@ export async function sweepExpired(store: Store, db: Db, storage: VoiceStorage, 
   for (const p of posts) {
     if (kept.has(String(p['id'])) || !p['body']) continue;
     await dropPartition(store, String(p['id']));
-    const raw = rawPg(db);
-    if (raw) await B.deleteVoicePost(raw, String(p['id']));
     deleted++;
   }
   if (!storage.ready) return { deleted, failed };
@@ -246,8 +237,6 @@ export async function removeAllFor(store: Store, db: Db, storage: VoiceStorage, 
     if (!r?.['audioUrl']) continue;
     await storage.remove(String(r['audioUrl']));
     await batchWriteAll(store, 'main', [{ delete: keyOf(r) }, { delete: keyOf(ptr) }]);
-    const raw = rawPg(db);
-    if (raw) await B.deleteStatusReply(raw, String(r['id']));
   }
 }
 
@@ -261,6 +250,4 @@ export async function setSuggestionMute(store: Store, db: Db, viewerId: string, 
   } else {
     await tx(store).delete('main', K.suggestionMute(viewerId, mutedId)).delete('main', K.suggestionMutedBy(mutedId, viewerId)).commit();
   }
-  const raw = rawPg(db);
-  if (raw) await B.setSuggestionMute(raw, viewerId, mutedId, on);
 }

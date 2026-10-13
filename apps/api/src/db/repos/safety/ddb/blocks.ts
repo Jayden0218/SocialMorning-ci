@@ -1,4 +1,4 @@
-// Blocks on DynamoDB: both directions in the two listeners' partitions, the dashboard counter, the Postgres bridge row.
+// Blocks on DynamoDB: both directions in the two listeners' partitions, the dashboard counter.
 /**
  * M26 lane SF (SF-07…SF-13; data-model.md §3 `BLOCK#` / `BLOCKEDBY#`). A block is two items written in one
  * TransactWriteItems — `L#<blocker>/BLOCK#<blocked>` (with G4 `Q#blocks`, the dashboard recount's list) and
@@ -12,7 +12,7 @@ import { get } from '../../../ddb/store.ts';
 import { tx, TxCancelled } from '../../../ddb/tx.ts';
 import { dashAdd } from './dash.ts';
 import { endFollowsBetween } from '../../social/graph-ddb/index.ts';
-import { bridgeOf, listenersById, nowIso, partition, type Db, type Item, type Store } from './common.ts';
+import { listenersById, nowIso, partition, type Db, type Item, type Store } from './common.ts';
 
 const blocksOf = (store: Store, viewerId: string): Promise<Item[]> => partition(store, 'main', K.L(viewerId), { prefix: K.LISTENER_SK.blocks });
 
@@ -23,23 +23,19 @@ export async function block(store: Store, db: Db, blockerId: string, blockedId: 
     .put('main', encode('block', K.block(blockerId, blockedId), { blockedId, createdAt: at }, { gsi: K.G4('blocks', at, `${blockerId}#${blockedId}`) }), { condition: 'attribute_not_exists(PK)', label: 'block' })
     .put('main', encode('blockedBy', K.blockedBy(blockedId, blockerId), { blockerId, createdAt: at }));
   dashAdd(t, 'blocks', at);
-  await db.transaction(async (txdb) => {
-    const raw = bridgeOf(txdb);
-    if (raw) await raw.query('INSERT INTO blocks (blocker_id, blocked_id, created_at) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING', [blockerId, blockedId, at]);
-    try {
-      await t.commit();
-    } catch (e) {
-      // Already blocked: the SQL's ON CONFLICT DO NOTHING (the follows still go).
-      if (!(e instanceof TxCancelled && e.failed('block'))) throw e;
-    }
-  });
-  // The follows both ways end (lane SG's items and counters — with their own Postgres bridge), also when already blocked.
+  try {
+    await t.commit();
+  } catch (e) {
+    // Already blocked: nothing to write (the follows still go).
+    if (!(e instanceof TxCancelled && e.failed('block'))) throw e;
+  }
+  // The follows both ways end (the social items and counters), also when already blocked.
   await endFollowsBetween(store, db, blockerId, blockedId);
   return 'blocked';
 }
 
 /** FR-010: visibility returns; the follow does not. */
-export async function unblock(store: Store, db: Db, blockerId: string, blockedId: string): Promise<void> {
+export async function unblock(store: Store, _db: Db, blockerId: string, blockedId: string): Promise<void> {
   const it = await get(store, 'main', K.block(blockerId, blockedId));
   if (it) {
     const t = tx(store)
@@ -48,8 +44,6 @@ export async function unblock(store: Store, db: Db, blockerId: string, blockedId
     dashAdd(t, 'blocks', String(it['createdAt']), -1);
     try { await t.commit(); } catch (e) { if (!(e instanceof TxCancelled && e.failed('block'))) throw e; }
   }
-  const raw = bridgeOf(db);
-  if (raw) await raw.query('DELETE FROM blocks WHERE blocker_id = $1 AND blocked_id = $2', [blockerId, blockedId]);
 }
 
 export async function blockedIdsFor(store: Store, _db: Db, viewerId: string): Promise<Set<string>> {

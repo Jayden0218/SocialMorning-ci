@@ -1,0 +1,1693 @@
+[
+  {
+    "note": "Discover, the first tab. Tab bar (Discover, Updates, Chat, Me) with the mini player is in this shot.",
+    "name": "home--screen",
+    "area": "tabs",
+    "kind": "screen",
+    "covers": [
+      "app/(tabs)/index.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/"
+      },
+      {
+        "see": "Discover"
+      }
+    ],
+    "design": "Home-B",
+    "status": "CAPTURE"
+  },
+  {
+    "note": "No For You or Their likes without an account.",
+    "name": "home--signed-out",
+    "area": "tabs",
+    "kind": "variant",
+    "covers": [
+      "app/(tabs)/index.tsx::route::route"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/"
+      },
+      {
+        "see": "Discover"
+      }
+    ],
+    "design": "Home-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "home--new-account",
+    "area": "tabs",
+    "kind": "variant",
+    "covers": [
+      "app/(tabs)/index.tsx::route::route"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/"
+      },
+      {
+        "see": "Discover"
+      }
+    ],
+    "design": "Home-B",
+    "status": "CAPTURE"
+  },
+  {
+    "note": "Page-level loading: the first-paint Loader shows until Discover and For You answer. No see: the shot is taken as soon as the slow call starts. Clear the fault afterwards.",
+    "name": "home--loading",
+    "area": "states",
+    "kind": "loading",
+    "covers": [
+      "app/(tabs)/index.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/discover",
+          "mode": "slow"
+        }
+      },
+      {
+        "open": "/"
+      }
+    ],
+    "design": "LoadError-B",
+    "status": "CAPTURE"
+  },
+  {
+    "note": "Page-level: only when nothing is cached, so as a fresh account on a fresh install.",
+    "name": "home--offline",
+    "area": "states",
+    "kind": "offline",
+    "covers": [
+      "app/(tabs)/index.tsx::route::route"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/discover",
+          "mode": "fail"
+        }
+      },
+      {
+        "open": "/"
+      },
+      {
+        "see": "Couldn't reach the server, and nothing is cached yet."
+      }
+    ],
+    "design": "LoadError-B",
+    "status": "CAPTURE"
+  },
+  {
+    "note": "The x on a category tile; the tile moves under \"Explore more categories\".",
+    "name": "home--hidden-categories",
+    "area": "tabs",
+    "kind": "variant",
+    "covers": [
+      "app/(tabs)/index.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/"
+      },
+      {
+        "tap": "Hide Business"
+      },
+      {
+        "see": "Show Business again"
+      }
+    ],
+    "design": "Discover-B",
+    "status": "CAPTURE"
+  },
+  {
+    "note": "Search drawn in place over the tabs (SearchOverlay). The Discover search box label is \"Search shows and episodes\", or \"Search. Trending: <hint>\" when charts have items; use the first form, else the second.",
+    "name": "home--search-overlay",
+    "area": "discover",
+    "kind": "variant",
+    "covers": [
+      "app/(tabs)/index.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/"
+      },
+      {
+        "tap": "Search shows and episodes"
+      }
+    ],
+    "design": "Search-B",
+    "status": "CAPTURE"
+  },
+  {
+    "note": "The row menu under For You (signed in only). Needs a For You row; {episode} = the seeded title of the first For You row.",
+    "name": "home--not-interested-sheet",
+    "area": "discover",
+    "kind": "sheet",
+    "covers": [
+      "src/ui/discover/NotInterested.tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/"
+      },
+      {
+        "tap": "More for {episode}"
+      },
+      {
+        "see": "Not interested in this episode"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "note": "The \"Hidden · Undo\" line under For You.",
+    "name": "home--hidden-undo",
+    "area": "discover",
+    "kind": "variant",
+    "covers": [
+      "app/(tabs)/index.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/"
+      },
+      {
+        "tap": "More for {episode}"
+      },
+      {
+        "tap": "Not interested in this episode"
+      },
+      {
+        "see": "Hidden. We won’t recommend it again."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "reason": "redirects to /, no screen of its own",
+    "name": "discover--redirect",
+    "area": "tabs",
+    "kind": "screen",
+    "covers": [
+      "app/(tabs)/discover.tsx::route::route"
+    ],
+    "as": "visitor",
+    "steps": [],
+    "design": null,
+    "status": "EXCLUDED"
+  },
+  {
+    "reason": "redirects to /notifications, no screen of its own",
+    "name": "following--redirect",
+    "area": "tabs",
+    "kind": "screen",
+    "covers": [
+      "app/(tabs)/following.tsx::route::route"
+    ],
+    "as": "visitor",
+    "steps": [],
+    "design": null,
+    "status": "EXCLUDED"
+  },
+  {
+    "note": "The bottom bar (src/ui/shell/TabBar.tsx) with the mini player above it; tab labels Discover, Updates, Chat, Me. The badge on Me/Chat appears when there are unread items.",
+    "name": "tabs--bar",
+    "area": "tabs",
+    "kind": "variant",
+    "covers": [
+      "app/(tabs)/index.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/library"
+      },
+      {
+        "see": "Updates"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "library--screen",
+    "area": "tabs",
+    "kind": "screen",
+    "covers": [
+      "app/(tabs)/library.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/library"
+      },
+      {
+        "see": "My subscriptions"
+      }
+    ],
+    "design": "Library-B",
+    "status": "CAPTURE"
+  },
+  {
+    "note": "No voice-status row; no subscriptions, so Discover sections show under the empty state.",
+    "name": "library--signed-out",
+    "area": "tabs",
+    "kind": "variant",
+    "covers": [
+      "app/(tabs)/library.tsx::route::route"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/library"
+      },
+      {
+        "see": "Updates"
+      }
+    ],
+    "design": "Library-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "library--empty",
+    "area": "tabs",
+    "kind": "empty",
+    "covers": [
+      "app/(tabs)/library.tsx::empty::library",
+      "packages/social-core/src/empty.ts::surface::library"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/library"
+      },
+      {
+        "see": "No subscriptions yet. Pick something to listen to."
+      }
+    ],
+    "design": "Library-B",
+    "status": "CAPTURE"
+  },
+  {
+    "note": "Also reachable by long-press on a row. {episode} = the title of the first episode in the list.",
+    "name": "library--more-sheet",
+    "area": "tabs",
+    "kind": "sheet",
+    "covers": [
+      "app/(tabs)/library.tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/library"
+      },
+      {
+        "tap": "More for {episode}"
+      },
+      {
+        "see": "Remove from Updates"
+      }
+    ],
+    "design": "EpisodeMoreSheet-B",
+    "status": "CAPTURE"
+  },
+  {
+    "note": "The playlist picker opens inside the More sheet (EpisodeExtras). see text is an accessibility label; if the walker matches visible text only, use \"Playlist name\".",
+    "name": "library--add-to-playlist",
+    "area": "tabs",
+    "kind": "sheet",
+    "covers": [
+      "app/(tabs)/library.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/library"
+      },
+      {
+        "tap": "More for {episode}"
+      },
+      {
+        "tap": "Add to playlist"
+      },
+      {
+        "see": "Close the playlist picker"
+      }
+    ],
+    "design": "EpisodeMoreSheet-B",
+    "status": "CAPTURE"
+  },
+  {
+    "note": "The tile label is \"Save the moment at <mm:ss>\"; from a list the position is 0:00.",
+    "name": "library--save-moment",
+    "area": "tabs",
+    "kind": "sheet",
+    "covers": [
+      "app/(tabs)/library.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/library"
+      },
+      {
+        "tap": "More for {episode}"
+      },
+      {
+        "tap": "Save the moment at 0:00"
+      },
+      {
+        "see": "Add a note (optional)"
+      }
+    ],
+    "design": "MomentSheet-B",
+    "status": "CAPTURE"
+  },
+  {
+    "note": "After starring a show the \"Starred shows\" row appears above the list.",
+    "name": "library--starred-row",
+    "area": "tabs",
+    "kind": "variant",
+    "covers": [
+      "app/(tabs)/library.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/library"
+      },
+      {
+        "tap": "More for {episode}"
+      },
+      {
+        "tap": "Star this show"
+      },
+      {
+        "tap": "Close"
+      },
+      {
+        "see": "Starred shows"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "me--screen",
+    "area": "tabs",
+    "kind": "screen",
+    "covers": [
+      "app/(tabs)/me.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/me"
+      },
+      {
+        "see": "Saved moments"
+      }
+    ],
+    "design": "Me-B",
+    "status": "CAPTURE"
+  },
+  {
+    "note": "A Sign in link instead of a name; Creator centre, Likes, Playlists, Wallet and Tips tiles are not shown.",
+    "name": "me--signed-out",
+    "area": "tabs",
+    "kind": "variant",
+    "covers": [
+      "app/(tabs)/me.tsx::route::route"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/me"
+      },
+      {
+        "see": "Sign in ›"
+      }
+    ],
+    "design": "Me-B",
+    "status": "CAPTURE"
+  },
+  {
+    "note": "Where PLUS is on sale (storeReady) a PLUS banner shows above Saved moments; the plus account differs there only when the store flag is on.",
+    "name": "me--plus",
+    "area": "tabs",
+    "kind": "variant",
+    "covers": [
+      "app/(tabs)/me.tsx::route::route"
+    ],
+    "as": "plus",
+    "steps": [
+      {
+        "open": "/me"
+      },
+      {
+        "see": "Saved moments"
+      }
+    ],
+    "design": "Me-B",
+    "status": "CAPTURE"
+  },
+  {
+    "note": "Shows while purchases are not switched on (store flag off); with the flag on, Wallet opens the page instead.",
+    "name": "me--wallet-coming-soon",
+    "area": "tabs",
+    "kind": "dialog",
+    "covers": [
+      "app/(tabs)/me.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/me"
+      },
+      {
+        "tap": "Wallet"
+      },
+      {
+        "see": "Open Wallet"
+      }
+    ],
+    "design": "ComingSoonWallet-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "chat--screen",
+    "area": "tabs",
+    "kind": "screen",
+    "covers": [
+      "app/(tabs)/chat.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/chat"
+      },
+      {
+        "see": "Chat"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "chat--signed-out",
+    "area": "tabs",
+    "kind": "variant",
+    "covers": [
+      "app/(tabs)/chat.tsx::route::route"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/chat"
+      },
+      {
+        "see": "Sign in to chat with people who follow you back"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "chat--empty",
+    "area": "tabs",
+    "kind": "empty",
+    "covers": [
+      "app/(tabs)/chat.tsx::route::route"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/chat"
+      },
+      {
+        "see": "No chats yet. Tap New chat to message someone who follows you back."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "note": "Inline error with Retry. Clear the fault afterwards.",
+    "name": "chat--error",
+    "area": "states",
+    "kind": "error",
+    "covers": [
+      "app/(tabs)/chat.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/me/chats",
+          "mode": "fail"
+        }
+      },
+      {
+        "open": "/chat"
+      },
+      {
+        "see": "Couldn't load your chats right now."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "search--screen",
+    "area": "discover",
+    "kind": "screen",
+    "covers": [
+      "app/search.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/search"
+      },
+      {
+        "see": "Search"
+      }
+    ],
+    "design": "Search-B",
+    "status": "CAPTURE"
+  },
+  {
+    "note": "The search term \"Journey\" matches the seeded show; adjust to the seed show name if it differs.",
+    "name": "search--results",
+    "area": "discover",
+    "kind": "variant",
+    "covers": [
+      "app/search.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/search"
+      },
+      {
+        "type": "Search podcasts",
+        "text": "Journey"
+      },
+      {
+        "key": "Enter"
+      },
+      {
+        "tap": "Shows"
+      }
+    ],
+    "design": "Search-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "search--empty",
+    "area": "discover",
+    "kind": "empty",
+    "covers": [
+      "src/ui/search/SearchPage.tsx::empty::search",
+      "packages/social-core/src/empty.ts::surface::search"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/search"
+      },
+      {
+        "type": "Search podcasts",
+        "text": "zzzqqqxx"
+      },
+      {
+        "key": "Enter"
+      },
+      {
+        "see": "Nothing matches. Try the show's name, or paste a feed URL."
+      }
+    ],
+    "design": "Search-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "search--people-empty",
+    "area": "discover",
+    "kind": "variant",
+    "covers": [
+      "app/search.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/search"
+      },
+      {
+        "type": "Search podcasts",
+        "text": "zzzqqqxx"
+      },
+      {
+        "key": "Enter"
+      },
+      {
+        "tap": "People"
+      },
+      {
+        "see": "No one by that name."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "categories--screen",
+    "area": "discover",
+    "kind": "screen",
+    "covers": [
+      "app/categories.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/categories"
+      },
+      {
+        "see": "Categories"
+      }
+    ],
+    "design": "Categories-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "category--screen",
+    "area": "discover",
+    "kind": "screen",
+    "covers": [
+      "app/category/[id].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/category/{category}"
+      },
+      {
+        "see": "All categories"
+      }
+    ],
+    "design": "Category-B",
+    "status": "CAPTURE"
+  },
+  {
+    "note": "The chevron at the right of the category strip opens every category as a list.",
+    "name": "category--all-sheet",
+    "area": "discover",
+    "kind": "sheet",
+    "covers": [
+      "app/category/[id].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/category/{category}"
+      },
+      {
+        "tap": "All categories"
+      },
+      {
+        "see": "All categories"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "chart--screen",
+    "area": "discover",
+    "kind": "screen",
+    "covers": [
+      "app/chart.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/chart"
+      },
+      {
+        "see": "Charts"
+      }
+    ],
+    "design": "Chart-B",
+    "status": "CAPTURE"
+  },
+  {
+    "note": "Inline error with Retry. Clear the fault afterwards.",
+    "name": "chart--error",
+    "area": "states",
+    "kind": "error",
+    "covers": [
+      "app/chart.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/discover/chart",
+          "mode": "fail"
+        }
+      },
+      {
+        "open": "/chart"
+      },
+      {
+        "see": "Couldn't load the chart right now."
+      }
+    ],
+    "design": "LoadError-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "chart-rules--screen",
+    "area": "discover",
+    "kind": "screen",
+    "covers": [
+      "app/chart-rules.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/chart-rules"
+      },
+      {
+        "see": "How the charts work"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "note": "Reads the topic list from Discover's cache, so the Discover shot must have been taken first in the same install; with no such list the page says \"Topic list\" and is empty.",
+    "name": "topic--screen",
+    "area": "discover",
+    "kind": "screen",
+    "covers": [
+      "app/topic/[id].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/topic/{topic}"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "academy--screen",
+    "area": "discover",
+    "kind": "screen",
+    "covers": [
+      "app/academy/index.tsx::route::route"
+    ],
+    "as": "host",
+    "steps": [
+      {
+        "open": "/academy"
+      },
+      {
+        "see": "Creator academy"
+      }
+    ],
+    "design": "Academy-B",
+    "status": "CAPTURE"
+  },
+  {
+    "note": "{academy} = the slug of the first article; the shot settles when the network is quiet.",
+    "name": "academy--article",
+    "area": "discover",
+    "kind": "screen",
+    "covers": [
+      "app/academy/[slug].tsx::route::route"
+    ],
+    "as": "host",
+    "steps": [
+      {
+        "open": "/academy/{academy}"
+      }
+    ],
+    "design": "AcademyLesson-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "academy--article-missing",
+    "area": "discover",
+    "kind": "variant",
+    "covers": [
+      "app/academy/[slug].tsx::route::route"
+    ],
+    "as": "host",
+    "steps": [
+      {
+        "open": "/academy/no-such-article"
+      },
+      {
+        "see": "This article has moved"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "picks-daily--screen",
+    "area": "discover",
+    "kind": "screen",
+    "covers": [
+      "app/picks/daily.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/picks/daily"
+      },
+      {
+        "see": "Daily picks"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "note": "Inline error with Retry. Clear the fault afterwards.",
+    "name": "picks-daily--error",
+    "area": "states",
+    "kind": "error",
+    "covers": [
+      "app/picks/daily.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/discover/daily",
+          "mode": "fail"
+        }
+      },
+      {
+        "open": "/picks/daily"
+      },
+      {
+        "see": "Couldn't load today's picks."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "picks-past--screen",
+    "area": "discover",
+    "kind": "screen",
+    "covers": [
+      "app/picks/past.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/picks/past"
+      },
+      {
+        "see": "Past picks"
+      }
+    ],
+    "design": "PastPicks-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "picks-past--error",
+    "area": "states",
+    "kind": "error",
+    "covers": [
+      "app/picks/past.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/picks/past",
+          "mode": "fail"
+        }
+      },
+      {
+        "open": "/picks/past"
+      },
+      {
+        "see": "Couldn't load past picks right now."
+      }
+    ],
+    "design": "PastPicks-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "issues--screen",
+    "area": "discover",
+    "kind": "screen",
+    "covers": [
+      "app/issues.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/issues"
+      },
+      {
+        "see": "Issues"
+      }
+    ],
+    "design": "Issues-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "issues--error",
+    "area": "states",
+    "kind": "error",
+    "covers": [
+      "app/issues.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/issues",
+          "mode": "fail"
+        }
+      },
+      {
+        "open": "/issues"
+      },
+      {
+        "see": "Couldn't load the issues right now."
+      }
+    ],
+    "design": "Issues-B",
+    "status": "CAPTURE"
+  },
+  {
+    "note": "Settles when the network is quiet (the title is the issue's own).",
+    "name": "issue--screen",
+    "area": "discover",
+    "kind": "screen",
+    "covers": [
+      "app/issue/[id].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/issue/{issue}"
+      }
+    ],
+    "design": "Issue-B",
+    "status": "CAPTURE"
+  },
+  {
+    "web": "skip: native share sheet",
+    "note": "The iOS share sheet (Share.share). Simulator-only system UI.",
+    "name": "issue--share",
+    "area": "system",
+    "kind": "system",
+    "covers": [
+      "app/issue/[id].tsx::system::Share.share#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/issue/{issue}"
+      },
+      {
+        "tap": "Share this issue"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "digest--screen",
+    "area": "discover",
+    "kind": "screen",
+    "covers": [
+      "app/digest/[week].tsx::route::route"
+    ],
+    "as": "plus",
+    "steps": [
+      {
+        "open": "/digest/{digest}"
+      },
+      {
+        "see": "Weekly catch-up"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "digest--none",
+    "area": "discover",
+    "kind": "empty",
+    "covers": [
+      "app/digest/[week].tsx::route::route"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/digest/{digest}"
+      },
+      {
+        "see": "No catch-up here. PLUS members get one on Mondays when their shows had new episodes."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "report--screen",
+    "area": "discover",
+    "kind": "screen",
+    "covers": [
+      "app/report/[month].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/report/{month}"
+      },
+      {
+        "see": "Your month in listening"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "report--signed-out",
+    "area": "discover",
+    "kind": "variant",
+    "covers": [
+      "app/report/[month].tsx::route::route"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/report/{month}"
+      },
+      {
+        "see": "Sign in to see your month in listening."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "report--empty",
+    "area": "discover",
+    "kind": "empty",
+    "covers": [
+      "app/report/[month].tsx::route::route"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/report/{month}"
+      },
+      {
+        "see": "Nothing here — you didn't listen that month."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "report--error",
+    "area": "states",
+    "kind": "error",
+    "covers": [
+      "app/report/[month].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/me/report",
+          "mode": "fail"
+        }
+      },
+      {
+        "open": "/report/{month}"
+      },
+      {
+        "see": "Couldn't load this report right now."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "web": "skip: native share sheet",
+    "note": "Share as a picture: the iOS share sheet with the image; #2 is the text-only fallback. \"{month}\" in the label is the month name, e.g. \"Share your September\".",
+    "name": "report--share",
+    "area": "system",
+    "kind": "system",
+    "covers": [
+      "app/report/[month].tsx::system::Share.share#1",
+      "app/report/[month].tsx::system::Share.share#2"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/report/{month}"
+      },
+      {
+        "tap": "Share your {month}"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "friends-listening--screen",
+    "area": "discover",
+    "kind": "screen",
+    "covers": [
+      "app/friends-listening.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/friends-listening"
+      },
+      {
+        "see": "Friends listening"
+      }
+    ],
+    "design": "FriendsListening-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "friends-listening--signed-out",
+    "area": "discover",
+    "kind": "variant",
+    "covers": [
+      "app/friends-listening.tsx::route::route"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/friends-listening"
+      },
+      {
+        "see": "Sign in to see what people you follow are playing"
+      }
+    ],
+    "design": "FriendsListening-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "friends-listening--empty",
+    "area": "discover",
+    "kind": "empty",
+    "covers": [
+      "app/friends-listening.tsx::route::route"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/friends-listening"
+      },
+      {
+        "see": "Nobody you follow has played anything public this week"
+      }
+    ],
+    "design": "FriendsListening-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "friends-listening--help-sheet",
+    "area": "discover",
+    "kind": "sheet",
+    "covers": [
+      "app/friends-listening.tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/friends-listening"
+      },
+      {
+        "tap": "What is this page?"
+      },
+      {
+        "see": "What people you follow liked, and what they played in the last 7 days."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "friends-listening--error",
+    "area": "states",
+    "kind": "error",
+    "covers": [
+      "app/friends-listening.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/me/friends-listening",
+          "mode": "fail"
+        }
+      },
+      {
+        "open": "/friends-listening"
+      },
+      {
+        "see": "Couldn't load this right now."
+      }
+    ],
+    "design": "FriendsListening-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "plaza--screen",
+    "area": "discover",
+    "kind": "screen",
+    "covers": [
+      "app/plaza.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/plaza"
+      },
+      {
+        "see": "New shows plaza"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "plaza--list",
+    "area": "discover",
+    "kind": "variant",
+    "covers": [
+      "app/plaza.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/plaza"
+      },
+      {
+        "tap": "List view"
+      },
+      {
+        "see": "The newest shows, as a list."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "plaza--error",
+    "area": "states",
+    "kind": "error",
+    "covers": [
+      "app/plaza.tsx::route::route"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/discover/plaza",
+          "mode": "fail"
+        }
+      },
+      {
+        "open": "/plaza"
+      },
+      {
+        "see": "Couldn't reach the server."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "note": "A new account has no subscriptions, so nothing plays. A listener with subscriptions starts the newest episode and leaves for the player, which is the player area's shot.",
+    "name": "play-latest--screen",
+    "area": "discover",
+    "kind": "screen",
+    "covers": [
+      "app/play-latest.tsx::route::route"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/play-latest"
+      },
+      {
+        "see": "Nothing new to play"
+      }
+    ],
+    "design": "PlayLatest-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "me-listening--screen",
+    "area": "discover",
+    "kind": "screen",
+    "covers": [
+      "app/me/listening.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/me/listening"
+      },
+      {
+        "see": "Listening data"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "me-listening--signed-out",
+    "area": "discover",
+    "kind": "variant",
+    "covers": [
+      "app/me/listening.tsx::route::route"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/me/listening"
+      },
+      {
+        "see": "Sign in to see your listening data."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "me-listening--empty",
+    "area": "discover",
+    "kind": "empty",
+    "covers": [
+      "app/me/listening.tsx::route::route"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/me/listening"
+      },
+      {
+        "see": "No listening yet. Play an episode and your minutes show up here."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "me-listening--30-days",
+    "area": "discover",
+    "kind": "variant",
+    "covers": [
+      "app/me/listening.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/me/listening"
+      },
+      {
+        "tap": "Last 30 days"
+      },
+      {
+        "see": "Last 30 days"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "note": "Triggered: \"Couldn't hide that — try again.\" (the dismissals call fails). The other message, \"Couldn't undo — try again in Settings.\", needs Undo with the same fault. Clear the fault afterwards.",
+    "name": "toast--home",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/(tabs)/index.tsx::toast::Couldn't hide that — try again.",
+      "app/(tabs)/index.tsx::toast::Couldn't undo — try again in Settings."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/me/dismissals",
+          "mode": "fail"
+        }
+      },
+      {
+        "open": "/"
+      },
+      {
+        "tap": "More for {episode}"
+      },
+      {
+        "tap": "Not interested in this episode"
+      },
+      {
+        "see": "Couldn't hide that — try again."
+      }
+    ],
+    "design": "Toast-B",
+    "status": "CAPTURE"
+  },
+  {
+    "note": "Triggered: \"Added to the queue.\" Others: Already in the queue., The queue is full (300)., Already downloaded., Downloading., Marked as played., Removed from Updates..., Starred..., Unstarred.",
+    "name": "toast--library",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/(tabs)/library.tsx::toast::<dynamic>#1",
+      "app/(tabs)/library.tsx::toast::Added to the queue.",
+      "app/(tabs)/library.tsx::toast::Already downloaded.",
+      "app/(tabs)/library.tsx::toast::Already in the queue.",
+      "app/(tabs)/library.tsx::toast::Downloading.",
+      "app/(tabs)/library.tsx::toast::Marked as played.",
+      "app/(tabs)/library.tsx::toast::Removed from Updates. The show stays subscribed.",
+      "app/(tabs)/library.tsx::toast::Starred. It sits at the top of My subscriptions.",
+      "app/(tabs)/library.tsx::toast::The queue is full (300).",
+      "app/(tabs)/library.tsx::toast::Unstarred."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/library"
+      },
+      {
+        "tap": "Add {episode} to the queue"
+      },
+      {
+        "see": "Added to the queue."
+      }
+    ],
+    "design": "Toast-B",
+    "status": "CAPTURE"
+  },
+  {
+    "note": "Triggered: \"Added {n} to the queue\" ({n} = number of unplayed episodes in the digest). The full-queue message needs 300 queued.",
+    "name": "toast--digest",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/digest/[week].tsx::toast::Added ${added} to the queue",
+      "app/digest/[week].tsx::toast::The queue is full (300). Remove something first."
+    ],
+    "as": "plus",
+    "steps": [
+      {
+        "open": "/digest/{digest}"
+      },
+      {
+        "tap": "Queue all"
+      },
+      {
+        "see": "Added {n} to the queue"
+      }
+    ],
+    "design": "Toast-B",
+    "status": "CAPTURE"
+  },
+  {
+    "note": "Triggered: \"Making the picture…\" (Share as a picture). The other, \"That episode isn't on this phone...\", needs a top episode not on the phone.",
+    "name": "toast--report",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/report/[month].tsx::toast::Making the picture…",
+      "app/report/[month].tsx::toast::That episode isn't on this phone. Follow its show to open it."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/report/{month}"
+      },
+      {
+        "tap": "Share your {month}"
+      },
+      {
+        "see": "Making the picture…"
+      }
+    ],
+    "design": "Toast-B",
+    "status": "CAPTURE"
+  },
+  {
+    "note": "Triggered: \"Added to the queue\" from an editor's pick's + button (needs a pick today). Others: queue full, Couldn't fetch that show right now., That episode is no longer in its feed.",
+    "name": "toast--use-discover",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "src/discover/useDiscover.ts::toast::<dynamic>#1",
+      "src/discover/useDiscover.ts::toast::<dynamic>#2",
+      "src/discover/useDiscover.ts::toast::<dynamic>#3",
+      "src/discover/useDiscover.ts::toast::Added to the queue${q.downloading ? ' · downloading' : ''}",
+      "src/discover/useDiscover.ts::toast::The queue is full (300). Remove something first."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/"
+      },
+      {
+        "tap": "Add {episode} to the queue"
+      },
+      {
+        "see": "Added to the queue"
+      }
+    ],
+    "design": "Toast-B",
+    "status": "CAPTURE"
+  },
+  {
+    "note": "Triggered: \"Thanks — For You will change on its next refresh.\" The form lives on /onboarding/not-liking (another area owns that route's screen shot). The failure toast \"Couldn't send — try again when you're online.\" needs a fault on /v1/me/rec-feedback.",
+    "name": "toast--rec-feedback",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "src/ui/discover/RecFeedback.tsx::toast::Couldn't send — try again when you're online.",
+      "src/ui/discover/RecFeedback.tsx::toast::Thanks — For You will change on its next refresh."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/onboarding/not-liking"
+      },
+      {
+        "tap": "Too familiar"
+      },
+      {
+        "tap": "Send what's wrong with For You"
+      },
+      {
+        "see": "Thanks — For You will change on its next refresh."
+      }
+    ],
+    "design": "Toast-B",
+    "status": "CAPTURE"
+  },
+  {
+    "note": "Triggered: \"Saved the moment at 0:00.\" Others: Sign in to make playlists., Added to <playlist>., Made <playlist> and added the episode., playlist full / server errors.",
+    "name": "toast--episode-extras",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "src/ui/me/EpisodeExtras.tsx::toast::<dynamic>#1",
+      "src/ui/me/EpisodeExtras.tsx::toast::Added to ${p.title}.",
+      "src/ui/me/EpisodeExtras.tsx::toast::Made ${p.title} and added the episode.",
+      "src/ui/me/EpisodeExtras.tsx::toast::Saved the moment at ${mmss(at)}.",
+      "src/ui/me/EpisodeExtras.tsx::toast::Sign in to make playlists."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/library"
+      },
+      {
+        "tap": "More for {episode}"
+      },
+      {
+        "tap": "Save the moment at 0:00"
+      },
+      {
+        "tap": "Save moment"
+      },
+      {
+        "see": "Saved the moment at 0:00."
+      }
+    ],
+    "design": "Toast-B",
+    "status": "CAPTURE"
+  },
+  {
+    "note": "Triggered: \"Couldn't send — try again when you're online.\" (the request fails). Clear the fault afterwards. Without the fault the button turns into \"Thanks — our editors will look for ...\"",
+    "name": "toast--tell-editors",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "src/ui/search/TellEditors.tsx::toast::Couldn't send — try again when you're online."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/search-requests",
+          "mode": "fail"
+        }
+      },
+      {
+        "open": "/search"
+      },
+      {
+        "type": "Search podcasts",
+        "text": "zzzqqqxx"
+      },
+      {
+        "key": "Enter"
+      },
+      {
+        "tap": "Can't find it? Tell the editors you searched for zzzqqqxx"
+      },
+      {
+        "see": "Couldn't send — try again when you're online."
+      }
+    ],
+    "design": "Toast-B",
+    "status": "CAPTURE"
+  }
+]

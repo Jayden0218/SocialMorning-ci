@@ -1,0 +1,1325 @@
+[
+  {
+    "name": "appeal--screen",
+    "area": "safety",
+    "kind": "screen",
+    "covers": [
+      "app/appeal.tsx::route::route"
+    ],
+    "as": "suspended",
+    "steps": [
+      {
+        "open": "/appeal"
+      },
+      {
+        "see": "Tell us why we should look again. You can appeal each decision once."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Needs the suspension token the refused sign-in stores; the seed or harness must sign the suspended account in first (auth/email shows \"Appeal the suspension\")."
+  },
+  {
+    "name": "appeal--nothing-to-appeal",
+    "area": "safety",
+    "kind": "variant",
+    "covers": [
+      "app/appeal.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/appeal"
+      },
+      {
+        "see": "Nothing to appeal"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "appeal--signed-out",
+    "area": "safety",
+    "kind": "variant",
+    "covers": [
+      "app/appeal.tsx::route::route"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/appeal"
+      },
+      {
+        "see": "Sign in to see what you can appeal."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "toast--appeal",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/appeal.tsx::toast::<dynamic>#1",
+      "app/appeal.tsx::toast::Appeal sent."
+    ],
+    "as": "suspended",
+    "steps": [
+      {
+        "open": "/appeal"
+      },
+      {
+        "type": "Why should we look again?",
+        "text": "Please look again."
+      },
+      {
+        "tap": "Send appeal"
+      },
+      {
+        "see": "Appeal sent."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Triggers \"Appeal sent.\" (the other site is the dynamic error message). The textarea accessible name is \"Your appeal: <what>\"; the placeholder is used here."
+  },
+  {
+    "name": "maintenance--screen",
+    "area": "safety",
+    "kind": "screen",
+    "covers": [
+      "app/maintenance.tsx::route::route"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/maintenance"
+      },
+      {
+        "see": "We'll be right back"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "The maintenance switch: the page the app opens when /v1/health carries maintenance; reached directly by route, default wording."
+  },
+  {
+    "name": "creator--screen",
+    "area": "creator",
+    "kind": "screen",
+    "covers": [
+      "app/creator.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/creator"
+      },
+      {
+        "see": "Claim a show"
+      }
+    ],
+    "design": "Creator-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "creator--signed-out",
+    "area": "creator",
+    "kind": "variant",
+    "covers": [
+      "app/creator.tsx::route::route"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/creator"
+      },
+      {
+        "see": "Sign in to claim your show"
+      }
+    ],
+    "design": "Creator-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "creator--host-proven",
+    "area": "creator",
+    "kind": "variant",
+    "covers": [
+      "app/creator.tsx::route::route"
+    ],
+    "as": "host",
+    "steps": [
+      {
+        "open": "/creator"
+      },
+      {
+        "see": "Proven — you are the host"
+      }
+    ],
+    "design": "Creator-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "creator--code-pending",
+    "area": "creator",
+    "kind": "variant",
+    "covers": [
+      "app/creator.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/creator"
+      },
+      {
+        "tap": "Claim {show-title}"
+      },
+      {
+        "see": "1. Copy this code. 2. Put it anywhere in your show description, in your hosting service. 3. Tap Verify."
+      }
+    ],
+    "design": "Creator-B",
+    "status": "CAPTURE",
+    "note": "{show-title} = the title of a show the listener subscribes to."
+  },
+  {
+    "name": "creator--code-not-found",
+    "area": "creator",
+    "kind": "variant",
+    "covers": [
+      "app/creator.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/creator"
+      },
+      {
+        "tap": "Claim {show-title}"
+      },
+      {
+        "tap": "Verify"
+      },
+      {
+        "see": "The code is not in your feed yet. Feeds can take a few minutes to update — try again soon."
+      }
+    ],
+    "design": "Creator-B",
+    "status": "CAPTURE",
+    "note": "Needs the test server to re-read a feed that lacks the code."
+  },
+  {
+    "name": "creator--share-code-panel",
+    "area": "creator",
+    "kind": "sheet",
+    "covers": [
+      "app/creator.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/creator"
+      },
+      {
+        "tap": "Claim {show-title}"
+      },
+      {
+        "tap": "Share code"
+      },
+      {
+        "see": "Share your code"
+      }
+    ],
+    "design": "ShareSheet-B",
+    "status": "CAPTURE",
+    "note": "The app share panel (ShareChooser sheet, owned by the listen area)."
+  },
+  {
+    "name": "creator--system-share",
+    "area": "system",
+    "kind": "system",
+    "covers": [
+      "app/creator.tsx::system::Share.share#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/creator"
+      },
+      {
+        "tap": "Claim {show-title}"
+      },
+      {
+        "tap": "Share code"
+      },
+      {
+        "tap": "More ways to share"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "web": "skip: system share sheet",
+    "note": "The operating system share sheet over the Creator centre."
+  },
+  {
+    "name": "wallet--screen",
+    "area": "creator",
+    "kind": "screen",
+    "covers": [
+      "app/wallet.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/wallet"
+      },
+      {
+        "see": "No purchases"
+      }
+    ],
+    "design": "Wallet-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "wallet--plus",
+    "area": "creator",
+    "kind": "variant",
+    "covers": [
+      "app/wallet.tsx::route::route"
+    ],
+    "as": "plus",
+    "steps": [
+      {
+        "open": "/wallet"
+      },
+      {
+        "see": "You have PLUS"
+      }
+    ],
+    "design": "Wallet-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "wallet--signed-out",
+    "area": "creator",
+    "kind": "variant",
+    "covers": [
+      "app/wallet.tsx::route::route"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/wallet"
+      },
+      {
+        "see": "Couldn't load your purchases right now."
+      }
+    ],
+    "design": "Wallet-B",
+    "status": "CAPTURE",
+    "note": "No gate in the page; with no session the purchases call fails."
+  },
+  {
+    "name": "tips--screen",
+    "area": "creator",
+    "kind": "screen",
+    "covers": [
+      "app/tips.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/tips"
+      },
+      {
+        "see": "No tips yet"
+      }
+    ],
+    "design": "Tips-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "gift--screen",
+    "area": "creator",
+    "kind": "screen",
+    "covers": [
+      "app/gift/[code].tsx::route::route"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/gift/{gift}"
+      },
+      {
+        "see": "Claim the series"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "A gift code is single use: this entry must run before toast--gift or use a second code."
+  },
+  {
+    "name": "gift--signed-out",
+    "area": "creator",
+    "kind": "variant",
+    "covers": [
+      "app/gift/[code].tsx::route::route"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/gift/{gift}"
+      },
+      {
+        "see": "Sign in to claim"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "gift--not-found",
+    "area": "creator",
+    "kind": "variant",
+    "covers": [
+      "app/gift/[code].tsx::route::route"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/gift/no-such-gift"
+      },
+      {
+        "see": "This gift link does not work. Check it with the person who sent it."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "toast--gift",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/gift/[code].tsx::toast::The series is yours. Enjoy!"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/gift/{gift}"
+      },
+      {
+        "tap": "Claim the series"
+      },
+      {
+        "see": "The series is yours. Enjoy!"
+      }
+    ],
+    "design": "Toast-B",
+    "status": "CAPTURE",
+    "note": "Triggers \"The series is yours. Enjoy!\" then the app opens the show."
+  },
+  {
+    "name": "redeem--screen",
+    "area": "creator",
+    "kind": "screen",
+    "covers": [
+      "app/redeem.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/redeem"
+      },
+      {
+        "see": "Have a code?"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "redeem--bad-code",
+    "area": "creator",
+    "kind": "variant",
+    "covers": [
+      "app/redeem.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/redeem"
+      },
+      {
+        "type": "Code",
+        "text": "AAAA-AAAA-AAAA"
+      },
+      {
+        "tap": "Redeem"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Shows the server error line for an unknown code; no see because the wording is the server's."
+  },
+  {
+    "name": "favourites--screen",
+    "area": "library",
+    "kind": "screen",
+    "covers": [
+      "app/favourites.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/favourites"
+      },
+      {
+        "see": "Favourites"
+      }
+    ],
+    "design": "Favourites-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "favourites--empty",
+    "area": "library",
+    "kind": "variant",
+    "covers": [
+      "app/favourites.tsx::route::route"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/favourites"
+      },
+      {
+        "see": "No favourites yet — star an episode on its page"
+      }
+    ],
+    "design": "Favourites-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "favourites--comments-empty",
+    "area": "library",
+    "kind": "variant",
+    "covers": [
+      "app/favourites.tsx::route::route"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/favourites"
+      },
+      {
+        "tap": "Comments"
+      },
+      {
+        "see": "No favourite comments yet — tap ☆ on a comment"
+      }
+    ],
+    "design": "Favourites-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "inbox--redirect",
+    "area": "library",
+    "kind": "screen",
+    "covers": [
+      "app/inbox.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [],
+    "design": "Inbox-B",
+    "status": "EXCLUDED",
+    "reason": "redirects to /library, no screen of its own"
+  },
+  {
+    "name": "me-listening--all-time",
+    "area": "library",
+    "kind": "variant",
+    "covers": [
+      "app/me/listening.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/me/listening"
+      },
+      {
+        "tap": "All time"
+      },
+      {
+        "see": "All time"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "scan--screen",
+    "area": "discover",
+    "kind": "screen",
+    "covers": [
+      "app/scan.tsx::route::route"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/scan"
+      },
+      {
+        "see": "Allow camera"
+      }
+    ],
+    "design": "ScanPermission-B",
+    "status": "CAPTURE",
+    "note": "The screen before the camera is allowed (the simulator has no camera)."
+  },
+  {
+    "name": "scan--camera-prompt",
+    "area": "system",
+    "kind": "permission",
+    "covers": [
+      "app/scan.tsx::permission::useCameraPermissions"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/scan"
+      },
+      {
+        "tap": "Allow camera"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "web": "skip: system permission prompt",
+    "note": "The iOS camera system alert, simulator only."
+  },
+  {
+    "name": "scan--camera-denied",
+    "area": "system",
+    "kind": "variant",
+    "covers": [
+      "app/scan.tsx::permission::useCameraPermissions"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/scan"
+      },
+      {
+        "tap": "Allow camera"
+      },
+      {
+        "tap": "Don't Allow"
+      },
+      {
+        "see": "Camera access is off. Turn it on for SocialNet in your phone's Settings."
+      }
+    ],
+    "design": "ScanPermission-B",
+    "status": "CAPTURE",
+    "web": "skip: system permission prompt"
+  },
+  {
+    "name": "scan--camera-preview",
+    "area": "discover",
+    "kind": "variant",
+    "covers": [
+      "app/scan.tsx::route::route"
+    ],
+    "as": "new",
+    "steps": [],
+    "design": "Scan-B",
+    "status": "NOT_CAPTURABLE",
+    "reason": "The live camera preview needs a camera; the simulator and the CI browser have none."
+  },
+  {
+    "name": "transcript--screen",
+    "area": "library",
+    "kind": "screen",
+    "covers": [
+      "app/transcript/[episodeId].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/transcript/{episode}"
+      },
+      {
+        "see": "Transcript"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "toast--transcript",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/transcript/[episodeId].tsx::toast::Copied.",
+      "app/transcript/[episodeId].tsx::system::clipboard#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/transcript/{episode}"
+      }
+    ],
+    "design": null,
+    "status": "NOT_CAPTURABLE",
+    "reason": "Copy needs a long-press on a transcript line to start a selection; the step language has no long-press (lead: add a hold step, then: hold a line, tap \"Copy the selected lines\", see \"Copied.\").",
+    "note": "Message \"Copied.\" and the clipboard write."
+  },
+  {
+    "name": "coming-soon--wallet-sheet",
+    "area": "dialogs",
+    "kind": "sheet",
+    "covers": [
+      "src/ui/kit/ComingSoon.tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/me"
+      },
+      {
+        "tap": "Wallet"
+      },
+      {
+        "see": "Coming soon"
+      }
+    ],
+    "design": "ComingSoonWallet-B",
+    "status": "CAPTURE",
+    "note": "Shown while purchases are not switched on (default). It is the only opener of the ComingSoon sheet."
+  },
+  {
+    "name": "rate-sheet--sheet",
+    "area": "dialogs",
+    "kind": "sheet",
+    "covers": [
+      "src/ui/shell/RateSheet.tsx::sheet::#1"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/"
+      },
+      {
+        "see": "Enjoying SocialNet?"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Slides up about 1.5 s after the tabs show, once per install, and not in a launch that showed the terms or interests page."
+  },
+  {
+    "name": "toast--rate-sheet",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "src/ui/shell/RateSheet.tsx::toast::Could not open the store.",
+      "src/ui/shell/RateSheet.tsx::toast::Thank you! Ratings open when SocialNet is in the store."
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/"
+      },
+      {
+        "see": "Enjoying SocialNet?"
+      },
+      {
+        "tap": "Rate us"
+      },
+      {
+        "see": "Thank you! Ratings open when SocialNet is in the store."
+      }
+    ],
+    "design": "Toast-B",
+    "status": "CAPTURE",
+    "note": "Triggers \"Thank you! Ratings open when SocialNet is in the store.\" (no store URL yet); \"Could not open the store.\" appears only once a store link is set."
+  },
+  {
+    "name": "data-prompt--sheet",
+    "area": "dialogs",
+    "kind": "sheet",
+    "covers": [
+      "src/ui/player/DataPrompt.tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [],
+    "design": null,
+    "status": "NOT_CAPTURABLE",
+    "reason": "Opens only when a stream is refused on mobile data; the simulator and CI browser are never on a cellular connection."
+  },
+  {
+    "name": "error-boundary--screen",
+    "area": "states",
+    "kind": "error",
+    "covers": [
+      "app/show/[feedUrl].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/show/%E0%A4%A"
+      },
+      {
+        "see": "Something went wrong"
+      }
+    ],
+    "design": "ErrorScreen-B",
+    "status": "CAPTURE",
+    "note": "ErrorBoundary (app/_layout.tsx) has no site of its own. Trigger: the show page runs decodeURIComponent on its param during render, so a malformed percent-sequence throws URIError. NOT run on a device: if the router decodes first it will not throw and the entry reports MISSED."
+  },
+  {
+    "name": "permission--notifications",
+    "area": "system",
+    "kind": "permission",
+    "covers": [
+      "src/notify/expo.ts::permission::requestPermissionsAsync"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/settings/push"
+      },
+      {
+        "tap": "Allow notifications"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "web": "skip: system permission prompt",
+    "note": "The iOS notification system alert, simulator only."
+  },
+  {
+    "name": "permission--speech-recognition",
+    "area": "system",
+    "kind": "permission",
+    "covers": [
+      "src/social/voice-text.ts::permission::requestPermissionsAsync"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/voice/new"
+      },
+      {
+        "tap": "Start recording"
+      }
+    ],
+    "design": "VoiceNew-B",
+    "status": "CAPTURE",
+    "web": "skip: system permission prompt",
+    "note": "iOS asks speech recognition first (the first alert after Start recording); the order is from the library, not seen."
+  },
+  {
+    "name": "permission--microphone",
+    "area": "system",
+    "kind": "permission",
+    "covers": [
+      "src/playback/expo-audio-adapter.ts::permission::requestRecordingPermissionsAsync"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/voice/new"
+      },
+      {
+        "tap": "Start recording"
+      },
+      {
+        "tap": "OK"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "web": "skip: system permission prompt",
+    "note": "The microphone system alert after the speech one has been accepted (OK). If the build has no speech module the first alert is already the microphone one."
+  },
+  {
+    "name": "permission--microphone-denied",
+    "area": "system",
+    "kind": "variant",
+    "covers": [
+      "src/playback/expo-audio-adapter.ts::permission::requestRecordingPermissionsAsync",
+      "src/social/voice-text.ts::permission::requestPermissionsAsync"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/voice/new"
+      },
+      {
+        "tap": "Start recording"
+      },
+      {
+        "tap": "Don't Allow"
+      },
+      {
+        "see": "Open settings"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "web": "skip: system permission prompt",
+    "note": "The in-app denied state of the voice page."
+  },
+  {
+    "name": "states--library-empty",
+    "area": "states",
+    "kind": "empty",
+    "covers": [
+      "packages/social-core/src/empty.ts::surface::library",
+      "app/subscriptions.tsx::empty::library"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/subscriptions"
+      },
+      {
+        "see": "No subscriptions yet. Pick something to listen to."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "states--queue-empty",
+    "area": "states",
+    "kind": "empty",
+    "covers": [
+      "packages/social-core/src/empty.ts::surface::queue",
+      "app/queue.tsx::empty::queue"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/queue"
+      },
+      {
+        "see": "Nothing queued. Use Add to queue on an episode."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "states--downloads-empty",
+    "area": "states",
+    "kind": "empty",
+    "covers": [
+      "packages/social-core/src/empty.ts::surface::downloads",
+      "app/downloads.tsx::empty::downloads"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/downloads"
+      },
+      {
+        "see": "Nothing downloaded yet. Downloads run on Wi-Fi unless you allow mobile data."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "states--followers-empty",
+    "area": "states",
+    "kind": "empty",
+    "covers": [
+      "packages/social-core/src/empty.ts::surface::followers"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/profile/{user}/followers"
+      },
+      {
+        "see": "Nobody follows you yet. Share a clip — your name travels with it."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "{user} must be the new account itself (a listener with no followers)."
+  },
+  {
+    "name": "states--following-empty",
+    "area": "states",
+    "kind": "empty",
+    "covers": [
+      "packages/social-core/src/empty.ts::surface::following"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/profile/{user}/following"
+      },
+      {
+        "see": "You follow nobody yet. Tap a name on any comment to see their profile."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "{user} must be the new account itself."
+  },
+  {
+    "name": "states--clips-empty",
+    "area": "states",
+    "kind": "empty",
+    "covers": [
+      "packages/social-core/src/empty.ts::surface::clips",
+      "src/ui/clips/ClipList.tsx::empty::clips"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/episode/{episode2}"
+      },
+      {
+        "see": "No clips yet. Clip the good bit from the player."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "{episode2} = an episode with no clips."
+  },
+  {
+    "name": "states--comments-empty",
+    "area": "states",
+    "kind": "empty",
+    "covers": [
+      "packages/social-core/src/empty.ts::surface::comments"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/comments/{episode2}"
+      },
+      {
+        "see": "Nobody has said anything at this moment yet."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "{episode2} = an episode with no comments."
+  },
+  {
+    "name": "states--heat-empty",
+    "area": "states",
+    "kind": "empty",
+    "covers": [
+      "packages/social-core/src/empty.ts::surface::heat"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/episode/{episode2}"
+      },
+      {
+        "tap": "Play"
+      },
+      {
+        "open": "/player"
+      },
+      {
+        "see": "Nobody has marked a moment yet — tap ♡ while listening."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "{episode2} = an episode with no reactions; the sentence is the heat strip's note on the player."
+  },
+  {
+    "name": "states--nextup-empty",
+    "area": "states",
+    "kind": "empty",
+    "covers": [
+      "packages/social-core/src/empty.ts::surface::nextup",
+      "src/ui/episode/RelatedEpisodes.tsx::empty::nextup"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/episode/{episode2}"
+      },
+      {
+        "see": "Nothing to suggest yet — play something and come back."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Related episodes block on the episode page; the same text shows under Up next in the player."
+  },
+  {
+    "name": "states--stats-empty",
+    "area": "states",
+    "kind": "empty",
+    "covers": [
+      "packages/social-core/src/empty.ts::surface::stats"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/profile/{user}"
+      },
+      {
+        "see": "Nothing listened yet. Play something — stats count from the first minute."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "{user} must be the new account itself."
+  },
+  {
+    "name": "states--search-empty",
+    "area": "states",
+    "kind": "empty",
+    "covers": [
+      "packages/social-core/src/empty.ts::surface::search"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/search"
+      },
+      {
+        "type": "Search podcasts",
+        "text": "zzzqx9nothing"
+      },
+      {
+        "key": "Enter"
+      },
+      {
+        "see": "Nothing matches. Try the show's name, or paste a feed URL."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "states--library-manage-empty",
+    "area": "states",
+    "kind": "empty",
+    "covers": [
+      "app/subscriptions/manage.tsx::empty::library"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/subscriptions/manage"
+      },
+      {
+        "see": "No subscriptions yet. Pick something to listen to."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "states--inbox-empty",
+    "area": "states",
+    "kind": "empty",
+    "covers": [
+      "packages/social-core/src/empty.ts::surface::inbox"
+    ],
+    "as": "new",
+    "steps": [],
+    "design": null,
+    "status": "EXCLUDED",
+    "reason": "The inbox sentence is defined in EMPTY_STATES but no screen renders it (/inbox redirects to /library)."
+  },
+  {
+    "name": "states--feed-offline",
+    "area": "states",
+    "kind": "offline",
+    "covers": [
+      "packages/social-core/src/empty.ts::surface::feed"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/me/feed",
+          "mode": "fail"
+        }
+      },
+      {
+        "open": "/notifications"
+      },
+      {
+        "see": "You're offline and nothing is saved here yet."
+      },
+      {
+        "fault": {
+          "path": "/v1/me/feed",
+          "mode": "off"
+        }
+      }
+    ],
+    "design": "LoadError-B",
+    "status": "CAPTURE",
+    "note": "Page-level offline variant of EmptyState. The \"feed\" empty sentence is never shown as empty (the page uses its own picture), only this offline form."
+  },
+  {
+    "name": "states--loading-page",
+    "area": "states",
+    "kind": "loading",
+    "covers": [
+      "app/wallet.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/me/purchases",
+          "mode": "slow"
+        }
+      },
+      {
+        "open": "/wallet"
+      },
+      {
+        "see": "Loading"
+      },
+      {
+        "fault": {
+          "path": "/v1/me/purchases",
+          "mode": "off"
+        }
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Page-level loader (the bar loader named \"Loading\")."
+  },
+  {
+    "name": "states--loading-inline",
+    "area": "states",
+    "kind": "loading",
+    "covers": [
+      "app/issue/[id].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/issues/{issue}",
+          "mode": "slow"
+        }
+      },
+      {
+        "open": "/issue/{issue}"
+      },
+      {
+        "see": "Loading"
+      },
+      {
+        "fault": {
+          "path": "/v1/issues/{issue}",
+          "mode": "off"
+        }
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Loader under the page title."
+  },
+  {
+    "name": "states--error-page",
+    "area": "states",
+    "kind": "error",
+    "covers": [
+      "app/issues.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/issues",
+          "mode": "fail"
+        }
+      },
+      {
+        "open": "/issues"
+      },
+      {
+        "see": "Couldn't load the issues right now."
+      },
+      {
+        "fault": {
+          "path": "/v1/issues",
+          "mode": "off"
+        }
+      }
+    ],
+    "design": "LoadError-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "states--error-inline",
+    "area": "states",
+    "kind": "error",
+    "covers": [
+      "app/friends-listening.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/me/friends-listening",
+          "mode": "fail"
+        }
+      },
+      {
+        "open": "/friends-listening"
+      },
+      {
+        "see": "Couldn't load this right now."
+      },
+      {
+        "fault": {
+          "path": "/v1/me/friends-listening",
+          "mode": "off"
+        }
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "system--opens-another-app",
+    "area": "system",
+    "kind": "system",
+    "covers": [
+      "app/settings/feedback.tsx::system::open-url#1",
+      "app/settings/help.tsx::system::open-url#1",
+      "app/settings/licences.tsx::system::open-url#1",
+      "app/show/[feedUrl].tsx::system::open-url#1",
+      "app/wallet.tsx::system::open-url#1",
+      "src/ui/clips/ShareChooser.tsx::system::open-url#1",
+      "src/ui/content/Markdown.tsx::system::open-url#1",
+      "src/ui/kit/openLink.ts::system::browser#1",
+      "src/ui/kit/openLink.ts::system::open-url#1",
+      "src/ui/shell/RateSheet.tsx::system::open-url#1",
+      "src/ui/shell/providers.tsx::system::open-url#1"
+    ],
+    "as": "listener",
+    "steps": [],
+    "design": null,
+    "status": "NOT_CAPTURABLE",
+    "reason": "Linking.openURL / the in-app browser hands the phone to Safari, the App Store or another app; what shows is not our screen. One entry stands for every such tap."
+  }
+]

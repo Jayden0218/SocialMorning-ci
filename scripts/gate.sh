@@ -39,6 +39,8 @@ run tokens sh -c 'cd apps/mobile && node scripts/token-check.mjs'
 # 2026-09-27: every <Text> and <TextInput> names a token colour — a bare <Text> sets no
 # style, so token-check cannot see it, and it renders black on the black app.
 run text-colour sh -c 'cd apps/mobile && node scripts/text-colour-check.mjs'
+# Screen capture FR-003: every screen and popup in the code has a capture entry (and the guard's own tests).
+run capture-coverage sh -c 'cd apps/mobile && node --test scripts/capture-coverage.test.mjs && node scripts/capture-coverage.mjs'
 # M27 G-DV4: the commit script's verdict logic.
 run verdict node --test scripts/gate-verdict.test.mjs
 # M11: the Studio's production build (its tests run in `npm test` above).
@@ -51,8 +53,8 @@ done
 # Same summary line as before (suites folded into the old names), then the per-suite table.
 sum() { for n in "$@"; do eval "v=\$R_$(echo $n | tr - _)"; [ "$v" -eq 0 ] || { echo 1; return; }; done; echo 0; }
 U=$(sum api studio feed-parser social-core player-core)
-echo "gate: typecheck=$R_typecheck tests=$U mobile-coverage=$R_mobile_coverage a11y=$R_a11y tokens=$R_tokens text-colour=$R_text_colour backup-preflight=$R_backup_preflight studio-build=$R_studio_build"
-for name in typecheck api studio feed-parser social-core player-core mobile-coverage backup-preflight a11y tokens text-colour verdict studio-build; do
+echo "gate: typecheck=$R_typecheck tests=$U mobile-coverage=$R_mobile_coverage a11y=$R_a11y tokens=$R_tokens text-colour=$R_text_colour backup-preflight=$R_backup_preflight capture-coverage=$R_capture_coverage studio-build=$R_studio_build"
+for name in typecheck api studio feed-parser social-core player-core mobile-coverage backup-preflight a11y tokens text-colour capture-coverage verdict studio-build; do
   eval "v=\$R_$(echo $name | tr - _)"
   printf '  %-18s %s\n' "$name" "$([ "$v" -eq 0 ] && echo ok || echo "FAILED (exit $v)")"
 done

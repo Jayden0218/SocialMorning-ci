@@ -9,6 +9,7 @@
  * The banned message keeps the wire code `muted_on_show` that shipped phones already understand.
  */
 import { backdateComments } from './sc-neutral.ts';
+import { acScan } from './fixtures.ts';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
@@ -102,7 +103,7 @@ test('G-M22-10: a banned listener can post neither text nor voice on that show â
   const v = await voice(t, mine.id, l.token);
   assert.equal(v.status, 403, 'voice comments are refused too');
   assert.equal(((await v.json()) as { error: string }).error, 'muted_on_show');
-  assert.equal((await t.q('SELECT 1 FROM comments WHERE author_id = $1', [l.id])).length, 0);
+  assert.equal((await acScan(t.store, 'main', 'comment')).filter((c) => c['authorId'] === l.id).length, 0);
   assert.equal((await t.call('POST', `/v1/episodes/${theirs.id}/comments`, { body: 'elsewhere' }, l.token)).status, 200, 'other shows are open');
 
   // An invited co-host can't be banned.

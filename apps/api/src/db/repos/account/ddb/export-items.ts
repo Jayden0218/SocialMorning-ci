@@ -1,7 +1,6 @@
 // "Download my data" sections of lanes LB and SC, read from their DynamoDB items (no SQL).
 /**
- * M26 lane LE (gap 4). Before, account.ts read these sections with the old `SELECT * … WHERE listener_id = $1` on Postgres
- * (foreign.ts `exportSection`), which fails with the bridge off. Each now reads the owner's items: lane LB's in the listener
+ * M26 lane LE (gap 4). Each section reads the owner's items: lane LB's in the listener
  * partition (`SUB#`, `POS#`, `LIB#`, `RANGE#`), lane SC's likes and reactions there too (`ELIKE#`, `REACT#`), and the
  * comments, clips and statuses through the author's pointers (`CMT#`, `CLP#`, `VPOST#`) to the items themselves, plus each
  * status's items (`VP#<id>/ITEM#`). account.ts turns every item into the file's shape (cleanItem: snake_case, no keys,

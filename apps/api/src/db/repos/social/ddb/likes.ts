@@ -20,8 +20,7 @@ import { tx, TxCancelled } from '../../../ddb/tx.ts';
 import { hiddenFeedUrls } from '../../safety/moderation.ts';
 import { mutedIdsFor } from '../mutes.ts';
 import { LIKE_COMMENTS_MAX, TIMELINE_PAGE, type LikeComment, type LikeItem, type LikePost } from '../likes.ts';
-import * as B from './sc-bridge.ts';
-import { keyOf, nowIso, partitionAll, people, person, prefixItems, rawPg, visiblePerson, type Person } from './sc-common.ts';
+import { keyOf, nowIso, partitionAll, people, person, prefixItems, visiblePerson, type Person } from './sc-common.ts';
 import { blockedEitherWay, followedIds } from './sc-foreign.ts';
 
 const publicLikes = (p: Person): boolean => p.likesPublic !== false;
@@ -52,8 +51,6 @@ export async function like(store: Store, db: Db, listenerId: string, episodeId: 
       throw e;
     }
   }
-  const raw = rawPg(db);
-  if (raw) await B.upsertEpisodeLike(raw, { listenerId, episodeId, note: note ?? null, createdAt: at });
 }
 
 /** The like post's comments and reactions go with the like, and the writers' pointers to them. */
@@ -82,8 +79,6 @@ export async function unlike(store: Store, db: Db, listenerId: string, episodeId
     }
     await dropPost(store, listenerId, episodeId);
   }
-  const raw = rawPg(db);
-  if (raw) await B.deleteEpisodeLike(raw, listenerId, episodeId);
 }
 
 export async function myLike(store: Store, _db: Db, listenerId: string, episodeId: string): Promise<{ liked: boolean; note?: string }> {
@@ -227,8 +222,6 @@ export async function addLikeComment(store: Store, db: Db, ownerId: string, epis
     .put('main', encode('likeComment', key, { id, ownerId, episodeId, authorId, body, createdAt }), { condition: 'attribute_not_exists(PK)' })
     .put('main', encode('likeCommentPtr', K.likeCommentPtr(authorId, ownerId, episodeId, id), { ownerId, episodeId, id, sk: key.SK }))
     .commit();
-  const raw = rawPg(db);
-  if (raw) await B.insertLikeComment(raw, { id, ownerId, episodeId, authorId, body, createdAt });
   const a = await person(store, authorId);
   return { id, author: { id: authorId, displayName: a?.displayName ?? '', ...(a?.avatarUrl ? { avatarUrl: a.avatarUrl } : {}) }, body, createdAt, mine: true };
 }
@@ -244,8 +237,6 @@ export async function deleteLikeComment(store: Store, db: Db, ownerId: string, e
     if (e instanceof TxCancelled && e.failed('c')) return false;
     throw e;
   }
-  const raw = rawPg(db);
-  if (raw) await B.deleteLikeCommentRow(raw, commentId, at);
   return true;
 }
 
@@ -257,8 +248,6 @@ export async function setLikeReaction(store: Store, db: Db, ownerId: string, epi
     .put('main', encode('likeReaction', K.likeReaction(ownerId, episodeId, listenerId), { ownerId, episodeId, listenerId, emoji, createdAt: at }))
     .put('main', encode('likeReactionPtr', K.likeReactionPtr(listenerId, ownerId, episodeId), { ownerId, episodeId }))
     .commit();
-  const raw = rawPg(db);
-  if (raw) await B.upsertLikeReaction(raw, { ownerId, episodeId, listenerId, emoji, createdAt: at });
 }
 
 /** For lane SG's profile: how many episodes this listener liked (their `ELIKE#` items). */
@@ -271,6 +260,4 @@ export async function clearLikeReaction(store: Store, db: Db, ownerId: string, e
     .delete('main', K.likeReaction(ownerId, episodeId, listenerId))
     .delete('main', K.likeReactionPtr(listenerId, ownerId, episodeId))
     .commit();
-  const raw = rawPg(db);
-  if (raw) await B.deleteLikeReaction(raw, ownerId, episodeId, listenerId);
 }

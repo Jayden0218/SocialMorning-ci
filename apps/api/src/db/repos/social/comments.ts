@@ -2,13 +2,11 @@
 import { hostsOfEpisode } from '../studio/creator.ts';
 import { applyBlocks, hiddenKey } from '@socialmorning/social-core';
 import type { Db } from '../../db.ts';
-import { ApiError } from '../../../errors.ts';
 import { blockedIdsFor } from '../safety/blocks.ts';
 import { hiddenFor } from '../safety/reports.ts';
-import { initialsOf, likesOnEpisode, type LikeState } from './comment-likes.ts';
-import { dual } from '../../backend.ts';
+import { initialsOf, type LikeState } from './comment-likes.ts';
+import { viaStore } from '../../backend.ts';
 import { mutedIdsFor } from './mutes.ts';
-import { notifyForComment } from './notifications.ts';
 import { heldForAuthor } from '../studio/comment-policy.ts';
 
 export type CommentRow = {
@@ -105,11 +103,6 @@ export type PublicComment = {
   held?: true;
 };
 
-const SELECT = `SELECT c.id, c.episode_id, c.author_id, l.display_name, l.avatar_url, c.parent_id, c.body, c.offset_ms, c.created_at, c.deleted_at, c.removed_at, c.host_hidden_at,
-                       c.pinned_at, c.pinned_bottom_at, c.voice_url, c.voice_ms, c.transcript, c.image_url, c.image_path, c.image_w, c.image_h,
-                       c.country, l.listened_ms AS author_listened_ms, l.hide_badge AS author_hide_badge, l.hidden_at AS author_hidden_at
-                FROM comments c LEFT JOIN listeners l ON l.id = c.author_id`;
-
 export function toPublic(r: CommentRow, viewerId?: string): PublicComment {
   const removed = r.removed_at !== null;
   // M11 guard G-H1: a host-hidden comment is a placeholder for everyone except its author.
@@ -143,93 +136,10 @@ export function toPublic(r: CommentRow, viewerId?: string): PublicComment {
   };
 }
 
-async function createCommentPg(
-  db: Db,
-  c: { episodeId: string; authorId: string; body: string | null; offsetMs?: number; parentId?: string; voice?: { url: string; path: string; ms: number; transcript?: string }; /** M21 US6: from countryOf() */ country?: string },
-): Promise<CommentRow> {
-  if (c.parentId) {
-    const parent = (await db.query<{ episode_id: string; parent_id: string | null }>(
-      'SELECT episode_id, parent_id FROM comments WHERE id = $1', [c.parentId],
-    ))[0];
-    if (!parent || parent.episode_id !== c.episodeId) throw new ApiError('not_found', 'That comment is not on this episode.');
-    if (parent.parent_id !== null) throw new ApiError('reply_depth', 'You can reply to a comment, not to a reply.');
-  }
-  const [row] = await db.query<{ id: string }>(
-    'INSERT INTO comments (episode_id, author_id, parent_id, body, offset_ms, voice_url, voice_path, voice_ms, transcript, country) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id',
-    [c.episodeId, c.authorId, c.parentId ?? null, c.body, c.offsetMs ?? null, c.voice?.url ?? null, c.voice?.path ?? null, c.voice?.ms ?? null, c.voice?.transcript ?? null, c.country ?? null],
-  );
-  // M4 (research R4): a top-level comment is a feed item; replies are not.
-  if (!c.parentId) {
-    await db.query(
-      `INSERT INTO activity (actor_id, kind, episode_id, moment_ms, ref_id, hidden) VALUES ($1, 'commented', $2, $3, $4, false)`,
-      [c.authorId, c.episodeId, c.offsetMs ?? null, row!.id],
-    );
-  }
-  // M21 US10 (G-M21-9): the reply and @name notices, in the caller's transaction.
-  await notifyForComment(db, { id: row!.id, episodeId: c.episodeId, authorId: c.authorId, parentId: c.parentId ?? null, body: c.body });
-  return (await db.query<CommentRow>(`${SELECT} WHERE c.id = $1`, [row!.id]))[0]!;
-}
-
-async function getCommentPg(db: Db, id: string): Promise<CommentRow | undefined> {
-  return (await db.query<CommentRow>(`${SELECT} WHERE c.id = $1`, [id]))[0];
-}
-
-/**
- * M23 US4 (FR-007, G-M23-6): the ONE way a comment becomes a placeholder — deleting one comment
- * and deleting a whole account both use it, so a placeholder never keeps its words, transcript,
- * voice, picture or country. `{ authorId }` is set-based: every comment by that listener that
- * has replies, in one statement (an account with thousands of comments is one UPDATE, not
- * thousands). Blobs are removed by the caller first (finishDeletion) or by the sweeps.
- */
-async function placeholderCommentsPg(db: Db, by: { id: string } | { authorId: string }): Promise<{ id: string; episode_id: string }[]> {
-  const set = `body = NULL, author_id = NULL, offset_ms = NULL, voice_url = NULL, voice_path = NULL, voice_ms = NULL, transcript = NULL,
-               image_url = NULL, image_path = NULL, image_w = NULL, image_h = NULL, image_bytes = NULL, country = NULL, deleted_at = now()`;
-  if ('id' in by) return db.query(`UPDATE comments SET ${set} WHERE id = $1 RETURNING id, episode_id`, [by.id]);
-  return db.query(
-    `UPDATE comments c SET ${set}
-      WHERE c.author_id = $1 AND EXISTS (SELECT 1 FROM comments r WHERE r.parent_id = c.id)
-      RETURNING c.id, c.episode_id`,
-    [by.authorId],
-  );
-}
-
-/**
- * FR-010: a comment with replies becomes a placeholder (body/author/moment NULL,
- * deleted_at set) so the replies keep their context; one without is removed.
- * Returns whether a placeholder was left, and the episode (for the heat rebuild).
- */
-async function deleteCommentPg(db: Db, id: string): Promise<{ placeholder: boolean; episodeId: string }> {
-  const row = (await db.query<{ episode_id: string; replies: number }>(
-    'SELECT episode_id, (SELECT count(*)::int FROM comments r WHERE r.parent_id = c.id) AS replies FROM comments c WHERE c.id = $1',
-    [id],
-  ))[0];
-  if (!row) throw new ApiError('not_found', 'No such comment.');
-  await db.query(`DELETE FROM activity WHERE kind = 'commented' AND ref_id = $1`, [id]); // M4: gone from feeds either way
-  if (Number(row.replies) > 0) {
-    await placeholderComments(db, { id });
-    return { placeholder: true, episodeId: row.episode_id };
-  }
-  await db.query('DELETE FROM comments WHERE id = $1', [id]);
-  return { placeholder: false, episodeId: row.episode_id };
-}
-
-/**
- * Top-level newest first (M21 US6: `dir: 'asc'` turns that to oldest first), each with its replies
- * oldest first (contracts/api.md).
- */
-async function listCommentsPg(db: Db, episodeId: string, viewerId?: string, opts: { dir?: 'asc' | 'desc' } = {}): Promise<PublicComment[]> {
-  const fetchedAll = await db.query<CommentRow>(`${SELECT} WHERE c.episode_id = $1 ORDER BY c.created_at ASC`, [episodeId]);
-  // M12 (FR-023): like counts in one grouped read.
-  const likes = await likesOnEpisode(db, episodeId, viewerId);
-  // M19 US5: which comments 5 or more listeners marked unfriendly (counts only, never who).
-  const folded = await foldedOnEpisode(db, episodeId);
-  return buildThreads(db, fetchedAll, episodeId, viewerId, opts, likes, folded);
-}
-
 /**
  * The episode's comments (oldest first, every row) shaped for one viewer: hidden accounts, mutes, blocks and
- * reports applied, Host marks, like counts, folds, held comments, threads and the two pins. Shared by the
- * Postgres and the DynamoDB bodies (M26 lane SC), so the answer is built by the same code on both.
+ * reports applied, Host marks, like counts, folds, held comments, threads and the two pins. Called by the
+ * DynamoDB body of `listComments` (ddb/comments.ts).
  */
 export async function buildThreads(
   db: Db, fetchedAll: CommentRow[], episodeId: string, viewerId: string | undefined, opts: { dir?: 'asc' | 'desc' },
@@ -297,51 +207,16 @@ async function filterForViewer(db: Db, rows: CommentRow[], viewerId: string): Pr
   });
 }
 
-/**
- * M21 US6 (G-M21-7): a comment — text or voice — waits until its author accepted the community
- * rules (`POST /v1/me/rules`). The phone shows the rules on this 428 and resends after Accept.
- */
-async function requireRulesAcceptedPg(db: Db, listenerId: string): Promise<void> {
-  const [r] = await db.query<{ rules_accepted_at: Date | string | null }>('SELECT rules_accepted_at FROM listeners WHERE id = $1', [listenerId]);
-  if (!r || r.rules_accepted_at === null) throw new ApiError('rules_required', 'Please read and accept the community rules before your first comment.');
-}
-
 /** M19 US5 (FR-041): a comment folds once this many listeners marked it unfriendly. */
 export const UNFRIENDLY_FOLD_AT = 5;
 
-/** The ids on this episode that reached the fold — the voters are never read. */
-async function foldedOnEpisodePg(db: Db, episodeId: string): Promise<Set<string>> {
-  const rows = await db.query<{ comment_id: string }>(
-    `SELECT u.comment_id FROM comment_unfriendly u JOIN comments c ON c.id = u.comment_id
-     WHERE c.episode_id = $1 GROUP BY u.comment_id HAVING count(*) >= $2`,
-    [episodeId, UNFRIENDLY_FOLD_AT],
-  );
-  return new Set(rows.map((r) => r.comment_id));
-}
-
-/** M26 lane SC: the moderation take-down (lane SF's act) and its undo (appeals) — one place, so both backends stay in step. */
-async function setCommentRemovedPg(db: Db, id: string, removed: boolean): Promise<boolean> {
-  const rows = removed
-    ? await db.query('UPDATE comments SET removed_at = now() WHERE id = $1 AND removed_at IS NULL RETURNING id', [id])
-    : await db.query('UPDATE comments SET removed_at = NULL WHERE id = $1 AND removed_at IS NOT NULL RETURNING id', [id]);
-  return rows.length > 0;
-}
-
-/** M26 lane SC: the host's hide in the Studio (lane ST) and its undo; `by` = the host, null = show again. */
-async function setCommentHostHiddenPg(db: Db, id: string, by: string | null): Promise<boolean> {
-  const rows = by !== null
-    ? await db.query('UPDATE comments SET host_hidden_at = now(), host_hidden_by = $2 WHERE id = $1 AND host_hidden_at IS NULL RETURNING id', [id, by])
-    : await db.query('UPDATE comments SET host_hidden_at = NULL, host_hidden_by = NULL WHERE id = $1 AND host_hidden_at IS NOT NULL RETURNING id', [id]);
-  return rows.length > 0;
-}
-
-// M26 lane SC: each function runs on Postgres, or on DynamoDB (`ddb/comments.ts`) when the Db carries a Store (db/backend.ts).
-export const createComment = dual('sc/comments', 'createComment', createCommentPg);
-export const getComment = dual('sc/comments', 'getComment', getCommentPg);
-export const placeholderComments = dual('sc/comments', 'placeholderComments', placeholderCommentsPg);
-export const deleteComment = dual('sc/comments', 'deleteComment', deleteCommentPg);
-export const listComments = dual('sc/comments', 'listComments', listCommentsPg);
-export const requireRulesAccepted = dual('sc/comments', 'requireRulesAccepted', requireRulesAcceptedPg);
-export const foldedOnEpisode = dual('sc/comments', 'foldedOnEpisode', foldedOnEpisodePg);
-export const setCommentRemoved = dual('sc/comments', 'setCommentRemoved', setCommentRemovedPg);
-export const setCommentHostHidden = dual('sc/comments', 'setCommentHostHidden', setCommentHostHiddenPg);
+// Bodies in ddb/comments.ts (src/db/backend.ts).
+export const createComment = viaStore<typeof import('./ddb/comments.ts').createComment>('sc/comments', 'createComment');
+export const getComment = viaStore<typeof import('./ddb/comments.ts').getComment>('sc/comments', 'getComment');
+export const placeholderComments = viaStore<typeof import('./ddb/comments.ts').placeholderComments>('sc/comments', 'placeholderComments');
+export const deleteComment = viaStore<typeof import('./ddb/comments.ts').deleteComment>('sc/comments', 'deleteComment');
+export const listComments = viaStore<typeof import('./ddb/comments.ts').listComments>('sc/comments', 'listComments');
+export const requireRulesAccepted = viaStore<typeof import('./ddb/comments.ts').requireRulesAccepted>('sc/comments', 'requireRulesAccepted');
+export const foldedOnEpisode = viaStore<typeof import('./ddb/comments.ts').foldedOnEpisode>('sc/comments', 'foldedOnEpisode');
+export const setCommentRemoved = viaStore<typeof import('./ddb/comments.ts').setCommentRemoved>('sc/comments', 'setCommentRemoved');
+export const setCommentHostHidden = viaStore<typeof import('./ddb/comments.ts').setCommentHostHidden>('sc/comments', 'setCommentHostHidden');

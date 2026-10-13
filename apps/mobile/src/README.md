@@ -357,6 +357,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `ClapBurst.tsx` | A short full-screen burst of thumbs when the listener reacts; never blocks a tap; off with Reduce Motion. |
 | `HeatCurve.tsx` | 100 bars under the seek bar showing where listeners reacted; tap to jump. |
 | `HeatScrubber.tsx` | The heat curve over a seek bar (track, dark fill, knob): tap or drag across either to jump. |
+| `lookup.ts` | Remembers the playing episode and its show, so a player tick does not read the database again. |
 | `MiniPlayer.tsx` | Small bar at the bottom showing what plays; tap to open the player. |
 | `PlayRing.tsx` | The mini player's progress ring: a strong yellow arc on a light grey track around play/pause. |
 | `NextUp.tsx` | Loads the "Next up" episodes, each with a reason, for the episode page. |

@@ -56,7 +56,8 @@ describe('Home: the Editor\'s pick card comes before For You', () => {
     expect(past.length).toBeGreaterThan(0);
     act(() => { past[0]!.props['onPress'](); });
     expect(onPast).toHaveBeenCalledTimes(1);
-    expect(card.findAllByType(Artwork).map((a) => a.props['size'])).toContain(76);
+    // Artwork is memo'd (the perf port, 2026-10-13): the rendered instance's type is the inner view.
+    expect(card.findAllByType(Artwork.type).map((a) => a.props['size'])).toContain(76);
     act(() => r.unmount());
   });
 });

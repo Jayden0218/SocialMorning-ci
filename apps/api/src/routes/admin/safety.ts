@@ -9,21 +9,47 @@
  *   GET    /notices                      → { items }  (the notices to everyone)
  *   POST   /notices { title, body, link?, push } → 201 { notice, pushed? }
  *   DELETE /notices/:id                  → 204
+ * M28 US3 (parked outbox entries; never the payload):
+ *   GET    /outbox/parked                → { items: { id, kind, attempts, lastError, parkedAt, createdAt }[] }
+ *   POST   /outbox/parked/:id/retry      → { ok: true } / 404   (audit: safety · outbox_retry)
+ *   POST   /outbox/parked/:id/discard { reason } → { ok: true } / 404   (audit: safety · outbox_discard)
  * Every write goes through `adminWrite` (one audit row). Each change drops this process's memo.
  */
 import { z } from 'zod';
 import { normaliseWord, WORD_MAX } from '@socialmorning/social-core';
-import { adminWrite, auditCtx, type AdminEnv } from '../../auth/admin.ts';
+import { adminWrite, auditCtx, type AdminEnv, type AuditCtx } from '../../auth/admin.ts';
 import { ApiError } from '../../errors.ts';
 import { json } from '../../validate.ts';
 import type { Hono } from 'hono';
 import type { Db } from '../../db/db.ts';
+import { attachedOf } from '../../db/backend-ddb.ts';
+import { commitOrDefer } from '../../db/repos/safety/ddb/admin-scope.ts';
+import { discardParked, parkedOutbox, retryParked } from '../../jobs/outbox.ts';
 import { addWords, dropWordsMemo, listWords, removeWord } from '../../db/repos/safety/words.ts';
 import { activeMaintenance, dropMaintenanceMemo, MAINTENANCE_MESSAGE_MAX, setMaintenance, storedMaintenance } from '../../db/repos/safety/maintenance.ts';
 import { broadcastNotices, deleteNotice, insertNotice, NOTICE_BODY_MAX, NOTICE_TITLE_MAX, pushNotice } from '../../db/repos/social/system-notices.ts';
 
 /** An in-app path the phone may open: "/x…", no scheme, no "//", no spaces (the phone's `systemAction` rule). */
 const ROUTE = /^\/(?!\/)[^\s\\:]{1,199}$/;
+
+const PARKED_ID = /^[0-9a-zA-Z-]{1,64}$/;
+
+/** M28 US3: the parked entries as the owner sees them: no payload, ever. Also used by the /mod page. */
+export const parkedList = async (db: Db) => (await parkedOutbox(attachedOf(db).store)).map((i) => ({
+  id: String(i['id']), kind: String(i['kind']), attempts: Number(i['attempts'] ?? 0), lastError: (i['lastError'] as string | undefined) ?? null,
+  parkedAt: (i['parkedAt'] as string | undefined) ?? null, createdAt: String(i['createdAt']),
+}));
+
+/** Retry or discard one parked entry through `adminWrite` (audit area `safety`, action `outbox_retry` / `outbox_discard`). 404 when it is not parked. */
+export async function moveParked(db: Db, ctx: AuditCtx, id: string, action: 'retry' | 'discard', reason?: string): Promise<void> {
+  const store = attachedOf(db).store;
+  const missing = () => new ApiError('not_found', 'No such parked entry.');
+  if (!PARKED_ID.test(id) || !(await parkedList(db)).some((p) => p.id === id)) throw missing();
+  const commit = (t: Parameters<typeof commitOrDefer>[1]) => commitOrDefer(store, t, { parked: missing });
+  await adminWrite(db, ctx, { area: 'safety', action: action === 'retry' ? 'outbox_retry' : 'outbox_discard', target: reason ? `${id}: ${reason}` : id },
+    async () => ({ parked: (await parkedList(db)).length }),
+    async () => { if (!(action === 'retry' ? await retryParked(store, id, commit) : await discardParked(store, id, commit))) throw missing(); });
+}
 
 export function registerSafety(admin: Hono<AdminEnv>): void {
   admin.get('/words', async (c) => c.json({ items: await listWords(c.get('db')) }));
@@ -106,5 +132,14 @@ export function registerSafety(admin: Hono<AdminEnv>): void {
     await adminWrite(db, auditCtx(c), { area: 'notices', action: 'delete', target: id },
       async (tx) => ({ present: (await broadcastNotices(tx)).some((n) => n.id === id) }), (tx) => deleteNotice(tx, id));
     return c.body(null, 204);
+  });
+
+  // ---- M28 US3: parked outbox entries (research R6). The list never carries a payload. ----
+  admin.get('/outbox/parked', async (c) => c.json({ items: await parkedList(c.get('db')) }));
+
+  admin.post('/outbox/parked/:id/retry', async (c) => { await moveParked(c.get('db'), auditCtx(c), c.req.param('id') ?? '', 'retry'); return c.json({ ok: true }); });
+  admin.post('/outbox/parked/:id/discard', json(z.object({ reason: z.string().trim().min(1).max(200) })), async (c) => {
+    await moveParked(c.get('db'), auditCtx(c), c.req.param('id') ?? '', 'discard', c.req.valid('json').reason);
+    return c.json({ ok: true });
   });
 }

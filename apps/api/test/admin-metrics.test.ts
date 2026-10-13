@@ -10,15 +10,14 @@
  * G-AD4 one failing section leaves the others.  Break: rethrow in `section()`.
  * G-AD5 a non-admin is refused.                 Break: register `/metrics` above `admin.use('*', adminOnly)`.
  *
- * M26 lane SF: the same tests on both backends. The seed goes through the app's own (dual) repo functions where
- * they exist, and through test/sf-neutral-metrics.ts where a time must be set by hand; rows of lanes still on
- * Postgres (comments, reactions, clips, follows, shares, voice posts, money, creators) stay SQL.
+ * The seed goes through the app's own repo functions where they exist, and through test/sf-neutral-metrics.ts
+ * where a time must be set by hand. (G-AD4's fault injection is in test/ddb-sf.test.ts.)
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { aCall, adminSetup } from './admin-harness.ts';
-import { signUp, TEST_BACKEND, type TestDb } from './harness.ts';
+import { signUp, type TestDb } from './harness.ts';
 import { seedPurchase, seedTip } from './pd-neutral.ts';
 import * as S from './st-neutral.ts';
 import { rangeDays, type Metrics } from '../src/db/repos/admin/metrics.ts';
@@ -30,7 +29,7 @@ import { recordEvents } from '../src/db/repos/library/rec-events.ts';
 import { closeReportsFor, createReport } from '../src/db/repos/safety/reports.ts';
 import { act } from '../src/db/repos/safety/moderation.ts';
 import { block } from '../src/db/repos/safety/blocks.ts';
-import { addDailyActive, cacheKeyExists, dailyActiveRows, deleteListener, joinedAndSuspended, lastSeenAgo, seedSocial, subscriptionEventAt } from './sf-neutral-metrics.ts';
+import { addDailyActive, dailyActiveRows, deleteListener, joinedAndSuspended, lastSeenAgo, seedSocial, subscriptionEventAt } from './sf-neutral-metrics.ts';
 
 const JOB = 'job-token-metrics';
 /** The UTC+8 calendar day `n` days ago, and noon on it. */
@@ -78,7 +77,7 @@ async function seed(t: TestDb) {
   await act(t.db, u1.id, { kind: 'clip', id: randomUUID() }, 'dismiss');
   assert.equal(await block(t.db, u1.id, u2.id), 'blocked');
   // Social: 4 comments two days ago, none yesterday; 1 reaction, clip, follow, share today; 1 live voice post.
-  await seedSocial(t, u1.id, u2.id, 4, noonAgo(2)); // M26 lane LE: items on DynamoDB, rows on Postgres
+  await seedSocial(t, u1.id, u2.id, 4, noonAgo(2));
   await S.seedShare(t, { listenerId: u1.id, targetKind: 'episode', targetId: 'e1', feedUrl: F1, at: new Date().toISOString() });
   // Recommendations: pick 4 shown / 1 played; chart 2 shown / 0 played.
   const at = new Date().toISOString();
@@ -179,19 +178,6 @@ test('FR-015: a day of app use is deleted after 400 days by the hourly rebuild',
   const res = await t.call('POST', '/v1/internal/rebuild', { step: 'sweep' }, undefined, { authorization: `Bearer ${JOB}` });
   assert.equal(((await res.json()) as { counts: { activeDeleted: number } }).counts.activeDeleted, 1);
   assert.deepEqual((await dailyActiveRows(t, [dayAgo(402), dayAgo(401), dayAgo(400), dayAgo(399), dayAgo(0)])).map((r) => r.day), [dayAgo(399)]);
-  await t.close();
-});
-
-// On DynamoDB the money section reads lane PD's items, so DROP TABLE breaks nothing there: its G-AD4 is the fault-injection
-// guard in test/ddb-sf.test.ts. Here it runs on Postgres.
-test('G-AD4: one section failing leaves the other seven; a partial result is not kept', { skip: TEST_BACKEND === 'ddb' ? 'fault-injection version in test/ddb-sf.test.ts' : false }, async () => {
-  const { t, owner } = await adminSetup();
-  await t.q('DROP TABLE tips');
-  const m = await metrics(t, owner);
-  assert.equal(m.partial, true);
-  assert.equal(m.sections.money.ok, false);
-  for (const k of ['users', 'listening', 'library', 'social', 'recs', 'safety', 'creators'] as const) assert.equal(m.sections[k].ok, true, k);
-  assert.equal(await cacheKeyExists(t, 'admin-metrics:7'), false, 'a partial result is dropped so Retry recounts');
   await t.close();
 });
 

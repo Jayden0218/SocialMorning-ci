@@ -26,7 +26,7 @@ async function setup() {
 
 test('G-L2: promotions has no listener or IP column, and an event stores nothing but +1', async () => {
   const { t, owner, store } = await setup();
-  // M26: the table's columns on Postgres, the item's attribute list (codec ITEM_TYPES) on DynamoDB.
+  // The item's attribute list (codec ITEM_TYPES).
   const cols = await promotionColumns(t);
   assert.ok(cols.length > 10);
   for (const c of cols) assert.doesNotMatch(c, /listener|ip|device|user|viewer|session|country|email/i, `promotions.${c} could identify a person`);

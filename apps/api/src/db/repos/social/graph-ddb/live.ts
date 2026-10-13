@@ -19,14 +19,14 @@ import { countAll, queryAll } from '../../../ddb/paginate.ts';
 import { put } from '../../../ddb/store.ts';
 import { isConditionFailed } from '../../../ddb/retry.ts';
 import { dailySalt, KEEP_S, LIVE_WINDOW_S, listenerHash, WRITE_EVERY_S } from '../live-listeners.ts';
-import { nowMs, type Hybrid } from './common.ts';
+import { nowMs, type Ctx } from './common.ts';
 
 /** The only item this lane ever writes for "listening now" (strict allowlist — guard G-M26-SG2). */
 export function liveItem(episodeId: string, hash: string, seenMs: number) {
   return encode('liveListener', K.ev.live(episodeId, hash), { episodeId, listenerHash: hash, seenAt: new Date(seenMs).toISOString() }, { ttl: ttlAfter(seenMs, KEEP_S * 1000) });
 }
 
-export async function heartbeat(h: Hybrid, episodeId: string, installId: string, pepper: string, now = new Date()): Promise<void> {
+export async function heartbeat(h: Ctx, episodeId: string, installId: string, pepper: string, now = new Date()): Promise<void> {
   const at = now.getTime();
   const hash = listenerHash(installId, dailySalt(pepper, now));
   try {
@@ -43,7 +43,7 @@ export async function heartbeat(h: Hybrid, episodeId: string, installId: string,
   if (items.length > 0) await batchWriteAll(h.store, 'events', items.map((i) => ({ delete: { PK: String(i['PK']), SK: String(i['SK']) } })));
 }
 
-export async function listeningNow(h: Hybrid, episodeId: string): Promise<number> {
+export async function listeningNow(h: Ctx, episodeId: string): Promise<number> {
   return countAll(h.store, 'events', {
     KeyConditionExpression: 'PK = :pk', FilterExpression: '#s > :since', ExpressionAttributeNames: { '#s': 'seenAt' },
     ExpressionAttributeValues: { ':pk': `LIVE#${episodeId}`, ':since': new Date(nowMs(h) - LIVE_WINDOW_S * 1000).toISOString() }, ConsistentRead: true,

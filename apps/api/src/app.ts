@@ -175,6 +175,11 @@ export function createApp(deps: AppDeps) {
   const app = new Hono<AuthEnv>();
 
   app.use('*', requestId());
+  // M28 US2: `x-sm-trusted-ip` is set only by lambda-entry.ts (which also hands the app a Lambda `event`); anywhere else a client's copy is dropped.
+  app.use('*', (c, next) => {
+    if (!(c.env as { event?: unknown } | undefined)?.event) c.req.raw.headers.delete('x-sm-trusted-ip');
+    return next();
+  });
   // M25 S9: CSP, X-Frame-Options, nosniff and Referrer-Policy on every response (net/headers.ts).
   app.use('*', securityHeaders);
   // M10b US6: feedback carries up to 3 images (≤ 250 000 bytes each, base64); every other route stays at 16 KB.
@@ -233,9 +238,10 @@ export function createApp(deps: AppDeps) {
   const imageCeilingBytes = deps.imageCeilingBytes ?? (Number(process.env['IMAGE_CEILING_BYTES']) || 500_000_000);
   const publicBase = deps.publicBase ?? process.env['PUBLIC_API_URL'] ?? 'https://socialmorning-api.vercel.app';
   const allowTestPurchases = deps.allowTestPurchases ?? testPurchasesAllowed(process.env);
-  const pepperNext = deps.pepperNext && deps.pepperNext !== deps.pepper ? deps.pepperNext : undefined;
 
   app.use('*', async (c, next) => {
+    // M28 US6: read per request (config.ts hands out getters when the secrets come from Parameter Store).
+    const pepperNext = deps.pepperNext && deps.pepperNext !== deps.pepper ? deps.pepperNext : undefined;
     c.set('db', deps.db);
     c.set('pepper', deps.pepper);
     if (pepperNext) c.set('pepperNext', pepperNext);
@@ -296,7 +302,7 @@ export function createApp(deps: AppDeps) {
   // future; the phone then shows its maintenance page. Read per request, so an env change and a
   // redeploy is all it takes. Unset → `{ ok: true }` exactly as before.
   // M24 US4: or while the admin's switch is on (env first, then the switch).
-  // M25 S11: the health check touches the database (`SELECT 1`) and says so: `db: 'ok'`, or
+  // M25 S11: the health check touches the database (one read) and says so: `db: 'ok'`, or
   // `{ ok: false, db: 'fail' }` with 503 so an uptime check sees a dead database.
   app.get('/v1/health', async (c) => {
     const dbOk = await ping(deps.db).then(() => true, () => false);
@@ -383,7 +389,7 @@ export function createApp(deps: AppDeps) {
   app.route('/v1/discover', discover);
   app.route('/v1/categories', categories);
   app.route('/v1/for-you', foryou);
-  app.route('/v1/internal', createInternalRoute(deps.jobToken, { groq: groqClient(deps.groqKey ?? process.env['GROQ_API_KEY'], deps.groqFetch ?? fetch) }));
+  app.route('/v1/internal', createInternalRoute(() => deps.jobToken, { groq: groqClient(deps.groqKey ?? process.env['GROQ_API_KEY'], deps.groqFetch ?? fetch) }));
   app.route('/v1/search', createSearchRoute());
   app.route('/v1/episodes', nextup);
   app.route('/v1/episodes', episodes);

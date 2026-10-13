@@ -30,6 +30,7 @@ import { Artwork } from '@/ui/kit/Artwork';
 import { mmss } from '@/ui/kit/format';
 import { Icon } from '@/ui/kit/Icon';
 import { PlayRing } from '@/ui/player/PlayRing';
+import { episodeAndShow } from '@/ui/player/lookup';
 import { MINI_PLAYER_HEIGHT } from '@/ui/kit/Screen';
 import { TAB_HREF } from '@/ui/shell/tabs';
 import { useQueueSheet } from '@/ui/queue/QueueSheetHost';
@@ -104,8 +105,8 @@ export function MiniPlayer(props: { pathname?: string; context?: 'root' | 'tabs'
     );
   }
 
-  const episode = stores.feeds.getEpisode(state.episodeId);
-  const show = episode ? stores.feeds.getShow(episode.feedUrl) : undefined;
+  // Read once per episode, not on every tick (src/ui/player/lookup.ts).
+  const { episode, show } = episodeAndShow(stores.feeds, state.episodeId);
   const isPlaying = state.kind === 'playing' || state.kind === 'buffering';
   // "26:37/1:30:28" under the title, and the ring around the play button (the reference's bar).
   const positionMs = 'positionMs' in state && typeof state.positionMs === 'number' ? state.positionMs : 0;

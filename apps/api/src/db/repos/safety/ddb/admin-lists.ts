@@ -1,12 +1,11 @@
-// Admin's hidden-show list on DynamoDB: lane SF's hidden-feed items, the show title from lane LB's show item, "by a report" from the action.
+// Admin's hidden-show list on DynamoDB: the hidden-feed items, the show title from the show item, "by a report" from the action.
 /**
- * M26 lane LE (gap 4: these were plain SQL functions, so the DynamoDB path read `hidden_feeds` in Postgres). `CFG#hidden-feeds`
+ * `CFG#hidden-feeds`
  * holds one item per admin hide (`PUB#…` items there are publishers' `itunes:block` marks, not hides — left out, as the
  * old table held only hides). `by_report` = the hiding action closed a report: act() keeps the first open report's copy
  * (`snapshot`) on the action item exactly when it had one to close (moderation.ts), so the SQL's
  * `EXISTS (reports WHERE closed_by = action_id)` is "the action item has a snapshot".
  */
-import { bridgeOf } from '../../../backend-ddb.ts';
 import * as K from '../../../ddb/keys.ts';
 import { batchGetAll } from '../../../ddb/batch.ts';
 import { get, update } from '../../../ddb/store.ts';
@@ -34,10 +33,8 @@ export async function hiddenFeedRow(store: Store, _db: Db, url: string): Promise
   return h ? [{ reason: (h['reason'] as string | null | undefined) ?? null, hidden_at: String(h['createdAt']) }] : [];
 }
 
-export async function setHiddenFeedReason(store: Store, db: Db, url: string, why: string): Promise<void> {
+export async function setHiddenFeedReason(store: Store, _db: Db, url: string, why: string): Promise<void> {
   try {
     await update(store, 'main', K.hiddenFeed(url), { update: 'SET #r = :r', condition: 'attribute_exists(PK)', names: { '#r': 'reason' }, values: { ':r': why } });
   } catch (e) { if (!isConditionFailed(e)) throw e; } // the SQL UPDATE matched no row: nothing happens
-  const raw = bridgeOf(db);
-  if (raw) await raw.query('UPDATE hidden_feeds SET reason = $2 WHERE feed_url = $1', [url, why]);
 }

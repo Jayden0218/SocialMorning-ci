@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { createApp } from '../src/app.ts';
 import { fakeApple, fakeFeedFetch, FIXTURE_FEED } from './fake-apple.ts';
-import { migratedPg, TEST_PEPPER, signUp, type TestDb } from './harness.ts';
+import { TEST_PEPPER, signUp, type TestDb } from './harness.ts';
 import { ownBackend } from './dv-neutral.ts';
 import { putEpisode } from './put-episode.ts';
 
@@ -14,8 +14,7 @@ const E = (guid: string) => fnv1a64(`${FX}\u0001${guid}`);
 type Item = { episode: { id: string; title: string }; reason: string; label: string };
 
 async function build() {
-  const { pg, runner } = await migratedPg();
-  const be = await ownBackend(pg); // M26: Postgres, or (TEST_BACKEND=ddb) the hybrid Db
+  const be = await ownBackend();
   const apple = fakeApple();
   const catalogFetch = (async (input: string | URL | Request, init?: RequestInit) => {
     const url = String(input);
@@ -25,14 +24,13 @@ async function build() {
   }) as typeof fetch;
   const app = createApp({ db: be.db, pepper: TEST_PEPPER, catalogFetch, picksRaw: [] });
   const t: TestDb = {
-    pg, db: be.db, runner, app, ...(be.store ? { store: be.store } : {}),
-    q: async <T,>(s: string, p?: unknown[]) => (await pg.query<T>(s, p)).rows,
+    db: be.db, app, store: be.store,
     call: async (method, path, body, token, headers = {}) => {
       const r = await app.request(path, { method, headers: { ...(body !== undefined ? { 'content-type': 'application/json' } : {}), ...(token ? { authorization: `Bearer ${token}` } : {}), ...headers }, body: body !== undefined ? JSON.stringify(body) : undefined });
-      await be.drain(); // M26: the outbox runs after each request on DynamoDB
+      await be.drain(); // the outbox runs after each request
       return r;
     },
-    close: async () => { await be.close(); await pg.close(); },
+    close: async () => { await be.close(); },
   };
   return t;
 }

@@ -11,7 +11,6 @@
  * - `U#CLAIMCODE#<code>`: the codes stay unique (creator_claims.code).
  * - Proving also writes the owner's Studio role copy (`L#<id>/ROLES#<showKey>`, roles.ts).
  * Revoking (give back, take-down, account deletion) flips the claim and deletes `U#PROVEN` in one transaction.
- * No Postgres bridge: nothing reads `creator_claims` in SQL once this lane has moved (data-model.md "Lane ST changes").
  */
 import { randomUUID } from 'node:crypto';
 import { FEED_TIMEOUT_MS, readFeedText } from '@socialmorning/feed-parser';

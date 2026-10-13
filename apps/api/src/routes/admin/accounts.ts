@@ -13,10 +13,9 @@ import { json } from '../../validate.ts';
 import { accountsByIds, createAccounts, emailTaken, MAX_BULK, madeAccounts, updateAccount } from '../../db/repos/admin/admin-accounts.ts';
 import { listCurators, setCurator } from '../../db/repos/studio/curators.ts';
 import { actingSessionRows } from '../../db/repos/admin/admin-sessions.ts';
-import { act } from '../../db/repos/safety/moderation.ts';
 import type { Db } from '../../db/db.ts';
 import type { Hono } from 'hono';
-import { feedUrl, uuidParam, target } from './common.ts';
+import { feedUrl, uuidParam } from './common.ts';
 import type { AdminEnv } from '../../auth/admin.ts';
 
 export function registerAccounts(admin: Hono<AdminEnv>): void {

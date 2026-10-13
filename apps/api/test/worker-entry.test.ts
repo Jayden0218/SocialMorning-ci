@@ -7,7 +7,7 @@ const ON = Boolean(process.env['DDB_ENDPOINT']);
 if (!ON) {
   test('worker entry (needs DynamoDB Local: DDB_ENDPOINT, ci/workflows/ddb-api.yml)', { skip: 'no DDB_ENDPOINT' }, () => {});
 } else {
-  const { freshStore, noPostgres, TEST_PEPPER } = await import('./harness.ts');
+  const { freshStore, TEST_PEPPER } = await import('./harness.ts');
   const { withStore } = await import('../src/db/backend-ddb.ts');
   const { tx } = await import('../src/db/ddb/tx.ts');
   const { enqueue, pendingOutbox, registerHandler } = await import('../src/jobs/outbox.ts');
@@ -22,7 +22,7 @@ if (!ON) {
 
   async function setup() {
     const s = await freshStore();
-    const db = withStore(noPostgres(), s.store, { bridge: false });
+    const db = withStore(undefined, s.store);
     const lines: string[] = [];
     return { s, db, lines, log: (l: string) => { lines.push(l); } };
   }
@@ -60,7 +60,7 @@ if (!ON) {
     await s.close();
   });
 
-  test('{"kind":"jobs"} runs the six steps in order, follows `next` until done, never logs the cursor', async () => {
+  test('{"kind":"jobs"} runs the seven steps in order (health first), follows `next` until done, never logs the cursor', async () => {
     const { s, db, lines, log } = await setup();
     const calls: { step: string; cursor?: string; auth: string | null }[] = [];
     const stub = {
@@ -75,9 +75,10 @@ if (!ON) {
     };
     const worker = createWorker({ db, pepper: TEST_PEPPER }, { log, jobToken: 'job-token-x', app: stub });
     const out = await worker({ kind: 'jobs' }, plenty);
+    assert.equal(JOB_STEPS[0], 'health', 'M28: the health check runs first, before anything else can fail');
     assert.deepEqual(out, { ran: [...JOB_STEPS] });
-    assert.deepEqual(calls.map((c) => c.step), ['feeds', 'feeds', 'feeds', 'sweep', 'similarity', 'translate', 'digest', 'deletions']);
-    assert.deepEqual(calls.slice(0, 3).map((c) => c.cursor), [undefined, 'secret-cursor-1', 'secret-cursor-2']);
+    assert.deepEqual(calls.map((c) => c.step), ['health', 'feeds', 'feeds', 'feeds', 'sweep', 'similarity', 'translate', 'digest', 'deletions']);
+    assert.deepEqual(calls.slice(1, 4).map((c) => c.cursor), [undefined, 'secret-cursor-2', 'secret-cursor-3']);
     assert.ok(calls.every((c) => c.auth === 'Bearer job-token-x'));
     assert.ok(!lines.join('\n').includes('secret-cursor'), 'the cursor is never logged');
     assert.equal(lines.filter((l) => l.startsWith('feeds:')).length, 3);

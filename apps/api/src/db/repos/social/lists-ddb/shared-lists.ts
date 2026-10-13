@@ -10,11 +10,8 @@
  *
  * Both are written in one transaction (`attribute_not_exists` on the list: an id clash answers [] as the SQL's
  * ON CONFLICT DO NOTHING RETURNING did). `removedAt` is set and cleared by moderation (lane SF: act / appeal).
- * While the write bridge is on, every write is also made on the Postgres row (backend.ts); nothing reads it there
- * on the DynamoDB path any more. With the bridge off, nothing here touches Postgres.
  */
 import type { Db } from '../../../db.ts';
-import { bridgeOf } from '../../../backend-ddb.ts';
 import { encode } from '../../../ddb/codec.ts';
 import * as K from '../../../ddb/keys.ts';
 import { batchWriteAll } from '../../../ddb/batch.ts';
@@ -32,7 +29,7 @@ async function listItem(store: Store, id: string): Promise<Item | undefined> {
   return get(store, 'main', K.sharedList(id), { consistent: true });
 }
 
-// ---- the dual bodies (social/shared-lists.ts) ----
+// ---- the bodies of the repo functions (social/shared-lists.ts) ----
 
 /** The live list with its owner's name and suspension (the SQL's JOIN listeners: no listener item → no row). */
 export async function sharedListRows(store: Store, _db: Db, id: string): Promise<SharedListRow[]> {
@@ -47,7 +44,7 @@ export async function sharedListRows(store: Store, _db: Db, id: string): Promise
 }
 
 /** Returns the id when stored, nothing on an id clash. */
-export async function insertSharedList(store: Store, db: Db, id: string, ownerId: string, title: string, feedUrls: string[]): Promise<{ id: string }[]> {
+export async function insertSharedList(store: Store, _db: Db, id: string, ownerId: string, title: string, feedUrls: string[]): Promise<{ id: string }[]> {
   const createdAt = nowIso(store);
   try {
     await tx(store)
@@ -58,8 +55,6 @@ export async function insertSharedList(store: Store, db: Db, id: string, ownerId
     if (e instanceof TxCancelled && e.failed('list')) return [];
     throw e;
   }
-  const raw = bridgeOf(db);
-  if (raw) await raw.query('INSERT INTO shared_lists (id, owner_id, title, feed_urls, created_at) VALUES ($1, $2, $3, $4::text[], $5) ON CONFLICT (id) DO NOTHING', [id, ownerId, title, feedUrls, createdAt]);
   return [{ id }];
 }
 
@@ -84,7 +79,7 @@ export async function sharedListOwner(store: Store, id: string): Promise<string 
  * Lane SF (moderation act → remove; an accepted appeal → restore). Remove: only a list not removed yet gets the time (the
  * SQL's `AND removed_at IS NULL`); restore clears it. Idempotent. Returns whether anything changed.
  */
-export async function setSharedListRemoved(store: Store, db: Db, id: string, removed: boolean): Promise<boolean> {
+export async function setSharedListRemoved(store: Store, _db: Db, id: string, removed: boolean): Promise<boolean> {
   const at = nowIso(store);
   try {
     await update(store, 'main', K.sharedList(id), removed
@@ -94,14 +89,10 @@ export async function setSharedListRemoved(store: Store, db: Db, id: string, rem
     if (isConditionFailed(e)) return false;
     throw e;
   }
-  const raw = bridgeOf(db);
-  if (raw) {
-    await raw.query(removed ? 'UPDATE shared_lists SET removed_at = $2 WHERE id = $1 AND removed_at IS NULL' : 'UPDATE shared_lists SET removed_at = NULL WHERE id = $1', removed ? [id, at] : [id]);
-  }
   return true;
 }
 
-/** Lane AC (data export, `sharedLists`): the owner's lists as `SELECT * FROM shared_lists WHERE owner_id = $1` gave them. */
+/** Lane AC (data export, `sharedLists`): the owner's lists, one row each. */
 export async function sharedListsOf(store: Store, ownerId: string): Promise<Record<string, unknown>[]> {
   const { items: ptrs } = await queryAll(store, 'main', {
     KeyConditionExpression: 'PK = :pk AND begins_with(SK, :p)', ExpressionAttributeValues: { ':pk': K.L(ownerId), ':p': PTR }, ConsistentRead: true,

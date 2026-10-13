@@ -7,98 +7,19 @@
  * the live feed proves ownership). One proven claim per feed.
  */
 import { randomBytes } from 'node:crypto';
-import { FEED_TIMEOUT_MS, readFeedText } from '@socialmorning/feed-parser';
-import { USER_AGENT, withDeadline } from '../../../catalog/feed.ts';
-import type { Db } from '../../db.ts';
-import { dual } from '../../backend.ts';
+import { viaStore } from '../../backend.ts';
 
 export type Claim = { id: string; feedUrl: string; code: string; status: 'pending' | 'proven' | 'revoked'; provenAt?: string };
 
-const toClaim = (r: { id: string; feed_url: string; code: string; status: Claim['status']; proven_at: string | Date | null }): Claim => ({
-  id: r.id, feedUrl: r.feed_url, code: r.code, status: r.status, ...(r.proven_at ? { provenAt: new Date(r.proven_at).toISOString() } : {}),
-});
-
 export const newCode = (): string => `socialnet-verify-${randomBytes(6).toString('hex')}`;
-
-async function createClaimPg(db: Db, listenerId: string, feedUrl: string): Promise<Claim> {
-  const [existing] = await db.query<{ id: string; feed_url: string; code: string; status: Claim['status']; proven_at: string | null }>(
-    "SELECT id, feed_url, code, status, proven_at FROM creator_claims WHERE listener_id = $1 AND feed_url = $2 AND status <> 'revoked' ORDER BY created_at DESC LIMIT 1",
-    [listenerId, feedUrl],
-  );
-  if (existing) return toClaim(existing);
-  const [r] = await db.query<{ id: string; feed_url: string; code: string; status: Claim['status']; proven_at: string | null }>(
-    'INSERT INTO creator_claims (listener_id, feed_url, code) VALUES ($1, $2, $3) RETURNING id, feed_url, code, status, proven_at',
-    [listenerId, feedUrl, newCode()],
-  );
-  return toClaim(r!);
-}
-
-async function myClaimsPg(db: Db, listenerId: string): Promise<Claim[]> {
-  const rows = await db.query<{ id: string; feed_url: string; code: string; status: Claim['status']; proven_at: string | null }>(
-    "SELECT id, feed_url, code, status, proven_at FROM creator_claims WHERE listener_id = $1 AND status <> 'revoked' ORDER BY created_at DESC",
-    [listenerId],
-  );
-  return rows.map(toClaim);
-}
 
 /** M25 S7: a claim check reads at most this much of the feed. */
 export const CLAIM_MAX_BYTES = 5 * 1024 * 1024;
 
-/** 'proven' only when the code is in the feed's text as the publisher serves it now. */
-async function verifyClaimPg(db: Db, f: typeof fetch, listenerId: string, id: string): Promise<{ status: Claim['status'] } | 'not_found' | 'taken'> {
-  const [c] = await db.query<{ id: string; feed_url: string; code: string; status: Claim['status'] }>(
-    'SELECT id, feed_url, code, status FROM creator_claims WHERE id = $1 AND listener_id = $2', [id, listenerId]);
-  if (!c) return 'not_found';
-  if (c.status === 'proven') return { status: 'proven' };
-  // M25 S7 (audit #10): the same 8 s deadline and size cap as a feed refresh; `f` is the
-  // SSRF-guarded catalogue fetch (net/safe-fetch.ts), so a claim cannot point at a private address.
-  const text = await withDeadline(FEED_TIMEOUT_MS, `claim ${c.feed_url}`, async (signal) => {
-    const res = await f(c.feed_url, { signal, headers: { accept: 'application/rss+xml, application/xml, text/xml', 'user-agent': USER_AGENT } });
-    if (!res.ok) return undefined;
-    return readFeedText(res, (label, fatal) => new TextDecoder(label, { fatal }), CLAIM_MAX_BYTES);
-  });
-  if (text === undefined) return { status: 'pending' };
-  if (!text.includes(c.code)) return { status: 'pending' };
-  const [other] = await db.query<{ id: string }>("SELECT id FROM creator_claims WHERE feed_url = $1 AND status = 'proven' AND id <> $2", [c.feed_url, c.id]);
-  if (other) return 'taken';
-  await db.query("UPDATE creator_claims SET status = 'proven', proven_at = now() WHERE id = $1", [c.id]);
-  return { status: 'proven' };
-}
-
-async function isProvenOwnerPg(db: Db, listenerId: string, feedUrl: string): Promise<boolean> {
-  const r = await db.query("SELECT 1 FROM creator_claims WHERE listener_id = $1 AND feed_url = $2 AND status = 'proven'", [listenerId, feedUrl]);
-  return r.length > 0;
-}
-
-/** The claimant's view of their show: who listened, how many comments, where people react. Counts only — no names. */
-async function showStatsPg(db: Db, feedUrl: string): Promise<{ listeners: number; comments: number; episodes: number; topMoments: { episodeId: string; title: string; offsetMs: number; comments: number }[] }> {
-  const [l] = await db.query<{ n: number }>(
-    "SELECT count(DISTINCT a.actor_id)::int AS n FROM activity a JOIN episodes e ON e.id = a.episode_id WHERE e.feed_url = $1 AND a.kind = 'listened'", [feedUrl]);
-  const [cm] = await db.query<{ n: number }>(
-    'SELECT count(*)::int AS n FROM comments c JOIN episodes e ON e.id = c.episode_id WHERE e.feed_url = $1 AND c.deleted_at IS NULL AND c.removed_at IS NULL AND c.host_hidden_at IS NULL', [feedUrl]);
-  const [ep] = await db.query<{ n: number }>('SELECT count(*)::int AS n FROM episodes WHERE feed_url = $1', [feedUrl]);
-  const top = await db.query<{ episode_id: string; title: string; minute: number; n: number }>(
-    `SELECT e.id AS episode_id, e.title, (c.offset_ms / 60000) * 60000 AS minute, count(*)::int AS n
-     FROM comments c JOIN episodes e ON e.id = c.episode_id
-     WHERE e.feed_url = $1 AND c.offset_ms IS NOT NULL AND c.deleted_at IS NULL AND c.removed_at IS NULL AND c.host_hidden_at IS NULL
-     GROUP BY e.id, e.title, minute ORDER BY n DESC, e.id LIMIT 5`, [feedUrl]);
-  return { listeners: l?.n ?? 0, comments: cm?.n ?? 0, episodes: ep?.n ?? 0, topMoments: top.map((t) => ({ episodeId: t.episode_id, title: t.title, offsetMs: Number(t.minute), comments: t.n })) };
-}
-
-/** M14 (FR-03): everyone who carries the Host mark on an episode's show — the proven owner and invited hosts. */
-async function hostsOfEpisodePg(db: Db, episodeId: string): Promise<string[]> {
-  const rows = await db.query<{ id: string }>(
-    `SELECT cl.listener_id AS id FROM creator_claims cl JOIN episodes e ON e.feed_url = cl.feed_url WHERE e.id = $1 AND cl.status = 'proven'
-     UNION SELECT h.listener_id FROM show_hosts h JOIN episodes e ON e.feed_url = h.feed_url WHERE e.id = $1
-       AND EXISTS (SELECT 1 FROM creator_claims c2 WHERE c2.feed_url = h.feed_url AND c2.status = 'proven')`,
-    [episodeId]);
-  return rows.map((r) => r.id).sort();
-}
-
-// M26 lane ST: each runs on Postgres, or on DynamoDB (ddb/claims.ts, ddb/numbers.ts) when the Db carries a Store (db/backend.ts).
-export const createClaim = dual('st/claims', 'createClaim', createClaimPg);
-export const myClaims = dual('st/claims', 'myClaims', myClaimsPg);
-export const verifyClaim = dual('st/claims', 'verifyClaim', verifyClaimPg);
-export const isProvenOwner = dual('st/claims', 'isProvenOwner', isProvenOwnerPg);
-export const showStats = dual('st/numbers', 'showStats', showStatsPg);
-export const hostsOfEpisode = dual('st/claims', 'hostsOfEpisode', hostsOfEpisodePg);
+// DynamoDB bodies: ddb/claims.ts, ddb/numbers.ts (db/backend.ts).
+export const createClaim = viaStore<typeof import('./ddb/claims.ts').createClaim>('st/claims', 'createClaim');
+export const myClaims = viaStore<typeof import('./ddb/claims.ts').myClaims>('st/claims', 'myClaims');
+export const verifyClaim = viaStore<typeof import('./ddb/claims.ts').verifyClaim>('st/claims', 'verifyClaim');
+export const isProvenOwner = viaStore<typeof import('./ddb/claims.ts').isProvenOwner>('st/claims', 'isProvenOwner');
+export const showStats = viaStore<typeof import('./ddb/numbers.ts').showStats>('st/numbers', 'showStats');
+export const hostsOfEpisode = viaStore<typeof import('./ddb/claims.ts').hostsOfEpisode>('st/claims', 'hostsOfEpisode');

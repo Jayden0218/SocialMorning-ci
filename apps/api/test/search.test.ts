@@ -5,20 +5,19 @@ import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { createApp } from '../src/app.ts';
 import { fakeApple, type FakeMode } from './fake-apple.ts';
-import { migratedPg, TEST_PEPPER } from './harness.ts';
+import { TEST_PEPPER } from './harness.ts';
 import { ownBackend } from './dv-neutral.ts';
 
 async function appWith(mode: FakeMode = {}) {
-  const { pg } = await migratedPg();
-  const be = await ownBackend(pg); // M26: Postgres, or (TEST_BACKEND=ddb) the hybrid Db
+  const be = await ownBackend();
   const apple = fakeApple(mode);
   const app = createApp({ db: be.db, pepper: TEST_PEPPER, catalogFetch: apple.fetch, picksRaw: [] });
   const get = async (q: string, ip = '1.1.1.1') => {
     const r = await app.request(`/v1/search?q=${encodeURIComponent(q)}`, { headers: { 'x-forwarded-for': ip } });
-    await be.drain(); // M26: the outbox runs after each request on DynamoDB
+    await be.drain(); // the outbox runs after each request
     return r;
   };
-  return { get, apple, close: async () => { await be.close(); await pg.close(); } };
+  return { get, apple, close: async () => { await be.close(); } };
 }
 type Body = { shows: { title: string; feedUrl: string }[]; episodes: { title: string; id: string; guid: string }[]; episodeSearch: string; error?: string; retryAfterSeconds?: number };
 

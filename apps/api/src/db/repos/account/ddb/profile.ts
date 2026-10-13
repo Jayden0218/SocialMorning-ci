@@ -12,18 +12,17 @@ import type { Placement } from '@socialmorning/social-core';
 import { SYNCED_QUEUE_MAX } from '@socialmorning/social-core';
 import { encode } from '../../../ddb/codec.ts';
 import * as K from '../../../ddb/keys.ts';
-import { get, put, update } from '../../../ddb/store.ts';
-import { tx } from '../../../ddb/tx.ts';
+import { get } from '../../../ddb/store.ts';
 import { isConditionFailed, withVersionRetry } from '../../../ddb/retry.ts';
 import { ApiError } from '../../../../errors.ts';
-import { acceptRules as acceptRulesDual, setAvatar as setAvatarDual, updateProfile as updateProfileDual, type MyProfile, type ProfilePatch } from '../profile.ts';
+import type { MyProfile, ProfilePatch } from '../profile.ts';
 import { cleanGenreIds, type Interests, type RecFeedbackIn } from '../interests.ts';
 import type { SyncedQueue } from '../queue.ts';
-import { setTz as setTzDual, validTz } from '../digest.ts';
-import { getListener, iso, nowMs, plainPg, refreshSessionCopies, unlessCondition, upd, aput, txa, type Hybrid, bridgeOn } from './common.ts';
+import { validTz } from '../digest.ts';
+import { getListener, iso, nowMs, refreshSessionCopies, unlessCondition, upd, aput, txa, type Ctx } from './common.ts';
 import { listenedEpisodeCount } from './foreign.ts';
 
-export async function myProfile(h: Hybrid, id: string): Promise<MyProfile> {
+export async function myProfile(h: Ctx, id: string): Promise<MyProfile> {
   const r = await getListener(h, id);
   return {
     ...(r?.avatarUrl ? { avatarUrl: r.avatarUrl } : {}), ...(r?.bio ? { bio: r.bio } : {}),
@@ -35,7 +34,7 @@ export async function myProfile(h: Hybrid, id: string): Promise<MyProfile> {
   };
 }
 
-export async function updateProfile(h: Hybrid, id: string, p: ProfilePatch): Promise<void> {
+export async function updateProfile(h: Ctx, id: string, p: ProfilePatch): Promise<void> {
   const sets: string[] = [];
   const removes: string[] = [];
   const values: Record<string, unknown> = {};
@@ -64,23 +63,22 @@ export async function updateProfile(h: Hybrid, id: string, p: ProfilePatch): Pro
   const expr = [sets.length ? `SET ${sets.join(', ')}` : '', removes.length ? `REMOVE ${removes.join(', ')}` : ''].filter(Boolean).join(' ');
   await unlessCondition(upd(h.store, 'main', K.listener(id), { update: expr, condition: 'attribute_exists(PK)', ...(Object.keys(values).length ? { values } : {}) }));
   if (p.displayName !== undefined) await refreshSessionCopies(h, id);
-  if (bridgeOn(h)) await updateProfileDual(plainPg(h), id, p); // shadow
 }
 
 const BYTES = K.config('bytes');
 
 /** Every photo's bytes but this listener's: the global counter minus their own (data-model §7 B). */
-export async function avatarBytesOthers(h: Hybrid, id: string): Promise<number> {
+export async function avatarBytesOthers(h: Ctx, id: string): Promise<number> {
   const [total, mine] = await Promise.all([get(h.store, 'main', BYTES), getListener(h, id)]);
   return Math.max(0, Number(total?.['avatarBytes'] ?? 0) - Number(mine?.avatarBytes ?? 0));
 }
 
-export async function currentAvatar(h: Hybrid, id: string): Promise<string | undefined> {
+export async function currentAvatar(h: Ctx, id: string): Promise<string | undefined> {
   return (await getListener(h, id))?.avatarUrl ?? undefined;
 }
 
 /** The listener's photo and the global byte counter move together; a racing change retries. */
-export async function setAvatar(h: Hybrid, id: string, a: { url: string; path: string; bytes: number } | null): Promise<void> {
+export async function setAvatar(h: Ctx, id: string, a: { url: string; path: string; bytes: number } | null): Promise<void> {
   await withVersionRetry(async () => {
     const l = await getListener(h, id);
     if (!l) return;
@@ -92,54 +90,51 @@ export async function setAvatar(h: Hybrid, id: string, a: { url: string; path: s
     if (next !== old) t.update('main', BYTES, { update: 'SET #t = :t ADD avatarBytes :d', names: { '#t': 't' }, values: { ':t': 'config', ':d': next - old } });
     await t.commit();
   });
-  if (bridgeOn(h)) await setAvatarDual(plainPg(h), id, a); // shadow
 }
 
-export async function displayNameRows(h: Hybrid, listenerId: string): Promise<{ display_name: string }[]> {
+export async function displayNameRows(h: Ctx, listenerId: string): Promise<{ display_name: string }[]> {
   const l = await getListener(h, listenerId);
   return l ? [{ display_name: l.displayName }] : [];
 }
 
-export async function acceptRules(h: Hybrid, listenerId: string): Promise<void> {
+export async function acceptRules(h: Ctx, listenerId: string): Promise<void> {
   await unlessCondition(upd(h.store, 'main', K.listener(listenerId), {
     update: 'SET rulesAcceptedAt = if_not_exists(rulesAcceptedAt, :now)', condition: 'attribute_exists(PK)', values: { ':now': iso(nowMs(h)) },
   }));
-  if (bridgeOn(h)) await acceptRulesDual(plainPg(h), listenerId); // shadow
 }
 
-export async function passwordHashRows(h: Hybrid, listenerId: string): Promise<{ password_hash: string }[]> {
+export async function passwordHashRows(h: Ctx, listenerId: string): Promise<{ password_hash: string }[]> {
   const l = await getListener(h, listenerId);
   return l ? [{ password_hash: l.passwordHash }] : [];
 }
 
-export async function listenerEmailRows(h: Hybrid, listenerId: string): Promise<{ email: string }[]> {
+export async function listenerEmailRows(h: Ctx, listenerId: string): Promise<{ email: string }[]> {
   const l = await getListener(h, listenerId);
   return l ? [{ email: l.email }] : [];
 }
 
-export async function setTz(h: Hybrid, listenerId: string, tz: string): Promise<void> {
+export async function setTz(h: Ctx, listenerId: string, tz: string): Promise<void> {
   if (!validTz(tz)) throw new ApiError('validation', 'That is not a time zone.', { fields: ['tz'] });
   await unlessCondition(upd(h.store, 'main', K.listener(listenerId), { update: 'SET tz = :tz', condition: 'attribute_exists(PK)', values: { ':tz': tz } }));
   // Lane PD (AC-T07): a PLUS member's weekly-digest queue `Q#plus#<tz>` follows their zone.
   await (await import('../paid-ddb/purchases.ts')).plusQueueRetz(h.store, listenerId, tz);
-  if (bridgeOn(h)) await setTzDual(plainPg(h), listenerId, tz); // shadow
 }
 
 // ---- interests (AC-12…AC-18) ----
 
 const INTERESTS = (id: string) => K.listenerSingleton(id, 'INTERESTS');
 
-export async function getInterests(h: Hybrid, listenerId: string): Promise<Interests> {
+export async function getInterests(h: Ctx, listenerId: string): Promise<Interests> {
   const r = await get(h.store, 'main', INTERESTS(listenerId));
   if (!r) return { genreIds: [], skippedAt: null };
   return { genreIds: ((r['genreIds'] as number[] | undefined) ?? []).map(Number), skippedAt: (r['skippedAt'] as string | null | undefined) ?? null };
 }
 
-export async function setInterests(h: Hybrid, listenerId: string, genreIds: readonly number[]): Promise<void> {
+export async function setInterests(h: Ctx, listenerId: string, genreIds: readonly number[]): Promise<void> {
   await aput(h.store, 'main', encode('interests', INTERESTS(listenerId), { genreIds: [...genreIds], skippedAt: null, updatedAt: iso(nowMs(h)) }));
 }
 
-export async function skipInterests(h: Hybrid, listenerId: string): Promise<void> {
+export async function skipInterests(h: Ctx, listenerId: string): Promise<void> {
   const now = iso(nowMs(h));
   await upd(h.store, 'main', INTERESTS(listenerId), {
     update: 'SET #t = :t, genreIds = if_not_exists(genreIds, :empty), skippedAt = :now, updatedAt = :now',
@@ -147,7 +142,7 @@ export async function skipInterests(h: Hybrid, listenerId: string): Promise<void
   });
 }
 
-export async function addRecFeedback(h: Hybrid, listenerId: string, f: RecFeedbackIn): Promise<void> {
+export async function addRecFeedback(h: Ctx, listenerId: string, f: RecFeedbackIn): Promise<void> {
   const now = iso(nowMs(h));
   await aput(h.store, 'main', encode('recFeedback', K.recFeedback(listenerId, now, randomUUID()), { reason: f.reason, note: f.note?.trim() || null, createdAt: now }));
   const add = cleanGenreIds(f.add ?? []);
@@ -161,31 +156,31 @@ export async function addRecFeedback(h: Hybrid, listenerId: string, f: RecFeedba
   });
 }
 
-export async function interestsStamp(h: Hybrid, listenerId: string): Promise<string> {
+export async function interestsStamp(h: Ctx, listenerId: string): Promise<string> {
   const r = await get(h.store, 'main', INTERESTS(listenerId));
   return (r?.['updatedAt'] as string | undefined) ?? '-';
 }
 
-/** Lane SG's activity log is still on Postgres (foreign.ts); LB's `listenedCount` replaces this when it moves. */
-export async function playCount(h: Hybrid, listenerId: string): Promise<number> {
-  return listenedEpisodeCount(h.pg, listenerId);
+/** Distinct episodes the listener listened to (lane SG's activity items, through foreign.ts). */
+export async function playCount(h: Ctx, listenerId: string): Promise<number> {
+  return listenedEpisodeCount(h.db, listenerId);
 }
 
 // ---- stickers (AC-19…AC-21): the ≤ 10 placements as one list ----
 
 const STICKERS = (id: string) => K.listenerSingleton(id, 'STICKERS');
 
-export async function placementsFor(h: Hybrid, listenerId: string): Promise<Placement[]> {
+export async function placementsFor(h: Ctx, listenerId: string): Promise<Placement[]> {
   const r = await get(h.store, 'main', STICKERS(listenerId));
   const items = ((r?.['items'] as Placement[] | undefined) ?? []).map((p) => ({ stickerId: p.stickerId, x: Number(p.x), y: Number(p.y), scale: Number(p.scale), rot: Number(p.rot), z: Number(p.z) }));
   return items.sort((a, b) => a.z - b.z || (a.stickerId < b.stickerId ? -1 : a.stickerId > b.stickerId ? 1 : 0));
 }
 
-export async function replacePlacements(h: Hybrid, listenerId: string, items: readonly Placement[]): Promise<void> {
+export async function replacePlacements(h: Ctx, listenerId: string, items: readonly Placement[]): Promise<void> {
   await aput(h.store, 'main', encode('stickers', STICKERS(listenerId), { items: items.map((p) => ({ stickerId: p.stickerId, x: p.x, y: p.y, scale: p.scale, rot: p.rot, z: p.z })) }));
 }
 
-export async function stickerView(h: Hybrid, listenerId: string, viewerId: string | undefined): Promise<{ stickers: Placement[]; stickersHidden?: true }> {
+export async function stickerView(h: Ctx, listenerId: string, viewerId: string | undefined): Promise<{ stickers: Placement[]; stickersHidden?: true }> {
   const l = await getListener(h, listenerId);
   const stickers = l?.hideDecorations ? [] : await placementsFor(h, listenerId);
   return { stickers, ...(l?.hideStickers && viewerId !== listenerId ? { stickersHidden: true as const } : {}) };
@@ -198,11 +193,11 @@ const QUEUE = (id: string) => K.listenerSingleton(id, 'QUEUE');
 const toQueue = (r: Record<string, unknown> | undefined): SyncedQueue => (!r ? { items: [], version: 0, deviceId: null, updatedAt: null }
   : { items: ((r['items'] as unknown[] | undefined) ?? []).filter((x): x is string => typeof x === 'string'), version: Number(r['version'] ?? 0), deviceId: (r['deviceId'] as string | null | undefined) ?? null, updatedAt: (r['updatedAt'] as string | undefined) ?? null });
 
-export async function getQueue(h: Hybrid, listenerId: string): Promise<SyncedQueue> {
+export async function getQueue(h: Ctx, listenerId: string): Promise<SyncedQueue> {
   return toQueue(await get(h.store, 'main', QUEUE(listenerId)));
 }
 
-export async function putQueue(h: Hybrid, listenerId: string, items: readonly string[], baseVersion: number, deviceId: string): Promise<{ ok: true; version: number } | { ok: false; current: SyncedQueue }> {
+export async function putQueue(h: Ctx, listenerId: string, items: readonly string[], baseVersion: number, deviceId: string): Promise<{ ok: true; version: number } | { ok: false; current: SyncedQueue }> {
   const current = await getQueue(h, listenerId);
   if (current.version !== baseVersion) return { ok: false, current };
   const version = baseVersion + 1;

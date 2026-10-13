@@ -7,9 +7,9 @@
  * - `L#<recipient>/NDEDUP#<sha(actor, kind, canonical ref)>` for like / follow / like_post_like / status_reaction:
  *   put with `attribute_not_exists` in the SAME transaction as the notice — the same event delivered twice writes one
  *   notice (guard G-M26-SG3), and a racing twin cancels instead of doubling.
- * - The old INSERT … SELECT guards become reads before the write: never a self-act, never to a recipient who blocked
- *   the actor (lane SF, Postgres) or muted them (`MUTE#`, this lane), never from a muted thread (`TMUTE#`), never a
- *   like on a comment whose author turned like notices off (lane SC's comment, Postgres).
+ * - The guards are reads before the write: never a self-act, never to a recipient who blocked
+ *   the actor (lane SF) or muted them (`MUTE#`, this lane), never from a muted thread (`TMUTE#`), never a
+ *   like on a comment whose author turned like notices off (lane SC's comment).
  * - `planNotice` returns the items so a caller can put them in ITS transaction (a follow does); `notify` commits them alone.
  * - The list joins at read time, as the SQL did: the actor (name, photo — a deleted actor drops the row), the comment's
  *   excerpt while visible (SC), the episode title (LB); actors I blocked or muted since are left out; `unread` against
@@ -26,7 +26,7 @@ import { getListener, txa, type TxA } from '../../account/ddb/common.ts';
 import { setGraphFlags } from '../../account/ddb/listeners.ts';
 import { pushFor, threadOf } from '../../account/push.ts';
 import { MAX_MENTIONS, mentionCandidates, type NoticeItem, type NoticeKind } from '../notifications.ts';
-import { blockedBy, commentsById, episodesById, hasBlocked, iso, left, listenersById, nowMs, type Hybrid } from './common.ts';
+import { blockedBy, commentsById, episodesById, hasBlocked, iso, left, listenersById, nowMs, type Ctx } from './common.ts';
 import { isMuted, isThreadMuted, mutedIdsFor } from './mutes.ts';
 
 const PAGE = 30;
@@ -42,7 +42,7 @@ export const dedupeHash = (actorId: string, kind: string, ref: Record<string, st
 export type NoticePlan = { add(t: TxA): void; after(): Promise<void> };
 
 /** The notice's items for a caller's transaction, or undefined when no notice is due. Label of the dedupe item: `notice`. */
-export async function planNotice(h: Hybrid, n: NoticeIn): Promise<NoticePlan | undefined> {
+export async function planNotice(h: Ctx, n: NoticeIn): Promise<NoticePlan | undefined> {
   const recipientId = n.recipientId;
   if (!recipientId || recipientId === n.actorId) return undefined;
   const ref = n.ref ?? {};
@@ -66,12 +66,12 @@ export async function planNotice(h: Hybrid, n: NoticeIn): Promise<NoticePlan | u
       if (dedupe) t.put('main', encode('notificationDedupe', dedupe, { notificationId: id, createdAt }), { condition: 'attribute_not_exists(PK)', label: 'notice' });
     },
     // M22 US1: the same notice as a phone push (never throws; lane AC's pushFor).
-    after: async () => { await pushFor(h.pg, { recipientId, actorId: n.actorId, kind: n.kind, ref }); },
+    after: async () => { await pushFor(h.db, { recipientId, actorId: n.actorId, kind: n.kind, ref }); },
   };
 }
 
 /** Writes one notice unless it is a self-act, blocked, muted or already told (G-M21-9). True when written. */
-export async function notify(h: Hybrid, n: NoticeIn): Promise<boolean> {
+export async function notify(h: Ctx, n: NoticeIn): Promise<boolean> {
   // A conflicting twin (TransactionConflict) is retried from a fresh plan, which then finds the dedupe item.
   return withRetry(async () => {
     const plan = await planNotice(h, n);
@@ -90,7 +90,7 @@ export async function notify(h: Hybrid, n: NoticeIn): Promise<boolean> {
 }
 
 /** Listeners whose lower-cased name is one of `names` (G6 `NAME#…`), oldest account first — the SQL's ORDER BY created_at. */
-async function byNames(h: Hybrid, names: readonly string[]): Promise<Map<string, string>> {
+async function byNames(h: Ctx, names: readonly string[]): Promise<Map<string, string>> {
   const hits: { name: string; id: string }[] = [];
   for (const name of names) {
     const { items } = await queryAll(h.store, 'main', { IndexName: K.INDEX.G6, KeyConditionExpression: 'G6PK = :n', ExpressionAttributeValues: { ':n': `NAME#${name}` } });
@@ -104,7 +104,7 @@ async function byNames(h: Hybrid, names: readonly string[]): Promise<Map<string,
 }
 
 /** The listeners a body mentions: per `@`, the longest exact display name (case-insensitive); at most MAX_MENTIONS. */
-export async function mentionedIds(h: Hybrid, body: string): Promise<string[]> {
+export async function mentionedIds(h: Ctx, body: string): Promise<string[]> {
   const groups = mentionCandidates(body).slice(0, 20);
   const all = [...new Set(groups.flat())];
   if (all.length === 0) return [];
@@ -120,10 +120,10 @@ export async function mentionedIds(h: Hybrid, body: string): Promise<string[]> {
 }
 
 /** A new comment's notices: a reply tells the parent's author; each `@name` tells that listener (not twice). */
-export async function notifyForComment(h: Hybrid, c: { id: string; episodeId: string; authorId: string; parentId?: string | null; body: string | null }): Promise<void> {
+export async function notifyForComment(h: Ctx, c: { id: string; episodeId: string; authorId: string; parentId?: string | null; body: string | null }): Promise<void> {
   let parentAuthor: string | null = null;
   if (c.parentId) {
-    parentAuthor = (await commentsById(h, [c.parentId])).get(c.parentId)?.author_id ?? null; // lane SC's comment, Postgres
+    parentAuthor = (await commentsById(h, [c.parentId])).get(c.parentId)?.author_id ?? null; // lane SC's comment
     await notify(h, { recipientId: parentAuthor, actorId: c.authorId, kind: 'reply', ref: { commentId: c.id, parentId: c.parentId, episodeId: c.episodeId } });
   }
   if (!c.body || !c.body.includes('@')) return;
@@ -134,7 +134,7 @@ export async function notifyForComment(h: Hybrid, c: { id: string; episodeId: st
 }
 
 /** My notices, newest first, 30 a page; `cursor` is the last item's `createdAt`. */
-export async function listNotifications(h: Hybrid, recipientId: string, cursor?: string): Promise<{ items: NoticeItem[]; next: string | null }> {
+export async function listNotifications(h: Ctx, recipientId: string, cursor?: string): Promise<{ items: NoticeItem[]; next: string | null }> {
   const before = cursor && !Number.isNaN(Date.parse(cursor)) ? new Date(cursor).toISOString() : null;
   const [me, blocked, muted] = await Promise.all([getListener(h, recipientId), blockedBy(h, recipientId), mutedIdsFor(h, recipientId)]);
   const seenAt = (me?.['notificationsSeenAt'] as string | undefined) ?? null;
@@ -179,12 +179,12 @@ export async function listNotifications(h: Hybrid, recipientId: string, cursor?:
 }
 
 /** Everything up to now is read (lane AC writes the listener field). */
-export async function markSeen(h: Hybrid, recipientId: string): Promise<void> {
+export async function markSeen(h: Ctx, recipientId: string): Promise<void> {
   await setGraphFlags(h, recipientId, { notificationsSeenAt: iso(nowMs(h)) });
 }
 
 /** For the deletion job and tests: every notice item of a listener. */
-export async function noticeItems(h: Hybrid, recipientId: string): Promise<Item[]> {
+export async function noticeItems(h: Ctx, recipientId: string): Promise<Item[]> {
   return (await queryAll(h.store, 'main', { KeyConditionExpression: 'PK = :pk AND begins_with(SK, :p)', ExpressionAttributeValues: { ':pk': K.L(recipientId), ':p': K.LISTENER_SK.notifications }, ConsistentRead: true })).items;
 }
 

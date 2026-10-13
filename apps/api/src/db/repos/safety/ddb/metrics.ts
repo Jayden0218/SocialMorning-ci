@@ -15,7 +15,7 @@
  *                bucketed by the UTC+8 day of `at`; top shows = show META on G4 `Q#feeds` by `subscriberCount`.
  * - recs       — LB's hourly rollup `R#recs#all` (one counter per `channel|kind`), from the range's first hour.
  * - safety     — lane SF's own hourly counters `R#dash#<metric>` (dash.ts); open reports = G4 `Q#reports-open`.
- * - social, money, creators — lanes still on Postgres: the same SQL on the plain handle (bottom of this file).
+ * - social, money, creators — from the social, paid and Studio items (bottom of this file).
  * Recounting on demand is fine behind the cache: the dashboard is the owner's page, opened a few times a day.
  *
  * `checkDashboard` (guard G-M26-SF4) recounts one UTC+8 day of the safety counters per UTC hour from the items
@@ -30,7 +30,7 @@ import { get, put, queryPage, update } from '../../../ddb/store.ts';
 import { deleteCacheKey } from '../../cache.ts';
 import { attachedOf } from '../../../backend-ddb.ts';
 import {
-  creatorsSection, rangeDays, section, series, startOf, summariseListening, utc8Day,
+  rangeDays, section, series, startOf, summariseListening, utc8Day,
   type ListenedEntry, type MetricRange, type Metrics,
 } from '../../admin/metrics.ts';
 import { DASH_METRICS, dashKey, type DashMetric } from './dash.ts';
@@ -348,16 +348,14 @@ const money = (store: Store, days: string[]) => section('money', async () => {
   };
 });
 
-// ---- foreign (still Postgres): lanes SC (social), ST (creators) ----
-// The same SQL as admin/metrics.ts on the plain Postgres handle; the lane that moves replaces its line.
-
-// Lane ST (moved 2026-10-11): shares per day and the creators section are its items (studio/ddb/numbers.ts, claims.ts, hosted.ts).
+// ---- foreign: social (SC, SG) and creators (ST) ----
+// Shares per day and the creators section are the Studio's items (studio/ddb/numbers.ts, claims.ts, hosted.ts).
 /**
- * Lane LE (gap 4): lanes SC's and SG's numbers from their items, not SQL — per listener (G4 `Q#listeners`): comments from
+ * The social numbers from the items — per listener (G4 `Q#listeners`): comments from
  * the author pointers `CMT#<at>`, reactions `REACT#` (createdAt), clips `CLP#<at>` (a deleted clip keeps its pointer, as
  * its row stayed), follows `FOLLOW#` (createdAt), live statuses `VPOST#` (expiresAt > now). Lane NB: a comment turned into
  * a placeholder (deleted with replies) loses its author pointer; it is counted from the placeholder index instead, so the
- * per-day count is the SQL's (its Postgres row still counted). Pinned on both backends in test/le-removed-counts.test.ts.
+ * per-day count still counts it. Pinned in test/le-removed-counts.test.ts.
  */
 const socialFromItems = (store: Store, days: string[]) => section('social', async () => {
   const from = startOf(days[0]!);

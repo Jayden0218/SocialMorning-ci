@@ -7,7 +7,7 @@ const ON = Boolean(process.env['DDB_ENDPOINT']);
 if (!ON) {
   test('ddb outbox (needs DynamoDB Local: DDB_ENDPOINT, ci/workflows/ddb-api.yml)', { skip: 'no DDB_ENDPOINT' }, () => {});
 } else {
-  const { freshStore, TEST_BACKEND, freshDb } = await import('./harness.ts');
+  const { freshStore, freshDb } = await import('./harness.ts');
   const { encode } = await import('../src/db/ddb/codec.ts');
   const K = await import('../src/db/ddb/keys.ts');
   const { get, update } = await import('../src/db/ddb/store.ts');
@@ -28,9 +28,9 @@ if (!ON) {
 
     let total = 0;
     const handlers = { count: async (_s: unknown, e: { payload: Record<string, unknown> }) => { total += Number(e.payload['by']); } };
-    assert.deepEqual(await drainOutbox(s.store, handlers), { done: 1, failed: 0, kept: [] });
+    assert.deepEqual(await drainOutbox(s.store, handlers), { done: 1, failed: 0, kept: [], parked: 0 });
     assert.equal(total, 2);
-    assert.deepEqual(await drainOutbox(s.store, handlers), { done: 0, failed: 0, kept: [] });
+    assert.deepEqual(await drainOutbox(s.store, handlers), { done: 0, failed: 0, kept: [], parked: 0 });
     await s.close();
   });
 
@@ -108,12 +108,10 @@ if (!ON) {
     assert.equal((await auditItems(s.store)).length, 1);
     await s.close();
 
-    if (TEST_BACKEND === 'ddb') {
-      const t = await freshDb();
-      assert.ok(t.store, 'freshDb attaches a table set');
-      const res = await t.call('GET', '/v1/health');
-      assert.equal(res.status, 200);
-      await t.close();
-    }
+    const t = await freshDb();
+    assert.ok(t.store, 'freshDb attaches a table set');
+    const res = await t.call('GET', '/v1/health');
+    assert.equal(res.status, 200);
+    await t.close();
   });
 }

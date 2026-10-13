@@ -6,7 +6,6 @@
  *   No reverse item: nobody asks "who muted me" (the status push asks per follower with a GetItem).
  * - `L#<listener>/TMUTE#<kind>#<key>` ({ threadKind, threadKey, createdAt }) — notify() and pushFor() skip the thread.
  * - The social poll's mute stamp is the count and newest time of the MUTE# items — the same value the SQL stamped.
- * - The bridge writes `listener_mutes` / `muted_threads` too (lane SC's likes timeline and voice posts still read them).
  * - "Stop like notices" (`setLikeNotices`) writes lane SC's comment row and is not converted here.
  */
 import { encode } from '../../../ddb/codec.ts';
@@ -14,33 +13,31 @@ import * as K from '../../../ddb/keys.ts';
 import { get, type Item } from '../../../ddb/store.ts';
 import { aput, adel, getListener, partitionItems, unlessCondition } from '../../account/ddb/common.ts';
 import type { MutedThread, ThreadKind } from '../muted-threads.ts';
-import { commentsById, episodesById, iso, left, listenersById, nowMs, raw, type Hybrid } from './common.ts';
+import { commentsById, episodesById, iso, left, listenersById, nowMs, type Ctx } from './common.ts';
 
-export async function mute(h: Hybrid, muterId: string, mutedId: string): Promise<'muted' | 'no_such_listener'> {
+export async function mute(h: Ctx, muterId: string, mutedId: string): Promise<'muted' | 'no_such_listener'> {
   if (!(await getListener(h, mutedId))) return 'no_such_listener';
   await unlessCondition(aput(h.store, 'main', encode('mute', K.mute(muterId, mutedId), { otherId: mutedId, createdAt: iso(nowMs(h)) }), { condition: 'attribute_not_exists(PK)' }));
-  await raw(h)?.query('INSERT INTO listener_mutes (muter_id, muted_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [muterId, mutedId]);
   return 'muted';
 }
 
-export async function unmute(h: Hybrid, muterId: string, mutedId: string): Promise<void> {
+export async function unmute(h: Ctx, muterId: string, mutedId: string): Promise<void> {
   await adel(h.store, 'main', K.mute(muterId, mutedId));
-  await raw(h)?.query('DELETE FROM listener_mutes WHERE muter_id = $1 AND muted_id = $2', [muterId, mutedId]);
 }
 
-async function muteItems(h: Hybrid, muterId: string): Promise<Item[]> {
+async function muteItems(h: Ctx, muterId: string): Promise<Item[]> {
   return partitionItems(h, K.L(muterId), K.SG_SK.mutes);
 }
 
-export async function mutedIdsFor(h: Hybrid, muterId: string): Promise<Set<string>> {
+export async function mutedIdsFor(h: Ctx, muterId: string): Promise<Set<string>> {
   return new Set((await muteItems(h, muterId)).map((m) => String(m['otherId'])));
 }
 
-export async function isMuted(h: Hybrid, muterId: string, mutedId: string): Promise<boolean> {
+export async function isMuted(h: Ctx, muterId: string, mutedId: string): Promise<boolean> {
   return Boolean(await get(h.store, 'main', K.mute(muterId, mutedId)));
 }
 
-export async function listMutes(h: Hybrid, muterId: string): Promise<{ id: string; name: string; avatarUrl: string | null }[]> {
+export async function listMutes(h: Ctx, muterId: string): Promise<{ id: string; name: string; avatarUrl: string | null }[]> {
   const ms = (await muteItems(h, muterId)).sort((a, b) => String(b['createdAt']).localeCompare(String(a['createdAt'])));
   const ls = await listenersById(h.store, ms.map((m) => String(m['otherId'])));
   return ms.flatMap((m) => {
@@ -50,7 +47,7 @@ export async function listMutes(h: Hybrid, muterId: string): Promise<{ id: strin
 }
 
 /** Part of the social poll's ETag: a mute or an unmute changes the muter's answer (count + newest). */
-export async function muteStamp(h: Hybrid, muterId: string): Promise<string> {
+export async function muteStamp(h: Ctx, muterId: string): Promise<string> {
   const ms = await muteItems(h, muterId);
   const newest = ms.reduce<string | null>((m, x) => (m === null || String(x['createdAt']) > m ? String(x['createdAt']) : m), null);
   return `${ms.length}:${newest ?? '-'}`;
@@ -58,22 +55,20 @@ export async function muteStamp(h: Hybrid, muterId: string): Promise<string> {
 
 // ---- muted notice threads (M22 US3) ----
 
-export async function muteThread(h: Hybrid, listenerId: string, kind: ThreadKind, key: string): Promise<void> {
+export async function muteThread(h: Ctx, listenerId: string, kind: ThreadKind, key: string): Promise<void> {
   await unlessCondition(aput(h.store, 'main', encode('threadMute', K.mutedThread(listenerId, kind, key), { threadKind: kind, threadKey: key, createdAt: iso(nowMs(h)) }), { condition: 'attribute_not_exists(PK)' }));
-  await raw(h)?.query('INSERT INTO muted_threads (listener_id, thread_kind, thread_key) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING', [listenerId, kind, key]);
 }
 
-export async function unmuteThread(h: Hybrid, listenerId: string, kind: ThreadKind, key: string): Promise<void> {
+export async function unmuteThread(h: Ctx, listenerId: string, kind: ThreadKind, key: string): Promise<void> {
   await adel(h.store, 'main', K.mutedThread(listenerId, kind, key));
-  await raw(h)?.query('DELETE FROM muted_threads WHERE listener_id = $1 AND thread_kind = $2 AND thread_key = $3', [listenerId, kind, key]);
 }
 
-export async function isThreadMuted(h: Hybrid, listenerId: string, kind: string, key: string): Promise<boolean> {
+export async function isThreadMuted(h: Ctx, listenerId: string, kind: string, key: string): Promise<boolean> {
   return Boolean(await get(h.store, 'main', K.mutedThread(listenerId, kind, key)));
 }
 
 /** My muted threads, newest first (≤ 200), each titled by the comment's words or the liked episode's title. */
-export async function listMutedThreads(h: Hybrid, listenerId: string): Promise<MutedThread[]> {
+export async function listMutedThreads(h: Ctx, listenerId: string): Promise<MutedThread[]> {
   const ts = (await partitionItems(h, K.L(listenerId), K.SG_SK.threadMutes))
     .sort((a, b) => String(b['createdAt']).localeCompare(String(a['createdAt']))).slice(0, 200);
   const comments = await commentsById(h, ts.filter((x) => x['threadKind'] === 'comment').map((x) => String(x['threadKey'])));

@@ -7,6 +7,7 @@
  *   POST /mod/logout
  *   POST /mod/host-unhide  M11 (FR-016): undo a show host's hide from the Studio
  *   POST /mod/takedown     M14 (FR-09): take a show created in the Studio down (feed 410, audio removed)
+ *   POST /mod/outbox       M28 US3: retry or discard one parked outbox entry (audited like the admin API; never shows a payload)
  * Anyone but the owner (G9) gets a 403 page on every route; no app links here.
  */
 import { Hono, type Context } from 'hono';
@@ -31,6 +32,10 @@ import { COUNTRY_HEADER, countryOf } from '../db/repos/account/country.ts';
 import { listHostedEpisodes } from '../db/repos/studio/hosted.ts';
 import { finishTakedown, markHostedShowDeleted, studioCreatedShows } from '../db/repos/safety/mod-shows.ts';
 import { deleteSessionByHash } from '../db/repos/account/sessions.ts';
+// M28 US3: parked outbox entries.
+import { moveParked, parkedList } from '../routes/admin/safety.ts';
+import { pendingOutbox } from '../jobs/outbox.ts';
+import { ATTACHED } from '../db/backend.ts';
 
 const COOKIE = 'mod';
 const ACTIONS: readonly Action[] = ['dismiss', 'remove', 'hide_show', 'suspend', 'unsuspend', 'unhide_show'];
@@ -144,12 +149,15 @@ mod.get('/', async (c) => {
     studioCreatedShows(db)]);
   const items = groupReports(open.map(toRow));
   const csrf = csrfFor(who.token);
+  // M28 US3: the outbox next to the queue; a read that fails shows as unknown, never breaks the page.
+  const outbox = await outboxView(db);
   return c.html(page('Moderation', `
 <h1>Moderation queue</h1><p class="muted">Signed in as ${esc(who.owner.display_name)} · <form method="post" action="/mod/logout" style="display:inline"><input type="hidden" name="csrf" value="${csrf}"><button>Sign out</button></form></p>
 <h2>Open (${items.length})</h2>
 ${items.length === 0 ? '<p class="muted">Nothing to review.</p>' : items.map((i) => renderItem(i, csrf)).join('')}
 <h2>Closed in the last ${RETENTION_DAYS} days (${closed.length})</h2>
 ${closed.length === 0 ? '<p class="muted">None.</p>' : `<ul>${closed.map(renderClosed).join('')}</ul>`}
+${renderOutbox(outbox, csrf)}
 <h2>Shows created in the Studio (${created.length})</h2>
 ${created.length === 0 ? '<p class="muted">None.</p>' : `<ul>${created.map((s) => `<li><b>${esc(s.title)}</b> · by ${esc(s.owner ?? 'a deleted account')} · ${s.eps} episode${s.eps === 1 ? '' : 's'} · created ${esc(new Date(s.created_at).toISOString().slice(0, 10))}, updated ${esc(new Date(s.updated_at).toISOString().slice(0, 16).replace('T', ' '))}${s.hidden ? ' · <i>hidden from discovery</i>' : ''} · <a href="${esc(s.feed_url)}">feed</a>
 <form method="post" action="/mod/act" style="display:inline"><input type="hidden" name="csrf" value="${csrf}"><input type="hidden" name="item" value="show:${esc(s.feed_url)}"><button name="action" value="${s.hidden ? 'unhide_show' : 'hide_show'}">${s.hidden ? 'Un-hide' : 'Hide from discovery'}</button></form>
@@ -267,6 +275,24 @@ mod.post('/takedown', async (c) => {
   return c.redirect('/mod', 303);
 });
 
+/** M28 US3 (research R6): retry or discard one parked outbox entry. Both go through adminWrite, so each leaves an audit record. */
+mod.post('/outbox', async (c) => {
+  const who = await ownerFromCookie(c);
+  if (!who) return c.html(page('Moderation — refused', '<h1>Not the owner</h1>'), 403);
+  const form = await c.req.parseBody();
+  if (String(form['csrf'] ?? '') !== csrfFor(who.token)) return c.html(page('Moderation — refused', '<h1>Stale form</h1><p><a href="/mod">Back</a></p>'), 403);
+  const id = String(form['id'] ?? '');
+  const action = String(form['action'] ?? '');
+  const reason = String(form['reason'] ?? '').trim().slice(0, 200);
+  if (action !== 'retry' && !(action === 'discard' && reason.length > 0)) return c.html(page('Moderation — reason needed', '<h1>Give a reason to discard</h1><p><a href="/mod">Back</a></p>'), 422);
+  try {
+    await moveParked(c.get('db'), { adminId: who.owner.id, device: 'mod-web' }, id, action, reason);
+  } catch (e) {
+    if (!(e instanceof ApiError && e.code === 'not_found')) throw e; // already moved by someone else: the page refreshes
+  }
+  return c.redirect('/mod', 303);
+});
+
 mod.post('/logout', async (c) => {
   const token = getCookie(c, COOKIE);
   if (token) await deleteSessionByHash(c.get('db'), tokenHash(token, c.get('pepper')));
@@ -278,6 +304,25 @@ mod.post('/logout', async (c) => {
 function codeForm(email: string): string {
   const masked = email.replace(/^(.)(.*)(.@.*)$/, (_m, a: string, mid: string, b: string) => `${a}${'*'.repeat(Math.min(6, mid.length))}${b}`);
   return `<h1>Enter the code</h1><p class="muted">We emailed a six-digit code to ${esc(masked)}. It works for 10 minutes.</p><form method="post" action="/mod/code"><p><label>Code <input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" required></label></p><p><label><input type="checkbox" name="remember" value="1"> Remember this browser for 30 days</label></p><button class="btn" type="submit">Continue</button></form><form method="post" action="/mod/code"><input type="hidden" name="resend" value="1"><button type="submit">Send a new code</button></form>`;
+}
+
+type OutboxView = { pending: number; parked: ReturnType<typeof parkedList> extends Promise<infer T> ? T : never } | undefined;
+
+async function outboxView(db: Parameters<typeof parkedList>[0]): Promise<OutboxView> {
+  const on = ATTACHED.get(db);
+  if (!on) return undefined;
+  try { return { pending: (await pendingOutbox(on.store)).length, parked: await parkedList(db) }; }
+  catch (e) { console.warn('[mod] outbox read failed', e instanceof Error ? e.message : String(e)); return undefined; }
+}
+
+/** The pending count, the parked count and the parked list. The list shows kind, attempts and the last error; never an entry's payload. */
+function renderOutbox(o: OutboxView, csrf: string): string {
+  if (!o) return '<h2>Outbox</h2><p class="muted">Not available.</p>';
+  const rows = o.parked.map((p) => `<li><b>${esc(p.kind)}</b> · ${p.attempts} tries · parked ${esc(p.parkedAt ?? '')} · <i>${esc(p.lastError ?? '')}</i>
+<form method="post" action="/mod/outbox" style="display:inline"><input type="hidden" name="csrf" value="${csrf}"><input type="hidden" name="id" value="${esc(p.id)}"><button name="action" value="retry">Retry</button></form>
+<form method="post" action="/mod/outbox" style="display:inline"><input type="hidden" name="csrf" value="${csrf}"><input type="hidden" name="id" value="${esc(p.id)}"><input name="reason" placeholder="why discard" maxlength="200" required><button name="action" value="discard">Discard</button></form></li>`);
+  return `<h2>Outbox: ${o.pending} pending · ${o.parked.length} parked</h2>
+${rows.length === 0 ? '<p class="muted">Nothing parked.</p>' : `<ul>${rows.join('')}</ul>`}`;
 }
 
 function loginForm(): string {

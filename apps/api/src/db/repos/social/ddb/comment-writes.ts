@@ -2,8 +2,7 @@
 /**
  * M26 lane SC (SC-T01, SC-T04, SC-T08). The heat curve moves inside the writing transaction through lane LB's
  * helpers (src/heat/ddb.ts): a reaction is `L#<listener>/REACT#<episodeId>#<bb>` and its mark, one TransactWriteItems
- * (constitution: 100 buckets, one count per listener per bucket). While the bridge is on, the Postgres rows and
- * the Postgres `episode_heat` are rebuilt too (other lanes still read them).
+ * (constitution: 100 buckets, one count per listener per bucket).
  */
 import { bucketOf } from '@socialmorning/social-core';
 import type { Db } from '../../../db.ts';
@@ -13,12 +12,10 @@ import * as K from '../../../ddb/keys.ts';
 import { get, type Store } from '../../../ddb/store.ts';
 import { TxCancelled } from '../../../ddb/tx.ts';
 import { addHeatMark, removeHeatMark } from '../../../../heat/ddb.ts';
-import { rebuildEpisodeHeat } from '../../../../heat/rebuild.ts';
 import { countryOf } from '../../account/country.ts';
 import { upsertEpisode, type EpisodeRow } from '../../library/episodes.ts';
 import { createComment, deleteComment, type CommentRow } from '../comments.ts';
-import * as B from './sc-bridge.ts';
-import { bumpSocial, commentItemById, commitRetry, keyOf, nowIso, nowMs, rangeItems, rawPg } from './sc-common.ts';
+import { bumpSocial, commentItemById, commitRetry, keyOf, nowIso, nowMs, rangeItems } from './sc-common.ts';
 import { heldImageBytes } from './sc-foreign.ts';
 import { enqueueFact } from '../../studio/ddb/facts.ts';
 import { imageBytesHeld, imageBytesStep } from './comments.ts';
@@ -46,8 +43,6 @@ export async function postCommentInTx(
     }
     const country = countryOf(countryHeader);
     const row = await createComment(tx, { episodeId, authorId: listenerId, body: body.body, offsetMs: body.offsetMs, parentId: body.parentId, ...(country ? { country } : {}) });
-    const raw = rawPg(tx);
-    if (raw && body.offsetMs !== undefined) await rebuildEpisodeHeat(raw, episodeId); // the bridge's episode_heat
     return row;
   });
 }
@@ -55,8 +50,6 @@ export async function postCommentInTx(
 export async function deleteCommentInTx(_store: Store, db: Db, id: string): Promise<{ placeholder: boolean; episodeId: string }> {
   return db.transaction(async (tx) => {
     const r = await deleteComment(tx, id);
-    const raw = rawPg(tx);
-    if (raw) await rebuildEpisodeHeat(raw, r.episodeId);
     return r;
   });
 }
@@ -68,8 +61,6 @@ export async function postVoiceCommentInTx(
   const { offsetMs, parentId, transcript, country } = v;
   return db.transaction(async (tx) => {
     const row = await createComment(tx, { episodeId, authorId, body: null, ...(offsetMs !== undefined ? { offsetMs } : {}), ...(parentId ? { parentId } : {}), voice: { url: v.url, path: v.path, ms: v.ms, ...(transcript ? { transcript } : {}) }, ...(country ? { country } : {}) });
-    const raw = rawPg(tx);
-    if (raw && offsetMs !== undefined) await rebuildEpisodeHeat(raw, episodeId);
     return row;
   });
 }
@@ -95,8 +86,6 @@ export async function setCommentImage(store: Store, db: Db, id: string, url: str
       bumpSocial(t, String(it['episodeId']), at);
     });
   }
-  const raw = rawPg(db);
-  if (raw) await B.setCommentColumns(raw, id, { image_url: url, image_path: path, image_w: w, image_h: h, image_bytes: bytes });
 }
 
 /**
@@ -141,12 +130,6 @@ export async function toggleReactionInTx(
       if (attempt < 4 && e instanceof TxCancelled && e.failed('reaction')) continue;
       throw e;
     }
-  }
-  const raw = rawPg(db);
-  if (raw) {
-    if (reacted) await B.insertReaction(raw, { listenerId, episodeId, bucket, offsetMs: body.offsetMs, createdAt: at });
-    else await B.deleteReaction(raw, listenerId, episodeId, bucket);
-    await rebuildEpisodeHeat(raw, episodeId);
   }
   return { reacted, bucket };
 }

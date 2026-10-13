@@ -24,7 +24,7 @@
  *  3. Corners follow the size, as the B designs draw them (`coverRadius`): 10–12 small, 14 mid,
  *     16–18 large.
  */
-import { useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { Image } from '@/ui/lib/image';
 import { Box } from '@/ui/lib/box';
@@ -76,7 +76,7 @@ export function thumbUrl(url: string, size: number): string {
   return url;
 }
 
-export function Artwork(props: { url?: string | null; size: number; rounded?: keyof typeof radius; className?: string; name?: string }): React.ReactElement {
+function ArtworkView(props: { url?: string | null; size: number; rounded?: keyof typeof radius; className?: string; name?: string }): React.ReactElement {
   const cls = `overflow-hidden ${props.rounded ? ROUNDED[props.rounded] : ''} ${props.className ?? ''}`;
   // The size, the corner and the tile's colour come from props, so they stay styles.
   const tone = coverTone(props.name ?? '');
@@ -99,3 +99,9 @@ export function Artwork(props: { url?: string | null; size: number; rounded?: ke
     </Box>
   );
 }
+
+/**
+ * The scroll audit (2026-10-04, branch perf): a cover's props are plain values, so it skips
+ * re-rendering when its page re-renders for something else (a list re-renders many covers at once).
+ */
+export const Artwork = memo(ArtworkView);

@@ -41,7 +41,7 @@ if (!ON) {
     const t = await freshDb();
     const people: string[] = [];
     for (let i = 0; i < 5; i++) people.push((await signUp(t, `p${i}@example.com`, `P${i}`)).id);
-    const conflicts = withConflicts(t.store!, (n) => n % 3 === 0);
+    const conflicts = withConflicts(t.store, (n) => n % 3 === 0);
     const db = withStore(t.db, conflicts);
     let seed = 7;
     const rnd = (n: number) => { seed = (seed * 48271) % 2147483647; return seed % n; };
@@ -54,13 +54,13 @@ if (!ON) {
     const settled = await Promise.allSettled(ops);
     assert.ok(settled.filter((s) => s.status === 'fulfilled').length >= 25, 'most operations went through');
     assert.ok(conflicts.cancelled() > 0, 'the wrapper cancelled transactions');
-    const follows = await acScan(t.store!, 'main', 'follow');
-    const followers = await acScan(t.store!, 'main', 'follower');
+    const follows = await acScan(t.store, 'main', 'follow');
+    const followers = await acScan(t.store, 'main', 'follower');
     assert.ok(follows.length > 0, 'some follows stand');
     const pair = (i: Record<string, unknown>) => `${String(i['PK']).slice(2)}>${String(i['otherId'])}`;
     assert.deepEqual(follows.map(pair).sort(), followers.map((i) => `${String(i['otherId'])}>${String(i['PK']).slice(2)}`).sort(), 'every FOLLOW# has its FOLLOWER# twin');
     for (const id of people) {
-      const l = await (await import('./fixtures.ts')).itemAt(t.store!, 'listener', K.listener(id));
+      const l = await (await import('./fixtures.ts')).itemAt(t.store, 'listener', K.listener(id));
       const out = follows.filter((i) => String(i['PK']) === K.L(id)).length;
       const inn = followers.filter((i) => String(i['PK']) === K.L(id)).length;
       assert.equal(Number(l?.['followingCount'] ?? 0), out, `${id}: followingCount = FOLLOW# items`);
@@ -79,7 +79,7 @@ if (!ON) {
     for (const p of PERSON_ATTRS) assert.ok(!allow.includes(p), `the allowlist has no ${p}`);
     assert.throws(() => encode('liveListener', K.ev.live(EP, 'h'), { episodeId: EP, listenerHash: 'h', seenAt: new Date().toISOString(), listenerId: a.id }), CodecError, 'an account id is refused');
     assert.throws(() => encode('liveListener', K.ev.live(EP, 'h'), { episodeId: EP, listenerHash: 'h', seenAt: new Date().toISOString(), displayName: 'Livia Listener' }), CodecError, 'a name is refused');
-    const items = await acScan(t.store!, 'events', 'liveListener');
+    const items = await acScan(t.store, 'events', 'liveListener');
     assert.equal(items.length, 1);
     for (const name of Object.keys(items[0]!)) assert.ok(['PK', 'SK', 't', 'ttl', ...allow].includes(name), `unexpected attribute ${name}`);
     const dump = JSON.stringify(items);
@@ -95,7 +95,7 @@ if (!ON) {
     const twice = await Promise.all([notify(t.db, { recipientId: a.id, actorId: b.id, kind: 'like', ref }), notify(t.db, { recipientId: a.id, actorId: b.id, kind: 'like', ref })]);
     assert.deepEqual(twice.filter(Boolean).length, 1, 'exactly one of the two deliveries wrote');
     assert.equal(await notify(t.db, { recipientId: a.id, actorId: b.id, kind: 'like', ref: { episodeId: ref.episodeId, commentId: ref.commentId } }), false, 'the same ref, keys in another order');
-    const notes = (await acScan(t.store!, 'main', 'notification')).filter((n) => n['recipientId'] === a.id);
+    const notes = (await acScan(t.store, 'main', 'notification')).filter((n) => n['recipientId'] === a.id);
     assert.equal(notes.length, 1, 'one notice stored');
     assert.equal(await notify(t.db, { recipientId: a.id, actorId: b.id, kind: 'reply', ref }), true, 'a reply is not deduplicated');
     await t.close();
@@ -103,24 +103,24 @@ if (!ON) {
 
   test('G-M26-SG4: the feed shows a followed listener\'s activity after the outbox drains; hidden never; unfollow empties the inbox', async () => {
     const t = await freshDb();
-    // Bridge off: only the fan-out can put the item in the feed (no Postgres activity rows to merge).
-    const db = withStore(t.db, t.store!, { bridge: false });
+    // Only the fan-out can put the item in the feed.
+    const db = withStore(t.db, t.store);
     const EP = 'feed-guard-ep';
     await putEpisode({ db }, EP, { feedUrl: 'https://feeds.example.com/f.xml', guid: 'f1', title: 'Feed ep', enclosureUrl: 'https://cdn.example.com/f.mp3' });
     const a = await signUp({ db }, 'fa@example.com', 'Fay');
     const b = await signUp({ db }, 'fb@example.com', 'Bob');
     assert.equal(await follow(db, a.id, b.id), 'followed');
-    await drainOutbox(t.store!);
-    const id = await recordActivity(t.store!, db, { actorId: b.id, kind: 'commented', episodeId: EP, momentMs: 1000, refId: '00000000-0000-4000-8000-0000000000f1' });
-    await recordActivity(t.store!, db, { actorId: b.id, kind: 'listened', episodeId: EP, day: '2026-10-10', hidden: true });
+    await drainOutbox(t.store);
+    const id = await recordActivity(t.store, db, { actorId: b.id, kind: 'commented', episodeId: EP, momentMs: 1000, refId: '00000000-0000-4000-8000-0000000000f1' });
+    await recordActivity(t.store, db, { actorId: b.id, kind: 'listened', episodeId: EP, day: '2026-10-10', hidden: true });
     assert.deepEqual((await feedFor(db, a.id)).items, [], 'nothing before the outbox runs');
-    await drainOutbox(t.store!);
+    await drainOutbox(t.store);
     const shown = (await feedFor(db, a.id)).items;
     assert.deepEqual(shown.map((r) => [r.id, r.kind, r.actor_name, r.episode_title]), [[String(id), 'commented', 'Bob', 'Feed ep']], 'the comment, not the hidden listen');
     await unfollow(db, a.id, b.id);
-    await drainOutbox(t.store!);
+    await drainOutbox(t.store);
     assert.deepEqual((await feedFor(db, a.id)).items, []);
-    const inbox = (await acScan(t.store!, 'events', 'feedInbox')).filter((p) => String(p['PK']) === `FEED#${a.id}`);
+    const inbox = (await acScan(t.store, 'events', 'feedInbox')).filter((p) => String(p['PK']) === `FEED#${a.id}`);
     assert.equal(inbox.length, 0, 'the unfollowed actor\'s pointers left the inbox');
     await t.close();
   });

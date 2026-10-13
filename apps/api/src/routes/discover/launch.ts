@@ -12,6 +12,7 @@ import { Hono } from 'hono';
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import type { AuthEnv } from '../../auth/session.ts';
+import { clientAddress } from '../../auth/rate.ts';
 import { json } from '../../validate.ts';
 import { countEvent, livePromotions } from '../../db/repos/discover/promotions.ts';
 
@@ -38,7 +39,7 @@ export function createLaunchRoute() {
   });
 
   launch.post('/:id/events', json(z.object({ kind: z.enum(['impression', 'tap']) })), async (c) => {
-    const who = createHash('sha256').update(c.req.header('x-forwarded-for') ?? 'anon').digest('base64url').slice(0, 16);
+    const who = createHash('sha256').update(clientAddress(c) ?? 'anon').digest('base64url').slice(0, 16);
     if (throttled(who, Date.now())) return c.body(null, 204); // a burst is not real views; drop quietly
     await countEvent(c.get('db'), c.req.param('id'), c.req.valid('json').kind);
     return c.body(null, 204);

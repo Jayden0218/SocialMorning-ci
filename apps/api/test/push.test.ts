@@ -1,7 +1,7 @@
 // Tests new-episode notifications go once per device and respect settings.
 /**
  * M10b US3 — notifications are sent: one per show per cycle for a genuinely new episode,
- * never twice (guard G-N1 — break: remove the `ON CONFLICT … DO NOTHING RETURNING` filter
+ * never twice (guard G-N1 — break: remove the once-per-episode marker
  * in `fanOutNewEpisode`, i.e. tell every follower on every run), never for a back catalogue,
  * never with "New episodes" off; a dead token is dropped.
  */
@@ -9,7 +9,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createApp } from '../src/app.ts';
 import { fakeFeedFetch } from './fake-apple.ts';
-import { dbOf, hybridDb, migratedPg, TEST_PEPPER, signUp, type TestDb } from './harness.ts';
+import { appDb, TEST_PEPPER, signUp, type TestDb } from './harness.ts';
 import { pushTokenList } from './ac-neutral.ts';
 import { clearCachePrefix } from './lb-seed.ts';
 
@@ -21,9 +21,7 @@ ${items.map((i) => `<item><title>${i.title}</title><guid>${i.guid}</guid><pubDat
 </channel></rss>`;
 
 async function appWith(initial: { guid: string; title: string; at: number }[], dead: Set<string> = new Set()) {
-  const { pg, runner } = await migratedPg();
-  // M26 lane AC: hybrid on DynamoDB under TEST_BACKEND=ddb (account on DynamoDB, the rest on PGlite).
-  const hy = await hybridDb(dbOf(pg));
+  const hy = await appDb();
   const db = hy.db;
   const state = { items: initial };
   const sent: { to: string; title: string; body: string; data: Record<string, string> }[] = [];
@@ -36,22 +34,20 @@ async function appWith(initial: { guid: string; title: string; at: number }[], d
   }) as typeof fetch;
   const app = createApp({ db, pepper: TEST_PEPPER, catalogFetch, pushFetch, picksRaw: [], today: () => '2026-09-27', jobToken: JOB });
   const t: TestDb = {
-    pg, db, runner, app,
-    q: async <T,>(s: string, p?: unknown[]) => (await pg.query<T>(s, p)).rows,
+    db, store: hy.store, app,
     call: async (method, path, body, token, headers = {}) => {
       const r = await app.request(path, { method, headers: { ...(body !== undefined ? { 'content-type': 'application/json' } : {}), ...(token ? { authorization: `Bearer ${token}` } : {}), ...headers }, body: body !== undefined ? JSON.stringify(body) : undefined });
       await hy.drain();
       return r;
     },
-    close: async () => { await hy.close(); await pg.close(); },
-    ...(hy.store ? { store: hy.store } : {}),
+    close: () => hy.close(),
   };
   return { t, sent, state };
 }
 
 /** One hourly cycle. The feed cache lives an hour (TTL.feed), so a real cycle reads the feed fresh; here it is cleared. */
 const rebuild = async (t: TestDb) => {
-  await clearCachePrefix(t, 'feed:'); // M26: the cache is lane LB's (sm-cache under ddb)
+  await clearCachePrefix(t, 'feed:'); // the cache is lane LB's (sm-cache)
   return t.call('POST', '/v1/internal/rebuild', { step: 'feeds' }, undefined, { authorization: `Bearer ${JOB}` });
 };
 const TOKEN_A = 'ExponentPushToken[aaaaaaaaaaaa]';

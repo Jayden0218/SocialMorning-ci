@@ -1,11 +1,11 @@
 // Appeals on DynamoDB: one per moderation action (the key), found through the action's subject, decided in the admin's record.
 /**
- * M26 lane SF (SF-01…SF-06; SF hard case 5). `APPEAL#<actionId>` / `A` — the key is the one-appeal-per-action rule.
+ * SF hard case 5. `APPEAL#<actionId>` / `A` — the key is the one-appeal-per-action rule.
  * The appeal copies its action's kind and target (one GetItem for the admin), carries G4 `Q#appeals-open` /
  * `<createdAt>#<id>` while open and `Q#appeals-decided` / `<decidedAt>#<id>` after, and G5 `REF#appeal#<id>`.
  * "What may I appeal?" = the actions whose G5 subject is me (`REF#subject#<me>`, written by act() from the report's
  * copy), read back and filtered by the same rules as the SQL. A decision is one conditional update that joins the
- * admin's audit transaction (admin-scope.ts); the notice is lane SG's (Postgres until it moves).
+ * admin's audit transaction (admin-scope.ts); the notice is a system-notice item.
  */
 import { randomUUID } from 'node:crypto';
 import type { Action, TargetKind } from '@socialmorning/social-core';
@@ -89,7 +89,7 @@ export async function appealById(store: Store, _db: Db, id: string): Promise<{ i
   return { id: String(p['id']), state: String(p['state']), listener_id: String(p['listenerId']), action_id: String(p['actionId']), action: p['action'] as Action, target_kind: p['targetKind'] as TargetKind, target_id: String(p['targetId']) };
 }
 
-/** The items it restores are lane SC's (their setters) and lane DV's shared list (Postgres): moderation.ts applyTakedown. */
+/** The items it restores are the comment, clip, chat and status items (their setters) and the shared list: moderation.ts applyTakedown. */
 export async function restoreRemoved(store: Store, db: Db, kind: TargetKind, id: string): Promise<void> {
   const { applyTakedown } = await import('./moderation.ts');
   await applyTakedown(store, db, kind, id, false);

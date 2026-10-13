@@ -3,7 +3,7 @@
  * M26 lane SF, an additive file in lane AC's folder (wave-2 rule: "a write to a listener field goes through
  * AC's repo, so it reaches the DynamoDB listener item"). The listener item stays AC's: these functions keep its
  * session copies (`refreshSessionCopies` — `suspendedAt` is copied onto every live session, so the one-GetItem
- * auth check sees a suspension at once) and its Postgres shadow (while the bridge is on) exactly as AC's own
+ * auth check sees a suspension at once) exactly as AC's own
  * writes do.
  * - `suspensionUpdate` adds the listener's change to the CALLER's transaction (moderation `act()` puts the
  *   action, the effect and the notice in one TX — guard G-M26-SF2); `afterSuspension` runs after it commits.
@@ -17,10 +17,9 @@ import { TxCancelled, type Tx } from '../../../ddb/tx.ts';
 import { claimUnique } from '../../../ddb/unique.ts';
 import type { Db } from '../../../db.ts';
 import type { Store } from '../../../ddb/store.ts';
-import { bridgeOn, getListener, iso, nowMs, refreshSessionCopies, txa, xo, type Hybrid, type ListenerItem } from './common.ts';
-import { shadowInsertListener, shadowListener } from './foreign.ts';
+import { getListener, iso, nowMs, refreshSessionCopies, txa, xo, type Ctx, type ListenerItem } from './common.ts';
 
-const hy = (store: Store, db: Db): Hybrid => ({ store, pg: db });
+const hy = (store: Store, db: Db): Ctx => ({ store, db });
 
 /** Adds "suspended now" (at) or "not suspended" (null) for `listenerId` to `t`. Returns false when there is nothing to change. */
 export async function suspensionUpdate(store: Store, db: Db, t: Tx, listenerId: string, at: string | null): Promise<boolean> {
@@ -35,12 +34,9 @@ export async function suspensionUpdate(store: Store, db: Db, t: Tx, listenerId: 
   return true;
 }
 
-/** After the transaction: the session copies, and the Postgres shadow while other lanes still read `listeners.suspended_at`. */
-export async function afterSuspension(store: Store, db: Db, listenerId: string, at: string | null, pg: Db | undefined): Promise<void> {
+/** After the transaction: the session copies. `_at` and `_pg` are ignored (kept so existing callers still compile). */
+export async function afterSuspension(store: Store, db: Db, listenerId: string, _at?: string | null, _pg?: unknown): Promise<void> {
   await refreshSessionCopies(hy(store, db), listenerId);
-  if (pg && bridgeOn(hy(store, db))) {
-    await pg.query(at === null ? 'UPDATE listeners SET suspended_at = NULL WHERE id = $1' : 'UPDATE listeners SET suspended_at = $2 WHERE id = $1 AND suspended_at IS NULL', at === null ? [listenerId] : [listenerId, at]);
-  }
 }
 
 export type MadeAccount = { email: string; passwordHash: string; displayName: string; bio: string | null; madeBy: string };
@@ -60,10 +56,6 @@ export async function createMadeListener(store: Store, db: Db, a: MadeAccount): 
     if (e instanceof TxCancelled && e.failed('unique:EMAIL')) return 'exists';
     throw e;
   }
-  if (bridgeOn(hy(store, db))) {
-    await shadowInsertListener(db, { id, email: a.email, passwordHash: a.passwordHash, displayName: a.displayName, createdAt });
-    await db.query('UPDATE listeners SET bio = $2, made_by = $3 WHERE id = $1', [id, a.bio, a.madeBy]);
-  }
   return { id };
 }
 
@@ -82,7 +74,6 @@ export async function setMadeEmail(store: Store, db: Db, listenerId: string, to:
     if (e instanceof TxCancelled && e.failed('unique:EMAIL')) return false;
     throw e;
   }
-  if (bridgeOn(hy(store, db))) await shadowListener(db, listenerId, 'email', to);
   await refreshSessionCopies(hy(store, db), listenerId);
   return true;
 }

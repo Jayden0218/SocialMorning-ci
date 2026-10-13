@@ -46,15 +46,15 @@ export function hideDeletedElsewhere(s: SettingsStore, positions: readonly Posit
 
 export function listeningHistory(stores: Pick<Stores, 'positions' | 'feeds'> & Partial<Pick<Stores, 'settings'>>, limit = 100): HistoryRow[] {
   const hidden = stores.settings ? readHidden(stores.settings) : {};
-  return stores.positions.all()
-    .filter((p) => shown(p, hidden))
-    .sort((a, b) => b.updatedAt - a.updatedAt)
-    .map((p) => {
-      const episode = stores.feeds.getEpisode(p.episodeId);
-      return episode ? { episode, offsetMs: p.offsetMs, finished: p.finished, updatedAt: p.updatedAt } : undefined;
-    })
-    .filter((r): r is HistoryRow => r !== undefined)
-    .slice(0, limit);
+  // The lag audit (2026-10-04, branch perf): read episodes only until `limit` rows are found — it
+  // read every episode ever played (one SQLite read each) and then kept the first 100.
+  const out: HistoryRow[] = [];
+  for (const p of stores.positions.all().filter((p) => shown(p, hidden)).sort((a, b) => b.updatedAt - a.updatedAt)) {
+    if (out.length >= limit) break;
+    const episode = stores.feeds.getEpisode(p.episodeId);
+    if (episode) out.push({ episode, offsetMs: p.offsetMs, finished: p.finished, updatedAt: p.updatedAt });
+  }
+  return out;
 }
 
 /** Every word of `term` somewhere in the texts, any case. An empty term matches all. */

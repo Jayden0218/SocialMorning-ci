@@ -1,8 +1,7 @@
 // adminWrite on DynamoDB: the change and its one audit item in ONE TransactWriteItems; a change too big for one goes audit-first.
 /**
- * M26 lane AC (AC-T04; data-model.md §8 "adminWrite"; guard G-A2 keeps its meaning). The admin routes are
- * lanes SF/DV's and still call the Postgres `adminWrite` (auth/admin.ts → db/repos/admin/admin-access.ts);
- * this is what they call when they move:
+ * M26 lane AC (AC-T04; data-model.md §8 "adminWrite"; guard G-A2 keeps its meaning). Admin routes call it
+ * (auth/admin.ts re-exports `adminWrite` from db/repos/admin/admin-access.ts):
  *
  *   adminTx(store, ctx, meta, { before, after, write: (t) => { t.update(…); t.put(…) } })
  *
@@ -14,10 +13,9 @@
  * - More (redeem batch, list replace-all, word bulk-add): the audit item is written FIRST, naming every key
  *   the change will touch and `complete: false`; then the change in chunks; then `complete: true`. The
  *   record is never missing; an interrupted change is visible as an incomplete record.
- * Loaded only by DynamoDB code and its tests (never by the Postgres build).
  */
 import type { Store, Item, Key } from '../db/ddb/store.ts';
-import { encode } from '../db/ddb/codec.ts';
+import { encode, ttlAfter } from '../db/ddb/codec.ts';
 import * as K from '../db/ddb/keys.ts';
 import { tx, type Tx } from '../db/ddb/tx.ts';
 import { readSeq, seqTxUpdate } from '../db/ddb/seq.ts';
@@ -25,6 +23,11 @@ import { withVersionRetry } from '../db/ddb/retry.ts';
 import type { AuditCtx, AuditMeta } from './admin.ts';
 
 export const ADMIN_TX_MAX = 98;
+
+/** M28 US9 (research R13): an audit record expires 2 years after it was made; `ttl` is the DynamoDB backstop (retention-schedule.md). */
+export const AUDIT_KEEP_DAYS = 730;
+/** The `ttl` (epoch seconds) of an audit item made at `createdAt`; the cutover copy (pg-migration sf.ts) writes the same. */
+export const auditTtl = (createdAt: string): number => ttlAfter(Date.parse(createdAt), AUDIT_KEEP_DAYS * 86_400_000);
 
 export type AdminChange = {
   before: unknown;
@@ -45,7 +48,7 @@ async function auditItem(store: Store, id: number, at: string, ctx: AuditCtx, me
   return encode('audit', K.audit(at, id), {
     id, adminId: ctx.adminId, actingAs: ctx.actingAs ?? null, area: meta.area, action: meta.action, target: meta.target.slice(0, 2048),
     before: before ?? null, after: after ?? null, device: ctx.device ?? null, createdAt: at, ...extra,
-  });
+  }, { ttl: auditTtl(at) });
 }
 
 /** Returns the audit id. */
@@ -88,6 +91,6 @@ export async function adminTx(store: Store, ctx: AuditCtx, meta: AuditMeta, chan
   }
   // The audit item itself is append-only (never updated — lane SF's guard): completion is its own item beside it.
   const key: Key = K.audit(at, id);
-  await tx(store).put('main', encode('audit', { PK: key.PK, SK: `${key.SK}#done` }, { id, complete: true, createdAt: new Date(store.clock.now()).toISOString() }), { condition: 'attribute_not_exists(PK)' }).commit();
+  await tx(store).put('main', encode('audit', { PK: key.PK, SK: `${key.SK}#done` }, { id, complete: true, createdAt: new Date(store.clock.now()).toISOString() }, { ttl: auditTtl(at) }), { condition: 'attribute_not_exists(PK)' }).commit();
   return id;
 }

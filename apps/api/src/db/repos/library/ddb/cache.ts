@@ -16,13 +16,11 @@
 import { randomUUID } from 'node:crypto';
 import { gunzipSync, gzipSync } from 'node:zlib';
 import type { Db } from '../../../db.ts';
-import { bridgeOf } from '../../../backend-ddb.ts';
 import { batchGetAll, batchWriteAll, type WriteRequest } from '../../../ddb/batch.ts';
 import { encode, ttlAfter } from '../../../ddb/codec.ts';
 import * as K from '../../../ddb/keys.ts';
 import { queryAll } from '../../../ddb/paginate.ts';
 import { update, type Store } from '../../../ddb/store.ts';
-import * as pg from '../../cache.ts';
 
 export const CHUNK_BYTES = 350 * 1024;
 const DAY_MS = 86_400_000;
@@ -116,16 +114,13 @@ export async function deleteEntry(store: Store, key: string): Promise<void> {
   await batchWriteAll(store, 'cache', items.map((it) => ({ delete: { PK: String(it['PK']), SK: String(it['SK']) } })));
 }
 
-export async function cached<T>(store: Store, db: Db, key: string, ttlMs: number, fetch: () => Promise<T>, now: () => number = Date.now): Promise<{ body: T; stale: boolean }> {
+export async function cached<T>(store: Store, _db: Db, key: string, ttlMs: number, fetch: () => Promise<T>, now: () => number = Date.now): Promise<{ body: T; stale: boolean }> {
   const row = await readEntry<T>(store, key);
   if (row && now() - Date.parse(row.fetchedAt) < ttlMs) return { body: row.body, stale: false };
   try {
     const body = await fetch();
     const at = now();
     await writeEntry(store, key, body, at);
-    const raw = bridgeOf(db);
-    // The bridge: other lanes' SQL still reads `cache` rows (public pages, hidden feeds, metrics).
-    if (raw) await pg.cached(raw, key, 0, async () => body, () => at);
     return { body, stale: false };
   } catch (e) {
     if (row) return { body: row.body, stale: true };
@@ -134,7 +129,7 @@ export async function cached<T>(store: Store, db: Db, key: string, ttlMs: number
 }
 
 /** A marker entry with an empty body; writing it again only refreshes `fetchedAt`. */
-export async function touchCacheMarker(store: Store, db: Db, key: string): Promise<void> {
+export async function touchCacheMarker(store: Store, _db: Db, key: string): Promise<void> {
   const now = store.clock.now();
   const ttl = ttlFor(key, now);
   await update(store, 'cache', K.cacheEntry(key), {
@@ -142,24 +137,18 @@ export async function touchCacheMarker(store: Store, db: Db, key: string): Promi
     names: { '#t': 't', '#k': 'key', '#f': 'fetchedAt', '#w': 'w', '#gz': 'gz', ...(ttl !== undefined ? { '#ttl': 'ttl' } : {}) },
     values: { ':t': 'cacheEntry', ':k': key, ':f': new Date(now).toISOString(), ':w': randomUUID(), ':gz': new Uint8Array(gzipSync('{}')), ...(ttl !== undefined ? { ':ttl': ttl } : {}) },
   });
-  const raw = bridgeOf(db);
-  if (raw) await pg.touchCacheMarker(raw, key);
 }
 
-export async function deleteCacheKey(store: Store, db: Db, key: string): Promise<void> {
+export async function deleteCacheKey(store: Store, _db: Db, key: string): Promise<void> {
   await deleteEntry(store, key);
-  const raw = bridgeOf(db);
-  if (raw) await pg.deleteCacheKey(raw, key);
 }
 
 /** Drops every entry under `prefix` (one of GENERATION_PREFIXES) by moving its generation on. */
-export async function invalidateCachePrefix(store: Store, db: Db, prefix: string): Promise<void> {
+export async function invalidateCachePrefix(store: Store, _db: Db, prefix: string): Promise<void> {
   if (!(GENERATION_PREFIXES as readonly string[]).includes(prefix)) throw new Error(`cache: ${prefix} is not a generation prefix (${GENERATION_PREFIXES.join(', ')})`);
   await update(store, 'cache', K.cacheGen(prefix), {
     update: 'SET #t = :t, #p = :p ADD #g :one', names: { '#t': 't', '#p': 'prefix', '#g': 'gen' }, values: { ':t': 'cacheGen', ':p': prefix, ':one': 1 },
   });
-  const raw = bridgeOf(db);
-  if (raw) await pg.invalidateCachePrefix(raw, prefix);
 }
 
 /** The one entry's row as the tint code reads it (`body`, `fetched_at`). */

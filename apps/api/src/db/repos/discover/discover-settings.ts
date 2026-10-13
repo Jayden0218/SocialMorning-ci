@@ -17,7 +17,7 @@
  * after the id it was split from and, where it used to be hidden with it, stays hidden.
  */
 import type { Db } from '../../db.ts';
-import { dual } from '../../backend.ts';
+import { viaStore } from '../../backend.ts';
 import { ApiError } from '../../../errors.ts';
 import { active, categoryListId, replaceKind } from './lists.ts';
 
@@ -41,14 +41,6 @@ export type EpisodeRef = { feedUrl: string; guid?: string };
 export type DiscoverSettings = { version: number; order: string[]; hidden: string[]; pins: EpisodeRef[]; hides: { feedUrl: string; guid: string }[] };
 export type Layout = { version: number; order: string[]; hidden: string[] };
 
-const known = (ids: readonly string[]) => [...new Set(ids.filter((x) => (SECTION_IDS as readonly string[]).includes(x)))];
-
-/** The saved layout, or undefined when none was ever saved. Throws when it cannot be read (the caller skips it). */
-async function getLayoutPg(db: Db): Promise<Layout | undefined> {
-  const [row] = await db.query<{ section_order: string[] | string; hidden_sections: string[] | string; version: number }>('SELECT section_order, hidden_sections, version FROM discover_settings WHERE id = 1');
-  return row ? { version: Number(row.version), order: textArray(row.section_order), hidden: textArray(row.hidden_sections) } : undefined;
-}
-
 export async function getDiscoverSettings(db: Db): Promise<DiscoverSettings> {
   const [layout, trending] = await Promise.all([getLayout(db), active(db, 'trending')]);
   return {
@@ -56,33 +48,6 @@ export async function getDiscoverSettings(db: Db): Promise<DiscoverSettings> {
     pins: trending.pins.filter((p) => p.feedUrl !== undefined).map((p) => ({ feedUrl: p.feedUrl!, ...(p.guid ? { guid: p.guid } : {}) })),
     hides: trending.hides.filter((h) => h.feedUrl !== undefined && h.guid !== undefined).map((h) => ({ feedUrl: h.feedUrl!, guid: h.guid! })),
   };
-}
-
-/** A text[] comes back as an array from both drivers; a literal `{a,b}` string is read defensively. */
-function textArray(v: string[] | string): string[] {
-  if (Array.isArray(v)) return v;
-  const inner = v.replace(/^\{|\}$/g, '');
-  return inner === '' ? [] : inner.split(',').map((s) => s.replace(/^"|"$/g, ''));
-}
-
-/**
- * Saves the layout; `pins`/`hides` (the M15 body) replace the `trending` list's rows when sent.
- * M25: the Studio's Discover page no longer sends them (Admin › Lists edits `trending`).
- */
-async function putDiscoverSettingsPg(tx: Db, s: { version: number; order: string[]; hidden: string[]; pins?: EpisodeRef[]; hides?: { feedUrl: string; guid: string }[] }, by: string | null = null): Promise<number> {
-  if (s.pins && s.pins.length > MAX_PINS) throw new ApiError('validation', `At most ${MAX_PINS} pinned episodes.`, { fields: ['pins'] });
-  const [cur] = await tx.query<{ version: number }>('SELECT version FROM discover_settings WHERE id = 1 FOR UPDATE');
-  const current = cur ? Number(cur.version) : 0;
-  if (current !== s.version) throw new ApiError('changed', 'Changed elsewhere — reload.', { version: current });
-  const next = current + 1;
-  await tx.query(
-    `INSERT INTO discover_settings (id, section_order, hidden_sections, version) VALUES (1, $1::text[], $2::text[], $3)
-     ON CONFLICT (id) DO UPDATE SET section_order = EXCLUDED.section_order, hidden_sections = EXCLUDED.hidden_sections, version = EXCLUDED.version`,
-    [known(s.order), known(s.hidden), next],
-  );
-  if (s.pins) await replaceKind(tx, 'trending', 'pin', s.pins, by);
-  if (s.hides) await replaceKind(tx, 'trending', 'hide', s.hides, by);
-  return next;
 }
 
 /** M15 "featured in a category": the `category:<genreId>` list's pins, in slot order. */
@@ -95,6 +60,6 @@ export async function putFeatures(tx: Db, genreId: number, feedUrls: readonly st
   await replaceKind(tx, categoryListId(genreId), 'pin', [...new Set(feedUrls)].map((feedUrl) => ({ feedUrl })), by);
 }
 
-// M26 lane DV: each runs on Postgres, or on DynamoDB (ddb/discover-settings.ts) when the Db carries a Store (db/backend.ts).
-export const getLayout = dual('dv/discover-settings', 'getLayout', getLayoutPg);
-export const putDiscoverSettings = dual('dv/discover-settings', 'putDiscoverSettings', putDiscoverSettingsPg);
+// Each runs its DynamoDB body (ddb/discover-settings.ts) on the Store the Db carries (db/backend.ts).
+export const getLayout = viaStore<typeof import('./ddb/discover-settings.ts').getLayout>('dv/discover-settings', 'getLayout');
+export const putDiscoverSettings = viaStore<typeof import('./ddb/discover-settings.ts').putDiscoverSettings>('dv/discover-settings', 'putDiscoverSettings');

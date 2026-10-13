@@ -1,14 +1,14 @@
-// The social-graph lane's DynamoDB bodies for the switch: `dual('sg/index', name, …)` calls `name(store, db, ...args)` here.
+// The social-graph lane's DynamoDB bodies for the switch: `viaStore('sg/index', name)` calls `name(store, db, ...args)` here.
 /**
- * M26 lane SG. Loaded only by `dual` (src/db/backend.ts) when the Db carries a Store. Every export has a Postgres
- * twin of the same name in src/db/repos/social/*.ts (follows, activity, profiles, notifications, system-notices,
- * host-notices, mutes, muted-threads, live-listeners, playlists, friends-listening, rate-floors). The bodies take a
- * `Hybrid` ({ store, pg }); `sg` adapts each one, as lane AC's `ac` does.
+ * Loaded by `viaStore` (src/db/backend.ts). Every export is the body of the repo function of the same name in
+ * src/db/repos/social/*.ts (follows, activity, profiles, notifications, system-notices, host-notices, mutes,
+ * muted-threads, live-listeners, playlists, friends-listening, rate-floors). The bodies take a `Ctx` ({ store, db });
+ * `sg` adapts each one, as lane AC's `ac` does.
  */
 import type { Db } from '../../../db.ts';
 import type { Store } from '../../../ddb/store.ts';
-import { rememberPg } from '../../account/ddb/common.ts';
-import type { Hybrid } from './common.ts';
+import { rememberDb } from '../../account/ddb/common.ts';
+import type { Ctx } from './common.ts';
 import * as F from './follows.ts';
 import * as A from './activity.ts';
 import * as N from './notifications.ts';
@@ -19,8 +19,8 @@ import * as P from './playlists.ts';
 import * as R from './profiles.ts';
 import * as W from './friends.ts';
 
-function sg<A extends unknown[], R>(fn: (h: Hybrid, ...a: A) => Promise<R>): (store: Store, db: Db, ...a: A) => Promise<R> {
-  return (store, db, ...a) => { rememberPg(store, db); return fn({ store, pg: db }, ...a); };
+function sg<A extends unknown[], R>(fn: (h: Ctx, ...a: A) => Promise<R>): (store: Store, db: Db, ...a: A) => Promise<R> {
+  return (store, db, ...a) => { rememberDb(store, db); return fn({ store, db }, ...a); };
 }
 
 export const follow = sg(F.follow);

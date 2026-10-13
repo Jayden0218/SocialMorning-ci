@@ -44,7 +44,7 @@ test('A3 over HTTP: 16:00 stands against a later 15:00; finished is sticky; a ne
   assert.equal(list.positions.length, 1);
   assert.ok(list.serverTime);
   if (t.store) {
-    // M26 (TEST_BACKEND=ddb): the route read and wrote DynamoDB, not only Postgres.
+    // The route read and wrote the DynamoDB item.
     const { itemAt } = await import('./fixtures.ts');
     const K = await import('../src/db/ddb/keys.ts');
     const item = await itemAt(t.store, 'position', K.position(a.id, EP));

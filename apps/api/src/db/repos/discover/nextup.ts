@@ -6,7 +6,7 @@
  */
 import { nextUp, scoreTalkedAbout, REASON_LABEL, type Reason } from '@socialmorning/social-core';
 import type { Db } from '../../db.ts';
-import { dual } from '../../backend.ts';
+import { viaStore } from '../../backend.ts';
 import { episodeRowsByIds } from './pick-episodes.ts';
 import { hiddenFeedUrls } from '../safety/moderation.ts';
 import { hiddenEpisodeIds } from '../studio/hidden-episodes.ts';
@@ -98,21 +98,6 @@ export async function nextUpFor(db: Db, f: typeof fetch, episodeId: string, view
   return items.map((c) => ({ episode: c.episode, reason: c.reason, label: c.reason === 'trendingInCategory' && cachedSources.genre ? `Trending in ${cachedSources.genre}` : REASON_LABEL[c.reason] }));
 }
 
-/** "People who listened to this also listened": co-listen counts over public listened rows, never who — top 3. */
-async function alsoListenedRowsPg(db: Db, episodeId: string): Promise<EpRow[]> {
-  return db.query<EpRow & { n: number }>(
-    `SELECT e.*, count(*)::int AS n FROM activity a JOIN activity b ON b.actor_id = a.actor_id AND b.kind = 'listened' AND b.hidden = false AND b.episode_id <> a.episode_id
-     JOIN episodes e ON e.id = b.episode_id
-     WHERE a.kind = 'listened' AND a.hidden = false AND a.episode_id = $1
-     GROUP BY e.id ORDER BY n DESC, max(b.created_at) DESC LIMIT 3`, [episodeId]);
-}
-
-/** The (feed, guid) of every episode the listener finished. */
-async function finishedKeysPg(db: Db, listenerId: string): Promise<{ feed_url: string; guid: string }[]> {
-  return db.query<{ feed_url: string; guid: string }>(
-    'SELECT e.feed_url, e.guid FROM positions p JOIN episodes e ON e.id = p.episode_id WHERE p.listener_id = $1 AND p.finished = true', [listenerId]);
-}
-
-// M26 lane DV: each runs on Postgres, or on DynamoDB (ddb/nextup.ts) when the Db carries a Store (db/backend.ts).
-export const alsoListenedRows = dual('dv/nextup', 'alsoListenedRows', alsoListenedRowsPg);
-export const finishedKeys = dual('dv/nextup', 'finishedKeys', finishedKeysPg);
+// Each runs its DynamoDB body (ddb/nextup.ts) on the Store the Db carries (db/backend.ts).
+export const alsoListenedRows = viaStore<typeof import('./ddb/nextup.ts').alsoListenedRows>('dv/nextup', 'alsoListenedRows');
+export const finishedKeys = viaStore<typeof import('./ddb/nextup.ts').finishedKeys>('dv/nextup', 'finishedKeys');

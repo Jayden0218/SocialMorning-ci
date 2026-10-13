@@ -6,8 +6,8 @@
  *   is two Queries merged (newest first, 50); Admin's list is `SN#ALL` (100). Delete finds the id in `SN#ALL` only,
  *   as the SQL's `listener_id IS NULL` did. The push goes to the tokens lane AC holds (`systemPushTokens`).
  * - Host notices: read-merge, not fan-out. The listener's live subscriptions (lane LB's items) select the shows; their
- *   released announcements and the listener's subscriber milestones are lane ST's rows, still on Postgres, read with
- *   the old SQL restricted to those feeds; the show title and cover are the show's META (lane LB). Fan-out at release
+ *   released announcements and the listener's subscriber milestones are lane ST's items, read
+ *   restricted to those feeds; the show title and cover are the show's META (lane LB). Fan-out at release
  *   time (an EventBridge or `Q#scheduled` timer) belongs with lane ST's announcements when they move.
  */
 import { randomUUID } from 'node:crypto';
@@ -22,7 +22,7 @@ import { imagesOf } from '../../studio/announcements.ts';
 import { NOTICE_BODY_MAX, NOTICE_TITLE_MAX, NOTICES_HREF, NOTICES_PAGE, type NoticeIn, type NoticeOut } from '../system-notices.ts';
 import { NOTICES_PAGE as HOST_PAGE, type HostNotice } from '../host-notices.ts';
 import type { PushMessage } from '../../account/push.ts';
-import { hiddenFeeds, iso, nowMs, pgRaw, showsByUrl, str, type Hybrid } from './common.ts';
+import { hiddenFeeds, iso, nowMs, showsByUrl, str, type Ctx } from './common.ts';
 
 const toOut = (r: Item): NoticeOut => ({
   id: String(r['id']), title: String(r['title']), body: String(r['body']), createdAt: String(r['createdAt']),
@@ -34,12 +34,12 @@ const toOut = (r: Item): NoticeOut => ({
 const order = (a: Item, b: Item): number =>
   String(a['createdAt']) !== String(b['createdAt']) ? String(b['createdAt']).localeCompare(String(a['createdAt'])) : String(a['id']).localeCompare(String(b['id']));
 
-async function partition(h: Hybrid, who: string, max: number): Promise<Item[]> {
+async function partition(h: Ctx, who: string, max: number): Promise<Item[]> {
   return (await queryAll(h.store, 'main', { KeyConditionExpression: 'PK = :pk', ExpressionAttributeValues: { ':pk': `SN#${who}` }, ScanIndexForward: false, ConsistentRead: true }, { max })).items;
 }
 
 
-export async function insertNotice(h: Hybrid, n: NoticeIn): Promise<NoticeOut> {
+export async function insertNotice(h: Ctx, n: NoticeIn): Promise<NoticeOut> {
   const id = randomUUID();
   const createdAt = iso(nowMs(h));
   const listenerId = n.listenerId ?? null;
@@ -52,17 +52,17 @@ export async function insertNotice(h: Hybrid, n: NoticeIn): Promise<NoticeOut> {
 }
 
 /** What one listener sees: notices to everyone and to them, newest first. */
-export async function noticesFor(h: Hybrid, listenerId: string): Promise<NoticeOut[]> {
+export async function noticesFor(h: Ctx, listenerId: string): Promise<NoticeOut[]> {
   const [all, mine] = await Promise.all([partition(h, 'ALL', NOTICES_PAGE), partition(h, listenerId, NOTICES_PAGE)]);
   return [...all, ...mine].sort(order).slice(0, NOTICES_PAGE).map(toOut);
 }
 
 /** Admin's list: the notices sent to everyone (account notices to one listener stay private). */
-export async function broadcastNotices(h: Hybrid): Promise<NoticeOut[]> {
+export async function broadcastNotices(h: Ctx): Promise<NoticeOut[]> {
   return (await partition(h, 'ALL', 100)).sort(order).map(toOut);
 }
 
-export async function deleteNotice(h: Hybrid, id: string): Promise<boolean> {
+export async function deleteNotice(h: Ctx, id: string): Promise<boolean> {
   const { items } = await queryAll(h.store, 'main', {
     KeyConditionExpression: 'PK = :pk', FilterExpression: '#i = :id', ExpressionAttributeNames: { '#i': 'id' }, ExpressionAttributeValues: { ':pk': 'SN#ALL', ':id': id }, ConsistentRead: true,
   }, { max: 1 });
@@ -73,15 +73,15 @@ export async function deleteNotice(h: Hybrid, id: string): Promise<boolean> {
 }
 
 /** Pushes a notice to its listener (or everyone) whose "System notices" switch is on. */
-export async function pushNotice(h: Hybrid, f: typeof fetch, n: { title: string; body: string; listenerId: string | null }): Promise<{ sent: number; dropped: number }> {
+export async function pushNotice(h: Ctx, f: typeof fetch, n: { title: string; body: string; listenerId: string | null }): Promise<{ sent: number; dropped: number }> {
   const tokens = await systemPushTokens(h, n.listenerId);
   const messages = tokens.map((to): PushMessage => ({ to, title: n.title, body: n.body.slice(0, 180), data: { href: NOTICES_HREF, kind: 'system' }, sound: 'default' }));
-  return messages.length === 0 ? { sent: 0, dropped: 0 } : sendExpo(h.pg, f, messages);
+  return messages.length === 0 ? { sent: 0, dropped: 0 } : sendExpo(h.db, f, messages);
 }
 
 // ---- host notices (M19 US10, M24 US12) ----
 
-export async function hostNotices(h: Hybrid, listenerId: string, before: string | undefined): Promise<{ items: HostNotice[]; next?: string }> {
+export async function hostNotices(h: Ctx, listenerId: string, before: string | undefined): Promise<{ items: HostNotice[]; next?: string }> {
   const feeds = (await subscriptionItems(h.store, listenerId)).filter((s) => !s['deletedAt']).map((s) => String(s['feedUrl']));
   const cut = before !== undefined && !Number.isNaN(Date.parse(before)) ? new Date(before).toISOString() : null;
   // Lane ST (moved): the released announcements of the shows followed now, and the listener's milestone copies (read-merge).

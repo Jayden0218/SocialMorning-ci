@@ -28,6 +28,10 @@ import { sweepErrorReports } from '../db/repos/account/error-reports.ts';
 import { recordSync } from '../db/repos/studio/feed-sync.ts';
 import { sendMilestones } from '../db/repos/studio/milestones.ts';
 import { studioSweep } from '../jobs/studio-nightly.ts';
+// M28 US3: the hourly outbox health check.
+import { checkOutboxHealth } from '../jobs/health.ts';
+import { ATTACHED } from '../db/backend.ts';
+import { listenerEmailRows } from '../db/repos/account/profile.ts';
 
 /**
  * Mounted at /v1/internal (M8, research R4/R5). The scheduled workflow in the public CI
@@ -48,7 +52,7 @@ export const SHOWS_PER_CALL = 200;
 export const REBUILD_EVERY_HOURS = 20;
 
 const body = z.object({
-  step: z.enum(['feeds', 'sweep', 'similarity', 'translate', 'digest', 'deletions']),
+  step: z.enum(['health', 'feeds', 'sweep', 'similarity', 'translate', 'digest', 'deletions']),
   cursor: z.string().max(2048).optional(),
   force: z.boolean().optional(),
 });
@@ -88,7 +92,7 @@ export async function refreshOne(db: Db, cat: Catalog, feedUrl: string, counts: 
   }
 }
 
-export function createInternalRoute(jobToken: string | undefined, m22: { groq?: Groq } = {}) {
+export function createInternalRoute(jobTokenOrGetter: string | undefined | (() => string | undefined), m22: { groq?: Groq } = {}) {
   const internal = new Hono<AuthEnv>();
   // M22 US13: Groq's free tier, only from the `translate` step (no key → jobs stay queued).
   const groq = m22.groq ?? groqClient(process.env['GROQ_API_KEY']);
@@ -96,6 +100,7 @@ export function createInternalRoute(jobToken: string | undefined, m22: { groq?: 
   internal.post('/rebuild', json(body), async (c) => {
     const started = Date.now();
     const given = (c.req.header('authorization') ?? '').replace(/^Bearer /, '');
+    const jobToken = typeof jobTokenOrGetter === 'function' ? jobTokenOrGetter() : jobTokenOrGetter; // M28 US6: a refreshed token applies at once
     // No token configured is the same as a wrong token: an open rebuild endpoint is worse
     // than a broken one.
     if (jobToken === undefined || given.length === 0 || !(await import('../auth/session.ts')).sameSecret(given, jobToken)) {
@@ -103,6 +108,17 @@ export function createInternalRoute(jobToken: string | undefined, m22: { groq?: 
     }
     const db = c.get('db');
     const { step, cursor, force } = c.req.valid('json');
+
+    // M28 US3 (research R7): one email when the outbox gets stuck, one when it clears; counts only. Never throws.
+    if (step === 'health') {
+      const on = ATTACHED.get(db);
+      if (!on) return c.json({ done: true, counts: { oldestAgeMs: 0, parked: 0, state: 'ok', emailed: 0 }, ms: Date.now() - started });
+      let to = process.env['ALERT_EMAIL'] || undefined;
+      const owner = c.get('safety')?.ownerListenerId;
+      if (!to && owner) { try { to = (await listenerEmailRows(db, owner))[0]?.email; } catch { /* no recipient: the check says so in the log */ } }
+      const r = await checkOutboxHealth(on.store, { mailer: c.get('mailer'), to });
+      return c.json({ done: true, counts: r, ms: Date.now() - started });
+    }
 
     if (step === 'feeds') {
       // M25 S10 (audit #14): the cursor is a plain count of feeds already done, never a feed URL —
@@ -143,7 +159,7 @@ export function createInternalRoute(jobToken: string | undefined, m22: { groq?: 
       // M18 FR-015: a day of app use is kept 400 days, then deleted (research R8).
       try { counts.activeDeleted = await sweepDailyActive(db); }
       catch (e) { failed.push(`daily_active: ${e instanceof Error ? e.message : String(e)}`); }
-      // M26 lane SF (G-M26-SF4): once a night, yesterday's dashboard safety counters against a recount (Postgres: 0).
+      // M26 lane SF (G-M26-SF4): once a night, yesterday's dashboard safety counters against a recount.
       try { counts.dashFixed = await checkDashboard(db); }
       catch (e) { failed.push(`dashboard check: ${e instanceof Error ? e.message : String(e)}`); }
       // M23 US3 (FR-006): search and feed caches past 7 days, push_sent past 30, rec_events past 90.

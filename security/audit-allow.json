@@ -1,0 +1,122 @@
+[
+  {
+    "ghsa": "GHSA-27p8-2357-5qqv",
+    "package": "@xmldom/xmldom",
+    "severity": "high",
+    "scope": "mobile",
+    "reason": "Expo 58 pin, T057 (build tooling)",
+    "expires": "2027-01-31"
+  },
+  {
+    "ghsa": "GHSA-2v35-w6hq-6mfw",
+    "package": "@xmldom/xmldom",
+    "severity": "high",
+    "scope": "mobile",
+    "reason": "Expo 58 pin, T057 (build tooling)",
+    "expires": "2027-01-31"
+  },
+  {
+    "ghsa": "GHSA-4w3w-2rp5-g8jm",
+    "package": "@xmldom/xmldom",
+    "severity": "high",
+    "scope": "mobile",
+    "reason": "Expo 58 pin, T057 (build tooling)",
+    "expires": "2027-01-31"
+  },
+  {
+    "ghsa": "GHSA-8344-3jmq-59r6",
+    "package": "@xmldom/xmldom",
+    "severity": "high",
+    "scope": "mobile",
+    "reason": "Expo 58 pin, T057 (build tooling)",
+    "expires": "2027-01-31"
+  },
+  {
+    "ghsa": "GHSA-93r5-fhx6-vmg9",
+    "package": "@xmldom/xmldom",
+    "severity": "high",
+    "scope": "mobile",
+    "reason": "Expo 58 pin, T057 (build tooling)",
+    "expires": "2027-01-31"
+  },
+  {
+    "ghsa": "GHSA-965w-775f-mr7g",
+    "package": "@xmldom/xmldom",
+    "severity": "high",
+    "scope": "mobile",
+    "reason": "Expo 58 pin, T057 (build tooling)",
+    "expires": "2027-01-31"
+  },
+  {
+    "ghsa": "GHSA-c7q8-3ch8-vqpv",
+    "package": "@xmldom/xmldom",
+    "severity": "high",
+    "scope": "mobile",
+    "reason": "Expo 58 pin, T057 (build tooling)",
+    "expires": "2027-01-31"
+  },
+  {
+    "ghsa": "GHSA-f6ww-3ggp-fr8h",
+    "package": "@xmldom/xmldom",
+    "severity": "high",
+    "scope": "mobile",
+    "reason": "Expo 58 pin, T057 (build tooling)",
+    "expires": "2027-01-31"
+  },
+  {
+    "ghsa": "GHSA-j759-j44w-7fr8",
+    "package": "@xmldom/xmldom",
+    "severity": "high",
+    "scope": "mobile",
+    "reason": "Expo 58 pin, T057 (build tooling)",
+    "expires": "2027-01-31"
+  },
+  {
+    "ghsa": "GHSA-w2rr-34g9-rvrj",
+    "package": "@xmldom/xmldom",
+    "severity": "high",
+    "scope": "mobile",
+    "reason": "Expo 58 pin, T057 (build tooling)",
+    "expires": "2027-01-31"
+  },
+  {
+    "ghsa": "GHSA-wh4c-j3r5-mjhp",
+    "package": "@xmldom/xmldom",
+    "severity": "high",
+    "scope": "mobile",
+    "reason": "Expo 58 pin, T057 (build tooling)",
+    "expires": "2027-01-31"
+  },
+  {
+    "ghsa": "GHSA-x4fp-j954-r2f4",
+    "package": "@xmldom/xmldom",
+    "severity": "high",
+    "scope": "mobile",
+    "reason": "Expo 58 pin, T057 (build tooling)",
+    "expires": "2027-01-31"
+  },
+  {
+    "ghsa": "GHSA-x6wf-f3px-wcqx",
+    "package": "@xmldom/xmldom",
+    "severity": "high",
+    "scope": "mobile",
+    "reason": "Expo 58 pin, T057 (build tooling)",
+    "expires": "2027-01-31"
+  },
+  {
+    "ghsa": "GHSA-vfj7-8cjw-p6xm",
+    "package": "braces",
+    "severity": "high",
+    "scope": "mobile",
+    "reason": "Expo 58 pin, T057 (build tooling)",
+    "expires": "2027-01-31"
+  },
+  {
+    "ghsa": "GHSA-86w9-cpqp-85rv",
+    "package": "node-forge",
+    "severity": "high",
+    "scope": "mobile",
+    "reason": "Expo 58 pin, T057 (build tooling)",
+    "expires": "2027-01-31"
+  }
+]

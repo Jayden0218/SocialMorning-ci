@@ -18,7 +18,6 @@ import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, type TestDb } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
 import { createApp } from '../src/app.ts';
-import type { Db } from '../src/db/db.ts';
 import { assertPublicUrl, BlockedFetchError, isBlockedAddress, safeFetch } from '../src/net/safe-fetch.ts';
 import { HOUR_MS } from '../src/auth/rate.ts';
 import { MINUTE_MS } from '../src/auth/write-limit.ts';
@@ -323,7 +322,9 @@ test('S11: an unhandled error is kept as scope server with no personal data; a n
   assert.equal((await errorRows(t, 'server')).length, 3);
   assert.equal(scrubError('see https://x.example/feed?token=abcdef'), 'see https://x.example/feed?<query>');
 
-  const broken = { ...t.db, query: async () => { throw new Error('database down'); } } as unknown as Db;
+  const { wrapStore } = await import('../src/db/ddb/store.ts');
+  const { withStore } = await import('../src/db/backend-ddb.ts');
+  const broken = withStore(t.db, wrapStore(t.store, async () => { throw new Error('database down'); }));
   const down = createApp({ db: broken, pepper: 'p' });
   const h = await down.request('/v1/health');
   assert.equal(h.status, 503);

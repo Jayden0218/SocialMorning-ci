@@ -17,7 +17,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
-import { freshDb, signUp, TEST_PEPPER, type TestDb } from './harness.ts';
+import { freshDb, signUp, type TestDb } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
 import { episodeFields } from './nb-h2-neutral.ts';
 import { hit } from '../src/auth/rate.ts';

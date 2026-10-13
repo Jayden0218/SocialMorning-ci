@@ -35,6 +35,10 @@ const Image = React.forwardRef<
     <UIImage
       className={imageStyle({ size, class: className })}
       {...props}
+      // Port of the 2026-10-04 lag audit (branch perf): gluestack's Image calls console.warn on
+      // EVERY render without an `alt` — 48,294 warnings in one Debug session. The label, if any,
+      // is the alt; a decorative image gets "" (no warning, nothing read aloud).
+      alt={props.alt ?? props.accessibilityLabel ?? ''}
       ref={ref}
       // M9: upstream's @ts-expect-error was unused under our types (strict), so removed.
       // M9 (found on the iPhone): upstream set `undefined` here on native, AFTER the caller's

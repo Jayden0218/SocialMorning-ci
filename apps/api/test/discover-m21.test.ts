@@ -18,7 +18,7 @@ import { likedByFollowed } from '../src/db/repos/discover/explore.ts';
 import { addDismissal } from '../src/db/repos/discover/dismissals.ts';
 import { follow } from '../src/db/repos/social/follows.ts';
 import { CASEY, fakeApple } from './fake-apple.ts';
-import { migratedPg, freshDb, signUp, TEST_PEPPER, type TestDb } from './harness.ts';
+import { freshDb, signUp, TEST_PEPPER, type TestDb } from './harness.ts';
 import { daysAgo, ownBackend, seedEpisode, seedListen, seedListener, seedSubscription } from './dv-neutral.ts';
 import { seedComment } from './sc-neutral.ts';
 import { hideFeeds } from './sf-neutral.ts';
@@ -184,8 +184,7 @@ test('faces on picks: at most 3 people I follow who liked it — never private l
 });
 
 test('search since=30d|180d keeps only episodes published in that time; rows carry counts; a bad value is 422', async () => {
-  const { pg } = await migratedPg();
-  const be = await ownBackend(pg); // M26: Postgres, or (TEST_BACKEND=ddb) the hybrid Db
+  const be = await ownBackend();
   const apple = fakeApple();
   const episodes = [
     { ...CASEY, episodeGuid: 'recent', trackName: 'Ten days old', releaseDate: daysAgo(10) },
@@ -213,5 +212,4 @@ test('search since=30d|180d keeps only episodes published in that time; rows car
   assert.deepEqual(withCounts.episodes[0]!.stats, { listeners: 0, comments: 0 });
   assert.equal((await get('&since=7d')).status, 422);
   await be.close();
-  await pg.close();
 });

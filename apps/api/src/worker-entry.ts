@@ -16,7 +16,7 @@ import { ATTACHED } from './db/backend.ts';
 import { drainOutbox, pendingOutbox } from './jobs/outbox.ts';
 import type { Store } from './db/ddb/store.ts';
 
-export const JOB_STEPS = ['feeds', 'sweep', 'similarity', 'translate', 'digest', 'deletions'] as const;
+export const JOB_STEPS = ['health', 'feeds', 'sweep', 'similarity', 'translate', 'digest', 'deletions'] as const;
 /** At most this many chunks per step, as in recs.yml. */
 export const MAX_CHUNKS = 200;
 /** Stop starting new work when less than this is left (a chunk can take up to ~25 s). */

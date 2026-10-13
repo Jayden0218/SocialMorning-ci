@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 import { collapseByFeed, collapseEpisodes } from '@socialmorning/social-core';
 import type { AuthEnv } from '../../auth/session.ts';
 import { optionalAuth } from '../../auth/session.ts';
+import { clientAddress } from '../../auth/rate.ts';
 import { ApiError } from '../../errors.ts';
 import { cached, TTL } from '../../db/repos/cache.ts';
 import { CatalogRateLimited, searchEpisodes, searchShows, type EpisodeCard, type ShowCard } from '../../catalog/apple.ts';
@@ -43,7 +44,7 @@ export function createSearchRoute() {
   if (sinceRaw !== undefined && !(sinceRaw in SINCE_DAYS)) throw new ApiError('validation', 'since must be 30d or 180d.', { fields: ['since'] });
   const sinceMs = sinceRaw !== undefined ? Date.now() - SINCE_DAYS[sinceRaw as keyof typeof SINCE_DAYS] * 86_400_000 : undefined;
   if (!isSearchable(q)) return c.json({ shows: [], episodes: [], episodeSearch: 'ok', source: { shows: 'apple' } });
-  const who = c.get('listener')?.id ?? c.req.header('x-forwarded-for') ?? 'anon';
+  const who = c.get('listener')?.id ?? clientAddress(c) ?? 'anon';
   if (throttled(who, Date.now())) throw new ApiError('locked', 'Too many searches — try again in a moment.', { retryAfterSeconds: 30 });
 
   const db = c.get('db');
@@ -97,7 +98,7 @@ export function createSearchRoute() {
     if (q.length < 1 || q.length > 40) throw new ApiError('validation', 'q must be 1–40 characters.', { fields: ['q'] });
     if (!isSearchable(q)) return c.json({ listeners: [] });
     const viewer = c.get('listener')?.id;
-    const who = viewer ?? c.req.header('x-forwarded-for') ?? 'anon';
+    const who = viewer ?? clientAddress(c) ?? 'anon';
     if (throttled(`people:${who}`, Date.now(), 30)) throw new ApiError('locked', 'Too many searches — try again in a moment.', { retryAfterSeconds: 30 });
     const like = q.replace(/[\\%_]/g, (m) => '\\' + m);
     const rows = await peopleMatching(c.get('db'), like, viewer ?? null);

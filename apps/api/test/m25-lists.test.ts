@@ -16,12 +16,10 @@ import assert from 'node:assert/strict';
 import { fnv1a64 } from '@socialmorning/social-core';
 import { aCall, adminSetup, auditRows, FX } from './admin-harness.ts';
 import { putEpisode } from './put-episode.ts';
-import { TEST_BACKEND } from './harness.ts';
 import { seedListener } from './dv-neutral.ts';
 import { seedCacheRow } from './lb-seed.ts';
 import { seedComment } from './sc-neutral.ts';
 import { hiddenEpisodeRow } from './nb-h3-neutral.ts';
-import { migrate } from '../src/db/migrate.ts';
 import { createFeedback } from '../src/db/repos/account/feedback.ts';
 import { addSearchRequest } from '../src/routes/discover/search-requests.ts';
 
@@ -111,7 +109,7 @@ test('A1: start and end times — a pin not started yet, or already over, is not
     assert.equal((await aCall(t, 'POST', L('said'), owner, { kind: 'pin', feedUrl: FX })).status, 422);
     assert.equal((await aCall(t, 'POST', L('trending'), owner, { kind: 'pin', feedUrl: FX, startsAt: later, endsAt: past })).status, 422);
     assert.equal((await aCall(t, 'PUT', `${L('trending')}/default-tab`, owner, { tab: 'all' })).status, 422);
-    const audit = (await auditRows(t)).filter((a) => a.area === 'discover'); // M26: lane SF's AUDIT# items on DynamoDB
+    const audit = (await auditRows(t)).filter((a) => a.area === 'discover');
     assert.ok(audit.length >= 4 && audit.every((a) => a.action.startsWith('list ')), 'every list write is recorded');
   } finally { await t.close(); }
 });
@@ -143,7 +141,7 @@ test('G-AL-A3: a show hidden from Admin (no report, with a reason) leaves search
     assert.equal((await newChart()).some((i) => i.episode.feedUrl === JRE), false, 'New shows chart: gone');
     const cat = (await (await t.call('GET', '/v1/categories/1303')).json()) as Cat;
     assert.equal(cat.shows.some((x) => x.feedUrl === JRE || x.feedUrl === REPLY_ALL), false, 'category: gone');
-    const audit = (await auditRows(t)).filter((a) => a.area === 'safety'); // M26: lane SF's AUDIT# items on DynamoDB
+    const audit = (await auditRows(t)).filter((a) => a.area === 'safety');
     assert.deepEqual(audit.map((a) => a.action), ['hide show', 'hide show']);
 
     assert.equal((await aCall(t, 'DELETE', `/v1/admin/hidden/show?feedUrl=${encodeURIComponent(REPLY_ALL)}`, owner)).status, 200);
@@ -157,7 +155,7 @@ test('A3: an episode hidden from Admin leaves the lists; its show stays; showing
     const chartNew = async () => ((await (await t.call('GET', '/v1/discover/chart?kind=new')).json()) as { items: Item[] }).items;
     assert.equal((await chartNew()).find((i) => i.episode.feedUrl === FX)?.episode.guid, 'g-pin');
     assert.equal((await aCall(t, 'POST', '/v1/admin/hidden/episode', owner, { feedUrl: FX, guid: 'g-pin', reason: 'Wrong file' })).status, 200);
-    const row = await hiddenEpisodeRow(t, FX, 'g-pin'); // M26 lane NB: neutral (the item with the bridge off)
+    const row = await hiddenEpisodeRow(t, FX, 'g-pin'); // the item
     assert.deepEqual(row, { reason: 'Wrong file', hidden_by: owner.id });
     assert.equal((await chartNew()).some((i) => i.episode.guid === 'g-pin'), false);
     assert.equal((await aCall(t, 'DELETE', `/v1/admin/hidden/episode?feedUrl=${encodeURIComponent(FX)}&guid=g-pin`, owner)).status, 200);
@@ -248,27 +246,5 @@ test('A9: feedback, search requests and recommendation numbers are in Admin (own
     assert.equal((await aCall(t, 'GET', '/v1/admin/feedback', other)).status, 403);
     assert.equal((await aCall(t, 'GET', '/v1/admin/feedback/00000000-0000-4000-8000-000000000000/9', owner)).status, 404);
     for (const p of ['/mod/recs', '/mod/feedback', '/mod/search-requests']) assert.equal((await t.call('GET', p)).status, 403, `${p} still answers (no cookie → refused page)`);
-  } finally { await t.close(); }
-});
-
-// Postgres only: a migration re-run over SQL tables (M15 → list_overrides). On DynamoDB there are no M15 tables to
-// copy from; the list items the routes write are covered by the tests above (and test/ddb-dv.test.ts).
-test('migration 028 copies the M15 pins, hides and category features into list_overrides', { skip: TEST_BACKEND === 'ddb' ? 'a Postgres migration re-run (no tables on DynamoDB)' : false }, async () => {
-  const { t } = await setup();
-  try {
-    await t.q('DROP TABLE list_overrides, list_settings, foryou_rules, foryou_weights');
-    await t.q('DELETE FROM schema_migrations WHERE version = 28');
-    await t.q("INSERT INTO trending_pins (position, feed_url, guid) VALUES (1, $1, 'g-pin'), (2, $2, NULL)", [FX, JRE]);
-    await t.q("INSERT INTO trending_hides (feed_url, guid) VALUES ($1, 'x1')", [REPLY_ALL]);
-    await t.q('INSERT INTO category_features (genre_id, position, feed_url) VALUES (1303, 1, $1)', [FX]);
-    assert.deepEqual(await migrate(t.runner), [28]);
-    const rows = await t.q<{ list_id: string; kind: string; feed_url: string; guid: string | null; position: number | null }>(
-      'SELECT list_id, kind, feed_url, guid, position FROM list_overrides ORDER BY list_id, kind, position NULLS LAST');
-    assert.deepEqual(rows, [
-      { list_id: 'category:1303', kind: 'pin', feed_url: FX, guid: null, position: 1 },
-      { list_id: 'trending', kind: 'hide', feed_url: REPLY_ALL, guid: 'x1', position: null },
-      { list_id: 'trending', kind: 'pin', feed_url: FX, guid: 'g-pin', position: 1 },
-      { list_id: 'trending', kind: 'pin', feed_url: JRE, guid: null, position: 2 },
-    ]);
   } finally { await t.close(); }
 });

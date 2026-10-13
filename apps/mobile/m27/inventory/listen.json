@@ -1,0 +1,2862 @@
+[
+  {
+    "name": "player--screen",
+    "area": "player",
+    "kind": "screen",
+    "covers": [
+      "app/player.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/episode/{episode}"
+      },
+      {
+        "tap": "Play this episode"
+      },
+      {
+        "open": "/player"
+      },
+      {
+        "see": "Now playing"
+      }
+    ],
+    "design": "Player-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "player--nothing-playing",
+    "area": "player",
+    "kind": "variant",
+    "covers": [
+      "app/player.tsx::route::route"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/player"
+      },
+      {
+        "see": "Nothing is playing yet."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Must run before any episode is played in the same app session (the player is empty only on a fresh launch)."
+  },
+  {
+    "name": "player--playback-sheet",
+    "area": "player",
+    "kind": "sheet",
+    "covers": [
+      "app/player.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/episode/{episode}"
+      },
+      {
+        "tap": "Play this episode"
+      },
+      {
+        "open": "/player"
+      },
+      {
+        "see": "Now playing"
+      },
+      {
+        "tap": "Speed 1.0×, sleep timer and chapters"
+      },
+      {
+        "see": "More settings"
+      }
+    ],
+    "design": "PlaybackSheet-B",
+    "status": "CAPTURE",
+    "note": "The speed button reads \"Speed 1.0×\" at the default rate."
+  },
+  {
+    "name": "player--playback-more-settings",
+    "area": "player",
+    "kind": "sheet",
+    "covers": [
+      "app/player.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/episode/{episode}"
+      },
+      {
+        "tap": "Play this episode"
+      },
+      {
+        "open": "/player"
+      },
+      {
+        "see": "Now playing"
+      },
+      {
+        "tap": "Speed 1.0×, sleep timer and chapters"
+      },
+      {
+        "tap": "More settings: loop, audio output, skip silence, voice boost"
+      },
+      {
+        "see": "Back to Playback"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "player--transcript-pane",
+    "area": "player",
+    "kind": "variant",
+    "covers": [
+      "app/player.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/episode/{episode}"
+      },
+      {
+        "tap": "Play this episode"
+      },
+      {
+        "open": "/player"
+      },
+      {
+        "see": "Now playing"
+      },
+      {
+        "tap": "Speed 1.0×, sleep timer and chapters"
+      },
+      {
+        "tap": "Transcript"
+      },
+      {
+        "see": "Back to now"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Needs a seeded episode whose feed carries a transcript; the Transcript card only exists then. \"Back to now\" shows once the list is scrolled away from the live line, so this may need the pane to scroll."
+  },
+  {
+    "name": "player--sleep-timer-sheet",
+    "area": "player",
+    "kind": "sheet",
+    "covers": [
+      "src/ui/player/MoonButton.tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/episode/{episode}"
+      },
+      {
+        "tap": "Play this episode"
+      },
+      {
+        "open": "/player"
+      },
+      {
+        "see": "Now playing"
+      },
+      {
+        "tap": "Sleep timer, off"
+      },
+      {
+        "see": "Sleep in 5 minutes"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "player--share-sheet",
+    "area": "player",
+    "kind": "sheet",
+    "covers": [
+      "src/ui/clips/ShareChooser.tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/episode/{episode}"
+      },
+      {
+        "tap": "Play this episode"
+      },
+      {
+        "open": "/player"
+      },
+      {
+        "see": "Now playing"
+      },
+      {
+        "tap": "Share this episode"
+      },
+      {
+        "see": "Share as image"
+      }
+    ],
+    "design": "ShareSheet-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "player--share-more-system-sheet",
+    "area": "system",
+    "kind": "system",
+    "covers": [
+      "src/ui/clips/ShareChooser.tsx::system::Share.share#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/episode/{episode}"
+      },
+      {
+        "tap": "Play this episode"
+      },
+      {
+        "open": "/player"
+      },
+      {
+        "see": "Now playing"
+      },
+      {
+        "tap": "Share this episode"
+      },
+      {
+        "tap": "More ways to share"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "web": "skip: system share sheet",
+    "note": "The iOS share sheet over the app; simulator only."
+  },
+  {
+    "name": "player--share-image-system-sheet",
+    "area": "system",
+    "kind": "system",
+    "covers": [
+      "src/ui/clips/ShareChooser.tsx::system::Share.share#2"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/episode/{episode}"
+      },
+      {
+        "tap": "Play this episode"
+      },
+      {
+        "open": "/player"
+      },
+      {
+        "see": "Now playing"
+      },
+      {
+        "tap": "Share this episode"
+      },
+      {
+        "tap": "Share as image"
+      },
+      {
+        "see": "Making the picture…"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "web": "skip: system share sheet",
+    "note": "Toast \"Making the picture…\" first, then the iOS share sheet with the card picture (needs the server up)."
+  },
+  {
+    "name": "player--episode-end-offer",
+    "area": "player",
+    "kind": "variant",
+    "covers": [
+      "app/player.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/episode/{episode2}"
+      },
+      {
+        "tap": "Play this episode"
+      },
+      {
+        "open": "/player"
+      },
+      {
+        "see": "That's the end.\nNext up:"
+      }
+    ],
+    "design": "EpisodeEnd-B",
+    "status": "CAPTURE",
+    "note": "Needs the seeded {episode2} to be a short clip (about 60 s) that finishes by itself and has a Next up suggestion; the end offer shows when it ends."
+  },
+  {
+    "name": "player--moment-sheet",
+    "area": "player",
+    "kind": "sheet",
+    "covers": [
+      "src/ui/comments/MomentSheet.tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/episode/{episode}"
+      },
+      {
+        "tap": "Play this episode"
+      },
+      {
+        "open": "/player"
+      },
+      {
+        "see": "Now playing"
+      },
+      {
+        "tap": "Comment at {moment}"
+      },
+      {
+        "see": "Reply"
+      }
+    ],
+    "design": "MomentSheet-B",
+    "status": "CAPTURE",
+    "note": "{moment} = the m:ss of a seeded comment marker on the heat rail (the label reads \"Comment at 0:30 by <name>\"; the walker matches the prefix)."
+  },
+  {
+    "name": "player--clip-last-30-seconds",
+    "area": "player",
+    "kind": "variant",
+    "covers": [
+      "app/player.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/episode/{episode}"
+      },
+      {
+        "tap": "Play this episode"
+      },
+      {
+        "open": "/player"
+      },
+      {
+        "see": "Now playing"
+      },
+      {
+        "tap": "Clip the last 30 seconds"
+      },
+      {
+        "see": "Start here"
+      }
+    ],
+    "design": "ClipNew-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "player--queue-sheet",
+    "area": "player",
+    "kind": "sheet",
+    "covers": [
+      "src/ui/queue/QueueSheet.tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/episode/{episode2}"
+      },
+      {
+        "tap": "Add to queue"
+      },
+      {
+        "open": "/episode/{episode}"
+      },
+      {
+        "tap": "Play this episode"
+      },
+      {
+        "open": "/player"
+      },
+      {
+        "see": "Now playing"
+      },
+      {
+        "tap": "Playlist"
+      },
+      {
+        "see": "Up next"
+      }
+    ],
+    "design": "QueueSheet-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "player--queue-sheet-edit",
+    "area": "player",
+    "kind": "variant",
+    "covers": [
+      "src/ui/queue/QueueSheet.tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/episode/{episode2}"
+      },
+      {
+        "tap": "Add to queue"
+      },
+      {
+        "open": "/episode/{episode}"
+      },
+      {
+        "tap": "Play this episode"
+      },
+      {
+        "open": "/player"
+      },
+      {
+        "see": "Now playing"
+      },
+      {
+        "tap": "Playlist"
+      },
+      {
+        "tap": "Edit"
+      },
+      {
+        "see": "Clear all"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "player--queue-clear-dialog",
+    "area": "dialogs",
+    "kind": "dialog",
+    "covers": [
+      "src/ui/queue/QueueSheet.tsx::dialog::Clear the playlist?"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/episode/{episode2}"
+      },
+      {
+        "tap": "Add to queue"
+      },
+      {
+        "open": "/episode/{episode}"
+      },
+      {
+        "tap": "Play this episode"
+      },
+      {
+        "open": "/player"
+      },
+      {
+        "see": "Now playing"
+      },
+      {
+        "tap": "Playlist"
+      },
+      {
+        "tap": "Edit"
+      },
+      {
+        "tap": "Clear all"
+      },
+      {
+        "see": "Clear the playlist?"
+      }
+    ],
+    "design": "ConfirmDialog-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "player--queue-empty",
+    "area": "states",
+    "kind": "empty",
+    "covers": [
+      "src/ui/queue/QueueSheet.tsx::empty::queue",
+      "packages/social-core/src/empty.ts::surface::queue"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/episode/{episode}"
+      },
+      {
+        "tap": "Play this episode"
+      },
+      {
+        "open": "/player"
+      },
+      {
+        "see": "Now playing"
+      },
+      {
+        "tap": "Playlist"
+      },
+      {
+        "see": "Nothing queued. Use Add to queue on an episode."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "queue--screen",
+    "area": "library",
+    "kind": "screen",
+    "covers": [
+      "app/queue.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/episode/{episode2}"
+      },
+      {
+        "tap": "Add to queue"
+      },
+      {
+        "open": "/queue"
+      },
+      {
+        "see": "Play now"
+      }
+    ],
+    "design": "Queue-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "queue--empty",
+    "area": "states",
+    "kind": "empty",
+    "covers": [
+      "app/queue.tsx::empty::queue"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/queue"
+      },
+      {
+        "see": "Nothing queued. Use Add to queue on an episode."
+      }
+    ],
+    "design": "Queue-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "queue--item-sheet",
+    "area": "library",
+    "kind": "sheet",
+    "covers": [
+      "src/ui/queue/QueueList.tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/episode/{episode2}"
+      },
+      {
+        "tap": "Add to queue"
+      },
+      {
+        "open": "/queue"
+      },
+      {
+        "tap": "More for {episode}"
+      },
+      {
+        "see": "Remove from the queue"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "\"{episode}\" in a label means that episode's title (the one just queued)."
+  },
+  {
+    "name": "queue--conflict-chooser",
+    "area": "dialogs",
+    "kind": "sheet",
+    "covers": [
+      "src/ui/queue/QueueChooser.tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/queue"
+      },
+      {
+        "see": "Which playlist do you want to keep?"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "The seed must leave a server-side queue that differs from the phone's local one (the root-mounted QueueChooserHost opens on its own)."
+  },
+  {
+    "name": "episode--screen",
+    "area": "episode",
+    "kind": "screen",
+    "covers": [
+      "app/episode/[id].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/episode/{episode}"
+      },
+      {
+        "see": "Play this episode"
+      }
+    ],
+    "design": "Episode-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "episode--more-sheet",
+    "area": "episode",
+    "kind": "sheet",
+    "covers": [
+      "app/episode/[id].tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/episode/{episode}"
+      },
+      {
+        "tap": "More: play next, download, save a moment"
+      },
+      {
+        "see": "Report episode"
+      }
+    ],
+    "design": "EpisodeMoreSheet-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "episode--more-sheet-playlist-picker",
+    "area": "episode",
+    "kind": "variant",
+    "covers": [
+      "app/episode/[id].tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/episode/{episode}"
+      },
+      {
+        "tap": "More: play next, download, save a moment"
+      },
+      {
+        "tap": "Add to playlist"
+      },
+      {
+        "see": "New playlist name"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "episode--more-sheet-save-moment",
+    "area": "episode",
+    "kind": "variant",
+    "covers": [
+      "app/episode/[id].tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/episode/{episode}"
+      },
+      {
+        "tap": "More: play next, download, save a moment"
+      },
+      {
+        "tap": "Save the moment at 0:00"
+      },
+      {
+        "see": "Note for this moment"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "episode--like-sheet",
+    "area": "episode",
+    "kind": "sheet",
+    "covers": [
+      "src/ui/social/LikeSheet.tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/episode/{episode}"
+      },
+      {
+        "tap": "Like this episode"
+      },
+      {
+        "see": "Add a note, optional"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Opens after the like is saved. Run once per seed: a second run unlikes instead."
+  },
+  {
+    "name": "episode--clips-empty",
+    "area": "states",
+    "kind": "empty",
+    "covers": [
+      "src/ui/clips/ClipList.tsx::empty::clips",
+      "packages/social-core/src/empty.ts::surface::clips"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/episode/{episode2}"
+      },
+      {
+        "see": "No clips yet. Clip the good bit from the player."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "{episode2} must have no clips."
+  },
+  {
+    "name": "episode--related-empty",
+    "area": "states",
+    "kind": "empty",
+    "covers": [
+      "src/ui/episode/RelatedEpisodes.tsx::empty::nextup",
+      "packages/social-core/src/empty.ts::surface::nextup"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/episode/{episode}"
+      },
+      {
+        "see": "Nothing to suggest yet — play something and come back."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "episode--card-sheet",
+    "area": "episode",
+    "kind": "sheet",
+    "covers": [
+      "src/ui/episode/CardSheet.tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/chart"
+      },
+      {
+        "tap": "More for {episode}"
+      },
+      {
+        "see": "Details"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "The episode sheet opened from a chart card's ⋯ (the same host also serves Search). {episode} is the title of a chart row."
+  },
+  {
+    "name": "episode--picture-viewer",
+    "area": "episode",
+    "kind": "sheet",
+    "covers": [
+      "src/ui/episode/PictureViewer.tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/episode/{episode}"
+      },
+      {
+        "tap": "Picture. Opens full screen"
+      },
+      {
+        "see": "Save the picture"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Needs a seeded episode whose show notes contain a picture; a picture with alt text reads \"Picture: <alt>. Opens full screen\" instead."
+  },
+  {
+    "name": "episode--photos-permission-prompt",
+    "area": "system",
+    "kind": "permission",
+    "covers": [
+      "src/ui/episode/PictureViewer.tsx::permission::requestPermissionsAsync"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/episode/{episode}"
+      },
+      {
+        "tap": "Picture. Opens full screen"
+      },
+      {
+        "tap": "Save the picture"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "web": "skip: system permission prompt",
+    "note": "The iOS \"add to Photos\" alert; a simulator-only system alert. Same seed need as episode--picture-viewer."
+  },
+  {
+    "name": "toast--download-button",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "src/ui/episode/DownloadButton.tsx::toast::Not enough space: ${mb(r.usedBytes)} of ${mb(r.budgetBytes)} used. Remove finished downloads to free space.",
+      "src/ui/episode/DownloadButton.tsx::toast::This episode is no longer in the feed."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/downloads"
+      },
+      {
+        "tap": "Download settings"
+      },
+      {
+        "tap": "200 MB"
+      },
+      {
+        "open": "/episode/{episode2}"
+      },
+      {
+        "tap": "More: play next, download, save a moment"
+      },
+      {
+        "tap": "Download this episode"
+      },
+      {
+        "see": "Not enough space"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Triggers \"Not enough space: …\". Works only if the seeded {episode2} file is larger than the smallest 200 MB budget; the other message is \"This episode is no longer in the feed.\""
+  },
+  {
+    "name": "toast--queue-buttons",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "src/ui/queue/QueueButtons.tsx::toast::${said}${r.downloading ? ' · downloading' : ''}",
+      "src/ui/queue/QueueButtons.tsx::toast::The queue is full (300). Remove something first.",
+      "src/ui/queue/QueueButtons.tsx::toast::The queue was full — the last item was dropped."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/episode/{episode}"
+      },
+      {
+        "tap": "More: play next, download, save a moment"
+      },
+      {
+        "tap": "Play next"
+      },
+      {
+        "see": "Playing next"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Triggered message: \"Playing next\"."
+  },
+  {
+    "name": "toast--episode-page",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/episode/[id].tsx::toast::<dynamic>#1",
+      "app/episode/[id].tsx::toast::<dynamic>#2",
+      "app/episode/[id].tsx::toast::Couldn't like — try again.",
+      "app/episode/[id].tsx::toast::Couldn't save the note — try again.",
+      "app/episode/[id].tsx::toast::Couldn't unlike — try again.",
+      "app/episode/[id].tsx::toast::Note added",
+      "app/episode/[id].tsx::toast::The queue is full (300). Remove something first.",
+      "app/episode/[id].tsx::toast::Title copied."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/episode/{episode}"
+      },
+      {
+        "tap": "Add to queue"
+      },
+      {
+        "see": "Added to the queue"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Triggered message: \"Added to the queue\"."
+  },
+  {
+    "name": "toast--card-sheet",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "src/ui/episode/CardSheet.tsx::toast::<dynamic>#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/chart"
+      },
+      {
+        "tap": "More for {episode}"
+      },
+      {
+        "see": "That episode is no longer in its feed."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Appears only for a chart card whose show cannot be fetched (message \"Couldn't fetch that show right now.\" offline). May be MISSED if every chart show resolves."
+  },
+  {
+    "name": "toast--share-chooser",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "src/ui/clips/ShareChooser.tsx::toast::Couldn't make the picture — try again when you're online.",
+      "src/ui/clips/ShareChooser.tsx::toast::Couldn't make the video — try again when you're online.",
+      "src/ui/clips/ShareChooser.tsx::toast::Couldn't open ${t.label}.",
+      "src/ui/clips/ShareChooser.tsx::toast::Downloading the episode…",
+      "src/ui/clips/ShareChooser.tsx::toast::Link copied — paste it in ${t.label}.",
+      "src/ui/clips/ShareChooser.tsx::toast::Link copied.",
+      "src/ui/clips/ShareChooser.tsx::toast::Making the picture…",
+      "src/ui/clips/ShareChooser.tsx::toast::Making the video…"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/episode/{episode}"
+      },
+      {
+        "tap": "Play this episode"
+      },
+      {
+        "open": "/player"
+      },
+      {
+        "see": "Now playing"
+      },
+      {
+        "tap": "Share this episode"
+      },
+      {
+        "tap": "Copy link"
+      },
+      {
+        "see": "Link copied."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Triggered message: \"Link copied.\"."
+  },
+  {
+    "name": "toast--picture-viewer",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "src/ui/episode/PictureViewer.tsx::toast::Allow SocialNet to add photos in Settings, then try again.",
+      "src/ui/episode/PictureViewer.tsx::toast::Couldn't save the picture — try again when you're online.",
+      "src/ui/episode/PictureViewer.tsx::toast::Saved to Photos."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/episode/{episode}"
+      },
+      {
+        "tap": "Picture. Opens full screen"
+      },
+      {
+        "tap": "Save the picture"
+      },
+      {
+        "see": "Saved to Photos."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Triggered message: \"Saved to Photos.\" (the photo-permission alert may need the system allow tap; same seed need as episode--picture-viewer)."
+  },
+  {
+    "name": "toast--playback-store",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "src/playback/store.ts::toast::<dynamic>#1",
+      "src/playback/store.ts::toast::Not downloaded, and playing on mobile data is off. Use Wi-Fi, download it, or allow mobile data in Settings › More."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/episode/{episode2}"
+      },
+      {
+        "tap": "Play this episode"
+      },
+      {
+        "see": "This episode could not be played. Check your connection and try again."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Triggered message is the playback failure; {episode2} must be an episode whose audio address is dead. The other message (\"Not downloaded, and playing on mobile data is off.\") needs a cellular connection."
+  },
+  {
+    "name": "show--screen",
+    "area": "show",
+    "kind": "screen",
+    "covers": [
+      "app/show/[feedUrl].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/show/{show}"
+      },
+      {
+        "see": "Episodes"
+      }
+    ],
+    "design": "Show-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "show--search",
+    "area": "show",
+    "kind": "variant",
+    "covers": [
+      "app/show/[feedUrl].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/show/{show}"
+      },
+      {
+        "tap": "Search this show's episodes"
+      },
+      {
+        "see": "Close search"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "show--menu-sheet",
+    "area": "show",
+    "kind": "sheet",
+    "covers": [
+      "app/show/[feedUrl].tsx::sheet::#2"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/show/{show}"
+      },
+      {
+        "tap": "More: show info, report this show"
+      },
+      {
+        "see": "Show info"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "show--episode-row-sheet",
+    "area": "show",
+    "kind": "sheet",
+    "covers": [
+      "app/show/[feedUrl].tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/show/{show}"
+      },
+      {
+        "tap": "More for {episode}"
+      },
+      {
+        "see": "Details"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "\"{episode}\" in a label means that episode's title."
+  },
+  {
+    "name": "show--share-system-sheet",
+    "area": "system",
+    "kind": "system",
+    "covers": [
+      "app/show/[feedUrl].tsx::system::Share.share#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/show/{show}"
+      },
+      {
+        "tap": "Share this show"
+      },
+      {
+        "tap": "More ways to share"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "web": "skip: system share sheet",
+    "note": "The iOS share sheet over the app; simulator only. The app's own panel (heading \"Share this show\", rows Copy link / Send in chat / WhatsApp / Telegram) is the same SharePanel shot in player--share-sheet."
+  },
+  {
+    "name": "show--share-whatsapp-handoff",
+    "area": "system",
+    "kind": "system",
+    "covers": [
+      "app/show/[feedUrl].tsx::system::open-url#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/show/{show}"
+      },
+      {
+        "tap": "Share this show"
+      },
+      {
+        "tap": "WhatsApp"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "web": "skip: opens another app or the browser",
+    "note": "Opens https://wa.me in Safari on the simulator."
+  },
+  {
+    "name": "toast--show-page",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/show/[feedUrl].tsx::toast::<dynamic>#1",
+      "app/show/[feedUrl].tsx::toast::Couldn't open ${app}.",
+      "app/show/[feedUrl].tsx::toast::Link copied."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/show/{show}"
+      },
+      {
+        "tap": "Share this show"
+      },
+      {
+        "tap": "Copy link"
+      },
+      {
+        "see": "Link copied."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Triggered message: \"Link copied.\"."
+  },
+  {
+    "name": "show-info--screen",
+    "area": "show",
+    "kind": "screen",
+    "covers": [
+      "app/show-info/[feedUrl].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/show-info/{show}"
+      },
+      {
+        "see": "Feed address"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "show-info--loading",
+    "area": "states",
+    "kind": "loading",
+    "covers": [
+      "app/show-info/[feedUrl].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/shows/info",
+          "mode": "slow"
+        }
+      },
+      {
+        "open": "/show-info/{show}"
+      },
+      {
+        "see": "Show info"
+      }
+    ],
+    "design": "LoadError-B",
+    "status": "CAPTURE",
+    "note": "Inline load: the spinner under the header while the owner lookup is slow. Clear the fault afterwards."
+  },
+  {
+    "name": "show-info--error",
+    "area": "states",
+    "kind": "error",
+    "covers": [
+      "app/show-info/[feedUrl].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/shows/info",
+          "mode": "fail"
+        }
+      },
+      {
+        "open": "/show-info/{show}"
+      },
+      {
+        "see": "Couldn't load who owns this show. Check your connection and try again."
+      }
+    ],
+    "design": "LoadError-B",
+    "status": "CAPTURE",
+    "note": "Inline error. Clear the fault afterwards."
+  },
+  {
+    "name": "toast--show-info",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/show-info/[feedUrl].tsx::toast::Feed address copied."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/show-info/{show}"
+      },
+      {
+        "tap": "Copy the feed address"
+      },
+      {
+        "see": "Feed address copied."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Triggered message: \"Feed address copied.\"."
+  },
+  {
+    "name": "clip--screen",
+    "area": "social",
+    "kind": "screen",
+    "covers": [
+      "app/clip/[id].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/clip/{clip}"
+      },
+      {
+        "see": "Play the episode"
+      }
+    ],
+    "design": "Clip-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "clip--signed-out",
+    "area": "social",
+    "kind": "variant",
+    "covers": [
+      "app/clip/[id].tsx::route::route"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/clip/{clip}"
+      },
+      {
+        "see": "You are not signed in — clips play anyway. Sign in to follow people and make your own."
+      }
+    ],
+    "design": "Clip-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "clip--share-sheet",
+    "area": "social",
+    "kind": "variant",
+    "covers": [
+      "app/clip/[id].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/clip/{clip}"
+      },
+      {
+        "tap": "Share this clip"
+      },
+      {
+        "see": "Share this clip"
+      }
+    ],
+    "design": "ShareSheet-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "clip--not-found",
+    "area": "states",
+    "kind": "error",
+    "covers": [
+      "app/clip/[id].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/clip/00000000-0000-0000-0000-000000000000"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "A clip id that does not exist; shows the page's error line."
+  },
+  {
+    "name": "clip-new--screen",
+    "area": "social",
+    "kind": "screen",
+    "covers": [
+      "app/clip/new.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/clip/new?episodeId={episode}&positionMs=60000"
+      },
+      {
+        "see": "Start here"
+      }
+    ],
+    "design": "ClipNew-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "clip-new--signed-out",
+    "area": "social",
+    "kind": "variant",
+    "covers": [
+      "app/clip/new.tsx::route::route"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/clip/new?episodeId={episode}&positionMs=60000"
+      },
+      {
+        "see": "Sign in to make a clip."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "clip-new--episode-missing",
+    "area": "states",
+    "kind": "variant",
+    "covers": [
+      "app/clip/new.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/clip/new?episodeId=missing&positionMs=0"
+      },
+      {
+        "see": "This episode is not in the library."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "clip-new--saved-share-panel",
+    "area": "social",
+    "kind": "variant",
+    "covers": [
+      "app/clip/new.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/clip/new?episodeId={episode}&positionMs=60000"
+      },
+      {
+        "tap": "Save"
+      },
+      {
+        "see": "Clip saved — share it"
+      }
+    ],
+    "design": "ShareSheet-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "toast--clip-new",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/clip/new.tsx::toast::Clip saved — it will be sent when you are online.",
+      "app/clip/new.tsx::toast::Sign in to make a clip.",
+      "app/clip/new.tsx::toast::That range can't be a clip (${r.reason})."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/episodes/{episode}/clips",
+          "mode": "fail"
+        }
+      },
+      {
+        "open": "/clip/new?episodeId={episode}&positionMs=60000"
+      },
+      {
+        "tap": "Save"
+      },
+      {
+        "see": "Clip saved — it will be sent when you are online."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Triggered message: \"Clip saved — it will be sent when you are online.\" (assumes a failed POST is queued as pending). Clear the fault afterwards."
+  },
+  {
+    "name": "transcript--none-on-phone",
+    "area": "states",
+    "kind": "empty",
+    "covers": [
+      "app/transcript/[episodeId].tsx::route::route"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/transcript/{episode2}"
+      },
+      {
+        "see": "This episode has no transcript on this phone yet. Open it in the player first."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "downloads--screen",
+    "area": "library",
+    "kind": "screen",
+    "covers": [
+      "app/downloads.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/episode/{episode}"
+      },
+      {
+        "tap": "More: play next, download, save a moment"
+      },
+      {
+        "tap": "Download this episode"
+      },
+      {
+        "open": "/downloads"
+      },
+      {
+        "see": "Select"
+      }
+    ],
+    "design": "Downloads-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "downloads--empty",
+    "area": "states",
+    "kind": "empty",
+    "covers": [
+      "app/downloads.tsx::empty::downloads",
+      "packages/social-core/src/empty.ts::surface::downloads"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/downloads"
+      },
+      {
+        "see": "Nothing downloaded yet. Downloads run on Wi-Fi unless you allow mobile data."
+      }
+    ],
+    "design": "Downloads-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "downloads--settings",
+    "area": "library",
+    "kind": "variant",
+    "covers": [
+      "app/downloads.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/downloads"
+      },
+      {
+        "tap": "Download settings"
+      },
+      {
+        "see": "Allow mobile data"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "downloads--select-mode",
+    "area": "library",
+    "kind": "variant",
+    "covers": [
+      "app/downloads.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/episode/{episode}"
+      },
+      {
+        "tap": "More: play next, download, save a moment"
+      },
+      {
+        "tap": "Download this episode"
+      },
+      {
+        "open": "/downloads"
+      },
+      {
+        "tap": "Select"
+      },
+      {
+        "see": "Select all"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "downloads--delete-dialog",
+    "area": "dialogs",
+    "kind": "dialog",
+    "covers": [
+      "app/downloads.tsx::dialog::${deleteLabel(list.length)}?"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/episode/{episode}"
+      },
+      {
+        "tap": "More: play next, download, save a moment"
+      },
+      {
+        "tap": "Download this episode"
+      },
+      {
+        "open": "/downloads"
+      },
+      {
+        "tap": "Select"
+      },
+      {
+        "tap": "Select all"
+      },
+      {
+        "tap": "Delete 1 episode"
+      },
+      {
+        "see": "The files leave this phone. Where you stopped, your queue and Updates stay."
+      }
+    ],
+    "design": "ConfirmDialog-B",
+    "status": "CAPTURE",
+    "note": "Assumes exactly one download is on the phone (\"Delete 1 episode?\")."
+  },
+  {
+    "name": "toast--downloads",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/downloads.tsx::toast::<dynamic>#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/episode/{episode}"
+      },
+      {
+        "tap": "More: play next, download, save a moment"
+      },
+      {
+        "tap": "Download this episode"
+      },
+      {
+        "open": "/downloads"
+      },
+      {
+        "tap": "Select"
+      },
+      {
+        "tap": "Select all"
+      },
+      {
+        "tap": "Delete 1 episode"
+      },
+      {
+        "tap": "Delete"
+      },
+      {
+        "see": "1 download deleted."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Triggered message: \"1 download deleted.\" (deletes the download)."
+  },
+  {
+    "name": "history--screen",
+    "area": "library",
+    "kind": "screen",
+    "covers": [
+      "app/history.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/history"
+      },
+      {
+        "see": "Listening history"
+      }
+    ],
+    "design": "History-B",
+    "status": "CAPTURE",
+    "note": "Needs a seeded listening history."
+  },
+  {
+    "name": "history--empty",
+    "area": "states",
+    "kind": "empty",
+    "covers": [
+      "app/history.tsx::route::route"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/history"
+      },
+      {
+        "see": "Nothing played yet"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "history--select-mode",
+    "area": "library",
+    "kind": "variant",
+    "covers": [
+      "app/history.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/history"
+      },
+      {
+        "tap": "Select"
+      },
+      {
+        "see": "Clear all"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "history--clear-dialog",
+    "area": "dialogs",
+    "kind": "dialog",
+    "covers": [
+      "app/history.tsx::dialog::Clear all listening history?"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/history"
+      },
+      {
+        "tap": "Select"
+      },
+      {
+        "tap": "Clear all"
+      },
+      {
+        "see": "Clear all listening history?"
+      }
+    ],
+    "design": "ConfirmDialog-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "history--episode-sheet",
+    "area": "library",
+    "kind": "sheet",
+    "covers": [
+      "app/history.tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/history"
+      },
+      {
+        "tap": "More for {episode}"
+      },
+      {
+        "see": "Details"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "toast--history",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/history.tsx::toast::<dynamic>#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/history"
+      },
+      {
+        "tap": "Select"
+      },
+      {
+        "tap": "Select {episode}"
+      },
+      {
+        "tap": "Delete (1)"
+      },
+      {
+        "see": "1 item deleted."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Triggered message: \"1 item deleted.\" (deletes one history item)."
+  },
+  {
+    "name": "subscriptions--screen",
+    "area": "library",
+    "kind": "screen",
+    "covers": [
+      "app/subscriptions.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/subscriptions"
+      },
+      {
+        "see": "All shows"
+      }
+    ],
+    "design": "Subscriptions-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "subscriptions--grid",
+    "area": "library",
+    "kind": "variant",
+    "covers": [
+      "app/subscriptions.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/subscriptions"
+      },
+      {
+        "tap": "Show as a grid"
+      },
+      {
+        "see": "Show as a list"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "subscriptions--empty",
+    "area": "states",
+    "kind": "empty",
+    "covers": [
+      "app/subscriptions.tsx::empty::library",
+      "packages/social-core/src/empty.ts::surface::library"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/subscriptions"
+      },
+      {
+        "see": "No subscriptions yet. Pick something to listen to."
+      }
+    ],
+    "design": "Subscriptions-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "subscriptions--show-menu",
+    "area": "library",
+    "kind": "sheet",
+    "covers": [
+      "app/subscriptions.tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/subscriptions"
+      },
+      {
+        "tap": "More for {show}"
+      },
+      {
+        "see": "Unsubscribe"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "\"{show}\" in a label means that show's title."
+  },
+  {
+    "name": "subscriptions--share-system-sheet",
+    "area": "system",
+    "kind": "system",
+    "covers": [
+      "app/subscriptions.tsx::system::Share.share#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/subscriptions"
+      },
+      {
+        "tap": "Share my list"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "web": "skip: system share sheet",
+    "note": "The iOS share sheet over the app; simulator only."
+  },
+  {
+    "name": "toast--subscriptions",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/subscriptions.tsx::toast::Sign in to share your list.",
+      "app/subscriptions.tsx::toast::Unsubscribed from ${r.title}."
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/subscriptions"
+      },
+      {
+        "tap": "Share my list"
+      },
+      {
+        "see": "Sign in to share your list."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Triggered message: \"Sign in to share your list.\"."
+  },
+  {
+    "name": "subscriptions-manage--screen",
+    "area": "library",
+    "kind": "screen",
+    "covers": [
+      "app/subscriptions/manage.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/subscriptions/manage"
+      },
+      {
+        "see": "Tap a show, then tap where it should go."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "subscriptions-manage--empty",
+    "area": "states",
+    "kind": "empty",
+    "covers": [
+      "app/subscriptions/manage.tsx::empty::library"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/subscriptions/manage"
+      },
+      {
+        "see": "No subscriptions yet. Pick something to listen to."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "toast--subscriptions-manage",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/subscriptions/manage.tsx::toast::Order saved. \"Default\" uses it."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/subscriptions/manage"
+      },
+      {
+        "tap": "Save order"
+      },
+      {
+        "see": "Order saved. \"Default\" uses it."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Triggered message: \"Order saved. \"Default\" uses it.\"."
+  },
+  {
+    "name": "favourites--comments-tab",
+    "area": "library",
+    "kind": "variant",
+    "covers": [
+      "app/favourites.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/favourites"
+      },
+      {
+        "tap": "Comments"
+      },
+      {
+        "see": "Comments"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "moments--screen",
+    "area": "library",
+    "kind": "screen",
+    "covers": [
+      "app/moments.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/episode/{episode}"
+      },
+      {
+        "tap": "More: play next, download, save a moment"
+      },
+      {
+        "tap": "Save the moment at 0:00"
+      },
+      {
+        "tap": "Save moment"
+      },
+      {
+        "open": "/moments"
+      },
+      {
+        "see": "Saved moments"
+      }
+    ],
+    "design": "Moments-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "moments--empty",
+    "area": "states",
+    "kind": "empty",
+    "covers": [
+      "app/moments.tsx::route::route"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/moments"
+      },
+      {
+        "see": "No saved moments — tap “Save moment” while listening"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "moments--edit-note",
+    "area": "library",
+    "kind": "variant",
+    "covers": [
+      "app/moments.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/episode/{episode}"
+      },
+      {
+        "tap": "More: play next, download, save a moment"
+      },
+      {
+        "tap": "Save the moment at 0:00"
+      },
+      {
+        "tap": "Save moment"
+      },
+      {
+        "open": "/moments"
+      },
+      {
+        "tap": "Edit note"
+      },
+      {
+        "see": "Save note"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "toast--moments",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/moments.tsx::toast::That episode isn't on this phone any more."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/moments"
+      },
+      {
+        "tap": "Play episode from 0:00"
+      },
+      {
+        "see": "That episode isn't on this phone any more."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Triggered message: \"That episode isn't on this phone any more.\" Needs a seeded saved moment whose episode is no longer in the phone's feed cache (its row then reads \"Episode not on this phone\" and the label \"Play episode from <m:ss>\")."
+  },
+  {
+    "name": "my-comments--screen",
+    "area": "social",
+    "kind": "screen",
+    "covers": [
+      "app/my-comments.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/my-comments"
+      },
+      {
+        "see": "My comments"
+      }
+    ],
+    "design": "MyComments-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "my-comments--signed-out",
+    "area": "social",
+    "kind": "variant",
+    "covers": [
+      "app/my-comments.tsx::route::route"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/my-comments"
+      },
+      {
+        "see": "Sign in to comment"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "my-comments--empty",
+    "area": "states",
+    "kind": "empty",
+    "covers": [
+      "app/my-comments.tsx::route::route"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/my-comments"
+      },
+      {
+        "see": "No comments yet"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "likes--screen",
+    "area": "social",
+    "kind": "screen",
+    "covers": [
+      "app/likes.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/likes"
+      },
+      {
+        "see": "Episodes people you follow liked"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "likes--signed-out",
+    "area": "social",
+    "kind": "variant",
+    "covers": [
+      "app/likes.tsx::route::route"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/likes"
+      },
+      {
+        "see": "Sign in to see what people you follow like."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "likes--empty",
+    "area": "states",
+    "kind": "empty",
+    "covers": [
+      "app/likes.tsx::route::route"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/likes"
+      },
+      {
+        "see": "No likes yet from people you follow."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "likes--loading",
+    "area": "states",
+    "kind": "loading",
+    "covers": [
+      "app/likes.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/me/likes/timeline",
+          "mode": "slow"
+        }
+      },
+      {
+        "open": "/likes"
+      },
+      {
+        "see": "Likes"
+      }
+    ],
+    "design": "LoadError-B",
+    "status": "CAPTURE",
+    "note": "Page-level load: the spinner under the header. Clear the fault afterwards."
+  },
+  {
+    "name": "likes--error",
+    "area": "states",
+    "kind": "error",
+    "covers": [
+      "app/likes.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/me/likes/timeline",
+          "mode": "fail"
+        }
+      },
+      {
+        "open": "/likes"
+      },
+      {
+        "see": "Couldn't load likes right now."
+      }
+    ],
+    "design": "LoadError-B",
+    "status": "CAPTURE",
+    "note": "Page-level error with Retry. Clear the fault afterwards."
+  },
+  {
+    "name": "like--screen",
+    "area": "social",
+    "kind": "screen",
+    "covers": [
+      "app/like/[owner]/[episode].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/like/{user}/{episode}"
+      },
+      {
+        "see": "Reactions"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "{user} owns a like on {episode} (seeded)."
+  },
+  {
+    "name": "like--gone",
+    "area": "states",
+    "kind": "empty",
+    "covers": [
+      "app/like/[owner]/[episode].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/like/{user}/missing"
+      },
+      {
+        "see": "This like is not here any more, or is private"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "toast--like",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/like/[owner]/[episode].tsx::toast::Couldn't delete that — try again.",
+      "app/like/[owner]/[episode].tsx::toast::Couldn't react — try again.",
+      "app/like/[owner]/[episode].tsx::toast::Couldn't send that — try again."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/likes/{user}/{episode}/reactions",
+          "mode": "fail"
+        }
+      },
+      {
+        "open": "/like/{user}/{episode}"
+      },
+      {
+        "tap": "React with 👍"
+      },
+      {
+        "see": "Couldn't react — try again."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Triggered message: \"Couldn't react — try again.\". Clear the fault afterwards."
+  },
+  {
+    "name": "playlists--screen",
+    "area": "library",
+    "kind": "screen",
+    "covers": [
+      "app/playlists/index.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/playlists"
+      },
+      {
+        "see": "Collect episodes by theme; make one public to show it on your profile"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "playlists--signed-out",
+    "area": "library",
+    "kind": "variant",
+    "covers": [
+      "app/playlists/index.tsx::route::route"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/playlists"
+      },
+      {
+        "see": "Sign in to make playlists."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "playlists--empty",
+    "area": "states",
+    "kind": "empty",
+    "covers": [
+      "app/playlists/index.tsx::route::route"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/playlists"
+      },
+      {
+        "see": "No playlists yet. Name one above, or use Add to playlist in any episode's menu."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "playlists--load-error",
+    "area": "states",
+    "kind": "error",
+    "covers": [
+      "app/playlists/index.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/me/playlists",
+          "mode": "fail"
+        }
+      },
+      {
+        "open": "/playlists"
+      },
+      {
+        "see": "Couldn't load your playlists right now."
+      }
+    ],
+    "design": "LoadError-B",
+    "status": "CAPTURE",
+    "note": "Clear the fault afterwards."
+  },
+  {
+    "name": "toast--playlists",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/playlists/index.tsx::toast::<dynamic>#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/me/playlists",
+          "mode": "fail"
+        }
+      },
+      {
+        "open": "/playlists"
+      },
+      {
+        "type": "New playlist name",
+        "text": "Shot"
+      },
+      {
+        "tap": "New playlist"
+      },
+      {
+        "see": "Couldn't make the playlist. Try again."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Triggered message: \"Couldn't make the playlist. Try again.\" (the fault also fails the list load; the name box still shows with the last list). Clear the fault afterwards."
+  },
+  {
+    "name": "playlist--screen",
+    "area": "library",
+    "kind": "screen",
+    "covers": [
+      "app/playlists/[id].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/playlists/{playlist}"
+      },
+      {
+        "see": "Public"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "playlist--rename",
+    "area": "library",
+    "kind": "variant",
+    "covers": [
+      "app/playlists/[id].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/playlists/{playlist}"
+      },
+      {
+        "tap": "Rename playlist"
+      },
+      {
+        "see": "Save name"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "playlist--delete-dialog",
+    "area": "dialogs",
+    "kind": "dialog",
+    "covers": [
+      "app/playlists/[id].tsx::dialog::Delete ${playlist.title}?"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/playlists/{playlist}"
+      },
+      {
+        "tap": "Delete playlist"
+      },
+      {
+        "see": "The playlist goes from all your phones and your profile. The episodes stay where they are."
+      }
+    ],
+    "design": "ConfirmDialog-B",
+    "status": "CAPTURE"
+  },
+  {
+    "name": "playlist--missing",
+    "area": "states",
+    "kind": "empty",
+    "covers": [
+      "app/playlists/[id].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/playlists/missing"
+      },
+      {
+        "see": "This playlist was not found. It may be private, or deleted."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "toast--playlist",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/playlists/[id].tsx::toast::Couldn't delete the playlist. Try again.",
+      "app/playlists/[id].tsx::toast::Couldn't fetch these episodes right now.",
+      "app/playlists/[id].tsx::toast::Couldn't rename the playlist. Try again.",
+      "app/playlists/[id].tsx::toast::Couldn't save the change. Try again.",
+      "app/playlists/[id].tsx::toast::Playing ${playlist.title}${skipped > 0 ?",
+      "app/playlists/[id].tsx::toast::Playlist deleted."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/playlists/{playlist}"
+      },
+      {
+        "tap": "Delete playlist"
+      },
+      {
+        "tap": "Delete"
+      },
+      {
+        "see": "Playlist deleted."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Triggered message: \"Playlist deleted.\" (destructive: run after every other {playlist} entry)."
+  },
+  {
+    "name": "lists-new--screen",
+    "area": "social",
+    "kind": "screen",
+    "covers": [
+      "app/lists/new.tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/lists/new"
+      },
+      {
+        "see": "Share some shows"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "lists-new--signed-out",
+    "area": "social",
+    "kind": "variant",
+    "covers": [
+      "app/lists/new.tsx::route::route"
+    ],
+    "as": "visitor",
+    "steps": [
+      {
+        "open": "/lists/new"
+      },
+      {
+        "see": "Sign in to share a list of shows."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "lists-new--share-system-sheet",
+    "area": "system",
+    "kind": "system",
+    "covers": [
+      "app/lists/new.tsx::system::Share.share#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/lists/new"
+      },
+      {
+        "tap": "{show}"
+      },
+      {
+        "tap": "{show2}"
+      },
+      {
+        "tap": "Share a link to the picked shows"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "web": "skip: system share sheet",
+    "note": "The iOS share sheet over the app; simulator only. {show} and {show2} are two subscribed shows' titles."
+  },
+  {
+    "name": "toast--lists-new",
+    "area": "toasts",
+    "kind": "toast",
+    "covers": [
+      "app/lists/new.tsx::toast::Couldn't make the link — try again when you're online."
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "fault": {
+          "path": "/v1/me/shared-lists",
+          "mode": "fail"
+        }
+      },
+      {
+        "open": "/lists/new"
+      },
+      {
+        "tap": "{show}"
+      },
+      {
+        "tap": "{show2}"
+      },
+      {
+        "tap": "Share a link to the picked shows"
+      },
+      {
+        "see": "Couldn't make the link — try again when you're online."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "Triggered message: \"Couldn't make the link — try again when you're online.\" Clear the fault afterwards."
+  },
+  {
+    "name": "lists--screen",
+    "area": "social",
+    "kind": "screen",
+    "covers": [
+      "app/lists/[id].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/lists/{list}"
+      },
+      {
+        "see": "Shared list"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "lists--more-sheet",
+    "area": "social",
+    "kind": "sheet",
+    "covers": [
+      "src/ui/social/MoreSheet.tsx::sheet::#1"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/lists/{list}"
+      },
+      {
+        "tap": "More for this list"
+      },
+      {
+        "see": "Report this list"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "note": "{list} must be a list owned by someone else (the ⋯ is hidden on your own list)."
+  },
+  {
+    "name": "lists--gone",
+    "area": "states",
+    "kind": "empty",
+    "covers": [
+      "app/lists/[id].tsx::route::route"
+    ],
+    "as": "listener",
+    "steps": [
+      {
+        "open": "/lists/missing"
+      },
+      {
+        "see": "This list is gone, or the link is wrong."
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE"
+  },
+  {
+    "name": "permissions--microphone-prompt",
+    "area": "system",
+    "kind": "permission",
+    "covers": [
+      "src/playback/expo-audio-adapter.ts::permission::requestRecordingPermissionsAsync"
+    ],
+    "as": "new",
+    "steps": [
+      {
+        "open": "/comments/{episode}"
+      },
+      {
+        "tap": "Write a comment"
+      },
+      {
+        "tap": "Record a voice comment"
+      }
+    ],
+    "design": null,
+    "status": "CAPTURE",
+    "web": "skip: system permission prompt",
+    "note": "The iOS microphone alert; simulator-only. A \"Rules\" sheet may come first on a first voice comment; accept it."
+  },
+  {
+    "name": "states--needs-long-press",
+    "area": "states",
+    "kind": "sheet",
+    "covers": [
+      "src/ui/player/TranscriptExtras.tsx::sheet::#1",
+      "app/transcript/[episodeId].tsx::system::clipboard#1",
+      "app/transcript/[episodeId].tsx::toast::Copied.",
+      "src/ui/player/QuoteShare.tsx::system::Share.share#1",
+      "src/ui/player/QuoteShare.tsx::toast::Couldn't make the picture — try again when you're online.",
+      "src/ui/player/QuoteShare.tsx::toast::Making the picture…",
+      "app/episode/[id].tsx::sheet::#2",
+      "app/episode/[id].tsx::system::clipboard#1"
+    ],
+    "as": "listener",
+    "steps": [],
+    "design": null,
+    "status": "NOT_CAPTURABLE",
+    "reason": "opened only by a long-press (transcript line menu and its Report a mistake sheet, copy, share as picture; the episode title copy; a related card's episode sheet) and the step language has no long-press step"
+  },
+  {
+    "name": "show--paid-episodes-and-tips",
+    "area": "show",
+    "kind": "sheet",
+    "covers": [
+      "src/ui/show/ShowSales.tsx::system::Share.share#1",
+      "src/ui/show/ShowSales.tsx::toast::<dynamic>#1",
+      "src/ui/show/ShowSales.tsx::toast::Couldn't open the preview — try again.",
+      "src/ui/show/ShowSales.tsx::toast::Couldn't open this episode — try again."
+    ],
+    "as": "listener",
+    "steps": [],
+    "design": null,
+    "status": "NOT_CAPTURABLE",
+    "reason": "paid episodes, tips and gifts load only through Google Play billing (the block is not drawn without it); the buy, tip and gift toasts and the gift share sheet are store flows"
+  },
+  {
+    "name": "states--device-only",
+    "area": "states",
+    "kind": "sheet",
+    "covers": [
+      "src/ui/player/DataPrompt.tsx::sheet::#1",
+      "src/ui/clips/ShareChooser.tsx::system::open-url#1",
+      "src/ui/episode/PictureViewer.tsx::system::Share.share#1",
+      "src/ui/episode/WatchTile.tsx::toast::<dynamic>#1"
+    ],
+    "as": "listener",
+    "steps": [],
+    "design": null,
+    "status": "NOT_CAPTURABLE",
+    "reason": "needs real hardware or other apps: \"Play on mobile data?\" appears only on a cellular connection; chat-app share targets need those apps installed; the save-picture share fallback only runs when the photo module is absent; \"Download to Watch\" needs a paired Apple Watch"
+  },
+  {
+    "name": "states--next-up-unused",
+    "area": "states",
+    "kind": "empty",
+    "covers": [
+      "src/ui/player/NextUp.tsx::empty::nextup"
+    ],
+    "as": "listener",
+    "steps": [],
+    "design": null,
+    "status": "EXCLUDED",
+    "reason": "the NextUp block is no longer drawn by any screen (the episode page uses RelatedEpisodes, the player uses the end offer); its empty state is shot as episode--related-empty"
+  }
+]

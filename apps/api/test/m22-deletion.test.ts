@@ -11,6 +11,7 @@ import { fnv1a64 } from '@socialmorning/social-core';
 import { freshDb, signUp, signUpWithCode } from './harness.ts';
 import { putEpisode } from './put-episode.ts';
 import { deletionCount, listenerRow, makeDeletionsDue } from './ac-neutral.ts';
+import { countOf } from './sc-neutral.ts';
 
 const JOB = 'job-token-not-secret';
 const ep = { feedUrl: 'https://feeds.example.com/x.xml', guid: 'g1', title: 'Ep 1', enclosureUrl: 'https://cdn/1.mp3' };
@@ -71,7 +72,7 @@ test('the due step deletes exactly as the old immediate deletion did; not before
   await makeDeletionsDue(t);
   assert.equal(await run(), 1);
   assert.equal(await listenerRow(t, a.id), undefined);
-  assert.equal((await t.q('SELECT 1 FROM comments')).length, 0, 'the lone comment went with it');
+  assert.equal(await countOf(t, 'comments'), 0, 'the lone comment went with it');
   assert.equal(await deletionCount(t), 0);
   const re = await signUpWithCode(t, 'a@example.com', 'Alex again');
   assert.equal(re.status, 200, 'the email is free again');

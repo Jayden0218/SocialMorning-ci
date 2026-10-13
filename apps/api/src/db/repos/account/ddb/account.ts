@@ -9,7 +9,7 @@
  *   sessions are then signed out (a listener's sessions are unbounded, so not in the transaction) and the
  *   kept session's copy of the email is refreshed.
  * - Export: the listener's own items (profile, queue, devices) from DynamoDB, in the old file format
- *   (snake_case names, the same secret filter); the other lanes' sections from Postgres (foreign.ts).
+ *   (snake_case names, the same secret filter); the other lanes' sections from their own items.
  */
 import { encode, ttlAfter } from '../../../ddb/codec.ts';
 import * as K from '../../../ddb/keys.ts';
@@ -21,8 +21,7 @@ import { SESSION_MAX_DAYS } from '../../../../auth/session.ts';
 import type { DeviceRow } from '../devices.ts';
 import type { EmailChangeTry } from '../email-change.ts';
 import { SECTIONS } from '../data-export.ts';
-import { adel, aput, DAY_MS, getListener, hashKey, iso, nowMs, partitionItems, refreshSessionCopies, txa, unlessCondition, upd, type Hybrid, bridgeOn } from './common.ts';
-import { exportSection, shadowListener } from './foreign.ts';
+import { adel, aput, DAY_MS, getListener, hashKey, nowMs, partitionItems, refreshSessionCopies, txa, unlessCondition, upd, type Ctx } from './common.ts';
 import { exportPaidRows } from '../purchases.ts';
 import { GRAPH_SECTIONS, graphExportSection } from '../../social/graph-ddb/export.ts';
 import { deleteSessionChain, getSession } from './sessions.ts';
@@ -30,13 +29,13 @@ import { deleteSessionChain, getSession } from './sessions.ts';
 type SessItem = Item & { tokenHash: string; publicId: string; deviceLabel: string | null; country: string | null; createdAt: string; lastSeenAt: string; replacedAt?: string; replacedBy?: string; actingAdminId?: string };
 
 /** The listener's sessions (not act-as), each with its pointer's public id. */
-async function liveSessions(h: Hybrid, listenerId: string): Promise<SessItem[]> {
+async function liveSessions(h: Ctx, listenerId: string): Promise<SessItem[]> {
   const ptrs = (await partitionItems(h, K.L(listenerId), K.LISTENER_SK.sessions)).filter((p) => !p['actingAdminId']);
   const items = await batchGetAll(h.store, 'main', ptrs.map((p) => K.session(String(p['tokenHash']))));
   return items as SessItem[];
 }
 
-export async function listDeviceRows(h: Hybrid, listenerId: string, hash: Buffer, idleDays: number, _liveSql: string): Promise<DeviceRow[]> {
+export async function listDeviceRows(h: Ctx, listenerId: string, hash: Buffer, idleDays: number): Promise<DeviceRow[]> {
   const me = hashKey(hash);
   const mine = await getSession(h, me);
   const now = nowMs(h);
@@ -48,7 +47,7 @@ export async function listDeviceRows(h: Hybrid, listenerId: string, hash: Buffer
   return rows.slice(0, 100);
 }
 
-export async function deviceCurrentRows(h: Hybrid, id: string, listenerId: string, hash: Buffer): Promise<{ current: boolean }[]> {
+export async function deviceCurrentRows(h: Ctx, id: string, listenerId: string, hash: Buffer): Promise<{ current: boolean }[]> {
   const p = await get(h.store, 'main', K.listenerSessionPtr(listenerId, id));
   if (!p || p['actingAdminId']) return [];
   const me = hashKey(hash);
@@ -56,13 +55,13 @@ export async function deviceCurrentRows(h: Hybrid, id: string, listenerId: strin
   return [{ current: p['tokenHash'] === me || p['tokenHash'] === mine?.replacedBy }];
 }
 
-export async function deleteDevice(h: Hybrid, id: string, listenerId: string): Promise<void> {
+export async function deleteDevice(h: Ctx, id: string, listenerId: string): Promise<void> {
   const p = await get(h.store, 'main', K.listenerSessionPtr(listenerId, id));
   if (p) await deleteSessionChain(h, String(p['tokenHash']));
 }
 
 /** Keeps this token, the token that replaced it, and whatever points at either; signs out the rest. */
-export async function signOutOtherDevices(h: Hybrid, listenerId: string, hash: Buffer): Promise<{ id: string }[]> {
+export async function signOutOtherDevices(h: Ctx, listenerId: string, hash: Buffer): Promise<{ id: string }[]> {
   const me = hashKey(hash);
   const mine = await getSession(h, me);
   const keep = new Set([me, ...(mine?.replacedBy ? [mine.replacedBy] : [])]);
@@ -79,18 +78,18 @@ export async function signOutOtherDevices(h: Hybrid, listenerId: string, hash: B
 
 const EMAILCHG = (id: string) => K.listenerSingleton(id, 'EMAILCHG');
 
-export async function pendingEmailChangeRows(h: Hybrid, listenerId: string): Promise<{ sent_at: Date | string }[]> {
+export async function pendingEmailChangeRows(h: Ctx, listenerId: string): Promise<{ sent_at: Date | string }[]> {
   const c = await get(h.store, 'main', EMAILCHG(listenerId));
   return c ? [{ sent_at: String(c['sentAt']) }] : [];
 }
 
-export async function saveEmailChange(h: Hybrid, listenerId: string, to: string, codeHash: Buffer, oldCodeHash: Buffer, sentAt: Date, expiresAt: Date): Promise<void> {
+export async function saveEmailChange(h: Ctx, listenerId: string, to: string, codeHash: Buffer, oldCodeHash: Buffer, sentAt: Date, expiresAt: Date): Promise<void> {
   await aput(h.store, 'main', encode('emailChange', EMAILCHG(listenerId), {
     newEmail: to, codeHash: new Uint8Array(codeHash), oldCodeHash: new Uint8Array(oldCodeHash), sentAt: sentAt.toISOString(), expiresAt: expiresAt.toISOString(), tries: 0,
   }, { ttl: ttlAfter(expiresAt.getTime(), DAY_MS) }));
 }
 
-export async function takeEmailChangeTry(h: Hybrid, listenerId: string, maxAttempts: number, now: Date): Promise<EmailChangeTry[]> {
+export async function takeEmailChangeTry(h: Ctx, listenerId: string, maxAttempts: number, now: Date): Promise<EmailChangeTry[]> {
   const out = await unlessCondition(upd(h.store, 'main', EMAILCHG(listenerId), {
     update: 'ADD tries :one', condition: 'attribute_exists(PK) AND tries < :max AND expiresAt > :now',
     values: { ':one': 1, ':max': maxAttempts, ':now': now.toISOString() }, returnValues: 'ALL_NEW',
@@ -99,11 +98,11 @@ export async function takeEmailChangeTry(h: Hybrid, listenerId: string, maxAttem
   return [{ new_email: String(out['newEmail']), code_hash: out['codeHash'] as Uint8Array, old_code_hash: (out['oldCodeHash'] as Uint8Array | undefined) ?? null, tries: Number(out['tries']) }];
 }
 
-export async function deleteEmailChange(h: Hybrid, listenerId: string): Promise<void> {
+export async function deleteEmailChange(h: Ctx, listenerId: string): Promise<void> {
   await adel(h.store, 'main', EMAILCHG(listenerId));
 }
 
-export async function switchEmail(h: Hybrid, listenerId: string, old: string, to: string, keep: Buffer): Promise<false | { signedOut: number }> {
+export async function switchEmail(h: Ctx, listenerId: string, old: string, to: string, keep: Buffer): Promise<false | { signedOut: number }> {
   const t = txa(h.store)
     .update('main', K.listener(listenerId), { update: 'SET email = :to', condition: 'attribute_exists(PK)', values: { ':to': to } })
     .delete('main', K.U.email(old), { condition: 'attribute_not_exists(PK) OR owner = :me', values: { ':me': listenerId } })
@@ -117,7 +116,6 @@ export async function switchEmail(h: Hybrid, listenerId: string, old: string, to
     if (e instanceof TxCancelled && e.failed('unique:EMAIL')) return false;
     throw e;
   }
-  if (bridgeOn(h)) await shadowListener(h.pg, listenerId, 'email', to);
   // Fix F-S (G-M24-FS-2): every other session of this account is signed out; this one stays.
   const keepKey = hashKey(keep);
   let signedOut = 0;
@@ -155,12 +153,12 @@ function cleanRow(row: Record<string, unknown>): Record<string, unknown> {
   return out;
 }
 
-export async function exportData(h: Hybrid, listenerId: string, now = new Date()): Promise<Record<string, unknown>> {
+export async function exportData(h: Ctx, listenerId: string, now = new Date()): Promise<Record<string, unknown>> {
   const profile = await getListener(h, listenerId);
   const out: Record<string, unknown> = { exportedAt: now.toISOString(), format: 'socialnet-export-1', profile: profile ? cleanItem(profile) : null };
-  // Lane PD: the money sections come from the paid lane's items (exportPaidRows), no longer from Postgres.
-  const paid = await exportPaidRows(h.pg, listenerId);
-  for (const [name, sql] of SECTIONS) {
+  // Lane PD: the money sections come from the paid lane's items (exportPaidRows).
+  const paid = await exportPaidRows(h.db, listenerId);
+  for (const name of SECTIONS) {
     const money = paid[name];
     if (money) {
       out[name] = money.map(cleanRow);
@@ -180,12 +178,12 @@ export async function exportData(h: Hybrid, listenerId: string, now = new Date()
     } else if (GRAPH_SECTIONS.has(name)) {
       out[name] = (await graphExportSection(h, name, listenerId)).map(cleanRow); // lane SG's items (follows, playlists)
     } else {
-      // Lane LE: lanes LB's and SC's sections from their items (export-items.ts); SQL only for a section it does not know, and only with the bridge on.
+      // Lane LE: lanes LB's and SC's sections from their items (export-items.ts); a section it does not know is empty.
       const items = await (await import('./export-items.ts')).exportItemsSection(h.store, name, listenerId);
       if (items) {
         out[name] = items.map((i) => { const r = cleanItem(i); return 'listener_id' in r || 'author_id' in r ? r : { listener_id: listenerId, ...r }; });
       } else {
-        out[name] = bridgeOn(h) ? (await exportSection(h.pg, sql, listenerId)).map(cleanRow) : [];
+        out[name] = [];
       }
     }
   }

@@ -22,7 +22,7 @@ export async function socialStampRows(store: Store, _db: Db, episodeId: string):
   }];
 }
 
-/** The stored curve as the rows the Postgres `episode_heat` held (buckets with at least one listener). */
+/** The stored curve as heat rows (buckets with at least one listener). */
 export async function episodeHeatRows(store: Store, _db: Db, episodeId: string): Promise<{ bucket: number; distinct_listeners: number }[]> {
   const b = await heatCurve(store, episodeId);
   return b.flatMap((n, bucket) => (n > 0 ? [{ bucket, distinct_listeners: n }] : []));

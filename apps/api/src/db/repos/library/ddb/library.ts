@@ -8,7 +8,6 @@
  * reads filter on `deletedAt` itself.
  */
 import type { Db } from '../../../db.ts';
-import { bridgeOf } from '../../../backend-ddb.ts';
 import { encode, ttlAfter } from '../../../ddb/codec.ts';
 import * as K from '../../../ddb/keys.ts';
 import { queryAll } from '../../../ddb/paginate.ts';
@@ -46,7 +45,7 @@ async function items(store: Store, listenerId: string): Promise<Item[]> {
   return all;
 }
 
-export async function listAll(store: Store, _db: Pick<Db, 'query'>, listenerId: string): Promise<LibraryRow[]> {
+export async function listAll(store: Store, _db: Db, listenerId: string): Promise<LibraryRow[]> {
   const keepAfter = store.clock.now() - TOMBSTONE_DAYS * DAY_MS;
   return (await items(store, listenerId)).map(libraryRow)
     .filter((r) => r.deleted_at === null || Date.parse(r.deleted_at) > keepAfter)
@@ -99,7 +98,5 @@ export async function merge(store: Store, db: Db, listenerId: string, incomingIt
       if ((e as { name?: string })?.name !== 'ConditionalCheckFailedException') throw e;
     });
   }
-  const raw = bridgeOf(db);
-  if (raw) await pg.merge(raw, listenerId, incomingItems);
   return listAll(store, db, listenerId);
 }

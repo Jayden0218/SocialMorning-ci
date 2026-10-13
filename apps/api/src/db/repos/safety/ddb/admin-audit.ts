@@ -17,6 +17,9 @@ const obj = (v: unknown): Record<string, unknown> | null => {
   return typeof x === 'object' && x !== null ? (x as Record<string, unknown>) : { value: x };
 };
 
+/** The audit log keeps a record 2 years: adminTx stamps `ttl` on write (research R13). */
+export { AUDIT_KEEP_DAYS } from '../../../../auth/admin-tx.ts';
+
 const MAX_MONTHS = 36;
 
 export async function listAudit(store: Store, _db: Db, opts: { area?: AuditArea; before?: string }): Promise<{ items: AuditRow[]; next?: string }> {

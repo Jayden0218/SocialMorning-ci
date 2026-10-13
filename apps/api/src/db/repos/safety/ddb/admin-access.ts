@@ -1,22 +1,21 @@
-// Who is admin and the admin record on DynamoDB: one admins item, and every admin write recorded through lane AC's adminTx.
+// Who is admin and the admin record on DynamoDB: one admins item, and every admin write recorded through adminTx.
 /**
- * M26 lane SF (SF-T05; AC-T04's adminTx adopted).
+ * M26 lane SF (adminTx adopted).
  * - Admins: ONE item `CFG#admins` / `V`, a map listenerId → { grantedAt, grantedBy }. "Is admin" is one GetItem;
  *   the M15 rule "there is always at least one admin" (trigger `admins_keep_one`) is one condition on the map's
  *   size when a role is removed (`removeAdmin`). An account deletion takes its entry out without that condition
  *   (the trigger let a deleted listener's row go too).
  * - The record: `adminTx` (src/auth/admin-tx.ts) puts `AUDIT#<yyyy-mm>/<id>` with a numeric id from `SEQ#audit` in
  *   the same TransactWriteItems as the change (≤ 98 items). `adminWrite` runs the route's `write` in an admin
- *   scope (admin-scope.ts): every lane-SF change made there joins that transaction, so change and record commit
+ *   scope (admin-scope.ts): every change made there joins that transaction, so change and record commit
  *   together. Its `after` is read once the change has committed and kept beside the record as `<id>#after` —
  *   the record itself is never updated (append-only, store.ts / append-only.ts, guard G-M26-SF3).
- *   A route whose change is not deferrable (lane AC's listener items, lanes still on Postgres) is recorded
- *   right after it, inside adminWrite's Postgres transaction (the Postgres part rolls back if the record fails).
+ *   A route whose change is not deferrable (the listener items) is recorded right after it.
  */
 import { encode } from '../../../ddb/codec.ts';
 import * as K from '../../../ddb/keys.ts';
 import { get, put, update } from '../../../ddb/store.ts';
-import { adminTx } from '../../../../auth/admin-tx.ts';
+import { adminTx, auditTtl } from '../../../../auth/admin-tx.ts';
 import type { AuditCtx, AuditMeta } from '../../../../auth/admin.ts';
 import { asObject } from '../../admin/admin-access.ts';
 import { inAdminScope, mapFailure, moveActions } from './admin-scope.ts';
@@ -83,11 +82,11 @@ async function putAfter(store: Store, id: number, after: unknown): Promise<void>
     const d = new Date(now);
     at = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 0, 12)).toISOString();
   }
-  await put(store, 'main', encode('audit', K.auditAfter(at, id), { id, after: asObject(after), createdAt: now }), { condition: 'attribute_not_exists(PK)' });
+  await put(store, 'main', encode('audit', K.auditAfter(at, id), { id, after: asObject(after), createdAt: now }, { ttl: auditTtl(now) }), { condition: 'attribute_not_exists(PK)' });
 }
 
 /**
- * M15 T003 on DynamoDB: read before → write → read after → ONE record. The lane-SF changes `write` makes go into
+ * M15 T003 on DynamoDB: read before → write → read after → ONE record. The changes `write` makes go into
  * the record's own transaction (see the file comment).
  */
 export async function adminWrite<T>(store: Store, db: Db, ctx: AuditCtx, meta: AuditMeta, read: (tx: Db) => Promise<unknown>, write: (tx: Db) => Promise<T>): Promise<T> {

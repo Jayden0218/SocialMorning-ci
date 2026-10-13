@@ -22,9 +22,9 @@
  * M22 US16: on a tablet (`useOpensInPane`) a row opens its episode in the right pane
  * (src/ui/shell/ListDetail.tsx) instead of pushing the page; a phone is unchanged.
  */
-import { Link, router } from 'expo-router';
+import { Link, router, useFocusEffect } from 'expo-router';
 import { EpisodePane, ListDetail, useOpensInPane } from '@/ui/shell/ListDetail';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { HISTORY_DELETE_MAX, useM22LibraryApi } from '@/social/api-m22-library';
 import { useConfirm } from '@/ui/kit/confirm';
 import { FlatList } from '@/ui/lib/flat-list';
@@ -89,7 +89,7 @@ export default function HistoryScreen(): React.ReactElement {
   const [selecting, setSelecting] = useState(false);
   const [chosen, setChosen] = useState<ReadonlySet<string>>(NONE);
   const [overLimit, setOverLimit] = useState(false);
-  const [, setVersion] = useState(0);
+  const [version, setVersion] = useState(0);
   const bump = () => setVersion((v) => v + 1);
   const m22 = useM22LibraryApi();
   const toast = useToast();
@@ -102,7 +102,18 @@ export default function HistoryScreen(): React.ReactElement {
     m22.positionIds().then((ids) => { if (live && hideDeletedElsewhere(stores.settings, stores.positions.all(), ids, Date.now()) > 0) bump(); }, () => undefined);
     return () => { live = false; };
   }, [m22, stores, signedIn]);
-  const rows = listeningHistory(stores).filter((r) => (!finished || r.finished) && matchesAll(term, [r.episode.title, stores.feeds.getShow(r.episode.feedUrl)?.title]));
+  // The lag audit (2026-10-04, branch perf): read once per visit (and after a delete), then filter
+  // on each key press — it re-read the whole history (and every show) on every letter typed.
+  useFocusEffect(useCallback(() => { bump(); }, []));
+  const all = useMemo(
+    () => listeningHistory(stores).map((r) => ({ r, showTitle: stores.feeds.getShow(r.episode.feedUrl)?.title })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [stores, version],
+  );
+  const rows = useMemo(
+    () => all.filter(({ r, showTitle }) => (!finished || r.finished) && matchesAll(term, [r.episode.title, showTitle])).map(({ r }) => r),
+    [all, term, finished],
+  );
   const groups = byDay(rows, Date.now());
   const player = usePlayer();
   const m12 = useM12Api();

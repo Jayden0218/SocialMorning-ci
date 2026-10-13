@@ -39,11 +39,6 @@ export const ROTATE_ASK_HEADER = 'x-session-rotate';
 /** … and gets the new token in this response header. */
 export const ROTATED_HEADER = 'x-session-token';
 
-/** The SQL that keeps a session row valid beyond the token match: lifetime and the rotation grace. `s` is the sessions alias. */
-const LIVE_SESSION = `s.created_at > now() - make_interval(days => ${SESSION_MAX_DAYS})
-          AND (s.replaced_at IS NULL OR s.replaced_at > now() - make_interval(secs => ${ROTATE_GRACE_SECONDS}))`;
-export const liveSessionSql = LIVE_SESSION;
-
 /**
  * M25 SB (secret rotation, docs/runbooks/secret-rotation.md): while `PEPPER_NEXT` is set, a token
  * whose row was hashed with the other pepper is re-keyed to the current one the first time it is
@@ -88,7 +83,7 @@ export function cacheablePublicly(res: Response): boolean {
  */
 export async function listenerForToken(db: Db, token: string, pepper: string, pepperNext?: string): Promise<Listener | undefined> {
   await rekey(db, token, pepper, pepperNext);
-  const rows = await listenerForTokenRows(db, tokenHash(token, pepper), LIVE_SESSION, SESSION_IDLE_DAYS, LAST_SEEN_EVERY_MINUTES);
+  const rows = await listenerForTokenRows(db, tokenHash(token, pepper), SESSION_IDLE_DAYS, LAST_SEEN_EVERY_MINUTES);
   return rows[0];
 }
 

@@ -17,6 +17,23 @@
     "SchedulerRoleArn": {
       "Type": "String",
       "Description": "The EventBridge Scheduler role the owner created (<Env>-scheduler-role)."
+    },
+    "AlertEmail": {
+      "Type": "String",
+      "Default": "",
+      "Description": "M28: where the production alarm topic sends email. Empty = the topic has no subscriber."
+    },
+    "ApiReserved": {
+      "Type": "Number",
+      "Default": 0,
+      "MinValue": 0,
+      "Description": "M28: reserved concurrency for the API function. 0 = none (the account limit may not allow one)."
+    },
+    "WorkerReserved": {
+      "Type": "Number",
+      "Default": 0,
+      "MinValue": 0,
+      "Description": "M28: reserved concurrency for the worker function. 0 = none."
     }
   },
   "Conditions": {
@@ -26,6 +43,52 @@
           "Ref": "Env"
         },
         "sm"
+      ]
+    },
+    "HasApiReserved": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "ApiReserved"
+            },
+            0
+          ]
+        }
+      ]
+    },
+    "HasWorkerReserved": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "WorkerReserved"
+            },
+            0
+          ]
+        }
+      ]
+    },
+    "HasAlertEmail": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AlertEmail"
+            },
+            ""
+          ]
+        }
+      ]
+    },
+    "ProdAlertEmail": {
+      "Fn::And": [
+        {
+          "Condition": "IsProd"
+        },
+        {
+          "Condition": "HasAlertEmail"
+        }
       ]
     }
   },
@@ -245,13 +308,7 @@
           ]
         },
         "PointInTimeRecoverySpecification": {
-          "PointInTimeRecoveryEnabled": {
-            "Fn::If": [
-              "IsProd",
-              true,
-              false
-            ]
-          }
+          "PointInTimeRecoveryEnabled": true
         }
       }
     },
@@ -327,13 +384,7 @@
           ]
         },
         "PointInTimeRecoverySpecification": {
-          "PointInTimeRecoveryEnabled": {
-            "Fn::If": [
-              "IsProd",
-              true,
-              false
-            ]
-          }
+          "PointInTimeRecoveryEnabled": true
         }
       }
     },
@@ -430,6 +481,24 @@
         "Role": {
           "Ref": "ApiRoleArn"
         },
+        "ReservedConcurrentExecutions": {
+          "Fn::If": [
+            "HasApiReserved",
+            {
+              "Ref": "ApiReserved"
+            },
+            {
+              "Ref": "AWS::NoValue"
+            }
+          ]
+        },
+        "Environment": {
+          "Variables": {
+            "SECRETS_PATH": {
+              "Fn::Sub": "/${Env}/api/"
+            }
+          }
+        },
         "Code": {
           "ZipFile": "exports.handler = async () => ({ statusCode: 503, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ error: 'not deployed yet' }) });"
         }
@@ -487,8 +556,67 @@
         "Role": {
           "Ref": "ApiRoleArn"
         },
+        "ReservedConcurrentExecutions": {
+          "Fn::If": [
+            "HasWorkerReserved",
+            {
+              "Ref": "WorkerReserved"
+            },
+            {
+              "Ref": "AWS::NoValue"
+            }
+          ]
+        },
+        "Environment": {
+          "Variables": {
+            "SECRETS_PATH": {
+              "Fn::Sub": "/${Env}/api/"
+            },
+            "SECRETS_REQUIRED": "JOB_TOKEN"
+          }
+        },
         "Code": {
           "ZipFile": "exports.handler = async () => ({ statusCode: 503, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ error: 'not deployed yet' }) });"
+        }
+      }
+    },
+    "WorkerDlq": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "QueueName": {
+          "Fn::Sub": "${Env}-worker-dlq"
+        },
+        "MessageRetentionPeriod": 1209600,
+        "SqsManagedSseEnabled": true
+      }
+    },
+    "OutboxFailed": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "QueueName": {
+          "Fn::Sub": "${Env}-outbox-failed"
+        },
+        "MessageRetentionPeriod": 1209600,
+        "SqsManagedSseEnabled": true
+      }
+    },
+    "WorkerAsync": {
+      "Type": "AWS::Lambda::EventInvokeConfig",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "Worker"
+        },
+        "Qualifier": "$LATEST",
+        "MaximumRetryAttempts": 2,
+        "DestinationConfig": {
+          "OnFailure": {
+            "Destination": {
+              "Fn::GetAtt": [
+                "WorkerDlq",
+                "Arn"
+              ]
+            }
+          }
         }
       }
     },
@@ -506,8 +634,20 @@
         },
         "StartingPosition": "LATEST",
         "BatchSize": 50,
+        "ParallelizationFactor": 1,
         "MaximumBatchingWindowInSeconds": 1,
         "MaximumRetryAttempts": 3,
+        "MaximumRecordAgeInSeconds": 3600,
+        "DestinationConfig": {
+          "OnFailure": {
+            "Destination": {
+              "Fn::GetAtt": [
+                "OutboxFailed",
+                "Arn"
+              ]
+            }
+          }
+        },
         "BisectBatchOnFunctionError": true,
         "FunctionResponseTypes": [
           "ReportBatchItemFailures"
@@ -541,7 +681,19 @@
           "RoleArn": {
             "Ref": "SchedulerRoleArn"
           },
-          "Input": "{\"kind\":\"drain\"}"
+          "Input": "{\"kind\":\"drain\"}",
+          "DeadLetterConfig": {
+            "Arn": {
+              "Fn::GetAtt": [
+                "WorkerDlq",
+                "Arn"
+              ]
+            }
+          },
+          "RetryPolicy": {
+            "MaximumRetryAttempts": 2,
+            "MaximumEventAgeInSeconds": 3600
+          }
         }
       }
     },
@@ -565,8 +717,416 @@
           "RoleArn": {
             "Ref": "SchedulerRoleArn"
           },
-          "Input": "{\"kind\":\"jobs\"}"
+          "Input": "{\"kind\":\"jobs\"}",
+          "DeadLetterConfig": {
+            "Arn": {
+              "Fn::GetAtt": [
+                "WorkerDlq",
+                "Arn"
+              ]
+            }
+          },
+          "RetryPolicy": {
+            "MaximumRetryAttempts": 2,
+            "MaximumEventAgeInSeconds": 3600
+          }
         }
+      }
+    },
+    "Alerts": {
+      "Type": "AWS::SNS::Topic",
+      "Condition": "IsProd",
+      "Properties": {
+        "TopicName": "sm-alerts"
+      }
+    },
+    "AlertsEmail": {
+      "Type": "AWS::SNS::Subscription",
+      "Condition": "ProdAlertEmail",
+      "Properties": {
+        "TopicArn": {
+          "Ref": "Alerts"
+        },
+        "Protocol": "email",
+        "Endpoint": {
+          "Ref": "AlertEmail"
+        }
+      }
+    },
+    "AlarmApi5xx": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Condition": "IsProd",
+      "Properties": {
+        "AlarmName": {
+          "Fn::Sub": "${Env}-api-5xx"
+        },
+        "AlarmDescription": "docs/runbooks/alarms.md#api-5xx — The API answered 5 or more server errors in 5 minutes",
+        "Namespace": "AWS/Lambda",
+        "MetricName": "Url5xxCount",
+        "Dimensions": [
+          {
+            "Name": "FunctionName",
+            "Value": {
+              "Ref": "Api"
+            }
+          }
+        ],
+        "Statistic": "Sum",
+        "Period": 300,
+        "EvaluationPeriods": 1,
+        "DatapointsToAlarm": 1,
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "Threshold": 5,
+        "TreatMissingData": "notBreaching",
+        "AlarmActions": [
+          {
+            "Ref": "Alerts"
+          }
+        ],
+        "OKActions": [
+          {
+            "Ref": "Alerts"
+          }
+        ]
+      }
+    },
+    "AlarmApiSlow": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Condition": "IsProd",
+      "Properties": {
+        "AlarmName": {
+          "Fn::Sub": "${Env}-api-slow"
+        },
+        "AlarmDescription": "docs/runbooks/alarms.md#api-slow — The API p95 latency is over 500 ms for 15 minutes",
+        "Namespace": "AWS/Lambda",
+        "MetricName": "UrlRequestLatency",
+        "Dimensions": [
+          {
+            "Name": "FunctionName",
+            "Value": {
+              "Ref": "Api"
+            }
+          }
+        ],
+        "ExtendedStatistic": "p95",
+        "Period": 300,
+        "EvaluationPeriods": 3,
+        "DatapointsToAlarm": 3,
+        "ComparisonOperator": "GreaterThanThreshold",
+        "Threshold": 500,
+        "TreatMissingData": "notBreaching",
+        "AlarmActions": [
+          {
+            "Ref": "Alerts"
+          }
+        ],
+        "OKActions": [
+          {
+            "Ref": "Alerts"
+          }
+        ]
+      }
+    },
+    "AlarmApiThrottled": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Condition": "IsProd",
+      "Properties": {
+        "AlarmName": {
+          "Fn::Sub": "${Env}-api-throttled"
+        },
+        "AlarmDescription": "docs/runbooks/alarms.md#api-throttled — The API function was throttled",
+        "Namespace": "AWS/Lambda",
+        "MetricName": "Throttles",
+        "Dimensions": [
+          {
+            "Name": "FunctionName",
+            "Value": {
+              "Ref": "Api"
+            }
+          }
+        ],
+        "Statistic": "Sum",
+        "Period": 300,
+        "EvaluationPeriods": 1,
+        "DatapointsToAlarm": 1,
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "Threshold": 1,
+        "TreatMissingData": "notBreaching",
+        "AlarmActions": [
+          {
+            "Ref": "Alerts"
+          }
+        ],
+        "OKActions": [
+          {
+            "Ref": "Alerts"
+          }
+        ]
+      }
+    },
+    "AlarmWorkerErrors": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Condition": "IsProd",
+      "Properties": {
+        "AlarmName": {
+          "Fn::Sub": "${Env}-worker-errors"
+        },
+        "AlarmDescription": "docs/runbooks/alarms.md#worker-errors — The worker function failed in two 15-minute periods in a row",
+        "Namespace": "AWS/Lambda",
+        "MetricName": "Errors",
+        "Dimensions": [
+          {
+            "Name": "FunctionName",
+            "Value": {
+              "Ref": "Worker"
+            }
+          }
+        ],
+        "Statistic": "Sum",
+        "Period": 900,
+        "EvaluationPeriods": 2,
+        "DatapointsToAlarm": 2,
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "Threshold": 1,
+        "TreatMissingData": "notBreaching",
+        "AlarmActions": [
+          {
+            "Ref": "Alerts"
+          }
+        ],
+        "OKActions": [
+          {
+            "Ref": "Alerts"
+          }
+        ]
+      }
+    },
+    "AlarmWorkerThrottled": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Condition": "IsProd",
+      "Properties": {
+        "AlarmName": {
+          "Fn::Sub": "${Env}-worker-throttled"
+        },
+        "AlarmDescription": "docs/runbooks/alarms.md#worker-throttled — The worker function was throttled",
+        "Namespace": "AWS/Lambda",
+        "MetricName": "Throttles",
+        "Dimensions": [
+          {
+            "Name": "FunctionName",
+            "Value": {
+              "Ref": "Worker"
+            }
+          }
+        ],
+        "Statistic": "Sum",
+        "Period": 900,
+        "EvaluationPeriods": 1,
+        "DatapointsToAlarm": 1,
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "Threshold": 1,
+        "TreatMissingData": "notBreaching",
+        "AlarmActions": [
+          {
+            "Ref": "Alerts"
+          }
+        ],
+        "OKActions": [
+          {
+            "Ref": "Alerts"
+          }
+        ]
+      }
+    },
+    "AlarmStreamLag": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Condition": "IsProd",
+      "Properties": {
+        "AlarmName": {
+          "Fn::Sub": "${Env}-stream-lag"
+        },
+        "AlarmDescription": "docs/runbooks/alarms.md#stream-lag — The outbox stream is more than 5 minutes behind",
+        "Namespace": "AWS/Lambda",
+        "MetricName": "IteratorAge",
+        "Dimensions": [
+          {
+            "Name": "FunctionName",
+            "Value": {
+              "Ref": "Worker"
+            }
+          }
+        ],
+        "Statistic": "Maximum",
+        "Period": 300,
+        "EvaluationPeriods": 2,
+        "DatapointsToAlarm": 2,
+        "ComparisonOperator": "GreaterThanThreshold",
+        "Threshold": 300000,
+        "TreatMissingData": "notBreaching",
+        "AlarmActions": [
+          {
+            "Ref": "Alerts"
+          }
+        ],
+        "OKActions": [
+          {
+            "Ref": "Alerts"
+          }
+        ]
+      }
+    },
+    "AlarmDlqVisible": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Condition": "IsProd",
+      "Properties": {
+        "AlarmName": {
+          "Fn::Sub": "${Env}-failed-jobs"
+        },
+        "AlarmDescription": "docs/runbooks/alarms.md#failed-jobs — A scheduled or worker invocation failed and is waiting in the dead-letter queue",
+        "Namespace": "AWS/SQS",
+        "MetricName": "ApproximateNumberOfMessagesVisible",
+        "Dimensions": [
+          {
+            "Name": "QueueName",
+            "Value": {
+              "Fn::GetAtt": [
+                "WorkerDlq",
+                "QueueName"
+              ]
+            }
+          }
+        ],
+        "Statistic": "Maximum",
+        "Period": 300,
+        "EvaluationPeriods": 1,
+        "DatapointsToAlarm": 1,
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "Threshold": 1,
+        "TreatMissingData": "notBreaching",
+        "AlarmActions": [
+          {
+            "Ref": "Alerts"
+          }
+        ],
+        "OKActions": [
+          {
+            "Ref": "Alerts"
+          }
+        ]
+      }
+    },
+    "AlarmOutboxFailedVisible": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Condition": "IsProd",
+      "Properties": {
+        "AlarmName": {
+          "Fn::Sub": "${Env}-failed-stream-batches"
+        },
+        "AlarmDescription": "docs/runbooks/alarms.md#failed-stream-batches — A stream batch was given up on and is waiting in the failed-batches queue",
+        "Namespace": "AWS/SQS",
+        "MetricName": "ApproximateNumberOfMessagesVisible",
+        "Dimensions": [
+          {
+            "Name": "QueueName",
+            "Value": {
+              "Fn::GetAtt": [
+                "OutboxFailed",
+                "QueueName"
+              ]
+            }
+          }
+        ],
+        "Statistic": "Maximum",
+        "Period": 300,
+        "EvaluationPeriods": 1,
+        "DatapointsToAlarm": 1,
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "Threshold": 1,
+        "TreatMissingData": "notBreaching",
+        "AlarmActions": [
+          {
+            "Ref": "Alerts"
+          }
+        ],
+        "OKActions": [
+          {
+            "Ref": "Alerts"
+          }
+        ]
+      }
+    },
+    "AlarmTableReadThrottle": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Condition": "IsProd",
+      "Properties": {
+        "AlarmName": {
+          "Fn::Sub": "${Env}-table-reads-throttled"
+        },
+        "AlarmDescription": "docs/runbooks/alarms.md#table-reads-throttled — Reads on the main table were throttled",
+        "Namespace": "AWS/DynamoDB",
+        "MetricName": "ReadThrottleEvents",
+        "Dimensions": [
+          {
+            "Name": "TableName",
+            "Value": {
+              "Ref": "Main"
+            }
+          }
+        ],
+        "Statistic": "Sum",
+        "Period": 300,
+        "EvaluationPeriods": 1,
+        "DatapointsToAlarm": 1,
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "Threshold": 1,
+        "TreatMissingData": "notBreaching",
+        "AlarmActions": [
+          {
+            "Ref": "Alerts"
+          }
+        ],
+        "OKActions": [
+          {
+            "Ref": "Alerts"
+          }
+        ]
+      }
+    },
+    "AlarmTableWriteThrottle": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Condition": "IsProd",
+      "Properties": {
+        "AlarmName": {
+          "Fn::Sub": "${Env}-table-writes-throttled"
+        },
+        "AlarmDescription": "docs/runbooks/alarms.md#table-writes-throttled — Writes on the main table were throttled",
+        "Namespace": "AWS/DynamoDB",
+        "MetricName": "WriteThrottleEvents",
+        "Dimensions": [
+          {
+            "Name": "TableName",
+            "Value": {
+              "Ref": "Main"
+            }
+          }
+        ],
+        "Statistic": "Sum",
+        "Period": 300,
+        "EvaluationPeriods": 1,
+        "DatapointsToAlarm": 1,
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "Threshold": 1,
+        "TreatMissingData": "notBreaching",
+        "AlarmActions": [
+          {
+            "Ref": "Alerts"
+          }
+        ],
+        "OKActions": [
+          {
+            "Ref": "Alerts"
+          }
+        ]
       }
     }
   },
@@ -578,6 +1138,13 @@
           "ApiUrl",
           "FunctionUrl"
         ]
+      }
+    },
+    "AlertsTopicArn": {
+      "Condition": "IsProd",
+      "Description": "M28: the production alarm topic.",
+      "Value": {
+        "Ref": "Alerts"
       }
     }
   }

@@ -80,3 +80,109 @@ test('each deploy workflow uses its own environment only (names, secrets, role p
   assert.ok(!/secrets\.STG_|\bstg-/.test(prod), 'prod reaches for a staging secret or name');
   assert.ok(/APP_ENV":"staging"/.test(stg) && /APP_ENV":"prod"/.test(prod));
 });
+
+test('M28 US3: prod passes the alarm email from PROD_ALERT_EMAIL and reports whether it is confirmed; staging passes none', { skip: !present && 'private-repo only' }, () => {
+  const prod = read(PRIVATE, 'deploy-prod.yml');
+  const stg = read(PRIVATE, 'deploy-staging.yml');
+  assert.match(prod, /ALERT_EMAIL_PARAM: \$\{\{ secrets\.PROD_ALERT_EMAIL \}\}/);
+  assert.match(prod, /ParameterKey=AlertEmail,ParameterValue=\$ALERT_EMAIL_PARAM/);
+  assert.match(prod, /alarm email: \$ALARM_EMAIL/);
+  for (const word of ['confirmed', 'NOT CONFIRMED', 'NOT SET']) assert.ok(prod.includes(word), `summary word ${word}`);
+  assert.match(prod, /sns list-subscriptions-by-topic/);
+  assert.match(stg, /ParameterKey=AlertEmail,ParameterValue="/, 'staging passes an empty address');
+  assert.ok(!/secrets\.PROD_ALERT_EMAIL/.test(stg));
+});
+
+// M28 US4: the nightly DynamoDB backup is private-repo only, like the deploy workflows.
+const BACKUP = 'backup-ddb.yml';
+const backupPresent = existsSync(join(PRIVATE, BACKUP));
+const PUSH_CI = join(ROOT, 'scripts/push-ci.sh');
+
+test('M28 US4: backup-ddb.yml is never in the public mirror: not in ci/workflows/, and push-ci.sh refuses it twice', () => {
+  assert.ok(!existsSync(join(MIRRORED, BACKUP)), `${BACKUP} must not be under ci/workflows/ (it is copied to the public mirror)`);
+  if (!existsSync(PUSH_CI)) return; // the mirror has no scripts/push-ci.sh
+  const sh = readFileSync(PUSH_CI, 'utf8');
+  assert.match(sh, /case "\$\(basename "\$w"\)" in backup\.yml\|backup-ddb\.yml\)/, 'push-ci.sh does not refuse a backup-ddb.yml in ci/workflows/');
+  assert.match(sh, /for b in backup\.yml backup-ddb\.yml; do\s+if \[ -e "\$MIRROR\/\.github\/workflows\/\$b" \]/, 'push-ci.sh does not check the mirror tree for backup-ddb.yml');
+});
+
+test('M28 US4: backup-ddb.yml runs nightly and by hand, signs in with the backup role pinned to a commit, encrypts with age, keeps 30 days, and preflights', { skip: !backupPresent && 'private-repo only' }, () => {
+  const t = read(PRIVATE, BACKUP);
+  assert.deepEqual(triggers(t), ['schedule', 'workflow_dispatch']);
+  assert.match(t, /cron: '30 19 \* \* \*'/);
+  assert.match(t, /options: \[sm, stg\]/);
+  assert.match(t, /role-to-assume: \$\{\{ env\.AWS_BACKUP_ROLE_ARN \}\}/);
+  assert.match(t, /AWS_BACKUP_ROLE_ARN: \$\{\{ vars\.AWS_BACKUP_ROLE_ARN \}\}/);
+  assert.ok(!/AWS_DEPLOY_ROLE_ARN/.test(t), 'the backup never uses the deploy role');
+  for (const ref of [...t.matchAll(/aws-actions\/configure-aws-credentials@(\S+)/g)].map((m) => m[1]!)) assert.match(ref, /^[0-9a-f]{40}$/, `${ref} is not a 40-hex commit SHA`);
+  assert.match(t, /age --encrypt --recipient "\$BACKUP_AGE_RECIPIENT"/);
+  assert.match(t, /retention-days: 30/);
+  // The preflight refuses (exit 1) without the role or the recipient, and runs before anything is installed or signed in.
+  const pre = t.indexOf('- name: preflight');
+  assert.ok(pre > 0 && pre < t.indexOf('npm ci') && pre < t.indexOf('configure-aws-credentials@e'), 'the preflight must come first');
+  assert.match(t, /backup refused: the variable AWS_BACKUP_ROLE_ARN is not set/);
+  assert.match(t, /backup refused: the variable BACKUP_AGE_RECIPIENT .* is not set/);
+  assert.match(t, /\[ "\$fail" -eq 0 \] \|\| exit 1/);
+});
+
+// M28 US6 (G-M28-SECRET): `secrets_from: ssm` keeps every secret value out of the function environment. The step's own bash is run here.
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+
+/** The script of the step that sets the functions' environment, cut off before the first AWS call (`for pair in`), de-indented. */
+function envScript(text: string): string {
+  const at = text.indexOf('- name: upload the code and set the environment of both functions');
+  assert.ok(at > 0, 'no env step');
+  const run = text.indexOf('run: |\n', at) + 'run: |\n'.length;
+  const body = text.slice(run, text.indexOf('          for pair in', run));
+  return body.split('\n').map((l) => l.replace(/^ {10}/, '')).join('\n');
+}
+
+const SECRET_NAMES = ['SESSION_PEPPER', 'PEPPER_NEXT', 'JOB_TOKEN', 'CURSOR_SECRET', 'GMAIL_APP_PASSWORD', 'GROQ_API_KEY', 'BLOB_READ_WRITE_TOKEN', 'EPISODES_READ_WRITE_TOKEN', 'IMAGES_READ_WRITE_TOKEN'];
+const PLAIN_NAMES = ['GMAIL_USER', 'OWNER_LISTENER_ID', 'APPEALS_EMAIL', 'ALERT_EMAIL'];
+
+/** Runs the script with every name set to a recognisable made-up value; returns the two JSON files it writes. */
+function runEnvStep(file: string, secretsFrom: 'github' | 'ssm'): { api: Record<string, string>; worker: Record<string, string> } | { failed: string } {
+  const dir = mkdtempSync(join(tmpdir(), 'm28-env-'));
+  try {
+    const env: Record<string, string> = { PATH: process.env['PATH'] ?? '', RUNNER_TEMP: dir, ENV_NAME: file.includes('prod') ? 'sm' : 'stg', SECRETS_FROM: secretsFrom };
+    
+    for (const n of SECRET_NAMES) env[n] = `value-of-${n}`; // worst case: even if the step were handed them under ssm, the script must not forward them
+    for (const n of PLAIN_NAMES) env[n] = `value-of-${n}`;
+    const script = `${envScript(read(PRIVATE, file))}\nprintf '%s' "$(cat "$RUNNER_TEMP/lambda-env-api.json")"; printf '\\n===\\n'; printf '%s' "$(cat "$RUNNER_TEMP/lambda-env-worker.json")"`;
+    let out: string;
+    try { out = execFileSync('bash', ['-c', script], { env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }); } catch (e) { return { failed: String((e as { stderr?: string }).stderr) }; }
+    const [a, w] = out.split('\n===\n');
+    return { api: JSON.parse(a!).Variables, worker: JSON.parse(w!).Variables };
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+}
+
+for (const f of DEPLOY) {
+  test(`M28 US6 G-M28-SECRET: ${f} with secrets_from=ssm puts no secret value in the environment JSON; only SECRETS_PATH and the non-secret names`, { skip: !present && 'private-repo only' }, () => {
+    const r = runEnvStep(f, 'ssm');
+    assert.ok(!('failed' in r), 'failed' in r ? r.failed : '');
+    const env = f.includes('prod') ? 'sm' : 'stg';
+    const keys = Object.keys(r.api).sort();
+    assert.deepEqual(keys, ['APP_ENV', 'DATA_BACKEND', 'DDB_TABLE_PREFIX', 'SECRETS_PATH', ...PLAIN_NAMES].sort());
+    assert.equal(r.api['SECRETS_PATH'], `/${env}/api/`);
+    for (const v of Object.values(r.api)) assert.ok(!SECRET_NAMES.some((n) => v.includes(`value-of-${n}`)), 'a secret value is in the JSON');
+    for (const k of SECRET_NAMES) assert.ok(!(k in r.api) && !(k in r.worker), `${k} must not be in the function environment`);
+    assert.deepEqual(r.worker, { ...r.api, SECRETS_REQUIRED: 'JOB_TOKEN' }, 'the worker also requires JOB_TOKEN');
+  });
+
+  test(`M28 US6: ${f} with secrets_from=github is today's environment plus PEPPER_NEXT (the M25 rotation works on AWS), and SECRETS_PATH is absent`, { skip: !present && 'private-repo only' }, () => {
+    const r = runEnvStep(f, 'github');
+    assert.ok(!('failed' in r), 'failed' in r ? r.failed : '');
+    for (const k of [...SECRET_NAMES, ...PLAIN_NAMES]) assert.equal(r.api[k], `value-of-${k}`, `${k} reaches the function`);
+    assert.equal('SECRETS_PATH' in r.api, false, 'without SECRETS_PATH the Lambda reads its environment');
+    assert.deepEqual(r.worker, r.api);
+  });
+
+  test(`M28 US6: ${f} takes the input secrets_from (github | ssm, default github), withholds secrets from the step under ssm, and says which in the summary`, { skip: !present && 'private-repo only' }, () => {
+    const t = read(PRIVATE, f);
+    assert.match(t, /secrets_from:\n(?: {8}.*\n)*? {8}options: \[github, ssm\]\n {8}default: github/);
+    for (const n of SECRET_NAMES) assert.match(t, new RegExp(`${n}: \\$\\{\\{ inputs\\.secrets_from == 'github' && secrets\\.\\w+_${n} \\|\\| '' \\}\\}`), `${n} must be withheld under ssm`);
+    assert.match(t, /echo "- secrets: \$SECRETS_FROM"/);
+  });
+}

@@ -13,7 +13,7 @@
  *   picture moves through `setCommentImage`.
  * - The show's comments are lane SC's items, read per episode of the show (G2) in parallel; one load serves the calls of
  *   one request that run together (common.ts `shared`). Host hide/unhide is lane SC's `setCommentHostHidden` (heat,
- *   counts, stamp); the moderation record is lane SF's `MA#` item (+ its bridge row); the feed item is lane SG's
+ *   counts, stamp); the moderation record is lane SF's `MA#` item ; the feed item is lane SG's
  *   (`removeActivityByRef` / `recordActivity`); /mod's "latest host hides" is `CFG#host-hides/<at>#<commentId>`.
  */
 import { randomUUID } from 'node:crypto';
@@ -33,7 +33,7 @@ import type { ImageStorage } from '../../../../storage/image-store.ts';
 import { heldToPublic, type CommentMode, type PendingComment } from '../comment-policy.ts';
 import type { StudioComment } from '../studio-comments.ts';
 import { provenOf } from './claims.ts';
-import { bridgeOf, episodesById, getMany, isUuid, keyOf, listenersById, mapLimit, nowIso, nowMs, partition, shared, showEpisodes, str, type Db } from './common.ts';
+import { episodesById, getMany, isUuid, keyOf, listenersById, mapLimit, nowIso, nowMs, partition, shared, showEpisodes, str, type Db } from './common.ts';
 
 // ---- the policy ----
 
@@ -356,7 +356,7 @@ export async function setHostHidden(store: Store, db: Db, feedUrl: string, id: s
   const c = await commentOnFeed(store, db, feedUrl, id);
   if (!c) throw new ApiError('not_found', 'No such comment on this show.');
   const before = await commentItemById(store, id);
-  // Lane SC's setter: the comment's flag, its heat mark, the top-level count and the poll stamp (+ its bridge row).
+  // Lane SC's setter: the comment's flag, its heat mark, the top-level count and the poll stamp.
   if (!(await setCommentHostHidden(db, id, hidden ? actorId : null))) return; // already in that state: nothing to log
   const at = nowIso(store);
   const actionId = randomUUID();
@@ -368,8 +368,6 @@ export async function setHostHidden(store: Store, db: Db, feedUrl: string, id: s
   if (hidden) t.put('main', encode('hostHide', K.hostHide(at, id), { commentId: id, episodeId: c.episode_id, feedUrl, by: actorId, at }));
   else if (before?.['hostHiddenAt']) t.delete('main', K.hostHide(String(before['hostHiddenAt']), id));
   await t.commit();
-  const raw = bridgeOf(db);
-  if (raw) await raw.query("INSERT INTO moderation_actions (id, actor_id, action, target_kind, target_id, created_at) VALUES ($1, $2, $3, 'comment', $4, $5)", [actionId, actorId, action, id, at]);
   // A top-level comment is a feed item (M4): it leaves the feeds while hidden and comes back after (lane SG).
   if (c.parent_id === null && c.author_id) {
     if (hidden) await removeActivityByRef(store, db, 'commented', id);

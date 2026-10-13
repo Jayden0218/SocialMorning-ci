@@ -145,8 +145,7 @@ export function registerLists(admin: Hono<AdminEnv>): void {
     return c.json(await hiddenNow(c.get('db')));
   });
 
-  // Reads through the transaction it is given: a read on the outer handle inside adminWrite would
-  // wait for the transaction itself (PGlite has one connection) — a hang, seen in gate 37728987239.
+  // Reads through the handle adminWrite gives it.
   const epRead = (url: string, g: string) => async (tx: AdminEnv['Variables']['db']) => {
     const [r] = await hiddenEpisodeReason(tx, url, g);
     return { hidden: Boolean(r), reason: r?.reason ?? null };

@@ -1,6 +1,6 @@
 // Translation on DynamoDB: the Groq usage ledger, jobs with chunked segments, finished translations in chunks, the /mod allow-list.
 /**
- * M26 lane SF (data-model.md "Lane SF changes", §13). Bodies for `dual('sf/translation', …)` in ../translation.ts.
+ * Data-model.md §13. Bodies for `viaStore('sf/translation', …)` in ../translation.ts.
  *
  * - Job `TRJOB#<ep>#<lang> / J` (type translationJob). The whole-episode `segments` JSON (it can pass 400 KB) is
  *   NOT on the job: it is cut into `SEG#0000…` items under the same partition (≤ 100 000 UTF-16 units each, so
@@ -16,7 +16,7 @@
  *   a missing piece reads as "not translated".
  * - Allow-list `CFG#translation-shows / <feedKey>`; Groq ledger `GROQ#<utc day> / <model>` in sm-events, one
  *   atomic ADD per call. "Today" and every "now()" is the Store clock.
- * Every "UPDATE … WHERE" that matched no row in Postgres is a condition here that is swallowed (no row, no change).
+ * An update of a row that is gone is a condition here that is swallowed (no row, no change).
  */
 import { randomUUID } from 'node:crypto';
 import type { NativeAttributeValue } from '@aws-sdk/lib-dynamodb';
@@ -29,7 +29,7 @@ import { del, get, put, update } from '../../../ddb/store.ts';
 import { MAX_TX_ITEMS, TxCancelled, tx, type Tx } from '../../../ddb/tx.ts';
 import type { JobState, TargetLang } from '../../../../translate/job.ts';
 import type { OfferedEpisodeRow, TranslationJobRow } from '../translation.ts';
-import { DAY_MS, getMany, iso, keyOf, nowIso, nowMs, partition, pgOf, queue, unlessCondition, type Db, type Item, type Key, type Store } from './common.ts';
+import { DAY_MS, getMany, iso, keyOf, nowIso, nowMs, partition, queue, unlessCondition, type Db, type Item, type Key, type Store } from './common.ts';
 
 const ACTIVE = new Set(['queued', 'transcribing', 'translating']);
 /** UTF-16 units per piece: ≤ 3 UTF-8 bytes each → ≤ 300 000 bytes, under the 400 KB item limit. */
@@ -312,7 +312,7 @@ export async function finishTranslationJob(store: Store, _db: Db, episodeId: str
   try {
     await run(job !== undefined);
   } catch (e) {
-    // The job went away between the read and the write: the translation is still stored (Postgres: the UPDATE matched no row).
+    // The job went away between the read and the write: the translation is still stored.
     if (!(job !== undefined && e instanceof TxCancelled && e.failed('job'))) throw e;
     await run(false);
   }
@@ -353,7 +353,7 @@ export async function translationQueueRows(store: Store, _db: Db): Promise<{ epi
 
 // ---- /mod allow-list
 
-/** Title = the show override's, else the live hosted show's (lane ST, still Postgres), else the newest episode's show title (LB's show META). */
+/** Title = the show override's, else the live hosted show's, else the newest episode's show title (LB's show META). */
 export async function listTranslationShows(store: Store, db: Db): Promise<{ feed_url: string; created_at: Date | string; title: string | null }[]> {
   const items = await partition(store, 'main', K.translationShow('').PK);
   if (items.length === 0) return [];

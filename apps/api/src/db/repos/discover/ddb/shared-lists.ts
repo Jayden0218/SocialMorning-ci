@@ -1,10 +1,8 @@
 // The shows of a shared list on DynamoDB: lane ST's overrides first, else lane LB's show META, hidden shows left out.
 /**
- * M26 lane DV (DV-96, lane ST's request: `show_overrides` is no longer in Postgres). In list order: the title and cover
+ * In list order: the title and cover
  * the host set (lane ST's `overridesOf`), else the newest dated episode's (lane LB's show META `newestTitle` /
  * `newestImage` — the SQL's `ORDER BY published_at DESC NULLS LAST`); a show moderation hid is left out.
- * The `shared_lists` table itself is still Postgres (lane SF's moderation and lane AC's export read it there) — listed
- * for CUT.
  */
 import type { Db } from '../../../db.ts';
 import * as K from '../../../ddb/keys.ts';

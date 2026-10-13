@@ -1,18 +1,9 @@
-// Rebuilds an episode's reaction heat curve, counting each listener once per segment.
+// An episode's heat curve is kept live by the writes themselves (heat/ddb.ts); there is nothing to rebuild.
 import type { Db } from '../db/db.ts';
-import { clearEpisodeHeat, insertEpisodeHeat } from '../db/repos/library/heat.ts';
 
 /**
- * Research R4 / data-model.md "Heat rebuild": one episode's 100 segments, rebuilt inside
- * the writing transaction. A listener counts ONCE per bucket across reactions and
- * timestamped comments — that is the `UNION` (not `UNION ALL`) and the `count(DISTINCT …)`
- * in `insertEpisodeHeat`. Guard G7 is the test that fails if either is "simplified".
- *
- * Skipped while the episode's duration is unknown (FR-021): there is no bucket without a
- * length. When a duration arrives, the caller runs this once and the moments already
- * stored fall into their buckets.
+ * Kept for the write paths that call it after a comment or reaction change: the marks and the curve are
+ * updated inside the writing transaction (`addHeatMark` / `removeHeatMark`), and comments parked without an
+ * episode length are placed by the `heat.place` job that `writeEpisode` enqueues.
  */
-export async function rebuildEpisodeHeat(db: Db, episodeId: string): Promise<void> {
-  await clearEpisodeHeat(db, episodeId);
-  await insertEpisodeHeat(db, episodeId);
-}
+export async function rebuildEpisodeHeat(_db: Db, _episodeId: string): Promise<void> {}
