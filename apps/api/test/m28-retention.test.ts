@@ -8,13 +8,16 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 
 const API = new URL('..', import.meta.url).pathname;
 const SRC = join(API, 'src');
 const SCHEDULE = join(API, '../../docs/legal/retention-schedule.md');
 const POLICY = join(API, '../../docs/legal/privacy-policy.md');
+// docs/ never reaches the public CI mirror (scripts/push-ci.sh): there these guards skip, as the deploy-workflow ones do.
+const DOCS = existsSync(SCHEDULE) && existsSync(POLICY);
+const onlyWithDocs = { skip: !DOCS && 'docs/legal is private-repo only (not in the mirror)' };
 
 type Row = { constant: string; module: string; days: number };
 
@@ -54,7 +57,7 @@ function codeConstants(): { constant: string; module: string; days: number }[] {
   return out;
 }
 
-test('G-M28-RET: every constant the schedule names exists in its module and equals the days in its row', async () => {
+test('G-M28-RET: every constant the schedule names exists in its module and equals the days in its row', onlyWithDocs, async () => {
   const rows = scheduleRows();
   assert.ok(rows.length >= 25, `the schedule has ${rows.length} rows with a constant`);
   const wrong: string[] = [];
@@ -67,18 +70,18 @@ test('G-M28-RET: every constant the schedule names exists in its module and equa
   assert.deepEqual(wrong, [], 'retention-schedule.md and the code disagree');
 });
 
-test('G-M28-RET: no constant is named by two rows', () => {
+test('G-M28-RET: no constant is named by two rows', onlyWithDocs, () => {
   const keys = scheduleRows().map((r) => `${r.module}#${r.constant}`);
   assert.deepEqual(keys.filter((k, i) => keys.indexOf(k) !== i), [], 'a row is repeated');
 });
 
-test('G-M28-RET: every exported *_DAYS / KEEP_DAYS constant under src/db/repos and src/auth has a row', () => {
+test('G-M28-RET: every exported *_DAYS / KEEP_DAYS constant under src/db/repos and src/auth has a row', onlyWithDocs, () => {
   const rows = new Set(scheduleRows().map((r) => `${r.module}#${r.constant}`));
   const missing = codeConstants().filter((c) => !rows.has(`${c.module}#${c.constant}`)).map((c) => `${c.constant} (${c.module}) = ${c.days}`);
   assert.deepEqual(missing, [], 'add a row to docs/legal/retention-schedule.md for each of these');
   assert.ok(codeConstants().length >= 25, 'the scan found the constants');
 });
 
-test('G-M28-RET: the privacy policy links to the retention schedule', () => {
+test('G-M28-RET: the privacy policy links to the retention schedule', onlyWithDocs, () => {
   assert.match(readFileSync(POLICY, 'utf8'), /\(retention-schedule\.md\)/, 'privacy-policy.md must link to retention-schedule.md');
 });
