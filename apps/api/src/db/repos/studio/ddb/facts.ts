@@ -28,6 +28,7 @@ import { mergeRanges, unionLength, type Range } from '@socialmorning/social-core
 import { encode, ttlAfter } from '../../../ddb/codec.ts';
 import * as K from '../../../ddb/keys.ts';
 import { queryAll } from '../../../ddb/paginate.ts';
+import { queryDay } from '../../../ddb/day-index.ts';
 import { withRetry, isConditionFailed, isConflict } from '../../../ddb/retry.ts';
 import { nextSeq } from '../../../ddb/seq.ts';
 import { get, type Item, type Store } from '../../../ddb/store.ts';
@@ -254,9 +255,7 @@ export async function storedDay(store: Store, fk: string, day: string): Promise<
  * recounted and each rollup that differs is set to the recount. Returns how many rollup items were repaired.
  */
 export async function checkRollups(store: Store, day: string): Promise<number> {
-  const { items } = await queryAll(store, 'events', {
-    IndexName: K.INDEX.E1, KeyConditionExpression: 'E1PK = :d AND begins_with(E1SK, :p)', ExpressionAttributeValues: { ':d': `DAY#${day}`, ':p': 'st#' },
-  });
+  const items = await queryDay(store, day, { condition: 'begins_with(E1SK, :p)', values: { ':p': 'st#' } });
   const shows = new Set(items.map((i) => String(i['E1SK']).split('#')[1]!));
   let fixed = 0;
   for (const fk of shows) {

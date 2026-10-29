@@ -7,10 +7,12 @@
 import { type ScrollViewProps, type ViewProps } from 'react-native';
 import { ScrollView } from '@/ui/lib/scroll-view';
 import { Box } from '@/ui/lib/box';
+import { bars } from '@/design';
 
 /** Height of the mini player and the tab bar, so lists can reserve room for both. */
-export const MINI_PLAYER_HEIGHT = 64;
-export const TAB_BAR_HEIGHT = 56;
+// M31 (Pulse bars): the tab bar is 58; the now bar is 58 and floats 8 above it, so it takes 66.
+export const MINI_PLAYER_HEIGHT = bars.now + bars.nowGap;
+export const TAB_BAR_HEIGHT = bars.tab;
 export const BOTTOM_INSET = MINI_PLAYER_HEIGHT + TAB_BAR_HEIGHT;
 /**
  * The end of a TAB page's scroll (Discover, Updates, Me, Chat). The tab layout draws the mini

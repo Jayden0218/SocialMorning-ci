@@ -46,6 +46,7 @@ import { removeImagesFor } from '../../social/comment-images.ts';
 import { adel, DAY_MS, getListener, iso, nowMs, partitionItems, txa, unlessCondition, upd, type Ctx } from './common.ts';
 import { deleteSessionChain } from './sessions.ts';
 import { graphDeletionStep } from '../../social/graph-ddb/deletion.ts';
+import { log } from '../../../../log.ts';
 
 const DELETION = (id: string) => K.listenerSingleton(id, 'DELETION');
 export const DELETE_JOB = 'delete';
@@ -101,9 +102,9 @@ function deletionStep(h: Ctx, stores: DeletionStores, listenerId: string): JobSt
     switch (phase) {
       case 'blobs': {
         // M12 FR-104, M20 US9, M19 US1: the listener's stored files go before their rows (errors logged, as before).
-        if (stores.voice) { try { await removeAllFor(h.db, stores.voice, listenerId, stores.images); } catch (e) { console.error('voice cleanup on delete', e); } }
-        if (stores.images) { try { await removeImagesFor(h.db, stores.images, listenerId); } catch (e) { console.error('image cleanup on delete', e); } }
-        if (stores.avatars) { try { const a = (await getListener(h, listenerId))?.avatarUrl; if (a) await stores.avatars.remove(a); } catch (e) { console.error('avatar cleanup on delete', e); } }
+        if (stores.voice) { try { await removeAllFor(h.db, stores.voice, listenerId, stores.images); } catch (e) { log.error('delete_voice_cleanup_failed', { error: e }); } }
+        if (stores.images) { try { await removeImagesFor(h.db, stores.images, listenerId); } catch (e) { log.error('delete_image_cleanup_failed', { error: e }); } }
+        if (stores.avatars) { try { const a = (await getListener(h, listenerId))?.avatarUrl; if (a) await stores.avatars.remove(a); } catch (e) { log.error('delete_avatar_cleanup_failed', { error: e }); } }
         return next('blobs');
       }
       case 'others':
@@ -231,7 +232,7 @@ export async function runDueDeletions(h: Ctx, stores: DeletionStores, limit = 20
   let deleted = 0;
   let failed = 0;
   const resumeStep: JobStep = (store, job) => deletionStep(h, stores, job.id)(store, job);
-  try { deleted += await resumeJobs(h.store, DELETE_JOB, resumeStep, { max: limit, maxSteps: 1000 }); } catch (e) { failed++; console.error('a deletion job failed again; retried next cycle', e instanceof Error ? e.message : String(e)); }
+  try { deleted += await resumeJobs(h.store, DELETE_JOB, resumeStep, { max: limit, maxSteps: 1000 }); } catch (e) { failed++; log.error('delete_job_failed_again', { error: e }); }
   const { items } = await queryAll(h.store, 'main', {
     IndexName: K.INDEX.G4, KeyConditionExpression: 'G4PK = :q AND G4SK <= :now', ExpressionAttributeValues: { ':q': 'Q#deletions', ':now': `${iso(nowMs(h))}#~` },
   }, { max: Math.max(1, Math.floor(limit)) });
@@ -245,7 +246,7 @@ export async function runDueDeletions(h: Ctx, stores: DeletionStores, limit = 20
       if (await runDeletionJob(h, stores, id)) deleted++;
     } catch (e) {
       failed++;
-      console.error('due deletion failed; retried next cycle', e instanceof Error ? e.message : String(e));
+      log.error('delete_due_failed', { error: e });
     }
   }
   return { deleted, failed };

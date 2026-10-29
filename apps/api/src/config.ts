@@ -148,3 +148,38 @@ export async function depsFromEnv(env: Env = process.env, opts: { ssm?: SsmLike;
   });
   return deps;
 }
+
+/**
+ * M32 D11: every other environment read goes through these getters, so no module captures a value at import and a rotated
+ * secret (Parameter Store refresh copies new values into `process.env` every 15 minutes) applies on the next use, without a cold start.
+ * Each call reads `process.env` again.
+ */
+const read = (name: string): string | undefined => process.env[name];
+/** The episode / launch-image Blob read-write token. Read per use. */
+export const episodesBlobToken = (): string | undefined => read('EPISODES_READ_WRITE_TOKEN');
+/** The voice-post Blob read-write token. Read per use. */
+export const voiceBlobToken = (): string | undefined => read('BLOB_READ_WRITE_TOKEN');
+export const groqApiKey = (): string | undefined => read('GROQ_API_KEY');
+/** The shared secret the Vercel edge proxy signs with (empty when unset). */
+export const edgeSecret = (): string => read('EDGE_SECRET') ?? '';
+/** The raw CODE_DAILY_CAP text (the caller validates it). */
+export const codeDailyCapRaw = (): string | undefined => read('CODE_DAILY_CAP');
+export const feedbackImageCeilingRaw = (): string | undefined => read('FEEDBACK_IMAGE_CEILING_BYTES');
+export const studioUrl = (): string => read('STUDIO_URL') ?? 'https://socialmorning-studio.vercel.app';
+/** The alert recipient, or undefined when unset or empty. */
+export const alertEmail = (): string | undefined => read('ALERT_EMAIL') || undefined;
+export const awsRegionEnv = (): string | undefined => read('AWS_REGION');
+/**
+ * DDB_LOW_THROUGHPUT=1 says the tables' indexes are provisioned small (the dev/qa environments of spec 032 give them 1 RCU).
+ * Nothing else in config or the table definitions tells on-demand from provisioned. The day-index reads then take one UTC
+ * day (nine Queries) at a time instead of six; the throttle retry in `queryDay` is on either way.
+ */
+export const ddbLowThroughput = (): boolean => read('DDB_LOW_THROUGHPUT') === '1';
+export const ddbEndpointEnv = (): string | undefined => read('DDB_ENDPOINT');
+export const port = (): number => Number(read('PORT') ?? 3000);
+export const imageCeilingBytesEnv = (): number => Number(read('IMAGE_CEILING_BYTES')) || 500_000_000;
+export const publicApiUrl = (): string => read('PUBLIC_API_URL') ?? 'https://socialmorning-api.vercel.app';
+export const maintenanceUntil = (): string | undefined => read('MAINTENANCE_UNTIL');
+export const maintenanceMessage = (): string => read('MAINTENANCE_MESSAGE') || 'SocialNet is being updated.';
+/** Log level threshold for src/log.ts: debug | info | warn | error (default info). */
+export const logLevel = (): string => (read('LOG_LEVEL') ?? 'info').toLowerCase();

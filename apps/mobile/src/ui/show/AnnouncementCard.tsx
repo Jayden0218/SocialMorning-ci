@@ -7,15 +7,19 @@
  * M17 (`Show-B`): an Editorial card — the heading as an accent eyebrow, the host's words in the
  * serif. The megaphone is gone (B has none); `iconColour` is still accepted so callers stay as
  * they are. Same words, same tap, same accessible name.
+ *
+ * M31 W3-A (T040; design-pulse2 show `About` view, "From the host" in the Mosaic): a raise tile (radius 20, 14 of padding): the heading in
+ * mono 11 hot-text capitals, the host's words in Geist 14/20 in the text colour, two lines until opened.
  */
 import { useState } from 'react';
 import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
+import { Type } from '@/ui/kit/Type';
 import { TAP } from '@/ui/kit/TopBar';
+import { player } from '@/design/tokens';
 import type { ShowExtras } from '@/social/api';
 
-/** The eyebrow's spaced capitals (as `Eyebrow`, which is a header, not part of a button). */
-const CAPS = { letterSpacing: 1.3, textTransform: 'uppercase' as const };
+const TILE = { borderRadius: player.panelRadius, padding: player.panelPad };
+const CAPS = { textTransform: 'uppercase' as const, letterSpacing: player.capTracking };
 
 export type Announcement = ShowExtras['announcements'][number];
 
@@ -35,11 +39,11 @@ export function AnnouncementCard(props: { announcement: Announcement; iconColour
       accessibilityLabel={`${heading}. ${props.announcement.body}`}
       accessibilityHint={open ? 'Shows less' : 'Shows the whole announcement'}
       accessibilityState={{ expanded: open }}
-      className="bg-surface border border-border rounded-row px-section py-row gap-1"
-      style={TAP}
+      className="bg-raise gap-hair"
+      style={[TAP, TILE]}
     >
-      <Text className="text-micro font-bold text-accent" style={CAPS}>{heading}</Text>
-      <Text className="text-sm font-display-semibold text-text leading-[22px]" {...(open ? {} : { numberOfLines: 2 })}>{props.announcement.body}</Text>
+      <Type step="tag" className="text-hotText" style={CAPS}>{heading}</Type>
+      <Type step="note" className="text-text" {...(open ? {} : { numberOfLines: 2 })}>{props.announcement.body}</Type>
     </Pressable>
   );
 }

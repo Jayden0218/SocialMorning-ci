@@ -99,6 +99,8 @@ export async function commentCountry(t: TestDb, body: string): Promise<string | 
 /** The stored heat rows of an episode, by bucket (the HEAT item's 100 numbers, lane LB's helper). */
 export async function heatRows(t: TestDb, episodeId: string): Promise<{ bucket: number; distinct_listeners: number }[]> {
   const { heatCurve } = await import('../src/heat/ddb.ts');
+  const { drainOutbox } = await import('../src/jobs/outbox.ts');
+  await drainOutbox(t.store); // M32 C6: the curve moves in the outbox
   return (await heatCurve(t.store, episodeId)).flatMap((n, bucket) => (n > 0 ? [{ bucket, distinct_listeners: n }] : []));
 }
 

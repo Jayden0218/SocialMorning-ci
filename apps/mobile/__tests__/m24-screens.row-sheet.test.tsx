@@ -8,7 +8,7 @@
  *
  * The break that turns it red: drop the `{ label: 'Share', … }` tile from `shared` in
  * src/ui/kit/EpisodeRowSheet.tsx (or stop it opening the ShareChooser), or stop passing the count
- * to `commentsLabel`, or stop appending `props.actions` to the tiles.
+ * to `commentsLabel`, or stop appending `props.actions` to the rows.
  */
 // The gluestack sheet animates with @legendapp/motion on timers; keep them inside the test.
 jest.useFakeTimers();
@@ -31,11 +31,9 @@ jest.mock('@/ui/shell/providers', () => ({
   useToast: () => () => undefined,
   useDownloads: () => undefined,
 }));
-// The sheet's other parts (queue, download, favourites/playlists) have their own tests; here they
-// draw nothing, so only the tiles this guard is about are on screen.
-jest.mock('@/ui/queue/QueueButtons', () => ({ ...jest.requireActual('@/ui/queue/QueueButtons'), QueueButtons: () => null }));
-jest.mock('@/ui/episode/DownloadButton', () => ({ DownloadButton: () => null }));
-jest.mock('@/ui/me/EpisodeExtras', () => ({ EpisodeExtras: () => null }));
+// The sheet's tiles (queue, download, favourites/playlists — M31 W3-A: src/ui/episode/EpisodeSheetBody, rendered in
+// m31-w3a-episode.test.tsx) draw nothing here; the body hands back only the rows this guard is about.
+jest.mock('@/ui/episode/EpisodeSheetBody', () => ({ EpisodeSheetBody: (p: { rows?: unknown }) => p.rows ?? null, SHEET_GAP: 14 }));
 jest.mock('@/ui/clips/ShareChooser', () => ({ ShareChooser: (p: unknown) => { mockShareChooser(p); return null; } }));
 
 import { EpisodeRowSheet } from '@/ui/kit/EpisodeRowSheet';
@@ -56,7 +54,10 @@ it('the history row\'s sheet shows Share, the comment count and the page\'s Play
   const onClose = jest.fn();
   const onPlay = jest.fn();
   const r = render({ episode: EPISODE, onClose, comments: 12, actions: [{ icon: 'play', label: 'Play', onPress: onPlay }] });
-  for (const label of ['View comments (12)', 'Details', 'Share', 'Play', 'Cancel']) expect([label, pressable(r, label) !== undefined]).toEqual([label, true]);
+  for (const label of ['View comments (12)', 'Details', 'Share', 'Play']) expect([label, pressable(r, label) !== undefined]).toEqual([label, true]);
+  // M31 W3-A: the drawing's order — Details, View comments (n), Share, then the list's own.
+  const names = [...new Set(r.root.findAll((n) => typeof n.props['accessibilityLabel'] === 'string' && typeof n.props['onPress'] === 'function').map((n) => n.props['accessibilityLabel']))];
+  expect(names.filter((l) => ['Details', 'View comments (12)', 'Share', 'Play'].includes(l as string))).toEqual(['Details', 'View comments (12)', 'Share', 'Play']);
   expect(lastShare().open).toBe(false);
 
   act(() => { pressable(r, 'Share')!.props['onPress'](); });

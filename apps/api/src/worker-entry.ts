@@ -13,10 +13,12 @@
 import { createApp, type AppDeps } from './app.ts';
 import { depsFromEnv } from './config.ts';
 import { ATTACHED } from './db/backend.ts';
+import './jobs/handlers.ts';
 import { drainOutbox, pendingOutbox } from './jobs/outbox.ts';
 import type { Store } from './db/ddb/store.ts';
 
-export const JOB_STEPS = ['health', 'feeds', 'sweep', 'similarity', 'translate', 'digest', 'deletions'] as const;
+/** `deletions` first (M32 A4): an account deletion is a promise to the listener; a slow `feeds` must never leave it for the next hour. */
+export const JOB_STEPS = ['deletions', 'health', 'feeds', 'sweep', 'similarity', 'translate', 'digest'] as const;
 /** At most this many chunks per step, as in recs.yml. */
 export const MAX_CHUNKS = 200;
 /** Stop starting new work when less than this is left (a chunk can take up to ~25 s). */
@@ -37,10 +39,13 @@ export function createWorker(deps: AppDeps, opts: { log?: (line: string) => void
   const app: Requester = opts.app ?? createApp(deps);
   const jobToken = (): string | undefined => opts.jobToken ?? deps.jobToken;
 
-  async function runStep(step: string, context: Context): Promise<void> {
-    let cursor: string | undefined;
+  /** `until`: the step starts no new chunk once less than this many ms remain (its share of the time left, M32 A4). */
+  async function runStep(step: string, context: Context, until: number = MIN_REMAINING_MS, resume?: string): Promise<{ cursor: string } | undefined> {
+    let cursor: string | undefined = resume;
     for (let n = 0; n < MAX_CHUNKS; n++) {
-      if (context.getRemainingTimeInMillis() < MIN_REMAINING_MS) { log(`${step}: stopping, under ${MIN_REMAINING_MS / 1000} s left (the next hour resumes)`); return; }
+      const left = context.getRemainingTimeInMillis();
+      if (left < MIN_REMAINING_MS) { log(`${step}: stopping, under ${MIN_REMAINING_MS / 1000} s left (the next hour resumes)`); return; }
+      if (left < until) { log(`${step}: stopping, its share of the time is used`); return cursor ? { cursor } : undefined; }
       const res = await app.request('/v1/internal/rebuild', {
         method: 'POST',
         headers: { authorization: `Bearer ${jobToken() ?? ''}`, 'content-type': 'application/json' },
@@ -75,10 +80,19 @@ export function createWorker(deps: AppDeps, opts: { log?: (line: string) => void
     }
     if (event.kind === 'jobs') {
       const ran: string[] = [];
-      for (const step of JOB_STEPS) {
-        if (context.getRemainingTimeInMillis() < MIN_REMAINING_MS) { log(`jobs: stopping before ${step}, under ${MIN_REMAINING_MS / 1000} s left`); break; }
-        try { await runStep(step, context); } catch (e) { log(`${step}: error ${e instanceof Error ? e.message.slice(0, 200) : 'unknown'}`); }
+      const unfinished: { step: string; cursor: string }[] = [];
+      for (const [i, step] of JOB_STEPS.entries()) {
+        const left = context.getRemainingTimeInMillis();
+        if (left < MIN_REMAINING_MS) { log(`jobs: stopping before ${step}, under ${MIN_REMAINING_MS / 1000} s left`); break; }
+        // Each step gets an equal share of what is left for it and the steps after it; unused time goes to the later steps.
+        const until = Math.max(MIN_REMAINING_MS, left - Math.floor(left / (JOB_STEPS.length - i)));
+        try { const more = await runStep(step, context, until); if (more) unfinished.push({ step, ...more }); } catch (e) { log(`${step}: error ${e instanceof Error ? e.message.slice(0, 200) : 'unknown'}`); }
         ran.push(step);
+      }
+      // Second pass: time the other steps did not use goes back to the steps that stopped on their share, from where they stopped.
+      for (const { step, cursor } of unfinished) {
+        if (context.getRemainingTimeInMillis() < MIN_REMAINING_MS) break;
+        try { await runStep(step, context, MIN_REMAINING_MS, cursor); } catch (e) { log(`${step}: error ${e instanceof Error ? e.message.slice(0, 200) : 'unknown'}`); }
       }
       return { ran };
     }
@@ -88,9 +102,18 @@ export function createWorker(deps: AppDeps, opts: { log?: (line: string) => void
 }
 
 type Worker = ReturnType<typeof createWorker>;
-let ready: Promise<Worker> | undefined;
-
-export const handler = async (event: WorkerEvent, context: Context): Promise<WorkerResult> => {
-  ready ??= depsFromEnv().then((deps) => createWorker(deps));
-  return (await ready)(event, context);
+/** The cold-start handler for a dependencies loader (`depsFromEnv` in production; a test passes its own). */
+export const makeHandler = (load: () => Promise<AppDeps>) => {
+  let ready: Promise<Worker> | undefined;
+  return async (event: WorkerEvent, context: Context): Promise<WorkerResult> => {
+    if (!ready) {
+      // A failed read is not kept (M32 A3): the next event tries again instead of failing until the container is recycled.
+      const p = load().then((deps) => createWorker(deps));
+      p.catch(() => { if (ready === p) ready = undefined; });
+      ready = p;
+    }
+    return (await ready)(event, context);
+  };
 };
+
+export const handler = makeHandler(depsFromEnv);

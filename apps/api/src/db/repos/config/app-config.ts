@@ -10,6 +10,7 @@ import { CONFIG_DEFAULTS, readConfig, type AppConfig, type ConfigKey } from '@so
 import type { Db } from '../../db.ts';
 import { ApiError } from '../../../errors.ts';
 import { viaStore } from '../../backend.ts';
+import { log } from '../../../log.ts';
 
 export type ConfigRow = { key: ConfigKey; value: unknown; version: number; updatedAt: string };
 
@@ -47,7 +48,7 @@ export async function publicConfig(db: Db, now = Date.now()): Promise<{ body: Pu
   try {
     rows = await listConfigRows(db);
   } catch (e) {
-    console.warn(`[config] read failed, serving defaults: ${e instanceof Error ? e.message : String(e)}`);
+    log.warn('app_config_read_failed', { error: e });
   }
   const raw: Record<string, unknown> = {};
   for (const r of rows) raw[r.key] = r.value;

@@ -35,6 +35,7 @@ import type { EpisodeCard } from '../../../catalog/apple.ts';
 import { genreName } from '../../../catalog/genres.ts';
 import { getInterests, interestsStamp, playCount } from '../account/interests.ts';
 import { forYouRules, getWeights, type Rule } from './foryou-rules.ts';
+import { swallow } from '../../../log.ts';
 
 export const FOR_YOU_TTL = 30 * 60_000;
 /** How far back the social channel looks. */
@@ -120,7 +121,7 @@ export type Context = {
 export async function ownerTuning(db: Db): Promise<{ rules: Map<string, Rule>; weights?: Weights }> {
   const [rules, w] = await Promise.all([
     forYouRules(db).catch(() => new Map<string, Rule>()),
-    getWeights(db).catch(() => undefined),
+    getWeights(db).catch(swallow('foryou_weights_read_failed')),
   ]);
   return { rules, ...(w ? { weights: w.weights } : {}) };
 }

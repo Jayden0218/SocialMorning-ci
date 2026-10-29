@@ -1,12 +1,13 @@
 // The episode's clips, sending ones first, then newest first.
 /**
  * The episode's clips (M4 FR-006): pending ones first as "sending", then newest first.
- * M17 (`Episode-B`): the "Clips" heading is the shared serif section title, as Comments is.
+ * M31 W4-D (T053; design-pulse2 `episode--screen` "Clips", `episode--clips-empty`): a Deck — the edge label "Clips" names it, the cards
+ * (200 × 120, `ClipCard`) scroll sideways 10 apart under the right edge; with no clips the deck is the dashed empty card ("No clips yet" and
+ * today's sentence, `EmptyDeck`), not a heading and a button: the player's scissors make clips, and "Open player" is the title bar's own way there.
  */
 import { useMemo, useState } from 'react';
 import { Share } from 'react-native';
-import { Box } from '@/ui/lib/box';
-import { router } from 'expo-router';
+import { ScrollView } from '@/ui/lib/scroll-view';
 import { useSafety } from '@/safety/context';
 import { ReportSheet, type ReportTarget } from '@/ui/comments/ReportSheet';
 import { useGraph } from '@/graph/context';
@@ -17,8 +18,10 @@ import { apiBaseUrl } from '@/social/base-url';
 import { ClipCard } from './ClipCard';
 import { useClipVideoRows, useSharePanel } from './ShareChooser';
 import type { Clip } from '@/social/api';
-import { EmptyState } from '@/ui/kit/EmptyState';
-import { SectionTitle } from '@/ui/discover/parts';
+import { EMPTY_STATES } from '@socialmorning/social-core';
+import { EmptyDeck } from '@/ui/episode/EmptyDeck';
+import { EpisodeSection } from '@/ui/episode/EpisodeSection';
+import { EPISODE } from '@/ui/episode/measures';
 
 export function ClipList(props: { episode: PlayableEpisode }): React.ReactElement {
   const { useEpisodeClips } = useGraph();
@@ -33,24 +36,26 @@ export function ClipList(props: { episode: PlayableEpisode }): React.ReactElemen
   // M19: "Share as video" when this build can make one and the clip is at most 60 s.
   const videoRows = useClipVideoRows();
   const pendingAsClips: Clip[] = pending.map((p) => ({ id: `pending:${p.clientId}`, author: { id: listener?.listenerId ?? '', displayName: listener?.displayName ?? null }, episodeId: p.episodeId, startMs: p.startMs, endMs: p.endMs, caption: p.caption, createdAt: new Date(p.createdAt).toISOString(), deleted: false }));
-  if (clips.length === 0 && pending.length === 0) return <Box className="mt-section"><Box className="-mx-screen-x"><SectionTitle title="Clips" /></Box><EmptyState surface="clips" action={{ label: 'Open player', onPress: () => router.push('/player') }} /></Box>;
+  if (clips.length === 0 && pending.length === 0) return <EpisodeSection label="Clips"><EmptyDeck title="No clips yet" sentence={EMPTY_STATES.clips.sentence} /></EpisodeSection>;
+  const art = { imageUrl: props.episode.artworkUrl, showTitle: props.episode.showTitle };
   return (
-    <Box className="mt-section">
-      <Box className="-mx-screen-x"><SectionTitle title="Clips" /></Box>
-      {pendingAsClips.map((c) => <ClipCard key={c.id} clip={c} pending onPlay={() => player.playClip(props.episode, { startMs: c.startMs, endMs: c.endMs })} />)}
-      {clips.map((c) => (
-        <ClipCard
-          key={c.id}
-          clip={c}
-          onPlay={() => player.playClip(props.episode, { startMs: c.startMs, endMs: c.endMs })}
-          onShare={() => share({ heading: 'Share this clip', rows: videoRows(c, props.episode), more: { detail: 'other apps', run: () => void shareClip(Share, c, props.episode.title, apiBaseUrl()) } })}
-          onDelete={listener?.listenerId === c.author.id ? () => void api.deleteClip(c.id).then(refresh) : undefined}
-          onReport={listener?.listenerId !== c.author.id ? () => setReporting({ kind: 'clip', id: c.id, authorId: c.author.id, label: 'clip' }) : undefined}
-        />
-      ))}
+    <EpisodeSection label="Clips" bleed>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: EPISODE.deckGap, paddingRight: EPISODE.right }}>
+        {pendingAsClips.map((c) => <ClipCard key={c.id} clip={c} pending {...art} onPlay={() => player.playClip(props.episode, { startMs: c.startMs, endMs: c.endMs })} />)}
+        {clips.map((c) => (
+          <ClipCard
+            key={c.id}
+            clip={c}
+            {...art}
+            onPlay={() => player.playClip(props.episode, { startMs: c.startMs, endMs: c.endMs })}
+            onShare={() => share({ heading: 'Share this clip', rows: videoRows(c, props.episode), more: { detail: 'other apps', run: () => void shareClip(Share, c, props.episode.title, apiBaseUrl()) } })}
+            onDelete={listener?.listenerId === c.author.id ? () => void api.deleteClip(c.id).then(refresh) : undefined}
+            onReport={listener?.listenerId !== c.author.id ? () => setReporting({ kind: 'clip', id: c.id, authorId: c.author.id, label: 'clip' }) : undefined}
+          />
+        ))}
+      </ScrollView>
       <ReportSheet target={reporting} onClose={() => setReporting(undefined)} />
       {sharePanel}
-    </Box>
+    </EpisodeSection>
   );
 }
-

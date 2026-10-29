@@ -10,21 +10,24 @@
  * the text box is a white card that writes in the serif; "n of 3 images" under it; and a white
  * bar at the bottom holds the image tiles (tap to remove, the × marks it), the dashed add tile
  * and the yellow Send. "My feedback" is a list of white cards. Same handlers throughout.
+ *
+ * M31 S-A (T060; design-pulse2 `settings-feedback--screen`, `--signed-out`, `--mine-empty`, `toast--settings-feedback`, `--email-fallback`, `--photo-permission`, `--photo-picker`; Panel):
+ * "It is about" — the five kinds as 36 chips, the chosen one light; "Your feedback" — a text area of at least 150 (radius 22, raise) with "0 of 3 images" in mono 12 under it when
+ * signed in; "Include recent errors" (only when the phone has recorded some) as a row with a switch. The title bar carries "Write feedback", the subtitle "Help and feedback" and, above
+ * it, the **My feedback** chip with its count in a hot badge, which switches the view (the chip then says **Write feedback**). The page's bottom zone is the composer row: the picked
+ * images as 52 tiles (✕ removes), the add-image square, and **Send** (light 52), enabled with a kind and 5+ characters. Sent items are tiles ("Kind · date" in mono, then up to 4
+ * lines); none yet is the flat-curve empty state. The photo permission, the picker, the Mail app and the toasts are the phone's own or the toast host's.
  */
 import { useLoad } from '@/ui/kit/useLoad';
-import { ScrollView } from '@/ui/lib/scroll-view';
 import { Image } from '@/ui/lib/image';
 import Constants from 'expo-constants';
-import { useEffect, useState } from 'react';
-import { Linking } from 'react-native';
+import { useState } from 'react';
+import { openSystem } from '@/ui/kit/openLink';
 import { Textarea, TextareaInput } from '@/ui/lib/textarea';
-import { FlatList } from '@/ui/lib/flat-list';
 import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { hit } from '@/design';
+import { colour } from '@/design';
 import { pickImages, type PickedImage } from '@/settings/feedback-images';
-import { useColours } from '@/ui/kit/useColours';
 import { FEEDBACK_KINDS, type FeedbackKind } from '@/settings/faq';
 import { FEEDBACK_MAX, feedbackMailto, listFeedback, rememberFeedback, errorLines, withErrors, type SentFeedback } from '@/settings/feedback';
 import { recentErrors } from '@/telemetry/reportError';
@@ -32,23 +35,26 @@ import { Toggle } from '@/ui/kit/Toggle';
 import { plural } from '@socialmorning/social-core';
 import { APPEALS_KEY, refreshAppeals } from '@/social/links';
 import { useSocial } from '@/social/context';
-import { Button } from '@/ui/kit/Button';
+import { PulseButton } from '@/ui/kit/PulseButton';
+import { PushedPage } from '@/ui/kit/PushedPage';
 import { shortDate } from '@/ui/kit/format';
-import { EmptyPicture } from '@/ui/me/parts';
 import { Icon } from '@/ui/kit/Icon';
-import { Card } from '@/ui/kit/Card';
-import { BottomBar } from '@/ui/kit/BottomBar';
+import { Type } from '@/ui/kit/Type';
+import { PanelGroup } from '@/ui/me/Panel';
+import { KeyboardPage, PageEmpty } from '@/ui/me/lists';
 import { useStores, useToast } from '@/ui/shell/providers';
-import { PageHeader } from '@/ui/kit/PageHeader';
-import { EndOfList } from '@/ui/kit/EndOfList';
+import { Sec, SetCard, SetPage, SetRow } from '@/ui/settings/hub-parts';
+import { SET, SET_TYPE } from '@/ui/settings/hub-measures';
 
-const TAP = { minHeight: hit.min };
-const TILE = { width: hit.min, height: hit.min };
+const TILE = 52;
+/** "My feedback" empty: 200 down, as drawn. */
+const EMPTY_TOP = 200;
+/** The chip above the title is 36 tall; the title bar puts 8 under it (10 drawn). */
+const CHIP_ABOVE = 44;
 
 export default function FeedbackScreen(): React.ReactElement {
   const { api, listener } = useSocial();
   const stores = useStores();
-  const c = useColours(stores.settings);
   const toast = useToast();
   const [tab, setTab] = useState<'write' | 'mine'>('write');
   const [kind, setKind] = useState<FeedbackKind | undefined>();
@@ -95,95 +101,99 @@ export default function FeedbackScreen(): React.ReactElement {
       .catch(() => {
         // Offline or refused: the email app still works (without the images).
         if (!to) { toast('Could not send — check your connection.'); return; }
-        void Linking.openURL(feedbackMailto(to, k, text, version)).then(() => { done(k); toast('Opened your email app — send the message from there.'); }, () => toast('Could not send — check your connection.'));
+        void openSystem(feedbackMailto(to, k, text, version)).then((ok) => { if (ok) { done(k); toast('Opened your email app — send the message from there.'); } else toast('Could not send — check your connection.'); }, () => toast('Could not send — check your connection.'));
       })
       .finally(() => setBusy(false));
   };
 
   const other = tab === 'write' ? 'mine' : 'write';
-  return (
-    <>
-    <PageHeader
-      title={tab === 'write' ? 'Write feedback' : 'My feedback'}
-      subtitle="Help and feedback"
-      right={(
-        <Box className="flex-row">
-          {([other] as const).map((t) => (
-            <Pressable key={t} onPress={() => setTab(t)} accessibilityRole="button" {...(t === 'mine' ? { accessibilityHint: `${sent.length} sent` } : {})} accessibilityLabel={t === 'write' ? 'Write feedback' : 'My feedback'} className="flex-row items-center gap-1.5 px-row" style={TAP}>
-              <Text className="text-accent text-meta font-bold">{t === 'write' ? 'Write feedback' : 'My feedback'}</Text>
-              {t === 'mine' && sent.length > 0 ? (
-                <Box className="min-w-5 h-5 px-1 rounded-pill bg-accentTint items-center justify-center">
-                  <Text className="text-accent text-micro font-bold">{sent.length}</Text>
-                </Box>
-              ) : null}
-            </Pressable>
-          ))}
-        </Box>
-      )}
-    />
-    <Box className="flex-1 bg-background">
-      {tab === 'write' ? (
-        <>
-        <ScrollView className="flex-1" contentContainerClassName="px-screen-x pt-row pb-section gap-row" keyboardShouldPersistTaps="handled">
-          <Text className="text-muted text-xs">It is about</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-gap" accessibilityRole="radiogroup" accessibilityLabel="Kind of feedback">
-            {FEEDBACK_KINDS.map((k) => (
-              <Pressable key={k} onPress={() => setKind(k)} accessibilityRole="radio" accessibilityState={{ checked: kind === k }} accessibilityLabel={k} className={`px-section rounded-pill items-center justify-center ${kind === k ? 'bg-text' : 'bg-surface border border-border'}`} style={TAP}>
-                <Text className={kind === k ? 'text-background text-meta font-semibold' : 'text-text text-meta font-semibold'}>{k}</Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-          <Text className="text-muted text-xs">Your feedback</Text>
-          <Textarea className="bg-surface border border-border rounded-row min-h-60 h-auto">
-            <TextareaInput value={body} onChangeText={setBody} maxLength={FEEDBACK_MAX} multiline placeholder="Write here…" placeholderTextColor={c.muted} textAlignVertical="top" accessibilityLabel="Your feedback" className="p-section text-text text-title font-display-semibold" />
-          </Textarea>
-          {listener ? <Text className="text-muted text-micro text-right">{`${images.length} of 3 images`}</Text> : null}
-          {errorCount > 0 ? (
-            <Box className="flex-row items-center gap-row">
-              <Box className="flex-1">
-                <Text className="text-text text-meta font-semibold">Include recent errors</Text>
-                <Text className="text-muted text-xs">{`The last ${plural(errorCount, 'error')} this phone saw: where, what and the app version. Nothing personal.`}</Text>
-              </Box>
-              <Toggle value={includeErrors} onChange={setIncludeErrors} label="Include recent errors" />
+  // The chip above the title: the other view's name, with the count of what was sent on "My feedback".
+  const chip = (
+    <Box className="flex-row justify-end">
+      {([other] as const).map((t) => (
+        <Pressable key={t} onPress={() => setTab(t)} accessibilityRole="button" {...(t === 'mine' ? { accessibilityHint: `${sent.length} sent` } : {})} accessibilityLabel={t === 'write' ? 'Write feedback' : 'My feedback'} hitSlop={6} className="flex-row items-center bg-raise border border-line rounded-pill" style={{ height: 36, paddingHorizontal: 14, gap: 6 }}>
+          <Type step="caption" className="text-text font-semibold">{t === 'write' ? 'Write feedback' : 'My feedback'}</Type>
+          {t === 'mine' && sent.length > 0 ? (
+            <Box className="bg-hot items-center justify-center" style={{ minWidth: 20, height: 20, borderRadius: 9, paddingHorizontal: 6 }}>
+              <Type step="tag" className="text-void font-semibold">{String(sent.length)}</Type>
             </Box>
           ) : null}
-        </ScrollView>
-        <BottomBar tone="surface" line="border" className="flex-row items-center gap-row">
-            {images.map((img, i) => (
-              <Pressable key={img.uri + i} onPress={() => setImages((cur) => cur.filter((_, j) => j !== i))} accessibilityRole="button" accessibilityLabel={`Remove image ${i + 1}`} style={TILE}>
-                <Image source={{ uri: img.uri }} className="w-12 h-12 rounded-row bg-background" />
-                <Box className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-pill bg-text items-center justify-center" accessible={false}>
-                  <Icon name="close" size={12} color={c.background} />
-                </Box>
-              </Pressable>
-            ))}
-            {/* M23: pictures need sign-in (the server answers 401 without one). */}
-            {listener && images.length < 3 ? (
-              <Pressable onPress={addImages} accessibilityRole="button" accessibilityLabel="Add an image" className="rounded-row border border-dashed border-track items-center justify-center" style={TILE}>
-                <Icon name="image-outline" size={22} color={c.text} />
-              </Pressable>
-            ) : null}
-            <Box className="flex-1" />
-            <Button label="Send" shape="rounded" onPress={send} disabled={!ready} busy={busy} className="px-9" />
-        </BottomBar>
-        </>
-      ) : (
-        <FlatList
-          data={sent}
-          // Owner, 2026-10-05: the bottom of a fetched list says so.
-          ListFooterComponent={sent.length > 0 ? <EndOfList /> : undefined}
-          keyExtractor={(f) => String(f.at)}
-          contentContainerClassName="px-screen-x py-row pb-24 flex-grow gap-row"
-          ListEmptyComponent={<EmptyPicture icon="document-text-outline" line="Nothing sent yet" />}
-          renderItem={({ item }) => (
-            <Card className="py-section">
-              <Text className="text-muted text-xs">{item.kind} · {shortDate(item.at)}</Text>
-              <Text className="text-text text-body mt-1" numberOfLines={4}>{item.body}</Text>
-            </Card>
-          )}
-        />
-      )}
+        </Pressable>
+      ))}
     </Box>
-    </>
+  );
+  const foot = tab === 'write' ? (
+    <Box className="flex-row items-center" style={{ gap: SET.tileGap }}>
+      {images.map((img, i) => (
+        <Pressable key={img.uri + i} onPress={() => setImages((cur) => cur.filter((_, j) => j !== i))} accessibilityRole="button" accessibilityLabel={`Remove image ${i + 1}`} style={{ width: TILE, height: TILE }}>
+          <Image source={{ uri: img.uri }} className="bg-raise" style={{ width: TILE, height: TILE, borderRadius: 16 }} />
+          <Box className="absolute bg-text items-center justify-center" style={{ top: -6, right: -6, width: 20, height: 20, borderRadius: 10 }} accessible={false}>
+            <Icon name="close" size={12} color={colour.void} />
+          </Box>
+        </Pressable>
+      ))}
+      {/* M23: pictures need sign-in (the server answers 401 without one). */}
+      {listener && images.length < 3 ? (
+        <Pressable onPress={addImages} accessibilityRole="button" accessibilityLabel="Add an image" className="bg-raise items-center justify-center" style={{ width: TILE, height: TILE, borderRadius: 16 }}>
+          <Icon name="image-outline" size={22} color={colour.text} />
+        </Pressable>
+      ) : null}
+      <Box className="flex-1" />
+      <PulseButton label="Send" onPress={send} disabled={!ready} busy={busy} height={TILE} padX={34} />
+    </Box>
+  ) : undefined;
+  return (
+    <KeyboardPage>
+      <PushedPage title={tab === 'write' ? 'Write feedback' : 'My feedback'} subtitle="Help and feedback" size={28} extra={chip} extraAbove={CHIP_ABOVE} {...(foot ? { below: foot, belowHeight: TILE } : {})}>
+        {(layout) => (
+          <SetPage layout={layout}>
+            {tab === 'write' ? (
+              <>
+                <Sec label="About">
+                  <Box className="flex-row flex-wrap" style={{ gap: 8 }} accessibilityRole="radiogroup" accessibilityLabel="Kind of feedback">
+                    {FEEDBACK_KINDS.map((k) => (
+                      <Pressable key={k} onPress={() => setKind(k)} accessibilityRole="radio" accessibilityState={{ checked: kind === k }} accessibilityLabel={k} hitSlop={6} className={`rounded-pill items-center justify-center border ${kind === k ? 'bg-text border-text' : 'bg-raise border-line'}`} style={{ height: 36, paddingHorizontal: 14 }}>
+                        <Type step="caption" className={kind === k ? 'text-void font-semibold' : 'text-text font-semibold'}>{k}</Type>
+                      </Pressable>
+                    ))}
+                  </Box>
+                </Sec>
+                <Sec label="Write">
+                  <Box style={{ gap: 8 }}>
+                    <Box className="bg-raise" style={{ minHeight: 150, borderRadius: SET.radius, padding: SET.tilePad }}>
+                      <Textarea className="border-0 bg-transparent h-auto w-auto min-h-0">
+                        <TextareaInput value={body} onChangeText={setBody} maxLength={FEEDBACK_MAX} multiline placeholder="Write here…" placeholderTextColor={colour.text3} textAlignVertical="top" accessibilityLabel="Your feedback" className="text-text" style={[SET_TYPE.lede15, { paddingHorizontal: 0, paddingVertical: 0 }]} />
+                      </Textarea>
+                    </Box>
+                    {listener ? <Type step="mono" className="text-text2" style={SET_TYPE.mono12}>{`${images.length} of 3 images`}</Type> : null}
+                  </Box>
+                </Sec>
+                {errorCount > 0 ? (
+                  <Sec label="Extra">
+                    <PanelGroup>
+                      <SetRow label="Include recent errors" line={`The last ${plural(errorCount, 'error')} this phone saw: where, what and the app version. Nothing personal.`} right={<Toggle value={includeErrors} onChange={setIncludeErrors} label="Include recent errors" />} />
+                    </PanelGroup>
+                  </Sec>
+                ) : null}
+              </>
+            ) : sent.length === 0 ? (
+              <>
+                <Box style={{ height: EMPTY_TOP }} />
+                <PageEmpty top={0} title="Nothing sent yet" line="What you send is listed here, newest first." />
+              </>
+            ) : (
+              <Box style={{ gap: SET.gap }}>
+                {sent.map((item) => (
+                  <SetCard key={String(item.at)} testID="sent-card" gap={4}>
+                    <Type step="mono" className="text-text2" style={SET_TYPE.mono12}>{`${item.kind} · ${shortDate(item.at)}`}</Type>
+                    <Type step="body" className="text-text" numberOfLines={4}>{item.body}</Type>
+                  </SetCard>
+                ))}
+              </Box>
+            )}
+          </SetPage>
+        )}
+      </PushedPage>
+    </KeyboardPage>
   );
 }

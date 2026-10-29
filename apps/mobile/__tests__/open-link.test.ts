@@ -5,7 +5,8 @@ jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 
 import * as WebBrowser from 'expo-web-browser';
 import { router } from 'expo-router';
-import { linkTarget, openLink } from '@/ui/kit/openLink';
+import { Linking } from 'react-native';
+import { linkTarget, openLink, openSystem } from '@/ui/kit/openLink';
 
 const API = 'https://socialmorning-api.vercel.app';
 
@@ -27,8 +28,52 @@ it('mail, phone and store links go to the system; anything else is ignored', () 
   expect(linkTarget('tel:+123', API).kind).toBe('system');
   expect(linkTarget('https://apps.apple.com/app/id1', API).kind).toBe('system');
   expect(linkTarget('market://details?id=x', API).kind).toBe('system');
-  expect(linkTarget('javascript:alert(1)', API).kind).toBe('none');
-  expect(linkTarget('socialmorning://', API).kind).toBe('none');
+  expect(linkTarget('', API).kind).toBe('none');
+  expect(linkTarget('javascript:alert(1)', API).kind).toBe('blocked');
+  expect(linkTarget('socialmorning://', API).kind).toBe('blocked');
+});
+
+it('the share targets, the phone\'s mail/sms and store hand-offs stay allowed', () => {
+  for (const u of ['whatsapp://send?text=hi', 'tg://msg?text=hi', 'weixin://', 'twitter://post?message=hi', 'sms:&body=hi', 'sms:?body=hi', 'itms-apps://itunes.apple.com/app/id1', 'https://play.google.com/store/apps/details?id=x', 'https://apps.apple.com/account/subscriptions']) {
+    expect(['system', 'web']).toContain(linkTarget(u, API).kind);
+  }
+});
+
+it('B7: a publisher link may not reach an account screen of the app', () => {
+  expect(linkTarget('socialmorning://gift/x', API).kind).toBe('blocked');
+  expect(linkTarget('socialmorning://wallet', API).kind).toBe('blocked');
+  expect(linkTarget('socialmorning://settings/account', API).kind).toBe('blocked');
+  expect(linkTarget('socialmorning://show/x', API)).toEqual({ kind: 'app', path: '/show/x' });
+});
+
+describe('T083: openLink refuses what is not a link we may open, and says so', () => {
+  beforeEach(() => { jest.clearAllMocks(); });
+  it.each(['javascript:alert(1)', 'JavaScript:alert(1)', ' javascript:alert(1)', 'data:text/html,<b>x</b>', 'file:///etc/passwd', 'intent://scan/#Intent;scheme=zxing;end', 'ftp://example.com/x', 'content://media/1', 'socialmorning://gift/x'])('%s', async (u) => {
+    const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
+    const refused = jest.fn();
+    await openLink(u, refused);
+    expect(refused).toHaveBeenCalledTimes(1);
+    expect(WebBrowser.openBrowserAsync).not.toHaveBeenCalled();
+    expect(router.push).not.toHaveBeenCalled();
+    expect(open).not.toHaveBeenCalled();
+    open.mockRestore();
+  });
+  it('https://example.com is allowed and nothing is refused', async () => {
+    const refused = jest.fn();
+    await openLink('https://example.com', refused);
+    expect(refused).not.toHaveBeenCalled();
+    expect(WebBrowser.openBrowserAsync).toHaveBeenCalledTimes(1);
+  });
+  it('openSystem hands an allowed link to the phone and refuses a blocked one without calling it', async () => {
+    const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
+    const refused = jest.fn();
+    expect(await openSystem('mailto:a@b.com', refused)).toBe(true);
+    expect(open).toHaveBeenCalledWith('mailto:a@b.com');
+    expect(await openSystem('javascript:alert(1)', refused)).toBe(false);
+    expect(refused).toHaveBeenCalledTimes(1);
+    expect(open).toHaveBeenCalledTimes(1);
+    open.mockRestore();
+  });
 });
 
 it('openLink uses the in-app browser for a web page and the router for our own', async () => {

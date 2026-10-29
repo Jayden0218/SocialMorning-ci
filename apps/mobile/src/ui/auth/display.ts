@@ -25,6 +25,6 @@ export function display(size: number, color: string, opts: { semibold?: boolean;
   const lineHeight = Math.max(opts.leading ?? Math.round(size * 1.15), Math.ceil(size * SERIF_MIN_LEADING));
   const letterSpacing = opts.tracking ?? 0;
   // A custom face carries its own weight (a fontWeight on top makes Android fake a bold).
-  if (fontsStore.get()) return { fontFamily: opts.semibold ? 'Lora-SemiBold' : 'Lora-Bold', fontWeight: 'normal', fontSize: size, lineHeight, letterSpacing, color };
+  if (fontsStore.get()) return { fontFamily: opts.semibold ? 'Unbounded-SemiBold' : 'Unbounded-Bold', fontWeight: 'normal', fontSize: size, lineHeight, letterSpacing, color };
   return { fontFamily: SERIF, fontWeight: opts.semibold ? '600' : '700', fontSize: size, lineHeight, letterSpacing, color };
 }

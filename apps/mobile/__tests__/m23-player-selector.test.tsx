@@ -162,9 +162,12 @@ it('the four screens read the player through a selector, not the whole state', (
   const fs = require('fs') as typeof import('fs');
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const path = require('path') as typeof import('path');
-  for (const f of ['app/_layout.tsx', 'app/show/[feedUrl].tsx', 'app/comments/[episodeId].tsx', 'app/episode/[id].tsx']) {
+  // M31 W2-B: the comments page reads the playhead through `usePlayheadMs` (src/ui/comments/usePlayhead.ts, one
+  // `usePlayerSelector`), so the page file names that hook where it used to name the selector.
+  for (const f of ['app/_layout.tsx', 'app/show/[feedUrl].tsx', 'app/comments/[episodeId].tsx', 'app/episode/[id].tsx', 'src/ui/comments/usePlayhead.ts']) {
     const src = fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
     expect({ f, whole: /usePlayerState\(/.test(src) }).toEqual({ f, whole: false });
-    expect({ f, selector: /usePlayerSelector\(/.test(src) }).toEqual({ f, selector: true });
+    const selector = /usePlayerSelector\(/.test(src) || (f === 'app/comments/[episodeId].tsx' && /usePlayheadMs\(/.test(src));
+    expect({ f, selector }).toEqual({ f, selector: true });
   }
 });

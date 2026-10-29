@@ -10,36 +10,38 @@
  * a route would sit *under* the sheet. Android's back button closes an open document
  * and is otherwise swallowed.
  *
- * It sits above the root layout's SafeAreaView, so it needs its own — without one the
+ * It sits above the root layout's SafeAreaView, so it pads the home strip itself (`OverlayPage` `inset`) — without it the
  * buttons ran under the home bar (owner, 2026-09-27).
  *
- * M17 (`Terms-B`, `TermsRefused-B`): the page is the warm page colour with a 48 pt icon, a 32 pt
- * serif title, and each document a white card (14 pt points in muted, 8 pt apart); the Agree bar
- * sits on the page colour above a hairline. After Disagree the page stays behind a scrim and the
- * second page is a centred white card — icon, serif title, the words, then "Agree and continue"
- * as the yellow pill and "Exit app" as a text button under it (it was a bottom sheet with the
- * two side by side). The page behind is hidden from screen readers and touch while the card is up.
+ * M31 S-C (T061; design-pulse2 `settings.html` `termsPage`, entries `terms--first-launch`, `terms--refused`, layout Panel): the
+ * hot-to-violet glow behind the top; the app icon (56, radius 16), the intro (Geist 14 on 20, text-2), then one rounded tile
+ * (radius 22) per document — its icon in hot-text, name 15/600, "n points" in mono 12 and a chevron; the first is open on arrival,
+ * its points numbered 01–04 in hot-text mono, and "Read the full agreement ›" opens the whole document. The title "Service
+ * Agreement and Privacy Policy" (Unbounded 800 22) sits low with Disagree (quiet, 120 wide) and Agree (light, 52) in the row under
+ * it; the outro ends the scroll behind the fade. After Disagree the page stays behind a scrim and the second page is a centred
+ * card: the icon, the title, the words, "Agree and continue" (light 52) and "Exit app" (ring), stacked. The page behind is hidden
+ * from screen readers and touch while the card is up.
+ *
+ * Not as drawn: the fourth point is not dimmed to 60 % (that would put its text under 4.5:1; the drawing dims it as a hint that
+ * the list goes on, and here the whole list is shown).
  */
-import { useEffect, useRef, useState } from "react";
-import { BackHandler, Platform } from "react-native";
-import { Image } from "@/ui/lib/image";
-import { Pressable } from "@/ui/lib/pressable";
-import { SafeAreaView } from "@/ui/lib/safe-area-view";
-/** Drawn over the stack, outside the root layout's bottom inset — so this pads all four edges (M12). */
-/** The bottom strip is padded by the choices bar itself (centred in it), so not here. */
-const EDGES = ["top", "left", "right"] as const;
-import { ScrollView } from "@/ui/lib/scroll-view";
-import { Text } from "@/ui/lib/text";
-import { Box } from "@/ui/lib/box";
-import { LEGAL_TEXT } from "@/legal/texts";
-import { Button, ButtonText } from "@/ui/lib/button";
-import { EDGE, LegalDoc } from "./LegalDoc";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Icon, type IconName } from "@/ui/kit/Icon";
-import { useColours } from "@/ui/kit/useColours";
-import { colour, hit, type Palette } from "@/design";
-import { display } from "@/ui/auth/display";
-import type { SettingsStore } from "@/storage/types";
+import { useContext, useEffect, useRef, useState } from 'react';
+import { BackHandler, Platform, useWindowDimensions } from 'react-native';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
+import { Image } from '@/ui/lib/image';
+import { Pressable } from '@/ui/lib/pressable';
+import { ScrollView } from '@/ui/lib/scroll-view';
+import { Box } from '@/ui/lib/box';
+import { LEGAL_TEXT } from '@/legal/texts';
+import { bars, gutter, radius, spacing } from '@/design';
+import { Icon, type IconName } from '@/ui/kit/Icon';
+import { OverlayPage } from '@/ui/kit/OverlayPage';
+import { PulseButton } from '@/ui/kit/PulseButton';
+import { Type } from '@/ui/kit/Type';
+import { useColours } from '@/ui/kit/useColours';
+import { AUTH, AUTH_TYPE } from '@/ui/auth/measures';
+import { LegalDoc } from './LegalDoc';
+import type { SettingsStore } from '@/storage/types';
 import {
   CONSENT_INTRO,
   CONSENT_ITEMS,
@@ -47,138 +49,69 @@ import {
   CONSENT_TITLE,
   REFUSE_TEXT,
   type LegalDocId,
-} from "./consent";
+} from './consent';
 
-/** The app icon on top: 48 pt (`Terms-B`; was 64). */
-const ICON = { width: 60, height: 60 };
-
-/** Apple's and Android's minimum tap size, as a style (shared-ui asserts it). */
-const TAP = { minHeight: hit.min };
-/** Disagree is one line of text (~20 pt); 14 pt above and below makes its tap area 48 pt (it sits 20 pt under Agree). */
-const DISAGREE_SLOP = { top: 14, bottom: 14, left: 24, right: 24 };
-/** A card's head: 52 pt (`Terms-B`). */
-const HEAD = { minHeight: 52 };
-/**
- * Words on the brand-yellow fill are dark (owner, 2026-10-03) — AuthShell's `inkOn`, not
- * imported: AuthShell reads the providers, and the providers draw this page.
- */
-const inkOn = (c: Palette): string =>
-  c.primary === colour.primary ? colour.text : c.onPrimary;
-
-/** Agree and "Agree and continue": 52 pt tall (`Terms-B`), as the consent sheet's Agree. */
-const TALL = { minHeight: 52 };
-
-/**
- * M9: the choices are gluestack Buttons. M17: yes is the yellow pill, no a bold accent text
- * button under it (`Terms-B`) — `outline` now means that text button. The words are the name.
- */
-function Choice(props: {
-  label: string;
-  onPress: () => void;
-  outline?: boolean;
-  className: string;
-  colours: Palette;
-}): React.ReactElement {
-  return (
-    <Button
-      variant={props.outline ? "link" : "default"}
-      onPress={props.onPress}
-      accessibilityRole="button"
-      accessibilityLabel={props.label}
-      className={`rounded-pill px-section ${props.outline ? "bg-transparent" : ""} ${props.className}`}
-      style={props.outline ? TAP : TALL}
-    >
-      <ButtonText
-        className={
-          props.outline
-            ? "text-body font-bold text-accent"
-            : "text-[15px] font-bold text-onPrimary"
-        }
-        style={props.outline ? undefined : { color: inkOn(props.colours) }}
-      >
-        {props.label}
-      </ButtonText>
-    </Button>
-  );
-}
-
-/** Each document's icon on its card. */
+/** Each document's icon on its tile. */
 const DOC_ICON: Record<LegalDocId, IconName> = {
-  agreement: "document-text-outline",
-  privacy: "shield-checkmark-outline",
-  community: "people-outline",
+  agreement: 'document-text-outline',
+  privacy: 'lock-closed-outline',
+  community: 'people-outline',
 };
 
 /** "Read the full agreement" — the link's last word, by document. */
 const FULL: Record<LegalDocId, string> = {
-  agreement: "agreement",
-  privacy: "policy",
-  community: "guidelines",
+  agreement: 'agreement',
+  privacy: 'policy',
+  community: 'guidelines',
 };
 
-/** Tests render the page without the stores; the theme then follows the system. */
-const NO_SETTINGS: Pick<SettingsStore, "get"> = { get: () => undefined };
+/** The short name each document wears on its bar. */
+const NAME: Record<LegalDocId, string> = {
+  agreement: 'Service Agreement',
+  privacy: 'Privacy Policy',
+  community: 'Community Guidelines',
+};
 
 /**
- * One document as a card (owner's reference, 2026-10-03): its icon, name and point count; a
+ * One document as a tile (owner's reference, 2026-10-03): its icon, name and point count; a
  * tap on the head opens or closes its points; "Read the full …" opens the whole document.
  */
 function Card(props: {
   item: (typeof CONSENT_ITEMS)[number];
-  colours: Palette;
   expanded: boolean;
   onToggle: () => void;
   onOpen: () => void;
 }): React.ReactElement {
-  const { item, colours: c } = props;
+  const { item } = props;
+  const c = useColours();
   return (
-    <Box className="rounded-row border border-border bg-surface px-section">
+    <Box testID="terms-card" className="bg-raise" style={{ borderRadius: AUTH.terms.card }}>
       <Pressable
         onPress={props.onToggle}
         accessibilityRole="button"
         accessibilityLabel={`${item.link}, ${item.points.length} points`}
         accessibilityState={{ expanded: props.expanded }}
-        className="flex-row items-center gap-row py-1"
-        style={HEAD}
+        className="flex-row items-center"
+        style={{ gap: spacing.row, paddingVertical: AUTH.terms.headPadY, paddingHorizontal: AUTH.terms.headPadX }}
       >
-        <Icon name={DOC_ICON[item.doc]} size={20} color={c.accent} />
+        <Icon name={DOC_ICON[item.doc]} size={22} color={c.hotText} />
         <Box className="flex-1">
-          <Text className="text-text text-[15px] font-bold">{item.link}</Text>
-          <Text className="text-muted text-xs font-medium">
-            {item.points.length} points
-          </Text>
+          <Type step="row" className="text-text">{item.link}</Type>
+          <Type step="mono" className="text-text2">{`${item.points.length} points`}</Type>
         </Box>
-        <Icon
-          name={props.expanded ? "chevron-up" : "chevron-down"}
-          size={18}
-          color={c.muted}
-        />
+        <Icon name={props.expanded ? 'chevron-up' : 'chevron-down'} size={18} color={c.text3} />
       </Pressable>
       {props.expanded ? (
-        <Box className="pt-1 pb-1">
+        <Box style={{ paddingHorizontal: AUTH.terms.headPadX, paddingBottom: AUTH.terms.headPadY, gap: AUTH.terms.pointGap }}>
           {/* Owner, 2026-10-03: numbered 01, 02 … instead of bullet dots. */}
           {item.points.map((p, i) => (
-            <Box key={p} className="flex-row mb-gap">
-              <Text className="text-accent text-body font-bold leading-[20px] min-w-7 pr-2">
-                {String(i + 1).padStart(2, "0")}
-              </Text>
-              <Text className="text-muted text-body leading-[20px] flex-1">
-                {p}
-              </Text>
+            <Box key={p} className="flex-row" style={{ gap: AUTH.terms.pointGap }}>
+              <Type step="mono" className="text-hotText" style={{ paddingTop: 2 }}>{String(i + 1).padStart(2, '0')}</Type>
+              <Type step="caption" className="text-text2 font-normal flex-1" style={AUTH_TYPE.consent}>{p}</Type>
             </Box>
           ))}
-          <Pressable
-            onPress={props.onOpen}
-            accessibilityRole="link"
-            accessibilityLabel={`${item.link}, opens the full text`}
-            className="justify-center self-start"
-            style={TAP}
-          >
-            {/* Owner, 2026-10-03: the same colour as the card's icon (`Terms-B`) — read from the same palette value. */}
-            <Text
-              className="text-accent text-body font-bold underline"
-              style={{ color: c.accent }}
-            >{`Read the full ${FULL[item.doc]}`}</Text>
+          <Pressable onPress={props.onOpen} accessibilityRole="link" accessibilityLabel={`${item.link}, opens the full text`} className="justify-center self-start" style={{ minHeight: bars.field }}>
+            <Type step="row" className="text-hotText">{`Read the full ${FULL[item.doc]} ›`}</Type>
           </Pressable>
         </Box>
       ) : null}
@@ -188,23 +121,21 @@ function Card(props: {
 
 /** Android can close itself; iOS cannot (and must not), so there Exit returns to page one. */
 const exitApp = (back: () => void): void => {
-  if (Platform.OS === "android") BackHandler.exitApp();
+  if (Platform.OS === 'android') BackHandler.exitApp();
   else back();
 };
 
 export function Terms(props: {
   onAccept: () => void;
   exit?: (back: () => void) => void;
-  settings?: Pick<SettingsStore, "get">;
+  /** Kept so the caller does not change: the colours come from the palette, not from the store, since M31. */
+  settings?: Pick<SettingsStore, 'get'>;
 }): React.ReactElement {
-  const c = useColours(props.settings ?? NO_SETTINGS);
-  // The home-bar strip's height, at least 16 pt: the space above and below the choices.
-  const foot = Math.max(useSafeAreaInsets().bottom, 16);
+  const insets = useContext(SafeAreaInsetsContext);
+  const { width } = useWindowDimensions();
   const [open, setOpen] = useState<LegalDocId | undefined>(undefined);
   // The first document is open when the page appears (owner's reference, 2026-10-03).
-  const [expanded, setExpanded] = useState<LegalDocId | undefined>(
-    CONSENT_ITEMS[0]?.doc,
-  );
+  const [expanded, setExpanded] = useState<LegalDocId | undefined>(CONSENT_ITEMS[0]?.doc);
   const [refused, setRefused] = useState(false);
   const openRef = useRef(open);
   openRef.current = open;
@@ -212,7 +143,7 @@ export function Terms(props: {
   refusedRef.current = refused;
 
   useEffect(() => {
-    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
       if (openRef.current !== undefined) setOpen(undefined);
       else if (refusedRef.current) setRefused(false);
       return true;
@@ -220,129 +151,62 @@ export function Terms(props: {
     return () => sub.remove();
   }, []);
 
-  if (open !== undefined)
-    return (
-      <LegalDoc text={LEGAL_TEXT[open]} onClose={() => setOpen(undefined)} />
-    );
+  if (open !== undefined) return <LegalDoc text={LEGAL_TEXT[open]} name={NAME[open]} onClose={() => setOpen(undefined)} />;
 
   const page = (
-    <SafeAreaView edges={EDGES} className="absolute inset-0 bg-background">
-      {/* Full width, so the scroll bar sits on the screen's edge with no gap (owner, 2026-09-29);
-          the side margin is on the content instead. Same as LegalDoc. */}
-      <ScrollView
-        className="flex-1"
-        contentContainerClassName="px-screen-x pt-section pb-section"
-        automaticallyAdjustsScrollIndicatorInsets={false}
-        scrollIndicatorInsets={EDGE}
+    <Box className="absolute inset-0 bg-void">
+      <OverlayPage
+        title={CONSENT_TITLE}
+        size={AUTH_TYPE.cardTitle.fontSize}
+        onBack={null}
+        glowTop={-280}
+        glowStrength={0.3}
+        inset={insets?.bottom ?? 0}
+        foot={(
+          <>
+            <Box style={{ width: AUTH.terms.disagree }}>
+              <PulseButton label="Disagree" kind="quiet" full onPress={() => setRefused(true)} />
+            </Box>
+            <PulseButton label="Agree" kind="light" height={AUTH.foot.button} className="flex-1" onPress={props.onAccept} />
+          </>
+        )}
       >
-        <Image
-          source={require("../../../assets/app-icon.png")}
-          style={ICON}
-          className="rounded-[13px]"
-          accessibilityIgnoresInvertColors
-        />
-        <Text
-          style={display(28, c.text, { leading: 44 })}
-          className="text-text font-display mt-[14px] mb-gap"
-          accessibilityRole="header"
-        >
-          {CONSENT_TITLE}
-        </Text>
-        <Text className="text-muted text-body leading-[21px] mb-section">
-          {CONSENT_INTRO}
-        </Text>
-        <Box className="gap-gap">
-          {CONSENT_ITEMS.map((item) => (
-            <Card
-              key={item.doc}
-              item={item}
-              colours={c}
-              expanded={expanded === item.doc}
-              onToggle={() =>
-                setExpanded(expanded === item.doc ? undefined : item.doc)
-              }
-              onOpen={() => setOpen(item.doc)}
-            />
-          ))}
-        </Box>
-        <Text className="text-muted text-meta mt-gap">{CONSENT_OUTRO}</Text>
-      </ScrollView>
-      {/* Owner, 2026-10-04 (screenshot: 13 pt above Agree, 48 pt below Disagree): this page is
-          drawn outside the root layout, so its bar sits over the iPhone's home-bar strip. The
-          strip's height goes both above and below the choices, so they sit in the middle of what
-          is seen. Disagree keeps its 48 pt tap area through hitSlop, not height. */}
-      <Box
-        className="border-t-hairline border-separator bg-background px-screen-x"
-        style={{ paddingTop: foot, paddingBottom: foot }}
-      >
-        <Choice
-          colours={c}
-          label="Agree"
-          onPress={props.onAccept}
-          className="w-full"
-        />
-        <Pressable
-          onPress={() => setRefused(true)}
-          accessibilityRole="button"
-          accessibilityLabel="Disagree"
-          className="items-center justify-center mt-5"
-          hitSlop={DISAGREE_SLOP}
-        >
-          <Text className="text-accent text-body font-bold">Disagree</Text>
-        </Pressable>
-      </Box>
-    </SafeAreaView>
+        {(l) => (
+          // Full width, so the scroll bar sits on the screen's edge; the side margin is on the content instead.
+          <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: l.top + AUTH.bodyTop, paddingBottom: l.reserve, paddingHorizontal: gutter(width), gap: AUTH.terms.gap }}>
+            <Image source={require('../../../assets/app-icon.png')} style={{ width: AUTH.terms.icon, height: AUTH.terms.icon, borderRadius: AUTH.terms.iconRadius }} accessibilityIgnoresInvertColors />
+            <Type step="body" className="text-text2 font-normal" style={AUTH_TYPE.age}>{CONSENT_INTRO}</Type>
+            {CONSENT_ITEMS.map((item) => (
+              <Card key={item.doc} item={item} expanded={expanded === item.doc} onToggle={() => setExpanded(expanded === item.doc ? undefined : item.doc)} onOpen={() => setOpen(item.doc)} />
+            ))}
+            <Type step="caption" className="text-text2">{CONSENT_OUTRO}</Type>
+          </ScrollView>
+        )}
+      </OverlayPage>
+    </Box>
   );
 
   if (!refused) return page;
 
-  // `TermsRefused-B`: the page stays drawn behind a scrim, out of reach of touch and screen
-  // readers; the second page is a centred card over it.
+  // `terms--refused`: the page stays drawn behind a scrim, out of reach of touch and screen readers; the second page is a
+  // centred card over it.
   return (
     <Box className="absolute inset-0">
-      <Box
-        className="absolute inset-0"
-        pointerEvents="none"
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-      >
+      <Box className="absolute inset-0" pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         {page}
       </Box>
-      <Box className="absolute inset-0 bg-scrim justify-center px-6">
+      <Box className="absolute inset-0 bg-scrim justify-center">
         <Box
-          className="bg-surface rounded-artwork-lg p-6 items-stretch"
+          testID="terms-refusal"
+          className="bg-raise2 border border-line"
           accessibilityViewIsModal
+          style={{ marginHorizontal: bars.dialogSide, padding: bars.dialogPad, borderRadius: radius.dialog, gap: AUTH.refusal.gap }}
         >
-          <Image
-            source={require("../../../assets/app-icon.png")}
-            style={ICON}
-            className="rounded-[13px] self-center"
-            accessibilityIgnoresInvertColors
-          />
-          <Text
-            // Owner, 2026-10-04: more space between the title's two lines (was 28 = the font size).
-            style={display(28, c.text, { leading: 36 })}
-            className="text-text font-display text-center mt-[14px]"
-            accessibilityRole="header"
-          >
-            {CONSENT_TITLE}
-          </Text>
-          <Text className="text-muted text-[16px] leading-[23px] text-center mt-row">
-            {REFUSE_TEXT}
-          </Text>
-          <Choice
-            colours={c}
-            label="Agree and continue"
-            onPress={props.onAccept}
-            className="w-full mt-screen-x"
-          />
-          <Choice
-            colours={c}
-            label="Exit app"
-            outline
-            onPress={() => (props.exit ?? exitApp)(() => setRefused(false))}
-            className="w-full mt-1"
-          />
+          <Image source={require('../../../assets/app-icon.png')} style={{ width: AUTH.refusal.icon, height: AUTH.refusal.icon, borderRadius: AUTH.refusal.iconRadius }} accessibilityIgnoresInvertColors />
+          <Type step="hero" className="text-text" style={AUTH_TYPE.cardTitle} accessibilityRole="header">{CONSENT_TITLE}</Type>
+          <Type step="body" className="text-text2 font-normal" style={AUTH_TYPE.age}>{REFUSE_TEXT}</Type>
+          <PulseButton label="Agree and continue" kind="light" height={AUTH.foot.button} full onPress={props.onAccept} />
+          <PulseButton label="Exit app" kind="ring" full onPress={() => (props.exit ?? exitApp)(() => setRefused(false))} />
         </Box>
       </Box>
     </Box>

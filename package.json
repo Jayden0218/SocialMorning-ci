@@ -2,6 +2,9 @@
   "name": "socialmorning",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
   "description": "A functional clone of 小宇宙 (Xiaoyuzhou FM): a podcast client whose reason to exist is the social layer over listening.",
   "workspaces": [
     "apps/*",
@@ -10,7 +13,8 @@
   "scripts": {
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
-    "postinstall": "if [ -x node_modules/.bin/patch-package ]; then patch-package; else echo 'postinstall: patch-package not installed (production install) — skipped'; fi"
+    "postinstall": "if [ -x node_modules/.bin/patch-package ]; then patch-package; else echo 'postinstall: patch-package not installed (production install) — skipped'; fi",
+    "lint": "eslint ."
   },
   "overrides": {
     "react": "19.2.3",
@@ -24,6 +28,13 @@
     }
   },
   "devDependencies": {
-    "patch-package": "8.0.1"
+    "@eslint/js": "9.39.5",
+    "eslint": "9.39.5",
+    "eslint-plugin-jsx-a11y": "6.10.2",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.13.0",
+    "patch-package": "8.0.1",
+    "prettier": "3.9.10",
+    "typescript-eslint": "8.72.1"
   }
 }

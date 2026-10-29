@@ -27,6 +27,8 @@ const parser = new XMLParser({
   parseAttributeValue: false,
   trimValues: true,
   processEntities: true,
+  // Numeric (&#8217; &#x4F60;) and HTML named (&copy; &nbsp;) entities are everywhere in real feed titles.
+  htmlEntities: true,
 });
 
 type Node = Record<string, unknown>;
@@ -143,7 +145,13 @@ export function parseFeed(xml: string, feedUrl: string, opts: ParseOptions): Par
     warnings.push(itemTitle === undefined ? { code, message } : { code, message, itemTitle });
   };
 
-  const root = asNode(parser.parse(xml));
+  // A truncated or non-XML body makes the XML reader throw; that is "not a feed", not a crash.
+  let root: Node | undefined;
+  try {
+    root = asNode(parser.parse(xml));
+  } catch (error) {
+    warn('not-rss', `Could not read ${feedUrl} as XML: ${error instanceof Error ? error.message : String(error)}`);
+  }
   const channel = asNode(asNode(root?.['rss'])?.['channel']);
 
   if (!channel) {

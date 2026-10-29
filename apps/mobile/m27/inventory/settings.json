@@ -1199,7 +1199,7 @@
     "area": "settings",
     "kind": "system",
     "covers": [
-      "app/settings/feedback.tsx::system::open-url#1"
+      "src/ui/kit/openLink.ts::system::open-url#2"
     ],
     "as": "listener",
     "steps": [
@@ -1314,7 +1314,7 @@
     "area": "settings",
     "kind": "system",
     "covers": [
-      "app/settings/help.tsx::system::open-url#1"
+      "src/ui/kit/openLink.ts::system::open-url#2"
     ],
     "as": "listener",
     "steps": [
@@ -1394,7 +1394,7 @@
     "area": "settings",
     "kind": "system",
     "covers": [
-      "app/settings/licences.tsx::system::open-url#1"
+      "src/ui/kit/openLink.ts::system::open-url#2"
     ],
     "as": "listener",
     "steps": [

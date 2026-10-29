@@ -34,6 +34,7 @@ import { heldToPublic, type CommentMode, type PendingComment } from '../comment-
 import type { StudioComment } from '../studio-comments.ts';
 import { provenOf } from './claims.ts';
 import { episodesById, getMany, isUuid, keyOf, listenersById, mapLimit, nowIso, nowMs, partition, shared, showEpisodes, str, type Db } from './common.ts';
+import { log } from '../../../../log.ts';
 
 // ---- the policy ----
 
@@ -220,16 +221,14 @@ export async function approveHeld(store: Store, db: Db, feedUrl: string, id: str
   if (!h || !(await dropHeld(store, h))) throw new ApiError('not_found', 'No such comment waiting on this show.');
   const parentId = str(h['parentId']);
   const parentLive = parentId ? Boolean(await commentItemById(store, parentId)) : true;
+  let created: { id: string };
   try {
-    const created = await createComment(db, {
+    created = await createComment(db, {
       episodeId: String(h['episodeId']), authorId: String(h['authorId']), body: String(h['body']),
       ...(h['offsetMs'] !== null && h['offsetMs'] !== undefined ? { offsetMs: Number(h['offsetMs']) } : {}),
       ...(parentId && parentLive ? { parentId } : {}),
       ...(h['country'] ? { country: String(h['country']).trim() } : {}),
     });
-    // Fix F-S: the picture added while it waited moves with it (lane SC's repo; the file stays where it is).
-    if (h['imagePath']) await setCommentImage(db, created.id, String(h['imageUrl']), String(h['imagePath']), Number(h['imageW']), Number(h['imageH']), Number(h['imageBytes']));
-    return { commentId: created.id };
   } catch (e) {
     // The comment could not be made: the held one comes back, as the old single transaction would have left it.
     const restore = tx(store)
@@ -238,9 +237,13 @@ export async function approveHeld(store: Store, db: Db, feedUrl: string, id: str
       .put('main', encode('heldPtr', K.heldInShow(feedUrl, String(h['createdAt']), id), { id, episodeId: String(h['episodeId']), createdAt: String(h['createdAt']) }))
       .put('main', encode('heldPtr', K.heldBy(String(h['authorId']), String(h['createdAt']), id), { id, episodeId: String(h['episodeId']), createdAt: String(h['createdAt']) }));
     heldBytesStep(restore, Number(h['imageBytes'] ?? 0));
-    await restore.commit().catch(() => undefined);
+    await restore.commit().catch((re) => { log.error('approve_held_restore_failed', { id, error: re }); });
     throw e;
   }
+  // Fix F-S: the picture added while it waited moves with it (lane SC's repo; the file stays where it is).
+  // Outside the try above: the comment already exists, so a failure here must not bring the held one back (M32 A2).
+  if (h['imagePath']) await setCommentImage(db, created.id, String(h['imageUrl']), String(h['imagePath']), Number(h['imageW']), Number(h['imageH']), Number(h['imageBytes']));
+  return { commentId: created.id };
 }
 
 /** Reject: the held comment is deleted; its picture is deleted from the image store too (a failed delete is logged). */
@@ -248,7 +251,7 @@ export async function rejectHeld(store: Store, _db: Db, feedUrl: string, id: str
   const h = await heldOnShow(store, feedUrl, id);
   if (!h || !(await dropHeld(store, h))) throw new ApiError('not_found', 'No such comment waiting on this show.');
   if (h['imagePath'] && images?.ready) {
-    try { await images.remove(String(h['imagePath'])); } catch (e) { console.error('held comment image remove', e instanceof Error ? e.message : String(e)); }
+    try { await images.remove(String(h['imagePath'])); } catch (e) { log.error('held_comment_image_remove_failed', { error: e }); }
   }
 }
 

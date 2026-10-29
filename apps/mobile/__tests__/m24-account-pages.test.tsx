@@ -42,11 +42,14 @@ const mockSocial = { api: { me: () => new Promise(() => undefined) }, listener: 
 const mockM12 = { purchases: () => new Promise(() => undefined) };
 const mockPlay = { granted: 0, error: undefined };
 jest.mock('expo-router', () => ({
+  usePathname: () => '/downloads',
   useRouter: () => ({ push: (...a: unknown[]) => mockPush(...a) }),
   router: { push: (...a: unknown[]) => mockPush(...a), back: jest.fn(), replace: jest.fn(), canGoBack: () => true },
 }));
 jest.mock('@/ui/shell/providers', () => ({ useStores: () => mockStores, useDownloads: () => mockDownloads, useToast: () => mockToast }));
 jest.mock('@/social/context', () => ({ useSocial: () => mockSocial }));
+// The pushed page asks the toast placement whether the now bar shows; there is no player here.
+jest.mock('@/ui/shell/toastPlacement', () => ({ useToastPlacement: () => ({ tabs: false, now: false, player: false }) }));
 jest.mock('@/social/m12-api', () => ({ useM12Api: () => mockM12 }));
 jest.mock('@/billing/play', () => ({ usePlayStore: () => mockPlay }));
 jest.mock('@/billing/purchase-api', () => ({ usePurchaseApi: () => ({}) }));

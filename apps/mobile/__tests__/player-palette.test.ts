@@ -1,6 +1,6 @@
 // Tests that a show's theme colour tints the player only while text stays readable.
 /**
- * M17 (constitution v3.0.0, `Player-B`): the player uses the light Editorial palette, and a
+ * M17 (constitution v3.0.0, `Player-B`): the player uses the page palette (dark since M31), and a
  * show's Studio theme colour tints its top — only as far as the text and secondary text still
  * read on it (4.5:1 each). Replaces the M12 always-dark player test.
  *
@@ -20,11 +20,14 @@ it('no theme colour, or one that is not #rrggbb, gives the plain page', () => {
 });
 
 it('a colour is laid over the page at the strongest strength the words still read on', () => {
-  // Measured 2026-10-03: the brand yellow passes at 40 %. M21 (R6) adds the accent to the check:
-  // a deep blue now passes only at 12 % (accent 4.09 at 20 %, 4.66 at 12 %).
-  expect(playerWash('#fcc522')).toEqual([tintOverPage('#fcc522', 0.4), colour.background, colour.background]);
-  expect(playerWash('#1d4ed8')?.[0]).toBe(tintOverPage('#1d4ed8', 0.12));
-  expect(playerWash('1d4ed8')?.[0]).toBe(tintOverPage('#1d4ed8', 0.12));
+  // M31 (dark only): measured against the near-black page. The strongest of 40, 30, 20, 12 % at
+  // which text, secondary text and the accent all clear 4.5 is the one taken; a bright colour steps
+  // down further than a deep one.
+  const strongest = (hex: string) => [0.4, 0.3, 0.2, 0.12].find((s) => readableOnPage(tintOverPage(hex, s)!))!;
+  expect(strongest('#1d4ed8')).toBeGreaterThan(strongest('#fcc522'));
+  expect(playerWash('#fcc522')).toEqual([tintOverPage('#fcc522', strongest('#fcc522')), colour.background, colour.background]);
+  expect(playerWash('#1d4ed8')?.[0]).toBe(tintOverPage('#1d4ed8', strongest('#1d4ed8')));
+  expect(playerWash('1d4ed8')?.[0]).toBe(tintOverPage('#1d4ed8', strongest('#1d4ed8')));
 });
 
 it('whatever it returns, the text and secondary text read on the top of the wash', () => {

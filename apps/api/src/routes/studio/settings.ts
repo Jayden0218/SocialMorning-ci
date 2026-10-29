@@ -12,6 +12,7 @@ import { CONTACT_TYPES } from '../../db/repos/studio/show-overrides.ts';
 import type { Hono } from 'hono';
 import { ownerOnly, https } from './common.ts';
 import type { StudioEnv } from '../../auth/studio-session.ts';
+import { swallow } from '../../log.ts';
 
 export function registerSettings(studio: Hono<StudioEnv>): void {
   const overridesBody = z.object({
@@ -64,7 +65,7 @@ export function registerSettings(studio: Hono<StudioEnv>): void {
       const eps = await listHostedEpisodes(c.get('db'), hosted.id);
       await markHostedShowDeleted(c.get('db'), hosted.id);
       await markHostedEpisodesDeleted(c.get('db'), hosted.id);
-      for (const e of eps) await c.get('storage').remove(e.audioUrl).catch(() => undefined);
+      for (const e of eps) await c.get('storage').remove(e.audioUrl).catch(swallow('show_delete_audio_remove_failed'));
     }
     return c.body(null, 204);
   });

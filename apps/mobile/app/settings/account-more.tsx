@@ -20,31 +20,35 @@
  * and "Sent to …" once sent), 2 the 6-digit code field, 3 delete — and a bar at the foot with
  * "Keep my account" and the step's primary action ("Email me a code to confirm", then "Delete
  * account", enabled at 6 digits). Same handlers, same names, same order of steps as before.
+ *
+ * M31 S-A (T060; design-pulse2 `settings-account-more--screen`, `--signed-out`, `--delete-steps`, `--code-sent`; Panel): the page is one group tile
+ * with one row — a trash icon and "Delete my account…" in hot-text, a chevron — under the edge label ACCOUNT; the rest stays empty on purpose so the
+ * one destructive way out is not brushed by mistake (signed out: a tile "Sign in to manage your account." and the row dimmed, it does nothing without
+ * an account). Tapping it turns the page into the three-step delete — no page is pushed — titled "Delete my account": a tile of what goes with
+ * "Deleted for good on {date}." in Unbounded 17 hot-text, the steps as a small thread in one tile (dots 32: active = light, done = hot with a tick,
+ * waiting = outline), and the bottom zone **Keep my account** (quiet) with **Email me a code to confirm** (hot), then **Delete account** (hot, 40 %
+ * until six digits are in; busy shows a bar).
  */
 import { useState } from 'react';
 import { Input, InputField } from '@/ui/lib/input';
-import { Pressable } from '@/ui/lib/pressable';
-import { ScrollView } from '@/ui/lib/scroll-view';
-import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { BusyContent } from '@/ui/kit/BusyContent';
+import { colour, hit } from '@/design';
 import { ApiError } from '@/social/api';
 import { useSocial } from '@/social/context';
-import { useStores } from '@/ui/shell/providers';
-import { useColours } from '@/ui/kit/useColours';
+import { PanelGroup } from '@/ui/me/Panel';
 import { Icon } from '@/ui/kit/Icon';
-import { PageHeader } from '@/ui/kit/PageHeader';
-import { Card } from '@/ui/kit/Card';
-import { BottomBar } from '@/ui/kit/BottomBar';
-import { hit } from '@/design';
+import { PushedPage } from '@/ui/kit/PushedPage';
+import { PulseButton } from '@/ui/kit/PulseButton';
+import { Type } from '@/ui/kit/Type';
+import { KeyboardPage } from '@/ui/me/lists';
 import { dueDateText } from '@/social/api-m22-server';
+import { FieldLabel, Note, Sec, SetCard, SetPage, SetRow } from '@/ui/settings/hub-parts';
+import { SET, SET_TYPE } from '@/ui/settings/hub-measures';
 
-/** M22 US11: the server deletes the account this many days after the request. */
 const WAIT_DAYS = 15;
+const DOT = 32;
 
 export default function AccountMoreScreen(): React.ReactElement {
-  const stores = useStores();
-  const c = useColours(stores.settings);
   const { auth, listener } = useSocial();
   const [confirming, setConfirming] = useState(false);
   const [code, setCode] = useState('');
@@ -83,87 +87,81 @@ export default function AccountMoreScreen(): React.ReactElement {
   const ready = code.trim().length === 6;
   const due = dueDateText(new Date(Date.now() + WAIT_DAYS * 86_400_000).toISOString());
 
+  // M24 US20 (`SettingsAccountMore-B`): one title — "Delete my account" replaces "More" once the deletion steps show.
+  const foot = confirming ? (
+    <Box className="flex-row" style={{ gap: SET.tileGap }}>
+      <Box className="flex-1"><PulseButton kind="quiet" label="Keep my account" onPress={() => setConfirming(false)} full /></Box>
+      <Box style={{ flex: codeSent ? 1 : 1.3 }}>
+        {codeSent ? (
+          <PulseButton kind="hot" label="Delete account" onPress={remove} disabled={!ready} busy={busy} full />
+        ) : (
+          <PulseButton kind="hot" label="Email me a code to confirm" onPress={sendCode} busy={busy} full />
+        )}
+      </Box>
+    </Box>
+  ) : undefined;
   return (
-    <>
-    {/* M24 US20 (`SettingsAccountMore-B`): one title — "Delete my account" replaces "More" once
-        the deletion steps show (it was drawn twice, stacked). */}
-    {confirming ? <PageHeader title="Delete my account" /> : <PageHeader title="More" />}
-    <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pb-section gap-row">
-      {!listener ? <Text className="text-muted text-sm">Sign in to manage your account.</Text> : null}
-      {!confirming ? (
-        <Card>
-          <Pressable onPress={() => setConfirming(true)} accessibilityRole="button" accessibilityLabel="Delete my account" className="flex-row items-center gap-section" style={TAP}>
-            <Icon name="trash-outline" size={20} color={c.accent} />
-            <Text className="text-accent text-body flex-1">Delete my account…</Text>
-            <Icon name="chevron-forward" size={16} color={c.muted} />
-          </Pressable>
-        </Card>
-      ) : (
-        <Box className="gap-row">
-          <Text className="text-text text-body">This removes your comments, reactions and listening positions from every phone. Where someone replied to you, "Comment deleted" stays so their reply still makes sense.</Text>
-          <Text className="text-accent text-title font-display">{`Deleted for good on ${due}.`}</Text>
-          <Text className="text-muted text-body">{`Until then your account is hidden from everyone and signed out on every phone. Changed your mind? Sign in before ${due} and keep it.`}</Text>
-          <Box className="gap-section mt-row">
-            <Step n={1} done={codeSent} active={!codeSent} title="Email me a code to confirm" line={codeSent && masked ? `Sent to ${masked}` : undefined} />
-            <Step n={2} done={codeSent && ready} active={codeSent && !ready} title="Enter the 6-digit code">
-              {codeSent ? (
-                <Box className="gap-1 mt-gap">
-                  <Text className="text-muted text-xs">Code</Text>
-                  <Input className="bg-surface border border-border rounded-row h-auto px-0">
-                    <InputField
-                    placeholderTextColor={c.muted} placeholder="The 6-digit code we emailed you" keyboardType="number-pad" maxLength={6} value={code} onChangeText={setCode} accessibilityLabel="Code"  className="p-row text-base text-text" />
-                  </Input>
-                </Box>
-              ) : null}
-            </Step>
-            <Step n={3} done={false} active={ready} title="Delete account" line={ready ? undefined : 'Available once all 6 digits are in.'} />
-          </Box>
-          {error ? <Text className="text-accent text-body">{error}</Text> : null}
-        </Box>
-      )}
-    </ScrollView>
-    {confirming ? (
-      <BottomBar tone="page" className="flex-row gap-row">
-          <Pressable onPress={() => setConfirming(false)} accessibilityRole="button" accessibilityLabel="Keep my account" className={`${pill} bg-surface border border-border`} style={TAP}><Text className="text-text text-body font-bold">Keep my account</Text></Pressable>
-          {codeSent ? (
-            <Pressable className={`${pill} bg-primary ${!busy && !ready ? 'opacity-40' : ''}`} disabled={busy || code.trim().length !== 6} onPress={remove} accessibilityRole="button" accessibilityLabel="Delete account" accessibilityState={{ disabled: busy || !ready, busy }} style={TAP}>
-              <BusyContent busy={busy} barClassName="bg-onPrimary">
-                <Text className="text-onPrimary text-body font-bold">Delete account</Text>
-              </BusyContent>
-            </Pressable>
-          ) : (
-            <Pressable className={`${pill} bg-primary`} disabled={busy} onPress={sendCode} accessibilityRole="button" accessibilityLabel="Email me a code to confirm" accessibilityState={{ disabled: busy, busy }} style={TAP}>
-              <BusyContent busy={busy} barClassName="bg-onPrimary">
-                <Text className="text-onPrimary text-body font-bold text-center" numberOfLines={2}>Email me a code to confirm</Text>
-              </BusyContent>
-            </Pressable>
-          )}
-      </BottomBar>
-    ) : null}
-    </>
+    <KeyboardPage>
+      <PushedPage title={confirming ? 'Delete my account' : 'More'} {...(confirming ? { size: 28, below: foot, belowHeight: hit.min } : {})}>
+        {(layout) => (
+          <SetPage layout={layout}>
+            {!confirming ? (
+              <>
+                {!listener ? <SetCard><Type step="body" className="text-text font-medium">Sign in to manage your account.</Type></SetCard> : null}
+                <Sec label="Account">
+                  <PanelGroup>
+                    <SetRow icon="trash-outline" label="Delete my account…" accessibilityLabel="Delete my account" hot dim={!listener} onPress={() => setConfirming(true)} disabled={!listener} />
+                  </PanelGroup>
+                </Sec>
+              </>
+            ) : (
+              <>
+                <Sec label="What goes">
+                  <SetCard gap={SET.rowGap}>
+                    <Type step="body" className="text-text2" style={SET_TYPE.note14}>This removes your comments, reactions and listening positions from every phone. Where someone replied to you, "Comment deleted" stays so their reply still makes sense.</Type>
+                    <Type step="lede" className="text-hotText font-bold" style={SET_TYPE.display17}>{`Deleted for good on ${due}.`}</Type>
+                    <Type step="body" className="text-text2" style={SET_TYPE.note14}>{`Until then your account is hidden from everyone and signed out on every phone. Changed your mind? Sign in before ${due} and keep it.`}</Type>
+                  </SetCard>
+                </Sec>
+                <Sec label="Steps">
+                  <SetCard gap={SET.tilePad}>
+                    <Step n={1} done={codeSent} active={!codeSent} title="Email me a code to confirm" line={codeSent && masked ? `Sent to ${masked}` : undefined} />
+                    <Step n={2} done={codeSent && ready} active={codeSent && !ready} title="Enter the 6-digit code">
+                      {codeSent ? (
+                        <FieldLabel label="Code">
+                          <Input className="border-0 h-auto w-auto bg-transparent">
+                            <InputField
+                              placeholderTextColor={colour.text3} placeholder="The 6-digit code we emailed you" keyboardType="number-pad" maxLength={6} value={code} onChangeText={setCode} accessibilityLabel="Code" className="text-text font-medium" style={[SET_TYPE.field15, { paddingHorizontal: 0, paddingVertical: 0 }]} />
+                          </Input>
+                        </FieldLabel>
+                      ) : null}
+                    </Step>
+                    <Step n={3} done={false} active={ready} title="Delete account" line={ready ? undefined : 'Available once all 6 digits are in.'} />
+                  </SetCard>
+                </Sec>
+                {error ? <Type step="note" className="text-hotText" accessibilityLiveRegion="polite">{error}</Type> : null}
+              </>
+            )}
+          </SetPage>
+        )}
+      </PushedPage>
+    </KeyboardPage>
   );
 }
 
-// M24 US20: the design's two foot buttons have 16 pt corners, not pills.
-const pill = 'flex-1 rounded-row items-center justify-center px-row';
-const TAP = { minHeight: hit.min };
-const DOT = { width: 32, height: 32 };
-
-/** M17: one numbered step — a yellow tick when done, a dark number when current, an outline otherwise. */
+/** One step of the delete thread: a 32 dot (done = hot with a tick, active = light, waiting = outline) and its words. */
 function Step(props: { n: number; done: boolean; active: boolean; title: string; line?: string | undefined; children?: React.ReactNode }): React.ReactElement {
-  const stores = useStores();
-  const c = useColours(stores.settings);
-  const dot = props.done ? 'bg-primary' : props.active ? 'bg-text' : 'border border-border';
+  const dot = props.done ? 'bg-hot' : props.active ? 'bg-text' : 'border-[1.5px] border-line';
   return (
-    <Box className="flex-row gap-row">
-      <Box className={`rounded-pill items-center justify-center ${dot}`} style={DOT} accessible={false}>
+    <Box className="flex-row items-start" style={{ gap: SET.rowGap }}>
+      <Box className={`items-center justify-center ${dot}`} style={{ width: DOT, height: DOT, borderRadius: DOT / 2 }} accessible={false}>
         {props.done
-          ? <Icon name="checkmark" size={16} color={c.onPrimary} />
-          : <Text className={props.active ? 'text-background text-meta font-bold' : 'text-muted text-meta font-bold'}>{props.n}</Text>}
+          ? <Icon name="checkmark" size={16} color={colour.void} />
+          : <Type step="badge" className={props.active ? 'text-void' : 'text-text3'} style={SET_TYPE.mono13}>{String(props.n)}</Type>}
       </Box>
-      <Box className="flex-1">
-        <Text className={props.done || props.active ? 'text-text text-sm font-bold' : 'text-muted text-sm font-bold'}>{props.title}</Text>
-        {props.line ? <Text className="text-muted text-xs mt-1">{props.line}</Text> : null}
+      <Box className="flex-1" style={{ paddingTop: 5, gap: 6 }}>
+        <Type step="compact" className={props.done || props.active ? 'text-text font-bold' : 'text-text3 font-bold'}>{props.title}</Type>
+        {props.line ? <Note>{props.line}</Note> : null}
         {props.children}
       </Box>
     </Box>

@@ -8,6 +8,8 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 import { handle } from 'hono/aws-lambda';
 import { createApp, type AppDeps } from './app.ts';
 import { depsFromEnv } from './config.ts';
+import './jobs/handlers.ts';
+import { edgeSecret } from './config.ts';
 
 type LambdaHandler = ReturnType<typeof handle>;
 
@@ -29,7 +31,7 @@ export function trustedAddress(event: { headers?: Record<string, string | undefi
     const name = k.toLowerCase();
     if (OWN_HEADERS.includes(name)) { if (v !== undefined) own[name] = v; } else headers[k] = v;
   }
-  const secret = process.env['EDGE_SECRET'] ?? '';
+  const secret = edgeSecret();
   const viaEdge = secret.length > 0 && own['x-sm-edge'] !== undefined && sameSecret(own['x-sm-edge'], secret);
   const address = (viaEdge ? own['x-sm-client-ip'] : undefined) || event.requestContext?.http?.sourceIp || undefined;
   return { headers, address: address?.trim().slice(0, 64) || undefined };
@@ -48,9 +50,18 @@ export const fromApp = (app: ReturnType<typeof createApp>): LambdaHandler => {
 /** The handler for given dependencies. */
 export const createHandler = (deps: AppDeps): LambdaHandler => fromApp(createApp(deps));
 
-let ready: Promise<LambdaHandler> | undefined;
-
-export const handler: LambdaHandler = async (event, context) => {
-  ready ??= depsFromEnv().then(createHandler);
-  return (await ready)(event, context);
+/** The cold-start handler for a dependencies loader (`depsFromEnv` in production; a test passes its own). */
+export const makeHandler = (load: () => Promise<AppDeps>): LambdaHandler => {
+  let ready: Promise<LambdaHandler> | undefined;
+  return (async (event: Parameters<LambdaHandler>[0], context: Parameters<LambdaHandler>[1]) => {
+    if (!ready) {
+      // A failed read is not kept (M32 A3): the next request tries again instead of failing until the container is recycled.
+      const p = load().then(createHandler);
+      p.catch(() => { if (ready === p) ready = undefined; });
+      ready = p;
+    }
+    return (await ready)(event, context);
+  }) as LambdaHandler;
 };
+
+export const handler: LambdaHandler = makeHandler(depsFromEnv);

@@ -5,7 +5,7 @@ import { bodyLimit } from 'hono/body-limit';
 import { HTTPException } from 'hono/http-exception';
 import { requestId } from 'hono/request-id';
 import type { Db } from './db/db.ts';
-import { testPurchasesAllowed } from './config.ts';
+import { episodesBlobToken, testPurchasesAllowed } from './config.ts';
 import type { AuthEnv } from './auth/session.ts';
 import { ApiError } from './errors.ts';
 import { auth } from './routes/account/auth.ts';
@@ -39,6 +39,7 @@ import { privacy, profiles } from './routes/social/profiles.ts';
 import { discover } from './routes/discover/discover.ts';
 import { createSearchRoute } from './routes/discover/search.ts';
 import { nextup } from './routes/discover/nextup.ts';
+import { moments } from './routes/discover/moments.ts';
 import { foryou } from './routes/discover/foryou.ts';
 import { createInternalRoute } from './routes/internal.ts';
 import { recEvents } from './routes/library/rec-events.ts';
@@ -227,10 +228,10 @@ export function createApp(deps: AppDeps) {
   const safety: Safety = { ownerListenerId: deps.ownerListenerId, appealsEmail: deps.appealsEmail, releaseSha256: deps.releaseSha256 };
 
   // M13: an unconnected store is not an error — creating a show still works; uploads say why not.
-  const storage = deps.episodeStorage ?? blobStorage(process.env['EPISODES_READ_WRITE_TOKEN']);
-  const voiceStorage = deps.voiceStorage ?? voiceBlobStorage(process.env['BLOB_READ_WRITE_TOKEN']);
+  const storage = deps.episodeStorage ?? blobStorage();
+  const voiceStorage = deps.voiceStorage ?? voiceBlobStorage();
   // M19 US1: photos go to the launch-image store (constitution v2.6.0), put by the server like voice posts.
-  const avatarStorage = deps.avatarStorage ?? voiceBlobStorage(process.env['EPISODES_READ_WRITE_TOKEN']);
+  const avatarStorage = deps.avatarStorage ?? voiceBlobStorage(episodesBlobToken);
   const imageFetch = guard(deps.imageFetch);
   const audioFetch = guard(deps.audioFetch);
   const imageStorage = deps.imageStorage ?? imageStorageFromEnv(process.env);
@@ -288,9 +289,7 @@ export function createApp(deps: AppDeps) {
     if (err instanceof ApiError) return c.json(err.body(), err.status as 422);
     // M27: hono's own limits (bodyLimit without an onError) throw an HTTPException with the right answer (413); it is not a server fault.
     if (err instanceof HTTPException) return err.getResponse();
-    if (err instanceof Error && /reply_depth/.test(err.message)) {
-      return c.json(new ApiError('reply_depth', 'You can reply to a comment, not to a reply.').body(), 422);
-    }
+    // (A6: the reply-depth rule throws a typed ApiError('reply_depth') at its source; the message text is never inspected.)
     console.error(c.get('requestId'), err);
     // M25 S11: kept in our own error log (scope 'server', scrubbed), and a new kind emails the owner.
     return reportServerError(deps.db, err, { method: c.req.method, route: c.req.routePath || '?' }, { ...(deps.mailer ? { mailer: deps.mailer } : {}), ...(deps.ownerListenerId ? { ownerListenerId: deps.ownerListenerId } : {}) })
@@ -386,6 +385,7 @@ export function createApp(deps: AppDeps) {
   app.route('/v1/listeners', listenerPlaylists);
   app.route('/v1/listeners', follows);
   app.route('/v1/listeners', profiles);
+  app.route('/v1/discover', moments);
   app.route('/v1/discover', discover);
   app.route('/v1/categories', categories);
   app.route('/v1/for-you', foryou);

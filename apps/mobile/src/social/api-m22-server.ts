@@ -92,10 +92,11 @@ export const pendingDeletionStore = {
   subscribe: (l: () => void) => { listeners.add(l); return () => { listeners.delete(l); }; },
 };
 
-/** "21 October 2026" — the date the account goes, in the phone's own words. */
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+/** "21 Oct 2026" — the date the account goes, written as the drawing writes it (the same on every phone). */
 export function dueDateText(iso: string): string {
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+  return Number.isNaN(d.getTime()) ? iso : `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
 // ---- US13: which language to ask for ----

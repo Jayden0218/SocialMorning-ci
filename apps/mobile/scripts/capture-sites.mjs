@@ -5,8 +5,8 @@
  * a place in the code that puts something on screen that a person could see in a picture:
  *
  *   route       a file in app/ (not _layout / README)
- *   sheet       <Actionsheet>, <Sheet>, <Modal>, <EpisodeRowSheet> opened in a file (ordinal in the file)
- *   dialog      confirm({ title })  — keyed by the title, or the ordinal when it is not a literal
+ *   sheet       <Actionsheet>, <ActionSheet> (M31 kit), <Sheet>, <Modal>, <EpisodeRowSheet> opened in a file (ordinal in the file)
+ *   dialog      confirm({ title }) or the kit <Dialog title=…>  — keyed by the title, or the ordinal when it is not a literal
  *   toast       toast('…') / deps.notify('…') — keyed by the words, or the ordinal
  *   empty       <EmptyState surface=…>  — keyed by the surface, or the ordinal
  *   surface     one per key of EMPTY_STATES in packages/social-core/src/empty.ts
@@ -27,7 +27,7 @@ export const MOBILE = path.join(path.dirname(fileURLToPath(import.meta.url)), '.
 const REPO = path.join(MOBILE, '..', '..');
 
 /** Files that DEFINE a popup (their own <Actionsheet> is the part, not a screen): skipped for sheets. */
-const DEFINES = new Set(['src/ui/kit/Sheet.tsx', 'src/ui/kit/confirm.tsx', 'src/ui/kit/EpisodeRowSheet.tsx']);
+const DEFINES = new Set(['src/ui/kit/Sheet.tsx', 'src/ui/kit/confirm.tsx', 'src/ui/kit/EpisodeRowSheet.tsx', 'src/ui/kit/ActionSheet.tsx', 'src/ui/kit/Dialog.tsx']);
 const skipDir = (rel) => rel === 'src/ui/lib' || rel.includes('__tests__') || rel.includes('node_modules');
 
 function walk(root, out = []) {
@@ -84,7 +84,15 @@ export function scan() {
     const ordinal = (kind) => { const n = (nth.get(kind) ?? 0) + 1; nth.set(kind, n); return `#${n}`; };
 
     if (!DEFINES.has(rel)) {
-      for (const m of src.matchAll(/<(Actionsheet|Sheet|Modal|EpisodeRowSheet)\b/g)) once('sheet', ordinal('sheet'), m.index, { tag: m[1] });
+      for (const m of src.matchAll(/<(Actionsheet|ActionSheet|Sheet|Modal|EpisodeRowSheet)\b/g)) once('sheet', ordinal('sheet'), m.index, { tag: m[1] });
+    }
+    // M31: the kit `<Dialog title="…">` used directly (confirm() renders one inside kit/confirm.tsx, a DEFINES file).
+    if (!DEFINES.has(rel)) {
+      for (const m of src.matchAll(/<Dialog\b/g)) {
+        const t = /\btitle=/.exec(src.slice(m.index, m.index + 400));
+        const lit = t ? literal(src.slice(m.index + t.index + t[0].length).replace(/^\{/, '')) : undefined;
+        once('dialog', lit ?? ordinal('dialog'), m.index);
+      }
     }
     for (const m of src.matchAll(/(?<![.\w])confirm\(\s*\{/g)) {
       const t = /\btitle:\s*/.exec(src.slice(m.index, m.index + 400));

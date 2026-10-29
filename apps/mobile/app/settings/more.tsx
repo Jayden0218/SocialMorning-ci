@@ -19,45 +19,63 @@
  *
  * M21 US10 (T110): every Playback row moved to its own page, `settings/playback.tsx` (same
  * switches, same prefs); the Playback card here is now one row that opens it.
+ *
+ * M31 S-A (T060; design-pulse2 `settings-more--screen`; Panel): three groups under the edge labels YOUR SHOWS · PLAYBACK · FOR YOU instead of heading rows. Your shows: Import or export
+ * subscriptions (the OPML line). Playback: Playback with its summary line. **Personalised recommendations** is the large switch tile (on = the tinted wash with a hot ring), its full line kept —
+ * "Off: no For You, and nothing is sent for it." — with How For You works and Not interested as rows in one group tile under it. Title "More" with back at the bottom.
  */
 import { useState } from 'react';
-import { ScrollView } from '@/ui/lib/scroll-view';
-import { Text } from '@/ui/lib/text';
+import { Link } from 'expo-router';
+import { Box } from '@/ui/lib/box';
+import { colour } from '@/design';
 import { getPref, setPref } from '@/settings/prefs';
 import { useStores } from '@/ui/shell/providers';
-import { LinkRow, SwitchRow } from '@/ui/settings/rows';
-import { Card } from '@/ui/kit/Card';
-import { PageHeader } from '@/ui/kit/PageHeader';
-
-function Section(props: { title: string }): React.ReactElement {
-  return <Text className="text-text text-base font-display-semibold mt-section mb-gap" accessibilityRole="header">{props.title}</Text>;
-}
+import { Icon } from '@/ui/kit/Icon';
+import { PushedPage } from '@/ui/kit/PushedPage';
+import { Toggle } from '@/ui/kit/Toggle';
+import { Type } from '@/ui/kit/Type';
+import { PanelGroup } from '@/ui/me/Panel';
+import { Note, Sec, SetCard, SetPage, SetRow } from '@/ui/settings/hub-parts';
+import { SET, SET_TYPE } from '@/ui/settings/hub-measures';
 
 export default function MoreSettings(): React.ReactElement {
   const stores = useStores();
   const [recs, setRecs] = useState(() => getPref(stores.settings, 'personalRecs'));
   return (
-    <>
-    <PageHeader title="More" />
-    <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pb-24">
-      <Section title="Your shows" />
-      <Card className="py-1">
-        <LinkRow href="/settings/opml" icon="swap-horizontal-outline" label="Import or export subscriptions" line="OPML — the file every podcast app reads" />
-      </Card>
-      {/* M21 US10 (T110): the playback switches moved to their own page. */}
-      <Section title="Playback" />
-      <Card className="py-1">
-        <LinkRow href="/settings/playback" icon="play-circle-outline" label="Playback" line="Queue, mobile data, transcript, lock screen, music mode, skip silence" />
-      </Card>
-      <Section title="Recommendations" />
-      <Card className="py-1">
-        <SwitchRow icon="sparkles-outline" label="Personalised recommendations" line="For You on Discover, from what you follow and play. Off: no For You, and nothing is sent for it." value={recs} onChange={(v) => { setRecs(v); setPref(stores.settings, 'personalRecs', v); }} />
-        {/* M12 FR-094 */}
-        <LinkRow href="/settings/how-for-you" icon="help-circle-outline" label="How For You works" line="What it uses, and what it never uses" />
-        {/* M19 T022 (moved here from Settings in M24 US20): what For You no longer recommends, each with Restore. */}
-        <LinkRow href="/settings/not-interested" icon="eye-off-outline" label="Not interested" line="Episodes and shows hidden from For You" />
-      </Card>
-    </ScrollView>
-    </>
+    <PushedPage title="More">
+      {(layout) => (
+        <SetPage layout={layout}>
+          <Sec label="Your shows">
+            <PanelGroup>
+              <Link href="/settings/opml" asChild accessibilityLabel="Import or export subscriptions"><SetRow icon="repeat-outline" label="Import or export subscriptions" line="OPML — the file every podcast app reads" /></Link>
+            </PanelGroup>
+          </Sec>
+          {/* M21 US10 (T110): the playback switches moved to their own page. */}
+          <Sec label="Playback">
+            <PanelGroup>
+              <Link href="/settings/playback" asChild accessibilityLabel="Playback"><SetRow icon="play" label="Playback" line="Queue, mobile data, transcript, lock screen, music mode, skip silence" /></Link>
+            </PanelGroup>
+          </Sec>
+          <Sec label="For You">
+            <Box style={{ gap: SET.tileGap }}>
+              <SetCard testID="recs-card" wash={recs} gap={SET.gap}>
+                <Box className="flex-row justify-between items-center">
+                  <Icon name="sparkles-outline" size={SET.bigIcon} color={colour.hotText} />
+                  <Toggle value={recs} onChange={(v) => { setRecs(v); setPref(stores.settings, 'personalRecs', v); }} label="Personalised recommendations" />
+                </Box>
+                <Type step="lede" className="text-text font-bold" style={SET_TYPE.display17}>Personalised recommendations</Type>
+                <Note>For You on Discover, from what you follow and play. Off: no For You, and nothing is sent for it.</Note>
+              </SetCard>
+              <PanelGroup>
+                {/* M12 FR-094 */}
+                <Link href="/settings/how-for-you" asChild accessibilityLabel="How For You works"><SetRow icon="information-circle-outline" label="How For You works" line="What it uses, and what it never uses" /></Link>
+                {/* M19 T022 (moved here from Settings in M24 US20): what For You no longer recommends, each with Restore. */}
+                <Link href="/settings/not-interested" asChild accessibilityLabel="Not interested"><SetRow icon="eye-off-outline" label="Not interested" line="Episodes and shows hidden from For You" /></Link>
+              </PanelGroup>
+            </Box>
+          </Sec>
+        </SetPage>
+      )}
+    </PushedPage>
   );
 }

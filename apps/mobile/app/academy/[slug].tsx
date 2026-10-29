@@ -2,50 +2,60 @@
 /**
  * One academy article (M12 FR-103).
  *
- * M17 T078 (`AcademyLesson-B`): the Editorial article — the back row alone, then an accent
- * eyebrow ("Creator academy · 01"), the title as a large serif, the summary as a serif standfirst,
- * a hairline, and each section numbered in the accent beside a serif heading and its body.
+ * M31 W5-D (T064; design-pulse2 `discover.html` `academy--article`, `academy--article-missing`, layout pattern Thread): a pushed page,
+ * the title bar low (the article's title at 24, "Creator academy · 1"). The summary opens the body in Unbounded 600 16/23, then the
+ * sections are a Thread: each heading numbered in a 36 ring on a 2 wide spine, its text in a raise card (radius 18, 14 of padding) —
+ * the heading in Unbounded 700 16, the body 15/22. A section with no heading hangs on the spine with no ring. An article that
+ * has moved is the empty block "This article has moved", and back returns to the academy.
+ * Links in an article are the Markdown block's own (hot-text, https only, never HTML).
  */
 import { useLocalSearchParams } from 'expo-router';
 import { ScrollView } from '@/ui/lib/scroll-view';
-import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { EmptyPicture } from '@/ui/me/parts';
 import { useAcademy } from '@/config/content';
 import { MarkdownBlocks } from '@/ui/content/Markdown';
-import { PageHeader } from '@/ui/kit/PageHeader';
-
-const CAPS = { letterSpacing: 1.3, textTransform: 'uppercase' as const };
-const NUMBER = { width: 36 };
+import { PushedPage } from '@/ui/kit/PushedPage';
+import { Type } from '@/ui/kit/Type';
+import { ME_MOSAIC } from '@/ui/me/mosaic';
+import { DRAWN, emptyTop, PageEmpty } from '@/ui/me/lists';
+import { PAGE, PAGE_TYPE } from '@/ui/discover/measures';
+import { bodyTop, NumberedThread, ThreadRing } from '@/ui/discover/page-parts';
 
 export default function ArticleScreen(): React.ReactElement {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   // M25 A8: the server's article (Admin › Content), else the bundled one; bodies drawn as text runs.
   const articles = useAcademy();
   const a = articles.find((x) => x.slug === String(slug));
-  if (!a) return <><PageHeader title="Article" /><Box className="flex-1 bg-background"><EmptyPicture icon="document-text-outline" line="This article has moved" /></Box></>;
-  const n = String(articles.findIndex((x) => x.slug === a.slug) + 1).padStart(2, '0');
+  if (!a) {
+    return (
+      <PushedPage title="Article">
+        {() => <PageEmpty top={emptyTop(260) - (PAGE.body - DRAWN.listTop)} title="This article has moved" line="The academy list has the current articles." />}
+      </PushedPage>
+    );
+  }
+  const n = articles.findIndex((x) => x.slug === a.slug) + 1;
+  let ring = 0;
   return (
-    <>
-    {/* The back row only: the page draws its own eyebrow above the title. */}
-    <PageHeader middle={<Box />} />
-    <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pt-2 pb-24 gap-section">
-      <Box className="gap-2">
-        <Text className="text-accent text-micro font-bold" style={CAPS}>{`Creator academy · ${n}`}</Text>
-        <Text className="text-text text-display font-display" accessibilityRole="header">{a.title}</Text>
-        <Text className="text-muted text-base font-display-semibold">{a.summary}</Text>
-      </Box>
-      <Box className="border-b-hairline border-separator" />
-      {a.sections.map((s, i) => (
-        <Box key={`${i}-${s.heading}`} className="flex-row gap-2">
-          <Text className="text-accent text-lg font-display" style={NUMBER}>{s.heading ? String(a.sections.slice(0, i + 1).filter((x) => x.heading).length) : ''}</Text>
-          <Box className="flex-1 gap-1">
-            {s.heading ? <Text className="text-text text-title font-display" accessibilityRole="header">{s.heading}</Text> : null}
-            <MarkdownBlocks blocks={s.blocks} />
-          </Box>
-        </Box>
-      ))}
-    </ScrollView>
-    </>
+    <PushedPage title={a.title} subtitle={`Creator academy · ${n}`} size={24}>
+      {(layout) => (
+        <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: bodyTop(layout, PAGE.body64), paddingBottom: layout.reserve }}>
+          <Type step="lede" className="text-quote" style={[PAGE_TYPE.summary16, { marginLeft: ME_MOSAIC.lane, marginRight: PAGE.threadRight + 4, marginBottom: PAGE.pad }]}>{a.summary}</Type>
+          <NumberedThread spineTop={6} right={PAGE.threadRight + 4}>
+            {a.sections.map((s, i) => {
+              if (s.heading) ring += 1;
+              return (
+                <Box key={`${i}-${s.heading}`} testID="article-section" className="flex-row" style={{ gap: PAGE.ringGap, marginBottom: PAGE.card.article.radius }}>
+                  {s.heading ? <ThreadRing n={ring} /> : <Box style={{ width: PAGE.ring }} />}
+                  <Box className="flex-1 min-w-0 bg-raise" style={{ borderRadius: PAGE.card.article.radius, padding: PAGE.card.article.pad, gap: 6 }}>
+                    {s.heading ? <Type step="lede" className="text-text" style={PAGE_TYPE.summary16} accessibilityRole="header">{s.heading}</Type> : null}
+                    <MarkdownBlocks blocks={s.blocks} />
+                  </Box>
+                </Box>
+              );
+            })}
+          </NumberedThread>
+        </ScrollView>
+      )}
+    </PushedPage>
   );
 }

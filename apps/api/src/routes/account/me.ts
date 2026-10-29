@@ -12,6 +12,7 @@ import { checkCode, consumeCode } from '../../auth/codes.ts';
 import { plusUntil } from '../../db/repos/account/purchases.ts';
 import { AGE_RANGES, AVATAR_CEILING_BYTES, AVATAR_MAX_BYTES, GENDERS, INDUSTRY_MAX, acceptRules, avatarBytesOthers, currentAvatar, displayNameRows, imageKind, myProfile, passwordHashRows, setAvatar, updateProfile } from '../../db/repos/account/profile.ts';
 import { setTz } from '../../db/repos/account/digest.ts';
+import { log } from '../../log.ts';
 
 export const me = new Hono<AuthEnv>();
 
@@ -94,7 +95,7 @@ me.put('/avatar', requireAuth, async (c) => {
   const path = `avatars/${l.id}/${crypto.randomUUID()}.${type === 'image/png' ? 'png' : 'jpg'}`;
   const saved = await store.put(path, bytes, type);
   await setAvatar(db, l.id, { url: saved.url, path: saved.pathname, bytes: bytes.length });
-  if (old) { try { await store.remove(old); } catch (e) { console.error('old avatar not removed', e); } }
+  if (old) { try { await store.remove(old); } catch (e) { log.error('old_avatar_not_removed', { error: e }); } }
   return c.json({ avatarUrl: saved.url });
 });
 
@@ -103,7 +104,7 @@ me.delete('/avatar', requireAuth, async (c) => {
   const l = c.get('listener')!;
   const old = await currentAvatar(db, l.id);
   await setAvatar(db, l.id, null);
-  if (old) { try { await c.get('avatars').remove(old); } catch (e) { console.error('avatar not removed', e); } }
+  if (old) { try { await c.get('avatars').remove(old); } catch (e) { log.error('avatar_not_removed', { error: e }); } }
   return c.body(null, 204);
 });
 

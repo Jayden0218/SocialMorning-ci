@@ -39,8 +39,10 @@ const OWN_BOTTOM = new Set([
   'app/_layout.tsx', // the root itself
   'app/voice/new.tsx', // presentation: 'modal' — a native modal, outside the root's padding
   'src/ui/shell/LegalDoc.tsx', // inside a React Native Modal
+  'src/ui/episode/PictureViewer.tsx', // M31 W3-A: full-screen pictures in a React Native Modal, outside the root's padding; its Close / Save bar pads the strip itself
   'src/ui/shell/Terms.tsx', // drawn by AppProviders, outside the root's padding: its bar centres itself over the strip
   'app/player.tsx', // owner 2026-10-06: the root leaves its strip to the player, whose wash reaches the bottom edge
+  'src/ui/player/measures.ts', // M31 round 2: `playerLayout` lifts the player's bottom parts by the inset above the drawn 34 (app/player.tsx calls it)
   'src/ui/player/SettingsPanel.tsx', // M21 US2: full-screen panel over the player (which pads its own bottom), so it pads its own too
 ]);
 

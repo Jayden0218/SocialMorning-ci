@@ -14,17 +14,27 @@
  *
  * M21 US6 (G-M21-7): a 428 rules_required opens the community rules (RulesSheet); Accept posts the
  * same recording again, Not now drops it (nothing was stored by the server).
+ *
+ * M31 W2-B (`social.html` `recordBar`, `comments--voice-record`): the mic is a 44 button the page places itself (children may be a
+ * function that receives it — the Pulse composer carries it inside its pill). Recording turns the bar into the 56 recorder with a
+ * 1.5 hot border: a × (Cancel recording), the moment chip (where it started), a breathing 8 hot dot, a 24-bar wave that fills as
+ * the seconds pass, the clock in mono, and a 40 hot check ("Stop recording and check the text", or "Stop and post …" with no
+ * speech service). The review card and the rules sheet are in VoiceTextReview.tsx and RulesSheet.tsx. Posting, the 60 s cap, the
+ * moment and the player's pause are as before.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Animated } from 'react-native';
 import { router } from 'expo-router';
 import { askMicrophone, useVoiceRecorder, voiceSessionOff, voiceSessionOn } from '@/playback/expo-audio-adapter';
 import { usePlayer } from '@/playback/store';
-import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { Icon } from '@/ui/kit/Icon';
-import { useColours } from '@/ui/kit/useColours';
-import { hit } from '@/design';
+import { Curve } from '@/ui/kit/Curve';
+import { IconButton } from '@/ui/kit/PulseButton';
+import { TimestampChip } from '@/ui/kit/TimestampChip';
+import { Type } from '@/ui/kit/Type';
+import { useReducedMotion } from '@/ui/kit/useReducedMotion';
+import { mmss } from '@/ui/kit/format';
+import { colour, motion } from '@/design';
 import { VOICE_MAX_MS, voiceClock } from '@/social/voice';
 import { ApiError } from '@/social/api';
 import { needsRules, useCommentExtrasApi } from '@/social/comment-extras-api';
@@ -33,10 +43,28 @@ import { useSocial } from '@/social/context';
 import { useToast } from '@/ui/shell/providers';
 import { textRecorder, type VoiceTake } from '@/social/voice-text';
 import { VoiceTextReview } from './VoiceTextReview';
+import { voiceWave } from './VoiceComment';
+import { COMMENTS } from './measures';
 
-const DISC = { width: hit.min, height: hit.min };
-const TAP = { minHeight: hit.min };
-const BAR = { minHeight: 52 };
+/** The recorder bar (`social.html` `recordBar`): 56, radius 22, raise2, a 1.5 hot border, padding 0 8, 10 between parts. */
+const BAR = { minHeight: COMMENTS.composerHeight, borderRadius: COMMENTS.composerRadius, borderWidth: COMMENTS.recorderBorder, borderColor: colour.hot, paddingHorizontal: 8, gap: 10 };
+const DOT = { width: COMMENTS.dot, height: COMMENTS.dot };
+
+/** The breathing hot dot: opacity 1 → 0.5 → 1 on 2.4 s (a still dot with Reduce Motion). */
+function BreathingDot(): React.ReactElement {
+  const still = useReducedMotion();
+  const o = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (still) { o.setValue(1); return undefined; }
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(o, { toValue: 0.5, duration: motion.breathe / 2, useNativeDriver: true }),
+      Animated.timing(o, { toValue: 1, duration: motion.breathe / 2, useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [still, o]);
+  return <Animated.View accessible={false} style={[DOT, { borderRadius: COMMENTS.dot / 2, backgroundColor: colour.hot, opacity: o }]} testID="record-dot" />;
+}
 
 /** Why a voice comment did not post, in plain words. */
 export function voicePostError(e: unknown): string {
@@ -59,10 +87,12 @@ export function VoiceComposer(props: {
   /** The episode's moment now, when the player has this episode; read when recording starts. */
   offsetMs: () => number | undefined;
   onPosted: () => void;
-  /** The write box: drawn beside the mic, and replaced by the recording bar while recording. */
-  children: React.ReactNode;
+  /**
+   * The write box, replaced by the recording bar while recording. Either a node (drawn beside the mic, as before) or a
+   * function that is given the mic button and places it itself — the Pulse composer carries the mic inside its pill.
+   */
+  children: React.ReactNode | ((mic: React.ReactElement) => React.ReactNode);
 }): React.ReactElement {
-  const c = useColours();
   const toast = useToast();
   const player = usePlayer();
   const extras = useCommentExtrasApi();
@@ -87,6 +117,7 @@ export function VoiceComposer(props: {
   // M21 US6: the recording waiting for the rules to be accepted.
   const pending = useRef<{ blob: Blob; ms: number; transcript: string | null } | undefined>(undefined);
   const [rules, setRules] = useState(false);
+  const wave = useMemo(() => voiceWave(7000), []);
 
   const used = useRef(false);
   const restore = () => voiceSessionOff().catch(() => undefined);
@@ -177,23 +208,22 @@ export function VoiceComposer(props: {
   useEffect(() => { if (phase === 'recording' && recordedMs >= VOICE_MAX_MS) void stop(true); });
 
   if (phase === 'idle') {
+    const mic = (
+      <IconButton
+        icon="mic-outline"
+        label={props.parentId ? 'Record a voice reply' : 'Record a voice comment'}
+        onPress={() => void start()}
+        size={22}
+      />
+    );
     return (
-      <Box className="flex-row items-center gap-gap">
+      <Box className="flex-row items-center" style={{ gap: 8 }}>
         <RulesSheet
           open={rules}
           onAccepted={() => { setRules(false); const p = pending.current; pending.current = undefined; if (p) void upload(p.blob, p.ms, p.transcript); }}
           onClose={() => { setRules(false); pending.current = undefined; }}
         />
-        <Box className="flex-1">{props.children}</Box>
-        <Pressable
-          onPress={() => void start()}
-          accessibilityRole="button"
-          accessibilityLabel={props.parentId ? 'Record a voice reply' : 'Record a voice comment'}
-          className="rounded-pill bg-playDisc items-center justify-center"
-          style={DISC}
-        >
-          <Icon name="mic-outline" size={22} color={c.playGlyph} />
-        </Pressable>
+        {typeof props.children === 'function' ? <Box className="flex-1">{props.children(mic)}</Box> : (<><Box className="flex-1">{props.children}</Box>{mic}</>)}
       </Box>
     );
   }
@@ -207,31 +237,26 @@ export function VoiceComposer(props: {
   }
   const recording = phase === 'recording';
   return (
-    <Box className="flex-row items-center gap-gap bg-surface border-2 border-primary rounded-pill pl-row pr-1" style={BAR}>
-      <Icon name="mic" size={18} color={c.accent} />
-      <Text className="text-text text-body font-bold flex-1" accessibilityLiveRegion="polite" accessibilityLabel={recording ? `Recording, ${Math.floor(recordedMs / 1000)} seconds of 60` : 'Posting'}>
-        {recording ? voiceClock(recordedMs) : 'Posting…'}
-      </Text>
-      <Pressable
-        onPress={() => { discard.current = true; void stop(false); }}
-        disabled={!recording}
-        accessibilityRole="button"
-        accessibilityLabel="Cancel recording"
-        className="justify-center px-row"
-        style={TAP}
-      >
-        <Text className="text-accent text-body font-bold">Cancel</Text>
-      </Pressable>
-      <Pressable
+    <Box className="flex-row items-center bg-raise2" style={BAR} testID="voice-recorder">
+      <IconButton icon="close" label="Cancel recording" onPress={() => { discard.current = true; void stop(false); }} disabled={!recording} tone="text2" size={20} />
+      {at.current !== undefined ? <Box><TimestampChip text={mmss(at.current)} /></Box> : null}
+      <BreathingDot />
+      <Box className="flex-1" accessible={false} importantForAccessibility="no-hide-descendants">
+        <Curve data={wave} count={COMMENTS.recordBars} height={COMMENTS.voiceHeight} min={3} played={Math.min(1, recordedMs / VOICE_MAX_MS)} />
+      </Box>
+      <Type step="mono" className="text-text" accessibilityLiveRegion="polite" accessibilityLabel={recording ? `Recording, ${Math.floor(recordedMs / 1000)} seconds of 60` : 'Posting'}>
+        {recording ? mmss(recordedMs) : 'Posting…'}
+      </Type>
+      <IconButton
+        icon="checkmark"
+        label={speech ? 'Stop recording and check the text' : props.parentId ? 'Stop and post the voice reply' : 'Stop and post the voice comment'}
         onPress={() => void stop(true)}
         disabled={!recording}
-        accessibilityRole="button"
-        accessibilityLabel={speech ? 'Stop recording and check the text' : props.parentId ? 'Stop and post the voice reply' : 'Stop and post the voice comment'}
-        className={`bg-primary rounded-pill justify-center px-section ${recording ? '' : 'opacity-50'}`}
-        style={TAP}
-      >
-        <Text className="text-onPrimary text-body font-bold">{speech ? 'Done' : 'Post'}</Text>
-      </Pressable>
+        tone="void"
+        size={18}
+        diameter={COMMENTS.recordCheck}
+        className="bg-hot"
+      />
     </Box>
   );
 }

@@ -11,55 +11,66 @@
  * M21 US6: All / Newest tabs over the replies (`?tab=newest` — newest first; All keeps the
  * conversation oldest first). A tap on a card opens its menu (as the long-press), which adds
  * Share (the episode link at that moment) and Mute (others' cards; hidden for me only).
+ *
+ * M31 W2-B (T032; `design-pulse2/social.html#comment-thread--screen` and its variants): the Pulse Stage + Thread. The comment being
+ * answered is the stage at the top (avatar, name, its solid moment chip that plays from there, the words in Unbounded 22, the
+ * heart, the age and episode, ⋯) over a soft glow; the replies hang on the spine below it, each with an age tick; the thumb zone
+ * has the back circle, "Replies 6", the All / Newest capsule and the reply composer with a mic. Signed out the composer is one
+ * light "Sign in to reply" button; no replies and a failed load have their own blocks.
  */
 import { useCallback, useState } from 'react';
-import { Clipboard, Share } from 'react-native';
+import { Clipboard, Share, useWindowDimensions } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { FlatList } from '@/ui/lib/flat-list';
-import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '@/ui/lib/actionsheet';
-import { hit } from '@/design';
+import { Pressable } from '@/ui/lib/pressable';
 import { useSocial } from '@/social/context';
 import type { Comment } from '@/social/api';
 import { useM12Api } from '@/social/m12-api';
 import { useCommentExtrasApi, type Thread } from '@/social/comment-extras-api';
 import type { ComposerState } from '@/social/composer';
 import { ComposerSheet } from '@/ui/comments/Composer';
-import { CommentRow, type LikeView } from '@/ui/comments/CommentRow';
+import { CommentRow, agoAndPlace, placeOf, shortAgo, type LikeView } from '@/ui/comments/CommentRow';
+import { CommentMenu, type MenuItem } from '@/ui/comments/CommentMenu';
 import { ReportSheet, type ReportTarget } from '@/ui/comments/ReportSheet';
 import { VoiceComposer } from '@/ui/comments/VoiceRecord';
+import { BottomZone, Capsule, ComposerBar, SignInBar, ZoneTitle } from '@/ui/comments/CommentsBottom';
+import { GhostRows, SpineLine, SpineNode, StageGlow, Tick } from '@/ui/comments/Spine';
+import { COMMENTS, ZONE_BOTTOM, belowStatus } from '@/ui/comments/measures';
+import { useInsets } from '@/ui/comments/useInsets';
 import { playVoice } from '@/playback/expo-audio-adapter';
 import { getPref } from '@/settings/prefs';
 import { useStores, useToast } from '@/ui/shell/providers';
-import { useColours } from '@/ui/kit/useColours';
-import { usePlayer, usePlayerState } from '@/playback/store';
+import { livePositionMs, selectEpisodeId, usePlayer, usePlayerSelector } from '@/playback/store';
 import { toPlayable } from '@/storage/playable';
-import { PageHeader } from '@/ui/kit/PageHeader';
-import { Icon, type IconName } from '@/ui/kit/Icon';
-import { EndOfList } from '@/ui/kit/EndOfList';
-import { Segmented } from '@/ui/kit/Segmented';
+import { goBack } from '@/ui/kit/PageHeader';
+import { Avatar } from '@/ui/kit/Avatar';
+import { Curve } from '@/ui/kit/Curve';
+import { Fade } from '@/ui/kit/Fade';
+import { Icon } from '@/ui/kit/Icon';
+import { TimestampChip } from '@/ui/kit/TimestampChip';
+import { Type } from '@/ui/kit/Type';
+import { mmss, relativeTime } from '@/ui/kit/format';
+import { colour } from '@/design';
+import { plural } from '@socialmorning/social-core';
+import { drawnType } from '@/design/type-px';
 
 type Tab = 'all' | 'newest';
 const TABS: { value: Tab; label: string }[] = [{ value: 'all', label: 'All' }, { value: 'newest', label: 'Newest' }];
-
-const TAB = { minHeight: hit.min };
-const WRITE = { minHeight: 52 };
-const ICON_BOX = { width: 40, height: 40 };
-const ICONS: Record<string, IconName> = {
-  Reply: 'arrow-undo-outline', Share: 'share-outline', Mute: 'volume-mute-outline', Copy: 'copy-outline', 'Mark as unfriendly': 'eye-off-outline', Unmark: 'eye-outline', Delete: 'trash-outline', Report: 'flag-outline',
-};
+const NO_DATA: readonly number[] = [];
+/** A 48 tap on a 16 glyph row. */
+const SLOP = { top: 16, bottom: 16, left: 8, right: 8 };
 
 export default function ThreadScreen(): React.ReactElement {
   const { commentId, episodeId } = useLocalSearchParams<{ commentId: string; episodeId?: string }>();
   const stores = useStores();
-  const c = useColours(stores.settings);
   const toast = useToast();
   const m12 = useM12Api();
   const extras = useCommentExtrasApi();
   const player = usePlayer();
-  const playerState = usePlayerState();
+  const loadedId = usePlayerSelector(selectEpisodeId);
+  const insets = useInsets();
+  const { width } = useWindowDimensions();
   const { composer, listener, refresh, bump } = useSocial();
   const [thread, setThread] = useState<Thread | undefined>();
   const [failed, setFailed] = useState(false);
@@ -69,6 +80,8 @@ export default function ThreadScreen(): React.ReactElement {
   const [reporting, setReporting] = useState<ReportTarget | undefined>();
   const [composing, setComposing] = useState<ComposerState | undefined>();
   const [tab, setTab] = useState<Tab>('all');
+  const [stage, setStage] = useState(0);
+  const [zone, setZone] = useState(0);
   const ep = episodeId ?? '';
 
   const load = useCallback(() => {
@@ -80,19 +93,18 @@ export default function ThreadScreen(): React.ReactElement {
   useFocusEffect(load);
   const reload = () => { load(); if (ep) void refresh(ep); };
 
-  const playing = playerState.kind !== 'idle' && playerState.episodeId === ep && 'positionMs' in playerState && typeof playerState.positionMs === 'number' ? playerState.positionMs : undefined;
   const likeOf = useCallback((x: Comment): LikeView => likes[x.id] ?? { count: x.likeCount ?? 0, liked: x.likedByMe ?? false }, [likes]);
   const needSignIn = () => router.push('/auth/sign-in');
 
   const reply = () => {
     if (!listener) { needSignIn(); return; }
     if (!ep || !commentId) return;
-    const atMs = playing ?? stores.positions.get(ep)?.offsetMs ?? 0;
+    const atMs = livePositionMs(player, ep) ?? stores.positions.get(ep)?.offsetMs ?? 0;
     setComposing(composer.open({ episodeId: ep, offsetMs: atMs }, commentId));
   };
   const seek = (offsetMs: number) => {
     if (!ep) return;
-    if (playerState.kind !== 'idle' && playerState.episodeId === ep) { player.seek(offsetMs); player.play(); return; }
+    if (loadedId === ep) { player.seek(offsetMs); player.play(); return; }
     const playable = toPlayable(stores, ep);
     if (playable) { player.load(playable, 'play'); player.seek(offsetMs); }
   };
@@ -144,7 +156,7 @@ export default function ThreadScreen(): React.ReactElement {
       reload();
     } catch { toast("Couldn't mute — try again."); }
   };
-  const menuItems = (x: Comment) => [
+  const menuItems = (x: Comment): MenuItem[] => [
     { label: 'Reply', run: reply },
     { label: 'Share', run: () => shareComment(x) },
     ...(x.body ? [{ label: 'Copy', run: () => { Clipboard.setString(x.body ?? ''); toast('Copied.'); } }] : []),
@@ -155,77 +167,115 @@ export default function ThreadScreen(): React.ReactElement {
       : { label: 'Report', run: () => setReporting({ kind: 'comment', id: x.id, authorId: x.authorId, label: 'comment' }) },
   ];
 
-  const row = (x: Comment) => (
-    <CommentRow
-      c={{ ...x, replies: [] }}
-      serverTime={new Date().toISOString()}
-      likeOf={likeOf}
-      iconColour={{ muted: c.muted, accent: c.accent }}
-      onSeek={seek}
-      onLike={(y) => void like(y)}
-      onMenu={setMenu}
-      playVoice={playVoice}
-            teenMode={getPref(stores.settings, 'hideExplicit')}
-    />
-  );
   const replies = thread?.replies ?? [];
-  const name = thread?.parent.displayName ?? 'this comment';
+  const parent = thread?.parent;
+  const name = parent?.displayName ?? 'this comment';
+  const serverTime = new Date().toISOString();
+  const listTop = Math.max(belowStatus(insets.top, 250), belowStatus(insets.top, 60) + stage + COMMENTS.stageGap);
+  const parentLike = parent ? likeOf(parent) : undefined;
+  const episodeTitle = ep ? stores.feeds.getEpisode(ep)?.title : undefined;
 
   return (
-    <>
-    <PageHeader title="Replies" />
-    <Box className="flex-1 bg-background">
-      {failed && !thread ? <Text className="text-muted text-body px-screen-x pt-row">Couldn't load the replies — pull back and try again.</Text> : null}
-      <FlatList
-        className="flex-1"
-        data={replies}
-        keyExtractor={(x) => x.id}
-        contentContainerClassName="px-screen-x pt-row pb-section gap-row flex-grow"
-        ListHeaderComponent={thread ? (
-          <Box className="mb-row gap-row">
-            {row(thread.parent)}
-            <Segmented items={TABS} value={tab} onChange={setTab} />
+    <Box className="flex-1 bg-void">
+      <StageGlow width={width} top={COMMENTS.glowTop} />
+      {/* The stage: the comment being answered. */}
+      {parent ? (
+        <Box className="absolute" style={{ left: COMMENTS.gutter, right: COMMENTS.gutter, top: belowStatus(insets.top, 60), gap: COMMENTS.stageGap, zIndex: 5 }} onLayout={(e) => setStage(e.nativeEvent.layout.height)} testID="thread-stage">
+          <Box className="flex-row items-center" style={{ gap: 10 }}>
+            <Avatar size={COMMENTS.stageAvatar} url={parent.avatarUrl} name={parent.displayName} />
+            <Type step="row" className="text-text flex-1" numberOfLines={1}>{parent.mine ? 'You' : name}</Type>
+            {parent.offsetMs !== null ? <Box><TimestampChip text={mmss(parent.offsetMs)} solid onPress={() => seek(parent.offsetMs!)} /></Box> : null}
           </Box>
-        ) : undefined}
-        ListFooterComponent={thread ? <EndOfList /> : undefined}
-        ListEmptyComponent={thread ? <Text className="text-muted text-body text-center pt-section">No replies yet — be the first.</Text> : undefined}
-        renderItem={({ item }) => row(item)}
-      />
-      {ep && commentId ? (
-        <Box className="mx-screen-x my-2">
-          <VoiceComposer episodeId={ep} parentId={commentId} offsetMs={() => playing} onPosted={reload}>
-            <Pressable onPress={reply} accessibilityRole="button" accessibilityLabel={listener ? `Reply to ${name}` : 'Sign in to reply'} className="flex-row items-center px-row bg-surface border-2 border-primary rounded-pill" style={WRITE}>
-              <Text className="text-muted text-body flex-1" numberOfLines={1}>{listener ? `Reply to ${name}…` : 'Sign in to reply'}</Text>
+          <Pressable
+            onPress={() => setMenu(parent)}
+            onLongPress={() => setMenu(parent)}
+            delayLongPress={350}
+            accessibilityRole="button"
+            accessibilityLabel={[name, relativeTime(parent.createdAt, serverTime), parent.body ?? ''].filter((x) => x !== '').join(', ')}
+            accessibilityHint="Opens reply, share, copy, mute and report"
+          >
+            {parent.body ? <Type step="title" className="text-text" numberOfLines={6} style={drawnType.threadParent}>{parent.body}</Type> : null}
+          </Pressable>
+          <Box className="flex-row items-center" style={{ gap: COMMENTS.actionGap }}>
+            {parent.mine ? (
+              parentLike && parentLike.count > 0 ? <Box className="flex-row items-center" style={{ gap: 5 }}><Icon name="heart" size={16} color={colour.hotText} /><Type step="mono" className="text-hotText">{parentLike.count}</Type></Box> : null
+            ) : (
+              <Pressable onPress={() => void like(parent)} accessibilityRole="button" accessibilityState={{ selected: parentLike?.liked === true }} accessibilityLabel={`${parentLike?.liked ? 'Unlike' : 'Like'}. ${plural(parentLike?.count ?? 0, 'like')}`} hitSlop={SLOP} className="flex-row items-center" style={{ gap: 5 }}>
+                <Icon name={parentLike?.liked ? 'heart' : 'heart-outline'} size={16} color={parentLike?.liked ? colour.hotText : colour.text2} />
+                {(parentLike?.count ?? 0) > 0 ? <Type step="mono" className={parentLike?.liked ? 'text-hotText' : 'text-text2'}>{parentLike?.count}</Type> : null}
+              </Pressable>
+            )}
+            <Type step="caption" className="text-text2 flex-1" numberOfLines={1}>{[agoAndPlace(parent.createdAt, serverTime, placeOf(parent)), episodeTitle].filter((x): x is string => !!x).join(' · ')}</Type>
+            <Pressable onPress={() => setMenu(parent)} accessibilityRole="button" accessibilityLabel="More for this comment" hitSlop={SLOP}>
+              <Icon name="ellipsis-horizontal" size={16} color={colour.text2} />
             </Pressable>
-          </VoiceComposer>
+          </Box>
         </Box>
       ) : null}
-      <Actionsheet isOpen={menu !== undefined} onClose={() => setMenu(undefined)}>
-        <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-        <ActionsheetContent className="px-screen-x items-stretch">
-          <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
-          {menu ? menuItems(menu).map((item) => {
-            const strong = item.label === 'Delete' || item.label === 'Report';
-            return (
-              <Box key={item.label}>
-                {strong ? <Box className="border-b-hairline border-separator my-gap" /> : null}
-                <Pressable onPress={() => { setMenu(undefined); item.run(); }} accessibilityRole="button" accessibilityLabel={item.label} className="flex-row items-center gap-section" style={TAB}>
-                  <Box className="rounded-row bg-surface border border-border items-center justify-center" style={ICON_BOX}>
-                    <Icon name={ICONS[item.label] ?? 'flag-outline'} size={18} color={c.accent} />
-                  </Box>
-                  <Text className={strong ? 'text-accent text-sm font-semibold' : 'text-text text-sm font-semibold'}>{item.label}</Text>
-                </Pressable>
-              </Box>
-            );
-          }) : null}
-          <Pressable onPress={() => setMenu(undefined)} accessibilityRole="button" accessibilityLabel="Cancel" className="justify-center items-center rounded-pill border border-border mt-row" style={TAB}>
-            <Text className="text-accent text-body font-bold">Cancel</Text>
-          </Pressable>
-        </ActionsheetContent>
-      </Actionsheet>
+      {/* The replies hang on the spine. */}
+      <Box className="absolute left-0 right-0 bottom-0 overflow-hidden" style={{ top: listTop, zIndex: 3 }} testID="replies-thread">
+        {failed && !thread ? (
+          <Box className="items-center" style={{ paddingHorizontal: 36, paddingTop: 80, gap: 12 }} accessibilityLiveRegion="polite">
+            <Box className="bg-raise items-center justify-center rounded-pill" style={{ width: 64, height: 64 }}><Icon name="wifi" size={28} color={colour.hotText} /></Box>
+            <Type step="lede" className="text-text text-center">Couldn't load the replies — pull back and try again.</Type>
+          </Box>
+        ) : !thread ? (
+          <Box style={{ paddingTop: COMMENTS.listTop, paddingRight: COMMENTS.listRight }}><GhostRows /></Box>
+        ) : replies.length === 0 ? (
+          <Box className="items-center" style={{ paddingHorizontal: 24, paddingTop: 50, gap: 10 }}>
+            <Box style={{ width: 200 }} accessible={false} importantForAccessibility="no-hide-descendants"><Curve data={NO_DATA} flat count={40} height={20} /></Box>
+            <Type step="lede" className="text-text text-center">No replies yet</Type>
+            <Type step="note" className="text-text2 text-center">No replies yet — be the first.</Type>
+          </Box>
+        ) : (
+          <>
+            <SpineLine />
+            <FlatList
+              data={replies}
+              keyExtractor={(x) => x.id}
+              contentContainerStyle={{ paddingTop: COMMENTS.listTop, paddingLeft: COMMENTS.listLeft, paddingRight: COMMENTS.listRight, paddingBottom: zone + 24, gap: COMMENTS.nodeGap }}
+              ListFooterComponent={<Box className="flex-row items-center" style={{ width: COMMENTS.chipColumn, justifyContent: 'center' }}><Tick text="That's all" /></Box>}
+              renderItem={({ item }) => (
+                <SpineNode momentMs={null} tick={shortAgo(item.createdAt, serverTime)}>
+                  <CommentRow
+                    c={{ ...item, replies: [] }}
+                    serverTime={serverTime}
+                    likeOf={likeOf}
+                    onSeek={seek}
+                    onLike={(y) => void like(y)}
+                    onMenu={setMenu}
+                    playVoice={playVoice}
+                    teenMode={getPref(stores.settings, 'hideExplicit')}
+                    level={0}
+                  />
+                </SpineNode>
+              )}
+            />
+          </>
+        )}
+      </Box>
+      <Fade bottom={0} height={COMMENTS.fullHeight + 70} />
+      {/* The thumb zone: back and the title, the All / Newest capsule, the reply composer. */}
+      <BottomZone bottom={ZONE_BOTTOM}>
+        <Box style={{ gap: COMMENTS.zoneGap }} onLayout={(e) => setZone(e.nativeEvent.layout.height + ZONE_BOTTOM)}>
+          <ZoneTitle
+            title="Replies"
+            count={thread ? replies.length : undefined}
+            back={{ icon: 'chevron-back', label: 'Back', onPress: goBack }}
+            right={<Capsule hug items={TABS} value={tab} onChange={setTab} />}
+          />
+          {ep && commentId ? (
+            listener ? (
+              <VoiceComposer episodeId={ep} parentId={commentId} offsetMs={() => livePositionMs(player, ep)} onPosted={reload}>
+                {(mic) => <ComposerBar placeholder={`Reply to ${name}`} accessibilityLabel={`Reply to ${name}`} onOpen={reply} mic={mic} />}
+              </VoiceComposer>
+            ) : <SignInBar label="Sign in to reply" onPress={needSignIn} />
+          ) : null}
+        </Box>
+      </BottomZone>
+      <CommentMenu comment={menu} items={menu ? menuItems(menu) : []} onClose={() => setMenu(undefined)} />
       <ReportSheet target={reporting} onClose={() => setReporting(undefined)} />
       {composing ? <ComposerSheet initial={composing} onClose={() => setComposing(undefined)} onPosted={reload} /> : null}
     </Box>
-    </>
   );
 }

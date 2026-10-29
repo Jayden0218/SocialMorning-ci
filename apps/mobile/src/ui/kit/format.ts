@@ -11,10 +11,25 @@ export function mmss(ms: number): string {
   return hours > 0 ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${minutes}:${pad(seconds)}`;
 }
 
-/** A date a listener recognises, or nothing if the feed gave us none. */
+/**
+ * M31 F2a (design-pulse2 `ts('06:10')`, `ts('03:05')`, `ts('04:12')`): a timestamp CHIP writes the minutes with two digits
+ * ("06:10"); the running clock and every other time stay `mmss` ("6:10", "0:08"). Only a plain `m:ss` is padded — an hour
+ * time ("1:02:03") and anything with words in it are left alone.
+ */
+export function chipClock(text: string): string {
+  return /^\d:\d\d$/.test(text) ? `0${text}` : text;
+}
+
+/**
+ * A date a listener recognises, or nothing if the feed gave us none: the LOCAL day and month as the drawings write it ("27 Oct"),
+ * with the year when it is not this year ("12 Mar 2025"). M31 R2: it was the ISO UTC day ("2026-10-27"), a day off for most of the world at night.
+ */
 export function shortDate(ms: number | undefined): string {
-  if (ms === undefined) return '';
-  return new Date(ms).toISOString().slice(0, 10);
+  if (ms === undefined || Number.isNaN(ms)) return '';
+  const d = new Date(ms);
+  if (Number.isNaN(d.getTime())) return '';
+  const year = d.getFullYear() === new Date().getFullYear() ? '' : ` ${d.getFullYear()}`;
+  return `${d.getDate()} ${MONTHS[d.getMonth()]}${year}`;
 }
 
 /**
@@ -207,4 +222,30 @@ export function noteSummary(html: string | undefined): string {
   if (summaries.size >= 1000) summaries.delete(summaries.keys().next().value!);
   summaries.set(html, line);
   return line;
+}
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
+/** "12 Oct" (no year) or, with `year`, "12 Mar 2026" — the drawings' day-month(-year); empty for a bad time. UTC, as `shortDate`. */
+export function dayMonth(ms: number | undefined, year = false): string {
+  if (ms === undefined || Number.isNaN(ms)) return '';
+  const d = new Date(ms);
+  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}${year ? ` ${d.getUTCFullYear()}` : ''}`;
+}
+
+import { noun } from '@socialmorning/social-core';
+
+/**
+ * M31 F10 (widths W1): a count as the drawings write it - 999, 1.2k, 12.3k, 123k, 1M, 12.3M. One helper for "listening now", "listened",
+ * comments, likes and replies, so 12 345 678 never prints as twelve digits. Below 1000 the number is whole; a negative or odd value is 0.
+ */
+export function compactCount(n: number): string {
+  if (!Number.isFinite(n) || n <= 0) return '0';
+  if (n < 1000) return String(Math.round(n));
+  const [value, unit] = n < 999_500 ? [n / 1000, 'k'] : [n / 1_000_000, 'M'];
+  return `${value >= 100 ? Math.round(value) : (Math.floor(value * 10) / 10).toFixed(1).replace(/\.0$/, '')}${unit}`;
+}
+
+/** "12.3M comments", "1 comment": the count as `compactCount` writes it, with the right noun for the exact number. */
+export function pluralCompact(n: number, one: string, other?: string): string {
+  return `${compactCount(n)} ${noun(n, one, other)}`;
 }

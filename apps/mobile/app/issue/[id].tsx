@@ -4,12 +4,12 @@
  * editor's note. From the same curation file as Editor's picks (`picks.json`). A pick the
  * server cannot name as an episode yet keeps its note and opens the show.
  *
- * M17 T096 (`Issue-B`): the back row alone, then a heavy rule over an accent "Issue · date"
- * eyebrow, the issue's title in large serif and the intro in serif. Each pick is a white
- * card: a tinted tile with the serif number (and the show's artwork) that opens the episode
- * with the show and title under it, the round Play beside them, then the editor's note as a
- * serif italic quote. A pick with no episode keeps "Open the show →" under its tile. Loading,
- * Retry, the hidden-show filter and the pick order are unchanged.
+ * M31 W5-D (T064; design-pulse2 `discover.html` `issue--screen`, `issue--share`, layout pattern Thread): a pushed page, the title bar low (the
+ * issue's title at 24, "Issue No. 12", a share circle = "Share this issue" once it has loaded). Above the thread the issue's "NO. 12 ·
+ * TUESDAY, 27 OCTOBER" in hot-text mono and the intro (Geist 500 15/22, as paragraphs). The picks are a numbered Thread (36 rings on a 2 wide
+ * spine at x 36): each card is raise, radius 20, with the episode (cover 64, the show, the title in Unbounded 700 15, Play 38), the editors' note
+ * in italics (14/20), then "Open the show ›" in hot-text and Subscribe (light, 32) / Subscribed (quiet). A pick with no episode keeps the link,
+ * the note and the button. Loading, Retry (the error tile "Couldn't load this issue."), the hidden-show filter and the pick order are unchanged.
  *
  * M21 T086 (FR-064): the issue's number ("No. 4", from the server: oldest = 1) over the title;
  * the intro as paragraphs (split at its line breaks); each pick shows its show's cover large, and
@@ -18,43 +18,31 @@
  */
 import { useLoad } from '@/ui/kit/useLoad';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Share } from 'react-native';
+import { ScrollView } from '@/ui/lib/scroll-view';
 import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { hit } from '@/design';
-import { Loader } from '@/ui/kit/Loader';
-import { Screen } from '@/ui/kit/Screen';
-import { Card } from '@/ui/kit/Card';
 import { Artwork } from '@/ui/kit/Artwork';
-import { PlayButton } from '@/ui/discover/parts';
+import { Loader } from '@/ui/kit/Loader';
+import { PulseButton } from '@/ui/kit/PulseButton';
+import { PushedPage } from '@/ui/kit/PushedPage';
+import { Type } from '@/ui/kit/Type';
 import { useCardActions } from '@/discover/useDiscover';
 import { dayTitle } from '@/discover/sections';
 import { useSafety } from '@/safety/context';
 import { useM12Api, type Issue } from '@/social/m12-api';
-import { PageHeader } from '@/ui/kit/PageHeader';
-import { BarButton } from '@/ui/kit/TopBar';
-import { Icon } from '@/ui/kit/Icon';
-import { useColours } from '@/ui/kit/useColours';
 import { useStores, useSubscriptionSync } from '@/ui/shell/providers';
+import { DiscPlay } from '@/ui/discover/Deck';
+import { RetryTile } from '@/ui/discover/Mosaic';
+import { PAGE, PAGE_TYPE } from '@/ui/discover/measures';
+import { bodyTop, NumberedThread, ThreadRow } from '@/ui/discover/page-parts';
+import { ME_MOSAIC } from '@/ui/me/mosaic';
 
-const TAP = { minHeight: hit.min };
-/** `Issue-B`: the pick's tile is 112 pt high with a 44 pt serif number. */
-const TILE = { height: 112 };
-const NUMBER = { fontSize: 44, lineHeight: 48 };
-const CAPS = { letterSpacing: 1.3, textTransform: 'uppercase' as const };
 type State = { kind: 'loading' } | { kind: 'error' } | { kind: 'ok'; issue: Issue };
-
-/** The tinted tile with the pick's number; decoration — the name is on the Pressable around it. */
-function Tile(props: { n: number; imageUrl?: string | null | undefined; showTitle?: string }): React.ReactElement {
-  return (
-    <Box className="bg-accentTint rounded-row p-row flex-row items-end justify-between" style={TILE} accessible={false} importantForAccessibility="no-hide-descendants">
-      <Text className="text-text font-display" style={NUMBER} maxFontSizeMultiplier={1.3}>{String(props.n).padStart(2, '0')}</Text>
-      {props.showTitle !== undefined ? <Artwork url={props.imageUrl ?? null} size={48} name={props.showTitle} /> : null}
-    </Box>
-  );
-}
+/** A card's rows are 12 of padding and 8 apart; the cards 16 apart. */
+const CARD_GAP = 8;
+const ROW_GAP = 16;
 
 export default function IssueScreen(): React.ReactElement {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -63,7 +51,6 @@ export default function IssueScreen(): React.ReactElement {
   const { open, play } = useCardActions();
   const { hiddenFeeds } = useSafety();
   const stores = useStores();
-  const c = useColours(stores.settings);
   const subscriptionSync = useSubscriptionSync();
   const readSubscribed = useCallback(() => new Set(stores.subscriptions.list().map((s) => s.feedUrl)), [stores]);
   const [subscribed, setSubscribed] = useState<Set<string>>(readSubscribed);
@@ -86,69 +73,66 @@ export default function IssueScreen(): React.ReactElement {
     Share.share({ message: lines.join('\n\n') }).catch(() => { /* dismissed */ });
   };
   return (
-    <>
-    <PageHeader
-      middle={<Box />}
-      right={state.kind === 'ok' ? <BarButton label="Share this issue" onPress={share}><Icon name="share-outline" size={22} color={c.text} /></BarButton> : undefined}
-    />
-    <Screen scroll className="pt-1">
-      <Box className="border-t-[3px] border-text pt-2.5 gap-1.5">
-        {state.kind === 'ok' ? (
-          <>
-            <Text className="text-accent text-micro font-bold" style={CAPS}>{number ? `No. ${number} · ` : 'Issue · '}{dayTitle(state.issue.date)}</Text>
-            <Text className="text-text text-display font-display" accessibilityRole="header">{state.issue.title}</Text>
-            {paragraphs.map((p, k) => <Text key={k} className="text-text text-title font-display-semibold mt-1 leading-[25px]">{p}</Text>)}
-          </>
-        ) : <Text className="text-text text-display font-display" accessibilityRole="header">Issue</Text>}
-      </Box>
-      {state.kind === 'loading' ? <Loader className="my-section" /> : null}
-      {state.kind === 'error' ? (
-        <Box className="items-center my-section">
-          <Text className="text-muted text-sm">Couldn't load this issue.</Text>
-          <Pressable onPress={load} accessibilityRole="button" accessibilityLabel="Retry" className="justify-center" style={TAP}><Text className="text-accent text-sm font-semibold">Retry</Text></Pressable>
-        </Box>
-      ) : null}
-      {items.map((it, i) => {
-        const card = it.episode;
-        return (
-          <Card key={`${it.order}-${it.feedUrl}`} padded={false} className="p-row mt-3.5 gap-1.5">
-            {card ? (
-              <Box>
-                <Pressable onPress={() => void open(card)} accessibilityRole="button" accessibilityLabel={`${card.title}, ${card.showTitle}`} style={TAP}>
-                  <Tile n={i + 1} imageUrl={card.imageUrl} showTitle={card.showTitle} />
-                  {/* M24 US20 (`Issue-B`): no 220 pt cover under the tile — the tile carries the cover. */}
-                  <Box className="mt-2.5 pr-14">
-                    <Text className="text-muted text-xs" numberOfLines={1}>{card.showTitle}</Text>
-                    <Text className="text-text text-body font-bold" numberOfLines={2}>{card.title}</Text>
-                  </Box>
-                </Pressable>
-                <Box className="absolute right-0 bottom-0">
-                  <PlayButton title={card.title} onPress={() => void play(card)} />
-                </Box>
-              </Box>
-            ) : (
-              <>
-                <Tile n={i + 1} />
-                <Pressable onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(it.feedUrl) } })} accessibilityRole="link" accessibilityLabel="Open the show" className="justify-center" style={TAP}>
-                  <Text className="text-accent text-sm font-semibold">Open the show ›</Text>
-                </Pressable>
-              </>
-            )}
-            {it.note ? <Text className="text-muted text-body font-display-semibold italic leading-[22px]">“{it.note}”</Text> : null}
-            {(() => {
-              const on = subscribed.has(it.feedUrl);
-              const name = card?.showTitle ?? 'this show';
-              return (
-                <Pressable onPress={() => toggleSubscription(it.feedUrl)} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={on ? `Unsubscribe from ${name}` : `Subscribe to ${name}`} className={`self-start flex-row items-center gap-1 px-section rounded-pill ${on ? 'bg-surface border border-border' : 'bg-primary'}`} style={TAP}>
-                  <Icon name={on ? 'checkmark' : 'add'} size={16} color={on ? c.muted : c.onPrimary} />
-                  <Text className={on ? 'text-muted text-meta font-semibold' : 'text-onPrimary text-meta font-bold'}>{on ? 'Subscribed' : 'Subscribe'}</Text>
-                </Pressable>
-              );
-            })()}
-          </Card>
-        );
-      })}
-    </Screen>
-    </>
+    <PushedPage
+      title={state.kind === 'ok' ? state.issue.title : 'Issue'}
+      size={24}
+      subtitle={number ? `Issue No. ${number}` : 'Issue'}
+      actions={state.kind === 'ok' ? [{ icon: 'share-outline', label: 'Share this issue', onPress: share }] : []}
+    >
+      {(layout) => (
+        <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: bodyTop(layout), paddingBottom: layout.reserve }}>
+          {state.kind === 'loading' ? <Loader className="my-section" /> : null}
+          {state.kind === 'error' ? <RetryTile line="Couldn't load this issue." onRetry={load} /> : null}
+          {state.kind === 'ok' ? (
+            <Box testID="issue-head" style={{ paddingLeft: ME_MOSAIC.lane, paddingRight: PAGE.pad + 6, paddingBottom: PAGE.pad + 2, gap: 8 }}>
+              <Type step="tag" className="text-hotText" style={PAGE_TYPE.mono11}>{`${number ? `NO. ${number} · ` : 'ISSUE · '}${dayTitle(state.issue.date).toUpperCase()}`}</Type>
+              {paragraphs.map((p, k) => <Type key={k} step="body" className="text-quote font-medium">{p}</Type>)}
+            </Box>
+          ) : null}
+          {items.length > 0 ? (
+            <NumberedThread>
+              {items.map((it, i) => {
+                const card = it.episode;
+                const on = subscribed.has(it.feedUrl);
+                const name = card?.showTitle ?? 'this show';
+                return (
+                  <ThreadRow key={`${it.order}-${it.feedUrl}`} n={i + 1} gap={ROW_GAP}>
+                    <Box className="bg-raise overflow-hidden" style={{ borderRadius: PAGE.card.issue.radius }}>
+                      {card ? (
+                        <Box className="flex-row items-center" style={{ padding: PAGE.card.issue.pad, gap: PAGE.card.issue.pad }}>
+                          <Pressable onPress={() => void open(card)} accessibilityRole="button" accessibilityLabel={`${card.title}, ${card.showTitle}`} className="flex-1 flex-row items-center min-w-0" style={{ gap: PAGE.card.issue.pad }}>
+                            <Artwork url={card.imageUrl} size={64} name={card.showTitle} />
+                            <Box className="flex-1 min-w-0">
+                              <Type step="caption" className="text-text2" style={PAGE_TYPE.small12} numberOfLines={1}>{card.showTitle}</Type>
+                              <Type step="lede" className="text-text" style={PAGE_TYPE.note15} numberOfLines={2}>{card.title}</Type>
+                            </Box>
+                          </Pressable>
+                          <DiscPlay size={38} title={card.title} onPress={() => void play(card)} />
+                        </Box>
+                      ) : null}
+                      {it.note ? <Type step="note" className="text-quote italic" style={{ paddingHorizontal: PAGE.card.issue.pad, paddingBottom: CARD_GAP + 4, ...(card ? null : { paddingTop: PAGE.card.issue.pad }) }}>{`“${it.note}”`}</Type> : null}
+                      <Box className="flex-row items-center" style={{ paddingHorizontal: PAGE.card.issue.pad, paddingBottom: PAGE.card.issue.pad, gap: CARD_GAP, ...(card || it.note ? null : { paddingTop: PAGE.card.issue.pad }) }}>
+                        <Pressable onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(it.feedUrl) } })} accessibilityRole="link" accessibilityLabel="Open the show" className="flex-1" hitSlop={PAGE.gap}>
+                          <Type step="caption" className="text-hotText font-semibold">Open the show ›</Type>
+                        </Pressable>
+                        <PulseButton
+                          kind={on ? 'quiet2' : 'light'}
+                          height={32}
+                          padX={PAGE.card.issue.pad}
+                          label={on ? 'Subscribed' : 'Subscribe'}
+                          accessibilityLabel={on ? `Unsubscribe from ${name}` : `Subscribe to ${name}`}
+                          selected={on}
+                          onPress={() => toggleSubscription(it.feedUrl)}
+                        />
+                      </Box>
+                    </Box>
+                  </ThreadRow>
+                );
+              })}
+            </NumberedThread>
+          ) : null}
+        </ScrollView>
+      )}
+    </PushedPage>
   );
 }

@@ -12,21 +12,26 @@
  *
  * The episode must be in this phone's feed cache (the lists that open it are, or resolve the
  * card first) — queue, download and the player read it from there.
+ *
+ * M31 W3-A (T040; design-pulse2 `episode--card-sheet`, layout Mosaic): the kit `ActionSheet` around `EpisodeSheetBody` (src/ui/episode) — the
+ * episode's head (cover 64, the show as a link, the title), the six tiles of the Episode page's ⋯ sheet (Play next · Add to queue / Download ·
+ * Add to favourites / Save this moment · Add to playlist), then one Panel group of rows: Details ("Open the episode page"), View comments (n),
+ * Share, and a list's own actions after them; Cancel is the quiet pill. The tiles are the page's own (same names, toasts, second pages).
  */
 import { reportAndDrop } from '@/telemetry/reportError';
 import { useState } from 'react';
+import { useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper, ActionsheetScrollView } from '@/ui/lib/actionsheet';
+import { ScrollView } from '@/ui/lib/scroll-view';
+import { ActionSheet } from '@/ui/kit/ActionSheet';
 import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { Artwork } from '@/ui/kit/Artwork';
 import { Icon, type IconName } from '@/ui/kit/Icon';
-import { TAP } from '@/ui/kit/TopBar';
+import { Type } from '@/ui/kit/Type';
 import { useColours } from '@/ui/kit/useColours';
-import { SheetTile, TileRow, QueueButtons } from '@/ui/queue/QueueButtons';
-import { DownloadButton } from '@/ui/episode/DownloadButton';
-import { EpisodeExtras } from '@/ui/me/EpisodeExtras';
+import { player } from '@/design/tokens';
+import { PanelGroup } from '@/ui/me/Panel';
+import { EpisodeSheetBody, SHEET_GAP } from '@/ui/episode/EpisodeSheetBody';
 import { ShareChooser } from '@/ui/clips/ShareChooser';
 import { useSocial } from '@/social/context';
 import { useStores } from '@/ui/shell/providers';
@@ -39,11 +44,27 @@ export function commentsLabel(n: number | undefined): string {
   return n !== undefined && n > 0 ? `View comments (${n})` : 'View comments';
 }
 
-/** Pairs of tiles: the grid's rows (an odd last one keeps a blank half). */
-export function pairs<T>(list: readonly T[]): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < list.length; i += 2) out.push(list.slice(i, i + 2));
-  return out;
+/** The sheet's tallest: the scroll view keeps Cancel reachable. */
+const MAX = 0.8;
+/** A Panel row: 56 tall at least, 14 of padding (`PanelRow`'s measures, drawn here so each row is one named button). */
+const ROW = { minHeight: player.panelRow, paddingHorizontal: player.panelPad, gap: player.panelGap };
+
+function SheetRows(props: { rows: readonly RowSheetAction[] }): React.ReactElement {
+  const c = useColours();
+  return (
+    <PanelGroup>
+      {props.rows.map((t) => (
+        <Pressable key={t.label} onPress={t.onPress} accessibilityRole="button" accessibilityLabel={t.label} className="flex-row items-center" style={ROW}>
+          <Icon name={t.icon} size={20} color={c.hotText} />
+          <Box className="flex-1">
+            <Type step="row" className="text-text" numberOfLines={1}>{t.label}</Type>
+            {t.detail ? <Type step="tag" className="text-text3" numberOfLines={2}>{t.detail}</Type> : null}
+          </Box>
+          <Icon name="chevron-forward" size={16} color={c.text3} />
+        </Pressable>
+      ))}
+    </PanelGroup>
+  );
 }
 
 export function EpisodeRowSheet(props: {
@@ -55,8 +76,8 @@ export function EpisodeRowSheet(props: {
   actions?: readonly RowSheetAction[];
 }): React.ReactElement {
   const stores = useStores();
-  const c = useColours(stores.settings);
   const router = useRouter();
+  const screen = useWindowDimensions();
   const { api } = useSocial();
   // Share opens after the sheet closes: two sheets are never open at once.
   const [sharing, setSharing] = useState<RowSheetEpisode | undefined>();
@@ -65,55 +86,32 @@ export function EpisodeRowSheet(props: {
   const showTitle = e?.showTitle ?? show?.title;
   const go = (run: () => void) => { props.onClose(); run(); };
   const shared: RowSheetAction[] = e ? [
+    { icon: 'document-text-outline', label: 'Details', detail: 'Open the episode page', onPress: () => go(() => router.push({ pathname: '/episode/[id]', params: { id: e.id } })) },
     { icon: 'chatbubble-ellipses-outline', label: commentsLabel(props.comments), onPress: () => go(() => router.push({ pathname: '/comments/[episodeId]', params: { episodeId: e.id } })) },
-    { icon: 'document-text-outline', label: 'Details', onPress: () => go(() => router.push({ pathname: '/episode/[id]', params: { id: e.id } })) },
     { icon: 'share-outline', label: 'Share', onPress: () => go(() => setSharing(e)) },
   ] : [];
-  const tiles = [...shared, ...(props.actions ?? [])];
+  const rows = [...shared, ...(props.actions ?? [])];
   return (
     <>
-      <Actionsheet isOpen={e !== undefined} onClose={props.onClose}>
-        <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-        <ActionsheetContent className="px-screen-x pt-row max-h-[90%] items-stretch">
-          <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
-          {e ? (
-            <ActionsheetScrollView className="grow-0">
-              <Box className="flex-row items-center gap-row mt-gap mb-section">
-                <Artwork url={e.imageUrl ?? show?.imageUrl} size={64} name={showTitle} />
-                <Box className="flex-1">
-                  {showTitle ? (
-                    <Pressable
-                      onPress={() => go(() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(e.feedUrl) } }))}
-                      accessibilityRole="link"
-                      accessibilityLabel={`Show: ${showTitle}`}
-                      className="flex-row items-center gap-0.5 self-start justify-center"
-                      style={TAP}
-                    >
-                      <Text className="text-accent text-xs font-bold flex-shrink" numberOfLines={1}>{showTitle}</Text>
-                      <Icon name="chevron-forward" size={14} color={c.accent} />
-                    </Pressable>
-                  ) : null}
-                  <Text className="text-text text-base font-display" numberOfLines={2}>{e.title}</Text>
-                </Box>
-              </Box>
-              {pairs(tiles).map((row) => (
-                <TileRow key={row.map((t) => t.label).join('|')}>
-                  {row.map((t) => (
-                    <SheetTile key={t.label} icon={t.icon} label={t.label} {...(t.detail ? { detail: t.detail } : {})} iconColour={c.accent} onPress={t.onPress} />
-                  ))}
-                  {row.length === 1 ? <Box className="flex-1" /> : null}
-                </TileRow>
-              ))}
-              <QueueButtons episodeId={e.id} onQueued={() => stores.inboxState.mark(e.id, 'queued', Date.now())} />
-              <DownloadButton episodeId={e.id} />
-              <EpisodeExtras episodeId={e.id} atMs={stores.positions.get(e.id)?.offsetMs ?? 0} />
-              <Pressable onPress={props.onClose} accessibilityRole="button" accessibilityLabel="Cancel" className="items-center justify-center mt-gap mb-row rounded-pill border border-border" style={TAP}>
-                <Text className="text-accent text-body font-bold">Cancel</Text>
-              </Pressable>
-            </ActionsheetScrollView>
-          ) : null}
-        </ActionsheetContent>
-      </Actionsheet>
+      <ActionSheet open={e !== undefined} onClose={props.onClose} label={e ? `More for ${e.title}` : 'More'}>
+        {e ? (
+          <ScrollView style={{ maxHeight: screen.height * MAX }} contentContainerStyle={{ gap: SHEET_GAP }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            <EpisodeSheetBody
+              episodeId={e.id}
+              title={e.title}
+              imageUrl={e.imageUrl ?? show?.imageUrl}
+              showTitle={showTitle}
+              onShow={showTitle ? () => go(() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(e.feedUrl) } })) : undefined}
+              atMs={stores.positions.get(e.id)?.offsetMs ?? 0}
+              heat={[]}
+              durationMs={undefined}
+              onQueued={() => stores.inboxState.mark(e.id, 'queued', Date.now())}
+              onClose={props.onClose}
+              rows={<SheetRows rows={rows} />}
+            />
+          </ScrollView>
+        ) : null}
+      </ActionSheet>
       <ShareChooser
         open={sharing !== undefined}
         onClose={() => setSharing(undefined)}

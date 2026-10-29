@@ -12,8 +12,7 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { colour, hit } from '@/design';
 import { TabBar } from '@/ui/shell/TabBar';
 import { TAB_BAR_HEIGHT } from '@/ui/kit/Screen';
-// M10b US4: the component reads its palette through useStores(); pin it to light so the
-// colour assertions compare against `colour`, whatever the runner's system scheme is.
+// M10b US4: the component reads its palette through useStores(); the app has one theme (dark) since M31.
 jest.mock('@/ui/shell/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }) }));
 
 const ITEMS = [
@@ -73,7 +72,7 @@ it('no fixed height anywhere, and every tab clears the 48 dp target', () => {
   const bar = flat(r.root.findAll((n) => typeof n.type === 'string')[0]!.props['style']);
   expect(bar['height']).toBeUndefined();
   expect(bar['minHeight']).toBe(TAB_BAR_HEIGHT);
-  expect(bar['backgroundColor']).toBe(colour.surface); // M17: the white Editorial bar
+  expect(bar['backgroundColor']).toBe(colour.void); // M31: the Pulse bar is the page's void colour
   for (const t of tabs(r)) {
     const s = flat(t.props['style']);
     expect(s['height']).toBeUndefined();

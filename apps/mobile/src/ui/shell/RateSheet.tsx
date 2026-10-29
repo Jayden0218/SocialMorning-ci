@@ -1,10 +1,13 @@
 // "Enjoying SocialNet?" — a bottom sheet asking for a store rating, or for feedback instead.
 /**
  * Owner, 2026-10-04 (with a 小宇宙 screenshot): a sheet from the bottom on the tabs — a close X,
- * a large serif question, a thumbs-up, one line, then two buttons side by side: "Give
- * feedback" (outlined, opens Send feedback) and "Rate us" (the yellow pill). Owner, same day:
- * the title smaller (24 pt, was 30) and the button words short enough to show whole. Our own words
- * and the Editorial look, not 小宇宙's (M7: copy nothing).
+ * a large question, a thumbs-up, one line, then two buttons side by side: "Give feedback" (opens Send feedback) and "Rate us".
+ * Our own words, not 小宇宙's (M7: copy nothing).
+ *
+ * M31 S-C (T062; design-pulse2 `shell.html` `rate-sheet--sheet`, `toast--rate-sheet`): the kit `ActionSheet` with no title row — the
+ * close circle (36) top right; "Enjoying SocialNet?" in Unbounded 800 21 over "A rating helps a lot" in the hot-to-violet
+ * gradient words, and a 60 thumbs-up disc (hot at 16 %, hot-text glyph, a hot glow) beside them; the line in Geist 500 15; then
+ * Give feedback (ring, 52) and Rate us (hot, void words, 52) side by side. The toast after Rate us is the app's light toast.
  *
  * The rule (M24 fix F-P, owner 2026-10-08 "fix all" — it opened on every start on the iPhone):
  * it asks until the listener answers, and never again after ANY answer — Rate us, Give feedback,
@@ -15,16 +18,19 @@
  * until `STORE_URL` is filled in at release. No native review prompt (no native iOS UI).
  */
 import { useEffect, useRef, useState } from 'react';
-import { Linking, Platform } from 'react-native';
+import { Platform } from 'react-native';
+import { openSystem } from '@/ui/kit/openLink';
 import { router } from 'expo-router';
-import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { Actionsheet, ActionsheetBackdrop, ActionsheetContent } from '@/ui/lib/actionsheet';
+import { bars, glow } from '@/design';
+import { ActionSheet } from '@/ui/kit/ActionSheet';
 import { Icon } from '@/ui/kit/Icon';
+import { IconButton, PulseButton } from '@/ui/kit/PulseButton';
+import { mixColour } from '@/ui/kit/pulse-math';
+import { Type } from '@/ui/kit/Type';
 import { useColours } from '@/ui/kit/useColours';
 import { useCovered, useStores, useToast } from '@/ui/shell/providers';
-import { hit } from '@/design';
+import { AUTH, AUTH_TYPE } from '@/ui/auth/measures';
 import type { SettingsStore } from '@/storage/types';
 import { interestsDueFrom } from '@/discover/interests';
 import type { RatePrompt } from '@socialmorning/social-core';
@@ -70,12 +76,19 @@ export function rateMayAsk(s: SettingsStore, a: { onTabs: boolean; blockedThisLa
   return a.onTabs && !a.blockedThisLaunch && shouldAskRating(s);
 }
 
-const TAP = { minHeight: hit.min, minWidth: hit.min };
-const PILL = { minHeight: 52 };
+/** Words in the hot-to-violet gradient (`.glowtext`): each character a step of it — a gradient on words needs a masked view the app does not ship. */
+export function GlowWords(props: { text: string; from: string; to: string }): React.ReactElement {
+  const chars = [...props.text];
+  return (
+    <Type step="hero" className="text-hotText" style={AUTH_TYPE.rateTitle} testID="glow-words">
+      {chars.map((ch, i) => <Type key={i} step="hero" className="text-hotText" style={{ ...AUTH_TYPE.rateTitle, color: mixColour(props.from, props.to, (i + 0.5) / chars.length) }}>{ch}</Type>)}
+    </Type>
+  );
+}
 
 export function RateSheet(props: { onTabs: boolean; segment: string | undefined; consent: boolean }): React.ReactElement {
   const stores = useStores();
-  const c = useColours(stores.settings);
+  const c = useColours();
   const toast = useToast();
   const [open, setOpen] = useState(false);
   const [asked, setAsked] = useState(false);
@@ -102,44 +115,36 @@ export function RateSheet(props: { onTabs: boolean; segment: string | undefined;
     if (a === 'feedback') router.push('/settings/feedback');
     if (a === 'rate') {
       const url = storeUrlFor(Platform.OS);
-      if (url) void Linking.openURL(url).catch(() => toast('Could not open the store.'));
+      if (url) void openSystem(url).then((ok) => { if (!ok) toast('Could not open the store.'); }, () => toast('Could not open the store.'));
       else toast('Thank you! Ratings open when SocialNet is in the store.');
     }
   };
 
   return (
-    <Actionsheet isOpen={open} onClose={() => answer('closed')}>
-      <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-      <ActionsheetContent className="px-screen-x pt-gap items-stretch" accessibilityViewIsModal>
-        <Box className="flex-row justify-end">
-          <Pressable onPress={() => answer('closed')} accessibilityRole="button" accessibilityLabel="Close" className="items-center justify-center" style={TAP}>
-            <Box className="w-8 h-8 rounded-pill bg-background border border-border items-center justify-center">
-              <Icon name="close" size={18} color={c.muted} />
-            </Box>
-          </Pressable>
+    <ActionSheet open={open} onClose={() => answer('closed')} label="Enjoying SocialNet?">
+      <Box className="flex-row justify-end" style={{ marginTop: -AUTH.rate.lift }}>
+        <IconButton icon="close" label="Close" onPress={() => answer('closed')} fill size={18} diameter={bars.sheetClose} />
+      </Box>
+      <Box className="flex-row items-center" style={{ gap: AUTH.rate.gap }}>
+        <Box className="flex-1" style={{ gap: bars.dot - 1 }}>
+          <Type step="hero" className="text-text" style={AUTH_TYPE.rateTitle} accessibilityRole="header">Enjoying SocialNet?</Type>
+          <GlowWords text="A rating helps a lot" from={c.hot} to={c.hotEnd} />
         </Box>
-        <Box className="flex-row items-center gap-gap">
-          <Box className="flex-1">
-            <Text className="text-text font-display text-lg leading-[31px]" accessibilityRole="header">Enjoying SocialNet?</Text>
-            <Text className="text-accent font-display text-lg leading-[31px]">A rating helps a lot</Text>
-          </Box>
-          <Box className="w-14 h-14 rounded-pill bg-accentTint items-center justify-center">
-            <Icon name="thumbs-up" size={28} color={c.accent} />
-          </Box>
+        <Box
+          testID="rate-disc"
+          className="bg-hotSoft items-center justify-center"
+          style={{ width: AUTH.rate.disc, height: AUTH.rate.disc, borderRadius: AUTH.rate.disc / 2, shadowColor: c.hot, shadowOpacity: glow.hot.opacity, shadowRadius: glow.hot.radius, shadowOffset: { width: 0, height: 0 } }}
+        >
+          <Icon name="thumbs-up" size={28} color={c.hotText} />
         </Box>
-        <Text className="text-muted text-[15px] leading-[22px] mt-row">
-          If you like listening here, five stars in the store help other people find us.
-        </Text>
-        <Box className="flex-row gap-gap mt-screen-x">
-          <Pressable onPress={() => answer('feedback')} accessibilityRole="button" accessibilityLabel="Give feedback" className="flex-1 items-center justify-center rounded-pill border border-border bg-surface px-2" style={PILL}>
-            <Text className="text-muted text-[15px] font-bold" numberOfLines={1}>Give feedback</Text>
-          </Pressable>
-          <Pressable onPress={() => answer('rate')} accessibilityRole="button" accessibilityLabel="Rate us" className="flex-1 items-center justify-center rounded-pill bg-primary px-2" style={PILL}>
-            <Text className="text-onPrimary text-[15px] font-bold" numberOfLines={1}>Rate us</Text>
-          </Pressable>
-        </Box>
-        <Box className="h-section" />
-      </ActionsheetContent>
-    </Actionsheet>
+      </Box>
+      <Type step="body" className="text-text2 font-medium" style={AUTH_TYPE.sheetLine}>
+        If you like listening here, five stars in the store help other people find us.
+      </Type>
+      <Box className="flex-row" style={{ gap: AUTH.box.gap, marginTop: AUTH.rate.lift }}>
+        <PulseButton label="Give feedback" kind="ring" height={AUTH.rate.button} className="flex-1" onPress={() => answer('feedback')} />
+        <PulseButton label="Rate us" kind="hot" height={AUTH.rate.button} className="flex-1" onPress={() => answer('rate')} />
+      </Box>
+    </ActionSheet>
   );
 }

@@ -48,6 +48,10 @@ export async function scanEpisodeIndex(store: Store): Promise<{ episodes: Indexe
   return { episodes: out, fingerprint: createHash('sha256').update(lines.sort().join('\n')).digest('hex') };
 }
 
+/** The only episode fields the callers read (`epRowOf` in discover/ddb/common.ts, used by explore.ts and pool.ts). */
+export const CATALOGUE_FIELDS = ['id', 'feedUrl', 'guid', 'title', 'showTitle', 'imageUrl', 'durationMs', 'enclosureUrl', 'publishedAt', 'genreId', 'mediaKind', 'firstSeenAt', 'updatedAt'] as const;
+const slim = (it: Item): Item => { const o: Item = {}; for (const f of CATALOGUE_FIELDS) if (it[f] !== undefined) o[f] = it[f]; return o; };
+
 type Copy = { fingerprint: string; at: number; items: Item[] };
 const copies = new Map<string, Copy>();
 
@@ -57,7 +61,8 @@ export async function catalogueItems(store: Store): Promise<Item[]> {
   const now = store.clock.now();
   const have = copies.get(store.tables.main);
   if (have && have.fingerprint === fingerprint && now - have.at < CATALOGUE_TTL) return have.items;
-  const items = await batchGetAll(store, 'main', episodes.map((e) => K.episode(e.id)), { consistent: false });
+  // Only the fields the callers read are kept (C12), so the copy does not hold keys, index attributes and long text for every episode.
+  const items = (await batchGetAll(store, 'main', episodes.map((e) => K.episode(e.id)), { consistent: false })).map(slim);
   items.sort((a, b) => (String(a['id']) < String(b['id']) ? -1 : String(a['id']) > String(b['id']) ? 1 : 0));
   copies.set(store.tables.main, { fingerprint, at: now, items });
   if (copies.size > 64) copies.delete(copies.keys().next().value!);

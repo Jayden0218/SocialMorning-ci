@@ -20,7 +20,9 @@ export type ErrorCode = 'validation' | 'unauthenticated' | 'forbidden' | 'not_fo
   // M24 lane A1: a blocked word; the server is under maintenance
   | 'blocked_word' | 'maintenance'
   // M25 lane SB: Admin needs the emailed second-factor code on this session first
-  | 'second_factor';
+  | 'second_factor'
+  // M32 A7: the publisher's feed could not be read (timeout, DNS, too big), as opposed to not listing the episode
+  | 'feed_unavailable';
 
 const STATUS: Record<ErrorCode, number> = {
   validation: 422,
@@ -63,6 +65,7 @@ const STATUS: Record<ErrorCode, number> = {
   blocked_word: 422,
   maintenance: 503,
   second_factor: 403,
+  feed_unavailable: 503,
 };
 
 export class ApiError extends Error {

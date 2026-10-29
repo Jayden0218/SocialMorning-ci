@@ -12,7 +12,7 @@
  */
 import { useState } from 'react';
 import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
+import { Text } from '@/ui/kit/Text';
 import { Box } from '@/ui/lib/box';
 import { colour } from '@/design';
 import { useStores } from '@/ui/shell/providers';
@@ -68,7 +68,7 @@ export function HeatCurve(props: {
   const axisFraction = props.durationMs && props.playerDurationMs ? props.durationMs / props.playerDurationMs : 1;
 
   return (
-    <Box className="w-full gap-1 overflow-hidden">
+    <Box className="w-full gap-hair overflow-hidden">
       <Pressable
         accessibilityRole="adjustable"
         accessibilityLabel={label}

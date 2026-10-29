@@ -2,31 +2,30 @@
 /**
  * M16a T004 (FR-014, owner 2026-10-02): the app's own on/off switch. The lib `Switch` wraps
  * React Native's `Switch`, which on iOS is the system UISwitch — native chrome the owner asked
- * twice to remove. This one is drawn from views and tokens: a pill track (`bg-primary` on,
- * `bg-switchOff` off) and a round white thumb that slides across.
+ * twice to remove. This one is drawn from views and tokens.
  *
- * M24 US18 (design-settings G3, `SettingsMore-B`): off was a faint 8 % track with a paper thumb
- * and no shadow — on a white card it read as disabled. Now the track is #d9d3c4 and the thumb
- * white with a small shadow (0 1 2, 18 %), as the design draws it.
+ * M31 T022 (design-pulse2 `kit.css` `.toggle`): a 46 × 28 pill. Off → the #2e2e36 track
+ * (`switchOff`) with a 22 text2 thumb 3 from the left; on → the hot track with a 22 void thumb
+ * 3 from the right (6.30 against the track). The track is decorative at 1.50 on the page (as the
+ * old switch was) — the thumb's side, the label and `accessibilityState.checked` carry the state.
  *
  * Still a switch to a screen reader: role "switch" with `accessibilityState.checked` (guard
- * G-N2), the label the caller gives, and a 48 pt target around the 52 × 32 track. The slide is
- * 150 ms, and instant when Reduce Motion is on.
+ * G-N2), the label the caller gives, and a 48 pt target around the track. The slide is 120 ms
+ * (motion.tap), and instant when Reduce Motion is on.
  */
-import { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Animated } from 'react-native';
 import { Pressable } from '@/ui/lib/pressable';
 import { Box } from '@/ui/lib/box';
-import { colour, hit } from '@/design';
+import { hit, motion } from '@/design';
+import { useReducedMotion } from './useReducedMotion';
 
-/** Owner, 2026-10-04: a `small` switch (32 × 18; first 40 × 24, then "even smaller") for tight rows, e.g. a category's filter. */
+/** Owner, 2026-10-04: a `small` switch (32 × 18) for tight rows, e.g. a category's filter. The regular one is the Pulse 46 × 28. */
 const SIZES = {
-  regular: { track: { width: 52, height: 32 }, thumb: 28 },
+  regular: { track: { width: 46, height: 28 }, thumb: 22 },
   small: { track: { width: 32, height: 18 }, thumb: 14 },
 } as const;
 const TAP = { minHeight: hit.min, minWidth: hit.min };
-/** `SettingsMore-B`: box-shadow 0 1px 2px rgba(0,0,0,.18) under the thumb. */
-const THUMB_SHADOW = { shadowColor: colour.text, shadowOpacity: 0.18, shadowRadius: 2, shadowOffset: { width: 0, height: 1 }, elevation: 1 };
 /** Owner, 2026-10-04 ("no padding" under All / Newest): the small switch takes no room beyond
  *  its track; hitSlop stretches the tap to 48 × 48 instead. */
 const SLOP_SMALL = { top: 15, bottom: 15, left: 8, right: 8 };
@@ -37,23 +36,19 @@ export function Toggle(props: {
   /** What the switch turns on or off — spoken with its state. */
   label: string;
   disabled?: boolean;
-  /** `small`: 32 × 18 instead of 52 × 32. The tap area stays 48 pt either way (hitSlop on `small`). */
+  /** `small`: 32 × 18 instead of 46 × 28. The tap area stays 48 pt either way (hitSlop on `small`). */
   size?: keyof typeof SIZES;
 }): React.ReactElement {
   const { track: TRACK, thumb: THUMB } = SIZES[props.size ?? 'regular'];
-  // How far the thumb travels: the track, less the thumb and a 2 pt rim each side.
-  const TRAVEL = TRACK.width - THUMB - 4;
+  // The thumb sits 3 from each edge on the regular switch (2 on the small one).
+  const RIM = props.size === 'small' ? 2 : 3;
+  const TRAVEL = TRACK.width - THUMB - RIM * 2;
   const at = useRef(new Animated.Value(props.value ? 1 : 0)).current;
-  const [still, setStill] = useState(false);
-  useEffect(() => {
-    let live = true;
-    void AccessibilityInfo.isReduceMotionEnabled().then((v) => { if (live) setStill(v); }).catch(() => undefined);
-    return () => { live = false; };
-  }, []);
+  const still = useReducedMotion();
   useEffect(() => {
     const to = props.value ? 1 : 0;
     if (still) { at.setValue(to); return; }
-    Animated.timing(at, { toValue: to, duration: 150, useNativeDriver: true }).start();
+    Animated.timing(at, { toValue: to, duration: motion.tap, useNativeDriver: true }).start();
   }, [props.value, still, at]);
   const disabled = props.disabled === true;
   return (
@@ -66,10 +61,10 @@ export function Toggle(props: {
       className={`items-center justify-center ${disabled ? 'opacity-40' : ''}`}
       {...(props.size === 'small' ? { hitSlop: SLOP_SMALL } : { style: TAP })}
     >
-      <Box className={`rounded-pill justify-center ${props.value ? 'bg-primary' : 'bg-switchOff'}`} style={TRACK}>
+      <Box className={`rounded-pill justify-center ${props.value ? 'bg-hot' : 'bg-switchOff'}`} style={TRACK}>
         <Animated.View
-          className="rounded-pill bg-surface"
-          style={{ ...THUMB_SHADOW, width: THUMB, height: THUMB, marginLeft: 2, transform: [{ translateX: at.interpolate({ inputRange: [0, 1], outputRange: [0, TRAVEL] }) }] }}
+          className={`rounded-pill ${props.value ? 'bg-void' : 'bg-text2'}`}
+          style={{ width: THUMB, height: THUMB, marginLeft: RIM, transform: [{ translateX: at.interpolate({ inputRange: [0, 1], outputRange: [0, TRAVEL] }) }] }}
         />
       </Box>
     </Pressable>

@@ -1,6 +1,6 @@
 // Tests the display helpers for time positions and short dates.
 /** Display helpers. Small, but `mmss` is what the gate reads off the screen. */
-import { ago, htmlToText, minutesLabel, mmss, noteParts, shortDate, timestampParts } from '@/ui/kit/format';
+import { ago, chipClock, htmlToText, minutesLabel, mmss, noteParts, shortDate, timestampParts } from '@/ui/kit/format';
 
 describe('mmss', () => {
   it('formats under an hour as mm:ss', () => {
@@ -21,7 +21,8 @@ describe('mmss', () => {
 
 describe('shortDate', () => {
   it('renders a date, and nothing at all when the feed gave none', () => {
-    expect(shortDate(Date.UTC(2024, 8, 10))).toBe('2024-09-10');
+    // M31 R2: the local short date ("10 Sep 2024"), not the ISO UTC day; the zone and year rules are in m31-r2-dates.test.ts.
+    expect(shortDate(new Date(2024, 8, 10, 12, 0).getTime())).toBe('10 Sep 2024');
     expect(shortDate(undefined)).toBe('');
   });
 });
@@ -52,7 +53,7 @@ describe('the episode and show pages (owner reference, 2026-09-27)', () => {
     expect(ago(now - 13 * 3_600_000, now)).toBe('13 h ago');
     expect(ago(now - 3 * 86_400_000, now)).toBe('3 d ago');
     expect(ago(now - 30_000, now)).toBe('1 min ago');
-    expect(ago(Date.UTC(2026, 7, 29), now)).toBe('2026-08-29');
+    expect(ago(new Date(2026, 7, 29, 12).getTime(), now)).toBe('29 Aug'); // M31 R2: the local short date
   });
 
   it('turns shownotes timestamps into seek points and leaves other digits alone', () => {
@@ -134,5 +135,16 @@ describe('show-note images (M22)', () => {
     const both = noteParts('<a href="https://shop.example.com">Shop <img src="https://x.com/b.jpg"></a>');
     expect(both.find((p) => p.href)?.text).toBe('Shop');
     expect(both.some((p) => p.image === 'https://x.com/b.jpg')).toBe(true);
+  });
+});
+
+// M31 F2a: timestamp chips are drawn zero-padded (design-pulse2 ts('06:10')). Break: make chipClock return its input.
+describe('chipClock', () => {
+  it('pads a single-digit minute; leaves the rest', () => {
+    expect(chipClock('6:10')).toBe('06:10');
+    expect(chipClock('0:00')).toBe('00:00');
+    expect(chipClock('14:32')).toBe('14:32');
+    expect(chipClock('1:02:03')).toBe('1:02:03');
+    expect(chipClock('HOT · 6:10 – 7:00')).toBe('HOT · 6:10 – 7:00');
   });
 });

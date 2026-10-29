@@ -5,20 +5,24 @@
  * plain lines, then Accept (POST /v1/me/rules, then the page sends the comment again) or Not now
  * (nothing is sent; the rules come back next time). `RulesBody` is the content — the comment box
  * shows it in place of its form (no sheet over a sheet); `RulesSheet` is the same in its own
- * Actionsheet, for the voice comment's mic. Our own gluestack sheet — no native UI.
+ * sheet, for the voice comment's mic.
+ *
+ * M31 W2-B (`social.html` `composerSheet({ rules })`, `comments--community-rules-voice`): in the composer the rules are a
+ * raise card (radius 20, padding 16) with "Community rules" in Unbounded 800 22; in the voice sheet they sit on the sheet
+ * with the title at 24. Each rule is a hot-text bullet and Geist 400 14/20 (the `quote` step: the step's 600 `compact` made the web
+ * build 1-3 px wider per line, so lines the drawing keeps whole wrapped); "Accept" is a hot 48 pill and "Not now" a 14 tall text
+ * action with a 48 pt tap. The drawing lists four rules; the app keeps its fifth, "Don't share anyone's private details." — a
+ * real rule of the community guidelines (Settings, About) that the server's moderation uses; dropping it would hide a rule from
+ * a first-time commenter, so the sheet is one rule (30 px) taller than drawn.
  */
 import { useState } from 'react';
-import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
-import { Heading } from '@/ui/lib/heading';
 import { Box } from '@/ui/lib/box';
-import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '@/ui/lib/actionsheet';
+import { Pressable } from '@/ui/lib/pressable';
+import { ActionSheet } from '@/ui/kit/ActionSheet';
+import { PulseButton } from '@/ui/kit/PulseButton';
+import { Type } from '@/ui/kit/Type';
 import { useCommentExtrasApi } from '@/social/comment-extras-api';
-import { Eyebrow } from '@/ui/kit/Eyebrow';
-import { hit } from '@/design';
-
-const BUTTON = { minHeight: 52 };
-const TAP = { minHeight: hit.min };
+import { COMMENTS } from './measures';
 
 /** The short rules, in plain words. The full guidelines are in Settings → About. */
 export const RULES: readonly string[] = [
@@ -29,8 +33,12 @@ export const RULES: readonly string[] = [
   'Comments that break these rules may be hidden or removed.',
 ];
 
+/** Drawn as a 14 tall text line under Accept; the 48 pt tap is its hitSlop. */
+const NOT_NOW_SLOP = { top: 14, bottom: 20, left: 40, right: 40 };
+const CARD = { borderRadius: COMMENTS.rulesRadius, padding: COMMENTS.rulesPad };
+
 /** The rules and the two buttons — inside `RulesSheet`, or in place of the comment box's form. */
-export function RulesBody(props: { onAccepted: () => void; onClose: () => void }): React.ReactElement {
+export function RulesBody(props: { onAccepted: () => void; onClose: () => void; /** On a raise card, as in the composer. */ card?: boolean }): React.ReactElement {
   const extras = useCommentExtrasApi();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
@@ -46,27 +54,23 @@ export function RulesBody(props: { onAccepted: () => void; onClose: () => void }
       setError("Couldn't reach the server — try again.");
     }
   };
+  const size = props.card ? 22 : 24;
   return (
-    <Box>
-      <Eyebrow accent className="mt-gap">Before your first comment</Eyebrow>
-      <Heading className="text-display font-display text-text mt-1" accessibilityRole="header">Community rules</Heading>
-      <Box className="gap-gap mt-row">
+    <Box style={{ gap: 14 }}>
+      <Box className={`gap-row ${props.card ? 'bg-raise' : ''}`} style={props.card ? CARD : undefined}>
+        <Type step="hero" className="text-text" accessibilityRole="header" style={{ fontSize: size, lineHeight: Math.ceil(size * 1.24) }}>Community rules</Type>
         {RULES.map((r) => (
-          <Box key={r} className="flex-row gap-gap">
-            <Text className="text-accent text-body font-bold">•</Text>
-            <Text className="text-text text-body flex-1">{r}</Text>
+          <Box key={r} className="flex-row" style={{ gap: 10 }}>
+            <Type step="quote" className="text-hotText font-bold">•</Type>
+            <Type step="quote" className="text-text flex-1">{r}</Type>
           </Box>
         ))}
       </Box>
-      {error ? <Text className="text-accent text-meta mt-row">{error}</Text> : null}
-      <Box className="gap-1 mt-section">
-        <Pressable onPress={() => void accept()} disabled={busy} accessibilityRole="button" accessibilityLabel="Accept the community rules" accessibilityState={{ disabled: busy }} className={`items-center justify-center bg-primary rounded-pill ${busy ? 'opacity-50' : ''}`} style={BUTTON}>
-          <Text className="text-onPrimary text-sm font-bold">Accept</Text>
-        </Pressable>
-        <Pressable onPress={props.onClose} accessibilityRole="button" accessibilityLabel="Not now" className="items-center justify-center" style={TAP}>
-          <Text className="text-accent text-body font-bold">Not now</Text>
-        </Pressable>
-      </Box>
+      {error ? <Type step="note" className="text-hotText">{error}</Type> : null}
+      <PulseButton label="Accept" accessibilityLabel="Accept the community rules" kind="hot" onPress={() => void accept()} busy={busy} full />
+      <Pressable onPress={props.onClose} accessibilityRole="button" accessibilityLabel="Not now" hitSlop={NOT_NOW_SLOP} testID="rules-not-now" className="items-center justify-center" style={{ height: COMMENTS.cancelHeight }}>
+        <Type step="compact" className="text-text2" style={{ lineHeight: COMMENTS.cancelHeight }}>Not now</Type>
+      </Pressable>
     </Box>
   );
 }
@@ -79,12 +83,8 @@ export function RulesSheet(props: {
   onClose: () => void;
 }): React.ReactElement {
   return (
-    <Actionsheet isOpen={props.open} onClose={props.onClose}>
-      <ActionsheetBackdrop />
-      <ActionsheetContent className="px-screen-x pt-row items-stretch" accessibilityViewIsModal>
-        <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
-        <RulesBody onAccepted={props.onAccepted} onClose={props.onClose} />
-      </ActionsheetContent>
-    </Actionsheet>
+    <ActionSheet open={props.open} onClose={props.onClose} label="Community rules">
+      <RulesBody onAccepted={props.onAccepted} onClose={props.onClose} />
+    </ActionSheet>
   );
 }

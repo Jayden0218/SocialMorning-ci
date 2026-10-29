@@ -30,8 +30,8 @@ export function TopBar(props: {
           {props.back === 'down' ? <Chevron dir="down" size={14} /> : <Icon name="arrow-back" size={22} color={colour.text} />}
         </Pressable>
       )}
-      {props.middle ? <Box className="flex-1 flex-row items-center gap-2 px-1">{props.middle}</Box> : null}
-      <Box className="flex-row items-center gap-1">{props.children}</Box>
+      {props.middle ? <Box className="flex-1 flex-row items-center gap-gap px-hair">{props.middle}</Box> : null}
+      <Box className="flex-row items-center gap-hair">{props.children}</Box>
     </Box>
   );
 }

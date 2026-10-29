@@ -9,6 +9,7 @@
  * safety/ddb/metrics.ts; this file holds the shapes and the helpers it shares.
  */
 import { viaStore } from '../../backend.ts';
+import { log } from '../../../log.ts';
 
 export const METRIC_RANGES = [7, 30, 90] as const;
 export type MetricRange = (typeof METRIC_RANGES)[number];
@@ -41,7 +42,7 @@ export async function section<T>(name: string, f: () => Promise<T>): Promise<Sec
   try {
     return { ok: true, ...(await f()) };
   } catch (e) {
-    console.warn(`[metrics ${name}] ${e instanceof Error ? e.message : String(e)}`);
+    log.warn('metrics_read_failed', { name, error: e });
     return { ok: false, message: `The ${name} numbers could not be counted.` };
   }
 }

@@ -7,33 +7,39 @@
  * M17 T092 (`SettingsOpml-B`): export is a card with the subscription count as a serif figure;
  * import is three numbered steps — the apps as chips (the chosen one yellow) with its steps
  * under them, the paste box, then Subscribe. Same handlers, names and share panel as before.
+ *
+ * M31 S-B (T060; design-pulse2 `settings-opml--screen`, `--from-app`, `--found`, `--export-sheet`, `--share-sheet`, `toast--settings-opml`; layout Panel with
+ * a Stage-size value): under the edge label EXPORT a tile holds the subscription count in Unbounded 800 56 (hot-text — React Native cannot fill
+ * text with the drawn hot-to-violet gradient), the line beside it and "Export subscriptions" (light); under IMPORT three numbered steps (a light
+ * dot 28, the step's title in Unbounded 16): the apps as chips and the chosen one's steps in a raise-2 tile, the paste box (radius 18, mono 12), the
+ * found line in mono hot-text, and "Subscribe to n" / "Nothing new to import". The share panel and the system share sheet are the kit's.
+ * Same handlers, names, toasts and share panel as before.
  */
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Share } from 'react-native';
 import { Textarea, TextareaInput } from '@/ui/lib/textarea';
-import { ScrollView } from '@/ui/lib/scroll-view';
-import { Text } from '@/ui/lib/text';
 import { useColours } from '@/ui/kit/useColours';
 import { fromOpml, toOpml } from '@/settings/opml';
-import { Button } from '@/ui/kit/Button';
 import { useStores, useSubscriptionSync, useToast } from '@/ui/shell/providers';
 import { plural } from '@socialmorning/social-core';
 import { Box } from '@/ui/lib/box';
 import { EXPORT_STEPS } from '@/settings/export-steps';
-import { PageHeader } from '@/ui/kit/PageHeader';
 import { useSharePanel } from '@/ui/clips/ShareChooser';
-import { Card } from '@/ui/kit/Card';
-import { Eyebrow } from '@/ui/kit/Eyebrow';
 import { Chip } from '@/ui/kit/Chip';
+import { PulseButton } from '@/ui/kit/PulseButton';
+import { Type } from '@/ui/kit/Type';
+import { colour } from '@/design';
+import { Line, Section, SettingsPage, Tile } from '@/ui/settings/panel';
+import { SET, SET_TYPE } from '@/ui/settings/measures';
 
-/** A numbered step heading: a dark disc with the number, then the serif title. */
+/** A numbered step heading: a light disc 28 with the number in mono, then the title in Unbounded 16. */
 function Step(props: { n: number; title: string }): React.ReactElement {
   return (
-    <Box className="flex-row items-center gap-row mt-gap">
-      <Box className="w-7 h-7 rounded-pill bg-text items-center justify-center">
-        <Text className="text-background text-meta font-bold">{String(props.n)}</Text>
+    <Box className="flex-row items-center" style={{ gap: SET.rowGap - 2 }}>
+      <Box testID="step-dot" className="bg-text items-center justify-center" style={{ width: SET.stepDot, height: SET.stepDot, borderRadius: SET.stepDot / 2 }} accessible={false} importantForAccessibility="no-hide-descendants">
+        <Type step="mono" className="text-void font-semibold" style={SET_TYPE.mono13}>{String(props.n)}</Type>
       </Box>
-      <Text className="text-text text-title font-display flex-1" accessibilityRole="header">{props.title}</Text>
+      <Type step="lede" className="text-text flex-1" style={SET_TYPE.step} accessibilityRole="header">{props.title}</Type>
     </Box>
   );
 }
@@ -47,9 +53,12 @@ export default function OpmlScreen(): React.ReactElement {
   const [share, sharePanel] = useSharePanel();
   const [text, setText] = useState('');
   const [openApp, setOpenApp] = useState<string | undefined>();
-  const found = fromOpml(text);
-  const fresh = found.filter((u) => !stores.subscriptions.has(u));
-  const count = stores.subscriptions.list().length;
+  // M32 T091: the subscriptions are read once, and again after an import — not on every keystroke.
+  const [version, setVersion] = useState(0);
+  const subscribed = useMemo(() => new Set(stores.subscriptions.list().map((s) => s.feedUrl)), [stores, version]); // eslint-disable-line react-hooks/exhaustive-deps
+  const found = useMemo(() => fromOpml(text), [text]);
+  const fresh = useMemo(() => found.filter((u) => !subscribed.has(u)), [found, subscribed]);
+  const count = subscribed.size;
   const chosen = EXPORT_STEPS.find((a) => a.app === openApp);
 
   const exportAll = () => {
@@ -60,6 +69,7 @@ export default function OpmlScreen(): React.ReactElement {
   const importAll = () => {
     const now = Date.now();
     for (const u of fresh) stores.subscriptions.add(u, now);
+    setVersion((v) => v + 1);
     sync.push();
     toast(`Subscribed to ${plural(fresh.length, 'show')}.`);
     setText('');
@@ -67,41 +77,47 @@ export default function OpmlScreen(): React.ReactElement {
 
   return (
     <>
-    <PageHeader title="Import or export" />
-    <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pb-section gap-row" keyboardShouldPersistTaps="handled">
-      <Card className="py-section gap-gap">
-        <Eyebrow accent>Export</Eyebrow>
-        <Box accessible accessibilityLabel={`Share your ${plural(count, 'subscription')} as OPML, to keep or to open in another app.`}>
-          <Text className="text-text text-display font-display">{String(count)}</Text>
-          <Text className="text-muted text-body">{count === 1 ? 'subscription' : 'subscriptions'}, as OPML — to keep or to open in another app.</Text>
+    <SettingsPage title="Import or export">
+      <Section label="Export">
+        <Tile>
+          <Box className="flex-row items-end" style={{ gap: SET.tileGap }} accessible accessibilityLabel={`Share your ${plural(count, 'subscription')} as OPML, to keep or to open in another app.`}>
+            <Type step="figure" className="text-hotText" style={SET_TYPE.stat}>{String(count)}</Type>
+            <Box className="flex-1" style={{ paddingBottom: SET.tileGap }}><Line>{count === 1 ? 'subscription' : 'subscriptions'}, as OPML — to keep or to open in another app.</Line></Box>
+          </Box>
+          <PulseButton label="Export subscriptions" onPress={exportAll} full />
+        </Tile>
+      </Section>
+
+      <Section label="Import">
+        <Box style={{ gap: SET.gap }}>
+          <Step n={1} title="Export OPML from your other app" />
+          {/* M12 FR-095: where each app keeps its export — tap one to see the steps. */}
+          <Box className="flex-row flex-wrap gap-gap">
+            {EXPORT_STEPS.map((a) => {
+              const shown = openApp === a.app;
+              return <Chip key={a.app} label={`From ${a.app}`} chosen={shown} onPress={() => setOpenApp(shown ? undefined : a.app)} accessibilityLabel={`From ${a.app}`} />;
+            })}
+          </Box>
+          {chosen ? (
+            <Tile testID="app-steps" style={{ backgroundColor: colour.raise2 }}>
+              <Box>
+                {chosen.steps.map((step, i) => <Type key={step} step="note" className="text-text font-normal" style={SET_TYPE.stepLine}>{`${i + 1}. ${step}`}</Type>)}
+              </Box>
+              {chosen.note ? <Line>{chosen.note}</Line> : null}
+            </Tile>
+          ) : null}
+
+          <Step n={2} title="Paste it here" />
+          <Textarea className="border-0 h-auto bg-raise" style={{ borderRadius: SET.pasteRadius, minHeight: text.trim() !== '' ? SET.pasteMinFilled : SET.pasteMin }}>
+            <TextareaInput value={text} onChangeText={setText} multiline placeholder="Paste OPML here" placeholderTextColor={c.text3} autoCorrect={false} autoCapitalize="none" accessibilityLabel="OPML to import" className="text-text font-mono text-pulse-mono" style={[SET_TYPE.paste, { padding: SET.pastePad }]} />
+          </Textarea>
+          {text.trim() !== '' ? <Type step="mono" className="text-hotText" style={SET_TYPE.mono13}>{plural(found.length, 'show')} found, {fresh.length} new.</Type> : null}
+
+          <Step n={3} title="Subscribe" />
+          <PulseButton label={fresh.length > 0 ? `Subscribe to ${fresh.length}` : 'Nothing new to import'} onPress={importAll} disabled={fresh.length === 0} full />
         </Box>
-        <Button label="Export subscriptions" onPress={exportAll} className="mt-gap" />
-      </Card>
-
-      <Step n={1} title="Export OPML from your other app" />
-      {/* M12 FR-095: where each app keeps its export — tap one to see the steps. */}
-      <Box className="flex-row flex-wrap gap-gap">
-        {EXPORT_STEPS.map((a) => {
-          const shown = openApp === a.app;
-          return <Chip key={a.app} label={`From ${a.app}`} chosen={shown} onPress={() => setOpenApp(shown ? undefined : a.app)} accessibilityLabel={`From ${a.app}`} />;
-        })}
-      </Box>
-      {chosen ? (
-        <Box className="gap-1">
-          {chosen.steps.map((step, i) => <Text key={step} className="text-text text-body">{`${i + 1}. ${step}`}</Text>)}
-          {chosen.note ? <Text className="text-muted text-xs">{chosen.note}</Text> : null}
-        </Box>
-      ) : null}
-
-      <Step n={2} title="Paste it here" />
-      <Textarea className="bg-surface border border-border rounded-row min-h-24 h-auto">
-        <TextareaInput value={text} onChangeText={setText} multiline placeholder="Paste OPML here" placeholderTextColor={c.muted} autoCorrect={false} autoCapitalize="none" accessibilityLabel="OPML to import"  className="p-row text-text text-xs" />
-      </Textarea>
-      {text.trim() !== '' ? <Text className="text-muted text-body">{plural(found.length, 'show')} found, {fresh.length} new.</Text> : null}
-
-      <Step n={3} title="Subscribe" />
-      <Button label={fresh.length > 0 ? `Subscribe to ${fresh.length}` : 'Nothing new to import'} onPress={importAll} disabled={fresh.length === 0} />
-    </ScrollView>
+      </Section>
+    </SettingsPage>
     {sharePanel}
     </>
   );

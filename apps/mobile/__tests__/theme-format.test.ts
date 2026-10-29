@@ -24,7 +24,7 @@ const block = (name: string): string => {
 const COLOUR = /^#[0-9a-f]{6}$|^rgba?\(\d+, \d+, \d+(, [\d.]+)?\)$/;
 
 it.each([['light', colour]] as const)('every %s token is a --color- variable holding a real colour', (name, palette) => {
-  const lines = [...block(name).matchAll(/--color-([A-Za-z]+): ([^;]+);/g)];
+  const lines = [...block(name).matchAll(/--color-([A-Za-z0-9]+): ([^;]+);/g)];
   expect(lines.map((m) => m[1]).sort()).toEqual(Object.keys(palette).sort());
   for (const [, key, value] of lines) expect([key, COLOUR.test(value!)]).toEqual([key, true]);
 });

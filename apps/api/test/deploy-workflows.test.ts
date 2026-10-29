@@ -186,3 +186,21 @@ for (const f of DEPLOY) {
     assert.match(t, /echo "- secrets: \$SECRETS_FROM"/);
   });
 }
+
+// M32 T020 (review B1): production deploys wait for the GitHub Environment `production` (required reviewer, its own secrets).
+test('M32 B1: every job of deploy-prod.yml that signs in to AWS declares `environment: production`', { skip: !present && 'private-repo only' }, () => {
+  const text = read(PRIVATE, 'deploy-prod.yml');
+  const jobsAt = text.split('\n').findIndex((l) => /^jobs:\s*$/.test(l));
+  assert.ok(jobsAt >= 0, 'no jobs: block');
+  const jobs: Record<string, string[]> = {};
+  let cur = '';
+  for (const l of text.split('\n').slice(jobsAt + 1)) {
+    const m = /^ {2}([A-Za-z0-9_-]+):\s*$/.exec(l);
+    if (m) { cur = m[1]!; jobs[cur] = []; } else if (cur) jobs[cur]!.push(l);
+  }
+  const signers = Object.entries(jobs).filter(([, b]) => b.some((l) => /configure-aws-credentials/.test(l)));
+  assert.ok(signers.length >= 1, 'no job signs in to AWS');
+  for (const [name, body] of signers) {
+    assert.ok(body.some((l) => /^ {4}environment:\s*production\s*$/.test(l)), `job ${name} has no \`environment: production\``);
+  }
+});

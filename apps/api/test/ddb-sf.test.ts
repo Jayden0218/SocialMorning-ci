@@ -25,7 +25,7 @@ if (!ON) {
   const { freshDb, signUp } = await import('./harness.ts');
   const { putEpisode } = await import('./put-episode.ts');
   const { withStore } = await import('../src/db/backend-ddb.ts');
-  const { withFaults } = await import('../src/db/ddb/test-wrappers.ts');
+  const { withFaults } = await import('./ddb-wrappers.ts');
   const { del, get, put, update, wrapStore } = await import('../src/db/ddb/store.ts');
   const { GetCommand } = await import('@aws-sdk/lib-dynamodb');
   const { tx } = await import('../src/db/ddb/tx.ts');

@@ -23,6 +23,7 @@ import { ApiError } from '../../../errors.ts';
 import type { EpisodeCard, ShowCard } from '../../../catalog/apple.ts';
 import { genreName } from '../../../catalog/genres.ts';
 import { pickEpisodeRows } from './pick-episodes.ts';
+import { swallow } from '../../../log.ts';
 
 export type ItemKind = 'show' | 'episode' | 'comment';
 export type ListInfo = { id: string; label: string; item: ItemKind; pins: boolean; where: string };
@@ -98,7 +99,7 @@ export async function applyList<T>(
     let item: T | undefined;
     if (at >= 0) item = rest.splice(at, 1)[0];
     else {
-      const got = await resolve(p).catch(() => undefined);
+      const got = await resolve(p).catch(swallow('discover_list_resolve_failed'));
       if (got !== undefined && !isHidden(a, ref(got)) && !placed.some((x) => sameItem(ref(x.item), ref(got)))) item = got;
     }
     if (item !== undefined) placed.push({ slot: p.position ?? i + 1, item: mark(item) });

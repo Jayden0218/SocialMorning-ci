@@ -6,16 +6,24 @@
  * Keep it?":
  *  - Keep my account → POST /v1/me/deletion/cancel; the profile, comments and statuses come back.
  *  - Continue → signed out again on this phone; the deletion stays on its date.
- * Our own sheet (gluestack Actionsheet, Editorial look), never a native alert.
+ *
+ * M31 S-C (T062; design-pulse2 `settings.html` `pending-deletion--sheet`, `toast--pending-deletion`): the kit sheet, locked — "cannot
+ * be swiped away (no close, no backdrop tap)". The title is Unbounded 800 26, the line Geist 500 15 on 22, then Continue (quiet,
+ * raise fill, 1 part) beside Keep my account (light, 1.4 parts). A failure shows "Couldn't reach the server. Try again." in
+ * hot-text. The toast after Keep my account is the app's light toast (3 s).
  */
-import { useEffect, useState, useSyncExternalStore } from 'react';
-import { Text } from '@/ui/lib/text';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Box } from '@/ui/lib/box';
-import { Actionsheet, ActionsheetBackdrop, ActionsheetContent } from '@/ui/lib/actionsheet';
-import { Button } from '@/ui/kit/Button';
+import { ActionSheet } from '@/ui/kit/ActionSheet';
+import { PulseButton } from '@/ui/kit/PulseButton';
+import { Type } from '@/ui/kit/Type';
 import { useToast } from '@/ui/shell/providers';
 import { useSocial } from '@/social/context';
 import { dueDateText, pendingDeletionStore, useM22Api } from '@/social/api-m22-server';
+import { AUTH, AUTH_TYPE } from './measures';
+
+/** Keep my account takes 1.4 parts to Continue's 1 (`flex:1.4` against `flex:1`). */
+export const KEEP_FLEX = 1.4;
 
 export function PendingDeletionSheet(): React.ReactElement {
   const pending = useSyncExternalStore(pendingDeletionStore.subscribe, pendingDeletionStore.get, pendingDeletionStore.get);
@@ -24,8 +32,13 @@ export function PendingDeletionSheet(): React.ReactElement {
   const toast = useToast();
   const [busy, setBusy] = useState<'keep' | 'continue' | null>(null);
   const [error, setError] = useState<string | undefined>();
-  // Signed out some other way: nothing to ask.
-  useEffect(() => { if (!listener && pending) pendingDeletionStore.set(null); }, [listener, pending]);
+  // Signed out some other way: nothing to ask. M31 F8: only when the listener GOES (was there, now is not) — a sign-in answer sets the store
+  // before the context attaches the listener, and clearing then lost the sheet (wave-5 defect 3).
+  const had = useRef(false);
+  useEffect(() => {
+    if (listener) { had.current = true; return; }
+    if (had.current) { had.current = false; if (pending) pendingDeletionStore.set(null); }
+  }, [listener, pending]);
   const open = pending !== null && listener !== undefined;
 
   const keep = async (): Promise<void> => {
@@ -44,20 +57,20 @@ export function PendingDeletionSheet(): React.ReactElement {
   };
 
   return (
-    <Actionsheet isOpen={open} onClose={() => undefined}>
-      <ActionsheetBackdrop accessibilityRole="none" />
-      <ActionsheetContent className="px-screen-x pt-section items-stretch" accessibilityViewIsModal>
-        <Text className="text-text font-display text-title" accessibilityRole="header">Keep your account?</Text>
-        <Text className="text-muted text-body mt-row">
-          {`Your account is due to be deleted on ${pending ? dueDateText(pending.dueAt) : ''}. Until then nobody else can see it.`}
-        </Text>
-        {error ? <Text className="text-accent text-body mt-row">{error}</Text> : null}
-        <Box className="flex-row gap-gap mt-section">
-          <Button kind="secondary" label="Continue" accessibilityLabel="Continue with the deletion" busy={busy === 'continue'} disabled={busy !== null} onPress={() => { void goOn(); }} className="flex-1" />
-          <Button label="Keep my account" busy={busy === 'keep'} disabled={busy !== null} onPress={() => { void keep(); }} className="flex-1" />
+    <ActionSheet open={open} onClose={() => undefined} locked label="Keep your account?">
+      <Type step="hero" className="text-text" style={AUTH_TYPE.pendingTitle} accessibilityRole="header">Keep your account?</Type>
+      <Type step="body" className="text-text2 font-medium" style={AUTH_TYPE.sheetLine}>
+        {`Your account is due to be deleted on ${pending ? dueDateText(pending.dueAt) : ''}. Until then nobody else can see it.`}
+      </Type>
+      {error ? <Type step="note" className="text-hotText" accessibilityLiveRegion="polite">{error}</Type> : null}
+      <Box className="flex-row" style={{ gap: AUTH.box.gap }}>
+        <Box style={{ flex: 1 }}>
+          <PulseButton label="Continue" accessibilityLabel="Continue with the deletion" kind="quiet" full busy={busy === 'continue'} disabled={busy !== null} onPress={() => { void goOn(); }} />
         </Box>
-        <Box className="h-section" />
-      </ActionsheetContent>
-    </Actionsheet>
+        <Box style={{ flex: KEEP_FLEX }}>
+          <PulseButton label="Keep my account" kind="light" full busy={busy === 'keep'} disabled={busy !== null} onPress={() => { void keep(); }} />
+        </Box>
+      </Box>
+    </ActionSheet>
   );
 }

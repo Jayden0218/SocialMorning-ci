@@ -15,8 +15,8 @@ import { createHash } from 'node:crypto';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { actionsFor, groupReports, RETENTION_DAYS, type Action, type QueueItem, type TargetKind } from '@socialmorning/social-core';
 import type { AuthEnv, Listener } from '../auth/session.ts';
-import { createSession, listenerForToken, tokenHash } from '../auth/session.ts';
-import { verifyPassword } from '../auth/password.ts';
+import { createSession, listenerForToken, sameSecret, tokenHash } from '../auth/session.ts';
+import { hashPassword, verifyPassword } from '../auth/password.ts';
 import { clearFailedSignIns, listenerByEmail, recordFailedSignIn } from '../db/repos/account/listeners.ts';
 import { clientAddress, HOUR_MS, limit } from '../auth/rate.ts';
 import { ApiError } from '../errors.ts';
@@ -39,9 +39,17 @@ import { ATTACHED } from '../db/backend.ts';
 
 const COOKIE = 'mod';
 const ACTIONS: readonly Action[] = ['dismiss', 'remove', 'hide_show', 'suspend', 'unsuspend', 'unhide_show'];
+/** M32 B9: constant-time comparison of the form's CSRF value. */
+const csrfOk = (given: unknown, token: string) => sameSecret(String(given ?? ''), csrfFor(token));
+/** M32 B9: how many password hashes /mod/login has run (a test reads it: unknown emails must cost the same as the owner's). */
+export const modLoginHashCalls = { count: 0 };
+let dummyHash: Promise<string> | undefined;
+/** A real scrypt hash of a random secret, so an unknown email still pays for one verification. */
+const dummyPasswordHash = () => (dummyHash ??= hashPassword(`dummy|${Math.random()}|${Date.now()}`));
 const csrfFor = (token: string) => createHash('sha256').update('csrf|').update(token).digest('base64url').slice(0, 24);
 
 import { feedbackImage, recentFeedback } from '../db/repos/account/feedback.ts';
+import { log, swallow } from '../log.ts';
 
 export const mod = new Hono<AuthEnv>();
 
@@ -130,7 +138,7 @@ mod.get('/feedback/:id/:n', async (c) => {
   if (!who) return c.text('Not the owner', 403);
   const n = Number(c.req.param('n'));
   if (!Number.isInteger(n) || n < 1 || n > 3) return c.text('Not found', 404);
-  const img = await feedbackImage(c.get('db'), c.req.param('id'), n).catch(() => undefined);
+  const img = await feedbackImage(c.get('db'), c.req.param('id'), n).catch(swallow('mod_feedback_image_read_failed'));
   if (!img) return c.text('Not found', 404);
   c.header('content-type', img.mime);
   c.header('cache-control', 'private, no-store');
@@ -197,7 +205,10 @@ mod.post('/login', async (c) => {
   const now = Date.now();
   const lockedUntil = row?.locked_until ? new Date(row.locked_until).getTime() : null;
   if (row && lockedUntil !== null && lockedUntil > now) return tooMany(c, Math.ceil((lockedUntil - now) / 1000));
-  const ok = Boolean(row && ownerId && row.id === ownerId && (await verifyPassword(password, row.password_hash)));
+  // The counter sits inside the hashing helper, so a login path that skips the hash does not count (M32 B9 guard).
+  const checkHash = async (hash: string) => { modLoginHashCalls.count++; return verifyPassword(password, hash); };
+  const hashOk = await checkHash(row?.password_hash ?? (await dummyPasswordHash()));
+  const ok = Boolean(row && ownerId && row.id === ownerId && hashOk);
   if (!ok || !row) {
     if (row && ownerId && row.id === ownerId) await recordFailedSignIn(db, row.id, now);
     return c.html(page('Moderation — refused', '<h1>Not the owner</h1><p class="muted">This page is for the app\'s owner only.</p><p><a href="/mod">Back</a></p>'), 403);
@@ -208,7 +219,7 @@ mod.post('/login', async (c) => {
   // M25 SB: a code to the owner's inbox, unless this browser is remembered (GET /mod then asks for it).
   const hash = tokenHash(token, c.get('pepper'));
   if (!(await secondFactorDone(c, db, hash, row.id, c.get('pepper'), c.get('pepperNext')))) {
-    await sendSecondFactor(db, c.get('mailer'), hash, row.email, c.get('pepper')).catch((e: unknown) => console.error('mod code not sent', e instanceof Error ? e.message : e));
+    await sendSecondFactor(db, c.get('mailer'), hash, row.email, c.get('pepper')).catch((e: unknown) => log.error('mod_code_not_sent', { error: e }));
   }
   return c.redirect('/mod', 303);
 });
@@ -222,7 +233,7 @@ mod.post('/code', async (c) => {
   const db = c.get('db');
   const hash = tokenHash(s.token, c.get('pepper'));
   if (form['resend'] !== undefined) {
-    await sendSecondFactor(db, c.get('mailer'), hash, s.owner.email, c.get('pepper')).catch(() => undefined);
+    await sendSecondFactor(db, c.get('mailer'), hash, s.owner.email, c.get('pepper')).catch(swallow('mod_second_factor_send_failed'));
     return c.redirect('/mod', 303);
   }
   const r = await checkSecondFactor(db, hash, String(form['code'] ?? '').trim(), c.get('pepper'), c.get('pepperNext'));
@@ -235,7 +246,7 @@ mod.post('/act', async (c) => {
   const who = await ownerFromCookie(c);
   if (!who) return c.html(page('Moderation — refused', '<h1>Not the owner</h1>'), 403);
   const form = await c.req.parseBody();
-  if (String(form['csrf'] ?? '') !== csrfFor(who.token)) return c.html(page('Moderation — refused', '<h1>Stale form</h1><p><a href="/mod">Back</a></p>'), 403);
+  if (!csrfOk(form['csrf'], who.token)) return c.html(page('Moderation — refused', '<h1>Stale form</h1><p><a href="/mod">Back</a></p>'), 403);
   const item = String(form['item'] ?? '');
   const action = String(form['action'] ?? '') as Action;
   const sep = item.indexOf(':');
@@ -253,8 +264,8 @@ mod.post('/host-unhide', async (c) => {
   const who = await ownerFromCookie(c);
   if (!who) return c.html(page('Moderation — refused', '<h1>Not the owner</h1>'), 403);
   const form = await c.req.parseBody();
-  if (String(form['csrf'] ?? '') !== csrfFor(who.token)) return c.html(page('Moderation — refused', '<h1>Stale form</h1><p><a href="/mod">Back</a></p>'), 403);
-  await setHostHidden(c.get('db'), String(form['feed'] ?? ''), String(form['id'] ?? ''), who.owner.id, false).catch(() => undefined);
+  if (!csrfOk(form['csrf'], who.token)) return c.html(page('Moderation — refused', '<h1>Stale form</h1><p><a href="/mod">Back</a></p>'), 403);
+  await setHostHidden(c.get('db'), String(form['feed'] ?? ''), String(form['id'] ?? ''), who.owner.id, false).catch(swallow('mod_host_unhide_failed'));
   return c.redirect('/mod', 303);
 });
 
@@ -262,7 +273,7 @@ mod.post('/takedown', async (c) => {
   const who = await ownerFromCookie(c);
   if (!who) return c.html(page('Moderation — refused', '<h1>Not the owner</h1>'), 403);
   const form = await c.req.parseBody();
-  if (String(form['csrf'] ?? '') !== csrfFor(who.token)) return c.html(page('Moderation — refused', '<h1>Stale form</h1><p><a href="/mod">Back</a></p>'), 403);
+  if (!csrfOk(form['csrf'], who.token)) return c.html(page('Moderation — refused', '<h1>Stale form</h1><p><a href="/mod">Back</a></p>'), 403);
   const id = String(form['id'] ?? '');
   if (!/^[0-9a-f-]{36}$/i.test(id)) return c.redirect('/mod', 303);
   const db = c.get('db');
@@ -270,7 +281,7 @@ mod.post('/takedown', async (c) => {
   if (s) {
     const eps = await listHostedEpisodes(db, id);
     await finishTakedown(db, id, s.feed_url, who.owner.id);
-    for (const e of eps) await c.get('storage').remove(e.audioUrl).catch(() => undefined);
+    for (const e of eps) await c.get('storage').remove(e.audioUrl).catch(swallow('mod_episode_audio_remove_failed'));
   }
   return c.redirect('/mod', 303);
 });
@@ -280,7 +291,7 @@ mod.post('/outbox', async (c) => {
   const who = await ownerFromCookie(c);
   if (!who) return c.html(page('Moderation — refused', '<h1>Not the owner</h1>'), 403);
   const form = await c.req.parseBody();
-  if (String(form['csrf'] ?? '') !== csrfFor(who.token)) return c.html(page('Moderation — refused', '<h1>Stale form</h1><p><a href="/mod">Back</a></p>'), 403);
+  if (!csrfOk(form['csrf'], who.token)) return c.html(page('Moderation — refused', '<h1>Stale form</h1><p><a href="/mod">Back</a></p>'), 403);
   const id = String(form['id'] ?? '');
   const action = String(form['action'] ?? '');
   const reason = String(form['reason'] ?? '').trim().slice(0, 200);
@@ -312,7 +323,7 @@ async function outboxView(db: Parameters<typeof parkedList>[0]): Promise<OutboxV
   const on = ATTACHED.get(db);
   if (!on) return undefined;
   try { return { pending: (await pendingOutbox(on.store)).length, parked: await parkedList(db) }; }
-  catch (e) { console.warn('[mod] outbox read failed', e instanceof Error ? e.message : String(e)); return undefined; }
+  catch (e) { log.warn('mod_outbox_read_failed', { error: e }); return undefined; }
 }
 
 /** The pending count, the parked count and the parked list. The list shows kind, attempts and the last error; never an entry's payload. */

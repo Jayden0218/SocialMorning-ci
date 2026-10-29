@@ -23,14 +23,21 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import { Clipboard, Linking, Platform, Share } from 'react-native';
+import { useOpenLink } from '@/ui/kit/useOpenLink';
 import { router } from 'expo-router';
 import { File, Paths } from 'expo-file-system';
-import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '@/ui/lib/actionsheet';
+import { ActionSheet } from '@/ui/kit/ActionSheet';
+import { PulseTile, PulseTileGrid } from '@/ui/kit/PulseTile';
+import { Curve } from '@/ui/kit/Curve';
+import { TimestampChip } from '@/ui/kit/TimestampChip';
+import { Type } from '@/ui/kit/Type';
+import { ScrollView } from '@/ui/lib/scroll-view';
 import { Pressable } from '@/ui/lib/pressable';
 import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
 import { Icon, type IconName } from '@/ui/kit/Icon';
-import { colour, hit, tabular } from '@/design';
+import { colour, hit, radius, spacing } from '@/design';
+import { share as shareMeasure } from '@/design/tokens';
 import { mmss } from '@/ui/kit/format';
 import { useM12Api } from '@/social/m12-api';
 import { useStores, useToast } from '@/ui/shell/providers';
@@ -41,15 +48,10 @@ import { extensionFor } from '@/downloads/expo-downloader';
 import type { PlayableEpisode } from '@/playback/store';
 import * as ClipVideo from '../../../modules/clip-video';
 import { installedTargets, type ShareTarget } from './share-targets';
-
-const TAP = { minHeight: hit.min };
-/** The × beside the drag bar: a 48 pt square. */
-const CLOSE = { width: hit.min, height: hit.min };
-/** M17: a share tile in `ShareSheet-B` is ~100 pt tall — icon on top, label and detail below. */
-const TILE = { minHeight: 100 };
-/** M21: a target app's round button and its name under it. */
-const APP = { minWidth: 64, minHeight: hit.min };
-const HEAT_BOX = { height: 30 };
+import type { Clip } from '@/social/api';
+import { apiBaseUrl } from '@/social/base-url';
+import { shareClip, shareText } from '@/graph/share';
+import { clipLinkFor } from '@/graph/links';
 
 export function ShareChooser(props: {
   open: boolean;
@@ -62,6 +64,7 @@ export function ShareChooser(props: {
 }): React.ReactElement {
   const m12 = useM12Api();
   const toast = useToast();
+  const { openOutside } = useOpenLink();
   const stores = useStores();
   const c = useColours(stores.settings);
   const shareLink = async () => {
@@ -79,15 +82,19 @@ export function ShareChooser(props: {
   const message = () => `${props.episode.title} — ${props.episode.showTitle}\n${m12.episodePageUrl(props.episode.id)}`;
   const sendWith = async (t: ShareTarget) => {
     if (t.copiesFirst) { Clipboard.setString(message()); toast(`Link copied — paste it in ${t.label}.`); }
-    try { await Linking.openURL(t.url(message(), Platform.OS)); props.onShared?.(); } catch { toast(`Couldn't open ${t.label}.`); }
+    try { await openOutside(t.url(message(), Platform.OS)); props.onShared?.(); } catch { toast(`Couldn't open ${t.label}.`); }
   };
   const copyLink = () => { Clipboard.setString(m12.episodePageUrl(props.episode.id)); toast('Link copied.'); props.onShared?.(); };
+  // design-pulse2 `player--share-sheet`: the card chosen on top decides what the tiles share.
+  const [pick, setPick] = useState<'moment' | 'episode'>('moment');
+  const withMoment = props.onClip !== undefined;
+  const momentAt = !withMoment || pick === 'moment' ? props.atMs : undefined;
   const shareImage = async () => {
     // Phone walk 2026-09-30: the card took 10–16 s with nothing on screen; say it is coming.
     toast('Making the picture…');
     try {
       const target = new File(Paths.cache, `share-${props.episode.id}-${Date.now()}.png`);
-      const file = await File.downloadFileAsync(m12.shareCardUrl(props.episode.id, props.atMs), target);
+      const file = await File.downloadFileAsync(m12.shareCardUrl(props.episode.id, momentAt), target);
       await Share.share({ url: file.uri, message: props.episode.title });
       props.onShared?.();
     } catch {
@@ -99,24 +106,26 @@ export function ShareChooser(props: {
   // Read straight from the phone's social cache (no provider needed): nothing cached, no chart.
   const social = props.open && stores.socialCache ? createSocialCache(stores.socialCache).get(props.episode.id)?.social : undefined;
   const heat = social?.heat.available ? shareHeat(social.heat.buckets, props.atMs, social.episode.durationMs) : undefined;
+  const cards: ShareCard[] = withMoment ? [
+    { key: 'moment', label: 'Share this moment', title: props.episode.title, ...(props.atMs !== undefined ? { at: mmss(props.atMs) } : {}), ...(heat ? { heat: heat.bars, played: heat.at >= 0 ? (heat.at + 1) / SHARE_HEAT_BARS : 0 } : {}) },
+    { key: 'episode', label: 'Episode · Show', title: props.episode.title, ...(heat ? { heat: heat.bars } : {}) },
+  ] : [];
   const rows: ShareOption[] = [
-    ...(props.onClip ? [{ icon: 'cut-outline' as const, label: 'Share this moment', lead: true, ...(props.atMs !== undefined ? { detail: mmss(props.atMs) } : {}), ...(heat ? { heat } : {}), onPress: props.onClip }] : []),
+    // Chat (owner, 2026-10-04): send the episode to someone who follows you back — a target in the row.
+    { icon: 'chatbubbles-outline', label: 'Send in chat', target: true, onPress: () => router.push({ pathname: '/chat/new', params: { episodeId: props.episode.id, episodeTitle: props.episode.title } }) },
     { icon: 'image-outline', label: 'Share as image', onPress: () => void shareImage() },
     { icon: 'link-outline', label: 'Copy link', onPress: copyLink },
-    // Chat (owner, 2026-10-04): send the episode to someone who follows you back.
-    { icon: 'chatbubbles-outline', label: 'Send in chat', onPress: () => router.push({ pathname: '/chat/new', params: { episodeId: props.episode.id, episodeTitle: props.episode.title } }) },
+    ...(props.onClip ? [{ icon: 'cut-outline' as const, label: 'Clip', detail: 'the last 30 seconds', onPress: props.onClip }] : []),
   ];
   const apps: ShareOption[] = targets.map((t) => ({ icon: t.icon, label: t.label, onPress: () => void sendWith(t) }));
-  return <SharePanel open={props.open} onClose={props.onClose} subtitle={`${props.episode.title} · ${props.episode.showTitle}`} apps={apps} rows={rows} more={{ detail: 'a link to its page', run: () => void shareLink() }} colour={c.text} />;
+  return <SharePanel open={props.open} onClose={props.onClose} subtitle={`${props.episode.title} · ${props.episode.showTitle}`} apps={apps} rows={rows} cards={cards} chosen={pick} onChoose={(k) => setPick(k === 'episode' ? 'episode' : 'moment')} more={{ detail: 'a link to its page', run: () => void shareLink() }} colour={c.text} />;
 }
 
 /**
- * One of the app's own share options (a row above "More"). M17: `lead` draws it as the wide
- * card at the top (`ShareSheet-B`'s "Share this moment"), its `detail` as a large serif figure.
+ * One of the app's own share options. A plain one is a tile; `target` puts it in the targets row
+ * (the drawing's "Send in chat"). `accessibilityLabel` overrides the spoken name.
  */
-export type ShareOption = { icon: IconName; label: string; detail?: string; lead?: boolean; onPress: () => void;
-  /** M24 US20 (`ShareSheet-B`): the episode's heat as a small bar chart under a lead card; `at` is the moment's bar. */
-  heat?: { bars: readonly number[]; at: number } };
+export type ShareOption = { icon: IconName; label: string; detail?: string; target?: boolean; onPress: () => void };
 
 /** M24 US20: how many bars the lead card's little heat chart draws (`ShareSheet-B`: 30). */
 export const SHARE_HEAT_BARS = 30;
@@ -139,58 +148,51 @@ export function shareHeat(buckets: readonly number[] | undefined, atMs: number |
   return { bars, at };
 }
 
-/** The lead card's heat chart: grey bars, the moment's bar in the accent; 30 pt tall. Decoration (the label speaks). */
-function HeatBars(props: { bars: readonly number[]; at: number }): React.ReactElement {
+/** A preview card on the Share sheet (design-pulse2: "Share this moment" · "Episode · Show"). */
+export type ShareCard = { key: string; label: string; title: string; at?: string; heat?: readonly number[]; played?: number };
+
+function PreviewCard(props: { card: ShareCard; chosen: boolean; onPress: () => void }): React.ReactElement {
+  const { card } = props;
   return (
-    <Box className="flex-row items-end gap-0.5 mt-row" style={HEAT_BOX} accessible={false} importantForAccessibility="no-hide-descendants">
-      {props.bars.map((v, i) => (
-        <Box key={i} className={`flex-1 rounded-sm ${i === props.at ? 'bg-accent' : 'bg-handle'}`} style={{ height: Math.max(3, Math.round(v * HEAT_BOX.height)) }} />
-      ))}
-    </Box>
+    <Pressable
+      onPress={props.onPress}
+      accessibilityRole="button"
+      accessibilityLabel={card.label}
+      accessibilityState={{ selected: props.chosen }}
+      className="bg-raise justify-end"
+      style={{ width: shareMeasure.cardWidth, height: shareMeasure.cardHeight, borderRadius: shareMeasure.cardRadius, paddingHorizontal: shareMeasure.cardPadX, paddingVertical: shareMeasure.cardPadY, borderWidth: shareMeasure.cardRing, borderColor: props.chosen ? colour.text : colour.clear, gap: shareMeasure.targetGap }}
+    >
+      {card.at !== undefined ? <TimestampChip text={card.at} solid /> : null}
+      <Type step="row" className="text-text" numberOfLines={2}>{card.title}</Type>
+      <Type step="tag" className="text-text2">{card.label}</Type>
+      <Curve data={card.heat ?? []} count={shareMeasure.cardCurveBars} height={shareMeasure.cardCurve} played={card.played ?? 0} flat={card.heat === undefined} />
+    </Pressable>
   );
-}
-
-const TILE_CLASS = 'flex-1 bg-surface border border-border rounded-row p-section gap-row justify-between';
-
-/** A share tile's inside: the icon on top, the label and its detail under it. */
-function TileBody(props: { icon: IconName; label: string; detail?: string; colour: string }): React.ReactElement {
-  return (
-    <>
-      <Icon name={props.icon} size={22} color={props.colour} />
-      <Box>
-        <Text className="text-sm font-bold text-text">{props.label}</Text>
-        {props.detail !== undefined ? <Text className="text-xs text-muted" numberOfLines={2}>{props.detail}</Text> : null}
-      </Box>
-    </>
-  );
-}
-
-/** Pairs for the two-column grid; an odd last tile takes the full width. */
-function pairs<T>(items: readonly T[]): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < items.length; i += 2) out.push(items.slice(i, i + 2));
-  return out;
 }
 
 /**
- * The app's share panel: its own options, then "More" — the only way to the system sheet. An ×
- * at the top right closes it (owner, 2026-10-05: it replaced Cancel). Each row closes the panel
- * first, then acts.
+ * The app's share panel: its own options, then "More" — the only way to the system sheet. Each row
+ * closes the panel first, then acts.
  *
- * M17 T099 (`ShareSheet-B`): a 32 pt serif "Share" with an optional subtitle; a `lead` option
- * becomes a wide white card (yellow icon disc, label, serif figure); the other options and
- * "More" become white tiles in two columns; Cancel is an accent text action. Same options,
- * names and handlers as before; the props only gained `subtitle` and `ShareOption.lead`.
+ * M31 W3-D (design-pulse2 `player--share-sheet`, the kit `ActionSheet` titled "Share"): optional
+ * preview `cards` that snap sideways (the chosen one ringed light — everything below shares that
+ * choice), a row of targets (`apps`, the options marked `target`, and "More" last — each a 56 tile
+ * with its name under it), then the other options as two-column tiles (`PulseTile`). Same options,
+ * names and handlers as before; the props gained `cards`, `chosen`, `onChoose` and `ShareOption.target`.
+ * It was M17's `ShareSheet-B` (a lead card, tiles, a serif "Share").
  */
 export function SharePanel(props: {
   open: boolean;
   onClose: () => void;
   heading?: string;
-  /** M17: the muted line under the heading, e.g. "Episode · Show". */
+  /** The muted line under the title when there are no cards, e.g. "Episode · Show". */
   subtitle?: string;
   rows?: readonly ShareOption[];
-  /** M21 US2: the chat apps on this phone, as a row of round buttons above the tiles. */
+  /** M21 US2: the chat apps on this phone, in the targets row. */
   apps?: readonly ShareOption[];
+  cards?: readonly ShareCard[];
+  chosen?: string;
+  onChoose?: (key: string) => void;
   /** The system share sheet, behind "More". */
   more: { detail?: string; run: () => void };
   colour: string;
@@ -198,75 +200,63 @@ export function SharePanel(props: {
   const c = useColours();
   const close = (then: () => void) => { props.onClose(); then(); };
   const all = props.rows ?? [];
-  const leads = all.filter((r) => r.lead === true);
-  const tiles: (ShareOption | 'more')[] = [...all.filter((r) => r.lead !== true), 'more'];
+  const chats = all.filter((r) => r.target === true);
+  const tiles = all.filter((r) => r.target !== true);
+  const cards = props.cards ?? [];
   return (
-    <Actionsheet isOpen={props.open} onClose={props.onClose}>
-      <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-      {/* M16a T014: no fixed bottom padding — ActionsheetContent's own `pb-safe` clears the home indicator. */}
-      <ActionsheetContent className="px-screen-x pt-row items-stretch">
-        {/* Owner, 2026-10-05: an × at the top right, level with the drag bar, instead of Cancel at the foot. */}
-        <Box className="justify-center">
-          <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
-          <Pressable onPress={props.onClose} accessibilityRole="button" accessibilityLabel="Close" className="absolute -right-3 items-center justify-center" style={CLOSE}>
-            <Icon name="close" size={18} color={c.muted} />
-          </Pressable>
-        </Box>
-        <Text className="text-display font-display text-text" accessibilityRole="header">{props.heading ?? 'Share'}</Text>
-        {props.subtitle ? <Text className="text-body text-muted mt-1" numberOfLines={2}>{props.subtitle}</Text> : null}
-        {props.apps && props.apps.length > 0 ? (
-          <Box className="flex-row gap-gap mt-section flex-wrap">
-            {props.apps.map((a) => (
-              <Pressable key={a.label} onPress={() => close(a.onPress)} accessibilityRole="button" accessibilityLabel={`Send with ${a.label}`} className="items-center gap-1" style={APP}>
-                <Box className="w-12 h-12 rounded-pill bg-background border border-border items-center justify-center">
-                  <Icon name={a.icon} size={24} color={props.colour} />
-                </Box>
-                <Text className="text-xs text-text" numberOfLines={1}>{a.label}</Text>
-              </Pressable>
-            ))}
-          </Box>
-        ) : null}
-        <Box className="gap-gap mt-section">
-          {leads.map((r) => (
-            <Pressable
-              key={r.label}
-              onPress={() => close(r.onPress)}
-              accessibilityRole="button"
-              accessibilityLabel={r.label}
-              {...(r.detail !== undefined ? { accessibilityHint: r.detail } : {})}
-              className="bg-surface border border-border rounded-row p-section"
-              style={TAP}
-            >
-              <Box className="flex-row items-center gap-row">
-                <Box className="w-10 h-10 rounded-pill bg-primary items-center justify-center">
-                  <Icon name={r.icon} size={20} color={c.onPrimary} />
-                </Box>
-                <Text className="flex-1 text-sm font-bold text-text">{r.label}</Text>
-                {r.detail !== undefined ? <Text className="text-hero font-display text-text" style={tabular}>{r.detail}</Text> : null}
-              </Box>
-              {r.heat ? <HeatBars bars={r.heat.bars} at={r.heat.at} /> : null}
-            </Pressable>
-          ))}
-          {pairs(tiles).map((pair) => (
-            <Box key={pair.map((t) => (t === 'more' ? 'more' : t.label)).join('|')} className="flex-row gap-gap">
-              {pair.map((t) => t === 'more' ? (
-                <Pressable key="more" onPress={() => close(props.more.run)} accessibilityRole="button" accessibilityLabel="More ways to share" className={TILE_CLASS} style={TILE}>
-                  <TileBody icon="ellipsis-horizontal" label="More" {...(props.more.detail !== undefined ? { detail: props.more.detail } : {})} colour={props.colour} />
-                </Pressable>
-              ) : (
-                <Pressable key={t.label} onPress={() => close(t.onPress)} accessibilityRole="button" accessibilityLabel={t.label} className={TILE_CLASS} style={TILE}>
-                  <TileBody icon={t.icon} label={t.label} {...(t.detail !== undefined ? { detail: t.detail } : {})} colour={props.colour} />
-                </Pressable>
-              ))}
+    <ActionSheet open={props.open} onClose={props.onClose} label="Share" title={props.heading ?? 'Share'}>
+      {props.subtitle && cards.length === 0 ? <Type step="body" className="text-text2" numberOfLines={2}>{props.subtitle}</Type> : null}
+      {cards.length > 0 ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={shareMeasure.cardWidth + shareMeasure.cardGap} decelerationRate="fast" style={{ marginRight: -spacing.screenX }} contentContainerStyle={{ gap: shareMeasure.cardGap, paddingRight: spacing.screenX }}>
+          {cards.map((card) => <PreviewCard key={card.key} card={card} chosen={card.key === props.chosen} onPress={() => props.onChoose?.(card.key)} />)}
+        </ScrollView>
+      ) : null}
+      {/* F3: the targets row scrolls sideways when the chat apps on this phone do not fit (Send in chat + five apps + More is 7 x 56 on a 350 row: More was cut off and unreachable); with few targets it spreads as drawn. */}
+      <ScrollView testID="share-targets" horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -spacing.screenX }} contentContainerStyle={{ flexGrow: 1, justifyContent: 'space-between', paddingHorizontal: spacing.screenX, gap: spacing.row }}>
+        {chats.map((r) => (
+          <Pressable key={r.label} onPress={() => close(r.onPress)} accessibilityRole="button" accessibilityLabel={r.label} className="items-center" style={{ gap: shareMeasure.targetGap, minWidth: shareMeasure.target }}>
+            <Box className="bg-raise items-center justify-center" style={{ width: shareMeasure.target, height: shareMeasure.target, borderRadius: shareMeasure.targetRadius }}>
+              <Icon name={r.icon} size={shareMeasure.targetIcon} color={c.text} />
             </Box>
+            <Type step="tag" className="text-text2" numberOfLines={1}>{r.label}</Type>
+          </Pressable>
+        ))}
+        {(props.apps ?? []).map((a) => (
+          <Pressable key={a.label} onPress={() => close(a.onPress)} accessibilityRole="button" accessibilityLabel={`Send with ${a.label}`} className="items-center" style={{ gap: shareMeasure.targetGap, minWidth: shareMeasure.target }}>
+            <Box className="bg-raise items-center justify-center" style={{ width: shareMeasure.target, height: shareMeasure.target, borderRadius: shareMeasure.targetRadius }}>
+              <Icon name={a.icon} size={shareMeasure.targetIcon} color={c.text} />
+            </Box>
+            <Type step="tag" className="text-text2" numberOfLines={1}>{a.label}</Type>
+          </Pressable>
+        ))}
+        <Pressable onPress={() => close(props.more.run)} accessibilityRole="button" accessibilityLabel="More ways to share" className="items-center" style={{ gap: shareMeasure.targetGap, minWidth: shareMeasure.target }}>
+          <Box className="bg-raise items-center justify-center" style={{ width: shareMeasure.target, height: shareMeasure.target, borderRadius: shareMeasure.targetRadius }}>
+            <Icon name="ellipsis-horizontal" size={shareMeasure.targetIcon} color={c.text} />
+          </Box>
+          <Type step="tag" className="text-text2">More</Type>
+        </Pressable>
+      </ScrollView>
+      {tiles.length > 0 ? (
+        <PulseTileGrid>
+          {tiles.map((r, i) => (
+            <PulseTile key={r.label} icon={r.icon} label={r.label} {...(r.detail !== undefined ? { detail: r.detail } : {})} wide={tiles.length % 2 === 1 && i === tiles.length - 1} onPress={() => close(r.onPress)} />
           ))}
-        </Box>
-      </ActionsheetContent>
-    </Actionsheet>
+        </PulseTileGrid>
+      ) : null}
+    </ActionSheet>
   );
 }
 
-export type ShareRequest = { heading?: string; subtitle?: string; rows?: readonly ShareOption[]; more: { detail?: string; run: () => void }; onClosed?: () => void };
+export type ShareRequest = {
+  heading?: string;
+  subtitle?: string;
+  rows?: readonly ShareOption[];
+  more: { detail?: string; run: () => void };
+  onClosed?: () => void;
+  /** F3: the text the chat apps on this phone (WhatsApp, Telegram ...) are sent; with it the panel's targets row lists them. */
+  message?: string;
+  onShared?: () => void;
+};
 
 /**
  * Opens the panel from anywhere on a page: `const [share, panel] = useSharePanel();` then
@@ -275,8 +265,30 @@ export type ShareRequest = { heading?: string; subtitle?: string; rows?: readonl
 export function useSharePanel(): [(request: ShareRequest) => void, React.ReactElement] {
   const stores = useStores();
   const c = useColours(stores.settings);
+  const toast = useToast();
+  const { openOutside } = useOpenLink();
   const [request, setRequest] = useState<ShareRequest | undefined>();
   const open = useCallback((next: ShareRequest) => setRequest(next), []);
+  // F3: the chat apps on this phone, asked each time a request with a message opens the panel (as the episode chooser does).
+  const [targets, setTargets] = useState<ShareTarget[]>([]);
+  const wantsApps = request?.message !== undefined;
+  useEffect(() => {
+    if (!wantsApps) return;
+    let live = true;
+    void installedTargets((u) => Linking.canOpenURL(u)).then((t) => { if (live) setTargets(t); });
+    return () => { live = false; };
+  }, [wantsApps]);
+  const message = request?.message;
+  const apps: ShareOption[] = message === undefined ? [] : targets.map((t) => ({
+    icon: t.icon,
+    label: t.label,
+    onPress: () => {
+      void (async () => {
+        if (t.copiesFirst) { Clipboard.setString(message); toast(`Link copied — paste it in ${t.label}.`); }
+        try { await openOutside(t.url(message, Platform.OS)); request?.onShared?.(); } catch { toast(`Couldn't open ${t.label}.`); }
+      })();
+    },
+  }));
   const onClose = () => { const done = request?.onClosed; setRequest(undefined); done?.(); };
   const panel = (
     <SharePanel
@@ -285,11 +297,35 @@ export function useSharePanel(): [(request: ShareRequest) => void, React.ReactEl
       {...(request?.heading !== undefined ? { heading: request.heading } : {})}
       {...(request?.subtitle !== undefined ? { subtitle: request.subtitle } : {})}
       rows={request?.rows ?? []}
+      apps={apps}
       more={request?.more ?? { run: () => undefined }}
       colour={c.text}
     />
   );
   return [open, panel];
+}
+
+/**
+ * F3 (design-pulse2 `clip--share-sheet`, `ShareSheet-B`): a clip's share panel is the player's — Send in chat, the chat apps on this
+ * phone, More, then Share as video and Copy link. `heading` is "Share this clip" (the clip page) or "Clip saved — share it".
+ * Send in chat opens the chat picker with the clip's text and link; Copy link copies the clip's https link.
+ */
+export function useClipShare(): (clip: Clip, episode: PlayableEpisode, heading?: string) => ShareRequest {
+  const videoRows = useClipVideoRows();
+  const toast = useToast();
+  return (clip, episode, heading = 'Share this clip') => {
+    const message = shareText(clip, episode.title, apiBaseUrl());
+    return {
+      heading,
+      message,
+      rows: [
+        { icon: 'chatbubbles-outline', label: 'Send in chat', target: true, onPress: () => router.push({ pathname: '/chat/new', params: { text: message } }) },
+        ...videoRows(clip, episode),
+        { icon: 'link-outline', label: 'Copy link', onPress: () => { Clipboard.setString(clipLinkFor(clip.id, apiBaseUrl())); toast('Link copied.'); } },
+      ],
+      more: { detail: 'other apps', run: () => void shareClip(Share, clip, episode.title, apiBaseUrl()) },
+    };
+  };
 }
 
 /** How many heat bars the video draws for a clip. */

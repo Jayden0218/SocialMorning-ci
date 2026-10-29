@@ -8,10 +8,13 @@
  * Vercel and Node entries (spec edge cases). Without either (tests, a local server) there is no address and the
  * per-address limit does not apply; global limits still do.
  */
+import { createHash } from 'node:crypto';
 import type { Context } from 'hono';
 import type { Db } from '../db/db.ts';
 import { ApiError } from '../errors.ts';
 import { bumpRateCounter, deleteRateCountersBefore } from '../db/repos/account/rate-limits.ts';
+import { codeDailyCapRaw } from '../config.ts';
+import { log } from '../log.ts';
 
 export const HOUR_MS = 60 * 60_000;
 export const DAY_MS = 24 * HOUR_MS;
@@ -19,9 +22,13 @@ export const DAY_MS = 24 * HOUR_MS;
 /** Email codes: 10 an hour per address, and a daily total kept below Gmail's sending quota. */
 export const CODES_PER_ADDRESS_HOUR = 10;
 export const DEFAULT_CODES_PER_DAY = 300;
+/** M32 B8: 10 codes a day per email address, so ~30 addresses cannot use up the global daily cap alone. */
+export const CODES_PER_EMAIL_DAY = 10;
+/** Stable prefix of the one-line alert logged when the server-wide daily cap refuses a code. */
+export const GLOBAL_CAP_ALERT = 'ALERT sign-in-code global cap reached';
 
 export function codesPerDay(): number {
-  const n = Number(process.env['CODE_DAILY_CAP']);
+  const n = Number(codeDailyCapRaw());
   return Number.isInteger(n) && n > 0 ? n : DEFAULT_CODES_PER_DAY;
 }
 
@@ -46,11 +53,30 @@ export async function limit(db: Db, key: string, windowMs: number, max: number, 
   if (!r.ok) throw new ApiError('locked', message, { retryAfterSeconds: r.retryAfterSeconds });
 }
 
-/** FR-003: before an email code is sent — the address's hourly limit, then the server's daily cap. */
-export async function limitCodeRequest(db: Db, c: Context): Promise<void> {
+/** The address the code goes to: given, else the `email` of the JSON body (Hono caches it, so the route can still read it). */
+async function codeEmail(c: Context, email?: string): Promise<string | undefined> {
+  if (email) return email.trim().toLowerCase();
+  try {
+    const body = (await c.req.json()) as { email?: unknown };
+    return typeof body?.email === 'string' && body.email.trim() ? body.email.trim().toLowerCase() : undefined;
+  } catch { return undefined; }
+}
+
+/** FR-003: before an email code is sent: the network's hourly limit, the address's daily limit (M32 B8), then the server's daily cap. */
+export async function limitCodeRequest(db: Db, c: Context, email?: string): Promise<void> {
   const addr = clientAddress(c);
   if (addr) await limit(db, `code:ip:${addr}`, HOUR_MS, CODES_PER_ADDRESS_HOUR, 'Too many codes were asked for from this network. Try again in an hour.');
-  await limit(db, 'code:global', DAY_MS, codesPerDay(), 'We cannot send more codes today. Try again tomorrow, or sign in with your password.');
+  const to = await codeEmail(c, email);
+  if (to) {
+    const key = createHash('sha256').update(to).digest('base64url').slice(0, 22);
+    await limit(db, `code:email:${key}`, DAY_MS, CODES_PER_EMAIL_DAY, 'Too many codes were asked for this email today. Try again tomorrow, or sign in with your password.');
+  }
+  try {
+    await limit(db, 'code:global', DAY_MS, codesPerDay(), 'We cannot send more codes today. Try again tomorrow, or sign in with your password.');
+  } catch (e) {
+    if (e instanceof ApiError) log.error('sign_in_code_global_cap', { alert: `${GLOBAL_CAP_ALERT} (${codesPerDay()} a day)` });
+    throw e;
+  }
 }
 
 /** Old windows are useless once they end; the sweep keeps two days. */

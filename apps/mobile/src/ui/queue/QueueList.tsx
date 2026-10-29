@@ -1,333 +1,246 @@
-// The queue's rows: play, move up/down, remove, drag to reorder.
+// The queue page's Deck: 290 x 330 episode cards, a dots row, and the rest of the queue as a strip of small tiles.
 /**
- * The queue's rows (M12 FR-044), shared by the queue page and the sheet over the player: 48 pt
- * artwork, the title, the time left, a drag handle, and a ⋮ that opens the actions under the
- * row (Play now, Top, Up, Down, Remove). The M2 page had no artwork, a 12 pt gutter and five
- * text links under every row. Drag is a convenience; every move is also in the ⋮ list, so the
- * queue works with a screen reader and without a drag at all.
- *
- * M17 T052 (`Queue-B`): `layout="page"` draws the queue page's Editorial look — the first
- * episode as an "Up next" card (96 pt artwork, accent eyebrow, serif title, a yellow Play now
- * pill, ⋮ and the drag handle), the rest as numbered rows (serif number, 52 pt artwork, ⋮, the
- * handle on the right), and the ⋮ opens the actions in a sheet headed by the episode.
- *
- * M17 T098 (`QueueSheet-B`): the default `layout="sheet"` (the player's queue sheet) draws every
- * episode as a numbered white card — accent serif number, 64 pt artwork, serif title, the meta
- * line, and ⋮ over the drag handle on the right. ⋮ opens the actions inside the card as pills
- * (Play now yellow; Move to top, Move up, Move down, Remove from the queue) — same names and
- * handlers as the old rows under the item. A card is taller than the old 72 pt row, so the
- * sheet's drag turns distance into places with `SHEET_ROW` instead of `QUEUE_ROW`.
- *
- * M21 T045 (US3, FR-021): the sheet's cards show a ▶ inside the row button (the row plays at
- * once), and `select` turns every row into a checkbox for the sheet's Edit mode — no ⋮, no drag,
- * a tap ticks it.
- *
- * M22 US12 (FR-036/037): outside Edit mode a row swipes left for "Remove" (src/ui/kit/SwipeRow.tsx),
- * also offered as an accessibility action on the row's Play button.
+ * M31 W3-B (T041; design-pulse2 `queue--screen`, `queue--empty`, `queue--item-sheet`; "Layout: Deck"). The queue page
+ * is a row of full-size cards, 290 x 330 and 10 apart, snapping one at a time with the next one peeking, the first
+ * starting at the 28 lane under the "Up next" edge label (the same cards as Updates):
+ *   - the cover (46 % of the card) with a mono tag `n` or `n · DOWNLOADED` over its top left corner;
+ *   - the show (12, text2), the title (Unbounded 700 18, two lines);
+ *   - the first card's foot: a light "Play now" pill (40 tall) and a ··· circle; the other cards' foot: the episode's
+ *     reaction curve (30 bars, 22 tall), the ··· circle and a 44 light Play circle.
+ *   Tap a card = open the episode; Play = play it now (the queue sheet closes nothing here: this is a page).
+ *   ··· = the item menu (Play now, Move to top, Move up, Move down, Remove from the queue: `ItemMenu` in
+ *   src/ui/player/QueueDeck.tsx, the same sheet the player's deck opens).
+ *   - Reorder: long-press a card and slide it sideways (one card per 300 pt); a screen reader uses the menu's Move up
+ *     / Move down, and "Remove" is an accessibility action on the card. (Approved, drawing note "Drag a card sideways".)
+ *   - Edit mode (`select`): a 26 tick at the card's foot, a tap ticks instead of opening.
+ *   - Under the deck, four dots (the current card is the 18 wide light one) and the rest of the queue as a strip of
+ *     small tiles `n. title` (cover 36), each a Play button (the drawing's action map: "Play {title} (x3) — Play circle
+ *     on each card / tap a strip tile").
+ * Writes go through `onChange` (`stores.queue.replace` in app/queue.tsx), as every queue change.
  */
 import { useMemo, useRef, useState } from 'react';
-import { PanResponder, type GestureResponderHandlers } from 'react-native';
+import { PanResponder, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { move, remove } from '@socialmorning/player-core';
 import { plural } from '@socialmorning/social-core';
+import { ScrollView } from '@/ui/lib/scroll-view';
 import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '@/ui/lib/actionsheet';
-import { Artwork } from '@/ui/kit/Artwork';
-import { Card } from '@/ui/kit/Card';
-import { Eyebrow } from '@/ui/kit/Eyebrow';
+import { colour, hit, radius, spacing } from '@/design';
 import { Icon } from '@/ui/kit/Icon';
-import { SheetRow } from '@/ui/kit/SheetRow';
-import { useColours } from '@/ui/kit/useColours';
-import { hit } from '@/design';
-import { minutesLabel } from '@/ui/kit/format';
+import { Type } from '@/ui/kit/Type';
+import { Curve } from '@/ui/kit/Curve';
+import { EdgeLabel } from '@/ui/kit/EdgeLabel';
+import { IconButton } from '@/ui/kit/PulseButton';
+import { Artwork } from '@/ui/kit/Artwork';
+import { swipeA11y, type SwipeAction } from '@/ui/kit/SwipeRow';
+import { CoverBand, DiscPlay, PX, UNBOUNDED } from '@/ui/discover/Deck';
+import { useEpisodeHeat } from '@/ui/discover/useEpisodeHeat';
+import { ItemMenu, useCardData } from '@/ui/player/QueueDeck';
 import type { Stores } from '@/storage/types';
-import { SwipeRow, swipeA11y, type SwipeAction } from '@/ui/kit/SwipeRow';
+import { QUEUE_CARD, QUEUE_DOTS, QUEUE_PAGE, QUEUE_PITCH, QUEUE_TILE, queueType } from './measures';
 
-const TAP = { minHeight: hit.min, minWidth: hit.min };
-const ROW_TAP = { minHeight: hit.min };
-/** A row's height, for turning a drag distance into places moved. */
-export const QUEUE_ROW = 72;
-/**
- * M17 T098: a closed card's pitch in the sheet — ⋮ over the handle (2 × 48) + 12 pt padding top
- * and bottom + the 1 pt border twice + the 10 pt gap under it. The card's content never exceeds
- * the 96 pt control column (64 pt artwork; title and meta at most 2 lines each).
- */
-export const SHEET_ROW = 132;
-/** M17 T098: B's pill under an open card is 44 pt; ours keeps the 48 pt floor. */
-const PILL = { minHeight: hit.min };
-/** M17 T098: ⋮ over the drag handle, a fixed column so the card's height is known. */
-const CONTROLS = { width: hit.min, height: hit.min * 2 };
-/** M21 US3: the ▶ disc inside a sheet card (drawn, not a second target — the row is the button). */
-const PLAY_DISC = { width: 32, height: 32 };
+export { QUEUE_CARD, QUEUE_PITCH };
 
-/** How many places a drag of `dy` points moves a row, kept inside the queue. */
-export function dragTarget(index: number, dy: number, length: number, row: number = QUEUE_ROW): number {
-  return Math.max(0, Math.min(length - 1, index + Math.round(dy / row)));
+const NO_HEAT: readonly number[] = [];
+
+/** How many places a sideways drag of `dx` points moves a card, kept inside the queue. */
+export function dragTarget(index: number, dx: number, length: number, pitch: number = QUEUE_PITCH): number {
+  return Math.max(0, Math.min(length - 1, index + Math.round(dx / pitch)));
+}
+
+/** The dots under the deck: one per card, or a window of ten round the current one in a long queue. */
+export function dotsFor(count: number, current: number, max = 10): { at: number; on: boolean }[] {
+  const shown = Math.min(count, max);
+  const start = Math.max(0, Math.min(count - shown, current - Math.floor(shown / 2)));
+  return Array.from({ length: shown }, (_, k) => ({ at: start + k, on: start + k === current }));
 }
 
 type QueueStores = Pick<Stores, 'feeds' | 'positions' | 'downloads'>;
-type Colours = { text: string; muted: string; accent: string };
-/** M21: the sheet's Edit mode — which rows are ticked, and the tick. */
+/** Edit mode: which cards are ticked. */
 type Select = { chosen: ReadonlySet<string>; onToggle: (id: string) => void };
+
+/** "2 h 41 min" / "38 min": the time left in the queue (each episode less where this phone stopped it). */
+export function queueTotal(ids: readonly string[], stores: Pick<Stores, 'feeds' | 'positions'>): string {
+  let ms = 0;
+  let known = false;
+  for (const id of ids) {
+    const d = stores.feeds.getEpisode(id)?.durationMs;
+    if (d === undefined) continue;
+    known = true;
+    ms += Math.max(0, d - (stores.positions.get(id)?.offsetMs ?? 0));
+  }
+  if (!known) return '';
+  const minutes = Math.max(1, Math.round(ms / 60_000));
+  return minutes >= 60 ? `${Math.floor(minutes / 60)} h ${String(minutes % 60)} min` : `${minutes} min`;
+}
+
+/** The page's subtitle: "4 episodes · 2 h 41 min". */
+export function queueSubtitle(ids: readonly string[], stores: Pick<Stores, 'feeds' | 'positions'>): string {
+  const total = queueTotal(ids, stores);
+  return total ? `${plural(ids.length, 'episode')} · ${total}` : plural(ids.length, 'episode');
+}
+
+function Card(props: {
+  id: string; index: number; ids: readonly string[]; stores: QueueStores; select: Select | undefined;
+  dx: number; dragging: boolean;
+  onPlay: (id: string) => void; onOpen: (id: string) => void; onMore: (id: string) => void; onLift: (id: string) => void; onRemove: (id: string) => void;
+}): React.ReactElement {
+  const { id, index } = props;
+  const d = useCardData(id, props.stores);
+  const heat = useEpisodeHeat(id, index < QUEUE_PAGE.heatCards);
+  const checked = props.select?.chosen.has(id) === true;
+  const first = index === 0;
+  const swipe: SwipeAction[] = [{ key: 'remove', label: 'Remove', onPress: () => props.onRemove(id) }];
+  const lifted = props.dragging ? { transform: [{ translateX: props.dx }, { scale: 1.03 }], zIndex: 2 } : undefined;
+  const tag = `${String(index + 1)}${d.downloaded ? ' · DOWNLOADED' : ''}`;
+  const body = (
+    <>
+      <CoverBand url={d.art} name={d.artName} height={Math.round(QUEUE_CARD.height * QUEUE_CARD.coverShare)}>
+        <Box className="absolute bg-glassDark" style={{ left: spacing.row, top: spacing.row, paddingHorizontal: PX.six + 1, paddingVertical: PX.four + 1, borderRadius: radius.chip - 1 }}>
+          <Type step="tag" className="text-text" style={queueType.tag}>{tag}</Type>
+        </Box>
+      </CoverBand>
+      <Box className="flex-1" style={{ padding: QUEUE_CARD.pad, gap: PX.six + 1 }}>
+        <Type step="caption" className="text-text2" style={queueType.show} numberOfLines={1}>{d.show?.title ?? ''}</Type>
+        <Type step="lede" className="text-text font-bold" style={UNBOUNDED[17]} numberOfLines={2}>{d.title}</Type>
+      </Box>
+    </>
+  );
+  return (
+    <Box testID="queue-card" className="bg-raise border border-line overflow-hidden" style={{ width: QUEUE_CARD.width, height: QUEUE_CARD.height, borderRadius: radius.card, ...lifted }}>
+      {props.select ? (
+        <Pressable onPress={() => props.select!.onToggle(id)} accessibilityRole="checkbox" accessibilityState={{ checked }} accessibilityLabel={`Select ${d.title}`} className="flex-1">
+          {body}
+          <Box className="absolute items-center justify-center rounded-pill" style={{ right: QUEUE_CARD.pad, bottom: QUEUE_CARD.pad, width: QUEUE_CARD.tick, height: QUEUE_CARD.tick, backgroundColor: checked ? colour.hot : undefined, borderWidth: checked ? 0 : 2, borderColor: colour.text }}>
+            {checked ? <Icon name="checkmark" size={14} color={colour.void} /> : null}
+          </Box>
+        </Pressable>
+      ) : (
+        <>
+          {/* Tap opens the episode; a long press lifts the card to be slid sideways. */}
+          <Pressable {...swipeA11y(swipe)} onPress={() => props.onOpen(id)} onLongPress={() => props.onLift(id)} delayLongPress={350} accessibilityRole="button" accessibilityLabel={`Open ${d.title}`} accessibilityHint="Long-press, then slide to reorder" className="flex-1">
+            {body}
+          </Pressable>
+          <Box className="absolute flex-row items-center" style={{ left: QUEUE_CARD.pad, right: QUEUE_CARD.pad, bottom: QUEUE_CARD.pad, gap: spacing.gap }} pointerEvents="box-none">
+            {first ? (
+              <>
+                {/* M16a bug 6 (FR-002): the next episode plays at once; the pill is the page's strongest button. */}
+                <Pressable onPress={() => props.onPlay(id)} accessibilityRole="button" accessibilityLabel={`Play ${d.title}`} hitSlop={4} className="flex-row items-center justify-center bg-text rounded-pill" style={{ height: QUEUE_CARD.pill, paddingHorizontal: PX.fourteen, gap: PX.six }}>
+                  <Icon name="play" size={14} color={colour.void} />
+                  <Type step="row" className="text-void">Play now</Type>
+                </Pressable>
+                <Box className="flex-1" />
+                <IconButton icon="ellipsis-horizontal" label={`More for ${d.title}`} onPress={() => props.onMore(id)} fill size={18} diameter={QUEUE_CARD.more} />
+              </>
+            ) : (
+              <>
+                <Box className="flex-1">
+                  <Curve data={heat.buckets ?? NO_HEAT} count={QUEUE_CARD.bars} height={QUEUE_CARD.curve} min={2} flat={heat.buckets === undefined} played={0} />
+                </Box>
+                <IconButton icon="ellipsis-horizontal" label={`More for ${d.title}`} onPress={() => props.onMore(id)} fill size={18} diameter={QUEUE_CARD.more} />
+                <DiscPlay size={QUEUE_CARD.play} title={d.title} onPress={() => props.onPlay(id)} />
+              </>
+            )}
+          </Box>
+        </>
+      )}
+    </Box>
+  );
+}
+
+/** One small tile of the strip: `3. Title`, a Play button. */
+function StripTile(props: { id: string; number: number; width: number; stores: QueueStores; onPlay: (id: string) => void }): React.ReactElement {
+  const d = useCardData(props.id, props.stores);
+  return (
+    <Pressable onPress={() => props.onPlay(props.id)} accessibilityRole="button" accessibilityLabel={`Play ${d.title}`} className="flex-row items-center bg-raise" style={{ width: props.width, minHeight: hit.min, padding: QUEUE_TILE.pad, gap: QUEUE_TILE.gap, borderRadius: QUEUE_TILE.radius }}>
+      <Artwork url={d.art} size={QUEUE_TILE.cover} name={d.artName} />
+      <Type step="compact" className="text-text flex-1" style={queueType.strip} numberOfLines={2}>{`${String(props.number)}. ${d.title}`}</Type>
+    </Pressable>
+  );
+}
 
 export function QueueList(props: {
   ids: readonly string[];
   stores: QueueStores;
-  colours: Colours;
   onChange: (next: readonly string[]) => void;
   onPlay: (id: string) => void;
-  /** M17: "page" = the queue page's Editorial layout (`Queue-B`); default "sheet" = the player's sheet. */
-  layout?: 'page' | 'sheet';
-  /** M21: Edit mode — every row is a checkbox. */
+  /** A tap on a card: the episode's page. */
+  onOpen: (id: string) => void;
+  /** Where the deck starts, from the top of the page (under the status bar). */
+  top?: number;
+  /** Edit mode: every card is a checkbox. */
   select?: Select;
 }): React.ReactElement {
-  const [open, setOpen] = useState<string | undefined>();
-  const [drag, setDrag] = useState<{ id: string; dy: number } | undefined>();
   const { ids } = props;
-  const page = props.layout === 'page';
-  const openIndex = open === undefined ? -1 : ids.indexOf(open);
-  const toggle = (id: string) => setOpen((o) => (o === id ? undefined : id));
+  const { width: window } = useWindowDimensions();
+  const [menu, setMenu] = useState<string | undefined>();
+  const [drag, setDrag] = useState<{ id: string; dx: number } | undefined>();
+  const [current, setCurrent] = useState(0);
+  const live = useRef({ ids, onChange: props.onChange, drag: undefined as { id: string; dx: number } | undefined });
+  live.current.ids = ids; live.current.onChange = props.onChange; live.current.drag = drag;
+  // After a long press the finger is still down: the list claims the touch and the card follows it.
+  const pan = useMemo(() => PanResponder.create({
+    onMoveShouldSetPanResponderCapture: () => live.current.drag !== undefined,
+    onPanResponderMove: (_e, g) => { const cur = live.current.drag; if (cur) setDrag({ id: cur.id, dx: g.dx }); },
+    onPanResponderRelease: (_e, g) => {
+      const cur = live.current.drag;
+      setDrag(undefined);
+      if (!cur) return;
+      const from = live.current.ids.indexOf(cur.id);
+      const to = dragTarget(from, g.dx, live.current.ids.length);
+      if (from >= 0 && to !== from) live.current.onChange(move(live.current.ids, cur.id, to));
+    },
+    onPanResponderTerminate: () => setDrag(undefined),
+  }), []);
+  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => setCurrent(Math.max(0, Math.min(ids.length - 1, Math.round(e.nativeEvent.contentOffset.x / QUEUE_PITCH))));
+  const rest = ids.slice(2);
+  const tileWidth = Math.floor((window - QUEUE_CARD.lane - spacing.section - QUEUE_TILE.gap) / 2);
   return (
-    <Box>
-      {/* M24 US19 (`QueueSheet-B`): on the sheet the count sits beside the title, so the line is only the rule. */}
-      <Text className={page ? 'text-muted text-meta mb-2.5' : 'text-muted text-meta pb-row'}>{page ? `${plural(ids.length, 'episode')} · plays in order after this one` : 'Plays in order after this one'}</Text>
-      {ids.map((id, index) => (
-        <QueueRow
-          key={id}
-          id={id}
-          index={index}
-          ids={ids}
-          stores={props.stores}
-          colours={props.colours}
-          onChange={props.onChange}
-          onPlay={props.onPlay}
-          page={page}
-          select={props.select}
-          open={open === id}
-          dy={drag?.id === id ? drag.dy : 0}
-          onToggle={() => toggle(id)}
-          onDrag={(dy) => setDrag({ id, dy })}
-          onDrop={(dy) => { setDrag(undefined); const to = dragTarget(index, dy, ids.length, page ? QUEUE_ROW : SHEET_ROW); if (to !== index) props.onChange(move(ids, id, to)); }}
-        />
-      ))}
-      {page ? (
-        <Actionsheet isOpen={open !== undefined && openIndex >= 0} onClose={() => setOpen(undefined)}>
-          <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-          <ActionsheetContent className="bg-surface rounded-t-row px-screen-x items-stretch">
-            <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
-            {open !== undefined && openIndex >= 0 ? (
-              <>
-                <SheetHead id={open} stores={props.stores} />
-                <QueueActions id={open} index={openIndex} ids={ids} colours={props.colours} onChange={props.onChange} onPlay={props.onPlay} onToggle={() => toggle(open)} />
-              </>
-            ) : null}
-          </ActionsheetContent>
-        </Actionsheet>
+    <Box style={{ paddingTop: props.top ?? 0 }}>
+      <Box>
+        <EdgeLabel label="Up next" top={QUEUE_PAGE.edgeTop} />
+        <Box {...pan.panHandlers}>
+          <ScrollView
+            horizontal
+            testID="queue-deck"
+            scrollEnabled={drag === undefined}
+            showsHorizontalScrollIndicator={false}
+            snapToInterval={QUEUE_PITCH}
+            decelerationRate="fast"
+            onScroll={onScroll}
+            scrollEventThrottle={64}
+            style={{ flexGrow: 0 }}
+            contentContainerStyle={{ gap: QUEUE_CARD.gap, paddingLeft: QUEUE_CARD.lane, paddingRight: spacing.section, paddingVertical: spacing.hair }}
+          >
+            {ids.map((id, index) => (
+              <Card
+                key={id}
+                id={id}
+                index={index}
+                ids={ids}
+                stores={props.stores}
+                select={props.select}
+                dx={drag?.id === id ? drag.dx : 0}
+                dragging={drag?.id === id}
+                onPlay={props.onPlay}
+                onOpen={props.onOpen}
+                onMore={setMenu}
+                onLift={(lifted) => setDrag({ id: lifted, dx: 0 })}
+                onRemove={(removed) => props.onChange(remove(ids, removed))}
+              />
+            ))}
+          </ScrollView>
+        </Box>
+      </Box>
+      <Box testID="queue-dots" accessible={false} importantForAccessibility="no-hide-descendants" className="flex-row" style={{ marginLeft: QUEUE_CARD.lane, marginTop: QUEUE_DOTS.top, gap: QUEUE_DOTS.gap }}>
+        {dotsFor(ids.length, current).map(({ at, on }) => <Box key={at} className={on ? 'bg-text' : 'bg-switchOff'} style={{ width: on ? QUEUE_DOTS.on : QUEUE_DOTS.off, height: QUEUE_DOTS.height, borderRadius: radius.tick }} />)}
+      </Box>
+      {rest.length > 0 ? (
+        <ScrollView testID="queue-strip" horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, marginTop: QUEUE_TILE.top }} contentContainerStyle={{ gap: QUEUE_TILE.gap, paddingLeft: QUEUE_CARD.lane, paddingRight: spacing.section }}>
+          {rest.map((id, k) => <StripTile key={id} id={id} number={k + 3} width={tileWidth} stores={props.stores} onPlay={props.onPlay} />)}
+        </ScrollView>
       ) : null}
+      <ItemMenu id={menu} ids={ids} stores={props.stores} onClose={() => setMenu(undefined)} onChange={props.onChange} onPlay={props.onPlay} />
     </Box>
-  );
-}
-
-/** What a row shows: the episode, its show, the meta line. */
-function useRowData(id: string, stores: QueueStores) {
-  const episode = stores.feeds.getEpisode(id);
-  const show = episode ? stores.feeds.getShow(episode.feedUrl) : undefined;
-  const at = stores.positions.get(id)?.offsetMs ?? 0;
-  const left = episode?.durationMs !== undefined ? `${minutesLabel(Math.max(0, episode.durationMs - at))} left` : undefined;
-  const downloaded = stores.downloads.get(id)?.state === 'complete';
-  const title = episode?.title ?? id;
-  const meta = [show?.title, left, downloaded ? 'Downloaded' : undefined].filter(Boolean).join(' · ');
-  return { episode, show, title, meta, art: episode?.imageUrl ?? show?.imageUrl, artName: show?.title ?? title };
-}
-
-/** The page sheet's head: the episode it acts on (`Queue-B`). */
-function SheetHead(props: { id: string; stores: QueueStores }): React.ReactElement {
-  const d = useRowData(props.id, props.stores);
-  return (
-    <Box className="flex-row items-center gap-row py-row border-b-hairline border-separator">
-      <Artwork url={d.art} size={44} name={d.artName} />
-      <Text className="text-text text-title font-display flex-1" numberOfLines={2}>{d.title}</Text>
-    </Box>
-  );
-}
-
-/** The ⋮ actions in a sheet on the queue page (the player's queue sheet shows them as pills in the card, M17 T098). */
-function QueueActions(props: {
-  id: string; index: number; ids: readonly string[]; colours: Colours;
-  onChange: (next: readonly string[]) => void; onPlay: (id: string) => void; onToggle: () => void;
-}): React.ReactElement {
-  const { id, index, ids } = props;
-  return (
-    <>
-      <SheetRow icon="play-outline" label="Play now" iconColour={props.colours.text} onPress={() => { props.onToggle(); props.onPlay(id); }} />
-      {index > 0 ? <SheetRow icon="chevron-up-outline" label="Move to top" iconColour={props.colours.text} onPress={() => { props.onToggle(); props.onChange(move(ids, id, 0)); }} /> : null}
-      {index > 0 ? <SheetRow icon="chevron-up-outline" label="Move up" iconColour={props.colours.text} onPress={() => props.onChange(move(ids, id, index - 1))} /> : null}
-      {index < ids.length - 1 ? <SheetRow icon="chevron-down-outline" label="Move down" iconColour={props.colours.text} onPress={() => props.onChange(move(ids, id, index + 1))} /> : null}
-      <SheetRow icon="trash-outline" label="Remove from the queue" iconColour={props.colours.accent} tone="accent" onPress={() => { props.onToggle(); props.onChange(remove(ids, id)); }} />
-    </>
-  );
-}
-
-function QueueRow(props: {
-  id: string; index: number; ids: readonly string[]; open: boolean; dy: number; page: boolean;
-  select?: Select | undefined;
-  stores: QueueStores;
-  colours: Colours;
-  onChange: (next: readonly string[]) => void; onPlay: (id: string) => void;
-  onToggle: () => void; onDrag: (dy: number) => void; onDrop: (dy: number) => void;
-}): React.ReactElement {
-  const { id, index, ids, stores, page } = props;
-  const d = useRowData(id, stores);
-  // Row ▶ discs stay pale (`playGlyph`); the labelled "Play now" pills are the strong yellow (owner, 2026-10-08).
-  const { playGlyph, onPlay } = useColours();
-  const drop = useRef(props.onDrop); drop.current = props.onDrop;
-  const dragTo = useRef(props.onDrag); dragTo.current = props.onDrag;
-  const handlers: GestureResponderHandlers = useMemo(() => PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: () => true,
-    onPanResponderMove: (_e, g) => dragTo.current(g.dy),
-    onPanResponderRelease: (_e, g) => drop.current(g.dy),
-    onPanResponderTerminate: (_e, g) => drop.current(g.dy),
-  }).panHandlers, []);
-  const { title } = d;
-  // M22 US12: swipe left → Remove (the ⋮ list keeps "Remove from the queue").
-  const swipe: SwipeAction[] = [{ key: 'remove', label: 'Remove', onPress: () => props.onChange(remove(ids, id)) }];
-  const lifted = props.dy !== 0 ? { transform: [{ translateY: props.dy }], zIndex: 1 } : undefined;
-  const handle = (
-    <Box {...handlers} className="items-center justify-center" style={TAP} accessible accessibilityRole="adjustable" accessibilityLabel={`Drag to reorder ${title}`}>
-      <Icon name="reorder-three-outline" size={22} color={props.colours.muted} />
-    </Box>
-  );
-  const more = (
-    <Pressable onPress={props.onToggle} accessibilityRole="button" accessibilityLabel={`More for ${title}`} accessibilityState={{ expanded: props.open }} className="items-center justify-center" style={TAP}>
-      <Icon name="ellipsis-vertical" size={20} color={page && index === 0 ? props.colours.muted : props.colours.text} />
-    </Pressable>
-  );
-
-  // M21 US3: Edit mode — a tap ticks the row; Remove (n) and Clear all live in the sheet's foot.
-  if (props.select) {
-    const checked = props.select.chosen.has(id);
-    const tick = props.select.onToggle;
-    return (
-      <Pressable onPress={() => tick(id)} accessibilityRole="checkbox" accessibilityState={{ checked }} accessibilityLabel={`Select ${title}`} className={`flex-row items-center gap-row mb-2.5 p-3 rounded-row border ${checked ? 'bg-accentTint border-accent' : 'bg-surface border-border'}`} style={ROW_TAP}>
-        <Icon name={checked ? 'checkmark-circle' : 'ellipse-outline'} size={24} color={checked ? props.colours.accent : props.colours.muted} />
-        <Artwork url={d.art} size={48} name={d.artName} />
-        <Box className="flex-1 gap-0.5">
-          <Text className="text-text text-sm font-display-semibold" numberOfLines={2}>{title}</Text>
-          {d.meta ? <Text className="text-muted text-xs" numberOfLines={1}>{d.meta}</Text> : null}
-        </Box>
-      </Pressable>
-    );
-  }
-
-  // M17 `Queue-B`: the next episode is a card with its own Play now pill.
-  if (page && index === 0) {
-    return (
-      <Box className={`mb-1 ${props.dy !== 0 ? 'rounded-row' : ''}`} style={lifted}>
-        <Card className="py-3.5 gap-row">
-          <Box className="flex-row items-center gap-section">
-            <Artwork url={d.art} size={96} rounded="row" name={d.artName} />
-            <Box className="flex-1">
-              <Eyebrow accent>Up next</Eyebrow>
-              <Text className="text-text text-base font-display mt-1" numberOfLines={3}>{title}</Text>
-              {d.meta ? <Text className="text-muted text-xs mt-1" numberOfLines={2}>{d.meta}</Text> : null}
-            </Box>
-          </Box>
-          <Box className="flex-row items-center gap-gap">
-            {/* M16a bug 6 (FR-002): tapping the next episode plays it — here as B's pill. */}
-            <Pressable onPress={() => props.onPlay(id)} accessibilityRole="button" accessibilityLabel={`Play ${title}`} className="flex-1 flex-row items-center justify-center gap-gap bg-play rounded-pill" style={ROW_TAP}>
-              <Icon name="play" size={16} color={onPlay} />
-              <Text className="text-onPlay text-body font-bold">Play now</Text>
-            </Pressable>
-            {more}
-            {handle}
-          </Box>
-        </Card>
-      </Box>
-    );
-  }
-
-  if (page) {
-    return (
-      <SwipeRow swipeLeft={swipe} enabled={props.dy === 0}>
-      <Box className={props.dy !== 0 ? 'bg-surface rounded-row' : ''} style={lifted}>
-        <Box className="flex-row items-center gap-2.5 border-b-hairline border-separator" style={{ minHeight: QUEUE_ROW }}>
-          <Text className="text-muted text-lg font-display w-6" accessible={false}>{String(index + 1)}</Text>
-          {/* M16a bug 6 (FR-002): the row itself plays the episode. */}
-          <Pressable {...swipeA11y(swipe)} onPress={() => props.onPlay(id)} accessibilityRole="button" accessibilityLabel={`Play ${title}`} className="flex-1 flex-row items-center gap-row" style={ROW_TAP}>
-            <Artwork url={d.art} size={52} name={d.artName} />
-            <Box className="flex-1">
-              <Text className="text-text text-body font-semibold" numberOfLines={2}>{title}</Text>
-              {d.meta ? <Text className="text-muted text-xs" numberOfLines={1}>{d.meta}</Text> : null}
-            </Box>
-          </Pressable>
-          {more}
-          {handle}
-        </Box>
-      </Box>
-      </SwipeRow>
-    );
-  }
-
-  // M17 `QueueSheet-B`: a numbered card per episode; the actions open inside it as pills.
-  return (
-    <SwipeRow swipeLeft={swipe} enabled={props.dy === 0 && !props.open}>
-    <Box className="mb-2.5" style={lifted}>
-      <Box className="bg-surface border border-border rounded-row p-3">
-        <Box className="flex-row items-center gap-row">
-          <Text className="text-accent text-lg font-display w-6" accessible={false}>{String(index + 1)}</Text>
-          {/* M16a bug 6 (FR-002). Phone walk 2026-10-02: tapping a row in "Up next" did nothing —
-              the artwork and title were plain views; only the drag handle and ⋮ took a tap. The row
-              itself now plays the episode (the sheet closes, the page opens the player). */}
-          <Pressable {...swipeA11y(swipe)} onPress={() => props.onPlay(id)} accessibilityRole="button" accessibilityLabel={`Play ${title}`} className="flex-1 flex-row items-center gap-row" style={ROW_TAP}>
-            <Artwork url={d.art} size={64} name={d.artName} />
-            <Box className="flex-1 gap-0.5">
-              <Text className="text-text text-sm font-display-semibold" numberOfLines={2}>{title}</Text>
-              {d.meta ? <Text className="text-muted text-xs" numberOfLines={2}>{d.meta}</Text> : null}
-            </Box>
-            {/* M21 US3 (FR-021): ▶ on every row; the row itself is the "Play …" button. */}
-            <Box className="rounded-pill bg-playDisc items-center justify-center" style={PLAY_DISC}>
-              <Icon name="play" size={14} color={playGlyph} />
-            </Box>
-          </Pressable>
-          <Box style={CONTROLS}>
-            <Box className={props.open ? 'bg-accentTint rounded-pill' : ''}>{more}</Box>
-            {handle}
-          </Box>
-        </Box>
-        {props.open ? (
-          <Box className="flex-row flex-wrap gap-gap pt-3 mt-3 border-t-hairline border-separator">
-            <Pressable onPress={() => { props.onToggle(); props.onPlay(id); }} accessibilityRole="button" accessibilityLabel="Play now" className="flex-row items-center gap-1.5 px-3 rounded-pill bg-play" style={PILL}>
-              <Icon name="play" size={16} color={onPlay} />
-              <Text className="text-onPlay text-meta font-bold">Play now</Text>
-            </Pressable>
-            {index > 0 ? (
-              <Pressable onPress={() => { props.onToggle(); props.onChange(move(ids, id, 0)); }} accessibilityRole="button" accessibilityLabel="Move to top" className="flex-row items-center gap-1.5 px-3 rounded-pill bg-background border border-border" style={PILL}>
-                <Icon name="chevron-up-outline" size={16} color={props.colours.text} />
-                <Text className="text-text text-meta font-bold">Move to top</Text>
-              </Pressable>
-            ) : null}
-            {index > 0 ? (
-              <Pressable onPress={() => props.onChange(move(ids, id, index - 1))} accessibilityRole="button" accessibilityLabel="Move up" className="flex-row items-center gap-1.5 px-3 rounded-pill bg-background border border-border" style={PILL}>
-                <Icon name="chevron-up-outline" size={16} color={props.colours.text} />
-                <Text className="text-text text-meta font-bold">Move up</Text>
-              </Pressable>
-            ) : null}
-            {index < ids.length - 1 ? (
-              <Pressable onPress={() => props.onChange(move(ids, id, index + 1))} accessibilityRole="button" accessibilityLabel="Move down" className="flex-row items-center gap-1.5 px-3 rounded-pill bg-background border border-border" style={PILL}>
-                <Icon name="chevron-down-outline" size={16} color={props.colours.text} />
-                <Text className="text-text text-meta font-bold">Move down</Text>
-              </Pressable>
-            ) : null}
-            <Pressable onPress={() => { props.onToggle(); props.onChange(remove(ids, id)); }} accessibilityRole="button" accessibilityLabel="Remove from the queue" className="flex-row items-center gap-1.5 px-3 rounded-pill bg-background border border-border" style={PILL}>
-              <Icon name="trash-outline" size={16} color={props.colours.accent} />
-              <Text className="text-accent text-meta font-bold">Remove from the queue</Text>
-            </Pressable>
-          </Box>
-        ) : null}
-      </Box>
-    </Box>
-    </SwipeRow>
   );
 }

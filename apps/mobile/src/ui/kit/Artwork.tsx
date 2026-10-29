@@ -28,12 +28,12 @@ import { memo, useEffect, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { Image } from '@/ui/lib/image';
 import { Box } from '@/ui/lib/box';
-import { Text } from '@/ui/lib/text';
-import { coverRadius, type radius } from '@/design';
+import { Text } from '@/ui/kit/Text';
+import { coverRadius } from '@/design';
 import { COVER_SHAPE, coverLetters, coverTone } from '@socialmorning/social-core';
 
 /** Whole class names, so Tailwind can find each one written out. */
-const ROUNDED: Record<keyof typeof radius, string> = {
+const ROUNDED: Record<'row' | 'artwork' | 'artworkLarge' | 'pill' | 'sheet', string> = {
   row: 'rounded-row',
   artwork: 'rounded-artwork',
   artworkLarge: 'rounded-artwork-lg',
@@ -76,7 +76,7 @@ export function thumbUrl(url: string, size: number): string {
   return url;
 }
 
-function ArtworkView(props: { url?: string | null; size: number; rounded?: keyof typeof radius; className?: string; name?: string }): React.ReactElement {
+function ArtworkView(props: { url?: string | null; size: number; rounded?: keyof typeof ROUNDED; className?: string; name?: string }): React.ReactElement {
   const cls = `overflow-hidden ${props.rounded ? ROUNDED[props.rounded] : ''} ${props.className ?? ''}`;
   // The size, the corner and the tile's colour come from props, so they stay styles.
   const tone = coverTone(props.name ?? '');

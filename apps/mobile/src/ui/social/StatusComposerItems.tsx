@@ -9,29 +9,34 @@
  *  - at 10 items both buttons stop and say "Up to 10 items" (the server refuses an 11th too).
  * Before posting, `itemsForPost` registers each episode with the server (an episode found by
  * search may not be known there yet) and returns the list the post carries.
+ *
+ * M31 W4-B (T051; design-pulse2 `itemsRow`, `addEpSheet`, `status-text--add-episode-sheet`, `status-composer-items--toast`, `status-text--photo-picker`): the items
+ * row is two chips with a 16 glyph (Add episode, Add photo) and "n / 10 · Up to 10 items" in mono 11 under them (hot at 10); added items stack under
+ * it as raise rows (cover or photo 48, title, show, hot-text Remove). "Add an episode" is the kit sheet: the search field (48), the label
+ * "Your queue and recent listening" or "Search results", a deck of 150 cards (cover 130, title, show) and a quiet Cancel. Same buttons, toasts and handlers.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
 import { Image } from '@/ui/lib/image';
 import { ScrollView } from '@/ui/lib/scroll-view';
-import { Input, InputField } from '@/ui/lib/input';
-import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '@/ui/lib/actionsheet';
+import { ActionSheet } from '@/ui/kit/ActionSheet';
 import { Artwork } from '@/ui/kit/Artwork';
-import { Icon } from '@/ui/kit/Icon';
-import { Card, CardDivider } from '@/ui/kit/Card';
+import { Chip } from '@/ui/kit/Chip';
+import { PulseButton } from '@/ui/kit/PulseButton';
+import { Type } from '@/ui/kit/Type';
+import { SearchField } from '@/ui/me/lists';
 import { useStores, useToast } from '@/ui/shell/providers';
-import { hit } from '@/design';
+import { spacing } from '@/design';
 import { useSocial } from '@/social/context';
 import type { ApiClient, EpisodeCard } from '@/social/api';
 import { pickCommentImage } from '@/social/comment-image';
 import { listeningHistory } from '@/me/history';
 import { STATUS_ITEMS_MAX, useM22SocialApi, type StatusItemIn } from '@/social/api-m22-social';
+import { ITEMS, TEXT_PAGE, statusType } from '@/ui/status/measures';
 
-const TAP = { minHeight: hit.min };
-const THUMB = { width: 64, height: 64, borderRadius: 12 };
-const SHEET = { maxHeight: 520 };
+const REMOVE_SLOP = { top: 12, bottom: 12, left: 8, right: 8 } as const;
+const DECK_SLOP = { top: 4, bottom: 4, left: 0, right: 0 } as const;
 
 export type ComposerItem =
   | { kind: 'episode'; card: EpisodeCard }
@@ -112,64 +117,52 @@ export function StatusComposerItems(props: { items: ComposerItem[]; onChange: (n
   const list = q.trim().length >= 2 ? found : nearby;
 
   return (
-    <Box className="gap-row">
-      {props.items.length > 0 ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-gap">
-          {props.items.map((it, i) => (
-            <Box key={it.kind === 'episode' ? it.card.id : it.imageKey} className="items-center gap-1" style={{ width: 72 }}>
-              {it.kind === 'photo' ? <Image source={{ uri: it.uri }} style={THUMB} accessibilityLabel={`Photo ${i + 1}`} /> : <Artwork url={it.card.imageUrl ?? null} size={64} name={it.card.showTitle} />}
-              <Text className="text-text text-xs" numberOfLines={1}>{it.kind === 'photo' ? 'Photo' : it.card.title}</Text>
-              <Pressable onPress={() => remove(i)} accessibilityRole="button" accessibilityLabel={`Remove ${it.kind === 'photo' ? `photo ${i + 1}` : it.card.title}`} className="items-center justify-center" style={TAP}>
-                <Text className="text-accent text-xs font-bold">Remove</Text>
-              </Pressable>
-            </Box>
-          ))}
-        </ScrollView>
-      ) : null}
-      <Box className="flex-row gap-gap">
-        <Pressable onPress={() => (full ? toast('Up to 10 items.') : setPicking(true))} accessibilityRole="button" accessibilityLabel="Add episode" accessibilityState={{ disabled: full }} className={`flex-1 flex-row items-center justify-center gap-1 rounded-pill border border-border bg-surface ${full ? 'opacity-40' : ''}`} style={TAP}>
-          <Icon name="albums-outline" size={18} color={props.colours.accent} />
-          <Text className="text-text text-body font-semibold">Add episode</Text>
-        </Pressable>
-        <Pressable onPress={() => void addPhoto()} disabled={uploading} accessibilityRole="button" accessibilityLabel="Add photo" accessibilityState={{ disabled: full || uploading }} className={`flex-1 flex-row items-center justify-center gap-1 rounded-pill border border-border bg-surface ${full || uploading ? 'opacity-40' : ''}`} style={TAP}>
-          <Icon name="image-outline" size={18} color={props.colours.accent} />
-          <Text className="text-text text-body font-semibold">{uploading ? 'Adding…' : 'Add photo'}</Text>
-        </Pressable>
+    <Box testID="status-items" style={{ gap: TEXT_PAGE.gap }}>
+      <Box style={{ gap: ITEMS.chipGap }}>
+        <Box className="flex-row items-center" style={{ gap: ITEMS.chipGap }}>
+          <Chip label="Add episode" icon="headset-outline" disabled={full} onPress={() => (full ? toast('Up to 10 items.') : setPicking(true))} />
+          <Chip label={uploading ? 'Adding…' : 'Add photo'} accessibilityLabel="Add photo" icon="image-outline" disabled={full || uploading} onPress={() => { if (!uploading) void addPhoto(); }} />
+        </Box>
+        <Type step="tag" className={full ? 'text-hotText' : 'text-text3'}>{`${props.items.length} / ${STATUS_ITEMS_MAX} · Up to 10 items`}</Type>
       </Box>
-      <Text className={full ? 'text-accent text-xs font-bold' : 'text-muted text-xs'}>{`${props.items.length} / ${STATUS_ITEMS_MAX} · Up to 10 items`}</Text>
 
-      <Actionsheet isOpen={picking} onClose={() => setPicking(false)}>
-        <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-        <ActionsheetContent className="px-screen-x pt-row items-stretch">
-          <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
-          <Text className="text-text text-sm font-bold py-row">Add an episode</Text>
-          <Input className="bg-background border border-border rounded-pill h-auto px-0">
-            <InputField value={q} onChangeText={setQ} placeholder="Search episodes" placeholderTextColor={props.colours.muted} accessibilityLabel="Search episodes" style={TAP} className="px-section text-body text-text" returnKeyType="search" />
-          </Input>
-          <Text className="text-muted text-xs pt-gap">{q.trim().length >= 2 ? 'Search results' : 'Your queue and recent listening'}</Text>
-          <ScrollView style={SHEET} keyboardShouldPersistTaps="handled">
-            {list.length === 0 ? <Text className="text-muted text-body py-row">{q.trim().length >= 2 ? 'Nothing found yet.' : 'Nothing in your queue or history yet — search above.'}</Text> : (
-              <Card padded={false} className="border-0">
-                {list.map((e, i) => (
-                  <Box key={e.id}>
-                    {i > 0 ? <CardDivider /> : null}
-                    <Pressable onPress={() => add(e)} accessibilityRole="button" accessibilityLabel={`Add ${e.title}${e.showTitle ? `, ${e.showTitle}` : ''}`} className="flex-row items-center gap-row py-2" style={TAP}>
-                      <Artwork url={e.imageUrl ?? null} size={40} name={e.showTitle} />
-                      <Box className="flex-1">
-                        <Text className="text-text text-body" numberOfLines={1}>{e.title}</Text>
-                        {e.showTitle ? <Text className="text-muted text-xs" numberOfLines={1}>{e.showTitle}</Text> : null}
-                      </Box>
-                    </Pressable>
-                  </Box>
-                ))}
-              </Card>
-            )}
-          </ScrollView>
-          <Pressable onPress={() => setPicking(false)} accessibilityRole="button" accessibilityLabel="Cancel" className="items-center justify-center mt-row" style={TAP}>
-            <Text className="text-accent text-sm font-bold">Cancel</Text>
+      {props.items.map((it, i) => (
+        <Box key={it.kind === 'episode' ? it.card.id : it.imageKey} testID="status-item-row" className="flex-row items-center bg-raise" style={{ gap: TEXT_PAGE.item.gap, padding: TEXT_PAGE.item.pad, borderRadius: TEXT_PAGE.item.radius }}>
+          {it.kind === 'photo' ? <Image source={{ uri: it.uri }} style={{ width: TEXT_PAGE.item.cover, height: TEXT_PAGE.item.cover, borderRadius: spacing.row }} accessibilityLabel={`Photo ${i + 1}`} /> : <Artwork url={it.card.imageUrl ?? null} size={TEXT_PAGE.item.cover} name={it.card.showTitle} />}
+          <Box className="flex-1">
+            <Type step="compact" className="text-text" numberOfLines={2}>{it.kind === 'photo' ? 'Photo' : it.card.title}</Type>
+            {it.kind === 'episode' && it.card.showTitle ? <Type step="tag" className="text-text3" numberOfLines={1}>{it.card.showTitle}</Type> : null}
+          </Box>
+          <Pressable onPress={() => remove(i)} hitSlop={REMOVE_SLOP} accessibilityRole="button" accessibilityLabel={`Remove ${it.kind === 'photo' ? `photo ${i + 1}` : it.card.title}`}>
+            <Type step="caption" className="text-hotText font-semibold">Remove</Type>
           </Pressable>
-        </ActionsheetContent>
-      </Actionsheet>
+        </Box>
+      ))}
+
+      <ActionSheet open={picking} onClose={() => setPicking(false)} label="Add an episode" title="Add an episode" keyboard>
+        <SearchField value={q} onChange={setQ} placeholder="Search episodes" />
+        <Type step="tag" className="text-text3">{q.trim().length >= 2 ? 'Search results' : 'Your queue and recent listening'}</Type>
+        {list.length === 0 ? <Type step="note" className="text-text2">{q.trim().length >= 2 ? 'Nothing found yet.' : 'Nothing in your queue or history yet — search above.'}</Type> : (
+          <ScrollView testID="status-deck" horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: ITEMS.card.between }}>
+            {list.map((e) => (
+              <Pressable
+                key={e.id}
+                onPress={() => add(e)}
+                hitSlop={DECK_SLOP}
+                accessibilityRole="button"
+                accessibilityLabel={`Add ${e.title}${e.showTitle ? `, ${e.showTitle}` : ''}`}
+                className="bg-raise"
+                style={{ width: ITEMS.card.width, padding: ITEMS.card.pad, borderRadius: ITEMS.card.radius, gap: ITEMS.card.gap }}
+              >
+                <Artwork url={e.imageUrl ?? null} size={ITEMS.card.cover} name={e.showTitle} />
+                <Type step="caption" className="text-text font-semibold" style={statusType.deckTitle} numberOfLines={2}>{e.title}</Type>
+                {e.showTitle ? <Type step="tag" className="text-text3" style={statusType.deckShow} numberOfLines={1}>{e.showTitle}</Type> : null}
+              </Pressable>
+            ))}
+          </ScrollView>
+        )}
+        <PulseButton label="Cancel" kind="quiet" full onPress={() => setPicking(false)} />
+      </ActionSheet>
     </Box>
   );
 }

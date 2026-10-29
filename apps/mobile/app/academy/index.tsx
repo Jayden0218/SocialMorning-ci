@@ -1,77 +1,82 @@
-// Creator academy: list of help articles for show owners, as cards.
+// Creator academy: help articles for show owners, as a Mosaic.
 /**
  * Creator academy (M12 FR-103): help for show owners, opened in the app.
  *
- * M17 T077 (`Academy-B`): the Editorial page — the first article as a yellow "Start here" card
- * with a large number behind it, the rest as white cards two to a row, each with its number in a
- * tinted badge, a serif title and the summary. Every article still opens `/academy/[slug]`.
+ * M21 T086 (FR-065): tabs — All, Get started, Grow, Community — each showing its articles.
+ * M25 A8: each article names its tab (`tag`, set in Admin › Content); one with none shows under All only.
  *
- * M21 T086 (FR-065): tabs — All, Get started, Grow, Community — each showing its articles in
- * the same cards (the first of a tab is its "Start here" card).
+ * M31 W5-D (T064; design-pulse2 `discover.html` `academy--screen`, layout pattern Mosaic): a pushed page, the title bar low
+ * ("Creator academy" at 28, "For people who make shows"), the four filter chips (All · Get started · Grow · Community) in the 28
+ * lane under the status bar, then the Mosaic: the first article is the 2 x 3 hot tile — "START HERE · 1" in mono 11, the title in
+ * Unbounded 800 24, the summary in Geist 500 14/20 and a send glyph at the foot, all in void — and the rest follow as numbered tiles
+ * (the number in Unbounded 800 22, hot-text, the title in Unbounded 700 14): 1 x 2 for the first two, 1 x 1 after. Each opens
+ * `/academy/[slug]`. The numbers are written plain ("2"), as drawn.
  */
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { useWindowDimensions } from 'react-native';
 import { ScrollView } from '@/ui/lib/scroll-view';
 import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { hit, spacing } from '@/design';
+import { colour } from '@/design';
 import { useAcademy } from '@/config/content';
-import { PageHeader } from '@/ui/kit/PageHeader';
-import { Segmented } from '@/ui/kit/Segmented';
+import { Chip } from '@/ui/kit/Chip';
+import { Icon } from '@/ui/kit/Icon';
+import { PushedPage } from '@/ui/kit/PushedPage';
+import { Type } from '@/ui/kit/Type';
+import { MosaicGrid, type TileSpec } from '@/ui/discover/Mosaic';
+import { PAGE, PAGE_TYPE } from '@/ui/discover/measures';
+import { bodyTop } from '@/ui/discover/page-parts';
+import { ME_MOSAIC } from '@/ui/me/mosaic';
 
 type Tab = 'all' | 'start' | 'grow' | 'community';
 const TABS: readonly { value: Tab; label: string }[] = [
   { value: 'all', label: 'All' }, { value: 'start', label: 'Get started' }, { value: 'grow', label: 'Grow' }, { value: 'community', label: 'Community' },
 ];
-// M25 A8: each article names its tab (`tag`, set in Admin › Content); one with none shows under All only.
-
-const CAPS = { letterSpacing: 1.3, textTransform: 'uppercase' as const };
-const GHOST = { fontSize: 112, lineHeight: 112, right: -6, top: -10 };
-const TAP = { minHeight: hit.min };
+/** The chips sit 12 above the Mosaic. */
+const CHIPS_GAP = 12;
 
 export default function Academy(): React.ReactElement {
   const router = useRouter();
-  const { width } = useWindowDimensions();
   const [tab, setTab] = useState<Tab>('all');
   // M25 A8: the server's articles (Admin › Content), the bundled copy when it cannot be reached.
   const articles = useAcademy();
   const shown = articles.filter((a) => tab === 'all' || a.tab === tab);
-  const half = { minHeight: hit.min, width: Math.floor((width - spacing.screenX * 2 - spacing.row) / 2) };
+  const tiles: TileSpec[] = shown.map((a, i) => {
+    const lead = i === 0;
+    return {
+      key: a.slug,
+      w: lead ? 2 : 1,
+      h: lead ? 3 : i < 3 ? 2 : 1,
+      fill: lead ? 'hot' : 'raise',
+      node: (
+        <Pressable onPress={() => router.push({ pathname: '/academy/[slug]', params: { slug: a.slug } })} accessibilityRole="button" accessibilityLabel={`${a.title}. ${a.summary}`} className="flex-1" style={{ padding: PAGE.pad, gap: 8 }}>
+          {lead ? (
+            <>
+              <Type step="tag" className="text-void font-semibold" style={PAGE_TYPE.eyebrow}>{`START HERE · ${i + 1}`}</Type>
+              <Type step="hero" className="text-void" style={PAGE_TYPE.title24}>{a.title}</Type>
+              <Type step="note" className="text-void font-medium" numberOfLines={5}>{a.summary}</Type>
+              <Box className="mt-auto self-end"><Icon name="send-outline" size={26} color={colour.void} /></Box>
+            </>
+          ) : (
+            <>
+              <Type step="hero" className="text-hotText" style={PAGE_TYPE.title22}>{String(i + 1)}</Type>
+              <Type step="lede" className="text-text" style={PAGE_TYPE.tile14} numberOfLines={i < 3 ? 4 : 2}>{a.title}</Type>
+            </>
+          )}
+        </Pressable>
+      ),
+    };
+  });
   return (
-    <>
-    <PageHeader title="Creator academy" />
-    <Box className="bg-background px-screen-x pb-gap">
-      <Segmented items={TABS} value={tab} onChange={setTab} />
-    </Box>
-    <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pt-row pb-24 flex-row flex-wrap gap-row">
-      {shown.map((a, i) => {
-        const n = String(i + 1).padStart(2, '0');
-        const lead = i === 0;
-        return (
-          <Pressable key={a.slug} onPress={() => router.push({ pathname: '/academy/[slug]', params: { slug: a.slug } })} accessibilityRole="button" accessibilityLabel={`${a.title}. ${a.summary}`}
-            className={lead ? 'w-full bg-primary rounded-row p-section gap-2 overflow-hidden' : 'bg-surface border border-border rounded-row p-section gap-2'} style={lead ? TAP : half}>
-            {lead ? (
-              <>
-                <Text className="absolute text-onPrimary font-display opacity-10" style={GHOST} accessible={false} importantForAccessibility="no">{n}</Text>
-                <Text className="text-onPrimary text-micro font-bold" style={CAPS}>{`Start here · ${n}`}</Text>
-                <Text className="text-onPrimary text-lg font-display">{a.title}</Text>
-                <Text className="text-onPrimary text-body">{a.summary}</Text>
-              </>
-            ) : (
-              <>
-                <Box className="self-start bg-accentTint rounded-row px-2 py-1">
-                  <Text className="text-text text-sm font-display">{n}</Text>
-                </Box>
-                <Text className="text-text text-title font-display">{a.title}</Text>
-                <Text className="text-muted text-meta">{a.summary}</Text>
-              </>
-            )}
-          </Pressable>
-        );
-      })}
-    </ScrollView>
-    </>
+    <PushedPage title="Creator academy" subtitle="For people who make shows" size={28}>
+      {(layout) => (
+        <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: bodyTop(layout), paddingBottom: layout.reserve }}>
+          <Box className="flex-row" style={{ marginLeft: ME_MOSAIC.lane, marginRight: ME_MOSAIC.right, gap: PAGE.gap - 2, marginBottom: CHIPS_GAP, flexWrap: 'wrap' }}>
+            {TABS.map((t) => <Chip key={t.value} label={t.label} chosen={tab === t.value} onPress={() => setTab(t.value)} />)}
+          </Box>
+          <MosaicGrid tiles={tiles} />
+        </ScrollView>
+      )}
+    </PushedPage>
   );
 }

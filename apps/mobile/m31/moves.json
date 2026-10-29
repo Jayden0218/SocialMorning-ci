@@ -1,0 +1,3003 @@
+{
+ "moves": [
+  {
+   "file": "apps/mobile/app/player.tsx",
+   "name": "favourite ? 'Remove from favourites' : 'Add to favourites'",
+   "destination": "dynamic",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): player--screen action map \"Favourite · About · Transcript · Chapters (n): More sheet (Listen page)\" — the star left the top bar for the More sheet's \"Add to favourites / Remove from favourites\" tile (same name, same toggle)",
+   "now": {
+    "file": "apps/mobile/src/ui/player/PlayerMoreSheet.tsx",
+    "name": "props.accessibilityLabel ?? props.label",
+    "destination": "props.onPress"
+   },
+   "via": [
+    "apps/mobile/src/ui/player/PlayerMoreSheet.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/player.tsx",
+   "name": "About this episode",
+   "destination": "/episode/[id]",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): player--screen action map \"About this episode: More sheet tile\" — the About button left the bottom bar for the More sheet (same name, opens /episode/[id])",
+   "now": {
+    "file": "apps/mobile/src/ui/player/PlayerMoreSheet.tsx",
+    "name": "props.accessibilityLabel ?? props.label",
+    "destination": "props.onPress"
+   },
+   "via": [
+    "apps/mobile/src/ui/player/PlayerMoreSheet.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/player.tsx",
+   "name": "Chapters (${extras.chapters.length})",
+   "destination": "setPane",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): chapters moved from the Playback sheet into the player's More sheet (player--screen and player--playback-sheet action maps: \"Chapters (n) · Chapter i (seek) · ↗ link: More sheet tile + list\")",
+   "now": {
+    "file": "apps/mobile/src/ui/player/PlayerMoreSheet.tsx",
+    "name": "props.accessibilityLabel ?? props.label",
+    "destination": "props.onPress"
+   },
+   "via": [
+    "apps/mobile/src/ui/player/PlayerMoreSheet.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/player.tsx",
+   "name": "Transcript",
+   "destination": "setPane",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): transcript moved from the Playback sheet into the player's More sheet (player--screen action map \"Transcript: More sheet tile → transcript pane\")",
+   "now": {
+    "file": "apps/mobile/src/ui/player/PlayerMoreSheet.tsx",
+    "name": "props.accessibilityLabel ?? props.label",
+    "destination": "props.onPress"
+   },
+   "via": [
+    "apps/mobile/src/ui/player/PlayerMoreSheet.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/player.tsx",
+   "name": "Close",
+   "destination": "setMore",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): player--playback-sheet action map \"Close (Done) · Close the player settings: Done pill · scrim · close circle\" — the Playback sheet's Done pill now lives in SettingsPanel, which draws the whole sheet (it drew Chapters / Transcript / Done as children of the page before)",
+   "now": {
+    "file": "apps/mobile/src/ui/player/SettingsPanel.tsx",
+    "name": "Close",
+    "destination": "props.onClose"
+   },
+   "via": [
+    "apps/mobile/src/ui/player/SettingsPanel.tsx"
+   ],
+   "handlerHas": "s.closeSheet"
+  },
+  {
+   "file": "apps/mobile/src/ui/player/TranscriptExtras.tsx",
+   "name": "props.expanded ? 'Show two lines of the transcript' : 'Show the whole transcript here'",
+   "destination": "props.onToggle",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): player--transcript-pane action map \"Show two lines / the whole transcript here: Drag the sheet between half and full\" — the two-line peek on the main page is gone; the transcript sheet's half/full drag replaces its toggle | M31 replay fix: removed on purpose: the drawing replaces the inline two-line peek with the sheet half/full drag (the function \"show more transcript\" is the sheet drag; \"Open the transcript full screen\" stays).",
+   "removed": true
+  },
+  {
+   "file": "apps/mobile/src/ui/player/TranscriptExtras.tsx",
+   "name": "Open the transcript full screen",
+   "destination": "/transcript/[episodeId]",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): player--transcript-pane action map \"Open the transcript full screen: Square icon, bottom right\" — the button moved from the peek (removed) to the transcript sheet",
+   "now": {
+    "file": "apps/mobile/src/ui/player/TranscriptSheet.tsx",
+    "name": "Open the transcript full screen",
+    "destination": "/transcript/[episodeId]"
+   },
+   "via": [
+    "apps/mobile/src/ui/player/TranscriptSheet.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/player/TranscriptPane.tsx",
+   "name": "{mmss(l.startMs)}",
+   "destination": "dynamic",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): player--transcript-pane \"Layout: Thread\": the line's time is a kit TimestampChip inside the row, so the scanner reads no text child; the row is the same seek button (\"m:ss (seek to line)\" in the action map)",
+   "now": {
+    "file": "apps/mobile/src/ui/player/TranscriptPane.tsx",
+    "name": "",
+    "destination": "dynamic"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/player/MiniPlayer.tsx",
+   "name": "Now playing: ${episode?.title ?? 'an episode'}. Open the player.",
+   "destination": "/player",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): index.html §Bars: the now bar is the kit NowBar (T022, built from design-pulse2 kit.js `nowbar`); MiniPlayer.tsx only feeds it from the player — the bar's buttons are drawn in NowBar.tsx (same name; opens /player through MiniPlayer's onOpen)",
+   "now": {
+    "file": "apps/mobile/src/ui/kit/NowBar.tsx",
+    "name": "Now playing: ${props.title}. Open the player.",
+    "destination": "props.onOpen"
+   },
+   "via": [
+    "apps/mobile/src/ui/kit/NowBar.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/player/MiniPlayer.tsx",
+   "name": "isPlaying ? 'Pause' : 'Play'",
+   "destination": "dynamic",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): index.html §Bars: the now bar is the kit NowBar; its play/pause button (same names \"Play\" / \"Pause\") is drawn there and toggles through MiniPlayer's onToggle",
+   "now": {
+    "file": "apps/mobile/src/ui/kit/NowBar.tsx",
+    "name": "props.playing ? 'Pause' : 'Play'",
+    "destination": "props.onToggle"
+   },
+   "via": [
+    "apps/mobile/src/ui/kit/NowBar.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/player/MiniPlayer.tsx",
+   "name": "Playlist",
+   "destination": "queueSheet.open",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): index.html §Bars: the now bar is the kit NowBar; its playlist button (same name \"Playlist\") is drawn there and opens the queue sheet through MiniPlayer's onQueue",
+   "now": {
+    "file": "apps/mobile/src/ui/kit/NowBar.tsx",
+    "name": "Playlist",
+    "destination": "props.onQueue"
+   },
+   "via": [
+    "apps/mobile/src/ui/kit/NowBar.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/player.tsx",
+   "name": "Try again",
+   "destination": "player.play",
+   "reason": "M31 T024 review D7: app/player.tsx is split into section components; same name, same action, new file. The play disc becomes \"Try again\" on a failure (player--screen: \"Replaces the play circle on a failure\").",
+   "now": {
+    "file": "apps/mobile/src/ui/player/TransportRow.tsx",
+    "name": "Try again",
+    "destination": "player.play"
+   },
+   "via": [
+    "apps/mobile/src/ui/player/TransportRow.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/player.tsx",
+   "name": "Show: ${show?.title ?? ''}",
+   "destination": "/show/[feedUrl]",
+   "reason": "M31 T024 review D7: app/player.tsx is split into section components; same name, same action, new file. ",
+   "now": {
+    "file": "apps/mobile/src/ui/player/PlayerTitleBlock.tsx",
+    "name": "Show: ${show?.title ?? ''}",
+    "destination": "/show/[feedUrl]"
+   },
+   "via": [
+    "apps/mobile/src/ui/player/PlayerTitleBlock.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/player.tsx",
+   "name": "Subscribe to this show",
+   "destination": "subscribe",
+   "reason": "M31 T024 review D7: app/player.tsx is split into section components; same name, same action, new file. Drawn as the \"Follow\" pill; the spoken name is unchanged.",
+   "now": {
+    "file": "apps/mobile/src/ui/player/PlayerTitleBlock.tsx",
+    "name": "Subscribe to this show",
+    "destination": "subscribe"
+   },
+   "via": [
+    "apps/mobile/src/ui/player/PlayerTitleBlock.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/player.tsx",
+   "name": "Keep listening",
+   "destination": "dynamic",
+   "reason": "M31 T024 review D7: app/player.tsx is split into section components; same name, same action, new file. ",
+   "now": {
+    "file": "apps/mobile/src/ui/player/TransportRow.tsx",
+    "name": "Keep listening",
+    "destination": "dynamic"
+   },
+   "via": [
+    "apps/mobile/src/ui/player/TransportRow.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/player.tsx",
+   "name": "Speed ${rate.toFixed(1)}×, sleep timer and chapters",
+   "destination": "setMore",
+   "reason": "M31 T024 review D7: app/player.tsx is split into section components; same name, same action, new file. The name keeps the drawing's action-map wording; it opens the Playback sheet.",
+   "now": {
+    "file": "apps/mobile/src/ui/player/TransportRow.tsx",
+    "name": "Speed ${rate.toFixed(1)}×, sleep timer and chapters",
+    "destination": "props.onOpenPlayback"
+   },
+   "via": [
+    "apps/mobile/src/ui/player/TransportRow.tsx"
+   ],
+   "handlerHas": "s.open('playback')"
+  },
+  {
+   "file": "apps/mobile/app/player.tsx",
+   "name": "Skip back 15 seconds",
+   "destination": "player.skip",
+   "reason": "M31 T024 review D7: app/player.tsx is split into section components; same name, same action, new file. ",
+   "now": {
+    "file": "apps/mobile/src/ui/player/TransportRow.tsx",
+    "name": "Skip back 15 seconds",
+    "destination": "player.skip"
+   },
+   "via": [
+    "apps/mobile/src/ui/player/TransportRow.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/player.tsx",
+   "name": "isPlaying ? 'Pause' : 'Play'",
+   "destination": "dynamic",
+   "reason": "M31 T024 review D7: app/player.tsx is split into section components; same name, same action, new file. ",
+   "now": {
+    "file": "apps/mobile/src/ui/player/TransportRow.tsx",
+    "name": "isPlaying ? 'Pause' : 'Play'",
+    "destination": "dynamic"
+   },
+   "via": [
+    "apps/mobile/src/ui/player/TransportRow.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/player.tsx",
+   "name": "Skip forward 30 seconds",
+   "destination": "player.skip",
+   "reason": "M31 T024 review D7: app/player.tsx is split into section components; same name, same action, new file. ",
+   "now": {
+    "file": "apps/mobile/src/ui/player/TransportRow.tsx",
+    "name": "Skip forward 30 seconds",
+    "destination": "player.skip"
+   },
+   "via": [
+    "apps/mobile/src/ui/player/TransportRow.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/player.tsx",
+   "name": "reacted ? 'Remove your reaction here' : 'React at this moment'",
+   "destination": "/auth/sign-in",
+   "reason": "M31 T024 review D7: app/player.tsx is split into section components; same name, same action, new file. Now the heart in the tray (player--screen: \"React … Tray heart; double-tap the cover\").",
+   "now": {
+    "file": "apps/mobile/src/ui/player/PlayerTray.tsx",
+    "name": "reacted ? 'Remove your reaction here' : 'React at this moment'",
+    "destination": "/auth/sign-in"
+   },
+   "via": [
+    "apps/mobile/src/ui/player/PlayerTray.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/player.tsx",
+   "name": "Playlist",
+   "destination": "queueSheet.open",
+   "reason": "M31 T024 review D7: app/player.tsx is split into section components; same name, same action, new file. Now in the tray (\"Playlist: Tray list icon (queue sheet)\").",
+   "now": {
+    "file": "apps/mobile/src/ui/player/PlayerTray.tsx",
+    "name": "Playlist",
+    "destination": "queueSheet.open"
+   },
+   "via": [
+    "apps/mobile/src/ui/player/PlayerTray.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/player.tsx",
+   "name": "Comments, ${commentCount}",
+   "destination": "openComments",
+   "reason": "M31 T024 review D7: app/player.tsx is split into section components; same name, same action, new file. Now the first item of the tray (\"Comments, n: Tray first item\").",
+   "now": {
+    "file": "apps/mobile/src/ui/player/PlayerTray.tsx",
+    "name": "Comments, ${commentCount}",
+    "destination": "openComments"
+   },
+   "via": [
+    "apps/mobile/src/ui/player/PlayerTray.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/(tabs)/index.tsx",
+   "name": "hint ? `Search. Trending: ${hint}` : \"Search shows and episodes\"",
+   "destination": "props.onOpen",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): home--screen action map \"Search shows and episodes · Search. Trending: hint (big box and collapsed bar button)\" -> \"One search field, pinned low above the switch\" — the collapsed bar's search button is gone, the pinned field (SearchBar, same names) does both",
+   "now": {
+    "file": "apps/mobile/src/ui/discover/parts.tsx",
+    "name": "props.hint ? `Search. Trending: ${props.hint}` : 'Search shows and episodes'",
+    "destination": "press"
+   },
+   "via": [
+    "apps/mobile/src/ui/discover/parts.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/discover/sections.tsx",
+   "name": "c.label",
+   "destination": "c.onPress",
+   "reason": "T025 split of src/ui/discover/sections.tsx into one file per section (review D7, tasks.md T025): the same element with the same name and destination, now in its own file",
+   "now": {
+    "file": "apps/mobile/src/ui/discover/DiscoverMosaic.tsx",
+    "name": "c.label",
+    "destination": "c.onPress"
+   },
+   "via": [
+    "apps/mobile/src/ui/discover/DiscoverMosaic.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/discover/sections.tsx",
+   "name": "Play ${props.title}",
+   "destination": "props.onPress",
+   "reason": "T025 split of src/ui/discover/sections.tsx into one file per section (review D7, tasks.md T025): the same element with the same name and destination, now in its own file — T030 (lane W2-A, design-pulse2 home--fold-a): redrawn as a deck; now Deck.tsx \"Play ${props.title}\"",
+   "now": {
+    "file": "apps/mobile/src/ui/discover/Deck.tsx",
+    "name": "Play ${props.title}",
+    "destination": "props.onPress"
+   },
+   "via": [
+    "apps/mobile/src/ui/discover/Deck.tsx"
+   ],
+   "passesFile": "apps/mobile/src/ui/discover/ChartTiles.tsx"
+  },
+  {
+   "file": "apps/mobile/src/ui/discover/sections.tsx",
+   "name": "Past picks",
+   "destination": "props.onPast",
+   "reason": "T025 split of src/ui/discover/sections.tsx into one file per section (review D7, tasks.md T025): the same element with the same name and destination, now in its own file — T030 (lane W2-A, design-pulse2 home--fold-a): redrawn as a deck; now DiscoverMosaic.tsx \"Past picks\"",
+   "now": {
+    "file": "apps/mobile/src/ui/discover/DiscoverMosaic.tsx",
+    "name": "Past picks",
+    "destination": "actions.onPast"
+   },
+   "via": [
+    "apps/mobile/src/ui/discover/DiscoverMosaic.tsx"
+   ],
+   "passesFile": "apps/mobile/src/ui/discover/DiscoverPage.tsx"
+  },
+  {
+   "file": "apps/mobile/src/ui/discover/sections.tsx",
+   "name": "${p.episode.title}, ${p.episode.showTitle}",
+   "destination": "props.onOpen",
+   "reason": "T025 split of src/ui/discover/sections.tsx into one file per section (review D7, tasks.md T025): the same element with the same name and destination, now in its own file — T030 (lane W2-A, design-pulse2 home--fold-a): redrawn as a deck; now PicksSection.tsx \"${e.title}, ${e.showTitle}\"",
+   "now": {
+    "file": "apps/mobile/src/ui/discover/PicksSection.tsx",
+    "name": "${e.title}, ${e.showTitle}",
+    "destination": "props.onOpen"
+   },
+   "via": [
+    "apps/mobile/src/ui/discover/PicksSection.tsx"
+   ],
+   "passesFile": "apps/mobile/src/ui/discover/DiscoverPage.tsx"
+  },
+  {
+   "file": "apps/mobile/src/ui/discover/sections.tsx",
+   "name": "Open ${p.episode.title}",
+   "destination": "props.onOpen",
+   "reason": "T025 split of src/ui/discover/sections.tsx into one file per section (review D7, tasks.md T025): the same element with the same name and destination, now in its own file — T030 (lane W2-A, design-pulse2 home--fold-a): redrawn as a deck; now PicksSection.tsx \"Open ${e.title}\"",
+   "now": {
+    "file": "apps/mobile/src/ui/discover/PicksSection.tsx",
+    "name": "Open ${e.title}",
+    "destination": "props.onOpen"
+   },
+   "via": [
+    "apps/mobile/src/ui/discover/PicksSection.tsx"
+   ],
+   "passesFile": "apps/mobile/src/ui/discover/DiscoverPage.tsx"
+  },
+  {
+   "file": "apps/mobile/src/ui/discover/sections.tsx",
+   "name": "Today's picks, with every note",
+   "destination": "props.onDaily",
+   "reason": "T025 split of src/ui/discover/sections.tsx into one file per section (review D7, tasks.md T025): the same element with the same name and destination, now in its own file",
+   "now": {
+    "file": "apps/mobile/src/ui/discover/PicksSection.tsx",
+    "name": "Today's picks, with every note",
+    "destination": "props.onDaily"
+   },
+   "via": [
+    "apps/mobile/src/ui/discover/PicksSection.tsx"
+   ],
+   "passesFile": "apps/mobile/src/ui/discover/DiscoverPage.tsx"
+  },
+  {
+   "file": "apps/mobile/src/ui/discover/sections.tsx",
+   "name": "Full chart",
+   "destination": "props.onFull",
+   "reason": "T025 split of src/ui/discover/sections.tsx into one file per section (review D7, tasks.md T025): the same element with the same name and destination, now in its own file",
+   "now": {
+    "file": "apps/mobile/src/ui/discover/ChartSection.tsx",
+    "name": "Full chart",
+    "destination": "props.onFull"
+   },
+   "via": [
+    "apps/mobile/src/ui/discover/ChartSection.tsx"
+   ],
+   "passesFile": "apps/mobile/src/ui/discover/DiscoverPage.tsx"
+  },
+  {
+   "file": "apps/mobile/src/ui/discover/sections.tsx",
+   "name": "${t.label} chart",
+   "destination": "dynamic",
+   "reason": "T025 split of src/ui/discover/sections.tsx into one file per section (review D7, tasks.md T025): the same element with the same name and destination, now in its own file — T030 (lane W2-A, design-pulse2 home--fold-a): redrawn as a deck; now ChartSection.tsx \"${props.tab.label} chart\"",
+   "now": {
+    "file": "apps/mobile/src/ui/discover/ChartSection.tsx",
+    "name": "${props.tab.label} chart",
+    "destination": "props.onName"
+   },
+   "via": [
+    "apps/mobile/src/ui/discover/ChartSection.tsx"
+   ],
+   "passesFile": "apps/mobile/src/ui/discover/DiscoverPage.tsx"
+  },
+  {
+   "file": "apps/mobile/src/ui/discover/sections.tsx",
+   "name": "Previous page",
+   "destination": "setPage",
+   "reason": "T025 split of src/ui/discover/sections.tsx into one file per section (review D7, tasks.md T025): the same element with the same name and destination, now in its own file — T030 (lane W2-A, design-pulse2 home--fold-a): redrawn as a deck; now ChartSection.tsx \"last ? 'Previous page' : 'Next page'\"",
+   "now": {
+    "file": "apps/mobile/src/ui/discover/ChartSection.tsx",
+    "name": "last ? 'Previous page' : 'Next page'",
+    "destination": "go"
+   },
+   "via": [
+    "apps/mobile/src/ui/discover/ChartSection.tsx"
+   ],
+   "passesFile": "apps/mobile/src/ui/discover/DiscoverPage.tsx"
+  },
+  {
+   "file": "apps/mobile/src/ui/discover/sections.tsx",
+   "name": "Next page",
+   "destination": "setPage",
+   "reason": "T025 split of src/ui/discover/sections.tsx into one file per section (review D7, tasks.md T025): the same element with the same name and destination, now in its own file — T030 (lane W2-A, design-pulse2 home--fold-a): redrawn as a deck; now ChartSection.tsx \"last ? 'Previous page' : 'Next page'\"",
+   "now": {
+    "file": "apps/mobile/src/ui/discover/ChartSection.tsx",
+    "name": "last ? 'Previous page' : 'Next page'",
+    "destination": "go"
+   },
+   "via": [
+    "apps/mobile/src/ui/discover/ChartSection.tsx"
+   ],
+   "passesFile": "apps/mobile/src/ui/discover/DiscoverPage.tsx"
+  },
+  {
+   "file": "apps/mobile/src/ui/discover/sections.tsx",
+   "name": "g.name",
+   "destination": "props.onGenre",
+   "reason": "T025 split of src/ui/discover/sections.tsx into one file per section (review D7, tasks.md T025): the same element with the same name and destination, now in its own file",
+   "now": {
+    "file": "apps/mobile/src/ui/discover/CategorySections.tsx",
+    "name": "g.name",
+    "destination": "props.onGenre"
+   },
+   "via": [
+    "apps/mobile/src/ui/discover/CategorySections.tsx"
+   ],
+   "passesFile": "apps/mobile/src/ui/discover/DiscoverPage.tsx"
+  },
+  {
+   "file": "apps/mobile/src/ui/discover/sections.tsx",
+   "name": "Hide ${g.name}",
+   "destination": "dynamic",
+   "reason": "T025 split of src/ui/discover/sections.tsx into one file per section (review D7, tasks.md T025): the same element with the same name and destination, now in its own file",
+   "now": {
+    "file": "apps/mobile/src/ui/discover/CategorySections.tsx",
+    "name": "Hide ${g.name}",
+    "destination": "dynamic"
+   },
+   "via": [
+    "apps/mobile/src/ui/discover/CategorySections.tsx"
+   ],
+   "passesFile": "apps/mobile/src/ui/discover/DiscoverPage.tsx"
+  },
+  {
+   "file": "apps/mobile/src/ui/discover/sections.tsx",
+   "name": "s.line ? `${s.title}. ${s.line}` : s.title",
+   "destination": "props.onShow",
+   "reason": "T025 split of src/ui/discover/sections.tsx into one file per section (review D7, tasks.md T025): the same element with the same name and destination, now in its own file",
+   "now": {
+    "file": "apps/mobile/src/ui/discover/ShowSections.tsx",
+    "name": "s.line ? `${s.title}. ${s.line}` : s.title",
+    "destination": "props.onShow"
+   },
+   "via": [
+    "apps/mobile/src/ui/discover/ShowSections.tsx"
+   ],
+   "passesFile": "apps/mobile/src/ui/discover/DiscoverPage.tsx"
+  },
+  {
+   "file": "apps/mobile/src/ui/discover/sections.tsx",
+   "name": "${s.title}, ${s.author}. Premium pick",
+   "destination": "props.onShow",
+   "reason": "T025 split of src/ui/discover/sections.tsx into one file per section (review D7, tasks.md T025): the same element with the same name and destination, now in its own file",
+   "now": {
+    "file": "apps/mobile/src/ui/discover/ShowSections.tsx",
+    "name": "${s.title}, ${s.author}. Premium pick",
+    "destination": "props.onShow"
+   },
+   "via": [
+    "apps/mobile/src/ui/discover/ShowSections.tsx"
+   ],
+   "passesFile": "apps/mobile/src/ui/discover/DiscoverPage.tsx"
+  },
+  {
+   "file": "apps/mobile/src/ui/discover/sections.tsx",
+   "name": "Explore more categories",
+   "destination": "props.onPress",
+   "reason": "T025 split of src/ui/discover/sections.tsx into one file per section (review D7, tasks.md T025): the same element with the same name and destination, now in its own file",
+   "now": {
+    "file": "apps/mobile/src/ui/discover/CategorySections.tsx",
+    "name": "Explore more categories",
+    "destination": "props.onPress"
+   },
+   "via": [
+    "apps/mobile/src/ui/discover/CategorySections.tsx"
+   ],
+   "passesFile": "apps/mobile/src/ui/discover/DiscoverPage.tsx"
+  },
+  {
+   "file": "apps/mobile/src/ui/discover/sections.tsx",
+   "name": "Show ${g.name} again",
+   "destination": "dynamic",
+   "reason": "T025 split of src/ui/discover/sections.tsx into one file per section (review D7, tasks.md T025): the same element with the same name and destination, now in its own file",
+   "now": {
+    "file": "apps/mobile/src/ui/discover/CategorySections.tsx",
+    "name": "Show ${g.name} again",
+    "destination": "dynamic"
+   },
+   "via": [
+    "apps/mobile/src/ui/discover/CategorySections.tsx"
+   ],
+   "passesFile": "apps/mobile/src/ui/discover/DiscoverPage.tsx"
+  },
+  {
+   "file": "apps/mobile/src/ui/discover/sections.tsx",
+   "name": "Video: ${i.episode.title}, ${i.episode.showTitle}",
+   "destination": "props.onOpen",
+   "reason": "T025 split of src/ui/discover/sections.tsx into one file per section (review D7, tasks.md T025): the same element with the same name and destination, now in its own file",
+   "now": {
+    "file": "apps/mobile/src/ui/discover/ShowSections.tsx",
+    "name": "Video: ${i.episode.title}, ${i.episode.showTitle}",
+    "destination": "props.onOpen"
+   },
+   "via": [
+    "apps/mobile/src/ui/discover/ShowSections.tsx"
+   ],
+   "passesFile": "apps/mobile/src/ui/discover/DiscoverPage.tsx"
+  },
+  {
+   "file": "apps/mobile/app/player.tsx",
+   "name": "Clip the last 30 seconds",
+   "destination": "clip",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): index.html player--screen action map \"Comments, n · React · Clip · Playlist · Share: Action tray\" and listen.html \"Clip the last 30 seconds: Tray scissors; More → Clip\" — the scissors left the top bar for the action tray (PlayerTray.tsx, same name, same clip handler) and the More sheet tile",
+   "now": {
+    "file": "apps/mobile/src/ui/player/PlayerTray.tsx",
+    "name": "Clip the last 30 seconds",
+    "destination": "clip"
+   },
+   "via": [
+    "apps/mobile/src/ui/player/PlayerTray.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/player.tsx",
+   "name": "Share this episode",
+   "destination": "setSharing",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): index.html player--screen action map \"… Clip · Playlist · Share: Action tray\" — the share button left the top bar for the action tray (PlayerTray.tsx, same name; its onShare opens the same share chooser) and the More sheet tile",
+   "now": {
+    "file": "apps/mobile/src/ui/player/PlayerTray.tsx",
+    "name": "Share this episode",
+    "destination": "props.onShare"
+   },
+   "via": [
+    "apps/mobile/src/ui/player/PlayerTray.tsx"
+   ],
+   "handlerHas": "s.open('share')"
+  },
+  {
+   "file": "apps/mobile/src/ui/discover/sections.tsx",
+   "name": "p.episode.title",
+   "destination": "props.onQueue",
+   "reason": "T025 split of src/ui/discover/sections.tsx into one file per section (review D7, tasks.md T025): the same element (AddButton, \"Add to the queue\"), same destination, now in PicksSection.tsx — T030 (lane W2-A, design-pulse2 home--fold-a): redrawn as a deck; now PicksSection.tsx \"e.title\"",
+   "now": {
+    "file": "apps/mobile/src/ui/discover/PicksSection.tsx",
+    "name": "e.title",
+    "destination": "props.onQueue"
+   },
+   "via": [
+    "apps/mobile/src/ui/discover/PicksSection.tsx"
+   ],
+   "passesFile": "apps/mobile/src/ui/discover/DiscoverPage.tsx"
+  },
+  {
+   "file": "apps/mobile/src/ui/discover/sections.tsx",
+   "name": "p.episode.title",
+   "destination": "props.onPlay",
+   "reason": "T025 split of src/ui/discover/sections.tsx into one file per section (review D7, tasks.md T025): the same element (PickPlay), same destination, now in PicksSection.tsx — T030 (lane W2-A, design-pulse2 home--fold-a): redrawn as a deck; now PicksSection.tsx \"e.title\"",
+   "now": {
+    "file": "apps/mobile/src/ui/discover/PicksSection.tsx",
+    "name": "e.title",
+    "destination": "props.onPlay"
+   },
+   "via": [
+    "apps/mobile/src/ui/discover/PicksSection.tsx"
+   ],
+   "passesFile": "apps/mobile/src/ui/discover/DiscoverPage.tsx"
+  },
+  {
+   "file": "apps/mobile/src/ui/player/MiniPlayer.tsx",
+   "name": "",
+   "destination": "/player",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): index.html §Bars: the now bar is the kit NowBar; the `<Link href=\"/player\" asChild>` wrapper of the old bar is now NowBar.tsx's one open button (name \"Now playing: … Open the player.\", onOpen goes to /player through MiniPlayer)",
+   "now": {
+    "file": "apps/mobile/src/ui/kit/NowBar.tsx",
+    "name": "Now playing: ${props.title}. Open the player.",
+    "destination": "props.onOpen"
+   },
+   "via": [
+    "apps/mobile/src/ui/kit/NowBar.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/player/MiniPlayer.tsx",
+   "name": "Now playing: ${episode?.title ?? 'an episode'}. Open the player.",
+   "destination": "dynamic",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): index.html §Bars: the now bar is the kit NowBar (T022); the old bar's pressable under its Link is NowBar.tsx's open button (same name pattern, opens /player through MiniPlayer's onOpen)",
+   "now": {
+    "file": "apps/mobile/src/ui/kit/NowBar.tsx",
+    "name": "Now playing: ${props.title}. Open the player.",
+    "destination": "props.onOpen"
+   },
+   "via": [
+    "apps/mobile/src/ui/kit/NowBar.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/(tabs)/me.tsx",
+   "name": "{listener.displayName}",
+   "destination": "dynamic",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): me--screen action map \"Name, open your profile · My profile: Title bar name and subtitle\" — your name and \"My profile ›\" moved from the page body into the bottom title bar (same destination: your profile)",
+   "now": {
+    "file": "apps/mobile/app/(tabs)/me.tsx",
+    "name": "${listener.displayName}, open your profile",
+    "destination": "openProfile"
+   }
+  },
+  {
+   "file": "apps/mobile/app/(tabs)/me.tsx",
+   "name": "${listener.displayName}, open your profile",
+   "destination": "dynamic",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): me--screen action map \"Name, open your profile · My profile: Title bar name and subtitle\" — your name and \"My profile ›\" moved from the page body into the bottom title bar (same destination: your profile)",
+   "now": {
+    "file": "apps/mobile/app/(tabs)/me.tsx",
+    "name": "${listener.displayName}, open your profile",
+    "destination": "openProfile"
+   }
+  },
+  {
+   "file": "apps/mobile/app/(tabs)/me.tsx",
+   "name": "My profile ›",
+   "destination": "/profile/${listener.listenerId}",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): me--screen action map \"Name, open your profile · My profile: Title bar name and subtitle\" — your name and \"My profile ›\" moved from the page body into the bottom title bar (same destination: your profile)",
+   "now": {
+    "file": "apps/mobile/app/(tabs)/me.tsx",
+    "name": "My profile ›",
+    "destination": "openProfile"
+   }
+  },
+  {
+   "file": "apps/mobile/app/(tabs)/me.tsx",
+   "name": "My profile",
+   "destination": "dynamic",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): me--screen action map \"Name, open your profile · My profile: Title bar name and subtitle\" — your name and \"My profile ›\" moved from the page body into the bottom title bar (same destination: your profile)",
+   "now": {
+    "file": "apps/mobile/app/(tabs)/me.tsx",
+    "name": "My profile ›",
+    "destination": "openProfile"
+   }
+  },
+  {
+   "file": "apps/mobile/app/(tabs)/me.tsx",
+   "name": "Sign in ›",
+   "destination": "/auth/sign-in",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): me--signed-out action map \"Sign in: Title bar\" — \"Sign in ›\" is the title bar's title in place of the name (same destination: /auth/sign-in)",
+   "now": {
+    "file": "apps/mobile/app/(tabs)/me.tsx",
+    "name": "Sign in",
+    "destination": "/auth/sign-in"
+   }
+  },
+  {
+   "file": "apps/mobile/app/(tabs)/me.tsx",
+   "name": "Sign in",
+   "destination": "dynamic",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): me--signed-out action map \"Sign in: Title bar\" — \"Sign in ›\" is the title bar's title in place of the name (same destination: /auth/sign-in)",
+   "now": {
+    "file": "apps/mobile/app/(tabs)/me.tsx",
+    "name": "Sign in",
+    "destination": "/auth/sign-in"
+   }
+  },
+  {
+   "file": "apps/mobile/app/(tabs)/chat.tsx",
+   "name": "New chat ›",
+   "destination": "/chat/new",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): chat--screen action map \"New chat: + in the title bar\" — the \"New chat ›\" link under the heading became the + (44) in the bottom title bar (same name, same destination: /chat/new)",
+   "now": {
+    "file": "apps/mobile/app/(tabs)/chat.tsx",
+    "name": "New chat",
+    "destination": "/chat/new"
+   }
+  },
+  {
+   "file": "apps/mobile/app/(tabs)/chat.tsx",
+   "name": "New chat",
+   "destination": "dynamic",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): chat--screen action map \"New chat: + in the title bar\" — the \"New chat ›\" link under the heading became the + (44) in the bottom title bar (same name, same destination: /chat/new)",
+   "now": {
+    "file": "apps/mobile/app/(tabs)/chat.tsx",
+    "name": "New chat",
+    "destination": "/chat/new"
+   }
+  },
+  {
+   "file": "apps/mobile/app/comments/[episodeId].tsx",
+   "name": "{initialsFor({ displayName: listener.displayName })}",
+   "destination": "compose",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): comments--screen action map \"Your initials / Write a comment at m:ss: Composer (timestamp chip shows the moment)\" — the listener's initials disc left the composer; the bar keeps \"Write a comment at m:ss\" (same compose action) and the moment chip | M31 replay fix: the composer bar (ComposerBar onOpen) opens the same compose; the initials disc is gone.",
+   "now": {
+    "file": "apps/mobile/app/comments/[episodeId].tsx",
+    "name": "Say something about this episode…",
+    "destination": "compose"
+   },
+   "passesProp": "onOpen",
+   "passesTag": "ComposerBar",
+   "passesFile": "apps/mobile/app/comments/[episodeId].tsx",
+   "handlerHas": "compose"
+  },
+  {
+   "file": "apps/mobile/app/comments/[episodeId].tsx",
+   "name": "{item.label}",
+   "destination": "dynamic",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): comments--comment-menu action map — the menu rows moved into the shared comment menu sheet (CommentMenu.tsx); same items, same handlers",
+   "now": {
+    "file": "apps/mobile/src/ui/comments/CommentMenu.tsx",
+    "name": "item.label",
+    "destination": "dynamic"
+   },
+   "via": [
+    "apps/mobile/src/ui/comments/CommentMenu.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/comments/[episodeId].tsx",
+   "name": "Cancel",
+   "destination": "setMenu",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): comments--comment-menu action map \"Cancel: Pill\" — the Cancel pill is part of the shared comment menu sheet (CommentMenu.tsx)",
+   "now": {
+    "file": "apps/mobile/src/ui/comments/CommentMenu.tsx",
+    "name": "Cancel",
+    "destination": "props.onClose"
+   },
+   "via": [
+    "apps/mobile/src/ui/comments/CommentMenu.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/comments/thread/[commentId].tsx",
+   "name": "item.label",
+   "destination": "dynamic",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): comment-thread--comment-menu action map — the menu rows moved into the shared comment menu sheet (CommentMenu.tsx)",
+   "now": {
+    "file": "apps/mobile/src/ui/comments/CommentMenu.tsx",
+    "name": "item.label",
+    "destination": "dynamic"
+   },
+   "via": [
+    "apps/mobile/src/ui/comments/CommentMenu.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/comments/thread/[commentId].tsx",
+   "name": "Cancel",
+   "destination": "setMenu",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): comment-thread--comment-menu action map \"Cancel: Pill\" — shared comment menu sheet (CommentMenu.tsx)",
+   "now": {
+    "file": "apps/mobile/src/ui/comments/CommentMenu.tsx",
+    "name": "Cancel",
+    "destination": "props.onClose"
+   },
+   "via": [
+    "apps/mobile/src/ui/comments/CommentMenu.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/comments/thread/[commentId].tsx",
+   "name": "listener ? `Reply to ${name}` : 'Sign in to reply'",
+   "destination": "reply",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): comment-thread--screen action map \"Reply to Rui / Sign in to reply: Composer\" — the reply composer is the shared ComposerBar (signed in) and SignInBar (signed out) in CommentsBottom.tsx; same compose / sign-in action",
+   "now": {
+    "file": "apps/mobile/src/ui/comments/CommentsBottom.tsx",
+    "name": "props.accessibilityLabel",
+    "destination": "props.onOpen"
+   },
+   "via": [
+    "apps/mobile/src/ui/comments/CommentsBottom.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/comments/CommentRow.tsx",
+   "name": "",
+   "destination": "props.onMenu",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): comments--screen action map \"More for this comment (⋯ / long-press): ⋯ on each card\" — the words' tap/long-press is the same menu, now with a spoken name (name, age, \"Play from m:ss\", words)",
+   "now": {
+    "file": "apps/mobile/src/ui/comments/CommentRow.tsx",
+    "name": "spoken",
+    "destination": "props.onMenu"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/comments/CommentRow.tsx",
+   "name": "Play from ${mmss(c.offsetMs)}",
+   "destination": "props.onSeek",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): comments--screen action map \"Play from m:ss: Timestamp on the spine\" — the moment chip left the card for the spine node (SpineNode → TimestampChip, \"Play from m:ss\")",
+   "now": {
+    "file": "apps/mobile/src/ui/kit/TimestampChip.tsx",
+    "name": "props.accessibilityLabel ?? `Play from ${props.text}`",
+    "destination": "props.onPress"
+   },
+   "via": [
+    "apps/mobile/src/ui/kit/TimestampChip.tsx"
+   ],
+   "passesFile": "apps/mobile/src/ui/comments/Spine.tsx",
+   "handlerHas": "props.onSeek"
+  },
+  {
+   "file": "apps/mobile/src/ui/comments/CommentRow.tsx",
+   "name": "{name}",
+   "destination": "dynamic",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): comments--screen \"Open the profile\" is unchanged — the author's name is still the profile link; the inventory reads its name from the label now",
+   "now": {
+    "file": "apps/mobile/src/ui/comments/CommentRow.tsx",
+    "name": "name",
+    "destination": "dynamic"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/comments/CommentRow.tsx",
+   "name": "{open ? 'Less' : 'More'}",
+   "destination": "setOpen",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): comments--screen action map \"More / Less on long text: \"More\" under the text (unchanged)\" — same toggle, now with an explicit name",
+   "now": {
+    "file": "apps/mobile/src/ui/comments/CommentRow.tsx",
+    "name": "open ? 'Less' : 'More'",
+    "destination": "setOpen"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/comments/EpisodeCard.tsx",
+   "name": "{episode.title}",
+   "destination": "/player",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): comments--screen action map \"Episode title → player · Play/Pause: Episode strip at the top\" — the strip's title still opens the player (or the episode page); the inventory reads its name from the label",
+   "now": {
+    "file": "apps/mobile/src/ui/comments/EpisodeCard.tsx",
+    "name": "",
+    "destination": "/player"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "name": "${s.title}, ${s.author}",
+   "destination": "openShow",
+   "reason": "review D7 / T030 (lane W2-A): SearchPage.tsx (555 lines) split into SearchZone, SearchHome, SearchResults, ShowResults, EpisodeResults, MomentResults, PeopleResults — the same action, same name, drawn per design-pulse2 discover.html search entries",
+   "now": {
+    "file": "apps/mobile/src/ui/search/ShowResults.tsx",
+    "name": "${s.title}, ${s.author}",
+    "destination": "props.actions.onOpen"
+   },
+   "via": [
+    "apps/mobile/src/ui/search/ShowResults.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "name": "on ? `Unsubscribe from ${s.title}` : `Subscribe to ${s.title}`",
+   "destination": "toggleSubscription",
+   "reason": "review D7 / T030 (lane W2-A): SearchPage.tsx (555 lines) split into SearchZone, SearchHome, SearchResults, ShowResults, EpisodeResults, MomentResults, PeopleResults — the same action, same name, drawn per design-pulse2 discover.html search entries",
+   "now": {
+    "file": "apps/mobile/src/ui/search/ShowResults.tsx",
+    "name": "on ? `Unsubscribe from ${props.show.title}` : `Subscribe to ${props.show.title}`",
+    "destination": "props.actions.onToggle"
+   },
+   "via": [
+    "apps/mobile/src/ui/search/ShowResults.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "name": "More ${label.toLowerCase()}",
+   "destination": "setTab",
+   "reason": "review D7 / T030 (lane W2-A): SearchPage.tsx (555 lines) split into SearchZone, SearchHome, SearchResults, ShowResults, EpisodeResults, MomentResults, PeopleResults — the same action, same name, drawn per design-pulse2 discover.html search entries (\"More shows ›\" / \"More episodes ›\" / \"More moments ›\" / \"More people ›\" under each deck: search--results-episodes action map)",
+   "now": {
+    "file": "apps/mobile/src/ui/search/ShowResults.tsx",
+    "name": "More shows",
+    "destination": "props.onMore"
+   },
+   "via": [
+    "apps/mobile/src/ui/search/ShowResults.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "name": "${e.title}, ${e.showTitle}${mine ? '. In your library' : ''}",
+   "destination": "/episode/[id]",
+   "reason": "review D7 / T030 (lane W2-A): SearchPage.tsx (555 lines) split into SearchZone, SearchHome, SearchResults, ShowResults, EpisodeResults, MomentResults, PeopleResults — the same action, same name, drawn per design-pulse2 discover.html search entries",
+   "now": {
+    "file": "apps/mobile/src/ui/search/EpisodeResults.tsx",
+    "name": "${e.title}, ${e.showTitle}${mine ? '. In your library' : ''}",
+    "destination": "props.actions.onOpen"
+   },
+   "via": [
+    "apps/mobile/src/ui/search/EpisodeResults.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "name": "More for ${e.title}",
+   "destination": "onMore",
+   "reason": "review D7 / T030 (lane W2-A): SearchPage.tsx (555 lines) split into SearchZone, SearchHome, SearchResults, ShowResults, EpisodeResults, MomentResults, PeopleResults — the same action, same name, drawn per design-pulse2 discover.html search entries",
+   "now": {
+    "file": "apps/mobile/src/ui/search/EpisodeResults.tsx",
+    "name": "More for ${e.title}",
+    "destination": "props.actions.onMore"
+   },
+   "via": [
+    "apps/mobile/src/ui/search/EpisodeResults.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "name": "e.title",
+   "destination": "dynamic",
+   "reason": "review D7 / T030 (lane W2-A): SearchPage.tsx (555 lines) split into SearchZone, SearchHome, SearchResults, ShowResults, EpisodeResults, MomentResults, PeopleResults — the same action, same name, drawn per design-pulse2 discover.html search entries",
+   "now": {
+    "file": "apps/mobile/src/ui/search/EpisodeResults.tsx",
+    "name": "e.title",
+    "destination": "props.actions.onPlay"
+   },
+   "via": [
+    "apps/mobile/src/ui/search/EpisodeResults.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "name": "Cancel",
+   "destination": "leave",
+   "reason": "review D7 / T030 (lane W2-A): SearchPage.tsx (555 lines) split into SearchZone, SearchHome, SearchResults, ShowResults, EpisodeResults, MomentResults, PeopleResults — the same action, same name, drawn per design-pulse2 discover.html search entries",
+   "now": {
+    "file": "apps/mobile/src/ui/search/SearchZone.tsx",
+    "name": "Cancel",
+    "destination": "props.onCancel"
+   },
+   "via": [
+    "apps/mobile/src/ui/search/SearchZone.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "name": "Search podcasts",
+   "destination": "type",
+   "reason": "review D7 / T030 (lane W2-A): SearchPage.tsx (555 lines) split into SearchZone, SearchHome, SearchResults, ShowResults, EpisodeResults, MomentResults, PeopleResults — the same action, same name, drawn per design-pulse2 discover.html search entries",
+   "now": {
+    "file": "apps/mobile/src/ui/search/SearchZone.tsx",
+    "name": "Search podcasts",
+    "destination": "props.onChangeText"
+   },
+   "via": [
+    "apps/mobile/src/ui/search/SearchZone.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "name": "Scan a QR code",
+   "destination": "/scan",
+   "reason": "review D7 / T030 (lane W2-A): SearchPage.tsx (555 lines) split into SearchZone, SearchHome, SearchResults, ShowResults, EpisodeResults, MomentResults, PeopleResults — the same action, same name, drawn per design-pulse2 discover.html search entries",
+   "now": {
+    "file": "apps/mobile/src/ui/search/SearchZone.tsx",
+    "name": "Scan a QR code",
+    "destination": "props.onScan"
+   },
+   "via": [
+    "apps/mobile/src/ui/search/SearchZone.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "name": "t.label",
+   "destination": "setTab",
+   "reason": "review D7 / T030 (lane W2-A): SearchPage.tsx (555 lines) split into SearchZone, SearchHome, SearchResults, ShowResults, EpisodeResults, MomentResults, PeopleResults — the same action, same name, drawn per design-pulse2 discover.html search entries (tabs now All · Shows · Episodes · Moments NEW · People — search--results-moments)",
+   "now": {
+    "file": "apps/mobile/src/ui/search/SearchZone.tsx",
+    "name": "t.label",
+    "destination": "props.onTab"
+   },
+   "via": [
+    "apps/mobile/src/ui/search/SearchZone.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "name": "Published: ${x.label}",
+   "destination": "setSince",
+   "reason": "review D7 / T030 (lane W2-A): SearchPage.tsx (555 lines) split into SearchZone, SearchHome, SearchResults, ShowResults, EpisodeResults, MomentResults, PeopleResults — the same action, same name, drawn per design-pulse2 discover.html search entries",
+   "now": {
+    "file": "apps/mobile/src/ui/search/SearchZone.tsx",
+    "name": "Published: ${x.label}",
+    "destination": "props.onSince"
+   },
+   "via": [
+    "apps/mobile/src/ui/search/SearchZone.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "name": "Search for ${t}",
+   "destination": "run",
+   "reason": "review D7 / T030 (lane W2-A): SearchPage.tsx (555 lines) split into SearchZone, SearchHome, SearchResults, ShowResults, EpisodeResults, MomentResults, PeopleResults — the same action, same name, drawn per design-pulse2 discover.html search entries",
+   "now": {
+    "file": "apps/mobile/src/ui/search/SearchHome.tsx",
+    "name": "Search for ${t}",
+    "destination": "props.onSearch"
+   },
+   "via": [
+    "apps/mobile/src/ui/search/SearchHome.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "name": "Browse categories",
+   "destination": "/category/[id]",
+   "reason": "review D7 / T030 (lane W2-A): SearchPage.tsx (555 lines) split into SearchZone, SearchHome, SearchResults, ShowResults, EpisodeResults, MomentResults, PeopleResults — the same action, same name, drawn per design-pulse2 discover.html search entries",
+   "now": {
+    "file": "apps/mobile/src/ui/search/SearchHome.tsx",
+    "name": "Browse categories",
+    "destination": "props.onBrowse"
+   },
+   "via": [
+    "apps/mobile/src/ui/search/SearchHome.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "name": "g.name",
+   "destination": "/category/[id]",
+   "reason": "review D7 / T030 (lane W2-A): SearchPage.tsx (555 lines) split into SearchZone, SearchHome, SearchResults, ShowResults, EpisodeResults, MomentResults, PeopleResults — the same action, same name, drawn per design-pulse2 discover.html search entries",
+   "now": {
+    "file": "apps/mobile/src/ui/search/SearchHome.tsx",
+    "name": "g.name",
+    "destination": "props.onGenre"
+   },
+   "via": [
+    "apps/mobile/src/ui/search/SearchHome.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "name": "Clear recent searches",
+   "destination": "dynamic",
+   "reason": "review D7 / T030 (lane W2-A): SearchPage.tsx (555 lines) split into SearchZone, SearchHome, SearchResults, ShowResults, EpisodeResults, MomentResults, PeopleResults — the same action, same name, drawn per design-pulse2 discover.html search entries",
+   "now": {
+    "file": "apps/mobile/src/ui/search/SearchHome.tsx",
+    "name": "Clear recent searches",
+    "destination": "props.onClear"
+   },
+   "via": [
+    "apps/mobile/src/ui/search/SearchHome.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "name": "Search for ${h}",
+   "destination": "run",
+   "reason": "review D7 / T030 (lane W2-A): SearchPage.tsx (555 lines) split into SearchZone, SearchHome, SearchResults, ShowResults, EpisodeResults, MomentResults, PeopleResults — the same action, same name, drawn per design-pulse2 discover.html search entries",
+   "now": {
+    "file": "apps/mobile/src/ui/search/SearchHome.tsx",
+    "name": "Search for ${h}",
+    "destination": "props.onSearch"
+   },
+   "via": [
+    "apps/mobile/src/ui/search/SearchHome.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "name": "Open feed {trimmed}",
+   "destination": "openShow",
+   "reason": "review D7 / T030 (lane W2-A): SearchPage.tsx (555 lines) split into SearchZone, SearchHome, SearchResults, ShowResults, EpisodeResults, MomentResults, PeopleResults — the same action, same name, drawn per design-pulse2 discover.html search entries (the row now has an accessible name of its own)",
+   "now": {
+    "file": "apps/mobile/src/ui/search/SearchHome.tsx",
+    "name": "Open feed ${props.term}",
+    "destination": "props.onShow"
+   },
+   "via": [
+    "apps/mobile/src/ui/search/SearchHome.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "name": "Search for ${trimmed}",
+   "destination": "run",
+   "reason": "review D7 / T030 (lane W2-A): SearchPage.tsx (555 lines) split into SearchZone, SearchHome, SearchResults, ShowResults, EpisodeResults, MomentResults, PeopleResults — the same action, same name, drawn per design-pulse2 discover.html search entries",
+   "now": {
+    "file": "apps/mobile/src/ui/search/SearchHome.tsx",
+    "name": "Search for ${props.term}",
+    "destination": "props.onSearch"
+   },
+   "via": [
+    "apps/mobile/src/ui/search/SearchHome.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "name": "Open ${s.title}",
+   "destination": "openShow",
+   "reason": "review D7 / T030 (lane W2-A): SearchPage.tsx (555 lines) split into SearchZone, SearchHome, SearchResults, ShowResults, EpisodeResults, MomentResults, PeopleResults — the same action, same name, drawn per design-pulse2 discover.html search entries",
+   "now": {
+    "file": "apps/mobile/src/ui/search/SearchHome.tsx",
+    "name": "Open ${s.title}",
+    "destination": "props.onShow"
+   },
+   "via": [
+    "apps/mobile/src/ui/search/SearchHome.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "name": "Search for ${name}",
+   "destination": "run",
+   "reason": "review D7 / T030 (lane W2-A): SearchPage.tsx (555 lines) split into SearchZone, SearchHome, SearchResults, ShowResults, EpisodeResults, MomentResults, PeopleResults — the same action, same name, drawn per design-pulse2 discover.html search entries",
+   "now": {
+    "file": "apps/mobile/src/ui/search/SearchHome.tsx",
+    "name": "Search for ${name}",
+    "destination": "props.onSearch"
+   },
+   "via": [
+    "apps/mobile/src/ui/search/SearchHome.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/search/SearchPage.tsx",
+   "name": "p.displayName ?? 'Listener'",
+   "destination": "/profile/[id]",
+   "reason": "review D7 / T030 (lane W2-A): SearchPage.tsx (555 lines) split into SearchZone, SearchHome, SearchResults, ShowResults, EpisodeResults, MomentResults, PeopleResults — the same action, same name, drawn per design-pulse2 discover.html search entries",
+   "now": {
+    "file": "apps/mobile/src/ui/search/PeopleResults.tsx",
+    "name": "p.displayName ?? 'Listener'",
+    "destination": "props.onOpen"
+   },
+   "via": [
+    "apps/mobile/src/ui/search/PeopleResults.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/discover/TopicLists.tsx",
+   "name": "{l.title}",
+   "destination": "/topic/[id]",
+   "reason": "T030 (lane W2-A, design-pulse2 home--fold-b \"Lists\"): the card is a Pressable with its own accessible name (title, subtitle, episode count — a template the inventory cannot read), not a Text child; it still opens /topic/[id]",
+   "now": {
+    "file": "apps/mobile/src/ui/discover/TopicLists.tsx",
+    "name": "",
+    "destination": "/topic/[id]"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/clips/ShareChooser.tsx",
+   "name": "Close",
+   "destination": "props.onClose",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html player--share-sheet action map \"Close: Close circle / scrim\" — the sheet is the kit ActionSheet, whose title row draws the 36 close circle (same name, same close)",
+   "now": {
+    "file": "apps/mobile/src/ui/kit/ActionSheet.tsx",
+    "name": "Close",
+    "destination": "props.onClose"
+   },
+   "via": [
+    "apps/mobile/src/ui/kit/ActionSheet.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/clips/ShareChooser.tsx",
+   "name": "t.label",
+   "destination": "close",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): player--share-sheet action map \"Share as image · Share as video · Copy link (r.label): Format tiles\" — the format options are PulseTile tiles (same label, closes the panel then runs)",
+   "now": {
+    "file": "apps/mobile/src/ui/kit/PulseTile.tsx",
+    "name": "props.accessibilityLabel ?? props.label",
+    "destination": "props.onPress"
+   },
+   "via": [
+    "apps/mobile/src/ui/kit/PulseTile.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/kit/confirm.tsx",
+   "name": "action",
+   "destination": "dynamic",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html/social.html dialog drawings (player--queue-clear-dialog, downloads--delete-dialog, history--clear-dialog, playlist--delete-dialog, block dialogs): the question is the kit Dialog; the action button keeps its word as the label and runs the same handler after closing",
+   "now": {
+    "file": "apps/mobile/src/ui/kit/confirm.tsx",
+    "name": "action",
+    "destination": "dynamic"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/kit/confirm.tsx",
+   "name": "cancel",
+   "destination": "props.onClose",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): same dialog drawings: Cancel is the quiet button on the left of the kit Dialog, label unchanged, closes",
+   "now": {
+    "file": "apps/mobile/src/ui/kit/confirm.tsx",
+    "name": "cancel",
+    "destination": "props.onClose"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/social/MoreSheet.tsx",
+   "name": "r.label",
+   "destination": "dynamic",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): social.html/listen.html lists--more-sheet \"Report this list: Panel row\" — each row is a PanelRow (same label, closes the sheet then runs)",
+   "now": {
+    "file": "apps/mobile/src/ui/social/MoreSheet.tsx",
+    "name": "r.label",
+    "destination": "dynamic"
+   },
+   "via": [
+    "apps/mobile/src/ui/kit/PanelRow.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/episode/[id].tsx",
+   "name": "Show: ${show?.title ?? ''}",
+   "destination": "/show/[feedUrl]",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html episode--screen action map, \"Show: title (link) ×2: Show line above the title\" — the slim bar is gone (the show link, Subscribe and Play are always in the thumb zone); the link keeps its name and opens the show",
+   "now": {
+    "file": "apps/mobile/src/ui/episode/EpisodeTitleBlock.tsx",
+    "name": "Show: ${props.showTitle}",
+    "destination": "props.onShow"
+   },
+   "via": [
+    "apps/mobile/src/ui/episode/EpisodeTitleBlock.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/episode/[id].tsx",
+   "name": "Show: ${show.title}",
+   "destination": "/show/[feedUrl]",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html episode--screen action map, \"Show: title (link) ×2: Show line above the title\" — the eyebrow link under the cover is now the show line above the title (same name, opens the show)",
+   "now": {
+    "file": "apps/mobile/src/ui/episode/EpisodeTitleBlock.tsx",
+    "name": "Show: ${props.showTitle}",
+    "destination": "props.onShow"
+   },
+   "via": [
+    "apps/mobile/src/ui/episode/EpisodeTitleBlock.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/episode/[id].tsx",
+   "name": "subscribed ? 'Unsubscribe from this show' : 'Subscribe to this show'",
+   "destination": "toggleSubscription",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html episode--screen action map, \"Subscribe / Unsubscribe ×2: Ring pill beside Play\" — both the page pill and the slim bar's pill are the one ring pill (same names, same toggle)",
+   "now": {
+    "file": "apps/mobile/src/ui/episode/EpisodeTitleBlock.tsx",
+    "name": "props.subscribed ? 'Unsubscribe from this show' : 'Subscribe to this show'",
+    "destination": "props.onSubscribe"
+   },
+   "via": [
+    "apps/mobile/src/ui/episode/EpisodeTitleBlock.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/episode/[id].tsx",
+   "name": "playing ? 'Pause' : 'Play this episode'",
+   "destination": "playOrPause",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html episode--screen action map, \"Play this episode / Pause ×2: Light pill\" — the page pill and the slim bar's round Play are the one light pill (same names, same handler)",
+   "now": {
+    "file": "apps/mobile/src/ui/episode/EpisodeTitleBlock.tsx",
+    "name": "props.playing ? 'Pause' : 'Play this episode'",
+    "destination": "props.onPlay"
+   },
+   "via": [
+    "apps/mobile/src/ui/episode/EpisodeTitleBlock.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/episode/[id].tsx",
+   "name": "Share this episode",
+   "destination": "setSharing",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html episode--screen action map, \"Share this episode: Tray share\" — the share circle left the top bar for the tray",
+   "now": {
+    "file": "apps/mobile/src/ui/episode/EpisodeTray.tsx",
+    "name": "Share this episode",
+    "destination": "props.onShare"
+   },
+   "via": [
+    "apps/mobile/src/ui/episode/EpisodeTray.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/episode/[id].tsx",
+   "name": "More: play next, download, save a moment",
+   "destination": "setMore",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html episode--screen action map, \"More: play next, download, save a moment: Tray ···\" — the ··· left the top bar for the tray",
+   "now": {
+    "file": "apps/mobile/src/ui/episode/EpisodeTray.tsx",
+    "name": "More: play next, download, save a moment",
+    "destination": "props.onMore"
+   },
+   "via": [
+    "apps/mobile/src/ui/episode/EpisodeTray.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/episode/[id].tsx",
+   "name": "Add to queue",
+   "destination": "addToQueue",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html episode--screen action map, \"Add to queue: Tray first item\" — the card of three became the tray",
+   "now": {
+    "file": "apps/mobile/src/ui/episode/EpisodeTray.tsx",
+    "name": "Add to queue",
+    "destination": "props.onQueue"
+   },
+   "via": [
+    "apps/mobile/src/ui/episode/EpisodeTray.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/episode/[id].tsx",
+   "name": "Comments, ${commentCount}",
+   "destination": "openComments",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html episode--screen action map, \"Comments, n: Tray\" — the card cell became the tray item (same name)",
+   "now": {
+    "file": "apps/mobile/src/ui/episode/EpisodeTray.tsx",
+    "name": "Comments, ${props.commentCount}",
+    "destination": "props.onComments"
+   },
+   "via": [
+    "apps/mobile/src/ui/episode/EpisodeTray.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/episode/[id].tsx",
+   "name": "like?.liked ? 'Unlike this episode' : 'Like this episode'",
+   "destination": "toggleLike",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html episode--screen action map, \"Like / Unlike this episode: Tray heart\" — the card cell became the tray heart (same names, same toggle; first like opens the Like sheet)",
+   "now": {
+    "file": "apps/mobile/src/ui/episode/EpisodeTray.tsx",
+    "name": "props.liked ? 'Unlike this episode' : 'Like this episode'",
+    "destination": "props.onLike"
+   },
+   "via": [
+    "apps/mobile/src/ui/episode/EpisodeTray.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/episode/[id].tsx",
+   "name": "fav ? 'Remove from favourites' : 'Add to favourites'",
+   "destination": "setFav",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html episode--screen action map, \"Add / Remove from favourites: More sheet tile\" — the card cell became the sheet's Add to favourites tile (light when on, \"Remove from favourites\"; same toggle). src/ui/episode/EpisodeMoreSheet.tsx PulseTile, drawn by `label`, not an accessibilityLabel, so the inventory does not list it; rendered in __tests__/m31-w3a-episode.test.tsx",
+   "now": {
+    "file": "apps/mobile/src/ui/episode/EpisodeSheetBody.tsx",
+    "name": "fav ? 'Remove from favourites' : 'Add to favourites'",
+    "destination": "dynamic"
+   },
+   "via": [
+    "apps/mobile/src/ui/episode/EpisodeSheetBody.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/episode/[id].tsx",
+   "name": "Report episode",
+   "destination": "dynamic",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html episode--screen action map, \"More sheet … Report episode: Tile\" — the sheet is src/ui/episode/EpisodeMoreSheet.tsx (PulseTile \"Report episode\", closes the sheet then opens the report sheet; rendered in __tests__/m31-w3a-episode.test.tsx)",
+   "now": {
+    "file": "apps/mobile/src/ui/episode/EpisodeMoreSheet.tsx",
+    "name": "Report episode",
+    "destination": "dynamic"
+   },
+   "via": [
+    "apps/mobile/src/ui/episode/EpisodeMoreSheet.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/episode/[id].tsx",
+   "name": "Cancel",
+   "destination": "setMore",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html episode--screen action map, \"Cancel (more sheet) ×2: More sheet Cancel\" — src/ui/episode/EpisodeSheetBody.tsx, the quiet Cancel pill (closes the sheet)",
+   "now": {
+    "file": "apps/mobile/src/ui/episode/EpisodeSheetBody.tsx",
+    "name": "Cancel",
+    "destination": "props.onClose"
+   },
+   "via": [
+    "apps/mobile/src/ui/episode/EpisodeSheetBody.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/episode/DownloadButton.tsx",
+   "name": "Download this episode",
+   "destination": "request",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html episode--more-sheet action map, \"Download this episode · on mobile data · Use mobile data instead / Cancel the download · Remove the download: Download tile and its states\" — the one Download tile (kit PulseTile) takes its name, detail and handler from the state table `downloadTile()` / `useDownload()` in this file (the labels are data, not literals, so the inventory cannot list them); rendered per state in __tests__/m31-w3a-episode.test.tsx | M31 replay fix: target is the one Download tile (name from downloadTile() state table).",
+   "now": {
+    "file": "apps/mobile/src/ui/episode/DownloadButton.tsx",
+    "name": "tile.accessibilityLabel",
+    "destination": "run"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/episode/DownloadButton.tsx",
+   "name": "Download now on mobile data",
+   "destination": "request",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html episode--more-sheet action map, \"Download this episode · on mobile data · Use mobile data instead / Cancel the download · Remove the download: Download tile and its states\" — the one Download tile (kit PulseTile) takes its name, detail and handler from the state table `downloadTile()` / `useDownload()` in this file (the labels are data, not literals, so the inventory cannot list them); rendered per state in __tests__/m31-w3a-episode.test.tsx | M31 replay fix: target is the one Download tile (name from downloadTile() state table).",
+   "now": {
+    "file": "apps/mobile/src/ui/episode/DownloadButton.tsx",
+    "name": "tile.accessibilityLabel",
+    "destination": "run"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/episode/DownloadButton.tsx",
+   "name": "Use mobile data instead",
+   "destination": "setAskMobile",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html episode--more-sheet action map, \"Download this episode · on mobile data · Use mobile data instead / Cancel the download · Remove the download: Download tile and its states\" — the one Download tile (kit PulseTile) takes its name, detail and handler from the state table `downloadTile()` / `useDownload()` in this file (the labels are data, not literals, so the inventory cannot list them); rendered per state in __tests__/m31-w3a-episode.test.tsx",
+   "now": {
+    "file": "apps/mobile/src/ui/episode/DownloadButton.tsx",
+    "name": "mobile.label",
+    "destination": "mobile.run"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/episode/DownloadButton.tsx",
+   "name": "Remove the download",
+   "destination": "downloads.remove",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html episode--more-sheet action map, \"Download this episode · on mobile data · Use mobile data instead / Cancel the download · Remove the download: Download tile and its states\" — the one Download tile (kit PulseTile) takes its name, detail and handler from the state table `downloadTile()` / `useDownload()` in this file (the labels are data, not literals, so the inventory cannot list them); rendered per state in __tests__/m31-w3a-episode.test.tsx | M31 replay fix: target is the one Download tile (name from downloadTile() state table).",
+   "now": {
+    "file": "apps/mobile/src/ui/episode/DownloadButton.tsx",
+    "name": "tile.accessibilityLabel",
+    "destination": "run"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/episode/DownloadButton.tsx",
+   "name": "Cancel the download",
+   "destination": "downloads.cancel",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html episode--more-sheet action map, \"Download this episode · on mobile data · Use mobile data instead / Cancel the download · Remove the download: Download tile and its states\" — the one Download tile (kit PulseTile) takes its name, detail and handler from the state table `downloadTile()` / `useDownload()` in this file (the labels are data, not literals, so the inventory cannot list them); rendered per state in __tests__/m31-w3a-episode.test.tsx | M31 replay fix: target is the one Download tile (name from downloadTile() state table).",
+   "now": {
+    "file": "apps/mobile/src/ui/episode/DownloadButton.tsx",
+    "name": "tile.accessibilityLabel",
+    "destination": "run"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/episode/DownloadButton.tsx",
+   "name": "Downloaded",
+   "destination": "dynamic",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html episode--more-sheet notes — \"Download tile shows its state in mono: … Downloaded\"; the old plain-fact tile (not an action) is the Remove tile's detail line \"Downloaded · 82 MB\" now | M31 replay fix: target is the one Download tile (name from downloadTile() state table).",
+   "now": {
+    "file": "apps/mobile/src/ui/episode/DownloadButton.tsx",
+    "name": "tile.accessibilityLabel",
+    "destination": "run"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/episode/DownloadButton.tsx",
+   "name": "label",
+   "destination": "dynamic",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html episode--more-sheet notes — the state-dependent tile label (\"Download\", \"Waiting…\", \"Downloading · 42 %\", \"Paused at 42 %\") is the tile's mono detail line, from `downloadTile()` in this file | M31 replay fix: target is the one Download tile (name from downloadTile() state table).",
+   "now": {
+    "file": "apps/mobile/src/ui/episode/DownloadButton.tsx",
+    "name": "tile.accessibilityLabel",
+    "destination": "run"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/episode/WatchTile.tsx",
+   "name": "Download to Watch",
+   "destination": "send",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html episode--more-sheet action map \"Download to Watch: Tile\" — same tile, same name and `send` handler, now the kit PulseTile (the inventory's tag list has SheetTile, not PulseTile); rendered in __tests__/m31-w3a-episode.test.tsx (\"with a paired Watch the eighth tile is Download to Watch\")",
+   "now": {
+    "file": "apps/mobile/src/ui/episode/WatchTile.tsx",
+    "name": "Download to Watch",
+    "destination": "send"
+   }
+  },
+  {
+   "file": "apps/mobile/app/history.tsx",
+   "name": "selecting ? 'Done' : 'Select'",
+   "destination": "setSelecting",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html history--screen / history--select-mode action map \"Select / Done: Check circle\" — Select is the check circle (44) in the bottom title bar (same name, same handler: select mode on); in select mode the circle is replaced by the \"Done\" pill beside Clear all and Delete (n) (app/history.tsx `Done` -> leaveSelect)",
+   "now": {
+    "file": "apps/mobile/app/history.tsx",
+    "name": "Select",
+    "destination": "setSelecting"
+   }
+  },
+  {
+   "file": "apps/mobile/app/history.tsx",
+   "name": "{item.episode.title}",
+   "destination": "dynamic",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html history--screen action map \"{title}. where (play): Tap a card\" — a tap on a history card now plays from where you stopped (a tablet still opens the right pane); the episode page opens from the episode sheet's Details tile (long-press or the card's \"More for …\" accessibility action; EpisodeRowSheet `t.label` -> `t.onPress`, label \"Details\")",
+   "now": {
+    "file": "apps/mobile/src/ui/kit/EpisodeRowSheet.tsx",
+    "name": "t.label",
+    "destination": "t.onPress"
+   },
+   "via": [
+    "apps/mobile/src/ui/kit/EpisodeRowSheet.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/history.tsx",
+   "name": "${item.episode.title}. ${where}",
+   "destination": "setMenuFor",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html history--screen action map \"{title}. where (play): Tap a card\" / \"{title}. where (long-press): Long-press a card -> episode sheet\" — the card is one button named \"{title}. {where}\": a tap plays (openRow), a long-press opens the episode sheet (setMenuFor)",
+   "now": {
+    "file": "apps/mobile/app/history.tsx",
+    "name": "${item.episode.title}. ${where}",
+    "destination": "openRow"
+   }
+  },
+  {
+   "file": "apps/mobile/app/history.tsx",
+   "name": "More for ${item.episode.title}",
+   "destination": "setMenuFor",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html history--screen action map \"More for {title}: Long-press a card -> episode sheet\" — the ⋯ button left the card; the same sheet opens on a long-press and as the card's `longpress` accessibility action named \"More for {title}\"",
+   "now": {
+    "file": "apps/mobile/app/history.tsx",
+    "name": "${item.episode.title}. ${where}",
+    "destination": "openRow"
+   }
+  },
+  {
+   "file": "apps/mobile/app/likes.tsx",
+   "name": "Retry",
+   "destination": "dynamic",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html likes--error \"Retry: Light pill\" — Retry is the light pill of the shared empty block (src/ui/me/lists.tsx PageEmpty), same name, same reload",
+   "now": {
+    "file": "apps/mobile/src/ui/me/lists.tsx",
+    "name": "props.action.label",
+    "destination": "props.action.onPress"
+   },
+   "via": [
+    "apps/mobile/src/ui/me/lists.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/playlists/index.tsx",
+   "name": "Retry",
+   "destination": "dynamic",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html playlists--load-error \"Retry: Light pill\" — Retry is the light pill of the shared empty block (PageEmpty), same name, same reload",
+   "now": {
+    "file": "apps/mobile/src/ui/me/lists.tsx",
+    "name": "props.action.label",
+    "destination": "props.action.onPress"
+   },
+   "via": [
+    "apps/mobile/src/ui/me/lists.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/playlists/[id].tsx",
+   "name": "Retry",
+   "destination": "dynamic",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html playlist--screen action map \"Retry: Error state\" — Retry is the light pill of the shared empty block (PageEmpty), same name, same reload",
+   "now": {
+    "file": "apps/mobile/src/ui/me/lists.tsx",
+    "name": "props.action.label",
+    "destination": "props.action.onPress"
+   },
+   "via": [
+    "apps/mobile/src/ui/me/lists.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/playlists/[id].tsx",
+   "name": "Rename playlist",
+   "destination": "setRenaming",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html playlist--screen action map \"Rename playlist: Pencil circle\" — Rename is the pencil circle (44) in the bottom title bar (same name, same handler); tapping the title does it too",
+   "now": {
+    "file": "apps/mobile/app/playlists/[id].tsx",
+    "name": "Rename playlist",
+    "destination": "setRenaming"
+   }
+  },
+  {
+   "file": "apps/mobile/app/playlists/[id].tsx",
+   "name": "Delete playlist",
+   "destination": "remove",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html playlist--screen action map \"Delete playlist: Bin circle\" — Delete is the bin circle (44) in the bottom title bar (same name, same confirm)",
+   "now": {
+    "file": "apps/mobile/app/playlists/[id].tsx",
+    "name": "Delete playlist",
+    "destination": "remove"
+   }
+  },
+  {
+   "file": "apps/mobile/app/downloads.tsx",
+   "name": "selecting ? 'Done' : 'Select'",
+   "destination": "setSelecting",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html downloads--screen action map \"Select / Done: Check circle in the title bar\" and downloads--select-mode \"Done: Quiet pill\" — Select became the check circle in the bottom title bar (same name, opens Select mode); Done is the select bar's pill",
+   "now": {
+    "file": "apps/mobile/app/downloads.tsx",
+    "name": "Select",
+    "destination": "setSelecting"
+   }
+  },
+  {
+   "file": "apps/mobile/app/downloads.tsx",
+   "name": "settings ? 'Hide download settings' : 'Download settings'",
+   "destination": "setSettings",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html downloads--screen action map \"Download settings / Hide: Gear circle\" and downloads--settings \"Hide download settings: × circle\" — the gear and the × are circles in the bottom title bar (same names, same toggle)",
+   "now": {
+    "file": "apps/mobile/app/downloads.tsx",
+    "name": "Download settings",
+    "destination": "setSettings"
+   }
+  },
+  {
+   "file": "apps/mobile/app/downloads.tsx",
+   "name": "{b",
+   "destination": "downloads.setBudgetBytes",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html downloads--settings action map \"Budget chips: Chips\" — the six budget chips are named by their size now (\"200 MB\" … \"8 GB\", the words they always showed); same call",
+   "now": {
+    "file": "apps/mobile/app/downloads.tsx",
+    "name": "budgetLabel(b)",
+    "destination": "downloads.setBudgetBytes"
+   }
+  },
+  {
+   "file": "apps/mobile/app/downloads.tsx",
+   "name": "Select ${title(item.episodeId)}",
+   "destination": "setChosen",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html downloads--select-mode action map \"Select {title}: Tick circles\" — the tick is on the tile (src/ui/downloads/DownloadTile.tsx), same name, same toggle",
+   "now": {
+    "file": "apps/mobile/src/ui/downloads/DownloadTile.tsx",
+    "name": "Select ${props.title}",
+    "destination": "props.select.onToggle"
+   },
+   "via": [
+    "apps/mobile/src/ui/downloads/DownloadTile.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/downloads.tsx",
+   "name": "Retry",
+   "destination": "downloads.request",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html downloads--screen action map \"Retry: Pill on a failed tile\" — the pill lives on the tile (src/ui/downloads/DownloadTile.tsx), same name, same call (downloads.request)",
+   "now": {
+    "file": "apps/mobile/src/ui/downloads/DownloadTile.tsx",
+    "name": "Retry",
+    "destination": "props.onRetry"
+   },
+   "via": [
+    "apps/mobile/src/ui/downloads/DownloadTile.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/downloads.tsx",
+   "name": "Remove",
+   "destination": "downloads.remove",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html downloads--screen action map \"Remove (downloaded / failed): Long-press a tile → Remove\" — the row button became the long-press menu's Remove (same name, same call, downloads.remove)",
+   "now": {
+    "file": "apps/mobile/app/downloads.tsx",
+    "name": "Remove",
+    "destination": "dynamic"
+   }
+  },
+  {
+   "file": "apps/mobile/app/downloads.tsx",
+   "name": "Cancel",
+   "destination": "downloads.cancel",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html downloads--screen action map \"Cancel (in progress): Long-press an in-progress tile → Cancel\" — the row button became the long-press menu's Cancel (same name, same call, downloads.cancel)",
+   "now": {
+    "file": "apps/mobile/app/downloads.tsx",
+    "name": "Cancel",
+    "destination": "dynamic"
+   }
+  },
+  {
+   "file": "apps/mobile/app/voice/new.tsx",
+   "name": "Cancel",
+   "destination": "back",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): social.html voice-new--screen action map \"Cancel: × circle in the bottom zone\" — Cancel is the × circle of the bottom title bar (same name, stops a recording first, then router.back())",
+   "now": {
+    "file": "apps/mobile/app/voice/new.tsx",
+    "name": "Cancel",
+    "destination": "cancel"
+   }
+  },
+  {
+   "file": "apps/mobile/app/voice/new.tsx",
+   "name": "recording ? 'Stop recording' : phase.kind === 'done' ? 'Record again' : 'Start recording'",
+   "destination": "void",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): social.html voice-new--screen action map \"Start recording / Stop recording / Record again: The button inside the ring\" — the button is the ring's (src/ui/voice/VoiceRing.tsx), same three names, same start / stop",
+   "now": {
+    "file": "apps/mobile/src/ui/voice/VoiceRing.tsx",
+    "name": "props.label",
+    "destination": "dynamic"
+   },
+   "via": [
+    "apps/mobile/src/ui/voice/VoiceRing.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/voice/new.tsx",
+   "name": "Post",
+   "destination": "post",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): social.html voice-new--screen action map \"Post: Hot pill (after a take)\" — Post is the hot pill at the end of the bottom title bar's row (same name, same post())",
+   "now": {
+    "file": "apps/mobile/app/voice/new.tsx",
+    "name": "Post",
+    "destination": "dynamic"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/clips/ClipComposer.tsx",
+   "name": "Start 5 seconds earlier",
+   "destination": "setS",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html clip-new--screen action map \"Start 5 seconds earlier / later · Start here\" and \"End 5 seconds earlier / later · End here: nudge rows\" — the same six names in the two rows of 36 chips (one Chip part, so the name is its prop now); same nudge / here calls",
+   "now": {
+    "file": "apps/mobile/src/ui/clips/ClipComposer.tsx",
+    "name": "props.spoken",
+    "destination": "props.onPress"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/clips/ClipComposer.tsx",
+   "name": "Start 5 seconds later",
+   "destination": "setS",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html clip-new--screen action map \"Start 5 seconds earlier / later · Start here\" and \"End 5 seconds earlier / later · End here: nudge rows\" — the same six names in the two rows of 36 chips (one Chip part, so the name is its prop now); same nudge / here calls",
+   "now": {
+    "file": "apps/mobile/src/ui/clips/ClipComposer.tsx",
+    "name": "props.spoken",
+    "destination": "props.onPress"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/clips/ClipComposer.tsx",
+   "name": "Start here",
+   "destination": "setS",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html clip-new--screen action map \"Start 5 seconds earlier / later · Start here\" and \"End 5 seconds earlier / later · End here: nudge rows\" — the same six names in the two rows of 36 chips (one Chip part, so the name is its prop now); same nudge / here calls",
+   "now": {
+    "file": "apps/mobile/src/ui/clips/ClipComposer.tsx",
+    "name": "props.spoken",
+    "destination": "props.onPress"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/clips/ClipComposer.tsx",
+   "name": "End 5 seconds earlier",
+   "destination": "setS",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html clip-new--screen action map \"Start 5 seconds earlier / later · Start here\" and \"End 5 seconds earlier / later · End here: nudge rows\" — the same six names in the two rows of 36 chips (one Chip part, so the name is its prop now); same nudge / here calls",
+   "now": {
+    "file": "apps/mobile/src/ui/clips/ClipComposer.tsx",
+    "name": "props.spoken",
+    "destination": "props.onPress"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/clips/ClipComposer.tsx",
+   "name": "End 5 seconds later",
+   "destination": "setS",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html clip-new--screen action map \"Start 5 seconds earlier / later · Start here\" and \"End 5 seconds earlier / later · End here: nudge rows\" — the same six names in the two rows of 36 chips (one Chip part, so the name is its prop now); same nudge / here calls",
+   "now": {
+    "file": "apps/mobile/src/ui/clips/ClipComposer.tsx",
+    "name": "props.spoken",
+    "destination": "props.onPress"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/clips/ClipComposer.tsx",
+   "name": "End here",
+   "destination": "setS",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html clip-new--screen action map \"Start 5 seconds earlier / later · Start here\" and \"End 5 seconds earlier / later · End here: nudge rows\" — the same six names in the two rows of 36 chips (one Chip part, so the name is its prop now); same nudge / here calls",
+   "now": {
+    "file": "apps/mobile/src/ui/clips/ClipComposer.tsx",
+    "name": "props.spoken",
+    "destination": "props.onPress"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/queue/QueueList.tsx",
+   "name": "Play now",
+   "destination": "dynamic",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html queue--screen action map \"Move to top · Move up · Move down · Remove from the queue: Card ··· → item sheet\" and queue--item-sheet — the page's card ··· opens the one item sheet (ItemMenu in src/ui/player/QueueDeck.tsx, the same sheet the player's deck opens); same names, same moves",
+   "now": {
+    "file": "apps/mobile/src/ui/player/QueueDeck.tsx",
+    "name": "Play now",
+    "destination": "dynamic"
+   },
+   "via": [
+    "apps/mobile/src/ui/player/QueueDeck.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/queue/QueueList.tsx",
+   "name": "Move to top",
+   "destination": "dynamic",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html queue--screen action map \"Move to top · Move up · Move down · Remove from the queue: Card ··· → item sheet\" and queue--item-sheet — the page's card ··· opens the one item sheet (ItemMenu in src/ui/player/QueueDeck.tsx, the same sheet the player's deck opens); same names, same moves",
+   "now": {
+    "file": "apps/mobile/src/ui/player/QueueDeck.tsx",
+    "name": "Move to top",
+    "destination": "dynamic"
+   },
+   "via": [
+    "apps/mobile/src/ui/player/QueueDeck.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/queue/QueueList.tsx",
+   "name": "Move up",
+   "destination": "props.onChange",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html queue--screen action map \"Move to top · Move up · Move down · Remove from the queue: Card ··· → item sheet\" and queue--item-sheet — the page's card ··· opens the one item sheet (ItemMenu in src/ui/player/QueueDeck.tsx, the same sheet the player's deck opens); same names, same moves",
+   "now": {
+    "file": "apps/mobile/src/ui/player/QueueDeck.tsx",
+    "name": "Move up",
+    "destination": "props.onChange"
+   },
+   "via": [
+    "apps/mobile/src/ui/player/QueueDeck.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/queue/QueueList.tsx",
+   "name": "Move down",
+   "destination": "props.onChange",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html queue--screen action map \"Move to top · Move up · Move down · Remove from the queue: Card ··· → item sheet\" and queue--item-sheet — the page's card ··· opens the one item sheet (ItemMenu in src/ui/player/QueueDeck.tsx, the same sheet the player's deck opens); same names, same moves",
+   "now": {
+    "file": "apps/mobile/src/ui/player/QueueDeck.tsx",
+    "name": "Move down",
+    "destination": "props.onChange"
+   },
+   "via": [
+    "apps/mobile/src/ui/player/QueueDeck.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/queue/QueueList.tsx",
+   "name": "Remove from the queue",
+   "destination": "dynamic",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html queue--screen action map \"Move to top · Move up · Move down · Remove from the queue: Card ··· → item sheet\" and queue--item-sheet — the page's card ··· opens the one item sheet (ItemMenu in src/ui/player/QueueDeck.tsx, the same sheet the player's deck opens); same names, same moves",
+   "now": {
+    "file": "apps/mobile/src/ui/player/QueueDeck.tsx",
+    "name": "Remove from the queue",
+    "destination": "dynamic"
+   },
+   "via": [
+    "apps/mobile/src/ui/player/QueueDeck.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/queue/QueueList.tsx",
+   "name": "More for ${title}",
+   "destination": "props.onToggle",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html queue--screen action map \"More for {title}: Card ···\" — the ··· circle on each card (same name; it opens the item sheet)",
+   "now": {
+    "file": "apps/mobile/src/ui/queue/QueueList.tsx",
+    "name": "More for ${d.title}",
+    "destination": "props.onMore"
+   },
+   "passesFile": "apps/mobile/src/ui/queue/QueueList.tsx"
+  },
+  {
+   "file": "apps/mobile/src/ui/queue/QueueList.tsx",
+   "name": "Select ${title}",
+   "destination": "tick",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html queue--screen action map \"Select {title}: Edit circle → ticks on cards\" — the tick at the foot of each card in Edit mode (same name, same toggle)",
+   "now": {
+    "file": "apps/mobile/src/ui/queue/QueueList.tsx",
+    "name": "Select ${d.title}",
+    "destination": "dynamic"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/queue/QueueList.tsx",
+   "name": "Play ${title}",
+   "destination": "props.onPlay",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html queue--screen action map \"Play {title} (×3): Play circle on each card / tap a strip tile\" and \"Play now: Light pill on the card\" — the first card's Play now pill, the Play circle of the others and the strip tiles; same name, same play",
+   "now": {
+    "file": "apps/mobile/src/ui/queue/QueueList.tsx",
+    "name": "Play ${d.title}",
+    "destination": "props.onPlay"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/show/ShowSales.tsx",
+   "name": "{play.price(id) ? `${TIP_LABELS[id]} · ${play.price(id)}` : TIP_LABELS[id]}",
+   "destination": "play.buy",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html show--paid-episodes-and-tips action map \"Tip labels · price: Tip chips\" — the same chip (accessibilityLabel `${TIP_LABELS[id]}, price`, same `play.buy`), its words now a Type step inside it, which the inventory does not read as the old bare child; rendered in __tests__/m31-w3a-sales.test.tsx",
+   "now": {
+    "file": "apps/mobile/src/ui/show/ShowSales.tsx",
+    "name": "",
+    "destination": "play.buy"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/kit/EpisodeRowSheet.tsx",
+   "name": "Show: ${showTitle}",
+   "destination": "/show/[feedUrl]",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html episode--card-sheet — the head's show line (hot-text, a link) is drawn by the shared EpisodeSheetBody now (same name \"Show: …\", same push to the show)",
+   "now": {
+    "file": "apps/mobile/src/ui/episode/EpisodeSheetBody.tsx",
+    "name": "Show: ${props.showTitle}",
+    "destination": "props.onShow"
+   },
+   "via": [
+    "apps/mobile/src/ui/episode/EpisodeSheetBody.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/kit/EpisodeRowSheet.tsx",
+   "name": "Cancel",
+   "destination": "props.onClose",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html episode--card-sheet action map \"Cancel · Close: Quiet pill · scrim\" — the quiet Cancel pill is drawn by the shared EpisodeSheetBody (same name, closes the sheet)",
+   "now": {
+    "file": "apps/mobile/src/ui/episode/EpisodeSheetBody.tsx",
+    "name": "Cancel",
+    "destination": "props.onClose"
+   },
+   "via": [
+    "apps/mobile/src/ui/episode/EpisodeSheetBody.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/clips/ClipCard.tsx",
+   "name": "{mmss(clip.startMs)} – {mmss(clip.endMs)}{props.pending ? ' · sending…' : ''}{clip.deleted ? ' · removed' : ''}",
+   "destination": "props.onPlay",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): episode--screen \"Clips\" Deck: the whole 200 x 120 card is the play button (label \"Clip 12:02 to 12:32\", same props.onPlay); its words are the solid chip drawn inside it, which the inventory does not read as a child; rendered in __tests__/m31-w4d-social-sheets.test.tsx",
+   "now": {
+    "file": "apps/mobile/src/ui/clips/ClipCard.tsx",
+    "name": "",
+    "destination": "props.onPlay"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/clips/ClipCard.tsx",
+   "name": "Play the clip, ${mmss(clip.startMs)} to ${mmss(clip.endMs)}",
+   "destination": "props.onPlay",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): episode--screen \"Clips\" Deck: the hero look (Clip-B) is gone, the one card plays (props.onPlay)",
+   "now": {
+    "file": "apps/mobile/src/ui/clips/ClipCard.tsx",
+    "name": "",
+    "destination": "props.onPlay"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/clips/ClipCard.tsx",
+   "name": "by {clip.author.displayName}",
+   "destination": "dynamic",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): episode--screen \"Clips\" Deck: \"by Rui\" stays a profile link at the card's foot (words are a Type step now)",
+   "now": {
+    "file": "apps/mobile/src/ui/clips/ClipCard.tsx",
+    "name": "by ${clip.author.displayName ?? ''}",
+    "destination": "dynamic"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/clips/ClipCard.tsx",
+   "name": "by",
+   "destination": "dynamic",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): episode--screen \"Clips\" Deck: the hero look is gone; the one card keeps the \"by name\" profile link",
+   "now": {
+    "file": "apps/mobile/src/ui/clips/ClipCard.tsx",
+    "name": "by ${clip.author.displayName ?? ''}",
+    "destination": "dynamic"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/clips/ClipCard.tsx",
+   "name": "Share this clip",
+   "destination": "props.onShare",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): episode--screen \"Clips\" Deck: the drawn card carries no Share / Delete / Report, so they sit behind a long-press (and the screen reader's custom actions) as Panel rows of the kit sheet, like a Related card's long-press Details sheet (same names \"Share this clip\", same props.onShare); rendered in __tests__/m31-w4d-social-sheets.test.tsx",
+   "now": {
+    "file": "apps/mobile/src/ui/clips/ClipCard.tsx",
+    "name": "Share this clip",
+    "destination": "dynamic"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/clips/ClipCard.tsx",
+   "name": "Delete this clip",
+   "destination": "props.onDelete",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): episode--screen \"Clips\" Deck: the drawn card carries no Share / Delete / Report, so they sit behind a long-press (and the screen reader's custom actions) as Panel rows of the kit sheet, like a Related card's long-press Details sheet (same names \"Delete this clip\", same props.onDelete); rendered in __tests__/m31-w4d-social-sheets.test.tsx",
+   "now": {
+    "file": "apps/mobile/src/ui/clips/ClipCard.tsx",
+    "name": "Delete this clip",
+    "destination": "dynamic"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/clips/ClipCard.tsx",
+   "name": "Report this clip",
+   "destination": "props.onReport",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): episode--screen \"Clips\" Deck: the drawn card carries no Share / Delete / Report, so they sit behind a long-press (and the screen reader's custom actions) as Panel rows of the kit sheet, like a Related card's long-press Details sheet (same names \"Report this clip\", same props.onReport); rendered in __tests__/m31-w4d-social-sheets.test.tsx",
+   "now": {
+    "file": "apps/mobile/src/ui/clips/ClipCard.tsx",
+    "name": "Report this clip",
+    "destination": "dynamic"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/social/BlockButton.tsx",
+   "name": "blocked ? `Unblock ${props.displayName}` : `Block ${props.displayName}`",
+   "destination": "press",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): profile--blocked / settings-blocked--with-blocks: the pill is the kit quiet button (same spoken name \"Block / Unblock <name>\", same handler)",
+   "now": {
+    "file": "apps/mobile/src/ui/social/BlockButton.tsx",
+    "name": "${word} ${props.displayName}",
+    "destination": "press"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/social/FollowButton.tsx",
+   "name": "following ? 'Unfollow' : 'Follow'",
+   "destination": "/auth/sign-in",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): profile--screen bottom zone: the pill is the kit hot / quiet button (same spoken name \"Follow\" / \"Unfollow\"); signed out it still goes to /auth/sign-in from the same handler",
+   "now": {
+    "file": "apps/mobile/src/ui/social/FollowButton.tsx",
+    "name": "following ? 'Unfollow' : 'Follow'",
+    "destination": "press"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/social/VoicePosts.tsx",
+   "name": "Record a voice status",
+   "destination": "/voice/new",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): voice-posts--chooser-sheet action map \"Record a voice status: Row 1\": a Panel row of the kit sheet (same spoken name, same push to /voice/new)",
+   "now": {
+    "file": "apps/mobile/src/ui/social/VoicePosts.tsx",
+    "name": "Record a voice status",
+    "destination": "/voice/new"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/social/VoicePosts.tsx",
+   "name": "Write a text status",
+   "destination": "/status/text",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): voice-posts--chooser-sheet action map \"Write a text status: Row 2\": a Panel row of the kit sheet (same spoken name, same push to /status/text)",
+   "now": {
+    "file": "apps/mobile/src/ui/social/VoicePosts.tsx",
+    "name": "Write a text status",
+    "destination": "/status/text"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/social/StatusComposerItems.tsx",
+   "name": "Remove",
+   "destination": "remove",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): social.html status-text--screen action map \"Remove (item): Remove on each item row\" — the same Remove (same spoken name `Remove …`, same handler), its words now a Type step inside it, which the inventory does not read as the old bare child; rendered in __tests__/m31-w4b-status.test.tsx",
+   "now": {
+    "file": "apps/mobile/src/ui/social/StatusComposerItems.tsx",
+    "name": "",
+    "destination": "remove"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/social/StatusComposerItems.tsx",
+   "name": "{e.title}",
+   "destination": "add",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): social.html status-text--add-episode-sheet action map \"(episode) → add: Deck card\" — the same card (spoken name `Add <title>, <show>`, same `add`), its words now Type steps inside it",
+   "now": {
+    "file": "apps/mobile/src/ui/social/StatusComposerItems.tsx",
+    "name": "",
+    "destination": "add"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/social/StatusComposerItems.tsx",
+   "name": "Search episodes",
+   "destination": "setQ",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): social.html status-text--add-episode-sheet action map \"Search episodes: Field\" — the same field (same spoken name, same state) is the Me lists' SearchField (kit field 48, raise2)",
+   "now": {
+    "file": "apps/mobile/src/ui/me/lists.tsx",
+    "name": "props.placeholder",
+    "destination": "props.onChange"
+   },
+   "via": [
+    "apps/mobile/src/ui/me/lists.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/social/StatusComposerItems.tsx",
+   "name": "Add photo",
+   "destination": "addPhoto",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): social.html status-text--screen action map \"Add photo: Chip → photo access / picker\" — the same chip (same spoken name, same handler) is the kit Chip now, which the inventory reads as a dynamic destination",
+   "now": {
+    "file": "apps/mobile/src/ui/social/StatusComposerItems.tsx",
+    "name": "Add photo",
+    "destination": "dynamic"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/social/StatusReplies.tsx",
+   "name": "{r.emoji}",
+   "destination": "react",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): social.html status--screen action map \"Reactions (6): Reaction chips\" — the same six chips (same spoken name, same `react`), the emoji now a Type step inside it",
+   "now": {
+    "file": "apps/mobile/src/ui/social/StatusReplies.tsx",
+    "name": "",
+    "destination": "react"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/social/StatusReplies.tsx",
+   "name": "{r.mine ? 'You' : r.author.name}",
+   "destination": "play",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): social.html status--screen action map \"Reply (play a voice reply): Reply row (own status)\" — the same row (same spoken name, same `play`), its name now a Type step inside it",
+   "now": {
+    "file": "apps/mobile/src/ui/social/StatusReplies.tsx",
+    "name": "",
+    "destination": "play"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/social/StatusViewer.tsx",
+   "name": "{it.title ?? 'Episode'}",
+   "destination": "/episode/[id]",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): social.html status--screen action map \"Episode (open) · Play (episode): Episode card · its Play\" — the same card link (same spoken name `Episode: …`, same push), its title now a Type step inside it",
+   "now": {
+    "file": "apps/mobile/src/ui/social/StatusViewer.tsx",
+    "name": "",
+    "destination": "/episode/[id]"
+   }
+  },
+  {
+   "file": "apps/mobile/app/friends-listening.tsx",
+   "name": "What is this page?",
+   "destination": "setHelp",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): discover.html friends-listening--screen action map \"What is this page?: Info circle\" — the ⓘ left the header for the title bar's action circle (same name, same setHelp)",
+   "now": {
+    "file": "apps/mobile/app/friends-listening.tsx",
+    "name": "What is this page?",
+    "destination": "setHelp"
+   }
+  },
+  {
+   "file": "apps/mobile/app/friends-listening.tsx",
+   "name": "${item.episode.title}, ${item.episode.showTitle}",
+   "destination": "open",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): discover.html friends-listening--screen action map \"Open episode: Thread card\" — the wide newest card and the grid of squares became one list of thread cards, so two buttons with this name are now one (same name, same open)",
+   "now": {
+    "file": "apps/mobile/app/friends-listening.tsx",
+    "name": "${item.episode.title}, ${item.episode.showTitle}",
+    "destination": "open"
+   }
+  },
+  {
+   "file": "apps/mobile/app/friends-listening.tsx",
+   "name": "item.episode.title",
+   "destination": "play",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): discover.html friends-listening--screen action map \"Play: Play button\" — the grid's corner play became the thread card's light Play (spoken \"Play <title>\", same play)",
+   "now": {
+    "file": "apps/mobile/app/friends-listening.tsx",
+    "name": "Play ${item.episode.title}",
+    "destination": "play"
+   }
+  },
+  {
+   "file": "apps/mobile/app/notifications.tsx",
+   "name": "",
+   "destination": "/auth/sign-in",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): social.html notifications--signed-out action map \"Sign in: Light button\" — the text link became the light Sign in button (same /auth/sign-in), now named \"Sign in\"",
+   "now": {
+    "file": "apps/mobile/app/notifications.tsx",
+    "name": "Sign in",
+    "destination": "/auth/sign-in"
+   }
+  },
+  {
+   "file": "apps/mobile/app/notifications/hosts.tsx",
+   "name": "",
+   "destination": "/auth/sign-in",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): social.html notifications-hosts--signed-out action map \"Sign in: Light button\" — the text link became the light Sign in button (same /auth/sign-in), now named \"Sign in\"",
+   "now": {
+    "file": "apps/mobile/app/notifications/hosts.tsx",
+    "name": "Sign in",
+    "destination": "/auth/sign-in"
+   }
+  },
+  {
+   "file": "apps/mobile/app/notifications/hosts.tsx",
+   "name": "{n.showTitle}",
+   "destination": "/show/[feedUrl]",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): social.html notifications-hosts--screen action map \"Show title (open the show): Card\" — the same card link (same spoken name, same push), its show title now a Text two boxes down in the card",
+   "now": {
+    "file": "apps/mobile/app/notifications/hosts.tsx",
+    "name": "",
+    "destination": "/show/[feedUrl]"
+   }
+  },
+  {
+   "file": "apps/mobile/app/like/[owner]/[episode].tsx",
+   "name": "Retry",
+   "destination": "load",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html like--screen action map \"Retry: Error state pill\" — Retry is the light pill of the shared empty block (src/ui/me/lists.tsx PageEmpty), same name, same reload (load)",
+   "now": {
+    "file": "apps/mobile/src/ui/me/lists.tsx",
+    "name": "props.action.label",
+    "destination": "props.action.onPress"
+   },
+   "via": [
+    "apps/mobile/src/ui/me/lists.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/settings/privacy.tsx",
+   "name": "{String(blocked)}",
+   "destination": "/settings/blocked",
+   "reason": "approved in design-pulse2 (settings.html `settings-privacy--screen` action map: \"Blocked listeners: Row at the foot\"): the Blocked listeners card (a count figure link over a title row) is now one group row at the foot with the count in mono — same name, same destination /settings/blocked",
+   "now": {
+    "file": "apps/mobile/app/settings/privacy.tsx",
+    "name": "Blocked listeners",
+    "destination": "/settings/blocked"
+   }
+  },
+  {
+   "file": "apps/mobile/app/settings/privacy.tsx",
+   "name": "Blocked listeners",
+   "destination": "dynamic",
+   "reason": "approved in design-pulse2 (settings.html `settings-privacy--screen` action map: \"Blocked listeners: Row at the foot\"): the Blocked listeners card (a count figure link over a title row) is now one group row at the foot with the count in mono — same name, same destination /settings/blocked",
+   "now": {
+    "file": "apps/mobile/app/settings/privacy.tsx",
+    "name": "Blocked listeners",
+    "destination": "/settings/blocked"
+   }
+  },
+  {
+   "file": "apps/mobile/app/account.tsx",
+   "name": "label",
+   "destination": "dynamic",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): settings.html `account--screen` action map \"label → dynamic (the InfoRow link): The same four rows\" — the four information pages are rows of one group tile (Third-party sharing list, Personal information we collect, Help and feedback, About SocialNet), each a link with its own name and destination; the shared InfoRow wrapper is gone",
+   "now": {
+    "file": "apps/mobile/app/account.tsx",
+    "name": "About SocialNet",
+    "destination": "/settings/about"
+   }
+  },
+  {
+   "file": "apps/mobile/app/settings/collected.tsx",
+   "name": "{i.title}",
+   "destination": "setOpen",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): settings.html `settings-collected--screen` action map \"An item (title) → setOpen: Group rows\" — the item is a group row (`SetRow label={i.title}`), same press, same setOpen; the name was read from a text child and is now read from the row's label prop",
+   "now": {
+    "file": "apps/mobile/app/settings/collected.tsx",
+    "name": "i.title",
+    "destination": "setOpen"
+   }
+  },
+  {
+   "file": "apps/mobile/app/settings/collected.tsx",
+   "name": "Close",
+   "destination": "setOpen",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): settings.html `settings-collected--detail-sheet` action map \"Close → setOpen: Sheet close circle / swipe down\" — the detail sheet is the kit ActionSheet, whose title row carries the 36 close circle (\"Close\") wired to the same setOpen(undefined)",
+   "now": {
+    "file": "apps/mobile/src/ui/kit/ActionSheet.tsx",
+    "name": "Close",
+    "destination": "props.onClose"
+   },
+   "via": [
+    "apps/mobile/src/ui/kit/ActionSheet.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/me/SignOut.tsx",
+   "name": "Stay signed in",
+   "destination": "setAsking",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): settings.html `account--sign-out-dialog` action map \"Stay signed in: Quiet button\" — the question is the kit Dialog; Stay signed in is its quiet button on the left, same word, same setAsking(false)",
+   "now": {
+    "file": "apps/mobile/src/ui/me/SignOut.tsx",
+    "name": "Stay signed in",
+    "destination": "setAsking"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/me/SignOut.tsx",
+   "name": "Confirm sign out",
+   "destination": "dynamic",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): settings.html `account--sign-out-dialog` action map \"Confirm sign out: Hot button\" — Sign out is the kit Dialog's hot button on the right (its spoken name is \"Sign out\", the dialog's title being \"Sign out?\"), same handler: closes, then signs out",
+   "now": {
+    "file": "apps/mobile/src/ui/kit/Dialog.tsx",
+    "name": "b.label",
+    "destination": "b.onPress"
+   },
+   "via": [
+    "apps/mobile/src/ui/kit/Dialog.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/auth/Consent.tsx",
+   "name": "label",
+   "destination": "props.open",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): settings.html auth-sign-in--consent-sheet action map \"Service Agreement / Privacy Policy rows: Group tile rows (open the document)\" — the two document rows are PanelRows in a void group tile (same names, same document opened; the sheet closes first and the text opens once it has gone, because auth-sign-in--legal-document says Back returns to the sign-in page)",
+   "now": {
+    "file": "apps/mobile/src/ui/kit/PanelRow.tsx",
+    "name": "props.accessibilityLabel ?? props.label",
+    "destination": "props.onPress"
+   },
+   "via": [
+    "apps/mobile/src/ui/kit/PanelRow.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/auth/AuthShell.tsx",
+   "name": "Close",
+   "destination": "close",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): settings.html auth-email--screen action map \"Close (AuthShell): Bottom title bar, ✕ circle\" — the ✕ left the page's top for the title bar's back circle (same name \"Close\", same handler: leave the sign-in page)",
+   "now": {
+    "file": "apps/mobile/src/ui/auth/AuthShell.tsx",
+    "name": "Close",
+    "destination": "close"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/shell/LegalDoc.tsx",
+   "name": "Back",
+   "destination": "props.onClose",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): settings.html terms--full-document action map \"Back: Bottom title bar, left circle\" — the chevron button left the page's top for the title bar's back circle (same name \"Back\", same handler)",
+   "now": {
+    "file": "apps/mobile/src/ui/shell/LegalDoc.tsx",
+    "name": "Back",
+    "destination": "props.onClose"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/shell/Terms.tsx",
+   "name": "props.label",
+   "destination": "props.onPress",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): settings.html terms--first-launch / terms--refused action maps (Agree, Disagree, Agree and continue, Exit app) — the page's private Choice helper is replaced by the kit PulseButton; the four buttons keep their words and handlers (each still listed under its own name)",
+   "now": {
+    "file": "apps/mobile/src/ui/kit/PulseButton.tsx",
+    "name": "props.label",
+    "destination": "dynamic"
+   },
+   "via": [
+    "apps/mobile/src/ui/kit/PulseButton.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/chart.tsx",
+   "name": "${item.episode.title}, ${item.episode.showTitle}",
+   "destination": "open",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): discover.html chart--screen action map \"Open episode: Tile\" — the podium cards and rows became the ranked Mosaic tiles (src/ui/discover/ChartTiles.tsx), same name, same open",
+   "now": {
+    "file": "apps/mobile/src/ui/discover/ChartTiles.tsx",
+    "name": "${item.episode.title}, ${item.episode.showTitle}",
+    "destination": "open"
+   },
+   "via": [
+    "apps/mobile/src/ui/discover/ChartTiles.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/chart.tsx",
+   "name": "item.episode.title",
+   "destination": "play",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): discover.html chart--screen action map \"Play: Disc in the tile\" — Play is the disc in each ranked tile (ChartTiles.tsx), same play",
+   "now": {
+    "file": "apps/mobile/src/ui/discover/ChartTiles.tsx",
+    "name": "item.episode.title",
+    "destination": "play"
+   },
+   "via": [
+    "apps/mobile/src/ui/discover/ChartTiles.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/chart.tsx",
+   "name": "Retry",
+   "destination": "load",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): discover.html chart--error action map \"Retry: Button in the tile\" — Retry is the quiet pill in the shared error tile (Mosaic.tsx RetryTile; its onRetry is the page's load)",
+   "now": {
+    "file": "apps/mobile/src/ui/discover/Mosaic.tsx",
+    "name": "Retry",
+    "destination": "props.onRetry"
+   },
+   "via": [
+    "apps/mobile/src/ui/discover/Mosaic.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/chart.tsx",
+   "name": "How the charts work",
+   "destination": "/chart-rules",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): discover.html chart--screen action map \"How the charts work: Info circle\" — the info glyph left the header for the title bar's action circle (same name, same router.push('/chart-rules'))",
+   "now": {
+    "file": "apps/mobile/app/chart.tsx",
+    "name": "How the charts work",
+    "destination": "/chart-rules"
+   }
+  },
+  {
+   "file": "apps/mobile/app/digest/[week].tsx",
+   "name": "Play ${e.title}",
+   "destination": "play",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): discover.html digest--screen action map \"Play <episode>: Disc on the card\" — the row's round Play became the Deck card's light disc (Deck.tsx DiscPlay, spoken \"Play <title>\", same play)",
+   "now": {
+    "file": "apps/mobile/src/ui/discover/Deck.tsx",
+    "name": "Play ${props.title}",
+    "destination": "props.onPress"
+   },
+   "via": [
+    "apps/mobile/src/ui/discover/Deck.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/issue/[id].tsx",
+   "name": "Share this issue",
+   "destination": "share",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): discover.html issue--screen action map \"Share this issue: Share circle\" — the share glyph left the header for the title bar's action circle (same name, same Share.share)",
+   "now": {
+    "file": "apps/mobile/app/issue/[id].tsx",
+    "name": "Share this issue",
+    "destination": "share"
+   }
+  },
+  {
+   "file": "apps/mobile/app/issue/[id].tsx",
+   "name": "Retry",
+   "destination": "load",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): discover.html issue--screen action map \"Retry: Error tile\" — Retry is the quiet pill in the shared error tile (Mosaic.tsx RetryTile)",
+   "now": {
+    "file": "apps/mobile/src/ui/discover/Mosaic.tsx",
+    "name": "Retry",
+    "destination": "props.onRetry"
+   },
+   "via": [
+    "apps/mobile/src/ui/discover/Mosaic.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/issues.tsx",
+   "name": "Retry",
+   "destination": "load",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): discover.html issues--error action map \"Retry: Error (issues--error)\" — Retry is the quiet pill in the shared error tile (Mosaic.tsx RetryTile)",
+   "now": {
+    "file": "apps/mobile/src/ui/discover/Mosaic.tsx",
+    "name": "Retry",
+    "destination": "props.onRetry"
+   },
+   "via": [
+    "apps/mobile/src/ui/discover/Mosaic.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/picks/daily.tsx",
+   "name": "Retry",
+   "destination": "load",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): discover.html picks-daily--error action map \"Retry: Tile\" — Retry is the quiet pill in the shared error tile (Mosaic.tsx RetryTile)",
+   "now": {
+    "file": "apps/mobile/src/ui/discover/Mosaic.tsx",
+    "name": "Retry",
+    "destination": "props.onRetry"
+   },
+   "via": [
+    "apps/mobile/src/ui/discover/Mosaic.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/picks/daily.tsx",
+   "name": "item.episode.title",
+   "destination": "dynamic",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): discover.html picks-daily--screen action map \"Add to queue · Play: Disc buttons\" — + is the ring disc on the Deck card (Deck.tsx RingAdd, spoken \"Add <title> to the queue\", same queue call)",
+   "now": {
+    "file": "apps/mobile/src/ui/discover/Deck.tsx",
+    "name": "Add ${props.title} to the queue",
+    "destination": "props.onPress"
+   },
+   "via": [
+    "apps/mobile/src/ui/discover/Deck.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/picks/past.tsx",
+   "name": "Retry",
+   "destination": "first",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): discover.html picks-past--error action map \"Retry: Tile\" — Retry is the quiet pill in the shared error tile (Mosaic.tsx RetryTile; onRetry is the page's first())",
+   "now": {
+    "file": "apps/mobile/src/ui/discover/Mosaic.tsx",
+    "name": "Retry",
+    "destination": "props.onRetry"
+   },
+   "via": [
+    "apps/mobile/src/ui/discover/Mosaic.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/plaza.tsx",
+   "name": "Shuffle the plaza",
+   "destination": "again",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): discover.html plaza--screen action map \"Shuffle the plaza: Loop circle\" — the shuffle glyph left the header for the title bar's loop circle (same name, same again())",
+   "now": {
+    "file": "apps/mobile/app/plaza.tsx",
+    "name": "Shuffle the plaza",
+    "destination": "again"
+   }
+  },
+  {
+   "file": "apps/mobile/app/plaza.tsx",
+   "name": "list ? 'Wall view' : 'List view'",
+   "destination": "setList",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): discover.html plaza--screen / plaza--list action map \"List view / Wall view: List circle\" — the toggle is the title bar's second circle (list / grid glyph; same names, same setList)",
+   "now": {
+    "file": "apps/mobile/app/plaza.tsx",
+    "name": "list ? 'Wall view' : 'List view'",
+    "destination": "setList"
+   }
+  },
+  {
+   "file": "apps/mobile/app/report/[month].tsx",
+   "name": "Retry",
+   "destination": "dynamic",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): discover.html report--error action map \"Retry: Tile\" — Retry is the quiet pill in the shared error tile (Mosaic.tsx RetryTile)",
+   "now": {
+    "file": "apps/mobile/src/ui/discover/Mosaic.tsx",
+    "name": "Retry",
+    "destination": "props.onRetry"
+   },
+   "via": [
+    "apps/mobile/src/ui/discover/Mosaic.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/report/[month].tsx",
+   "name": "Share your ${monthName(r.month)}",
+   "destination": "dynamic",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): discover.html report--screen action map \"Share your <month>: Share circle\" — the Share pill left the foot of the page for the title bar's share circle (same name, same share(r))",
+   "now": {
+    "file": "apps/mobile/app/report/[month].tsx",
+    "name": "Share your ${monthName(r.month)}",
+    "destination": "dynamic"
+   }
+  },
+  {
+   "file": "apps/mobile/app/(tabs)/library.tsx",
+   "name": "{`My subscriptions · ${subscribed} ›`}",
+   "destination": "/subscriptions",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): index.html updates--screen action map \"My subscriptions, n: Title bar subtitle\" — the \"My subscriptions · n ›\" link moved from the page body into the bottom title bar (same name, same destination: /subscriptions)",
+   "now": {
+    "file": "apps/mobile/app/(tabs)/library.tsx",
+    "name": "My subscriptions · ${subscribed} ›",
+    "destination": "/subscriptions"
+   }
+  },
+  {
+   "file": "apps/mobile/app/(tabs)/library.tsx",
+   "name": "My subscriptions, ${subscribed}",
+   "destination": "dynamic",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): index.html updates--screen action map \"My subscriptions, n: Title bar subtitle\" — the \"My subscriptions · n ›\" link moved from the page body into the bottom title bar (same name, same destination: /subscriptions)",
+   "now": {
+    "file": "apps/mobile/app/(tabs)/library.tsx",
+    "name": "My subscriptions · ${subscribed} ›",
+    "destination": "/subscriptions"
+   }
+  },
+  {
+   "file": "apps/mobile/app/subscriptions.tsx",
+   "name": "{item.title}",
+   "destination": "/show/[feedUrl]",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html subscriptions--screen action map \"{title} (open show) ×3: Tap a tile\" — a show is a Mosaic tile (ShowTiles.tsx), same destination: the show page",
+   "now": {
+    "file": "apps/mobile/src/ui/library/ShowTiles.tsx",
+    "name": "props.label",
+    "destination": "props.onOpen"
+   },
+   "via": [
+    "apps/mobile/src/ui/library/ShowTiles.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/subscriptions.tsx",
+   "name": "More for ${item.title}",
+   "destination": "setMenu",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html subscriptions--screen action map \"More for {title} ×2: Tile ··· / long-press\" — the ··· is on the tile (ShowTiles.tsx), same name, same menu",
+   "now": {
+    "file": "apps/mobile/src/ui/library/ShowTiles.tsx",
+    "name": "More for ${item.title}",
+    "destination": "props.onMenu"
+   },
+   "via": [
+    "apps/mobile/src/ui/library/ShowTiles.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/subscriptions.tsx",
+   "name": "{item.title}",
+   "destination": "/show/[feedUrl]",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html subscriptions--screen action map \"{title} (open show) ×3: Tap a tile\" — a show is a Mosaic tile (ShowTiles.tsx), same destination: the show page",
+   "now": {
+    "file": "apps/mobile/src/ui/library/ShowTiles.tsx",
+    "name": "props.label",
+    "destination": "props.onOpen"
+   },
+   "via": [
+    "apps/mobile/src/ui/library/ShowTiles.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/subscriptions.tsx",
+   "name": "More for ${item.title}",
+   "destination": "setMenu",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html subscriptions--screen action map \"More for {title} ×2: Tile ··· / long-press\" — the ··· is on the tile (ShowTiles.tsx), same name, same menu",
+   "now": {
+    "file": "apps/mobile/src/ui/library/ShowTiles.tsx",
+    "name": "More for ${item.title}",
+    "destination": "props.onMenu"
+   },
+   "via": [
+    "apps/mobile/src/ui/library/ShowTiles.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/subscriptions.tsx",
+   "name": "${item.title}${item.starred ? ', starred' : ''}. Long-press for more",
+   "destination": "/show/[feedUrl]",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html subscriptions--grid action map \"{title}, starred. Long-press for more: Cover tile\" — the grid cover is GridTile (ShowTiles.tsx), same name, same destination",
+   "now": {
+    "file": "apps/mobile/src/ui/library/ShowTiles.tsx",
+    "name": "props.label",
+    "destination": "props.onOpen"
+   },
+   "via": [
+    "apps/mobile/src/ui/library/ShowTiles.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/subscriptions.tsx",
+   "name": "grid ? 'Show as a list' : 'Show as a grid'",
+   "destination": "toggleView",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html subscriptions--screen action map \"Show as a grid / list: Grid circle\" — the toggle is the title bar's first circle (same names, same toggleView)",
+   "now": {
+    "file": "apps/mobile/app/subscriptions.tsx",
+    "name": "grid ? 'Show as a list' : 'Show as a grid'",
+    "destination": "toggleView"
+   }
+  },
+  {
+   "file": "apps/mobile/app/subscriptions.tsx",
+   "name": "Share my list",
+   "destination": "share",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html subscriptions--screen action map \"Share my list: Share circle\" — the share glyph is the title bar's second circle (same name, same share())",
+   "now": {
+    "file": "apps/mobile/app/subscriptions.tsx",
+    "name": "Share my list",
+    "destination": "share"
+   }
+  },
+  {
+   "file": "apps/mobile/app/subscriptions.tsx",
+   "name": "menu.starred ? 'Unstar' : 'Star'",
+   "destination": "star",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html subscriptions--show-menu action map \"Star / Unstar: Panel row\" — the sheet's rows are the kit Panel rows (same names, same star())",
+   "now": {
+    "file": "apps/mobile/app/subscriptions.tsx",
+    "name": "menu.starred ? 'Unstar' : 'Star'",
+    "destination": "star"
+   },
+   "via": [
+    "apps/mobile/src/ui/kit/PanelRow.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/subscriptions.tsx",
+   "name": "Unsubscribe",
+   "destination": "unsubscribe",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html subscriptions--show-menu action map \"Unsubscribe: Panel row\" — the sheet's rows are the kit Panel rows (same name, same unsubscribe())",
+   "now": {
+    "file": "apps/mobile/app/subscriptions.tsx",
+    "name": "Unsubscribe",
+    "destination": "unsubscribe"
+   },
+   "via": [
+    "apps/mobile/src/ui/kit/PanelRow.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/episode/UpdateEpisodeRow.tsx",
+   "name": "props.label",
+   "destination": "props.onPress",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): index.html updates--screen action map \"Open show · Comments · Download · More · Play: Each card\" — the row's local IconButton helper (props.label -> props.onPress) is gone: the card's circles are Pressables written out (Queue, Comments, Download, More keep their names and handlers)",
+   "now": {
+    "file": "apps/mobile/src/ui/episode/UpdateEpisodeRow.tsx",
+    "name": "More for ${e.title}",
+    "destination": "props.onMore"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/episode/UpdateEpisodeRow.tsx",
+   "name": "e.title",
+   "destination": "props.onComments",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): index.html updates--screen action map \"Comments: Each card\" — the CommentsButton component (named by the title) is the card's Comments circle (same destination props.onComments; spoken \"Comments on <title>\", with the count when known)",
+   "now": {
+    "file": "apps/mobile/src/ui/episode/UpdateEpisodeRow.tsx",
+    "name": "meta.comments !== undefined ? `Comments on ${e.title}, ${plural(meta.comments, 'comment')}` : `Comments on ${e.title}`",
+    "destination": "props.onComments"
+   }
+  },
+  {
+   "file": "apps/mobile/app/show/[feedUrl].tsx",
+   "name": "More for ${item.title}",
+   "destination": "onMenu",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html show--screen action map \"Open an episode · Play/Pause it · More for it: Episode tile · its play circle · long-press (Details sheet)\" — the ⋯ button left the tile; the same sheet opens on a long-press and as the tile's `longpress` accessibility action named \"More for {title}\"",
+   "now": {
+    "file": "apps/mobile/app/show/[feedUrl].tsx",
+    "name": "${item.title}. ${meta}",
+    "destination": "onOpen"
+   }
+  },
+  {
+   "file": "apps/mobile/app/show/[feedUrl].tsx",
+   "name": "subscribed ? 'Unsubscribe from this show' : 'Subscribe to this show'",
+   "destination": "toggleSubscription",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html show--screen action map \"Subscribe / Unsubscribe: Big light pill in the title bar\" — the slim collapsing bar (which repeated Subscribe, search and ⋯ once the header had scrolled away) is gone; the thumb zone with the one Subscribe pill is always on screen",
+   "now": {
+    "file": "apps/mobile/app/show/[feedUrl].tsx",
+    "name": "subscribed ? 'Unsubscribe from this show' : 'Subscribe to this show'",
+    "destination": "toggleSubscription"
+   }
+  },
+  {
+   "file": "apps/mobile/app/show/[feedUrl].tsx",
+   "name": "searching ? 'Close search' : \"Search this show's episodes\"",
+   "destination": "toggleSearch",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html show--screen action map \"Search this show's episodes / Close search: Search circle, top right\" — the slim bar's second copy is gone with the bar; the circle top right is always on screen",
+   "now": {
+    "file": "apps/mobile/app/show/[feedUrl].tsx",
+    "name": "searching ? 'Close search' : \"Search this show's episodes\"",
+    "destination": "toggleSearch"
+   }
+  },
+  {
+   "file": "apps/mobile/app/show/[feedUrl].tsx",
+   "name": "More: show info, report this show",
+   "destination": "setShowMenu",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html show--screen action map \"More: show info, report this show: ··· circle, top right\" — the slim bar's second copy is gone with the bar; the circle top right is always on screen",
+   "now": {
+    "file": "apps/mobile/app/show/[feedUrl].tsx",
+    "name": "More: show info, report this show",
+    "destination": "setShowMenu"
+   }
+  },
+  {
+   "file": "apps/mobile/app/show/[feedUrl].tsx",
+   "name": "Show info",
+   "destination": "/show-info/[feedUrl]",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html show--screen action map \"More: show info, report this show\" — the ⋯ sheet's rows are the kit Panel rows (same name, same push to /show-info/[feedUrl])",
+   "now": {
+    "file": "apps/mobile/app/show/[feedUrl].tsx",
+    "name": "Show info",
+    "destination": "/show-info/[feedUrl]"
+   },
+   "via": [
+    "apps/mobile/src/ui/kit/PanelRow.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/show/[feedUrl].tsx",
+   "name": "reportedShow ? 'Reported' : 'Report this show'",
+   "destination": "dynamic",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html show--screen action map \"More: show info, report this show\" — the ⋯ sheet's Report row is a kit Panel row (same name, same setReporting); the About view keeps its own \"Report this show\" button",
+   "now": {
+    "file": "apps/mobile/app/show/[feedUrl].tsx",
+    "name": "reportedShow ? 'Reported' : 'Report this show'",
+    "destination": "dynamic"
+   },
+   "via": [
+    "apps/mobile/src/ui/kit/PanelRow.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/category/[id].tsx",
+   "name": "",
+   "destination": "/show/[feedUrl]",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): discover.html category--screen action map \"Open show: Tile\" — the show opens from the lead card and the 1 x 2 tiles (CategoryParts.tsx); same destination, same router push",
+   "now": {
+    "file": "apps/mobile/src/ui/discover/CategoryParts.tsx",
+    "name": "",
+    "destination": "props.onOpen"
+   },
+   "via": [
+    "apps/mobile/src/ui/discover/CategoryParts.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/category/[id].tsx",
+   "name": "on ? `Unsubscribe from ${s.title}` : `Subscribe to ${s.title}`",
+   "destination": "toggleSubscription",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): discover.html category--screen action map \"Subscribe / Unsubscribe: Circle on each tile\" — the 40 disc on the lead card and the 34 circle on each tile (CategoryParts.tsx); same names, same toggleSubscription",
+   "now": {
+    "file": "apps/mobile/src/ui/discover/CategoryParts.tsx",
+    "name": "props.subscribed ? `Unsubscribe from ${s.title}` : `Subscribe to ${s.title}`",
+    "destination": "props.onToggle"
+   },
+   "via": [
+    "apps/mobile/src/ui/discover/CategoryParts.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/category/[id].tsx",
+   "name": "g.name",
+   "destination": "pick",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): discover.html category--screen action map \"Genre tab: Strip at the top\" — the strip is GenreStrip in CategoryParts.tsx; same names, same pick",
+   "now": {
+    "file": "apps/mobile/src/ui/discover/CategoryParts.tsx",
+    "name": "g.name",
+    "destination": "props.onPick"
+   },
+   "via": [
+    "apps/mobile/src/ui/discover/CategoryParts.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/category/[id].tsx",
+   "name": "All categories",
+   "destination": "setPicking",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): discover.html category--screen action map \"All categories: Grid circle in the title bar\" — the chevron over the strip became the title bar's grid circle (same name, same setPicking)",
+   "now": {
+    "file": "apps/mobile/app/category/[id].tsx",
+    "name": "All categories",
+    "destination": "setPicking"
+   }
+  },
+  {
+   "file": "apps/mobile/app/category/[id].tsx",
+   "name": "Close",
+   "destination": "setPicking",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): discover.html category--all-sheet action map \"Close: × · scrim\" — the full-screen grid became the kit sheet, whose × (36) and scrim close it (same name, same setPicking through onClose)",
+   "now": {
+    "file": "apps/mobile/src/ui/kit/ActionSheet.tsx",
+    "name": "Close",
+    "destination": "props.onClose"
+   },
+   "via": [
+    "apps/mobile/src/ui/kit/ActionSheet.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/category/[id].tsx",
+   "name": "g.name",
+   "destination": "pickFromSheet",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): discover.html category--all-sheet action map \"Genre: Tile\" — a tile of the 3-column sheet picks the genre and closes the sheet (AllCategoriesSheet in CategoryParts.tsx; same names, same pickFromSheet through onPick)",
+   "now": {
+    "file": "apps/mobile/src/ui/discover/CategoryParts.tsx",
+    "name": "g.name",
+    "destination": "props.onPick"
+   },
+   "via": [
+    "apps/mobile/src/ui/discover/CategoryParts.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/profile/[id].tsx",
+   "name": "More for ${profile.displayName}",
+   "destination": "setMore",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): social.html profile--screen action map \"More actions for (name): More circle → sheet\" — the drawing has the one More circle in the bottom zone, so the header ⋯ left (same sheet, same setMore; the circle was already there under \"More actions for …\")",
+   "now": {
+    "file": "apps/mobile/app/profile/[id].tsx",
+    "name": "More actions for ${profile.displayName}",
+    "destination": "setMore"
+   }
+  },
+  {
+   "file": "apps/mobile/app/profile/[id].tsx",
+   "name": "{r.episode.title}",
+   "destination": "dynamic",
+   "reason": "code move, no UI change: social.html profile--own action map \"Recently played episode: Covers tile\" — the played episode is a cover with its title under it; the one control is named by its spoken label, as the Link and its Text used to be two entries for the same press",
+   "now": {
+    "file": "apps/mobile/app/profile/[id].tsx",
+    "name": "r.episode.title",
+    "destination": "dynamic"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/discover/TheirLikes.tsx",
+   "name": "{`${it.listener.displayName} liked`}",
+   "destination": "openLikePost",
+   "reason": "code move, no UI change: discover.html home--fold-a action map \"Their likes: open like post · All likes: Card · last card of the deck\" — the card is named by its spoken label (it still opens the like post); the name used to be read from a Text child, now a Type",
+   "now": {
+    "file": "apps/mobile/src/ui/discover/TheirLikes.tsx",
+    "name": "",
+    "destination": "openLikePost"
+   }
+  },
+  {
+   "file": "apps/mobile/app/subscriptions/manage.tsx",
+   "name": "Save order",
+   "destination": "save",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): listen.html subscriptions-manage--screen action map \"Save order: Check circle\" — Save left the top-right text link for the check circle (44) in the bottom title bar (same name, same handler; hidden while there is nothing to order)",
+   "now": {
+    "file": "apps/mobile/app/subscriptions/manage.tsx",
+    "name": "Save order",
+    "destination": "save"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/kit/SheetRow.tsx",
+   "name": "props.accessibilityLabel ?? props.label",
+   "destination": "props.onPress",
+   "reason": "code move, no UI change: M31 T080 retired the Editorial-only SheetRow (no importer in app/ or src/; every sheet row is the kit ActionSheet's tile, PulseTile or EpisodeRowSheet now), so its one press went with the file",
+   "removed": true
+  },
+  {
+   "file": "apps/mobile/app/_layout.tsx",
+   "name": "Try again",
+   "destination": "props.retry",
+   "reason": "code move, no UI change: shell.html error-boundary--screen action map \"Try again: full-width light pill, bottom\" — the crashed-screen page is now drawn by ErrorScreen (src/ui/paused/ErrorScreen.tsx), the same pill, the same retry handed down from the root layout's ErrorBoundary",
+   "now": {
+    "file": "apps/mobile/src/ui/paused/ErrorScreen.tsx",
+    "name": "Try again",
+    "destination": "props.retry"
+   },
+   "via": [
+    "apps/mobile/src/ui/paused/ErrorScreen.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/app/settings/licences.tsx",
+   "name": "Open ${url}",
+   "destination": "Linking.openURL",
+   "reason": "code move, no UI change: T083 (034 B7) — the licence link now opens through the outside-link allow-list (openSystem in src/ui/kit/openLink.ts) instead of calling Linking.openURL directly; the same press, the same https address",
+   "now": {
+    "file": "apps/mobile/app/settings/licences.tsx",
+    "name": "Open ${url}",
+    "destination": "openSystem"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/queue/QueueList.tsx",
+   "name": "Remove",
+   "destination": "props.onChange",
+   "reason": "M31 replay fix (2026-10-28): the array reader now sees this action in the pre-redesign tree; the row swipe \"Remove\" still removes the item; the handler is now the row prop onRemove, which calls onChange(remove(ids, id)) (same effect, queue.tsx unchanged).",
+   "now": {
+    "file": "apps/mobile/src/ui/queue/QueueList.tsx",
+    "name": "Remove",
+    "destination": "props.onRemove"
+   },
+   "passesFile": "apps/mobile/src/ui/queue/QueueList.tsx"
+  },
+  {
+   "file": "apps/mobile/src/ui/episode/UpdateEpisodeRow.tsx",
+   "name": "Queue",
+   "destination": "props.onQueue",
+   "reason": "M31 replay fix (2026-10-28): the array reader now sees this action in the pre-redesign tree; the swipe-left \"Queue\" is gone; the card keeps its Queue button (\"Add … to the queue\", same props.onQueue). The swipe gesture itself is a changed interaction.",
+   "now": {
+    "file": "apps/mobile/src/ui/episode/UpdateEpisodeRow.tsx",
+    "name": "props.queued ? `${e.title} is in the queue` : `Add ${e.title} to the queue`",
+    "destination": "props.onQueue"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/episode/UpdateEpisodeRow.tsx",
+   "name": "Remove",
+   "destination": "props.onRemoveFromUpdates",
+   "reason": "M31 replay fix (2026-10-28): the array reader now sees this action in the pre-redesign tree; swipe \"Remove\" is now the swipe-down \"Remove from Updates\" (same props.onRemoveFromUpdates).",
+   "now": {
+    "file": "apps/mobile/src/ui/episode/UpdateEpisodeRow.tsx",
+    "name": "Remove from Updates",
+    "destination": "props.onRemoveFromUpdates"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/clips/ShareChooser.tsx",
+   "name": "Share this moment",
+   "destination": "props.onClip",
+   "reason": "M31 replay fix (2026-10-28): the array reader now sees this action in the pre-redesign tree; the \"Share this moment\" lead row is now the \"Clip · the last 30 seconds\" row (same props.onClip); \"Share this moment\" stays only as the preview card title.",
+   "now": {
+    "file": "apps/mobile/src/ui/clips/ShareChooser.tsx",
+    "name": "Clip",
+    "destination": "props.onClip"
+   }
+  }
+ ]
+}

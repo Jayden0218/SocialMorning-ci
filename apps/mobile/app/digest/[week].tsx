@@ -5,29 +5,69 @@
  * 4 weeks are kept); newest show first, as the server stored it. ▶ plays the episode from the
  * publisher's own audio; "Queue all" adds every one to the end of the queue. A PLUS perk — the
  * server only makes digests for PLUS members with Settings › Push › Weekly digest on.
+ *
+ * M31 W5-D (T064; design-pulse2 `discover.html` `digest--screen`, `digest--none`, `toast--digest`, layout pattern Deck): a pushed page, the title bar low
+ * ("Weekly catch-up", "New last week · 4 unplayed") with **Queue all** (hot, 48, full width) in the zone above it — the main action under
+ * the thumb. Under the edge label UNPLAYED a Deck of cards 290 x 230: the cover (72), "Show · Mon" and the title (Unbounded 700 16), the
+ * heat curve (40 bars, 26), the length in mono and Play (42). Under SHOWS the covers (56) of the shows they came from. None: the empty block
+ * "No catch-up here." with PLUS's line, no Queue all. Error: "Couldn't load your catch-up. Try again later.".
+ *
+ * Not as drawn: the toast ("Added 4 to the queue") sits where a pushed page's toasts do, not 216 up over the Queue all zone — the toast's
+ * lift is the shell's (`src/ui/shell/toastPlacement.ts`, not this lane's).
  */
 import { useEffect, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { ScrollView } from '@/ui/lib/scroll-view';
-import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { PageHeader } from '@/ui/kit/PageHeader';
+import { hit, spacing } from '@/design';
 import { Artwork } from '@/ui/kit/Artwork';
-import { BottomBar } from '@/ui/kit/BottomBar';
-import { Button } from '@/ui/kit/Button';
+import { Curve } from '@/ui/kit/Curve';
 import { Loader } from '@/ui/kit/Loader';
-import { PlayIcon } from '@/ui/kit/Icon';
-import { mmss } from '@/ui/kit/format';
-import { hit } from '@/design';
+import { PulseButton } from '@/ui/kit/PulseButton';
+import { PushedPage } from '@/ui/kit/PushedPage';
+import { Type } from '@/ui/kit/Type';
+import { minutesLabel } from '@/ui/kit/format';
 import { useDownloads, useStores, useToast } from '@/ui/shell/providers';
 import { usePlayer } from '@/playback/store';
 import { toPlayable } from '@/storage/playable';
 import { queueEpisode } from '@/settings/queue';
 import { useSocial } from '@/social/context';
 import { useM22Api, type Digest, type DigestEpisode } from '@/social/api-m22-server';
+import { ErrTile } from '@/ui/chat/blocks';
+import { DECK, Deck, DeckCard, DeckSection, DiscPlay } from '@/ui/discover/Deck';
+import { PAGE, PAGE_TYPE } from '@/ui/discover/measures';
+import { bodyTop } from '@/ui/discover/page-parts';
+import { useEpisodeHeat } from '@/ui/discover/useEpisodeHeat';
+import { DRAWN, emptyTop, PageEmpty } from '@/ui/me/lists';
+import { ME_MOSAIC } from '@/ui/me/mosaic';
 
-const PLAY = { width: hit.min, height: hit.min };
+const NO_HEAT: readonly number[] = new Array<number>(100).fill(0);
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
+/** The Queue all zone is the 48 button and the gap above the title row. */
+const QUEUE_ZONE = hit.min + spacing.gap + 2;
+
+function DigestCard(props: { e: DigestEpisode; onPlay: () => void }): React.ReactElement {
+  const { e } = props;
+  const heat = useEpisodeHeat(e.id, true);
+  const day = e.publishedAt ? DAYS[new Date(e.publishedAt).getDay()] : undefined;
+  const line = [e.showTitle, day].filter(Boolean).join(' · ');
+  return (
+    <DeckCard>
+      <Box className="flex-row items-center" style={{ padding: DECK.pad, gap: PAGE.card.issue.pad }}>
+        <Artwork url={e.imageUrl} size={PAGE.digest.cover} name={e.showTitle ?? e.title} />
+        <Box className="flex-1 min-w-0">
+          <Type step="caption" className="text-text2" style={PAGE_TYPE.small12} numberOfLines={1}>{line}</Type>
+          <Type step="lede" className="text-text" style={PAGE_TYPE.tile14} numberOfLines={2}>{e.title}</Type>
+        </Box>
+      </Box>
+      <Box style={{ paddingHorizontal: DECK.pad }}><Curve data={heat.buckets ?? NO_HEAT} count={40} height={26} min={2} played={heat.buckets ? 1 : 0} flat={heat.buckets === undefined} /></Box>
+      <Box className="flex-row items-center mt-auto" style={{ padding: DECK.pad, gap: 8 }}>
+        <Type step="tag" className="text-text3 flex-1" style={PAGE_TYPE.mono11}>{e.durationMs ? minutesLabel(e.durationMs) : ''}</Type>
+        <DiscPlay size={42} title={e.title} onPress={props.onPlay} />
+      </Box>
+    </DeckCard>
+  );
+}
 
 export default function DigestScreen(): React.ReactElement {
   const { week } = useLocalSearchParams<{ week: string }>();
@@ -67,31 +107,36 @@ export default function DigestScreen(): React.ReactElement {
   };
 
   const ready = digest !== undefined && digest !== 'none' && digest !== 'error';
+  const episodes = ready ? digest.episodes : [];
+  const shows = episodes.filter((e, i) => episodes.findIndex((x) => x.feedUrl === e.feedUrl) === i);
+  const queueButton = ready && episodes.length > 0 ? <PulseButton kind="hot" full icon="list-outline" label="Queue all" onPress={() => queueAll(episodes)} /> : undefined;
   return (
-    <>
-      <PageHeader title="Weekly catch-up" {...(ready ? { subtitle: `New last week · ${digest.episodes.length} unplayed` } : {})} />
-      <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pb-section gap-gap">
-        {digest === undefined ? <Box className="items-center mt-section"><Loader /></Box> : null}
-        {digest === 'none' ? <Text className="text-muted text-body text-center mt-section">No catch-up here. PLUS members get one on Mondays when their shows had new episodes.</Text> : null}
-        {digest === 'error' ? <Text className="text-muted text-body text-center mt-section">Couldn't load your catch-up. Try again later.</Text> : null}
-        {ready ? digest.episodes.map((e) => (
-          <Box key={e.id} className="flex-row items-center gap-row bg-surface border border-border rounded-row p-row">
-            <Artwork url={e.imageUrl} size={56} name={e.showTitle ?? e.title} />
-            <Box className="flex-1">
-              <Text className="text-text text-sm font-bold" numberOfLines={2}>{e.title}</Text>
-              <Text className="text-muted text-xs" numberOfLines={1}>{[e.showTitle, e.durationMs ? mmss(e.durationMs) : undefined].filter(Boolean).join(' · ')}</Text>
-            </Box>
-            <Pressable onPress={() => play(e)} accessibilityRole="button" accessibilityLabel={`Play ${e.title}`} className="rounded-pill bg-primary items-center justify-center" style={PLAY}>
-              <PlayIcon size={16} tint="onPrimary" />
-            </Pressable>
-          </Box>
-        )) : null}
-      </ScrollView>
-      {ready && digest.episodes.length > 0 ? (
-        <BottomBar tone="surface" line="border" className="flex-row items-center">
-          <Button label="Queue all" onPress={() => queueAll(digest.episodes)} className="flex-1" />
-        </BottomBar>
-      ) : null}
-    </>
+    <PushedPage
+      title="Weekly catch-up"
+      {...(ready ? { subtitle: `New last week · ${episodes.length} unplayed` } : {})}
+      {...(queueButton ? { extra: queueButton, extraAbove: QUEUE_ZONE } : {})}
+    >
+      {(layout) => (
+        <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: bodyTop(layout, PAGE.body70), paddingBottom: layout.reserve }}>
+          {digest === undefined ? <Box className="items-center" style={{ marginTop: spacing.section }}><Loader /></Box> : null}
+          {digest === 'none' ? <PageEmpty top={emptyTop(250) - (PAGE.body70 - DRAWN.listTop)} title="No catch-up here." line="PLUS members get one on Mondays when their shows had new episodes." /> : null}
+          {digest === 'error' ? <ErrTile line="Couldn't load your catch-up. Try again later." /> : null}
+          {ready && episodes.length > 0 ? (
+            <>
+              <DeckSection label="Unplayed">
+                <Deck width={PAGE.digest.width} height={PAGE.digest.height} accessibilityLabel="Unplayed episodes">
+                  {episodes.map((e) => <DigestCard key={e.id} e={e} onPlay={() => play(e)} />)}
+                </Deck>
+              </DeckSection>
+              <DeckSection label="Shows">
+                <Box testID="digest-shows" className="flex-row" style={{ marginLeft: ME_MOSAIC.lane, gap: PAGE.gap, flexWrap: 'wrap' }}>
+                  {shows.map((e) => <Artwork key={e.feedUrl} url={e.imageUrl} size={56} name={e.showTitle ?? e.title} />)}
+                </Box>
+              </DeckSection>
+            </>
+          ) : null}
+        </ScrollView>
+      )}
+    </PushedPage>
   );
 }

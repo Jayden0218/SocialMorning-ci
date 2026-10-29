@@ -3,27 +3,34 @@
  * M21 US8 (FR-074, G-M21-10): `GET /v1/listeners/:id/subscriptions`. A 403 `private` (they keep
  * their subscriptions private, or a block stands between you) shows a Private state and no shows.
  * Each show opens its page. Order: their own "Default" order, then newest first (the server's).
+ *
+ * M31 W4-A (T050; design-pulse2 social.html `profile-subscriptions--screen`, `--private`, `--empty`; layout pattern Mosaic): each show is a
+ * 1 x 2 cover tile (178 tall, in the Me tab's lane), its title in Unbounded 700 14 on the fade at its foot; the edge label is "Shows".
+ * The title bar says "Subscriptions" and "Shows Rui Costa follows" ("Shows they follow" with no name). Private: a 64 disc with a lock and
+ * "<name> keeps their subscriptions private."; none: the empty block "No shows yet."; a failure: the disc with a wifi mark, the line
+ * "Couldn't load the shows right now." and a light Retry.
  */
 import { useCallback, useState } from 'react';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { FlatList } from '@/ui/lib/flat-list';
+import { useWindowDimensions } from 'react-native';
 import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { hit } from '@/design';
-import { PageHeader } from '@/ui/kit/PageHeader';
 import { EndOfList } from '@/ui/kit/EndOfList';
-import { Loader } from '@/ui/kit/Loader';
-import { Artwork } from '@/ui/kit/Artwork';
-import { EmptyPicture } from '@/ui/me/parts';
+import { PulseButton } from '@/ui/kit/PulseButton';
+import { PushedPage } from '@/ui/kit/PushedPage';
+import { Type } from '@/ui/kit/Type';
+import { ME_MOSAIC } from '@/ui/me/mosaic';
+import { ArtTile, DRAWN, PageEmpty, emptyTop, mosaicColumn } from '@/ui/me/lists';
+import { CenterBlock, GhostTiles, IconBlock, MosaicList } from '@/ui/profile/parts';
+import { PROFILE, PROFILE_TYPE } from '@/ui/profile/measures';
 import { useUs8Api, type PublicShow } from '@/social/us8-api';
 
-const TAP = { minHeight: hit.min };
 type State = { kind: 'loading' } | { kind: 'error' } | { kind: 'private' } | { kind: 'ok'; items: PublicShow[] };
 
 export default function ListenerSubscriptionsScreen(): React.ReactElement {
   const { id, name } = useLocalSearchParams<{ id: string; name?: string }>();
   const us8 = useUs8Api();
+  const { width } = useWindowDimensions();
   const [state, setState] = useState<State>({ kind: 'loading' });
   const load = useCallback(() => {
     us8.listenerSubscriptions(String(id))
@@ -32,43 +39,41 @@ export default function ListenerSubscriptionsScreen(): React.ReactElement {
   }, [us8, id]);
   useFocusEffect(load);
   const whose = typeof name === 'string' && name !== '' ? name : 'This listener';
-  const header = <PageHeader title="Subscriptions" subtitle={`Shows ${whose === 'This listener' ? 'they follow' : `${whose} follows`}`} />;
-  if (state.kind === 'loading') return <>{header}<Box className="flex-1 bg-background items-center p-4"><Loader /></Box></>;
-  if (state.kind === 'private') {
-    return <>{header}<Box className="flex-1 bg-background px-screen-x"><EmptyPicture icon="lock-closed-outline" line={`${whose} keeps their subscriptions private.`} /></Box></>;
-  }
-  if (state.kind === 'error') {
-    return (
-      <>
-      {header}
-      <Box className="flex-1 bg-background px-screen-x gap-row">
-        <Text className="text-text text-body">Couldn't load the shows right now.</Text>
-        <Pressable onPress={() => { setState({ kind: 'loading' }); load(); }} accessibilityRole="button" accessibilityLabel="Retry" className="justify-center self-start" style={TAP}><Text className="text-accent text-body font-semibold">Retry</Text></Pressable>
-      </Box>
-      </>
-    );
-  }
+  const col = mosaicColumn(width);
   return (
-    <>
-    {header}
-    <FlatList
-      className="flex-1 bg-background"
-      data={state.items}
-      keyExtractor={(s) => s.feedUrl}
-      contentContainerClassName="px-screen-x pb-24 flex-grow"
-      ListEmptyComponent={<EmptyPicture icon="albums-outline" line="No shows yet." />}
-      ListFooterComponent={state.items.length > 0 ? <EndOfList /> : undefined}
-      renderItem={({ item }) => {
-        const title = item.title ?? item.feedUrl;
+    <PushedPage title="Subscriptions" subtitle={`Shows ${whose === 'This listener' ? 'they follow' : `${whose} follows`}`} tone={state.kind === 'error' ? 'grey' : 'hot'}>
+      {(layout) => {
+        if (state.kind === 'private') {
+          return <Box className="flex-1"><CenterBlock top={layout.top} drawn={250}><IconBlock icon="lock-closed-outline" line={`${whose} keeps their subscriptions private.`} /></CenterBlock></Box>;
+        }
+        if (state.kind === 'error') {
+          return <Box className="flex-1"><CenterBlock top={layout.top} drawn={250}><IconBlock icon="wifi" failure line="Couldn't load the shows right now."><PulseButton label="Retry" kind="light" onPress={() => { setState({ kind: 'loading' }); load(); }} full /></IconBlock></CenterBlock></Box>;
+        }
+        if (state.kind === 'ok' && state.items.length === 0) {
+          return <Box className="flex-1" style={{ paddingTop: layout.top + (DRAWN.listTop - DRAWN.status) }}><PageEmpty top={emptyTop(240)} title="No shows yet" line="No shows yet." /></Box>;
+        }
         return (
-          <Pressable onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(item.feedUrl) } })} accessibilityRole="button" accessibilityLabel={`Open ${title}`}
-            className="flex-row gap-row items-center py-2.5 border-b-hairline border-separator" style={TAP}>
-            <Artwork url={item.imageUrl ?? undefined} size={56} name={title} />
-            <Text className="text-text text-sm font-bold flex-1" numberOfLines={2}>{title}</Text>
-          </Pressable>
+          <MosaicList
+            data={state.kind === 'ok' ? state.items : []}
+            keyOf={(s) => s.feedUrl}
+            top={layout.top}
+            reserve={layout.reserve}
+            labels={state.kind === 'ok' ? [{ text: 'Shows', top: PROFILE.labelTop }] : []}
+            {...(state.kind === 'loading' ? { header: <GhostTiles count={4} rows={PROFILE.showTileRows} /> } : {})}
+            footer={state.kind === 'ok' ? <EndOfList /> : null}
+            renderTile={(item) => {
+              const title = item.title ?? item.feedUrl;
+              return (
+                <Pressable onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(item.feedUrl) } })} accessibilityRole="button" accessibilityLabel={`Open ${title}`}>
+                  <ArtTile url={item.imageUrl} name={title} width={col} height={ME_MOSAIC.row * PROFILE.showTileRows + ME_MOSAIC.gap} testID="show-tile">
+                    <Type step="lede" className="text-text" style={PROFILE_TYPE.showTitle} numberOfLines={3}>{title}</Type>
+                  </ArtTile>
+                </Pressable>
+              );
+            }}
+          />
         );
       }}
-    />
-    </>
+    </PushedPage>
   );
 }

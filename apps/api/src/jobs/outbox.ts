@@ -27,6 +27,7 @@ import { G4, job as jobKey, outbox as outboxKey, parked as parkedKey, OUTBOX_SHA
 import { queryAll } from '../db/ddb/paginate.ts';
 import { del, get, isoNow, update, type Item, type Key, type Store } from '../db/ddb/store.ts';
 import { tx as newTx, TxCancelled, type Tx } from '../db/ddb/tx.ts';
+import { swallow } from '../log.ts';
 
 export type OutboxEntry = { id: string; kind: string; payload: Record<string, unknown>; createdAt: string; attempts: number; key: Key };
 export type OutboxHandler = (store: Store, entry: OutboxEntry) => Promise<void>;
@@ -57,8 +58,8 @@ export const OUTBOX_PARK_AFTER = 10;
 
 export type DrainResult = { done: number; failed: number; kept: string[]; parked: number };
 
-/** Runs every pending entry once (oldest first in each shard). */
-export async function drainOutbox(store: Store, handlers: Handlers = registry, opts: { limit?: number } = {}): Promise<DrainResult> {
+/** Runs every pending entry once (oldest first in each shard); `match` limits it to the entries it accepts (additive, M32 FB3). */
+export async function drainOutbox(store: Store, handlers: Handlers = registry, opts: { limit?: number; match?: (entry: OutboxEntry) => boolean } = {}): Promise<DrainResult> {
   const result: DrainResult = { done: 0, failed: 0, kept: [], parked: 0 };
   let budget = opts.limit ?? 1000;
   for (let shard = 0; shard < OUTBOX_SHARDS && budget > 0; shard++) {
@@ -68,11 +69,12 @@ export async function drainOutbox(store: Store, handlers: Handlers = registry, o
       ConsistentRead: true,
     }, { max: budget });
     for (const it of items) {
-      budget--;
       const entry: OutboxEntry = {
         id: String(it['id']), kind: String(it['kind']), payload: (it['payload'] ?? {}) as Record<string, unknown>,
         createdAt: String(it['createdAt']), attempts: Number(it['attempts'] ?? 0), key: { PK: String(it['PK']), SK: String(it['SK']) },
       };
+      if (opts.match && !opts.match(entry)) continue; // M32 FB3: only the entries the caller asked for (e.g. one episode's heat bumps)
+      budget--;
       const handler = handlers[entry.kind];
       try {
         if (!handler) throw new Error(`no outbox handler for kind ${entry.kind}`);
@@ -101,7 +103,7 @@ export async function drainOutbox(store: Store, handlers: Handlers = registry, o
           condition: 'attribute_exists(PK)',
           names: { '#a': 'attempts', '#e': 'lastError', '#w': 'lastTriedAt' },
           values: { ':z': 0, ':one': 1, ':err': lastError, ':now': now },
-        }).catch(() => undefined);
+        }).catch(swallow('outbox_state_update_failed'));
       }
     }
   }
@@ -202,7 +204,7 @@ export async function runJob(store: Store, kind: string, id: string, step: JobSt
         update: 'SET #e = :e, #r = if_not_exists(#r, :z) + :one',
         names: { '#e': 'lastError', '#r': 'runs' },
         values: { ':z': 0, ':e': String((e as Error)?.message ?? e).slice(0, 500), ':one': 1 },
-      }).catch(() => undefined);
+      }).catch(swallow('outbox_state_update_failed'));
       throw e;
     }
     try {

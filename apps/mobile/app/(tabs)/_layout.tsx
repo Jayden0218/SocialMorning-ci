@@ -1,8 +1,14 @@
-// The bottom bar: Discover, Updates, Chat, Me, with the mini player above it.
+// The bottom bar: Discover, Updates, Chat, Me, with the now bar floating above it.
 /**
  * The four tabs (M7 T012; reordered M10; Chat added 2026-10-04): **Discover · Updates · Chat · Me** (the list is in
- * `src/ui/shell/tabs.ts`), with the mini player floating above the bar. `/discover` and
+ * `src/ui/shell/tabs.ts`), with the now bar floating above the bar. `/discover` and
  * `/following` are hidden routes that redirect.
+ *
+ * M31 T024 (design-pulse2 index.html §Bars): the tab bar is the Pulse one (`TabBar`: void, 58, icons only,
+ * the hot dot) and the now bar (the kit's `NowBar`, drawn by `MiniPlayer`) FLOATS over the page 8 above it —
+ * it is no longer a block stacked on top of the bar, so the page runs under it and the bar shrinks to a
+ * circle while a list scrolls. The now bar is mounted here as a sibling of the tabs, in a layer that lets
+ * every touch through (`box-none`); on a wide window it clears the side rail and sits 6 up from the foot.
  *
  * Why only these three: they are the destinations a listener returns to. Inbox, Queue,
  * Downloads and Account stay links on the Library, which keeps them at **2 taps** —
@@ -19,7 +25,7 @@
 import { Tabs, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Box } from '@/ui/lib/box';
-import { colour } from '@/design';
+import { bars, nowBarBottom } from '@/design';
 import { useColours } from '@/ui/kit/useColours';
 import { createFeed } from '@/graph/feed';
 import { useSocial } from '@/social/context';
@@ -38,8 +44,8 @@ export default function TabsLayout(): React.ReactElement {
   const router = useRouter();
   const stores = useStores();
   const c = useColours(stores.settings);
-  // M22 US16 (T070): on a wide window the bar is a side rail on the left, and the mini player
-  // runs along the bottom of the page instead of sitting on the bar.
+  // M22 US16 (T070): on a wide window the bar is a side rail on the left, and the now bar
+  // runs along the bottom of the page instead of sitting above the bar.
   const { wide } = useLayout();
   const { api, listener } = useSocial();
   // M4's unread count followed the Following *link* off the Library. It lives on the
@@ -109,26 +115,23 @@ export default function TabsLayout(): React.ReactElement {
       tabBar={(props) => {
         const active = props.state.routes[props.state.index]?.name ?? 'index';
         return (
-          <Box className="bg-surface">
-            {wide ? null : <TabsMiniPlayer />}
-            <TabBar
-              mode={wide ? 'rail' : 'bar'}
-              items={items}
-              activeKey={active}
-              onSelect={(key) => {
-                // M21 T082 (FR-060): tell the tab it was pressed, as the stock bar does — a tab's
-                // `useScrollToTop` scrolls its list to the top when it is pressed again.
-                const target = props.state.routes.find((r) => r.name === key)?.key;
-                if (target) props.emitter.emit({ type: 'tabPress', target, canPreventDefault: true });
-                if (key === active) return;
-                if (Date.now() - lastVisit.current >= VISIT_REFRESH_MS) {
-                  lastVisit.current = Date.now();
-                  setVisit((n) => n + 1);
-                }
-                router.navigate(TAB_HREF[key] ?? '/');
-              }}
-            />
-          </Box>
+          <TabBar
+            mode={wide ? 'rail' : 'bar'}
+            items={items}
+            activeKey={active}
+            onSelect={(key) => {
+              // M21 T082 (FR-060): tell the tab it was pressed, as the stock bar does — a tab's
+              // `useScrollToTop` scrolls its list to the top when it is pressed again.
+              const target = props.state.routes.find((r) => r.name === key)?.key;
+              if (target) props.emitter.emit({ type: 'tabPress', target, canPreventDefault: true });
+              if (key === active) return;
+              if (Date.now() - lastVisit.current >= VISIT_REFRESH_MS) {
+                lastVisit.current = Date.now();
+                setVisit((n) => n + 1);
+              }
+              router.navigate(TAB_HREF[key] ?? '/');
+            }}
+          />
         );
       }}
     >
@@ -144,7 +147,10 @@ export default function TabsLayout(): React.ReactElement {
       {/* Not in the bar (TABS drives the bar): only here so old `/discover` links land. */}
       <Tabs.Screen name="discover" options={{ title: 'Discover' }} />
     </Tabs>
-    {wide ? <Box className="bg-surface"><TabsMiniPlayer /></Box> : null}
+    {/* M31: the now bar floats over the page, above the tab bar (phone) or along the foot beside the rail (wide). */}
+    <Box className="absolute" pointerEvents="box-none" style={{ left: wide ? bars.rail : 0, right: 0, top: 0, bottom: 0 }}>
+      <TabsMiniPlayer {...(wide ? { bottom: nowBarBottom(0) } : {})} />
+    </Box>
     </Box>
     </SearchOverlayHost>
   );

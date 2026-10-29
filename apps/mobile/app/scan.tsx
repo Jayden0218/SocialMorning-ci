@@ -15,171 +15,183 @@
  * yellow scan line, the hint under it (serif line + muted line), and Close and Torch as two pills
  * at the bottom. Camera not allowed: the close button top right, the QR mark as a yellow tile
  * inside corner brackets, the serif title and reason left-aligned, Allow camera at the bottom.
+ *
+ * M31 W6-B (T071; design-pulse2 shell.html `scan--screen`, `scan--camera-denied`, `scan--camera-preview`): Stage. Before the camera is
+ * allowed this page is Pulse's pre-prompt — it explains before the phone asks: a 240 square with four light corners round a 124
+ * glowing QR tile, "Scan a QR code" (30) and the reason (15) low, and a row with Close (52 circle) and "Allow camera" (light, 52); when
+ * the phone will not ask again the row is Close beside the hot-text sentence. Allowed: the camera in a 358 tall window (radius 32) with
+ * hot corner marks and a hot scan line, the hint under it, and "Scan QR code" (26) over Close (quiet) and Torch (light; on → hot,
+ * "Torch on"). While the permission is not known yet the page is plain void. What a first code read does is unchanged.
  */
+
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, Easing, useWindowDimensions } from 'react-native';
-import { Pressable } from '@/ui/lib/pressable';
-import { SafeAreaView } from '@/ui/lib/safe-area-view';
-import { Text } from '@/ui/lib/text';
+import { Animated, Easing, useWindowDimensions } from 'react-native';
 import { Box } from '@/ui/lib/box';
-import { hit, spacing } from '@/design';
-import { useStores } from '@/ui/shell/providers';
-import { useColours } from '@/ui/kit/useColours';
-import { apiBaseUrl } from '@/social/base-url';
+import { bars, colour, gutter } from '@/design';
 import { scanTarget } from '@/search/scan';
-import { Button } from '@/ui/kit/Button';
-import { Icon } from '@/ui/kit/Icon';
+import { apiBaseUrl } from '@/social/base-url';
+import { PageGlow } from '@/ui/kit/PageGlow';
+import { IconButton, PulseButton } from '@/ui/kit/PulseButton';
+import { PushedPage } from '@/ui/kit/PushedPage';
+import { Type } from '@/ui/kit/Type';
+import { useReducedMotion } from '@/ui/kit/useReducedMotion';
+import { GlowTile } from '@/ui/me/lists';
+import { below } from '@/ui/paused/measures';
+import { SCAN } from '@/ui/scan/measures';
 
 const SCANNER = { barcodeTypes: ['qr' as const] };
-const TAP = { minWidth: hit.min, minHeight: hit.min };
-const CORNER = 28;
-const LINE = 4;
 
 function close(router: ReturnType<typeof useRouter>): void {
   if (router.canGoBack()) router.back();
   else router.replace('/');
 }
 
-/** One corner mark: two sides of a small square — yellow on the camera, dark on the page. */
-function Corner(props: { at: 'tl' | 'tr' | 'bl' | 'br'; inset?: number; dark?: boolean; size?: number }): React.ReactElement {
+/** One corner mark: two sides of a small square, in a colour. */
+function Corner(props: { at: 'tl' | 'tr' | 'bl' | 'br'; size: number; inset?: number; radius: number; hot?: boolean }): React.ReactElement {
   const top = props.at[0] === 't';
   const left = props.at[1] === 'l';
   const o = props.inset ?? 0;
-  const side = props.size ?? CORNER;
+  const r = props.radius;
   return (
     <Box
-      className={`absolute ${props.dark ? 'border-text' : 'border-primary'}`}
+      className={`absolute ${props.hot ? 'border-hot' : 'border-text'}`}
       style={{
-        width: side, height: side,
-        ...(top ? { top: o, borderTopWidth: LINE } : { bottom: o, borderBottomWidth: LINE }),
-        ...(left ? { left: o, borderLeftWidth: LINE } : { right: o, borderRightWidth: LINE }),
-        ...(top && left ? { borderTopLeftRadius: 10 } : {}),
-        ...(top && !left ? { borderTopRightRadius: 10 } : {}),
-        ...(!top && left ? { borderBottomLeftRadius: 10 } : {}),
-        ...(!top && !left ? { borderBottomRightRadius: 10 } : {}),
+        width: props.size, height: props.size,
+        ...(top ? { top: o, borderTopWidth: SCAN.thick } : { bottom: o, borderBottomWidth: SCAN.thick }),
+        ...(left ? { left: o, borderLeftWidth: SCAN.thick } : { right: o, borderRightWidth: SCAN.thick }),
+        ...(top && left ? { borderTopLeftRadius: r } : {}),
+        ...(top && !left ? { borderTopRightRadius: r } : {}),
+        ...(!top && left ? { borderBottomLeftRadius: r } : {}),
+        ...(!top && !left ? { borderBottomRightRadius: r } : {}),
+        ...(props.hot ? { shadowColor: colour.hot, shadowOpacity: 1, shadowRadius: 3, shadowOffset: { width: 0, height: 0 } } : {}),
       }}
     />
   );
 }
 
 /** The scan line: glides top to bottom inside the window, and stands still under Reduce Motion. */
-function ScanLine(props: { size: number }): React.ReactElement {
+function ScanLine(props: { height: number }): React.ReactElement {
   const y = useRef(new Animated.Value(0)).current;
-  const [still, setStill] = useState(false);
-  useEffect(() => {
-    void AccessibilityInfo.isReduceMotionEnabled().then(setStill).catch(() => undefined);
-  }, []);
+  const still = useReducedMotion(); // M31 T081: the one hook (it was a direct AccessibilityInfo read, M32 T090)
   useEffect(() => {
     if (still) return;
     const loop = Animated.loop(Animated.timing(y, { toValue: 1, duration: 2_000, easing: Easing.inOut(Easing.quad), useNativeDriver: true }));
     loop.start();
     return () => loop.stop();
   }, [still, y]);
-  const travel = props.size - 16;
+  const travel = props.height - SCAN.markInset * 2;
   return (
     <Animated.View
-      className="absolute left-6 right-6 h-0.5 rounded-pill bg-primary"
-      style={{ top: 8, transform: [{ translateY: still ? travel / 2 : y.interpolate({ inputRange: [0, 1], outputRange: [0, travel] }) }] }}
+      testID="scan-line"
+      className="absolute bg-hot rounded-pill"
+      style={{ left: SCAN.lineInset, right: SCAN.lineInset, height: SCAN.lineThick, top: SCAN.markInset, shadowColor: colour.hot, shadowOpacity: 1, shadowRadius: SCAN.lineGlow, shadowOffset: { width: 0, height: 0 }, transform: [{ translateY: still ? travel / 2 : y.interpolate({ inputRange: [0, 1], outputRange: [0, travel] }) }] }}
     />
   );
 }
 
-
-/** `Scan-B`: the corner marks sit a little inside the window's rounded edge. */
-const MARK_INSET = 18;
-const MARK = 30;
-/** `ScanPermission-B`: the bracketed square around the QR tile. */
-const FRAME = { width: 220, height: 220 };
-const TILE = { width: 120, height: 120 };
-
 export default function ScanScreen(): React.ReactElement {
-  const stores = useStores();
-  const c = useColours(stores.settings);
   const router = useRouter();
   const [permission, ask] = useCameraPermissions();
   const [torch, setTorch] = useState(false);
   const done = useRef(false);
   const { width } = useWindowDimensions();
-  const size = Math.min(420, width - spacing.screenX * 2);
+  const side = gutter(width);
 
-  if (!permission) return <Box className="flex-1 bg-background" />;
+  // Before the phone says what the permission is: a plain void page, a frame, no flash.
+  if (!permission) return <Box className="flex-1 bg-void" />;
+
   if (!permission.granted) {
     return (
-      <SafeAreaView className="flex-1 bg-background">
-        <Box className="flex-row justify-end px-row">
-          <Pressable onPress={() => close(router)} accessibilityRole="button" accessibilityLabel="Close" className="items-center justify-center" style={TAP}>
-            <Icon name="close" size={26} color={c.muted} />
-          </Pressable>
-        </Box>
-        <Box className="flex-1 px-screen-x gap-section">
-          <Box className="self-center items-center justify-center mt-section mb-section" style={FRAME} accessible={false} importantForAccessibility="no-hide-descendants">
-            <Corner at="tl" dark size={44} /><Corner at="tr" dark size={44} /><Corner at="bl" dark size={44} /><Corner at="br" dark size={44} />
-            <Box className="rounded-artwork-lg bg-primary items-center justify-center" style={TILE}>
-              <Icon name="qr-code-outline" size={56} color={c.onPrimary} />
+      <PushedPage title="Scan a QR code" tone="none" bare onBack={null} now={false}>
+        {(layout) => (
+          <Box className="flex-1">
+            <PageGlow top={SCAN.glowTop} strength={SCAN.glowStrength} />
+            <Box
+              testID="scan-frame"
+              className="absolute items-center justify-center"
+              style={{ left: '50%', marginLeft: -SCAN.frame / 2, top: below(layout.top, SCAN.frameTop), width: SCAN.frame, height: SCAN.frame }}
+              accessible={false}
+              importantForAccessibility="no-hide-descendants"
+            >
+              <Corner at="tl" size={SCAN.bracket} radius={SCAN.bracketRadius} /><Corner at="tr" size={SCAN.bracket} radius={SCAN.bracketRadius} />
+              <Corner at="bl" size={SCAN.bracket} radius={SCAN.bracketRadius} /><Corner at="br" size={SCAN.bracket} radius={SCAN.bracketRadius} />
+              <GlowTile icon="qr-code-outline" size={SCAN.tile} />
+            </Box>
+            <Box className="absolute" style={{ left: side, right: side, bottom: bars.pushedGap, gap: SCAN.wordsGap }}>
+              <Type step="hero" className="text-text" accessibilityRole="header">Scan a QR code</Type>
+              <Type step="body" className="text-text2 font-medium">SocialNet needs the camera to read a QR code. It is used only on this screen, and nothing is recorded.</Type>
+              <Box className="flex-row items-center" style={{ gap: SCAN.rowGap, marginTop: SCAN.rowTop }}>
+                <IconButton icon="close" label="Close" fill diameter={SCAN.button} onPress={() => close(router)} />
+                {permission.canAskAgain
+                  ? <PulseButton label="Allow camera" kind="light" icon="camera-outline" height={SCAN.button} className="flex-1" onPress={() => void ask()} />
+                  : <Type step="note" className="text-hotText flex-1">Camera access is off. Turn it on for SocialNet in your phone's Settings.</Type>}
+              </Box>
             </Box>
           </Box>
-          <Text className="text-text text-display font-display" accessibilityRole="header">Scan a QR code</Text>
-          <Text className="text-muted text-body">SocialNet needs the camera to read a QR code. It is used only on this screen, and nothing is recorded.</Text>
-        </Box>
-        <Box className="px-screen-x pb-section">
-          {permission.canAskAgain
-            ? <Button label="Allow camera" onPress={() => void ask()} className="self-stretch" />
-            : <Text className="text-muted text-body text-center">Camera access is off. Turn it on for SocialNet in your phone's Settings.</Text>}
-        </Box>
-      </SafeAreaView>
+        )}
+      </PushedPage>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
-      <Box className="flex-1 px-screen-x pt-section gap-section">
-        <Text className="text-text text-display font-display" accessibilityRole="header">Scan QR code</Text>
-        {/* The camera picture in a rounded window; it stays dark — it is the camera. */}
-        <Box className="rounded-artwork-lg overflow-hidden bg-text" style={{ width: size, height: size }}>
-          <CameraView
-            style={{ flex: 1 }}
-            facing="back"
-            enableTorch={torch}
-            barcodeScannerSettings={SCANNER}
-            onBarcodeScanned={({ data }) => {
-              if (done.current) return;
-              done.current = true;
-              const t = scanTarget(data, apiBaseUrl());
-              if (t.kind === 'route') router.replace(t.path as never);
-              else if (t.kind === 'show') router.replace({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(t.feedUrl) } });
-              else router.replace({ pathname: '/search', params: { q: t.term } });
-            }}
+    <PushedPage
+      title="Scan QR code"
+      size={26}
+      tone="none"
+      now={false}
+      onBack={null}
+      below={(
+        <Box className="flex-row" style={{ gap: SCAN.rowGap }}>
+          <PulseButton label="Close" kind="quiet" icon="close" className="flex-1" onPress={() => close(router)} />
+          <PulseButton
+            label={torch ? 'Torch on' : 'Torch'}
+            accessibilityLabel={torch ? 'Turn the torch off' : 'Turn the torch on'}
+            kind={torch ? 'hot' : 'light'}
+            icon={torch ? 'flashlight' : 'flashlight-outline'}
+            selected={torch}
+            className="flex-1"
+            onPress={() => setTorch((x) => !x)}
           />
-          <Box className="absolute inset-0" pointerEvents="none" accessible accessibilityLabel="Point the camera at a QR code">
-            <Corner at="tl" inset={MARK_INSET} size={MARK} /><Corner at="tr" inset={MARK_INSET} size={MARK} />
-            <Corner at="bl" inset={MARK_INSET} size={MARK} /><Corner at="br" inset={MARK_INSET} size={MARK} />
-            <ScanLine size={size} />
+        </Box>
+      )}
+      belowHeight={SCAN.torch}
+    >
+      {(layout) => (
+        <Box className="flex-1">
+          {/* The camera picture in a rounded window; it stays dark — it is the camera. */}
+          <Box
+            testID="scan-window"
+            className="absolute overflow-hidden bg-raise"
+            style={{ left: SCAN.windowSide, right: SCAN.windowSide, top: below(layout.top, SCAN.windowTop), height: SCAN.windowHeight, borderRadius: SCAN.windowRadius }}
+          >
+            <CameraView
+              style={{ flex: 1 }}
+              facing="back"
+              enableTorch={torch}
+              barcodeScannerSettings={SCANNER}
+              onBarcodeScanned={({ data }) => {
+                if (done.current) return;
+                done.current = true;
+                const t = scanTarget(data, apiBaseUrl());
+                if (t.kind === 'route') router.replace(t.path as never);
+                else if (t.kind === 'show') router.replace({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(t.feedUrl) } });
+                else router.replace({ pathname: '/search', params: { q: t.term } });
+              }}
+            />
+            <Box className="absolute inset-0" pointerEvents="none" accessible accessibilityLabel="Point the camera at a QR code">
+              <Corner at="tl" hot size={SCAN.mark} inset={SCAN.markInset} radius={SCAN.markRadius} /><Corner at="tr" hot size={SCAN.mark} inset={SCAN.markInset} radius={SCAN.markRadius} />
+              <Corner at="bl" hot size={SCAN.mark} inset={SCAN.markInset} radius={SCAN.markRadius} /><Corner at="br" hot size={SCAN.mark} inset={SCAN.markInset} radius={SCAN.markRadius} />
+              <ScanLine height={SCAN.windowHeight} />
+            </Box>
+          </Box>
+          <Box className="absolute" style={{ left: side, right: side, top: below(layout.top, SCAN.hintTop), gap: SCAN.hintGap }}>
+            <Type step="title" className="text-text">Point at a QR code</Type>
+            <Type step="note" className="text-text2">Clip, episode and show codes open right here</Type>
           </Box>
         </Box>
-        <Box className="gap-1">
-          <Text className="text-text text-base font-display">Point at a QR code</Text>
-          <Text className="text-muted text-meta">Clip, episode and show codes open right here</Text>
-        </Box>
-      </Box>
-      <Box className="flex-row gap-row px-screen-x pb-section">
-        <Pressable onPress={() => close(router)} accessibilityRole="button" accessibilityLabel="Close" className="flex-1 flex-row items-center justify-center gap-2 rounded-pill bg-surface border border-border" style={TAP}>
-          <Icon name="close" size={20} color={c.text} />
-          <Text className="text-accent text-body font-bold">Close</Text>
-        </Pressable>
-        <Pressable
-          onPress={() => setTorch((t) => !t)}
-          accessibilityRole="button"
-          accessibilityLabel={torch ? 'Turn the torch off' : 'Turn the torch on'}
-          accessibilityState={{ selected: torch }}
-          className={`flex-1 flex-row items-center justify-center gap-2 rounded-pill ${torch ? 'bg-primary' : 'bg-text'}`}
-          style={TAP}
-        >
-          <Icon name={torch ? 'flashlight' : 'flashlight-outline'} size={20} color={torch ? c.onPrimary : c.background} />
-          <Text className={torch ? 'text-onPrimary text-body font-bold' : 'text-background text-body font-bold'}>{torch ? 'Torch on' : 'Torch'}</Text>
-        </Pressable>
-      </Box>
-    </SafeAreaView>
+      )}
+    </PushedPage>
   );
 }

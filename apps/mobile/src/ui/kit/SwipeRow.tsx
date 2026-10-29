@@ -25,7 +25,7 @@ import { useRef, type ReactNode } from 'react';
 import type { AccessibilityActionEvent } from 'react-native';
 import type { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
+import { Text } from '@/ui/kit/Text';
 import { Box } from '@/ui/lib/box';
 import { hit } from '@/design';
 
@@ -97,14 +97,14 @@ function Panel(props: { progress: Progress | undefined; anim: PanelAnimation; ch
 
 function Actions(props: { actions: readonly SwipeAction[]; close: () => void; align: 'start' | 'end'; canRun: () => boolean; progress?: Progress }): React.ReactElement {
   const buttons = (
-    <Box className={`h-full flex-row items-stretch gap-1 px-1 py-1 ${props.align === 'end' ? 'justify-end' : 'justify-start'}`}>
+    <Box className={`h-full flex-row items-stretch gap-hair px-hair py-hair ${props.align === 'end' ? 'justify-end' : 'justify-start'}`}>
       {props.actions.map((a, i) => (
         <Pressable
           key={a.key}
           onPress={() => { if (!props.canRun()) return; props.close(); a.onPress(); }}
           accessibilityRole="button"
           accessibilityLabel={a.label}
-          className={`items-center justify-center px-1 rounded-row ${i === 0 ? 'bg-primary' : 'bg-surface border border-border'}`}
+          className={`items-center justify-center px-hair rounded-row ${i === 0 ? 'bg-primary' : 'bg-surface border border-border'}`}
           style={BUTTON}
         >
           <Text className={i === 0 ? 'text-onPrimary text-meta font-bold' : 'text-text text-meta font-bold'} numberOfLines={2}>{a.label}</Text>

@@ -51,85 +51,88 @@
  * M22 US16: on a tablet (`useOpensInPane`) the results sit in the left column and an episode
  * opens in the right pane (src/ui/shell/ListDetail.tsx); the box and tabs keep the full width.
  * A phone is unchanged.
+ *
+ * M31 T030 (design-pulse2 `discover.html` search entries; review D7 — this file was 555 lines): the page is
+ * split. This file keeps the state and the effects (what is typed, the catalogue and people reads, the box
+ * moving up from Discover, Android back, the tab swipe); `SearchZone` is the low zone (tabs, Published chips,
+ * the name, the field with Cancel), `SearchHome` the idle page and the live suggestions, `SearchResults` the
+ * result page (`ShowResults`, `EpisodeResults`, `MomentResults`, `PeopleResults`). Pulse layout: the field is
+ * low (6 over the safe area, 8 over the keyboard on iOS), the content scrolls above it under a fade, and the
+ * tabs are All · Shows · Episodes · Moments (NEW) · People. The Moments tab filters the Moments feed's list on
+ * the phone (`moments-search.ts`) — there is no server search over moments. Every action keeps its name.
  */
 import { EpisodePane, ListDetail, useOpensInPane } from '@/ui/shell/ListDetail';
 import { CardSheetHost, openCardSheet } from '@/ui/episode/CardSheet';
 import { useIsFocused, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
-import { AccessibilityInfo, Animated, BackHandler, Easing, Keyboard, type View } from 'react-native';
+import { Animated, BackHandler, Easing, Keyboard, Platform, type View } from 'react-native';
+import { useReducedMotion } from '@/ui/kit/useReducedMotion';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { runOnJS } from 'react-native-reanimated';
 import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
-import { Input, InputField } from '@/ui/lib/input';
-import { Pressable } from '@/ui/lib/pressable';
-import { SafeAreaView } from '@/ui/lib/safe-area-view';
 import { ScrollView } from '@/ui/lib/scroll-view';
-import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { Card } from '@/ui/kit/Card';
-import { Eyebrow } from '@/ui/kit/Eyebrow';
-import { Loader } from '@/ui/kit/Loader';
+import { Fade } from '@/ui/kit/Fade';
+import { spacing } from '@/design';
 import { mergeSearch } from '@socialmorning/social-core';
 import { useSocial } from '@/social/context';
 import { useStores, useSubscriptionSync } from '@/ui/shell/providers';
 import { ApiError, type EpisodeCard, type SearchResult, type ShowCard } from '@/social/api';
 import { looksLikeFeedUrl, searchLibrary } from '@/discover/local-search';
 import { useCardActions, useDiscover } from '@/discover/useDiscover';
-import { useExploreApi, type RichEpisode, type SearchSince } from '@/discover/explore-api';
-import { PlayButton, StatsLine } from '@/ui/discover/parts';
-import { Artwork } from '@/ui/kit/Artwork';
-import { EmptyState } from '@/ui/kit/EmptyState';
-import { TellEditors } from './TellEditors';
-import { hit, size } from '@/design';
-import { useColours } from '@/ui/kit/useColours';
-import { Icon } from '@/ui/kit/Icon';
+import { useExploreApi, type SearchSince } from '@/discover/explore-api';
+import { DiscoverGlow } from '@/ui/discover/DiscoverGlow';
+import { useMomentActions } from '@/ui/discover/useMomentActions';
 import { GENRES } from '@/discover/genres';
-import { addHistory, clearHistory, readHistory, recentSearches } from '@/search/history';
+import { addHistory, clearHistory, readHistory } from '@/search/history';
 import { suggestions } from '@/search/suggest';
 // M25 A7: the admin's search words and the number of category tiles (defaults: as before).
 import { tryWords } from '@/config/hints';
-import { listSize } from '@/config/store';
-import { splitMatch } from '@/search/match';
 import { useSafety } from '@/safety/context';
+import { SearchHome, Suggestions } from './SearchHome';
+import { SearchZone } from './SearchZone';
+import { SearchResults, type PeopleView } from './SearchResults';
+import { WithMoments, type MomentResultsState } from './MomentResults';
+import type { Person } from './PeopleResults';
+import type { EpisodeActions } from './EpisodeResults';
+import type { ShowActions } from './ShowResults';
+import { SINCE, TAB_KEYS, type Tab } from './search-tabs';
 
-const TAP = { minHeight: hit.min, minWidth: hit.min };
-const ROW = { minHeight: size.row };
-/** `Search-B`: the box is 56 pt tall; a category tile 64. */
-const BOX = { minHeight: 56 };
-const TILE = { minHeight: 64 };
-/** `Search-B`: "Try searching" numbers 1–3 are in the accent, the rest muted. */
-const LEAD = 3;
-/** How long the box takes to move between Discover's place and the top. */
-const MOVE_MS = 260;
-/** On "All", this many shows sit above the episodes; the Shows tab has the rest. */
-const ALL_SHOWS = 3;
-/** Owner, 2026-10-01: on "All", at most this many episodes; the Episodes tab has the rest. */
-const ALL_EPISODES = 5;
+/** How long the box takes to move between Discover's place and the top (drawn: 280 ms, home--search-overlay). */
+const MOVE_MS = 280;
 /** Owner, 2026-10-01: while typing, at most this many shows above the names to search for. */
 const TYPED_SHOWS = 4;
+/**
+ * Drawn: the zone sits 40 from the screen's foot (the 34 home strip and 6). The app's root already keeps that
+ * strip clear (`SafeAreaView edges=['bottom']`, app/_layout.tsx), so inside the page it is 6 up from the foot —
+ * the same place on every phone (the comments page does the same). Over the keyboard it is 8 above it.
+ */
+const ZONE_REST = 6;
+const ZONE_OVER_KEYBOARD = 8;
+/** The content starts 8 under the status bar; on a result page 14 (the drawing's `scroll(…, 64)` against 58). */
+const BODY_TOP = 8;
+const RESULTS_TOP = 14;
+/** The fade behind the zone: 240 tall at rest; over the keyboard 160 tall, standing on it. */
+const FADE_REST = 240;
+const FADE_KEYBOARD = 160;
+const NO_MOMENTS: MomentResultsState = { status: 'ready', hits: [] };
 
 type CatalogueState = { kind: 'idle' } | { kind: 'loading' } | { kind: 'ok'; result: SearchResult } | { kind: 'error'; message: string };
 type PeopleState = { kind: 'idle' } | { kind: 'loading' } | { kind: 'ok'; people: { id: string; displayName: string }[] } | { kind: 'error'; message: string };
-type Tab = 'all' | 'shows' | 'episodes' | 'people';
-const TABS: { key: Tab; label: string }[] = [{ key: 'all', label: 'All' }, { key: 'shows', label: 'Shows' }, { key: 'episodes', label: 'Episodes' }, { key: 'people', label: 'People' }];
-
-/** M21: the date chips; `since` is what the server takes. */
-const SINCE: { key: SearchSince; label: string; days?: number }[] = [
-  { key: 'any', label: 'Any' }, { key: '30d', label: 'Last 30 days', days: 30 }, { key: '180d', label: 'Last 6 months', days: 180 },
-];
-const TAB_KEYS: Tab[] = ['all', 'shows', 'episodes', 'people'];
 
 /** M21 T060: a row's ⋯ opens the shared episode sheet (CardSheetHost below resolves the card). */
 const onMore = openCardSheet;
 
-/** Owner, 2026-10-01: a name with the typed part in the accent colour. */
-function Marked(props: { text: string; term: string; bold?: boolean; lines?: number }): React.ReactElement {
-  return (
-    <Text className={props.bold ? 'text-text text-sm font-display-semibold flex-1' : 'text-text text-body flex-1'} numberOfLines={props.lines ?? 1}>
-      {splitMatch(props.text, props.term).map((s, i) => (
-        <Text key={i} className={s.match ? 'text-accent' : 'text-text'}>{s.text}</Text>
-      ))}
-    </Text>
-  );
+/** The keyboard's height on iOS, where the window does not shrink for it (Android resizes the window itself). */
+function useKeyboardHeight(): number {
+  const [height, setHeight] = useState(0);
+  useEffect(() => {
+    if (Platform.OS !== 'ios') return undefined;
+    const show = Keyboard.addListener('keyboardWillShow', (e) => setHeight(e.endCoordinates.height));
+    const hide = Keyboard.addListener('keyboardWillHide', () => setHeight(0));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
+  return height;
 }
 
 export type SearchPageProps = {
@@ -146,15 +149,17 @@ export type SearchPageProps = {
 export function SearchPage(props: SearchPageProps): React.ReactElement {
   const router = useRouter();
   const stores = useStores();
-  const c = useColours(stores.settings);
+  // The root keeps the home strip clear (edges bottom); it is read only to take it off the keyboard's height.
+  const { top: statusBar, bottom: homeStrip } = useSafeAreaInsets();
   const { api } = useSocial();
   const { open, view } = useDiscover();
   const { play } = useCardActions();
+  const moment = useMomentActions(view?.body);
   const explore = useExploreApi();
   const [since, setSince] = useState<SearchSince>('any');
   const { hiddenFeeds, listeners: safeListeners } = useSafety();
   const subscriptionSync = useSubscriptionSync();
-  // Bumped by a Subscribe tap so the pills re-read `stores.subscriptions`.
+  // Bumped by a Subscribe tap so the buttons re-read `stores.subscriptions`.
   const [, setSubVersion] = useState(0);
   const params = props;
   const [term, setTerm] = useState(params.q ?? '');
@@ -187,6 +192,7 @@ export function SearchPage(props: SearchPageProps): React.ReactElement {
     },
   });
   const type = (t: string) => { setTerm(t); setSubmitted(undefined); };
+  const clear = () => { setTerm(''); setSubmitted(undefined); setTab('all'); };
   const [catalogue, setCatalogue] = useState<CatalogueState>({ kind: 'idle' });
   const requestId = useRef(0);
   const trimmed = term.trim();
@@ -196,9 +202,8 @@ export function SearchPage(props: SearchPageProps): React.ReactElement {
   const move = useRef(new Animated.Value(fromY === undefined ? 1 : 0)).current;
   const [delta, setDelta] = useState(0);
   const [placed, setPlaced] = useState(fromY === undefined);
-  const still = useRef(false);
+  const still = { current: useReducedMotion() };
   const bar = useRef<ComponentRef<typeof View>>(null);
-  useEffect(() => { void AccessibilityInfo.isReduceMotionEnabled().then((v) => { still.current = v; }).catch(() => undefined); }, []);
   const place = () => {
     if (placed || fromY === undefined || !bar.current) return;
     bar.current.measureInWindow((_x, y) => {
@@ -228,9 +233,13 @@ export function SearchPage(props: SearchPageProps): React.ReactElement {
   const barY = move.interpolate({ inputRange: [0, 1], outputRange: [delta, 0] });
   const fadeIn = move.interpolate({ inputRange: [0, 0.6, 1], outputRange: [0, 0, 1] });
   // Phone check 2026-10-01: Discover stays visible under this page (drawn in place, M17) while the
-  // page's own background fades in. M17 (`Search-B`): "Cancel" sits in the title row now, so the
-  // box keeps Discover's full width throughout.
+  // page's own background fades in.
   const backdrop = move.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
+  const keyboard = useKeyboardHeight();
+  // The keyboard's height counts the home strip the root leaves clear, so it comes off.
+  const lift = keyboard > 0 ? Math.max(0, keyboard - homeStrip) : 0;
+  const zoneBottom = keyboard > 0 ? lift + ZONE_OVER_KEYBOARD : ZONE_REST;
+  const [zoneHeight, setZoneHeight] = useState(0);
 
   const library = useMemo(() => (trimmed === '' ? { shows: [], episodes: [] } : searchLibrary(stores, trimmed)), [stores, trimmed]);
 
@@ -252,17 +261,17 @@ export function SearchPage(props: SearchPageProps): React.ReactElement {
     return () => clearTimeout(timer);
   }, [trimmed, api, explore, since]);
 
-  // Owner, 2026-10-01: People — asked for only when the People tab is open on a result page.
+  // Owner, 2026-10-01: People — asked for only when the People tab (or, since T030, All, which previews them) is open on a result page.
   const [people, setPeople] = useState<PeopleState>({ kind: 'idle' });
   const peopleId = useRef(0);
   const peopleFor = useRef<string | undefined>(undefined);
   useEffect(() => {
-    if (submitted === undefined || tab !== 'people') return;
+    if (submitted === undefined || (tab !== 'people' && tab !== 'all')) return;
     if (peopleFor.current === submitted) return; // already asked for this term
     const mine = ++peopleId.current;
     setPeople({ kind: 'loading' });
     api.searchPeople(submitted)
-      .then((list) => { if (mine === peopleId.current) { peopleFor.current = submitted; setPeople({ kind: 'ok', people: list }); } })
+      .then((list) => { if (mine === peopleId.current) { peopleFor.current = submitted; setPeople({ kind: 'ok', people: Array.isArray(list) ? list : [] }); } })
       .catch((e: unknown) => {
         if (mine !== peopleId.current) return;
         const message = e instanceof ApiError
@@ -314,242 +323,115 @@ export function SearchPage(props: SearchPageProps): React.ReactElement {
     subscriptionSync.push();
     setSubVersion((v) => v + 1);
   };
-
-  const showRows = (list: typeof merged.shows) => list.map((s, i) => {
-    const on = stores.subscriptions.has(s.feedUrl);
-    return (
-      <Box key={s.feedUrl} className={`flex-row items-center gap-row ${i === list.length - 1 ? '' : 'border-b-hairline border-separator'}`}>
-        <Pressable className="flex-1 flex-row items-center gap-row py-gap" accessibilityRole="button" accessibilityLabel={`${s.title}, ${s.author}`} onPress={() => openShow(s.feedUrl)}>
-          {/* Phone walk 2026-09-30: shows with no (or a broken) image were blank grey squares. */}
-          <Artwork url={s.imageUrl} size={56} rounded="row" name={s.title} />
-          <Box className="flex-1">
-            <Box className="flex-row"><Marked text={s.title} term={submitted ?? trimmed} bold lines={2} /></Box>
-            <Text className="text-meta text-muted" numberOfLines={1}>{s.author}{libShowKeys.has(s.feedUrl) ? ' · in your library' : ''}</Text>
-          </Box>
-        </Pressable>
-        {/* Owner, 2026-10-01: subscribe from the result, as on the show page. */}
-        <Pressable onPress={() => toggleSubscription(s.feedUrl)} accessibilityRole="button" accessibilityLabel={on ? `Unsubscribe from ${s.title}` : `Subscribe to ${s.title}`} accessibilityState={{ selected: on }}
-          className={`justify-center px-section rounded-pill ${on ? 'bg-surface border border-border' : 'bg-primary'}`} style={TAP}>
-          <Text className={on ? 'text-xs font-bold text-muted' : 'text-xs font-bold text-onPrimary'}>{on ? 'Subscribed' : 'Subscribe'}</Text>
-        </Pressable>
-      </Box>
-    );
-  });
-  // Owner, 2026-10-01: "More ›" on an All section when its tab has more than All shows.
-  const more = (label: string, to: Tab) => (
-    <Pressable onPress={() => setTab(to)} accessibilityRole="button" accessibilityLabel={`More ${label.toLowerCase()}`} className="justify-center pl-row" style={TAP}>
-      <Text className="text-accent text-meta font-semibold">More ›</Text>
-    </Pressable>
+  const showActions: ShowActions = {
+    isSubscribed: (f) => stores.subscriptions.has(f),
+    inLibrary: (f) => libShowKeys.has(f),
+    onOpen: openShow,
+    onToggle: toggleSubscription,
+  };
+  const episodeActions: EpisodeActions = {
+    inLibrary: (id) => libEpisodeKeys.has(id),
+    onOpen: (e) => {
+      remember(trimmed);
+      const mine = libEpisodeKeys.has(e.id);
+      if (mine && pane) pane(e.id);
+      else if (mine) router.push({ pathname: '/episode/[id]', params: { id: e.id } });
+      else void open(e, pane);
+    },
+    onPlay: (e) => { remember(trimmed); void play(e); },
+    onMore,
+  };
+  const openPerson = (p: Person) => { remember(trimmed); router.push({ pathname: '/profile/[id]', params: { id: p.id } }); };
+  const peopleView: PeopleView = {
+    loading: people.kind === 'loading',
+    ...(people.kind === 'error' ? { error: people.message } : {}),
+    people: shownPeople,
+    loaded: people.kind === 'ok',
+  };
+  const catalogueView = {
+    kind: catalogue.kind,
+    ...(catalogue.kind === 'error' ? { message: catalogue.message } : {}),
+    ...(catalogue.kind === 'ok' && catalogue.result.episodeSearch === 'unavailable' ? { episodeSearchDown: true } : {}),
+  };
+  const resultsFor = (moments: MomentResultsState): React.ReactElement => (
+    <SearchResults
+      tab={tab}
+      onTab={setTab}
+      term={submitted ?? trimmed}
+      catalogue={catalogueView}
+      shows={merged.shows}
+      episodes={merged.episodes}
+      nothing={nothing}
+      top={statusBar + RESULTS_TOP}
+      showActions={showActions}
+      episodeActions={episodeActions}
+      moments={moments}
+      onPlayMoment={moment.playFull}
+      people={peopleView}
+      onOpenPerson={openPerson}
+    />
   );
-  const sectionHead = (label: string, to: Tab, extra: boolean) => (
-    <Box className="flex-row items-center justify-between mt-section">
-      <Eyebrow accent>{label}</Eyebrow>
-      {extra ? more(label, to) : null}
-    </Box>
-  );
-  // M21 T087: rich rows — the match marked, counts, ▶ and ⋯.
-  const episodeRows = (list: typeof merged.episodes) => list.map((e) => {
-    const stats = (e as RichEpisode).stats;
-    const mine = libEpisodeKeys.has(e.id);
-    return (
-      <Box key={`${e.feedUrl}\u0001${e.guid}`} className="flex-row items-center gap-row py-row border-b-hairline border-separator">
-        <Pressable onPress={() => { remember(trimmed); if (mine && pane) pane(e.id); else if (mine) router.push({ pathname: '/episode/[id]', params: { id: e.id } }); else void open(e, pane); }} accessibilityRole="button" accessibilityLabel={`${e.title}, ${e.showTitle}${mine ? '. In your library' : ''}`} className="flex-1 flex-row items-center gap-row" style={TAP}>
-          <Artwork url={e.imageUrl} size={56} rounded="row" name={e.showTitle} />
-          <Box className="flex-1 gap-0.5">
-            <Box className="flex-row"><Marked text={e.title} term={submitted ?? trimmed} bold lines={2} /></Box>
-            <Box className="flex-row"><Marked text={mine ? `${e.showTitle} · in your library` : e.showTitle} term={submitted ?? trimmed} /></Box>
-            {stats ? <StatsLine stats={stats} /> : null}
-          </Box>
-        </Pressable>
-        <Pressable onPress={() => onMore(e)} accessibilityRole="button" accessibilityLabel={`More for ${e.title}`} className="items-center justify-center" style={TAP}>
-          <Icon name="ellipsis-horizontal" size={20} color={c.muted} />
-        </Pressable>
-        <PlayButton title={e.title} onPress={() => { remember(trimmed); void play(e); }} />
-      </Box>
-    );
-  });
 
   return (
-    <SafeAreaView className="flex-1">
-      <Animated.View pointerEvents="none" className="absolute inset-0 bg-background" style={{ opacity: backdrop }} />
-      {/* M17 (`Search-B`): the page's name in serif, "Cancel" in the accent on its right. */}
-      <Animated.View className="flex-row items-center justify-between px-screen-x pt-row" style={{ opacity: fadeIn }}>
-        <Text className="text-text text-display font-display" accessibilityRole="header">Search</Text>
-        <Pressable onPress={leave} accessibilityRole="button" accessibilityLabel="Cancel" className="justify-center pl-row" style={TAP}>
-          <Text className="text-accent text-body font-bold" numberOfLines={1}>Cancel</Text>
-        </Pressable>
+    <Box className="flex-1">
+      <Animated.View pointerEvents="none" className="absolute inset-0 bg-void" style={{ opacity: backdrop }}>
+        <DiscoverGlow swap top={-260} strength={0.25} />
       </Animated.View>
-      <Box className="px-screen-x mt-gap">
-        <Animated.View
-          ref={bar}
-          collapsable={false}
-          onLayout={place}
-          className="flex-row items-center bg-surface rounded-row border-[1.5px] border-text pl-section pr-1"
-          style={{ ...BOX, opacity: placed ? 1 : 0, transform: [{ translateY: barY }] }}
-        >
-          {/* M12 FR-010 (B10): the same magnifier and scan marks as the Discover bar. */}
-          <Icon name="search-outline" size={18} color={c.muted} />
-          <Input className="flex-1 border-0 h-auto px-0 w-auto">
-            <InputField
-            placeholderTextColor={c.muted} placeholder={params.hint ?? 'Search shows and episodes, or paste a feed URL'} autoCorrect={false} autoFocus={params.q === undefined} returnKeyType="search"
-            value={term} onChangeText={type} onSubmitEditing={() => run(term.trim() === '' && params.hint ? params.hint : term)} accessibilityLabel="Search podcasts"  className="px-row py-row text-text text-sm" />
-          </Input>
-          <Pressable onPress={() => router.push('/scan')} accessibilityRole="button" accessibilityLabel="Scan a QR code" className="items-center justify-center" style={TAP}>
-            <Icon name="scan-outline" size={22} color={c.text} />
-          </Pressable>
-        </Animated.View>
-      </Box>
       <Animated.View className="flex-1" style={{ opacity: fadeIn }}>
-      {results ? (
-        <Box className="flex-row gap-1 p-1 bg-surface border border-border rounded-pill mx-screen-x mt-row" accessibilityRole="tablist">
-          {TABS.map((t) => (
-            <Pressable key={t.key} onPress={() => setTab(t.key)} accessibilityRole="tab" accessibilityState={{ selected: tab === t.key }} accessibilityLabel={t.label} className={`flex-1 items-center justify-center rounded-pill ${tab === t.key ? 'bg-primary' : ''}`} style={TAP}>
-              <Text className={tab === t.key ? 'text-onPrimary text-body font-bold' : 'text-muted text-body'}>{t.label}</Text>
-            </Pressable>
-          ))}
-        </Box>
-      ) : null}
-      {results && tab !== 'shows' && tab !== 'people' ? (
-        <Box className="flex-row gap-gap mx-screen-x mt-gap" accessibilityRole="radiogroup" accessibilityLabel="Published">
-          {SINCE.map((x) => (
-            <Pressable key={x.key} onPress={() => setSince(x.key)} accessibilityRole="radio" accessibilityState={{ checked: since === x.key }} accessibilityLabel={`Published: ${x.label}`} className={`justify-center px-row rounded-pill border ${since === x.key ? 'bg-primary border-primary' : 'bg-surface border-border'}`} style={TAP}>
-              <Text className={since === x.key ? 'text-onPrimary text-meta font-bold' : 'text-text text-meta'}>{x.label}</Text>
-            </Pressable>
-          ))}
-        </Box>
-      ) : null}
-      <ListDetail
-        placeholder="Choose an episode to see it here."
-        detail={paneId !== undefined ? <EpisodePane episodeId={paneId} onOpenPage={() => router.push({ pathname: '/episode/[id]', params: { id: paneId } })} /> : undefined}
-        list={
-      <GestureDetector gesture={tabSwipe}>
-      <ScrollView contentContainerClassName="px-screen-x pb-24" keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
-        {trimmed === '' ? (
-          <Box>
-            {tryThese.length > 0 ? (
-              <>
-                <Eyebrow accent className="mt-section mb-gap">Try searching</Eyebrow>
-                {/* M17 (`Search-B`): a numbered card — serif numbers, the first three in the accent. */}
-                <Card>
-                  {tryThese.map((t, i) => (
-                    <Pressable key={t} onPress={() => run(t)} accessibilityRole="button" accessibilityLabel={`Search for ${t}`} className={`flex-row items-center gap-row ${i === 0 ? '' : 'border-t-hairline border-separator'}`} style={TAP}>
-                      <Text className={i < LEAD ? 'w-6 text-base font-display text-accent' : 'w-6 text-base font-display text-muted'}>{String(i + 1)}</Text>
-                      <Text className="flex-1 text-text text-title font-display-semibold" numberOfLines={1}>{t}</Text>
-                      <Icon name="search-outline" size={16} color={c.muted} />
-                    </Pressable>
-                  ))}
-                </Card>
-              </>
-            ) : null}
-            <Box className="flex-row items-center justify-between mt-section">
-              <Eyebrow accent>Categories</Eyebrow>
-              <Pressable onPress={() => router.push({ pathname: '/category/[id]', params: { id: String(GENRES[0]!.id) } })} accessibilityRole="link" accessibilityLabel="Browse categories" className="justify-center pl-row" style={TAP}>
-                <Text className="text-accent text-meta font-semibold">Browse categories ›</Text>
-              </Pressable>
-            </Box>
-            {/* M17 (`Search-B`): a two-column grid of tiles — the category's icon, then its name. */}
-            <Box className="flex-row flex-wrap justify-between gap-y-2">
-              {GENRES.slice(0, listSize('searchCategories')).map((g) => (
-                <Pressable key={g.id} onPress={() => router.push({ pathname: '/category/[id]', params: { id: String(g.id) } })} accessibilityRole="button" accessibilityLabel={g.name} className="bg-surface border border-border rounded-row justify-between px-row py-2.5 gap-1.5 w-[48.5%]" style={TILE}>
-                  <Icon name={g.icon} size={18} color={c.accent} />
-                  <Text className="text-text text-meta font-semibold" numberOfLines={1}>{g.name}</Text>
-                </Pressable>
-              ))}
-            </Box>
-            {/* M12 FR-073: "Recent" — the last 10 searches, newest first, each one tap away. */}
-            {history.length > 0 ? (
-              <>
-                <Box className="flex-row items-center justify-between mt-row">
-                  <Eyebrow accent>Recent</Eyebrow>
-                  {/* Owner, 2026-10-01: a trash button, not the word "Clear". */}
-                  <Pressable onPress={() => { clearHistory(stores.settings); setHistory([]); }} accessibilityRole="button" accessibilityLabel="Clear recent searches" className="items-center justify-center" style={TAP}>
-                    <Icon name="trash-outline" size={18} color={c.muted} />
-                  </Pressable>
-                </Box>
-                {/* M17 (`Search-B`): rows with a clock (they were wrapping chips, 2026-10-01). */}
-                {recentSearches(history).map((h) => (
-                  <Pressable key={h} onPress={() => run(h)} accessibilityRole="button" accessibilityLabel={`Search for ${h}`} className="flex-row items-center gap-row" style={TAP}>
-                    <Icon name="time-outline" size={16} color={c.muted} />
-                    <Text className="flex-1 text-text text-body" numberOfLines={1}>{h}</Text>
-                  </Pressable>
-                ))}
-              </>
-            ) : null}
-          </Box>
-        ) : null}
-        {looksLikeFeedUrl(trimmed) ? (
-          <Pressable className="py-2.5" accessibilityRole="button" onPress={() => openShow(trimmed)}><Text className="text-accent">Open feed {trimmed}</Text></Pressable>
-        ) : null}
-
-        {/* Typing: the term itself, then names from what matched so far. */}
-        {!results && trimmed !== '' && !looksLikeFeedUrl(trimmed) ? (
-          <Box>
-            <Pressable onPress={() => run(trimmed)} accessibilityRole="button" accessibilityLabel={`Search for ${trimmed}`} className="flex-row items-center gap-row border-b-hairline border-separator" style={ROW}>
-              <Icon name="search-outline" size={18} color={c.muted} />
-              <Text className="text-accent text-sm flex-1" numberOfLines={1}>{`Search “${trimmed}”`}</Text>
-            </Pressable>
-            {/* Owner, 2026-10-01: the matching shows first — artwork and name, opening the show. */}
-            {merged.shows.slice(0, TYPED_SHOWS).map((s) => (
-              <Pressable key={s.feedUrl} onPress={() => openShow(s.feedUrl)} accessibilityRole="button" accessibilityLabel={`Open ${s.title}`} className="flex-row items-center gap-row border-b-hairline border-separator" style={ROW}>
-                <Artwork url={s.imageUrl} size={32} rounded="row" name={s.title} />
-                <Marked text={s.title} term={trimmed} />
-              </Pressable>
-            ))}
-            {typed.map((name, i) => (
-              <Pressable key={`${i}\u0001${name}`} onPress={() => run(name)} accessibilityRole="button" accessibilityLabel={`Search for ${name}`} className="flex-row items-center gap-row border-b-hairline border-separator" style={ROW}>
-                <Icon name="search-outline" size={18} color={c.muted} />
-                <Marked text={name} term={trimmed} />
-              </Pressable>
-            ))}
-          </Box>
-        ) : null}
-
-        {results ? (
-          <Box>
-            {tab !== 'people' ? (
-              <>
-                {catalogue.kind === 'loading' ? <Loader className="my-section" /> : null}
-                {catalogue.kind === 'error' ? <Text className="my-2 text-accent bg-surface p-2 rounded-row">{catalogue.message}</Text> : null}
-                {catalogue.kind === 'ok' && catalogue.result.episodeSearch === 'unavailable' ? <Text className="my-2 text-accent bg-surface p-2 rounded-row">Episode search is unavailable right now — shows only.</Text> : null}
-                {nothing ? <EmptyState surface="search" page /> : null}
-                {/* M22 US17 item 3: send the words to the editors. */}
-                {nothing ? <TellEditors key={trimmed} q={trimmed} /> : null}
-              </>
-            ) : null}
-
-            {tab === 'all' ? (
-              <>
-                {merged.shows.length > 0 ? sectionHead('Shows', 'shows', merged.shows.length > ALL_SHOWS) : null}
-                {merged.shows.length > 0 ? <Card className="mt-gap">{showRows(merged.shows.slice(0, ALL_SHOWS))}</Card> : null}
-                {merged.episodes.length > 0 ? sectionHead('Episodes', 'episodes', merged.episodes.length > ALL_EPISODES) : null}
-                {episodeRows(merged.episodes.slice(0, ALL_EPISODES))}
-              </>
-            ) : null}
-            {tab === 'shows' ? (catalogue.kind !== 'loading' && merged.shows.length === 0 && !nothing ? <Text className="text-muted text-sm mt-section">No shows match.</Text> : (merged.shows.length > 0 ? <Card className="mt-section">{showRows(merged.shows)}</Card> : null)) : null}
-            {tab === 'episodes' ? (catalogue.kind !== 'loading' && merged.episodes.length === 0 && !nothing ? <Text className="text-muted text-sm mt-section">No episodes match.</Text> : episodeRows(merged.episodes)) : null}
-            {/* Owner, 2026-10-01: People — listeners by name, opening their profile. */}
-            {tab === 'people' ? (
-              <Box>
-                {people.kind === 'loading' ? <Loader className="my-section" /> : null}
-                {people.kind === 'error' ? <Text className="my-2 text-accent bg-surface p-2 rounded-row">{people.message}</Text> : null}
-                {people.kind === 'ok' && shownPeople.length === 0 ? <Text className="text-muted text-sm mt-section">No one by that name.</Text> : null}
-                {shownPeople.map((p) => (
-                  <Pressable key={p.id} onPress={() => { remember(trimmed); router.push({ pathname: '/profile/[id]', params: { id: p.id } }); }} accessibilityRole="link" accessibilityLabel={p.displayName ?? 'Listener'}
-                    className="flex-row items-center gap-row py-2 border-b-hairline border-separator" style={ROW}>
-                    <Artwork url={null} size={40} rounded="pill" name={p.displayName ?? undefined} />
-                    <Marked text={p.displayName ?? ''} term={submitted ?? trimmed} />
-                  </Pressable>
-                ))}
-              </Box>
-            ) : null}
-          </Box>
-        ) : null}
-      </ScrollView>
-      </GestureDetector>
-        }
-      />
+        <ListDetail
+          placeholder="Choose an episode to see it here."
+          detail={paneId !== undefined ? <EpisodePane episodeId={paneId} onOpenPage={() => router.push({ pathname: '/episode/[id]', params: { id: paneId } })} /> : undefined}
+          list={
+            <GestureDetector gesture={tabSwipe}>
+              <ScrollView
+                contentContainerStyle={{ paddingTop: statusBar + (results ? RESULTS_TOP : BODY_TOP), paddingBottom: zoneHeight + zoneBottom + spacing.section }}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
+              >
+                {trimmed === '' ? (
+                  <SearchHome
+                    history={history}
+                    tryThese={tryThese}
+                    onSearch={run}
+                    onClear={() => { clearHistory(stores.settings); setHistory([]); }}
+                    onGenre={(id) => router.push({ pathname: '/category/[id]', params: { id: String(id) } })}
+                    onBrowse={() => router.push({ pathname: '/category/[id]', params: { id: String(GENRES[0]!.id) } })}
+                  />
+                ) : null}
+                {/* A pasted feed address opens as a feed; otherwise, while typing: the term, then names from what matched so far. */}
+                {trimmed !== '' && (looksLikeFeedUrl(trimmed) || !results) ? (
+                  <Suggestions term={trimmed} isFeed={looksLikeFeedUrl(trimmed)} shows={merged.shows.slice(0, TYPED_SHOWS)} names={typed} onSearch={run} onShow={openShow} />
+                ) : null}
+                {results && !looksLikeFeedUrl(trimmed)
+                  ? (tab === 'moments' ? <WithMoments term={submitted}>{resultsFor}</WithMoments> : resultsFor(NO_MOMENTS))
+                  : null}
+              </ScrollView>
+            </GestureDetector>
+          }
+        />
       </Animated.View>
+      <Fade bottom={lift} height={keyboard > 0 ? FADE_KEYBOARD : FADE_REST} />
+      <SearchZone
+        bottom={zoneBottom}
+        results={results}
+        nothing={nothing === true}
+        tab={tab}
+        onTab={setTab}
+        since={since}
+        onSince={setSince}
+        term={term}
+        placeholder={params.hint ?? 'Search shows and episodes, or paste a feed URL'}
+        autoFocus={params.q === undefined}
+        onChangeText={type}
+        onSubmit={() => run(term.trim() === '' && params.hint ? params.hint : term)}
+        onClear={clear}
+        onCancel={leave}
+        onScan={() => router.push('/scan')}
+        field={{ ref: bar, onLayout: place, style: { opacity: placed ? 1 : 0, transform: [{ translateY: barY }] } }}
+        fadeIn={fadeIn}
+        onHeight={setZoneHeight}
+      />
       <CardSheetHost />
-    </SafeAreaView>
+    </Box>
   );
 }

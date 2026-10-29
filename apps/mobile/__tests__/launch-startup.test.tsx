@@ -23,7 +23,10 @@ import { syncLaunch } from '@/launch/sync';
 import type { LaunchFiles } from '@/launch/launch-files';
 import { createMemorySettingsStore } from '@/storage/memory';
 import { setPref } from '@/settings/prefs';
-import { LaunchScreen } from '@/ui/shell/LaunchScreen';
+import { Animated } from 'react-native';
+import { LAUNCH_MAX_MS } from '@/launch/choose';
+import { LAUNCH_FADE_MS, LaunchScreen } from '@/ui/shell/LaunchScreen';
+import { setReducedMotionForTest } from '@/ui/kit/useReducedMotion';
 
 const NOW = Date.parse('2026-10-01T09:00:00Z');
 const promo = (id: string, over: Partial<Promotion> = {}): Promotion => ({
@@ -177,7 +180,39 @@ describe('the overlay', () => {
       && n.props['accessible'] !== false && n.props['accessibilityElementsHidden'] !== true);
     expect(reachable[0]?.props['accessibilityLabel']).toBe('Skip');
     expect(JSON.stringify(r.toJSON())).toContain('Promotion');
-    expect(JSON.stringify(r.toJSON())).toContain('Skip 3');
+    const json = JSON.stringify(r.toJSON());
+    expect(json).toContain('Skip');
+    expect(json).toContain('Open →');
+    // The countdown ring's number, and the screen reader's hint.
+    expect(r.root.findByProps({ testID: 'launch-count' }).props['children']).toBe('3');
+    expect(byLabel(r, 'Skip').props['accessibilityHint']).toBe('Closes in 3 seconds');
+  });
+
+  it('the ring counts down 3, 2, 1 and the hint follows', () => {
+    const { r } = mount(true);
+    act(() => { jest.advanceTimersByTime(1_000); });
+    expect(r.root.findByProps({ testID: 'launch-count' }).props['children']).toBe('2');
+    expect(byLabel(r, 'Skip').props['accessibilityHint']).toBe('Closes in 2 seconds');
+    act(() => { jest.advanceTimersByTime(1_000); });
+    expect(r.root.findByProps({ testID: 'launch-count' }).props['children']).toBe('1');
+  });
+
+  it('fades for 200 ms at the end (done only after it) — and not at all with Reduce Motion', () => {
+    setReducedMotionForTest(false);
+    const fade = mount(true, { onDone: jest.fn() });
+    act(() => { jest.advanceTimersByTime(LAUNCH_MAX_MS - LAUNCH_FADE_MS - 1); });
+    expect(fade.props.onDone).not.toHaveBeenCalled();
+    act(() => { jest.advanceTimersByTime(LAUNCH_FADE_MS + 1); });
+    expect(fade.props.onDone).toHaveBeenCalledTimes(1);
+    // Reduce Motion: it goes at the start of what would have been the fade — no animation runs.
+    setReducedMotionForTest(true);
+    const spy = jest.spyOn(Animated, 'timing');
+    const still = mount(true, { onDone: jest.fn() });
+    act(() => { jest.advanceTimersByTime(LAUNCH_MAX_MS - LAUNCH_FADE_MS); });
+    expect(still.props.onDone).toHaveBeenCalledTimes(1);
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
+    setReducedMotionForTest(undefined);
   });
 
   it('the 3 s start only once the splash has hidden; then it closes by itself', () => {

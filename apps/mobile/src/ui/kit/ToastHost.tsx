@@ -10,17 +10,20 @@
  * On iOS the box is lifted above native modals too (../lib/above-modals), so a toast raised on a
  * page opened from Search is seen — not drawn underneath it. VoiceOver is not trapped in it.
  *
- * M17 (`Toast-B`, checked in T106–T111): B's toast is a white pill near the top — under the
- * page's back row, clear of the mini player — with a yellow disc holding a check, then the words
- * in bold. Wave 0 had made it a dark pill at the bottom. The top inset comes from the context,
- * not `useSafeAreaInsets`, so the host still draws without a provider (the toast tests).
+ * M31 T022 (design-pulse2 `toast`): the toast is Pulse's light pill (`Toast.tsx`) near the foot of
+ * the screen, above the tab bar and now bar — `toastBottom(safe)`. It was M17's white pill at the
+ * top (`Toast-B`). The lift follows the bars showing (`placement`, from
+ * `src/ui/shell/toastPlacement.ts`): 176 over both bars, 108 over the tab bar, 112 on the player. The safe-area inset comes from the context, not `useSafeAreaInsets`, so the host
+ * still draws without a provider (the toast tests).
  */
 import { useContext, useEffect } from 'react';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
-import { AccessibilityInfo, Platform, type ViewStyle } from 'react-native';
-import { Text } from '@/ui/lib/text';
+import { AccessibilityInfo, Platform } from 'react-native';
 import { Box } from '@/ui/lib/box';
 import { AboveModals } from '@/ui/lib/above-modals';
+import { toastBottom } from '@/design';
+import { publishToast, useToastLayer } from '@/ui/shell/toast-context';
+import { Toast } from './Toast';
 
 /** Speak a toast on iOS; Android reads the live region itself. */
 export function announceToast(message: string): void {
@@ -28,27 +31,21 @@ export function announceToast(message: string): void {
   try { AccessibilityInfo.announceForAccessibility(message); } catch { /* no screen reader API here */ }
 }
 
-/** Below the status bar and the page's 44 pt back row (B: 104 pt on a 44 pt inset). */
-const BELOW_BACK_ROW = 60;
-const DISC = { width: 26, height: 26 };
-/** A check drawn from two borders, on the disc. */
-const CHECK: ViewStyle = { width: 7, height: 12, borderRightWidth: 2, borderBottomWidth: 2, marginTop: -3, transform: [{ rotate: '45deg' }] };
-
-export function ToastHost(props: { message: string | undefined }): React.ReactElement | null {
-  const { message } = props;
+/** `placement`: which bars sit under the toast (default both, as on the tab screens); see `toastBottom`. */
+export function ToastHost(props: { message: string | undefined; placement?: Parameters<typeof toastBottom>[1] }): React.ReactElement | null {
+  const { message, placement } = props;
   const insets = useContext(SafeAreaInsetsContext);
+  const bottom = toastBottom(insets?.bottom ?? 0, placement);
+  const { sheets } = useToastLayer();
   useEffect(() => { if (message !== undefined) announceToast(message); }, [message]);
-  if (message === undefined) return null;
+  // M31 F14: an open sheet draws the toast inside its own Modal (ActionSheet); this copy would be hidden behind it.
+  useEffect(() => { publishToast(message, bottom); }, [message, bottom]);
+  useEffect(() => () => publishToast(undefined, 0), []);
+  if (message === undefined || sheets > 0) return null;
   return (
     <AboveModals modal={false}>
-      {/* M17 (`Toast-B`): a white pill near the top, a yellow disc with a check, bold words. */}
-      <Box className="absolute left-screen-x right-screen-x items-center" style={{ top: (insets?.top ?? 0) + BELOW_BACK_ROW }} pointerEvents="none">
-        <Box className="flex-row items-center gap-[10px] bg-surface border border-border rounded-pill pl-row pr-[18px] py-row max-w-full" accessibilityLiveRegion="polite">
-          <Box className="bg-primary rounded-pill items-center justify-center" style={DISC} accessible={false} importantForAccessibility="no-hide-descendants">
-            <Box className="border-onPrimary" style={CHECK} />
-          </Box>
-          <Text className="text-text text-body font-bold shrink">{message}</Text>
-        </Box>
+      <Box className="absolute inset-0" pointerEvents="box-none">
+        <Toast text={message} bottom={bottom} />
       </Box>
     </AboveModals>
   );

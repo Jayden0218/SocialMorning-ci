@@ -17,7 +17,7 @@ import * as K from '../../../ddb/keys.ts';
 import { batchGetAll } from '../../../ddb/batch.ts';
 import type { Item, Store } from '../../../ddb/store.ts';
 import { queryAll } from '../../../ddb/paginate.ts';
-import { catalogueItems } from '../../../../jobs/charts.ts';
+import { sharedPool } from './pool.ts';
 import type { EpisodeCard } from '../../../../catalog/apple.ts';
 import { hiddenFeedUrls } from '../../safety/moderation.ts';
 import { hiddenEpisodeIds } from '../../studio/hidden-episodes.ts';
@@ -147,7 +147,7 @@ export async function saidByIds(store: Store, db: Db, ids: readonly string[]): P
 /** M10b US5: the newest video episodes the server knows, hidden shows and episodes left out. */
 export async function videoEpisodes(store: Store, db: Db, limit = 10): Promise<{ kind: 'trending'; key: string; episode: EpisodeCard & { id: string; mediaKind: 'video' } }[]> {
   const [hidden, hiddenEps] = await Promise.all([hiddenFeedUrls(db), hiddenEpisodeIds(db)]);
-  const rows = (await catalogueItems(store)).map(epRowOf)
+  const rows = [...(await sharedPool(store)).rows]
     .filter((e) => e.media_kind === 'video' && !hidden.has(e.feed_url) && !hiddenEps.has(e.id))
     .sort((a, b) => {
       if (a.published_at !== b.published_at) {

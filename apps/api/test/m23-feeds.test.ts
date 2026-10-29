@@ -127,7 +127,8 @@ test('US3/US5: the sweep step deletes old caches, push_sent and rec_events — a
   const body = (await res.json()) as { done: boolean; counts: { cacheDeleted: number; pushSentDeleted: number; recEventsDeleted: number } };
   assert.equal(body.done, true);
   assert.deepEqual([body.counts.cacheDeleted, body.counts.pushSentDeleted, body.counts.recEventsDeleted], [2, sweptPushSent(t, 1), 1]);
-  assert.deepEqual(await cacheKeys(t), ['apple:search:shows:new', 'chart:v1:x', 'feed-block:https://kept', 'feed:https://new']);
+  // discover:pool:v1 is the snapshot the same sweep step writes (M32 lane FA); the sweep itself deletes none of it.
+  assert.deepEqual((await cacheKeys(t)).filter((k) => k !== 'discover:pool:v1'), ['apple:search:shows:new', 'chart:v1:x', 'feed-block:https://kept', 'feed:https://new']);
   assert.deepEqual(await pushSentEpisodeIds(t, { unexpired: true }), ['e-new']);
   assert.deepEqual(await recEventEpisodeIds(t), ['e-new']);
   await t.close();

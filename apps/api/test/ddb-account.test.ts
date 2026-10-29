@@ -22,7 +22,7 @@ if (!ON) {
   const { freshDb, signUp, TEST_PEPPER } = await import('./harness.ts');
   const { withStore } = await import('../src/db/backend-ddb.ts');
   const { wrapStore } = await import('../src/db/ddb/store.ts');
-  const { withFaults } = await import('../src/db/ddb/test-wrappers.ts');
+  const { withFaults } = await import('./ddb-wrappers.ts');
   const K = await import('../src/db/ddb/keys.ts');
   const { createListener } = await import('../src/db/repos/account/listeners.ts');
   const { listenerForToken } = await import('../src/auth/session.ts');

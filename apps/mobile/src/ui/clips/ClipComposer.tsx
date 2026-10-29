@@ -1,31 +1,40 @@
-// Make a clip: set start and end while listening, preview, add caption, save.
+// Make a clip: the episode ring with the range laid round it, start and end, nudges, caption, preview, save.
 /**
- * The clip composer (M4 US1, clarified: two buttons while listening). Reads the player's
- * live position for "Start here" / "End here"; Preview plays the range through the
- * runtime's clip mode; Save hands the range to `clips.create`.
+ * The clip composer (M4 US1, clarified: two buttons while listening). Reads the player's live position
+ * for "Start here" / "End here"; Preview plays the range through the runtime's clip mode; Save hands the range to
+ * `clips.create`.
  *
- * M17 (`ClipNew-B`): "From <episode>", then a range card (the length in serif, "Now at",
- * a strip showing the range, its edges and the play position), then Start and End side by
- * side as two cards (serif time, −5 s / +5 s pills, a tinted "Start here" / "End here"
- * pill), the caption box, and Preview + Save as a bar at the foot. The strip is drawn from
- * the range alone — the app has no waveform data, so it shows no fake peaks.
+ * M17 (`ClipNew-B`): range card, Start / End cards, caption, a Preview + Save bar. M31 W3-B (T041; design-pulse2
+ * `clip-new--screen`, `-saved-share-panel`, `toast--clip-new`; "Layout: Ring"): the episode's ring (280, the
+ * reaction curve as spokes, the cover in the middle) with the clip range laid round it as a light 6 arc — drag either
+ * end to change it (it reads "Clip range 12:02 to 12:32, 30 seconds"). Under it Start and End as solid chips either
+ * side of the length in Unbounded 26; the nudge rows `−5 s · Start here · +5 s` and `−5 s · End here · +5 s` (36 chips); a
+ * range that cannot be a clip says why. The thumb zone is the title bar: back, "New clip", "From … · now at 12:32", the
+ * Caption field (48) and Preview (quiet) with Save (light). The save flow is the page's (app/clip/new.tsx).
  */
-import { useState } from 'react';
-import { Textarea, TextareaInput } from '@/ui/lib/textarea';
+import { useMemo, useRef, useState } from 'react';
+import { PanResponder, Platform, useWindowDimensions } from 'react-native';
+import Svg, { Circle } from 'react-native-svg';
+import { KeyboardAvoidingView } from '@/ui/lib/keyboard-avoiding-view';
+import { Input, InputField } from '@/ui/lib/input';
 import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { BusyContent } from '@/ui/kit/BusyContent';
-import { ScrollView } from '@/ui/lib/scroll-view';
-import { usePlayer, usePlayerState, type PlayableEpisode } from '@/playback/store';
+import { usePlayer, usePlayerSelector, sameClock, selectClock, type PlayableEpisode } from '@/playback/store';
 import { canSave, endHere, nudgeEdge, openComposer, problemText, setCaption, startHere, type ComposerState } from '@/graph/composer';
 import { mmss } from '@/ui/kit/format';
-import { hit, tabular } from '@/design';
-import { useStores } from '@/ui/shell/providers';
-import { useColours } from '@/ui/kit/useColours';
-import { Card } from '@/ui/kit/Card';
-import { Eyebrow } from '@/ui/kit/Eyebrow';
-import { Icon } from '@/ui/kit/Icon';
+import { colour, gutter, radius, spacing } from '@/design';
+import { fractionAt } from '@/ui/kit/pulse-math';
+import { Artwork } from '@/ui/kit/Artwork';
+import { Ring } from '@/ui/kit/RingScrubber';
+import { PulseButton } from '@/ui/kit/PulseButton';
+import { PushedPage } from '@/ui/kit/PushedPage';
+import { TimestampChip } from '@/ui/kit/TimestampChip';
+import { Type } from '@/ui/kit/Type';
+import { PlayerBackdrop } from '@/ui/player/PlayerBackdrop';
+import { useEpisodeHeat } from '@/ui/discover/useEpisodeHeat';
+import { COMPOSER, clipsType } from './measures';
+
+export { COMPOSER };
 
 export type ClipComposerProps = {
   episode: PlayableEpisode;
@@ -37,173 +46,148 @@ export type ClipComposerProps = {
   saving: boolean;
 };
 
-const TAP = { minHeight: hit.min };
-const NUDGE = 'flex-1 border border-border rounded-pill items-center justify-center';
-const HERE = 'bg-accentTint rounded-pill items-center justify-center';
+const NO_HEAT: readonly number[] = [];
 
-/** The strip's window: the range with some context either side, inside the episode. */
-function windowOf(lo: number, hi: number, durationMs?: number): { from: number; to: number } {
-  const pad = Math.max(15_000, Math.round((hi - lo) * 0.5));
-  const from = Math.max(0, lo - pad);
-  const to = durationMs && durationMs > 0 ? Math.min(durationMs, hi + pad) : hi + pad;
-  return { from, to: Math.max(to, from + 1) };
+/** The range as shares of the episode, 0–1, for the arc. Undefined when the episode's length is not known. */
+export function rangeShares(range: { startMs: number; endMs: number }, durationMs: number | undefined): { from: number; to: number } | undefined {
+  if (!durationMs || !(durationMs > 0)) return undefined;
+  const lo = Math.min(range.startMs, range.endMs);
+  const hi = Math.max(range.startMs, range.endMs);
+  const from = Math.min(1, Math.max(0, lo / durationMs));
+  return { from, to: Math.max(from, Math.min(1, hi / durationMs)) };
+}
+
+/** Which end a touch at `fraction` of the circle grabs: the nearer one, if it is within `COMPOSER.grab`; else none. */
+export function edgeNear(fraction: number, shares: { from: number; to: number }): 'start' | 'end' | undefined {
+  const dist = (a: number, b: number): number => { const d = Math.abs(a - b); return Math.min(d, 1 - d); };
+  const ds = dist(fraction, shares.from);
+  const de = dist(fraction, shares.to);
+  const [edge, d] = ds <= de ? (['start', ds] as const) : (['end', de] as const);
+  return d <= COMPOSER.grab ? edge : undefined;
 }
 
 export function ClipComposer(props: ClipComposerProps): React.ReactElement {
-  const stores = useStores();
-  const c = useColours(stores.settings);
   const player = usePlayer();
-  const state = usePlayerState();
-  const position: number = 'positionMs' in state && typeof state.positionMs === 'number' ? state.positionMs : props.initialPositionMs;
+  const { width } = useWindowDimensions();
+  const clock = usePlayerSelector(selectClock, sameClock);
+  const position: number = clock.positionMs > 0 ? clock.positionMs : props.initialPositionMs;
   const [s, setS] = useState<ComposerState>(() => openComposer(props.episode.id, props.initialPositionMs, props.episode.durationMs, {
     ...(props.initialRange ? { range: props.initialRange } : {}),
     ...(props.initialCaption ? { caption: props.initialCaption } : {}),
   }));
+  const heat = useEpisodeHeat(props.episode.id, true);
+  const duration = props.episode.durationMs ?? heat.durationMs;
+  const size = Math.min(COMPOSER.ring, width - 2 * gutter(width) - 20);
+  const shares = rangeShares(s.range, duration);
   const length = Math.round((s.range.endMs - s.range.startMs) / 1000);
-  const lo = Math.min(s.range.startMs, s.range.endMs);
-  const hi = Math.max(s.range.startMs, s.range.endMs);
-  const w = windowOf(lo, hi, props.episode.durationMs);
-  const span = w.to - w.from;
-  const pct = (ms: number): `${number}%` => `${Math.min(100, Math.max(0, ((ms - w.from) / span) * 100))}%`;
-  const width: `${number}%` = `${Math.max(1, ((hi - lo) / span) * 100)}%`;
-  const nowIn = position >= w.from && position <= w.to;
   const blocked = !canSave(s) || props.saving;
-  return (
-    <Box className="flex-1 bg-background">
-      <ScrollView className="flex-1" contentContainerClassName="px-screen-x pt-1 pb-section gap-row" keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
-        <Text className="text-muted text-body" numberOfLines={2}>From <Text className="text-text text-body font-bold">{props.episode.title}</Text></Text>
+  const spoken = `Clip range ${mmss(s.range.startMs)} to ${mmss(s.range.endMs)}, ${length} seconds`;
 
-        <Card className="pt-section pb-row gap-gap">
-          <Box className="flex-row justify-between items-baseline">
-            <Text className="text-text text-hero font-display" style={tabular} accessibilityLabel={`Clip range ${mmss(s.range.startMs)} to ${mmss(s.range.endMs)}, ${length} seconds`}>{length} s</Text>
-            <Text className="text-muted text-meta" style={tabular}>Now at {mmss(position)}</Text>
-          </Box>
-          <Box className="h-11 justify-center" accessible={false}>
-            <Box className="h-2 rounded-pill bg-track" />
-            <Box className="absolute h-7 rounded-row bg-accent" style={{ left: pct(lo), width }} />
-            <Box className="absolute top-0 bottom-0 w-[3px] rounded-pill bg-text" style={{ left: pct(lo) }} />
-            <Box className="absolute top-0 bottom-0 w-[3px] rounded-pill bg-text" style={{ left: pct(hi) }} />
-            {nowIn ? <Box className="absolute -top-1 -bottom-1 w-px bg-primary" style={{ left: pct(position) }} /> : null}
-          </Box>
-          <Box className="flex-row justify-between">
-            <Text className="text-muted text-xs" style={tabular}>{mmss(w.from)}</Text>
-            <Text className="text-muted text-xs" style={tabular}>{mmss(w.to)}</Text>
-          </Box>
-        </Card>
+  // Drag either end of the arc: the nearer end follows the finger (validated like every other change).
+  const live = useRef({ s, shares, duration, size });
+  live.current = { s, shares, duration, size };
+  const grabbed = useRef<'start' | 'end' | undefined>(undefined);
+  const pan = useMemo(() => {
+    const at = (e: { nativeEvent: { locationX: number; locationY: number } }) => fractionAt(e.nativeEvent.locationX, e.nativeEvent.locationY, live.current.size / 2, live.current.size / 2);
+    const move = (e: { nativeEvent: { locationX: number; locationY: number } }) => {
+      const { duration: d, shares: sh } = live.current;
+      if (!grabbed.current || !d || !sh) return;
+      const ms = Math.round(at(e) * d);
+      setS((cur) => (grabbed.current === 'start' ? startHere(cur, ms) : endHere(cur, ms)));
+    };
+    return PanResponder.create({
+      onStartShouldSetPanResponder: (e) => { const sh = live.current.shares; return sh !== undefined && edgeNear(at(e), sh) !== undefined; },
+      onPanResponderGrant: (e) => { const sh = live.current.shares; grabbed.current = sh ? edgeNear(at(e), sh) : undefined; },
+      onPanResponderMove: move,
+      onPanResponderRelease: () => { grabbed.current = undefined; },
+      onPanResponderTerminate: () => { grabbed.current = undefined; },
+    });
+  }, []);
 
-        <Box className="flex-row gap-gap">
-          <Card className="flex-1 py-section gap-gap">
-            <Eyebrow>Start</Eyebrow>
-            <Text className="text-text text-lg font-display" style={tabular}>{mmss(s.range.startMs)}</Text>
-            <Box className="flex-row gap-gap">
-              <Pressable
-                className={NUDGE}
-                style={TAP}
-                onPress={() => setS(nudgeEdge(s, 'start', -1))}
-                accessibilityRole="button"
-                accessibilityLabel="Start 5 seconds earlier"
-              >
-                <Text className="text-text text-body font-semibold">−5 s</Text>
-              </Pressable>
-              <Pressable
-                className={NUDGE}
-                style={TAP}
-                onPress={() => setS(nudgeEdge(s, 'start', 1))}
-                accessibilityRole="button"
-                accessibilityLabel="Start 5 seconds later"
-              >
-                <Text className="text-text text-body font-semibold">+5 s</Text>
-              </Pressable>
-            </Box>
-            <Pressable
-              className={HERE}
-              style={TAP}
-              onPress={() => setS(startHere(s, position))}
-              accessibilityRole="button"
-              accessibilityLabel="Start here"
-            >
-              <Text className="text-accent text-body font-bold">Start here</Text>
-            </Pressable>
-          </Card>
-          <Card className="flex-1 py-section gap-gap">
-            <Eyebrow>End</Eyebrow>
-            <Text className="text-text text-lg font-display" style={tabular}>{mmss(s.range.endMs)}</Text>
-            <Box className="flex-row gap-gap">
-              <Pressable
-                className={NUDGE}
-                style={TAP}
-                onPress={() => setS(nudgeEdge(s, 'end', -1))}
-                accessibilityRole="button"
-                accessibilityLabel="End 5 seconds earlier"
-              >
-                <Text className="text-text text-body font-semibold">−5 s</Text>
-              </Pressable>
-              <Pressable
-                className={NUDGE}
-                style={TAP}
-                onPress={() => setS(nudgeEdge(s, 'end', 1))}
-                accessibilityRole="button"
-                accessibilityLabel="End 5 seconds later"
-              >
-                <Text className="text-text text-body font-semibold">+5 s</Text>
-              </Pressable>
-            </Box>
-            <Pressable
-              className={HERE}
-              style={TAP}
-              onPress={() => setS(endHere(s, position))}
-              accessibilityRole="button"
-              accessibilityLabel="End here"
-            >
-              <Text className="text-accent text-body font-bold">End here</Text>
-            </Pressable>
-          </Card>
-        </Box>
-
-        {s.problem ? <Text className="text-accent text-body">{problemText[s.problem]}</Text> : null}
-
-        <Box className="gap-gap">
-          <Text className="text-text text-meta font-bold">Caption <Text className="text-muted text-meta font-medium">(optional)</Text></Text>
-          <Textarea className="bg-surface border border-border rounded-row min-h-[72px] h-auto">
-          <TextareaInput
-            placeholderTextColor={c.muted}
-            className="p-row text-body text-text"
-            placeholder="Caption (optional)"
-            value={s.caption}
-            onChangeText={(t) => setS(setCaption(s, t))}
-            maxLength={200}
-            multiline
-            accessibilityLabel="Caption"
-          />
-          </Textarea>
-          <Text className="text-muted text-xs text-right" style={tabular}>{s.caption.length} / 200</Text>
-        </Box>
-      </ScrollView>
-
-      <Box className="flex-row gap-gap items-center px-screen-x py-row bg-background border-t-hairline border-separator">
-        <Pressable
-          className="flex-row gap-gap bg-surface border border-border rounded-pill px-section items-center justify-center"
-          style={TAP}
-          onPress={() => player.playClip(props.episode, s.range)}
-          accessibilityRole="button"
-          accessibilityLabel="Preview"
-        >
-          <Icon name="play" size={14} color={c.text} />
-          <Text className="text-text text-body font-bold">Preview</Text>
-        </Pressable>
-        <Pressable
-          className={`flex-1 bg-primary rounded-pill px-section items-center justify-center ${blocked && !props.saving ? 'opacity-40' : ''}`}
-          style={TAP}
-          disabled={blocked}
-          onPress={() => props.onSave(s)}
-          accessibilityRole="button"
-          accessibilityState={{ disabled: blocked, busy: props.saving === true }}
-        >
-          <BusyContent busy={props.saving === true} barClassName="bg-onPrimary">
-            <Text className="text-onPrimary text-body font-bold">Save</Text>
-          </BusyContent>
-        </Pressable>
-      </Box>
+  const r = size / 2 + COMPOSER.arcOutset;
+  const circ = 2 * Math.PI * r;
+  const arcLen = shares ? Math.max(COMPOSER.arcMin, shares.to - shares.from) * circ : 0;
+  const nudgeRow = (edge: 'start' | 'end') => (
+    <Box className="flex-row" style={{ gap: COMPOSER.nudgeGap }}>
+      <Chip label="−5 s" spoken={`${edge === 'start' ? 'Start' : 'End'} 5 seconds earlier`} onPress={() => setS(nudgeEdge(s, edge, -1))} />
+      <Chip label={edge === 'start' ? 'Start here' : 'End here'} spoken={edge === 'start' ? 'Start here' : 'End here'} onPress={() => setS(edge === 'start' ? startHere(s, position) : endHere(s, position))} />
+      <Chip label="+5 s" spoken={`${edge === 'start' ? 'Start' : 'End'} 5 seconds later`} onPress={() => setS(nudgeEdge(s, edge, 1))} />
     </Box>
+  );
+
+  const extra = (
+    <>
+      {s.problem ? <Type step="note" className="text-hotText" accessibilityLiveRegion="polite">{problemText[s.problem]}</Type> : null}
+      <Input className="bg-raise2 border-0 h-auto" style={{ height: COMPOSER.field, borderRadius: radius.input, paddingHorizontal: 0 }}>
+        <InputField
+          value={s.caption}
+          onChangeText={(t: string) => setS(setCaption(s, t))}
+          placeholder="Caption (optional)"
+          placeholderTextColor={colour.text3}
+          maxLength={COMPOSER.caption}
+          accessibilityLabel="Caption"
+          returnKeyType="done"
+          className="text-text text-pulse-row"
+          style={{ paddingHorizontal: COMPOSER.fieldPad }}
+        />
+      </Input>
+      <Box className="flex-row" style={{ gap: spacing.row - 2 }}>
+        <Box className="flex-1"><PulseButton label="Preview" kind="quiet" icon="play" onPress={() => player.playClip(props.episode, s.range)} full /></Box>
+        <Box className="flex-1"><PulseButton label="Save" kind="light" onPress={() => props.onSave(s)} disabled={blocked && !props.saving} busy={props.saving} full /></Box>
+      </Box>
+    </>
+  );
+
+  return (
+    <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <PushedPage title="New clip" subtitle={`From ${props.episode.title} · now at ${mmss(position)}`} tone="none" extra={extra} extraAbove={COMPOSER.field + COMPOSER.buttons + 2 * spacing.row}>
+        {(layout) => (
+          <Box className="flex-1" testID="clip-composer">
+            <PlayerBackdrop feedUrl={props.episode.feedUrl} top={-60} opacity={0.5} />
+            <Box className="items-center" style={{ paddingTop: layout.top + COMPOSER.ringTop }}>
+              <Box style={{ width: size, height: size }}>
+                <Ring heat={heat.buckets ?? NO_HEAT} progress={duration ? Math.min(1, position / duration) : 0} size={size} knob={false} pins={[]}>
+                  <Artwork url={props.episode.artworkUrl} size={Math.round(size * 0.62)} name={props.episode.showTitle} rounded="pill" />
+                </Ring>
+                {shares ? (
+                  <Svg width={2 * r + COMPOSER.arc} height={2 * r + COMPOSER.arc} style={{ position: 'absolute', left: size / 2 - r - COMPOSER.arc / 2, top: size / 2 - r - COMPOSER.arc / 2, transform: [{ rotate: `${shares.from * 360 - 90}deg` }] }} pointerEvents="none">
+                    <Circle cx={r + COMPOSER.arc / 2} cy={r + COMPOSER.arc / 2} r={r} fill="none" stroke={colour.text} strokeWidth={COMPOSER.arc} strokeLinecap="round" strokeDasharray={`${arcLen.toFixed(1)} ${(circ * 2).toFixed(1)}`} />
+                  </Svg>
+                ) : null}
+                {/* The grab layer: a bit bigger than the ring so the arc outside it can be reached. */}
+                <Box testID="clip-range" {...pan.panHandlers} accessible accessibilityRole="adjustable" accessibilityLabel={spoken} className="absolute" style={{ left: -COMPOSER.arc, top: -COMPOSER.arc, width: size + 2 * COMPOSER.arc, height: size + 2 * COMPOSER.arc }} />
+              </Box>
+            </Box>
+            <Box className="flex-row items-center justify-between" style={{ marginTop: COMPOSER.rowGap, paddingHorizontal: gutter(width) }}>
+              <Box style={{ gap: spacing.gap - 2 }}>
+                <Type step="edge" className="text-text3">START</Type>
+                <TimestampChip text={mmss(s.range.startMs)} solid />
+              </Box>
+              <Box className="items-center" style={{ gap: spacing.hair }}>
+                <Type step="hero" className="text-text" style={clipsType.length} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">{`${length} s`}</Type>
+                <Type step="edge" className="text-text3">LENGTH</Type>
+              </Box>
+              <Box className="items-end" style={{ gap: spacing.gap - 2 }}>
+                <Type step="edge" className="text-text3">END</Type>
+                <TimestampChip text={mmss(s.range.endMs)} solid />
+              </Box>
+            </Box>
+            <Box style={{ marginTop: spacing.block, paddingHorizontal: gutter(width), gap: COMPOSER.nudgeGap }}>
+              {nudgeRow('start')}
+              {nudgeRow('end')}
+            </Box>
+          </Box>
+        )}
+      </PushedPage>
+    </KeyboardAvoidingView>
+  );
+}
+
+/** A 36 chip of a nudge row (raise fill, a 1 line, Geist 600 13), a 48 target. */
+function Chip(props: { label: string; spoken: string; onPress: () => void }): React.ReactElement {
+  return (
+    <Pressable onPress={props.onPress} accessibilityRole="button" accessibilityLabel={props.spoken} hitSlop={6} className="flex-1 items-center justify-center bg-raise border border-line" style={{ height: COMPOSER.chip, borderRadius: COMPOSER.chip / 2 }}>
+      <Type step="caption" className="text-text font-semibold">{props.label}</Type>
+    </Pressable>
   );
 }

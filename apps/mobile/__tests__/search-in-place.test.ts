@@ -64,7 +64,8 @@ it('only leaf pages are modals in the root stack', () => {
 // tabs layout is navigator structure — with expo-router's Tabs and the host mocked, a render would only
 // re-read the same JSX nesting.
 it('Discover opens Search in place, inside the tab screen, not as a route', () => {
-  const discover = readFileSync(join(APP, '(tabs)', 'index.tsx'), 'utf8');
+  // M31 T025: Home is split; the handler that opens Search lives in useDiscoverPage.ts (the screen only joins the pieces).
+  const discover = [readFileSync(join(APP, '(tabs)', 'index.tsx'), 'utf8'), readFileSync(join(APP, '..', 'src', 'ui', 'discover', 'useDiscoverPage.ts'), 'utf8')].join('\n');
   expect(discover).toMatch(/search\.open\(/);
   expect(discover).not.toMatch(/pathname: '\/search'/);
   const tabs = readFileSync(join(APP, '(tabs)', '_layout.tsx'), 'utf8');

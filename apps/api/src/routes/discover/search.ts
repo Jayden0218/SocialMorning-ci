@@ -12,6 +12,7 @@ import { hiddenFeedUrls } from '../../db/repos/safety/moderation.ts';
 import { hiddenEpisodeIds } from '../../db/repos/studio/hidden-episodes.ts';
 import { statsFor } from '../../db/repos/discover/discover-extras.ts';
 import { createdShowsMatching, peopleMatching } from '../../db/repos/discover/search-local.ts';
+import { log } from '../../log.ts';
 
 /** M21 T080: `since=30d|180d` keeps episodes published in that many days; one without a date is left out. */
 export const SINCE_DAYS = { '30d': 30, '180d': 180 } as const;
@@ -81,7 +82,7 @@ export function createSearchRoute() {
     try {
       const stats = await statsFor(db, episodes.map((e) => e.id));
       for (const e of episodes) { const s = stats.get(e.id); if (s) e.stats = s; }
-    } catch (err) { console.warn(`[search] stats: ${err instanceof Error ? err.message : String(err)}`); }
+    } catch (err) { log.warn('search_stats_failed', { error: err }); }
   }
   return c.json({ shows, episodes, episodeSearch: episodesR.status === 'fulfilled' ? 'ok' : 'unavailable', source: { shows: 'apple' } });
 });

@@ -5,23 +5,29 @@
  * owner's IP location as a country (two letters, never more — guard G-I1), and since when it is
  * claimed. The feed address is shown in full with a Copy button. Offline, the page still shows
  * the feed address (Principle IV) and says the rest could not load.
+ *
+ * M31 W3-A (T040; design-pulse2 `show-info--screen`, `-loading`, `-error`, `toast--show-info`; layout Panel): a pushed page
+ * (`PushedPage`: the glow, the title bar low — "Show info", the show's name, back). The tiles start 70 under the top, the edge
+ * label "Feed" on the left, content 28 in. Tile 1: Feed address with the address under it and a Copy pill ("Feed address
+ * copied."). Tile 2: Owner ("Made in the SocialNet Studio" / "Claimed by its owner" / "A public podcast feed, not claimed
+ * here"), Claimed on / Made on, Owner's IP location (or "Not known"). The owner's name in the drawing is not in the app's data
+ * (the server answers the kind, the country and the date only), so the Owner row has the kind alone. While the lookup is slow the
+ * feed tile shows at once (it is on the phone) and the owner tile breathes as a ghost; a failed lookup is an inline error tile and
+ * the feed address still works — leaving and returning retries.
  */
 import { useEffect, useState } from 'react';
 import { Clipboard } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { ScrollView } from '@/ui/lib/scroll-view';
-import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { PageHeader } from '@/ui/kit/PageHeader';
-import { Card, CardDivider } from '@/ui/kit/Card';
-import { Loader } from '@/ui/kit/Loader';
-import { Icon } from '@/ui/kit/Icon';
-import { TAP } from '@/ui/kit/TopBar';
-import { useColours } from '@/ui/kit/useColours';
+import { EdgeLabel } from '@/ui/kit/EdgeLabel';
+import { PulseButton } from '@/ui/kit/PulseButton';
+import { PushedPage } from '@/ui/kit/PushedPage';
 import { useSocial } from '@/social/context';
 import { useStores, useToast } from '@/ui/shell/providers';
-import { shortDate } from '@/ui/kit/format';
+import { dayMonth } from '@/ui/kit/format';
+import { InfoError, InfoGhost, InfoGroup, type InfoRowSpec } from '@/ui/show/InfoGroup';
+import { EPISODE } from '@/ui/episode/measures';
 import type { ShowInfo } from '@/social/api';
 
 export const OWNER_LABEL: Record<ShowInfo['ownerType'], string> = {
@@ -41,20 +47,18 @@ export function countryName(code: string | null): string {
   }
 }
 
-function Line(props: { label: string; value: string }): React.ReactElement {
-  return (
-    <Box className="py-row gap-0.5" accessible accessibilityLabel={`${props.label}: ${props.value}`}>
-      <Text className="text-muted text-xs">{props.label}</Text>
-      <Text className="text-text text-body">{props.value}</Text>
-    </Box>
-  );
+/** The owner tile's rows for an answer (pure — tested). */
+export function ownerRows(info: ShowInfo): InfoRowSpec[] {
+  const rows: InfoRowSpec[] = [{ icon: 'person-outline', title: 'Owner', detail: OWNER_LABEL[info.ownerType] }];
+  if (info.claimedAt) rows.push({ icon: 'time-outline', title: info.ownerType === 'studio' ? 'Made on' : 'Claimed on', detail: dayMonth(Date.parse(info.claimedAt), true) });
+  if (info.ownerType !== 'feed') rows.push({ icon: 'pin', title: "Owner's IP location", detail: countryName(info.ownerCountry) });
+  return rows;
 }
 
 export default function ShowInfoScreen(): React.ReactElement {
   const params = useLocalSearchParams<{ feedUrl: string }>();
   const feedUrl = decodeURIComponent(params.feedUrl ?? '');
   const stores = useStores();
-  const c = useColours(stores.settings);
   const toast = useToast();
   const { api } = useSocial();
   const [info, setInfo] = useState<ShowInfo | 'failed' | undefined>();
@@ -64,40 +68,29 @@ export default function ShowInfoScreen(): React.ReactElement {
     return () => { live = false; };
   }, [api, feedUrl]);
   const title = stores.feeds.getShow(feedUrl)?.title;
+  const feedTile: InfoRowSpec = {
+    icon: 'globe-outline',
+    title: 'Feed address',
+    detail: feedUrl,
+    selectable: true,
+    right: <PulseButton label="Copy" accessibilityLabel="Copy the feed address" kind="quiet" onPress={() => { Clipboard.setString(feedUrl); toast('Feed address copied.'); }} />,
+  };
   return (
-    <>
-      <PageHeader title="Show info" {...(title ? { subtitle: title } : {})} />
-      <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pb-section gap-section">
-        <Card>
-          {info === undefined ? <Box className="items-center py-row"><Loader /></Box> : info === 'failed' ? (
-            <Text className="text-muted text-body py-row">Couldn't load who owns this show. Check your connection and try again.</Text>
-          ) : (
-            <>
-              <Line label="Owner" value={OWNER_LABEL[info.ownerType]} />
-              {info.ownerType === 'feed' ? null : (
-                <>
-                  <CardDivider />
-                  <Line label="Owner's IP location" value={countryName(info.ownerCountry)} />
-                </>
-              )}
-              {info.claimedAt ? (
-                <>
-                  <CardDivider />
-                  <Line label={info.ownerType === 'studio' ? 'Made on' : 'Claimed on'} value={shortDate(Date.parse(info.claimedAt))} />
-                </>
-              ) : null}
-            </>
-          )}
-        </Card>
-        <Card>
-          <Text className="text-muted text-xs pt-row">Feed address</Text>
-          <Text className="text-text text-body py-1" selectable>{feedUrl}</Text>
-          <Pressable onPress={() => { Clipboard.setString(feedUrl); toast('Feed address copied.'); }} accessibilityRole="button" accessibilityLabel="Copy the feed address" className="flex-row items-center gap-gap self-start" style={TAP}>
-            <Icon name="copy-outline" size={18} color={c.accent} />
-            <Text className="text-accent text-body font-bold">Copy</Text>
-          </Pressable>
-        </Card>
-      </ScrollView>
-    </>
+    <PushedPage title="Show info" {...(title ? { subtitle: title } : {})}>
+      {(layout) => (
+        <ScrollView testID="show-info-scroll" className="flex-1" contentContainerStyle={{ paddingBottom: layout.reserve }}>
+          {/* The tiles start 70 under the top of the drawn 50 pt status bar: 20 under the bar. */}
+          <Box style={{ marginTop: layout.top + EPISODE.infoTop - EPISODE.statusBar }}>
+          <EdgeLabel label="Feed" top={0} />
+          <Box testID="show-info-tiles" className="gap-row" style={{ marginLeft: EPISODE.lane, marginRight: EPISODE.right }}>
+            <InfoGroup rows={[feedTile]} />
+            {info === undefined ? <InfoGhost rows={4} /> : info === 'failed' ? (
+              <InfoError>Couldn't load who owns this show. Check your connection and try again.</InfoError>
+            ) : <InfoGroup rows={ownerRows(info)} />}
+          </Box>
+          </Box>
+        </ScrollView>
+      )}
+    </PushedPage>
   );
 }

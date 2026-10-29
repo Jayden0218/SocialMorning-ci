@@ -7,13 +7,14 @@
  * statement that verification needs; empty until ASSETLINKS_SHA256 is set (T031).
  */
 import { Hono } from 'hono';
+import { mmss } from '@socialmorning/social-core';
 import type { AuthEnv } from '../auth/session.ts';
 import { getClip } from '../db/repos/social/clips.ts';
 
 export const APP_PACKAGE = 'app.socialmorning.mobile';
 
 export const esc = (s: string) => s.replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]!);
-export const mmss = (ms: number) => { const s = Math.floor(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+export { mmss };
 
 export function page(title: string, body: string): string {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)} — SocialNet</title>

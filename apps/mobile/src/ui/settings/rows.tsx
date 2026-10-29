@@ -10,7 +10,7 @@
 import { Link } from 'expo-router';
 import { Pressable } from '@/ui/lib/pressable';
 import { Toggle } from '@/ui/kit/Toggle';
-import { Text } from '@/ui/lib/text';
+import { Text } from '@/ui/kit/Text';
 import { Box } from '@/ui/lib/box';
 import { colour, size } from '@/design';
 import { useStores } from '@/ui/shell/providers';
@@ -28,7 +28,7 @@ function Body(props: { icon: IconName; label: string; line?: string; value?: str
       <Icon name={props.icon} size={24} color={c.accent} />
       <Box className="flex-1">
         <Text className={props.danger ? 'text-accent text-body font-medium' : 'text-text text-body font-medium'}>{props.label}</Text>
-        {props.line ? <Text className="text-muted text-xs mt-0.5">{props.line}</Text> : null}
+        {props.line ? <Text className="text-muted text-xs mt-hair">{props.line}</Text> : null}
       </Box>
       {props.value ? <Text className="text-muted text-xs" numberOfLines={1}>{props.value}</Text> : null}
     </>
@@ -41,7 +41,7 @@ export function LinkRow(props: { href: string; icon: IconName; label: string; li
   const spoken = [props.label, props.value, props.line].filter(Boolean).join(', ');
   return (
     <Link href={props.href as never} asChild>
-      <Pressable accessibilityRole="link" accessibilityLabel={spoken} className="flex-row items-center gap-section py-1.5" style={TAP}>
+      <Pressable accessibilityRole="link" accessibilityLabel={spoken} className="flex-row items-center gap-section py-hair" style={TAP}>
         <Body {...props} />
         <Icon name="chevron-forward" size={18} color={c.muted} />
       </Pressable>
@@ -54,7 +54,7 @@ export function ActionRow(props: { onPress: () => void; icon: IconName; label: s
   const c = useColours(stores.settings);
   const spoken = [props.label, props.value, props.line].filter(Boolean).join(', ');
   return (
-    <Pressable onPress={props.onPress} accessibilityRole="button" accessibilityLabel={spoken} className="flex-row items-center gap-section py-1.5" style={TAP}>
+    <Pressable onPress={props.onPress} accessibilityRole="button" accessibilityLabel={spoken} className="flex-row items-center gap-section py-hair" style={TAP}>
       <Body {...props} />
       <Icon name="chevron-forward" size={18} color={c.muted} />
     </Pressable>
@@ -63,7 +63,7 @@ export function ActionRow(props: { onPress: () => void; icon: IconName; label: s
 
 export function SwitchRow(props: { icon: IconName; label: string; line?: string; value: boolean; onChange: (v: boolean) => void; disabled?: boolean }): React.ReactElement {
   return (
-    <Box className="flex-row items-center gap-section py-1.5" style={TAP}>
+    <Box className="flex-row items-center gap-section py-hair" style={TAP}>
       <Body icon={props.icon} label={props.label} {...(props.line ? { line: props.line } : {})} />
       {/* M16a T004: the app's own toggle, not the iOS switch. */}
       <Toggle value={props.value} onChange={props.onChange} label={props.label} {...(props.disabled !== undefined ? { disabled: props.disabled } : {})} />
@@ -73,5 +73,5 @@ export function SwitchRow(props: { icon: IconName; label: string; line?: string;
 
 export function Divider(): React.ReactElement {
   // M12 FR-051: 16 pt between sections (8 + 8 around the hairline; was 12 + 12).
-  return <Box className="border-b-hairline border-separator my-2" />;
+  return <Box className="border-b-hairline border-separator my-gap" />;
 }
