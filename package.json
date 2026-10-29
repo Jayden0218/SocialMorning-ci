@@ -25,6 +25,9 @@
     },
     "react-native-android-widget": {
       "expo": "58.0.0-preview.3"
+    },
+    "@vercel/cli-config": {
+      "zod": "4.6.7"
     }
   },
   "devDependencies": {
