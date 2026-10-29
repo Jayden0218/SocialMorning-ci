@@ -81,7 +81,7 @@ jest.mock('@/playback/expo-audio-adapter', () => ({
 }));
 jest.mock('@/storage/playable', () => ({ toPlayable: () => ({ id: 'e1', url: 'https://a/x.mp3', title: 't', showTitle: 's' }) }));
 
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { colour } from '@/design';
 import { PlayerProvider, createPlayerRuntime } from '@/playback/store';
@@ -495,12 +495,24 @@ describe('the voice block and the drawn icons', () => {
     expect(voiceWave(5000)).toHaveLength(100);
     expect(Math.min(...voiceWave(5000))).toBeGreaterThanOrEqual(0.15);
   });
+  // The drawing lives in the private specs/ folder, which the public CI mirror never gets; m31/kit-icons.json is its copy of
+  // these six paths, and the next test keeps the copy equal to kit.js wherever kit.js exists.
+  const KIT = path.join(__dirname, '../../../specs/033-m31-redesign/design-pulse2/kit.js');
+  const kitShape = (kit: string, name: string): string => {
+    const m = new RegExp(`\\b${name}: '([^']*)'`).exec(kit);
+    if (!m) throw new Error(`kit.js has no ${name}`);
+    return m[1]!;
+  };
+  const COPY = JSON.parse(readFileSync(path.join(__dirname, '../m31/kit-icons.json'), 'utf8')).icons as Record<string, string>;
+  (existsSync(KIT) ? it : it.skip)('m31/kit-icons.json is the same as kit.js', () => {
+    const kit = readFileSync(KIT, 'utf8');
+    for (const name of Object.keys(COPY)) expect([name, COPY[name]]).toEqual([name, kitShape(kit, name)]);
+  });
   it('the icons added for the comments pages are the drawing\'s own paths (kit.js)', () => {
-    const kit = readFileSync(path.join(__dirname, '../../../specs/033-m31-redesign/design-pulse2/kit.js'), 'utf8');
     const shape = (name: string): string => {
-      const m = new RegExp(`\\b${name}: '([^']*)'`).exec(kit);
-      if (!m) throw new Error(`kit.js has no ${name}`);
-      return m[1]!.replace(/"/g, '\\"');
+      const d = existsSync(KIT) ? kitShape(readFileSync(KIT, 'utf8'), name) : COPY[name];
+      if (d === undefined) throw new Error(`m31/kit-icons.json has no ${name}`);
+      return d.replace(/"/g, '\\"');
     };
     for (const [ionicon, drawn] of [['mic-outline', 'mic'], ['image-outline', 'image'], ['send', 'send'], ['lock-closed-outline', 'lock'], ['flag-outline', 'flag'], ['pin', 'pin']] as const) {
       expect([ionicon, JSON.stringify(DRAWN_ICONS[ionicon]).replace(/^"|"$/g, '')]).toEqual([ionicon, shape(drawn)]);
