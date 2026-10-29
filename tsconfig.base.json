@@ -1,0 +1,12 @@
+{
+  // M32 T056 (review D13): the settings every package and app repeated. Each tsconfig extends this and adds only what is its own.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noEmit": true,
+    "skipLibCheck": true
+  }
+}

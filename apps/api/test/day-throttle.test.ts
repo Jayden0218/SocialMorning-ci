@@ -76,8 +76,12 @@ test('listensSince survives a throttled burst and returns the same marks', async
 test('the cold sharedPool build survives a throttled index', async () => {
   const t = await world();
   try {
-    const ref = await pool.sharedPool(t.store);
+    const ref = await pool.sharedPool(t.store); // a live build; since M31 it also stores a snapshot
     pool.resetDiscoverPool();
+    // The snapshot would answer a cold build: move the clock past its 10 minutes so the build is live (and throttled) again.
+    const clocked = t.store as unknown as { clock: { now(): number } };
+    const real = clocked.clock.now.bind(clocked.clock);
+    clocked.clock = { now: () => real() + pool.SNAPSHOT_TTL + 1 };
     const s = throttled(t.store, 6, 'RequestLimitExceeded');
     const got = await pool.sharedPool(s);
     assert.equal(s.st.thrown, 6);

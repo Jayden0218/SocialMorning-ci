@@ -62,23 +62,26 @@ test('a snapshot that is too big or too old is not used: the live build runs (an
   const t = await world();
   try {
     assert.equal(typeof (pool as Record<string, unknown>)['warmDiscoverPool'], 'function');
-    const reference = await hunt(t);
+    const reference = await hunt(t); // the live build; since M31 it also stores a snapshot, which these steps must not read
+    const store = t.store as unknown as { clock: { now(): number } };
+    const real = store.clock.now.bind(store.clock);
+    let skew = pool.SNAPSHOT_TTL + 1; // the reference build's snapshot is now too old
+    store.clock = { now: () => real() + skew };
     // Too big: the job skips writing it.
     pool.resetDiscoverPool();
     const big = await pool.warmDiscoverPool(t.store, { maxSnapshotBytes: 10 });
     assert.equal(big.snapshot, 'too-big');
     pool.resetDiscoverPool();
     const ops = counting(t.store as never);
+    // The live build below stores a snapshot again (M31): the checks that follow move the clock past it.
     const a = await hunt(t);
-    assert.equal(ops.snap().scan, 1, 'no snapshot: the live build Scans once');
+    assert.equal(ops.snap().scan, 1, 'no usable snapshot: the live build Scans once');
     assert.deepEqual(a.items.map((i) => i.id), reference.items.map((i) => i.id));
     // Too old: written, then the clock moves past its 10 minutes.
     pool.resetDiscoverPool();
     assert.equal((await pool.warmDiscoverPool(t.store)).snapshot, 'written');
     pool.resetDiscoverPool();
-    const store = t.store as unknown as { clock: { now(): number } };
-    const real = store.clock.now.bind(store.clock);
-    store.clock = { now: () => real() + pool.SNAPSHOT_TTL + 1 };
+    skew += pool.SNAPSHOT_TTL + 1;
     ops.reset();
     await hunt(t);
     assert.equal(ops.snap().scan, 1, 'an old snapshot: the live build Scans once');

@@ -12,8 +12,8 @@
  *   as a snapshot in sm-cache (`discover:pool:v1`, chunked by the cache layer when over 350 KB). A cold API instance
  *   reads that snapshot instead of Scanning the catalogue and reading 30 days x 9 partitions — as long as it is younger
  *   than `SNAPSHOT_TTL` (10 minutes). The job's own memory does NOT warm the API Lambda (separate instances); only the
- *   stored snapshot crosses instances. The job runs hourly, so the snapshot covers the first 10 minutes after each run;
- *   later cold starts build live, as before. A snapshot over `SNAPSHOT_MAX_BYTES` (gzipped) is not written, and one that
+ *   stored snapshot crosses instances. The job runs hourly; a LIVE build in the API also stores the snapshot (M31, once per build, errors swallowed), so
+ *   a cold start finds a fresh one for 10 minutes after any build. A snapshot over `SNAPSHOT_MAX_BYTES` (gzipped) is not written, and one that
  *   cannot be read, or is too old, is ignored: the live build is the fallback in every case.
  * - A pool read from the snapshot keeps the snapshot's own `builtAt` as its `at`, so the 5-minute memory TTL is measured from when the
  *   data was built (not from when this instance read it): so data from the snapshot is served for at most the rest of POOL_TTL, then rebuilt live.
@@ -63,7 +63,26 @@ async function readSnapshot(store: Store): Promise<Pool | undefined> {
   }
 }
 
-const build = async (store: Store): Promise<Pool> => (await readSnapshot(store)) ?? buildLive(store);
+/** Stores `p` as the snapshot unless its gzip is over `max`; a failed write is reported, never thrown. */
+async function storeSnapshot(store: Store, p: Pool, max: number): Promise<'written' | 'too-big' | 'failed'> {
+  const snap: Snapshot = { builtAt: p.at, rows: [...p.rows], plays: [...p.plays] };
+  if (gzipSync(Buffer.from(JSON.stringify(snap), 'utf8')).length > max) return 'too-big';
+  try {
+    await writeEntry(store, SNAPSHOT_KEY, snap, p.at);
+    return 'written';
+  } catch {
+    return 'failed';
+  }
+}
+
+/** The snapshot if fresh; else a live build, which is then stored (once per build) so the next cold instance finds a fresh snapshot all hour, not only after the hourly job. */
+const build = async (store: Store): Promise<Pool> => {
+  const fromSnapshot = await readSnapshot(store);
+  if (fromSnapshot) return fromSnapshot;
+  const live = await buildLive(store);
+  await storeSnapshot(store, live, SNAPSHOT_MAX_BYTES);
+  return live;
+};
 
 /**
  * The hourly job's warm-up: a live build, kept in this process too, and stored as the snapshot cold instances read.
@@ -73,14 +92,7 @@ export async function warmDiscoverPool(store: Store, opts: { maxSnapshotBytes?: 
   const p = await buildLive(store);
   const e = entries.get(store.tables.main) ?? entries.set(store.tables.main, {}).get(store.tables.main)!;
   e.pool = p;
-  const snap: Snapshot = { builtAt: p.at, rows: [...p.rows], plays: [...p.plays] };
-  if (gzipSync(Buffer.from(JSON.stringify(snap), 'utf8')).length > (opts.maxSnapshotBytes ?? SNAPSHOT_MAX_BYTES)) return { rows: p.rows.length, snapshot: 'too-big' };
-  try {
-    await writeEntry(store, SNAPSHOT_KEY, snap, p.at);
-    return { rows: p.rows.length, snapshot: 'written' };
-  } catch {
-    return { rows: p.rows.length, snapshot: 'failed' };
-  }
+  return { rows: p.rows.length, snapshot: await storeSnapshot(store, p, opts.maxSnapshotBytes ?? SNAPSHOT_MAX_BYTES) };
 }
 
 /** The pool for this table set: the copy if younger than POOL_TTL, else a rebuild (shared by concurrent callers). */
